@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" >
+  <Product
+      Id="*"
+      Name="GAMADV-X"
+      Language="1033"
+      Version="$(env.GAMVERSION)"
+      Manufacturer="Ross Scroggs - ross.scroggs@gmail.com"
+      UpgradeCode="654330A2-1074-4020-A1E4-02A3205CFB83">
+    <Package
+        InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+
+    <MajorUpgrade
+        DowngradeErrorMessage=
+            "A newer version of [ProductName] is already installed."
+        Schedule="afterInstallExecute" />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="LICENSE.rtf" />
+    <UIRef Id="WixUI_InstallDir" />
+
+    <Feature
+        Id="gam"
+        Title="GAMADV-X"
+        Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+    </Feature>
+  </Product>
+
+  <Fragment>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ROOTDRIVE">
+          <Directory Id="INSTALLFOLDER" Name="GAMADV-X" />
+        </Directory>
+    </Directory>
+  </Fragment>
+
+  <Fragment>
+    <!-- Group of components that are our main application items -->
+    <ComponentGroup
+        Id="ProductComponents"
+        Directory="INSTALLFOLDER"
+        Source="gam-64">
+      <Component Id="gam_exe" Guid="4cb29c61-7c9c-455c-a10c-bfcb4c2a503b">
+        <File Name="gam.exe" KeyPath="yes" />
+        <Environment Id="PATH" Name="PATH" Value="[INSTALLFOLDER]" Permanent="yes" Part="last" Action="set" System="yes" />
+      </Component>
+      <Component Id="license" Guid="f1bedd0c-fd15-4076-8851-02633df8c83a">
+        <File Name="LICENSE" KeyPath="yes" />
+      </Component>
+      <Component Id="whatsnew_txt" Guid="ac509014-3ac2-4053-a1da-ef3b0f693346">
+        <File Name="whatsnew.txt" KeyPath="yes" />
+      </Component>
+      <Component Id="gam_setup_bat" Guid="03116cc7-f749-4a81-868d-b6d93839666c">
+        <File Name="gam-setup.bat" KeyPath="yes" />
+      </Component>
+      <Component Id="GamCommands_txt" Guid="76883a93-02e4-4d90-a406-f819e0d85a77">
+        <File Name="GamCommands.txt" KeyPath="yes" />
+      </Component>
+      <Component Id="GamAuthorization_txt" Guid="cdacfc2f-66f2-45ac-8983-7915d8e1a2e0">
+        <File Name="GamAuthorization.txt" KeyPath="yes" />
+      </Component>
+      <Component Id="GamConfig_txt" Guid="6046edaa-3c14-48a8-91e0-24f10ffb7603">
+        <File Name="GamConfig.txt" KeyPath="yes" />
+      </Component>
+      <Component Id="GamContacts_txt" Guid="49d70bd5-0b31-4b72-85da-253a047ca201">
+        <File Name="GamContacts.txt" KeyPath="yes" />
+      </Component>
+      <Component Id="GamDataSelection_txt" Guid="a4e3476b-4c4f-4c38-a61b-aeb75b5c009b">
+        <File Name="GamDataSelection.txt" KeyPath="yes" />
+      </Component>
+      <Component Id="GamSitess_txt" Guid="075bad2d-27b7-4ad5-a2cf-c18c7d201e88">
+        <File Name="GamSites.txt" KeyPath="yes" />
+      </Component>
+      <Component Id="GamUpdate_txt" Guid="574c6cd1-d79d-4c2c-bfc1-f104f902d3f9">
+        <File Name="GamUpdate.txt" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <Fragment>
+    <InstallUISequence>
+      <ExecuteAction />
+      <Show Dialog="WelcomeDlg" Before="ProgressDlg" />
+    </InstallUISequence>
+  </Fragment>
+</Wix>

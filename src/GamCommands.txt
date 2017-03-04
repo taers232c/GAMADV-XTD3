@@ -1,0 +1,1797 @@
+This document describes the GAM command line syntax in  modified BNF, see https://en.wikipedia.org/wiki/Backus-Naur_Form
+Skip the History section and start reading at Introduction.
+
+Items on the command line are space separated, when an actual space character is required, it will be indicated by <Space>.
+If an item contains spaces, it should be surrounded by ".
+
+[] optional item
+() group items
+* item may appear zero or more times
++ item may appear one or more times
+| separates alternative items
+
+## Primitives
+
+<Character> ::= a single character
+<Digit> ::= 0|1|2|3|4|5|6|7|8|9
+<Number> ::= <Digit>+
+<Hex> ::= <Digit>|a|b|c|d|e|f|A|B|C|D|E|F
+<Space> ::= an actual space character
+<String> ::= a string of characters, surrounded by " if it contains spaces
+<FalseValues>= false|off|no|disabled|0
+<TrueValues> ::= true|on|yes|enabled|1
+
+<Charset> ::= ascii|mbcs|utf-8|utf-8-sig|utf-16|<String>
+<FileFormat> ::= csv|html|txt|tsv|jpeg|jpg|png|svg|pdf|rtf|pptx|xlsx|docx|odt|ods|openoffice|ms|microsoft|micro$oft
+<Language> ::= ar|bn|bg|ca|zh-CN|zh-TW|hr|cs|da|nl|en|en-GB|et|fi|fr|de|el|gu|iw|is|in|it|ja|kn|ko|lv|lt|ms|ml|mr|no|or|fa|pl|pt-BR|pt-PT|ro|ru|sr|sk|sl|es|sv|tl|ta|te|th|tr|uk|ur|vi
+<ProductID> ::=
+	Google-Apps|
+	Google-Chrome-Device-Management|
+	Google-Coordinate|
+	Google-Drive-storage|
+	Google-Vault
+<SKUID> ::=
+	gafb|gafw|basic|gsuitebasic|Google-Apps-For-Business|
+	gafg|gsuitegovernment|gsuitegov|Google-Apps-For-Government|
+	gams|postini|gsuitegams|gsuitepostini|gsuitemessagesecurity|Google-Apps-For-Postini|
+	gal|lite|gsuitelite|Google-Apps-Lite|
+	gau|unlimited|gsuitebusiness|Google-Apps-Unlimited|
+	gae|enterprise|gsuiteenterprise|1010020020|
+	chrome|cdm|googlechromedevicemanagement|Google-Chrome-Device-Management|
+	coordinate|googlecoordinate|Google-Coordinate|
+	drive20gb|20gb|googledrivestorage20gb|Google-Drive-storage-20GB|
+	drive50gb|50gb|googledrivestorage50gb|Google-Drive-storage-50GB|
+	drive200gb|200gb|googledrivestorage200gb|Google-Drive-storage-200GB|
+	drive400gb|400gb|googledrivestorage400gb|Google-Drive-storage-400GB|
+	drive1tb|1tb|googledrivestorage1tb|Google-Drive-storage-1TB|
+	drive2tb|2tb|googledrivestorage2tb|Google-Drive-storage-2TB|
+	drive4tb|4tb|googledrivestorage4tb|Google-Drive-storage-4TB|
+	drive8tb|8tb|googledrivestorage8tb|Google-Drive-storage-8TB|
+	drive16tb|16tb|googledrivestorage16tb|Google-Drive-storage-16TB|
+	vault|googlevault|Google-Vault|
+	vfe|googlevaultformeremployee|Google-Vault-Former-Employee
+
+## Basic items built from primitives
+
+<Boolean> ::= <TrueValues>|<FalseValues>
+<ByteCount> ::= <Number>[m|k|b]
+<CIDRnetmask> ::= <Number>.<Number>.<Number>.<Number>/<Number>
+<ColorHex> ::= #<Hex><Hex><Hex><Hex><Hex><Hex>
+<Year> ::= <Digit><Digit><Digit><Digit>
+<Month> ::= <Digit><Digit>
+<Day> ::= <Digit><Digit>
+<Hour> ::= <Digit><Digit>
+<Minute> ::= <Digit><Digit>
+<Second> ::= <Digit><Digit>
+<MilliSeconds> ::= <Digit><Digit><Digit>
+<Date> ::= <Year>-<Month>-<Day>
+<DateTime> ::= <Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute>
+<Time> ::= <Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute>:<Second>[.<MilliSeconds>](Z|(+|-(<Hour>:<Minute>)))
+<RegularExpression> ::= <Python Regular Expression, see: https://docs.python.org/2/library/re.html>
+<SiteName> ::= [a-z,0-9,-]+
+<UniqueID> ::= uid:<String>
+
+## Named items
+
+<AccessToken> ::= <String>
+<AspID> ::= <String>
+<CalendarACLScope> ::= [user:]<EmailAddress>|group:<EmailAddress>|domain[:<DomainName>]|default
+<CalendarColorIndex> ::== <Number in range 1-24>
+<CalendarItem> ::= <EmailAddress>|<String>
+<ClientID> ::= <String>
+<ContactID> ::= <String>
+<ContactGroupID> ::= id:<String>
+<ContactGroupName> ::= <String>
+<ContactGroupItem> ::= <ContactGroupID>|<ContactGroupName>
+<CourseAlias> ::= <String>
+<CourseID> ::= <Number>|d:<CourseAlias>
+<CourseParticipantType> ::= teacher|teachers|student|students
+<CrOSID> ::= <String>
+<CrOSItem> ::= <CrOSID>|(query:<QueryCrOS>)|(query <QueryCrOS>)
+<CustomerID> ::= <String>
+<DomainName> ::= <String>(.<String>)+
+<DriveFileACLRole> :: =commenter|editor|owner|reader|writer
+<DriveFileID> ::= <String>
+<DriveFileURL> :: = https://docs.google.com/a/<DomainName>/document/d/<DriveFileID>/<String>
+<DriveFileItem> ::= <DriveFileID>|<DriveFileURL>
+<DriveFileName> ::= <String>
+<DriveFolderID> ::= <String>
+<DriveFolderName> ::= <String>
+<DriveFilePermission> ::= anyone|anyonewithlink|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>|domainwithlink:<DomainName>;<DriveFileACLRole>
+<DriveFilePermissionID> ::= anyone|anyonewithlink|id:<String>
+<DriveFilePermissionIDorEmail> ::= <DriveFilePermissionID>|<EmailAddress>
+<EmailAddress> ::= <String>@<DomainName>
+<EmailItem> ::= <EmailAddress>|<UniqueID>|<String>
+<EventColorIndex> ::== <Number in range 1-11>
+<EventID> ::= <String>
+<FieldName> ::= <String>
+<FileName> ::= <String>
+<FileNamePattern> ::= <String>
+<FilterID> ::= <String>
+<GroupItem> ::= <EmailAddress>|<UniqueID>|<String>
+<GuardianItem> ::= <EmailAddress>|<UniqueID>|<String>
+<GuardianInvitationID> ::= <String>
+<HostName> ::= <String>
+<Key> ::= <String>
+<LabelID> ::= <String>
+<LabelName> ::= <String>
+<Marker> ::= <String>
+<MaximumNumberOfSeats> ::= <Number>
+<MessageID> ::= <String>
+<MobileID> ::= <String>
+<MobileItem> ::= <MobileID>|(query:<QueryMobile>)|(query <QueryMobile>)
+<NotificationID> ::= <String>
+<NumberOfSeats> ::= <Number>
+<OrgUnitID> ::= id:<String>
+<OrgUnitPath> ::= /|(/<String)+
+<OrgUnitItem> ::= <OrgUnitID>|<OrgUnitPath>
+<ParameterKey> ::= <String>
+<ParameterValue> ::= <String>
+<Password> ::= <String>
+<PrinterACLScope> ::= <UserTypeEntity>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>)|domain|everyone
+<PrinterID> ::= <String>
+<PrintJobAge> ::= <Number>[m|h|d]
+<PrintJobID> ::= <String>
+<PrintJobStatus> ::= done|error|held|in_progress|queued|submitted
+<PropertyKey> ::= <String>
+<PropertyValue> ::= <String>
+<QueryCalendar> ::= <String>
+<QueryContact> ::= <String> See: https://developers.google.com/google-apps/contacts/v3/reference#contacts-query-parameters-reference
+<QueryCrOS> ::= <String> See: https://support.google.com/chrome/a/answer/1698333?hl=en
+<QueryDriveFile> :: = <String> See: https://developers.google.com/drive/v2/web/search-parameters
+<QueryGmail> ::= <String> See: https://support.google.com/mail/answer/7190
+<QueryMobile> ::= <String> See: https://support.google.com/a/answer/1408863?hl=en#search
+<QueryPrinter> ::= <String> See: https://developers.google.com/cloud-print/docs/appInterfaces#search
+<QueryPrintJob> ::= <String> See: https://developers.google.com/cloud-print/docs/appInterfaces#parameters_3
+<QueryUser> :: = <String> See: https://developers.google.com/admin-sdk/directory/v1/guides/search-users
+<RequestID> ::= <String>
+<ResourceID> ::= <String>
+<SchemaName> ::= <String>
+<Section> ::= <String>
+<SiteACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|default
+<SiteItem> ::= [<DomainName>/]<SiteName>
+<S/MIMEID> ::= <String>	
+<StudentItem> ::= <EmailAddress>|<UniqueID>|<String>
+<Tag> ::= <String>
+<ThreadID> ::= <String>
+<TimeZone> ::= <String>
+<Title> ::= <String>
+<ToDriveAttributes> ::= (tdtitle <String>)|(tduser <EmailAddress>)|(tdparent id:<DriveFolderID>|<DriveFolderName>)|(tdtimestamp <Boolean> [tddaysoffset <Number>] [tdhoursoffset <Number])
+<TransferID> ::= <String>
+<URI> ::= <String>
+<URL> ::= <String>
+<UserItem> ::= <EmailAddress>|<UniqueID>|<String>
+
+## Lists of items
+
+Lists can be in the following formats:
+Items, separated by commas, without spaces or commas in the items themselves: item(,item)*
+Items, separated by spaces, without spaces or commas in the items themselves: "item( item)*"
+Items, separated by commas, with spaces or commas in the items themselves: "'it em'(,'it,em')*"
+Items, separated by spaces, with spaces or commas in the items themselves: "'it em'( 'it,em')*"
+
+<CalendarACLScopeList> ::== "<CalendarACLScope>(,<CalendarACLScope>)*"
+<CalendarList> ::= "<CalendarItem>(,<CalendarItem>)*"
+<CourseAliasList> ::= "<CourseAlias>(,<CourseAlias>)*"
+<ContactGroupList> ::= "<ContactGroupItem>(,<ContactGroupItem>)*"
+<ContactIDList> ::= "<ContactID>(,<ContactID>)*"
+<CourseIDList> ::= "<CourseID>(,<CourseID>)*"
+<CrOSList> ::= "<CrOSID>(,<CrOSID>)*"
+<DomainNameList> ::== "<DomainName>(,<DomainName>)*"
+<DriveFolderIDList> ::= "<DriveFolderID>(,<DriveFolderID>)*"
+<DriveFileList> ::= "<DriveFileItem>(,<DriveFileItem>)*"
+<DriveFilePermissionList> ::= "<DriveFilePermission>(,<DriveFilePermission)*"
+<DriveFilePermissionIDList> ::= "<DriveFilePermissionID>(,<DriveFilePermissionID>)*"
+<EmailAddressList> ::= "<EmailAddress>(,<EmailAddress>)*"
+<EventIDList> ::= "<EventID>(,<EventID>)*"
+<FieldNameList> ::= "<FieldName>(,<FieldName>)*"
+<FileFormatList> ::= "<FileFormat>(,<FileFormat)*"
+<FilterIDList> ::= "<FilterID>(,<FilterID>)*"
+<GroupList> ::= "<GroupItem>(,<GroupItem>)*"
+<LabelNameList> ::= "<LabelName>(,<LabelName)*"
+<MessageIDList> ::= "<MessageID>(,<MessageID>)*"
+<MobileList> ::= "<MobileID>(,<MobileID>)*"
+<OrgUnitList> ::== "<OrgUnitItem>(,<OrgUnitItem>)*"
+<PrinterACLScopeList> ::== "<PrinterACLScope>(,<PrinterACLScope>)*"
+<PrinterIDList> ::= "<PrinterID>(,<PrinterID>)*"
+<PrintJobIDList> ::= "<PrintJobID>(,<PrintJobID>)*"
+<ProductIDList> ::= "(<ProductID>|SKUID>)(,<ProductID>|SKUID>)*"
+<ResourceIDList> ::= "<ResourceID>(,<ResourceID>)*"
+<SchemaNameList> ::= "<SchemaName>(,<SchemaName>)*"
+<SiteACLScopeList> ::== "<SiteACLScope>(,<SiteACLScope>)*"
+<SiteList> ::= "<SiteItem>(,<SiteItem>)*"
+<SKUIDList> ="<SKUID>(,<SKUID>)*"
+<ThreadIDList> ::= "<ThreadID>(,<ThreadID>)*"
+<UserList> ::= "<UserItem>(,<UserItem>)*"
+
+## Collections of ChromeOs Devices
+
+Specify a collection of ChromeOS devices by directly specifying them or by specifiying items that will yield a list of ChromeOS devices.
+
+<CrOSTypeEntity> ::=
+		(all cros)|
+		(cros <CrOSList>)|
+		(crosfile <FileName> [charset <Charset>] [delimiter <String>])|
+		(croscsvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <String>])|
+		(crosquery <QueryCrOS>)|
+		(cros_ou|cros_org <OrgUnitItem>)|
+		(cros_ou_and_children|cros_org_and_children <OrgUnitItem>)|
+		(cros_ous|cros_orgs <OrgUnitList>)|
+		(cros_ous_and_children|cros_orgs_and_children <OrgUnitList>)|
+		(datafile cros <FileName> [charset <Charset>] [delimiter <String>])|
+		(csvkmd cros <FileName> [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>]
+			keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
+			subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
+			(matchfield <FieldName> <RegularExpression>)*
+			[datafield <FieldName>(:<FieldName)* [delimiter <String>]])|
+		(csvcros <FieldName>(:<FieldName>*))
+
+## Collections of Users
+
+Specify a collection of Users by directly specifying them or by specifiying items that will yield a list of users.
+
+<UserTypeEntity> ::=
+		(all users)|
+		(user <UserItem>)|
+		(users <UserList>)|
+		(group <GroupItem)|
+		(ou|org <OrgUnitItem)|
+		(ou_and_children|ou_and_child <OrgUnitItem>)|
+		(courseparticipants <CourseID>)|
+		(students <CourseID>)|
+		(teachers <CourseID>)|
+		(file <FileName> [charset <Charset>] [delimiter <String>])|
+		(csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <String>])|
+		(license|licenses|licence|licences <SKUIDList>)|
+		(query <QueryUser>)|
+		(groups <GroupList>)|
+		(group_users <GroupList> [members] [managers] [owners] [primarydomain] [domains <DomainNameList>] [recursive] end)|
+		(ous|orgs <OrgUnitList>)|
+		(ous_and_children|ous_and_child <OrgUnitList>)|
+		(courseparticipants <CourseIDList>)|
+		(students <CourseIDList>)|
+		(teachers <CourseIDList>)|
+		(datafile users|groups|ous|ous_and_children|courseparticipants|students|teachers <FileName> [charset <Charset>] [delimiter <String>])|
+		(csvkmd users|groups|ous|ous_and_children|courseparticipants|students|teachers <FileName> [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>]
+			keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
+			subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
+			(matchfield <FieldName> <RegularExpression>)*
+			[datafield <FieldName>(:<FieldName)* [delimiter <String>]])|
+		(csvdata <FieldName>(:<FieldName>*))
+
+## Collections of Items
+
+Specify a collection of items by directly specifying them; the item type is determined by context.
+
+<CSVkmdSelector> ::=
+		csvkmd <FileName> [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>]
+		       keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
+		       subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
+		       (matchfield <FieldName> <RegularExpression>)*
+		       [datafield <FieldName>(:<FieldName)* [delimiter <String>]]
+<CSVSubkeySelector> ::= csvsubkey <FieldName>
+<CSVDataSelector> ::= csvdata <FieldName>
+<FileSelector> ::= (file <FileName> [charset <Charset>])|(csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>])
+
+<CalendarACLScopeEntity>::= <CalendarACLScopeList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<CalendarEntity> ::= <CalendarList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<ContactEntity> ::= <ContactIDList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<ContactGroupEntity> ::= <ContactGroupList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<CourseAliasEntity> ::= <CourseAliasList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<CourseEntity> ::= <CourseIDList> | <FileSelector> | <CSVkmdSelector>
+<CrOSEntity> ::= <CrOSItem> | <CrOSList> | <FileSelector> | <CSVkmdSelector>
+<DomainNameEntity> ::= <DomainNameList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<DriveFileIDEntity> ::= (<DriveFileItem>) | (id <DriveFileItem>) | (id:<DriveFileItem>) | (ids <DriveFileList>) | (ids:<DriveFileList>)
+<DriveFileNameEntity> ::= (drivefilename <DriveFileName>) | (drivefilename:<DriveFileName>) | (anydrivefilename <DriveFileName>) | (anydrivefilename:<DriveFileName>)
+<DriveFileQueryEntity> ::= (query <QueryDriveFile>) | (query:<QueryDriveFile>)
+<DriveFileEntity> ::= <DriveFileIDEntity> | <DriveFileNameEntity> | <DriveFileQueryEntity> | root | <FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
+<DriveFilePermissionEntity> ::= <DriveFilePermissionList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<DriveFilePermissionIDEntity> ::= <DriveFilePermissionIDList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<EmailAddressEntity> ::= <EmailAddressList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<EventIDEntity> ::= <EventIDList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<FilterIDEntity> ::= <FilterIDList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<GroupEntity> ::= <GroupList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<MessageIDEntity> ::= <MessageIDList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<MobileEntity> ::= <MobileItem> | <MobileList> | <FileSelector> | <CSVkmdSelector>
+<OrgUnitEntity> ::= <OrgUnitList> | <FileSelector> | <CSVkmdSelector>
+<PrinterACLScopeEntity>::= <PrinterACLScopeList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<PrinterIDEntity> ::= <PrinterIDList> | <FileSelector> | <CSVkmdSelector>
+<PrintJobEntity> ::= <PrintJobIDList> | <FileSelector> | <CSVkmdSelector>
+<ResourceEntity> ::= <ResourceIDList> | <FileSelector> | <CSVkmdSelector>
+<SchemaEntity> ::= <SchemaNameList> | <FileSelector> | <CSVkmdSelector>
+<SiteACLScopeEntity>::= <SiteACLScopeList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<SiteEntity> ::= <SiteList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<ThreadIDEntity> ::= <ThreadIDList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<UserEntity> ::= <UserList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+
+# Meta Commands
+
+## Select a section from gam.cfg and process a GAM command using values from that section
+<Select> ::=
+	select <Section> [save] [verify]
+save
+    Set section = <Section> in the [DEFAULT] section and write configuration data to gam.cfg
+verify
+    Print the variable values for the selected section
+    Values are determined in this order: Selected section, DEFAULT section, Program default
+
+## Set variables in gam.cfg.
+
+<Config> ::=
+	config (<VariableName> [=] <Value)* [save] [verify]
+<VariableName> [=] <Value>
+    Set <VariableName> = <Value> in the current section
+    All <VariableNames> except section are allowed.
+    The = is optional but must be surrounded by spaces if included.
+save
+    Write configuration data to gam.cfg
+verify
+    Print the variable values for the current section
+    Values are determined in this order: Current section, DEFAULT section, Program default
+
+## File Redirection
+
+If the pattern {{Section}} appears in <FileName>, it will be replaced with the name of the current section.
+For redirect csv, the optional arguments must appear in the order shown.
+<Redirect> ::=
+	redirect csv <FileName> [multiprocess] [append] [noheader] [charset <Charset>] [columndelimiter <Character>] |
+	redirect stdout <FileName> [multiprocess] [append] |
+	redirect stdout null [multiprocess] |
+	redirect stderr <FileName> [multiprocess] [append] |
+	redirect stderr null [multiprocess] |
+	redirect stderr stdout [multiprocess]
+
+<Select> <Config> <Redirect> must come before all other arguments and in this order,  ... indicates that additional GAM arguments may appear.
+
+gam [<Select>] [<Config>] [<Redirect>] ...
+
+<Select> <Config> <Redirect>] will not be shown in the following command descriptions but can be used with any Gam command.
+
+# Version and Help
+
+gam version [check] [simple]
+gam help
+
+# Bulk Processing
+
+gam batch <FileName>|- [charset <Charset>]
+gam csv <FileName>|- [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
+
+gam loop <FileName>|- [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
+
+You can make substitutions in <GAMArgumentList> with values from the CSV file.
+An argument containing exactly ~xxx is replaced by the value of field xxx from the CSV file
+An argument containing instances of ~~xxx~~ has xxx replaced by the value of field xxx from the CSV file
+An argument containing instances of ~~xxx~!~pattern~!~replacement~~ has ~~...~~ replaced by re.sub(pattern, replacement, value of field xxx from the CSV file)
+
+Example: gam csv Users.csv gam update user "~primaryEmail" address type work unstructured "~~Street~~, ~~City~~, ~~State~~ ~~ZIP~~" primary note text_plain "~~primaryEmail~!~^(.+)@(.+)$~!~\1 AT \2~~"
+Each user (~primaryEmail, e.g. foo@bar.com) would have their work address updated and a note that shows their email address as foo AT bar.com
+
+gam list [todrive [<ToDriveAttributes>]] <EntityList> [data <CrOSTypeEntity>|<UserTypeEntity> [delimiter <String>]]
+gam <CrOSTypeEntity>|<UserTypeEntity> list [todrive [<ToDriveAttributes>]] [data <EntityList> [delimiter <String>]]
+
+# Authorization
+
+gam create project [<EmailAddress>]
+
+gam oauth|oauth2 create|request [<EmailAddress>]
+gam oauth|oauth2 delete|revoke
+gam oauth|oauth2 info|verify [<AccessToken>]
+
+gam <UserTypeEntity> check serviceaccount
+
+# Administrators
+
+gam print adminroles|roles [todrive [<ToDriveAttributes>]]
+
+<RoleAssignmentID> ::= <String>
+<RoleItem> ::= id:<String>|uid:<string>|<String>
+
+gam create admin <UserItem> <RoleItem> customer|(org_unit <OrgUnitItem>)
+gam delete admin <RoleAssignmentId>
+gam print admins [todrive [<ToDriveAttributes>]] [user <UserItem>] [role <RoleItem>]
+
+# Aliases
+
+gam create alias|aliases <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
+gam update alias|aliases <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
+gam delete alias|aliases [user|group|target] <EmailAddressEntity>
+gam info alias|aliases <EmailAddressEntity>
+
+gam print alias|aliases [todrive [<ToDriveAttributes>]] [shownoneditable]
+
+gam whatis <EmailItem> [noinfo]
+
+# Auditing
+
+<DestEmailAddress> ::= <EmailAddress>
+
+gam audit uploadkey <ValueReadFromStdin>
+gam audit activity request <EmailAddress>
+gam audit activity delete <EmailAddress> <RequestID>
+gam audit activity download <EmailAddress> <RequestID>
+gam audit activity status [<EmailAddress> <RequestID>]
+
+gam audit export request <EmailAddress> [begin <DateTime>] [end <DateTime>]
+	[search <QueryGmail>] [headersonly] [includedeleted]
+gam audit export delete <EmailAddress> <RequestID>
+gam audit export download <EmailAddress> <RequestID>
+gam audit export status [<EmailAddress> <RequestID>]
+gam audit export watch <EmailAddress> <RequestID>
+
+gam audit monitor create <EmailAddress> <DestEmailAddress> [begin <DateTime>] [end <DateTime>]
+	[incoming_headers] [outgoing_headers] [nochats] [nodrafts] [chat_headers] [draft_headers]
+gam audit monitor delete <EmailAddress> <DestEmailAddress>
+gam audit monitor list <EmailAddress>
+
+# Calendars
+
+<CalendarEntity> ::= <CalendarList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+
+<CalendarACLRole> ::= editor|freebusy|freebusyreader|owner|reader|writer
+<ACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>)|domain|default
+<ACLScopeList> ::== "<ACLScope>(,<ACLScope>)*"
+<ACLScopeEntity>::= <ACLScopeList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+
+gam calendar|calendars <CalendarEntity> add acls|calendaracls <CalendarACLRole> <ACLScopeEntity>
+gam calendar|calendars <CalendarEntity> update acls|calendaracls <CalendarACLRole> <ACLScopeEntity>
+gam calendar|calendars <CalendarEntity> delete acls|calendaracls [<CalendarACLRole>] <ACLScopeEntity>
+gam calendar|calendars <CalendarEntity> info acls|calendaracls <ACLScopeEntity>
+
+gam calendar|calendars <CalendarEntity> show acls|calendaracls
+gam calendar|calendars <CalendarEntity> print acls|calendaracls [todrive [<ToDriveAttributes>]]
+
+gam calendar|calendars <CalendarEntity> add <CalendarACLRole> ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default
+gam calendar|calendars <CalendarEntity> update <CalendarACLRole> ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default
+gam calendar|calendars <CalendarEntity> delete [<CalendarACLRole>] ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default
+gam calendar|calendars <CalendarEntity> showacl
+
+<EventSelectProperties:> ::=
+	(endtime|timemax <Time>)|
+	(query <QueryCalendar>)|
+	(privateextendedproperty <String>)|
+	(sharedextendedproperty <Syting>)|
+	showdeletedevents|
+	showhiddeninvitations|
+	singleevents|
+	(starttime|timemin <Time>)|
+	(updatedmin <Time>)
+
+<EventMatchProperties:> ::=
+	(matchfield attendees <EmailAddressList>)|
+	(matchfield creatoremail <RegularExpression>)|
+	(matchfield creatorname <RegularExpression>)|
+	(matchfield description <RegularExpression>)|
+	(matchfield location <RegularExpression>)|
+	(matchfield organizeremail <RegularExpression>)|
+	(matchfield organizername <RegularExpression>)|
+	(matchfield summary <RegularExpression>)
+
+<EventEntity> ::=
+	(events <EventIdList> | <FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|
+	(<EventSelectProperties>+ <EventMatchProperties>*)
+
+<EventAddAttributes> ::=
+	(anyonecanaddself [<Boolean>])|
+	(attendee <EmailAddress>)|
+	available|
+	(colorindex|colorid <EventColorIndex>))|
+	(description <String>)|
+	(end (allday <Date>)|<Time>)|
+	(guestscaninviteothers <Boolean>)|
+	guestscantinviteothers|
+	(guestscanseeotherguests <Boolean>)|
+	guestscantseeotherguests|
+	(location <String>)|
+	(noreminders|(reminder email|popup|sms <Number>))|
+	notifyattendees|
+	(optionalattendee <EmailAddress>)|
+	(privateproperty <PropertyKey> <PropertyValue>)|
+	(recurrence <RRULE, EXRULE, RDATE and EXDATE line>)|
+	(reminder <Number> email|popup|sms))|
+	(sendnotifications <Boolean>)|
+	(sharedproperty <PropertyKey> <PropertyValue>)|
+	(source <String> <URL>)|
+	(start (allday <Date>)|<Time>)|
+	(status confirmed|tentative|cancelled)|
+	(summary <String>)|
+	tentative|
+	(timezone <TimeZone>)|
+	(transparency opaque|transparent)|
+	(visibility default|public|private)
+
+The following attributes are equivalent:
+	available = transparency transparent
+	guestscantinviteothers = guestscaninviteothers False
+	guestscantseeothers = guestscanseeotherguests False
+	tentative = status tentative
+
+<EventUpdateAttributes> ::=
+	<EventAddAttributes>|
+	(clearprivateproperty <PropertyKey>)|
+	(clearsharedproperty <PropertyKey>)
+
+gam calendar|calendars <CalendarEntity> add event [id <String>] <EventAddAttributes>+
+gam calendar|calendars <CalendarEntity> update events <EventEntity> <EventUpdateAttributes>+
+gam calendar|calendars <CalendarEntity> delete events <EventEntity> [doit] [notifyattendees]
+gam calendar|calendars <CalendarEntity> wipe events
+gam calendar|calendars <CalendarEntity> move events <EventEntity> to <CalendarItem> [notifyattendees]
+gam calendar|calendars <CalendarEntity> info events <EventEntity>
+
+<EventDisplayProperties> ::=
+	(alwaysincludeemail)|
+	(icaluid <String>)|
+	(maxattendees <Integer>)|
+	(orderby starttime|updated)|
+	(timezone <TimeZone>)
+
+gam calendar|calendars <CalendarEntity> show events ([allevents] <EventSelectProperties>*) <EventDisplayProperties>*
+gam calendar|calendars <CalendarEntity> print events [todrive [<ToDriveAttributes>]] <EventSelectProperties>*) [todrive [<ToDriveAttributes>]] <EventDisplayProperties>*
+
+gam calendar|calendars <CalendarEntity> addevent <EventAddAttributes>+
+gam calendar|calendars <CalendarEntity> deleteevent <EventEntity> [doit] [notifyattendees]
+gam calendar|calendars <CalendarEntity> wipe
+
+# ChromeOS Devices
+
+<CrOSAttributes> ::=
+	(asset|assetid|tag <String>)|
+	(location <String>)|
+	(notes <String>)|
+	(org|ou <OrgUnitPath>)|
+	(user <String>)
+
+gam update cros <CrOSEntity> (<CrOSAttributes>+)|(action deprovision_same_model_replace|deprovision_different_model_replace|deprovision_retiring_device|disable|reenable [acknowledge_device_touch_requirement])
+gam <CrOSTypeEntity> update (<CrOSAttributes>+)|(action deprovision_same_model_replace|deprovision_different_model_replace|deprovision_retiring_device|disable|reenable [acknowledge_device_touch_requirement])
+
+<CrOSFieldName> ::=
+	activetimeranges|timeranges|
+	annotatedassetid|assedid|asset|
+	annotatedlocation|location|
+	annotateduser|user|
+	bootmode|
+	deviceid|
+	ethernetmacaddress|
+	firmwareversion|
+	lastenrollmenttime|
+	lastsync|
+	macaddress|
+	meid|
+	model|
+	notes|
+	ordernumber|
+	orgunitpath|org|ou|
+	osversion|
+	platformversion|
+	recentusers|
+	serialnumber|
+	status|
+	supportenddate|
+	willautorenew
+<CrOSFieldNameList> ::= "<CrOSFieldName>(,<CrOSFieldName>)*"
+
+<CrOSOrderByFieldName> ::=
+	lastsync|location|notes|serialnumber|status|supportenddate|user
+
+gam info cros <CrosEntity> [nolists] [listlimit <Number>]
+	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+gam <CrOSTypeEntity> info [nolists] [listlimit <Number>]
+	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+
+gam print cros
+gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>]
+	[orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists] [listlimit <Number>]
+	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+gam <CrOSTypeEntity> print
+
+Summary of printing:
+gam print cros
+Prints a header row and deviceId for all CrOS devices.
+gam <CrOSTypeEntity> print cros
+Prints no header row and deviceId for specified CrOS devices.
+gam print cros ... basic|full
+Prints a header row and selected fields for specified CrOS devices.
+gam <CrOSTypeEntity> print cros
+Prints no header row and deviceId for specified CrOS devices.
+gam <CrOSTypeEntity> print cros deviceid
+Prints a header row and deviceId for specified CrOS devices.
+gam <CrOSTypeEntity> print cros ... basic|full|allfields
+Prints a header row and selected fields for specified CrOS devices.
+deviceId is the first column, all other column headers are sorted.
+gam <CrOSTypeEntity> print cros ... <CrOSFieldName>* | fields <CrOSFieldNameList>]
+Prints a header row and selected fields for specified CrOS devices.
+deviceId is the first column, all other column headers appear in the order specified.
+
+The basic argument yields these column headers: deviceId,annotatedAssetId,annotatedLocation,annotatedUser,lastSync,notes,serialNumber,status
+The full and allfields arguments yield all column headers including two headers, recentUsers and activeTimeRanges,
+that repeat with two subvalues each, yielding a large number of columns that make the output hard to process.
+The nolists argument suppresses these two headers; if you want these headers in a more manageable form use the following arguments.
+The listlimit <Number> argument limits the number of repetitions to <Number>. If <Number> equals zero, there is no limit.
+If recentusers is specified as a field, each pair of values for recentUsers is put on a separate row with all of the other headers.
+If timeranges is specified as a field, each  pair of values for activeTimeRanges is put on a separate row with all of the other headers.
+
+# Contacts
+
+<ContactAttributes> ::=
+	(additionalname|middlename <String>)|
+	(address clear|(work|home|other|<String> (formatted|unstructured <String>)|(streetaddress <String>)|(pobox <String>)|
+	    (neighborhood <String>)|(locality <String>)|(region <String>)|(postalcode <String>)|(country <String>) notprimary|primary))|
+	(billinginfo <String>)|
+	(birthday <Date>)|
+	(calendar clear|(work|home|free-busy|<String> <URL> notprimary|primary))|
+	(contactgroup clear|<ContactGroupItem>)|
+	(directoryserver <String>)|
+	(email clear|(work|home|other|<String> <EmailAddress> notprimary|primary))|
+	(event clear|(anniversary|other|<String> <Date>))|
+	(externalid clear|(account|customer|network|organization|<String> <String>))|
+	(familyname|lastname <String>)|
+	(gender female|male)|
+	(givenname|firstname <String>)|
+	(hobby clear|(<String>))|
+	(im clear|(work|home|other|<String> aim|gtalk|icq|jabber|msn|net_meeting|qq|skype|yahoo <String> notprimary|primary))|
+	(initials <String>)|
+	(jot clear|(work|home|other|keywords|user> <String>))|
+	(language <Language>)|
+	(location <String>)|
+	(maidenname <String>)|
+	(mileage <String>)|
+	(name <String>)|
+	(nickname <String>)|
+	(note <String>|(file <FileName>))|
+	(occupation <String>)|
+	(organization clear|(work|other|<String> <String>|(location <String>)|(department <String>)|(title <String>)|(jobdescription <String>)|(symbol <String>) notprimary|primary))|
+	(phone clear|(work|home|other|fax|work_fax|home_fax|other_fax|main|company_main|assistant|mobile|work_mobile|pager|work_pager|car|radio|callback|isdn|telex|tty_tdd|<String> <String> notprimary|primary))|
+	(prefix <String>)|
+	(relation clear|(spouse|child|mother|father|parent|brother|sister|friend|relative|domestic_partner|manager|assistant|referred_by|partner|<String> <String>))|
+	(shortname <String>)|
+	(subject <String>)|
+	(suffix <String>)|
+	(userdefinedfield clear|(<String> <String>))|
+	(website clear|(home_page|blog|profile|work|home|other|ftp|reservations|app_install_page|<String> <URL> notprimary|primary))
+
+<ContactGroupAttributes> ::=
+	(name <String>)
+
+gam create contact <ContactAttributes>+
+gam update contacts <ContactEntity> <ContactAttributes>+
+gam delete contacts <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+
+<ContactFieldName> ::=
+	additionalname|middlename|
+	address|
+	billinginfo|
+	birthday|
+	calendar|
+	contactgroup|
+	directoryserver|
+	email|
+	event|
+	externalid|
+	familyname|lastname|
+	gender|
+	givenname|firstname|
+	hobby|
+	im|
+	initials|
+	jot|
+	language|
+	location|
+	maidenname|
+	mileage|
+	name|
+	nickname|
+	note|
+	occupation|
+	organization|
+	phone|
+	prefix|
+	relation|
+	shortname|
+	subject|
+	suffix|
+	updated|
+	userdefinedfield|
+	website
+<ContactFieldNameList> ::= "<ContactFieldName>(,<ContactFieldName>)*"
+
+<ContactOrderByFieldName> ::=
+	lastmodified
+
+gam info contacts <ContactEntity> [basic|full] [showgroups] [fields <ContactFieldNameList>]
+gam show contacts [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]] [fields <ContactFieldNameList>]
+gam print contacts [todrive [<ToDriveAttributes>]] [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]] [fields <ContactFieldNameList>]
+
+gam <UserTypeEntity> create contact [contactgroup <ContactGroupItem>] <ContactAttributes>+
+gam <UserTypeEntity> update contacts <ContactEntity> [contactgroup <ContactGroupItem>] <ContactAttributes>+
+gam <UserTypeEntity> delete contacts <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+
+gam <UserTypeEntity> info contacts <ContactEntity> [basic|full] [showgroups] [fields <ContactFieldNameList>]
+gam <UserTypeEntity> show contacts [query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]] [fields <ContactFieldNameList>]
+gam <UserTypeEntity> print contacts [todrive [<ToDriveAttributes>]] [query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]] [fields <ContactFieldNameList>]
+
+gam <UserTypeEntity> create contactgroup <ContactGroupAttributes>+
+gam <UserTypeEntity> update contactgroup <ContactGroupItem> <ContactGroupAttributes>+
+gam <UserTypeEntity> delete contactgroups <ContactGroupEntity>
+
+gam <UserTypeEntity> info contactgroups <ContactGroupEntity>
+gam <UserTypeEntity> show contactgroups [updated_min <Date>]
+	[basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+gam <UserTypeEntity> print contactgroups [todrive [<ToDriveAttributes>]] [updated_min <Date>]
+	[basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+
+gam <UserTypeEntity> info gal <ContactEntity> [basic|full] [fields <ContactFieldNameList>]
+gam <UserTypeEntity> show gal [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+	[basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]] [fields <ContactFieldNameList>]
+gam <UserTypeEntity> print gal [todrive [<ToDriveAttributes>]] [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+	[basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]] [fields <ContactFieldNameList>]
+
+# Courses
+
+<CourseAttributes> ::=
+	(description <String>)|
+	(heading <String>)|
+	(name <String>)|
+	(room <String>)|
+	(section <string>)|
+	(state|status active|archived|provisioned|declined)
+
+<CourseFieldName> ::=
+	aliases|
+	alternatelink|
+	coursegroupemail|
+	coursematerialsets|
+	coursestate|
+	creationtime|
+	description|
+	descriptionheading|
+	enrollmentcode|
+	guardiansenabled|
+	id|
+	name|
+	ownerid|
+	room|
+	section|
+	students|
+	teacherfolder|
+	teachergroupemail|
+	teachers|
+	updatetime
+<CourseFieldNameList> ::= "<CourseFieldName>(,<CourseFieldName>)*"
+
+gam create course id|alias <CourseAlias> [teacher <UserItem>] <CourseAttributes>*
+gam update course <CourseID> <CourseAttributes>+
+gam delete course <CourseID>
+gam info course <CourseID> [delimiter <String>] [alias|aliases] [show all|students|teachers] [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
+
+gam update courses <CourseEntity> <CourseAttributes>+
+gam delete courses <CourseEntity>
+gam info courses <CourseEntity> [delimiter <String>] [alias|aliases] [show all|students|teachers] [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
+
+gam course <CourseID> add alias <CourseAlias>
+gam course <CourseID> delete alias <CourseAlias>
+
+gam course <CourseID> add teachers|students <UserItem>
+gam course <CourseID> delete|remove teachers|students <UserItem>
+gam course <CourseID> sync teachers|students <UserTypeEntity>
+
+gam courses <CourseEntity> add alias <CourseAliasEntity>
+gam courses <CourseEntity> delete alias <CourseAliasEntity>
+
+gam courses <CourseEntity> add teachers|students <UserTypeEntity>
+gam courses <CourseEntity> delete|remove teachers|students <UserTypeEntity>
+gam courses <CourseEntity> sync teachers|students <UserTypeEntity>
+
+gam print courses [todrive [<ToDriveAttributes>]] [teacher <UserItem>] [student <UserItem>]
+	[delimiter <String>] [alias|aliases] [show all|students|teachers] [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
+gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <CourseID>)*|([teacher <UserItem>] [student <UserItem>]) [show all|students|teachers]
+
+# Customer
+
+<CustomerAttributes> ::=
+	(primary <DomainName>)|
+	(adminsecondaryemail|alternateemail <EmailAddress>)|
+	(contact|contactname <String>)|
+	(language <LanguageCode>)|
+	(phone|phonenumber <String>)|
+	(name|organizationname <String>)|
+	(address|address1|addressline1 <String>)|
+	(address2|addressline2 <String>)|
+	(address3|addressline3 <String>)|
+	(city|locality <String>)|
+	(state|region <String>)|
+	(zipcode|postal|postalcode <String>)|
+	(country|countrycode <String>)
+
+gam update customer <CustomerAttributes>*
+
+gam info customer
+
+gam update instance sso_settings [enabled <Boolean>] [sign_on_uri <URI>] [sign_out_uri <URI>] [password_uri <URI>] [whitelist <CIDRnetmask>] [use_domain_specific_issuer <Boolean>]
+gam update instance sso_key <FileName>
+gam update instance logo <FileName>
+
+gam info instance [logo <FileName>]
+
+# Data Transfers
+
+gam print transferapps
+
+<DataTransferService> ::= googledrive|gdrive|drive|"drive and docs"
+
+<OldOwnerID> ::= <UserItem>
+<NewOwnerID> ::= <UserItem>
+
+gam create datatransfer|transfer <OldOwnerID> <DataTransferService> <NewOwnerID> (<ParameterKey> <ParameterValue>)*
+
+gam info datatransfer|transfer <TransferID>
+gam print datatransfers|transfers [todrive [<ToDriveAttributes>]] [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>] [status <String>] [delimiter <String>]
+
+# Domains
+
+<DomainAlias> ::= <String>
+
+gam create domain <DomainName>
+gam update domain <DomainName> primary
+gam delete domain <DomainName>
+
+gam info domain [<DomainName>]
+gam print domains [todrive [<ToDriveAttributes>]]
+
+gam create domainalias|aliasdomain <DomainAlias> <DomainName>
+gam delete domainalias|aliasdomain <DomainAlias>
+
+gam info domainalias|aliasdomain <DomainAlias>
+gam print domainaliases|aliasdomains [todrive [<ToDriveAttributes>]]
+
+# Groups
+
+<GroupAttributes> ::=
+	(allowexternalmembers <Boolean>)|
+	(allowgooglecommunication <Boolean>)|
+	(allowwebposting <Boolean>)|
+	(archiveonly <Boolean>)|
+	(customfootertext <String>)|
+	(customreplyto <EmailAddress>)|
+	(defaultmessagedenynotificationtext <String>)|
+	(description <String>)|
+	(gal|includeInGlobalAddressList <Boolean>)|
+	(includecustomfooter <Boolean>)|
+	(isarchived <Boolean>)|
+	(maxmessagebytes <ByteCount>)|
+	(memberscanpostasthegroup <Boolean>)|
+	(messagedisplayfont DEFAULT_FONT|FIXED_WIDTH_FONT)|
+	(messagemoderationlevel MODERATE_ALL_MESSAGES|MODERATE_NON_MEMBERS|MODERATE_NEW_MEMBERS|MODERATE_NONE)|
+	(name <String>)|
+	(primarylanguage <Language>)|
+	(replyto REPLY_TO_CUSTOM|REPLY_TO_SENDER|REPLY_TO_LIST|REPLY_TO_OWNER|REPLY_TO_IGNORE|REPLY_TO_MANAGERS)|
+	(sendmessagedenynotification <Boolean>)|
+	(showingroupdirectory <Boolean>)|
+	(spammoderationlevel ALLOW|MODERATE|SILENTLY_MODERATE|REJECT)|
+	(whocanadd ALL_MEMBERS_CAN_ADD|ALL_MANAGERS_CAN_ADD|NONE_CAN_ADD)|
+	(whocancontactowner ANYONE_CAN_CONTACT|ALL_IN_DOMAIN_CAN_CONTACT|ALL_MEMBERS_CAN_CONTACT|ALL_MANAGERS_CAN_CONTACT)|
+	(whocaninvite ALL_MEMBERS_CAN_INVITE|ALL_MANAGERS_CAN_INVITE|NONE_CAN_INVITE)|
+	(whocanjoin ANYONE_CAN_JOIN|ALL_IN_DOMAIN_CAN_JOIN|INVITED_CAN_JOIN|CAN_REQUEST_TO_JOIN)|
+	(whocanleavegroup ALL_MANAGERS_CAN_LEAVE|ALL_MEMBERS_CAN_LEAVE|NONE_CAN_LEAVE)|
+	(whocanpostmessage NONE_CAN_POST|ALL_MANAGERS_CAN_POST|ALL_MEMBERS_CAN_POST|ALL_IN_DOMAIN_CAN_POST|ANYONE_CAN_POST)|
+	(whocanviewgroup ANYONE_CAN_VIEW|ALL_IN_DOMAIN_CAN_VIEW|ALL_MEMBERS_CAN_VIEW|ALL_MANAGERS_CAN_VIEW)|
+	(whocanviewmembership ALL_IN_DOMAIN_CAN_VIEW|ALL_MEMBERS_CAN_VIEW|ALL_MANAGERS_CAN_VIEW)
+
+gam create group <EmailAddress> <GroupAttributes>*
+gam update group|groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] <GroupAttributes>*
+gam update group|groups <GroupEntity> add [member|manager|owner] [notsuspended] <UserTypeEntity>
+gam update group|groups <GroupEntity> delete|remove [member|manager|owner] <UserTypeEntity>
+gam update group|groups <GroupEntity> sync [member|manager|owner] [notsuspended] <UserTypeEntity>
+gam update group|groups <GroupEntity> update [member|manager|owner] <UserTypeEntity>
+gam update group|groups <GroupEntity> clear [member] [manager] [owner] [suspended]
+gam delete group|groups <GroupEntity>
+
+<GroupFieldName> ::=
+	admincreated|
+	aliases|
+	allowexternalmembers|
+	allowgooglecommunication|
+	allowwebposting|
+	archiveonly|
+	customreplyto|
+	defaultmessagedenynotificationtext|
+	description|
+	directmemberscount|
+	email|
+	id|
+	includeinglobaladdresslist|gal|
+	isarchived|
+	maxmessagebytes|
+	memberscanpostasthegroup|
+	messagedisplayfont|
+	messagemoderationlevel|
+	name
+	primarylanguage|
+	replyto|
+	sendmessagedenynotification|
+	showingroupdirectory|
+	spammoderationlevel|
+	whocanadd|
+	whocancontactowner|
+	whocaninvite|
+	whocanjoin|
+	whocanleavegroup|
+	whocanpostmessage|
+	whocanviewgroup|
+	whocanviewmembership
+<GroupFieldNameList> ::= "<GroupFieldName>(,<GroupFieldName>)*"
+
+gam info group|groups <GroupEntity> [nousers] [noaliases] [groups] <GroupFieldName>* [fields <GroupFieldNameList>] [formatjson]
+gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member <UserItem>])|[select <GroupEntity>]
+	[maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])] [convertcrnl] [delimiter <String>]
+	[members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
+
+<MembersFieldName> ::=
+	email|useremail|
+	groupemail|
+	id|
+	name|
+	role|
+	status|
+	type
+<MembersFieldNameList> ::= "<MembersFieldName>(,<MembersFieldName>)*"
+
+gam print group-members|groups-members [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member <UserItem>])|[group <GroupItem>]|[select <GroupEntity>]
+	[membernames] <MembersFieldName>* [fields <MembersFieldNameList>] [userfields <UserFieldNameList>] [recursive [noduplicates]]
+
+# Guardians
+
+<GuardianState> ::=
+	complete|
+	pending
+<GuardianStateList> ::= "<GuardianState>(,<GuardianState>)*"
+
+gam create guardian|guardianinvite|inviteguardian <EmailAddress> <StudentItem>
+gam cancel guardianinvitation|guardianinvitations <GuardianInvitationID> <StudentItem>
+gam delete guardian|guardians <GuardianItem> <StudentItem> invitation
+gam show guardian|guardians invitations [states <GuardianStateList>] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
+gam print guardian|guardians invitations [todrive [<ToDriveAttributes>]] [states <GuardianStateList>] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
+
+gam delete guardian|guardians <GuardianItem> <StudentItem>
+gam show guardian|guardians [invitedguardian <EmailAddress>] [student <StudentItem>] [states <GuardianStateList>] [<UserTypeEntity>]
+gam print guardian|guardians [todrive [<ToDriveAttributes>]] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
+
+# Licenses
+
+gam print licenses [todrive [<ToDriveAttributes>]] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)]
+
+# Mobile Devices
+
+<MobileOrderByFieldName> ::=
+	deviceid|email|lastsync|model|name|os|status|type
+
+<MobileAttributes> ::=
+	(action admin_remote_wipe|wipe|
+		admin_account_wipe|accountwipe|wipeaccount|
+		approve|
+		block|
+		cancel_remote_wipe_then_activate|
+		cancel_remote_wipe_then_block)|
+	(model <String>)|
+	(os <String>)|
+	(useragent <String>)
+
+gam update mobile <MobileEntity> <MobileAttributes>+
+gam delete mobile <MobileEntity>
+gam info mobile <MobileEntity>
+gam print mobile [todrive [<ToDriveAttributes>]] [query <QueryMobile>] [basic|full] [orderby <MobileOrderByFieldName> [ascending|descending]]
+
+# Notifications
+
+gam update notification|notifications [(id all)|(id <NotificationID>)*] unread|read|unreadonly
+gam delete notification|notifications [(id all)|(id <NotificationID>)*] [unreadonly|unread|read]
+gam info notification|notifications [unread|read|unreadonly]
+
+# Organizational Units
+
+<OrgUnitFieldName> ::=
+	description|
+	id|orgunitid|
+	inherit|blockinheritance|
+		name|
+	parentid|parentorgunitid|
+	parent|parentorgunitpath|
+	path|orgunitpath
+<OrgUnitFieldNameList> ::= "<OrgUnitFieldName>(,<OrgUnitFieldName>)*"
+
+gam create org|ou <OrgUnitPath> [description <String>] [parent <OrgUnitItem>] [inherit|noinherit|(blockinheritance <Boolean>)] [buildpath]
+gam update org|ou <OrgUnitItem> [name <String>] [description <String>] [parent <OrgUnitItem>] [inherit|noinherit|(blockinheritance <Boolean>)]
+gam update org|ou <OrgUnitItem> add|move <CrOSTypeEntity>|<UserTypeEntity>
+gam delete org|ou <OrgUnitItem>
+gam info org|ou <OrgUnitItem> [nousers] [children|child]
+
+gam update orgs|ous <OrgUnitEntity> [name <String>] [description <String>] [parent <OrgUnitItem>] [inherit|noinherit|(blockinheritance <Boolean>)]
+gam update orgs|ous <OrgUnitEntity> add|move <CrOSTypeEntity>|<UserTypeEntity>
+gam delete orgs|ous <OrgUnitEntity>
+gam info orgs|ous <OrgUnitEntity> [nousers] [children|child]
+
+gam print orgs|ous [todrive [<ToDriveAttributes>]] [toplevelonly] [from_parent <OrgUnitItem>] [allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)] [convertcrnl]
+gam show orgtree [from_parent <OrgUnitItem>]
+
+# Printers
+
+<PrinterAttributes> ::=
+	(currentquota <Number>)|
+	(dailyquota <Number>)|
+	(defaultdisplayname <String>)|
+	(description <String>)|
+	(displayname <String>)|
+	(firmware <String>)|
+	(gcpversion <String>)|
+	(istosaccepted <Boolean>)|
+	(manufacturer <String>)|
+	(model <String>)|
+	(name <String>)|
+	(ownerid <EmailAddress>)|
+	(proxy <String>)|
+	(public <Boolean>)|
+	(quotaenabled <Boolean>)|
+	(setupurl <URL>)|
+	(status <Number>)|
+	(supporturl <URL>)|
+	(type <String>)|
+	(updateurl <URL>)|
+	(uuid <String>)
+
+gam printer register
+
+gam update printer|printers <PrinterIDEntity> <PrinterAttributes>+
+gam delete printer|printers <PrinterIDEntity>
+gam info printer|printers <PrinterIDEntity> [everything]
+    
+gam print printer|printers [todrive [<ToDriveAttributes>]] [query <QueryPrinter>] [type <String>] [status <String>] [extrafields <String>] [delimiter <String>]
+
+<PrinterACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain
+<PrinterACLScopeList> ::== "<PrinterACLScope>(,<PrinterACLScope>)*"
+<PrinterACLScopeEntity>::= <ACLScopeList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+
+gam printer|printers <PrinterIDEntity> add user|manager|owner <PrinterACLScopeEntity>
+gam printer|printers <PrinterIDEntity> delete <PrinterACLScopeEntity>
+gam printer|printers <PrinterIDEntity> sync user|manager|owner <PrinterACLScopeEntity>
+gam printer|printers <PrinterIDEntity> wipe user|manager|owner
+gam printer|printers <PrinterIDEntity> showacls
+gam printer|printers <PrinterIDEntity> printacls [todrive [<ToDriveAttributes>]]
+
+# Printjobs
+
+gam printjob <PrinterID> submit <FileName>|<URL> [name|title <String>] (tag <String>)*
+gam printjob|printjobs <PrintJobEntity> cancel
+gam printjob|printjobs <PrintJobEntity> delete
+gam printjob|printjobs <PrintJobEntity> resubmit <PrinterID>
+
+<PrintJobOrderByFieldName> ::=
+	create_time|status|title
+
+gam printjob|printjobs <PrinterID>|any fetch
+	[olderthan|newerthan <PrintJobAge>] [query <QueryPrintJob>]
+	[status <PrintJobStatus>]
+	[orderby <PrintJobOrderByFieldName> [ascending|descending]]
+	[owner|user <EmailAddress>]
+	[limit <Number>] [drivedir|(targetfolder <FilePath>)]
+
+gam print printjob|printjobs [todrive [<ToDriveAttributes>]] [printer|printerid <PrinterID>]
+	[olderthan|newerthan <PrintJobAge>] [query <QueryPrintJob>]
+	[status <PrintJobStatus>]
+	[orderby <PrintJobOrderByFieldName> [ascending|descending]]
+	[owner|user <EmailAddress>]
+	[limit <Number>] [delimiter <String>]
+
+# Reports
+
+gam report users|user [todrive [<ToDriveAttributes>]] [nodatechange] [maxresults <Number>]
+	[date <Date>] [(user all|<UserItem>)|(select <UserTypeEntity>)] [filter|filters <String>] [fields|parameters <String>]
+gam report customers|customer|domain [todrive [<ToDriveAttributes>]] [nodatechange]
+	[date <Date>] [fields|parameters <String>]
+gam report admin|calendar|calendars|drive|docs|doc|groups|group|logins|login|mobile|tokens|token [todrive [<ToDriveAttributes>]] [maxresults <Number>]
+	[([start <Time>] [end <Time>])|yesterday] [(user all|<UserItem>)|(select <UserTypeEntity>)] [event <String>] [filter|filters <String>] [ip <String>] [countsonly] [summary]
+
+# Reseller
+
+<ResoldCustomerAttributes> ::=
+	(email|alternateemail <EmailAddress>)|
+	(contact|contactname <String>)|
+	(phone|phonenumber <String>)|
+	(name|organizationname <String>)|
+	(address|address1|addressline1 <String>)|
+	(address2|addressline2 <String>)|
+	(address3|addressline3 <String>)|
+	(city|locality <String>)|
+	(state|region <String>)|
+	(zipcode|postal|postalcode <String>)|
+	(country|countrycode <String>)
+
+gam create resoldcustomer <CustomerDomain> (customer_auth_token <String>) <ResoldCustomerAttributes>+
+gam update resoldcustomer <CustomerID> [customer_auth_token <String>] <ResoldCustomerAttribues>+
+gam info resoldcustomer <CustomerID>
+
+gam create resoldsubscription <CustomerID> (sku <SKUID>)
+	 (plan annual_monthly_pay|annual_yearly_pay|flexible|trial) (seats <NumberOfSeats> <MaximumNumberOfSeats>)
+	 [customer_auth_token <String>] [deal <String>] [purchaseorderid <String>]
+gam update resoldsubscription <CustomerID> <SKUID>
+	activate|suspend|startpaidservice|
+	(renewal auto_renew_monthly_pay|auto_renew_yearly_pay|cancel|renew_current_users_monthly_pay|renew_current_users_yearly_pay|switch_to_pay_as_you_go)|
+	(seats <NumberOfSeats> [<MaximumNumberOfSeats>])|
+	(plan annual_monthly_pay|annual_yearly_pay|flexible|trial [deal <String>] [purchaseorderid <String>] [seats <NumberOfSeats> [<MaximumNumberOfSeats>]])
+gam delete resoldsubscription <CustomerID> <SKUID> cancel|downgrade|transfer_to_direct
+gam info resoldsubscription <CustomerID> <SKUID>
+gam show resoldsubscriptions [customerid <CustomerID>] [customer_auth_token <String>] [customer_prefix <String>]
+gam print resoldsubscriptions [todrive [<ToDriveAttributes>]] [customerid <CustomerID>] [customer_auth_token <String>] [customer_prefix <String>]
+
+# Resource Calendars
+
+<ResourceFieldName> ::=
+	acls|
+	description|
+	email|
+	id|
+	name|
+	type
+<ResourceFieldNameList> ::= "<ResourceFieldName>(,<ResourceFieldName>)*"
+
+gam create resource <ResourceID> <String> [description <String>] [type <String>]
+gam update resource <ResourceID> [name <String>] [description <String>] [type <String>]
+gam delete resource <ResourceID>
+gam info resource <ResourceID>
+
+gam update resources <ResourceEntity> [name <String>] [description <String>] [type <String>]
+gam delete resources <ResourceEntity>
+gam info resources <ResourceEntity>
+
+gam show resources [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)] [convertcrnl]
+gam print resources [todrive [<ToDriveAttributes>]] [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)] [convertcrnl]
+
+gam resource <ResourceID> add acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity>
+gam resource <ResourceID> update acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity>
+gam resource <ResourceID> delete acls|calendaracls <CalendarACLRole>] <CalendarACLScopeEntity>
+gam resource <ResourceID> info acls|calendaracls <CalendarACLScopeEntity>
+
+gam resource <ResourceID> show acls|calendaracls
+gam resource <ResourceID> print acls|calendaracls [todrive [<ToDriveAttributes>]]
+
+gam resources <ResourceEntity> add acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity>
+gam resources <ResourceEntity> update acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity>
+gam resources <ResourceEntity> delete acls|calendaracls <CalendarACLRole>] <CalendarACLScopeEntity>
+gam resources <ResourceEntity> info acls|calendaracls <CalendarACLScopeEntity>
+
+gam resources <ResourceEntity> show acls|calendaracls
+gam resources <ResourceEntity> print acls|calendaracls [todrive [<ToDriveAttributes>]]
+
+# Schemas
+
+<SchemaFieldDefinition> ::=
+	field <FieldName> (type bool|date|double|email|int64|phone|string) [multivalued|multivalue] [indexed] [restricted] [range <Number> <Number>] endfield
+
+gam create schema|schemas <SchemaName> <SchemaFieldDefinition>+
+gam update schema <SchemaName> <SchemaFieldDefinition>* (deletefield <FieldName>)*
+gam delete schema <SchemaName>
+gam info schema <SchemaName>
+
+gam update schemas <SchemaEntity> <SchemaFieldDefinition>* (deletefield <FieldName>)*
+gam delete schemas <SchemaEntity>
+gam info schemas <SchemaEntity>
+
+gam show schema|schemas
+gam print schema|schemas [todrive [<ToDriveAttributes>]]
+
+# Sites
+
+<SiteAttributes> ::=
+	(categories <String>)|
+	(name <String>)|
+	(sourcelink <URI>])|
+	(summary <String>)|
+	(theme <String>)
+
+<SiteACLRole> ::= editor|invite|owner|reader|writer
+<SiteACLRoleList> ::= "<SiteACLRole>(,<SiteACLRole>)*"
+
+gam [<UserTypeEntity>] create site <SiteItem> <SiteAttributes>*
+gam [<UserTypeEntity>] update sites <SiteEntity> <SiteAttributes>+
+gam [<UserTypeEntity>] info sites <SiteEntity> [withmappings] [role|roles all|<SiteACLRoleList>]
+gam [<UserTypeEntity>] show sites [domain|domains <DomainNameEntity>] [includeallsites] [withmappings] [role|roles all|<SiteACLRoleList>] [maxresults <Number>]
+gam [<UserTypeEntity>] print sites [todrive [<ToDriveAttributes>]] [domain|domains <DomainNameEntity>] [includeallsites] [withmappings] [role|roles all|<SiteACLRoleList>] [maxresults <Number>] [convertcrnl] [delimiter <String>]
+
+gam [<UserTypeEntity>] print siteactivity <SiteEntity> [todrive [<ToDriveAttributes>]] [maxresults <Number>] [updated_min <Date>] [updated_max <Date>]
+
+gam [<UserTypeEntity>] add siteacls <SiteEntity> <SiteACLRole> <SiteACLScopeEntity>
+gam [<UserTypeEntity>] update siteacls <SiteEntity> <SiteACLRole> <SiteACLScopeEntity>
+gam [<UserTypeEntity>] delete siteacls <SiteEntity> <SiteACLScopeEntity>
+gam [<UserTypeEntity>] info siteacls <SiteEntity> <SiteACLScopeEntity>
+gam [<UserTypeEntity>] show siteacls  <SiteEntity>
+
+# Users
+
+<UserFieldName> ::=
+	addresses|address|
+	agreedtoterms|agreed2terms|
+	changepasswordatnextlogin|changepassword|
+	creationtime|
+	deletiontime|
+	email|emails|otheremail|otheremails|
+	externalids|externalid|
+	familyname|firstname|fullname|givenname|lastname|name|
+	id|
+	ims|im|
+	includeinglobaladdresslist|gal|
+	ipwhitelisted|
+	isdelegatedadmin|admin|isadmin|
+	ismailboxsetup|
+	is2svenforced|
+	is2svenrolled|
+	lastlogintime|
+	noneditablealiases|aliases|nicknames|
+	notes|note|
+	organizations|organization|
+	orgunitpath|org|ou|
+	phones|phone|
+	primaryemail|username|
+	relations|relation|
+	suspended|
+	thumbnailphotourl|photo|photourl|
+	websites|website
+<UserFieldNameList> ::= "<UserFieldName>(,<UserFieldName>)*"
+
+<UserOrderByFieldName> ::=
+	familyname|lastname|givenname|firstname|email
+
+<UserAttributes> ::=
+	(address|addresses clear|(type work|home|other|(custom <String>) [unstructured|formatted <String>] [pobox <String>] [extendedaddress <String>] [streetaddress <String>]
+		[locality <String>] [region <String>] [postalcode <String>] [country <String>] [countrycode <String>] notprimary|primary))|
+	(admin <Boolean>)|
+	(agreed2terms|agreedtoterms <Boolean>)|
+	(changepassword|changepasswordatnextlogin <Boolean>)|
+	(crypt|sha|sha1|sha-1|md5|nohash)|
+	(customerid <String>)|
+	(email|primaryemail|username <EmailAddress>)|
+	(emails|otheremail|otheremails clear|(work|home|other|<String> <String>))|
+	(externalid|externalids clear|(account|customer|network|organization|<String> <String>))|
+	(firstname|givenname <String>)|
+	(gal|includeinglobaladdresslist <Boolean>)|
+	(im|ims clear|(type work|home|other|(custom <String>) protocol aim|gtalk|icq|jabber|msn|net_meeting|qq|skype|yahoo|(custom_protocol <String>) <String> [notprimary|primary]))|
+	(ipwhitelisted <Boolean>)|
+	(lastname|familyname <String>)|
+	(note|notes clear|([text_plain|text_html] <String>|(file <FileName>)))|
+	(organization|organizations clear|([type domain_only|school|unknown|work] [customtype <String>] [name <String>] [title <String>] [department <String>] [symbol <String>]
+		[costcenter <String>]  [location <String>] [description <String>] [domain <String>] notprimary|primary))|
+	(org|ou|orgunitpath <OrgUnitPath>)
+	(password random|<Password>)|
+	(phone|phones clear|([type work|home|other|work_fax|home_fax|other_fax|main|company_main|assistant|mobile|work_mobile|pager|work_pager|car|radio|callback|isdn|telex|tty_tdd|grand_central|(custom <String>)
+		[value <String>] notprimary|primary))|
+	(relation|relations clear|(spouse|child|mother|father|parent|brother|sister|friend|relative|domestic_partner|manager|assistant|referred_by|partner|<String> <String>))|
+	(suspended <Boolean>)|
+	(website|websites clear|(home_page|blog|profile|work|home|other|ftp|reservations|app_install_page|<String> <URL> [notprimary|primary]))|
+	(<SchemaName>.<FieldName> [multivalued|multivalue|value|multinonempty [type work|home|other|(custom <String>)]] <String>)
+
+gam create user <EmailAddress> <UserAttrubutes>*
+gam update user <UserItem> <UserAttributes>* [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>] [createifnotfound]
+gam delete user <UserItem>
+gam undelete user <UserItem> [org|ou <OrgUnitPath>]
+gam info user [<UserItem>] [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>] [userview] <UserFieldName>* [fields <UserFieldNameList>] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
+
+gam update users <UserTypeEntity> <UserAttributes>* [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>] [createifnotfound]
+gam delete users <UserTypeEntity>
+gam undelete users <UserEntity> [org|ou <OrgUnitPath>]
+gam info users <UserTypeEntity> [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>] [userview] <UserFieldName>* [fields <UserFieldNameList>] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
+
+gam <UserTypeEntity> update users <UserAttrubutes>* [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>] [createifnotfound]
+gam <UserTypeEntity> delete users
+gam <UserEntity> undelete users [org|ou <OrgUnitPath>]
+gam <UserTypeEntity> info users [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>] [userview] <UserFieldName>* [fields <UserFieldNameList>] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
+
+gam print users
+gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [query <QueryUser>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
+	[groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
+	[orderby <UserOrderByFieldName> [ascending|descending]] [userview]
+	[allfields|basic|full | (<UserFieldName>* | fields <UserFieldNameList>)] [delimiter <String>] 
+gam <UserTypeEntity> print
+
+Summary of printing:
+gam print users
+Prints a header row and primaryEmail for all users.
+gam <UserTypeEntity> print
+Prints no header row and primaryEmail for specified users.
+gam <UserTypeEntity> print users primaryemail
+Prints a header row and primaryEmail for specified users.
+gam <UserTypeEntity> print users ... basic|full|allfields
+Prints a header row and selected fields for specified users.
+primaryEmail is the first column, all other column headers are sorted.
+gam <UserTypeEntity> print users ... <UserFieldName>* | fields <UserFieldNameList>]
+Prints a header row and selected fields for specified users.
+primaryEmail is the first column, all other column headers appear in the order specified.
+
+# Users - Aliases
+
+gam <UserTypeEntity> delete alias|aliases
+
+# Users - Application Specific Passwords/backup Codes
+
+gam <UserTypeEntity> delete asps|applicationspecificpasswords <AspID>
+gam <UserTypeEntity> show asps|applicationspecificpasswords
+
+gam <UserTypeEntity> update backupcodes|verificationcodes
+gam <UserTypeEntity> delete backupcodes|verificationcodes
+gam <UserTypeEntity> show backupcodes|verificationcodes
+
+# Users - Calendars
+
+<CalendarACLRole> ::=
+	editor|freebusy|freebusyreader|owner|reader|writer
+
+<CalendarSelectProperties> ::=
+	(minaccessrole <CalendarACLRole>)|showdeleted|showhidden
+
+<CalendarAddEntity> ::=
+	<EmailAddressList>|
+	(resource <ResourceID>)|
+	(resources <ResourceIDList>)|
+	((calendars <CalendarList>) | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>)
+<CalendarManageEntity> ::=
+	allcalendars|
+	primary|
+	EmailAddressList>|
+	(resource <ResourceID>)|
+	(resources <ResourceIDList>)|
+	((calendars <CalendarList>) | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>)|
+	<CalendarSelectProperties>+
+<CalendarPrintShowEntity> ::=
+	allcalendars|
+	primary|
+	<CalendarSelectProperties>+
+
+<CalendarAttributes> ::=
+	(backgroundcolor <ColorHex>)|
+	(colorindex|colorid <CalendarColorIndex>)|
+	(foregroundcolor <ColorHex>)|
+	(hidden <Boolean>)|
+	(notification clear|(email|sms eventcreation|eventchange|eventcancellation|eventresponse|agenda))|
+	(reminder clear|(email|sms|pop <Number>)|(<Number> email|sms|pop))|
+	(selected <Boolean>)|
+	(summary <String>)
+
+Manage a users list of calendars
+
+gam <UserTypeEntity> add calendars <CalendarAddEntity> <CalendarAttributes>*
+gam <UserTypeEntity> update calendars <CalendarManageEntity> <CalendarAttributes>+
+gam <UserTypeEntity> delete calendars <CalendarManageEntity>
+
+gam <UserTypeEntity> info calendars <CalendarManageEntity>
+gam <UserTypeEntity> show calendars <CalendarPrintShowEntity> [permissions]
+gam <UserTypeEntity> print calendars <CalendarPrintShowEntity> [todrive [<ToDriveAttributes>]] [permissions]
+
+gam <UserTypeEntity> show calsettings
+
+<CalendarSettings> ::==
+	(summary <String>)|(description <String>)|(location <String>)|(timezone <String>)
+
+Create, modify and remove calendars for a user
+
+gam <UserTypeEntity> create calendar <CalendarSettings>
+gam <UserTypeEntity> modify calendars <CalendarManageEntity> <CalendarSettings>
+gam <UserTypeEntity> remove calendars <CalendarManageEntity>
+
+<CalendarACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|default
+<CalendarACLScopeList> ::== "<CalendarACLScope>(,<CalendarACLScope>)*"
+<CalendarACLScopeEntity>::= <ACLScopeList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+
+Manage access to any calendar a user owns
+
+gam <UserTypeEntity> add calendaracls <CalendarManageEntity> <CalendarACLRole> <CalendarACLScopeEntity>
+gam <UserTypeEntity> update calendaracls <CalendarManageEntity> <CalendarACLRole> <CalendarACLScopeEntity>
+gam <UserTypeEntity> delete calendaracls <CalendarManageEntity> <CalendarACLRole>] <CalendarACLScopeEntity>
+
+gam <UserTypeEntity> info calendaracls <CalendarManageEntity> <CalendarACLScopeEntity>
+gam <UserTypeEntity> show calendaracls <CalendarManageEntity>
+gam <UserTypeEntity> print calendaracls <CalendarManageEntity> [todrive [<ToDriveAttributes>]]
+
+Transfer ownership of a selection of users calendars to another user
+
+gam <UserTypeEntity> transfer calendars <CalendarManageEntity> <UserItem> [keepuser] [retainrole <CalendarACLRole>]
+
+<EventSelectProperties:> ::=
+	(endtime|timemax <Time>)|
+	(query <QueryCalendar>)|
+	(privateextendedproperty <String>)|
+	(sharedextendedproperty <Syting>)|
+	showdeletedevents|
+	showhiddeninvitations|
+	singleevents|
+	(starttime|timemin <Time>)|
+	(updatedmin <Time>)
+
+<EventMatchProperties:> ::=
+	(matchfield attendees <EmailAddressList>)|
+	(matchfield creatoremail <RegularExpression>)|
+	(matchfield creatorname <RegularExpression>)|
+	(matchfield description <RegularExpression>)|
+	(matchfield location <RegularExpression>)|
+	(matchfield organizeremail <RegularExpression>)|
+	(matchfield organizername <RegularExpression>)|
+	(matchfield summary <RegularExpression>)
+
+<EventEntity> ::=
+	(events <EventIdList> | <FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|
+	(<EventSelectProperties>+ <EventMatchProperties>*)
+
+<EventAddAttributes> ::=
+	(anyonecanaddself [<Boolean>])|
+	(attendee <EmailAddress>)|
+	available|
+	(colorindex|colorid <EventColorIndex>))|
+	(description <String>)|
+	(end (allday <Date>)|<Time>)|
+	(guestscaninviteothers <Boolean>)|
+	guestscantinviteothers|
+	(guestscanseeotherguests <Boolean>)|
+	guestscantseeotherguests|
+	(location <String>)|
+	(noreminders|(reminder email|popup|sms <Number>))|
+	notifyattendees|
+	(optionalattendee <EmailAddress>)|
+	(privateproperty <PropertyKey> <PropertyValue>)|
+	(recurrence <RRULE, EXRULE, RDATE and EXDATE line>)|
+	(reminder <Number> email|popup|sms))|
+	(sendnotifications <Boolean>)|
+	(sharedproperty <PropertyKey> <PropertyValue>)|
+	(source <String> <URL>)|
+	(start (allday <Date>)|<Time>)|
+	(status confirmed|tentative|cancelled)|
+	(summary <String>)|
+	tentative|
+	(timezone <TimeZone>)|
+	(transparency opaque|transparent)|
+	(visibility default|public|private)
+
+The following attributes are equivalent:
+	available = transparency transparent
+	guestscantinviteothers = guestscaninviteothers False
+	guestscantseeothers = guestscanseeotherguests False
+	tentative = status tentative
+
+<EventUpdateAttributes> ::=
+	<EventAddAttributes>|
+	(clearprivateproperty <PropertyKey>)|
+	(clearsharedproperty <PropertyKey>)
+
+Add update and delete events in any calendar for which a user has access
+
+gam <UserTypeEntity> add event <CalendarManageEntity> [id <String>] <EventAddAttributes>+
+gam <UserTypeEntity> update events <CalendarManageEntity> <EventEntity> <EventUpdateAttributes>+
+gam <UserTypeEntity> delete events <CalendarManageEntity> <EventEntity> [doit] [notifyattendees]
+gam <UserTypeEntity> wipe events <CalendarManageEntity>
+gam <UserTypeEntity> move events <CalendarManageEntity> <EventEntity> to <CalendarItem> [notifyattendees]
+gam <UserTypeEntity> update calattendees <CalendarManageEntity> <EventEntity> [anyorganizer] [csv <FileName>] (replace <EmailAddress> <EmailAddress>)* [doit]
+
+<EventDisplayProperties> ::=
+	(alwaysincludeemail)|
+	(icaluid <String>)|
+	(maxattendees <Integer>)|
+	(orderby starttime|updated)|
+	(timezone <TimeZone>)
+
+gam <UserTypeEntity> info events <CalendarManageEntity> <EventEntity>
+gam <UserTypeEntity> show events <CalendarPrintShowEntity> ([allevents] <EventSelectProperties>*) <EventDisplayProperties>*
+gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventSelectProperties>*) [todrive [<ToDriveAttributes>]] <EventDisplayProperties>*
+
+# Users - Drive
+
+<DriveFileAttributes> ::=
+	(convert)|
+	(description <String>)|
+	(indexabletext <String>)|
+	(keeprevisionforever|pinned)|
+	(lastviewedbyme <Time>)|
+	(localfile <FileName>)|
+	(mimetype gdoc|gdocument|gdrawing|gfolder|gdirectory|gform|gfusion|gpresentation|gscript|gsite|gsheet|gspreadsheet)|
+	(modifieddate|modifiedtime <Time>)|
+	(ocr)|
+	(ocrlanguage <Language>)|
+	(parentid <DriveFolderID>)|
+	(parentname <DriveFolderName>)|
+	(restricted|restrict [<Boolean>])|
+	(starred|star [<Boolean>])|
+	(trashed|trash [<Boolean>])|
+	(viewed|view [<Boolean>])|
+	writerscantshare
+
+<DriveFileAddAttributes> ::=
+	<DriveFileAttributes>|
+	ignoredefaultvisibility|
+	usecontentasindexabletext
+
+<DriveFileUpdateAttributes> ::=
+	<DriveFileAttributes>|
+	(addparents <DriveFolderIDList>)|
+	(modifieddatebehavior fromBody|fromBodyIfNeeded|fromBodyOrNow|noChange|now|nowIfNeeded)|
+	(removeparents <DriveFolderIDList>)|
+	usecontentasindexabletext
+
+<DriveFileCopyAttributes> ::=
+	<DriveFileAttributes>|
+	ignoredefaultvisibility
+
+<DriveFileIDEntity> ::= (<DriveFileItem>) | (id <DriveFileItem>) | (id:<DriveFileItem>) | (ids <DriveFileList>) | (ids:<DriveFileList>)
+<DriveFileNameEntity> ::= (drivefilename <DriveFileName>) | (drivefilename:<DriveFileName>) | (anydrivefilename <DriveFileName>) | (anydrivefilename:<DriveFileName>)
+<DriveFileQueryEntity> ::= (query <QueryDriveFile>) | (query:<QueryDriveFile>)
+<DriveFileEntity> ::= <DriveFileIDEntity> | <DriveFileNameEntity> | <DriveFileQueryEntity> | root | <FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
+
+gam <UserTypeEntity> add drivefile [drivefilename <DriveFileName>] <DriveFileAddAttributes>*
+gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [newfilename <DriveFileName>] <DriveFileUpdateAttributes>*
+gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [recursive] <DriveFileCopyAttributes>*
+gam <UserTypeEntity> get drivefile <DriveFileEntity> [format <FileFormatList>] [targetfolder <FilePath>] [revision <Number>] [nocache]
+gam <UserTypeEntity> delete drivefile <DriveFileEntity> [purge|untrash|trash]
+gam <UserTypeEntity> purge drivefile <DriveFileEntity>
+gam <UserTypeEntity> trash drivefile <DriveFileEntity>
+gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
+
+<DriveFilePermissionEntity> ::= <DriveFilePermissionList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<DriveFilePermissionIDEntity> ::= <DriveFilePermissionIDList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+
+<DriveFileACLRole> :: =commenter|editor|owner|reader|writer
+<DriveFilePermission> ::= anyone|anyonewithlink|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>;<DriveFileACLRole>
+<DriveFilePermissionID> ::= anyone|anyonewithlink|id:<String>
+<DriveFilePermissionIDorEmail> ::= <DriveFilePermissionID>|<EmailAddress>
+<DriveFilePermissionList> ::= "<DriveFilePermission>(,<DriveFilePermission)*"
+<DriveFilePermissionIDList> ::= "<DriveFilePermissionID>(,<DriveFilePermissionID>)*"
+
+gam <UserTypeEntity> add drivefileacl <DriveFileEntity> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
+	(role <DriveFileACLRole>) [withlink|(allowfilediscovery <Boolean>)] [expiration <Time>] [sendemail] [emailmessage <String>] [showtitles]
+gam <UserTypeEntity> update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail>
+	(role <DriveFileACLRole>) [withlink|(allowfilediscovery <Boolean>)] [expiration <Time>] [removeexpiration <Boolean>] [transferownership <Boolean>] [showtitles]
+gam <UserTypeEntity> delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles]
+gam <UserTypeEntity> show drivefileacl <DriveFileEntity> [showtitles]
+gam <UserTypeEntity> print drivefileacl <DriveFileEntity> [todrive [<ToDriveAttributes>]] [showtitles]
+gam <UserTypeEntity> add permissions <DriveFileEntity> <DriveFilePermissionEntity> [expiration <Time>] [sendemail] [emailmessage <String>]
+gam <UserTypeEntity> delete permissions <DriveFileEntity> <DriveFilePermissionIDEntity>
+
+gam <UserTypeEntity> transfer drive <UserItem> [keepuser]
+gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed] (orderby <DriveOrderByFieldName> [ascending|descending])* [preview] [filepath] [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> claim ownership <DriveFileEntity> [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>] [includetrashed] [restricted [<Boolean>]] [writerscantshare [<Boolean>]] [preview] [filepath] [todrive [<ToDriveAttributes>]]
+
+<DriveFieldName> ::=
+	appdatacontents|
+	cancomment|
+	canreadrevisions|
+	copyable|
+	createddate|createdtime|
+	description|
+	editable|
+	explicitlytrashed|
+	fileextension|
+	filesize|
+	foldercolorrgb|
+	fullfileextension|
+	headrevisionid|
+	iconlink|
+	id|
+	lastmodifyinguser|
+	lastmodifyingusername|
+	lastviewedbyme|lastviewedbymedate|lastviewedbymetime|lastviewedbyuser|
+	md5|md5checksum|md5sum|
+	mime|mimetype|
+	modifiedbyme|modifiedbymedate|modifiedbymetime|modifiedbyuser|
+	modifieddate|modifiedtime|
+	name|
+	originalfilename|
+	ownedbyme|
+	ownernames|
+	owners|
+	parents|
+	permissions|
+	quotabytesused|quotaused|
+	restricted|
+	shareable|
+	shared|
+	sharedwithmedate|sharedwithmetime|
+	sharinguser|
+	size|
+	spaces|
+	starred|
+	thumbnaillink|
+	title|
+	trashed
+	userpermission|
+	version|
+	viewed|
+	viewerscancopycontent|
+	webcontentlink|
+	webviewlink|
+	writerscanshare
+<DriveFieldNameList> ::= "<DriveFieldName>(,<DriveFieldName>)*"
+
+<DriveOrderByFieldName> ::=
+	createddate|createdtime|
+	folder|
+	lastviewedbyme|lastviewedbymedate|lastviewedbymetime|lastviewedbyuser|
+	modifiedbyme|modifiedbymedate|modifiedbymetime|modifiedbyuser|
+	modifieddate|modifiedtime|
+	name|
+	quotabytesused|quotaused|
+	recency|
+	sharedwithmedate|sharedwithmetime|
+	starred|
+	title|
+	viewedbymedate|viewedbymetime
+
+gam <UserTypeEntity> show fileinfo <DriveFileEntity> [filepath] [allfields|<DriveFieldName>*|(fields <DriveFiledNameList>)]
+gam <UserTypeEntity> show filerevisions <DriveFileEntity>
+gam <UserTypeEntity> show filepath <DriveFileEntity>
+
+gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)] [select <DriveFileEntity>|orphans] [depth <Number>] (orderby <DriveOrderByFieldName> [ascending|descending])*
+gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)] [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [select <DriveFileEntity>|orphans] [depth <Number>]
+	[filepath] [allfields|<DriveFieldName>*|(fields <DriveFiledNameList>)] (orderby <DriveOrderByFieldName> [ascending|descending])* [delimiter <String>]
+
+gam <UserTypeEntity> print|show driveactivity [todrive [<ToDriveAttributes>]] [fileid <DriveFileID>] [folderid <DriveFolderID>]
+gam <UserTypeEntity> print|show drivesettings [todrive [<ToDriveAttributes>]]
+
+gam <UserTypeEntity> delete emptydrivefolders
+gam <UserTypeEntity> empty drivetrash
+
+# Users - Deprovision
+
+gam <UserTypeEntity> deprovision|deprov
+
+# Users - Gmail - Delegates
+
+gam <UserTypeEntity> add delegate|delegates <UserEntity>
+gam <UserTypeEntity> delegate|delegates to <UserEntity>
+gam <UserTypeEntity> delete delegate|delegates <UserEntity>
+gam <UserTypeEntity> show delegates|delegate
+gam <UserTypeEntity> print delegates [todrive [<ToDriveAttributes>]]
+
+# Users - Gmail - Filters
+
+<FilterCriteria> ::=
+	excludechats|
+	(from <EmailAddress>)|
+	(haswords|query <List>)|
+	(musthaveattachment|hasattachment)|
+	(nowords|negatedquery <List>)|
+	(size larger|smaller <ByteCount>)|
+	(subject <String>)|
+	(to <EmailAddress>)
+
+<FilterAction> ::=
+	archive|
+	(forward <EmailAddress>)|
+	(important|notimportant)|(star)|
+	(label <LabelID>)|
+	markread|
+	neverspam|
+	trash
+
+gam <UserTypeEntity> [add] filter <FilterCriteria>+ <FilterAction>+
+gam <UserTypeEntity> delete filters <FilterIDEntity>
+
+gam <UserTypeEntity> info filters <FilterIDEntity>
+gam <UserTypeEntity> show filters [labelidsonly]
+gam <UserTypeEntity> print filters [labelidsonly] [todrive [<ToDriveAttributes>]]
+
+# Users - Gmail - Forwarding
+
+gam <UserTypeEntity> add forwardingaddress|forwardingaddresses <EmailAddressEntity>
+gam <UserTypeEntity> delete forwardingaddress|forwardingaddresses <EmailAddressEntity>
+
+gam <UserTypeEntity> show forwardingaddress|forwardingaddresses
+gam <UserTypeEntity> info forwardingaddress|forwardingaddresses <EmailAddressEntity>
+gam <UserTypeEntity> print forwardingaddress|forwardingaddresses [todrive [<ToDriveAttributes>]]
+
+gam <UserTypeEntity> forward <FalseValues>
+gam <UserTypeEntity> forward <TrueValues> keep|leaveininbox|archive|delete|trash|markread <EmailAddress>
+
+gam <UserTypeEntity> show forward
+gam <UserTypeEntity> print forward [todrive [<ToDriveAttributes>]]
+
+# Users - Gmail - Labels/Messages
+
+gam <UserTypeEntity> [add] label|labels <String> [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
+gam <UserTypeEntity> update labelsettings <LabelName> [name <String>] [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
+gam <UserTypeEntity> update label|labels [search <RegularExpression>] [replace <String>] [merge]
+gam <UserTypeEntity> delete label|labels <LabelName>|regex:<RegularExpression>|--ALL_LABELS--
+
+gam <UserTypeEntity> show labels|label [onlyuser] [showcounts]
+
+gam <UserTypeEntity> archive messages <GroupItem> (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_archive <Number>])|(ids <MessageIDEntity>)
+gam <UserTypeEntity> delete messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_delete|max_to_process <Number>])|(ids <MessageIDEntity>)
+gam <UserTypeEntity> modify messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_modify|max_to_process <Number>])|(ids <MessageIDEntity>) (addlabel <LabelName>)* (removelabel <LabelName>)*
+gam <UserTypeEntity> spam messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_spam|max_to_process <Number>])|(ids <MessageIDEntity>)
+gam <UserTypeEntity> trash messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_trash|max_to_process <Number>])|(ids <MessageIDEntity>)
+gam <UserTypeEntity> untrash messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_untrash|max_to_process <Number>])|(ids <MessageIDEntity>)
+
+gam <UserTypeEntity> show messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show|max_to_process <Number>] [includespamtrash])|(ids <MessageIDEntity>)
+	[headers <String>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl]
+gam <UserTypeEntity> print messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_print|max_to_process <Number>] [includespamtrash])|(ids <MessageIDEntity>)
+	[headers <String>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <String>] [todrive [<ToDriveAttributes>]]
+
+# Users - Gmail - Profile
+
+gam <UserTypeEntity> show gmailprofile
+gam <UserTypeEntity> print gmailprofile [todrive [<ToDriveAttributes>]]
+
+# Users - Gmail - Send As/Signature/Vacation
+
+gam <UserTypeEntity> [add] sendas <EmailAddress> <String> [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*] [html] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
+gam <UserTypeEntity> update sendas <EmailAddress> [name <String>] [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*] [html] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
+gam <UserTypeEntity> delete sendas <EmailAddressEntity>
+gam <UserTypeEntity> show sendas [format]
+gam <UserTypeEntity> info sendas <EmailAddressEntity> [format]
+gam <UserTypeEntity> print sendas [todrive [<ToDriveAttributes>]]
+
+gam <UserTypeEntity> add smime (file <FileName> [charset <CharSet>]) [password <Password>] [sendas|sendasemail <EmailAddress>] [default]
+gam <UserTypeEntity> update smime [id <S/MIMEID>] [sendas|sendasemail <EmailAddress>] [default]
+gam <UserTypeEntity> delete smime [id <S/MIMEID>] [sendas|sendasemail <EmailAddress>]
+gam <UserTypeEntity> show smimes [primaryonly]
+gam <UserTypeEntity> print smimes [todrive [<ToDriveAttributes>]] [primaryonly]
+
+gam <UserTypeEntity> signature|sig <String>|(file <FileName> [charset <Charset>]) (replace <Tag> <String>)* [html] [name <String>] [replyto <EmailAddress>] [default] [primary] [treatasalias <Boolean>]
+gam <UserTypeEntity> show signature|sig [format] [primary]
+
+gam <UserTypeEntity> vacation <FalseValues>
+gam <UserTypeEntity> vacation <TrueValues> subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)* [html]
+	[contactsonly] [domainonly] [startdate <Date>] [enddate <Date>]
+gam <UserTypeEntity> show vacation [format]
+
+# Users - Gmail - Settings
+
+gam <UserTypeEntity> imap|imap4 <Boolean> [noautoexpunge] [expungebehavior archive|deleteforever|trash] [maxfoldersize 0|1000|2000|5000|10000]
+gam <UserTypeEntity> show imap|imap4
+
+gam <UserTypeEntity> pop|pop3 <Boolean> [for allmail|newmail|mailfromnowon|fromnowown] [action keep|leaveininbox|archive|delete|trash|markread]
+gam <UserTypeEntity> show pop|pop3
+
+gam <UserTypeEntity> arrows <Boolean>
+gam <UserTypeEntity> language <Language>
+gam <UserTypeEntity> pagesize 25|50|100
+gam <UserTypeEntity> shortcuts <Boolean>
+gam <UserTypeEntity> snippets <Boolean>
+gam <UserTypeEntity> utf|utf8|utf-8|unicode <Boolean>
+gam <UserTypeEntity> webclips <Boolean>
+
+# Users - Google+ - Profile
+
+gam <UserTypeEntity> show gplusprofile
+gam <UserTypeEntity> print gplusprofile [todrive [<ToDriveAttributes>]]
+
+# Users - Groups
+
+gam <UserTypeEntity> add groups [member|manager|owner] <GroupEntity>
+gam <UserTypeEntity> delete groups [<GroupEntity>]
+
+# Users - Licenses
+
+gam <UserTypeEntity> add license <SKUID> [product|productid <ProductID>]
+gam <UserTypeEntity> update license <SKUID> [product|productid <ProductID>] [from] <SKUID>
+gam <UserTypeEntity> delete license <SKUID> [product|productid <ProductID>]
+
+# Users - Photo
+
+gam <UserTypeEntity> update photo <FileNamePattern>
+gam <UserTypeEntity> delete photo
+gam <UserTypeEntity> get photo [drivedir|(targetfolder <FilePath>)] [noshow]
+
+# Users - Profile
+
+gam <UserTypeEntity> profile share|shared|unshare|unshared
+
+gam <UserTypeEntity> show profile
+
+# Users - Tokens
+
+gam <UserTypeEntity> delete tokens clientid <ClientID>
+
+gam <UserTypeEntity> show tokens [clientid <ClientID>]
+gam <UserTypeEntity> print tokens [todrive [<ToDriveAttributes>]] [clientid <ClientID>] [delimiter <String>]
+gam print tokens|token [todrive [<ToDriveAttributes>]] [clientid <ClientID>] [delimiter <String>] [<UserTypeEntity>]
+
+# Verifications
+
+gam create verify|verification <DomainName>
+gam update verify|verification <DomainName> cname|txt|text|site|file
+gam info verify|verification
