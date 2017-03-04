@@ -6,7 +6,7 @@ GAMADV-X3 is a rewrite/extension of Jay Lee's [GAM](https://github.com/jay0lee/G
 
 Documentation
 -------------
-General GAM documentation is hosted in the [GitHub Wiki]. Documentation specifically for GAMADV-X3 is hosted in the [GitHub GAMADV-X3 Wiki] and in Gam*.txt files.
+General GAM documentation is hosted in the [GitHub Wiki]. Documentation specifically for GAMADV-X3 is hosted in the [GitHub GAMADV-X Wiki] and in Gam*.txt files.
 
 Downloads
 ---------
