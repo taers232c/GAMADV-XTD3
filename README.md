@@ -44,21 +44,21 @@ Read GamConfig.txt.
 
 ## Linux/Mac OS
 
-This example assumes that GAMADV-X3 has beem installed in /usr/local/gamadv-x.
+This example assumes that GAMADV-X3 has beem installed in /usr/local/gamadv-x3.
 Set environment variable OLDGAMPATH to point to the existing Gam directory; /usr/local/gam will be used in this example.
 ```
-admin@server:/usr/local/gamadv-x$ export OLDGAMPATH=/usr/local/gam
+admin@server:/usr/local/gamadv-x3$ export OLDGAMPATH=/usr/local/gam
 ```
 Verify that OLDGAMPATH points to the correct location.
 ```
-admin@server:/usr/local/gamadv-x$ ls -l $OLDGAMPATH/*.json
+admin@server:/usr/local/gamadv-x3$ ls -l $OLDGAMPATH/*.json
 -rw-r-----@ 1 admin  staff   553 Feb 26 10:39 /usr/local/gam/client_secrets.json
 -rw-r-----@ 1 admin  staff  2377 Feb 26 10:39 /usr/local/gam/oauth2service.json
-admin@server:/usr/local/gamadv-x$ 
+admin@server:/usr/local/gamadv-x3$ 
 ```
 Initialize GAMADV-X3; this should be the first GAMADV-X3 command executed.
 ```
-admin@server:/usr/local/gamadv-x$ ./gam config verify
+admin@server:/usr/local/gamadv-x3$ ./gam config verify
 Created: /Users/admin/.gam
 Created: /Users/admin/.gam/gamcache
 Copied: /usr/local/gam/oauth2service.json, To: /Users/admin/.gam/oauth2service.json
@@ -109,11 +109,11 @@ Section: DEFAULT
   todrive_timestamp = false
   todrive_user = ''
   user_max_results = 500
-admin@server:/usr/local/gamadv-x$ 
+admin@server:/usr/local/gamadv-x3$ 
 ```
 Verify initialization, this was a successful installation.
 ```
-admin@server:/usr/local/gamadv-x$ ls -l ~/.gam
+admin@server:/usr/local/gamadv-x3$ ls -l ~/.gam
 total 48
 -rw-r-----+ 1 admin  staff   553 Mar  3 09:23 client_secrets.json
 -rw-r-----+ 1 admin  staff  1069 Mar  3 09:23 gam.cfg
@@ -122,20 +122,20 @@ drwxr-x---+ 2 admin  staff    68 Mar  3 09:23 gamcache
 -rw-r-----+ 1 admin  staff  5104 Mar  3 09:23 oauth2.txt
 -rw-rw-rw-+ 1 admin  staff     0 Mar  3 09:23 oauth2.txt.lock
 -rw-r-----+ 1 admin  staff  2377 Mar  3 09:23 oauth2service.json
-admin@server:/usr/local/gamadv-x$ 
+admin@server:/usr/local/gamadv-x3$ 
 ```
 If the verification looks like this, then you'll have to copy client_secrets.json and oauth2service.json manually.
 ```
-admin@server:/usr/local/gamadv-x$ ls -l ~/.gam
+admin@server:/usr/local/gamadv-x3$ ls -l ~/.gam
 total 40
 -rw-r-----+  1 admin  admin  1427 Nov  1 11:38 gam.cfg
 drwxr-x---+ 16 admin  admin   544 Nov  2 07:25 gamcache
 -rw-r--r--+  1 admin  admin    10 Nov  2 15:31 lastupdatecheck.txt
 -rw-rw-rw-+  1 admin  admin     0 Sep 19 17:28 oauth2.txt.lock
 
-admin@server:/usr/local/gamadv-x$ cp -p $OLDGAMPATH/client_secrets.json ~/.gam/
-admin@server:/usr/local/gamadv-x$ cp -p $OLDGAMPATH/oauth2service.json ~/.gam/
-admin@server:/usr/local/gamadv-x$ ls -l ~/.gam
+admin@server:/usr/local/gamadv-x3$ cp -p $OLDGAMPATH/client_secrets.json ~/.gam/
+admin@server:/usr/local/gamadv-x3$ cp -p $OLDGAMPATH/oauth2service.json ~/.gam/
+admin@server:/usr/local/gamadv-x3$ ls -l ~/.gam
 total 40
 -rw-r-----+ 1 admin  staff   553 Mar  3 09:23 client_secrets.json
 -rw-r-----+ 1 admin  staff  1069 Mar  3 09:23 gam.cfg
@@ -147,17 +147,17 @@ drwxr-x---+ 2 admin  staff    68 Mar  3 09:23 gamcache
 ```
 Enable GAMADV-X3 client access, create oauth2.txt; it must be deleted and recreated because it is in a different format than in basic Gam.
 ```
-admin@server:/usr/local/gamadv-x$ rm -f ~/.gam/oauth2.txt
-admin@server:/usr/local/gamadv-x$ ./gam version
+admin@server:/usr/local/gamadv-x3$ rm -f ~/.gam/oauth2.txt
+admin@server:/usr/local/gamadv-x3$ ./gam version
 WARNING: Config File: /Users/admin/.gam/gam.cfg, Section: DEFAULT, Item: oauth2_txt, Value: /Users/admin/.gam/oauth2.txt, Not Found
 GAM 4.44.02 - https://github.com/taers232c/GAMADV-X3
 Ross Scroggs <ross.scroggs@gmail.com>
 Python 2.7.13 64-bit final
 google-api-python-client 1.6.1
 Darwin-15.6.0-x86_64-i386-64bit x86_64
-Path: /usr/local/gamadv-x
+Path: /usr/local/gamadv-x3
 
-admin@server:/usr/local/gamadv-x$ ./gam oauth create
+admin@server:/usr/local/gamadv-x3$ ./gam oauth create
 
 What is your G Suite admin email address?admin@domain.com
 
@@ -226,7 +226,7 @@ Client OAuth2 File: /Users/admin/.gam/oauth2.txt, Created
 ```
 Gam service account access must be enabled.
 ```
-admin@server:/usr/local/gamadv-x$ ./gam user testuser1@domain.com check serviceaccount
+admin@server:/usr/local/gamadv-x3$ ./gam user testuser1@domain.com check serviceaccount
 User: testuser1@domain.com, Check 12 Scopes
   Scope: https://mail.google.com/                                    , Checked: PASS (1/12)
   Scope: https://sites.google.com/feeds                              , Checked: FAIL (2/12)
@@ -270,7 +270,7 @@ Paste SVCACCTID in the `Client Name` box and the complete list of scopes in the 
 Wait a moment and then perform the following command; it it still fails, wait a bit longer, it can sometimes take serveral minutes
 for the authorization to complete.
 ```
-admin@server:/usr/local/gamadv-x$ ./gam user testuser1@domain.com check serviceaccount
+admin@server:/usr/local/gamadv-x3$ ./gam user testuser1@domain.com check serviceaccount
 User: testuser1@domain.com, Check 12 Scopes
   Scope: https://mail.google.com/                                    , Checked: PASS (1/12)
   Scope: https://sites.google.com/feeds                              , Checked: PASS (2/12)
@@ -290,7 +290,7 @@ Service Account Client name SVCACCTID is fully authorized.
 ```
 Update gam.cfg to have your customer_id and domain.
 ```
-admin@server:/usr/local/gamadv-x$ ./gam info domain
+admin@server:/usr/local/gamadv-x3$ ./gam info domain
 Customer ID: C01234567
 Primary Domain: domain.com
 Customer Creation Time: 2007-06-06T15:47:55.444Z
@@ -298,7 +298,7 @@ Primary Domain Verified: True
 Default Language: en
 ...
 
-admin@server:/usr/local/gamadv-x$ ./gam config customer_id C01234567 domain domain.com save verify
+admin@server:/usr/local/gamadv-x3$ ./gam config customer_id C01234567 domain domain.com save verify
 Config File: /Users/admin/.gam/gam.cfg, Saved
 Section: DEFAULT
   activity_max_results = 100
@@ -345,7 +345,7 @@ Section: DEFAULT
   todrive_user = ''
   user_max_results = 500
 
-admin@server:/usr/local/gamadv-x$ 
+admin@server:/usr/local/gamadv-x3$ 
 ```
 
 ## Windows
