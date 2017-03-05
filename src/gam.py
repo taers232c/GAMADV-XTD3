@@ -4018,6 +4018,24 @@ def initializeLogging():
   nh = NullHandler()
   logging.getLogger().addHandler(nh)
 
+def saveNonPickleableValues():
+  savedValues = {GM.STDOUT: {}, GM.STDERR: {}}
+  savedValues[GM.STDOUT][GM.REDIRECT_FD] = GM.Globals[GM.STDOUT].get(GM.REDIRECT_FD, None)
+  GM.Globals[GM.STDOUT].pop(GM.REDIRECT_FD, None)
+  savedValues[GM.STDERR][GM.REDIRECT_FD] = GM.Globals[GM.STDERR].get(GM.REDIRECT_FD, None)
+  GM.Globals[GM.STDERR].pop(GM.REDIRECT_FD, None)
+  savedValues[GM.STDOUT][GM.REDIRECT_MULTI_FD] = GM.Globals[GM.STDOUT].get(GM.REDIRECT_MULTI_FD, None)
+  GM.Globals[GM.STDOUT].pop(GM.REDIRECT_MULTI_FD, None)
+  savedValues[GM.STDERR][GM.REDIRECT_MULTI_FD] = GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, None)
+  GM.Globals[GM.STDERR].pop(GM.REDIRECT_MULTI_FD, None)
+  return savedValues
+
+def restoreNonPickleableValues(savedValues):
+  GM.Globals[GM.STDOUT][GM.REDIRECT_FD] = savedValues[GM.STDOUT][GM.REDIRECT_FD]
+  GM.Globals[GM.STDERR][GM.REDIRECT_FD] = savedValues[GM.STDERR][GM.REDIRECT_FD]
+  GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD] = savedValues[GM.STDOUT][GM.REDIRECT_MULTI_FD]
+  GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = savedValues[GM.STDERR][GM.REDIRECT_MULTI_FD]
+
 def CSVFileQueueHandler(mpQueue):
   global Cmd
   if sys.platform.startswith('win'):
@@ -4058,7 +4076,11 @@ def terminateCSVFileQueueHandler(mpQueue, mpQueueHandler):
   GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = None
   if GM.Globals[GM.WINDOWS]:
     mpQueue.put((GM.REDIRECT_QUEUE_ARGS, Cmd.AllArguments()))
+    if GM.Globals[GM.WINDOWS]:
+      savedValues = saveNonPickleableValues()
     mpQueue.put((GM.REDIRECT_QUEUE_GLOBALS, GM.Globals))
+    if GM.Globals[GM.WINDOWS]:
+      restoreNonPickleableValues(savedValues)
     mpQueue.put((GM.REDIRECT_QUEUE_VALUES, GC.Values))
   mpQueue.put((GM.REDIRECT_QUEUE_EOF, None))
   mpQueueHandler.join()
@@ -4180,19 +4202,8 @@ def MultiprocessGAMCommands(items):
   except AssertionError as e:
     Cmd.SetLocation(0)
     usageErrorExit(e.message)
-  if GM.Globals[GM.CSVFILE][GM.REDIRECT_MULTIPROCESS]:
-    mpQueueCSVFile, mpQueueHandlerCSVFile = initializeCSVFileQueueHandler()
-  else:
-    mpQueueCSVFile = None
   if GM.Globals[GM.WINDOWS]:
-    savedStdoutFd = GM.Globals[GM.STDOUT][GM.REDIRECT_FD]
-    del GM.Globals[GM.STDOUT][GM.REDIRECT_FD]
-    savedStderrFd = GM.Globals[GM.STDERR][GM.REDIRECT_FD]
-    del GM.Globals[GM.STDERR][GM.REDIRECT_FD]
-    savedStdoutMultiFd = GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD]
-    del GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD]
-    savedStderrMultiFd = GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD]
-    del GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD]
+    savedValues = saveNonPickleableValues()
   if GM.Globals[GM.STDOUT][GM.REDIRECT_MULTIPROCESS]:
     mpQueueStdout, mpQueueHandlerStdout = initializeStdQueueHandler(GM.STDOUT, GM.Globals, GC.Values)
     mpQueueStdout.put((0, GM.REDIRECT_QUEUE_START, Cmd.AllArguments()))
@@ -4207,10 +4218,11 @@ def MultiprocessGAMCommands(items):
   else:
     mpQueueStderr = None
   if GM.Globals[GM.WINDOWS]:
-    GM.Globals[GM.STDOUT][GM.REDIRECT_FD] = savedStdoutFd
-    GM.Globals[GM.STDERR][GM.REDIRECT_FD] = savedStderrFd
-    GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD] = savedStdoutMultiFd
-    GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = savedStderrMultiFd
+    restoreNonPickleableValues(savedValues)
+  if GM.Globals[GM.CSVFILE][GM.REDIRECT_MULTIPROCESS]:
+    mpQueueCSVFile, mpQueueHandlerCSVFile = initializeCSVFileQueueHandler()
+  else:
+    mpQueueCSVFile = None
   signal.signal(signal.SIGINT, origSigintHandler)
   writeStderr(Msg.USING_N_PROCESSES.format(numPoolProcesses))
   try:
