@@ -4089,9 +4089,9 @@ def StdQueueHandler(mpQueue, stdtype, gmGlobals, gcValues):
     if GM.Globals[stdtype][GM.REDIRECT_NAME] == 'null':
       fd = open(os.devnull, GM.Globals[stdtype][GM.REDIRECT_MODE])
     elif GM.Globals[stdtype][GM.REDIRECT_NAME] == '-':
-      fd = [sys.stderr, sys.stdout][GM.Globals[stdtype][GM.REDIRECT_QUEUE] == 'stdout']
+      fd = open([sys.stderr.fileno(), sys.stdout.fileno()][GM.Globals[stdtype][GM.REDIRECT_QUEUE] == 'stdout'], GM.Globals[stdtype][GM.REDIRECT_MODE], encoding=GM.Globals[GM.SYS_ENCODING])
     elif GM.Globals[stdtype][GM.REDIRECT_NAME] == 'stdout'and GM.Globals[stdtype][GM.REDIRECT_QUEUE] == 'stderr':
-      fd = sys.stdout
+      fd = open(sys.stdout.fileno(), GM.Globals[stdtype][GM.REDIRECT_MODE], encoding=GM.Globals[GM.SYS_ENCODING])
     else:
       fd = openFile(GM.Globals[stdtype][GM.REDIRECT_NAME], GM.Globals[stdtype][GM.REDIRECT_MODE])
   else:
@@ -4139,6 +4139,7 @@ def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr, ar
   GM.Globals[GM.CSVFILE] = {}
   if mpQueueCSVFile:
     GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = mpQueueCSVFile
+  del GM.Globals[GM.STDOUT]
   if mpQueueStdout:
     GM.Globals[GM.STDOUT] = {GM.REDIRECT_NAME: '', GM.REDIRECT_FD: None, GM.REDIRECT_MULTI_FD: io.StringIO()}
     if GM.Globals[GM.SAVED_STDOUT] is not None:
@@ -4146,9 +4147,8 @@ def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr, ar
       sys.stdout = GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD]
     mpQueueStdout.put((pid, GM.REDIRECT_QUEUE_START, args))
   else:
-    del GM.Globals[GM.STDOUT]
     GM.Globals[GM.STDOUT] = {}
-    pass
+  del GM.Globals[GM.STDERR]
   if mpQueueStderr:
     if mpQueueStderr is not mpQueueStdout:
       GM.Globals[GM.STDERR] = {GM.REDIRECT_NAME: '', GM.REDIRECT_FD: None, GM.REDIRECT_MULTI_FD: io.StringIO()}
@@ -4156,9 +4156,7 @@ def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr, ar
     else:
       GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD]
   else:
-    del GM.Globals[GM.STDERR]
     GM.Globals[GM.STDERR] = {}
-    pass
   sysRC = ProcessGAMCommand(args)
   if mpQueueStdout:
     mpQueueStdout.put((pid, GM.REDIRECT_QUEUE_END, [sysRC, GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD].getvalue()]))
@@ -4186,6 +4184,15 @@ def MultiprocessGAMCommands(items):
     mpQueueCSVFile, mpQueueHandlerCSVFile = initializeCSVFileQueueHandler()
   else:
     mpQueueCSVFile = None
+  if GM.Globals[GM.WINDOWS]:
+    savedStdoutFd = GM.Globals[GM.STDOUT][GM.REDIRECT_FD]
+    del GM.Globals[GM.STDOUT][GM.REDIRECT_FD]
+    savedStderrFd = GM.Globals[GM.STDERR][GM.REDIRECT_FD]
+    del GM.Globals[GM.STDERR][GM.REDIRECT_FD]
+    savedStdoutMultiFd = GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD]
+    del GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD]
+    savedStderrMultiFd = GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD]
+    del GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD]
   if GM.Globals[GM.STDOUT][GM.REDIRECT_MULTIPROCESS]:
     mpQueueStdout, mpQueueHandlerStdout = initializeStdQueueHandler(GM.STDOUT, GM.Globals, GC.Values)
     mpQueueStdout.put((0, GM.REDIRECT_QUEUE_START, Cmd.AllArguments()))
@@ -4199,6 +4206,12 @@ def MultiprocessGAMCommands(items):
       mpQueueStderr = mpQueueStdout
   else:
     mpQueueStderr = None
+  if GM.Globals[GM.WINDOWS]:
+    GM.Globals[GM.STDOUT][GM.REDIRECT_FD] = savedStdoutFd
+    GM.Globals[GM.STDERR][GM.REDIRECT_FD] = savedStderrFd
+    GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD] = savedStdoutMultiFd
+    GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = savedStderrMultiFd
+  print(GM.Globals)
   signal.signal(signal.SIGINT, origSigintHandler)
   writeStderr(Msg.USING_N_PROCESSES.format(numPoolProcesses))
   try:
