@@ -19,7 +19,7 @@ generated credentials in a common file that is used by other example apps in
 the same directory.
 """
 
-
+from __future__ import print_function
 
 import logging
 import socket
@@ -91,6 +91,7 @@ def _CreateArgumentParser():
         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
         help='Set the logging level of detail.')
     return parser
+
 
 # argparser is an ArgumentParser that contains command-line options expected
 # by tools.run(). Pass it in as part of the 'parents' argument to your own
@@ -216,16 +217,6 @@ def run_flow(flow, storage, flags=None, http=None):
         oauth_callback = client.OOB_CALLBACK_URN
     flow.redirect_uri = oauth_callback
     authorize_url = flow.step1_get_authorize_url()
-
-    if flags.short_url:
-        try:
-            from googleapiclient.discovery import build
-            service = build('urlshortener', 'v1', http=http)
-            url_result = service.url().insert(body={'longUrl': authorize_url},
-              key='AIzaSyBlmgbii8QfJSYmC9VTMOfqrAt5Vj5wtzE').execute()
-            authorize_url = url_result['id']
-        except:
-          pass
 
     if not flags.noauth_local_webserver:
         import webbrowser

@@ -38,7 +38,7 @@ def get(http, path, root=METADATA_ROOT, recursive=None):
     Args:
         http: an object to be used to make HTTP requests.
         path: A string indicating the resource to retrieve. For example,
-            'instance/service-accounts/defualt'
+            'instance/service-accounts/default'
         root: A string indicating the full path to the metadata server root.
         recursive: A boolean indicating whether to do a recursive query of
             metadata. See

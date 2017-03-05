@@ -266,12 +266,12 @@ class Credentials(object):
         # Add in information we will need later to reconstitute this instance.
         to_serialize['_class'] = curr_type.__name__
         to_serialize['_module'] = curr_type.__module__
-        for key, val in list(to_serialize.items()):
+        for key, val in to_serialize.items():
             if isinstance(val, bytes):
                 to_serialize[key] = val.decode('utf-8')
             if isinstance(val, set):
                 to_serialize[key] = list(val)
-        return json.dumps(to_serialize, indent=4, sort_keys=True)
+        return json.dumps(to_serialize)
 
     def to_json(self):
         """Creating a JSON representation of an instance of Credentials.
@@ -451,7 +451,7 @@ class OAuth2Credentials(Credentials):
     def __init__(self, access_token, client_id, client_secret, refresh_token,
                  token_expiry, token_uri, user_agent, revoke_uri=None,
                  id_token=None, token_response=None, scopes=None,
-                 token_info_uri=None):
+                 token_info_uri=None, id_token_jwt=None):
         """Create an instance of OAuth2Credentials.
 
         This constructor is not usually called by the user, instead
@@ -474,8 +474,11 @@ class OAuth2Credentials(Credentials):
                             because some providers (e.g. wordpress.com) include
                             extra fields that clients may want.
             scopes: list, authorized scopes for these credentials.
-          token_info_uri: string, the URI for the token info endpoint. Defaults
-                          to None; scopes can not be refreshed if this is None.
+            token_info_uri: string, the URI for the token info endpoint.
+                            Defaults to None; scopes can not be refreshed if
+                            this is None.
+            id_token_jwt: string, the encoded and signed identity JWT. The
+                          decoded version of this is stored in id_token.
 
         Notes:
             store: callable, A callable that when passed a Credential
@@ -493,6 +496,7 @@ class OAuth2Credentials(Credentials):
         self.user_agent = user_agent
         self.revoke_uri = revoke_uri
         self.id_token = id_token
+        self.id_token_jwt = id_token_jwt
         self.token_response = token_response
         self.scopes = set(_helpers.string_to_scopes(scopes or []))
         self.token_info_uri = token_info_uri
@@ -621,6 +625,7 @@ class OAuth2Credentials(Credentials):
             data['user_agent'],
             revoke_uri=data.get('revoke_uri', None),
             id_token=data.get('id_token', None),
+            id_token_jwt=data.get('id_token_jwt', None),
             token_response=data.get('token_response', None),
             scopes=data.get('scopes', None),
             token_info_uri=data.get('token_info_uri', None))
@@ -786,8 +791,10 @@ class OAuth2Credentials(Credentials):
                 self.token_expiry = None
             if 'id_token' in d:
                 self.id_token = _extract_id_token(d['id_token'])
+                self.id_token_jwt = d['id_token']
             else:
                 self.id_token = None
+                self.id_token_jwt = None
             # On temporary refresh errors, the user does not actually have to
             # re-authorize, so we unflag here.
             self.invalid = False
@@ -1389,7 +1396,7 @@ def _get_application_default_credential_from_file(filename):
             "'type' field should be defined (and have one of the '" +
             AUTHORIZED_USER + "' or '" + SERVICE_ACCOUNT + "' values)")
 
-    missing_fields = required_fields.difference(list(client_credentials.keys()))
+    missing_fields = required_fields.difference(client_credentials.keys())
 
     if missing_fields:
         _raise_exception_for_missing_fields(missing_fields)
@@ -1568,7 +1575,7 @@ def _extract_id_token(id_token):
     if type(id_token) == bytes:
         segments = id_token.split(b'.')
     else:
-        segments = id_token.split('.')
+        segments = id_token.split(u'.')
 
     if len(segments) != 3:
         raise VerifyJwtTokenError(
@@ -1771,7 +1778,7 @@ class DeviceFlowInfo(collections.namedtuple('DeviceFlowInfo', (
 def _oauth2_web_server_flow_params(kwargs):
     """Configures redirect URI parameters for OAuth2WebServerFlow."""
     params = {
-#        'access_type': 'offline',
+        'access_type': 'offline',
         'response_type': 'code',
     }
 
@@ -2059,15 +2066,17 @@ class OAuth2WebServerFlow(Flow):
                 token_expiry = delta + _UTCNOW()
 
             extracted_id_token = None
+            id_token_jwt = None
             if 'id_token' in d:
                 extracted_id_token = _extract_id_token(d['id_token'])
+                id_token_jwt = d['id_token']
 
             logger.info('Successfully retrieved access token')
             return OAuth2Credentials(
                 access_token, self.client_id, self.client_secret,
                 refresh_token, token_expiry, self.token_uri, self.user_agent,
                 revoke_uri=self.revoke_uri, id_token=extracted_id_token,
-                token_response=d, scopes=self.scope,
+                id_token_jwt=id_token_jwt, token_response=d, scopes=self.scope,
                 token_info_uri=self.token_info_uri)
         else:
             logger.info('Failed to retrieve access token: %s', content)
