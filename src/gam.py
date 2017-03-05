@@ -4211,7 +4211,6 @@ def MultiprocessGAMCommands(items):
     GM.Globals[GM.STDERR][GM.REDIRECT_FD] = savedStderrFd
     GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD] = savedStdoutMultiFd
     GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = savedStderrMultiFd
-  print(GM.Globals)
   signal.signal(signal.SIGINT, origSigintHandler)
   writeStderr(Msg.USING_N_PROCESSES.format(numPoolProcesses))
   try:
