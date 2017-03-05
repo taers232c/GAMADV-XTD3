@@ -38,6 +38,7 @@ import datetime
 from html.entities import name2codepoint
 from html.parser import HTMLParser
 import http.client
+import io
 import json
 import logging
 import mimetypes
@@ -47,7 +48,6 @@ import random
 import re
 import signal
 import socket
-import io
 import configparser
 
 from gamlib import glaction
@@ -866,12 +866,12 @@ def getInteger(minVal=None, maxVal=None):
 #   getKeywordAttribute(CUSTOM_TYPE_EXPLICIT, attrdict)
 
 #CUSTOM_TYPE_EXPLICIT = {
-#    PTKW_CL_TYPE_KEYWORD: u'type',
-#    PTKW_CL_CUSTOMTYPE_KEYWORD: u'custom_type',
-#    PTKW_ATTR_TYPE_KEYWORD: u'type',
-#    PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom',
-#    PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
-#    PTKW_KEYWORD_LIST: [u'custom_type', u'a', u'b', u'c']
+#    PTKW_CL_TYPE_KEYWORD: 'type',
+#    PTKW_CL_CUSTOMTYPE_KEYWORD: 'custom_type',
+#    PTKW_ATTR_TYPE_KEYWORD: 'type',
+#    PTKW_ATTR_TYPE_CUSTOM_VALUE: 'custom',
+#    PTKW_ATTR_CUSTOMTYPE_KEYWORD: 'customType',
+#    PTKW_KEYWORD_LIST: ['custom_type', 'a', 'b', 'c']
 #    }
 
 # a|b|c
@@ -879,12 +879,12 @@ def getInteger(minVal=None, maxVal=None):
 #   getKeywordAttribute(CUSTOM_TYPE_NOCUSTOM, attrdict)
 
 #CUSTOM_TYPE_NOCUSTOM = {
-#    PTKW_CL_TYPE_KEYWORD: u'type',
-#    PTKW_CL_CUSTOMTYPE_KEYWORD: u'type',
-#    PTKW_ATTR_TYPE_KEYWORD: u'type',
+#    PTKW_CL_TYPE_KEYWORD: 'type',
+#    PTKW_CL_CUSTOMTYPE_KEYWORD: 'type',
+#    PTKW_ATTR_TYPE_KEYWORD: 'type',
 #    PTKW_ATTR_TYPE_CUSTOM_VALUE: None,
 #    PTKW_ATTR_CUSTOMTYPE_KEYWORD: None,
-#    PTKW_KEYWORD_LIST: [u'a', u'b', u'c']
+#    PTKW_KEYWORD_LIST: ['a', 'b', 'c']
 #    }
 
 # a|b|c|<String>
@@ -892,12 +892,12 @@ def getInteger(minVal=None, maxVal=None):
 #   getKeywordAttribute(CUSTOM_TYPE_IMPLICIT, attrdict)
 
 #CUSTOM_TYPE_IMPLICIT = {
-#    PTKW_CL_TYPE_KEYWORD: u'type',
+#    PTKW_CL_TYPE_KEYWORD: 'type',
 #    PTKW_CL_CUSTOMTYPE_KEYWORD: None,
-#    PTKW_ATTR_TYPE_KEYWORD: u'type',
-#    PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom',
-#    PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
-#    PTKW_KEYWORD_LIST: [u'a', u'b', u'c']
+#    PTKW_ATTR_TYPE_KEYWORD: 'type',
+#    PTKW_ATTR_TYPE_CUSTOM_VALUE: 'custom',
+#    PTKW_ATTR_CUSTOMTYPE_KEYWORD: 'customType',
+#    PTKW_KEYWORD_LIST: ['a', 'b', 'c']
 #    }
 
 # (a|b|c) | (custom_type <String>)
@@ -908,12 +908,12 @@ def getInteger(minVal=None, maxVal=None):
 #   attrdict[CUSTOM_TYPE_DIFFERENT_KEYWORD[PTKW_ATTR_CUSTOMTYPE_KEYWORD]] = getValue()
 
 #CUSTOM_TYPE_DIFFERENT_KEYWORD = {
-#    PTKW_CL_TYPE_KEYWORD: u'type',
-#    PTKW_CL_CUSTOMTYPE_KEYWORD: u'custom_type',
-#    PTKW_ATTR_TYPE_KEYWORD: u'type',
-#    PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom',
-#    PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
-#    PTKW_KEYWORD_LIST: [u'a', u'b', u'c']
+#    PTKW_CL_TYPE_KEYWORD: 'type',
+#    PTKW_CL_CUSTOMTYPE_KEYWORD: 'custom_type',
+#    PTKW_ATTR_TYPE_KEYWORD: 'type',
+#    PTKW_ATTR_TYPE_CUSTOM_VALUE: 'custom',
+#    PTKW_ATTR_CUSTOMTYPE_KEYWORD: 'customType',
+#    PTKW_KEYWORD_LIST: ['a', 'b', 'c']
 #    }
 def getKeywordAttribute(UProp, keywords, attrdict, **opts):
   if Cmd.ArgumentsRemaining():
@@ -1136,7 +1136,7 @@ def getAgeTime():
         age = now-(age*SECONDS_PER_MINUTE)
       elif age_unit == 'h':
         age = now-(age*SECONDS_PER_HOUR)
-      else: # age_unit == u'd':
+      else: # age_unit == 'd':
         age = now-(age*SECONDS_PER_DAY)
       Cmd.Advance()
       return age*1000
@@ -2093,7 +2093,7 @@ def SetGlobalVariables():
         _setSTDFile(GM.STDOUT, filename, mode, multi)
         if GM.Globals[GM.CSVFILE].get(GM.REDIRECT_NAME) == '-':
           GM.Globals[GM.CSVFILE] = {}
-    else: # myarg == u'stderr'
+    else: # myarg == 'stderr'
       if filename.lower() == 'null':
         multi = True if checkArgumentPresent(['multiprocess',]) else False
         _setSTDFile(GM.STDERR, 'null', 'w', multi)
@@ -2431,7 +2431,7 @@ def checkGAPIError(e, soft_errors=False, silent_errors=False, retryOnHttpError=F
       return (e.resp['status'], GAPI.BAD_GATEWAY, e.content)
     if (e.resp['status'] == '403') and ('Invalid domain.' in e.content):
       error = {'error': {'code': 403, 'errors': [{'reason': GAPI.NOT_FOUND, 'message': 'Domain not found'}]}}
-    elif (e.resp['status'] == u'403') and ('Domain cannot use apis.' in e.content):
+    elif (e.resp['status'] == '403') and ('Domain cannot use apis.' in e.content):
       error = {'error': {'code': 403, 'errors': [{'reason': GAPI.DOMAIN_CANNOT_USE_APIS, 'message': 'Domain cannot use apis'}]}}
     elif (e.resp['status'] == '400') and ('InvalidSsoSigningKey' in e.content):
       error = {'error': {'code': 400, 'errors': [{'reason': GAPI.INVALID, 'message': 'InvalidSsoSigningKey'}]}}
@@ -3750,8 +3750,8 @@ def addRowTitlesToCSVfile(row, csvRows, titles):
 # fieldName is command line argument
 # fieldNameMap maps fieldName to API field names; CSV file header will be API field name
 #ARGUMENT_TO_PROPERTY_MAP = {
-#  u'admincreated': [u'adminCreated'],
-#  u'aliases': [u'aliases', u'nonEditableAliases'],
+#  'admincreated': ['adminCreated'],
+#  'aliases': ['aliases', 'nonEditableAliases'],
 #  }
 # fieldsList is the list of API fields
 # fieldsTitles maps the API field name to the CSV file header
@@ -3765,8 +3765,8 @@ def addFieldToCSVfile(fieldName, fieldNameMap, fieldsList, fieldsTitles, titles)
 # fieldName is command line argument
 # fieldNameTitleMap maps fieldName to API field name and CSV file header
 #ARGUMENT_TO_PROPERTY_TITLE_MAP = {
-#  u'admincreated': [u'adminCreated', u'Admin_Created'],
-#  u'aliases': [u'aliases', u'Aliases', u'nonEditableAliases', u'NonEditableAliases'],
+#  'admincreated': ['adminCreated', 'Admin_Created'],
+#  'aliases': ['aliases', 'Aliases', 'nonEditableAliases', 'NonEditableAliases'],
 #  }
 # fieldsList is the list of API fields
 # fieldsTitles maps the API field name to the CSV file header
@@ -3812,7 +3812,7 @@ def writeCSVfile(csvRows, titles, list_type, todrive):
   if todrive or redirectCSVtoMultiprocessStdout:
     csvFile = io.StringIO()
   else:
-    csvFile = openFile(GM.Globals[GM.CSVFILE][GM.REDIRECT_NAME], GM.Globals[GM.CSVFILE][GM.REDIRECT_MODE])
+    csvFile = openFile(GM.Globals[GM.CSVFILE][GM.REDIRECT_NAME], GM.Globals[GM.CSVFILE][GM.REDIRECT_MODE], encoding=GM.Globals[GM.CSVFILE][GM.REDIRECT_ENCODING])
   writer = csv.DictWriter(csvFile, fieldnames=titles['list'],
                           dialect='nixstdout',
                           quoting=csv.QUOTE_MINIMAL, delimiter=str(GM.Globals[GM.CSVFILE][GM.REDIRECT_COLUMN_DELIMITER]))
@@ -16348,7 +16348,7 @@ def doPrintJobFetch(printerIdList):
       fileName = os.path.join(targetFolder, '{0}-{1}'.format(cleanFilename(job['title']), jobId))
       _, content = cp._http.request(job['fileUrl'], method='GET')
       if writeFile(fileName, content, continueOnError=True):
-#        ticket = callGCP(cp.jobs(), u'getticket',
+#        ticket = callGCP(cp.jobs(), 'getticket',
 #                         jobid=jobId, use_cjt=True)
         result = callGCP(cp.jobs(), 'update',
                          jobid=jobId, semantic_state_diff=ssd)
@@ -16446,7 +16446,7 @@ def doPrintJobSubmit(printerIdList):
       mimetype = 'application/octet-stream'
     filecontent = readFile(filepath, mode='rb')
     form_files['content'] = {'filename': content, 'content': filecontent, 'mimetype': mimetype}
-#  result = callGCP(cp.printers(), u'submit',
+#  result = callGCP(cp.printers(), 'submit',
 #                   body=body)
   body, headers = encode_multipart(form_fields, form_files)
   try:
@@ -18770,7 +18770,7 @@ def getDriveFile(users):
         os.makedirs(targetFolder)
     elif myarg == 'revision':
       revisionId = getInteger(minVal=1)
-    elif myarg == u'nocache':
+    elif myarg == 'nocache':
       nocache = True
     else:
       unknownArgumentExit()

@@ -106,7 +106,7 @@ Globals = {
   PID: 0,
   GAM_PATH: '.',
   WINDOWS: os.name == 'nt',
-  SYS_ENCODING: ['mbcs', 'utf-8'][os.name != 'nt'],
+  SYS_ENCODING: 'utf-8',
   EXTRA_ARGS_LIST: [],
   ADMIN: None,
   CURRENT_API_USER: None,

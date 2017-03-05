@@ -24,7 +24,7 @@ import os
 
 TRUE = 'true'
 FALSE = 'false'
-DEFAULT_CHARSET = ['mbcs', 'utf-8'][os.name != 'nt']
+DEFAULT_CHARSET = 'utf-8'
 MY_CUSTOMER = 'my_customer'
 
 FN_CLIENT_SECRETS_JSON = 'client_secrets.json'
