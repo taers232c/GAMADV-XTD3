@@ -1,3 +1,7 @@
+4.44.04
+
+Handle Unknown Error when getting G+ profile.
+
 4.44.03
 
 Handle "Domain cannot use apis." error.

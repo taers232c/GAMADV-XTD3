@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.44.03'
+__version__ = '4.44.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -1169,7 +1169,7 @@ def getDelimiter(checkForArgument=False):
   if checkForArgument and not checkArgumentPresent(['delimiter',]):
     return None
   if Cmd.ArgumentsRemaining():
-    argstr = Cmd.Current().decode('string_escape')
+    argstr = codecs.escape_decode(bytes(Cmd.Current(), "utf-8"))[0].decode("utf-8")
     if argstr:
       if len(argstr) == 1:
         Cmd.Advance()
@@ -20656,13 +20656,16 @@ def _printShowGplusProfile(users, csvFormat):
     if csvFormat:
       printGettingEntityItemForWhom(Ent.GPLUS_PROFILE, user, i, count)
     try:
-      results = callGAPI(gplus.people(), 'get',
-                         throw_reasons=GAPI.GPLUS_THROW_REASONS,
-                         userId='me')
-      if not csvFormat:
-        _showGplusProfile(user, i, count, results)
+      result = callGAPI(gplus.people(), 'get',
+                        soft_errors=True, throw_reasons=GAPI.GPLUS_THROW_REASONS, retry_reasons=[GAPI.UNKNOWN_ERROR],
+                        userId='me')
+      if result:
+        if not csvFormat:
+          _showGplusProfile(user, i, count, result)
+        else:
+          addRowTitlesToCSVfile(flattenJSON(result, flattened={'emailAddress': user}), csvRows, titles)
       else:
-        addRowTitlesToCSVfile(flattenJSON(results, flattened={'emailAddress': user}), csvRows, titles)
+        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
     except GAPI.serviceNotAvailable:
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvFormat:
