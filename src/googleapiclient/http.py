@@ -1330,6 +1330,7 @@ class BatchHttpRequest(object):
       msg = MIMENonMultipart('application', 'http')
       msg['Content-Transfer-Encoding'] = 'binary'
       msg['Content-ID'] = self._id_to_header(request_id)
+
       body = self._serialize_request(request)
       msg.set_payload(body)
       message.attach(msg)
@@ -1337,10 +1338,9 @@ class BatchHttpRequest(object):
     # encode the body: note that we can't use `as_string`, because
     # it plays games with `From ` lines.
     fp = StringIO()
-    g = Generator(fp, mangle_from_=False)
+    g = Generator(fp, mangle_from_=False, maxheaderlen=0)
     g.flatten(message, unixfrom=False)
-###    body = fp.getvalue()
-    body = fp.getvalue().replace('Content-ID: \n', 'Content-ID:')
+    body = fp.getvalue()
 
     headers = {}
     headers['content-type'] = ('multipart/mixed; '
