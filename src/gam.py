@@ -2662,16 +2662,16 @@ def readDiscoveryFile(api_version):
 def getAPIversionHttpService(api):
   hasLocalJSON = API.hasLocalJSON(api)
   api, version, api_version, cred_family = API.getVersion(api)
-  http = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL],
-                       cache=GM.Globals[GM.CACHE_DIR])
+  httpObj = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL],
+                          cache=GM.Globals[GM.CACHE_DIR])
   if not hasLocalJSON:
     retries = 5
     for n in range(1, retries+1):
       try:
-        service = googleapiclient.discovery.build(api, version, http=http, cache_discovery=False)
+        service = googleapiclient.discovery.build(api, version, http=httpObj, cache_discovery=False)
         if GM.Globals[GM.CACHE_DISCOVERY_ONLY]:
-          http.cache = None
-        return (api_version, http, service, cred_family)
+          httpObj.cache = None
+        return (api_version, httpObj, service, cred_family)
       except httplib2.ServerNotFoundError as e:
         systemErrorExit(NETWORK_ERROR_RC, e.message)
       except googleapiclient.errors.UnknownApiNameOrVersion as e:
@@ -2688,22 +2688,22 @@ def getAPIversionHttpService(api):
         systemErrorExit(SOCKET_ERROR_RC, e.strerror)
   disc_file, discovery = readDiscoveryFile(api_version)
   try:
-    service = googleapiclient.discovery.build_from_document(discovery, http=http)
+    service = googleapiclient.discovery.build_from_document(discovery, http=httpObj)
     if GM.Globals[GM.CACHE_DISCOVERY_ONLY]:
-      http.cache = None
-    return (api_version, http, service, cred_family)
+      httpObj.cache = None
+    return (api_version, httpObj, service, cred_family)
   except (ValueError, KeyError):
     invalidDiscoveryJsonExit(disc_file)
 
 def buildGAPIObject(api):
   GM.Globals[GM.CURRENT_API_USER] = None
-  _, http, service, cred_family = getAPIversionHttpService(api)
+  _, httpObj, service, cred_family = getAPIversionHttpService(api)
   credentials = getClientCredentials(cred_family)
   GM.Globals[GM.CURRENT_API_SCOPES] = list(set(service._rootDesc['auth']['oauth2']['scopes'].keys()).intersection(credentials.scopes))
   if not GM.Globals[GM.CURRENT_API_SCOPES]:
     systemErrorExit(NO_SCOPES_FOR_API_RC, Msg.NO_SCOPES_FOR_API.format(service._rootDesc['title']))
   try:
-    service._http = credentials.authorize(http)
+    service._http = credentials.authorize(httpObj)
   except httplib2.ServerNotFoundError as e:
     systemErrorExit(NETWORK_ERROR_RC, e.message)
   except oauth2client.client.AccessTokenRefreshError as e:
@@ -2718,12 +2718,12 @@ def buildGAPIObject(api):
 
 def buildGAPIServiceObject(api, user):
   userEmail = convertUserUIDtoEmailAddress(user)
-  _, http, service, _ = getAPIversionHttpService(api)
+  _, httpObj, service, _ = getAPIversionHttpService(api)
   GM.Globals[GM.CURRENT_API_USER] = userEmail
   GM.Globals[GM.CURRENT_API_SCOPES] = API.getSvcAcctScopes(api)
   credentials = getSvcAcctCredentials(GM.Globals[GM.CURRENT_API_SCOPES], userEmail)
   try:
-    service._http = credentials.authorize(http)
+    service._http = credentials.authorize(httpObj)
   except httplib2.ServerNotFoundError as e:
     systemErrorExit(NETWORK_ERROR_RC, e.message)
   except oauth2client.client.AccessTokenRefreshError as e:
@@ -4641,13 +4641,13 @@ OAUTH2_SCOPES = [
 OAUTH2_CMDS = ['s', 'u', 'e', 'c']
 
 def revokeCredentials(credFamilyList):
-  http = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL])
+  httpObj = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL])
   for cred_family in credFamilyList:
     credentials = getCredentialsForScope(cred_family)
     if credentials and not credentials.invalid:
       credentials.revoke_uri = oauth2client.GOOGLE_REVOKE_URI
       try:
-        credentials.revoke(http)
+        credentials.revoke(httpObj)
         time.sleep(2)
       except oauth2client.client.TokenRevokeError as e:
         printErrorMessage(INVALID_TOKEN_RC, e.message)
@@ -4777,7 +4777,7 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
       break
   revokeCredentials(API.FAM_LIST)
   flags = cmd_flags(noLocalWebserver=GC.Values[GC.NO_BROWSER])
-  http = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL])
+  httpObj = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL])
   for cred_family in API.FAM_LIST:
     scopes = [PROFILE_SCOPE,] # Email Display Scope, always included for client
     i = 0
@@ -4795,7 +4795,7 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
                                                    user_agent=GAM_INFO, response_type='code', login_hint=login_hint)
     storage = getCredentialsForScope(cred_family, storageOnly=True)
     try:
-      oauth2client.tools.run_flow(flow=flow, storage=storage, flags=flags, http=http)
+      oauth2client.tools.run_flow(flow=flow, storage=storage, flags=flags, http=httpObj)
       time.sleep(3)
     except httplib2.CertificateValidationUnsupportedInPython31:
       noPythonSSLExit()
@@ -4927,21 +4927,21 @@ def getCRMService(login_hint):
   storage_dict = {}
   storage = DictionaryStorage(storage_dict, 'credentials')
   flags = cmd_flags(noLocalWebserver=GC.Values[GC.NO_BROWSER])
-  http = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL])
+  httpObj = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL])
   try:
-    credentials = oauth2client.tools.run_flow(flow=flow, storage=storage, flags=flags, http=http)
+    credentials = oauth2client.tools.run_flow(flow=flow, storage=storage, flags=flags, http=httpObj)
   except httplib2.CertificateValidationUnsupportedInPython31:
     noPythonSSLExit()
   credentials.user_agent = GAM_INFO
-  http = credentials.authorize(httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL],
-                                             cache=None))
-  return (googleapiclient.discovery.build('cloudresourcemanager', 'v1', http=http, cache_discovery=False), http)
+  httpObj = credentials.authorize(httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL],
+                                                cache=None))
+  return (googleapiclient.discovery.build('cloudresourcemanager', 'v1', http=httpObj, cache_discovery=False), httpObj)
 
 # gam create project [<EmailAddress>]
 def doCreateProject():
   login_hint = getEmailAddress(noUid=True, optional=True)
   checkForExtraneousArguments()
-  crm, http = getCRMService(login_hint)
+  crm, httpObj = getCRMService(login_hint)
   project_id = 'gam-project'
   for i in range(3):
     project_id += '-%s' % ''.join(random.choice(string.digits+string.ascii_lowercase) for i in range(3))
@@ -4986,7 +4986,7 @@ and accept the Terms of Service (ToS). As soon as you've accepted the ToS popup,
 
   _, c = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]).request(GAM_PROJECT_APIS, 'GET')
   apis = c.splitlines()
-  serveman = googleapiclient.discovery.build('servicemanagement', 'v1', http=http, cache_discovery=False)
+  serveman = googleapiclient.discovery.build('servicemanagement', 'v1', http=httpObj, cache_discovery=False)
   Act.Set(Act.ENABLE)
   count = len(apis)
   performActionNumItems(count, Ent.API)
@@ -5009,7 +5009,7 @@ and accept the Terms of Service (ToS). As soon as you've accepted the ToS popup,
         entityActionFailedWarning([Ent.API, api], e.message, i, count)
         break
   Ind.Decrement()
-  iam = googleapiclient.discovery.build('iam', 'v1', http=http, cache_discovery=False)
+  iam = googleapiclient.discovery.build('iam', 'v1', http=httpObj, cache_discovery=False)
   print('Creating Service Account')
   service_account = callGAPI(iam.projects().serviceAccounts(), 'create',
                              name='projects/%s' % project_id,
