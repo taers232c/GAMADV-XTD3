@@ -1720,8 +1720,8 @@ gam <UserTypeEntity> print gmailprofile [todrive [<ToDriveAttributes>]]
 gam <UserTypeEntity> [add] sendas <EmailAddress> <String> [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*] [html] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
 gam <UserTypeEntity> update sendas <EmailAddress> [name <String>] [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*] [html] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
 gam <UserTypeEntity> delete sendas <EmailAddressEntity>
-gam <UserTypeEntity> show sendas [format]
 gam <UserTypeEntity> info sendas <EmailAddressEntity> [format]
+gam <UserTypeEntity> show sendas [format]
 gam <UserTypeEntity> print sendas [todrive [<ToDriveAttributes>]]
 
 gam <UserTypeEntity> add smime (file <FileName> [charset <CharSet>]) [password <Password>] [sendas|sendasemail <EmailAddress>] [default]
@@ -1732,11 +1732,13 @@ gam <UserTypeEntity> print smimes [todrive [<ToDriveAttributes>]] [primaryonly]
 
 gam <UserTypeEntity> signature|sig <String>|(file <FileName> [charset <Charset>]) (replace <Tag> <String>)* [html] [name <String>] [replyto <EmailAddress>] [default] [primary] [treatasalias <Boolean>]
 gam <UserTypeEntity> show signature|sig [format] [primary]
+gam <UserTypeEntity> print signature [todrive [<ToDriveAttributes>]]
 
 gam <UserTypeEntity> vacation <FalseValues>
-gam <UserTypeEntity> vacation <TrueValues> subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)* [html]
-	[contactsonly] [domainonly] [startdate <Date>] [enddate <Date>]
+gam <UserTypeEntity> vacation <TrueValues> subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)* [html [<Boolean>]]
+	[contactsonly [<Boolean>]] [domainonly [<Boolean>]] [startdate <Date>|Started] [enddate <Date>|NotSpecified]
 gam <UserTypeEntity> show vacation [format]
+gam <UserTypeEntity> print vacation [todrive [<ToDriveAttributes>]]	
 
 # Users - Gmail - Settings
 

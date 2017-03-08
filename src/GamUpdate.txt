@@ -1,3 +1,17 @@
+4.44.06
+
+Changed headings of gam print vacation CSV file to match command line arguments.
+    User,enabled,contactsonly,domainonly,startdate,enddate,subject,html,message
+
+4.44.05
+
+Added print vacation command.
+    gam <UserTypeEntity> print vacation [todrive [<ToDriveAttributes>]]	
+
+Handle 1801 - Invalid value error in gam audit export.
+
+Handle 111 - Connection refused error in gam print gplusprofile.
+
 4.44.04
 
 Handle Unknown Error when getting G+ profile.
