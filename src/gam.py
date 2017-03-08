@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.44.04'
+__version__ = '4.44.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -1049,10 +1049,13 @@ def getStringReturnInList(item):
 YYYYMMDD_FORMAT = '%Y-%m-%d'
 YYYYMMDD_FORMAT_REQUIRED = 'yyyy-mm-dd'
 
-def getYYYYMMDD(minLen=1, returnTimeStamp=False):
+def getYYYYMMDD(minLen=1, returnTimeStamp=False, alternateValue=None):
   if Cmd.ArgumentsRemaining():
     argstr = Cmd.Current().strip()
     if argstr:
+      if alternateValue is not None and argstr.lower() == alternateValue.lower():
+        Cmd.Advance()
+        return None
       try:
         timeStamp = time.mktime(datetime.datetime.strptime(argstr, YYYYMMDD_FORMAT).timetuple())*1000
         Cmd.Advance()
@@ -1853,7 +1856,7 @@ def SetGlobalVariables():
     except (configparser.MissingSectionHeaderError, configparser.ParsingError) as e:
       systemErrorExit(CONFIG_ERROR_RC, formatKeyValueList('',
                                                           [Ent.Singular(Ent.CONFIG_FILE), fileName,
-                                                           Msg.INVALID, e.message],
+                                                           Msg.INVALID, str(e)],
                                                           ''))
     except IOError as e:
       systemErrorExit(FILE_ERROR_RC, e)
@@ -2180,7 +2183,7 @@ def doGAMCheckForUpdates(forceCheck=False):
     return
 
 def handleOAuthTokenError(e, soft_errors):
-  if e.message in API.OAUTH2_TOKEN_ERRORS:
+  if str(e) in API.OAUTH2_TOKEN_ERRORS:
     if soft_errors:
       return None
     if not GM.Globals[GM.CURRENT_API_USER]:
@@ -2230,7 +2233,7 @@ def getGDataOAuthToken(gdataObj, credentials=None):
   try:
     credentials.refresh(httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]))
   except httplib2.ServerNotFoundError as e:
-    systemErrorExit(NETWORK_ERROR_RC, e.message)
+    systemErrorExit(NETWORK_ERROR_RC, str(e))
   except oauth2client.client.AccessTokenRefreshError as e:
     return handleOAuthTokenError(e, False)
   gdataObj.additional_headers['Authorization'] = 'Bearer {0}'.format(credentials.access_token)
@@ -2365,7 +2368,7 @@ def callGData(service, function,
       systemErrorExit(GOOGLE_API_ERROR_RC, '{0} - {1}'.format(error_code, error_message))
     except oauth2client.client.AccessTokenRefreshError as e:
       handleOAuthTokenError(e, GDATA.SERVICE_NOT_APPLICABLE in throw_errors)
-      raise GDATA.ERROR_CODE_EXCEPTION_MAP[GDATA.SERVICE_NOT_APPLICABLE](e.message)
+      raise GDATA.ERROR_CODE_EXCEPTION_MAP[GDATA.SERVICE_NOT_APPLICABLE](str(e))
     except (http.client.ResponseNotReady, socket.error) as e:
       if n != retries:
         waitOnFailure(n, retries, e.errno, e.strerror)
@@ -2429,6 +2432,8 @@ def checkGAPIError(e, soft_errors=False, silent_errors=False, retryOnHttpError=F
       return (e.resp['status'], GAPI.QUOTA_EXCEEDED, e.content)
     if (e.resp['status'] == '502') and ('Bad Gateway' in e.content):
       return (e.resp['status'], GAPI.BAD_GATEWAY, e.content)
+    if (e.resp['status'] == '111') and ('Connection refused' in e.content):
+      return (e.resp['status'], GAPI.CONNECTION_REFUSED, e.content)
     if (e.resp['status'] == '403') and ('Invalid domain.' in e.content):
       error = {'error': {'code': 403, 'errors': [{'reason': GAPI.NOT_FOUND, 'message': 'Domain not found'}]}}
     elif (e.resp['status'] == '403') and ('Domain cannot use apis.' in e.content):
@@ -2526,7 +2531,7 @@ def callGAPI(service, function,
       systemErrorExit(HTTP_ERROR_RC, formatHTTPError(http_status, reason, message))
     except oauth2client.client.AccessTokenRefreshError as e:
       handleOAuthTokenError(e, GAPI.SERVICE_NOT_AVAILABLE in throw_reasons)
-      raise GAPI.REASON_EXCEPTION_MAP[GAPI.SERVICE_NOT_AVAILABLE](e.message)
+      raise GAPI.REASON_EXCEPTION_MAP[GAPI.SERVICE_NOT_AVAILABLE](str(e))
     except httplib2.CertificateValidationUnsupportedInPython31:
       noPythonSSLExit()
     except (http.client.ResponseNotReady, socket.error) as e:
@@ -2673,9 +2678,9 @@ def getAPIversionHttpService(api):
           httpObj.cache = None
         return (api_version, httpObj, service, cred_family)
       except httplib2.ServerNotFoundError as e:
-        systemErrorExit(NETWORK_ERROR_RC, e.message)
+        systemErrorExit(NETWORK_ERROR_RC, str(e))
       except googleapiclient.errors.UnknownApiNameOrVersion as e:
-        systemErrorExit(GOOGLE_API_ERROR_RC, Msg.UNKNOWN_API_OR_VERSION.format(e.message, __author__))
+        systemErrorExit(GOOGLE_API_ERROR_RC, Msg.UNKNOWN_API_OR_VERSION.format(str(e), __author__))
       except googleapiclient.errors.InvalidJsonError:
         if n != retries:
           waitOnFailure(n, retries, INVALID_JSON_RC, Msg.INVALID_JSON_INFORMATION)
@@ -2705,7 +2710,7 @@ def buildGAPIObject(api):
   try:
     service._http = credentials.authorize(httpObj)
   except httplib2.ServerNotFoundError as e:
-    systemErrorExit(NETWORK_ERROR_RC, e.message)
+    systemErrorExit(NETWORK_ERROR_RC, str(e))
   except oauth2client.client.AccessTokenRefreshError as e:
     return handleOAuthTokenError(e, False)
   if not GC.Values[GC.DOMAIN]:
@@ -2725,7 +2730,7 @@ def buildGAPIServiceObject(api, user):
   try:
     service._http = credentials.authorize(httpObj)
   except httplib2.ServerNotFoundError as e:
-    systemErrorExit(NETWORK_ERROR_RC, e.message)
+    systemErrorExit(NETWORK_ERROR_RC, str(e))
   except oauth2client.client.AccessTokenRefreshError as e:
     return (userEmail, handleOAuthTokenError(e, True))
   return (userEmail, service)
@@ -2763,7 +2768,7 @@ def getGDataUserCredentials(api, user, i, count):
     credentials.refresh(httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]))
     return (userEmail, credentials)
   except httplib2.ServerNotFoundError as e:
-    systemErrorExit(NETWORK_ERROR_RC, e.message)
+    systemErrorExit(NETWORK_ERROR_RC, str(e))
   except oauth2client.client.AccessTokenRefreshError as e:
     handleOAuthTokenError(e, True)
     entityUnknownWarning(Ent.USER, userEmail, i, count)
@@ -3867,7 +3872,7 @@ def writeCSVfile(csvRows, titles, list_type, todrive):
     except GAPI.insufficientPermissions:
       printWarningMessage(INSUFFICIENT_PERMISSIONS_RC, Msg.INSUFFICIENT_PERMISSIONS_TO_PERFORM_TASK)
     except (GAPI.fileNotFound, GAPI.unknownError) as e:
-      entityActionFailedWarning([Ent.DRIVE_FOLDER, todrive['parentId']], e.message, 0, 0)
+      entityActionFailedWarning([Ent.DRIVE_FOLDER, todrive['parentId']], str(e), 0, 0)
   if GM.Globals[GM.CSVFILE][GM.REDIRECT_NAME] != '-':
     closeFile(csvFile)
 
@@ -4201,7 +4206,7 @@ def MultiprocessGAMCommands(items):
     systemErrorExit(FILE_ERROR_RC, e)
   except AssertionError as e:
     Cmd.SetLocation(0)
-    usageErrorExit(e.message)
+    usageErrorExit(str(e))
   if GM.Globals[GM.WINDOWS]:
     savedValues = saveNonPickleableValues()
   if GM.Globals[GM.STDOUT][GM.REDIRECT_MULTIPROCESS]:
@@ -4298,7 +4303,7 @@ def doBatch():
         argv = shlex.split(line)
       except ValueError as e:
         writeStderr(convertUTF8('Command: >>>{0}<<<\n'.format(line.strip())))
-        writeStderr('{0}{1}\n'.format(ERROR_PREFIX, e.message))
+        writeStderr('{0}{1}\n'.format(ERROR_PREFIX, str(e)))
         errors += 1
         continue
       if len(argv) > 0:
@@ -4650,7 +4655,7 @@ def revokeCredentials(credFamilyList):
         credentials.revoke(httpObj)
         time.sleep(2)
       except oauth2client.client.TokenRevokeError as e:
-        printErrorMessage(INVALID_TOKEN_RC, e.message)
+        printErrorMessage(INVALID_TOKEN_RC, str(e))
 
 VALIDEMAIL_PATTERN = re.compile(r'^[^@]+@[^@]+\.[^@]+$')
 
@@ -4901,7 +4906,7 @@ def checkServiceAccount(users):
         credentials.refresh(httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]))
         result = 'PASS'
       except httplib2.ServerNotFoundError as e:
-        systemErrorExit(NETWORK_ERROR_RC, e.message)
+        systemErrorExit(NETWORK_ERROR_RC, str(e))
       except oauth2client.client.HttpAccessTokenRefreshError:
         result = 'FAIL'
         all_scopes_pass = False
@@ -5002,11 +5007,11 @@ and accept the Terms of Service (ToS). As soon as you've accepted the ToS popup,
         entityActionPerformed([Ent.API, api], i, count)
         break
       except GAPI.failedPrecondition as e:
-        entityActionFailedWarning([Ent.API, api], e.message, i, count)
+        entityActionFailedWarning([Ent.API, api], str(e), i, count)
         writeStderr('\nPlease resolve error as described above\n\n')
         input('Press enter once resolved and we will try enabling the API again.')
       except GAPI.forbidden as e:
-        entityActionFailedWarning([Ent.API, api], e.message, i, count)
+        entityActionFailedWarning([Ent.API, api], str(e), i, count)
         break
   Ind.Decrement()
   iam = googleapiclient.discovery.build('iam', 'v1', http=httpObj, cache_discovery=False)
@@ -5087,7 +5092,7 @@ def doDeleteProjects():
                projectId=pid)
       entityActionPerformed([Ent.PROJECT, pid], i, count)
     except GAPI.forbidden as e:
-      entityActionFailedWarning([Ent.PROJECT, pid], e.message, i, count)
+      entityActionFailedWarning([Ent.PROJECT, pid], str(e), i, count)
   Ind.Decrement()
 
 # gam whatis <EmailItem> [noinfo]
@@ -5305,7 +5310,7 @@ def doReport():
             csvRows.append(row)
           break
         except GAPI.invalid as e:
-          try_date = _adjustDate(e.message)
+          try_date = _adjustDate(str(e))
           if not try_date:
             return
         except GAPI.badRequest:
@@ -5355,7 +5360,7 @@ def doReport():
           csvRows.append(row)
         break
       except GAPI.invalid as e:
-        try_date = _adjustDate(e.message)
+        try_date = _adjustDate(str(e))
         if not try_date:
           return
       except GAPI.forbidden:
@@ -5423,7 +5428,7 @@ def doReport():
           printErrorMessage(BAD_REQUEST_RC, Msg.BAD_REQUEST)
           break
       except GAPI.invalid as e:
-        systemErrorExit(GOOGLE_API_ERROR_RC, e.message)
+        systemErrorExit(GOOGLE_API_ERROR_RC, str(e))
       except GAPI.authError:
         accessErrorExit(None)
     if not countsOnly:
@@ -5498,7 +5503,7 @@ def doCreateResoldCustomer():
     result = json.loads(readFile('custInfo.json'))
     entityActionPerformed([Ent.CUSTOMER_DOMAIN, body['customerDomain'], Ent.CUSTOMER_ID, result['customerId']])
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.CUSTOMER_DOMAIN, body['customerDomain']], e.message)
+    entityActionFailedWarning([Ent.CUSTOMER_DOMAIN, body['customerDomain']], str(e))
 
 # gam update resoldcustomer <CustomerID> [customer_auth_token <String>] <ResoldCustomerAttributes>+
 def doUpdateResoldCustomer():
@@ -5511,7 +5516,7 @@ def doUpdateResoldCustomer():
              customerId=customerId, body=body, customerAuthToken=customerAuthToken, fields='')
     entityActionPerformed([Ent.CUSTOMER_ID, customerId])
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.CUSTOMER_ID, customerId], e.message)
+    entityActionFailedWarning([Ent.CUSTOMER_ID, customerId], str(e))
 
 # gam info resoldcustomer <CustomerID>
 def doInfoResoldCustomer():
@@ -5529,7 +5534,7 @@ def doInfoResoldCustomer():
     printKeyValueList(['Customer Alternate Email', customerInfo['alternateEmail']])
     printKeyValueList(['Customer Admin Console URL', customerInfo['resourceUiUrl']])
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.CUSTOMER_ID, customerId], e.message)
+    entityActionFailedWarning([Ent.CUSTOMER_ID, customerId], str(e))
 
 def getCustomerSubscription(res):
   customerId = getString(Cmd.OB_CUSTOMER_ID)
@@ -5544,7 +5549,7 @@ def getCustomerSubscription(res):
     Cmd.Backup()
     usageErrorExit('{0}, {1}'.format(Ent.FormatEntityValueList([Ent.CUSTOMER_ID, customerId, Ent.SKU, skuId]), Msg.SUBSCRIPTION_NOT_FOUND))
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.SUBSCRIPTION, None], e.message)
+    entityActionFailedWarning([Ent.SUBSCRIPTION, None], str(e))
     sys.exit(GM.Globals[GM.SYSEXITRC])
 
 PLAN_NAME_CHOICES = {
@@ -5604,7 +5609,7 @@ def doCreateResoldSubscription():
     entityActionPerformed([Ent.CUSTOMER_ID, customerId, Ent.SKU, subscription['skuId']])
     _showSubscription(subscription)
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.CUSTOMER_ID, customerId], e.message)
+    entityActionFailedWarning([Ent.CUSTOMER_ID, customerId], str(e))
 
 RENEWAL_TYPE_MAP = {
   'autorenewmonthlypay': 'AUTO_RENEW_MONTHLY_PAY',
@@ -5666,7 +5671,7 @@ def doUpdateResoldSubscription():
     if subscription:
       _showSubscription(subscription)
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.CUSTOMER_ID, customerId], e.message)
+    entityActionFailedWarning([Ent.CUSTOMER_ID, customerId], str(e))
 
 DELETION_TYPE_MAP = {
   'cancel': 'cancel',
@@ -5686,7 +5691,7 @@ def doDeleteResoldSubscription():
              customerId=customerId, subscriptionId=subscriptionId, deletionType=deletionType)
     entityActionPerformed([Ent.CUSTOMER_ID, customerId, Ent.SKU, skuId])
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.CUSTOMER_ID, customerId, Ent.SKU, skuId], e.message)
+    entityActionFailedWarning([Ent.CUSTOMER_ID, customerId, Ent.SKU, skuId], str(e))
 
 # gam info resoldsubscription <CustomerID> <SKUID>
 def doInfoResoldSubscription():
@@ -5700,7 +5705,7 @@ def doInfoResoldSubscription():
     printEntity([Ent.CUSTOMER_ID, customerId, Ent.SKU, skuId])
     _showSubscription(subscription)
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.CUSTOMER_ID, customerId, Ent.SKU, skuId], e.message)
+    entityActionFailedWarning([Ent.CUSTOMER_ID, customerId, Ent.SKU, skuId], str(e))
 
 def _doPrintShowResoldSubscriptions(csvFormat):
   res = buildGAPIObject(API.RESELLER)
@@ -5740,7 +5745,7 @@ def _doPrintShowResoldSubscriptions(csvFormat):
       sortCSVTitles(['customerId', 'skuId', 'subscriptionId'], titles)
       writeCSVfile(csvRows, titles, 'Resold Subscriptions', todrive)
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.SUBSCRIPTION, None], e.message)
+    entityActionFailedWarning([Ent.SUBSCRIPTION, None], str(e))
 
 # gam print resoldsubscriptions [todrive [<ToDriveAttributes>]] [customerid <CustomerID>] [customer_auth_token <String>] [customer_prefix <String>]
 def doPrintResoldSubscriptions():
@@ -6461,9 +6466,9 @@ def doUpdateInstance():
                 signingKey=keyData)
       entityActionPerformed([Ent.INSTANCE, '', Ent.SSO_KEY, keyFile])
   except GDATA.invalidDomain as e:
-    printErrorMessage(INVALID_DOMAIN_RC, e.message)
+    printErrorMessage(INVALID_DOMAIN_RC, str(e))
   except GDATA.invalidValue as e:
-    printErrorMessage(INVALID_DOMAIN_VALUE_RC, e.message)
+    printErrorMessage(INVALID_DOMAIN_VALUE_RC, str(e))
 #
 MAXIMUM_USERS_MAP = ['maximumNumberOfUsers', 'Maximum Users']
 CURRENT_USERS_MAP = ['currentNumberOfUsers', 'Current Users']
@@ -7370,7 +7375,7 @@ def doSubmitExportRequest():
       unknownArgumentExit()
   try:
     request = callGData(auditObject, 'createMailboxExportRequest',
-                        throw_errors=[GDATA.INVALID_DOMAIN, GDATA.DOES_NOT_EXIST],
+                        throw_errors=[GDATA.INVALID_DOMAIN, GDATA.DOES_NOT_EXIST, GDATA.INVALID_VALUE],
                         user=parameters['auditUserName'], begin_date=begin_date, end_date=end_date, include_deleted=include_deleted,
                         search_query=search_query, headers_only=headers_only)
     entityActionPerformed([Ent.USER, parameters['auditUser'], Ent.AUDIT_EXPORT_REQUEST, None])
@@ -7379,6 +7384,8 @@ def doSubmitExportRequest():
     Ind.Decrement()
   except (GDATA.invalidDomain, GDATA.doesNotExist):
     entityUnknownWarning(Ent.USER, parameters['auditUser'])
+  except GDATA.invalidValue as e:
+    entityActionFailedWarning([Ent.USER, parameters['auditUser']], str(e))
 
 # gam audit export delete <EmailAddress> <RequestID>
 def doDeleteExportRequest():
@@ -7537,7 +7544,7 @@ def doCreateMonitor():
     _showMailboxMonitorRequestStatus(request)
     Ind.Decrement()
   except GDATA.invalidValue as e:
-    entityActionFailedWarning([Ent.USER, parameters['auditUser'], Ent.AUDIT_MONITOR_REQUEST, None], e.message)
+    entityActionFailedWarning([Ent.USER, parameters['auditUser'], Ent.AUDIT_MONITOR_REQUEST, None], str(e))
   except (GDATA.invalidDomain, GDATA.doesNotExist):
     entityUnknownWarning(Ent.USER, parameters['auditUser'])
 
@@ -8601,7 +8608,7 @@ def queryContacts(contactsObject, contactQuery, entityType, user, i=0, count=0):
                                 uri=uri, url_params=contactQuery['url_params'])
     return entityList
   except GDATA.badRequest as e:
-    entityActionFailedWarning([entityType, user, Ent.CONTACT, ''], e.message, i, count)
+    entityActionFailedWarning([entityType, user, Ent.CONTACT, ''], str(e), i, count)
   except GDATA.forbidden:
     entityServiceNotApplicableWarning(entityType, user, i, count)
   except GDATA.serviceNotApplicable:
@@ -8692,7 +8699,7 @@ def _createContact(users, entityType):
                           new_contact=contactEntry, insert_uri=contactsObject.GetContactFeedUri(contact_list=user))
       entityActionPerformed([entityType, user, Ent.CONTACT, contactsManager.GetContactShortId(contact)], i, count)
     except GDATA.badRequest as e:
-      entityActionFailedWarning([entityType, user, Ent.CONTACT, ''], e.message, i, count)
+      entityActionFailedWarning([entityType, user, Ent.CONTACT, ''], str(e), i, count)
     except GDATA.forbidden:
       entityServiceNotApplicableWarning(entityType, user, i, count)
     except GDATA.serviceNotApplicable:
@@ -8753,7 +8760,7 @@ def _uppdateContacts(users, entityType):
                   edit_uri=contactsObject.GetContactFeedUri(contact_list=user, contactId=contactId), updated_contact=contactEntry, extra_headers={'If-Match': contact.etag})
         entityActionPerformed([entityType, user, Ent.CONTACT, contactId], j, jcount)
       except (GDATA.notFound, GDATA.badRequest, GDATA.preconditionFailed) as e:
-        entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId], e.message, j, jcount)
+        entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId], str(e), j, jcount)
       except (GDATA.forbidden, GDATA.notImplemented):
         entityServiceNotApplicableWarning(entityType, user, i, count)
         break
@@ -8826,7 +8833,7 @@ def _deleteContacts(users, entityType):
                   edit_uri=contactsObject.GetContactFeedUri(contact_list=user, contactId=contactId), extra_headers={'If-Match': contact.etag})
         entityActionPerformed([entityType, user, Ent.CONTACT, contactId], j, jcount)
       except (GDATA.notFound, GDATA.badRequest) as e:
-        entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId], e.message, j, jcount)
+        entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId], str(e), j, jcount)
       except (GDATA.forbidden, GDATA.notImplemented):
         entityServiceNotApplicableWarning(entityType, user, i, count)
         break
@@ -8972,7 +8979,7 @@ def _infoContacts(users, entityType, contactFeed=True):
           contactGroupIDs, _ = getContactGroupsInfo(contactsManager, contactsObject, entityType, user, i, count)
         _showContact(contactsManager, fields, displayFieldsList, [None, contactGroupIDs][showContactGroups], j, jcount)
       except (GDATA.notFound, GDATA.badRequest) as e:
-        entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId], e.message, j, jcount)
+        entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId], str(e), j, jcount)
       except (GDATA.forbidden, GDATA.notImplemented):
         entityServiceNotApplicableWarning(entityType, user, i, count)
         break
@@ -9171,7 +9178,7 @@ def createUserContactGroup(users):
                         new_group=contactGroup, insert_uri=contactsObject.GetContactGroupFeedUri(contact_list=user))
       entityActionPerformed([entityType, user, Ent.CONTACT_GROUP, contactsManager.GetContactShortId(group)], i, count)
     except GDATA.badRequest as e:
-      entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, ''], e.message, i, count)
+      entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, ''], str(e), i, count)
     except GDATA.forbidden:
       entityServiceNotApplicableWarning(entityType, user, i, count)
     except GDATA.serviceNotApplicable:
@@ -9227,7 +9234,7 @@ def updateUserContactGroup(users):
                   edit_uri=contactsObject.GetContactGroupFeedUri(contact_list=user, groupId=groupId), updated_group=groupEntry, extra_headers={'If-Match': group.etag})
         entityActionPerformed([entityType, user, Ent.CONTACT_GROUP, contactGroup], j, jcount)
       except (GDATA.notFound, GDATA.badRequest) as e:
-        entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactGroup], e.message, j, jcount)
+        entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactGroup], str(e), j, jcount)
       except GDATA.forbidden:
         entityServiceNotApplicableWarning(entityType, user, i, count)
         break
@@ -9277,7 +9284,7 @@ def deleteUserContactGroups(users):
                   edit_uri=contactsObject.GetContactGroupFeedUri(contact_list=user, groupId=groupId), extra_headers={'If-Match': group.etag})
         entityActionPerformed([entityType, user, Ent.CONTACT_GROUP, contactGroup], j, jcount)
       except GDATA.notFound as e:
-        entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactGroup], e.message, j, jcount)
+        entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactGroup], str(e), j, jcount)
       except GDATA.forbidden:
         entityServiceNotApplicableWarning(entityType, user, i, count)
         break
@@ -9333,7 +9340,7 @@ def infoUserContactGroups(users):
                           uri=contactsObject.GetContactGroupFeedUri(contact_list=user, groupId=groupId))
         _showContactGroup(contactsManager, group, j, jcount)
       except GDATA.notFound as e:
-        entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactGroup], e.message, j, jcount)
+        entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactGroup], str(e), j, jcount)
       except GDATA.forbidden:
         entityServiceNotApplicableWarning(entityType, user, i, count)
         break
@@ -9522,7 +9529,7 @@ def updateCrOSDevices(entityList, cd=None):
                customerId=GC.Values[GC.CUSTOMER_ID], **kwargs)
       entityActionPerformed([Ent.CROS_DEVICE, deviceId], i, count)
     except GAPI.invalid as e:
-      entityActionFailedWarning([Ent.CROS_DEVICE, deviceId], e.message, i, count)
+      entityActionFailedWarning([Ent.CROS_DEVICE, deviceId], str(e), i, count)
     except GAPI.invalidOrgunit:
       entityActionFailedWarning([Ent.CROS_DEVICE, deviceId], Msg.INVALID_ORGUNIT, i, count)
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
@@ -10183,7 +10190,7 @@ def doCreateGroup():
   except GAPI.duplicate:
     entityDuplicateWarning(Ent.GROUP, body['email'])
   except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.backendError, GAPI.systemError, GAPI.invalid, GAPI.invalidInput) as e:
-    entityActionFailedWarning([Ent.GROUP, body['email']], e.message)
+    entityActionFailedWarning([Ent.GROUP, body['email']], str(e))
 
 def checkGroupExists(cd, group, i=0, count=0):
   group = normalizeEmailAddressOrUID(group)
@@ -10746,7 +10753,7 @@ def doPrintGroups():
                             throw_reasons=GAPI.MEMBERS_THROW_REASONS, retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                             groupKey=ri[RI_ENTITY], roles=ri[RI_ROLE], fields='nextPageToken,members(email,id,role)', maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden) as e:
-        entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], None], e.message, i, int(ri[RI_COUNT]))
+        entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], None], str(e), i, int(ri[RI_COUNT]))
         _writeRowIfComplete(i)
         return
     while True:
@@ -10759,7 +10766,7 @@ def doPrintGroups():
                             pageToken=pageToken,
                             groupKey=ri[RI_ENTITY], roles=ri[RI_ROLE], fields='nextPageToken,members(email,id,role)', maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden) as e:
-        entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], None], e.message, i, int(ri[RI_COUNT]))
+        entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], None], str(e), i, int(ri[RI_COUNT]))
         break
     _writeRowIfComplete(i)
 
@@ -10783,7 +10790,7 @@ def doPrintGroups():
                             soft_errors=True, throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
                             groupUniqueId=ri[RI_ENTITY], fields=gsfields)
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.backendError, GAPI.systemError) as e:
-        entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], Ent.GROUP_SETTINGS, None], e.message, i, int(ri[RI_COUNT]))
+        entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], Ent.GROUP_SETTINGS, None], str(e), i, int(ri[RI_COUNT]))
     groupData[i]['settings'] = response
     _writeRowIfComplete(i)
 
@@ -11416,7 +11423,7 @@ def doCreateResourceCalendar():
              customer=GC.Values[GC.CUSTOMER_ID], body=body, fields='')
     entityActionPerformed([Ent.RESOURCE_CALENDAR, body['resourceId']])
   except GAPI.invalid as e:
-    entityActionFailedWarning([Ent.RESOURCE_CALENDAR, body['resourceId']], e.message)
+    entityActionFailedWarning([Ent.RESOURCE_CALENDAR, body['resourceId']], str(e))
   except GAPI.duplicate:
     entityDuplicateWarning(Ent.RESOURCE_CALENDAR, body['resourceId'])
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
@@ -11445,7 +11452,7 @@ def _doUpdateResourceCalendars(entityList):
                customer=GC.Values[GC.CUSTOMER_ID], calendarResourceId=resourceId, body=body, fields='')
       entityActionPerformed([Ent.RESOURCE_CALENDAR, resourceId], i, count)
     except GAPI.invalid as e:
-      entityActionFailedWarning([Ent.RESOURCE_CALENDAR, resourceId], e.message, i, count)
+      entityActionFailedWarning([Ent.RESOURCE_CALENDAR, resourceId], str(e), i, count)
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.RESOURCE_CALENDAR, resourceId, i, count)
 
@@ -11640,7 +11647,7 @@ def checkCalendarExists(cal, calId, showMessage=False):
                     calendarId=calId, fields='id')['id']
   except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.notACalendarUser, GAPI.notFound) as e:
     if showMessage:
-      entityActionFailedWarning([Ent.CALENDAR, calId], e.message)
+      entityActionFailedWarning([Ent.CALENDAR, calId], str(e))
     return None
 
 def validateCalendar(calId, i=0, count=0):
@@ -11653,7 +11660,7 @@ def validateCalendar(calId, i=0, count=0):
              calendarId=calId, fields='')
     return (calId, cal)
   except (GAPI.notACalendarUser, GAPI.notFound) as e:
-    entityActionFailedWarning([Ent.CALENDAR, calId], e.message, i, count)
+    entityActionFailedWarning([Ent.CALENDAR, calId], str(e), i, count)
   except (GAPI.serviceNotAvailable, GAPI.authError):
     entityServiceNotApplicableWarning(Ent.CALENDAR, calId, i, count)
   return (calId, None)
@@ -11741,10 +11748,10 @@ def _processCalendarACLs(cal, function, entityType, calId, j, jcount, k, kcount,
       entityUnknownWarning(entityType, calId, j, jcount)
       result = False
     else:
-      entityActionFailedWarning([entityType, calId, Ent.CALENDAR_ACL, formatACLScopeRole(ruleId, role)], e.message, k, kcount)
+      entityActionFailedWarning([entityType, calId, Ent.CALENDAR_ACL, formatACLScopeRole(ruleId, role)], str(e), k, kcount)
   except (GAPI.invalid, GAPI.invalidParameter, GAPI.invalidScopeValue,
           GAPI.illegalAccessRoleForDefault, GAPI.forbidden, GAPI.cannotChangeOwnAcl, GAPI.cannotChangeOwnerAcl) as e:
-    entityActionFailedWarning([entityType, calId, Ent.CALENDAR_ACL, formatACLScopeRole(ruleId, role)], e.message, k, kcount)
+    entityActionFailedWarning([entityType, calId, Ent.CALENDAR_ACL, formatACLScopeRole(ruleId, role)], str(e), k, kcount)
   return result
 
 def _addCalendarACLs(cal, entityType, calId, j, jcount, role, ruleIds, kcount):
@@ -11801,9 +11808,9 @@ def _infoCalendarACLs(cal, entityType, calId, j, jcount, ruleIds, kcount):
         entityUnknownWarning(entityType, calId, j, jcount)
         break
       else:
-        entityActionFailedWarning([entityType, calId, Ent.CALENDAR_ACL, formatACLScopeRole(ruleId, None)], e.message, k, kcount)
+        entityActionFailedWarning([entityType, calId, Ent.CALENDAR_ACL, formatACLScopeRole(ruleId, None)], str(e), k, kcount)
     except (GAPI.invalidScopeValue, GAPI.forbidden) as e:
-      entityActionFailedWarning([entityType, calId, Ent.CALENDAR_ACL, formatACLScopeRole(ruleId, None)], e.message, k, kcount)
+      entityActionFailedWarning([entityType, calId, Ent.CALENDAR_ACL, formatACLScopeRole(ruleId, None)], str(e), k, kcount)
   Ind.Decrement()
 
 def _doInfoCalendarACLs(origUser, user, cal, calIds, count, ACLScopeEntity):
@@ -11844,8 +11851,8 @@ def _doPrintShowCalendarACLs(user, cal, calIds, count, csvFormat, csvRows, title
             flattened['primaryEmail'] = user
           addRowTitlesToCSVfile(flattenJSON(rule, flattened=flattened), csvRows, titles)
     except GAPI.forbidden as e:
-      entityActionFailedWarning([Ent.CALENDAR, calId], e.message, i, count)
-    except GAPI.notFound:
+      entityActionFailedWarning([Ent.CALENDAR, calId], str(e), i, count)
+    except GAPI.notFound as e:
       entityUnknownWarning(Ent.CALENDAR, calId, i, count)
 
 # gam calendar <CalendarItem> add <CalendarACLRole> <ACLScope>
@@ -12174,7 +12181,7 @@ def _validateCalendarGetEventIDs(origUser, user, cal, calId, j, jcount, calendar
       entityUnknownWarning(Ent.CALENDAR, calId, j, jcount)
       return (calId, cal, None, 0)
     except (GAPI.notACalendarUser, GAPI.forbidden) as e:
-      entityActionFailedWarning([Ent.CALENDAR, calId], e.message, j, jcount)
+      entityActionFailedWarning([Ent.CALENDAR, calId], str(e), j, jcount)
       return (calId, cal, None, 0)
     except (GAPI.serviceNotAvailable, GAPI.authError):
       entityServiceNotApplicableWarning(Ent.CALENDAR, calId, j, jcount)
@@ -12233,7 +12240,7 @@ def _validateCalendarGetEvents(user, cal, calId, j, jcount, calendarEventEntity,
     entityUnknownWarning(Ent.CALENDAR, calId, j, jcount)
     return (calId, cal, None, 0)
   except (GAPI.notACalendarUser, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.CALENDAR, calId], e.message, j, jcount)
+    entityActionFailedWarning([Ent.CALENDAR, calId], str(e), j, jcount)
     return (calId, cal, None, 0)
   except (GAPI.serviceNotAvailable, GAPI.authError):
     entityServiceNotApplicableWarning(Ent.CALENDAR, calId, j, jcount)
@@ -12277,12 +12284,12 @@ def _addCalendarEvents(user, cal, calIds, count,
                        calendarId=calId, sendNotifications=sendNotifications, body=body, fields='id')
       entityActionPerformed([Ent.CALENDAR, calId, Ent.EVENT, event['id']], i, count)
     except (GAPI.invalid, GAPI.required, GAPI.timeRangeEmpty) as e:
-      entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, ''], e.message, i, count)
+      entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, ''], str(e), i, count)
       return False
     except GAPI.duplicate as e:
-      entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, ''], e.message, i, count)
+      entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, ''], str(e), i, count)
     except (GAPI.forbidden, GAPI.notACalendarUser) as e:
-      entityActionFailedWarning([Ent.CALENDAR, calId], e.message, i, count)
+      entityActionFailedWarning([Ent.CALENDAR, calId], str(e), i, count)
       break
     except (GAPI.serviceNotAvailable, GAPI.authError):
       entityServiceNotApplicableWarning(Ent.CALENDAR, calId, i, count)
@@ -12313,12 +12320,12 @@ def _updateDeleteCalendarEvents(origUser, user, cal, calIds, count, function, ca
           entityUnknownWarning(Ent.CALENDAR, calId, j, jcount)
           break
         else:
-          entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId], e.message, j, jcount)
+          entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId], str(e), j, jcount)
       except (GAPI.invalid, GAPI.required, GAPI.timeRangeEmpty) as e:
-        entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId], e.message, j, jcount)
+        entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId], str(e), j, jcount)
         return False
       except (GAPI.forbidden, GAPI.notACalendarUser) as e:
-        entityActionFailedWarning([Ent.CALENDAR, calId], e.message, i, count)
+        entityActionFailedWarning([Ent.CALENDAR, calId], str(e), i, count)
         break
       except (GAPI.serviceNotAvailable, GAPI.authError):
         entityServiceNotApplicableWarning(Ent.CALENDAR, calId, i, count)
@@ -12342,7 +12349,7 @@ def _wipeCalendarEvents(user, cal, calIds, count):
                calendarId=calId)
       entityActionPerformed([Ent.CALENDAR, calId], i, count)
     except (GAPI.notACalendarUser, GAPI.notFound, GAPI.forbidden) as e:
-      entityActionFailedWarning([Ent.CALENDAR, calId], e.message, i, count)
+      entityActionFailedWarning([Ent.CALENDAR, calId], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError):
       entityServiceNotApplicableWarning(Ent.CALENDAR, calId, i, count)
 
@@ -12367,9 +12374,9 @@ def _moveCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntity,
           entityUnknownWarning(Ent.CALENDAR, calId, i, count)
           break
         else:
-          entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId, Ent.CALENDAR, newCalId], Ent.EntityTypeNameMessage(Ent.EVENT, eventId, e.message), j, jcount)
+          entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId, Ent.CALENDAR, newCalId], Ent.EntityTypeNameMessage(Ent.EVENT, eventId, str(e)), j, jcount)
       except (GAPI.notACalendarUser, GAPI.forbidden) as e:
-        entityActionFailedWarning([Ent.CALENDAR, calId], e.message, i, count)
+        entityActionFailedWarning([Ent.CALENDAR, calId], str(e), i, count)
         break
       except (GAPI.serviceNotAvailable, GAPI.authError):
         entityServiceNotApplicableWarning(Ent.CALENDAR, calId, i, count)
@@ -12414,9 +12421,9 @@ def _infoCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntity)
           entityUnknownWarning(Ent.CALENDAR, calId, i, count)
           break
         else:
-          entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId], e.message, j, jcount)
+          entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId], str(e), j, jcount)
       except (GAPI.notACalendarUser, GAPI.forbidden) as e:
-        entityActionFailedWarning([Ent.CALENDAR, calId], e.message, i, count)
+        entityActionFailedWarning([Ent.CALENDAR, calId], str(e), i, count)
         break
       except (GAPI.serviceNotAvailable, GAPI.authError):
         entityServiceNotApplicableWarning(Ent.CALENDAR, calId, i, count)
@@ -12669,7 +12676,7 @@ def _doResourcePrintShowCalendarACLs(entityList, csvFormat):
     except GAPI.notFound:
       entityUnknownWarning(Ent.RESOURCE_CALENDAR, calId, i, count)
     except GAPI.forbidden as e:
-      entityActionFailedWarning([Ent.RESOURCE_CALENDAR, calId], e.message, i, count)
+      entityActionFailedWarning([Ent.RESOURCE_CALENDAR, calId], str(e), i, count)
   if csvFormat:
     sortCSVTitles(['resourceId', 'resourceEmail'], titles)
     writeCSVfile(csvRows, titles, 'Resource Calendar ACLs', todrive)
@@ -12792,7 +12799,7 @@ def _doCreateUpdateUserSchemas(updateCmd, entityList):
     except GAPI.duplicate:
       entityDuplicateWarning(Ent.USER_SCHEMA, schemaName, i, count)
     except GAPI.conditionNotMet as e:
-      entityActionFailedWarning([Ent.USER_SCHEMA, schemaName], e.message, i, count)
+      entityActionFailedWarning([Ent.USER_SCHEMA, schemaName], str(e), i, count)
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.USER_SCHEMA, schemaName, i, count)
 
@@ -13134,9 +13141,9 @@ def _createSite(users, entityType):
                 siteentry=siteEntry, domain=domain, site=None)
       entityActionPerformed([Ent.SITE, domainSite])
     except GDATA.notFound as e:
-      entityActionFailedWarning([Ent.DOMAIN, domain], e.message)
+      entityActionFailedWarning([Ent.DOMAIN, domain], str(e))
     except (GDATA.entityExists, GDATA.badRequest, GDATA.forbidden) as e:
-      entityActionFailedWarning([Ent.SITE, domainSite], e.message)
+      entityActionFailedWarning([Ent.SITE, domainSite], str(e))
 
 # gam [<UserTypeEntity>] create site <SiteName> <SiteAttributes>*
 def createUserSite(users):
@@ -13178,7 +13185,7 @@ def _updateSites(users, entityType):
                   siteentry=newSiteEntry, domain=domain, site=site, extra_headers={'If-Match': siteEntry.etag})
         entityActionPerformed([Ent.SITE, domainSite])
       except (GDATA.notFound, GDATA.badRequest, GDATA.forbidden) as e:
-        entityActionFailedWarning([Ent.SITE, domainSite], e.message)
+        entityActionFailedWarning([Ent.SITE, domainSite], str(e))
 
 # gam [<UserTypeEntity>] update site <SiteEntity> <SiteAttributes>+
 def updateUserSites(users):
@@ -13234,7 +13241,7 @@ def _showSite(sitesManager, sitesObject, domain, site, roles, j, jcount):
           printKeyValueList([formatACLRule(fields)])
       Ind.Decrement()
     except (GDATA.notFound, GDATA.forbidden) as e:
-      entityActionFailedWarning([Ent.SITE, domainSite], e.message)
+      entityActionFailedWarning([Ent.SITE, domainSite], str(e))
   Ind.Decrement()
 
 SITE_ACL_ROLES_MAP = {
@@ -13293,7 +13300,7 @@ def _infoSites(users, entityType):
         if result:
           _showSite(sitesManager, sitesObject, domain, result, roles, j, jcount)
       except (GDATA.notFound, GDATA.forbidden) as e:
-        entityActionFailedWarning([Ent.SITE, domainSite], e.message)
+        entityActionFailedWarning([Ent.SITE, domainSite], str(e))
     Ind.Decrement()
 
 # gam [<UserTypeEntity>] info site <SiteEntity> [withmappings] [role|roles all|<SiteACLRoleList>]
@@ -13313,7 +13320,7 @@ def _printShowSites(entityList, entityType, csvFormat):
                             retry_errors=[GDATA.INTERNAL_SERVER_ERROR],
                             domain=domain, url_params=url_params)
     except (GDATA.notFound, GDATA.forbidden) as e:
-      entityActionFailedWarning([Ent.DOMAIN, domain], e.message, i, count)
+      entityActionFailedWarning([Ent.DOMAIN, domain], str(e), i, count)
     return []
 
   def _printSites(entity, i, count, domain, sites):
@@ -13352,7 +13359,7 @@ def _printShowSites(entityList, entityType, csvFormat):
               rowShown = True
               addRowTitlesToCSVfile(siteACLRow, csvRows, titles)
         except (GDATA.notFound, GDATA.forbidden) as e:
-          entityActionFailedWarning([Ent.SITE, domainSite], e.message, i, count)
+          entityActionFailedWarning([Ent.SITE, domainSite], str(e), i, count)
       if not rowShown:
         addRowTitlesToCSVfile(siteRow, csvRows, titles)
 
@@ -13555,9 +13562,9 @@ def _processSiteACLs(users, entityType):
             if not checkSiteExists(sitesObject, domain, site):
               entityUnknownWarning(Ent.SITE, domainSite, j, jcount)
               break
-            entityActionFailedWarning([Ent.SITE, domainSite, Ent.SITE_ACL, formatACLScopeRole(ruleId, role)], e.message, k, kcount)
+            entityActionFailedWarning([Ent.SITE, domainSite, Ent.SITE_ACL, formatACLScopeRole(ruleId, role)], str(e), k, kcount)
           except (GDATA.entityExists, GDATA.badRequest, GDATA.forbidden) as e:
-            entityActionFailedWarning([Ent.SITE, domainSite, Ent.SITE_ACL, formatACLScopeRole(ruleId, role)], e.message, k, kcount)
+            entityActionFailedWarning([Ent.SITE, domainSite, Ent.SITE_ACL, formatACLScopeRole(ruleId, role)], str(e), k, kcount)
         Ind.Decrement()
       else:
         try:
@@ -13579,7 +13586,7 @@ def _processSiteACLs(users, entityType):
         except GDATA.notFound:
           entityUnknownWarning(Ent.SITE, domainSite, j, jcount)
         except GDATA.forbidden as e:
-          entityActionFailedWarning([Ent.SITE, domainSite], e.message, j, jcount)
+          entityActionFailedWarning([Ent.SITE, domainSite], str(e), j, jcount)
     Ind.Decrement()
 
 # gam [<UserTypeEntity>] add siteacls <SiteEntity> <SiteACLRole> <ACLScopeEntity>
@@ -13651,7 +13658,7 @@ def _printSiteActivity(users, entityType):
       except GDATA.notFound:
         entityUnknownWarning(Ent.SITE, domainSite, j, jcount)
       except GDATA.forbidden as e:
-        entityActionFailedWarning([Ent.SITE, domainSite], e.message, j, jcount)
+        entityActionFailedWarning([Ent.SITE, domainSite], str(e), j, jcount)
   writeCSVfile(csvRows, titles, 'Site Activities', todrive)
 
 # gam [<UserTypeEntity>] print siteactivity <SiteEntity> [todrive [<ToDriveAttributes>]] [maxresults <Number>] [updated_min <Date>] [updated_max <Date>]
@@ -14013,11 +14020,11 @@ def doCreateUser():
   except GAPI.duplicate:
     entityDuplicateWarning(Ent.USER, user)
   except (GAPI.domainNotFound, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.USER, user], e.message)
+    entityActionFailedWarning([Ent.USER, user], str(e))
   except GAPI.invalidSchemaValue:
     entityActionFailedWarning([Ent.USER, user], Msg.INVALID_SCHEMA_VALUE)
   except GAPI.invalid as e:
-    entityActionFailedWarning([Ent.USER, user], e.message)
+    entityActionFailedWarning([Ent.USER, user], str(e))
   except GAPI.invalidOrgunit:
     entityActionFailedWarning([Ent.USER, user], Msg.INVALID_ORGUNIT)
 
@@ -14072,7 +14079,7 @@ def updateUsers(entityList):
     except GAPI.invalidSchemaValue:
       entityActionFailedWarning([Ent.USER, user], Msg.INVALID_SCHEMA_VALUE, i, count)
     except GAPI.invalid as e:
-      entityActionFailedWarning([Ent.USER, user], e.message, i, count)
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
     except GAPI.invalidOrgunit:
       entityActionFailedWarning([Ent.USER, user], Msg.INVALID_ORGUNIT, i, count)
 
@@ -14575,7 +14582,7 @@ def infoUsers(entityList):
       if customFieldMask:
         entityActionFailedWarning([Ent.USER, userEmail], invalidUserSchema(customFieldMask), i, count)
       else:
-        entityActionFailedWarning([Ent.USER, userEmail], e.message, i, count)
+        entityActionFailedWarning([Ent.USER, userEmail], str(e), i, count)
 
 # gam info users <UserTypeEntity> [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>] [userview] [fields <UserFieldNameList>] [products|product <ProductIDList>] [skus|sku <SKUIDList>] [formatjson]
 def doInfoUsers():
@@ -14726,7 +14733,7 @@ def doPrintUsers(entityList=None):
       elif query and customFieldMask:
         entityActionFailedWarning([Ent.USER, None], '{0} or {1}'.format(invalidQuery(query), invalidUserSchema(customFieldMask)))
       else:
-        entityActionFailedWarning([Ent.USER, None], e.message)
+        entityActionFailedWarning([Ent.USER, None], str(e))
       return
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       accessErrorExit(cd)
@@ -14871,7 +14878,7 @@ def doUpdateSiteVerification():
                              throw_reasons=[GAPI.BAD_REQUEST],
                              verificationMethod=verificationMethod, body=body)
   except GAPI.badRequest as e:
-    printKeyValueList([ERROR, e.message])
+    printKeyValueList([ERROR, str(e)])
     verify_data = callGAPI(verif.webResource(), 'getToken',
                            body=body)
     printKeyValueList(['Method', verify_data['method']])
@@ -15071,7 +15078,7 @@ def printShowGuardians(csvFormat):
     except (GAPI.notFound, GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden):
       entityUnknownWarning(Ent.STUDENT, studentId, i, count)
     except GAPI.permissionDenied as e:
-      entityActionFailedWarning([Ent.STUDENT, studentId], e.message, i, count)
+      entityActionFailedWarning([Ent.STUDENT, studentId], str(e), i, count)
   if csvFormat:
     writeCSVfile(csvRows, titles, 'Guardians', todrive)
 
@@ -15116,7 +15123,7 @@ def doCreateCourse():
                       body=body, fields='id')
     entityActionPerformed([Ent.COURSE, body['name'], Ent.COURSE_ID, result['id']])
   except (GAPI.alreadyExists, GAPI.notFound, GAPI.permissionDenied, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.COURSE, body['name'], Ent.TEACHER, body['ownerId']], e.message)
+    entityActionFailedWarning([Ent.COURSE, body['name'], Ent.TEACHER, body['ownerId']], str(e))
 
 def _doUpdateCourses(entityList):
   croom = buildGAPIObject(API.CLASSROOM)
@@ -15136,7 +15143,7 @@ def _doUpdateCourses(entityList):
                         id=body['id'], body=body, updateMask=updateMask, fields='id')
       entityActionPerformed([Ent.COURSE, result['id']], i, count)
     except (GAPI.notFound, GAPI.permissionDenied) as e:
-      entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(body['id'])], e.message, i, count)
+      entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(body['id'])], str(e), i, count)
 
 # gam update courses <CourseEntity> <CourseAttributes>
 def doUpdateCourses():
@@ -15160,7 +15167,7 @@ def _doDeleteCourses(entityList):
                id=courseId)
       entityActionPerformed([Ent.COURSE, removeCourseIdScope(courseId)], i, count)
     except (GAPI.notFound, GAPI.permissionDenied) as e:
-      entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], e.message, i, count)
+      entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
 
 # gam delete courses <CourseEntity>
 def doDeleteCourses():
@@ -15884,7 +15891,7 @@ def doUpdatePrinters():
               printerid=printerId, **kwargs)
       entityActionPerformed([Ent.PRINTER, printerId], i, count)
     except GCP.unknownPrinter as e:
-      entityActionFailedWarning([Ent.PRINTER, printerId], e.message, i, count)
+      entityActionFailedWarning([Ent.PRINTER, printerId], str(e), i, count)
 
 # gam delete printer|printers <PrinterIDEntity>
 def doDeletePrinters():
@@ -15901,7 +15908,7 @@ def doDeletePrinters():
               printerid=printerId)
       entityActionPerformed([Ent.PRINTER, printerId], i, count)
     except GCP.unknownPrinter as e:
-      entityActionFailedWarning([Ent.PRINTER, printerId], e.message, i, count)
+      entityActionFailedWarning([Ent.PRINTER, printerId], str(e), i, count)
 
 # gam info printers <PrinterIDEntity> [everything]
 def doInfoPrinters():
@@ -15935,7 +15942,7 @@ def doInfoPrinters():
       showJSON(None, printer_info)
       Ind.Decrement()
     except GCP.unknownPrinter as e:
-      entityActionFailedWarning([Ent.PRINTER, printerId], e.message, i, count)
+      entityActionFailedWarning([Ent.PRINTER, printerId], str(e), i, count)
 
 # gam print printers [todrive [<ToDriveAttributes>]] [query <QueryPrintJob>] [type <String>] [status <String>] [extrafields <String>] [delimiter <String>]
 def doPrintPrinters():
@@ -16024,7 +16031,7 @@ def _batchAddACLsToPrinter(cp, printerId, i, count, scopeList, role):
     except GCP.failedToShareThePrinter:
       entityActionFailedWarning([Ent.PRINTER, printerId, roleForScope, scope], Msg.INVALID_SCOPE, j, jcount)
     except GCP.unknownPrinter as e:
-      entityActionFailedWarning([Ent.PRINTER, printerId], e.message, i, count)
+      entityActionFailedWarning([Ent.PRINTER, printerId], str(e), i, count)
       break
   Ind.Decrement()
 
@@ -16065,7 +16072,7 @@ def _batchDeleteACLsFromPrinter(cp, printerId, i, count, scopeList, role):
         scope = 'public'
       entityActionPerformed([Ent.PRINTER, printerId, Ent.SCOPE, scope], j, jcount)
     except GCP.unknownPrinter as e:
-      entityActionFailedWarning([Ent.PRINTER, printerId], e.message, i, count)
+      entityActionFailedWarning([Ent.PRINTER, printerId], str(e), i, count)
       break
   Ind.Decrement()
 
@@ -16098,7 +16105,7 @@ def getPrinterScopeListsForRole(cp, printerId, i, count, role):
           scopeList.append(acl['scope'].lower())
     return scopeList
   except GCP.unknownPrinter as e:
-    entityActionFailedWarning([Ent.PRINTER, printerId], e.message, i, count)
+    entityActionFailedWarning([Ent.PRINTER, printerId], str(e), i, count)
     return None
 
 # gam printer|printers <PrinterIDEntity> sync user|manager|owner <PrinterACLScopeEntity>
@@ -16181,7 +16188,7 @@ def doPrinterPrintShowACLs(printerIdList, csvFormat):
             acl['accessURL'] = CLOUDPRINT_ACCESS_URL.format(printerId, acl['key'])
           addRowTitlesToCSVfile(flattenJSON(acl, flattened={'id': printerId}), csvRows, titles)
     except GCP.unknownPrinter as e:
-      entityActionFailedWarning([Ent.PRINTER, printerId], e.message, i, count)
+      entityActionFailedWarning([Ent.PRINTER, printerId], str(e), i, count)
   if csvFormat:
     writeCSVfile(csvRows, titles, 'PrinterACLs', todrive)
 
@@ -16200,7 +16207,7 @@ def doPrintJobCancel(jobIdList):
               jobid=jobId, semantic_state_diff=ssd)
       entityActionPerformed([Ent.PRINTJOB, jobId], i, count)
     except GCP.unknownJobId as e:
-      entityActionFailedWarning([Ent.PRINTJOB, jobId], e.message, i, count)
+      entityActionFailedWarning([Ent.PRINTJOB, jobId], str(e), i, count)
 
 # gam printjob|printjobs <PrintJobEntity> delete
 def doPrintJobDelete(jobIdList):
@@ -16216,7 +16223,7 @@ def doPrintJobDelete(jobIdList):
               jobid=jobId)
       entityActionPerformed([Ent.PRINTJOB, jobId], i, count)
     except GCP.unknownJobId as e:
-      entityActionFailedWarning([Ent.PRINTJOB, jobId], e.message, i, count)
+      entityActionFailedWarning([Ent.PRINTJOB, jobId], str(e), i, count)
 
 # gam printjob|printjobs <PrintJobEntity> resubmit <PrinterID>
 def doPrintJobResubmit(jobIdList):
@@ -16239,9 +16246,9 @@ def doPrintJobResubmit(jobIdList):
                        printerid=printerId, jobid=jobId, ticket=ticket)
       entityActionPerformed([Ent.PRINTJOB, result['job']['id'], Ent.PRINTER, printerId], i, count)
     except GCP.unknownJobId as e:
-      entityActionFailedWarning([Ent.PRINTJOB, jobId], e.message, count)
+      entityActionFailedWarning([Ent.PRINTJOB, jobId], str(e), count)
     except (GCP.cantModifyFinishedJob, GCP.unknownPrinter) as e:
-      entityActionFailedWarning([Ent.PRINTJOB, jobId, Ent.PRINTER, printerId], e.message, i, count)
+      entityActionFailedWarning([Ent.PRINTJOB, jobId, Ent.PRINTER, printerId], str(e), i, count)
 #
 PRINTJOB_STATUS_MAP = {
   'done': 'DONE',
@@ -16328,7 +16335,7 @@ def doPrintJobFetch(printerIdList):
               throw_messages=[GCP.UNKNOWN_PRINTER],
               printerid=printerId)
     except GCP.unknownPrinter as e:
-      entityActionFailedWarning([Ent.PRINTER, printerId], e.message)
+      entityActionFailedWarning([Ent.PRINTER, printerId], str(e))
       return
   ssd = '{"state": {"type": "DONE"}}'
   jobCount = offset = 0
@@ -16397,7 +16404,7 @@ def doPrintPrintJobs():
               throw_messages=[GCP.UNKNOWN_PRINTER],
               printerid=printerId)
     except GCP.unknownPrinter as e:
-      entityActionFailedWarning([Ent.PRINTER, printerId], e.message)
+      entityActionFailedWarning([Ent.PRINTER, printerId], str(e))
       return
   jobCount = offset = 0
   while True:
@@ -16470,7 +16477,7 @@ def doPrintJobSubmit(printerIdList):
     result = checkCloudPrintResult(result)
     entityActionPerformed([Ent.PRINTER, printerId, Ent.PRINTJOB, result['job']['id']])
   except GCP.unknownPrinter as e:
-    entityActionFailedWarning([Ent.PRINTER, printerId], e.message)
+    entityActionFailedWarning([Ent.PRINTER, printerId], str(e))
 
 def _showASPs(user, asps, i=0, count=0):
   Act.Set(Act.SHOW)
@@ -16683,7 +16690,7 @@ def _validateUserGetCalendarIds(user, i, count, calendarEntity, itemType=None, m
                throw_reasons=GAPI.CALENDAR_THROW_REASONS,
                calendarId='primary', fields='')
   except GAPI.notACalendarUser as e:
-    entityActionFailedWarning([Ent.USER, user], e.message, i, count)
+    entityActionFailedWarning([Ent.USER, user], str(e), i, count)
     return (user, None, None, 0)
   except (GAPI.serviceNotAvailable, GAPI.authError):
     entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -16789,7 +16796,7 @@ def _processCalendarList(user, calId, j, jcount, cal, function, **kwargs):
     else:
       entityActionPerformed([Ent.USER, user, Ent.CALENDAR, calId], j, jcount)
   except (GAPI.notFound, GAPI.duplicate, GAPI.cannotChangeOwnAcl) as e:
-    entityActionFailedWarning([Ent.USER, user, Ent.CALENDAR, calId], e.message, j, jcount)
+    entityActionFailedWarning([Ent.USER, user, Ent.CALENDAR, calId], str(e), j, jcount)
 
 # gam <UserTypeEntity> add calendars <CalendarAddEntity> <CalendarAttributes>
 def addCalendars(users):
@@ -16895,7 +16902,7 @@ def createCalendar(users):
                        body=body, fields='id')['id']
       entityActionPerformed([Ent.USER, user, Ent.CALENDAR, calId], i, count)
     except (GAPI.notACalendarUser, GAPI.forbidden) as e:
-      entityActionFailedWarning([Ent.USER, user], e.message, i, count)
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
@@ -16917,9 +16924,9 @@ def _modifyRemoveCalendars(users, calendarEntity, function, **kwargs):
                  calendarId=calId, **kwargs)
         entityActionPerformed([Ent.USER, user, Ent.CALENDAR, calId], j, jcount)
       except (GAPI.notFound, GAPI.cannotDeletePrimaryCalendar, GAPI.forbidden) as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.CALENDAR, calId], e.message, j, jcount)
+        entityActionFailedWarning([Ent.USER, user, Ent.CALENDAR, calId], str(e), j, jcount)
       except GAPI.notACalendarUser as e:
-        entityActionFailedWarning([Ent.USER, user], e.message, i, count)
+        entityActionFailedWarning([Ent.USER, user], str(e), i, count)
         break
       except (GAPI.serviceNotAvailable, GAPI.authError):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -17006,7 +17013,7 @@ def _printShowCalendars(users, csvFormat):
           calendar.pop('id', None)
           addRowTitlesToCSVfile(flattenJSON(calendar, flattened=row), csvRows, titles)
     except GAPI.notACalendarUser as e:
-      entityActionFailedWarning([Ent.USER, user], e.message, i, count)
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvFormat:
@@ -17045,7 +17052,7 @@ def showCalSettings(users):
         printBlankLine()
         Ind.Decrement()
     except GAPI.notACalendarUser as e:
-      entityActionFailedWarning([Ent.USER, user], e.message, i, count)
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
@@ -17184,7 +17191,7 @@ def transferCalendars(users):
                  calendarId=calId, body=targetRoleBody, fields='')
         entityModifierNewValueItemValueActionPerformed([Ent.CALENDAR, calId], Act.MODIFIER_TO, None, Ent.USER, targetUser, j, jcount)
       except GAPI.forbidden as e:
-        entityActionFailedWarning([Ent.CALENDAR, calId], e.message, j, jcount)
+        entityActionFailedWarning([Ent.CALENDAR, calId], str(e), j, jcount)
         continue
       except (GAPI.notFound, GAPI.invalid):
         entityUnknownWarning(Ent.CALENDAR, calId, j, jcount)
@@ -17200,9 +17207,9 @@ def transferCalendars(users):
           if not checkCalendarExists(targetCal, calId):
             entityUnknownWarning(Ent.CALENDAR, calId, j, jcount)
           else:
-            entityActionFailedWarning([Ent.CALENDAR, calId, Ent.CALENDAR_ACL, formatACLScopeRole(sourceRuleId, retainSourceRoleBody['role'])], e.message, j, jcount)
+            entityActionFailedWarning([Ent.CALENDAR, calId, Ent.CALENDAR_ACL, formatACLScopeRole(sourceRuleId, retainSourceRoleBody['role'])], str(e), j, jcount)
         except (GAPI.invalid, GAPI.invalidParameter, GAPI.invalidScopeValue, GAPI.illegalAccessRoleForDefault, GAPI.forbidden, GAPI.cannotChangeOwnAcl, GAPI.cannotChangeOwnerAcl) as e:
-          entityActionFailedWarning([Ent.CALENDAR, calId, Ent.CALENDAR_ACL, formatACLScopeRole(sourceRuleId, retainSourceRoleBody['role'])], e.message, j, jcount)
+          entityActionFailedWarning([Ent.CALENDAR, calId, Ent.CALENDAR_ACL, formatACLScopeRole(sourceRuleId, retainSourceRoleBody['role'])], str(e), j, jcount)
       else:
         Act.Set(Act.DELETE)
         try:
@@ -17406,9 +17413,9 @@ def updateCalendarAttendees(users):
                 entityUnknownWarning(Ent.CALENDAR, calId, j, jcount)
                 break
               else:
-                entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, event_summary], e.message, k, kcount)
+                entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, event_summary], str(e), k, kcount)
             except (GAPI.notACalendarUser, GAPI.forbidden) as e:
-              entityActionFailedWarning([Ent.CALENDAR, calId], e.message, j, jcount)
+              entityActionFailedWarning([Ent.CALENDAR, calId], str(e), j, jcount)
               break
             except (GAPI.serviceNotAvailable, GAPI.authError):
               entityServiceNotApplicableWarning(Ent.CALENDAR, calId, j, jcount)
@@ -17991,7 +17998,7 @@ def showDriveFileInfo(users):
         showJSON(None, result, skipObjects, DRIVEFILE_TIME_OBJECTS)
         Ind.Decrement()
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError) as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], e.message, j, jcount)
+        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
         break
@@ -18025,7 +18032,7 @@ def showDriveFileRevisions(users):
           Ind.Decrement()
         Ind.Decrement()
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.badRequest) as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], e.message, j, jcount)
+        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
         break
@@ -18567,7 +18574,7 @@ def updateDriveFile(users):
                               body=body, fields='id,{0},mimeType'.format(API.DRIVE_FILE_NAME), **kwargs)
             entityActionPerformed([Ent.USER, user, [Ent.DRIVE_FOLDER, Ent.DRIVE_FILE][result['mimeType'] != MIMETYPE_GA_FOLDER], result[API.DRIVE_FILE_NAME]], j, jcount)
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError) as e:
-          entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], e.message, j, jcount)
+          entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
         except (GAPI.serviceNotAvailable, GAPI.authError):
           entityServiceNotApplicableWarning(Ent.USER, user, i, count)
           break
@@ -18586,7 +18593,7 @@ def updateDriveFile(users):
                             body=body, fields='id,{0}'.format(API.DRIVE_FILE_NAME))
           entityModifierNewValueItemValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, fileId], Act.MODIFIER_TO, result[API.DRIVE_FILE_NAME], Ent.DRIVE_FILE_ID, result['id'], j, jcount)
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError) as e:
-          entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, fileId], e.message, j, jcount)
+          entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, fileId], str(e), j, jcount)
         except (GAPI.serviceNotAvailable, GAPI.authError):
           entityServiceNotApplicableWarning(Ent.USER, user, i, count)
           break
@@ -18670,7 +18677,7 @@ def copyDriveFile(users):
                             body=body, fields='id,{0}'.format(API.DRIVE_FILE_NAME))
           entityModifierNewValueItemValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, metadata[API.DRIVE_FILE_NAME]], Act.MODIFIER_TO, result[API.DRIVE_FILE_NAME], Ent.DRIVE_FILE_ID, result['id'], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError) as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], e.message, j, jcount)
+        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
         break
@@ -18707,7 +18714,7 @@ def deleteDriveFile(users, function=None):
           fileName = fileId
         entityActionPerformed([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, fileName], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError) as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], e.message, j, jcount)
+        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
         break
@@ -18903,11 +18910,11 @@ def transferDriveFiles(users):
                      fileId=childId, permissionId=sourcePermissionId)
             entityActionPerformed([Ent.USER, sourceUser, childFileType, childFileName, Ent.ROLE, 'owner'], j, jcount)
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.badRequest) as e:
-          entityActionFailedWarning([Ent.USER, sourceUser, childFileType, childFileName], e.message, j, jcount)
+          entityActionFailedWarning([Ent.USER, sourceUser, childFileType, childFileName], str(e), j, jcount)
         except GAPI.permissionNotFound:
           entityDoesNotHaveItemWarning([Ent.USER, sourceUser, childFileType, childFileName, Ent.PERMISSION_ID, sourcePermissionId], j, jcount)
         except (GAPI.invalidSharingRequest) as e:
-          entityActionFailedWarning([Ent.USER, sourceUser, childFileType, childFileName], Ent.EntityTypeNameMessage(Ent.PERMISSION_ID, sourcePermissionId, e.message), j, jcount)
+          entityActionFailedWarning([Ent.USER, sourceUser, childFileType, childFileName], Ent.EntityTypeNameMessage(Ent.PERMISSION_ID, sourcePermissionId, str(e)), j, jcount)
         except (GAPI.serviceNotAvailable, GAPI.authError):
           entityServiceNotApplicableWarning(Ent.USER, sourceUser, 0, 0)
       else:
@@ -19216,7 +19223,7 @@ def transferDriveFileOwnership(users):
                      fileId=xferFileId, permissionId=permissionId, transferOwnership=True, body=body, fields='')
             entityModifierNewValueItemValueActionPerformed([Ent.USER, user, entityType, fileDesc], Act.MODIFIER_TO, None, Ent.USER, newOwner, k, kcount)
           except GAPI.invalidSharingRequest as e:
-            entityActionFailedWarning([Ent.USER, user, entityType, fileDesc], Ent.EntityTypeNameMessage(Ent.PERMISSION_ID, permissionId, e.message), k, kcount)
+            entityActionFailedWarning([Ent.USER, user, entityType, fileDesc], Ent.EntityTypeNameMessage(Ent.PERMISSION_ID, permissionId, str(e)), k, kcount)
           except GAPI.permissionNotFound:
             entityDoesNotHaveItemWarning([Ent.USER, user, entityType, fileDesc, Ent.PERMISSION_ID, permissionId], k, kcount)
           except GAPI.fileNotFound:
@@ -19388,7 +19395,7 @@ def claimDriveFolderOwnership(users):
                          fileId=fileId, permissionId=permissionId, transferOwnership=True, body=body, fields='')
                 entityModifierNewValueItemValueActionPerformed([Ent.USER, user, entityType, fileDesc], Act.MODIFIER_FROM, None, Ent.USER, oldOwner, l, lcount)
               except GAPI.invalidSharingRequest as e:
-                entityActionFailedWarning([Ent.USER, user, entityType, fileDesc], Ent.EntityTypeNameMessage(Ent.PERMISSION_ID, permissionId, e.message), l, lcount)
+                entityActionFailedWarning([Ent.USER, user, entityType, fileDesc], Ent.EntityTypeNameMessage(Ent.PERMISSION_ID, permissionId, str(e)), l, lcount)
               except GAPI.permissionNotFound:
                 entityDoesNotHaveItemWarning([Ent.USER, user, entityType, fileDesc, Ent.PERMISSION_ID, permissionId], l, lcount)
               except GAPI.fileNotFound:
@@ -19577,9 +19584,9 @@ def addDriveFileACL(users):
         entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
         _showDriveFilePermission(permission)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError) as e:
-        entityActionFailedWarning([Ent.USER, user, entityType, fileName], e.message, j, jcount)
+        entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
       except (GAPI.invalidSharingRequest) as e:
-        entityActionFailedWarning([Ent.USER, user, entityType, fileName], Ent.EntityTypeNameMessage(Ent.PERMISSION_ID, permissionId, e.message), j, jcount)
+        entityActionFailedWarning([Ent.USER, user, entityType, fileName], Ent.EntityTypeNameMessage(Ent.PERMISSION_ID, permissionId, str(e)), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
         break
@@ -19645,7 +19652,7 @@ def updateDriveFileACLs(users):
         entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
         _showDriveFilePermission(permission)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.badRequest, GAPI.invalidOwnershipTransfer) as e:
-        entityActionFailedWarning([Ent.USER, user, entityType, fileName], e.message, j, jcount)
+        entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
       except GAPI.permissionNotFound:
         entityDoesNotHaveItemWarning([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError):
@@ -19702,7 +19709,7 @@ def addDriveFilePermissions(users):
                  fileId=ri[RI_ENTITY], sendNotificationEmails=sendNotificationEmails, emailMessage=emailMessage, body=_makePermissionBody(ri[RI_ITEM]), fields='')
         entityActionPerformed([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
       except (GAPI.fileNotFound, GAPI.invalidSharingRequest, GAPI.forbidden, GAPI.serviceNotAvailable, GAPI.authError) as e:
-        entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], e.message, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
   sendNotificationEmails = False
   emailMessage = expiration = None
@@ -19805,7 +19812,7 @@ def deleteDriveFileACLs(users):
                  fileId=fileId, permissionId=permissionId)
         entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.badRequest) as e:
-        entityActionFailedWarning([Ent.USER, user, entityType, fileName], e.message, j, jcount)
+        entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
       except GAPI.permissionNotFound:
         entityDoesNotHaveItemWarning([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError):
@@ -19838,7 +19845,7 @@ def deleteDriveFilePermissions(users):
                  fileId=ri[RI_ENTITY], permissionId=ri[RI_ITEM])
         entityActionPerformed([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMISSION_ID, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.badRequest, GAPI.permissionNotFound, GAPI.serviceNotAvailable, GAPI.authError) as e:
-        entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMISSION_ID, ri[RI_ITEM]], e.message, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMISSION_ID, ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
   fileIdEntity = getDriveFileEntity()
   body, parameters = initializeDriveFileAttributes()
@@ -19946,7 +19953,7 @@ def _printShowDriveFileACLs(users, csvFormat):
           else:
             addRowTitlesToCSVfile(flattenJSON(result, flattened={'Owner': user, 'id': fileId}), csvRows, titles)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError) as e:
-        entityActionFailedWarning([Ent.USER, user, entityType, fileName], e.message, j, jcount)
+        entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
         break
@@ -20153,7 +20160,7 @@ def addLicense(users):
                productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_SKUID], body={'userId': user}, fields='')
       entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], i, count)
     except (GAPI.conditionNotMet, GAPI.duplicate) as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], e.message, i, count)
+      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], str(e), i, count)
     except (GAPI.userNotFound, GAPI.forbidden, GAPI.backendError):
       entityUnknownWarning(Ent.USER, user, i, count)
 
@@ -20171,7 +20178,7 @@ def updateLicense(users):
       entityModifierNewValueActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.skuIdToDisplayName(parameters[LICENSE_SKUID])],
                                             Act.MODIFIER_FROM, SKU.skuIdToDisplayName(parameters[LICENSE_OLDSKUID]), i, count)
     except GAPI.notFound as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_OLDSKUID])], e.message, i, count)
+      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_OLDSKUID])], str(e), i, count)
     except (GAPI.userNotFound, GAPI.forbidden, GAPI.backendError):
       entityUnknownWarning(Ent.USER, user, i, count)
 
@@ -20188,7 +20195,7 @@ def deleteLicense(users):
                productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_SKUID], userId=user)
       entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], i, count)
     except GAPI.notFound as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], e.message, i, count)
+      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], str(e), i, count)
     except (GAPI.userNotFound, GAPI.forbidden, GAPI.backendError):
       entityUnknownWarning(Ent.USER, user, i, count)
 
@@ -20216,7 +20223,7 @@ def updatePhoto(users):
           entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], Msg.NOT_FOUND, i, count)
           continue
       except (httplib2.HttpLib2Error, httplib2.ServerNotFoundError, httplib2.CertificateValidationUnsupportedInPython31) as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], e.message, i, count)
+        entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], str(e), i, count)
         continue
     else:
       image_data = readFile(filename, mode='rb', continueOnError=True, displayError=True)
@@ -20230,7 +20237,7 @@ def updatePhoto(users):
                userKey=user, body=body, fields='')
       entityActionPerformed([Ent.USER, user, Ent.PHOTO, filename], i, count)
     except GAPI.invalidInput as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], e.message, i, count)
+      entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], str(e), i, count)
     except (GAPI.userNotFound, GAPI.forbidden):
       entityUnknownWarning(Ent.USER, user, i, count)
 
@@ -20248,7 +20255,7 @@ def deletePhoto(users):
                userKey=user)
       entityActionPerformed([Ent.USER, user, Ent.PHOTO, ''], i, count)
     except GAPI.photoNotFound as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, ''], e.message, i, count)
+      entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, ''], str(e), i, count)
     except (GAPI.userNotFound, GAPI.forbidden):
       entityUnknownWarning(Ent.USER, user, i, count)
 
@@ -20288,7 +20295,7 @@ def getPhoto(users):
       else:
         entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], e.strerror, i, count)
     except GAPI.photoNotFound as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, None], e.message, i, count)
+      entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, None], str(e), i, count)
     except (GAPI.userNotFound, GAPI.forbidden):
       entityUnknownWarning(Ent.USER, user, i, count)
 
@@ -20345,7 +20352,7 @@ def deleteTokens(users):
                userKey=user, clientId=clientId)
       entityActionPerformed([Ent.USER, user, Ent.ACCESS_TOKEN, clientId], i, count)
     except GAPI.notFound as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.ACCESS_TOKEN, clientId], e.message, i, count)
+      entityActionFailedWarning([Ent.USER, user, Ent.ACCESS_TOKEN, clientId], str(e), i, count)
     except GAPI.userNotFound:
       entityUnknownWarning(Ent.USER, user, i, count)
 
@@ -20420,7 +20427,7 @@ def _printShowTokens(entityType, users, csvFormat):
               row[item] = token.get(item, '')
           csvRows.append(row)
     except (GAPI.notFound, GAPI.resourceNotFound) as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.ACCESS_TOKEN, clientId], e.message, i, count)
+      entityActionFailedWarning([Ent.USER, user, Ent.ACCESS_TOKEN, clientId], str(e), i, count)
     except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.forbidden):
       entityUnknownWarning(Ent.USER, user, i, count)
   if csvFormat:
@@ -20465,7 +20472,7 @@ def deprovisionUser(users):
                      userKey=user, codeId=codeId)
             entityActionPerformed([Ent.USER, user, Ent.APPLICATION_SPECIFIC_PASSWORD, codeId], j, jcount)
           except GAPI.invalid as e:
-            entityActionFailedWarning([Ent.USER, user, Ent.APPLICATION_SPECIFIC_PASSWORD, codeId], e.message, j, jcount)
+            entityActionFailedWarning([Ent.USER, user, Ent.APPLICATION_SPECIFIC_PASSWORD, codeId], str(e), j, jcount)
         Ind.Decrement()
 #
       printGettingEntityItemForWhom(Ent.BACKUP_VERIFICATION_CODES, user, i, count)
@@ -20481,7 +20488,7 @@ def deprovisionUser(users):
                    userKey=user)
           entityActionPerformed([Ent.USER, user, Ent.BACKUP_VERIFICATION_CODES, None], i, count)
       except GAPI.invalid as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.BACKUP_VERIFICATION_CODES, None], e.message, i, count)
+        entityActionFailedWarning([Ent.USER, user, Ent.BACKUP_VERIFICATION_CODES, None], str(e), i, count)
 #
       printGettingEntityItemForWhom(Ent.ACCESS_TOKEN, user, i, count)
       tokens = callGAPIitems(cd.tokens(), 'list', 'items',
@@ -20501,7 +20508,7 @@ def deprovisionUser(users):
                      userKey=user, clientId=clientId)
             entityActionPerformed([Ent.USER, user, Ent.ACCESS_TOKEN, clientId], j, jcount)
           except GAPI.notFound as e:
-            entityActionFailedWarning([Ent.USER, user, Ent.ACCESS_TOKEN, clientId], e.message, j, jcount)
+            entityActionFailedWarning([Ent.USER, user, Ent.ACCESS_TOKEN, clientId], str(e), j, jcount)
         Ind.Decrement()
 #
       entityActionPerformed([Ent.USER, user], i, count)
@@ -20657,7 +20664,7 @@ def _printShowGplusProfile(users, csvFormat):
       printGettingEntityItemForWhom(Ent.GPLUS_PROFILE, user, i, count)
     try:
       result = callGAPI(gplus.people(), 'get',
-                        soft_errors=True, throw_reasons=GAPI.GPLUS_THROW_REASONS, retry_reasons=[GAPI.UNKNOWN_ERROR],
+                        soft_errors=True, throw_reasons=GAPI.GPLUS_THROW_REASONS, retry_reasons=[GAPI.UNKNOWN_ERROR, GAPI.CONNECTION_REFUSED],
                         userId='me')
       if result:
         if not csvFormat:
@@ -20773,7 +20780,7 @@ def updateLabelSettings(users):
       else:
         entityActionFailedWarning([Ent.USER, user, Ent.LABEL, label_name], Msg.DOES_NOT_EXIST, i, count)
     except (GAPI.notFound, GAPI.invalidArgument) as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.LABEL, label_name], e.message, i, count)
+      entityActionFailedWarning([Ent.USER, user, Ent.LABEL, label_name], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 #
@@ -21006,7 +21013,7 @@ def archiveMessages(users):
                      groupKey=group, fields='email')['email']
   except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest) as e:
     Cmd.Backup()
-    usageErrorExit('{0}: {1}'.format(Msg.INVALID_GROUP, e.message))
+    usageErrorExit('{0}: {1}'.format(Msg.INVALID_GROUP, str(e)))
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'query':
@@ -21089,12 +21096,12 @@ def archiveMessages(users):
             entityServiceNotApplicableWarning(Ent.USER, user, i, count)
             break
           except GAPI.badRequest as e:
-            entityActionFailedWarning([Ent.USER, user, entityType, messageId], e.message, j, jcount)
+            entityActionFailedWarning([Ent.USER, user, entityType, messageId], str(e), j, jcount)
         except (GAPI.serviceNotAvailable, GAPI.badRequest):
           entityServiceNotApplicableWarning(Ent.USER, user, i, count)
           break
         except (GAPI.notFound, GAPI.invalidArgument) as e:
-          entityActionFailedWarning([Ent.USER, user, entityType, messageId], e.message, j, jcount)
+          entityActionFailedWarning([Ent.USER, user, entityType, messageId], str(e), j, jcount)
       Ind.Decrement()
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -21737,7 +21744,7 @@ def _processEmailSettings(user, i, count, service, function, **kwargs):
   except (GDATA.serviceNotApplicable, GDATA.invalidDomain):
     entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   except (GDATA.badRequest, GDATA.internalServerError, GDATA.nameNotValid, GDATA.invalidValue) as e:
-    entityBadRequestWarning([Ent.USER, user, Ent.EMAIL_SETTINGS, None], e.message, i, count)
+    entityBadRequestWarning([Ent.USER, user, Ent.EMAIL_SETTINGS, None], str(e), i, count)
   return None
 
 # gam <UserTypeEntity> arrows <Boolean>
@@ -21900,7 +21907,7 @@ def deleteDelegate(users):
         entityServiceNotApplicableWarning(Ent.DELEGATOR, delegatorEmail, i, count)
         break
       except GAPI.invalidInput as e:
-        entityActionFailedWarning([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail], e.message, j, jcount)
+        entityActionFailedWarning([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail], str(e), j, jcount)
     Ind.Decrement()
 
 def _printShowDelegates(users, csvFormat):
@@ -22154,7 +22161,7 @@ def addFilter(users):
       if result:
         entityActionPerformed([Ent.USER, user, Ent.FILTER, result['id']], i, count)
     except (GAPI.invalidArgument, GAPI.failedPrecondition) as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.FILTER, ''], e.message, i, count)
+      entityActionFailedWarning([Ent.USER, user, Ent.FILTER, ''], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
@@ -22178,7 +22185,7 @@ def deleteFilters(users):
                  userId='me', id=filterId)
         entityActionPerformed([Ent.USER, user, Ent.FILTER, filterId], j, jcount)
       except GAPI.notFound as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.FILTER, filterId], e.message, j, jcount)
+        entityActionFailedWarning([Ent.USER, user, Ent.FILTER, filterId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.badRequest):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
         break
@@ -22212,7 +22219,7 @@ def infoFilters(users):
         _showFilter(result, j, jcount, labels)
         Ind.Decrement()
       except GAPI.notFound as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.FILTER, filterId], e.message, j, jcount)
+        entityActionFailedWarning([Ent.USER, user, Ent.FILTER, filterId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.badRequest):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
         break
@@ -22344,7 +22351,7 @@ def setForward(users):
                         userId='me', body=body)
       _showForward(user, i, count, result)
     except GAPI.failedPrecondition as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.FORWARDING_ADDRESS, body['emailAddress']], e.message, i, count)
+      entityActionFailedWarning([Ent.USER, user, Ent.FORWARDING_ADDRESS, body['emailAddress']], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
@@ -22413,7 +22420,7 @@ def _processForwardingAddress(user, i, count, emailAddress, j, jcount, gmail, fu
     else:
       entityActionPerformed([Ent.USER, user, Ent.FORWARDING_ADDRESS, emailAddress], j, jcount)
   except (GAPI.notFound, GAPI.alreadyExists, GAPI.duplicate) as e:
-    entityActionFailedWarning([Ent.USER, user, Ent.FORWARDING_ADDRESS, emailAddress], e.message, j, jcount)
+    entityActionFailedWarning([Ent.USER, user, Ent.FORWARDING_ADDRESS, emailAddress], str(e), j, jcount)
   except (GAPI.serviceNotAvailable, GAPI.badRequest, GAPI.authError):
     entityServiceNotApplicableWarning(Ent.USER, user, i, count)
     userDefined = False
@@ -22737,7 +22744,7 @@ def _processSendAs(user, i, count, entityType, emailAddress, j, jcount, gmail, f
     else:
       entityActionPerformed([Ent.USER, user, entityType, emailAddress], j, jcount)
   except (GAPI.notFound, GAPI.alreadyExists, GAPI.duplicate, GAPI.cannotDeletePrimarySendAs, GAPI.invalidArgument) as e:
-    entityActionFailedWarning([Ent.USER, user, entityType, emailAddress], e.message, j, jcount)
+    entityActionFailedWarning([Ent.USER, user, entityType, emailAddress], str(e), j, jcount)
   except (GAPI.serviceNotAvailable, GAPI.badRequest, GAPI.authError):
     entityServiceNotApplicableWarning(Ent.USER, user, i, count)
     userDefined = False
@@ -22928,7 +22935,7 @@ def addSmime(users):
       entityModifierNewValueActionPerformed([Ent.USER, user, Ent.SENDAS_ADDRESS, sendAsEmail, Ent.SMIME_ID, result['id']],
                                             Act.MODIFIER_FROM, '{0}: {1}'.format(Ent.Singular(Ent.ISSUER_CN), result['issuerCn']), i, count)
     except GAPI.forbidden as e:
-      entityActionFailedWarning([Ent.USER, user], e.message, i, count)
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
@@ -22956,7 +22963,7 @@ def _getSmimeIds(gmail, user, i, count, sendAsEmail, function):
     else:
       return smimes[0]['id']
   except GAPI.forbidden as e:
-    entityActionFailedWarning([Ent.USER, user], e.message, i, count)
+    entityActionFailedWarning([Ent.USER, user], str(e), i, count)
   except (GAPI.serviceNotAvailable, GAPI.badRequest):
     entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   return None
@@ -22997,7 +23004,7 @@ def updateSmime(users):
                userId='me', sendAsEmail=sendAsEmail, id=smimeId)
       entityActionPerformed([Ent.USER, user, Ent.SENDAS_ADDRESS, sendAsEmail, Ent.SMIME_ID, smimeId], i, count)
     except GAPI.forbidden as e:
-      entityActionFailedWarning([Ent.USER, user], e.message, i, count)
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
@@ -23032,7 +23039,7 @@ def deleteSmime(users):
                userId='me', sendAsEmail=sendAsEmail, id=smimeId)
       entityActionPerformed([Ent.USER, user, Ent.SENDAS_ADDRESS, sendAsEmail, Ent.SMIME_ID, smimeId], i, count)
     except GAPI.forbidden as e:
-      entityActionFailedWarning([Ent.USER, user], e.message, i, count)
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
@@ -23102,7 +23109,7 @@ def _printShowSmimes(users, csvFormat):
             smime['expiration'] = formatLocalTimestamp(smime['expiration'])
             addRowTitlesToCSVfile(flattenJSON(smime, flattened={'User': user}), csvRows, titles)
     except GAPI.forbidden as e:
-      entityActionFailedWarning([Ent.USER, user], e.message, i, count)
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvFormat:
@@ -23233,6 +23240,9 @@ def setUnicode(users):
     if result:
       printEntity([Ent.USER, user, Ent.UNICODE_ENCODING_ENABLED, result['unicode']], i, count)
 
+VACATION_START_STARTED = 'Started'
+VACATION_END_NOT_SPECIFIED = 'NotSpecified'
+
 def _showVacation(user, i, count, result, formatReply):
   enabled = result['enableAutoReply']
   printEntity([Ent.USER, user, Ent.VACATION, None], i, count)
@@ -23244,11 +23254,11 @@ def _showVacation(user, i, count, result, formatReply):
     if 'startTime' in result:
       printKeyValueList(['Start Date', formatLocalDatestamp(result['startTime'])])
     else:
-      printKeyValueList(['Start Date', 'Started'])
+      printKeyValueList(['Start Date', VACATION_START_STARTED])
     if 'endTime' in result:
       printKeyValueList(['End Date', formatLocalDatestamp(result['endTime'])])
     else:
-      printKeyValueList(['End Date', 'Not specified'])
+      printKeyValueList(['End Date', VACATION_END_NOT_SPECIFIED])
     printKeyValueList(['Subject', result.get('responseSubject', 'None')])
     if formatReply:
       printKeyValueList(['Message', None])
@@ -23269,9 +23279,34 @@ def _showVacation(user, i, count, result, formatReply):
         printKeyValueList(['Message', 'None'])
   Ind.Decrement()
 
+def _printVacation(user, result):
+  row = {'User': user, 'enabled': result['enableAutoReply']}
+  if result['enableAutoReply']:
+    row['contactsonly'] = result['restrictToContacts']
+    row['domainonly'] = result['restrictToDomain']
+    if 'startTime' in result:
+      row['startdate'] = formatLocalDatestamp(result['startTime'])
+    else:
+      row['startdate'] = VACATION_START_STARTED
+    if 'endTime' in result:
+      row['enddate'] = formatLocalDatestamp(result['endTime'])
+    else:
+      row['enddate'] = VACATION_END_NOT_SPECIFIED
+    row['subject'] = result.get('responseSubject', 'None')
+    if result.get('responseBodyPlainText'):
+      row['html'] = False
+      row['message'] = convertCRsNLs(result['responseBodyPlainText'])
+    elif result.get('responseBodyHtml'):
+      row['html'] = True
+      row['message'] = result['responseBodyHtml']
+    else:
+      row['html'] = False
+      row['message'] = 'None'
+  return row
+
 # gam <UserTypeEntity> vacation <FalseValues>
-# gam <UserTypeEntity> vacation <TrueValues> subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)* [html]
-#	[contactsonly] [domainonly] [startdate <Date>] [enddate <Date>]
+# gam <UserTypeEntity> vacation <TrueValues> subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)* [html [<Boolean>]]
+#	[contactsonly [<Boolean>]] [domainonly [<Boolean>]] [startdate <Date>|Started] [enddate <Date>|NotSpecified]
 def setVacation(users):
   enable = getBoolean()
   body = {'enableAutoReply': enable}
@@ -23282,9 +23317,9 @@ def setVacation(users):
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if myarg == 'subject':
-        body['responseSubject'] = getString(Cmd.OB_STRING, checkBlank=True)
+        body['responseSubject'] = getString(Cmd.OB_STRING, minLen=0)
       elif myarg == 'message':
-        message = getString(Cmd.OB_STRING, checkBlank=True)
+        message = getString(Cmd.OB_STRING, minLen=0)
       elif myarg == 'file':
         filename = getString(Cmd.OB_FILE_NAME)
         encoding = getCharSet()
@@ -23294,15 +23329,20 @@ def setVacation(users):
         matchReplacement = getString(Cmd.OB_STRING, minLen=0)
         tagReplacements[matchTag] = matchReplacement
       elif myarg == 'html':
-        responseBodyType = 'responseBodyHtml'
+        if getBoolean(defaultValue=True):
+          responseBodyType = 'responseBodyHtml'
       elif myarg == 'contactsonly':
-        body['restrictToContacts'] = True
+        body['restrictToContacts'] = getBoolean(defaultValue=True)
       elif myarg == 'domainonly':
-        body['restrictToDomain'] = True
+        body['restrictToDomain'] = getBoolean(defaultValue=True)
       elif myarg == 'startdate':
-        body['startTime'] = getYYYYMMDD(returnTimeStamp=True)
+        body['startTime'] = getYYYYMMDD(returnTimeStamp=True, alternateValue=VACATION_START_STARTED)
+        if body['startTime'] is None:
+          del body['startTime']
       elif myarg == 'enddate':
-        body['endTime'] = getYYYYMMDD(returnTimeStamp=True)
+        body['endTime'] = getYYYYMMDD(returnTimeStamp=True, alternateValue=VACATION_END_NOT_SPECIFIED)
+        if body['endTime'] is None:
+          del body['endTime']
       else:
         unknownArgumentExit()
     if message:
@@ -23327,16 +23367,21 @@ def setVacation(users):
                         userId='me', body=body)
       printEntity([Ent.USER, user, Ent.VACATION_ENABLED, result['enableAutoReply']], i, count)
     except GAPI.invalidArgument as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.VACATION_ENABLED, enable], e.message, i, count)
+      entityActionFailedWarning([Ent.USER, user, Ent.VACATION_ENABLED, enable], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
-# gam <UserTypeEntity> show vacation [format]
-def showVacation(users):
+def _printShowVacation(users, csvFormat):
+  if csvFormat:
+    todrive = {}
+    titles, csvRows = initializeTitlesCSVfile([u'User', u'enabled', u'contactsonly', u'domainonly',
+                                               u'startdate', u'enddate', u'subject', u'html', u'message'])
   formatReply = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'format':
+    if csvFormat and myarg == 'todrive':
+      todrive = getTodriveParameters()
+    elif not csvFormat and myarg == 'format':
       formatReply = True
     else:
       unknownArgumentExit()
@@ -23350,9 +23395,22 @@ def showVacation(users):
       result = callGAPI(gmail.users().settings(), 'getVacation',
                         throw_reasons=GAPI.GMAIL_THROW_REASONS,
                         userId='me')
-      _showVacation(user, i, count, result, formatReply)
+      if not csvFormat:
+        _showVacation(user, i, count, result, formatReply)
+      else:
+        csvRows.append(_printVacation(user, result))
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'Vacation', todrive)
+
+# gam <UserTypeEntity> print vacation [todrive [<ToDriveAttributes>]]
+def printVacation(users):
+  _printShowVacation(users, True)
+
+# gam <UserTypeEntity> show vacation [format]
+def showVacation(users):
+  _printShowVacation(users, False)
 
 # gam <UserTypeEntity> webclips <Boolean>
 def setWebClips(users):
@@ -23611,9 +23669,9 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         'groupsmembers':	Cmd.ARG_GROUP_MEMBERS,
         'groups-members':	Cmd.ARG_GROUP_MEMBERS,
         Cmd.ARG_GUARDIAN:	Cmd.ARG_GUARDIANS,
-        'license':		Cmd.ARG_LICENSES,
-        'licence':		Cmd.ARG_LICENSES,
-        'licences':		Cmd.ARG_LICENSES,
+        Cmd.ARG_LICENSE:	Cmd.ARG_LICENSES,
+        Cmd.ARG_LICENCE:	Cmd.ARG_LICENSES,
+        Cmd.ARG_LICENCES:	Cmd.ARG_LICENSES,
         'nicknames':		Cmd.ARG_ALIASES,
         'ous':			Cmd.ARG_ORGS,
         Cmd.ARG_PRINTER:	Cmd.ARG_PRINTERS,
@@ -24110,7 +24168,7 @@ USER_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_FORWARDINGADDRESS:	Cmd.ARG_FORWARDINGADDRESSES,
         Cmd.ARG_GROUP:		Cmd.ARG_GROUPS,
         Cmd.ARG_LABELS:		Cmd.ARG_LABEL,
-        'licence':		Cmd.ARG_LICENSE,
+        Cmd.ARG_LICENCE:	Cmd.ARG_LICENSE,
         Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
        },
     },
@@ -24197,10 +24255,10 @@ USER_COMMANDS_WITH_OBJECTS = {
        },
      CMD_OBJ_ALIASES:
        {Cmd.ARG_ALIAS:		Cmd.ARG_ALIASES,
-        'applicationspecificpasswords':	Cmd.ARG_ASP,
+        Cmd.ARG_APPLICATIONSPECIFICPASSWORDS:	Cmd.ARG_ASP,
         Cmd.ARG_ASPS:		Cmd.ARG_ASP,
-        'backupcode':		Cmd.ARG_BACKUPCODES,
-        'verificationcodes':	Cmd.ARG_BACKUPCODES,
+        Cmd.ARG_BACKUPCODE:	Cmd.ARG_BACKUPCODES,
+        Cmd.ARG_VERIFICATIONCODES:	Cmd.ARG_BACKUPCODES,
         Cmd.ARG_CALENDAR:	Cmd.ARG_CALENDARS,
         Cmd.ARG_CALENDARACL:	Cmd.ARG_CALENDARACLS,
         Cmd.ARG_CONTACT:	Cmd.ARG_CONTACTS,
@@ -24210,14 +24268,14 @@ USER_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_EVENT:		Cmd.ARG_EVENTS,
         Cmd.ARG_FILTER:		Cmd.ARG_FILTERS,
         Cmd.ARG_GROUP:		Cmd.ARG_GROUPS,
-        'licence':		Cmd.ARG_LICENSE,
+        Cmd.ARG_LICENCE:	Cmd.ARG_LICENSE,
         Cmd.ARG_LABELS:		Cmd.ARG_LABEL,
         Cmd.ARG_MESSAGE:	Cmd.ARG_MESSAGES,
         Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
         Cmd.ARG_THREAD:		Cmd.ARG_THREADS,
         Cmd.ARG_TOKENS:		Cmd.ARG_TOKEN,
-        '3lo':			Cmd.ARG_TOKEN,
-        'oauth':		Cmd.ARG_TOKEN,
+        Cmd.ARG_3LO:		Cmd.ARG_TOKEN,
+        Cmd.ARG_OAUTH:		Cmd.ARG_TOKEN,
         Cmd.ARG_USER:		Cmd.ARG_USERS,
        },
     },
@@ -24326,6 +24384,7 @@ USER_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_THREADS:	printThreads,
         Cmd.ARG_TOKENS:		printTokens,
         Cmd.ARG_USERS:		doPrintUserEntity,
+        Cmd.ARG_VACATION:	printVacation,
        },
      CMD_OBJ_ALIASES:
        {Cmd.ARG_CALENDAR:	Cmd.ARG_CALENDARS,
@@ -24338,12 +24397,14 @@ USER_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_FILTER:		Cmd.ARG_FILTERS,
         Cmd.ARG_FORWARDINGADDRESS:	Cmd.ARG_FORWARDINGADDRESSES,
         Cmd.ARG_MESSAGE:	Cmd.ARG_MESSAGES,
+        Cmd.ARG_SIG:		Cmd.ARG_SENDAS,
+        Cmd.ARG_SIGNATURE:	Cmd.ARG_SENDAS,
         Cmd.ARG_SITE:		Cmd.ARG_SITES,
         Cmd.ARG_SMIME:		Cmd.ARG_SMIMES,
         Cmd.ARG_THREAD:		Cmd.ARG_THREADS,
         Cmd.ARG_TOKEN:		Cmd.ARG_TOKENS,
-        '3lo':			Cmd.ARG_TOKENS,
-        'oauth':		Cmd.ARG_TOKENS,
+        Cmd.ARG_3LO:		Cmd.ARG_TOKENS,
+        Cmd.ARG_OAUTH:		Cmd.ARG_TOKENS,
         Cmd.ARG_USER:		Cmd.ARG_USERS,
        },
     },
@@ -24396,10 +24457,10 @@ USER_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_VACATION:	showVacation,
        },
      CMD_OBJ_ALIASES:
-       {'applicationspecificpasswords':	Cmd.ARG_ASPS,
+       {Cmd.ARG_APPLICATIONSPECIFICPASSWORDS:	Cmd.ARG_ASPS,
         Cmd.ARG_ASP:		Cmd.ARG_ASPS,
-        'backupcode':		Cmd.ARG_BACKUPCODES,
-        'verificationcodes':	Cmd.ARG_BACKUPCODES,
+        Cmd.ARG_BACKUPCODE:	Cmd.ARG_BACKUPCODES,
+        Cmd.ARG_VERIFICATIONCODES:	Cmd.ARG_BACKUPCODES,
         Cmd.ARG_CALENDAR:	Cmd.ARG_CALENDARS,
         Cmd.ARG_CALENDARACL:	Cmd.ARG_CALENDARACLS,
         Cmd.ARG_CONTACT:	Cmd.ARG_CONTACTS,
@@ -24409,18 +24470,18 @@ USER_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_EVENT:		Cmd.ARG_EVENTS,
         Cmd.ARG_FILTER:		Cmd.ARG_FILTERS,
         Cmd.ARG_FORWARDINGADDRESS:	Cmd.ARG_FORWARDINGADDRESSES,
-        'imap4':		Cmd.ARG_IMAP,
-        'pop3':		Cmd.ARG_POP,
+        Cmd.ARG_IMAP4:		Cmd.ARG_IMAP,
+        Cmd.ARG_POP3:		Cmd.ARG_POP,
         Cmd.ARG_LABEL:		Cmd.ARG_LABELS,
         Cmd.ARG_MESSAGE:	Cmd.ARG_MESSAGES,
-        'sig':			Cmd.ARG_SIGNATURE,
+        Cmd.ARG_SIG:		Cmd.ARG_SIGNATURE,
         Cmd.ARG_SITE:		Cmd.ARG_SITES,
         Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
         Cmd.ARG_SMIME:		Cmd.ARG_SMIMES,
         Cmd.ARG_THREAD:		Cmd.ARG_THREADS,
         Cmd.ARG_TOKEN:		Cmd.ARG_TOKENS,
-        '3lo':			Cmd.ARG_TOKENS,
-        'oauth':		Cmd.ARG_TOKENS,
+        Cmd.ARG_3LO:		Cmd.ARG_TOKENS,
+        Cmd.ARG_OAUTH:		Cmd.ARG_TOKENS,
        },
     },
   'spam':
@@ -24443,7 +24504,7 @@ USER_COMMANDS_WITH_OBJECTS = {
        },
      CMD_OBJ_ALIASES:
        {Cmd.ARG_CALENDAR:	Cmd.ARG_CALENDARS,
-        'seccals':		Cmd.ARG_CALENDARS,
+        Cmd.ARG_SECCALS:	Cmd.ARG_CALENDARS,
        },
     },
   'trash':
@@ -24502,8 +24563,8 @@ USER_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_USERS:		updateUsers,
        },
      CMD_OBJ_ALIASES:
-       {'backupcode':		Cmd.ARG_BACKUPCODES,
-        'verificationcodes':	Cmd.ARG_BACKUPCODES,
+       {Cmd.ARG_BACKUPCODE:	Cmd.ARG_BACKUPCODES,
+        Cmd.ARG_VERIFICATIONCODES:	Cmd.ARG_BACKUPCODES,
         Cmd.ARG_CALENDAR:	Cmd.ARG_CALENDARS,
         Cmd.ARG_CALENDARACL:	Cmd.ARG_CALENDARACLS,
         Cmd.ARG_CONTACT:	Cmd.ARG_CONTACTS,
@@ -24511,7 +24572,7 @@ USER_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_DRIVEFILEACL:	Cmd.ARG_DRIVEFILEACLS,
         Cmd.ARG_EVENT:		Cmd.ARG_EVENTS,
         Cmd.ARG_LABEL:		Cmd.ARG_LABELS,
-        'licence':		Cmd.ARG_LICENSE,
+        Cmd.ARG_LICENCE:	Cmd.ARG_LICENSE,
         Cmd.ARG_SITE:		Cmd.ARG_SITES,
         Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
         Cmd.ARG_USER:		Cmd.ARG_USERS,

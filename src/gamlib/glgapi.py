@@ -31,6 +31,7 @@ CANNOT_CHANGE_OWNER_ACL = 'cannotChangeOwnerAcl'
 CANNOT_DELETE_PRIMARY_CALENDAR = 'cannotDeletePrimaryCalendar'
 CANNOT_DELETE_PRIMARY_SENDAS = 'cannotDeletePrimarySendAs'
 CONDITION_NOT_MET = 'conditionNotMet'
+CONNECTION_REFUSED = 'connectionRefused'
 CUSTOMER_NOT_FOUND = 'customerNotFound'
 CYCLIC_MEMBERSHIPS_NOT_ALLOWED = 'cyclicMembershipsNotAllowed'
 DELETED = 'deleted'
@@ -178,6 +179,8 @@ class cannotDeletePrimarySendAs(Exception):
   pass
 class conditionNotMet(Exception):
   pass
+class connectionRefused(Exception):
+  pass
 class customerNotFound(Exception):
   pass
 class cyclicMembershipsNotAllowed(Exception):
@@ -288,6 +291,7 @@ REASON_EXCEPTION_MAP = {
   CANNOT_DELETE_PRIMARY_CALENDAR: cannotDeletePrimaryCalendar,
   CANNOT_DELETE_PRIMARY_SENDAS: cannotDeletePrimarySendAs,
   CONDITION_NOT_MET: conditionNotMet,
+  CONNECTION_REFUSED: connectionRefused,
   CUSTOMER_NOT_FOUND: customerNotFound,
   CYCLIC_MEMBERSHIPS_NOT_ALLOWED: cyclicMembershipsNotAllowed,
   DELETED: deleted,
