@@ -1,3 +1,9 @@
+4.44.09
+
+Reduce default value for num_threads in gam.cfg from 25 to 5; 25 is too high for some APIs, e.g., Google+.
+Handle additional errors from oauthclient/client.py.
+Improve error handling for mobile device operations.
+
 4.44.08
 
 Allow empty values for customer_id and domain in gam.cfg.

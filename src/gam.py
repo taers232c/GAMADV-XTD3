@@ -2183,7 +2183,7 @@ def doGAMCheckForUpdates(forceCheck=False):
     return
 
 def handleOAuthTokenError(e, soft_errors):
-  if e in API.OAUTH2_TOKEN_ERRORS:
+  if e in API.OAUTH2_TOKEN_ERRORS or e.startswith('Invalid response'):
     if soft_errors:
       return None
     if not GM.Globals[GM.CURRENT_API_USER]:
@@ -9957,20 +9957,20 @@ def doUpdateMobileDevices():
     try:
       if doPatch:
         callGAPI(cd.mobiledevices(), 'patch',
-                 throw_reasons=[GAPI.RESOURCE_ID_NOT_FOUND, GAPI.INTERNAL_ERROR, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                 throw_reasons=[GAPI.INTERNAL_ERROR, GAPI.RESOURCE_ID_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                  customerId=GC.Values[GC.CUSTOMER_ID], resourceId=resourceId, body=patch_body, fields='')
         entityActionPerformed([Ent.MOBILE_DEVICE, resourceId], i, count)
       if doAction:
         callGAPI(cd.mobiledevices(), 'action',
-                 throw_reasons=[GAPI.RESOURCE_ID_NOT_FOUND, GAPI.INTERNAL_ERROR, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                 throw_reasons=[GAPI.INTERNAL_ERROR, GAPI.RESOURCE_ID_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                  customerId=GC.Values[GC.CUSTOMER_ID], resourceId=resourceId, body=action_body)
         printEntityKVList([Ent.MOBILE_DEVICE, resourceId],
                           [Msg.ACTION_APPLIED, action_body['action']],
                           i, count)
-    except GAPI.resourceIdNotFound:
+    except GAPI.internalError:
       entityActionFailedWarning([Ent.MOBILE_DEVICE, resourceId], Msg.DOES_NOT_EXIST, i, count)
-    except (GAPI.internalError, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-      accessErrorExit(cd)
+    except (GAPI.resourceIdNotFound, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
+      entityActionFailedWarning([Ent.MOBILE_DEVICE, resourceId], str(e), i, count)
 
 # gam delete mobile|mobiles <MobileDeviceEntity>
 def doDeleteMobileDevices():
@@ -9982,13 +9982,13 @@ def doDeleteMobileDevices():
     i += 1
     try:
       callGAPI(cd.mobiledevices(), 'delete',
-               throw_reasons=[GAPI.RESOURCE_ID_NOT_FOUND, GAPI.INTERNAL_ERROR, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+               throw_reasons=[GAPI.INTERNAL_ERROR, GAPI.RESOURCE_ID_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                customerId=GC.Values[GC.CUSTOMER_ID], resourceId=resourceId)
       entityActionPerformed([Ent.MOBILE_DEVICE, resourceId], i, count)
-    except GAPI.resourceIdNotFound:
+    except GAPI.internalError:
       entityActionFailedWarning([Ent.MOBILE_DEVICE, resourceId], Msg.DOES_NOT_EXIST, i, count)
-    except (GAPI.internalError, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-      accessErrorExit(cd)
+    except (GAPI.resourceIdNotFound, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
+      entityActionFailedWarning([Ent.MOBILE_DEVICE, resourceId], str(e), i, count)
 
 MOBILE_TIME_OBJECTS = ['firstSync', 'lastSync']
 
@@ -10002,17 +10002,16 @@ def doInfoMobileDevices():
     i += 1
     try:
       info = callGAPI(cd.mobiledevices(), 'get',
-                      throw_reasons=[GAPI.RESOURCE_ID_NOT_FOUND, GAPI.INTERNAL_ERROR, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                      throw_reasons=[GAPI.INTERNAL_ERROR, GAPI.RESOURCE_ID_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                       customerId=GC.Values[GC.CUSTOMER_ID], resourceId=resourceId)
       printEntity([Ent.MOBILE_DEVICE, resourceId], i, count)
       Ind.Increment()
       showJSON(None, info, timeObjects=MOBILE_TIME_OBJECTS)
       Ind.Decrement()
-    except GAPI.resourceIdNotFound:
+    except GAPI.internalError:
       entityActionFailedWarning([Ent.MOBILE_DEVICE, resourceId], Msg.DOES_NOT_EXIST, i, count)
-    except (GAPI.internalError, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-      accessErrorExit(cd)
-    printBlankLine()
+    except (GAPI.resourceIdNotFound, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
+      entityActionFailedWarning([Ent.MOBILE_DEVICE, resourceId], str(e), i, count)
 
 MOBILE_ORDERBY_CHOICES_MAP = {
   'deviceid': 'deviceId',
