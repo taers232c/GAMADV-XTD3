@@ -1,3 +1,7 @@
+4.44.08
+
+Allow empty values for customer_id and domain in gam.cfg.
+
 4.44.07
 
 Clean up exception handling.
