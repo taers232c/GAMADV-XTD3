@@ -1,3 +1,7 @@
+4.44.07
+
+Clean up exception handling.
+
 4.44.06
 
 Changed headings of gam print vacation CSV file to match command line arguments.

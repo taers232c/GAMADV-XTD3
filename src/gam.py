@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.44.06'
+__version__ = '4.44.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -418,7 +418,7 @@ def formatKeyValueList(prefixStr, kvList, suffixStr):
 
 # Error exits
 def formatExceptionMessage(e, message=''):
-  return convertUTF8('{0} - {1}{2}'.format(e.errno, e.strerror, message))
+  return convertUTF8(u'{0}{1}'.format(e, message))
 
 def setSysExitRC(sysRC):
   GM.Globals[GM.SYSEXITRC] = sysRC
@@ -2183,7 +2183,7 @@ def doGAMCheckForUpdates(forceCheck=False):
     return
 
 def handleOAuthTokenError(e, soft_errors):
-  if str(e) in API.OAUTH2_TOKEN_ERRORS:
+  if e in API.OAUTH2_TOKEN_ERRORS:
     if soft_errors:
       return None
     if not GM.Globals[GM.CURRENT_API_USER]:
@@ -2235,7 +2235,7 @@ def getGDataOAuthToken(gdataObj, credentials=None):
   except httplib2.ServerNotFoundError as e:
     systemErrorExit(NETWORK_ERROR_RC, str(e))
   except oauth2client.client.AccessTokenRefreshError as e:
-    return handleOAuthTokenError(e, False)
+    return handleOAuthTokenError(str(e), False)
   gdataObj.additional_headers['Authorization'] = 'Bearer {0}'.format(credentials.access_token)
   if not GC.Values[GC.DOMAIN]:
     GC.Values[GC.DOMAIN] = credentials.id_token.get('hd', 'UNKNOWN').lower()
@@ -2367,16 +2367,16 @@ def callGData(service, function,
         APIAccessDeniedExit()
       systemErrorExit(GOOGLE_API_ERROR_RC, '{0} - {1}'.format(error_code, error_message))
     except oauth2client.client.AccessTokenRefreshError as e:
-      handleOAuthTokenError(e, GDATA.SERVICE_NOT_APPLICABLE in throw_errors)
+      handleOAuthTokenError(str(e), GDATA.SERVICE_NOT_APPLICABLE in throw_errors)
       raise GDATA.ERROR_CODE_EXCEPTION_MAP[GDATA.SERVICE_NOT_APPLICABLE](str(e))
     except (http.client.ResponseNotReady, socket.error) as e:
       if n != retries:
-        waitOnFailure(n, retries, e.errno, e.strerror)
+        waitOnFailure(n, retries, SOCKET_ERROR_RC, str(e))
         continue
       if soft_errors:
-        stderrErrorMsg(formatExceptionMessage(e, ': Giving up.'))
+        stderrErrorMsg(formatExceptionMessage(str(e), ': Giving up.'))
         return None
-      systemErrorExit(SOCKET_ERROR_RC, e.strerror)
+      systemErrorExit(SOCKET_ERROR_RC, str(e))
 
 def callGDataPages(service, function,
                    page_message=None,
@@ -2432,8 +2432,6 @@ def checkGAPIError(e, soft_errors=False, silent_errors=False, retryOnHttpError=F
       return (e.resp['status'], GAPI.QUOTA_EXCEEDED, e.content)
     if (e.resp['status'] == '502') and ('Bad Gateway' in e.content):
       return (e.resp['status'], GAPI.BAD_GATEWAY, e.content)
-    if (e.resp['status'] == '111') and ('Connection refused' in e.content):
-      return (e.resp['status'], GAPI.CONNECTION_REFUSED, e.content)
     if (e.resp['status'] == '403') and ('Invalid domain.' in e.content):
       error = {'error': {'code': 403, 'errors': [{'reason': GAPI.NOT_FOUND, 'message': 'Domain not found'}]}}
     elif (e.resp['status'] == '403') and ('Domain cannot use apis.' in e.content):
@@ -2530,20 +2528,20 @@ def callGAPI(service, function,
         APIAccessDeniedExit()
       systemErrorExit(HTTP_ERROR_RC, formatHTTPError(http_status, reason, message))
     except oauth2client.client.AccessTokenRefreshError as e:
-      handleOAuthTokenError(e, GAPI.SERVICE_NOT_AVAILABLE in throw_reasons)
+      handleOAuthTokenError(str(e), GAPI.SERVICE_NOT_AVAILABLE in throw_reasons)
       raise GAPI.REASON_EXCEPTION_MAP[GAPI.SERVICE_NOT_AVAILABLE](str(e))
     except httplib2.CertificateValidationUnsupportedInPython31:
       noPythonSSLExit()
     except (http.client.ResponseNotReady, socket.error) as e:
       if n != retries:
-        waitOnFailure(n, retries, e.errno, e.strerror)
+        waitOnFailure(n, retries, SOCKET_ERROR_RC, str(e))
         continue
       if soft_errors:
-        stderrErrorMsg(formatExceptionMessage(e, ': Giving up.'))
+        stderrErrorMsg(formatExceptionMessage(str(e), ': Giving up.'))
         return None
-      systemErrorExit(SOCKET_ERROR_RC, e.strerror)
+      systemErrorExit(SOCKET_ERROR_RC, str(e))
     except TypeError as e:
-      systemErrorExit(GOOGLE_API_ERROR_RC, e)
+      systemErrorExit(GOOGLE_API_ERROR_RC, str(e))
 
 def _processGAPIpagesResult(results, items, allResults, totalItems, page_message, message_attribute, entityType):
   if results:
@@ -2688,9 +2686,9 @@ def getAPIversionHttpService(api):
         systemErrorExit(INVALID_JSON_RC, Msg.INVALID_JSON_INFORMATION)
       except (http.client.ResponseNotReady, socket.error) as e:
         if n != retries:
-          waitOnFailure(n, retries, e.errno, e.strerror)
+          waitOnFailure(n, retries, SOCKET_ERROR_RC, str(e))
           continue
-        systemErrorExit(SOCKET_ERROR_RC, e.strerror)
+        systemErrorExit(SOCKET_ERROR_RC, str(e))
   disc_file, discovery = readDiscoveryFile(api_version)
   try:
     service = googleapiclient.discovery.build_from_document(discovery, http=httpObj)
@@ -2712,7 +2710,7 @@ def buildGAPIObject(api):
   except httplib2.ServerNotFoundError as e:
     systemErrorExit(NETWORK_ERROR_RC, str(e))
   except oauth2client.client.AccessTokenRefreshError as e:
-    return handleOAuthTokenError(e, False)
+    return handleOAuthTokenError(str(e), False)
   if not GC.Values[GC.DOMAIN]:
     GC.Values[GC.DOMAIN] = credentials.id_token.get('hd', 'UNKNOWN').lower()
   if not GC.Values[GC.CUSTOMER_ID]:
@@ -2732,7 +2730,7 @@ def buildGAPIServiceObject(api, user):
   except httplib2.ServerNotFoundError as e:
     systemErrorExit(NETWORK_ERROR_RC, str(e))
   except oauth2client.client.AccessTokenRefreshError as e:
-    return (userEmail, handleOAuthTokenError(e, True))
+    return (userEmail, handleOAuthTokenError(str(e), True))
   return (userEmail, service)
 
 def initGDataObject(gdataObj, api):
@@ -2770,7 +2768,7 @@ def getGDataUserCredentials(api, user, i, count):
   except httplib2.ServerNotFoundError as e:
     systemErrorExit(NETWORK_ERROR_RC, str(e))
   except oauth2client.client.AccessTokenRefreshError as e:
-    handleOAuthTokenError(e, True)
+    handleOAuthTokenError(str(e), True)
     entityUnknownWarning(Ent.USER, userEmail, i, count)
     return (userEmail, None)
 
@@ -17654,7 +17652,7 @@ def getDriveFileAttribute(body, parameters, myarg, updateCmd, kwargs):
       f.close()
     except IOError as e:
       Cmd.Backup()
-      usageErrorExit('{0}: {1}'.format(parameters[DFA_LOCALFILEPATH], e.strerror))
+      usageErrorExit('{0}: {1}'.format(parameters[DFA_LOCALFILEPATH], str(e)))
     parameters[DFA_LOCALFILENAME] = os.path.basename(parameters[DFA_LOCALFILEPATH])
     body.setdefault(API.DRIVE_FILE_NAME, parameters[DFA_LOCALFILENAME])
     body['mimeType'] = mimetypes.guess_type(parameters[DFA_LOCALFILEPATH])[0]
@@ -18850,7 +18848,7 @@ def getDriveFile(users):
         if status:
           entityModifierNewValueKeyValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, result[API.DRIVE_FILE_NAME]], Act.MODIFIER_TO, filename, my_line[0], my_line[1], j, jcount)
         else:
-          entityModifierNewValueActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, result[API.DRIVE_FILE_NAME]], Act.MODIFIER_TO, filename, e.strerror, j, jcount)
+          entityModifierNewValueActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, result[API.DRIVE_FILE_NAME]], Act.MODIFIER_TO, filename, str(e), j, jcount)
       except GAPI.fileNotFound:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], Msg.DOES_NOT_EXIST, j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError):
@@ -20228,7 +20226,7 @@ def updatePhoto(users):
     else:
       image_data = readFile(filename, mode='rb', continueOnError=True, displayError=True)
       if image_data is None:
-        entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], e.strerror, i, count)
+        entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], None, i, count)
         continue
     body = {'photoData': base64.urlsafe_b64encode(image_data)}
     try:
@@ -20293,7 +20291,7 @@ def getPhoto(users):
       if status:
         entityActionPerformed([Ent.USER, user, Ent.PHOTO, filename], i, count)
       else:
-        entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], e.strerror, i, count)
+        entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], str(e), i, count)
     except GAPI.photoNotFound as e:
       entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, None], str(e), i, count)
     except (GAPI.userNotFound, GAPI.forbidden):
@@ -20664,7 +20662,7 @@ def _printShowGplusProfile(users, csvFormat):
       printGettingEntityItemForWhom(Ent.GPLUS_PROFILE, user, i, count)
     try:
       result = callGAPI(gplus.people(), 'get',
-                        soft_errors=True, throw_reasons=GAPI.GPLUS_THROW_REASONS, retry_reasons=[GAPI.UNKNOWN_ERROR, GAPI.CONNECTION_REFUSED],
+                        soft_errors=True, throw_reasons=GAPI.GPLUS_THROW_REASONS, retry_reasons=[GAPI.UNKNOWN_ERROR],
                         userId='me')
       if result:
         if not csvFormat:
@@ -24699,7 +24697,7 @@ def ProcessGAMCommand(args, processGamCfg=True):
     setSysExitRC(KEYBOARD_INTERRUPT_RC)
     adjustRedirectedSTDFilesIfNotMultiprocessing()
   except socket.error as e:
-    printErrorMessage(SOCKET_ERROR_RC, formatExceptionMessage(e))
+    printErrorMessage(SOCKET_ERROR_RC, formatExceptionMessage(str(e)))
     adjustRedirectedSTDFilesIfNotMultiprocessing()
   except MemoryError:
     printErrorMessage(MEMORY_ERROR_RC, Msg.GAM_OUT_OF_MEMORY)
