@@ -1,3 +1,7 @@
+4.44.10
+
+Handle corrupt files in gamcache by turning caching off for the current command.
+
 4.44.09
 
 Reduce default value for num_threads in gam.cfg from 25 to 5; 25 is too high for some APIs, e.g., Google+.

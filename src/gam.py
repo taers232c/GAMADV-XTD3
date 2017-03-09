@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.44.09'
+__version__ = '4.44.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -2540,6 +2540,11 @@ def callGAPI(service, function,
         stderrErrorMsg(formatExceptionMessage(str(e), ': Giving up.'))
         return None
       systemErrorExit(SOCKET_ERROR_RC, str(e))
+    except ValueError as e:
+      if service._http.cache is not None:
+        service._http.cache = None
+        continue
+      systemErrorExit(GOOGLE_API_ERROR_RC, str(e))
     except TypeError as e:
       systemErrorExit(GOOGLE_API_ERROR_RC, str(e))
 
@@ -2679,7 +2684,8 @@ def getAPIversionHttpService(api):
         systemErrorExit(NETWORK_ERROR_RC, str(e))
       except googleapiclient.errors.UnknownApiNameOrVersion as e:
         systemErrorExit(GOOGLE_API_ERROR_RC, Msg.UNKNOWN_API_OR_VERSION.format(str(e), __author__))
-      except googleapiclient.errors.InvalidJsonError:
+      except (googleapiclient.errors.InvalidJsonError, KeyError, ValueError):
+        httpObj.cache = None
         if n != retries:
           waitOnFailure(n, retries, INVALID_JSON_RC, Msg.INVALID_JSON_INFORMATION)
           continue
@@ -2695,7 +2701,7 @@ def getAPIversionHttpService(api):
     if GM.Globals[GM.CACHE_DISCOVERY_ONLY]:
       httpObj.cache = None
     return (api_version, httpObj, service, cred_family)
-  except (ValueError, KeyError):
+  except (KeyError, ValueError):
     invalidDiscoveryJsonExit(disc_file)
 
 def buildGAPIObject(api):
