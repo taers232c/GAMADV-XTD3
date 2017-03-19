@@ -19,7 +19,7 @@ as JSON, Atom, etc. The model classes are responsible
 for converting between the wire format and the Python
 object representation.
 """
-from __future__ import absolute_import
+
 import six
 
 __author__ = 'jcgregorio@google.com (Joe Gregorio)'

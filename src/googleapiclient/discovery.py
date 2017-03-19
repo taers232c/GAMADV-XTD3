@@ -16,7 +16,7 @@
 
 A client library for Google's discovery based APIs.
 """
-from __future__ import absolute_import
+
 import six
 from six.moves import zip
 
@@ -334,6 +334,10 @@ def build_from_document(
   if http is not None and credentials is not None:
     raise ValueError('Arguments http and credentials are mutually exclusive.')
 
+  if developerKey is not None and credentials is not None:
+    raise ValueError(
+      'Arguments developerKey and credentials are mutually exclusive.')
+
   if isinstance(service, six.string_types):
     service = json.loads(service)
 
@@ -398,7 +402,7 @@ def _cast(value, schema_type):
     A string representation of 'value' based on the schema_type.
   """
   if schema_type == 'string':
-    if type(value) == type('') or type(value) == type(u''):
+    if type(value) == type(''):
       return value
     else:
       return str(value)
@@ -409,7 +413,7 @@ def _cast(value, schema_type):
   elif schema_type == 'boolean':
     return str(bool(value)).lower()
   else:
-    if type(value) == type('') or type(value) == type(u''):
+    if type(value) == type(''):
       return value
     else:
       return str(value)

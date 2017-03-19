@@ -17,9 +17,8 @@
 import abc
 
 
-class Cache(object):
+class Cache(object, metaclass=abc.ABCMeta):
   """A base abstract cache class."""
-  __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
   def get(self, url):

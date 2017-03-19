@@ -18,7 +18,7 @@ The classes implement a command pattern, with every
 object supporting an execute() method that does the
 actuall HTTP request.
 """
-from __future__ import absolute_import
+
 import six
 from six.moves import http_client
 from six.moves import range

@@ -21,7 +21,7 @@ Contents:
  - best_match():        Choose the mime-type with the highest quality ('q')
                           from a list of candidates.
 """
-from __future__ import absolute_import
+
 from functools import reduce
 import six
 

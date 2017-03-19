@@ -55,7 +55,7 @@ Example of unsubscribing.
 
   service.channels().stop(channel.body())
 """
-from __future__ import absolute_import
+
 
 import datetime
 import uuid

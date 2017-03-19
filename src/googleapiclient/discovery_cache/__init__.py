@@ -14,7 +14,7 @@
 
 """Caching utility for the discovery document."""
 
-from __future__ import absolute_import
+
 
 import logging
 import datetime
