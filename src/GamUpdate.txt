@@ -1,3 +1,104 @@
+4.45.00
+
+Add TeamDrive support, switch to Drive Rest V3.
+
+4.44.21
+
+Corrected my error in add smime. S/MIME .p12 files are binary, there is no need for a charset option; in fact, even if you didn't specify a charset,
+the code didn't operate correctly.
+    gam <UserTypeEntity> add smime file <FileName> [password <Password>] [sendas|sendasemail <EmailAddress>] [default]
+
+4.44.20
+
+Fix gam <UserTypeEntity> add smime, original code from Jay was not correct.
+
+4.44.19
+
+Courtesy of Jay, handle additional values in gam report customer.
+Handle Google changes that broke gam create project.
+
+4.44.18
+
+Courtesy of Jay, show customer license info in gam info customer/instance.
+Handle bad data from Google in gam report customer.
+
+4.44.17
+
+gam print contacts/contactgroups now output user placeholder rows as necessary when csv_output_users_audit is true.
+
+4.44.16
+
+Handle Google change that dropped domain and admin email address from credentials.
+
+4.44.15
+
+Improved error messages for gam add/delete delegates, they should be easier to understand.
+
+4.44.14
+
+Email addresses in the gmail.com domain can have arbitrary dots in the name. When adding such an address to a group,
+Google maps the name to have the dots specified when the account was set up regardless of the dots specified in the address to be added.
+Email addresses in the gmail.com domain have an equivalent email address in the googlemail.com domain. When adding such an address to a group,
+Google maps the domain name to the domain name specified when the account was set up regardless of the domain name specified in the address to be added.
+This causes erroneous deletes and duplicate adds when syncing group membership as the email address in the group may not match
+the email address in the list of email addresses to sync even though they are equivalent.
+Gam now maps all email addresses in the gmail.com and googlemail.com domains to a canonical form before comparing the current group email addresses
+with the email addresses on the command line. If an email address is to be added, it is added with the email address specified on the command line.
+If an email address is to be deleted, it is deleted using the email address from the group.
+
+4.44.13
+
+Added csv_output_users_audit to gam.cfg, its default value is False.
+Gam print commands that print objects belonging to users don't print rows for users that don't have
+any of the following objects: calendars, calendar ACLs, calendar events, delegates, filters,
+forwarding addresses, sendas addresses, S/MIME certificates and tokens. When csv_output_users_audit is true,
+a placeholder row will be output with the user's email address; these rows will useful for auditing purposes only,
+they can not be successfuly used in a gam csv command.
+Example:, produce an audit CSV file showing the delegates for the Sales group.
+     gam config auto_batch_min 1 csv_output_users_audit true redirect csv SalesDelegatesAudit.csv multiprocess group Sales print delegates
+
+4.44.12
+
+Fixed bug where extra \r was output on each line when writing CSV files on Windows.
+
+4.44.11
+
+Previously, specifying todrive with a print command caused the CSV file to be uploaded to Google Drive,
+it could not be saved locally at the same time. Now, you can have the CSV file saved locally and uploaded to Google Drive
+in the same command. The tdlocalcopy subargument to todrive causes the CSV file to be saved and uploaded.
+Added todrive_localcopy to gam.cfg with a default value of false; this value is the default for tdlocalcopy.
+You can specify tdlocalcopy false/true on the command line to override the default value from gam.cfg.
+    <ToDriveAttributes> ::=
+	(tdtitle <String>)|
+	(tduser <EmailAddress>)|
+	(tdparent id:<DriveFolderID>|<DriveFolderName>)|
+	(tdtimestamp [<Boolean>] [tddaysoffset <Number>] [tdhoursoffset <Number])|
+	(tdlocalcopy [<Boolean>])
+Current options:
+  Output to stdout:
+    gam print users
+    gam redirect csv - print users
+  Save file locally:
+    gam print users > ./Users.csv
+    gam redirect csv - print users > ./Users.csv
+    gam redirect csv ./Users.csv print users
+  Upload file to Google Drive:
+    gam print users todrive
+    gam redirect csv - print users todrive
+Current options that don't perform as expected, data is not saved locally:
+  Save file locally and upload to Google Drive:
+    gam print users todrive > ./Users.csv
+    gam redirect csv - print users todrive > ./Users.csv
+    gam redirect csv ./Users.csv print users todrive
+New options:
+  Output to stdout and upload to Google Drive:
+    gam print users todrive tdlocalcopy true
+    gam redirect csv - print users todrive tdlocalcopy true
+  Save file locally and upload to Google Drive:
+    gam print users todrive tdlocalcopy true > ./Users.csv
+    gam redirect csv - print users todrive tdlocalcopy true > ./Users.csv
+    gam redirect csv ./Users.csv print users todrive tdlocalcopy true
+
 4.44.10
 
 Handle corrupt files in gamcache by turning caching off for the current command.

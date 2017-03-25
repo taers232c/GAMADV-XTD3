@@ -20,76 +20,78 @@
 
 """
 # callGAPI throw reasons
-ABORTED = 'aborted'
-ALREADY_EXISTS = 'alreadyExists'
-AUTH_ERROR = 'authError'
-BACKEND_ERROR = 'backendError'
-BAD_GATEWAY = 'badGateway'
-BAD_REQUEST = 'badRequest'
-CANNOT_CHANGE_OWN_ACL = 'cannotChangeOwnAcl'
-CANNOT_CHANGE_OWNER_ACL = 'cannotChangeOwnerAcl'
-CANNOT_DELETE_PRIMARY_CALENDAR = 'cannotDeletePrimaryCalendar'
-CANNOT_DELETE_PRIMARY_SENDAS = 'cannotDeletePrimarySendAs'
-CONDITION_NOT_MET = 'conditionNotMet'
-CUSTOMER_NOT_FOUND = 'customerNotFound'
-CYCLIC_MEMBERSHIPS_NOT_ALLOWED = 'cyclicMembershipsNotAllowed'
-DELETED = 'deleted'
-DELETED_USER_NOT_FOUND = 'deletedUserNotFound'
-DOMAIN_ALIAS_NOT_FOUND = 'domainAliasNotFound'
-DOMAIN_CANNOT_USE_APIS = 'domainCannotUseApis'
-DOMAIN_NOT_FOUND = 'domainNotFound'
-DOMAIN_NOT_VERIFIED_SECONDARY = 'domainNotVerifiedSecondary'
-DUPLICATE = 'duplicate'
-FAILED_PRECONDITION = 'failedPrecondition'
-FILE_NOT_FOUND = 'fileNotFound'
-FORBIDDEN = 'forbidden'
-GROUP_NOT_FOUND = 'groupNotFound'
-ILLEGAL_ACCESS_ROLE_FOR_DEFAULT = 'illegalAccessRoleForDefault'
-INSUFFICIENT_PERMISSIONS = 'insufficientPermissions'
-INTERNAL_ERROR = 'internalError'
-INVALID = 'invalid'
-INVALID_ARGUMENT = 'invalidArgument'
-INVALID_CUSTOMER_ID = 'invalidCustomerId'
-INVALID_INPUT = 'invalidInput'
-INVALID_MEMBER = 'invalidMember'
-INVALID_MESSAGE_ID = 'invalidMessageId'
-INVALID_ORGUNIT = 'invalidOrgunit'
-INVALID_OWNERSHIP_TRANSFER = 'invalidOwnershipTransfer'
-INVALID_PARAMETER = 'invalidParameter'
-INVALID_PARENT_ORGUNIT = 'invalidParentOrgunit'
-INVALID_QUERY = 'invalidQuery'
-INVALID_RESOURCE = 'invalidResource'
-INVALID_SCHEMA_VALUE = 'invalidSchemaValue'
-INVALID_SCOPE_VALUE = 'invalidScopeValue'
-INVALID_SHARING_REQUEST = 'invalidSharingRequest'
-LOGIN_REQUIRED = 'loginRequired'
-MEMBER_NOT_FOUND = 'memberNotFound'
-NOT_A_CALENDAR_USER = 'notACalendarUser'
-NOT_FOUND = 'notFound'
-NOT_IMPLEMENTED = 'notImplemented'
-ORGUNIT_NOT_FOUND = 'orgunitNotFound'
-PERMISSION_DENIED = 'permissionDenied'
-PERMISSION_NOT_FOUND = 'permissionNotFound'
-PHOTO_NOT_FOUND = 'photoNotFound'
-QUOTA_EXCEEDED = 'quotaExceeded'
-RATE_LIMIT_EXCEEDED = 'rateLimitExceeded'
-REQUIRED = 'required'
-RESOURCE_ID_NOT_FOUND = 'resourceIdNotFound'
-RESOURCE_NOT_FOUND = 'resourceNotFound'
-SERVICE_LIMIT = 'serviceLimit'
-SERVICE_NOT_AVAILABLE = 'serviceNotAvailable'
-SYSTEM_ERROR = 'systemError'
-TIME_RANGE_EMPTY = 'timeRangeEmpty'
-UNKNOWN_ERROR = 'unknownError'
-USER_NOT_FOUND = 'userNotFound'
-USER_RATE_LIMIT_EXCEEDED = 'userRateLimitExceeded'
+ABORTED = u'aborted'
+ALREADY_EXISTS = u'alreadyExists'
+AUTH_ERROR = u'authError'
+BACKEND_ERROR = u'backendError'
+BAD_GATEWAY = u'badGateway'
+BAD_REQUEST = u'badRequest'
+CANNOT_CHANGE_OWN_ACL = u'cannotChangeOwnAcl'
+CANNOT_CHANGE_OWNER_ACL = u'cannotChangeOwnerAcl'
+CANNOT_DELETE_PRIMARY_CALENDAR = u'cannotDeletePrimaryCalendar'
+CANNOT_DELETE_PRIMARY_SENDAS = u'cannotDeletePrimarySendAs'
+CONDITION_NOT_MET = u'conditionNotMet'
+CUSTOMER_NOT_FOUND = u'customerNotFound'
+CYCLIC_MEMBERSHIPS_NOT_ALLOWED = u'cyclicMembershipsNotAllowed'
+DELETED = u'deleted'
+DELETED_USER_NOT_FOUND = u'deletedUserNotFound'
+DOMAIN_ALIAS_NOT_FOUND = u'domainAliasNotFound'
+DOMAIN_CANNOT_USE_APIS = u'domainCannotUseApis'
+DOMAIN_NOT_FOUND = u'domainNotFound'
+DOMAIN_NOT_VERIFIED_SECONDARY = u'domainNotVerifiedSecondary'
+DUPLICATE = u'duplicate'
+FAILED_PRECONDITION = u'failedPrecondition'
+FILE_NOT_FOUND = u'fileNotFound'
+FORBIDDEN = u'forbidden'
+GROUP_NOT_FOUND = u'groupNotFound'
+ILLEGAL_ACCESS_ROLE_FOR_DEFAULT = u'illegalAccessRoleForDefault'
+INSUFFICIENT_PERMISSIONS = u'insufficientPermissions'
+INTERNAL_ERROR = u'internalError'
+INVALID = u'invalid'
+INVALID_ARGUMENT = u'invalidArgument'
+INVALID_CUSTOMER_ID = u'invalidCustomerId'
+INVALID_INPUT = u'invalidInput'
+INVALID_MEMBER = u'invalidMember'
+INVALID_MESSAGE_ID = u'invalidMessageId'
+INVALID_ORGUNIT = u'invalidOrgunit'
+INVALID_OWNERSHIP_TRANSFER = u'invalidOwnershipTransfer'
+INVALID_PARAMETER = u'invalidParameter'
+INVALID_PARENT_ORGUNIT = u'invalidParentOrgunit'
+INVALID_QUERY = u'invalidQuery'
+INVALID_RESOURCE = u'invalidResource'
+INVALID_SCHEMA_VALUE = u'invalidSchemaValue'
+INVALID_SCOPE_VALUE = u'invalidScopeValue'
+INVALID_SHARING_REQUEST = u'invalidSharingRequest'
+LOGIN_REQUIRED = u'loginRequired'
+MEMBER_NOT_FOUND = u'memberNotFound'
+NOT_A_CALENDAR_USER = u'notACalendarUser'
+NOT_FOUND = u'notFound'
+NOT_IMPLEMENTED = u'notImplemented'
+ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED = u'organizerOnNonTeamDriveItemNotSupported'
+ORGUNIT_NOT_FOUND = u'orgunitNotFound'
+OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED = u'ownerOnTeamDriveItemNotSupported'
+PERMISSION_DENIED = u'permissionDenied'
+PERMISSION_NOT_FOUND = u'permissionNotFound'
+PHOTO_NOT_FOUND = u'photoNotFound'
+QUOTA_EXCEEDED = u'quotaExceeded'
+RATE_LIMIT_EXCEEDED = u'rateLimitExceeded'
+REQUIRED = u'required'
+RESOURCE_ID_NOT_FOUND = u'resourceIdNotFound'
+RESOURCE_NOT_FOUND = u'resourceNotFound'
+SERVICE_LIMIT = u'serviceLimit'
+SERVICE_NOT_AVAILABLE = u'serviceNotAvailable'
+SYSTEM_ERROR = u'systemError'
+TIME_RANGE_EMPTY = u'timeRangeEmpty'
+UNKNOWN_ERROR = u'unknownError'
+USER_NOT_FOUND = u'userNotFound'
+USER_RATE_LIMIT_EXCEEDED = u'userRateLimitExceeded'
 #
 DEFAULT_RETRY_REASONS = [QUOTA_EXCEEDED, RATE_LIMIT_EXCEEDED, USER_RATE_LIMIT_EXCEEDED, BACKEND_ERROR, BAD_GATEWAY, INTERNAL_ERROR]
 ACTIVITY_THROW_REASONS = [SERVICE_NOT_AVAILABLE]
 CALENDAR_THROW_REASONS = [SERVICE_NOT_AVAILABLE, AUTH_ERROR, NOT_A_CALENDAR_USER]
 DRIVE_THROW_REASONS = [SERVICE_NOT_AVAILABLE, AUTH_ERROR]
 GMAIL_THROW_REASONS = [SERVICE_NOT_AVAILABLE, BAD_REQUEST]
-GMAIL_SMIME_THROW_REASONS = [SERVICE_NOT_AVAILABLE, BAD_REQUEST, FORBIDDEN]
+GMAIL_SMIME_THROW_REASONS = [SERVICE_NOT_AVAILABLE, BAD_REQUEST, INVALID_ARGUMENT, FORBIDDEN]
 GPLUS_THROW_REASONS = [SERVICE_NOT_AVAILABLE]
 GROUP_GET_RETRY_REASONS = [INVALID, SYSTEM_ERROR]
 GROUP_GET_THROW_REASONS = [GROUP_NOT_FOUND, DOMAIN_NOT_FOUND, DOMAIN_CANNOT_USE_APIS, FORBIDDEN, BAD_REQUEST]
@@ -101,60 +103,60 @@ USER_GET_THROW_REASONS = [USER_NOT_FOUND, DOMAIN_NOT_FOUND, DOMAIN_CANNOT_USE_AP
 
 REASON_MESSAGE_MAP = {
   ABORTED: [
-    ('Label name exists or conflicts', DUPLICATE),
+    (u'Label name exists or conflicts', DUPLICATE),
     ],
   CONDITION_NOT_MET: [
-    ('Cyclic memberships not allowed', CYCLIC_MEMBERSHIPS_NOT_ALLOWED),
-    ('undelete', DELETED_USER_NOT_FOUND),
+    (u'Cyclic memberships not allowed', CYCLIC_MEMBERSHIPS_NOT_ALLOWED),
+    (u'undelete', DELETED_USER_NOT_FOUND),
     ],
   FAILED_PRECONDITION: [
-    ('Bad Request', BAD_REQUEST),
-    ('Mail service not enabled', SERVICE_NOT_AVAILABLE),
+    (u'Bad Request', BAD_REQUEST),
+    (u'Mail service not enabled', SERVICE_NOT_AVAILABLE),
     ],
   INVALID: [
-    ('userId', USER_NOT_FOUND),
-    ('memberKey', INVALID_MEMBER),
-    ('A system error has occurred', SYSTEM_ERROR),
-    ('Invalid Customer Id', INVALID_CUSTOMER_ID),
-    ('Invalid Input: INVALID_OU_ID', INVALID_ORGUNIT),
-    ('Invalid Input: custom_schema', INVALID_SCHEMA_VALUE),
-    ('Invalid Input: resource', INVALID_RESOURCE),
-    ('Invalid Input:', INVALID_INPUT),
-    ('Invalid Org Unit', INVALID_ORGUNIT),
-    ('Invalid Ou Id', INVALID_ORGUNIT),
-    ('Invalid Parent Orgunit Id', INVALID_PARENT_ORGUNIT),
-    ('Invalid query', INVALID_QUERY),
-    ('Invalid scope value', INVALID_SCOPE_VALUE),
-    ('New domain name is not a verified secondary domain', DOMAIN_NOT_VERIFIED_SECONDARY),
+    (u'userId', USER_NOT_FOUND),
+    (u'memberKey', INVALID_MEMBER),
+    (u'A system error has occurred', SYSTEM_ERROR),
+    (u'Invalid Customer Id', INVALID_CUSTOMER_ID),
+    (u'Invalid Input: INVALID_OU_ID', INVALID_ORGUNIT),
+    (u'Invalid Input: custom_schema', INVALID_SCHEMA_VALUE),
+    (u'Invalid Input: resource', INVALID_RESOURCE),
+    (u'Invalid Input:', INVALID_INPUT),
+    (u'Invalid Org Unit', INVALID_ORGUNIT),
+    (u'Invalid Ou Id', INVALID_ORGUNIT),
+    (u'Invalid Parent Orgunit Id', INVALID_PARENT_ORGUNIT),
+    (u'Invalid query', INVALID_QUERY),
+    (u'Invalid scope value', INVALID_SCOPE_VALUE),
+    (u'New domain name is not a verified secondary domain', DOMAIN_NOT_VERIFIED_SECONDARY),
     ],
   INVALID_ARGUMENT: [
-    ('Cannot delete primary send-as', CANNOT_DELETE_PRIMARY_SENDAS),
-    ('Invalid id value', INVALID_MESSAGE_ID),
-    ('Invalid ids value', INVALID_MESSAGE_ID),
+    (u'Cannot delete primary send-as', CANNOT_DELETE_PRIMARY_SENDAS),
+    (u'Invalid id value', INVALID_MESSAGE_ID),
+    (u'Invalid ids value', INVALID_MESSAGE_ID),
     ],
   NOT_FOUND: [
-    ('userKey', USER_NOT_FOUND),
-    ('groupKey', GROUP_NOT_FOUND),
-    ('memberKey', MEMBER_NOT_FOUND),
-    ('photo', PHOTO_NOT_FOUND),
-    ('resource_id', RESOURCE_ID_NOT_FOUND),
-    ('resourceId', RESOURCE_ID_NOT_FOUND),
-    ('Customer doesn\'t exist', CUSTOMER_NOT_FOUND),
-    ('Domain alias does not exist', DOMAIN_ALIAS_NOT_FOUND),
-    ('Domain not found', DOMAIN_NOT_FOUND),
-    ('domain', DOMAIN_NOT_FOUND),
-    ('File not found', FILE_NOT_FOUND),
-    ('Org unit not found', ORGUNIT_NOT_FOUND),
-    ('Permission not found', PERMISSION_NOT_FOUND),
-    ('Resource Not Found', RESOURCE_NOT_FOUND),
-    ('Not Found', NOT_FOUND),
+    (u'userKey', USER_NOT_FOUND),
+    (u'groupKey', GROUP_NOT_FOUND),
+    (u'memberKey', MEMBER_NOT_FOUND),
+    (u'photo', PHOTO_NOT_FOUND),
+    (u'resource_id', RESOURCE_ID_NOT_FOUND),
+    (u'resourceId', RESOURCE_ID_NOT_FOUND),
+    (u'Customer doesn\'t exist', CUSTOMER_NOT_FOUND),
+    (u'Domain alias does not exist', DOMAIN_ALIAS_NOT_FOUND),
+    (u'Domain not found', DOMAIN_NOT_FOUND),
+    (u'domain', DOMAIN_NOT_FOUND),
+    (u'File not found', FILE_NOT_FOUND),
+    (u'Org unit not found', ORGUNIT_NOT_FOUND),
+    (u'Permission not found', PERMISSION_NOT_FOUND),
+    (u'Resource Not Found', RESOURCE_NOT_FOUND),
+    (u'Not Found', NOT_FOUND),
     ],
   REQUIRED: [
-    ('Login Required', LOGIN_REQUIRED),
-    ('memberKey', MEMBER_NOT_FOUND),
+    (u'Login Required', LOGIN_REQUIRED),
+    (u'memberKey', MEMBER_NOT_FOUND),
     ],
   RESOURCE_NOT_FOUND: [
-    ('resourceId', RESOURCE_ID_NOT_FOUND),
+    (u'resourceId', RESOURCE_ID_NOT_FOUND),
     ],
   }
 
@@ -250,7 +252,11 @@ class notFound(Exception):
   pass
 class notImplemented(Exception):
   pass
+class organizerOnNonTeamDriveItemNotSupported(Exception):
+  pass
 class orgunitNotFound(Exception):
+  pass
+class ownerOnTeamDriveItemNotSupported(Exception):
   pass
 class permissionDenied(Exception):
   pass
@@ -324,7 +330,9 @@ REASON_EXCEPTION_MAP = {
   NOT_A_CALENDAR_USER: notACalendarUser,
   NOT_FOUND: notFound,
   NOT_IMPLEMENTED: notImplemented,
+  ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED: organizerOnNonTeamDriveItemNotSupported,
   ORGUNIT_NOT_FOUND: orgunitNotFound,
+  OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED: ownerOnTeamDriveItemNotSupported,
   PERMISSION_DENIED: permissionDenied,
   PERMISSION_NOT_FOUND: permissionNotFound,
   PHOTO_NOT_FOUND: photoNotFound,

@@ -24,81 +24,81 @@ import re
 
 # Products/SKUs
 _SKUS = {
-  'Google-Apps-For-Business': {
-    'product': 'Google-Apps', 'aliases': ['gafb', 'gafw', 'basic', 'gsuitebasic'], 'displayName': 'G Suite Basic'},
-  'Google-Apps-For-Government': {
-    'product': 'Google-Apps', 'aliases': ['gafg', 'gsuitegovernment', 'gsuitegov'], 'displayName': 'G Suite Government'},
-  'Google-Apps-For-Postini': {
-    'product': 'Google-Apps', 'aliases': ['gams', 'postini', 'gsuitegams', 'gsuitepostini', 'gsuitemessagesecurity'], 'displayName': 'G Suite Message Security'},
-  'Google-Apps-Lite': {
-    'product': 'Google-Apps', 'aliases': ['gal', 'lite', 'gsuitelite'], 'displayName': 'G Suite Lite'},
-  'Google-Apps-Unlimited': {
-    'product': 'Google-Apps', 'aliases': ['gau', 'unlimited', 'gsuitebusiness'], 'displayName': 'G Suite Business'},
-  '1010020020': {
-    'product': 'Google-Apps', 'aliases': ['gae', 'enterprise', 'gsuiteenterprise'], 'displayName': 'G Suite Enterprise'},
-  'Google-Drive-storage-20GB': {
-    'product': 'Google-Drive-storage', 'aliases': ['drive20gb', '20gb', 'googledrivestorage20gb'], 'displayName': 'Google Drive Storage 20GB'},
-  'Google-Drive-storage-50GB': {
-    'product': 'Google-Drive-storage', 'aliases': ['drive50gb', '50gb', 'googledrivestorage50gb'], 'displayName': 'Google Drive Storage 50GB'},
-  'Google-Drive-storage-200GB': {
-    'product': 'Google-Drive-storage', 'aliases': ['drive200gb', '200gb', 'googledrivestorage200gb'], 'displayName': 'Google Drive Storage 200GB'},
-  'Google-Drive-storage-400GB': {
-    'product': 'Google-Drive-storage', 'aliases': ['drive400gb', '400gb', 'googledrivestorage400gb'], 'displayName': 'Google Drive Storage 400GB'},
-  'Google-Drive-storage-1TB': {
-    'product': 'Google-Drive-storage', 'aliases': ['drive1tb', '1tb', 'googledrivestorage1tb'], 'displayName': 'Google Drive Storage 1TB'},
-  'Google-Drive-storage-2TB': {
-    'product': 'Google-Drive-storage', 'aliases': ['drive2tb', '2tb', 'googledrivestorage2tb'], 'displayName': 'Google Drive Storage 2TB'},
-  'Google-Drive-storage-4TB': {
-    'product': 'Google-Drive-storage', 'aliases': ['drive4tb', '4tb', 'googledrivestorage4tb'], 'displayName': 'Google Drive Storage 4TB'},
-  'Google-Drive-storage-8TB': {
-    'product': 'Google-Drive-storage', 'aliases': ['drive8tb', '8tb', 'googledrivestorage8tb'], 'displayName': 'Google Drive Storage 8TB'},
-  'Google-Drive-storage-16TB': {
-    'product': 'Google-Drive-storage', 'aliases': ['drive16tb', '16tb', 'googledrivestorage16tb'], 'displayName': 'Google Drive Storage 16TB'},
-  'Google-Vault': {
-    'product': 'Google-Vault', 'aliases': ['vault', 'googlevault'], 'displayName': 'Google Vault'},
-  'Google-Vault-Former-Employee': {
-    'product': 'Google-Vault', 'aliases': ['vfe', 'googlevaultformeremployee'], 'displayName': 'Google Vault Former Employee'},
-  'Google-Coordinate': {
-    'product': 'Google-Coordinate', 'aliases': ['coordinate', 'googlecoordinate'], 'displayName': 'Google Coordinate'},
-  'Google-Chrome-Device-Management': {
-    'product': 'Google-Chrome-Device-Management', 'aliases': ['chrome', 'cdm', 'googlechromedevicemanagement'], 'displayName': 'Google Chrome Device Management'}
+  u'Google-Apps-For-Business': {
+    u'product': u'Google-Apps', u'aliases': [u'gafb', u'gafw', u'basic', u'gsuitebasic'], u'displayName': u'G Suite Basic'},
+  u'Google-Apps-For-Government': {
+    u'product': u'Google-Apps', u'aliases': [u'gafg', u'gsuitegovernment', u'gsuitegov'], u'displayName': u'G Suite Government'},
+  u'Google-Apps-For-Postini': {
+    u'product': u'Google-Apps', u'aliases': [u'gams', u'postini', u'gsuitegams', u'gsuitepostini', u'gsuitemessagesecurity'], u'displayName': u'G Suite Message Security'},
+  u'Google-Apps-Lite': {
+    u'product': u'Google-Apps', u'aliases': [u'gal', u'lite', u'gsuitelite'], u'displayName': u'G Suite Lite'},
+  u'Google-Apps-Unlimited': {
+    u'product': u'Google-Apps', u'aliases': [u'gau', u'unlimited', u'gsuitebusiness'], u'displayName': u'G Suite Business'},
+  u'1010020020': {
+    u'product': u'Google-Apps', u'aliases': [u'gae', u'enterprise', u'gsuiteenterprise'], u'displayName': u'G Suite Enterprise'},
+  u'Google-Drive-storage-20GB': {
+    u'product': u'Google-Drive-storage', u'aliases': [u'drive20gb', u'20gb', u'googledrivestorage20gb'], u'displayName': u'Google Drive Storage 20GB'},
+  u'Google-Drive-storage-50GB': {
+    u'product': u'Google-Drive-storage', u'aliases': [u'drive50gb', u'50gb', u'googledrivestorage50gb'], u'displayName': u'Google Drive Storage 50GB'},
+  u'Google-Drive-storage-200GB': {
+    u'product': u'Google-Drive-storage', u'aliases': [u'drive200gb', u'200gb', u'googledrivestorage200gb'], u'displayName': u'Google Drive Storage 200GB'},
+  u'Google-Drive-storage-400GB': {
+    u'product': u'Google-Drive-storage', u'aliases': [u'drive400gb', u'400gb', u'googledrivestorage400gb'], u'displayName': u'Google Drive Storage 400GB'},
+  u'Google-Drive-storage-1TB': {
+    u'product': u'Google-Drive-storage', u'aliases': [u'drive1tb', u'1tb', u'googledrivestorage1tb'], u'displayName': u'Google Drive Storage 1TB'},
+  u'Google-Drive-storage-2TB': {
+    u'product': u'Google-Drive-storage', u'aliases': [u'drive2tb', u'2tb', u'googledrivestorage2tb'], u'displayName': u'Google Drive Storage 2TB'},
+  u'Google-Drive-storage-4TB': {
+    u'product': u'Google-Drive-storage', u'aliases': [u'drive4tb', u'4tb', u'googledrivestorage4tb'], u'displayName': u'Google Drive Storage 4TB'},
+  u'Google-Drive-storage-8TB': {
+    u'product': u'Google-Drive-storage', u'aliases': [u'drive8tb', u'8tb', u'googledrivestorage8tb'], u'displayName': u'Google Drive Storage 8TB'},
+  u'Google-Drive-storage-16TB': {
+    u'product': u'Google-Drive-storage', u'aliases': [u'drive16tb', u'16tb', u'googledrivestorage16tb'], u'displayName': u'Google Drive Storage 16TB'},
+  u'Google-Vault': {
+    u'product': u'Google-Vault', u'aliases': [u'vault', u'googlevault'], u'displayName': u'Google Vault'},
+  u'Google-Vault-Former-Employee': {
+    u'product': u'Google-Vault', u'aliases': [u'vfe', u'googlevaultformeremployee'], u'displayName': u'Google Vault Former Employee'},
+  u'Google-Coordinate': {
+    u'product': u'Google-Coordinate', u'aliases': [u'coordinate', u'googlecoordinate'], u'displayName': u'Google Coordinate'},
+  u'Google-Chrome-Device-Management': {
+    u'product': u'Google-Chrome-Device-Management', u'aliases': [u'chrome', u'cdm', u'googlechromedevicemanagement'], u'displayName': u'Google Chrome Device Management'}
   }
 
 def getProductAndSKU(sku):
-  l_sku = sku.lower().replace('-', '').replace(' ', '')
+  l_sku = sku.lower().replace(u'-', u'').replace(u' ', u'')
   for a_sku, sku_values in list(_SKUS.items()):
-    if l_sku == a_sku.lower().replace('-', '') or l_sku in sku_values['aliases'] or l_sku == sku_values['displayName'].lower().replace(' ', ''):
-      return (sku_values['product'], a_sku)
+    if l_sku == a_sku.lower().replace(u'-', u'') or l_sku in sku_values[u'aliases'] or l_sku == sku_values[u'displayName'].lower().replace(u' ', u''):
+      return (sku_values[u'product'], a_sku)
   try:
-    product = re.search('^([A-Z,a-z]*-[A-Z,a-z]*)', sku).group(1)
+    product = re.search(u'^([A-Z,a-z]*-[A-Z,a-z]*)', sku).group(1)
   except AttributeError:
     product = sku
   return (product, sku)
 
 def skuIdToDisplayName(skuId):
-  return _SKUS[skuId]['displayName'] if skuId in _SKUS else skuId
+  return _SKUS[skuId][u'displayName'] if skuId in _SKUS else skuId
 
 def formatSKUIdDisplayName(skuId):
   skuIdDisplay = skuIdToDisplayName(skuId)
   if skuId == skuIdDisplay:
     return skuId
-  return '{0} ({1})'.format(skuId, skuIdDisplay)
+  return u'{0} ({1})'.format(skuId, skuIdDisplay)
 
 def normalizeProductId(product):
-  l_product = product.lower().replace('-', '').replace(' ', '')
+  l_product = product.lower().replace(u'-', u'').replace(u' ', u'')
   for a_sku, sku_values in list(_SKUS.items()):
-    if ((l_product == sku_values['product'].lower().replace('-', ''))
-        or (l_product == a_sku.lower().replace('-', ''))
-        or (l_product in sku_values['aliases'])
-        or (l_product == sku_values['displayName'].lower().replace(' ', ''))):
-      return sku_values['product']
+    if ((l_product == sku_values[u'product'].lower().replace(u'-', u''))
+        or (l_product == a_sku.lower().replace(u'-', u''))
+        or (l_product in sku_values[u'aliases'])
+        or (l_product == sku_values[u'displayName'].lower().replace(u' ', u''))):
+      return sku_values[u'product']
   return product
 
 def getSortedProductList():
   products = []
   for sku in list(_SKUS.values()):
-    if sku['product'] not in products:
-      products.append(sku['product'])
+    if sku[u'product'] not in products:
+      products.append(sku[u'product'])
   products.sort()
   return products
 
@@ -108,5 +108,5 @@ def getSortedSKUList():
 def convertProductListToSKUList(productList):
   skuList = []
   for productId in productList:
-    skuList += [skuId for skuId in _SKUS if _SKUS[skuId]['product'] == productId]
+    skuList += [skuId for skuId in _SKUS if _SKUS[skuId][u'product'] == productId]
   return skuList

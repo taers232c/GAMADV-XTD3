@@ -83,6 +83,7 @@ If an item contains spaces, it should be surrounded by ".
 <ContactGroupID> ::= id:<String>
 <ContactGroupName> ::= <String>
 <ContactGroupItem> ::= <ContactGroupID>|<ContactGroupName>
+<CorporaAttribute> ::= allteamdrives|default|domain|(teamdrive <TeamDriveID>)
 <CourseAlias> ::= <String>
 <CourseID> ::= <Number>|d:<CourseAlias>
 <CourseParticipantType> ::= teacher|teachers|student|students
@@ -90,7 +91,7 @@ If an item contains spaces, it should be surrounded by ".
 <CrOSItem> ::= <CrOSID>|(query:<QueryCrOS>)|(query <QueryCrOS>)
 <CustomerID> ::= <String>
 <DomainName> ::= <String>(.<String>)+
-<DriveFileACLRole> :: =commenter|editor|owner|reader|writer
+<DriveFileACLRole> :: =commenter|editor|organizer|owner|reader|writer
 <DriveFileID> ::= <String>
 <DriveFileURL> :: = https://docs.google.com/a/<DomainName>/document/d/<DriveFileID>/<String>
 <DriveFileItem> ::= <DriveFileID>|<DriveFileURL>
@@ -138,7 +139,7 @@ If an item contains spaces, it should be surrounded by ".
 <QueryCalendar> ::= <String>
 <QueryContact> ::= <String> See: https://developers.google.com/google-apps/contacts/v3/reference#contacts-query-parameters-reference
 <QueryCrOS> ::= <String> See: https://support.google.com/chrome/a/answer/1698333?hl=en
-<QueryDriveFile> :: = <String> See: https://developers.google.com/drive/v2/web/search-parameters
+<QueryDriveFile> :: = <String> See: https://developers.google.com/drive/v3/web/search-parameters
 <QueryGmail> ::= <String> See: https://support.google.com/mail/answer/7190
 <QueryMobile> ::= <String> See: https://support.google.com/a/answer/1408863?hl=en#search
 <QueryPrinter> ::= <String> See: https://developers.google.com/cloud-print/docs/appInterfaces#search
@@ -153,10 +154,17 @@ If an item contains spaces, it should be surrounded by ".
 <S/MIMEID> ::= <String>	
 <StudentItem> ::= <EmailAddress>|<UniqueID>|<String>
 <Tag> ::= <String>
+<TeamDriveID> ::= <String>
+<TeamDriveName> ::= <String>
 <ThreadID> ::= <String>
 <TimeZone> ::= <String>
 <Title> ::= <String>
-<ToDriveAttributes> ::= (tdtitle <String>)|(tduser <EmailAddress>)|(tdparent id:<DriveFolderID>|<DriveFolderName>)|(tdtimestamp <Boolean> [tddaysoffset <Number>] [tdhoursoffset <Number])
+<ToDriveAttributes> ::=
+	(tdtitle <String>)|
+	(tduser <EmailAddress>)|
+	(tdparent id:<DriveFolderID>|<DriveFolderName>)|
+	(tdtimestamp [<Boolean>] [tddaysoffset <Number>] [tdhoursoffset <Number])|
+	(tdlocalcopy [<Boolean>])
 <TransferID> ::= <String>
 <URI> ::= <String>
 <URL> ::= <String>
@@ -284,7 +292,14 @@ Specify a collection of items by directly specifying them; the item type is dete
 <DriveFileIDEntity> ::= (<DriveFileItem>) | (id <DriveFileItem>) | (id:<DriveFileItem>) | (ids <DriveFileList>) | (ids:<DriveFileList>)
 <DriveFileNameEntity> ::= (drivefilename <DriveFileName>) | (drivefilename:<DriveFileName>) | (anydrivefilename <DriveFileName>) | (anydrivefilename:<DriveFileName>)
 <DriveFileQueryEntity> ::= (query <QueryDriveFile>) | (query:<QueryDriveFile>)
-<DriveFileEntity> ::= <DriveFileIDEntity> | <DriveFileNameEntity> | <DriveFileQueryEntity> | root | <FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
+<TeamDriveEntity> ::= <TeamDriveID> | (teamdriveid <TeamDriveID>) | (teamdriveid:<TeamDriveID>) | (teamdrivename <TeamDriveName>) | (teamdrivename:<TeamDriveName>)
+<DriveFileEntity> ::=
+	<DriveFileIDEntity> |
+	<DriveFileNameEntity> |
+	<DriveFileQueryEntity> |
+	<TeamDriveEntity> |
+	root |
+	<FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
 <DriveFilePermissionEntity> ::= <DriveFilePermissionList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <DriveFilePermissionIDEntity> ::= <DriveFilePermissionIDList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <EmailAddressEntity> ::= <EmailAddressList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
@@ -1483,15 +1498,14 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 # Users - Drive
 
 <DriveFileAttributes> ::=
-	(convert)|
 	(description <String>)|
+	(folderColorRgb <ColorHex>)|
 	(indexabletext <String>)|
 	(keeprevisionforever|pinned)|
 	(lastviewedbyme <Time>)|
 	(localfile <FileName>)|
 	(mimetype gdoc|gdocument|gdrawing|gfolder|gdirectory|gform|gfusion|gpresentation|gscript|gsite|gsheet|gspreadsheet)|
 	(modifieddate|modifiedtime <Time>)|
-	(ocr)|
 	(ocrlanguage <Language>)|
 	(parentid <DriveFolderID>)|
 	(parentname <DriveFolderName>)|
@@ -1499,6 +1513,7 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 	(starred|star [<Boolean>])|
 	(trashed|trash [<Boolean>])|
 	(viewed|view [<Boolean>])|
+	(viewerscancopycontent [<Boolean>])|
 	writerscantshare
 
 <DriveFileAddAttributes> ::=
@@ -1509,7 +1524,6 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 <DriveFileUpdateAttributes> ::=
 	<DriveFileAttributes>|
 	(addparents <DriveFolderIDList>)|
-	(modifieddatebehavior fromBody|fromBodyIfNeeded|fromBodyOrNow|noChange|now|nowIfNeeded)|
 	(removeparents <DriveFolderIDList>)|
 	usecontentasindexabletext
 
@@ -1534,7 +1548,7 @@ gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
 <DriveFilePermissionEntity> ::= <DriveFilePermissionList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <DriveFilePermissionIDEntity> ::= <DriveFilePermissionIDList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
-<DriveFileACLRole> :: =commenter|editor|owner|reader|writer
+<DriveFileACLRole> :: =commenter|editor|organizer|owner|reader|writer
 <DriveFilePermission> ::= anyone|anyonewithlink|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>;<DriveFileACLRole>
 <DriveFilePermissionID> ::= anyone|anyonewithlink|id:<String>
 <DriveFilePermissionIDorEmail> ::= <DriveFilePermissionID>|<EmailAddress>
@@ -1542,9 +1556,9 @@ gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
 <DriveFilePermissionIDList> ::= "<DriveFilePermissionID>(,<DriveFilePermissionID>)*"
 
 gam <UserTypeEntity> add drivefileacl <DriveFileEntity> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
-	(role <DriveFileACLRole>) [withlink|(allowfilediscovery <Boolean>)] [expiration <Time>] [sendemail] [emailmessage <String>] [showtitles]
+	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>] [sendemail] [emailmessage <String>] [showtitles]
 gam <UserTypeEntity> update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail>
-	(role <DriveFileACLRole>) [withlink|(allowfilediscovery <Boolean>)] [expiration <Time>] [removeexpiration <Boolean>] [transferownership <Boolean>] [showtitles]
+	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>] [removeexpiration [<Boolean>]] [showtitles]
 gam <UserTypeEntity> delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles]
 gam <UserTypeEntity> show drivefileacl <DriveFileEntity> [showtitles]
 gam <UserTypeEntity> print drivefileacl <DriveFileEntity> [todrive [<ToDriveAttributes>]] [showtitles]
@@ -1559,6 +1573,7 @@ gam <UserTypeEntity> claim ownership <DriveFileEntity> [skipids <DriveFileEntity
 	appdatacontents|
 	cancomment|
 	canreadrevisions|
+	capabilities|
 	copyable|
 	createddate|createdtime|
 	description|
@@ -1568,9 +1583,11 @@ gam <UserTypeEntity> claim ownership <DriveFileEntity> [skipids <DriveFileEntity
 	filesize|
 	foldercolorrgb|
 	fullfileextension|
+	hasaugmentedpermissions|
 	headrevisionid|
 	iconlink|
 	id|
+	isappauthorized|
 	lastmodifyinguser|
 	lastmodifyingusername|
 	lastviewedbyme|lastviewedbymedate|lastviewedbymetime|lastviewedbyuser|
@@ -1594,9 +1611,12 @@ gam <UserTypeEntity> claim ownership <DriveFileEntity> [skipids <DriveFileEntity
 	size|
 	spaces|
 	starred|
+	teamdriveid|
 	thumbnaillink|
 	title|
 	trashed
+	trasheddate|trashedtime|
+	trashinguser|
 	userpermission|
 	version|
 	viewed|
@@ -1624,14 +1644,17 @@ gam <UserTypeEntity> show fileinfo <DriveFileEntity> [filepath] [allfields|<Driv
 gam <UserTypeEntity> show filerevisions <DriveFileEntity>
 gam <UserTypeEntity> show filepath <DriveFileEntity>
 
-gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)] [select <DriveFileEntity>|orphans] [depth <Number>] (orderby <DriveOrderByFieldName> [ascending|descending])*
-gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)] [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [select <DriveFileEntity>|orphans] [depth <Number>]
-	[filepath] [allfields|<DriveFieldName>*|(fields <DriveFiledNameList>)] (orderby <DriveOrderByFieldName> [ascending|descending])* [delimiter <String>]
+gam <UserTypeEntity> show filetree [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
+	[select <DriveFileEntity>|orphans] [depth <Number>] (orderby <DriveOrderByFieldName> [ascending|descending])*
+gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
+	[query <QueryDriveFile>] [fullquery <QueryDriveFile>]
+	[select <DriveFileEntity>|orphans] [depth <Number>] (orderby <DriveOrderByFieldName> [ascending|descending])*
+	[filepath] [allfields|<DriveFieldName>*|(fields <DriveFiledNameList>)] [delimiter <String>]
 
 gam <UserTypeEntity> print|show driveactivity [todrive [<ToDriveAttributes>]] [fileid <DriveFileID>] [folderid <DriveFolderID>]
 gam <UserTypeEntity> print|show drivesettings [todrive [<ToDriveAttributes>]]
 
-gam <UserTypeEntity> delete emptydrivefolders
+gam <UserTypeEntity> delete emptydrivefolders [corpora <CorporaAttribute>]
 gam <UserTypeEntity> empty drivetrash
 
 # Users - Deprovision
@@ -1640,8 +1663,8 @@ gam <UserTypeEntity> deprovision|deprov
 
 # Users - Gmail - Delegates
 
+gam <UserTypeEntity> delegate to <UserEntity>
 gam <UserTypeEntity> add delegate|delegates <UserEntity>
-gam <UserTypeEntity> delegate|delegates to <UserEntity>
 gam <UserTypeEntity> delete delegate|delegates <UserEntity>
 gam <UserTypeEntity> show delegates|delegate
 gam <UserTypeEntity> print delegates [todrive [<ToDriveAttributes>]]
@@ -1724,7 +1747,7 @@ gam <UserTypeEntity> info sendas <EmailAddressEntity> [format]
 gam <UserTypeEntity> show sendas [format]
 gam <UserTypeEntity> print sendas [todrive [<ToDriveAttributes>]]
 
-gam <UserTypeEntity> add smime (file <FileName> [charset <CharSet>]) [password <Password>] [sendas|sendasemail <EmailAddress>] [default]
+gam <UserTypeEntity> add smime file <FileName> [password <Password>] [sendas|sendasemail <EmailAddress>] [default]
 gam <UserTypeEntity> update smime [id <S/MIMEID>] [sendas|sendasemail <EmailAddress>] [default]
 gam <UserTypeEntity> delete smime [id <S/MIMEID>] [sendas|sendasemail <EmailAddress>]
 gam <UserTypeEntity> show smimes [primaryonly]
@@ -1783,6 +1806,15 @@ gam <UserTypeEntity> get photo [drivedir|(targetfolder <FilePath>)] [noshow]
 gam <UserTypeEntity> profile share|shared|unshare|unshared
 
 gam <UserTypeEntity> show profile
+
+# Users - Team Drives
+
+gam <UserTypeEntity> create teamdrive <Name>
+gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>]
+gam <UserTypeEntity> delete teamdrive <TeamDriveEntity>
+gam <UserTypeEntity> info teamdrive <TeamDriveEntity>
+gam <UserTypeEntity> print teamdrives [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> show teamdrives
 
 # Users - Tokens
 

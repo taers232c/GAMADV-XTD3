@@ -21,92 +21,91 @@
 """
 
 import os
-import sys
 
 # The following GM_XXX constants are arbitrary but must be unique
 # Most errors print a message and bail out with a return code
 # Some commands want to set a non-zero return code but not bail
-SYSEXITRC = 'sxrc'
+SYSEXITRC = u'sxrc'
 # Process ID
-PID = 'pid '
+PID = u'pid '
 # Path to gam
-GAM_PATH = 'gpth'
+GAM_PATH = u'gpth'
 # Are we on Windows?
-WINDOWS = 'wndo'
+WINDOWS = u'wndo'
 # Encodings
-SYS_ENCODING = 'syen'
+SYS_ENCODING = u'syen'
 # Extra arguments to pass to GAPI functions
-EXTRA_ARGS_LIST = 'exad'
+EXTRA_ARGS_LIST = u'exad'
 # GAM admin user
-ADMIN = 'admin'
+ADMIN = u'admin'
 # Current API user
-CURRENT_API_USER = 'capu'
+CURRENT_API_USER = u'capu'
 # Current API scope
-CURRENT_API_SCOPES = 'scoc'
+CURRENT_API_SCOPES = u'scoc'
 # Values retrieved from oauth2service.json
-OAUTH2SERVICE_JSON_DATA = 'oajd'
-OAUTH2_CLIENT_ID = 'oaci'
+OAUTH2SERVICE_JSON_DATA = u'oajd'
+OAUTH2_CLIENT_ID = u'oaci'
 # gam.cfg parser
-PARSER = 'pars'
+PARSER = u'pars'
 # gam.cfg file
-GAM_CFG_PATH = 'gcpa'
-GAM_CFG_FILE = 'gcfi'
+GAM_CFG_PATH = u'gcpa'
+GAM_CFG_FILE = u'gcfi'
 # redirected file: name, mode, encoding, delimiter, write header, multiproces, queue
-STDOUT = 'stdo'
-STDERR = 'stde'
-CSVFILE = 'csvf'
-SAVED_STDOUT = 'svso'
-REDIRECT_NAME = 'rdfn'
-REDIRECT_MODE = 'rdmo'
-REDIRECT_FD = 'rdfd'
-REDIRECT_MULTI_FD = 'rdmf'
-REDIRECT_ENCODING = 'rden'
-REDIRECT_COLUMN_DELIMITER = 'rddl'
-REDIRECT_WRITE_HEADER = 'rdwh'
-REDIRECT_MULTIPROCESS = 'rdmp'
-REDIRECT_QUEUE = 'rdqu'
-REDIRECT_QUEUE_NAME = 'name'
-REDIRECT_QUEUE_TODRIVE = 'todrive'
-REDIRECT_QUEUE_TITLES = 'titles'
-REDIRECT_QUEUE_DATA = 'rows'
-REDIRECT_QUEUE_ARGS = 'args'
-REDIRECT_QUEUE_GLOBALS = 'globals'
-REDIRECT_QUEUE_VALUES = 'values'
-REDIRECT_QUEUE_START = 'start'
-REDIRECT_QUEUE_END = 'end'
-REDIRECT_QUEUE_EOF = 'eof'
+STDOUT = u'stdo'
+STDERR = u'stde'
+CSVFILE = u'csvf'
+SAVED_STDOUT = u'svso'
+REDIRECT_NAME = u'rdfn'
+REDIRECT_MODE = u'rdmo'
+REDIRECT_FD = u'rdfd'
+REDIRECT_MULTI_FD = u'rdmf'
+REDIRECT_ENCODING = u'rden'
+REDIRECT_COLUMN_DELIMITER = u'rddl'
+REDIRECT_WRITE_HEADER = u'rdwh'
+REDIRECT_MULTIPROCESS = u'rdmp'
+REDIRECT_QUEUE = u'rdqu'
+REDIRECT_QUEUE_NAME = u'name'
+REDIRECT_QUEUE_TODRIVE = u'todrive'
+REDIRECT_QUEUE_TITLES = u'titles'
+REDIRECT_QUEUE_DATA = u'rows'
+REDIRECT_QUEUE_ARGS = u'args'
+REDIRECT_QUEUE_GLOBALS = u'globals'
+REDIRECT_QUEUE_VALUES = u'values'
+REDIRECT_QUEUE_START = u'start'
+REDIRECT_QUEUE_END = u'end'
+REDIRECT_QUEUE_EOF = u'eof'
 # File containing time of last GAM update check
-LAST_UPDATE_CHECK_TXT = 'lupc'
+LAST_UPDATE_CHECK_TXT = u'lupc'
 # Index of start of <UserTypeEntity> in command line
-ENTITY_CL_START = 'ecls'
-ENTITY_CL_DELAY_START = 'eclD'
+ENTITY_CL_START = u'ecls'
+ENTITY_CL_DELAY_START = u'eclD'
 # csvfile keyfield <FieldName> [delimiter <String>] (matchfield <FieldName> <MatchPattern>)* [datafield <FieldName>(:<FieldName>*) [delimiter <String>]]
 # { key: [datafieldvalues]}
-CSV_DATA_DICT = 'csdd'
-CSV_KEY_FIELD = 'cskf'
-CSV_SUBKEY_FIELD = 'cssk'
-CSV_DATA_FIELD = 'csdf'
+CSV_DATA_DICT = u'csdd'
+CSV_KEY_FIELD = u'cskf'
+CSV_SUBKEY_FIELD = u'cssk'
+CSV_DATA_FIELD = u'csdf'
 # Dictionary mapping OrgUnit ID to Name
-MAP_ORGUNIT_ID_TO_NAME = 'oi2n'
+MAP_ORGUNIT_ID_TO_NAME = u'oi2n'
 # Dictionary mapping Role ID to Name
-MAP_ROLE_ID_TO_NAME = 'ri2n'
+MAP_ROLE_ID_TO_NAME = u'ri2n'
 # Dictionary mapping Role Name to ID
-MAP_ROLE_NAME_TO_ID = 'rn2i'
+MAP_ROLE_NAME_TO_ID = u'rn2i'
 # Dictionary mapping User ID to Name
-MAP_USER_ID_TO_NAME = 'ui2n'
+MAP_USER_ID_TO_NAME = u'ui2n'
 # oauth2.txt.lock lockfile
-OAUTH2_TXT_LOCK = 'oalk'
+OAUTH2_TXT_LOCK = u'oalk'
 # GAM cache directory. If no_cache is True, this variable will be set to None
-CACHE_DIR = 'gacd'
+CACHE_DIR = u'gacd'
 # Reset GAM cache directory after discovery
-CACHE_DISCOVERY_ONLY = 'gcdo'
+CACHE_DISCOVERY_ONLY = u'gcdo'
 #
 Globals = {
   SYSEXITRC: 0,
   PID: 0,
-  GAM_PATH: '.',
-  WINDOWS: os.name == 'nt',
-  SYS_ENCODING: 'utf-8',
+  GAM_PATH: u'.',
+  WINDOWS: os.name == u'nt',
+  SYS_ENCODING: u'utf-8',
   EXTRA_ARGS_LIST: [],
   ADMIN: None,
   CURRENT_API_USER: None,
@@ -114,13 +113,13 @@ Globals = {
   OAUTH2SERVICE_JSON_DATA: None,
   OAUTH2_CLIENT_ID: None,
   PARSER: None,
-  GAM_CFG_PATH: '',
-  GAM_CFG_FILE: '',
+  GAM_CFG_PATH: u'',
+  GAM_CFG_FILE: u'',
   STDOUT: {},
   STDERR: {},
   CSVFILE: {},
   SAVED_STDOUT: None,
-  LAST_UPDATE_CHECK_TXT: '',
+  LAST_UPDATE_CHECK_TXT: u'',
   ENTITY_CL_START: 1,
   ENTITY_CL_DELAY_START: 1,
   CSV_DATA_DICT: {},

@@ -21,158 +21,158 @@
 """
 
 # Keys into USER_PROPERTIES
-CLASS = 'clas'
-TITLE = 'titl'
-TYPE_KEYWORDS = 'tykw'
-PTKW_CL_TYPE_KEYWORD = 'ctkw'
-PTKW_CL_CUSTOMTYPE_KEYWORD = 'cctk'
-PTKW_ATTR_TYPE_KEYWORD = 'atkw'
-PTKW_ATTR_TYPE_CUSTOM_VALUE = 'atcv'
-PTKW_ATTR_CUSTOMTYPE_KEYWORD = 'actk'
-PTKW_KEYWORD_LIST = 'kwli'
+CLASS = u'clas'
+TITLE = u'titl'
+TYPE_KEYWORDS = u'tykw'
+PTKW_CL_TYPE_KEYWORD = u'ctkw'
+PTKW_CL_CUSTOMTYPE_KEYWORD = u'cctk'
+PTKW_ATTR_TYPE_KEYWORD = u'atkw'
+PTKW_ATTR_TYPE_CUSTOM_VALUE = u'atcv'
+PTKW_ATTR_CUSTOMTYPE_KEYWORD = u'actk'
+PTKW_KEYWORD_LIST = u'kwli'
 #
-PC_ADDRESSES = 'addr'
-PC_ALIASES = 'alia'
-PC_ARRAY = 'arry'
-PC_BOOLEAN = 'bool'
-PC_EMAILS = 'emai'
-PC_IMS = 'ims '
-PC_NAME = 'name'
-PC_NOTES = 'note'
-PC_SCHEMAS = 'schm'
-PC_STRING = 'stri'
-PC_TIME = 'time'
+PC_ADDRESSES = u'addr'
+PC_ALIASES = u'alia'
+PC_ARRAY = u'arry'
+PC_BOOLEAN = u'bool'
+PC_EMAILS = u'emai'
+PC_IMS = u'ims '
+PC_NAME = u'name'
+PC_NOTES = u'note'
+PC_SCHEMAS = u'schm'
+PC_STRING = u'stri'
+PC_TIME = u'time'
 
 PROPERTIES = {
-  'primaryEmail':
-    {CLASS: PC_STRING, TITLE: 'User',},
-  'name':
-    {CLASS: PC_NAME, TITLE: 'Name',},
-  'givenName':
-    {CLASS: PC_STRING, TITLE: 'First Name',},
-  'familyName':
-    {CLASS: PC_STRING, TITLE: 'Last Name',},
-  'fullName':
-    {CLASS: PC_STRING, TITLE: 'Full Name',},
-  'password':
-    {CLASS: PC_STRING, TITLE: 'Password',},
-  'isAdmin':
-    {CLASS: PC_BOOLEAN, TITLE: 'Is a Super Admin',},
-  'isDelegatedAdmin':
-    {CLASS: PC_BOOLEAN, TITLE: 'Is Delegated Admin',},
-  'isEnrolledIn2Sv':
-    {CLASS: PC_BOOLEAN, TITLE: '2-step enrolled',},
-  'isEnforcedIn2Sv':
-    {CLASS: PC_BOOLEAN, TITLE: '2-step enforced',},
-  'agreedToTerms':
-    {CLASS: PC_BOOLEAN, TITLE: 'Has Agreed to Terms',},
-  'ipWhitelisted':
-    {CLASS: PC_BOOLEAN, TITLE: 'IP Whitelisted',},
-  'suspended':
-    {CLASS: PC_BOOLEAN, TITLE: 'Account Suspended',},
-  'suspensionReason':
-    {CLASS: PC_STRING, TITLE: 'Suspension Reason',},
-  'changePasswordAtNextLogin':
-    {CLASS: PC_BOOLEAN, TITLE: 'Must Change Password',},
-  'id':
-    {CLASS: PC_STRING, TITLE: 'Google Unique ID',},
-  'customerId':
-    {CLASS: PC_STRING, TITLE: 'Customer ID',},
-  'isMailboxSetup':
-    {CLASS: PC_BOOLEAN, TITLE: 'Mailbox is setup',},
-  'includeInGlobalAddressList':
-    {CLASS: PC_BOOLEAN, TITLE: 'Included in GAL',},
-  'creationTime':
-    {CLASS: PC_TIME, TITLE: 'Creation Time',},
-  'lastLoginTime':
-    {CLASS: PC_TIME, TITLE: 'Last login time',},
-  'deletionTime':
-    {CLASS: PC_TIME, TITLE: 'Deletion Time',},
-  'orgUnitPath':
-    {CLASS: PC_STRING, TITLE: 'Google Org Unit Path',},
-  'thumbnailPhotoUrl':
-    {CLASS: PC_STRING, TITLE: 'Photo URL',},
-  'addresses':
-    {CLASS: PC_ADDRESSES, TITLE: 'Addresses',
+  u'primaryEmail':
+    {CLASS: PC_STRING, TITLE: u'User',},
+  u'name':
+    {CLASS: PC_NAME, TITLE: u'Name',},
+  u'givenName':
+    {CLASS: PC_STRING, TITLE: u'First Name',},
+  u'familyName':
+    {CLASS: PC_STRING, TITLE: u'Last Name',},
+  u'fullName':
+    {CLASS: PC_STRING, TITLE: u'Full Name',},
+  u'password':
+    {CLASS: PC_STRING, TITLE: u'Password',},
+  u'isAdmin':
+    {CLASS: PC_BOOLEAN, TITLE: u'Is a Super Admin',},
+  u'isDelegatedAdmin':
+    {CLASS: PC_BOOLEAN, TITLE: u'Is Delegated Admin',},
+  u'isEnrolledIn2Sv':
+    {CLASS: PC_BOOLEAN, TITLE: u'2-step enrolled',},
+  u'isEnforcedIn2Sv':
+    {CLASS: PC_BOOLEAN, TITLE: u'2-step enforced',},
+  u'agreedToTerms':
+    {CLASS: PC_BOOLEAN, TITLE: u'Has Agreed to Terms',},
+  u'ipWhitelisted':
+    {CLASS: PC_BOOLEAN, TITLE: u'IP Whitelisted',},
+  u'suspended':
+    {CLASS: PC_BOOLEAN, TITLE: u'Account Suspended',},
+  u'suspensionReason':
+    {CLASS: PC_STRING, TITLE: u'Suspension Reason',},
+  u'changePasswordAtNextLogin':
+    {CLASS: PC_BOOLEAN, TITLE: u'Must Change Password',},
+  u'id':
+    {CLASS: PC_STRING, TITLE: u'Google Unique ID',},
+  u'customerId':
+    {CLASS: PC_STRING, TITLE: u'Customer ID',},
+  u'isMailboxSetup':
+    {CLASS: PC_BOOLEAN, TITLE: u'Mailbox is setup',},
+  u'includeInGlobalAddressList':
+    {CLASS: PC_BOOLEAN, TITLE: u'Included in GAL',},
+  u'creationTime':
+    {CLASS: PC_TIME, TITLE: u'Creation Time',},
+  u'lastLoginTime':
+    {CLASS: PC_TIME, TITLE: u'Last login time',},
+  u'deletionTime':
+    {CLASS: PC_TIME, TITLE: u'Deletion Time',},
+  u'orgUnitPath':
+    {CLASS: PC_STRING, TITLE: u'Google Org Unit Path',},
+  u'thumbnailPhotoUrl':
+    {CLASS: PC_STRING, TITLE: u'Photo URL',},
+  u'addresses':
+    {CLASS: PC_ADDRESSES, TITLE: u'Addresses',
      TYPE_KEYWORDS:
-       {PTKW_CL_TYPE_KEYWORD: 'type', PTKW_CL_CUSTOMTYPE_KEYWORD: 'custom',
-        PTKW_ATTR_TYPE_KEYWORD: 'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: 'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: 'customType',
-        PTKW_KEYWORD_LIST: ['custom', 'home', 'other', 'work'],},},
-  'emails':
-    {CLASS: PC_EMAILS, TITLE: 'Other Emails',
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: u'custom',
+        PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
+        PTKW_KEYWORD_LIST: [u'custom', u'home', u'other', u'work'],},},
+  u'emails':
+    {CLASS: PC_EMAILS, TITLE: u'Other Emails',
      TYPE_KEYWORDS:
-       {PTKW_CL_TYPE_KEYWORD: 'type', PTKW_CL_CUSTOMTYPE_KEYWORD: None,
-        PTKW_ATTR_TYPE_KEYWORD: 'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: 'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: 'customType',
-        PTKW_KEYWORD_LIST: ['custom', 'home', 'other', 'work'],},},
-  'externalIds':
-    {CLASS: PC_ARRAY, TITLE: 'External IDs',
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: None,
+        PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
+        PTKW_KEYWORD_LIST: [u'custom', u'home', u'other', u'work'],},},
+  u'externalIds':
+    {CLASS: PC_ARRAY, TITLE: u'External IDs',
      TYPE_KEYWORDS:
-       {PTKW_CL_TYPE_KEYWORD: 'type', PTKW_CL_CUSTOMTYPE_KEYWORD: None,
-        PTKW_ATTR_TYPE_KEYWORD: 'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: 'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: 'customType',
-        PTKW_KEYWORD_LIST: ['account', 'customer', 'network', 'organization'],},},
-  'ims':
-    {CLASS: PC_IMS, TITLE: 'IMs',
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: None,
+        PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
+        PTKW_KEYWORD_LIST: [u'account', u'customer', u'network', u'organization'],},},
+  u'ims':
+    {CLASS: PC_IMS, TITLE: u'IMs',
      TYPE_KEYWORDS:
-       {PTKW_CL_TYPE_KEYWORD: 'type', PTKW_CL_CUSTOMTYPE_KEYWORD: 'custom',
-        PTKW_ATTR_TYPE_KEYWORD: 'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: 'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: 'customType',
-        PTKW_KEYWORD_LIST: ['custom', 'home', 'other', 'work'],},},
-  'notes':
-    {CLASS: PC_NOTES, TITLE: 'Notes',
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: u'custom',
+        PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
+        PTKW_KEYWORD_LIST: [u'custom', u'home', u'other', u'work'],},},
+  u'notes':
+    {CLASS: PC_NOTES, TITLE: u'Notes',
      TYPE_KEYWORDS:
-       {PTKW_CL_TYPE_KEYWORD: 'type', PTKW_CL_CUSTOMTYPE_KEYWORD: 'type',
-        PTKW_ATTR_TYPE_KEYWORD: 'contentType', PTKW_ATTR_TYPE_CUSTOM_VALUE: None, PTKW_ATTR_CUSTOMTYPE_KEYWORD: None,
-        PTKW_KEYWORD_LIST: ['text_plain', 'text_html'],},},
-  'organizations':
-    {CLASS: PC_ARRAY, TITLE: 'Organizations',
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: u'type',
+        PTKW_ATTR_TYPE_KEYWORD: u'contentType', PTKW_ATTR_TYPE_CUSTOM_VALUE: None, PTKW_ATTR_CUSTOMTYPE_KEYWORD: None,
+        PTKW_KEYWORD_LIST: [u'text_plain', u'text_html'],},},
+  u'organizations':
+    {CLASS: PC_ARRAY, TITLE: u'Organizations',
      TYPE_KEYWORDS:
-       {PTKW_CL_TYPE_KEYWORD: 'type', PTKW_CL_CUSTOMTYPE_KEYWORD: 'customtype',
-        PTKW_ATTR_TYPE_KEYWORD: 'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: 'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: 'customType',
-        PTKW_KEYWORD_LIST: ['domain_only', 'school', 'unknown', 'work'],},},
-  'phones':
-    {CLASS: PC_ARRAY, TITLE: 'Phones',
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: u'customtype',
+        PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
+        PTKW_KEYWORD_LIST: [u'domain_only', u'school', u'unknown', u'work'],},},
+  u'phones':
+    {CLASS: PC_ARRAY, TITLE: u'Phones',
      TYPE_KEYWORDS:
-       {PTKW_CL_TYPE_KEYWORD: 'type', PTKW_CL_CUSTOMTYPE_KEYWORD: 'custom',
-        PTKW_ATTR_TYPE_KEYWORD: 'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: 'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: 'customType',
-        PTKW_KEYWORD_LIST: ['custom', 'home', 'work', 'other',
-                            'home_fax', 'work_fax', 'other_fax',
-                            'mobile', 'pager',
-                            'company_main', 'assistant',
-                            'car', 'radio', 'isdn', 'callback',
-                            'telex', 'tty_tdd', 'work_mobile',
-                            'work_pager', 'main', 'grand_central'],},},
-  'relations':
-    {CLASS: PC_ARRAY, TITLE: 'Relations',
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: u'custom',
+        PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
+        PTKW_KEYWORD_LIST: [u'custom', u'home', u'work', u'other',
+                            u'home_fax', u'work_fax', u'other_fax',
+                            u'mobile', u'pager',
+                            u'company_main', u'assistant',
+                            u'car', u'radio', u'isdn', u'callback',
+                            u'telex', u'tty_tdd', u'work_mobile',
+                            u'work_pager', u'main', u'grand_central'],},},
+  u'relations':
+    {CLASS: PC_ARRAY, TITLE: u'Relations',
      TYPE_KEYWORDS:
-       {PTKW_CL_TYPE_KEYWORD: 'type', PTKW_CL_CUSTOMTYPE_KEYWORD: None,
-        PTKW_ATTR_TYPE_KEYWORD: 'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: 'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: 'customType',
-        PTKW_KEYWORD_LIST: ['spouse', 'child', 'mother',
-                            'father', 'parent', 'brother',
-                            'sister', 'friend', 'relative',
-                            'domestic_partner', 'manager', 'assistant',
-                            'referred_by', 'partner'],},},
-  'websites':
-    {CLASS: PC_ARRAY, TITLE: 'Websites',
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: None,
+        PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
+        PTKW_KEYWORD_LIST: [u'spouse', u'child', u'mother',
+                            u'father', u'parent', u'brother',
+                            u'sister', u'friend', u'relative',
+                            u'domestic_partner', u'manager', u'assistant',
+                            u'referred_by', u'partner'],},},
+  u'websites':
+    {CLASS: PC_ARRAY, TITLE: u'Websites',
      TYPE_KEYWORDS:
-       {PTKW_CL_TYPE_KEYWORD: 'type', PTKW_CL_CUSTOMTYPE_KEYWORD: None,
-        PTKW_ATTR_TYPE_KEYWORD: 'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: 'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: 'customType',
-        PTKW_KEYWORD_LIST: ['custom', 'home', 'work',
-                            'home_page', 'ftp', 'blog',
-                            'profile', 'other', 'reservations',
-                            'app_install_page'],},},
-  'customSchemas':
-    {CLASS: PC_SCHEMAS, TITLE: 'Custom Schemas',
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: None,
+        PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
+        PTKW_KEYWORD_LIST: [u'custom', u'home', u'work',
+                            u'home_page', u'ftp', u'blog',
+                            u'profile', u'other', u'reservations',
+                            u'app_install_page'],},},
+  u'customSchemas':
+    {CLASS: PC_SCHEMAS, TITLE: u'Custom Schemas',
      TYPE_KEYWORDS:
-       {PTKW_CL_TYPE_KEYWORD: 'type', PTKW_CL_CUSTOMTYPE_KEYWORD: 'custom',
-        PTKW_ATTR_TYPE_KEYWORD: 'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: 'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: 'customType',
-        PTKW_KEYWORD_LIST: ['custom', 'home', 'other', 'work'],},},
-  'aliases': {
-    CLASS: PC_ALIASES, TITLE: 'Email Aliases',},
-  'nonEditableAliases': {
-    CLASS: PC_ALIASES, TITLE: 'Non-Editable Aliases',},
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: u'custom',
+        PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
+        PTKW_KEYWORD_LIST: [u'custom', u'home', u'other', u'work'],},},
+  u'aliases': {
+    CLASS: PC_ALIASES, TITLE: u'Email Aliases',},
+  u'nonEditableAliases': {
+    CLASS: PC_ALIASES, TITLE: u'Non-Editable Aliases',},
   }
 #
 IM_PROTOCOLS = {
-  PTKW_CL_TYPE_KEYWORD: 'protocol', PTKW_CL_CUSTOMTYPE_KEYWORD: 'custom_protocol',
-  PTKW_ATTR_TYPE_KEYWORD: 'protocol', PTKW_ATTR_TYPE_CUSTOM_VALUE: 'custom_protocol', PTKW_ATTR_CUSTOMTYPE_KEYWORD: 'customProtocol',
-  PTKW_KEYWORD_LIST: ['custom_protocol', 'aim', 'gtalk', 'icq', 'jabber', 'msn', 'net_meeting', 'qq', 'skype', 'xmpp', 'yahoo']
+  PTKW_CL_TYPE_KEYWORD: u'protocol', PTKW_CL_CUSTOMTYPE_KEYWORD: u'custom_protocol',
+  PTKW_ATTR_TYPE_KEYWORD: u'protocol', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom_protocol', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customProtocol',
+  PTKW_KEYWORD_LIST: [u'custom_protocol', u'aim', u'gtalk', u'icq', u'jabber', u'msn', u'net_meeting', u'qq', u'skype', u'xmpp', u'yahoo']
   }

@@ -22,38 +22,38 @@
 
 # Concatenate list members, any item containing spaces is enclosed in ""
 def QuotedArgumentList(items):
-  qstr = ''
+  qstr = u''
   for item in items:
-    if item and (item.find(' ') == -1) and (item.find(',') == -1):
+    if item and (item.find(u' ') == -1) and (item.find(u',') == -1):
       qstr += item
     else:
-      qstr += '"'+item+'"'
-    qstr += ' '
-  return qstr[:-1] if len(qstr) > 0 else ''
+      qstr += u'"'+item+u'"'
+    qstr += u' '
+  return qstr[:-1] if len(qstr) > 0 else u''
 
 class GamCLArgs(object):
 
 # GAM entity types as specified on the command line
-  ENTITY_COURSEPARTICIPANTS = 'courseparticipants'
-  ENTITY_CROS = 'cros'
-  ENTITY_CROS_QUERY = 'crosquery'
-  ENTITY_CROS_OU = 'cros_ou'
-  ENTITY_CROS_OU_AND_CHILDREN = 'cros_ou_and_children'
-  ENTITY_CROS_OUS = 'cros_ous'
-  ENTITY_CROS_OUS_AND_CHILDREN = 'cros_ous_and_children'
-  ENTITY_GROUP = 'group'
-  ENTITY_GROUPS = 'groups'
-  ENTITY_GROUP_USERS = 'group_users'
-  ENTITY_LICENSES = 'licenses'
-  ENTITY_OU = 'ou'
-  ENTITY_OU_AND_CHILDREN = 'ou_and_children'
-  ENTITY_OUS = 'ous'
-  ENTITY_OUS_AND_CHILDREN = 'ous_and_children'
-  ENTITY_QUERY = 'query'
-  ENTITY_STUDENTS = 'students'
-  ENTITY_TEACHERS = 'teachers'
-  ENTITY_USER = 'user'
-  ENTITY_USERS = 'users'
+  ENTITY_COURSEPARTICIPANTS = u'courseparticipants'
+  ENTITY_CROS = u'cros'
+  ENTITY_CROS_QUERY = u'crosquery'
+  ENTITY_CROS_OU = u'cros_ou'
+  ENTITY_CROS_OU_AND_CHILDREN = u'cros_ou_and_children'
+  ENTITY_CROS_OUS = u'cros_ous'
+  ENTITY_CROS_OUS_AND_CHILDREN = u'cros_ous_and_children'
+  ENTITY_GROUP = u'group'
+  ENTITY_GROUPS = u'groups'
+  ENTITY_GROUP_USERS = u'group_users'
+  ENTITY_LICENSES = u'licenses'
+  ENTITY_OU = u'ou'
+  ENTITY_OU_AND_CHILDREN = u'ou_and_children'
+  ENTITY_OUS = u'ous'
+  ENTITY_OUS_AND_CHILDREN = u'ous_and_children'
+  ENTITY_QUERY = u'query'
+  ENTITY_STUDENTS = u'students'
+  ENTITY_TEACHERS = u'teachers'
+  ENTITY_USER = u'user'
+  ENTITY_USERS = u'users'
 #
   CROS_ENTITIES = [
     ENTITY_CROS,
@@ -81,49 +81,49 @@ class GamCLArgs(object):
     ]
 # Aliases for CL entity types
   ENTITY_ALIAS_MAP = {
-    'crosorg': ENTITY_CROS_OU,
-    'crosorg_and_child': ENTITY_CROS_OU_AND_CHILDREN,
-    'crosorg_and_children': ENTITY_CROS_OU_AND_CHILDREN,
-    'crosorgs': ENTITY_CROS_OUS,
-    'crosorgs_and_child': ENTITY_CROS_OUS_AND_CHILDREN,
-    'crosorgs_and_children': ENTITY_CROS_OUS_AND_CHILDREN,
-    'crosou_and_child': ENTITY_CROS_OU_AND_CHILDREN,
-    'crosou_and_childen': ENTITY_CROS_OU_AND_CHILDREN,
-    'crosous_and_child': ENTITY_CROS_OUS_AND_CHILDREN,
-    'cros_org': ENTITY_CROS_OU,
-    'cros_org_and_child': ENTITY_CROS_OU_AND_CHILDREN,
-    'cros_org_and_children': ENTITY_CROS_OU_AND_CHILDREN,
-    'cros_orgs': ENTITY_CROS_OUS,
-    'cros_orgs_and_child': ENTITY_CROS_OUS_AND_CHILDREN,
-    'cros_orgs_and_children': ENTITY_CROS_OUS_AND_CHILDREN,
-    'cros_ou_and_child': ENTITY_CROS_OU_AND_CHILDREN,
-    'cros_ou_and_childen': ENTITY_CROS_OU_AND_CHILDREN,
-    'cros_ous_and_child': ENTITY_CROS_OUS_AND_CHILDREN,
-    'license': ENTITY_LICENSES,
-    'licence': ENTITY_LICENSES,
-    'licences': ENTITY_LICENSES,
-    'org': ENTITY_OU,
-    'org_and_child': ENTITY_OU_AND_CHILDREN,
-    'org_and_children': ENTITY_OU_AND_CHILDREN,
-    'orgs': ENTITY_OUS,
-    'orgs_and_child': ENTITY_OUS_AND_CHILDREN,
-    'orgs_and_children': ENTITY_OUS_AND_CHILDREN,
-    'ou_and_child': ENTITY_OU_AND_CHILDREN,
-    'ous_and_child': ENTITY_OUS_AND_CHILDREN,
+    u'crosorg': ENTITY_CROS_OU,
+    u'crosorg_and_child': ENTITY_CROS_OU_AND_CHILDREN,
+    u'crosorg_and_children': ENTITY_CROS_OU_AND_CHILDREN,
+    u'crosorgs': ENTITY_CROS_OUS,
+    u'crosorgs_and_child': ENTITY_CROS_OUS_AND_CHILDREN,
+    u'crosorgs_and_children': ENTITY_CROS_OUS_AND_CHILDREN,
+    u'crosou_and_child': ENTITY_CROS_OU_AND_CHILDREN,
+    u'crosou_and_childen': ENTITY_CROS_OU_AND_CHILDREN,
+    u'crosous_and_child': ENTITY_CROS_OUS_AND_CHILDREN,
+    u'cros_org': ENTITY_CROS_OU,
+    u'cros_org_and_child': ENTITY_CROS_OU_AND_CHILDREN,
+    u'cros_org_and_children': ENTITY_CROS_OU_AND_CHILDREN,
+    u'cros_orgs': ENTITY_CROS_OUS,
+    u'cros_orgs_and_child': ENTITY_CROS_OUS_AND_CHILDREN,
+    u'cros_orgs_and_children': ENTITY_CROS_OUS_AND_CHILDREN,
+    u'cros_ou_and_child': ENTITY_CROS_OU_AND_CHILDREN,
+    u'cros_ou_and_childen': ENTITY_CROS_OU_AND_CHILDREN,
+    u'cros_ous_and_child': ENTITY_CROS_OUS_AND_CHILDREN,
+    u'license': ENTITY_LICENSES,
+    u'licence': ENTITY_LICENSES,
+    u'licences': ENTITY_LICENSES,
+    u'org': ENTITY_OU,
+    u'org_and_child': ENTITY_OU_AND_CHILDREN,
+    u'org_and_children': ENTITY_OU_AND_CHILDREN,
+    u'orgs': ENTITY_OUS,
+    u'orgs_and_child': ENTITY_OUS_AND_CHILDREN,
+    u'orgs_and_children': ENTITY_OUS_AND_CHILDREN,
+    u'ou_and_child': ENTITY_OU_AND_CHILDREN,
+    u'ous_and_child': ENTITY_OUS_AND_CHILDREN,
     }
 # CL entity source selectors
-  ENTITY_SELECTOR_ALL = 'all'
-  ENTITY_SELECTOR_CSV = 'csv'
-  ENTITY_SELECTOR_CSVFILE = 'csvfile'
-  ENTITY_SELECTOR_FILE = 'file'
-  ENTITY_SELECTOR_DATAFILE = 'datafile'
-  ENTITY_SELECTOR_CROSCSV = 'croscsv'
-  ENTITY_SELECTOR_CROSCSVFILE = 'croscsvfile'
-  ENTITY_SELECTOR_CROSFILE = 'crosfile'
-  ENTITY_SELECTOR_CSVKMD = 'csvkmd'
-  ENTITY_SELECTOR_CSVSUBKEY = 'csvsubkey'
-  ENTITY_SELECTOR_CSVDATA = 'csvdata'
-  ENTITY_SELECTOR_CSVCROS = 'csvcros'
+  ENTITY_SELECTOR_ALL = u'all'
+  ENTITY_SELECTOR_CSV = u'csv'
+  ENTITY_SELECTOR_CSVFILE = u'csvfile'
+  ENTITY_SELECTOR_FILE = u'file'
+  ENTITY_SELECTOR_DATAFILE = u'datafile'
+  ENTITY_SELECTOR_CROSCSV = u'croscsv'
+  ENTITY_SELECTOR_CROSCSVFILE = u'croscsvfile'
+  ENTITY_SELECTOR_CROSFILE = u'crosfile'
+  ENTITY_SELECTOR_CSVKMD = u'csvkmd'
+  ENTITY_SELECTOR_CSVSUBKEY = u'csvsubkey'
+  ENTITY_SELECTOR_CSVDATA = u'csvdata'
+  ENTITY_SELECTOR_CSVCROS = u'csvcros'
 #
   CROS_ENTITY_SELECTORS = [
     ENTITY_SELECTOR_CROSCSV,
@@ -153,8 +153,8 @@ class GamCLArgs(object):
     ENTITY_USERS,
     ]
 #
-  ENTITY_ALL_CROS = ENTITY_SELECTOR_ALL+' '+ENTITY_CROS
-  ENTITY_ALL_USERS = ENTITY_SELECTOR_ALL+' '+ENTITY_USERS
+  ENTITY_ALL_CROS = ENTITY_SELECTOR_ALL+u' '+ENTITY_CROS
+  ENTITY_ALL_USERS = ENTITY_SELECTOR_ALL+u' '+ENTITY_USERS
 #
   ENTITY_SELECTOR_ALL_SUBTYPES_MAP = {
     ENTITY_CROS: ENTITY_ALL_CROS,
@@ -177,294 +177,301 @@ class GamCLArgs(object):
     ENTITY_TEACHERS,
     ]
 # Command line batch/csv/loop keywords
-  GAM_CMD = 'gam'
-  COMMIT_BATCH_CMD = 'commit-batch'
-  LOOP_CMD = 'loop'
+  GAM_CMD = u'gam'
+  COMMIT_BATCH_CMD = u'commit-batch'
+  LOOP_CMD = u'loop'
 # Command line select/config/redirect arguments
-  SELECT_CMD = 'select'
-  CONFIG_CMD = 'config'
-  REDIRECT_CMD = 'redirect'
+  SELECT_CMD = u'select'
+  CONFIG_CMD = u'config'
+  REDIRECT_CMD = u'redirect'
   GAM_META_COMMANDS = [SELECT_CMD, CONFIG_CMD, REDIRECT_CMD,]
 # Command line arguments
-  ARG_3LO = '3lo'
-  ARG_ACL = 'acl'
-  ARG_ACLS = 'acls'
-  ARG_ADMIN = 'admin'
-  ARG_ADMINS = 'admins'
-  ARG_ADMINROLES = 'adminroles'
-  ARG_ALIAS = 'alias'
-  ARG_ALIASES = 'aliases'
-  ARG_APPLICATIONSPECIFICPASSWORDS = 'applicationspecificpasswords'
-  ARG_ASP = 'asp'
-  ARG_ASPS = 'asps'
-  ARG_BACKUPCODE = 'backupcode'
-  ARG_BACKUPCODES = 'backupcodes'
-  ARG_CALATTENDEES = 'calattendees'
-  ARG_CALENDAR = 'calendar'
-  ARG_CALENDARS = 'calendars'
-  ARG_CALENDARACL = 'calendaracl'
-  ARG_CALENDARACLS = 'calendaracls'
-  ARG_CALSETTINGS = 'calsettings'
-  ARG_CONTACT = 'contact'
-  ARG_CONTACTS = 'contacts'
-  ARG_CONTACT_GROUP = 'contactgroup'
-  ARG_CONTACT_GROUPS = 'contactgroups'
-  ARG_COURSE = 'course'
-  ARG_COURSES = 'courses'
-  ARG_COURSE_PARTICIPANTS = 'course-participants'
-  ARG_CROS = 'cros'
-  ARG_CROSES = 'croses'
-  ARG_CUSTOMER = 'customer'
-  ARG_DATA_TRANSFER = 'datatransfer'
-  ARG_DATA_TRANSFERS = 'datatransfers'
-  ARG_DELEGATE = 'delegate'
-  ARG_DELEGATES = 'delegates'
-  ARG_DOMAIN = 'domain'
-  ARG_DOMAINS = 'domains'
-  ARG_DOMAIN_ALIAS = 'domainalias'
-  ARG_DOMAIN_ALIASES = 'domainaliases'
-  ARG_DRIVE = 'drive'
-  ARG_DRIVEACTIVITY = 'driveactivity'
-  ARG_DRIVEFILE = 'drivefile'
-  ARG_DRIVEFILEACL = 'drivefileacl'
-  ARG_DRIVEFILEACLS = 'drivefileacls'
-  ARG_DRIVESETTINGS = 'drivesettings'
-  ARG_DRIVETRASH = 'drivetrash'
-  ARG_EMPTYDRIVEFOLDERS = 'emptydrivefolders'
-  ARG_EVENT = 'event'
-  ARG_EVENTS = 'events'
-  ARG_FILEINFO = 'fileinfo'
-  ARG_FILELIST = 'filelist'
-  ARG_FILEPATH = 'filepath'
-  ARG_FILEREVISIONS = 'filerevisions'
-  ARG_FILETREE = 'filetree'
-  ARG_FILTER = 'filter'
-  ARG_FILTERS = 'filters'
-  ARG_FORWARD = 'forward'
-  ARG_FORWARDINGADDRESS = 'forwardingaddress'
-  ARG_FORWARDINGADDRESSES = 'forwardingaddresses'
-  ARG_GAL = 'gal'
-  ARG_GMAILPROFILE = 'gmailprofile'
-  ARG_GPLUSPROFILE = 'gplusprofile'
-  ARG_GROUP = 'group'
-  ARG_GROUPS = 'groups'
-  ARG_GROUP_MEMBERS = 'group-members'
-  ARG_GUARDIAN = 'guardian'
-  ARG_GUARDIANS = 'guardians'
-  ARG_GUARDIAN_INVITATION = 'guardianinvitation'
-  ARG_GUARDIAN_INVITATIONS = 'guardianinvitations'
-  ARG_IMAP = 'imap'
-  ARG_IMAP4 = 'imap4'
-  ARG_INSTANCE = 'instance'
-  ARG_LABEL = 'label'
-  ARG_LABELS = 'labels'
-  ARG_LABELSETTINGS = 'labelsettings'
-  ARG_LICENCE = 'licence'
-  ARG_LICENCES = 'licences'
-  ARG_LICENSE = 'license'
-  ARG_LICENSES = 'licenses'
-  ARG_LOGO = 'logo'
-  ARG_MESSAGE = 'message'
-  ARG_MESSAGES = 'messages'
-  ARG_MOBILE = 'mobile'
-  ARG_MOBILES = 'mobiles'
-  ARG_NOTE = 'note'
-  ARG_NOTIFICATION = 'notification'
-  ARG_OAUTH = 'oauth'
-  ARG_ORG = 'org'
-  ARG_ORGS = 'orgs'
-  ARG_ORGTREE = 'orgtree'
-  ARG_OWNERSHIP = 'ownership'
-  ARG_PERMISSIONS = 'permissions'
-  ARG_PHOTO = 'photo'
-  ARG_POP = 'pop'
-  ARG_POP3 = 'pop3'
-  ARG_PRINTER = 'printer'
-  ARG_PRINTERS = 'printers'
-  ARG_PRINTJOBS = 'printjobs'
-  ARG_PROFILE = 'profile'
-  ARG_PROJECT = 'project'
-  ARG_PROJECTS = 'projects'
-  ARG_RESELLERCUSTOMER = 'resellercustomer'
-  ARG_RESELLERCUSTOMERS = 'resellercustomers'
-  ARG_RESELLERSUBSCRIPTION = 'resellersubscription'
-  ARG_RESELLERSUBSCRIPTIONS = 'resellersubscriptions'
-  ARG_RESOLDCUSTOMER = 'resoldcustomer'
-  ARG_RESOLDCUSTOMERS = 'resoldcustomers'
-  ARG_RESOLDSUBSCRIPTION = 'resoldsubscription'
-  ARG_RESOLDSUBSCRIPTIONS = 'resoldsubscriptions'
-  ARG_RESOURCE = 'resource'
-  ARG_RESOURCES = 'resources'
-  ARG_SCHEMA = 'schema'
-  ARG_SCHEMAS = 'schemas'
-  ARG_SECCALS = 'seccals'
-  ARG_SENDAS = 'sendas'
-  ARG_SERVICEACCOUNT = 'serviceaccount'
-  ARG_SIG = 'sig'
-  ARG_SIGNATURE = 'signature'
-  ARG_SITE = 'site'
-  ARG_SITES = 'sites'
-  ARG_SITEACL = 'siteacl'
-  ARG_SITEACLS = 'siteacls'
-  ARG_SITEACTIVITY = 'siteactivity'
-  ARG_SMIME = 'smime'
-  ARG_SMIMES = 'smimes'
-  ARG_THREAD = 'thread'
-  ARG_THREADS = 'threads'
-  ARG_TOKEN = 'token'
-  ARG_TOKENS = 'tokens'
-  ARG_TRANSFERAPPS = 'transferapps'
-  ARG_USER = 'user'
-  ARG_USERS = 'users'
-  ARG_VACATION = 'vacation'
-  ARG_VERIFICATIONCODES = 'verificationcodes'
-  ARG_VERIFY = 'verify'
+  ARG_3LO = u'3lo'
+  ARG_ACL = u'acl'
+  ARG_ACLS = u'acls'
+  ARG_ADMIN = u'admin'
+  ARG_ADMINS = u'admins'
+  ARG_ADMINROLES = u'adminroles'
+  ARG_ALIAS = u'alias'
+  ARG_ALIASES = u'aliases'
+  ARG_APPLICATIONSPECIFICPASSWORDS = u'applicationspecificpasswords'
+  ARG_ASP = u'asp'
+  ARG_ASPS = u'asps'
+  ARG_BACKUPCODE = u'backupcode'
+  ARG_BACKUPCODES = u'backupcodes'
+  ARG_CALATTENDEES = u'calattendees'
+  ARG_CALENDAR = u'calendar'
+  ARG_CALENDARS = u'calendars'
+  ARG_CALENDARACL = u'calendaracl'
+  ARG_CALENDARACLS = u'calendaracls'
+  ARG_CALSETTINGS = u'calsettings'
+  ARG_CONTACT = u'contact'
+  ARG_CONTACTS = u'contacts'
+  ARG_CONTACT_GROUP = u'contactgroup'
+  ARG_CONTACT_GROUPS = u'contactgroups'
+  ARG_COURSE = u'course'
+  ARG_COURSES = u'courses'
+  ARG_COURSE_PARTICIPANTS = u'course-participants'
+  ARG_CROS = u'cros'
+  ARG_CROSES = u'croses'
+  ARG_CUSTOMER = u'customer'
+  ARG_DATA_TRANSFER = u'datatransfer'
+  ARG_DATA_TRANSFERS = u'datatransfers'
+  ARG_DELEGATE = u'delegate'
+  ARG_DELEGATES = u'delegates'
+  ARG_DOMAIN = u'domain'
+  ARG_DOMAINS = u'domains'
+  ARG_DOMAIN_ALIAS = u'domainalias'
+  ARG_DOMAIN_ALIASES = u'domainaliases'
+  ARG_DRIVE = u'drive'
+  ARG_DRIVEACTIVITY = u'driveactivity'
+  ARG_DRIVEFILE = u'drivefile'
+  ARG_DRIVEFILEACL = u'drivefileacl'
+  ARG_DRIVEFILEACLS = u'drivefileacls'
+  ARG_DRIVESETTINGS = u'drivesettings'
+  ARG_DRIVETRASH = u'drivetrash'
+  ARG_EMPTYDRIVEFOLDERS = u'emptydrivefolders'
+  ARG_EVENT = u'event'
+  ARG_EVENTS = u'events'
+  ARG_FILEINFO = u'fileinfo'
+  ARG_FILELIST = u'filelist'
+  ARG_FILEPATH = u'filepath'
+  ARG_FILEREVISIONS = u'filerevisions'
+  ARG_FILETREE = u'filetree'
+  ARG_FILTER = u'filter'
+  ARG_FILTERS = u'filters'
+  ARG_FORWARD = u'forward'
+  ARG_FORWARDINGADDRESS = u'forwardingaddress'
+  ARG_FORWARDINGADDRESSES = u'forwardingaddresses'
+  ARG_GAL = u'gal'
+  ARG_GMAILPROFILE = u'gmailprofile'
+  ARG_GPLUSPROFILE = u'gplusprofile'
+  ARG_GROUP = u'group'
+  ARG_GROUPS = u'groups'
+  ARG_GROUP_MEMBERS = u'group-members'
+  ARG_GUARDIAN = u'guardian'
+  ARG_GUARDIANS = u'guardians'
+  ARG_GUARDIAN_INVITATION = u'guardianinvitation'
+  ARG_GUARDIAN_INVITATIONS = u'guardianinvitations'
+  ARG_IMAP = u'imap'
+  ARG_IMAP4 = u'imap4'
+  ARG_INSTANCE = u'instance'
+  ARG_LABEL = u'label'
+  ARG_LABELS = u'labels'
+  ARG_LABELSETTINGS = u'labelsettings'
+  ARG_LICENCE = u'licence'
+  ARG_LICENCES = u'licences'
+  ARG_LICENSE = u'license'
+  ARG_LICENSES = u'licenses'
+  ARG_LOGO = u'logo'
+  ARG_MESSAGE = u'message'
+  ARG_MESSAGES = u'messages'
+  ARG_MOBILE = u'mobile'
+  ARG_MOBILES = u'mobiles'
+  ARG_NOTE = u'note'
+  ARG_NOTIFICATION = u'notification'
+  ARG_OAUTH = u'oauth'
+  ARG_ORG = u'org'
+  ARG_ORGS = u'orgs'
+  ARG_ORGTREE = u'orgtree'
+  ARG_OWNERSHIP = u'ownership'
+  ARG_PERMISSIONS = u'permissions'
+  ARG_PHOTO = u'photo'
+  ARG_POP = u'pop'
+  ARG_POP3 = u'pop3'
+  ARG_PRINTER = u'printer'
+  ARG_PRINTERS = u'printers'
+  ARG_PRINTJOBS = u'printjobs'
+  ARG_PROFILE = u'profile'
+  ARG_PROJECT = u'project'
+  ARG_PROJECTS = u'projects'
+  ARG_RESELLERCUSTOMER = u'resellercustomer'
+  ARG_RESELLERCUSTOMERS = u'resellercustomers'
+  ARG_RESELLERSUBSCRIPTION = u'resellersubscription'
+  ARG_RESELLERSUBSCRIPTIONS = u'resellersubscriptions'
+  ARG_RESOLDCUSTOMER = u'resoldcustomer'
+  ARG_RESOLDCUSTOMERS = u'resoldcustomers'
+  ARG_RESOLDSUBSCRIPTION = u'resoldsubscription'
+  ARG_RESOLDSUBSCRIPTIONS = u'resoldsubscriptions'
+  ARG_RESOURCE = u'resource'
+  ARG_RESOURCES = u'resources'
+  ARG_SCHEMA = u'schema'
+  ARG_SCHEMAS = u'schemas'
+  ARG_SECCALS = u'seccals'
+  ARG_SENDAS = u'sendas'
+  ARG_SERVICEACCOUNT = u'serviceaccount'
+  ARG_SIG = u'sig'
+  ARG_SIGNATURE = u'signature'
+  ARG_SITE = u'site'
+  ARG_SITES = u'sites'
+  ARG_SITEACL = u'siteacl'
+  ARG_SITEACLS = u'siteacls'
+  ARG_SITEACTIVITY = u'siteactivity'
+  ARG_SMIME = u'smime'
+  ARG_SMIMES = u'smimes'
+  ARG_TEAMDRIVE = u'teamdrive'
+  ARG_TEAMDRIVES = u'teamdrives'
+  ARG_THREAD = u'thread'
+  ARG_THREADS = u'threads'
+  ARG_TOKEN = u'token'
+  ARG_TOKENS = u'tokens'
+  ARG_TRANSFERAPPS = u'transferapps'
+  ARG_USER = u'user'
+  ARG_USERS = u'users'
+  ARG_VACATION = u'vacation'
+  ARG_VERIFICATIONCODES = u'verificationcodes'
+  ARG_VERIFY = u'verify'
 # Lists of arguments for use in checkArgumentPresent
-  CLEAR_NONE_ARGUMENT = ['clear', 'none',]
-  CLIENTID_ARGUMENT = ['clientid',]
-  COLUMN_DELIMITER_ARGUMENT = ['columndelimiter',]
-  DATA_ARGUMENT = ['data',]
-  FILE_ARGUMENT = ['file',]
-  FROM_ARGUMENT = ['from',]
-  LOGO_ARGUMENT = ['logo',]
-  MOVE_ADD_ARGUMENT = ['move', 'add',]
-  MULTIVALUE_ARGUMENT = ['multivalued', 'multivalue', 'value', 'multinonempty']
-  NOINFO_ARGUMENT = ['noinfo',]
-  NOTSUSPENDED_ARGUMENT = ['notsuspended',]
-  ORG_OU_ARGUMENT = ['org', 'ou',]
-  PRIMARY_NOTPRIMARY_CHOICE_MAP = {'primary': True, 'notprimary': False}
-  QUERY_ARGUMENT = ['query',]
-  SHOWTITLES_ARGUMENT = ['showtitles',]
-  TODRIVE_ARGUMENT = ['todrive',]
-  TO_ARGUMENT = ['to',]
-  UNSTRUCTURED_FORMATTED_ARGUMENT = ['unstructured', 'formatted',]
+  CLEAR_NONE_ARGUMENT = [u'clear', u'none',]
+  CLIENTID_ARGUMENT = [u'clientid',]
+  COLUMN_DELIMITER_ARGUMENT = [u'columndelimiter',]
+  DATA_ARGUMENT = [u'data',]
+  FILE_ARGUMENT = [u'file',]
+  FROM_ARGUMENT = [u'from',]
+  LOGO_ARGUMENT = [u'logo',]
+  MOVE_ADD_ARGUMENT = [u'move', u'add',]
+  MULTIVALUE_ARGUMENT = [u'multivalued', u'multivalue', u'value', u'multinonempty']
+  NOINFO_ARGUMENT = [u'noinfo',]
+  NOTSUSPENDED_ARGUMENT = [u'notsuspended',]
+  ORG_OU_ARGUMENT = [u'org', u'ou',]
+  PRIMARY_NOTPRIMARY_CHOICE_MAP = {u'primary': True, u'notprimary': False}
+  QUERY_ARGUMENT = [u'query',]
+  SHOWTITLES_ARGUMENT = [u'showtitles',]
+  TODRIVE_ARGUMENT = [u'todrive',]
+  TO_ARGUMENT = [u'to',]
+  UNSTRUCTURED_FORMATTED_ARGUMENT = [u'unstructured', u'formatted',]
 
 # Object BNF names
-  OB_ACCESS_TOKEN = 'AccessToken'
-  OB_ACL_SCOPE = 'ACLScope'
-  OB_ACL_SCOPE_ENTITY = 'ACLScopeEntity'
-  OB_ARGUMENT = 'argument'
-  OB_ASP_ID = 'AspID'
-  OB_CALENDAR_ENTITY = 'CalendarEntity'
-  OB_CALENDAR_ITEM = 'CalendarItem'
-  OB_CHAR_SET = 'CharacterSet'
-  OB_CIDR_NETMASK = 'CIDRnetmask'
-  OB_CLIENT_ID = 'ClientID'
-  OB_CONTACT_EMAIL_TYPE = 'ContactEmailType'
-  OB_CONTACT_ENTITY = 'ContactEntity'
-  OB_CONTACT_GROUP_ENTITY = 'ContactGroupEntity'
-  OB_CONTACT_GROUP_ITEM = 'ContactGroupItem'
-  OB_COURSE_ALIAS = 'CourseAlias'
-  OB_COURSE_ALIAS_ENTITY = 'CourseAliasEntity'
-  OB_COURSE_ENTITY = 'CourseEntity'
-  OB_COURSE_ID = 'CourseID'
-  OB_CROS_DEVICE_ENTITY = 'CrOSDeviceEntity'
-  OB_CROS_ENTITY = 'CrOSEntity'
-  OB_CUSTOMER_ID = 'CustomerID'
-  OB_CUSTOMER_AUTH_TOKEN = 'CustomerAuthToken'
-  OB_DELIMITER = 'Delimiter'
-  OB_DOMAIN_ALIAS = 'DomainAlias'
-  OB_DOMAIN_NAME = 'DomainName'
-  OB_DOMAIN_NAME_ENTITY = 'DomainNameEntity'
-  OB_DRIVE_FILE_ENTITY = 'DriveFileEntity'
-  OB_DRIVE_FILE_ID = 'DriveFileID'
-  OB_DRIVE_FILE_NAME = 'DriveFileName'
-  OB_DRIVE_FILE_PERMISSION_ENTITY = 'DriveFilePermissionEntity'
-  OB_DRIVE_FILE_PERMISSION_ID = 'DriveFilePermissionID'
-  OB_DRIVE_FILE_PERMISSION_ID_ENTITY = 'DriveFilePermissionIDEntity'
-  OB_DRIVE_FOLDER_ID = 'DriveFolderID'
-  OB_DRIVE_FOLDER_ID_LIST = 'DriveFolderIDList'
-  OB_DRIVE_FOLDER_NAME = 'DriveFolderName'
-  OB_EMAIL_ADDRESS = 'EmailAddress'
-  OB_EMAIL_ADDRESS_ENTITY = 'EmailAddressEntity'
-  OB_EMAIL_ADDRESS_OR_UID = 'EmailAaddress|UniqueID'
-  OB_ENTITY = 'Entity'
-  OB_ENTITY_TYPE = 'EntityType'
-  OB_EVENT_ID = 'EventID'
-  OB_EVENT_ID_ENTITY = 'EventIDEntity'
-  OB_FIELD_NAME = 'FieldName'
+  OB_ACCESS_TOKEN = u'AccessToken'
+  OB_ACL_SCOPE = u'ACLScope'
+  OB_ACL_SCOPE_ENTITY = u'ACLScopeEntity'
+  OB_ARGUMENT = u'argument'
+  OB_ASP_ID = u'AspID'
+  OB_CALENDAR_ENTITY = u'CalendarEntity'
+  OB_CALENDAR_ITEM = u'CalendarItem'
+  OB_CHAR_SET = u'CharacterSet'
+  OB_CIDR_NETMASK = u'CIDRnetmask'
+  OB_CLIENT_ID = u'ClientID'
+  OB_CONTACT_EMAIL_TYPE = u'ContactEmailType'
+  OB_CONTACT_ENTITY = u'ContactEntity'
+  OB_CONTACT_GROUP_ENTITY = u'ContactGroupEntity'
+  OB_CONTACT_GROUP_ITEM = u'ContactGroupItem'
+  OB_COURSE_ALIAS = u'CourseAlias'
+  OB_COURSE_ALIAS_ENTITY = u'CourseAliasEntity'
+  OB_COURSE_ENTITY = u'CourseEntity'
+  OB_COURSE_ID = u'CourseID'
+  OB_CROS_DEVICE_ENTITY = u'CrOSDeviceEntity'
+  OB_CROS_ENTITY = u'CrOSEntity'
+  OB_CUSTOMER_ID = u'CustomerID'
+  OB_CUSTOMER_AUTH_TOKEN = u'CustomerAuthToken'
+  OB_DELIMITER = u'Delimiter'
+  OB_DOMAIN_ALIAS = u'DomainAlias'
+  OB_DOMAIN_NAME = u'DomainName'
+  OB_DOMAIN_NAME_ENTITY = u'DomainNameEntity'
+  OB_DRIVE_FILE_ENTITY = u'DriveFileEntity'
+  OB_DRIVE_FILE_ID = u'DriveFileID'
+  OB_DRIVE_FILE_NAME = u'DriveFileName'
+  OB_DRIVE_FILE_PERMISSION_ENTITY = u'DriveFilePermissionEntity'
+  OB_DRIVE_FILE_PERMISSION_ID = u'DriveFilePermissionID'
+  OB_DRIVE_FILE_PERMISSION_ID_ENTITY = u'DriveFilePermissionIDEntity'
+  OB_DRIVE_FOLDER_ID = u'DriveFolderID'
+  OB_DRIVE_FOLDER_ID_LIST = u'DriveFolderIDList'
+  OB_DRIVE_FOLDER_NAME = u'DriveFolderName'
+  OB_EMAIL_ADDRESS = u'EmailAddress'
+  OB_EMAIL_ADDRESS_ENTITY = u'EmailAddressEntity'
+  OB_EMAIL_ADDRESS_OR_UID = u'EmailAaddress|UniqueID'
+  OB_ENTITY = u'Entity'
+  OB_ENTITY_TYPE = u'EntityType'
+  OB_EVENT_ID = u'EventID'
+  OB_EVENT_ID_ENTITY = u'EventIDEntity'
+  OB_FIELD_NAME = u'FieldName'
   OB_FIELD_NAME_LIST = "FieldNameList"
-  OB_FILE_NAME = 'FileName'
-  OB_FILE_NAME_FIELD_NAME = OB_FILE_NAME+'(:'+OB_FIELD_NAME+')+'
-  OB_FILE_NAME_OR_URL = 'FileName|URL'
-  OB_FILE_PATH = 'FilePath'
-  OB_FILTER_ID_ENTITY = 'FilterIDEntity'
-  OB_FORMAT_LIST = 'FormatList'
-  OB_GAM_ARGUMENT_LIST = 'GAM argument list'
-  OB_GROUP_ENTITY = 'GroupEntity'
-  OB_GROUP_ITEM = 'GroupItem'
-  OB_GUARDIAN_INVITATION_ID = 'GuardianInvitationID'
-  OB_GUARDIAN_ITEM = 'GuardianItem'
-  OB_GUARDIAN_STATE_LIST = 'GuardianStateList'
-  OB_HOST_NAME = 'HostName'
-  OB_JOB_ID = 'JobID'
-  OB_JOB_OR_PRINTER_ID = 'JobID|PrinterID'
-  OB_LABEL_NAME = 'LabelName'
-  OB_LABEL_REPLACEMENT = 'LabelReplacement'
-  OB_MESSAGE_ID = 'MessageID'
-  OB_MOBILE_DEVICE_ENTITY = 'MobileDeviceEntity'
-  OB_MOBILE_ENTITY = 'MobileEntity'
-  OB_NAME = 'Name'
-  OB_NOTIFICATION_ID = 'NotificationID'
-  OB_ORGUNIT_ENTITY = 'OrgUnitEntity'
-  OB_ORGUNIT_ITEM = 'OrgUnitItem'
-  OB_ORGUNIT_PATH = 'OrgUnitPath'
-  OB_PARAMETER_KEY = 'ParameterKey'
-  OB_PARAMETER_VALUE = 'ParameterValue'
-  OB_PASSWORD = 'Password'
-  OB_PHOTO_FILENAME_PATTERN = 'FilenameNamePattern'
-  OB_PRINTER_ID = 'PrinterID'
-  OB_PRINTER_ID_ENTITY = 'PrinterIDEntity'
-  OB_PRINTJOB_AGE = 'PrintJobAge'
-  OB_PRINTJOB_ID = 'PrintJobID'
-  OB_PRODUCT_ID = 'ProductID'
-  OB_PRODUCT_ID_LIST = 'ProductIDList'
-  OB_PROPERTY_KEY = 'PropertyKey'
-  OB_PROPERTY_VALUE = 'PropertyValue'
-  OB_QUERY = 'Query'
-  OB_RECURRENCE = 'RRULE EXRULE RDATE and EXDATE lines'
-  OB_REQUEST_ID = 'RequestID'
-  OB_RESOURCE_ENTITY = 'ResourceEntity'
-  OB_RESOURCE_ID = 'ResourceID'
-  OB_RE_PATTERN = 'REPattern'
-  OB_ROLE_ASSIGNMENT_ID = 'RoleAssignmentId'
-  OB_ROLE_ID = 'RoleId'
-  OB_ROLE_LIST = 'RoleList'
-  OB_SCHEMA_ENTITY = 'SchemaEntity'
-  OB_SCHEMA_NAME = 'SchemaName'
-  OB_SCHEMA_NAME_FIELD_NAME = 'SchemaName.FieldName'
-  OB_SCHEMA_NAME_LIST = 'SchemaNameList'
-  OB_SECTION_NAME = 'SectionName'
-  OB_SERVICE_NAME = 'ServiceName'
-  OB_SITE_ENTITY = 'SiteEntity'
-  OB_SKU_ID = 'SKUID'
-  OB_SKU_ID_LIST = 'SKUIDList'
-  OB_SMIME_ID = 'S/MIMEID'
-  OB_STRING = 'String'
-  OB_STUDENT_ITEM = 'StudentItem'
-  OB_TAG = 'Tag'
-  OB_THREAD_ID = 'ThreadID'
-  OB_TRANSFER_ID = 'TransferID'
-  OB_URI = 'URI'
-  OB_URL = 'URL'
-  OB_USER_ENTITY = 'UserEntity'
-  OB_USER_ITEM = 'UserItem'
+  OB_FILE_NAME = u'FileName'
+  OB_FILE_NAME_FIELD_NAME = OB_FILE_NAME+u'(:'+OB_FIELD_NAME+u')+'
+  OB_FILE_NAME_OR_URL = u'FileName|URL'
+  OB_FILE_PATH = u'FilePath'
+  OB_FILTER_ID_ENTITY = u'FilterIDEntity'
+  OB_FORMAT_LIST = u'FormatList'
+  OB_GAM_ARGUMENT_LIST = u'GAM argument list'
+  OB_GROUP_ENTITY = u'GroupEntity'
+  OB_GROUP_ITEM = u'GroupItem'
+  OB_GUARDIAN_INVITATION_ID = u'GuardianInvitationID'
+  OB_GUARDIAN_ITEM = u'GuardianItem'
+  OB_GUARDIAN_STATE_LIST = u'GuardianStateList'
+  OB_HOST_NAME = u'HostName'
+  OB_JOB_ID = u'JobID'
+  OB_JOB_OR_PRINTER_ID = u'JobID|PrinterID'
+  OB_LABEL_NAME = u'LabelName'
+  OB_LABEL_REPLACEMENT = u'LabelReplacement'
+  OB_MESSAGE_ID = u'MessageID'
+  OB_MOBILE_DEVICE_ENTITY = u'MobileDeviceEntity'
+  OB_MOBILE_ENTITY = u'MobileEntity'
+  OB_NAME = u'Name'
+  OB_NOTIFICATION_ID = u'NotificationID'
+  OB_ORGUNIT_ENTITY = u'OrgUnitEntity'
+  OB_ORGUNIT_ITEM = u'OrgUnitItem'
+  OB_ORGUNIT_PATH = u'OrgUnitPath'
+  OB_PARAMETER_KEY = u'ParameterKey'
+  OB_PARAMETER_VALUE = u'ParameterValue'
+  OB_PASSWORD = u'Password'
+  OB_PHOTO_FILENAME_PATTERN = u'FilenameNamePattern'
+  OB_PRINTER_ID = u'PrinterID'
+  OB_PRINTER_ID_ENTITY = u'PrinterIDEntity'
+  OB_PRINTJOB_AGE = u'PrintJobAge'
+  OB_PRINTJOB_ID = u'PrintJobID'
+  OB_PRODUCT_ID = u'ProductID'
+  OB_PRODUCT_ID_LIST = u'ProductIDList'
+  OB_PROPERTY_KEY = u'PropertyKey'
+  OB_PROPERTY_VALUE = u'PropertyValue'
+  OB_QUERY = u'Query'
+  OB_RECURRENCE = u'RRULE EXRULE RDATE and EXDATE lines'
+  OB_REQUEST_ID = u'RequestID'
+  OB_RESOURCE_ENTITY = u'ResourceEntity'
+  OB_RESOURCE_ID = u'ResourceID'
+  OB_RE_PATTERN = u'REPattern'
+  OB_ROLE_ASSIGNMENT_ID = u'RoleAssignmentID'
+  OB_ROLE_ID = u'RoleID'
+  OB_ROLE_LIST = u'RoleList'
+  OB_SCHEMA_ENTITY = u'SchemaEntity'
+  OB_SCHEMA_NAME = u'SchemaName'
+  OB_SCHEMA_NAME_FIELD_NAME = u'SchemaName.FieldName'
+  OB_SCHEMA_NAME_LIST = u'SchemaNameList'
+  OB_SECTION_NAME = u'SectionName'
+  OB_SERVICE_NAME = u'ServiceName'
+  OB_SITE_ENTITY = u'SiteEntity'
+  OB_SKU_ID = u'SKUID'
+  OB_SKU_ID_LIST = u'SKUIDList'
+  OB_SMIME_ID = u'S/MIMEID'
+  OB_STRING = u'String'
+  OB_STUDENT_ITEM = u'StudentItem'
+  OB_TAG = u'Tag'
+  OB_TEAMDRIVE_ID = u'TeamDriveID'
+  OB_TEAMDRIVE_ID_LIST = u'TeamDriveIDList'
+  OB_TEAMDRIVE_NAME = u'TeamDriveName'
+  OB_THREAD_ID = u'ThreadID'
+  OB_TRANSFER_ID = u'TransferID'
+  OB_URI = u'URI'
+  OB_URL = u'URL'
+  OB_USER_ENTITY = u'UserEntity'
+  OB_USER_ITEM = u'UserItem'
 
 #
 # Error message types; keys into ARGUMENT_ERROR_NAMES; arbitrary values but must be unique
-  ARGUMENT_BLANK = 'blnk'
-  ARGUMENT_EMPTY = 'empt'
-  ARGUMENT_EXTRANEOUS = 'extr'
-  ARGUMENT_INVALID = 'inva'
-  ARGUMENT_MISSING = 'miss'
+  ARGUMENT_BLANK = u'blnk'
+  ARGUMENT_DEPRECATED = u'depr'
+  ARGUMENT_EMPTY = u'empt'
+  ARGUMENT_EXTRANEOUS = u'extr'
+  ARGUMENT_INVALID = u'inva'
+  ARGUMENT_MISSING = u'miss'
 # ARGUMENT_ERROR_NAMES[0] is plural,ARGUMENT_ERROR_NAMES[1] is singular
 # These values can be translated into other languages
   ARGUMENT_ERROR_NAMES = {
-    ARGUMENT_BLANK: ['Blank arguments', 'Blank argument'],
-    ARGUMENT_EMPTY: ['Empty arguments', 'Empty argument'],
-    ARGUMENT_EXTRANEOUS: ['Extra arguments', 'Extra argument'],
-    ARGUMENT_INVALID: ['Invalid arguments', 'Invalid argument'],
-    ARGUMENT_MISSING: ['Missing arguments', 'Missing argument'],
+    ARGUMENT_BLANK: [u'Blank arguments', u'Blank argument'],
+    ARGUMENT_DEPRECATED: [u'Deprecated arguments', u'Deprecated argument'],
+    ARGUMENT_EMPTY: [u'Empty arguments', u'Empty argument'],
+    ARGUMENT_EXTRANEOUS: [u'Extra arguments', u'Extra argument'],
+    ARGUMENT_INVALID: [u'Invalid arguments', u'Invalid argument'],
+    ARGUMENT_MISSING: [u'Missing arguments', u'Missing argument'],
     }
 
   def __init__(self):
@@ -534,10 +541,10 @@ class GamCLArgs(object):
 # Mark bad argument in command line
   def CommandLineWithBadArgumentMarked(self, extraneous):
     if extraneous:
-      return 'Command: {0} >>>{1}<<<\n'.format(QuotedArgumentList(self.argv[:self.argvI]),
+      return u'Command: {0} >>>{1}<<<\n'.format(QuotedArgumentList(self.argv[:self.argvI]),
                                                 QuotedArgumentList(self.argv[self.argvI:]))
     if self.ArgumentsRemaining():
-      return 'Command: {0} >>>{1}<<< {2}\n'.format(QuotedArgumentList(self.argv[:self.argvI]),
+      return u'Command: {0} >>>{1}<<< {2}\n'.format(QuotedArgumentList(self.argv[:self.argvI]),
                                                     QuotedArgumentList([self.argv[self.argvI]]),
                                                     QuotedArgumentList(self.argv[self.argvI+1:]))
-    return 'Command: {0} >>><<<\n'.format(QuotedArgumentList(self.argv))
+    return u'Command: {0} >>><<<\n'.format(QuotedArgumentList(self.argv))

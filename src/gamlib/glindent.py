@@ -22,7 +22,7 @@
 
 class GamIndent(object):
 
-  INDENT_SPACES_PER_LEVEL = '  '
+  INDENT_SPACES_PER_LEVEL = u'  '
 
   def __init__(self):
     self.indent = 0
@@ -40,4 +40,4 @@ class GamIndent(object):
     return self.INDENT_SPACES_PER_LEVEL*self.indent
 
   def MultiLineText(self, message, n=0):
-    return message.replace('\n', '\n{0}'.format(self.INDENT_SPACES_PER_LEVEL*(self.indent+n))).rstrip()
+    return message.replace(u'\n', u'\n{0}'.format(self.INDENT_SPACES_PER_LEVEL*(self.indent+n))).rstrip()

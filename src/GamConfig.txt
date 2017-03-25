@@ -117,6 +117,13 @@ csv_output_field_delimiter
 	Each of the gam print courses|groups|users  commands has a delimiter <String> argument that can override this value.
 	Default: ' '
 	Environment variable: GAM_CSV_OUTPUT_FIELD_DELIMITER
+csv_output_users_audit
+	Gam print commands that print objects belonging to users don't print rows for users that don't have any of the objects.
+	The objects are: calendars, calendar ACLs, calendar events, delegates, filters, forwarding addresses, sendas addresses,
+	S/MIME certificates and tokens. When csv_output_users_audit is true, a placeholder row will be output with the
+	user's email address; these rows will useful for auditing purposes only, they can not be successfuly used in a gam csv command.
+	Default: False
+	Environment variable: GAM_CSV_OUTPUT_USERS_AUDIT
 customer_id
 	Google Custmer ID
 	Default: Blank
@@ -214,6 +221,10 @@ todrive_conversion
 	Enable/disable conversion of CSV files to Google Sheets when todrive is specified
 	Default: True
 	Environment variable: GAM_TODRIVE_CONVERSION
+todrive_localcopy
+	Enable/disable saving a local copy of CSV files when todrive is specified
+	Default: False
+	Environment variable: GAM_TODRIVE_LOCALCOPY
 todrive_parent
 	Parent folder for CSV files when todrive is specified; can be id:<DriveFolderID> or <DriveFolderName>
 	Default: root
@@ -248,6 +259,7 @@ Section: DEFAULT
   csv_output_convert_cr_nl = false
   csv_output_column_delimiter = ,
   csv_output_field_delimiter = ' '
+  csv_output_users_audit = false
   customer_id =
   debug_level = 0
   device_max_results = 500
@@ -273,6 +285,7 @@ Section: DEFAULT
   show_multi_info = false
   timezone = utc
   todrive_conversion = true
+  todrive_localcopy = false
   todrive_parent = root
   todrive_timestamp = false
   todrive_user = ''
@@ -362,6 +375,7 @@ csv_input_column_delimiter = ,
 csv_output_convert_cr_nl = false
 csv_output_column_delimiter = ,
 csv_output_field_delimiter = ' '
+csv_output_users_audit = false
 customer_id = 0000000000
 debug_level = 0
 device_max_results = 500
@@ -388,6 +402,7 @@ show_multi_info = false
 timezone = utc
 todrive_conversion = true
 todrive_parent = root
+todrive_localcopy = false
 todrive_timestamp = false
 todrive_user = ''
 user_max_results = 500

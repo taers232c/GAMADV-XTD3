@@ -23,128 +23,128 @@
 class GamAction(object):
 
 # Keys into NAMES; arbitrary values but must be unique
-  ADD = 'add '
-  ADD_OWNERSHIP = 'adow'
-  ARCHIVE = 'arch'
-  BACKUP = 'back'
-  CANCEL = 'canc'
-  CHECK = 'chek'
-  CLAIM = 'clai'
-  CLAIM_OWNERSHIP = 'clow'
-  COPY = 'copy'
-  CREATE = 'crea'
-  DELETE = 'dele'
-  DELETE_EMPTY = 'delm'
-  DEPROVISION = 'depr'
-  DISABLE = 'disa'
-  DOWNLOAD = 'down'
-  EMPTY = 'empt'
-  ENABLE = 'enbl'
-  FETCH = 'fetc'
-  FORWARD = 'forw'
-  INFO = 'info'
-  INITIALIZE = 'init'
-  INVALIDATE = 'inva'
-  LIST = 'list'
-  MERGE = 'merg'
-  MODIFY = 'modi'
-  MOVE = 'move'
-  PERFORM = 'perf'
-  PRINT = 'prin'
-  PURGE = 'purg'
-  REENABLE = 'reen'
-  REGISTER = 'regi'
-  RELABEL = 'rela'
-  REMOVE = 'remo'
-  RENAME = 'rena'
-  REPLACE = 'repl'
-  REPORT = 'repo'
-  RESTORE = 'rest'
-  RESUBMIT = 'resu'
-  RETAIN = 'reta'
-  SAVE = 'save'
-  SET = 'set '
-  SHOW = 'show'
-  SPAM = 'spam'
-  SUBMIT = 'subm'
-  SYNC = 'sync'
-  TRANSFER = 'tran'
-  TRANSFER_OWNERSHIP = 'trow'
-  TRASH = 'tras'
-  UNDELETE = 'unde'
-  UNTRASH = 'untr'
-  UPDATE = 'upda'
-  UPLOAD = 'uplo'
-  WATCH = 'watc'
-  WIPE = 'wipe'
+  ADD = u'add '
+  ADD_OWNERSHIP = u'adow'
+  ARCHIVE = u'arch'
+  BACKUP = u'back'
+  CANCEL = u'canc'
+  CHECK = u'chek'
+  CLAIM = u'clai'
+  CLAIM_OWNERSHIP = u'clow'
+  COPY = u'copy'
+  CREATE = u'crea'
+  DELETE = u'dele'
+  DELETE_EMPTY = u'delm'
+  DEPROVISION = u'depr'
+  DISABLE = u'disa'
+  DOWNLOAD = u'down'
+  EMPTY = u'empt'
+  ENABLE = u'enbl'
+  FETCH = u'fetc'
+  FORWARD = u'forw'
+  INFO = u'info'
+  INITIALIZE = u'init'
+  INVALIDATE = u'inva'
+  LIST = u'list'
+  MERGE = u'merg'
+  MODIFY = u'modi'
+  MOVE = u'move'
+  PERFORM = u'perf'
+  PRINT = u'prin'
+  PURGE = u'purg'
+  REENABLE = u'reen'
+  REGISTER = u'regi'
+  RELABEL = u'rela'
+  REMOVE = u'remo'
+  RENAME = u'rena'
+  REPLACE = u'repl'
+  REPORT = u'repo'
+  RESTORE = u'rest'
+  RESUBMIT = u'resu'
+  RETAIN = u'reta'
+  SAVE = u'save'
+  SET = u'set '
+  SHOW = u'show'
+  SPAM = u'spam'
+  SUBMIT = u'subm'
+  SYNC = u'sync'
+  TRANSFER = u'tran'
+  TRANSFER_OWNERSHIP = u'trow'
+  TRASH = u'tras'
+  UNDELETE = u'unde'
+  UNTRASH = u'untr'
+  UPDATE = u'upda'
+  UPLOAD = u'uplo'
+  WATCH = u'watc'
+  WIPE = u'wipe'
   # Usage:
   # ACTION_NAMES[1] n Items - Delete 10 Users
   # Item xxx ACTION_NAMES[0] - User xxx Deleted
   # These values can be translated into other languages
   _NAMES = {
-    ADD: ['Added', 'Add'],
-    ADD_OWNERSHIP: ['Ownership Added', 'Add Ownership'],
-    ARCHIVE: ['Archived', 'Archive'],
-    BACKUP: ['Backed up', 'Backup'],
-    CANCEL: ['Cancelled', 'Cancel'],
-    CHECK: ['Checked', 'Check'],
-    CLAIM: ['Claimed', 'Claim'],
-    CLAIM_OWNERSHIP: ['Ownership Claimed', 'Claim Ownership'],
-    COPY: ['Copied', 'Copy'],
-    CREATE: ['Created', 'Create'],
-    DELETE: ['Deleted', 'Delete'],
-    DELETE_EMPTY: ['Deleted', 'Delete Empty'],
-    DEPROVISION: ['Deprovisioned', 'Deprovision'],
-    DISABLE: ['Disabled', 'Disable'],
-    DOWNLOAD: ['Downloaded', 'Download'],
-    EMPTY: ['Emptied', 'Empty'],
-    ENABLE: ['Enabled', 'Enable'],
-    FORWARD: ['Forwarded', 'Forward'],
-    INFO: ['Shown', 'Show Info'],
-    INITIALIZE: ['Initialized', 'Initialize'],
-    INVALIDATE: ['Invalidated', 'Invalidate'],
-    LIST: ['Listed', 'List'],
-    MERGE: ['Merged', 'Merge'],
-    MODIFY: ['Modified', 'Modify'],
-    MOVE: ['Moved', 'Move'],
-    PERFORM: ['Action Performed', 'Perfrom Action'],
-    PRINT: ['Printed', 'Print'],
-    PURGE: ['Purged', 'Purge'],
-    REENABLE: ['Reenabled', 'Reenable'],
-    REGISTER: ['Registered', 'Register'],
-    RELABEL: ['Relabeled', 'Relabel'],
-    REMOVE: ['Removed', 'Remove'],
-    RENAME: ['Renamed', 'Rename'],
-    REPLACE: ['Replaced', 'Replace'],
-    REPORT: ['Reported', 'Report'],
-    RESTORE: ['Restored', 'Restore'],
-    RESUBMIT: ['Resubmitted', 'Resubmit'],
-    RETAIN: ['Retained', 'Retain'],
-    SAVE: ['Saved', 'Save'],
-    SET: ['Set', 'Set'],
-    SHOW: ['Shown', 'Show'],
-    SPAM: ['Marked as Spam', 'Mark as Spam'],
-    SUBMIT: ['Submitted', 'Submit'],
-    SYNC: ['Synced', 'Sync'],
-    TRANSFER: ['Transferred', 'Transfer'],
-    TRANSFER_OWNERSHIP: ['Ownership Transferred', 'Transfer Ownership'],
-    TRASH: ['Trashed', 'Trash'],
-    UNDELETE: ['Undeleted', 'Undelete'],
-    UNTRASH: ['Untrashed', 'Untrash'],
-    UPDATE: ['Updated', 'Update'],
-    UPLOAD: ['Uploaded', 'Upload'],
-    WATCH: ['Watched', 'Watch'],
-    WIPE: ['Wiped', 'Wipe'],
+    ADD: [u'Added', u'Add'],
+    ADD_OWNERSHIP: [u'Ownership Added', u'Add Ownership'],
+    ARCHIVE: [u'Archived', u'Archive'],
+    BACKUP: [u'Backed up', u'Backup'],
+    CANCEL: [u'Cancelled', u'Cancel'],
+    CHECK: [u'Checked', u'Check'],
+    CLAIM: [u'Claimed', u'Claim'],
+    CLAIM_OWNERSHIP: [u'Ownership Claimed', u'Claim Ownership'],
+    COPY: [u'Copied', u'Copy'],
+    CREATE: [u'Created', u'Create'],
+    DELETE: [u'Deleted', u'Delete'],
+    DELETE_EMPTY: [u'Deleted', u'Delete Empty'],
+    DEPROVISION: [u'Deprovisioned', u'Deprovision'],
+    DISABLE: [u'Disabled', u'Disable'],
+    DOWNLOAD: [u'Downloaded', u'Download'],
+    EMPTY: [u'Emptied', u'Empty'],
+    ENABLE: [u'Enabled', u'Enable'],
+    FORWARD: [u'Forwarded', u'Forward'],
+    INFO: [u'Shown', u'Show Info'],
+    INITIALIZE: [u'Initialized', u'Initialize'],
+    INVALIDATE: [u'Invalidated', u'Invalidate'],
+    LIST: [u'Listed', u'List'],
+    MERGE: [u'Merged', u'Merge'],
+    MODIFY: [u'Modified', u'Modify'],
+    MOVE: [u'Moved', u'Move'],
+    PERFORM: [u'Action Performed', u'Perfrom Action'],
+    PRINT: [u'Printed', u'Print'],
+    PURGE: [u'Purged', u'Purge'],
+    REENABLE: [u'Reenabled', u'Reenable'],
+    REGISTER: [u'Registered', u'Register'],
+    RELABEL: [u'Relabeled', u'Relabel'],
+    REMOVE: [u'Removed', u'Remove'],
+    RENAME: [u'Renamed', u'Rename'],
+    REPLACE: [u'Replaced', u'Replace'],
+    REPORT: [u'Reported', u'Report'],
+    RESTORE: [u'Restored', u'Restore'],
+    RESUBMIT: [u'Resubmitted', u'Resubmit'],
+    RETAIN: [u'Retained', u'Retain'],
+    SAVE: [u'Saved', u'Save'],
+    SET: [u'Set', u'Set'],
+    SHOW: [u'Shown', u'Show'],
+    SPAM: [u'Marked as Spam', u'Mark as Spam'],
+    SUBMIT: [u'Submitted', u'Submit'],
+    SYNC: [u'Synced', u'Sync'],
+    TRANSFER: [u'Transferred', u'Transfer'],
+    TRANSFER_OWNERSHIP: [u'Ownership Transferred', u'Transfer Ownership'],
+    TRASH: [u'Trashed', u'Trash'],
+    UNDELETE: [u'Undeleted', u'Undelete'],
+    UNTRASH: [u'Untrashed', u'Untrash'],
+    UPDATE: [u'Updated', u'Update'],
+    UPLOAD: [u'Uploaded', u'Upload'],
+    WATCH: [u'Watched', u'Watch'],
+    WIPE: [u'Wiped', u'Wipe'],
     }
   #
-  MODIFIER_FOR = 'for'
-  MODIFIER_FROM = 'from'
-  MODIFIER_IN = 'in'
-  MODIFIER_TO = 'to'
-  MODIFIER_WITH = 'with'
-  MODIFIER_WITH_CONTENT_FROM = 'with content from'
-  PREFIX_NOT = 'Not'
-  SUFFIX_FAILED = 'Failed'
+  MODIFIER_FOR = u'for'
+  MODIFIER_FROM = u'from'
+  MODIFIER_IN = u'in'
+  MODIFIER_TO = u'to'
+  MODIFIER_WITH = u'with'
+  MODIFIER_WITH_CONTENT_FROM = u'with content from'
+  PREFIX_NOT = u'Not'
+  SUFFIX_FAILED = u'Failed'
 
   def __init__(self):
     self.action = None
@@ -162,13 +162,13 @@ class GamAction(object):
     return self._NAMES[self.action][0]
 
   def Failed(self):
-    return '{0} {1}'.format(self._NAMES[self.action][1], self.SUFFIX_FAILED)
+    return u'{0} {1}'.format(self._NAMES[self.action][1], self.SUFFIX_FAILED)
 
   def NotPerformed(self):
-    actionWords = self._NAMES[self.action][0].split(' ')
+    actionWords = self._NAMES[self.action][0].split(u' ')
     if len(actionWords) != 2:
-      return '{0} {1}'.format(self.PREFIX_NOT, self._NAMES[self.action][0])
-    return '{0} {1} {2}'.format(actionWords[0], self.PREFIX_NOT, actionWords[1])
+      return u'{0} {1}'.format(self.PREFIX_NOT, self._NAMES[self.action][0])
+    return u'{0} {1} {2}'.format(actionWords[0], self.PREFIX_NOT, actionWords[1])
 
   def PerformedName(self, action):
     return self._NAMES[action][0]
