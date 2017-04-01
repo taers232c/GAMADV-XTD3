@@ -214,6 +214,7 @@ class GamCLArgs(object):
   ARG_COURSE_PARTICIPANTS = u'course-participants'
   ARG_CROS = u'cros'
   ARG_CROSES = u'croses'
+  ARG_CROS_ACTIVITY = u'crosactivity'
   ARG_CUSTOMER = u'customer'
   ARG_DATA_TRANSFER = u'datatransfer'
   ARG_DATA_TRANSFERS = u'datatransfers'

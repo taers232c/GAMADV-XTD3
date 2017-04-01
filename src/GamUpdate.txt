@@ -1,6 +1,54 @@
-4.45.00
+4.44.25
 
-Add TeamDrive support, switch to Drive Rest V3.
+At Jay's suggestion, added activeTimeRanges.minutes column to gam print cros/crosactivity.
+activeTimeRanges.activeTime: milliseconds
+activeTimeRanges.duration: hh:mm:ss
+activeTimeRanges.minutes: minutes
+
+The column headers for the following print commands have been adjusted to make the most common headers appear at the left
+and the remaining headers be sorted: courses, course-participants, domainaliases, mobile, printers, printjobs.
+
+4.44.24
+
+Added start <Date> and end <Date> arguments to gam info cros and gam print cros to allow filtering of activeTimeRanges.
+These arguments have no effect unless the activetimeranges|timeranges field name is specified.
+If start <Date> is not specifed, then there is no filtering for starting date.
+If end <Date> is not specifed, then there is no filtering for ending date.
+    gam info cros <CrosEntity> [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
+	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+    gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
+	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+    gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>]
+	[orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
+	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+
+Based on code by Jay, added a command to get CrOS device activity.
+    gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>]
+	[orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [listlimit <Number>] [start <Date>] [end <Date>]
+	[delimiter <String>] 
+
+The basic column headers are: deviceId,annotatedAssetId,annotatedLocation,serialNumber,orgUnitPath.
+If recentusers is specified, all of the recent users email addresses, separated by the delimiter <String>,
+are put on a separate row, with header recentUsers.email, in addition to the basic headers.
+If timeranges is specified, each pair of time range values, activeTimeRanges.date and activeTimeRanges.duration,
+are put on a separate row with the basic headers.
+The default is to include both recentusers and timeranges.
+The listlimit <Number> argument limits the number of recent users and time ranges to <Number>. If <Number> equals zero, there is no limit.
+The start <Date> and end <Date> arguments filter the time ranges.
+
+Example: gam print crosactivity recentusers start 2017-03-01 end 2017-03-31 listlimit 10 delimiter " "
+For each CrOS device, thus will yield a space delimited list of the 10 most recent users for the month of March.
+
+4.44.23
+
+When todrive is specified and gam.cfg/no_browser is true, the email regarding the upload will be sent to the
+email address specified in gam.cfg/todrive_user or the email address specifed with the tduser command line argument.
+If neither of these options is specified, the email is sent to the G Suite administrator.
+Previously, the email was always sent to the G Suite administrator.
+
+4.44.22
+
+Use service account for uploading todrive reports and sending email messages when no_browser is true.
 
 4.44.21
 
