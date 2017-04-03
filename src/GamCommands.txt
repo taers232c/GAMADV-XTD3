@@ -818,7 +818,7 @@ gam courses <CourseEntity> delete|remove teachers|students <UserTypeEntity>
 gam courses <CourseEntity> sync teachers|students <UserTypeEntity>
 
 gam print courses [todrive [<ToDriveAttributes>]] [teacher <UserItem>] [student <UserItem>]
-	[delimiter <String>] [alias|aliases] [show all|students|teachers] [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
+	[delimiter <String>] [alias|aliases] [show all|students|teachers] [countsonly] [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
 gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <CourseID>)*|([teacher <UserItem>] [student <UserItem>]) [show all|students|teachers]
 
 # Customer

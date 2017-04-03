@@ -1,3 +1,14 @@
+4.45.00
+
+TeamDrive and Drive REST v3.
+
+4.44.26
+
+Added countsonly argument to gam print courses; in conjunction with show all|students|teachers, it eliminates
+the student/teacher profile columns and outputs only the columns with student/teacher counts.
+    gam print courses [todrive [<ToDriveAttributes>]] [teacher <UserItem>] [student <UserItem>]
+	[delimiter <String>] [alias|aliases] [show all|students|teachers] [countsonly] [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
+
 4.44.25
 
 At Jay's suggestion, added activeTimeRanges.minutes column to gam print cros/crosactivity.
