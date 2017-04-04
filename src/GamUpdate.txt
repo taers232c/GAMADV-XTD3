@@ -1,6 +1,13 @@
-4.50.00
+4.44.27
 
-TeamDrive and Drive REST v3.
+Optimized gam print printjobs and gam printjob fetch when olderthan/newerthan <PrintJobAge> is specified so that
+additional printjobs are not downloaded from Google once a printjob out of range is encountered. For newerthan, this works
+because the printjobs are downloaded in reverse chronological order; once a printjob is found to be older
+than the newerthan <PrintJobAge>, all remaining printjobs can be ignored. To get this optimization for olderthan,
+the download order must be reversed so that the printjobs are downloaded in ascending order. The following three cases are optimized:
+    gam print printjobs newerthan <PrintJobAge>
+    gam print printjobs newerthan <PrintJobAge> orderby createtime descending
+    gam print printjobs olderthan <PrintJobAge> orderby createtime ascending
 
 4.44.26
 

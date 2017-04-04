@@ -35,7 +35,6 @@ import codecs
 import collections
 import csv
 import datetime
-import io
 import json
 import logging
 import mimetypes
@@ -51,6 +50,7 @@ import configparser
 from html.entities import name2codepoint
 from html.parser import HTMLParser
 import http.client as http_client
+import io
 
 from gamlib import glaction
 from gamlib import glcfg as GC
@@ -87,6 +87,13 @@ if sys.version_info[0] == 2:
   def iteritems(d, **kw):
     return d.iteritems(**kw)
 
+  def ISOformatTimeStamp(timestamp):
+    return timestamp.isoformat('T')
+
+  def StringIOobject(buffer=None):
+    if buffer is None:
+      return StringIO.StringIO()
+    return StringIO.StringIO(buffer)
 else:
 # Python 3
   string_types = str,
@@ -97,6 +104,14 @@ else:
 
   def iteritems(d, **kw):
     return iter(d.items(**kw))
+
+  def ISOformatTimeStamp(timestamp):
+    return timestamp.isoformat('T', 'seconds')
+
+  def StringIOobject(buffer=None):
+    if buffer is None:
+      return io.StringIO()
+    return io.StringIO(buffer)
 
 Act = glaction.GamAction()
 Cmd = glclargs.GamCLArgs()
@@ -1310,12 +1325,12 @@ def formatLocalTime(dateTimeStr):
     return dateTimeStr
   try:
     timestamp, _ = iso8601.parse_date(dateTimeStr)
-    return timestamp.astimezone(GC.Values[GC.TIMEZONE]).isoformat()
+    return ISOformatTimeStamp(timestamp.astimezone(GC.Values[GC.TIMEZONE]))
   except iso8601.ParseError:
     return dateTimeStr
 
 def formatLocalTimestamp(timestamp):
-  return datetime.datetime.fromtimestamp(int(timestamp)/1000, GC.Values[GC.TIMEZONE]).isoformat()
+  return ISOformatTimeStamp(datetime.datetime.fromtimestamp(int(timestamp)/1000, GC.Values[GC.TIMEZONE]))
 
 def formatLocalDatestamp(timestamp):
   return datetime.datetime.fromtimestamp(int(timestamp)/1000, GC.Values[GC.TIMEZONE]).strftime(u'%Y-%m-%d')
@@ -1651,7 +1666,7 @@ def openFile(filename, mode=u'rU', encoding=GM.Globals[GM.SYS_ENCODING], continu
     if filename != u'-':
       return open(os.path.expanduser(filename), mode, encoding=encoding)
     if mode.startswith(u'r'):
-      return io.StringIO(text_type(sys.stdin.read()))
+      return StringIOobject(text_type(sys.stdin.read()))
     return sys.stdout
   except IOError as e:
     if continueOnError:
@@ -2002,7 +2017,7 @@ def SetGlobalVariables():
         deleteFile(filename)
         mode = DEFAULT_FILE_APPEND_MODE
       GM.Globals[stdtype][GM.REDIRECT_FD] = openFile(filename, mode)
-    GM.Globals[stdtype][GM.REDIRECT_MULTI_FD] = GM.Globals[stdtype][GM.REDIRECT_FD] if not multi else io.StringIO()
+    GM.Globals[stdtype][GM.REDIRECT_MULTI_FD] = GM.Globals[stdtype][GM.REDIRECT_FD] if not multi else StringIOobject()
     if (stdtype == GM.STDOUT) and (GC.Values[GC.DEBUG_LEVEL] > 0):
       GM.Globals[GM.SAVED_STDOUT] = sys.stdout
       sys.stdout = GM.Globals[stdtype][GM.REDIRECT_MULTI_FD]
@@ -3846,7 +3861,7 @@ def writeCSVfile(csvRows, titles, list_type, todrive):
       return False
 
   def writeCSVToStdout():
-    csvFile = io.StringIO()
+    csvFile = StringIOobject()
     writer = csv.DictWriter(csvFile, fieldnames=titles[u'list'],
                             dialect=u'nixstdout',
                             quoting=csv.QUOTE_MINIMAL, delimiter=str(GM.Globals[GM.CSVFILE][GM.REDIRECT_COLUMN_DELIMITER]))
@@ -3868,7 +3883,7 @@ def writeCSVfile(csvRows, titles, list_type, todrive):
       closeFile(csvFile)
 
   def writeCSVToDrive():
-    csvFile = io.StringIO()
+    csvFile = StringIOobject()
     writer = csv.DictWriter(csvFile, fieldnames=titles[u'list'],
                             dialect=u'nixstdout',
                             quoting=csv.QUOTE_MINIMAL, delimiter=str(GM.Globals[GM.CSVFILE][GM.REDIRECT_COLUMN_DELIMITER]))
@@ -3886,7 +3901,7 @@ def writeCSVfile(csvRows, titles, list_type, todrive):
       title = todrive[u'title'] or u'{0} - {1}'.format(GC.Values[GC.DOMAIN], list_type)
       if todrive[u'timestamp']:
         timestamp = datetime.datetime.now(GC.Values[GC.TIMEZONE])+datetime.timedelta(days=-todrive[u'daysoffset'], hours=-todrive[u'hoursoffset'])
-        title += u' - '+timestamp.isoformat()
+        title += u' - '+ISOformatTimeStamp(timestamp)
       _, drive = buildGAPIServiceObject(API.DRIVE3, todrive[u'user'])
       try:
         result = callGAPI(drive.files(), u'create',
@@ -4153,7 +4168,7 @@ def StdQueueHandler(mpQueue, stdtype, gmGlobals, gcValues):
       if data[1] is not None:
         fd.write(data[1])
       if GC.Values[GC.SHOW_MULTIPROCESS_INFO]:
-        fd.write(PROCESS_MSG.format(pidData[pid][u'queue'], pid, u'End', datetime.datetime.now(GC.Values[GC.TIMEZONE]).isoformat(), data[0], pidData[pid][u'cmd']))
+        fd.write(PROCESS_MSG.format(pidData[pid][u'queue'], pid, u'End', ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])), data[0], pidData[pid][u'cmd']))
       fd.flush()
     except IOError as e:
       systemErrorExit(FILE_ERROR_RC, e)
@@ -4178,7 +4193,7 @@ def StdQueueHandler(mpQueue, stdtype, gmGlobals, gcValues):
   while True:
     pid, dataType, dataItem = mpQueue.get()
     if dataType == GM.REDIRECT_QUEUE_START:
-      pidData[pid] = {u'queue': GM.Globals[stdtype][GM.REDIRECT_QUEUE], u'start': datetime.datetime.now(GC.Values[GC.TIMEZONE]).isoformat(), u'cmd': glclargs.QuotedArgumentList(dataItem)}
+      pidData[pid] = {u'queue': GM.Globals[stdtype][GM.REDIRECT_QUEUE], u'start': ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])), u'cmd': glclargs.QuotedArgumentList(dataItem)}
       if pid == 0 and GC.Values[GC.SHOW_MULTIPROCESS_INFO]:
         fd.write(PROCESS_MSG.format(pidData[pid][u'queue'], pid, u'Start', pidData[pid][u'start'], 0, pidData[pid][u'cmd']))
     elif dataType == GM.REDIRECT_QUEUE_END:
@@ -4220,7 +4235,7 @@ def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr, ar
     GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = mpQueueCSVFile
   del GM.Globals[GM.STDOUT]
   if mpQueueStdout:
-    GM.Globals[GM.STDOUT] = {GM.REDIRECT_NAME: u'', GM.REDIRECT_FD: None, GM.REDIRECT_MULTI_FD: io.StringIO()}
+    GM.Globals[GM.STDOUT] = {GM.REDIRECT_NAME: u'', GM.REDIRECT_FD: None, GM.REDIRECT_MULTI_FD: StringIOobject()}
     if GM.Globals[GM.SAVED_STDOUT] is not None:
       GM.Globals[GM.SAVED_STDOUT] = sys.stdout
       sys.stdout = GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD]
@@ -4230,7 +4245,7 @@ def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr, ar
   del GM.Globals[GM.STDERR]
   if mpQueueStderr:
     if mpQueueStderr is not mpQueueStdout:
-      GM.Globals[GM.STDERR] = {GM.REDIRECT_NAME: u'', GM.REDIRECT_FD: None, GM.REDIRECT_MULTI_FD: io.StringIO()}
+      GM.Globals[GM.STDERR] = {GM.REDIRECT_NAME: u'', GM.REDIRECT_FD: None, GM.REDIRECT_MULTI_FD: StringIOobject()}
       mpQueueStderr.put((pid, GM.REDIRECT_QUEUE_START, args))
     else:
       GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD]
@@ -5136,7 +5151,7 @@ def doReport():
       earliestDateTime = datetime.datetime.now(tzinfo)-datetime.timedelta(days=180)
       if startDateTime < earliestDateTime:
         Cmd.Backup()
-        usageErrorExit(Msg.INVALID_TIME_RANGE.format(u'start', startTime, Msg.GOOGLE_EARLIEST_REPORT_TIME, earliestDateTime.isoformat()))
+        usageErrorExit(Msg.INVALID_TIME_RANGE.format(u'start', startTime, Msg.GOOGLE_EARLIEST_REPORT_TIME, ISOformatTimeStamp(earliestDateTime)))
       if endDateTime and endDateTime < startDateTime:
         Cmd.Backup()
         usageErrorExit(Msg.INVALID_TIME_RANGE.format(u'end', endTime, u'start', startTime))
@@ -5148,9 +5163,9 @@ def doReport():
     elif activityReports and myarg == u'yesterday':
       today = datetime.date.today()
       startDateTime = datetime.datetime(today.year, today.month, today.day, tzinfo=iso8601.UTC)+datetime.timedelta(days=-1)
-      startTime = startDateTime.isoformat()
+      startTime = ISOformatTimeStamp(startDateTime)
       endDateTime = datetime.datetime(today.year, today.month, today.day, tzinfo=iso8601.UTC)+datetime.timedelta(seconds=-1)
-      endTime = endDateTime.isoformat()
+      endTime = ISOformatTimeStamp(endDateTime)
     elif activityReports and myarg == u'event':
       eventName = getString(Cmd.OB_STRING)
     elif activityReports and myarg == u'ip':
@@ -5331,7 +5346,7 @@ def doReport():
                 if item[u'name'] in [u'start_time', u'end_time']:
                   val = item.get(u'intValue')
                   if val is not None:
-                    item[u'dateTimeValue'] = datetime.datetime.fromtimestamp(int(val)-62135683200, GC.Values[GC.TIMEZONE]).isoformat()
+                    item[u'dateTimeValue'] = ISOformatTimeStamp(datetime.datetime.fromtimestamp(int(val)-62135683200, GC.Values[GC.TIMEZONE]))
                     item.pop(u'intValue')
                 if u'value' in item:
                   item[u'value'] = NL_SPACES_PATTERN.sub(u'', item[u'value'])
@@ -14138,10 +14153,10 @@ def getUserAttributes(cd, updateCmd, noUid=False):
 def changeAdminStatus(cd, user, admin_body, i=0, count=0):
   try:
     callGAPI(cd.users(), u'makeAdmin',
-             throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN],
+             throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN],
              userKey=user, body=admin_body)
     printEntityKVList([Ent.USER, user], [Msg.ADMIN_STATUS_CHANGED_TO, admin_body[u'status']], i, count)
-  except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.forbidden):
+  except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden):
     entityUnknownWarning(Ent.USER, user, i, count)
 
 # gam create user <EmailAddress> <UserAttributes>
@@ -14151,19 +14166,17 @@ def doCreateUser():
   user = body[u'primaryEmail']
   try:
     callGAPI(cd.users(), u'insert',
-             throw_reasons=[GAPI.DUPLICATE, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID, GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
+             throw_reasons=[GAPI.DUPLICATE, GAPI.DOMAIN_NOT_FOUND, GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN, GAPI.INVALID, GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
              body=body, fields=u'')
     entityActionPerformed([Ent.USER, user])
     if admin_body:
       changeAdminStatus(cd, user, admin_body)
   except GAPI.duplicate:
     entityDuplicateWarning(Ent.USER, user)
-  except (GAPI.domainNotFound, GAPI.forbidden) as e:
+  except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.invalid) as e:
     entityActionFailedWarning([Ent.USER, user], str(e))
   except GAPI.invalidSchemaValue:
     entityActionFailedWarning([Ent.USER, user], Msg.INVALID_SCHEMA_VALUE)
-  except GAPI.invalid as e:
-    entityActionFailedWarning([Ent.USER, user], str(e))
   except GAPI.invalidOrgunit:
     entityActionFailedWarning([Ent.USER, user], Msg.INVALID_ORGUNIT)
 
@@ -14240,10 +14253,10 @@ def deleteUsers(entityList):
     user = normalizeEmailAddressOrUID(user)
     try:
       callGAPI(cd.users(), u'delete',
-               throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN],
+               throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN],
                userKey=user)
       entityActionPerformed([Ent.USER, user], i, count)
-    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.forbidden):
+    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden):
       entityUnknownWarning(Ent.USER, user, i, count)
 
 # gam delete users <UserTypeEntity>
@@ -16495,6 +16508,12 @@ def doPrintJobFetch(printerIdList):
       entityActionFailedWarning([Ent.PRINTER, printerId], str(e))
       return
   ssd = u'{"state": {"type": "DONE"}}'
+  if ((not parameters[u'sortorder']) or (parameters[u'sortorder'] == u'CREATE_TIME_DESC')) and (parameters[u'older_or_newer'] < 0):
+    timeExit = True
+  elif (parameters[u'sortorder'] == u'CREATE_TIME') and (parameters[u'older_or_newer'] > 0):
+    timeExit = True
+  else:
+    timeExit = False
   jobCount = offset = 0
   while True:
     if parameters[u'jobLimit'] == 0:
@@ -16508,6 +16527,7 @@ def doPrintJobFetch(printerIdList):
                      printerid=printerId, q=parameters[u'query'], status=parameters[u'status'], sortorder=parameters[u'sortorder'],
                      owner=parameters[u'owner'], offset=offset, limit=limit)
     newJobs = result[u'range'][u'jobsCount']
+    totalJobs = int(result[u'range'][u'jobsTotal'])
     if newJobs == 0:
       break
     jobCount += newJobs
@@ -16516,9 +16536,15 @@ def doPrintJobFetch(printerIdList):
       createTime = int(job[u'createTime'])
       if parameters[u'older_or_newer'] > 0:
         if createTime > parameters[u'age']:
+          if timeExit:
+            jobCount = totalJobs
+            break
           continue
       elif parameters[u'older_or_newer'] < 0:
         if createTime < parameters[u'age']:
+          if timeExit:
+            jobCount = totalJobs
+            break
           continue
       jobId = job[u'id']
       fileName = os.path.join(targetFolder, u'{0}-{1}'.format(cleanFilename(job[u'title']), jobId))
@@ -16529,6 +16555,8 @@ def doPrintJobFetch(printerIdList):
         result = callGCP(cp.jobs(), u'update',
                          jobid=jobId, semantic_state_diff=ssd)
         entityModifierNewValueActionPerformed([Ent.PRINTER, printerId, Ent.PRINTJOB, jobId], Act.MODIFIER_TO, fileName)
+    if jobCount >= totalJobs:
+      break
   if jobCount == 0:
     entityActionFailedWarning([Ent.PRINTER, printerId, Ent.PRINTJOB, u''], Msg.NO_PRINT_JOBS)
 
@@ -16563,6 +16591,12 @@ def doPrintPrintJobs():
     except GCP.unknownPrinter as e:
       entityActionFailedWarning([Ent.PRINTER, printerId], str(e))
       return
+  if ((not parameters[u'sortorder']) or (parameters[u'sortorder'] == u'CREATE_TIME_DESC')) and (parameters[u'older_or_newer'] < 0):
+    timeExit = True
+  elif (parameters[u'sortorder'] == u'CREATE_TIME') and (parameters[u'older_or_newer'] > 0):
+    timeExit = True
+  else:
+    timeExit = False
   jobCount = offset = 0
   while True:
     if parameters[u'jobLimit'] == 0:
@@ -16586,9 +16620,15 @@ def doPrintPrintJobs():
       createTime = int(job[u'createTime'])
       if parameters[u'older_or_newer'] > 0:
         if createTime > parameters[u'age']:
+          if timeExit:
+            jobCount = totalJobs
+            break
           continue
       elif parameters[u'older_or_newer'] < 0:
         if createTime < parameters[u'age']:
+          if timeExit:
+            jobCount = totalJobs
+            break
           continue
       job[u'createTime'] = formatLocalTimestamp(job[u'createTime'])
       job[u'updateTime'] = formatLocalTimestamp(job[u'updateTime'])
@@ -21878,7 +21918,7 @@ def archiveMessages(users):
           message = callGAPI(gmail.users().messages(), u'get',
                              throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT],
                              userId=u'me', id=messageId, format=u'raw')
-          stream = io.StringIO()
+          stream = StringIOobject()
           stream.write(base64.urlsafe_b64decode(str(message[u'raw'])))
           try:
             callGAPI(gm.archive(), u'insert',

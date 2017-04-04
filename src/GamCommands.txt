@@ -83,7 +83,7 @@ If an item contains spaces, it should be surrounded by ".
 <ContactGroupID> ::= id:<String>
 <ContactGroupName> ::= <String>
 <ContactGroupItem> ::= <ContactGroupID>|<ContactGroupName>
-<CorporaAttribute> ::= allteamdrives|domain|(teamdrive <TeamDriveID>)|user
+CorporaAttribute> ::= allteamdrives|domain|(teamdrive <TeamDriveID>)|user
 <CourseAlias> ::= <String>
 <CourseID> ::= <Number>|d:<CourseAlias>
 <CourseParticipantType> ::= teacher|teachers|student|students
@@ -292,12 +292,13 @@ Specify a collection of items by directly specifying them; the item type is dete
 <DriveFileIDEntity> ::= (<DriveFileItem>) | (id <DriveFileItem>) | (id:<DriveFileItem>) | (ids <DriveFileList>) | (ids:<DriveFileList>)
 <DriveFileNameEntity> ::= (drivefilename <DriveFileName>) | (drivefilename:<DriveFileName>) | (anydrivefilename <DriveFileName>) | (anydrivefilename:<DriveFileName>)
 <DriveFileQueryEntity> ::= (query <QueryDriveFile>) | (query:<QueryDriveFile>)
-<TeamDriveEntity> ::= <TeamDriveID> | (teamdriveid <TeamDriveID>) | (teamdriveid:<TeamDriveID>) | (teamdrive <TeamDriveName>) | (teamdrive:<TeamDriveName>)
+<TeamDriveEntity> ::= <TeamDriveID> | (id <TeamDriveID>) | (id:<TeamDriveID>) | (name <TeamDriveName>) | (name:<TeamDriveName>)
+<TeamDriveFileEntity> ::= (teamdriveid <TeamDriveID>) | (teamdriveid:<TeamDriveID>) | (teamdrive <TeamDriveName>) | (teamdrive:<TeamDriveName>)
 <DriveFileEntity> ::=
 	<DriveFileIDEntity> |
 	<DriveFileNameEntity> |
 	<DriveFileQueryEntity> |
-	<TeamDriveEntity> |
+	<TeamDriveFileEntity> |
 	root |
 	<FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
 <DriveFilePermissionEntity> ::= <DriveFilePermissionList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
