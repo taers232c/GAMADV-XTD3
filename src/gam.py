@@ -2257,8 +2257,8 @@ def getClientCredentials(cred_family):
   credentials.user_agent = GAM_INFO
   return credentials
 
-def _getAdminUserFromOAuth(cred_family):
-  return getClientCredentials(cred_family).id_token.get(u'email', u'Unknown')
+def _getValueFromOAuth(field):
+  return getClientCredentials(API.FAM1_SCOPES).id_token.get(field, u'Unknown')
 
 def getSvcAcctCredentials(scopes, act_as):
   try:
@@ -3701,7 +3701,7 @@ def getTodriveParameters():
       Cmd.Backup()
       break
   if not todrive[u'user']:
-    todrive[u'user'] = _getAdminUserFromOAuth(API.FAM1_SCOPES)
+    todrive[u'user'] = _getValueFromOAuth(u'email')
   user = checkUserExists(buildGAPIObject(API.DIRECTORY), todrive[u'user'])
   if not user:
     invalidTodriveValueExit(Ent.USER, Msg.NOT_FOUND, localUser, tduserLocation, GC.TODRIVE_USER, todrive[u'user'])
@@ -3749,7 +3749,7 @@ def getTodriveParameters():
 # Send an email
 def send_email(msg_subj, msg_txt, msg_rcpt):
   from email.mime.text import MIMEText
-  userId, gmail = buildGAPIServiceObject(API.GMAIL, _getAdminUserFromOAuth(API.FAM1_SCOPES))
+  userId, gmail = buildGAPIServiceObject(API.GMAIL, _getValueFromOAuth(u'email'))
   if not gmail:
     return
   msg = MIMEText(msg_txt)
@@ -7473,7 +7473,7 @@ def doWatchExportRequest():
         for i in range(int(results[u'numberOfFiles'])):
           msg_txt += u'  Url{0}: {1}\n'.format(i, results[u'fileUrl'+str(i)])
       msg_subj = u'Export #{0} for {1} status is {2}'.format(results[u'requestId'], results[u'userEmailAddress'], results[u'status'])
-      send_email(msg_subj, msg_txt, _getAdminUserFromOAuth(API.FAM1_SCOPES))
+      send_email(msg_subj, msg_txt, _getValueFromOAuth(u'email'))
       break
     else:
       printKeyValueList([u'Status still PENDING, will check again in 5 minutes...'])
@@ -8085,9 +8085,11 @@ class ContactsManager(object):
         fields[fieldName] = getChoice(LANGUAGE_CODES_MAP, mapChoice=True)
       elif fieldName == CONTACT_NOTES:
         if checkArgumentPresent(Cmd.FILE_ARGUMENT):
-          fields[fieldName] = readFile(getString(Cmd.OB_FILE_NAME), encoding=GM.Globals[GM.SYS_ENCODING])
+          filename = getString(Cmd.OB_FILE_NAME)
+          encoding = getCharSet()
+          fields[fieldName] = readFile(filename, encoding=encoding)
         else:
-          fields[fieldName] = getString(Cmd.OB_STRING, minLen=0)
+          fields[fieldName] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
       elif fieldName == CONTACT_ADDRESSES:
         if checkArgumentPresent(Cmd.CLEAR_NONE_ARGUMENT):
           ClearFieldsList(fieldName)
@@ -14033,7 +14035,9 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         entry = {}
         getKeywordAttribute(UProp, typeKeywords, entry, defaultChoice=u'text_plain')
         if checkArgumentPresent(Cmd.FILE_ARGUMENT):
-          entry[u'value'] = readFile(getString(Cmd.OB_FILE_NAME), encoding=GM.Globals[GM.SYS_ENCODING])
+          filename = getString(Cmd.OB_FILE_NAME)
+          encoding = getCharSet()
+          entry[u'value'] = readFile(filename, encoding=encoding)
         else:
           entry[u'value'] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
         body[up] = entry
@@ -14757,7 +14761,7 @@ def doInfoUser():
   if Cmd.ArgumentsRemaining():
     infoUsers(getStringReturnInList(Cmd.OB_USER_ITEM))
   else:
-    infoUsers([_getAdminUserFromOAuth(API.FAM1_SCOPES)])
+    infoUsers([_getValueFromOAuth(u'email')])
 
 USERS_ORDERBY_CHOICES_MAP = {
   u'familyname': u'familyName',
