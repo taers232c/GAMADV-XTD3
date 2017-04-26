@@ -168,6 +168,10 @@ message_max_results
 	When retrieving lists of Gmail messages from API, how many should be retrieved in each chunk
 	Default: 1000
 	Environment variable: GAM_MESSAGE_MAX_RESULTS
+never_time
+	The value to be substituted whenever a Google datetime variable has the value "1970-01-01T00:00:00.000Z"
+	Default: Never
+	Environment variable: GAM_NEVER_TIME
 no_browser
 	If no_browser is True, GAM won't open a browser if todrive is set when creating CSV files
 	and GAM prints a link and waits for the verification code when oauth2.txt is being created
@@ -271,6 +275,7 @@ Section: DEFAULT
   member_max_results = 200
   message_batch_size = 1000
   message_max_results = 1000
+  never_time = Never
   no_browser = false
   no_cache = false
   no_update_check = false
@@ -387,6 +392,7 @@ extra_args =
 member_max_results = 200
 message_batch_size = 1000
 message_max_results = 1000
+never_time = Never
 no_browser = false
 no_cache = false
 no_update_check = false

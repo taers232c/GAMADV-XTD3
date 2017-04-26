@@ -24,6 +24,7 @@ TRUE = u'true'
 FALSE = u'false'
 DEFAULT_CHARSET = u'utf-8'
 MY_CUSTOMER = u'my_customer'
+NEVER = u'Never'
 
 FN_CLIENT_SECRETS_JSON = u'client_secrets.json'
 FN_EXTRA_ARGS_TXT = u'extra-args.txt'
@@ -88,6 +89,8 @@ MEMBER_MAX_RESULTS = u'member_max_results'
 MESSAGE_BATCH_SIZE = u'message_batch_size'
 # When retrieving lists of Gmail messages from API, how many should be retrieved in each chunk
 MESSAGE_MAX_RESULTS = u'message_max_results'
+# Value to substitute for NEVER_TIME
+NEVER_TIME = u'never_time'
 # If no_browser is False, writeCSVfile won't open a browser when todrive is set
 # and doOAuthRequest prints a link and waits for the verification code when oauth2.txt is being created
 NO_BROWSER = u'no_browser'
@@ -156,6 +159,7 @@ Defaults = {
   MEMBER_MAX_RESULTS: 200,
   MESSAGE_BATCH_SIZE: 1000,
   MESSAGE_MAX_RESULTS: 1000,
+  NEVER_TIME: NEVER,
   NO_BROWSER: FALSE,
   NO_CACHE: FALSE,
   NO_UPDATE_CHECK: FALSE,
@@ -224,6 +228,7 @@ VAR_INFO = {
   MEMBER_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_ENVVAR: u'GAM_MEMBER_MAX_RESULTS', VAR_LIMITS: (1, 10000)},
   MESSAGE_BATCH_SIZE: {VAR_TYPE: TYPE_INTEGER, VAR_ENVVAR: u'GAM_MESSAGE_BATCH_SIZE', VAR_LIMITS: (1, 1000)},
   MESSAGE_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_ENVVAR: u'GAM_MESSAGE_MAX_RESULTS', VAR_LIMITS: (1, 10000)},
+  NEVER_TIME: {VAR_TYPE: TYPE_STRING, VAR_ENVVAR: u'GAM_NEVERTIME', VAR_LIMITS: (0, None)},
   NO_BROWSER: {VAR_TYPE: TYPE_BOOLEAN, VAR_SIGFILE: u'nobrowser.txt', VAR_SFFT: (FALSE, TRUE)},
   NO_CACHE: {VAR_TYPE: TYPE_BOOLEAN, VAR_SIGFILE: u'nocache.txt', VAR_SFFT: (FALSE, TRUE)},
   NO_UPDATE_CHECK: {VAR_TYPE: TYPE_BOOLEAN, VAR_SIGFILE: u'noupdatecheck.txt', VAR_SFFT: (FALSE, TRUE)},

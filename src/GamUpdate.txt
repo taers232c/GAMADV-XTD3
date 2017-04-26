@@ -1,3 +1,54 @@
+4.44.33
+
+Added never_time to gam.cfg to specify the value to be substituted whenever a Google datetime variable
+has the value "1970-01-01T00:00:00.000Z"; the default value is 'Never'. 
+To keep the Google value: never_time = 1970-01-01T00:00:00.000Z
+To use some other date/time value: never_time = 1999-12-31T23:59:59.999Z
+To use some distinguished value: never_time = 0
+To continue using Never: never_time = Never
+
+Improved Unicode character handling for gam csv and Windows.
+
+4.44.32
+
+Update gam create project with Jay's latest changes: client_secrets.json and oauth2service.json must not exist;
+Client ID and Client Secret are validated.
+
+Fix gam show labels display basename to properly handle labels with embedded slashes.
+
+4.44.31
+
+Handle additional OAuth error.
+
+4.44.30
+
+Added display argument to gam show labels to allow choice of data to display.
+    gam <UserTypeEntity> show labels|label [onlyuser [<Boolean>]] [showcounts [<Boolean>]] [nested [<Boolean>]] [display allfields|basename|fullname]
+If display is not specified or display allfields is specified, the full name of the label and the fields (type, id, labelListVisibility, messageListVisibility) are displayed.
+If showCounts is specified, the fields (messagesTotal, messagesUnread, threadsTotal, threadsUnread) are also displayed.
+If display fullname is specified, the full name of the label, and no other fields, is displayed.
+If display basename is specified, the base name (rightmost component) of the label, and no other fields, is displayed.
+The display fullname/basename options are most useful in conjunction with nested.
+
+4.44.29
+
+gam show labels now prints labels sorted by type (system, user) and name making it much easier to read.
+Added nested argument to gam show labels; this causes nested labels to be indented under their parent label
+to allow the hierarchy to be more clearly visible.
+    gam <UserTypeEntity> show labels|label [onlyuser [<Boolean>]] [showcounts [<Boolean>]] [nested [<Boolean>]]
+For the onlyuser, showcounts and nested arguments, if <Boolean> is omitted, True is assumed.
+
+Added buildpath argument to gam add label; this causes Gam to build all components of a multi-level label.
+If buildpath is omitted or set to False, all parent labels in a multi-level label must be present for the add to succeed.
+If buildpath is present and <Boolean> is omitted or set to True, all parent labels in a multi-level label are created
+as necessary for the add to succeed.
+    gam <UserTypeEntity> [add] label|labels <String> [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread] [buildpath [<Boolean>]]
+Example: gam user user@domain.com add label "Top/Middle/Bottom" buildpath
+
+4.44.28
+
+Fix bug when deleting/updating label containing accented characters.
+
 4.44.27
 
 Optimized gam print printjobs and gam printjob fetch when olderthan/newerthan <PrintJobAge> is specified so that
@@ -30,8 +81,8 @@ and the remaining headers be sorted: courses, course-participants, domainaliases
 
 Added start <Date> and end <Date> arguments to gam info cros and gam print cros to allow filtering of activeTimeRanges.
 These arguments have no effect unless the activetimeranges|timeranges field name is specified.
-If start <Date> is not specifed, then there is no filtering for starting date.
-If end <Date> is not specifed, then there is no filtering for ending date.
+If start <Date> is not specified, then there is no filtering for starting date.
+If end <Date> is not specified, then there is no filtering for ending date.
     gam info cros <CrosEntity> [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
 	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
     gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
@@ -60,7 +111,7 @@ For each CrOS device, thus will yield a space delimited list of the 10 most rece
 4.44.23
 
 When todrive is specified and gam.cfg/no_browser is true, the email regarding the upload will be sent to the
-email address specified in gam.cfg/todrive_user or the email address specifed with the tduser command line argument.
+email address specified in gam.cfg/todrive_user or the email address specified with the tduser command line argument.
 If neither of these options is specified, the email is sent to the G Suite administrator.
 Previously, the email was always sent to the G Suite administrator.
 
@@ -106,7 +157,7 @@ Email addresses in the gmail.com domain can have arbitrary dots in the name. Whe
 Google maps the name to have the dots specified when the account was set up regardless of the dots specified in the address to be added.
 Email addresses in the gmail.com domain have an equivalent email address in the googlemail.com domain. When adding such an address to a group,
 Google maps the domain name to the domain name specified when the account was set up regardless of the domain name specified in the address to be added.
-This causes erroneous deletes and duplicate adds when syncing group membership as the email address in the group may not match
+These mappings cause erroneous deletes and duplicate adds when syncing group membership as the email address in the group may not match
 the email address in the list of email addresses to sync even though they are equivalent.
 Gam now maps all email addresses in the gmail.com and googlemail.com domains to a canonical form before comparing the current group email addresses
 with the email addresses on the command line. If an email address is to be added, it is added with the email address specified on the command line.
@@ -372,7 +423,7 @@ More fixes to gam user deprovision.
 
 4.41.05
 
-Fix coding error in gam user deprovision that prevented tokens from being deleted in there were no ASPS.
+Fix coding error in gam user deprovision that prevented tokens from being deleted if there were no ASPs.
 
 4.41.04
 

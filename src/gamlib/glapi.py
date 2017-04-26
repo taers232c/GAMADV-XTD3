@@ -49,9 +49,16 @@ FAM_LIST = [FAM1_SCOPES, FAM2_SCOPES]
 PREV_FAM_LIST = [u'gapi', u'gdata']
 #
 OAUTH2_TOKEN_ERRORS = [
-  u'access_denied', u'invalid_grant', u'unauthorized_client: Unauthorized client or scope in request.', u'access_denied: Requested client not authorized.',
-  u'invalid_grant: Not a valid email.', u'invalid_grant: Invalid email or User ID', u'invalid_grant: Bad Request',
-  u'invalid_request: Invalid impersonation prn email address.', u'internal_failure: Backend Error',
+  u'access_denied',
+  u'access_denied: Requested client not authorized',
+  u'internal_failure: Backend Error',
+  u'invalid_grant',
+  u'invalid_grant: Bad Request',
+  u'invalid_grant: Invalid email or User ID',
+  u'invalid_grant: Not a valid email',
+  u'invalid_request: Invalid impersonation prn email address',
+  u'unauthorized_client: Client is unauthorized to retrieve access tokens using this method',
+  u'unauthorized_client: Unauthorized client or scope in request',
   ]
 
 _INFO = {
@@ -240,6 +247,7 @@ DRIVE3_TO_DRIVE2_CAPABILITIES_TITLES_MAP = {
   }
 
 DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP = {
+  u'allowFileDiscovery': u'withLink',
   u'createdTime': u'createdDate',
   u'expirationTime': u'expirationDate',
   u'modifiedByMe': u'modified',

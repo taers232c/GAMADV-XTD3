@@ -83,7 +83,7 @@ If an item contains spaces, it should be surrounded by ".
 <ContactGroupID> ::= id:<String>
 <ContactGroupName> ::= <String>
 <ContactGroupItem> ::= <ContactGroupID>|<ContactGroupName>
-CorporaAttribute> ::= allteamdrives|domain|(teamdrive <TeamDriveID>)|user
+<CorporaAttribute> ::= allteamdrives|domain|user
 <CourseAlias> ::= <String>
 <CourseID> ::= <Number>|d:<CourseAlias>
 <CourseParticipantType> ::= teacher|teachers|student|students
@@ -292,14 +292,19 @@ Specify a collection of items by directly specifying them; the item type is dete
 <DriveFileIDEntity> ::= (<DriveFileItem>) | (id <DriveFileItem>) | (id:<DriveFileItem>) | (ids <DriveFileList>) | (ids:<DriveFileList>)
 <DriveFileNameEntity> ::= (drivefilename <DriveFileName>) | (drivefilename:<DriveFileName>) | (anydrivefilename <DriveFileName>) | (anydrivefilename:<DriveFileName>)
 <DriveFileQueryEntity> ::= (query <QueryDriveFile>) | (query:<QueryDriveFile>)
-<TeamDriveEntity> ::= <TeamDriveID> | (id <TeamDriveID>) | (id:<TeamDriveID>) | (name <TeamDriveName>) | (name:<TeamDriveName>)
-<TeamDriveFileEntity> ::= (teamdriveid <TeamDriveID>) | (teamdriveid:<TeamDriveID>) | (teamdrive <TeamDriveName>) | (teamdrive:<TeamDriveName>)
+<TeamDriveIDEntity> ::= (teamdriveid <DriveFileItem>) | (teamdriveid:<DriveFileItem>)
+<TeamDriveNameEntity> ::= (teamdrive <TeamDriveName>) | (teamdrive:<TeamDriveName>)
+<TeamDriveFileNameEntity> ::= (teamdrivefilename <DriveFileName>) | (teamdrivefilename:<DriveFileName>)
+<TeamDriveFileQueryEntity> ::= (teamdrivequery <QueryDriveFile>) | (teamdrivequery:<QueryDriveFile>)
 <DriveFileEntity> ::=
 	<DriveFileIDEntity> |
 	<DriveFileNameEntity> |
 	<DriveFileQueryEntity> |
-	<TeamDriveFileEntity> |
 	root |
+	<TeamDriveIDEntity> |
+	<TeamDriveNameEntity> |
+	<TeamDriveFileNameEntity> |
+	<TeamDriveFileQueryEntity> |
 	<FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
 <DriveFilePermissionEntity> ::= <DriveFilePermissionList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <DriveFilePermissionIDEntity> ::= <DriveFilePermissionIDList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
@@ -317,6 +322,7 @@ Specify a collection of items by directly specifying them; the item type is dete
 <SchemaEntity> ::= <SchemaNameList> | <FileSelector> | <CSVkmdSelector>
 <SiteACLScopeEntity>::= <SiteACLScopeList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <SiteEntity> ::= <SiteList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<TeamDriveRootEntity> ::= <TeamDriveID> | (teamdriveid <TeamDriveID>) | (teamdriveid:<TeamDriveID>) | (teamdrive <TeamDriveName>) | (teamdrive:<TeamDriveName>)
 <ThreadIDEntity> ::= <ThreadIDList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <UserEntity> ::= <UserList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
@@ -1303,7 +1309,7 @@ gam [<UserTypeEntity>] show siteacls  <SiteEntity>
 	(website|websites clear|(home_page|blog|profile|work|home|other|ftp|reservations|app_install_page|<String> <URL> [notprimary|primary]))|
 	(<SchemaName>.<FieldName> [multivalued|multivalue|value|multinonempty [type work|home|other|(custom <String>)]] <String>)
 
-gam create user <EmailAddress> <UserAttrubutes>*
+gam create user <EmailAddress> <UserAttributes>*
 gam update user <UserItem> <UserAttributes>* [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>] [createifnotfound]
 gam delete user <UserItem>
 gam undelete user <UserItem> [org|ou <OrgUnitPath>]
@@ -1314,7 +1320,7 @@ gam delete users <UserTypeEntity>
 gam undelete users <UserEntity> [org|ou <OrgUnitPath>]
 gam info users <UserTypeEntity> [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>] [userview] <UserFieldName>* [fields <UserFieldNameList>] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
 
-gam <UserTypeEntity> update users <UserAttrubutes>* [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>] [createifnotfound]
+gam <UserTypeEntity> update users <UserAttributes>* [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>] [createifnotfound]
 gam <UserTypeEntity> delete users
 gam <UserEntity> undelete users [org|ou <OrgUnitPath>]
 gam <UserTypeEntity> info users [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>] [userview] <UserFieldName>* [fields <UserFieldNameList>] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
@@ -1525,10 +1531,12 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 	(mimetype gdoc|gdocument|gdrawing|gfolder|gdirectory|gform|gfusion|gpresentation|gscript|gsite|gsheet|gspreadsheet)|
 	(modifieddate|modifiedtime <Time>)|
 	(ocrlanguage <Language>)|
-	(parentid <DriveFolderID>)|
+	(parentid|teamdriveparentid <DriveFolderID>)|
 	(parentname <DriveFolderName>)|
 	(restricted|restrict [<Boolean>])|
 	(starred|star [<Boolean>])|
+	(teamdriveparent <TeamDriveName>)|
+	(teamdriveparentname <DriveFolderName>)|
 	(trashed|trash [<Boolean>])|
 	(viewed|view [<Boolean>])|
 	(viewerscancopycontent [<Boolean>])|
@@ -1672,8 +1680,8 @@ gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [corpor
 gam <UserTypeEntity> print|show driveactivity [todrive [<ToDriveAttributes>]] [fileid <DriveFileID>] [folderid <DriveFolderID>]
 gam <UserTypeEntity> print|show drivesettings [todrive [<ToDriveAttributes>]]
 
-gam <UserTypeEntity> delete emptydrivefolders [corpora <CorporaAttribute>]
-gam <UserTypeEntity> empty drivetrash
+gam <UserTypeEntity> delete emptydrivefolders [<TeamDriveEntity>]
+gam <UserTypeEntity> empty drivetrash [<TeamDriveEntity>]
 
 # Users - Deprovision
 
@@ -1732,12 +1740,12 @@ gam <UserTypeEntity> print forward [todrive [<ToDriveAttributes>]]
 
 # Users - Gmail - Labels/Messages
 
-gam <UserTypeEntity> [add] label|labels <String> [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
+gam <UserTypeEntity> [add] label|labels <String> [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread] [buildpath [<Boolean>]]
 gam <UserTypeEntity> update labelsettings <LabelName> [name <String>] [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
 gam <UserTypeEntity> update label|labels [search <RegularExpression>] [replace <String>] [merge]
 gam <UserTypeEntity> delete label|labels <LabelName>|regex:<RegularExpression>|--ALL_LABELS--
 
-gam <UserTypeEntity> show labels|label [onlyuser] [showcounts]
+gam <UserTypeEntity> show labels|label [onlyuser [<Boolean>]] [showcounts [<Boolean>]] [nested [<Boolean>]] [display allfields|basename|fullname]
 
 gam <UserTypeEntity> archive messages <GroupItem> (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_archive <Number>])|(ids <MessageIDEntity>)
 gam <UserTypeEntity> delete messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_delete|max_to_process <Number>])|(ids <MessageIDEntity>)
