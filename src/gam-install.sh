@@ -227,7 +227,7 @@ while true; do
         project_created=true
         break
       else
-        echo_red "Projection creation failed. Trying again. Say N to skip projection creation."
+        echo_red "Project creation failed. Trying again. Say N to skip projection creation."
       fi
       ;;
     [Nn]*)
