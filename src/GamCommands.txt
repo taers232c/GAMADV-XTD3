@@ -322,7 +322,7 @@ Specify a collection of items by directly specifying them; the item type is dete
 <SchemaEntity> ::= <SchemaNameList> | <FileSelector> | <CSVkmdSelector>
 <SiteACLScopeEntity>::= <SiteACLScopeList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <SiteEntity> ::= <SiteList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<TeamDriveRootEntity> ::= <TeamDriveID> | (teamdriveid <TeamDriveID>) | (teamdriveid:<TeamDriveID>) | (teamdrive <TeamDriveName>) | (teamdrive:<TeamDriveName>)
+<TeamDriveEntity> ::= <TeamDriveID> | (teamdriveid <TeamDriveID>) | (teamdriveid:<TeamDriveID>) | (teamdrive <TeamDriveName>) | (teamdrive:<TeamDriveName>)
 <ThreadIDEntity> ::= <ThreadIDList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <UserEntity> ::= <UserList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
@@ -676,7 +676,7 @@ Delimiter defaults to gam.cfg/csv_output_field_delimiter.
 	(mileage <String>)|
 	(name <String>)|
 	(nickname <String>)|
-	(note <String>|(file <FileName>))|
+	(note <String>|(file <FileName> [charset <Charset>]))|
 	(occupation <String>)|
 	(organization clear|(work|other|<String> <String>|(location <String>)|(department <String>)|(title <String>)|(jobdescription <String>)|(symbol <String>) notprimary|primary))|
 	(phone clear|(work|home|other|fax|work_fax|home_fax|other_fax|main|company_main|assistant|mobile|work_mobile|pager|work_pager|car|radio|callback|isdn|telex|tty_tdd|<String> <String> notprimary|primary))|
@@ -1297,7 +1297,7 @@ gam [<UserTypeEntity>] show siteacls  <SiteEntity>
 	(im|ims clear|(type work|home|other|(custom <String>) protocol aim|gtalk|icq|jabber|msn|net_meeting|qq|skype|yahoo|(custom_protocol <String>) <String> [notprimary|primary]))|
 	(ipwhitelisted <Boolean>)|
 	(lastname|familyname <String>)|
-	(note|notes clear|([text_plain|text_html] <String>|(file <FileName>)))|
+	(note|notes clear|([text_plain|text_html] <String>|(file <FileName> [charset <Charset>])))|
 	(organization|organizations clear|([type domain_only|school|unknown|work] [customtype <String>] [name <String>] [title <String>] [department <String>] [symbol <String>]
 		[costcenter <String>]  [location <String>] [description <String>] [domain <String>] notprimary|primary))|
 	(org|ou|orgunitpath <OrgUnitPath>)
@@ -1565,7 +1565,7 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 gam <UserTypeEntity> add drivefile [drivefilename <DriveFileName>] <DriveFileAddAttributes>*
 gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [newfilename <DriveFileName>] <DriveFileUpdateAttributes>*
 gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [recursive] <DriveFileCopyAttributes>*
-gam <UserTypeEntity> get drivefile <DriveFileEntity> [format <FileFormatList>] [targetfolder <FilePath>] [revision <Number>] [nocache]
+gam <UserTypeEntity> get drivefile <DriveFileEntity> [format <FileFormatList>] [targetfolder <FilePath>] [revision <Number>] [nocache] [acknowledgeabuse <Boolean>]
 gam <UserTypeEntity> delete drivefile <DriveFileEntity> [purge|untrash|trash]
 gam <UserTypeEntity> purge drivefile <DriveFileEntity>
 gam <UserTypeEntity> trash drivefile <DriveFileEntity>
@@ -1591,9 +1591,17 @@ gam <UserTypeEntity> print drivefileacl <DriveFileEntity> [todrive [<ToDriveAttr
 gam <UserTypeEntity> add permissions <DriveFileEntity> <DriveFilePermissionEntity> [expiration <Time>] [sendemail] [emailmessage <String>]
 gam <UserTypeEntity> delete permissions <DriveFileEntity> <DriveFilePermissionIDEntity>
 
-gam <UserTypeEntity> transfer drive <UserItem> [keepuser]
-gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed] (orderby <DriveOrderByFieldName> [ascending|descending])* [preview] [filepath] [todrive [<ToDriveAttributes>]]
-gam <UserTypeEntity> claim ownership <DriveFileEntity> [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>] [includetrashed] [restricted [<Boolean>]] [writerscantshare [<Boolean>]] [preview] [filepath] [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed] (orderby <DriveOrderByFieldName> [ascending|descending])*
+	[filepath] [preview] [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> claim ownership <DriveFileEntity> [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
+	[includetrashed] [restricted [<Boolean>]] [writerscantshare [<Boolean>]] [filepath] [preview] [todrive [<ToDriveAttributes>]]
+
+gam <UserTypeEntity> collect orphans (orderby <DriveOrderByFieldName> [ascending|descending])*
+	[targetuserfoldername <DriveFileName>] [preview] [todrive [<ToDriveAttributes>]]
+
+gam <UserTypeEntity> transfer drive <UserItem> [keepuser] [retainrole reader|commenter|writer|owner|editor] (orderby <DriveOrderByFieldName> [ascending|descending])*
+	[(targetfolderid <DriveFileID>)|(targetfoldername <DriveFileName>)] [targetuserfoldername <DriveFileName>]
+	[preview] [todrive [<ToDriveAttributes>]]
 
 <DriveFieldName> ::=
 	appdatacontents|
@@ -1755,7 +1763,7 @@ gam <UserTypeEntity> trash messages|threads (((query <QueryGmail>) (matchlabel <
 gam <UserTypeEntity> untrash messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_untrash|max_to_process <Number>])|(ids <MessageIDEntity>)
 
 gam <UserTypeEntity> show messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show|max_to_process <Number>] [includespamtrash])|(ids <MessageIDEntity>)
-	[headers <String>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl]
+	[headers <String>] [showlabels] [showbody] [showsize] [showsnippet] [showattachments [attachmentnamepattern <RegularExpression>]]
 gam <UserTypeEntity> print messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_print|max_to_process <Number>] [includespamtrash])|(ids <MessageIDEntity>)
 	[headers <String>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <String>] [todrive [<ToDriveAttributes>]]
 
@@ -1835,8 +1843,8 @@ gam <UserTypeEntity> show profile
 
 # Users - Team Drives
 
-gam <UserTypeEntity> create teamdrive <Name>
-gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>]
+gam <UserTypeEntity> create teamdrive <Name> [themeid <String>]
+gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>] [themeid <String>]
 gam <UserTypeEntity> delete teamdrive <TeamDriveEntity>
 gam <UserTypeEntity> info teamdrive <TeamDriveEntity>
 gam <UserTypeEntity> print teamdrives [todrive [<ToDriveAttributes>]]

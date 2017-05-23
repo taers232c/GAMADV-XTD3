@@ -1,4 +1,4 @@
-GAMADV-X
+GAMADV-XTD
   -See GamAuthorization.txt for a description of the the alternate authorization model: oauth2service.json, client_secrets.json, oauth2.txt.
   -See GamUpdate.txt for changes in this version
   -See GamCommands.txt for a complete syntax description.

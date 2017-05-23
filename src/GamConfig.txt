@@ -213,10 +213,10 @@ show_gettings
 	Enable/disable "Getting ... " messages
 	Default: True
 	Environment variable: GAM_SHOW_GETTINGS
-show_multi_info
-	Enable/disable showing multiprocess info in redirected stdout/stderr
+show_multiprocess_info
+	Enable/disable showing multiprocess info in redirected stdout/stderr with gam csv
 	Default: False
-	Environment variable: GAM_SHOW_MULTI_INFO
+	Environment variable: GAM_SHOW_MULTIPROCESS_INFO
 timezone
 	Specify time conversion
 	Default: utc
@@ -287,7 +287,7 @@ Section: DEFAULT
   show_convert_cr_nl = false
   show_counts_min = 1
   show_gettings = true
-  show_multi_info = false
+  show_multiprocess_info = false
   timezone = utc
   todrive_conversion = true
   todrive_localcopy = false
@@ -404,7 +404,7 @@ section =
 show_convert_cr_nl = false
 show_counts_min = 1
 show_gettings = true
-show_multi_info = false
+show_multiprocess_info = false
 timezone = utc
 todrive_conversion = true
 todrive_parent = root

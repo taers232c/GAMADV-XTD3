@@ -130,7 +130,7 @@ GAM_INFO = u'GAM {0} - {1} / {2} / Python {3}.{4}.{5} {6} / {7} {8} /'.format(__
                                                                               sys.version_info[3],
                                                                               platform.platform(), platform.machine())
 GAM_RELEASES = u'https://github.com/{0}/{1}/releases'.format(GIT_USER, GAM)
-GAM_WIKI = u'https://github.com/{0}/{1}/wiki'.format(GIT_USER, GAM)
+GAM_WIKI = u'https://github.com/{0}/{1}/wiki'.format(GIT_USER, u'GAMADV-XTD')
 GAM_ALL_RELEASES = u'https://api.github.com/repos/{0}/{1}/releases'.format(GIT_USER, GAM)
 GAM_LATEST_RELEASE = GAM_ALL_RELEASES+u'/latest'
 GAM_LATEST_SOURCE = u'https://raw.githubusercontent.com/{0}/{1}/master/src'.format(GIT_USER, GAM)
@@ -308,6 +308,7 @@ ENTITY_IS_A_USER_RC = 20
 ENTITY_IS_A_USER_ALIAS_RC = 21
 ENTITY_IS_A_GROUP_RC = 22
 ENTITY_IS_A_GROUP_ALIAS_RC = 23
+ORPHANS_COLLECTED_RC = 30
 # Warnings/Errors
 AC_FAILED_RC = 50
 AC_NOT_PERFORMED_RC = 51
@@ -403,7 +404,7 @@ class _DeHTMLParser(HTMLParser):
 
 def dehtml(text):
   parser = _DeHTMLParser()
-  parser.feed(text)
+  parser.feed(str(text))
   parser.close()
   return parser.text()
 
@@ -1442,6 +1443,12 @@ def entityBadRequestWarning(entityValueList, errMessage, i=0, count=0):
                                  Ent.FormatEntityValueList(entityValueList)+[ERROR, errMessage],
                                  currentCountNL(i, count)))
 
+def userSvcNotApplicableOrDriveDisabled(user, errMessage, i=0, count=0):
+  if errMessage.find(u'Drive apps') == -1:
+    entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+  else:
+    entityActionNotPerformedWarning([Ent.USER, user], errMessage, i, count)
+
 # Getting ... utilities
 def mayTakeTime(entityType):
   if entityType:
@@ -1617,18 +1624,23 @@ def entityActionPerformed(entityValueList, i=0, count=0):
                                  currentCountNL(i, count)))
 
 def entityActionPerformedMessage(entityValueList, message, i=0, count=0):
-  writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+[Act.Performed(), message],
-                                 currentCountNL(i, count)))
+  if message:
+    writeStdout(formatKeyValueList(Ind.Spaces(),
+                                   Ent.FormatEntityValueList(entityValueList)+[Act.Performed(), message],
+                                   currentCountNL(i, count)))
+  else:
+    writeStdout(formatKeyValueList(Ind.Spaces(),
+                                   Ent.FormatEntityValueList(entityValueList)+[Act.Performed()],
+                                   currentCountNL(i, count)))
 
 def entityModifierNewValueActionPerformed(entityValueList, modifier, newValue, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
                                  Ent.FormatEntityValueList(entityValueList)+[u'{0} {1}'.format(Act.Performed(), modifier), newValue],
                                  currentCountNL(i, count)))
 
-def entityModifierNewValueItemValueActionPerformed(entityValueList, modifier, newValue, infoType, infoValue, i=0, count=0):
+def entityModifierNewValueItemValueListActionPerformed(entityValueList, modifier, newValue, infoTypeValueList, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+[u'{0} {1}'.format(Act.Performed(), modifier), newValue, Ent.Singular(infoType), infoValue],
+                                 Ent.FormatEntityValueList(entityValueList)+[u'{0} {1}'.format(Act.Performed(), modifier), newValue]+Ent.FormatEntityValueList(infoTypeValueList),
                                  currentCountNL(i, count)))
 
 def entityModifierNewValueKeyValueActionPerformed(entityValueList, modifier, newValue, infoKey, infoValue, i=0, count=0):
@@ -1826,7 +1838,7 @@ def SetGlobalVariables():
                                          u''))
 
   def _getCfgBoolean(sectionName, itemName):
-    value = GM.Globals[GM.PARSER].get(sectionName, itemName, raw=True).lower()
+    value = GM.Globals[GM.PARSER].get(sectionName, itemName).lower()
     if value in TRUE_VALUES:
       return True
     if value in FALSE_VALUES:
@@ -1836,7 +1848,7 @@ def SetGlobalVariables():
     return False
 
   def _getCfgInteger(sectionName, itemName):
-    value = GM.Globals[GM.PARSER].get(sectionName, itemName, raw=True)
+    value = GM.Globals[GM.PARSER].get(sectionName, itemName)
     minVal, maxVal = GC.VAR_INFO[itemName][GC.VAR_LIMITS]
     try:
       number = int(value)
@@ -1849,7 +1861,7 @@ def SetGlobalVariables():
     return 0
 
   def _getCfgSection(sectionName, itemName):
-    value = _stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName, raw=True))
+    value = _stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName))
     if (not value) or (value.upper() == configparser.DEFAULTSECT):
       return configparser.DEFAULTSECT
     if GM.Globals[GM.PARSER].has_section(value):
@@ -1859,7 +1871,7 @@ def SetGlobalVariables():
     return configparser.DEFAULTSECT
 
   def _getCfgString(sectionName, itemName):
-    value = _stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName, raw=True))
+    value = _stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName))
     minLen, maxLen = GC.VAR_INFO[itemName].get(GC.VAR_LIMITS, (None, None))
     if ((minLen is None) or (len(value) >= minLen)) and ((maxLen is None) or (len(value) <= maxLen)):
       return value
@@ -1868,7 +1880,7 @@ def SetGlobalVariables():
     return u''
 
   def _getCfgTimezone(sectionName, itemName):
-    value = _stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName, raw=True).lower())
+    value = _stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName).lower())
     if value == u'utc':
       return None
     if value == u'local':
@@ -1882,16 +1894,16 @@ def SetGlobalVariables():
     return u''
 
   def _getCfgDirectory(sectionName, itemName):
-    dirPath = os.path.expanduser(_stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName, raw=True)))
+    dirPath = os.path.expanduser(_stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName)))
     if (not dirPath) or (not os.path.isabs(dirPath)):
       if (sectionName != configparser.DEFAULTSECT) and (GM.Globals[GM.PARSER].has_option(sectionName, itemName)):
-        dirPath = os.path.join(os.path.expanduser(_stripStringQuotes(GM.Globals[GM.PARSER].get(configparser.DEFAULTSECT, itemName, raw=True))), dirPath)
+        dirPath = os.path.join(os.path.expanduser(_stripStringQuotes(GM.Globals[GM.PARSER].get(configparser.DEFAULTSECT, itemName))), dirPath)
       if not os.path.isabs(dirPath):
         dirPath = os.path.join(GM.Globals[GM.GAM_CFG_PATH], dirPath)
     return dirPath
 
   def _getCfgFile(sectionName, itemName):
-    value = os.path.expanduser(_stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName, raw=True)))
+    value = os.path.expanduser(_stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName)))
     if value and not os.path.isabs(value):
       value = os.path.expanduser(os.path.join(_getCfgDirectory(sectionName, GC.CONFIG_DIR), value))
     return value
@@ -1920,7 +1932,7 @@ def SetGlobalVariables():
     printKeyValueList([Ent.Singular(Ent.SECTION), sectionName]) # Do not use printEntity
     Ind.Increment()
     for itemName in sorted(GC.VAR_INFO):
-      cfgValue = GM.Globals[GM.PARSER].get(sectionName, itemName, raw=True)
+      cfgValue = GM.Globals[GM.PARSER].get(sectionName, itemName)
       if GC.VAR_INFO[itemName][GC.VAR_TYPE] not in [GC.TYPE_BOOLEAN, GC.TYPE_INTEGER]:
         cfgValue = _quoteStringIfLeadingTrailingBlanks(cfgValue)
       if GC.VAR_INFO[itemName][GC.VAR_TYPE] == GC.TYPE_FILE:
@@ -2026,17 +2038,17 @@ def SetGlobalVariables():
       for itemName, itemEntry in iteritems(GC.VAR_INFO):
         if itemEntry[GC.VAR_TYPE] != GC.TYPE_DIRECTORY:
           _getDefault(itemName, itemEntry, oldGamPath)
-      GM.Globals[GM.PARSER] = configparser.SafeConfigParser(defaults=collections.OrderedDict(sorted(list(GC.Defaults.items()), key=lambda t: t[0])))
+      GM.Globals[GM.PARSER] = configparser.RawConfigParser(defaults=collections.OrderedDict(sorted(list(GC.Defaults.items()), key=lambda t: t[0])))
       _checkMakeDir(GC.CONFIG_DIR)
       _checkMakeDir(GC.CACHE_DIR)
       _checkMakeDir(GC.DRIVE_DIR)
       for itemName in GC.VAR_INFO:
         if GC.VAR_INFO[itemName][GC.VAR_TYPE] == GC.TYPE_FILE:
-          srcFile = os.path.expanduser(_stripStringQuotes(GM.Globals[GM.PARSER].get(configparser.DEFAULTSECT, itemName, raw=True)))
+          srcFile = os.path.expanduser(_stripStringQuotes(GM.Globals[GM.PARSER].get(configparser.DEFAULTSECT, itemName)))
           _copyCfgFile(srcFile, GC.CONFIG_DIR, oldGamPath)
       _writeGamCfgFile(GM.Globals[GM.PARSER], GM.Globals[GM.GAM_CFG_FILE], Act.INITIALIZE)
     else:
-      GM.Globals[GM.PARSER] = configparser.SafeConfigParser(defaults=collections.OrderedDict(sorted(list(GC.Defaults.items()), key=lambda t: t[0])))
+      GM.Globals[GM.PARSER] = configparser.RawConfigParser(defaults=collections.OrderedDict(sorted(list(GC.Defaults.items()), key=lambda t: t[0])))
       _readGamCfgFile(GM.Globals[GM.PARSER], GM.Globals[GM.GAM_CFG_FILE])
     GM.Globals[GM.LAST_UPDATE_CHECK_TXT] = os.path.join(_getCfgDirectory(configparser.DEFAULTSECT, GC.CONFIG_DIR), FN_LAST_UPDATE_CHECK_TXT)
   status = {u'errors': False}
@@ -2983,7 +2995,7 @@ GROUP_ROLES_MAP = {
   }
 
 # Turn the entity into a list of Users/CrOS devices
-def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=False, groupUserMembersOnly=True):
+def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=False, includeSuspendedInAll=False, groupUserMembersOnly=True):
   def _addGroupMembersToUsers(group, domains, recursive):
     doNotExist = 0
     try:
@@ -3039,7 +3051,7 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
                              fields=u'nextPageToken,users(primaryEmail,suspended)',
                              maxResults=GC.Values[GC.USER_MAX_RESULTS])
       for user in result:
-        if not user[u'suspended']:
+        if includeSuspendedInAll or not user[u'suspended']:
           entityList.append(user[u'primaryEmail'])
       printGettingAccountEntitiesDoneInfo(len(entityList))
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
@@ -3134,7 +3146,7 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
         printGettingEntityItemsDoneInfo(totalLen-prevLen, qualifier=qualifier)
         prevLen = totalLen
       except (GAPI.badRequest, GAPI.invalidInput, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
-        checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou, 0, 0)
+        checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
         doNotExist += 1
   elif entityType == Cmd.ENTITY_QUERY:
     cd = buildGAPIObject(API.DIRECTORY)
@@ -3250,7 +3262,7 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
           ou = result[u'orgUnitPath']
         ouDict[ou.lower()] = True
       except (GAPI.badRequest, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
-        checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou, 0, 0)
+        checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
         doNotExist += 1
     try:
       printGettingAccountEntitiesInfo(Ent.CROS_DEVICE)
@@ -3900,7 +3912,7 @@ def writeCSVfile(csvRows, titles, list_type, todrive):
       except GAPI.insufficientPermissions:
         printWarningMessage(INSUFFICIENT_PERMISSIONS_RC, Msg.INSUFFICIENT_PERMISSIONS_TO_PERFORM_TASK)
       except (GAPI.fileNotFound, GAPI.unknownError) as e:
-        entityActionFailedWarning([Ent.DRIVE_FOLDER, todrive[u'parentId']], str(e), 0, 0)
+        entityActionFailedWarning([Ent.DRIVE_FOLDER, todrive[u'parentId']], str(e))
     closeFile(csvFile)
 
   if GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] is not None:
@@ -3961,15 +3973,18 @@ def flattenJSON(structure, key=u'', path=u'', flattened=None, listLimit=None, ti
   return flattened
 
 # Show a json object
-def showJSON(object_name, object_value, skipObjects=None, timeObjects=None, level=0):
+def showJSON(object_name, object_value, skipObjects=None, timeObjects=None, dictObjectsKey=None, subObjectKey=None, level=0):
   if skipObjects is None:
     skipObjects = []
   if timeObjects is None:
     timeObjects = []
+  if dictObjectsKey is None:
+    dictObjectsKey = {}
   if object_name in [u'kind', u'etag', u'etags'] or object_name in skipObjects:
     return
   if object_name is not None:
     printJSONKey(object_name)
+    subObjectKey = dictObjectsKey.get(object_name)
   if isinstance(object_value, list):
     if len(object_value) == 1 and isinstance(object_value[0], non_compound_types):
       if object_name is not None:
@@ -3980,11 +3995,11 @@ def showJSON(object_name, object_value, skipObjects=None, timeObjects=None, leve
     if object_name is not None:
       printBlankLine()
       Ind.Increment()
-    for sub_value in object_value:
-      if isinstance(sub_value, non_compound_types):
-        printKeyValueList([sub_value])
+    for subValue in object_value:
+      if isinstance(subValue, non_compound_types):
+        printKeyValueList([subValue])
       else:
-        showJSON(None, sub_value, skipObjects, timeObjects, level+1)
+        showJSON(None, subValue, skipObjects, timeObjects, dictObjectsKey, subObjectKey, level+1)
     if object_name is not None:
       Ind.Decrement()
   elif isinstance(object_value, dict):
@@ -3994,9 +4009,14 @@ def showJSON(object_name, object_value, skipObjects=None, timeObjects=None, leve
       Ind.Increment()
     elif level > 0:
       indentAfterFirst = unindentAfterLast = True
-    for sub_object in sorted(object_value):
-      if sub_object not in skipObjects:
-        showJSON(sub_object, object_value[sub_object], skipObjects, timeObjects, level+1)
+    subObjects = sorted(object_value)
+    if subObjectKey and (subObjectKey in subObjects):
+      subObjects.remove(subObjectKey)
+      subObjects.insert(0, subObjectKey)
+      subObjectKey = None
+    for subObject in subObjects:
+      if subObject not in skipObjects:
+        showJSON(subObject, object_value[subObject], skipObjects, timeObjects, dictObjectsKey, subObjectKey, level+1)
         if indentAfterFirst:
           Ind.Increment()
           indentAfterFirst = False
@@ -4826,7 +4846,6 @@ def checkServiceAccount(users):
 
 def getCRMService(login_hint):
   from oauth2client.contrib.dictionary_storage import DictionaryStorage
-  login_hint = getValidateLoginHint(login_hint)
   scope = u'https://www.googleapis.com/auth/cloud-platform'
   client_id = u'297408095146-fug707qsjv4ikron0hugpevbrjhkmsk7.apps.googleusercontent.com'
   client_secret = u'qM3dP8f_4qedwzWQE1VR4zzU'
@@ -4883,22 +4902,56 @@ def doCreateProject():
       systemErrorExit(USAGE_ERROR_RC, u'{0} already exists. Please delete or rename it before attempting to create another project.'.format(a_file))
   login_hint = getEmailAddress(noUid=True, optional=True)
   checkForExtraneousArguments()
+  login_hint = getValidateLoginHint(login_hint)
+  login_domain = getEmailAddressDomain(login_hint)
   crm, httpObj = getCRMService(login_hint)
   project_id = u'gam-project'
   for i in range(3):
-    project_id += u'-%s' % u''.join(random.choice(string.digits+string.ascii_lowercase) for i in range(3))
+    project_id += u'-%s' % u''.join(random.choice(string.digits + string.ascii_lowercase) for i in range(3))
   project_name = u'project:%s' % project_id
   body = {u'projectId': project_id, u'name': u'GAM Project'}
   while True:
     create_again = False
     sys.stdout.write(u'Creating project "{0}"...\n'.format(body[u'name']))
-    create_operation = callGAPI(crm.projects(), u'create', body=body)
+    create_operation = callGAPI(crm.projects(), u'create',
+                                body=body)
     operation_name = create_operation[u'name']
     time.sleep(5) # Google recommends always waiting at least 5 seconds
     for i in range(1, 5):
       sys.stdout.write(u'Checking project status...\n')
-      status = callGAPI(crm.operations(), u'get', name=operation_name)
+      status = callGAPI(crm.operations(), u'get',
+                        name=operation_name)
       if u'error' in status:
+        if status[u'error'].get(u'message', u'') == u'No permission to create project in organization':
+          sys.stdout.write(u'Hmm... Looks like you have no rights to your Google Cloud Organization.\nAttempting to fix that...\n')
+          getorg = callGAPI(crm.organizations(), u'search',
+                            body={u'filter': u'domain:{0}'.format(login_domain)})
+          try:
+            organization = getorg[u'organizations'][0][u'name']
+            sys.stdout.write(u'Your organization name is {0}\n'.format(organization))
+          except (KeyError, IndexError):
+            systemErrorExit(3, u'You have no rights to create projects for your organization and you don\'t seem to be a super admin! Sorry, there\'s nothing more I can do.')
+          org_policy = callGAPI(crm.organizations(), u'getIamPolicy',
+                                resource=organization, body={})
+          if u'bindings' not in org_policy:
+            org_policy[u'bindings'] = []
+            sys.stdout.write(u'Looks like no one has rights to your Google Cloud Organization. Attempting to give you create rights...\n')
+          else:
+            sys.stdout.write(u'The following rights seem to exist:\n')
+            for a_policy in org_policy[u'bindings']:
+              if u'role' in a_policy:
+                sys.stdout.write(u'  Role: {0}\n'.format(a_policy[u'role']))
+              if u'members' in a_policy:
+                sys.stdout.write(u'  Members:\n')
+                for member in a_policy[u'members']:
+                  sys.stdout.write(u'    {0}\n'.format(member))
+          my_role = u'roles/resourcemanager.projectCreator'
+          sys.stdout.write(u'Giving {0} the role of {1}...\n'.format(login_hint, my_role))
+          org_policy[u'bindings'].append({u'role': my_role, u'members': [u'user:{0}'.format(login_hint)]})
+          callGAPI(crm.organizations(), u'setIamPolicy',
+                   resource=organization, body={u'policy': org_policy})
+          create_again = True
+          break
         try:
           if status[u'error'][u'details'][0][u'violations'][0][u'description'] == u'Callers must accept Terms of Service':
             readStdin(u'''Please go to:
@@ -4910,8 +4963,7 @@ and accept the Terms of Service (ToS). As soon as you've accepted the ToS popup,
             break
         except (IndexError, KeyError):
           pass
-        sys.stdout.write(str(status)+u'\n')
-        sys.exit(1)
+        systemErrorExit(1, str(status)+u'\n')
       if status.get(u'done', False):
         break
       sleep_time = i ** 2
@@ -4919,12 +4971,10 @@ and accept the Terms of Service (ToS). As soon as you've accepted the ToS popup,
       time.sleep(sleep_time)
     if create_again:
       continue
-    if not u'done' in status or not status[u'done']:
-      sys.stdout.write(u'Failed to create project: {0}\n'.format(status))
-      sys.exit(1)
+    if not status.get(u'done', False):
+      systemErrorExit(1, u'Failed to create project: {0}\n'.format(status))
     elif u'error' in status:
-      sys.stdout.write(status[u'error']+u'\n')
-      sys.exit(2)
+      systemErrorExit(2, status[u'error']+u'\n')
     break
   simplehttp = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL])
   _, c = simplehttp.request(GAM_PROJECT_APIS, u'GET')
@@ -5014,6 +5064,7 @@ def doDeleteProjects():
   # Deletes all projects with ID gam-project-*
   login_hint = getEmailAddress(noUid=True, optional=True)
   checkForExtraneousArguments()
+  login_hint = getValidateLoginHint(login_hint)
   crm, _ = getCRMService(login_hint)
   projects = callGAPIpages(crm.projects(), u'list', items=u'projects')
   gam_pids = [project[u'projectId'] for project in projects if project[u'projectId'].startswith(u'gam-project-')]
@@ -6145,9 +6196,19 @@ def doPrintAdmins():
   except (GAPI.badRequest, GAPI.customerNotFound, GAPI.forbidden):
     accessErrorExit(cd)
 
+USER_COUNTS_MAP = {
+  u'accounts:num_users': u'Total Users',
+  u'accounts:gsuite_basic_total_licenses': u'G Suite Basic Licenses',
+  u'accounts:gsuite_basic_used_licenses': u'G Suite Basic Users',
+  u'accounts:gsuite_enterprise_total_licenses': u'G Suite Enterprise Licenses',
+  u'accounts:gsuite_enterprise_used_licenses': u'G Suite Enterprise Users',
+  u'accounts:gsuite_unlimited_total_licenses': u'G Suite Business Licenses',
+  u'accounts:gsuite_unlimited_used_licenses': u'G Suite Business Users'
+  }
+
 def _showCustomerLicenseInfo(customerId):
   rep = buildGAPIObject(API.REPORTS)
-  parameters = u'accounts:num_users,accounts:apps_total_licenses,accounts:apps_used_licenses'
+  parameters = u','.join(USER_COUNTS_MAP)
   try_date = str(datetime.date.today())
   while True:
     try:
@@ -6164,17 +6225,10 @@ def _showCustomerLicenseInfo(customerId):
   printKeyValueList([u'User counts as of {0}:'.format(try_date)])
   Ind.Increment()
   for item in usage[0][u'parameters']:
-    if not u'intValue' in item or int(item[u'intValue']) == 0:
-      continue
-    api_name = name = item[u'name']
-    api_value = int(item[u'intValue'])
-    if api_name == u'accounts:num_users':
-      name = u'Total Users'
-    elif api_name == u'accounts:apps_total_licenses':
-      name = u'G Suite Basic Licenses'
-    elif api_name == u'accounts:apps_used_licenses':
-      name = u'G Suite Basic Users'
-    printKeyValueList([name, u'{:,}'.format(api_value)])
+    api_name = USER_COUNTS_MAP.get(item[u'name'])
+    api_value = int(item.get(u'intValue', 0))
+    if api_name and api_value:
+      printKeyValueList([api_name, u'{:,}'.format(api_value)])
   Ind.Decrement()
 
 # gam info customer
@@ -9094,7 +9148,7 @@ def _printShowContacts(users, entityType, csvFormat, contactFeed=True):
               else:
                 contactRow[fn+keymap[u'infoTitle']] = value
         if showContactGroups and CONTACT_GROUPS in fields:
-          contactRow[u'{0}.0.Count'.format(CONTACT_GROUPS)] = len(fields[CONTACT_GROUPS])
+          contactRow[u'{0}.0.count'.format(CONTACT_GROUPS)] = len(fields[CONTACT_GROUPS])
           j = 0
           for group in fields[CONTACT_GROUPS]:
             j += 1
@@ -10317,26 +10371,37 @@ def doCreateGroup():
     if myarg == u'name':
       body[u'name'] = getString(Cmd.OB_STRING)
     elif myarg == u'description':
-      body[u'description'] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
+      description = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
+      if description.find(u'\n') != -1:
+        gs_body[u'description'] = description
+      else:
+        body[u'description'] = description
     else:
       getGroupAttrValue(myarg, gs_body)
   body.setdefault(u'name', body[u'email'])
   try:
     callGAPI(cd.groups(), u'insert',
-             throw_reasons=[GAPI.DUPLICATE, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID, GAPI.INVALID_INPUT],
+             throw_reasons=GAPI.GROUP_CREATE_THROW_REASONS,
              body=body, fields=u'')
     errMsg = u''
     if gs_body and not GroupIsAbuseOrPostmaster(body[u'email']):
       gs = buildGAPIObject(API.GROUPSSETTINGS)
-      result = callGAPI(gs.groups(), u'patch',
-                        soft_errors=True, throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
-                        groupUniqueId=body[u'email'], body=gs_body, fields=u'')
-      if result is None:
+      settings = callGAPI(gs.groups(), u'get',
+                          soft_errors=True, throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
+                          groupUniqueId=body[u'email'], fields=u'*')
+      if settings is not None:
+        settings.update(gs_body)
+        result = callGAPI(gs.groups(), u'update',
+                          soft_errors=True, throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
+                          groupUniqueId=body[u'email'], body=settings, fields=u'')
+        if result is None:
+          errMsg = Msg.API_ERROR_SETTINGS
+      else:
         errMsg = Msg.API_ERROR_SETTINGS
     entityActionPerformedMessage([Ent.GROUP, body[u'email']], errMsg)
   except GAPI.duplicate:
     entityDuplicateWarning(Ent.GROUP, body[u'email'])
-  except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.backendError, GAPI.systemError, GAPI.invalid, GAPI.invalidInput) as e:
+  except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.invalid, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied, GAPI.backendError, GAPI.systemError) as e:
     entityActionFailedWarning([Ent.GROUP, body[u'email']], str(e))
 
 def checkGroupExists(cd, group, i=0, count=0):
@@ -10485,7 +10550,7 @@ def doUpdateGroups():
       if body or (group.find(u'@') == -1): # group settings API won't take uid so we make sure cd API is used so that we can grab real email.
         try:
           group = callGAPI(cd.groups(), u'patch',
-                           throw_reasons=GAPI.GROUP_GET_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
+                           throw_reasons=GAPI.GROUP_UPDATE_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
                            groupKey=group, body=body, fields=u'email')[u'email']
         except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.backendError, GAPI.badRequest):
           entityUnknownWarning(Ent.GROUP, group, i, count)
@@ -10493,11 +10558,21 @@ def doUpdateGroups():
       errMsg = u''
       if gs_body and not GroupIsAbuseOrPostmaster(group):
         try:
-          result = callGAPI(gs.groups(), u'patch',
-                            soft_errors=True, throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
-                            groupUniqueId=group, body=gs_body, fields=u'')
-          if result is None:
+          settings = callGAPI(gs.groups(), u'get',
+                              soft_errors=True, throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
+                              groupUniqueId=group, fields=u'*')
+          if settings is not None:
+            settings.update(gs_body)
+            result = callGAPI(gs.groups(), u'update',
+                              soft_errors=True, throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
+                              groupUniqueId=group, body=settings, fields=u'')
+            if result is None:
+              errMsg = Msg.API_ERROR_SETTINGS
+          else:
             errMsg = Msg.API_ERROR_SETTINGS
+        except (GAPI.permissionDenied, GAPI.invalid, GAPI.invalidInput) as e:
+          entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
+          continue
         except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.backendError, GAPI.systemError):
           entityUnknownWarning(Ent.GROUP, group, i, count)
           continue
@@ -10718,6 +10793,8 @@ def infoGroups(entityList):
         settings = callGAPI(gs.groups(), u'get',
                             soft_errors=True, throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
                             groupUniqueId=group, fields=gsfields) # Use email address retrieved from cd since GS API doesn't support uid
+        if settings is None:
+          settings = {}
       if getGroups:
         groups = callGAPIpages(cd.groups(), u'list', u'groups',
                                userKey=group, fields=u'nextPageToken,groups(name,email)')
@@ -14132,7 +14209,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
           for field in schema[u'fields']:
             body[up][schemaName][field[u'fieldName']] = None
         except (GAPI.invalid, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-          entityDoesNotExistWarning(Ent.USER_SCHEMA, schemaName, 0, 0)
+          entityDoesNotExistWarning(Ent.USER_SCHEMA, schemaName)
           unknownArgumentExit()
       else:
         body[up][schemaName][fieldName] = None
@@ -14546,6 +14623,8 @@ def infoUsers(entityList):
   fields = u','.join(set(fieldsList)).replace(u'.', u'/') if fieldsList else None
   if getLicenses:
     lic = buildGAPIObject(API.LICENSING)
+  if isinstance(entityList, dict):
+    entityList[u'includeSuspendedInAll'] = True
   i, count, entityList = getEntityArgument(entityList)
   for userEmail in entityList:
     i += 1
@@ -14753,7 +14832,7 @@ def infoUsers(entityList):
 
 # gam info users <UserTypeEntity> [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>] [userview] [fields <UserFieldNameList>] [products|product <ProductIDList>] [skus|sku <SKUIDList>] [formatjson]
 def doInfoUsers():
-  infoUsers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)[1])
+  infoUsers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, delayGet=True)[1])
 
 # gam info user <UserItem> [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>] [userview] [fields <UserFieldNameList>] [products|product <ProductIDList>] [skus|sku <SKUIDList>] [formatjson]
 # gam info user
@@ -15110,7 +15189,7 @@ def doInviteGuardian():
                       studentId=studentId, body=body, fields=u'invitationId')
     entityActionPerformed([Ent.STUDENT, studentId, Ent.GUARDIAN, body[u'invitedEmailAddress'], Ent.GUARDIAN_INVITATION, result[u'invitationId']])
   except (GAPI.notFound, GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden):
-    entityUnknownWarning(Ent.STUDENT, studentId, 0, 0)
+    entityUnknownWarning(Ent.STUDENT, studentId)
   except GAPI.alreadyExists:
     entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN, body[u'invitedEmailAddress']], Msg.DUPLICATE)
 
@@ -15121,7 +15200,7 @@ def _cancelGuardianInvitation(croom, studentId, invitationId):
                       studentId=studentId, invitationId=invitationId, updateMask=u'state', body={u'state': u'COMPLETE'}, fields=u'invitedEmailAddress')
     entityActionPerformed([Ent.STUDENT, studentId, Ent.GUARDIAN_INVITATION, result[u'invitedEmailAddress']])
   except GAPI.forbidden:
-    entityUnknownWarning(Ent.STUDENT, studentId, 0, 0)
+    entityUnknownWarning(Ent.STUDENT, studentId)
     systemErrorExit(GM.Globals[GM.SYSEXITRC], None)
   except GAPI.notFound:
     entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN_INVITATION, invitationId], Msg.NOT_FOUND)
@@ -15156,7 +15235,7 @@ def doDeleteGuardian():
       entityActionPerformed([Ent.STUDENT, studentId, Ent.GUARDIAN, guardianId])
       return
     except GAPI.forbidden:
-      entityUnknownWarning(Ent.STUDENT, studentId, 0, 0)
+      entityUnknownWarning(Ent.STUDENT, studentId)
       systemErrorExit(GM.Globals[GM.SYSEXITRC], None)
     except GAPI.notFound:
       pass
@@ -15171,7 +15250,7 @@ def doDeleteGuardian():
     else:
       entityActionFailedWarning([Ent.STUDENT, studentId, [Ent.GUARDIAN, Ent.GUARDIAN_INVITATION][invitationsOnly]], guardianId, Msg.NOT_A_GUARDIAN_OR_INVITATION)
   except GAPI.forbidden:
-    entityUnknownWarning(Ent.STUDENT, studentId, 0, 0)
+    entityUnknownWarning(Ent.STUDENT, studentId)
 
 #gam show guardian|guardians [invitedguardian <EmailAddress>] [student <StudentItem>] [invitations] [states <GuardianStateList>] [<UserTypeEntity>]
 def doShowGuardians():
@@ -17408,7 +17487,7 @@ def transferCalendars(users):
         callGAPI(sourceCal.acl(), u'insert',
                  throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.FORBIDDEN],
                  calendarId=calId, body=targetRoleBody, fields=u'')
-        entityModifierNewValueItemValueActionPerformed([Ent.CALENDAR, calId], Act.MODIFIER_TO, None, Ent.USER, targetUser, j, jcount)
+        entityModifierNewValueItemValueListActionPerformed([Ent.CALENDAR, calId], Act.MODIFIER_TO, None, [Ent.USER, targetUser], j, jcount)
       except GAPI.forbidden as e:
         entityActionFailedWarning([Ent.CALENDAR, calId], str(e), j, jcount)
         continue
@@ -17723,8 +17802,8 @@ def doDriveSearch(drive, user, i, count, query=None, parentQuery=False, **kwargs
     entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(query), i, count)
   except GAPI.fileNotFound:
     printGettingEntityItemsForWhomDoneInfo(0)
-  except (GAPI.serviceNotAvailable, GAPI.authError):
-    entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+  except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+    userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
   return None
 
 def cleanFileIDsList(fileIdEntity, fileIds):
@@ -17863,9 +17942,9 @@ def _convertTeamDriveNameToId(drive, user, i, count, fileIdEntity):
     for td in feed:
       if td[u'name'].lower() == tddrivenamelower:
         fileIdEntity[u'teamdrive'][u'teamDriveId'] = td[u'id']
-        fileIdEntity[u'teamDriveName'] = None
+#        fileIdEntity[u'teamDriveName'] = None
         return True
-  except (GAPI.notFound, GAPI.serviceNotAvailable, GAPI.authError):
+  except (GAPI.notFound, GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
     pass
   entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_NAME, fileIdEntity[u'teamDriveName']], Msg.DOES_NOT_EXIST, i, count)
   return False
@@ -17875,7 +17954,7 @@ def _getTeamDriveNameFromId(drive, teamDriveId):
     return callGAPI(drive.teamdrives(), u'get',
                     throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
                     teamDriveId=teamDriveId, fields=u'name')[u'name']
-  except (GAPI.notFound, GAPI.serviceNotAvailable, GAPI.authError):
+  except (GAPI.notFound, GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
     return TEAM_DRIVE
 
 def _getDriveFileNameFromId(drive, fileId, combineTitleId=True):
@@ -17891,7 +17970,7 @@ def _getDriveFileNameFromId(drive, fileId, combineTitleId=True):
         fileName += u'('+fileId+u')'
       return (fileName, [Ent.DRIVE_FILE, Ent.DRIVE_FOLDER][result[u'mimeType'] == MIMETYPE_GA_FOLDER])
   except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
-          GAPI.serviceNotAvailable, GAPI.authError):
+          GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
     pass
   return (fileId, Ent.DRIVE_FILE_OR_FOLDER_ID)
 
@@ -17947,8 +18026,8 @@ def _validateUserGetFileIDs(user, i, count, fileIdEntity, body, parameters, driv
       rootFolderId = callGAPI(drive.files(), u'get',
                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                               fileId=u'root', fields=u'id')[u'id']
-    except (GAPI.serviceNotAvailable, GAPI.authError):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
       return (user, None, 0)
     for j in fileIdEntity[u'root']:
       fileIdEntity[u'list'][j] = rootFolderId
@@ -18143,7 +18222,14 @@ def printDriveSettings(users):
       addTitleToCSVfile(setting, titles)
 
   todrive = {}
-  titles, csvRows = initializeTitlesCSVfile([u'email', u'name'])
+  titles, csvRows = initializeTitlesCSVfile([u'email', u'displayName', u'folderColorPalette', u'largestChangeId', u'permissionId',
+                                             u'limit', u'usage', u'usageInDrive', u'usageInDriveTrash', u'quotaType',
+                                             u'rootFolderId', u'teamDriveThemes'])
+  nameField = u'displayName'
+  if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
+    nameField = u'name'
+    _mapDrive3TitlesToDrive2(titles[u'list'], API.DRIVE3_TO_DRIVE2_ABOUT_FIELDS_MAP)
+    titles[u'set'] = set(titles[u'list'])
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
@@ -18158,34 +18244,38 @@ def printDriveSettings(users):
       continue
     printGettingEntityItemForWhom(Ent.DRIVE_SETTINGS, user, i, count)
     try:
+      feed = callGAPI(drive.about(), u'get',
+                      throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                      fields=u'folderColorPalette,storageQuota,teamDriveThemes,user(displayName,permissionId)')
       rootFolderId = callGAPI(drive.files(), u'get',
                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                               fileId=u'root', fields=u'id')[u'id']
       largestChangeId = callGAPI(drive.changes(), u'getStartPageToken',
                                  throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                                  fields=u'startPageToken')[u'startPageToken']
-      feed = callGAPI(drive.about(), u'get',
-                      throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                      fields=u'folderColorPalette,storageQuota,user(displayName,permissionId)')
-      if feed is None:
-        continue
-      row = {u'email': user}
-      _addSetting(row, titles, u'name', feed[u'user'][u'displayName'])
-      _addSetting(row, titles, u'permissionId', feed[u'user'][u'permissionId'])
-      _addSetting(row, titles, u'rootFolderId', rootFolderId)
-      _addSetting(row, titles, u'largestChangeId', largestChangeId)
+      row = {u'email': user, nameField: feed[u'user'][u'displayName'], u'folderColorPalette': feed[u'folderColorPalette'],
+             u'largestChangeId': largestChangeId, u'permissionId': feed[u'user'][u'permissionId'],
+             u'quotaType': [u'UNLIMITED', u'LIMITED'][u'limit' in feed[u'storageQuota']],
+             u'rootFolderId': rootFolderId}
+      feed[u'storageQuota'].setdefault(u'limit', 0)
       if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
         for setting, value in iteritems(feed[u'storageQuota']):
-          _addSetting(row, titles, API.DRIVE3_TO_DRIVE2_ABOUT_FIELDS_MAP.get(setting, setting), formatFileSize(int(value)))
+          _addSetting(row, titles, API.DRIVE3_TO_DRIVE2_ABOUT_FIELDS_MAP.get(setting, setting), value)
       else:
         for setting, value in iteritems(feed[u'storageQuota']):
-          _addSetting(row, titles, setting, formatFileSize(int(value)))
-      _addSetting(row, titles, u'quotaType', [u'UNLIMITED', u'LIMITED'][u'limit' in feed[u'storageQuota']])
-      _addSetting(row, titles, u'folderColorPalette', feed[u'folderColorPalette'])
+          _addSetting(row, titles, setting, value)
+      teamDriveThemes = feed.get(u'teamDriveThemes', [])
+      jcount = len(feed[u'teamDriveThemes'])
+      row[u'teamDriveThemes'] = jcount
+      j = 0
+      for setting in teamDriveThemes:
+        _addSetting(row, titles, u'teamDriveThemes.{0}.id'.format(j), setting[u'id'])
+        _addSetting(row, titles, u'teamDriveThemes.{0}.backgroundImageLink'.format(j), setting[u'backgroundImageLink'])
+        _addSetting(row, titles, u'teamDriveThemes.{0}.colorRgb'.format(j), setting[u'colorRgb'])
+        j += 1
       csvRows.append(row)
-    except (GAPI.serviceNotAvailable, GAPI.authError):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
-  sortCSVTitles([u'email', u'name'], titles)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
   writeCSVfile(csvRows, titles, u'User Drive Settings', todrive)
 
 def initFilePathInfo():
@@ -18205,7 +18295,7 @@ def getFilePaths(drive, fileTree, initialResult, filePathInfo):
                               fileId=parentId, fields=u'name,parents,mimeType', supportsTeamDrives=True)
             parentEntry[u'info'][u'name'] = result[u'name']
             parentEntry[u'info'][u'parents'] = result.get(u'parents', [])
-          except (GAPI.fileNotFound, GAPI.serviceNotAvailable, GAPI.authError):
+          except (GAPI.fileNotFound, GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
             pass
         filePathInfo[u'ids'][parentId] = parentEntry[u'info'][u'name']
         parents = parentEntry[u'info'].get(u'parents', [])
@@ -18218,7 +18308,7 @@ def getFilePaths(drive, fileTree, initialResult, filePathInfo):
                           fileId=parentId, fields=u'name,parents,mimeType,teamDriveId', supportsTeamDrives=True)
         filePathInfo[u'ids'][parentId] = result[u'name']
         parents = result.get(u'parents', [])
-      except (GAPI.fileNotFound, GAPI.serviceNotAvailable, GAPI.authError):
+      except (GAPI.fileNotFound, GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
         return
     if parents:
       for lparentId in parents:
@@ -18263,10 +18353,10 @@ def _mapDrive3TitlesToDrive2(titles, drive3TitlesMap):
       titles[i] = drive3TitlesMap[title]
 
 def _mapDriveUser(field):
-  if u'me' in  field:
+  if u'me' in field:
     field[u'isAuthenticatedUser'] = field[u'me']
     del field[u'me']
-  if u'photoLink' in  field:
+  if u'photoLink' in field:
     field[u'picture'] = {u'url': field[u'photoLink']}
     del field[u'photoLink']
 
@@ -18304,6 +18394,9 @@ def _mapDriveFieldNames(f_file, user, mapToLabels=False):
   if capabilities:
     for attrib in API.DRIVE3_TO_DRIVE2_CAPABILITIES_FIELDS_MAP:
       f_file[API.DRIVE3_TO_DRIVE2_CAPABILITIES_FIELDS_MAP[attrib]] = capabilities[attrib]
+    for attrib in API.DRIVE3_TO_DRIVE2_CAPABILITIES_NAMES_MAP:
+      capabilities[API.DRIVE3_TO_DRIVE2_CAPABILITIES_NAMES_MAP[attrib]] = capabilities[attrib]
+      del capabilities[attrib]
   if u'spaces' in f_file:
     f_file[u'appDataContents'] = u'appDataFolder' in f_file[u'spaces']
   if u'lastModifyingUser' in f_file:
@@ -18495,12 +18588,12 @@ def showDriveFileInfo(users):
           Ind.Decrement()
         if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
           _mapDriveFieldNames(result, user, True)
-        showJSON(None, result, skipObjects, timeObjects)
+        showJSON(None, result, skipObjects, timeObjects, {u'owners': u'displayName', u'parents': u'id', u'permissions': [u'name', u'displayName'][GC.Values[GC.DRIVE_V3_NATIVE_NAMES]]})
         Ind.Decrement()
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
-      except (GAPI.serviceNotAvailable, GAPI.authError):
-        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
     Ind.Decrement()
 
@@ -18538,8 +18631,8 @@ def showDriveFileRevisions(users):
         Ind.Decrement()
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
-      except (GAPI.serviceNotAvailable, GAPI.authError):
-        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
     Ind.Decrement()
 
@@ -18850,7 +18943,7 @@ def printDriveFileList(users):
         page_message = getPageMessageForWhom()
         feed = callGAPIpages(drive.files(), u'list', u'files',
                              page_message=page_message,
-                             throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.NOT_FOUND],
+                             throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                              q=query, orderBy=orderBy, fields=fields,
                              pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **fileIdEntity[u'teamdrive'])
       if not fileIdEntity:
@@ -18879,10 +18972,10 @@ def printDriveFileList(users):
       break
     except GAPI.fileNotFound:
       printGettingEntityItemsForWhomDoneInfo(0)
-    except GAPI.notFound as e:
+    except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, fileIdEntity[u'teamdrive'][u'teamDriveId']], str(e), i, count)
-    except (GAPI.serviceNotAvailable, GAPI.authError):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
   if allfields:
     sortCSVTitles(allFieldsPrefixTitles, titles)
   writeCSVfile(csvRows, titles,
@@ -18921,8 +19014,8 @@ def showDriveFilePath(users):
         Ind.Decrement()
       except GAPI.fileNotFound:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], Msg.DOES_NOT_EXIST, j, jcount)
-      except (GAPI.serviceNotAvailable, GAPI.authError):
-        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
     Ind.Decrement()
 
@@ -18991,7 +19084,7 @@ def showDriveFileTree(users):
         page_message = getPageMessageForWhom()
         feed = callGAPIpages(drive.files(), u'list', u'files',
                              page_message=page_message,
-                             throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
+                             throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                              orderBy=orderBy, fields=u'nextPageToken,files(id,name,parents,mimeType)',
                              pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **fileIdEntity[u'teamdrive'])
       user, drive, jcount = _validateUserGetFileIDs(origUser, i, count, fileIdEntity, body, parameters, drive=drive, entityType=Ent.DRIVE_FOLDER)
@@ -19012,10 +19105,10 @@ def showDriveFileTree(users):
         else:
           entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER, fileId], Msg.NOT_FOUND, j, jcount)
       Ind.Decrement()
-    except GAPI.notFound as e:
+    except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, fileIdEntity[u'teamdrive'][u'teamDriveId']], str(e), i, count)
-    except (GAPI.serviceNotAvailable, GAPI.authError):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
 
 # gam <UserTypeEntity> add drivefile [drivefilename <DriveFileName>] [<DriveFileAttributes>]
 def addDriveFile(users):
@@ -19054,8 +19147,8 @@ def addDriveFile(users):
         entityActionPerformed([Ent.USER, user, [Ent.DRIVE_FOLDER, Ent.DRIVE_FILE][result[u'mimeType'] != MIMETYPE_GA_FOLDER], result[u'name']], i, count)
     except GAPI.forbidden as e:
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, body.get(u'name')], str(e), i, count)
-    except (GAPI.serviceNotAvailable, GAPI.authError):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
 
 # gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [newfilename <DriveFileName>] [<DriveFileUpdateAttributes>]
 def updateDriveFile(users):
@@ -19091,7 +19184,7 @@ def updateDriveFile(users):
         try:
           if media_body:
             result = callGAPI(drive.files(), u'update',
-                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS,
+                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.TEAMDRIVES_PARENT_LIMIT,],
                               fileId=fileId, ocrLanguage=parameters[DFA_OCRLANGUAGE],
                               keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                               useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
@@ -19101,7 +19194,7 @@ def updateDriveFile(users):
             entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, result[u'name']], Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], j, jcount)
           else:
             result = callGAPI(drive.files(), u'update',
-                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS,
+                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.TEAMDRIVES_PARENT_LIMIT,],
                               fileId=fileId, ocrLanguage=parameters[DFA_OCRLANGUAGE],
                               keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                               useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
@@ -19109,10 +19202,10 @@ def updateDriveFile(users):
                               body=body, fields=u'id,name,mimeType',
                               supportsTeamDrives=True)
             entityActionPerformed([Ent.USER, user, [Ent.DRIVE_FOLDER, Ent.DRIVE_FILE][result[u'mimeType'] != MIMETYPE_GA_FOLDER], result[u'name']], j, jcount)
-        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions) as e:
+        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.teamDrivesParentLimit) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
-        except (GAPI.serviceNotAvailable, GAPI.authError):
-          entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+          userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
           break
       Ind.Decrement()
     else:
@@ -19127,11 +19220,11 @@ def updateDriveFile(users):
                             ignoreDefaultVisibility=parameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                             keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                             body=body, fields=u'id,name', supportsTeamDrives=True)
-          entityModifierNewValueItemValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, fileId], Act.MODIFIER_TO, result[u'name'], Ent.DRIVE_FILE_ID, result[u'id'], j, jcount)
+          entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, fileId], Act.MODIFIER_TO, result[u'name'], [Ent.DRIVE_FILE_ID, result[u'id']], j, jcount)
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, fileId], str(e), j, jcount)
-        except (GAPI.serviceNotAvailable, GAPI.authError):
-          entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+          userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
           break
       Ind.Decrement()
 
@@ -19165,9 +19258,9 @@ def copyDriveFile(users):
           body[u'parents'].append(newFolderId)
           result = callGAPI(drive.files(), u'copy',
                             fileId=fileId, body=body, fields=u'id,name', supportsTeamDrives=True)
-          entityModifierNewValueItemValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, metadata[u'name']], Act.MODIFIER_TO, result[u'name'], Ent.DRIVE_FILE_ID, result[u'id'], j, jcount)
+          entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, metadata[u'name']], Act.MODIFIER_TO, result[u'name'], [Ent.DRIVE_FILE_ID, result[u'id']], j, jcount)
       Ind.Decrement()
-      entityModifierNewValueItemValueActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, folderTitle], Act.MODIFIER_TO, newFolderTitle, Ent.DRIVE_FOLDER_ID, newFolderId, i, count)
+      entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, folderTitle], Act.MODIFIER_TO, newFolderTitle, [Ent.DRIVE_FOLDER_ID, newFolderId], i, count)
 
   fileIdEntity = getDriveFileEntity()
   body, parameters = initializeDriveFileAttributes()
@@ -19215,11 +19308,11 @@ def copyDriveFile(users):
                             ignoreDefaultVisibility=parameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                             keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                             body=body, fields=u'id,name', supportsTeamDrives=True)
-          entityModifierNewValueItemValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, metadata[u'name']], Act.MODIFIER_TO, result[u'name'], Ent.DRIVE_FILE_ID, result[u'id'], j, jcount)
+          entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, metadata[u'name']], Act.MODIFIER_TO, result[u'name'], [Ent.DRIVE_FILE_ID, result[u'id']], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
-      except (GAPI.serviceNotAvailable, GAPI.authError):
-        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
     Ind.Decrement()
 #
@@ -19263,8 +19356,8 @@ def deleteDriveFile(users, function=None):
         entityActionPerformed([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, fileName], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
-      except (GAPI.serviceNotAvailable, GAPI.authError):
-        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
     Ind.Decrement()
 
@@ -19429,12 +19522,105 @@ def getDriveFile(users):
                                           Msg.FORMAT_NOT_AVAILABLE.format(u','.join(exportFormatChoices)), j, jcount)
       except GAPI.fileNotFound:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], Msg.DOES_NOT_EXIST, j, jcount)
-      except (GAPI.serviceNotAvailable, GAPI.authError):
-        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
     Ind.Decrement()
 
+# gam <UserTypeEntity> collect orphans (orderby <DriveOrderByFieldName> [ascending|descending])*
+#	[targetuserfoldername <DriveFileName>] [preview] [todrive [<ToDriveAttributes>]]
+def collectOrphans(users):
+  orderByList = []
+  csvFormat = False
+  todrive = {}
+  targetUserFolderPattern = u'#user# orphaned files'
+  query = ME_IN_OWNERS_AND+u'trashed = false'
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'orderby':
+      fieldName = getChoice(DRIVEFILE_ORDERBY_CHOICES_MAP, mapChoice=True)
+      if getChoice(SORTORDER_CHOICES_MAP, defaultChoice=None, mapChoice=True) != u'DESCENDING':
+        orderByList.append(fieldName)
+      else:
+        orderByList.append(u'{0} desc'.format(fieldName))
+    elif myarg == u'targetuserfoldername':
+      targetUserFolderPattern = getString(Cmd.OB_DRIVE_FILE_NAME)
+    elif myarg == u'preview':
+      csvFormat = True
+    elif myarg == u'todrive':
+      todrive = getTodriveParameters()
+    else:
+      unknownArgumentExit()
+  orderBy = u','.join(orderByList) if orderByList else None
+  if csvFormat:
+    titles, csvRows = initializeTitlesCSVfile([u'Owner', u'type', u'id', u'name'])
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, drive = buildGAPIServiceObject(API.DRIVE3, user)
+    if not drive:
+      continue
+    userName, _ = splitEmailAddress(user)
+    try:
+      printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, Ent.TypeName(Ent.USER, user), i, count, qualifier=queryQualifier(query))
+      page_message = getPageMessageForWhom()
+      feed = callGAPIpages(drive.files(), u'list', u'files',
+                           page_message=page_message,
+                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                           q=query, orderBy=orderBy, fields=u'nextPageToken,files(id,name,parents,mimeType)',
+                           pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
+      trgtUserFolderName = targetUserFolderPattern.replace(u'#user#', user)
+      trgtUserFolderName = trgtUserFolderName.replace(u'#email#', user)
+      trgtUserFolderName = trgtUserFolderName.replace(u'#username#', userName)
+      orphanDriveFiles = [f_file for f_file in feed if not f_file.get(u'parents')]
+      del feed
+      jcount = len(orphanDriveFiles)
+      entityPerformActionNumItemsModifier([Ent.USER, user], jcount, Ent.DRIVE_ORPHAN_FILE_OR_FOLDER,
+                                          u'{0} {1}: {2}'.format(Act.MODIFIER_INTO, Ent.Singular(Ent.DRIVE_FOLDER), trgtUserFolderName), i, count)
+      if jcount == 0:
+        continue
+      if not csvFormat:
+        result = callGAPIpages(drive.files(), u'list', u'files',
+                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                               q=ME_IN_OWNERS_AND+u"trashed = false and mimeType = '{0}' and name = '{1}'".format(MIMETYPE_GA_FOLDER, trgtUserFolderName),
+                               fields=u'nextPageToken,files(id)')
+        if len(result) > 0:
+          trgtParentId = result[0][u'id']
+        else:
+          trgtParentId = callGAPI(drive.files(), u'create',
+                                  throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                  body={u'name': trgtUserFolderName, u'mimeType': MIMETYPE_GA_FOLDER}, fields=u'id')[u'id']
+        newParent = u','.join([trgtParentId,])
+      setSysExitRC(ORPHANS_COLLECTED_RC)
+      Ind.Increment()
+      j = 0
+      for fileEntry in orphanDriveFiles:
+        j += 1
+        fileId = fileEntry[u'id']
+        fileName = fileEntry[u'name']
+        fileType = [Ent.DRIVE_FOLDER, Ent.DRIVE_FILE][fileEntry[u'mimeType'] != MIMETYPE_GA_FOLDER]
+        if csvFormat:
+          csvRows.append({u'Owner': user, u'type': Ent.Singular(fileType), u'id': fileId, u'name': fileName})
+          continue
+        try:
+          callGAPI(drive.files(), u'update',
+                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS, retry_reasons=[GAPI.FILE_NOT_FOUND],
+                   fileId=fileId, addParents=newParent, fields=u'')
+          entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, fileType, fileName], Act.MODIFIER_INTO, None, [Ent.DRIVE_FOLDER, trgtUserFolderName], j, jcount)
+        except (GAPI.fileNotFound) as e:
+          entityActionFailedWarning([Ent.USER, user, fileType, fileName], str(e), j, jcount)
+        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+          userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+          break
+      Ind.Decrement()
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'Orphans to Collect', todrive)
+
 # gam <UserTypeEntity> transfer drive <UserItem> [keepuser] [retainrole reader|commenter|writer|owner|editor] (orderby <DriveOrderByFieldName> [ascending|descending])*
+#	[(targetfolderid <DriveFileID>)|(targetfoldername <DriveFileName>)] [targetuserfoldername <DriveFileName>]
+#	[preview] [todrive [<ToDriveAttributes>]]
 def transferDriveFiles(users):
 
   def _addRemoveParents(oldParents, rootId):
@@ -19468,71 +19654,77 @@ def transferDriveFiles(users):
     if jcount == 0:
       return
     j = 0
-    for childId in fileEntry[u'children']:
+    for childFileId in fileEntry[u'children']:
       j += 1
-      childEntry = fileTree.get(childId)
+      childEntry = fileTree.get(childFileId)
       if not childEntry or childEntry.get(u'xfer'):
         continue
       childEntry[u'xfer'] = True
       childFileName = childEntry[u'info'][u'name']
       childFileType = [Ent.DRIVE_FOLDER, Ent.DRIVE_FILE][childEntry[u'info'][u'mimeType'] != MIMETYPE_GA_FOLDER]
-      if childEntry[u'info'][u'ownedByMe']:
-        try:
-          Act.Set(Act.TRANSFER_OWNERSHIP)
-          callGAPI(sourceDrive.permissions(), u'create',
-                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST],
-                   fileId=childId, sendNotificationEmail=True, emailMessage=None, transferOwnership=True, body=targetPermissionsBody, fields=u'')
-          entityModifierNewValueItemValueActionPerformed([Ent.USER, sourceUser, childFileType, childFileName], Act.MODIFIER_TO, None, Ent.USER, targetUser, j, jcount)
-          addParents, removeParents = _addRemoveParents(childEntry[u'info'][u'parents'], rootId)
-          callGAPI(targetDrive.files(), u'update',
-                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS,
-                   retry_reasons=[GAPI.FILE_NOT_FOUND],
-                   fileId=childId, addParents=addParents, removeParents=removeParents, fields=u'')
-          if retainSourceRoleBody:
-            Act.Set(Act.RETAIN)
-            callGAPI(targetDrive.permissions(), u'update',
-                     throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
-                     fileId=childId, permissionId=sourcePermissionId, body=retainSourceRoleBody, fields=u'')
-            entityModifierNewValueActionPerformed([Ent.USER, sourceUser, childFileType, childFileName, Ent.ROLE, u'owner'], Act.MODIFIER_TO, retainSourceRoleBody[u'role'], j, jcount)
-          else:
-            Act.Set(Act.DELETE)
-            callGAPI(targetDrive.permissions(), u'delete',
-                     throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
-                     fileId=childId, permissionId=sourcePermissionId)
-            entityActionPerformed([Ent.USER, sourceUser, childFileType, childFileName, Ent.ROLE, u'owner'], j, jcount)
-        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
-          entityActionFailedWarning([Ent.USER, sourceUser, childFileType, childFileName], str(e), j, jcount)
-        except GAPI.permissionNotFound:
-          entityDoesNotHaveItemWarning([Ent.USER, sourceUser, childFileType, childFileName, Ent.PERMISSION_ID, sourcePermissionId], j, jcount)
-        except (GAPI.invalidSharingRequest) as e:
-          entityActionFailedWarning([Ent.USER, sourceUser, childFileType, childFileName], Ent.TypeNameMessage(Ent.PERMISSION_ID, sourcePermissionId, str(e)), j, jcount)
-        except (GAPI.serviceNotAvailable, GAPI.authError):
-          entityServiceNotApplicableWarning(Ent.USER, sourceUser, 0, 0)
+      if csvFormat:
+        if childEntry[u'info'][u'ownedByMe']:
+          csvRows.append({u'OldOwner': sourceUser, u'NewOwner': targetUser, u'type': Ent.Singular(childFileType), u'id': childFileId, u'name': childFileName})
       else:
-        if childFileType == Ent.DRIVE_FILE:
-          continue
+        if childEntry[u'info'][u'ownedByMe']:
+          try:
+            Act.Set(Act.TRANSFER_OWNERSHIP)
+            callGAPI(sourceDrive.permissions(), u'create',
+                     throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST],
+                     fileId=childFileId, sendNotificationEmail=True, emailMessage=None, transferOwnership=True, body=targetPermissionsBody, fields=u'')
+            entityModifierNewValueItemValueListActionPerformed([Ent.USER, sourceUser, childFileType, childFileName], Act.MODIFIER_TO, None, [Ent.USER, targetUser], j, jcount)
+            addParents, removeParents = _addRemoveParents(childEntry[u'info'][u'parents'], rootId)
+            callGAPI(targetDrive.files(), u'update',
+                     throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS,
+                     retry_reasons=[GAPI.FILE_NOT_FOUND],
+                     fileId=childFileId, addParents=addParents, removeParents=removeParents, fields=u'')
+            if retainSourceRoleBody:
+              Act.Set(Act.RETAIN)
+              callGAPI(targetDrive.permissions(), u'update',
+                       throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
+                       fileId=childFileId, permissionId=sourcePermissionId, body=retainSourceRoleBody, fields=u'')
+              entityModifierNewValueActionPerformed([Ent.USER, sourceUser, childFileType, childFileName, Ent.ROLE, u'owner'], Act.MODIFIER_TO, retainSourceRoleBody[u'role'], j, jcount)
+            else:
+              Act.Set(Act.DELETE)
+              callGAPI(targetDrive.permissions(), u'delete',
+                       throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
+                       fileId=childFileId, permissionId=sourcePermissionId)
+              entityActionPerformed([Ent.USER, sourceUser, childFileType, childFileName, Ent.ROLE, u'owner'], j, jcount)
+          except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
+            entityActionFailedWarning([Ent.USER, sourceUser, childFileType, childFileName], str(e), j, jcount)
+          except GAPI.permissionNotFound:
+            entityDoesNotHaveItemWarning([Ent.USER, sourceUser, childFileType, childFileName, Ent.PERMISSION_ID, sourcePermissionId], j, jcount)
+          except (GAPI.invalidSharingRequest) as e:
+            entityActionFailedWarning([Ent.USER, sourceUser, childFileType, childFileName], Ent.TypeNameMessage(Ent.PERMISSION_ID, sourcePermissionId, str(e)), j, jcount)
+          except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+            userSvcNotApplicableOrDriveDisabled(sourceUser, str(e), i, count)
+        else:
+          if childFileType == Ent.DRIVE_FILE:
+            continue
 ### Skip if no children??
-        try:
-          result = callGAPIpages(targetDrive.files(), u'list', u'files',
-                                 throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                 q=ME_IN_OWNERS_AND+u"mimeType = '{0}' and name = '{1}'".format(MIMETYPE_GA_FOLDER, childFileName),
-                                 fields=u'nextPageToken,files(id)')
-          if len(result) > 0:
-            parentIdMap[childId] = result[0][u'id']
-          else:
-            parentIdMap[childId] = callGAPI(targetDrive.files(), u'create',
-                                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS,
-                                            body={u'parents': _newParents(childEntry[u'info'][u'parents'], rootId), u'name': childFileName, u'mimeType': MIMETYPE_GA_FOLDER}, fields=u'id')[u'id']
-        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
-          entityActionFailedWarning([Ent.USER, sourceUser, childFileType, childFileName], str(e), j, jcount)
-        except (GAPI.serviceNotAvailable, GAPI.authError):
-          entityServiceNotApplicableWarning(Ent.USER, sourceUser, 0, 0)
+          try:
+            result = callGAPIpages(targetDrive.files(), u'list', u'files',
+                                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                   q=ME_IN_OWNERS_AND+u"trashed = false and mimeType = '{0}' and name = '{1}'".format(MIMETYPE_GA_FOLDER, childFileName),
+                                   fields=u'nextPageToken,files(id)')
+            if len(result) > 0:
+              parentIdMap[childFileId] = result[0][u'id']
+            else:
+              parentIdMap[childFileId] = callGAPI(targetDrive.files(), u'create',
+                                                  throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS,
+                                                  body={u'parents': _newParents(childEntry[u'info'][u'parents'], rootId), u'name': childFileName, u'mimeType': MIMETYPE_GA_FOLDER}, fields=u'id')[u'id']
+          except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
+            entityActionFailedWarning([Ent.USER, sourceUser, childFileType, childFileName], str(e), j, jcount)
+          except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+            userSvcNotApplicableOrDriveDisabled(sourceUser, str(e), i, count)
       if childEntry[u'info'][u'mimeType'] == MIMETYPE_GA_FOLDER:
         Ind.Increment()
         _transferDriveFiles(childEntry, rootId)
         Ind.Decrement()
 
   targetUser = getEmailAddress()
+  csvFormat = False
+  todrive = {}
   orderByList = []
   retainSourceRoleBody = {}
   targetFolderId = targetFolderName = None
@@ -19561,6 +19753,10 @@ def transferDriveFiles(users):
       targetFolderName = getString(Cmd.OB_DRIVE_FILE_NAME)
     elif myarg == u'targetuserfoldername':
       targetUserFolderPattern = getString(Cmd.OB_DRIVE_FILE_NAME)
+    elif myarg == u'preview':
+      csvFormat = True
+    elif myarg == u'todrive':
+      todrive = getTodriveParameters()
     else:
       unknownArgumentExit()
   orderBy = u','.join(orderByList) if orderByList else None
@@ -19621,10 +19817,12 @@ def transferDriveFiles(users):
                                        Ent.Singular(Ent.DRIVE_FOLDER_ID), targetFolderId,
                                        Msg.DOES_NOT_EXIST],
                                       u'\n'))
-  except (GAPI.serviceNotAvailable, GAPI.authError):
-    entityServiceNotApplicableWarning(Ent.TARGET_USER, targetUser)
+  except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+    userSvcNotApplicableOrDriveDisabled(targetUser, str(e))
     return
   targetPermissionsBody = {u'role': u'owner', u'type': u'user', u'emailAddress': targetUser}
+  if csvFormat:
+    titles, csvRows = initializeTitlesCSVfile([u'OldOwner', u'NewOwner', u'type', u'id', u'name'])
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -19663,47 +19861,50 @@ def transferDriveFiles(users):
       targetUserFolderName = targetUserFolderPattern.replace(u'#user#', sourceUser)
       targetUserFolderName = targetUserFolderName.replace(u'#email#', sourceUser)
       targetUserFolderName = targetUserFolderName.replace(u'#username#', sourceUserName)
-      result = callGAPIpages(targetDrive.files(), u'list', u'files',
-                             throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                             q=ME_IN_OWNERS_AND+u"mimeType = '{0}' and name = '{1}' and '{2}' in parents".format(MIMETYPE_GA_FOLDER, targetUserFolderName, targetFolderId),
-                             fields=u'nextPageToken,files(id)')
-      if len(result) > 0:
-        targetParentId = result[0][u'id']
-      else:
-        targetParentId = callGAPI(targetDrive.files(), u'create',
-                                  throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                  body={u'parents': [targetFolderId], u'name': targetUserFolderName, u'mimeType': MIMETYPE_GA_FOLDER}, fields=u'id')[u'id']
-      targetUserFolderName = os.path.join(targetFolderName, targetUserFolderName)
+      if not csvFormat:
+        result = callGAPIpages(targetDrive.files(), u'list', u'files',
+                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                               q=ME_IN_OWNERS_AND+u"trashed = false and mimeType = '{0}' and name = '{1}' and '{2}' in parents".format(MIMETYPE_GA_FOLDER, targetUserFolderName, targetFolderId),
+                               fields=u'nextPageToken,files(id)')
+        if len(result) > 0:
+          targetParentId = result[0][u'id']
+        else:
+          targetParentId = callGAPI(targetDrive.files(), u'create',
+                                    throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                    body={u'parents': [targetFolderId], u'name': targetUserFolderName, u'mimeType': MIMETYPE_GA_FOLDER}, fields=u'id')[u'id']
+        targetUserFolderName = os.path.join(targetFolderName, targetUserFolderName)
       fileTree = buildFileTree(sourceDriveFiles, sourceDrive)
       Ind.Increment()
       _transferDriveFiles(fileTree[sourceRoot], sourceRoot)
       _transferDriveFiles(fileTree[u'orphans'], u'orphans')
       Ind.Decrement()
-    except (GAPI.serviceNotAvailable, GAPI.authError):
-      entityServiceNotApplicableWarning(Ent.USER, sourceUser, i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(sourceUser, str(e), i, count)
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'Files to Transfer', todrive)
 
-def validateUserGetPermissionId(user):
+def validateUserGetPermissionId(user, i=0, count=0):
   _, drive = buildGAPIServiceObject(API.DRIVE3, user)
   if drive:
     try:
       return callGAPI(drive.about(), u'get',
                       throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                       fields=u'user(permissionId)')[u'user'][u'permissionId']
-    except (GAPI.serviceNotAvailable, GAPI.authError):
-      entityServiceNotApplicableWarning(Ent.USER, user)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
   return None
 
 # gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed] (orderby <DriveOrderByFieldName> [ascending|descending])* [preview] [filepath] [todrive [<ToDriveAttributes>]]
 def transferDriveFileOwnership(users):
 
   def _identifyFilesToTransfer(fileEntry, trashed):
-    for childId in fileEntry[u'children']:
-      childEntry = fileTree.get(childId)
+    for childFileId in fileEntry[u'children']:
+      childEntry = fileTree.get(childFileId)
       if childEntry:
         childEntryInfo = childEntry[u'info']
         if trashed or not childEntryInfo[u'trashed']:
           if childEntryInfo[u'ownedByMe']:
-            filesToTransfer[childId] = {u'name': childEntryInfo[u'name'], u'type': [Ent.DRIVE_FILE, Ent.DRIVE_FOLDER][childEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER]}
+            filesToTransfer[childFileId] = {u'name': childEntryInfo[u'name'], u'type': [Ent.DRIVE_FILE, Ent.DRIVE_FOLDER][childEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER]}
           if childEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER:
             _identifyFilesToTransfer(childEntry, trashed)
 
@@ -19761,8 +19962,8 @@ def transferDriveFileOwnership(users):
                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                            orderBy=orderBy, fields=u'nextPageToken,files(id,name,parents,mimeType,ownedByMe,trashed)',
                            pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
-    except (GAPI.serviceNotAvailable, GAPI.authError):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
       continue
     fileTree = buildFileTree(feed, drive)
     Ind.Increment()
@@ -19776,8 +19977,8 @@ def transferDriveFileOwnership(users):
       except GAPI.fileNotFound:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, fileId], Msg.NOT_FOUND, j, jcount)
         continue
-      except (GAPI.serviceNotAvailable, GAPI.authError):
-        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
       entityType = [Ent.DRIVE_FILE, Ent.DRIVE_FOLDER][fileEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER]
       entityPerformActionItemValue([Ent.USER, user], entityType, u'{0} ({1})'.format(fileEntryInfo[u'name'], fileId), j, jcount)
@@ -19809,7 +20010,7 @@ def transferDriveFileOwnership(users):
           callGAPI(drive.permissions(), u'update',
                    throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND, GAPI.PERMISSION_NOT_FOUND],
                    fileId=xferFileId, permissionId=permissionId, transferOwnership=True, body=body, fields=u'')
-          entityModifierNewValueItemValueActionPerformed([Ent.USER, user, entityType, fileDesc], Act.MODIFIER_TO, None, Ent.USER, newOwner, k, kcount)
+          entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, entityType, fileDesc], Act.MODIFIER_TO, None, [Ent.USER, newOwner], k, kcount)
         except GAPI.permissionNotFound:
           # this might happen if target user isn't explicitly in ACL (i.e. shared with anyone)
           try:
@@ -19819,19 +20020,19 @@ def transferDriveFileOwnership(users):
             callGAPI(drive.permissions(), u'update',
                      throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND, GAPI.PERMISSION_NOT_FOUND],
                      fileId=xferFileId, permissionId=permissionId, transferOwnership=True, body=body, fields=u'')
-            entityModifierNewValueItemValueActionPerformed([Ent.USER, user, entityType, fileDesc], Act.MODIFIER_TO, None, Ent.USER, newOwner, k, kcount)
+            entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, entityType, fileDesc], Act.MODIFIER_TO, None, [Ent.USER, newOwner], k, kcount)
           except GAPI.invalidSharingRequest as e:
             entityActionFailedWarning([Ent.USER, user, entityType, fileDesc], Ent.TypeNameMessage(Ent.PERMISSION_ID, permissionId, str(e)), k, kcount)
           except GAPI.permissionNotFound:
             entityDoesNotHaveItemWarning([Ent.USER, user, entityType, fileDesc, Ent.PERMISSION_ID, permissionId], k, kcount)
           except GAPI.fileNotFound:
             entityActionFailedWarning([Ent.USER, user, entityType, fileDesc], Msg.DOES_NOT_EXIST, k, kcount)
-          except (GAPI.serviceNotAvailable, GAPI.authError):
-            entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+          except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+            userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         except GAPI.fileNotFound:
           entityActionFailedWarning([Ent.USER, user, entityType, fileDesc], Msg.DOES_NOT_EXIST, j, jcount)
-        except (GAPI.serviceNotAvailable, GAPI.authError):
-          entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+          userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
           break
       Ind.Decrement()
       Ind.Decrement()
@@ -19842,16 +20043,16 @@ def transferDriveFileOwnership(users):
 # gam <UserTypeEntity> claim ownership <DriveFileEntity> [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>] [includetrashed] [restricted [<Boolean>]] [writerscantshare [<Boolean>]] [preview] [filepath] [todrive [<ToDriveAttributes>]]
 def claimDriveFolderOwnership(users):
   def _identifyFilesToClaim(fileEntry, skipids, skipusers, trashed):
-    for childId in fileEntry[u'children']:
-      childEntry = fileTree.get(childId)
+    for childFileId in fileEntry[u'children']:
+      childEntry = fileTree.get(childFileId)
       if childEntry:
         childEntryInfo = childEntry[u'info']
-        if childId not in skipids and (trashed or not childEntryInfo[u'trashed']):
+        if childFileId not in skipids and (trashed or not childEntryInfo[u'trashed']):
           owner = childEntryInfo[u'owners'][0][u'emailAddress']
           if not childEntryInfo[u'ownedByMe'] and owner not in skipusers:
             filesToClaim.setdefault(owner, {})
-            if childId not in filesToClaim[owner]:
-              filesToClaim[owner][childId] = {u'name': childEntryInfo[u'name'], u'type': [Ent.DRIVE_FILE, Ent.DRIVE_FOLDER][childEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER]}
+            if childFileId not in filesToClaim[owner]:
+              filesToClaim[owner][childFileId] = {u'name': childEntryInfo[u'name'], u'type': [Ent.DRIVE_FILE, Ent.DRIVE_FOLDER][childEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER]}
           if childEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER:
             _identifyFilesToClaim(childEntry, skipids, skipusers, trashed)
 
@@ -19902,7 +20103,7 @@ def claimDriveFolderOwnership(users):
     user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, body, parameters)
     if not drive:
       continue
-    permissionId = validateUserGetPermissionId(user)
+    permissionId = validateUserGetPermissionId(user, i, count)
     if not permissionId:
       continue
     entityPerformActionNumItems([Ent.USER, user], jcount, Ent.DRIVE_FILE_OR_FOLDER, i, count)
@@ -19921,8 +20122,8 @@ def claimDriveFolderOwnership(users):
                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                            fields=u'nextPageToken,files(id,name,parents,mimeType,ownedByMe,owners(emailAddress),trashed)',
                            pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
-    except (GAPI.serviceNotAvailable, GAPI.authError):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
       continue
     fileTree = buildFileTree(feed, drive)
     Ind.Increment()
@@ -19978,32 +20179,29 @@ def claimDriveFolderOwnership(users):
               callGAPI(source_drive.permissions(), u'update',
                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND, GAPI.PERMISSION_NOT_FOUND],
                        fileId=fileId, permissionId=permissionId, transferOwnership=True, body=body, fields=u'')
-              entityModifierNewValueItemValueActionPerformed([Ent.USER, user, entityType, fileDesc], Act.MODIFIER_FROM, None, Ent.USER, oldOwner, l, lcount)
+              entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, entityType, fileDesc], Act.MODIFIER_FROM, None, [Ent.USER, oldOwner], l, lcount)
             except GAPI.permissionNotFound:
               # if claimer not in ACL (file might be visible for all with link)
               try:
-                Act.Set(Act.ADD)
                 callGAPI(source_drive.permissions(), u'create',
                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST, GAPI.FILE_NOT_FOUND],
                          fileId=fileId, sendNotificationEmail=False, body=bodyAdd, fields=u'')
-                entityActionPerformed([Ent.USER, user, entityType, fileDesc, Ent.PERMISSION_ID, permissionId], l, lcount)
-                Act.Set(Act.CLAIM_OWNERSHIP)
                 callGAPI(source_drive.permissions(), u'update',
                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND, GAPI.PERMISSION_NOT_FOUND],
                          fileId=fileId, permissionId=permissionId, transferOwnership=True, body=body, fields=u'')
-                entityModifierNewValueItemValueActionPerformed([Ent.USER, user, entityType, fileDesc], Act.MODIFIER_FROM, None, Ent.USER, oldOwner, l, lcount)
+                entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, entityType, fileDesc], Act.MODIFIER_FROM, None, [Ent.USER, oldOwner], l, lcount)
               except GAPI.invalidSharingRequest as e:
                 entityActionFailedWarning([Ent.USER, user, entityType, fileDesc], Ent.TypeNameMessage(Ent.PERMISSION_ID, permissionId, str(e)), l, lcount)
               except GAPI.permissionNotFound:
                 entityDoesNotHaveItemWarning([Ent.USER, user, entityType, fileDesc, Ent.PERMISSION_ID, permissionId], l, lcount)
               except GAPI.fileNotFound:
                 entityActionFailedWarning([Ent.USER, user, entityType, fileDesc], Msg.DOES_NOT_EXIST, l, lcount)
-              except (GAPI.serviceNotAvailable, GAPI.authError):
-                entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+              except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+                userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
             except GAPI.fileNotFound:
               entityActionFailedWarning([Ent.USER, user, entityType, fileDesc], Msg.DOES_NOT_EXIST, l, lcount)
-            except (GAPI.serviceNotAvailable, GAPI.authError):
-              entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+            except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+              userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
               break
           Ind.Decrement()
         else:
@@ -20057,7 +20255,7 @@ def deleteEmptyDriveFolders(users):
         else:
           feed = callGAPIpages(drive.files(), u'list', u'files',
                                page_message=page_message,
-                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                                q=query, fields=u'nextPageToken,files(id,name)',
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **fileIdEntity[u'teamdrive'])
         jcount = len(feed)
@@ -20074,7 +20272,7 @@ def deleteEmptyDriveFolders(users):
                                        pageSize=1)
             else:
               children = callGAPIitems(drive.files(), u'list', u'files',
-                                       throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                       throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                                        q=u"'{0}' in parents".format(folder[u'id']), fields=u'files(id,name)',
                                        pageSize=1, **fileIdEntity[u'teamdrive'])
             if len(children) == 0:
@@ -20095,9 +20293,10 @@ def deleteEmptyDriveFolders(users):
           else:
             entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, folder[u'name']],
                                             Msg.NOT_OWNED_BY.format(user), j, jcount)
-    except (GAPI.serviceNotAvailable, GAPI.authError):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
-      break
+    except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, fileIdEntity[u'teamdrive'][u'teamDriveId']], str(e), i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
     Ind.Decrement()
 
 # gam <UserTypeEntity> empty drivetrash [<TeamDriveEntity>]
@@ -20118,8 +20317,8 @@ def emptyDriveTrash(users):
         callGAPI(drive.files(), u'emptyTrash',
                  throw_reasons=GAPI.DRIVE_USER_THROW_REASONS)
         entityActionPerformed([Ent.USER, user, Ent.DRIVE_TRASH, None], i, count)
-      except (GAPI.serviceNotAvailable, GAPI.authError):
-        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
   else:
     Act.Set(Act.PURGE)
     fileIdEntity[u'teamdrivequery'] = u'trashed=true'
@@ -20140,8 +20339,8 @@ def emptyDriveTrash(users):
           entityActionPerformed([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, fileName], j, jcount)
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
-        except (GAPI.serviceNotAvailable, GAPI.authError):
-          entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+          userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
           break
       Ind.Decrement()
 
@@ -20278,8 +20477,8 @@ def addDriveFileACL(users):
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
       except (GAPI.invalidSharingRequest) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], Ent.TypeNameMessage(Ent.PERMISSION_ID, permissionId, str(e)), j, jcount)
-      except (GAPI.serviceNotAvailable, GAPI.authError):
-        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
     Ind.Decrement()
 
@@ -20348,8 +20547,8 @@ def updateDriveFileACLs(users):
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
       except GAPI.permissionNotFound:
         entityDoesNotHaveItemWarning([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
-      except (GAPI.serviceNotAvailable, GAPI.authError):
-        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
     Ind.Decrement()
 
@@ -20403,7 +20602,7 @@ def addDriveFilePermissions(users):
                  fileId=ri[RI_ENTITY], sendNotificationEmail=sendNotificationEmail, emailMessage=emailMessage, body=_makePermissionBody(ri[RI_ITEM]), fields=u'')
         entityActionPerformed([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.invalidSharingRequest,
-              GAPI.serviceNotAvailable, GAPI.authError) as e:
+              GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
   sendNotificationEmail = False
@@ -20434,8 +20633,8 @@ def addDriveFilePermissions(users):
       callGAPI(drive.about(), u'get',
                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                fields=u'')
-    except (GAPI.serviceNotAvailable, GAPI.authError):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
       continue
     Ind.Increment()
     svcargs = dict([(u'fileId', None), (u'sendNotificationEmail', sendNotificationEmail), (u'emailMessage', emailMessage),
@@ -20506,8 +20705,8 @@ def deleteDriveFileACLs(users):
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
       except GAPI.permissionNotFound:
         entityDoesNotHaveItemWarning([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
-      except (GAPI.serviceNotAvailable, GAPI.authError):
-        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
     Ind.Decrement()
 
@@ -20537,7 +20736,7 @@ def deleteDriveFilePermissions(users):
                  fileId=ri[RI_ENTITY], permissionId=ri[RI_ITEM], supportsTeamDrives=True)
         entityActionPerformed([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMISSION_ID, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
-              GAPI.badRequest, GAPI.permissionNotFound, GAPI.serviceNotAvailable, GAPI.authError) as e:
+              GAPI.badRequest, GAPI.permissionNotFound, GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMISSION_ID, ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
   fileIdEntity = getDriveFileEntity()
@@ -20556,8 +20755,8 @@ def deleteDriveFilePermissions(users):
       callGAPI(drive.about(), u'get',
                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                fields=u'')
-    except (GAPI.serviceNotAvailable, GAPI.authError):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
       continue
     Ind.Increment()
     svcargs = dict([(u'fileId', None), (u'permissionId', None), (u'supportsTeamDrives', True)]+GM.Globals[GM.EXTRA_ARGS_LIST])
@@ -20647,8 +20846,8 @@ def _printShowDriveFileACLs(users, csvFormat):
             addRowTitlesToCSVfile(flattenJSON({u'permissions': results}, flattened={u'Owner': user, u'id': fileId}, timeObjects=timeObjects), csvRows, titles)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
-      except (GAPI.serviceNotAvailable, GAPI.authError):
-        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
     Ind.Decrement()
   if csvFormat:
@@ -20663,11 +20862,16 @@ def printDriveFileACLs(users):
 def showDriveFileACLs(users):
   _printShowDriveFileACLs(users, False)
 
-# gam <UserTypeEntity> create teamdrive <Name>
+# gam <UserTypeEntity> create teamdrive <Name> [themeid <String>]
 def createTeamDrive(users):
   requestId = text_type(uuid.uuid4())
   body = {u'name': getString(Cmd.OB_NAME, checkBlank=True)}
-  checkForExtraneousArguments()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'themeid':
+      body[u'themeId'] = getString(Cmd.OB_STRING, checkBlank=True)
+    else:
+      unknownArgumentExit()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -20676,15 +20880,17 @@ def createTeamDrive(users):
       continue
     try:
       teamdrive = callGAPI(drive.teamdrives(), u'create',
-                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.DUPLICATE],
+                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.DUPLICATE, GAPI.BAD_REQUEST],
                            requestId=requestId, body=body, fields=u'id')
       entityActionPerformed([Ent.TEAMDRIVE_ID, teamdrive[u'id']], i, count)
     except GAPI.duplicate:
       entityActionFailedWarning([Ent.USER, user, Ent.REQUEST_ID, requestId], Msg.DUPLICATE, i, count)
-    except (GAPI.serviceNotAvailable, GAPI.authError):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+    except (GAPI.badRequest) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.REQUEST_ID, requestId], str(e), i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
 
-# gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>]
+# gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>] [themeid <String>]
 def updateTeamDrive(users):
   fileIdEntity = getTeamDriveEntity()
   body = {}
@@ -20692,6 +20898,8 @@ def updateTeamDrive(users):
     myarg = getArgument()
     if myarg == u'name':
       body[u'name'] = getString(Cmd.OB_NAME, checkBlank=True)
+    elif myarg == u'themeid':
+      body[u'themeId'] = getString(Cmd.OB_STRING, checkBlank=True)
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
@@ -20703,13 +20911,13 @@ def updateTeamDrive(users):
     try:
       teamDriveId = fileIdEntity[u'teamdrive'][u'teamDriveId']
       callGAPI(drive.teamdrives(), u'update',
-               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
                teamDriveId=teamDriveId, body=body)
       entityActionPerformed([Ent.TEAMDRIVE_ID, teamDriveId], i, count)
-    except (GAPI.notFound, GAPI.forbidden) as e:
+    except (GAPI.notFound, GAPI.forbidden, GAPI.badRequest) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
-    except (GAPI.serviceNotAvailable, GAPI.authError):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
 
 # gam <UserTypeEntity> delete teamdrive <TeamDriveEntity>
 def deleteTeamDrive(users):
@@ -20729,11 +20937,12 @@ def deleteTeamDrive(users):
       entityActionPerformed([Ent.TEAMDRIVE_ID, teamDriveId], i, count)
     except (GAPI.notFound, GAPI.forbidden) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
-    except (GAPI.serviceNotAvailable, GAPI.authError):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
 
 TEAMDRIVE_CAPABILITIES_PRINT_ORDER = [
   u'canAddChildren',
+  u'canChangeTeamDriveBackground',
   u'canComment',
   u'canCopy',
   u'canDeleteTeamDrive',
@@ -20753,8 +20962,10 @@ def _showTeamDrive(user, teamdrive, j, jcount):
   Ind.Increment()
   printEntity([Ent.TEAMDRIVE_ID, teamdrive[u'id']])
   printEntity([Ent.TEAMDRIVE_NAME, teamdrive[u'name']])
+  for setting in [u'backgroundImageLink', u'colorRgb']:
+    printKeyValueList([setting, teamdrive[setting]])
   if u'capabilities' in teamdrive:
-    printKeyValueList([u'Capabilities', u''])
+    printKeyValueList([u'capabilities', u''])
     Ind.Increment()
     for capability in TEAMDRIVE_CAPABILITIES_PRINT_ORDER:
       if capability in teamdrive[u'capabilities']:
@@ -20776,12 +20987,12 @@ def infoTeamDrive(users):
       teamDriveId = fileIdEntity[u'teamdrive'][u'teamDriveId']
       teamdrive = callGAPI(drive.teamdrives(), u'get',
                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
-                           teamDriveId=teamDriveId, fields=u'id,name,capabilities')
+                           teamDriveId=teamDriveId, fields=u'id,name,backgroundImageLink,colorRgb,capabilities')
       _showTeamDrive(user, teamdrive, i, count)
     except GAPI.notFound as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
-    except (GAPI.serviceNotAvailable, GAPI.authError):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
 
 def _printShowTeamDrives(users, csvFormat):
   if csvFormat:
@@ -20802,7 +21013,7 @@ def _printShowTeamDrives(users, csvFormat):
     try:
       feed = callGAPIpages(drive.teamdrives(), u'list', u'teamDrives',
                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                           pageSize=10, fields=u'teamDrives(id,name,capabilities)')
+                           pageSize=10, fields=u'teamDrives(id,name,backgroundImageLink,colorRgb,capabilities)')
       jcount = len(feed)
       if not csvFormat:
         entityPerformActionNumItems([Ent.USER, user], jcount, Ent.TEAMDRIVE, i, count)
@@ -20819,8 +21030,8 @@ def _printShowTeamDrives(users, csvFormat):
         else:
           for teamdrive in feed:
             addRowTitlesToCSVfile(flattenJSON(teamdrive), csvRows, titles)
-    except (GAPI.serviceNotAvailable, GAPI.authError):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
   if csvFormat:
     sortCSVTitles([u'id', u'name'], titles)
     writeCSVfile(csvRows, titles, u'TeamDrives', todrive)
@@ -21210,13 +21421,16 @@ def deleteTokens(users):
     i += 1
     user = normalizeEmailAddressOrUID(user)
     try:
+      callGAPI(cd.tokens(), u'get',
+               throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN, GAPI.NOT_FOUND, GAPI.RESOURCE_NOT_FOUND],
+               userKey=user, clientId=clientId, fields=u'')
       callGAPI(cd.tokens(), u'delete',
-               throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.NOT_FOUND],
+               throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN, GAPI.NOT_FOUND, GAPI.RESOURCE_NOT_FOUND],
                userKey=user, clientId=clientId)
       entityActionPerformed([Ent.USER, user, Ent.ACCESS_TOKEN, clientId], i, count)
-    except GAPI.notFound as e:
+    except (GAPI.notFound, GAPI.resourceNotFound) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.ACCESS_TOKEN, clientId], str(e), i, count)
-    except GAPI.userNotFound:
+    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden):
       entityUnknownWarning(Ent.USER, user, i, count)
 
 def _printShowTokens(entityType, users, csvFormat):
@@ -22421,18 +22635,76 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
     errMsg = getHTTPError(_GMAIL_ERROR_REASON_TO_MESSAGE_MAP, http_status, reason, message)
     entityActionFailedWarning([Ent.USER, ri[RI_ENTITY], entityType, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
-  def _getMessageBody(payload):
-    for header in payload[u'headers']:
-      if header[u'name'].lower() == u'content-type':
-        if header[u'value'].startswith(u'multipart/mixed') or header[u'value'].startswith(u'multipart/related'):
-          return _getMessageBody(payload[u'parts'][0])
-        break
-    if payload[u'body'][u'size']:
-      return dehtml(base64.urlsafe_b64decode(str(payload[u'body'][u'data'])))
-    for part in payload[u'parts']:
+  HEADER_ENCODE_PATTERN = re.compile(r'=\?(.*?)\?Q\?(.*?)\?=')
+
+  def _decodeHeader(header):
+    from email.header import decode_header
+    header = header.encode(u'utf-8', u'replace').decode(u'utf-8')
+    while True:
+      mg = HEADER_ENCODE_PATTERN.search(header)
+      if not mg:
+        return header
+      header = header[:mg.start()]+decode_header(mg.group())[0][0].decode(mg.group(1)).encode('utf8')+header[mg.end():]
+
+  def _getBodyData(payload, getOrigMsg):
+    data = headers = u''
+    for part in payload.get(u'parts', []):
+      if getOrigMsg:
+        for name in headersToShow:
+          for header in part[u'headers']:
+            if name == header[u'name'].lower():
+              if not headers:
+                headers = u'---------- Original message ----------\n'
+              headers += SMTP_HEADERS_MAP.get(name, header[u'name'])+u': '+_decodeHeader(header[u'value'])+u'\n'
+        if headers:
+          headers += u'Body:\n'
+          data = Ind.INDENT_SPACES_PER_LEVEL
       if part[u'mimeType'] == u'text/plain':
-        return dehtml(base64.urlsafe_b64decode(str(part[u'body'][u'data'])))
+        if u'data' in part[u'body']:
+          data += base64.urlsafe_b64decode(str(part[u'body'][u'data']))+u'\n'
+      elif part[u'mimeType'] == u'text/rfc822-headers':
+        if u'data' in part[u'body']:
+          data += _decodeHeader(base64.urlsafe_b64decode(str(part[u'body'][u'data']))+u'\n')
+      else:
+        data += _getBodyData(part, part[u'mimeType'] == u'message/rfc822')
+    if getOrigMsg:
+      data = data.replace(u'\n', u'\n{0}'.format(Ind.INDENT_SPACES_PER_LEVEL)).rstrip()
+    return headers+data
+
+  def _getMessageBody(payload):
+    if payload[u'body'][u'size']:
+      return base64.urlsafe_b64decode(str(payload[u'body'][u'data']))
+    data = _getBodyData(payload, False)
+    if data:
+      return data
     return u'Body not available'
+
+  ATTACHMENT_NAME_PATTERN = re.compile(r'^.*name="(.*?)".*$')
+
+  def _showAttachments(messageId, payload, attachmentNamePattern):
+    for part in payload.get(u'parts', []):
+      if part[u'mimeType'] == u'text/plain':
+        if u'attachmentId' in part[u'body']:
+          for header in part[u'headers']:
+            if header[u'name'] == u'Content-Type':
+              mg = ATTACHMENT_NAME_PATTERN.match(header[u'value'])
+              if mg:
+                attachmentName = mg.group(1)
+              if (not attachmentNamePattern) or attachmentNamePattern.match(attachmentName):
+                try:
+                  result = callGAPI(gmail.users().messages().attachments(), u'get',
+                                    throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND],
+                                    messageId=messageId, id=part[u'body'][u'attachmentId'], userId=u'me')
+                  if u'data' in result:
+                    printKeyValueList([u'Attachment', attachmentName])
+                    Ind.Increment()
+                    printKeyValueList([Ind.MultiLineText(base64.urlsafe_b64decode(str(result[u'data']))+u'\n')])
+                    Ind.Decrement()
+                except (GAPI.serviceNotAvailable, GAPI.badRequest, GAPI.notFound):
+                  pass
+              break
+      else:
+        _showAttachments(messageId, part, attachmentNamePattern)
 
   def _showMessage(result, j, jcount):
     printEntity([Ent.MESSAGE, result[u'id']], j, jcount)
@@ -22442,7 +22714,7 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
     for name in headersToShow:
       for header in result[u'payload'][u'headers']:
         if name == header[u'name'].lower():
-          printKeyValueList([SMTP_HEADERS_MAP.get(name, header[u'name']), header[u'value']])
+          printKeyValueList([SMTP_HEADERS_MAP.get(name, header[u'name']), _decodeHeader(header[u'value'])])
     if show_size:
       printKeyValueList([u'SizeEstimate', result[u'sizeEstimate']])
     if show_labels:
@@ -22458,6 +22730,8 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
       Ind.Increment()
       printKeyValueList([Ind.MultiLineText(_getMessageBody(result[u'payload']))])
       Ind.Decrement()
+    if show_attachments:
+      _showAttachments(result[u'id'], result[u'payload'], attachmentNamePattern)
     Ind.Decrement()
 
   def _callbackShowMessage(request_id, response, exception):
@@ -22477,9 +22751,9 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
         if name == header[u'name'].lower():
           j += 1
           if j == 1:
-            row[SMTP_HEADERS_MAP.get(name, header[u'name'])] = header[u'value']
+            row[SMTP_HEADERS_MAP.get(name, header[u'name'])] = _decodeHeader(header[u'value'])
           else:
-            row[u'{0} {1}'.format(SMTP_HEADERS_MAP.get(name, header[u'name']), j)] = header[u'value']
+            row[u'{0} {1}'.format(SMTP_HEADERS_MAP.get(name, header[u'name']), j)] = _decodeHeader(header[u'value'])
     if show_size:
       row[u'SizeEstimate'] = result[u'sizeEstimate']
     if show_labels:
@@ -22494,7 +22768,7 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
       if not convertCRNL:
         row[u'Body'] = _getMessageBody(result[u'payload'])
       else:
-        row[u'Body'] = _getMessageBody(convertCRsNLs(result[u'payload']))
+        row[u'Body'] = convertCRsNLs(_getMessageBody(result[u'payload']))
     addRowTitlesToCSVfile(row, csvRows, titles)
 
   def _callbackPrintMessage(request_id, response, exception):
@@ -22547,7 +22821,7 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
       _handlePrintGmailError(exception, ri)
 
   def _batchPrintShowMessagesThreads(service, user, jcount, messageIds, callback):
-    svcargs = dict([(u'userId', u'me'), (u'id', None), (u'format', [u'metadata', u'full'][show_body])]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    svcargs = dict([(u'userId', u'me'), (u'id', None), (u'format', [u'metadata', u'full'][show_body or show_attachments])]+GM.Globals[GM.EXTRA_ARGS_LIST])
     dbatch = googleapiclient.http.BatchHttpRequest(callback=callback)
     bcount = 0
     j = 0
@@ -22574,8 +22848,8 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
   maxToProcess = 0
   convertCRNL = GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
-  show_body = show_labels = show_size = show_snippet = False
-  messageEntity = None
+  show_attachments = show_body = show_labels = show_size = show_snippet = False
+  attachmentNamePattern = messageEntity = None
   headersToShow = [u'Date', u'Subject', u'From', u'Reply-To', u'To', u'Delivered-To', u'Content-Type', u'Message-ID']
   if csvFormat:
     todrive = {}
@@ -22620,6 +22894,10 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
       show_size = True
     elif myarg == u'showsnippet':
       show_snippet = True
+    elif myarg == u'showattachments':
+      show_attachments = True
+    elif myarg == u'attachmentnamepattern':
+      attachmentNamePattern = getREPattern()
     elif myarg == u'includespamtrash':
       includeSpamTrash = True
     elif myarg == u'delimiter':
@@ -22699,19 +22977,23 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
       addTitleToCSVfile(u'Body', titles)
     writeCSVfile(csvRows, titles, u'Messages', todrive)
 
-# gam <UserTypeEntity> print message|messages (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <MessageIDEntity>) [headers <String>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <String>] [todrive [<ToDriveAttributes>]]
+# gam <UserTypeEntity> print message|messages (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <MessageIDEntity>)
+#	[headers <String>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <String>] [todrive [<ToDriveAttributes>]]
 def printMessages(users):
   _printShowMessagesThreads(users, Ent.MESSAGE, True)
 
-# gam <UserTypeEntity> print thread|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <ThreadIDEntity>) [headers <String>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <String>] [todrive [<ToDriveAttributes>]]
+# gam <UserTypeEntity> print thread|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <ThreadIDEntity>)
+#	[headers <String>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <String>] [todrive [<ToDriveAttributes>]]
 def printThreads(users):
   _printShowMessagesThreads(users, Ent.THREAD, True)
 
-# gam <UserTypeEntity> show message|messages (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <MessageIDEntity>) [headers <String>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl]
+# gam <UserTypeEntity> show message|messages (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <MessageIDEntity>)
+#	[headers <String>] [showlabels] [showbody] [showsize] [showsnippet] [showattachments [attachmentnamepattern <RegularExpression>]]
 def showMessages(users):
   _printShowMessagesThreads(users, Ent.MESSAGE, False)
 
-# gam <UserTypeEntity> show thread|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <ThreadIDEntity>) [headers <String>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl]
+# gam <UserTypeEntity> show thread|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <ThreadIDEntity>)
+#	[headers <String>] [showlabels] [showbody] [showsize] [showsnippet] [showattachments [attachmentnamepattern <RegularExpression>]]
 def showThreads(users):
   _printShowMessagesThreads(users, Ent.THREAD, False)
 
@@ -23415,7 +23697,7 @@ def _processForwardingAddress(user, i, count, emailAddress, j, jcount, gmail, fu
       entityActionPerformed([Ent.USER, user, Ent.FORWARDING_ADDRESS, emailAddress], j, jcount)
   except (GAPI.notFound, GAPI.alreadyExists, GAPI.duplicate) as e:
     entityActionFailedWarning([Ent.USER, user, Ent.FORWARDING_ADDRESS, emailAddress], str(e), j, jcount)
-  except (GAPI.serviceNotAvailable, GAPI.badRequest, GAPI.authError):
+  except (GAPI.serviceNotAvailable, GAPI.badRequest):
     entityServiceNotApplicableWarning(Ent.USER, user, i, count)
     userDefined = False
   return userDefined
@@ -23737,7 +24019,7 @@ def _processSendAs(user, i, count, entityType, emailAddress, j, jcount, gmail, f
       entityActionPerformed([Ent.USER, user, entityType, emailAddress], j, jcount)
   except (GAPI.notFound, GAPI.alreadyExists, GAPI.duplicate, GAPI.cannotDeletePrimarySendAs, GAPI.invalidArgument) as e:
     entityActionFailedWarning([Ent.USER, user, entityType, emailAddress], str(e), j, jcount)
-  except (GAPI.serviceNotAvailable, GAPI.badRequest, GAPI.authError):
+  except (GAPI.serviceNotAvailable, GAPI.badRequest):
     entityServiceNotApplicableWarning(Ent.USER, user, i, count)
     userDefined = False
   return userDefined
@@ -25188,6 +25470,15 @@ USER_COMMANDS_WITH_OBJECTS = {
     {CMD_ACTION: Act.CLAIM,
      CMD_FUNCTION:
        {Cmd.ARG_OWNERSHIP: 	claimDriveFolderOwnership,
+       },
+     CMD_OBJ_ALIASES:
+       {
+       },
+    },
+  u'collect':
+    {CMD_ACTION: Act.COLLECT,
+     CMD_FUNCTION:
+       {Cmd.ARG_ORPHANS:	collectOrphans,
        },
      CMD_OBJ_ALIASES:
        {

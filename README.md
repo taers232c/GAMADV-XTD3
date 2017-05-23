@@ -38,8 +38,8 @@ Enter the following gam commands and follow instructions to create the necessary
 - Authorize Gam Client: ```gam oauth create```
 - Authorize Service Account: ```gam user <email address> check serviceaccount```
 
-Installation - Upgrading from a GAM version other than a prior version of GAMADV-X3
-----------------------------------------------------------------------------------
+Installation - Upgrading from a GAM version other than a prior version of GAMADV-X3 or GAMADV-X or GAMADV-XTD
+-------------------------------------------------------------------------------------------------------------
 Read GamConfig.txt.
 
 ## Linux/Mac OS
@@ -80,22 +80,25 @@ Section: DEFAULT
   csv_output_column_delimiter = ,
   csv_output_convert_cr_nl = false
   csv_output_field_delimiter = ' '
+  csv_output_users_audit = false
   customer_id = my_customer
   debug_level = 0
   device_max_results = 500
   domain = ''
   drive_dir = /Users/admin/Downloads
   drive_max_results = 1000
+  drive_v3_native_names = false
   email_batch_size = 100
   extra_args = ''
   member_max_results = 200
   message_batch_size = 1000
   message_max_results = 1000
+  never_time = Never
   no_browser = false
   no_cache = false
   no_update_check = false
   no_verify_ssl = false
-  num_threads = 25
+  num_threads = 5
   oauth2_txt = oauth2.txt ; /Users/admin/.gam/oauth2.txt
   oauth2service_json = oauth2service.json ; /Users/admin/.gam/oauth2service.json
   section = ''
@@ -105,6 +108,7 @@ Section: DEFAULT
   show_multiprocess_info = false
   timezone = utc
   todrive_conversion = true
+  todrive_localcopy = false
   todrive_parent = root
   todrive_timestamp = false
   todrive_user = ''
@@ -315,22 +319,25 @@ Section: DEFAULT
   csv_output_column_delimiter = ,
   csv_output_convert_cr_nl = false
   csv_output_field_delimiter = ' '
+  csv_output_users_audit = false
   customer_id = C01234567
   debug_level = 0
   device_max_results = 500
   domain = domain.com
   drive_dir = /Users/admin/Downloads
   drive_max_results = 1000
+  drive_v3_native_names = false
   email_batch_size = 100
   extra_args = ''
   member_max_results = 200
   message_batch_size = 1000
   message_max_results = 1000
+  never_time = Never
   no_browser = false
   no_cache = false
   no_update_check = false
   no_verify_ssl = false
-  num_threads = 25
+  num_threads = 5
   oauth2_txt = oauth2.txt ; /Users/admin/.gam/oauth2.txt
   oauth2service_json = oauth2service.json ; /Users/admin/.gam/oauth2service.json
   section = ''
@@ -340,6 +347,7 @@ Section: DEFAULT
   show_multiprocess_info = false
   timezone = utc
   todrive_conversion = true
+  todrive_localcopy = false
   todrive_parent = root
   todrive_timestamp = false
   todrive_user = ''
@@ -394,22 +402,25 @@ Section: DEFAULT
   csv_output_column_delimiter = ,
   csv_output_convert_cr_nl = false
   csv_output_field_delimiter = ' '
+  csv_output_users_audit = false
   customer_id = my_customer
   debug_level = 0
   device_max_results = 500
   domain = ''
   drive_dir = C:\Users\Administrator.DOMAIN\Downloads
   drive_max_results = 1000
+  drive_v3_native_names = false
   email_batch_size = 100
   extra_args = ''
   member_max_results = 200
   message_batch_size = 1000
   message_max_results = 1000
+  never_time = Never
   no_browser = false
   no_cache = false
   no_update_check = false
   no_verify_ssl = false
-  num_threads = 25
+  num_threads = 5
   oauth2_txt = oauth2.txt ; C:\Users\Administrator.DOMAIN\.gam\oauth2.txt
   oauth2service_json = oauth2service.json ; C:\Users\Administrator.DOMAIN\.gam\oauth2service.json
   section = ''
@@ -419,6 +430,7 @@ Section: DEFAULT
   show_multiprocess_info = false
   timezone = utc
   todrive_conversion = true
+  todrive_localcopy = false
   todrive_parent = root
   todrive_timestamp = false
   todrive_user = ''
@@ -655,22 +667,25 @@ Section: DEFAULT
   csv_output_column_delimiter = ,
   csv_output_convert_cr_nl = false
   csv_output_field_delimiter = ' '
+  csv_output_users_audit = false
   customer_id = C01234567
   debug_level = 0
   device_max_results = 500
   domain = domain.com
   drive_dir = C:\Users\Administrator.DOMAIN\Downloads
   drive_max_results = 1000
+  drive_v3_native_names = false
   email_batch_size = 100
   extra_args = ''
   member_max_results = 200
   message_batch_size = 1000
   message_max_results = 1000
+  never_time = Never
   no_browser = false
   no_cache = false
   no_update_check = false
   no_verify_ssl = false
-  num_threads = 25
+  num_threads = 5
   oauth2_txt = oauth2.txt ; C:\Users\Administrator.DOMAIN\.gam\oauth2.txt
   oauth2service_json = oauth2service.json ; C:\Users\Administrator.DOMAIN\.gam\oauth2service.json
   section = ''
@@ -680,6 +695,7 @@ Section: DEFAULT
   show_multiprocess_info = false
   timezone = utc
   todrive_conversion = true
+  todrive_localcopy = false
   todrive_parent = root
   todrive_timestamp = false
   todrive_user = ''

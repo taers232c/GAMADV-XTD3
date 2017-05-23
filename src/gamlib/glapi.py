@@ -95,7 +95,7 @@ OAUTH2_SCOPES = [
    u'credfam': FAM2_SCOPES,
    u'subscopes': [],
    u'scope': u'https://apps-apis.google.com/a/feeds/domain/'},
-  {u'name': u'Calendar Data API',
+  {u'name': u'Calendar API',
    u'credfam': FAM1_SCOPES,
    u'subscopes': [u'readonly'],
    u'scope': u'https://www.googleapis.com/auth/calendar'},
@@ -236,6 +236,10 @@ DRIVE3_TO_DRIVE2_CAPABILITIES_FIELDS_MAP = {
   u'canCopy': u'copyable',
   u'canEdit': u'editable',
   u'canShare': u'shareable',
+  }
+
+DRIVE3_TO_DRIVE2_CAPABILITIES_NAMES_MAP = {
+  u'canChangeViewersCanCopyContent': u'canChangeRestrictedDownload',
   }
 
 DRIVE3_TO_DRIVE2_CAPABILITIES_TITLES_MAP = {

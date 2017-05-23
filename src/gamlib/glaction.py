@@ -31,6 +31,7 @@ class GamAction(object):
   CHECK = u'chek'
   CLAIM = u'clai'
   CLAIM_OWNERSHIP = u'clow'
+  COLLECT = u'collect'
   COPY = u'copy'
   CREATE = u'crea'
   DELETE = u'dele'
@@ -90,6 +91,7 @@ class GamAction(object):
     CHECK: [u'Checked', u'Check'],
     CLAIM: [u'Claimed', u'Claim'],
     CLAIM_OWNERSHIP: [u'Ownership Claimed', u'Claim Ownership'],
+    COLLECT: [u'Collected', u'Collect'],
     COPY: [u'Copied', u'Copy'],
     CREATE: [u'Created', u'Create'],
     DELETE: [u'Deleted', u'Delete'],
@@ -140,6 +142,7 @@ class GamAction(object):
   MODIFIER_FOR = u'for'
   MODIFIER_FROM = u'from'
   MODIFIER_IN = u'in'
+  MODIFIER_INTO = u'into'
   MODIFIER_TO = u'to'
   MODIFIER_WITH = u'with'
   MODIFIER_WITH_CONTENT_FROM = u'with content from'

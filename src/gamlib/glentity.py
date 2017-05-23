@@ -81,6 +81,7 @@ class GamEntity(object):
   DRIVE_FOLDER = u'fold'
   DRIVE_FOLDER_ID = u'foli'
   DRIVE_FOLDER_NAME = u'foln'
+  DRIVE_ORPHAN_FILE_OR_FOLDER = u'orph'
   DRIVE_PATH = u'drvp'
   DRIVE_SETTINGS = u'drvs'
   DRIVE_TRASH = u'drvt'
@@ -227,6 +228,7 @@ class GamEntity(object):
     DRIVE_FOLDER: [u'Drive Folders', u'Drive Folder'],
     DRIVE_FOLDER_ID: [u'Drive Folder IDs', u'Drive Folder ID'],
     DRIVE_FOLDER_NAME: [u'Drive Folder Names', u'Drive Folder Name'],
+    DRIVE_ORPHAN_FILE_OR_FOLDER: [u'Drive Orphan Files/Folders', u'Drive Orphan File/Folder'],
     DRIVE_PATH: [u'Drive Paths', u'Drive Path'],
     DRIVE_SETTINGS: [u'Drive Settings', u'Drive Settings'],
     DRIVE_TRASH: [u'Drive Trash', u'Drive Trash'],
