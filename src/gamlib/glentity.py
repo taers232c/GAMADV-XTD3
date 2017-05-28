@@ -75,6 +75,7 @@ class GamEntity(object):
   DRIVE_FILE = u'file'
   DRIVE_FILE_ID = u'fili'
   DRIVE_FILE_NAME = u'filn'
+  DRIVE_FILE_REVISION = u'filr'
   DRIVE_FILE_OR_FOLDER = u'fifo'
   DRIVE_FILE_OR_FOLDER_ACL = u'fiac'
   DRIVE_FILE_OR_FOLDER_ID = u'fifi'
@@ -138,7 +139,6 @@ class GamEntity(object):
   REQUEST_ID = u'reqi'
   RESOURCE_CALENDAR = u'resc'
   RESOURCE_ID = u'resi'
-  REVISION_ID = u'revi'
   ROLE = u'role'
   ROLE_ASSIGNMENT_ID = u'raid'
   SCOPE = u'scop'
@@ -222,6 +222,7 @@ class GamEntity(object):
     DRIVE_FILE: [u'Drive Files', u'Drive File'],
     DRIVE_FILE_ID: [u'Drive File IDs', u'Drive File ID'],
     DRIVE_FILE_NAME: [u'Drive File Names', u'Drive File Name'],
+    DRIVE_FILE_REVISION: [u'Drive File Revisions', u'Drive File Revision'],
     DRIVE_FILE_OR_FOLDER: [u'Drive Files/Folders', u'Drive File/Folder'],
     DRIVE_FILE_OR_FOLDER_ACL: [u'Drive File/Folder ACLs', u'Drive File/Folder ACL'],
     DRIVE_FILE_OR_FOLDER_ID: [u'Drive File/Folder IDs', u'Drive File/Folder ID'],
@@ -285,7 +286,6 @@ class GamEntity(object):
     REQUEST_ID: [u'Request IDs', u'Request ID'],
     RESOURCE_CALENDAR: [u'Resource Calendars', u'Resource Calendar'],
     RESOURCE_ID: [u'Resource IDs', u'Resource ID'],
-    REVISION_ID: [u'Revision IDs', u'Revision ID'],
     ROLE: [u'Roles', u'Role'],
     ROLE_ASSIGNMENT_ID: [u'Role Assignment IDs', u'Role Assignment ID'],
     SCOPE: [u'Scopes', u'Scope'],

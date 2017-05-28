@@ -1,3 +1,89 @@
+4.50.02
+
+Added argument oneitemperrow to print drivefileacls.
+    gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [showtitles] [oneitemperrow] [todrive [<ToDriveAttributes>]]
+
+With print drivefileacls, by default the ACLs selected for display are all output on one line as a repeating item with the matching file id.
+When oneitemperrow is specified, each ACL is output on a separate row with the matching file id. This simplifies processing the CSV file
+with subsequent Gam commands.
+
+Enhanced commands for managing Drive file revisions. The info filerevisions command was deleted
+as the enhancements to show filerevisions made it superfluous. You can now select sets of revisions
+to process. For delete filerevisions, the selection is required, for print and show it is optional;
+if not specified, all file revisions are processed.
+    <DriveFileRevisionID> ::= <String>
+    <DriveFileRevisionIDList> ::= "<DriveFileRevisionID>(,<DriveFileRevisionID>)*"
+    <DriveFileRevisionIDEntity> ::=
+	(<DriveFileRevisionID>) | (id <DriveFileRevisionID>) | (id:<DriveFileRevisionID>) | (ids <DriveFileRevisionIDList>) | (ids:<DriveFileRevisionIDList>) |
+	(first|last|allexceptfirst|allexceptlast <Number>) |
+	(before|after <DateTime>) | (range <DateTime> <DateTime>)
+
+<DriveFileRevisionIDEntity> can select specific revisions by ID or can select revisions by position in the list or by modification date.
+first <Number> - process the first <Number> revisions.
+last <Number> - process the last <Number> revisions.
+allexceptfirst <Number> - process all revisions except the first <Number> revisions.
+allexceptlast <Number> - process all revisions except the last <Number> revisions.
+before <DateTime> - process all revisions with a modification date before <DateTime>.
+after <DateTime> - process all revisions with a modification date equal to or after <DateTime>.
+range <DateTime> <DateTime> - process all revisions with a modification date equal to or after the first <DateTime> and before the second <DateTime>.
+
+    gam <UserTypeEntity> delete filerevisions <DriveFileEntity> select <DriveFileRevisionIDEntity> [previewdelete]
+	[showtitles] [doit] [max_to_delete <Number>]
+
+showtitles - output file title as well as file id in messages; this requires an additional API call per file.
+previewdelete - output revisions to be deleted but do not delete them
+doit - no revisions are deleted unless doit is specified
+max_to_delete <Number> - no revisions are deleted if the number of revisions to delete exceeds <Number>; the default value is one. Set <Number> to 0 for no limit.
+
+When deleting revisions, the last remaining revision can not be deleted. If the <Number> or <DateTime> selections identify all of the revisions for a file,
+the following adjustments are made:
+first <Number> - leave the latest revision
+last <Number> - leave the earliest revision
+allexceptfirst <Number> - not applicable, can't select all revisions
+allexceptlast <Number> -  not applicable, can't select all revisions
+before <DateTime> - leave the latest revision
+after <DateTime> - leave the earleist revision
+range <DateTime> <DateTime> - leave the earliest revision
+
+    <RevisionsFieldName> ::=
+	filesize|
+	id|
+	keepforever|
+	lastmodifyinguser|
+	lastmodifyingusername|
+	md5checksum|
+	mimetype|
+	modifieddate|
+	modifiedtime|
+	originalfilename|
+	pinned|
+	published|
+	publishedauto|
+	publishedoutsidedomain|
+	size
+
+    gam <UserTypeEntity> show filerevisions <DriveFileEntity> [select <DriveFileRevisionIDEntity>] [previewdelete]
+	[showtitles] [<DriveFieldName>*|(fields <DriveFieldNameList>)]
+    gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive [<ToDriveAttributes>]] [select <DriveFileRevisionIDEntity>] [previewdelete]
+	[showtitles] [oneitemperrow] [<DriveFieldName>*|(fields <DriveFieldNameList>)]
+
+When select <DriveFileRevisionIDEntity> is omitted, all revisions are displayed. When select <DriveFileRevisionIDEntity> is specified,
+previewdelete will make the list of revisions displayed match the list that would be processed by delete filerevisions.
+
+showtitles - output file title as well as file id in output; this requires an additional API call per file.
+
+With print filerevisions, by default the revisions selected for display are all output on one line as a repeating item with the matching file id.
+When oneitemperrow is specified, each revision is output on a separate row with the matching file id. This simplifies processing the CSV file
+with subsequent Gam commands.
+
+4.50.01
+
+Extended commands for managing Drive file revisions.
+    gam <UserTypeEntity> delete filerevision <DriveFileEntity> <DriveFileRevisionID> [showtitles]
+    gam <UserTypeEntity> info filerevision <DriveFileEntity> <DriveFileRevisionID> [showtitles]
+    gam <UserTypeEntity> show filerevisions <DriveFileEntity> [showtitles]
+    gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive [<ToDriveAttributes>]] [showtitles]
+
 4.50.00
 
 This version of Gam has two major areas of change: a new version of the Google Drive API is used and Team Drives are supported.

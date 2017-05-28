@@ -131,6 +131,7 @@ NO_TRANSFER_LACK_OF_DISK_SPACE = u'Cowardly refusing to perform migration due to
 ONLY_ONE_OWNER_ALLOWED = u'Only one owner allowed'
 OR = u'or'
 PLEASE_SELECT_ENTITY_TO_PROCESS = u'{0} {1} found, please select the correct one to {2} and specify with {3}'
+PREVIEW_ONLY = u'Preview Only'
 PROCESSING_ITEM_N = u'Processing item {0}\n'
 REFUSING_TO_DEPROVISION_DEVICES = u'Refusing to deprovision {0} devices because acknowledge_device_touch_requirement not specified.\nDeprovisioning a device means the device will have to be physically wiped and re-enrolled to be managed by your domain again.\nThis requires physical access to the device and is very time consuming to perform for each device.\nPlease add "acknowledge_device_touch_requirement" to the GAM command if you understand this and wish to proceed with the deprovision.\nPlease also be aware that deprovisioning can have an effect on your device license count.\nSee https://support.google.com/chrome/a/answer/3523633 for full details.'
 REQUEST_COMPLETED_NO_FILES = u'Request completed but no results/files were returned, try requesting again'

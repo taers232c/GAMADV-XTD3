@@ -42,6 +42,7 @@ REPORTS = u'reports'
 RESELLER = u'reseller'
 SITES = u'sites'
 SITEVERIFICATION = u'siteVerification'
+URLSHORTNER = u'urlshortner'
 #
 FAM1_SCOPES = u'fam1'
 FAM2_SCOPES = u'fam2'
@@ -85,6 +86,7 @@ _INFO = {
   RESELLER: {u'version': u'v1', u'credfam': FAM2_SCOPES},
   SITES: {u'version': u'v1', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://sites.google.com/feeds',], u'localjson': True},
   SITEVERIFICATION: {u'version': u'v1', u'credfam': FAM2_SCOPES},
+  URLSHORTNER: {u'version': u'v1', u'credfam': FAM2_SCOPES},
   }
 
 EMAIL_SCOPE = u'email'

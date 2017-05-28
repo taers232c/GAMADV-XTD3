@@ -28,6 +28,7 @@ BAD_GATEWAY = u'badGateway'
 BAD_REQUEST = u'badRequest'
 CANNOT_CHANGE_OWN_ACL = u'cannotChangeOwnAcl'
 CANNOT_CHANGE_OWNER_ACL = u'cannotChangeOwnerAcl'
+CANNOT_DELETE_ONLY_REVISION = u'cannotDeleteOnlyRevision'
 CANNOT_DELETE_PRIMARY_CALENDAR = u'cannotDeletePrimaryCalendar'
 CANNOT_DELETE_PRIMARY_SENDAS = u'cannotDeletePrimarySendAs'
 CONDITION_NOT_MET = u'conditionNotMet'
@@ -80,6 +81,8 @@ RATE_LIMIT_EXCEEDED = u'rateLimitExceeded'
 REQUIRED = u'required'
 RESOURCE_ID_NOT_FOUND = u'resourceIdNotFound'
 RESOURCE_NOT_FOUND = u'resourceNotFound'
+REVISION_DELETION_NOT_SUPPORTED = u'revisionDeletionNotSupported'
+REVISION_NOT_FOUND = u'revisionNotFound'
 SERVICE_LIMIT = u'serviceLimit'
 SERVICE_NOT_AVAILABLE = u'serviceNotAvailable'
 SYSTEM_ERROR = u'systemError'
@@ -158,6 +161,7 @@ REASON_MESSAGE_MAP = {
     (u'Org unit not found', ORGUNIT_NOT_FOUND),
     (u'Permission not found', PERMISSION_NOT_FOUND),
     (u'Resource Not Found', RESOURCE_NOT_FOUND),
+    (u'Revision not found', REVISION_NOT_FOUND),
     (u'Not Found', NOT_FOUND),
     ],
   REQUIRED: [
@@ -182,6 +186,8 @@ class badRequest(Exception):
 class cannotChangeOwnAcl(Exception):
   pass
 class cannotChangeOwnerAcl(Exception):
+  pass
+class cannotDeleteOnlyRevision(Exception):
   pass
 class cannotDeletePrimaryCalendar(Exception):
   pass
@@ -283,6 +289,10 @@ class resourceIdNotFound(Exception):
   pass
 class resourceNotFound(Exception):
   pass
+class revisionDeletionNotSupported(Exception):
+  pass
+class revisionNotFound(Exception):
+  pass
 class serviceLimit(Exception):
   pass
 class serviceNotAvailable(Exception):
@@ -308,6 +318,7 @@ REASON_EXCEPTION_MAP = {
   BAD_REQUEST: badRequest,
   CANNOT_CHANGE_OWN_ACL: cannotChangeOwnAcl,
   CANNOT_CHANGE_OWNER_ACL: cannotChangeOwnerAcl,
+  CANNOT_DELETE_ONLY_REVISION: cannotDeleteOnlyRevision,
   CANNOT_DELETE_PRIMARY_CALENDAR: cannotDeletePrimaryCalendar,
   CANNOT_DELETE_PRIMARY_SENDAS: cannotDeletePrimarySendAs,
   CONDITION_NOT_MET: conditionNotMet,
@@ -358,6 +369,8 @@ REASON_EXCEPTION_MAP = {
   REQUIRED: required,
   RESOURCE_ID_NOT_FOUND: resourceIdNotFound,
   RESOURCE_NOT_FOUND: resourceNotFound,
+  REVISION_DELETION_NOT_SUPPORTED: revisionDeletionNotSupported,
+  REVISION_NOT_FOUND: revisionNotFound,
   SERVICE_LIMIT: serviceLimit,
   SERVICE_NOT_AVAILABLE: serviceNotAvailable,
   SYSTEM_ERROR: systemError,

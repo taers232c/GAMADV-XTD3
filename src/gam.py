@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.50.00'
+__version__ = u'4.50.02'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -154,7 +154,6 @@ SECONDS_PER_DAY = 86400
 FN_GAM_CFG = u'gam.cfg'
 FN_LAST_UPDATE_CHECK_TXT = u'lastupdatecheck.txt'
 FN_GAMCOMMANDS_TXT = u'GamCommands.txt'
-MY_DRIVE = u'My Drive'
 TEAM_DRIVE = u'Team Drive'
 
 # Python 3.6 values
@@ -1429,12 +1428,10 @@ def entityActionNotPerformedWarning(entityValueList, errMessage, i=0, count=0):
                                  Ent.FormatEntityValueList(entityValueList)+[Act.NotPerformed(), errMessage],
                                  currentCountNL(i, count)))
 
-def entityNumEntitiesActionNotPerformedWarning(entityType, entityName, itemType, itemCount, errMessage, i=0, count=0):
+def entityNumEntitiesActionNotPerformedWarning(entityValueList, itemType, itemCount, errMessage, i=0, count=0):
   setSysExitRC(AC_NOT_PERFORMED_RC)
   writeStderr(formatKeyValueList(Ind.Spaces(),
-                                 [Ent.Singular(entityType), entityName,
-                                  Ent.Choose(itemType, itemCount), itemCount,
-                                  Act.NotPerformed(), errMessage],
+                                 Ent.FormatEntityValueList(entityValueList)+[Ent.Choose(itemType, itemCount), itemCount, Act.NotPerformed(), errMessage],
                                  currentCountNL(i, count)))
 
 def entityBadRequestWarning(entityValueList, errMessage, i=0, count=0):
@@ -1590,12 +1587,14 @@ def entityPerformActionNumItemsModifier(entityValueList, itemCount, itemType, mo
 
 def entityPerformActionSubItemModifierNumItems(entityValueList, subitemType, modifier, itemCount, itemType, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+[u'{0} {1} {2} {3} {4}'.format(Act.ToPerform(), Ent.Plural(subitemType), modifier, itemCount, Ent.Choose(itemType, itemCount))],
+                                 Ent.FormatEntityValueList(entityValueList)+[u'{0} {1} {2} {3} {4}'.format(Act.ToPerform(), Ent.Plural(subitemType),
+                                                                                                           modifier, itemCount, Ent.Choose(itemType, itemCount))],
                                  currentCountNL(i, count)))
 
 def entityPerformActionSubItemModifierNumItemsModifierNewValue(entityValueList, subitemType, modifier1, itemCount, itemType, modifier2, newValue, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+[u'{0} {1} {2} {3} {4} {5}'.format(Act.ToPerform(), Ent.Plural(subitemType), modifier1, itemCount, Ent.Choose(itemType, itemCount), modifier2), newValue],
+                                 Ent.FormatEntityValueList(entityValueList)+[u'{0} {1} {2} {3} {4} {5}'.format(Act.ToPerform(), Ent.Plural(subitemType),
+                                                                                                               modifier1, itemCount, Ent.Choose(itemType, itemCount), modifier2), newValue],
                                  currentCountNL(i, count)))
 
 def entityPerformActionModifierNumItemsModifier(entityValueList, modifier1, itemCount, itemType, modifier2, i=0, count=0):
@@ -4906,8 +4905,8 @@ def doCreateProject():
   login_domain = getEmailAddressDomain(login_hint)
   crm, httpObj = getCRMService(login_hint)
   project_id = u'gam-project'
-  for i in range(3):
-    project_id += u'-%s' % u''.join(random.choice(string.digits + string.ascii_lowercase) for i in range(3))
+  for _ in range(3):
+    project_id += u'-%s' % u''.join(random.choice(string.digits + string.ascii_lowercase) for _ in range(3))
   project_name = u'project:%s' % project_id
   body = {u'projectId': project_id, u'name': u'GAM Project'}
   while True:
@@ -10401,7 +10400,8 @@ def doCreateGroup():
     entityActionPerformedMessage([Ent.GROUP, body[u'email']], errMsg)
   except GAPI.duplicate:
     entityDuplicateWarning(Ent.GROUP, body[u'email'])
-  except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.invalid, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied, GAPI.backendError, GAPI.systemError) as e:
+  except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.invalid, GAPI.invalidInput,
+          GAPI.badRequest, GAPI.permissionDenied, GAPI.backendError, GAPI.systemError) as e:
     entityActionFailedWarning([Ent.GROUP, body[u'email']], str(e))
 
 def checkGroupExists(cd, group, i=0, count=0):
@@ -12418,7 +12418,7 @@ def _validateCalendarGetEventIDs(origUser, user, cal, calId, j, jcount, calendar
                 eventIdsSet.add(eventId)
       kcount = len(calEventIds)
       if kcount == 0:
-        entityNumEntitiesActionNotPerformedWarning(Ent.CALENDAR, calId, Ent.EVENT, kcount, Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(Ent.EVENT)), j, jcount)
+        entityNumEntitiesActionNotPerformedWarning([Ent.CALENDAR, calId], Ent.EVENT, kcount, Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(Ent.EVENT)), j, jcount)
         setSysExitRC(NO_ENTITIES_FOUND)
         return (calId, cal, None, 0)
     except GAPI.notFound:
@@ -12432,12 +12432,12 @@ def _validateCalendarGetEventIDs(origUser, user, cal, calId, j, jcount, calendar
       return (calId, cal, None, 0)
   else:
     kcount = len(calEventIds)
-  if not doIt:
-    entityNumEntitiesActionNotPerformedWarning(Ent.CALENDAR, calId, Ent.EVENT, kcount, Msg.USE_DOIT_ARGUMENT_TO_PERFORM_ACTION, j, jcount)
-    return (calId, cal, None, 0)
-  entityPerformActionNumItems([Ent.CALENDAR, calId], kcount, Ent.EVENT, j, jcount)
   if kcount == 0:
     setSysExitRC(NO_ENTITIES_FOUND)
+  if not doIt:
+    entityNumEntitiesActionNotPerformedWarning([Ent.CALENDAR, calId], Ent.EVENT, kcount, Msg.USE_DOIT_ARGUMENT_TO_PERFORM_ACTION, j, jcount)
+    return (calId, cal, None, 0)
+  entityPerformActionNumItems([Ent.CALENDAR, calId], kcount, Ent.EVENT, j, jcount)
   return (calId, cal, calEventIds, kcount)
 
 def _validateCalendarGetEvents(user, cal, calId, j, jcount, calendarEventEntity, showAction):
@@ -13706,19 +13706,23 @@ def _printShowSites(entityList, entityType, csvFormat):
       addTitlesToCSVfile([u'Scope', u'Role'], titles)
     writeCSVfile(csvRows, titles, u'Sites', todrive)
 
-# gam [<UserTypeEntity>] print sites [todrive [<ToDriveAttributes>]] [domain|domains <DomainNameEntity>] [includeallsites] [withmappings] [role|roles all|<SiteACLRoleList>] [maxresults <Number>] [convertcrnl] [delimiter <String>]
+# gam [<UserTypeEntity>] print sites [todrive [<ToDriveAttributes>]] [domain|domains <DomainNameEntity>] [includeallsites]
+#	[withmappings] [role|roles all|<SiteACLRoleList>] [maxresults <Number>] [convertcrnl] [delimiter <String>]
 def printUserSites(users):
   _printShowSites(users, Ent.USER, True)
 
-# gam [<UserTypeEntity>] show sites [domain|domains <DomainNameEntity>] [includeallsites] [withmappings] [role|roles all|<SiteACLRoleList>] [maxresults <Number>] [convertcrnl]
+# gam [<UserTypeEntity>] show sites [domain|domains <DomainNameEntity>] [includeallsites]
+#	[withmappings] [role|roles all|<SiteACLRoleList>] [maxresults <Number>] [convertcrnl]
 def showUserSites(users):
   _printShowSites(users, Ent.USER, False)
 
-# gam print sites [todrive [<ToDriveAttributes>]] [domain|domains <DomainNameEntity>] [includeallsites] [withmappings] [role|roles all|<SiteACLRoleList>] [maxresults <Number>] [convertcrnl] [delimiter <String>]
+# gam print sites [todrive [<ToDriveAttributes>]] [domain|domains <DomainNameEntity>] [includeallsites]
+#	[withmappings] [role|roles all|<SiteACLRoleList>] [maxresults <Number>] [convertcrnl] [delimiter <String>]
 def doPrintDomainSites():
   _printShowSites([GC.Values[GC.DOMAIN],], Ent.DOMAIN, True)
 
-# gam show sites [domain|domains <DomainNameEntity>] [includeallsites] [withmappings] [role|roles all|<SiteACLRoleList>] [maxresults <Number>] [convertcrnl]
+# gam show sites [domain|domains <DomainNameEntity>] [includeallsites]
+#	[withmappings] [role|roles all|<SiteACLRoleList>] [maxresults <Number>] [convertcrnl]
 def doShowDomainSites():
   _printShowSites([GC.Values[GC.DOMAIN],], Ent.DOMAIN, False)
 
@@ -14830,11 +14834,13 @@ def infoUsers(entityList):
       else:
         entityActionFailedWarning([Ent.USER, userEmail], str(e), i, count)
 
-# gam info users <UserTypeEntity> [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>] [userview] [fields <UserFieldNameList>] [products|product <ProductIDList>] [skus|sku <SKUIDList>] [formatjson]
+# gam info users <UserTypeEntity> [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>]
+#	[userview] [fields <UserFieldNameList>] [products|product <ProductIDList>] [skus|sku <SKUIDList>] [formatjson]
 def doInfoUsers():
   infoUsers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, delayGet=True)[1])
 
-# gam info user <UserItem> [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>] [userview] [fields <UserFieldNameList>] [products|product <ProductIDList>] [skus|sku <SKUIDList>] [formatjson]
+# gam info user <UserItem> [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>]
+#	[userview] [fields <UserFieldNameList>] [products|product <ProductIDList>] [skus|sku <SKUIDList>] [formatjson]
 # gam info user
 def doInfoUser():
   if Cmd.ArgumentsRemaining():
@@ -14852,8 +14858,8 @@ USERS_ORDERBY_CHOICES_MAP = {
 
 # gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [query <QueryUsers>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
 #	[groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
-#	[orderby <UserOrderByFieldName> [ascending|descending]] [userview]
-#	[basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>] [delimiter <String>]
+#	[orderby <UserOrderByFieldName> [ascending|descending]]
+#	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>] [delimiter <String>]
 def doPrintUsers(entityList=None):
   def _printUser(userEntity):
     if email_parts and (u'primaryEmail' in userEntity):
@@ -17498,7 +17504,8 @@ def transferCalendars(users):
         Act.Set(Act.RETAIN)
         try:
           callGAPI(targetCal.acl(), u'patch',
-                   throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_PARAMETER, GAPI.INVALID_SCOPE_VALUE, GAPI.ILLEGAL_ACCESS_ROLE_FOR_DEFAULT, GAPI.CANNOT_CHANGE_OWN_ACL, GAPI.CANNOT_CHANGE_OWNER_ACL, GAPI.FORBIDDEN],
+                   throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_PARAMETER, GAPI.INVALID_SCOPE_VALUE, GAPI.ILLEGAL_ACCESS_ROLE_FOR_DEFAULT,
+                                  GAPI.CANNOT_CHANGE_OWN_ACL, GAPI.CANNOT_CHANGE_OWNER_ACL, GAPI.FORBIDDEN],
                    calendarId=calId, ruleId=sourceRuleId, body=retainSourceRoleBody, fields=u'')
           entityActionPerformed([Ent.CALENDAR, calId, Ent.CALENDAR_ACL, formatACLScopeRole(sourceRuleId, retainSourceRoleBody[u'role'])], j, jcount)
         except GAPI.notFound as e:
@@ -17875,7 +17882,7 @@ def getDriveFileEntity(orphansOK=False):
       fileIdEntity[u'query'] = u"name = '{0}'".format(getString(Cmd.OB_DRIVE_FILE_NAME))
     elif mycmd[:17] == u'anydrivefilename:':
       fileIdEntity[u'query'] = u"name = '{0}'".format(myarg[17:])
-    elif (mycmd == u'root') or (mycmd == MY_DRIVE.lower()):
+    elif mycmd in [u'root', u'mydrive']:
       cleanFileIDsList(fileIdEntity, [u'root',])
     elif orphansOK and mycmd == u'orphans':
       cleanFileIDsList(fileIdEntity, [mycmd,])
@@ -18509,13 +18516,12 @@ DRIVEFILE_FIELDS_CHOICES_MAP = {
   }
 
 DRIVEFILE_FIELDS_TIME_OBJECTS = [u'createdTime', u'viewedByMeTime', u'modifiedByMeTime', u'modifiedTime', u'sharedWithMeTime']
-DRIVEFILE_REVISIONS_TIME_OBJECTS = [u'expirationTime',]
 
 FILEINFO_FIELDS_TITLES = [u'name', u'mimeType']
 FILEPATH_FIELDS_TITLES = [u'name', u'id', u'mimeType', u'parents']
 
 # gam <UserTypeEntity> show fileinfo <DriveFileEntity> [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
-def showDriveFileInfo(users):
+def showFileInfo(users):
   def _setSelectionFields():
     skipObjects.extend([field for field in FILEINFO_FIELDS_TITLES if field not in fieldsList])
     fieldsList.extend(FILEINFO_FIELDS_TITLES)
@@ -18597,18 +18603,149 @@ def showDriveFileInfo(users):
         break
     Ind.Decrement()
 
-# gam <UserTypeEntity> show filerevisions <DriveFileEntity>
-def showDriveFileRevisions(users):
+def getRevisionsEntity():
+  revisionsEntity = {u'list': [], u'dict': None, u'count': None, u'time': None, u'range': None}
+  entitySelector = getEntitySelector()
+  if entitySelector:
+    entityList = getEntitySelection(entitySelector, False)
+    if isinstance(entityList, dict):
+      revisionsEntity[u'dict'] = entityList
+    else:
+      revisionsEntity[u'list'] = entityList
+  else:
+    myarg = getString(Cmd.OB_DRIVE_FILE_REVISION_ID, checkBlank=True)
+    mycmd = myarg.lower()
+    if mycmd == u'id':
+      revisionsEntity[u'list'] = getStringReturnInList(Cmd.OB_DRIVE_FILE_REVISION_ID)
+    elif mycmd[:3] == u'id:':
+      revisionsEntity[u'list'] = [myarg[3:]]
+    elif mycmd == u'ids':
+      revisionsEntity[u'list'] = getString(Cmd.OB_DRIVE_FILE_REVISION_ID).replace(u',', u' ').split()
+    elif mycmd[:4] == u'ids:':
+      revisionsEntity[u'list'] = myarg[4:].replace(u',', u' ').split()
+    elif mycmd in [u'first', u'last', u'allexceptfirst', u'allexceptlast']:
+      revisionsEntity[u'count'] = (mycmd, getInteger(minVal=1))
+    elif mycmd in [u'before', u'after']:
+      dateTime, _, _ = getFullTime(True)
+      revisionsEntity[u'time'] = (mycmd, dateTime)
+    elif mycmd == u'range':
+      startDateTime, _, startTime = getFullTime(True)
+      endDateTime, _, endTime = getFullTime(True)
+      if endDateTime < startDateTime:
+        Cmd.Backup()
+        usageErrorExit(Msg.INVALID_TIME_RANGE.format(u'end', endTime, u'start', startTime))
+      revisionsEntity[u'range'] = (mycmd, startDateTime, endDateTime)
+    else:
+      revisionsEntity[u'list'] = [myarg,]
+  return revisionsEntity
+
+def _selectRevisionIds(drive, fileId, origUser, user, i, count, j, jcount, revisionsEntity):
+  if revisionsEntity[u'list']:
+    return revisionsEntity[u'list']
+  if revisionsEntity[u'dict']:
+    if not GM.Globals[GM.CSV_SUBKEY_FIELD]:
+      return revisionsEntity[u'dict'][fileId]
+    else:
+      return revisionsEntity[u'dict'][origUser][fileId]
+  revisionIds = []
+  try:
+    results = callGAPIpages(drive.revisions(), u'list', u'revisions',
+                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST],
+                            fileId=fileId, fields=u'nextPageToken,revisions(id,modifiedTime)')
+    numRevisions = len(results)
+    if numRevisions > 0:
+      if revisionsEntity[u'count']:
+        countType = revisionsEntity[u'count'][0]
+        count = revisionsEntity[u'count'][1]
+        revisions = [revision[u'id'] for revision in results]
+        if countType == u'first':
+          if count >= numRevisions:
+            revisionIds = revisions[:-1]
+          else:
+            revisionIds = revisions[:count]
+        elif countType == u'last':
+          if count >= numRevisions:
+            revisionIds = revisions[1:]
+          else:
+            revisionIds = revisions[-count:]
+        elif countType == u'allexceptfirst':
+          if count >= numRevisions:
+            revisionIds = []
+          else:
+            revisionIds = revisions[count:]
+        else: # allexceptlast
+          if count >= numRevisions:
+            revisionIds = []
+          else:
+            revisionIds = revisions[:-count]
+      elif revisionsEntity[u'time']:
+        dateTime = revisionsEntity[u'time'][1]
+        count = 0
+        if revisionsEntity[u'time'][0] == u'before':
+          for revision in results:
+            modifiedDateTime, _ = iso8601.parse_date(revision[u'modifiedTime'])
+            if modifiedDateTime >= dateTime:
+              break
+            revisionIds.append(revision[u'id'])
+            count += 1
+          if count >= numRevisions:
+            del revisionIds[-1]
+        else: # after
+          for revision in results:
+            modifiedDateTime, _ = iso8601.parse_date(revision[u'modifiedTime'])
+            if modifiedDateTime >= dateTime:
+              revisionIds.append(revision[u'id'])
+              count += 1
+          if count >= numRevisions:
+            del revisionIds[0]
+      else: # range
+        startDateTime = revisionsEntity[u'range'][1]
+        endDateTime = revisionsEntity[u'range'][2]
+        count = 0
+        for revision in results:
+          modifiedDateTime, _ = iso8601.parse_date(revision[u'modifiedDate'])
+          if modifiedDateTime >= startDateTime:
+            if modifiedDateTime >= endDateTime:
+              break
+            revisionIds.append(revision[u'id'])
+            count += 1
+        if count >= numRevisions:
+          del revisionIds[0]
+  except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
+    entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
+  except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+    userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+  return revisionIds
+
+# gam <UserTypeEntity> delete filerevisions <DriveFileEntity> select <DriveFileRevisionIdEntity> [previewdelete]
+#	[showtitles] [doit] [max_to_delete <Number>]
+def deleteFileRevisions(users):
   fileIdEntity = getDriveFileEntity()
   body, parameters = initializeDriveFileAttributes()
-  checkForExtraneousArguments()
-  timeObjects = DRIVEFILE_FIELDS_TIME_OBJECTS[:]
-  if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
-    _mapDrive3TitlesToDrive2(timeObjects, API.DRIVE3_TO_DRIVE2_REVISIONS_FIELDS_MAP)
+  revisionsEntity = None
+  previewDelete = showTitles = doIt = False
+  maxToProcess = 1
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'select':
+      revisionsEntity = getRevisionsEntity()
+    elif myarg == u'previewdelete':
+      previewDelete = True
+    elif myarg == u'showtitles':
+      showTitles = True
+    elif myarg == u'doit':
+      doIt = True
+    elif myarg in [u'maxtodelete', u'maxtoprocess']:
+      maxToProcess = getInteger(minVal=0)
+    else:
+      unknownArgumentExit()
+  if not revisionsEntity:
+    missingArgumentExit(u'select <DriveFileRevisionIdEntity>')
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, body, parameters, entityType=Ent.DRIVE_FILE_OR_FOLDER)
+    origUser = user
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, body, parameters)
     if jcount == 0:
       continue
     Ind.Increment()
@@ -18616,25 +18753,292 @@ def showDriveFileRevisions(users):
     for fileId in fileIdEntity[u'list']:
       j += 1
       try:
-        result = callGAPI(drive.revisions(), u'list',
-                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST],
-                          fileId=fileId, fields=u'revisions')
-        printEntity([Ent.DRIVE_FILE_ID, fileId], j, jcount)
+        fileName = fileId
+        entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
+        if showTitles:
+          fileName, entityType = _getDriveFileNameFromId(drive, fileId)
+        revisionIds = _selectRevisionIds(drive, fileId, origUser, user, i, count, j, jcount, revisionsEntity)
+        kcount = len(revisionIds)
+        if kcount == 0:
+          entityNumEntitiesActionNotPerformedWarning([Ent.USER, user, entityType, fileName], Ent.DRIVE_FILE_REVISION, kcount,
+                                                     Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(Ent.DRIVE_FILE_REVISION)), j, jcount)
+          setSysExitRC(NO_ENTITIES_FOUND)
+          continue
+        if not previewDelete:
+          if maxToProcess and kcount > maxToProcess:
+            entityNumEntitiesActionNotPerformedWarning([Ent.USER, user, entityType, fileName], Ent.DRIVE_FILE_REVISION, kcount,
+                                                       Msg.COUNT_N_EXCEEDS_MAX_TO_PROCESS_M.format(kcount, Act.ToPerform(), maxToProcess), j, jcount)
+            continue
+          if not doIt:
+            entityNumEntitiesActionNotPerformedWarning([Ent.USER, user, entityType, fileName], Ent.DRIVE_FILE_REVISION, kcount,
+                                                       Msg.USE_DOIT_ARGUMENT_TO_PERFORM_ACTION, j, jcount)
+            continue
+          entityPerformActionNumItems([Ent.USER, user, entityType, fileName], kcount, Ent.DRIVE_FILE_REVISION, j, jcount)
+        else:
+          entityPerformActionNumItemsModifier([Ent.USER, user, entityType, fileName], kcount, Ent.DRIVE_FILE_REVISION, Msg.PREVIEW_ONLY, j, jcount)
         Ind.Increment()
-        for revision in result[u'revisions']:
-          printEntity([Ent.REVISION_ID, revision[u'id']])
-          Ind.Increment()
-          if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
-            _mapDriveRevisionNames(revision)
-          showJSON(None, revision, [u'id',], timeObjects)
-          Ind.Decrement()
+        k = 0
+        for revisionId in revisionIds:
+          k += 1
+          if not previewDelete:
+            callGAPI(drive.revisions(), u'delete',
+                     throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND, GAPI.FORBIDDEN, GAPI.INTERNAL_ERROR,
+                                                                  GAPI.BAD_REQUEST, GAPI.REVISION_NOT_FOUND, GAPI.REVISION_DELETION_NOT_SUPPORTED,
+                                                                  GAPI.CANNOT_DELETE_ONLY_REVISION],
+                     fileId=fileId, revisionId=revisionId)
+            entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.DRIVE_FILE_REVISION, revisionId], k, kcount)
+          else:
+            entityActionNotPerformedWarning([Ent.USER, user, entityType, fileName, Ent.DRIVE_FILE_REVISION, revisionId], Msg.PREVIEW_ONLY, k, kcount)
         Ind.Decrement()
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.badRequest, GAPI.revisionDeletionNotSupported, GAPI.cannotDeleteOnlyRevision) as e:
+        entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
+      except GAPI.revisionNotFound:
+        entityDoesNotHaveItemWarning([Ent.USER, user, entityType, fileName, Ent.DRIVE_FILE_REVISION, revisionId], k, kcount)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+        break
+    Ind.Decrement()
+
+def _selectRevisionResults(results, fileId, origUser, revisionsEntity, previewDelete):
+  numRevisions = len(results)
+  if numRevisions == 0:
+    return results
+  if revisionsEntity[u'count']:
+    countType = revisionsEntity[u'count'][0]
+    count = revisionsEntity[u'count'][1]
+    if countType == u'first':
+      if count >= numRevisions:
+        if previewDelete:
+          results.pop()
+      else:
+        for _ in range(numRevisions-count):
+          results.pop()
+    elif countType == u'last':
+      if count >= numRevisions:
+        if previewDelete:
+          results.popleft()
+      else:
+        for _ in range(numRevisions-count):
+          results.popleft()
+    elif countType == u'allexceptfirst':
+      if count >= numRevisions:
+        results.clear()
+      else:
+        for _ in range(count):
+          results.popleft()
+    else: # allexceptlast
+      if count >= numRevisions:
+        results.clear()
+      else:
+        for _ in range(count):
+          results.pop()
+    return results
+  elif revisionsEntity[u'time']:
+    dateTime = revisionsEntity[u'time'][1]
+    count = 0
+    if revisionsEntity[u'time'][0] == u'before':
+      for revision in results:
+        modifiedDateTime, _ = iso8601.parse_date(revision[u'modifiedTime'])
+        if modifiedDateTime >= dateTime:
+          break
+        count += 1
+      if count >= numRevisions:
+        if previewDelete:
+          results.pop()
+      else:
+        for _ in range(numRevisions-count):
+          results.pop()
+    else: # after
+      for revision in results:
+        modifiedDateTime, _ = iso8601.parse_date(revision[u'modifiedTime'])
+        if modifiedDateTime >= dateTime:
+          break
+        count += 1
+      if count == 0:
+        if previewDelete:
+          results.popleft()
+      elif count >= numRevisions:
+        results.clear()
+      else:
+        for _ in range(count):
+          results.popleft()
+    return results
+  elif revisionsEntity[u'range']:
+    startDateTime = revisionsEntity[u'range'][1]
+    endDateTime = revisionsEntity[u'range'][2]
+    count = 0
+    selectedResults = collections.deque()
+    while results:
+      revision = results.popleft()
+      modifiedDateTime, _ = iso8601.parse_date(revision[u'modifiedTime'])
+      if modifiedDateTime >= startDateTime:
+        if modifiedDateTime >= endDateTime:
+          break
+        selectedResults.append(revision)
+        count += 1
+    if count >= numRevisions:
+      if previewDelete:
+        selectedResults.popleft()
+    else:
+      results.clear()
+    return selectedResults
+  else:
+    selectedResults = collections.deque()
+    if revisionsEntity[u'dict']:
+      if not GM.Globals[GM.CSV_SUBKEY_FIELD]:
+        revisionIds = revisionsEntity[u'dict'][fileId]
+      else:
+        revisionIds = revisionsEntity[u'dict'][origUser][fileId]
+    else:
+      revisionIds = revisionsEntity[u'list']
+    while results:
+      revision = results.popleft()
+      if revision[u'id'] in revisionIds:
+        selectedResults.append(revision)
+    return selectedResults
+
+FILEREVISIONS_FIELDS_CHOICES_MAP = {
+  u'filesize': u'size',
+  u'id': u'id',
+  u'keepforever': u'keepForever',
+  u'lastmodifyinguser': u'lastModifyingUser',
+  u'lastmodifyingusername': u'lastModifyingUser.displayName',
+  u'md5checksum': u'md5Checksum',
+  u'mimetype': u'mimeType',
+  u'modifieddate': u'modifiedTime',
+  u'modifiedtime': u'modifiedTime',
+  u'originalfilename': u'originalFilename',
+  u'pinned': u'keepForever',
+  u'published': u'published',
+  u'publishedauto': u'publishedAuto',
+  u'publishedoutsidedomain': u'publishedOutsideDomain',
+  u'size': u'size',
+  }
+FILEREVISIONS_TIME_OBJECTS = [u'modifiedTime',]
+
+def _showRevision(revision, timeObjects, i=0, count=0):
+  printEntity([Ent.DRIVE_FILE_REVISION, revision[u'id']], i, count)
+  Ind.Increment()
+  if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
+    _mapDriveRevisionNames(revision)
+  showJSON(None, revision, [u'id',], timeObjects)
+  Ind.Decrement()
+
+def _printShowFileRevisions(users, csvFormat):
+  if csvFormat:
+    todrive = {}
+    titles, csvRows = initializeTitlesCSVfile([u'Owner', u'id'])
+  fieldsList = []
+  fileIdEntity = getDriveFileEntity()
+  body, parameters = initializeDriveFileAttributes()
+  revisionsEntity = None
+  oneItemPerRow = previewDelete = showTitles = False
+  fileNameTitle = [u'name', u'title'][not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]]
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvFormat and myarg == u'todrive':
+      todrive = getTodriveParameters()
+    elif myarg == u'select':
+      revisionsEntity = getRevisionsEntity()
+    elif myarg == u'oneitemperrow':
+      oneItemPerRow = True
+    elif myarg == u'previewdelete':
+      previewDelete = True
+    elif myarg == u'showtitles':
+      showTitles = True
+      if csvFormat:
+        addTitlesToCSVfile([fileNameTitle], titles)
+    elif myarg in FILEREVISIONS_FIELDS_CHOICES_MAP:
+      if not fieldsList:
+        fieldsList = [u'id',]
+      fieldsList.append(FILEREVISIONS_FIELDS_CHOICES_MAP[myarg])
+    elif myarg == u'fields':
+      if not fieldsList:
+        fieldsList = [u'id',]
+      for field in getString(Cmd.OB_FIELD_NAME_LIST).lower().replace(u',', u' ').split():
+        if field in FILEREVISIONS_FIELDS_CHOICES_MAP:
+          fieldsList.append(FILEREVISIONS_FIELDS_CHOICES_MAP[field])
+        else:
+          Cmd.Backup()
+          invalidChoiceExit(list(FILEREVISIONS_FIELDS_CHOICES_MAP))
+    else:
+      unknownArgumentExit()
+  if fieldsList:
+    fields = u'nextPageToken,revisions({0})'.format(u','.join(set(fieldsList)).replace(u'.', u'/'))
+  else:
+    fields = u'*'
+  timeObjects = FILEREVISIONS_TIME_OBJECTS[:]
+  if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
+    _mapDrive3TitlesToDrive2(timeObjects, API.DRIVE3_TO_DRIVE2_REVISIONS_FIELDS_MAP)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    origUser = user
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, body, parameters, entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][csvFormat])
+    if jcount == 0:
+      continue
+    Ind.Increment()
+    j = 0
+    for fileId in fileIdEntity[u'list']:
+      j += 1
+      try:
+        fileName = fileId
+        entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
+        if showTitles:
+          fileName, entityType = _getDriveFileNameFromId(drive, fileId, not csvFormat)
+        results = callGAPIpages(drive.revisions(), u'list', u'revisions',
+                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST],
+                                fileId=fileId, fields=fields)
+        if revisionsEntity:
+          results = _selectRevisionResults(results, fileId, origUser, revisionsEntity, previewDelete)
+        if not csvFormat:
+          kcount = len(results)
+          entityPerformActionNumItems([entityType, fileName], kcount, Ent.DRIVE_FILE_REVISION, j, jcount)
+          Ind.Increment()
+          k = 0
+          for revision in results:
+            k += 1
+            _showRevision(revision, timeObjects, k, kcount)
+          Ind.Decrement()
+        elif results:
+          if oneItemPerRow:
+            for revision in results:
+              row = {u'Owner': user, u'id': fileId}
+              if showTitles:
+                row[fileNameTitle] = fileName
+              if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
+                _mapDriveRevisionNames(revision)
+              addRowTitlesToCSVfile(flattenJSON({u'revision': revision}, flattened=row, timeObjects=timeObjects), csvRows, titles)
+          else:
+            if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
+              for revision in results:
+                _mapDriveRevisionNames(revision)
+            if showTitles:
+              addRowTitlesToCSVfile(flattenJSON({u'revisions': results}, flattened={u'Owner': user, u'id': fileId, fileNameTitle: fileName}, timeObjects=timeObjects), csvRows, titles)
+            else:
+              addRowTitlesToCSVfile(flattenJSON({u'revisions': results}, flattened={u'Owner': user, u'id': fileId}, timeObjects=timeObjects), csvRows, titles)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
     Ind.Decrement()
+  if csvFormat:
+    if oneItemPerRow:
+      sortCSVTitles([u'Owner', u'id', fileNameTitle, u'revision.id'], titles)
+    else:
+      sortCSVTitles([u'Owner', u'id', fileNameTitle], titles)
+    writeCSVfile(csvRows, titles, u'Drive File Revisions', todrive)
+
+# gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive [<ToDriveAttributes>]] [select <DriveFileRevisionIDEntity>] [previewdelete]
+#	[showtitles] [oneitemperrow] [<DriveFieldName>*|(fields <DriveFieldNameList>)]
+def printFileRevisions(users):
+  _printShowFileRevisions(users, True)
+
+# gam <UserTypeEntity> show filerevisions <DriveFileEntity> [select <DriveFileRevisionIDEntity>] [previewdelete]
+#	[showtitles] [<DriveFieldName>*|(fields <DriveFieldNameList>)]
+def showFileRevisions(users):
+  _printShowFileRevisions(users, False)
 
 def _stripMeInOwners(query):
   if not query:
@@ -18732,11 +19136,11 @@ DRIVEFILE_ORDERBY_CHOICES_MAP = {
 
 SHOW_OWNED_BY_CHOICES_MAP = {u'any': None, u'me': True, u'others': False}
 FILELIST_FIELDS_TITLES = [u'id', u'mimeType', u'parents']
-ALL_FIELDS_PREFIX_TITLES = [u'Owner', u'id', u'name']
 
-# gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)] [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [select <DriveFileEntity>|orphans] [depth <Number>]
+# gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)]
+#	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [select <DriveFileEntity>|orphans] [depth <Number>]
 #	[filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveOrderByFieldName> [ascending|descending])* [delimiter <String>]
-def printDriveFileList(users):
+def printFileList(users):
   def _setSelectionFields():
     if fileIdEntity:
       skipObjects.extend([field for field in FILELIST_FIELDS_TITLES if field not in fieldsList])
@@ -18909,13 +19313,14 @@ def printDriveFileList(users):
   if filepath:
     addTitlesToCSVfile([u'paths',], titles)
   timeObjects = DRIVEFILE_FIELDS_TIME_OBJECTS[:]
-  allFieldsPrefixTitles = ALL_FIELDS_PREFIX_TITLES[:]
   if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
+    fileNameTitle = u'title'
     _mapDrive3TitlesToDrive2(titles[u'list'], API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
     _mapDrive3TitlesToDrive2(titles[u'list'], API.DRIVE3_TO_DRIVE2_CAPABILITIES_TITLES_MAP)
     titles[u'set'] = set(titles[u'list'])
-    _mapDrive3TitlesToDrive2(allFieldsPrefixTitles, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
     _mapDrive3TitlesToDrive2(timeObjects, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
+  else:
+    fileNameTitle = u'name'
   query = _mapDrive2QueryToDrive3(query)
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -18977,14 +19382,14 @@ def printDriveFileList(users):
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
   if allfields:
-    sortCSVTitles(allFieldsPrefixTitles, titles)
+    sortCSVTitles([u'Owner', u'id', fileNameTitle], titles)
   writeCSVfile(csvRows, titles,
                u'{0} {1} Drive Files'.format(Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]),
                                              Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)),
                todrive)
 
 # gam <UserTypeEntity> show filepath <DriveFileEntity>
-def showDriveFilePath(users):
+def showFilePath(users):
   fileIdEntity = getDriveFileEntity()
   body, parameters = initializeDriveFileAttributes()
   checkForExtraneousArguments()
@@ -19020,7 +19425,7 @@ def showDriveFilePath(users):
     Ind.Decrement()
 
 # gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)] [select <DriveFileEntity>|orphans] (orderby <DriveOrderByFieldName> [ascending|descending])* [depth <Number>]
-def showDriveFileTree(users):
+def showFileTree(users):
   def _showDriveFolderContents(fileEntry, depth):
     for childId in fileEntry[u'children']:
       childEntry = fileTree.get(childId)
@@ -19621,7 +20026,7 @@ def collectOrphans(users):
 # gam <UserTypeEntity> transfer drive <UserItem> [keepuser] [retainrole reader|commenter|writer|owner|editor] (orderby <DriveOrderByFieldName> [ascending|descending])*
 #	[(targetfolderid <DriveFileID>)|(targetfoldername <DriveFileName>)] [targetuserfoldername <DriveFileName>]
 #	[preview] [todrive [<ToDriveAttributes>]]
-def transferDriveFiles(users):
+def transferDrive(users):
 
   def _addRemoveParents(oldParents, rootId):
     addParents = []
@@ -19712,7 +20117,8 @@ def transferDriveFiles(users):
             else:
               parentIdMap[childFileId] = callGAPI(targetDrive.files(), u'create',
                                                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS,
-                                                  body={u'parents': _newParents(childEntry[u'info'][u'parents'], rootId), u'name': childFileName, u'mimeType': MIMETYPE_GA_FOLDER}, fields=u'id')[u'id']
+                                                  body={u'parents': _newParents(childEntry[u'info'][u'parents'], rootId), u'name': childFileName, u'mimeType': MIMETYPE_GA_FOLDER},
+                                                  fields=u'id')[u'id']
           except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
             entityActionFailedWarning([Ent.USER, sourceUser, childFileType, childFileName], str(e), j, jcount)
           except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -19895,7 +20301,7 @@ def validateUserGetPermissionId(user, i=0, count=0):
   return None
 
 # gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed] (orderby <DriveOrderByFieldName> [ascending|descending])* [preview] [filepath] [todrive [<ToDriveAttributes>]]
-def transferDriveFileOwnership(users):
+def transferOwnership(users):
 
   def _identifyFilesToTransfer(fileEntry, trashed):
     for childFileId in fileEntry[u'children']:
@@ -20040,8 +20446,9 @@ def transferDriveFileOwnership(users):
   if csvFormat:
     writeCSVfile(csvRows, titles, u'Files to Transfer Ownership', todrive)
 
-# gam <UserTypeEntity> claim ownership <DriveFileEntity> [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>] [includetrashed] [restricted [<Boolean>]] [writerscantshare [<Boolean>]] [preview] [filepath] [todrive [<ToDriveAttributes>]]
-def claimDriveFolderOwnership(users):
+# gam <UserTypeEntity> claim ownership <DriveFileEntity> [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
+#	[includetrashed] [restricted [<Boolean>]] [writerscantshare [<Boolean>]] [preview] [filepath] [todrive [<ToDriveAttributes>]]
+def claimOwnership(users):
   def _identifyFilesToClaim(fileEntry, skipids, skipusers, trashed):
     for childFileId in fileEntry[u'children']:
       childEntry = fileTree.get(childFileId)
@@ -20205,7 +20612,8 @@ def claimDriveFolderOwnership(users):
               break
           Ind.Decrement()
         else:
-          entityPerformActionModifierNumItemsModifier([Ent.USER, user], u'Not Performed', kcount, Ent.DRIVE_FILE_OR_FOLDER, u'{0} {1}: {2}'.format(Act.MODIFIER_FROM, Ent.Singular(Ent.USER), oldOwner), j, jcount)
+          entityPerformActionModifierNumItemsModifier([Ent.USER, user], u'Not Performed', kcount, Ent.DRIVE_FILE_OR_FOLDER,
+                                                      u'{0} {1}: {2}'.format(Act.MODIFIER_FROM, Ent.Singular(Ent.USER), oldOwner), j, jcount)
           Ind.Increment()
           l = 0
           for fileId, fileInfo in iteritems(filesToClaim[oldOwner]):
@@ -20351,24 +20759,22 @@ DRIVEFILE_ACL_KEY_PRINT_ORDER = [
   ]
 
 # DriveFileACL commands utilities
-def _showDriveFilePermission(permission):
-  nameField = u'displayName'
-  timeObjects = DRIVEFILE_ACL_TIME_OBJECTS[:]
-  printKeys = DRIVEFILE_ACL_KEY_PRINT_ORDER[:]
+def _showDriveFilePermission(permission, printKeys, timeObjects, i=0, count=0):
   if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
     nameField = u'name'
     _mapDrivePermissionNames(permission)
-    _mapDrive3TitlesToDrive2(timeObjects, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
-    _mapDrive3TitlesToDrive2(printKeys, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
+  else:
+    nameField = u'displayName'
   if nameField in permission:
-    printKeyValueList([permission[nameField]])
+    name = permission[nameField]
   elif u'id' in permission:
     if permission[u'id'] == u'anyone':
-      printKeyValueList([u'Anyone'])
+      name = u'Anyone'
     elif permission[u'id'] == u'anyoneWithLink':
-      printKeyValueList([u'Anyone with Link'])
+      name = u'Anyone with Link'
     else:
-      printKeyValueList([permission[u'id']])
+      name = permission[u'id']
+  printKeyValueListWithCount([name], i, count)
   Ind.Increment()
   for key in printKeys:
     value = permission.get(key)
@@ -20409,7 +20815,7 @@ DRIVEFILE_ACL_PERMISSION_TYPES = [u'anyone', u'domain', u'group', u'user',] # an
 # gam <UserTypeEntity> add drivefileacl <DriveFileEntity> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
 #	(role reader|commenter|writer|owner|editor|organizer) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>] [sendmail] [emailmessage <String>] [showtitles]
 def addDriveFileACL(users):
-  sendNotificationEmail = showTitles = transferOwnership = False
+  sendNotificationEmail = showTitles = _transferOwnership = False
   emailMessage = None
   fileIdEntity = getDriveFileEntity()
   body, parameters = initializeDriveFileAttributes()
@@ -20432,7 +20838,7 @@ def addDriveFileACL(users):
       body[u'role'] = getChoice(DRIVEFILE_ACL_ROLES_MAP, mapChoice=True)
       if body[u'role'] == u'owner':
         sendNotificationEmail = True
-        transferOwnership = True
+        _transferOwnership = True
     elif myarg == u'expiration':
       body[u'expirationTime'] = getFullTime()
     elif myarg == u'sendemail':
@@ -20449,6 +20855,11 @@ def addDriveFileACL(users):
   if body[u'role'] == u'owner' and body[u'type'] != u'user':
     Cmd.SetLocation(roleLocation)
     usageErrorExit(Msg.INVALID_OWNER_TYPE.format(body[u'role'], body[u'type']))
+  printKeys = DRIVEFILE_ACL_KEY_PRINT_ORDER[:]
+  timeObjects = DRIVEFILE_ACL_TIME_OBJECTS[:]
+  if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
+    _mapDrive3TitlesToDrive2(printKeys, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
+    _mapDrive3TitlesToDrive2(timeObjects, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -20469,9 +20880,9 @@ def addDriveFileACL(users):
                                                                                                            GAPI.OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                                                                                            GAPI.ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED],
                               fileId=fileId, sendNotificationEmail=sendNotificationEmail, emailMessage=emailMessage,
-                              transferOwnership=transferOwnership, body=body, fields=u'*', supportsTeamDrives=True)
+                              transferOwnership=_transferOwnership, body=body, fields=u'*', supportsTeamDrives=True)
         entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
-        _showDriveFilePermission(permission)
+        _showDriveFilePermission(permission, printKeys, timeObjects)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
               GAPI.ownerOnTeamDriveItemNotSupported, GAPI.organizerOnNonTeamDriveItemNotSupported) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
@@ -20488,7 +20899,7 @@ def updateDriveFileACLs(users):
   fileIdEntity = getDriveFileEntity()
   body, parameters = initializeDriveFileAttributes()
   isEmail, permissionId = getPermissionId()
-  removeExpiration = transferOwnership = False
+  removeExpiration = _transferOwnership = False
   showTitles = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -20499,7 +20910,7 @@ def updateDriveFileACLs(users):
     elif myarg == u'role':
       body[u'role'] = getChoice(DRIVEFILE_ACL_ROLES_MAP, mapChoice=True)
       if body[u'role'] == u'owner':
-        transferOwnership = True
+        _transferOwnership = True
     elif myarg == u'expiration':
       body[u'expirationTime'] = getFullTime()
     elif myarg == u'removeexpiration':
@@ -20517,6 +20928,11 @@ def updateDriveFileACLs(users):
     permissionId = validateUserGetPermissionId(permissionId)
     if not permissionId:
       return
+  printKeys = DRIVEFILE_ACL_KEY_PRINT_ORDER[:]
+  timeObjects = DRIVEFILE_ACL_TIME_OBJECTS[:]
+  if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
+    _mapDrive3TitlesToDrive2(printKeys, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
+    _mapDrive3TitlesToDrive2(timeObjects, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -20538,9 +20954,9 @@ def updateDriveFileACLs(users):
                                                                                                            GAPI.ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                                                                                            GAPI.PERMISSION_NOT_FOUND],
                               fileId=fileId, permissionId=permissionId, removeExpiration=removeExpiration,
-                              transferOwnership=transferOwnership, body=body, fields=u'*', supportsTeamDrives=True)
+                              transferOwnership=_transferOwnership, body=body, fields=u'*', supportsTeamDrives=True)
         entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
-        _showDriveFilePermission(permission)
+        _showDriveFilePermission(permission, printKeys, timeObjects)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
               GAPI.badRequest, GAPI.invalidOwnershipTransfer,
               GAPI.ownerOnTeamDriveItemNotSupported, GAPI.organizerOnNonTeamDriveItemNotSupported) as e:
@@ -20711,7 +21127,7 @@ def deleteDriveFileACLs(users):
     Ind.Decrement()
 
 # gam <UserTypeEntity> delete permissions <DriveFileEntity> <DriveFilePermissionIDEntity>
-def deleteDriveFilePermissions(users):
+def deletePermissions(users):
 
   def _callbackDeletePermissionId(request_id, response, exception):
     ri = request_id.splitlines()
@@ -20795,27 +21211,29 @@ def _printShowDriveFileACLs(users, csvFormat):
     titles, csvRows = initializeTitlesCSVfile([u'Owner', u'id'])
   fileIdEntity = getDriveFileEntity()
   body, parameters = initializeDriveFileAttributes()
-  showTitles = False
+  oneItemPerRow = showTitles = False
   fileNameTitle = [u'name', u'title'][not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
+    elif myarg == u'oneitemperrow':
+      oneItemPerRow = True
     elif myarg == u'showtitles':
       showTitles = True
       if csvFormat:
         addTitlesToCSVfile([fileNameTitle], titles)
     else:
       unknownArgumentExit()
+  printKeys = DRIVEFILE_ACL_KEY_PRINT_ORDER[:]
   timeObjects = DRIVEFILE_ACL_TIME_OBJECTS[:]
-  allFieldsPrefixTitles = ALL_FIELDS_PREFIX_TITLES[:]
   if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
-    _mapDrive3TitlesToDrive2(allFieldsPrefixTitles, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
+    _mapDrive3TitlesToDrive2(printKeys, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
     _mapDrive3TitlesToDrive2(timeObjects, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, body, parameters, entityType=[Ent.DRIVE_FILE_OR_FOLDER_ACL, None][csvFormat])
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, body, parameters, entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][csvFormat])
     if jcount == 0:
       continue
     Ind.Increment()
@@ -20831,19 +21249,31 @@ def _printShowDriveFileACLs(users, csvFormat):
                                 throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS,
                                 fileId=fileId, fields=u'nextPageToken,permissions', supportsTeamDrives=True)
         if not csvFormat:
-          printEntityKVList([entityType, fileName], [Ent.Plural(Ent.PERMITTEE)], j, jcount)
+          kcount = len(results)
+          entityPerformActionNumItems([entityType, fileName], kcount, Ent.PERMITTEE, j, jcount)
           Ind.Increment()
+          k = 0
           for permission in results:
-            _showDriveFilePermission(permission)
+            k += 1
+            _showDriveFilePermission(permission, printKeys, timeObjects, k, kcount)
           Ind.Decrement()
         elif results:
-          if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
+          if oneItemPerRow:
             for permission in results:
-              _mapDrivePermissionNames(permission)
-          if showTitles:
-            addRowTitlesToCSVfile(flattenJSON({u'permissions': results}, flattened={u'Owner': user, u'id': fileId, fileNameTitle: fileName}, timeObjects=timeObjects), csvRows, titles)
+              row = {u'Owner': user, u'id': fileId}
+              if showTitles:
+                row[fileNameTitle] = fileName
+              if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
+                _mapDrivePermissionNames(permission)
+              addRowTitlesToCSVfile(flattenJSON({u'permission': permission}, flattened=row, timeObjects=timeObjects), csvRows, titles)
           else:
-            addRowTitlesToCSVfile(flattenJSON({u'permissions': results}, flattened={u'Owner': user, u'id': fileId}, timeObjects=timeObjects), csvRows, titles)
+            if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
+              for permission in results:
+                _mapDrivePermissionNames(permission)
+            if showTitles:
+              addRowTitlesToCSVfile(flattenJSON({u'permissions': results}, flattened={u'Owner': user, u'id': fileId, fileNameTitle: fileName}, timeObjects=timeObjects), csvRows, titles)
+            else:
+              addRowTitlesToCSVfile(flattenJSON({u'permissions': results}, flattened={u'Owner': user, u'id': fileId}, timeObjects=timeObjects), csvRows, titles)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -20851,10 +21281,10 @@ def _printShowDriveFileACLs(users, csvFormat):
         break
     Ind.Decrement()
   if csvFormat:
-    sortCSVTitles(ALL_FIELDS_PREFIX_TITLES, titles)
+    sortCSVTitles([u'Owner', u'id', fileNameTitle], titles)
     writeCSVfile(csvRows, titles, u'Drive File ACLs', todrive)
 
-# gam <UserTypeEntity> print drivefileacl <DriveFileEntity> [todrive [<ToDriveAttributes>]] [showtitles]
+# gam <UserTypeEntity> print drivefileacl <DriveFileEntity> [todrive [<ToDriveAttributes>]] [showtitles] [oneitemperrow]
 def printDriveFileACLs(users):
   _printShowDriveFileACLs(users, True)
 
@@ -22262,15 +22692,15 @@ def archiveMessages(users):
         messageIds = [message[u'id'] for message in listResult]
       jcount = len(messageIds)
       if jcount == 0:
-        entityNumEntitiesActionNotPerformedWarning(Ent.USER, user, entityType, jcount, Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(entityType)), i, count)
+        entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(entityType)), i, count)
         setSysExitRC(NO_ENTITIES_FOUND)
         continue
       if messageEntity is None:
         if maxToProcess and jcount > maxToProcess:
-          entityNumEntitiesActionNotPerformedWarning(Ent.USER, user, entityType, jcount, Msg.COUNT_N_EXCEEDS_MAX_TO_PROCESS_M.format(jcount, Act.ToPerform(), maxToProcess), i, count)
+          entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.COUNT_N_EXCEEDS_MAX_TO_PROCESS_M.format(jcount, Act.ToPerform(), maxToProcess), i, count)
           continue
         if not doIt:
-          entityNumEntitiesActionNotPerformedWarning(Ent.USER, user, entityType, jcount, Msg.USE_DOIT_ARGUMENT_TO_PERFORM_ACTION, i, count)
+          entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.USE_DOIT_ARGUMENT_TO_PERFORM_ACTION, i, count)
           continue
       entityPerformActionNumItems([Ent.USER, user], jcount, entityType, i, count)
       Ind.Increment()
@@ -22487,15 +22917,15 @@ def _processMessagesThreads(users, entityType):
                  userId=u'me', fields=u'')
       jcount = len(messageIds)
       if jcount == 0:
-        entityNumEntitiesActionNotPerformedWarning(Ent.USER, user, entityType, jcount, Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(entityType)), i, count)
+        entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(entityType)), i, count)
         setSysExitRC(NO_ENTITIES_FOUND)
         continue
       if messageEntity is None:
         if maxToProcess and jcount > maxToProcess:
-          entityNumEntitiesActionNotPerformedWarning(Ent.USER, user, entityType, jcount, Msg.COUNT_N_EXCEEDS_MAX_TO_PROCESS_M.format(jcount, Act.ToPerform(), maxToProcess), i, count)
+          entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.COUNT_N_EXCEEDS_MAX_TO_PROCESS_M.format(jcount, Act.ToPerform(), maxToProcess), i, count)
           continue
         if not doIt:
-          entityNumEntitiesActionNotPerformedWarning(Ent.USER, user, entityType, jcount, Msg.USE_DOIT_ARGUMENT_TO_PERFORM_ACTION, i, count)
+          entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.USE_DOIT_ARGUMENT_TO_PERFORM_ACTION, i, count)
           continue
       entityPerformActionNumItems([Ent.USER, user], jcount, entityType, i, count)
       Ind.Increment()
@@ -22514,7 +22944,8 @@ def _processMessagesThreads(users, entityType):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
 # gam <UserTypeEntity> delete message|messages (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_delete <Number>])|(ids <MessageIDEntity>)
-# gam <UserTypeEntity> modify message|messages (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_modify <Number>])|(ids <MessageIDEntity>) (addlabel <LabelName>)* (removelabel <LabelName>)*
+# gam <UserTypeEntity> modify message|messages (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_modify <Number>])|(ids <MessageIDEntity>)
+#	(addlabel <LabelName>)* (removelabel <LabelName>)*
 # gam <UserTypeEntity> spam message|messages (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_spam <Number>])|(ids <MessageIDEntity>)
 # gam <UserTypeEntity> trash message|messages (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_trash <Number>])|(ids <MessageIDEntity>)
 # gam <UserTypeEntity> untrash message|messages (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_untrash <Number>])|(ids <MessageIDEntity>)
@@ -22522,7 +22953,8 @@ def processMessages(users):
   _processMessagesThreads(users, Ent.MESSAGE)
 
 # gam <UserTypeEntity> delete thread|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_delete <Number>])|(ids <ThreadIDEntity>)
-# gam <UserTypeEntity> modify thread|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_modify <Number>])|(ids <ThreadIDEntity>) (addlabel <LabelName>)* (removelabel <LabelName>)*
+# gam <UserTypeEntity> modify thread|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_modify <Number>])|(ids <ThreadIDEntity>)
+#	(addlabel <LabelName>)* (removelabel <LabelName>)*
 # gam <UserTypeEntity> spam thread|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_spam <Number>])|(ids <ThreadIDEntity>)
 # gam <UserTypeEntity> trash thread|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_trash <Number>])|(ids <MessageIDEntity>)
 # gam <UserTypeEntity> untrash thread|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_untrash <Number>])|(ids <ThreadIDEntity>)
@@ -22947,7 +23379,7 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
       jcount = len(messageIds)
       if jcount == 0:
         if not csvFormat:
-          entityNumEntitiesActionNotPerformedWarning(Ent.USER, user, entityType, jcount, Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(entityType)), i, count)
+          entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(entityType)), i, count)
         setSysExitRC(NO_ENTITIES_FOUND)
         continue
       if not csvFormat:
@@ -23109,15 +23541,19 @@ def delegateTo(users, checkForTo=True):
             if errorCode == GDATA.DOES_NOT_EXIST:
               delegatorOK = _checkDelegatorDelegate(cd, delegatorEmail, delegateEmail, i, count, j, jcount)
             elif errorCode == GDATA.NAME_NOT_VALID:
-              entityActionFailedWarning([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail], Ent.TypeMessage(Ent.DELEGATE, Msg.ENTITY_NAME_NOT_VALID), j, jcount)
+              entityActionFailedWarning([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail],
+                                        Ent.TypeMessage(Ent.DELEGATE, Msg.ENTITY_NAME_NOT_VALID), j, jcount)
             elif errorCode == GDATA.ENTITY_EXISTS:
-              entityActionFailedWarning([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail], Ent.TypeMessage(Ent.DELEGATE, Msg.DUPLICATE), j, jcount)
+              entityActionFailedWarning([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail],
+                                        Ent.TypeMessage(Ent.DELEGATE, Msg.DUPLICATE), j, jcount)
             else:
               if not invalidInput:
                 delegatorOK = False
-                entityActionFailedWarning([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail], Ent.TypeMessage(Ent.DELEGATOR, u'errorCode: {0}, reason: {1}'.format(errorCode, reason)), i, count)
+                entityActionFailedWarning([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail],
+                                          Ent.TypeMessage(Ent.DELEGATOR, u'errorCode: {0}, reason: {1}'.format(errorCode, reason)), i, count)
               else:
-                entityActionFailedWarning([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail], Ent.TypeMessage(Ent.DELEGATE, u'errorCode: {0}, reason: {1}'.format(errorCode, reason)), j, jcount)
+                entityActionFailedWarning([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail],
+                                          Ent.TypeMessage(Ent.DELEGATE, u'errorCode: {0}, reason: {1}'.format(errorCode, reason)), j, jcount)
           else:
             delegatorOK = _checkDelegatorDelegate(cd, delegatorEmail, delegateEmail, i, count, j, jcount)
           break
@@ -23358,8 +23794,7 @@ FILTER_CRITERIA_CHOICES_MAP = {
   }
 FILTER_ACTION_CHOICES = [u'archive', u'forward', u'important', u'label', u'markread', u'neverspam', u'notimportant', u'star', u'trash',]
 
-# gam <UserTypeEntity> [add] filter [from <EmailAddress>] [to <EmailAddress>] [subject <String>] [haswords|query <List>] [nowords|negatedquery <List>] [musthaveattachment|hasattachment] [excludechats] [size larger|smaller <ByteCount>]
-#	[label <LabelName>] [important|notimportant] [star] [trash] [markread] [archive] [neverspam] [forward <EmailAddress>]
+# gam <UserTypeEntity> [add] filter <FilterCriteria>+ <FilterAction>+
 def addFilter(users):
   body = {}
   addLabelName = None
@@ -24059,7 +24494,7 @@ def _addUpdateSendAs(users, addCmd):
       else:
         signature = getString(Cmd.OB_STRING, minLen=0)
     elif myarg == u'html':
-      html = True
+      html = getBoolean(defaultValue=True)
     else:
       getSendAsAttributes(myarg, body, tagReplacements)
   if signature is not None:
@@ -24075,11 +24510,13 @@ def _addUpdateSendAs(users, addCmd):
       continue
     _processSendAs(user, i, count, Ent.SENDAS_ADDRESS, emailAddress, i, count, gmail, [u'patch', u'create'][addCmd], False, **kwargs)
 
-# gam <UserTypeEntity> [add] sendas <EmailAddress> <String> [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)*] [html] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
+# gam <UserTypeEntity> [add] sendas <EmailAddress> <String> [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)*]
+#	[html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
 def addSendAs(users):
   _addUpdateSendAs(users, True)
 
-# gam <UserTypeEntity> update sendas <EmailAddress> [name <String>] [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)*] [html] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
+# gam <UserTypeEntity> update sendas <EmailAddress> [name <String>] [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)*]
+#	[html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
 def updateSendAs(users):
   _addUpdateSendAs(users, False)
 
@@ -24412,7 +24849,8 @@ def setShortCuts(users):
     if result:
       printEntity([Ent.USER, user, Ent.KEYBOARD_SHORTCUTS_ENABLED, result[u'shortcuts']], i, count)
 
-# gam <UserTypeEntity> signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)* [html] [name <String>] [replyto <EmailAddress>] [default] [primary] [treatasalias <Boolean>]
+# gam <UserTypeEntity> signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)*
+#	[html [<Boolean>]] [name <String>] [replyto <EmailAddress>] [default] [primary] [treatasalias <Boolean>]
 def setSignature(users):
   tagReplacements = {}
   if checkArgumentPresent(Cmd.FILE_ARGUMENT):
@@ -24428,7 +24866,7 @@ def setSignature(users):
     if myarg == u'primary':
       primary = True
     elif myarg == u'html':
-      html = True
+      html = getBoolean(defaultValue=True)
     else:
       getSendAsAttributes(myarg, body, tagReplacements)
   body[u'signature'] = _processSignature(tagReplacements, signature, html)
@@ -24580,8 +25018,8 @@ def _printVacation(user, result):
   return row
 
 # gam <UserTypeEntity> vacation <FalseValues>
-# gam <UserTypeEntity> vacation <TrueValues> subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)* [html [<Boolean>]]
-#	[contactsonly [<Boolean>]] [domainonly [<Boolean>]] [startdate <Date>|Started] [enddate <Date>|NotSpecified]
+# gam <UserTypeEntity> vacation <TrueValues> subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)*
+#	[html [<Boolean>]] [contactsonly [<Boolean>]] [domainonly [<Boolean>]] [startdate <Date>|Started] [enddate <Date>|NotSpecified]
 def setVacation(users):
   enable = getBoolean()
   body = {u'enableAutoReply': enable}
@@ -25469,7 +25907,7 @@ USER_COMMANDS_WITH_OBJECTS = {
   u'claim':
     {CMD_ACTION: Act.CLAIM,
      CMD_FUNCTION:
-       {Cmd.ARG_OWNERSHIP: 	claimDriveFolderOwnership,
+       {Cmd.ARG_OWNERSHIP: 	claimOwnership,
        },
      CMD_OBJ_ALIASES:
        {
@@ -25524,13 +25962,14 @@ USER_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_DRIVEFILEACLS:	deleteDriveFileACLs,
         Cmd.ARG_EMPTYDRIVEFOLDERS:	deleteEmptyDriveFolders,
         Cmd.ARG_EVENTS:		deleteCalendarEvents,
+        Cmd.ARG_FILEREVISIONS:	deleteFileRevisions,
         Cmd.ARG_FILTERS:	deleteFilters,
         Cmd.ARG_FORWARDINGADDRESSES:	deleteForwardingAddresses,
         Cmd.ARG_GROUPS:		deleteUserFromGroups,
         Cmd.ARG_LABEL:		deleteLabel,
         Cmd.ARG_LICENSE:	deleteLicense,
         Cmd.ARG_MESSAGES:	processMessages,
-        Cmd.ARG_PERMISSIONS:	deleteDriveFilePermissions,
+        Cmd.ARG_PERMISSIONS:	deletePermissions,
         Cmd.ARG_PHOTO:		deletePhoto,
         Cmd.ARG_SENDAS:		deleteSendAs,
         Cmd.ARG_SMIME:		deleteSmime,
@@ -25553,6 +25992,7 @@ USER_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_DELEGATES:	Cmd.ARG_DELEGATE,
         Cmd.ARG_DRIVEFILEACL:	Cmd.ARG_DRIVEFILEACLS,
         Cmd.ARG_EVENT:		Cmd.ARG_EVENTS,
+        Cmd.ARG_FILEREVISION:	Cmd.ARG_FILEREVISIONS,
         Cmd.ARG_FILTER:		Cmd.ARG_FILTERS,
         Cmd.ARG_GROUP:		Cmd.ARG_GROUPS,
         Cmd.ARG_LICENCE:	Cmd.ARG_LICENSE,
@@ -25657,8 +26097,9 @@ USER_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_DRIVEFILEACLS:	printDriveFileACLs,
         Cmd.ARG_DRIVESETTINGS:	printDriveSettings,
         Cmd.ARG_EVENTS:		printCalendarEvents,
-        Cmd.ARG_FILEINFO:	showDriveFileInfo,
-        Cmd.ARG_FILELIST:	printDriveFileList,
+        Cmd.ARG_FILEINFO:	showFileInfo,
+        Cmd.ARG_FILELIST:	printFileList,
+        Cmd.ARG_FILEREVISIONS:	printFileRevisions,
         Cmd.ARG_FILTERS:	printFilters,
         Cmd.ARG_FORWARD:	printForward,
         Cmd.ARG_FORWARDINGADDRESSES:	printForwardingAddresses,
@@ -25683,6 +26124,7 @@ USER_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_DELEGATE:	Cmd.ARG_DELEGATES,
         Cmd.ARG_DRIVEFILEACL:	Cmd.ARG_DRIVEFILEACLS,
         Cmd.ARG_EVENT:		Cmd.ARG_EVENTS,
+        Cmd.ARG_FILEREVISION:	Cmd.ARG_FILEREVISIONS,
         Cmd.ARG_FILTER:		Cmd.ARG_FILTERS,
         Cmd.ARG_FORWARDINGADDRESS:	Cmd.ARG_FORWARDINGADDRESSES,
         Cmd.ARG_MESSAGE:	Cmd.ARG_MESSAGES,
@@ -25722,11 +26164,11 @@ USER_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_DRIVEFILEACLS:	showDriveFileACLs,
         Cmd.ARG_DRIVESETTINGS:	printDriveSettings,
         Cmd.ARG_EVENTS:		showCalendarEvents,
-        Cmd.ARG_FILEINFO:	showDriveFileInfo,
-        Cmd.ARG_FILELIST:	printDriveFileList,
-        Cmd.ARG_FILEPATH:	showDriveFilePath,
-        Cmd.ARG_FILEREVISIONS:	showDriveFileRevisions,
-        Cmd.ARG_FILETREE:	showDriveFileTree,
+        Cmd.ARG_FILEINFO:	showFileInfo,
+        Cmd.ARG_FILELIST:	printFileList,
+        Cmd.ARG_FILEPATH:	showFilePath,
+        Cmd.ARG_FILEREVISIONS:	showFileRevisions,
+        Cmd.ARG_FILETREE:	showFileTree,
         Cmd.ARG_FILTERS:	showFilters,
         Cmd.ARG_FORWARD:	showForward,
         Cmd.ARG_FORWARDINGADDRESSES:	showForwardingAddresses,
@@ -25759,6 +26201,7 @@ USER_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_DELEGATE:	Cmd.ARG_DELEGATES,
         Cmd.ARG_DRIVEFILEACL:	Cmd.ARG_DRIVEFILEACLS,
         Cmd.ARG_EVENT:		Cmd.ARG_EVENTS,
+        Cmd.ARG_FILEREVISION:	Cmd.ARG_FILEREVISIONS,
         Cmd.ARG_FILTER:		Cmd.ARG_FILTERS,
         Cmd.ARG_FORWARDINGADDRESS:	Cmd.ARG_FORWARDINGADDRESSES,
         Cmd.ARG_IMAP4:		Cmd.ARG_IMAP,
@@ -25790,9 +26233,9 @@ USER_COMMANDS_WITH_OBJECTS = {
   u'transfer':
     {CMD_ACTION: Act.TRANSFER,
      CMD_FUNCTION:
-       {Cmd.ARG_DRIVE:		transferDriveFiles,
+       {Cmd.ARG_DRIVE:		transferDrive,
         Cmd.ARG_CALENDARS:	transferCalendars,
-        Cmd.ARG_OWNERSHIP: 	transferDriveFileOwnership,
+        Cmd.ARG_OWNERSHIP: 	transferOwnership,
        },
      CMD_OBJ_ALIASES:
        {Cmd.ARG_CALENDAR:	Cmd.ARG_CALENDARS,
