@@ -1,3 +1,52 @@
+4.50.03
+
+Added sorting capability to the following commands.
+    gam <UserTypeEntity> show drivefileacl <DriveFileEntity> [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+    gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive [<ToDriveAttributes>]]> [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+    gam <UserTypeEntity> show filerevisions <DriveFileEntity> [select <DriveFileRevisionIDEntity>] [previewdelete]
+	[showtitles] [<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+    gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] [select <DriveFileRevisionIDEntity>] [previewdelete]
+	[showtitles] [<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+    gam <UserTypeEntity> show fileinfo <DriveFileEntity> [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+    gam <UserTypeEntity> show filepath <DriveFileEntity> (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+
+Added print filepath command. gam print/show filepath require multiple API calls per file to construct the filepath, plan your use accordingly.
+    gam <UserTypeEntity> print filepath <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+
+Several shortcuts have been introduced to allow specifying basic Drive file queries.
+They can be used in any command that uses <DriveFileEntity>.
+They can not be used in the select <DriveFileEntityListTree> option of gam print filelist/filetree.
+The shortcuts can be used as standalone arguments to gam print filelist.
+    <DriveFileQueryShortcut> ::= all_files | all_folders | all_items | my_files | my_folders | my_items | others_files | others_folders | others_items
+    <TeamDriveFileQueryShortcut> ::= all_files | all_folders | all_items
+    <DriveFileEntity> ::=
+	<DriveFileIDEntity> |
+	<DriveFileNameEntity> |
+	<DriveFileQueryEntity> |
+	<DriveFileQueryShortcut> |
+	root |
+	<TeamDriveIDEntity> [<TeamDriveFileQueryShortcut>] |
+	<TeamDriveNameEntity> [<TeamDriveFileQueryShortcut>] |
+	<TeamDriveFileNameEntity> |
+	<TeamDriveFileQueryEntity> |
+	<FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
+
+Keyword to query mappings:
+all_files - "mimeType != application/vnd.google-apps.folder"
+all_folders - "mimeType = application/vnd.google-apps.folder"
+all_items - "" (An empty query specifies all files and folders)
+my_files - "'me' in owners and mimeType != application/vnd.google-apps.folder"
+my_folders - "'me' in owners and mimeType = application/vnd.google-apps.folder"
+my_items - "'me' in owners"
+others_files - "not 'me' in owners and mimeType != application/vnd.google-apps.folder"
+others_folders - "not 'me' in owners and mimeType = application/vnd.google-apps.folder"
+others_items - "not 'me' in owners"
+
+Examples:
+Show ACls for folders not owned by the user: gam user testuser@domain.com show drivefileacls others_folders
+Print revisions for files owned by the user: gam user testuser@domain.com print filerevisions my_files one_item_per_row
+Print a file list of all of the users folders: gam user testuser@domain.com print filelist my_folders
+
 4.50.02
 
 Added argument oneitemperrow to print drivefileacls.

@@ -295,14 +295,28 @@ Specify a collection of items by directly specifying them; the item type is dete
 <DriveFileIDEntity> ::= (<DriveFileItem>) | (id <DriveFileItem>) | (id:<DriveFileItem>) | (ids <DriveFileList>) | (ids:<DriveFileList>)
 <DriveFileNameEntity> ::= (drivefilename <DriveFileName>) | (drivefilename:<DriveFileName>) | (anydrivefilename <DriveFileName>) | (anydrivefilename:<DriveFileName>)
 <DriveFileQueryEntity> ::= (query <QueryDriveFile>) | (query:<QueryDriveFile>)
+<DriveFileQueryShortcut> ::= all_files | all_folders | all_items | my_files | my_folders | my_items | others_files | others_folders | others_items
 <TeamDriveIDEntity> ::= (teamdriveid <DriveFileItem>) | (teamdriveid:<DriveFileItem>)
 <TeamDriveNameEntity> ::= (teamdrive <TeamDriveName>) | (teamdrive:<TeamDriveName>)
 <TeamDriveFileNameEntity> ::= (teamdrivefilename <DriveFileName>) | (teamdrivefilename:<DriveFileName>)
 <TeamDriveFileQueryEntity> ::= (teamdrivequery <QueryDriveFile>) | (teamdrivequery:<QueryDriveFile>)
+<TeamDriveFileQueryShortcut> ::= all_files | all_folders | all_items
 <DriveFileEntity> ::=
 	<DriveFileIDEntity> |
 	<DriveFileNameEntity> |
 	<DriveFileQueryEntity> |
+	<DriveFileQueryShortcut> |
+	root |
+	<TeamDriveIDEntity> [<TeamDriveFileQueryShortcut>] |
+	<TeamDriveNameEntity> [<TeamDriveFileQueryShortcut>] |
+	<TeamDriveFileNameEntity> |
+	<TeamDriveFileQueryEntity> |
+	<FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
+<DriveFileEntityListTree> ::=
+	<DriveFileIDEntity> |
+	<DriveFileNameEntity> |
+	<DriveFileQueryEntity> |
+	orphans |
 	root |
 	<TeamDriveIDEntity> |
 	<TeamDriveNameEntity> |
@@ -1570,15 +1584,29 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 	<DriveFileAttributes>|
 	ignoredefaultvisibility
 
+<DriveFileOrderByFieldName> ::=
+	createddate|createdtime|
+	folder|
+	lastviewedbyme|lastviewedbymedate|lastviewedbymetime|lastviewedbyuser|
+	modifiedbyme|modifiedbymedate|modifiedbymetime|modifiedbyuser|
+	modifieddate|modifiedtime|
+	name|
+	quotabytesused|quotaused|
+	recency|
+	sharedwithmedate|sharedwithmetime|
+	starred|
+	title|
+	viewedbymedate|viewedbymetime
+
 <DriveFileIDEntity> ::= (<DriveFileItem>) | (id <DriveFileItem>) | (id:<DriveFileItem>) | (ids <DriveFileList>) | (ids:<DriveFileList>)
 <DriveFileNameEntity> ::= (drivefilename <DriveFileName>) | (drivefilename:<DriveFileName>) | (anydrivefilename <DriveFileName>) | (anydrivefilename:<DriveFileName>)
 <DriveFileQueryEntity> ::= (query <QueryDriveFile>) | (query:<QueryDriveFile>)
-<DriveFileEntity> ::= <DriveFileIDEntity> | <DriveFileNameEntity> | <DriveFileQueryEntity> | root | <FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
+<DriveFileEntity> ::= <DriveFileIDEntity> | <DriveFileNameEntity> | <DriveFileQueryEntity> | <DriveFileQueryShortcut> |  root | <FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
 
 gam <UserTypeEntity> add drivefile [drivefilename <DriveFileName>] <DriveFileAddAttributes>*
 gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [newfilename <DriveFileName>] <DriveFileUpdateAttributes>*
 gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [recursive] <DriveFileCopyAttributes>*
-gam <UserTypeEntity> get drivefile <DriveFileEntity> [format <FileFormatList>] [targetfolder <FilePath>] [revision <DriveFileRevisionID>] [acknowledgeabuse <Boolean>]
+gam <UserTypeEntity> get drivefile <DriveFileEntity> [format <FileFormatList>] [targetfolder <FilePath>] [revision <DriveFileRevisionID>]
 gam <UserTypeEntity> delete drivefile <DriveFileEntity> [purge|untrash|trash]
 gam <UserTypeEntity> purge drivefile <DriveFileEntity>
 gam <UserTypeEntity> trash drivefile <DriveFileEntity>
@@ -1599,8 +1627,8 @@ gam <UserTypeEntity> add drivefileacl <DriveFileEntity> anyone|(user <UserItem>)
 gam <UserTypeEntity> update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail>
 	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>] [removeexpiration [<Boolean>]] [showtitles]
 gam <UserTypeEntity> delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles]
-gam <UserTypeEntity> show drivefileacl <DriveFileEntity> [showtitles]
-gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [showtitles] [oneitemperrow] [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> show drivefileacl <DriveFileEntity> [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> add permissions <DriveFileEntity> <DriveFilePermissionEntity> [expiration <Time>] [sendemail] [emailmessage <String>]
 gam <UserTypeEntity> delete permissions <DriveFileEntity> <DriveFilePermissionIDEntity>
 
@@ -1624,19 +1652,19 @@ gam <UserTypeEntity> delete permissions <DriveFileEntity> <DriveFilePermissionID
 gam <UserTypeEntity> delete filerevisions <DriveFileEntity> select <DriveFileRevisionIDEntity> [previewdelete]
 	[showtitles] [doit] [max_to_delete <Number>]
 gam <UserTypeEntity> show filerevisions <DriveFileEntity> [select <DriveFileRevisionIDEntity>] [previewdelete]
-	[showtitles] [<DriveFieldName>*|(fields <DriveFieldNameList>)]
-gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive [<ToDriveAttributes>]] [select <DriveFileRevisionIDEntity>] [previewdelete]
-	[showtitles] [oneitemperrow] [<DriveFieldName>*|(fields <DriveFieldNameList>)]
+	[showtitles] [<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] [select <DriveFileRevisionIDEntity>] [previewdelete]
+	[showtitles] [<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 
-gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed] (orderby <DriveOrderByFieldName> [ascending|descending])*
+gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 	[filepath] [preview] [todrive [<ToDriveAttributes>]]
 gam <UserTypeEntity> claim ownership <DriveFileEntity> [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
 	[includetrashed] [restricted [<Boolean>]] [writerscantshare [<Boolean>]] [filepath] [preview] [todrive [<ToDriveAttributes>]]
 
-gam <UserTypeEntity> collect orphans (orderby <DriveOrderByFieldName> [ascending|descending])*
+gam <UserTypeEntity> collect orphans (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 	[targetuserfoldername <DriveFileName>] [preview] [todrive [<ToDriveAttributes>]]
 
-gam <UserTypeEntity> transfer drive <UserItem> [keepuser] [retainrole reader|commenter|writer|owner|editor] (orderby <DriveOrderByFieldName> [ascending|descending])*
+gam <UserTypeEntity> transfer drive <UserItem> [keepuser] [retainrole reader|commenter|writer|owner|editor] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 	[(targetfolderid <DriveFileID>)|(targetfoldername <DriveFileName>)] [targetuserfoldername <DriveFileName>]
 	[preview] [todrive [<ToDriveAttributes>]]
 
@@ -1697,28 +1725,15 @@ gam <UserTypeEntity> transfer drive <UserItem> [keepuser] [retainrole reader|com
 	writerscanshare
 <DriveFieldNameList> ::= "<DriveFieldName>(,<DriveFieldName>)*"
 
-<DriveOrderByFieldName> ::=
-	createddate|createdtime|
-	folder|
-	lastviewedbyme|lastviewedbymedate|lastviewedbymetime|lastviewedbyuser|
-	modifiedbyme|modifiedbymedate|modifiedbymetime|modifiedbyuser|
-	modifieddate|modifiedtime|
-	name|
-	quotabytesused|quotaused|
-	recency|
-	sharedwithmedate|sharedwithmetime|
-	starred|
-	title|
-	viewedbymedate|viewedbymetime
+gam <UserTypeEntity> show fileinfo <DriveFileEntity> [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+gam <UserTypeEntity> show filepath <DriveFileEntity> (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+gam <UserTypeEntity> print filepath <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 
-gam <UserTypeEntity> show fileinfo <DriveFileEntity> [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
-gam <UserTypeEntity> show filepath <DriveFileEntity>
-
-gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
-	[select <DriveFileEntity>|orphans] [depth <Number>] (orderby <DriveOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
-	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [select <DriveFileEntity>|orphans] [depth <Number>]
-	[filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveOrderByFieldName> [ascending|descending])* [delimiter <String>]
+	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>] [select <DriveFileEntityListTree>] [depth <Number>]
+	[filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <String>]
+gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
+	[select <DriveFileEntityListTree>] [depth <Number>] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 
 gam <UserTypeEntity> print|show driveactivity [todrive [<ToDriveAttributes>]] [fileid <DriveFileID>] [folderid <DriveFolderID>]
 gam <UserTypeEntity> print|show drivesettings [todrive [<ToDriveAttributes>]]

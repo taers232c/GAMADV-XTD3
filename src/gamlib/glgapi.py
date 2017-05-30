@@ -83,6 +83,7 @@ RESOURCE_ID_NOT_FOUND = u'resourceIdNotFound'
 RESOURCE_NOT_FOUND = u'resourceNotFound'
 REVISION_DELETION_NOT_SUPPORTED = u'revisionDeletionNotSupported'
 REVISION_NOT_FOUND = u'revisionNotFound'
+REVISIONS_NOT_SUPPORTED = u'revisionsNotSupported'
 SERVICE_LIMIT = u'serviceLimit'
 SERVICE_NOT_AVAILABLE = u'serviceNotAvailable'
 SYSTEM_ERROR = u'systemError'
@@ -90,6 +91,7 @@ TEAMDRIVE_MEMBERSHIP_REQUIRED = u'teamDriveMembershipRequired'
 TEAMDRIVES_PARENT_LIMIT = u'teamDrivesParentLimit'
 TIME_RANGE_EMPTY = u'timeRangeEmpty'
 UNKNOWN_ERROR = u'unknownError'
+USER_ACCESS = u'userAccess'
 USER_NOT_FOUND = u'userNotFound'
 USER_RATE_LIMIT_EXCEEDED = u'userRateLimitExceeded'
 #
@@ -293,6 +295,8 @@ class revisionDeletionNotSupported(Exception):
   pass
 class revisionNotFound(Exception):
   pass
+class revisionsNotSupported(Exception):
+  pass
 class serviceLimit(Exception):
   pass
 class serviceNotAvailable(Exception):
@@ -306,6 +310,8 @@ class teamDrivesParentLimit(Exception):
 class timeRangeEmpty(Exception):
   pass
 class unknownError(Exception):
+  pass
+class userAccess(Exception):
   pass
 class userNotFound(Exception):
   pass
@@ -371,6 +377,7 @@ REASON_EXCEPTION_MAP = {
   RESOURCE_NOT_FOUND: resourceNotFound,
   REVISION_DELETION_NOT_SUPPORTED: revisionDeletionNotSupported,
   REVISION_NOT_FOUND: revisionNotFound,
+  REVISIONS_NOT_SUPPORTED: revisionsNotSupported,
   SERVICE_LIMIT: serviceLimit,
   SERVICE_NOT_AVAILABLE: serviceNotAvailable,
   SYSTEM_ERROR: systemError,
@@ -378,5 +385,6 @@ REASON_EXCEPTION_MAP = {
   TEAMDRIVES_PARENT_LIMIT: teamDrivesParentLimit,
   TIME_RANGE_EMPTY: timeRangeEmpty,
   UNKNOWN_ERROR: unknownError,
+  USER_ACCESS: userAccess,
   USER_NOT_FOUND: userNotFound,
   }

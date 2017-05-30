@@ -237,6 +237,7 @@ class GamCLArgs(object):
   ARG_FILEINFO = u'fileinfo'
   ARG_FILELIST = u'filelist'
   ARG_FILEPATH = u'filepath'
+  ARG_FILEPATHS = u'filepaths'
   ARG_FILEREVISION = u'filerevision'
   ARG_FILEREVISIONS = u'filerevisions'
   ARG_FILETREE = u'filetree'
