@@ -1,3 +1,32 @@
+4.50.04
+
+Added additional query shortcuts.
+    <DriveFileQueryShortcut> ::=
+	all_files | all_folders | all_google_files | all_non_google_files | all_items |
+	my_files | my_folders | my_google_files | my_non_google_files | my_items |
+	others_files | others_folders | others_google_files | others_non_google_files | others_items |
+	writable_files
+    <TeamDriveFileQueryShortcut> ::=
+	all_files | all_folders | all_google_files | all_non_google_files | all_items
+
+Keyword to query mappings:
+all_files - "mimeType != application/vnd.google-apps.folder"
+all_folders - "mimeType = application/vnd.google-apps.folder"
+all_google_files - "mimeType != application/vnd.google-apps.folder and mimeType contains 'vnd.google'"
+all_non_google_files - "not mimeType contains 'vnd.google'"
+all_items - "" (An empty query specifies all files and folders)
+my_files - "'me' in owners and mimeType != application/vnd.google-apps.folder"
+my_folders - "'me' in owners and mimeType = application/vnd.google-apps.folder"
+my_google_files - "'me' in owners and mimeType != application/vnd.google-apps.folder and mimeType contains 'vnd.google'"
+my_non_google_files - "'me' in owners and not mimeType contains 'vnd.google'"
+my_items - "'me' in owners"
+others_files - "not 'me' in owners and mimeType != application/vnd.google-apps.folder"
+others_folders - "not 'me' in owners and mimeType = application/vnd.google-apps.folder"
+others_google_files - "not 'me' in owners and mimeType != application/vnd.google-apps.folder and mimeType contains 'vnd.google'"
+others_non_google_files - "not 'me' in owners and not mimeType contains 'vnd.google'"
+others_items - "not 'me' in owners"
+writable_files - "'me' in writers and mimeType != application/vnd.google-apps.folder"
+
 4.50.03
 
 Added sorting capability to the following commands.

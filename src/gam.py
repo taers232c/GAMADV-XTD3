@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.50.03'
+__version__ = u'4.50.04'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -17805,17 +17805,26 @@ def _getCorpora(kwargs):
 QUERY_SHORTCUTS_MAP = {
   u'allfiles': u"mimeType != '{0}'".format(MIMETYPE_GA_FOLDER),
   u'allfolders': u"mimeType = '{0}'".format(MIMETYPE_GA_FOLDER),
+  u'allgooglefiles': u"mimeType != '{0}' and mimeType contains 'vnd.google'".format(MIMETYPE_GA_FOLDER),
+  u'allnongooglefiles': u"not mimeType contains 'vnd.google'",
   u'allitems': u'',
   u'myfiles': ME_IN_OWNERS_AND+u"mimeType != '{0}'".format(MIMETYPE_GA_FOLDER),
   u'myfolders': ME_IN_OWNERS_AND+u"mimeType = '{0}'".format(MIMETYPE_GA_FOLDER),
+  u'mygooglefiles': ME_IN_OWNERS_AND+u"mimeType != '{0}' and mimeType contains 'vnd.google'".format(MIMETYPE_GA_FOLDER),
+  u'mynongooglefiles': ME_IN_OWNERS_AND+u"not mimeType contains 'vnd.google'",
   u'myitems': ME_IN_OWNERS,
   u'othersfiles': NOT_ME_IN_OWNERS_AND+u"mimeType != '{0}'".format(MIMETYPE_GA_FOLDER),
   u'othersfolders': NOT_ME_IN_OWNERS_AND+u"mimeType = '{0}'".format(MIMETYPE_GA_FOLDER),
+  u'othersgooglefiles': NOT_ME_IN_OWNERS_AND+u"mimeType != '{0}' and mimeType contains 'vnd.google'".format(MIMETYPE_GA_FOLDER),
+  u'othersnongooglefiles': NOT_ME_IN_OWNERS_AND+u"not mimeType contains 'vnd.google'",
   u'othersitems': NOT_ME_IN_OWNERS,
+  u'writablefiles': u"'me' in writers and mimeType != '{0}'".format(MIMETYPE_GA_FOLDER),
   }
 TEAMDRIVE_QUERY_SHORTCUTS_MAP = {
   u'allfiles': u"mimeType != '{0}'".format(MIMETYPE_GA_FOLDER),
   u'allfolders': u"mimeType = '{0}'".format(MIMETYPE_GA_FOLDER),
+  u'allgooglefiles': u"mimeType != '{0}' and mimeType contains 'vnd.google'".format(MIMETYPE_GA_FOLDER),
+  u'allnongooglefiles': u"not mimeType contains 'vnd.google'",
   u'allitems': u'',
   }
 
