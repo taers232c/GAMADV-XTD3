@@ -1,3 +1,7 @@
+4.50.05
+
+Fix issue where gam org "/" ... fails when a domain has a very large number of users.
+
 4.50.04
 
 Added additional query shortcuts.
