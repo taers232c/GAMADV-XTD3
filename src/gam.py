@@ -1997,7 +1997,7 @@ def SetGlobalVariables():
     if filename == u'null':
       GM.Globals[stdtype][GM.REDIRECT_FD] = open(os.devnull, mode)
     elif filename == u'-':
-      GM.Globals[stdtype][GM.REDIRECT_FD] = open([sys.stderr.fileno(), sys.stdout.fileno()][stdtype == GM.STDOUT], mode, encoding=GM.Globals[GM.SYS_ENCODING])
+      GM.Globals[stdtype][GM.REDIRECT_FD] = os.fdopen(os.dup([sys.stderr.fileno(), sys.stdout.fileno()][stdtype == GM.STDOUT]), mode, encoding=GM.Globals[GM.SYS_ENCODING])
     else:
       if filename.startswith(u'./') or filename.startswith(u'.\\'):
         filename = os.path.join(os.getcwd(), filename[2:])
@@ -4148,11 +4148,9 @@ def terminateCSVFileQueueHandler(mpQueue, mpQueueHandler):
   GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = None
   if GM.Globals[GM.WINDOWS]:
     mpQueue.put((GM.REDIRECT_QUEUE_ARGS, Cmd.AllArguments()))
-    if GM.Globals[GM.WINDOWS]:
-      savedValues = saveNonPickleableValues()
+    savedValues = saveNonPickleableValues()
     mpQueue.put((GM.REDIRECT_QUEUE_GLOBALS, GM.Globals))
-    if GM.Globals[GM.WINDOWS]:
-      restoreNonPickleableValues(savedValues)
+    restoreNonPickleableValues(savedValues)
     mpQueue.put((GM.REDIRECT_QUEUE_VALUES, GC.Values))
   mpQueue.put((GM.REDIRECT_QUEUE_EOF, None))
   mpQueueHandler.join()
@@ -4183,9 +4181,9 @@ def StdQueueHandler(mpQueue, stdtype, gmGlobals, gcValues):
     if GM.Globals[stdtype][GM.REDIRECT_NAME] == u'null':
       fd = open(os.devnull, GM.Globals[stdtype][GM.REDIRECT_MODE])
     elif GM.Globals[stdtype][GM.REDIRECT_NAME] == u'-':
-      fd = open([sys.stderr.fileno(), sys.stdout.fileno()][GM.Globals[stdtype][GM.REDIRECT_QUEUE] == u'stdout'], GM.Globals[stdtype][GM.REDIRECT_MODE], encoding=GM.Globals[GM.SYS_ENCODING])
+      fd = os.fdopen(os.dup([sys.stderr.fileno(), sys.stdout.fileno()][GM.Globals[stdtype][GM.REDIRECT_QUEUE] == u'stdout']), GM.Globals[stdtype][GM.REDIRECT_MODE], encoding=GM.Globals[GM.SYS_ENCODING])
     elif GM.Globals[stdtype][GM.REDIRECT_NAME] == u'stdout'and GM.Globals[stdtype][GM.REDIRECT_QUEUE] == u'stderr':
-      fd = open(sys.stdout.fileno(), GM.Globals[stdtype][GM.REDIRECT_MODE], encoding=GM.Globals[GM.SYS_ENCODING])
+      fd = os.fdopen(os.dup(sys.stdout.fileno()), GM.Globals[stdtype][GM.REDIRECT_MODE], encoding=GM.Globals[GM.SYS_ENCODING])
     else:
       fd = openFile(GM.Globals[stdtype][GM.REDIRECT_NAME], GM.Globals[stdtype][GM.REDIRECT_MODE])
   else:
