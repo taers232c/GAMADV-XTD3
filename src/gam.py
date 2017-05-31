@@ -2127,7 +2127,7 @@ def SetGlobalVariables():
   if prevOauth2serviceJson != GC.Values[GC.OAUTH2SERVICE_JSON]:
     GM.Globals[GM.OAUTH2SERVICE_JSON_DATA] = None
     GM.Globals[GM.OAUTH2_CLIENT_ID] = None
-# redirect csv <FileName> [multiprocess] [append] [noheader] [charset <CharSet>] [columndelimiter <Character>]] [stdout <FileName> [append]] [stderr <FileName> [append]
+# redirect csv <FileName> [multiprocess] [append] [noheader] [charset <CharSet>] [columndelimiter <Character>]]
 # redirect stdout <FileName> [multiprocess] [append]
 # redirect stdout null
 # redirect stderr <FileName> [multiprocess] [append]
@@ -2487,35 +2487,35 @@ def checkGAPIError(e, soft_errors=False, silent_errors=False, retryOnHttpError=F
   try:
     error = json.loads(e.content)
   except ValueError:
-    if (e.resp[u'status'] == u'503') and (e.content.startswith(u'Quota exceeded for the current request')):
-      return (e.resp[u'status'], GAPI.QUOTA_EXCEEDED, e.content)
-    if (e.resp[u'status'] == u'403') and (e.content.startswith(u'Request rate higher than configured')):
-      return (e.resp[u'status'], GAPI.QUOTA_EXCEEDED, e.content)
-    if (e.resp[u'status'] == u'502') and (u'Bad Gateway' in e.content):
-      return (e.resp[u'status'], GAPI.BAD_GATEWAY, e.content)
-    if (e.resp[u'status'] == u'403') and (u'Invalid domain.' in e.content):
+    if (e.resp[u'status'] == u'503') and (str(e.content).startswith(u'Quota exceeded for the current request')):
+      return (e.resp[u'status'], GAPI.QUOTA_EXCEEDED, str(e.content))
+    if (e.resp[u'status'] == u'403') and (str(e.content).startswith(u'Request rate higher than configured')):
+      return (e.resp[u'status'], GAPI.QUOTA_EXCEEDED, str(e.content))
+    if (e.resp[u'status'] == u'502') and (u'Bad Gateway' in str(e.content)):
+      return (e.resp[u'status'], GAPI.BAD_GATEWAY, str(e.content))
+    if (e.resp[u'status'] == u'403') and (u'Invalid domain.' in str(e.content)):
       error = {u'error': {u'code': 403, u'errors': [{u'reason': GAPI.NOT_FOUND, u'message': u'Domain not found'}]}}
-    elif (e.resp[u'status'] == u'403') and (u'Domain cannot use apis.' in e.content):
+    elif (e.resp[u'status'] == u'403') and (u'Domain cannot use apis.' in str(e.content)):
       error = {u'error': {u'code': 403, u'errors': [{u'reason': GAPI.DOMAIN_CANNOT_USE_APIS, u'message': u'Domain cannot use apis'}]}}
-    elif (e.resp[u'status'] == u'400') and (u'InvalidSsoSigningKey' in e.content):
+    elif (e.resp[u'status'] == u'400') and (u'InvalidSsoSigningKey' in str(e.content)):
       error = {u'error': {u'code': 400, u'errors': [{u'reason': GAPI.INVALID, u'message': u'InvalidSsoSigningKey'}]}}
-    elif (e.resp[u'status'] == u'400') and (u'UnknownError' in e.content):
+    elif (e.resp[u'status'] == u'400') and (u'UnknownError' in str(e.content)):
       error = {u'error': {u'code': 400, u'errors': [{u'reason': GAPI.INVALID, u'message': u'UnknownError'}]}}
-    elif (e.resp[u'status'] == u'400') and (u'FeatureUnavailableForUser' in e.content):
+    elif (e.resp[u'status'] == u'400') and (u'FeatureUnavailableForUser' in str(e.content)):
       error = {u'error': {u'code': 400, u'errors': [{u'reason': GAPI.SERVICE_NOT_AVAILABLE, u'message': u'Feature Unavailable For User'}]}}
-    elif (e.resp[u'status'] == u'400') and (u'EntityDoesNotExist' in e.content):
+    elif (e.resp[u'status'] == u'400') and (u'EntityDoesNotExist' in str(e.content)):
       error = {u'error': {u'code': 400, u'errors': [{u'reason': GAPI.NOT_FOUND, u'message': u'Entity Does Not Exist'}]}}
-    elif (e.resp[u'status'] == u'400') and (u'EntityNameNotValid' in e.content):
+    elif (e.resp[u'status'] == u'400') and (u'EntityNameNotValid' in str(e.content)):
       error = {u'error': {u'code': 400, u'errors': [{u'reason': GAPI.INVALID_INPUT, u'message': u'Entity Name Not Valid'}]}}
     elif retryOnHttpError:
       service._http.request.credentials.refresh(httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]))
       return (-1, None, None)
     elif soft_errors:
       if not silent_errors:
-        stderrErrorMsg(e.content)
+        stderrErrorMsg(str(e.content))
       return (0, None, None)
     else:
-      systemErrorExit(HTTP_ERROR_RC, e.content)
+      systemErrorExit(HTTP_ERROR_RC, str(e.content))
   if u'error' in error:
     http_status = error[u'error'][u'code']
     try:
