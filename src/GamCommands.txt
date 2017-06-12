@@ -1407,7 +1407,7 @@ gam <UserTypeEntity> show backupcodes|verificationcodes
 <CalendarManageEntity> ::=
 	allcalendars|
 	primary|
-	EmailAddressList>|
+	<EmailAddressList>|
 	(resource <ResourceID>)|
 	(resources <ResourceIDList>)|
 	((calendars <CalendarList>) | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>)|

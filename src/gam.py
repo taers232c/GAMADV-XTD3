@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.50.06'
+__version__ = u'4.50.07'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -3000,8 +3000,10 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
       result = callGAPIpages(cd.members(), u'list', u'members',
                              page_message=page_message,
                              throw_reasons=GAPI.MEMBERS_THROW_REASONS,
-                             groupKey=group, roles=memberRole, fields=u'nextPageToken,members(email,type)', maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
-      for member in result:
+                             groupKey=group, roles=memberRole, fields=u'nextPageToken,members(email,type)',
+                             maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
+      while result:
+        member = result.popleft()
         if member[u'type'] == u'USER':
           email = member[u'email'].lower()
           if domains:
@@ -3046,7 +3048,8 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
                              customer=GC.Values[GC.CUSTOMER_ID],
                              fields=u'nextPageToken,users(primaryEmail,suspended)',
                              maxResults=GC.Values[GC.USER_MAX_RESULTS])
-      for user in result:
+      while result:
+        user = result.popleft()
         if includeSuspendedInAll or not user[u'suspended']:
           entityList.append(user[u'primaryEmail'])
       printGettingAccountEntitiesDoneInfo(len(entityList))
@@ -3064,8 +3067,10 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
           result = callGAPIpages(cd.members(), u'list', u'members',
                                  page_message=page_message,
                                  throw_reasons=GAPI.MEMBERS_THROW_REASONS,
-                                 groupKey=group, roles=memberRole, fields=u'nextPageToken,members(email,id,type)', maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
-          for member in result:
+                                 groupKey=group, roles=memberRole, fields=u'nextPageToken,members(email,id,type)',
+                                 maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
+          while result:
+            member = result.popleft()
             email = member[u'email'].lower() if member[u'type'] != u'CUSTOMER' else member[u'id']
             if ((not groupUserMembersOnly) or (member[u'type'] == u'USER')) and email not in entitySet:
               entitySet.add(email)
@@ -3131,15 +3136,15 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
                                maxResults=GC.Values[GC.USER_MAX_RESULTS])
         if directlyInOU:
           ou = ou.lower()
-          for user in result:
-            email = user[u'primaryEmail']
+          while result:
+            user = result.popleft()
             if (ou == user[u'orgUnitPath'].lower()) and (not (checkNotSuspended and user[u'suspended'])):
-              entityList.append(email)
+              entityList.append(user[u'primaryEmail'])
         else:
-          for user in result:
-            email = user[u'primaryEmail']
+          while result:
+            user = result.popleft()
             if not (checkNotSuspended and user[u'suspended']):
-              entityList.append(email)
+              entityList.append(user[u'primaryEmail'])
         totalLen = len(entityList)
         printGettingEntityItemsDoneInfo(totalLen-prevLen, qualifier=qualifier)
         prevLen = totalLen
@@ -3154,15 +3159,17 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
       page_message = getPageMessage(noNL=True)
       result = callGAPIpages(cd.users(), u'list', u'users',
                              page_message=page_message,
-                             throw_reasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                             throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
+                                            GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                              customer=GC.Values[GC.CUSTOMER_ID], query=entity,
                              fields=u'nextPageToken,users(primaryEmail,suspended)',
                              maxResults=GC.Values[GC.USER_MAX_RESULTS])
-      for user in result:
+      while result:
+        user = result.popleft()
         if not (checkNotSuspended and user[u'suspended']):
           entityList.append(user[u'primaryEmail'])
       printGettingAccountEntitiesDoneInfo(len(entityList), u' {0}'.format(Msg.THAT_MATCHED_QUERY))
-    except GAPI.invalidInput:
+    except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.invalidInput):
       Cmd.Backup()
       usageErrorExit(Msg.INVALID_QUERY)
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
@@ -3182,7 +3189,8 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
                                  page_message=page_message,
                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
                                  courseId=courseId, fields=u'nextPageToken,teachers/profile/emailAddress', pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
-          for teacher in result:
+          while result:
+            teacher = result.popleft()
             email = teacher[u'profile'].get(u'emailAddress', None)
             if email and (email not in entitySet):
               entitySet.add(email)
@@ -3194,7 +3202,8 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
                                  page_message=page_message,
                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
                                  courseId=courseId, fields=u'nextPageToken,students/profile/emailAddress', pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
-          for student in result:
+          while result:
+            student = result.popleft()
             email = student[u'profile'].get(u'emailAddress', None)
             if email and (email not in entitySet):
               entitySet.add(email)
@@ -3222,7 +3231,8 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
                              customerId=GC.Values[GC.CUSTOMER_ID],
                              fields=u'nextPageToken,chromeosdevices(deviceId)',
                              maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
-      for device in result:
+      while result:
+        device = result.popleft()
         entityList.append(device[u'deviceId'])
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       accessErrorExit(cd)
@@ -3237,7 +3247,8 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
                              customerId=GC.Values[GC.CUSTOMER_ID], query=entity,
                              fields=u'nextPageToken,chromeosdevices(deviceId)',
                              maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
-      for device in result:
+      while result:
+        device = result.popleft()
         entityList.append(device[u'deviceId'])
       printGettingAccountEntitiesDoneInfo(len(entityList), u' {0}'.format(Msg.THAT_MATCHED_QUERY))
     except GAPI.invalidInput:
@@ -3273,11 +3284,13 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
                              fields=u'nextPageToken,chromeosdevices(deviceId,orgUnitPath)',
                              maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
       if directlyInOU:
-        for device in result:
+        while result:
+          device = result.popleft()
           if device[u'orgUnitPath'].lower() in ouDict:
             entityList.append(device[u'deviceId'])
       else:
-        for device in result:
+        while result:
+          device = result.popleft()
           deviceOu = device[u'orgUnitPath'].lower()
           for ou in ouDict:
             if deviceOu.startswith(ou):
