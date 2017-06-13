@@ -12,18 +12,6 @@ Downloads
 ---------
 You can download the current GAMADV-X3 release from the [GitHub Releases] page. Choose one of the following:
 
-* Single Executable, Linux/Mac OS - `gamadv-x-4.wx.yz-linux-x86_64.xz, gamadv-x-4.wx.yz-macos.tar.xz`
-  - Download the archive, extract the contents into some directory.
-  - Start a terminal session and cd to the install directory.
-
-* Single Executable Archive, Windows - `gamadv-x-4.wx.yz-windows-x64.zip, gamadv-x-4.wx.yz-windows.zip`
-  - Download the archive, extract the contents into some directory.
-  - Start a terminal session and cd to the install directory.
-
-* Single Executable Installer, Windows - `gamadv-x-4.wx.yz-windows-x64.msi`
-  - Download the installer and run it.
-  - Start a Command Prompt/PowerShell session and cd to the install directory.
-
 * Source, all platforms - Source code(zip), Source code(tar.gz)
   - Download the archive, extract the contents into some directory.
   - Start a terminal/Command Prompt/PowerShell session and cd to the install directory.
