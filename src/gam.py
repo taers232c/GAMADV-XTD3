@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.50.07'
+__version__ = u'4.50.08'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -26480,12 +26480,12 @@ def ProcessGAMCommand(args, processGamCfg=True):
     if checkArgumentPresent([Cmd.LOOP_CMD,]):
       if processGamCfg and (not SetGlobalVariables()):
         sys.exit(GM.Globals[GM.SYSEXITRC])
-      doLoop(processGamCfg=True)
+      doLoop()
       sys.exit(GM.Globals[GM.SYSEXITRC])
     if processGamCfg and (not SetGlobalVariables()):
       sys.exit(GM.Globals[GM.SYSEXITRC])
     if checkArgumentPresent([Cmd.LOOP_CMD,]):
-      doLoop(processGamCfg=False)
+      doLoop()
       sys.exit(GM.Globals[GM.SYSEXITRC])
     if not Cmd.ArgumentsRemaining():
       doUsage()
@@ -26564,13 +26564,14 @@ def ProcessGAMCommand(args, processGamCfg=True):
     print_exc(file=sys.stderr)
     setSysExitRC(UNKNOWN_ERROR_RC)
     adjustRedirectedSTDFilesIfNotMultiprocessing()
-  if GM.Globals.get(GM.SAVED_STDOUT) is not None:
-    sys.stdout = GM.Globals[GM.SAVED_STDOUT]
-  closeSTDFilesIfNotMultiprocessing()
+  if processGamCfg:
+    if GM.Globals.get(GM.SAVED_STDOUT) is not None:
+      sys.stdout = GM.Globals[GM.SAVED_STDOUT]
+    closeSTDFilesIfNotMultiprocessing()
   return GM.Globals[GM.SYSEXITRC]
 
 # gam loop <FileName>|- [charset <String>] [columndelimiter <String>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* gam <GAM argument list>
-def doLoop(processGamCfg=True):
+def doLoop():
   filename = getString(Cmd.OB_FILE_NAME)
   if (filename == u'-') and (GC.Values[GC.DEBUG_LEVEL] > 0):
     Cmd.Backup()

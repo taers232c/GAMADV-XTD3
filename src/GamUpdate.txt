@@ -1,3 +1,7 @@
+4.50.08
+
+Fix error when redirecting stdout with gam loop.
+
 4.50.07
 
 Improve getUsersToModify memory use.
