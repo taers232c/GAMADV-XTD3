@@ -1,3 +1,7 @@
+4.50.09
+
+Sort rows in gam report customer.
+
 4.50.08
 
 Fix error when redirecting stdout with gam loop.

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.50.08'
+__version__ = u'4.50.09'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -5375,7 +5375,8 @@ def doReport():
                     if mycount and myvalue:
                       values.append(u'{0}:{1}'.format(myvalue, mycount))
                 csvRows.append({u'name': name, u'value': u' '.join(values)})
-        for row in auth_apps: # put apps at bottom
+        csvRows.sort(key=lambda k: k[u'name'])
+        for row in sorted(auth_apps, key=lambda k: k[u'name'].lower()):
           csvRows.append(row)
         break
       except GAPI.invalid as e:
