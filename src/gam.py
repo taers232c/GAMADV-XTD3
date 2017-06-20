@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.50.09'
+__version__ = u'4.50.10'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -26549,7 +26549,7 @@ def ProcessGAMCommand(args, processGamCfg=True):
     setSysExitRC(KEYBOARD_INTERRUPT_RC)
     adjustRedirectedSTDFilesIfNotMultiprocessing()
   except socket.error as e:
-    printErrorMessage(SOCKET_ERROR_RC, str(e))
+    printErrorMessage(SOCKET_ERROR_RC, e.decode(u'latin1'))
     adjustRedirectedSTDFilesIfNotMultiprocessing()
   except MemoryError:
     printErrorMessage(MEMORY_ERROR_RC, Msg.GAM_OUT_OF_MEMORY)
