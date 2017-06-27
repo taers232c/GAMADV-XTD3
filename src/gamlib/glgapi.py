@@ -88,6 +88,8 @@ SERVICE_LIMIT = u'serviceLimit'
 SERVICE_NOT_AVAILABLE = u'serviceNotAvailable'
 SYSTEM_ERROR = u'systemError'
 TEAMDRIVE_MEMBERSHIP_REQUIRED = u'teamDriveMembershipRequired'
+TEAMDRIVE_NOT_FOUND = u'teamDriveNotFound'
+TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED = u'teamDrivesFolderMoveInNotSupported'
 TEAMDRIVES_PARENT_LIMIT = u'teamDrivesParentLimit'
 TIME_RANGE_EMPTY = u'timeRangeEmpty'
 UNKNOWN_ERROR = u'unknownError'
@@ -164,6 +166,7 @@ REASON_MESSAGE_MAP = {
     (u'Permission not found', PERMISSION_NOT_FOUND),
     (u'Resource Not Found', RESOURCE_NOT_FOUND),
     (u'Revision not found', REVISION_NOT_FOUND),
+    (u'Team Drive not found', TEAMDRIVE_NOT_FOUND),
     (u'Not Found', NOT_FOUND),
     ],
   REQUIRED: [
@@ -305,6 +308,10 @@ class systemError(Exception):
   pass
 class teamDriveMembershipRequired(Exception):
   pass
+class teamDriveNotFound(Exception):
+  pass
+class teamDrivesFolderMoveInNotSupported(Exception):
+  pass
 class teamDrivesParentLimit(Exception):
   pass
 class timeRangeEmpty(Exception):
@@ -382,6 +389,8 @@ REASON_EXCEPTION_MAP = {
   SERVICE_NOT_AVAILABLE: serviceNotAvailable,
   SYSTEM_ERROR: systemError,
   TEAMDRIVE_MEMBERSHIP_REQUIRED: teamDriveMembershipRequired,
+  TEAMDRIVE_NOT_FOUND: teamDriveNotFound,
+  TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED: teamDrivesFolderMoveInNotSupported,
   TEAMDRIVES_PARENT_LIMIT: teamDrivesParentLimit,
   TIME_RANGE_EMPTY: timeRangeEmpty,
   UNKNOWN_ERROR: unknownError,

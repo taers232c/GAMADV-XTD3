@@ -108,7 +108,7 @@ except ValueError:  # pragma: NO COVER
     GCE_METADATA_TIMEOUT = 3
 
 _SERVER_SOFTWARE = 'SERVER_SOFTWARE'
-_GCE_METADATA_URI = 'http://169.254.169.254'
+_GCE_METADATA_URI = 'http://' + os.getenv('GCE_METADATA_IP', '169.254.169.254')
 _METADATA_FLAVOR_HEADER = 'metadata-flavor'  # lowercase header
 _DESIRED_METADATA_FLAVOR = 'Google'
 _GCE_HEADERS = {_METADATA_FLAVOR_HEADER: _DESIRED_METADATA_FLAVOR}
@@ -266,7 +266,7 @@ class Credentials(object):
         # Add in information we will need later to reconstitute this instance.
         to_serialize['_class'] = curr_type.__name__
         to_serialize['_module'] = curr_type.__module__
-        for key, val in to_serialize.items():
+        for key, val in list(to_serialize.items()):
             if isinstance(val, bytes):
                 to_serialize[key] = val.decode('utf-8')
             if isinstance(val, set):
@@ -1396,7 +1396,7 @@ def _get_application_default_credential_from_file(filename):
             "'type' field should be defined (and have one of the '" +
             AUTHORIZED_USER + "' or '" + SERVICE_ACCOUNT + "' values)")
 
-    missing_fields = required_fields.difference(client_credentials.keys())
+    missing_fields = required_fields.difference(list(client_credentials.keys()))
 
     if missing_fields:
         _raise_exception_for_missing_fields(missing_fields)
@@ -1575,7 +1575,7 @@ def _extract_id_token(id_token):
     if type(id_token) == bytes:
         segments = id_token.split(b'.')
     else:
-        segments = id_token.split(u'.')
+        segments = id_token.split('.')
 
     if len(segments) != 3:
         raise VerifyJwtTokenError(

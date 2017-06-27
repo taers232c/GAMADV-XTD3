@@ -628,7 +628,7 @@ gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Da
 	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
 
 gam print cros
-gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>]
+gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
 	[orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
 	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
 gam <CrOSTypeEntity> print
@@ -662,9 +662,9 @@ activeTimeRanges.duration and activeTimeRanges.minutes are output on a separate 
 The listlimit <Number> argument limits the number of repetitions to <Number>; if not specified or <Number> equals zero, there is no limit.
 The start <Date> and end <Date> arguments filter the time ranges.
 
-gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>]
+gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
 	[orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [listlimit <Number>] [start <Date>] [end <Date>]
-	[delimiter <String>] 
+	[delimiter <String>]
 
 The basic column headers are: deviceId,annotatedAssetId,annotatedLocation,serialNumber,orgUnitPath.
 If recentusers is specified, all of the recent users email addresses, separated by the delimiter <String>,
@@ -1112,7 +1112,7 @@ gam printer register
 gam update printer|printers <PrinterIDEntity> <PrinterAttributes>+
 gam delete printer|printers <PrinterIDEntity>
 gam info printer|printers <PrinterIDEntity> [everything]
-    
+
 gam print printer|printers [todrive [<ToDriveAttributes>]] [query <QueryPrinter>] [type <String>] [status <String>] [extrafields <String>] [delimiter <String>]
 
 <PrinterACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain
@@ -1361,7 +1361,7 @@ gam print users
 gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [query <QueryUser>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
 	[groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
 	[orderby <UserOrderByFieldName> [ascending|descending]]
-	[userview] [allfields|basic|full | (<UserFieldName>* | fields <UserFieldNameList>)] [delimiter <String>] 
+	[userview] [allfields|basic|full | (<UserFieldName>* | fields <UserFieldNameList>)] [delimiter <String>]
 gam <UserTypeEntity> print
 
 Summary of printing:
@@ -1561,14 +1561,9 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 	(lastviewedbyme <Time>)|
 	(localfile <FileName>)|
 	(mimetype gdoc|gdocument|gdrawing|gfolder|gdirectory|gform|gfusion|gpresentation|gscript|gsite|gsheet|gspreadsheet)|
-	(modifieddate|modifiedtime <Time>)|
 	(ocrlanguage <Language>)|
-	(parentid|teamdriveparentid <DriveFolderID>)|
-	(parentname <DriveFolderName>)|
 	(restricted|restrict [<Boolean>])|
 	(starred|star [<Boolean>])|
-	(teamdriveparent <TeamDriveName>)|
-	(teamdriveparentname <DriveFolderName>)|
 	(trashed|trash [<Boolean>])|
 	(viewed|view [<Boolean>])|
 	(viewerscancopycontent [<Boolean>])|
@@ -1577,6 +1572,12 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 <DriveFileAddAttributes> ::=
 	<DriveFileAttributes>|
 	ignoredefaultvisibility|
+	(modifieddate|modifiedtime <Time>)|
+	(parentid <DriveFolderID>)|
+	(parentname <DriveFolderName>)|
+	(teamdriveparent <TeamDriveName>)|
+	(teamdriveparentid <TeamDriveID>|<DriveFolderID>)|
+	(teamdriveparentname <DriveFolderName>)|
 	usecontentasindexabletext
 
 <DriveFileUpdateAttributes> ::=
@@ -1587,7 +1588,12 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 
 <DriveFileCopyAttributes> ::=
 	<DriveFileAttributes>|
-	ignoredefaultvisibility
+	ignoredefaultvisibility|
+	(parentid <DriveFolderID>)|
+	(parentname <DriveFolderName>)|
+	(teamdriveparent <TeamDriveName>)|
+	(teamdriveparentid <TeamDriveID>|<DriveFolderID>)|
+	(teamdriveparentname <DriveFolderName>)
 
 <DriveFileOrderByFieldName> ::=
 	createddate|createdtime|
@@ -1610,7 +1616,7 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 
 gam <UserTypeEntity> add drivefile [drivefilename <DriveFileName>] <DriveFileAddAttributes>*
 gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [newfilename <DriveFileName>] <DriveFileUpdateAttributes>*
-gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [recursive] <DriveFileCopyAttributes>*
+gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [recursive [depth <Number>]] <DriveFileCopyAttributes>*
 gam <UserTypeEntity> get drivefile <DriveFileEntity> [format <FileFormatList>] [targetfolder <FilePath>] [revision <DriveFileRevisionID>]
 gam <UserTypeEntity> delete drivefile <DriveFileEntity> [purge|untrash|trash]
 gam <UserTypeEntity> purge drivefile <DriveFileEntity>

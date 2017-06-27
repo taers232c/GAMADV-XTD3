@@ -19,6 +19,7 @@ See https://cloud.google.com/compute/docs/metadata
 
 import datetime
 import json
+import os
 
 from six.moves import http_client
 from six.moves.urllib import parse as urlparse
@@ -28,7 +29,8 @@ from oauth2client import client
 from oauth2client import transport
 
 
-METADATA_ROOT = 'http://metadata.google.internal/computeMetadata/v1/'
+METADATA_ROOT = 'http://{}/computeMetadata/v1/'.format(
+    os.getenv('GCE_METADATA_ROOT', 'metadata.google.internal'))
 METADATA_HEADERS = {'Metadata-Flavor': 'Google'}
 
 

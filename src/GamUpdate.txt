@@ -1,3 +1,53 @@
+4.50.11
+
+When gam copy drivefile is copying a folder and the parentname <DriveFolderName> option is specified, the folder is copied to the root folder,
+not <DriveFolderName>; this has been corrected.
+
+Added depth <Number> argument to gam copy drivefile to control folder copying.
+    gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [recursive [depth <Number>]]
+	[parentid <DriveFolderID>] [parentname <DriveFolderName>]
+	[teamdriveparentid <DriveFolderID>] [teamdriveparent <TeamDriveName>] [teamdriveparentname <DriveFolderName>]
+
+To copy a folder, you must specify the recursive argument; this copies the folder and all of its descendants to the new location.
+Specifying depth <Number> allows you to specify that you do not want to copy all descendants but only decendants to the specified depth.
+depth -1 (or depth not specified) - copy the folder and all descendants
+depth 0 - copy the folder and no descendants
+depth 1 - copy the folder and its immediate descendants
+denth N - copy the folder and N levels of descendants
+
+Added arguments to gam add/copy drivefile to allow adding/copying files to Team Drives.
+    <DriveFileAddAttributes> ::=
+	<DriveFileAttributes>|
+	ignoredefaultvisibility|
+	(modifieddate|modifiedtime <Time>)|
+	(parentid <DriveFolderID>)|
+	(parentname <DriveFolderName>)|
+	(teamdriveparent <TeamDriveName>)|
+	(teamdriveparentid <TeamDriveID>|<DriveFolderID>)|
+	(teamdriveparentname <DriveFolderName>)|
+	usecontentasindexabletext
+    <DriveFileCopyAttributes> ::=
+	<DriveFileAttributes>|
+	ignoredefaultvisibility|
+	(parentid <DriveFolderID>)|
+	(parentname <DriveFolderName>)|
+	(teamdriveparent <TeamDriveName>)|
+	(teamdriveparentid <TeamDriveID>|<DriveFolderID>)|
+	(teamdriveparentname <DriveFolderName>)
+    gam <UserTypeEntity> add drivefile [drivefilename <DriveFileName>] <DriveFileAddAttributes>*
+    gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [recursive [depth <Number>]] <DriveFileCopyAttributes>*
+To add/copy a file to the root folder of a Team Drive, specify one of the following arguments:
+    teamdriveparentid <TeamDriveID> - <TeamDriveID> identifies a Team Drive by ID
+    teamdriveparent <TeamDriveName> - <TeamDriveName> identifies a Team Drive by name
+To add/copy a file to a folder by identified by name on a Team Drive, specify one of the following arguments and the third argument:
+    teamdriveparentid <TeamDriveID> - <TeamDriveID> identifies a Team Drive by ID
+    teamdriveparent <TeamDriveName> - <TeamDriveName> identifies a Team Drive by name
+    teamdriveparentname <DriveFolderName> - <DriveFolderName> identifies a folder on the Team Drive identified by the previous argument
+To add/copy a file to a folder identified by ID on a Team Drive, specify the following argument:
+    teamdriveparentid <DriveFolderID> - <DriveFolderID> identifies a drive folder on a Team Drive
+
+teamdriveparentname <DriveFolderName> - copy the file to the folder on a Team Drive identified by <DriveFolderName>
+
 4.50.10
 
 Handle international characters in socket error message.

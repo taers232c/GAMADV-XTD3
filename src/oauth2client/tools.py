@@ -19,7 +19,7 @@ generated credentials in a common file that is used by other example apps in
 the same directory.
 """
 
-from __future__ import print_function
+
 
 import logging
 import socket
