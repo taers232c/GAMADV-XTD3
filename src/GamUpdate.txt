@@ -46,8 +46,6 @@ To add/copy a file to a folder by identified by name on a Team Drive, specify on
 To add/copy a file to a folder identified by ID on a Team Drive, specify the following argument:
     teamdriveparentid <DriveFolderID> - <DriveFolderID> identifies a drive folder on a Team Drive
 
-teamdriveparentname <DriveFolderName> - copy the file to the folder on a Team Drive identified by <DriveFolderName>
-
 4.50.10
 
 Handle international characters in socket error message.
