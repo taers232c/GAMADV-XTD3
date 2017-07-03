@@ -24047,7 +24047,7 @@ def _printShowDelegates(users, csvFormat):
     i += 1
     delegatorEmail, delegatorName, delegatorDomain = splitEmailAddressOrUID(user)
     if csvFormat:
-      printGettingAllEntityItemsForWhom(Ent.USER, delegatorEmail, i, count)
+      printGettingAllEntityItemsForWhom(Ent.DELEGATE, delegatorEmail, i, count)
     try:
       result = callGAPI(emailSettings.delegates(), u'get',
                         throw_reasons=[GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE, GAPI.DOMAIN_NOT_FOUND],
