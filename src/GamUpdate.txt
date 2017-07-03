@@ -24,32 +24,33 @@ If you want a language/organization specific message, use a template file: messa
 
 The email is sent from the admin user identified in oauth2.txt, gam oauth info will show the value.
 Gam gets no indication as to the status of the message delivery; the admin user user will get a non-delivery receipt if the message
-could not be sent to the nofify <EmailAddress>.
+could not be sent to the notify <EmailAddress>.
 
 * Print Delegates
 The column headings for gam print delegates were changed to match Jay Lee's Gam. The Delegation ID column was dropped as it was redundant.
 Old: Delegator,Delegate,Delegate Email,Delegation ID,Status
 New: User,delegateName,delegateAddress,delegationStatus
 
->* Print Groups/Orgs
+* Print Groups/Orgs
 A variable, print_native_names (default value is False), has been added to gam.cfg to control the field names used in gam print groups/orgs.
 When true, the native Directory API field names are used; when false, Gam specific field names are used. When true, the field names output
 in gam print groups/orgs will match the fields names output in gam info group/org.
 
 Groups:
-    print_native_names = false: Email,ID,Name,Description,DirectMembersCount,Aliases,NonEditableAliases,Admin_Created
-    print_native_names =  true: email,id,name,description,directMembersCount,aliases,nonEditableAliases,adminCreated
+    print_native_names = false - Email,ID,Name,Description,DirectMembersCount,Aliases,NonEditableAliases,Admin_Created
+    print_native_names =  true - email,id,name,description,directMembersCount,aliases,nonEditableAliases,adminCreated
 Orgs:
-    print_native_names = false: Path,ID,Parent,ParentID,Name,Description,InheritanceBlocked
-    print_native_names =  true: orgUnitPath,OrgUnitId,parentOrgUnitPath,parentOrgUnitId,name,description,blockInheritance
+    print_native_names = false - Path,ID,Parent,ParentID,Name,Description,InheritanceBlocked
+    print_native_names =  true - orgUnitPath,OrgUnitId,parentOrgUnitPath,parentOrgUnitId,name,description,blockInheritance
 
 Added showparent argument to gam print orgs.
     gam print orgs|ous [todrive [<ToDriveAttributes>]] [showparent] [toplevelonly] [fromparent <OrgUnitItem>]
 	[allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)] [convertcrnl]
 By default, gam print orgs prints all child org units of /; if fromparent <OrgUnitItem> is specified, gam prints all child org units of <OrgUnitItem>.
 The showparent argument causes the parent org unit, / or fromparent <OrgUnitItem>, to be printed as well.
-Previously, if no fields were specified, only the Path field was displayed. Now, the default fields printed are: Path,ID,Name,ParentID.
-If print_native_names in gam.cfg is true, the default fields are: orgUnitPath,orgUnitId,name,orgUnitParentId.
+Previously, if no fields were specified, only the Path field was displayed. Now, the default fields printed are:
+    print_native_names = false - Path,ID,Name,ParentID.
+    print_native_names =  true - orgUnitPath,orgUnitId,name,orgUnitParentId.
 
 * Update Mobile
 Eliminated model, os and useragent arguments from gam update mobile as the Directory API no longer supports them.
