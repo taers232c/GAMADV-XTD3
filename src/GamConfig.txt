@@ -148,6 +148,10 @@ drive_max_results
 	When retrieving lists of Drive files/folders from API, how many should be retrieved in each chunk
 	Default: 1000
 	Environment variable: GAM_DRIVE_MAX_RESULTS
+drive_v3_native_names
+	Enable/disable use of Drive API v3 native column names in all gam print/show commands related to Google Drive
+	Default: False
+	Environment variable: GAM_DRIVE_V3_NATIVE_NAMES
 email_batch_size
 	When processing Gmail items in batches, how many should be processed in each batch
 	Default: 100
@@ -197,6 +201,10 @@ oauth2service_json
 	Path to oauth2service.json
 	Default: GamConfigDir/oauth2service.json
 	Environment variable: OAUTHSERVICEFILE
+print_native_names
+	Enable/disable use of native column names in gam print groups/orgs
+	Default: False
+	Environment variable: GAM_PRINT_NATIVE_NAMES
 section
 	Default section of gam.cfg.
 	Default: DEFAULT
@@ -270,6 +278,7 @@ Section: DEFAULT
   domain =
   drive_dir = /Users/admin/Downloads
   drive_max_results = 1000
+  drive_v3_native_names = false
   email_batch_size = 100
   extra_args =
   member_max_results = 200
@@ -283,6 +292,7 @@ Section: DEFAULT
   num_threads = 5
   oauth2_txt = oauth2.txt ; /Users/admin/.gam/oauth2.txt
   oauth2service_json = oauth2service.json ; /Users/admin/.gam/oauth2service.json
+  print_native_names = false
   section =
   show_convert_cr_nl = false
   show_counts_min = 1
@@ -387,6 +397,7 @@ device_max_results = 500
 domain = main.com
 drive_dir = /Users/admin/Downloads
 drive_max_results = 1000
+drive_v3_native_names = false
 email_batch_size = 100
 extra_args =
 member_max_results = 200
@@ -400,6 +411,7 @@ no_verify_ssl = false
 num_threads = 5
 oauth2_txt = oauth2.txt
 oauth2service_json = oauth2service.json
+print_native_names = false
 section =
 show_convert_cr_nl = false
 show_counts_min = 1

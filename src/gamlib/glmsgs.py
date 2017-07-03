@@ -38,6 +38,8 @@ COMMIT_BATCH_COMPLETE = u'commit-batch - running processes finished, proceeding\
 COMMIT_BATCH_WAIT_N_PROCESSES = u'commit-batch - waiting for {0} running {1} to finish before proceeding\n'
 CONTAINS_AT_LEAST_1_ITEM = u'Contains at least 1 item'
 COUNT_N_EXCEEDS_MAX_TO_PROCESS_M = u'Count {0} exceeds maximum to {1} {2}'
+CREATE_USER_NOTIFY_MESSAGE = u'Hello #givenname# #familyname#,\n\nYou have a new account at #domain#\nAccount details:\n\nUsername\n#user#\n\nPassword\n#password#\n\nStart using your new account by signing in at\nhttps://www.google.com/accounts/AccountChooser?Email=#user#&continue=https://apps.google.com/user/hub\n'
+CREATE_USER_NOTIFY_SUBJECT = u'Welcome to #domain#'
 CSV_DATA_ALREADY_SAVED = u'CSV data already saved'
 DATA_FIELD_MISMATCH = u'datafield {0} does not match saved datafield {1}'
 DATA_UPLOADED_TO_DRIVE_FILE = u'Data uploaded to Drive File'

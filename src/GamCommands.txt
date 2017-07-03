@@ -422,6 +422,7 @@ gam <CrOSTypeEntity>|<UserTypeEntity> list [todrive [<ToDriveAttributes>]] [data
 # Authorization
 
 gam create project [<EmailAddress>]
+gam update project [<EmailAddress>]
 
 gam oauth|oauth2 create|request [<EmailAddress>]
 gam oauth|oauth2 delete|revoke
@@ -1031,24 +1032,68 @@ gam print licenses [todrive [<ToDriveAttributes>]] [(products|product <ProductID
 
 # Mobile Devices
 
+<MobileAction> ::=
+	admin_remote_wipe|wipe|
+	admin_account_wipe|accountwipe|wipeaccount|
+	approve|
+	block|
+	cancel_remote_wipe_then_activate|
+	cancel_remote_wipe_then_block
+
+gam update mobile <MobileEntity> action <MobileAction>
+gam delete mobile <MobileEntity>
+
+<MobileFieldName> ::=
+	adbstatus|
+	applications|
+	basebandversion|
+	bootloaderversion|
+	brand|
+	buildnumber|
+	defaultlanguage|
+		developeroptionsstatus|
+	devicecompromisedstatus|
+	deviceid|
+	devicepasswordstatus|
+	email|
+	encryptionstatus|
+	firstsync|
+	hardware|
+	hardwareid|
+	imei|
+	kernelversion|
+	lastsync|
+	managedaccountisonownerprofile|
+	manufacturer|
+	meid|
+	model|
+	name|
+	networkoperator|
+	os|
+	otheraccountsinfo|
+	privilege|
+	releaseversion|
+	resourceid|
+	securitypatchlevel|
+	serialnumber|
+	status|
+	supportsworkprofile|
+	type|
+	unknownsourcesstatus|
+	useragent|
+	wifimacaddress
+
+<MobileFieldNameList> ::= "<MobileFieldName>(,<MobileFieldName>)*"
+
 <MobileOrderByFieldName> ::=
 	deviceid|email|lastsync|model|name|os|status|type
 
-<MobileAttributes> ::=
-	(action admin_remote_wipe|wipe|
-		admin_account_wipe|accountwipe|wipeaccount|
-		approve|
-		block|
-		cancel_remote_wipe_then_activate|
-		cancel_remote_wipe_then_block)|
-	(model <String>)|
-	(os <String>)|
-	(useragent <String>)
-
-gam update mobile <MobileEntity> <MobileAttributes>+
-gam delete mobile <MobileEntity>
 gam info mobile <MobileEntity>
-gam print mobile [todrive [<ToDriveAttributes>]] [query <QueryMobile>] [basic|full] [orderby <MobileOrderByFieldName> [ascending|descending]]
+	[basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>]
+gam print mobile [todrive [<ToDriveAttributes>]] [query <QueryMobile>]
+	[orderby <MobileOrderByFieldName> [ascending|descending]]
+	[basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>]
+	[delimiter <String>] [appslimit <Number>] [listlimit <Number>]
 
 # Notifications
 
@@ -1062,7 +1107,7 @@ gam info notification|notifications [unread|read|unreadonly]
 	description|
 	id|orgunitid|
 	inherit|blockinheritance|
-		name|
+	name|
 	parentid|parentorgunitid|
 	parent|parentorgunitpath|
 	path|orgunitpath
@@ -1079,8 +1124,9 @@ gam update orgs|ous <OrgUnitEntity> add|move <CrOSTypeEntity>|<UserTypeEntity>
 gam delete orgs|ous <OrgUnitEntity>
 gam info orgs|ous <OrgUnitEntity> [nousers] [children|child]
 
-gam print orgs|ous [todrive [<ToDriveAttributes>]] [toplevelonly] [from_parent <OrgUnitItem>] [allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)] [convertcrnl]
-gam show orgtree [from_parent <OrgUnitItem>]
+gam print orgs|ous [todrive [<ToDriveAttributes>]] [showparent] [toplevelonly] [fromparent <OrgUnitItem>]
+	[allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)] [convertcrnl]
+gam show orgtree [fromparent <OrgUnitItem>]
 
 # Printers
 
@@ -1338,8 +1384,9 @@ gam [<UserTypeEntity>] show siteacls  <SiteEntity>
 	(website|websites clear|(home_page|blog|profile|work|home|other|ftp|reservations|app_install_page|<String> <URL> [notprimary|primary]))|
 	(<SchemaName>.<FieldName> [multivalued|multivalue|value|multinonempty [type work|home|other|(custom <String>)]] <String>)
 
-gam create user <EmailAddress> <UserAttributes>*
-gam update user <UserItem> <UserAttributes>* [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>] [createifnotfound]
+gam create user <EmailAddress> <UserAttributes>* [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
+gam update user <UserItem> <UserAttributes>* [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
+	[createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
 gam delete user <UserItem>
 gam undelete user <UserItem> [org|ou <OrgUnitPath>]
 gam info user [<UserItem>] [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>]
