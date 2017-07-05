@@ -1,3 +1,8 @@
+4.51.02
+
+* Create Course
+Change in 4.51.01 reversed, courses are created in the PROVISIONED state by default.
+
 4.51.01
 
 * Print Delegates

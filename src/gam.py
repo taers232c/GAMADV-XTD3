@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.51.01'
+__version__ = u'4.51.02'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -15642,9 +15642,7 @@ def getCourseAttribute(myarg, body, croom):
 # gam create course id|alias <CourseAlias> [teacher <UserItem>] <CourseAttributes>
 def doCreateCourse():
   croom = buildGAPIObject(API.CLASSROOM)
-  body = {u'ownerId': u'me',
-          u'name': u'Unknown Course',
-          u'courseState': u'ACTIVE'}
+  body = {u'ownerId': u'me', u'name': u'Unknown Course'}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in [u'alias', u'id']:
