@@ -1,3 +1,10 @@
+4.51.01
+
+* Print Delegates
+The column headings in gam print delegates are controlled by gam.cfg print_native_names.
+    print_native_names = false - Delegator,Delegate,Delegate Email,Status
+    print_native_names =  true - User,delegateName,delegateAddress,delegationStatus
+
 4.51.00
 
 * Create Course

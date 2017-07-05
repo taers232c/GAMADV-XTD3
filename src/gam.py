@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.51.00'
+__version__ = u'4.51.01'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -24017,6 +24017,14 @@ def deleteDelegate(users):
         entityActionFailedWarning([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail], str(e), j, jcount)
     Ind.Decrement()
 
+DELEGATES_FIELD_TITLES_MAP = {
+  u'user': [u'User', u'Delegator'],
+  u'delegateName': [u'delegateName', u'Delegate'],
+  u'delegateAddress': [u'delegateAddress', u'Delegate Email'],
+  u'delegationStatus': [u'delegationStatus', u'Status'],
+  }
+DELEGATE_FIELD_PRINT_ORDER = [u'user', u'delegateName', u'delegateAddress', u'delegationStatus']
+
 def _printShowDelegates(users, csvFormat):
 
   def getDelegateFields(delegate):
@@ -24035,7 +24043,13 @@ def _printShowDelegates(users, csvFormat):
   emailSettings = buildGAPIObject(API.EMAIL_SETTINGS)
   if csvFormat:
     todrive = {}
-    titles, csvRows = initializeTitlesCSVfile([u'User', u'delegateName', u'delegateAddress', u'delegationStatus'])
+    titlesList = []
+    titleIndex = [1, 0][GC.Values[GC.PRINT_NATIVE_NAMES]]
+    fieldsTitles = {}
+    for field in DELEGATE_FIELD_PRINT_ORDER:
+      fieldsTitles[field] = DELEGATES_FIELD_TITLES_MAP[field][titleIndex]
+      titlesList.append(fieldsTitles[field])
+    titles, csvRows = initializeTitlesCSVfile(titlesList)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
@@ -24073,9 +24087,10 @@ def _printShowDelegates(users, csvFormat):
       elif delegates:
         for delegate in delegates:
           delegateName, delegateAddress, delegationStatus = getDelegateFields(delegate)
-          csvRows.append({u'User': delegatorEmail, u'delegateName': delegateName, u'delegateAddress': delegateAddress, u'delegationStatus': delegationStatus})
+          csvRows.append({fieldsTitles[u'user']: delegatorEmail, fieldsTitles[u'delegateName']: delegateName,
+                          fieldsTitles[u'delegateAddress']: delegateAddress, fieldsTitles[u'delegationStatus']: delegationStatus})
       elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
-        csvRows.append({u'User': delegatorEmail})
+        csvRows.append({fieldsTitles[u'user']: delegatorEmail})
     except (GAPI.notFound, GAPI.serviceNotAvailable, GAPI.domainNotFound):
       entityServiceNotApplicableWarning(Ent.DELEGATOR, delegatorEmail, i, count)
   if csvFormat:
