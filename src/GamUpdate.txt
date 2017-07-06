@@ -1,3 +1,17 @@
+4.51.03
+
+* Suspend/Unsuspend Users
+Added commands to suspend/unsuspend users; these are equivalent to update user with the suspended argument.
+    gam suspend user <UserItem>
+    gam unsuspend user <UserItem>
+    gam suspend users <UserTypeEntity>
+    gam unsuspend users <UserTypeEntity>
+    gam <UserTypeEntity> suspend users
+    gam <UserTypeEntity> unsuspend users
+
+* Add Drivefile
+When adding a drive file, the fileId will be output along with the name.
+
 4.51.02
 
 * Create Course

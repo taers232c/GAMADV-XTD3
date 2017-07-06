@@ -68,11 +68,13 @@ class GamAction(object):
   SHOW = u'show'
   SPAM = u'spam'
   SUBMIT = u'subm'
+  SUSPEND = u'susp'
   SYNC = u'sync'
   TRANSFER = u'tran'
   TRANSFER_OWNERSHIP = u'trow'
   TRASH = u'tras'
   UNDELETE = u'unde'
+  UNSUSPEND = u'unsu'
   UNTRASH = u'untr'
   UPDATE = u'upda'
   UPLOAD = u'uplo'
@@ -127,11 +129,13 @@ class GamAction(object):
     SHOW: [u'Shown', u'Show'],
     SPAM: [u'Marked as Spam', u'Mark as Spam'],
     SUBMIT: [u'Submitted', u'Submit'],
+    SUSPEND: [u'Suspended', u'Suspend'],
     SYNC: [u'Synced', u'Sync'],
     TRANSFER: [u'Transferred', u'Transfer'],
     TRANSFER_OWNERSHIP: [u'Ownership Transferred', u'Transfer Ownership'],
     TRASH: [u'Trashed', u'Trash'],
     UNDELETE: [u'Undeleted', u'Undelete'],
+    UNSUSPEND: [u'Unsuspended', u'Unsuspend'],
     UNTRASH: [u'Untrashed', u'Untrash'],
     UPDATE: [u'Updated', u'Update'],
     UPLOAD: [u'Uploaded', u'Upload'],

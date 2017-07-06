@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.51.02'
+__version__ = u'4.51.03'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -14724,6 +14724,46 @@ def doUndeleteUsers():
 def doUndeleteUser():
   undeleteUsers(getStringReturnInList(Cmd.OB_USER_ITEM))
 
+def suspendUnsuspendUsers(entityList, suspended):
+  cd = buildGAPIObject(API.DIRECTORY)
+  checkForExtraneousArguments()
+  body = {u'suspended': suspended}
+  i, count, entityList = getEntityArgument(entityList)
+  for user in entityList:
+    i += 1
+    user = normalizeEmailAddressOrUID(user)
+    try:
+      callGAPI(cd.users(), u'update',
+               throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN],
+               userKey=user, body=body)
+      entityActionPerformed([Ent.USER, user], i, count)
+    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden):
+      entityUnknownWarning(Ent.USER, user, i, count)
+
+# gam <UserTypeEntity> suspend users
+def suspendUsers(entityList):
+  suspendUnsuspendUsers(entityList, True)
+
+# gam suspend users <UserTypeEntity>
+def doSuspendUsers():
+  suspendUnsuspendUsers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)[1], True)
+
+# gam suspend user <UserItem>
+def doSuspendUser():
+  suspendUnsuspendUsers(getStringReturnInList(Cmd.OB_USER_ITEM), True)
+
+# gam <UserTypeEntity> unsuspend users
+def unsuspendUsers(entityList):
+  suspendUnsuspendUsers(entityList, False)
+
+# gam unsuspend users <UserTypeEntity>
+def doUnsuspendUsers():
+  suspendUnsuspendUsers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)[1], False)
+
+# gam unsuspend user <UserItem>
+def doUnsuspendUser():
+  suspendUnsuspendUsers(getStringReturnInList(Cmd.OB_USER_ITEM), False)
+
 USER_NAME_PROPERTY_PRINT_ORDER = [
   u'givenName',
   u'familyName',
@@ -19941,10 +19981,11 @@ def addDriveFile(users):
                         keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                         useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
                         media_body=media_body, body=body, fields=u'id,name,mimeType', supportsTeamDrives=True)
+      titleInfo = u'{0}({1})'.format(result[u'name'], result[u'id'])
       if parameters[DFA_LOCALFILENAME]:
-        entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, result[u'name']], Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], i, count)
+        entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, titleInfo], Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], i, count)
       else:
-        entityActionPerformed([Ent.USER, user, [Ent.DRIVE_FOLDER, Ent.DRIVE_FILE][result[u'mimeType'] != MIMETYPE_GA_FOLDER], result[u'name']], i, count)
+        entityActionPerformed([Ent.USER, user, [Ent.DRIVE_FOLDER, Ent.DRIVE_FILE][result[u'mimeType'] != MIMETYPE_GA_FOLDER], titleInfo], i, count)
     except GAPI.forbidden as e:
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, body[u'name']], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -25825,6 +25866,16 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
        },
     },
+  u'suspend':
+    {CMD_ACTION: Act.SUSPEND,
+     CMD_FUNCTION:
+       {Cmd.ARG_USER:		doSuspendUser,
+        Cmd.ARG_USERS:		doSuspendUsers,
+       },
+     CMD_OBJ_ALIASES:
+       {
+       },
+    },
   u'update':
     {CMD_ACTION: Act.UPDATE,
      CMD_FUNCTION:
@@ -25883,6 +25934,16 @@ MAIN_COMMANDS_WITH_OBJECTS = {
      CMD_FUNCTION:
        {Cmd.ARG_USER:		doUndeleteUser,
         Cmd.ARG_USERS:		doUndeleteUsers,
+       },
+     CMD_OBJ_ALIASES:
+       {
+       },
+    },
+  u'unsuspend':
+    {CMD_ACTION: Act.UNSUSPEND,
+     CMD_FUNCTION:
+       {Cmd.ARG_USER:		doUnsuspendUser,
+        Cmd.ARG_USERS:		doUnsuspendUsers,
        },
      CMD_OBJ_ALIASES:
        {
@@ -26636,6 +26697,15 @@ USER_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_THREAD:		Cmd.ARG_THREADS,
        },
     },
+  u'suspend':
+    {CMD_ACTION: Act.SUSPEND,
+     CMD_FUNCTION:
+       {Cmd.ARG_USERS:		suspendUsers,
+       },
+     CMD_OBJ_ALIASES:
+       {Cmd.ARG_USER:		Cmd.ARG_USERS,
+       },
+    },
   u'transfer':
     {CMD_ACTION: Act.TRANSFER,
      CMD_FUNCTION:
@@ -26676,6 +26746,15 @@ USER_COMMANDS_WITH_OBJECTS = {
     {CMD_ACTION: Act.UNDELETE,
      CMD_FUNCTION:
        {Cmd.ARG_USERS:		undeleteUsers,
+       },
+     CMD_OBJ_ALIASES:
+       {Cmd.ARG_USER:		Cmd.ARG_USERS,
+       },
+    },
+  u'unsuspend':
+    {CMD_ACTION: Act.UNSUSPEND,
+     CMD_FUNCTION:
+       {Cmd.ARG_USERS:		unsuspendUsers,
        },
      CMD_OBJ_ALIASES:
        {Cmd.ARG_USER:		Cmd.ARG_USERS,
