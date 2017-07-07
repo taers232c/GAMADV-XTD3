@@ -18,7 +18,7 @@ The classes implement a command pattern, with every
 object supporting an execute() method that does the
 actuall HTTP request.
 """
-
+from __future__ import absolute_import
 import six
 from six.moves import http_client
 from six.moves import range
@@ -817,7 +817,6 @@ class HttpRequest(object):
     if 'content-length' not in self.headers:
       self.headers['content-length'] = str(self.body_size)
     # If the request URI is too long then turn it into a POST request.
-    # Assume that a GET request never contains a request body.
     if len(self.uri) > MAX_URI_LENGTH and self.method == 'GET':
       self.method = 'POST'
       self.headers['x-http-method-override'] = 'GET'
@@ -1338,7 +1337,7 @@ class BatchHttpRequest(object):
     # encode the body: note that we can't use `as_string`, because
     # it plays games with `From ` lines.
     fp = StringIO()
-    g = Generator(fp, mangle_from_=False, maxheaderlen=0)
+    g = Generator(fp, mangle_from_=False)
     g.flatten(message, unixfrom=False)
     body = fp.getvalue()
 

@@ -1,5 +1,7 @@
 4.51.04
 
+Update googleapiclient library from 1.6.1 to 1.6.2.
+
 Handle additional Team Drive errors.
 
 4.51.03
