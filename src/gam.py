@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.51.03'
+__version__ = u'4.51.04'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -20192,7 +20192,7 @@ def deleteDriveFile(users, function=None):
       try:
         if function != u'delete':
           result = callGAPI(drive.files(), u'update',
-                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS,
+                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
                             fileId=fileId, body=trash_body, fields=u'name', supportsTeamDrives=True)
           if result and u'name' in result:
             fileName = result[u'name']
@@ -20200,11 +20200,11 @@ def deleteDriveFile(users, function=None):
             fileName = fileId
         else:
           callGAPI(drive.files(), function,
-                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS,
+                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
                    fileId=fileId, supportsTeamDrives=True)
           fileName = fileId
         entityActionPerformed([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, fileName], j, jcount)
-      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions) as e:
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.fileNeverWritable) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -21773,10 +21773,10 @@ def updateTeamDrive(users):
     try:
       teamDriveId = fileIdEntity[u'teamdrive'][u'teamDriveId']
       callGAPI(drive.teamdrives(), u'update',
-               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
                teamDriveId=teamDriveId, body=body)
       entityActionPerformed([Ent.TEAMDRIVE_ID, teamDriveId], i, count)
-    except (GAPI.notFound, GAPI.forbidden, GAPI.badRequest) as e:
+    except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.forbidden, GAPI.badRequest) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -21794,10 +21794,10 @@ def deleteTeamDrive(users):
     try:
       teamDriveId = fileIdEntity[u'teamdrive'][u'teamDriveId']
       callGAPI(drive.teamdrives(), u'delete',
-               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                teamDriveId=teamDriveId)
       entityActionPerformed([Ent.TEAMDRIVE_ID, teamDriveId], i, count)
-    except (GAPI.notFound, GAPI.forbidden) as e:
+    except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.forbidden) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)

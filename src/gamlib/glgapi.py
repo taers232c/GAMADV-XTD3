@@ -43,6 +43,7 @@ DOMAIN_NOT_VERIFIED_SECONDARY = u'domainNotVerifiedSecondary'
 DOMAIN_POLICY = u'domainPolicy'
 DUPLICATE = u'duplicate'
 FAILED_PRECONDITION = u'failedPrecondition'
+FILE_NEVER_WRITABLE = u'fileNeverWritable'
 FILE_NOT_FOUND = u'fileNotFound'
 FORBIDDEN = u'forbidden'
 GROUP_NOT_FOUND = u'groupNotFound'
@@ -222,6 +223,8 @@ class duplicate(Exception):
   pass
 class failedPrecondition(Exception):
   pass
+class fileNeverWritable(Exception):
+  pass
 class fileNotFound(Exception):
   pass
 class forbidden(Exception):
@@ -346,6 +349,7 @@ REASON_EXCEPTION_MAP = {
   DOMAIN_POLICY: domainPolicy,
   DUPLICATE: duplicate,
   FAILED_PRECONDITION: failedPrecondition,
+  FILE_NEVER_WRITABLE: fileNeverWritable,
   FILE_NOT_FOUND: fileNotFound,
   FORBIDDEN: forbidden,
   GROUP_NOT_FOUND: groupNotFound,
