@@ -1337,7 +1337,7 @@ class BatchHttpRequest(object):
     # encode the body: note that we can't use `as_string`, because
     # it plays games with `From ` lines.
     fp = StringIO()
-    g = Generator(fp, mangle_from_=False)
+    g = Generator(fp, maxheaderlen=0, mangle_from_=False)
     g.flatten(message, unixfrom=False)
     body = fp.getvalue()
 
