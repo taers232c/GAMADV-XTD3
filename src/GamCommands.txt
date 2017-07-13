@@ -245,8 +245,8 @@ Specify a collection of Users by directly specifying them or by specifiying item
 		(all users)|
 		(user <UserItem>)|
 		(users <UserList>)|
-		(group <GroupItem)|
-		(ou|org <OrgUnitItem)|
+		(group <GroupItem>)|
+		(ou|org <OrgUnitItem>)|
 		(ou_and_children|ou_and_child <OrgUnitItem>)|
 		(courseparticipants <CourseID>)|
 		(students <CourseID>)|
@@ -949,10 +949,10 @@ gam print domainaliases|aliasdomains [todrive [<ToDriveAttributes>]]
 
 gam create group <EmailAddress> <GroupAttributes>*
 gam update group|groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] <GroupAttributes>*
-gam update group|groups <GroupEntity> add [member|manager|owner] [notsuspended] <UserTypeEntity>
-gam update group|groups <GroupEntity> delete|remove [member|manager|owner] <UserTypeEntity>
-gam update group|groups <GroupEntity> sync [member|manager|owner] [notsuspended] <UserTypeEntity>
-gam update group|groups <GroupEntity> update [member|manager|owner] <UserTypeEntity>
+gam update group|groups <GroupEntity> add [owner|manager|member] [notsuspended] <UserTypeEntity>
+gam update group|groups <GroupEntity> delete|remove [owner|manager|member] <UserTypeEntity>
+gam update group|groups <GroupEntity> sync [owner|manager|member] [notsuspended] <UserTypeEntity>
+gam update group|groups <GroupEntity> update [owner|manager|member] <UserTypeEntity>
 gam update group|groups <GroupEntity> clear [member] [manager] [owner] [suspended]
 gam delete group|groups <GroupEntity>
 
@@ -1938,7 +1938,7 @@ gam <UserTypeEntity> print gplusprofile [todrive [<ToDriveAttributes>]]
 
 # Users - Groups
 
-gam <UserTypeEntity> add groups [member|manager|owner] <GroupEntity>
+gam <UserTypeEntity> add groups [owner|manager|member] <GroupEntity>
 gam <UserTypeEntity> delete groups [<GroupEntity>]
 
 # Users - Licenses

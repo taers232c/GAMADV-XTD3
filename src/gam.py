@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.51.05'
+__version__ = u'4.51.06'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -3017,7 +3017,7 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
       result = callGAPIpages(cd.members(), u'list', u'members',
                              page_message=page_message,
                              throw_reasons=GAPI.MEMBERS_THROW_REASONS,
-                             groupKey=group, roles=memberRole, fields=u'nextPageToken,members(email,type)',
+                             groupKey=group, roles=memberRole, fields=u'nextPageToken,members(email,type,status)',
                              maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
       while result:
         member = result.popleft()
@@ -3027,7 +3027,7 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
             _, domain = splitEmailAddress(email)
             if domain not in domains:
               continue
-          if email not in entitySet:
+          if not (checkNotSuspended and (member[u'status'] == u'SUSPENDED')) and email not in entitySet:
             entitySet.add(email)
             entityList.append(email)
         elif recursive and member[u'type'] == u'GROUP':
@@ -3084,12 +3084,12 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
           result = callGAPIpages(cd.members(), u'list', u'members',
                                  page_message=page_message,
                                  throw_reasons=GAPI.MEMBERS_THROW_REASONS,
-                                 groupKey=group, roles=memberRole, fields=u'nextPageToken,members(email,id,type)',
+                                 groupKey=group, roles=memberRole, fields=u'nextPageToken,members(email,id,type,status)',
                                  maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
           while result:
             member = result.popleft()
             email = member[u'email'].lower() if member[u'type'] != u'CUSTOMER' else member[u'id']
-            if ((not groupUserMembersOnly) or (member[u'type'] == u'USER')) and email not in entitySet:
+            if ((not groupUserMembersOnly) or (member[u'type'] == u'USER')) and not (checkNotSuspended and (member[u'status'] == u'SUSPENDED')) and email not in entitySet:
               entitySet.add(email)
               entityList.append(email)
         except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden):

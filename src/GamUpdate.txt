@@ -1,3 +1,16 @@
+4.51.06
+
+Extend notsuspended argument of gam update group <GroupItem> add/sync to allow suspended users in other groups to be excluded from being added to the group.
+    gam update group <GroupItem> add [owner|manager|member] [notsuspended] <UserTypeEntity>
+    gam update group <GroupItem> sync [owner|manager|member] [notsuspended] <UserTypeEntity>
+This option is effective for the following values of <UserTypeEntity>:
+    all users|
+    group <GroupItem>|
+    groups <GroupList>|
+    group_users <GroupList> [members] [managers] [owners] [primarydomain] [domains <DomainNameList>] [recursive] end|
+    ou|org <OrgUnitPath|ou_and_children|ou_and_child <OrgUnitPath>|
+    query <Query>
+
 4.51.05
 
 Code cleanup.
