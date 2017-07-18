@@ -229,8 +229,8 @@ Specify a collection of ChromeOS devices by directly specifying them or by speci
 		(crosfile <FileName> [charset <Charset>] [delimiter <String>])|
 		(croscsvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <String>])|
 		(crosquery <QueryCrOS>)|
-		(datafile cros <FileName> [charset <Charset>] [delimiter <String>])|
-		(csvkmd cros <FileName> [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>]
+		(datafile cros|cros_ous|cros_ous_and_children <FileName> [charset <Charset>] [delimiter <String>])|
+		(csvkmd cros|cros_ous|cros_ous_and_children <FileName> [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>]
 			keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
 			subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
 			(matchfield <FieldName> <RegularExpression>)*
