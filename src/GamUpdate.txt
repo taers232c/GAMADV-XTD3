@@ -1,3 +1,7 @@
+4.51.07
+
+Fix error where gam csvkmd cros_ous/cros_ous_and_children ... was not handled properly.
+
 4.51.06
 
 Extend notsuspended argument of gam update group <GroupItem> add/sync to allow suspended users in other groups to be excluded from being added to the group.
@@ -2590,7 +2594,10 @@ Improve handling of inappropriate email addresses in GAPI Service calls.
 4.23.00
 
 Allow mapping of keyfield value in csvkmd selectors. 
-    <CSVkmdSelector> ::= csvkmd <FileName> [charset <Charset>] keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>] (matchfield <FieldName> <RegularExpression>)* [datafield <FieldName>(:<FieldName)* [delimiter <String>]]
+    <CSVkmdSelector> ::= csvkmd <FileName> [charset <Charset>]
+	keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
+	(matchfield <FieldName> <RegularExpression>)*
+	[datafield <FieldName>(:<FieldName)* [delimiter <String>]]
 
 You want to update the membership of a collection of parent groups at your school, the data is coming from a database in a fixed format.
 Example 1, CSV File GroupP1P2.csv, exactly the data you want, keypattern and keyvalue are not required

@@ -222,13 +222,13 @@ Specify a collection of ChromeOS devices by directly specifying them or by speci
 <CrOSTypeEntity> ::=
 		(all cros)|
 		(cros <CrOSList>)|
-		(crosfile <FileName> [charset <Charset>] [delimiter <String>])|
-		(croscsvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <String>])|
-		(crosquery <QueryCrOS>)|
 		(cros_ou|cros_org <OrgUnitItem>)|
 		(cros_ou_and_children|cros_org_and_children <OrgUnitItem>)|
 		(cros_ous|cros_orgs <OrgUnitList>)|
 		(cros_ous_and_children|cros_orgs_and_children <OrgUnitList>)|
+		(crosfile <FileName> [charset <Charset>] [delimiter <String>])|
+		(croscsvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <String>])|
+		(crosquery <QueryCrOS>)|
 		(datafile cros <FileName> [charset <Charset>] [delimiter <String>])|
 		(csvkmd cros <FileName> [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>]
 			keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
@@ -246,22 +246,19 @@ Specify a collection of Users by directly specifying them or by specifiying item
 		(user <UserItem>)|
 		(users <UserList>)|
 		(group <GroupItem>)|
-		(ou|org <OrgUnitItem>)|
-		(ou_and_children|ou_and_child <OrgUnitItem>)|
-		(courseparticipants <CourseID>)|
-		(students <CourseID>)|
-		(teachers <CourseID>)|
-		(file <FileName> [charset <Charset>] [delimiter <String>])|
-		(csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <String>])|
-		(license|licenses|licence|licences <SKUIDList>)|
-		(query <QueryUser>)|
 		(groups <GroupList>)|
 		(group_users <GroupList> [members] [managers] [owners] [primarydomain] [domains <DomainNameList>] [recursive] end)|
+		(ou|org <OrgUnitItem>)|
+		(ou_and_children|ou_and_child <OrgUnitItem>)|
 		(ous|orgs <OrgUnitList>)|
 		(ous_and_children|ous_and_child <OrgUnitList>)|
 		(courseparticipants <CourseIDList>)|
 		(students <CourseIDList>)|
 		(teachers <CourseIDList>)|
+		(license|licenses|licence|licences <SKUIDList>)|
+		(file <FileName> [charset <Charset>] [delimiter <String>])|
+		(csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <String>])|
+		(query <QueryUser>)|
 		(datafile users|groups|ous|ous_and_children|courseparticipants|students|teachers <FileName> [charset <Charset>] [delimiter <String>])|
 		(csvkmd users|groups|ous|ous_and_children|courseparticipants|students|teachers <FileName> [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>]
 			keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
@@ -275,14 +272,16 @@ Specify a collection of Users by directly specifying them or by specifiying item
 Specify a collection of items by directly specifying them; the item type is determined by context.
 
 <CSVkmdSelector> ::=
-		csvkmd <FileName> [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>]
-		       keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
-		       subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
-		       (matchfield <FieldName> <RegularExpression>)*
-		       [datafield <FieldName>(:<FieldName)* [delimiter <String>]]
+	csvkmd <FileName> [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>]
+	       keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
+	       subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
+	       (matchfield <FieldName> <RegularExpression>)*
+	       [datafield <FieldName>(:<FieldName)* [delimiter <String>]]
 <CSVSubkeySelector> ::= csvsubkey <FieldName>
 <CSVDataSelector> ::= csvdata <FieldName>
-<FileSelector> ::= (file <FileName> [charset <Charset>])|(csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>])
+<FileSelector> ::=
+	(file <FileName> [charset <Charset>] [delimiter <String>])|
+	(csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <String>])
 
 <CalendarACLScopeEntity>::= <CalendarACLScopeList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <CalendarEntity> ::= <CalendarList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
@@ -1051,7 +1050,7 @@ gam delete mobile <MobileEntity>
 	brand|
 	buildnumber|
 	defaultlanguage|
-		developeroptionsstatus|
+	developeroptionsstatus|
 	devicecompromisedstatus|
 	deviceid|
 	devicepasswordstatus|

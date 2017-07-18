@@ -160,7 +160,7 @@ class GamCLArgs(object):
     ENTITY_CROS: ENTITY_ALL_CROS,
     ENTITY_USERS: ENTITY_ALL_USERS,
     }
-# Allowed values for CL source selector args, datafile, csvkmd
+# Allowed values for CL source selector datafile, csvkmd
   CROS_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES = [
     ENTITY_CROS,
     ENTITY_CROS_OUS,

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.51.06'
+__version__ = u'4.51.07'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -3569,7 +3569,7 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
       if crosAllowed:
         choices += Cmd.CROS_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES
       entityType = mapEntityType(getChoice(choices), typeMap)
-      return ([Cmd.ENTITY_CROS, Cmd.ENTITY_USERS][entityType not in [Cmd.ENTITY_CROS, Cmd.ENTITY_CROS_OUS, Cmd.ENTITY_CROS_OUS_AND_CHILDREN]],
+      return ([Cmd.ENTITY_CROS, Cmd.ENTITY_USERS][entityType not in Cmd.CROS_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES],
               getUsersToModify(entityType, getEntitiesFromFile(shlexSplit=entityType in [Cmd.ENTITY_OUS, Cmd.ENTITY_OUS_AND_CHILDREN, Cmd.ENTITY_CROS_OUS, Cmd.ENTITY_CROS_OUS_AND_CHILDREN])))
     if entitySelector == Cmd.ENTITY_SELECTOR_CSVKMD:
       if userAllowed:
@@ -3577,7 +3577,7 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
       if crosAllowed:
         choices += Cmd.CROS_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES
       entityType = mapEntityType(getChoice(choices, choiceAliases=Cmd.ENTITY_ALIAS_MAP), typeMap)
-      return ([Cmd.ENTITY_CROS, Cmd.ENTITY_USERS][entityType != Cmd.ENTITY_CROS],
+      return ([Cmd.ENTITY_CROS, Cmd.ENTITY_USERS][entityType not in Cmd.CROS_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES],
               getUsersToModify(entityType, getEntitiesFromCSVbyField()))
     if entitySelector in [Cmd.ENTITY_SELECTOR_CSVDATA, Cmd.ENTITY_SELECTOR_CSVCROS]:
       checkDataField()

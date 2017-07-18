@@ -1,4 +1,4 @@
-GAM4 has extended how collections of objects can be selected.
+GAMADVX has extended how collections of objects can be selected.
 
 GAM commands fall into two broad categories based on the format of the command line.
 gam <Objects> <Command> <Arguments>
@@ -518,7 +518,7 @@ Second Form Courses
 Third Form Users
 *****
 
-The gam print users command can print all users or those users matching a query; GAM4 extends this with the same collection
+The gam print users command can print all users or those users matching a query; GAMADVX extends this with the same collection
 choices as in the First Form Users section above.
 	gam print users ... select <UserTypeEntity>
 
@@ -529,7 +529,7 @@ For example, to print all users in the Sales and Marketing groups, you would say
 Third Form Groups
 *****
 
-The gam print groups command can print all groups or those groups matching a query; GAM4 extends this by allowing lists of groups.
+The gam print groups command can print all groups or those groups matching a query; GAMADVX extends this by allowing lists of groups.
 	gam print groups ... select <GroupEntity>
 
 For example, to print all groups listed in Group column of the CSV file Groups.csv, you would say:
@@ -539,7 +539,7 @@ For example, to print all groups listed in Group column of the CSV file Groups.c
 Third Form Group Members
 *****
 
-The gam print group-members command can print members from all groups or those members from a single group; GAM4 extends this
+The gam print group-members command can print members from all groups or those members from a single group; GAMADVX extends this
 by allowing lists of groups.
 	gam print group-members ... select <GroupEntity>
 
