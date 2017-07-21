@@ -1376,7 +1376,7 @@ gam [<UserTypeEntity>] show siteacls  <SiteEntity>
 		[costcenter <String>]  [location <String>] [description <String>] [domain <String>] notprimary|primary))|
 	(org|ou|orgunitpath <OrgUnitPath>)
 	(password random|<Password>)|
-	(phone|phones clear|([type work|home|other|work_fax|home_fax|other_fax|main|company_main|assistant|mobile|work_mobile|pager|work_pager|car|radio|callback|isdn|telex|tty_tdd|grand_central|(custom <String>)
+	(phone|phones clear|([type work|home|other|work_fax|home_fax|other_fax|main|company_main|assistant|mobile|work_mobile|pager|work_pager|car|radio|callback|isdn|telex|tty_tdd|grand_central|(custom <String>)]
 		[value <String>] notprimary|primary))|
 	(relation|relations clear|(spouse|child|mother|father|parent|brother|sister|friend|relative|domestic_partner|manager|assistant|referred_by|partner|<String> <String>))|
 	(suspended <Boolean>)|
