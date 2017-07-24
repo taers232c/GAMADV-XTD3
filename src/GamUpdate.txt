@@ -1,3 +1,7 @@
+4.51.08
+
+Handle httplib2.ServerNotFoundError in callGData and callGAPI.
+
 4.51.07
 
 Fix error where gam csvkmd cros_ous/cros_ous_and_children ... was not handled properly.
