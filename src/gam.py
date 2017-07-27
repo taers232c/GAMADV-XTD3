@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.51.08'
+__version__ = u'4.51.09'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -1194,7 +1194,7 @@ def getAgeTime():
 CALENDAR_REMINDER_METHODS = [u'email', u'sms', u'popup',]
 
 def getCalendarReminder(allowClearNone=False):
-  methods = CALENDAR_REMINDER_METHODS
+  methods = CALENDAR_REMINDER_METHODS[:]
   if allowClearNone:
     methods += Cmd.CLEAR_NONE_ARGUMENT
   if Cmd.ArgumentsRemaining():
@@ -2904,14 +2904,15 @@ def getSitesQuery(**kwargs):
   return gdata.apps.sites.service.SitesQuery(**kwargs)
 
 # Convert User UID to email address
-def convertUserUIDtoEmailAddress(emailAddressOrUID, checkForCustomerId=False):
+def convertUserUIDtoEmailAddress(emailAddressOrUID, cd=None, checkForCustomerId=False):
   if checkForCustomerId and (emailAddressOrUID == GC.Values[GC.CUSTOMER_ID]):
     return emailAddressOrUID
   normalizedEmailAddressOrUID = normalizeEmailAddressOrUID(emailAddressOrUID)
   if normalizedEmailAddressOrUID.find(u'@') > 0:
     return normalizedEmailAddressOrUID
   try:
-    cd = buildGAPIObject(API.DIRECTORY)
+    if cd is None:
+      cd = buildGAPIObject(API.DIRECTORY)
     result = callGAPI(cd.users(), u'get',
                       throw_reasons=GAPI.USER_GET_THROW_REASONS,
                       userKey=normalizedEmailAddressOrUID, fields=u'primaryEmail')
@@ -4919,7 +4920,7 @@ def enableProjectAPIs(simplehttp, httpObj, projectName, checkEnabled):
   apis = c.splitlines()
   serveman = googleapiclient.discovery.build(u'servicemanagement', u'v1', http=httpObj, cache_discovery=False)
   if checkEnabled:
-    enabledServices = callGAPIpages(serveman.services(), u'list', items=u'services',
+    enabledServices = callGAPIpages(serveman.services(), u'list', u'services',
                                     consumerId=projectName, fields=u'nextPageToken,services(serviceName)')
     for service in enabledServices:
       if u'serviceName' in service:
@@ -5127,7 +5128,7 @@ def doDeleteProjects():
   checkForExtraneousArguments()
   login_hint = getValidateLoginHint(login_hint)
   crm, _ = getCRMService(login_hint)
-  projects = callGAPIpages(crm.projects(), u'list', items=u'projects')
+  projects = callGAPIpages(crm.projects(), u'list', u'projects')
   gam_pids = [project[u'projectId'] for project in projects if project[u'projectId'].startswith(u'gam-project-')]
   count = len(gam_pids)
   performActionNumItems(count, Ent.PROJECT)
@@ -10868,7 +10869,7 @@ def doUpdateGroups():
       syncMembersSet = set()
       syncMembersMap = {}
       for member in syncMembers:
-        syncMembersSet.add(_cleanAddress(convertUserUIDtoEmailAddress(member, checkForCustomerId=True), syncMembersMap))
+        syncMembersSet.add(_cleanAddress(convertUserUIDtoEmailAddress(member, cd=cd, checkForCustomerId=True), syncMembersMap))
     checkForExtraneousArguments()
     i = 0
     count = len(entityList)
@@ -10878,13 +10879,13 @@ def doUpdateGroups():
         syncMembersSet = set()
         syncMembersMap = {}
         for member in syncMembers:
-          syncMembersSet.add(_cleanAddress(convertUserUIDtoEmailAddress(member, checkForCustomerId=True), syncMembersMap))
+          syncMembersSet.add(_cleanAddress(convertUserUIDtoEmailAddress(member, cd=cd, checkForCustomerId=True), syncMembersMap))
       group = checkGroupExists(cd, group, i, count)
       if group:
         currentMembersSet = set()
         currentMembersMap = {}
         for member in getUsersToModify(Cmd.ENTITY_GROUP, group, memberRole=role, groupUserMembersOnly=False):
-          currentMembersSet.add(_cleanAddress(convertUserUIDtoEmailAddress(member, checkForCustomerId=True), currentMembersMap))
+          currentMembersSet.add(_cleanAddress(convertUserUIDtoEmailAddress(member, cd=cd, checkForCustomerId=True), currentMembersMap))
         _batchAddGroupMembers(cd, group, i, count,
                               [syncMembersMap.get(emailAddress, emailAddress) for emailAddress in syncMembersSet-currentMembersSet],
                               role)
@@ -12644,7 +12645,7 @@ def _validateCalendarGetEventIDs(origUser, user, cal, calId, j, jcount, calendar
       if len(calendarEventEntity[u'queries']) <= 1:
         if len(calendarEventEntity[u'queries']) == 1:
           calendarEventEntity[u'kwargs'][u'q'] = calendarEventEntity[u'queries'][0]
-        events = callGAPIpages(cal.events(), u'list', items=u'items',
+        events = callGAPIpages(cal.events(), u'list', u'items',
                                throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                                calendarId=calId, fields=u'nextPageToken,items({0})'.format(fields), **calendarEventEntity[u'kwargs'])
         while events:
@@ -12657,7 +12658,7 @@ def _validateCalendarGetEventIDs(origUser, user, cal, calId, j, jcount, calendar
       else:
         for query in calendarEventEntity[u'queries']:
           calendarEventEntity[u'kwargs'][u'q'] = query
-          events = callGAPIpages(cal.events(), u'list', items=u'items',
+          events = callGAPIpages(cal.events(), u'list', u'items',
                                  throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                                  calendarId=calId, fields=u'nextPageToken,items({0})'.format(fields), **calendarEventEntity[u'kwargs'])
           while events:
@@ -15579,7 +15580,7 @@ def doDeleteGuardian():
       pass
   Act.Set(Act.CANCEL)
   try:
-    results = callGAPIpages(croom.userProfiles().guardianInvitations(), u'list', items=u'guardianInvitations',
+    results = callGAPIpages(croom.userProfiles().guardianInvitations(), u'list', u'guardianInvitations',
                             throw_reasons=[GAPI.FORBIDDEN],
                             studentId=studentId, invitedEmailAddress=guardianId, states=[u'PENDING',])
     if len(results) > 0:
@@ -15641,7 +15642,7 @@ def printShowGuardians(csvFormat):
       if csvFormat:
         printGettingAllEntityItemsForWhom(entityType, studentId, i, count)
     try:
-      result = callGAPIpages(service, u'list', items=items,
+      result = callGAPIpages(service, u'list', items,
                              throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
                              **kwargs)
       jcount = len(result)
@@ -23953,7 +23954,7 @@ def delegateTo(users, checkForTo=True):
     j = 0
     for delegate in delegates:
       j += 1
-      delegateEmail = convertUserUIDtoEmailAddress(delegate)
+      delegateEmail = convertUserUIDtoEmailAddress(delegate, cd=cd)
       uri = u'https://apps-apis.google.com/a/feeds/emailsettings/2.0/{0}/{1}/delegation'.format(delegatorDomain, delegatorName)
       body = u'''<?xml version="1.0" encoding="utf-8"?>
   <atom:entry xmlns:atom="http://www.w3.org/2005/Atom" xmlns:apps="http://schemas.google.com/apps/2006">
@@ -25664,8 +25665,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         u'nickname':		Cmd.ARG_ALIASES,
         u'nicknames':		Cmd.ARG_ALIASES,
         u'ou':			Cmd.ARG_ORG,
-        Cmd.ARG_RESELLERCUSTOMERS:	Cmd.ARG_RESELLERCUSTOMER,
-        Cmd.ARG_RESELLERSUBSCRIPTIONS:	Cmd.ARG_RESELLERSUBSCRIPTION,
+        Cmd.ARG_RESELLERCUSTOMERS:	Cmd.ARG_RESOLDCUSTOMER,
+        Cmd.ARG_RESELLERSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
         Cmd.ARG_RESOLDCUSTOMERS:	Cmd.ARG_RESOLDCUSTOMER,
         Cmd.ARG_RESOLDSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
         Cmd.ARG_SCHEMAS:	Cmd.ARG_SCHEMA,
@@ -25717,7 +25718,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_PRINTER:	Cmd.ARG_PRINTERS,
         Cmd.ARG_PROJECT:	Cmd.ARG_PROJECTS,
         u'notifications':	Cmd.ARG_NOTIFICATION,
-        Cmd.ARG_RESELLERSUBSCRIPTIONS:	Cmd.ARG_RESELLERSUBSCRIPTION,
+        Cmd.ARG_RESELLERSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
         Cmd.ARG_RESOLDSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
         Cmd.ARG_SCHEMA:		Cmd.ARG_SCHEMAS,
         Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
@@ -25771,8 +25772,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         u'ous':			Cmd.ARG_ORGS,
         u'print':		Cmd.ARG_PRINTERS,
         Cmd.ARG_PRINTER:	Cmd.ARG_PRINTERS,
-        Cmd.ARG_RESELLERCUSTOMERS:	Cmd.ARG_RESELLERCUSTOMER,
-        Cmd.ARG_RESELLERSUBSCRIPTIONS:	Cmd.ARG_RESELLERSUBSCRIPTION,
+        Cmd.ARG_RESELLERCUSTOMERS:	Cmd.ARG_RESOLDCUSTOMER,
+        Cmd.ARG_RESELLERSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
         Cmd.ARG_RESOLDCUSTOMERS:	Cmd.ARG_RESOLDCUSTOMER,
         Cmd.ARG_RESOLDSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
         Cmd.ARG_SCHEMA:		Cmd.ARG_SCHEMAS,
@@ -25837,7 +25838,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         u'nicknames':		Cmd.ARG_ALIASES,
         u'ous':			Cmd.ARG_ORGS,
         Cmd.ARG_PRINTER:	Cmd.ARG_PRINTERS,
-        Cmd.ARG_RESELLERSUBSCRIPTION:	Cmd.ARG_RESELLERSUBSCRIPTIONS,
+        Cmd.ARG_RESELLERSUBSCRIPTION:	Cmd.ARG_RESOLDSUBSCRIPTIONS,
         Cmd.ARG_RESOLDSUBSCRIPTION:	Cmd.ARG_RESOLDSUBSCRIPTIONS,
         Cmd.ARG_RESOURCE:	Cmd.ARG_RESOURCES,
         u'roles':		Cmd.ARG_ADMINROLES,
@@ -25863,7 +25864,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
        {Cmd.ARG_CONTACT:	Cmd.ARG_CONTACTS,
         Cmd.ARG_GUARDIAN:	Cmd.ARG_GUARDIANS,
         u'outree':		Cmd.ARG_ORGTREE,
-        Cmd.ARG_RESELLERSUBSCRIPTION:	Cmd.ARG_RESELLERSUBSCRIPTIONS,
+        Cmd.ARG_RESELLERSUBSCRIPTION:	Cmd.ARG_RESOLDSUBSCRIPTIONS,
         Cmd.ARG_RESOLDSUBSCRIPTION:	Cmd.ARG_RESOLDSUBSCRIPTIONS,
         Cmd.ARG_RESOURCE:	Cmd.ARG_RESOURCES,
         Cmd.ARG_SCHEMA:		Cmd.ARG_SCHEMAS,
@@ -25924,8 +25925,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         u'ous':			Cmd.ARG_ORGS,
         u'print':		Cmd.ARG_PRINTERS,
         Cmd.ARG_PRINTER:	Cmd.ARG_PRINTERS,
-        Cmd.ARG_RESELLERCUSTOMERS:	Cmd.ARG_RESELLERCUSTOMER,
-        Cmd.ARG_RESELLERSUBSCRIPTIONS:	Cmd.ARG_RESELLERSUBSCRIPTION,
+        Cmd.ARG_RESELLERCUSTOMERS:	Cmd.ARG_RESOLDCUSTOMER,
+        Cmd.ARG_RESELLERSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
         Cmd.ARG_RESOLDCUSTOMERS:	Cmd.ARG_RESOLDCUSTOMER,
         Cmd.ARG_RESOLDSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
         Cmd.ARG_SCHEMA:		Cmd.ARG_SCHEMAS,

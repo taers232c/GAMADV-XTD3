@@ -43,6 +43,7 @@ RESELLER = u'reseller'
 SITES = u'sites'
 SITEVERIFICATION = u'siteVerification'
 URLSHORTNER = u'urlshortner'
+VAULT=u'vault'
 #
 FAM1_SCOPES = u'fam1'
 FAM2_SCOPES = u'fam2'
@@ -87,6 +88,7 @@ _INFO = {
   SITES: {u'version': u'v1', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://sites.google.com/feeds',], u'localjson': True},
   SITEVERIFICATION: {u'version': u'v1', u'credfam': FAM2_SCOPES},
   URLSHORTNER: {u'version': u'v1', u'credfam': FAM2_SCOPES},
+  VAULT: {u'version': u'v1', u'credfam': FAM2_SCOPES},
   }
 
 EMAIL_SCOPE = u'email'
@@ -222,6 +224,10 @@ OAUTH2_SCOPES = [
    u'credfam': FAM2_SCOPES,
    u'subscopes': [],
    u'scope': u'https://sites.google.com/feeds'},
+  {u'name': u'Vault Matters and Holds API',
+   u'credfam': FAM2_SCOPES,
+   u'subscopes': [u'readonly'],
+   u'scope': u'https://www.googleapis.com/auth/ediscovery'},
   ]
 
 DRIVE3_TO_DRIVE2_ABOUT_FIELDS_MAP = {
