@@ -1,3 +1,37 @@
+4.52.00
+
+Added arguments to print aliases to allow selection of aliases to print.
+    gam print alias|aliases [todrive [<ToDriveAttributes>]] [shownoneditable] [nogroups] [nousers] [query <QueryUser>]
+By default, all group and user aliases are printed.
+nogroups - Print only user aliases
+nousers - Print only group aliases
+query <QueryUser> - Print aliases for selected users
+
+Based on initial code provided by Jay Lee, Google Vault is now supported.
+    gam create vaulthold|hold corpus drive|groups|mail matter <MatterItem> [name <String>] [query <QueryVaultCorpus>]
+	[(accounts|groups|users <EmailItemList>) | (orgunit|ou <OrgUnit>)]
+	[starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>] 
+    gam update vaulthold|hold <HoldItem> matter <MatterItem> [query <QueryVaultCorpus>]
+	[([addaccounts|addgroups|addusers <EmailItemList>] [removeaccounts|removegroups|removeusers <EmailItemList>]) | (orgunit|ou <OrgUnit>)]
+	[starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>] 
+    gam delete vaulthold|hold <HoldItem> matter <MatterItem>
+    gam info vaulthold|hold <HoldItem> matter <MatterItem>
+    gam show vaultholds|holds [matter|matters <MatterItemList>]
+    gam print vaultholds|holds [todrive [<ToDriveAttributes>]] [matter|matters <MatterItemList>]
+
+    gam create vaultmatter|matter [name <String>] [description <string>]
+	[collaborator|collaborators <CollaboratorItemList>]
+    gam update vaultmatter|matter <MatterItem> [name <String>] [description <string>]
+	[addcollaborator|addcollaborators <CollaboratorItemList>] [removecollaborator|removecollaborators <CollaboratorItemList>]
+    gam close vaultmatter|matter <MatterItem>
+    gam reopen vaultmatter|matter <MatterItem>
+    gam delete vaultmatter|matter <MatterItem>
+    gam undelete vaultmatter|matter <MatterItem>
+    gam info vaultmatter|matter <MatterItem>
+    gam show vaultmatters|matters [basic|full]
+    gam print vaultmatters|matters [todrive [<ToDriveAttributes>]] [basic|full]
+
+
 4.51.09
 
 Code cleanup.

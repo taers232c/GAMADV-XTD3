@@ -114,11 +114,13 @@ If an item contains spaces, it should be surrounded by ".
 <GroupItem> ::= <EmailAddress>|<UniqueID>|<String>
 <GuardianItem> ::= <EmailAddress>|<UniqueID>|<String>
 <GuardianInvitationID> ::= <String>
+<HoldItem> ::= <UniqueID>|<String>
 <HostName> ::= <String>
 <Key> ::= <String>
 <LabelID> ::= <String>
 <LabelName> ::= <String>
 <Marker> ::= <String>
+<MatterItem> ::= <UniqueID>|<String>
 <MaximumNumberOfSeats> ::= <Number>
 <MessageID> ::= <String>
 <MobileID> ::= <String>
@@ -147,6 +149,7 @@ If an item contains spaces, it should be surrounded by ".
 <QueryPrinter> ::= <String> See: https://developers.google.com/cloud-print/docs/appInterfaces#search
 <QueryPrintJob> ::= <String> See: https://developers.google.com/cloud-print/docs/appInterfaces#parameters_3
 <QueryUser> :: = <String> See: https://developers.google.com/admin-sdk/directory/v1/guides/search-users
+<QueryVaultCorpus> ::= <String> See: https://developers.google.com/vault/reference/rest/v1/matters.holds#CorpusQuery
 <RequestID> ::= <String>
 <ResourceID> ::= <String>
 <SchemaName> ::= <String>
@@ -194,6 +197,7 @@ Items, separated by spaces, with spaces or commas in the items themselves: "'it 
 <DriveFilePermissionIDList> ::= "<DriveFilePermissionID>(,<DriveFilePermissionID>)*"
 <DriveFileRevisionIDList> ::= "<DriveFileRevisionID>(,<DriveFileRevisionID>)*"
 <EmailAddressList> ::= "<EmailAddress>(,<EmailAddress>)*"
+<EmailItemList> ::= "<EmailItem>(,<EmailItem>)*"
 <EventIDList> ::= "<EventID>(,<EventID>)*"
 <FieldNameList> ::= "<FieldName>(,<FieldName>)*"
 <FileFormatList> ::= "<FileFormat>(,<FileFormat)*"
@@ -201,6 +205,7 @@ Items, separated by spaces, with spaces or commas in the items themselves: "'it 
 <GroupList> ::= "<GroupItem>(,<GroupItem>)*"
 <LabelNameList> ::= "<LabelName>(,<LabelName)*"
 <MessageIDList> ::= "<MessageID>(,<MessageID>)*"
+<MatterItemList> ::= "<MatterItem>(,<MatterItem>)*"
 <MobileList> ::= "<MobileID>(,<MobileID>)*"
 <OrgUnitList> ::== "<OrgUnitItem>(,<OrgUnitItem>)*"
 <PrinterACLScopeList> ::== "<PrinterACLScope>(,<PrinterACLScope>)*"
@@ -447,7 +452,7 @@ gam update alias|aliases <EmailAddressEntity> user|group|target <UniqueID>|<Emai
 gam delete alias|aliases [user|group|target] <EmailAddressEntity>
 gam info alias|aliases <EmailAddressEntity>
 
-gam print alias|aliases [todrive [<ToDriveAttributes>]] [shownoneditable]
+gam print alias|aliases [todrive [<ToDriveAttributes>]] [shownoneditable] [nogroups] [nousers] [query <QueryUser>]
 
 gam whatis <EmailItem> [noinfo]
 
@@ -1319,6 +1324,31 @@ gam [<UserTypeEntity>] update siteacls <SiteEntity> <SiteACLRole> <SiteACLScopeE
 gam [<UserTypeEntity>] delete siteacls <SiteEntity> <SiteACLScopeEntity>
 gam [<UserTypeEntity>] info siteacls <SiteEntity> <SiteACLScopeEntity>
 gam [<UserTypeEntity>] show siteacls  <SiteEntity>
+
+# Vault
+
+gam create vaulthold|hold corpus drive|groups|mail matter <MatterItem> [name <String>] [query <QueryVaultCorpus>]
+	[(accounts|groups|users <EmailItemList>) | (orgunit|ou <OrgUnit>)]
+	[starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>] 
+gam update vaulthold|hold <HoldItem> matter <MatterItem> [query <QueryVaultCorpus>]
+	[([addaccounts|addgroups|addusers <EmailItemList>] [removeaccounts|removegroups|removeusers <EmailItemList>]) | (orgunit|ou <OrgUnit>)]
+	[starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>] 
+gam delete vaulthold|hold <HoldItem> matter <MatterItem>
+gam info vaulthold|hold <HoldItem> matter <MatterItem>
+gam show vaultholds|holds [matter|matters <MatterItemList>]
+gam print vaultholds|holds [todrive [<ToDriveAttributes>]] [matter|matters <MatterItemList>]
+
+gam create vaultmatter|matter [name <String>] [description <string>]
+	[collaborator|collaborators <EmailItemList>]
+gam update vaultmatter|matter <MatterItem> [name <String>] [description <string>]
+	[addcollaborator|addcollaborators <EmailItemList>] [removecollaborator|removecollaborators <EmailItemList>]
+gam close vaultmatter|matter <MatterItem>
+gam reopen vaultmatter|matter <MatterItem>
+gam delete vaultmatter|matter <MatterItem>
+gam undelete vaultmatter|matter <MatterItem>
+gam info vaultmatter|matter <MatterItem>
+gam show vaultmatters|matters [basic|full]
+gam print vaultmatters|matters [todrive [<ToDriveAttributes>]] [basic|full]
 
 # Users
 

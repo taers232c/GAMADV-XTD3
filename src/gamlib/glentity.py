@@ -52,6 +52,7 @@ class GamEntity(object):
   CALENDAR_ACL = u'cacl'
   CALENDAR_SETTINGS = u'cset'
   CLIENT_SECRETS_JSON_FILE = u'clis'
+  COLLABORATOR = u'cola'
   CONFIG_FILE = u'conf'
   CONTACT = u'cont'
   CONTACT_GROUP = u'cogr'
@@ -174,6 +175,9 @@ class GamEntity(object):
   VACATION = u'vaca'
   VACATION_ENABLED = u'vace'
   VALUE = u'valu'
+  VAULT_HOLD = u'vlth'
+  VAULT_MATTER = u'vltm'
+  VAULT_MATTER_ID = u'vlmi'
   WEBCLIPS_ENABLED = u'webc'
   # _NAMES[0] is plural, _NAMES[1] is singular unless the item name is explicitly plural (Calendar Settings)
   # For items with Boolean values, both entries are singular (Forward, POP)
@@ -199,6 +203,7 @@ class GamEntity(object):
     CALENDAR_ACL: [u'Calendar ACLs', u'Calendar ACL'],
     CALENDAR_SETTINGS: [u'Calendar Settings', u'Calendar Settings'],
     CLIENT_SECRETS_JSON_FILE: [u'Client Secrets File', u'Client Secrets File'],
+    COLLABORATOR: [u'Collaborators', u'Collaborator'],    
     CONFIG_FILE: [u'Config File', u'Config File'],
     CONTACT: [u'Contacts', u'Contact'],
     CONTACT_GROUP: [u'Contact Groups', u'Contact Group'],
@@ -321,6 +326,9 @@ class GamEntity(object):
     VACATION: [u'Vacation', u'Vacation'],
     VACATION_ENABLED: [u'Vacation Enabled', u'Vacation Enabled'],
     VALUE: [u'Values', u'Value'],
+    VAULT_HOLD: [u'Vault Holds', u'Vault Hold'],
+    VAULT_MATTER: [u'Vault Matters', u'Vault Matter'],
+    VAULT_MATTER_ID: [u'Vault Matter IDs', u'Vault Matter ID'],
     WEBCLIPS_ENABLED: [u'Web Clips Enabled', u'Web Clips Enabled'],
     ROLE_MANAGER: [u'Managers', u'Manager'],
     ROLE_MEMBER: [u'Members', u'Member'],

@@ -93,6 +93,7 @@ _INFO = {
 
 EMAIL_SCOPE = u'email'
 PROFILE_SCOPE = u'profile'
+VAULT_SCOPES = [u'https://www.googleapis.com/auth/ediscovery', u'https://www.googleapis.com/auth/ediscovery.readonly']
 
 OAUTH2_SCOPES = [
   {u'name': u'Admin Settings API',
@@ -224,7 +225,7 @@ OAUTH2_SCOPES = [
    u'credfam': FAM2_SCOPES,
    u'subscopes': [],
    u'scope': u'https://sites.google.com/feeds'},
-  {u'name': u'Vault Matters and Holds API',
+  {u'name': u'Vault API',
    u'credfam': FAM2_SCOPES,
    u'subscopes': [u'readonly'],
    u'scope': u'https://www.googleapis.com/auth/ediscovery'},

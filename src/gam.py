@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.51.09'
+__version__ = u'4.52.00'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -316,6 +316,7 @@ ORPHANS_COLLECTED_RC = 30
 AC_FAILED_RC = 50
 AC_NOT_PERFORMED_RC = 51
 BAD_REQUEST_RC = 53
+ENTITY_IS_NOT_UNIQUE_RC = 54
 DATA_NOT_AVALIABLE_RC = 55
 ENTITY_DOES_NOT_EXIST_RC = 56
 ENTITY_DUPLICATE_RC = 57
@@ -495,7 +496,7 @@ def accessErrorExit(cd):
   systemErrorExit(INVALID_DOMAIN_RC, accessErrorMessage(cd or buildGAPIObject(API.DIRECTORY)))
 
 def APIAccessDeniedExit():
-  stderrErrorMsg(Msg.API_ACCESS_DENIED.format(GM.Globals[GM.OAUTH2_CLIENT_ID], u','.join(GM.Globals[GM.CURRENT_API_SCOPES])))
+  stderrErrorMsg(Msg.API_ACCESS_DENIED.format(GM.Globals[GM.OAUTH2_CLIENT_ID], u','.join(sorted(GM.Globals[GM.CURRENT_API_SCOPES]))))
   writeStderr(Msg.INSTRUCTIONS_CHECK_AUTHORIZATIONS)
   systemErrorExit(API_ACCESS_DENIED_RC, None)
 
@@ -538,6 +539,27 @@ def invalidDiscoveryJsonExit(fileName):
 
 def noPythonSSLExit():
   systemErrorExit(CERTIFICATE_VALIDATION_UNSUPPORTED_RC, Msg.NO_PYTHON_SSL)
+
+def entityDoesNotExistExit(entityType, entityName, i=0, count=0, errMsg=None):
+  Cmd.Backup()
+  writeStderr(convertUTF8(Cmd.CommandLineWithBadArgumentMarked(False)))
+  systemErrorExit(ENTITY_DOES_NOT_EXIST_RC, formatKeyValueList(Ind.Spaces(),
+                                                               [Ent.Singular(entityType), entityName, errMsg or Msg.DOES_NOT_EXIST],
+                                                               currentCountNL(i, count)))
+
+def entityDoesNotHaveItemExit(entityValueList, i=0, count=0):
+  Cmd.Backup()
+  writeStderr(convertUTF8(Cmd.CommandLineWithBadArgumentMarked(False)))
+  systemErrorExit(ENTITY_DOES_NOT_EXIST_RC, formatKeyValueList(Ind.Spaces(),
+                                                               Ent.FormatEntityValueList(entityValueList)+[Msg.DOES_NOT_EXIST],
+                                                               currentCountNL(i, count)))
+
+def entityIsNotUniqueExit(entityType, entityName, valueType, valueList, i=0, count=0):
+  Cmd.Backup()
+  writeStderr(convertUTF8(Cmd.CommandLineWithBadArgumentMarked(False)))
+  systemErrorExit(ENTITY_IS_NOT_UNIQUE_RC, formatKeyValueList(Ind.Spaces(),
+                                                              [Ent.Singular(entityType), entityName, Msg.IS_NOT_UNIQUE.format(Ent.Plural(valueType), u','.join(valueList))],
+                                                              currentCountNL(i, count)))
 
 def usageErrorExit(message, extraneous=False):
   writeStderr(convertUTF8(Cmd.CommandLineWithBadArgumentMarked(extraneous)))
@@ -598,7 +620,9 @@ def formatChoiceList(choices):
   else:
     return u'|'.join(sorted(choiceList))
 
-def invalidChoiceExit(choices):
+def invalidChoiceExit(choices, backupArg):
+  if backupArg:
+    Cmd.Backup()
   expectedArgumentExit(Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1], formatChoiceList(choices))
 
 def missingChoiceExit(choices):
@@ -614,7 +638,7 @@ def checkArgumentPresent(choices, required=False):
         return choice
     if not required:
       return False
-    invalidChoiceExit(choices)
+    invalidChoiceExit(choices, False)
   elif not required:
     return False
   missingChoiceExit(choices)
@@ -652,7 +676,7 @@ def getBoolean(defaultValue=None):
       return False
     if defaultValue is not None:
       return defaultValue
-    invalidChoiceExit(TRUE_FALSE)
+    invalidChoiceExit(TRUE_FALSE, False)
   if defaultValue is not None:
     return defaultValue
   missingChoiceExit(TRUE_FALSE)
@@ -677,7 +701,7 @@ def getChoice(choices, **opts):
         return choice if not opts.get(MAP_CHOICE, False) else choices[choice]
     if opts.get(DEFAULT_CHOICE, NO_DEFAULT) != NO_DEFAULT:
       return opts[DEFAULT_CHOICE]
-    invalidChoiceExit(choices)
+    invalidChoiceExit(choices, False)
   elif opts.get(DEFAULT_CHOICE, NO_DEFAULT) != NO_DEFAULT:
     return opts[DEFAULT_CHOICE]
   missingChoiceExit(choices)
@@ -693,7 +717,7 @@ def getChoiceAndValue(item, choices, delimiter):
       Cmd.Advance()
       return (choice, value)
     missingArgumentExit(item)
-  invalidChoiceExit(choices)
+  invalidChoiceExit(choices, False)
 
 COLORHEX_PATTERN = re.compile(r'^#[0-9a-fA-F]{6}$')
 COLORHEX_FORMAT_REQUIRED = u'#ffffff'
@@ -742,10 +766,10 @@ def getCourseState(croom):
     if courseState in validStates:
       Cmd.Advance()
       return courseState.upper()
-    invalidChoiceExit(validStates)
+    invalidChoiceExit(validStates, False)
   missingChoiceExit(validStates)
 
-UID_PATTERN = re.compile(r'u?id: ?(.*)')
+UID_PATTERN = re.compile(r'u?id: ?(.+)')
 
 def validateEmailAddressOrUID(emailAddressOrUID):
   cg = UID_PATTERN.match(emailAddressOrUID)
@@ -984,7 +1008,7 @@ def getKeywordAttribute(UProp, keywords, attrdict, **opts):
       attrdict[keywords[UProp.PTKW_ATTR_CUSTOMTYPE_KEYWORD]] = Cmd.Current()
       Cmd.Advance()
       return
-    invalidChoiceExit(keywords[UProp.PTKW_KEYWORD_LIST])
+    invalidChoiceExit(keywords[UProp.PTKW_KEYWORD_LIST], False)
   elif DEFAULT_CHOICE in opts:
     attrdict[keywords[UProp.PTKW_ATTR_TYPE_KEYWORD]] = opts[DEFAULT_CHOICE]
     return
@@ -1145,6 +1169,17 @@ def getFullTime(returnDateTime=False):
       except iso8601.ParseError:
         pass
       invalidArgumentExit(YYYYMMDDTHHMMSS_FORMAT_REQUIRED)
+  missingArgumentExit(YYYYMMDDTHHMMSS_FORMAT_REQUIRED)
+
+YYYYMMDD_PATTERN = re.compile(r'^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+
+def getDateZeroTimeOrFullTime():
+  if Cmd.ArgumentsRemaining():
+    argstr = Cmd.Current().strip().upper()
+    if argstr:
+      if YYYYMMDD_PATTERN.match(argstr):
+        return getYYYYMMDD()+u'T00:00:00.000Z'
+      return getFullTime()
   missingArgumentExit(YYYYMMDDTHHMMSS_FORMAT_REQUIRED)
 
 EVENTID_PATTERN = re.compile(r'^[a-v0-9]{5,1024}$')
@@ -1401,16 +1436,16 @@ def entityOrEntityUnknownWarning(entity1Type, entity1Name, entity2Type, entity2N
                                   u'{0} {1}'.format(Msg.OR, Ent.Singular(entity2Type)), entity2Name, getPhraseDNEorSNA(entity2Name)],
                                  currentCountNL(i, count)))
 
-def entityDuplicateWarning(entityType, entityName, i=0, count=0):
-  setSysExitRC(ENTITY_DUPLICATE_RC)
-  writeStderr(formatKeyValueList(Ind.Spaces(),
-                                 [Ent.Singular(entityType), entityName, Act.Failed(), Msg.DUPLICATE],
-                                 currentCountNL(i, count)))
-
 def entityDoesNotHaveItemWarning(entityValueList, i=0, count=0):
   setSysExitRC(ENTITY_DOES_NOT_EXIST_RC)
   writeStderr(formatKeyValueList(Ind.Spaces(),
                                  Ent.FormatEntityValueList(entityValueList)+[Msg.DOES_NOT_EXIST],
+                                 currentCountNL(i, count)))
+
+def entityDuplicateWarning(entityType, entityName, i=0, count=0):
+  setSysExitRC(ENTITY_DUPLICATE_RC)
+  writeStderr(formatKeyValueList(Ind.Spaces(),
+                                 [Ent.Singular(entityType), entityName, Act.Failed(), Msg.DUPLICATE],
                                  currentCountNL(i, count)))
 
 def entityActionFailedWarning(entityValueList, errMessage, i=0, count=0):
@@ -2784,7 +2819,11 @@ def buildGAPIObject(api):
   GM.Globals[GM.CURRENT_API_USER] = None
   _, httpObj, service, cred_family = getAPIversionHttpService(api)
   credentials = getClientCredentials(cred_family)
-  GM.Globals[GM.CURRENT_API_SCOPES] = list(set(list(service._rootDesc[u'auth'][u'oauth2'][u'scopes'])).intersection(credentials.scopes))
+  try:
+    API_Scopes = set(list(service._rootDesc[u'auth'][u'oauth2'][u'scopes']))
+  except KeyError:
+    API_Scopes = set(API.VAULT_SCOPES) if api == API.VAULT else set()
+  GM.Globals[GM.CURRENT_API_SCOPES] = list(API_Scopes.intersection(credentials.scopes))
   if not GM.Globals[GM.CURRENT_API_SCOPES]:
     systemErrorExit(NO_SCOPES_FOR_API_RC, Msg.NO_SCOPES_FOR_API.format(service._rootDesc[u'title']))
   try:
@@ -2802,7 +2841,7 @@ def buildGAPIObject(api):
   return service
 
 def buildGAPIServiceObject(api, user):
-  userEmail = convertUserUIDtoEmailAddress(user)
+  userEmail = convertUIDtoEmailAddress(user)
   _, httpObj, service, _ = getAPIversionHttpService(api)
   GM.Globals[GM.CURRENT_API_USER] = userEmail
   GM.Globals[GM.CURRENT_API_SCOPES] = API.getSvcAcctScopes(api)
@@ -2832,7 +2871,7 @@ def initGDataObject(gdataObj, api):
   return gdataObj
 
 def getGDataUserCredentials(api, user, i, count):
-  userEmail = convertUserUIDtoEmailAddress(user)
+  userEmail = convertUIDtoEmailAddress(user)
   _, _, api_version, cred_family = API.getVersion(api)
   disc_file, discovery = readDiscoveryFile(api_version)
   GM.Globals[GM.CURRENT_API_USER] = userEmail
@@ -2903,67 +2942,79 @@ def getSitesQuery(**kwargs):
   import gdata.apps.sites.service
   return gdata.apps.sites.service.SitesQuery(**kwargs)
 
-# Convert User UID to email address
-def convertUserUIDtoEmailAddress(emailAddressOrUID, cd=None, checkForCustomerId=False):
+# Convert UID to email address
+def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, email_type=u'user', checkForCustomerId=False):
   if checkForCustomerId and (emailAddressOrUID == GC.Values[GC.CUSTOMER_ID]):
     return emailAddressOrUID
   normalizedEmailAddressOrUID = normalizeEmailAddressOrUID(emailAddressOrUID)
   if normalizedEmailAddressOrUID.find(u'@') > 0:
     return normalizedEmailAddressOrUID
-  try:
-    if cd is None:
-      cd = buildGAPIObject(API.DIRECTORY)
-    result = callGAPI(cd.users(), u'get',
-                      throw_reasons=GAPI.USER_GET_THROW_REASONS,
-                      userKey=normalizedEmailAddressOrUID, fields=u'primaryEmail')
-    if u'primaryEmail' in result:
-      return result[u'primaryEmail'].lower()
-  except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
-    pass
+  if cd is None:
+    cd = buildGAPIObject(API.DIRECTORY)
+  if email_type == u'user':
+    try:
+      result = callGAPI(cd.users(), u'get',
+                        throw_reasons=GAPI.USER_GET_THROW_REASONS,
+                        userKey=normalizedEmailAddressOrUID, fields=u'primaryEmail')
+      if u'primaryEmail' in result:
+        return result[u'primaryEmail'].lower()
+    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+      pass
+  else:
+    try:
+      result = callGAPI(cd.groups(), u'get',
+                        throw_reasons=GAPI.GROUP_GET_THROW_REASONS,
+                        groupKey=normalizedEmailAddressOrUID, fields=u'email')
+      if u'email' in result:
+        return result[u'email'].lower()
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest):
+      pass
   return normalizedEmailAddressOrUID
 
-# Convert Group UID to email address
-def convertGroupUIDtoEmailAddress(emailAddressOrUID):
+# Convert email address to User/Group UID; called immediately after getting email address from command line
+def convertEmailAddressToUID(emailAddressOrUID, cd=None, email_type=u'user', savedLocation=None):
   normalizedEmailAddressOrUID = normalizeEmailAddressOrUID(emailAddressOrUID)
-  if normalizedEmailAddressOrUID.find(u'@') > 0:
+  if normalizedEmailAddressOrUID.find(u'@') == -1:
     return normalizedEmailAddressOrUID
-  try:
+  if cd is None:
     cd = buildGAPIObject(API.DIRECTORY)
-    result = callGAPI(cd.groups(), u'get',
-                      throw_reasons=[GAPI.GROUP_NOT_FOUND],
-                      groupKey=normalizedEmailAddressOrUID, fields=u'email')
-    if u'email' in result:
-      return result[u'email'].lower()
-  except GAPI.groupNotFound:
-    pass
-  return normalizedEmailAddressOrUID
-
-# Validate User UID/Convert email address to User UID; called immediately after getting email address from command line
-def convertEmailAddressToUID(emailAddressOrUID):
-  normalizedEmailAddressOrUID = normalizeEmailAddressOrUID(emailAddressOrUID)
-  if normalizedEmailAddressOrUID.find(u'@') > 0:
-    cd = buildGAPIObject(API.DIRECTORY)
+  if email_type != u'group':
     try:
       return callGAPI(cd.users(), u'get',
                       throw_reasons=GAPI.USER_GET_THROW_REASONS,
                       userKey=normalizedEmailAddressOrUID, fields=u'id')[u'id']
     except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
-      Cmd.Backup()
-      usageErrorExit(formatKeyValueList(Ind.Spaces(),
-                                        [Ent.Singular(Ent.USER), normalizedEmailAddressOrUID,
-                                         getPhraseDNEorSNA(normalizedEmailAddressOrUID)],
-                                        u'\n'))
-  return normalizedEmailAddressOrUID
+      if email_type == u'user':
+        if savedLocation is not None:
+          Cmd.SetLocation(savedLocation)
+        entityDoesNotExistExit(Ent.USER, normalizedEmailAddressOrUID, errMsg=getPhraseDNEorSNA(normalizedEmailAddressOrUID))
+  try:
+    return callGAPI(cd.groups(), u'get',
+                    throw_reasons=GAPI.GROUP_GET_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
+                    groupKey=normalizedEmailAddressOrUID, fields=u'id')[u'id']
+  except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest):
+    if savedLocation is not None:
+      Cmd.SetLocation(savedLocation)
+    entityDoesNotExistExit([Ent.USER, Ent.GROUP][email_type == u'group'], normalizedEmailAddressOrUID, errMsg=getPhraseDNEorSNA(normalizedEmailAddressOrUID))
 
 # Convert User UID from API call to email address
-def convertUserIDtoEmail(uid):
-  cd = buildGAPIObject(API.DIRECTORY)
-  try:
-    return callGAPI(cd.users(), u'get',
-                    throw_reasons=GAPI.USER_GET_THROW_REASONS,
-                    userKey=uid, fields=u'primaryEmail')[u'primaryEmail']
-  except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
-    return u'uid:{0}'.format(uid)
+def convertUserIDtoEmail(uid, cd=None):
+  if GM.Globals[GM.MAP_USER_ID_TO_NAME] is None:
+    GM.Globals[GM.MAP_USER_ID_TO_NAME] = {}
+    primaryEmail = None
+  else:
+    primaryEmail = GM.Globals[GM.MAP_USER_ID_TO_NAME].get(uid)
+  if not primaryEmail:
+    if cd is None:
+      cd = buildGAPIObject(API.DIRECTORY)
+    try:
+      primaryEmail = callGAPI(cd.users(), u'get',
+                              throw_reasons=GAPI.USER_GET_THROW_REASONS,
+                              userKey=uid, fields=u'primaryEmail')[u'primaryEmail']
+    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+      primaryEmail = u'uid:{0}'.format(uid)
+    GM.Globals[GM.MAP_USER_ID_TO_NAME][uid] = primaryEmail
+  return primaryEmail
 
 # Convert UID to split email address
 # Return (foo@bar.com, foo, bar.com)
@@ -2984,6 +3035,25 @@ def splitEmailAddressOrUID(emailAddressOrUID):
   except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
     pass
   return (normalizedEmailAddressOrUID, normalizedEmailAddressOrUID, GC.Values[GC.DOMAIN])
+
+# Convert Org Unit Id to Org Unit Path
+def convertOrgUnitIDtoPath(orgUnitId, cd):
+  if GM.Globals[GM.MAP_ORGUNIT_ID_TO_NAME] is None:
+    GM.Globals[GM.MAP_ORGUNIT_ID_TO_NAME] = {}
+    orgUnitPath = None
+  else:
+    orgUnitPath = GM.Globals[GM.MAP_ORGUNIT_ID_TO_NAME].get(orgUnitId)
+  if not orgUnitPath:
+    if cd is None:
+      cd = buildGAPIObject(API.DIRECTORY)
+    try:
+      orgUnitPath = callGAPI(cd.orgunits(), u'get',
+                             throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                             customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=orgUnitId, fields=u'orgUnitPath')[u'orgUnitPath']
+    except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
+      orgUnitPath = orgUnitId
+    GM.Globals[GM.MAP_ORGUNIT_ID_TO_NAME][orgUnitId] = orgUnitPath
+  return orgUnitPath
 
 def shlexSplitList(entity, dataDelimiter=u' ,'):
   import shlex
@@ -3630,7 +3700,7 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
                 {u'entityType': entityType, u'entity': entityItem})
   if returnOnError:
     return (None, None)
-  invalidChoiceExit(selectorChoices+entityChoices)
+  invalidChoiceExit(selectorChoices+entityChoices, False)
 
 def getEntitySelector():
   selectorChoices = Cmd.ENTITY_SELECTORS[:]
@@ -4869,7 +4939,7 @@ def checkServiceAccount(users):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user = convertUserUIDtoEmailAddress(user)
+    user = convertUIDtoEmailAddress(user)
     entityPerformActionNumItems([Ent.USER, user], jcount, Ent.SCOPE, i, count)
     Ind.Increment()
     j = 0
@@ -6098,24 +6168,6 @@ def doPrintAdminRoles():
     accessErrorExit(cd)
   writeCSVfile(csvRows, titles, u'Admin Roles', todrive)
 
-def buildOrgUnitIdToNameMap():
-  cd = buildGAPIObject(API.DIRECTORY)
-  try:
-    result = callGAPI(cd.orgunits(), u'list',
-                      throw_reasons=[GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
-                      customerId=GC.Values[GC.CUSTOMER_ID],
-                      fields=u'organizationUnits(orgUnitPath,orgUnitId)', type=u'all')
-    GM.Globals[GM.MAP_ORGUNIT_ID_TO_NAME] = {}
-    for orgUnit in result[u'organizationUnits']:
-      GM.Globals[GM.MAP_ORGUNIT_ID_TO_NAME][orgUnit[u'orgUnitId']] = orgUnit[u'orgUnitPath']
-  except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
-    accessErrorExit(cd)
-
-def orgunit_from_orgunitid(orgunitid):
-  if not GM.Globals[GM.MAP_ORGUNIT_ID_TO_NAME]:
-    buildOrgUnitIdToNameMap()
-  return GM.Globals[GM.MAP_ORGUNIT_ID_TO_NAME].get(orgunitid, orgunitid)
-
 def buildRoleIdToNameToIdMap():
   cd = buildGAPIObject(API.DIRECTORY)
   try:
@@ -6142,25 +6194,6 @@ def roleid_from_role(role):
     buildRoleIdToNameToIdMap()
   return GM.Globals[GM.MAP_ROLE_NAME_TO_ID].get(role, None)
 
-def buildUserIdToNameMap():
-  cd = buildGAPIObject(API.DIRECTORY)
-  try:
-    result = callGAPIpages(cd.users(), u'list', u'users',
-                           customer=GC.Values[GC.CUSTOMER_ID],
-                           throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                           fields=u'nextPageToken,users(id,primaryEmail)',
-                           maxResults=GC.Values[GC.USER_MAX_RESULTS])
-    GM.Globals[GM.MAP_USER_ID_TO_NAME] = {}
-    for user in result:
-      GM.Globals[GM.MAP_USER_ID_TO_NAME][user[u'id']] = user[u'primaryEmail']
-  except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-    accessErrorExit(cd)
-
-def user_from_userid(userid):
-  if not GM.Globals[GM.MAP_USER_ID_TO_NAME]:
-    buildUserIdToNameMap()
-  return GM.Globals[GM.MAP_USER_ID_TO_NAME].get(userid, u'')
-
 def getRoleId():
   role = getString(Cmd.OB_ROLE_ID)
   if role[:3].lower() == u'id:':
@@ -6170,26 +6203,23 @@ def getRoleId():
   else:
     roleId = roleid_from_role(role)
     if not roleId:
-      Cmd.Backup()
-      invalidChoiceExit(GM.Globals[GM.MAP_ROLE_NAME_TO_ID])
+      invalidChoiceExit(GM.Globals[GM.MAP_ROLE_NAME_TO_ID], True)
   return (role, roleId)
 
-def getOrgUnitId(cd):
+def getOrgUnitId(cd=None):
+  if cd is None:
+    cd = buildGAPIObject(API.DIRECTORY)
   orgUnit = getOrgUnitItem()
   if orgUnit[:3] == u'id:':
-    return (orgUnit, orgUnit[3:])
+    return (orgUnit, orgUnit)
   try:
     result = callGAPI(cd.orgunits(), u'get',
                       throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
                       customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=makeOrgUnitPathRelative(orgUnit),
                       fields=u'orgUnitId')
-    return (orgUnit, result[u'orgUnitId'][3:])
+    return (orgUnit, result[u'orgUnitId'])
   except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
-    Cmd.Backup()
-    usageErrorExit(formatKeyValueList(Ind.Spaces(),
-                                      [Ent.Singular(Ent.ORGANIZATIONAL_UNIT), orgUnit,
-                                       Msg.DOES_NOT_EXIST],
-                                      u'\n'))
+    entityDoesNotExistExit(Ent.ORGANIZATIONAL_UNIT, orgUnit)
   except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
     accessErrorExit(cd)
 
@@ -6199,12 +6229,13 @@ ADMIN_SCOPE_TYPE_CHOICE_MAP = {u'customer': u'CUSTOMER', u'orgunit': u'ORG_UNIT'
 def doCreateAdmin():
   cd = buildGAPIObject(API.DIRECTORY)
   user = getEmailAddress()
-  body = {u'assignedTo': convertEmailAddressToUID(user)}
+  body = {u'assignedTo': convertEmailAddressToUID(user, cd)}
   role, roleId = getRoleId()
   body[u'roleId'] = roleId
   body[u'scopeType'] = getChoice(ADMIN_SCOPE_TYPE_CHOICE_MAP, mapChoice=True)
   if body[u'scopeType'] == u'ORG_UNIT':
-    orgUnit, body[u'orgUnitId'] = getOrgUnitId(cd)
+    orgUnit, orgUnitId = getOrgUnitId(cd)
+    body[u'orgUnitId'] = orgUnitId[3:]
     scope = u'ORG_UNIT {0}'.format(orgUnit)
   else:
     scope = u'CUSTOMER'
@@ -6268,12 +6299,12 @@ def doPrintAdmins():
       row = {}
       for attr, value in iteritems(admin):
         if attr == u'assignedTo':
-          row[u'assignedToUser'] = user_from_userid(value)
+          row[u'assignedToUser'] = convertUserIDtoEmail(value, cd)
         elif attr == u'roleId':
           row[u'role'] = role_from_roleid(value)
         elif attr == u'orgUnitId':
           value = u'id:{0}'.format(value)
-          row[u'orgUnit'] = orgunit_from_orgunitid(value)
+          row[u'orgUnit'] = convertOrgUnitIDtoPath(value, cd)
         row[attr] = value
       csvRows.append(row)
     writeCSVfile(csvRows, titles, u'Admins', todrive)
@@ -6413,8 +6444,7 @@ def getService(dt):
         if serviceName == olServiceName.lower():
           return (olServiceName, online_service[u'id'])
         serviceNameList.append(olServiceName.lower())
-    Cmd.Backup()
-    invalidChoiceExit(serviceNameList)
+    invalidChoiceExit(serviceNameList, True)
   except (GAPI.unknownError, GAPI.forbidden):
     accessErrorExit(None)
 
@@ -7124,8 +7154,7 @@ def doPrintOrgs():
         if field in ORG_ARGUMENT_TO_PROPERTY_TITLE_MAP:
           addFieldTitleToCSVfile(field, ORG_ARGUMENT_TO_PROPERTY_TITLE_MAP, fieldsList, fieldsTitles, titles, nativeTitles)
         else:
-          Cmd.Backup()
-          invalidChoiceExit(list(ORG_ARGUMENT_TO_PROPERTY_TITLE_MAP))
+          invalidChoiceExit(list(ORG_ARGUMENT_TO_PROPERTY_TITLE_MAP), True)
     elif myarg in [u'convertcrnl', u'converttextnl']:
       convertCRNL = True
     else:
@@ -7350,13 +7379,15 @@ def infoAliases(entityList):
 def doInfoAliases():
   infoAliases(getEntityList(Cmd.OB_EMAIL_ADDRESS_ENTITY))
 
-# gam print aliases|nicknames [todrive [<ToDriveAttributes>]] [shownoneditable]
+# gam print aliases|nicknames [todrive [<ToDriveAttributes>]] [shownoneditable] [nogroups] [nousers] [query <QueryUsers>]
 def doPrintAliases():
   cd = buildGAPIObject(API.DIRECTORY)
   todrive = {}
   titlesList = [u'Alias', u'Target', u'TargetType']
   userFields = [u'primaryEmail', u'aliases']
   groupFields = [u'email', u'aliases']
+  doGroups = doUsers = True
+  query = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
@@ -7365,37 +7396,52 @@ def doPrintAliases():
       titlesList.insert(1, u'NonEditableAlias')
       userFields.append(u'nonEditableAliases')
       groupFields.append(u'nonEditableAliases')
+    elif myarg == u'nogroups':
+      doGroups = False
+    elif myarg == u'nousers':
+      doUsers = False
+    elif myarg == u'query':
+      query = getString(Cmd.OB_QUERY)
+      doGroups = False
+      doUsers = True
     else:
       unknownArgumentExit()
   titles, csvRows = initializeTitlesCSVfile(titlesList)
-  printGettingAccountEntitiesInfo(Ent.USER_ALIAS)
-  page_message = getPageMessage(showTotal=False, showFirstLastItems=True)
-  try:
-    entityList = callGAPIpages(cd.users(), u'list', u'users',
-                               page_message=page_message, message_attribute=u'primaryEmail',
-                               throw_reasons=[GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
-                               customer=GC.Values[GC.CUSTOMER_ID], fields=u'nextPageToken,users({0})'.format(u','.join(userFields)), maxResults=GC.Values[GC.USER_MAX_RESULTS])
-    for user in entityList:
-      for alias in user.get(u'aliases', []):
-        csvRows.append({u'Alias': alias, u'Target': user[u'primaryEmail'], u'TargetType': u'User'})
-      for alias in user.get(u'nonEditableAliases', []):
-        csvRows.append({u'NonEditableAlias': alias, u'Target': user[u'primaryEmail'], u'TargetType': u'User'})
-  except (GAPI.resourceNotFound, GAPI.forbidden, GAPI.badRequest):
-    accessErrorExit(cd)
-  printGettingAccountEntitiesInfo(Ent.GROUP_ALIAS)
-  page_message = getPageMessage(showTotal=False, showFirstLastItems=True)
-  try:
-    entityList = callGAPIpages(cd.groups(), u'list', u'groups',
-                               page_message=page_message, message_attribute=u'email',
-                               throw_reasons=[GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
-                               customer=GC.Values[GC.CUSTOMER_ID], fields=u'nextPageToken,groups({0})'.format(u','.join(groupFields)))
-    for group in entityList:
-      for alias in group.get(u'aliases', []):
-        csvRows.append({u'Alias': alias, u'Target': group[u'email'], u'TargetType': u'Group'})
-      for alias in group.get(u'nonEditableAliases', []):
-        csvRows.append({u'NonEditableAlias': alias, u'Target': group[u'email'], u'TargetType': u'Group'})
-  except (GAPI.resourceNotFound, GAPI.forbidden, GAPI.badRequest):
-    accessErrorExit(cd)
+  if doUsers:
+    printGettingAccountEntitiesInfo(Ent.USER, qualifier=queryQualifier(query))
+    page_message = getPageMessage(showTotal=False, showFirstLastItems=True)
+    try:
+      entityList = callGAPIpages(cd.users(), u'list', u'users',
+                                 page_message=page_message, message_attribute=u'primaryEmail',
+                                 throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.INVALID_INPUT,
+                                                GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                                 customer=GC.Values[GC.CUSTOMER_ID], query=query, fields=u'nextPageToken,users({0})'.format(u','.join(userFields)),
+                                 maxResults=GC.Values[GC.USER_MAX_RESULTS])
+      for user in entityList:
+        for alias in user.get(u'aliases', []):
+          csvRows.append({u'Alias': alias, u'Target': user[u'primaryEmail'], u'TargetType': u'User'})
+        for alias in user.get(u'nonEditableAliases', []):
+          csvRows.append({u'NonEditableAlias': alias, u'Target': user[u'primaryEmail'], u'TargetType': u'User'})
+    except (GAPI.invalidOrgunit, GAPI.invalidInput):
+      entityActionFailedWarning([Ent.ALIAS, None], invalidQuery(query))
+      return
+    except (GAPI.resourceNotFound, GAPI.forbidden, GAPI.badRequest):
+      accessErrorExit(cd)
+  if doGroups:
+    printGettingAccountEntitiesInfo(Ent.GROUP)
+    page_message = getPageMessage(showTotal=False, showFirstLastItems=True)
+    try:
+      entityList = callGAPIpages(cd.groups(), u'list', u'groups',
+                                 page_message=page_message, message_attribute=u'email',
+                                 throw_reasons=[GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                                 customer=GC.Values[GC.CUSTOMER_ID], fields=u'nextPageToken,groups({0})'.format(u','.join(groupFields)))
+      for group in entityList:
+        for alias in group.get(u'aliases', []):
+          csvRows.append({u'Alias': alias, u'Target': group[u'email'], u'TargetType': u'Group'})
+        for alias in group.get(u'nonEditableAliases', []):
+          csvRows.append({u'NonEditableAlias': alias, u'Target': group[u'email'], u'TargetType': u'Group'})
+    except (GAPI.resourceNotFound, GAPI.forbidden, GAPI.badRequest):
+      accessErrorExit(cd)
   writeCSVfile(csvRows, titles, u'Aliases', todrive)
 
 # gam audit uploadkey <ValueReadFromStdin>
@@ -9130,8 +9176,7 @@ def _getContactFieldsList(contactsManager, displayFieldsList):
     if field in contactsManager.CONTACT_ARGUMENT_TO_PROPERTY_MAP:
       displayFieldsList.append(contactsManager.CONTACT_ARGUMENT_TO_PROPERTY_MAP[field])
     else:
-      Cmd.Backup()
-      invalidChoiceExit(contactsManager.CONTACT_ARGUMENT_TO_PROPERTY_MAP)
+      invalidChoiceExit(contactsManager.CONTACT_ARGUMENT_TO_PROPERTY_MAP, True)
 
 def _infoContacts(users, entityType, contactFeed=True):
   contactsManager = ContactsManager()
@@ -9858,8 +9903,7 @@ def infoCrOSDevices(entityList, cd=None):
             projection = u'FULL'
             noLists = False
         else:
-          Cmd.Backup()
-          invalidChoiceExit(CROS_ARGUMENT_TO_PROPERTY_MAP)
+          invalidChoiceExit(CROS_ARGUMENT_TO_PROPERTY_MAP, True)
     else:
       unknownArgumentExit()
   fields = u','.join(set(fieldsList)).replace(u'.', u'/') if fieldsList else None
@@ -10044,8 +10088,7 @@ def doPrintCrOSDevices(entityList=None):
             selectActiveTimeRanges = True
             noLists = False
         else:
-          Cmd.Backup()
-          invalidChoiceExit(CROS_ARGUMENT_TO_PROPERTY_MAP)
+          invalidChoiceExit(CROS_ARGUMENT_TO_PROPERTY_MAP, True)
     else:
       unknownArgumentExit()
   if projection == u'FULL':
@@ -10404,8 +10447,7 @@ def _getMobileFieldsArguments(myarg, parameters):
       if field in MOBILE_ARGUMENT_TO_PROPERTY_MAP:
         parameters[u'fieldsList'].append(MOBILE_ARGUMENT_TO_PROPERTY_MAP[field])
       else:
-        Cmd.Backup()
-        invalidChoiceExit(MOBILE_ARGUMENT_TO_PROPERTY_MAP)
+        invalidChoiceExit(MOBILE_ARGUMENT_TO_PROPERTY_MAP, True)
   else:
     unknownArgumentExit()
 
@@ -10524,6 +10566,7 @@ def doPrintMobileDevices():
       addRowTitlesToCSVfile(row, csvRows, titles)
   except GAPI.invalidInput:
     entityActionFailedWarning([Ent.MOBILE_DEVICE, None], invalidQuery(query))
+    return
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
     accessErrorExit(cd)
   sortCSVTitles([u'resourceId', u'deviceId', u'serialNumber', u'name', u'email', u'status'], titles)
@@ -10869,7 +10912,7 @@ def doUpdateGroups():
       syncMembersSet = set()
       syncMembersMap = {}
       for member in syncMembers:
-        syncMembersSet.add(_cleanAddress(convertUserUIDtoEmailAddress(member, cd=cd, checkForCustomerId=True), syncMembersMap))
+        syncMembersSet.add(_cleanAddress(convertUIDtoEmailAddress(member, cd=cd, checkForCustomerId=True), syncMembersMap))
     checkForExtraneousArguments()
     i = 0
     count = len(entityList)
@@ -10879,13 +10922,13 @@ def doUpdateGroups():
         syncMembersSet = set()
         syncMembersMap = {}
         for member in syncMembers:
-          syncMembersSet.add(_cleanAddress(convertUserUIDtoEmailAddress(member, cd=cd, checkForCustomerId=True), syncMembersMap))
+          syncMembersSet.add(_cleanAddress(convertUIDtoEmailAddress(member, cd=cd, checkForCustomerId=True), syncMembersMap))
       group = checkGroupExists(cd, group, i, count)
       if group:
         currentMembersSet = set()
         currentMembersMap = {}
         for member in getUsersToModify(Cmd.ENTITY_GROUP, group, memberRole=role, groupUserMembersOnly=False):
-          currentMembersSet.add(_cleanAddress(convertUserUIDtoEmailAddress(member, cd=cd, checkForCustomerId=True), currentMembersMap))
+          currentMembersSet.add(_cleanAddress(convertUIDtoEmailAddress(member, cd=cd, checkForCustomerId=True), currentMembersMap))
         _batchAddGroupMembers(cd, group, i, count,
                               [syncMembersMap.get(emailAddress, emailAddress) for emailAddress in syncMembersSet-currentMembersSet],
                               role)
@@ -11011,8 +11054,7 @@ def infoGroups(entityList):
         elif field in GROUP_ATTRIBUTES:
           gsfieldsList.extend([GROUP_ATTRIBUTES[field][0],])
         else:
-          Cmd.Backup()
-          invalidChoiceExit(list(GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP)+list(GROUP_ATTRIBUTES))
+          invalidChoiceExit(list(GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP)+list(GROUP_ATTRIBUTES), True)
 # Ignore info user arguments that may have come from whatis
     elif myarg in INFO_USER_OPTIONS:
       if myarg == u'schemas':
@@ -11114,7 +11156,7 @@ def infoGroups(entityList):
         Ind.Decrement()
         printKeyValueList([u'Total users in group', len(members)])
       Ind.Decrement()
-    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
       entityUnknownWarning(Ent.GROUP, group, i, count)
 
 # gam info groups <GroupEntity> [noaliases] [nousers] [groups] <GroupFieldName>* [fields <GroupFieldNameList>] [formatjson]
@@ -11350,8 +11392,7 @@ def doPrintGroups():
         elif field in GROUP_ATTRIBUTES:
           addFieldTitleToCSVfile(field, {field: [GROUP_ATTRIBUTES[field][0], GROUP_ATTRIBUTES[field][0]]}, gsfieldsList, fieldsTitles, titles, nativeTitles)
         else:
-          Cmd.Backup()
-          invalidChoiceExit(list(GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP)+list(GROUP_ATTRIBUTES))
+          invalidChoiceExit(list(GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP)+list(GROUP_ATTRIBUTES), True)
     elif myarg in [u'members', u'memberscount']:
       rolesList.append(Ent.ROLE_MEMBER)
       members = True
@@ -11561,8 +11602,7 @@ def doPrintGroupMembers():
           field = GROUPMEMBERS_FIELD_NAMES_MAP[field]
           addFieldToCSVfile(field, {field: [field]}, fieldsList, titles)
         else:
-          Cmd.Backup()
-          invalidChoiceExit(GROUPMEMBERS_FIELD_NAMES_MAP)
+          invalidChoiceExit(GROUPMEMBERS_FIELD_NAMES_MAP, True)
     elif myarg == u'membernames':
       membernames = True
     elif myarg == u'userfields':
@@ -11571,8 +11611,7 @@ def doPrintGroupMembers():
         if field in USER_ARGUMENT_TO_PROPERTY_MAP:
           addFieldToCSVfile(field, USER_ARGUMENT_TO_PROPERTY_MAP, userFieldsList, titles)
         else:
-          Cmd.Backup()
-          invalidChoiceExit(USER_ARGUMENT_TO_PROPERTY_MAP)
+          invalidChoiceExit(USER_ARGUMENT_TO_PROPERTY_MAP, True)
     elif myarg == u'noduplicates':
       noduplicates = True
     elif myarg == u'recursive':
@@ -11624,7 +11663,7 @@ def doPrintGroupMembers():
     if isinstance(group, dict):
       groupEmail = group[u'email']
     else:
-      groupEmail = convertGroupUIDtoEmailAddress(group)
+      groupEmail = convertUIDtoEmailAddress(group, cd, u'group')
     membersList = []
     getGroupMembers(cd, groupEmail, membersList, membersSet, i, count, noduplicates, recursive, level)
     for member in membersList:
@@ -12075,8 +12114,7 @@ def _doPrintShowResourceCalendars(csvFormat):
         elif field in RESOURCE_ARGUMENT_TO_PROPERTY_MAP:
           fieldsList.append(RESOURCE_ARGUMENT_TO_PROPERTY_MAP[field])
         else:
-          Cmd.Backup()
-          invalidChoiceExit(RESOURCE_ARGUMENT_TO_PROPERTY_MAP)
+          invalidChoiceExit(RESOURCE_ARGUMENT_TO_PROPERTY_MAP, True)
     elif myarg in [u'convertcrnl', u'converttextnl']:
       convertCRNL = True
     else:
@@ -12327,7 +12365,7 @@ def _doPrintShowCalendarACLs(user, cal, calIds, count, csvFormat, csvRows, title
   i = 0
   for calId in calIds:
     i += 1
-    calId = convertUserUIDtoEmailAddress(calId)
+    calId = convertUIDtoEmailAddress(calId)
     try:
       acls = callGAPIpages(cal.acl(), u'list', u'items',
                            throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
@@ -13006,7 +13044,7 @@ def doCalendarsMoveEvents(cal, calIds):
   sendNotifications = False
   calendarEventEntity = getCalendarEventEntity()
   checkArgumentPresent(Cmd.TO_ARGUMENT)
-  newCalId = convertUserUIDtoEmailAddress(getString(Cmd.OB_CALENDAR_ITEM))
+  newCalId = convertUIDtoEmailAddress(getString(Cmd.OB_CALENDAR_ITEM))
   sendNotifications = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -13389,6 +13427,649 @@ def doPrintUserSchemas():
 def doShowUserSchemas():
   _doPrintShowUserSchemas(False)
 
+def convertHoldNameToID(v, nameOrID, matterId):
+  nameOrID = nameOrID.lower()
+  cg = UID_PATTERN.match(nameOrID)
+  if cg:
+    return cg.group(1)
+  try:
+    holds = callGAPIpages(v.matters().holds(), u'list', u'holds',
+                          throw_reasons=[GAPI.FORBIDDEN],
+                          matterId=matterId, fields=u'holds(holdId,name),nextPageToken')
+    for hold in holds:
+      if hold[u'name'].lower() == nameOrID:
+        return hold[u'holdId']
+  except GAPI.forbidden:
+    APIAccessDeniedExit()
+  entityDoesNotHaveItemExit([Ent.VAULT_MATTER, matterId, Ent.VAULT_HOLD, nameOrID])
+
+def convertMatterNameToID(v, nameOrID):
+  nameOrID = nameOrID.lower()
+  cg = UID_PATTERN.match(nameOrID)
+  if cg:
+    return cg.group(1)
+  ids = []
+  try:
+    matters = callGAPIpages(v.matters(), u'list', u'matters',
+                            throw_reasons=[GAPI.FORBIDDEN],
+                            view=u'BASIC', fields=u'matters(matterId,name),nextPageToken')
+    for matter in matters:
+      if matter[u'name'].lower() == nameOrID:
+        ids.append(matter[u'matterId'])
+  except GAPI.forbidden:
+    APIAccessDeniedExit()
+  if len(ids) == 1:
+    return ids[0]
+  if len(ids) == 0:
+    entityDoesNotExistExit(Ent.VAULT_MATTER, nameOrID)
+  else:
+    entityIsNotUniqueExit(Ent.VAULT_MATTER, nameOrID, Ent.VAULT_MATTER_ID, ids)
+
+def getMatterItem(v):
+  return convertMatterNameToID(v, getString(Cmd.OB_MATTER_ITEM))
+
+def formatHoldNameId(holdName, holdId):
+  cg = UID_PATTERN.match(holdName)
+  if cg:
+    return holdId
+  return u'{0}({1})'.format(holdName, holdId)
+
+def formatMatterNameId(matterName, matterId):
+  cg = UID_PATTERN.match(matterName)
+  if cg:
+    return matterId
+  return u'{0}({1})'.format(matterName, matterId)
+
+# gam create vaulthold|hold corpus drive|groups|mail matter <MatterItem> [name <String>] [query <QueryVaultCorpus>]
+#	[(accounts|groups|users <EmailItemList>) | (orgunit|ou <OrgUnit>)]
+#	[starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>]
+def doCreateVaultHold():
+  v = buildGAPIObject(API.VAULT)
+  validCorpuses = [corpus.lower() for corpus in v._rootDesc[u'schemas'][u'Hold'][u'properties'][u'corpus'][u'enum'] if corpus != u'CORPUS_TYPE_UNSPECIFIED']
+  body = {u'query': {}}
+  query = matterId = startTime = endTime = None
+  accounts = []
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'matter':
+      matterId = getMatterItem(v)
+    elif myarg == u'name':
+      body[u'name'] = getString(Cmd.OB_STRING)
+    elif myarg == u'query':
+      queryLocation = Cmd.Location()
+      query = getString(Cmd.OB_QUERY)
+    elif myarg == u'corpus':
+      body[u'corpus'] = getChoice(validCorpuses).upper()
+    elif myarg in [u'accounts', u'users', u'groups']:
+      accountsLocation = Cmd.Location()
+      accounts = getEntityList(Cmd.OB_EMAIL_ADDRESS_ENTITY)
+    elif myarg in [u'orgunit', u'ou']:
+      _, orgUnitId = getOrgUnitId(None)
+      body[u'orgUnit'] = {u'orgUnitId': orgUnitId}
+    elif myarg == u'starttime':
+      startTime = getDateZeroTimeOrFullTime()
+    elif myarg == u'endtime':
+      endTime = getDateZeroTimeOrFullTime()
+    else:
+      unknownArgumentExit()
+  if matterId is None:
+    missingArgumentExit(Cmd.OB_MATTER_ITEM)
+  if not body.get(u'name'):
+    missingArgumentExit(u'name')
+  if not body.get(u'corpus'):
+    missingArgumentExit(u'corpus {0}'.format(u'|'.join(validCorpuses)))
+  query_type = u'{0}Query'.format(body[u'corpus'].lower())
+  body[u'query'][query_type] = {}
+  if body[u'corpus'] == u'DRIVE':
+    if query:
+      try:
+        body[u'query'][query_type] = json.loads(query)
+      except ValueError as e:
+        Cmd.SetLocation(queryLocation)
+        usageErrorExit(str(e))
+  elif body[u'corpus'] in [u'GROUPS', u'MAIL']:
+    if query:
+      body[u'query'][query_type] = {u'terms': query}
+    if startTime:
+      body[u'query'][query_type][u'startTime'] = startTime
+    if endTime:
+      body[u'query'][query_type][u'endTime'] = endTime
+  if accounts:
+    body[u'accounts'] = []
+    cd = buildGAPIObject(API.DIRECTORY)
+    accountType = u'group' if body[u'corpus'] == u'GROUPS' else u'user'
+    for account in accounts:
+      body[u'accounts'].append({u'accountId': convertEmailAddressToUID(account, cd, accountType, accountsLocation)})
+  try:
+    result = callGAPI(v.matters().holds(), u'create',
+                      throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.BAD_REQUEST, GAPI.BACKEND_ERROR, GAPI.FORBIDDEN],
+                      matterId=matterId, body=body, fields=u'holdId,name')
+    entityActionPerformed([Ent.VAULT_MATTER, matterId, Ent.VAULT_HOLD, formatHoldNameId(result.get(u'name'), result[u'holdId'])])
+  except (GAPI.alreadyExists, GAPI.badRequest, GAPI.backendError, GAPI.forbidden) as e:
+    entityActionFailedWarning([Ent.VAULT_MATTER, matterId, Ent.VAULT_HOLD, None], str(e))
+
+# gam update vaulthold|hold <HoldItem> matter <MatterItem> [query <QueryVaultCorpus>]
+#	[([addaccounts|addgroups|addusers <EmailItemList>] [removeaccounts|removegroups|removeusers <EmailItemList>]) | (orgunit|ou <OrgUnit>)]
+#	[starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>]
+def doUpdateVaultHold():
+  v = buildGAPIObject(API.VAULT)
+  holdName = getString(Cmd.OB_HOLD_ITEM)
+  matterId = None
+  body = {}
+  addAccounts = []
+  addAccountIds = []
+  removeAccounts = []
+  removeAccountIds = []
+  cd = query = startTime = endTime = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'matter':
+      matterId = getMatterItem(v)
+      holdId = convertHoldNameToID(v, holdName, matterId)
+    elif myarg == u'query':
+      queryLocation = Cmd.Location()
+      query = getString(Cmd.OB_QUERY)
+    elif myarg in [u'orgunit', u'ou']:
+      _, orgUnitId = getOrgUnitId(None)
+      body[u'orgUnit'] = {u'orgUnitId': orgUnitId}
+    elif myarg == u'starttime':
+      startTime = getDateZeroTimeOrFullTime()
+    elif myarg == u'endtime':
+      endTime = getDateZeroTimeOrFullTime()
+    elif myarg in [u'addusers', u'addaccounts', u'addgroups']:
+      addAccountsLocation = Cmd.Location()
+      addAccounts = getEntityList(Cmd.OB_EMAIL_ADDRESS_ENTITY)
+    elif myarg in [u'removeusers', u'removeaccounts', u'removegroups']:
+      removeAccountsLocation = Cmd.Location()
+      removeAccounts = getEntityList(Cmd.OB_EMAIL_ADDRESS_ENTITY)
+    else:
+      unknownArgumentExit()
+  if matterId is None:
+    missingArgumentExit(Cmd.OB_MATTER_ITEM)
+  try:
+    old_body = callGAPI(v.matters().holds(), u'get',
+                        throw_reasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                        matterId=matterId, holdId=holdId, fields=u'name,corpus,query,orgUnit')
+  except (GAPI.notFound, GAPI.badRequest, GAPI.forbidden) as e:
+    entityActionFailedWarning([Ent.VAULT_MATTER, matterId, Ent.VAULT_HOLD, formatHoldNameId(holdName, holdId)], str(e))
+    return
+  accountType = u'group' if old_body[u'corpus'] == u'GROUPS' else u'user'
+  if addAccounts:
+    if cd is None:
+      cd = buildGAPIObject(API.DIRECTORY)
+    addAccountIds = []
+    for account in addAccounts:
+      addAccountIds.append({u'email': account, u'id': convertEmailAddressToUID(account, cd, accountType, addAccountsLocation)})
+  if removeAccounts:
+    if cd is None:
+      cd = buildGAPIObject(API.DIRECTORY)
+    removeAccountIds = []
+    for account in removeAccounts:
+      removeAccountIds.append({u'email': account, u'id': convertEmailAddressToUID(account, cd, accountType, removeAccountsLocation)})
+  if query or startTime or endTime or body.get(u'orgUnit'):
+    body[u'query'] = old_body[u'query']
+    body[u'corpus'] = old_body[u'corpus']
+    if u'orgUnit' in old_body and u'orgUnit' not in body:
+      # bah, API requires this to be sent on update even when it's not changing
+      body[u'orgUnit'] = old_body[u'orgUnit']
+    query_type = '{0}Query'.format(body[u'corpus'].lower())
+    if body[u'corpus'] == u'DRIVE':
+      if query:
+        try:
+          body[u'query'][query_type] = json.loads(query)
+        except ValueError as e:
+          Cmd.SetLocation(queryLocation)
+          usageErrorExit(str(e))
+    elif body[u'corpus'] in [u'GROUPS', u'MAIL']:
+      if  query:
+        body[u'query'][query_type][u'terms'] = query
+      if startTime:
+        body[u'query'][query_type][u'startTime'] = startTime
+      if endTime:
+        body[u'query'][query_type][u'endTime'] = endTime
+  if body:
+    try:
+      callGAPI(v.matters().holds(), u'update',
+               throw_reasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+               matterId=matterId, holdId=holdId, body=body)
+      entityActionPerformed([Ent.VAULT_MATTER, matterId, Ent.VAULT_HOLD, formatHoldNameId(holdName, holdId)])
+    except (GAPI.notFound, GAPI.badRequest, GAPI.forbidden) as e:
+      entityActionFailedWarning([Ent.VAULT_MATTER, matterId, Ent.VAULT_HOLD, formatHoldNameId(holdName, holdId)], str(e))
+      return
+  jcount = len(addAccountIds)
+  if jcount > 0:
+    Act.Set(Act.ADD)
+    entityPerformActionNumItems([Ent.VAULT_MATTER, matterId, Ent.VAULT_HOLD, formatHoldNameId(holdName, holdId)], jcount, Ent.ACCOUNT)
+    Ind.Increment()
+    j = 0
+    for account in addAccountIds:
+      j += 1
+      try:
+        callGAPI(v.matters().holds().accounts(), u'create',
+                 throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.BACKEND_ERROR, GAPI.FORBIDDEN],
+                 matterId=matterId, holdId=holdId, body={u'accountId': account[u'id']})
+        entityActionPerformed([Ent.VAULT_MATTER, matterId,
+                               Ent.VAULT_HOLD, formatHoldNameId(holdName, holdId),
+                               Ent.ACCOUNT, account[u'email']], j, jcount)
+      except (GAPI.alreadyExists, GAPI.backendError) as e:
+        entityActionFailedWarning([Ent.VAULT_MATTER, matterId,
+                                   Ent.VAULT_HOLD, formatHoldNameId(holdName, holdId),
+                                   Ent.ACCOUNT, account[u'email']], str(e), j, jcount)
+      except GAPI.forbidden as e:
+        entityActionFailedWarning([Ent.VAULT_MATTER, matterId, Ent.VAULT_HOLD, None], str(e))
+        return
+    Ind.Decrement()
+  jcount = len(removeAccountIds)
+  if jcount > 0:
+    Act.Set(Act.REMOVE)
+    if cd is None:
+      cd = buildGAPIObject(API.DIRECTORY)
+    entityPerformActionNumItems([Ent.VAULT_MATTER, matterId, Ent.VAULT_HOLD, formatHoldNameId(holdName, holdId)], jcount, Ent.ACCOUNT)
+    Ind.Increment()
+    j = 0
+    for account in removeAccountIds:
+      j += 1
+      try:
+        callGAPI(v.matters().holds().accounts(), u'delete',
+                 throw_reasons=[GAPI.NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.FORBIDDEN],
+                 matterId=matterId, holdId=holdId, accountId=account[u'id'])
+        entityActionPerformed([Ent.VAULT_MATTER, matterId,
+                               Ent.VAULT_HOLD, formatHoldNameId(holdName, holdId),
+                               Ent.ACCOUNT, account[u'email']], j, jcount)
+      except (GAPI.alreadyExists, GAPI.backendError) as e:
+        entityActionFailedWarning([Ent.VAULT_MATTER, matterId,
+                                   Ent.VAULT_HOLD, formatHoldNameId(holdName, holdId),
+                                   Ent.ACCOUNT, account[u'email']], str(e), j, jcount)
+      except GAPI.forbidden as e:
+        entityActionFailedWarning([Ent.VAULT_MATTER, matterId, Ent.VAULT_HOLD, None], str(e))
+        return
+    Ind.Decrement()
+
+# gam delete vaulthold|hold <HoldItem> matter <MatterItem>
+def doDeleteVaultHold():
+  v = buildGAPIObject(API.VAULT)
+  holdName = getString(Cmd.OB_HOLD_ITEM)
+  matterId = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'matter':
+      matterId = getMatterItem(v)
+      holdId = convertHoldNameToID(v, holdName, matterId)
+    else:
+      unknownArgumentExit()
+  if matterId is None:
+    missingArgumentExit(Cmd.OB_MATTER_ITEM)
+  try:
+    callGAPI(v.matters().holds(), u'delete',
+             throw_reasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+             matterId=matterId, holdId=holdId)
+    entityActionPerformed([Ent.VAULT_MATTER, matterId, Ent.VAULT_HOLD, formatHoldNameId(holdName, holdId)])
+  except (GAPI.notFound, GAPI.badRequest, GAPI.forbidden) as e:
+    entityActionFailedWarning([Ent.VAULT_MATTER, matterId, Ent.VAULT_HOLD, formatHoldNameId(holdName, holdId)], str(e))
+
+VAULT_HOLD_TIME_OBJECTS = [u'holdTime', u'updateTime', u'startTime', u'endTime']
+
+def _getHoldEmailAddressesOrgUnitName(hold, cd):
+  if u'accounts' in hold:
+    accountType = u'group' if hold[u'corpus'] == u'GROUPS' else u'user'
+    for i in range(0, len(hold[u'accounts'])):
+      hold[u'accounts'][i][u'email'] = convertUIDtoEmailAddress(u'uid:{0}'.format(hold[u'accounts'][i][u'accountId']), cd, accountType)
+  if u'orgUnit' in hold:
+    hold[u'orgUnit'][u'orgUnitPath'] = convertOrgUnitIDtoPath(hold[u'orgUnit'][u'orgUnitId'], cd)
+
+def _showVaultHold(hold, cd):
+  if cd is not None:
+    _getHoldEmailAddressesOrgUnitName(hold, cd)
+  Ind.Increment()
+  showJSON(None, hold, timeObjects=VAULT_HOLD_TIME_OBJECTS)
+  Ind.Decrement()
+
+# gam info vaulthold|hold <HoldItem> matter <MatterItem>
+def doInfoVaultHold():
+  v = buildGAPIObject(API.VAULT)
+  holdName = getString(Cmd.OB_HOLD_ITEM)
+  matterId = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'matter':
+      matterId = getMatterItem(v)
+      holdId = convertHoldNameToID(v, holdName, matterId)
+    else:
+      unknownArgumentExit()
+  if matterId is None:
+    missingArgumentExit(Cmd.OB_MATTER_ITEM)
+  try:
+    hold = callGAPI(v.matters().holds(), u'get',
+                    throw_reasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                    matterId=matterId, holdId=holdId)
+    entityActionPerformed([Ent.VAULT_MATTER, matterId, Ent.VAULT_HOLD, formatHoldNameId(hold[u'name'], hold[u'holdId'])])
+    _showVaultHold(hold, buildGAPIObject(API.DIRECTORY))
+  except (GAPI.notFound, GAPI.badRequest, GAPI.forbidden) as e:
+    entityActionFailedWarning([Ent.VAULT_MATTER, matterId, Ent.VAULT_HOLD, formatHoldNameId(holdName, holdId)], str(e))
+
+def _doPrintShowVaultHolds(csvFormat):
+  def _warnMatterNotOpen(matter, j, jcount):
+    printWarningMessage(DATA_NOT_AVALIABLE_RC, formatKeyValueList(u'',
+                                                                  Ent.FormatEntityValueList([Ent.VAULT_MATTER, matter[u'matterId']])+[u'state is not OPEN',],
+                                                                  currentCount(j, jcount)))
+  v = buildGAPIObject(API.VAULT)
+  if csvFormat:
+    initialTitles = [u'matterId', u'holdId', u'name', u'corpus', u'updateTime']
+    titles, csvRows = initializeTitlesCSVfile(initialTitles)
+    todrive = {}
+  matters = []
+  cd = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvFormat and myarg == u'todrive':
+      todrive = getTodriveParameters()
+    elif myarg in [u'matter', u'matters']:
+      matters = getString(Cmd.OB_MATTER_ITEM_LIST).split(u',')
+    elif myarg == u'shownames':
+      cd = buildGAPIObject(API.DIRECTORY)
+    else:
+      unknownArgumentExit()
+  if not matters:
+    printGettingAccountEntitiesInfo(Ent.VAULT_MATTER)
+    page_message = getPageMessage()
+    try:
+      results = callGAPIpages(v.matters(), u'list', u'matters',
+                              page_message=page_message,
+                              throw_reasons=[GAPI.FORBIDDEN],
+                              view=u'BASIC', fields=u'matters(matterId,name,state),nextPageToken')
+    except GAPI.forbidden as e:
+      entityActionFailedWarning([Ent.VAULT_HOLD, None], str(e))
+      return
+  else:
+    results = [{u'matterId': convertMatterNameToID(v, matter), u'name': matter, u'state': u'OPEN'} for matter in matters]
+  jcount = len(results)
+  if not csvFormat:
+    if jcount == 0:
+      setSysExitRC(NO_ENTITIES_FOUND)
+  j = 0
+  for matter in results:
+    j += 1
+    matterId = matter[u'matterId']
+    if csvFormat:
+      printGettingAllEntityItemsForWhom(Ent.VAULT_HOLD, u'{0}: {1}'.format(Ent.Singular(Ent.VAULT_MATTER), formatMatterNameId(matter[u'name'], matterId)), j, jcount)
+      page_message = getPageMessageForWhom(noNL=True)
+    else:
+      page_message = None
+    if matter[u'state'] == u'OPEN':
+      try:
+        holds = callGAPIpages(v.matters().holds(), u'list', u'holds',
+                              page_message=page_message,
+                              throw_reasons=[GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
+                              matterId=matterId)
+      except GAPI.failedPrecondition as e:
+        _warnMatterNotOpen(matter, j, jcount)
+        continue
+      except GAPI.forbidden as e:
+        entityActionFailedWarning([Ent.VAULT_HOLD, None], str(e))
+        break
+    else:
+      _warnMatterNotOpen(matter, j, jcount)
+      continue
+    kcount = len(holds)
+    if not csvFormat:
+      entityPerformActionNumItems([Ent.VAULT_MATTER, matterId], kcount, Ent.VAULT_HOLD, j, jcount)
+      Ind.Increment()
+      k = 0
+      for hold in holds:
+        k += 1
+        printEntity([Ent.VAULT_MATTER, matterId, Ent.VAULT_HOLD, formatHoldNameId(hold[u'name'], hold[u'holdId'])], k, kcount)
+        _showVaultHold(hold, cd)
+      Ind.Decrement()
+    else:
+      for hold in holds:
+        if cd is not None:
+          _getHoldEmailAddressesOrgUnitName(hold, cd)
+        addRowTitlesToCSVfile(flattenJSON(hold, flattened={u'matterId': matterId}, timeObjects=VAULT_HOLD_TIME_OBJECTS), csvRows, titles)
+  if csvFormat:
+    sortCSVTitles(initialTitles, titles)
+    writeCSVfile(csvRows, titles, u'Vault Holds', todrive)
+
+# gam print vaultholds|holds [todrive [<ToDriveAttributes>]] [matters <MatterItemList>]
+def doPrintVaultHolds():
+  _doPrintShowVaultHolds(True)
+
+# gam show vaultholds|holds [matters <MatterItemList>]
+def doShowVaultHolds():
+  _doPrintShowVaultHolds(False)
+
+def validateCollaborators(cd):
+  collaborators = []
+  for collaborator in getEntityList(Cmd.OB_COLLABORATOR_ENTITY):
+    collaborators.append({u'email': collaborator, u'id': convertEmailAddressToUID(collaborator, cd)})
+  return collaborators
+
+# gam create vaultmatter|matter [name <String>] [description <string>]
+#	[collaborator|collaborators <CollaboratorItemList>]
+def doCreateVaultMatter():
+  v = buildGAPIObject(API.VAULT)
+  body = {u'name': u'New Matter - %s' % datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+  collaborators = []
+  cd = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'name':
+      body[u'name'] = getString(Cmd.OB_STRING)
+    elif myarg == u'description':
+      body[u'description'] = getString(Cmd.OB_STRING, minLen=0)
+    elif myarg in [u'collaborator', u'collaborators']:
+      if not cd:
+        cd = buildGAPIObject(API.DIRECTORY)
+      collaborators.extend(validateCollaborators(cd))
+    else:
+      unknownArgumentExit()
+  try:
+    result = callGAPI(v.matters(), u'create',
+                      throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.FORBIDDEN],
+                      body=body, fields=u'matterId')
+    matterId = result[u'matterId']
+    entityActionPerformed([Ent.VAULT_MATTER, matterId])
+  except (GAPI.alreadyExists, GAPI.forbidden) as e:
+    entityActionFailedWarning([Ent.VAULT_MATTER, body[u'name']], str(e))
+    return
+  jcount = len(collaborators)
+  if jcount > 0:
+    Act.Set(Act.ADD)
+    entityPerformActionNumItems([Ent.VAULT_MATTER, matterId], jcount, Ent.COLLABORATOR)
+    Ind.Increment()
+    j = 0
+    for collaborator in collaborators:
+      j += 1
+      try:
+        callGAPI(v.matters(), u'addPermissions',
+                 throw_reasons=[GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
+                 matterId=matterId, body={u'matterPermission': {u'role': u'COLLABORATOR', u'accountId': collaborator[u'id']}})
+        entityActionPerformed([Ent.VAULT_MATTER, matterId, Ent.VAULT_HOLD, Ent.COLLABORATOR, collaborator[u'email']], j, jcount)
+      except (GAPI.failedPrecondition, GAPI.forbidden) as e:
+        entityActionFailedWarning([Ent.VAULT_MATTER, matterId], str(e))
+        break
+    Ind.Decrement()
+
+# gam update vaultmatter|matter <MatterItem> [name <String>] [description <string>]
+#	[addcollaborator|addcollaborators <CollaboratorItemList>] [removecollaborator|removecollaborators <CollaboratorItemList>]
+def doUpdateVaultMatter():
+  v = buildGAPIObject(API.VAULT)
+  matterId = getMatterItem(v)
+  body = {}
+  addCollaborators = []
+  removeCollaborators = []
+  cd = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'name':
+      body[u'name'] = getString(Cmd.OB_STRING)
+    elif myarg == u'description':
+      body[u'description'] = getString(Cmd.OB_STRING, minLen=0)
+    elif myarg in [u'addcollaborator', u'addcollaborators']:
+      if not cd:
+        cd = buildGAPIObject(API.DIRECTORY)
+      addCollaborators.extend(validateCollaborators(cd))
+    elif myarg in [u'removecollaborator', u'removecollaborators']:
+      if not cd:
+        cd = buildGAPIObject(API.DIRECTORY)
+      removeCollaborators.extend(validateCollaborators(cd))
+    else:
+      unknownArgumentExit()
+  if body:
+    try:
+      if u'name' not in body or u'description' not in body:
+        # bah, API requires name/description to be sent on update even when it's not changing
+        result = callGAPI(v.matters(), u'get',
+                          throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                          matterId=matterId, view=u'BASIC')
+        body.setdefault(u'name', result[u'name'])
+        body.setdefault(u'description', result.get(u'description'))
+      callGAPI(v.matters(), u'update',
+               throw_reasons=[GAPI.NOT_FOUND, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
+               matterId=matterId, body=body)
+      entityActionPerformed([Ent.VAULT_MATTER, matterId])
+    except (GAPI.notFound, GAPI.failedPrecondition, GAPI.forbidden) as e:
+      entityActionFailedWarning([Ent.VAULT_MATTER, matterId], str(e))
+      return
+  jcount = len(addCollaborators)
+  if jcount > 0:
+    Act.Set(Act.ADD)
+    entityPerformActionNumItems([Ent.VAULT_MATTER, matterId], jcount, Ent.COLLABORATOR)
+    Ind.Increment()
+    j = 0
+    for collaborator in addCollaborators:
+      j += 1
+      try:
+        callGAPI(v.matters(), u'addPermissions',
+                 throw_reasons=[GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
+                 matterId=matterId, body={u'matterPermission': {u'role': u'COLLABORATOR', u'accountId': collaborator[u'id']}})
+        entityActionPerformed([Ent.VAULT_MATTER, matterId, Ent.COLLABORATOR, collaborator[u'email']], j, jcount)
+      except (GAPI.failedPrecondition, GAPI.forbidden) as e:
+        entityActionFailedWarning([Ent.VAULT_MATTER, matterId], str(e))
+        break
+    Ind.Decrement()
+  jcount = len(removeCollaborators)
+  if jcount > 0:
+    Act.Set(Act.REMOVE)
+    entityPerformActionNumItems([Ent.VAULT_MATTER, matterId], jcount, Ent.COLLABORATOR)
+    Ind.Increment()
+    j = 0
+    for collaborator in removeCollaborators:
+      j += 1
+      try:
+        callGAPI(v.matters(), u'removePermissions',
+                 throw_reasons=[GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
+                 matterId=matterId, body={u'accountId': collaborator[u'id']})
+        entityActionPerformed([Ent.VAULT_MATTER, matterId, Ent.COLLABORATOR, collaborator[u'email']], j, jcount)
+      except (GAPI.failedPrecondition, GAPI.forbidden) as e:
+        entityActionFailedWarning([Ent.VAULT_MATTER, matterId], str(e))
+        break
+    Ind.Decrement()
+
+def doActionVaultMatter(action):
+  v = buildGAPIObject(API.VAULT)
+  matterId = getMatterItem(v)
+  checkForExtraneousArguments()
+  action_kwargs = {} if action == u'delete' else {u'body': {}}
+  try:
+    callGAPI(v.matters(), action,
+             throw_reasons=[GAPI.NOT_FOUND, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
+             matterId=matterId, **action_kwargs)
+    entityActionPerformed([Ent.VAULT_MATTER, matterId])
+  except (GAPI.notFound, GAPI.failedPrecondition, GAPI.forbidden) as e:
+    entityActionFailedWarning([Ent.VAULT_MATTER, matterId], str(e))
+
+# gam close vaultmatter|matter <MatterItem>
+def doCloseVaultMatter():
+  doActionVaultMatter(action=u'close')
+
+# gam reopen vaultmatter|matter <MatterItem>
+def doReopenVaultMatter():
+  doActionVaultMatter(action=u'reopen')
+
+# gam delete vaultmatter|matter <MatterItem>
+def doDeleteVaultMatter():
+  doActionVaultMatter(action=u'delete')
+
+# gam undelete vaultmatter|matter <MatterItem>
+def doUndeleteVaultMatter():
+  doActionVaultMatter(action=u'undelete')
+
+def _showVaultMatter(matter, cd):
+  if u'matterPermissions' in matter:
+    for i in range(0, len(matter[u'matterPermissions'])):
+      matter[u'matterPermissions'][i][u'email'] = convertUIDtoEmailAddress(u'uid:{0}'.format(matter[u'matterPermissions'][i][u'accountId']), cd)
+  Ind.Increment()
+  showJSON(None, matter)
+  Ind.Decrement()
+
+# gam info vaultmatter|matter <MatterItem>
+def doInfoVaultMatter():
+  v = buildGAPIObject(API.VAULT)
+  matterId = getMatterItem(v)
+  checkForExtraneousArguments()
+  try:
+    matter = callGAPI(v.matters(), u'get',
+                      throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                      matterId=matterId, view=u'FULL')
+    cd = buildGAPIObject(API.DIRECTORY) if u'matterPermissions' in matter else None
+    entityActionPerformed([Ent.VAULT_MATTER, formatMatterNameId(matter[u'name'], matter[u'matterId'])])
+    _showVaultMatter(matter, cd)
+  except (GAPI.notFound, GAPI.forbidden) as e:
+    entityActionFailedWarning([Ent.VAULT_MATTER, matterId], str(e))
+
+def _doPrintShowVaultMatters(csvFormat):
+  v = buildGAPIObject(API.VAULT)
+  if csvFormat:
+    initialTitles = [u'matterId', u'name', u'description', u'state']
+    titles, csvRows = initializeTitlesCSVfile(initialTitles)
+    todrive = {}
+  view = u'FULL'
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvFormat and myarg == u'todrive':
+      todrive = getTodriveParameters()
+    elif myarg in PROJECTION_CHOICES_MAP:
+      view = PROJECTION_CHOICES_MAP[myarg]
+    else:
+      unknownArgumentExit()
+  printGettingAccountEntitiesInfo(Ent.VAULT_MATTER)
+  page_message = getPageMessage()
+  try:
+    matters = callGAPIpages(v.matters(), u'list', u'matters',
+                            page_message=page_message,
+                            throw_reasons=[GAPI.FORBIDDEN],
+                            view=view)
+    jcount = len(matters)
+    if not csvFormat:
+      performActionNumItems(jcount, Ent.VAULT_MATTER)
+      if jcount == 0:
+        setSysExitRC(NO_ENTITIES_FOUND)
+        return
+      cd = buildGAPIObject(API.DIRECTORY) if view == u'FULL' else None
+      Ind.Increment()
+      j = 0
+      for matter in matters:
+        j += 1
+        printEntity([Ent.VAULT_MATTER, formatMatterNameId(matter[u'name'], matter[u'matterId'])], j, jcount)
+        _showVaultMatter(matter, cd)
+      Ind.Decrement()
+    else:
+      for matter in matters:
+        addRowTitlesToCSVfile(flattenJSON(matter), csvRows, titles)
+  except GAPI.forbidden as e:
+    entityActionFailedWarning([Ent.VAULT_MATTER, None], str(e))
+  if csvFormat:
+    sortCSVTitles(initialTitles, titles)
+    writeCSVfile(csvRows, titles, u'Vault Matters', todrive)
+
+# gam print vaultmatters|matters [todrive [<ToDriveAttributes>]] [basic|full]
+def doPrintVaultMatters():
+  _doPrintShowVaultMatters(True)
+
+# gam show vaultmatters|matters [basic|full]
+def doShowVaultMatters():
+  _doPrintShowVaultMatters(False)
+
 def checkSiteExists(sitesObject, domain, site):
   try:
     callGData(sitesObject, u'GetSite',
@@ -13761,8 +14442,7 @@ def getACLRoles(aclRolesMap):
     elif role in aclRolesMap:
       roles.append(aclRolesMap[role])
     else:
-      Cmd.Backup()
-      invalidChoiceExit(aclRolesMap)
+      invalidChoiceExit(aclRolesMap, True)
   return list(set(roles))
 
 def _infoSites(users, entityType):
@@ -14550,7 +15230,8 @@ def doCreateUser():
   user = body[u'primaryEmail']
   try:
     callGAPI(cd.users(), u'insert',
-             throw_reasons=[GAPI.DUPLICATE, GAPI.DOMAIN_NOT_FOUND, GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN, GAPI.INVALID, GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
+             throw_reasons=[GAPI.DUPLICATE, GAPI.DOMAIN_NOT_FOUND, GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN,
+                            GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
              body=body, fields=u'')
     entityActionPerformed([Ent.USER, user])
     if admin_body:
@@ -14559,10 +15240,12 @@ def doCreateUser():
       sendCreateUserNotification(notify, body)
   except GAPI.duplicate:
     entityDuplicateWarning(Ent.USER, user)
-  except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.invalid) as e:
+  except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.USER, user], str(e))
   except GAPI.invalidSchemaValue:
     entityActionFailedWarning([Ent.USER, user], Msg.INVALID_SCHEMA_VALUE)
+  except (GAPI.invalid, GAPI.invalidInput) as e:
+    entityActionFailedWarning([Ent.USER, user], str(e))
   except GAPI.invalidOrgunit:
     entityActionFailedWarning([Ent.USER, user], Msg.INVALID_ORGUNIT)
 
@@ -14593,7 +15276,8 @@ def updateUsers(entityList):
       if body:
         try:
           callGAPI(cd.users(), u'update',
-                   throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID, GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
+                   throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN,
+                                  GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
                    userKey=user, body=body, fields=u'')
           entityActionPerformed([Ent.USER, user], i, count)
         except GAPI.userNotFound:
@@ -14602,7 +15286,8 @@ def updateUsers(entityList):
               body[u'primaryEmail'] = user
             try:
               callGAPI(cd.users(), u'insert',
-                       throw_reasons=[GAPI.DUPLICATE, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID, GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
+                       throw_reasons=[GAPI.DUPLICATE, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN,
+                                      GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
                        body=body, fields=u'')
               Act.Set(Act.CREATE)
               entityActionPerformed([Ent.USER, user], i, count)
@@ -14619,7 +15304,7 @@ def updateUsers(entityList):
       entityUnknownWarning(Ent.USER, user, i, count)
     except GAPI.invalidSchemaValue:
       entityActionFailedWarning([Ent.USER, user], Msg.INVALID_SCHEMA_VALUE, i, count)
-    except GAPI.invalid as e:
+    except (GAPI.invalid, GAPI.invalidInput) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
     except GAPI.invalidOrgunit:
       entityActionFailedWarning([Ent.USER, user], Msg.INVALID_ORGUNIT, i, count)
@@ -14948,8 +15633,7 @@ def infoUsers(entityList):
         if field in USER_ARGUMENT_TO_PROPERTY_MAP:
           fieldsList.extend(USER_ARGUMENT_TO_PROPERTY_MAP[field])
         else:
-          Cmd.Backup()
-          invalidChoiceExit(USER_ARGUMENT_TO_PROPERTY_MAP)
+          invalidChoiceExit(USER_ARGUMENT_TO_PROPERTY_MAP, True)
 # Ignore info group arguments that may have come from whatis
     elif myarg in INFO_GROUP_OPTIONS:
       pass
@@ -15280,8 +15964,7 @@ def doPrintUsers(entityList=None):
         if field in USER_ARGUMENT_TO_PROPERTY_MAP:
           addFieldToCSVfile(field, USER_ARGUMENT_TO_PROPERTY_MAP, fieldsList, titles)
         else:
-          Cmd.Backup()
-          invalidChoiceExit(USER_ARGUMENT_TO_PROPERTY_MAP)
+          invalidChoiceExit(USER_ARGUMENT_TO_PROPERTY_MAP, True)
     elif myarg == u'groups':
       getGroupFeed = True
     elif myarg in [u'license', u'licenses', u'licence', u'licences']:
@@ -15826,8 +16509,7 @@ def _getCourseShowArguments(myarg, courseShowProperties):
         if field != u'id':
           courseShowProperties[u'fields'].append(COURSE_ARGUMENT_TO_PROPERTY_MAP[field])
       else:
-        Cmd.Backup()
-        invalidChoiceExit(COURSE_ARGUMENT_TO_PROPERTY_MAP)
+        invalidChoiceExit(COURSE_ARGUMENT_TO_PROPERTY_MAP, True)
   elif myarg == u'skipfields':
     fieldNameList = getString(Cmd.OB_FIELD_NAME_LIST)
     for field in fieldNameList.lower().replace(u',', u' ').split():
@@ -15847,8 +16529,7 @@ def _getCourseShowArguments(myarg, courseShowProperties):
         if field != u'id':
           courseShowProperties[u'skips'].append(COURSE_ARGUMENT_TO_PROPERTY_MAP[field])
       else:
-        Cmd.Backup()
-        invalidChoiceExit(COURSE_ARGUMENT_TO_PROPERTY_MAP)
+        invalidChoiceExit(COURSE_ARGUMENT_TO_PROPERTY_MAP, True)
   else:
     unknownArgumentExit()
 
@@ -17947,7 +18628,7 @@ def moveCalendarEvents(users):
   calendarEntity = getCalendarEntity()
   calendarEventEntity = getCalendarEventEntity()
   checkArgumentPresent(Cmd.TO_ARGUMENT)
-  newCalId = convertUserUIDtoEmailAddress(getString(Cmd.OB_CALENDAR_ITEM))
+  newCalId = convertUIDtoEmailAddress(getString(Cmd.OB_CALENDAR_ITEM))
   sendNotifications = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -18347,7 +19028,7 @@ def _validateUserGetFileIDs(user, i, count, fileIdEntity, drive=None, entityType
     if not drive:
       return (user, None, 0)
   else:
-    user = convertUserUIDtoEmailAddress(user)
+    user = convertUIDtoEmailAddress(user)
   if fileIdEntity[u'teamDriveName']:
     if not _convertTeamDriveNameToId(drive, user, i, count, fileIdEntity):
       return (user, None, 0)
@@ -18438,7 +19119,7 @@ def _validateUserGetTeamDriveFileIDs(user, i, count, fileIdEntity, drive=None, e
     if not drive:
       return (user, None, 0)
   else:
-    user = convertUserUIDtoEmailAddress(user)
+    user = convertUIDtoEmailAddress(user)
   if fileIdEntity.get(u'teamDriveName') and not _convertTeamDriveNameToId(drive, user, i, count, fileIdEntity):
     return (user, None, 0)
   if fileIdEntity[u'teamdrivequery']:
@@ -18974,8 +19655,7 @@ def showFileInfo(users):
         elif field in DRIVEFILE_LABEL_CHOICES_MAP:
           fieldsList.append(DRIVEFILE_LABEL_CHOICES_MAP[field])
         else:
-          Cmd.Backup()
-          invalidChoiceExit(list(DRIVEFILE_FIELDS_CHOICES_MAP)+list(DRIVEFILE_LABEL_CHOICES_MAP))
+          invalidChoiceExit(list(DRIVEFILE_FIELDS_CHOICES_MAP)+list(DRIVEFILE_LABEL_CHOICES_MAP), True)
     else:
       unknownArgumentExit()
   orderBy = u','.join(orderByList) if orderByList else None
@@ -19385,8 +20065,7 @@ def _printShowFileRevisions(users, csvFormat):
         if field in FILEREVISIONS_FIELDS_CHOICES_MAP:
           fieldsList.append(FILEREVISIONS_FIELDS_CHOICES_MAP[field])
         else:
-          Cmd.Backup()
-          invalidChoiceExit(list(FILEREVISIONS_FIELDS_CHOICES_MAP))
+          invalidChoiceExit(list(FILEREVISIONS_FIELDS_CHOICES_MAP), True)
     else:
       unknownArgumentExit()
   orderBy = u','.join(orderByList) if orderByList else None
@@ -19667,8 +20346,7 @@ def printFileList(users):
         elif field in DRIVEFILE_LABEL_CHOICES_MAP:
           addFieldToCSVfile(field, {field: [DRIVEFILE_LABEL_CHOICES_MAP[field]]}, fieldsList, titles)
         else:
-          Cmd.Backup()
-          invalidChoiceExit(list(DRIVEFILE_FIELDS_CHOICES_MAP)+list(DRIVEFILE_LABEL_CHOICES_MAP))
+          invalidChoiceExit(list(DRIVEFILE_FIELDS_CHOICES_MAP)+list(DRIVEFILE_LABEL_CHOICES_MAP), True)
     elif myarg == u'anyowner':
       query = _stripMeInOwners(query)
       query = _stripNotMeInOwners(query)
@@ -20286,8 +20964,7 @@ def getDriveFile(users):
         if exportFormat in DOCUMENT_FORMATS_MAP:
           exportFormats.extend(DOCUMENT_FORMATS_MAP[exportFormat])
         else:
-          Cmd.Backup()
-          invalidChoiceExit(DOCUMENT_FORMATS_MAP)
+          invalidChoiceExit(DOCUMENT_FORMATS_MAP, True)
     elif myarg == u'targetfolder':
       targetFolder = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
       if not os.path.isdir(targetFolder):
@@ -23076,8 +23753,7 @@ def archiveMessages(users):
                      throw_reasons=GAPI.GROUP_GET_THROW_REASONS,
                      groupKey=group, fields=u'email')[u'email']
   except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest) as e:
-    Cmd.Backup()
-    usageErrorExit(u'{0}: {1}'.format(Msg.INVALID_GROUP, str(e)))
+    entityDoesNotExistExit(Ent.GROUP, group)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'query':
@@ -23954,7 +24630,7 @@ def delegateTo(users, checkForTo=True):
     j = 0
     for delegate in delegates:
       j += 1
-      delegateEmail = convertUserUIDtoEmailAddress(delegate, cd=cd)
+      delegateEmail = convertUIDtoEmailAddress(delegate, cd=cd)
       uri = u'https://apps-apis.google.com/a/feeds/emailsettings/2.0/{0}/{1}/delegation'.format(delegatorDomain, delegatorName)
       body = u'''<?xml version="1.0" encoding="utf-8"?>
   <atom:entry xmlns:atom="http://www.w3.org/2005/Atom" xmlns:apps="http://schemas.google.com/apps/2006">
@@ -25628,6 +26304,16 @@ MAIN_COMMANDS_WITH_OBJECTS = {
        {Cmd.ARG_GUARDIAN_INVITATIONS:	Cmd.ARG_GUARDIAN_INVITATION,
        },
     },
+  u'close':
+    {CMD_ACTION: Act.CLOSE,
+     CMD_FUNCTION:
+       {Cmd.ARG_VAULTMATTER:	doCloseVaultMatter,
+       },
+     CMD_OBJ_ALIASES:
+       {Cmd.ARG_MATTER:		Cmd.ARG_VAULTMATTER,
+        Cmd.ARG_MATTERS:	Cmd.ARG_VAULTMATTER,
+       },
+    },
   u'create':
     {CMD_ACTION: Act.CREATE,
      CMD_FUNCTION:
@@ -25648,6 +26334,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_SCHEMA:		doCreateUserSchema,
         Cmd.ARG_SITE:		doCreateDomainSite,
         Cmd.ARG_USER:		doCreateUser,
+        Cmd.ARG_VAULTHOLD:	doCreateVaultHold,
+        Cmd.ARG_VAULTMATTER:	doCreateVaultMatter,
         Cmd.ARG_VERIFY:		doCreateSiteVerification,
        },
      CMD_OBJ_ALIASES:
@@ -25660,7 +26348,11 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_DOMAIN_ALIASES:	Cmd.ARG_DOMAIN_ALIAS,
         Cmd.ARG_GUARDIANS:	Cmd.ARG_GUARDIAN,
         u'guardianinvite':	Cmd.ARG_GUARDIAN,
+        Cmd.ARG_HOLD:		Cmd.ARG_VAULTHOLD,
+        Cmd.ARG_HOLDS:		Cmd.ARG_VAULTHOLD,
         u'inviteguardian':	Cmd.ARG_GUARDIAN,
+        Cmd.ARG_MATTER:		Cmd.ARG_VAULTMATTER,
+        Cmd.ARG_MATTERS:	Cmd.ARG_VAULTMATTER,
         u'transfer':		Cmd.ARG_DATA_TRANSFER,
         u'nickname':		Cmd.ARG_ALIASES,
         u'nicknames':		Cmd.ARG_ALIASES,
@@ -25671,6 +26363,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_RESOLDSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
         Cmd.ARG_SCHEMAS:	Cmd.ARG_SCHEMA,
         Cmd.ARG_SITES:		Cmd.ARG_SITE,
+        Cmd.ARG_VAULTHOLDS:	Cmd.ARG_VAULTHOLD,
+        Cmd.ARG_VAULTMATTERS:	Cmd.ARG_VAULTMATTER,
         u'verification':	Cmd.ARG_VERIFY,
        },
     },
@@ -25699,6 +26393,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_SITEACLS:	doProcessDomainSiteACLs,
         Cmd.ARG_USER:		doDeleteUser,
         Cmd.ARG_USERS:		doDeleteUsers,
+        Cmd.ARG_VAULTHOLD:	doDeleteVaultHold,
+        Cmd.ARG_VAULTMATTER:	doDeleteVaultMatter,
        },
      CMD_OBJ_ALIASES:
        {Cmd.ARG_ALIAS:		Cmd.ARG_ALIASES,
@@ -25709,6 +26405,10 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_DOMAIN_ALIASES:	Cmd.ARG_DOMAIN_ALIAS,
         Cmd.ARG_GROUP:		Cmd.ARG_GROUPS,
         Cmd.ARG_GUARDIANS:	Cmd.ARG_GUARDIAN,
+        Cmd.ARG_HOLD:		Cmd.ARG_VAULTHOLD,
+        Cmd.ARG_HOLDS:		Cmd.ARG_VAULTHOLD,
+        Cmd.ARG_MATTER:		Cmd.ARG_VAULTMATTER,
+        Cmd.ARG_MATTERS:	Cmd.ARG_VAULTMATTER,
         Cmd.ARG_MOBILE:		Cmd.ARG_MOBILES,
         u'nickname':		Cmd.ARG_ALIASES,
         u'nicknames':		Cmd.ARG_ALIASES,
@@ -25722,6 +26422,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_RESOLDSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
         Cmd.ARG_SCHEMA:		Cmd.ARG_SCHEMAS,
         Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
+        Cmd.ARG_VAULTHOLDS:	Cmd.ARG_VAULTHOLD,
+        Cmd.ARG_VAULTMATTERS:	Cmd.ARG_VAULTMATTER,
        },
     },
   u'info':
@@ -25753,6 +26455,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_SITEACLS:	doProcessDomainSiteACLs,
         Cmd.ARG_USER:		doInfoUser,
         Cmd.ARG_USERS:		doInfoUsers,
+        Cmd.ARG_VAULTHOLD:	doInfoVaultHold,
+        Cmd.ARG_VAULTMATTER:	doInfoVaultMatter,
         Cmd.ARG_VERIFY:		doInfoSiteVerification,
        },
      CMD_OBJ_ALIASES:
@@ -25764,6 +26468,10 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_CROS:		Cmd.ARG_CROSES,
         Cmd.ARG_DOMAIN_ALIASES:	Cmd.ARG_DOMAIN_ALIAS,
         Cmd.ARG_GROUP:		Cmd.ARG_GROUPS,
+        Cmd.ARG_HOLD:		Cmd.ARG_VAULTHOLD,
+        Cmd.ARG_HOLDS:		Cmd.ARG_VAULTHOLD,
+        Cmd.ARG_MATTER:		Cmd.ARG_VAULTMATTER,
+        Cmd.ARG_MATTERS:	Cmd.ARG_VAULTMATTER,
         Cmd.ARG_MOBILE:		Cmd.ARG_MOBILES,
         u'nickname':		Cmd.ARG_ALIASES,
         u'nicknames':		Cmd.ARG_ALIASES,
@@ -25780,6 +26488,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_SITE:		Cmd.ARG_SITES,
         Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
         u'transfer':		Cmd.ARG_DATA_TRANSFER,
+        Cmd.ARG_VAULTHOLDS:	Cmd.ARG_VAULTHOLD,
+        Cmd.ARG_VAULTMATTERS:	Cmd.ARG_VAULTMATTER,
         u'verification':	Cmd.ARG_VERIFY,
        },
     },
@@ -25815,6 +26525,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_TOKENS:		doPrintTokens,
         Cmd.ARG_TRANSFERAPPS:	doPrintTransferApps,
         Cmd.ARG_USERS:		doPrintUsers,
+        Cmd.ARG_VAULTHOLDS:	doPrintVaultHolds,
+        Cmd.ARG_VAULTMATTERS:	doPrintVaultMatters,
        },
      CMD_OBJ_ALIASES:
        {Cmd.ARG_ALIAS:		Cmd.ARG_ALIASES,
@@ -25832,9 +26544,13 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         u'groupsmembers':	Cmd.ARG_GROUP_MEMBERS,
         u'groups-members':	Cmd.ARG_GROUP_MEMBERS,
         Cmd.ARG_GUARDIAN:	Cmd.ARG_GUARDIANS,
+        Cmd.ARG_HOLD:		Cmd.ARG_VAULTHOLDS,
+        Cmd.ARG_HOLDS:		Cmd.ARG_VAULTHOLDS,
         Cmd.ARG_LICENSE:	Cmd.ARG_LICENSES,
         Cmd.ARG_LICENCE:	Cmd.ARG_LICENSES,
         Cmd.ARG_LICENCES:	Cmd.ARG_LICENSES,
+        Cmd.ARG_MATTER:		Cmd.ARG_VAULTMATTERS,
+        Cmd.ARG_MATTERS:	Cmd.ARG_VAULTMATTERS,
         u'nicknames':		Cmd.ARG_ALIASES,
         u'ous':			Cmd.ARG_ORGS,
         Cmd.ARG_PRINTER:	Cmd.ARG_PRINTERS,
@@ -25845,6 +26561,18 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_SCHEMA:		Cmd.ARG_SCHEMAS,
         Cmd.ARG_SITE:		Cmd.ARG_SITES,
         Cmd.ARG_TOKEN:		Cmd.ARG_TOKENS,
+        Cmd.ARG_VAULTHOLD:	Cmd.ARG_VAULTHOLDS,
+        Cmd.ARG_VAULTMATTER:	Cmd.ARG_VAULTMATTERS,
+       },
+    },
+  u'reopen':
+    {CMD_ACTION: Act.REOPEN,
+     CMD_FUNCTION:
+       {Cmd.ARG_VAULTMATTER:	doReopenVaultMatter,
+       },
+     CMD_OBJ_ALIASES:
+       {Cmd.ARG_MATTER:		Cmd.ARG_VAULTMATTER,
+        Cmd.ARG_MATTERS:	Cmd.ARG_VAULTMATTER,
        },
     },
   u'show':
@@ -25859,10 +26587,16 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_SCHEMAS:	doShowUserSchemas,
         Cmd.ARG_SITES:		doShowDomainSites,
         Cmd.ARG_SITEACLS:	doProcessDomainSiteACLs,
+        Cmd.ARG_VAULTHOLDS:	doShowVaultHolds,
+        Cmd.ARG_VAULTMATTERS:	doShowVaultMatters,
        },
      CMD_OBJ_ALIASES:
        {Cmd.ARG_CONTACT:	Cmd.ARG_CONTACTS,
         Cmd.ARG_GUARDIAN:	Cmd.ARG_GUARDIANS,
+        Cmd.ARG_HOLD:		Cmd.ARG_VAULTHOLDS,
+        Cmd.ARG_HOLDS:		Cmd.ARG_VAULTHOLDS,
+        Cmd.ARG_MATTER:		Cmd.ARG_VAULTMATTERS,
+        Cmd.ARG_MATTERS:	Cmd.ARG_VAULTMATTERS,
         u'outree':		Cmd.ARG_ORGTREE,
         Cmd.ARG_RESELLERSUBSCRIPTION:	Cmd.ARG_RESOLDSUBSCRIPTIONS,
         Cmd.ARG_RESOLDSUBSCRIPTION:	Cmd.ARG_RESOLDSUBSCRIPTIONS,
@@ -25870,6 +26604,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_SCHEMA:		Cmd.ARG_SCHEMAS,
         Cmd.ARG_SITE:		Cmd.ARG_SITES,
         Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
+        Cmd.ARG_VAULTHOLD:	Cmd.ARG_VAULTHOLDS,
+        Cmd.ARG_VAULTMATTER:	Cmd.ARG_VAULTMATTERS,
        },
     },
   u'suspend':
@@ -25909,6 +26645,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_SITEACLS:	doProcessDomainSiteACLs,
         Cmd.ARG_USER:		doUpdateUser,
         Cmd.ARG_USERS:		doUpdateUsers,
+        Cmd.ARG_VAULTHOLD:	doUpdateVaultHold,
+        Cmd.ARG_VAULTMATTER:	doUpdateVaultMatter,
         Cmd.ARG_VERIFY:		doUpdateSiteVerification,
        },
      CMD_OBJ_ALIASES:
@@ -25917,6 +26655,10 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_CONTACT:	Cmd.ARG_CONTACTS,
         Cmd.ARG_CROS:		Cmd.ARG_CROSES,
         Cmd.ARG_GROUP:		Cmd.ARG_GROUPS,
+        Cmd.ARG_HOLD:		Cmd.ARG_VAULTHOLD,
+        Cmd.ARG_HOLDS:		Cmd.ARG_VAULTHOLD,
+        Cmd.ARG_MATTER:		Cmd.ARG_VAULTMATTER,
+        Cmd.ARG_MATTERS:	Cmd.ARG_VAULTMATTER,
         Cmd.ARG_MOBILE:		Cmd.ARG_MOBILES,
         u'nickname':		Cmd.ARG_ALIASES,
         u'nicknames':		Cmd.ARG_ALIASES,
@@ -25932,6 +26674,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_SCHEMA:		Cmd.ARG_SCHEMAS,
         Cmd.ARG_SITE:		Cmd.ARG_SITES,
         Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
+        Cmd.ARG_VAULTHOLDS:	Cmd.ARG_VAULTHOLD,
+        Cmd.ARG_VAULTMATTERS:	Cmd.ARG_VAULTMATTER,
         u'verification':	Cmd.ARG_VERIFY,
        },
     },
@@ -25940,9 +26684,12 @@ MAIN_COMMANDS_WITH_OBJECTS = {
      CMD_FUNCTION:
        {Cmd.ARG_USER:		doUndeleteUser,
         Cmd.ARG_USERS:		doUndeleteUsers,
+        Cmd.ARG_VAULTMATTER:	doUndeleteVaultMatter,
        },
      CMD_OBJ_ALIASES:
-       {
+       {Cmd.ARG_MATTER:		Cmd.ARG_VAULTMATTER,
+        Cmd.ARG_MATTERS:	Cmd.ARG_VAULTMATTER,
+        Cmd.ARG_VAULTMATTERS:	Cmd.ARG_VAULTMATTER,
        },
     },
   u'unsuspend':

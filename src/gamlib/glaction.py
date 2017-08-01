@@ -31,6 +31,7 @@ class GamAction(object):
   CHECK = u'chek'
   CLAIM = u'clai'
   CLAIM_OWNERSHIP = u'clow'
+  CLOSE = u'clos'
   COLLECT = u'collect'
   COPY = u'copy'
   CREATE = u'crea'
@@ -58,6 +59,7 @@ class GamAction(object):
   RELABEL = u'rela'
   REMOVE = u'remo'
   RENAME = u'rena'
+  REOPEN = u'reop'
   REPLACE = u'repl'
   REPORT = u'repo'
   RESTORE = u'rest'
@@ -93,6 +95,7 @@ class GamAction(object):
     CHECK: [u'Checked', u'Check'],
     CLAIM: [u'Claimed', u'Claim'],
     CLAIM_OWNERSHIP: [u'Ownership Claimed', u'Claim Ownership'],
+    CLOSE: [u'Closed', u'Close'],
     COLLECT: [u'Collected', u'Collect'],
     COPY: [u'Copied', u'Copy'],
     CREATE: [u'Created', u'Create'],
@@ -119,6 +122,7 @@ class GamAction(object):
     RELABEL: [u'Relabeled', u'Relabel'],
     REMOVE: [u'Removed', u'Remove'],
     RENAME: [u'Renamed', u'Rename'],
+    REOPEN: [u'Reopened', u'Reopen'],
     REPLACE: [u'Replaced', u'Replace'],
     REPORT: [u'Reported', u'Report'],
     RESTORE: [u'Restored', u'Restore'],
