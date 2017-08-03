@@ -1,3 +1,7 @@
+4.52.01
+
+Fixed error in copy drivefile recursive where only the first 100 files in a folder were copied.
+
 4.52.00
 
 Added arguments to print aliases to allow selection of aliases to print.
@@ -31,6 +35,13 @@ Based on initial code provided by Jay Lee, Google Vault is now supported.
     gam show vaultmatters|matters [basic|full]
     gam print vaultmatters|matters [todrive [<ToDriveAttributes>]] [basic|full]
 
+
+To use Vault commands you must do the following two steps.
+Add Google Vault API to your project; do this manually in the Developer's Console or with the following command if you used Gam to create your project.
+    gam update project
+
+Update authentication; select Vault API and then continue to authorization.
+    gam oauth create
 
 4.51.09
 
