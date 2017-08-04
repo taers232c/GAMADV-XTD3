@@ -1334,9 +1334,9 @@ gam update vaulthold|hold <HoldItem> matter <MatterItem> [query <QueryVaultCorpu
 	[([addaccounts|addgroups|addusers <EmailItemList>] [removeaccounts|removegroups|removeusers <EmailItemList>]) | (orgunit|ou <OrgUnit>)]
 	[starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>] 
 gam delete vaulthold|hold <HoldItem> matter <MatterItem>
-gam info vaulthold|hold <HoldItem> matter <MatterItem>
-gam show vaultholds|holds [matter|matters <MatterItemList>]
-gam print vaultholds|holds [todrive [<ToDriveAttributes>]] [matter|matters <MatterItemList>]
+gam info vaulthold|hold <HoldItem> matter <MatterItem> [shownames]
+gam show vaultholds|holds [matter|matters <MatterItemList>] [shownames]
+gam print vaultholds|holds [todrive [<ToDriveAttributes>]] [matter|matters <MatterItemList>] [shownames]
 
 gam create vaultmatter|matter [name <String>] [description <string>]
 	[collaborator|collaborators <EmailItemList>]

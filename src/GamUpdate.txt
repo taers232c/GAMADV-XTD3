@@ -1,3 +1,10 @@
+4.52.03
+
+Added shownames argument to gam info vaulthold to control whether account and org unit names are displayed.
+This makes info consistent with show and print.
+Additional API calls are required to get the names.
+    gam info vaulthold|hold <HoldItem> matter <MatterItem> [shownames]
+
 4.52.02
 
 In the Vault commands, matters and holds are displayed as Name(ID).
@@ -25,8 +32,8 @@ Based on initial code provided by Jay Lee, Google Vault is now supported.
 	[starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>] 
     gam delete vaulthold|hold <HoldItem> matter <MatterItem>
     gam info vaulthold|hold <HoldItem> matter <MatterItem>
-    gam show vaultholds|holds [matter|matters <MatterItemList>]
-    gam print vaultholds|holds [todrive [<ToDriveAttributes>]] [matter|matters <MatterItemList>]
+    gam show vaultholds|holds [matter|matters <MatterItemList>] [shownames]
+    gam print vaultholds|holds [todrive [<ToDriveAttributes>]] [matter|matters <MatterItemList>] [shownames]
 
     gam create vaultmatter|matter [name <String>] [description <string>]
 	[collaborator|collaborators <CollaboratorItemList>]
