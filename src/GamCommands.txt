@@ -1,4 +1,4 @@
-This document describes the GAM command line syntax in  modified BNF, see https://en.wikipedia.org/wiki/Backus-Naur_Form
+This document describes the GAM command line syntax in modified BNF, see https://en.wikipedia.org/wiki/Backus-Naur_Form
 Skip the History section and start reading at Introduction.
 
 Items on the command line are space separated, when an actual space character is required, it will be indicated by <Space>.

@@ -1,3 +1,8 @@
+4.52.02
+
+In the Vault commands, matters and holds are displayed as Name(ID).
+In gam print holds the matterName column was added.
+
 4.52.01
 
 Fixed error in copy drivefile recursive where only the first 100 files in a folder were copied.
