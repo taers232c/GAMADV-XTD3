@@ -2,11 +2,11 @@
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" >
   <Product
       Id="*"
-      Name="GAMADV-X"
+      Name="GAMADV-X3"
       Language="1033"
       Version="$(env.GAMVERSION)"
       Manufacturer="Ross Scroggs - ross.scroggs@gmail.com"
-      UpgradeCode="654330A2-1074-4020-A1E4-02A3205CFB83">
+      UpgradeCode="D86B52B2-EFE9-4F9D-8BA3-9D84B9B2D319">
     <Package
         InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
 
@@ -22,7 +22,7 @@
 
     <Feature
         Id="gam"
-        Title="GAMADV-X"
+        Title="GAMADV-X3"
         Level="1">
       <ComponentGroupRef Id="ProductComponents" />
     </Feature>
@@ -30,8 +30,8 @@
 
   <Fragment>
     <Directory Id="TARGETDIR" Name="SourceDir">
-      <Directory Id="ROOTDRIVE">
-          <Directory Id="INSTALLFOLDER" Name="GAMADV-X" />
+      <Directory Id="ROOT_DRIVE" Name="ROOTDRIVE"><
+          <Directory Id="INSTALLFOLDER" Name="GAMADV-X3" />
         </Directory>
     </Directory>
   </Fragment>
@@ -42,38 +42,38 @@
         Id="ProductComponents"
         Directory="INSTALLFOLDER"
         Source="gam-64">
-      <Component Id="gam_exe" Guid="4cb29c61-7c9c-455c-a10c-bfcb4c2a503b">
+      <Component Id="gam_exe" Guid="d046ea24-c9f8-40ca-84db-70b0119933ff">
         <File Name="gam.exe" KeyPath="yes" />
         <Environment Id="PATH" Name="PATH" Value="[INSTALLFOLDER]" Permanent="yes" Part="last" Action="set" System="yes" />
       </Component>
-      <Component Id="license" Guid="f1bedd0c-fd15-4076-8851-02633df8c83a">
+      <Component Id="license" Guid="c76864c5-d005-44d5-bb7c-a27e5923792d">
         <File Name="LICENSE" KeyPath="yes" />
       </Component>
-      <Component Id="whatsnew_txt" Guid="ac509014-3ac2-4053-a1da-ef3b0f693346">
+      <Component Id="whatsnew_txt" Guid="64c29297-d693-4340-aca6-7185cac9e9fa">
         <File Name="whatsnew.txt" KeyPath="yes" />
       </Component>
-      <Component Id="gam_setup_bat" Guid="03116cc7-f749-4a81-868d-b6d93839666c">
+      <Component Id="gam_setup_bat" Guid="5e6bbacb-d86f-4d80-a10b-89b81ee63fcb">
         <File Name="gam-setup.bat" KeyPath="yes" />
       </Component>
-      <Component Id="GamCommands_txt" Guid="76883a93-02e4-4d90-a406-f819e0d85a77">
+      <Component Id="GamCommands_txt" Guid="a2dca862-b222-469e-a637-95ea2a1c53e7">
         <File Name="GamCommands.txt" KeyPath="yes" />
       </Component>
-      <Component Id="GamAuthorization_txt" Guid="cdacfc2f-66f2-45ac-8983-7915d8e1a2e0">
+      <Component Id="GamAuthorization_txt" Guid="2f320b4d-892c-4f50-8760-e8a8e370ba17">
         <File Name="GamAuthorization.txt" KeyPath="yes" />
       </Component>
-      <Component Id="GamConfig_txt" Guid="6046edaa-3c14-48a8-91e0-24f10ffb7603">
+      <Component Id="GamConfig_txt" Guid="5d264757-2598-4104-9829-dd50d5b98ef7">
         <File Name="GamConfig.txt" KeyPath="yes" />
       </Component>
-      <Component Id="GamContacts_txt" Guid="49d70bd5-0b31-4b72-85da-253a047ca201">
+      <Component Id="GamContacts_txt" Guid="f1ece4ca-95a4-419b-aa26-35c1ae8935ef">
         <File Name="GamContacts.txt" KeyPath="yes" />
       </Component>
-      <Component Id="GamDataSelection_txt" Guid="a4e3476b-4c4f-4c38-a61b-aeb75b5c009b">
+      <Component Id="GamDataSelection_txt" Guid="3e170320-35f8-4daf-b546-0b8368774175">
         <File Name="GamDataSelection.txt" KeyPath="yes" />
       </Component>
-      <Component Id="GamSitess_txt" Guid="075bad2d-27b7-4ad5-a2cf-c18c7d201e88">
+      <Component Id="GamSites_txt" Guid="3022e387-aa76-4533-bf4d-3784aaa44cda">
         <File Name="GamSites.txt" KeyPath="yes" />
       </Component>
-      <Component Id="GamUpdate_txt" Guid="574c6cd1-d79d-4c2c-bfc1-f104f902d3f9">
+      <Component Id="GamUpdate_txt" Guid="1b7cdd48-0fff-4943-a219-102fcd14c755">
         <File Name="GamUpdate.txt" KeyPath="yes" />
       </Component>
     </ComponentGroup>
