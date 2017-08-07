@@ -30,7 +30,7 @@
 
   <Fragment>
     <Directory Id="TARGETDIR" Name="SourceDir">
-      <Directory Id="ROOT_DRIVE" Name="ROOTDRIVE"><
+      <Directory Id="ROOTDRIVE">
           <Directory Id="INSTALLFOLDER" Name="GAMADV-X3" />
         </Directory>
     </Directory>
