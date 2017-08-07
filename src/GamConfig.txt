@@ -189,8 +189,12 @@ no_update_check
 no_verify_ssl
 	Disable SSL certificate validation
 	Signal file: GamConfigDir/noverifyssl.txt
+num_tbatch_threads
+	Number of threads for gam tbatch
+	Default: 2
+	Environment variable: GAM_TBATCH_THREADS
 num_threads
-	Number of threads for gam batch
+	Number of processes for gam batch/csv
 	Default: 5
 	Environment variable: GAM_THREADS
 oauth2_txt
@@ -289,6 +293,7 @@ Section: DEFAULT
   no_cache = false
   no_update_check = false
   no_verify_ssl = false
+  num_tbatch_threads = 2
   num_threads = 5
   oauth2_txt = oauth2.txt ; /Users/admin/.gam/oauth2.txt
   oauth2service_json = oauth2service.json ; /Users/admin/.gam/oauth2service.json
@@ -408,6 +413,7 @@ no_browser = false
 no_cache = false
 no_update_check = false
 no_verify_ssl = false
+num_tbatch_threads = 2
 num_threads = 5
 oauth2_txt = oauth2.txt
 oauth2service_json = oauth2service.json

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.52.03'
+__version__ = u'4.53.00'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -411,9 +411,6 @@ def dehtml(text):
   parser.feed(str(text))
   parser.close()
   return parser.text()
-
-def singularPlural(word, pluralSuffix, count):
-  return word if count == 1 else word+pluralSuffix
 
 # Format a key value list
 #   key, value	-> "key: value" + ", " if not last item
@@ -4380,11 +4377,28 @@ def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr, ar
     GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD].close()
     GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = None
 
-def MultiprocessGAMCommands(items):
+def batchWriteStderr(data):
+  fd = GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, sys.stderr)
+  if fd != sys.stderr:
+    try:
+      sys.stderr.write(data)
+      sys.stderr.flush()
+    except IOError as e:
+      systemErrorExit(FILE_ERROR_RC, e)
+  try:
+    fd.write(data)
+    fd.flush()
+  except IOError as e:
+    systemErrorExit(FILE_ERROR_RC, e)
+
+ERROR_PLURAL_SINGULAR = [Msg.ERRORS, Msg.ERROR]
+PROCESS_PLURAL_SINGULAR = [Msg.PROCESSES, Msg.PROCESS]
+THREAD_PLURAL_SINGULAR = [Msg.THREADS, Msg.THREAD]
+
+def MultiprocessGAMCommands(items, logCmds):
   if not items:
     return
-  totalItems = len(items)
-  numPoolProcesses = min(totalItems, GC.Values[GC.NUM_THREADS])
+  numPoolProcesses = min(len(items), GC.Values[GC.NUM_THREADS])
   origSigintHandler = signal.signal(signal.SIGINT, signal.SIG_IGN)
   try:
     pool = multiprocessing.Pool(processes=numPoolProcesses)
@@ -4415,16 +4429,15 @@ def MultiprocessGAMCommands(items):
   else:
     mpQueueCSVFile = None
   signal.signal(signal.SIGINT, origSigintHandler)
-  writeStderr(Msg.USING_N_PROCESSES.format(numPoolProcesses))
+  batchWriteStderr(Msg.USING_N_PROCESSES.format(numPoolProcesses, PROCESS_PLURAL_SINGULAR[numPoolProcesses == 1]))
   try:
     pid = 0
     poolProcessesInUse = 0
     poolProcessResults = {}
     while items:
       item = items.popleft()
-      totalItems -= 1
       if item[0] == Cmd.COMMIT_BATCH_CMD:
-        writeStderr(Msg.COMMIT_BATCH_WAIT_N_PROCESSES.format(poolProcessesInUse, singularPlural(u'process', u'es', poolProcessesInUse)))
+        batchWriteStderr(Msg.COMMIT_BATCH_WAIT_N_PROCESSES.format(poolProcessesInUse, PROCESS_PLURAL_SINGULAR[poolProcessesInUse == 1]))
         while poolProcessesInUse > 0:
           for ppid in list(poolProcessResults):
             try:
@@ -4435,11 +4448,16 @@ def MultiprocessGAMCommands(items):
               pass
           if poolProcessesInUse > 0:
             time.sleep(1)
-        writeStderr(Msg.COMMIT_BATCH_COMPLETE)
+        batchWriteStderr(Msg.COMMIT_BATCH_COMPLETE.format(Msg.PROCESSES))
+        continue
+      if item[0] == Cmd.PRINT_CMD:
+        batchWriteStderr(glclargs.QuotedArgumentList(item[1:])+u'\n')
         continue
       pid += 1
       if pid % 100 == 0:
-        writeStderr(Msg.PROCESSING_ITEM_N.format(pid))
+        batchWriteStderr(Msg.PROCESSING_ITEM_N.format(pid))
+      if logCmds:
+        batchWriteStderr(glclargs.QuotedArgumentList(item)+u'\n')
       poolProcessResults[pid] = pool.apply_async(ProcessGAMCommandMulti, [pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr, item])
       poolProcessesInUse += 1
       while poolProcessesInUse == numPoolProcesses:
@@ -4471,15 +4489,64 @@ def MultiprocessGAMCommands(items):
     GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = None
     terminateStdQueueHandler(mpQueueStderr, mpQueueHandlerStderr)
 
-# gam batch <FileName>|- [charset <Charset>]
-def doBatch():
+def threadBatchWorker():
+  import subprocess
+  while True:
+    item = GM.Globals[GM.TBATCH_QUEUE].get()
+    subprocess.call(item, stdout=GM.Globals[GM.STDOUT].get(GM.REDIRECT_MULTI_FD, sys.stdout), stderr=GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, sys.stderr))
+    GM.Globals[GM.TBATCH_QUEUE].task_done()
+
+def ThreadBatchGAMCommands(items, logCmds):
+  import queue
+  import threading
+
+  pythonCmd = [sys.executable.lower(),]
+  if not getattr(sys, u'frozen', False): # we're not frozen
+    pythonCmd.append(os.path.realpath(Cmd.Argument(0)))
+  numWorkerThreads = min(len(items), GC.Values[GC.NUM_TBATCH_THREADS])
+  GM.Globals[GM.TBATCH_QUEUE] = queue.Queue(maxsize=numWorkerThreads) # GM.Globals[GM.TBATCH_QUEUE].put() gets blocked when trying to create more items than there are workers
+  batchWriteStderr(Msg.USING_N_PROCESSES.format(numWorkerThreads, THREAD_PLURAL_SINGULAR[numWorkerThreads == 1]))
+  for _ in range(numWorkerThreads):
+    t = threading.Thread(target=threadBatchWorker)
+    t.daemon = True
+    t.start()
+  pid = 0
+  numThreadsInUse = 0
+  while items:
+    item = items.popleft()
+    if item[0] == Cmd.COMMIT_BATCH_CMD:
+      batchWriteStderr(Msg.COMMIT_BATCH_WAIT_N_PROCESSES.format(numThreadsInUse, THREAD_PLURAL_SINGULAR[numThreadsInUse == 1]))
+      GM.Globals[GM.TBATCH_QUEUE].join()
+      batchWriteStderr(Msg.COMMIT_BATCH_COMPLETE.format(Msg.THREADS))
+      numThreadsInUse = 0
+      continue
+    if item[0] == Cmd.PRINT_CMD:
+      batchWriteStderr(glclargs.QuotedArgumentList(item[1:])+u'\n')
+      continue
+    pid += 1
+    if pid % 100 == 0:
+      batchWriteStderr(Msg.PROCESSING_ITEM_N.format(pid))
+    if logCmds:
+      batchWriteStderr(glclargs.QuotedArgumentList(item)+u'\n')
+    GM.Globals[GM.TBATCH_QUEUE].put(pythonCmd+item[1:])
+    numThreadsInUse += 1
+  GM.Globals[GM.TBATCH_QUEUE].join()
+
+# gam batch <FileName>|- [charset <Charset>] [showcmds]
+def doBatch(threadBatch=False):
   import shlex
   filename = getString(Cmd.OB_FILE_NAME)
   if (filename == u'-') and (GC.Values[GC.DEBUG_LEVEL] > 0):
     Cmd.Backup()
-    usageErrorExit(Msg.BATCH_CSV_LOOP_DASH_DEBUG_INCOMPATIBLE.format(u'batch'))
+    usageErrorExit(Msg.BATCH_CSV_LOOP_DASH_DEBUG_INCOMPATIBLE.format(Cmd.BATCH_CMD))
   encoding = getCharSet()
-  checkForExtraneousArguments()
+  logCmds = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'showcmds':
+      logCmds = getBoolean(defaultValue=True)
+    else:
+      unknownArgumentExit()
   items = collections.deque()
   f = openFile(filename, encoding=encoding)
   errors = 0
@@ -4494,32 +4561,42 @@ def doBatch():
         continue
       if len(argv) > 0:
         cmd = argv[0].strip().lower()
-        if (not cmd) or cmd.startswith(u'#') or ((len(argv) == 1) and (cmd != Cmd.COMMIT_BATCH_CMD)):
+        if (not cmd) or cmd.startswith(u'#') or ((len(argv) == 1) and (cmd not in [Cmd.COMMIT_BATCH_CMD, Cmd.PRINT_CMD])):
           continue
         if cmd == Cmd.GAM_CMD:
           items.append(argv)
         elif cmd == Cmd.COMMIT_BATCH_CMD:
           items.append([cmd])
+        elif cmd == Cmd.PRINT_CMD:
+          items.append(argv)
         else:
           writeStderr(convertUTF8(u'Command: >>>{0}<<< {1}\n'.format(glclargs.QuotedArgumentList([argv[0]]), glclargs.QuotedArgumentList(argv[1:]))))
           writeStderr(u'{0}{1}: {2} <{3}>\n'.format(ERROR_PREFIX, Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1],
-                                                    Msg.EXPECTED, formatChoiceList([Cmd.GAM_CMD, Cmd.COMMIT_BATCH_CMD])))
+                                                    Msg.EXPECTED, formatChoiceList([Cmd.GAM_CMD, Cmd.COMMIT_BATCH_CMD, Cmd.PRINT_CMD])))
           errors += 1
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, e)
   closeFile(f)
   if errors == 0:
-    MultiprocessGAMCommands(items)
+    if not threadBatch:
+      MultiprocessGAMCommands(items, logCmds)
+    else:
+      ThreadBatchGAMCommands(items, logCmds)
   else:
-    writeStderr(Msg.BATCH_NOT_PROCESSED_ERRORS.format(ERROR_PREFIX, filename, errors, singularPlural(u'error', u's', errors)))
+    writeStderr(Msg.BATCH_NOT_PROCESSED_ERRORS.format(ERROR_PREFIX, filename, errors, ERROR_PLURAL_SINGULAR[errors == 1]))
     setSysExitRC(USAGE_ERROR_RC)
+
+# gam tbatch <FileName>|- [charset <Charset>] [showcmds]
+def doThreadBatch():
+  adjustRedirectedSTDFilesIfNotMultiprocessing()
+  doBatch(True)
 
 def doAutoBatch(entityType, entityList, CL_command):
   remaining = Cmd.Remaining()
   items = collections.deque()
   for entity in entityList:
     items.append([Cmd.GAM_CMD, entityType, entity, CL_command]+remaining)
-  MultiprocessGAMCommands(items)
+  MultiprocessGAMCommands(items, False)
 
 # Process command line arguments, find substitutions
 # An argument containing instances of ~~xxx~!~pattern~!~replacement~~ has ~~...~~ replaced by re.sub(pattern, replacement, value of field xxx from the CSV file)
@@ -4605,7 +4682,7 @@ def doCSV():
   filename = getString(Cmd.OB_FILE_NAME)
   if (filename == u'-') and (GC.Values[GC.DEBUG_LEVEL] > 0):
     Cmd.Backup()
-    usageErrorExit(Msg.BATCH_CSV_LOOP_DASH_DEBUG_INCOMPATIBLE.format(u'csv'))
+    usageErrorExit(Msg.BATCH_CSV_LOOP_DASH_DEBUG_INCOMPATIBLE.format(Cmd.CSV_CMD))
   f, csvFile = openCSVFileReader(filename)
   matchFields = getMatchFields(csvFile.fieldnames)
   checkArgumentPresent([Cmd.GAM_CMD,], required=True)
@@ -4617,7 +4694,7 @@ def doCSV():
     if (not matchFields) or checkMatchFields(row, matchFields):
       items.append(processSubFields(GAM_argv, row, subFields))
   closeFile(f)
-  MultiprocessGAMCommands(items)
+  MultiprocessGAMCommands(items, False)
 
 def _doList(entityList, entityType):
   buildGAPIObject(API.DIRECTORY)
@@ -26284,8 +26361,9 @@ CMD_OBJ_ALIASES = u'alia'
 
 # Main commands
 BATCH_CSV_COMMANDS = {
-  u'batch':	{CMD_ACTION: Act.PERFORM, CMD_FUNCTION: doBatch},
-  u'csv':	{CMD_ACTION: Act.PERFORM, CMD_FUNCTION: doCSV},
+  Cmd.BATCH_CMD:	{CMD_ACTION: Act.PERFORM, CMD_FUNCTION: doBatch},
+  Cmd.CSV_CMD:		{CMD_ACTION: Act.PERFORM, CMD_FUNCTION: doCSV},
+  Cmd.TBATCH_CMD:	{CMD_ACTION: Act.PERFORM, CMD_FUNCTION: doThreadBatch},
   }
 MAIN_COMMANDS = {
   u'help':	{CMD_ACTION: Act.PERFORM, CMD_FUNCTION: doUsage},
@@ -27722,7 +27800,7 @@ def doLoop():
   filename = getString(Cmd.OB_FILE_NAME)
   if (filename == u'-') and (GC.Values[GC.DEBUG_LEVEL] > 0):
     Cmd.Backup()
-    usageErrorExit(Msg.BATCH_CSV_LOOP_DASH_DEBUG_INCOMPATIBLE.format(u'loop'))
+    usageErrorExit(Msg.BATCH_CSV_LOOP_DASH_DEBUG_INCOMPATIBLE.format(Cmd.LOOP_CMD))
   f, csvFile = openCSVFileReader(filename)
   matchFields = getMatchFields(csvFile.fieldnames)
   checkArgumentPresent([Cmd.GAM_CMD,], required=True)

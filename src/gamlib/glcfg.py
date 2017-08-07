@@ -100,7 +100,9 @@ NO_CACHE = u'no_cache'
 NO_UPDATE_CHECK = u'no_update_check'
 # Disable SSL certificate validation
 NO_VERIFY_SSL = u'no_verify_ssl'
-# Number of threads for gam batch
+# Number of threads for gam tbatch
+NUM_TBATCH_THREADS = u'num_tbatch_threads'
+# Number of threads for gam batch/csv
 NUM_THREADS = u'num_threads'
 # Path to oauth2.txt
 OAUTH2_TXT = u'oauth2_txt'
@@ -166,6 +168,7 @@ Defaults = {
   NO_CACHE: FALSE,
   NO_UPDATE_CHECK: FALSE,
   NO_VERIFY_SSL: FALSE,
+  NUM_TBATCH_THREADS: 2,
   NUM_THREADS: 5,
   OAUTH2_TXT: FN_OAUTH2_TXT,
   OAUTH2SERVICE_JSON: FN_OAUTH2SERVICE_JSON,
@@ -236,6 +239,7 @@ VAR_INFO = {
   NO_CACHE: {VAR_TYPE: TYPE_BOOLEAN, VAR_SIGFILE: u'nocache.txt', VAR_SFFT: (FALSE, TRUE)},
   NO_UPDATE_CHECK: {VAR_TYPE: TYPE_BOOLEAN, VAR_SIGFILE: u'noupdatecheck.txt', VAR_SFFT: (FALSE, TRUE)},
   NO_VERIFY_SSL: {VAR_TYPE: TYPE_BOOLEAN, VAR_SIGFILE: u'noverifyssl.txt', VAR_SFFT: (FALSE, TRUE)},
+  NUM_TBATCH_THREADS: {VAR_TYPE: TYPE_INTEGER, VAR_ENVVAR: u'GAM_TBATCH_THREADS', VAR_LIMITS: (1, None)},
   NUM_THREADS: {VAR_TYPE: TYPE_INTEGER, VAR_ENVVAR: u'GAM_THREADS', VAR_LIMITS: (1, None)},
   OAUTH2_TXT: {VAR_TYPE: TYPE_FILE, VAR_ENVVAR: u'OAUTHFILE'},
   OAUTH2SERVICE_JSON: {VAR_TYPE: TYPE_FILE, VAR_ENVVAR: u'OAUTHSERVICEFILE'},

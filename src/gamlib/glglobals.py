@@ -99,6 +99,8 @@ OAUTH2_TXT_LOCK = u'oalk'
 CACHE_DIR = u'gacd'
 # Reset GAM cache directory after discovery
 CACHE_DISCOVERY_ONLY = u'gcdo'
+# Shared by threadBatchWorker and threadBatchGAMCommands
+TBATCH_QUEUE = u'batq'
 #
 Globals = {
   SYSEXITRC: 0,
@@ -133,4 +135,5 @@ Globals = {
   OAUTH2_TXT_LOCK: None,
   CACHE_DIR: None,
   CACHE_DISCOVERY_ONLY: True,
+  TBATCH_QUEUE: None,
   }

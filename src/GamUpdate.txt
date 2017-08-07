@@ -1,3 +1,37 @@
+4.53.00
+
+It's a batch from the past; added command gam tbatch to allow gam batch files to invoke gam csv commands.
+    gam tbatch <FileName>|- [charset <Charset>] [showcmds]
+In Gam version 4.36.00, multithreading was changed to multiprocessing to increase performance; unfortunately,
+this change broke the ability of a Gam batch file to invoke gam csv commands. With tbatch, multithreading
+is again used to process the batch file and gam csv commands can be included in the batch file. You should also use
+tbatch if auto_batch_min in gam.cfg  has a value greater than zero and there are commands in the batch file that would
+invoke auto batch processing. If you're not using gam csv or auto_batch_min is zero, use gam batch as performance will be better.
+
+Added num_tbatch_threads to gam.cfg,
+    num_tbatch_threads
+	Number of threads for gam tbatch
+	Default: 2
+With gam tbatch there are potentially 1+num_tbatch_threads*num_threads Gam threads/processes running simultaneously;
+exercise caution to avoid overloading your system.
+
+With gam tbatch, Gam has no ability to intelligently process redirected stdout/stderr files.
+For example, if you execute: gam redirect stdout ./Batch.out redirect stderr ./Batch.err tbatch Batch.bat
+all of the threads will have stdout set to ./Batch.out and stderr to ./Batch.err, but the multiple threads will be 
+writing to the output files simultaneously. Of course, you can use redirect on the commands within the batch file
+to precisely control the output.
+
+Added showcmds argument to gam batch and gam tbatch commands; this causes Gam to display each command to stderr
+as it is initiated so you can monitor Gam's progress.
+    gam batch <FileName>|- [charset <Charset>] [showcmds [<Boolean>]]
+    gam tbatch <FileName>|- [charset <Charset>] [showcmds [<Boolean>]]
+If <Boolean> is omitted, True is assumed.
+If stderr is redirected, the commands will be written to the redirected stderr and to sys.stderr so you can still
+monitor Gam's progress on your screen.
+
+Added print <String> command that can be embedded in Gam batch files.  <String> will be written to any
+redirected stderr and to sys.stderr.
+
 4.52.03
 
 Added shownames argument to gam info vaulthold to control whether account and org unit names are displayed.
@@ -1378,16 +1412,32 @@ You can redirect stdout and stderr to null and stderr can be redirected to stdou
 	redirect stderr stdout |
 	redirect stderr null
 Examples:
-    gam redirect stdout UserInfo.txt multiprocess csv Users.csv gam info user ~User
+    gam redirect stdout Users.txt multiprocess csv Users.csv gam info user ~primartEmail
 The output from each of the gam info user ~User commands will be combined into the single file UserInfo.txt
     gam redirect csv UserDelegates.csv multiprocess csv Users.csv gam user ~User print delegates
 The output from each of the gam user ~User print delegates commands will be combined into the single file UserDelegates.csv.
 
-Added show_multi_info to gam.cfg.
-    show_multi_info
+Added show_multiprocess_info to gam.cfg.
+    show_multiprocess_info
 	Enable/disable showing multiprocess info in redirected stdout/stderr
 	Default: False
 Example:
+Example:
+$ gam config show_multiprocess_info false redirect stdout ./Users.txt multiprocess csv Users.csv gam info user ~primaryEmail
+$ more Users.txt
+User: testuser1@domain.com (1/1)
+  Settings:
+    First Name: Test
+    Last Name: User1
+    Full Name: Test User1
+...
+User: testuser2@domain.com@ (1/1)
+  Settings:
+    First Name: Test
+    Last Name: User2
+    Full Name: Test User2
+...
+
 $ gam config show_multiprocess_info true redirect stdout ./Users.txt multiprocess csv Users.csv gam info user ~primaryEmail
 $ more Users.txt
 stdout:      0, Start: 2017-01-26T11:35:00.897773-08:00, Cmd: /Users/admin/gam config show_multiprocess_info true redirect stdout ./Users.txt multiprocess csv Users.csv gam info user ~primaryEmail

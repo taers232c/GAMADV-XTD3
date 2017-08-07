@@ -176,10 +176,15 @@ class GamCLArgs(object):
     ENTITY_STUDENTS,
     ENTITY_TEACHERS,
     ]
-# Command line batch/csv/loop keywords
+# Batch file commands
   GAM_CMD = u'gam'
   COMMIT_BATCH_CMD = u'commit-batch'
+  PRINT_CMD = u'print'
+# Command line batch/csv/loop/tbatch keywords
+  BATCH_CMD = u'batch'
+  CSV_CMD = u'csv'
   LOOP_CMD = u'loop'
+  TBATCH_CMD = u'tbatch'
 # Command line select/config/redirect arguments
   SELECT_CMD = u'select'
   CONFIG_CMD = u'config'

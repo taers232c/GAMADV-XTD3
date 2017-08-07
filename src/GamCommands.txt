@@ -407,8 +407,9 @@ gam help
 
 # Bulk Processing
 
-gam batch <FileName>|- [charset <Charset>]
+gam batch <FileName>|- [charset <Charset>] [showcmds]
 gam csv <FileName>|- [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
+gam tbatch <FileName>|- [charset <Charset>] [showcmds]
 
 gam loop <FileName>|- [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
 
