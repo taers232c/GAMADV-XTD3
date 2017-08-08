@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.53.00'
+__version__ = u'4.53.01'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -9359,7 +9359,9 @@ def _printShowContacts(users, entityType, csvFormat, contactFeed=True):
         continue
       contactQuery[u'group'] = contactsObject.GetContactGroupFeedUri(contact_list=user, projection=u'base', groupId=groupId)
     contacts = queryContacts(contactsObject, contactQuery, entityType, user, i, count)
-    jcount = len(contacts) if (contacts) else 0
+    if contacts is None:
+      continue
+    jcount = len(contacts)
     if not csvFormat:
       entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, Ent.CONTACT, i, count)
       Ind.Increment()

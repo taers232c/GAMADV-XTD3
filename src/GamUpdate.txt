@@ -1,3 +1,7 @@
+4.53.01
+
+Fix coding error in gam print/show contacts.
+
 4.53.00
 
 It's a batch from the past; added command gam tbatch to allow gam batch files to invoke gam csv commands.
