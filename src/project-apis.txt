@@ -3,11 +3,13 @@ appsactivity.googleapis.com
 audit.googleapis.com
 calendar-json.googleapis.com
 classroom.googleapis.com
+contacts.googleapis.com
 drive.googleapis.com
 gmail.googleapis.com
 groupsmigration.googleapis.com
 groupssettings.googleapis.com
 licensing.googleapis.com
+people.googleapis.com
 plus.googleapis.com
 reseller.googleapis.com
 siteverification.googleapis.com
