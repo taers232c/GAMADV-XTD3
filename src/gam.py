@@ -7465,7 +7465,7 @@ def doPrintAliases():
   titlesList = [u'Alias', u'Target', u'TargetType']
   userFields = [u'primaryEmail', u'aliases']
   groupFields = [u'email', u'aliases']
-  doGroups = doUsers = True
+  getGroups = getUsers = True
   query = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -7476,17 +7476,17 @@ def doPrintAliases():
       userFields.append(u'nonEditableAliases')
       groupFields.append(u'nonEditableAliases')
     elif myarg == u'nogroups':
-      doGroups = False
+      getGroups = False
     elif myarg == u'nousers':
-      doUsers = False
+      getUsers = False
     elif myarg == u'query':
       query = getString(Cmd.OB_QUERY)
-      doGroups = False
-      doUsers = True
+      getGroups = False
+      getUsers = True
     else:
       unknownArgumentExit()
   titles, csvRows = initializeTitlesCSVfile(titlesList)
-  if doUsers:
+  if getUsers:
     printGettingAccountEntitiesInfo(Ent.USER, qualifier=queryQualifier(query))
     page_message = getPageMessage(showTotal=False, showFirstLastItems=True)
     try:
@@ -7506,7 +7506,7 @@ def doPrintAliases():
       return
     except (GAPI.resourceNotFound, GAPI.forbidden, GAPI.badRequest):
       accessErrorExit(cd)
-  if doGroups:
+  if getGroups:
     printGettingAccountEntitiesInfo(Ent.GROUP)
     page_message = getPageMessage(showTotal=False, showFirstLastItems=True)
     try:
@@ -11113,6 +11113,7 @@ def infoGroups(entityList):
       getAliases = False
     elif myarg in GROUP_ROLES_MAP:
       rolesSet.add(GROUP_ROLES_MAP[myarg])
+      getUsers = True
     elif myarg == u'groups':
       getGroups = True
     elif myarg in GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP:
