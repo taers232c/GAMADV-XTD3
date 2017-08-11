@@ -554,12 +554,6 @@ gam calendar|calendars <CalendarEntity> showacl
 	(transparency opaque|transparent)|
 	(visibility default|public|private)
 
-The following attributes are equivalent:
-	available = transparency transparent
-	guestscantinviteothers = guestscaninviteothers False
-	guestscantseeothers = guestscanseeotherguests False
-	tentative = status tentative
-
 <EventAddAttributes> ::=
 	<EventAttributes>|
 	notifyattendees|(sendnotifications <Boolean>)
@@ -574,6 +568,12 @@ The following attributes are equivalent:
 	notifyattendees|(sendnotifications <Boolean>)|
 	(clearprivateproperty <PropertyKey>)|
 	(clearsharedproperty <PropertyKey>)
+
+The following attributes are equivalent:
+	available = transparency transparent
+	guestscantinviteothers = guestscaninviteothers False
+	guestscantseeothers = guestscanseeotherguests False
+	tentative = status tentative
 
 gam calendar|calendars <CalendarEntity> add event [id <String>] <EventAddAttributes>+
 gam calendar|calendars <CalendarEntity> import event icaluid <iCalUID> <EventImportAttributes>+
@@ -1584,7 +1584,7 @@ gam <UserTypeEntity> transfer calendars <CalendarManageEntity> <UserItem> [keepu
 	(events <EventIdList> | <FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|
 	(<EventSelectProperties>+ <EventMatchProperties>*)
 
-<EventAddAttributes> ::=
+<EventAttributes> ::=
 	(anyonecanaddself [<Boolean>])|
 	(attendee <EmailAddress>)|
 	available|
@@ -1597,12 +1597,10 @@ gam <UserTypeEntity> transfer calendars <CalendarManageEntity> <UserItem> [keepu
 	guestscantseeotherguests|
 	(location <String>)|
 	(noreminders|(reminder email|popup|sms <Number>))|
-	notifyattendees|
 	(optionalattendee <EmailAddress>)|
 	(privateproperty <PropertyKey> <PropertyValue>)|
 	(recurrence <RRULE, EXRULE, RDATE and EXDATE line>)|
 	(reminder <Number> email|popup|sms))|
-	(sendnotifications <Boolean>)|
 	(sharedproperty <PropertyKey> <PropertyValue>)|
 	(source <String> <URL>)|
 	(start (allday <Date>)|<Time>)|
@@ -1613,16 +1611,26 @@ gam <UserTypeEntity> transfer calendars <CalendarManageEntity> <UserItem> [keepu
 	(transparency opaque|transparent)|
 	(visibility default|public|private)
 
+<EventAddAttributes> ::=
+	<EventAttributes>|
+	notifyattendees|(sendnotifications <Boolean>)
+
+<EventImportAttributes> ::=
+	<EventAttributes>|
+	(organizername <String>)|
+	(organizeremail <EmailAddress>)
+
+<EventUpdateAttributes> ::=
+	<EventAttributes>|
+	notifyattendees|(sendnotifications <Boolean>)|
+	(clearprivateproperty <PropertyKey>)|
+	(clearsharedproperty <PropertyKey>)
+
 The following attributes are equivalent:
 	available = transparency transparent
 	guestscantinviteothers = guestscaninviteothers False
 	guestscantseeothers = guestscanseeotherguests False
 	tentative = status tentative
-
-<EventUpdateAttributes> ::=
-	<EventAddAttributes>|
-	(clearprivateproperty <PropertyKey>)|
-	(clearsharedproperty <PropertyKey>)
 
 Add update and delete events in any calendar for which a user has access
 
