@@ -1,3 +1,7 @@
+4.53.03
+
+Changed anyparentname to sharedparentname in gam add/copy/update drivefile.
+
 4.53.02
 
 Added members, managers, owners arguments to gam info group and gam print group-members to allow display of specific roles.
@@ -6,7 +10,7 @@ By default, all members, managers and owners are displayed.
     gam print group-members|groups-members [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member <UserItem>])|[group <GroupItem>]|[select <GroupEntity>]
 	[members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>] [userfields <UserFieldNameList>] [recursive [noduplicates]]
 
-Added anyparentname argument to gam add/copy/update drivefile to allow specifying a parent folder owned by anyone,
+Added sharedparentname argument to gam add/copy/update drivefile to allow specifying a parent folder owned by anyone,
 not just the user in the command. This is typically used to specify a shared folder.
     <DriveFileAddAttributes> ::=
 	<DriveFileAttributes>|
@@ -14,7 +18,7 @@ not just the user in the command. This is typically used to specify a shared fol
 	(modifieddate|modifiedtime <Time>)|
 	(parentid <DriveFolderID>)|
 	(parentname <DriveFolderName>)|
-	(anyparentname <DriveFolderName>)|
+	(sharedparentname <DriveFolderName>)|
 	(teamdriveparent <TeamDriveName>)|
 	(teamdriveparentid <TeamDriveID>|<DriveFolderID>)|
 	(teamdriveparentname <DriveFolderName>)|
@@ -26,7 +30,7 @@ not just the user in the command. This is typically used to specify a shared fol
 	ignoredefaultvisibility|
 	(parentid <DriveFolderID>)|
 	(parentname <DriveFolderName>)|
-	(anyparentname <DriveFolderName>)|
+	(sharedparentname <DriveFolderName>)|
 	(teamdriveparent <TeamDriveName>)|
 	(teamdriveparentid <TeamDriveID>|<DriveFolderID>)|
 	(teamdriveparentname <DriveFolderName>)
@@ -38,13 +42,13 @@ not just the user in the command. This is typically used to specify a shared fol
 	(removeparents <DriveFolderIDList>)|
 	(parentid <DriveFolderID>)|
 	(parentname <DriveFolderName>)|
-	(anyparentname <DriveFolderName>)|
+	(sharedparentname <DriveFolderName>)|
 	usecontentasindexabletext
     gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [newfilename <DriveFileName>] <DriveFileUpdateAttributes>*
 
 parentid <DriveFolderID> - Specify parent folder by Id
 parentname <FolderName> - Specify parent folder by name, folder is owned by user in command
-anyparentname <FolderName> - Specify parent folder by name, folder is owned by any user
+sharedparentname <FolderName> - Specify parent folder by name, folder is owned by any user
 If none of the parent options are specified, the parent folder is the root folder,
 
 Added commands to import events into calendars; this is useful when you want to import

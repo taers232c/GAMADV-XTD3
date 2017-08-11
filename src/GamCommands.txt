@@ -1677,7 +1677,7 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 	(modifieddate|modifiedtime <Time>)|
 	(parentid <DriveFolderID>)|
 	(parentname <DriveFolderName>)|
-	(anyparentname <DriveFolderName>)|
+	(sharedparentname <DriveFolderName>)|
 	(teamdriveparent <TeamDriveName>)|
 	(teamdriveparentid <TeamDriveID>|<DriveFolderID>)|
 	(teamdriveparentname <DriveFolderName>)|
@@ -1689,7 +1689,7 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 	(removeparents <DriveFolderIDList>)|
 	(parentid <DriveFolderID>)|
 	(parentname <DriveFolderName>)|
-	(anyparentname <DriveFolderName>)|
+	(sharedparentname <DriveFolderName>)|
 	usecontentasindexabletext
 
 <DriveFileCopyAttributes> ::=
@@ -1697,7 +1697,7 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 	ignoredefaultvisibility|
 	(parentid <DriveFolderID>)|
 	(parentname <DriveFolderName>)|
-	(anyparentname <DriveFolderName>)|
+	(sharedparentname <DriveFolderName>)|
 	(teamdriveparent <TeamDriveName>)|
 	(teamdriveparentid <TeamDriveID>|<DriveFolderID>)|
 	(teamdriveparentname <DriveFolderName>)
