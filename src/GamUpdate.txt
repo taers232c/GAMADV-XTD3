@@ -1,3 +1,78 @@
+4.53.02
+
+Added members, managers, owners arguments to gam info group and gam print group-members to allow display of specific roles.
+By default, all members, managers and owners are displayed.
+    gam info group|groups <GroupEntity> [members] [managers] [owners] [nousers] [noaliases] [groups] <GroupFieldName>* [fields <GroupFieldNameList>] [formatjson]
+    gam print group-members|groups-members [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member <UserItem>])|[group <GroupItem>]|[select <GroupEntity>]
+	[members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>] [userfields <UserFieldNameList>] [recursive [noduplicates]]
+
+Added anyparentname argument to gam add/copy/update drivefile to allow specifying a parent folder owned by anyone,
+not just the user in the command. This is typically used to specify a shared folder.
+    <DriveFileAddAttributes> ::=
+	<DriveFileAttributes>|
+	ignoredefaultvisibility|
+	(modifieddate|modifiedtime <Time>)|
+	(parentid <DriveFolderID>)|
+	(parentname <DriveFolderName>)|
+	(anyparentname <DriveFolderName>)|
+	(teamdriveparent <TeamDriveName>)|
+	(teamdriveparentid <TeamDriveID>|<DriveFolderID>)|
+	(teamdriveparentname <DriveFolderName>)|
+	usecontentasindexabletext
+    gam <UserTypeEntity> add drivefile [drivefilename <DriveFileName>] <DriveFileAddAttributes>*
+
+    <DriveFileCopyAttributes> ::=
+	<DriveFileAttributes>|
+	ignoredefaultvisibility|
+	(parentid <DriveFolderID>)|
+	(parentname <DriveFolderName>)|
+	(anyparentname <DriveFolderName>)|
+	(teamdriveparent <TeamDriveName>)|
+	(teamdriveparentid <TeamDriveID>|<DriveFolderID>)|
+	(teamdriveparentname <DriveFolderName>)
+    gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [recursive [depth <Number>]] <DriveFileCopyAttributes>*
+
+    <DriveFileUpdateAttributes> ::=
+	<DriveFileAttributes>|
+	(addparents <DriveFolderIDList>)|
+	(removeparents <DriveFolderIDList>)|
+	(parentid <DriveFolderID>)|
+	(parentname <DriveFolderName>)|
+	(anyparentname <DriveFolderName>)|
+	usecontentasindexabletext
+    gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [recursive [depth <Number>]] <DriveFileCopyAttributes>*
+
+parentid <DriveFolderID> - Specify parent folder by Id
+parentname <FolderName> - Specify parent folder by name, folder is owned by user in command
+anyparentname <FolderName> - Specify parent folder by name, folder is owned by any user
+If none of the parent options are specified, the parent folder is the root folder,
+
+Added commands to import events into calendars; this is useful when you want to import
+events from .ics files. Importing events is similar to adding events; the principal difference
+is that you must specify an iCalUID. All instances of recurring events will have the same
+iCalUID but different event IDs. The import command supports two new attributes to set the
+event organizer, but the API doesn't seem to honor the values; the organizer is set to
+the calendar owner.
+See: https://developers.google.com/google-apps/calendar/v3/reference/events/import
+    <EventImportAttributes> ::=
+	<EventAttributes>|
+	(organizername <String>)|
+	(organizeremail <EmailAddress>)
+    gam calendar|calendars <CalendarEntity> import event icaluid <iCalUID> <EventImportAttributes>+
+    gam <UserTypeEntity> import event <CalendarEntity> icaluid <iCalUID> <EventImportAttributes>+
+
+Added maxinstances argument to gam info events to allow display of instances of recurring events.
+    gam calendar|calendars <CalendarEntity> info events <EventEntity> [maxinstances <Number>]
+    gam <UserTypeEntity> info events <CalendarManageEntity> <EventEntity> [maxinstances <Number>]
+maxinstances -1 - Default, display base event
+maxinstances 0 - Display all instances of a recurring event
+maxinstances N - Display first N instances of a recurring event
+
+Added event_max_results to gam.cfg
+    event_max_results
+	When retrieving lists of Calendar events/event instances from API, how many should be retrieved in each chunk
+	Default: 250
+
 4.53.01
 
 Fix coding error in gam print/show contacts.

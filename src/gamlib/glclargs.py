@@ -420,6 +420,7 @@ class GamCLArgs(object):
   OB_GUARDIAN_STATE_LIST = u'GuardianStateList'
   OB_HOLD_ITEM = u'HoldItem'
   OB_HOST_NAME = u'HostName'
+  OB_ICALUID = u'iCalUID'
   OB_JOB_ID = u'JobID'
   OB_JOB_OR_PRINTER_ID = u'JobID|PrinterID'
   OB_LABEL_NAME = u'LabelName'

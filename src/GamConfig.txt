@@ -156,6 +156,10 @@ email_batch_size
 	When processing Gmail items in batches, how many should be processed in each batch
 	Default: 100
 	Environment variable: GAM_EMAIL_BATCH_SIZE
+event_max_results
+	When retrieving lists of Calendar events from API, how many should be retrieved in each chunk
+	Default: 250
+	Environment variable: GAM_EVENT_MAX_RESULTS
 extra_args
 	Path to extra_args.txt
 	Default: Blank
@@ -284,6 +288,7 @@ Section: DEFAULT
   drive_max_results = 1000
   drive_v3_native_names = false
   email_batch_size = 100
+  event_max_results = 250
   extra_args =
   member_max_results = 200
   message_batch_size = 1000
@@ -404,6 +409,7 @@ drive_dir = /Users/admin/Downloads
 drive_max_results = 1000
 drive_v3_native_names = false
 email_batch_size = 100
+event_max_results = 250
 extra_args =
 member_max_results = 200
 message_batch_size = 1000

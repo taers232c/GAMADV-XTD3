@@ -44,6 +44,7 @@ class GamAction(object):
   ENABLE = u'enbl'
   FETCH = u'fetc'
   FORWARD = u'forw'
+  IMPORT = u'impo'
   INFO = u'info'
   INITIALIZE = u'init'
   INVALIDATE = u'inva'
@@ -107,6 +108,7 @@ class GamAction(object):
     EMPTY: [u'Emptied', u'Empty'],
     ENABLE: [u'Enabled', u'Enable'],
     FORWARD: [u'Forwarded', u'Forward'],
+    IMPORT: [u'Imported', u'Import'],
     INFO: [u'Shown', u'Show Info'],
     INITIALIZE: [u'Initialized', u'Initialize'],
     INVALIDATE: [u'Invalidated', u'Invalidate'],

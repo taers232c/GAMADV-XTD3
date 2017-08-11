@@ -116,6 +116,7 @@ If an item contains spaces, it should be surrounded by ".
 <GuardianInvitationID> ::= <String>
 <HoldItem> ::= <UniqueID>|<String>
 <HostName> ::= <String>
+<iCalUID> ::= <String>
 <Key> ::= <String>
 <LabelID> ::= <String>
 <LabelName> ::= <String>
@@ -526,7 +527,7 @@ gam calendar|calendars <CalendarEntity> showacl
 	(events <EventIdList> | <FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|
 	(<EventSelectProperties>+ <EventMatchProperties>*)
 
-<EventAddAttributes> ::=
+<EventAttributes> ::=
 	(anyonecanaddself [<Boolean>])|
 	(attendee <EmailAddress>)|
 	available|
@@ -539,12 +540,10 @@ gam calendar|calendars <CalendarEntity> showacl
 	guestscantseeotherguests|
 	(location <String>)|
 	(noreminders|(reminder email|popup|sms <Number>))|
-	notifyattendees|
 	(optionalattendee <EmailAddress>)|
 	(privateproperty <PropertyKey> <PropertyValue>)|
 	(recurrence <RRULE, EXRULE, RDATE and EXDATE line>)|
 	(reminder <Number> email|popup|sms))|
-	(sendnotifications <Boolean>)|
 	(sharedproperty <PropertyKey> <PropertyValue>)|
 	(source <String> <URL>)|
 	(start (allday <Date>)|<Time>)|
@@ -561,17 +560,28 @@ The following attributes are equivalent:
 	guestscantseeothers = guestscanseeotherguests False
 	tentative = status tentative
 
+<EventAddAttributes> ::=
+	<EventAttributes>|
+	notifyattendees|(sendnotifications <Boolean>)
+
+<EventImportAttributes> ::=
+	<EventAttributes>|
+	(organizername <String>)|
+	(organizeremail <EmailAddress>)
+
 <EventUpdateAttributes> ::=
-	<EventAddAttributes>|
+	<EventAttributes>|
+	notifyattendees|(sendnotifications <Boolean>)|
 	(clearprivateproperty <PropertyKey>)|
 	(clearsharedproperty <PropertyKey>)
 
 gam calendar|calendars <CalendarEntity> add event [id <String>] <EventAddAttributes>+
+gam calendar|calendars <CalendarEntity> import event icaluid <iCalUID> <EventImportAttributes>+
 gam calendar|calendars <CalendarEntity> update events <EventEntity> <EventUpdateAttributes>+
 gam calendar|calendars <CalendarEntity> delete events <EventEntity> [doit] [notifyattendees]
 gam calendar|calendars <CalendarEntity> wipe events
 gam calendar|calendars <CalendarEntity> move events <EventEntity> to <CalendarItem> [notifyattendees]
-gam calendar|calendars <CalendarEntity> info events <EventEntity>
+gam calendar|calendars <CalendarEntity> info events <EventEntity> [maxinstances <Number>]
 
 <EventDisplayProperties> ::=
 	(alwaysincludeemail)|
@@ -996,7 +1006,7 @@ gam delete group|groups <GroupEntity>
 	whocanviewmembership
 <GroupFieldNameList> ::= "<GroupFieldName>(,<GroupFieldName>)*"
 
-gam info group|groups <GroupEntity> [nousers] [noaliases] [groups] <GroupFieldName>* [fields <GroupFieldNameList>] [formatjson]
+gam info group|groups <GroupEntity> [members] [managers] [owners] [nousers] [noaliases] [groups] <GroupFieldName>* [fields <GroupFieldNameList>] [formatjson]
 gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member <UserItem>])|[select <GroupEntity>]
 	[maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])] [convertcrnl] [delimiter <String>]
 	[members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
@@ -1012,7 +1022,7 @@ gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member 
 <MembersFieldNameList> ::= "<MembersFieldName>(,<MembersFieldName>)*"
 
 gam print group-members|groups-members [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member <UserItem>])|[group <GroupItem>]|[select <GroupEntity>]
-	[membernames] <MembersFieldName>* [fields <MembersFieldNameList>] [userfields <UserFieldNameList>] [recursive [noduplicates]]
+	[members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>] [userfields <UserFieldNameList>] [recursive [noduplicates]]
 
 # Guardians
 
@@ -1617,6 +1627,7 @@ The following attributes are equivalent:
 Add update and delete events in any calendar for which a user has access
 
 gam <UserTypeEntity> add event <CalendarManageEntity> [id <String>] <EventAddAttributes>+
+gam <UserTypeEntity> import event <CalendarEntity> icaluid <iCalUID> <EventImportAttributes>+
 gam <UserTypeEntity> update events <CalendarManageEntity> <EventEntity> <EventUpdateAttributes>+
 gam <UserTypeEntity> delete events <CalendarManageEntity> <EventEntity> [doit] [notifyattendees]
 gam <UserTypeEntity> wipe events <CalendarManageEntity>
@@ -1630,7 +1641,7 @@ gam <UserTypeEntity> update calattendees <CalendarManageEntity> <EventEntity> [a
 	(orderby starttime|updated)|
 	(timezone <TimeZone>)
 
-gam <UserTypeEntity> info events <CalendarManageEntity> <EventEntity>
+gam <UserTypeEntity> info events <CalendarManageEntity> <EventEntity> [maxinstances <Number>]
 gam <UserTypeEntity> show events <CalendarPrintShowEntity> ([allevents] <EventSelectProperties>*) <EventDisplayProperties>*
 gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventSelectProperties>*) [todrive [<ToDriveAttributes>]] <EventDisplayProperties>*
 
@@ -1658,6 +1669,7 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 	(modifieddate|modifiedtime <Time>)|
 	(parentid <DriveFolderID>)|
 	(parentname <DriveFolderName>)|
+	(anyparentname <DriveFolderName>)|
 	(teamdriveparent <TeamDriveName>)|
 	(teamdriveparentid <TeamDriveID>|<DriveFolderID>)|
 	(teamdriveparentname <DriveFolderName>)|
@@ -1667,6 +1679,9 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 	<DriveFileAttributes>|
 	(addparents <DriveFolderIDList>)|
 	(removeparents <DriveFolderIDList>)|
+	(parentid <DriveFolderID>)|
+	(parentname <DriveFolderName>)|
+	(anyparentname <DriveFolderName>)|
 	usecontentasindexabletext
 
 <DriveFileCopyAttributes> ::=
@@ -1674,6 +1689,7 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 	ignoredefaultvisibility|
 	(parentid <DriveFolderID>)|
 	(parentname <DriveFolderName>)|
+	(anyparentname <DriveFolderName>)|
 	(teamdriveparent <TeamDriveName>)|
 	(teamdriveparentid <TeamDriveID>|<DriveFolderID>)|
 	(teamdriveparentname <DriveFolderName>)
