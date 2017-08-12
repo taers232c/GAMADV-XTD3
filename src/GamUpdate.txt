@@ -1,6 +1,6 @@
 4.53.04
 
-Fix coding error in gam info groups that caused trap.
+Fix coding error in gam print groups that caused trap.
 
 4.53.03
 
