@@ -1,3 +1,7 @@
+4.53.04
+
+Fix coding error in gam info groups that caused trap.
+
 4.53.03
 
 Changed anyparentname to sharedparentname in gam add/copy/update drivefile.

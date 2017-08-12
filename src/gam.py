@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.53.03'
+__version__ = u'4.53.04'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -3192,7 +3192,7 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
         Cmd.Backup()
         missingArgumentExit(u'end')
     if rolesSet:
-      memberRole = u','.join(rolesSet)
+      memberRole = u','.join(sorted(rolesSet))
     for group in groups:
       if validateEmailAddressOrUID(group):
         doNotExist += _addGroupMembersToUsers(normalizeEmailAddressOrUID(group), domains, recursive)
@@ -11146,7 +11146,7 @@ def infoGroups(entityList):
     else:
       unknownArgumentExit()
   cdfields = u','.join(set(cdfieldsList)) if cdfieldsList else None
-  roles = u','.join(rolesSet) if rolesSet else None
+  roles = u','.join(sorted(rolesSet)) if rolesSet else None
   if gsfieldsList is None:
     getSettings = True
     gsfields = None
@@ -11510,7 +11510,7 @@ def doPrintGroups():
     convertTiNativeTitles(fieldsTitles, titles, nativeTitles)
   if getSettings:
     gs = buildGAPIObject(API.GROUPSSETTINGS)
-  roles = u','.join(rolesSet) if rolesSet else None
+  roles = u','.join(sorted(rolesSet)) if rolesSet else None
   rolesOrSettings = roles or getSettings
   if roles:
     if members:
@@ -11742,7 +11742,7 @@ def doPrintGroupMembers():
     addTitlesToCSVfile([u'name'], titles)
     removeTitlesFromCSVfile([u'name.fullName'], titles)
   userFields = u','.join(set(userFieldsList)).replace(u'.', u'/') if userFieldsList else None
-  roles = u','.join(rolesSet) if rolesSet else None
+  roles = u','.join(sorted(rolesSet)) if rolesSet else None
   membersSet = set()
   level = 0
   i = 0

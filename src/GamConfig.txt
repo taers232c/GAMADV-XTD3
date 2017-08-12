@@ -5,34 +5,26 @@ Additionally, if you support multiple clients/domains or have multiple users run
 gam.cfg lets you easily manage your configuration.
 
 In the following discussion, these names will be used to refer to directories:
-    OldGamPath: Location of previous version of gam.py or gam.exe
-    GamPath: Location of new version of gam.py or gam.exe
-    GamCfgDir: Location of gam.cfg
-    GamConfigDir: Location of client_secrets.json, oauth2.txt, oauth2service.json, extra_args.txt
-    GamCacheDir: Google API cache files
-    GamDriveDir: Files downloaded with gam user <User> get drivefile <DriveFileID> when targetfolder <FilePath> is not specified
-    GamSiteDir: Location of admin-settings-v2.json, cloudprint-v2.json, contacts-v3.json, email-audit-v1.json, email-settings-v2.json
+* OldGamPath: Location of previous version of gam.py or gam.exe
+* GamPath: Location of new version of gam.py or gam.exe
+* GamCfgDir: Location of gam.cfg
+* GamConfigDir: Location of client_secrets.json, oauth2.txt, oauth2service.json, extra_args.txt
+* GamCacheDir: Google API cache files
+* GamDriveDir: Files downloaded with gam user <User> get drivefile <DriveFileID> when targetfolder <FilePath> is not specified
+* GamSiteDir: Location of admin-settings-v2.json, cloudprint-v2.json, contacts-v3.json, email-audit-v1.json, email-settings-v2.json
 
 In versions of GAM before 4.00, the following locations are used:
-    GamCfgDir:
-	Not used
-    GamConfigDir:
-	GamPath
-    GamCacheDir:
-	GamPath/gamcache
-    GamDriveDir:
-	GamPath
+* GamCfgDir: Not used
+* GamConfigDir: GamPath
+* GamCacheDir: 	GamPath/gamcache
+* GamDriveDir: 	GamPath
 
 In GAM 3.70 and above, a new scheme for locating files is implemented.
 These are the default values that GAM uses.
-    GamCfgDir:
-        ~/.gam
-    GamConfigDir:
-        ~/.gam
-    GamCacheDir:
-        ~/.gam/gamcache
-    GamDriveDir:
-        ~/Downloads
+* GamCfgDir: ~/.gam
+* GamConfigDir: ~/.gam
+* GamCacheDir: ~/.gam/gamcache
+* GamDriveDir: ~/Downloads
 
 If you are an existing GAM user and don't like the suggested locations or you already have some other scheme in use,
 set GAMCFGDIR to the desired path for gam.cfg. In gam.cfg, specify the desired values for the other locations.
@@ -262,7 +254,9 @@ user_max_results
 	Default: 500
 	Environment variable: GAM_USER_MAX_RESULTS
 
-This is sample output from the command: gam select default verify.
+This is sample output:
+
+$gam select default verify.
 Config File: /Users/admin/.gam/gam.cfg, Initialized
 Section: DEFAULT
   activity_max_results = 100
@@ -368,21 +362,23 @@ redirect stderr <FileName> [append]
 Here is a sample multiple domain/client example.
 You have five clients: main, foo, goo, shared1 and shared2; 90% of your work is with client main.
 
-Clients main, foo and goo have distinct oauth2service.json and client_secrets.json files.
-Clients shared1 and shared2 have shared oauth2service.json and client_secrets.json files.
-All clients have distinct oauth2.txt files.
-The files for foo, goo, shared1 and shared2 have prefixes to indicate the client; the main files do not have prefixes.
-All files are in OldGamPath. You have been using the environment variables CLIENTSECRETS, OAUTHFILE and OAUTHSERVICEFILE
+* Clients main, foo and goo have distinct oauth2service.json and client_secrets.json files.
+* Clients shared1 and shared2 have shared oauth2service.json and client_secrets.json files.
+* All clients have distinct oauth2.txt files.
+* The files for foo, goo, shared1 and shared2 have prefixes to indicate the client; the main files do not have prefixes.
+* All files are in OldGamPath. You have been using the environment variables CLIENTSECRETS, OAUTHFILE and OAUTHSERVICEFILE
 to specify the client on which to operate. You have:
-    client_secrets.json, oauth2.txt, oauth2service.json
-    foo_client_secrets.json, foo_oauth2.txt, foo_oauth2service.json
-    goo_client_secrets.json, goo_oauth2.txt, goo_oauth2service.json
-    shared_client_secrets.json, shared_oauth2service.json
-    shared1_oauth2.txt, shared2_oauth2.txt
+    - client_secrets.json, oauth2.txt, oauth2service.json
+    - foo_client_secrets.json, foo_oauth2.txt, foo_oauth2service.json
+    - goo_client_secrets.json, goo_oauth2.txt, goo_oauth2service.json
+    - shared_client_secrets.json, shared_oauth2service.json
+    - shared1_oauth2.txt, shared2_oauth2.txt
 
 client_secrets.json, oauth2.txt, oauth2service.json, extra_args.txt were copied to their new location
 when you initially executed the command: gam select default verify
+
 Copy the prefixed files to GamConfigDir by hand as necessary.
+
 Edit gam.cfg to set up additional clients; it should look like this when complete.
 
 [DEFAULT]
@@ -466,54 +462,54 @@ client_secrets_json = shared_client_secrets.json
 oauth2_txt = shared2_oauth2.txt
 
 To get information about your main client, don't select a section.
-	gam info domain
+$gam info domain
 Google Apps Domain: main.com
 Customer ID: 0000000000
 ...
 To get information about another client, select a section.
-	gam select foo info domain
+$gam select foo info domain
 Google Apps Domain: foo.com
 Customer ID: 1111111111
 ...
-	gam select shared2 info domain
+$gam select shared2 info domain
 Google Apps Domain: shared2.org
 Customer ID: 4444444444
 ...
 
 Suppose you want to work with foo for a while, then switch to goo but don't want to keep typing gam select.
-	gam select foo save
+$gam select foo save
 GAM sets section = foo in the DEFAULT section, updates gam.cfg, selects foo for this and subsequent gam commands so you don't have to use select <Section> argument.
-	gam info user admin
+$gam info user admin
 User: admin@foo.com
 ...
 
 When it's time to switch to goo, select and save the section.
-	gam select goo save
+$gam select goo save
 GAM sets section = goo in the DEFAULT section, updates gam.cfg, selects goo for this and subsequent gam commands so you don't have to use select <Section> argument.
-	gam info user admin
+$gam info user admin
 User: admin@goo.com
 ...
 
 If you have to switch back to foo for a single command, select foo, but don't save it, further commands without a select will be goo.
-	gam select foo info user admin
+$gam select foo info user admin
 User: admin@foo.com
 ...
-	gam info user admin
+$gam info user admin
 User: admin@goo.com
 ...
 
 If you have to switch back to main for a single command, select default, but don't save it, further commands without a select will be goo.
-	gam select default info user admin
+$gam select default info user admin
 User: admin@main.com
 ...
-	gam info user admin
+$gam info user admin
 User: admin@goo.com
 ...
 
 To use the DEFAULT section as the selected section, i.e., no automatic selection of a section, select default and save
-	gam select default save
+$gam select default save
 GAM sets section = DEFAULT in the DEFAULT section, updates gam.cfg, selects DEFAULT for this and subsequent gam commands so you don't have to use select <Section> argument.
-	gam info user admin
+$gam info user admin
 User: admin@main.com
 ...
 
@@ -528,28 +524,28 @@ shared1,admin1
 shared2,admin2
 
 For each of the domains, you want to get user information about the domain administrator.
-	gam csv InfoAdmins.csv gam select ~Section info user "~AdminUser" nolicenses
+$gam csv InfoAdmins.csv gam select ~Section info user "~AdminUser" nolicenses
 
 For each of the domains, you also want to list the Google Drive files for the domain administrator.
-	gam csv InfoAdmins.csv gam select ~Section user "~AdminUser" show filelist id
+$gam csv InfoAdmins.csv gam select ~Section user "~AdminUser" show filelist id
 
 Suppose you have two CSV files, NewFooUsers.csv and NewGooUsers.csv, with the columns: Email,FirstName,LastName,Password.
 You will use these files to create new users in the foo.com and goo.com domains.
 
 To process the files sequentially, there are two forms:
-	gam select foo save csv NewFooUsers.csv gam create user ~Email firstname ~FirstName lastname ~LastName password ~Password
-	gam select goo save csv NewGooUsers.csv gam create user ~Email firstname ~FirstName lastname ~LastName password ~Password
+$gam select foo save csv NewFooUsers.csv gam create user ~Email firstname ~FirstName lastname ~LastName password ~Password
+$gam select goo save csv NewGooUsers.csv gam create user ~Email firstname ~FirstName lastname ~LastName password ~Password
 You could also do:
-	gam csv NewFooUsers.csv gam select foo create user ~Email firstname ~FirstName lastname ~LastName password ~Password
-	gam csv NewGooUsers.csv gam select goo create user ~Email firstname ~FirstName lastname ~LastName password ~Password
+$gam csv NewFooUsers.csv gam select foo create user ~Email firstname ~FirstName lastname ~LastName password ~Password
+$gam csv NewGooUsers.csv gam select goo create user ~Email firstname ~FirstName lastname ~LastName password ~Password
 In the first form, the select/save before csv sets the default section which then applies to each gam instance.
 In the second form, the select is performed for each gam instance.
 
 To process the files in parallel in separate shells, you have to use the second form.
 In shell number 1, do:
-	gam csv NewFooUsers.csv gam select foo create user ~Email firstname ~FirstName lastname ~LastName password ~Password
+$gam csv NewFooUsers.csv gam select foo create user ~Email firstname ~FirstName lastname ~LastName password ~Password
 In shell number 2, do:
-	gam csv NewGooUsers.csv gam select goo create user ~Email firstname ~FirstName lastname ~LastName password ~Password
+$gam csv NewGooUsers.csv gam select goo create user ~Email firstname ~FirstName lastname ~LastName password ~Password
 
 The gam loop command and the select and redirect arguments can be combined to perform powerful operations in a single command line.
 
@@ -565,17 +561,17 @@ shared2,shared2.org,admin2
 For each of the domains, you want to get user information about the domain administrator. GAM writes this information
 to stdout, so you'll redirect stdout. In the first case, you want all of the output in a single file so stdout is
 redirected to a file before the loop command.
-	gam redirect stdout InfoDomainAdmins.lst append loop InfoDomains.csv gam select ~Section info user "~AdminUser" nolicenses
+$gam redirect stdout InfoDomainAdmins.lst append loop InfoDomains.csv gam select ~Section info user "~AdminUser" nolicenses
 
 In the second case, you want the output for each domain administrator in a separate file so stdout is redirected after
 the loop command.
-	gam loop InfoDomains.csv select ~Section redirect stdout Info-~~Domain~~-Admin.lst info user "~AdminUser" nolicenses
+$gam loop InfoDomains.csv select ~Section redirect stdout Info-~~Domain~~-Admin.lst info user "~AdminUser" nolicenses
 
 For each of the domains, you also want to list the Google Drive files for the domain administrator. GAM writes this information
 to a csv file, so you'll redirect csv output. In the first case, you want all of the output in a single file so csv output is
 redirected to a file before the loop command.
-	gam redirect csv FilesDomainAdmins.csv append loop InfoDomains.csv gam select ~Section user "~AdminUser" show filelist id
+$gam redirect csv FilesDomainAdmins.csv append loop InfoDomains.csv gam select ~Section user "~AdminUser" show filelist id
 
 In the second case, you want the output for each domain administrator in a separate file so csv output is redirected after
 the loop command.
-	gam loop InfoDomains.csv select ~Section redirect csv Files-~~Domain~~-Admin.csv user "~AdminUser" show filelist id
+$gam loop InfoDomains.csv select ~Section redirect csv Files-~~Domain~~-Admin.csv user "~AdminUser" show filelist id
