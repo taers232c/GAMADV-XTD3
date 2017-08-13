@@ -171,4 +171,5 @@ USE_DOIT_ARGUMENT_TO_PERFORM_ACTION = u'Use the "doit" argument to perform actio
 USE_RECURSIVE_ARGUMENT_TO_COPY_FOLDERS = u'Use "recursive" argument to copy folders'
 USING_N_PROCESSES = u'Using {0} {1}...\n'
 WITH = u'with'
+WITHLINK_INCOMPATIBILITY = u'withlink/allowfilediscovery not compatible with role type {0}'
 WOULD_MAKE_MEMBERSHIP_CYCLE = u'Would make membership cycle'

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.53.04'
+__version__ = u'4.53.05'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -11619,13 +11619,26 @@ def getGroupMembers(cd, groupEmail, roles, membersList, membersSet, i, count, no
           membersList.append(member)
       else:
         membersList.extend(groupMembers)
+    elif noduplicates:
+      groupMemberList = []
+      for member in groupMembers:
+        if member[u'type'] == u'USER':
+          if member[u'id'] in membersSet:
+            continue
+          membersSet.add(member[u'id'])
+          member[u'level'] = level
+          member[u'subgroup'] = groupEmail
+          membersList.append(member)
+        elif member[u'type'] == u'GROUP':
+          if member[u'id'] in membersSet:
+            continue
+          membersSet.add(member[u'id'])
+          groupMemberList.append(member[u'email'])
+      for member in groupMemberList:
+        getGroupMembers(cd, member, roles, membersList, membersSet, i, count, noduplicates, recursive, level+1)
     else:
       for member in groupMembers:
         if member[u'type'] == u'USER':
-          if noduplicates:
-            if member[u'id'] in membersSet:
-              continue
-            membersSet.add(member[u'id'])
           member[u'level'] = level
           member[u'subgroup'] = groupEmail
           membersList.append(member)
@@ -22101,8 +22114,10 @@ def addDriveFileACL(users):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'withlink':
+      withLinkLocation = Cmd.Location()
       body[u'allowFileDiscovery'] = False
     elif myarg in [u'allowfilediscovery', u'discoverable']:
+      withLinkLocation = Cmd.Location()
       body[u'allowFileDiscovery'] = getBoolean(defaultValue=True)
     elif myarg == u'role':
       roleLocation = Cmd.Location()
@@ -22126,6 +22141,9 @@ def addDriveFileACL(users):
   if body[u'role'] == u'owner' and body[u'type'] != u'user':
     Cmd.SetLocation(roleLocation)
     usageErrorExit(Msg.INVALID_OWNER_TYPE.format(body[u'role'], body[u'type']))
+  if u'allowFileDiscovery' in body and body[u'type'] in [u'user', u'group']:
+    Cmd.SetLocation(withLinkLocation-1)
+    usageErrorExit(Msg.WITHLINK_INCOMPATIBILITY.format(body[u'type']))
   printKeys = DRIVEFILE_ACL_KEY_PRINT_ORDER[:]
   timeObjects = DRIVEFILE_ACL_TIME_OBJECTS[:]
   if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:

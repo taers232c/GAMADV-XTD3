@@ -1,3 +1,9 @@
+4.53.05
+
+Improved performance of gam print group-members when recursive noduplicates is specified.
+
+Added additional error checking for gam add drivefileacl.
+
 4.53.04
 
 Fix coding error in gam print groups that caused trap.
