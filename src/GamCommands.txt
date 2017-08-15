@@ -89,7 +89,7 @@ If an item contains spaces, it should be surrounded by ".
 <CourseID> ::= <Number>|d:<CourseAlias>
 <CourseParticipantType> ::= teacher|teachers|student|students
 <CrOSID> ::= <String>
-<CrOSItem> ::= <CrOSID>|(query:<QueryCrOS>)|(query <QueryCrOS>)
+<CrOSItem> ::= <CrOSID>|(query:<QueryCrOS>)|(query:orgunitpath:<OrgUnitPath>)|(query <QueryCrOS>)
 <CustomerID> ::= <String>
 <DomainName> ::= <String>(.<String>)+
 <DriveFileACLRole> :: =commenter|editor|organizer|owner|reader|writer
@@ -606,8 +606,15 @@ gam calendar|calendars <CalendarEntity> wipe
 	(org|ou <OrgUnitPath>)|
 	(user <String>)
 
-gam update cros <CrOSEntity> (<CrOSAttributes>+)|(action deprovision_same_model_replace|deprovision_different_model_replace|deprovision_retiring_device|disable|reenable [acknowledge_device_touch_requirement])
-gam <CrOSTypeEntity> update (<CrOSAttributes>+)|(action deprovision_same_model_replace|deprovision_different_model_replace|deprovision_retiring_device|disable|reenable [acknowledge_device_touch_requirement])
+<CrOSAction> ::=
+	deprovision_same_model_replace|
+	deprovision_different_model_replace|
+	deprovision_retiring_device|
+	disable|
+	reenable
+
+gam update cros <CrOSEntity> (<CrOSAttributes>+ [quickcrosmove [<Boolean>]])|(action <CrOSAction> [acknowledge_device_touch_requirement])
+gam <CrOSTypeEntity> update (<CrOSAttributes>+ [quickcrosmove [<Boolean>]])|(action <CrOSAction> [acknowledge_device_touch_requirement])
 
 <CrOSFieldName> ::=
 	activetimeranges|timeranges|
@@ -638,7 +645,7 @@ gam <CrOSTypeEntity> update (<CrOSAttributes>+)|(action deprovision_same_model_r
 <CrOSOrderByFieldName> ::=
 	lastsync|location|notes|serialnumber|status|supportenddate|user
 
-gam info cros <CrosEntity> [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
+gam info cros <CrOSEntity> [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
 	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
 gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
 	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
@@ -1130,12 +1137,14 @@ gam info notification|notifications [unread|read|unreadonly]
 
 gam create org|ou <OrgUnitPath> [description <String>] [parent <OrgUnitItem>] [inherit|noinherit|(blockinheritance <Boolean>)] [buildpath]
 gam update org|ou <OrgUnitItem> [name <String>] [description <String>] [parent <OrgUnitItem>] [inherit|noinherit|(blockinheritance <Boolean>)]
-gam update org|ou <OrgUnitItem> add|move <CrOSTypeEntity>|<UserTypeEntity>
+gam update org|ou <OrgUnitItem> add|move <CrOSTypeEntity> [quickcrosmove [<Boolean>]]
+gam update org|ou <OrgUnitItem> add|move <UserTypeEntity>
 gam delete org|ou <OrgUnitItem>
 gam info org|ou <OrgUnitItem> [nousers] [children|child]
 
 gam update orgs|ous <OrgUnitEntity> [name <String>] [description <String>] [parent <OrgUnitItem>] [inherit|noinherit|(blockinheritance <Boolean>)]
-gam update orgs|ous <OrgUnitEntity> add|move <CrOSTypeEntity>|<UserTypeEntity>
+gam update orgs|ous <OrgUnitEntity> add|move <CrOSTypeEntity> [quickcrosmove [<Boolean>]]
+gam update orgs|ous <OrgUnitEntity> add|move <UserTypeEntity>
 gam delete orgs|ous <OrgUnitEntity>
 gam info orgs|ous <OrgUnitEntity> [nousers] [children|child]
 

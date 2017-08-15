@@ -1,3 +1,28 @@
+4.53.06
+
+Added new method (query:orgunitpath:<OrgUnitPath>) of specifying CrOS OU for backwards compatability with Jay's version.
+    <CrOSItem> ::= <CrOSID>|(query:<QueryCrOS>)|(query:orgunitpath:<OrgUnitPath>)|(query <QueryCrOS>)
+    <CrOSEntity> ::= <CrOSItem> | <CrOSList> | <FileSelector> | <CSVkmdSelector>
+    gam info cros <CrOSEntity> [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
+	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+    gam update cros <CrOSEntity> (<CrOSAttributes>+ [quickcrosmove [<Boolean>]])|(action <CrOSAction> [acknowledge_device_touch_requirement])
+Example: move CrOS devices from one OU to another:
+    gam update cros query:orgunitpath:/Students/2017 ou /Students/2018
+The simpler way to do this is:
+    gam cros_ou /Students/2017 update ou /Students/2018
+
+Google has introduced a new, faster method for moving CrOS devices to a new OU. The quickcrosmove argument in the
+following commands causes Gam to use the new method; if not specified, the previous individual/batch method is used.
+In the CrOS update commands, the quickcrosmove is applicable only if the OU is the only <CrOSAttribute> being updated;
+if other <CrOSAttributes> are being updated, each CrOS device is updated individually.
+In the new method, Google doesn't seem to do any error checking of the CrOS deviceIds, there is no error message
+given if invalid CrOS deviceIds are specified.
+    gam update cros <CrOSEntity> (<CrOSAttributes>+ [quickcrosmove [<Boolean>]])|(action <CrOSAction> [acknowledge_device_touch_requirement])
+    gam <CrOSTypeEntity> update (<CrOSAttributes>+ [quickcrosmove [<Boolean>]])|(action <CrOSAction> [acknowledge_device_touch_requirement])
+    gam update org|ou <OrgUnitItem> add|move <CrOSTypeEntity> [quickcrosmove [<Boolean>]]
+    gam update orgs|ous <OrgUnitEntity> add|move <CrOSTypeEntity> [quickcrosmove [<Boolean>]]
+If <Boolean> is not specified for quickcrosmove, the default is True.
+
 4.53.05
 
 Improved performance of gam print group-members when recursive noduplicates is specified.

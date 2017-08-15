@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.53.05'
+__version__ = u'4.53.06'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -4189,10 +4189,10 @@ def doVersion(checkForArgs=True):
     writeStdout(__version__)
     return
   import struct
-  version_data = u'GAM {0} - {1}\n{2}\nPython {3}.{4}.{5} {6}-bit {7}\ngoogle-api-python-client {8}\n{9} {10}\nPath: {11}\n'
+  version_data = u'GAM {0} - {1}\n{2}\nPython {3}.{4}.{5} {6}-bit {7}\ngoogle-api-python-client {8}\noauth2client {9}\n{10} {11}\nPath: {12}\n'
   writeStdout(version_data.format(__version__, GAM_URL, __author__, sys.version_info[0],
                                   sys.version_info[1], sys.version_info[2], struct.calcsize(u'P')*8,
-                                  sys.version_info[3], googleapiclient.__version__, platform.platform(),
+                                  sys.version_info[3], googleapiclient.__version__, oauth2client.__version__, platform.platform(),
                                   platform.machine(), GM.Globals[GM.GAM_PATH]))
   if forceCheck:
     doGAMCheckForUpdates(forceCheck=True)
@@ -6873,8 +6873,7 @@ def checkOrgUnitPathExists(cd, orgUnitPath, i=0, count=0):
   entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], Msg.DOES_NOT_EXIST, i, count)
   return None
 
-def _doUpdateOrgs(entityList):
-
+def _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, i, count, items, quickCrOSMove):
   def _callbackMoveCrOSesToOrgUnit(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
@@ -6887,6 +6886,49 @@ def _doUpdateOrgs(entityList):
         errMsg = getHTTPError({}, http_status, reason, message)
         entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, ri[RI_ENTITY], Ent.CROS_DEVICE, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
+  jcount = len(items)
+  entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.CROS_DEVICE, i, count)
+  Ind.Increment()
+  if not quickCrOSMove:
+    svcargs = dict([(u'customerId', GC.Values[GC.CUSTOMER_ID]), (u'deviceId', None), (u'body', {u'orgUnitPath': orgUnitPath}), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackMoveCrOSesToOrgUnit)
+    bcount = 0
+    j = 0
+    for deviceId in items:
+      j += 1
+      svcparms = svcargs.copy()
+      svcparms[u'deviceId'] = deviceId
+      dbatch.add(cd.chromeosdevices().patch(**svcparms), request_id=batchRequestID(orgUnitPath, 0, 0, j, jcount, deviceId))
+      bcount += 1
+      if bcount >= GC.Values[GC.BATCH_SIZE]:
+        dbatch.execute()
+        dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackMoveCrOSesToOrgUnit)
+        bcount = 0
+    if bcount > 0:
+      dbatch.execute()
+  else:
+    bcount = 0
+    j = 0
+    while bcount < jcount:
+      kcount = min(jcount-bcount, GC.Values[GC.BATCH_SIZE])
+      try:
+        deviceIds = items[bcount:bcount+kcount]
+        callGAPI(cd.chromeosdevices(), u'moveDevicesToOu',
+                 throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                 customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=orgUnitPath,
+                 body={u'deviceIds': deviceIds})
+        for deviceId in deviceIds:
+          j += 1
+          entityActionPerformed([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CROS_DEVICE, deviceId], j, jcount)
+        bcount += kcount
+      except GAPI.invalidOrgunit:
+        entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], Msg.INVALID_ORGUNIT, i, count)
+        break
+      except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+        checkEntityAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, orgUnitPath, i, count)
+  Ind.Decrement()
+
+def _batchMoveUsersToOrgUnit(cd, orgUnitPath, i, count, items):
   _MOVE_USER_REASON_TO_MESSAGE_MAP = {GAPI.USER_NOT_FOUND: Msg.DOES_NOT_EXIST, GAPI.DOMAIN_NOT_FOUND: Msg.SERVICE_NOT_APPLICABLE, GAPI.FORBIDDEN: Msg.SERVICE_NOT_APPLICABLE}
   def _callbackMoveUsersToOrgUnit(request_id, response, exception):
     ri = request_id.splitlines()
@@ -6897,11 +6939,39 @@ def _doUpdateOrgs(entityList):
       errMsg = getHTTPError(_MOVE_USER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
       entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, ri[RI_ENTITY], Ent.USER, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
+  jcount = len(items)
+  entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.USER, i, count)
+  Ind.Increment()
+  svcargs = dict([(u'userKey', None), (u'body', {u'orgUnitPath': orgUnitPath}), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
+  dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackMoveUsersToOrgUnit)
+  bcount = 0
+  j = 0
+  for user in items:
+    j += 1
+    svcparms = svcargs.copy()
+    svcparms[u'userKey'] = normalizeEmailAddressOrUID(user)
+    dbatch.add(cd.users().patch(**svcparms), request_id=batchRequestID(orgUnitPath, 0, 0, j, jcount, svcparms[u'userKey']))
+    bcount += 1
+    if bcount >= GC.Values[GC.BATCH_SIZE]:
+      dbatch.execute()
+      dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackMoveUsersToOrgUnit)
+      bcount = 0
+  if bcount > 0:
+    dbatch.execute()
+  Ind.Decrement()
+
+def _doUpdateOrgs(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
   if checkArgumentPresent(Cmd.MOVE_ADD_ARGUMENT):
     entityType, items = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, crosAllowed=True)
     orgItemLists = items if isinstance(items, dict) else None
-    checkForExtraneousArguments()
+    quickCrOSMove = False
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if entityType == Cmd.ENTITY_CROS and myarg == u'quickcrosmove':
+        quickCrOSMove = getBoolean(defaultValue=True)
+      else:
+        unknownArgumentExit()
     Act.Set(Act.ADD)
     i = 0
     count = len(entityList)
@@ -6912,44 +6982,10 @@ def _doUpdateOrgs(entityList):
       orgUnitPath = checkOrgUnitPathExists(cd, orgUnitPath, i, count)
       if not orgUnitPath:
         continue
-      jcount = len(items)
-      entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, [Ent.CROS_DEVICE, Ent.USER][entityType == Cmd.ENTITY_USERS], i, count)
-      Ind.Increment()
       if entityType == Cmd.ENTITY_USERS:
-        svcargs = dict([(u'userKey', None), (u'body', {u'orgUnitPath': orgUnitPath}), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
-        dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackMoveUsersToOrgUnit)
-        bcount = 0
-        j = 0
-        for user in items:
-          j += 1
-          svcparms = svcargs.copy()
-          svcparms[u'userKey'] = normalizeEmailAddressOrUID(user)
-          dbatch.add(cd.users().patch(**svcparms), request_id=batchRequestID(orgUnitPath, 0, 0, j, jcount, svcparms[u'userKey']))
-          bcount += 1
-          if bcount >= GC.Values[GC.BATCH_SIZE]:
-            dbatch.execute()
-            dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackMoveUsersToOrgUnit)
-            bcount = 0
-        if bcount > 0:
-          dbatch.execute()
+        _batchMoveUsersToOrgUnit(cd, orgUnitPath, i, count, items)
       else:
-        svcargs = dict([(u'customerId', GC.Values[GC.CUSTOMER_ID]), (u'deviceId', None), (u'body', {u'orgUnitPath': orgUnitPath}), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
-        dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackMoveCrOSesToOrgUnit)
-        bcount = 0
-        j = 0
-        for deviceId in items:
-          j += 1
-          svcparms = svcargs.copy()
-          svcparms[u'deviceId'] = deviceId
-          dbatch.add(cd.chromeosdevices().patch(**svcparms), request_id=batchRequestID(orgUnitPath, 0, 0, j, jcount, deviceId))
-          bcount += 1
-          if bcount >= GC.Values[GC.BATCH_SIZE]:
-            dbatch.execute()
-            dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackMoveCrOSesToOrgUnit)
-            bcount = 0
-        if bcount > 0:
-          dbatch.execute()
-      Ind.Decrement()
+        _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, i, count, items, quickCrOSMove)
   else:
     body = {}
     while Cmd.ArgumentsRemaining():
@@ -6987,12 +7023,14 @@ def _doUpdateOrgs(entityList):
         checkEntityAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, orgUnitPath)
 
 # gam update orgs|ous <OrgUnitEntity> [name <String>] [description <String>] [parent <OrgUnitItem>] [inherit|noinherit|(blockinheritance <Boolean>)]
-# gam update orgs|ous <OrgUnitEntity> add|move <CrosTypeEntity>|<UserTypeEntity>
+# gam update orgs|ous <OrgUnitEntity> add|move <CrosTypeEntity> [quickcrosmove [<Boolean>]]
+# gam update orgs|ous <OrgUnitEntity> add|move <UserTypeEntity>
 def doUpdateOrgs():
   _doUpdateOrgs(getEntityList(Cmd.OB_ORGUNIT_ENTITY, shlexSplit=True))
 
 # gam update org|ou <OrgUnitItem> [name <String>] [description <String>]  [parent <OrgUnitItem>] [inherit|noinherit|(blockinheritance <Boolean>)]
-# gam update org|ou <OrgUnitItem> add|move <CrosTypeEntity>|<UserTypeEntity>
+# gam update org|ou <OrgUnitItem> add|move <CrosTypeEntity> [quickcrosmove [<Boolean>]]
+# gam update org|ou <OrgUnitItem> add|move <UserTypeEntity>
 def doUpdateOrg():
   _doUpdateOrgs([getOrgUnitItem()])
 
@@ -9749,29 +9787,16 @@ def showUserContactGroups(users):
 
 # CrOS commands utilities
 def getCrOSDeviceEntity():
-  cd = buildGAPIObject(API.DIRECTORY)
   if checkArgumentPresent(Cmd.QUERY_ARGUMENT):
-    query = getString(Cmd.OB_QUERY)
-  else:
-    deviceId = getString(Cmd.OB_CROS_DEVICE_ENTITY)
-    if deviceId[:6].lower() == u'query:':
-      query = deviceId[6:]
-    else:
-      Cmd.Backup()
-      query = None
-  if not query:
-    return (getEntityList(Cmd.OB_CROS_ENTITY), cd)
-  try:
-    devices = callGAPIpages(cd.chromeosdevices(), u'list', u'chromeosdevices',
-                            throw_reasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                            customerId=GC.Values[GC.CUSTOMER_ID], query=query,
-                            fields=u'nextPageToken,chromeosdevices(deviceId)')
-    return ([cros[u'deviceId'] for cros in devices], cd)
-  except GAPI.invalidInput:
-    Cmd.Backup()
-    usageErrorExit(Msg.INVALID_QUERY)
-  except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-    accessErrorExit(cd)
+    return getUsersToModify(Cmd.ENTITY_CROS_QUERY, getString(Cmd.OB_QUERY))
+  deviceId = getString(Cmd.OB_CROS_DEVICE_ENTITY)
+  if deviceId[:6].lower() == u'query:':
+    query = deviceId[6:]
+    if query[:12].lower() == u'orgunitpath:':
+      return getUsersToModify(Cmd.ENTITY_CROS_OU, query[12:])
+    return getUsersToModify(Cmd.ENTITY_CROS_QUERY, query)
+  Cmd.Backup()
+  return getEntityList(Cmd.OB_CROS_ENTITY)
 
 UPDATE_CROS_ARGUMENT_TO_PROPERTY_MAP = {
   u'annotatedassetid': u'annotatedAssetId',
@@ -9804,13 +9829,12 @@ CROS_ACTION_NAME_MAP = {
   u'reenable': Act.REENABLE,
   }
 
-# gam <CrOSTypeEntity> update <CrOSAttributes>
-def updateCrOSDevices(entityList, cd=None):
-  if not cd:
-    cd = buildGAPIObject(API.DIRECTORY)
+# gam <CrOSTypeEntity> update (<CrOSAttributes>+ [quickcrosmove [<Boolean>]])|(action <CrOSAction> [acknowledge_device_touch_requirement])
+def updateCrOSDevices(entityList):
+  cd = buildGAPIObject(API.DIRECTORY)
   update_body = {}
   action_body = {}
-  ack_wipe = False
+  ackWipe = quickCrOSMove = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in UPDATE_CROS_ARGUMENT_TO_PROPERTY_MAP:
@@ -9822,26 +9846,39 @@ def updateCrOSDevices(entityList, cd=None):
       else:
         update_body[up] = getString(Cmd.OB_STRING, minLen=[0, 1][up == u'annotatedAssetId'])
     elif myarg == u'action':
+      actionLocation = Cmd.Location()
       action_body[u'action'], deprovisionReason = getChoice(CROS_ACTION_CHOICES_MAP, mapChoice=True)
       if deprovisionReason:
         action_body[u'deprovisionReason'] = deprovisionReason
       Act.Set(CROS_ACTION_NAME_MAP[action_body[u'action']])
     elif myarg == u'acknowledgedevicetouchrequirement':
-      ack_wipe = True
+      ackWipe = True
+    elif myarg == u'quickcrosmove':
+      quickCrOSMove = getBoolean(defaultValue=True)
     else:
       unknownArgumentExit()
+  if action_body and update_body:
+    Cmd.SetLocation(actionLocation-1)
+    usageErrorExit(Msg.ARE_MUTUALLY_EXCLUSIVE.format(u'action', u'<CrOSAttributes>'))
   i, count, entityList = getEntityArgument(entityList)
   if action_body:
-    if action_body[u'action'] == u'deprovision' and not ack_wipe:
+    if action_body[u'action'] == u'deprovision' and not ackWipe:
       stderrWarningMsg(Msg.REFUSING_TO_DEPROVISION_DEVICES.format(count))
       systemErrorExit(AC_NOT_PERFORMED_RC, None)
     function = u'action'
     parmId = u'resourceId'
     kwargs = {parmId: None, u'body': action_body}
   elif update_body:
-    function = u'update'
-    parmId = u'deviceId'
-    kwargs = {parmId: None, u'body': update_body, u'fields': u''}
+    if len(update_body) != 1 or u'orgUnitPath' not in update_body:
+      function = u'update'
+      parmId = u'deviceId'
+      kwargs = {parmId: None, u'body': update_body, u'fields': u''}
+    else:
+      Act.Set(Act.ADD)
+      orgUnitPath = checkOrgUnitPathExists(cd, update_body[u'orgUnitPath'])
+      if orgUnitPath:
+        _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, 0, 0, entityList, quickCrOSMove)
+      return
   else:
     return
   for deviceId in entityList:
@@ -9859,9 +9896,9 @@ def updateCrOSDevices(entityList, cd=None):
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.CROS_DEVICE, deviceId, i, count)
 
-# gam update cros|croses <CrOSEntity> <CrOSAttributes>
+# gam update cros|croses <CrOSEntity> (<CrOSAttributes>+ [quickcrosmove [<Boolean>]])|(action <CrOSAction> [acknowledge_device_touch_requirement])
 def doUpdateCrOSDevices():
-  updateCrOSDevices(*getCrOSDeviceEntity())
+  updateCrOSDevices(getCrOSDeviceEntity())
 
 def _filterTimeRanges(activeTimeRanges, startDate, endDate):
   if startDate is None and endDate is None:
@@ -9942,9 +9979,8 @@ CROS_END_ARGUMENTS = [u'end', u'enddate']
 
 # gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
-def infoCrOSDevices(entityList, cd=None):
-  if not cd:
-    cd = buildGAPIObject(API.DIRECTORY)
+def infoCrOSDevices(entityList):
+  cd = buildGAPIObject(API.DIRECTORY)
   projection = None
   fieldsList = []
   noLists = False
@@ -10037,7 +10073,7 @@ def infoCrOSDevices(entityList, cd=None):
 # gam info cros|croses <CrOSEntity> [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
 def doInfoCrOSDevices():
-  infoCrOSDevices(*getCrOSDeviceEntity())
+  infoCrOSDevices(getCrOSDeviceEntity())
 
 CROS_ORDERBY_CHOICES_MAP = {
   u'lastsync': u'lastSync',
@@ -16913,20 +16949,20 @@ def checkCourseExists(croom, courseId, i=0, count=0):
     entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], Msg.DOES_NOT_EXIST, i, count)
     return None
 
-_ADD_PART_REASON_TO_MESSAGE_MAP = {GAPI.ALREADY_EXISTS: Msg.DUPLICATE, GAPI.FAILED_PRECONDITION: Msg.NOT_ALLOWED}
-def _callbackAddParticipantsToCourse(request_id, response, exception):
-  ri = request_id.splitlines()
-  if exception is None:
-    entityActionPerformed([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
-  else:
-    http_status, reason, message = checkGAPIError(exception)
-    if reason in [GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR]:
-      errMsg = getPhraseDNEorSNA(ri[RI_ITEM])
-    else:
-      errMsg = getHTTPError(_ADD_PART_REASON_TO_MESSAGE_MAP, http_status, reason, message)
-    entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
-
 def _batchAddParticipantsToCourse(croom, courseId, i, count, addParticipants, role):
+  _ADD_PART_REASON_TO_MESSAGE_MAP = {GAPI.ALREADY_EXISTS: Msg.DUPLICATE, GAPI.FAILED_PRECONDITION: Msg.NOT_ALLOWED}
+  def _callbackAddParticipantsToCourse(request_id, response, exception):
+    ri = request_id.splitlines()
+    if exception is None:
+      entityActionPerformed([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+    else:
+      http_status, reason, message = checkGAPIError(exception)
+      if reason in [GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR]:
+        errMsg = getPhraseDNEorSNA(ri[RI_ITEM])
+      else:
+        errMsg = getHTTPError(_ADD_PART_REASON_TO_MESSAGE_MAP, http_status, reason, message)
+      entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+
   if role == Ent.STUDENT:
     service = croom.courses().students()
     attribute = u'userId'
@@ -16963,20 +16999,20 @@ def _batchAddParticipantsToCourse(croom, courseId, i, count, addParticipants, ro
     dbatch.execute()
   Ind.Decrement()
 
-_REMOVE_PART_REASON_TO_MESSAGE_MAP = {GAPI.NOT_FOUND: Msg.DOES_NOT_EXIST, GAPI.FORBIDDEN: Msg.FORBIDDEN}
-def _callbackRemoveParticipantsFromCourse(request_id, response, exception):
-  ri = request_id.splitlines()
-  if exception is None:
-    entityActionPerformed([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
-  else:
-    http_status, reason, message = checkGAPIError(exception)
-    if reason == GAPI.NOT_FOUND and ri[RI_ROLE] != Ent.COURSE_ALIAS:
-      errMsg = u'{0} {1}'.format(Msg.NOT_A, Ent.Singular(ri[RI_ROLE]))
-    else:
-      errMsg = getHTTPError(_REMOVE_PART_REASON_TO_MESSAGE_MAP, http_status, reason, message)
-    entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
-
 def _batchRemoveParticipantsFromCourse(croom, courseId, i, count, removeParticipants, role):
+  _REMOVE_PART_REASON_TO_MESSAGE_MAP = {GAPI.NOT_FOUND: Msg.DOES_NOT_EXIST, GAPI.FORBIDDEN: Msg.FORBIDDEN}
+  def _callbackRemoveParticipantsFromCourse(request_id, response, exception):
+    ri = request_id.splitlines()
+    if exception is None:
+      entityActionPerformed([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+    else:
+      http_status, reason, message = checkGAPIError(exception)
+      if reason == GAPI.NOT_FOUND and ri[RI_ROLE] != Ent.COURSE_ALIAS:
+        errMsg = u'{0} {1}'.format(Msg.NOT_A, Ent.Singular(ri[RI_ROLE]))
+      else:
+        errMsg = getHTTPError(_REMOVE_PART_REASON_TO_MESSAGE_MAP, http_status, reason, message)
+      entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+
   if role == Ent.STUDENT:
     service = croom.courses().students()
     attribute = u'userId'
