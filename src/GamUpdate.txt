@@ -1,3 +1,14 @@
+4.53.07
+
+In <CrOSTypeEntity>, a selection name was changed to make it consistent with other selection names.
+If you have scripts that use the previous name, uopdate them to have the current name.
+Previous: csvcros <FieldName>(:<FieldName>*)
+Current:  croscsvdata <FieldName>(:<FieldName>*)
+
+Handle quotaExceeded errors when deleting members from groups.
+
+Fix coding error in gam add permissions.
+
 4.53.06
 
 Added new method (query:orgunitpath:<OrgUnitPath>) of specifying CrOS OU for backwards compatability with Jay's version.

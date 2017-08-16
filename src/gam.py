@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.53.06'
+__version__ = u'4.53.07'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -3605,7 +3605,7 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
   if userAllowed:
     selectorChoices += Cmd.CSVDATA_ENTITY_SELECTORS
   if crosAllowed:
-    selectorChoices += Cmd.CROS_ENTITY_SELECTORS+Cmd.CSVCROS_ENTITY_SELECTORS
+    selectorChoices += Cmd.CROS_ENTITY_SELECTORS+Cmd.CROS_CSVDATA_ENTITY_SELECTORS
   entitySelector = getChoice(selectorChoices, defaultChoice=None)
   if entitySelector:
     choices = []
@@ -3653,7 +3653,7 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
       entityType = mapEntityType(getChoice(choices, choiceAliases=Cmd.ENTITY_ALIAS_MAP), typeMap)
       return ([Cmd.ENTITY_CROS, Cmd.ENTITY_USERS][entityType not in Cmd.CROS_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES],
               getUsersToModify(entityType, getEntitiesFromCSVbyField()))
-    if entitySelector in [Cmd.ENTITY_SELECTOR_CSVDATA, Cmd.ENTITY_SELECTOR_CSVCROS]:
+    if entitySelector in [Cmd.ENTITY_SELECTOR_CSVDATA, Cmd.ENTITY_SELECTOR_CROSCSVDATA]:
       checkDataField()
       return ([Cmd.ENTITY_CROS, Cmd.ENTITY_USERS][entitySelector == Cmd.ENTITY_SELECTOR_CSVDATA],
               GM.Globals[GM.CSV_DATA_DICT])
@@ -6891,6 +6891,7 @@ def _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, i, count, items, quickCrOSMove):
   Ind.Increment()
   if not quickCrOSMove:
     svcargs = dict([(u'customerId', GC.Values[GC.CUSTOMER_ID]), (u'deviceId', None), (u'body', {u'orgUnitPath': orgUnitPath}), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    method = getattr(cd.chromeosdevices(), u'patch')
     dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackMoveCrOSesToOrgUnit)
     bcount = 0
     j = 0
@@ -6898,7 +6899,7 @@ def _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, i, count, items, quickCrOSMove):
       j += 1
       svcparms = svcargs.copy()
       svcparms[u'deviceId'] = deviceId
-      dbatch.add(cd.chromeosdevices().patch(**svcparms), request_id=batchRequestID(orgUnitPath, 0, 0, j, jcount, deviceId))
+      dbatch.add(method(**svcparms), request_id=batchRequestID(orgUnitPath, 0, 0, j, jcount, deviceId))
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
         dbatch.execute()
@@ -6943,6 +6944,7 @@ def _batchMoveUsersToOrgUnit(cd, orgUnitPath, i, count, items):
   entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.USER, i, count)
   Ind.Increment()
   svcargs = dict([(u'userKey', None), (u'body', {u'orgUnitPath': orgUnitPath}), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
+  method = getattr(cd.users(), u'patch')
   dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackMoveUsersToOrgUnit)
   bcount = 0
   j = 0
@@ -6950,7 +6952,7 @@ def _batchMoveUsersToOrgUnit(cd, orgUnitPath, i, count, items):
     j += 1
     svcparms = svcargs.copy()
     svcparms[u'userKey'] = normalizeEmailAddressOrUID(user)
-    dbatch.add(cd.users().patch(**svcparms), request_id=batchRequestID(orgUnitPath, 0, 0, j, jcount, svcparms[u'userKey']))
+    dbatch.add(method(**svcparms), request_id=batchRequestID(orgUnitPath, 0, 0, j, jcount, svcparms[u'userKey']))
     bcount += 1
     if bcount >= GC.Values[GC.BATCH_SIZE]:
       dbatch.execute()
@@ -10255,6 +10257,7 @@ def doPrintCrOSDevices(entityList=None):
       selectLookup = True
     if selectLookup:
       jcount = len(entityList)
+      method = getattr(cd.chromeosdevices(), u'get')
       svcargs = dict([(u'customerId', GC.Values[GC.CUSTOMER_ID]), (u'deviceId', None), (u'projection', projection), (u'fields', fields)]+GM.Globals[GM.EXTRA_ARGS_LIST])
       dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackPrintCrOS)
       bcount = 0
@@ -10263,7 +10266,7 @@ def doPrintCrOSDevices(entityList=None):
         j += 1
         svcparms = svcargs.copy()
         svcparms[u'deviceId'] = deviceId
-        dbatch.add(cd.chromeosdevices().get(**svcparms), request_id=batchRequestID(u'', 0, 0, j, jcount, deviceId))
+        dbatch.add(method(**svcparms), request_id=batchRequestID(u'', 0, 0, j, jcount, deviceId))
         bcount += 1
         if bcount >= GC.Values[GC.BATCH_SIZE]:
           dbatch.execute()
@@ -10385,6 +10388,7 @@ def doPrintCrOSActivity(entityList=None):
     fields = u','.join(set(fieldsList))
     jcount = len(entityList)
     svcargs = dict([(u'customerId', GC.Values[GC.CUSTOMER_ID]), (u'deviceId', None), (u'projection', projection), (u'fields', fields)]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    method = getattr(cd.chromeosdevices(), u'get')
     dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackPrintCrOS)
     bcount = 0
     j = 0
@@ -10392,7 +10396,7 @@ def doPrintCrOSActivity(entityList=None):
       j += 1
       svcparms = svcargs.copy()
       svcparms[u'deviceId'] = deviceId
-      dbatch.add(cd.chromeosdevices().get(**svcparms), request_id=batchRequestID(u'', 0, 0, j, jcount, deviceId))
+      dbatch.add(method(**svcparms), request_id=batchRequestID(u'', 0, 0, j, jcount, deviceId))
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
         dbatch.execute()
@@ -10873,6 +10877,7 @@ def doUpdateGroups():
       return
     Ind.Increment()
     svcargs = dict([(u'groupKey', group), (u'body', {u'role': role}), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    method = getattr(cd.members(), u'insert')
     dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackAddGroupMembers)
     bcount = 0
     j = 0
@@ -10886,7 +10891,7 @@ def doUpdateGroups():
       else:
         svcparms[u'body'][u'id'] = member
         svcparms[u'body'].pop(u'email', None)
-      dbatch.add(cd.members().insert(**svcparms), request_id=batchRequestID(group, i, count, j, jcount, member, role))
+      dbatch.add(method(**svcparms), request_id=batchRequestID(group, i, count, j, jcount, member, role))
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
         dbatch.execute()
@@ -10896,8 +10901,57 @@ def doUpdateGroups():
       dbatch.execute()
     Ind.Decrement()
 
-  _REMOVE_UPDATE_MEMBER_REASON_TO_MESSAGE_MAP = {GAPI.MEMBER_NOT_FOUND: u'{0} {1}'.format(Msg.NOT_A, Ent.Singular(Ent.MEMBER)), GAPI.INVALID_MEMBER: Msg.DOES_NOT_EXIST}
-  def _callbackRemoveUpdateGroupMembers(request_id, response, exception):
+  _REMOVE_MEMBER_REASON_TO_MESSAGE_MAP = {GAPI.MEMBER_NOT_FOUND: u'{0} {1}'.format(Msg.NOT_A, Ent.Singular(Ent.MEMBER)), GAPI.INVALID_MEMBER: Msg.DOES_NOT_EXIST}
+  def _callbackRemoveGroupMembers(request_id, response, exception):
+    ri = request_id.splitlines()
+    if exception is None:
+      entityActionPerformed([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+    else:
+      http_status, reason, message = checkGAPIError(exception)
+      if reason in GAPI.MEMBERS_THROW_REASONS:
+        entityUnknownWarning(Ent.GROUP, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
+      elif reason not in GAPI.DEFAULT_RETRY_REASONS+GAPI.MEMBERS_RETRY_REASONS:
+        errMsg = getHTTPError(_REMOVE_MEMBER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
+        entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      else:
+        try:
+          callGAPI(cd.members(), u'delete',
+                   throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER], retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
+                   groupKey=ri[RI_ENTITY], memberKey=ri[RI_ITEM])
+          entityActionPerformed([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden) as e:
+          entityUnknownWarning(Ent.GROUP, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
+        except (GAPI.memberNotFound, GAPI.invalidMember) as e:
+          entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
+
+  def _batchRemoveGroupMembers(cd, group, i, count, removeMembers, role):
+    Act.Set(Act.REMOVE)
+    svcargs = dict([(u'groupKey', group), (u'memberKey', None)]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    jcount = len(removeMembers)
+    entityPerformActionNumItems([Ent.GROUP, group], jcount, role, i, count)
+    if jcount == 0:
+      return
+    Ind.Increment()
+    method = getattr(cd.members(), u'delete')
+    dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackRemoveGroupMembers)
+    bcount = 0
+    j = 0
+    for member in removeMembers:
+      j += 1
+      svcparms = svcargs.copy()
+      svcparms[u'memberKey'] = normalizeEmailAddressOrUID(member, checkForCustomerId=True)
+      dbatch.add(method(**svcparms), request_id=batchRequestID(group, i, count, j, jcount, svcparms[u'memberKey'], role))
+      bcount += 1
+      if bcount >= GC.Values[GC.BATCH_SIZE]:
+        dbatch.execute()
+        dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackRemoveGroupMembers)
+        bcount = 0
+    if bcount > 0:
+      dbatch.execute()
+    Ind.Decrement()
+
+  _UPDATE_MEMBER_REASON_TO_MESSAGE_MAP = {GAPI.MEMBER_NOT_FOUND: u'{0} {1}'.format(Msg.NOT_A, Ent.Singular(Ent.MEMBER)), GAPI.INVALID_MEMBER: Msg.DOES_NOT_EXIST}
+  def _callbackUpdateGroupMembers(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
       entityActionPerformed([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
@@ -10906,26 +10960,22 @@ def doUpdateGroups():
       if reason in GAPI.MEMBERS_THROW_REASONS:
         entityUnknownWarning(Ent.GROUP, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
       else:
-        errMsg = getHTTPError(_REMOVE_UPDATE_MEMBER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
+        errMsg = getHTTPError(_UPDATE_MEMBER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
         entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
-  def _batchRemoveUpdateGroupMembers(cd, function, group, i, count, removeUpdateMembers, role):
-    if function == u'delete':
-      Act.Set(Act.REMOVE)
-      svcargs = dict([(u'groupKey', group), (u'memberKey', None), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
-    else:
-      Act.Set(Act.UPDATE)
-      svcargs = dict([(u'groupKey', group), (u'memberKey', None), (u'body', {u'role': role}), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
-    jcount = len(removeUpdateMembers)
+  def _batchUpdateGroupMembers(cd, group, i, count, updateMembers, role):
+    Act.Set(Act.UPDATE)
+    svcargs = dict([(u'groupKey', group), (u'memberKey', None), (u'body', {u'role': role}), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    jcount = len(updateMembers)
     entityPerformActionNumItems([Ent.GROUP, group], jcount, role, i, count)
     if jcount == 0:
       return
     Ind.Increment()
-    method = getattr(cd.members(), function)
-    dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackRemoveUpdateGroupMembers)
+    method = getattr(cd.members(), u'update')
+    dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackUpdateGroupMembers)
     bcount = 0
     j = 0
-    for member in removeUpdateMembers:
+    for member in updateMembers:
       j += 1
       svcparms = svcargs.copy()
       svcparms[u'memberKey'] = normalizeEmailAddressOrUID(member, checkForCustomerId=True)
@@ -10933,7 +10983,7 @@ def doUpdateGroups():
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
         dbatch.execute()
-        dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackRemoveUpdateGroupMembers)
+        dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackUpdateGroupMembers)
         bcount = 0
     if bcount > 0:
       dbatch.execute()
@@ -11019,7 +11069,7 @@ def doUpdateGroups():
         removeMembers = groupMemberLists[group]
       group = checkGroupExists(cd, group, i, count)
       if group:
-        _batchRemoveUpdateGroupMembers(cd, u'delete', group, i, count, removeMembers, role)
+        _batchRemoveGroupMembers(cd, group, i, count, removeMembers, role)
   elif CL_subCommand == u'sync':
     role = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True)
     checkNotSuspended = checkArgumentPresent(Cmd.NOTSUSPENDED_ARGUMENT)
@@ -11049,9 +11099,9 @@ def doUpdateGroups():
         _batchAddGroupMembers(cd, group, i, count,
                               [syncMembersMap.get(emailAddress, emailAddress) for emailAddress in syncMembersSet-currentMembersSet],
                               role)
-        _batchRemoveUpdateGroupMembers(cd, u'delete', group, i, count,
-                                       [currentMembersMap.get(emailAddress, emailAddress) for emailAddress in currentMembersSet-syncMembersSet],
-                                       role)
+        _batchRemoveGroupMembers(cd, group, i, count,
+                                 [currentMembersMap.get(emailAddress, emailAddress) for emailAddress in currentMembersSet-syncMembersSet],
+                                 role)
   elif CL_subCommand == u'update':
     role = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True)
     _, updateMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, groupUserMembersOnly=False)
@@ -11065,7 +11115,7 @@ def doUpdateGroups():
         updateMembers = groupMemberLists[group]
       group = checkGroupExists(cd, group, i, count)
       if group:
-        _batchRemoveUpdateGroupMembers(cd, u'update', group, i, count, updateMembers, role)
+        _batchUpdateGroupMembers(cd, group, i, count, updateMembers, role)
   else: #clear
     suspended = False
     fields = [u'email', u'id']
@@ -11097,7 +11147,7 @@ def doUpdateGroups():
           removeMembers = [member.get(u'email', member[u'id']) for member in result]
         else:
           removeMembers = [member.get(u'email', member[u'id']) for member in result if member[u'status'] == u'SUSPENDED']
-        _batchRemoveUpdateGroupMembers(cd, u'delete', group, i, count, removeMembers, Ent.ROLE_MEMBER)
+        _batchRemoveGroupMembers(cd, group, i, count, removeMembers, Ent.ROLE_MEMBER)
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden):
         entityUnknownWarning(Ent.GROUP, group, i, count)
 
@@ -11580,6 +11630,7 @@ def doPrintGroups():
         accessErrorExit(cd)
   else:
     svcargs = dict([(u'groupKey', None), (u'fields', cdfields)]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    method = getattr(cd.groups(), u'get')
     dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackProcessGroupBasic)
     bcount = 0
     entityList = collections.deque()
@@ -11590,7 +11641,7 @@ def doPrintGroups():
       svcparms = svcargs.copy()
       svcparms[u'groupKey'] = normalizeEmailAddressOrUID(groupEntity)
       printGettingEntityItem(Ent.GROUP, svcparms[u'groupKey'], i, count)
-      dbatch.add(cd.groups().get(**svcparms), request_id=batchRequestID(svcparms[u'groupKey'], i, count, 0, 0, None))
+      dbatch.add(method(**svcparms), request_id=batchRequestID(svcparms[u'groupKey'], i, count, 0, 0, None))
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
         dbatch.execute()
@@ -11602,6 +11653,8 @@ def doPrintGroups():
     svcargs = dict([(u'groupKey', None), (u'roles', roles), (u'fields', u'nextPageToken,members(email,id,role)'), (u'maxResults', GC.Values[GC.MEMBER_MAX_RESULTS])]+GM.Globals[GM.EXTRA_ARGS_LIST])
   if getSettings:
     svcargsgs = dict([(u'groupUniqueId', None), (u'fields', gsfields)]+GM.Globals[GM.EXTRA_ARGS_LIST])
+  cdmethod = getattr(cd.members(), u'list')
+  gsmethod = getattr(gs.groups(), u'get')
   dbatch = googleapiclient.http.BatchHttpRequest()
   bcount = 0
   groupData = {}
@@ -11618,14 +11671,14 @@ def doPrintGroups():
       printGettingEntityItemForWhom(roles, groupEmail, i, count)
       svcparms = svcargs.copy()
       svcparms[u'groupKey'] = groupEmail
-      dbatch.add(cd.members().list(**svcparms), callback=_callbackProcessGroupMembers, request_id=batchRequestID(groupEmail, i, count, 0, 0, None, roles))
+      dbatch.add(cdmethod(**svcparms), callback=_callbackProcessGroupMembers, request_id=batchRequestID(groupEmail, i, count, 0, 0, None, roles))
       bcount += 1
     if getSettings:
       if not GroupIsAbuseOrPostmaster(groupEmail):
         printGettingEntityItemForWhom(Ent.GROUP_SETTINGS, groupEmail, i, count)
         svcparmsgs = svcargsgs.copy()
         svcparmsgs[u'groupUniqueId'] = groupEmail
-        dbatch.add(gs.groups().get(**svcparmsgs), callback=_callbackProcessGroupSettings, request_id=batchRequestID(groupEmail, i, count, 0, 0, None))
+        dbatch.add(gsmethod(**svcparmsgs), callback=_callbackProcessGroupSettings, request_id=batchRequestID(groupEmail, i, count, 0, 0, None))
         bcount += 1
       else:
         groupData[i][u'settings'] = False
@@ -15852,12 +15905,13 @@ def infoUsers(entityList):
                                userKey=user[u'primaryEmail'], fields=u'nextPageToken,groups(name,email)')
       if getLicenses:
         svcargs = dict([(u'userId', None), (u'productId', None), (u'skuId', None), (u'fields', u'skuId')]+GM.Globals[GM.EXTRA_ARGS_LIST])
+        method = getattr(lic.licenseAssignments(), u'get')
         dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackGetLicense)
         for skuId in skus:
           svcparms = svcargs.copy()
           svcparms[u'userId'] = user[u'primaryEmail']
           svcparms[u'productId'], svcparms[u'skuId'] = SKU.getProductAndSKU(skuId)
-          dbatch.add(lic.licenseAssignments().get(**svcparms))
+          dbatch.add(method(**svcparms))
         dbatch.execute()
       if formatJSON:
         if getGroups:
@@ -16208,6 +16262,7 @@ def doPrintUsers(entityList=None):
     if selectLookup:
       jcount = len(entityList)
       svcargs = dict([(u'userKey', None), (u'fields', fields), (u'projection', projection), (u'customFieldMask', customFieldMask), (u'viewType', viewType)]+GM.Globals[GM.EXTRA_ARGS_LIST])
+      method = getattr(cd.users(), u'get')
       dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackPrintUser)
       bcount = 0
       j = 0
@@ -16215,7 +16270,7 @@ def doPrintUsers(entityList=None):
         j += 1
         svcparms = svcargs.copy()
         svcparms[u'userKey'] = normalizeEmailAddressOrUID(userEntity)
-        dbatch.add(cd.users().get(**svcparms), request_id=batchRequestID(u'', 0, 0, j, jcount, svcparms[u'userKey']))
+        dbatch.add(method(**svcparms), request_id=batchRequestID(u'', 0, 0, j, jcount, svcparms[u'userKey']))
         bcount += 1
         if bcount >= GC.Values[GC.BATCH_SIZE]:
           dbatch.execute()
@@ -16964,13 +17019,13 @@ def _batchAddParticipantsToCourse(croom, courseId, i, count, addParticipants, ro
       entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
   if role == Ent.STUDENT:
-    service = croom.courses().students()
+    method = getattr(croom.courses().students(), u'create')
     attribute = u'userId'
   elif role == Ent.TEACHER:
-    service = croom.courses().teachers()
+    method = getattr(croom.courses().teachers(), u'create')
     attribute = u'userId'
   else:
-    service = croom.courses().aliases()
+    method = getattr(croom.courses().aliases(), u'create')
     attribute = u'alias'
   Act.Set(Act.ADD)
   jcount = len(addParticipants)
@@ -16989,7 +17044,7 @@ def _batchAddParticipantsToCourse(croom, courseId, i, count, addParticipants, ro
     else:
       svcparms[u'body'][attribute] = addCourseIdScope(participant)
       cleanItem = removeCourseIdScope(svcparms[u'body'][attribute])
-    dbatch.add(service.create(**svcparms), request_id=batchRequestID(noScopeCourseId, 0, 0, j, jcount, cleanItem, role))
+    dbatch.add(method(**svcparms), request_id=batchRequestID(noScopeCourseId, 0, 0, j, jcount, cleanItem, role))
     bcount += 1
     if bcount >= GC.Values[GC.BATCH_SIZE]:
       dbatch.execute()
@@ -17014,13 +17069,13 @@ def _batchRemoveParticipantsFromCourse(croom, courseId, i, count, removeParticip
       entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
   if role == Ent.STUDENT:
-    service = croom.courses().students()
+    method = getattr(croom.courses().students(), u'delete')
     attribute = u'userId'
   elif role == Ent.TEACHER:
-    service = croom.courses().teachers()
+    method = getattr(croom.courses().teachers(), u'delete')
     attribute = u'userId'
   else:
-    service = croom.courses().aliases()
+    method = getattr(croom.courses().aliases(), u'delete')
     attribute = u'alias'
   Act.Set(Act.REMOVE)
   jcount = len(removeParticipants)
@@ -17039,7 +17094,7 @@ def _batchRemoveParticipantsFromCourse(croom, courseId, i, count, removeParticip
     else:
       svcparms[attribute] = addCourseIdScope(participant)
       cleanItem = removeCourseIdScope(svcparms[attribute])
-    dbatch.add(service.delete(**svcparms), request_id=batchRequestID(noScopeCourseId, 0, 0, j, jcount, cleanItem, role))
+    dbatch.add(method(**svcparms), request_id=batchRequestID(noScopeCourseId, 0, 0, j, jcount, cleanItem, role))
     bcount += 1
     if bcount >= GC.Values[GC.BATCH_SIZE]:
       dbatch.execute()
@@ -22379,6 +22434,7 @@ def addDriveFilePermissions(users):
     Ind.Increment()
     svcargs = dict([(u'fileId', None), (u'sendNotificationEmail', sendNotificationEmail), (u'emailMessage', emailMessage),
                     (u'body', None), (u'fields', u''), (u'supportsTeamDrives', True)]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    method = getattr(drive.permissions(), u'create')
     dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackAddPermission)
     bcount = 0
     j = 0
@@ -22401,7 +22457,7 @@ def addDriveFilePermissions(users):
         if not svcparms[u'body']:
           entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, fileId, Ent.PERMITTEE, permission], Msg.INVALID, k, kcount)
           continue
-        dbatch.add(drive.permissions().insert(**svcparms), request_id=batchRequestID(fileId, j, jcount, k, kcount, permission))
+        dbatch.add(method(**svcparms), request_id=batchRequestID(fileId, j, jcount, k, kcount, permission))
         bcount += 1
         if bcount >= GC.Values[GC.BATCH_SIZE]:
           dbatch.execute()
@@ -22498,6 +22554,7 @@ def deletePermissions(users):
       continue
     Ind.Increment()
     svcargs = dict([(u'fileId', None), (u'permissionId', None), (u'supportsTeamDrives', True)]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    method = getattr(drive.permissions(), u'delete')
     dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackDeletePermissionId)
     bcount = 0
     j = 0
@@ -22517,7 +22574,7 @@ def deletePermissions(users):
         svcparms = svcargs.copy()
         svcparms[u'fileId'] = fileId
         svcparms[u'permissionId'] = permissionId
-        dbatch.add(drive.permissions().delete(**svcparms), request_id=batchRequestID(fileId, j, jcount, k, kcount, permissionId))
+        dbatch.add(method(**svcparms), request_id=batchRequestID(fileId, j, jcount, k, kcount, permissionId))
         bcount += 1
         if bcount >= GC.Values[GC.BATCH_SIZE]:
           dbatch.execute()
@@ -22859,6 +22916,7 @@ def addUserToGroups(users):
     entityPerformActionModifierNumItemsModifier([Ent.USER, user], Act.MODIFIER_TO, jcount, Ent.GROUP, u'{0} {1}'.format(Msg.AS, body[u'role'].lower()), i, count)
     Ind.Increment()
     svcargs = dict([(u'groupKey', None), (u'body', body), (u'fields', u'email')]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    method = getattr(cd.members(), u'insert')
     dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackAddUserToGroups)
     bcount = 0
     j = 0
@@ -22866,7 +22924,7 @@ def addUserToGroups(users):
       j += 1
       svcparms = svcargs.copy()
       svcparms[u'groupKey'] = normalizeEmailAddressOrUID(group)
-      dbatch.add(cd.members().insert(**svcparms), request_id=batchRequestID(svcparms[u'groupKey'], 0, 0, j, jcount, user, role))
+      dbatch.add(method(**svcparms), request_id=batchRequestID(svcparms[u'groupKey'], 0, 0, j, jcount, user, role))
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
         dbatch.execute()
@@ -22913,6 +22971,7 @@ def deleteUserFromGroups(users):
     entityPerformActionModifierNumItems([Ent.USER, user], Act.MODIFIER_FROM, jcount, Ent.GROUP, i, count)
     Ind.Increment()
     svcargs = dict([(u'groupKey', None), (u'memberKey', user), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    method = getattr(cd.members(), u'delete')
     dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackDeleteUserFromGroups)
     bcount = 0
     j = 0
@@ -22920,7 +22979,7 @@ def deleteUserFromGroups(users):
       j += 1
       svcparms = svcargs.copy()
       svcparms[u'groupKey'] = normalizeEmailAddressOrUID(group)
-      dbatch.add(cd.members().delete(**svcparms), request_id=batchRequestID(svcparms[u'groupKey'], 0, 0, j, jcount, user, role))
+      dbatch.add(method(**svcparms), request_id=batchRequestID(svcparms[u'groupKey'], 0, 0, j, jcount, user, role))
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
         dbatch.execute()
@@ -23813,6 +23872,7 @@ def deleteLabel(users):
       entityPerformActionNumItems([Ent.USER, user], jcount, Ent.LABEL, i, count)
       Ind.Increment()
       svcargs = dict([(u'userId', u'me'), (u'id', None), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
+      method = getattr(gmail.users().labels(), u'delete')
       dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackDeleteLabel)
       bcount = 0
       j = 0
@@ -23821,7 +23881,7 @@ def deleteLabel(users):
         svcparms = svcargs.copy()
         svcparms[u'id'] = del_me[u'id']
         labelIdToNameMap[del_me[u'id']] = del_me[u'name']
-        dbatch.add(gmail.users().labels().delete(**svcparms), request_id=batchRequestID(user, i, count, j, jcount, del_me[u'id']))
+        dbatch.add(method(**svcparms), request_id=batchRequestID(user, i, count, j, jcount, del_me[u'id']))
         bcount += 1
         if bcount == 10:
           dbatch.execute()
@@ -24579,6 +24639,7 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
 
   def _batchPrintShowMessagesThreads(service, user, jcount, messageIds, callback):
     svcargs = dict([(u'userId', u'me'), (u'id', None), (u'format', [u'metadata', u'full'][show_body or show_attachments])]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    method = getattr(service, u'get')
     dbatch = googleapiclient.http.BatchHttpRequest(callback=callback)
     bcount = 0
     j = 0
@@ -24586,7 +24647,7 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
       j += 1
       svcparms = svcargs.copy()
       svcparms[u'id'] = messageId
-      dbatch.add(service.get(**svcparms), request_id=batchRequestID(user, 0, 0, j, jcount, svcparms[u'id']))
+      dbatch.add(method(**svcparms), request_id=batchRequestID(user, 0, 0, j, jcount, svcparms[u'id']))
       bcount += 1
       if maxToProcess and j == maxToProcess:
         break
