@@ -1,6 +1,6 @@
 4.53.09
 
-Added teacher <UserItem> to gam update course as Google now suppprts updating the teacher for a course.
+Added teacher <UserItem> to gam update course as Google now supports updating the teacher for a course.
 See: https://support.google.com/edu/classroom/answer/7477648
 
 4.53.08
