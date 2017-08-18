@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.53.08'
+__version__ = u'4.53.09'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -16613,6 +16613,8 @@ def getCourseAttribute(myarg, body, croom):
     body[u'room'] = getString(Cmd.OB_STRING, minLen=0)
   elif myarg in [u'state', u'status']:
     body[u'courseState'] = getCourseState(croom)
+  elif myarg == u'teacher':
+    body[u'ownerId'] = getEmailAddress()
   else:
     unknownArgumentExit()
 
@@ -16624,8 +16626,6 @@ def doCreateCourse():
     myarg = getArgument()
     if myarg in [u'alias', u'id']:
       body[u'id'] = getCourseAlias()
-    elif myarg == u'teacher':
-      body[u'ownerId'] = getEmailAddress()
     else:
       getCourseAttribute(myarg, body, croom)
   try:

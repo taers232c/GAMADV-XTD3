@@ -69,7 +69,8 @@ XML_STRING_ENCODING = 'utf-8'
 # The desired string encoding for object members. set or monkey-patch to
 # unicode if you want object members to be Python unicode strings, instead of
 # encoded strings
-MEMBER_STRING_ENCODING = 'utf-8'
+MEMBER_STRING_ENCODING = str
+#MEMBER_STRING_ENCODING = 'utf-8'
 #MEMBER_STRING_ENCODING = unicode
 
 # If True, all methods which are exclusive to v1 will raise a

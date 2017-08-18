@@ -826,7 +826,8 @@ gam <UserTypeEntity> print gal [todrive [<ToDriveAttributes>]] [query <QueryCont
 	(name <String>)|
 	(room <String>)|
 	(section <string>)|
-	(state|status active|archived|provisioned|declined)
+	(state|status active|archived|provisioned|declined)|
+	(teacher <UserItem>)
 
 <CourseFieldName> ::=
 	aliases|
@@ -851,7 +852,7 @@ gam <UserTypeEntity> print gal [todrive [<ToDriveAttributes>]] [query <QueryCont
 	updatetime
 <CourseFieldNameList> ::= "<CourseFieldName>(,<CourseFieldName>)*"
 
-gam create course id|alias <CourseAlias> [teacher <UserItem>] <CourseAttributes>*
+gam create course id|alias <CourseAlias> <CourseAttributes>*
 gam update course <CourseID> <CourseAttributes>+
 gam delete course <CourseID>
 gam info course <CourseID> [delimiter <String>] [alias|aliases] [show all|students|teachers] [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
