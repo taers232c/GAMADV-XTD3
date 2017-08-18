@@ -101,6 +101,8 @@ CACHE_DIR = u'gacd'
 CACHE_DISCOVERY_ONLY = u'gcdo'
 # Shared by threadBatchWorker and threadBatchGAMCommands
 TBATCH_QUEUE = u'batq'
+# Location of cacerts.txt for GData calls
+CACERTS_TXT = u'cert'
 #
 Globals = {
   SYSEXITRC: 0,
@@ -136,4 +138,5 @@ Globals = {
   CACHE_DIR: None,
   CACHE_DISCOVERY_ONLY: True,
   TBATCH_QUEUE: None,
+  CACERTS_TXT: None,
   }

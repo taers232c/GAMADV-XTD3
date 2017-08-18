@@ -2852,6 +2852,10 @@ def buildGAPIServiceObject(api, user):
   return (userEmail, service)
 
 def initGDataObject(gdataObj, api):
+  if hasattr(sys, u'_MEIPASS') and not GM.Globals[GM.CACERTS_TXT]:
+    GM.Globals[GM.CACERTS_TXT] = os.path.join(sys._MEIPASS, u'httplib2', u'cacerts.txt')
+    os.environ['REQUESTS_CA_BUNDLE'] = GM.Globals[GM.CACERTS_TXT]
+    os.environ['DEFAULT_CA_BUNDLE_PATH'] = GM.Globals[GM.CACERTS_TXT]
   _, _, api_version, cred_family = API.getVersion(api)
   disc_file, discovery = readDiscoveryFile(api_version)
   GM.Globals[GM.CURRENT_API_USER] = None
