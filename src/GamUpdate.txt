@@ -1,3 +1,7 @@
+4.53.08
+
+Fix coding error in gam print groups.
+
 4.53.07
 
 In <CrOSTypeEntity>, a selection name was changed to make it consistent with other selection names.

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.53.07'
+__version__ = u'4.53.08'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -11654,7 +11654,8 @@ def doPrintGroups():
   if getSettings:
     svcargsgs = dict([(u'groupUniqueId', None), (u'fields', gsfields)]+GM.Globals[GM.EXTRA_ARGS_LIST])
   cdmethod = getattr(cd.members(), u'list')
-  gsmethod = getattr(gs.groups(), u'get')
+  if getSettings:
+    gsmethod = getattr(gs.groups(), u'get')
   dbatch = googleapiclient.http.BatchHttpRequest()
   bcount = 0
   groupData = {}
