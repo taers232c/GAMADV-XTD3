@@ -756,16 +756,6 @@ def getCourseAlias():
       return courseAlias
   missingArgumentExit(Cmd.OB_COURSE_ALIAS)
 
-def getCourseState(croom):
-  validStates = [state.lower() for state in croom._rootDesc[u'schemas'][u'Course'][u'properties'][u'courseState'][u'enum'] if state != u'COURSE_STATE_UNSPECIFIED']
-  if Cmd.ArgumentsRemaining():
-    courseState = Cmd.Current().lower()
-    if courseState in validStates:
-      Cmd.Advance()
-      return courseState.upper()
-    invalidChoiceExit(validStates, False)
-  missingChoiceExit(validStates)
-
 UID_PATTERN = re.compile(r'u?id: ?(.+)')
 
 def validateEmailAddressOrUID(emailAddressOrUID):
@@ -16618,11 +16608,18 @@ def getCourseAttribute(myarg, body, croom):
   elif myarg == u'teacher':
     body[u'ownerId'] = getEmailAddress()
   elif myarg in [u'state', u'status']:
-    body[u'courseState'] = getCourseState(croom)
+    validStates = [state.lower() for state in croom._rootDesc[u'schemas'][u'Course'][u'properties'][u'courseState'][u'enum'] if state != u'COURSE_STATE_UNSPECIFIED']
+    if not Cmd.ArgumentsRemaining():
+      missingChoiceExit(validStates)
+    courseState = Cmd.Current().lower()
+    if courseState not in validStates:
+      invalidChoiceExit(validStates, False)
+    Cmd.Advance()
+    body[u'courseState'] = courseState.upper()
   else:
     unknownArgumentExit()
 
-# gam create course id|alias <CourseAlias> [teacher <UserItem>] <CourseAttributes>
+# gam create course id|alias <CourseAlias> <CourseAttributes>*
 def doCreateCourse():
   croom = buildGAPIObject(API.CLASSROOM)
   body = {u'ownerId': u'me', u'name': u'Unknown Course'}
@@ -16634,10 +16631,10 @@ def doCreateCourse():
       getCourseAttribute(myarg, body, croom)
   try:
     result = callGAPI(croom.courses(), u'create',
-                      throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                      throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
                       body=body, fields=u'id')
     entityActionPerformed([Ent.COURSE, body[u'name'], Ent.COURSE_ID, result[u'id']])
-  except (GAPI.alreadyExists, GAPI.notFound, GAPI.permissionDenied, GAPI.forbidden, GAPI.badRequest) as e:
+  except (GAPI.alreadyExists, GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition, GAPI.forbidden, GAPI.badRequest) as e:
     entityActionFailedWarning([Ent.COURSE, body[u'name'], Ent.TEACHER, body[u'ownerId']], str(e))
 
 def _doUpdateCourses(entityList):
@@ -16660,11 +16657,11 @@ def _doUpdateCourses(entityList):
     except (GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition, GAPI.forbidden, GAPI.badRequest) as e:
       entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(body[u'id'])], str(e), i, count)
 
-# gam update courses <CourseEntity> <CourseAttributes>
+# gam update courses <CourseEntity> <CourseAttributes>+
 def doUpdateCourses():
   _doUpdateCourses(getEntityList(Cmd.OB_COURSE_ENTITY))
 
-# gam update course <CourseID> <CourseAttributes>
+# gam update course <CourseID> <CourseAttributes>+
 def doUpdateCourse():
   _doUpdateCourses(getStringReturnInList(Cmd.OB_COURSE_ID))
 
