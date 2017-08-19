@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.53.09'
+__version__ = u'4.53.10'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -16615,10 +16615,10 @@ def getCourseAttribute(myarg, body, croom):
     body[u'description'] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
   elif myarg == u'room':
     body[u'room'] = getString(Cmd.OB_STRING, minLen=0)
-  elif myarg in [u'state', u'status']:
-    body[u'courseState'] = getCourseState(croom)
   elif myarg == u'teacher':
     body[u'ownerId'] = getEmailAddress()
+  elif myarg in [u'state', u'status']:
+    body[u'courseState'] = getCourseState(croom)
   else:
     unknownArgumentExit()
 
@@ -16654,10 +16654,10 @@ def _doUpdateCourses(entityList):
     body[u'id'] = addCourseIdScope(course)
     try:
       result = callGAPI(croom.courses(), u'patch',
-                        throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                        throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION],
                         id=body[u'id'], body=body, updateMask=updateMask, fields=u'id')
       entityActionPerformed([Ent.COURSE, result[u'id']], i, count)
-    except (GAPI.notFound, GAPI.permissionDenied) as e:
+    except (GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition) as e:
       entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(body[u'id'])], str(e), i, count)
 
 # gam update courses <CourseEntity> <CourseAttributes>
