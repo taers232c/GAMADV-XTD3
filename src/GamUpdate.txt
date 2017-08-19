@@ -1,6 +1,6 @@
 4.53.10
 
-When updating the teacher in a course, handle API error when updated teacher is not presently a co-teacher.
+Handle additional API errors when updating the teacher of a course.
 
 4.53.09
 

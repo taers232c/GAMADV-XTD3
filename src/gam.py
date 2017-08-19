@@ -16634,10 +16634,10 @@ def doCreateCourse():
       getCourseAttribute(myarg, body, croom)
   try:
     result = callGAPI(croom.courses(), u'create',
-                      throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN],
+                      throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
                       body=body, fields=u'id')
     entityActionPerformed([Ent.COURSE, body[u'name'], Ent.COURSE_ID, result[u'id']])
-  except (GAPI.alreadyExists, GAPI.notFound, GAPI.permissionDenied, GAPI.forbidden) as e:
+  except (GAPI.alreadyExists, GAPI.notFound, GAPI.permissionDenied, GAPI.forbidden, GAPI.badRequest) as e:
     entityActionFailedWarning([Ent.COURSE, body[u'name'], Ent.TEACHER, body[u'ownerId']], str(e))
 
 def _doUpdateCourses(entityList):
@@ -16654,10 +16654,10 @@ def _doUpdateCourses(entityList):
     body[u'id'] = addCourseIdScope(course)
     try:
       result = callGAPI(croom.courses(), u'patch',
-                        throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION],
+                        throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
                         id=body[u'id'], body=body, updateMask=updateMask, fields=u'id')
       entityActionPerformed([Ent.COURSE, result[u'id']], i, count)
-    except (GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition) as e:
+    except (GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition, GAPI.forbidden, GAPI.badRequest) as e:
       entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(body[u'id'])], str(e), i, count)
 
 # gam update courses <CourseEntity> <CourseAttributes>
