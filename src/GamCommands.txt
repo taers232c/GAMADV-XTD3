@@ -1363,6 +1363,7 @@ gam create vaultmatter|matter [name <String>] [description <string>]
 	[collaborator|collaborators <EmailItemList>]
 gam update vaultmatter|matter <MatterItem> [name <String>] [description <string>]
 	[addcollaborator|addcollaborators <EmailItemList>] [removecollaborator|removecollaborators <EmailItemList>]
+gam update vaultmatter|matter <MatterItem> action close|reopen|delete|undelete
 gam close vaultmatter|matter <MatterItem>
 gam reopen vaultmatter|matter <MatterItem>
 gam delete vaultmatter|matter <MatterItem>
@@ -1864,7 +1865,27 @@ gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
 	[select <DriveFileEntityListTree>] [depth <Number>] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 
 gam <UserTypeEntity> print|show driveactivity [todrive [<ToDriveAttributes>]] [fileid <DriveFileID>] [folderid <DriveFolderID>]
-gam <UserTypeEntity> print|show drivesettings [todrive [<ToDriveAttributes>]]
+
+<DriveSettingsFieldName> ::=
+	appinstalled|
+	exportformats|
+	foldercolorpalette|
+	importformats|
+	largestchangeid|
+	limit|
+	maximportsizes|
+	maxuploadsize|
+	name|
+	permissionid|
+	rootfolderid|
+	teamdrivethemes|
+	usage|
+	usageindrive|
+	usageindrivetrash
+<DriveSettingsFieldNameList> ::= "<DriveSettingsFieldName>(,<DriveSettingsFieldName>)*"
+
+gam <UserTypeEntity> print drivesettings [todrive [<ToDriveAttributes>]] [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <String>]
+gam <UserTypeEntity> show drivesettings [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <String>]
 
 gam <UserTypeEntity> delete emptydrivefolders [<TeamDriveEntity>]
 gam <UserTypeEntity> empty drivetrash [<TeamDriveEntity>]

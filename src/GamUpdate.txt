@@ -1,3 +1,41 @@
+4.53.11
+
+Recoded gam print|show drivesettings to provide more flexibility; print and show are now separate
+and you can select the desired output fields.
+The field names are always the Google Drive REST API v3 native names; drive_v3_native_names in gam.cfg is not used.
+
+<DriveSettingsFieldName> ::=
+	appinstalled|
+	exportformats|
+	foldercolorpalette|
+	importformats|
+	largestchangeid|
+	limit|
+	maximportsizes|
+	maxuploadsize|
+	name|
+	permissionid|
+	rootfolderid|
+	teamdrivethemes|
+	usage|
+	usageindrive|
+	usageindrivetrash
+<DriveSettingsFieldNameList> ::= "<DriveSettingsFieldName>(,<DriveSettingsFieldName>)*"
+
+gam <UserTypeEntity> print drivesettings [todrive [<ToDriveAttributes>]] [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <String>]
+gam <UserTypeEntity> show drivesettings [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <String>]
+
+If no fields are selected, these fields will be displayed:
+    name,appInstalled,largestChangeId,limit,maxUploadSize,permissionId,rootFolderId,usage,usageInDrive,usageInDriveTrash
+
+When executing commands in batches, GAM may exceed Google's rate limits on command execution; added inter_batch_wait to gam.cfg to allow rate limiting.
+    inter_batch_wait
+	When processing items in batches, how many seconds should GAM wait between batches
+	Default: 0
+	Range: 0 - 60
+	Environment variable: GAM_INTER_BATCH_WAIT
+For example, when removing users from groups, batch_size = 25 and inter_batch_wait = 2 seems to avoid exceeding the rate limit.
+
 4.53.10
 
 Handle additional API errors when updating the teacher of a course.

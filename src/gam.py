@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.53.10'
+__version__ = u'4.53.11'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -78,8 +78,8 @@ import oauth2client.tools
 
 # Python 3
 string_types = (str,)
-simple_types = (bool, int)
-non_compound_types = (str, bool, int)
+simple_types = (bool, float, int)
+non_compound_types = (str, bool, float, int)
 char_type = chr
 text_type = str
 
@@ -338,6 +338,11 @@ USER_SUSPENDED_ERROR_RC = 76
 #
 def convertUTF8(data):
   return data
+
+def executeBatch(dbatch):
+  dbatch.execute()
+  if GC.Values[GC.INTER_BATCH_WAIT] > 0:
+    time.sleep(GC.Values[GC.INTER_BATCH_WAIT])
 
 def StringIOobject(initbuff=None):
   if initbuff is None:
@@ -6896,11 +6901,11 @@ def _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, i, count, items, quickCrOSMove):
       dbatch.add(method(**svcparms), request_id=batchRequestID(orgUnitPath, 0, 0, j, jcount, deviceId))
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
-        dbatch.execute()
+        executeBatch(dbatch)
         dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackMoveCrOSesToOrgUnit)
         bcount = 0
     if bcount > 0:
-      dbatch.execute()
+      executeBatch(dbatch)
   else:
     bcount = 0
     j = 0
@@ -6949,11 +6954,11 @@ def _batchMoveUsersToOrgUnit(cd, orgUnitPath, i, count, items):
     dbatch.add(method(**svcparms), request_id=batchRequestID(orgUnitPath, 0, 0, j, jcount, svcparms[u'userKey']))
     bcount += 1
     if bcount >= GC.Values[GC.BATCH_SIZE]:
-      dbatch.execute()
+      executeBatch(dbatch)
       dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackMoveUsersToOrgUnit)
       bcount = 0
   if bcount > 0:
-    dbatch.execute()
+    executeBatch(dbatch)
   Ind.Decrement()
 
 def _doUpdateOrgs(entityList):
@@ -10263,11 +10268,11 @@ def doPrintCrOSDevices(entityList=None):
         dbatch.add(method(**svcparms), request_id=batchRequestID(u'', 0, 0, j, jcount, deviceId))
         bcount += 1
         if bcount >= GC.Values[GC.BATCH_SIZE]:
-          dbatch.execute()
+          executeBatch(dbatch)
           dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackPrintCrOS)
           bcount = 0
       if bcount > 0:
-        dbatch.execute()
+        executeBatch(dbatch)
     else:
       for cros in entityList:
         _printCrOS({u'deviceId': cros})
@@ -10393,11 +10398,11 @@ def doPrintCrOSActivity(entityList=None):
       dbatch.add(method(**svcparms), request_id=batchRequestID(u'', 0, 0, j, jcount, deviceId))
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
-        dbatch.execute()
+        executeBatch(dbatch)
         dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackPrintCrOS)
         bcount = 0
     if bcount > 0:
-      dbatch.execute()
+      executeBatch(dbatch)
   if sortRows and orderBy and orderBy in titles[u'set']:
     csvRows.sort(key=lambda k: k[orderBy], reverse=sortOrder == u'DESCENDING')
   writeCSVfile(csvRows, titles, u'CrOS Activity', todrive)
@@ -10888,11 +10893,11 @@ def doUpdateGroups():
       dbatch.add(method(**svcparms), request_id=batchRequestID(group, i, count, j, jcount, member, role))
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
-        dbatch.execute()
+        executeBatch(dbatch)
         dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackAddGroupMembers)
         bcount = 0
     if bcount > 0:
-      dbatch.execute()
+      executeBatch(dbatch)
     Ind.Decrement()
 
   _REMOVE_MEMBER_REASON_TO_MESSAGE_MAP = {GAPI.MEMBER_NOT_FOUND: u'{0} {1}'.format(Msg.NOT_A, Ent.Singular(Ent.MEMBER)), GAPI.INVALID_MEMBER: Msg.DOES_NOT_EXIST}
@@ -10937,11 +10942,11 @@ def doUpdateGroups():
       dbatch.add(method(**svcparms), request_id=batchRequestID(group, i, count, j, jcount, svcparms[u'memberKey'], role))
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
-        dbatch.execute()
+        executeBatch(dbatch)
         dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackRemoveGroupMembers)
         bcount = 0
     if bcount > 0:
-      dbatch.execute()
+      executeBatch(dbatch)
     Ind.Decrement()
 
   _UPDATE_MEMBER_REASON_TO_MESSAGE_MAP = {GAPI.MEMBER_NOT_FOUND: u'{0} {1}'.format(Msg.NOT_A, Ent.Singular(Ent.MEMBER)), GAPI.INVALID_MEMBER: Msg.DOES_NOT_EXIST}
@@ -10976,11 +10981,11 @@ def doUpdateGroups():
       dbatch.add(method(**svcparms), request_id=batchRequestID(group, i, count, j, jcount, svcparms[u'memberKey'], role))
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
-        dbatch.execute()
+        executeBatch(dbatch)
         dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackUpdateGroupMembers)
         bcount = 0
     if bcount > 0:
-      dbatch.execute()
+      executeBatch(dbatch)
     Ind.Decrement()
 
   cd = buildGAPIObject(API.DIRECTORY)
@@ -11638,11 +11643,11 @@ def doPrintGroups():
       dbatch.add(method(**svcparms), request_id=batchRequestID(svcparms[u'groupKey'], i, count, 0, 0, None))
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
-        dbatch.execute()
+        executeBatch(dbatch)
         dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackProcessGroupBasic)
         bcount = 0
     if bcount > 0:
-      dbatch.execute()
+      executeBatch(dbatch)
   if roles:
     svcargs = dict([(u'groupKey', None), (u'roles', roles), (u'fields', u'nextPageToken,members(email,id,role)'), (u'maxResults', GC.Values[GC.MEMBER_MAX_RESULTS])]+GM.Globals[GM.EXTRA_ARGS_LIST])
   if getSettings:
@@ -11678,11 +11683,11 @@ def doPrintGroups():
       else:
         groupData[i][u'settings'] = False
     if bcount >= GC.Values[GC.BATCH_SIZE]:
-      dbatch.execute()
+      executeBatch(dbatch)
       dbatch = googleapiclient.http.BatchHttpRequest()
       bcount = 0
   if bcount > 0:
-    dbatch.execute()
+    executeBatch(dbatch)
   if sortHeaders:
     sortCSVTitles([fieldsTitles[u'email']], titles)
   writeCSVfile(csvRows, titles, u'Groups', todrive)
@@ -14130,6 +14135,45 @@ def doCreateVaultMatter():
         break
     Ind.Decrement()
 
+VAULT_MATTER_ACTIONS = {
+  u'close': Act.CLOSE,
+  u'reopen': Act.REOPEN,
+  u'delete': Act.DELETE,
+  u'undelete': Act.UNDELETE,
+  }
+
+def doActionVaultMatter(action, matterId=None, matterNameId=None, v=None):
+  if v is None:
+    v = buildGAPIObject(API.VAULT)
+    matterId, matterNameId = getMatterItem(v)
+  else:
+    Act.Set(VAULT_MATTER_ACTIONS[action])
+  checkForExtraneousArguments()
+  action_kwargs = {} if action == u'delete' else {u'body': {}}
+  try:
+    callGAPI(v.matters(), action,
+             throw_reasons=[GAPI.NOT_FOUND, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
+             matterId=matterId, **action_kwargs)
+    entityActionPerformed([Ent.VAULT_MATTER, matterNameId])
+  except (GAPI.notFound, GAPI.failedPrecondition, GAPI.forbidden) as e:
+    entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId], str(e))
+
+# gam close vaultmatter|matter <MatterItem>
+def doCloseVaultMatter():
+  doActionVaultMatter(u'close')
+
+# gam reopen vaultmatter|matter <MatterItem>
+def doReopenVaultMatter():
+  doActionVaultMatter(u'reopen')
+
+# gam delete vaultmatter|matter <MatterItem>
+def doDeleteVaultMatter():
+  doActionVaultMatter(u'delete')
+
+# gam undelete vaultmatter|matter <MatterItem>
+def doUndeleteVaultMatter():
+  doActionVaultMatter(u'undelete')
+
 # gam update vaultmatter|matter <MatterItem> [name <String>] [description <string>]
 #	[addcollaborator|addcollaborators <CollaboratorItemList>] [removecollaborator|removecollaborators <CollaboratorItemList>]
 def doUpdateVaultMatter():
@@ -14141,6 +14185,10 @@ def doUpdateVaultMatter():
   cd = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
+    if myarg == u'action':
+      action = getChoice(VAULT_MATTER_ACTIONS)
+      doActionVaultMatter(action, matterId, matterNameId, v)
+      return
     if myarg == u'name':
       body[u'name'] = getString(Cmd.OB_STRING)
     elif myarg == u'description':
@@ -14205,35 +14253,6 @@ def doUpdateVaultMatter():
         entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId], str(e))
         break
     Ind.Decrement()
-
-def doActionVaultMatter(action):
-  v = buildGAPIObject(API.VAULT)
-  matterId, matterNameId = getMatterItem(v)
-  checkForExtraneousArguments()
-  action_kwargs = {} if action == u'delete' else {u'body': {}}
-  try:
-    callGAPI(v.matters(), action,
-             throw_reasons=[GAPI.NOT_FOUND, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
-             matterId=matterId, **action_kwargs)
-    entityActionPerformed([Ent.VAULT_MATTER, matterNameId])
-  except (GAPI.notFound, GAPI.failedPrecondition, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId], str(e))
-
-# gam close vaultmatter|matter <MatterItem>
-def doCloseVaultMatter():
-  doActionVaultMatter(action=u'close')
-
-# gam reopen vaultmatter|matter <MatterItem>
-def doReopenVaultMatter():
-  doActionVaultMatter(action=u'reopen')
-
-# gam delete vaultmatter|matter <MatterItem>
-def doDeleteVaultMatter():
-  doActionVaultMatter(action=u'delete')
-
-# gam undelete vaultmatter|matter <MatterItem>
-def doUndeleteVaultMatter():
-  doActionVaultMatter(action=u'undelete')
 
 def _showVaultMatter(matter, cd):
   if u'matterPermissions' in matter:
@@ -15907,7 +15926,7 @@ def infoUsers(entityList):
           svcparms[u'userId'] = user[u'primaryEmail']
           svcparms[u'productId'], svcparms[u'skuId'] = SKU.getProductAndSKU(skuId)
           dbatch.add(method(**svcparms))
-        dbatch.execute()
+        executeBatch(dbatch)
       if formatJSON:
         if getGroups:
           user[u'groups'] = list(groups)
@@ -16268,11 +16287,11 @@ def doPrintUsers(entityList=None):
         dbatch.add(method(**svcparms), request_id=batchRequestID(u'', 0, 0, j, jcount, svcparms[u'userKey']))
         bcount += 1
         if bcount >= GC.Values[GC.BATCH_SIZE]:
-          dbatch.execute()
+          executeBatch(dbatch)
           dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackPrintUser)
           bcount = 0
       if bcount > 0:
-        dbatch.execute()
+        executeBatch(dbatch)
     else:
       for userEntity in entityList:
         _printUser({u'primaryEmail': normalizeEmailAddressOrUID(userEntity)})
@@ -16609,13 +16628,7 @@ def getCourseAttribute(myarg, body, croom):
     body[u'ownerId'] = getEmailAddress()
   elif myarg in [u'state', u'status']:
     validStates = [state.lower() for state in croom._rootDesc[u'schemas'][u'Course'][u'properties'][u'courseState'][u'enum'] if state != u'COURSE_STATE_UNSPECIFIED']
-    if not Cmd.ArgumentsRemaining():
-      missingChoiceExit(validStates)
-    courseState = Cmd.Current().lower()
-    if courseState not in validStates:
-      invalidChoiceExit(validStates, False)
-    Cmd.Advance()
-    body[u'courseState'] = courseState.upper()
+    body[u'courseState'] = getChoice(validStates).upper()
   else:
     unknownArgumentExit()
 
@@ -17049,11 +17062,11 @@ def _batchAddParticipantsToCourse(croom, courseId, i, count, addParticipants, ro
     dbatch.add(method(**svcparms), request_id=batchRequestID(noScopeCourseId, 0, 0, j, jcount, cleanItem, role))
     bcount += 1
     if bcount >= GC.Values[GC.BATCH_SIZE]:
-      dbatch.execute()
+      executeBatch(dbatch)
       dbatch = croom.new_batch_http_request(callback=_callbackAddParticipantsToCourse)
       bcount = 0
   if bcount > 0:
-    dbatch.execute()
+    executeBatch(dbatch)
   Ind.Decrement()
 
 def _batchRemoveParticipantsFromCourse(croom, courseId, i, count, removeParticipants, role):
@@ -17099,11 +17112,11 @@ def _batchRemoveParticipantsFromCourse(croom, courseId, i, count, removeParticip
     dbatch.add(method(**svcparms), request_id=batchRequestID(noScopeCourseId, 0, 0, j, jcount, cleanItem, role))
     bcount += 1
     if bcount >= GC.Values[GC.BATCH_SIZE]:
-      dbatch.execute()
+      executeBatch(dbatch)
       dbatch = croom.new_batch_http_request(callback=_callbackRemoveParticipantsFromCourse)
       bcount = 0
   if bcount > 0:
-    dbatch.execute()
+    executeBatch(dbatch)
   Ind.Decrement()
 
 ADD_REMOVE_PARTICIPANT_TYPES_MAP = {
@@ -19550,70 +19563,185 @@ def printDriveActivity(users):
   sortCSVTitles([u'user.name', u'user.permissionId', u'target.id', u'target.name', u'target.mimeType'], titles)
   writeCSVfile(csvRows, titles, u'Drive Activity', todrive)
 
-# gam <UserTypeEntity> print|show drivesettings [todrive [<ToDriveAttributes>]]
-def printDriveSettings(users):
+DRIVESETTINGS_FIELDS_CHOICES_MAP = {
+  u'appinstalled': u'appInstalled',
+  u'exportformats': u'exportFormats',
+  u'foldercolorpalette': u'folderColorPalette',
+  u'importformats': u'importFormats',
+  u'largestchangeid': u'largestChangeId',
+  u'limit': u'limit',
+  u'maximportsizes': u'maxImportSizes',
+  u'maxuploadsize': u'maxUploadSize',
+  u'name': u'name',
+  u'permissionid': u'permissionId',
+  u'rootfolderid': u'rootFolderId',
+  u'teamdrivethemes': u'teamDriveThemes',
+  u'usage': u'usage',
+  u'usageindrive': u'usageInDrive',
+  u'usageindrivetrash': u'usageInDriveTrash',
+  }
 
-  def _addSetting(row, titles, setting, value):
-    row[setting] = value
-    if setting not in titles[u'set']:
-      addTitleToCSVfile(setting, titles)
+DRIVESETTINGS_SCALAR_FIELDS = [
+  u'name',
+  u'appInstalled',
+  u'largestChangeId',
+  u'limit',
+  u'maxUploadSize',
+  u'permissionId',
+  u'rootFolderId',
+  u'usage',
+  u'usageInDrive',
+  u'usageInDriveTrash',
+  ]
 
-  todrive = {}
-  titles, csvRows = initializeTitlesCSVfile([u'email', u'displayName', u'folderColorPalette', u'largestChangeId', u'permissionId',
-                                             u'limit', u'usage', u'usageInDrive', u'usageInDriveTrash', u'quotaType',
-                                             u'rootFolderId', u'teamDriveThemes'])
-  nameField = u'displayName'
-  if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
-    nameField = u'name'
-    _mapDrive3TitlesToDrive2(titles[u'list'], API.DRIVE3_TO_DRIVE2_ABOUT_FIELDS_MAP)
-    titles[u'set'] = set(titles[u'list'])
+def _printShowDriveSettings(users, csvFormat):
+
+  def _showFormats(title):
+    if title in fieldsList and title in feed:
+      printKeyValueList([title, None])
+      Ind.Increment()
+      for item, value in sorted(iteritems(feed[title])):
+        printKeyValueList([item, delimiter.join(value)])
+      Ind.Decrement()
+
+  def _showSetting(title):
+    if title in fieldsList and title in feed:
+      if not isinstance(feed[title], list):
+        printKeyValueList([title, feed[title]])
+      else:
+        printKeyValueList([title, delimiter.join(feed[title])])
+
+  def _addFormats(row, title):
+    if title in fieldsList and title in feed:
+      jcount = len(feed[title])
+      row[title] = jcount
+      j = 0
+      for item, value in sorted(iteritems(feed[title])):
+        row[u'{0}.{1:02d}.{2}'.format(title, j, item)] = delimiter.join(value)
+        j += 1
+
+  def _addSetting(row, title):
+    if title in fieldsList and title in feed:
+      if not isinstance(feed[title], list):
+        row[title] = feed[title]
+      else:
+        row[title] = delimiter.join(feed[title])
+
+  if csvFormat:
+    todrive = {}
+    titles, csvRows = initializeTitlesCSVfile(None)
+  fieldsList = []
+  delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == u'todrive':
+    if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
+    elif myarg == u'delimiter':
+      delimiter = getDelimiter()
+    elif myarg == u'allfields':
+      for field in DRIVESETTINGS_FIELDS_CHOICES_MAP:
+        fieldsList.append(DRIVESETTINGS_FIELDS_CHOICES_MAP[field])
+    elif myarg in DRIVESETTINGS_FIELDS_CHOICES_MAP:
+      fieldsList.append(DRIVESETTINGS_FIELDS_CHOICES_MAP[myarg])
+    elif myarg == u'fields':
+      for field in getString(Cmd.OB_FIELD_NAME_LIST).lower().replace(u',', u' ').split():
+        if field in DRIVESETTINGS_FIELDS_CHOICES_MAP:
+          fieldsList.append(DRIVESETTINGS_FIELDS_CHOICES_MAP[field])
+        else:
+          invalidChoiceExit(list(DRIVESETTINGS_FIELDS_CHOICES_MAP), True)
     else:
       unknownArgumentExit()
+  if not fieldsList:
+    fieldsList = DRIVESETTINGS_SCALAR_FIELDS
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     user, drive = buildGAPIServiceObject(API.DRIVE3, user)
     if not drive:
       continue
-    printGettingEntityItemForWhom(Ent.DRIVE_SETTINGS, user, i, count)
+    if csvFormat:
+      printGettingEntityItemForWhom(Ent.DRIVE_SETTINGS, user, i, count)
     try:
       feed = callGAPI(drive.about(), u'get',
                       throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                      fields=u'folderColorPalette,storageQuota,teamDriveThemes,user(displayName,permissionId)')
-      rootFolderId = callGAPI(drive.files(), u'get',
-                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                              fileId=u'root', fields=u'id')[u'id']
-      largestChangeId = callGAPI(drive.changes(), u'getStartPageToken',
-                                 throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                 fields=u'startPageToken')[u'startPageToken']
-      row = {u'email': user, nameField: feed[u'user'][u'displayName'], u'folderColorPalette': feed[u'folderColorPalette'],
-             u'largestChangeId': largestChangeId, u'permissionId': feed[u'user'][u'permissionId'],
-             u'quotaType': [u'UNLIMITED', u'LIMITED'][u'limit' in feed[u'storageQuota']],
-             u'rootFolderId': rootFolderId}
+                      fields=u'*')
+      feed[u'name'] = feed[u'user'][u'displayName']
+      feed[u'maxUploadSize'] = formatFileSize(int(feed[u'maxUploadSize']))
+      feed[u'permissionId'] = feed[u'user'][u'permissionId']
       feed[u'storageQuota'].setdefault(u'limit', 0)
-      if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
-        for setting, value in iteritems(feed[u'storageQuota']):
-          _addSetting(row, titles, API.DRIVE3_TO_DRIVE2_ABOUT_FIELDS_MAP.get(setting, setting), value)
+      feed[u'limit'] = [u'UNLIMITED', u'LIMITED'][feed[u'storageQuota'].get(u'limit', 0) > 0]
+      for setting in [u'usage', u'usageInDrive', u'usageInDriveTrash']:
+        feed[setting] = formatFileSize(int(feed[u'storageQuota'].get(setting, 0)))
+      if u'rootFolderId' in fieldsList:
+        feed[u'rootFolderId'] = callGAPI(drive.files(), u'get',
+                                         throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                         fileId=u'root', fields=u'id')[u'id']
+      if u'largestChangeId' in fieldsList:
+        feed[u'largestChangeId'] = callGAPI(drive.changes(), u'getStartPageToken',
+                                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                            fields=u'startPageToken')[u'startPageToken']
+      if not csvFormat:
+        entityPerformActionNumItems([Ent.USER, user], 1, Ent.DRIVE_SETTINGS, i, count)
+        Ind.Increment()
+        for setting in DRIVESETTINGS_SCALAR_FIELDS:
+          _showSetting(setting)
+        _showSetting(u'folderColorPalette')
+        _showFormats(u'exportFormats')
+        _showFormats(u'importFormats')
+        if u'maxImportSizes' in fieldsList and u'maxImportSizes' in fieldsList:
+          printKeyValueList([u'maxImportSizes', None])
+          Ind.Increment()
+          for setting, value in iteritems(feed[u'maxImportSizes']):
+            printKeyValueList([setting, formatFileSize(int(value))])
+          Ind.Decrement()
+        if u'teamDriveThemes' in fieldsList and u'teamDriveThemes' in feed:
+          printKeyValueList([u'teamDriveThemes', None])
+          Ind.Increment()
+          for setting in feed[u'teamDriveThemes']:
+            printKeyValueList([u'id', setting[u'id']])
+            Ind.Increment()
+            printKeyValueList([u'backgroundImageLink', setting[u'backgroundImageLink']])
+            printKeyValueList([u'colorRgb', setting[u'colorRgb']])
+            Ind.Decrement()
+          Ind.Decrement()
+        Ind.Decrement()
       else:
-        for setting, value in iteritems(feed[u'storageQuota']):
-          _addSetting(row, titles, setting, value)
-      teamDriveThemes = feed.get(u'teamDriveThemes', [])
-      jcount = len(feed[u'teamDriveThemes'])
-      row[u'teamDriveThemes'] = jcount
-      j = 0
-      for setting in teamDriveThemes:
-        _addSetting(row, titles, u'teamDriveThemes.{0}.id'.format(j), setting[u'id'])
-        _addSetting(row, titles, u'teamDriveThemes.{0}.backgroundImageLink'.format(j), setting[u'backgroundImageLink'])
-        _addSetting(row, titles, u'teamDriveThemes.{0}.colorRgb'.format(j), setting[u'colorRgb'])
-        j += 1
-      csvRows.append(row)
+        row = {u'email': user}
+        for setting in DRIVESETTINGS_SCALAR_FIELDS:
+          _addSetting(row, setting)
+        _addSetting(row, u'folderColorPalette')
+        _addFormats(row, u'exportFormats')
+        _addFormats(row, u'importFormats')
+        if u'maxImportSizes' in fieldsList and u'maxImportSizes' in fieldsList:
+          jcount = len(feed[u'maxImportSizes'])
+          row[u'maxImportSizes'] = jcount
+          j = 0
+          for setting, value in iteritems(feed[u'maxImportSizes']):
+            row[u'maxImportSizes.{0}.{1}'.format(j, setting)] = formatFileSize(int(value))
+            j += 1
+        if u'teamDriveThemes' in fieldsList and u'teamDriveThemes' in feed:
+          jcount = len(feed[u'teamDriveThemes'])
+          row[u'teamDriveThemes'] = jcount
+          j = 0
+          for setting in feed[u'teamDriveThemes']:
+            row[u'teamDriveThemes.{0:02d}.id'.format(j)] = setting[u'id']
+            row[u'teamDriveThemes.{0:02d}.backgroundImageLink'.format(j)] = setting[u'backgroundImageLink']
+            row[u'teamDriveThemes.{0:02d}.colorRgb'.format(j)] = setting[u'colorRgb']
+            j += 1
+        addRowTitlesToCSVfile(row, csvRows, titles)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
-  writeCSVfile(csvRows, titles, u'User Drive Settings', todrive)
+  if csvFormat:
+    sortCSVTitles([u'email',]+DRIVESETTINGS_SCALAR_FIELDS, titles)
+    writeCSVfile(csvRows, titles, u'User Drive Settings', todrive)
+
+# gam <UserTypeEntity> print drivesettings [todrive [<ToDriveAttributes>]] [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <String>]
+def printDriveSettings(users):
+  _printShowDriveSettings(users, True)
+
+# gam <UserTypeEntity> show drivesettings [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <String>]
+def showDriveSettings(users):
+  _printShowDriveSettings(users, False)
 
 def initFilePathInfo():
   return {u'ids': {}, u'allPaths': {}, u'localPaths': None}
@@ -22462,11 +22590,11 @@ def addDriveFilePermissions(users):
         dbatch.add(method(**svcparms), request_id=batchRequestID(fileId, j, jcount, k, kcount, permission))
         bcount += 1
         if bcount >= GC.Values[GC.BATCH_SIZE]:
-          dbatch.execute()
+          executeBatch(dbatch)
           dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackAddPermission)
           bcount = 0
     if bcount > 0:
-      dbatch.execute()
+      executeBatch(dbatch)
     Ind.Decrement()
 
 # gam <UserTypeEntity> delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles]
@@ -22579,11 +22707,11 @@ def deletePermissions(users):
         dbatch.add(method(**svcparms), request_id=batchRequestID(fileId, j, jcount, k, kcount, permissionId))
         bcount += 1
         if bcount >= GC.Values[GC.BATCH_SIZE]:
-          dbatch.execute()
+          executeBatch(dbatch)
           dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackDeletePermissionId)
           bcount = 0
     if bcount > 0:
-      dbatch.execute()
+      executeBatch(dbatch)
     Ind.Decrement()
 
 def _printShowDriveFileACLs(users, csvFormat):
@@ -22929,11 +23057,11 @@ def addUserToGroups(users):
       dbatch.add(method(**svcparms), request_id=batchRequestID(svcparms[u'groupKey'], 0, 0, j, jcount, user, role))
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
-        dbatch.execute()
+        executeBatch(dbatch)
         dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackAddUserToGroups)
         bcount = 0
     if bcount > 0:
-      dbatch.execute()
+      executeBatch(dbatch)
     Ind.Decrement()
 
   cd = buildGAPIObject(API.DIRECTORY)
@@ -22984,11 +23112,11 @@ def deleteUserFromGroups(users):
       dbatch.add(method(**svcparms), request_id=batchRequestID(svcparms[u'groupKey'], 0, 0, j, jcount, user, role))
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
-        dbatch.execute()
+        executeBatch(dbatch)
         dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackDeleteUserFromGroups)
         bcount = 0
     if bcount > 0:
-      dbatch.execute()
+      executeBatch(dbatch)
     Ind.Decrement()
 
   cd = buildGAPIObject(API.DIRECTORY)
@@ -23886,11 +24014,11 @@ def deleteLabel(users):
         dbatch.add(method(**svcparms), request_id=batchRequestID(user, i, count, j, jcount, del_me[u'id']))
         bcount += 1
         if bcount == 10:
-          dbatch.execute()
+          executeBatch(dbatch)
           dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackDeleteLabel)
           bcount = 0
       if bcount > 0:
-        dbatch.execute()
+        executeBatch(dbatch)
       Ind.Decrement()
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -24209,11 +24337,11 @@ def _processMessagesThreads(users, entityType):
       dbatch.add(method(**svcparms), request_id=batchRequestID(user, 0, 0, j, jcount, svcparms[u'id']))
       bcount += 1
       if bcount == GC.Values[GC.EMAIL_BATCH_SIZE]:
-        dbatch.execute()
+        executeBatch(dbatch)
         dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackProcessMessage)
         bcount = 0
     if bcount > 0:
-      dbatch.execute()
+      executeBatch(dbatch)
 
   currLabelOp = prevLabelOp = u'and'
   labelGroupOpen = False
@@ -24654,11 +24782,11 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
       if maxToProcess and j == maxToProcess:
         break
       if bcount == GC.Values[GC.EMAIL_BATCH_SIZE]:
-        dbatch.execute()
+        executeBatch(dbatch)
         dbatch = googleapiclient.http.BatchHttpRequest(callback=callback)
         bcount = 0
     if bcount > 0:
-      dbatch.execute()
+      executeBatch(dbatch)
 
   currLabelOp = prevLabelOp = u'and'
   labelGroupOpen = False
@@ -27675,7 +27803,7 @@ USER_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_DELEGATES:	showDelegates,
         Cmd.ARG_DRIVEACTIVITY:	printDriveActivity,
         Cmd.ARG_DRIVEFILEACLS:	showDriveFileACLs,
-        Cmd.ARG_DRIVESETTINGS:	printDriveSettings,
+        Cmd.ARG_DRIVESETTINGS:	showDriveSettings,
         Cmd.ARG_EVENTS:		showCalendarEvents,
         Cmd.ARG_FILEINFO:	showFileInfo,
         Cmd.ARG_FILELIST:	printFileList,
