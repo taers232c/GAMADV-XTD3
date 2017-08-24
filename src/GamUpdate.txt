@@ -1,3 +1,15 @@
+4.53.12
+
+Updated todrive to allow updating an existing file rather than creating a new file.
+<ToDriveAttributes> ::=
+	(tduser <EmailAddress>)|
+	(tdtitle <String>)|
+	(tdparent id:<DriveFolderID>|<DriveFolderName>)|(tdfileid <DriveFileID>)
+	(tdtimestamp [<Boolean>] [tddaysoffset <Number>] [tdhoursoffset <Number])|
+	(tdlocalcopy [<Boolean>])
+
+tdfileid <DriveFileID> specifies the file to be updated.
+
 4.53.11
 
 Recoded gam print|show drivesettings to provide more flexibility; print and show are now separate

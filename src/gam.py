@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.53.11'
+__version__ = u'4.53.12'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -3784,24 +3784,42 @@ def checkUserExists(cd, user, i=0, count=0):
     return None
 
 def getTodriveParameters():
-  def invalidTodriveValueExit(entityType, message, local, location, item=None, value=None):
-    Cmd.SetLocation(location-1)
-    if not local:
+  def invalidTodriveFileIdExit(entityType, message):
+    Cmd.SetLocation(tdfileidLocation-1)
+    usageErrorExit(Msg.INVALID_ENTITY_MESSAGE.format(Ent.Singular(entityType), message))
+
+  def invalidTodriveParentExit(entityType, message):
+    Cmd.SetLocation(tdparentLocation-1)
+    if not localParent:
       usageErrorExit(Msg.INVALID_ENTITY_MESSAGE.format(Ent.Singular(entityType),
                                                        formatKeyValueList(u'',
                                                                           [Ent.Singular(Ent.CONFIG_FILE), GM.Globals[GM.GAM_CFG_FILE],
-                                                                           Ent.Singular(Ent.ITEM), item,
-                                                                           Ent.Singular(Ent.VALUE), value,
+                                                                           Ent.Singular(Ent.ITEM), GC.TODRIVE_PARENT,
+                                                                           Ent.Singular(Ent.VALUE), todrive[u'parent'],
+                                                                           message],
+                                                                          u'')))
+    else:
+      usageErrorExit(Msg.INVALID_ENTITY_MESSAGE.format(Ent.Singular(entityType), message))
+
+  def invalidTodriveUserExit(entityType, message):
+    Cmd.SetLocation(tduserLocation-1)
+    if not localUser:
+      usageErrorExit(Msg.INVALID_ENTITY_MESSAGE.format(Ent.Singular(entityType),
+                                                       formatKeyValueList(u'',
+                                                                          [Ent.Singular(Ent.CONFIG_FILE), GM.Globals[GM.GAM_CFG_FILE],
+                                                                           Ent.Singular(Ent.ITEM), GC.TODRIVE_USER,
+                                                                           Ent.Singular(Ent.VALUE), todrive[u'user'],
                                                                            message],
                                                                           u'')))
     else:
       usageErrorExit(Msg.INVALID_ENTITY_MESSAGE.format(Ent.Singular(entityType), message))
 
   localUser = localParent = False
-  tduserLocation = tdparentLocation = Cmd.Location()
+  tduserLocation = tdparentLocation = tdfileidLocation = Cmd.Location()
   todrive = {u'title': None, u'user': GC.Values[GC.TODRIVE_USER], u'parent': GC.Values[GC.TODRIVE_PARENT],
              u'timestamp': GC.Values[GC.TODRIVE_TIMESTAMP], u'daysoffset': 0, u'hoursoffset': 0,
-             u'localcopy': GC.Values[GC.TODRIVE_LOCALCOPY]}
+             u'localcopy': GC.Values[GC.TODRIVE_LOCALCOPY],
+             u'fileId': None, u'parentId': None}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'tdtitle':
@@ -3822,6 +3840,9 @@ def getTodriveParameters():
       todrive[u'hoursoffset'] = getInteger(minVal=0)
     elif myarg == u'tdlocalcopy':
       todrive[u'localcopy'] = getBoolean(defaultValue=True)
+    elif myarg == u'tdfileid':
+      todrive[u'fileId'] = getString(Cmd.OB_DRIVE_FILE_ID)
+      tdfileidLocation = Cmd.Location()
     else:
       Cmd.Backup()
       break
@@ -3829,9 +3850,21 @@ def getTodriveParameters():
     todrive[u'user'] = _getValueFromOAuth(u'email')
   user = checkUserExists(buildGAPIObject(API.DIRECTORY), todrive[u'user'])
   if not user:
-    invalidTodriveValueExit(Ent.USER, Msg.NOT_FOUND, localUser, tduserLocation, GC.TODRIVE_USER, todrive[u'user'])
+    invalidTodriveUserExit(Ent.USER, Msg.NOT_FOUND)
   todrive[u'user'] = user
-  if todrive[u'parent'] == u'root':
+  if todrive[u'fileId']:
+    _, drive = buildGAPIServiceObject(API.DRIVE3, todrive[u'user'])
+    try:
+      result = callGAPI(drive.files(), u'get',
+                        throw_reasons=[GAPI.FILE_NOT_FOUND],
+                        fileId=todrive[u'fileId'], fields=u'mimeType,capabilities(canEdit)', supportsTeamDrives=True)
+      if result[u'mimeType'] == MIMETYPE_GA_FOLDER:
+        invalidTodriveFileIdExit(Ent.DRIVE_FILE_ID, Msg.NOT_AN_ENTITY.format(Ent.Singular(Ent.DRIVE_FILE)))
+      if not result[u'capabilities'][u'canEdit']:
+        invalidTodriveFileIdExit(Ent.DRIVE_FILE_ID, Msg.NOT_WRITABLE)
+    except GAPI.fileNotFound:
+      invalidTodriveFileIdExit(Ent.DRIVE_FILE_ID, Msg.NOT_FOUND)
+  elif todrive[u'parent'] == u'root':
     todrive[u'parentId'] = u'root'
   else:
     _, drive = buildGAPIServiceObject(API.DRIVE3, todrive[u'user'])
@@ -3841,15 +3874,12 @@ def getTodriveParameters():
                           throw_reasons=[GAPI.FILE_NOT_FOUND],
                           fileId=todrive[u'parent'][3:], fields=u'id,mimeType,capabilities(canEdit)', supportsTeamDrives=True)
         if result[u'mimeType'] != MIMETYPE_GA_FOLDER:
-          invalidTodriveValueExit(Ent.DRIVE_FOLDER_ID, Msg.NOT_AN_ENTITY.format(Ent.Singular(Ent.DRIVE_FOLDER)),
-                                  localParent, tdparentLocation, GC.TODRIVE_PARENT, todrive[u'parent'])
+          invalidTodriveParentExit(Ent.DRIVE_FOLDER_ID, Msg.NOT_AN_ENTITY.format(Ent.Singular(Ent.DRIVE_FOLDER)))
         if not result[u'capabilities'][u'canEdit']:
-          invalidTodriveValueExit(Ent.DRIVE_FOLDER_ID, Msg.NOT_WRITABLE,
-                                  localParent, tdparentLocation, GC.TODRIVE_PARENT, todrive[u'parent'])
+          invalidTodriveParentExit(Ent.DRIVE_FOLDER_ID, Msg.NOT_WRITABLE)
         todrive[u'parentId'] = result[u'id']
       except GAPI.fileNotFound:
-        invalidTodriveValueExit(Ent.DRIVE_FOLDER_ID, Msg.NOT_FOUND,
-                                localParent, tdparentLocation, GC.TODRIVE_PARENT, todrive[u'parent'])
+        invalidTodriveParentExit(Ent.DRIVE_FOLDER_ID, Msg.NOT_FOUND)
     else:
       try:
         results = callGAPIpages(drive.files(), u'list', u'files',
@@ -3857,18 +3887,14 @@ def getTodriveParameters():
                                 q=u"name = '{0}'".format(todrive[u'parent']),
                                 fields=u'nextPageToken,files(id,mimeType,capabilities(canEdit))', pageSize=1, supportsTeamDrives=True)
         if not results:
-          invalidTodriveValueExit(Ent.DRIVE_FOLDER_NAME, Msg.NOT_FOUND,
-                                  localParent, tdparentLocation, GC.TODRIVE_PARENT, todrive[u'parent'])
+          invalidTodriveParentExit(Ent.DRIVE_FOLDER_NAME, Msg.NOT_FOUND)
         if results[0][u'mimeType'] != MIMETYPE_GA_FOLDER:
-          invalidTodriveValueExit(Ent.DRIVE_FOLDER_NAME, Msg.NOT_AN_ENTITY.format(Ent.Singular(Ent.DRIVE_FOLDER)),
-                                  localParent, tdparentLocation, GC.TODRIVE_PARENT, todrive[u'parent'])
+          invalidTodriveParentExit(Ent.DRIVE_FOLDER_NAME, Msg.NOT_AN_ENTITY.format(Ent.Singular(Ent.DRIVE_FOLDER)))
         if not results[0][u'capabilities'][u'canEdit']:
-          invalidTodriveValueExit(Ent.DRIVE_FOLDER_NAME, Msg.NOT_WRITABLE,
-                                  localParent, tdparentLocation, GC.TODRIVE_PARENT, todrive[u'parent'])
+          invalidTodriveParentExit(Ent.DRIVE_FOLDER_NAME, Msg.NOT_WRITABLE)
         todrive[u'parentId'] = results[0][u'id']
       except GAPI.invalidQuery:
-        invalidTodriveValueExit(Ent.DRIVE_FOLDER_NAME, Msg.NOT_FOUND,
-                                localParent, tdparentLocation, GC.TODRIVE_PARENT, todrive[u'parent'])
+        invalidTodriveParentExit(Ent.DRIVE_FOLDER_NAME, Msg.NOT_FOUND)
   return todrive
 
 # Send an email
@@ -4017,10 +4043,16 @@ def writeCSVfile(csvRows, titles, list_type, todrive):
         title += u' - '+ISOformatTimeStamp(timestamp)
       _, drive = buildGAPIServiceObject(API.DRIVE3, todrive[u'user'])
       try:
-        result = callGAPI(drive.files(), u'create',
-                          throw_reasons=[GAPI.INSUFFICIENT_PERMISSIONS, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR],
-                          body={u'parents': [todrive[u'parentId']], u'description': u' '.join(Cmd.AllArguments()), u'name': title, u'mimeType': mimeType},
-                          media_body=googleapiclient.http.MediaIoBaseUpload(csvFile, mimetype=u'text/csv', resumable=True), fields=u'webViewLink', supportsTeamDrives=True)
+        if not todrive[u'fileId']:
+          result = callGAPI(drive.files(), u'create',
+                            throw_reasons=[GAPI.INSUFFICIENT_PERMISSIONS, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR],
+                            body={u'parents': [todrive[u'parentId']], u'description': u' '.join(Cmd.AllArguments()), u'name': title, u'mimeType': mimeType},
+                            media_body=googleapiclient.http.MediaIoBaseUpload(csvFile, mimetype=u'text/csv', resumable=True), fields=u'webViewLink', supportsTeamDrives=True)
+        else:
+          result = callGAPI(drive.files(), u'update',
+                            throw_reasons=[GAPI.INSUFFICIENT_PERMISSIONS, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR],
+                            fileId=todrive[u'fileId'], body={u'description': u' '.join(Cmd.AllArguments()), u'name': title, u'mimeType': mimeType},
+                            media_body=googleapiclient.http.MediaIoBaseUpload(csvFile, mimetype=u'text/csv', resumable=True), fields=u'webViewLink', supportsTeamDrives=True)
         file_url = result[u'webViewLink']
         if GC.Values[GC.NO_BROWSER]:
           msg_txt = u'{0}:\n{1}'.format(Msg.DATA_UPLOADED_TO_DRIVE_FILE, file_url)
@@ -4032,7 +4064,10 @@ def writeCSVfile(csvRows, titles, list_type, todrive):
       except GAPI.insufficientPermissions:
         printWarningMessage(INSUFFICIENT_PERMISSIONS_RC, Msg.INSUFFICIENT_PERMISSIONS_TO_PERFORM_TASK)
       except (GAPI.fileNotFound, GAPI.unknownError) as e:
-        entityActionFailedWarning([Ent.DRIVE_FOLDER, todrive[u'parentId']], str(e))
+        if not todrive[u'fileId']:
+          entityActionFailedWarning([Ent.DRIVE_FOLDER, todrive[u'parentId']], str(e))
+        else:
+          entityActionFailedWarning([Ent.DRIVE_FILE, todrive[u'fileId']], str(e))
     closeFile(csvFile)
 
   if GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] is not None:
