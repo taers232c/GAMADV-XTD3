@@ -1,3 +1,7 @@
+4.53.14
+
+Correct errors in gam update group add|remove|sync|update member when the members are specified by user/group IDs rather than email addresses.
+
 4.53.13
 
 Corrected gam delete guardian to properly delete a guardian specified by email address.

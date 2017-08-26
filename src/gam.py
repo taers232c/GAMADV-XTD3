@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.53.13'
+__version__ = u'4.53.14'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -2939,7 +2939,7 @@ def getSitesQuery(**kwargs):
   return gdata.apps.sites.service.SitesQuery(**kwargs)
 
 # Convert UID to email address
-def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, email_type=u'user', checkForCustomerId=False):
+def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, emailType=u'user', checkForCustomerId=False):
   if checkForCustomerId and (emailAddressOrUID == GC.Values[GC.CUSTOMER_ID]):
     return emailAddressOrUID
   normalizedEmailAddressOrUID = normalizeEmailAddressOrUID(emailAddressOrUID)
@@ -2947,7 +2947,7 @@ def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, email_type=u'user', che
     return normalizedEmailAddressOrUID
   if cd is None:
     cd = buildGAPIObject(API.DIRECTORY)
-  if email_type == u'user':
+  if emailType != u'group':
     try:
       result = callGAPI(cd.users(), u'get',
                         throw_reasons=GAPI.USER_GET_THROW_REASONS,
@@ -2956,7 +2956,7 @@ def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, email_type=u'user', che
         return result[u'primaryEmail'].lower()
     except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
       pass
-  else:
+  if emailType != u'user':
     try:
       result = callGAPI(cd.groups(), u'get',
                         throw_reasons=GAPI.GROUP_GET_THROW_REASONS,
@@ -2968,19 +2968,19 @@ def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, email_type=u'user', che
   return normalizedEmailAddressOrUID
 
 # Convert email address to User/Group UID; called immediately after getting email address from command line
-def convertEmailAddressToUID(emailAddressOrUID, cd=None, email_type=u'user', savedLocation=None):
+def convertEmailAddressToUID(emailAddressOrUID, cd=None, emailType=u'user', savedLocation=None):
   normalizedEmailAddressOrUID = normalizeEmailAddressOrUID(emailAddressOrUID)
   if normalizedEmailAddressOrUID.find(u'@') == -1:
     return normalizedEmailAddressOrUID
   if cd is None:
     cd = buildGAPIObject(API.DIRECTORY)
-  if email_type != u'group':
+  if emailType != u'group':
     try:
       return callGAPI(cd.users(), u'get',
                       throw_reasons=GAPI.USER_GET_THROW_REASONS,
                       userKey=normalizedEmailAddressOrUID, fields=u'id')[u'id']
     except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
-      if email_type == u'user':
+      if emailType == u'user':
         if savedLocation is not None:
           Cmd.SetLocation(savedLocation)
         entityDoesNotExistExit(Ent.USER, normalizedEmailAddressOrUID, errMsg=getPhraseDNEorSNA(normalizedEmailAddressOrUID))
@@ -2991,7 +2991,7 @@ def convertEmailAddressToUID(emailAddressOrUID, cd=None, email_type=u'user', sav
   except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest):
     if savedLocation is not None:
       Cmd.SetLocation(savedLocation)
-    entityDoesNotExistExit([Ent.USER, Ent.GROUP][email_type == u'group'], normalizedEmailAddressOrUID, errMsg=getPhraseDNEorSNA(normalizedEmailAddressOrUID))
+    entityDoesNotExistExit([Ent.USER, Ent.GROUP][emailType == u'group'], normalizedEmailAddressOrUID, errMsg=getPhraseDNEorSNA(normalizedEmailAddressOrUID))
 
 # Convert User UID from API call to email address
 def convertUserIDtoEmail(uid, cd=None):
@@ -11089,7 +11089,7 @@ def doUpdateGroups():
         addMembers = groupMemberLists[group]
       group = checkGroupExists(cd, group, i, count)
       if group:
-        _batchAddGroupMembers(cd, group, i, count, addMembers, role)
+        _batchAddGroupMembers(cd, group, i, count, [convertUIDtoEmailAddress(member, cd=cd, emailType=u'any', checkForCustomerId=True) for member in addMembers], role)
   elif CL_subCommand in [u'delete', u'remove']:
     role = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True) # Argument ignored
     _, removeMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, groupUserMembersOnly=False)
@@ -11103,7 +11103,7 @@ def doUpdateGroups():
         removeMembers = groupMemberLists[group]
       group = checkGroupExists(cd, group, i, count)
       if group:
-        _batchRemoveGroupMembers(cd, group, i, count, removeMembers, role)
+        _batchRemoveGroupMembers(cd, group, i, count, [convertUIDtoEmailAddress(member, cd=cd, emailType=u'any', checkForCustomerId=True) for member in removeMembers], role)
   elif CL_subCommand == u'sync':
     role = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True)
     checkNotSuspended = checkArgumentPresent(Cmd.NOTSUSPENDED_ARGUMENT)
@@ -11113,7 +11113,7 @@ def doUpdateGroups():
       syncMembersSet = set()
       syncMembersMap = {}
       for member in syncMembers:
-        syncMembersSet.add(_cleanAddress(convertUIDtoEmailAddress(member, cd=cd, checkForCustomerId=True), syncMembersMap))
+        syncMembersSet.add(_cleanAddress(convertUIDtoEmailAddress(member, cd=cd, emailType=u'any', checkForCustomerId=True), syncMembersMap))
     checkForExtraneousArguments()
     i = 0
     count = len(entityList)
@@ -11123,13 +11123,13 @@ def doUpdateGroups():
         syncMembersSet = set()
         syncMembersMap = {}
         for member in syncMembers:
-          syncMembersSet.add(_cleanAddress(convertUIDtoEmailAddress(member, cd=cd, checkForCustomerId=True), syncMembersMap))
+          syncMembersSet.add(_cleanAddress(convertUIDtoEmailAddress(member, cd=cd, emailType=u'any', checkForCustomerId=True), syncMembersMap))
       group = checkGroupExists(cd, group, i, count)
       if group:
         currentMembersSet = set()
         currentMembersMap = {}
         for member in getUsersToModify(Cmd.ENTITY_GROUP, group, memberRole=role, groupUserMembersOnly=False):
-          currentMembersSet.add(_cleanAddress(convertUIDtoEmailAddress(member, cd=cd, checkForCustomerId=True), currentMembersMap))
+          currentMembersSet.add(_cleanAddress(member, currentMembersMap))
         _batchAddGroupMembers(cd, group, i, count,
                               [syncMembersMap.get(emailAddress, emailAddress) for emailAddress in syncMembersSet-currentMembersSet],
                               role)
@@ -11149,7 +11149,7 @@ def doUpdateGroups():
         updateMembers = groupMemberLists[group]
       group = checkGroupExists(cd, group, i, count)
       if group:
-        _batchUpdateGroupMembers(cd, group, i, count, updateMembers, role)
+        _batchUpdateGroupMembers(cd, group, i, count, [convertUIDtoEmailAddress(member, cd=cd, emailType=u'any', checkForCustomerId=True) for member in updateMembers], role)
   else: #clear
     suspended = False
     fields = [u'email', u'id']
