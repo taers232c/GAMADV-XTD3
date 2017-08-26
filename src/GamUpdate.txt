@@ -1,3 +1,7 @@
+4.53.13
+
+Corrected gam delete guardian to properly delete a guardian specified by email address.
+
 4.53.12
 
 Updated todrive to allow updating an existing file rather than creating a new file.

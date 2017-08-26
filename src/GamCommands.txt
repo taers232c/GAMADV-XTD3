@@ -1046,7 +1046,7 @@ gam show guardian|guardians invitations [states <GuardianStateList>] [invitedgua
 gam print guardian|guardians invitations [todrive [<ToDriveAttributes>]] [states <GuardianStateList>] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
 
 gam delete guardian|guardians <GuardianItem> <StudentItem>
-gam show guardian|guardians [invitedguardian <EmailAddress>] [student <StudentItem>] [states <GuardianStateList>] [<UserTypeEntity>]
+gam show guardian|guardians [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
 gam print guardian|guardians [todrive [<ToDriveAttributes>]] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
 
 # Licenses

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.53.12'
+__version__ = u'4.53.13'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -16494,8 +16494,6 @@ def doInfoSiteVerification():
   else:
     printKeyValueList([u'No Sites Verified.'])
 
-GUARDIAN_STATES = [u'COMPLETE', u'PENDING', u'GUARDIAN_INVITATION_STATE_UNSPECIFIED']
-
 # gam create guardian|guardianinvite|inviteguardian <EmailAddress> <StudentItem>
 def doInviteGuardian():
   croom = buildGAPIObject(API.CLASSROOM)
@@ -16515,16 +16513,18 @@ def doInviteGuardian():
 def _cancelGuardianInvitation(croom, studentId, invitationId):
   try:
     result = callGAPI(croom.userProfiles().guardianInvitations(), u'patch',
-                      throw_reasons=[GAPI.FORBIDDEN, GAPI.NOT_FOUND, GAPI.FAILED_PRECONDITION],
+                      throw_reasons=[GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.NOT_FOUND],
                       studentId=studentId, invitationId=invitationId, updateMask=u'state', body={u'state': u'COMPLETE'}, fields=u'invitedEmailAddress')
     entityActionPerformed([Ent.STUDENT, studentId, Ent.GUARDIAN_INVITATION, result[u'invitedEmailAddress']])
+    return True
+  except GAPI.failedPrecondition:
+    entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN_INVITATION, invitationId], Msg.GUARDIAN_INVITATION_STATUS_NOT_PENDING)
+    return True
   except GAPI.forbidden:
     entityUnknownWarning(Ent.STUDENT, studentId)
     systemErrorExit(GM.Globals[GM.SYSEXITRC], None)
   except GAPI.notFound:
-    entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN_INVITATION, invitationId], Msg.NOT_FOUND)
-  except GAPI.failedPrecondition:
-    entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN_INVITATION, invitationId], Msg.GUARDIAN_INVITATION_STATUS_NOT_PENDING)
+    return False
 
 # gam cancel guardianinvitation|guardianinvitations <GuardianInvitationID> <StudentItem>
 def doCancelGuardianInvitation():
@@ -16532,14 +16532,29 @@ def doCancelGuardianInvitation():
   invitationId = getString(Cmd.OB_GUARDIAN_INVITATION_ID)
   studentId = normalizeStudentGuardianEmailAddressOrUID(getString(Cmd.OB_STUDENT_ITEM))
   checkForExtraneousArguments()
-  _cancelGuardianInvitation(croom, studentId, invitationId)
+  if not _cancelGuardianInvitation(croom, studentId, invitationId):
+    entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN_INVITATION, invitationId], Msg.NOT_FOUND)
 
-# gam delete guardian|guardians <GuardianIitem> <StudentItem> [invitations]
+def _deleteGuardian(croom, studentId, guardianId, guardianEmail):
+  try:
+    callGAPI(croom.userProfiles().guardians(), u'delete',
+             throw_reasons=[GAPI.FORBIDDEN, GAPI.NOT_FOUND],
+             studentId=studentId, guardianId=guardianId)
+    entityActionPerformed([Ent.STUDENT, studentId, Ent.GUARDIAN, guardianEmail])
+    return True
+  except GAPI.forbidden:
+    entityUnknownWarning(Ent.STUDENT, studentId)
+    systemErrorExit(GM.Globals[GM.SYSEXITRC], None)
+  except GAPI.notFound:
+    return False
+
+# gam delete guardian|guardians <GuardianItem> <StudentItem> [invitation]
 def doDeleteGuardian():
   croom = buildGAPIObject(API.CLASSROOM)
-  invitationsOnly = False
   guardianId = normalizeStudentGuardianEmailAddressOrUID(getString(Cmd.OB_GUARDIAN_ITEM))
+  guardianIdIsEmail = guardianId.find(u'@') != -1
   studentId = normalizeStudentGuardianEmailAddressOrUID(getString(Cmd.OB_STUDENT_ITEM))
+  invitationsOnly = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in [u'invitation', u'invitations']:
@@ -16547,43 +16562,47 @@ def doDeleteGuardian():
     else:
       unknownArgumentExit()
   if not invitationsOnly:
+    if guardianIdIsEmail:
+      try:
+        results = callGAPIpages(croom.userProfiles().guardians(), u'list', u'guardians',
+                                throw_reasons=[GAPI.FORBIDDEN],
+                                studentId=studentId, invitedEmailAddress=guardianId)
+        if len(results) > 0:
+          for result in results:
+            _deleteGuardian(croom, studentId, result[u'guardianId'], guardianId)
+          return
+      except GAPI.forbidden:
+        entityUnknownWarning(Ent.STUDENT, studentId)
+        systemErrorExit(GM.Globals[GM.SYSEXITRC], None)
+    else:
+      if _deleteGuardian(croom, studentId, guardianId, guardianId):
+        return
+  Act.Set(Act.CANCEL)
+  if guardianIdIsEmail:
     try:
-      callGAPI(croom.userProfiles().guardians(), u'delete',
-               throw_reasons=[GAPI.FORBIDDEN, GAPI.NOT_FOUND],
-               studentId=studentId, guardianId=guardianId)
-      entityActionPerformed([Ent.STUDENT, studentId, Ent.GUARDIAN, guardianId])
-      return
+      results = callGAPIpages(croom.userProfiles().guardianInvitations(), u'list', u'guardianInvitations',
+                              throw_reasons=[GAPI.FORBIDDEN],
+                              studentId=studentId, invitedEmailAddress=guardianId, states=[u'PENDING',])
+      if len(results) > 0:
+        for result in results:
+          _cancelGuardianInvitation(croom, studentId, result[u'invitationId'])
+        return
     except GAPI.forbidden:
       entityUnknownWarning(Ent.STUDENT, studentId)
       systemErrorExit(GM.Globals[GM.SYSEXITRC], None)
-    except GAPI.notFound:
-      pass
-  Act.Set(Act.CANCEL)
-  try:
-    results = callGAPIpages(croom.userProfiles().guardianInvitations(), u'list', u'guardianInvitations',
-                            throw_reasons=[GAPI.FORBIDDEN],
-                            studentId=studentId, invitedEmailAddress=guardianId, states=[u'PENDING',])
-    if len(results) > 0:
-      for result in results:
-        _cancelGuardianInvitation(croom, studentId, result[u'invitationId'])
-    else:
-      entityActionFailedWarning([Ent.STUDENT, studentId, [Ent.GUARDIAN, Ent.GUARDIAN_INVITATION][invitationsOnly]], guardianId, Msg.NOT_A_GUARDIAN_OR_INVITATION)
-  except GAPI.forbidden:
-    entityUnknownWarning(Ent.STUDENT, studentId)
+  else:
+    if _cancelGuardianInvitation(croom, studentId, guardianId):
+      return
+  Act.Set(Act.DELETE)
+  entityActionFailedWarning([Ent.STUDENT, studentId, [Ent.GUARDIAN, Ent.GUARDIAN_INVITATION][invitationsOnly], guardianId], Msg.NOT_FOUND)
 
-#gam show guardian|guardians [invitedguardian <EmailAddress>] [student <StudentItem>] [invitations] [states <GuardianStateList>] [<UserTypeEntity>]
-def doShowGuardians():
-  printShowGuardians(False)
-
-#gam print guardian|guardians [todrive [<ToDriveAttributes>]] [invitedguardian <EmailAddress>] [student <StudentItem>] [invitations] [states <GuardianStateList>] [<UserTypeEntity>]
-def doPrintGuardians():
-  printShowGuardians(True)
+GUARDIAN_STATES = [u'complete', u'pending']
 
 def printShowGuardians(csvFormat):
   croom = buildGAPIObject(API.CLASSROOM)
   invitedEmailAddress = None
   studentIds = [u'-',]
-  states = None
+  states = []
   service = croom.userProfiles().guardians()
   items = u'guardians'
   entityType = Ent.GUARDIAN
@@ -16603,10 +16622,16 @@ def printShowGuardians(csvFormat):
       items = u'guardianInvitations'
       entityType = Ent.GUARDIAN_INVITATION
       titles, csvRows = initializeTitlesCSVfile([u'studentEmail', u'studentId', u'invitedEmailAddress', u'invitationId'])
-      if states is None:
-        states = GUARDIAN_STATES
+      if not states:
+        states = [state.upper() for state in GUARDIAN_STATES]
     elif myarg == u'states':
-      states = getString(Cmd.OB_GUARDIAN_STATE_LIST).upper().split(u',')
+      statesList = getString(Cmd.OB_GUARDIAN_STATE_LIST).split(u',')
+      states = []
+      for state in statesList:
+        if state in GUARDIAN_STATES:
+          states.append(state.upper())
+        else:
+          invalidChoiceExit(GUARDIAN_STATES, True)
     else:
       Cmd.Backup()
       _, studentIds = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
@@ -16647,6 +16672,14 @@ def printShowGuardians(csvFormat):
       entityActionFailedWarning([Ent.STUDENT, studentId], str(e), i, count)
   if csvFormat:
     writeCSVfile(csvRows, titles, u'Guardians', todrive)
+
+# gam show guardian|guardians [invitations [states <GuardianStateList>]] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
+def doShowGuardians():
+  printShowGuardians(False)
+
+# gam print guardian|guardians [todrive [<ToDriveAttributes>]] [invitations [states <GuardianStateList>]] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
+def doPrintGuardians():
+  printShowGuardians(True)
 
 def getCourseAttribute(myarg, body, croom):
   if myarg == u'name':
