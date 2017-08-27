@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.53.14'
+__version__ = u'4.53.15'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -3819,7 +3819,7 @@ def getTodriveParameters():
   todrive = {u'title': None, u'user': GC.Values[GC.TODRIVE_USER], u'parent': GC.Values[GC.TODRIVE_PARENT],
              u'timestamp': GC.Values[GC.TODRIVE_TIMESTAMP], u'daysoffset': 0, u'hoursoffset': 0,
              u'localcopy': GC.Values[GC.TODRIVE_LOCALCOPY],
-             u'fileId': None, u'parentId': None}
+             u'fileId': None, u'parentId': None, u'nobrowser': GC.Values[GC.NO_BROWSER]}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'tdtitle':
@@ -3843,6 +3843,8 @@ def getTodriveParameters():
     elif myarg == u'tdfileid':
       todrive[u'fileId'] = getString(Cmd.OB_DRIVE_FILE_ID)
       tdfileidLocation = Cmd.Location()
+    elif myarg == u'tdnobrowser':
+      todrive[u'nobrowser'] = getBoolean(defaultValue=True)
     else:
       Cmd.Backup()
       break
@@ -4054,7 +4056,7 @@ def writeCSVfile(csvRows, titles, list_type, todrive):
                             fileId=todrive[u'fileId'], body={u'description': u' '.join(Cmd.AllArguments()), u'name': title, u'mimeType': mimeType},
                             media_body=googleapiclient.http.MediaIoBaseUpload(csvFile, mimetype=u'text/csv', resumable=True), fields=u'webViewLink', supportsTeamDrives=True)
         file_url = result[u'webViewLink']
-        if GC.Values[GC.NO_BROWSER]:
+        if todrive[u'nobrowser']:
           msg_txt = u'{0}:\n{1}'.format(Msg.DATA_UPLOADED_TO_DRIVE_FILE, file_url)
           send_email(title, msg_txt, todrive[u'user'])
           printKeyValueList([msg_txt])

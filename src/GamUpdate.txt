@@ -1,3 +1,15 @@
+4.53.15
+
+Updated todrive to allow choosing whether to open a browser to view the uploaded file.
+The default value is the value of no_browser from gam.cfg.
+    <ToDriveAttributes> ::=
+	(tduser <EmailAddress>)|
+	(tdtitle <String>)|
+	(tdparent id:<DriveFolderID>|<DriveFolderName>)|(tdfileid <DriveFileID>)
+	(tdtimestamp [<Boolean>] [tddaysoffset <Number>] [tdhoursoffset <Number])|
+	(tdlocalcopy [<Boolean>])|
+	(tdnobrowser [<Boolean>])
+
 4.53.14
 
 Correct errors in gam update group add|remove|sync|update member when the members are specified by user/group IDs rather than email addresses.
