@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.53.15'
+__version__ = u'4.53.16
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -775,7 +775,7 @@ def validateEmailAddressOrUID(emailAddressOrUID):
 # foo@ -> foo@domain
 # foo@bar.com -> foo@bar.com
 # @domain -> domain
-def normalizeEmailAddressOrUID(emailAddressOrUID, noUid=False, checkForCustomerId=False):
+def normalizeEmailAddressOrUID(emailAddressOrUID, noUid=False, checkForCustomerId=False, noLower=False):
   if checkForCustomerId and (emailAddressOrUID == GC.Values[GC.CUSTOMER_ID]):
     return emailAddressOrUID
   if not noUid:
@@ -784,13 +784,13 @@ def normalizeEmailAddressOrUID(emailAddressOrUID, noUid=False, checkForCustomerI
       return cg.group(1)
   atLoc = emailAddressOrUID.find(u'@')
   if atLoc == 0:
-    return emailAddressOrUID[1:].lower()
+    return emailAddressOrUID[1:].lower() if not noLower else emailAddressOrUID[1:]
   if (atLoc == -1) or (atLoc == len(emailAddressOrUID)-1) and GC.Values[GC.DOMAIN]:
     if atLoc == -1:
-      emailAddressOrUID = u'{0}@{1}'.format(emailAddressOrUID, GC.Values[GC.DOMAIN])
+      emailAddressOrUID = u'{0}@{1}'.format(emailAddressOrUID, GC.Values[GC.DOMAIN].lower())
     else:
-      emailAddressOrUID = u'{0}{1}'.format(emailAddressOrUID, GC.Values[GC.DOMAIN])
-  return emailAddressOrUID.lower()
+      emailAddressOrUID = u'{0}{1}'.format(emailAddressOrUID, GC.Values[GC.DOMAIN].lower())
+  return emailAddressOrUID.lower() if not noLower else emailAddressOrUID
 
 # Normalize student/guardian email address/uid
 # 12345678 -> 12345678
@@ -817,12 +817,12 @@ def getEmailAddress(noUid=False, minLen=1, optional=False):
         atLoc = emailAddress.find(u'@')
         if atLoc == -1:
           if GC.Values[GC.DOMAIN]:
-            emailAddress = u'{0}@{1}'.format(emailAddress, GC.Values[GC.DOMAIN])
+            emailAddress = u'{0}@{1}'.format(emailAddress, GC.Values[GC.DOMAIN].lower())
           Cmd.Advance()
           return emailAddress
         if atLoc != 0:
           if (atLoc == len(emailAddress)-1) and GC.Values[GC.DOMAIN]:
-            emailAddress = u'{0}{1}'.format(emailAddress, GC.Values[GC.DOMAIN])
+            emailAddress = u'{0}{1}'.format(emailAddress, GC.Values[GC.DOMAIN].lower())
           Cmd.Advance()
           return emailAddress
         invalidArgumentExit(u'name@domain')
@@ -852,12 +852,12 @@ def getPermissionId():
           Cmd.Advance()
           return (False, u'anyoneWithLink')
         if GC.Values[GC.DOMAIN]:
-          emailAddress = u'{0}@{1}'.format(emailAddress, GC.Values[GC.DOMAIN])
+          emailAddress = u'{0}@{1}'.format(emailAddress, GC.Values[GC.DOMAIN].lower())
         Cmd.Advance()
         return (True, emailAddress)
       if atLoc != 0:
         if (atLoc == len(emailAddress)-1) and GC.Values[GC.DOMAIN]:
-          emailAddress = u'{0}{1}'.format(emailAddress, GC.Values[GC.DOMAIN])
+          emailAddress = u'{0}{1}'.format(emailAddress, GC.Values[GC.DOMAIN].lower())
         Cmd.Advance()
         return (True, emailAddress)
       invalidArgumentExit(u'name@domain')
@@ -7383,7 +7383,7 @@ def _doCreateUpdateAliases(doUpdate):
     i += 1
     if entityLists:
       targetEmails = entityLists[aliasEmail]
-    aliasEmail = normalizeEmailAddressOrUID(aliasEmail, noUid=True)
+    aliasEmail = normalizeEmailAddressOrUID(aliasEmail, noUid=True, noLower=True)
     body = {u'alias': aliasEmail}
     jcount = len(targetEmails)
     if jcount > 0:
@@ -7392,18 +7392,18 @@ def _doCreateUpdateAliases(doUpdate):
       if doUpdate:
         try:
           callGAPI(cd.users().aliases(), u'delete',
-                   throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN],
+                   throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE],
                    userKey=aliasEmail, alias=aliasEmail)
           printEntityKVList([Ent.USER_ALIAS, aliasEmail], [Act.PerformedName(Act.DELETE)], i, count)
-        except (GAPI.userNotFound, GAPI.badRequest, GAPI.invalid, GAPI.forbidden):
+        except (GAPI.userNotFound, GAPI.badRequest, GAPI.invalid, GAPI.forbidden, GAPI.invalidResource):
           try:
             callGAPI(cd.groups().aliases(), u'delete',
-                     throw_reasons=[GAPI.GROUP_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN],
+                     throw_reasons=[GAPI.GROUP_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE],
                      groupKey=aliasEmail, alias=aliasEmail)
           except GAPI.forbidden:
             entityUnknownWarning(Ent.GROUP_ALIAS, aliasEmail, i, count)
             continue
-          except (GAPI.groupNotFound, GAPI.badRequest, GAPI.invalid):
+          except (GAPI.groupNotFound, GAPI.badRequest, GAPI.invalid, GAPI.invalidResource):
             entityUnknownWarning(Ent.ALIAS, aliasEmail, i, count)
       if targetType != u'group':
         try:
@@ -7452,25 +7452,25 @@ def doDeleteAliases():
   count = len(entityList)
   for aliasEmail in entityList:
     i += 1
-    aliasEmail = normalizeEmailAddressOrUID(aliasEmail, noUid=True)
+    aliasEmail = normalizeEmailAddressOrUID(aliasEmail, noUid=True, noLower=True)
     if targetType != u'group':
       try:
         callGAPI(cd.users().aliases(), u'delete',
-                 throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN],
+                 throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE],
                  userKey=aliasEmail, alias=aliasEmail)
         entityActionPerformed([Ent.USER_ALIAS, aliasEmail], i, count)
         continue
-      except (GAPI.userNotFound, GAPI.badRequest, GAPI.invalid, GAPI.forbidden):
+      except (GAPI.userNotFound, GAPI.badRequest, GAPI.invalid, GAPI.forbidden, GAPI.invalidResource):
         if targetType == u'user':
           entityUnknownWarning(Ent.USER_ALIAS, aliasEmail, i, count)
           continue
     try:
       callGAPI(cd.groups().aliases(), u'delete',
-               throw_reasons=[GAPI.GROUP_NOT_FOUND, GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN],
+               throw_reasons=[GAPI.GROUP_NOT_FOUND, GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE],
                groupKey=aliasEmail, alias=aliasEmail)
       entityActionPerformed([Ent.GROUP_ALIAS, aliasEmail], i, count)
       continue
-    except (GAPI.groupNotFound, GAPI.userNotFound, GAPI.badRequest, GAPI.invalid, GAPI.forbidden):
+    except (GAPI.groupNotFound, GAPI.userNotFound, GAPI.badRequest, GAPI.invalid, GAPI.forbidden, GAPI.invalidResource):
       if targetType == u'group':
         entityUnknownWarning(Ent.GROUP_ALIAS, aliasEmail, i, count)
         continue
@@ -7505,7 +7505,7 @@ def infoAliases(entityList):
   count = len(entityList)
   for aliasEmail in entityList:
     i += 1
-    aliasEmail = normalizeEmailAddressOrUID(aliasEmail, noUid=True)
+    aliasEmail = normalizeEmailAddressOrUID(aliasEmail, noUid=True, noLower=True)
     try:
       result = callGAPI(cd.users(), u'get',
                         throw_reasons=GAPI.USER_GET_THROW_REASONS,
@@ -10293,8 +10293,8 @@ def doPrintCrOSDevices(entityList=None):
       selectLookup = True
     if selectLookup:
       jcount = len(entityList)
-      method = getattr(cd.chromeosdevices(), u'get')
       svcargs = dict([(u'customerId', GC.Values[GC.CUSTOMER_ID]), (u'deviceId', None), (u'projection', projection), (u'fields', fields)]+GM.Globals[GM.EXTRA_ARGS_LIST])
+      method = getattr(cd.chromeosdevices(), u'get')
       dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackPrintCrOS)
       bcount = 0
       j = 0

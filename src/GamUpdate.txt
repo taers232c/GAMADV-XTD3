@@ -1,3 +1,8 @@
+4.53.16
+
+Due to Google limitations, Gam now preserves the case of all aliases when calling the Directory API.
+In particular, you must use the exact case of an alias in order to delete it.
+
 4.53.15
 
 Updated todrive to allow choosing whether to open a browser to view the uploaded file.
