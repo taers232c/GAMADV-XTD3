@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.53.16'
+__version__ = u'4.53.17'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -27694,6 +27694,7 @@ USER_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_EVENT:		Cmd.ARG_EVENTS,
         Cmd.ARG_FILEREVISION:	Cmd.ARG_FILEREVISIONS,
         Cmd.ARG_FILTER:		Cmd.ARG_FILTERS,
+        Cmd.ARG_FORWARDINGADDRESS:	Cmd.ARG_FORWARDINGADDRESSES,
         Cmd.ARG_GROUP:		Cmd.ARG_GROUPS,
         Cmd.ARG_LICENCE:	Cmd.ARG_LICENSE,
         Cmd.ARG_LABELS:		Cmd.ARG_LABEL,

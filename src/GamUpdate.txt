@@ -1,3 +1,8 @@
+4.53.17
+
+Fixed code so that forwardingaddress is recognized as documented.
+    gam <UserTypeEntity> delete forwardingaddress|forwardingaddresses <EmailAddressEntity>
+
 4.53.16
 
 Due to Google limitations, Gam now preserves the case of all aliases when calling the Directory API.
