@@ -1,5 +1,30 @@
-4.53.17
+4.53.18
 
+The gam transfer ownership command has been updated to provide two modes of operation.
+Currently, GAM downloads the user's entire list of files with one API call (of course, there may be many
+entries downloaded) and then uses that information to build a file tree. The file tree is used to
+recursively find the children of the specified folders to transfer. Some GAM users find this big download
+confusing.
+
+The new mode, which will be the default, makes recursive API calls to get the children of the specified
+folders to transfer. The new mode will make N API calls instead of 1 API call; N is the number of folders
+recursively beneath the specified folder. Depending on the number of folders, this mode may be faster even though
+additional API calls are being made.
+
+The buildtree argument specifies that you want the first mode (build file tree) mode of operation.
+    gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+	[filepath] [preview] [buildtree] [todrive [<ToDriveAttributes>]]
+
+Typically, the filepath option is used with the preview option so you can verify what files are going to be transferred.
+If buildtree is specified, you will see the full path to each file. If buildtree is not specified, you will see the
+relative file path starting from the top level folder being transferred.
+
+Added notify option to gam printers add/sync to allow control over sending notifications when a printer is shared with a user.
+    gam printer|printers <PrinterIDEntity> add user|manager|owner <PrinterACLScopeEntity> [notify]
+    gam printer|printers <PrinterIDEntity> sync user|manager|owner <PrinterACLScopeEntity> [notify]
+If notify is not specified, no notification will be sent.
+
+4.53.17
 Fixed code so that forwardingaddress is recognized as documented.
     gam <UserTypeEntity> delete forwardingaddress|forwardingaddresses <EmailAddressEntity>
 

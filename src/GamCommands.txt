@@ -134,7 +134,7 @@ If an item contains spaces, it should be surrounded by ".
 <ParameterKey> ::= <String>
 <ParameterValue> ::= <String>
 <Password> ::= <String>
-<PrinterACLScope> ::= <UserTypeEntity>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>)|domain|everyone
+<PrinterACLScope> ::= <UserTypeEntity>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>)|domain|public
 <PrinterID> ::= <String>
 <PrintJobAge> ::= <Number>[m|h|d]
 <PrintJobID> ::= <String>
@@ -1187,13 +1187,13 @@ gam info printer|printers <PrinterIDEntity> [everything]
 
 gam print printer|printers [todrive [<ToDriveAttributes>]] [query <QueryPrinter>] [type <String>] [status <String>] [extrafields <String>] [delimiter <String>]
 
-<PrinterACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain
+<PrinterACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|public
 <PrinterACLScopeList> ::== "<PrinterACLScope>(,<PrinterACLScope>)*"
-<PrinterACLScopeEntity>::= <ACLScopeList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<PrinterACLScopeEntity>::= <PrinterACLScopeList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
-gam printer|printers <PrinterIDEntity> add user|manager|owner <PrinterACLScopeEntity>
+gam printer|printers <PrinterIDEntity> add user|manager|owner <PrinterACLScopeEntity> [notify]
 gam printer|printers <PrinterIDEntity> delete <PrinterACLScopeEntity>
-gam printer|printers <PrinterIDEntity> sync user|manager|owner <PrinterACLScopeEntity>
+gam printer|printers <PrinterIDEntity> sync user|manager|owner <PrinterACLScopeEntity> [notify]
 gam printer|printers <PrinterIDEntity> wipe user|manager|owner
 gam printer|printers <PrinterIDEntity> showacls
 gam printer|printers <PrinterIDEntity> printacls [todrive [<ToDriveAttributes>]]
@@ -1787,7 +1787,7 @@ gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive [<ToDriveAtt
 	[showtitles] [<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 
 gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-	[filepath] [preview] [todrive [<ToDriveAttributes>]]
+	[filepath] [preview] [buildtree] [todrive [<ToDriveAttributes>]]
 gam <UserTypeEntity> claim ownership <DriveFileEntity> [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
 	[includetrashed] [restricted [<Boolean>]] [writerscantshare [<Boolean>]] [filepath] [preview] [todrive [<ToDriveAttributes>]]
 

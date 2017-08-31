@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.53.17'
+__version__ = u'4.53.19'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -3833,18 +3833,18 @@ def getTodriveParameters():
       tdparentLocation = Cmd.Location()
       localParent = True
     elif myarg == u'tdtimestamp':
-      todrive[u'timestamp'] = getBoolean(defaultValue=True)
+      todrive[u'timestamp'] = getBoolean(True)
     elif myarg == u'tddaysoffset':
       todrive[u'daysoffset'] = getInteger(minVal=0)
     elif myarg == u'tdhoursoffset':
       todrive[u'hoursoffset'] = getInteger(minVal=0)
     elif myarg == u'tdlocalcopy':
-      todrive[u'localcopy'] = getBoolean(defaultValue=True)
+      todrive[u'localcopy'] = getBoolean(True)
     elif myarg == u'tdfileid':
       todrive[u'fileId'] = getString(Cmd.OB_DRIVE_FILE_ID)
       tdfileidLocation = Cmd.Location()
     elif myarg == u'tdnobrowser':
-      todrive[u'nobrowser'] = getBoolean(defaultValue=True)
+      todrive[u'nobrowser'] = getBoolean(True)
     else:
       Cmd.Backup()
       break
@@ -4582,7 +4582,7 @@ def doBatch(threadBatch=False):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'showcmds':
-      logCmds = getBoolean(defaultValue=True)
+      logCmds = getBoolean(True)
     else:
       unknownArgumentExit()
   items = collections.deque()
@@ -7007,7 +7007,7 @@ def _doUpdateOrgs(entityList):
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if entityType == Cmd.ENTITY_CROS and myarg == u'quickcrosmove':
-        quickCrOSMove = getBoolean(defaultValue=True)
+        quickCrOSMove = getBoolean(True)
       else:
         unknownArgumentExit()
     Act.Set(Act.ADD)
@@ -7289,7 +7289,7 @@ def doPrintOrgs():
     elif myarg == u'fromparent':
       orgUnitPath = getOrgUnitItem()
     elif myarg == u'showparent':
-      showParent = getBoolean(defaultValue=True)
+      showParent = getBoolean(True)
     elif myarg == u'toplevelonly':
       listType = u'children'
     elif myarg == u'allfields':
@@ -9892,7 +9892,7 @@ def updateCrOSDevices(entityList):
     elif myarg == u'acknowledgedevicetouchrequirement':
       ackWipe = True
     elif myarg == u'quickcrosmove':
-      quickCrOSMove = getBoolean(defaultValue=True)
+      quickCrOSMove = getBoolean(True)
     else:
       unknownArgumentExit()
   if action_body and update_body:
@@ -17601,6 +17601,10 @@ def normalizePrinterScopeList(rawScopeList):
         scope = u'/hd/domain/{0}'.format(GC.Values[GC.DOMAIN])
       elif scope.startswith(u'domain:'):
         scope = u'/hd/domain/{0}'.format(scope[7:])
+      elif scope.startswith(u'user:'):
+        scope = normalizeEmailAddressOrUID(scope[5:], noUid=True)
+      elif scope.startswith(u'group:'):
+        scope = normalizeEmailAddressOrUID(scope[6:], noUid=True)
       else:
         scope = normalizeEmailAddressOrUID(scope, noUid=True)
     scopeList.append(scope)
@@ -17613,7 +17617,7 @@ def getPrinterACLScopeEntity():
     scopeList = normalizePrinterScopeList(scopeList)
   return scopeList, printerScopeLists
 
-def _batchAddACLsToPrinter(cp, printerId, i, count, scopeList, role):
+def _batchAddACLsToPrinter(cp, printerId, i, count, scopeList, role, notify):
   Act.Set(Act.ADD)
   jcount = len(scopeList)
   entityPerformActionNumItems([Ent.PRINTER, printerId], jcount, role, i, count)
@@ -17629,7 +17633,7 @@ def _batchAddACLsToPrinter(cp, printerId, i, count, scopeList, role):
     else:
       public = None
       roleForScope = role
-      skip_notification = True
+      skip_notification = not notify if scope.find(u'@') != -1 else True
     try:
       callGCP(cp.printers(), u'share',
               throw_messages=[GCP.UNKNOWN_PRINTER, GCP.FAILED_TO_SHARE_THE_PRINTER, GCP.USER_IS_NOT_AUTHORIZED],
@@ -17649,11 +17653,12 @@ def _batchAddACLsToPrinter(cp, printerId, i, count, scopeList, role):
 
 PRINTER_ROLE_MAP = {u'manager': Ent.ROLE_MANAGER, u'owner': Ent.ROLE_OWNER, u'user': Ent.ROLE_USER,}
 
-# gam printer|printers <PrinterIDEntity> add user|manager|owner <PrinterACLScopeEntity>
+# gam printer|printers <PrinterIDEntity> add user|manager|owner <PrinterACLScopeEntity> [notify]
 def doPrinterAddACL(printerIdList):
   cp = buildGAPIObject(API.CLOUDPRINT)
   role = getChoice(PRINTER_ROLE_MAP, mapChoice=True)
   scopeList, printerScopeLists = getPrinterACLScopeEntity()
+  notify = True if checkArgumentPresent([u'notify',]) else False
   checkForExtraneousArguments()
   i = 0
   count = len(printerIdList)
@@ -17661,7 +17666,7 @@ def doPrinterAddACL(printerIdList):
     i += 1
     if printerScopeLists:
       scopeList = normalizePrinterScopeList(printerScopeLists[printerId])
-    _batchAddACLsToPrinter(cp, printerId, i, count, scopeList, role)
+    _batchAddACLsToPrinter(cp, printerId, i, count, scopeList, role, notify)
 
 def _batchDeleteACLsFromPrinter(cp, printerId, i, count, scopeList, role):
   Act.Set(Act.DELETE)
@@ -17688,9 +17693,10 @@ def _batchDeleteACLsFromPrinter(cp, printerId, i, count, scopeList, role):
       break
   Ind.Decrement()
 
-# gam printer|printers <PrinterIDEntity> delete <PrinterACLScopeEntity>
+# gam printer|printers <PrinterIDEntity> delete [user|manager|owner] <PrinterACLScopeEntity>
 def doPrinterDeleteACLs(printerIdList):
   cp = buildGAPIObject(API.CLOUDPRINT)
+  getChoice(PRINTER_ROLE_MAP, defaultChoice=None, mapChoice=True)
   scopeList, printerScopeLists = getPrinterACLScopeEntity()
   checkForExtraneousArguments()
   i = 0
@@ -17713,18 +17719,19 @@ def getPrinterScopeListsForRole(cp, printerId, i, count, role):
     scopeList = []
     if jcount > 0:
       for acl in result[u'printers'][0][u'access']:
-        if acl[u'role'] == role:
+        if acl.get(u'role') == role:
           scopeList.append(acl[u'scope'].lower())
     return scopeList
   except GCP.unknownPrinter as e:
     entityActionFailedWarning([Ent.PRINTER, printerId], str(e), i, count)
     return None
 
-# gam printer|printers <PrinterIDEntity> sync user|manager|owner <PrinterACLScopeEntity>
+# gam printer|printers <PrinterIDEntity> sync user|manager|owner <PrinterACLScopeEntity> [notify]
 def doPrinterSyncACLs(printerIdList):
   cp = buildGAPIObject(API.CLOUDPRINT)
   role = getChoice(PRINTER_ROLE_MAP, mapChoice=True)
   scopeList, printerScopeLists = getPrinterACLScopeEntity()
+  notify = True if checkArgumentPresent([u'notify',]) else False
   checkForExtraneousArguments()
   i = 0
   count = len(printerIdList)
@@ -17734,7 +17741,7 @@ def doPrinterSyncACLs(printerIdList):
       scopeList = normalizePrinterScopeList(printerScopeLists[printerId])
     currentScopeList = getPrinterScopeListsForRole(cp, printerId, i, count, role)
     if currentScopeList is not None:
-      _batchAddACLsToPrinter(cp, printerId, i, count, list(set(scopeList) - set(currentScopeList)), role)
+      _batchAddACLsToPrinter(cp, printerId, i, count, list(set(scopeList) - set(currentScopeList)), role, notify)
       _batchDeleteACLsFromPrinter(cp, printerId, i, count, list(set(currentScopeList) - set(scopeList)), role)
 
 # gam printer|printers <PrinterIDEntity> wipe user|manager|owner
@@ -19864,9 +19871,8 @@ def getFilePaths(drive, fileTree, initialResult, filePathInfo):
         fp.reverse()
         fp.append(name)
         filePaths.append(os.path.join(*fp))
-        fplist.pop()
-        return
-      _makeFilePaths(v, fplist, filePaths, name)
+      else:
+        _makeFilePaths(v, fplist, filePaths, name)
       fplist.pop()
     return
 
@@ -21880,11 +21886,14 @@ def validateUserGetPermissionId(user, i=0, count=0):
   return None
 
 # gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-#	[preview] [filepath] [todrive [<ToDriveAttributes>]]
+#	[preview] [filepath] [buildtree] [todrive [<ToDriveAttributes>]]
 def transferOwnership(users):
 
-  def _identifyFilesToTransfer(fileEntry, trashed):
+  def _identifyFilesToTransfer(fileEntry):
     for childFileId in fileEntry[u'children']:
+      if childFileId in filesTransferred:
+        continue
+      filesTransferred.add(childFileId)
       childEntry = fileTree.get(childFileId)
       if childEntry:
         childEntryInfo = childEntry[u'info']
@@ -21892,7 +21901,30 @@ def transferOwnership(users):
           if childEntryInfo[u'ownedByMe']:
             filesToTransfer[childFileId] = {u'name': childEntryInfo[u'name'], u'type': [Ent.DRIVE_FILE, Ent.DRIVE_FOLDER][childEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER]}
           if childEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER:
-            _identifyFilesToTransfer(childEntry, trashed)
+            _identifyFilesToTransfer(childEntry)
+
+  def _identifyChildrenToTransfer(fileEntry, user, i, count):
+    try:
+      children = callGAPIpages(drive.files(), u'list', u'files',
+                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                               orderBy=orderBy, q=u"'{0}' in parents".format(fileEntry[u'id']), fields=u'nextPageToken,files(id,name,parents,mimeType,ownedByMe,trashed)',
+                               pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+      return
+    fileTreeEntry = fileTree[fileEntry[u'id']]
+    for childEntryInfo in children:
+      childFileId = childEntryInfo[u'id']
+      fileTreeEntry[u'children'].append({u'id': childFileId})
+      if childFileId in filesTransferred:
+        continue
+      filesTransferred.add(childFileId)
+      fileTree[childFileId] = {u'info': childEntryInfo, u'children': []}
+      if trashed or not childEntryInfo[u'trashed']:
+        if childEntryInfo[u'ownedByMe']:
+          filesToTransfer[childFileId] = {u'name': childEntryInfo[u'name'], u'type': [Ent.DRIVE_FILE, Ent.DRIVE_FOLDER][childEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER]}
+        if childEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER:
+          _identifyChildrenToTransfer(childEntryInfo, user, i, count)
 
   fileIdEntity = getDriveFileEntity()
   body = {}
@@ -21901,6 +21933,7 @@ def transferOwnership(users):
   csvFormat = filepath = trashed = False
   todrive = {}
   fileTree = None
+  buildTree = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'includetrashed':
@@ -21911,6 +21944,8 @@ def transferOwnership(users):
       csvFormat = True
     elif myarg == u'filepath':
       filepath = True
+    elif myarg == u'buildtree':
+      buildTree = True
     elif myarg == u'todrive':
       todrive = getTodriveParameters()
     else:
@@ -21936,18 +21971,22 @@ def transferOwnership(users):
       continue
     if filepath:
       filePathInfo = initFilePathInfo()
-    try:
-      printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count)
-      page_message = getPageMessageForWhom()
-      feed = callGAPIpages(drive.files(), u'list', u'files',
-                           page_message=page_message,
-                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                           orderBy=orderBy, fields=u'nextPageToken,files(id,name,parents,mimeType,ownedByMe,trashed)',
-                           pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
-    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
-      continue
-    fileTree = buildFileTree(feed, drive)
+    filesTransferred = set()
+    if buildTree:
+      try:
+        printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count)
+        page_message = getPageMessageForWhom()
+        feed = callGAPIpages(drive.files(), u'list', u'files',
+                             page_message=page_message,
+                             throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                             orderBy=orderBy, fields=u'nextPageToken,files(id,name,parents,mimeType,ownedByMe,trashed)',
+                             pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+        continue
+      fileTree = buildFileTree(feed, drive)
+    else:
+      fileTree = {}
     Ind.Increment()
     j = 0
     for fileId in fileIdEntity[u'list']:
@@ -21964,14 +22003,22 @@ def transferOwnership(users):
         break
       entityType = [Ent.DRIVE_FILE, Ent.DRIVE_FOLDER][fileEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER]
       entityPerformActionItemValue([Ent.USER, user], entityType, u'{0} ({1})'.format(fileEntryInfo[u'name'], fileId), j, jcount)
+      if fileId in filesTransferred:
+        continue
+      filesTransferred.add(fileId)
       filesToTransfer = {}
       if trashed or not fileEntryInfo[u'trashed']:
         if fileEntryInfo[u'ownedByMe']:
           filesToTransfer[fileId] = {u'name': fileEntryInfo[u'name'], u'type': entityType}
+        if not buildTree:
+          fileTree[fileId] = {u'info': fileEntryInfo, u'children': []}
         if fileEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER:
-          fileEntry = fileTree.get(fileEntryInfo[u'id'])
-          if fileEntry:
-            _identifyFilesToTransfer(fileEntry, trashed)
+          if buildTree:
+            fileEntry = fileTree.get(fileEntryInfo[u'id'])
+            if fileEntry:
+              _identifyFilesToTransfer(fileEntry)
+          else:
+            _identifyChildrenToTransfer(fileEntryInfo, user, i, count)
       if csvFormat:
         for xferFileId, fileInfo in iteritems(filesToTransfer):
           row = {u'OldOwner': user, u'NewOwner': newOwner, u'type': Ent.Singular(fileInfo[u'type']), u'id': xferFileId, u'name': fileInfo[u'name']}
@@ -22025,7 +22072,7 @@ def transferOwnership(users):
 # gam <UserTypeEntity> claim ownership <DriveFileEntity> [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
 #	[includetrashed] [restricted [<Boolean>]] [writerscantshare [<Boolean>]] [preview] [filepath] [todrive [<ToDriveAttributes>]]
 def claimOwnership(users):
-  def _identifyFilesToClaim(fileEntry, skipids, skipusers, trashed):
+  def _identifyFilesToClaim(fileEntry, skipids):
     for childFileId in fileEntry[u'children']:
       childEntry = fileTree.get(childFileId)
       if childEntry:
@@ -22037,7 +22084,7 @@ def claimOwnership(users):
             if childFileId not in filesToClaim[owner]:
               filesToClaim[owner][childFileId] = {u'name': childEntryInfo[u'name'], u'type': [Ent.DRIVE_FILE, Ent.DRIVE_FOLDER][childEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER]}
           if childEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER:
-            _identifyFilesToClaim(childEntry, skipids, skipusers, trashed)
+            _identifyFilesToClaim(childEntry, skipids)
 
   fileIdEntity = getDriveFileEntity()
   skipFileIdEntity = initDriveFileEntity()
@@ -22059,9 +22106,9 @@ def claimOwnership(users):
     elif myarg == u'includetrashed':
       trashed = True
     elif myarg == u'restricted':
-      bodyShare[u'viewersCanCopyContent'] = not getBoolean(defaultValue=True)
+      bodyShare[u'viewersCanCopyContent'] = not getBoolean(True)
     elif myarg == u'writerscantshare':
-      bodyShare[u'writersCanShare'] = not getBoolean(defaultValue=True)
+      bodyShare[u'writersCanShare'] = not getBoolean(True)
     elif myarg == u'preview':
       csvFormat = True
     elif myarg == u'filepath':
@@ -22127,7 +22174,7 @@ def claimOwnership(users):
           filesToClaim.setdefault(owner, {})
           if fileId not in filesToClaim[owner]:
             filesToClaim[owner][fileId] = {u'name': fileEntryInfo[u'name'], u'type': entityType}
-      _identifyFilesToClaim(fileEntry, skipFileIdEntity[u'list'], skipusers, trashed)
+      _identifyFilesToClaim(fileEntry, skipFileIdEntity[u'list'])
       if csvFormat:
         for oldOwner in filesToClaim:
           for claimFileId, fileInfo in iteritems(filesToClaim[oldOwner]):
@@ -22409,7 +22456,7 @@ def addDriveFileACL(users):
       body[u'allowFileDiscovery'] = False
     elif myarg in [u'allowfilediscovery', u'discoverable']:
       withLinkLocation = Cmd.Location()
-      body[u'allowFileDiscovery'] = getBoolean(defaultValue=True)
+      body[u'allowFileDiscovery'] = getBoolean(True)
     elif myarg == u'role':
       roleLocation = Cmd.Location()
       body[u'role'] = getChoice(DRIVEFILE_ACL_ROLES_MAP, mapChoice=True)
@@ -22486,7 +22533,7 @@ def updateDriveFileACLs(users):
     if myarg == u'withlink':
       body[u'allowFileDiscovery'] = False
     elif myarg in [u'allowfilediscovery', u'discoverable']:
-      body[u'allowFileDiscovery'] = getBoolean(defaultValue=True)
+      body[u'allowFileDiscovery'] = getBoolean(True)
     elif myarg == u'role':
       body[u'role'] = getChoice(DRIVEFILE_ACL_ROLES_MAP, mapChoice=True)
       if body[u'role'] == u'owner':
@@ -22494,7 +22541,7 @@ def updateDriveFileACLs(users):
     elif myarg == u'expiration':
       body[u'expirationTime'] = getFullTime()
     elif myarg == u'removeexpiration':
-      removeExpiration = getBoolean(defaultValue=True)
+      removeExpiration = getBoolean(True)
     elif myarg == u'showtitles':
       showTitles = True
     elif myarg == u'transferownership':
@@ -23819,7 +23866,7 @@ def addLabel(users):
     elif myarg == u'messagelistvisibility':
       body[u'messageListVisibility'] = getChoice(LABEL_MESSAGE_LIST_VISIBILITY_CHOICES)
     elif myarg == u'buildpath':
-      buildPath = getBoolean(defaultValue=True)
+      buildPath = getBoolean(True)
       label = label.strip(u'/')
     else:
       unknownArgumentExit()
@@ -24164,11 +24211,11 @@ def showLabels(users):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'onlyuser':
-      onlyUser = getBoolean(defaultValue=True)
+      onlyUser = getBoolean(True)
     elif myarg == u'showcounts':
-      showCounts = getBoolean(defaultValue=True)
+      showCounts = getBoolean(True)
     elif myarg == u'nested':
-      showNested = getBoolean(defaultValue=True)
+      showNested = getBoolean(True)
     elif myarg == u'display':
       fields = getChoice(SHOW_LABELS_DISPLAY_CHOICES)
       nameField = [u'base', u'name'][fields != u'basename']
@@ -26092,7 +26139,7 @@ def _addUpdateSendAs(users, addCmd):
       else:
         signature = getString(Cmd.OB_STRING, minLen=0)
     elif myarg == u'html':
-      html = getBoolean(defaultValue=True)
+      html = getBoolean(True)
     else:
       getSendAsAttributes(myarg, body, tagReplacements)
   if signature is not None:
@@ -26464,7 +26511,7 @@ def setSignature(users):
     if myarg == u'primary':
       primary = True
     elif myarg == u'html':
-      html = getBoolean(defaultValue=True)
+      html = getBoolean(True)
     else:
       getSendAsAttributes(myarg, body, tagReplacements)
   body[u'signature'] = _processSignature(tagReplacements, signature, html)
@@ -26640,12 +26687,12 @@ def setVacation(users):
         matchReplacement = getString(Cmd.OB_STRING, minLen=0)
         tagReplacements[matchTag] = matchReplacement
       elif myarg == u'html':
-        if getBoolean(defaultValue=True):
+        if getBoolean(True):
           responseBodyType = u'responseBodyHtml'
       elif myarg == u'contactsonly':
-        body[u'restrictToContacts'] = getBoolean(defaultValue=True)
+        body[u'restrictToContacts'] = getBoolean(True)
       elif myarg == u'domainonly':
-        body[u'restrictToDomain'] = getBoolean(defaultValue=True)
+        body[u'restrictToDomain'] = getBoolean(True)
       elif myarg == u'startdate':
         body[u'startTime'] = getYYYYMMDD(returnTimeStamp=True, alternateValue=VACATION_START_STARTED)
         if body[u'startTime'] is None:
