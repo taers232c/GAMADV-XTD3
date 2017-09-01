@@ -1,3 +1,7 @@
+4.53.19
+
+Improve filepath display in gam transfer ownership.
+
 4.53.18
 
 The gam transfer ownership command has been updated to provide two modes of operation.
