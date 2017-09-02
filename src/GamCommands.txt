@@ -69,7 +69,7 @@ If an item contains spaces, it should be surrounded by ".
 <DateTime> ::= <Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute>
 <Time> ::=
 	<Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute>:<Second>[.<MilliSeconds>](Z|(+|-(<Hour>:<Minute>))) |
-	-<Number>(m|h|d|w)
+	(+|-)<Number>(m|h|d|w)
 <RegularExpression> ::= <Python Regular Expression, see: https://docs.python.org/2/library/re.html>
 <SiteName> ::= [a-z,0-9,-]+
 <UniqueID> ::= uid:<String>
@@ -1755,13 +1755,13 @@ gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
 <DriveFilePermissionIDList> ::= "<DriveFilePermissionID>(,<DriveFilePermissionID>)*"
 
 gam <UserTypeEntity> add drivefileacl <DriveFileEntity> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
-	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>] [sendemail] [emailmessage <String>] [showtitles]
+	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [sendemail] [emailmessage <String>] [showtitles]
 gam <UserTypeEntity> update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail>
-	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>] [removeexpiration [<Boolean>]] [showtitles]
+	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles]
 gam <UserTypeEntity> delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles]
 gam <UserTypeEntity> show drivefileacl <DriveFileEntity> [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-gam <UserTypeEntity> add permissions <DriveFileEntity> <DriveFilePermissionEntity> [expiration <Time>] [sendemail] [emailmessage <String>]
+gam <UserTypeEntity> add permissions <DriveFileEntity> <DriveFilePermissionEntity> [expires|expiration <Time>] [sendemail] [emailmessage <String>]
 gam <UserTypeEntity> delete permissions <DriveFileEntity> <DriveFilePermissionIDEntity>
 
 <RevisionsFieldName> ::=

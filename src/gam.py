@@ -1146,30 +1146,34 @@ def getYYYYMMDD_HHMM():
         invalidArgumentExit(YYYYMMDD_HHMM_FORMAT_REQUIRED)
   missingArgumentExit(YYYYMMDD_HHMM_FORMAT_REQUIRED)
 
-DELTA_TIME_PATTERN = re.compile(r'^-(\d+)([MHDW])$')
-DELTA_TIME_FORMAT_REQUIRED = u'-<Number>(m|h|d|w)'
+DELTA_TIME_PATTERN = re.compile(r'^([+-])(\d+)([MHDW])$')
+DELTA_TIME_FORMAT_REQUIRED = u'(+|-)<Number>(m|h|d|w)'
 YYYYMMDDTHHMMSS_FORMAT_REQUIRED = u'yyyy-mm-ddThh:mm:ss[.fff](Z|(+|-(hh:mm)))'
 TIMEZONE_FORMAT_REQUIRED = u'Z|(+|-(hh:mm))'
 
-def getFullTime(returnDateTime=False):
+def getTimeOrDeltaFromNow(returnDateTime=False):
   if Cmd.ArgumentsRemaining():
     argstr = Cmd.Current().strip().upper()
     if argstr:
-      if argstr.startswith(u'-'):
+      if argstr[0] in [u'+', u'-']:
         tg = DELTA_TIME_PATTERN.match(argstr)
         if tg is None:
           invalidArgumentExit(DELTA_TIME_FORMAT_REQUIRED)
-        duration = int(tg.group(1))
-        unit = tg.group(2)
+        sign = tg.group(1)
+        delta = int(tg.group(2))
+        unit = tg.group(3)
         if unit == u'W':
-          delta = datetime.timedelta(weeks=duration)
+          deltaTime = datetime.timedelta(weeks=delta)
         elif unit == u'D':
-          delta = datetime.timedelta(days=duration)
+          deltaTime = datetime.timedelta(days=delta)
         elif unit == u'H':
-          delta = datetime.timedelta(hours=duration)
+          deltaTime = datetime.timedelta(hours=delta)
         elif unit == u'M':
-          delta = datetime.timedelta(minutes=duration)
-        argstr = ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])-delta)
+          deltaTime = datetime.timedelta(minutes=delta)
+        if sign == u'-':
+          argstr = ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])-deltaTime)
+        else:
+          argstr = ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])+deltaTime)
       try:
         fullDateTime, tz = iso8601.parse_date(argstr)
         Cmd.Advance()
@@ -1189,7 +1193,7 @@ def getDateZeroTimeOrFullTime():
     if argstr:
       if YYYYMMDD_PATTERN.match(argstr):
         return getYYYYMMDD()+u'T00:00:00.000Z'
-      return getFullTime()
+      return getTimeOrDeltaFromNow()
   missingArgumentExit(YYYYMMDDTHHMMSS_FORMAT_REQUIRED)
 
 EVENTID_PATTERN = re.compile(r'^[a-v0-9]{5,1024}$')
@@ -1211,7 +1215,7 @@ def getEventTime():
     if Cmd.Current().strip().lower() == u'allday':
       Cmd.Advance()
       return {u'date': getYYYYMMDD()}
-    return {u'dateTime': getFullTime()}
+    return {u'dateTime': getTimeOrDeltaFromNow()}
   missingArgumentExit(EVENT_TIME_FORMAT_REQUIRED)
 
 AGE_TIME_PATTERN = re.compile(r'^(\d+)([mhdw])$')
@@ -5493,7 +5497,7 @@ def doReport():
     elif usageReports and myarg in [u'fields', u'parameters']:
       parameters = getString(Cmd.OB_STRING)
     elif activityReports and myarg == u'start':
-      startDateTime, tzinfo, startTime = getFullTime(True)
+      startDateTime, tzinfo, startTime = getTimeOrDeltaFromNow(True)
       earliestDateTime = datetime.datetime.now(tzinfo)-datetime.timedelta(days=180)
       if startDateTime < earliestDateTime:
         Cmd.Backup()
@@ -5502,7 +5506,7 @@ def doReport():
         Cmd.Backup()
         usageErrorExit(Msg.INVALID_TIME_RANGE.format(u'end', endTime, u'start', startTime))
     elif activityReports and myarg == u'end':
-      endDateTime, _, endTime = getFullTime(True)
+      endDateTime, _, endTime = getTimeOrDeltaFromNow(True)
       if startDateTime and endDateTime < startDateTime:
         Cmd.Backup()
         usageErrorExit(Msg.INVALID_TIME_RANGE.format(u'end', endTime, u'start', startTime))
@@ -12761,7 +12765,7 @@ def _getCalendarListEventsProperty(myarg, attributes, kwargs):
   elif attrType == GC.TYPE_CHOICE:
     kwargs[attrName] = getChoice(attribute[u'choices'], mapChoice=True)
   elif attrType == GC.TYPE_DATETIME:
-    kwargs[attrName] = getFullTime()
+    kwargs[attrName] = getTimeOrDeltaFromNow()
   else: # GC.TYPE_INTEGER
     kwargs[attrName] = getInteger()
   return True
@@ -19595,7 +19599,7 @@ def getDriveFileAttribute(myarg, body, parameters):
     else:
       body[myarg] = not getBoolean(False)
   elif myarg in [u'lastviewedbyme', u'lastviewedbyuser', u'lastviewedbymedate', u'lastviewedbymetime']:
-    body[u'viewedByMeTime'] = getFullTime()
+    body[u'viewedByMeTime'] = getTimeOrDeltaFromNow()
   elif myarg == u'description':
     body[u'description'] = getString(Cmd.OB_STRING, minLen=0)
   elif myarg == u'mimetype':
@@ -20216,11 +20220,11 @@ def getRevisionsEntity():
     elif mycmd in [u'first', u'last', u'allexceptfirst', u'allexceptlast']:
       revisionsEntity[u'count'] = (mycmd, getInteger(minVal=1))
     elif mycmd in [u'before', u'after']:
-      dateTime, _, _ = getFullTime(True)
+      dateTime, _, _ = getTimeOrDeltaFromNow(True)
       revisionsEntity[u'time'] = (mycmd, dateTime)
     elif mycmd == u'range':
-      startDateTime, _, startTime = getFullTime(True)
-      endDateTime, _, endTime = getFullTime(True)
+      startDateTime, _, startTime = getTimeOrDeltaFromNow(True)
+      endDateTime, _, endTime = getTimeOrDeltaFromNow(True)
       if endDateTime < startDateTime:
         Cmd.Backup()
         usageErrorExit(Msg.INVALID_TIME_RANGE.format(u'end', endTime, u'start', startTime))
@@ -21176,7 +21180,7 @@ def updateDriveFile(users):
     elif myarg == u'newfilename':
       body[u'name'] = getString(Cmd.OB_DRIVE_FILE_NAME)
     elif myarg in [u'modifieddate', u'modifiedtime']:
-      body[u'modifiedTime'] = getFullTime()
+      body[u'modifiedTime'] = getTimeOrDeltaFromNow()
     elif myarg == u'addparents':
       parameters[DFA_ADD_PARENTS].extend(getString(Cmd.OB_DRIVE_FOLDER_ID_LIST).replace(u',', u' ').split())
     elif myarg == u'removeparents':
@@ -22483,8 +22487,8 @@ def addDriveFileACL(users):
       if body[u'role'] == u'owner':
         sendNotificationEmail = True
         _transferOwnership = True
-    elif myarg == u'expiration':
-      body[u'expirationTime'] = getFullTime()
+    elif myarg in [u'expiration', u'expires']:
+      body[u'expirationTime'] = getTimeOrDeltaFromNow()
     elif myarg == u'sendemail':
       sendNotificationEmail = True
     elif myarg == u'emailmessage':
@@ -22558,8 +22562,8 @@ def updateDriveFileACLs(users):
       body[u'role'] = getChoice(DRIVEFILE_ACL_ROLES_MAP, mapChoice=True)
       if body[u'role'] == u'owner':
         _transferOwnership = True
-    elif myarg == u'expiration':
-      body[u'expirationTime'] = getFullTime()
+    elif myarg in [u'expiration', u'expires']:
+      body[u'expirationTime'] = getTimeOrDeltaFromNow()
     elif myarg == u'removeexpiration':
       removeExpiration = getBoolean(True)
     elif myarg == u'showtitles':
@@ -22675,8 +22679,8 @@ def addDriveFilePermissions(users):
   permissionsLists = permissions if isinstance(permissions, dict) else None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == u'expiration':
-      expiration = getFullTime()
+    if myarg in [u'expiration', u'expires']:
+      expiration = getTimeOrDeltaFromNow()
     elif myarg == u'sendemail':
       sendNotificationEmail = True
     elif myarg == u'emailmessage':
