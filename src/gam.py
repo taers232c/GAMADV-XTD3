@@ -1214,8 +1214,8 @@ def getEventTime():
     return {u'dateTime': getFullTime()}
   missingArgumentExit(EVENT_TIME_FORMAT_REQUIRED)
 
-AGE_TIME_PATTERN = re.compile(r'^(\d+)([mhdw]?)$')
-AGE_TIME_FORMAT_REQUIRED = u'<Number>[m|h|d|w]'
+AGE_TIME_PATTERN = re.compile(r'^(\d+)([mhdw])$')
+AGE_TIME_FORMAT_REQUIRED = u'<Number>(m|h|d|w)'
 
 def getAgeTime():
   if Cmd.ArgumentsRemaining():

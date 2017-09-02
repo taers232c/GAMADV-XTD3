@@ -138,7 +138,7 @@ If an item contains spaces, it should be surrounded by ".
 <Password> ::= <String>
 <PrinterACLScope> ::= <UserTypeEntity>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>)|domain|public
 <PrinterID> ::= <String>
-<PrintJobAge> ::= <Number>[m|h|d|w]
+<PrintJobAge> ::= <Number>(m|h|d|w)
 <PrintJobID> ::= <String>
 <PrintJobStatus> ::= done|error|held|in_progress|queued|submitted
 <PropertyKey> ::= <String>
