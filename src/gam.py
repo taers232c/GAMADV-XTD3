@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.53.20'
+__version__ = u'4.53.21'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -1170,10 +1170,13 @@ def getTimeOrDeltaFromNow(returnDateTime=False):
           deltaTime = datetime.timedelta(hours=delta)
         elif unit == u'M':
           deltaTime = datetime.timedelta(minutes=delta)
+        timeZone = GC.Values[GC.TIMEZONE]
+        if timeZone is None:
+          timeZone = iso8601.UTC
         if sign == u'-':
-          argstr = ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])-deltaTime)
+          argstr = ISOformatTimeStamp(datetime.datetime.now(timeZone)-deltaTime)
         else:
-          argstr = ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])+deltaTime)
+          argstr = ISOformatTimeStamp(datetime.datetime.now(timeZone)+deltaTime)
       try:
         fullDateTime, tz = iso8601.parse_date(argstr)
         Cmd.Advance()
