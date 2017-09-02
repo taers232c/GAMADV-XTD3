@@ -1,3 +1,19 @@
+4.53.20
+
+Handle Unicode issues in error messages with accented/extended characters.
+
+Thanks to DanielX for the following enhancement. Anywhere you can specify an absolute <Time> value,
+you can now specify an offset from the current time.
+    <Time> ::=
+	<Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute>:<Second>[.<MilliSeconds>](Z|(+|-(<Hour>:<Minute>))) |
+	-<Number>(m|h|d|w)
+m - minutes
+h - hours
+d - days
+w - weeks
+
+Example: gam report logins start -1w end -1d
+
 4.53.19
 
 Improve filepath display in gam transfer ownership.

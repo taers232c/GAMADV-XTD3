@@ -67,7 +67,9 @@ If an item contains spaces, it should be surrounded by ".
 <MilliSeconds> ::= <Digit><Digit><Digit>
 <Date> ::= <Year>-<Month>-<Day>
 <DateTime> ::= <Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute>
-<Time> ::= <Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute>:<Second>[.<MilliSeconds>](Z|(+|-(<Hour>:<Minute>)))
+<Time> ::=
+	<Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute>:<Second>[.<MilliSeconds>](Z|(+|-(<Hour>:<Minute>))) |
+	-<Number>(m|h|d|w)
 <RegularExpression> ::= <Python Regular Expression, see: https://docs.python.org/2/library/re.html>
 <SiteName> ::= [a-z,0-9,-]+
 <UniqueID> ::= uid:<String>
@@ -136,7 +138,7 @@ If an item contains spaces, it should be surrounded by ".
 <Password> ::= <String>
 <PrinterACLScope> ::= <UserTypeEntity>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>)|domain|public
 <PrinterID> ::= <String>
-<PrintJobAge> ::= <Number>[m|h|d]
+<PrintJobAge> ::= <Number>[m|h|d|w]
 <PrintJobID> ::= <String>
 <PrintJobStatus> ::= done|error|held|in_progress|queued|submitted
 <PropertyKey> ::= <String>

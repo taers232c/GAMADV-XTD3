@@ -20,17 +20,6 @@
 
 """
 
-# Concatenate list members, any item containing spaces is enclosed in ""
-def QuotedArgumentList(items):
-  qstr = u''
-  for item in items:
-    if item and (item.find(u' ') == -1) and (item.find(u',') == -1):
-      qstr += item
-    else:
-      qstr += u'"'+item+u'"'
-    qstr += u' '
-  return qstr[:-1] if len(qstr) > 0 else u''
-
 class GamCLArgs(object):
 
 # GAM entity types as specified on the command line
@@ -503,6 +492,7 @@ class GamCLArgs(object):
     self.argvI = 0
     self.argvLen = 0
     self.argvIsave = 0
+    self.encoding = u'utf-8'
 
 # Initialize arguments
   def InitializeArguments(self, args):
@@ -562,13 +552,30 @@ class GamCLArgs(object):
   def SetLocation(self, location):
     self.argvI = location
 
+# Set encoding
+  def SetEncoding(self, encoding):
+    self.encoding = encoding
+
+# Concatenate list members, any item containing spaces is enclosed in ""
+  def QuotedArgumentList(self, items):
+    qstr = u''
+    for item in items:
+      if isinstance(item, str):
+        item = unicode(item, self.encoding, 'replace')
+      if item and (item.find(u' ') == -1) and (item.find(u',') == -1):
+        qstr += item
+      else:
+        qstr += u'"'+item+u'"'
+      qstr += u' '
+    return qstr[:-1] if len(qstr) > 0 else u''
+
 # Mark bad argument in command line
   def CommandLineWithBadArgumentMarked(self, extraneous):
     if extraneous:
-      return u'Command: {0} >>>{1}<<<\n'.format(QuotedArgumentList(self.argv[:self.argvI]),
-                                                QuotedArgumentList(self.argv[self.argvI:]))
+      return u'Command: {0} >>>{1}<<<\n'.format(self.QuotedArgumentList(self.argv[:self.argvI]),
+                                                self.QuotedArgumentList(self.argv[self.argvI:]))
     if self.ArgumentsRemaining():
-      return u'Command: {0} >>>{1}<<< {2}\n'.format(QuotedArgumentList(self.argv[:self.argvI]),
-                                                    QuotedArgumentList([self.argv[self.argvI]]),
-                                                    QuotedArgumentList(self.argv[self.argvI+1:]))
-    return u'Command: {0} >>><<<\n'.format(QuotedArgumentList(self.argv))
+      return u'Command: {0} >>>{1}<<< {2}\n'.format(self.QuotedArgumentList(self.argv[:self.argvI]),
+                                                    self.QuotedArgumentList([self.argv[self.argvI]]),
+                                                    self.QuotedArgumentList(self.argv[self.argvI+1:]))
+    return u'Command: {0} >>><<<\n'.format(self.QuotedArgumentList(self.argv))

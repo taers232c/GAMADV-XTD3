@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.53.19'
+__version__ = u'4.53.20'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -151,6 +151,7 @@ ONE_GIGA_BYTES = 1000000000
 SECONDS_PER_MINUTE = 60
 SECONDS_PER_HOUR = 3600
 SECONDS_PER_DAY = 86400
+SECONDS_PER_WEEK = 604800
 FN_GAM_CFG = u'gam.cfg'
 FN_LAST_UPDATE_CHECK_TXT = u'lastupdatecheck.txt'
 FN_GAMCOMMANDS_TXT = u'GamCommands.txt'
@@ -1145,6 +1146,8 @@ def getYYYYMMDD_HHMM():
         invalidArgumentExit(YYYYMMDD_HHMM_FORMAT_REQUIRED)
   missingArgumentExit(YYYYMMDD_HHMM_FORMAT_REQUIRED)
 
+DELTA_TIME_PATTERN = re.compile(r'^-(\d+)([MHDW])$')
+DELTA_TIME_FORMAT_REQUIRED = u'-<Number>(m|h|d|w)'
 YYYYMMDDTHHMMSS_FORMAT_REQUIRED = u'yyyy-mm-ddThh:mm:ss[.fff](Z|(+|-(hh:mm)))'
 TIMEZONE_FORMAT_REQUIRED = u'Z|(+|-(hh:mm))'
 
@@ -1152,6 +1155,21 @@ def getFullTime(returnDateTime=False):
   if Cmd.ArgumentsRemaining():
     argstr = Cmd.Current().strip().upper()
     if argstr:
+      if argstr.startswith(u'-'):
+        tg = DELTA_TIME_PATTERN.match(argstr)
+        if tg is None:
+          invalidArgumentExit(DELTA_TIME_FORMAT_REQUIRED)
+        duration = int(tg.group(1))
+        unit = tg.group(2)
+        if unit == u'W':
+          delta = datetime.timedelta(weeks=duration)
+        elif unit == u'D':
+          delta = datetime.timedelta(days=duration)
+        elif unit == u'H':
+          delta = datetime.timedelta(hours=duration)
+        elif unit == u'M':
+          delta = datetime.timedelta(minutes=duration)
+        argstr = ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])-delta)
       try:
         fullDateTime, tz = iso8601.parse_date(argstr)
         Cmd.Advance()
@@ -1196,23 +1214,24 @@ def getEventTime():
     return {u'dateTime': getFullTime()}
   missingArgumentExit(EVENT_TIME_FORMAT_REQUIRED)
 
-AGE_TIME_PATTERN = re.compile(r'^(\d+)([mhd]?)$')
-AGE_TIME_FORMAT_REQUIRED = u'<Number>[m|h|d]'
+AGE_TIME_PATTERN = re.compile(r'^(\d+)([mhdw]?)$')
+AGE_TIME_FORMAT_REQUIRED = u'<Number>[m|h|d|w]'
 
 def getAgeTime():
   if Cmd.ArgumentsRemaining():
     tg = AGE_TIME_PATTERN.match(Cmd.Current().strip().lower())
     if tg:
-      tgg = tg.groups(u'0')
-      age = int(tgg[0])
-      age_unit = tgg[1]
+      age = int(tg.group(1))
+      age_unit = tg.group(2)
       now = int(time.time())
       if age_unit == u'm':
         age = now-(age*SECONDS_PER_MINUTE)
       elif age_unit == u'h':
         age = now-(age*SECONDS_PER_HOUR)
-      else: # age_unit == u'd':
+      elif age_unit == u'd':
         age = now-(age*SECONDS_PER_DAY)
+      else: # age_unit == u'w':
+        age = now-(age*SECONDS_PER_WEEK)
       Cmd.Advance()
       return age*1000
     invalidArgumentExit(AGE_TIME_FORMAT_REQUIRED)
@@ -1293,9 +1312,8 @@ def getMaxMessageBytes():
   if Cmd.ArgumentsRemaining():
     tg = MAX_MESSAGE_BYTES_PATTERN.match(Cmd.Current().strip().lower())
     if tg:
-      tgg = tg.groups(u'0')
-      mmb = int(tgg[0])
-      mmb_unit = tgg[1]
+      mmb = int(tg.group(1))
+      mmb_unit = tg.group(2)
       if mmb_unit == u'm':
         mmb *= ONE_MEGA_BYTES
       elif mmb_unit == u'k':
@@ -1498,40 +1516,40 @@ def queryQualifier(query):
 def printGettingAccountEntitiesInfo(entityType, qualifier=u''):
   if GC.Values[GC.SHOW_GETTINGS]:
     Ent.SetGetting(entityType)
-    writeStderr(u'{0} {1}{2}{3}\n'.format(Msg.GETTING_ALL, Ent.PluralGetting(), qualifier, mayTakeTime(Ent.ACCOUNT)))
+    writeStderr(convertUTF8(u'{0} {1}{2}{3}\n'.format(Msg.GETTING_ALL, Ent.PluralGetting(), qualifier, mayTakeTime(Ent.ACCOUNT))))
 
 def printGettingAccountEntitiesDoneInfo(count, qualifier=u''):
   if GC.Values[GC.SHOW_GETTINGS]:
-    writeStderr(u'{0} {1} {2}{3}\n'.format(Msg.GOT, count, Ent.ChooseGetting(count), qualifier))
+    writeStderr(convertUTF8(u'{0} {1} {2}{3}\n'.format(Msg.GOT, count, Ent.ChooseGetting(count), qualifier)))
 
 def printGettingEntityItemsInfo(entityType, entityItem):
   if GC.Values[GC.SHOW_GETTINGS]:
     Ent.SetGetting(entityItem)
-    writeStderr(u'{0} {1}{2}\n'.format(Msg.GETTING_ALL, Ent.PluralGetting(), mayTakeTime(entityType)))
+    writeStderr(convertUTF8(u'{0} {1}{2}\n'.format(Msg.GETTING_ALL, Ent.PluralGetting(), mayTakeTime(entityType))))
 
 def printGettingEntityItemsDoneInfo(count, qualifier=u''):
   if GC.Values[GC.SHOW_GETTINGS]:
-    writeStderr(u'{0} {1} {2}{3}\n'.format(Msg.GOT, count, Ent.ChooseGetting(count), qualifier))
+    writeStderr(convertUTF8(u'{0} {1} {2}{3}\n'.format(Msg.GOT, count, Ent.ChooseGetting(count), qualifier)))
 
 def printGettingEntityItemForWhom(entityItem, forWhom, i=0, count=0):
   if GC.Values[GC.SHOW_GETTINGS]:
     Ent.SetGetting(entityItem)
     Ent.SetGettingForWhom(forWhom)
-    writeStderr(u'{0} {1} {2} {3}{4}'.format(Msg.GETTING, Ent.PluralGetting(), Msg.FOR, forWhom, currentCountNL(i, count)))
+    writeStderr(convertUTF8(u'{0} {1} {2} {3}{4}'.format(Msg.GETTING, Ent.PluralGetting(), Msg.FOR, forWhom, currentCountNL(i, count))))
 
 def printGettingAllEntityItemsForWhom(entityItem, forWhom, i=0, count=0, qualifier=u'', entityType=None):
   if GC.Values[GC.SHOW_GETTINGS]:
     Ent.SetGetting(entityItem)
     Ent.SetGettingForWhom(forWhom)
-    writeStderr(u'{0} {1}{2} {3} {4}{5}{6}'.format(Msg.GETTING_ALL, Ent.PluralGetting(), qualifier, Msg.FOR, forWhom, mayTakeTime(entityType), currentCountNL(i, count)))
+    writeStderr(convertUTF8(u'{0} {1}{2} {3} {4}{5}{6}'.format(Msg.GETTING_ALL, Ent.PluralGetting(), qualifier, Msg.FOR, forWhom, mayTakeTime(entityType), currentCountNL(i, count))))
 
 def printGettingEntityItemsForWhomDoneInfo(count, qualifier=u''):
   if GC.Values[GC.SHOW_GETTINGS]:
-    writeStderr(u'{0} {1} {2}{3} {4} {5}...\n'.format(Msg.GOT, count, Ent.ChooseGetting(count), qualifier, Msg.FOR, Ent.GettingForWhom()))
+    writeStderr(convertUTF8(u'{0} {1} {2}{3} {4} {5}...\n'.format(Msg.GOT, count, Ent.ChooseGetting(count), qualifier, Msg.FOR, Ent.GettingForWhom())))
 
 def printGettingEntityItem(entityType, entityItem, i=0, count=0):
   if GC.Values[GC.SHOW_GETTINGS]:
-    writeStderr(u'{0} {1} {2}{3}'.format(Msg.GETTING, Ent.Singular(entityType), entityItem, currentCountNL(i, count)))
+    writeStderr(convertUTF8(u'{0} {1} {2}{3}'.format(Msg.GETTING, Ent.Singular(entityType), entityItem, currentCountNL(i, count))))
 
 FIRST_ITEM_MARKER = u'%%first_item%%'
 LAST_ITEM_MARKER = u'%%last_item%%'
@@ -2165,6 +2183,7 @@ def SetGlobalVariables():
   if prevOauth2serviceJson != GC.Values[GC.OAUTH2SERVICE_JSON]:
     GM.Globals[GM.OAUTH2SERVICE_JSON_DATA] = None
     GM.Globals[GM.OAUTH2_CLIENT_ID] = None
+  Cmd.SetEncoding(GM.Globals[GM.SYS_ENCODING])
 # redirect csv <FileName> [multiprocess] [append] [noheader] [charset <CharSet>] [columndelimiter <Character>]]
 # redirect stdout <FileName> [multiprocess] [append]
 # redirect stdout null
@@ -4349,7 +4368,9 @@ def StdQueueHandler(mpQueue, stdtype, gmGlobals, gcValues):
   while True:
     pid, dataType, dataItem = mpQueue.get()
     if dataType == GM.REDIRECT_QUEUE_START:
-      pidData[pid] = {u'queue': GM.Globals[stdtype][GM.REDIRECT_QUEUE], u'start': ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])), u'cmd': glclargs.QuotedArgumentList(dataItem)}
+      pidData[pid] = {u'queue': GM.Globals[stdtype][GM.REDIRECT_QUEUE],
+                      u'start': ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])),
+                      u'cmd': Cmd.QuotedArgumentList(dataItem)}
       if pid == 0 and GC.Values[GC.SHOW_MULTIPROCESS_INFO]:
         fd.write(PROCESS_MSG.format(pidData[pid][u'queue'], pid, u'Start', pidData[pid][u'start'], 0, pidData[pid][u'cmd']))
     elif dataType == GM.REDIRECT_QUEUE_END:
@@ -4489,13 +4510,13 @@ def MultiprocessGAMCommands(items, logCmds):
         batchWriteStderr(Msg.COMMIT_BATCH_COMPLETE.format(Msg.PROCESSES))
         continue
       if item[0] == Cmd.PRINT_CMD:
-        batchWriteStderr(glclargs.QuotedArgumentList(item[1:])+u'\n')
+        batchWriteStderr(Cmd.QuotedArgumentList(item[1:])+u'\n')
         continue
       pid += 1
       if pid % 100 == 0:
         batchWriteStderr(Msg.PROCESSING_ITEM_N.format(pid))
       if logCmds:
-        batchWriteStderr(glclargs.QuotedArgumentList(item)+u'\n')
+        batchWriteStderr(Cmd.QuotedArgumentList(item)+u'\n')
       poolProcessResults[pid] = pool.apply_async(ProcessGAMCommandMulti, [pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr, item])
       poolProcessesInUse += 1
       while poolProcessesInUse == numPoolProcesses:
@@ -4559,13 +4580,13 @@ def ThreadBatchGAMCommands(items, logCmds):
       numThreadsInUse = 0
       continue
     if item[0] == Cmd.PRINT_CMD:
-      batchWriteStderr(glclargs.QuotedArgumentList(item[1:])+u'\n')
+      batchWriteStderr(Cmd.QuotedArgumentList(item[1:])+u'\n')
       continue
     pid += 1
     if pid % 100 == 0:
       batchWriteStderr(Msg.PROCESSING_ITEM_N.format(pid))
     if logCmds:
-      batchWriteStderr(glclargs.QuotedArgumentList(item)+u'\n')
+      batchWriteStderr(Cmd.QuotedArgumentList(item)+u'\n')
     GM.Globals[GM.TBATCH_QUEUE].put(pythonCmd+item[1:])
     numThreadsInUse += 1
   GM.Globals[GM.TBATCH_QUEUE].join()
@@ -4608,7 +4629,7 @@ def doBatch(threadBatch=False):
         elif cmd == Cmd.PRINT_CMD:
           items.append(argv)
         else:
-          writeStderr(convertUTF8(u'Command: >>>{0}<<< {1}\n'.format(glclargs.QuotedArgumentList([argv[0]]), glclargs.QuotedArgumentList(argv[1:]))))
+          writeStderr(convertUTF8(u'Command: >>>{0}<<< {1}\n'.format(Cmd.QuotedArgumentList([argv[0]]), Cmd.QuotedArgumentList(argv[1:]))))
           writeStderr(u'{0}{1}: {2} <{3}>\n'.format(ERROR_PREFIX, Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1],
                                                     Msg.EXPECTED, formatChoiceList([Cmd.GAM_CMD, Cmd.COMMIT_BATCH_CMD, Cmd.PRINT_CMD])))
           errors += 1
