@@ -65,8 +65,12 @@ If an item contains spaces, it should be surrounded by ".
 <Minute> ::= <Digit><Digit>
 <Second> ::= <Digit><Digit>
 <MilliSeconds> ::= <Digit><Digit><Digit>
-<Date> ::= <Year>-<Month>-<Day>
-<DateTime> ::= <Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute>
+<Date> ::=
+	<Year>-<Month>-<Day> |
+	(+|-)<Number>(d|w)
+<DateTime> ::=
+	<Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute> |
+	(+|-)<Number>(m|h|d|w)
 <Time> ::=
 	<Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute>:<Second>[.<MilliSeconds>](Z|(+|-(<Hour>:<Minute>))) |
 	(+|-)<Number>(m|h|d|w)

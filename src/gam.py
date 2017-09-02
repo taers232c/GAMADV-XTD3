@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-X
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.53.21'
+__version__ = u'4.53.22'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -1108,6 +1108,36 @@ def getStringReturnInList(item):
     return [argstr]
   return []
 
+def getDelta(argstr, pattern, formatRequired):
+  tg = pattern.match(argstr.lower())
+  if tg is None:
+    invalidArgumentExit(formatRequired)
+  sign = tg.group(1)
+  delta = int(tg.group(2))
+  unit = tg.group(3)
+  if unit == u'w':
+    deltaTime = datetime.timedelta(weeks=delta)
+  elif unit == u'd':
+    deltaTime = datetime.timedelta(days=delta)
+  elif unit == u'h':
+    deltaTime = datetime.timedelta(hours=delta)
+  elif unit == u'm':
+    deltaTime = datetime.timedelta(minutes=delta)
+  if sign == u'-':
+    return -deltaTime
+  return deltaTime
+
+DELTA_DATE_PATTERN = re.compile(r'^([+-])(\d+)([dw])$')
+DELTA_DATE_FORMAT_REQUIRED = u'(+|-)<Number>(d|w)'
+def getDeltaDate(argstr):
+  return getDelta(argstr, DELTA_DATE_PATTERN, DELTA_DATE_FORMAT_REQUIRED)
+
+DELTA_TIME_PATTERN = re.compile(r'^([+-])(\d+)([mhdw])$')
+DELTA_TIME_FORMAT_REQUIRED = u'(+|-)<Number>(m|h|d|w)'
+
+def getDeltaTime(argstr):
+  return getDelta(argstr, DELTA_TIME_PATTERN, DELTA_TIME_FORMAT_REQUIRED)
+
 YYYYMMDD_FORMAT = u'%Y-%m-%d'
 YYYYMMDD_FORMAT_REQUIRED = u'yyyy-mm-dd'
 
@@ -1118,6 +1148,9 @@ def getYYYYMMDD(minLen=1, returnTimeStamp=False, alternateValue=None):
       if alternateValue is not None and argstr.lower() == alternateValue.lower():
         Cmd.Advance()
         return None
+      if argstr[0] in [u'+', u'-']:
+        today = datetime.date.today()
+        argstr = (datetime.datetime(today.year, today.month, today.day, tzinfo=iso8601.UTC)+getDeltaDate(argstr)).strftime(YYYYMMDD_FORMAT)
       try:
         timeStamp = time.mktime(datetime.datetime.strptime(argstr, YYYYMMDD_FORMAT).timetuple())*1000
         Cmd.Advance()
@@ -1138,6 +1171,9 @@ def getYYYYMMDD_HHMM():
   if Cmd.ArgumentsRemaining():
     argstr = Cmd.Current().strip().upper().replace(u'T', u' ')
     if argstr:
+      if argstr[0] in [u'+', u'-']:
+        today = datetime.datetime.now()
+        argstr = (datetime.datetime(today.year, today.month, today.day, today.hour, today.minute, tzinfo=iso8601.UTC)+getDeltaTime(argstr)).strftime(YYYYMMDD_HHMM_FORMAT)
       try:
         datetime.datetime.strptime(argstr, YYYYMMDD_HHMM_FORMAT)
         Cmd.Advance()
@@ -1146,8 +1182,6 @@ def getYYYYMMDD_HHMM():
         invalidArgumentExit(YYYYMMDD_HHMM_FORMAT_REQUIRED)
   missingArgumentExit(YYYYMMDD_HHMM_FORMAT_REQUIRED)
 
-DELTA_TIME_PATTERN = re.compile(r'^([+-])(\d+)([MHDW])$')
-DELTA_TIME_FORMAT_REQUIRED = u'(+|-)<Number>(m|h|d|w)'
 YYYYMMDDTHHMMSS_FORMAT_REQUIRED = u'yyyy-mm-ddThh:mm:ss[.fff](Z|(+|-(hh:mm)))'
 TIMEZONE_FORMAT_REQUIRED = u'Z|(+|-(hh:mm))'
 
@@ -1156,27 +1190,7 @@ def getTimeOrDeltaFromNow(returnDateTime=False):
     argstr = Cmd.Current().strip().upper()
     if argstr:
       if argstr[0] in [u'+', u'-']:
-        tg = DELTA_TIME_PATTERN.match(argstr)
-        if tg is None:
-          invalidArgumentExit(DELTA_TIME_FORMAT_REQUIRED)
-        sign = tg.group(1)
-        delta = int(tg.group(2))
-        unit = tg.group(3)
-        if unit == u'W':
-          deltaTime = datetime.timedelta(weeks=delta)
-        elif unit == u'D':
-          deltaTime = datetime.timedelta(days=delta)
-        elif unit == u'H':
-          deltaTime = datetime.timedelta(hours=delta)
-        elif unit == u'M':
-          deltaTime = datetime.timedelta(minutes=delta)
-        timeZone = GC.Values[GC.TIMEZONE]
-        if timeZone is None:
-          timeZone = iso8601.UTC
-        if sign == u'-':
-          argstr = ISOformatTimeStamp(datetime.datetime.now(timeZone)-deltaTime)
-        else:
-          argstr = ISOformatTimeStamp(datetime.datetime.now(timeZone)+deltaTime)
+        argstr = ISOformatTimeStamp(datetime.datetime.now(iso8601.UTC)+getDeltaTime(argstr))
       try:
         fullDateTime, tz = iso8601.parse_date(argstr)
         Cmd.Advance()
@@ -7938,7 +7952,7 @@ def _showMailboxMonitorRequestStatus(request, i=0, count=0):
 def doCreateMonitor():
   auditObject, parameters = getAuditParameters(emailAddressRequired=True, requestIdRequired=False, destUserRequired=True)
   #end_date defaults to 30 days in the future...
-  end_date = (datetime.datetime.now()+datetime.timedelta(days=30)).strftime(u'%Y-%m-%d %H:%M')
+  end_date = (datetime.datetime.now(iso8601.UTC)+datetime.timedelta(days=30)).strftime(u'%Y-%m-%d %H:%M')
   begin_date = None
   incoming_headers_only = outgoing_headers_only = drafts_headers_only = chats_headers_only = False
   drafts = chats = True
@@ -14157,7 +14171,7 @@ def validateCollaborators(cd):
 #	[collaborator|collaborators <CollaboratorItemList>]
 def doCreateVaultMatter():
   v = buildGAPIObject(API.VAULT)
-  body = {u'name': u'New Matter - %s' % datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+  body = {u'name': u'New Matter - %s' % datetime.datetime.now(GC.Values[GC.TIMEZONE]).strftime("%Y-%m-%d %H:%M:%S")}
   collaborators = []
   cd = None
   while Cmd.ArgumentsRemaining():

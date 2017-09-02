@@ -1,3 +1,20 @@
+4.53.22
+
+Anywhere you can specify an absolute <Date> or <DateTime> value,
+you can now specify a positive or negative offset from the current time.
+    <Date> ::=
+	<Year>-<Month>-<Day> |
+	(+|-)<Number>(d|w)
+    <DateTime> ::=
+	<Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute> |
+	(+|-)<Number>(m|h|d|w)
+m - minutes
+h - hours
+d - days
+w - weeks
+
+Example: gam user user@domain.com print filerevisions drivefilename "Test File" select range -10d -5d
+
 4.53.21
 
 Fix error when specifying delta <Time> and timezone is utc.
