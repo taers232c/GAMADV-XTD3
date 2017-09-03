@@ -1,3 +1,7 @@
+4.53.23
+
+Fixed error in gam transfer ownership where My Drive was included in list of files to transfer; this, of course, is not allowed.
+
 4.53.22
 
 Anywhere you can specify an absolute <Date> or <DateTime> value,
