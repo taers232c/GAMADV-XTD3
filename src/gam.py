@@ -16948,8 +16948,6 @@ def _getCourseShowProperties(myarg, courseShowProperties):
   elif myarg == u'countsonly':
     courseShowProperties[u'countsOnly'] = True
   elif myarg == u'fields':
-    if not courseShowProperties[u'fields']:
-      courseShowProperties[u'fields'] = [u'id',]
     fieldNameList = getString(Cmd.OB_FIELD_NAME_LIST)
     for field in fieldNameList.lower().replace(u',', u' ').split():
       if field in [u'alias', u'aliases']:
@@ -16958,18 +16956,17 @@ def _getCourseShowProperties(myarg, courseShowProperties):
         courseShowProperties[u'ownerEmail'] = True
         courseShowProperties[u'fields'].append(COURSE_ARGUMENT_TO_PROPERTY_MAP[field])
       elif field == u'teachers':
-        if courseShowProperties[u'members'] in [u'none', u'all']:
-          courseShowProperties[u'members'] = myarg
+        if courseShowProperties[u'members'] == u'none':
+          courseShowProperties[u'members'] = field
         elif courseShowProperties[u'members'] == u'students':
           courseShowProperties[u'members'] = u'all'
       elif field == u'students':
-        if courseShowProperties[u'members'] in [u'none', u'all']:
-          courseShowProperties[u'members'] = myarg
+        if courseShowProperties[u'members'] == u'none':
+          courseShowProperties[u'members'] = field
         elif courseShowProperties[u'members'] == u'teachers':
           courseShowProperties[u'members'] = u'all'
       elif field in COURSE_ARGUMENT_TO_PROPERTY_MAP:
-        if field != u'id':
-          courseShowProperties[u'fields'].append(COURSE_ARGUMENT_TO_PROPERTY_MAP[field])
+        courseShowProperties[u'fields'].append(COURSE_ARGUMENT_TO_PROPERTY_MAP[field])
       else:
         invalidChoiceExit(COURSE_ARGUMENT_TO_PROPERTY_MAP, True)
   elif myarg == u'skipfields':
@@ -17002,7 +16999,11 @@ def _doInfoCourses(entityList):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     _getCourseShowProperties(myarg, courseShowProperties)
-  fields = u','.join(set(courseShowProperties[u'fields'])) if courseShowProperties[u'fields'] else None
+  if courseShowProperties[u'fields']:
+    courseShowProperties[u'fields'].append(u'id')
+    fields = u','.join(set(courseShowProperties[u'fields']))
+  else:
+    fields = None
   i = 0
   count = len(entityList)
   for course in entityList:
@@ -17139,7 +17140,11 @@ def doPrintCourses():
     else:
       _getCourseShowProperties(myarg, courseShowProperties)
   if len(courses) == 0:
-    fields = u'nextPageToken,courses({0})'.format(u','.join(set(courseShowProperties[u'fields']))) if courseShowProperties[u'fields'] else None
+    if courseShowProperties[u'fields']:
+      courseShowProperties[u'fields'].append(u'id')
+      fields = u'nextPageToken,courses({0})'.format(u','.join(set(courseShowProperties[u'fields'])))
+    else:
+      fields = None
     printGettingAccountEntitiesInfo(Ent.COURSE)
     try:
       page_message = getPageMessage()
@@ -17159,7 +17164,11 @@ def doPrintCourses():
         return
       all_courses = collections.deque()
   else:
-    fields = u','.join(set(courseShowProperties[u'fields'])) if courseShowProperties[u'fields'] else None
+    if courseShowProperties[u'fields']:
+      courseShowProperties[u'fields'].append(u'id')
+      fields = u','.join(set(courseShowProperties[u'fields']))
+    else:
+      fields = None
     all_courses = collections.deque()
     for course in courses:
       courseId = addCourseIdScope(course)
