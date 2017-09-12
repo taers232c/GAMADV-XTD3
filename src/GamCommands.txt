@@ -834,7 +834,7 @@ gam <UserTypeEntity> print gal [todrive [<ToDriveAttributes>]] [query <QueryCont
 	(room <String>)|
 	(section <string>)|
 	(state|status active|archived|provisioned|declined)|
-	(teacher <UserItem>)
+	(owner|ownerid|teacher <UserItem>)
 
 <CourseFieldName> ::=
 	aliases|
@@ -849,6 +849,7 @@ gam <UserTypeEntity> print gal [todrive [<ToDriveAttributes>]] [query <QueryCont
 	guardiansenabled|
 	id|
 	name|
+	owneremail|
 	ownerid|
 	room|
 	section|
@@ -862,11 +863,9 @@ gam <UserTypeEntity> print gal [todrive [<ToDriveAttributes>]] [query <QueryCont
 gam create course id|alias <CourseAlias> <CourseAttributes>*
 gam update course <CourseID> <CourseAttributes>+
 gam delete course <CourseID>
-gam info course <CourseID> [delimiter <String>] [alias|aliases] [show all|students|teachers] [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
 
 gam update courses <CourseEntity> <CourseAttributes>+
 gam delete courses <CourseEntity>
-gam info courses <CourseEntity> [delimiter <String>] [alias|aliases] [show all|students|teachers] [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
 
 gam course <CourseID> add alias <CourseAlias>
 gam course <CourseID> delete alias <CourseAlias>
@@ -882,9 +881,15 @@ gam courses <CourseEntity> add teachers|students <UserTypeEntity>
 gam courses <CourseEntity> delete|remove teachers|students <UserTypeEntity>
 gam courses <CourseEntity> sync teachers|students <UserTypeEntity>
 
-gam print courses [todrive [<ToDriveAttributes>]] [teacher <UserItem>] [student <UserItem>]
-	[delimiter <String>] [alias|aliases] [show all|students|teachers] [countsonly] [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
-gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <CourseID>)*|([teacher <UserItem>] [student <UserItem>]) [show all|students|teachers]
+gam info course <CourseID> [owneremail] [alias|aliases] [show all|students|teachers] [countsonly]
+	[fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
+gam info courses <CourseEntity> [owneremail] [alias|aliases] [show all|students|teachers] [countsonly]
+	[fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
+gam print courses [todrive [<ToDriveAttributes>]] (course|class <CourseID>)*|([teacher <UserItem>] [student <UserItem>])
+	[owneremail] [alias|aliases][delimiter <String>] [show all|students|teachers] [countsonly]
+	[fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
+gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <CourseID>)*|([teacher <UserItem>] [student <UserItem>])
+	[show all|students|teachers]
 
 # Customer
 
@@ -922,7 +927,7 @@ gam print transferapps
 <OldOwnerID> ::= <UserItem>
 <NewOwnerID> ::= <UserItem>
 
-gam create datatransfer|transfer <OldOwnerID> <DataTransferService> <NewOwnerID> (<ParameterKey> <ParameterValue>)*
+gam create datatransfer|transfer <OldOwnerID> <DataTransferService> <NewOwnerID> [private|shared|all] (<ParameterKey> <ParameterValue>)*
 
 gam info datatransfer|transfer <TransferID>
 gam print datatransfers|transfers [todrive [<ToDriveAttributes>]] [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>] [status <String>] [delimiter <String>]
@@ -1797,12 +1802,13 @@ gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetra
 gam <UserTypeEntity> claim ownership <DriveFileEntity> [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
 	[includetrashed] [restricted [<Boolean>]] [writerscantshare [<Boolean>]] [filepath] [preview] [todrive [<ToDriveAttributes>]]
 
+gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>] [keepuser | (retainrole reader|commenter|writer|editor)]
+	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
+	[(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>]
+	[preview] [todrive [<ToDriveAttributes>]]
+
 gam <UserTypeEntity> collect orphans (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 	[targetuserfoldername <DriveFileName>] [preview] [todrive [<ToDriveAttributes>]]
-
-gam <UserTypeEntity> transfer drive <UserItem> [keepuser] [retainrole reader|commenter|writer|owner|editor] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-	[(targetfolderid <DriveFileID>)|(targetfoldername <DriveFileName>)] [targetuserfoldername <DriveFileName>]
-	[preview] [todrive [<ToDriveAttributes>]]
 
 <DriveFieldName> ::=
 	appdatacontents|
@@ -1960,6 +1966,7 @@ gam <UserTypeEntity> update label|labels [search <RegularExpression>] [replace <
 gam <UserTypeEntity> delete label|labels <LabelName>|regex:<RegularExpression>|--ALL_LABELS--
 
 gam <UserTypeEntity> show labels|label [onlyuser [<Boolean>]] [showcounts [<Boolean>]] [nested [<Boolean>]] [display allfields|basename|fullname]
+gam <UserTypeEntity> print labels|label [onlyuser [<Boolean>]] [showcounts [<Boolean>]] [todrive [<ToDriveAttributes>]]
 
 gam <UserTypeEntity> archive messages <GroupItem> (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_archive <Number>])|(ids <MessageIDEntity>)
 gam <UserTypeEntity> delete messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_delete|max_to_process <Number>])|(ids <MessageIDEntity>)

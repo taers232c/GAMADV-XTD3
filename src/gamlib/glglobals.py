@@ -103,6 +103,10 @@ CACHE_DISCOVERY_ONLY = u'gcdo'
 TBATCH_QUEUE = u'batq'
 # Location of cacerts.txt for GData calls
 CACERTS_TXT = u'cert'
+# datetime.datetime.now
+DATETIME_NOW = u'dtno'
+# Convert to local time
+CONVERT_TO_LOCAL_TIME = u'ctlt'
 #
 Globals = {
   SYSEXITRC: 0,
@@ -139,4 +143,6 @@ Globals = {
   CACHE_DISCOVERY_ONLY: True,
   TBATCH_QUEUE: None,
   CACERTS_TXT: None,
+  DATETIME_NOW: None,
+  CONVERT_TO_LOCAL_TIME: False,
   }

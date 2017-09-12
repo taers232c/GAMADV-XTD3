@@ -1,3 +1,25 @@
+4.53.24
+
+Added command to print Gmail labels to a CSV file.
+    gam <UserTypeEntity> print labels|label [onlyuser [<Boolean>]] [showcounts [<Boolean>]] [todrive [<ToDriveAttributes>]]
+
+Added select <DriveFileEntity> argument to gam transfer drive to allow transferring selected files/folders of a source user
+to a target user rather that all of the source users file/folders.
+    gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>] [keepuser | (retainrole reader|commenter|writer|editor)]
+	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
+	[(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>]
+	[preview] [todrive [<ToDriveAttributes>]]
+
+Added owneremail option to gam info/print courses to have Gam display the course owners email address. There is an extra API call per course to
+get the email address.
+    gam info course <CourseID> [owneremail] [alias|aliases] [show all|students|teachers] [countsonly]
+	[fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
+    gam info courses <CourseEntity> [owneremail] [alias|aliases] [show all|students|teachers] [countsonly]
+	[fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
+    gam print courses [todrive [<ToDriveAttributes>]] (course|class <CourseID>)*|([teacher <UserItem>] [student <UserItem>])
+	[owneremail] [alias|aliases][delimiter <String>] [show all|students|teachers] [countsonly]
+	[fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
+
 4.53.23
 
 Fixed error in gam transfer ownership where My Drive was included in list of files to transfer; this, of course, is not allowed.

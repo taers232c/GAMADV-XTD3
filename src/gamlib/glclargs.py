@@ -424,7 +424,6 @@ class GamCLArgs(object):
   OB_ORGUNIT_ENTITY = u'OrgUnitEntity'
   OB_ORGUNIT_ITEM = u'OrgUnitItem'
   OB_ORGUNIT_PATH = u'OrgUnitPath'
-  OB_PARAMETER_KEY = u'ParameterKey'
   OB_PARAMETER_VALUE = u'ParameterValue'
   OB_PASSWORD = u'Password'
   OB_PHOTO_FILENAME_PATTERN = u'FilenameNamePattern'
