@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.53.24'
+__version__ = u'4.53.25'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -158,8 +158,8 @@ FN_GAMCOMMANDS_TXT = u'GamCommands.txt'
 TEAM_DRIVE = u'Team Drive'
 
 # Python 3.6 values
+DEFAULT_CSV_READ_MODE = u'r'
 DEFAULT_FILE_APPEND_MODE = u'a'
-DEFAULT_FILE_READ_MODE = u'r'
 DEFAULT_FILE_WRITE_MODE = u'w'
 
 # Google API constants
@@ -1885,7 +1885,7 @@ def openCSVFileReader(filename):
     fieldnames = shlexSplitList(getString(Cmd.OB_FIELD_NAME_LIST))
   else:
     fieldnames = None
-  f = openFile(filename, mode=DEFAULT_FILE_READ_MODE, encoding=encoding)
+  f = openFile(filename, mode=DEFAULT_CSV_READ_MODE, encoding=encoding)
   csvFile = csv.DictReader(f, fieldnames=fieldnames, delimiter=delimiter)
   return (f, csvFile)
 

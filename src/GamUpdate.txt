@@ -1,3 +1,8 @@
+4.53.25
+
+Fix CSV file reader to accept universal newlines; this allows Mac users to save files from Excel as Comma Separated Values (.csv) files;
+that format uses \r as a line terminator and it was not recognized by Gam.
+
 4.53.24
 
 Added command to print Gmail labels to a CSV file.
