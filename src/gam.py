@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.53.25'
+__version__ = u'4.53.26'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -15287,6 +15287,8 @@ UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP = {
   u'includeinglobaladdresslist': u'includeInGlobalAddressList',
   u'ipwhitelisted': u'ipWhitelisted',
   u'lastname': u'familyName',
+  u'location': u'locations',
+  u'locations': u'locations',
   u'md5': u'hashFunction',
   u'note': u'notes',
   u'notes': u'notes',
@@ -15300,12 +15302,18 @@ UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP = {
   u'password': u'password',
   u'phone': u'phones',
   u'phones': u'phones',
+  u'posix': u'posixAccounts',
+  u'posixaccounts': u'posixAccounts',
   u'primaryemail': u'primaryEmail',
+  u'publicsshkeys': u'sshPublicKeys',
   u'relation': u'relations',
   u'relations': u'relations',
   u'sha': u'hashFunction',
   u'sha-1': u'hashFunction',
   u'sha1': u'hashFunction',
+  u'ssh': u'sshPublicKeys',
+  u'sshkeys': u'sshPublicKeys',
+  u'sshpublickeys': u'sshPublicKeys',
   u'suspended': u'suspended',
   u'username': u'primaryEmail',
   u'website': u'websites',
@@ -15469,6 +15477,32 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         entry[u'im'] = getString(Cmd.OB_STRING, minLen=0)
         entry[u'primary'] = getChoice(Cmd.PRIMARY_NOTPRIMARY_CHOICE_MAP, defaultChoice=entry[u'primary'], mapChoice=True)
         appendItemToBodyList(body, up, entry, u'im')
+      elif up == u'locations':
+        if checkArgumentPresent(Cmd.CLEAR_NONE_ARGUMENT):
+          clearBodyList(body, up)
+          continue
+        entry = {}
+        while Cmd.ArgumentsRemaining():
+          argument = getArgument()
+          if argument == clTypeKeyword:
+            getKeywordAttribute(UProp, typeKeywords, entry)
+          elif argument == u'area':
+            entry[u'area'] = getString(Cmd.OB_STRING)
+          elif argument in [u'building', u'buildingid']:
+            entry[u'buildingId'] = getString(Cmd.OB_STRING, minLen=0)
+          elif argument in [u'floor', u'floorname']:
+            entry[u'floorName'] = getString(Cmd.OB_STRING, minLen=0)
+          elif argument in [u'section', u'floorsection']:
+            entry[u'floorSection'] = getString(Cmd.OB_STRING, minLen=0)
+          elif argument in [u'desk', u'deskcode']:
+            entry[u'deskCode'] = getString(Cmd.OB_STRING, minLen=0)
+          elif argument == u'endlocation':
+            break
+          else:
+            unknownArgumentExit()
+        if u'area' not in entry:
+          missingArgumentExit(u'area <String>')
+        appendItemToBodyList(body, up, entry)
       elif up == u'notes':
         if checkArgumentPresent(Cmd.CLEAR_NONE_ARGUMENT):
           clearBodyList(body, up)
@@ -15525,6 +15559,38 @@ def getUserAttributes(cd, updateCmd, noUid=False):
           else:
             unknownArgumentExit()
         appendItemToBodyList(body, up, entry, u'value')
+      elif up == u'posixAccounts':
+        if checkArgumentPresent(Cmd.CLEAR_NONE_ARGUMENT):
+          clearBodyList(body, up)
+          continue
+        entry = {}
+        while Cmd.ArgumentsRemaining():
+          argument = getArgument()
+          if argument in [u'username', u'name']:
+            entry[u'username'] = getString(Cmd.OB_STRING)
+          elif argument == u'uid':
+            entry[u'uid'] = getInteger(minVal=1000)
+          elif argument == u'gid':
+            entry[u'gid'] = getInteger(minVal=0)
+          elif argument in [u'system', u'systemid']:
+            entry[u'systemId'] = getString(Cmd.OB_STRING, minLen=0)
+          elif argument in [u'home', u'homedirectory']:
+            entry[u'homeDirectory'] = getString(Cmd.OB_STRING, minLen=0)
+          elif argument in [u'shell']:
+            entry[u'shell'] = getString(Cmd.OB_STRING, minLen=0)
+          elif argument == u'gecos':
+            entry[u'gecos'] = getString(Cmd.OB_STRING, minLen=0)
+          elif argument in [u'primary']:
+            entry[u'primary'] = getBoolean()
+          elif argument == u'endposix':
+            break
+          else:
+            unknownArgumentExit()
+        if u'username' not in entry:
+          missingArgumentExit(u'username <String>')
+        if u'uid' not in entry:
+          missingArgumentExit(u'uid <Integer>')
+        appendItemToBodyList(body, up, entry)
       elif up == u'relations':
         if checkArgumentPresent(Cmd.CLEAR_NONE_ARGUMENT):
           clearBodyList(body, up)
@@ -15541,6 +15607,24 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         getKeywordAttribute(UProp, typeKeywords, entry)
         entry[u'address'] = getEmailAddress(noUid=True, minLen=0)
         appendItemToBodyList(body, up, entry, u'address')
+      elif up == u'sshPublicKeys':
+        if checkArgumentPresent(Cmd.CLEAR_NONE_ARGUMENT):
+          clearBodyList(body, up)
+          continue
+        entry = {}
+        while Cmd.ArgumentsRemaining():
+          argument = getArgument()
+          if argument == u'expires':
+            entry[u'expirationTimeUsec'] = getInteger(minVal=0)
+          elif argument == u'key':
+            entry[u'key'] = getString(Cmd.OB_STRING)
+          elif argument == u'endssh':
+            break
+          else:
+            unknownArgumentExit()
+        if u'key' not in entry:
+          missingArgumentExit(u'key <String>')
+        appendItemToBodyList(body, up, entry)
       elif up == u'externalIds':
         if checkArgumentPresent(Cmd.CLEAR_NONE_ARGUMENT):
           clearBodyList(body, up)
@@ -15895,11 +15979,14 @@ USER_SCALAR_PROPERTY_PRINT_ORDER = [
 USER_ARRAY_PROPERTY_PRINT_ORDER = [
   u'notes',
   u'addresses',
+  u'locations',
   u'organizations',
   u'relations',
   u'emails',
   u'ims',
   u'phones',
+  u'posixAccounts',
+  u'sshPublicKeys',
   u'externalIds',
   u'websites',
   ]
@@ -15915,6 +16002,29 @@ USER_ADDRESSES_PROPERTY_PRINT_ORDER = [
   u'postalCode',
   u'country',
   u'countryCode',
+  ]
+
+USER_LOCATIONS_PROPERTY_PRINT_ORDER = [
+  u'area',
+  u'buildingId',
+  u'floorName',
+  u'floorSection',
+  u'deskCode',
+  ]
+
+USER_POSIX_PROPERTY_PRINT_ORDER = [
+  u'uid',
+  u'gid',
+  u'systemId',
+  u'homeDirectory',
+  u'shell',
+  u'gecos',
+  u'primary',
+  ]
+
+USER_SSH_PROPERTY_PRINT_ORDER = [
+  u'expirationTimeUsec',
+  u'fingerprint',
   ]
 
 def _showType(up, row, typeKey, typeCustomValue, customTypeKey):
@@ -15966,6 +16076,8 @@ USER_ARGUMENT_TO_PROPERTY_MAP = {
   u'ismailboxsetup': [u'isMailboxSetup',],
   u'lastlogintime': [u'lastLoginTime',],
   u'lastname': [u'name.familyName',],
+  u'location': [u'locations',],
+  u'locations': [u'locations',],
   u'name': [u'name.givenName', u'name.familyName', u'name.fullName',],
   u'nicknames': [u'aliases', u'nonEditableAliases',],
   u'noneditablealiases': [u'aliases', u'nonEditableAliases',],
@@ -15982,9 +16094,15 @@ USER_ARGUMENT_TO_PROPERTY_MAP = {
   u'phones': [u'phones',],
   u'photo': [u'thumbnailPhotoUrl',],
   u'photourl': [u'thumbnailPhotoUrl',],
+  u'posix': [u'posixAccounts',],
+  u'posixaccounts': [u'posixAccounts',],
   u'primaryemail': [u'primaryEmail',],
+  u'publicsshkeys': [u'sshPublicKeys',],
   u'relation': [u'relations',],
   u'relations': [u'relations',],
+  u'ssh': [u'sshPublicKeys',],
+  u'sshkeys': [u'sshPublicKeys',],
+  u'sshpublickeys': [u'sshPublicKeys',],
   u'suspended': [u'suspended', u'suspensionReason',],
   u'thumbnailphotourl': [u'thumbnailPhotoUrl',],
   u'username': [u'primaryEmail',],
@@ -16109,9 +16227,10 @@ def infoUsers(entityList):
         userProperty = UProp.PROPERTIES[up]
         propertyClass = userProperty[UProp.CLASS]
         propertyTitle = userProperty[UProp.TITLE]
-        typeKey = userProperty[UProp.TYPE_KEYWORDS][UProp.PTKW_ATTR_TYPE_KEYWORD]
-        typeCustomValue = userProperty[UProp.TYPE_KEYWORDS][UProp.PTKW_ATTR_TYPE_CUSTOM_VALUE]
-        customTypeKey = userProperty[UProp.TYPE_KEYWORDS][UProp.PTKW_ATTR_CUSTOMTYPE_KEYWORD]
+        if UProp.TYPE_KEYWORDS in userProperty:
+          typeKey = userProperty[UProp.TYPE_KEYWORDS][UProp.PTKW_ATTR_TYPE_KEYWORD]
+          typeCustomValue = userProperty[UProp.TYPE_KEYWORDS][UProp.PTKW_ATTR_TYPE_CUSTOM_VALUE]
+          customTypeKey = userProperty[UProp.TYPE_KEYWORDS][UProp.PTKW_ATTR_CUSTOMTYPE_KEYWORD]
         if propertyClass == UProp.PC_ARRAY:
           if len(propertyValue) > 0:
             printKeyValueList([propertyTitle, None])
@@ -16204,6 +16323,51 @@ def infoUsers(entityList):
               else:
                 printKeyValueList([u'value', Ind.MultiLineText(propertyValue[u'value'], n=1)])
               Ind.Decrement()
+            else:
+              printKeyValueList([Ind.MultiLineText(propertyValue)])
+            Ind.Decrement()
+        elif propertyClass == UProp.PC_LOCATIONS:
+          if len(propertyValue) > 0:
+            printKeyValueList([propertyTitle, None])
+            Ind.Increment()
+            if isinstance(propertyValue, list):
+              for row in propertyValue:
+                _showType(up, row, typeKey, typeCustomValue, customTypeKey)
+                Ind.Increment()
+                for key in USER_LOCATIONS_PROPERTY_PRINT_ORDER:
+                  if key in row:
+                    printKeyValueList([key, row[key]])
+                Ind.Decrement()
+            else:
+              printKeyValueList([Ind.MultiLineText(propertyValue)])
+            Ind.Decrement()
+        elif propertyClass == UProp.PC_POSIX:
+          if len(propertyValue) > 0:
+            printKeyValueList([propertyTitle, None])
+            Ind.Increment()
+            if isinstance(propertyValue, list):
+              for row in propertyValue:
+                printKeyValueList([u'username', row.get(u'username')])
+                Ind.Increment()
+                for key in USER_POSIX_PROPERTY_PRINT_ORDER:
+                  if key in row:
+                    printKeyValueList([key, row[key]])
+                Ind.Decrement()
+            else:
+              printKeyValueList([Ind.MultiLineText(propertyValue)])
+            Ind.Decrement()
+        elif propertyClass == UProp.PC_SSH:
+          if len(propertyValue) > 0:
+            printKeyValueList([propertyTitle, None])
+            Ind.Increment()
+            if isinstance(propertyValue, list):
+              for row in propertyValue:
+                printKeyValueList([u'key', row[u'key']])
+                Ind.Increment()
+                for key in USER_SSH_PROPERTY_PRINT_ORDER:
+                  if key in row:
+                    printKeyValueList([key, row[key]])
+                Ind.Decrement()
             else:
               printKeyValueList([Ind.MultiLineText(propertyValue)])
             Ind.Decrement()
@@ -18362,7 +18526,10 @@ def showASPs(users):
 
 def _showBackupCodes(user, codes, i, count):
   Act.Set(Act.SHOW)
-  jcount = len(codes)
+  jcount = 0
+  for code in codes:
+    if code.get(u'verificationCode'):
+      jcount += 1
   entityPerformActionNumItems([Ent.USER, user], jcount, Ent.BACKUP_VERIFICATION_CODES, i, count)
   if jcount == 0:
     setSysExitRC(NO_ENTITIES_FOUND)
@@ -18371,7 +18538,7 @@ def _showBackupCodes(user, codes, i, count):
   j = 0
   for code in codes:
     j += 1
-    printKeyValueList([u'{0:2}'.format(j), code[u'verificationCode']])
+    printKeyValueList([u'{0:2}'.format(j), code.get(u'verificationCode')])
   Ind.Decrement()
 
 # gam <UserTypeEntity> update backupcodes|verificationcodes

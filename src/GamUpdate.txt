@@ -1,3 +1,17 @@
+4.53.26
+
+With thanks to Jay for the initial code, new user attributes have been added.
+See: https://developers.google.com/admin-sdk/directory/v1/reference/users#resource
+
+    <UserAttributes> ::=
+	(location|locations clear|([type default|desk|<String>] area <String> [building|buildingid <String>] [floor|floorname <String>] [section|floorsection <String>] [desk|deskcode <String>] endlocation))|
+	(posix|posixaccounts clear|(username <String> uid <Integer> [gid <Integer>] [system|systemid <String>] [home|homedirectory <String>] [shell <String>] [gecos <String>] [primary <Boolean>] endposix))|
+	(ssh|sshkeys|sshpublickeys clear|(key <String> [expires <Integer>] endssh))|
+
+* location - area <String> is required; all other items are optional.
+* posix - username <String> and uid <Integer> are required; all other items are optional. The uid must be >= 1000.
+* ssh - key <strings> is required; ; all other items are optional.
+
 4.53.25
 
 Fix CSV file reader to accept universal newlines; this allows Mac users to save files from Excel as Comma Separated Values (.csv) files;

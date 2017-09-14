@@ -37,9 +37,12 @@ PC_ARRAY = u'arry'
 PC_BOOLEAN = u'bool'
 PC_EMAILS = u'emai'
 PC_IMS = u'ims '
+PC_LOCATIONS = 'loca'
 PC_NAME = u'name'
 PC_NOTES = u'note'
+PC_POSIX = u'posi'
 PC_SCHEMAS = u'schm'
+PC_SSH = u'ssh '
 PC_STRING = u'stri'
 PC_TIME = u'time'
 
@@ -116,6 +119,12 @@ PROPERTIES = {
        {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: u'custom',
         PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
         PTKW_KEYWORD_LIST: [u'custom', u'home', u'other', u'work'],},},
+  u'locations':
+    {CLASS: PC_LOCATIONS, TITLE: u'Locations',
+     TYPE_KEYWORDS:
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: None,
+        PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
+        PTKW_KEYWORD_LIST: [u'default', u'desk'],},},
   u'notes':
     {CLASS: PC_NOTES, TITLE: u'Notes',
      TYPE_KEYWORDS:
@@ -140,6 +149,8 @@ PROPERTIES = {
                             u'car', u'radio', u'isdn', u'callback',
                             u'telex', u'tty_tdd', u'work_mobile',
                             u'work_pager', u'main', u'grand_central'],},},
+  u'posixAccounts':
+    {CLASS: PC_POSIX, TITLE: u'Posix Accounts',},
   u'relations':
     {CLASS: PC_ARRAY, TITLE: u'Relations',
      TYPE_KEYWORDS:
@@ -150,6 +161,8 @@ PROPERTIES = {
                             u'sister', u'friend', u'relative',
                             u'domestic_partner', u'manager', u'assistant',
                             u'referred_by', u'partner'],},},
+  u'sshPublicKeys':
+    {CLASS: PC_SSH, TITLE: u'SSH Public Keys',},
   u'websites':
     {CLASS: PC_ARRAY, TITLE: u'Websites',
      TYPE_KEYWORDS:
