@@ -417,6 +417,7 @@ class GamCLArgs(object):
   OB_MATTER_ITEM = u'MatterItem'
   OB_MATTER_ITEM_LIST = u'MatterItemList'
   OB_MESSAGE_ID = u'MessageID'
+  OB_MIMETYPE_LIST = u'MimeTypeList'
   OB_MOBILE_DEVICE_ENTITY = u'MobileDeviceEntity'
   OB_MOBILE_ENTITY = u'MobileEntity'
   OB_NAME = u'Name'
@@ -559,8 +560,6 @@ class GamCLArgs(object):
   def QuotedArgumentList(self, items):
     qstr = u''
     for item in items:
-      if isinstance(item, str):
-        item = unicode(item, self.encoding, 'replace')
       if item and (item.find(u' ') == -1) and (item.find(u',') == -1):
         qstr += item
       else:

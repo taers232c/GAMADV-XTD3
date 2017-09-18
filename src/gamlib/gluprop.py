@@ -20,11 +20,66 @@
 
 """
 
+# notes
+# a|b|c
+# getKeywordAttribute(CUSTOM_TYPE_NOCUSTOM, attrdict)
+
+#CUSTOM_TYPE_NOCUSTOM = {
+#    PTKW_CL_TYPE_KEYWORD: u'type',
+#    PTKW_CL_CUSTOM_KEYWORD: None,
+#    PTKW_ATTR_TYPE_KEYWORD: u'type',
+#    PTKW_ATTR_TYPE_CUSTOM_VALUE: None,
+#    PTKW_ATTR_CUSTOMTYPE_KEYWORD: None,
+#    PTKW_KEYWORD_LIST: [u'a', u'b', u'c']
+#    }
+
+# addresses, ims
+# type a|b|c|([custom] <String>)
+# getChoice([CUSTOM_TYPE_CUSTOM[PTKW_CL_TYPE_KEYWORD]])
+# getKeywordAttribute(CUSTOM_TYPE_CUSTOM, attrdict)
+
+# emails, externalids, relations, websites
+# [type] a|b|c|([custom] <String>)
+# getChoice([CUSTOM_TYPE_CUSTOM[PTKW_CL_TYPE_KEYWORD]], defaultChoice=None)
+# getKeywordAttribute(CUSTOM_TYPE_IMPLICIT, attrdict)
+
+# locations, phones
+# type a|b|c|([custom] <String>)
+# if argument == CUSTOM_TYPE_CUSTOM[PTKW_CL_TYPE_KEYWORD]:
+#   getKeywordAttribute(CUSTOM_TYPE_CUSTOM, attrdict)
+
+#CUSTOM_TYPE_CUSTOM = {
+#    PTKW_CL_TYPE_KEYWORD: u'type',
+#    PTKW_CL_CUSTOM_KEYWORD: u'custom',
+#    PTKW_ATTR_TYPE_KEYWORD: u'type',
+#    PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom',
+#    PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
+#    PTKW_KEYWORD_LIST: [u'custom', u'a', u'b', u'c']
+#    }
+
+# organizations
+# (type a|b|c|([custom] <String>)) | (custom_type <String>)
+# if argument == CUSTOM_TYPE_DIFFERENT_KEYWORD[PTKW_CL_TYPE_KEYWORD]:
+#   getKeywordAttribute(CUSTOM_TYPE_DIFFERENT_KEYWORD, attrdict)
+# elif argument == CUSTOM_TYPE_DIFFERENT_KEYWORD[PTKW_CL_CUSTOM_KEYWORD]:
+#   attrdict[CUSTOM_TYPE_DIFFERENT_KEYWORD[PTKW_ATTR_CUSTOMTYPE_KEYWORD]] = getValue()
+
+#CUSTOM_TYPE_DIFFERENT_KEYWORD = {
+#    PTKW_CL_TYPE_KEYWORD: u'type',
+#    PTKW_CL_CUSTOM_KEYWORD: u'custom',
+#    PTKW_CL_CUSTOMTYPE_KEYWORD: u'custom_type',
+#    PTKW_ATTR_TYPE_KEYWORD: u'type',
+#    PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom',
+#    PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
+#    PTKW_KEYWORD_LIST: [u'custom', u'a', u'b', u'c']
+#    }
+
 # Keys into USER_PROPERTIES
 CLASS = u'clas'
 TITLE = u'titl'
 TYPE_KEYWORDS = u'tykw'
 PTKW_CL_TYPE_KEYWORD = u'ctkw'
+PTKW_CL_CUSTOM_KEYWORD = u'ccuk'
 PTKW_CL_CUSTOMTYPE_KEYWORD = u'cctk'
 PTKW_ATTR_TYPE_KEYWORD = u'atkw'
 PTKW_ATTR_TYPE_CUSTOM_VALUE = u'atcv'
@@ -98,49 +153,49 @@ PROPERTIES = {
   u'addresses':
     {CLASS: PC_ADDRESSES, TITLE: u'Addresses',
      TYPE_KEYWORDS:
-       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: u'custom',
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOM_KEYWORD: u'custom',
         PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
         PTKW_KEYWORD_LIST: [u'custom', u'home', u'other', u'work'],},},
   u'emails':
     {CLASS: PC_EMAILS, TITLE: u'Other Emails',
      TYPE_KEYWORDS:
-       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: None,
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOM_KEYWORD: u'custom',
         PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
         PTKW_KEYWORD_LIST: [u'custom', u'home', u'other', u'work'],},},
   u'externalIds':
     {CLASS: PC_ARRAY, TITLE: u'External IDs',
      TYPE_KEYWORDS:
-       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: None,
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOM_KEYWORD: u'custom',
         PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
-        PTKW_KEYWORD_LIST: [u'account', u'customer', u'network', u'organization'],},},
+        PTKW_KEYWORD_LIST: [u'custom', u'account', u'customer', u'login_id', u'network', u'organization'],},},
   u'ims':
     {CLASS: PC_IMS, TITLE: u'IMs',
      TYPE_KEYWORDS:
-       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: u'custom',
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOM_KEYWORD: u'custom',
         PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
         PTKW_KEYWORD_LIST: [u'custom', u'home', u'other', u'work'],},},
   u'locations':
     {CLASS: PC_LOCATIONS, TITLE: u'Locations',
      TYPE_KEYWORDS:
-       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: None,
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOM_KEYWORD: u'custom',
         PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
-        PTKW_KEYWORD_LIST: [u'default', u'desk'],},},
+        PTKW_KEYWORD_LIST: [u'custom', u'default', u'desk'],},},
   u'notes':
     {CLASS: PC_NOTES, TITLE: u'Notes',
      TYPE_KEYWORDS:
-       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: u'type',
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOM_KEYWORD: None,
         PTKW_ATTR_TYPE_KEYWORD: u'contentType', PTKW_ATTR_TYPE_CUSTOM_VALUE: None, PTKW_ATTR_CUSTOMTYPE_KEYWORD: None,
         PTKW_KEYWORD_LIST: [u'text_plain', u'text_html'],},},
   u'organizations':
     {CLASS: PC_ARRAY, TITLE: u'Organizations',
      TYPE_KEYWORDS:
-       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: u'customtype',
-        PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
-        PTKW_KEYWORD_LIST: [u'domain_only', u'school', u'unknown', u'work'],},},
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOM_KEYWORD: u'custom', PTKW_CL_CUSTOMTYPE_KEYWORD: u'customtype',
+        PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: None, PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
+        PTKW_KEYWORD_LIST: [u'custom', u'domain_only', u'school', u'unknown', u'work'],},},
   u'phones':
     {CLASS: PC_ARRAY, TITLE: u'Phones',
      TYPE_KEYWORDS:
-       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: u'custom',
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOM_KEYWORD: u'custom',
         PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
         PTKW_KEYWORD_LIST: [u'custom', u'home', u'work', u'other',
                             u'home_fax', u'work_fax', u'other_fax',
@@ -154,19 +209,21 @@ PROPERTIES = {
   u'relations':
     {CLASS: PC_ARRAY, TITLE: u'Relations',
      TYPE_KEYWORDS:
-       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: None,
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOM_KEYWORD: u'custom',
         PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
-        PTKW_KEYWORD_LIST: [u'spouse', u'child', u'mother',
+        PTKW_KEYWORD_LIST: [u'custom', u'spouse', u'child', u'mother',
                             u'father', u'parent', u'brother',
                             u'sister', u'friend', u'relative',
-                            u'domestic_partner', u'manager', u'assistant',
-                            u'referred_by', u'partner'],},},
+                            u'domestic_partner', u'partner',
+                            u'manager', u'dotted_line_manager',
+                            u'assistant', u'admin_assistant', u'exec_assistant',
+                            u'referred_by'],},},
   u'sshPublicKeys':
     {CLASS: PC_SSH, TITLE: u'SSH Public Keys',},
   u'websites':
     {CLASS: PC_ARRAY, TITLE: u'Websites',
      TYPE_KEYWORDS:
-       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: None,
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOM_KEYWORD: u'custom',
         PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
         PTKW_KEYWORD_LIST: [u'custom', u'home', u'work',
                             u'home_page', u'ftp', u'blog',
@@ -175,7 +232,7 @@ PROPERTIES = {
   u'customSchemas':
     {CLASS: PC_SCHEMAS, TITLE: u'Custom Schemas',
      TYPE_KEYWORDS:
-       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOMTYPE_KEYWORD: u'custom',
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOM_KEYWORD: u'custom',
         PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
         PTKW_KEYWORD_LIST: [u'custom', u'home', u'other', u'work'],},},
   u'aliases': {
@@ -185,7 +242,7 @@ PROPERTIES = {
   }
 #
 IM_PROTOCOLS = {
-  PTKW_CL_TYPE_KEYWORD: u'protocol', PTKW_CL_CUSTOMTYPE_KEYWORD: u'custom_protocol',
+  PTKW_CL_TYPE_KEYWORD: u'protocol', PTKW_CL_CUSTOM_KEYWORD: u'custom_protocol',
   PTKW_ATTR_TYPE_KEYWORD: u'protocol', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom_protocol', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customProtocol',
   PTKW_KEYWORD_LIST: [u'custom_protocol', u'aim', u'gtalk', u'icq', u'jabber', u'msn', u'net_meeting', u'qq', u'skype', u'xmpp', u'yahoo']
   }

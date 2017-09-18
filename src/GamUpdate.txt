@@ -1,3 +1,81 @@
+4.54.00
+
+File display
+
+Added showmimetype [not] <MimeTypeList> option to print|show filelist and show filetree to allow filtering of the output by MIME type.
+By default, all types of files and folders are displayed. You can specify a list of MIME types to display or a list of MIME types to suppress.
+    <MimeType> ::=
+	gdoc|gdocument|
+	gdrawing|
+	gfolder|gdirectory|
+	gform|
+	gfusion|
+	gmap|
+	gpresentation|
+	gscript|
+	gsite|
+	gsheet|gspreadsheet|
+	<String>
+    <MimeTypeList> ::= "<MimeType>(,<MimeType>)*"
+    gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)]
+	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
+	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [mimetype [not] <MimeTypeList>] [depth <Number>]
+	[filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <String>]
+    gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
+	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [showmimetype [not] <MimeTypeList>] [depth <Number>]
+	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
+
+The gam print|show filelist command has been updated to provide two modes of operation when you use
+the select <DriveFileEntityListTree> option. Currently, GAM downloads the user's entire list of files with one API call
+(of course, there may be many entries downloaded) and then uses that information to build a file tree. The file tree is used to
+display the list of files/folders contained in the selected folder. Some GAM users find this big download confusing.
+
+The new mode, which will be the default when you use the select <DriveFileEntityListTree> option, makes recursive API calls to get the children
+of the specified folder to display. The new mode will make N API calls instead of 1 API call; N is the number of folders
+recursively beneath the specified folder. Depending on the number of folders, this mode may be faster even though
+additional API calls are being made.
+
+The buildtree argument specifies that you want the first mode (build file tree) mode of operation.
+    gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)]
+	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
+	[select <DriveFileEntityListTree>] [showmimetype [not] <MimeTypeList>] [depth <Number>]
+	[filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <String>]
+
+The filepath option is used to display the path to each file. If buildtree is specified, you will see the full path to each file.
+If buildtree is not specified, you will see the relative file path starting from the top level folder being displayed.
+
+If you don't use the select <DriveFileEntityListTree> option, the user's entire list of folders is downloaded and the filepath option will show
+the full path to each file.
+
+Claim ownership
+
+The gam claim ownership command has been updated to provide two modes of operation.
+Currently, GAM downloads the user's entire list of files with one API call (of course, there may be many
+entries downloaded) and then uses that information to build a file tree. The file tree is used to
+recursively find the children of the specified folders to transfer. Some GAM users find this big download
+confusing.
+
+The new mode, which will be the default, makes recursive API calls to get the children of the specified
+folders to transfer. The new mode will make N API calls instead of 1 API call; N is the number of folders
+recursively beneath the specified folder. Depending on the number of folders, this mode may be faster even though
+additional API calls are being made.
+
+The buildtree argument specifies that you want the first mode (build file tree) mode of operation.
+    gam <UserTypeEntity> claim ownership <DriveFileEntity> [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
+	[includetrashed] [restricted [<Boolean>]] [writerscantshare [<Boolean>]]
+	[filepath] [preview] [buildtree] [todrive [<ToDriveAttributes>]]
+
+Typically, the filepath option is used with the preview option so you can verify what files are going to be transferred.
+If buildtree is specified, you will see the full path to each file. If buildtree is not specified, you will see the
+relative file path starting from the top level folder being transferred.
+
+User attributes
+
+There are several user attributes that can have multiple values; each value can be marked notprimary or primary.
+It is a Google API error to mark more than one value primary; Gam now checks that only one value is marked primary.
+The affected attributes are: addresses, ims, organizations, posixaccounts, phones, websites.
+For posixaccounts, no two values with the same systemId can be marked primary.
+
 4.53.26
 
 With thanks to Jay for the initial code, new user attributes have been added.

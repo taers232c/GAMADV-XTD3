@@ -21,9 +21,22 @@ If an item contains spaces, it should be surrounded by ".
 <FalseValues>= false|off|no|disabled|0
 <TrueValues> ::= true|on|yes|enabled|1
 
-<Charset> ::= ascii|mbcs|utf-8|utf-8-sig|utf-16|<String>
+<Charset> ::= ascii|latin1|mbcs|utf-8|utf-8-sig|utf-16|<String>
 <FileFormat> ::= csv|html|txt|tsv|jpeg|jpg|png|svg|pdf|rtf|pptx|xlsx|docx|odt|ods|openoffice|ms|microsoft|micro$oft
 <Language> ::= ar|bn|bg|ca|zh-CN|zh-TW|hr|cs|da|nl|en|en-GB|et|fi|fr|de|el|gu|iw|is|in|it|ja|kn|ko|lv|lt|ms|ml|mr|no|or|fa|pl|pt-BR|pt-PT|ro|ru|sr|sk|sl|es|sv|tl|ta|te|th|tr|uk|ur|vi
+<MimeType> ::=
+	gdoc|gdocument|
+	gdrawing|
+	gfolder|gdirectory|
+	gform|
+	gfusion|
+	gmap|
+	gpresentation|
+	gscript|
+	gsite|
+	gsheet|gspreadsheet|
+	<String>
+<MimeTypeList> ::= "<MimeType>(,<MimeType>)*"
 <ProductID> ::=
 	Google-Apps|
 	Google-Chrome-Device-Management|
@@ -1413,7 +1426,7 @@ gam print vaultmatters|matters [todrive [<ToDriveAttributes>]] [basic|full]
 	posixaccounts|posix|
 	primaryemail|username|
 	relations|relation|
-	ssh|sshkeys|sshpublickeys|
+	sshpublickeys|ssh|sshkeys|
 	suspended|
 	thumbnailphotourl|photo|photourl|
 	websites|website
@@ -1432,7 +1445,7 @@ gam print vaultmatters|matters [todrive [<ToDriveAttributes>]] [basic|full]
 	(customerid <String>)|
 	(email|primaryemail|username <EmailAddress>)|
 	(emails|otheremail|otheremails clear|(work|home|other|<String> <String>))|
-	(externalid|externalids clear|(account|customer|network|organization|<String> <String>))|
+	(externalid|externalids clear|(account|customer|login_id|network|organization|<String> <String>))|
 	(firstname|givenname <String>)|
 	(gal|includeinglobaladdresslist <Boolean>)|
 	(im|ims clear|(type work|home|other|(custom <String>) protocol aim|gtalk|icq|jabber|msn|net_meeting|qq|skype|yahoo|(custom_protocol <String>) <String> [notprimary|primary]))|
@@ -1447,7 +1460,7 @@ gam print vaultmatters|matters [todrive [<ToDriveAttributes>]] [basic|full]
 	(phone|phones clear|([type work|home|other|work_fax|home_fax|other_fax|main|company_main|assistant|mobile|work_mobile|pager|work_pager|car|radio|callback|isdn|telex|tty_tdd|grand_central|(custom <String>)]
 		[value <String>] notprimary|primary))|
 	(posix|posixaccounts clear|(username <String> uid <Integer> gid <Integer> [system|systemid <String>] [home|homedirectory <String>] [shell <String>] [gecos <String>] [primary <Boolean>] endposix))|
-	(relation|relations clear|(spouse|child|mother|father|parent|brother|sister|friend|relative|domestic_partner|manager|assistant|referred_by|partner|<String> <String>))|
+	(relation|relations clear|(spouse|child|mother|father|parent|brother|sister|friend|relative|domestic_partner|manager|dotted-line_manager|assistant|admin_assistant|exec_assistant|referred_by|partner|<String> <String>))|
 	(ssh|sshkeys|sshpublickeys clear|(key <String> [expires <Integer>] endssh))|
 	(suspended <Boolean>)|
 	(website|websites clear|(home_page|blog|profile|work|home|other|ftp|reservations|app_install_page|<String> <URL> [notprimary|primary]))|
@@ -1691,7 +1704,7 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 	(keeprevisionforever|pinned)|
 	(lastviewedbyme <Time>)|
 	(localfile <FileName>)|
-	(mimetype gdoc|gdocument|gdrawing|gfolder|gdirectory|gform|gfusion|gpresentation|gscript|gsite|gsheet|gspreadsheet)|
+	(mimetype <MimeType>)|
 	(ocrlanguage <Language>)|
 	(restricted|restrict [<Boolean>])|
 	(starred|star [<Boolean>])|
@@ -1706,7 +1719,7 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 	(modifieddate|modifiedtime <Time>)|
 	(parentid <DriveFolderID>)|
 	(parentname <DriveFolderName>)|
-	(sharedparentname <DriveFolderName>)|
+	(anyownerparentname <DriveFolderName>)|
 	(teamdriveparent <TeamDriveName>)|
 	(teamdriveparentid <TeamDriveID>|<DriveFolderID>)|
 	(teamdriveparentname <DriveFolderName>)|
@@ -1718,7 +1731,7 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 	(removeparents <DriveFolderIDList>)|
 	(parentid <DriveFolderID>)|
 	(parentname <DriveFolderName>)|
-	(sharedparentname <DriveFolderName>)|
+	(anyownerparentname <DriveFolderName>)|
 	usecontentasindexabletext
 
 <DriveFileCopyAttributes> ::=
@@ -1726,7 +1739,7 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 	ignoredefaultvisibility|
 	(parentid <DriveFolderID>)|
 	(parentname <DriveFolderName>)|
-	(sharedparentname <DriveFolderName>)|
+	(anyownerparentname <DriveFolderName>)|
 	(teamdriveparent <TeamDriveName>)|
 	(teamdriveparentid <TeamDriveID>|<DriveFolderID>)|
 	(teamdriveparentname <DriveFolderName>)
@@ -1806,7 +1819,8 @@ gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive [<ToDriveAtt
 gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 	[filepath] [preview] [buildtree] [todrive [<ToDriveAttributes>]]
 gam <UserTypeEntity> claim ownership <DriveFileEntity> [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
-	[includetrashed] [restricted [<Boolean>]] [writerscantshare [<Boolean>]] [filepath] [preview] [todrive [<ToDriveAttributes>]]
+	[includetrashed] [restricted [<Boolean>]] [writerscantshare [<Boolean>]]
+	[filepath] [preview] [buildtree] [todrive [<ToDriveAttributes>]]
 
 gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>] [keepuser | (retainrole reader|commenter|writer|editor)]
 	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
@@ -1877,11 +1891,13 @@ gam <UserTypeEntity> show fileinfo <DriveFileEntity> [filepath] [allfields|<Driv
 gam <UserTypeEntity> show filepath <DriveFileEntity> (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> print filepath <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 
-gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
-	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>] [select <DriveFileEntityListTree>] [depth <Number>]
-	[filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <String>]
+gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)]
+	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
+	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [mimetype [not] <MimeTypeList>] [depth <Number>]
+	[filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <String>]
 gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
-	[select <DriveFileEntityListTree>] [depth <Number>] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [showmimetype [not] <MimeTypeList>] [depth <Number>]
+	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 
 gam <UserTypeEntity> print|show driveactivity [todrive [<ToDriveAttributes>]] [fileid <DriveFileID>] [folderid <DriveFolderID>]
 
