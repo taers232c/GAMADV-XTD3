@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.00'
+__version__ = u'4.54.01'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -6932,22 +6932,23 @@ def doCreateOrg():
     except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, fullPath)
 
-def checkOrgUnitPathExists(cd, orgUnitPath, i=0, count=0):
+def checkOrgUnitPathExists(cd, orgUnitPath, i=0, count=0, showError=False):
   if orgUnitPath == u'/':
-    return orgUnitPath
-  orgUnitPath = makeOrgUnitPathRelative(orgUnitPath)
+    return (True, orgUnitPath)
   try:
-    return callGAPI(cd.orgunits(), u'get',
-                    throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
-                    customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=orgUnitPath, fields=u'orgUnitPath')[u'orgUnitPath']
+    return (True, callGAPI(cd.orgunits(), u'get',
+                           throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                           customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=makeOrgUnitPathRelative(orgUnitPath),
+                           fields=u'orgUnitPath')[u'orgUnitPath'])
   except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
     pass
   except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
     errMsg = accessErrorMessage(cd)
     if errMsg:
       systemErrorExit(INVALID_DOMAIN_RC, errMsg)
-  entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], Msg.DOES_NOT_EXIST, i, count)
-  return None
+  if showError:
+    entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], Msg.DOES_NOT_EXIST, i, count)
+  return (False, orgUnitPath)
 
 def _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, i, count, items, quickCrOSMove):
   def _callbackMoveCrOSesToOrgUnit(request_id, response, exception):
@@ -7057,8 +7058,8 @@ def _doUpdateOrgs(entityList):
       i += 1
       if orgItemLists:
         items = orgItemLists[orgUnitPath]
-      orgUnitPath = checkOrgUnitPathExists(cd, orgUnitPath, i, count)
-      if not orgUnitPath:
+      status, orgUnitPath = checkOrgUnitPathExists(cd, orgUnitPath, i, count, True)
+      if not status:
         continue
       if entityType == Cmd.ENTITY_USERS:
         _batchMoveUsersToOrgUnit(cd, orgUnitPath, i, count, items)
@@ -9939,6 +9940,11 @@ def updateCrOSDevices(entityList):
   if action_body and update_body:
     Cmd.SetLocation(actionLocation-1)
     usageErrorExit(Msg.ARE_MUTUALLY_EXCLUSIVE.format(u'action', u'<CrOSAttributes>'))
+  if orgUnitPath:
+    status, orgUnitPath = checkOrgUnitPathExists(cd, orgUnitPath)
+    if not status:
+      entityActionFailedWarning([Ent.CROS_DEVICE, u''], u'{0}: {1}, {2}'.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT), orgUnitPath, Msg.DOES_NOT_EXIST))
+      return
   i, count, entityList = getEntityArgument(entityList)
   function = None
   if action_body:
@@ -9950,14 +9956,15 @@ def updateCrOSDevices(entityList):
     kwargs = {parmId: None, u'body': action_body}
   else:
     if update_body:
+      if orgUnitPath and not quickCrOSMove:
+        update_body[u'orgUnitPath'] = orgUnitPath
+        orgUnitPath = None
       function = u'update'
       parmId = u'deviceId'
       kwargs = {parmId: None, u'body': update_body, u'fields': u''}
     if orgUnitPath:
       Act.Set(Act.ADD)
-      orgUnitPath = checkOrgUnitPathExists(cd, orgUnitPath)
-      if orgUnitPath:
-        _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, 0, 0, entityList, quickCrOSMove)
+      _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, 0, 0, entityList, quickCrOSMove)
       Act.Set(Act.UPDATE)
   if function is None:
     return
@@ -10922,7 +10929,7 @@ def doUpdateGroups():
 
 # Convert foo@googlemail.com to foo@gmail.com; eliminate periods in name for foo.bar@gmail.com
 
-  def _cleanAddress(emailAddress, mapCleanToOriginal):
+  def _cleanConsumerAddress(emailAddress, mapCleanToOriginal):
     atLoc = emailAddress.find(u'@')
     if atLoc > 0:
       if emailAddress[atLoc+1:] in [u'gmail.com', u'googlemail.com']:
@@ -11157,7 +11164,7 @@ def doUpdateGroups():
       syncMembersSet = set()
       syncMembersMap = {}
       for member in syncMembers:
-        syncMembersSet.add(_cleanAddress(convertUIDtoEmailAddress(member, cd=cd, emailType=u'any', checkForCustomerId=True), syncMembersMap))
+        syncMembersSet.add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailType=u'any', checkForCustomerId=True), syncMembersMap))
     checkForExtraneousArguments()
     i = 0
     count = len(entityList)
@@ -11167,13 +11174,13 @@ def doUpdateGroups():
         syncMembersSet = set()
         syncMembersMap = {}
         for member in syncMembers:
-          syncMembersSet.add(_cleanAddress(convertUIDtoEmailAddress(member, cd=cd, emailType=u'any', checkForCustomerId=True), syncMembersMap))
+          syncMembersSet.add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailType=u'any', checkForCustomerId=True), syncMembersMap))
       group = checkGroupExists(cd, group, i, count)
       if group:
         currentMembersSet = set()
         currentMembersMap = {}
         for member in getUsersToModify(Cmd.ENTITY_GROUP, group, memberRole=role, groupUserMembersOnly=False):
-          currentMembersSet.add(_cleanAddress(member, currentMembersMap))
+          currentMembersSet.add(_cleanConsumerAddress(member, currentMembersMap))
         _batchAddGroupMembers(cd, group, i, count,
                               [syncMembersMap.get(emailAddress, emailAddress) for emailAddress in syncMembersSet-currentMembersSet],
                               role)
@@ -15287,6 +15294,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         Cmd.Advance()
         if keyword != keywords[UProp.PTKW_CL_CUSTOM_KEYWORD]:
           attrdict[keywords[UProp.PTKW_ATTR_TYPE_KEYWORD]] = keyword
+          attrdict.pop(keywords[UProp.PTKW_ATTR_CUSTOMTYPE_KEYWORD], None)
           return
         if Cmd.ArgumentsRemaining():
           customType = Cmd.Current().strip()
@@ -15294,6 +15302,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
             Cmd.Advance()
             if keywords[UProp.PTKW_ATTR_TYPE_CUSTOM_VALUE]:
               attrdict[keywords[UProp.PTKW_ATTR_TYPE_KEYWORD]] = keywords[UProp.PTKW_ATTR_TYPE_CUSTOM_VALUE]
+            else:
+              attrdict.pop(keywords[UProp.PTKW_ATTR_TYPE_KEYWORD], None)
             attrdict[keywords[UProp.PTKW_ATTR_CUSTOMTYPE_KEYWORD]] = customType
             return
         missingArgumentExit(u'custom attribute type')
@@ -15303,6 +15313,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       elif keywords[UProp.PTKW_CL_CUSTOM_KEYWORD]:
         if keywords[UProp.PTKW_ATTR_TYPE_CUSTOM_VALUE]:
           attrdict[keywords[UProp.PTKW_ATTR_TYPE_KEYWORD]] = keywords[UProp.PTKW_ATTR_TYPE_CUSTOM_VALUE]
+        else:
+          attrdict.pop(keywords[UProp.PTKW_ATTR_TYPE_KEYWORD], None)
         attrdict[keywords[UProp.PTKW_ATTR_CUSTOMTYPE_KEYWORD]] = Cmd.Current()
         Cmd.Advance()
         return
@@ -15505,6 +15517,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
             getKeywordAttribute(UProp, typeKeywords, entry)
           elif argument == typeKeywords[UProp.PTKW_CL_CUSTOMTYPE_KEYWORD]:
             entry[typeKeywords[UProp.PTKW_ATTR_CUSTOMTYPE_KEYWORD]] = getString(Cmd.OB_STRING)
+            entry.pop(typeKeywords[UProp.PTKW_ATTR_TYPE_KEYWORD], None)
           elif argument in ORGANIZATION_ARGUMENT_TO_FIELD_MAP:
             value = getString(Cmd.OB_STRING, minLen=0)
             if value:

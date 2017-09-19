@@ -1,3 +1,8 @@
+4.54.01
+
+In gam update cros, the handling of the quickcrosmove option has changed.
+See: https://github.com/taers232c/GAMADV-XTD/wiki/ChromeOS-Devices
+
 4.54.00
 
 File display
