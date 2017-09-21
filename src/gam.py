@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.01'
+__version__ = u'4.54.02'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -23635,7 +23635,7 @@ def infoTeamDrive(users):
 def _printShowTeamDrives(users, csvFormat):
   if csvFormat:
     todrive = {}
-    titles, csvRows = initializeTitlesCSVfile([u'id', u'name'])
+    titles, csvRows = initializeTitlesCSVfile([u'User', u'id', u'name'])
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
@@ -23667,11 +23667,11 @@ def _printShowTeamDrives(users, csvFormat):
           Ind.Decrement()
         else:
           for teamdrive in feed:
-            addRowTitlesToCSVfile(flattenJSON(teamdrive), csvRows, titles)
+            addRowTitlesToCSVfile(flattenJSON(teamdrive, flattened={u'User': user}), csvRows, titles)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
   if csvFormat:
-    sortCSVTitles([u'id', u'name'], titles)
+    sortCSVTitles([u'User', u'id', u'name'], titles)
     writeCSVfile(csvRows, titles, u'TeamDrives', todrive)
 
 # gam <UserTypeEntity> print teamdrives [todrive [<ToDriveAttributes>]]

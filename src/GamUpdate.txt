@@ -1,3 +1,7 @@
+4.54.02
+
+Add a User column to the CSV file produced by gam print teamdrives.
+
 4.54.01
 
 In gam update cros, the handling of the quickcrosmove option has changed.
