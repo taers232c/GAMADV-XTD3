@@ -529,11 +529,11 @@ For example, to print all users in the Sales and Marketing groups, you would say
 Third Form Groups
 *****
 
-The gam print groups command can print all groups or those groups matching a query; GAMADVX extends this by allowing lists of groups.
+The gam print groups command can print all groups; GAMADVX extends this by allowing lists of groups.
 	gam print groups ... select <GroupEntity>
 
 For example, to print all groups listed in Group column of the CSV file Groups.csv, you would say:
-	gam print users select csvfile Groups.csv:Group
+	gam print groups select csvfile Groups.csv:Group
 
 *****
 Third Form Group Members

@@ -47,6 +47,7 @@ class GamAction(object):
   IMPORT = u'impo'
   INFO = u'info'
   INITIALIZE = u'init'
+  INSERT = u'insr'
   INVALIDATE = u'inva'
   LIST = u'list'
   MERGE = u'merg'
@@ -111,6 +112,7 @@ class GamAction(object):
     IMPORT: [u'Imported', u'Import'],
     INFO: [u'Shown', u'Show Info'],
     INITIALIZE: [u'Initialized', u'Initialize'],
+    INSERT: [u'Inserted', u'Insert'],
     INVALIDATE: [u'Invalidated', u'Invalidate'],
     LIST: [u'Listed', u'List'],
     MERGE: [u'Merged', u'Merge'],

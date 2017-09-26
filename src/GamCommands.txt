@@ -64,6 +64,98 @@ If an item contains spaces, it should be surrounded by ".
 	drive16tb|16tb|googledrivestorage16tb|Google-Drive-storage-16TB|
 	vault|googlevault|Google-Vault|
 	vfe|googlevaultformeremployee|Google-Vault-Former-Employee
+<SMTPDateHeader> ::=
+	date|
+	delivery-date|
+	expires|
+	expiry-date|
+	latest-delivery-time|
+	reply-by|
+	resent-date
+<SMTPHeader> ::=
+	accept-language|
+	alternate-recipient|
+	autoforwarded|
+	autosubmitted|
+	bcc|
+	cc|
+	comments|
+	content-alternative|
+	content-base|
+	content-description|
+	content-disposition|
+	content-duration|
+	content-id|
+	content-identifier|
+	content-language|
+	content-location|
+	content-md5|
+	content-return|
+	content-transfer-encoding|
+	content-type|
+	content-features|
+	conversion|
+	conversion-with-loss|
+	dl-expansion-history|
+	deferred-delivery|
+	delivered-to|
+	discarded-x400-ipms-extensions|
+	discarded-x400-mts-extensions|
+	disclose-recipients|
+	disposition-notification-options|
+	disposition-notification-to|
+	encoding|
+	encrypted|
+	from|
+	generate-delivery-report|
+	importance|
+	in-reply-to|
+	incomplete-copy|
+	keywords|
+	language|
+	list-archive|
+	list-help|
+	list-id|
+	list-owner|
+	list-post|
+	list-subscribe|
+	list-unsubscribe|
+	mime-version|
+	message-context|
+	message-id|
+	message-type|
+	obsoletes|
+	original-encoded-information-types|
+	original-message-id|
+	originator-return-address|
+	pics-label|
+	prevent-nondelivery-report|
+	priority|
+	received|
+	references|
+	reply-to|
+	resent-bcc|
+	resent-cc|
+	resent-from|
+	resent-message-id|
+	resent-reply-to|
+	resent-sender|
+	resent-to|
+	return-path|
+	sender|
+	sensitivity|
+	subject|
+	supersedes|
+	to|
+	x400-content-identifier|
+	x400-content-return|
+	x400-content-type|
+	x400-mts-identifier|
+	x400-originator|
+	x400-received|
+	x400-recipients|
+	x400-trace
+<SMTPHeaderList> ::= "<SMTPDateHeader|SMTPHeader>(,<SMTPDateHeader|SMTPHeader>)*"
 
 ## Basic items built from primitives
 
@@ -670,29 +762,23 @@ gam info cros <CrOSEntity> [nolists] [listlimit <Number>] [start <Date>] [end <D
 gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
 	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
 
+Print no header row and deviceId for specified CrOS devices; there is no CSV file redirection with these commands.
+
+gam <CrOSTypeEntity> print
+gam <CrOSTypeEntity> print cros
+
+All of the following commands support CSV file redirection.
+
+Print a header row and deviceId for all CrOS devices.
+
 gam print cros
+
+Print a header row and selected fields for specified CrOS devices; deviceId is the always the first column.
+If you specify allfields|basic|full, all other column headers are sorted.
+If you specify <CrOSFieldName>* | fields <CrOSFieldNameList>, the column headers appear in the order specified.
 gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
 	[orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
 	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
-gam <CrOSTypeEntity> print
-
-Summary of printing:
-gam print cros
-Prints a header row and deviceId for all CrOS devices.
-gam <CrOSTypeEntity> print cros
-Prints no header row and deviceId for specified CrOS devices.
-gam print cros ... basic|full
-Prints a header row and selected fields for specified CrOS devices.
-gam <CrOSTypeEntity> print cros
-Prints no header row and deviceId for specified CrOS devices.
-gam <CrOSTypeEntity> print cros deviceid
-Prints a header row and deviceId for specified CrOS devices.
-gam <CrOSTypeEntity> print cros ... basic|full|allfields
-Prints a header row and selected fields for specified CrOS devices.
-deviceId is the first column, all other column headers are sorted.
-gam <CrOSTypeEntity> print cros ... <CrOSFieldName>* | fields <CrOSFieldNameList>]
-Prints a header row and selected fields for specified CrOS devices.
-deviceId is the first column, all other column headers appear in the order specified.
 
 The basic argument outputs these column headers: deviceId,annotatedAssetId,annotatedLocation,annotatedUser,lastSync,notes,serialNumber,status
 The allfields/full arguments output all column headers including two headers, recentUsers and activeTimeRanges,
@@ -1492,26 +1578,25 @@ gam <UserTypeEntity> unsuspend users
 gam <UserTypeEntity> info users [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>]
 	[userview] <UserFieldName>* [fields <UserFieldNameList>] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
 
+Print no header row and primaryEmail for specified users; there is no CSV file redirection with these commands.
+
+gam <UserTypeEntity> print
+gam <UserTypeEntity> print users
+
+All of the following commands support CSV file redirection.
+
+Print a header row and primaryEmail for all users.
+
 gam print users
+
+Print a header row and selected fields for specified users; primaryEmail is the always the first column.
+If you specify allfields|basic|full, all other column headers are sorted.
+If you specify <UserFieldName>* | fields <UserFieldNameList>, the column headers appear in the order specified.
+
 gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [query <QueryUser>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
 	[groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
 	[orderby <UserOrderByFieldName> [ascending|descending]]
 	[userview] [allfields|basic|full | (<UserFieldName>* | fields <UserFieldNameList>)] [delimiter <String>]
-gam <UserTypeEntity> print
-
-Summary of printing:
-gam print users
-Prints a header row and primaryEmail for all users.
-gam <UserTypeEntity> print
-Prints no header row and primaryEmail for specified users.
-gam <UserTypeEntity> print users primaryemail
-Prints a header row and primaryEmail for specified users.
-gam <UserTypeEntity> print users ... basic|full|allfields
-Prints a header row and selected fields for specified users.
-primaryEmail is the first column, all other column headers are sorted.
-gam <UserTypeEntity> print users ... <UserFieldName>* | fields <UserFieldNameList>]
-Prints a header row and selected fields for specified users.
-primaryEmail is the first column, all other column headers appear in the order specified.
 
 # Users - Aliases
 
@@ -1990,7 +2075,16 @@ gam <UserTypeEntity> delete label|labels <LabelName>|regex:<RegularExpression>|-
 gam <UserTypeEntity> show labels|label [onlyuser [<Boolean>]] [showcounts [<Boolean>]] [nested [<Boolean>]] [display allfields|basename|fullname]
 gam <UserTypeEntity> print labels|label [onlyuser [<Boolean>]] [showcounts [<Boolean>]] [todrive [<ToDriveAttributes>]]
 
-gam <UserTypeEntity> archive messages <GroupItem> (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_archive <Number>])|(ids <MessageIDEntity>)
+gam <UserTypeEntity> import message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)* (addlabel <LabelName>)*
+	(textmessage <String>)|(textfile <FileName> [charset <CharSet>]) (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
+	(replace <Tag> <String>)* (attach <FileName>)*
+	[deleted [<Boolean>]] [nevermarkspam [<Boolean>]] [processforcalendar [<Boolean>]]
+gam <UserTypeEntity> insert message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)* (addlabel <LabelName>)*
+	(textmessage <String>)|(textfile <FileName> [charset <CharSet>]) (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
+	(replace <Tag> <String>)* (attach <FileName>)*
+	[deleted [<Boolean>]]
+
+gam <UserTypeEntity> archive messages <GroupItem> (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_archive|max_to_process <Number>])|(ids <MessageIDEntity>)
 gam <UserTypeEntity> delete messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_delete|max_to_process <Number>])|(ids <MessageIDEntity>)
 gam <UserTypeEntity> modify messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_modify|max_to_process <Number>])|(ids <MessageIDEntity>)
 	(addlabel <LabelName>)* (removelabel <LabelName>)*
@@ -1999,9 +2093,9 @@ gam <UserTypeEntity> trash messages|threads (((query <QueryGmail>) (matchlabel <
 gam <UserTypeEntity> untrash messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_untrash|max_to_process <Number>])|(ids <MessageIDEntity>)
 
 gam <UserTypeEntity> show messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show|max_to_process <Number>] [includespamtrash])|(ids <MessageIDEntity>)
-	[headers <String>] [showlabels] [showbody] [showsize] [showsnippet] [showattachments [attachmentnamepattern <RegularExpression>]]
+	[headers <SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [showattachments [attachmentnamepattern <RegularExpression>]]
 gam <UserTypeEntity> print messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_print|max_to_process <Number>] [includespamtrash])|(ids <MessageIDEntity>)
-	[headers <String>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <String>] [todrive [<ToDriveAttributes>]]
+	[headers <SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <String>] [todrive [<ToDriveAttributes>]]
 
 # Users - Gmail - Profile
 

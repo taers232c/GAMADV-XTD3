@@ -1,3 +1,25 @@
+4.54.04
+
+Update passlib to 1.7.1.
+
+4.54.03
+
+Import a message into a user's mailbox, with standard email delivery scanning and classification similar to receiving via SMTP.
+API Documentation: https://developers.google.com/gmail/api/v1/reference/users/messages/import
+    gam <UserTypeEntity> import message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)* (addlabel <LabelName>)*
+	(textmessage <String>)|(textfile <FileName> [charset <CharSet>]) (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
+	(replace <Tag> <String>)* (attach <FileName>)*
+	[deleted [<Boolean>]] [nevermarkspam [<Boolean>]] [processforcalendar [<Boolean>]]
+
+Insert a message into a user's mailbox similar to IMAP APPEND, bypassing most scanning and classification.
+API Documentation: https://developers.google.com/gmail/api/v1/reference/users/messages/insert
+    gam <UserTypeEntity> insert message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)* (addlabel <LabelName>)*
+	(textmessage <String>)|(textfile <FileName> [charset <CharSet>]) (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
+	(replace <Tag> <String>)* (attach <FileName>)*
+	[deleted [<Boolean>]]
+
+For details, see: https://github.com/taers232c/GAMADV-X/wiki/Users---Gmail---Messages-Threads
+
 4.54.02
 
 Add a User column to the CSV file produced by gam print teamdrives.
