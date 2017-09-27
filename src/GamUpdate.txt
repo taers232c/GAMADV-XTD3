@@ -1,3 +1,7 @@
+4.54.05
+
+Update code to reflect changes in PyInstaller.
+
 4.54.04
 
 Update passlib to 1.7.1.
