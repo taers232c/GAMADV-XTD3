@@ -25,12 +25,14 @@ class GamAction(object):
 # Keys into NAMES; arbitrary values but must be unique
   ADD = u'add '
   ADD_OWNERSHIP = u'adow'
+  APPEND = u'apnd'
   ARCHIVE = u'arch'
   BACKUP = u'back'
   CANCEL = u'canc'
   CHECK = u'chek'
   CLAIM = u'clai'
   CLAIM_OWNERSHIP = u'clow'
+  CLEAR = u'clea'
   CLOSE = u'clos'
   COLLECT = u'collect'
   COPY = u'copy'
@@ -91,12 +93,14 @@ class GamAction(object):
   _NAMES = {
     ADD: [u'Added', u'Add'],
     ADD_OWNERSHIP: [u'Ownership Added', u'Add Ownership'],
+    APPEND: [u'Appended', u'Append'],
     ARCHIVE: [u'Archived', u'Archive'],
     BACKUP: [u'Backed up', u'Backup'],
     CANCEL: [u'Cancelled', u'Cancel'],
     CHECK: [u'Checked', u'Check'],
     CLAIM: [u'Claimed', u'Claim'],
     CLAIM_OWNERSHIP: [u'Ownership Claimed', u'Claim Ownership'],
+    CLEAR: [u'Cleared', u'Clear'],
     CLOSE: [u'Closed', u'Close'],
     COLLECT: [u'Collected', u'Collect'],
     COPY: [u'Copied', u'Copy'],

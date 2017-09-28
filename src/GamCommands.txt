@@ -1021,7 +1021,7 @@ gam info instance [logo <FileName>]
 
 gam print transferapps
 
-<DataTransferService> ::= googledrive|gdrive|drive|"drive and docs"
+<DataTransferService> ::= googledrive|gdrive|drive|"drive and docs"|calendar
 
 <OldOwnerID> ::= <UserItem>
 <NewOwnerID> ::= <UserItem>

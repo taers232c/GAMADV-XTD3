@@ -155,6 +155,8 @@ class GamEntity(object):
   SSO_KEY = u'ssok'
   SSO_SETTINGS = u'ssos'
   SOURCE_USER = u'srcu'
+  SPREADSHEET = u'sprd'
+  SPREADSHEET_RANGE = u'ssrn'
   STUDENT = u'stud'
   SUBSCRIPTION = u'subs'
   TARGET_USER = u'tgtu'
@@ -306,6 +308,8 @@ class GamEntity(object):
     SSO_KEY: [u'SSO Key', u'SSO Key'],
     SSO_SETTINGS: [u'SSO Settings', u'SSO Settings'],
     SOURCE_USER: [u'Source Users', u'Source User'],
+    SPREADSHEET: [u'Spreadsheets', u'Spreadsheet'],
+    SPREADSHEET_RANGE: [u'Spreadsheet Ranges', u'Spreadsheet Range'],
     SUBSCRIPTION: [u'Subscriptions', u'Subscription'],
     STUDENT: [u'Students', u'Student'],
     TARGET_USER: [u'Target Users', u'Target User'],

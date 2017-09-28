@@ -1,4 +1,10 @@
-4.54.05
+4.48.06
+
+Calendars can now be transferred from one user to another.
+    <DataTransferService> ::= googledrive|gdrive|drive|"drive and docs"|calendar
+    gam create datatransfer|transfer <OldOwnerID> <DataTransferService> <NewOwnerID> [private|shared|all] (<ParameterKey> <ParameterValue>)*
+
+4.48.05
 
 Update code to reflect changes in PyInstaller.
 
