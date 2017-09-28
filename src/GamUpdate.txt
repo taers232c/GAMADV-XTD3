@@ -9,15 +9,19 @@ Added commands to manipulate spreadsheets.
 
     gam <UserTypeEntity> append sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>) [overwrite|insertrows]
 	[raw|userentered] [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
-	[includevaluesinresponse [<Boolean>]]
+	[includevaluesinresponse [<Boolean>]] [formatjson]
     gam <UserTypeEntity> update sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>)+
 	[raw|userentered] [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
-	[includevaluesinresponse [<Boolean>]]
+	[includevaluesinresponse [<Boolean>]] [formatjson]
+
     gam <UserTypeEntity> clear sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+
+
     gam <UserTypeEntity> print sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+  [todrive [<ToDriveAttributes>]]
 	[rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
+	[formatjson]
     gam <UserTypeEntity> show sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+
 	[rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
+	[formatjson]
 
 For details, see: https://github.com/taers232c/GAMADV-X/wiki/Users---Spreadsheets
 

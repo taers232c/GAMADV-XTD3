@@ -27209,7 +27209,7 @@ def _showUpdateValuesResponse(result, k, kcount):
 
 # gam <UserTypeEntity> append sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>) [overwrite|insertrows]
 #	[raw|userentered] [rows|columns] [serialnumber|formattedstring] [formula|formattedvalue|unformattedvalue]
-#	[includevaluesinresponse [<Boolean>]]
+#	[includevaluesinresponse [<Boolean>]] [formatjson]
 def appendSheetRanges(users):
   spreadsheetIdEntity = getDriveFileEntity()
   kwargs, spreadsheetRangesValues, majorDimension, formatJSON = _getSpreadsheetRangesValues(True)
@@ -27251,7 +27251,7 @@ def appendSheetRanges(users):
 
 # gam <UserTypeEntity> update sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>)*
 #	[raw|userentered] [rows|columns] [serialnumber|formattedstring] [formula|formattedvalue|unformattedvalue]
-#	[includevaluesinresponse [<Boolean>]]
+#	[includevaluesinresponse [<Boolean>]] [formatjson]
 def updateSheetRanges(users):
   spreadsheetIdEntity = getDriveFileEntity()
   body, spreadsheetRangesValues, majorDimension, formatJSON = _getSpreadsheetRangesValues(False)
@@ -27417,11 +27417,13 @@ def _printShowSheetRanges(users, csvFormat):
 
 # gam <UserTypeEntity> print sheetrange <DriveFileEntity> (range <SpreadsheetRange>)*  [todrive [<ToDriveAttributes>]]
 #	[rows|columns] [serialnumber|formattedstring] [formula|formattedvalue|unformattedvalue]
+#	[formatjson]
 def printSheetRanges(users):
   _printShowSheetRanges(users, True)
 
 # gam <UserTypeEntity> show sheetrange <DriveFileEntity> (range <SpreadsheetRange>)*
 #	[rows|columns] [serialnumber|formattedstring] [formula|formattedvalue|unformattedvalue]
+#	[formatjson]
 def showSheetRanges(users):
   _printShowSheetRanges(users, False)
 
