@@ -1,10 +1,33 @@
-4.48.06
+4.54.07
+
+Added commands to manipulate spreadsheets.
+
+    <SpreadsheetRange> ::= <String>
+    <SpreadsheetValue> ::= "<String>"|<Number>|true|false
+    <SpreadsheetValueList> ::= [<SpreadsheetValue>(,<SpreadsheetValue>)*]
+    <SpreadsheetValues> ::= '{"values": [<SpreadsheetValueList>(,<SpreadsheetValueList>)*]}
+
+    gam <UserTypeEntity> append sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>) [overwrite|insertrows]
+	[raw|userentered] [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
+	[includevaluesinresponse [<Boolean>]]
+    gam <UserTypeEntity> update sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>)+
+	[raw|userentered] [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
+	[includevaluesinresponse [<Boolean>]]
+    gam <UserTypeEntity> clear sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+
+    gam <UserTypeEntity> print sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+  [todrive [<ToDriveAttributes>]]
+	[rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
+    gam <UserTypeEntity> show sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+
+	[rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
+
+For details, see: https://github.com/taers232c/GAMADV-X/wiki/Users---Spreadsheets
+
+4.54.06
 
 Calendars can now be transferred from one user to another.
     <DataTransferService> ::= googledrive|gdrive|drive|"drive and docs"|calendar
     gam create datatransfer|transfer <OldOwnerID> <DataTransferService> <NewOwnerID> [private|shared|all] (<ParameterKey> <ParameterValue>)*
 
-4.48.05
+4.54.05
 
 Update code to reflect changes in PyInstaller.
 

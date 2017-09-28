@@ -268,6 +268,10 @@ If an item contains spaces, it should be surrounded by ".
 <Section> ::= <String>
 <SiteACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|default
 <SiteItem> ::= [<DomainName>/]<SiteName>
+<SpreadsheetRange> ::= <String>
+<SpreadsheetValue> ::= "<String>"|<Number>|true|false
+<SpreadsheetValueList> ::= [<SpreadsheetValue>(,<SpreadsheetValue>)*]
+<SpreadsheetValues> ::= '{"values": [<SpreadsheetValueList>(,<SpreadsheetValueList>)*]}
 <S/MIMEID> ::= <String>	
 <StudentItem> ::= <EmailAddress>|<UniqueID>|<String>
 <Tag> ::= <String>
@@ -2112,6 +2116,20 @@ gam <UserTypeEntity> delete sendas <EmailAddressEntity>
 gam <UserTypeEntity> info sendas <EmailAddressEntity> [format]
 gam <UserTypeEntity> show sendas [format]
 gam <UserTypeEntity> print sendas [todrive [<ToDriveAttributes>]]
+
+gam <UserTypeEntity> append sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>) [overwrite|insertrows]
+	[raw|userentered] [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
+	[includevaluesinresponse [<Boolean>]]
+gam <UserTypeEntity> update sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>)+
+	[raw|userentered] [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
+	[includevaluesinresponse [<Boolean>]]
+
+gam <UserTypeEntity> clear sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+
+
+gam <UserTypeEntity> print sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+  [todrive [<ToDriveAttributes>]]
+	[rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
+gam <UserTypeEntity> show sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+
+	[rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
 
 gam <UserTypeEntity> add smime file <FileName> [password <Password>] [sendas|sendasemail <EmailAddress>] [default]
 gam <UserTypeEntity> update smime [id <S/MIMEID>] [sendas|sendasemail <EmailAddress>] [default]

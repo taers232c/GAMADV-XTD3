@@ -40,6 +40,7 @@ GROUPSSETTINGS = u'groupssettings'
 LICENSING = u'licensing'
 REPORTS = u'reports'
 RESELLER = u'reseller'
+SHEETS = u'sheets'
 SITES = u'sites'
 SITEVERIFICATION = u'siteVerification'
 URLSHORTNER = u'urlshortner'
@@ -89,6 +90,7 @@ _INFO = {
   LICENSING: {u'version': u'v1', u'credfam': FAM1_SCOPES},
   REPORTS: {u'version': u'reports_v1', u'credfam': FAM2_SCOPES},
   RESELLER: {u'version': u'v1', u'credfam': FAM2_SCOPES},
+  SHEETS: {u'version': u'v4', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/spreadsheets',]},
   SITES: {u'version': u'v1', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://sites.google.com/feeds',], u'localjson': True},
   SITEVERIFICATION: {u'version': u'v1', u'credfam': FAM2_SCOPES},
   URLSHORTNER: {u'version': u'v1', u'credfam': FAM2_SCOPES},
