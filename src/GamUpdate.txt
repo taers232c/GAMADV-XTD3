@@ -27,7 +27,11 @@ Added commands to manipulate spreadsheets.
 	[rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
 	[formatjson]
 
-For details, see: https://github.com/taers232c/GAMADV-X/wiki/Users---Spreadsheets
+For details, see: https://github.com/taers232c/GAMADV-XTD/wiki/Users---Spreadsheets
+
+To use these commands, you must update your project to use the Google Sheets API and you must update your service account authorization.
+You can update your project manually or with the command: gam update project
+Update your service account authorization with the command: gam user user@domain.com check serviceaccount
 
 4.54.06
 
