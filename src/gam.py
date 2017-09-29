@@ -6627,7 +6627,7 @@ def doCreateDataTransfer():
     else:
       parameters[myarg.upper()] = getString(Cmd.OB_PARAMETER_VALUE).upper().split(u',')
   body[u'applicationDataTransfers'] = [{u'applicationId': serviceID}]
-  for key, valie in iteritems(parameters):
+  for key, value in iteritems(parameters):
     body[u'applicationDataTransfers'][0].setdefault(u'applicationTransferParams', [])
     body[u'applicationDataTransfers'][0][u'applicationTransferParams'].append({u'key': key, u'value': value})
   result = callGAPI(dt.transfers(), u'insert',
@@ -25367,7 +25367,7 @@ SMTP_DATE_HEADERS = [
 SMTP_NAME_ADDRESS_PATTERN = re.compile(r'^(.+?)\s*<(.+)>$')
 
 def _importInsertMessage(users, importMsg):
-#  from email import Charset
+  from email.charset import Charset
   from email.generator import Generator
   from email.header import Header
   from email.mime.text import MIMEText
@@ -25457,7 +25457,7 @@ def _importInsertMessage(users, importMsg):
     kwargs.update({u'neverMarkSpam': neverMarkSpam, u'processForCalendar': processForCalendar})
   else:
     function = u'insert'
-#  Charset.add_charset(UTF8, Charset.QP, Charset.QP, UTF8)
+  Charset.add_charset(UTF8, Charset.QP, Charset.QP, UTF8)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
