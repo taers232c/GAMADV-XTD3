@@ -1,3 +1,9 @@
+4.54.09
+
+Added formatjson to gam clear sheetrange.
+    gam <UserTypeEntity> clear sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+
+	[formatjson]
+
 4.54.08
 
 Fixed an error in gam append/update sheetrange that caused an exception when includevaluesinresponse was not specified.

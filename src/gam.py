@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.08'
+__version__ = u'4.54.09'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -27294,33 +27294,40 @@ def updateSheetRanges(users):
       Ind.Decrement()
     Ind.Decrement()
 
-# gam <UserTypeEntity> clear sheetrange <DriveFileEntity> (range <SpreadsheetRange>)*
+# gam <UserTypeEntity> clear sheetrange <DriveFileEntity> (range <SpreadsheetRange>)* [formatjson]
 def clearSheetRanges(users):
   spreadsheetIdEntity = getDriveFileEntity()
   body = {u'ranges': []}
+  formatJSON = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'range':
       body[u'ranges'].append(getString(Cmd.OB_SPREAD_SHEET_RANGE))
+    elif myarg == "formatjson":
+      formatJSON = True
     else:
       unknownArgumentExit()
   kcount = len(body[u'ranges'])
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, sheet, jcount = _validateUserGetSheetIDs(user, i, count, spreadsheetIdEntity, True)
+    user, sheet, jcount = _validateUserGetSheetIDs(user, i, count, spreadsheetIdEntity, not formatJSON)
     if jcount == 0:
       continue
     Ind.Increment()
     j = 0
     for spreadsheetId in spreadsheetIdEntity[u'list']:
       j += 1
-      entityPerformActionNumItems([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], kcount, Ent.SPREADSHEET_RANGE, j, jcount)
+      if not formatJSON:
+        entityPerformActionNumItems([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], kcount, Ent.SPREADSHEET_RANGE, j, jcount)
       Ind.Increment()
       try:
         result = callGAPIitems(sheet.spreadsheets().values(), u'batchClear', u'clearedRanges',
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.SHEETS_ACCESS_THROW_REASONS,
                                spreadsheetId=spreadsheetId, body=body)
+        if formatJSON:
+          printLine(json.dumps({u'User': user, u'spreadsheetId': spreadsheetId, u'clearedRanges': result}, ensure_ascii=False, sort_keys=False))
+          continue
         k = 0
         for clearedRange in result:
           k += 1

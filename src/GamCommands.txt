@@ -2119,17 +2119,20 @@ gam <UserTypeEntity> print sendas [todrive [<ToDriveAttributes>]]
 
 gam <UserTypeEntity> append sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>) [overwrite|insertrows]
 	[raw|userentered] [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
-	[includevaluesinresponse [<Boolean>]]
+	[includevaluesinresponse [<Boolean>]] [formatjson]
 gam <UserTypeEntity> update sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>)+
 	[raw|userentered] [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
-	[includevaluesinresponse [<Boolean>]]
+	[includevaluesinresponse [<Boolean>]] [formatjson]
 
 gam <UserTypeEntity> clear sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+
+	[formatjson]
 
 gam <UserTypeEntity> print sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+  [todrive [<ToDriveAttributes>]]
 	[rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
+        [formatjson]
 gam <UserTypeEntity> show sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+
 	[rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
+        [formatjson]
 
 gam <UserTypeEntity> add smime file <FileName> [password <Password>] [sendas|sendasemail <EmailAddress>] [default]
 gam <UserTypeEntity> update smime [id <S/MIMEID>] [sendas|sendasemail <EmailAddress>] [default]
