@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.09'
+__version__ = u'4.54.10'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -25367,7 +25367,7 @@ SMTP_DATE_HEADERS = [
 SMTP_NAME_ADDRESS_PATTERN = re.compile(r'^(.+?)\s*<(.+)>$')
 
 def _importInsertMessage(users, importMsg):
-  from email.charset import Charset
+  from email.charset import add_charset, QP
   from email.generator import Generator
   from email.header import Header
   from email.mime.text import MIMEText
@@ -25457,7 +25457,7 @@ def _importInsertMessage(users, importMsg):
     kwargs.update({u'neverMarkSpam': neverMarkSpam, u'processForCalendar': processForCalendar})
   else:
     function = u'insert'
-  Charset.add_charset(UTF8, Charset.QP, Charset.QP, UTF8)
+  add_charset(UTF8, QP, QP, UTF8)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
