@@ -11,5 +11,6 @@ groupssettings.googleapis.com
 licensing.googleapis.com
 plus.googleapis.com
 reseller.googleapis.com
+sheets.googleapis.com
 siteverification.googleapis.com
 vault.googleapis.com
