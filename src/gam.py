@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.10'
+__version__ = u'4.54.11'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -1258,18 +1258,21 @@ def getCharSet():
     return getString(Cmd.OB_CHAR_SET)
   return GC.Values[GC.CHARSET]
 
-def getDelimiter(checkForArgument=False):
-  if checkForArgument and not checkArgumentPresent([u'delimiter',]):
-    return None
+def getCharacter():
   if Cmd.ArgumentsRemaining():
-    argstr = codecs.escape_decode(bytes(Cmd.Current(), u"utf-8"))[0].decode(u"utf-8")
+    argstr = Cmd.Current().decode(u'string_escape')
     if argstr:
       if len(argstr) == 1:
         Cmd.Advance()
         return argstr
-      invalidArgumentExit(u'{0} for {1}'.format(integerLimits(1, 1, Msg.STRING_LENGTH), Cmd.OB_DELIMITER))
-    emptyArgumentExit(Cmd.OB_DELIMITER)
-  missingArgumentExit(Cmd.OB_DELIMITER)
+      invalidArgumentExit(u'{0} for {1}'.format(integerLimits(1, 1, Msg.STRING_LENGTH), Cmd.OB_CHARACTER))
+    emptyArgumentExit(Cmd.OB_CHARACTER)
+  missingArgumentExit(Cmd.OB_CHARACTER)
+
+def getDelimiter():
+  if not checkArgumentPresent(Cmd.DELIMITER_ARGUMENT):
+    return None
+  return getCharacter()
 
 def getMatchFields(fieldNames):
   matchFields = {}
@@ -1795,19 +1798,23 @@ def deleteFile(filename, continueOnError=False, displayError=True):
         return
       systemErrorExit(FILE_ERROR_RC, e)
 
-# Open a CSV file, get optional arguments [charset <String>] [columndelimiter <String>] [fields <FieldNameList>]
+# Open a CSV file, get optional arguments [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
 def openCSVFileReader(filename):
   encoding = getCharSet()
   if checkArgumentPresent(Cmd.COLUMN_DELIMITER_ARGUMENT):
-    delimiter = getDelimiter()
+    delimiter = getCharacter()
   else:
     delimiter = GC.Values[GC.CSV_INPUT_COLUMN_DELIMITER]
-  if checkArgumentPresent([u'fields',]):
+  if checkArgumentPresent(Cmd.QUOTE_CHAR_ARGUMENT):
+    quotechar = getCharacter()
+  else:
+    quotechar = GC.Values[GC.CSV_INPUT_QUOTE_CHAR]
+  if checkArgumentPresent(Cmd.FIELDS_ARGUMENT):
     fieldnames = shlexSplitList(getString(Cmd.OB_FIELD_NAME_LIST))
   else:
     fieldnames = None
   f = openFile(filename, mode=DEFAULT_CSV_READ_MODE, encoding=encoding)
-  csvFile = csv.DictReader(f, fieldnames=fieldnames, delimiter=delimiter)
+  csvFile = csv.DictReader(f, fieldnames=fieldnames, delimiter=delimiter, quotechar=quotechar)
   return (f, csvFile)
 
 # Set global variables from config file
@@ -1816,7 +1823,7 @@ def openCSVFileReader(filename):
 def SetGlobalVariables():
 
   def _stringInQuotes(value):
-    return (value.startswith(u'"') and value.endswith(u'"')) or (value.startswith(u"'") and value.endswith(u"'"))
+    return (len(value) > 1) and (((value.startswith(u'"') and value.endswith(u'"'))) or ((value.startswith(u"'") and value.endswith(u"'"))))
 
   def _stripStringQuotes(value):
     if _stringInQuotes(value):
@@ -2046,6 +2053,7 @@ def SetGlobalVariables():
     GM.Globals[GM.CSVFILE][GM.REDIRECT_MODE] = mode
     GM.Globals[GM.CSVFILE][GM.REDIRECT_ENCODING] = encoding
     GM.Globals[GM.CSVFILE][GM.REDIRECT_COLUMN_DELIMITER] = GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER]
+    GM.Globals[GM.CSVFILE][GM.REDIRECT_QUOTE_CHAR] = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
     GM.Globals[GM.CSVFILE][GM.REDIRECT_WRITE_HEADER] = writeHeader
     GM.Globals[GM.CSVFILE][GM.REDIRECT_MULTIPROCESS] = multi
     GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = None
@@ -2188,7 +2196,7 @@ def SetGlobalVariables():
     GM.Globals[GM.OAUTH2_CLIENT_ID] = None
   Cmd.SetEncoding(GM.Globals[GM.SYS_ENCODING])
   GM.Globals[GM.DATETIME_NOW] = datetime.datetime.now(GC.Values[GC.TIMEZONE])
-# redirect csv <FileName> [multiprocess] [append] [noheader] [charset <CharSet>] [columndelimiter <Character>]]
+# redirect csv <FileName> [multiprocess] [append] [noheader] [charset <CharSet>] [columndelimiter <Character>] [quotechar <Character>]]
 # redirect stdout <FileName> [multiprocess] [append]
 # redirect stdout null
 # redirect stderr <FileName> [multiprocess] [append]
@@ -2203,7 +2211,9 @@ def SetGlobalVariables():
       writeHeader = False if checkArgumentPresent([u'noheader',]) else True
       encoding = getCharSet()
       if checkArgumentPresent(Cmd.COLUMN_DELIMITER_ARGUMENT):
-        GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER] = getDelimiter()
+        GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER] = getCharacter()
+      if checkArgumentPresent(Cmd.QUOTE_CHAR_ARGUMENT):
+        GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR] = getCharacter()
       _setCSVFile(filename, mode, encoding, writeHeader, multi)
     elif myarg == u'stdout':
       if filename.lower() == u'null':
@@ -3449,11 +3459,11 @@ def splitEntityList(entity, dataDelimiter, shlexSplit):
     return entity.split(dataDelimiter)
   return shlexSplitList(entity, dataDelimiter)
 
-# <FileName> [charset <String>] [delimiter <String>]
+# <FileName> [charset <String>] [delimiter <Character>]
 def getEntitiesFromFile(shlexSplit):
   filename = getString(Cmd.OB_FILE_NAME)
   encoding = getCharSet()
-  dataDelimiter = getDelimiter(True)
+  dataDelimiter = getDelimiter()
   entitySet = set()
   entityList = []
   f = openFile(filename, encoding=encoding)
@@ -3466,7 +3476,7 @@ def getEntitiesFromFile(shlexSplit):
   closeFile(f)
   return entityList
 
-# <FileName>(:<FieldName>)+ [charset <String>] [columndelimiter <String>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <String>]
+# <FileName>(:<FieldName>)+ [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>]
 def getEntitiesFromCSVFile(shlexSplit):
   try:
     fileFieldNameList = getString(Cmd.OB_FILE_NAME_FIELD_NAME).split(u':')
@@ -3480,7 +3490,7 @@ def getEntitiesFromCSVFile(shlexSplit):
     if fieldName not in csvFile.fieldnames:
       csvFieldErrorExit(fieldName, csvFile.fieldnames, backupArg=True, checkForCharset=True)
   matchFields = getMatchFields(csvFile.fieldnames)
-  dataDelimiter = getDelimiter(True)
+  dataDelimiter = getDelimiter()
   entitySet = set()
   entityList = []
   for row in csvFile:
@@ -3494,11 +3504,11 @@ def getEntitiesFromCSVFile(shlexSplit):
   closeFile(f)
   return entityList
 
-# <FileName> [charset <String>] [columndelimiter <String>] [fields <FieldNameList>]
-#	keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
-#	subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
+# <FileName> [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+#	keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+#	subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
 #	(matchfield <FieldName> <RegularExpression>)*
-#	[datafield <FieldName>(:<FieldName>)* [delimiter <String>]]
+#	[datafield <FieldName>(:<FieldName>)* [delimiter <Character>]]
 def getEntitiesFromCSVbyField():
 
   def getKeyFieldInfo(keyword, required, globalKeyField):
@@ -3516,7 +3526,7 @@ def getEntitiesFromCSVbyField():
       keyValue = getString(Cmd.OB_STRING)
     else:
       keyValue = keyField
-    keyDelimiter = getDelimiter(True)
+    keyDelimiter = getDelimiter()
     return (keyField, keyPattern, keyValue, keyDelimiter)
 
   def getKeyList(row, keyField, keyPattern, keyValue, keyDelimiter, matchFields):
@@ -3544,7 +3554,7 @@ def getEntitiesFromCSVbyField():
     for dataField in dataFields:
       if dataField not in csvFile.fieldnames:
         csvFieldErrorExit(dataField, csvFile.fieldnames, backupArg=True)
-    dataDelimiter = getDelimiter(True)
+    dataDelimiter = getDelimiter()
   else:
     GM.Globals[GM.CSV_DATA_FIELD] = None
     dataFields = []
@@ -4020,7 +4030,7 @@ def sortCSVTitles(firstTitle, titles):
   for title in restoreTitles[::-1]:
     titles[u'list'].insert(0, title)
 
-def writeCSVfile(csvRows, titles, list_type, todrive, quotechar='"'):
+def writeCSVfile(csvRows, titles, list_type, todrive, quotechar=None):
 
   def writeCSVData(writer):
     try:
@@ -4036,7 +4046,7 @@ def writeCSVfile(csvRows, titles, list_type, todrive, quotechar='"'):
     csvFile = StringIOobject()
     writer = csv.DictWriter(csvFile, fieldnames=titles[u'list'],
                             dialect=u'nixstdout',
-                            quoting=csv.QUOTE_MINIMAL, quotechar=quotechar, delimiter=str(GM.Globals[GM.CSVFILE][GM.REDIRECT_COLUMN_DELIMITER]))
+                            quoting=csv.QUOTE_MINIMAL, quotechar=quotechar, delimiter=delimiter)
     if writeCSVData(writer):
       try:
         GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD].write(csvFile.getvalue())
@@ -4050,7 +4060,7 @@ def writeCSVfile(csvRows, titles, list_type, todrive, quotechar='"'):
     if csvFile:
       writer = csv.DictWriter(csvFile, fieldnames=titles[u'list'],
                               dialect=u'nixstdout',
-                              quoting=csv.QUOTE_MINIMAL, quotechar=quotechar, delimiter=str(GM.Globals[GM.CSVFILE][GM.REDIRECT_COLUMN_DELIMITER]))
+                              quoting=csv.QUOTE_MINIMAL, quotechar=quotechar, delimiter=delimiter)
       writeCSVData(writer)
       closeFile(csvFile)
 
@@ -4058,7 +4068,7 @@ def writeCSVfile(csvRows, titles, list_type, todrive, quotechar='"'):
     csvFile = StringIOobject()
     writer = csv.DictWriter(csvFile, fieldnames=titles[u'list'],
                             dialect=u'nixstdout',
-                            quoting=csv.QUOTE_MINIMAL, quotechar=quotechar, delimiter=str(GM.Globals[GM.CSVFILE][GM.REDIRECT_COLUMN_DELIMITER]))
+                            quoting=csv.QUOTE_MINIMAL, quotechar=quotechar, delimiter=delimiter)
     if writeCSVData(writer):
       if GC.Values[GC.TODRIVE_CONVERSION]:
         columns = len(titles[u'list'])
@@ -4109,6 +4119,10 @@ def writeCSVfile(csvRows, titles, list_type, todrive, quotechar='"'):
     GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_TITLES, titles[u'list']))
     GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_DATA, csvRows))
     return
+  if quotechar is None:
+    quotechar = GM.Globals[GM.CSVFILE][GM.REDIRECT_QUOTE_CHAR]
+  quotechar = str(quotechar)
+  delimiter = str(GM.Globals[GM.CSVFILE][GM.REDIRECT_COLUMN_DELIMITER])
   csv.register_dialect(u'nixstdout', lineterminator=u'\n')
   if (not todrive) or todrive[u'localcopy']:
     if GM.Globals[GM.CSVFILE][GM.REDIRECT_NAME] == u'-':
@@ -4748,7 +4762,7 @@ def processSubFields(GAM_argv, row, subFields):
     argv[GAM_argvI] += oargv[pos:]
   return argv
 
-# gam csv <FileName>|- [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* gam <GAM argument list>
+# gam csv <FileName>|- [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* gam <GAM argument list>
 def doCSV():
   filename = getString(Cmd.OB_FILE_NAME)
   if (filename == u'-') and (GC.Values[GC.DEBUG_LEVEL] > 0):
@@ -4793,7 +4807,7 @@ def _doList(entityList, entityType):
     addTitleToCSVfile(dataField, titles)
   else:
     entityItemLists = None
-  dataDelimiter = getDelimiter(True)
+  dataDelimiter = getDelimiter()
   checkForExtraneousArguments()
   _, _, entityList = getEntityArgument(entityList)
   for entity in entityList:
@@ -4816,15 +4830,15 @@ def _doList(entityList, entityType):
       csvRows.append({keyField: entityEmail})
   writeCSVfile(csvRows, titles, u'Entity', todrive)
 
-# gam list [todrive [<ToDriveAttributes>]] <EntityList> [data <CrOSTypeEntity>|<UserTypeEntity> [delimiter <String>]]
+# gam list [todrive [<ToDriveAttributes>]] <EntityList> [data <CrOSTypeEntity>|<UserTypeEntity> [delimiter <Character>]]
 def doListType():
   _doList(None, None)
 
-# gam <CrOSTypeEntity> list [todrive [<ToDriveAttributes>]] [data <EntityList> [delimiter <String>]]
+# gam <CrOSTypeEntity> list [todrive [<ToDriveAttributes>]] [data <EntityList> [delimiter <Character>]]
 def doListCrOS(entityList):
   _doList(entityList, Cmd.ENTITY_CROS)
 
-# gam <UserTypeEntity> list [todrive [<ToDriveAttributes>]] [data <EntityList> [delimiter <String>]]
+# gam <UserTypeEntity> list [todrive [<ToDriveAttributes>]] [data <EntityList> [delimiter <Character>]]
 def doListUser(entityList):
   _doList(entityList, Cmd.ENTITY_USERS)
 
@@ -6679,7 +6693,7 @@ DATA_TRANSFER_STATUS_MAP = {
   u'inprogress': u'inProgress',
   }
 
-# gam print datatransfers|transfers [todrive [<ToDriveAttributes>]] [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>] [status <String>] [delimiter <String>]]
+# gam print datatransfers|transfers [todrive [<ToDriveAttributes>]] [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>] [status <String>] [delimiter <Character>]]
 def doPrintDataTransfers():
   dt = buildGAPIObject(API.DATATRANSFER)
   newOwnerUserId = None
@@ -6699,7 +6713,7 @@ def doPrintDataTransfers():
     elif myarg == u'status':
       status = getChoice(DATA_TRANSFER_STATUS_MAP, mapChoice=True)
     elif myarg == u'delimiter':
-      delimiter = getDelimiter()
+      delimiter = getCharacter()
     else:
       unknownArgumentExit()
   try:
@@ -10378,7 +10392,7 @@ def doPrintCrOSDevices(entityList=None):
 
 # gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [listlimit <Number>] [start <Date>] [end <Date>]
-#	[delimiter <String>]
+#	[delimiter <Character>]
 def doPrintCrOSActivity(entityList=None):
   def _printCrOS(cros):
     row = {}
@@ -10446,7 +10460,7 @@ def doPrintCrOSActivity(entityList=None):
       orderBy = getChoice(CROS_ORDERBY_CHOICE_MAP, mapChoice=True)
       sortOrder = getChoice(SORTORDER_CHOICE_MAP, defaultChoice=u'ASCENDING', mapChoice=True)
     elif myarg == u'delimiter':
-      delimiter = getDelimiter()
+      delimiter = getCharacter()
     else:
       unknownArgumentExit()
   if not selectRecentUsers and not selectActiveTimeRanges:
@@ -10705,7 +10719,7 @@ MOBILE_ORDERBY_CHOICE_MAP = {
 # gam print mobile [todrive [<ToDriveAttributes>]] [query <QueryMobile>]
 #	[orderby <MobileOrderByFieldName> [ascending|descending]] [noapps]
 #	[basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>]
-#	[delimiter <String>] [appslimit <Number>] [listlimit <Number>]
+#	[delimiter <Character>] [appslimit <Number>] [listlimit <Number>]
 def doPrintMobileDevices():
   cd = buildGAPIObject(API.DIRECTORY)
   todrive = {}
@@ -10725,7 +10739,7 @@ def doPrintMobileDevices():
       orderBy = getChoice(MOBILE_ORDERBY_CHOICE_MAP, mapChoice=True)
       sortOrder = getChoice(SORTORDER_CHOICE_MAP, defaultChoice=u'ASCENDING', mapChoice=True)
     elif myarg == u'delimiter':
-      delimiter = getDelimiter()
+      delimiter = getCharacter()
     elif myarg == u'listlimit':
       listLimit = getInteger(minVal=-1)
     elif myarg == u'appslimit':
@@ -11436,7 +11450,7 @@ def groupQuery(domain, userKey):
   return u''
 
 # gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member <UserItem>])|[select <GroupEntity>]
-#         [maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])] [convertcrnl] [delimiter <String>]
+#         [maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])] [convertcrnl] [delimiter <Character>]
 #         [members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
 def doPrintGroups():
 
@@ -11633,7 +11647,7 @@ def doPrintGroups():
     elif myarg in [u'convertcrnl', u'converttextnl', u'convertfooternl']:
       convertCRNL = True
     elif myarg == u'delimiter':
-      delimiter = getDelimiter()
+      delimiter = getCharacter()
     elif myarg == u'settings':
       getSettings = sortHeaders = True
     elif myarg == u'allfields':
@@ -14942,7 +14956,7 @@ def _printShowSites(entityList, entityType, csvFormat):
     elif myarg in [u'convertcrnl', u'converttextnl', u'convertsummarynl']:
       convertCRNL = True
     elif myarg == u'delimiter':
-      delimiter = getDelimiter()
+      delimiter = getCharacter()
     else:
       unknownArgumentExit()
   sitesManager = SitesManager()
@@ -14998,7 +15012,7 @@ def _printShowSites(entityList, entityType, csvFormat):
     writeCSVfile(csvRows, titles, u'Sites', todrive)
 
 # gam [<UserTypeEntity>] print sites [todrive [<ToDriveAttributes>]] [domain|domains <DomainNameEntity>] [includeallsites]
-#	[withmappings] [role|roles all|<SiteACLRoleList>] [maxresults <Number>] [convertcrnl] [delimiter <String>]
+#	[withmappings] [role|roles all|<SiteACLRoleList>] [maxresults <Number>] [convertcrnl] [delimiter <Character>]
 def printUserSites(users):
   _printShowSites(users, Ent.USER, True)
 
@@ -15008,7 +15022,7 @@ def showUserSites(users):
   _printShowSites(users, Ent.USER, False)
 
 # gam print sites [todrive [<ToDriveAttributes>]] [domain|domains <DomainNameEntity>] [includeallsites]
-#	[withmappings] [role|roles all|<SiteACLRoleList>] [maxresults <Number>] [convertcrnl] [delimiter <String>]
+#	[withmappings] [role|roles all|<SiteACLRoleList>] [maxresults <Number>] [convertcrnl] [delimiter <Character>]
 def doPrintDomainSites():
   _printShowSites([GC.Values[GC.DOMAIN],], Ent.DOMAIN, True)
 
@@ -16475,7 +16489,7 @@ USERS_ORDERBY_CHOICE_MAP = {
 # gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [query <QueryUsers>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
 #	[groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
 #	[orderby <UserOrderByFieldName> [ascending|descending]]
-#	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>] [delimiter <String>]
+#	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>] [delimiter <Character>]
 def doPrintUsers(entityList=None):
   def _printUser(userEntity):
     if email_parts and (u'primaryEmail' in userEntity):
@@ -16542,7 +16556,7 @@ def doPrintUsers(entityList=None):
       else:
         projection = u'custom'
     elif myarg == u'delimiter':
-      delimiter = getDelimiter()
+      delimiter = getCharacter()
     elif myarg in PROJECTION_CHOICE_MAP:
       projection = myarg
       sortHeaders = True
@@ -17270,7 +17284,7 @@ def doInfoCourse():
   _doInfoCourses(getStringReturnInList(Cmd.OB_COURSE_ID))
 
 # gam print courses [todrive [<ToDriveAttributes>]] (course|class <CourseID>)*|([teacher <UserItem>] [student <UserItem>])
-#	[owneremail] [alias|aliases] [delimiter <String>] [show none|all|students|teachers] [countsonly] [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
+#	[owneremail] [alias|aliases] [delimiter <Character>] [show none|all|students|teachers] [countsonly] [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
 def doPrintCourses():
 
   def _saveParticipants(course, participants, role, rtitles):
@@ -17321,7 +17335,7 @@ def doPrintCourses():
     elif myarg == u'student':
       studentId = getEmailAddress()
     elif myarg == u'delimiter':
-      delimiter = getDelimiter()
+      delimiter = getCharacter()
     else:
       _getCourseShowProperties(myarg, courseShowProperties)
   if len(courses) == 0:
@@ -17909,7 +17923,7 @@ def doInfoPrinters():
     except GCP.unknownPrinter as e:
       entityActionFailedWarning([Ent.PRINTER, printerId], str(e), i, count)
 
-# gam print printers [todrive [<ToDriveAttributes>]] [query <QueryPrintJob>] [type <String>] [status <String>] [extrafields <String>] [delimiter <String>]
+# gam print printers [todrive [<ToDriveAttributes>]] [query <QueryPrintJob>] [type <String>] [status <String>] [extrafields <String>] [delimiter <Character>]
 def doPrintPrinters():
   cp = buildGAPIObject(API.CLOUDPRINT)
   todrive = {}
@@ -17932,7 +17946,7 @@ def doPrintPrinters():
     elif myarg == u'extrafields':
       extra_fields = getString(Cmd.OB_STRING)
     elif myarg == u'delimiter':
-      delimiter = getDelimiter()
+      delimiter = getCharacter()
     else:
       unknownArgumentExit()
   printers = callGCP(cp.printers(), u'list',
@@ -18368,7 +18382,7 @@ def doPrintJobFetch(printerIdList):
 #	[status <PrintJobStatus>]
 #	[orderby <PrintJobOrderByFieldName> [ascending|descending]]
 #	[owner|user <EmailAddress>]
-#	[limit <Number>] [delimiter <String>]
+#	[limit <Number>] [delimiter <Character>]
 def doPrintPrintJobs():
   cp = buildGAPIObject(API.CLOUDPRINT)
   todrive = {}
@@ -18383,7 +18397,7 @@ def doPrintPrintJobs():
     elif myarg in [u'printer', u'printerid']:
       printerId = getString(Cmd.OB_PRINTER_ID)
     elif myarg == u'delimiter':
-      delimiter = getDelimiter()
+      delimiter = getCharacter()
     else:
       getPrintjobListParameters(myarg, parameters)
   if printerId:
@@ -20097,7 +20111,7 @@ def _printShowDriveSettings(users, csvFormat):
     if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
     elif myarg == u'delimiter':
-      delimiter = getDelimiter()
+      delimiter = getCharacter()
     elif myarg == u'allfields':
       for field in DRIVESETTINGS_FIELDS_CHOICE_MAP:
         fieldsList.append(DRIVESETTINGS_FIELDS_CHOICE_MAP[field])
@@ -20195,11 +20209,11 @@ def _printShowDriveSettings(users, csvFormat):
     sortCSVTitles([u'email',]+DRIVESETTINGS_SCALAR_FIELDS, titles)
     writeCSVfile(csvRows, titles, u'User Drive Settings', todrive)
 
-# gam <UserTypeEntity> print drivesettings [todrive [<ToDriveAttributes>]] [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <String>]
+# gam <UserTypeEntity> print drivesettings [todrive [<ToDriveAttributes>]] [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <Character>]
 def printDriveSettings(users):
   _printShowDriveSettings(users, True)
 
-# gam <UserTypeEntity> show drivesettings [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <String>]
+# gam <UserTypeEntity> show drivesettings [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <Character>]
 def showDriveSettings(users):
   _printShowDriveSettings(users, False)
 
@@ -21067,7 +21081,7 @@ FILELIST_FIELDS_TITLES = [u'id', u'mimeType', u'parents']
 # gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)]
 #	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
 #	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [mimetype [not] <MimeTypeList>] [depth <Number>]
-#	[filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <String>]
+#	[filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
 def printFileList(users):
   def _setSelectionFields():
     if fileIdEntity:
@@ -21256,7 +21270,7 @@ def printFileList(users):
     elif myarg == u'showmimetype':
       getMimeTypeCheck(mimeTypeCheck)
     elif myarg == u'delimiter':
-      delimiter = getDelimiter()
+      delimiter = getCharacter()
     elif myarg == u'corpora':
       _getCorpora(kwargs)
       getTeamDriveNames = True
@@ -24130,7 +24144,7 @@ def _printShowTokens(entityType, users, csvFormat):
     elif myarg == u'clientid':
       clientId = commonClientIds(getString(Cmd.OB_CLIENT_ID))
     elif myarg == u'delimiter':
-      delimiter = getDelimiter()
+      delimiter = getCharacter()
     elif not entityType:
       Cmd.Backup()
       entityType, users = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
@@ -24181,11 +24195,11 @@ def _printShowTokens(entityType, users, csvFormat):
 def showTokens(users):
   _printShowTokens(Cmd.ENTITY_USERS, users, False)
 
-# gam <UserTypeEntity> print tokens|token [todrive [<ToDriveAttributes>]] [clientid <ClientID>] [delimiter <String>]
+# gam <UserTypeEntity> print tokens|token [todrive [<ToDriveAttributes>]] [clientid <ClientID>] [delimiter <Character>]
 def printTokens(users):
   _printShowTokens(Cmd.ENTITY_USERS, users, True)
 
-# gam print tokens|token [todrive [<ToDriveAttributes>]] [clientid <ClientID>] [<UserTypeEntity>] [delimiter <String>]
+# gam print tokens|token [todrive [<ToDriveAttributes>]] [clientid <ClientID>] [<UserTypeEntity>] [delimiter <Character>]
 def doPrintTokens():
   _printShowTokens(None, None, True)
 
@@ -25537,11 +25551,11 @@ def _importInsertMessage(users, importMsg):
           _appendToHeader(message[header], value)
       else:
         _appendToHeader(message[header], value)
-    tmpFile = TemporaryFile()
+    tmpFile = TemporaryFile(mode=u'w+')
     g = Generator(tmpFile, False)
     g.flatten(message)
     tmpFile.seek(0)
-    body = {u'raw': base64.urlsafe_b64encode(tmpFile.read())}
+    body = {u'raw': base64.urlsafe_b64encode(bytes(tmpFile.read(), UTF8)).decode()}
     tmpFile.close()
     try:
       if addLabelNames:
@@ -25854,7 +25868,7 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
     elif myarg == u'includespamtrash':
       includeSpamTrash = True
     elif myarg == u'delimiter':
-      delimiter = getDelimiter()
+      delimiter = getCharacter()
     else:
       unknownArgumentExit()
   if query:
@@ -25932,12 +25946,12 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
     writeCSVfile(csvRows, titles, u'Messages', todrive)
 
 # gam <UserTypeEntity> print message|messages (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <MessageIDEntity>)
-#	[headers <SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <String>] [todrive [<ToDriveAttributes>]]
+#	[headers <SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <Character>] [todrive [<ToDriveAttributes>]]
 def printMessages(users):
   _printShowMessagesThreads(users, Ent.MESSAGE, True)
 
 # gam <UserTypeEntity> print thread|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <ThreadIDEntity>)
-#	[headers <SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <String>] [todrive [<ToDriveAttributes>]]
+#	[headers <SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <Character>] [todrive [<ToDriveAttributes>]]
 def printThreads(users):
   _printShowMessagesThreads(users, Ent.THREAD, True)
 
@@ -27140,7 +27154,7 @@ SHEET_INSERT_DATA_OPTIONS_MAP = {
   u'insertrows': u'INSERT_ROWS',
   }
 
-def _validateUserGetSheetIDs(user, i, count, fileIdEntity, showEntityType):
+def _validateUserGetSpreadsheetIDs(user, i, count, fileIdEntity, showEntityType):
   user, _, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.SPREADSHEET if showEntityType else None)
   if jcount == 0:
     return (user, None, 0)
@@ -27150,7 +27164,7 @@ def _validateUserGetSheetIDs(user, i, count, fileIdEntity, showEntityType):
   return (user, sheet, jcount)
 
 def _getSpreadsheetRangesValues(append):
-  spreadsheetRangesValues = {}
+  spreadsheetRangesValues = []
   kwargs = {
     u'valueInputOption': u'USER_ENTERED',
     u'includeValuesInResponse': False,
@@ -27165,14 +27179,27 @@ def _getSpreadsheetRangesValues(append):
     myarg = getArgument()
     if myarg == u'range':
       if append and spreadsheetRangesValues:
-        usageErrorExit(u'Only one range may be specified')
-      spreadsheetRange = getString(Cmd.OB_SPREAD_SHEET_RANGE)
-      spreadsheetValues = getString(Cmd.OB_SPREAD_SHEET_VALUES)
+        usageErrorExit(Msg.ONLY_ONE_JSON_RANGE_ALLOWED)
+      spreadsheetRangeValue = {u'range': getString(Cmd.OB_SPREADSHEET_RANGE)}
+      spreadsheetValues = getString(Cmd.OB_SPREADSHEET_VALUES)
       try:
-        spreadsheetRangesValues[spreadsheetRange] = json.loads(spreadsheetValues)
+        spreadsheetRangeValue.update(json.loads(spreadsheetValues))
+        spreadsheetRangesValues.append(spreadsheetRangeValue)
       except (ValueError, IndexError, KeyError, SyntaxError) as e:
         Cmd.Backup()
         usageErrorExit(u'{0}: {1}'.format(str(e), spreadsheetValues))
+    elif myarg == u'json':
+      if append and spreadsheetRangesValues:
+        usageErrorExit(Msg.ONLY_ONE_JSON_RANGE_ALLOWED)
+      spreadsheetJSONList = getString(Cmd.OB_SPREADSHEET_JSONLIST)
+      try:
+        spreadsheetRangesValues.extend(json.loads(spreadsheetJSONList))
+        if append and len(spreadsheetRangesValues) > 1:
+          Cmd.Backup()
+          usageErrorExit(Msg.ONLY_ONE_JSON_RANGE_ALLOWED)
+      except (ValueError, IndexError, KeyError, SyntaxError) as e:
+        Cmd.Backup()
+        usageErrorExit(u'{0}: {1}'.format(str(e), spreadsheetJSONList))
     elif myarg in SHEET_VALUE_INPUT_OPTIONS_MAP:
       kwargs[u'valueInputOption'] = SHEET_VALUE_INPUT_OPTIONS_MAP[myarg]
     elif myarg == u'includevaluesinresponse':
@@ -27189,7 +27216,9 @@ def _getSpreadsheetRangesValues(append):
       formatJSON = True
     else:
       unknownArgumentExit()
-  return (kwargs, spreadsheetRangesValues, majorDimension, formatJSON)
+  for spreadsheetRangeValue in spreadsheetRangesValues:
+    spreadsheetRangeValue.setdefault(u'majorDimension', majorDimension)
+  return (kwargs, spreadsheetRangesValues, formatJSON)
 
 def _showValueRange(valueRange):
   Ind.Increment()
@@ -27208,18 +27237,18 @@ def _showUpdateValuesResponse(result, k, kcount):
     _showValueRange(result[u'updatedData'])
   Ind.Decrement()
 
-# gam <UserTypeEntity> append sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>) [overwrite|insertrows]
+# gam <UserTypeEntity> append sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>)|(json <SpreadsheetJSONList>) [overwrite|insertrows]
 #	[raw|userentered] [rows|columns] [serialnumber|formattedstring] [formula|formattedvalue|unformattedvalue]
 #	[includevaluesinresponse [<Boolean>]] [formatjson]
 def appendSheetRanges(users):
   spreadsheetIdEntity = getDriveFileEntity()
-  kwargs, spreadsheetRangesValues, majorDimension, formatJSON = _getSpreadsheetRangesValues(True)
-  spreadsheetRanges = list(spreadsheetRangesValues)
-  kcount = len(spreadsheetRanges)
+  kwargs, spreadsheetRangesValues, formatJSON = _getSpreadsheetRangesValues(True)
+  kcount = len(spreadsheetRangesValues)
+  body = spreadsheetRangesValues[0] if kcount > 0 else {}
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, sheet, jcount = _validateUserGetSheetIDs(user, i, count, spreadsheetIdEntity, not formatJSON)
+    user, sheet, jcount = _validateUserGetSpreadsheetIDs(user, i, count, spreadsheetIdEntity, not formatJSON)
     if jcount == 0:
       continue
     Ind.Increment()
@@ -27229,39 +27258,37 @@ def appendSheetRanges(users):
       if not formatJSON:
         entityPerformActionNumItems([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], kcount, Ent.SPREADSHEET_RANGE, j, jcount)
       Ind.Increment()
-      k = 0
-      for spreadsheetRange in spreadsheetRanges:
-        body = {u'range': spreadsheetRange, u'majorDimension': majorDimension, u'values': spreadsheetRangesValues[spreadsheetRange][u'values']}
-        k += 1
-        try:
-          result = callGAPI(sheet.spreadsheets().values(), u'append',
-                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.SHEETS_ACCESS_THROW_REASONS,
-                            spreadsheetId=spreadsheetId, range=spreadsheetRange, body=body, **kwargs)
-          if formatJSON:
-            result.update({u'User': user, u'spreadsheetId': spreadsheetId})
-            printLine(json.dumps(result, ensure_ascii=False, sort_keys=False))
-            continue
-          _showUpdateValuesResponse(result[u'updates'], k, kcount)
-        except (GAPI.notFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
-          entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], str(e), j, jcount)
-        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-          userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
-          break
+      k = 1
+      try:
+        result = callGAPI(sheet.spreadsheets().values(), u'append',
+                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.SHEETS_ACCESS_THROW_REASONS,
+                          spreadsheetId=spreadsheetId, range=body[u'range'], body=body, **kwargs)
+        if formatJSON:
+          printLine(u'{{"User": "{0}", "spreadsheetId": "{1}", "JSON": {2}}}'.format(user, spreadsheetId, json.dumps(result, ensure_ascii=False, sort_keys=False)))
+          continue
+        for field in [u'tableRange',]:
+          printKeyValueList([field, result[field]])
+        _showUpdateValuesResponse(result[u'updates'], k, kcount)
+      except (GAPI.notFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], str(e), j, jcount)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+        break
       Ind.Decrement()
     Ind.Decrement()
 
-# gam <UserTypeEntity> update sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>)*
+# gam <UserTypeEntity> update sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>)* (json <SpreadsheetJSONList>)*
 #	[raw|userentered] [rows|columns] [serialnumber|formattedstring] [formula|formattedvalue|unformattedvalue]
 #	[includevaluesinresponse [<Boolean>]] [formatjson]
 def updateSheetRanges(users):
   spreadsheetIdEntity = getDriveFileEntity()
-  body, spreadsheetRangesValues, majorDimension, formatJSON = _getSpreadsheetRangesValues(False)
-  spreadsheetRanges = list(spreadsheetRangesValues)
-  kcount = len(spreadsheetRanges)
+  body, spreadsheetRangesValues, formatJSON = _getSpreadsheetRangesValues(False)
+  body[u'data'] = spreadsheetRangesValues
+  kcount = len(spreadsheetRangesValues)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, sheet, jcount = _validateUserGetSheetIDs(user, i, count, spreadsheetIdEntity, not formatJSON)
+    user, sheet, jcount = _validateUserGetSpreadsheetIDs(user, i, count, spreadsheetIdEntity, not formatJSON)
     if jcount == 0:
       continue
     Ind.Increment()
@@ -27271,14 +27298,12 @@ def updateSheetRanges(users):
       if not formatJSON:
         entityPerformActionNumItems([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], kcount, Ent.SPREADSHEET_RANGE, j, jcount)
       Ind.Increment()
-      body[u'data'] = [{u'range': spreadsheetRange, u'majorDimension': majorDimension, u'values': spreadsheetRangesValues[spreadsheetRange][u'values']} for spreadsheetRange in spreadsheetRanges]
       try:
         result = callGAPI(sheet.spreadsheets().values(), u'batchUpdate',
                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.SHEETS_ACCESS_THROW_REASONS,
                           spreadsheetId=spreadsheetId, body=body)
         if formatJSON:
-          result.update({u'User': user, u'spreadsheetId': spreadsheetId})
-          printLine(json.dumps(result, ensure_ascii=False, sort_keys=False))
+          printLine(u'{{"User": "{0}", "spreadsheetId": "{1}", "JSON": {2}}}'.format(user, spreadsheetId, json.dumps(result, ensure_ascii=False, sort_keys=False)))
           continue
         for field in [u'totalUpdatedRows', u'totalUpdatedColumns', u'totalUpdatedCells', u'totalUpdatedSheets']:
           printKeyValueList([field, result[field]])
@@ -27302,7 +27327,7 @@ def clearSheetRanges(users):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'range':
-      body[u'ranges'].append(getString(Cmd.OB_SPREAD_SHEET_RANGE))
+      body[u'ranges'].append(getString(Cmd.OB_SPREADSHEET_RANGE))
     elif myarg == "formatjson":
       formatJSON = True
     else:
@@ -27311,7 +27336,7 @@ def clearSheetRanges(users):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, sheet, jcount = _validateUserGetSheetIDs(user, i, count, spreadsheetIdEntity, not formatJSON)
+    user, sheet, jcount = _validateUserGetSpreadsheetIDs(user, i, count, spreadsheetIdEntity, not formatJSON)
     if jcount == 0:
       continue
     Ind.Increment()
@@ -27326,7 +27351,7 @@ def clearSheetRanges(users):
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.SHEETS_ACCESS_THROW_REASONS,
                                spreadsheetId=spreadsheetId, body=body)
         if formatJSON:
-          printLine(json.dumps({u'User': user, u'spreadsheetId': spreadsheetId, u'clearedRanges': result}, ensure_ascii=False, sort_keys=False))
+          printLine(u'{{"User": "{0}", "spreadsheetId": "{1}", "JSON": {2}}}'.format(user, spreadsheetId, json.dumps({u'clearedRanges': result}, ensure_ascii=False, sort_keys=False)))
           continue
         k = 0
         for clearedRange in result:
@@ -27355,12 +27380,13 @@ def _printShowSheetRanges(users, csvFormat):
     u'dateTimeRenderOption': u'FORMATTED_STRING',
     }
   formatJSON = False
+  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
     elif myarg == u'range':
-      spreadsheetRanges.append(getString(Cmd.OB_SPREAD_SHEET_RANGE))
+      spreadsheetRanges.append(getString(Cmd.OB_SPREADSHEET_RANGE))
     elif myarg in SHEET_DIMENSIONS_MAP:
       kwargs[u'majorDimension'] = SHEET_DIMENSIONS_MAP[myarg]
     elif myarg in SHEET_VALUE_RENDER_OPTIONS_MAP:
@@ -27371,12 +27397,14 @@ def _printShowSheetRanges(users, csvFormat):
       formatJSON = True
       if csvFormat:
         titles, csvRows = initializeTitlesCSVfile(PRINT_SHEETS_JSON_TITLES)
+    elif myarg == u'quotechar':
+      quotechar = getCharacter()
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, sheet, jcount = _validateUserGetSheetIDs(user, i, count, spreadsheetIdEntity, not csvFormat and not formatJSON)
+    user, sheet, jcount = _validateUserGetSpreadsheetIDs(user, i, count, spreadsheetIdEntity, not csvFormat and not formatJSON)
     if jcount == 0:
       continue
     Ind.Increment()
@@ -27390,9 +27418,7 @@ def _printShowSheetRanges(users, csvFormat):
         kcount = len(result)
         if not csvFormat:
           if formatJSON:
-            for valueRange in result:
-              valueRange.update({u'User': user, u'spreadsheetId': spreadsheetId})
-              printLine(json.dumps(valueRange, ensure_ascii=False, sort_keys=False))
+            printLine(u'{{"User": "{0}", "spreadsheetId": "{1}", "JSON": {2}}}'.format(user, spreadsheetId, json.dumps(result, ensure_ascii=False, sort_keys=False)))
             continue
           entityPerformActionNumItems([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], kcount, Ent.SPREADSHEET_RANGE, j, jcount)
           Ind.Increment()
@@ -27418,7 +27444,7 @@ def _printShowSheetRanges(users, csvFormat):
   if csvFormat:
     if formatJSON:
       sortCSVTitles(PRINT_SHEETS_JSON_TITLES, titles)
-      writeCSVfile(csvRows, titles, u'Spreadsheet', todrive, "'")
+      writeCSVfile(csvRows, titles, u'Spreadsheet', todrive, quotechar)
     else:
       sortCSVTitles(PRINT_SHEETS_TITLES, titles)
       writeCSVfile(csvRows, titles, u'Spreadsheet', todrive)
@@ -29467,7 +29493,7 @@ def ProcessGAMCommand(args, processGamCfg=True):
     closeSTDFilesIfNotMultiprocessing()
   return GM.Globals[GM.SYSEXITRC]
 
-# gam loop <FileName>|- [charset <String>] [columndelimiter <String>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* gam <GAM argument list>
+# gam loop <FileName>|- [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* gam <GAM argument list>
 def doLoop():
   filename = getString(Cmd.OB_FILE_NAME)
   if (filename == u'-') and (GC.Values[GC.DEBUG_LEVEL] > 0):

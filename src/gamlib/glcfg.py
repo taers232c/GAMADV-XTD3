@@ -57,12 +57,16 @@ CONFIG_DIR = u'config_dir'
 CONTACT_MAX_RESULTS = u'contact_max_results'
 # Column delimiter in CSV input file
 CSV_INPUT_COLUMN_DELIMITER = u'csv_input_column_delimiter'
+# Quote character in CSV input file
+CSV_INPUT_QUOTE_CHAR = u'csv_input_quote_char'
 # Convert newlines in text fields to "\n" in CSV output file
 CSV_OUTPUT_CONVERT_CR_NL = u'csv_output_convert_cr_nl'
 # Column delimiter in CSV output file
 CSV_OUTPUT_COLUMN_DELIMITER = u'csv_output_column_delimiter'
 # Field list delimiter in CSV output file
 CSV_OUTPUT_FIELD_DELIMITER = u'csv_output_field_delimiter'
+# Quote character in CSV output file
+CSV_OUTPUT_QUOTE_CHAR = u'csv_output_quote_char'
 # Output rows for users even if they do not have the print object (delegate, filters, ...)
 CSV_OUTPUT_USERS_AUDIT = u'csv_output_users_audit'
 # custmerId from gam.cfg or retrieved from Google
@@ -151,9 +155,11 @@ Defaults = {
   CONFIG_DIR: u'',
   CONTACT_MAX_RESULTS: 100,
   CSV_INPUT_COLUMN_DELIMITER: u',',
+  CSV_INPUT_QUOTE_CHAR: u'\'"\'',
   CSV_OUTPUT_CONVERT_CR_NL: FALSE,
   CSV_OUTPUT_COLUMN_DELIMITER: u',',
   CSV_OUTPUT_FIELD_DELIMITER: u"' '",
+  CSV_OUTPUT_QUOTE_CHAR: u'\'"\'',
   CSV_OUTPUT_USERS_AUDIT: FALSE,
   CUSTOMER_ID: MY_CUSTOMER,
   DEBUG_LEVEL: 0,
@@ -224,9 +230,11 @@ VAR_INFO = {
   CONFIG_DIR: {VAR_TYPE: TYPE_DIRECTORY, VAR_ENVVAR: u'GAMUSERCONFIGDIR'},
   CONTACT_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_ENVVAR: u'GAM_CONTACT_MAX_RESULTS', VAR_LIMITS: (1, 10000)},
   CSV_INPUT_COLUMN_DELIMITER: {VAR_TYPE: TYPE_STRING, VAR_ENVVAR: u'GAM_CSV_INPUT_COLUMN_DELIMITER', VAR_LIMITS: (1, 1)},
+  CSV_INPUT_QUOTE_CHAR: {VAR_TYPE: TYPE_STRING, VAR_ENVVAR: u'GAM_CSV_INPUT_QUOTE_CHAR', VAR_LIMITS: (1, 1)},
   CSV_OUTPUT_CONVERT_CR_NL: {VAR_TYPE: TYPE_BOOLEAN, VAR_ENVVAR: u'GAM_CSV_OUTPUT_CONVERT_CR_NL'},
   CSV_OUTPUT_COLUMN_DELIMITER: {VAR_TYPE: TYPE_STRING, VAR_ENVVAR: u'GAM_CSV_OUTPUT_COLUMN_DELIMITER', VAR_LIMITS: (1, 1)},
   CSV_OUTPUT_FIELD_DELIMITER: {VAR_TYPE: TYPE_STRING, VAR_ENVVAR: u'GAM_CSV_OUTPUT_FIELD_DELIMITER', VAR_LIMITS: (1, 1)},
+  CSV_OUTPUT_QUOTE_CHAR: {VAR_TYPE: TYPE_STRING, VAR_ENVVAR: u'GAM_CSV_OUTPUT_QUOTE_CHAR', VAR_LIMITS: (1, 1)},
   CSV_OUTPUT_USERS_AUDIT: {VAR_TYPE: TYPE_BOOLEAN, VAR_ENVVAR: u'GAM_CSV_OUTPUT_USERS_AUDIT'},
   CUSTOMER_ID: {VAR_TYPE: TYPE_STRING, VAR_ENVVAR: u'CUSTOMER_ID', VAR_LIMITS: (0, None)},
   DEBUG_LEVEL: {VAR_TYPE: TYPE_INTEGER, VAR_SIGFILE: u'debug.gam', VAR_LIMITS: (0, None), VAR_SFFT: (u'0', u'4')},

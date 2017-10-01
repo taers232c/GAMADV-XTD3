@@ -97,6 +97,12 @@ csv_input_column_delimiter
 	All places where an input CSV file can be specified have an argument columndelimiter <String> that can override this value.
 	Default: ','
 	Environment variable: GAM_CSV_INPUT_COLUMN_DELIMITER 
+csv_input_quote_char
+	A one-character string used to quote fields containing special characters, such as the csv_input_column_delimiter or csv_input_quote_char,
+	or new-line characters. This typically used when reading CSV files produced by gam print ranges formatjson where csv_output_char
+	was set to a value other than double quote.
+	Defaults: '"'
+	Environment variable: GAM_CSV_INPUT_QUOTE_CHAR
 csv_output_convert_cr_nl
 	Convert carriage returns (CR) to '\r' and newlines (NL) to '\n' when writing CSV files
 	The commands gam print groups|sites|messages|threads and gam show sites|messages|threads have
@@ -114,6 +120,12 @@ csv_output_field_delimiter
 	Each of the gam print courses|groups|users  commands has a delimiter <String> argument that can override this value.
 	Default: ' '
 	Environment variable: GAM_CSV_OUTPUT_FIELD_DELIMITER
+csv_output_quote_char
+	A one-character string used to quote fields containing special characters, such as the csv_output_column_delimiter or csv_output_quote_char,
+	or new-line characters. This is most useful with gam print sheetranges formatjson where the JSON column contains many
+	double quotes; by setting csv_output_quote_char to a single quote, the output is much cleaner.
+	Defaults: '"'
+	Environment variable: GAM_CSV_OUTPUT_QUOTE_CHAR
 csv_output_users_audit
 	Gam print commands that print objects belonging to users don't print rows for users that don't have any of the objects.
 	The objects are: calendars, calendar ACLs, calendar events, delegates, filters, forwarding addresses, sendas addresses,
@@ -291,9 +303,11 @@ Section: DEFAULT
   config_dir = /Users/admin/.gam
   contact_max_results = 100
   csv_input_column_delimiter = ,
+  csv_input_quote_char = '"'
   csv_output_convert_cr_nl = false
   csv_output_column_delimiter = ,
   csv_output_field_delimiter = ' '
+  csv_output_quote_char = '"'
   csv_output_users_audit = false
   customer_id =
   debug_level = 0
@@ -415,9 +429,11 @@ client_secrets_json = client_secrets.json
 config_dir = /Users/admin/.gam
 contact_max_results = 100
 csv_input_column_delimiter = ,
+csv_input_quote_char = '"'
 csv_output_convert_cr_nl = false
 csv_output_column_delimiter = ,
 csv_output_field_delimiter = ' '
+csv_output_quote_char = '"'
 csv_output_users_audit = false
 customer_id = 0000000000
 debug_level = 0

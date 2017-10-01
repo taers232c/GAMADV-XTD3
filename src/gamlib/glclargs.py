@@ -334,6 +334,8 @@ class GamCLArgs(object):
   CLIENTID_ARGUMENT = [u'clientid',]
   COLUMN_DELIMITER_ARGUMENT = [u'columndelimiter',]
   DATA_ARGUMENT = [u'data',]
+  DELIMITER_ARGUMENT = [u'delimiter',]
+  FIELDS_ARGUMENT = [u'fields',]
   FILE_ARGUMENT = [u'file',]
   FROM_ARGUMENT = [u'from',]
   LOGO_ARGUMENT = [u'logo',]
@@ -343,6 +345,7 @@ class GamCLArgs(object):
   NOTSUSPENDED_ARGUMENT = [u'notsuspended',]
   ORG_OU_ARGUMENT = [u'org', u'ou',]
   PRIMARY_NOTPRIMARY_CHOICE_MAP = {u'primary': True, u'notprimary': False}
+  QUOTE_CHAR_ARGUMENT = [u'quotechar',]
   QUERY_ARGUMENT = [u'query',]
   SHOWTITLES_ARGUMENT = [u'showtitles',]
   TODRIVE_ARGUMENT = [u'todrive',]
@@ -357,6 +360,7 @@ class GamCLArgs(object):
   OB_ASP_ID = u'AspID'
   OB_CALENDAR_ENTITY = u'CalendarEntity'
   OB_CALENDAR_ITEM = u'CalendarItem'
+  OB_CHARACTER = u'Character'
   OB_CHAR_SET = u'CharacterSet'
   OB_CIDR_NETMASK = u'CIDRnetmask'
   OB_CLIENT_ID = u'ClientID'
@@ -374,7 +378,6 @@ class GamCLArgs(object):
   OB_CROS_ENTITY = u'CrOSEntity'
   OB_CUSTOMER_ID = u'CustomerID'
   OB_CUSTOMER_AUTH_TOKEN = u'CustomerAuthToken'
-  OB_DELIMITER = u'Delimiter'
   OB_DOMAIN_ALIAS = u'DomainAlias'
   OB_DOMAIN_NAME = u'DomainName'
   OB_DOMAIN_NAME_ENTITY = u'DomainNameEntity'
@@ -457,8 +460,9 @@ class GamCLArgs(object):
   OB_SKU_ID = u'SKUID'
   OB_SKU_ID_LIST = u'SKUIDList'
   OB_SMIME_ID = u'S/MIMEID'
-  OB_SPREAD_SHEET_RANGE = u'SpreadsheetRange'
-  OB_SPREAD_SHEET_VALUES = u'SpreadsheetValues'
+  OB_SPREADSHEET_JSONLIST = u'SpreadsheetJSONList'
+  OB_SPREADSHEET_RANGE = u'SpreadsheetRange'
+  OB_SPREADSHEET_VALUES = u'SpreadsheetValues'
   OB_STRING = u'String'
   OB_STUDENT_ITEM = u'StudentItem'
   OB_TAG = u'Tag'

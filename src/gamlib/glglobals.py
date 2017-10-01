@@ -50,7 +50,7 @@ PARSER = u'pars'
 # gam.cfg file
 GAM_CFG_PATH = u'gcpa'
 GAM_CFG_FILE = u'gcfi'
-# redirected file: name, mode, encoding, delimiter, write header, multiproces, queue
+# redirected file: name, mode, encoding, delimiter, quotechar, write header, multiproces, queue
 STDOUT = u'stdo'
 STDERR = u'stde'
 CSVFILE = u'csvf'
@@ -61,6 +61,7 @@ REDIRECT_FD = u'rdfd'
 REDIRECT_MULTI_FD = u'rdmf'
 REDIRECT_ENCODING = u'rden'
 REDIRECT_COLUMN_DELIMITER = u'rddl'
+REDIRECT_QUOTE_CHAR = u'rdqc'
 REDIRECT_WRITE_HEADER = u'rdwh'
 REDIRECT_MULTIPROCESS = u'rdmp'
 REDIRECT_QUEUE = u'rdqu'
@@ -79,7 +80,7 @@ LAST_UPDATE_CHECK_TXT = u'lupc'
 # Index of start of <UserTypeEntity> in command line
 ENTITY_CL_START = u'ecls'
 ENTITY_CL_DELAY_START = u'eclD'
-# csvfile keyfield <FieldName> [delimiter <String>] (matchfield <FieldName> <MatchPattern>)* [datafield <FieldName>(:<FieldName>*) [delimiter <String>]]
+# csvfile keyfield <FieldName> [delimiter <Character>] (matchfield <FieldName> <MatchPattern>)* [datafield <FieldName>(:<FieldName>*) [delimiter <String>]]
 # { key: [datafieldvalues]}
 CSV_DATA_DICT = u'csdd'
 CSV_KEY_FIELD = u'cskf'

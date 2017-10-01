@@ -1,3 +1,87 @@
+4.54.11
+
+Added json <SpreadsheetJSONList> argument to gam append/update sheetrange so that these commands can directly process the output
+from gam print sheetrange formatjson.
+
+In the following lines defining Spreadsheet items, the following right-hand side characters are literal: {}[],'":
+The following right-hand side characters are part of the meta-syntax: <>()*|
+<SpreadsheetValue> ::= "<String>"|<Number>|true|false
+<SpreadsheetValueList> ::= [<SpreadsheetValue>(,<SpreadsheetValue>)*]
+<SpreadsheetRange> ::= <String>
+<SpreadsheetValues> ::= '{"values": [<SpreadsheetValueList>(,<SpreadsheetValueList>)*]}'
+<SpreadsheetJSON> ::= {"range": <String>, "values": [<SpreadsheetValueList>(,<SpreadsheetValueList>)*], "majorDimension": ROWS|COLUMNS}
+<SpreadsheetJSONList> ::= '[<SpreadsheetJSON>(,<SpreadsheetJSON>)*]'
+
+gam <UserTypeEntity> append sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>)|(json <SpreadsheetJSONList>) [overwrite|insertrows]
+	[raw|userentered] [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
+	[includevaluesinresponse [<Boolean>]] [formatjson]
+gam <UserTypeEntity> update sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>)* (json <SpreadsheetJSONList>)*
+	[raw|userentered] [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
+	[includevaluesinresponse [<Boolean>]] [formatjson]
+
+The output from gam append/update/clear/show sheetranges formatjson has been changed to match the style of output from gam print sheetranges formatjson.
+The output will look like this: {"User": "user@domain.com", "spreadsheetId": "xxxxx", "JSON": <Command JSON output here>}
+
+Added csv_input_quote_char and csv_output_quote_char variables to gam.cfg.
+
+By default, when writing CSV files, Gam uses a quote character of double quote ". The quote character is used to enclose columns that contain
+the quote character itself, the column delimiter (comma by default) and new-line characters. Any quote characters within the column are doubled.
+By default, when reading CSV files, Gam uses a quote character of double quote ". Previously, Gam could not read CSV files that used a different quote character.
+
+csv_input_quote_char
+	A one-character string used to quote fields containing special characters, such as the csv_input_column_delimiter or csv_input_quote_char,
+	or new-line characters. This typically used when reading CSV files produced by gam print ranges formatjson where csv_output_char
+	was set to a value other than double quote.
+	Defaults: '"'
+	Environment variable: GAM_CSV_INPUT_QUOTE_CHAR
+
+csv_output_quote_char
+	A one-character string used to quote fields containing special characters, such as the csv_output_column_delimiter or csv_output_quote_char,
+	or new-line characters. This is most useful with gam print sheetranges formatjson where the JSON column contains many
+	double quotes; by setting csv_output_quote_char to a single quote, the output is much cleaner.
+	Defaults: '"'
+	Environment variable: GAM_CSV_OUTPUT_QUOTE_CHAR
+
+When specifying a CSV file as input, you can define the quote character as part of the file specification. This would typically be used when you have
+been supplied a CSV file from an external source that uses a different quote character.
+
+<CrOSTypeEntity> ::=
+	(croscsvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
+	(csvkmd cros|cros_ous|cros_ous_and_children <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+		keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+		subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+		(matchfield <FieldName> <RegularExpression>)*
+		[datafield <FieldName>(:<FieldName)* [delimiter <Character>]])
+<UserTypeEntity> ::=
+	(csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
+	(csvkmd users|groups|ous|ous_and_children|courseparticipants|students|teachers <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+		keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+		subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+		(matchfield <FieldName> <RegularExpression>)*
+		[datafield <FieldName>(:<FieldName)* [delimiter <Character>]])
+<CSVkmdSelector> ::=
+	csvkmd <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+	       keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+	       subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+	       (matchfield <FieldName> <RegularExpression>)*
+	       [datafield <FieldName>(:<FieldName)* [delimiter <Character>]]
+<FileSelector> ::=
+	(csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>])
+gam csv <FileName>|- [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
+gam loop <FileName>|- [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
+
+When specifying a CSV file as output, you can define the quote character as part of the file specification. This would typically be used when you have
+to supply a CSV file to an external source that uses a different quote character.
+<Redirect> ::=
+	redirect csv <FileName> [multiprocess] [append] [noheader] [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>]
+
+When using the gam print sheetranges command with the formatjson option, double quotes are used extensively in the data resulting in hard to read output.
+This command allows you to define the quote character directly.
+
+gam <UserTypeEntity> print sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+  [todrive [<ToDriveAttributes>]]
+	[rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
+        [formatjson] [quotechar <Character>]
+
 4.54.10
 
 Clean up gam import/insert message code.

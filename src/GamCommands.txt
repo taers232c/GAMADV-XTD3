@@ -268,10 +268,14 @@ If an item contains spaces, it should be surrounded by ".
 <Section> ::= <String>
 <SiteACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|default
 <SiteItem> ::= [<DomainName>/]<SiteName>
-<SpreadsheetRange> ::= <String>
+In the following lines defining Spreadsheet items, the following right-hand side characters are literal: {}[],'":
+The following right-hand side characters are part of the meta-syntax: <>()*|
 <SpreadsheetValue> ::= "<String>"|<Number>|true|false
 <SpreadsheetValueList> ::= [<SpreadsheetValue>(,<SpreadsheetValue>)*]
-<SpreadsheetValues> ::= '{"values": [<SpreadsheetValueList>(,<SpreadsheetValueList>)*]}
+<SpreadsheetRange> ::= <String>
+<SpreadsheetValues> ::= '{"values": [<SpreadsheetValueList>(,<SpreadsheetValueList>)*]}'
+<SpreadsheetJSON> ::= {"range": <String>, "values": [<SpreadsheetValueList>(,<SpreadsheetValueList>)*], "majorDimension": ROWS|COLUMNS}
+<SpreadsheetJSONList> ::= '[<SpreadsheetJSON>(,<SpreadsheetJSON>)*]'
 <S/MIMEID> ::= <String>	
 <StudentItem> ::= <EmailAddress>|<UniqueID>|<String>
 <Tag> ::= <String>
@@ -342,68 +346,68 @@ Items, separated by spaces, with spaces or commas in the items themselves: "'it 
 Specify a collection of ChromeOS devices by directly specifying them or by specifiying items that will yield a list of ChromeOS devices.
 
 <CrOSTypeEntity> ::=
-		(all cros)|
-		(cros <CrOSList>)|
-		(cros_ou|cros_org <OrgUnitItem>)|
-		(cros_ou_and_children|cros_org_and_children <OrgUnitItem>)|
-		(cros_ous|cros_orgs <OrgUnitList>)|
-		(cros_ous_and_children|cros_orgs_and_children <OrgUnitList>)|
-		(crosfile <FileName> [charset <Charset>] [delimiter <String>])|
-		(croscsvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <String>])|
-		(crosquery <QueryCrOS>)|
-		(datafile cros|cros_ous|cros_ous_and_children <FileName> [charset <Charset>] [delimiter <String>])|
-		(csvkmd cros|cros_ous|cros_ous_and_children <FileName> [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>]
-			keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
-			subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
-			(matchfield <FieldName> <RegularExpression>)*
-			[datafield <FieldName>(:<FieldName)* [delimiter <String>]])|
-		(croscsvdata <FieldName>(:<FieldName>*))
+	(all cros)|
+	(cros <CrOSList>)|
+	(cros_ou|cros_org <OrgUnitItem>)|
+	(cros_ou_and_children|cros_org_and_children <OrgUnitItem>)|
+	(cros_ous|cros_orgs <OrgUnitList>)|
+	(cros_ous_and_children|cros_orgs_and_children <OrgUnitList>)|
+	(crosfile <FileName> [charset <Charset>] [delimiter <Character>])|
+	(croscsvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
+	(crosquery <QueryCrOS>)|
+	(datafile cros|cros_ous|cros_ous_and_children <FileName> [charset <Charset>] [delimiter <Character>])|
+	(csvkmd cros|cros_ous|cros_ous_and_children <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+		keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+		subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+		(matchfield <FieldName> <RegularExpression>)*
+		[datafield <FieldName>(:<FieldName)* [delimiter <Character>]])|
+	(croscsvdata <FieldName>(:<FieldName>*))
 
 ## Collections of Users
 
 Specify a collection of Users by directly specifying them or by specifiying items that will yield a list of users.
 
 <UserTypeEntity> ::=
-		(all users)|
-		(user <UserItem>)|
-		(users <UserList>)|
-		(group <GroupItem>)|
-		(groups <GroupList>)|
-		(group_users <GroupList> [members] [managers] [owners] [primarydomain] [domains <DomainNameList>] [recursive] end)|
-		(ou|org <OrgUnitItem>)|
-		(ou_and_children|ou_and_child <OrgUnitItem>)|
-		(ous|orgs <OrgUnitList>)|
-		(ous_and_children|ous_and_child <OrgUnitList>)|
-		(courseparticipants <CourseIDList>)|
-		(students <CourseIDList>)|
-		(teachers <CourseIDList>)|
-		(license|licenses|licence|licences <SKUIDList>)|
-		(file <FileName> [charset <Charset>] [delimiter <String>])|
-		(csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <String>])|
-		(query <QueryUser>)|
-		(datafile users|groups|ous|ous_and_children|courseparticipants|students|teachers <FileName> [charset <Charset>] [delimiter <String>])|
-		(csvkmd users|groups|ous|ous_and_children|courseparticipants|students|teachers <FileName> [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>]
-			keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
-			subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
-			(matchfield <FieldName> <RegularExpression>)*
-			[datafield <FieldName>(:<FieldName)* [delimiter <String>]])|
-		(csvdata <FieldName>(:<FieldName>*))
+	(all users)|
+	(user <UserItem>)|
+	(users <UserList>)|
+	(group <GroupItem>)|
+	(groups <GroupList>)|
+	(group_users <GroupList> [members] [managers] [owners] [primarydomain] [domains <DomainNameList>] [recursive] end)|
+	(ou|org <OrgUnitItem>)|
+	(ou_and_children|ou_and_child <OrgUnitItem>)|
+	(ous|orgs <OrgUnitList>)|
+	(ous_and_children|ous_and_child <OrgUnitList>)|
+	(courseparticipants <CourseIDList>)|
+	(students <CourseIDList>)|
+	(teachers <CourseIDList>)|
+	(license|licenses|licence|licences <SKUIDList>)|
+	(file <FileName> [charset <Charset>] [delimiter <Character>])|
+	(csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
+	(query <QueryUser>)|
+	(datafile users|groups|ous|ous_and_children|courseparticipants|students|teachers <FileName> [charset <Charset>] [delimiter <Character>])|
+	(csvkmd users|groups|ous|ous_and_children|courseparticipants|students|teachers <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+		keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+		subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+		(matchfield <FieldName> <RegularExpression>)*
+		[datafield <FieldName>(:<FieldName)* [delimiter <Character>]])|
+	(csvdata <FieldName>(:<FieldName>*))
 
 ## Collections of Items
 
 Specify a collection of items by directly specifying them; the item type is determined by context.
 
 <CSVkmdSelector> ::=
-	csvkmd <FileName> [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>]
-	       keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
-	       subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
+	csvkmd <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+	       keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+	       subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
 	       (matchfield <FieldName> <RegularExpression>)*
-	       [datafield <FieldName>(:<FieldName)* [delimiter <String>]]
+	       [datafield <FieldName>(:<FieldName)* [delimiter <Character>]]
 <CSVSubkeySelector> ::= csvsubkey <FieldName>
 <CSVDataSelector> ::= csvdata <FieldName>
 <FileSelector> ::=
-	(file <FileName> [charset <Charset>] [delimiter <String>])|
-	(csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <String>])
+	(file <FileName> [charset <Charset>] [delimiter <Character>])|
+	(csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>])
 
 <CalendarACLScopeEntity>::= <CalendarACLScopeList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <CalendarEntity> ::= <CalendarList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
@@ -504,7 +508,7 @@ verify
 If the pattern {{Section}} appears in <FileName>, it will be replaced with the name of the current section.
 For redirect csv, the optional arguments must appear in the order shown.
 <Redirect> ::=
-	redirect csv <FileName> [multiprocess] [append] [noheader] [charset <Charset>] [columndelimiter <Character>] |
+	redirect csv <FileName> [multiprocess] [append] [noheader] [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] |
 	redirect stdout <FileName> [multiprocess] [append] |
 	redirect stdout null [multiprocess] |
 	redirect stderr <FileName> [multiprocess] [append] |
@@ -525,10 +529,10 @@ gam help
 # Bulk Processing
 
 gam batch <FileName>|- [charset <Charset>] [showcmds]
-gam csv <FileName>|- [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
+gam csv <FileName>|- [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
 gam tbatch <FileName>|- [charset <Charset>] [showcmds]
 
-gam loop <FileName>|- [charset <Charset>] [columndelimiter <String>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
+gam loop <FileName>|- [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
 
 You can make substitutions in <GAMArgumentList> with values from the CSV file.
 An argument containing exactly ~xxx is replaced by the value of field xxx from the CSV file
@@ -538,8 +542,8 @@ An argument containing instances of ~~xxx~!~pattern~!~replacement~~ has ~~...~~ 
 Example: gam csv Users.csv gam update user "~primaryEmail" address type work unstructured "~~Street~~, ~~City~~, ~~State~~ ~~ZIP~~" primary note text_plain "~~primaryEmail~!~^(.+)@(.+)$~!~\1 AT \2~~"
 Each user (~primaryEmail, e.g. foo@bar.com) would have their work address updated and a note that shows their email address as foo AT bar.com
 
-gam list [todrive [<ToDriveAttributes>]] <EntityList> [data <CrOSTypeEntity>|<UserTypeEntity> [delimiter <String>]]
-gam <CrOSTypeEntity>|<UserTypeEntity> list [todrive [<ToDriveAttributes>]] [data <EntityList> [delimiter <String>]]
+gam list [todrive [<ToDriveAttributes>]] <EntityList> [data <CrOSTypeEntity>|<UserTypeEntity> [delimiter <Character>]]
+gam <CrOSTypeEntity>|<UserTypeEntity> list [todrive [<ToDriveAttributes>]] [data <EntityList> [delimiter <Character>]]
 
 # Authorization
 
@@ -797,10 +801,10 @@ The start <Date> and end <Date> arguments filter the time ranges.
 
 gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
 	[orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [listlimit <Number>] [start <Date>] [end <Date>]
-	[delimiter <String>]
+	[delimiter <Character>]
 
 The basic column headers are: deviceId,annotatedAssetId,annotatedLocation,serialNumber,orgUnitPath.
-If recentusers is specified, all of the recent users email addresses, separated by the delimiter <String>,
+If recentusers is specified, all of the recent users email addresses, separated by the delimiter <Character>,
 with header recentUsers.email, are output with the basic headers.
 If timeranges is specified, for each time range entry, activeTimeRanges.date and activeTimeRanges.duration and activeTimeRanges.minutes,
 are output on a separate row with the basic headers.
@@ -989,7 +993,7 @@ gam info course <CourseID> [owneremail] [alias|aliases] [show all|students|teach
 gam info courses <CourseEntity> [owneremail] [alias|aliases] [show all|students|teachers] [countsonly]
 	[fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
 gam print courses [todrive [<ToDriveAttributes>]] (course|class <CourseID>)*|([teacher <UserItem>] [student <UserItem>])
-	[owneremail] [alias|aliases][delimiter <String>] [show all|students|teachers] [countsonly]
+	[owneremail] [alias|aliases][delimiter <Character>] [show all|students|teachers] [countsonly]
 	[fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
 gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <CourseID>)*|([teacher <UserItem>] [student <UserItem>])
 	[show all|students|teachers]
@@ -1033,7 +1037,7 @@ gam print transferapps
 gam create datatransfer|transfer <OldOwnerID> <DataTransferService> <NewOwnerID> [private|shared|all] (<ParameterKey> <ParameterValue>)*
 
 gam info datatransfer|transfer <TransferID>
-gam print datatransfers|transfers [todrive [<ToDriveAttributes>]] [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>] [status <String>] [delimiter <String>]
+gam print datatransfers|transfers [todrive [<ToDriveAttributes>]] [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>] [status <String>] [delimiter <Character>]
 
 # Domains
 
@@ -1131,7 +1135,7 @@ gam delete group|groups <GroupEntity>
 
 gam info group|groups <GroupEntity> [members] [managers] [owners] [nousers] [noaliases] [groups] <GroupFieldName>* [fields <GroupFieldNameList>] [formatjson]
 gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member <UserItem>])|[select <GroupEntity>]
-	[maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])] [convertcrnl] [delimiter <String>]
+	[maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])] [convertcrnl] [delimiter <Character>]
 	[members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
 
 <MembersFieldName> ::=
@@ -1231,7 +1235,7 @@ gam info mobile <MobileEntity>
 gam print mobile [todrive [<ToDriveAttributes>]] [query <QueryMobile>]
 	[orderby <MobileOrderByFieldName> [ascending|descending]]
 	[basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>]
-	[delimiter <String>] [appslimit <Number>] [listlimit <Number>]
+	[delimiter <Character>] [appslimit <Number>] [listlimit <Number>]
 
 # Notifications
 
@@ -1299,7 +1303,7 @@ gam update printer|printers <PrinterIDEntity> <PrinterAttributes>+
 gam delete printer|printers <PrinterIDEntity>
 gam info printer|printers <PrinterIDEntity> [everything]
 
-gam print printer|printers [todrive [<ToDriveAttributes>]] [query <QueryPrinter>] [type <String>] [status <String>] [extrafields <String>] [delimiter <String>]
+gam print printer|printers [todrive [<ToDriveAttributes>]] [query <QueryPrinter>] [type <String>] [status <String>] [extrafields <String>] [delimiter <Character>]
 
 <PrinterACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|public
 <PrinterACLScopeList> ::== "<PrinterACLScope>(,<PrinterACLScope>)*"
@@ -1334,7 +1338,7 @@ gam print printjob|printjobs [todrive [<ToDriveAttributes>]] [printer|printerid 
 	[status <PrintJobStatus>]
 	[orderby <PrintJobOrderByFieldName> [ascending|descending]]
 	[owner|user <EmailAddress>]
-	[limit <Number>] [delimiter <String>]
+	[limit <Number>] [delimiter <Character>]
 
 # Reports
 
@@ -1451,7 +1455,7 @@ gam [<UserTypeEntity>] info sites <SiteEntity> [withmappings] [role|roles all|<S
 gam [<UserTypeEntity>] show sites [domain|domains <DomainNameEntity>] [includeallsites]
 	[withmappings] [role|roles all|<SiteACLRoleList>] [maxresults <Number>]
 gam [<UserTypeEntity>] print sites [todrive [<ToDriveAttributes>]] [domain|domains <DomainNameEntity>] [includeallsites]
-	[withmappings] [role|roles all|<SiteACLRoleList>] [maxresults <Number>] [convertcrnl] [delimiter <String>]
+	[withmappings] [role|roles all|<SiteACLRoleList>] [maxresults <Number>] [convertcrnl] [delimiter <Character>]
 
 gam [<UserTypeEntity>] print siteactivity <SiteEntity> [todrive [<ToDriveAttributes>]] [maxresults <Number>] [updated_min <Date>] [updated_max <Date>]
 
@@ -1600,7 +1604,7 @@ If you specify <UserFieldName>* | fields <UserFieldNameList>, the column headers
 gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [query <QueryUser>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
 	[groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
 	[orderby <UserOrderByFieldName> [ascending|descending]]
-	[userview] [allfields|basic|full | (<UserFieldName>* | fields <UserFieldNameList>)] [delimiter <String>]
+	[userview] [allfields|basic|full | (<UserFieldName>* | fields <UserFieldNameList>)] [delimiter <Character>]
 
 # Users - Aliases
 
@@ -1983,7 +1987,7 @@ gam <UserTypeEntity> print filepath <DriveFileEntity> [todrive [<ToDriveAttribut
 gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)]
 	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
 	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [mimetype [not] <MimeTypeList>] [depth <Number>]
-	[filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <String>]
+	[filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
 gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
 	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [showmimetype [not] <MimeTypeList>] [depth <Number>]
 	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
@@ -2008,8 +2012,8 @@ gam <UserTypeEntity> print|show driveactivity [todrive [<ToDriveAttributes>]] [f
 	usageindrivetrash
 <DriveSettingsFieldNameList> ::= "<DriveSettingsFieldName>(,<DriveSettingsFieldName>)*"
 
-gam <UserTypeEntity> print drivesettings [todrive [<ToDriveAttributes>]] [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <String>]
-gam <UserTypeEntity> show drivesettings [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <String>]
+gam <UserTypeEntity> print drivesettings [todrive [<ToDriveAttributes>]] [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <Character>]
+gam <UserTypeEntity> show drivesettings [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <Character>]
 
 gam <UserTypeEntity> delete emptydrivefolders [<TeamDriveEntity>]
 gam <UserTypeEntity> empty drivetrash [<TeamDriveEntity>]
@@ -2099,7 +2103,7 @@ gam <UserTypeEntity> untrash messages|threads (((query <QueryGmail>) (matchlabel
 gam <UserTypeEntity> show messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show|max_to_process <Number>] [includespamtrash])|(ids <MessageIDEntity>)
 	[headers <SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [showattachments [attachmentnamepattern <RegularExpression>]]
 gam <UserTypeEntity> print messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_print|max_to_process <Number>] [includespamtrash])|(ids <MessageIDEntity>)
-	[headers <SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <String>] [todrive [<ToDriveAttributes>]]
+	[headers <SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <Character>] [todrive [<ToDriveAttributes>]]
 
 # Users - Gmail - Profile
 
@@ -2117,10 +2121,10 @@ gam <UserTypeEntity> info sendas <EmailAddressEntity> [format]
 gam <UserTypeEntity> show sendas [format]
 gam <UserTypeEntity> print sendas [todrive [<ToDriveAttributes>]]
 
-gam <UserTypeEntity> append sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>) [overwrite|insertrows]
+gam <UserTypeEntity> append sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>)|(json <SpreadsheetJSONList>) [overwrite|insertrows]
 	[raw|userentered] [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
 	[includevaluesinresponse [<Boolean>]] [formatjson]
-gam <UserTypeEntity> update sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>)+
+gam <UserTypeEntity> update sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>)* (json <SpreadsheetJSONList>)*
 	[raw|userentered] [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
 	[includevaluesinresponse [<Boolean>]] [formatjson]
 
@@ -2129,7 +2133,7 @@ gam <UserTypeEntity> clear sheetrange <DriveFileEntity> (range <SpreadsheetRange
 
 gam <UserTypeEntity> print sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+  [todrive [<ToDriveAttributes>]]
 	[rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
-        [formatjson]
+        [formatjson] [quotechar <Character>]
 gam <UserTypeEntity> show sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+
 	[rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
         [formatjson]
@@ -2209,8 +2213,8 @@ gam <UserTypeEntity> show teamdrives
 gam <UserTypeEntity> delete tokens clientid <ClientID>
 
 gam <UserTypeEntity> show tokens [clientid <ClientID>]
-gam <UserTypeEntity> print tokens [todrive [<ToDriveAttributes>]] [clientid <ClientID>] [delimiter <String>]
-gam print tokens|token [todrive [<ToDriveAttributes>]] [clientid <ClientID>] [delimiter <String>] [<UserTypeEntity>]
+gam <UserTypeEntity> print tokens [todrive [<ToDriveAttributes>]] [clientid <ClientID>] [delimiter <Character>]
+gam print tokens|token [todrive [<ToDriveAttributes>]] [clientid <ClientID>] [delimiter <Character>] [<UserTypeEntity>]
 
 # Verifications
 
