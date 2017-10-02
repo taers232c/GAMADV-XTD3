@@ -1,3 +1,7 @@
+4.54.13
+
+Fixed bug where <SpreadsheetJSONRangeValuesList> was not handled properly.
+
 4.54.12
 
 Added commands to create, update and display information about spreadsheets.

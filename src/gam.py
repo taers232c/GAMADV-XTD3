@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.11'
+__version__ = u'4.54.13'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -24101,12 +24101,12 @@ def createSheet(users):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'json':
-      spreadsheetJSONRequest = getString(Cmd.OB_SPREADSHEET_JSON_CREATEREQUEST)
+      spreadsheetJSON = getString(Cmd.OB_SPREADSHEET_JSON_CREATEREQUEST)
       try:
-        body = json.loads(spreadsheetJSONRequest)
+        body = json.loads(spreadsheetJSON)
       except (ValueError, IndexError, KeyError, SyntaxError) as e:
         Cmd.Backup()
-        usageErrorExit(u'{0}: {1}'.format(str(e), spreadsheetJSONRequest))
+        usageErrorExit(u'{0}: {1}'.format(str(e), spreadsheetJSON))
     elif myarg == "formatjson":
       formatJSON = True
     elif getDriveFileParentAttribute(myarg, parameters):
@@ -24179,12 +24179,12 @@ def updateSheets(users):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'json':
-      spreadsheetJSONRequest = getString(Cmd.OB_SPREADSHEET_JSON_UPDATEREQUEST)
+      spreadsheetJSON = getString(Cmd.OB_SPREADSHEET_JSON_UPDATEREQUEST)
       try:
-        body = json.loads(spreadsheetJSONRequest)
+        body = json.loads(spreadsheetJSON)
       except (ValueError, IndexError, KeyError, SyntaxError) as e:
         Cmd.Backup()
-        usageErrorExit(u'{0}: {1}'.format(str(e), spreadsheetJSONRequest))
+        usageErrorExit(u'{0}: {1}'.format(str(e), spreadsheetJSON))
     elif myarg == "formatjson":
       formatJSON = True
     else:
@@ -24304,15 +24304,19 @@ def _getSpreadsheetRangesValues(append):
     if myarg == u'json':
       if append and spreadsheetRangesValues:
         usageErrorExit(Msg.ONLY_ONE_JSON_RANGE_ALLOWED)
-      spreadsheetJSONList = getString(Cmd.OB_SPREADSHEET_JSON_RANGEVALUESLIST)
+      spreadsheetJSON = getString(Cmd.OB_SPREADSHEET_JSON_RANGEVALUESLIST)
       try:
-        spreadsheetRangesValues.append(json.loads(spreadsheetJSONList))
+        spreadsheetRangeValue = json.loads(spreadsheetJSON)
+        if isinstance(spreadsheetRangeValue, list):
+          spreadsheetRangesValues.extend(spreadsheetRangeValue)
+        else:
+          spreadsheetRangesValues.append(spreadsheetRangeValue)
         if append and len(spreadsheetRangesValues) > 1:
           Cmd.Backup()
           usageErrorExit(Msg.ONLY_ONE_JSON_RANGE_ALLOWED)
       except (ValueError, IndexError, KeyError, SyntaxError) as e:
         Cmd.Backup()
-        usageErrorExit(u'{0}: {1}'.format(str(e), spreadsheetJSONList))
+        usageErrorExit(u'{0}: {1}'.format(str(e), spreadsheetJSON))
     elif myarg in SHEET_VALUE_INPUT_OPTIONS_MAP:
       kwargs[u'valueInputOption'] = SHEET_VALUE_INPUT_OPTIONS_MAP[myarg]
     elif myarg == u'includevaluesinresponse':
