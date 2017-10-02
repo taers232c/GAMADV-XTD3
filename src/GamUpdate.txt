@@ -1,22 +1,33 @@
+4.54.12
+
+Added commands to create, update and display information about spreadsheets.
+
+gam <UserTypeEntity> create sheet json <SpreadsheetJSONCreateRequest> [formatjson]
+	[parentid <DriveFolderID>] | [parentname <DriveFolderName>] | [anyownerparentname <DriveFolderName>]
+	[teamdriveparentid <DriveFolderID>] [teamdriveparent <TeamDriveName>] [teamdriveparentname <DriveFolderName>]
+gam <UserTypeEntity> update sheet <DriveFileEntity> json <SpreadsheetJSONUpdateRequest> [formatjson]
+gam <UserTypeEntity> info sheet <DriveFileEntity> (range <SpreadsheetRange>)* [includegriddata [<Boolean>]] [formatjson]
+
+For details, see: https://github.com/taers232c/GAMADV-XTD/wiki/Users---Spreadsheets
+
 4.54.11
 
-Added json <SpreadsheetJSONList> argument to gam append/update sheetrange so that these commands can directly process the output
+Added json <SpreadsheetJSONRangeValuesList> argument to gam append/update sheetrange so that these commands can directly process the output
 from gam print sheetrange formatjson.
 
 In the following lines defining Spreadsheet items, the following right-hand side characters are literal: {}[],'":
 The following right-hand side characters are part of the meta-syntax: <>()*|
+<SpreadsheetRange> ::= <String>
 <SpreadsheetValue> ::= "<String>"|<Number>|true|false
 <SpreadsheetValueList> ::= [<SpreadsheetValue>(,<SpreadsheetValue>)*]
-<SpreadsheetRange> ::= <String>
-<SpreadsheetValues> ::= '{"values": [<SpreadsheetValueList>(,<SpreadsheetValueList>)*]}'
-<SpreadsheetJSON> ::= {"range": <String>, "values": [<SpreadsheetValueList>(,<SpreadsheetValueList>)*], "majorDimension": ROWS|COLUMNS}
-<SpreadsheetJSONList> ::= '[<SpreadsheetJSON>(,<SpreadsheetJSON>)*]'
+<SpreadsheetJSONRangeValues> ::= {"range": <String>, "values": [<SpreadsheetValueList>(,<SpreadsheetValueList>)*], "majorDimension": ROWS|COLUMNS}
+<SpreadsheetJSONRangeValuesList> ::= '[<SpreadsheetJSONRangeValues>(,<SpreadsheetJSONRangeValues>)*]'
 
-gam <UserTypeEntity> append sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>)|(json <SpreadsheetJSONList>) [overwrite|insertrows]
-	[raw|userentered] [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
+gam <UserTypeEntity> append sheetrange <DriveFileEntity> json <SpreadsheetJSONRangeValuesList> [overwrite|insertrows]
+	[raw|userentered] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
 	[includevaluesinresponse [<Boolean>]] [formatjson]
-gam <UserTypeEntity> update sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>)* (json <SpreadsheetJSONList>)*
-	[raw|userentered] [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
+gam <UserTypeEntity> update sheetrange <DriveFileEntity> (json <SpreadsheetJSONRangeValuesList>)+
+	[raw|userentered] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
 	[includevaluesinresponse [<Boolean>]] [formatjson]
 
 The output from gam append/update/clear/show sheetranges formatjson has been changed to match the style of output from gam print sheetranges formatjson.
@@ -103,12 +114,12 @@ Added commands to manipulate spreadsheets.
     <SpreadsheetRange> ::= <String>
     <SpreadsheetValue> ::= "<String>"|<Number>|true|false
     <SpreadsheetValueList> ::= [<SpreadsheetValue>(,<SpreadsheetValue>)*]
-    <SpreadsheetValues> ::= '{"values": [<SpreadsheetValueList>(,<SpreadsheetValueList>)*]}
+    <SpreadsheetJSONValues> ::= '{"values": [<SpreadsheetValueList>(,<SpreadsheetValueList>)*]}'
 
-    gam <UserTypeEntity> append sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>) [overwrite|insertrows]
+    gam <UserTypeEntity> append sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetJSONValues>) [overwrite|insertrows]
 	[raw|userentered] [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
 	[includevaluesinresponse [<Boolean>]] [formatjson]
-    gam <UserTypeEntity> update sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>)+
+    gam <UserTypeEntity> update sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetJSONValues>)+
 	[raw|userentered] [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
 	[includevaluesinresponse [<Boolean>]] [formatjson]
 

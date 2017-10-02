@@ -268,14 +268,6 @@ If an item contains spaces, it should be surrounded by ".
 <Section> ::= <String>
 <SiteACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|default
 <SiteItem> ::= [<DomainName>/]<SiteName>
-In the following lines defining Spreadsheet items, the following right-hand side characters are literal: {}[],'":
-The following right-hand side characters are part of the meta-syntax: <>()*|
-<SpreadsheetValue> ::= "<String>"|<Number>|true|false
-<SpreadsheetValueList> ::= [<SpreadsheetValue>(,<SpreadsheetValue>)*]
-<SpreadsheetRange> ::= <String>
-<SpreadsheetValues> ::= '{"values": [<SpreadsheetValueList>(,<SpreadsheetValueList>)*]}'
-<SpreadsheetJSON> ::= {"range": <String>, "values": [<SpreadsheetValueList>(,<SpreadsheetValueList>)*], "majorDimension": ROWS|COLUMNS}
-<SpreadsheetJSONList> ::= '[<SpreadsheetJSON>(,<SpreadsheetJSON>)*]'
 <S/MIMEID> ::= <String>	
 <StudentItem> ::= <EmailAddress>|<UniqueID>|<String>
 <Tag> ::= <String>
@@ -2121,23 +2113,6 @@ gam <UserTypeEntity> info sendas <EmailAddressEntity> [format]
 gam <UserTypeEntity> show sendas [format]
 gam <UserTypeEntity> print sendas [todrive [<ToDriveAttributes>]]
 
-gam <UserTypeEntity> append sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>)|(json <SpreadsheetJSONList>) [overwrite|insertrows]
-	[raw|userentered] [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
-	[includevaluesinresponse [<Boolean>]] [formatjson]
-gam <UserTypeEntity> update sheetrange <DriveFileEntity> (range <SpreadsheetRange> <SpreadsheetValues>)* (json <SpreadsheetJSONList>)*
-	[raw|userentered] [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
-	[includevaluesinresponse [<Boolean>]] [formatjson]
-
-gam <UserTypeEntity> clear sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+
-	[formatjson]
-
-gam <UserTypeEntity> print sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+  [todrive [<ToDriveAttributes>]]
-	[rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
-        [formatjson] [quotechar <Character>]
-gam <UserTypeEntity> show sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+
-	[rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
-        [formatjson]
-
 gam <UserTypeEntity> add smime file <FileName> [password <Password>] [sendas|sendasemail <EmailAddress>] [default]
 gam <UserTypeEntity> update smime [id <S/MIMEID>] [sendas|sendasemail <EmailAddress>] [default]
 gam <UserTypeEntity> delete smime [id <S/MIMEID>] [sendas|sendasemail <EmailAddress>]
@@ -2207,6 +2182,49 @@ gam <UserTypeEntity> delete teamdrive <TeamDriveEntity>
 gam <UserTypeEntity> info teamdrive <TeamDriveEntity>
 gam <UserTypeEntity> print teamdrives [todrive [<ToDriveAttributes>]]
 gam <UserTypeEntity> show teamdrives
+
+# Users - Spreadsheets
+
+See: https://developers.google.com/sheets/api/reference/rest/
+The following right-hand side characters are literal: {}[],'":
+The following right-hand side characters are part of the meta-syntax: <>()*|
+<SpreadsheetRange> ::= <String>
+<SpreadsheetValue> ::= "<String>"|<Number>|true|false
+<SpreadsheetValueList> ::= [<SpreadsheetValue>(,<SpreadsheetValue>)*]
+<SpreadsheetJSONRangeValues> ::= {"range": <SpreadsheetRange>, "values": [<SpreadsheetValueList>(,<SpreadsheetValueList>)*], "majorDimension": "ROWS|COLUMNS"}
+<SpreadsheetJSONRangeValuesList> ::= '[<SpreadsheetJSONRangeValues>(,<SpreadsheetJSONRangeValues>)*]'
+<SpreadsheetJSONCreateRequest> ::= '{"properties": {<SpreadsheetProperties>}, "sheets": [{<Sheet>}(,{<Sheet>})*], "namedRanges": [{<NamedRange>}(,{<NamedRange>})*], "developerMetadata": [{<DeveloperMetadata>}(,{DeveloperMetadata>})]}'
+<SpreadsheetJSONUpdateRequest> ::= '{"requests": [{<Request>}(,{<Request>})], "includeSpreadsheetInResponse": true|false, "responseRanges": ["<SpreadsheetRange>"(,"<SpreadsheetRange>")], "responseIncludeGridData": true|false}
+
+See: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets/create
+See: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets/batchUpdate
+
+gam <UserTypeEntity> create sheet json <SpreadsheetJSONCreateRequest> [formatjson]
+	[parentid <DriveFolderID>] | [parentname <DriveFolderName>] | [anyownerparentname <DriveFolderName>]
+	[teamdriveparentid <DriveFolderID>] [teamdriveparent <TeamDriveName>] [teamdriveparentname <DriveFolderName>]
+gam <UserTypeEntity> update sheet <DriveFileEntity> json <SpreadsheetJSONUpdateRequest> [formatjson]
+gam <UserTypeEntity> info sheet <DriveFileEntity> (range <SpreadsheetRange>)* [includegriddata [<Boolean>]] [formatjson]
+
+See: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values#ValueRange
+See: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/append
+See: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/batchUpdate
+
+gam <UserTypeEntity> append sheetrange <DriveFileEntity> json <SpreadsheetJSONRangeValuesList> [overwrite|insertrows]
+	[raw|userentered] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
+	[includevaluesinresponse [<Boolean>]] [formatjson]
+gam <UserTypeEntity> update sheetrange <DriveFileEntity> (json <SpreadsheetJSONRangeValuesList>)+
+	[raw|userentered] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
+	[includevaluesinresponse [<Boolean>]] [formatjson]
+
+gam <UserTypeEntity> clear sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+
+	[formatjson]
+
+gam <UserTypeEntity> print sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+  [todrive [<ToDriveAttributes>]]
+	[rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
+        [formatjson] [quotechar <Character>]
+gam <UserTypeEntity> show sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+
+	[rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
+        [formatjson]
 
 # Users - Tokens
 
