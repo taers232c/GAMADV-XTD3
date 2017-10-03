@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.14'
+__version__ = u'4.54.15'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -5489,11 +5489,11 @@ REPORT_CHOICE_MAP = {
 
 REPORT_ACTIVITIES_TIME_OBJECTS = [u'time']
 
-# gam report <users|user> [todrive [<ToDriveAttributes>]] [nodatechange] [maxresults <Number>]
+# gam report <users|user> [todrive [<ToDriveAttributes>]] [nodatechange] [maxresults <Number>] [maxactivities <Number>]
 #	[date <Date>] [user all|<UserItem>] [select <UserTypeEntity>] [filter|filters <String>] [fields|parameters <String>]
 # gam report <customers|customer|domain> [todrive [<ToDriveAttributes>]] [nodatechange]
 #	[date <Date>] [fields|parameters <String>]
-# gam report <admin|calendars|drive|docs|doc|groups|group|logins|login|mobile|tokens|token> [todrive [<ToDriveAttributes>]] [maxresults <Number>]
+# gam report <admin|calendars|drive|docs|doc|groups|group|logins|login|mobile|tokens|token> [todrive [<ToDriveAttributes>]] [maxresults <Number>] [maxactivities <Number>]
 #	[([start <Time>] [end <Time>])|yesterday] [user all|<UserItem>] [select <UserTypeEntity>] [event <String>] [filter|filters <String>] [fields|parameters <String>] [ip <String>] countsonly summary
 def doReport():
   report = getChoice(REPORT_CHOICE_MAP, mapChoice=True)
@@ -5501,7 +5501,9 @@ def doReport():
   customerId = GC.Values[GC.CUSTOMER_ID]
   if customerId == GC.MY_CUSTOMER:
     customerId = None
-  maxResults = tryDate = filters = parameters = actorIpAddress = startTime = endTime = startDateTime = endDateTime = eventName = None
+  tryDate = filters = parameters = actorIpAddress = startTime = endTime = startDateTime = endDateTime = eventName = None
+  maxActivities = 0
+  maxResults = 1000
   countsOnly = exitUserLoop = noDateChange = normalizeUsers = select = summary = False
   todrive = {}
   userKey = u'all'
@@ -5547,6 +5549,8 @@ def doReport():
       summary = True
     elif filtersUserValid and myarg == u'maxresults':
       maxResults = getInteger(minVal=1, maxVal=1000)
+    elif filtersUserValid and myarg == u'maxactivities':
+      maxActivities = getInteger(minVal=0)
     elif filtersUserValid and myarg == u'user':
       userKey = getString(Cmd.OB_EMAIL_ADDRESS)
     elif filtersUserValid and myarg == u'select':
@@ -5580,7 +5584,7 @@ def doReport():
       while True:
         try:
           usage = callGAPIpages(rep.userUsageReport(), u'get', u'usageReports',
-                                page_message=page_message,
+                                page_message=page_message, maxItems=maxActivities,
                                 throw_reasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
                                 date=tryDate, userKey=user, customerId=customerId, filters=filters, parameters=parameters,
                                 maxResults=maxResults)
@@ -5708,7 +5712,7 @@ def doReport():
         user = normalizeEmailAddressOrUID(user)
       try:
         feed = callGAPIpages(rep.activities(), u'list', u'items',
-                             page_message=page_message,
+                             page_message=page_message, maxItems=maxActivities,
                              throw_reasons=[GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.AUTH_ERROR],
                              applicationName=report, userKey=user, customerId=customerId,
                              actorIpAddress=actorIpAddress, startTime=startTime, endTime=endTime, eventName=eventName, filters=filters,

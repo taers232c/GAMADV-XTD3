@@ -1,3 +1,14 @@
+4.54.15
+
+Added maxactivities <Number> option to gam report to allow specification of the maximum number of activities to report.
+
+gam report users|user [todrive [<ToDriveAttributes>]] [nodatechange] [maxresults <Number>] [maxactivities <Number>]
+	[date <Date>] [(user all|<UserItem>)|(select <UserTypeEntity>)] [filter|filters <String>] [fields|parameters <String>]
+gam report admin|calendar|calendars|drive|docs|doc|groups|group|logins|login|mobile|tokens|token [todrive [<ToDriveAttributes>]] [maxresults <Number>] [maxactivities <Number>]
+	[([start <Time>] [end <Time>])|yesterday] [(user all|<UserItem>)|(select <UserTypeEntity>)] [event <String>] [filter|filters <String>] [ip <String>] [countsonly] [summary]
+
+(n.b., maxresults <Number> limits the number of activities downloaded per API call, not the total number of activities.)
+
 4.54.14
 
 Make `ERROR: 500: unknownError - Unknown` recoverable in Drive operations.
@@ -31,10 +42,10 @@ The following right-hand side characters are part of the meta-syntax: <>()*|
 <SpreadsheetJSONRangeValues> ::= {"range": <String>, "values": [<SpreadsheetValueList>(,<SpreadsheetValueList>)*], "majorDimension": ROWS|COLUMNS}
 <SpreadsheetJSONRangeValuesList> ::= '[<SpreadsheetJSONRangeValues>(,<SpreadsheetJSONRangeValues>)*]'
 
-gam <UserTypeEntity> append sheetrange <DriveFileEntity> json <SpreadsheetJSONRangeValuesList> [overwrite|insertrows]
+gam <UserTypeEntity> append sheetrange <DriveFileEntity> json <SpreadsheetJSONRangeValues>|<SpreadsheetJSONRangeValuesList> [overwrite|insertrows]
 	[raw|userentered] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
 	[includevaluesinresponse [<Boolean>]] [formatjson]
-gam <UserTypeEntity> update sheetrange <DriveFileEntity> (json <SpreadsheetJSONRangeValuesList>)+
+gam <UserTypeEntity> update sheetrange <DriveFileEntity> (json <SpreadsheetJSONRangeValues>|<SpreadsheetJSONRangeValuesList>)+
 	[raw|userentered] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
 	[includevaluesinresponse [<Boolean>]] [formatjson]
 
