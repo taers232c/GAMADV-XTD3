@@ -1,3 +1,7 @@
+4.54.14
+
+Make `ERROR: 500: unknownError - Unknown` recoverable in Drive operations.
+
 4.54.13
 
 Fixed bug where <SpreadsheetJSONRangeValuesList> was not handled properly.
