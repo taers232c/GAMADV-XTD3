@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.15'
+__version__ = u'4.54.16'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -11304,7 +11304,9 @@ def infoGroups(entityList):
   rolesSet = set()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == u'nousers':
+    if myarg == u'quick':
+      getAliases = getUsers = False
+    elif myarg == u'nousers':
       getUsers = False
     elif myarg == u'noaliases':
       getAliases = False
@@ -11440,7 +11442,7 @@ def infoGroups(entityList):
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
       entityUnknownWarning(Ent.GROUP, group, i, count)
 
-# gam info groups <GroupEntity> [members] [managers] [owners] [nousers] [noaliases] [groups] <GroupFieldName>* [fields <GroupFieldNameList>] [formatjson]
+# gam info groups <GroupEntity> [members] [managers] [owners] [nousers] [quick] [noaliases] [groups] <GroupFieldName>* [fields <GroupFieldNameList>] [formatjson]
 def doInfoGroups():
   infoGroups(getEntityList(Cmd.OB_GROUP_ENTITY))
 
@@ -16171,7 +16173,9 @@ def infoUsers(entityList):
   skus = SKU.getSortedSKUList()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == u'noaliases':
+    if myarg == u'quick':
+      getSchemas = getAliases = getGroups = getLicenses = False
+    elif myarg == u'noaliases':
       getAliases = False
     elif myarg == u'nogroups':
       getGroups = False
@@ -16468,12 +16472,12 @@ def infoUsers(entityList):
       else:
         entityActionFailedWarning([Ent.USER, userEmail], str(e), i, count)
 
-# gam info users <UserTypeEntity> [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>]
+# gam info users <UserTypeEntity> [quick] [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>]
 #	[userview] [fields <UserFieldNameList>] [products|product <ProductIDList>] [skus|sku <SKUIDList>] [formatjson]
 def doInfoUsers():
   infoUsers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, delayGet=True)[1])
 
-# gam info user <UserItem> [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>]
+# gam info user <UserItem> [quick] [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>]
 #	[userview] [fields <UserFieldNameList>] [products|product <ProductIDList>] [skus|sku <SKUIDList>] [formatjson]
 # gam info user
 def doInfoUser():

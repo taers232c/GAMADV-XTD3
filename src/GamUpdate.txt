@@ -1,3 +1,15 @@
+4.54.16
+
+Added quick option to gam info groups/users as a way to quickly suppress some output.
+* For groups, quick is equivalent to noaliases nousers
+* For users, quick is equivalent to noaliases nogroups nolicenses noschemas
+
+gam info groups <GroupEntity> [members] [managers] [owners] [quick] [noaliases] [nousers] [groups] <GroupFieldName>* [fields <GroupFieldNameList>] [formatjson]
+gam info users <UserTypeEntity> [quick] [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>]
+	[userview] <UserFieldName>* [fields <UserFieldNameList>] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
+gam <UserTypeEntity> info users [quick] [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>]
+	[userview] <UserFieldName>* [fields <UserFieldNameList>] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
+
 4.54.15
 
 Added maxactivities <Number> option to gam report to allow specification of the maximum number of activities to report.

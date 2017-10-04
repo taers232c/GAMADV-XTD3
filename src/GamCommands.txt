@@ -1125,7 +1125,7 @@ gam delete group|groups <GroupEntity>
 	whocanviewmembership
 <GroupFieldNameList> ::= "<GroupFieldName>(,<GroupFieldName>)*"
 
-gam info group|groups <GroupEntity> [members] [managers] [owners] [nousers] [noaliases] [groups] <GroupFieldName>* [fields <GroupFieldNameList>] [formatjson]
+gam info group|groups <GroupEntity> [members] [managers] [owners] [nousers] [quick] [noaliases] [groups] <GroupFieldName>* [fields <GroupFieldNameList>] [formatjson]
 gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member <UserItem>])|[select <GroupEntity>]
 	[maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])] [convertcrnl] [delimiter <Character>]
 	[members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
@@ -1559,7 +1559,7 @@ gam delete user <UserItem>
 gam undelete user <UserItem> [org|ou <OrgUnitPath>]
 gam suspend user <UserItem>
 gam unsuspend user <UserItem>
-gam info user [<UserItem>] [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>]
+gam info user [<UserItem>] [quick] [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>]
 	[userview] <UserFieldName>* [fields <UserFieldNameList>] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
 
 gam update users <UserTypeEntity> <UserAttributes>* [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>] [createifnotfound]
@@ -1567,7 +1567,7 @@ gam delete users <UserTypeEntity>
 gam undelete users <UserEntity> [org|ou <OrgUnitPath>]
 gam suspend users <UserTypeEntity>
 gam unsuspend users <UserTypeEntity>
-gam info users <UserTypeEntity> [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>]
+gam info users <UserTypeEntity> [quick] [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>]
 	[userview] <UserFieldName>* [fields <UserFieldNameList>] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
 
 gam <UserTypeEntity> update users <UserAttributes>* [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>] [createifnotfound]
@@ -1575,7 +1575,7 @@ gam <UserTypeEntity> delete users
 gam <UserEntity> undelete users [org|ou <OrgUnitPath>]
 gam <UserTypeEntity> suspend users
 gam <UserTypeEntity> unsuspend users
-gam <UserTypeEntity> info users [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>]
+gam <UserTypeEntity> info users [quick] [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>]
 	[userview] <UserFieldName>* [fields <UserFieldNameList>] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
 
 Print no header row and primaryEmail for specified users; there is no CSV file redirection with these commands.
