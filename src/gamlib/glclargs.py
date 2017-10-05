@@ -376,6 +376,7 @@ class GamCLArgs(object):
   OB_COURSE_ALIAS_ENTITY = u'CourseAliasEntity'
   OB_COURSE_ENTITY = u'CourseEntity'
   OB_COURSE_ID = u'CourseID'
+  OB_COURSE_STATE_LIST = "CourseStateList"
   OB_CROS_DEVICE_ENTITY = u'CrOSDeviceEntity'
   OB_CROS_ENTITY = u'CrOSEntity'
   OB_CUSTOMER_ID = u'CustomerID'

@@ -1,3 +1,17 @@
+4.54.17
+
+Added states <CourseStateList> option to gam print courses/course-participants to allow selection of courses by state.
+
+<CourseState> ::= active|archived|provisioned|declined
+<CourseStateList> ::= "<CourseState>(,<CourseState>)*"
+gam print courses [todrive [<ToDriveAttributes>]] (course|class <CourseID>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
+	[owneremail] [alias|aliases][delimiter <Character>] [show all|students|teachers] [countsonly]
+	[fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
+gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <CourseID>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
+	[show all|students|teachers]
+
+By default, all course states are selected.
+
 4.54.16
 
 Added quick option to gam info groups/users as a way to quickly suppress some output.
