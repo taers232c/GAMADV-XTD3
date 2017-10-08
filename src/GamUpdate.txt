@@ -1,3 +1,21 @@
+4.54.18
+
+When todrive is specified on a print command and todrive_conversion = true in gam.cfg, Gam checks to see if the CSV file being uploaded meets
+Google's requirements for the maximum number of cells and columns for a Google Sheet. If the requirements are met, the file is uploaded as a Google Sheet,
+otherwise it is uploaded as a CSV file. The limit for the number of columns is 256, the limit for the maximum number of cells has been raised to 2000000.
+
+If a group has a member of type CUSTOMER (all users in domain are members), the gam print group-members command puts the Customer ID in the
+id column and leaves the email column blank in the CSV file. This means that the email column of the CSV file can't be used in
+subsequent commands processing group membership because the blank value will cause an error. Gam now puts the Customer ID in the id and email columns
+to avoid this error. All Gam commands that process group membership properly recognize the Customer ID in the email column.
+
+Users that have applied to join a group or who have been invited to join a group but have not accepted are in a PENDING state. If you
+print the group membership, the PENDING members do not appear. However, if you try to add a member to a group and the member is in
+the PENDING stete, you will get a duplicate member error. When Gam gets a duplicate member error from the API, it checks to see if the member is
+already in the group; if so, the duplicate error is appropriate. If the member is not found in the group, then it must be in the PENDING state.
+In this case Gam deletes and adds the user which changes it from the PENDING state to the ACTIVE state.
+Thanks to Jay for suggesting this solution.
+
 4.54.17
 
 Added states <CourseStateList> option to gam print courses/course-participants to allow selection of courses by state.
