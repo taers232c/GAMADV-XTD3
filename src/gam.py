@@ -20453,7 +20453,7 @@ def _mapDriveFieldNames(f_file, user, mapToLabels=False):
     for attrib in API.DRIVE3_TO_DRIVE2_CAPABILITIES_NAMES_MAP:
       if attrib in capabilities:
         capabilities[API.DRIVE3_TO_DRIVE2_CAPABILITIES_NAMES_MAP[attrib]] = capabilities[attrib]
-      del capabilities[attrib]
+        del capabilities[attrib]
   if u'spaces' in f_file:
     f_file[u'appDataContents'] = u'appDataFolder' in f_file[u'spaces']
   if u'lastModifyingUser' in f_file:
