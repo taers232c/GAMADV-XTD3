@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.18'
+__version__ = u'4.54.19'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -414,6 +414,12 @@ def readStdin(prompt=None):
 def writeStdout(data):
   try:
     GM.Globals[GM.STDOUT].get(GM.REDIRECT_MULTI_FD, sys.stdout).write(data)
+  except IOError as e:
+    systemErrorExit(FILE_ERROR_RC, e)
+
+def flushStdout():
+  try:
+    GM.Globals[GM.STDOUT].get(GM.REDIRECT_MULTI_FD, sys.stdout).flush()
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, e)
 
@@ -2474,6 +2480,7 @@ def checkGDataError(e, service):
 def waitOnFailure(n, retries, error_code, error_message):
   wait_on_fail = min(2 ** n, 60)+float(random.randint(1, 1000)) / 1000
   if n > 3:
+    flushStdout()
     writeStderr(u'Temporary error: {0} - {1}, Backing off: {2} seconds, Retry: {3}/{4}\n'.format(error_code, error_message, int(wait_on_fail), n, retries))
     flushStderr()
   time.sleep(wait_on_fail)
@@ -20441,9 +20448,11 @@ def _mapDriveFieldNames(f_file, user, mapToLabels=False):
   capabilities = f_file.get(u'capabilities')
   if capabilities:
     for attrib in API.DRIVE3_TO_DRIVE2_CAPABILITIES_FIELDS_MAP:
-      f_file[API.DRIVE3_TO_DRIVE2_CAPABILITIES_FIELDS_MAP[attrib]] = capabilities[attrib]
+      if attrib in capabilities:
+        f_file[API.DRIVE3_TO_DRIVE2_CAPABILITIES_FIELDS_MAP[attrib]] = capabilities[attrib]
     for attrib in API.DRIVE3_TO_DRIVE2_CAPABILITIES_NAMES_MAP:
-      capabilities[API.DRIVE3_TO_DRIVE2_CAPABILITIES_NAMES_MAP[attrib]] = capabilities[attrib]
+      if attrib in capabilities:
+        capabilities[API.DRIVE3_TO_DRIVE2_CAPABILITIES_NAMES_MAP[attrib]] = capabilities[attrib]
       del capabilities[attrib]
   if u'spaces' in f_file:
     f_file[u'appDataContents'] = u'appDataFolder' in f_file[u'spaces']
@@ -21798,14 +21807,14 @@ def updateDriveFile(users):
         j += 1
         try:
           result = callGAPI(drive.files(), u'copy',
-                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS,
+                            throw_reasons=GAPI.DRIVE_COPY_THROW_REASONS,
                             fileId=fileId, ocrLanguage=parameters[DFA_OCRLANGUAGE],
                             ignoreDefaultVisibility=parameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                             keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                             body=body, fields=VX_ID_FILENAME, supportsTeamDrives=True)
           entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, fileId],
                                                              Act.MODIFIER_TO, result[VX_FILENAME], [Ent.DRIVE_FILE_ID, result[u'id']], j, jcount)
-        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError) as e:
+        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.cannotCopyFile) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, fileId], str(e), j, jcount)
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -21818,13 +21827,21 @@ def updateDriveFile(users):
 def copyDriveFile(users):
   def _recursiveFolderCopy(drive, user, i, count, folderId, folderTitle, newFolderTitle, parents, depth):
     body = {VX_FILENAME: newFolderTitle, u'mimeType': MIMETYPE_GA_FOLDER, u'parents': parents}
-    result = callGAPI(drive.files(), u'create',
-                      body=body, fields=u'id', supportsTeamDrives=True)
-    newFolderId = result[u'id']
-    Act.Set(Act.CREATE)
-    entityActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle, Ent.DRIVE_FOLDER_ID, newFolderId], i, count)
-    Act.Set(Act.COPY)
+    try:
+      result = callGAPI(drive.files(), u'create',
+                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INTERNAL_ERROR],
+                        body=body, fields=u'id', supportsTeamDrives=True)
+      newFolderId = result[u'id']
+      Act.Set(Act.CREATE)
+      entityActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle, Ent.DRIVE_FOLDER_ID, newFolderId], i, count)
+      Act.Set(Act.COPY)
+    except (GAPI.forbidden, GAPI.internalError) as e:
+      Act.Set(Act.CREATE)
+      entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], str(e), i, count)
+      Act.Set(Act.COPY)
+      return
     source_children = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
+                                    throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                                     q=VX_WITH_PARENTS.format(folderId), fields=VX_NPT_FILES_ID_FILENAME_MIMETYPE,
                                     pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], supportsTeamDrives=True)
     jcount = len(source_children)
@@ -21839,10 +21856,14 @@ def copyDriveFile(users):
         else:
           fileId = child[u'id']
           body = {VX_FILENAME: child[VX_FILENAME], u'parents': [newFolderId]}
-          result = callGAPI(drive.files(), u'copy',
-                            fileId=fileId, body=body, fields=VX_ID_FILENAME, supportsTeamDrives=True)
-          entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, child[VX_FILENAME]],
-                                                             Act.MODIFIER_TO, result[VX_FILENAME], [Ent.DRIVE_FILE_ID, result[u'id']], j, jcount)
+          try:
+            result = callGAPI(drive.files(), u'copy',
+                              throw_reasons=GAPI.DRIVE_COPY_THROW_REASONS,
+                              fileId=fileId, body=body, fields=VX_ID_FILENAME, supportsTeamDrives=True)
+            entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, child[VX_FILENAME]],
+                                                               Act.MODIFIER_TO, result[VX_FILENAME], [Ent.DRIVE_FILE_ID, result[u'id']], j, jcount)
+          except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.cannotCopyFile) as e:
+            entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_ID, fileId], str(e), j, jcount)
       Ind.Decrement()
       entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, folderTitle],
                                                          Act.MODIFIER_TO, newFolderTitle, [Ent.DRIVE_FOLDER_ID, newFolderId], i, count)
@@ -21891,14 +21912,14 @@ def copyDriveFile(users):
                                             Msg.USE_RECURSIVE_ARGUMENT_TO_COPY_FOLDERS, j, jcount)
         else:
           result = callGAPI(drive.files(), u'copy',
-                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+GAPI.DRIVE_ACCESS_THROW_REASONS,
+                            throw_reasons=GAPI.DRIVE_COPY_THROW_REASONS,
                             fileId=fileId, ocrLanguage=parameters[DFA_OCRLANGUAGE],
                             ignoreDefaultVisibility=parameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                             keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                             body=body, fields=VX_ID_FILENAME, supportsTeamDrives=True)
           entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, metadata[VX_FILENAME]],
                                                              Act.MODIFIER_TO, result[VX_FILENAME], [Ent.DRIVE_FILE_ID, result[u'id']], j, jcount)
-      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError) as e:
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.cannotCopyFile) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
