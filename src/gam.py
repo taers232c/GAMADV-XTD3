@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.19'
+__version__ = u'4.54.20'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -235,7 +235,7 @@ VX_ID_MIMETYPE_CANEDIT = u'id,mimeType,capabilities(canEdit)'
 VX_NPT_FILES_FIELDLIST = u'nextPageToken,{0}({{0}})'.format(VX_PAGES_FILES)
 VX_NPT_FILES_ID = u'nextPageToken,{0}(id)'.format(VX_PAGES_FILES)
 VX_NPT_FILES_ID_FILENAME = u'nextPageToken,{0}(id,{1})'.format(VX_PAGES_FILES, VX_FILENAME)
-VX_NPT_FILES_ID_FILENAME_MIMETYPE = u'nextPageToken,{0}(id,{1},mimeType)'.format(VX_PAGES_FILES, VX_FILENAME)
+VX_NPT_FILES_ID_FILENAME_MIMETYPE_CANCOPY = u'nextPageToken,{0}(id,{1},mimeType,capabilities/canCopy)'.format(VX_PAGES_FILES, VX_FILENAME)
 VX_NPT_FILES_ID_FILENAME_OWNEDBYME = u'nextPageToken,{0}(id,{1},ownedByMe)'.format(VX_PAGES_FILES, VX_FILENAME)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE = u'nextPageToken,{0}(id,{1},{2},mimeType)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
@@ -21842,7 +21842,7 @@ def copyDriveFile(users):
       return
     source_children = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                                     throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                    q=VX_WITH_PARENTS.format(folderId), fields=VX_NPT_FILES_ID_FILENAME_MIMETYPE,
+                                    q=VX_WITH_PARENTS.format(folderId), fields=VX_NPT_FILES_ID_FILENAME_MIMETYPE_CANCOPY,
                                     pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], supportsTeamDrives=True)
     jcount = len(source_children)
     if jcount > 0:
@@ -21850,20 +21850,27 @@ def copyDriveFile(users):
       j = 0
       for child in source_children:
         j += 1
+        childId = child[u'id']
+        childTitle = child[VX_FILENAME]
+        if childId == newFolderId:
+          entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], Msg.NOT_COPYABLE, j, jcount)
+          continue
         if child[u'mimeType'] == MIMETYPE_GA_FOLDER:
           if maxdepth == -1 or depth < maxdepth:
-            _recursiveFolderCopy(drive, user, j, jcount, child[u'id'], child[VX_FILENAME], child[VX_FILENAME], [newFolderId], depth+1)
+            _recursiveFolderCopy(drive, user, j, jcount, childId, childTitle, childTitle, [newFolderId], depth+1)
         else:
-          fileId = child[u'id']
-          body = {VX_FILENAME: child[VX_FILENAME], u'parents': [newFolderId]}
+          if not child[u'capabilities'][u'canCopy']:
+            entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], Msg.NOT_COPYABLE, j, jcount)
+            continue
+          body = {VX_FILENAME: childTitle, u'parents': [newFolderId]}
           try:
             result = callGAPI(drive.files(), u'copy',
                               throw_reasons=GAPI.DRIVE_COPY_THROW_REASONS,
-                              fileId=fileId, body=body, fields=VX_ID_FILENAME, supportsTeamDrives=True)
-            entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, child[VX_FILENAME]],
+                              fileId=childId, body=body, fields=VX_ID_FILENAME, supportsTeamDrives=True)
+            entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, childTitle],
                                                                Act.MODIFIER_TO, result[VX_FILENAME], [Ent.DRIVE_FILE_ID, result[u'id']], j, jcount)
           except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.cannotCopyFile) as e:
-            entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_ID, fileId], str(e), j, jcount)
+            entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], str(e), j, jcount)
       Ind.Decrement()
       entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, folderTitle],
                                                          Act.MODIFIER_TO, newFolderTitle, [Ent.DRIVE_FOLDER_ID, newFolderId], i, count)

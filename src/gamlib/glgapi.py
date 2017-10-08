@@ -346,6 +346,7 @@ REASON_EXCEPTION_MAP = {
   BAD_REQUEST: badRequest,
   CANNOT_CHANGE_OWN_ACL: cannotChangeOwnAcl,
   CANNOT_CHANGE_OWNER_ACL: cannotChangeOwnerAcl,
+  CANNOT_COPY_FILE: cannotCopyFile,
   CANNOT_DELETE_ONLY_REVISION: cannotDeleteOnlyRevision,
   CANNOT_DELETE_PRIMARY_CALENDAR: cannotDeletePrimaryCalendar,
   CANNOT_DELETE_PRIMARY_SENDAS: cannotDeletePrimarySendAs,
