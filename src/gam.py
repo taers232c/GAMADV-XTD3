@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.21'
+__version__ = u'4.54.22'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -17217,7 +17217,6 @@ def _getCourseShowProperties(myarg, courseShowProperties):
     courseShowProperties[u'aliases'] = True
   elif myarg == u'owneremail':
     courseShowProperties[u'ownerEmail'] = True
-    courseShowProperties[u'fields'].append(COURSE_ARGUMENT_TO_PROPERTY_MAP[myarg])
   elif myarg == u'show':
     courseShowProperties[u'members'] = getChoice(COURSE_MEMBER_ARGUMENTS)
   elif myarg == u'countsonly':
@@ -17267,6 +17266,16 @@ def _getCourseShowProperties(myarg, courseShowProperties):
   else:
     unknownArgumentExit()
 
+def _setCourseFields(courseShowProperties, pagesMode):
+  if not courseShowProperties[u'fields']:
+    return None
+  courseShowProperties[u'fields'].append(u'id')
+  if courseShowProperties[u'ownerEmail']:
+    courseShowProperties[u'fields'].append(u'ownerId')
+  if not pagesMode:
+    return u','.join(set(courseShowProperties[u'fields']))
+  return u'nextPageToken,courses({0})'.format(u','.join(set(courseShowProperties[u'fields'])))
+
 def _doInfoCourses(entityList):
   croom = buildGAPIObject(API.CLASSROOM)
   cd = None
@@ -17274,11 +17283,9 @@ def _doInfoCourses(entityList):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     _getCourseShowProperties(myarg, courseShowProperties)
-  if courseShowProperties[u'fields']:
-    courseShowProperties[u'fields'].append(u'id')
-    fields = u','.join(set(courseShowProperties[u'fields']))
-  else:
-    fields = None
+  fields = _setCourseFields(courseShowProperties, False)
+  if courseShowProperties[u'ownerEmail']:
+    cd = buildGAPIObject(API.DIRECTORY)
   i = 0
   count = len(entityList)
   for course in entityList:
@@ -17291,8 +17298,6 @@ def _doInfoCourses(entityList):
       printEntity([Ent.COURSE, result[u'id']], i, count)
       Ind.Increment()
       if courseShowProperties[u'ownerEmail']:
-        if cd is None:
-          cd = buildGAPIObject(API.DIRECTORY)
         result['ownerEmail'] = convertUIDtoEmailAddress(u'uid:{0}'.format(result['ownerId']), cd=cd)
       showJSON(None, result, courseShowProperties[u'skips'], COURSE_TIME_OBJECTS)
       if courseShowProperties[u'aliases']:
@@ -17418,11 +17423,7 @@ def doPrintCourses():
     else:
       _getCourseShowProperties(myarg, courseShowProperties)
   if len(courses) == 0:
-    if courseShowProperties[u'fields']:
-      courseShowProperties[u'fields'].append(u'id')
-      fields = u'nextPageToken,courses({0})'.format(u','.join(set(courseShowProperties[u'fields'])))
-    else:
-      fields = None
+    fields = _setCourseFields(courseShowProperties, True)
     printGettingAccountEntitiesInfo(Ent.COURSE)
     try:
       page_message = getPageMessage()
@@ -17443,11 +17444,7 @@ def doPrintCourses():
         return
       all_courses = collections.deque()
   else:
-    if courseShowProperties[u'fields']:
-      courseShowProperties[u'fields'].append(u'id')
-      fields = u','.join(set(courseShowProperties[u'fields']))
-    else:
-      fields = None
+    fields = _setCourseFields(courseShowProperties, False)
     all_courses = collections.deque()
     for course in courses:
       courseId = addCourseIdScope(course)
@@ -17458,12 +17455,12 @@ def doPrintCourses():
         all_courses.append(info)
       except GAPI.notFound:
         entityDoesNotExistWarning(Ent.COURSE, courseId)
+  if courseShowProperties[u'ownerEmail']:
+    cd = buildGAPIObject(API.DIRECTORY)
   for course in all_courses:
     for field in courseShowProperties[u'skips']:
       course.pop(field, None)
     if courseShowProperties[u'ownerEmail']:
-      if cd is None:
-        cd = buildGAPIObject(API.DIRECTORY)
       course['ownerEmail'] = convertUIDtoEmailAddress(u'uid:{0}'.format(course['ownerId']), cd=cd)
     addRowTitlesToCSVfile(flattenJSON(course, timeObjects=COURSE_TIME_OBJECTS, noLenObjects=COURSE_NOLEN_OBJECTS), csvRows, titles)
   if courseShowProperties[u'aliases']:
