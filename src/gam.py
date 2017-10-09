@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.20'
+__version__ = u'4.54.21'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -19954,14 +19954,15 @@ def _validateUserTeamDrive(user, i, count, fileIdEntity):
   return (user, drive)
 
 DRIVEFILE_LABEL_CHOICE_MAP = {
-  u'restricted': u'viewersCanCopyContent',
   u'restrict': u'viewersCanCopyContent',
-  u'starred': u'starred',
+  u'restricted': u'viewersCanCopyContent',
   u'star': u'starred',
-  u'trashed': u'trashed',
+  u'starred': u'starred',
   u'trash': u'trashed',
-  u'viewed': u'viewedByMe',
+  u'trashed': u'trashed',
   u'view': u'viewedByMe',
+  u'viewed': u'viewedByMe',
+  u'viewedbyme': u'viewedByMe',
   }
 
 MIMETYPE_CHOICE_MAP = {
@@ -21394,6 +21395,7 @@ def printFileList(users):
     _mapDrive3TitlesToDrive2(timeObjects, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
   else:
     fileNameTitle = V3_FILENAME
+  removeTitlesFromCSVfile([u'capabilities',], titles)
   query = _mapDrive2QueryToDrive3(query)
   i, count, users = getEntityArgument(users)
   for user in users:
