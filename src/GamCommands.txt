@@ -1798,7 +1798,7 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 	(trashed|trash [<Boolean>])|
 	(viewed|view [<Boolean>])|
 	(viewerscancopycontent [<Boolean>])|
-	writerscantshare
+	(writerscanshare|writerscantshare [<Boolean>])
 
 <DriveFileAddAttributes> ::=
 	<DriveFileAttributes>|
@@ -1965,7 +1965,7 @@ gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive [<ToDriveAtt
 gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 	[filepath] [preview] [buildtree] [todrive [<ToDriveAttributes>]]
 gam <UserTypeEntity> claim ownership <DriveFileEntity> [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
-	[includetrashed] [restricted [<Boolean>]] [writerscantshare [<Boolean>]]
+	[includetrashed] [restricted [<Boolean>]] [writerscanshare|writerscantshare [<Boolean>]]
 	[filepath] [preview] [buildtree] [todrive [<ToDriveAttributes>]]
 
 gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>] [keepuser | (retainrole reader|commenter|writer|editor)]
