@@ -1263,8 +1263,8 @@ gam delete orgs|ous <OrgUnitEntity>
 gam info orgs|ous <OrgUnitEntity> [nousers] [children|child]
 
 gam print orgs|ous [todrive [<ToDriveAttributes>]] [showparent] [toplevelonly] [fromparent <OrgUnitItem>]
-	[allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)] [convertcrnl]
-gam show orgtree [fromparent <OrgUnitItem>]
+	[allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)] [convertcrnl] [batchsuborgs [<Boolean>]]
+gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [<Boolean>]]
 
 # Printers
 

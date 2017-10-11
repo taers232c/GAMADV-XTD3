@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.23'
+__version__ = u'4.54.24'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -7289,7 +7289,47 @@ ORG_ARGUMENT_TO_PROPERTY_TITLE_MAP = {
 ORG_FIELD_PRINT_ORDER = [u'orgUnitPath', u'orgUnitId', u'name', u'description', u'parentOrgUnitPath', u'parentOrgUnitId', u'blockInheritance']
 PRINT_ORGS_DEFAULT_FIELDS = [u'orgUnitPath', u'orgUnitId', u'name', u'parentOrgUnitId']
 
-def _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent):
+def _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs):
+  def _callbackListOrgUnits(request_id, response, exception):
+    ri = request_id.splitlines()
+    if exception is None:
+      orgUnits.extend(response.get(u'organizationUnits', []))
+    else:
+      http_status, reason, message = checkGAPIError(exception)
+      errMsg = getHTTPError({}, http_status, reason, message)
+      if reason not in GAPI.DEFAULT_RETRY_REASONS:
+        if reason in [GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED]:
+          accessErrorExit(cd)
+        entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, ri[RI_ENTITY]], errMsg)
+        return
+      waitOnFailure(1, 10, reason, message)
+      try:
+        response = callGAPI(cd.orgunits(), u'list',
+                            throw_reasons=[GAPI.ORGUNIT_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                            customerId=GC.Values[GC.CUSTOMER_ID], type=u'all', orgUnitPath=ri[RI_ENTITY], fields=listfields)
+        orgUnits.extend(response.get(u'organizationUnits', []))
+      except GAPI.orgunitNotFound:
+        entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, ri[RI_ENTITY]], Msg.DOES_NOT_EXIST)
+      except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
+        accessErrorExit(cd)
+
+  def _batchListOrgUnits(topLevelOrgUnits):
+    svcargs = dict([(u'customerId', GC.Values[GC.CUSTOMER_ID]), (u'orgUnitPath', None), (u'type', u'all'), (u'fields', listfields)]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    method = getattr(cd.orgunits(), u'list')
+    dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackListOrgUnits)
+    bcount = 0
+    for orgUnitPath in topLevelOrgUnits:
+      svcparms = svcargs.copy()
+      svcparms[u'orgUnitPath'] = orgUnitPath
+      dbatch.add(method(**svcparms), request_id=batchRequestID(orgUnitPath, 0, 0, 0, 0, u''))
+      bcount += 1
+      if bcount >= GC.Values[GC.BATCH_SIZE]:
+        executeBatch(dbatch)
+        dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackListOrgUnits)
+        bcount = 0
+    if bcount > 0:
+      executeBatch(dbatch)
+
   deleteOrgUnitId = deleteParentOrgUnitId = False
   if showParent:
     localFieldsList = fieldsList[:]
@@ -7302,17 +7342,22 @@ def _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent):
     fields = u','.join(set(localFieldsList))
   else:
     fields = u','.join(set(fieldsList))
+  listfields = u'organizationUnits({0})'.format(fields)
   printGettingAccountEntitiesInfo(Ent.ORGANIZATIONAL_UNIT)
+  if listType == u'children':
+    batchSubOrgs = False
   try:
     orgs = callGAPI(cd.orgunits(), u'list',
                     throw_reasons=[GAPI.ORGUNIT_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
-                    customerId=GC.Values[GC.CUSTOMER_ID], type=listType, orgUnitPath=orgUnitPath, fields=u'organizationUnits({0})'.format(fields))
+                    customerId=GC.Values[GC.CUSTOMER_ID], type=listType if not batchSubOrgs else u'children', orgUnitPath=orgUnitPath, fields=listfields)
   except GAPI.orgunitNotFound:
     entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], Msg.DOES_NOT_EXIST)
     return None
   except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
     accessErrorExit(cd)
   orgUnits = orgs.get(u'organizationUnits', [])
+  if batchSubOrgs:
+    _batchListOrgUnits([orgUnit[u'orgUnitPath'] for orgUnit in orgUnits])
   if showParent:
     parentOrgIds = []
     retrievedOrgIds = []
@@ -7344,7 +7389,7 @@ def _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent):
   return orgUnits
 
 # gam print orgs|ous [todrive [<ToDriveAttributes>]] [fromparent <OrgUnitItem>] [showparent] [toplevelonly]
-#	[allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)] [convertcrnl]
+#	[allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)] [convertcrnl] [batchsuborgs [Boolean>]]
 def doPrintOrgs():
   cd = buildGAPIObject(API.DIRECTORY)
   convertCRNL = GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]
@@ -7355,7 +7400,7 @@ def doPrintOrgs():
   titles, csvRows = initializeTitlesCSVfile(None)
   orgUnitPath = u'/'
   listType = u'all'
-  showParent = False
+  batchSubOrgs = showParent = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
@@ -7364,6 +7409,8 @@ def doPrintOrgs():
       orgUnitPath = getOrgUnitItem()
     elif myarg == u'showparent':
       showParent = getBoolean(True)
+    elif myarg == u'batchsuborgs':
+      batchSubOrgs = getBoolean(True)
     elif myarg == u'toplevelonly':
       listType = u'children'
     elif myarg == u'allfields':
@@ -7393,7 +7440,7 @@ def doPrintOrgs():
       addFieldTitleToCSVfile(field, ORG_ARGUMENT_TO_PROPERTY_TITLE_MAP, fieldsList, fieldsTitles, titles, nativeTitles)
   if GC.Values[GC.PRINT_NATIVE_NAMES]:
     convertTiNativeTitles(fieldsTitles, titles, nativeTitles)
-  orgUnits = _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent)
+  orgUnits = _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs)
   if orgUnits is None:
     return
   for orgUnit in orgUnits:
@@ -7407,7 +7454,7 @@ def doPrintOrgs():
   csvRows.sort(key=lambda x: x[fieldsTitles[u'orgUnitPath']].lower(), reverse=False)
   writeCSVfile(csvRows, titles, u'Orgs', todrive)
 
-# gam show orgtree [fromparent <OrgUnitItem>]
+# gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [Boolean>]]
 def doShowOrgTree():
   def addOrgUnitToTree(orgPathList, i, n, tree):
     if orgPathList[i] not in tree:
@@ -7426,13 +7473,16 @@ def doShowOrgTree():
   orgUnitPath = u'/'
   fieldsList = [u'orgUnitPath',]
   listType = u'all'
+  batchSubOrgs = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'fromparent':
       orgUnitPath = getOrgUnitItem()
+    elif myarg == u'batchsuborgs':
+      batchSubOrgs = getBoolean(True)
     else:
       unknownArgumentExit()
-  orgUnits = _getOrgUnits(cd, orgUnitPath, fieldsList, listType, False)
+  orgUnits = _getOrgUnits(cd, orgUnitPath, fieldsList, listType, False, batchSubOrgs)
   if orgUnits is None:
     return
   orgTree = {}

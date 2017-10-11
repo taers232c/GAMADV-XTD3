@@ -1,3 +1,16 @@
+4.54.24
+
+Added batchsuborgs [<Boolean>] option to gam print orgs and gam show orgtree to handle a special case when the
+account has thousands of organizational units. By default, these commands issue a single API call to get the
+list of organizational units. If the number is large, greater than 4000 in an observed case, the API call may fail.
+When batchsuborgs is specified, Gam gets all of the top level org units with one API call; then Gam uses batch processing
+in subsequent API calls to get the sub org units. There is no benefit to using this option unless the commands fail
+without it. The number of sub org units processed in each batch is controlled by batch_size in gam.cfg.
+
+gam print orgs|ous [todrive [<ToDriveAttributes>]] [showparent] [toplevelonly] [fromparent <OrgUnitItem>]
+	[allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)] [convertcrnl] [batchsuborgs [<Boolean>]]
+gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [<Boolean>]]
+
 4.54.23
 
 Code cleanup.
