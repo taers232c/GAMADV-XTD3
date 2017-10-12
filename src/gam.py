@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.25'
+__version__ = u'4.54.26'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -6571,13 +6571,17 @@ def doUpdateCustomer():
     else:
       unknownArgumentExit()
   if body:
+    if u'postalAddress' in body and u'countryCode' not in body[u'postalAddress']:
+      missingArgumentExit(u'countrycode')
     try:
       callGAPI(cd.customers(), u'update',
-               throw_reasons=[GAPI.DOMAIN_NOT_VERIFIED_SECONDARY, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+               throw_reasons=[GAPI.DOMAIN_NOT_VERIFIED_SECONDARY, GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                customerKey=GC.Values[GC.CUSTOMER_ID], body=body, fields=u'')
       entityActionPerformed([Ent.CUSTOMER_ID, GC.Values[GC.CUSTOMER_ID]])
     except GAPI.domainNotVerifiedSecondary:
       entityActionFailedWarning([Ent.CUSTOMER_ID, GC.Values[GC.CUSTOMER_ID], Ent.DOMAIN, body[u'customerDomain']], Msg.DOMAIN_NOT_VERIFIED_SECONDARY)
+    except (GAPI.invalid, GAPI.invalidInput) as e:
+      entityActionFailedWarning([Ent.CUSTOMER_ID, GC.Values[GC.CUSTOMER_ID]], str(e))
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       accessErrorExit(cd)
 
