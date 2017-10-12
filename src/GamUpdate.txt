@@ -1,3 +1,7 @@
+4.54.27
+
+Flush stdout before every write to stderr to keep output in sync.
+
 4.54.26
 
 Handle input errors in gam update customer.
