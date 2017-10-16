@@ -1,6 +1,15 @@
+4.54.29
+
+Added showparent option to gam print filelist. By default, when the select <DriveFileEntityListTree> option is used,
+only the children of the selected folder are displayed; the showparent option causes the selected folder to also be displayed.
+gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)]
+	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
+	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [mimetype [not] <MimeTypeList>] [depth <Number>] [showparent]
+	[filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
+
 4.54.28
 
-Added retainrole reader|commenter|writer|editor|none argument to gam claim ownership to allow specification of the role
+Added retainrole reader|commenter|writer|editor|none option to gam claim ownership to allow specification of the role
 that the original owner will retain; by default, the orginal owner retains writer access.
 gam <UserTypeEntity> claim ownership <DriveFileEntity> [includetrashed]
 	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
