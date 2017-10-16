@@ -230,7 +230,7 @@ VX_ID_FILENAME_MIMETYPE_OWNEDBYME = u'id,{0},mimeType,ownedByMe'.format(VX_FILEN
 VX_ID_FILENAME_PARENTS_MIMETYPE = u'id,{0},{1},mimeType'.format(VX_FILENAME, VX_PARENTS_ID)
 VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME = u'id,{0},{1},mimeType,ownedByMe'.format(VX_FILENAME, VX_PARENTS_ID)
 VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED = u'id,{0},{1},mimeType,ownedByMe,{2}'.format(VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
-VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNER = u'id,{0},{1},mimeType,ownedByMe,{2},owners(emailAddress)'.format(VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
+VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNER = u'id,{0},{1},mimeType,ownedByMe,{2},owners(emailAddress,permissionId)'.format(VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
 VX_ID_MIMETYPE_CANEDIT = u'id,mimeType,capabilities(canEdit)'
 VX_NPT_FILES_FIELDLIST = u'nextPageToken,{0}({{0}})'.format(VX_PAGES_FILES)
 VX_NPT_FILES_ID = u'nextPageToken,{0}(id)'.format(VX_PAGES_FILES)
@@ -240,7 +240,7 @@ VX_NPT_FILES_ID_FILENAME_OWNEDBYME = u'nextPageToken,{0}(id,{1},ownedByMe)'.form
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE = u'nextPageToken,{0}(id,{1},{2},mimeType)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,{3})'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
-VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNER = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,{3},owners(emailAddress))'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
+VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNER = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,{3},owners(emailAddress,permissionId))'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
 VX_NPT_FILES_ID_MIMETYPE_CANEDIT = u'nextPageToken,{0}(id,mimeType,capabilities(canEdit))'.format(VX_PAGES_FILES)
 VX_NPT_PERMISSIONS = u'nextPageToken,{0}'.format(VX_PAGES_PERMISSIONS)
 VX_NPT_REVISIONS_FIELDLIST = u'nextPageToken,{0}({{0}})'.format(VX_PAGES_REVISIONS)
@@ -22843,6 +22843,7 @@ def claimOwnership(users):
         if childFileId not in skipids and (trashed or not childEntryInfo[u'trashed']):
           owner = childEntryInfo[u'owners'][0][u'emailAddress']
           if not childEntryInfo[u'ownedByMe'] and owner not in skipusers:
+            oldOwnerPermissionIds[owner] = childEntryInfo[u'owners'][0][u'permissionId']
             filesToClaim.setdefault(owner, {})
             if childFileId not in filesToClaim[owner]:
               filesToClaim[owner][childFileId] = {VX_FILENAME: childEntryInfo[VX_FILENAME], u'type': _getEntityMimeType(childEntryInfo)}
@@ -22865,6 +22866,7 @@ def claimOwnership(users):
           fileTree[childFileId] = {u'info': childEntryInfo}
         owner = childEntryInfo[u'owners'][0][u'emailAddress']
         if not childEntryInfo[u'ownedByMe'] and owner not in skipusers:
+          oldOwnerPermissionIds[owner] = childEntryInfo[u'owners'][0][u'permissionId']
           filesToClaim.setdefault(owner, {})
           if childFileId not in filesToClaim[owner]:
             filesToClaim[owner][childFileId] = {VX_FILENAME: childEntryInfo[VX_FILENAME], u'type': _getEntityMimeType(childEntryInfo)}
@@ -22872,12 +22874,7 @@ def claimOwnership(users):
           _identifyChildrenToClaim(childEntryInfo, skipIds, user, i, count)
 
   def _processRetainedRole(user, i, count, oldOwner, entityType, fileDesc, l, lcount):
-    oldOwnerPermissionId = oldOwnerPermissionIds.get(oldOwner)
-    if oldOwnerPermissionId is None:
-      oldOwnerPermissionId = validateUserGetPermissionId(oldOwner, 0, 0)
-      oldOwnerPermissionIds[oldOwner] = oldOwnerPermissionId
-    if oldOwnerPermissionId is None:
-      return
+    oldOwnerPermissionId = oldOwnerPermissionIds[oldOwner]
     Act.Set(Act.RETAIN)
     try:
       if retainRoleBody[u'role'] != u'none':
@@ -23017,6 +23014,7 @@ def claimOwnership(users):
       if fileId not in skipFileIdEntity[u'list'] and (trashed or not fileEntryInfo[u'trashed']):
         owner = fileEntryInfo[u'owners'][0][u'emailAddress']
         if not fileEntryInfo[u'ownedByMe'] and owner not in skipusers:
+          oldOwnerPermissionIds[owner] = fileEntryInfo[u'owners'][0][u'permissionId']
           filesToClaim.setdefault(owner, {})
           if fileId not in filesToClaim[owner]:
             filesToClaim[owner][fileId] = {VX_FILENAME: fileEntryInfo[VX_FILENAME], u'type': entityType}
