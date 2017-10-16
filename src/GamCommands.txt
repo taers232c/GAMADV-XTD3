@@ -598,7 +598,7 @@ gam audit monitor list <EmailAddress>
 
 <CalendarEntity> ::= <CalendarList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
-<CalendarACLRole> ::= editor|freebusy|freebusyreader|owner|reader|writer
+<CalendarACLRole> ::= editor|freebusy|freebusyreader|owner|reader|writer|none
 <ACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>)|domain|default
 <ACLScopeList> ::== "<ACLScope>(,<ACLScope>)*"
 <ACLScopeEntity>::= <ACLScopeList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
@@ -1686,7 +1686,7 @@ gam <UserTypeEntity> print calendaracls <CalendarManageEntity> [todrive [<ToDriv
 
 Transfer ownership of a selection of users calendars to another user
 
-gam <UserTypeEntity> transfer calendars <CalendarManageEntity> <UserItem> [keepuser] [retainrole <CalendarACLRole>]
+gam <UserTypeEntity> transfer calendars <CalendarManageEntity> <UserItem> [keepuser | (retainrole <CalendarACLRole>)]
 
 <EventSelectProperties:> ::=
 	(endtime|timemax <Time>)|
@@ -1962,15 +1962,18 @@ gam <UserTypeEntity> show filerevisions <DriveFileEntity> [select <DriveFileRevi
 gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] [select <DriveFileRevisionIDEntity>] [previewdelete]
 	[showtitles] [<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 
-gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-	[filepath] [preview] [buildtree] [todrive [<ToDriveAttributes>]]
-gam <UserTypeEntity> claim ownership <DriveFileEntity> [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
-	[includetrashed] [restricted [<Boolean>]] [writerscanshare|writerscantshare [<Boolean>]]
-	[filepath] [preview] [buildtree] [todrive [<ToDriveAttributes>]]
-
-gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>] [keepuser | (retainrole reader|commenter|writer|editor)]
+gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed]
 	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
+	[preview] [filepath] [buildtree] [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> claim ownership <DriveFileEntity> [includetrashed]
+	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
+	[skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
+	[restricted [<Boolean>]] [writerscanshare|writerscantshare [<Boolean>]] [keepuser | (retainrole reader|commenter|writer|editor|none)]
+	[preview] [filepath] [buildtree] [todrive [<ToDriveAttributes>]]
+
+gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>] [keepuser | (retainrole reader|commenter|writer|editor|none)]
 	[(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>]
+	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 	[preview] [todrive [<ToDriveAttributes>]]
 
 gam <UserTypeEntity> collect orphans (orderby <DriveFileOrderByFieldName> [ascending|descending])*
