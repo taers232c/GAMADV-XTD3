@@ -217,7 +217,7 @@ VX_PAGES_PERMISSIONS = u'permissions'
 VX_PAGES_REVISIONS = u'revisions'
 
 VX_PARENTS_ID = u'parents'
-VX_TRASHED = u'labels(trashed)'
+VX_TRASHED = u'trashed'
 
 VX_FILENAME_MIMETYPE_TEAMDRIVEID = u'{0},mimeType,teamDriveId'.format(VX_FILENAME)
 VX_FILENAME_PARENTS = u'{0},{1}'.format(VX_FILENAME, VX_PARENTS_ID)
