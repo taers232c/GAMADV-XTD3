@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.30'
+__version__ = u'4.54.31'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -21939,7 +21939,8 @@ def copyDriveFile(users):
                               fileId=childId, body=body, fields=VX_ID_FILENAME, supportsTeamDrives=True)
             entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, childTitle],
                                                                Act.MODIFIER_TO, result[VX_FILENAME], [Ent.DRIVE_FILE_ID, result[u'id']], j, jcount)
-          except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.cannotCopyFile) as e:
+          except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+                  GAPI.cannotCopyFile, GAPI.responsePreparationFailure, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded) as e:
             entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], str(e), j, jcount)
       Ind.Decrement()
       entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, folderTitle],
