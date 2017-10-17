@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.29'
+__version__ = u'4.54.30'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -17965,10 +17965,6 @@ def doPrinterRegister():
   _, result = cp._http.request(uri='https://www.google.com/cloudprint/register', method='POST', body=body, headers=headers)
   result = checkCloudPrintResult(result)
   entityActionPerformed([Ent.PRINTER, result[u'printers'][0][u'id']])
-
-# gam printer <String> register
-def doPrinterRegisterId(printerIdList):
-  doPrinterRegister()
 #
 PRINTER_UPDATE_ITEMS_CHOICE_MAP = {
   u'currentquota': u'currentQuota',
@@ -29068,7 +29064,6 @@ PRINTER_SUBCOMMANDS = {
   u'add':	{CMD_ACTION: Act.ADD, CMD_FUNCTION: doPrinterAddACL},
   u'delete':	{CMD_ACTION: Act.DELETE, CMD_FUNCTION: doPrinterDeleteACLs},
   u'printacls':	{CMD_ACTION: Act.SHOW, CMD_FUNCTION: doPrinterPrintACLs},
-  u'register':	{CMD_ACTION: Act.REGISTER, CMD_FUNCTION: doPrinterRegisterId},
   u'showacls':	{CMD_ACTION: Act.SHOW, CMD_FUNCTION: doPrinterShowACLs},
   u'sync':	{CMD_ACTION: Act.SYNC, CMD_FUNCTION: doPrinterSyncACLs},
   u'wipe':	{CMD_ACTION: Act.DELETE, CMD_FUNCTION: doPrinterWipeACLs},

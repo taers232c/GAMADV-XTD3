@@ -1291,8 +1291,6 @@ gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [<Boolean>]]
 	(updateurl <URL>)|
 	(uuid <String>)
 
-gam printer register
-
 gam update printer|printers <PrinterIDEntity> <PrinterAttributes>+
 gam delete printer|printers <PrinterIDEntity>
 gam info printer|printers <PrinterIDEntity> [everything]
