@@ -304,13 +304,15 @@ class permissionNotFound(Exception):
   pass
 class photoNotFound(Exception):
   pass
+class rateLimitExceeded(Exception):
+  pass
 class required(Exception):
   pass
 class resourceIdNotFound(Exception):
   pass
-class responsePreparationFailure(Exception):
-  pass
 class resourceNotFound(Exception):
+  pass
+class responsePreparationFailure(Exception):
   pass
 class revisionDeletionNotSupported(Exception):
   pass
@@ -339,6 +341,8 @@ class unknownError(Exception):
 class userAccess(Exception):
   pass
 class userNotFound(Exception):
+  pass
+class userRateLimitExceeded(Exception):
   pass
 
 REASON_EXCEPTION_MAP = {
@@ -401,6 +405,7 @@ REASON_EXCEPTION_MAP = {
   PERMISSION_DENIED: permissionDenied,
   PERMISSION_NOT_FOUND: permissionNotFound,
   PHOTO_NOT_FOUND: photoNotFound,
+  RATE_LIMIT_EXCEEDED: rateLimitExceeded,
   REQUIRED: required,
   RESOURCE_ID_NOT_FOUND: resourceIdNotFound,
   RESOURCE_NOT_FOUND: resourceNotFound,
@@ -419,4 +424,5 @@ REASON_EXCEPTION_MAP = {
   UNKNOWN_ERROR: unknownError,
   USER_ACCESS: userAccess,
   USER_NOT_FOUND: userNotFound,
+  USER_RATE_LIMIT_EXCEEDED: userRateLimitExceeded,
   }
