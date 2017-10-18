@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.32'
+__version__ = u'4.54.33'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -733,7 +733,7 @@ def getArgument():
       return argument.replace(u'_', u'')
   missingArgumentExit(Cmd.OB_ARGUMENT)
 
-def getBoolean(defaultValue=None):
+def getBoolean(defaultValue=True):
   if Cmd.ArgumentsRemaining():
     boolean = Cmd.Current().strip().lower()
     if boolean in TRUE_VALUES:
@@ -3883,18 +3883,18 @@ def getTodriveParameters():
       tdparentLocation = Cmd.Location()
       localParent = True
     elif myarg == u'tdtimestamp':
-      todrive[u'timestamp'] = getBoolean(True)
+      todrive[u'timestamp'] = getBoolean()
     elif myarg == u'tddaysoffset':
       todrive[u'daysoffset'] = getInteger(minVal=0)
     elif myarg == u'tdhoursoffset':
       todrive[u'hoursoffset'] = getInteger(minVal=0)
     elif myarg == u'tdlocalcopy':
-      todrive[u'localcopy'] = getBoolean(True)
+      todrive[u'localcopy'] = getBoolean()
     elif myarg == u'tdfileid':
       todrive[u'fileId'] = getString(Cmd.OB_DRIVE_FILE_ID)
       tdfileidLocation = Cmd.Location()
     elif myarg == u'tdnobrowser':
-      todrive[u'nobrowser'] = getBoolean(True)
+      todrive[u'nobrowser'] = getBoolean()
     else:
       Cmd.Backup()
       break
@@ -4638,7 +4638,7 @@ def doBatch(threadBatch=False):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'showcmds':
-      logCmds = getBoolean(True)
+      logCmds = getBoolean()
     else:
       unknownArgumentExit()
   items = collections.deque()
@@ -7087,7 +7087,7 @@ def _doUpdateOrgs(entityList):
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if entityType == Cmd.ENTITY_CROS and myarg == u'quickcrosmove':
-        quickCrOSMove = getBoolean(True)
+        quickCrOSMove = getBoolean()
       else:
         unknownArgumentExit()
     Act.Set(Act.ADD)
@@ -7414,9 +7414,9 @@ def doPrintOrgs():
     elif myarg == u'fromparent':
       orgUnitPath = getOrgUnitItem()
     elif myarg == u'showparent':
-      showParent = getBoolean(True)
+      showParent = getBoolean()
     elif myarg == u'batchsuborgs':
-      batchSubOrgs = getBoolean(True)
+      batchSubOrgs = getBoolean()
     elif myarg == u'toplevelonly':
       listType = u'children'
     elif myarg == u'allfields':
@@ -7485,7 +7485,7 @@ def doShowOrgTree():
     if myarg == u'fromparent':
       orgUnitPath = getOrgUnitItem()
     elif myarg == u'batchsuborgs':
-      batchSubOrgs = getBoolean(True)
+      batchSubOrgs = getBoolean()
     else:
       unknownArgumentExit()
   orgUnits = _getOrgUnits(cd, orgUnitPath, fieldsList, listType, False, batchSubOrgs)
@@ -10023,7 +10023,7 @@ def updateCrOSDevices(entityList):
     elif myarg == u'acknowledgedevicetouchrequirement':
       ackWipe = True
     elif myarg == u'quickcrosmove':
-      quickCrOSMove = getBoolean(True)
+      quickCrOSMove = getBoolean()
     else:
       unknownArgumentExit()
   if action_body and update_body:
@@ -13027,7 +13027,7 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
   elif function != u'import' and myarg == u'notifyattendees':
     parameters[u'sendNotifications'] = True
   elif myarg == u'anyonecanaddself':
-    body[u'anyoneCanAddSelf'] = getBoolean(True)
+    body[u'anyoneCanAddSelf'] = getBoolean()
   elif myarg == u'guestscaninviteothers':
     body[u'guestsCanInviteOthers'] = getBoolean()
   elif myarg == u'guestscantinviteothers':
@@ -20110,9 +20110,9 @@ def getDriveFileAttribute(myarg, body, parameters):
   elif myarg in DRIVEFILE_LABEL_CHOICE_MAP:
     myarg = DRIVEFILE_LABEL_CHOICE_MAP[myarg]
     if myarg != u'viewersCanCopyContent':
-      body[myarg] = getBoolean(True)
+      body[myarg] = getBoolean()
     else:
-      body[myarg] = not getBoolean(False)
+      body[myarg] = not getBoolean()
   elif myarg in [u'lastviewedbyme', u'lastviewedbyuser', u'lastviewedbymedate', u'lastviewedbymetime']:
     body[VX_VIEWED_BY_ME_TIME] = getTimeOrDeltaFromNow()
   elif myarg == u'description':
@@ -20122,19 +20122,19 @@ def getDriveFileAttribute(myarg, body, parameters):
   elif getDriveFileParentAttribute(myarg, parameters):
     pass
   elif myarg == u'writerscanshare':
-    body[u'writersCanShare'] = getBoolean(True)
+    body[u'writersCanShare'] = getBoolean()
   elif myarg == u'writerscantshare':
-    body[u'writersCanShare'] = not getBoolean(True)
+    body[u'writersCanShare'] = not getBoolean()
   elif myarg == u'viewerscancopycontent':
-    body[u'viewersCanCopyContent'] = getBoolean(True)
+    body[u'viewersCanCopyContent'] = getBoolean()
   elif myarg == u'foldercolorrgb':
     body[u'folderColorRgb'] = getColorHexAttribute()
   elif myarg == u'ignoredefaultvisibility':
-    parameters[DFA_IGNORE_DEFAULT_VISIBILITY] = getBoolean(True)
+    parameters[DFA_IGNORE_DEFAULT_VISIBILITY] = getBoolean()
   elif myarg in [u'keeprevisionforever', u'pinned']:
-    parameters[DFA_KEEP_REVISION_FOREVER] = getBoolean(True)
+    parameters[DFA_KEEP_REVISION_FOREVER] = getBoolean()
   elif myarg == u'usecontentasindexabletext':
-    parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT] = getBoolean(True)
+    parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT] = getBoolean()
   elif myarg == u'indexabletext':
     body.setdefault(u'contentHints', {})
     body[u'contentHints'][u'indexableText'] = getString(Cmd.OB_STRING)
@@ -20491,6 +20491,13 @@ def _mapDrivePermissionNames(permission):
   if u'emailAddress' in permission and u'domain' not in permission:
     _, permission[u'domain'] = splitEmailAddress(permission[u'emailAddress'])
 
+def _mapDriveParents(f_file):
+  if u'parents' in f_file:
+    parents = f_file[u'parents'][:]
+    f_file[u'parents'] = []
+    for parent in parents:
+      f_file[u'parents'].append({u'id': parent})
+
 def _mapDriveFieldNames(f_file, user, mapToLabels=False):
   if mapToLabels:
     for attrib in API.DRIVE3_TO_DRIVE2_LABELS_MAP:
@@ -20528,11 +20535,7 @@ def _mapDriveFieldNames(f_file, user, mapToLabels=False):
       _mapDriveUser(owner)
     f_file[u'ownerNames'] = [owner[u'displayName'] for owner in f_file[u'owners']]
   _mapDriveUser(f_file.get(u'sharingUser', {}))
-  if u'parents' in f_file:
-    parents = f_file[u'parents'][:]
-    f_file[u'parents'] = []
-    for parent in parents:
-      f_file[u'parents'].append({u'id': parent})
+  _mapDriveParents(f_file)
   for permission in f_file.get(u'permissions', []):
     if (permission[u'type'] == u'user') and (permission[u'emailAddress'].lower() == user):
       f_file[u'userPermission'] = {u'id': u'me', u'role': permission[u'role'], u'type': permission[u'type']}
@@ -20602,6 +20605,7 @@ DRIVEFILE_FIELDS_CHOICE_MAP = {
   u'owners': u'owners',
   u'parents': u'parents',
   u'permissions': u'permissions',
+  u'properties': u'properties',
   u'quotabytesused': u'quotaBytesUsed',
   u'quotaused': u'quotaBytesUsed',
   u'shareable': u'capabilities.canShare',
@@ -20628,19 +20632,93 @@ DRIVEFILE_FIELDS_CHOICE_MAP = {
   u'writerscanshare': u'writersCanShare',
   }
 
+PARENTS_SUBFIELDS_CHOICE_MAP = {
+  u'id': u'parents',
+  }
+
+PERMISSIONS_SUBFIELDS_CHOICE_MAP = {
+  u'id': u'id',
+  u'name': u'displayName',
+  u'displayname': u'displayName',
+  u'emailaddress': u'emailAddress',
+  u'domain': u'domain',
+  u'role': u'role',
+  u'additionalroles': u'role',
+  u'type': u'type',
+  u'allowfilediscovery': u'allowFileDiscovery',
+  u'withlink': u'allowFileDiscovery',
+  u'photolink': u'photoLink',
+  u'expirationdate': u'expirationTime',
+  u'expirationtime': u'expirationTime',
+  u'teamdrivepermissiondetails': u'teamDrivePermissionDetails',
+  u'deleted': u'deleted',
+  }
+
+PROPERTIES_SUBFIELDS_CHOICE_MAP = {
+  u'key': u'key',
+  u'visibility': u'visibility',
+  u'value': u'value',
+  }
+
+SHARINGUSER_SUBFIELDS_CHOICE_MAP = {
+  u'name': u'displayName',
+  u'displayname': u'displayName',
+  u'photolink': u'photoLink',
+  u'picture': u'photoLink',
+  u'isauthenticateduser': u'me',
+  u'me': u'me',
+  u'permissionid': u'permissionId',
+  u'emailaddress': u'emailAddress',
+  }
+
+SUBFIELDS_CHOICE_MAP = {
+  u'lastmodifyinguser': SHARINGUSER_SUBFIELDS_CHOICE_MAP,
+  u'parents': PARENTS_SUBFIELDS_CHOICE_MAP,
+  u'permissions': PERMISSIONS_SUBFIELDS_CHOICE_MAP,
+  u'properties': PROPERTIES_SUBFIELDS_CHOICE_MAP,
+  u'sharinguser': SHARINGUSER_SUBFIELDS_CHOICE_MAP,
+  u'trashinguser': SHARINGUSER_SUBFIELDS_CHOICE_MAP,
+}
+
 DRIVEFILE_FIELDS_TIME_OBJECTS = [VX_CREATED_TIME, VX_VIEWED_BY_ME_TIME, VX_MODIFIED_BY_ME_TIME, VX_MODIFIED_TIME, VX_SHARED_WITH_ME_TIME]
 
 FILEINFO_FIELDS_TITLES = [VX_FILENAME, u'mimeType']
 FILEPATH_FIELDS_TITLES = [VX_FILENAME, u'id', u'mimeType', u'parents']
 
+def _getFieldSubField(field, fieldsList, titles):
+  field, subField = field.split(u'.', 1)
+  if field in SUBFIELDS_CHOICE_MAP:
+    if titles is not None:
+      addTitlesToCSVfile([DRIVEFILE_FIELDS_CHOICE_MAP[field]], titles)
+    if field == u'parents':
+      fieldsList.append(DRIVEFILE_FIELDS_CHOICE_MAP[field])
+    elif subField in SUBFIELDS_CHOICE_MAP[field]:
+      fieldsList.append(u'{0}.{1}'.format(DRIVEFILE_FIELDS_CHOICE_MAP[field], SUBFIELDS_CHOICE_MAP[field][subField]))
+    else:
+      invalidChoiceExit(list(SUBFIELDS_CHOICE_MAP[field]), True)
+  else:
+    invalidChoiceExit(list(SUBFIELDS_CHOICE_MAP), True)
+
+def _setSkipObjects(skipObjects, skipTitles, fieldsList):
+  for field in skipTitles:
+    if field != u'parents':
+      if field not in fieldsList:
+        skipObjects.append(field)
+      fieldsList.append(field)
+    else:
+      for xfield in fieldsList:
+        if xfield.startswith(u'parents'):
+          break
+      else:
+        skipObjects.append(field)
+      fieldsList.append(u'parents')
+
 # gam <UserTypeEntity> show fileinfo <DriveFileEntity> [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 def showFileInfo(users):
   def _setSelectionFields():
-    skipObjects.extend([field for field in FILEINFO_FIELDS_TITLES if field not in fieldsList])
-    fieldsList.extend(FILEINFO_FIELDS_TITLES)
+    _setSkipObjects(skipObjects, FILEINFO_FIELDS_TITLES, fieldsList)
     if filepath:
-      skipObjects.extend([field for field in FILEPATH_FIELDS_TITLES if field not in fieldsList])
-      fieldsList.extend(FILEPATH_FIELDS_TITLES)
+      _setSkipObjects(skipObjects, FILEPATH_FIELDS_TITLES, fieldsList)
 
   filepath = False
   fieldsList = []
@@ -20661,12 +20739,17 @@ def showFileInfo(users):
       fieldsList.append(DRIVEFILE_LABEL_CHOICE_MAP[myarg])
     elif myarg == u'fields':
       for field in getString(Cmd.OB_FIELD_NAME_LIST).lower().replace(u',', u' ').split():
-        if field in DRIVEFILE_FIELDS_CHOICE_MAP:
-          fieldsList.append(DRIVEFILE_FIELDS_CHOICE_MAP[field])
-        elif field in DRIVEFILE_LABEL_CHOICE_MAP:
+        if field in DRIVEFILE_LABEL_CHOICE_MAP:
           fieldsList.append(DRIVEFILE_LABEL_CHOICE_MAP[field])
+        elif field.find(u'.') == -1:
+          if field in DRIVEFILE_FIELDS_CHOICE_MAP:
+            fieldsList.append(DRIVEFILE_FIELDS_CHOICE_MAP[field])
+          else:
+            invalidChoiceExit(list(DRIVEFILE_FIELDS_CHOICE_MAP)+list(DRIVEFILE_LABEL_CHOICE_MAP), True)
         else:
-          invalidChoiceExit(list(DRIVEFILE_FIELDS_CHOICE_MAP)+list(DRIVEFILE_LABEL_CHOICE_MAP), True)
+          _getFieldSubField(field, fieldsList, None)
+    elif myarg.find(u'.') != -1:
+      _getFieldSubField(myarg, fieldsList, None)
     else:
       unknownArgumentExit()
   orderBy = u','.join(orderByList) if orderByList else None
@@ -20709,6 +20792,8 @@ def showFileInfo(users):
           Ind.Decrement()
         if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
           _mapDriveFieldNames(result, user, True)
+        else:
+          _mapDriveParents(result)
         showJSON(None, result, skipObjects, timeObjects, {u'owners': u'displayName', u'parents': u'id', u'permissions': [u'name', u'displayName'][GC.Values[GC.DRIVE_V3_NATIVE_NAMES]]})
         Ind.Decrement()
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError) as e:
@@ -21234,14 +21319,11 @@ FILELIST_FIELDS_TITLES = [u'id', u'mimeType', u'parents']
 def printFileList(users):
   def _setSelectionFields():
     if fileIdEntity:
-      skipObjects.extend([field for field in FILELIST_FIELDS_TITLES if field not in fieldsList])
-      fieldsList.extend(FILELIST_FIELDS_TITLES)
+      _setSkipObjects(skipObjects, FILELIST_FIELDS_TITLES, fieldsList)
     if filepath:
-      skipObjects.extend([field for field in FILEPATH_FIELDS_TITLES if field not in fieldsList])
-      fieldsList.extend(FILEPATH_FIELDS_TITLES)
+      _setSkipObjects(skipObjects, FILEPATH_FIELDS_TITLES, fieldsList)
     if showOwnedBy is not None:
-      skipObjects.extend([field for field in OWNED_BY_ME_FIELDS_TITLES if field not in fieldsList])
-      fieldsList.extend(OWNED_BY_ME_FIELDS_TITLES)
+      _setSkipObjects(skipObjects, OWNED_BY_ME_FIELDS_TITLES, fieldsList)
     if mimeTypeCheck[u'mimeTypes']:
       if u'mimeType' not in fieldsList:
         skipObjects.append(u'mimeType')
@@ -21352,7 +21434,7 @@ def printFileList(users):
     elif myarg == u'buildtree':
       buildTree = True
     elif myarg == u'showparent':
-      showParent = getBoolean(True)
+      showParent = getBoolean()
     elif myarg == u'orderby':
       getDrivefileOrderBy(orderByList)
     elif myarg == u'query':
@@ -21389,12 +21471,17 @@ def printFileList(users):
       addFieldToCSVfile(myarg, {myarg: [DRIVEFILE_LABEL_CHOICE_MAP[myarg]]}, fieldsList, titles)
     elif myarg == u'fields':
       for field in getString(Cmd.OB_FIELD_NAME_LIST).lower().replace(u',', u' ').split():
-        if field in DRIVEFILE_FIELDS_CHOICE_MAP:
-          addFieldToCSVfile(field, {field: [DRIVEFILE_FIELDS_CHOICE_MAP[field]]}, fieldsList, titles)
-        elif field in DRIVEFILE_LABEL_CHOICE_MAP:
+        if field in DRIVEFILE_LABEL_CHOICE_MAP:
           addFieldToCSVfile(field, {field: [DRIVEFILE_LABEL_CHOICE_MAP[field]]}, fieldsList, titles)
+        elif field.find(u'.') == -1:
+          if field in DRIVEFILE_FIELDS_CHOICE_MAP:
+            addFieldToCSVfile(field, {field: [DRIVEFILE_FIELDS_CHOICE_MAP[field]]}, fieldsList, titles)
+          else:
+            invalidChoiceExit(list(DRIVEFILE_FIELDS_CHOICE_MAP)+list(DRIVEFILE_LABEL_CHOICE_MAP), True)
         else:
-          invalidChoiceExit(list(DRIVEFILE_FIELDS_CHOICE_MAP)+list(DRIVEFILE_LABEL_CHOICE_MAP), True)
+          _getFieldSubField(field, fieldsList, titles)
+    elif myarg.find(u'.') != -1:
+      _getFieldSubField(myarg, fieldsList, titles)
     elif myarg == u'anyowner':
       query = _stripMeInOwners(query)
       query = _stripNotMeInOwners(query)
@@ -22251,8 +22338,11 @@ def collectOrphans(users):
                            q=query, orderBy=orderBy, fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE,
                            pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
       trgtUserFolderName = _substituteForUser(targetUserFolderPattern, user, userName)
-      orphanDriveFiles = [f_file for f_file in feed if not f_file.get(u'parents')]
-      del feed
+      orphanDriveFiles = collections.deque()
+      while feed:
+        fileEntry = feed.popleft()
+        if not fileEntry.get(u'parents'):
+          orphanDriveFiles.append(fileEntry)
       jcount = len(orphanDriveFiles)
       entityPerformActionNumItemsModifier([Ent.USER, user], jcount, Ent.DRIVE_ORPHAN_FILE_OR_FOLDER,
                                           u'{0} {1}: {2}'.format(Act.MODIFIER_INTO, Ent.Singular(Ent.DRIVE_FOLDER), trgtUserFolderName), i, count)
@@ -22273,7 +22363,8 @@ def collectOrphans(users):
       setSysExitRC(ORPHANS_COLLECTED_RC)
       Ind.Increment()
       j = 0
-      for fileEntry in orphanDriveFiles:
+      while orphanDriveFiles:
+        fileEntry = orphanDriveFiles.popleft()
         j += 1
         fileId = fileEntry[u'id']
         fileName = fileEntry[VX_FILENAME]
@@ -22931,11 +23022,11 @@ def claimOwnership(users):
     elif myarg == u'orderby':
       getDrivefileOrderBy(orderByList)
     elif myarg == u'restricted':
-      bodyShare[u'viewersCanCopyContent'] = not getBoolean(True)
+      bodyShare[u'viewersCanCopyContent'] = not getBoolean()
     elif myarg == u'writerscanshare':
-      bodyShare[u'writersCanShare'] = getBoolean(True)
+      bodyShare[u'writersCanShare'] = getBoolean()
     elif myarg == u'writerscantshare':
-      bodyShare[u'writersCanShare'] = not getBoolean(True)
+      bodyShare[u'writersCanShare'] = not getBoolean()
     elif myarg == u'preview':
       csvFormat = True
     elif myarg == u'filepath':
@@ -23301,7 +23392,7 @@ def addDriveFileACL(users):
       body[u'allowFileDiscovery'] = False
     elif myarg in [u'allowfilediscovery', u'discoverable']:
       withLinkLocation = Cmd.Location()
-      body[u'allowFileDiscovery'] = getBoolean(True)
+      body[u'allowFileDiscovery'] = getBoolean()
     elif myarg == u'role':
       roleLocation = Cmd.Location()
       body[u'role'] = getChoice(DRIVEFILE_ACL_ROLES_MAP, mapChoice=True)
@@ -23378,7 +23469,7 @@ def updateDriveFileACLs(users):
     if myarg == u'withlink':
       body[u'allowFileDiscovery'] = False
     elif myarg in [u'allowfilediscovery', u'discoverable']:
-      body[u'allowFileDiscovery'] = getBoolean(True)
+      body[u'allowFileDiscovery'] = getBoolean()
     elif myarg == u'role':
       body[u'role'] = getChoice(DRIVEFILE_ACL_ROLES_MAP, mapChoice=True)
       if body[u'role'] == u'owner':
@@ -23386,7 +23477,7 @@ def updateDriveFileACLs(users):
     elif myarg in [u'expiration', u'expires']:
       body[VX_EXPIRATION_TIME] = getTimeOrDeltaFromNow()
     elif myarg == u'removeexpiration':
-      removeExpiration = getBoolean(True)
+      removeExpiration = getBoolean()
     elif myarg == u'showtitles':
       showTitles = True
     elif myarg == u'transferownership':
@@ -24489,7 +24580,7 @@ def infoSheets(users):
     if myarg == u'range':
       ranges.append(getString(Cmd.OB_SPREADSHEET_RANGE))
     elif myarg == u'includegriddata':
-      includeGridData = getBoolean(True)
+      includeGridData = getBoolean()
     elif myarg == "formatjson":
       formatJSON = True
     else:
@@ -24579,7 +24670,7 @@ def _getSpreadsheetRangesValues(append):
     elif myarg in SHEET_VALUE_INPUT_OPTIONS_MAP:
       kwargs[u'valueInputOption'] = SHEET_VALUE_INPUT_OPTIONS_MAP[myarg]
     elif myarg == u'includevaluesinresponse':
-      kwargs[u'includeValuesInResponse'] = getBoolean(True)
+      kwargs[u'includeValuesInResponse'] = getBoolean()
     elif myarg in SHEET_VALUE_RENDER_OPTIONS_MAP:
       kwargs[u'responseValueRenderOption'] = SHEET_VALUE_RENDER_OPTIONS_MAP[myarg]
     elif myarg in SHEET_DATETIME_RENDER_OPTIONS_MAP:
@@ -25234,7 +25325,7 @@ def addLabel(users):
     elif myarg == u'messagelistvisibility':
       body[u'messageListVisibility'] = getChoice(LABEL_MESSAGE_LIST_VISIBILITY_CHOICES)
     elif myarg == u'buildpath':
-      buildPath = getBoolean(True)
+      buildPath = getBoolean()
       label = label.strip(u'/')
     else:
       unknownArgumentExit()
@@ -25597,11 +25688,11 @@ def printShowLabels(users, csvFormat):
     if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
     elif myarg == u'onlyuser':
-      onlyUser = getBoolean(True)
+      onlyUser = getBoolean()
     elif myarg == u'showcounts':
-      showCounts = getBoolean(True)
+      showCounts = getBoolean()
     elif not csvFormat and myarg == u'nested':
-      showNested = getBoolean(True)
+      showNested = getBoolean()
     elif not csvFormat and myarg == u'display':
       fields = getChoice(SHOW_LABELS_DISPLAY_CHOICES)
       nameField = [u'base', u'name'][fields != u'basename']
@@ -26195,11 +26286,11 @@ def _importInsertMessage(users, importMsg):
     elif myarg == u'attach':
       attachments.append(getString(Cmd.OB_FILE_NAME, minLen=1))
     elif myarg == u'deleted':
-      deleted = getBoolean(True)
+      deleted = getBoolean()
     elif importMsg and myarg == u'nevermarkspam':
-      neverMarkSpam = getBoolean(True)
+      neverMarkSpam = getBoolean()
     elif importMsg and myarg == u'processforcalendar':
-      processForCalendar = getBoolean(True)
+      processForCalendar = getBoolean()
     else:
       unknownArgumentExit()
   if not msgText and not msgHTML:
@@ -26728,7 +26819,7 @@ def _processEmailSettings(user, i, count, service, function, **kwargs):
 # gam <UserTypeEntity> arrows <Boolean>
 def setArrows(users):
   emailSettings = getEmailSettingsObject()
-  enable = getBoolean()
+  enable = getBoolean(None)
   checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -27280,11 +27371,11 @@ def _printShowFilters(users, csvFormat):
     sortCSVTitles([u'User', u'id'], titles)
     writeCSVfile(csvRows, titles, u'Filters', todrive)
 
-# gam <UserTypeEntity> print filters [todrive [<ToDriveAttributes>]]
+# gam <UserTypeEntity> print filters [labelidsonly] [todrive [<ToDriveAttributes>]]
 def printFilters(users):
   _printShowFilters(users, True)
 
-# gam <UserTypeEntity> show filters
+# gam <UserTypeEntity> show filters [labelidsonly]
 def showFilters(users):
   _printShowFilters(users, False)
 
@@ -27326,7 +27417,7 @@ EMAILSETTINGS_FORWARD_POP_ACTION_CHOICE_MAP = {
 # gam <UserTypeEntity> forward <FalseValues>
 # gam <UserTypeEntity> forward <TrueValues> keep|leaveininbox|archive|delete|trash|markread <EmailAddress>
 def setForward(users):
-  enable = getBoolean()
+  enable = getBoolean(None)
   body = {u'enabled': enable}
   if enable:
     while Cmd.ArgumentsRemaining():
@@ -27542,7 +27633,7 @@ EMAILSETTINGS_IMAP_MAX_FOLDER_SIZE_CHOICES = [u'0', u'1000', u'2000', u'5000', u
 
 # gam <UserTypeEntity> imap|imap4 <Boolean> [noautoexpunge] [expungebehavior archive|deleteforever|trash] [maxfoldersize 0|1000|2000|5000|10000]
 def setImap(users):
-  enable = getBoolean()
+  enable = getBoolean(None)
   body = {u'enabled': enable, u'autoExpunge': True, u'expungeBehavior': u'archive', u'maxFolderSize': 0}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -27601,7 +27692,7 @@ EMAILSETTINGS_POP_ENABLE_FOR_CHOICE_MAP = {
 
 # gam <UserTypeEntity> pop|pop3 <Boolean> [for allmail|newmail|mailfromnowon|fromnowown] [action keep|leaveininbox|archive|delete|trash|markread]
 def setPop(users):
-  enable = getBoolean()
+  enable = getBoolean(None)
   body = {u'accessWindow': [u'disabled', u'allMail'][enable], u'disposition': u'leaveInInbox'}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -27764,7 +27855,7 @@ def _addUpdateSendAs(users, addCmd):
       else:
         signature = getString(Cmd.OB_STRING, minLen=0)
     elif myarg == u'html':
-      html = getBoolean(True)
+      html = getBoolean()
     else:
       getSendAsAttributes(myarg, body, tagReplacements)
   if signature is not None:
@@ -28108,7 +28199,7 @@ def showSmimes(users):
 # gam <UserTypeEntity> shortcuts <Boolean>
 def setShortCuts(users):
   emailSettings = getEmailSettingsObject()
-  enable = getBoolean()
+  enable = getBoolean(None)
   checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -28136,7 +28227,7 @@ def setSignature(users):
     if myarg == u'primary':
       primary = True
     elif myarg == u'html':
-      html = getBoolean(True)
+      html = getBoolean()
     else:
       getSendAsAttributes(myarg, body, tagReplacements)
   body[u'signature'] = _processSignature(tagReplacements, signature, html)
@@ -28198,7 +28289,7 @@ def showSignature(users):
 # gam <UserTypeEntity> snippets <Boolean>
 def setSnippets(users):
   emailSettings = getEmailSettingsObject()
-  enable = getBoolean()
+  enable = getBoolean(None)
   checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -28212,7 +28303,7 @@ def setSnippets(users):
 # gam <UserTypeEntity> utf|utf8|utf-8|unicode <Boolean>
 def setUnicode(users):
   emailSettings = getEmailSettingsObject()
-  enable = getBoolean()
+  enable = getBoolean(None)
   checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -28291,7 +28382,7 @@ def _printVacation(user, result):
 # gam <UserTypeEntity> vacation <TrueValues> subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)*
 #	[html [<Boolean>]] [contactsonly [<Boolean>]] [domainonly [<Boolean>]] [startdate <Date>|Started] [enddate <Date>|NotSpecified]
 def setVacation(users):
-  enable = getBoolean()
+  enable = getBoolean(None)
   body = {u'enableAutoReply': enable}
   if enable:
     responseBodyType = u'responseBodyPlainText'
@@ -28312,12 +28403,12 @@ def setVacation(users):
         matchReplacement = getString(Cmd.OB_STRING, minLen=0)
         tagReplacements[matchTag] = matchReplacement
       elif myarg == u'html':
-        if getBoolean(True):
+        if getBoolean():
           responseBodyType = u'responseBodyHtml'
       elif myarg == u'contactsonly':
-        body[u'restrictToContacts'] = getBoolean(True)
+        body[u'restrictToContacts'] = getBoolean()
       elif myarg == u'domainonly':
-        body[u'restrictToDomain'] = getBoolean(True)
+        body[u'restrictToDomain'] = getBoolean()
       elif myarg == u'startdate':
         body[u'startTime'] = getYYYYMMDD(returnTimeStamp=True, alternateValue=VACATION_START_STARTED)
         if body[u'startTime'] is None:
@@ -28398,7 +28489,7 @@ def showVacation(users):
 # gam <UserTypeEntity> webclips <Boolean>
 def setWebClips(users):
   emailSettings = getEmailSettingsObject()
-  enable = getBoolean()
+  enable = getBoolean(None)
   checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
   for user in users:

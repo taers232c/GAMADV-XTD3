@@ -1,3 +1,69 @@
+4.54.33
+
+Added the ability to select subfields in gam show fileinfo and gam print filelist; these fields are included
+in <DriveFieldName> and <DriveFieldNameList>.
+
+<DriveParentsSubfieldName> ::=
+	parents.id
+
+<DrivePermissionsSubfieldName> ::=
+	permissions.additionalroles|
+	permissions.allowfilediscovery|
+	permissions.deleted|
+	permissions.displayname|
+	permissions.domain|
+	permissions.emailaddress|
+	permissions.expirationdate|
+	permissions.expirationtime|
+	permissions.id|
+	permissions.name|
+	permissions.photolink|
+	permissions.role|
+	permissions.teamdrivepermissiondetails|
+	permissions.type|
+	permissions.withlink
+
+<DrivePropertiesSubfieldName> ::=
+	properties.key|
+	properties.value|
+	properties.visibility
+
+<DriveLastModifyingUserSubfieldName> ::=
+	lastmodifyinguser.displayname|
+	lastmodifyinguser.emailaddress|
+	lastmodifyinguser.isauthenticateduser|
+	lastmodifyinguser.me|
+	lastmodifyinguser.name|
+	lastmodifyinguser.permissionid|
+	lastmodifyinguser.photolink|
+	lastmodifyinguser.picture
+
+<DriveSharingUserSubfieldName> ::=
+	sharinguser.displayname|
+	sharinguser.emailaddress|
+	sharinguser.isauthenticateduser|
+	sharinguser.me|
+	sharinguser.name|
+	sharinguser.permissionid|
+	sharinguser.photolink|
+	sharinguser.picture
+
+<DriveTrashingUserSubfieldName> ::=
+	trashinguser.displayname|
+	trashinguser.emailaddress|
+	trashinguser.isauthenticateduser|
+	trashinguser.me|
+	trashinguser.name|
+	trashinguser.permissionid|
+	trashinguser.photolink|
+	trashinguser.picture
+
+gam <UserTypeEntity> show fileinfo <DriveFileEntity> [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)]
+	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
+	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [mimetype [not] <MimeTypeList>] [depth <Number>] [showparent]
+	[filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
+
 4.54.32
 
 Fixed additional error handling in gam copy drivefile.
