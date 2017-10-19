@@ -422,6 +422,7 @@ class GamCLArgs(object):
   OB_JOB_OR_PRINTER_ID = u'JobID|PrinterID'
   OB_LABEL_NAME = u'LabelName'
   OB_LABEL_REPLACEMENT = u'LabelReplacement'
+  OB_LANGUAGE_LIST = u'LanguageList'
   OB_MATTER_ITEM = u'MatterItem'
   OB_MATTER_ITEM_LIST = u'MatterItemList'
   OB_MESSAGE_ID = u'MessageID'

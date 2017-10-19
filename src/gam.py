@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.33'
+__version__ = u'4.54.34'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -250,79 +250,153 @@ VX_NPT_REVISIONS_ID_MODIFIEDTIME = u'nextPageToken,{0}(id,{1})'.format(VX_PAGES_
 CLOUDPRINT_ACCESS_URL = u'https://www.google.com/cloudprint/addpublicprinter.html?printerid={0}&key={1}'
 # Valid language codes
 LANGUAGE_CODES_MAP = {
+  u'ach': u'ach', #Luo
   u'af': u'af', #Afrikaans
+  u'ag': u'ga', #Irish
+  u'ak': u'ak', #Akan
   u'am': u'am', #Amharic
   u'ar': u'ar', #Arabica
   u'az': u'az', #Azerbaijani
+  u'be': u'be', #Belarusian
+  u'bem': u'bem', #Bemba
   u'bg': u'bg', #Bulgarian
   u'bn': u'bn', #Bengali
+  u'br': u'br', #Breton
+  u'bs': u'bs', #Bosnian
   u'ca': u'ca', #Catalan
   u'chr': u'chr', #Cherokee
+  u'ckb': u'ckb', #Kurdish (Soranî)
+  u'co': u'co', #Corsican
+  u'crs': u'crs', #Seychellois Creole
   u'cs': u'cs', #Czech
   u'cy': u'cy', #Welsh
   u'da': u'da', #Danish
   u'de': u'de', #German
+  u'ee': u'ee', #Ewe
   u'el': u'el', #Greek
   u'en': u'en', #English
   u'en-gb': u'en-GB', #English (UK)
   u'en-us': u'en-US', #English (US)
+  u'eo': u'eo', #Esperanto
   u'es': u'es', #Spanish
-  u'es-419': u'es-419', #Spanish (Latin America)
+  u'es-419': u'es-419', #Spanish (Latin American)
   u'et': u'et', #Estonian
   u'eu': u'eu', #Basque
   u'fa': u'fa', #Persian
   u'fi': u'fi', #Finnish
+  u'fo': u'fo', #Faroese
   u'fr': u'fr', #French
   u'fr-ca': u'fr-ca', #French (Canada)
-  u'ag': u'ga', #Irish
+  u'fy': u'fy', #Frisian
+  u'ga': u'ga', #Irish
+  u'gaa': u'gaa', #Ga
+  u'gd': u'gd', #Scots Gaelic
   u'gl': u'gl', #Galician
+  u'gn': u'gn', #Guarani
   u'gu': u'gu', #Gujarati
+  u'ha': u'ha', #Hausa
+  u'haw': u'haw', #Hawaiian
   u'he': u'he', #Hebrew
   u'hi': u'hi', #Hindi
   u'hr': u'hr', #Croatian
+  u'ht': u'ht', #Haitian Creole
   u'hu': u'hu', #Hungarian
   u'hy': u'hy', #Armenian
+  u'ia': u'ia', #Interlingua
   u'id': u'id', #Indonesian
+  u'ig': u'ig', #Igbo
   u'in': u'in',
   u'is': u'is', #Icelandic
   u'it': u'it', #Italian
-  u'iw': u'he', #Hebrew
+  u'iw': u'iw', #Hebrew
   u'ja': u'ja', #Japanese
+  u'jw': u'jw', #Javanese
   u'ka': u'ka', #Georgian
+  u'kg': u'kg', #Kongo
+  u'kk': u'kk', #Kazakh
   u'km': u'km', #Khmer
   u'kn': u'kn', #Kannada
   u'ko': u'ko', #Korean
-  u'lo': u'lo', #Lao
+  u'kri': u'kri', #Krio (Sierra Leone)
+  u'ku': u'ku', #Kurdish
+  u'ky': u'ky', #Kyrgyz
+  u'la': u'la', #Latin
+  u'lg': u'lg', #Luganda
+  u'ln': u'ln', #Lingala
+  u'lo': u'lo', #Laothian
+  u'loz': u'loz', #Lozi
   u'lt': u'lt', #Lithuanian
+  u'lua': u'lua', #Tshiluba
   u'lv': u'lv', #Latvian
+  u'mfe': u'mfe', #Mauritian Creole
+  u'mg': u'mg', #Malagasy
+  u'mi': u'mi', #Maori
+  u'mk': u'mk', #Macedonian
   u'ml': u'ml', #Malayalam
   u'mn': u'mn', #Mongolian
+  u'mo': u'mo', #Moldavian
   u'mr': u'mr', #Marathi
   u'ms': u'ms', #Malay
+  u'mt': u'mt', #Maltese
   u'my': u'my', #Burmese
   u'ne': u'ne', #Nepali
   u'nl': u'nl', #Dutch
+  u'nn': u'nn', #Norwegian (Nynorsk)
   u'no': u'no', #Norwegian
+  u'nso': u'nso', #Northern Sotho
+  u'ny': u'ny', #Chichewa
+  u'nyn': u'nyn', #Runyakitara
+  u'oc': u'oc', #Occitan
+  u'om': u'om', #Oromo
   u'or': u'or', #Oriya
+  u'pa': u'pa', #Punjabi
+  u'pcm': u'pcm', #Nigerian Pidgin
   u'pl': u'pl', #Polish
+  u'ps': u'ps', #Pashto
   u'pt-br': u'pt-BR', #Portuguese (Brazil)
   u'pt-pt': u'pt-PT', #Portuguese (Portugal)
+  u'qu': u'qu', #Quechua
+  u'rm': u'rm', #Romansh
+  u'rn': u'rn', #Kirundi
   u'ro': u'ro', #Romanian
   u'ru': u'ru', #Russian
-  u'si': u'si', #Sinhala
+  u'rw': u'rw', #Kinyarwanda
+  u'sd': u'sd', #Sindhi
+  u'sh': u'sh', #Serbo-Croatian
+  u'si': u'si', #Sinhalese
   u'sk': u'sk', #Slovak
   u'sl': u'sl', #Slovenian
+  u'sn': u'sn', #Shona
+  u'so': u'so', #Somali
+  u'sq': u'sq', #Albanian
   u'sr': u'sr', #Serbian
+  u'sr-me': u'sr-ME', #Montenegrin
+  u'st': u'st', #Sesotho
+  u'su': u'su', #Sundanese
   u'sv': u'sv', #Swedish
   u'sw': u'sw', #Swahili
   u'ta': u'ta', #Tamil
   u'te': u'te', #Telugu
+  u'tg': u'tg', #Tajik
   u'th': u'th', #Thai
+  u'ti': u'ti', #Tigrinya
+  u'tk': u'tk', #Turkmen
   u'tl': u'tl', #Tagalog
+  u'tn': u'tn', #Setswana
+  u'to': u'to', #Tonga
   u'tr': u'tr', #Turkish
+  u'tt': u'tt', #Tatar
+  u'tum': u'tum', #Tumbuka
+  u'tw': u'tw', #Twi
+  u'ug': u'ug', #Uighur
   u'uk': u'uk', #Ukrainian
   u'ur': u'ur', #Urdu
+  u'uz': u'uz', #Uzbek
   u'vi': u'vi', #Vietnamese
+  u'wo': u'wo', #Wolof
+  u'xh': u'xh', #Xhosa
+  u'yi': u'yi', #Yiddish
+  u'yo': u'yo', #Yoruba
   u'zh-cn': u'zh-CN', #Chinese (Simplified)
   u'zh-hk': u'zh-HK', #Chinese (Hong Kong/Traditional)
   u'zh-tw': u'zh-TW', #Chinese (Taiwan/Traditional)
@@ -15394,11 +15468,16 @@ UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP = {
   u'familyname': u'familyName',
   u'firstname': u'givenName',
   u'gal': u'includeInGlobalAddressList',
+  u'gender': u'gender',
   u'givenname': u'givenName',
   u'im': u'ims',
   u'ims': u'ims',
   u'includeinglobaladdresslist': u'includeInGlobalAddressList',
   u'ipwhitelisted': u'ipWhitelisted',
+  u'keyword': u'keywords',
+  u'keywords': u'keywords',
+  u'language': u'languages',
+  u'languages': u'languages',
   u'lastname': u'familyName',
   u'location': u'locations',
   u'locations': u'locations',
@@ -15610,6 +15689,22 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         body[up] = getString(Cmd.OB_STRING)
       elif up == u'orgUnitPath':
         body[up] = getOrgUnitItem(pathOnly=True)
+      elif up == u'languages':
+        if checkArgumentPresent(Cmd.CLEAR_NONE_ARGUMENT):
+          clearBodyList(body, up)
+          continue
+        for language in getString(Cmd.OB_LANGUAGE_LIST).replace(u',', u' ').split():
+          if language.lower() in LANGUAGE_CODES_MAP:
+            appendItemToBodyList(body, up, {u'languageCode': LANGUAGE_CODES_MAP[language.lower()]})
+          else:
+            appendItemToBodyList(body, up, {u'customLanguage': language})
+      elif up == u'gender':
+        entry = {}
+        getChoice([clTypeKeyword], defaultChoice=None)
+        getKeywordAttribute(UProp, typeKeywords, entry)
+        if checkArgumentPresent([u'addressmeas',]):
+          entry[u'addressMeAs'] = getString(Cmd.OB_STRING, minLen=0)
+        body[up] = entry
       elif up == u'addresses':
         if checkArgumentPresent(Cmd.CLEAR_NONE_ARGUMENT):
           clearBodyList(body, up)
@@ -15645,6 +15740,15 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         entry[u'im'] = getString(Cmd.OB_STRING, minLen=0)
         getPrimaryNotPrimaryChoice(entry, entry.get(u'primary', False))
         appendItemToBodyList(body, up, entry, u'im')
+      elif up == u'keywords':
+        if checkArgumentPresent(Cmd.CLEAR_NONE_ARGUMENT):
+          clearBodyList(body, up)
+          continue
+        entry = {}
+        getChoice([clTypeKeyword], defaultChoice=None)
+        getKeywordAttribute(UProp, typeKeywords, entry)
+        entry[u'value'] = getString(Cmd.OB_STRING, minLen=0)
+        appendItemToBodyList(body, up, entry, u'value')
       elif up == u'locations':
         if checkArgumentPresent(Cmd.CLEAR_NONE_ARGUMENT):
           clearBodyList(body, up)
@@ -16121,6 +16225,10 @@ USER_NAME_PROPERTY_PRINT_ORDER = [
   u'familyName',
   u'fullName',
   ]
+USER_LANGUAGE_PROPERTY_PRINT_ORDER = [
+  u'languageCode',
+  u'customLanguage',
+  ]
 USER_SCALAR_PROPERTY_PRINT_ORDER = [
   u'isAdmin',
   u'isDelegatedAdmin',
@@ -16142,6 +16250,8 @@ USER_SCALAR_PROPERTY_PRINT_ORDER = [
   u'thumbnailPhotoUrl',
   ]
 USER_ARRAY_PROPERTY_PRINT_ORDER = [
+  u'gender',
+  u'keywords',
   u'notes',
   u'addresses',
   u'locations',
@@ -16212,6 +16322,7 @@ USER_ARGUMENT_TO_PROPERTY_MAP = {
   u'fullname': [u'name.fullName',],
   u'gal': [u'includeInGlobalAddressList',],
   u'givenname': [u'name.givenName',],
+  u'gender': [u'gender.type', u'gender.customGender', u'gender.addressMeAs',],
   u'id': [u'id',],
   u'im': [u'ims',],
   u'ims': [u'ims',],
@@ -16222,6 +16333,10 @@ USER_ARGUMENT_TO_PROPERTY_MAP = {
   u'is2svenforced': [u'isEnforcedIn2Sv',],
   u'is2svenrolled': [u'isEnrolledIn2Sv',],
   u'ismailboxsetup': [u'isMailboxSetup',],
+  u'keyword': [u'keywords',],
+  u'keywords': [u'keywords',],
+  u'language': [u'languages',],
+  u'languages': [u'languages',],
   u'lastlogintime': [u'lastLoginTime',],
   u'lastname': [u'name.familyName',],
   u'location': [u'locations',],
@@ -16377,6 +16492,14 @@ def infoUsers(entityList):
         for up in USER_NAME_PROPERTY_PRINT_ORDER:
           if up in user[u'name']:
             printKeyValueList([UProp.PROPERTIES[up][UProp.TITLE], user[u'name'][up]])
+      up = u'languages'
+      if up in user:
+        propertyValue = user[up]
+        if len(propertyValue) > 0:
+          for up in USER_LANGUAGE_PROPERTY_PRINT_ORDER:
+            languages = [row[up] for row in propertyValue if up in row]
+            if languages:
+              printKeyValueList([UProp.PROPERTIES[up][UProp.TITLE], u','.join(languages)])
       for up in USER_SCALAR_PROPERTY_PRINT_ORDER:
         if up in user:
           if up not in USER_TIME_OBJECTS:
@@ -16399,80 +16522,76 @@ def infoUsers(entityList):
           if len(propertyValue) > 0:
             printKeyValueList([propertyTitle, None])
             Ind.Increment()
-            if isinstance(propertyValue, list):
-              for row in propertyValue:
-                _showType(row, typeKey, typeCustomValue, customTypeKey)
-                Ind.Increment()
-                for key in row:
-                  if key in [typeKey, customTypeKey]:
-                    continue
-                  printKeyValueList([key, row[key]])
-                Ind.Decrement()
-            else:
-              printKeyValueList([propertyClass, propertyValue])
+            for row in propertyValue:
+              _showType(row, typeKey, typeCustomValue, customTypeKey)
+              Ind.Increment()
+              for key in row:
+                if key in [typeKey, customTypeKey]:
+                  continue
+                printKeyValueList([key, row[key]])
+              Ind.Decrement()
+            Ind.Decrement()
+        elif propertyClass == UProp.PC_GENDER:
+          if len(propertyValue) > 0:
+            printKeyValueList([propertyTitle, None])
+            Ind.Increment()
+            _showType(propertyValue, typeKey, typeCustomValue, customTypeKey)
+            if u'addressMeAs' in propertyValue:
+              printKeyValueList([u'addressMeAs', propertyValue[u'addressMeAs']])
             Ind.Decrement()
         elif propertyClass == UProp.PC_ADDRESSES:
           if len(propertyValue) > 0:
             printKeyValueList([propertyTitle, None])
             Ind.Increment()
-            if isinstance(propertyValue, list):
-              for row in propertyValue:
-                _showType(row, typeKey, typeCustomValue, customTypeKey)
-                Ind.Increment()
-                for key in USER_ADDRESSES_PROPERTY_PRINT_ORDER:
-                  if key in row:
-                    if key != u'formatted':
-                      printKeyValueList([key, row[key]])
-                    else:
-                      printKeyValueList([key, convertCRsNLs(row[key])])
-                Ind.Decrement()
-            else:
-              printKeyValueList([propertyClass, propertyValue])
+            for row in propertyValue:
+              _showType(row, typeKey, typeCustomValue, customTypeKey)
+              Ind.Increment()
+              for key in USER_ADDRESSES_PROPERTY_PRINT_ORDER:
+                if key in row:
+                  if key != u'formatted':
+                    printKeyValueList([key, row[key]])
+                  else:
+                    printKeyValueList([key, convertCRsNLs(row[key])])
+              Ind.Decrement()
             Ind.Decrement()
         elif propertyClass == UProp.PC_EMAILS:
           if len(propertyValue) > 0:
             needTitle = True
-            if isinstance(propertyValue, list):
-              for row in propertyValue:
-                if row[u'address'].lower() == user[u'primaryEmail'].lower():
-                  continue
-                if needTitle:
-                  needTitle = False
-                  printKeyValueList([propertyTitle, None])
-                  Ind.Increment()
-                if not _showType(row, typeKey, typeCustomValue, customTypeKey):
-                  if not getAliases:
-                    continue
-                  printKeyValueList([typeKey, u'alias'])
+            for row in propertyValue:
+              if row[u'address'].lower() == user[u'primaryEmail'].lower():
+                continue
+              if needTitle:
+                needTitle = False
+                printKeyValueList([propertyTitle, None])
                 Ind.Increment()
-                for key in row:
-                  if key in [typeKey, customTypeKey]:
-                    continue
-                  printKeyValueList([key, row[key]])
-                Ind.Decrement()
-            else:
-              printKeyValueList([propertyClass, propertyValue])
+              if not _showType(row, typeKey, typeCustomValue, customTypeKey):
+                if not getAliases:
+                  continue
+                printKeyValueList([typeKey, u'alias'])
+              Ind.Increment()
+              for key in row:
+                if key in [typeKey, customTypeKey]:
+                  continue
+                printKeyValueList([key, row[key]])
+              Ind.Decrement()
             if not needTitle:
               Ind.Decrement()
         elif propertyClass == UProp.PC_IMS:
           if len(propertyValue) > 0:
             printKeyValueList([propertyTitle, None])
             Ind.Increment()
-            if isinstance(propertyValue, list):
-              protocolKey = UProp.IM_PROTOCOLS[UProp.PTKW_ATTR_TYPE_KEYWORD]
-              protocolCustomValue = UProp.IM_PROTOCOLS[UProp.PTKW_ATTR_TYPE_CUSTOM_VALUE]
-              customProtocolKey = UProp.IM_PROTOCOLS[UProp.PTKW_ATTR_CUSTOMTYPE_KEYWORD]
-              for row in propertyValue:
-                _showType(row, typeKey, typeCustomValue, customTypeKey)
-                Ind.Increment()
-                _showType(row, protocolKey, protocolCustomValue, customProtocolKey)
-                for key in row:
-                  if key in [typeKey, customTypeKey, protocolKey, customProtocolKey]:
-                    continue
-                  printKeyValueList([key, row[key]])
-                Ind.Decrement()
-            else:
-              printKeyValueList([propertyClass, propertyValue])
+            protocolKey = UProp.IM_PROTOCOLS[UProp.PTKW_ATTR_TYPE_KEYWORD]
+            protocolCustomValue = UProp.IM_PROTOCOLS[UProp.PTKW_ATTR_TYPE_CUSTOM_VALUE]
+            customProtocolKey = UProp.IM_PROTOCOLS[UProp.PTKW_ATTR_CUSTOMTYPE_KEYWORD]
+            for row in propertyValue:
+              _showType(row, typeKey, typeCustomValue, customTypeKey)
+              Ind.Increment()
+              _showType(row, protocolKey, protocolCustomValue, customProtocolKey)
+              for key in row:
+                if key in [typeKey, customTypeKey, protocolKey, customProtocolKey]:
+                  continue
+                printKeyValueList([key, row[key]])
+              Ind.Decrement()
             Ind.Decrement()
         elif propertyClass == UProp.PC_NOTES:
           if len(propertyValue) > 0:
@@ -16618,7 +16737,7 @@ USERS_ORDERBY_CHOICE_MAP = {
 # gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [query <QueryUsers>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
 #	[groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
 #	[orderby <UserOrderByFieldName> [ascending|descending]]
-#	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>] [delimiter <Character>]
+#	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>] [delimiter <Character>] [sortheaders [<Boolean>]]
 def doPrintUsers(entityList=None):
   def _printUser(userEntity):
     if email_parts and (u'primaryEmail' in userEntity):
@@ -16694,6 +16813,8 @@ def doPrintUsers(entityList=None):
       projection = u'basic'
       sortHeaders = True
       fieldsList = []
+    elif myarg == u'sortheaders':
+      sortHeaders = getBoolean()
     elif myarg in USER_ARGUMENT_TO_PROPERTY_MAP:
       if not fieldsList:
         fieldsList = [u'primaryEmail',]

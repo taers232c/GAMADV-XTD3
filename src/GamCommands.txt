@@ -23,7 +23,13 @@ If an item contains spaces, it should be surrounded by ".
 
 <Charset> ::= ascii|latin1|mbcs|utf-8|utf-8-sig|utf-16|<String>
 <FileFormat> ::= csv|html|txt|tsv|jpeg|jpg|png|svg|pdf|rtf|pptx|xlsx|docx|odt|ods|openoffice|ms|microsoft|micro$oft
-<Language> ::= ar|bn|bg|ca|zh-CN|zh-TW|hr|cs|da|nl|en|en-GB|et|fi|fr|de|el|gu|iw|is|in|it|ja|kn|ko|lv|lt|ms|ml|mr|no|or|fa|pl|pt-BR|pt-PT|ro|ru|sr|sk|sl|es|sv|tl|ta|te|th|tr|uk|ur|vi
+<Language> ::=
+	ach|af|ag|ak|am|ar|az|be|bem|bg|bn|br|bs|ca|chr|ckb|co|crs|cs|cy|da|de|ee|el|en|en-gb|en-us|eo|es|es-419|et|eu|
+	fa|fi|fo|fr|fr-ca|fy|ga|gaa|gd|gl|gn|gu|ha|haw|he|hi|hr|ht|hu|hy|ia|id|ig|in|is|it|iw|ja|jw|
+	ka|kg|kk|km|kn|ko|kri|ku|ky|la|lg|ln|lo|loz|lt|lua|lv|mfe|mg|mi|mk|ml|mn|mo|mr|ms|mt|my|
+	ne|nl|nn|no|nso|ny|nyn|oc|om|or|pa|pcm|pl|ps|pt-br|pt-pt|qu|rm|rn|ro|ru|rw|
+	sd|sh||si|sk|sl|sn|so|sq|sr|sr-me|st|su|sv|sw|ta|te|tg|th|ti|tk|tl|tn|to|tr|tt|tum|tw|
+	ug|uk|ur|uz|vi|wo|xh|yi|yo|zh-cn|zh-hk|zh-tw|zu
 <MimeType> ::=
 	gdoc|gdocument|
 	gdrawing|
@@ -319,6 +325,7 @@ Items, separated by spaces, with spaces or commas in the items themselves: "'it 
 <FilterIDList> ::= "<FilterID>(,<FilterID>)*"
 <GroupList> ::= "<GroupItem>(,<GroupItem>)*"
 <LabelNameList> ::= "<LabelName>(,<LabelName)*"
+<LanguageList> ::= "<Language>(,<Language)*"
 <MessageIDList> ::= "<MessageID>(,<MessageID>)*"
 <MatterItemList> ::= "<MatterItem>(,<MatterItem>)*"
 <MobileList> ::= "<MobileID>(,<MobileID>)*"
@@ -1494,6 +1501,7 @@ gam print vaultmatters|matters [todrive [<ToDriveAttributes>]] [basic|full]
 	email|emails|otheremail|otheremails|
 	externalids|externalid|
 	familyname|firstname|fullname|givenname|lastname|name|
+	gender|
 	id|
 	ims|im|
 	includeinglobaladdresslist|gal|
@@ -1502,6 +1510,8 @@ gam print vaultmatters|matters [todrive [<ToDriveAttributes>]] [basic|full]
 	ismailboxsetup|
 	is2svenforced|
 	is2svenrolled|
+	keyword|keywords|
+	language|languages|
 	lastlogintime|
 	locations|location|
 	noneditablealiases|aliases|nicknames|
@@ -1534,8 +1544,11 @@ gam print vaultmatters|matters [todrive [<ToDriveAttributes>]] [basic|full]
 	(externalid|externalids clear|(account|customer|login_id|network|organization|<String> <String>))|
 	(firstname|givenname <String>)|
 	(gal|includeinglobaladdresslist <Boolean>)|
+	(gender type female|male|unknown|(other <String>) [addressmeas <String>])|
 	(im|ims clear|(type work|home|other|(custom <String>) protocol aim|gtalk|icq|jabber|msn|net_meeting|qq|skype|yahoo|(custom_protocol <String>) <String> [notprimary|primary]))|
 	(ipwhitelisted <Boolean>)|
+	(keyword|keywords clear|(type occupation|outlook|(custom <string>) <String>))|
+	(language|languages clear|<LanguageList>)|
 	(lastname|familyname <String>)|
 	(location|locations clear|(type default|desk|<String> area <String> [building|buildingid <String>] [floor|floorname <String>] [section|floorsection <String>] [desk|deskcode <String>] endlocation))|
 	(note|notes clear|([text_plain|text_html] <String>|(file <FileName> [charset <Charset>])))|
@@ -1596,7 +1609,7 @@ If you specify <UserFieldName>* | fields <UserFieldNameList>, the column headers
 gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [query <QueryUser>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
 	[groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
 	[orderby <UserOrderByFieldName> [ascending|descending]]
-	[userview] [allfields|basic|full | (<UserFieldName>* | fields <UserFieldNameList>)] [delimiter <Character>]
+	[userview] [allfields|basic|full | (<UserFieldName>* | fields <UserFieldNameList>)] [delimiter <Character>] [sortheaders [<Boolean>]]
 
 # Users - Aliases
 

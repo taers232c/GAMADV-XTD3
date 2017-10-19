@@ -91,7 +91,9 @@ PC_ALIASES = u'alia'
 PC_ARRAY = u'arry'
 PC_BOOLEAN = u'bool'
 PC_EMAILS = u'emai'
+PC_GENDER = u'gndr'
 PC_IMS = u'ims '
+PC_LANGUAGES = u'lang'
 PC_LOCATIONS = 'loca'
 PC_NAME = u'name'
 PC_NOTES = u'note'
@@ -112,6 +114,12 @@ PROPERTIES = {
     {CLASS: PC_STRING, TITLE: u'Last Name',},
   u'fullName':
     {CLASS: PC_STRING, TITLE: u'Full Name',},
+  u'languages':
+    {CLASS: PC_LANGUAGES, TITLE: u'Languages',},
+  u'languageCode':
+    {CLASS: PC_LANGUAGES, TITLE: u'Languages',},
+  u'customLanguage':
+    {CLASS: PC_LANGUAGES, TITLE: u'Custom Languages',},
   u'password':
     {CLASS: PC_STRING, TITLE: u'Password',},
   u'isAdmin':
@@ -168,12 +176,24 @@ PROPERTIES = {
        {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOM_KEYWORD: u'custom',
         PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
         PTKW_KEYWORD_LIST: [u'custom', u'account', u'customer', u'login_id', u'network', u'organization'],},},
+  u'gender':
+    {CLASS: PC_GENDER, TITLE: u'Gender',
+     TYPE_KEYWORDS:
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOM_KEYWORD: u'other',
+        PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'other', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customGender',
+        PTKW_KEYWORD_LIST: [u'male', u'female', u'other', u'unknown'],},},
   u'ims':
     {CLASS: PC_IMS, TITLE: u'IMs',
      TYPE_KEYWORDS:
        {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOM_KEYWORD: u'custom',
         PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
         PTKW_KEYWORD_LIST: [u'custom', u'home', u'other', u'work'],},},
+  u'keywords':
+    {CLASS: PC_ARRAY, TITLE: u'Keywords',
+     TYPE_KEYWORDS:
+       {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOM_KEYWORD: u'custom',
+        PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
+        PTKW_KEYWORD_LIST: [u'custom', u'occupation', u'outlook'],},},
   u'locations':
     {CLASS: PC_LOCATIONS, TITLE: u'Locations',
      TYPE_KEYWORDS:

@@ -1,3 +1,15 @@
+4.54.34
+
+Added new user attributes.
+<UserAttributes> ::=
+	(gender type female|male|unknown|(other <String>) [addressmeas <String>])|
+	(keyword|keywords clear|(type occupation|outlook|(custom <string>) <String>))|
+	(language|languages clear|<LanguageList>)|
+<UserFieldName> ::=
+	gender|
+	keyword|keywords|
+	language|languages|
+
 4.54.33
 
 Added the ability to select subfields in gam show fileinfo and gam print filelist; these fields are included
