@@ -1,3 +1,9 @@
+4.54.35
+
+Allow user attribute gender to be cleared.
+<UserAttributes> ::=
+	(gender clear|(female|male|unknown|(other <String>) [addressmeas <String>]))
+
 4.54.34
 
 Added new user attributes.
