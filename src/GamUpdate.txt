@@ -1,3 +1,22 @@
+4.54.36
+
+Added formatjson argument to gam print groups/users to cause output to be in JSON format.
+By default, when writing CSV files, Gam uses a quote character of double quote ". The quote character is used to enclose columns that contain
+the quote character itself, the column delimiter (comma by default) and new-line characters. Any quote characters within the column are doubled.
+When using the gam print groups/users commands with the formatjson option, double quotes are used extensively in the data resulting in hard to read/process output.
+The quotechar <Character> option allows you to choose an alternate quote character, single quote for instance, that makes for readable/processable output.
+quotechar defaults to gam.cfg/csv_output_quote_char.
+
+gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member <UserItem>])|[select <GroupEntity>]
+	[maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
+	[members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
+	[convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
+gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [query <QueryUsers>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
+	[groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
+	[orderby <UserOrderByFieldName> [ascending|descending]]
+	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
+	[delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
+
 4.54.35
 
 Allow user attribute gender to be cleared.

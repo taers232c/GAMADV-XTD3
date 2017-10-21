@@ -1136,8 +1136,9 @@ gam delete group|groups <GroupEntity>
 
 gam info group|groups <GroupEntity> [members] [managers] [owners] [nousers] [quick] [noaliases] [groups] <GroupFieldName>* [fields <GroupFieldNameList>] [formatjson]
 gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member <UserItem>])|[select <GroupEntity>]
-	[maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])] [convertcrnl] [delimiter <Character>]
+	[maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
 	[members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
+	[convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
 
 <MembersFieldName> ::=
 	email|useremail|
@@ -1606,10 +1607,11 @@ Print a header row and selected fields for specified users; primaryEmail is the 
 If you specify allfields|basic|full, all other column headers are sorted.
 If you specify <UserFieldName>* | fields <UserFieldNameList>, the column headers appear in the order specified.
 
-gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [query <QueryUser>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
+gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [query <QueryUsers>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
 	[groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
 	[orderby <UserOrderByFieldName> [ascending|descending]]
-	[userview] [allfields|basic|full | (<UserFieldName>* | fields <UserFieldNameList>)] [delimiter <Character>] [sortheaders [<Boolean>]]
+	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
+	[delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
 
 # Users - Aliases
 

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.35'
+__version__ = u'4.54.36'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -1212,7 +1212,7 @@ def getCharSet():
 
 def getCharacter():
   if Cmd.ArgumentsRemaining():
-    argstr = Cmd.Current().decode(u'string_escape')
+    argstr = codecs.escape_decode(bytes(Cmd.Current(), "utf-8"))[0].decode("utf-8")
     if argstr:
       if len(argstr) == 1:
         Cmd.Advance()
@@ -2463,13 +2463,14 @@ def callGData(service, function,
       handleOAuthTokenError(str(e), GDATA.SERVICE_NOT_APPLICABLE in throw_errors)
       raise GDATA.ERROR_CODE_EXCEPTION_MAP[GDATA.SERVICE_NOT_APPLICABLE](str(e))
     except (http_client.ResponseNotReady, socket.error) as e:
+      errMsg = u'Connection error: {0}'.format(str(e) or repr(e))
       if n != retries:
-        waitOnFailure(n, retries, SOCKET_ERROR_RC, str(e))
+        waitOnFailure(n, retries, SOCKET_ERROR_RC, errMsg)
         continue
       if soft_errors:
-        writeStderr(convertUTF8(u'\n{0}{1} - Giving up.\n'.format(ERROR_PREFIX, str(e))))
+        writeStderr(convertUTF8(u'\n{0}{1} - Giving up.\n'.format(ERROR_PREFIX, errMsg)))
         return None
-      systemErrorExit(SOCKET_ERROR_RC, str(e))
+      systemErrorExit(SOCKET_ERROR_RC, errMsg)
     except httplib2.ServerNotFoundError as e:
       systemErrorExit(NETWORK_ERROR_RC, str(e))
 
@@ -2629,13 +2630,14 @@ def callGAPI(service, function,
     except httplib2.CertificateValidationUnsupportedInPython31:
       noPythonSSLExit()
     except (http_client.ResponseNotReady, socket.error) as e:
+      errMsg = u'Connection error: {0}'.format(str(e) or repr(e))
       if n != retries:
-        waitOnFailure(n, retries, SOCKET_ERROR_RC, str(e))
+        waitOnFailure(n, retries, SOCKET_ERROR_RC, errMsg)
         continue
       if soft_errors:
-        writeStderr(convertUTF8(u'\n{0}{1} - Giving up.\n'.format(ERROR_PREFIX, str(e))))
+        writeStderr(convertUTF8(u'\n{0}{1} - Giving up.\n'.format(ERROR_PREFIX, errMsg)))
         return None
-      systemErrorExit(SOCKET_ERROR_RC, str(e))
+      systemErrorExit(SOCKET_ERROR_RC, errMsg)
     except ValueError as e:
       if service._http.cache is not None:
         service._http.cache = None
@@ -2789,10 +2791,11 @@ def getAPIversionHttpService(api):
           continue
         systemErrorExit(INVALID_JSON_RC, Msg.INVALID_JSON_INFORMATION)
       except (http_client.ResponseNotReady, socket.error) as e:
+        errMsg = u'Connection error: {0}'.format(str(e) or repr(e))
         if n != retries:
-          waitOnFailure(n, retries, SOCKET_ERROR_RC, str(e))
+          waitOnFailure(n, retries, SOCKET_ERROR_RC, errMsg)
           continue
-        systemErrorExit(SOCKET_ERROR_RC, str(e))
+        systemErrorExit(SOCKET_ERROR_RC, errMsg)
   disc_file, discovery = readDiscoveryFile(api_version)
   try:
     service = googleapiclient.discovery.build_from_document(discovery, http=httpObj)
@@ -11498,13 +11501,25 @@ def groupQuery(domain, userKey):
     return u'{0}={1}'.format(Ent.Singular(Ent.MEMBER), userKey)
   return u''
 
+PRINT_GROUPS_JSON_TITLES = [u'Email', u'JSON']
+
 # gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member <UserItem>])|[select <GroupEntity>]
-#         [maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])] [convertcrnl] [delimiter <Character>]
-#         [members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
+#	[maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
+#	[members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
+#	[convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [guotechar <Character>]
 def doPrintGroups():
 
   def _printGroupRow(groupEntity, groupMembers, groupSettings):
     row = {}
+    if formatJSON:
+      row[u'Email'] = groupEntity[u'email']
+      row[u'JSON'] = json.dumps(groupEntity, ensure_ascii=False, sort_keys=True)
+      if roles and groupMembers is not None:
+        row[u'JSON-members'] = json.dumps(groupMembers, ensure_ascii=False, sort_keys=True)
+      if isinstance(groupSettings, dict):
+        row[u'JSON-settings'] = json.dumps(groupSettings, ensure_ascii=False, sort_keys=True)
+      csvRows.append(row)
+      return
     for field in cdfieldsList:
       if field in groupEntity:
         if isinstance(groupEntity[field], list):
@@ -11670,11 +11685,11 @@ def doPrintGroups():
     _writeRowIfComplete(i)
 
   cd = buildGAPIObject(API.DIRECTORY)
-  getSettings = sortHeaders = False
   kwargs = {u'customer': GC.Values[GC.CUSTOMER_ID]}
   convertCRNL = GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
-  members = membersCountOnly = managers = managersCountOnly = owners = ownersCountOnly = False
+  formatJSON = getSettings = members = membersCountOnly = managers = managersCountOnly = owners = ownersCountOnly = sortHeaders = False
+  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
   todrive = {}
   maxResults = None
   cdfieldsList = []
@@ -11713,10 +11728,12 @@ def doPrintGroups():
       fieldsTitles = {}
       for field in GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP:
         addFieldTitleToCSVfile(field, GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP, cdfieldsList, fieldsTitles, titles, nativeTitles)
+    elif myarg == u'sortheaders':
+      sortHeaders = getBoolean()
     elif myarg in GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP:
       addFieldTitleToCSVfile(myarg, GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP, cdfieldsList, fieldsTitles, titles, nativeTitles)
     elif myarg in GROUP_ATTRIBUTES:
-      addFieldTitleToCSVfile(myarg, {myarg: [GROUP_ATTRIBUTES[field][0], GROUP_ATTRIBUTES[field][0]]}, gsfieldsList, fieldsTitles, titles, nativeTitles)
+      addFieldTitleToCSVfile(myarg, {myarg: [GROUP_ATTRIBUTES[myarg][0], GROUP_ATTRIBUTES[myarg][0]]}, gsfieldsList, fieldsTitles, titles, nativeTitles)
     elif myarg == u'fields':
       fieldNameList = getString(Cmd.OB_FIELD_NAME_LIST)
       for field in fieldNameList.lower().replace(u',', u' ').split():
@@ -11743,6 +11760,10 @@ def doPrintGroups():
         ownersCountOnly = True
     elif myarg == u'countsonly':
       membersCountOnly = managersCountOnly = ownersCountOnly = True
+    elif myarg == "formatjson":
+      formatJSON = True
+    elif myarg == u'quotechar':
+      quotechar = getCharacter()
     else:
       unknownArgumentExit()
   if cdfieldsList:
@@ -11774,6 +11795,13 @@ def doPrintGroups():
       addTitlesToCSVfile([u'OwnersCount',], titles)
       if not ownersCountOnly:
         addTitlesToCSVfile([u'Owners',], titles)
+  if formatJSON:
+    sortHeaders = False
+    titles, csvRows = initializeTitlesCSVfile(PRINT_GROUPS_JSON_TITLES)
+    if roles:
+      addTitleToCSVfile(u'JSON-members', titles)
+    if getSettings:
+      addTitleToCSVfile(u'JSON-settings', titles)
   if entitySelection is None:
     printGettingAccountEntitiesInfo(Ent.GROUP, qualifier=queryQualifier(groupQuery(kwargs.get(u'domain'), kwargs.get(u'userKey'))))
     page_message = getPageMessage(showTotal=False, showFirstLastItems=True)
@@ -11854,7 +11882,7 @@ def doPrintGroups():
     executeBatch(dbatch)
   if sortHeaders:
     sortCSVTitles([fieldsTitles[u'email']], titles)
-  writeCSVfile(csvRows, titles, u'Groups', todrive)
+  writeCSVfile(csvRows, titles, u'Groups', todrive, quotechar)
 
 def getGroupMembers(cd, groupEmail, roles, membersList, membersSet, i, count, noduplicates, recursive, level):
   try:
@@ -16576,6 +16604,8 @@ def doInfoUser():
   else:
     infoUsers([_getValueFromOAuth(u'email')])
 
+PRINT_USERS_JSON_TITLES = [u'primaryEmail', u'JSON']
+
 USERS_ORDERBY_CHOICE_MAP = {
   u'familyname': u'familyName',
   u'lastname': u'familyName',
@@ -16587,14 +16617,18 @@ USERS_ORDERBY_CHOICE_MAP = {
 # gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [query <QueryUsers>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
 #	[groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
 #	[orderby <UserOrderByFieldName> [ascending|descending]]
-#	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>] [delimiter <Character>] [sortheaders [<Boolean>]]
+#	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
+#	[delimiter <Character>] [sortheaders] [formatjson] [guotechar <Character>]
 def doPrintUsers(entityList=None):
   def _printUser(userEntity):
     if email_parts and (u'primaryEmail' in userEntity):
       userEmail = userEntity[u'primaryEmail']
       if userEmail.find(u'@') != -1:
         userEntity[u'primaryEmailLocal'], userEntity[u'primaryEmailDomain'] = splitEmailAddress(userEmail)
-    addRowTitlesToCSVfile(flattenJSON(userEntity, timeObjects=USER_TIME_OBJECTS), csvRows, titles)
+    if not formatJSON:
+      addRowTitlesToCSVfile(flattenJSON(userEntity, timeObjects=USER_TIME_OBJECTS), csvRows, titles)
+    else:
+      csvRows.append({u'primaryEmail': userEntity[u'primaryEmail'], u'JSON': json.dumps(userEntity, ensure_ascii=False, sort_keys=True)})
 
   _PRINT_USER_REASON_TO_MESSAGE_MAP = {GAPI.RESOURCE_NOT_FOUND: Msg.DOES_NOT_EXIST}
   def _callbackPrintUser(request_id, response, exception):
@@ -16624,7 +16658,8 @@ def doPrintUsers(entityList=None):
   customFieldMask = None
   viewType = deleted_only = orderBy = sortOrder = None
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
-  selectLookup = False
+  formatJSON = selectLookup = False
+  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
@@ -16684,9 +16719,16 @@ def doPrintUsers(entityList=None):
       getLicenseFeed = True
     elif myarg in [u'emailpart', u'emailparts', u'username']:
       email_parts = True
+    elif myarg == "formatjson":
+      formatJSON = True
+    elif myarg == u'quotechar':
+      quotechar = getCharacter()
     else:
       unknownArgumentExit()
   _, _, entityList = getEntityArgument(entityList)
+  if formatJSON:
+    sortHeaders = False
+    titles, csvRows = initializeTitlesCSVfile(PRINT_USERS_JSON_TITLES)
   if entityList is None:
     sortRows = False
     fields = u'nextPageToken,users({0})'.format(u','.join(set(fieldsList))).replace(u'.', u'/') if fieldsList else None
@@ -16773,7 +16815,7 @@ def doPrintUsers(entityList=None):
         if u_licenses:
           user[u'Licenses'] = delimiter.join(u_licenses)
           user[u'LicensesDisplay'] = delimiter.join([SKU.skuIdToDisplayName(skuId) for skuId in u_licenses])
-  writeCSVfile(csvRows, titles, u'Users', todrive)
+  writeCSVfile(csvRows, titles, u'Users', todrive, quotechar)
 
 # gam <UserTypeEntity> print
 def doPrintUserEntity(entityList):
@@ -24878,10 +24920,9 @@ def _printShowSheetRanges(users, csvFormat):
   if csvFormat:
     if formatJSON:
       sortCSVTitles(PRINT_SHEETS_JSON_TITLES, titles)
-      writeCSVfile(csvRows, titles, u'Spreadsheet', todrive, quotechar)
     else:
       sortCSVTitles(PRINT_SHEETS_TITLES, titles)
-      writeCSVfile(csvRows, titles, u'Spreadsheet', todrive)
+    writeCSVfile(csvRows, titles, u'Spreadsheet', todrive, quotechar)
 
 # gam <UserTypeEntity> print sheetrange <DriveFileEntity> (range <SpreadsheetRange>)*  [todrive [<ToDriveAttributes>]]
 #	[rows|columns] [serialnumber|formattedstring] [formula|formattedvalue|unformattedvalue]
