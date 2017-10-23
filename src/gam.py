@@ -21572,7 +21572,7 @@ def printFileList(users):
       children = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                                q=q, fields=pagesfields,
-                               pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
+                               pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], includeTeamDriveItems=True, supportsTeamDrives=True)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
       return
