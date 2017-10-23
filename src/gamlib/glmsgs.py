@@ -115,6 +115,7 @@ MEMBERSHIP_IS_PENDING_WILL_DELETE_ADD_TO_ACCEPT = u'Membership is pending, will 
 MISMATCH_RE_SEARCH_REPLACE_SUBFIELDS = u'The subfield ({2}) in replace "{3}" exceeds the number of subfields ({0}) in search "{1}"'
 MISMATCH_SEARCH_REPLACE_SUBFIELDS = u'The number of subfields ({0}) in search "{1}" does not match the number of subfields ({2}) in replace "{3}"'
 MULTIPLE_ITEMS_MARKED_PRIMARY = u'Multiple {0} are marked primary, only one can be primary'
+MUST_BE_NUMERIC = u'Must be numeric'
 NESTED_LOOP_CMD_NOT_ALLOWED = u'Command can not be nested.'
 NEW_OWNER_MUST_DIFFER_FROM_OLD_OWNER = u'New owner must differ from old owner'
 NON_BLANK = u'Non-blank'

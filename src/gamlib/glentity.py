@@ -132,6 +132,7 @@ class GamEntity(object):
   PRINTER = u'prin'
   PRINTER_ACL = u'pacl'
   PRINTJOB = u'prjo'
+  PRIVILEGE = u'priv'
   PRODUCT = u'prod'
   PROFILE_SHARING_ENABLED = u'prof'
   PROJECT = u'proj'
@@ -194,7 +195,7 @@ class GamEntity(object):
     ALIAS_EMAIL: [u'Alias Emails', u'Alias Email'],
     ALIAS_TARGET: [u'Alias Targets', u'Alias Target'],
     API: [u'APIs', u'API'],
-    APPLICATION_SPECIFIC_PASSWORD: [u'Application Specific Passwords', u'Application Specific Password'],
+    APPLICATION_SPECIFIC_PASSWORD: [u'Application Specific Password IDs', u'Application Specific Password ID'],
     ARROWS_ENABLED: [u'Personal Indicator Arrows Enabled', u'Personal Indicator Arrows Enabled'],
     ATTENDEE: [u'Attendees', u'Attendee'],
     AUDIT_ACTIVITY_REQUEST: [u'Audit Activity Requests', u'Audit Activity Request'],
@@ -285,6 +286,7 @@ class GamEntity(object):
     PRINTER: [u'Printers', u'Printer'],
     PRINTER_ACL: [u'Printer ACLs', u'Printer ACL'],
     PRINTJOB: [u'Print Jobs', u'Print Job'],
+    PRIVILEGE: [u'Privileges', u'Privilege'],
     PRODUCT: [u'Products', u'Product'],
     PROFILE_SHARING_ENABLED: [u'Profile Sharing Enabled', u'Profile Sharing Enabled'],
     PROJECT: [u'Projects', u'Project'],

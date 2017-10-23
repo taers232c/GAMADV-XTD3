@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.36'
+__version__ = u'4.54.37'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -6267,30 +6267,136 @@ def doPrintDomains():
     accessErrorExit(cd)
   writeCSVfile(csvRows, titles, u'Domains', todrive)
 
-# gam print adminroles|roles [todrive [<ToDriveAttributes>]]
-def doPrintAdminRoles():
+PRINT_PRIVILEGES_FIELDS = [u'serviceId', u'serviceName', u'privilegeName', u'isOuScopable', u'childPrivileges']
+
+# gam print privileges [todrive [<ToDriveAttributes>]]
+def _doPrintShowPrivileges(csvFormat):
+  def _showPrivilege(privilege, i, count):
+    printEntity([Ent.PRIVILEGE, privilege[u'privilegeName']], i, count)
+    Ind.Increment()
+    printKeyValueList([u'serviceId', privilege[u'serviceId']])
+    printKeyValueList([u'serviceName', privilege.get(u'serviceName', u'Unknown')])
+    printKeyValueList([u'isOuScopable', privilege[u'isOuScopable']])
+    jcount = len(privilege.get(u'childPrivileges', []))
+    if jcount > 0:
+      printKeyValueList([u'childPrivileges', jcount])
+      Ind.Increment()
+      j = 0
+      for childPrivilege in privilege[u'childPrivileges']:
+        j += 1
+        _showPrivilege(childPrivilege, j, jcount)
+      Ind.Decrement()
+    Ind.Decrement()
+
   cd = buildGAPIObject(API.DIRECTORY)
-  todrive = {}
-  titles, csvRows = initializeTitlesCSVfile([u'roleId', u'roleName', u'roleDescription', u'isSuperAdminRole', u'isSystemRole'])
-  fields = u'nextPageToken,items({0})'.format(u','.join(titles[u'list']))
+  if csvFormat:
+    todrive = {}
+    titles, csvRows = initializeTitlesCSVfile(PRINT_PRIVILEGES_FIELDS)
+  fields = u'items({0})'.format(u','.join(PRINT_PRIVILEGES_FIELDS))
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == u'todrive':
+    if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
     else:
       unknownArgumentExit()
+  try:
+    privileges = callGAPIitems(cd.privileges(), u'list', u'items',
+                               throw_reasons=[GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN],
+                               customer=GC.Values[GC.CUSTOMER_ID], fields=fields)
+    if not csvFormat:
+      count = len(privileges)
+      performActionNumItems(count, Ent.PRIVILEGE)
+      Ind.Increment()
+      i = 0
+      for privilege in privileges:
+        i += 1
+        _showPrivilege(privilege, i, count)
+      Ind.Decrement()
+    else:
+      for privilege in privileges:
+        addRowTitlesToCSVfile(flattenJSON(privilege), csvRows, titles)
+  except (GAPI.badRequest, GAPI.customerNotFound, GAPI.forbidden):
+    accessErrorExit(cd)
+  if csvFormat:
+    sortCSVTitles(PRINT_PRIVILEGES_FIELDS, titles)
+    writeCSVfile(csvRows, titles, u'Privileges', todrive)
+
+# gam print privileges [todrive [<ToDriveAttributes>]]
+def doPrintPrivileges():
+  _doPrintShowPrivileges(True)
+
+# gam show privileges
+def doShowPrivileges():
+  _doPrintShowPrivileges(False)
+
+PRINT_ADMIN_ROLES_FIELDS = [u'roleId', u'roleName', u'roleDescription', u'isSuperAdminRole', u'isSystemRole']
+
+def _doPrintShowAdminRoles(csvFormat):
+  cd = buildGAPIObject(API.DIRECTORY)
+  todrive = {}
+  fieldsList = PRINT_ADMIN_ROLES_FIELDS[:]
+  titles, csvRows = initializeTitlesCSVfile(fieldsList)
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvFormat and myarg == u'todrive':
+      todrive = getTodriveParameters()
+    elif myarg == u'privileges':
+      if csvFormat:
+        addFieldToCSVfile(myarg, {myarg: [u'rolePrivileges',]}, fieldsList, titles)
+      else:
+        fieldsList.append(u'rolePrivileges')
+    else:
+      unknownArgumentExit()
+  fields = u'nextPageToken,items({0})'.format(u','.join(set(fieldsList)))
   try:
     roles = callGAPIpages(cd.roles(), u'list', u'items',
                           throw_reasons=[GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN],
                           customer=GC.Values[GC.CUSTOMER_ID], fields=fields)
     for role in roles:
-      row = {}
-      for attr, value in iteritems(role):
-        row[attr] = value
-      csvRows.append(row)
+      role.setdefault(u'isSuperAdminRole', False)
+      role.setdefault(u'isSystemRole', False)
+    if not csvFormat:
+      count = len(roles)
+      performActionNumItems(count, Ent.ROLE)
+      Ind.Increment()
+      i = 0
+      for role in roles:
+        i += 1
+        printEntity([Ent.ROLE, role[u'roleName']], i, count)
+        Ind.Increment()
+        for field in PRINT_ADMIN_ROLES_FIELDS:
+          if field not in [u'roleName', u'rolePrivileges'] and field in role:
+            printKeyValueList([field, role[field]])
+        jcount = len(role.get(u'rolePrivileges', []))
+        if jcount > 0:
+          printKeyValueList([u'rolePrivileges', jcount])
+          Ind.Increment()
+          j = 0
+          for rolePrivilege in role[u'rolePrivileges']:
+            j += 1
+            printKeyValueList([u'privilegeName', rolePrivilege[u'privilegeName']])
+            Ind.Increment()
+            printKeyValueList([u'serviceId', rolePrivilege[u'serviceId']])
+            Ind.Decrement()
+          Ind.Decrement()
+        Ind.Decrement()
+      Ind.Decrement()
+    else:
+      for role in roles:
+        addRowTitlesToCSVfile(flattenJSON(role), csvRows, titles)
   except (GAPI.badRequest, GAPI.customerNotFound, GAPI.forbidden):
     accessErrorExit(cd)
-  writeCSVfile(csvRows, titles, u'Admin Roles', todrive)
+  if csvFormat:
+    sortCSVTitles(PRINT_ADMIN_ROLES_FIELDS, titles)
+    writeCSVfile(csvRows, titles, u'Admin Roles', todrive)
+
+# gam print adminroles|roles [todrive [<ToDriveAttributes>]] [privileges]
+def doPrintAdminRoles():
+  _doPrintShowAdminRoles(True)
+
+# gam show adminroles|roles [privileges]
+def doShowAdminRoles():
+  _doPrintShowAdminRoles(False)
 
 def buildRoleIdToNameToIdMap():
   cd = buildGAPIObject(API.DIRECTORY)
@@ -6396,17 +6502,25 @@ def doDeleteAdmin():
   except (GAPI.badRequest, GAPI.customerNotFound, GAPI.forbidden):
     accessErrorExit(cd)
 
-# gam print admins [todrive [<ToDriveAttributes>]] [user <UserItem>] [role <RoleItem>]
-def doPrintAdmins():
+PRINT_ADMIN_FIELDS = u'nextPageToken,items({0})'.format(u','.join([u'roleAssignmentId', u'roleId', u'assignedTo', u'scopeType', u'orgUnitId']))
+PRINT_ADMIN_TITLES = [u'roleAssignmentId', u'roleId', u'role', u'assignedTo', u'assignedToUser', u'scopeType', u'orgUnitId', u'orgUnit']
+
+def _doPrintShowAdmins(csvFormat):
+  def _setNamesFromIds(admin):
+    admin[u'assignedToUser'] = convertUserIDtoEmail(admin[u'assignedTo'], cd)
+    admin[u'role'] = role_from_roleid(admin[u'roleId'])
+    if u'orgUnitId' in admin:
+      admin[u'orgUnit'] = convertOrgUnitIDtoPath(u'id:{0}'.format(admin[u'orgUnitId']), cd)
+
   cd = buildGAPIObject(API.DIRECTORY)
   roleId = None
   userKey = None
-  todrive = {}
-  titles, csvRows = initializeTitlesCSVfile([u'roleAssignmentId', u'roleId', u'role', u'assignedTo', u'assignedToUser', u'scopeType', u'orgUnitId', u'orgUnit'])
-  fields = u'nextPageToken,items({0})'.format(u','.join([u'roleAssignmentId', u'roleId', u'assignedTo', u'scopeType', u'orgUnitId']))
+  if csvFormat:
+    todrive = {}
+    titles, csvRows = initializeTitlesCSVfile(PRINT_ADMIN_TITLES)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == u'todrive':
+    if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
     elif myarg == u'user':
       userKey = getEmailAddress()
@@ -6415,27 +6529,45 @@ def doPrintAdmins():
     else:
       unknownArgumentExit()
   try:
-    feed = callGAPIpages(cd.roleAssignments(), u'list', u'items',
-                         throw_reasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN],
-                         customer=GC.Values[GC.CUSTOMER_ID], userKey=userKey, roleId=roleId, fields=fields)
-    while feed:
-      admin = feed.popleft()
-      row = {}
-      for attr, value in iteritems(admin):
-        if attr == u'assignedTo':
-          row[u'assignedToUser'] = convertUserIDtoEmail(value, cd)
-        elif attr == u'roleId':
-          row[u'role'] = role_from_roleid(value)
-        elif attr == u'orgUnitId':
-          value = u'id:{0}'.format(value)
-          row[u'orgUnit'] = convertOrgUnitIDtoPath(value, cd)
-        row[attr] = value
-      csvRows.append(row)
-    writeCSVfile(csvRows, titles, u'Admins', todrive)
+    admins = callGAPIpages(cd.roleAssignments(), u'list', u'items',
+                           throw_reasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN],
+                           customer=GC.Values[GC.CUSTOMER_ID], userKey=userKey, roleId=roleId, fields=PRINT_ADMIN_FIELDS)
   except GAPI.invalid:
     entityUnknownWarning(Ent.USER, userKey)
+    return
   except (GAPI.badRequest, GAPI.customerNotFound, GAPI.forbidden):
     accessErrorExit(cd)
+  if not csvFormat:
+    count = len(admins)
+    performActionNumItems(count, Ent.ROLE_ASSIGNMENT_ID)
+    Ind.Increment()
+    i = 0
+    while admins:
+      i += 1
+      admin = admins.popleft()
+      _setNamesFromIds(admin)
+      printEntity([Ent.ROLE_ASSIGNMENT_ID, admin[u'roleAssignmentId']], i, count)
+      Ind.Increment()
+      for field in PRINT_ADMIN_TITLES:
+        if field != u'roleAssignmentId' and field in admin:
+          printKeyValueList([field, admin[field]])
+      Ind.Decrement()
+    Ind.Decrement()
+  else:
+    while admins:
+      admin = admins.popleft()
+      _setNamesFromIds(admin)
+      csvRows.append(flattenJSON(admin))
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'Admins', todrive)
+
+# gam print admins [todrive [<ToDriveAttributes>]] [user <UserItem>] [role <RoleItem>]
+def doPrintAdmins():
+  _doPrintShowAdmins(True)
+
+# gam show admins [user <UserItem>] [role <RoleItem>]
+def doShowAdmins():
+  _doPrintShowAdmins(False)
 
 USER_COUNTS_MAP = {
   u'accounts:num_users': u'Total Users',
@@ -12490,7 +12622,7 @@ def _doPrintShowResourceCalendars(csvFormat):
     if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
     elif myarg == u'allfields':
-      fieldsList = RESOURCE_ALLFIELDS
+      fieldsList = RESOURCE_ALLFIELDS[:]
     elif myarg in [Cmd.ARG_ACLS, Cmd.ARG_CALENDARACLS, Cmd.ARG_PERMISSIONS]:
       showPermissions = True
     elif myarg in RESOURCE_ARGUMENT_TO_PROPERTY_MAP:
@@ -12508,7 +12640,7 @@ def _doPrintShowResourceCalendars(csvFormat):
     else:
       unknownArgumentExit()
   if not fieldsList:
-    fieldsList = RESOURCE_ALLFIELDS
+    fieldsList = RESOURCE_ALLFIELDS[:]
   if csvFormat:
     addTitlesToCSVfile(fieldsList, titles)
   if showPermissions:
@@ -18682,24 +18814,53 @@ def _showASPs(user, asps, i=0, count=0):
     Ind.Decrement()
   Ind.Decrement()
 
-# gam <UserTypeEntity> delete asps|applicationspecificpasswords <AspID>
+# gam <UserTypeEntity> delete asps|applicationspecificpasswords all|<AspIDList>
 def deleteASP(users):
   cd = buildGAPIObject(API.DIRECTORY)
-  codeId = getString(Cmd.OB_ASP_ID)
+  codeIdList = getString(Cmd.OB_ASP_ID_LIST).lower()
+  if codeIdList == u'all':
+    allCodeIds = True
+  else:
+    allCodeIds = False
+    codeIds = codeIdList.replace(u',', u' ').split()
+    for codeId in codeIds:
+      if not codeId.isdigit():
+        Cmd.Backup()
+        usageErrorExit(Msg.INVALID_ENTITY_MESSAGE.format(Ent.Singular(Ent.APPLICATION_SPECIFIC_PASSWORD), Msg.MUST_BE_NUMERIC))
   checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     user = normalizeEmailAddressOrUID(user)
-    try:
-      callGAPI(cd.asps(), u'delete',
-               throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.INVALID],
-               userKey=user, codeId=codeId)
-      entityActionPerformed([Ent.USER, user, Ent.APPLICATION_SPECIFIC_PASSWORD, codeId], i, count)
-    except GAPI.userNotFound:
-      entityUnknownWarning(Ent.USER, user, i, count)
-    except GAPI.invalid:
-      entityActionFailedWarning([Ent.USER, user, Ent.APPLICATION_SPECIFIC_PASSWORD, codeId], Msg.DOES_NOT_EXIST, i, count)
+    if allCodeIds:
+      try:
+        asps = callGAPIitems(cd.asps(), u'list', u'items',
+                             throw_reasons=[GAPI.USER_NOT_FOUND],
+                             userKey=user, fields=u'items(codeId)')
+        codeIds = [asp[u'codeId'] for asp in asps]
+      except GAPI.userNotFound:
+        entityUnknownWarning(Ent.USER, user, i, count)
+        continue
+    jcount = len(codeIds)
+    entityPerformActionNumItems([Ent.USER, user], jcount, Ent.APPLICATION_SPECIFIC_PASSWORD, i, count)
+    if jcount == 0:
+      setSysExitRC(NO_ENTITIES_FOUND)
+      continue
+    Ind.Increment()
+    j = 0
+    for codeId in codeIds:
+      j += 1
+      try:
+        callGAPI(cd.asps(), u'delete',
+                 throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.INVALID, GAPI.INVALID_PARAMETER, GAPI.FORBIDDEN],
+                 userKey=user, codeId=codeId)
+        entityActionPerformed([Ent.USER, user, Ent.APPLICATION_SPECIFIC_PASSWORD, codeId], j, jcount)
+      except (GAPI.invalid, GAPI.invalidParameter, GAPI.forbidden) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.APPLICATION_SPECIFIC_PASSWORD, codeId], str(e), j, jcount)
+      except GAPI.userNotFound:
+        entityUnknownWarning(Ent.USER, user, i, count)
+        break
+    Ind.Decrement()
 
 # gam <UserTypeEntity> show asps|applicationspecificpasswords
 def showASPs(users):
@@ -20286,7 +20447,7 @@ def _printShowDriveSettings(users, csvFormat):
     else:
       unknownArgumentExit()
   if not fieldsList:
-    fieldsList = DRIVESETTINGS_SCALAR_FIELDS
+    fieldsList = DRIVESETTINGS_SCALAR_FIELDS[:]
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -25065,20 +25226,20 @@ def deprovisionUser(users):
       asps = callGAPIitems(cd.asps(), u'list', u'items',
                            throw_reasons=[GAPI.USER_NOT_FOUND],
                            userKey=user, fields=u'items(codeId)')
-      jcount = len(asps)
+      codeIds = [asp[u'codeId'] for asp in asps]
+      jcount = len(codeIds)
       entityPerformActionNumItems([Ent.USER, user], jcount, Ent.APPLICATION_SPECIFIC_PASSWORD, i, count)
       if jcount > 0:
         Ind.Increment()
         j = 0
-        for asp in asps:
+        for codeId in codeIds:
           j += 1
-          codeId = asp[u'codeId']
           try:
             callGAPI(cd.asps(), u'delete',
-                     throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.INVALID],
+                     throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.INVALID, GAPI.INVALID_PARAMETER, GAPI.FORBIDDEN],
                      userKey=user, codeId=codeId)
             entityActionPerformed([Ent.USER, user, Ent.APPLICATION_SPECIFIC_PASSWORD, codeId], j, jcount)
-          except GAPI.invalid as e:
+          except (GAPI.invalid, GAPI.invalidParameter, GAPI.forbidden) as e:
             entityActionFailedWarning([Ent.USER, user, Ent.APPLICATION_SPECIFIC_PASSWORD, codeId], str(e), j, jcount)
         Ind.Decrement()
 #
@@ -28766,6 +28927,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_ORGS:		doPrintOrgs,
         Cmd.ARG_PRINTERS:	doPrintPrinters,
         Cmd.ARG_PRINTJOBS:	doPrintPrintJobs,
+        Cmd.ARG_PRIVILEGES:	doPrintPrivileges,
         Cmd.ARG_ORGS:		doPrintOrgs,
         Cmd.ARG_RESOLDSUBSCRIPTIONS:	doPrintResoldSubscriptions,
         Cmd.ARG_RESOURCES:	doPrintResourceCalendars,
@@ -28807,7 +28969,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_RESELLERSUBSCRIPTION:	Cmd.ARG_RESOLDSUBSCRIPTIONS,
         Cmd.ARG_RESOLDSUBSCRIPTION:	Cmd.ARG_RESOLDSUBSCRIPTIONS,
         Cmd.ARG_RESOURCE:	Cmd.ARG_RESOURCES,
-        u'roles':		Cmd.ARG_ADMINROLES,
+        Cmd.ARG_ROLES:		Cmd.ARG_ADMINROLES,
         Cmd.ARG_SCHEMA:		Cmd.ARG_SCHEMAS,
         Cmd.ARG_SITE:		Cmd.ARG_SITES,
         Cmd.ARG_TOKEN:		Cmd.ARG_TOKENS,
@@ -28829,10 +28991,13 @@ MAIN_COMMANDS_WITH_OBJECTS = {
   u'show':
     {CMD_ACTION: Act.SHOW,
      CMD_FUNCTION:
-       {Cmd.ARG_CONTACTS:	doShowDomainContacts,
+       {Cmd.ARG_ADMINROLES:	doShowAdminRoles,
+        Cmd.ARG_ADMINS:		doShowAdmins,
+        Cmd.ARG_CONTACTS:	doShowDomainContacts,
         Cmd.ARG_GAL:		doShowGAL,
         Cmd.ARG_GUARDIANS: 	doShowGuardians,
         Cmd.ARG_ORGTREE:	doShowOrgTree,
+        Cmd.ARG_PRIVILEGES:	doShowPrivileges,
         Cmd.ARG_RESOLDSUBSCRIPTIONS:	doShowResoldSubscriptions,
         Cmd.ARG_RESOURCES:	doShowResourceCalendars,
         Cmd.ARG_SCHEMAS:	doShowUserSchemas,
@@ -28852,6 +29017,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_RESELLERSUBSCRIPTION:	Cmd.ARG_RESOLDSUBSCRIPTIONS,
         Cmd.ARG_RESOLDSUBSCRIPTION:	Cmd.ARG_RESOLDSUBSCRIPTIONS,
         Cmd.ARG_RESOURCE:	Cmd.ARG_RESOURCES,
+        Cmd.ARG_ROLES:		Cmd.ARG_ADMINROLES,
         Cmd.ARG_SCHEMA:		Cmd.ARG_SCHEMAS,
         Cmd.ARG_SITE:		Cmd.ARG_SITES,
         Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,

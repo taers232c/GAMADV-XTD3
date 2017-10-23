@@ -192,7 +192,7 @@ If an item contains spaces, it should be surrounded by ".
 ## Named items
 
 <AccessToken> ::= <String>
-<AspID> ::= <String>
+<ASPID> ::= <String>
 <CalendarACLScope> ::= [user:]<EmailAddress>|group:<EmailAddress>|domain[:<DomainName>]|default
 <CalendarColorIndex> ::== <Number in range 1-24>
 <CalendarItem> ::= <EmailAddress>|<String>
@@ -303,6 +303,7 @@ Items, separated by spaces, without spaces or commas in the items themselves: "i
 Items, separated by commas, with spaces or commas in the items themselves: "'it em'(,'it,em')*"
 Items, separated by spaces, with spaces or commas in the items themselves: "'it em'( 'it,em')*"
 
+<ASPIDList> ::= "<ASPID>(,<ASPID>)*"
 <CalendarACLScopeList> ::== "<CalendarACLScope>(,<CalendarACLScope>)*"
 <CalendarList> ::= "<CalendarItem>(,<CalendarItem>)*"
 <CourseAliasList> ::= "<CourseAlias>(,<CourseAlias>)*"
@@ -559,14 +560,20 @@ gam <UserTypeEntity> check serviceaccount
 
 # Administrators
 
-gam print adminroles|roles [todrive [<ToDriveAttributes>]]
+gam print privileges [todrive [<ToDriveAttributes>]]
+gam show privileges
+
+gam print adminroles|roles [todrive [<ToDriveAttributes>]] [privileges]
+gam show adminroles|roles [privileges]
 
 <RoleAssignmentID> ::= <String>
 <RoleItem> ::= id:<String>|uid:<string>|<String>
 
 gam create admin <UserItem> <RoleItem> customer|(org_unit <OrgUnitItem>)
 gam delete admin <RoleAssignmentId>
+
 gam print admins [todrive [<ToDriveAttributes>]] [user <UserItem>] [role <RoleItem>]
+gam show admins [user <UserItem>] [role <RoleItem>]
 
 # Aliases
 
@@ -1619,7 +1626,7 @@ gam <UserTypeEntity> delete alias|aliases
 
 # Users - Application Specific Passwords/backup Codes
 
-gam <UserTypeEntity> delete asps|applicationspecificpasswords <AspID>
+gam <UserTypeEntity> delete asps|applicationspecificpasswords all|<ASPIDList>
 gam <UserTypeEntity> show asps|applicationspecificpasswords
 
 gam <UserTypeEntity> update backupcodes|verificationcodes

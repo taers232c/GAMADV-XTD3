@@ -1,3 +1,16 @@
+4.54.37
+
+Thanks to Jay for suggesting extending gam delete asps to delete all of a user's Application Specific Passwords or a list of ASPs.
+gam <UserTypeEntity> delete asps|applicationspecificpasswords all|<ASPIDList>
+
+Extended commands relating to administrators.
+gam print privileges [todrive [<ToDriveAttributes>]]
+gam show privileges
+gam print adminroles|roles [todrive [<ToDriveAttributes>]] [privileges]
+gam show adminroles|roles [privileges]
+gam print admins [todrive [<ToDriveAttributes>]] [user <UserItem>] [role <RoleItem>]
+gam show admins [user <UserItem>] [role <RoleItem>]
+
 4.54.36
 
 Added formatjson argument to gam print groups/users to cause output to be in JSON format.
