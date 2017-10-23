@@ -1,3 +1,11 @@
+4.54.38
+
+By default, Gam displays all Team Drives to which the user has access; you can limit the display
+by using the `role` option; multiple instances of `role` are allowed.
+
+gam <UserTypeEntity> print teamdrives (role commenter|organizer|owner|reader|writer)* [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> show teamdrives (role commenter|organizer|owner|reader|writer)*
+
 4.54.37
 
 Thanks to Jay for suggesting extending gam delete asps to delete all of a user's Application Specific Passwords or a list of ASPs.

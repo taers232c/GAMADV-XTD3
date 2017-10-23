@@ -1882,7 +1882,7 @@ gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
 <DriveFilePermissionEntity> ::= <DriveFilePermissionList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <DriveFilePermissionIDEntity> ::= <DriveFilePermissionIDList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
-<DriveFileACLRole> :: =commenter|editor|organizer|owner|reader|writer
+<DriveFileACLRole> :: =commenter|organizer|owner|reader|writer
 <DriveFilePermission> ::= anyone|anyonewithlink|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>;<DriveFileACLRole>
 <DriveFilePermissionID> ::= anyone|anyonewithlink|id:<String>
 <DriveFilePermissionIDorEmail> ::= <DriveFilePermissionID>|<EmailAddress>
@@ -1930,10 +1930,10 @@ gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetra
 gam <UserTypeEntity> claim ownership <DriveFileEntity> [includetrashed]
 	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 	[skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
-	[restricted [<Boolean>]] [writerscanshare|writerscantshare [<Boolean>]] [keepuser | (retainrole reader|commenter|writer|editor|none)]
+	[restricted [<Boolean>]] [writerscanshare|writerscantshare [<Boolean>]] [keepuser | (retainrole commenter|reader|writer|none)]
 	[preview] [filepath] [buildtree] [todrive [<ToDriveAttributes>]]
 
-gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>] [keepuser | (retainrole reader|commenter|writer|editor|none)]
+gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>] [keepuser | (retainrole commenter|reader|writer|none)]
 	[(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>]
 	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 	[preview] [todrive [<ToDriveAttributes>]]
@@ -2067,7 +2067,7 @@ gam <UserTypeEntity> show filepath <DriveFileEntity> (orderby <DriveFileOrderByF
 gam <UserTypeEntity> print filepath <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 
 gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)]
-	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
+	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>] [corpora <CorporaAttribute>]
 	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [mimetype [not] <MimeTypeList>] [depth <Number>] [showparent]
 	[filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
 gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
@@ -2270,8 +2270,8 @@ gam <UserTypeEntity> create teamdrive <Name> [themeid <String>]
 gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>] [themeid <String>]
 gam <UserTypeEntity> delete teamdrive <TeamDriveEntity>
 gam <UserTypeEntity> info teamdrive <TeamDriveEntity>
-gam <UserTypeEntity> print teamdrives [todrive [<ToDriveAttributes>]]
-gam <UserTypeEntity> show teamdrives
+gam <UserTypeEntity> print teamdrives (role commenter|organizer|owner|reader|writer)* [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> show teamdrives (role commenter|organizer|owner|reader|writer)*
 
 # Users - Spreadsheets
 

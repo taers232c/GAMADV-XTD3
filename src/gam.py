@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.37'
+__version__ = u'4.54.38'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -243,6 +243,7 @@ VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED = u'nextPageToken,{0
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNER = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,{3},owners(emailAddress,permissionId))'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
 VX_NPT_FILES_ID_MIMETYPE_CANEDIT = u'nextPageToken,{0}(id,mimeType,capabilities(canEdit))'.format(VX_PAGES_FILES)
 VX_NPT_PERMISSIONS = u'nextPageToken,{0}'.format(VX_PAGES_PERMISSIONS)
+VX_NPT_PERMISSIONS_TYPE_EMAIL_ROLE = u'nextPageToken,{0}(type,emailAddress,role)'.format(VX_PAGES_PERMISSIONS)
 VX_NPT_REVISIONS_FIELDLIST = u'nextPageToken,{0}({{0}})'.format(VX_PAGES_REVISIONS)
 VX_NPT_REVISIONS_ID_MODIFIEDTIME = u'nextPageToken,{0}(id,{1})'.format(VX_PAGES_REVISIONS, VX_MODIFIED_TIME)
 
@@ -21486,7 +21487,7 @@ def addFilePathsToRow(drive, fileTree, fileEntryInfo, filePathInfo, row, titles)
 SHOW_OWNED_BY_CHOICE_MAP = {u'any': None, u'me': True, u'others': False}
 FILELIST_FIELDS_TITLES = [u'id', u'mimeType', u'parents']
 
-# gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)]
+# gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
 #	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
 #	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [mimetype [not] <MimeTypeList>] [depth <Number>] [showparent]
 #	[filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
@@ -24170,10 +24171,13 @@ def _printShowTeamDrives(users, csvFormat):
   if csvFormat:
     todrive = {}
     titles, csvRows = initializeTitlesCSVfile([u'User', u'id', u'name'])
+  roles = set()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
+    elif myarg == u'role':
+      roles.add(getChoice(DRIVEFILE_ACL_ROLES_MAP, mapChoice=True))
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
@@ -24186,6 +24190,21 @@ def _printShowTeamDrives(users, csvFormat):
       feed = callGAPIpages(drive.teamdrives(), u'list', u'teamDrives',
                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                            fields=u'teamDrives(id,name,backgroundImageLink,colorRgb,capabilities)', pageSize=10)
+      if roles:
+        roleFeed = collections.deque()
+        while feed:
+          teamDrive = feed.popleft()
+          try:
+            results = callGAPIpages(drive.permissions(), u'list', VX_PAGES_PERMISSIONS,
+                                    throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                                    fileId=teamDrive[u'id'], fields=VX_NPT_PERMISSIONS_TYPE_EMAIL_ROLE, supportsTeamDrives=True)
+            for permission in results:
+              if (permission[u'type'] == u'user') and (permission[u'emailAddress'] == user) and (permission[u'role'] in roles):
+                roleFeed.append(teamDrive)
+                break
+          except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError) as e:
+            pass
+        feed = roleFeed
       jcount = len(feed)
       if not csvFormat:
         entityPerformActionNumItems([Ent.USER, user], jcount, Ent.TEAMDRIVE, i, count)
@@ -24208,11 +24227,11 @@ def _printShowTeamDrives(users, csvFormat):
     sortCSVTitles([u'User', u'id', u'name'], titles)
     writeCSVfile(csvRows, titles, u'TeamDrives', todrive)
 
-# gam <UserTypeEntity> print teamdrives [todrive [<ToDriveAttributes>]]
+# gam <UserTypeEntity> print teamdrives (role commenter|organizer|owner|reader|writer)* [todrive [<ToDriveAttributes>]]
 def printTeamDrives(users):
   _printShowTeamDrives(users, True)
 
-# gam <UserTypeEntity> show teamdrives
+# gam <UserTypeEntity> show teamdrives (role commenter|organizer|owner|reader|writer)*
 def showTeamDrives(users):
   _printShowTeamDrives(users, False)
 
