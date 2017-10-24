@@ -121,10 +121,11 @@ csv_output_field_delimiter
 	Default: ' '
 	Environment variable: GAM_CSV_OUTPUT_FIELD_DELIMITER
 csv_output_line_terminator
-	A one- or two-character string used to terminate the lines of a CSV file.
-	For Linux and Mac OS, this would typically be '\n'.
-	For Windows, this would typically be '\r\n'.
-	Default: '\n'
+	Allowed values: cr, lf, crlf
+	Designates character(s) used to terminate the lines of a CSV file.
+	For Linux and Mac OS, this would typically be lf.
+	For Windows, this would typically be crlf.
+	Default: lf
 	Environment variable: GAM_CSV_OUTPUT_LINE_TERMINATOR
 csv_output_quote_char
 	A one-character string used to quote fields containing special characters, such as the csv_output_column_delimiter or csv_output_quote_char,
@@ -313,7 +314,7 @@ Section: DEFAULT
   csv_output_convert_cr_nl = false
   csv_output_column_delimiter = ,
   csv_output_field_delimiter = ' '
-  csv_output_line_terminator = '\n'
+  csv_output_line_terminator = lf
   csv_output_quote_char = '"'
   csv_output_users_audit = false
   customer_id =
@@ -440,7 +441,7 @@ csv_input_quote_char = '"'
 csv_output_convert_cr_nl = false
 csv_output_column_delimiter = ,
 csv_output_field_delimiter = ' '
- csv_output_line_terminator = '\n'
+ csv_output_line_terminator = lf
 csv_output_quote_char = '"'
 csv_output_users_audit = false
 customer_id = 0000000000
