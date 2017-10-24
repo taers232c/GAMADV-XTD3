@@ -120,11 +120,17 @@ csv_output_field_delimiter
 	Each of the gam print courses|groups|users  commands has a delimiter <String> argument that can override this value.
 	Default: ' '
 	Environment variable: GAM_CSV_OUTPUT_FIELD_DELIMITER
+csv_output_line_terminator
+	A one- or two-character string used to terminate the lines of a CSV file.
+	For Linux and Mac OS, this would typically be '\n'.
+	For Windows, this would typically be '\r\n'.
+	Default: '\n'
+	Environment variable: GAM_CSV_OUTPUT_LINE_TERMINATOR
 csv_output_quote_char
 	A one-character string used to quote fields containing special characters, such as the csv_output_column_delimiter or csv_output_quote_char,
 	or new-line characters. This is most useful with gam print sheetranges formatjson where the JSON column contains many
 	double quotes; by setting csv_output_quote_char to a single quote, the output is much cleaner.
-	Defaults: '"'
+	Default: '"'
 	Environment variable: GAM_CSV_OUTPUT_QUOTE_CHAR
 csv_output_users_audit
 	Gam print commands that print objects belonging to users don't print rows for users that don't have any of the objects.
@@ -307,6 +313,7 @@ Section: DEFAULT
   csv_output_convert_cr_nl = false
   csv_output_column_delimiter = ,
   csv_output_field_delimiter = ' '
+  csv_output_line_terminator = '\n'
   csv_output_quote_char = '"'
   csv_output_users_audit = false
   customer_id =
@@ -433,6 +440,7 @@ csv_input_quote_char = '"'
 csv_output_convert_cr_nl = false
 csv_output_column_delimiter = ,
 csv_output_field_delimiter = ' '
+ csv_output_line_terminator = '\n'
 csv_output_quote_char = '"'
 csv_output_users_audit = false
 customer_id = 0000000000

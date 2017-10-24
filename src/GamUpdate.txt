@@ -1,3 +1,13 @@
+4.54.39
+
+Added csv_output_line_terminator variable to gam.cfg.
+csv_output_line_terminator
+	A one- or two-character string used to terminate the lines of a CSV file.
+	For Linux and Mac OS, this would typically be '\n'.
+	For Windows, this would typically be '\r\n'.
+	Default: '\n'
+	Environment variable: GAM_CSV_OUTPUT_LINE_TERMINATOR
+
 4.54.38
 
 By default, Gam displays all Team Drives to which the user has access; you can limit the display

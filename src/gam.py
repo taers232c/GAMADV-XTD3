@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.38'
+__version__ = u'4.54.39'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -1211,14 +1211,14 @@ def getCharSet():
     return getString(Cmd.OB_CHAR_SET)
   return GC.Values[GC.CHARSET]
 
-def getCharacter():
+def getCharacter(minLen=1, maxLen=1):
   if Cmd.ArgumentsRemaining():
     argstr = codecs.escape_decode(bytes(Cmd.Current(), "utf-8"))[0].decode("utf-8")
     if argstr:
-      if len(argstr) == 1:
+      if (len(argstr) >= minLen) and (len(argstr) <= maxLen):
         Cmd.Advance()
         return argstr
-      invalidArgumentExit(u'{0} for {1}'.format(integerLimits(1, 1, Msg.STRING_LENGTH), Cmd.OB_CHARACTER))
+      invalidArgumentExit(u'{0} for {1}'.format(integerLimits(minLen, maxLen, Msg.STRING_LENGTH), Cmd.OB_CHARACTER))
     emptyArgumentExit(Cmd.OB_CHARACTER)
   missingArgumentExit(Cmd.OB_CHARACTER)
 
@@ -1863,6 +1863,16 @@ def SetGlobalVariables():
     status[u'errors'] = True
     return False
 
+  def _getCfgCharacter(sectionName, itemName):
+    value = _stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName))
+    value = codecs.escape_decode(bytes(value, "utf-8"))[0].decode("utf-8")
+    minLen, maxLen = GC.VAR_INFO[itemName][GC.VAR_LIMITS]
+    if (len(value) >= minLen) and (len(value) <= maxLen):
+      return value
+    _printValueError(sectionName, itemName, u'"{0}"'.format(value), u'{0}: {1}'.format(Msg.EXPECTED, integerLimits(minLen, maxLen, Msg.STRING_LENGTH)))
+    status[u'errors'] = True
+    return u''
+
   def _getCfgInteger(sectionName, itemName):
     value = GM.Globals[GM.PARSER].get(sectionName, itemName)
     minVal, maxVal = GC.VAR_INFO[itemName][GC.VAR_LIMITS]
@@ -1951,13 +1961,16 @@ def SetGlobalVariables():
     Ind.Increment()
     for itemName in sorted(GC.VAR_INFO):
       cfgValue = GM.Globals[GM.PARSER].get(sectionName, itemName)
-      if GC.VAR_INFO[itemName][GC.VAR_TYPE] not in [GC.TYPE_BOOLEAN, GC.TYPE_INTEGER]:
+      varType = GC.VAR_INFO[itemName][GC.VAR_TYPE]
+      if itemName == GC.CSV_OUTPUT_LINE_TERMINATOR:
+        cfgValue = repr(str(cfgValue))
+      elif varType not in [GC.TYPE_BOOLEAN, GC.TYPE_INTEGER]:
         cfgValue = _quoteStringIfLeadingTrailingBlanks(cfgValue)
-      if GC.VAR_INFO[itemName][GC.VAR_TYPE] == GC.TYPE_FILE:
+      if varType == GC.TYPE_FILE:
         expdValue = _getCfgFile(sectionName, itemName)
         if cfgValue != u"''" and cfgValue != expdValue:
           cfgValue = u'{0} ; {1}'.format(cfgValue, expdValue)
-      elif GC.VAR_INFO[itemName][GC.VAR_TYPE] == GC.TYPE_DIRECTORY:
+      elif varType == GC.TYPE_DIRECTORY:
         expdValue = _getCfgDirectory(sectionName, itemName)
         if cfgValue != u"''" and cfgValue != expdValue:
           cfgValue = u'{0} ; {1}'.format(cfgValue, expdValue)
@@ -2095,12 +2108,16 @@ def SetGlobalVariables():
         if itemName is None:
           break
         checkArgumentPresent([u'=',])
-        if GC.VAR_INFO[itemName][GC.VAR_TYPE] == GC.TYPE_BOOLEAN:
+        varType = GC.VAR_INFO[itemName][GC.VAR_TYPE]
+        if varType == GC.TYPE_BOOLEAN:
           value = [FALSE, TRUE][getBoolean()]
-        elif GC.VAR_INFO[itemName][GC.VAR_TYPE] == GC.TYPE_INTEGER:
+        elif varType == GC.TYPE_CHARACTER:
+          minLen, maxLen = GC.VAR_INFO[itemName][GC.VAR_LIMITS]
+          value = getCharacter(minLen, maxLen)
+        elif varType == GC.TYPE_INTEGER:
           minVal, maxVal = GC.VAR_INFO[itemName][GC.VAR_LIMITS]
           value = text_type(getInteger(minVal=minVal, maxVal=maxVal))
-        elif GC.VAR_INFO[itemName][GC.VAR_TYPE] == GC.TYPE_TIMEZONE:
+        elif varType == GC.TYPE_TIMEZONE:
           value = getString(Cmd.OB_STRING, checkBlank=True)
         else:
           minLen, maxLen = GC.VAR_INFO[itemName].get(GC.VAR_LIMITS, (0, None))
@@ -2117,6 +2134,8 @@ def SetGlobalVariables():
     varType = GC.VAR_INFO[itemName][GC.VAR_TYPE]
     if varType == GC.TYPE_BOOLEAN:
       GC.Values[itemName] = _getCfgBoolean(sectionName, itemName)
+    elif varType == GC.TYPE_CHARACTER:
+      GC.Values[itemName] = _getCfgCharacter(sectionName, itemName)
     elif varType == GC.TYPE_INTEGER:
       GC.Values[itemName] = _getCfgInteger(sectionName, itemName)
     elif varType == GC.TYPE_STRING:
@@ -4003,8 +4022,8 @@ def writeCSVfile(csvRows, titles, list_type, todrive, quotechar=None):
   def writeCSVToStdout():
     csvFile = StringIOobject()
     writer = csv.DictWriter(csvFile, fieldnames=titles[u'list'],
-                            dialect=u'nixstdout',
-                            quoting=csv.QUOTE_MINIMAL, quotechar=quotechar, delimiter=delimiter)
+                            quoting=csv.QUOTE_MINIMAL, quotechar=quotechar,
+                            delimiter=delimiter, lineterminator='\n')
     if writeCSVData(writer):
       try:
         GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD].write(csvFile.getvalue())
@@ -4017,16 +4036,16 @@ def writeCSVfile(csvRows, titles, list_type, todrive, quotechar=None):
     csvFile = openFile(GM.Globals[GM.CSVFILE][GM.REDIRECT_NAME], GM.Globals[GM.CSVFILE][GM.REDIRECT_MODE], continueOnError=True)
     if csvFile:
       writer = csv.DictWriter(csvFile, fieldnames=titles[u'list'],
-                              dialect=u'nixstdout',
-                              quoting=csv.QUOTE_MINIMAL, quotechar=quotechar, delimiter=delimiter)
+                              quoting=csv.QUOTE_MINIMAL, quotechar=quotechar,
+                              delimiter=delimiter, lineterminator=str(GC.Values[GC.CSV_OUTPUT_LINE_TERMINATOR]))
       writeCSVData(writer)
       closeFile(csvFile)
 
   def writeCSVToDrive():
     csvFile = StringIOobject()
     writer = csv.DictWriter(csvFile, fieldnames=titles[u'list'],
-                            dialect=u'nixstdout',
-                            quoting=csv.QUOTE_MINIMAL, quotechar=quotechar, delimiter=delimiter)
+                            quoting=csv.QUOTE_MINIMAL, quotechar=quotechar,
+                            delimiter=delimiter, lineterminator='\n')
     if writeCSVData(writer):
       if GC.Values[GC.TODRIVE_CONVERSION]:
         columns = len(titles[u'list'])
@@ -4047,12 +4066,12 @@ def writeCSVfile(csvRows, titles, list_type, todrive, quotechar=None):
         if not todrive[u'fileId']:
           result = callGAPI(drive.files(), u'create',
                             throw_reasons=[GAPI.INSUFFICIENT_PERMISSIONS, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR],
-                            body={u'parents': [todrive[u'parentId']], u'description': u' '.join(Cmd.AllArguments()), u'name': title, u'mimeType': mimeType},
+                            body={u'parents': [todrive[u'parentId']], u'description': u' '.join(Cmd.AllArguments()), V3_FILENAME: title, u'mimeType': mimeType},
                             media_body=googleapiclient.http.MediaIoBaseUpload(csvFile, mimetype=u'text/csv', resumable=True), fields=VX_WEB_VIEW_LINK, supportsTeamDrives=True)
         else:
           result = callGAPI(drive.files(), u'update',
                             throw_reasons=[GAPI.INSUFFICIENT_PERMISSIONS, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR],
-                            fileId=todrive[u'fileId'], body={u'description': u' '.join(Cmd.AllArguments()), u'name': title, u'mimeType': mimeType},
+                            fileId=todrive[u'fileId'], body={u'description': u' '.join(Cmd.AllArguments()), V3_FILENAME: title, u'mimeType': mimeType},
                             media_body=googleapiclient.http.MediaIoBaseUpload(csvFile, mimetype=u'text/csv', resumable=True), fields=VX_WEB_VIEW_LINK, supportsTeamDrives=True)
         file_url = result[VX_WEB_VIEW_LINK]
         if todrive[u'nobrowser']:
@@ -4081,7 +4100,6 @@ def writeCSVfile(csvRows, titles, list_type, todrive, quotechar=None):
     quotechar = GM.Globals[GM.CSVFILE][GM.REDIRECT_QUOTE_CHAR]
   quotechar = str(quotechar)
   delimiter = str(GM.Globals[GM.CSVFILE][GM.REDIRECT_COLUMN_DELIMITER])
-  csv.register_dialect(u'nixstdout', lineterminator=u'\n')
   if (not todrive) or todrive[u'localcopy']:
     if GM.Globals[GM.CSVFILE][GM.REDIRECT_NAME] == u'-':
       if GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD]:
@@ -6366,7 +6384,7 @@ def _doPrintShowAdminRoles(csvFormat):
         printEntity([Ent.ROLE, role[u'roleName']], i, count)
         Ind.Increment()
         for field in PRINT_ADMIN_ROLES_FIELDS:
-          if field not in [u'roleName', u'rolePrivileges'] and field in role:
+          if field != u'roleName' and field in role:
             printKeyValueList([field, role[field]])
         jcount = len(role.get(u'rolePrivileges', []))
         if jcount > 0:
