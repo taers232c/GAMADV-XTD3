@@ -2124,7 +2124,7 @@ def SetGlobalVariables():
         elif varType == GC.TYPE_CHARACTER:
           value = getCharacter()
         elif varType == GC.TYPE_CHOICE:
-          value = getChoice(GC.VAR_INFO[itemName][GC.VAR_CHOICES], mapChoice=True)
+          value = getChoice(GC.VAR_INFO[itemName][GC.VAR_CHOICES])
         elif varType == GC.TYPE_INTEGER:
           minVal, maxVal = GC.VAR_INFO[itemName][GC.VAR_LIMITS]
           value = text_type(getInteger(minVal=minVal, maxVal=maxVal))
