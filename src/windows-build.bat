@@ -26,6 +26,6 @@ xcopy Gam*.txt gam-64\
 "%ProgramFiles%\7-Zip\7z.exe" a -tzip gamadv-x3-%1-windows-x64.zip gam-64\ -xr!.svn
 
 set GAMVERSION=%1
-"%ProgramFiles(x86)%\WiX Toolset v3.10\bin\candle.exe" -arch x64 gam.wxs
-"%ProgramFiles(x86)%\WiX Toolset v3.10\bin\light.exe" -ext "%ProgramFiles(x86)%\WiX Toolset v3.10\bin\WixUIExtension.dll" gam.wixobj -o gamadv-x3-%1-windows-x64.msi
+"%ProgramFiles(x86)%\WiX Toolset v3.11\bin\candle.exe" -arch x64 gam.wxs
+"%ProgramFiles(x86)%\WiX Toolset v3.11\bin\light.exe" -ext "%ProgramFiles(x86)%\WiX Toolset v3.11\bin\WixUIExtension.dll" gam.wixobj -o gamadv-x3-%1-windows-x64.msi
 del /q /f gamadv-x3-%1-windows-x64.wixpdb
