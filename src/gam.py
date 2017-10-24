@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.39'
+__version__ = u'4.54.40'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -24203,12 +24203,17 @@ def _printShowTeamDrives(users, csvFormat):
     todrive = {}
     titles, csvRows = initializeTitlesCSVfile([u'User', u'id', u'name'])
   roles = set()
+  checkGroups = False
+  cd = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
     elif myarg == u'role':
       roles.add(getChoice(DRIVEFILE_ACL_ROLES_MAP, mapChoice=True))
+    elif myarg == u'checkgroups':
+      checkGroups = True
+      cd = buildGAPIObject(API.DIRECTORY)
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
@@ -24230,9 +24235,21 @@ def _printShowTeamDrives(users, csvFormat):
                                     throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
                                     fileId=teamDrive[u'id'], fields=VX_NPT_PERMISSIONS_TYPE_EMAIL_ROLE, supportsTeamDrives=True)
             for permission in results:
-              if (permission[u'type'] == u'user') and (permission[u'emailAddress'] == user) and (permission[u'role'] in roles):
+              if (permission[u'role'] in roles) and (permission[u'type'] == u'user') and (permission[u'emailAddress'] == user):
                 roleFeed.append(teamDrive)
                 break
+            else:
+              if checkGroups:
+                for permission in results:
+                  if (permission[u'role'] in roles) and (permission[u'type'] == u'group'):
+                    try:
+                      callGAPI(cd.members(), u'get',
+                               throw_reasons=[GAPI.MEMBER_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND],
+                               groupKey=permission[u'emailAddress'], memberKey=user, fields=u'')
+                      roleFeed.append(teamDrive)
+                      break
+                    except (GAPI.memberNotFound, GAPI.resourceNotFound):
+                      pass
           except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError) as e:
             pass
         feed = roleFeed
@@ -24258,11 +24275,11 @@ def _printShowTeamDrives(users, csvFormat):
     sortCSVTitles([u'User', u'id', u'name'], titles)
     writeCSVfile(csvRows, titles, u'TeamDrives', todrive)
 
-# gam <UserTypeEntity> print teamdrives (role commenter|organizer|owner|reader|writer)* [todrive [<ToDriveAttributes>]]
+# gam <UserTypeEntity> print teamdrives (role commenter|organizer|owner|reader|writer)* [checkgroups] [todrive [<ToDriveAttributes>]]
 def printTeamDrives(users):
   _printShowTeamDrives(users, True)
 
-# gam <UserTypeEntity> show teamdrives (role commenter|organizer|owner|reader|writer)*
+# gam <UserTypeEntity> show teamdrives (role commenter|organizer|owner|reader|writer)* [checkgroups]
 def showTeamDrives(users):
   _printShowTeamDrives(users, False)
 

@@ -2270,8 +2270,8 @@ gam <UserTypeEntity> create teamdrive <Name> [themeid <String>]
 gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>] [themeid <String>]
 gam <UserTypeEntity> delete teamdrive <TeamDriveEntity>
 gam <UserTypeEntity> info teamdrive <TeamDriveEntity>
-gam <UserTypeEntity> print teamdrives (role commenter|organizer|owner|reader|writer)* [todrive [<ToDriveAttributes>]]
-gam <UserTypeEntity> show teamdrives (role commenter|organizer|owner|reader|writer)*
+gam <UserTypeEntity> print teamdrives (role commenter|organizer|owner|reader|writer)* [checkgroups] [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> show teamdrives (role commenter|organizer|owner|reader|writer)* [checkgroups]
 
 # Users - Spreadsheets
 

@@ -1,3 +1,12 @@
+4.54.40
+
+Extended gam print/show teamdrives role processing. Previously, a user had to directly have one of the specified roles
+for a Team Drive for it to be included in the output. Now, the checkgroups options causes a Team Drive to be displayed
+if a group has one of the specified roles and the user is a member of the group.
+
+gam <UserTypeEntity> print teamdrives (role commenter|organizer|owner|reader|writer)* [checkgroups] [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> show teamdrives (role commenter|organizer|owner|reader|writer)* [checkgroups]
+
 4.54.39
 
 Added csv_output_line_terminator variable to gam.cfg.
