@@ -1,3 +1,8 @@
+4.54.41
+
+Previously, in gam print filelist, when the filepath option was specified, the paths column appeared after all path.n columns.
+Now, the paths column will come before the path.n columns.
+
 4.54.40
 
 Extended gam print/show teamdrives role processing. Previously, a user had to directly have one of the specified roles

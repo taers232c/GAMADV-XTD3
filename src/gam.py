@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.40'
+__version__ = u'4.54.41'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -21834,6 +21834,14 @@ def printFileList(users):
           userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
           break
   sortCSVTitles([u'Owner', u'id', fileNameTitle], titles)
+# Put paths before path.0
+  if filepath:
+    try:
+      index = titles[u'list'].index(u'path.0')
+      titles[u'list'].remove(u'paths')
+      titles[u'list'].insert(index, u'paths')
+    except ValueError:
+      pass
   writeCSVfile(csvRows, titles,
                u'{0} {1} Drive Files'.format(Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]),
                                              Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)),
