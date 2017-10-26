@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.41'
+__version__ = u'4.54.42'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -12105,7 +12105,8 @@ GROUPMEMBERS_FIELD_NAMES_MAP = {
 
 GROUPMEMBERS_DEFAULT_FIELDS = [u'id', u'role', u'group', u'email', u'type', u'status']
 
-# gam print group-members|groups-members [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member <UserItem>])|[group <GroupItem>]|[select <GroupEntity>]
+# gam print group-members|groups-members [todrive [<ToDriveAttributes>]]
+#	([domain <DomainName>] [member <UserItem>])|[group <GroupItem>]|[select <GroupEntity>]
 #	[members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>] [userfields <UserFieldNameList>] [recursive [noduplicates]]
 def doPrintGroupMembers():
   cd = buildGAPIObject(API.DIRECTORY)
@@ -12265,6 +12266,93 @@ def doPrintGroupMembers():
     removeTitlesFromCSVfile([u'level', u'subgroup'], titles)
     addTitlesToCSVfile([u'level', u'subgroup'], titles)
   writeCSVfile(csvRows, titles, u'Group Members ({0})'.format(subTitle), todrive)
+
+# gam show group-members
+#	([domain <DomainName>] [member <UserItem>])|[group <GroupItem>]|[select <GroupEntity>]
+#	[members] [managers] [owners] [depth <Number>]
+def doShowGroupMembers():
+  def _roleOrder(key):
+    return {Ent.ROLE_OWNER: 0, Ent.ROLE_MANAGER: 1, Ent.ROLE_MEMBER: 2}.get(key, 3)
+
+  def _typeOrder(key):
+    return {u'CUSTOMER': 0, u'USER': 1, u'GROUP': 2, u'EXTERNAL': 3}.get(key, 4)
+
+  def _statusOrder(key):
+    return {u'ACTIVE': 0, U'SUSPENDED': 1, u'UNKNOWN': 2}.get(key, 3)
+
+  def _showGroup(groupEmail, depth):
+    try:
+      membersList = callGAPIpages(cd.members(), u'list', u'members',
+                                  throw_reasons=GAPI.MEMBERS_THROW_REASONS, retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
+                                  groupKey=groupEmail, fields=u'nextPageToken,members(email,id,role,status,type)',
+                                  maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden):
+      entityUnknownWarning(Ent.GROUP, groupEmail)
+      return
+    Ind.Increment()
+    for member in sorted(membersList, key=lambda k: (_roleOrder(k.get(u'role', Ent.ROLE_MEMBER)), _typeOrder(k[u'type']), _statusOrder(k['status']))):
+      if (member[u'role'] in rolesSet) or (member[u'type'] == u'GROUP'):
+        printKeyValueList([u'{0}, {1}, {2}, {3}'.format(member.get(u'role', Ent.ROLE_MEMBER), member[u'type'], member.get(u'email', member[u'id']), member[u'status'])])
+      if (member[u'type'] == u'GROUP') and (maxdepth == -1 or depth < maxdepth):
+        _showGroup(member[u'email'], depth+1)
+    Ind.Decrement()
+
+  cd = buildGAPIObject(API.DIRECTORY)
+  customerKey = GC.Values[GC.CUSTOMER_ID]
+  kwargs = {u'customer': customerKey}
+  entityList = None
+  rolesSet = set()
+  maxdepth = -1
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'domain':
+      kwargs[u'domain'] = getString(Cmd.OB_DOMAIN_NAME).lower()
+      kwargs.pop(u'customer', None)
+    elif myarg == u'member':
+      kwargs[u'userKey'] = getEmailAddress()
+      kwargs.pop(u'customer', None)
+    elif myarg in GROUP_ROLES_MAP:
+      rolesSet.add(GROUP_ROLES_MAP[myarg])
+    elif myarg == u'group':
+      entityList = [getEmailAddress()]
+    elif myarg == u'select':
+      entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
+    elif myarg == u'depth':
+      maxdepth = getInteger(minVal=-1)
+    else:
+      unknownArgumentExit()
+  if not rolesSet:
+    rolesSet = set([Ent.ROLE_OWNER, Ent.ROLE_MANAGER, Ent.ROLE_MEMBER])
+  if entityList is None:
+    printGettingAccountEntitiesInfo(Ent.GROUP, qualifier=queryQualifier(groupQuery(kwargs.get(u'domain'), kwargs.get(u'userKey'))))
+    page_message = getPageMessage(showTotal=False, showFirstLastItems=True)
+    try:
+      groupsList = callGAPIpages(cd.groups(), u'list', u'groups',
+                                 page_message=page_message, message_attribute=u'email',
+                                 throw_reasons=[GAPI.INVALID_MEMBER, GAPI.RESOURCE_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                                 fields=u'nextPageToken,groups(email)', **kwargs)
+    except GAPI.invalidMember:
+      badRequestWarning(Ent.GROUP, Ent.MEMBER, kwargs[u'userKey'])
+      return
+    except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest):
+      if kwargs.get(u'domain'):
+        badRequestWarning(Ent.GROUP, Ent.DOMAIN, kwargs[u'domain'])
+        return
+      else:
+        accessErrorExit(cd)
+  else:
+    groupsList = collections.deque()
+    for group in entityList:
+      if isinstance(group, dict):
+        groupsList.append({u'email': group[u'email']})
+      else:
+        groupsList.append({u'email': convertUIDtoEmailAddress(group, cd, u'group')})
+  i = 0
+  count = len(groupsList)
+  for group in groupsList:
+    i += 1
+    printEntity([Ent.GROUP, group[u'email']], i, count)
+    _showGroup(group[u'email'], 0)
 
 # gam print licenses [todrive [<ToDriveAttributes>]] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)]
 def doPrintLicenses(returnFields=None, skus=None):
@@ -28994,7 +29082,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_DOMAINS:	doPrintDomains,
         Cmd.ARG_DOMAIN_ALIASES:	doPrintDomainAliases,
         Cmd.ARG_GAL:		doPrintGAL,
-        Cmd.ARG_GROUP_MEMBERS: doPrintGroupMembers,
+        Cmd.ARG_GROUP_MEMBERS:	doPrintGroupMembers,
         Cmd.ARG_GROUPS:		doPrintGroups,
         Cmd.ARG_GUARDIANS: 	doPrintGuardians,
         Cmd.ARG_LICENSES:	doPrintLicenses,
@@ -29027,9 +29115,9 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         u'courseparticipants':	Cmd.ARG_COURSE_PARTICIPANTS,
         Cmd.ARG_DOMAIN_ALIAS:	Cmd.ARG_DOMAIN_ALIASES,
         Cmd.ARG_GROUP:		Cmd.ARG_GROUPS,
-        u'groupmembers':	Cmd.ARG_GROUP_MEMBERS,
-        u'groupsmembers':	Cmd.ARG_GROUP_MEMBERS,
-        u'groups-members':	Cmd.ARG_GROUP_MEMBERS,
+        Cmd.ARG_GROUPMEMBERS:	Cmd.ARG_GROUP_MEMBERS,
+        Cmd.ARG_GROUPSMEMBERS:	Cmd.ARG_GROUP_MEMBERS,
+        Cmd.ARG_GROUPS_MEMBERS:	Cmd.ARG_GROUP_MEMBERS,
         Cmd.ARG_GUARDIAN:	Cmd.ARG_GUARDIANS,
         Cmd.ARG_HOLD:		Cmd.ARG_VAULTHOLDS,
         Cmd.ARG_HOLDS:		Cmd.ARG_VAULTHOLDS,
@@ -29070,6 +29158,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_ADMINS:		doShowAdmins,
         Cmd.ARG_CONTACTS:	doShowDomainContacts,
         Cmd.ARG_GAL:		doShowGAL,
+        Cmd.ARG_GROUP_MEMBERS:	doShowGroupMembers,
         Cmd.ARG_GUARDIANS: 	doShowGuardians,
         Cmd.ARG_ORGTREE:	doShowOrgTree,
         Cmd.ARG_PRIVILEGES:	doShowPrivileges,
@@ -29083,6 +29172,9 @@ MAIN_COMMANDS_WITH_OBJECTS = {
        },
      CMD_OBJ_ALIASES:
        {Cmd.ARG_CONTACT:	Cmd.ARG_CONTACTS,
+        Cmd.ARG_GROUPMEMBERS:	Cmd.ARG_GROUP_MEMBERS,
+        Cmd.ARG_GROUPSMEMBERS:	Cmd.ARG_GROUP_MEMBERS,
+        Cmd.ARG_GROUPS_MEMBERS:	Cmd.ARG_GROUP_MEMBERS,
         Cmd.ARG_GUARDIAN:	Cmd.ARG_GUARDIANS,
         Cmd.ARG_HOLD:		Cmd.ARG_VAULTHOLDS,
         Cmd.ARG_HOLDS:		Cmd.ARG_VAULTHOLDS,

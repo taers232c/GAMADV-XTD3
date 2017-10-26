@@ -1,3 +1,12 @@
+4.54.42
+
+Added command gam show group-members that displays a hierarchical membership list for groups.
+gam show group-members
+	([domain <DomainName>] [member <UserItem>])|[group <GroupItem>]|[select <GroupEntity>]
+	[members] [managers] [owners] [depth <Number>]
+
+For details, see: https://github.com/taers232c/GAMADV-XTD/wiki/Group-Membership
+
 4.54.41
 
 Previously, in gam print filelist, when the filepath option was specified, the paths column appeared after all path.n columns.

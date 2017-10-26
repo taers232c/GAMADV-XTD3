@@ -1157,8 +1157,13 @@ gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member 
 	type
 <MembersFieldNameList> ::= "<MembersFieldName>(,<MembersFieldName>)*"
 
-gam print group-members|groups-members [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member <UserItem>])|[group <GroupItem>]|[select <GroupEntity>]
-	[members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>] [userfields <UserFieldNameList>] [recursive [noduplicates]]
+gam print group-members [todrive [<ToDriveAttributes>]]
+	[domain <DomainName>] [member <UserItem>])|[group <GroupItem>]|[select <GroupEntity>]
+	[members] [managers] [owners] [membernames] <MembersFieldName>*
+	[fields <MembersFieldNameList>] [userfields <UserFieldNameList>] [recursive [noduplicates]]
+gam show group-members
+	([domain <DomainName>] [member <UserItem>])|[group <GroupItem>]|[select <GroupEntity>]
+	[members] [managers] [owners] [depth <Number>]
 
 # Guardians
 
