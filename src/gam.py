@@ -12286,8 +12286,11 @@ def doShowGroupMembers():
                                   throw_reasons=GAPI.MEMBERS_THROW_REASONS, retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                                   groupKey=groupEmail, fields=u'nextPageToken,members(email,id,role,status,type)',
                                   maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
+      if depth == 0:
+        printEntity([Ent.GROUP, groupEmail], i, count)
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden):
-      entityUnknownWarning(Ent.GROUP, groupEmail)
+      if depth == 0:
+        entityUnknownWarning(Ent.GROUP, groupEmail, i, count)
       return
     Ind.Increment()
     for member in sorted(membersList, key=lambda k: (_roleOrder(k.get(u'role', Ent.ROLE_MEMBER)), _typeOrder(k[u'type']), _statusOrder(k['status']))):
@@ -12338,8 +12341,7 @@ def doShowGroupMembers():
       if kwargs.get(u'domain'):
         badRequestWarning(Ent.GROUP, Ent.DOMAIN, kwargs[u'domain'])
         return
-      else:
-        accessErrorExit(cd)
+      accessErrorExit(cd)
   else:
     groupsList = collections.deque()
     for group in entityList:
@@ -12351,7 +12353,6 @@ def doShowGroupMembers():
   count = len(groupsList)
   for group in groupsList:
     i += 1
-    printEntity([Ent.GROUP, group[u'email']], i, count)
     _showGroup(group[u'email'], 0)
 
 # gam print licenses [todrive [<ToDriveAttributes>]] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)]
