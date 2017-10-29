@@ -1,3 +1,17 @@
+4.54.43
+
+Added two special-purpose commands for importing/exporting oauth2.txt.
+
+Because of all the scopes that GAM uses, it has to split the set of scopes into two lists, get client credentials
+for each list and then store them in a specially formatted oauth2.txt file that is base64 encoded.
+GAM can now export its oauth2.txt into a JSON formatted file so its contents can be viewed.
+gam oauth export [<FileName>]
+If <FileName> is not specified, the JSON data is written to stdout.
+
+Because of the special format of the oauth2.txt that GAM uses, it is not possible to directly use a traditional
+oauth2.txt file from a third-party. GAM can now import traditional oauth2.txt files and convert them to its special format.
+gam oauth import <FileName>
+
 4.54.42
 
 Added command gam show group-members that displays a hierarchical membership list for groups.

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.42'
+__version__ = u'4.54.43'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -545,6 +545,10 @@ def invalidOauth2serviceJsonExit():
 def invalidOauth2TxtExit():
   stderrErrorMsg(Msg.DOES_NOT_EXIST_OR_HAS_INVALID_FORMAT.format(Ent.Singular(Ent.OAUTH2_TXT_FILE), GC.Values[GC.OAUTH2_TXT]))
   writeStderr(Msg.EXECUTE_GAM_OAUTH_CREATE)
+  systemErrorExit(OAUTH2_TXT_REQUIRED_RC, None)
+
+def invalidOauth2TxtImportExit(importFile):
+  stderrErrorMsg(Msg.HAS_INVALID_FORMAT.format(Ent.Singular(Ent.OAUTH2_TXT_FILE), importFile))
   systemErrorExit(OAUTH2_TXT_REQUIRED_RC, None)
 
 def invalidDiscoveryJsonExit(fileName):
@@ -2314,9 +2318,9 @@ def handleOAuthTokenError(e, soft_errors):
   stderrErrorMsg(u'Authentication Token Error - {0}'.format(e))
   APIAccessDeniedExit()
 
-def getCredentialsForScope(cred_family, storageOnly=False):
+def getCredentialsForScope(cred_family, filename=None, storageOnly=False):
   try:
-    storage = MultiprocessFileStorage(GC.Values[GC.OAUTH2_TXT], cred_family)
+    storage = MultiprocessFileStorage(filename or GC.Values[GC.OAUTH2_TXT], cred_family)
     if storageOnly:
       return storage
     return storage.get()
@@ -5082,6 +5086,74 @@ def doOAuthInfo():
     else:
       invalidOauth2TxtExit()
 
+# gam oauth|oauth2 export [<FileName>]
+def doOAuthExport():
+  if Cmd.ArgumentsRemaining():
+    exportFile = getString(Cmd.OB_FILE_NAME)
+    checkForExtraneousArguments()
+  else:
+    exportFile = None
+  oauth2Export = {}
+  if os.path.isfile(GC.Values[GC.OAUTH2_TXT]):
+    for cred_family in API.FAM_LIST:
+      credentials = getCredentialsForScope(cred_family)
+      if credentials and not credentials.invalid:
+        oauth2Export[cred_family] = {u'_module': u'oauth2client.client',
+                                     u'_class': 'OAuth2Credentials',
+                                     u'access_token': credentials.access_token,
+                                     u'client_id': credentials.client_id,
+                                     u'client_secret': credentials.client_secret,
+                                     u'id_token': credentials.id_token,
+                                     u'id_token_jwt': credentials.id_token_jwt,
+                                     u'invalid': credentials.invalid,
+                                     u'refresh_token': credentials.refresh_token,
+                                     u'revoke_uri': credentials.revoke_uri,
+                                     u'scopes': sorted(list(credentials.scopes)),
+                                     u'token_expiry': datetime.datetime.strftime(credentials.token_expiry, u'%Y-%m-%dT%H:%M:%SZ'),
+                                     u'token_info_uri': credentials.token_info_uri,
+                                     u'token_uri': credentials.token_uri,
+                                     u'user_agent': credentials.user_agent}
+      else:
+        invalidOauth2TxtExit()
+  else:
+    invalidOauth2TxtExit()
+  if exportFile:
+    writeFile(exportFile, json.dumps(oauth2Export, ensure_ascii=False, sort_keys=True, indent=2))
+    entityModifierNewValueActionPerformed([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]], Act.MODIFIER_TO, exportFile)
+  else:
+    writeStdout(json.dumps(oauth2Export, ensure_ascii=False, sort_keys=True, indent=2)+u'\n')
+
+# gam oauth|oauth2 import <FileName>
+def doOAuthImport():
+  importFile = getString(Cmd.OB_FILE_NAME)
+  checkForExtraneousArguments()
+  jsonData = readFile(importFile, u'rb')
+  try:
+    jsonDict = json.loads(jsonData)
+    if u'client_id' in jsonDict:
+      importCredentials = oauth2client.client.Credentials.new_from_json(jsonData)
+      if not importCredentials or importCredentials.invalid:
+        invalidOauth2TxtImportExit(importFile)
+      for cred_family in API.FAM_LIST:
+        getCredentialsForScope(cred_family, storageOnly=True).put(importCredentials)
+    elif (u'credentials' in jsonDict) and (jsonDict.get(u'file_version') == 2):
+      for cred_family in API.FAM_LIST:
+        importCredentials = getCredentialsForScope(cred_family, filename=importFile)
+        if not importCredentials or importCredentials.invalid:
+          invalidOauth2TxtImportExit(importFile)
+        getCredentialsForScope(cred_family, storageOnly=True).put(importCredentials)
+    elif (API.FAM1_SCOPES in jsonDict) and (API.FAM2_SCOPES in jsonDict):
+      for cred_family in API.FAM_LIST:
+        importCredentials = oauth2client.client.Credentials.new_from_json(json.dumps(jsonDict[cred_family], ensure_ascii=False, sort_keys=True))
+        if not importCredentials or importCredentials.invalid:
+          invalidOauth2TxtImportExit(importFile)
+        getCredentialsForScope(cred_family, storageOnly=True).put(importCredentials)
+    else:
+      invalidOauth2TxtImportExit(importFile)
+  except (KeyError, ValueError):
+    invalidOauth2TxtImportExit(importFile)
+  entityModifierNewValueActionPerformed([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]], Act.MODIFIER_FROM, importFile)
+
 # gam <UserTypeEntity> check serviceaccount
 def checkServiceAccount(users):
   checkForExtraneousArguments()
@@ -7634,14 +7706,22 @@ def _doCreateUpdateAliases(doUpdate):
       if doUpdate:
         try:
           callGAPI(cd.users().aliases(), u'delete',
-                   throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE],
+                   throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE,
+                                  GAPI.CONDITION_NOT_MET],
                    userKey=aliasEmail, alias=aliasEmail)
           printEntityKVList([Ent.USER_ALIAS, aliasEmail], [Act.PerformedName(Act.DELETE)], i, count)
+        except GAPI.conditionNotMet as e:
+          entityActionFailedWarning([Ent.USER_ALIAS, aliasEmail], str(e), i, count)
+          continue
         except (GAPI.userNotFound, GAPI.badRequest, GAPI.invalid, GAPI.forbidden, GAPI.invalidResource):
           try:
             callGAPI(cd.groups().aliases(), u'delete',
-                     throw_reasons=[GAPI.GROUP_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE],
+                     throw_reasons=[GAPI.GROUP_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE,
+                                    GAPI.CONDITION_NOT_MET],
                      groupKey=aliasEmail, alias=aliasEmail)
+          except GAPI.conditionNotMet as e:
+            entityActionFailedWarning([Ent.GROUP_ALIAS, aliasEmail], str(e), i, count)
+            continue
           except GAPI.forbidden:
             entityUnknownWarning(Ent.GROUP_ALIAS, aliasEmail, i, count)
             continue
@@ -7650,9 +7730,13 @@ def _doCreateUpdateAliases(doUpdate):
       if targetType != u'group':
         try:
           callGAPI(cd.users().aliases(), u'insert',
-                   throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.FORBIDDEN, GAPI.DUPLICATE],
+                   throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST,
+                                  GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.FORBIDDEN, GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET],
                    userKey=targetEmail, body=body, fields=u'')
           entityActionPerformed([Ent.USER_ALIAS, aliasEmail, Ent.USER, targetEmail], i, count)
+          continue
+        except GAPI.conditionNotMet as e:
+          entityActionFailedWarning([Ent.USER_ALIAS, aliasEmail, Ent.USER, targetEmail], str(e), i, count)
           continue
         except GAPI.duplicate:
           entityActionFailedWarning([Ent.USER_ALIAS, aliasEmail, Ent.USER, targetEmail], Msg.DUPLICATE, i, count)
@@ -7666,9 +7750,12 @@ def _doCreateUpdateAliases(doUpdate):
             continue
       try:
         callGAPI(cd.groups().aliases(), u'insert',
-                 throw_reasons=[GAPI.GROUP_NOT_FOUND, GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.FORBIDDEN, GAPI.DUPLICATE],
+                 throw_reasons=[GAPI.GROUP_NOT_FOUND, GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST,
+                                GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.FORBIDDEN, GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET],
                  groupKey=targetEmail, body=body, fields=u'')
         entityActionPerformed([Ent.GROUP_ALIAS, aliasEmail, Ent.GROUP, targetEmail], i, count)
+      except GAPI.conditionNotMet as e:
+        entityActionFailedWarning([Ent.GROUP_ALIAS, aliasEmail, Ent.GROUP, targetEmail], str(e), i, count)
       except GAPI.duplicate:
         entityActionFailedWarning([Ent.GROUP_ALIAS, aliasEmail, Ent.GROUP, targetEmail], Msg.DUPLICATE, i, count)
       except (GAPI.invalid, GAPI.invalidInput):
@@ -7698,9 +7785,13 @@ def doDeleteAliases():
     if targetType != u'group':
       try:
         callGAPI(cd.users().aliases(), u'delete',
-                 throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE],
+                 throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE,
+                                GAPI.CONDITION_NOT_MET],
                  userKey=aliasEmail, alias=aliasEmail)
         entityActionPerformed([Ent.USER_ALIAS, aliasEmail], i, count)
+        continue
+      except GAPI.conditionNotMet as e:
+        entityActionFailedWarning([Ent.USER_ALIAS, aliasEmail], str(e), i, count)
         continue
       except (GAPI.userNotFound, GAPI.badRequest, GAPI.invalid, GAPI.forbidden, GAPI.invalidResource):
         if targetType == u'user':
@@ -7708,9 +7799,13 @@ def doDeleteAliases():
           continue
     try:
       callGAPI(cd.groups().aliases(), u'delete',
-               throw_reasons=[GAPI.GROUP_NOT_FOUND, GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE],
+               throw_reasons=[GAPI.GROUP_NOT_FOUND, GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE,
+                              GAPI.CONDITION_NOT_MET],
                groupKey=aliasEmail, alias=aliasEmail)
       entityActionPerformed([Ent.GROUP_ALIAS, aliasEmail], i, count)
+      continue
+    except GAPI.conditionNotMet as e:
+      entityActionFailedWarning([Ent.GROUP_ALIAS, aliasEmail], str(e), i, count)
       continue
     except (GAPI.groupNotFound, GAPI.userNotFound, GAPI.badRequest, GAPI.invalid, GAPI.forbidden, GAPI.invalidResource):
       if targetType == u'group':
@@ -27283,7 +27378,7 @@ def delegateTo(users, checkForTo=True):
 def addDelegate(users):
   delegateTo(users, checkForTo=False)
 
-# gam <UserTypeEntity> delete delegate|delegates <UserEntity>>
+# gam <UserTypeEntity> delete delegate|delegates <UserEntity>
 def deleteDelegate(users):
 
 # Add domain to foo or convert uid:xxx to foo. Return foo@bar.com
@@ -29293,6 +29388,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
 OAUTH2_SUBCOMMANDS = {
   u'create':	{CMD_ACTION: Act.CREATE, CMD_FUNCTION: doOAuthRequest},
   u'delete':	{CMD_ACTION: Act.DELETE, CMD_FUNCTION: doOAuthDelete},
+  u'export':	{CMD_ACTION: Act.EXPORT, CMD_FUNCTION: doOAuthExport},
+  u'import':	{CMD_ACTION: Act.IMPORT, CMD_FUNCTION: doOAuthImport},
   u'info':	{CMD_ACTION: Act.INFO, CMD_FUNCTION: doOAuthInfo},
   }
 

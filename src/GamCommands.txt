@@ -555,6 +555,8 @@ gam update project [<EmailAddress>]
 gam oauth|oauth2 create|request [<EmailAddress>]
 gam oauth|oauth2 delete|revoke
 gam oauth|oauth2 info|verify [<AccessToken>]
+gam oauth|oauth2 export [<FileName>]
+gam oauth|oauth2 import <FileName>
 
 gam <UserTypeEntity> check serviceaccount
 

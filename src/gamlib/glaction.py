@@ -44,6 +44,7 @@ class GamAction(object):
   DOWNLOAD = u'down'
   EMPTY = u'empt'
   ENABLE = u'enbl'
+  EXPORT = u'expo'
   FETCH = u'fetc'
   FORWARD = u'forw'
   IMPORT = u'impo'
@@ -112,6 +113,7 @@ class GamAction(object):
     DOWNLOAD: [u'Downloaded', u'Download'],
     EMPTY: [u'Emptied', u'Empty'],
     ENABLE: [u'Enabled', u'Enable'],
+    EXPORT: [u'Exported', u'Export'],
     FORWARD: [u'Forwarded', u'Forward'],
     IMPORT: [u'Imported', u'Import'],
     INFO: [u'Shown', u'Show Info'],
