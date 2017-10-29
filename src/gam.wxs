@@ -58,9 +58,6 @@
       <Component Id="GamCommands_txt" Guid="a2dca862-b222-469e-a637-95ea2a1c53e7">
         <File Name="GamCommands.txt" KeyPath="yes" />
       </Component>
-      <Component Id="GamAuthorization_txt" Guid="2f320b4d-892c-4f50-8760-e8a8e370ba17">
-        <File Name="GamAuthorization.txt" KeyPath="yes" />
-      </Component>
       <Component Id="GamConfig_txt" Guid="5d264757-2598-4104-9829-dd50d5b98ef7">
         <File Name="GamConfig.txt" KeyPath="yes" />
       </Component>
