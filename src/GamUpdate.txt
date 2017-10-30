@@ -1,3 +1,7 @@
+4.54.45
+
+Code cleanup for email settings commands: arrows, language, pagesize, shortcuts, snippets, utf, webclips.
+
 4.54.44
 
 The following commands have been removed as the Google Email Audit API no longer supports them.

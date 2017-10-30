@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.44'
+__version__ = u'4.54.45'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -21619,7 +21619,7 @@ FILELIST_FIELDS_TITLES = [u'id', u'mimeType', u'parents']
 
 # gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
 #	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
-#	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [mimetype [not] <MimeTypeList>] [depth <Number>] [showparent]
+#	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [showmimetype [not] <MimeTypeList>] [depth <Number>] [showparent]
 #	[filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
 def printFileList(users):
   def _setSelectionFields():
@@ -21701,7 +21701,7 @@ def printFileList(users):
     try:
       children = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                               q=q, fields=pagesfields,
+                               q=q, orderBy=orderBy, fields=pagesfields,
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], includeTeamDriveItems=True, supportsTeamDrives=True)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -22041,7 +22041,7 @@ def showFileTree(users):
     try:
       children = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                               q=q, fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE,
+                               q=q, orderBy=orderBy, fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE,
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -27149,34 +27149,6 @@ def showMessages(users):
 def showThreads(users):
   _printShowMessagesThreads(users, Ent.THREAD, False)
 
-# Process Email Settings
-def _processEmailSettings(user, i, count, service, function, **kwargs):
-  try:
-    return callGData(service, function,
-                     throw_errors=GDATA.EMAILSETTINGS_THROW_LIST,
-                     **kwargs)
-  except GDATA.doesNotExist:
-    entityActionFailedWarning([Ent.USER, user], Msg.DOES_NOT_EXIST, i, count)
-  except (GDATA.serviceNotApplicable, GDATA.invalidDomain):
-    entityServiceNotApplicableWarning(Ent.USER, user, i, count)
-  except (GDATA.badRequest, GDATA.internalServerError, GDATA.nameNotValid, GDATA.invalidValue) as e:
-    entityBadRequestWarning([Ent.USER, user, Ent.EMAIL_SETTINGS, None], str(e), i, count)
-  return None
-
-# gam <UserTypeEntity> arrows <Boolean>
-def setArrows(users):
-  emailSettings = getEmailSettingsObject()
-  enable = getBoolean(None)
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, userName, emailSettings.domain = splitEmailAddressOrUID(user)
-    result = _processEmailSettings(user, i, count, emailSettings, u'UpdateGeneral',
-                                   username=userName, arrows=enable)
-    if result:
-      printEntity([Ent.USER, user, Ent.ARROWS_ENABLED, result[u'arrows']], i, count)
-
 def _checkDelegator(cd, delegatorEmail, i, count, jcount):
   try:
     result = callGAPI(cd.users(), u'get',
@@ -28082,36 +28054,6 @@ def showPop(users):
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
-# gam <UserTypeEntity> language <Language>
-def setLanguage(users):
-  emailSettings = getEmailSettingsObject()
-  language = getChoice(LANGUAGE_CODES_MAP, mapChoice=True)
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, userName, emailSettings.domain = splitEmailAddressOrUID(user)
-    result = _processEmailSettings(user, i, count, emailSettings, u'UpdateLanguage',
-                                   username=userName, language=language)
-    if result:
-      printEntity([Ent.USER, user, Ent.LANGUAGE, result[u'language']], i, count)
-
-VALID_PAGESIZES = [u'25', u'50', u'100']
-
-# gam <UserTypeEntity> pagesize 25|50|100
-def setPageSize(users):
-  emailSettings = getEmailSettingsObject()
-  PageSize = getChoice(VALID_PAGESIZES)
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, userName, emailSettings.domain = splitEmailAddressOrUID(user)
-    result = _processEmailSettings(user, i, count, emailSettings, u'UpdateGeneral',
-                                   username=userName, page_size=PageSize)
-    if result:
-      printEntity([Ent.USER, user, Ent.PAGE_SIZE, result[u'pageSize']], i, count)
-
 def _showSendAs(result, j, jcount, formatSig):
   if result[u'displayName']:
     printEntity([Ent.SENDAS_ADDRESS, u'{0} <{1}>'.format(result[u'displayName'], result[u'sendAsEmail'])], j, jcount)
@@ -28543,20 +28485,6 @@ def printSmimes(users):
 def showSmimes(users):
   _printShowSmimes(users, False)
 
-# gam <UserTypeEntity> shortcuts <Boolean>
-def setShortCuts(users):
-  emailSettings = getEmailSettingsObject()
-  enable = getBoolean(None)
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, userName, emailSettings.domain = splitEmailAddressOrUID(user)
-    result = _processEmailSettings(user, i, count, emailSettings, u'UpdateGeneral',
-                                   username=userName, shortcuts=enable)
-    if result:
-      printEntity([Ent.USER, user, Ent.KEYBOARD_SHORTCUTS_ENABLED, result[u'shortcuts']], i, count)
-
 # gam <UserTypeEntity> signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)*
 #	[html [<Boolean>]] [name <String>] [replyto <EmailAddress>] [default] [primary] [treatasalias <Boolean>]
 def setSignature(users):
@@ -28632,34 +28560,6 @@ def showSignature(users):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
     else:
       _processSendAs(user, i, count, Ent.SIGNATURE, user, i, count, gmail, u'get', formatSig, sendAsEmail=user)
-
-# gam <UserTypeEntity> snippets <Boolean>
-def setSnippets(users):
-  emailSettings = getEmailSettingsObject()
-  enable = getBoolean(None)
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, userName, emailSettings.domain = splitEmailAddressOrUID(user)
-    result = _processEmailSettings(user, i, count, emailSettings, u'UpdateGeneral',
-                                   username=userName, snippets=enable)
-    if result:
-      printEntity([Ent.USER, user, Ent.SNIPPETS_ENABLED, result[u'snippets']], i, count)
-
-# gam <UserTypeEntity> utf|utf8|utf-8|unicode <Boolean>
-def setUnicode(users):
-  emailSettings = getEmailSettingsObject()
-  enable = getBoolean(None)
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, userName, emailSettings.domain = splitEmailAddressOrUID(user)
-    result = _processEmailSettings(user, i, count, emailSettings, u'UpdateGeneral',
-                                   username=userName, unicode=enable)
-    if result:
-      printEntity([Ent.USER, user, Ent.UNICODE_ENCODING_ENABLED, result[u'unicode']], i, count)
 
 VACATION_START_STARTED = u'Started'
 VACATION_END_NOT_SPECIFIED = u'NotSpecified'
@@ -28833,19 +28733,61 @@ def printVacation(users):
 def showVacation(users):
   _printShowVacation(users, False)
 
-# gam <UserTypeEntity> webclips <Boolean>
-def setWebClips(users):
+# Process Email Settings
+def _processEmailSettings(users, function, entityType, entityValue, **kwargs):
   emailSettings = getEmailSettingsObject()
-  enable = getBoolean(None)
   checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     user, userName, emailSettings.domain = splitEmailAddressOrUID(user)
-    result = _processEmailSettings(user, i, count, emailSettings, u'UpdateWebClipSettings',
-                                   username=userName, enable=enable)
-    if result:
-      printEntity([Ent.USER, user, Ent.WEBCLIPS_ENABLED, result[u'enable']], i, count)
+    try:
+      result = callGData(emailSettings, function,
+                         throw_errors=GDATA.EMAILSETTINGS_THROW_LIST,
+                         username=userName, **kwargs)
+      if result:
+        printEntity([Ent.USER, user, entityType, result[entityValue]], i, count)
+    except GDATA.doesNotExist:
+      entityActionFailedWarning([Ent.USER, user], Msg.DOES_NOT_EXIST, i, count)
+    except (GDATA.serviceNotApplicable, GDATA.invalidDomain):
+      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+    except (GDATA.badRequest, GDATA.internalServerError, GDATA.nameNotValid, GDATA.invalidValue) as e:
+      entityBadRequestWarning([Ent.USER, user, Ent.EMAIL_SETTINGS, None], str(e), i, count)
+
+# gam <UserTypeEntity> arrows <Boolean>
+def setArrows(users):
+  enable = getBoolean(None)
+  _processEmailSettings(users, u'UpdateGeneral', Ent.ARROWS_ENABLED, u'arrows', arrows=enable)
+
+# gam <UserTypeEntity> language <Language>
+def setLanguage(users):
+  language = getChoice(LANGUAGE_CODES_MAP, mapChoice=True)
+  _processEmailSettings(users, u'UpdateLanguage', Ent.LANGUAGE, u'language', language=language)
+
+# gam <UserTypeEntity> pagesize 25|50|100
+def setPageSize(users):
+  page_size = getChoice([u'25', u'50', u'100'])
+  _processEmailSettings(users, u'UpdateGeneral', Ent.PAGE_SIZE, u'pageSize', page_size=page_size)
+
+# gam <UserTypeEntity> shortcuts <Boolean>
+def setShortCuts(users):
+  enable = getBoolean(None)
+  _processEmailSettings(users, u'UpdateGeneral', Ent.KEYBOARD_SHORTCUTS_ENABLED, u'shortcuts', shortcuts=enable)
+
+# gam <UserTypeEntity> snippets <Boolean>
+def setSnippets(users):
+  enable = getBoolean(None)
+  _processEmailSettings(users, u'UpdateGeneral', Ent.SNIPPETS_ENABLED, u'snippets', snippets=enable)
+
+# gam <UserTypeEntity> utf|utf8|utf-8|unicode <Boolean>
+def setUnicode(users):
+  enable = getBoolean(None)
+  _processEmailSettings(users, u'UpdateGeneral', Ent.UNICODE_ENCODING_ENABLED, u'unicode', unicode=enable)
+
+# gam <UserTypeEntity> webclips <Boolean>
+def setWebClips(users):
+  enable = getBoolean(None)
+  _processEmailSettings(users, u'UpdateWebClipSettings', Ent.WEBCLIPS_ENABLED, u'enable', enable=enable)
 
 # Command line processing
 
