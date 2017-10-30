@@ -136,6 +136,7 @@ class GamEntity(object):
   PRODUCT = u'prod'
   PROFILE_SHARING_ENABLED = u'prof'
   PROJECT = u'proj'
+  PUBLIC_KEY = u'pubk'
   QUERY = u'quer'
   REPORT = u'rept'
   REQUEST_ID = u'reqi'
@@ -290,6 +291,7 @@ class GamEntity(object):
     PRODUCT: [u'Products', u'Product'],
     PROFILE_SHARING_ENABLED: [u'Profile Sharing Enabled', u'Profile Sharing Enabled'],
     PROJECT: [u'Projects', u'Project'],
+    PUBLIC_KEY: [u'Public Key', u'Public Key'],
     QUERY: [u'Queries', u'Query'],
     REPORT: [u'Reports', u'Report'],
     REQUEST_ID: [u'Request IDs', u'Request ID'],
@@ -402,4 +404,3 @@ class GamEntity(object):
 
   def TypeNameMessage(self, entityType, entityName, message):
     return u'{0}: {1} {2}'.format(self.Singular(entityType), entityName, message)
-

@@ -1,3 +1,16 @@
+4.54.44
+
+The following commands have been removed as the Google Email Audit API no longer supports them.
+
+gam audit activity request <EmailAddress>
+gam audit activity delete <EmailAddress> <RequestID>
+gam audit activity download <EmailAddress> <RequestID>
+gam audit activity status [<EmailAddress> <RequestID>]
+
+The gam audit uploadkey command was enhanced to take the public key file name as a parameter.
+gam audit uploadkey [<FileName>]
+Previously, the key file was read from stdin; you had to do: cat <FileName> | gam audit uploadkey
+
 4.54.43
 
 Added two special-purpose commands for importing/exporting oauth2.txt.

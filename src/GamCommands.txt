@@ -592,11 +592,7 @@ gam whatis <EmailItem> [noinfo]
 
 <DestEmailAddress> ::= <EmailAddress>
 
-gam audit uploadkey <ValueReadFromStdin>
-gam audit activity request <EmailAddress>
-gam audit activity delete <EmailAddress> <RequestID>
-gam audit activity download <EmailAddress> <RequestID>
-gam audit activity status [<EmailAddress> <RequestID>]
+gam audit uploadkey [<FileName>]
 
 gam audit export request <EmailAddress> [begin <DateTime>] [end <DateTime>]
 	[search <QueryGmail>] [headersonly] [includedeleted]

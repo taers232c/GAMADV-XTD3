@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.43'
+__version__ = u'4.54.44'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -2448,6 +2448,7 @@ def checkGDataError(e, service):
     1408: u'Invalid SSO Signing Key',
     1409: u'Invalid Encryption Public Key',
     1410: u'Feature Unavailable For User',
+    1411: u'Invalid Encryption Public Key Format',
     1500: u'Too Many Recipients On Email List',
     1501: u'Too Many Aliases For User',
     1502: u'Too Many Delegates For User',
@@ -5215,7 +5216,7 @@ def enableProjectAPIs(simplehttp, httpObj, projectName, checkEnabled):
   if checkEnabled:
     enabledServices = callGAPIpages(serveman.services(), u'list', u'services',
                                     consumerId=projectName, fields=u'nextPageToken,services(serviceName)')
-    for service in enabledServices:
+    for service in sorted(enabledServices, key=lambda k: k[u'serviceName']):
       if u'serviceName' in service:
         if service[u'serviceName'] in apis:
           printEntityKVList([Ent.API, service[u'serviceName']], [u'already enabled...',])
@@ -7936,13 +7937,19 @@ def doPrintAliases():
       accessErrorExit(cd)
   writeCSVfile(csvRows, titles, u'Aliases', todrive)
 
-# gam audit uploadkey <ValueReadFromStdin>
+# gam audit uploadkey [<FileName>]
 def doUploadAuditKey():
   auditObject = getAuditObject()
+  if Cmd.ArgumentsRemaining():
+    filename = getString(Cmd.OB_FILE_NAME)
+    auditkey = readFile(filename)
+  else:
+    filename = u'Read from stdin'
+    auditkey = sys.stdin.read()
   checkForExtraneousArguments()
-  auditkey = sys.stdin.read()
   callGData(auditObject, u'updatePGPKey',
             pgpkey=auditkey)
+  entityActionPerformed([Ent.PUBLIC_KEY, filename])
 
 # Audit activity/export command utilities
 def checkDownloadResults(results):
@@ -7980,98 +7987,6 @@ def _showFileURLs(request):
     for i in range(int(request[u'numberOfFiles'])):
       printKeyValueList([u'Url{0}'.format(i), request[u'fileUrl'+str(i)]])
     Ind.Decrement()
-
-def _showMailboxActivityRequestStatus(request, i, count, showFiles=False):
-  printEntity([Ent.REQUEST_ID, request[u'requestId']], i, count)
-  Ind.Increment()
-  printEntity([Ent.USER, request[u'userEmailAddress']])
-  printKeyValueList([u'Status', request[u'status']])
-  printKeyValueList([u'Request Date', request[u'requestDate']])
-  printKeyValueList([u'Requested By', request[u'adminEmailAddress']])
-  if showFiles:
-    _showFileURLs(request)
-  Ind.Decrement()
-
-# gam audit activity request <EmailAddress>
-def doSubmitActivityRequest():
-  auditObject, parameters = getAuditParameters(emailAddressRequired=True, requestIdRequired=False, destUserRequired=False)
-  checkForExtraneousArguments()
-  try:
-    request = callGData(auditObject, u'createAccountInformationRequest',
-                        throw_errors=[GDATA.INVALID_DOMAIN, GDATA.DOES_NOT_EXIST],
-                        user=parameters[u'auditUserName'])
-    entityActionPerformed([Ent.USER, parameters[u'auditUser'], Ent.AUDIT_ACTIVITY_REQUEST, None])
-    Ind.Increment()
-    _showMailboxActivityRequestStatus(request, 0, 0, showFiles=False)
-    Ind.Decrement()
-  except (GDATA.invalidDomain, GDATA.doesNotExist):
-    entityUnknownWarning(Ent.USER, parameters[u'auditUser'])
-
-# gam audit activity delete <EmailAddress> <RequestID>
-def doDeleteActivityRequest():
-  auditObject, parameters = getAuditParameters(emailAddressRequired=True, requestIdRequired=True, destUserRequired=False)
-  checkForExtraneousArguments()
-  try:
-    callGData(auditObject, u'deleteAccountInformationRequest',
-              throw_errors=[GDATA.INVALID_DOMAIN, GDATA.DOES_NOT_EXIST, GDATA.INVALID_VALUE],
-              user=parameters[u'auditUserName'], request_id=parameters[u'requestId'])
-    entityActionPerformed([Ent.USER, parameters[u'auditUser'], Ent.AUDIT_ACTIVITY_REQUEST, parameters[u'requestId']])
-  except (GDATA.invalidDomain, GDATA.doesNotExist):
-    entityUnknownWarning(Ent.USER, parameters[u'auditUser'])
-  except GDATA.invalidValue:
-    entityActionFailedWarning([Ent.USER, parameters[u'auditUser'], Ent.AUDIT_ACTIVITY_REQUEST, parameters[u'requestId']], Msg.INVALID_REQUEST)
-
-# gam audit activity download <EmailAddress> <RequestID>
-def doDownloadActivityRequest():
-  auditObject, parameters = getAuditParameters(emailAddressRequired=True, requestIdRequired=True, destUserRequired=False)
-  checkForExtraneousArguments()
-  try:
-    results = callGData(auditObject, u'getAccountInformationRequestStatus',
-                        throw_errors=[GDATA.INVALID_DOMAIN, GDATA.DOES_NOT_EXIST, GDATA.INVALID_VALUE],
-                        user=parameters[u'auditUserName'], request_id=parameters[u'requestId'])
-    if not checkDownloadResults(results):
-      return
-    count = int(results[u'numberOfFiles'])
-    for i in range(count):
-      filename = u'activity-{0}-{1}-{2}.txt.gpg'.format(parameters[u'auditUserName'], parameters[u'requestId'], i)
-      entityPerformActionInfo([Ent.USER, parameters[u'auditUser'], Ent.AUDIT_ACTIVITY_REQUEST, parameters[u'requestId']], filename, i+1, count)
-      _, data = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]).request(results[u'fileUrl'+str(i)], u'GET')
-      writeFile(filename, data)
-  except (GDATA.invalidDomain, GDATA.doesNotExist):
-    entityUnknownWarning(Ent.USER, parameters[u'auditUser'])
-  except GDATA.invalidValue:
-    entityActionFailedWarning([Ent.USER, parameters[u'auditUser'], Ent.AUDIT_ACTIVITY_REQUEST, parameters[u'requestId']], Msg.INVALID_REQUEST)
-
-# gam audit activity status [<EmailAddress> <RequestID>]
-def doStatusActivityRequests():
-  auditObject, parameters = getAuditParameters(emailAddressRequired=False, requestIdRequired=True, destUserRequired=False)
-  checkForExtraneousArguments()
-  if parameters:
-    try:
-      results = [callGData(auditObject, u'getAccountInformationRequestStatus',
-                           throw_errors=[GDATA.INVALID_DOMAIN, GDATA.DOES_NOT_EXIST, GDATA.INVALID_VALUE],
-                           user=parameters[u'auditUserName'], request_id=parameters[u'requestId'])]
-      jcount = 1 if (results) else 0
-      entityPerformActionNumItems([Ent.USER, parameters[u'auditUser']], jcount, Ent.AUDIT_ACTIVITY_REQUEST)
-    except (GDATA.invalidDomain, GDATA.doesNotExist):
-      entityUnknownWarning(Ent.USER, parameters[u'auditUser'])
-      return
-    except GDATA.invalidValue:
-      entityActionFailedWarning([Ent.USER, parameters[u'auditUser'], Ent.AUDIT_ACTIVITY_REQUEST, parameters[u'requestId']], Msg.INVALID_REQUEST)
-      return
-  else:
-    results = callGData(auditObject, u'getAllAccountInformationRequestsStatus')
-    jcount = len(results) if (results) else 0
-    entityPerformActionNumItems([Ent.DOMAIN, GC.Values[GC.DOMAIN]], jcount, Ent.AUDIT_ACTIVITY_REQUEST)
-  if jcount == 0:
-    setSysExitRC(NO_ENTITIES_FOUND)
-    return
-  Ind.Increment()
-  j = 0
-  for request in results:
-    j += 1
-    _showMailboxActivityRequestStatus(request, j, jcount, showFiles=True)
-  Ind.Decrement()
 
 # Audit export command utilities
 def _showMailboxExportRequestStatus(request, i, count, showFilter=False, showDates=False, showFiles=False):
@@ -29412,12 +29327,6 @@ AUDIT_SUBCOMMANDS = {
 
 # Audit command sub-commands with objects
 AUDIT_SUBCOMMANDS_WITH_OBJECTS = {
-  u'activity':
-    {u'request':{CMD_ACTION: Act.SUBMIT, CMD_FUNCTION: doSubmitActivityRequest},
-     u'delete':	{CMD_ACTION: Act.DELETE, CMD_FUNCTION: doDeleteActivityRequest},
-     u'download':	{CMD_ACTION: Act.DOWNLOAD, CMD_FUNCTION: doDownloadActivityRequest},
-     u'status':	{CMD_ACTION: Act.LIST, CMD_FUNCTION: doStatusActivityRequests},
-    },
   u'export':
     {u'request':{CMD_ACTION: Act.SUBMIT, CMD_FUNCTION: doSubmitExportRequest},
      u'delete':	{CMD_ACTION: Act.DELETE, CMD_FUNCTION: doDeleteExportRequest},
