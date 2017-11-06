@@ -137,15 +137,47 @@ drwxr-x---+ 2 admin  staff    68 Mar  3 09:23 gamcache
 -rw-rw-rw-+ 1 admin  staff     0 Mar  3 09:23 oauth2.txt.lock
 -rw-r-----+ 1 admin  staff  2377 Mar  3 09:23 oauth2service.json
 ```
+Update your project to include the additional APIs that GAMADV-X3 uses.
+```
+admin@server:/usr/local/gamadv-xtd$ gam update project
+
+What is your G Suite admin email address? admin@domain.com
+
+Your browser has been opened to visit:
+
+    https://accounts.google.com/o/oauth2/v2/auth?redirect_uri=http%3A%2F%2Flocalhost%3A8080%2F&response_type=code&client_id=...
+
+If your browser is on a different machine then press CTRL+C,
+set no_browser = true in gam.cfg and re-run this command.
+
+Authentication successful.
+API: admin.googleapis.com, already enabled...
+API: appsactivity.googleapis.com, already enabled...
+API: calendar-json.googleapis.com, already enabled...
+API: classroom.googleapis.com, already enabled...
+API: contacts.googleapis.com, already enabled...
+API: drive.googleapis.com, already enabled...
+API: gmail.googleapis.com, already enabled...
+API: groupssettings.googleapis.com, already enabled...
+API: licensing.googleapis.com, already enabled...
+API: plus.googleapis.com, already enabled...
+API: reseller.googleapis.com, already enabled...
+API: siteverification.googleapis.com, already enabled...
+API: vault.googleapis.com, already enabled...
+Enable 3 APIs
+  API: audit.googleapis.com, Enabled (1/3)
+  API: groupsmigration.googleapis.com, Enabled (2/3)
+  API: sheets.googleapis.com, Enabled (3/3)
+```
 Enable GAMADV-X3 client access, create oauth2.txt; it must be deleted and recreated because it is in a different format than in basic Gam.
 ```
 admin@server:/usr/local/gamadv-x3$ rm -f ~/.gam/oauth2.txt
 admin@server:/usr/local/gamadv-x3$ ./gam version
 WARNING: Config File: /Users/admin/.gam/gam.cfg, Section: DEFAULT, Item: oauth2_txt, Value: /Users/admin/.gam/oauth2.txt, Not Found
-GAM 4.44.02 - https://github.com/taers232c/GAMADV-X3
+GAM 4.54.46 - https://github.com/taers232c/GAMADV-X3
 Ross Scroggs <ross.scroggs@gmail.com>
-Python 2.7.13 64-bit final
-google-api-python-client 1.6.1
+Python 2.7.14 64-bit final
+google-api-python-client 1.6.4
 Darwin-15.6.0-x86_64-i386-64bit x86_64
 Path: /usr/local/gamadv-x3
 
@@ -485,15 +517,47 @@ C:\GAMADV-X3>dir %HOMEPATH%\.gam
                5 File(s)          4,065 bytes
                3 Dir(s)  110,532,538,368 bytes free
 ```
+Update your project to include the additional APIs that GAMADV-X3 uses.
+```
+C:\GAMADV-XTD>gam update project
+
+What is your G Suite admin email address? admin@domain.com
+
+Your browser has been opened to visit:
+
+    https://accounts.google.com/o/oauth2/v2/auth?redirect_uri=http%3A%2F%2Flocalhost%3A8080%2F&response_type=code&client_id=...
+
+If your browser is on a different machine then press CTRL+C,
+set no_browser = true in gam.cfg and re-run this command.
+
+Authentication successful.
+API: admin.googleapis.com, already enabled...
+API: appsactivity.googleapis.com, already enabled...
+API: calendar-json.googleapis.com, already enabled...
+API: classroom.googleapis.com, already enabled...
+API: contacts.googleapis.com, already enabled...
+API: drive.googleapis.com, already enabled...
+API: gmail.googleapis.com, already enabled...
+API: groupssettings.googleapis.com, already enabled...
+API: licensing.googleapis.com, already enabled...
+API: plus.googleapis.com, already enabled...
+API: reseller.googleapis.com, already enabled...
+API: siteverification.googleapis.com, already enabled...
+API: vault.googleapis.com, already enabled...
+Enable 3 APIs
+  API: audit.googleapis.com, Enabled (1/3)
+  API: groupsmigration.googleapis.com, Enabled (2/3)
+  API: sheets.googleapis.com, Enabled (3/3)
+```
 Enable GAMADV-X3 client access, create oauth2.txt; it must be deleted and recreated because it is in a different format than in basic Gam.
 ```
 C:\GAMADV-X3>del %HOMEPATH%\.gam\oauth2.txt
 C:\GAMADV-X3>gam version
 WARNING: Config File: C:\Users\Administrator.DOMAIN\.gam\gam.cfg, Section: DEFAULT, Item: oauth2_txt, Value: C:\Users\Administrator.DOMAIN\.gam\oauth2.txt, Not Found
-GAM 4.44.02 - https://github.com/taers232c/GAMADV-X3
+GAM 4.54.46 - https://github.com/taers232c/GAMADV-X3
 Ross Scroggs <ross.scroggs@gmail.com>
-Python 2.7.13 64-bit final
-google-api-python-client 1.6.1
+Python 2.7.14 64-bit final
+google-api-python-client 1.6.4
 Windows-10-10.0.14393 AMD64
 Path: C:\GAMADV-X3
 

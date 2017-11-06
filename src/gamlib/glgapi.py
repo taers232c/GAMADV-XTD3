@@ -71,6 +71,7 @@ INVALID_SCOPE_VALUE = u'invalidScopeValue'
 INVALID_SHARING_REQUEST = u'invalidSharingRequest'
 LOGIN_REQUIRED = u'loginRequired'
 MEMBER_NOT_FOUND = u'memberNotFound'
+NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE = u'noListTeamDrivesAdministratorPrivilege'
 NOT_A_CALENDAR_USER = u'notACalendarUser'
 NOT_FOUND = u'notFound'
 NOT_IMPLEMENTED = u'notImplemented'
@@ -80,6 +81,7 @@ OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED = u'ownerOnTeamDriveItemNotSupported'
 PERMISSION_DENIED = u'permissionDenied'
 PERMISSION_NOT_FOUND = u'permissionNotFound'
 PHOTO_NOT_FOUND = u'photoNotFound'
+QUERY_REQUIRES_ADMIN_CREDENTIALS = u'queryRequiresAdminCredentials'
 QUOTA_EXCEEDED = u'quotaExceeded'
 RATE_LIMIT_EXCEEDED = u'rateLimitExceeded'
 REQUIRED = u'required'
@@ -286,6 +288,8 @@ class loginRequired(Exception):
   pass
 class memberNotFound(Exception):
   pass
+class noListTeamDrivesAdministratorPrivilege(Exception):
+  pass
 class notACalendarUser(Exception):
   pass
 class notFound(Exception):
@@ -303,6 +307,8 @@ class permissionDenied(Exception):
 class permissionNotFound(Exception):
   pass
 class photoNotFound(Exception):
+  pass
+class queryRequiresAdminCredentials(Exception):
   pass
 class rateLimitExceeded(Exception):
   pass
@@ -396,6 +402,7 @@ REASON_EXCEPTION_MAP = {
   INVALID_SHARING_REQUEST: invalidSharingRequest,
   LOGIN_REQUIRED: loginRequired,
   MEMBER_NOT_FOUND: memberNotFound,
+  NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE: noListTeamDrivesAdministratorPrivilege,
   NOT_A_CALENDAR_USER: notACalendarUser,
   NOT_FOUND: notFound,
   NOT_IMPLEMENTED: notImplemented,
@@ -405,6 +412,7 @@ REASON_EXCEPTION_MAP = {
   PERMISSION_DENIED: permissionDenied,
   PERMISSION_NOT_FOUND: permissionNotFound,
   PHOTO_NOT_FOUND: photoNotFound,
+  QUERY_REQUIRES_ADMIN_CREDENTIALS: queryRequiresAdminCredentials,
   RATE_LIMIT_EXCEEDED: rateLimitExceeded,
   REQUIRED: required,
   RESOURCE_ID_NOT_FOUND: resourceIdNotFound,

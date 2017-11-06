@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.45'
+__version__ = u'4.54.46'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -737,11 +737,165 @@ def getChoiceAndValue(item, choices, delimiter):
     missingArgumentExit(item)
   invalidChoiceExit(choices, False)
 
+WEBCOLOR_MAP = {
+  u'aliceblue': u'#f0f8ff',
+  u'antiquewhite': u'#faebd7',
+  u'aqua': u'#00ffff',
+  u'aquamarine': u'#7fffd4',
+  u'azure': u'#f0ffff',
+  u'beige': u'#f5f5dc',
+  u'bisque': u'#ffe4c4',
+  u'black': u'#000000',
+  u'blanchedalmond': u'#ffebcd',
+  u'blue': u'#0000ff',
+  u'blueviolet': u'#8a2be2',
+  u'brown': u'#a52a2a',
+  u'burlywood': u'#deb887',
+  u'cadetblue': u'#5f9ea0',
+  u'chartreuse': u'#7fff00',
+  u'chocolate': u'#d2691e',
+  u'coral': u'#ff7f50',
+  u'cornflowerblue': u'#6495ed',
+  u'cornsilk': u'#fff8dc',
+  u'crimson': u'#dc143c',
+  u'cyan': u'#00ffff',
+  u'darkblue': u'#00008b',
+  u'darkcyan': u'#008b8b',
+  u'darkgoldenrod': u'#b8860b',
+  u'darkgray': u'#a9a9a9',
+  u'darkgrey': u'#a9a9a9',
+  u'darkgreen': u'#006400',
+  u'darkkhaki': u'#bdb76b',
+  u'darkmagenta': u'#8b008b',
+  u'darkolivegreen': u'#556b2f',
+  u'darkorange': u'#ff8c00',
+  u'darkorchid': u'#9932cc',
+  u'darkred': u'#8b0000',
+  u'darksalmon': u'#e9967a',
+  u'darkseagreen': u'#8fbc8f',
+  u'darkslateblue': u'#483d8b',
+  u'darkslategray': u'#2f4f4f',
+  u'darkslategrey': u'#2f4f4f',
+  u'darkturquoise': u'#00ced1',
+  u'darkviolet': u'#9400d3',
+  u'deeppink': u'#ff1493',
+  u'deepskyblue': u'#00bfff',
+  u'dimgray': u'#696969',
+  u'dimgrey': u'#696969',
+  u'dodgerblue': u'#1e90ff',
+  u'firebrick': u'#b22222',
+  u'floralwhite': u'#fffaf0',
+  u'forestgreen': u'#228b22',
+  u'fuchsia': u'#ff00ff',
+  u'gainsboro': u'#dcdcdc',
+  u'ghostwhite': u'#f8f8ff',
+  u'gold': u'#ffd700',
+  u'goldenrod': u'#daa520',
+  u'gray': u'#808080',
+  u'grey': u'#808080',
+  u'green': u'#008000',
+  u'greenyellow': u'#adff2f',
+  u'honeydew': u'#f0fff0',
+  u'hotpink': u'#ff69b4',
+  u'indianred': u'#cd5c5c',
+  u'indigo': u'#4b0082',
+  u'ivory': u'#fffff0',
+  u'khaki': u'#f0e68c',
+  u'lavender': u'#e6e6fa',
+  u'lavenderblush': u'#fff0f5',
+  u'lawngreen': u'#7cfc00',
+  u'lemonchiffon': u'#fffacd',
+  u'lightblue': u'#add8e6',
+  u'lightcoral': u'#f08080',
+  u'lightcyan': u'#e0ffff',
+  u'lightgoldenrodyellow': u'#fafad2',
+  u'lightgray': u'#d3d3d3',
+  u'lightgrey': u'#d3d3d3',
+  u'lightgreen': u'#90ee90',
+  u'lightpink': u'#ffb6c1',
+  u'lightsalmon': u'#ffa07a',
+  u'lightseagreen': u'#20b2aa',
+  u'lightskyblue': u'#87cefa',
+  u'lightslategray': u'#778899',
+  u'lightslategrey': u'#778899',
+  u'lightsteelblue': u'#b0c4de',
+  u'lightyellow': u'#ffffe0',
+  u'lime': u'#00ff00',
+  u'limegreen': u'#32cd32',
+  u'linen': u'#faf0e6',
+  u'magenta': u'#ff00ff',
+  u'maroon': u'#800000',
+  u'mediumaquamarine': u'#66cdaa',
+  u'mediumblue': u'#0000cd',
+  u'mediumorchid': u'#ba55d3',
+  u'mediumpurple': u'#9370db',
+  u'mediumseagreen': u'#3cb371',
+  u'mediumslateblue': u'#7b68ee',
+  u'mediumspringgreen': u'#00fa9a',
+  u'mediumturquoise': u'#48d1cc',
+  u'mediumvioletred': u'#c71585',
+  u'midnightblue': u'#191970',
+  u'mintcream': u'#f5fffa',
+  u'mistyrose': u'#ffe4e1',
+  u'moccasin': u'#ffe4b5',
+  u'navajowhite': u'#ffdead',
+  u'navy': u'#000080',
+  u'oldlace': u'#fdf5e6',
+  u'olive': u'#808000',
+  u'olivedrab': u'#6b8e23',
+  u'orange': u'#ffa500',
+  u'orangered': u'#ff4500',
+  u'orchid': u'#da70d6',
+  u'palegoldenrod': u'#eee8aa',
+  u'palegreen': u'#98fb98',
+  u'paleturquoise': u'#afeeee',
+  u'palevioletred': u'#db7093',
+  u'papayawhip': u'#ffefd5',
+  u'peachpuff': u'#ffdab9',
+  u'peru': u'#cd853f',
+  u'pink': u'#ffc0cb',
+  u'plum': u'#dda0dd',
+  u'powderblue': u'#b0e0e6',
+  u'purple': u'#800080',
+  u'red': u'#ff0000',
+  u'rosybrown': u'#bc8f8f',
+  u'royalblue': u'#4169e1',
+  u'saddlebrown': u'#8b4513',
+  u'salmon': u'#fa8072',
+  u'sandybrown': u'#f4a460',
+  u'seagreen': u'#2e8b57',
+  u'seashell': u'#fff5ee',
+  u'sienna': u'#a0522d',
+  u'silver': u'#c0c0c0',
+  u'skyblue': u'#87ceeb',
+  u'slateblue': u'#6a5acd',
+  u'slategray': u'#708090',
+  u'slategrey': u'#708090',
+  u'snow': u'#fffafa',
+  u'springgreen': u'#00ff7f',
+  u'steelblue': u'#4682b4',
+  u'tan': u'#d2b48c',
+  u'teal': u'#008080',
+  u'thistle': u'#d8bfd8',
+  u'tomato': u'#ff6347',
+  u'turquoise': u'#40e0d0',
+  u'violet': u'#ee82ee',
+  u'wheat': u'#f5deb3',
+  u'white': u'#ffffff',
+  u'whitesmoke': u'#f5f5f5',
+  u'yellow': u'#ffff00',
+  u'yellowgreen': u'#9acd32',
+  }
+
 COLORHEX_PATTERN = re.compile(r'^#[0-9a-fA-F]{6}$')
 COLORHEX_FORMAT_REQUIRED = u'#ffffff'
 
 def getColorHexAttribute():
   if Cmd.ArgumentsRemaining():
+    color = getChoice(WEBCOLOR_MAP, defaultChoice=None, mapChoice=True)
+    if color:
+      Cmd.Advance()
+      return color
     tg = COLORHEX_PATTERN.match(Cmd.Current().strip())
     if tg:
       Cmd.Advance()
@@ -916,6 +1070,27 @@ def getGoogleSKUList():
     Cmd.Advance()
     return skusList
   missingArgumentExit(Cmd.OB_SKU_ID_LIST)
+
+def floatLimits(minVal, maxVal, item=u'float'):
+  if (minVal is not None) and (maxVal is not None):
+    return u'{0} {1:5.3f}<=x<={2:5.3f}'.format(item, minVal, maxVal)
+  if minVal is not None:
+    return u'{0} x>={1:5.3f}'.format(item, minVal)
+  if maxVal is not None:
+    return u'{0} x<={1:5.3f}'.format(item, maxVal)
+  return u'{0} x'.format(item)
+
+def getFloat(minVal=None, maxVal=None):
+  if Cmd.ArgumentsRemaining():
+    try:
+      number = float(Cmd.Current().strip())
+      if ((minVal is None) or (number >= minVal)) and ((maxVal is None) or (number <= maxVal)):
+        Cmd.Advance()
+        return number
+    except ValueError:
+      pass
+    invalidArgumentExit(floatLimits(minVal, maxVal))
+  missingArgumentExit(floatLimits(minVal, maxVal))
 
 def integerLimits(minVal, maxVal, item=u'integer'):
   if (minVal is not None) and (maxVal is not None):
@@ -17059,7 +17234,7 @@ def doPrintUsers(entityList=None):
     if orderBy in titles[u'set']:
       csvRows.sort(key=lambda k: k[orderBy], reverse=sortOrder == u'DESCENDING')
   if getGroupFeed:
-    addTitleToCSVfile(u'Groups', titles)
+    addTitlesToCSVfile([u'GroupsCount', u'Groups'], titles)
     i = 0
     count = len(csvRows)
     for user in csvRows:
@@ -17068,14 +17243,16 @@ def doPrintUsers(entityList=None):
       printGettingAllEntityItemsForWhom(Ent.GROUP_MEMBERSHIP, userEmail, i, count)
       groups = callGAPIpages(cd.groups(), u'list', u'groups',
                              userKey=userEmail, fields=u'nextPageToken,groups(email)')
+      user[u'GroupsCount'] = len(groups)
       user[u'Groups'] = delimiter.join([groupname[u'email'] for groupname in groups])
   if getLicenseFeed:
-    addTitlesToCSVfile([u'Licenses', u'LicensesDisplay'], titles)
+    addTitlesToCSVfile([u'LicensesCount', u'Licenses', u'LicensesDisplay'], titles)
     licenses = doPrintLicenses(returnFields=u'userId,skuId')
     if licenses:
       for user in csvRows:
         u_licenses = licenses.get(user[u'primaryEmail'].lower())
         if u_licenses:
+          user[u'LicensesCount'] = len(u_licenses)
           user[u'Licenses'] = delimiter.join(u_licenses)
           user[u'LicensesDisplay'] = delimiter.join([SKU.skuIdToDisplayName(skuId) for skuId in u_licenses])
   writeCSVfile(csvRows, titles, u'Users', todrive, quotechar)
@@ -20020,6 +20197,27 @@ def doDriveSearch(drive, user, i, count, query=None, parentQuery=False, orderBy=
     userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
   return None
 
+def doTeamDriveSearch(drive, user, i, count, query, useDomainAdminAccess):
+  if GC.Values[GC.SHOW_GETTINGS]:
+    printGettingAllEntityItemsForWhom(Ent.TEAMDRIVE, user, i, count, qualifier=queryQualifier(query))
+  page_message = getPageMessageForWhom(noNL=True)
+  try:
+    files = callGAPIpages(drive.teamdrives(), u'list', u'teamDrives',
+                          page_message=page_message,
+                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.QUERY_REQUIRES_ADMIN_CREDENTIALS, GAPI.NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE],
+                          q=query, useDomainAdminAccess=useDomainAdminAccess,
+                          fields=u'nextPageToken,teamDrives(id)', pageSize=100)
+    if files:
+      return [f_file[u'id'] for f_file in files]
+    entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(query), i, count)
+  except (GAPI.invalidQuery, GAPI.invalid):
+    entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE, None], invalidQuery(query), i, count)
+  except (GAPI.queryRequiresAdminCredentials, GAPI.noListTeamDrivesAdministratorPrivilege) as e:
+    entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE, None], str(e), i, count)
+  except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+    userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+  return None
+
 def cleanFileIDsList(fileIdEntity, fileIds):
   fileIdEntity[u'list'] = []
   fileIdEntity[u'root'] = []
@@ -20055,7 +20253,7 @@ def _mapDrive2QueryToDrive3(query):
   return query
 
 def initDriveFileEntity():
-  return {u'list': [], u'query': None, u'teamdrivequery': None, u'teamDriveName': None, u'dict': None, u'root': [], u'teamdrive': {}}
+  return {u'list': [], u'teamdrivename': None, u'teamdriveadminquery': None, u'query': None, u'teamdrivefilequery': None, u'dict': None, u'root': [], u'teamdrive': {}}
 
 def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
   fileIdEntity = initDriveFileEntity()
@@ -20104,19 +20302,23 @@ def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
         elif mycmd[:12] == u'teamdriveid:':
           fileIdEntity[u'teamdrive'][u'teamDriveId'] = myarg[12:]
         elif mycmd == u'teamdrive':
-          fileIdEntity[u'teamDriveName'] = getString(Cmd.OB_TEAMDRIVE_NAME)
+          fileIdEntity[u'teamdrivename'] = getString(Cmd.OB_TEAMDRIVE_NAME)
         elif mycmd[:10] == u'teamdrive:':
-          fileIdEntity[u'teamDriveName'] = myarg[10:]
+          fileIdEntity[u'teamdrivename'] = myarg[10:]
+        elif mycmd == u'teamdriveadminquery':
+          fileIdEntity[u'teamdriveadminquery'] = getString(Cmd.OB_QUERY)
+        elif mycmd[:20] == u'teamdriveadminquery:':
+          fileIdEntity[u'teamdriveadminquery'] = myarg[20:]
         elif mycmd == u'teamdrivefilename':
-          fileIdEntity[u'teamdrivequery'] = VX_WITH_ANY_FILE_NAME.format(getString(Cmd.OB_DRIVE_FILE_NAME))
+          fileIdEntity[u'teamdrivefilequery'] = VX_WITH_ANY_FILE_NAME.format(getString(Cmd.OB_DRIVE_FILE_NAME))
         elif mycmd[:18] == u'teamdrivefilename:':
-          fileIdEntity[u'teamdrivequery'] = VX_WITH_ANY_FILE_NAME.format(myarg[18:])
+          fileIdEntity[u'teamdrivefilequery'] = VX_WITH_ANY_FILE_NAME.format(myarg[18:])
         elif mycmd == u'teamdrivequery':
-          fileIdEntity[u'teamdrivequery'] = _mapDrive2QueryToDrive3(getString(Cmd.OB_QUERY))
+          fileIdEntity[u'teamdrivefilequery'] = _mapDrive2QueryToDrive3(getString(Cmd.OB_QUERY))
         elif mycmd[:15] == u'teamdrivequery:':
-          fileIdEntity[u'teamdrivequery'] = _mapDrive2QueryToDrive3(myarg[15:])
+          fileIdEntity[u'teamdrivefilequery'] = _mapDrive2QueryToDrive3(myarg[15:])
         elif queryShortcutsOK and mycmd in TEAMDRIVE_QUERY_SHORTCUTS_MAP:
-          fileIdEntity[u'teamdrivequery'] = TEAMDRIVE_QUERY_SHORTCUTS_MAP[mycmd]
+          fileIdEntity[u'teamdrivefilequery'] = TEAMDRIVE_QUERY_SHORTCUTS_MAP[mycmd]
         else:
           unknownArgumentExit()
         if Cmd.ArgumentsRemaining():
@@ -20144,9 +20346,9 @@ def getTeamDriveEntity():
   elif mycmd[:12] == u'teamdriveid:':
     fileIdEntity[u'teamdrive'][u'teamDriveId'] = myarg[12:]
   elif mycmd == u'teamdrive':
-    fileIdEntity[u'teamDriveName'] = getString(Cmd.OB_TEAMDRIVE_NAME)
+    fileIdEntity[u'teamdrivename'] = getString(Cmd.OB_TEAMDRIVE_NAME)
   elif mycmd[:10] == u'teamdrive:':
-    fileIdEntity[u'teamDriveName'] = myarg[10:]
+    fileIdEntity[u'teamdrivename'] = myarg[10:]
   else:
     fileIdEntity[u'teamdrive'][u'teamDriveId'] = myarg
   return fileIdEntity
@@ -20155,16 +20357,16 @@ def _convertTeamDriveNameToId(drive, user, i, count, fileIdEntity):
   try:
     feed = callGAPIpages(drive.teamdrives(), u'list', u'teamDrives',
                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                         pageSize=10, fields=u'teamDrives(id,name)')
-    tddrivenamelower = fileIdEntity[u'teamDriveName'].lower()
+                         fields=u'nextPageToken,teamDrives(id,name)', pageSize=100)
+    tddrivenamelower = fileIdEntity[u'teamdrivename'].lower()
     for td in feed:
       if td[u'name'].lower() == tddrivenamelower:
         fileIdEntity[u'teamdrive'][u'teamDriveId'] = td[u'id']
-#        fileIdEntity[u'teamDriveName'] = None
+#        fileIdEntity[u'teamdrivename'] = None
         return True
   except (GAPI.notFound, GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
     pass
-  entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_NAME, fileIdEntity[u'teamDriveName']], Msg.DOES_NOT_EXIST, i, count)
+  entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_NAME, fileIdEntity[u'teamdrivename']], Msg.DOES_NOT_EXIST, i, count)
   return False
 
 def _getTeamDriveNameFromId(drive, teamDriveId):
@@ -20192,7 +20394,7 @@ def _getDriveFileNameFromId(drive, fileId, combineTitleId=True):
     pass
   return (fileId, Ent.DRIVE_FILE_OR_FOLDER_ID)
 
-def _validateUserGetFileIDs(user, i, count, fileIdEntity, drive=None, entityType=None, orderBy=None):
+def _validateUserGetFileIDs(user, i, count, fileIdEntity, drive=None, entityType=None, orderBy=None, useDomainAdminAccess=False):
   if fileIdEntity[u'dict']:
     cleanFileIDsList(fileIdEntity, fileIdEntity[u'dict'][user])
   if not drive:
@@ -20201,14 +20403,14 @@ def _validateUserGetFileIDs(user, i, count, fileIdEntity, drive=None, entityType
       return (user, None, 0)
   else:
     user = convertUIDtoEmailAddress(user)
-  if fileIdEntity[u'teamDriveName']:
+  if fileIdEntity[u'teamdrivename'] and u'teamDriveId' not in fileIdEntity:
     if not _convertTeamDriveNameToId(drive, user, i, count, fileIdEntity):
       return (user, None, 0)
-    if not fileIdEntity[u'teamdrivequery']:
+    if not fileIdEntity[u'teamdrivefilequery']:
       fileIdEntity[u'list'] = [fileIdEntity[u'teamdrive'][u'teamDriveId']]
     fileIdEntity[u'teamdrive'][u'corpora'] = u'teamDrive'
   elif fileIdEntity[u'teamdrive'].get(u'teamDriveId'):
-    if not fileIdEntity[u'teamdrivequery']:
+    if not fileIdEntity[u'teamdrivefilequery']:
       fileIdEntity[u'list'] = [fileIdEntity[u'teamdrive'][u'teamDriveId']]
     fileIdEntity[u'teamdrive'][u'corpora'] = u'teamDrive'
   if fileIdEntity[u'query']:
@@ -20216,10 +20418,15 @@ def _validateUserGetFileIDs(user, i, count, fileIdEntity, drive=None, entityType
     if fileIdEntity[u'list'] is None:
       setSysExitRC(NO_ENTITIES_FOUND)
       return (user, None, 0)
-  elif fileIdEntity[u'teamdrivequery']:
+  elif fileIdEntity[u'teamdriveadminquery']:
+    fileIdEntity[u'list'] = doTeamDriveSearch(drive, user, i, count, fileIdEntity[u'teamdriveadminquery'], useDomainAdminAccess)
+    if fileIdEntity[u'list'] is None:
+      setSysExitRC(NO_ENTITIES_FOUND)
+      return (user, None, 0)
+  elif fileIdEntity[u'teamdrivefilequery']:
     if not fileIdEntity[u'teamdrive'].get(u'teamDriveId'):
       fileIdEntity[u'teamdrive'][u'corpora'] = u'allTeamDrives,user'
-    fileIdEntity[u'list'] = doDriveSearch(drive, user, i, count, query=fileIdEntity[u'teamdrivequery'], orderBy=orderBy, teamDriveOnly=True, **fileIdEntity[u'teamdrive'])
+    fileIdEntity[u'list'] = doDriveSearch(drive, user, i, count, query=fileIdEntity[u'teamdrivefilequery'], orderBy=orderBy, teamDriveOnly=True, **fileIdEntity[u'teamdrive'])
     if fileIdEntity[u'list'] is None or not fileIdEntity[u'list']:
       setSysExitRC(NO_ENTITIES_FOUND)
       return (user, None, 0)
@@ -20264,7 +20471,7 @@ def _getDriveFileParentInfo(user, i, count, body, parameters, drive):
       parameters[DFA_KWARGS][u'corpora'] = u'teamDrive'
       parameters[DFA_KWARGS][u'teamDriveId'] = parameters[DFA_TEAMDRIVE_PARENTID]
   if parameters[DFA_TEAMDRIVE_PARENT]:
-    tempIdEntity = {u'teamDriveName': parameters[DFA_TEAMDRIVE_PARENT], u'teamdrive': {}}
+    tempIdEntity = {u'teamdrivename': parameters[DFA_TEAMDRIVE_PARENT], u'teamdrive': {}}
     if not _convertTeamDriveNameToId(drive, user, i, count, tempIdEntity):
       return False
     if not parameters[DFA_TEAMDRIVE_PARENTQUERY]:
@@ -20292,10 +20499,10 @@ def _validateUserGetTeamDriveFileIDs(user, i, count, fileIdEntity, drive=None, e
       return (user, None, 0)
   else:
     user = convertUIDtoEmailAddress(user)
-  if fileIdEntity.get(u'teamDriveName') and not _convertTeamDriveNameToId(drive, user, i, count, fileIdEntity):
+  if fileIdEntity.get(u'teamdrivename') and not _convertTeamDriveNameToId(drive, user, i, count, fileIdEntity):
     return (user, None, 0)
-  if fileIdEntity[u'teamdrivequery']:
-    fileIdEntity[u'list'] = doDriveSearch(drive, user, i, count, query=fileIdEntity[u'teamdrivequery'], teamDriveOnly=True, **fileIdEntity[u'teamdrive'])
+  if fileIdEntity[u'teamdrivefilequery']:
+    fileIdEntity[u'list'] = doDriveSearch(drive, user, i, count, query=fileIdEntity[u'teamdrivefilequery'], teamDriveOnly=True, **fileIdEntity[u'teamdrive'])
     if fileIdEntity[u'list'] is None or not fileIdEntity[u'list']:
       setSysExitRC(NO_ENTITIES_FOUND)
       return (user, None, 0)
@@ -20312,7 +20519,7 @@ def _validateUserTeamDrive(user, i, count, fileIdEntity):
   user, drive = buildGAPIServiceObject(API.DRIVE3, user)
   if not drive:
     return (user, None)
-  if fileIdEntity.get(u'teamDriveName'):
+  if fileIdEntity.get(u'teamdrivename'):
     if not _convertTeamDriveNameToId(drive, user, i, count, fileIdEntity):
       return (user, None)
     fileIdEntity[u'teamdrive'][u'corpora'] = u'teamDrive'
@@ -20346,6 +20553,8 @@ MIMETYPE_CHOICE_MAP = {
   u'gspreadsheet': MIMETYPE_GA_SPREADSHEET,
   }
 
+MIMETYPE_TYPES = [u'application', u'audio', u'font', u'image', u'message', u'model', u'multipart', u'text', u'video',]
+
 def initMimeTypeCheck():
   return {u'mimeTypes': set(), u'reverse': False}
 
@@ -20356,8 +20565,14 @@ def getMimeTypeCheck(mimeTypeCheck):
       mimeTypeCheck[u'mimeTypes'].add(MIMETYPE_CHOICE_MAP[mimeType])
     elif mimeType.startswith(APPLICATION_VND_GOOGLE_APPS):
       mimeTypeCheck[u'mimeTypes'].add(mimeType)
+    elif mimeType.find(u'/') > 0:
+      mediaType, subType = mimeType.split(u'/', 1)
+      if mediaType in MIMETYPE_TYPES and subType:
+        mimeTypeCheck[u'mimeTypes'].add(mimeType)
+      else:
+        invalidChoiceExit(list(MIMETYPE_CHOICE_MAP)+[u'({0})/mediatype'.format(formatChoiceList(MIMETYPE_TYPES))], True)
     else:
-      invalidChoiceExit(list(MIMETYPE_CHOICE_MAP), True)
+      invalidChoiceExit(list(MIMETYPE_CHOICE_MAP)+[u'({0})/mediatype'.format(formatChoiceList(MIMETYPE_TYPES))], True)
 
 def checkMimeType(mimeTypeCheck, fileEntry):
   if not mimeTypeCheck[u'mimeTypes']:
@@ -20520,6 +20735,16 @@ DRIVESETTINGS_SCALAR_FIELDS = [
   u'usageInDriveTrash',
   ]
 
+def _showTeamDriveThemeSettings(themes):
+  Ind.Increment()
+  for theme in themes:
+    printKeyValueList([u'id', theme[u'id']])
+    Ind.Increment()
+    printKeyValueList([u'backgroundImageLink', theme[u'backgroundImageLink']])
+    printKeyValueList([u'colorRgb', theme[u'colorRgb']])
+    Ind.Decrement()
+  Ind.Decrement()
+
 def _printShowDriveSettings(users, csvFormat):
 
   def _showFormats(title):
@@ -20622,14 +20847,7 @@ def _printShowDriveSettings(users, csvFormat):
           Ind.Decrement()
         if u'teamDriveThemes' in fieldsList and u'teamDriveThemes' in feed:
           printKeyValueList([u'teamDriveThemes', None])
-          Ind.Increment()
-          for setting in feed[u'teamDriveThemes']:
-            printKeyValueList([u'id', setting[u'id']])
-            Ind.Increment()
-            printKeyValueList([u'backgroundImageLink', setting[u'backgroundImageLink']])
-            printKeyValueList([u'colorRgb', setting[u'colorRgb']])
-            Ind.Decrement()
-          Ind.Decrement()
+          _showTeamDriveThemeSettings(feed[u'teamDriveThemes'])
         Ind.Decrement()
       else:
         row = {u'email': user}
@@ -20668,6 +20886,33 @@ def printDriveSettings(users):
 # gam <UserTypeEntity> show drivesettings [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <Character>]
 def showDriveSettings(users):
   _printShowDriveSettings(users, False)
+
+# gam <UserTypeEntity> show teamdrivethemes
+def _showTeamDriveThemes(users):
+  checkForExtraneousArguments()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, drive = buildGAPIServiceObject(API.DRIVE3, user)
+    if not drive:
+      continue
+    try:
+      themes = callGAPIitems(drive.about(), u'get', u'teamDriveThemes',
+                             throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                             fields=u'teamDriveThemes')
+      jcount = len(themes)
+      entityPerformActionNumItems([Ent.USER, user], jcount, Ent.TEAMDRIVE_THEME, i, count)
+      _showTeamDriveThemeSettings(themes)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+
+# gam <UserTypeEntity> show teamdrivethemes
+def showTeamDriveThemes(users):
+  _showTeamDriveThemes(users)
+
+# gam show teamdrivethemes
+def doShowTeamDriveThemes():
+  _showTeamDriveThemes([_getValueFromOAuth(u'email')])
 
 def initFilePathInfo():
   return {u'ids': {}, u'allPaths': {}, u'localPaths': None}
@@ -21562,7 +21807,7 @@ def _stripNotMeInOwners(query):
 
 OWNED_BY_ME_FIELDS_TITLES = [u'ownedByMe',]
 
-def buildFileTree(feed, drive, teamdrive=None, getTeamDriveNames=False):
+def initFileTree(drive, teamdrive, getTeamDriveNames):
   fileTree = {u'orphans': {u'info': {u'id': u'orphans', VX_FILENAME: u'orphans', u'mimeType': MIMETYPE_GA_FOLDER, u'ownedByMe': True}, u'children': []}}
   try:
     if not teamdrive:
@@ -21581,12 +21826,15 @@ def buildFileTree(feed, drive, teamdrive=None, getTeamDriveNames=False):
     if getTeamDriveNames:
       tdrives = callGAPIpages(drive.teamdrives(), u'list', u'teamDrives',
                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                              pageSize=10, fields=u'teamDrives(id,name)')
+                              fields=u'nextPageToken,teamDrives(id,name)', pageSize=100)
       for tdrive in tdrives:
         if tdrive[u'id'] not in fileTree:
           fileTree[tdrive[u'id']] = {u'info': {u'id': tdrive[u'id'], VX_FILENAME: u'TeamDrive({0})'.format(tdrive[u'name']), u'mimeType': MIMETYPE_GA_FOLDER}, u'children': []}
   except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.notFound, GAPI.teamDriveNotFound):
     pass
+  return fileTree
+
+def extendFileTree(fileTree, feed):
   for f_file in feed:
     fileId = f_file[u'id']
     if fileId not in fileTree:
@@ -21600,6 +21848,10 @@ def buildFileTree(feed, drive, teamdrive=None, getTeamDriveNames=False):
       if parentId not in fileTree:
         fileTree[parentId] = {u'info': {u'id': parentId, VX_FILENAME: parentId, u'mimeType': MIMETYPE_GA_FOLDER}, u'children': []}
       fileTree[parentId][u'children'].append(fileId)
+
+def buildFileTree(feed, drive, teamdrive=None, getTeamDriveNames=False):
+  fileTree = initFileTree(drive, teamdrive, getTeamDriveNames)
+  extendFileTree(fileTree, feed)
   return fileTree
 
 def addFilePathsToRow(drive, fileTree, fileEntryInfo, filePathInfo, row, titles):
@@ -21607,7 +21859,7 @@ def addFilePathsToRow(drive, fileTree, fileEntryInfo, filePathInfo, row, titles)
   kcount = len(paths)
   row[u'paths'] = kcount
   k = 0
-  for path in paths:
+  for path in sorted(paths):
     key = u'path.{0}'.format(k)
     if key not in titles[u'set']:
       addTitleToCSVfile(key, titles)
@@ -21684,32 +21936,36 @@ def printFileList(users):
             addTitleToCSVfile(x_attrib, titles)
     csvRows.append(row)
 
-  def _printDriveFolderContents(drive, fileEntry, depth):
-    for childFileId in fileEntry[u'children']:
-      childEntry = fileTree.get(childFileId)
-      if childEntry:
-        if childFileId not in filesPrinted:
-          filesPrinted.add(childFileId)
-          _printFileInfo(drive, childEntry[u'info'].copy())
-        if childEntry[u'info'][u'mimeType'] == MIMETYPE_GA_FOLDER and (maxdepth == -1 or depth < maxdepth):
-          _printDriveFolderContents(drive, childEntry, depth+1)
-
   def _printChildDriveFolderContents(drive, fileEntry, user, i, count, depth):
+    parentFileEntry = fileTree.get(fileEntry[u'id'])
+    if parentFileEntry and u'children' in parentFileEntry:
+      for childFileId in parentFileEntry[u'children']:
+        childEntry = fileTree.get(childFileId)
+        if childEntry:
+          if childFileId not in filesPrinted:
+            filesPrinted.add(childFileId)
+            _printFileInfo(drive, childEntry[u'info'].copy())
+          if childEntry[u'info'][u'mimeType'] == MIMETYPE_GA_FOLDER and (maxdepth == -1 or depth < maxdepth):
+            _printChildDriveFolderContents(drive, childEntry[u'info'], user, i, count, depth+1)
+      return
     q = VX_WITH_PARENTS.format(fileEntry[u'id'])
     if selectSubQuery:
       q += ' and '+selectSubQuery
     try:
       children = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
-                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID],
                                q=q, orderBy=orderBy, fields=pagesfields,
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], includeTeamDriveItems=True, supportsTeamDrives=True)
+    except (GAPI.invalidQuery, GAPI.invalid):
+      entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(selectSubQuery), i, count)
+      return
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
       return
     for childEntryInfo in children:
       childFileId = childEntryInfo[u'id']
       if filepath:
-        fileTree[childFileId] = {u'info': childEntryInfo}
+        fileTree.setdefault(childFileId, {u'info': childEntryInfo})
       if childFileId not in filesPrinted:
         filesPrinted.add(childFileId)
         _printFileInfo(drive, childEntryInfo.copy())
@@ -21724,7 +21980,7 @@ def printFileList(users):
   skipObjects = []
   titles, csvRows = initializeTitlesCSVfile([u'Owner',])
   query = ME_IN_OWNERS
-  selectSubQuery = None
+  selectSubQuery = u''
   fileIdEntity = {}
   showOwnedBy = fileTree = None
   mimeTypeCheck = initMimeTypeCheck()
@@ -21763,8 +22019,6 @@ def printFileList(users):
       query = None
     elif myarg == u'selectsubquery':
       selectSubQuery = getString(Cmd.OB_QUERY, minLen=0)
-      if not selectSubQuery:
-        selectSubQuery = None
     elif myarg == u'depth':
       maxdepth = getInteger(minVal=-1)
     elif myarg == u'allfields':
@@ -21820,11 +22074,19 @@ def printFileList(users):
       query = _stripNotMeInOwners(query)
     else:
       unknownArgumentExit()
-  if not fileIdEntity:
+  noSelect = (not fileIdEntity
+              or (not fileIdEntity[u'dict']
+                  and not fileIdEntity[u'query']
+                  and not fileIdEntity[u'teamdrivefilequery']
+                  and not fileIdEntity[u'list']))
+  if noSelect:
     buildTree = True
     if maxdepth != -1:
-      fileIdEntity = initDriveFileEntity()
-      cleanFileIDsList(fileIdEntity, [u'root',])
+      if not fileIdEntity:
+        fileIdEntity = initDriveFileEntity()
+      if not fileIdEntity[u'teamdrive']:
+        cleanFileIDsList(fileIdEntity, [u'root',])
+      noSelect = False
   if fieldsList:
     _setSelectionFields()
     fields = u','.join(set(fieldsList)).replace(u'.', u'/')
@@ -21852,6 +22114,15 @@ def printFileList(users):
     fileNameTitle = V3_FILENAME
   removeTitlesFromCSVfile([u'capabilities',], titles)
   query = _mapDrive2QueryToDrive3(query)
+  incrementalPrint = (buildTree and (not filepath) and noSelect)
+  if buildTree:
+    if not fileIdEntity.get(u'teamdrive'):
+      btkwargs = kwargs
+    else:
+      query = _stripMeInOwners(query)
+      query = _stripNotMeInOwners(query)
+      btkwargs = fileIdEntity[u'teamdrive']
+      getTeamDriveNames = True
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -21862,27 +22133,58 @@ def printFileList(users):
     if filepath:
       filePathInfo = initFilePathInfo()
     filesPrinted = set()
+    if incrementalPrint:
+      printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, qualifier=queryQualifier(query))
+      page_message = getPageMessageForWhom()
+      pageToken = None
+      totalItems = 0
+      queryError = False
+      while True:
+        try:
+          feed = callGAPI(drive.files(), u'list', VX_PAGES_FILES,
+                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                          pageToken=pageToken,
+                          q=query, orderBy=orderBy, fields=pagesfields,
+                          pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
+          if feed:
+            pageToken = feed.get(u'nextPageToken')
+            if VX_PAGES_FILES in feed:
+              totalItems += len(feed[VX_PAGES_FILES])
+              show_message = page_message.replace(TOTAL_ITEMS_MARKER, str(totalItems))
+              writeStderr(show_message.format(Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, totalItems)))
+              for f_file in feed[VX_PAGES_FILES]:
+                _printFileInfo(drive, f_file)
+            del feed
+          else:
+            pageToken = None
+          if not pageToken:
+            break
+        except (GAPI.invalidQuery, GAPI.invalid):
+          entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(query), i, count)
+          queryError = True
+          break
+        except GAPI.fileNotFound:
+          printGettingEntityItemsForWhomDoneInfo(0)
+          break
+        except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
+          entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, fileIdEntity[u'teamdrive'][u'teamDriveId']], str(e), i, count)
+          break
+        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+          userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+          break
+      if queryError:
+        break
+      continue
+    fileTree = {}
     if buildTree:
       try:
-        if not fileIdEntity.get(u'teamdrive'):
-          printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, qualifier=queryQualifier(query))
-          page_message = getPageMessageForWhom()
-          feed = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
-                               page_message=page_message,
-                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND],
-                               q=query, orderBy=orderBy, fields=pagesfields,
-                               pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **kwargs)
-        else:
-          getTeamDriveNames = True
-          query = _stripMeInOwners(query)
-          query = _stripNotMeInOwners(query)
-          printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, qualifier=queryQualifier(query))
-          page_message = getPageMessageForWhom()
-          feed = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
-                               page_message=page_message,
-                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
-                               q=query, orderBy=orderBy, fields=pagesfields,
-                               pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **fileIdEntity[u'teamdrive'])
+        printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, qualifier=queryQualifier(query))
+        page_message = getPageMessageForWhom()
+        feed = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
+                             page_message=page_message,
+                             throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                             q=query, orderBy=orderBy, fields=pagesfields,
+                             pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
         if filepath:
           fileTree = buildFileTree(feed, drive, getTeamDriveNames=getTeamDriveNames)
       except (GAPI.invalidQuery, GAPI.invalid):
@@ -21897,9 +22199,7 @@ def printFileList(users):
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         continue
-    else:
-      fileTree = {}
-    if not fileIdEntity:
+    if noSelect:
       if filepath:
         for f_file in feed:
           _printFileInfo(drive, f_file)
@@ -21914,11 +22214,15 @@ def printFileList(users):
       for fileId in fileIdEntity[u'list']:
         j += 1
         try:
-          fileEntryInfo = callGAPI(drive.files(), u'get',
-                                   throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
-                                   fileId=fileId, fields=fields, supportsTeamDrives=True)
-          if filepath:
-            fileTree[fileId] = {u'info': fileEntryInfo}
+          fileEntry = fileTree.get(fileId)
+          if fileEntry:
+            fileEntryInfo = fileEntry[u'info']
+          else:
+            fileEntryInfo = callGAPI(drive.files(), u'get',
+                                     throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
+                                     fileId=fileId, fields=fields, supportsTeamDrives=True)
+            if filepath:
+              fileTree[fileId] = {u'info': fileEntryInfo}
           if showParent or fileEntryInfo[u'mimeType'] != MIMETYPE_GA_FOLDER:
             if fileId not in filesPrinted:
               filesPrinted.add(fileId)
@@ -22040,9 +22344,12 @@ def showFileTree(users):
       q += ' and '+selectSubQuery
     try:
       children = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
-                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID],
                                q=q, orderBy=orderBy, fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE,
-                               pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
+                               pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], supportsTeamDrives=True, includeTeamDriveItems=True)
+    except (GAPI.invalidQuery, GAPI.invalid):
+      entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(selectSubQuery), i, count)
+      return
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
       return
@@ -22057,21 +22364,17 @@ def showFileTree(users):
   maxdepth = -1
   query = ME_IN_OWNERS
   fileIdEntity = initDriveFileEntity()
-  cleanFileIDsList(fileIdEntity, [u'root',])
-  selectSubQuery = None
+  selectSubQuery = u''
   showOwnedBy = fileTree = None
-  buildTree = True
+  buildTree = getTeamDriveNames = False
   mimeTypeCheck = initMimeTypeCheck()
   orderByList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'select':
       fileIdEntity = getDriveFileEntity(orphansOK=True, queryShortcutsOK=False)
-      buildTree = False
     elif myarg == u'selectsubquery':
       selectSubQuery = getString(Cmd.OB_QUERY, minLen=0)
-      if not selectSubQuery:
-        selectSubQuery = None
     elif myarg == u'orderby':
       getDrivefileOrderBy(orderByList)
     elif myarg == u'depth':
@@ -22090,6 +22393,17 @@ def showFileTree(users):
       getMimeTypeCheck(mimeTypeCheck)
     else:
       unknownArgumentExit()
+  buildTree = (not fileIdEntity[u'dict']
+               and not fileIdEntity[u'query']
+               and not fileIdEntity[u'teamdrivefilequery']
+               and not fileIdEntity[u'list'])
+  if buildTree:
+    if not fileIdEntity.get(u'teamdrive'):
+      btkwargs = {u'q': query}
+      cleanFileIDsList(fileIdEntity, [u'root',])
+    else:
+      btkwargs = fileIdEntity[u'teamdrive']
+      getTeamDriveNames = True
   orderBy = u','.join(orderByList) if orderByList else None
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -22099,28 +22413,41 @@ def showFileTree(users):
     if not drive:
       continue
     if buildTree:
-      try:
-        if not fileIdEntity.get(u'teamdrive'):
-          printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, qualifier=queryQualifier(query))
-          page_message = getPageMessageForWhom()
-          feed = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
-                               page_message=page_message,
-                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                               q=query, orderBy=orderBy, fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE,
-                               pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
-        else:
-          printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count)
-          page_message = getPageMessageForWhom()
-          feed = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
-                               page_message=page_message,
-                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
-                               orderBy=orderBy, fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE,
-                               pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **fileIdEntity[u'teamdrive'])
-        fileTree = buildFileTree(feed, drive)
-      except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, fileIdEntity[u'teamdrive'][u'teamDriveId']], str(e), i, count)
-      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+      printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, qualifier=queryQualifier(query))
+      page_message = getPageMessageForWhom()
+      pageToken = None
+      totalItems = 0
+      fileTree = initFileTree(drive, fileIdEntity.get(u'teamdrive'), getTeamDriveNames)
+      userError = False
+      while True:
+        try:
+          feed = callGAPI(drive.files(), u'list',
+                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                          pageToken=pageToken,
+                          orderBy=orderBy, fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE,
+                          pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
+          if feed:
+            pageToken = feed.get(u'nextPageToken')
+            if VX_PAGES_FILES in feed:
+              totalItems += len(feed[VX_PAGES_FILES])
+              show_message = page_message.replace(TOTAL_ITEMS_MARKER, str(totalItems))
+              writeStderr(show_message.format(Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, totalItems)))
+              extendFileTree(fileTree, feed[VX_PAGES_FILES])
+            del feed
+          else:
+            pageToken = None
+          if not pageToken:
+            break
+        except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
+          entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, fileIdEntity[u'teamdrive'][u'teamDriveId']], str(e), i, count)
+          userError = True
+          break
+        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+          userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+          userError = True
+          break
+      if userError:
+        continue
     else:
       fileTree = {}
     user, drive, jcount = _validateUserGetFileIDs(origUser, i, count, fileIdEntity, drive=drive, entityType=Ent.DRIVE_FOLDER)
@@ -22469,35 +22796,57 @@ GOOGLEDOC_VALID_EXTENSIONS_MAP = {
   MIMETYPE_GA_SPREADSHEET: [u'.csv', u'.ods', u'.pdf', u'.xlsx', u'zip'],
   }
 
+MICROSOFT_FORMATS_LIST = [{u'mime': u'application/vnd.openxmlformats-officedocument.wordprocessingml.document', u'ext': u'.docx'},
+                          {u'mime': u'application/vnd.openxmlformats-officedocument.wordprocessingml.template', u'ext': u'.dotx'},
+                          {u'mime': u'application/vnd.openxmlformats-officedocument.presentationml.presentation', u'ext': u'.pptx'},
+                          {u'mime': u'application/vnd.openxmlformats-officedocument.presentationml.template', u'ext': u'.potx'},
+                          {u'mime': u'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', u'ext': u'.xlsx'},
+                          {u'mime': u'application/vnd.openxmlformats-officedocument.spreadsheetml.template', u'ext': u'.xltx'},
+                          {u'mime': u'application/msword', u'ext': u'.doc'},
+                          {u'mime': u'application/msword', u'ext': u'.dot'},
+                          {u'mime': u'application/vnd.ms-powerpoint', u'ext': u'.ppt'},
+                          {u'mime': u'application/vnd.ms-powerpoint', u'ext': u'.pot'},
+                          {u'mime': u'application/vnd.ms-excel', u'ext': u'.xls'},
+                          {u'mime': u'application/vnd.ms-excel', u'ext': u'.xlt'}]
+
 DOCUMENT_FORMATS_MAP = {
   u'csv': [{u'mime': u'text/csv', u'ext': u'.csv'}],
+  u'doc': [{u'mime': u'application/msword', u'ext': u'.doc'}],
+  u'dot': [{u'mime': u'application/msword', u'ext': u'.dot'}],
+  u'docx': [{u'mime': u'application/vnd.openxmlformats-officedocument.wordprocessingml.document', u'ext': u'.docx'}],
+  u'dotx': [{u'mime': u'application/vnd.openxmlformats-officedocument.wordprocessingml.template', u'ext': u'.dotx'}],
+  u'epub': [{u'mime': u'application/epub+zip', u'ext': u'.epub'}],
   u'html': [{u'mime': u'text/html', u'ext': u'.html'}],
-  u'txt': [{u'mime': u'text/plain', u'ext': u'.txt'}],
-  u'tsv': [{u'mime': u'text/tsv', u'ext': u'.tsv'}],
   u'jpeg': [{u'mime': u'image/jpeg', u'ext': u'.jpeg'}],
   u'jpg': [{u'mime': u'image/jpeg', u'ext': u'.jpg'}],
-  u'png': [{u'mime': u'image/png', u'ext': u'.png'}],
-  u'svg': [{u'mime': u'image/svg+xml', u'ext': u'.svg'}],
-  u'pdf': [{u'mime': u'application/pdf', u'ext': u'.pdf'}],
-  u'rtf': [{u'mime': u'application/rtf', u'ext': u'.rtf'}],
-  u'zip': [{u'mime': u'application/zip', u'ext': u'.zip'}],
-  u'pptx': [{u'mime': u'application/vnd.openxmlformats-officedocument.presentationml.presentation', u'ext': u'.pptx'}],
-  u'xlsx': [{u'mime': u'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', u'ext': u'.xlsx'}],
-  u'docx': [{u'mime': u'application/vnd.openxmlformats-officedocument.wordprocessingml.document', u'ext': u'.docx'}],
-  u'ms': [{u'mime': u'application/vnd.openxmlformats-officedocument.presentationml.presentation', u'ext': u'.pptx'},
-          {u'mime': u'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', u'ext': u'.xlsx'},
-          {u'mime': u'application/vnd.openxmlformats-officedocument.wordprocessingml.document', u'ext': u'.docx'}],
-  u'microsoft': [{u'mime': u'application/vnd.openxmlformats-officedocument.presentationml.presentation', u'ext': u'.pptx'},
-                 {u'mime': u'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', u'ext': u'.xlsx'},
-                 {u'mime': u'application/vnd.openxmlformats-officedocument.wordprocessingml.document', u'ext': u'.docx'}],
-  u'micro$oft': [{u'mime': u'application/vnd.openxmlformats-officedocument.presentationml.presentation', u'ext': u'.pptx'},
-                 {u'mime': u'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', u'ext': u'.xlsx'},
-                 {u'mime': u'application/vnd.openxmlformats-officedocument.wordprocessingml.document', u'ext': u'.docx'}],
-  u'odt': [{u'mime': u'application/vnd.oasis.opendocument.text', u'ext': u'.odt'}],
-  u'ods': [{u'mime': u'application/x-vnd.oasis.opendocument.spreadsheet', u'ext': u'.ods'}],
-  u'openoffice': [{u'mime': u'application/vnd.oasis.opendocument.text', u'ext': u'.odt'},
-                  {u'mime': u'application/x-vnd.oasis.opendocument.spreadsheet', u'ext': u'.ods'}],
   u'mht': [{u'mime': u'message/rfc822', u'ext': u'mht'}],
+  u'odp': [{u'mime': u'application/vnd.oasis.opendocument.presentation', u'ext': u'.odp'}],
+  u'ods': [{u'mime': u'application/x-vnd.oasis.opendocument.spreadsheet', u'ext': u'.ods'},
+           {u'mime': u'application/vnd.oasis.opendocument.spreadsheet', u'ext': u'.ods'}],
+  u'odt': [{u'mime': u'application/vnd.oasis.opendocument.text', u'ext': u'.odt'}],
+  u'pdf': [{u'mime': u'application/pdf', u'ext': u'.pdf'}],
+  u'png': [{u'mime': u'image/png', u'ext': u'.png'}],
+  u'ppt': [{u'mime': u'application/vnd.ms-powerpoint', u'ext': u'.ppt'}],
+  u'pot': [{u'mime': u'application/vnd.ms-powerpoint', u'ext': u'.pot'}],
+  u'potx': [{u'mime': u'application/vnd.openxmlformats-officedocument.presentationml.template', u'ext': u'.potx'}],
+  u'pptx': [{u'mime': u'application/vnd.openxmlformats-officedocument.presentationml.presentation', u'ext': u'.pptx'}],
+  u'rtf': [{u'mime': u'application/rtf', u'ext': u'.rtf'}],
+  u'svg': [{u'mime': u'image/svg+xml', u'ext': u'.svg'}],
+  u'tsv': [{u'mime': u'text/tab-separated-values', u'ext': u'.tsv'},
+           {u'mime': u'text/tsv', u'ext': u'.tsv'}],
+  u'txt': [{u'mime': u'text/plain', u'ext': u'.txt'}],
+  u'xls': [{u'mime': u'application/vnd.ms-excel', u'ext': u'.xls'}],
+  u'xlt': [{u'mime': u'application/vnd.ms-excel', u'ext': u'.xlt'}],
+  u'xlsx': [{u'mime': u'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', u'ext': u'.xlsx'}],
+  u'xltx': [{u'mime': u'application/vnd.openxmlformats-officedocument.spreadsheetml.template', u'ext': u'.xltx'}],
+  u'zip': [{u'mime': u'application/zip', u'ext': u'.zip'}],
+  u'ms': MICROSOFT_FORMATS_LIST,
+  u'microsoft': MICROSOFT_FORMATS_LIST,
+  u'micro$oft': MICROSOFT_FORMATS_LIST,
+  u'openoffice': [{u'mime': u'application/vnd.oasis.opendocument.presentation', u'ext': u'.odp'},
+                  {u'mime': u'application/x-vnd.oasis.opendocument.spreadsheet', u'ext': u'.ods'},
+                  {u'mime': u'application/vnd.oasis.opendocument.spreadsheet', u'ext': u'.ods'},
+                  {u'mime': u'application/vnd.oasis.opendocument.text', u'ext': u'.odt'}],
   }
 
 # gam <UserTypeEntity> get drivefile <DriveFileEntity> [format <FileFormatList>] [targetfolder <FilePath>] [revision <Number>]
@@ -22542,7 +22891,8 @@ def getDriveFile(users):
       try:
         result = callGAPI(drive.files(), u'get',
                           throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
-                          fileId=fileId, fields=u'name,mimeType,size', supportsTeamDrives=True)
+                          fileId=fileId, fields=u'name,fileExtension,mimeType,size', supportsTeamDrives=True)
+        extension = result.get(u'fileExtension')
         mimeType = result[u'mimeType']
         if mimeType == MIMETYPE_GA_FOLDER:
           entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, result[VX_FILENAME]], Msg.CAN_NOT_BE_DOWNLOADED, j, jcount)
@@ -22562,7 +22912,7 @@ def getDriveFile(users):
           googleDoc = False
         fileDownloaded = fileDownloadFailed = False
         for exportFormat in exportFormats:
-          extension = exportFormat[u'ext']
+          extension = extension or exportFormat[u'ext']
           if googleDoc and (extension not in validExtensions):
             continue
           safe_file_title = cleanFilename(result[VX_FILENAME])
@@ -23612,7 +23962,7 @@ def emptyDriveTrash(users):
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
   else:
     Act.Set(Act.PURGE)
-    fileIdEntity[u'teamdrivequery'] = u'trashed = true'
+    fileIdEntity[u'teamdrivefilequery'] = u'trashed = true'
     for user in users:
       i += 1
       user, drive, jcount = _validateUserGetTeamDriveFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER)
@@ -23683,9 +24033,7 @@ def _showDriveFilePermission(permission, printKeys, timeObjects, i=0, count=0):
       printKeyValueList([key, formatLocalTime(value)])
   Ind.Decrement()
 
-# gam <UserTypeEntity> add drivefileacl <DriveFileEntity> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
-#	(role reader|commenter|writer|owner|editor|organizer) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>] [sendmail] [emailmessage <String>] [showtitles]
-def addDriveFileACL(users):
+def _addDriveFileACL(users, useDomainAdminAccess):
   sendNotificationEmail = showTitles = _transferOwnership = False
   emailMessage = None
   fileIdEntity = getDriveFileEntity()
@@ -23721,6 +24069,8 @@ def addDriveFileACL(users):
       emailMessage = getString(Cmd.OB_STRING)
     elif myarg == u'showtitles':
       showTitles = True
+    elif myarg in [u'adminaccess', u'asadmin']:
+      useDomainAdminAccess = True
     else:
       unknownArgumentExit()
   if u'role' not in body:
@@ -23739,7 +24089,7 @@ def addDriveFileACL(users):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER_ACL)
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER_ACL, useDomainAdminAccess=useDomainAdminAccess)
     if jcount == 0:
       continue
     Ind.Increment()
@@ -23755,6 +24105,7 @@ def addDriveFileACL(users):
                               throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST,
                                                                              GAPI.OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                                                              GAPI.ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED],
+                              useDomainAdminAccess=useDomainAdminAccess,
                               fileId=fileId, sendNotificationEmail=sendNotificationEmail, emailMessage=emailMessage,
                               transferOwnership=_transferOwnership, body=body, fields=u'*', supportsTeamDrives=True)
         entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
@@ -23769,9 +24120,17 @@ def addDriveFileACL(users):
         break
     Ind.Decrement()
 
-# gam <UserTypeEntity> update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail>
-#	(role reader|commenter|writer|owner|editor|organizer) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>] [removeexpiration [<Boolean>]] [showtitles]
-def updateDriveFileACLs(users):
+# gam <UserTypeEntity> add drivefileacl <DriveFileEntity> [adminaccess|asadmin] anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
+#	(role reader|commenter|writer|owner|editor|organizer) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>] [sendmail] [emailmessage <String>] [showtitles]
+def addDriveFileACL(users):
+  _addDriveFileACL(users, False)
+
+# gam add drivefileacl <DriveFileEntity> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
+#	(role reader|commenter|writer|owner|editor|organizer) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>] [sendmail] [emailmessage <String>] [showtitles]
+def doAddDriveFileACL():
+  _addDriveFileACL([_getValueFromOAuth(u'email')], True)
+
+def _updateDriveFileACLs(users, useDomainAdminAccess):
   fileIdEntity = getDriveFileEntity()
   body = {}
   isEmail, permissionId = getPermissionId()
@@ -23796,6 +24155,8 @@ def updateDriveFileACLs(users):
     elif myarg == u'transferownership':
       deprecatedArgument(myarg)
       getBoolean()
+    elif myarg in [u'adminaccess', u'asadmin']:
+      useDomainAdminAccess = True
     else:
       unknownArgumentExit()
   if removeExpiration is None and u'role' not in body:
@@ -23812,7 +24173,7 @@ def updateDriveFileACLs(users):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER_ACL)
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER_ACL, useDomainAdminAccess=useDomainAdminAccess)
     if jcount == 0:
       continue
     Ind.Increment()
@@ -23829,6 +24190,7 @@ def updateDriveFileACLs(users):
                                                                              GAPI.OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                                                              GAPI.ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                                                              GAPI.FIELD_NOT_WRITABLE, GAPI.PERMISSION_NOT_FOUND],
+                              useDomainAdminAccess=useDomainAdminAccess,
                               fileId=fileId, permissionId=permissionId, removeExpiration=removeExpiration,
                               transferOwnership=_transferOwnership, body=body, fields=u'*', supportsTeamDrives=True)
         entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
@@ -23844,8 +24206,17 @@ def updateDriveFileACLs(users):
         break
     Ind.Decrement()
 
-# gam <UserTypeEntity> add permissions <DriveFileEntity> <DriveFilePermissionsEntity> [expiration <Time>] [sendmail] [emailmessage <String>]
-def addDriveFilePermissions(users):
+# gam <UserTypeEntity> update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [adminaccess|asadmin]
+#	(role reader|commenter|writer|owner|editor|organizer) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>] [removeexpiration [<Boolean>]] [showtitles]
+def updateDriveFileACLs(users):
+  _updateDriveFileACLs(users, False)
+
+# gam update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail>
+#	(role reader|commenter|writer|owner|editor|organizer) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>] [removeexpiration [<Boolean>]] [showtitles]
+def doUpdateDriveFileACLs():
+  _updateDriveFileACLs([_getValueFromOAuth(u'email')], True)
+
+def _addDriveFilePermissions(users, useDomainAdminAccess):
 
   def _makePermissionBody(permission):
     body = {}
@@ -23893,6 +24264,7 @@ def addDriveFilePermissions(users):
                                                                 GAPI.OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                                                 GAPI.ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED],
                  retry_reasons=[GAPI.SERVICE_LIMIT],
+                 useDomainAdminAccess=useDomainAdminAccess,
                  fileId=ri[RI_ENTITY], sendNotificationEmail=sendNotificationEmail, emailMessage=emailMessage, body=_makePermissionBody(ri[RI_ITEM]), fields=u'')
         entityActionPerformed([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
@@ -23914,13 +24286,15 @@ def addDriveFilePermissions(users):
     elif myarg == u'emailmessage':
       sendNotificationEmail = True
       emailMessage = getString(Cmd.OB_STRING)
+    elif myarg in [u'adminaccess', u'asadmin']:
+      useDomainAdminAccess = True
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     origUser = user
-    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER_ACL)
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER_ACL, useDomainAdminAccess=useDomainAdminAccess)
     if jcount == 0:
       continue
     try:
@@ -23932,6 +24306,7 @@ def addDriveFilePermissions(users):
       continue
     Ind.Increment()
     svcargs = dict([(u'fileId', None), (u'sendNotificationEmail', sendNotificationEmail), (u'emailMessage', emailMessage),
+                    (u'useDomainAdminAccess', useDomainAdminAccess),
                     (u'body', None), (u'fields', u''), (u'supportsTeamDrives', True)]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(drive.permissions(), u'create')
     dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackAddPermission)
@@ -23966,12 +24341,26 @@ def addDriveFilePermissions(users):
       executeBatch(dbatch)
     Ind.Decrement()
 
-# gam <UserTypeEntity> delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles]
-def deleteDriveFileACLs(users):
+# gam <UserTypeEntity> add permissions <DriveFileEntity> <DriveFilePermissionsEntity> [adminaccess|asadmin] [expiration <Time>] [sendmail] [emailmessage <String>]
+def addDriveFilePermissions(users):
+  _addDriveFilePermissions(users, False)
+
+# gam add permissions <DriveFileEntity> <DriveFilePermissionsEntity> [expiration <Time>] [sendmail] [emailmessage <String>]
+def doAddPermissions():
+  _addDriveFilePermissions([_getValueFromOAuth(u'email')], True)
+
+def _deleteDriveFileACLs(users, useDomainAdminAccess):
   fileIdEntity = getDriveFileEntity()
   isEmail, permissionId = getPermissionId()
-  showTitles = True if checkArgumentPresent(Cmd.SHOWTITLES_ARGUMENT) else False
-  checkForExtraneousArguments()
+  showTitles = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'showtitles':
+      showTitles = getBoolean()
+    elif myarg in [u'adminaccess', u'asadmin']:
+      useDomainAdminAccess = True
+    else:
+      unknownArgumentExit()
   if isEmail:
     permissionId = validateUserGetPermissionId(permissionId)
     if not permissionId:
@@ -23979,7 +24368,7 @@ def deleteDriveFileACLs(users):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER_ACL)
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER_ACL, useDomainAdminAccess=useDomainAdminAccess)
     if jcount == 0:
       continue
     Ind.Increment()
@@ -23993,6 +24382,7 @@ def deleteDriveFileACLs(users):
           fileName, entityType = _getDriveFileNameFromId(drive, fileId)
         callGAPI(drive.permissions(), u'delete',
                  throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.PERMISSION_NOT_FOUND],
+                 useDomainAdminAccess=useDomainAdminAccess,
                  fileId=fileId, permissionId=permissionId, supportsTeamDrives=True)
         entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
@@ -24004,8 +24394,15 @@ def deleteDriveFileACLs(users):
         break
     Ind.Decrement()
 
-# gam <UserTypeEntity> delete permissions <DriveFileEntity> <DriveFilePermissionIDEntity>
-def deletePermissions(users):
+# gam <UserTypeEntity> delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [adminaccess|asadmin] [showtitles]
+def deleteDriveFileACLs(users):
+  _deleteDriveFileACLs(users, False)
+
+# gam delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles]
+def doDeleteDriveFileACLs():
+  _deleteDriveFileACLs([_getValueFromOAuth(u'email')], True)
+
+def _deletePermissions(users, useDomainAdminAccess):
 
   def _callbackDeletePermissionId(request_id, response, exception):
     ri = request_id.splitlines()
@@ -24027,6 +24424,7 @@ def deletePermissions(users):
         callGAPI(drive.permissions(), u'delete',
                  throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.PERMISSION_NOT_FOUND],
                  retry_reasons=[GAPI.SERVICE_LIMIT],
+                 useDomainAdminAccess=useDomainAdminAccess,
                  fileId=ri[RI_ENTITY], permissionId=ri[RI_ITEM], supportsTeamDrives=True)
         entityActionPerformed([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMISSION_ID, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
@@ -24036,12 +24434,17 @@ def deletePermissions(users):
   fileIdEntity = getDriveFileEntity()
   permissionIds = getEntityList(Cmd.OB_DRIVE_FILE_PERMISSION_ID_ENTITY)
   permissionIdsLists = permissionIds if isinstance(permissionIds, dict) else None
-  checkForExtraneousArguments()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg in [u'adminaccess', u'asadmin']:
+      useDomainAdminAccess = True
+    else:
+      unknownArgumentExit()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     origUser = user
-    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER_ACL)
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER_ACL, useDomainAdminAccess=useDomainAdminAccess)
     if jcount == 0:
       continue
     try:
@@ -24052,7 +24455,7 @@ def deletePermissions(users):
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
       continue
     Ind.Increment()
-    svcargs = dict([(u'fileId', None), (u'permissionId', None), (u'supportsTeamDrives', True)]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    svcargs = dict([(u'fileId', None), (u'permissionId', None), (u'useDomainAdminAccess', useDomainAdminAccess), (u'supportsTeamDrives', True)]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(drive.permissions(), u'delete')
     dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackDeletePermissionId)
     bcount = 0
@@ -24083,7 +24486,15 @@ def deletePermissions(users):
       executeBatch(dbatch)
     Ind.Decrement()
 
-def _printShowDriveFileACLs(users, csvFormat):
+# gam <UserTypeEntity> delete permissions <DriveFileEntity> <DriveFilePermissionIDEntity> [adminaccess|asadmin]
+def deletePermissions(users):
+  _deletePermissions(users, False)
+
+# gam delete permissions <DriveFileEntity> <DriveFilePermissionIDEntity>
+def doDeletePermissions():
+  _deletePermissions([_getValueFromOAuth(u'email')], True)
+
+def _printShowDriveFileACLs(users, csvFormat, useDomainAdminAccess):
   if csvFormat:
     todrive = {}
     titles, csvRows = initializeTitlesCSVfile([u'Owner', u'id'])
@@ -24103,6 +24514,8 @@ def _printShowDriveFileACLs(users, csvFormat):
       showTitles = True
       if csvFormat:
         addTitlesToCSVfile([fileNameTitle], titles)
+    elif myarg in [u'adminaccess', u'asadmin']:
+      useDomainAdminAccess = True
     else:
       unknownArgumentExit()
   orderBy = u','.join(orderByList) if orderByList else None
@@ -24114,7 +24527,7 @@ def _printShowDriveFileACLs(users, csvFormat):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][csvFormat], orderBy=orderBy)
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][csvFormat], orderBy=orderBy, useDomainAdminAccess=useDomainAdminAccess)
     if jcount == 0:
       continue
     Ind.Increment()
@@ -24128,6 +24541,7 @@ def _printShowDriveFileACLs(users, csvFormat):
           fileName, entityType = _getDriveFileNameFromId(drive, fileId, not csvFormat)
         results = callGAPIpages(drive.permissions(), u'list', VX_PAGES_PERMISSIONS,
                                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                                useDomainAdminAccess=useDomainAdminAccess,
                                 fileId=fileId, fields=VX_NPT_PERMISSIONS, supportsTeamDrives=True)
         if not csvFormat:
           kcount = len(results)
@@ -24165,21 +24579,48 @@ def _printShowDriveFileACLs(users, csvFormat):
     sortCSVTitles([u'Owner', u'id', fileNameTitle], titles)
     writeCSVfile(csvRows, titles, u'Drive File ACLs', todrive)
 
-# gam <UserTypeEntity> print drivefileacl <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+# gam <UserTypeEntity> print drivefileacl <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] [adminaccess|asadmin] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 def printDriveFileACLs(users):
-  _printShowDriveFileACLs(users, True)
+  _printShowDriveFileACLs(users, True, False)
 
-# gam <UserTypeEntity> show drivefileacl <DriveFileEntity> [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+# gam <UserTypeEntity> show drivefileacl <DriveFileEntity> [adminaccess|asadmin] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 def showDriveFileACLs(users):
-  _printShowDriveFileACLs(users, False)
+  _printShowDriveFileACLs(users, False, False)
 
-# gam <UserTypeEntity> create teamdrive <Name> [themeid <String>]
+# gam print drivefileacl <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+def doPrintDriveFileACLs():
+  _printShowDriveFileACLs([_getValueFromOAuth(u'email')], True, True)
+
+# gam show drivefileacl <DriveFileEntity> [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+def doShowDriveFileACLs():
+  _printShowDriveFileACLs([_getValueFromOAuth(u'email')], False, True)
+
+def _getTeamDriveTheme(myarg, body):
+  if myarg in [u'theme', u'themeid']:
+    body.pop(u'backgroundImageFile', None)
+    body.pop(u'colorRgb', None)
+    body[u'themeId'] = getString(Cmd.OB_STRING, checkBlank=True)
+  elif myarg == u'customtheme':
+    body.pop(u'themeId', None)
+    body[u'backgroundImageFile'] = {
+      u'id': getString(Cmd.OB_DRIVE_FILE_ID, checkBlank=True),
+      u'xCoordinate': getFloat(minVal=0.0, maxVal=1.0),
+      u'yCoordinate': getFloat(minVal=0.0, maxVal=1.0),
+      u'width': getFloat(minVal=0.0, maxVal=1.0)
+      }
+  elif myarg == u'color':
+    body.pop(u'themeId', None)
+    body[u'colorRgb'] = getColorHexAttribute()
+  else:
+    unknownArgumentExit()
+
+# gam <UserTypeEntity> create teamdrive <Name> [theme|themeid <String>]
 def createTeamDrive(users):
   requestId = text_type(uuid.uuid4())
   body = {u'name': getString(Cmd.OB_NAME, checkBlank=True)}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == u'themeid':
+    if myarg in [u'theme', u'themeid']:
       body[u'themeId'] = getString(Cmd.OB_STRING, checkBlank=True)
     else:
       unknownArgumentExit()
@@ -24201,7 +24642,7 @@ def createTeamDrive(users):
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
 
-# gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>] [themeid <String>]
+# gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>] [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 def updateTeamDrive(users):
   fileIdEntity = getTeamDriveEntity()
   body = {}
@@ -24209,10 +24650,8 @@ def updateTeamDrive(users):
     myarg = getArgument()
     if myarg == u'name':
       body[VX_FILENAME] = getString(Cmd.OB_NAME, checkBlank=True)
-    elif myarg == u'themeid':
-      body[u'themeId'] = getString(Cmd.OB_STRING, checkBlank=True)
     else:
-      unknownArgumentExit()
+      _getTeamDriveTheme(myarg, body)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -24284,10 +24723,14 @@ def _showTeamDrive(user, teamdrive, j, jcount):
     Ind.Decrement()
   Ind.Decrement()
 
-# gam <UserTypeEntity> info teamdrive <TeamDriveEntity>
-def infoTeamDrive(users):
+def _infoTeamDrive(users, useDomainAdminAccess):
   fileIdEntity = getTeamDriveEntity()
-  checkForExtraneousArguments()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg in [u'adminaccess', u'asadmin']:
+      useDomainAdminAccess = True
+    else:
+      unknownArgumentExit()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -24298,6 +24741,7 @@ def infoTeamDrive(users):
       teamDriveId = fileIdEntity[u'teamdrive'][u'teamDriveId']
       teamdrive = callGAPI(drive.teamdrives(), u'get',
                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND],
+                           useDomainAdminAccess=useDomainAdminAccess,
                            teamDriveId=teamDriveId, fields=u'id,name,backgroundImageLink,colorRgb,capabilities')
       _showTeamDrive(user, teamdrive, i, count)
     except GAPI.teamDriveNotFound as e:
@@ -24305,22 +24749,34 @@ def infoTeamDrive(users):
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
 
-def _printShowTeamDrives(users, csvFormat):
+# gam <UserTypeEntity> info teamdrive <TeamDriveEntity> [adminaccess|asadmin]
+def infoTeamDrive(users):
+  _infoTeamDrive(users, False)
+
+# gam info teamdrive <TeamDriveEntity>
+def doInfoTeamDrive():
+  _infoTeamDrive([_getValueFromOAuth(u'email')], True)
+
+def _printShowTeamDrives(users, csvFormat, useDomainAdminAccess):
   if csvFormat:
     todrive = {}
     titles, csvRows = initializeTitlesCSVfile([u'User', u'id', u'name'])
   roles = set()
   checkGroups = False
-  cd = None
+  cd = query = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
+    elif myarg in [u'teamdriveadminquery', u'query']:
+      query = getString(Cmd.OB_QUERY, minLen=0) or None
     elif myarg == u'role':
       roles.add(getChoice(DRIVEFILE_ACL_ROLES_MAP, mapChoice=True))
     elif myarg == u'checkgroups':
       checkGroups = True
       cd = buildGAPIObject(API.DIRECTORY)
+    elif myarg in [u'adminaccess', u'asadmin']:
+      useDomainAdminAccess = True
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
@@ -24331,8 +24787,9 @@ def _printShowTeamDrives(users, csvFormat):
       continue
     try:
       feed = callGAPIpages(drive.teamdrives(), u'list', u'teamDrives',
-                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                           fields=u'teamDrives(id,name,backgroundImageLink,colorRgb,capabilities)', pageSize=10)
+                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.QUERY_REQUIRES_ADMIN_CREDENTIALS, GAPI.NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE],
+                           q=query, useDomainAdminAccess=useDomainAdminAccess,
+                           fields=u'nextPageToken,teamDrives(id,name,backgroundImageLink,colorRgb,capabilities)', pageSize=100)
       if roles:
         roleFeed = collections.deque()
         while feed:
@@ -24340,6 +24797,7 @@ def _printShowTeamDrives(users, csvFormat):
           try:
             results = callGAPIpages(drive.permissions(), u'list', VX_PAGES_PERMISSIONS,
                                     throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                                    useDomainAdminAccess=useDomainAdminAccess,
                                     fileId=teamDrive[u'id'], fields=VX_NPT_PERMISSIONS_TYPE_EMAIL_ROLE, supportsTeamDrives=True)
             for permission in results:
               if (permission[u'role'] in roles) and (permission[u'type'] == u'user') and (permission[u'emailAddress'] == user):
@@ -24376,19 +24834,29 @@ def _printShowTeamDrives(users, csvFormat):
         else:
           for teamdrive in feed:
             addRowTitlesToCSVfile(flattenJSON(teamdrive, flattened={u'User': user}), csvRows, titles)
+    except (GAPI.invalidQuery, GAPI.invalid, GAPI.queryRequiresAdminCredentials, GAPI.noListTeamDrivesAdministratorPrivilege) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE, None], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
   if csvFormat:
     sortCSVTitles([u'User', u'id', u'name'], titles)
     writeCSVfile(csvRows, titles, u'TeamDrives', todrive)
 
-# gam <UserTypeEntity> print teamdrives (role commenter|organizer|owner|reader|writer)* [checkgroups] [todrive [<ToDriveAttributes>]]
+# gam <UserTypeEntity> print teamdrives [adminaccess|asadmin [query <QueryTeamDrive>]] (role commenter|organizer|owner|reader|writer)* [checkgroups] [todrive [<ToDriveAttributes>]]
 def printTeamDrives(users):
-  _printShowTeamDrives(users, True)
+  _printShowTeamDrives(users, True, False)
 
-# gam <UserTypeEntity> show teamdrives (role commenter|organizer|owner|reader|writer)* [checkgroups]
+# gam <UserTypeEntity> show teamdrives [adminaccess|asadmin [query <QueryTeamDrive>]] (role commenter|organizer|owner|reader|writer)* [checkgroups]
 def showTeamDrives(users):
-  _printShowTeamDrives(users, False)
+  _printShowTeamDrives(users, False, False)
+
+# gam print teamdrives [query <QueryTeamDrive>] (role commenter|organizer|owner|reader|writer)* [checkgroups] [todrive [<ToDriveAttributes>]]
+def doPrintTeamDrives():
+  _printShowTeamDrives([_getValueFromOAuth(u'email')], True, True)
+
+# gam show teamdrives [query <QueryTeamDrive>] (role commenter|organizer|owner|reader|writer)* [checkgroups]
+def doShowTeamDrives():
+  _printShowTeamDrives([_getValueFromOAuth(u'email')], False, True)
 
 # gam <UserTypeEntity> delete alias|aliases
 def deleteUsersAliases(users):
@@ -28815,7 +29283,9 @@ MAIN_COMMANDS_WITH_OBJECTS = {
   u'add':
     {CMD_ACTION: Act.ADD,
      CMD_FUNCTION:
-       {Cmd.ARG_SITEACLS:	doProcessDomainSiteACLs,
+       {Cmd.ARG_DRIVEFILEACL:	doAddDriveFileACL,
+        Cmd.ARG_PERMISSIONS:	doAddPermissions,
+        Cmd.ARG_SITEACLS:	doProcessDomainSiteACLs,
        },
      CMD_OBJ_ALIASES:
        {Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
@@ -28905,12 +29375,14 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_COURSES:	doDeleteCourses,
         Cmd.ARG_DOMAIN:		doDeleteDomain,
         Cmd.ARG_DOMAIN_ALIAS:	doDeleteDomainAlias,
+        Cmd.ARG_DRIVEFILEACLS:	doDeleteDriveFileACLs,
         Cmd.ARG_GROUPS:		doDeleteGroups,
         Cmd.ARG_GUARDIAN: 	doDeleteGuardian,
         Cmd.ARG_MOBILES:	doDeleteMobileDevices,
         Cmd.ARG_NOTIFICATION:	doDeleteNotification,
         Cmd.ARG_ORG:		doDeleteOrg,
         Cmd.ARG_ORGS:		doDeleteOrgs,
+        Cmd.ARG_PERMISSIONS:	doDeletePermissions,
         Cmd.ARG_PRINTERS:	doDeletePrinters,
         Cmd.ARG_PROJECTS:	doDeleteProjects,
         Cmd.ARG_RESOLDSUBSCRIPTION:	doDeleteResoldSubscription,
@@ -28930,6 +29402,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         u'class':		Cmd.ARG_COURSE,
         Cmd.ARG_CONTACT:	Cmd.ARG_CONTACTS,
         Cmd.ARG_DOMAIN_ALIASES:	Cmd.ARG_DOMAIN_ALIAS,
+        Cmd.ARG_DRIVEFILEACL:	Cmd.ARG_DRIVEFILEACLS,
         Cmd.ARG_GROUP:		Cmd.ARG_GROUPS,
         Cmd.ARG_GUARDIANS:	Cmd.ARG_GUARDIAN,
         Cmd.ARG_HOLD:		Cmd.ARG_VAULTHOLD,
@@ -28980,6 +29453,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_SCHEMAS:	doInfoUserSchemas,
         Cmd.ARG_SITES:		doInfoDomainSites,
         Cmd.ARG_SITEACLS:	doProcessDomainSiteACLs,
+        Cmd.ARG_TEAMDRIVE:	doInfoTeamDrive,
         Cmd.ARG_USER:		doInfoUser,
         Cmd.ARG_USERS:		doInfoUsers,
         Cmd.ARG_VAULTHOLD:	doInfoVaultHold,
@@ -29014,6 +29488,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_SCHEMA:		Cmd.ARG_SCHEMAS,
         Cmd.ARG_SITE:		Cmd.ARG_SITES,
         Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
+        Cmd.ARG_TEAMDRIVES:	Cmd.ARG_TEAMDRIVE,
         u'transfer':		Cmd.ARG_DATA_TRANSFER,
         Cmd.ARG_VAULTHOLDS:	Cmd.ARG_VAULTHOLD,
         Cmd.ARG_VAULTMATTERS:	Cmd.ARG_VAULTMATTER,
@@ -29034,6 +29509,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_DATA_TRANSFERS:	doPrintDataTransfers,
         Cmd.ARG_DOMAINS:	doPrintDomains,
         Cmd.ARG_DOMAIN_ALIASES:	doPrintDomainAliases,
+        Cmd.ARG_DRIVEFILEACLS:	doPrintDriveFileACLs,
         Cmd.ARG_GAL:		doPrintGAL,
         Cmd.ARG_GROUP_MEMBERS:	doPrintGroupMembers,
         Cmd.ARG_GROUPS:		doPrintGroups,
@@ -29050,6 +29526,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_SCHEMAS:	doPrintUserSchemas,
         Cmd.ARG_SITES:		doPrintDomainSites,
         Cmd.ARG_SITEACTIVITY:	doPrintDomainSiteActivity,
+        Cmd.ARG_TEAMDRIVES:	doPrintTeamDrives,
         Cmd.ARG_TOKENS:		doPrintTokens,
         Cmd.ARG_TRANSFERAPPS:	doPrintTransferApps,
         Cmd.ARG_USERS:		doPrintUsers,
@@ -29067,6 +29544,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         u'class-participants':	Cmd.ARG_COURSE_PARTICIPANTS,
         u'courseparticipants':	Cmd.ARG_COURSE_PARTICIPANTS,
         Cmd.ARG_DOMAIN_ALIAS:	Cmd.ARG_DOMAIN_ALIASES,
+        Cmd.ARG_DRIVEFILEACL:	Cmd.ARG_DRIVEFILEACLS,
         Cmd.ARG_GROUP:		Cmd.ARG_GROUPS,
         Cmd.ARG_GROUPMEMBERS:	Cmd.ARG_GROUP_MEMBERS,
         Cmd.ARG_GROUPSMEMBERS:	Cmd.ARG_GROUP_MEMBERS,
@@ -29088,6 +29566,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_ROLES:		Cmd.ARG_ADMINROLES,
         Cmd.ARG_SCHEMA:		Cmd.ARG_SCHEMAS,
         Cmd.ARG_SITE:		Cmd.ARG_SITES,
+        Cmd.ARG_TEAMDRIVE:	Cmd.ARG_TEAMDRIVES,
         Cmd.ARG_TOKEN:		Cmd.ARG_TOKENS,
         Cmd.ARG_VAULTHOLD:	Cmd.ARG_VAULTHOLDS,
         Cmd.ARG_VAULTMATTER:	Cmd.ARG_VAULTMATTERS,
@@ -29110,6 +29589,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
        {Cmd.ARG_ADMINROLES:	doShowAdminRoles,
         Cmd.ARG_ADMINS:		doShowAdmins,
         Cmd.ARG_CONTACTS:	doShowDomainContacts,
+        Cmd.ARG_DRIVEFILEACLS:	doShowDriveFileACLs,
         Cmd.ARG_GAL:		doShowGAL,
         Cmd.ARG_GROUP_MEMBERS:	doShowGroupMembers,
         Cmd.ARG_GUARDIANS: 	doShowGuardians,
@@ -29120,11 +29600,14 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_SCHEMAS:	doShowUserSchemas,
         Cmd.ARG_SITES:		doShowDomainSites,
         Cmd.ARG_SITEACLS:	doProcessDomainSiteACLs,
+        Cmd.ARG_TEAMDRIVES:	doShowTeamDrives,
+        Cmd.ARG_TEAMDRIVETHEMES:	doShowTeamDriveThemes,
         Cmd.ARG_VAULTHOLDS:	doShowVaultHolds,
         Cmd.ARG_VAULTMATTERS:	doShowVaultMatters,
        },
      CMD_OBJ_ALIASES:
        {Cmd.ARG_CONTACT:	Cmd.ARG_CONTACTS,
+        Cmd.ARG_DRIVEFILEACL:	Cmd.ARG_DRIVEFILEACLS,
         Cmd.ARG_GROUPMEMBERS:	Cmd.ARG_GROUP_MEMBERS,
         Cmd.ARG_GROUPSMEMBERS:	Cmd.ARG_GROUP_MEMBERS,
         Cmd.ARG_GROUPS_MEMBERS:	Cmd.ARG_GROUP_MEMBERS,
@@ -29141,6 +29624,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_SCHEMA:		Cmd.ARG_SCHEMAS,
         Cmd.ARG_SITE:		Cmd.ARG_SITES,
         Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
+        Cmd.ARG_TEAMDRIVE:	Cmd.ARG_TEAMDRIVES,
         Cmd.ARG_VAULTHOLD:	Cmd.ARG_VAULTHOLDS,
         Cmd.ARG_VAULTMATTER:	Cmd.ARG_VAULTMATTERS,
        },
@@ -29165,6 +29649,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_CROSES:		doUpdateCrOSDevices,
         Cmd.ARG_CUSTOMER:	doUpdateCustomer,
         Cmd.ARG_DOMAIN:		doUpdateDomain,
+        Cmd.ARG_DRIVEFILEACLS:	doUpdateDriveFileACLs,
         Cmd.ARG_INSTANCE:	doUpdateInstance,
         Cmd.ARG_GROUPS:		doUpdateGroups,
         Cmd.ARG_MOBILES:	doUpdateMobileDevices,
@@ -29191,6 +29676,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         u'class':		Cmd.ARG_COURSE,
         Cmd.ARG_CONTACT:	Cmd.ARG_CONTACTS,
         Cmd.ARG_CROS:		Cmd.ARG_CROSES,
+        Cmd.ARG_DRIVEFILEACL:	Cmd.ARG_DRIVEFILEACLS,
         Cmd.ARG_GROUP:		Cmd.ARG_GROUPS,
         Cmd.ARG_HOLD:		Cmd.ARG_VAULTHOLD,
         Cmd.ARG_HOLDS:		Cmd.ARG_VAULTHOLD,
@@ -29844,6 +30330,7 @@ USER_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_SHEET:		Cmd.ARG_SHEETS,
         Cmd.ARG_SITE:		Cmd.ARG_SITES,
         Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
+        Cmd.ARG_TEAMDRIVES:	Cmd.ARG_TEAMDRIVE,
         Cmd.ARG_USER:		Cmd.ARG_USERS,
        },
     },
@@ -29994,6 +30481,7 @@ USER_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_SITES:		showUserSites,
         Cmd.ARG_SITEACLS:	processUserSiteACLs,
         Cmd.ARG_TEAMDRIVES:	showTeamDrives,
+        Cmd.ARG_TEAMDRIVETHEMES:	showTeamDriveThemes,
         Cmd.ARG_THREADS:	showThreads,
         Cmd.ARG_TOKENS:		showTokens,
         Cmd.ARG_VACATION:	showVacation,

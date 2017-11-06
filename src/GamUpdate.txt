@@ -1,3 +1,50 @@
+4.54.46
+
+Improved memory usage of print filelist/show filetree.
+
+Added additional column headers to gam print users output when groups or licenses options are specified.
+* groups - a column labeled GroupsCount is output indicating the number of groups to which the user belongs.
+* licenses - a column labeled LicensesCount is output indicating the number of licenses the user holds.
+
+Thanks to Jay for providing a color name table for use when specifying colors for calendars, drive folders and Team Drives.
+For example, you can now specify purple instead of #800080.
+
+<ColorName> ::=
+	aliceblue|antiquewhite|aqua|aquamarine|azure|beige|bisque|black|blanchedalmond|blue|blueviolet|brown|burlywood|
+	cadetblue|chartreuse|chocolate|coral|cornflowerblue|cornsilk|crimson|cyan|
+	darkblue|darkcyan|darkgoldenrod|darkgray|darkgrey|darkgreen|darkkhaki|darkmagenta|darkolivegreen|darkorange|darkorchid|darkred|
+	darksalmon|darkseagreen|darkslateblue|darkslategray|darkslategrey|darkturquoise|darkviolet|deeppink|deepskyblue|dimgray|dimgrey|dodgerblue|
+	firebrick|floralwhite|forestgreen|fuchsia|gainsboro|ghostwhite|gold|goldenrod|gray|grey|green|greenyellow|
+	honeydew|hotpink|indianred|indigo|ivory|khaki|
+	lavender|lavenderblush|lawngreen|lemonchiffon|lightblue|lightcoral|lightcyan|lightgoldenrodyellow|lightgray|lightgrey|lightgreen|lightpink|
+	lightsalmon|lightseagreen|lightskyblue|lightslategray|lightslategrey|lightsteelblue|lightyellow|lime|limegreen|linen|
+	magenta|maroon|mediumaquamarine|mediumblue|mediumorchid|mediumpurple|mediumseagreen|mediumslateblue|
+	mediumspringgreen|mediumturquoise|mediumvioletred|midnightblue|mintcream|mistyrose|moccasin|navajowhite|navy|
+	oldlace|olive|olivedrab|orange|orangered|orchid|palegoldenrod|palegreen|paleturquoise|palevioletred|
+	papayawhip|peachpuff|peru|pink|plum|powderblue|purple|red|rosybrown|royalblue|
+	saddlebrown|salmon|sandybrown|seagreen|seashell|sienna|silver|skyblue|slateblue|slategray|slategrey|snow|springgreen|steelblue|
+	tan|teal|thistle|tomato|turquoise|violet|wheat|white|whitesmoke|yellow|yellowgreen
+<ColorHex> ::= #<Hex><Hex><Hex><Hex><Hex><Hex>
+<ColorValue> ::= <ColorName>|<ColorHex>
+
+<CalendarAttributes> ::=
+	(backgroundcolor <ColorValue>)|
+	(foregroundcolor <ColorValue>)
+<DriveFileAttributes> ::=
+	(folderColorRgb <ColorValue>)
+
+Thanks to Jay for providing impetus to add customtheme and color options to gam update teamdrive.
+
+gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>] [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+gam <UserTypeEntity> show teamdrivethemes
+* customtheme - set the backgroundImageFile property described here:  https://developers.google.com/drive/v3/reference/teamdrives
+* color - set the Team Drive color
+
+Google enhanced the ability of domain administrators to manage Team Drives.
+See: https://developers.google.com/drive/v3/web/manage-teamdrives#managing_team_drives_for_domain_administrators
+
+See: https://github.com/taers232c/GAMADV-XTD/wiki/Domain-Administrator-Team-Drives
+
 4.54.45
 
 Code cleanup for email settings commands: arrows, language, pagesize, shortcuts, snippets, utf, webclips.
@@ -2277,7 +2324,7 @@ Added S/MIME support thanks to Jay. You must be a G Suite Enterprise customer to
 Fixed todrive. 
 
 Restore gam calendar/calendars commands.
-The column labelled id in gam print calendars has been changed to calendarId.
+The column labeled id in gam print calendars has been changed to calendarId.
 
 Code clean up.
 Documentation updates.
@@ -2748,7 +2795,7 @@ Added suspended argument to gam update group clear so that only suspended member
 
 4.39.08
 
-Added shownoneditable argument to gam print aliases; this will show noneditable aliases in a column labelled NonEditableAlias.
+Added shownoneditable argument to gam print aliases; this will show noneditable aliases in a column labeled NonEditableAlias.
 
 4.39.07
 
@@ -3450,7 +3497,7 @@ To verify the selection, do: gam group_users <GroupList> [members] [managers] [o
 Example: gam group_users sales,marketing members recursive primarydomain print
 Example: gam info users group_users sales,marketing members recursive primarydomain nogroups nolicenses noaliases name ou
 
-Added a new column to the CSV file produced by print|show driveactivity. Currently, there is a column labelled eventTimeMillis which gives the time of the event
+Added a new column to the CSV file produced by print|show driveactivity. Currently, there is a column labeled eventTimeMillis which gives the time of the event
 in milliseconds since the start of the current epoch. The new column is eventTime which show eventTimeMillis in the format yyyy-mm-ddThh:mm:ssZ.
 
 Added timezone variable to gam.cfg. Google provides most times in UTC, this variable can be used to convert those times to local time.

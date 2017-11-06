@@ -15,6 +15,7 @@ If an item contains spaces, it should be surrounded by ".
 <Character> ::= a single character
 <Digit> ::= 0|1|2|3|4|5|6|7|8|9
 <Number> ::= <Digit>+
+<Float> ::= <Digit>*.<Digit>+
 <Hex> ::= <Digit>|a|b|c|d|e|f|A|B|C|D|E|F
 <Space> ::= an actual space character
 <String> ::= a string of characters, surrounded by " if it contains spaces
@@ -22,15 +23,33 @@ If an item contains spaces, it should be surrounded by ".
 <TrueValues> ::= true|on|yes|enabled|1
 
 <Charset> ::= ascii|latin1|mbcs|utf-8|utf-8-sig|utf-16|<String>
-<FileFormat> ::= csv|html|txt|tsv|jpeg|jpg|png|svg|pdf|rtf|pptx|xlsx|docx|odt|ods|openoffice|ms|microsoft|micro$oft
+<ColorName> ::=
+	aliceblue|antiquewhite|aqua|aquamarine|azure|beige|bisque|black|blanchedalmond|blue|blueviolet|brown|burlywood|
+	cadetblue|chartreuse|chocolate|coral|cornflowerblue|cornsilk|crimson|cyan|
+	darkblue|darkcyan|darkgoldenrod|darkgray|darkgrey|darkgreen|darkkhaki|darkmagenta|darkolivegreen|darkorange|darkorchid|darkred|
+	darksalmon|darkseagreen|darkslateblue|darkslategray|darkslategrey|darkturquoise|darkviolet|deeppink|deepskyblue|dimgray|dimgrey|dodgerblue|
+	firebrick|floralwhite|forestgreen|fuchsia|gainsboro|ghostwhite|gold|goldenrod|gray|grey|green|greenyellow|
+	honeydew|hotpink|indianred|indigo|ivory|khaki|
+	lavender|lavenderblush|lawngreen|lemonchiffon|lightblue|lightcoral|lightcyan|lightgoldenrodyellow|lightgray|lightgrey|lightgreen|lightpink|
+	lightsalmon|lightseagreen|lightskyblue|lightslategray|lightslategrey|lightsteelblue|lightyellow|lime|limegreen|linen|
+	magenta|maroon|mediumaquamarine|mediumblue|mediumorchid|mediumpurple|mediumseagreen|mediumslateblue|
+	mediumspringgreen|mediumturquoise|mediumvioletred|midnightblue|mintcream|mistyrose|moccasin|navajowhite|navy|
+	oldlace|olive|olivedrab|orange|orangered|orchid|palegoldenrod|palegreen|paleturquoise|palevioletred|
+	papayawhip|peachpuff|peru|pink|plum|powderblue|purple|red|rosybrown|royalblue|
+	saddlebrown|salmon|sandybrown|seagreen|seashell|sienna|silver|skyblue|slateblue|slategray|slategrey|snow|springgreen|steelblue|
+	tan|teal|thistle|tomato|turquoise|violet|wheat|white|whitesmoke|yellow|yellowgreen
+<FileFormat> ::=
+	csv|doc|dot|docx|dotx|epub|html|jpeg|jpg|mht|odp|ods|odt|
+	pdf|png|ppt|pot|potx|pptx|rtf|svg|tsv|txt|xls|xlt|xlsx|xltx|zip|
+	ms|microsoft|openoffice|
 <Language> ::=
 	ach|af|ag|ak|am|ar|az|be|bem|bg|bn|br|bs|ca|chr|ckb|co|crs|cs|cy|da|de|ee|el|en|en-gb|en-us|eo|es|es-419|et|eu|
 	fa|fi|fo|fr|fr-ca|fy|ga|gaa|gd|gl|gn|gu|ha|haw|he|hi|hr|ht|hu|hy|ia|id|ig|in|is|it|iw|ja|jw|
 	ka|kg|kk|km|kn|ko|kri|ku|ky|la|lg|ln|lo|loz|lt|lua|lv|mfe|mg|mi|mk|ml|mn|mo|mr|ms|mt|my|
 	ne|nl|nn|no|nso|ny|nyn|oc|om|or|pa|pcm|pl|ps|pt-br|pt-pt|qu|rm|rn|ro|ru|rw|
-	sd|sh||si|sk|sl|sn|so|sq|sr|sr-me|st|su|sv|sw|ta|te|tg|th|ti|tk|tl|tn|to|tr|tt|tum|tw|
+	sd|sh|si|sk|sl|sn|so|sq|sr|sr-me|st|su|sv|sw|ta|te|tg|th|ti|tk|tl|tn|to|tr|tt|tum|tw|
 	ug|uk|ur|uz|vi|wo|xh|yi|yo|zh-cn|zh-hk|zh-tw|zu
-<MimeType> ::=
+<MimeTypeShortcut> ::=
 	gdoc|gdocument|
 	gdrawing|
 	gfolder|gdirectory|
@@ -40,8 +59,9 @@ If an item contains spaces, it should be surrounded by ".
 	gpresentation|
 	gscript|
 	gsite|
-	gsheet|gspreadsheet|
-	<String>
+	gsheet|gspreadsheet
+<MimeTypeName> ::= application|audio|font|image|message|model|multipart|text|video
+<MimeType> ::= <MimeTypeShortcut>|(<MimeTypeName>/<String>)
 <MimeTypeList> ::= "<MimeType>(,<MimeType>)*"
 <ProductID> ::=
 	Google-Apps|
@@ -197,6 +217,7 @@ If an item contains spaces, it should be surrounded by ".
 <CalendarColorIndex> ::== <Number in range 1-24>
 <CalendarItem> ::= <EmailAddress>|<String>
 <ClientID> ::= <String>
+<ColorValue> ::= <ColorName>|<ColorHex>
 <ContactID> ::= <String>
 <ContactGroupID> ::= id:<String>
 <ContactGroupName> ::= <String>
@@ -267,6 +288,7 @@ If an item contains spaces, it should be surrounded by ".
 <QueryMobile> ::= <String> See: https://support.google.com/a/answer/1408863?hl=en#search
 <QueryPrinter> ::= <String> See: https://developers.google.com/cloud-print/docs/appInterfaces#search
 <QueryPrintJob> ::= <String> See: https://developers.google.com/cloud-print/docs/appInterfaces#parameters_3
+<QueryTeamDrive> ::= <String> See: https://developers.google.com/drive/v3/web/search-parameters#team_drive_fields
 <QueryUser> :: = <String> See: https://developers.google.com/admin-sdk/directory/v1/guides/search-users
 <QueryVaultCorpus> ::= <String> See: https://developers.google.com/vault/reference/rest/v1/matters.holds#CorpusQuery
 <RequestID> ::= <String>
@@ -427,8 +449,13 @@ Specify a collection of items by directly specifying them; the item type is dete
 	my_files | my_folders | my_google_files | my_non_google_files | my_items |
 	others_files | others_folders | others_google_files | others_non_google_files | others_items |
 	writable_files
-<TeamDriveIDEntity> ::= (teamdriveid <DriveFileItem>) | (teamdriveid:<DriveFileItem>)
+<TeamDriveIDEntity> ::= (<DriveFileItem>) | (teamdriveid <DriveFileItem>) | (teamdriveid:<DriveFileItem>)
 <TeamDriveNameEntity> ::= (teamdrive <TeamDriveName>) | (teamdrive:<TeamDriveName>)
+<TeamDriveAdminQueryEntity> ::= (teamdriveadminquery <QueryTeamDrive>) | (teamdriveadminquery:<QueryTeamDrive>)
+<TeamDriveEntityAdmin> ::=
+	<TeamDriveIDEntity> |
+	<TeamDriveNameEntity>|
+	<TeamDriveAdminQueryEntity> 
 <TeamDriveFileNameEntity> ::= (teamdrivefilename <DriveFileName>) | (teamdrivefilename:<DriveFileName>)
 <TeamDriveFileQueryEntity> ::= (teamdrivequery <QueryDriveFile>) | (teamdrivequery:<QueryDriveFile>)
 <TeamDriveFileQueryShortcut> ::=
@@ -1475,6 +1502,47 @@ gam [<UserTypeEntity>] delete siteacls <SiteEntity> <SiteACLScopeEntity>
 gam [<UserTypeEntity>] info siteacls <SiteEntity> <SiteACLScopeEntity>
 gam [<UserTypeEntity>] show siteacls  <SiteEntity>
 
+# Team Drives
+
+In these commands, the Google administrator named in oauth2.txt is used.
+
+gam show teamdrivethemes
+gam info teamdrive <TeamDriveEntity>
+gam print teamdrives [teamdriveadminquery|query <QueryTeamDrive>] (role commenter|organizer|owner|reader|writer)* [checkgroups] [todrive [<ToDriveAttributes>]]
+gam show teamdrives [teamdriveadminquery|query <QueryTeamDrive>] (role commenter|organizer|owner|reader|writer)* [checkgroups]
+
+In these commands, you specify a user and then indicate that you want domain administrator access with the adminaccess option.
+
+gam <UserTypeEntity> info teamdrive <TeamDriveEntity> adminaccess
+gam <UserTypeEntity> print teamdrives adminaccess [teamdriveadminquery|query <QueryTeamDrive>] (role commenter|organizer|owner|reader|writer)* [checkgroups] [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> show teamdrives adminaccess [teamdriveadminquery|query <QueryTeamDrive>] (role commenter|organizer|owner|reader|writer)* [checkgroups]
+
+These commands are used to manage the ACLs on the Team Drives themselves, not the files/folders on the Team Drives.
+
+In these commands, the Google administrator named in oauth2.txt is used.
+
+gam add drivefileacl <TeamDriveEntityAdmin> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
+	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [sendemail] [emailmessage <String>] [showtitles]
+gam update drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail>
+	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles]
+gam delete drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles]
+gam show drivefileacl <TeamDriveEntityAdmin> [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+gam print drivefileacls <TeamDriveEntityAdmin> [todrive [<ToDriveAttributes>]] [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+gam add permissions <TeamDriveEntityAdmin> <DriveFilePermissionEntity> [expires|expiration <Time>] [sendemail] [emailmessage <String>]
+gam delete permissions <TeamDriveEntityAdmin> <DriveFilePermissionIDEntity>
+
+In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
+
+gam <UserTypeEntity> add drivefileacl <TeamDriveEntityAdmin> adminaccess anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
+	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [sendemail] [emailmessage <String>] [showtitles]
+gam <UserTypeEntity> update drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> adminaccess
+	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles]
+gam <UserTypeEntity> delete drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> adminaccess [showtitles]
+gam <UserTypeEntity> show drivefileacl <TeamDriveEntityAdmin> adminaccess [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+gam <UserTypeEntity> print drivefileacls <TeamDriveEntityAdmin> [todrive [<ToDriveAttributes>]] adminaccess [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+gam <UserTypeEntity> add permissions <TeamDriveEntityAdmin> <DriveFilePermissionEntity> adminaccess [expires|expiration <Time>] [sendemail] [emailmessage <String>]
+gam <UserTypeEntity> delete permissions <TeamDriveEntityAdmin> <DriveFilePermissionIDEntity> adminaccess
+
 # Vault
 
 gam create vaulthold|hold corpus drive|groups|mail matter <MatterItem> [name <String>] [query <QueryVaultCorpus>]
@@ -1663,9 +1731,9 @@ gam <UserTypeEntity> show backupcodes|verificationcodes
 	<CalendarSelectProperties>+
 
 <CalendarAttributes> ::=
-	(backgroundcolor <ColorHex>)|
+	(backgroundcolor <ColorValue>)|
 	(colorindex|colorid <CalendarColorIndex>)|
-	(foregroundcolor <ColorHex>)|
+	(foregroundcolor <ColorValue>)|
 	(hidden <Boolean>)|
 	(notification clear|(email|sms eventcreation|eventchange|eventcancellation|eventresponse|agenda))|
 	(reminder clear|(email|sms|pop <Number>)|(<Number> email|sms|pop))|
@@ -1809,7 +1877,7 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 
 <DriveFileAttributes> ::=
 	(description <String>)|
-	(folderColorRgb <ColorHex>)|
+	(folderColorRgb <ColorValue>)|
 	(indexabletext <String>)|
 	(keeprevisionforever|pinned)|
 	(lastviewedbyme <Time>)|
@@ -2269,8 +2337,9 @@ gam <UserTypeEntity> show profile
 
 # Users - Team Drives
 
-gam <UserTypeEntity> create teamdrive <Name> [themeid <String>]
-gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>] [themeid <String>]
+gam <UserTypeEntity> show teamdrivethemes
+gam <UserTypeEntity> create teamdrive <Name> [theme|themeid <String>]
+gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>] [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 gam <UserTypeEntity> delete teamdrive <TeamDriveEntity>
 gam <UserTypeEntity> info teamdrive <TeamDriveEntity>
 gam <UserTypeEntity> print teamdrives (role commenter|organizer|owner|reader|writer)* [checkgroups] [todrive [<ToDriveAttributes>]]

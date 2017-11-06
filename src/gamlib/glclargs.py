@@ -322,6 +322,7 @@ class GamCLArgs(object):
   ARG_SMIMES = u'smimes'
   ARG_TEAMDRIVE = u'teamdrive'
   ARG_TEAMDRIVES = u'teamdrives'
+  ARG_TEAMDRIVETHEMES = u'teamdrivethemes'
   ARG_THREAD = u'thread'
   ARG_THREADS = u'threads'
   ARG_TOKEN = u'token'
@@ -354,7 +355,6 @@ class GamCLArgs(object):
   PRIMARY_NOTPRIMARY_CHOICE_MAP = {u'primary': True, u'notprimary': False}
   QUOTE_CHAR_ARGUMENT = [u'quotechar',]
   QUERY_ARGUMENT = [u'query',]
-  SHOWTITLES_ARGUMENT = [u'showtitles',]
   TODRIVE_ARGUMENT = [u'todrive',]
   TO_ARGUMENT = [u'to',]
   UNSTRUCTURED_FORMATTED_ARGUMENT = [u'unstructured', u'formatted',]

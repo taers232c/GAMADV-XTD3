@@ -166,6 +166,7 @@ class GamEntity(object):
   TEAMDRIVE = u'tdrv'
   TEAMDRIVE_ID = u'tdid'
   TEAMDRIVE_NAME = u'tdna'
+  TEAMDRIVE_THEME = u'tdth'
   THREAD = u'thre'
   TOKEN = u'tokn'
   TRANSFER_ID = u'trid'
@@ -321,6 +322,7 @@ class GamEntity(object):
     TEAMDRIVE: [u'TeamDrives', u'TeamDrive'],
     TEAMDRIVE_ID: [u'TeamDrive IDs', u'TeamDrive ID'],
     TEAMDRIVE_NAME: [u'TeamDrive Names', u'TeamDrive Name'],
+    TEAMDRIVE_THEME: [u'TeamDrive Themes', u'TeamDrive Theme'],
     THREAD: [u'Threads', u'Thread'],
     TOKEN: [u'Tokens', u'Token'],
     TRANSFER_ID: [u'Transfer IDs', u'Transfer ID'],
