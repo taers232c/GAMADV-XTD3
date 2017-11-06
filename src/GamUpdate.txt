@@ -1,3 +1,15 @@
+4.54.57
+
+Added commands to stay compatible with Jay's Gam.
+gam show teamdriveinfo <TeamDriveEntity>
+gam <UserTypeEntity> show teamdriveinfo <TeamDriveEntity> adminaccess
+gam <UserTypeEntity> show teamdriveinfo <TeamDriveEntity>
+
+Equivalent GAMADVX-TD commands.
+gam info teamdrive <TeamDriveEntity>
+gam <UserTypeEntity> info teamdrive <TeamDriveEntity> adminaccess
+gam <UserTypeEntity> info teamdrive <TeamDriveEntity>
+
 4.54.46
 
 Improved memory usage of print filelist/show filetree.

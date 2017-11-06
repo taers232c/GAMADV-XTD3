@@ -1508,12 +1508,14 @@ In these commands, the Google administrator named in oauth2.txt is used.
 
 gam show teamdrivethemes
 gam info teamdrive <TeamDriveEntity>
+gam show teamdriveinfo <TeamDriveEntity>
 gam print teamdrives [teamdriveadminquery|query <QueryTeamDrive>] (role commenter|organizer|owner|reader|writer)* [checkgroups] [todrive [<ToDriveAttributes>]]
 gam show teamdrives [teamdriveadminquery|query <QueryTeamDrive>] (role commenter|organizer|owner|reader|writer)* [checkgroups]
 
 In these commands, you specify a user and then indicate that you want domain administrator access with the adminaccess option.
 
 gam <UserTypeEntity> info teamdrive <TeamDriveEntity> adminaccess
+gam <UserTypeEntity> show teamdriveinfo <TeamDriveEntity> adminaccess
 gam <UserTypeEntity> print teamdrives adminaccess [teamdriveadminquery|query <QueryTeamDrive>] (role commenter|organizer|owner|reader|writer)* [checkgroups] [todrive [<ToDriveAttributes>]]
 gam <UserTypeEntity> show teamdrives adminaccess [teamdriveadminquery|query <QueryTeamDrive>] (role commenter|organizer|owner|reader|writer)* [checkgroups]
 
@@ -2342,6 +2344,7 @@ gam <UserTypeEntity> create teamdrive <Name> [theme|themeid <String>]
 gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>] [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 gam <UserTypeEntity> delete teamdrive <TeamDriveEntity>
 gam <UserTypeEntity> info teamdrive <TeamDriveEntity>
+gam <UserTypeEntity> show teamdriveinfo <TeamDriveEntity>
 gam <UserTypeEntity> print teamdrives (role commenter|organizer|owner|reader|writer)* [checkgroups] [todrive [<ToDriveAttributes>]]
 gam <UserTypeEntity> show teamdrives (role commenter|organizer|owner|reader|writer)* [checkgroups]
 

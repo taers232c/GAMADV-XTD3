@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.46'
+__version__ = u'4.54.47'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -29601,6 +29601,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_SITES:		doShowDomainSites,
         Cmd.ARG_SITEACLS:	doProcessDomainSiteACLs,
         Cmd.ARG_TEAMDRIVES:	doShowTeamDrives,
+        Cmd.ARG_TEAMDRIVEINFO:	doInfoTeamDrive,
         Cmd.ARG_TEAMDRIVETHEMES:	doShowTeamDriveThemes,
         Cmd.ARG_VAULTHOLDS:	doShowVaultHolds,
         Cmd.ARG_VAULTMATTERS:	doShowVaultMatters,
@@ -30481,6 +30482,7 @@ USER_COMMANDS_WITH_OBJECTS = {
         Cmd.ARG_SITES:		showUserSites,
         Cmd.ARG_SITEACLS:	processUserSiteACLs,
         Cmd.ARG_TEAMDRIVES:	showTeamDrives,
+        Cmd.ARG_TEAMDRIVEINFO:	infoTeamDrive,
         Cmd.ARG_TEAMDRIVETHEMES:	showTeamDriveThemes,
         Cmd.ARG_THREADS:	showThreads,
         Cmd.ARG_TOKENS:		showTokens,
