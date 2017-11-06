@@ -20353,10 +20353,11 @@ def getTeamDriveEntity():
     fileIdEntity[u'teamdrive'][u'teamDriveId'] = myarg
   return fileIdEntity
 
-def _convertTeamDriveNameToId(drive, user, i, count, fileIdEntity):
+def _convertTeamDriveNameToId(drive, user, i, count, fileIdEntity, useDomainAdminAccess=False):
   try:
     feed = callGAPIpages(drive.teamdrives(), u'list', u'teamDrives',
                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                         useDomainAdminAccess=useDomainAdminAccess,
                          fields=u'nextPageToken,teamDrives(id,name)', pageSize=100)
     tddrivenamelower = fileIdEntity[u'teamdrivename'].lower()
     for td in feed:
@@ -20515,12 +20516,12 @@ def _validateUserGetTeamDriveFileIDs(user, i, count, fileIdEntity, drive=None, e
     entityPerformActionNumItems([Ent.USER, user], l, entityType, i, count)
   return (user, drive, l)
 
-def _validateUserTeamDrive(user, i, count, fileIdEntity):
+def _validateUserTeamDrive(user, i, count, fileIdEntity, useDomainAdminAccess=False):
   user, drive = buildGAPIServiceObject(API.DRIVE3, user)
   if not drive:
     return (user, None)
   if fileIdEntity.get(u'teamdrivename'):
-    if not _convertTeamDriveNameToId(drive, user, i, count, fileIdEntity):
+    if not _convertTeamDriveNameToId(drive, user, i, count, fileIdEntity, useDomainAdminAccess=useDomainAdminAccess):
       return (user, None)
     fileIdEntity[u'teamdrive'][u'corpora'] = u'teamDrive'
   return (user, drive)
@@ -24734,7 +24735,7 @@ def _infoTeamDrive(users, useDomainAdminAccess):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, drive = _validateUserTeamDrive(user, i, count, fileIdEntity)
+    user, drive = _validateUserTeamDrive(user, i, count, fileIdEntity, useDomainAdminAccess=useDomainAdminAccess)
     if not drive:
       continue
     try:
