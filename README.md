@@ -2,11 +2,13 @@ GAMADV-X3
 ========
 GAMADV-X3 is a free, open source command line tool for Google G Suite Administrators to manage domain and user settings quickly and easily.
 
+GAMADV-X3 requires G Suite for Business, Education, Partner or Government Edition. Google Apps Free Edition has limited API support and not all GAM commands work.
+
 GAMADV-X3 is a rewrite/extension of Jay Lee's [GAM](https://github.com/jay0lee/GAM), without his efforts, this version wouldn't exist.
 
 Documentation
 -------------
-General GAM documentation is hosted in the [GitHub Wiki]. Documentation specifically for GAMADV-X3 is hosted in the [GitHub GAMADV-X Wiki] and in Gam*.txt files.
+General GAM documentation is hosted in the [GitHub Wiki]. Documentation specifically for GAMADV-X3 is hosted in the [GitHub GAMADV-XTD Wiki] and in Gam*.txt files.
 
 Downloads
 ---------
@@ -21,12 +23,12 @@ Installation - New Users
 Read GamConfig.txt.
 
 Enter the following gam commands and follow instructions to create the necessary authorizations.
-- Build gam.cfg: ```gam config verify```
-- Build GAM Project for authorization: ```gam create project```
-- Authorize Gam Client: ```gam oauth create```
-- Authorize Service Account: ```gam user <email address> check serviceaccount```
+- Build gam.cfg: `gam config verify`
+- Build GAM Project for authorization: `gam create project`
+- Authorize Gam Client: `gam oauth create`
+- Authorize Service Account: `gam user <email address> check serviceaccount`
 
-Installation - Upgrading from a GAM version other than a prior version of GAMADV-X3 or GAMADV-X or GAMADV-XTD
+Installation - Upgrading from a GAM version other than a prior version of GAMADV-X3 or GAMADV-XTD or GAMADV-X
 -------------------------------------------------------------------------------------------------------------
 Read GamConfig.txt.
 
@@ -775,5 +777,5 @@ GAMADV-X3 is maintained by <a href="mailto:ross.scroggs@gmail.com">Ross Scroggs<
 [GitHub Releases]: https://github.com/taers232c/GAMADV-X3/releases
 [GitHub]: https://github.com/taers232c/GAMADV-X3/tree/master
 [GitHub Wiki]: https://github.com/jay0lee/GAM/wiki/
-[GitHub GAMADV-X Wiki]: https://github.com/taers232c/GAMADV-X/wiki/
+[GitHub GAMADV-XTD Wiki]: https://github.com/taers232c/GAMADV-XTD/wiki/
 [Google Groups]: http://groups.google.com/group/google-apps-manager
