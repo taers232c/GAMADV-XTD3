@@ -2340,7 +2340,7 @@ gam <UserTypeEntity> show profile
 # Users - Team Drives
 
 gam <UserTypeEntity> show teamdrivethemes
-gam <UserTypeEntity> create teamdrive <Name> [theme|themeid <String>]
+gam <UserTypeEntity> create teamdrive <Name> [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>] [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 gam <UserTypeEntity> delete teamdrive <TeamDriveEntity>
 gam <UserTypeEntity> info teamdrive <TeamDriveEntity>

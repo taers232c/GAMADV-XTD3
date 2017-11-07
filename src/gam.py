@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.47'
+__version__ = u'4.54.48'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -24615,16 +24615,17 @@ def _getTeamDriveTheme(myarg, body):
   else:
     unknownArgumentExit()
 
-# gam <UserTypeEntity> create teamdrive <Name> [theme|themeid <String>]
+# gam <UserTypeEntity> create teamdrive <Name> [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 def createTeamDrive(users):
   requestId = text_type(uuid.uuid4())
   body = {u'name': getString(Cmd.OB_NAME, checkBlank=True)}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg in [u'theme', u'themeid']:
-      body[u'themeId'] = getString(Cmd.OB_STRING, checkBlank=True)
-    else:
-      unknownArgumentExit()
+    _getTeamDriveTheme(myarg, body)
+  updateBody = {}
+  for field in [u'backgroundImageFile', u'colorRgb']:
+    if field in body:
+      updateBody[field] = body.pop(field)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -24632,10 +24633,21 @@ def createTeamDrive(users):
     if not drive:
       continue
     try:
+      Act.Set(Act.CREATE)
       teamdrive = callGAPI(drive.teamdrives(), u'create',
                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.DUPLICATE, GAPI.BAD_REQUEST],
                            requestId=requestId, body=body, fields=u'id')
-      entityActionPerformed([Ent.TEAMDRIVE_ID, teamdrive[u'id']], i, count)
+      teamDriveId = teamdrive[u'id']
+      entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
+      if updateBody:
+        try:
+          Act.Set(Act.UPDATE)
+          callGAPI(drive.teamdrives(), u'update',
+                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                   teamDriveId=teamDriveId, body=updateBody)
+          entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
+        except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.forbidden, GAPI.badRequest) as e:
+          entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
     except GAPI.duplicate:
       entityActionFailedWarning([Ent.USER, user, Ent.REQUEST_ID, requestId], Msg.DUPLICATE, i, count)
     except (GAPI.badRequest) as e:
@@ -24664,7 +24676,7 @@ def updateTeamDrive(users):
       callGAPI(drive.teamdrives(), u'update',
                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
                teamDriveId=teamDriveId, body=body)
-      entityActionPerformed([Ent.TEAMDRIVE_ID, teamDriveId], i, count)
+      entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
     except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.forbidden, GAPI.badRequest) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -24685,7 +24697,7 @@ def deleteTeamDrive(users):
       callGAPI(drive.teamdrives(), u'delete',
                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                teamDriveId=teamDriveId)
-      entityActionPerformed([Ent.TEAMDRIVE_ID, teamDriveId], i, count)
+      entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
     except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.forbidden) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:

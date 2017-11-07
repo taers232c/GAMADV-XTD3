@@ -1,4 +1,16 @@
-4.54.57
+4.54.48
+
+Fixed bug in gam update teamdrive command line parsing.
+
+Added customtheme and color options to gam create teamdrive. These options are not supported in the API when creating a Team Drive so GAM
+creates the Team Drive and then updates it with the specified values. If you use the theme|themeid option, no update is necessary as that
+option is supported when creating a Team Drive.
+
+gam <UserTypeEntity> create teamdrive <Name> [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+* customtheme - set the backgroundImageFile property described here:  https://developers.google.com/drive/v3/reference/teamdrives
+* color - set the Team Drive color
+
+4.54.47
 
 Added commands to stay compatible with Jay's Gam.
 gam show teamdriveinfo <TeamDriveEntity>
