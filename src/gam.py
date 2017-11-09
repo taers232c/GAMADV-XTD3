@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# GAM
+# GAMADV-X3
 #
-# Copyright 2015, LLC All Rights Reserved.
+# Copyright 2017, All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,14 +16,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-u"""GAM is a command line tool which allows Administrators to control their G Suite domain and accounts.
+u"""GAMADV-X3 is a command line tool which allows Administrators to control their G Suite domain and accounts.
 
-With GAM you can programatically create users, turn on/off services for users like POP and Forwarding and much more.
 For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.48'
+__version__ = u'4.54.49'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -888,9 +887,9 @@ WEBCOLOR_MAP = {
   }
 
 COLORHEX_PATTERN = re.compile(r'^#[0-9a-fA-F]{6}$')
-COLORHEX_FORMAT_REQUIRED = u'#ffffff'
+COLORHEX_FORMAT_REQUIRED = u'ColorName|ColorHex'
 
-def getColorHexAttribute():
+def getColor():
   if Cmd.ArgumentsRemaining():
     color = getChoice(WEBCOLOR_MAP, defaultChoice=None, mapChoice=True)
     if color:
@@ -13119,7 +13118,7 @@ def _processCalendarACLs(cal, function, entityType, calId, j, jcount, k, kcount,
     entityActionFailedWarning([entityType, calId, Ent.CALENDAR_ACL, formatACLScopeRole(ruleId, role)], str(e), k, kcount)
   return result
 
-def _addCalendarACLs(cal, entityType, calId, j, jcount, role, ruleIds, kcount):
+def _createCalendarACLs(cal, entityType, calId, j, jcount, role, ruleIds, kcount):
   Ind.Increment()
   k = 0
   for ruleId in ruleIds:
@@ -13129,14 +13128,14 @@ def _addCalendarACLs(cal, entityType, calId, j, jcount, role, ruleIds, kcount):
       break
   Ind.Decrement()
 
-def _doCalendarsAddACLs(origUser, user, cal, calIds, count, role, ACLScopeEntity):
+def _doCalendarsCreateACLs(origUser, user, cal, calIds, count, role, ACLScopeEntity):
   i = 0
   for calId in calIds:
     i += 1
     calId, cal, ruleIds, jcount = _normalizeCalIdGetRuleIds(origUser, user, cal, calId, i, count, ACLScopeEntity)
     if jcount == 0:
       continue
-    _addCalendarACLs(cal, Ent.CALENDAR, calId, i, count, role, ruleIds, jcount)
+    _createCalendarACLs(cal, Ent.CALENDAR, calId, i, count, role, ruleIds, jcount)
 
 def _updateDeleteCalendarACLs(cal, function, entityType, calId, j, jcount, role, body, ruleIds, kcount):
   Ind.Increment()
@@ -13218,19 +13217,19 @@ def _doPrintShowCalendarACLs(user, cal, calIds, count, csvFormat, csvRows, title
     except GAPI.notFound:
       entityUnknownWarning(Ent.CALENDAR, calId, i, count)
 
-# gam calendar <CalendarItem> add <CalendarACLRole> <ACLScope>
-def doCalendarsAddACL(cal, calIds):
+# gam calendar <CalendarItem> create|add <CalendarACLRole> <ACLScope>
+def doCalendarsCreateACL(cal, calIds):
   role = getChoice(CALENDAR_ACL_ROLES_MAP, mapChoice=True)
   ACLScopeEntity = getCalendarACLScope()
   checkForExtraneousArguments()
-  _doCalendarsAddACLs(None, None, cal, calIds, len(calIds), role, ACLScopeEntity)
+  _doCalendarsCreateACLs(None, None, cal, calIds, len(calIds), role, ACLScopeEntity)
 
-# gam calendars <CalendarEntity> add acls <CalendarACLRole> <ACLScopeEntity>
-def doCalendarsAddACLs(cal, calIds):
+# gam calendars <CalendarEntity> create|add acls <CalendarACLRole> <ACLScopeEntity>
+def doCalendarsCreateACLs(cal, calIds):
   role = getChoice(CALENDAR_ACL_ROLES_MAP, mapChoice=True)
   ACLScopeEntity = getCalendarSiteACLScopeEntity()
   checkForExtraneousArguments()
-  _doCalendarsAddACLs(None, None, cal, calIds, len(calIds), role, ACLScopeEntity)
+  _doCalendarsCreateACLs(None, None, cal, calIds, len(calIds), role, ACLScopeEntity)
 
 # gam calendar <CalendarItem> update <CalendarACLRole> <ACLScope>
 def doCalendarsUpdateACL(cal, calIds):
@@ -13650,8 +13649,8 @@ def _setEventRecurrenceTimeZone(cal, calId, body, i, count):
     entityServiceNotApplicableWarning(Ent.CALENDAR, calId, i, count)
   return False
 
-def _addCalendarEvents(user, cal, function, calIds, count,
-                       eventRecurrenceTimeZoneRequired, sendNotifications, body):
+def _createCalendarEvents(user, cal, function, calIds, count,
+                          eventRecurrenceTimeZoneRequired, sendNotifications, body):
   i = 0
   for calId in calIds:
     i += 1
@@ -13850,7 +13849,7 @@ def _printShowCalendarEvents(user, cal, calIds, count, calendarEventEntity, csvF
     elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT] and user:
       csvRows.append({u'calendarId': calId, u'primaryEmail': user})
 
-def _doCalendarsInsertImportEvent(cal, calIds, function):
+def _doCalendarsCreateImportEvent(cal, calIds, function):
   body = {}
   parameters = {u'sendNotifications': None}
   while Cmd.ArgumentsRemaining():
@@ -13859,17 +13858,17 @@ def _doCalendarsInsertImportEvent(cal, calIds, function):
       unknownArgumentExit()
   if (function == u'import') and (u'iCalUID' not in body):
     missingArgumentExit(Cmd.OB_ICALUID)
-  _addCalendarEvents(None, cal, function, calIds, len(calIds),
-                     _checkIfEventRecurrenceTimeZoneRequired(body, parameters), parameters[u'sendNotifications'], body)
+  _createCalendarEvents(None, cal, function, calIds, len(calIds),
+                        _checkIfEventRecurrenceTimeZoneRequired(body, parameters), parameters[u'sendNotifications'], body)
 
-# gam calendars <UserEntity> add event [id <String>] <EventAddAttributes>+
+# gam calendars <UserEntity> create|add event [id <String>] <EventAddAttributes>+
 # gam calendar <UserItem> addevent [id <String>] <EventAddAttributes>+
-def doCalendarsAddEvent(cal, calIds):
-  _doCalendarsInsertImportEvent(cal, calIds, u'insert')
+def doCalendarsCreateEvent(cal, calIds):
+  _doCalendarsCreateImportEvent(cal, calIds, u'insert')
 
 # gam calendars <UserEntity> import event icaluid <iCalUID> <EventImportAttributes>+
 def doCalendarsImportEvent(cal, calIds):
-  _doCalendarsInsertImportEvent(cal, calIds, u'import')
+  _doCalendarsCreateImportEvent(cal, calIds, u'import')
 
 # gam calendars <UserEntity> update event <EventEntity> <EventUpdateAttributes>+
 def doCalendarsUpdateEvents(cal, calIds):
@@ -13985,9 +13984,9 @@ def _normalizeResourceIdGetRuleIds(resourceId, i, count, ACLScopeEntity):
     setSysExitRC(NO_ENTITIES_FOUND)
   return (calId, ruleIds, jcount)
 
-# gam resource <ResourceID> add calendaracls <CalendarACLRole> <ACLScopeEntity>
-# gam resources <ResourceEntity> add calendaracls <CalendarACLRole> <ACLScopeEntity>
-def doResourceAddCalendarACLs(entityList):
+# gam resource <ResourceID> create|add calendaracls <CalendarACLRole> <ACLScopeEntity>
+# gam resources <ResourceEntity> create|add calendaracls <CalendarACLRole> <ACLScopeEntity>
+def doResourceCreateCalendarACLs(entityList):
   cal = buildGAPIObject(API.CALENDAR)
   role = getChoice(CALENDAR_ACL_ROLES_MAP, mapChoice=True)
   ACLScopeEntity = getCalendarSiteACLScopeEntity()
@@ -13999,7 +13998,7 @@ def doResourceAddCalendarACLs(entityList):
     calId, ruleIds, jcount = _normalizeResourceIdGetRuleIds(resourceId, i, count, ACLScopeEntity)
     if jcount == 0:
       continue
-    _addCalendarACLs(cal, Ent.RESOURCE_CALENDAR, calId, i, count, role, ruleIds, jcount)
+    _createCalendarACLs(cal, Ent.RESOURCE_CALENDAR, calId, i, count, role, ruleIds, jcount)
 
 def _resourceUpdateDeleteCalendarACLs(entityList, function, role, body):
   cal = buildGAPIObject(API.CALENDAR)
@@ -15598,12 +15597,11 @@ def _processSiteACLs(users, entityType):
           k += 1
           ruleId = normalizeRuleId(ruleId)
           try:
-            if action == Act.ADD:
-              acl = sitesManager.FieldsToAclEntry(makeRoleRuleIdBody(role, ruleId))
+            if action in [Act.CREATE, Act.ADD]:
               acl = callGData(sitesObject, u'CreateAclEntry',
                               throw_errors=[GDATA.NOT_FOUND, GDATA.ENTITY_EXISTS, GDATA.BAD_REQUEST, GDATA.FORBIDDEN],
                               retry_errors=[GDATA.INTERNAL_SERVER_ERROR],
-                              aclentry=acl, domain=domain, site=site)
+                              aclentry=sitesManager.FieldsToAclEntry(makeRoleRuleIdBody(role, ruleId)), domain=domain, site=site)
               fields = sitesManager.AclEntryToFields(acl)
               if not fields.get(u'inviteLink'):
                 entityActionPerformed([Ent.SITE, domainSite, Ent.SITE_ACL, formatACLRule(fields)], k, kcount)
@@ -15669,7 +15667,7 @@ def _processSiteACLs(users, entityType):
           entityActionFailedWarning([Ent.SITE, domainSite], str(e), j, jcount)
     Ind.Decrement()
 
-# gam [<UserTypeEntity>] add siteacls <SiteEntity> <SiteACLRole> <ACLScopeEntity>
+# gam [<UserTypeEntity>] create|add siteacls <SiteEntity> <SiteACLRole> <ACLScopeEntity>
 # gam [<UserTypeEntity>] update siteacls <SiteEntity> <SiteACLRole> <ACLScopeEntity>
 # gam [<UserTypeEntity>] delete siteacls <SiteEntity> <ACLScopeEntity>
 # gam [<UserTypeEntity>] info siteacls <SiteEntity> <ACLScopeEntity>
@@ -16583,6 +16581,7 @@ USER_ARRAY_PROPERTY_PRINT_ORDER = [
   ]
 
 USER_ADDRESSES_PROPERTY_PRINT_ORDER = [
+  u'primary',
   u'sourceIsStructured',
   u'formatted',
   u'extendedAddress',
@@ -18168,8 +18167,8 @@ PARTICIPANT_EN_MAP = {
   Ent.TEACHER: Cmd.ENTITY_TEACHERS,
   }
 
-# gam courses <CourseEntity> add alias <CourseAliasEntity>
-# gam course <CourseID> add alias <CourseAlias>
+# gam courses <CourseEntity> create|add alias <CourseAliasEntity>
+# gam course <CourseID> create|add alias <CourseAlias>
 # gam courses <CourseEntity> add teachers|students <UserTypeEntity>
 # gam course <CourseID> add teacher|student <EmailAddress>
 def doCourseAddParticipants(courseIdList, getEntityListArg):
@@ -18583,7 +18582,7 @@ def getPrinterACLScopeEntity():
     scopeList = normalizePrinterScopeList(scopeList)
   return scopeList, printerScopeLists
 
-def _batchAddACLsToPrinter(cp, printerId, i, count, scopeList, role, notify):
+def _batchCreatePrinterACLs(cp, printerId, i, count, scopeList, role, notify):
   Act.Set(Act.ADD)
   jcount = len(scopeList)
   entityPerformActionNumItems([Ent.PRINTER, printerId], jcount, role, i, count)
@@ -18619,8 +18618,8 @@ def _batchAddACLsToPrinter(cp, printerId, i, count, scopeList, role, notify):
 
 PRINTER_ROLE_MAP = {u'manager': Ent.ROLE_MANAGER, u'owner': Ent.ROLE_OWNER, u'user': Ent.ROLE_USER,}
 
-# gam printer|printers <PrinterIDEntity> add user|manager|owner <PrinterACLScopeEntity> [notify]
-def doPrinterAddACL(printerIdList):
+# gam printer|printers <PrinterIDEntity> create|add user|manager|owner <PrinterACLScopeEntity> [notify]
+def doPrinterCreateACL(printerIdList):
   cp = buildGAPIObject(API.CLOUDPRINT)
   role = getChoice(PRINTER_ROLE_MAP, mapChoice=True)
   scopeList, printerScopeLists = getPrinterACLScopeEntity()
@@ -18632,9 +18631,9 @@ def doPrinterAddACL(printerIdList):
     i += 1
     if printerScopeLists:
       scopeList = normalizePrinterScopeList(printerScopeLists[printerId])
-    _batchAddACLsToPrinter(cp, printerId, i, count, scopeList, role, notify)
+    _batchCreatePrinterACLs(cp, printerId, i, count, scopeList, role, notify)
 
-def _batchDeleteACLsFromPrinter(cp, printerId, i, count, scopeList, role):
+def _batchDeletePrinterACLs(cp, printerId, i, count, scopeList, role):
   Act.Set(Act.DELETE)
   jcount = len(scopeList)
   entityPerformActionNumItems([Ent.PRINTER, printerId], jcount, role, i, count)
@@ -18671,7 +18670,7 @@ def doPrinterDeleteACLs(printerIdList):
     i += 1
     if printerScopeLists:
       scopeList = normalizePrinterScopeList(printerScopeLists[printerId])
-    _batchDeleteACLsFromPrinter(cp, printerId, i, count, scopeList, Ent.SCOPE)
+    _batchDeletePrinterACLs(cp, printerId, i, count, scopeList, Ent.SCOPE)
 
 def getPrinterScopeListsForRole(cp, printerId, i, count, role):
   try:
@@ -18707,8 +18706,8 @@ def doPrinterSyncACLs(printerIdList):
       scopeList = normalizePrinterScopeList(printerScopeLists[printerId])
     currentScopeList = getPrinterScopeListsForRole(cp, printerId, i, count, role)
     if currentScopeList is not None:
-      _batchAddACLsToPrinter(cp, printerId, i, count, list(set(scopeList) - set(currentScopeList)), role, notify)
-      _batchDeleteACLsFromPrinter(cp, printerId, i, count, list(set(currentScopeList) - set(scopeList)), role)
+      _batchCreatePrinterACLs(cp, printerId, i, count, list(set(scopeList) - set(currentScopeList)), role, notify)
+      _batchDeletePrinterACLs(cp, printerId, i, count, list(set(currentScopeList) - set(scopeList)), role)
 
 # gam printer|printers <PrinterIDEntity> wipe user|manager|owner
 def doPrinterWipeACLs(printerIdList):
@@ -18721,7 +18720,7 @@ def doPrinterWipeACLs(printerIdList):
     i += 1
     currentScopeList = getPrinterScopeListsForRole(cp, printerId, i, count, role)
     if currentScopeList is not None:
-      _batchDeleteACLsFromPrinter(cp, printerId, i, count, currentScopeList, role)
+      _batchDeletePrinterACLs(cp, printerId, i, count, currentScopeList, role)
 
 # gam printer|printers <PrinterIDEntity> printacls [todrive [<ToDriveAttributes>]]
 def doPrinterPrintACLs(printerIdList):
@@ -19384,11 +19383,11 @@ def _getCalendarAttributes(body):
     elif myarg in [u'colorindex', u'colorid']:
       body[u'colorId'] = str(getInteger(minVal=CALENDAR_MIN_COLOR_INDEX, maxVal=CALENDAR_MAX_COLOR_INDEX))
     elif myarg == u'backgroundcolor':
-      body[u'backgroundColor'] = getColorHexAttribute()
+      body[u'backgroundColor'] = getColor()
       body.setdefault(u'foregroundColor', u'#000000')
       colorRgbFormat = True
     elif myarg == u'foregroundcolor':
-      body[u'foregroundColor'] = getColorHexAttribute()
+      body[u'foregroundColor'] = getColor()
       colorRgbFormat = True
     elif myarg == u'reminder':
       body.setdefault(u'defaultReminders', [])
@@ -19705,7 +19704,7 @@ def showCalSettings(users):
     except (GAPI.serviceNotAvailable, GAPI.authError):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
-# gam <UserTypeEntity> add calendaracls <CalendarEntity> <CalendarACLRole> <ACLScopeEntity>
+# gam <UserTypeEntity> create|add calendaracls <CalendarEntity> <CalendarACLRole> <ACLScopeEntity>
 def addCalendarACLs(users):
   calendarEntity = getCalendarEntity()
   role = getChoice(CALENDAR_ACL_ROLES_MAP, mapChoice=True)
@@ -19719,7 +19718,7 @@ def addCalendarACLs(users):
     if jcount == 0:
       continue
     Ind.Increment()
-    _doCalendarsAddACLs(origUser, user, cal, calIds, jcount, role, ACLScopeEntity)
+    _doCalendarsCreateACLs(origUser, user, cal, calIds, jcount, role, ACLScopeEntity)
     Ind.Decrement()
 
 def updateDeleteCalendarACLs(users, calendarEntity, function, modifier, role, body):
@@ -19889,13 +19888,13 @@ def _insertImportCalendarEvent(users, function):
     if jcount == 0:
       continue
     Ind.Increment()
-    status = _addCalendarEvents(user, cal, function, calIds, jcount,
-                                eventRecurrenceTimeZoneRequired, sendNotifications, body)
+    status = _createCalendarEvents(user, cal, function, calIds, jcount,
+                                   eventRecurrenceTimeZoneRequired, sendNotifications, body)
     Ind.Decrement()
     if not status:
       return
 
-# gam <UserTypeEntity> add event <CalendarEntity> [id <String>] <EventAddAttributes>+
+# gam <UserTypeEntity> create|add event <CalendarEntity> [id <String>] <EventAddAttributes>+
 def addCalendarEvent(users):
   _insertImportCalendarEvent(users, u'insert')
 
@@ -20649,7 +20648,7 @@ def getDriveFileAttribute(myarg, body, parameters):
   elif myarg == u'viewerscancopycontent':
     body[u'viewersCanCopyContent'] = getBoolean()
   elif myarg == u'foldercolorrgb':
-    body[u'folderColorRgb'] = getColorHexAttribute()
+    body[u'folderColorRgb'] = getColor()
   elif myarg == u'ignoredefaultvisibility':
     parameters[DFA_IGNORE_DEFAULT_VISIBILITY] = getBoolean()
   elif myarg in [u'keeprevisionforever', u'pinned']:
@@ -22487,8 +22486,8 @@ def showFileTree(users):
       Ind.Decrement()
     Ind.Decrement()
 
-# gam <UserTypeEntity> add drivefile [drivefilename <DriveFileName>] [<DriveFileAttributes>]
-def addDriveFile(users):
+# gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] [<DriveFileAttributes>]
+def createDriveFile(users):
   media_body = None
   fileIdEntity = initDriveFileEntity()
   body = {}
@@ -24034,7 +24033,7 @@ def _showDriveFilePermission(permission, printKeys, timeObjects, i=0, count=0):
       printKeyValueList([key, formatLocalTime(value)])
   Ind.Decrement()
 
-def _addDriveFileACL(users, useDomainAdminAccess):
+def _createDriveFileACL(users, useDomainAdminAccess):
   sendNotificationEmail = showTitles = _transferOwnership = False
   emailMessage = None
   fileIdEntity = getDriveFileEntity()
@@ -24121,15 +24120,15 @@ def _addDriveFileACL(users, useDomainAdminAccess):
         break
     Ind.Decrement()
 
-# gam <UserTypeEntity> add drivefileacl <DriveFileEntity> [adminaccess|asadmin] anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
+# gam <UserTypeEntity> create|add drivefileacl <DriveFileEntity> [adminaccess|asadmin] anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
 #	(role reader|commenter|writer|owner|editor|organizer) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>] [sendmail] [emailmessage <String>] [showtitles]
-def addDriveFileACL(users):
-  _addDriveFileACL(users, False)
+def createDriveFileACL(users):
+  _createDriveFileACL(users, False)
 
-# gam add drivefileacl <DriveFileEntity> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
+# gam create|add drivefileacl <DriveFileEntity> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
 #	(role reader|commenter|writer|owner|editor|organizer) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>] [sendmail] [emailmessage <String>] [showtitles]
-def doAddDriveFileACL():
-  _addDriveFileACL([_getValueFromOAuth(u'email')], True)
+def doCreateDriveFileACL():
+  _createDriveFileACL([_getValueFromOAuth(u'email')], True)
 
 def _updateDriveFileACLs(users, useDomainAdminAccess):
   fileIdEntity = getDriveFileEntity()
@@ -24217,7 +24216,7 @@ def updateDriveFileACLs(users):
 def doUpdateDriveFileACLs():
   _updateDriveFileACLs([_getValueFromOAuth(u'email')], True)
 
-def _addDriveFilePermissions(users, useDomainAdminAccess):
+def _createDriveFilePermissions(users, useDomainAdminAccess):
 
   def _makePermissionBody(permission):
     body = {}
@@ -24246,7 +24245,7 @@ def _addDriveFilePermissions(users, useDomainAdminAccess):
     except ValueError:
       return None
 
-  def _callbackAddPermission(request_id, response, exception):
+  def _callbackCreatePermission(request_id, response, exception):
     ri = request_id.splitlines()
     if int(ri[RI_J]) == 1:
       entityPerformActionNumItems([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY]], int(ri[RI_JCOUNT]), Ent.PERMITTEE, int(ri[RI_I]), int(ri[RI_COUNT]))
@@ -24310,7 +24309,7 @@ def _addDriveFilePermissions(users, useDomainAdminAccess):
                     (u'useDomainAdminAccess', useDomainAdminAccess),
                     (u'body', None), (u'fields', u''), (u'supportsTeamDrives', True)]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(drive.permissions(), u'create')
-    dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackAddPermission)
+    dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackCreatePermission)
     bcount = 0
     j = 0
     for fileId in fileIdEntity[u'list']:
@@ -24336,19 +24335,19 @@ def _addDriveFilePermissions(users, useDomainAdminAccess):
         bcount += 1
         if bcount >= GC.Values[GC.BATCH_SIZE]:
           executeBatch(dbatch)
-          dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackAddPermission)
+          dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackCreatePermission)
           bcount = 0
     if bcount > 0:
       executeBatch(dbatch)
     Ind.Decrement()
 
-# gam <UserTypeEntity> add permissions <DriveFileEntity> <DriveFilePermissionsEntity> [adminaccess|asadmin] [expiration <Time>] [sendmail] [emailmessage <String>]
-def addDriveFilePermissions(users):
-  _addDriveFilePermissions(users, False)
+# gam <UserTypeEntity> create|add permissions <DriveFileEntity> <DriveFilePermissionsEntity> [adminaccess|asadmin] [expiration <Time>] [sendmail] [emailmessage <String>]
+def createDriveFilePermissions(users):
+  _createDriveFilePermissions(users, False)
 
-# gam add permissions <DriveFileEntity> <DriveFilePermissionsEntity> [expiration <Time>] [sendmail] [emailmessage <String>]
-def doAddPermissions():
-  _addDriveFilePermissions([_getValueFromOAuth(u'email')], True)
+# gam create|add permissions <DriveFileEntity> <DriveFilePermissionsEntity> [expiration <Time>] [sendmail] [emailmessage <String>]
+def doCreatePermissions():
+  _createDriveFilePermissions([_getValueFromOAuth(u'email')], True)
 
 def _deleteDriveFileACLs(users, useDomainAdminAccess):
   fileIdEntity = getDriveFileEntity()
@@ -24611,11 +24610,11 @@ def _getTeamDriveTheme(myarg, body):
       }
   elif myarg == u'color':
     body.pop(u'themeId', None)
-    body[u'colorRgb'] = getColorHexAttribute()
+    body[u'colorRgb'] = getColor()
   else:
     unknownArgumentExit()
 
-# gam <UserTypeEntity> create teamdrive <Name> [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+# gam <UserTypeEntity> create|add teamdrive <Name> [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 def createTeamDrive(users):
   requestId = text_type(uuid.uuid4())
   body = {u'name': getString(Cmd.OB_NAME, checkBlank=True)}
@@ -25085,8 +25084,8 @@ def getLicenseParameters(operation):
   checkForExtraneousArguments()
   return (lic, parameters)
 
-# gam <UserTypeEntity> add license <SKUID>
-def addLicense(users):
+# gam <UserTypeEntity> create|add license <SKUID>
+def createLicense(users):
   lic, parameters = getLicenseParameters(u'insert')
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -26141,8 +26140,8 @@ LABEL_LABEL_LIST_VISIBILITY_CHOICE_MAP = {
   }
 LABEL_MESSAGE_LIST_VISIBILITY_CHOICES = [u'hide', u'show',]
 
-# gam <UserTypeEntity> [add] label|labels <String> [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread] [buildpath [<Boolean>]]
-def addLabel(users):
+# gam <UserTypeEntity> [create|add] label|labels <String> [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread] [buildpath [<Boolean>]]
+def createLabel(users):
   label = getString(Cmd.OB_LABEL_NAME)
   body = {u'name': label}
   buildPath = False
@@ -27742,8 +27741,8 @@ def delegateTo(users, checkForTo=True):
         break
     Ind.Decrement()
 
-# gam <UserTypeEntity> add delegate|delegates <UserEntity>
-def addDelegate(users):
+# gam <UserTypeEntity> create|add delegate|delegates <UserEntity>
+def createDelegate(users):
   delegateTo(users, checkForTo=False)
 
 # gam <UserTypeEntity> delete delegate|delegates <UserEntity>
@@ -27976,10 +27975,21 @@ FILTER_CRITERIA_CHOICE_MAP = {
   u'subject': u'subject',
   u'to': u'to',
   }
-FILTER_ACTION_CHOICES = [u'archive', u'forward', u'important', u'label', u'markread', u'neverspam', u'notimportant', u'star', u'trash',]
+FILTER_ADD_LABEL_ACTIONS = [u'important', u'star', u'trash']
+FILTER_REMOVE_LABEL_ACTIONS = [u'markread', u'notimportant', u'archive', u'neverspam']
+FILTER_ACTION_CHOICES = FILTER_ADD_LABEL_ACTIONS+FILTER_REMOVE_LABEL_ACTIONS+[u'forward', u'label',]
+FILTER_ACTION_LABEL_MAP = {
+  u'archive': u'INBOX',
+  u'important': u'IMPORTANT',
+  u'markread': u'UNREAD',
+  u'neverspam': u'SPAM',
+  u'notimportant': u'IMPORTANT',
+  u'star': u'STARRED',
+  u'trash': u'TRASH',
+  }
 
-# gam <UserTypeEntity> [add] filter <FilterCriteria>+ <FilterAction>+
-def addFilter(users):
+# gam <UserTypeEntity> [create|add] filter <FilterCriteria>+ <FilterAction>+
+def createFilter(users):
   body = {}
   addLabelName = None
   addLabelIds = []
@@ -28000,28 +28010,18 @@ def addFilter(users):
         body[u'criteria'][myarg] = getMaxMessageBytes()
     elif myarg in FILTER_ACTION_CHOICES:
       body.setdefault(u'action', {})
-      if myarg == u'label':
-        addLabelName = getString(Cmd.OB_LABEL_NAME)
-      elif myarg == u'important':
-        addLabelIds.append(u'IMPORTANT')
-        if u'IMPORTANT' in removeLabelIds:
-          removeLabelIds.remove(u'IMPORTANT')
-      elif myarg == u'star':
-        addLabelIds.append(u'STARRED')
-      elif myarg == u'trash':
-        addLabelIds.append(u'TRASH')
-      elif myarg == u'notimportant':
-        removeLabelIds.append(u'IMPORTANT')
-        if u'IMPORTANT' in addLabelIds:
-          addLabelIds.remove(u'IMPORTANT')
-      elif myarg == u'markread':
-        removeLabelIds.append(u'UNREAD')
-      elif myarg == u'archive':
-        removeLabelIds.append(u'INBOX')
-      elif myarg == u'neverspam':
-        removeLabelIds.append(u'SPAM')
+      if myarg in FILTER_ADD_LABEL_ACTIONS:
+        addLabelIds.append(myarg)
+        if (myarg == u'important') and (u'notimportant' in removeLabelIds):
+          removeLabelIds.remove(u'notimportant')
+      elif myarg in FILTER_REMOVE_LABEL_ACTIONS:
+        removeLabelIds.append(myarg)
+        if (myarg == u'notimportant') and (u'important' in addLabelIds):
+          addLabelIds.remove(u'important')
       elif myarg == u'forward':
         body[u'action'][u'forward'] = getEmailAddress(noUid=True)
+      else: #elif myarg == u'label':
+        addLabelName = getString(Cmd.OB_LABEL_NAME)
     else:
       unknownArgumentExit()
   if u'criteria' not in body:
@@ -28029,7 +28029,7 @@ def addFilter(users):
   if u'action' not in body:
     missingChoiceExit(FILTER_ACTION_CHOICES)
   if removeLabelIds:
-    body[u'action'][u'removeLabelIds'] = removeLabelIds
+    body[u'action'][u'removeLabelIds'] = [FILTER_ACTION_LABEL_MAP[action] for action in FILTER_REMOVE_LABEL_ACTIONS if action in removeLabelIds]
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -28041,7 +28041,7 @@ def addFilter(users):
       continue
     try:
       if addLabelIds:
-        body[u'action'][u'addLabelIds'] = addLabelIds[:]
+        body[u'action'][u'addLabelIds'] = [FILTER_ACTION_LABEL_MAP[action] for action in FILTER_ADD_LABEL_ACTIONS if action in addLabelIds]
       if addLabelName:
         if not addLabelIds:
           body[u'action'][u'addLabelIds'] = []
@@ -28126,7 +28126,7 @@ def _printShowFilters(users, csvFormat):
   labelIdsOnly = False
   if csvFormat:
     todrive = {}
-    titles, csvRows = initializeTitlesCSVfile(None)
+    titles, csvRows = initializeTitlesCSVfile([u'User', u'id'])
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
@@ -28321,8 +28321,8 @@ def _processForwardingAddress(user, i, count, emailAddress, j, jcount, gmail, fu
     userDefined = False
   return userDefined
 
-# gam <UserTypeEntity> add forwardingaddresses <EmailAddressEntity>
-def addForwardingAddresses(users):
+# gam <UserTypeEntity> create|add forwardingaddresses <EmailAddressEntity>
+def createForwardingAddresses(users):
   emailAddressEntity = getUserObjectEntity(Cmd.OB_EMAIL_ADDRESS_ENTITY, Ent.FORWARDING_ADDRESS)
   checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
@@ -28606,7 +28606,7 @@ def getSendAsAttributes(myarg, body, tagReplacements):
   else:
     unknownArgumentExit()
 
-def _addUpdateSendAs(users, addCmd):
+def _createUpdateSendAs(users, addCmd):
   emailAddress = getEmailAddress(noUid=True)
   if addCmd:
     body = {u'sendAsEmail': emailAddress, u'displayName': getString(Cmd.OB_NAME)}
@@ -28641,15 +28641,15 @@ def _addUpdateSendAs(users, addCmd):
       continue
     _processSendAs(user, i, count, Ent.SENDAS_ADDRESS, emailAddress, i, count, gmail, [u'patch', u'create'][addCmd], False, **kwargs)
 
-# gam <UserTypeEntity> [add] sendas <EmailAddress> <String> [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)*]
+# gam <UserTypeEntity> [create|add] sendas <EmailAddress> <String> [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)*]
 #	[html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
-def addSendAs(users):
-  _addUpdateSendAs(users, True)
+def createSendAs(users):
+  _createUpdateSendAs(users, True)
 
 # gam <UserTypeEntity> update sendas <EmailAddress> [name <String>] [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)*]
 #	[html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
 def updateSendAs(users):
-  _addUpdateSendAs(users, False)
+  _createUpdateSendAs(users, False)
 
 def _deleteInfoSendAs(users, function):
   emailAddressEntity = getUserObjectEntity(Cmd.OB_EMAIL_ADDRESS_ENTITY, Ent.SENDAS_ADDRESS)
@@ -28739,8 +28739,8 @@ def printSendAs(users):
 def showSendAs(users):
   _printShowSendAs(users, False)
 
-# gam <UserTypeEntity> add smime file <FileName> [password <Password>] [sendas|sendasemail <EmailAddress>] [default]
-def addSmime(users):
+# gam <UserTypeEntity> create|add smime file <FileName> [password <Password>] [sendas|sendasemail <EmailAddress>] [default]
+def createSmime(users):
   sendAsEmailBase = None
   setDefault = False
   body = {}
@@ -29292,17 +29292,68 @@ MAIN_COMMANDS = {
   }
 
 # Main commands with objects
+MAIN_ADD_CREATE_FUNCTIONS = {
+  Cmd.ARG_ADMIN:	doCreateAdmin,
+  Cmd.ARG_ALIASES:	doCreateAliases,
+  Cmd.ARG_CONTACT:	doCreateDomainContact,
+  Cmd.ARG_COURSE:	doCreateCourse,
+  Cmd.ARG_DATA_TRANSFER:	doCreateDataTransfer,
+  Cmd.ARG_DOMAIN:	doCreateDomain,
+  Cmd.ARG_DOMAIN_ALIAS:	doCreateDomainAlias,
+  Cmd.ARG_DRIVEFILEACL:	doCreateDriveFileACL,
+  Cmd.ARG_GROUP:	doCreateGroup,
+  Cmd.ARG_GUARDIAN: 	doInviteGuardian,
+  Cmd.ARG_ORG:		doCreateOrg,
+  Cmd.ARG_PERMISSIONS:	doCreatePermissions,
+  Cmd.ARG_PROJECT:	doCreateProject,
+  Cmd.ARG_RESOLDCUSTOMER:	doCreateResoldCustomer,
+  Cmd.ARG_RESOLDSUBSCRIPTION:	doCreateResoldSubscription,
+  Cmd.ARG_RESOURCE:	doCreateResourceCalendar,
+  Cmd.ARG_SCHEMA:	doCreateUserSchema,
+  Cmd.ARG_SITE:		doCreateDomainSite,
+  Cmd.ARG_SITEACLS:	doProcessDomainSiteACLs,
+  Cmd.ARG_USER:		doCreateUser,
+  Cmd.ARG_VAULTHOLD:	doCreateVaultHold,
+  Cmd.ARG_VAULTMATTER:	doCreateVaultMatter,
+  Cmd.ARG_VERIFY:	doCreateSiteVerification,
+  }
+
+MAIN_ADD_CREATE_ALIASES = {
+  Cmd.ARG_ALIAS:	Cmd.ARG_ALIASES,
+  u'aliasdomain':	Cmd.ARG_DOMAIN_ALIAS,
+  u'aliasdomains':	Cmd.ARG_DOMAIN_ALIAS,
+  u'apiproject':	Cmd.ARG_PROJECT,
+  u'class':		Cmd.ARG_COURSE,
+  Cmd.ARG_CONTACTS:	Cmd.ARG_CONTACT,
+  Cmd.ARG_DOMAIN_ALIASES:	Cmd.ARG_DOMAIN_ALIAS,
+  Cmd.ARG_GUARDIANS:	Cmd.ARG_GUARDIAN,
+  u'guardianinvite':	Cmd.ARG_GUARDIAN,
+  Cmd.ARG_HOLD:		Cmd.ARG_VAULTHOLD,
+  Cmd.ARG_HOLDS:	Cmd.ARG_VAULTHOLD,
+  u'inviteguardian':	Cmd.ARG_GUARDIAN,
+  Cmd.ARG_MATTER:	Cmd.ARG_VAULTMATTER,
+  Cmd.ARG_MATTERS:	Cmd.ARG_VAULTMATTER,
+  u'transfer':		Cmd.ARG_DATA_TRANSFER,
+  u'nickname':		Cmd.ARG_ALIASES,
+  u'nicknames':		Cmd.ARG_ALIASES,
+  u'ou':		Cmd.ARG_ORG,
+  Cmd.ARG_RESELLERCUSTOMERS:	Cmd.ARG_RESOLDCUSTOMER,
+  Cmd.ARG_RESELLERSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
+  Cmd.ARG_RESOLDCUSTOMERS:	Cmd.ARG_RESOLDCUSTOMER,
+  Cmd.ARG_RESOLDSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
+  Cmd.ARG_SCHEMAS:	Cmd.ARG_SCHEMA,
+  Cmd.ARG_SITES:	Cmd.ARG_SITE,
+  Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
+  Cmd.ARG_VAULTHOLDS:	Cmd.ARG_VAULTHOLD,
+  Cmd.ARG_VAULTMATTERS:	Cmd.ARG_VAULTMATTER,
+  u'verification':	Cmd.ARG_VERIFY,
+  }
+
 MAIN_COMMANDS_WITH_OBJECTS = {
   u'add':
     {CMD_ACTION: Act.ADD,
-     CMD_FUNCTION:
-       {Cmd.ARG_DRIVEFILEACL:	doAddDriveFileACL,
-        Cmd.ARG_PERMISSIONS:	doAddPermissions,
-        Cmd.ARG_SITEACLS:	doProcessDomainSiteACLs,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
-       },
+     CMD_FUNCTION:	MAIN_ADD_CREATE_FUNCTIONS,
+     CMD_OBJ_ALIASES:	MAIN_ADD_CREATE_ALIASES,
     },
   u'cancel':
     {CMD_ACTION: Act.CANCEL,
@@ -29326,57 +29377,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
     },
   u'create':
     {CMD_ACTION: Act.CREATE,
-     CMD_FUNCTION:
-       {Cmd.ARG_ADMIN:		doCreateAdmin,
-        Cmd.ARG_ALIASES:	doCreateAliases,
-        Cmd.ARG_CONTACT:	doCreateDomainContact,
-        Cmd.ARG_COURSE:		doCreateCourse,
-        Cmd.ARG_DATA_TRANSFER:	doCreateDataTransfer,
-        Cmd.ARG_DOMAIN:		doCreateDomain,
-        Cmd.ARG_DOMAIN_ALIAS:	doCreateDomainAlias,
-        Cmd.ARG_GROUP:		doCreateGroup,
-        Cmd.ARG_GUARDIAN: 	doInviteGuardian,
-        Cmd.ARG_ORG:		doCreateOrg,
-        Cmd.ARG_PROJECT:	doCreateProject,
-        Cmd.ARG_RESOLDCUSTOMER:	doCreateResoldCustomer,
-        Cmd.ARG_RESOLDSUBSCRIPTION:	doCreateResoldSubscription,
-        Cmd.ARG_RESOURCE:	doCreateResourceCalendar,
-        Cmd.ARG_SCHEMA:		doCreateUserSchema,
-        Cmd.ARG_SITE:		doCreateDomainSite,
-        Cmd.ARG_USER:		doCreateUser,
-        Cmd.ARG_VAULTHOLD:	doCreateVaultHold,
-        Cmd.ARG_VAULTMATTER:	doCreateVaultMatter,
-        Cmd.ARG_VERIFY:		doCreateSiteVerification,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_ALIAS:		Cmd.ARG_ALIASES,
-        u'aliasdomain':		Cmd.ARG_DOMAIN_ALIAS,
-        u'aliasdomains':	Cmd.ARG_DOMAIN_ALIAS,
-        u'apiproject':		Cmd.ARG_PROJECT,
-        u'class':		Cmd.ARG_COURSE,
-        Cmd.ARG_CONTACTS:	Cmd.ARG_CONTACT,
-        Cmd.ARG_DOMAIN_ALIASES:	Cmd.ARG_DOMAIN_ALIAS,
-        Cmd.ARG_GUARDIANS:	Cmd.ARG_GUARDIAN,
-        u'guardianinvite':	Cmd.ARG_GUARDIAN,
-        Cmd.ARG_HOLD:		Cmd.ARG_VAULTHOLD,
-        Cmd.ARG_HOLDS:		Cmd.ARG_VAULTHOLD,
-        u'inviteguardian':	Cmd.ARG_GUARDIAN,
-        Cmd.ARG_MATTER:		Cmd.ARG_VAULTMATTER,
-        Cmd.ARG_MATTERS:	Cmd.ARG_VAULTMATTER,
-        u'transfer':		Cmd.ARG_DATA_TRANSFER,
-        u'nickname':		Cmd.ARG_ALIASES,
-        u'nicknames':		Cmd.ARG_ALIASES,
-        u'ou':			Cmd.ARG_ORG,
-        Cmd.ARG_RESELLERCUSTOMERS:	Cmd.ARG_RESOLDCUSTOMER,
-        Cmd.ARG_RESELLERSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
-        Cmd.ARG_RESOLDCUSTOMERS:	Cmd.ARG_RESOLDCUSTOMER,
-        Cmd.ARG_RESOLDSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
-        Cmd.ARG_SCHEMAS:	Cmd.ARG_SCHEMA,
-        Cmd.ARG_SITES:		Cmd.ARG_SITE,
-        Cmd.ARG_VAULTHOLDS:	Cmd.ARG_VAULTHOLD,
-        Cmd.ARG_VAULTMATTERS:	Cmd.ARG_VAULTMATTER,
-        u'verification':	Cmd.ARG_VERIFY,
-       },
+     CMD_FUNCTION:	MAIN_ADD_CREATE_FUNCTIONS,
+     CMD_OBJ_ALIASES:	MAIN_ADD_CREATE_ALIASES,
     },
   u'delete':
     {CMD_ACTION: Act.DELETE,
@@ -29796,13 +29798,14 @@ def processAuditCommands():
 # Calendar command sub-commands
 CALENDAR_SUBCOMMANDS = {
   u'showacl':	{CMD_ACTION: Act.SHOW, CMD_FUNCTION: doCalendarsShowACLs},
-  u'addevent':	{CMD_ACTION: Act.ADD, CMD_FUNCTION: doCalendarsAddEvent},
+  u'addevent':	{CMD_ACTION: Act.ADD, CMD_FUNCTION: doCalendarsCreateEvent},
   u'deleteevent':	{CMD_ACTION: Act.DELETE, CMD_FUNCTION: doCalendarsDeleteEvents},
   u'wipe':	{CMD_ACTION: Act.WIPE, CMD_FUNCTION: doCalendarsWipeEvents},
   }
 
 CALENDAR_OLDACL_SUBCOMMANDS = {
-  u'add':	{CMD_ACTION: Act.ADD, CMD_FUNCTION: doCalendarsAddACL},
+  u'add':	{CMD_ACTION: Act.ADD, CMD_FUNCTION: doCalendarsCreateACL},
+  u'create':	{CMD_ACTION: Act.CREATE, CMD_FUNCTION: doCalendarsCreateACL},
   u'delete':	{CMD_ACTION: Act.DELETE, CMD_FUNCTION: doCalendarsDeleteACL},
   u'update':	{CMD_ACTION: Act.UPDATE, CMD_FUNCTION: doCalendarsUpdateACL},
   }
@@ -29813,20 +29816,27 @@ CALENDAR_OLDACL_SUBCOMMAND_ALIASES = {
   }
 
 # Calendars command sub-commands with objects
+CALENDARS_ADD_CREATE_FUNCTIONS = {
+  Cmd.ARG_CALENDARACLS:	doCalendarsCreateACLs,
+  Cmd.ARG_EVENTS:	doCalendarsCreateEvent,
+  }
+
 CALENDARS_SUBCOMMANDS_OBJECT_ALIASES = {
-  Cmd.ARG_ACL:	Cmd.ARG_ACLS,
-  Cmd.ARG_CALENDARACL:	Cmd.ARG_ACLS,
-  Cmd.ARG_CALENDARACLS:	Cmd.ARG_ACLS,
+  Cmd.ARG_ACL:		Cmd.ARG_CALENDARACLS,
+  Cmd.ARG_ACLS:		Cmd.ARG_CALENDARACLS,
+  Cmd.ARG_CALENDARACL:	Cmd.ARG_CALENDARACLS,
   Cmd.ARG_EVENT:	Cmd.ARG_EVENTS,
   }
 
 CALENDARS_SUBCOMMANDS_WITH_OBJECTS = {
   u'add':
     {CMD_ACTION: Act.ADD,
-     CMD_FUNCTION:
-       {Cmd.ARG_ACLS:	doCalendarsAddACLs,
-        Cmd.ARG_EVENTS:	doCalendarsAddEvent,
-       },
+     CMD_FUNCTION:	CALENDARS_ADD_CREATE_FUNCTIONS,
+     CMD_OBJ_ALIASES:	CALENDARS_SUBCOMMANDS_OBJECT_ALIASES,
+    },
+  u'create':
+    {CMD_ACTION: Act.CREATE,
+     CMD_FUNCTION:	CALENDARS_ADD_CREATE_FUNCTIONS,
      CMD_OBJ_ALIASES:	CALENDARS_SUBCOMMANDS_OBJECT_ALIASES,
     },
   u'import':
@@ -29841,7 +29851,7 @@ CALENDARS_SUBCOMMANDS_WITH_OBJECTS = {
   u'update':
     {CMD_ACTION: Act.UPDATE,
      CMD_FUNCTION:
-       {Cmd.ARG_ACLS:	doCalendarsUpdateACLs,
+       {Cmd.ARG_CALENDARACLS:	doCalendarsUpdateACLs,
         Cmd.ARG_EVENTS:	doCalendarsUpdateEvents,
        },
      CMD_OBJ_ALIASES:	CALENDARS_SUBCOMMANDS_OBJECT_ALIASES,
@@ -29849,7 +29859,7 @@ CALENDARS_SUBCOMMANDS_WITH_OBJECTS = {
   u'delete':
     {CMD_ACTION: Act.DELETE,
      CMD_FUNCTION:
-       {Cmd.ARG_ACLS:	doCalendarsDeleteACLs,
+       {Cmd.ARG_CALENDARACLS:	doCalendarsDeleteACLs,
         Cmd.ARG_EVENTS:	doCalendarsDeleteEvents,
        },
      CMD_OBJ_ALIASES:	CALENDARS_SUBCOMMANDS_OBJECT_ALIASES,
@@ -29857,7 +29867,7 @@ CALENDARS_SUBCOMMANDS_WITH_OBJECTS = {
   u'info':
     {CMD_ACTION: Act.INFO,
      CMD_FUNCTION:
-       {Cmd.ARG_ACLS:	doCalendarsInfoACLs,
+       {Cmd.ARG_CALENDARACLS:	doCalendarsInfoACLs,
         Cmd.ARG_EVENTS:	doCalendarsInfoEvents,
        },
      CMD_OBJ_ALIASES:	CALENDARS_SUBCOMMANDS_OBJECT_ALIASES,
@@ -29874,7 +29884,7 @@ CALENDARS_SUBCOMMANDS_WITH_OBJECTS = {
   u'print':
     {CMD_ACTION: Act.PRINT,
      CMD_FUNCTION:
-       {Cmd.ARG_ACLS:	doCalendarsPrintACLs,
+       {Cmd.ARG_CALENDARACLS:	doCalendarsPrintACLs,
         Cmd.ARG_EVENTS:	doCalendarsPrintEvents,
        },
      CMD_OBJ_ALIASES:	CALENDARS_SUBCOMMANDS_OBJECT_ALIASES,
@@ -29882,7 +29892,7 @@ CALENDARS_SUBCOMMANDS_WITH_OBJECTS = {
   u'show':
     {CMD_ACTION: Act.SHOW,
      CMD_FUNCTION:
-       {Cmd.ARG_ACLS:	doCalendarsShowACLs,
+       {Cmd.ARG_CALENDARACLS:	doCalendarsShowACLs,
         Cmd.ARG_EVENTS:	doCalendarsShowEvents,
        },
      CMD_OBJ_ALIASES:	CALENDARS_SUBCOMMANDS_OBJECT_ALIASES,
@@ -29909,7 +29919,7 @@ def processCalendarsCommands():
   CL_subCommand = getChoice(CALENDAR_OLDACL_SUBCOMMANDS, choiceAliases=CALENDAR_OLDACL_SUBCOMMAND_ALIASES, defaultChoice=None)
   if CL_subCommand:
     Act.Set(CALENDAR_OLDACL_SUBCOMMANDS[CL_subCommand][CMD_ACTION])
-    CL_objectName = getChoice([Cmd.ARG_ACLS, Cmd.ARG_EVENTS], choiceAliases=CALENDARS_SUBCOMMANDS_OBJECT_ALIASES, defaultChoice=None)
+    CL_objectName = getChoice([Cmd.ARG_CALENDARACLS, Cmd.ARG_EVENTS], choiceAliases=CALENDARS_SUBCOMMANDS_OBJECT_ALIASES, defaultChoice=None)
     if not CL_objectName:
       CALENDAR_OLDACL_SUBCOMMANDS[CL_subCommand][CMD_FUNCTION](cal, calendarList)
     else:
@@ -29947,7 +29957,8 @@ def processCoursesCommands():
 
 # Printer command sub-commands
 PRINTER_SUBCOMMANDS = {
-  u'add':	{CMD_ACTION: Act.ADD, CMD_FUNCTION: doPrinterAddACL},
+  u'add':	{CMD_ACTION: Act.ADD, CMD_FUNCTION: doPrinterCreateACL},
+  u'create':	{CMD_ACTION: Act.CREATE, CMD_FUNCTION: doPrinterCreateACL},
   u'delete':	{CMD_ACTION: Act.DELETE, CMD_FUNCTION: doPrinterDeleteACLs},
   u'printacls':	{CMD_ACTION: Act.SHOW, CMD_FUNCTION: doPrinterPrintACLs},
   u'showacls':	{CMD_ACTION: Act.SHOW, CMD_FUNCTION: doPrinterShowACLs},
@@ -29989,52 +30000,59 @@ def processPrintjobsCommands():
   PRINTJOB_SUBCOMMANDS[CL_subCommand][CMD_FUNCTION](jobPrinterIdList)
 
 # Resource command sub-commands
+RESOURCE_ADD_CREATE_FUNCTIONS = {
+  Cmd.ARG_CALENDARACLS:	doResourceCreateCalendarACLs,
+  }
+
 RESOURCE_SUBCOMMANDS_OBJECT_ALIASES = {
-  Cmd.ARG_ACL:	Cmd.ARG_ACLS,
-  Cmd.ARG_CALENDARACL:	Cmd.ARG_ACLS,
-  Cmd.ARG_CALENDARACLS:	Cmd.ARG_ACLS,
+  Cmd.ARG_ACL:	Cmd.ARG_CALENDARACLS,
+  Cmd.ARG_ACLS:	Cmd.ARG_CALENDARACLS,
+  Cmd.ARG_CALENDARACL:	Cmd.ARG_CALENDARACLS,
   }
 
 RESOURCE_SUBCOMMANDS_WITH_OBJECTS = {
   u'add':
     {CMD_ACTION: Act.ADD,
-     CMD_FUNCTION:
-       {Cmd.ARG_ACLS:	doResourceAddCalendarACLs,
-       },
+     CMD_FUNCTION:	RESOURCE_ADD_CREATE_FUNCTIONS,
+     CMD_OBJ_ALIASES:	RESOURCE_SUBCOMMANDS_OBJECT_ALIASES,
+    },
+  u'create':
+    {CMD_ACTION: Act.CREATE,
+     CMD_FUNCTION:	RESOURCE_ADD_CREATE_FUNCTIONS,
      CMD_OBJ_ALIASES:	RESOURCE_SUBCOMMANDS_OBJECT_ALIASES,
     },
   u'update':
     {CMD_ACTION: Act.UPDATE,
      CMD_FUNCTION:
-       {Cmd.ARG_ACLS:	doResourceUpdateCalendarACLs,
+       {Cmd.ARG_CALENDARACLS:	doResourceUpdateCalendarACLs,
        },
      CMD_OBJ_ALIASES:	RESOURCE_SUBCOMMANDS_OBJECT_ALIASES,
     },
   u'delete':
     {CMD_ACTION: Act.DELETE,
      CMD_FUNCTION:
-       {Cmd.ARG_ACLS:	doResourceDeleteCalendarACLs,
+       {Cmd.ARG_CALENDARACLS:	doResourceDeleteCalendarACLs,
        },
      CMD_OBJ_ALIASES:	RESOURCE_SUBCOMMANDS_OBJECT_ALIASES,
     },
   u'info':
     {CMD_ACTION: Act.INFO,
      CMD_FUNCTION:
-       {Cmd.ARG_ACLS:	doResourceInfoCalendarACLs,
+       {Cmd.ARG_CALENDARACLS:	doResourceInfoCalendarACLs,
        },
      CMD_OBJ_ALIASES:	RESOURCE_SUBCOMMANDS_OBJECT_ALIASES,
     },
   u'print':
     {CMD_ACTION: Act.PRINT,
      CMD_FUNCTION:
-       {Cmd.ARG_ACLS:	doResourcePrintCalendarACLs,
+       {Cmd.ARG_CALENDARACLS:	doResourcePrintCalendarACLs,
        },
      CMD_OBJ_ALIASES:	RESOURCE_SUBCOMMANDS_OBJECT_ALIASES,
     },
   u'show':
     {CMD_ACTION: Act.SHOW,
      CMD_FUNCTION:
-       {Cmd.ARG_ACLS:	doResourceShowCalendarACLs,
+       {Cmd.ARG_CALENDARACLS:	doResourceShowCalendarACLs,
        },
      CMD_OBJ_ALIASES:	RESOURCE_SUBCOMMANDS_OBJECT_ALIASES,
     },
@@ -30092,16 +30110,16 @@ USER_COMMANDS = {
   u'arrows':		{CMD_ACTION: Act.SET, CMD_FUNCTION: setArrows},
   Cmd.ARG_DELEGATE:	{CMD_ACTION: Act.ADD, CMD_FUNCTION: delegateTo},
   u'deprovision':	{CMD_ACTION: Act.DEPROVISION, CMD_FUNCTION: deprovisionUser},
-  Cmd.ARG_FILTER:	{CMD_ACTION: Act.ADD, CMD_FUNCTION: addFilter},
+  Cmd.ARG_FILTER:	{CMD_ACTION: Act.ADD, CMD_FUNCTION: createFilter},
   Cmd.ARG_FORWARD:	{CMD_ACTION: Act.SET, CMD_FUNCTION: setForward},
   Cmd.ARG_IMAP:		{CMD_ACTION: Act.SET, CMD_FUNCTION: setImap},
-  u'label':		{CMD_ACTION: Act.ADD, CMD_FUNCTION: addLabel},
+  u'label':		{CMD_ACTION: Act.ADD, CMD_FUNCTION: createLabel},
   u'list':		{CMD_ACTION: Act.LIST, CMD_FUNCTION: doListUser},
   u'language':		{CMD_ACTION: Act.SET, CMD_FUNCTION: setLanguage},
   u'pagesize':		{CMD_ACTION: Act.SET, CMD_FUNCTION: setPageSize},
   Cmd.ARG_POP:		{CMD_ACTION: Act.SET, CMD_FUNCTION: setPop},
   Cmd.ARG_PROFILE:	{CMD_ACTION: Act.SET, CMD_FUNCTION: setProfile},
-  Cmd.ARG_SENDAS:	{CMD_ACTION: Act.ADD, CMD_FUNCTION: addSendAs},
+  Cmd.ARG_SENDAS:	{CMD_ACTION: Act.ADD, CMD_FUNCTION: createSendAs},
   u'shortcuts':		{CMD_ACTION: Act.SET, CMD_FUNCTION: setShortCuts},
   u'signature':		{CMD_ACTION: Act.SET, CMD_FUNCTION: setSignature},
   u'snippets':		{CMD_ACTION: Act.SET, CMD_FUNCTION: setSnippets},
@@ -30118,19 +30136,20 @@ USER_COMMANDS_WITH_OBJECTS = {
      CMD_FUNCTION:
        {Cmd.ARG_CALENDARS:	addCalendars,
         Cmd.ARG_CALENDARACLS:	addCalendarACLs,
-        Cmd.ARG_DELEGATE:	addDelegate,
-        Cmd.ARG_DRIVEFILE:	addDriveFile,
-        Cmd.ARG_DRIVEFILEACL:	addDriveFileACL,
+        Cmd.ARG_DELEGATE:	createDelegate,
+        Cmd.ARG_DRIVEFILE:	createDriveFile,
+        Cmd.ARG_DRIVEFILEACL:	createDriveFileACL,
         Cmd.ARG_EVENT:		addCalendarEvent,
-        Cmd.ARG_FILTER:		addFilter,
-        Cmd.ARG_FORWARDINGADDRESSES:	addForwardingAddresses,
+        Cmd.ARG_FILTER:		createFilter,
+        Cmd.ARG_FORWARDINGADDRESSES:	createForwardingAddresses,
         Cmd.ARG_GROUPS:		addUserToGroups,
-        Cmd.ARG_LABEL:		addLabel,
-        Cmd.ARG_LICENSE:	addLicense,
-        Cmd.ARG_PERMISSIONS:	addDriveFilePermissions,
-        Cmd.ARG_SENDAS:		addSendAs,
-        Cmd.ARG_SMIME:		addSmime,
+        Cmd.ARG_LABEL:		createLabel,
+        Cmd.ARG_LICENSE:	createLicense,
+        Cmd.ARG_PERMISSIONS:	createDriveFilePermissions,
+        Cmd.ARG_SENDAS:		createSendAs,
+        Cmd.ARG_SMIME:		createSmime,
         Cmd.ARG_SITEACLS:	processUserSiteACLs,
+        Cmd.ARG_TEAMDRIVE:	createTeamDrive,
        },
      CMD_OBJ_ALIASES:
        {Cmd.ARG_CALENDAR:	Cmd.ARG_CALENDARS,
@@ -30214,16 +30233,33 @@ USER_COMMANDS_WITH_OBJECTS = {
        {Cmd.ARG_CALENDAR:	createCalendar,
         Cmd.ARG_CONTACT:	createUserContact,
         Cmd.ARG_CONTACT_GROUP:	createUserContactGroup,
+        Cmd.ARG_DELEGATE:	createDelegate,
+        Cmd.ARG_DRIVEFILE:	createDriveFile,
+        Cmd.ARG_DRIVEFILEACL:	createDriveFileACL,
+        Cmd.ARG_FILTER:		createFilter,
+        Cmd.ARG_FORWARDINGADDRESSES:	createForwardingAddresses,
+        Cmd.ARG_LABEL:		createLabel,
+        Cmd.ARG_LICENSE:	createLicense,
+        Cmd.ARG_PERMISSIONS:	createDriveFilePermissions,
+        Cmd.ARG_SENDAS:		createSendAs,
         Cmd.ARG_SHEET:		createSheet,
         Cmd.ARG_SITE:		createUserSite,
+        Cmd.ARG_SITEACLS:	processUserSiteACLs,
+        Cmd.ARG_SMIME:		createSmime,
         Cmd.ARG_TEAMDRIVE:	createTeamDrive,
        },
      CMD_OBJ_ALIASES:
        {Cmd.ARG_CALENDARS:	Cmd.ARG_CALENDAR,
         Cmd.ARG_CONTACTS:	Cmd.ARG_CONTACT,
         Cmd.ARG_CONTACT_GROUPS:	Cmd.ARG_CONTACT_GROUP,
+        Cmd.ARG_DELEGATES:	Cmd.ARG_DELEGATE,
+        Cmd.ARG_FILTERS:	Cmd.ARG_FILTER,
+        Cmd.ARG_FORWARDINGADDRESS:	Cmd.ARG_FORWARDINGADDRESSES,
+        Cmd.ARG_LABELS:		Cmd.ARG_LABEL,
+        Cmd.ARG_LICENCE:	Cmd.ARG_LICENSE,
         Cmd.ARG_SHEETS:		Cmd.ARG_SHEET,
         Cmd.ARG_SITES:		Cmd.ARG_SITE,
+        Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
        },
     },
   u'delete':

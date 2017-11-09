@@ -1,3 +1,9 @@
+4.54.49
+
+Updated gam add filter to send actions to the API in a particular order so that Google will correctly identify duplicate filters.
+
+Fixed bug in gam info user where primary field was not printed for addresses.
+
 4.54.48
 
 Fixed bug in gam update teamdrive command line parsing.

@@ -642,7 +642,7 @@ gam audit monitor list <EmailAddress>
 <ACLScopeList> ::== "<ACLScope>(,<ACLScope>)*"
 <ACLScopeEntity>::= <ACLScopeList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
-gam calendar|calendars <CalendarEntity> add acls|calendaracls <CalendarACLRole> <ACLScopeEntity>
+gam calendar|calendars <CalendarEntity> create|add acls|calendaracls <CalendarACLRole> <ACLScopeEntity>
 gam calendar|calendars <CalendarEntity> update acls|calendaracls <CalendarACLRole> <ACLScopeEntity>
 gam calendar|calendars <CalendarEntity> delete acls|calendaracls [<CalendarACLRole>] <ACLScopeEntity>
 gam calendar|calendars <CalendarEntity> info acls|calendaracls <ACLScopeEntity>
@@ -650,7 +650,7 @@ gam calendar|calendars <CalendarEntity> info acls|calendaracls <ACLScopeEntity>
 gam calendar|calendars <CalendarEntity> show acls|calendaracls
 gam calendar|calendars <CalendarEntity> print acls|calendaracls [todrive [<ToDriveAttributes>]]
 
-gam calendar|calendars <CalendarEntity> add <CalendarACLRole> ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default
+gam calendar|calendars <CalendarEntity> create|add <CalendarACLRole> ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default
 gam calendar|calendars <CalendarEntity> update <CalendarACLRole> ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default
 gam calendar|calendars <CalendarEntity> delete [<CalendarACLRole>] ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default
 gam calendar|calendars <CalendarEntity> showacl
@@ -728,7 +728,7 @@ The following attributes are equivalent:
 	guestscantseeothers = guestscanseeotherguests False
 	tentative = status tentative
 
-gam calendar|calendars <CalendarEntity> add event [id <String>] <EventAddAttributes>+
+gam calendar|calendars <CalendarEntity> create|add event [id <String>] <EventAddAttributes>+
 gam calendar|calendars <CalendarEntity> import event icaluid <iCalUID> <EventImportAttributes>+
 gam calendar|calendars <CalendarEntity> update events <EventEntity> <EventUpdateAttributes>+
 gam calendar|calendars <CalendarEntity> delete events <EventEntity> [doit] [notifyattendees]
@@ -1007,14 +1007,14 @@ gam delete course <CourseID>
 gam update courses <CourseEntity> <CourseAttributes>+
 gam delete courses <CourseEntity>
 
-gam course <CourseID> add alias <CourseAlias>
+gam course <CourseID> create|add alias <CourseAlias>
 gam course <CourseID> delete alias <CourseAlias>
 
 gam course <CourseID> add teachers|students <UserItem>
 gam course <CourseID> delete|remove teachers|students <UserItem>
 gam course <CourseID> sync teachers|students <UserTypeEntity>
 
-gam courses <CourseEntity> add alias <CourseAliasEntity>
+gam courses <CourseEntity> create|add alias <CourseAliasEntity>
 gam courses <CourseEntity> delete alias <CourseAliasEntity>
 
 gam courses <CourseEntity> add teachers|students <UserTypeEntity>
@@ -1441,7 +1441,7 @@ gam info resources <ResourceEntity>
 gam show resources [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)] [convertcrnl]
 gam print resources [todrive [<ToDriveAttributes>]] [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)] [convertcrnl]
 
-gam resource <ResourceID> add acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity>
+gam resource <ResourceID> create|add acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity>
 gam resource <ResourceID> update acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity>
 gam resource <ResourceID> delete acls|calendaracls <CalendarACLRole>] <CalendarACLScopeEntity>
 gam resource <ResourceID> info acls|calendaracls <CalendarACLScopeEntity>
@@ -1449,7 +1449,7 @@ gam resource <ResourceID> info acls|calendaracls <CalendarACLScopeEntity>
 gam resource <ResourceID> show acls|calendaracls
 gam resource <ResourceID> print acls|calendaracls [todrive [<ToDriveAttributes>]]
 
-gam resources <ResourceEntity> add acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity>
+gam resources <ResourceEntity> create|add acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity>
 gam resources <ResourceEntity> update acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity>
 gam resources <ResourceEntity> delete acls|calendaracls <CalendarACLRole>] <CalendarACLScopeEntity>
 gam resources <ResourceEntity> info acls|calendaracls <CalendarACLScopeEntity>
@@ -1496,7 +1496,7 @@ gam [<UserTypeEntity>] print sites [todrive [<ToDriveAttributes>]] [domain|domai
 
 gam [<UserTypeEntity>] print siteactivity <SiteEntity> [todrive [<ToDriveAttributes>]] [maxresults <Number>] [updated_min <Date>] [updated_max <Date>]
 
-gam [<UserTypeEntity>] add siteacls <SiteEntity> <SiteACLRole> <SiteACLScopeEntity>
+gam [<UserTypeEntity>] create|add siteacls <SiteEntity> <SiteACLRole> <SiteACLScopeEntity>
 gam [<UserTypeEntity>] update siteacls <SiteEntity> <SiteACLRole> <SiteACLScopeEntity>
 gam [<UserTypeEntity>] delete siteacls <SiteEntity> <SiteACLScopeEntity>
 gam [<UserTypeEntity>] info siteacls <SiteEntity> <SiteACLScopeEntity>
@@ -1523,26 +1523,26 @@ These commands are used to manage the ACLs on the Team Drives themselves, not th
 
 In these commands, the Google administrator named in oauth2.txt is used.
 
-gam add drivefileacl <TeamDriveEntityAdmin> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
+gam create|add drivefileacl <TeamDriveEntityAdmin> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
 	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [sendemail] [emailmessage <String>] [showtitles]
 gam update drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail>
 	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles]
 gam delete drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles]
 gam show drivefileacl <TeamDriveEntityAdmin> [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam print drivefileacls <TeamDriveEntityAdmin> [todrive [<ToDriveAttributes>]] [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-gam add permissions <TeamDriveEntityAdmin> <DriveFilePermissionEntity> [expires|expiration <Time>] [sendemail] [emailmessage <String>]
+gam create|add permissions <TeamDriveEntityAdmin> <DriveFilePermissionEntity> [expires|expiration <Time>] [sendemail] [emailmessage <String>]
 gam delete permissions <TeamDriveEntityAdmin> <DriveFilePermissionIDEntity>
 
 In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
 
-gam <UserTypeEntity> add drivefileacl <TeamDriveEntityAdmin> adminaccess anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
+gam <UserTypeEntity> create|add drivefileacl <TeamDriveEntityAdmin> adminaccess anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
 	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [sendemail] [emailmessage <String>] [showtitles]
 gam <UserTypeEntity> update drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> adminaccess
 	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles]
 gam <UserTypeEntity> delete drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> adminaccess [showtitles]
 gam <UserTypeEntity> show drivefileacl <TeamDriveEntityAdmin> adminaccess [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> print drivefileacls <TeamDriveEntityAdmin> [todrive [<ToDriveAttributes>]] adminaccess [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-gam <UserTypeEntity> add permissions <TeamDriveEntityAdmin> <DriveFilePermissionEntity> adminaccess [expires|expiration <Time>] [sendemail] [emailmessage <String>]
+gam <UserTypeEntity> create|add permissions <TeamDriveEntityAdmin> <DriveFilePermissionEntity> adminaccess [expires|expiration <Time>] [sendemail] [emailmessage <String>]
 gam <UserTypeEntity> delete permissions <TeamDriveEntityAdmin> <DriveFilePermissionIDEntity> adminaccess
 
 # Vault
@@ -1769,7 +1769,7 @@ gam <UserTypeEntity> remove calendars <CalendarManageEntity>
 
 Manage access to any calendar a user owns
 
-gam <UserTypeEntity> add calendaracls <CalendarManageEntity> <CalendarACLRole> <CalendarACLScopeEntity>
+gam <UserTypeEntity> create|add calendaracls <CalendarManageEntity> <CalendarACLRole> <CalendarACLScopeEntity>
 gam <UserTypeEntity> update calendaracls <CalendarManageEntity> <CalendarACLRole> <CalendarACLScopeEntity>
 gam <UserTypeEntity> delete calendaracls <CalendarManageEntity> <CalendarACLRole>] <CalendarACLScopeEntity>
 
@@ -1856,7 +1856,7 @@ The following attributes are equivalent:
 
 Add update and delete events in any calendar for which a user has access
 
-gam <UserTypeEntity> add event <CalendarManageEntity> [id <String>] <EventAddAttributes>+
+gam <UserTypeEntity> create|add event <CalendarManageEntity> [id <String>] <EventAddAttributes>+
 gam <UserTypeEntity> import event <CalendarEntity> icaluid <iCalUID> <EventImportAttributes>+
 gam <UserTypeEntity> update events <CalendarManageEntity> <EventEntity> <EventUpdateAttributes>+
 gam <UserTypeEntity> delete events <CalendarManageEntity> <EventEntity> [doit] [notifyattendees]
@@ -1943,7 +1943,7 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 <DriveFileQueryEntity> ::= (query <QueryDriveFile>) | (query:<QueryDriveFile>)
 <DriveFileEntity> ::= <DriveFileIDEntity> | <DriveFileNameEntity> | <DriveFileQueryEntity> | <DriveFileQueryShortcut> |  root | <FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
 
-gam <UserTypeEntity> add drivefile [drivefilename <DriveFileName>] <DriveFileAddAttributes>*
+gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] <DriveFileAddAttributes>*
 gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [newfilename <DriveFileName>] <DriveFileUpdateAttributes>*
 gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [recursive [depth <Number>]] <DriveFileCopyAttributes>*
 gam <UserTypeEntity> get drivefile <DriveFileEntity> [format <FileFormatList>] [targetfolder <FilePath>] [revision <DriveFileRevisionID>]
@@ -1962,14 +1962,14 @@ gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
 <DriveFilePermissionList> ::= "<DriveFilePermission>(,<DriveFilePermission)*"
 <DriveFilePermissionIDList> ::= "<DriveFilePermissionID>(,<DriveFilePermissionID>)*"
 
-gam <UserTypeEntity> add drivefileacl <DriveFileEntity> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
+gam <UserTypeEntity> create|add drivefileacl <DriveFileEntity> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
 	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [sendemail] [emailmessage <String>] [showtitles]
 gam <UserTypeEntity> update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail>
 	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles]
 gam <UserTypeEntity> delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles]
 gam <UserTypeEntity> show drivefileacl <DriveFileEntity> [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-gam <UserTypeEntity> add permissions <DriveFileEntity> <DriveFilePermissionEntity> [expires|expiration <Time>] [sendemail] [emailmessage <String>]
+gam <UserTypeEntity> create|add permissions <DriveFileEntity> <DriveFilePermissionEntity> [expires|expiration <Time>] [sendemail] [emailmessage <String>]
 gam <UserTypeEntity> delete permissions <DriveFileEntity> <DriveFilePermissionIDEntity>
 
 <RevisionsFieldName> ::=
@@ -2180,7 +2180,7 @@ gam <UserTypeEntity> deprovision|deprov
 # Users - Gmail - Delegates
 
 gam <UserTypeEntity> delegate to <UserEntity>
-gam <UserTypeEntity> add delegate|delegates <UserEntity>
+gam <UserTypeEntity> create|add delegate|delegates <UserEntity>
 gam <UserTypeEntity> delete delegate|delegates <UserEntity>
 gam <UserTypeEntity> show delegates|delegate
 gam <UserTypeEntity> print delegates [todrive [<ToDriveAttributes>]]
@@ -2206,7 +2206,7 @@ gam <UserTypeEntity> print delegates [todrive [<ToDriveAttributes>]]
 	neverspam|
 	trash
 
-gam <UserTypeEntity> [add] filter <FilterCriteria>+ <FilterAction>+
+gam <UserTypeEntity> [create|add] filter <FilterCriteria>+ <FilterAction>+
 gam <UserTypeEntity> delete filters <FilterIDEntity>
 
 gam <UserTypeEntity> info filters <FilterIDEntity>
@@ -2215,7 +2215,7 @@ gam <UserTypeEntity> print filters [labelidsonly] [todrive [<ToDriveAttributes>]
 
 # Users - Gmail - Forwarding
 
-gam <UserTypeEntity> add forwardingaddress|forwardingaddresses <EmailAddressEntity>
+gam <UserTypeEntity> create|add forwardingaddress|forwardingaddresses <EmailAddressEntity>
 gam <UserTypeEntity> delete forwardingaddress|forwardingaddresses <EmailAddressEntity>
 
 gam <UserTypeEntity> show forwardingaddress|forwardingaddresses
@@ -2230,7 +2230,7 @@ gam <UserTypeEntity> print forward [todrive [<ToDriveAttributes>]]
 
 # Users - Gmail - Labels/Messages
 
-gam <UserTypeEntity> [add] label|labels <String> [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread] [buildpath [<Boolean>]]
+gam <UserTypeEntity> [create|add] label|labels <String> [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread] [buildpath [<Boolean>]]
 gam <UserTypeEntity> update labelsettings <LabelName> [name <String>] [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
 gam <UserTypeEntity> update label|labels [search <RegularExpression>] [replace <String>] [merge]
 gam <UserTypeEntity> delete label|labels <LabelName>|regex:<RegularExpression>|--ALL_LABELS--
@@ -2267,7 +2267,7 @@ gam <UserTypeEntity> print gmailprofile [todrive [<ToDriveAttributes>]]
 
 # Users - Gmail - Send As/Signature/Vacation
 
-gam <UserTypeEntity> [add] sendas <EmailAddress> <String> [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*]
+gam <UserTypeEntity> [create|add] sendas <EmailAddress> <String> [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*]
 	[html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
 gam <UserTypeEntity> update sendas <EmailAddress> [name <String>] [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*]
 	[html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
@@ -2276,7 +2276,7 @@ gam <UserTypeEntity> info sendas <EmailAddressEntity> [format]
 gam <UserTypeEntity> show sendas [format]
 gam <UserTypeEntity> print sendas [todrive [<ToDriveAttributes>]]
 
-gam <UserTypeEntity> add smime file <FileName> [password <Password>] [sendas|sendasemail <EmailAddress>] [default]
+gam <UserTypeEntity> create|add smime file <FileName> [password <Password>] [sendas|sendasemail <EmailAddress>] [default]
 gam <UserTypeEntity> update smime [id <S/MIMEID>] [sendas|sendasemail <EmailAddress>] [default]
 gam <UserTypeEntity> delete smime [id <S/MIMEID>] [sendas|sendasemail <EmailAddress>]
 gam <UserTypeEntity> show smimes [primaryonly]
@@ -2321,7 +2321,7 @@ gam <UserTypeEntity> delete groups [<GroupEntity>]
 
 # Users - Licenses
 
-gam <UserTypeEntity> add license <SKUID> [product|productid <ProductID>]
+gam <UserTypeEntity> create|add license <SKUID> [product|productid <ProductID>]
 gam <UserTypeEntity> update license <SKUID> [product|productid <ProductID>] [from] <SKUID>
 gam <UserTypeEntity> delete license <SKUID> [product|productid <ProductID>]
 
@@ -2340,7 +2340,7 @@ gam <UserTypeEntity> show profile
 # Users - Team Drives
 
 gam <UserTypeEntity> show teamdrivethemes
-gam <UserTypeEntity> create teamdrive <Name> [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+gam <UserTypeEntity> create|add teamdrive <Name> [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>] [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 gam <UserTypeEntity> delete teamdrive <TeamDriveEntity>
 gam <UserTypeEntity> info teamdrive <TeamDriveEntity>
