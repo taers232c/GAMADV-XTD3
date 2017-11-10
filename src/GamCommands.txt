@@ -576,7 +576,7 @@ gam <CrOSTypeEntity>|<UserTypeEntity> list [todrive [<ToDriveAttributes>]] [data
 
 # Authorization
 
-gam create project [<EmailAddress>]
+gam create|add project [<EmailAddress>]
 gam update project [<EmailAddress>]
 
 gam oauth|oauth2 create|request [<EmailAddress>]
@@ -598,7 +598,7 @@ gam show adminroles|roles [privileges]
 <RoleAssignmentID> ::= <String>
 <RoleItem> ::= id:<String>|uid:<string>|<String>
 
-gam create admin <UserItem> <RoleItem> customer|(org_unit <OrgUnitItem>)
+gam create|add admin <UserItem> <RoleItem> customer|(org_unit <OrgUnitItem>)
 gam delete admin <RoleAssignmentId>
 
 gam print admins [todrive [<ToDriveAttributes>]] [user <UserItem>] [role <RoleItem>]
@@ -606,7 +606,7 @@ gam show admins [user <UserItem>] [role <RoleItem>]
 
 # Aliases
 
-gam create alias|aliases <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
+gam create|add alias|aliases <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
 gam update alias|aliases <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
 gam delete alias|aliases [user|group|target] <EmailAddressEntity>
 gam info alias|aliases <EmailAddressEntity>
@@ -888,7 +888,7 @@ Delimiter defaults to gam.cfg/csv_output_field_delimiter.
 <ContactGroupAttributes> ::=
 	(name <String>)
 
-gam create contact <ContactAttributes>+
+gam create|add contact <ContactAttributes>+
 gam update contacts <ContactEntity> <ContactAttributes>+
 gam delete contacts <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
 
@@ -939,7 +939,7 @@ gam show contacts [query <QueryContact>] [emailmatchpattern <RegularExpression>]
 gam print contacts [todrive [<ToDriveAttributes>]] [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
 	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]] [fields <ContactFieldNameList>]
 
-gam <UserTypeEntity> create contact [contactgroup <ContactGroupItem>] <ContactAttributes>+
+gam <UserTypeEntity> create|add contact [contactgroup <ContactGroupItem>] <ContactAttributes>+
 gam <UserTypeEntity> update contacts <ContactEntity> [contactgroup <ContactGroupItem>] <ContactAttributes>+
 gam <UserTypeEntity> delete contacts <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
 
@@ -949,7 +949,7 @@ gam <UserTypeEntity> show contacts [query <QueryContact>] [contactgroup <Contact
 gam <UserTypeEntity> print contacts [todrive [<ToDriveAttributes>]] [query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
 	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]] [fields <ContactFieldNameList>]
 
-gam <UserTypeEntity> create contactgroup <ContactGroupAttributes>+
+gam <UserTypeEntity> create|add contactgroup <ContactGroupAttributes>+
 gam <UserTypeEntity> update contactgroup <ContactGroupItem> <ContactGroupAttributes>+
 gam <UserTypeEntity> delete contactgroups <ContactGroupEntity>
 
@@ -1000,7 +1000,7 @@ gam <UserTypeEntity> print gal [todrive [<ToDriveAttributes>]] [query <QueryCont
 	updatetime
 <CourseFieldNameList> ::= "<CourseFieldName>(,<CourseFieldName>)*"
 
-gam create course id|alias <CourseAlias> <CourseAttributes>*
+gam create|add course id|alias <CourseAlias> <CourseAttributes>*
 gam update course <CourseID> <CourseAttributes>+
 gam delete course <CourseID>
 
@@ -1010,14 +1010,14 @@ gam delete courses <CourseEntity>
 gam course <CourseID> create|add alias <CourseAlias>
 gam course <CourseID> delete alias <CourseAlias>
 
-gam course <CourseID> add teachers|students <UserItem>
+gam course <CourseID> create|add teachers|students <UserItem>
 gam course <CourseID> delete|remove teachers|students <UserItem>
 gam course <CourseID> sync teachers|students <UserTypeEntity>
 
 gam courses <CourseEntity> create|add alias <CourseAliasEntity>
 gam courses <CourseEntity> delete alias <CourseAliasEntity>
 
-gam courses <CourseEntity> add teachers|students <UserTypeEntity>
+gam courses <CourseEntity> create|add teachers|students <UserTypeEntity>
 gam courses <CourseEntity> delete|remove teachers|students <UserTypeEntity>
 gam courses <CourseEntity> sync teachers|students <UserTypeEntity>
 
@@ -1067,7 +1067,7 @@ gam print transferapps
 <OldOwnerID> ::= <UserItem>
 <NewOwnerID> ::= <UserItem>
 
-gam create datatransfer|transfer <OldOwnerID> <DataTransferService> <NewOwnerID> [private|shared|all] (<ParameterKey> <ParameterValue>)*
+gam create|add datatransfer|transfer <OldOwnerID> <DataTransferService> <NewOwnerID> [private|shared|all] (<ParameterKey> <ParameterValue>)*
 
 gam info datatransfer|transfer <TransferID>
 gam print datatransfers|transfers [todrive [<ToDriveAttributes>]] [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>] [status <String>] [delimiter <Character>]
@@ -1076,14 +1076,14 @@ gam print datatransfers|transfers [todrive [<ToDriveAttributes>]] [olduser|oldow
 
 <DomainAlias> ::= <String>
 
-gam create domain <DomainName>
+gam create|add domain <DomainName>
 gam update domain <DomainName> primary
 gam delete domain <DomainName>
 
 gam info domain [<DomainName>]
 gam print domains [todrive [<ToDriveAttributes>]]
 
-gam create domainalias|aliasdomain <DomainAlias> <DomainName>
+gam create|add domainalias|aliasdomain <DomainAlias> <DomainName>
 gam delete domainalias|aliasdomain <DomainAlias>
 
 gam info domainalias|aliasdomain <DomainAlias>
@@ -1122,9 +1122,9 @@ gam print domainaliases|aliasdomains [todrive [<ToDriveAttributes>]]
 	(whocanviewgroup ANYONE_CAN_VIEW|ALL_IN_DOMAIN_CAN_VIEW|ALL_MEMBERS_CAN_VIEW|ALL_MANAGERS_CAN_VIEW)|
 	(whocanviewmembership ALL_IN_DOMAIN_CAN_VIEW|ALL_MEMBERS_CAN_VIEW|ALL_MANAGERS_CAN_VIEW)
 
-gam create group <EmailAddress> <GroupAttributes>*
+gam create|add group <EmailAddress> <GroupAttributes>*
 gam update group|groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] <GroupAttributes>*
-gam update group|groups <GroupEntity> add [owner|manager|member] [notsuspended] <UserTypeEntity>
+gam update group|groups <GroupEntity> create|add [owner|manager|member] [notsuspended] <UserTypeEntity>
 gam update group|groups <GroupEntity> delete|remove [owner|manager|member] <UserTypeEntity>
 gam update group|groups <GroupEntity> sync [owner|manager|member] [notsuspended] <UserTypeEntity>
 gam update group|groups <GroupEntity> update [owner|manager|member] <UserTypeEntity>
@@ -1197,7 +1197,7 @@ gam show group-members
 	pending
 <GuardianStateList> ::= "<GuardianState>(,<GuardianState>)*"
 
-gam create guardian|guardianinvite|inviteguardian <EmailAddress> <StudentItem>
+gam create|add guardian|guardianinvite|inviteguardian <EmailAddress> <StudentItem>
 gam cancel guardianinvitation|guardianinvitations <GuardianInvitationID> <StudentItem>
 gam delete guardian|guardians <GuardianItem> <StudentItem> invitation
 gam show guardian|guardians invitations [states <GuardianStateList>] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
@@ -1294,7 +1294,7 @@ gam info notification|notifications [unread|read|unreadonly]
 	path|orgunitpath
 <OrgUnitFieldNameList> ::= "<OrgUnitFieldName>(,<OrgUnitFieldName>)*"
 
-gam create org|ou <OrgUnitPath> [description <String>] [parent <OrgUnitItem>] [inherit|noinherit|(blockinheritance <Boolean>)] [buildpath]
+gam create|add org|ou <OrgUnitPath> [description <String>] [parent <OrgUnitItem>] [inherit|noinherit|(blockinheritance <Boolean>)] [buildpath]
 gam update org|ou <OrgUnitItem> [name <String>] [description <String>] [parent <OrgUnitItem>] [inherit|noinherit|(blockinheritance <Boolean>)]
 gam update org|ou <OrgUnitItem> add|move <CrOSTypeEntity> [quickcrosmove [<Boolean>]]
 gam update org|ou <OrgUnitItem> add|move <UserTypeEntity>
@@ -1346,7 +1346,7 @@ gam print printer|printers [todrive [<ToDriveAttributes>]] [query <QueryPrinter>
 <PrinterACLScopeList> ::== "<PrinterACLScope>(,<PrinterACLScope>)*"
 <PrinterACLScopeEntity>::= <PrinterACLScopeList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
-gam printer|printers <PrinterIDEntity> add user|manager|owner <PrinterACLScopeEntity> [notify]
+gam printer|printers <PrinterIDEntity> create|add user|manager|owner <PrinterACLScopeEntity> [notify]
 gam printer|printers <PrinterIDEntity> delete <PrinterACLScopeEntity>
 gam printer|printers <PrinterIDEntity> sync user|manager|owner <PrinterACLScopeEntity> [notify]
 gam printer|printers <PrinterIDEntity> wipe user|manager|owner
@@ -1401,11 +1401,11 @@ gam report admin|calendar|calendars|drive|docs|doc|groups|group|logins|login|mob
 	(zipcode|postal|postalcode <String>)|
 	(country|countrycode <String>)
 
-gam create resoldcustomer <CustomerDomain> (customer_auth_token <String>) <ResoldCustomerAttributes>+
+gam create|add resoldcustomer <CustomerDomain> (customer_auth_token <String>) <ResoldCustomerAttributes>+
 gam update resoldcustomer <CustomerID> [customer_auth_token <String>] <ResoldCustomerAttribues>+
 gam info resoldcustomer <CustomerID>
 
-gam create resoldsubscription <CustomerID> (sku <SKUID>)
+gam create|add resoldsubscription <CustomerID> (sku <SKUID>)
 	 (plan annual_monthly_pay|annual_yearly_pay|flexible|trial) (seats <NumberOfSeats> <MaximumNumberOfSeats>)
 	 [customer_auth_token <String>] [deal <String>] [purchaseorderid <String>]
 gam update resoldsubscription <CustomerID> <SKUID>
@@ -1429,7 +1429,7 @@ gam print resoldsubscriptions [todrive [<ToDriveAttributes>]] [customerid <Custo
 	type
 <ResourceFieldNameList> ::= "<ResourceFieldName>(,<ResourceFieldName>)*"
 
-gam create resource <ResourceID> <String> [description <String>] [type <String>]
+gam create|add resource <ResourceID> <String> [description <String>] [type <String>]
 gam update resource <ResourceID> [name <String>] [description <String>] [type <String>]
 gam delete resource <ResourceID>
 gam info resource <ResourceID>
@@ -1462,7 +1462,7 @@ gam resources <ResourceEntity> print acls|calendaracls [todrive [<ToDriveAttribu
 <SchemaFieldDefinition> ::=
 	field <FieldName> (type bool|date|double|email|int64|phone|string) [multivalued|multivalue] [indexed] [restricted] [range <Number> <Number>] endfield
 
-gam create schema|schemas <SchemaName> <SchemaFieldDefinition>+
+gam create|add schema|schemas <SchemaName> <SchemaFieldDefinition>+
 gam update schema <SchemaName> <SchemaFieldDefinition>* (deletefield <FieldName>)*
 gam delete schema <SchemaName>
 gam info schema <SchemaName>
@@ -1486,7 +1486,7 @@ gam print schema|schemas [todrive [<ToDriveAttributes>]]
 <SiteACLRole> ::= editor|invite|owner|reader|writer
 <SiteACLRoleList> ::= "<SiteACLRole>(,<SiteACLRole>)*"
 
-gam [<UserTypeEntity>] create site <SiteItem> <SiteAttributes>*
+gam [<UserTypeEntity>] create|add site <SiteItem> <SiteAttributes>*
 gam [<UserTypeEntity>] update sites <SiteEntity> <SiteAttributes>+
 gam [<UserTypeEntity>] info sites <SiteEntity> [withmappings] [role|roles all|<SiteACLRoleList>]
 gam [<UserTypeEntity>] show sites [domain|domains <DomainNameEntity>] [includeallsites]
@@ -1524,9 +1524,9 @@ These commands are used to manage the ACLs on the Team Drives themselves, not th
 In these commands, the Google administrator named in oauth2.txt is used.
 
 gam create|add drivefileacl <TeamDriveEntityAdmin> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
-	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [sendemail] [emailmessage <String>] [showtitles]
+	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [sendemail] [emailmessage <String>] [showtitles] [nodetails]
 gam update drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail>
-	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles]
+	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails]
 gam delete drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles]
 gam show drivefileacl <TeamDriveEntityAdmin> [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam print drivefileacls <TeamDriveEntityAdmin> [todrive [<ToDriveAttributes>]] [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
@@ -1536,9 +1536,9 @@ gam delete permissions <TeamDriveEntityAdmin> <DriveFilePermissionIDEntity>
 In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
 
 gam <UserTypeEntity> create|add drivefileacl <TeamDriveEntityAdmin> adminaccess anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
-	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [sendemail] [emailmessage <String>] [showtitles]
+	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [sendemail] [emailmessage <String>] [showtitles] [nodetails]
 gam <UserTypeEntity> update drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> adminaccess
-	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles]
+	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails]
 gam <UserTypeEntity> delete drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> adminaccess [showtitles]
 gam <UserTypeEntity> show drivefileacl <TeamDriveEntityAdmin> adminaccess [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> print drivefileacls <TeamDriveEntityAdmin> [todrive [<ToDriveAttributes>]] adminaccess [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
@@ -1547,7 +1547,7 @@ gam <UserTypeEntity> delete permissions <TeamDriveEntityAdmin> <DriveFilePermiss
 
 # Vault
 
-gam create vaulthold|hold corpus drive|groups|mail matter <MatterItem> [name <String>] [query <QueryVaultCorpus>]
+gam create|add vaulthold|hold corpus drive|groups|mail matter <MatterItem> [name <String>] [query <QueryVaultCorpus>]
 	[(accounts|groups|users <EmailItemList>) | (orgunit|ou <OrgUnit>)]
 	[starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>] 
 gam update vaulthold|hold <HoldItem> matter <MatterItem> [query <QueryVaultCorpus>]
@@ -1558,7 +1558,7 @@ gam info vaulthold|hold <HoldItem> matter <MatterItem> [shownames]
 gam show vaultholds|holds [matter|matters <MatterItemList>] [shownames]
 gam print vaultholds|holds [todrive [<ToDriveAttributes>]] [matter|matters <MatterItemList>] [shownames]
 
-gam create vaultmatter|matter [name <String>] [description <string>]
+gam create|add vaultmatter|matter [name <String>] [description <string>]
 	[collaborator|collaborators <EmailItemList>]
 gam update vaultmatter|matter <MatterItem> [name <String>] [description <string>]
 	[addcollaborator|addcollaborators <EmailItemList>] [removecollaborator|removecollaborators <EmailItemList>]
@@ -1646,7 +1646,7 @@ gam print vaultmatters|matters [todrive [<ToDriveAttributes>]] [basic|full]
 	(website clear|(home_page|blog|profile|work|home|other|ftp|reservations|app_install_page|<String> <URL> [notprimary|primary]))|
 	(<SchemaName>.<FieldName> [multivalued|multivalue|value|multinonempty [type work|home|other|(custom <String>)]] <String>)
 
-gam create user <EmailAddress> <UserAttributes>* [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
+gam create|add user <EmailAddress> <UserAttributes>* [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
 gam update user <UserItem> <UserAttributes>* [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
 	[createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
 gam delete user <UserItem>
@@ -1963,9 +1963,9 @@ gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
 <DriveFilePermissionIDList> ::= "<DriveFilePermissionID>(,<DriveFilePermissionID>)*"
 
 gam <UserTypeEntity> create|add drivefileacl <DriveFileEntity> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
-	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [sendemail] [emailmessage <String>] [showtitles]
+	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [sendemail] [emailmessage <String>] [showtitles] [nodetails]
 gam <UserTypeEntity> update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail>
-	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles]
+	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails]
 gam <UserTypeEntity> delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles]
 gam <UserTypeEntity> show drivefileacl <DriveFileEntity> [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
@@ -2364,7 +2364,7 @@ The following right-hand side characters are part of the meta-syntax: <>()*|
 See: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets/create
 See: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets/batchUpdate
 
-gam <UserTypeEntity> create sheet json <SpreadsheetJSONCreateRequest> [formatjson]
+gam <UserTypeEntity> create|add sheet json <SpreadsheetJSONCreateRequest> [formatjson]
 	[parentid <DriveFolderID>] | [parentname <DriveFolderName>] | [anyownerparentname <DriveFolderName>]
 	[teamdriveparentid <DriveFolderID>] [teamdriveparent <TeamDriveName>] [teamdriveparentname <DriveFolderName>]
 gam <UserTypeEntity> update sheet <DriveFileEntity> json <SpreadsheetJSONUpdateRequest> [formatjson]
@@ -2401,6 +2401,6 @@ gam print tokens|token [todrive [<ToDriveAttributes>]] [clientid <ClientID>] [de
 
 # Verifications
 
-gam create verify|verification <DomainName>
+gam create|add verify|verification <DomainName>
 gam update verify|verification <DomainName> cname|txt|text|site|file
 gam info verify|verification

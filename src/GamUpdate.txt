@@ -1,3 +1,15 @@
+4.54.50
+
+Added nodetails option to gam create/update drivefileacl to allow suppression of the output of the ACL details.
+gam create|add drivefileacl <TeamDriveEntityAdmin> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
+	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [sendemail] [emailmessage <String>] [showtitles] [nodetails]
+gam update drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail>
+	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails]
+gam <UserTypeEntity> create|add drivefileacl <DriveFileEntity> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
+	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [sendemail] [emailmessage <String>] [showtitles] [nodetails]
+gam <UserTypeEntity> update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail>
+	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails]
+
 4.54.49
 
 Updated gam add filter to send actions to the API in a particular order so that Google will correctly identify duplicate filters.
