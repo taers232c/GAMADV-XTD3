@@ -5508,7 +5508,7 @@ def doCreateProject():
           create_again = True
           break
         try:
-          if status[u'error'][u'detalis'][0][u'violations'][0][u'description'] == u'Callers must accept Terms of Service':
+          if status[u'error'][u'details'][0][u'violations'][0][u'description'] == u'Callers must accept Terms of Service':
             readStdin(u'''Please go to:
 
 https://console.cloud.google.com/start
@@ -27228,7 +27228,7 @@ def _importInsertMessage(users, importMsg):
           _appendToHeader(message[header], value)
       else:
         _appendToHeader(message[header], value)
-    tmpFile = TemporaryFile(mode=u'w+')
+    tmpFile = TemporaryFile(mode=u'w+', encoding=UTF8)
     g = Generator(tmpFile, False)
     g.flatten(message)
     tmpFile.seek(0)
