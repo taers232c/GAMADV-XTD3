@@ -1,3 +1,7 @@
+4.54.51
+
+Fixed bug where "utf-8" was written to empty fields when todrive was specified.
+
 4.54.50
 
 Added nodetails option to gam create/update drivefileacl to allow suppression of the output of the ACL details.

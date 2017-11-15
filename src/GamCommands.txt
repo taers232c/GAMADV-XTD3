@@ -238,7 +238,8 @@ If an item contains spaces, it should be surrounded by ".
 <DriveFileName> ::= <String>
 <DriveFolderID> ::= <String>
 <DriveFolderName> ::= <String>
-<DriveFilePermission> ::= anyone|anyonewithlink|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>|domainwithlink:<DomainName>;<DriveFileACLRole>
+<DriveFilePermissionScope> ::= anyone|anyonewithlink|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>|domainwithlink:<DomainName>
+<DriveFilePermission> ::= <DriveFilePermissionScope>;<DriveFileACLRole>
 <DriveFilePermissionID> ::= anyone|anyonewithlink|id:<String>
 <DriveFilePermissionIDorEmail> ::= <DriveFilePermissionID>|<EmailAddress>
 <DriveFileRevisionID> ::= <String>
