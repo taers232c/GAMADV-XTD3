@@ -64,6 +64,20 @@ When you print groups, the name and description columns contain the gs-name and 
 the name and description lines contain the gs-name and gs-description values. If the d-name value differs from the gs-name value, it will
 shown on a separate line as groupName. If the d-description value differs from the gs-description  value, it will shown on a separate line as groupDescription.
 
+* Added capabilty to add/remove parent folders by name when updating a Google Drive file/folder.
+
+Previously, the gam update drivefile command had the following options for adding/removing parent folders:
+	(addparents <DriveFolderIDList>)|
+	(removeparents <DriveFolderIDList>)|
+You had to specify the parents by ID. The following new options have been added to allow specification of the parents by folder name.
+	(addparentname <DriveFolderName>)|
+	(addanyownerparentname <DriveFolderName>)|
+	(removeparentname <DriveFolderName>)|
+	(removeanyownerparentname <DriveFolderName>)|
+Gam performs a query to convert <DriveFolderName> to its <DriveFolderID>.
+* addparentname|removeparentname <DriveFolderName> - The query is: "'me' in owners and name='<DriveFolderName>'".
+* addanyownerparentname|removeanyownerparentname <DriveFolderName> - The query is: "name='<DriveFolderName>'".
+
 4.54.51
 
 Fixed bug where "utf-8" was written to empty fields when todrive was specified.

@@ -1909,7 +1909,11 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 <DriveFileUpdateAttributes> ::=
 	<DriveFileAttributes>|
 	(addparents <DriveFolderIDList>)|
+	(addparentname <DriveFolderName>)|
+	(addanyownerparentname <DriveFolderName>)|
 	(removeparents <DriveFolderIDList>)|
+	(removeparentname <DriveFolderName>)|
+	(removeanyownerparentname <DriveFolderName>)|
 	(parentid <DriveFolderID>)|
 	(parentname <DriveFolderName>)|
 	(anyownerparentname <DriveFolderName>)|
