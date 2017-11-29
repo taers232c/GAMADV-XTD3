@@ -258,7 +258,7 @@ PROPERTIES = {
   u'aliases': {
     CLASS: PC_ALIASES, TITLE: u'Email Aliases',},
   u'nonEditableAliases': {
-    CLASS: PC_ALIASES, TITLE: u'Non-Editable Aliases',},
+    CLASS: PC_ALIASES, TITLE: u'NonEditable Aliases',},
   }
 #
 IM_PROTOCOLS = {

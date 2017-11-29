@@ -851,8 +851,8 @@ Delimiter defaults to gam.cfg/csv_output_field_delimiter.
 
 <ContactAttributes> ::=
 	(additionalname|middlename <String>)|
-	(address clear|(work|home|other|<String> (formatted|unstructured <String>)|(streetaddress <String>)|(pobox <String>)|
-	    (neighborhood <String>)|(locality <String>)|(region <String>)|(postalcode <String>)|(country <String>) notprimary|primary))|
+	(address clear|(work|home|other|<String> ((formatted|unstructured <String>)|(streetaddress <String>)|(pobox <String>)|
+	    (neighborhood <String>)|(locality <String>)|(region <String>)|(postalcode <String>)|(country <String>))* notprimary|primary))|
 	(billinginfo <String>)|
 	(birthday <Date>)|
 	(calendar clear|(work|home|free-busy|<String> <URL> notprimary|primary))|
@@ -1125,10 +1125,10 @@ gam print domainaliases|aliasdomains [todrive [<ToDriveAttributes>]]
 
 gam create|add group <EmailAddress> <GroupAttributes>*
 gam update group|groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] <GroupAttributes>*
-gam update group|groups <GroupEntity> create|add [owner|manager|member] [notsuspended] <UserTypeEntity>
-gam update group|groups <GroupEntity> delete|remove [owner|manager|member] <UserTypeEntity>
-gam update group|groups <GroupEntity> sync [owner|manager|member] [notsuspended] <UserTypeEntity>
-gam update group|groups <GroupEntity> update [owner|manager|member] <UserTypeEntity>
+gam update group|groups <GroupEntity> create|add [owner|manager|member] [usersonly|groupsonly] [notsuspended] <UserTypeEntity>
+gam update group|groups <GroupEntity> delete|remove [owner|manager|member] [usersonly|groupsonly] <UserTypeEntity>
+gam update group|groups <GroupEntity> sync [owner|manager|member] [usersonly|groupsonly] [notsuspended] <UserTypeEntity>
+gam update group|groups <GroupEntity> update [owner|manager|member] [usersonly|groupsonly] <UserTypeEntity>
 gam update group|groups <GroupEntity> clear [member] [manager] [owner] [suspended]
 gam delete group|groups <GroupEntity>
 
@@ -1347,9 +1347,9 @@ gam print printer|printers [todrive [<ToDriveAttributes>]] [query <QueryPrinter>
 <PrinterACLScopeList> ::== "<PrinterACLScope>(,<PrinterACLScope>)*"
 <PrinterACLScopeEntity>::= <PrinterACLScopeList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
-gam printer|printers <PrinterIDEntity> create|add user|manager|owner <PrinterACLScopeEntity> [notify]
-gam printer|printers <PrinterIDEntity> delete <PrinterACLScopeEntity>
-gam printer|printers <PrinterIDEntity> sync user|manager|owner <PrinterACLScopeEntity> [notify]
+gam printer|printers <PrinterIDEntity> create|add user|manager|owner [usersonly|groupsonly] <PrinterACLScopeEntity> [notify]
+gam printer|printers <PrinterIDEntity> delete [usersonly|groupsonly] <PrinterACLScopeEntity>
+gam printer|printers <PrinterIDEntity> sync user|manager|owner [usersonly|groupsonly] <PrinterACLScopeEntity> [notify]
 gam printer|printers <PrinterIDEntity> wipe user|manager|owner
 gam printer|printers <PrinterIDEntity> showacls
 gam printer|printers <PrinterIDEntity> printacls [todrive [<ToDriveAttributes>]]
@@ -1780,7 +1780,7 @@ gam <UserTypeEntity> print calendaracls <CalendarManageEntity> [todrive [<ToDriv
 
 Transfer ownership of a selection of users calendars to another user
 
-gam <UserTypeEntity> transfer calendars <CalendarManageEntity> <UserItem> [keepuser | (retainrole <CalendarACLRole>)]
+gam <UserTypeEntity> transfer calendars <CalendarManageEntity> <UserItem> [keepuser | (retainrole <CalendarACLRole>)] [noretentionmessages]
 
 <EventSelectProperties:> ::=
 	(endtime|timemax <Time>)|
@@ -2002,13 +2002,15 @@ gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetra
 	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 	[preview] [filepath] [buildtree] [todrive [<ToDriveAttributes>]]
 gam <UserTypeEntity> claim ownership <DriveFileEntity> [includetrashed]
-	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 	[skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
-	[restricted [<Boolean>]] [writerscanshare|writerscantshare [<Boolean>]] [keepuser | (retainrole commenter|reader|writer|none)]
+	[restricted [<Boolean>]] [writerscanshare|writerscantshare [<Boolean>]]
+	[keepuser | (retainrole commenter|reader|writer|none)] [noretentionmessages]
+	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 	[preview] [filepath] [buildtree] [todrive [<ToDriveAttributes>]]
 
-gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>] [keepuser | (retainrole commenter|reader|writer|none)]
-	[(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>]
+gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>]
+	[(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>] [targetuserorphansfoldername <DriveFolderName>]
+	[keepuser | (retainrole commenter|reader|writer|none)] [noretentionmessages]
 	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 	[preview] [todrive [<ToDriveAttributes>]]
 

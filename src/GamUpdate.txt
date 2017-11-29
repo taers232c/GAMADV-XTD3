@@ -1,3 +1,40 @@
+4.54.52
+
+Added noretentionmessages option to the following commands; it causes GAM to suppress the progress messages that detail what role
+to original owner retains. (If there is an error in assigning the retained role, it will be displayed.)
+gam <UserTypeEntity> transfer calendars <CalendarManageEntity> <UserItem> [keepuser | (retainrole <CalendarACLRole>)] [noretentionmessages]
+gam <UserTypeEntity> claim ownership <DriveFileEntity> ...  [keepuser | (retainrole commenter|reader|writer|none)] [noretentionmessages]
+gam <UserTypeEntity> transfer drive <UserItem> ... [keepuser | (retainrole commenter|reader|writer|none)] [noretentionmessages]
+
+Added usersonly|groupsonly option to the following commands:
+gam update group|groups <GroupEntity> create|add [owner|manager|member] [usersonly|groupsonly] [notsuspended] <UserTypeEntity>
+gam update group|groups <GroupEntity> delete|remove [owner|manager|member] [usersonly|groupsonly] <UserTypeEntity>
+gam update group|groups <GroupEntity> sync [owner|manager|member] [usersonly|groupsonly] [notsuspended] <UserTypeEntity>
+gam update group|groups <GroupEntity> update [owner|manager|member] [usersonly|groupsonly] <UserTypeEntity>
+
+gam printer|printers <PrinterIDEntity> create|add user|manager|owner [usersonly|groupsonly] <PrinterACLScopeEntity> [notify]
+gam printer|printers <PrinterIDEntity> delete [usersonly|groupsonly] <PrinterACLScopeEntity>
+gam printer|printers <PrinterIDEntity> sync user|manager|owner [usersonly|groupsonly] <PrinterACLScopeEntity> [notify]
+
+Assume that at your school there is a group for each grade level and the members come from an OU; here is a sample CSV file GradeOU.csv
+Grade,OU
+seniors@domain.org,/Students/ClassOf2018
+juniors@domain.org,/Students/ClassOf2019
+...
+
+This allows you to do: gam csv GradeOU.csv gam update group ~Grade sync members ou ~OU
+But suppose that at each grade level there are additional group members that are groups of faculty/staff; e.g., senioradvisors@domain.org.
+In this scenario, you can't do the update group sync command as the members that are groups will be deleted; the usersonly option allows
+the update group sync command to work: gam csv GradeOU.csv gam update group ~Grade sync members usersonly ou ~OU
+The users from the OU are matched against the user members of the group and adds/deletes are done as necessary to synchronize them;
+the group members of the group are unaffected.
+
+The usersonly option is most useful when used with the sync option, it can be used with create/delete/update when <UserTypeEntity> specifies
+a group or groups. In ths case, only the user members from the specified groups are processed.
+
+The groupsonly option works in the same manner as the usersonly option; it only processes group members that are groups.
+It only makes sense to use it when <UserTypeEntity> specifies a group or groups.
+
 4.54.51
 
 Fixed bug where "utf-8" was written to empty fields when todrive was specified.

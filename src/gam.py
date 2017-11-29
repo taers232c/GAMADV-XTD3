@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.51'
+__version__ = u'4.54.52'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -282,8 +282,12 @@ DFA_LOCALMIMETYPE = u'localMimeType'
 DFA_OCRLANGUAGE = u'ocrLanguage'
 DFA_PARENTIDS = u'parentIds'
 DFA_PARENTQUERY = u'parentQuery'
+DFA_ADD_PARENT_IDS = u'addParentIds'
+DFA_REMOVE_PARENT_IDS = u'removeParentIds'
 DFA_ADD_PARENTS = u'addParents'
 DFA_REMOVE_PARENTS = u'removeParents'
+DFA_ADD_PARENT_NAMES = u'addParentNames'
+DFA_REMOVE_PARENT_NAMES = u'removeParentNames'
 DFA_TEAMDRIVE_PARENT = u'teamDriveParent'
 DFA_TEAMDRIVE_PARENTID = u'teamDriveParentId'
 DFA_TEAMDRIVE_PARENTQUERY = u'teamDriveParentQuery'
@@ -647,18 +651,19 @@ def missingChoiceExit(choices):
 
 # Check if argument present
 def checkArgumentPresent(choices, required=False):
+  choiceList = choices if isinstance(choices, list) else [choices]
   if Cmd.ArgumentsRemaining():
     choice = Cmd.Current().strip().lower()
     if choice:
-      if choice in choices:
+      if choice in choiceList:
         Cmd.Advance()
-        return choice
+        return True
     if not required:
       return False
-    invalidChoiceExit(choices, False)
+    invalidChoiceExit(choiceList, False)
   elif not required:
     return False
-  missingChoiceExit(choices)
+  missingChoiceExit(choiceList)
 
 # Peek to see if argument present, do not advance
 def peekArgumentPresent(choices):
@@ -1385,7 +1390,7 @@ def getCalendarReminder(allowClearNone=False):
   missingChoiceExit(methods)
 
 def getCharSet():
-  if checkArgumentPresent([u'charset',]):
+  if checkArgumentPresent(u'charset'):
     return getString(Cmd.OB_CHAR_SET)
   return GC.Values[GC.CHARSET]
 
@@ -1401,13 +1406,13 @@ def getCharacter():
   missingArgumentExit(Cmd.OB_CHARACTER)
 
 def getDelimiter():
-  if not checkArgumentPresent(Cmd.DELIMITER_ARGUMENT):
+  if not checkArgumentPresent(u'delimiter'):
     return None
   return getCharacter()
 
 def getMatchFields(fieldNames):
   matchFields = {}
-  while checkArgumentPresent([u'matchfield',]):
+  while checkArgumentPresent(u'matchfield'):
     matchField = getString(Cmd.OB_FIELD_NAME).strip(u'~')
     if (not matchField) or (matchField not in fieldNames):
       csvFieldErrorExit(matchField, fieldNames, backupArg=True)
@@ -1483,10 +1488,10 @@ def formatFileSize(fileSize):
   if fileSize < ONE_KILO_BYTES:
     return u'1kb'
   if fileSize < ONE_MEGA_BYTES:
-    return u'{0}kb'.format(fileSize / ONE_KILO_BYTES)
+    return u'{0}kb'.format(fileSize//ONE_KILO_BYTES)
   if fileSize < ONE_GIGA_BYTES:
-    return u'{0}mb'.format(fileSize / ONE_MEGA_BYTES)
-  return u'{0}gb'.format(fileSize / ONE_GIGA_BYTES)
+    return u'{0}mb'.format(fileSize//ONE_MEGA_BYTES)
+  return u'{0}gb'.format(fileSize//ONE_GIGA_BYTES)
 
 def formatLocalTime(dateTimeStr):
   if dateTimeStr == NEVER_TIME:
@@ -1500,17 +1505,17 @@ def formatLocalTime(dateTimeStr):
     return dateTimeStr
 
 def formatLocalTimestamp(timestamp):
-  return ISOformatTimeStamp(datetime.datetime.fromtimestamp(int(timestamp)/1000, GC.Values[GC.TIMEZONE]))
+  return ISOformatTimeStamp(datetime.datetime.fromtimestamp(int(timestamp)//1000, GC.Values[GC.TIMEZONE]))
 
 def formatLocalDatestamp(timestamp):
-  return datetime.datetime.fromtimestamp(int(timestamp)/1000, GC.Values[GC.TIMEZONE]).strftime(YYYYMMDD_FORMAT)
+  return datetime.datetime.fromtimestamp(int(timestamp)//1000, GC.Values[GC.TIMEZONE]).strftime(YYYYMMDD_FORMAT)
 
 def formatMaxMessageBytes(maxMessageBytes):
   if maxMessageBytes < ONE_KILO_BYTES:
     return maxMessageBytes
   if maxMessageBytes < ONE_MEGA_BYTES:
-    return u'{0}K'.format(maxMessageBytes / ONE_KILO_BYTES)
-  return u'{0}M'.format(maxMessageBytes / ONE_MEGA_BYTES)
+    return u'{0}K'.format(maxMessageBytes//ONE_KILO_BYTES)
+  return u'{0}M'.format(maxMessageBytes//ONE_MEGA_BYTES)
 
 def formatMilliSeconds(millis):
   seconds, millis = divmod(millis, 1000)
@@ -1648,21 +1653,21 @@ def queryQualifier(query):
 
 def printGettingAccountEntitiesInfo(entityType, qualifier=u''):
   if GC.Values[GC.SHOW_GETTINGS]:
-    Ent.SetGetting(entityType)
+    Ent.SetGetting(entityType, qualifier)
     writeStderr(convertUTF8(u'{0} {1}{2}{3}\n'.format(Msg.GETTING_ALL, Ent.PluralGetting(), qualifier, mayTakeTime(Ent.ACCOUNT))))
 
-def printGettingAccountEntitiesDoneInfo(count, qualifier=u''):
+def printGettingAccountEntitiesDoneInfo(count):
   if GC.Values[GC.SHOW_GETTINGS]:
-    writeStderr(convertUTF8(u'{0} {1} {2}{3}\n'.format(Msg.GOT, count, Ent.ChooseGetting(count), qualifier)))
+    writeStderr(convertUTF8(u'{0} {1} {2}{3}\n'.format(Msg.GOT, count, Ent.ChooseGetting(count), Ent.GettingQualifier())))
 
 def printGettingEntityItemsInfo(entityType, entityItem):
   if GC.Values[GC.SHOW_GETTINGS]:
     Ent.SetGetting(entityItem)
     writeStderr(convertUTF8(u'{0} {1}{2}\n'.format(Msg.GETTING_ALL, Ent.PluralGetting(), mayTakeTime(entityType))))
 
-def printGettingEntityItemsDoneInfo(count, qualifier=u''):
+def printGettingEntityItemsDoneInfo(count):
   if GC.Values[GC.SHOW_GETTINGS]:
-    writeStderr(convertUTF8(u'{0} {1} {2}{3}\n'.format(Msg.GOT, count, Ent.ChooseGetting(count), qualifier)))
+    writeStderr(convertUTF8(u'{0} {1} {2}{3}\n'.format(Msg.GOT, count, Ent.ChooseGetting(count), Ent.GettingQualifier())))
 
 def printGettingEntityItemForWhom(entityItem, forWhom, i=0, count=0):
   if GC.Values[GC.SHOW_GETTINGS]:
@@ -1672,13 +1677,13 @@ def printGettingEntityItemForWhom(entityItem, forWhom, i=0, count=0):
 
 def printGettingAllEntityItemsForWhom(entityItem, forWhom, i=0, count=0, qualifier=u'', entityType=None):
   if GC.Values[GC.SHOW_GETTINGS]:
-    Ent.SetGetting(entityItem)
+    Ent.SetGetting(entityItem, qualifier)
     Ent.SetGettingForWhom(forWhom)
     writeStderr(convertUTF8(u'{0} {1}{2} {3} {4}{5}{6}'.format(Msg.GETTING_ALL, Ent.PluralGetting(), qualifier, Msg.FOR, forWhom, mayTakeTime(entityType), currentCountNL(i, count))))
 
-def printGettingEntityItemsForWhomDoneInfo(count, qualifier=u''):
+def printGettingEntityItemsForWhomDoneInfo(count):
   if GC.Values[GC.SHOW_GETTINGS]:
-    writeStderr(convertUTF8(u'{0} {1} {2}{3} {4} {5}...\n'.format(Msg.GOT, count, Ent.ChooseGetting(count), qualifier, Msg.FOR, Ent.GettingForWhom())))
+    writeStderr(convertUTF8(u'{0} {1} {2}{3} {4} {5}...\n'.format(Msg.GOT, count, Ent.ChooseGetting(count), Ent.GettingQualifier(), Msg.FOR, Ent.GettingForWhom())))
 
 def printGettingEntityItem(entityType, entityItem, i=0, count=0):
   if GC.Values[GC.SHOW_GETTINGS]:
@@ -1932,15 +1937,15 @@ def deleteFile(filename, continueOnError=False, displayError=True):
 # Open a CSV file, get optional arguments [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
 def openCSVFileReader(filename):
   encoding = getCharSet()
-  if checkArgumentPresent(Cmd.COLUMN_DELIMITER_ARGUMENT):
+  if checkArgumentPresent(u'columndelimiter'):
     delimiter = getCharacter()
   else:
     delimiter = GC.Values[GC.CSV_INPUT_COLUMN_DELIMITER]
-  if checkArgumentPresent(Cmd.QUOTE_CHAR_ARGUMENT):
+  if checkArgumentPresent(u'quotechar'):
     quotechar = getCharacter()
   else:
     quotechar = GC.Values[GC.CSV_INPUT_QUOTE_CHAR]
-  if checkArgumentPresent(Cmd.FIELDS_ARGUMENT):
+  if checkArgumentPresent(u'fields'):
     fieldnames = shlexSplitList(getString(Cmd.OB_FIELD_NAME_LIST))
   else:
     fieldnames = None
@@ -2274,28 +2279,28 @@ def SetGlobalVariables():
   status = {u'errors': False}
   sectionName = _getCfgSection(configparser.DEFAULTSECT, GC.SECTION)
 # select <SectionName> [save] [verify]
-  if checkArgumentPresent([Cmd.SELECT_CMD,]):
+  if checkArgumentPresent(Cmd.SELECT_CMD):
     sectionName = _selectSection()
     while Cmd.ArgumentsRemaining():
-      if checkArgumentPresent([u'save',]):
+      if checkArgumentPresent(u'save'):
         GM.Globals[GM.PARSER].set(configparser.DEFAULTSECT, GC.SECTION, sectionName)
         _writeGamCfgFile(GM.Globals[GM.PARSER], GM.Globals[GM.GAM_CFG_FILE], Act.SAVE)
-      elif checkArgumentPresent([u'verify',]):
+      elif checkArgumentPresent(u'verify'):
         _verifyValues(sectionName)
       else:
         break
 # config (<VariableName> [=] <Value>)* [save] [verify]
-  if checkArgumentPresent([Cmd.CONFIG_CMD,]):
+  if checkArgumentPresent(Cmd.CONFIG_CMD):
     while Cmd.ArgumentsRemaining():
-      if checkArgumentPresent([u'save',]):
+      if checkArgumentPresent(u'save'):
         _writeGamCfgFile(GM.Globals[GM.PARSER], GM.Globals[GM.GAM_CFG_FILE], Act.SAVE)
-      elif checkArgumentPresent([u'verify',]):
+      elif checkArgumentPresent(u'verify'):
         _verifyValues(sectionName)
       else:
         itemName = getChoice(GC.VAR_INFO, defaultChoice=None)
         if itemName is None:
           break
-        checkArgumentPresent([u'=',])
+        checkArgumentPresent(u'=')
         varType = GC.VAR_INFO[itemName][GC.VAR_TYPE]
         if varType == GC.TYPE_BOOLEAN:
           value = [FALSE, TRUE][getBoolean()]
@@ -2365,39 +2370,39 @@ def SetGlobalVariables():
 # redirect stderr <FileName> [multiprocess] [append]
 # redirect stderr stdout
 # redirect stderr null
-  while checkArgumentPresent([Cmd.REDIRECT_CMD,]):
+  while checkArgumentPresent(Cmd.REDIRECT_CMD):
     myarg = getChoice([u'csv', u'stdout', u'stderr'])
     filename = re.sub(r'{{Section}}', sectionName, getString(Cmd.OB_FILE_NAME, checkBlank=True))
     if myarg == u'csv':
-      multi = True if checkArgumentPresent([u'multiprocess',]) else False
-      mode = DEFAULT_FILE_APPEND_MODE if checkArgumentPresent([u'append',]) else DEFAULT_FILE_WRITE_MODE
-      writeHeader = False if checkArgumentPresent([u'noheader',]) else True
+      multi = checkArgumentPresent(u'multiprocess')
+      mode = [DEFAULT_FILE_WRITE_MODE, DEFAULT_FILE_APPEND_MODE][checkArgumentPresent(u'append')]
+      writeHeader = not checkArgumentPresent(u'noheader')
       encoding = getCharSet()
-      if checkArgumentPresent(Cmd.COLUMN_DELIMITER_ARGUMENT):
+      if checkArgumentPresent(u'columndelimiter'):
         GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER] = getCharacter()
-      if checkArgumentPresent(Cmd.QUOTE_CHAR_ARGUMENT):
+      if checkArgumentPresent(u'quotechar'):
         GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR] = getCharacter()
       _setCSVFile(filename, mode, encoding, writeHeader, multi)
     elif myarg == u'stdout':
       if filename.lower() == u'null':
-        multi = True if checkArgumentPresent([u'multiprocess',]) else False
+        multi = checkArgumentPresent(u'multiprocess')
         _setSTDFile(GM.STDOUT, u'null', DEFAULT_FILE_WRITE_MODE, multi)
       else:
-        multi = True if checkArgumentPresent([u'multiprocess',]) else False
-        mode = DEFAULT_FILE_APPEND_MODE if checkArgumentPresent([u'append',]) else DEFAULT_FILE_WRITE_MODE
+        multi = checkArgumentPresent(u'multiprocess')
+        mode = [DEFAULT_FILE_WRITE_MODE, DEFAULT_FILE_APPEND_MODE][checkArgumentPresent(u'append')]
         _setSTDFile(GM.STDOUT, filename, mode, multi)
         if GM.Globals[GM.CSVFILE].get(GM.REDIRECT_NAME) == u'-':
           GM.Globals[GM.CSVFILE] = {}
     else: # myarg == u'stderr'
       if filename.lower() == u'null':
-        multi = True if checkArgumentPresent([u'multiprocess',]) else False
+        multi = checkArgumentPresent(u'multiprocess')
         _setSTDFile(GM.STDERR, u'null', DEFAULT_FILE_WRITE_MODE, multi)
       elif filename.lower() != u'stdout':
-        multi = True if checkArgumentPresent([u'multiprocess',]) else False
-        mode = DEFAULT_FILE_APPEND_MODE if checkArgumentPresent([u'append',]) else DEFAULT_FILE_WRITE_MODE
+        multi = checkArgumentPresent(u'multiprocess')
+        mode = [DEFAULT_FILE_WRITE_MODE, DEFAULT_FILE_APPEND_MODE][checkArgumentPresent(u'append')]
         _setSTDFile(GM.STDERR, filename, mode, multi)
       else:
-        multi = True if checkArgumentPresent([u'multiprocess',]) else False
+        multi = checkArgumentPresent(u'multiprocess')
         if  not GM.Globals[GM.STDOUT]:
           _setSTDFile(GM.STDOUT, u'-', DEFAULT_FILE_WRITE_MODE, multi)
         GM.Globals[GM.STDERR] = GM.Globals[GM.STDOUT].copy()
@@ -2636,7 +2641,7 @@ def checkGDataError(e, service):
   return (e.error_code, error_code_map.get(e.error_code, u'Unknown Error: {0}'.format(str(e))))
 
 def waitOnFailure(n, retries, error_code, error_message):
-  wait_on_fail = min(2 ** n, 60)+float(random.randint(1, 1000)) / 1000
+  wait_on_fail = min(2 ** n, 60)+float(random.randint(1, 1000))/1000
   if n > 3:
     writeStderr(u'Temporary error: {0} - {1}, Backing off: {2} seconds, Retry: {3}/{4}\n'.format(error_code, error_message, int(wait_on_fail), n, retries))
     flushStderr()
@@ -3289,7 +3294,7 @@ GROUP_ROLES_MAP = {
   }
 
 # Turn the entity into a list of Users/CrOS devices
-def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=False, includeSuspendedInAll=False, groupUserMembersOnly=True):
+def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=False, includeSuspendedInAll=False, groupMemberType=u'USER'):
   def _addGroupMembersToUsers(group, domains, recursive):
     doNotExist = 0
     try:
@@ -3370,7 +3375,7 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
           while result:
             member = result.popleft()
             email = member[u'email'].lower() if member[u'type'] != u'CUSTOMER' else member[u'id']
-            if ((not groupUserMembersOnly) or (member[u'type'] == u'USER')) and not (checkNotSuspended and (member[u'status'] == u'SUSPENDED')) and email not in entitySet:
+            if ((groupMemberType == u'ALL') or (groupMemberType == member[u'type'])) and not (checkNotSuspended and (member[u'status'] == u'SUSPENDED')) and email not in entitySet:
               entitySet.add(email)
               entityList.append(email)
         except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden):
@@ -3412,7 +3417,8 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
     cd = buildGAPIObject(API.DIRECTORY)
     ous = convertEntityToList(entity, shlexSplit=True, nonListEntityType=entityType in [Cmd.ENTITY_OU, Cmd.ENTITY_OU_AND_CHILDREN])
     directlyInOU = entityType in [Cmd.ENTITY_OU, Cmd.ENTITY_OUS]
-    qualifier = [Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)), Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))][directlyInOU]
+    qualifier = [Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)),
+                 Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))][directlyInOU]
     prevLen = 0
     for ou in ous:
       try:
@@ -3423,7 +3429,7 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
                                            GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
                             customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=ou)
           ou = result[u'orgUnitPath']
-        printGettingAllEntityItemsForWhom(Ent.USER, ou, entityType=Ent.ORGANIZATIONAL_UNIT)
+        printGettingAllEntityItemsForWhom(Ent.USER, ou, qualifier=qualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
         page_message = getPageMessageForWhom(noNL=True)
         result = callGAPIpages(cd.users(), u'list', u'users',
                                page_message=page_message,
@@ -3444,7 +3450,7 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
             if not (checkNotSuspended and user[u'suspended']):
               entityList.append(user[u'primaryEmail'])
         totalLen = len(entityList)
-        printGettingEntityItemsDoneInfo(totalLen-prevLen, qualifier=qualifier)
+        printGettingEntityItemsForWhomDoneInfo(totalLen-prevLen)
         prevLen = totalLen
       except (GAPI.badRequest, GAPI.invalidInput, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError,
               GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
@@ -3466,7 +3472,7 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
         user = result.popleft()
         if not (checkNotSuspended and user[u'suspended']):
           entityList.append(user[u'primaryEmail'])
-      printGettingAccountEntitiesDoneInfo(len(entityList), u' {0}'.format(Msg.THAT_MATCHED_QUERY))
+      printGettingAccountEntitiesDoneInfo(len(entityList))
     except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.invalidInput):
       Cmd.Backup()
       usageErrorExit(Msg.INVALID_QUERY)
@@ -3550,7 +3556,7 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
       while result:
         device = result.popleft()
         entityList.append(device[u'deviceId'])
-      printGettingAccountEntitiesDoneInfo(len(entityList), u' {0}'.format(Msg.THAT_MATCHED_QUERY))
+      printGettingAccountEntitiesDoneInfo(len(entityList))
     except GAPI.invalidInput:
       Cmd.Backup()
       usageErrorExit(Msg.INVALID_QUERY)
@@ -3559,11 +3565,14 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
   elif entityType in [Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OU_AND_CHILDREN, Cmd.ENTITY_CROS_OUS, Cmd.ENTITY_CROS_OUS_AND_CHILDREN]:
     cd = buildGAPIObject(API.DIRECTORY)
     ous = convertEntityToList(entity, shlexSplit=True, nonListEntityType=entityType in [Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OU_AND_CHILDREN])
+    directlyInOU = entityType in [Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OUS]
+    qualifier = [Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)),
+                 Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))][directlyInOU]
     if entityType in [Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OUS]:
       for ou in ous:
         ou = makeOrgUnitPathAbsolute(ou)
         try:
-          printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, ou, entityType=Ent.ORGANIZATIONAL_UNIT)
+          printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, ou, qualifier=qualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
           page_message = getPageMessage(noNL=True)
           result = callGAPIpages(cd.chromeosdevices(), u'list', u'chromeosdevices',
                                  page_message=page_message,
@@ -3577,7 +3586,7 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
         except (GAPI.badRequest, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.resourceNotFound, GAPI.forbidden):
           checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
           doNotExist += 1
-      printGettingEntityItemsDoneInfo(len(entityList), qualifier=Msg.DIRECTLY_IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, len(ous))))
+      printGettingEntityItemsForWhomDoneInfo(len(entityList))
     else:
       ouSet = set()
       for ou in ous:
@@ -3592,7 +3601,8 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
           doNotExist += 1
       if doNotExist == 0:
         try:
-          printGettingAccountEntitiesInfo(Ent.CROS_DEVICE)
+          qualifier = Msg.IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, len(ous)))
+          printGettingAccountEntitiesInfo(Ent.CROS_DEVICE, qualifier)
           page_message = getPageMessage(noNL=True)
           result = callGAPIpages(cd.chromeosdevices(), u'list', u'chromeosdevices',
                                  page_message=page_message,
@@ -3607,7 +3617,7 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
               if deviceOu.startswith(ou):
                 entityList.append(device[u'deviceId'])
                 break
-          printGettingEntityItemsDoneInfo(len(entityList), qualifier=Msg.IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, len(ous))))
+          printGettingEntityItemsDoneInfo(len(entityList))
         except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
           accessErrorExit(cd)
   else:
@@ -3681,17 +3691,17 @@ def getEntitiesFromCSVFile(shlexSplit):
 def getEntitiesFromCSVbyField():
 
   def getKeyFieldInfo(keyword, required, globalKeyField):
-    if not checkArgumentPresent([keyword], required=required):
+    if not checkArgumentPresent(keyword, required=required):
       GM.Globals[globalKeyField] = None
       return (None, None, None, None)
     keyField = GM.Globals[globalKeyField] = getString(Cmd.OB_FIELD_NAME)
     if keyField not in csvFile.fieldnames:
       csvFieldErrorExit(keyField, csvFile.fieldnames, backupArg=True)
-    if checkArgumentPresent([u'keypattern',]):
+    if checkArgumentPresent(u'keypattern'):
       keyPattern = getREPattern()
     else:
       keyPattern = None
-    if checkArgumentPresent([u'keyvalue',]):
+    if checkArgumentPresent(u'keyvalue'):
       keyValue = getString(Cmd.OB_STRING)
     else:
       keyValue = keyField
@@ -3715,7 +3725,7 @@ def getEntitiesFromCSVbyField():
   mainKeyField, mainKeyPattern, mainKeyValue, mainKeyDelimiter = getKeyFieldInfo(u'keyfield', True, GM.CSV_KEY_FIELD)
   subKeyField, subKeyPattern, subKeyValue, subKeyDelimiter = getKeyFieldInfo(u'subkeyfield', False, GM.CSV_SUBKEY_FIELD)
   matchFields = getMatchFields(csvFile.fieldnames)
-  if checkArgumentPresent([u'datafield',]):
+  if checkArgumentPresent(u'datafield'):
     if GM.Globals[GM.CSV_DATA_DICT]:
       csvDataAlreadySavedErrorExit()
     GM.Globals[GM.CSV_DATA_FIELD] = getString(Cmd.OB_FIELD_NAME, checkBlank=True)
@@ -3809,7 +3819,7 @@ def getEntityArgument(entityList):
     Cmd.SetLocation(clLoc)
   return (0, len(entityList), entityList)
 
-def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=False, userAllowed=True, typeMap=None, checkNotSuspended=False, groupUserMembersOnly=True, delayGet=False):
+def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=False, userAllowed=True, typeMap=None, checkNotSuspended=False, groupMemberType=u'USER', delayGet=False):
   selectorChoices = Cmd.ENTITY_SELECTORS[:]
   if userAllowed:
     selectorChoices += Cmd.CSVDATA_ENTITY_SELECTORS
@@ -3882,7 +3892,7 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
     if not delayGet:
       if entityClass == Cmd.ENTITY_USERS:
         return (entityClass,
-                getUsersToModify(entityType, entityItem, checkNotSuspended=checkNotSuspended, groupUserMembersOnly=groupUserMembersOnly))
+                getUsersToModify(entityType, entityItem, checkNotSuspended=checkNotSuspended, groupMemberType=groupMemberType))
       else:
         return (entityClass,
                 getUsersToModify(entityType, entityItem))
@@ -3902,7 +3912,7 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
               Cmd.Backup()
               missingArgumentExit(u'end')
         return (entityClass,
-                {u'entityType': entityType, u'entity': entityItem, u'checkNotSuspended': checkNotSuspended, u'groupUserMembersOnly': groupUserMembersOnly})
+                {u'entityType': entityType, u'entity': entityItem, u'checkNotSuspended': checkNotSuspended, u'groupMemberType': groupMemberType})
       else:
         return (entityClass,
                 {u'entityType': entityType, u'entity': entityItem})
@@ -4213,7 +4223,7 @@ def writeCSVfile(csvRows, titles, list_type, todrive, quotechar=None):
 
   def writeCSVToStdout():
     csvFile = StringIOobject()
-    writer = csv.DictWriter(csvFile, fieldnames=titles[u'list'],
+    writer = csv.DictWriter(csvFile, titles[u'list'],
                             quoting=csv.QUOTE_MINIMAL, quotechar=quotechar,
                             delimiter=delimiter, lineterminator='\n')
     if writeCSVData(writer):
@@ -4227,7 +4237,7 @@ def writeCSVfile(csvRows, titles, list_type, todrive, quotechar=None):
   def writeCSVToFile():
     csvFile = openFile(GM.Globals[GM.CSVFILE][GM.REDIRECT_NAME], GM.Globals[GM.CSVFILE][GM.REDIRECT_MODE], continueOnError=True)
     if csvFile:
-      writer = csv.DictWriter(csvFile, fieldnames=titles[u'list'],
+      writer = csv.DictWriter(csvFile, titles[u'list'],
                               quoting=csv.QUOTE_MINIMAL, quotechar=quotechar,
                               delimiter=delimiter, lineterminator=str(GC.Values[GC.CSV_OUTPUT_LINE_TERMINATOR]))
       writeCSVData(writer)
@@ -4235,7 +4245,7 @@ def writeCSVfile(csvRows, titles, list_type, todrive, quotechar=None):
 
   def writeCSVToDrive():
     csvFile = StringIOobject()
-    writer = csv.DictWriter(csvFile, fieldnames=titles[u'list'],
+    writer = csv.DictWriter(csvFile, titles[u'list'],
                             quoting=csv.QUOTE_MINIMAL, quotechar=quotechar,
                             delimiter=delimiter, lineterminator='\n')
     if writeCSVData(writer):
@@ -4938,7 +4948,7 @@ def doCSV():
     usageErrorExit(Msg.BATCH_CSV_LOOP_DASH_DEBUG_INCOMPATIBLE.format(Cmd.CSV_CMD))
   f, csvFile = openCSVFileReader(filename)
   matchFields = getMatchFields(csvFile.fieldnames)
-  checkArgumentPresent([Cmd.GAM_CMD,], required=True)
+  checkArgumentPresent(Cmd.GAM_CMD, required=True)
   if not Cmd.ArgumentsRemaining():
     missingArgumentExit(Cmd.OB_GAM_ARGUMENT_LIST)
   GAM_argv, subFields = getSubFields([Cmd.GAM_CMD,], csvFile.fieldnames)
@@ -4951,7 +4961,7 @@ def doCSV():
 
 def _doList(entityList, entityType):
   buildGAPIObject(API.DIRECTORY)
-  if checkArgumentPresent(Cmd.TODRIVE_ARGUMENT):
+  if checkArgumentPresent(u'todrive'):
     todrive = getTodriveParameters()
   else:
     todrive = {}
@@ -4964,7 +4974,7 @@ def _doList(entityList, entityType):
     keyField = u'Entity'
     dataField = u'Data'
   titles, csvRows = initializeTitlesCSVfile([keyField])
-  showData = checkArgumentPresent(Cmd.DATA_ARGUMENT)
+  showData = checkArgumentPresent(u'data')
   if showData:
     if not entityType:
       itemType, itemList = getEntityToModify(crosAllowed=True)
@@ -5637,7 +5647,7 @@ def doWhatIs():
 
   cd = buildGAPIObject(API.DIRECTORY)
   email = getEmailAddress()
-  showInfo = False if checkArgumentPresent(Cmd.NOINFO_ARGUMENT) else True
+  showInfo = not checkArgumentPresent(u'noinfo')
   if not showInfo:
     checkForExtraneousArguments()
   try:
@@ -7218,7 +7228,7 @@ def doInfoInstance():
     except GAPI.invalid:
       pass
 
-  if checkArgumentPresent(Cmd.LOGO_ARGUMENT):
+  if checkArgumentPresent(u'logo'):
     Act.Set(Act.DOWNLOAD)
     logoFile = getString(Cmd.OB_FILE_NAME)
     checkForExtraneousArguments()
@@ -7439,7 +7449,7 @@ def _batchMoveUsersToOrgUnit(cd, orgUnitPath, i, count, items):
 
 def _doUpdateOrgs(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
-  if checkArgumentPresent(Cmd.MOVE_ADD_ARGUMENT):
+  if checkArgumentPresent([u'move', u'add']):
     entityType, items = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, crosAllowed=True)
     orgItemLists = items if isinstance(items, dict) else None
     quickCrOSMove = False
@@ -8883,7 +8893,7 @@ class ContactsManager(object):
 
   @staticmethod
   def GetContactShortId(contactEntry):
-    full_id = contactEntry.id.text
+    full_id = str(contactEntry.id.text)
     return full_id[full_id.rfind(u'/')+1:]
 
   @staticmethod
@@ -8927,7 +8937,7 @@ class ContactsManager(object):
       elif fieldName == CONTACT_LANGUAGE:
         fields[fieldName] = getChoice(LANGUAGE_CODES_MAP, mapChoice=True)
       elif fieldName == CONTACT_NOTES:
-        if checkArgumentPresent(Cmd.FILE_ARGUMENT):
+        if checkArgumentPresent(u'file'):
           filename = getString(Cmd.OB_FILE_NAME)
           encoding = getCharSet()
           fields[fieldName] = readFile(filename, encoding=encoding)
@@ -9204,7 +9214,7 @@ class ContactsManager(object):
         objAttr = getattr(objAttr, attr)
         if not objAttr:
           return
-      fields[fieldName] = objAttr
+      fields[fieldName] = str(objAttr)
 
     def GetListEntryField(entry, attrlist):
       objAttr = entry
@@ -9212,7 +9222,7 @@ class ContactsManager(object):
         objAttr = getattr(objAttr, attr)
         if not objAttr:
           return None
-      return objAttr
+      return str(objAttr)
 
     def AppendItemToFieldsList(fieldName, fieldValue):
       fields.setdefault(fieldName, [])
@@ -9362,7 +9372,7 @@ class ContactsManager(object):
         objAttr = getattr(objAttr, attr)
         if not objAttr:
           return
-      fields[fieldName] = objAttr
+      fields[fieldName] = str(objAttr)
 
     fields[CONTACT_GROUP_ID] = ContactsManager.GetContactShortId(groupEntry)
     GetGroupField(CONTACT_GROUP_UPDATED, [u'updated', u'text'])
@@ -9529,7 +9539,7 @@ def createUserContact(users):
 
 # gam create contact <ContactAttributes>+
 def doCreateDomainContact():
-  _createContact([GC.Values[GC.DOMAIN],], Ent.DOMAIN)
+  _createContact([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
 def _uppdateContacts(users, entityType):
   contactsManager = ContactsManager()
@@ -9593,7 +9603,7 @@ def updateUserContacts(users):
 
 # gam update contacts <ContactEntity> <ContactAttributes>+
 def doUpdateDomainContacts():
-  _uppdateContacts([GC.Values[GC.DOMAIN],], Ent.DOMAIN)
+  _uppdateContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
 def _deleteContacts(users, entityType):
   contactsManager = ContactsManager()
@@ -9666,7 +9676,7 @@ def deleteUserContacts(users):
 
 # gam delete contacts <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [updated_min <Date>])
 def doDeleteDomainContacts():
-  _deleteContacts([GC.Values[GC.DOMAIN],], Ent.DOMAIN)
+  _deleteContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
 def _showContact(contactsManager, fields, displayFieldsList, contactGroupIDs, j, jcount):
   printEntity([Ent.CONTACT, fields[CONTACT_ID]], j, jcount)
@@ -9811,11 +9821,11 @@ def infoUserContacts(users):
 
 # gam info contacts <ContactEntity> [basic|full] [showgroups] [fields <ContactFieldNameList>]
 def doInfoDomainContacts():
-  _infoContacts([GC.Values[GC.DOMAIN],], Ent.DOMAIN)
+  _infoContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
 # gam info gal <GalEntity> [basic|full] [fields <ContactFieldNameList>]
 def doInfoGAL():
-  _infoContacts([GC.Values[GC.DOMAIN],], Ent.DOMAIN, False)
+  _infoContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN, False)
 
 def _printShowContacts(users, entityType, csvFormat, contactFeed=True):
   contactsManager = ContactsManager()
@@ -10240,7 +10250,7 @@ def showUserContactGroups(users):
 
 # CrOS commands utilities
 def getCrOSDeviceEntity():
-  if checkArgumentPresent(Cmd.QUERY_ARGUMENT):
+  if checkArgumentPresent(u'query'):
     return getUsersToModify(Cmd.ENTITY_CROS_QUERY, getString(Cmd.OB_QUERY))
   deviceId = getString(Cmd.OB_CROS_DEVICE_ENTITY)
   if deviceId[:6].lower() == u'query:':
@@ -10513,7 +10523,7 @@ def infoCrOSDevices(entityList):
             Ind.Increment()
             printKeyValueList([u'activeTime', str(activeTimeRange[u'activeTime'])])
             printKeyValueList([u'duration', formatMilliSeconds(activeTimeRange[u'activeTime'])])
-            printKeyValueList([u'minutes', activeTimeRange[u'activeTime']/60000])
+            printKeyValueList([u'minutes', activeTimeRange[u'activeTime']//60000])
             Ind.Decrement()
           Ind.Decrement()
         recentUsers = cros.get(u'recentUsers', [])
@@ -10579,7 +10589,7 @@ def doPrintCrOSDevices(entityList=None):
         new_row[u'activeTimeRanges.date'] = activeTimeRanges[i][u'date']
         new_row[u'activeTimeRanges.activeTime'] = str(activeTimeRanges[i][u'activeTime'])
         new_row[u'activeTimeRanges.duration'] = formatMilliSeconds(activeTimeRanges[i][u'activeTime'])
-        new_row[u'activeTimeRanges.minutes'] = activeTimeRanges[i][u'activeTime']/60000
+        new_row[u'activeTimeRanges.minutes'] = activeTimeRanges[i][u'activeTime']//60000
       if i < lenRU:
         new_row[u'recentUsers.email'] = recentUsers[i].get(u'email', [u'Unknown', u'UnmanagedUser'][recentUsers[i][u'type'] == u'USER_TYPE_UNMANAGED'])
         new_row[u'recentUsers.type'] = recentUsers[i][u'type']
@@ -10758,7 +10768,7 @@ def doPrintCrOSActivity(entityList=None):
         new_row = row.copy()
         new_row[u'activeTimeRanges.date'] = activeTimeRange[u'date']
         new_row[u'activeTimeRanges.duration'] = formatMilliSeconds(activeTimeRange[u'activeTime'])
-        new_row[u'activeTimeRanges.minutes'] = activeTimeRange[u'activeTime']/60000
+        new_row[u'activeTimeRanges.minutes'] = activeTimeRange[u'activeTime']//60000
         csvRows.append(new_row)
     if selectRecentUsers:
       recentUsers = cros.get(u'recentUsers', [])
@@ -10869,7 +10879,7 @@ def doPrintCrOSActivity(entityList=None):
 
 # gam <CrOSTypeEntity> print
 def doPrintCrOSEntity(entityList):
-  if getChoice([Cmd.ARG_CROS, Cmd.ARG_CROSES, Cmd.ARG_CROS_ACTIVITY], defaultChoice=None) != Cmd.ARG_CROS_ACTIVITY:
+  if getChoice([Cmd.ARG_CROS, Cmd.ARG_CROSES, Cmd.ARG_CROSACTIVITY], defaultChoice=None) != Cmd.ARG_CROSACTIVITY:
     if not Cmd.ArgumentsRemaining():
       _, _, entityList = getEntityArgument(entityList)
       for entity in entityList:
@@ -10894,7 +10904,7 @@ MOBILE_ACTION_CHOICE_MAP = {
 
 def getMobileDeviceEntity():
   cd = buildGAPIObject(API.DIRECTORY)
-  if checkArgumentPresent(Cmd.QUERY_ARGUMENT):
+  if checkArgumentPresent(u'query'):
     query = getString(Cmd.OB_QUERY)
   else:
     resourceId = getString(Cmd.OB_MOBILE_DEVICE_ENTITY)
@@ -11204,9 +11214,9 @@ GROUP_ATTRIBUTES = {
                                                                    u'allmanagerscanview': u'ALL_MANAGERS_CAN_VIEW',}}],
   }
 
-GROUP_FIELDS_WITH_CRS_NLS = [u'customFooterText', u'defaultMessageDenyNotificationText', u'description']
+GROUP_FIELDS_WITH_CRS_NLS = [u'customFooterText', u'defaultMessageDenyNotificationText', u'description', u'groupDescription']
 
-def getGroupAttrValue(argument, gs_body):
+def getGroupAttrValue(argument, body, gs_body):
   attrProperties = GROUP_ATTRIBUTES.get(argument)
   if not attrProperties:
     unknownArgumentExit()
@@ -11220,6 +11230,11 @@ def getGroupAttrValue(argument, gs_body):
       gs_body[attrName] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
     else:
       gs_body[attrName] = getString(Cmd.OB_STRING, minLen=0)
+    if attrName in [u'name', u'description']:
+      cdvalue = gs_body[attrName]
+      for c in u'\n<>=':
+        cdvalue = cdvalue.replace(c, u' ')
+      body[attrName] = cdvalue
   elif attrType == GC.TYPE_CHOICE:
     gs_body[attrName] = getChoice(attribute[u'choices'], mapChoice=True)
   elif attrType == GC.TYPE_EMAIL:
@@ -11242,18 +11257,7 @@ def doCreateGroup():
   gs_body = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == u'name':
-      body[u'name'] = getString(Cmd.OB_STRING)
-    elif myarg == u'description':
-      description = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
-      for c in u'\n<>=':
-        if description.find(c) != -1:
-          gs_body[u'description'] = description
-          break
-      else:
-        body[u'description'] = description
-    else:
-      getGroupAttrValue(myarg, gs_body)
+    getGroupAttrValue(myarg, body, gs_body)
   body.setdefault(u'name', body[u'email'])
   try:
     callGAPI(cd.groups(), u'insert',
@@ -11294,14 +11298,19 @@ def checkGroupExists(cd, group, i=0, count=0):
 UPDATE_GROUP_SUBCMDS = [u'add', u'create', u'delete', u'remove', u'clear', u'sync', u'update']
 
 # gam update groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] <GroupAttributes>
-# gam update groups <GroupEntity> create|add [member|manager|owner] [notsuspended] <UserTypeEntity>
-# gam update groups <GroupEntity> delete|remove [member|manager|owner] <UserTypeEntity>
-# gam update groups <GroupEntity> sync [member|manager|owner] [notsuspended] <UserTypeEntity>
-# gam update groups <GroupEntity> update [member|manager|owner] <UserTypeEntity>
+# gam update groups <GroupEntity> create|add [member|manager|owner] [usersonly|groupsonly] [notsuspended] <UserTypeEntity>
+# gam update groups <GroupEntity> delete|remove [member|manager|owner] [usersonly|groupsonly] <UserTypeEntity>
+# gam update groups <GroupEntity> sync [member|manager|owner] [usersonly|groupsonly] [notsuspended] <UserTypeEntity>
+# gam update groups <GroupEntity> update [member|manager|owner] [usersonly|groupsonly] <UserTypeEntity>
 # gam update groups <GroupEntity> clear [member] [manager] [owner] [suspended]
 def doUpdateGroups():
 
 # Convert foo@googlemail.com to foo@gmail.com; eliminate periods in name for foo.bar@gmail.com
+
+  def _getRoleGroupMemberType():
+    role = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True)
+    groupMemberType = getChoice({u'usersonly': u'USER', 'groupsonly': u'GROUP'}, defaultChoice=u'ALL', mapChoice=True)
+    return (role, groupMemberType)
 
   def _cleanConsumerAddress(emailAddress, mapCleanToOriginal):
     atLoc = emailAddress.find(u'@')
@@ -11507,7 +11516,7 @@ def doUpdateGroups():
       elif myarg == u'admincreated':
         body[u'adminCreated'] = getBoolean()
       else:
-        getGroupAttrValue(myarg, gs_body)
+        getGroupAttrValue(myarg, body, gs_body)
     if gs_body:
       gs = buildGAPIObject(API.GROUPSSETTINGS)
     Act.Set(Act.UPDATE)
@@ -11516,7 +11525,24 @@ def doUpdateGroups():
     for group in entityList:
       i += 1
       group = normalizeEmailAddressOrUID(group)
-      if body or (group.find(u'@') == -1): # group settings API won't take uid so we make sure cd API is used so that we can grab real email.
+      if gs_body and not GroupIsAbuseOrPostmaster(group):
+        try:
+          if group.find(u'@') == -1: # group settings API won't take uid so we make sure cd API is used so that we can grab real email.
+            group = callGAPI(cd.groups(), u'get',
+                             throw_reasons=GAPI.GROUP_GET_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
+                             groupKey=group, body=body, fields=u'email')[u'email']
+          settings = callGAPI(gs.groups(), u'get',
+                              soft_errors=True, throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
+                              groupUniqueId=group, fields=u'*')
+          if settings is not None:
+            settings.update(gs_body)
+          else:
+            entityActionFailedWarning([Ent.GROUP, group], Msg.API_ERROR_SETTINGS, i, count)
+            continue
+        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.backendError, GAPI.systemError, GAPI.badRequest):
+          entityUnknownWarning(Ent.GROUP, group, i, count)
+          continue
+      if body:
         try:
           group = callGAPI(cd.groups(), u'update',
                            throw_reasons=GAPI.GROUP_UPDATE_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
@@ -11527,17 +11553,10 @@ def doUpdateGroups():
       errMsg = u''
       if gs_body and not GroupIsAbuseOrPostmaster(group):
         try:
-          settings = callGAPI(gs.groups(), u'get',
-                              soft_errors=True, throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
-                              groupUniqueId=group, fields=u'*')
-          if settings is not None:
-            settings.update(gs_body)
-            result = callGAPI(gs.groups(), u'update',
-                              soft_errors=True, throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
-                              groupUniqueId=group, body=settings, fields=u'')
-            if result is None:
-              errMsg = Msg.API_ERROR_SETTINGS
-          else:
+          result = callGAPI(gs.groups(), u'update',
+                            soft_errors=True, throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
+                            groupUniqueId=group, body=settings, fields=u'')
+          if result is None:
             errMsg = Msg.API_ERROR_SETTINGS
         except (GAPI.permissionDenied, GAPI.invalid, GAPI.invalidInput) as e:
           entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
@@ -11547,9 +11566,9 @@ def doUpdateGroups():
           continue
       entityActionPerformedMessage([Ent.GROUP, group], errMsg, i, count)
   elif CL_subCommand in [u'create', u'add']:
-    role = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True)
-    checkNotSuspended = True if checkArgumentPresent(Cmd.NOTSUSPENDED_ARGUMENT) else False
-    _, addMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, checkNotSuspended=checkNotSuspended, groupUserMembersOnly=False)
+    role, groupMemberType = _getRoleGroupMemberType()
+    checkNotSuspended = checkArgumentPresent(u'notsuspended')
+    _, addMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, checkNotSuspended=checkNotSuspended, groupMemberType=groupMemberType)
     groupMemberLists = addMembers if isinstance(addMembers, dict) else None
     checkForExtraneousArguments()
     i = 0
@@ -11562,8 +11581,8 @@ def doUpdateGroups():
       if group:
         _batchAddGroupMembers(group, i, count, [convertUIDtoEmailAddress(member, cd=cd, emailType=u'any', checkForCustomerId=True) for member in addMembers], role)
   elif CL_subCommand in [u'delete', u'remove']:
-    role = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True) # Argument ignored
-    _, removeMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, groupUserMembersOnly=False)
+    role, groupMemberType = _getRoleGroupMemberType()
+    _, removeMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, groupMemberType=groupMemberType)
     groupMemberLists = removeMembers if isinstance(removeMembers, dict) else None
     checkForExtraneousArguments()
     i = 0
@@ -11576,9 +11595,9 @@ def doUpdateGroups():
       if group:
         _batchRemoveGroupMembers(group, i, count, [convertUIDtoEmailAddress(member, cd=cd, emailType=u'any', checkForCustomerId=True) for member in removeMembers], role)
   elif CL_subCommand == u'sync':
-    role = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True)
-    checkNotSuspended = checkArgumentPresent(Cmd.NOTSUSPENDED_ARGUMENT)
-    _, syncMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, checkNotSuspended=checkNotSuspended, groupUserMembersOnly=False)
+    role, groupMemberType = _getRoleGroupMemberType()
+    checkNotSuspended = checkArgumentPresent(u'notsuspended')
+    _, syncMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, checkNotSuspended=checkNotSuspended, groupMemberType=groupMemberType)
     groupMemberLists = syncMembers if isinstance(syncMembers, dict) else None
     if not groupMemberLists:
       syncMembersSet = set()
@@ -11599,7 +11618,7 @@ def doUpdateGroups():
       if group:
         currentMembersSet = set()
         currentMembersMap = {}
-        for member in getUsersToModify(Cmd.ENTITY_GROUP, group, memberRole=role, groupUserMembersOnly=False):
+        for member in getUsersToModify(Cmd.ENTITY_GROUP, group, memberRole=role, groupMemberType=groupMemberType):
           currentMembersSet.add(_cleanConsumerAddress(member, currentMembersMap))
         _batchAddGroupMembers(group, i, count,
                               [syncMembersMap.get(emailAddress, emailAddress) for emailAddress in syncMembersSet-currentMembersSet],
@@ -11608,8 +11627,8 @@ def doUpdateGroups():
                                  [currentMembersMap.get(emailAddress, emailAddress) for emailAddress in currentMembersSet-syncMembersSet],
                                  role)
   elif CL_subCommand == u'update':
-    role = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True)
-    _, updateMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, groupUserMembersOnly=False)
+    role, groupMemberType = _getRoleGroupMemberType()
+    _, updateMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, groupMemberType=groupMemberType)
     groupMemberLists = updateMembers if isinstance(updateMembers, dict) else None
     checkForExtraneousArguments()
     i = 0
@@ -11685,6 +11704,8 @@ GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP = {
   u'name': [u'name', u'Name'],
   }
 
+GROUP_BASIC_FIELD_TO_GROUP_FIELD_MAP = {u'description': u'groupDescription', u'name': u'groupName'}
+GROUP_BASIC_INFO_PRINT_ORDER = [u'id', u'name', u'groupName', u'description', u'groupDescription', u'directMembersCount', u'adminCreated']
 INFO_GROUP_OPTIONS = [u'nousers', u'groups',]
 
 def infoGroups(entityList):
@@ -11712,11 +11733,15 @@ def infoGroups(entityList):
     elif myarg in GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP:
       if not cdfieldsList:
         cdfieldsList = [u'email',]
-      cdfieldsList.extend([GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP[myarg][0],])
+      cdfieldsList.extend([GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP[myarg][0]])
+      if myarg in [u'name', u'description']:
+        if not gsfieldsList:
+          gsfieldsList = []
+        gsfieldsList.append(myarg)
     elif myarg in GROUP_ATTRIBUTES:
       if not gsfieldsList:
         gsfieldsList = []
-      gsfieldsList.extend([GROUP_ATTRIBUTES[myarg][0],])
+      gsfieldsList.extend([GROUP_ATTRIBUTES[myarg][0]])
     elif myarg == u'fields':
       if not cdfieldsList:
         cdfieldsList = [u'email',]
@@ -11725,9 +11750,11 @@ def infoGroups(entityList):
       fieldNameList = getString(Cmd.OB_FIELD_NAME_LIST)
       for field in fieldNameList.lower().replace(u',', u' ').split():
         if field in GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP:
-          cdfieldsList.extend([GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP[field][0],])
+          cdfieldsList.extend([GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP[field][0]])
+          if field in [u'name', u'description']:
+            gsfieldsList.append(field)
         elif field in GROUP_ATTRIBUTES:
-          gsfieldsList.extend([GROUP_ATTRIBUTES[field][0],])
+          gsfieldsList.extend([GROUP_ATTRIBUTES[field][0]])
         else:
           invalidChoiceExit(list(GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP)+list(GROUP_ATTRIBUTES), True)
 # Ignore info user arguments that may have come from whatis
@@ -11767,6 +11794,11 @@ def infoGroups(entityList):
                             groupUniqueId=group, fields=gsfields) # Use email address retrieved from cd since GS API doesn't support uid
         if settings is None:
           settings = {}
+        else:
+          for key in GROUP_BASIC_FIELD_TO_GROUP_FIELD_MAP:
+            if key in settings and ((key not in basic_info) or (basic_info[key] != settings[key])):
+              basic_info[GROUP_BASIC_FIELD_TO_GROUP_FIELD_MAP[key]] = basic_info.pop(key)
+              basic_info[key] = settings.pop(key)
       if getGroups:
         groups = callGAPIpages(cd.groups(), u'list', u'groups',
                                userKey=group, fields=u'nextPageToken,groups(name,email)')
@@ -11787,9 +11819,10 @@ def infoGroups(entityList):
       Ind.Increment()
       printEntity([Ent.GROUP_SETTINGS, None])
       Ind.Increment()
-      for key, value in iteritems(basic_info):
-        if key in [u'kind', u'etag', u'email', u'aliases']:
+      for key in GROUP_BASIC_INFO_PRINT_ORDER:
+        if key not in basic_info:
           continue
+        value = basic_info[key]
         if isinstance(value, list):
           printKeyValueList([key, None])
           Ind.Increment()
@@ -11812,13 +11845,14 @@ def infoGroups(entityList):
           printKeyValueList([key, value])
       Ind.Decrement()
       if getAliases:
-        aliases = basic_info.get(u'aliases', [])
-        if aliases:
-          printEntitiesCount(Ent.EMAIL_ALIAS, aliases)
-          Ind.Increment()
-          for alias in aliases:
-            printKeyValueList([alias])
-          Ind.Decrement()
+        for up in [u'aliases', u'nonEditableAliases']:
+          aliases = basic_info.get(up, [])
+          if aliases:
+            printEntitiesCount([Ent.NONEDITABLE_ALIAS, Ent.EMAIL_ALIAS][up == u'aliases'], aliases)
+            Ind.Increment()
+            for alias in aliases:
+              printKeyValueList([alias])
+            Ind.Decrement()
       if getGroups:
         printEntitiesCount(Ent.GROUP, groups)
         Ind.Increment()
@@ -13913,7 +13947,7 @@ def doCalendarsWipeEvents(cal, calIds):
 def doCalendarsMoveEvents(cal, calIds):
   sendNotifications = False
   calendarEventEntity = getCalendarEventEntity()
-  checkArgumentPresent(Cmd.TO_ARGUMENT)
+  checkArgumentPresent(u'to')
   newCalId = convertUIDtoEmailAddress(getString(Cmd.OB_CALENDAR_ITEM))
   sendNotifications = False
   while Cmd.ArgumentsRemaining():
@@ -15226,7 +15260,7 @@ def createUserSite(users):
   _createSite(users, Ent.USER)
 
 def doCreateDomainSite():
-  _createSite([GC.Values[GC.DOMAIN],], Ent.DOMAIN)
+  _createSite([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
 def _updateSites(users, entityType):
   sitesManager = SitesManager()
@@ -15268,7 +15302,7 @@ def updateUserSites(users):
   _updateSites(users, Ent.USER)
 
 def doUpdateDomainSites():
-  _updateSites([GC.Values[GC.DOMAIN],], Ent.DOMAIN)
+  _updateSites([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
 SITE_FIELD_PRINT_ORDER = [
   SITE_UPDATED,
@@ -15383,7 +15417,7 @@ def infoUserSites(users):
   _infoSites(users, Ent.USER)
 
 def doInfoDomainSites():
-  _infoSites([GC.Values[GC.DOMAIN],], Ent.DOMAIN)
+  _infoSites([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
 def _printShowSites(entityList, entityType, csvFormat):
   def _getSites(domain, i, count):
@@ -15550,12 +15584,12 @@ def showUserSites(users):
 # gam print sites [todrive [<ToDriveAttributes>]] [domain|domains <DomainNameEntity>] [includeallsites]
 #	[withmappings] [role|roles all|<SiteACLRoleList>] [maxresults <Number>] [convertcrnl] [delimiter <Character>]
 def doPrintDomainSites():
-  _printShowSites([GC.Values[GC.DOMAIN],], Ent.DOMAIN, True)
+  _printShowSites([GC.Values[GC.DOMAIN]], Ent.DOMAIN, True)
 
 # gam show sites [domain|domains <DomainNameEntity>] [includeallsites]
 #	[withmappings] [role|roles all|<SiteACLRoleList>] [maxresults <Number>] [convertcrnl]
 def doShowDomainSites():
-  _printShowSites([GC.Values[GC.DOMAIN],], Ent.DOMAIN, False)
+  _printShowSites([GC.Values[GC.DOMAIN]], Ent.DOMAIN, False)
 
 SITE_ACTION_TO_MODIFIER_MAP = {
   Act.ADD: Act.MODIFIER_TO,
@@ -15676,7 +15710,7 @@ def processUserSiteACLs(users):
   _processSiteACLs(users, Ent.USER)
 
 def doProcessDomainSiteACLs():
-  _processSiteACLs([GC.Values[GC.DOMAIN],], Ent.DOMAIN)
+  _processSiteACLs([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
 def _printSiteActivity(users, entityType):
   sitesManager = SitesManager()
@@ -15744,7 +15778,7 @@ def printUserSiteActivity(users):
   _printSiteActivity(users, Ent.USER)
 
 def doPrintDomainSiteActivity():
-  _printSiteActivity([GC.Values[GC.DOMAIN],], Ent.DOMAIN)
+  _printSiteActivity([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
 # User commands utilities
 RT_PATTERN = re.compile(r'(?s){RT}.*?{(.+?)}.*?{/RT}')
@@ -15915,7 +15949,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
     return False
 
   def getPrimaryNotPrimaryChoice(entry, defaultChoice):
-    if getChoice(Cmd.PRIMARY_NOTPRIMARY_CHOICE_MAP, defaultChoice=defaultChoice, mapChoice=True):
+    if getChoice({u'primary': True, u'notprimary': False}, defaultChoice=defaultChoice, mapChoice=True):
       entry[u'primary'] = True
       primary[u'location'] = Cmd.Location()
 
@@ -15976,7 +16010,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
     elif myarg == u'subject':
       notify[u'subject'] = getString(Cmd.OB_STRING)
     elif myarg == u'message':
-      if checkArgumentPresent(Cmd.FILE_ARGUMENT):
+      if checkArgumentPresent(u'file'):
         filename = getString(Cmd.OB_FILE_NAME)
         encoding = getCharSet()
         notify[u'message'] = readFile(filename, encoding=encoding)
@@ -16029,7 +16063,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         entry = {}
         getChoice([clTypeKeyword], defaultChoice=None)
         getKeywordAttribute(UProp, typeKeywords, entry)
-        if checkArgumentPresent([u'addressmeas',]):
+        if checkArgumentPresent(u'addressmeas'):
           entry[u'addressMeAs'] = getString(Cmd.OB_STRING, minLen=0)
         body[up] = entry
       elif up == u'addresses':
@@ -16038,7 +16072,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         entry = {}
         getChoice([clTypeKeyword], defaultChoice=None)
         getKeywordAttribute(UProp, typeKeywords, entry)
-        if checkArgumentPresent(Cmd.UNSTRUCTURED_FORMATTED_ARGUMENT):
+        if checkArgumentPresent([u'unstructured', u'formatted']):
           entry[u'sourceIsStructured'] = False
           entry[u'formatted'] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
         while Cmd.ArgumentsRemaining():
@@ -16058,7 +16092,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         entry = {}
         getChoice([clTypeKeyword], defaultChoice=None)
         getKeywordAttribute(UProp, typeKeywords, entry)
-        getChoice([UProp.IM_PROTOCOLS[UProp.PTKW_CL_TYPE_KEYWORD],])
+        getChoice([UProp.IM_PROTOCOLS[UProp.PTKW_CL_TYPE_KEYWORD]])
         getKeywordAttribute(UProp, UProp.IM_PROTOCOLS, entry)
         # Backwards compatability: notprimary|primary on either side of IM address
         getPrimaryNotPrimaryChoice(entry, False)
@@ -16103,7 +16137,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
           continue
         entry = {}
         getKeywordAttribute(UProp, typeKeywords, entry, defaultChoice=u'text_plain')
-        if checkArgumentPresent(Cmd.FILE_ARGUMENT):
+        if checkArgumentPresent(u'file'):
           filename = getString(Cmd.OB_FILE_NAME)
           encoding = getCharSet()
           entry[u'value'] = readFile(filename, encoding=encoding)
@@ -16251,13 +16285,13 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       up = u'customSchemas'
       body.setdefault(up, {})
       body[up].setdefault(schemaName, {})
-      multivalue = checkArgumentPresent(Cmd.MULTIVALUE_ARGUMENT)
-      if multivalue:
+      multivalue = getChoice([u'multivalued', u'multivalue', u'value', u'multinonempty'], defaultChoice=None)
+      if multivalue is not None:
         body[up][schemaName].setdefault(fieldName, [])
         typeKeywords = UProp.PROPERTIES[up][UProp.TYPE_KEYWORDS]
         clTypeKeyword = typeKeywords[UProp.PTKW_CL_TYPE_KEYWORD]
         schemaValue = {}
-        if checkArgumentPresent([clTypeKeyword,]):
+        if checkArgumentPresent(clTypeKeyword):
           getKeywordAttribute(UProp, typeKeywords, schemaValue)
         schemaValue[u'value'] = getString(Cmd.OB_STRING, minLen=0)
         if schemaValue[u'value'] or multivalue != u'multinonempty':
@@ -16424,7 +16458,7 @@ def doDeleteUser():
 # gam <UserEntity> undelete users [org|ou <OrgUnitPath>]
 def undeleteUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
-  if checkArgumentPresent(Cmd.ORG_OU_ARGUMENT):
+  if checkArgumentPresent([u'org', u'ou']):
     orgUnitPaths = getEntityList(Cmd.OB_ORGUNIT_ENTITY, shlexSplit=True)
     userOrgUnitLists = orgUnitPaths if isinstance(orgUnitPaths, dict) else None
   else:
@@ -16998,9 +17032,9 @@ def infoUsers(entityList):
             Ind.Decrement()
           Ind.Decrement()
       if getAliases:
-        for up in [u'aliases', u'nonEditableAliases',]:
-          if up in user:
-            propertyValue = user[up]
+        for up in [u'aliases', u'nonEditableAliases']:
+          propertyValue = user.get(up, [])
+          if up:
             printKeyValueList([UProp.PROPERTIES[up][UProp.TITLE], None])
             Ind.Increment()
             for alias in propertyValue:
@@ -18576,7 +18610,8 @@ def normalizePrinterScopeList(rawScopeList):
   return scopeList
 
 def getPrinterACLScopeEntity():
-  _, scopeList = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, groupUserMembersOnly=False)
+  groupMemberType = getChoice({u'usersonly': u'USER', 'groupsonly': u'GROUP'}, defaultChoice=u'ALL', mapChoice=True)
+  _, scopeList = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, groupMemberType=groupMemberType)
   printerScopeLists = scopeList if isinstance(scopeList, dict) else None
   if not printerScopeLists:
     scopeList = normalizePrinterScopeList(scopeList)
@@ -18623,7 +18658,7 @@ def doPrinterCreateACL(printerIdList):
   cp = buildGAPIObject(API.CLOUDPRINT)
   role = getChoice(PRINTER_ROLE_MAP, mapChoice=True)
   scopeList, printerScopeLists = getPrinterACLScopeEntity()
-  notify = True if checkArgumentPresent([u'notify',]) else False
+  notify = checkArgumentPresent(u'notify')
   checkForExtraneousArguments()
   i = 0
   count = len(printerIdList)
@@ -18696,7 +18731,7 @@ def doPrinterSyncACLs(printerIdList):
   cp = buildGAPIObject(API.CLOUDPRINT)
   role = getChoice(PRINTER_ROLE_MAP, mapChoice=True)
   scopeList, printerScopeLists = getPrinterACLScopeEntity()
-  notify = True if checkArgumentPresent([u'notify',]) else False
+  notify = checkArgumentPresent(u'notify')
   checkForExtraneousArguments()
   i = 0
   count = len(printerIdList)
@@ -19805,18 +19840,21 @@ def printCalendarACLs(users):
 def showCalendarACLs(users):
   printShowCalendarACLs(users, False)
 
-# gam <UserTypeEntity> transfer calendars <UserItem> <CalendarEntity> [keepuser | (retainrole <CalendarACLRole>)]
+# gam <UserTypeEntity> transfer calendars <UserItem> <CalendarEntity> [keepuser | (retainrole <CalendarACLRole>)] [noretentionmessages]
 def transferCalendars(users):
   targetUser = getEmailAddress()
   calendarEntity = getCalendarEntity(noSelectionKwargs={u'minAccessRole': u'owner', u'showHidden': True})
   giveForbiddenWarnings = not calendarEntity[u'all']
   retainRoleBody = {u'role': u'none'}
+  showRetentionMessages = True
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'keepuser':
       retainRoleBody[u'role'] = u'owner'
     elif myarg == u'retainrole':
       retainRoleBody[u'role'] = getChoice(CALENDAR_ACL_ROLES_MAP, mapChoice=True)
+    elif myarg == u'noretentionmessages':
+      showRetentionMessages = False
     else:
       unknownArgumentExit()
   targetUser, targetCal = validateCalendar(targetUser)
@@ -19857,7 +19895,8 @@ def transferCalendars(users):
                    throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_PARAMETER, GAPI.INVALID_SCOPE_VALUE, GAPI.ILLEGAL_ACCESS_ROLE_FOR_DEFAULT,
                                   GAPI.CANNOT_CHANGE_OWN_ACL, GAPI.CANNOT_CHANGE_OWNER_ACL, GAPI.FORBIDDEN],
                    calendarId=calId, ruleId=sourceRuleId, body=retainRoleBody, fields=u'')
-          entityActionPerformed([Ent.CALENDAR, calId, Ent.CALENDAR_ACL, formatACLScopeRole(sourceRuleId, retainRoleBody[u'role'])], j, jcount)
+          if showRetentionMessages:
+            entityActionPerformed([Ent.CALENDAR, calId, Ent.CALENDAR_ACL, formatACLScopeRole(sourceRuleId, retainRoleBody[u'role'])], j, jcount)
         except GAPI.notFound as e:
           if not checkCalendarExists(targetCal, calId):
             entityUnknownWarning(Ent.CALENDAR, calId, j, jcount)
@@ -19870,7 +19909,8 @@ def transferCalendars(users):
           callGAPI(targetCal.acl(), u'delete',
                    throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID],
                    calendarId=calId, ruleId=sourceRuleId)
-          entityActionPerformed([Ent.CALENDAR, calId, Ent.CALENDAR_ACL, formatACLScopeRole(sourceRuleId, retainRoleBody[u'role'])], j, jcount)
+          if showRetentionMessages:
+            entityActionPerformed([Ent.CALENDAR, calId, Ent.CALENDAR_ACL, formatACLScopeRole(sourceRuleId, retainRoleBody[u'role'])], j, jcount)
         except (GAPI.notFound, GAPI.invalid):
           entityUnknownWarning(Ent.CALENDAR, calId, j, jcount)
     Ind.Decrement()
@@ -19978,7 +20018,7 @@ def wipeCalendarEvents(users):
 def moveCalendarEvents(users):
   calendarEntity = getCalendarEntity()
   calendarEventEntity = getCalendarEventEntity()
-  checkArgumentPresent(Cmd.TO_ARGUMENT)
+  checkArgumentPresent(u'to')
   newCalId = convertUIDtoEmailAddress(getString(Cmd.OB_CALENDAR_ITEM))
   sendNotifications = False
   while Cmd.ArgumentsRemaining():
@@ -20261,6 +20301,40 @@ def initDriveFileEntity():
   return {u'list': [], u'teamdrivename': None, u'teamdriveadminquery': None, u'query': None, u'teamdrivefilequery': None, u'dict': None, u'root': [], u'teamdrive': {}}
 
 def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
+  def _getKeywordColonValue(kwColonValue):
+    kw, value = kwColonValue.split(u':', 1)
+    kw = kw.lower().replace(u'_', u'').replace(u'-', u'')
+    if kw == u'id':
+      cleanFileIDsList(fileIdEntity, [value])
+    elif kw == u'ids':
+      cleanFileIDsList(fileIdEntity, value.replace(u',', u' ').split())
+    elif kw == u'query':
+      fileIdEntity[u'query'] = _mapDrive2QueryToDrive3(value)
+    elif kw == u'drivefilename':
+      fileIdEntity[u'query'] = VX_WITH_MY_FILE_NAME.format(value)
+    elif kw in [u'anydrivefilename', u'anyownerdrivefilename', u'shareddrivefilename']:
+      fileIdEntity[u'query'] = VX_WITH_ANY_FILE_NAME.format(value)
+    else:
+      return False
+    return True
+
+  def _getTDKeywordColonValue(kwColonValue):
+    kw, value = kwColonValue.split(u':', 1)
+    kw = kw.lower().replace(u'_', u'').replace(u'-', u'')
+    if kw == u'teamdriveid':
+      fileIdEntity[u'teamdrive'][u'teamDriveId'] = value
+    elif kw == u'teamdrive':
+      fileIdEntity[u'teamdrivename'] = value
+    elif kw == u'teamdriveadminquery':
+      fileIdEntity[u'teamdriveadminquery'] = value
+    elif kw == u'teamdrivefilename':
+      fileIdEntity[u'teamdrivefilequery'] = VX_WITH_ANY_FILE_NAME.format(value)
+    elif kw == u'teamdrivequery':
+      fileIdEntity[u'teamdrivefilequery'] = _mapDrive2QueryToDrive3(value)
+    else:
+      return False
+    return True
+
   fileIdEntity = initDriveFileEntity()
   entitySelector = getEntitySelector()
   if entitySelector:
@@ -20274,24 +20348,14 @@ def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
     mycmd = myarg.lower().replace(u'_', u'').replace(u'-', u'')
     if mycmd == u'id':
       cleanFileIDsList(fileIdEntity, getStringReturnInList(Cmd.OB_DRIVE_FILE_ID))
-    elif mycmd[:3] == u'id:':
-      cleanFileIDsList(fileIdEntity, [myarg[3:]])
     elif mycmd == u'ids':
       cleanFileIDsList(fileIdEntity, getString(Cmd.OB_DRIVE_FILE_ID).replace(u',', u' ').split())
-    elif mycmd[:4] == u'ids:':
-      cleanFileIDsList(fileIdEntity, myarg[4:].replace(u',', u' ').split())
     elif mycmd == u'query':
       fileIdEntity[u'query'] = _mapDrive2QueryToDrive3(getString(Cmd.OB_QUERY))
-    elif mycmd[:6] == u'query:':
-      fileIdEntity[u'query'] = _mapDrive2QueryToDrive3(myarg[6:])
     elif mycmd == u'drivefilename':
       fileIdEntity[u'query'] = VX_WITH_MY_FILE_NAME.format(getString(Cmd.OB_DRIVE_FILE_NAME))
-    elif mycmd[:14] == u'drivefilename:':
-      fileIdEntity[u'query'] = VX_WITH_MY_FILE_NAME.format(myarg[14:])
-    elif mycmd == u'anydrivefilename':
+    elif mycmd in [u'anydrivefilename', u'anyownerdrivefilename', u'shareddrivefilename']:
       fileIdEntity[u'query'] = VX_WITH_ANY_FILE_NAME.format(getString(Cmd.OB_DRIVE_FILE_NAME))
-    elif mycmd[:17] == u'anydrivefilename:':
-      fileIdEntity[u'query'] = VX_WITH_ANY_FILE_NAME.format(myarg[17:])
     elif queryShortcutsOK and mycmd in QUERY_SHORTCUTS_MAP:
       fileIdEntity[u'query'] = QUERY_SHORTCUTS_MAP[mycmd]
     elif mycmd in [u'root', u'mydrive']:
@@ -20304,26 +20368,18 @@ def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
       while True:
         if mycmd == u'teamdriveid':
           fileIdEntity[u'teamdrive'][u'teamDriveId'] = getString(Cmd.OB_TEAMDRIVE_ID)
-        elif mycmd[:12] == u'teamdriveid:':
-          fileIdEntity[u'teamdrive'][u'teamDriveId'] = myarg[12:]
         elif mycmd == u'teamdrive':
           fileIdEntity[u'teamdrivename'] = getString(Cmd.OB_TEAMDRIVE_NAME)
-        elif mycmd[:10] == u'teamdrive:':
-          fileIdEntity[u'teamdrivename'] = myarg[10:]
         elif mycmd == u'teamdriveadminquery':
           fileIdEntity[u'teamdriveadminquery'] = getString(Cmd.OB_QUERY)
-        elif mycmd[:20] == u'teamdriveadminquery:':
-          fileIdEntity[u'teamdriveadminquery'] = myarg[20:]
         elif mycmd == u'teamdrivefilename':
           fileIdEntity[u'teamdrivefilequery'] = VX_WITH_ANY_FILE_NAME.format(getString(Cmd.OB_DRIVE_FILE_NAME))
-        elif mycmd[:18] == u'teamdrivefilename:':
-          fileIdEntity[u'teamdrivefilequery'] = VX_WITH_ANY_FILE_NAME.format(myarg[18:])
         elif mycmd == u'teamdrivequery':
           fileIdEntity[u'teamdrivefilequery'] = _mapDrive2QueryToDrive3(getString(Cmd.OB_QUERY))
-        elif mycmd[:15] == u'teamdrivequery:':
-          fileIdEntity[u'teamdrivefilequery'] = _mapDrive2QueryToDrive3(myarg[15:])
         elif queryShortcutsOK and mycmd in TEAMDRIVE_QUERY_SHORTCUTS_MAP:
           fileIdEntity[u'teamdrivefilequery'] = TEAMDRIVE_QUERY_SHORTCUTS_MAP[mycmd]
+        elif (mycmd.find(u':') > 0) and _getTDKeywordColonValue(myarg):
+          pass
         else:
           unknownArgumentExit()
         if Cmd.ArgumentsRemaining():
@@ -20336,24 +20392,35 @@ def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
           break
       if not fileIdEntity[u'teamdrive'].get(u'teamDriveId'):
         fileIdEntity[u'teamdrive'][u'corpora'] = u'allTeamDrives,user'
+    elif (mycmd.find(u':') > 0) and _getKeywordColonValue(myarg):
+      pass
     else:
       cleanFileIDsList(fileIdEntity, [myarg,])
   return fileIdEntity
 
 def getTeamDriveEntity():
+  def _getTDKeywordColonValue(kwColonValue):
+    kw, value = kwColonValue.split(u':', 1)
+    kw = kw.lower().replace(u'_', u'').replace(u'-', u'')
+    if kw == u'teamdriveid':
+      fileIdEntity[u'teamdrive'][u'teamDriveId'] = value
+    elif kw == u'teamdrive':
+      fileIdEntity[u'teamdrivename'] = value
+    else:
+      return False
+    return True
+
   fileIdEntity = initDriveFileEntity()
   myarg = getString(Cmd.OB_DRIVE_FILE_ID, checkBlank=True)
-  mycmd = myarg.lower()
+  mycmd = myarg.lower().replace(u'_', u'').replace(u'-', u'')
   fileIdEntity[u'teamdrive'] = {u'teamDriveId': None,
                                 u'corpora': u'teamDrive', u'includeTeamDriveItems': True, u'supportsTeamDrives': True}
   if mycmd == u'teamdriveid':
     fileIdEntity[u'teamdrive'][u'teamDriveId'] = getString(Cmd.OB_TEAMDRIVE_ID)
-  elif mycmd[:12] == u'teamdriveid:':
-    fileIdEntity[u'teamdrive'][u'teamDriveId'] = myarg[12:]
   elif mycmd == u'teamdrive':
     fileIdEntity[u'teamdrivename'] = getString(Cmd.OB_TEAMDRIVE_NAME)
-  elif mycmd[:10] == u'teamdrive:':
-    fileIdEntity[u'teamdrivename'] = myarg[10:]
+  elif (mycmd.find(u':') > 0) and _getTDKeywordColonValue(myarg):
+    pass
   else:
     fileIdEntity[u'teamdrive'][u'teamDriveId'] = myarg
   return fileIdEntity
@@ -20496,6 +20563,23 @@ def _getDriveFileParentInfo(user, i, count, body, parameters, drive):
       body[u'parents'].append(parent)
   return True
 
+def _getDriveFileAddRemoveParentInfo(user, i, count, parameters, drive):
+  addParents = parameters[DFA_ADD_PARENT_IDS][:]
+  for query in parameters[DFA_ADD_PARENT_NAMES]:
+    parents = doDriveSearch(drive, user, i, count, query=query, parentQuery=True)
+    if parents is None:
+      setSysExitRC(NO_ENTITIES_FOUND)
+      return (False, None, None)
+    addParents.extend(parents)
+  removeParents = parameters[DFA_REMOVE_PARENT_IDS][:]
+  for query in parameters[DFA_REMOVE_PARENT_NAMES]:
+    parents = doDriveSearch(drive, user, i, count, query=query, parentQuery=True)
+    if parents is None:
+      setSysExitRC(NO_ENTITIES_FOUND)
+      return (False, None, None)
+    removeParents.extend(parents)
+  return (True, u','.join(addParents), u','.join(removeParents))
+
 def _validateUserGetTeamDriveFileIDs(user, i, count, fileIdEntity, drive=None, entityType=None):
   if fileIdEntity[u'dict']:
     cleanFileIDsList(fileIdEntity, fileIdEntity[u'dict'][user])
@@ -20565,7 +20649,7 @@ def initMimeTypeCheck():
   return {u'mimeTypes': set(), u'reverse': False}
 
 def getMimeTypeCheck(mimeTypeCheck):
-  mimeTypeCheck[u'reverse'] = True if checkArgumentPresent([u'not',]) else False
+  mimeTypeCheck[u'reverse'] = checkArgumentPresent(u'not')
   for mimeType in getString(Cmd.OB_MIMETYPE_LIST).lower().replace(u',', u' ').split():
     if mimeType in MIMETYPE_CHOICE_MAP:
       mimeTypeCheck[u'mimeTypes'].add(MIMETYPE_CHOICE_MAP[mimeType])
@@ -20590,7 +20674,9 @@ def checkMimeType(mimeTypeCheck, fileEntry):
 def initializeDriveFileAttributes():
   return {DFA_LOCALFILEPATH: None, DFA_LOCALFILENAME: None, DFA_LOCALMIMETYPE: None,
           DFA_OCRLANGUAGE: None,
-          DFA_PARENTIDS: [], DFA_PARENTQUERY: None, DFA_ADD_PARENTS: [], DFA_REMOVE_PARENTS: [],
+          DFA_PARENTIDS: [], DFA_PARENTQUERY: None,
+          DFA_ADD_PARENT_IDS: [], DFA_ADD_PARENT_NAMES: [],
+          DFA_REMOVE_PARENT_IDS: [], DFA_REMOVE_PARENT_NAMES: [],
           DFA_TEAMDRIVE_PARENT: None, DFA_TEAMDRIVE_PARENTID: None, DFA_TEAMDRIVE_PARENTQUERY: None, DFA_KWARGS: {},
           DFA_IGNORE_DEFAULT_VISIBILITY: False, DFA_KEEP_REVISION_FOREVER: False, DFA_USE_CONTENT_AS_INDEXABLE_TEXT: False}
 
@@ -20610,6 +20696,23 @@ def getDriveFileParentAttribute(myarg, parameters):
     parameters[DFA_KWARGS][u'corpora'] = u'user,allTeamDrives'
     parameters[DFA_KWARGS][u'includeTeamDriveItems'] = True
     parameters[DFA_KWARGS][u'supportsTeamDrives'] = True
+  else:
+    return False
+  return True
+
+def getDriveFileAddRemoveParentAttribute(myarg, parameters):
+  if myarg in [u'addparent', u'addparents']:
+    parameters[DFA_ADD_PARENT_IDS].extend(getString(Cmd.OB_DRIVE_FOLDER_ID_LIST).replace(u',', u' ').split())
+  elif myarg in [u'removeparent', u'removeparents']:
+    parameters[DFA_REMOVE_PARENT_IDS].extend(getString(Cmd.OB_DRIVE_FOLDER_ID_LIST).replace(u',', u' ').split())
+  elif myarg == u'addparentname':
+    parameters[DFA_ADD_PARENT_NAMES].append(VX_MY_NON_TRASHED_FOLDER_NAME.format(getString(Cmd.OB_DRIVE_FOLDER_NAME)))
+  elif myarg == u'removeparentname':
+    parameters[DFA_REMOVE_PARENT_NAMES].append(VX_MY_NON_TRASHED_FOLDER_NAME.format(getString(Cmd.OB_DRIVE_FOLDER_NAME)))
+  elif myarg in [u'addanyownerparentname', u'addsharedparentname']:
+    parameters[DFA_ADD_PARENT_NAMES].append(VX_ANY_NON_TRASHED_FOLDER_NAME.format(getString(Cmd.OB_DRIVE_FOLDER_NAME)))
+  elif myarg in [u'removeanyownerparentname', u'removesharedparentname']:
+    parameters[DFA_REMOVE_PARENT_NAMES].append(VX_ANY_NON_TRASHED_FOLDER_NAME.format(getString(Cmd.OB_DRIVE_FOLDER_NAME)))
   else:
     return False
   return True
@@ -21093,7 +21196,7 @@ def _mapDriveFieldNames(f_file, user, mapToLabels=False):
   _mapDriveUser(f_file.get(u'sharingUser', {}))
   _mapDriveParents(f_file)
   for permission in f_file.get(u'permissions', []):
-    if (permission[u'type'] == u'user') and (permission[u'emailAddress'].lower() == user):
+    if (permission.get(u'type') == u'user') and (permission.get(u'emailAddress', u'').lower() == user) and (u'role' in permission):
       f_file[u'userPermission'] = {u'id': u'me', u'role': permission[u'role'], u'type': permission[u'type']}
     _mapDrivePermissionNames(permission)
   if u'properties' in f_file:
@@ -21842,12 +21945,14 @@ def initFileTree(drive, teamdrive, getTeamDriveNames):
 
 def extendFileTree(fileTree, feed):
   for f_file in feed:
+    if u'parents' not in f_file:
+      f_file[u'parents'] = []
     fileId = f_file[u'id']
     if fileId not in fileTree:
       fileTree[fileId] = {u'info': f_file, u'children': []}
     else:
       fileTree[fileId][u'info'] = f_file
-    parents = f_file.get(u'parents', [])
+    parents = f_file[u'parents']
     if not parents:
       parents = [u'orphans',]
     for parentId in parents:
@@ -22553,10 +22658,8 @@ def updateDriveFile(users):
       body[VX_FILENAME] = getString(Cmd.OB_DRIVE_FILE_NAME)
     elif myarg in [u'modifieddate', u'modifiedtime']:
       body[VX_MODIFIED_TIME] = getTimeOrDeltaFromNow()
-    elif myarg == u'addparents':
-      parameters[DFA_ADD_PARENTS].extend(getString(Cmd.OB_DRIVE_FOLDER_ID_LIST).replace(u',', u' ').split())
-    elif myarg == u'removeparents':
-      parameters[DFA_REMOVE_PARENTS].extend(getString(Cmd.OB_DRIVE_FOLDER_ID_LIST).replace(u',', u' ').split())
+    elif getDriveFileAddRemoveParentAttribute(myarg, parameters):
+      pass
     else:
       getDriveFileAttribute(myarg, body, parameters)
   i, count, users = getEntityArgument(users)
@@ -22571,6 +22674,9 @@ def updateDriveFile(users):
           media_body = googleapiclient.http.MediaFileUpload(parameters[DFA_LOCALFILEPATH], mimetype=parameters[DFA_LOCALMIMETYPE], resumable=True)
         except IOError as e:
           systemErrorExit(FILE_ERROR_RC, e)
+      status, addParents, removeParents = _getDriveFileAddRemoveParentInfo(user, i, count, parameters, drive)
+      if not status:
+        continue
       Ind.Increment()
       j = 0
       for fileId in fileIdEntity[u'list']:
@@ -22582,7 +22688,7 @@ def updateDriveFile(users):
                               fileId=fileId, ocrLanguage=parameters[DFA_OCRLANGUAGE],
                               keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                               useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
-                              addParents=u','.join(parameters[DFA_ADD_PARENTS]), removeParents=u','.join(parameters[DFA_REMOVE_PARENTS]),
+                              addParents=addParents, removeParents=removeParents,
                               media_body=media_body, body=body, fields=VX_ID_FILENAME_MIMETYPE,
                               supportsTeamDrives=True)
             entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, result[VX_FILENAME]], Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], j, jcount)
@@ -22592,7 +22698,7 @@ def updateDriveFile(users):
                               fileId=fileId, ocrLanguage=parameters[DFA_OCRLANGUAGE],
                               keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                               useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
-                              addParents=u','.join(parameters[DFA_ADD_PARENTS]), removeParents=u','.join(parameters[DFA_REMOVE_PARENTS]),
+                              addParents=addParents, removeParents=removeParents,
                               body=body, fields=VX_ID_FILENAME_MIMETYPE,
                               supportsTeamDrives=True)
             entityActionPerformed([Ent.USER, user, _getEntityMimeType(result), result[VX_FILENAME]], j, jcount)
@@ -23028,7 +23134,7 @@ def collectOrphans(users):
           trgtParentId = callGAPI(drive.files(), u'create',
                                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                                   body={VX_FILENAME: trgtUserFolderName, u'mimeType': MIMETYPE_GA_FOLDER}, fields=u'id')[u'id']
-        newParent = u','.join([trgtParentId,])
+        newParent = u','.join([trgtParentId])
       setSysExitRC(ORPHANS_COLLECTED_RC)
       Ind.Increment()
       j = 0
@@ -23069,8 +23175,8 @@ DRIVEFILE_ACL_ROLES_MAP = {
 
 DRIVEFILE_ACL_PERMISSION_TYPES = [u'anyone', u'domain', u'group', u'user',] # anyone must be first element
 
-# gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>] [keepuser | (retainrole reader|commenter|writer|editor|none)]
-#	[(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>]
+# gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>] [keepuser | (retainrole reader|commenter|writer|editor|none)] [noretentionmessages]
+#	[(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>] [targetuserorphansfoldername <DriveFolderName>]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[preview] [todrive [<ToDriveAttributes>]]
 def transferDrive(users):
@@ -23131,7 +23237,8 @@ def transferDrive(users):
           callGAPI(targetDrive.permissions(), u'delete',
                    throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
                    fileId=childFileId, permissionId=sourcePermissionId)
-        entityActionPerformed([Ent.USER, sourceUser, childFileType, childFileName, Ent.ROLE, retainRoleBody[u'role']], j, jcount)
+        if showRetentionMessages:
+          entityActionPerformed([Ent.USER, sourceUser, childFileType, childFileName, Ent.ROLE, retainRoleBody[u'role']], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
         entityActionFailedWarning([Ent.USER, sourceUser, childFileType, childFileName], str(e), j, jcount)
       except GAPI.permissionNotFound:
@@ -23209,6 +23316,7 @@ def transferDrive(users):
   todrive = {}
   orderByList = []
   retainRoleBody = {u'role': u'none'}
+  showRetentionMessages = True
   targetFolderId = targetFolderName = None
   targetUserFolderPattern = u'#user# old files'
   parentIdMap = {}
@@ -23221,6 +23329,8 @@ def transferDrive(users):
       aclRolesMap[u'owner'] = u'writer'
       aclRolesMap[u'none'] = u'none'
       retainRoleBody[u'role'] = getChoice(aclRolesMap, mapChoice=True)
+    elif myarg == u'noretentionmessages':
+      showRetentionMessages = False
     elif myarg == u'orderby':
       getDrivefileOrderBy(orderByList)
     elif myarg == u'targetfolderid':
@@ -23595,7 +23705,7 @@ def transferOwnership(users):
 # gam <UserTypeEntity> claim ownership <DriveFileEntity> [includetrashed]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
-#	[restricted [<Boolean>]] [writerscanshare|writerscantshare [<Boolean>]] [keepuser | (retainrole reader|commenter|writer|editor|none)]
+#	[restricted [<Boolean>]] [writerscanshare|writerscantshare [<Boolean>]] [keepuser | (retainrole reader|commenter|writer|editor|none)] [noretentionmessages]
 #	[preview] [filepath] [buildtree] [todrive [<ToDriveAttributes>]]d
 def claimOwnership(users):
   def _identifyFilesToClaim(fileEntry, skipids):
@@ -23649,7 +23759,8 @@ def claimOwnership(users):
         callGAPI(sourceDrive.permissions(), u'delete',
                  throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
                  fileId=fileId, permissionId=oldOwnerPermissionId)
-      entityActionPerformed([Ent.USER, oldOwner, entityType, fileDesc, Ent.ROLE, retainRoleBody[u'role']], l, lcount)
+      if showRetentionMessages:
+        entityActionPerformed([Ent.USER, oldOwner, entityType, fileDesc, Ent.ROLE, retainRoleBody[u'role']], l, lcount)
     except GAPI.permissionNotFound:
       entityDoesNotHaveItemWarning([Ent.USER, oldOwner, entityType, fileDesc, Ent.PERMISSION_ID, oldOwnerPermissionId], l, lcount)
     except GAPI.badRequest as e:
@@ -23667,6 +23778,7 @@ def claimOwnership(users):
   csvFormat = filepath = trashed = False
   todrive = {}
   retainRoleBody = {u'role': u'writer'}
+  showRetentionMessages = True
   oldOwnerPermissionIds = {}
   fileTree = None
   buildTree = False
@@ -23680,6 +23792,8 @@ def claimOwnership(users):
       aclRolesMap[u'owner'] = u'writer'
       aclRolesMap[u'none'] = u'none'
       retainRoleBody[u'role'] = getChoice(aclRolesMap, mapChoice=True)
+    elif myarg == u'noretentionmessages':
+      showRetentionMessages = False
     elif myarg == u'skipids':
       skipFileIdEntity = getDriveFileEntity()
     elif myarg == u'skipusers':
@@ -25089,7 +25203,7 @@ def getLicenseParameters(operation):
   if checkArgumentPresent([u'product', u'productid']):
     parameters[LICENSE_PRODUCTID] = getGoogleProduct()
   if operation == u'patch':
-    checkArgumentPresent(Cmd.FROM_ARGUMENT)
+    checkArgumentPresent(u'from')
     oldProductId, parameters[LICENSE_OLDSKUID] = getGoogleSKU()
     if parameters[LICENSE_PRODUCTID] != oldProductId:
       Cmd.Backup()
@@ -25773,7 +25887,7 @@ def commonClientIds(clientId):
 # gam <UserTypeEntity> delete token|tokens|3lo|oauth clientid <ClientID>
 def deleteTokens(users):
   cd = buildGAPIObject(API.DIRECTORY)
-  checkArgumentPresent(Cmd.CLIENTID_ARGUMENT, required=True)
+  checkArgumentPresent(u'clientid', required=True)
   clientId = commonClientIds(getString(Cmd.OB_CLIENT_ID))
   checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
@@ -27089,7 +27203,7 @@ def _importInsertMessage(users, importMsg):
     if myarg in SMTP_HEADERS_MAP:
       if myarg in SMTP_DATE_HEADERS:
         msgDate, _, _ = getTimeOrDeltaFromNow(True)
-        msgHeaders[SMTP_HEADERS_MAP[myarg]] = formatdate(time.mktime(msgDate.timetuple()) + msgDate.microsecond / 1E6, True)
+        msgHeaders[SMTP_HEADERS_MAP[myarg]] = formatdate(time.mktime(msgDate.timetuple()) + msgDate.microsecond/1E6, True)
         if myarg == u'date':
           internalDateSource = u'dateHeader'
       else:
@@ -27690,7 +27804,7 @@ def delegateTo(users, checkForTo=True):
   cd = buildGAPIObject(API.DIRECTORY)
   emailSettings = buildGAPIObject(API.EMAIL_SETTINGS)
   if checkForTo:
-    checkArgumentPresent(Cmd.TO_ARGUMENT, required=True)
+    checkArgumentPresent(u'to', required=True)
   delegateEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DELEGATE)
   checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
@@ -28631,7 +28745,7 @@ def _createUpdateSendAs(users, addCmd):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in [u'signature', u'sig']:
-      if checkArgumentPresent(Cmd.FILE_ARGUMENT):
+      if checkArgumentPresent(u'file'):
         filename = getString(Cmd.OB_FILE_NAME)
         encoding = getCharSet()
         signature = readFile(filename, encoding=encoding)
@@ -28983,7 +29097,7 @@ def showSmimes(users):
 #	[html [<Boolean>]] [name <String>] [replyto <EmailAddress>] [default] [primary] [treatasalias <Boolean>]
 def setSignature(users):
   tagReplacements = {}
-  if checkArgumentPresent(Cmd.FILE_ARGUMENT):
+  if checkArgumentPresent(u'file'):
     filename = getString(Cmd.OB_FILE_NAME)
     encoding = getCharSet()
     signature = readFile(filename, encoding=encoding)
@@ -29285,34 +29399,32 @@ def setWebClips(users):
 
 # Command line processing
 
-# Keys into command tables
-CMD_ACTION = u'acti'
-CMD_FUNCTION = u'func'
-CMD_OBJ_ALIASES = u'alia'
+CMD_ACTION = 0
+CMD_FUNCTION = 1
 
 # Main commands
 BATCH_CSV_COMMANDS = {
-  Cmd.BATCH_CMD:	{CMD_ACTION: Act.PERFORM, CMD_FUNCTION: doBatch},
-  Cmd.CSV_CMD:		{CMD_ACTION: Act.PERFORM, CMD_FUNCTION: doCSV},
-  Cmd.TBATCH_CMD:	{CMD_ACTION: Act.PERFORM, CMD_FUNCTION: doThreadBatch},
+  Cmd.BATCH_CMD: (Act.PERFORM, doBatch),
+  Cmd.CSV_CMD: (Act.PERFORM, doCSV),
+  Cmd.TBATCH_CMD: (Act.PERFORM, doThreadBatch),
   }
 MAIN_COMMANDS = {
-  u'help':	{CMD_ACTION: Act.PERFORM, CMD_FUNCTION: doUsage},
-  u'list':	{CMD_ACTION: Act.LIST, CMD_FUNCTION: doListType},
-  u'report':	{CMD_ACTION: Act.REPORT, CMD_FUNCTION: doReport},
-  u'version':	{CMD_ACTION: Act.PERFORM, CMD_FUNCTION: doVersion},
-  u'whatis':	{CMD_ACTION: Act.INFO, CMD_FUNCTION: doWhatIs},
+  u'help': (Act.PERFORM, doUsage),
+  u'list': (Act.LIST, doListType),
+  u'report': (Act.REPORT, doReport),
+  u'version': (Act.PERFORM, doVersion),
+  u'whatis': (Act.INFO, doWhatIs),
   }
 
 # Main commands with objects
 MAIN_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_ADMIN:	doCreateAdmin,
-  Cmd.ARG_ALIASES:	doCreateAliases,
+  Cmd.ARG_ALIAS:	doCreateAliases,
   Cmd.ARG_CONTACT:	doCreateDomainContact,
   Cmd.ARG_COURSE:	doCreateCourse,
-  Cmd.ARG_DATA_TRANSFER:	doCreateDataTransfer,
+  Cmd.ARG_DATATRANSFER:	doCreateDataTransfer,
   Cmd.ARG_DOMAIN:	doCreateDomain,
-  Cmd.ARG_DOMAIN_ALIAS:	doCreateDomainAlias,
+  Cmd.ARG_DOMAINALIAS:	doCreateDomainAlias,
   Cmd.ARG_DRIVEFILEACL:	doCreateDriveFileACL,
   Cmd.ARG_GROUP:	doCreateGroup,
   Cmd.ARG_GUARDIAN: 	doInviteGuardian,
@@ -29324,442 +29436,245 @@ MAIN_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_RESOURCE:	doCreateResourceCalendar,
   Cmd.ARG_SCHEMA:	doCreateUserSchema,
   Cmd.ARG_SITE:		doCreateDomainSite,
-  Cmd.ARG_SITEACLS:	doProcessDomainSiteACLs,
+  Cmd.ARG_SITEACL:	doProcessDomainSiteACLs,
   Cmd.ARG_USER:		doCreateUser,
   Cmd.ARG_VAULTHOLD:	doCreateVaultHold,
   Cmd.ARG_VAULTMATTER:	doCreateVaultMatter,
   Cmd.ARG_VERIFY:	doCreateSiteVerification,
   }
 
-MAIN_ADD_CREATE_ALIASES = {
-  Cmd.ARG_ALIAS:	Cmd.ARG_ALIASES,
-  u'aliasdomain':	Cmd.ARG_DOMAIN_ALIAS,
-  u'aliasdomains':	Cmd.ARG_DOMAIN_ALIAS,
-  u'apiproject':	Cmd.ARG_PROJECT,
-  u'class':		Cmd.ARG_COURSE,
+MAIN_COMMANDS_WITH_OBJECTS = {
+  u'add': (Act.ADD, MAIN_ADD_CREATE_FUNCTIONS),
+  u'cancel': (Act.CANCEL, {Cmd.ARG_GUARDIANINVITATION: doCancelGuardianInvitation}),
+  u'close': (Act.CLOSE, {Cmd.ARG_VAULTMATTER: doCloseVaultMatter}),
+  u'create': (Act.CREATE, MAIN_ADD_CREATE_FUNCTIONS),
+  u'delete':
+    (Act.DELETE,
+     {Cmd.ARG_ADMIN:		doDeleteAdmin,
+      Cmd.ARG_ALIAS:		doDeleteAliases,
+      Cmd.ARG_CONTACT:		doDeleteDomainContacts,
+      Cmd.ARG_COURSE:		doDeleteCourse,
+      Cmd.ARG_COURSES:		doDeleteCourses,
+      Cmd.ARG_DOMAIN:		doDeleteDomain,
+      Cmd.ARG_DOMAINALIAS:	doDeleteDomainAlias,
+      Cmd.ARG_DRIVEFILEACL:	doDeleteDriveFileACLs,
+      Cmd.ARG_GROUP:		doDeleteGroups,
+      Cmd.ARG_GUARDIAN: 	doDeleteGuardian,
+      Cmd.ARG_MOBILE:		doDeleteMobileDevices,
+      Cmd.ARG_NOTIFICATION:	doDeleteNotification,
+      Cmd.ARG_ORG:		doDeleteOrg,
+      Cmd.ARG_ORGS:		doDeleteOrgs,
+      Cmd.ARG_PERMISSIONS:	doDeletePermissions,
+      Cmd.ARG_PRINTER:		doDeletePrinters,
+      Cmd.ARG_PROJECT:		doDeleteProjects,
+      Cmd.ARG_RESOLDSUBSCRIPTION:	doDeleteResoldSubscription,
+      Cmd.ARG_RESOURCE:		doDeleteResourceCalendar,
+      Cmd.ARG_RESOURCES:	doDeleteResourceCalendars,
+      Cmd.ARG_SCHEMA:		doDeleteUserSchemas,
+      Cmd.ARG_SITEACL:		doProcessDomainSiteACLs,
+      Cmd.ARG_USER:		doDeleteUser,
+      Cmd.ARG_USERS:		doDeleteUsers,
+      Cmd.ARG_VAULTHOLD:	doDeleteVaultHold,
+      Cmd.ARG_VAULTMATTER:	doDeleteVaultMatter,
+     }
+    ),
+  u'info':
+    (Act.INFO,
+     {Cmd.ARG_ALIAS:		doInfoAliases,
+      Cmd.ARG_CONTACT:		doInfoDomainContacts,
+      Cmd.ARG_COURSE:		doInfoCourse,
+      Cmd.ARG_COURSES:		doInfoCourses,
+      Cmd.ARG_CROS:		doInfoCrOSDevices,
+      Cmd.ARG_CUSTOMER:		doInfoCustomer,
+      Cmd.ARG_DATATRANSFER:	doInfoDataTransfer,
+      Cmd.ARG_DOMAIN:		doInfoDomain,
+      Cmd.ARG_DOMAINALIAS:	doInfoDomainAlias,
+      Cmd.ARG_INSTANCE:		doInfoInstance,
+      Cmd.ARG_GAL:		doInfoGAL,
+      Cmd.ARG_GROUP:		doInfoGroups,
+      Cmd.ARG_MOBILE:		doInfoMobileDevices,
+      Cmd.ARG_NOTIFICATION:	doInfoNotifications,
+      Cmd.ARG_ORG:		doInfoOrg,
+      Cmd.ARG_ORGS:		doInfoOrgs,
+      Cmd.ARG_PRINTER:		doInfoPrinters,
+      Cmd.ARG_RESOLDCUSTOMER:	doInfoResoldCustomer,
+      Cmd.ARG_RESOLDSUBSCRIPTION:	doInfoResoldSubscription,
+      Cmd.ARG_RESOURCE:		doInfoResourceCalendar,
+      Cmd.ARG_RESOURCES:	doInfoResourceCalendars,
+      Cmd.ARG_SCHEMA:		doInfoUserSchemas,
+      Cmd.ARG_SITE:		doInfoDomainSites,
+      Cmd.ARG_SITEACL:		doProcessDomainSiteACLs,
+      Cmd.ARG_TEAMDRIVE:	doInfoTeamDrive,
+      Cmd.ARG_USER:		doInfoUser,
+      Cmd.ARG_USERS:		doInfoUsers,
+      Cmd.ARG_VAULTHOLD:	doInfoVaultHold,
+      Cmd.ARG_VAULTMATTER:	doInfoVaultMatter,
+      Cmd.ARG_VERIFY:		doInfoSiteVerification,
+     }
+    ),
+  u'print':
+    (Act.PRINT,
+     {Cmd.ARG_ADMINROLES:	doPrintAdminRoles,
+      Cmd.ARG_ADMIN:		doPrintAdmins,
+      Cmd.ARG_ALIAS:		doPrintAliases,
+      Cmd.ARG_CONTACT:		doPrintDomainContacts,
+      Cmd.ARG_COURSE:		doPrintCourses,
+      Cmd.ARG_COURSES:		doPrintCourses,
+      Cmd.ARG_COURSEPARTICIPANTS:	doPrintCourseParticipants,
+      Cmd.ARG_CROS:		doPrintCrOSDevices,
+      Cmd.ARG_CROSACTIVITY:	doPrintCrOSActivity,
+      Cmd.ARG_DATATRANSFER:	doPrintDataTransfers,
+      Cmd.ARG_DOMAIN:		doPrintDomains,
+      Cmd.ARG_DOMAINALIAS:	doPrintDomainAliases,
+      Cmd.ARG_DRIVEFILEACL:	doPrintDriveFileACLs,
+      Cmd.ARG_GAL:		doPrintGAL,
+      Cmd.ARG_GROUPMEMBERS:	doPrintGroupMembers,
+      Cmd.ARG_GROUP:		doPrintGroups,
+      Cmd.ARG_GUARDIAN: 	doPrintGuardians,
+      Cmd.ARG_LICENSE:		doPrintLicenses,
+      Cmd.ARG_MOBILE:		doPrintMobileDevices,
+      Cmd.ARG_ORG:		doPrintOrgs,
+      Cmd.ARG_ORGS:		doPrintOrgs,
+      Cmd.ARG_PRINTER:		doPrintPrinters,
+      Cmd.ARG_PRINTJOBS:	doPrintPrintJobs,
+      Cmd.ARG_PRIVILEGES:	doPrintPrivileges,
+      Cmd.ARG_RESOLDSUBSCRIPTION:	doPrintResoldSubscriptions,
+      Cmd.ARG_RESOURCE:		doPrintResourceCalendars,
+      Cmd.ARG_RESOURCES:	doPrintResourceCalendars,
+      Cmd.ARG_SCHEMA:		doPrintUserSchemas,
+      Cmd.ARG_SITE:		doPrintDomainSites,
+      Cmd.ARG_SITEACTIVITY:	doPrintDomainSiteActivity,
+      Cmd.ARG_TEAMDRIVE:	doPrintTeamDrives,
+      Cmd.ARG_TOKEN:		doPrintTokens,
+      Cmd.ARG_TRANSFERAPPS:	doPrintTransferApps,
+      Cmd.ARG_USER:		doPrintUsers,
+      Cmd.ARG_USERS:		doPrintUsers,
+      Cmd.ARG_VAULTHOLD:	doPrintVaultHolds,
+      Cmd.ARG_VAULTMATTER:	doPrintVaultMatters,
+     }
+    ),
+  u'reopen': (Act.REOPEN, {Cmd.ARG_VAULTMATTER: doReopenVaultMatter}),
+  u'show':
+    (Act.SHOW,
+     {Cmd.ARG_ADMINROLES:	doShowAdminRoles,
+      Cmd.ARG_ADMIN:		doShowAdmins,
+      Cmd.ARG_CONTACT:		doShowDomainContacts,
+      Cmd.ARG_DRIVEFILEACL:	doShowDriveFileACLs,
+      Cmd.ARG_GAL:		doShowGAL,
+      Cmd.ARG_GROUPMEMBERS:	doShowGroupMembers,
+      Cmd.ARG_GUARDIAN: 	doShowGuardians,
+      Cmd.ARG_ORGTREE:		doShowOrgTree,
+      Cmd.ARG_PRIVILEGES:	doShowPrivileges,
+      Cmd.ARG_RESOLDSUBSCRIPTION:	doShowResoldSubscriptions,
+      Cmd.ARG_RESOURCE:		doShowResourceCalendars,
+      Cmd.ARG_RESOURCES:	doShowResourceCalendars,
+      Cmd.ARG_SCHEMA:		doShowUserSchemas,
+      Cmd.ARG_SITE:		doShowDomainSites,
+      Cmd.ARG_SITEACL:		doProcessDomainSiteACLs,
+      Cmd.ARG_TEAMDRIVE:	doShowTeamDrives,
+      Cmd.ARG_TEAMDRIVEINFO:	doInfoTeamDrive,
+      Cmd.ARG_TEAMDRIVETHEMES:	doShowTeamDriveThemes,
+      Cmd.ARG_VAULTHOLD:	doShowVaultHolds,
+      Cmd.ARG_VAULTMATTER:	doShowVaultMatters,
+     }
+    ),
+  u'suspend': (Act.SUSPEND, {Cmd.ARG_USER: doSuspendUser, Cmd.ARG_USERS: doSuspendUsers}),
+  u'update':
+    (Act.UPDATE,
+     {Cmd.ARG_ALIAS:		doUpdateAliases,
+      Cmd.ARG_CONTACT:		doUpdateDomainContacts,
+      Cmd.ARG_COURSE:		doUpdateCourse,
+      Cmd.ARG_COURSES:		doUpdateCourses,
+      Cmd.ARG_CROS:		doUpdateCrOSDevices,
+      Cmd.ARG_CUSTOMER:		doUpdateCustomer,
+      Cmd.ARG_DOMAIN:		doUpdateDomain,
+      Cmd.ARG_DRIVEFILEACL:	doUpdateDriveFileACLs,
+      Cmd.ARG_INSTANCE:		doUpdateInstance,
+      Cmd.ARG_GROUP:		doUpdateGroups,
+      Cmd.ARG_MOBILE:		doUpdateMobileDevices,
+      Cmd.ARG_NOTIFICATION:	doUpdateNotification,
+      Cmd.ARG_ORG:		doUpdateOrg,
+      Cmd.ARG_ORGS:		doUpdateOrgs,
+      Cmd.ARG_PRINTER:		doUpdatePrinters,
+      Cmd.ARG_PROJECT:		doUpdateProject,
+      Cmd.ARG_RESOLDCUSTOMER:	doUpdateResoldCustomer,
+      Cmd.ARG_RESOLDSUBSCRIPTION:	doUpdateResoldSubscription,
+      Cmd.ARG_RESOURCE:		doUpdateResourceCalendar,
+      Cmd.ARG_RESOURCES:	doUpdateResourceCalendars,
+      Cmd.ARG_SCHEMA:		doUpdateUserSchemas,
+      Cmd.ARG_SITE:		doUpdateDomainSites,
+      Cmd.ARG_SITEACL:		doProcessDomainSiteACLs,
+      Cmd.ARG_USER:		doUpdateUser,
+      Cmd.ARG_USERS:		doUpdateUsers,
+      Cmd.ARG_VAULTHOLD:	doUpdateVaultHold,
+      Cmd.ARG_VAULTMATTER:	doUpdateVaultMatter,
+      Cmd.ARG_VERIFY:		doUpdateSiteVerification,
+     }
+    ),
+  u'undelete': (Act.UNDELETE, {Cmd.ARG_USER: doUndeleteUser, Cmd.ARG_USERS: doUndeleteUsers, Cmd.ARG_VAULTMATTER: doUndeleteVaultMatter}),
+  u'unsuspend': (Act.UNSUSPEND, {Cmd.ARG_USER: doUnsuspendUser, Cmd.ARG_USERS: doUnsuspendUsers}),
+  }
+
+MAIN_COMMANDS_OBJ_ALIASES = {
+  Cmd.ARG_ADMINS:	Cmd.ARG_ADMIN,
+  Cmd.ARG_ALIASDOMAIN:	Cmd.ARG_DOMAINALIAS,
+  Cmd.ARG_ALIASDOMAINS:	Cmd.ARG_DOMAINALIAS,
+  Cmd.ARG_ALIASES:	Cmd.ARG_ALIAS,
+  Cmd.ARG_APIPROJECT:	Cmd.ARG_PROJECT,
+  Cmd.ARG_CLASS:	Cmd.ARG_COURSE,
+  Cmd.ARG_CLASSES:	Cmd.ARG_COURSES,
+  Cmd.ARG_CLASSPARTICIPANTS:	Cmd.ARG_COURSEPARTICIPANTS,
   Cmd.ARG_CONTACTS:	Cmd.ARG_CONTACT,
-  Cmd.ARG_DOMAIN_ALIASES:	Cmd.ARG_DOMAIN_ALIAS,
+  Cmd.ARG_DOMAINS:	Cmd.ARG_DOMAIN,
+  Cmd.ARG_DOMAINALIASES:	Cmd.ARG_DOMAINALIAS,
   Cmd.ARG_DRIVEFILEACLS:	Cmd.ARG_DRIVEFILEACL,
+  Cmd.ARG_GROUPS:	Cmd.ARG_GROUP,
+  Cmd.ARG_GROUPSMEMBERS:	Cmd.ARG_GROUPMEMBERS,
+  Cmd.ARG_GUARDIANINVITATIONS:	Cmd.ARG_GUARDIANINVITATION,
+  Cmd.ARG_GUARDIANINVITE:	Cmd.ARG_GUARDIAN,
   Cmd.ARG_GUARDIANS:	Cmd.ARG_GUARDIAN,
-  u'guardianinvite':	Cmd.ARG_GUARDIAN,
-  Cmd.ARG_HOLD:		Cmd.ARG_VAULTHOLD,
   Cmd.ARG_HOLDS:	Cmd.ARG_VAULTHOLD,
-  u'inviteguardian':	Cmd.ARG_GUARDIAN,
+  Cmd.ARG_INVITEGUARDIAN:	Cmd.ARG_GUARDIAN,
+  Cmd.ARG_LICENCE:	Cmd.ARG_LICENSE,
+  Cmd.ARG_LICENCES:	Cmd.ARG_LICENSE,
+  Cmd.ARG_LICENSES:	Cmd.ARG_LICENSE,
   Cmd.ARG_MATTER:	Cmd.ARG_VAULTMATTER,
   Cmd.ARG_MATTERS:	Cmd.ARG_VAULTMATTER,
-  u'transfer':		Cmd.ARG_DATA_TRANSFER,
-  u'nickname':		Cmd.ARG_ALIASES,
-  u'nicknames':		Cmd.ARG_ALIASES,
-  u'ou':		Cmd.ARG_ORG,
+  Cmd.ARG_MOBILES:	Cmd.ARG_MOBILE,
+  Cmd.ARG_NICKNAME:	Cmd.ARG_ALIAS,
+  Cmd.ARG_NICKNAMES:	Cmd.ARG_ALIAS,
+  Cmd.ARG_NOTIFICATIONS:	Cmd.ARG_NOTIFICATION,
+  Cmd.ARG_OU:		Cmd.ARG_ORG,
+  Cmd.ARG_OUS:		Cmd.ARG_ORGS,
+  Cmd.ARG_OUTREE:	Cmd.ARG_ORGTREE,
+  Cmd.ARG_PARTICIPANTS:	Cmd.ARG_COURSEPARTICIPANTS,
+  Cmd.ARG_PRINT:	Cmd.ARG_PRINTER,
+  Cmd.ARG_PRINTERS:	Cmd.ARG_PRINTER,
+  Cmd.ARG_PROJECTS:	Cmd.ARG_PROJECT,
   Cmd.ARG_RESELLERCUSTOMERS:	Cmd.ARG_RESOLDCUSTOMER,
   Cmd.ARG_RESELLERSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
   Cmd.ARG_RESOLDCUSTOMERS:	Cmd.ARG_RESOLDCUSTOMER,
   Cmd.ARG_RESOLDSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
+  Cmd.ARG_ROLES:	Cmd.ARG_ADMINROLES,
   Cmd.ARG_SCHEMAS:	Cmd.ARG_SCHEMA,
+  Cmd.ARG_SITEACLS:	Cmd.ARG_SITEACL,
   Cmd.ARG_SITES:	Cmd.ARG_SITE,
-  Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
+  Cmd.ARG_TEAMDRIVES:	Cmd.ARG_TEAMDRIVE,
+  Cmd.ARG_TOKENS:	Cmd.ARG_TOKEN,
+  Cmd.ARG_TRANSFER:	Cmd.ARG_DATATRANSFER,
+  Cmd.ARG_TRANSFERS:	Cmd.ARG_DATATRANSFER,
   Cmd.ARG_VAULTHOLDS:	Cmd.ARG_VAULTHOLD,
   Cmd.ARG_VAULTMATTERS:	Cmd.ARG_VAULTMATTER,
-  u'verification':	Cmd.ARG_VERIFY,
-  }
-
-MAIN_COMMANDS_WITH_OBJECTS = {
-  u'add':
-    {CMD_ACTION: Act.ADD,
-     CMD_FUNCTION:	MAIN_ADD_CREATE_FUNCTIONS,
-     CMD_OBJ_ALIASES:	MAIN_ADD_CREATE_ALIASES,
-    },
-  u'cancel':
-    {CMD_ACTION: Act.CANCEL,
-     CMD_FUNCTION:
-       {Cmd.ARG_GUARDIAN_INVITATION: doCancelGuardianInvitation,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_GUARDIAN_INVITATIONS:	Cmd.ARG_GUARDIAN_INVITATION,
-       },
-    },
-  u'close':
-    {CMD_ACTION: Act.CLOSE,
-     CMD_FUNCTION:
-       {Cmd.ARG_VAULTMATTER:	doCloseVaultMatter,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_MATTER:		Cmd.ARG_VAULTMATTER,
-        Cmd.ARG_MATTERS:	Cmd.ARG_VAULTMATTER,
-        Cmd.ARG_VAULTMATTERS:	Cmd.ARG_VAULTMATTER,
-       },
-    },
-  u'create':
-    {CMD_ACTION: Act.CREATE,
-     CMD_FUNCTION:	MAIN_ADD_CREATE_FUNCTIONS,
-     CMD_OBJ_ALIASES:	MAIN_ADD_CREATE_ALIASES,
-    },
-  u'delete':
-    {CMD_ACTION: Act.DELETE,
-     CMD_FUNCTION:
-       {Cmd.ARG_ADMIN:		doDeleteAdmin,
-        Cmd.ARG_ALIASES:	doDeleteAliases,
-        Cmd.ARG_CONTACTS:	doDeleteDomainContacts,
-        Cmd.ARG_COURSE:		doDeleteCourse,
-        Cmd.ARG_COURSES:	doDeleteCourses,
-        Cmd.ARG_DOMAIN:		doDeleteDomain,
-        Cmd.ARG_DOMAIN_ALIAS:	doDeleteDomainAlias,
-        Cmd.ARG_DRIVEFILEACLS:	doDeleteDriveFileACLs,
-        Cmd.ARG_GROUPS:		doDeleteGroups,
-        Cmd.ARG_GUARDIAN: 	doDeleteGuardian,
-        Cmd.ARG_MOBILES:	doDeleteMobileDevices,
-        Cmd.ARG_NOTIFICATION:	doDeleteNotification,
-        Cmd.ARG_ORG:		doDeleteOrg,
-        Cmd.ARG_ORGS:		doDeleteOrgs,
-        Cmd.ARG_PERMISSIONS:	doDeletePermissions,
-        Cmd.ARG_PRINTERS:	doDeletePrinters,
-        Cmd.ARG_PROJECTS:	doDeleteProjects,
-        Cmd.ARG_RESOLDSUBSCRIPTION:	doDeleteResoldSubscription,
-        Cmd.ARG_RESOURCE:	doDeleteResourceCalendar,
-        Cmd.ARG_RESOURCES:	doDeleteResourceCalendars,
-        Cmd.ARG_SCHEMAS:	doDeleteUserSchemas,
-        Cmd.ARG_SITEACLS:	doProcessDomainSiteACLs,
-        Cmd.ARG_USER:		doDeleteUser,
-        Cmd.ARG_USERS:		doDeleteUsers,
-        Cmd.ARG_VAULTHOLD:	doDeleteVaultHold,
-        Cmd.ARG_VAULTMATTER:	doDeleteVaultMatter,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_ALIAS:		Cmd.ARG_ALIASES,
-        u'aliasdomain':		Cmd.ARG_DOMAIN_ALIAS,
-        u'aliasdomains':	Cmd.ARG_DOMAIN_ALIAS,
-        u'class':		Cmd.ARG_COURSE,
-        Cmd.ARG_CONTACT:	Cmd.ARG_CONTACTS,
-        Cmd.ARG_DOMAIN_ALIASES:	Cmd.ARG_DOMAIN_ALIAS,
-        Cmd.ARG_DRIVEFILEACL:	Cmd.ARG_DRIVEFILEACLS,
-        Cmd.ARG_GROUP:		Cmd.ARG_GROUPS,
-        Cmd.ARG_GUARDIANS:	Cmd.ARG_GUARDIAN,
-        Cmd.ARG_HOLD:		Cmd.ARG_VAULTHOLD,
-        Cmd.ARG_HOLDS:		Cmd.ARG_VAULTHOLD,
-        Cmd.ARG_MATTER:		Cmd.ARG_VAULTMATTER,
-        Cmd.ARG_MATTERS:	Cmd.ARG_VAULTMATTER,
-        Cmd.ARG_MOBILE:		Cmd.ARG_MOBILES,
-        u'nickname':		Cmd.ARG_ALIASES,
-        u'nicknames':		Cmd.ARG_ALIASES,
-        u'ou':			Cmd.ARG_ORG,
-        u'ous':			Cmd.ARG_ORGS,
-        u'print':		Cmd.ARG_PRINTERS,
-        Cmd.ARG_PRINTER:	Cmd.ARG_PRINTERS,
-        Cmd.ARG_PROJECT:	Cmd.ARG_PROJECTS,
-        u'notifications':	Cmd.ARG_NOTIFICATION,
-        Cmd.ARG_RESELLERSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
-        Cmd.ARG_RESOLDSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
-        Cmd.ARG_SCHEMA:		Cmd.ARG_SCHEMAS,
-        Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
-        Cmd.ARG_VAULTHOLDS:	Cmd.ARG_VAULTHOLD,
-        Cmd.ARG_VAULTMATTERS:	Cmd.ARG_VAULTMATTER,
-       },
-    },
-  u'info':
-    {CMD_ACTION: Act.INFO,
-     CMD_FUNCTION:
-       {Cmd.ARG_ALIASES:	doInfoAliases,
-        Cmd.ARG_CONTACTS:	doInfoDomainContacts,
-        Cmd.ARG_COURSE:		doInfoCourse,
-        Cmd.ARG_COURSES:	doInfoCourses,
-        Cmd.ARG_CROSES:		doInfoCrOSDevices,
-        Cmd.ARG_CUSTOMER:	doInfoCustomer,
-        Cmd.ARG_DATA_TRANSFER:	doInfoDataTransfer,
-        Cmd.ARG_DOMAIN:		doInfoDomain,
-        Cmd.ARG_DOMAIN_ALIAS:	doInfoDomainAlias,
-        Cmd.ARG_INSTANCE:	doInfoInstance,
-        Cmd.ARG_GAL:		doInfoGAL,
-        Cmd.ARG_GROUPS:		doInfoGroups,
-        Cmd.ARG_MOBILES:	doInfoMobileDevices,
-        Cmd.ARG_NOTIFICATION:	doInfoNotifications,
-        Cmd.ARG_ORG:		doInfoOrg,
-        Cmd.ARG_ORGS:		doInfoOrgs,
-        Cmd.ARG_PRINTERS:	doInfoPrinters,
-        Cmd.ARG_RESOLDCUSTOMER:	doInfoResoldCustomer,
-        Cmd.ARG_RESOLDSUBSCRIPTION:	doInfoResoldSubscription,
-        Cmd.ARG_RESOURCE:	doInfoResourceCalendar,
-        Cmd.ARG_RESOURCES:	doInfoResourceCalendars,
-        Cmd.ARG_SCHEMAS:	doInfoUserSchemas,
-        Cmd.ARG_SITES:		doInfoDomainSites,
-        Cmd.ARG_SITEACLS:	doProcessDomainSiteACLs,
-        Cmd.ARG_TEAMDRIVE:	doInfoTeamDrive,
-        Cmd.ARG_USER:		doInfoUser,
-        Cmd.ARG_USERS:		doInfoUsers,
-        Cmd.ARG_VAULTHOLD:	doInfoVaultHold,
-        Cmd.ARG_VAULTMATTER:	doInfoVaultMatter,
-        Cmd.ARG_VERIFY:		doInfoSiteVerification,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_ALIAS:		Cmd.ARG_ALIASES,
-        u'aliasdomain':		Cmd.ARG_DOMAIN_ALIAS,
-        u'aliasdomains':	Cmd.ARG_DOMAIN_ALIAS,
-        u'class':		Cmd.ARG_COURSE,
-        Cmd.ARG_CONTACT:	Cmd.ARG_CONTACTS,
-        Cmd.ARG_CROS:		Cmd.ARG_CROSES,
-        Cmd.ARG_DOMAIN_ALIASES:	Cmd.ARG_DOMAIN_ALIAS,
-        Cmd.ARG_GROUP:		Cmd.ARG_GROUPS,
-        Cmd.ARG_HOLD:		Cmd.ARG_VAULTHOLD,
-        Cmd.ARG_HOLDS:		Cmd.ARG_VAULTHOLD,
-        Cmd.ARG_MATTER:		Cmd.ARG_VAULTMATTER,
-        Cmd.ARG_MATTERS:	Cmd.ARG_VAULTMATTER,
-        Cmd.ARG_MOBILE:		Cmd.ARG_MOBILES,
-        u'nickname':		Cmd.ARG_ALIASES,
-        u'nicknames':		Cmd.ARG_ALIASES,
-        u'notifications':	Cmd.ARG_NOTIFICATION,
-        u'ou':			Cmd.ARG_ORG,
-        u'ous':			Cmd.ARG_ORGS,
-        u'print':		Cmd.ARG_PRINTERS,
-        Cmd.ARG_PRINTER:	Cmd.ARG_PRINTERS,
-        Cmd.ARG_RESELLERCUSTOMERS:	Cmd.ARG_RESOLDCUSTOMER,
-        Cmd.ARG_RESELLERSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
-        Cmd.ARG_RESOLDCUSTOMERS:	Cmd.ARG_RESOLDCUSTOMER,
-        Cmd.ARG_RESOLDSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
-        Cmd.ARG_SCHEMA:		Cmd.ARG_SCHEMAS,
-        Cmd.ARG_SITE:		Cmd.ARG_SITES,
-        Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
-        Cmd.ARG_TEAMDRIVES:	Cmd.ARG_TEAMDRIVE,
-        u'transfer':		Cmd.ARG_DATA_TRANSFER,
-        Cmd.ARG_VAULTHOLDS:	Cmd.ARG_VAULTHOLD,
-        Cmd.ARG_VAULTMATTERS:	Cmd.ARG_VAULTMATTER,
-        u'verification':	Cmd.ARG_VERIFY,
-       },
-    },
-  u'print':
-    {CMD_ACTION: Act.PRINT,
-     CMD_FUNCTION:
-       {Cmd.ARG_ADMINROLES:	doPrintAdminRoles,
-        Cmd.ARG_ADMINS:		doPrintAdmins,
-        Cmd.ARG_ALIASES:	doPrintAliases,
-        Cmd.ARG_CONTACTS:	doPrintDomainContacts,
-        Cmd.ARG_COURSES:	doPrintCourses,
-        Cmd.ARG_COURSE_PARTICIPANTS:	doPrintCourseParticipants,
-        Cmd.ARG_CROS:		doPrintCrOSDevices,
-        Cmd.ARG_CROS_ACTIVITY:	doPrintCrOSActivity,
-        Cmd.ARG_DATA_TRANSFERS:	doPrintDataTransfers,
-        Cmd.ARG_DOMAINS:	doPrintDomains,
-        Cmd.ARG_DOMAIN_ALIASES:	doPrintDomainAliases,
-        Cmd.ARG_DRIVEFILEACLS:	doPrintDriveFileACLs,
-        Cmd.ARG_GAL:		doPrintGAL,
-        Cmd.ARG_GROUP_MEMBERS:	doPrintGroupMembers,
-        Cmd.ARG_GROUPS:		doPrintGroups,
-        Cmd.ARG_GUARDIANS: 	doPrintGuardians,
-        Cmd.ARG_LICENSES:	doPrintLicenses,
-        Cmd.ARG_MOBILE:		doPrintMobileDevices,
-        Cmd.ARG_ORGS:		doPrintOrgs,
-        Cmd.ARG_PRINTERS:	doPrintPrinters,
-        Cmd.ARG_PRINTJOBS:	doPrintPrintJobs,
-        Cmd.ARG_PRIVILEGES:	doPrintPrivileges,
-        Cmd.ARG_ORGS:		doPrintOrgs,
-        Cmd.ARG_RESOLDSUBSCRIPTIONS:	doPrintResoldSubscriptions,
-        Cmd.ARG_RESOURCES:	doPrintResourceCalendars,
-        Cmd.ARG_SCHEMAS:	doPrintUserSchemas,
-        Cmd.ARG_SITES:		doPrintDomainSites,
-        Cmd.ARG_SITEACTIVITY:	doPrintDomainSiteActivity,
-        Cmd.ARG_TEAMDRIVES:	doPrintTeamDrives,
-        Cmd.ARG_TOKENS:		doPrintTokens,
-        Cmd.ARG_TRANSFERAPPS:	doPrintTransferApps,
-        Cmd.ARG_USERS:		doPrintUsers,
-        Cmd.ARG_VAULTHOLDS:	doPrintVaultHolds,
-        Cmd.ARG_VAULTMATTERS:	doPrintVaultMatters,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_ALIAS:		Cmd.ARG_ALIASES,
-        u'aliasdomain':		Cmd.ARG_DOMAIN_ALIASES,
-        u'aliasdomains':	Cmd.ARG_DOMAIN_ALIASES,
-        u'classes':		Cmd.ARG_COURSES,
-        Cmd.ARG_CONTACT:	Cmd.ARG_CONTACTS,
-        u'transfers':		Cmd.ARG_DATA_TRANSFERS,
-        u'classparticipants':	Cmd.ARG_COURSE_PARTICIPANTS,
-        u'class-participants':	Cmd.ARG_COURSE_PARTICIPANTS,
-        u'courseparticipants':	Cmd.ARG_COURSE_PARTICIPANTS,
-        Cmd.ARG_DOMAIN_ALIAS:	Cmd.ARG_DOMAIN_ALIASES,
-        Cmd.ARG_DRIVEFILEACL:	Cmd.ARG_DRIVEFILEACLS,
-        Cmd.ARG_GROUP:		Cmd.ARG_GROUPS,
-        Cmd.ARG_GROUPMEMBERS:	Cmd.ARG_GROUP_MEMBERS,
-        Cmd.ARG_GROUPSMEMBERS:	Cmd.ARG_GROUP_MEMBERS,
-        Cmd.ARG_GROUPS_MEMBERS:	Cmd.ARG_GROUP_MEMBERS,
-        Cmd.ARG_GUARDIAN:	Cmd.ARG_GUARDIANS,
-        Cmd.ARG_HOLD:		Cmd.ARG_VAULTHOLDS,
-        Cmd.ARG_HOLDS:		Cmd.ARG_VAULTHOLDS,
-        Cmd.ARG_LICENSE:	Cmd.ARG_LICENSES,
-        Cmd.ARG_LICENCE:	Cmd.ARG_LICENSES,
-        Cmd.ARG_LICENCES:	Cmd.ARG_LICENSES,
-        Cmd.ARG_MATTER:		Cmd.ARG_VAULTMATTERS,
-        Cmd.ARG_MATTERS:	Cmd.ARG_VAULTMATTERS,
-        u'nicknames':		Cmd.ARG_ALIASES,
-        u'ous':			Cmd.ARG_ORGS,
-        Cmd.ARG_PRINTER:	Cmd.ARG_PRINTERS,
-        Cmd.ARG_RESELLERSUBSCRIPTION:	Cmd.ARG_RESOLDSUBSCRIPTIONS,
-        Cmd.ARG_RESOLDSUBSCRIPTION:	Cmd.ARG_RESOLDSUBSCRIPTIONS,
-        Cmd.ARG_RESOURCE:	Cmd.ARG_RESOURCES,
-        Cmd.ARG_ROLES:		Cmd.ARG_ADMINROLES,
-        Cmd.ARG_SCHEMA:		Cmd.ARG_SCHEMAS,
-        Cmd.ARG_SITE:		Cmd.ARG_SITES,
-        Cmd.ARG_TEAMDRIVE:	Cmd.ARG_TEAMDRIVES,
-        Cmd.ARG_TOKEN:		Cmd.ARG_TOKENS,
-        Cmd.ARG_VAULTHOLD:	Cmd.ARG_VAULTHOLDS,
-        Cmd.ARG_VAULTMATTER:	Cmd.ARG_VAULTMATTERS,
-       },
-    },
-  u'reopen':
-    {CMD_ACTION: Act.REOPEN,
-     CMD_FUNCTION:
-       {Cmd.ARG_VAULTMATTER:	doReopenVaultMatter,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_MATTER:		Cmd.ARG_VAULTMATTER,
-        Cmd.ARG_MATTERS:	Cmd.ARG_VAULTMATTER,
-        Cmd.ARG_VAULTMATTERS:	Cmd.ARG_VAULTMATTER,
-       },
-    },
-  u'show':
-    {CMD_ACTION: Act.SHOW,
-     CMD_FUNCTION:
-       {Cmd.ARG_ADMINROLES:	doShowAdminRoles,
-        Cmd.ARG_ADMINS:		doShowAdmins,
-        Cmd.ARG_CONTACTS:	doShowDomainContacts,
-        Cmd.ARG_DRIVEFILEACLS:	doShowDriveFileACLs,
-        Cmd.ARG_GAL:		doShowGAL,
-        Cmd.ARG_GROUP_MEMBERS:	doShowGroupMembers,
-        Cmd.ARG_GUARDIANS: 	doShowGuardians,
-        Cmd.ARG_ORGTREE:	doShowOrgTree,
-        Cmd.ARG_PRIVILEGES:	doShowPrivileges,
-        Cmd.ARG_RESOLDSUBSCRIPTIONS:	doShowResoldSubscriptions,
-        Cmd.ARG_RESOURCES:	doShowResourceCalendars,
-        Cmd.ARG_SCHEMAS:	doShowUserSchemas,
-        Cmd.ARG_SITES:		doShowDomainSites,
-        Cmd.ARG_SITEACLS:	doProcessDomainSiteACLs,
-        Cmd.ARG_TEAMDRIVES:	doShowTeamDrives,
-        Cmd.ARG_TEAMDRIVEINFO:	doInfoTeamDrive,
-        Cmd.ARG_TEAMDRIVETHEMES:	doShowTeamDriveThemes,
-        Cmd.ARG_VAULTHOLDS:	doShowVaultHolds,
-        Cmd.ARG_VAULTMATTERS:	doShowVaultMatters,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_CONTACT:	Cmd.ARG_CONTACTS,
-        Cmd.ARG_DRIVEFILEACL:	Cmd.ARG_DRIVEFILEACLS,
-        Cmd.ARG_GROUPMEMBERS:	Cmd.ARG_GROUP_MEMBERS,
-        Cmd.ARG_GROUPSMEMBERS:	Cmd.ARG_GROUP_MEMBERS,
-        Cmd.ARG_GROUPS_MEMBERS:	Cmd.ARG_GROUP_MEMBERS,
-        Cmd.ARG_GUARDIAN:	Cmd.ARG_GUARDIANS,
-        Cmd.ARG_HOLD:		Cmd.ARG_VAULTHOLDS,
-        Cmd.ARG_HOLDS:		Cmd.ARG_VAULTHOLDS,
-        Cmd.ARG_MATTER:		Cmd.ARG_VAULTMATTERS,
-        Cmd.ARG_MATTERS:	Cmd.ARG_VAULTMATTERS,
-        u'outree':		Cmd.ARG_ORGTREE,
-        Cmd.ARG_RESELLERSUBSCRIPTION:	Cmd.ARG_RESOLDSUBSCRIPTIONS,
-        Cmd.ARG_RESOLDSUBSCRIPTION:	Cmd.ARG_RESOLDSUBSCRIPTIONS,
-        Cmd.ARG_RESOURCE:	Cmd.ARG_RESOURCES,
-        Cmd.ARG_ROLES:		Cmd.ARG_ADMINROLES,
-        Cmd.ARG_SCHEMA:		Cmd.ARG_SCHEMAS,
-        Cmd.ARG_SITE:		Cmd.ARG_SITES,
-        Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
-        Cmd.ARG_TEAMDRIVE:	Cmd.ARG_TEAMDRIVES,
-        Cmd.ARG_VAULTHOLD:	Cmd.ARG_VAULTHOLDS,
-        Cmd.ARG_VAULTMATTER:	Cmd.ARG_VAULTMATTERS,
-       },
-    },
-  u'suspend':
-    {CMD_ACTION: Act.SUSPEND,
-     CMD_FUNCTION:
-       {Cmd.ARG_USER:		doSuspendUser,
-        Cmd.ARG_USERS:		doSuspendUsers,
-       },
-     CMD_OBJ_ALIASES:		{},
-    },
-  u'update':
-    {CMD_ACTION: Act.UPDATE,
-     CMD_FUNCTION:
-       {Cmd.ARG_ALIASES:	doUpdateAliases,
-        Cmd.ARG_CONTACTS:	doUpdateDomainContacts,
-        Cmd.ARG_COURSE:		doUpdateCourse,
-        Cmd.ARG_COURSES:	doUpdateCourses,
-        Cmd.ARG_CROSES:		doUpdateCrOSDevices,
-        Cmd.ARG_CUSTOMER:	doUpdateCustomer,
-        Cmd.ARG_DOMAIN:		doUpdateDomain,
-        Cmd.ARG_DRIVEFILEACLS:	doUpdateDriveFileACLs,
-        Cmd.ARG_INSTANCE:	doUpdateInstance,
-        Cmd.ARG_GROUPS:		doUpdateGroups,
-        Cmd.ARG_MOBILES:	doUpdateMobileDevices,
-        Cmd.ARG_NOTIFICATION:	doUpdateNotification,
-        Cmd.ARG_ORG:		doUpdateOrg,
-        Cmd.ARG_ORGS:		doUpdateOrgs,
-        Cmd.ARG_PRINTERS:	doUpdatePrinters,
-        Cmd.ARG_PROJECT:	doUpdateProject,
-        Cmd.ARG_RESOLDCUSTOMER:	doUpdateResoldCustomer,
-        Cmd.ARG_RESOLDSUBSCRIPTION:	doUpdateResoldSubscription,
-        Cmd.ARG_RESOURCE:	doUpdateResourceCalendar,
-        Cmd.ARG_RESOURCES:	doUpdateResourceCalendars,
-        Cmd.ARG_SCHEMAS:	doUpdateUserSchemas,
-        Cmd.ARG_SITES:		doUpdateDomainSites,
-        Cmd.ARG_SITEACLS:	doProcessDomainSiteACLs,
-        Cmd.ARG_USER:		doUpdateUser,
-        Cmd.ARG_USERS:		doUpdateUsers,
-        Cmd.ARG_VAULTHOLD:	doUpdateVaultHold,
-        Cmd.ARG_VAULTMATTER:	doUpdateVaultMatter,
-        Cmd.ARG_VERIFY:		doUpdateSiteVerification,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_ALIAS:		Cmd.ARG_ALIASES,
-        u'class':		Cmd.ARG_COURSE,
-        Cmd.ARG_CONTACT:	Cmd.ARG_CONTACTS,
-        Cmd.ARG_CROS:		Cmd.ARG_CROSES,
-        Cmd.ARG_DRIVEFILEACL:	Cmd.ARG_DRIVEFILEACLS,
-        Cmd.ARG_GROUP:		Cmd.ARG_GROUPS,
-        Cmd.ARG_HOLD:		Cmd.ARG_VAULTHOLD,
-        Cmd.ARG_HOLDS:		Cmd.ARG_VAULTHOLD,
-        Cmd.ARG_MATTER:		Cmd.ARG_VAULTMATTER,
-        Cmd.ARG_MATTERS:	Cmd.ARG_VAULTMATTER,
-        Cmd.ARG_MOBILE:		Cmd.ARG_MOBILES,
-        u'nickname':		Cmd.ARG_ALIASES,
-        u'nicknames':		Cmd.ARG_ALIASES,
-        u'notifications':	Cmd.ARG_NOTIFICATION,
-        u'ou':			Cmd.ARG_ORG,
-        u'ous':			Cmd.ARG_ORGS,
-        u'print':		Cmd.ARG_PRINTERS,
-        Cmd.ARG_PRINTER:	Cmd.ARG_PRINTERS,
-        Cmd.ARG_RESELLERCUSTOMERS:	Cmd.ARG_RESOLDCUSTOMER,
-        Cmd.ARG_RESELLERSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
-        Cmd.ARG_RESOLDCUSTOMERS:	Cmd.ARG_RESOLDCUSTOMER,
-        Cmd.ARG_RESOLDSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
-        Cmd.ARG_SCHEMA:		Cmd.ARG_SCHEMAS,
-        Cmd.ARG_SITE:		Cmd.ARG_SITES,
-        Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
-        Cmd.ARG_VAULTHOLDS:	Cmd.ARG_VAULTHOLD,
-        Cmd.ARG_VAULTMATTERS:	Cmd.ARG_VAULTMATTER,
-        u'verification':	Cmd.ARG_VERIFY,
-       },
-    },
-  u'undelete':
-    {CMD_ACTION: Act.UNDELETE,
-     CMD_FUNCTION:
-       {Cmd.ARG_USER:		doUndeleteUser,
-        Cmd.ARG_USERS:		doUndeleteUsers,
-        Cmd.ARG_VAULTMATTER:	doUndeleteVaultMatter,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_MATTER:		Cmd.ARG_VAULTMATTER,
-        Cmd.ARG_MATTERS:	Cmd.ARG_VAULTMATTER,
-        Cmd.ARG_VAULTMATTERS:	Cmd.ARG_VAULTMATTER,
-       },
-    },
-  u'unsuspend':
-    {CMD_ACTION: Act.UNSUSPEND,
-     CMD_FUNCTION:
-       {Cmd.ARG_USER:		doUnsuspendUser,
-        Cmd.ARG_USERS:		doUnsuspendUsers,
-       },
-     CMD_OBJ_ALIASES:		{},
-    },
+  Cmd.ARG_VERIFICATION:	Cmd.ARG_VERIFY,
   }
 
 # Oauth command sub-commands
 OAUTH2_SUBCOMMANDS = {
-  u'create':	{CMD_ACTION: Act.CREATE, CMD_FUNCTION: doOAuthRequest},
-  u'delete':	{CMD_ACTION: Act.DELETE, CMD_FUNCTION: doOAuthDelete},
-  u'export':	{CMD_ACTION: Act.EXPORT, CMD_FUNCTION: doOAuthExport},
-  u'import':	{CMD_ACTION: Act.IMPORT, CMD_FUNCTION: doOAuthImport},
-  u'info':	{CMD_ACTION: Act.INFO, CMD_FUNCTION: doOAuthInfo},
+  u'create': (Act.CREATE, doOAuthRequest),
+  u'delete': (Act.DELETE, doOAuthDelete),
+  u'export': (Act.EXPORT, doOAuthExport),
+  u'import': (Act.IMPORT, doOAuthImport),
+  u'info': (Act.INFO, doOAuthInfo),
   }
 
 # Oauth sub-command aliases
@@ -29776,22 +29691,22 @@ def processOauthCommands():
 
 # Audit command sub-commands
 AUDIT_SUBCOMMANDS = {
-  u'uploadkey': {CMD_ACTION: Act.UPLOAD, CMD_FUNCTION: doUploadAuditKey},
+  u'uploadkey': (Act.UPLOAD, doUploadAuditKey),
   }
 
 # Audit command sub-commands with objects
 AUDIT_SUBCOMMANDS_WITH_OBJECTS = {
   u'export':
-    {u'request':{CMD_ACTION: Act.SUBMIT, CMD_FUNCTION: doSubmitExportRequest},
-     u'delete':	{CMD_ACTION: Act.DELETE, CMD_FUNCTION: doDeleteExportRequest},
-     u'download':	{CMD_ACTION: Act.DOWNLOAD, CMD_FUNCTION: doDownloadExportRequest},
-     u'status':	{CMD_ACTION: Act.LIST, CMD_FUNCTION: doStatusExportRequests},
-     u'watch':	{CMD_ACTION: Act.WATCH, CMD_FUNCTION: doWatchExportRequest},
+    {u'request': (Act.SUBMIT, doSubmitExportRequest),
+     u'delete': (Act.DELETE, doDeleteExportRequest),
+     u'download': (Act.DOWNLOAD, doDownloadExportRequest),
+     u'status': (Act.LIST, doStatusExportRequests),
+     u'watch': (Act.WATCH, doWatchExportRequest),
     },
   u'monitor':
-    {u'create':	{CMD_ACTION: Act.CREATE, CMD_FUNCTION: doCreateMonitor},
-     u'delete':	{CMD_ACTION: Act.DELETE, CMD_FUNCTION: doDeleteMonitor},
-     u'list':	{CMD_ACTION: Act.LIST, CMD_FUNCTION: doShowMonitors},
+    {u'create': (Act.CREATE, doCreateMonitor),
+     u'delete': (Act.DELETE, doDeleteMonitor),
+     u'list': (Act.LIST, doShowMonitors),
     },
   }
 
@@ -29807,17 +29722,17 @@ def processAuditCommands():
 
 # Calendar command sub-commands
 CALENDAR_SUBCOMMANDS = {
-  u'showacl':	{CMD_ACTION: Act.SHOW, CMD_FUNCTION: doCalendarsShowACLs},
-  u'addevent':	{CMD_ACTION: Act.ADD, CMD_FUNCTION: doCalendarsCreateEvent},
-  u'deleteevent':	{CMD_ACTION: Act.DELETE, CMD_FUNCTION: doCalendarsDeleteEvents},
-  u'wipe':	{CMD_ACTION: Act.WIPE, CMD_FUNCTION: doCalendarsWipeEvents},
+  u'showacl': (Act.SHOW, doCalendarsShowACLs),
+  u'addevent': (Act.ADD, doCalendarsCreateEvent),
+  u'deleteevent': (Act.DELETE, doCalendarsDeleteEvents),
+  u'wipe': (Act.WIPE, doCalendarsWipeEvents),
   }
 
 CALENDAR_OLDACL_SUBCOMMANDS = {
-  u'add':	{CMD_ACTION: Act.ADD, CMD_FUNCTION: doCalendarsCreateACL},
-  u'create':	{CMD_ACTION: Act.CREATE, CMD_FUNCTION: doCalendarsCreateACL},
-  u'delete':	{CMD_ACTION: Act.DELETE, CMD_FUNCTION: doCalendarsDeleteACL},
-  u'update':	{CMD_ACTION: Act.UPDATE, CMD_FUNCTION: doCalendarsUpdateACL},
+  u'add': (Act.ADD, doCalendarsCreateACL),
+  u'create': (Act.CREATE, doCalendarsCreateACL),
+  u'delete': (Act.DELETE, doCalendarsDeleteACL),
+  u'update': (Act.UPDATE, doCalendarsUpdateACL),
   }
 
 # Calendar sub-command aliases
@@ -29826,96 +29741,24 @@ CALENDAR_OLDACL_SUBCOMMAND_ALIASES = {
   }
 
 # Calendars command sub-commands with objects
-CALENDARS_ADD_CREATE_FUNCTIONS = {
-  Cmd.ARG_CALENDARACLS:	doCalendarsCreateACLs,
-  Cmd.ARG_EVENTS:	doCalendarsCreateEvent,
+CALENDARS_SUBCOMMANDS_WITH_OBJECTS = {
+  u'add': (Act.ADD, {Cmd.ARG_CALENDARACL: doCalendarsCreateACLs, Cmd.ARG_EVENT: doCalendarsCreateEvent}),
+  u'create': (Act.CREATE, {Cmd.ARG_CALENDARACL: doCalendarsCreateACLs, Cmd.ARG_EVENT: doCalendarsCreateEvent}),
+  u'import': (Act.IMPORT, {Cmd.ARG_EVENT: doCalendarsImportEvent}),
+  u'update': (Act.UPDATE, {Cmd.ARG_CALENDARACL: doCalendarsUpdateACLs, Cmd.ARG_EVENT: doCalendarsUpdateEvents}),
+  u'delete': (Act.DELETE, {Cmd.ARG_CALENDARACL: doCalendarsDeleteACLs, Cmd.ARG_EVENT: doCalendarsDeleteEvents}),
+  u'info': (Act.INFO, {Cmd.ARG_CALENDARACL: doCalendarsInfoACLs, Cmd.ARG_EVENT: doCalendarsInfoEvents}),
+  u'move': (Act.MOVE, {Cmd.ARG_EVENT: doCalendarsMoveEvents}),
+  u'print': (Act.PRINT, {Cmd.ARG_CALENDARACL: doCalendarsPrintACLs, Cmd.ARG_EVENT: doCalendarsPrintEvents}),
+  u'show': (Act.SHOW, {Cmd.ARG_CALENDARACL: doCalendarsShowACLs, Cmd.ARG_EVENT: doCalendarsShowEvents}),
+  u'wipe': (Act.WIPE, {Cmd.ARG_EVENT: doCalendarsWipeEvents}),
   }
 
 CALENDARS_SUBCOMMANDS_OBJECT_ALIASES = {
-  Cmd.ARG_ACL:		Cmd.ARG_CALENDARACLS,
-  Cmd.ARG_ACLS:		Cmd.ARG_CALENDARACLS,
-  Cmd.ARG_CALENDARACL:	Cmd.ARG_CALENDARACLS,
-  Cmd.ARG_EVENT:	Cmd.ARG_EVENTS,
-  }
-
-CALENDARS_SUBCOMMANDS_WITH_OBJECTS = {
-  u'add':
-    {CMD_ACTION: Act.ADD,
-     CMD_FUNCTION:	CALENDARS_ADD_CREATE_FUNCTIONS,
-     CMD_OBJ_ALIASES:	CALENDARS_SUBCOMMANDS_OBJECT_ALIASES,
-    },
-  u'create':
-    {CMD_ACTION: Act.CREATE,
-     CMD_FUNCTION:	CALENDARS_ADD_CREATE_FUNCTIONS,
-     CMD_OBJ_ALIASES:	CALENDARS_SUBCOMMANDS_OBJECT_ALIASES,
-    },
-  u'import':
-    {CMD_ACTION: Act.IMPORT,
-     CMD_FUNCTION:
-       {Cmd.ARG_EVENT:	doCalendarsImportEvent,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_EVENTS:	Cmd.ARG_EVENT,
-       },
-    },
-  u'update':
-    {CMD_ACTION: Act.UPDATE,
-     CMD_FUNCTION:
-       {Cmd.ARG_CALENDARACLS:	doCalendarsUpdateACLs,
-        Cmd.ARG_EVENTS:	doCalendarsUpdateEvents,
-       },
-     CMD_OBJ_ALIASES:	CALENDARS_SUBCOMMANDS_OBJECT_ALIASES,
-    },
-  u'delete':
-    {CMD_ACTION: Act.DELETE,
-     CMD_FUNCTION:
-       {Cmd.ARG_CALENDARACLS:	doCalendarsDeleteACLs,
-        Cmd.ARG_EVENTS:	doCalendarsDeleteEvents,
-       },
-     CMD_OBJ_ALIASES:	CALENDARS_SUBCOMMANDS_OBJECT_ALIASES,
-    },
-  u'info':
-    {CMD_ACTION: Act.INFO,
-     CMD_FUNCTION:
-       {Cmd.ARG_CALENDARACLS:	doCalendarsInfoACLs,
-        Cmd.ARG_EVENTS:	doCalendarsInfoEvents,
-       },
-     CMD_OBJ_ALIASES:	CALENDARS_SUBCOMMANDS_OBJECT_ALIASES,
-    },
-  u'move':
-    {CMD_ACTION: Act.MOVE,
-     CMD_FUNCTION:
-       {Cmd.ARG_EVENTS:	doCalendarsMoveEvents,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_EVENT:	Cmd.ARG_EVENTS,
-       },
-    },
-  u'print':
-    {CMD_ACTION: Act.PRINT,
-     CMD_FUNCTION:
-       {Cmd.ARG_CALENDARACLS:	doCalendarsPrintACLs,
-        Cmd.ARG_EVENTS:	doCalendarsPrintEvents,
-       },
-     CMD_OBJ_ALIASES:	CALENDARS_SUBCOMMANDS_OBJECT_ALIASES,
-    },
-  u'show':
-    {CMD_ACTION: Act.SHOW,
-     CMD_FUNCTION:
-       {Cmd.ARG_CALENDARACLS:	doCalendarsShowACLs,
-        Cmd.ARG_EVENTS:	doCalendarsShowEvents,
-       },
-     CMD_OBJ_ALIASES:	CALENDARS_SUBCOMMANDS_OBJECT_ALIASES,
-    },
-  u'wipe':
-    {CMD_ACTION: Act.WIPE,
-     CMD_FUNCTION:
-       {Cmd.ARG_EVENTS:	doCalendarsWipeEvents,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_EVENT:	Cmd.ARG_EVENTS,
-       },
-    },
+  Cmd.ARG_ACL:		Cmd.ARG_CALENDARACL,
+  Cmd.ARG_ACLS:		Cmd.ARG_CALENDARACL,
+  Cmd.ARG_CALENDARACLS:	Cmd.ARG_CALENDARACL,
+  Cmd.ARG_EVENTS:	Cmd.ARG_EVENT,
   }
 
 def processCalendarsCommands():
@@ -29929,7 +29772,7 @@ def processCalendarsCommands():
   CL_subCommand = getChoice(CALENDAR_OLDACL_SUBCOMMANDS, choiceAliases=CALENDAR_OLDACL_SUBCOMMAND_ALIASES, defaultChoice=None)
   if CL_subCommand:
     Act.Set(CALENDAR_OLDACL_SUBCOMMANDS[CL_subCommand][CMD_ACTION])
-    CL_objectName = getChoice([Cmd.ARG_CALENDARACLS, Cmd.ARG_EVENTS], choiceAliases=CALENDARS_SUBCOMMANDS_OBJECT_ALIASES, defaultChoice=None)
+    CL_objectName = getChoice([Cmd.ARG_CALENDARACL, Cmd.ARG_EVENT], choiceAliases=CALENDARS_SUBCOMMANDS_OBJECT_ALIASES, defaultChoice=None)
     if not CL_objectName:
       CALENDAR_OLDACL_SUBCOMMANDS[CL_subCommand][CMD_FUNCTION](cal, calendarList)
     else:
@@ -29937,14 +29780,14 @@ def processCalendarsCommands():
     return
   CL_subCommand = getChoice(CALENDARS_SUBCOMMANDS_WITH_OBJECTS)
   Act.Set(CALENDARS_SUBCOMMANDS_WITH_OBJECTS[CL_subCommand][CMD_ACTION])
-  CL_objectName = getChoice(CALENDARS_SUBCOMMANDS_WITH_OBJECTS[CL_subCommand][CMD_FUNCTION], choiceAliases=CALENDARS_SUBCOMMANDS_WITH_OBJECTS[CL_subCommand][CMD_OBJ_ALIASES])
+  CL_objectName = getChoice(CALENDARS_SUBCOMMANDS_WITH_OBJECTS[CL_subCommand][CMD_FUNCTION], choiceAliases=CALENDARS_SUBCOMMANDS_OBJECT_ALIASES)
   CALENDARS_SUBCOMMANDS_WITH_OBJECTS[CL_subCommand][CMD_FUNCTION][CL_objectName](cal, calendarList)
 
 # Course command sub-commands
 COURSE_SUBCOMMANDS = {
-  u'add':	{CMD_ACTION: Act.ADD, CMD_FUNCTION: doCourseAddParticipants},
-  u'remove':	{CMD_ACTION: Act.REMOVE, CMD_FUNCTION: doCourseRemoveParticipants},
-  u'sync':	{CMD_ACTION: Act.SYNC, CMD_FUNCTION: doCourseSyncParticipants},
+  u'add': (Act.ADD, doCourseAddParticipants),
+  u'remove': (Act.REMOVE, doCourseRemoveParticipants),
+  u'sync': (Act.SYNC, doCourseSyncParticipants),
   }
 
 # Course sub-command aliases
@@ -29967,12 +29810,12 @@ def processCoursesCommands():
 
 # Printer command sub-commands
 PRINTER_SUBCOMMANDS = {
-  u'add':	{CMD_ACTION: Act.ADD, CMD_FUNCTION: doPrinterCreateACL},
-  u'delete':	{CMD_ACTION: Act.DELETE, CMD_FUNCTION: doPrinterDeleteACLs},
-  u'printacls':	{CMD_ACTION: Act.SHOW, CMD_FUNCTION: doPrinterPrintACLs},
-  u'showacls':	{CMD_ACTION: Act.SHOW, CMD_FUNCTION: doPrinterShowACLs},
-  u'sync':	{CMD_ACTION: Act.SYNC, CMD_FUNCTION: doPrinterSyncACLs},
-  u'wipe':	{CMD_ACTION: Act.DELETE, CMD_FUNCTION: doPrinterWipeACLs},
+  u'add': (Act.ADD, doPrinterCreateACL),
+  u'delete': (Act.DELETE, doPrinterDeleteACLs),
+  u'printacls': (Act.PRINT, doPrinterPrintACLs),
+  u'showacls': (Act.SHOW, doPrinterShowACLs),
+  u'sync': (Act.SYNC, doPrinterSyncACLs),
+  u'wipe': (Act.DELETE, doPrinterWipeACLs),
   }
 
 # Printer sub-command aliases
@@ -29996,11 +29839,11 @@ def processPrintersCommands():
 
 # Printjob command sub-commands
 PRINTJOB_SUBCOMMANDS = {
-  u'cancel':	{CMD_ACTION: Act.CANCEL, CMD_FUNCTION: doPrintJobCancel},
-  u'delete':	{CMD_ACTION: Act.DELETE, CMD_FUNCTION: doPrintJobDelete},
-  u'fetch':	{CMD_ACTION: Act.DOWNLOAD, CMD_FUNCTION: doPrintJobFetch},
-  u'resubmit':	{CMD_ACTION: Act.RESUBMIT, CMD_FUNCTION: doPrintJobResubmit},
-  u'submit':	{CMD_ACTION: Act.SUBMIT, CMD_FUNCTION: doPrintJobSubmit},
+  u'cancel': (Act.CANCEL, doPrintJobCancel),
+  u'delete': (Act.DELETE, doPrintJobDelete),
+  u'fetch': (Act.DOWNLOAD, doPrintJobFetch),
+  u'resubmit': (Act.RESUBMIT, doPrintJobResubmit),
+  u'submit': (Act.SUBMIT, doPrintJobSubmit),
   }
 
 def processPrintjobsCommands():
@@ -30010,62 +29853,14 @@ def processPrintjobsCommands():
   PRINTJOB_SUBCOMMANDS[CL_subCommand][CMD_FUNCTION](jobPrinterIdList)
 
 # Resource command sub-commands
-RESOURCE_ADD_CREATE_FUNCTIONS = {
-  Cmd.ARG_CALENDARACLS:	doResourceCreateCalendarACLs,
-  }
-
-RESOURCE_SUBCOMMANDS_OBJECT_ALIASES = {
-  Cmd.ARG_ACL:	Cmd.ARG_CALENDARACLS,
-  Cmd.ARG_ACLS:	Cmd.ARG_CALENDARACLS,
-  Cmd.ARG_CALENDARACL:	Cmd.ARG_CALENDARACLS,
-  }
-
 RESOURCE_SUBCOMMANDS_WITH_OBJECTS = {
-  u'add':
-    {CMD_ACTION: Act.ADD,
-     CMD_FUNCTION:	RESOURCE_ADD_CREATE_FUNCTIONS,
-     CMD_OBJ_ALIASES:	RESOURCE_SUBCOMMANDS_OBJECT_ALIASES,
-    },
-  u'create':
-    {CMD_ACTION: Act.CREATE,
-     CMD_FUNCTION:	RESOURCE_ADD_CREATE_FUNCTIONS,
-     CMD_OBJ_ALIASES:	RESOURCE_SUBCOMMANDS_OBJECT_ALIASES,
-    },
-  u'update':
-    {CMD_ACTION: Act.UPDATE,
-     CMD_FUNCTION:
-       {Cmd.ARG_CALENDARACLS:	doResourceUpdateCalendarACLs,
-       },
-     CMD_OBJ_ALIASES:	RESOURCE_SUBCOMMANDS_OBJECT_ALIASES,
-    },
-  u'delete':
-    {CMD_ACTION: Act.DELETE,
-     CMD_FUNCTION:
-       {Cmd.ARG_CALENDARACLS:	doResourceDeleteCalendarACLs,
-       },
-     CMD_OBJ_ALIASES:	RESOURCE_SUBCOMMANDS_OBJECT_ALIASES,
-    },
-  u'info':
-    {CMD_ACTION: Act.INFO,
-     CMD_FUNCTION:
-       {Cmd.ARG_CALENDARACLS:	doResourceInfoCalendarACLs,
-       },
-     CMD_OBJ_ALIASES:	RESOURCE_SUBCOMMANDS_OBJECT_ALIASES,
-    },
-  u'print':
-    {CMD_ACTION: Act.PRINT,
-     CMD_FUNCTION:
-       {Cmd.ARG_CALENDARACLS:	doResourcePrintCalendarACLs,
-       },
-     CMD_OBJ_ALIASES:	RESOURCE_SUBCOMMANDS_OBJECT_ALIASES,
-    },
-  u'show':
-    {CMD_ACTION: Act.SHOW,
-     CMD_FUNCTION:
-       {Cmd.ARG_CALENDARACLS:	doResourceShowCalendarACLs,
-       },
-     CMD_OBJ_ALIASES:	RESOURCE_SUBCOMMANDS_OBJECT_ALIASES,
-    },
+  u'add': (Act.ADD, {Cmd.ARG_CALENDARACL: doResourceCreateCalendarACLs}),
+  u'create': (Act.CREATE, {Cmd.ARG_CALENDARACL: doResourceCreateCalendarACLs}),
+  u'update': (Act.UPDATE, {Cmd.ARG_CALENDARACL: doResourceUpdateCalendarACLs}),
+  u'delete': (Act.DELETE, {Cmd.ARG_CALENDARACL: doResourceDeleteCalendarACLs}),
+  u'info': (Act.INFO, {Cmd.ARG_CALENDARACL: doResourceInfoCalendarACLs}),
+  u'print': (Act.PRINT, {Cmd.ARG_CALENDARACL: doResourcePrintCalendarACLs}),
+  u'show': (Act.SHOW, {Cmd.ARG_CALENDARACL: doResourceShowCalendarACLs}),
   }
 
 # Resource sub-command aliases
@@ -30073,10 +29868,16 @@ RESOURCE_SUBCOMMAND_ALIASES = {
   u'del':	u'delete',
   }
 
+RESOURCE_SUBCOMMANDS_OBJECT_ALIASES = {
+  Cmd.ARG_ACL:	Cmd.ARG_CALENDARACL,
+  Cmd.ARG_ACLS:	Cmd.ARG_CALENDARACL,
+  Cmd.ARG_CALENDARACLS:	Cmd.ARG_CALENDARACL,
+  }
+
 def executeResourceCommands(resourceEntity):
   CL_subCommand = getChoice(RESOURCE_SUBCOMMANDS_WITH_OBJECTS, choiceAliases=RESOURCE_SUBCOMMAND_ALIASES)
   Act.Set(RESOURCE_SUBCOMMANDS_WITH_OBJECTS[CL_subCommand][CMD_ACTION])
-  CL_objectName = getChoice(RESOURCE_SUBCOMMANDS_WITH_OBJECTS[CL_subCommand][CMD_FUNCTION], choiceAliases=RESOURCE_SUBCOMMANDS_WITH_OBJECTS[CL_subCommand][CMD_OBJ_ALIASES])
+  CL_objectName = getChoice(RESOURCE_SUBCOMMANDS_WITH_OBJECTS[CL_subCommand][CMD_FUNCTION], choiceAliases=RESOURCE_SUBCOMMANDS_OBJECT_ALIASES)
   RESOURCE_SUBCOMMANDS_WITH_OBJECTS[CL_subCommand][CMD_FUNCTION][CL_objectName](resourceEntity)
 
 def processResourceCommands():
@@ -30104,581 +29905,247 @@ COMMANDS_ALIASES = {
   u'calendar':	u'calendars',
   u'printer':	u'printers',
   u'printjob':	u'printjobs',
-  u'site':	u'sites',
   }
 
 # <CrOSTypeEntity> commands
 CROS_COMMANDS = {
-  u'info':		{CMD_ACTION: Act.INFO, CMD_FUNCTION: infoCrOSDevices},
-  u'list':		{CMD_ACTION: Act.LIST, CMD_FUNCTION: doListCrOS},
-  u'print':		{CMD_ACTION: Act.PRINT, CMD_FUNCTION: doPrintCrOSEntity},
-  u'update':		{CMD_ACTION: Act.UPDATE, CMD_FUNCTION: updateCrOSDevices},
+  u'info': (Act.INFO, infoCrOSDevices),
+  u'list': (Act.LIST, doListCrOS),
+  u'print': (Act.PRINT, doPrintCrOSEntity),
+  u'update': (Act.UPDATE, updateCrOSDevices),
   }
 
 # <UserTypeEntity> commands
 USER_COMMANDS = {
-  u'arrows':		{CMD_ACTION: Act.SET, CMD_FUNCTION: setArrows},
-  Cmd.ARG_DELEGATE:	{CMD_ACTION: Act.ADD, CMD_FUNCTION: delegateTo},
-  u'deprovision':	{CMD_ACTION: Act.DEPROVISION, CMD_FUNCTION: deprovisionUser},
-  Cmd.ARG_FILTER:	{CMD_ACTION: Act.ADD, CMD_FUNCTION: createFilter},
-  Cmd.ARG_FORWARD:	{CMD_ACTION: Act.SET, CMD_FUNCTION: setForward},
-  Cmd.ARG_IMAP:		{CMD_ACTION: Act.SET, CMD_FUNCTION: setImap},
-  u'label':		{CMD_ACTION: Act.ADD, CMD_FUNCTION: createLabel},
-  u'list':		{CMD_ACTION: Act.LIST, CMD_FUNCTION: doListUser},
-  u'language':		{CMD_ACTION: Act.SET, CMD_FUNCTION: setLanguage},
-  u'pagesize':		{CMD_ACTION: Act.SET, CMD_FUNCTION: setPageSize},
-  Cmd.ARG_POP:		{CMD_ACTION: Act.SET, CMD_FUNCTION: setPop},
-  Cmd.ARG_PROFILE:	{CMD_ACTION: Act.SET, CMD_FUNCTION: setProfile},
-  Cmd.ARG_SENDAS:	{CMD_ACTION: Act.ADD, CMD_FUNCTION: createSendAs},
-  u'shortcuts':		{CMD_ACTION: Act.SET, CMD_FUNCTION: setShortCuts},
-  u'signature':		{CMD_ACTION: Act.SET, CMD_FUNCTION: setSignature},
-  u'snippets':		{CMD_ACTION: Act.SET, CMD_FUNCTION: setSnippets},
-  u'unicode':		{CMD_ACTION: Act.SET, CMD_FUNCTION: setUnicode},
-  Cmd.ARG_VACATION:	{CMD_ACTION: Act.SET, CMD_FUNCTION: setVacation},
-  u'webclips':		{CMD_ACTION: Act.SET, CMD_FUNCTION: setWebClips},
+  u'arrows': (Act.SET, setArrows),
+  u'delegate': (Act.ADD, delegateTo),
+  u'deprovision':(Act.DEPROVISION, deprovisionUser),
+  u'filter': (Act.ADD, createFilter),
+  u'forward': (Act.SET, setForward),
+  u'imap': (Act.SET, setImap),
+  u'label': (Act.ADD, createLabel),
+  u'list': (Act.LIST, doListUser),
+  u'language': (Act.SET, setLanguage),
+  u'pagesize': (Act.SET, setPageSize),
+  u'pop': (Act.SET, setPop),
+  u'profile': (Act.SET, setProfile),
+  u'sendas': (Act.ADD, createSendAs),
+  u'shortcuts': (Act.SET, setShortCuts),
+  u'signature': (Act.SET, setSignature),
+  u'snippets': (Act.SET, setSnippets),
+  u'unicode': (Act.SET, setUnicode),
+  u'vacation': (Act.SET, setVacation),
+  u'webclips': (Act.SET, setWebClips),
   }
 
 # User commands with objects
 #
 USER_ADD_CREATE_FUNCTIONS = {
-  Cmd.ARG_CALENDARS:	addCreateCalendars,
-  Cmd.ARG_GROUPS:	addUserToGroups,
-  Cmd.ARG_CALENDARACLS:	createCalendarACLs,
+  Cmd.ARG_CALENDAR:	addCreateCalendars,
+  Cmd.ARG_GROUP:	addUserToGroups,
+  Cmd.ARG_CALENDARACL:	createCalendarACLs,
   Cmd.ARG_CONTACT:	createUserContact,
-  Cmd.ARG_CONTACT_GROUP:	createUserContactGroup,
+  Cmd.ARG_CONTACTGROUP:	createUserContactGroup,
   Cmd.ARG_DELEGATE:	createDelegate,
   Cmd.ARG_DRIVEFILE:	createDriveFile,
   Cmd.ARG_DRIVEFILEACL:	createDriveFileACL,
   Cmd.ARG_EVENT:	createCalendarEvent,
   Cmd.ARG_FILTER:	createFilter,
-  Cmd.ARG_FORWARDINGADDRESSES:	createForwardingAddresses,
+  Cmd.ARG_FORWARDINGADDRESS:	createForwardingAddresses,
   Cmd.ARG_LABEL:	createLabel,
   Cmd.ARG_LICENSE:	createLicense,
   Cmd.ARG_PERMISSIONS:	createDriveFilePermissions,
   Cmd.ARG_SENDAS:	createSendAs,
   Cmd.ARG_SHEET:	createSheet,
   Cmd.ARG_SITE:		createUserSite,
-  Cmd.ARG_SITEACLS:	processUserSiteACLs,
+  Cmd.ARG_SITEACL:	processUserSiteACLs,
   Cmd.ARG_SMIME:	createSmime,
   }
 
-USER_ADD_CREATE_ALIASES = {
-  Cmd.ARG_CALENDAR:	Cmd.ARG_CALENDARS,
-  Cmd.ARG_GROUP:	Cmd.ARG_GROUPS,
-  Cmd.ARG_CALENDARACL:	Cmd.ARG_CALENDARACLS,
-  Cmd.ARG_CONTACTS:	Cmd.ARG_CONTACT,
-  Cmd.ARG_CONTACT_GROUPS:	Cmd.ARG_CONTACT_GROUP,
-  Cmd.ARG_DELEGATES:	Cmd.ARG_DELEGATE,
-  Cmd.ARG_DRIVEFILEACLS:	Cmd.ARG_DRIVEFILEACL,
-  Cmd.ARG_EVENTS:	Cmd.ARG_EVENT,
-  Cmd.ARG_FILTERS:	Cmd.ARG_FILTER,
-  Cmd.ARG_FORWARDINGADDRESS:	Cmd.ARG_FORWARDINGADDRESSES,
-  Cmd.ARG_LABELS:	Cmd.ARG_LABEL,
-  Cmd.ARG_LICENCE:	Cmd.ARG_LICENSE,
-  Cmd.ARG_SHEETS:	Cmd.ARG_SHEET,
-  Cmd.ARG_SITES:	Cmd.ARG_SITE,
-  Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
-  }
-
 USER_COMMANDS_WITH_OBJECTS = {
-  u'add':
-    {CMD_ACTION: Act.ADD,
-     CMD_FUNCTION:	USER_ADD_CREATE_FUNCTIONS,
-     CMD_OBJ_ALIASES:	USER_ADD_CREATE_ALIASES,
-    },
-  u'append':
-    {CMD_ACTION: Act.APPEND,
-     CMD_FUNCTION:
-       {Cmd.ARG_SHEETRANGES:	appendSheetRanges,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_SHEETRANGE:	Cmd.ARG_SHEETRANGES,
-       },
-    },
-  u'archive':
-    {CMD_ACTION: Act.ARCHIVE,
-     CMD_FUNCTION:
-       {Cmd.ARG_MESSAGES:	archiveMessages,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_MESSAGE:	Cmd.ARG_MESSAGES,
-       },
-    },
-  u'check':
-    {CMD_ACTION: Act.CHECK,
-     CMD_FUNCTION:
-       {Cmd.ARG_SERVICEACCOUNT:	checkServiceAccount,
-       },
-     CMD_OBJ_ALIASES:		{},
-    },
-  u'claim':
-    {CMD_ACTION: Act.CLAIM,
-     CMD_FUNCTION:
-       {Cmd.ARG_OWNERSHIP: 	claimOwnership,
-       },
-     CMD_OBJ_ALIASES:		{},
-    },
-  u'clear':
-    {CMD_ACTION: Act.CLEAR,
-     CMD_FUNCTION:
-       {Cmd.ARG_SHEETRANGES:	clearSheetRanges,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_SHEETRANGE:	Cmd.ARG_SHEETRANGES,
-       },
-    },
-  u'collect':
-    {CMD_ACTION: Act.COLLECT,
-     CMD_FUNCTION:
-       {Cmd.ARG_ORPHANS:	collectOrphans,
-       },
-     CMD_OBJ_ALIASES:		{},
-    },
-  u'copy':
-    {CMD_ACTION: Act.COPY,
-     CMD_FUNCTION:
-       {Cmd.ARG_DRIVEFILE:	copyDriveFile,
-       },
-     CMD_OBJ_ALIASES:		{},
-    },
-  u'create':
-    {CMD_ACTION: Act.CREATE,
-     CMD_FUNCTION:	USER_ADD_CREATE_FUNCTIONS,
-     CMD_OBJ_ALIASES:	USER_ADD_CREATE_ALIASES,
-    },
+  u'add': (Act.ADD, USER_ADD_CREATE_FUNCTIONS),
+  u'append': (Act.APPEND, {Cmd.ARG_SHEETRANGE: appendSheetRanges}),
+  u'archive': (Act.ARCHIVE, {Cmd.ARG_MESSAGE: archiveMessages}),
+  u'check': (Act.CHECK, {Cmd.ARG_SERVICEACCOUNT: checkServiceAccount}),
+  u'claim': (Act.CLAIM, {Cmd.ARG_OWNERSHIP:  claimOwnership}),
+  u'clear': (Act.CLEAR, {Cmd.ARG_SHEETRANGE: clearSheetRanges}),
+  u'collect': (Act.COLLECT, {Cmd.ARG_ORPHANS: collectOrphans}),
+  u'copy': (Act.COPY, {Cmd.ARG_DRIVEFILE: copyDriveFile}),
+  u'create': (Act.CREATE, USER_ADD_CREATE_FUNCTIONS),
   u'delete':
-    {CMD_ACTION: Act.DELETE,
-     CMD_FUNCTION:
-       {Cmd.ARG_ALIASES:	deleteUsersAliases,
-        Cmd.ARG_ASP:		deleteASP,
-        Cmd.ARG_BACKUPCODES:	deleteBackupCodes,
-        Cmd.ARG_CALENDARS:	deleteCalendars,
-        Cmd.ARG_CALENDARACLS:	deleteCalendarACLs,
-        Cmd.ARG_CONTACTS:	deleteUserContacts,
-        Cmd.ARG_CONTACT_GROUPS:	deleteUserContactGroups,
-        Cmd.ARG_DELEGATE:	deleteDelegate,
-        Cmd.ARG_DRIVEFILE:	deleteDriveFile,
-        Cmd.ARG_DRIVEFILEACLS:	deleteDriveFileACLs,
-        Cmd.ARG_EMPTYDRIVEFOLDERS:	deleteEmptyDriveFolders,
-        Cmd.ARG_EVENTS:		deleteCalendarEvents,
-        Cmd.ARG_FILEREVISIONS:	deleteFileRevisions,
-        Cmd.ARG_FILTERS:	deleteFilters,
-        Cmd.ARG_FORWARDINGADDRESSES:	deleteForwardingAddresses,
-        Cmd.ARG_GROUPS:		deleteUserFromGroups,
-        Cmd.ARG_LABEL:		deleteLabel,
-        Cmd.ARG_LICENSE:	deleteLicense,
-        Cmd.ARG_MESSAGES:	processMessages,
-        Cmd.ARG_PERMISSIONS:	deletePermissions,
-        Cmd.ARG_PHOTO:		deletePhoto,
-        Cmd.ARG_SENDAS:		deleteSendAs,
-        Cmd.ARG_SMIME:		deleteSmime,
-        Cmd.ARG_SITEACLS:	processUserSiteACLs,
-        Cmd.ARG_TEAMDRIVE:	deleteTeamDrive,
-        Cmd.ARG_THREADS:	processThreads,
-        Cmd.ARG_TOKEN:		deleteTokens,
-        Cmd.ARG_USERS:		deleteUsers,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_ALIAS:		Cmd.ARG_ALIASES,
-        Cmd.ARG_APPLICATIONSPECIFICPASSWORDS:	Cmd.ARG_ASP,
-        Cmd.ARG_ASPS:		Cmd.ARG_ASP,
-        Cmd.ARG_BACKUPCODE:	Cmd.ARG_BACKUPCODES,
-        Cmd.ARG_VERIFICATIONCODES:	Cmd.ARG_BACKUPCODES,
-        Cmd.ARG_CALENDAR:	Cmd.ARG_CALENDARS,
-        Cmd.ARG_CALENDARACL:	Cmd.ARG_CALENDARACLS,
-        Cmd.ARG_CONTACT:	Cmd.ARG_CONTACTS,
-        Cmd.ARG_CONTACT_GROUP:	Cmd.ARG_CONTACT_GROUPS,
-        Cmd.ARG_DELEGATES:	Cmd.ARG_DELEGATE,
-        Cmd.ARG_DRIVEFILEACL:	Cmd.ARG_DRIVEFILEACLS,
-        Cmd.ARG_EVENT:		Cmd.ARG_EVENTS,
-        Cmd.ARG_FILEREVISION:	Cmd.ARG_FILEREVISIONS,
-        Cmd.ARG_FILTER:		Cmd.ARG_FILTERS,
-        Cmd.ARG_FORWARDINGADDRESS:	Cmd.ARG_FORWARDINGADDRESSES,
-        Cmd.ARG_GROUP:		Cmd.ARG_GROUPS,
-        Cmd.ARG_LICENCE:	Cmd.ARG_LICENSE,
-        Cmd.ARG_LABELS:		Cmd.ARG_LABEL,
-        Cmd.ARG_MESSAGE:	Cmd.ARG_MESSAGES,
-        Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
-        Cmd.ARG_THREAD:		Cmd.ARG_THREADS,
-        Cmd.ARG_TOKENS:		Cmd.ARG_TOKEN,
-        Cmd.ARG_3LO:		Cmd.ARG_TOKEN,
-        Cmd.ARG_OAUTH:		Cmd.ARG_TOKEN,
-        Cmd.ARG_USER:		Cmd.ARG_USERS,
-       },
-    },
-  u'empty':
-    {CMD_ACTION: Act.EMPTY,
-     CMD_FUNCTION:
-       {Cmd.ARG_DRIVETRASH:	emptyDriveTrash,
-       },
-     CMD_OBJ_ALIASES:		{},
-    },
-  u'get':
-    {CMD_ACTION: Act.DOWNLOAD,
-     CMD_FUNCTION:
-       {Cmd.ARG_DRIVEFILE:	getDriveFile,
-        Cmd.ARG_PHOTO:		getPhoto,
-       },
-     CMD_OBJ_ALIASES:		{},
-    },
-  u'import':
-    {CMD_ACTION: Act.IMPORT,
-     CMD_FUNCTION:
-       {Cmd.ARG_EVENT:		importCalendarEvent,
-        Cmd.ARG_MESSAGE:	importMessage,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_EVENTS:		Cmd.ARG_EVENT,
-        Cmd.ARG_MESSAGES:	Cmd.ARG_MESSAGE,
-       },
-    },
+    (Act.DELETE,
+     {Cmd.ARG_ALIAS:		deleteUsersAliases,
+      Cmd.ARG_ASP:		deleteASP,
+      Cmd.ARG_BACKUPCODE:	deleteBackupCodes,
+      Cmd.ARG_CALENDAR:		deleteCalendars,
+      Cmd.ARG_CALENDARACL:	deleteCalendarACLs,
+      Cmd.ARG_CONTACT:		deleteUserContacts,
+      Cmd.ARG_CONTACTGROUP:	deleteUserContactGroups,
+      Cmd.ARG_DELEGATE:		deleteDelegate,
+      Cmd.ARG_DRIVEFILE:	deleteDriveFile,
+      Cmd.ARG_DRIVEFILEACL:	deleteDriveFileACLs,
+      Cmd.ARG_EMPTYDRIVEFOLDERS:	deleteEmptyDriveFolders,
+      Cmd.ARG_EVENT:		deleteCalendarEvents,
+      Cmd.ARG_FILEREVISION:	deleteFileRevisions,
+      Cmd.ARG_FILTER:		deleteFilters,
+      Cmd.ARG_FORWARDINGADDRESS:	deleteForwardingAddresses,
+      Cmd.ARG_GROUP:		deleteUserFromGroups,
+      Cmd.ARG_LABEL:		deleteLabel,
+      Cmd.ARG_LICENSE:		deleteLicense,
+      Cmd.ARG_MESSAGE:		processMessages,
+      Cmd.ARG_PERMISSIONS:	deletePermissions,
+      Cmd.ARG_PHOTO:		deletePhoto,
+      Cmd.ARG_SENDAS:		deleteSendAs,
+      Cmd.ARG_SMIME:		deleteSmime,
+      Cmd.ARG_SITEACL:		processUserSiteACLs,
+      Cmd.ARG_TEAMDRIVE:	deleteTeamDrive,
+      Cmd.ARG_THREAD:		processThreads,
+      Cmd.ARG_TOKEN:		deleteTokens,
+      Cmd.ARG_USER:		deleteUsers,
+     }
+    ),
+  u'empty': (Act.EMPTY, {Cmd.ARG_DRIVETRASH: emptyDriveTrash}),
+  u'get': (Act.DOWNLOAD, {Cmd.ARG_DRIVEFILE: getDriveFile, Cmd.ARG_PHOTO: getPhoto}),
+  u'import': (Act.IMPORT, {Cmd.ARG_EVENT: importCalendarEvent, Cmd.ARG_MESSAGE: importMessage}),
   u'info':
-    {CMD_ACTION: Act.INFO,
-     CMD_FUNCTION:
-       {Cmd.ARG_CALENDARS:	infoCalendars,
-        Cmd.ARG_CALENDARACLS:	infoCalendarACLs,
-        Cmd.ARG_CONTACTS:	infoUserContacts,
-        Cmd.ARG_CONTACT_GROUPS:	infoUserContactGroups,
-        Cmd.ARG_EVENTS:		infoCalendarEvents,
-        Cmd.ARG_FILTERS:	infoFilters,
-        Cmd.ARG_FORWARDINGADDRESSES:	infoForwardingAddresses,
-        Cmd.ARG_SENDAS:		infoSendAs,
-        Cmd.ARG_SHEETS:		infoSheets,
-        Cmd.ARG_SITES:		infoUserSites,
-        Cmd.ARG_SITEACLS:	processUserSiteACLs,
-        Cmd.ARG_TEAMDRIVE:	infoTeamDrive,
-        Cmd.ARG_USERS:		infoUsers,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_CALENDAR:	Cmd.ARG_CALENDARS,
-        Cmd.ARG_CALENDARACL:	Cmd.ARG_CALENDARACLS,
-        Cmd.ARG_CONTACT:	Cmd.ARG_CONTACTS,
-        Cmd.ARG_CONTACT_GROUP:	Cmd.ARG_CONTACT_GROUPS,
-        Cmd.ARG_EVENT:		Cmd.ARG_EVENTS,
-        Cmd.ARG_FILTER:		Cmd.ARG_FILTERS,
-        Cmd.ARG_FORWARDINGADDRESS:	Cmd.ARG_FORWARDINGADDRESSES,
-        Cmd.ARG_SHEET:		Cmd.ARG_SHEETS,
-        Cmd.ARG_SITE:		Cmd.ARG_SITES,
-        Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
-        Cmd.ARG_TEAMDRIVES:	Cmd.ARG_TEAMDRIVE,
-        Cmd.ARG_USER:		Cmd.ARG_USERS,
-       },
-    },
-  u'insert':
-    {CMD_ACTION: Act.INSERT,
-     CMD_FUNCTION:
-       {Cmd.ARG_MESSAGE:	insertMessage,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_MESSAGES:	Cmd.ARG_MESSAGE,
-       },
-    },
-  u'modify':
-    {CMD_ACTION: Act.MODIFY,
-     CMD_FUNCTION:
-       {Cmd.ARG_CALENDARS:	modifyCalendars,
-        Cmd.ARG_MESSAGES:	processMessages,
-        Cmd.ARG_THREADS:	processThreads,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_CALENDAR:	Cmd.ARG_CALENDARS,
-        Cmd.ARG_MESSAGE:	Cmd.ARG_MESSAGES,
-        Cmd.ARG_THREAD:		Cmd.ARG_THREADS,
-       },
-    },
-  u'move':
-    {CMD_ACTION: Act.MOVE,
-     CMD_FUNCTION:
-       {Cmd.ARG_EVENTS:		moveCalendarEvents,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_EVENT:		Cmd.ARG_EVENTS,
-       },
-    },
-  u'purge':
-    {CMD_ACTION: Act.PURGE,
-     CMD_FUNCTION:
-       {Cmd.ARG_DRIVEFILE:	purgeDriveFile,
-       },
-     CMD_OBJ_ALIASES:		{},
-    },
+    (Act.INFO,
+     {Cmd.ARG_CALENDAR:		infoCalendars,
+      Cmd.ARG_CALENDARACL:	infoCalendarACLs,
+      Cmd.ARG_CONTACT:		infoUserContacts,
+      Cmd.ARG_CONTACTGROUP:	infoUserContactGroups,
+      Cmd.ARG_EVENT:		infoCalendarEvents,
+      Cmd.ARG_FILTER:		infoFilters,
+      Cmd.ARG_FORWARDINGADDRESS:	infoForwardingAddresses,
+      Cmd.ARG_SENDAS:		infoSendAs,
+      Cmd.ARG_SHEET:		infoSheets,
+      Cmd.ARG_SITE:		infoUserSites,
+      Cmd.ARG_SITEACL:		processUserSiteACLs,
+      Cmd.ARG_TEAMDRIVE:	infoTeamDrive,
+      Cmd.ARG_USER:		infoUsers,
+     }
+    ),
+  u'insert': (Act.INSERT, {Cmd.ARG_MESSAGE: insertMessage}),
+  u'modify': (Act.MODIFY, {Cmd.ARG_CALENDAR: modifyCalendars, Cmd.ARG_MESSAGE: processMessages, Cmd.ARG_THREAD: processThreads}),
+  u'move': (Act.MOVE, {Cmd.ARG_EVENT: moveCalendarEvents}),
+  u'purge': (Act.PURGE, {Cmd.ARG_DRIVEFILE: purgeDriveFile}),
   u'print':
-    {CMD_ACTION: Act.PRINT,
-     CMD_FUNCTION:
-       {Cmd.ARG_CALENDARS:	printCalendars,
-        Cmd.ARG_CALENDARACLS:	printCalendarACLs,
-        Cmd.ARG_CONTACTS:	printUserContacts,
-        Cmd.ARG_CONTACT_GROUPS:	printUserContactGroups,
-        Cmd.ARG_DELEGATES:	printDelegates,
-        Cmd.ARG_DRIVEACTIVITY:	printDriveActivity,
-        Cmd.ARG_DRIVEFILEACLS:	printDriveFileACLs,
-        Cmd.ARG_DRIVESETTINGS:	printDriveSettings,
-        Cmd.ARG_EVENTS:		printCalendarEvents,
-        Cmd.ARG_FILEINFO:	showFileInfo,
-        Cmd.ARG_FILELIST:	printFileList,
-        Cmd.ARG_FILEPATHS:	printFilePaths,
-        Cmd.ARG_FILEREVISIONS:	printFileRevisions,
-        Cmd.ARG_FILTERS:	printFilters,
-        Cmd.ARG_FORWARD:	printForward,
-        Cmd.ARG_FORWARDINGADDRESSES:	printForwardingAddresses,
-        Cmd.ARG_GMAILPROFILE:	printGmailProfile,
-        Cmd.ARG_GPLUSPROFILE:	printGplusProfile,
-        Cmd.ARG_LABELS:		printLabels,
-        Cmd.ARG_MESSAGES:	printMessages,
-        Cmd.ARG_SENDAS:		printSendAs,
-        Cmd.ARG_SHEETRANGES:	printSheetRanges,
-        Cmd.ARG_SMIMES:		printSmimes,
-        Cmd.ARG_SITES:		printUserSites,
-        Cmd.ARG_SITEACTIVITY:	printUserSiteActivity,
-        Cmd.ARG_TEAMDRIVES:	printTeamDrives,
-        Cmd.ARG_THREADS:	printThreads,
-        Cmd.ARG_TOKENS:		printTokens,
-        Cmd.ARG_USERS:		doPrintUserEntity,
-        Cmd.ARG_VACATION:	printVacation,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_CALENDAR:	Cmd.ARG_CALENDARS,
-        Cmd.ARG_CALENDARACL:	Cmd.ARG_CALENDARACLS,
-        Cmd.ARG_CONTACT:	Cmd.ARG_CONTACTS,
-        Cmd.ARG_CONTACT_GROUP:	Cmd.ARG_CONTACT_GROUPS,
-        Cmd.ARG_DELEGATE:	Cmd.ARG_DELEGATES,
-        Cmd.ARG_DRIVEFILEACL:	Cmd.ARG_DRIVEFILEACLS,
-        Cmd.ARG_EVENT:		Cmd.ARG_EVENTS,
-        Cmd.ARG_FILEPATH:	Cmd.ARG_FILEPATHS,
-        Cmd.ARG_FILEREVISION:	Cmd.ARG_FILEREVISIONS,
-        Cmd.ARG_FILTER:		Cmd.ARG_FILTERS,
-        Cmd.ARG_FORWARDINGADDRESS:	Cmd.ARG_FORWARDINGADDRESSES,
-        Cmd.ARG_LABEL:		Cmd.ARG_LABELS,
-        Cmd.ARG_MESSAGE:	Cmd.ARG_MESSAGES,
-        Cmd.ARG_SHEETRANGE:	Cmd.ARG_SHEETRANGES,
-        Cmd.ARG_SIG:		Cmd.ARG_SENDAS,
-        Cmd.ARG_SIGNATURE:	Cmd.ARG_SENDAS,
-        Cmd.ARG_SITE:		Cmd.ARG_SITES,
-        Cmd.ARG_SMIME:		Cmd.ARG_SMIMES,
-        Cmd.ARG_TEAMDRIVE:	Cmd.ARG_TEAMDRIVES,
-        Cmd.ARG_THREAD:		Cmd.ARG_THREADS,
-        Cmd.ARG_TOKEN:		Cmd.ARG_TOKENS,
-        Cmd.ARG_3LO:		Cmd.ARG_TOKENS,
-        Cmd.ARG_OAUTH:		Cmd.ARG_TOKENS,
-        Cmd.ARG_USER:		Cmd.ARG_USERS,
-       },
-    },
-  u'remove':
-    {CMD_ACTION: Act.REMOVE,
-     CMD_FUNCTION:
-       {Cmd.ARG_CALENDARS:	removeCalendars,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_CALENDAR:	Cmd.ARG_CALENDARS,
-       },
-    },
+    (Act.PRINT,
+     {Cmd.ARG_CALENDAR:		printCalendars,
+      Cmd.ARG_CALENDARACL:	printCalendarACLs,
+      Cmd.ARG_CONTACT:		printUserContacts,
+      Cmd.ARG_CONTACTGROUP:	printUserContactGroups,
+      Cmd.ARG_DELEGATE:		printDelegates,
+      Cmd.ARG_DRIVEACTIVITY:	printDriveActivity,
+      Cmd.ARG_DRIVEFILEACL:	printDriveFileACLs,
+      Cmd.ARG_DRIVESETTINGS:	printDriveSettings,
+      Cmd.ARG_EVENT:		printCalendarEvents,
+      Cmd.ARG_FILEINFO:		showFileInfo,
+      Cmd.ARG_FILELIST:		printFileList,
+      Cmd.ARG_FILEPATH:		printFilePaths,
+      Cmd.ARG_FILEREVISION:	printFileRevisions,
+      Cmd.ARG_FILTER:		printFilters,
+      Cmd.ARG_FORWARD:		printForward,
+      Cmd.ARG_FORWARDINGADDRESS:	printForwardingAddresses,
+      Cmd.ARG_GMAILPROFILE:	printGmailProfile,
+      Cmd.ARG_GPLUSPROFILE:	printGplusProfile,
+      Cmd.ARG_LABEL:		printLabels,
+      Cmd.ARG_MESSAGE:		printMessages,
+      Cmd.ARG_SENDAS:		printSendAs,
+      Cmd.ARG_SHEETRANGE:	printSheetRanges,
+      Cmd.ARG_SIGNATURE:	printSendAs,
+      Cmd.ARG_SMIME:		printSmimes,
+      Cmd.ARG_SITE:		printUserSites,
+      Cmd.ARG_SITEACTIVITY:	printUserSiteActivity,
+      Cmd.ARG_TEAMDRIVE:	printTeamDrives,
+      Cmd.ARG_THREAD:		printThreads,
+      Cmd.ARG_TOKEN:		printTokens,
+      Cmd.ARG_USER:		doPrintUserEntity,
+      Cmd.ARG_VACATION:		printVacation,
+     }
+    ),
+  u'remove': (Act.REMOVE, {Cmd.ARG_CALENDAR: removeCalendars}),
   u'show':
-    {CMD_ACTION: Act.SHOW,
-     CMD_FUNCTION:
-       {Cmd.ARG_ASPS:		showASPs,
-        Cmd.ARG_BACKUPCODES:	showBackupCodes,
-        Cmd.ARG_CALENDARS:	showCalendars,
-        Cmd.ARG_CALENDARACLS:	showCalendarACLs,
-        Cmd.ARG_CALSETTINGS:	showCalSettings,
-        Cmd.ARG_CONTACTS:	showUserContacts,
-        Cmd.ARG_CONTACT_GROUPS:	showUserContactGroups,
-        Cmd.ARG_DELEGATES:	showDelegates,
-        Cmd.ARG_DRIVEACTIVITY:	printDriveActivity,
-        Cmd.ARG_DRIVEFILEACLS:	showDriveFileACLs,
-        Cmd.ARG_DRIVESETTINGS:	showDriveSettings,
-        Cmd.ARG_EVENTS:		showCalendarEvents,
-        Cmd.ARG_FILEINFO:	showFileInfo,
-        Cmd.ARG_FILELIST:	printFileList,
-        Cmd.ARG_FILEPATHS:	showFilePaths,
-        Cmd.ARG_FILEREVISIONS:	showFileRevisions,
-        Cmd.ARG_FILETREE:	showFileTree,
-        Cmd.ARG_FILTERS:	showFilters,
-        Cmd.ARG_FORWARD:	showForward,
-        Cmd.ARG_FORWARDINGADDRESSES:	showForwardingAddresses,
-        Cmd.ARG_GMAILPROFILE:	showGmailProfile,
-        Cmd.ARG_GPLUSPROFILE:	showGplusProfile,
-        Cmd.ARG_IMAP:		showImap,
-        Cmd.ARG_LABELS:		showLabels,
-        Cmd.ARG_MESSAGES:	showMessages,
-        Cmd.ARG_POP:		showPop,
-        Cmd.ARG_PROFILE:	showProfile,
-        Cmd.ARG_SENDAS:		showSendAs,
-        Cmd.ARG_SHEETRANGES:	showSheetRanges,
-        Cmd.ARG_SMIMES:		showSmimes,
-        Cmd.ARG_SIGNATURE:	showSignature,
-        Cmd.ARG_SITES:		showUserSites,
-        Cmd.ARG_SITEACLS:	processUserSiteACLs,
-        Cmd.ARG_TEAMDRIVES:	showTeamDrives,
-        Cmd.ARG_TEAMDRIVEINFO:	infoTeamDrive,
-        Cmd.ARG_TEAMDRIVETHEMES:	showTeamDriveThemes,
-        Cmd.ARG_THREADS:	showThreads,
-        Cmd.ARG_TOKENS:		showTokens,
-        Cmd.ARG_VACATION:	showVacation,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_APPLICATIONSPECIFICPASSWORDS:	Cmd.ARG_ASPS,
-        Cmd.ARG_ASP:		Cmd.ARG_ASPS,
-        Cmd.ARG_BACKUPCODE:	Cmd.ARG_BACKUPCODES,
-        Cmd.ARG_VERIFICATIONCODES:	Cmd.ARG_BACKUPCODES,
-        Cmd.ARG_CALENDAR:	Cmd.ARG_CALENDARS,
-        Cmd.ARG_CALENDARACL:	Cmd.ARG_CALENDARACLS,
-        Cmd.ARG_CONTACT:	Cmd.ARG_CONTACTS,
-        Cmd.ARG_CONTACT_GROUP:	Cmd.ARG_CONTACT_GROUPS,
-        Cmd.ARG_DELEGATE:	Cmd.ARG_DELEGATES,
-        Cmd.ARG_DRIVEFILEACL:	Cmd.ARG_DRIVEFILEACLS,
-        Cmd.ARG_EVENT:		Cmd.ARG_EVENTS,
-        Cmd.ARG_FILEPATH:	Cmd.ARG_FILEPATHS,
-        Cmd.ARG_FILEREVISION:	Cmd.ARG_FILEREVISIONS,
-        Cmd.ARG_FILTER:		Cmd.ARG_FILTERS,
-        Cmd.ARG_FORWARDINGADDRESS:	Cmd.ARG_FORWARDINGADDRESSES,
-        Cmd.ARG_IMAP4:		Cmd.ARG_IMAP,
-        Cmd.ARG_POP3:		Cmd.ARG_POP,
-        Cmd.ARG_LABEL:		Cmd.ARG_LABELS,
-        Cmd.ARG_MESSAGE:	Cmd.ARG_MESSAGES,
-        Cmd.ARG_SHEETRANGE:	Cmd.ARG_SHEETRANGES,
-        Cmd.ARG_SIG:		Cmd.ARG_SIGNATURE,
-        Cmd.ARG_SITE:		Cmd.ARG_SITES,
-        Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
-        Cmd.ARG_SMIME:		Cmd.ARG_SMIMES,
-        Cmd.ARG_TEAMDRIVE:	Cmd.ARG_TEAMDRIVES,
-        Cmd.ARG_THREAD:		Cmd.ARG_THREADS,
-        Cmd.ARG_TOKEN:		Cmd.ARG_TOKENS,
-        Cmd.ARG_3LO:		Cmd.ARG_TOKENS,
-        Cmd.ARG_OAUTH:		Cmd.ARG_TOKENS,
-       },
-    },
-  u'spam':
-    {CMD_ACTION: Act.SPAM,
-     CMD_FUNCTION:
-       {Cmd.ARG_MESSAGES:	processMessages,
-        Cmd.ARG_THREADS:	processThreads,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_MESSAGE:	Cmd.ARG_MESSAGES,
-        Cmd.ARG_THREAD:		Cmd.ARG_THREADS,
-       },
-    },
-  u'suspend':
-    {CMD_ACTION: Act.SUSPEND,
-     CMD_FUNCTION:
-       {Cmd.ARG_USERS:		suspendUsers,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_USER:		Cmd.ARG_USERS,
-       },
-    },
-  u'transfer':
-    {CMD_ACTION: Act.TRANSFER,
-     CMD_FUNCTION:
-       {Cmd.ARG_DRIVE:		transferDrive,
-        Cmd.ARG_CALENDARS:	transferCalendars,
-        Cmd.ARG_OWNERSHIP: 	transferOwnership,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_CALENDAR:	Cmd.ARG_CALENDARS,
-        Cmd.ARG_SECCALS:	Cmd.ARG_CALENDARS,
-       },
-    },
-  u'trash':
-    {CMD_ACTION: Act.TRASH,
-     CMD_FUNCTION:
-       {Cmd.ARG_DRIVEFILE:	trashDriveFile,
-        Cmd.ARG_MESSAGES:	processMessages,
-        Cmd.ARG_THREADS:	processThreads,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_MESSAGE:	Cmd.ARG_MESSAGES,
-        Cmd.ARG_THREAD:		Cmd.ARG_THREADS,
-       },
-    },
-  u'untrash':
-    {CMD_ACTION: Act.UNTRASH,
-     CMD_FUNCTION:
-       {Cmd.ARG_DRIVEFILE:	untrashDriveFile,
-        Cmd.ARG_MESSAGES:	processMessages,
-        Cmd.ARG_THREADS:	processThreads,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_MESSAGE:	Cmd.ARG_MESSAGES,
-        Cmd.ARG_THREAD:		Cmd.ARG_THREADS,
-       },
-    },
-  u'undelete':
-    {CMD_ACTION: Act.UNDELETE,
-     CMD_FUNCTION:
-       {Cmd.ARG_USERS:		undeleteUsers,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_USER:		Cmd.ARG_USERS,
-       },
-    },
-  u'unsuspend':
-    {CMD_ACTION: Act.UNSUSPEND,
-     CMD_FUNCTION:
-       {Cmd.ARG_USERS:		unsuspendUsers,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_USER:		Cmd.ARG_USERS,
-       },
-    },
+    (Act.SHOW,
+     {Cmd.ARG_ASP:		showASPs,
+      Cmd.ARG_BACKUPCODE:	showBackupCodes,
+      Cmd.ARG_CALENDAR:		showCalendars,
+      Cmd.ARG_CALENDARACL:	showCalendarACLs,
+      Cmd.ARG_CALSETTINGS:	showCalSettings,
+      Cmd.ARG_CONTACT:		showUserContacts,
+      Cmd.ARG_CONTACTGROUP:	showUserContactGroups,
+      Cmd.ARG_DELEGATE:		showDelegates,
+      Cmd.ARG_DRIVEACTIVITY:	printDriveActivity,
+      Cmd.ARG_DRIVEFILEACL:	showDriveFileACLs,
+      Cmd.ARG_DRIVESETTINGS:	showDriveSettings,
+      Cmd.ARG_EVENT:		showCalendarEvents,
+      Cmd.ARG_FILEINFO:		showFileInfo,
+      Cmd.ARG_FILELIST:		printFileList,
+      Cmd.ARG_FILEPATH:		showFilePaths,
+      Cmd.ARG_FILEREVISION:	showFileRevisions,
+      Cmd.ARG_FILETREE:		showFileTree,
+      Cmd.ARG_FILTER:		showFilters,
+      Cmd.ARG_FORWARD:		showForward,
+      Cmd.ARG_FORWARDINGADDRESS:	showForwardingAddresses,
+      Cmd.ARG_GMAILPROFILE:	showGmailProfile,
+      Cmd.ARG_GPLUSPROFILE:	showGplusProfile,
+      Cmd.ARG_IMAP:		showImap,
+      Cmd.ARG_LABEL:		showLabels,
+      Cmd.ARG_MESSAGE:		showMessages,
+      Cmd.ARG_POP:		showPop,
+      Cmd.ARG_PROFILE:		showProfile,
+      Cmd.ARG_SENDAS:		showSendAs,
+      Cmd.ARG_SHEETRANGE:	showSheetRanges,
+      Cmd.ARG_SIGNATURE:	showSignature,
+      Cmd.ARG_SITE:		showUserSites,
+      Cmd.ARG_SITEACL:		processUserSiteACLs,
+      Cmd.ARG_SMIME:		showSmimes,
+      Cmd.ARG_TEAMDRIVE:	showTeamDrives,
+      Cmd.ARG_TEAMDRIVEINFO:	infoTeamDrive,
+      Cmd.ARG_TEAMDRIVETHEMES:	showTeamDriveThemes,
+      Cmd.ARG_THREAD:		showThreads,
+      Cmd.ARG_TOKEN:		showTokens,
+      Cmd.ARG_VACATION:		showVacation,
+     }
+    ),
+  u'spam': (Act.SPAM, {Cmd.ARG_MESSAGE: processMessages, Cmd.ARG_THREAD: processThreads}),
+  u'suspend': (Act.SUSPEND, {Cmd.ARG_USER: suspendUsers}),
+  u'transfer': (Act.TRANSFER, {Cmd.ARG_DRIVE: transferDrive, Cmd.ARG_CALENDAR: transferCalendars, Cmd.ARG_OWNERSHIP: transferOwnership}),
+  u'trash': (Act.TRASH, {Cmd.ARG_DRIVEFILE: trashDriveFile, Cmd.ARG_MESSAGE: processMessages, Cmd.ARG_THREAD: processThreads}),
+  u'untrash': (Act.UNTRASH, {Cmd.ARG_DRIVEFILE: untrashDriveFile, Cmd.ARG_MESSAGE: processMessages, Cmd.ARG_THREAD: processThreads}),
+  u'undelete': (Act.UNDELETE, {Cmd.ARG_USER: undeleteUsers}),
+  u'unsuspend': (Act.UNSUSPEND, {Cmd.ARG_USER: unsuspendUsers}),
   u'update':
-    {CMD_ACTION: Act.UPDATE,
-     CMD_FUNCTION:
-       {Cmd.ARG_BACKUPCODES:	updateBackupCodes,
-        Cmd.ARG_CALATTENDEES:	updateCalendarAttendees,
-        Cmd.ARG_CALENDARS:	updateCalendars,
-        Cmd.ARG_CALENDARACLS:	updateCalendarACLs,
-        Cmd.ARG_CONTACTS:	updateUserContacts,
-        Cmd.ARG_CONTACT_GROUP:	updateUserContactGroup,
-        Cmd.ARG_DRIVEFILE:	updateDriveFile,
-        Cmd.ARG_DRIVEFILEACLS:	updateDriveFileACLs,
-        Cmd.ARG_EVENTS:		updateCalendarEvents,
-        Cmd.ARG_LABELS:		updateLabels,
-        Cmd.ARG_LABELSETTINGS:	updateLabelSettings,
-        Cmd.ARG_LICENSE:	updateLicense,
-        Cmd.ARG_PHOTO:		updatePhoto,
-        Cmd.ARG_SENDAS:		updateSendAs,
-        Cmd.ARG_SHEETS:		updateSheets,
-        Cmd.ARG_SHEETRANGES:	updateSheetRanges,
-        Cmd.ARG_SMIME:		updateSmime,
-        Cmd.ARG_SITES:		updateUserSites,
-        Cmd.ARG_SITEACLS:	processUserSiteACLs,
-        Cmd.ARG_TEAMDRIVE:	updateTeamDrive,
-        Cmd.ARG_USERS:		updateUsers,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_BACKUPCODE:	Cmd.ARG_BACKUPCODES,
-        Cmd.ARG_VERIFICATIONCODES:	Cmd.ARG_BACKUPCODES,
-        Cmd.ARG_CALENDAR:	Cmd.ARG_CALENDARS,
-        Cmd.ARG_CALENDARACL:	Cmd.ARG_CALENDARACLS,
-        Cmd.ARG_CONTACT:	Cmd.ARG_CONTACTS,
-        Cmd.ARG_CONTACT_GROUPS:	Cmd.ARG_CONTACT_GROUP,
-        Cmd.ARG_DRIVEFILEACL:	Cmd.ARG_DRIVEFILEACLS,
-        Cmd.ARG_EVENT:		Cmd.ARG_EVENTS,
-        Cmd.ARG_LABEL:		Cmd.ARG_LABELS,
-        Cmd.ARG_LICENCE:	Cmd.ARG_LICENSE,
-        Cmd.ARG_SHEET:		Cmd.ARG_SHEETS,
-        Cmd.ARG_SHEETRANGE:	Cmd.ARG_SHEETRANGES,
-        Cmd.ARG_SITE:		Cmd.ARG_SITES,
-        Cmd.ARG_SITEACL:	Cmd.ARG_SITEACLS,
-        Cmd.ARG_USER:		Cmd.ARG_USERS,
-       },
-    },
-  u'wipe':
-    {CMD_ACTION: Act.WIPE,
-     CMD_FUNCTION:
-       {Cmd.ARG_EVENTS:		wipeCalendarEvents,
-       },
-     CMD_OBJ_ALIASES:
-       {Cmd.ARG_EVENT:		Cmd.ARG_EVENTS,
-       },
-    },
+    (Act.UPDATE,
+     {Cmd.ARG_BACKUPCODE:	updateBackupCodes,
+      Cmd.ARG_CALATTENDEES:	updateCalendarAttendees,
+      Cmd.ARG_CALENDAR:		updateCalendars,
+      Cmd.ARG_CALENDARACL:	updateCalendarACLs,
+      Cmd.ARG_CONTACT:		updateUserContacts,
+      Cmd.ARG_CONTACTGROUP:	updateUserContactGroup,
+      Cmd.ARG_DRIVEFILE:	updateDriveFile,
+      Cmd.ARG_DRIVEFILEACL:	updateDriveFileACLs,
+      Cmd.ARG_EVENT:		updateCalendarEvents,
+      Cmd.ARG_LABEL:		updateLabels,
+      Cmd.ARG_LABELSETTINGS:	updateLabelSettings,
+      Cmd.ARG_LICENSE:		updateLicense,
+      Cmd.ARG_PHOTO:		updatePhoto,
+      Cmd.ARG_SENDAS:		updateSendAs,
+      Cmd.ARG_SHEET:		updateSheets,
+      Cmd.ARG_SHEETRANGE:	updateSheetRanges,
+      Cmd.ARG_SMIME:		updateSmime,
+      Cmd.ARG_SITE:		updateUserSites,
+      Cmd.ARG_SITEACL:		processUserSiteACLs,
+      Cmd.ARG_TEAMDRIVE:	updateTeamDrive,
+      Cmd.ARG_USER:		updateUsers,
+     }
+    ),
+  u'wipe': (Act.WIPE, {Cmd.ARG_EVENT: wipeCalendarEvents}),
   }
 
 # User commands aliases
 USER_COMMANDS_ALIASES = {
   u'del':	u'delete',
-  Cmd.ARG_DELEGATES:	Cmd.ARG_DELEGATE,
+  u'delegates':	u'delegate',
   u'deprov':	u'deprovision',
   u'imap4':	u'imap',
   u'pop3':	u'pop',
@@ -30686,6 +30153,46 @@ USER_COMMANDS_ALIASES = {
   u'utf':	u'unicode',
   u'utf-8':	u'unicode',
   u'utf8':	u'unicode',
+  }
+
+USER_COMMANDS_OBJ_ALIASES = {
+  Cmd.ARG_3LO:		Cmd.ARG_TOKEN,
+  Cmd.ARG_ALIASES:	Cmd.ARG_ALIAS,
+  Cmd.ARG_APPLICATIONSPECIFICPASSWORDS:	Cmd.ARG_ASP,
+  Cmd.ARG_ASPS:		Cmd.ARG_ASP,
+  Cmd.ARG_BACKUPCODES:	Cmd.ARG_BACKUPCODE,
+  Cmd.ARG_CALENDARS:	Cmd.ARG_CALENDAR,
+  Cmd.ARG_CALENDARACLS:	Cmd.ARG_CALENDARACL,
+  Cmd.ARG_CONTACTS:	Cmd.ARG_CONTACT,
+  Cmd.ARG_CONTACTGROUPS:	Cmd.ARG_CONTACTGROUP,
+  Cmd.ARG_DELEGATES:	Cmd.ARG_DELEGATE,
+  Cmd.ARG_DRIVEFILEACLS:	Cmd.ARG_DRIVEFILEACL,
+  Cmd.ARG_EVENTS:	Cmd.ARG_EVENT,
+  Cmd.ARG_FILEPATHS:	Cmd.ARG_FILEPATH,
+  Cmd.ARG_FILEREVISIONS:	Cmd.ARG_FILEREVISION,
+  Cmd.ARG_FILTERS:	Cmd.ARG_FILTER,
+  Cmd.ARG_FORWARDINGADDRESSES:	Cmd.ARG_FORWARDINGADDRESS,
+  Cmd.ARG_GROUPS:	Cmd.ARG_GROUP,
+  Cmd.ARG_IMAP4:	Cmd.ARG_IMAP,
+  Cmd.ARG_LABELS:	Cmd.ARG_LABEL,
+  Cmd.ARG_LICENCE:	Cmd.ARG_LICENSE,
+  Cmd.ARG_LICENCES:	Cmd.ARG_LICENSE,
+  Cmd.ARG_LICENSES:	Cmd.ARG_LICENSE,
+  Cmd.ARG_MESSAGES:	Cmd.ARG_MESSAGE,
+  Cmd.ARG_OAUTH:	Cmd.ARG_TOKEN,
+  Cmd.ARG_POP3:		Cmd.ARG_POP,
+  Cmd.ARG_SECCALS:	Cmd.ARG_CALENDAR,
+  Cmd.ARG_SHEETS:	Cmd.ARG_SHEET,
+  Cmd.ARG_SHEETRANGES:	Cmd.ARG_SHEETRANGE,
+  Cmd.ARG_SIG:		Cmd.ARG_SIGNATURE,
+  Cmd.ARG_SITES:	Cmd.ARG_SITE,
+  Cmd.ARG_SITEACLS:	Cmd.ARG_SITEACL,
+  Cmd.ARG_SMIMES:	Cmd.ARG_SMIME,
+  Cmd.ARG_TEAMDRIVES:	Cmd.ARG_TEAMDRIVE,
+  Cmd.ARG_THREADS:	Cmd.ARG_THREAD,
+  Cmd.ARG_TOKENS:	Cmd.ARG_TOKEN,
+  Cmd.ARG_USERS:	Cmd.ARG_USER,
+  Cmd.ARG_VERIFICATIONCODES:	Cmd.ARG_BACKUPCODE,
   }
 
 def adjustRedirectedSTDFilesIfNotMultiprocessing():
@@ -30725,14 +30232,14 @@ def ProcessGAMCommand(args, processGamCfg=True):
   Cmd.InitializeArguments(args)
   Ind.Reset()
   try:
-    if checkArgumentPresent([Cmd.LOOP_CMD,]):
+    if checkArgumentPresent(Cmd.LOOP_CMD):
       if processGamCfg and (not SetGlobalVariables()):
         sys.exit(GM.Globals[GM.SYSEXITRC])
       doLoop()
       sys.exit(GM.Globals[GM.SYSEXITRC])
     if processGamCfg and (not SetGlobalVariables()):
       sys.exit(GM.Globals[GM.SYSEXITRC])
-    if checkArgumentPresent([Cmd.LOOP_CMD,]):
+    if checkArgumentPresent(Cmd.LOOP_CMD):
       doLoop()
       sys.exit(GM.Globals[GM.SYSEXITRC])
     if not Cmd.ArgumentsRemaining():
@@ -30753,7 +30260,7 @@ def ProcessGAMCommand(args, processGamCfg=True):
     if CL_command:
       adjustRedirectedSTDFilesIfNotMultiprocessing()
       Act.Set(MAIN_COMMANDS_WITH_OBJECTS[CL_command][CMD_ACTION])
-      CL_objectName = getChoice(MAIN_COMMANDS_WITH_OBJECTS[CL_command][CMD_FUNCTION], choiceAliases=MAIN_COMMANDS_WITH_OBJECTS[CL_command][CMD_OBJ_ALIASES])
+      CL_objectName = getChoice(MAIN_COMMANDS_WITH_OBJECTS[CL_command][CMD_FUNCTION], choiceAliases=MAIN_COMMANDS_OBJ_ALIASES)
       MAIN_COMMANDS_WITH_OBJECTS[CL_command][CMD_FUNCTION][CL_objectName]()
       sys.exit(GM.Globals[GM.SYSEXITRC])
     CL_command = getChoice(COMMANDS_MAP, choiceAliases=COMMANDS_ALIASES, defaultChoice=None)
@@ -30778,8 +30285,8 @@ def ProcessGAMCommand(args, processGamCfg=True):
         USER_COMMANDS[CL_command][CMD_FUNCTION](entityList)
       else:
         Act.Set(USER_COMMANDS_WITH_OBJECTS[CL_command][CMD_ACTION])
-        CL_objectName = getChoice(USER_COMMANDS_WITH_OBJECTS[CL_command][CMD_FUNCTION], choiceAliases=USER_COMMANDS_WITH_OBJECTS[CL_command][CMD_OBJ_ALIASES],
-                                  defaultChoice=[Cmd.ARG_USERS, NO_DEFAULT][CL_command != u'print'])
+        CL_objectName = getChoice(USER_COMMANDS_WITH_OBJECTS[CL_command][CMD_FUNCTION], choiceAliases=USER_COMMANDS_OBJ_ALIASES,
+                                  defaultChoice=[Cmd.ARG_USER, NO_DEFAULT][CL_command != u'print'])
         USER_COMMANDS_WITH_OBJECTS[CL_command][CMD_FUNCTION][CL_objectName](entityList)
     else:
       CL_command = getChoice(CROS_COMMANDS)
@@ -30826,7 +30333,7 @@ def doLoop():
     usageErrorExit(Msg.BATCH_CSV_LOOP_DASH_DEBUG_INCOMPATIBLE.format(Cmd.LOOP_CMD))
   f, csvFile = openCSVFileReader(filename)
   matchFields = getMatchFields(csvFile.fieldnames)
-  checkArgumentPresent([Cmd.GAM_CMD,], required=True)
+  checkArgumentPresent(Cmd.GAM_CMD, required=True)
   if not Cmd.ArgumentsRemaining():
     missingArgumentExit(Cmd.OB_GAM_ARGUMENT_LIST)
   choice = Cmd.Current().strip().lower()

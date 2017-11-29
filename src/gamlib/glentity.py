@@ -117,6 +117,7 @@ class GamEntity(object):
   MEMBER = u'memb'
   MESSAGE = u'mesg'
   MOBILE_DEVICE = u'mobi'
+  NONEDITABLE_ALIAS = u'neal'
   NOTIFICATION = u'noti'
   OAUTH2_TXT_FILE = u'oaut'
   OAUTH2SERVICE_JSON_FILE = u'oau2'
@@ -273,6 +274,7 @@ class GamEntity(object):
     MEMBER: [u'Members', u'Member'],
     MESSAGE: [u'Messages', u'Message'],
     MOBILE_DEVICE: [u'Mobile Devices', u'Mobile Device'],
+    NONEDITABLE_ALIAS: [u'Non-Editable Aliases', u'Non-Editable Alias'],
     NOTIFICATION: [u'Notifications', u'Notification'],
     OAUTH2_TXT_FILE: [u'Client OAuth2 File', u'Client OAuth2 File'],
     OAUTH2SERVICE_JSON_FILE: [u'Service Account OAuth2 File', u'Service Account OAuth2 File'],
@@ -353,13 +355,18 @@ class GamEntity(object):
   def __init__(self):
     self.entityType = None
     self.forWhom = None
+    self.qualifier = u''
     self.showTotal = False
 
-  def SetGetting(self, entityType):
+  def SetGetting(self, entityType, qualifier=u''):
     self.entityType = entityType
+    self.qualifier = qualifier
 
   def Getting(self):
     return self.entityType
+
+  def GettingQualifier(self):
+    return self.qualifier
 
   def SetGettingForWhom(self, forWhom):
     self.forWhom = forWhom
