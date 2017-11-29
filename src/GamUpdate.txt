@@ -1,12 +1,15 @@
 4.54.52
 
-Added noretentionmessages option to the following commands; it causes GAM to suppress the progress messages that detail what role
-to original owner retains. (If there is an error in assigning the retained role, it will be displayed.)
+* Added noretentionmessages option to the following commands.
+It causes GAM to suppress the progress messages that detail what role the original owner retains.
+(If there is an error in assigning the retained role, it will be displayed.)
+
 gam <UserTypeEntity> transfer calendars <CalendarManageEntity> <UserItem> [keepuser | (retainrole <CalendarACLRole>)] [noretentionmessages]
 gam <UserTypeEntity> claim ownership <DriveFileEntity> ...  [keepuser | (retainrole commenter|reader|writer|none)] [noretentionmessages]
 gam <UserTypeEntity> transfer drive <UserItem> ... [keepuser | (retainrole commenter|reader|writer|none)] [noretentionmessages]
 
-Added usersonly|groupsonly option to the following commands:
+* Added usersonly|groupsonly option to the following commands.
+
 gam update group|groups <GroupEntity> create|add [owner|manager|member] [usersonly|groupsonly] [notsuspended] <UserTypeEntity>
 gam update group|groups <GroupEntity> delete|remove [owner|manager|member] [usersonly|groupsonly] <UserTypeEntity>
 gam update group|groups <GroupEntity> sync [owner|manager|member] [usersonly|groupsonly] [notsuspended] <UserTypeEntity>
@@ -34,6 +37,32 @@ a group or groups. In ths case, only the user members from the specified groups 
 
 The groupsonly option works in the same manner as the usersonly option; it only processes group members that are groups.
 It only makes sense to use it when <UserTypeEntity> specifies a group or groups.
+
+* Updated handling of group name and description to account for Google API behavior.
+
+There are two APIs that can set a group name or description: the Directory API and the Group Settings API;
+they have different behaviors when updating these two fields.
+
+Define four fields: d-name, d-description, gs-name and gs-description.
+The Directory API sets d-name and d-description: newline (\n), <, > and = are not allowed.
+The Group Settings API sets gs-name and gs-description, all characters are allowed.
+If you set d-name/d-description with the Directory API, gs-name/gs-description are unaffected.
+If you set gs-name/gs-description with the Group Settings API, d-name/d-description are unaffected.
+
+When retrieving these fields for an individual group, the Directory API returns d-name and d-description and
+the Group Settings API returns gs-name and gs-description. However, when using the Directory API to retrieve these fields
+for a list of groups, the gs-name and gs-description values are returned.
+
+If you use the Admin console, the character limitations for the Directory API still apply, but both d-name/gs-name and d-description/gs-description are set.
+
+If you use groups.google.com, there are no character limitations, and both d-name/gs-name and d-description/gs-description are set.
+
+When you update a group name or description, GAM will use both APIs to set the values. When updating the value with the Directory API,
+each disallowed character is replaced by a space.
+
+When you print groups, the name and description columns contain the gs-name and gs-description values. When you get info for a single grooup,
+the name and description lines contain the gs-name and gs-description values. If the d-name value differs from the gs-name value, it will
+shown on a separate line as groupName. If the d-description value differs from the gs-description  value, it will shown on a separate line as groupDescription.
 
 4.54.51
 
