@@ -355,18 +355,31 @@ class GamEntity(object):
   def __init__(self):
     self.entityType = None
     self.forWhom = None
-    self.qualifier = u''
+    self.preQualifier = u''
+    self.postQualifier = u''
     self.showTotal = False
 
-  def SetGetting(self, entityType, qualifier=u''):
+  def SetGetting(self, entityType):
     self.entityType = entityType
-    self.qualifier = qualifier
+    self.preQualifier = self.postQualifier = u''
+
+  def SetGettingQuery(self, entityType, query):
+    self.entityType = entityType
+    self.preQualifier = u' that match query ({0})'.format(query)
+    self.postQualifier = u' that matched query ({0})'.format(query)
+
+  def SetGettingQualifier(self, entityType, qualifier):
+    self.entityType = entityType
+    self.preQualifier = self.postQualifier = qualifier
 
   def Getting(self):
     return self.entityType
 
-  def GettingQualifier(self):
-    return self.qualifier
+  def GettingPreQualifier(self):
+    return self.preQualifier
+
+  def GettingPostQualifier(self):
+    return self.postQualifier
 
   def SetGettingForWhom(self, forWhom):
     self.forWhom = forWhom
@@ -397,6 +410,11 @@ class GamEntity(object):
 
   def SingularGetting(self):
     return self._NAMES[self.entityType][1]
+
+  def MayTakeTime(self, entityType):
+    if entityType:
+      return u', may take some time on a large {0}...'.format(self.Singular(entityType))
+    return u''
 
   def FormatEntityValueList(self, entityValueList):
     evList = []
