@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.53'
+__version__ = u'4.54.54'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -11775,7 +11775,8 @@ def infoGroups(entityList):
         else:
           for key in GROUP_BASIC_FIELD_TO_GROUP_FIELD_MAP:
             if key in settings and ((key not in basic_info) or (basic_info[key] != settings[key])):
-              basic_info[GROUP_BASIC_FIELD_TO_GROUP_FIELD_MAP[key]] = basic_info.pop(key)
+              if key in basic_info:
+                basic_info[GROUP_BASIC_FIELD_TO_GROUP_FIELD_MAP[key]] = basic_info.pop(key)
               basic_info[key] = settings.pop(key)
       if getGroups:
         groups = callGAPIpages(cd.groups(), u'list', u'groups',

@@ -1,3 +1,7 @@
+4.54.54
+
+Fixed bug in gam info group.
+
 4.54.53
 
 Code cleanup for "Getting ..." messages.
