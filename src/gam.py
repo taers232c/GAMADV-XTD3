@@ -17003,7 +17003,7 @@ def infoUsers(entityList):
       if getAliases:
         for up in [u'aliases', u'nonEditableAliases']:
           propertyValue = user.get(up, [])
-          if up:
+          if propertyValue:
             printEntitiesCount([Ent.NONEDITABLE_ALIAS, Ent.EMAIL_ALIAS][up == u'aliases'], propertyValue)
             Ind.Increment()
             for alias in propertyValue:

@@ -85,6 +85,7 @@ QUERY_REQUIRES_ADMIN_CREDENTIALS = u'queryRequiresAdminCredentials'
 QUOTA_EXCEEDED = u'quotaExceeded'
 RATE_LIMIT_EXCEEDED = u'rateLimitExceeded'
 REQUIRED = u'required'
+RESOURCE_EXHAUSTED = u'resourceExhausted'
 RESOURCE_ID_NOT_FOUND = u'resourceIdNotFound'
 RESOURCE_NOT_FOUND = u'resourceNotFound'
 RESPONSE_PREPARATION_FAILURE = u'responsePreparationFailure'
@@ -314,6 +315,8 @@ class rateLimitExceeded(Exception):
   pass
 class required(Exception):
   pass
+class resourceExhausted(Exception):
+  pass
 class resourceIdNotFound(Exception):
   pass
 class resourceNotFound(Exception):
@@ -415,6 +418,7 @@ REASON_EXCEPTION_MAP = {
   QUERY_REQUIRES_ADMIN_CREDENTIALS: queryRequiresAdminCredentials,
   RATE_LIMIT_EXCEEDED: rateLimitExceeded,
   REQUIRED: required,
+  RESOURCE_EXHAUSTED: resourceExhausted,
   RESOURCE_ID_NOT_FOUND: resourceIdNotFound,
   RESOURCE_NOT_FOUND: resourceNotFound,
   RESPONSE_PREPARATION_FAILURE: responsePreparationFailure,
