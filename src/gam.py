@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.54'
+__version__ = u'4.54.55'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -24778,10 +24778,10 @@ def deleteTeamDrive(users):
     try:
       teamDriveId = fileIdEntity[u'teamdrive'][u'teamDriveId']
       callGAPI(drive.teamdrives(), u'delete',
-               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.CANNOT_DELETE_RESOURCE_WITH_CHILDREN],
                teamDriveId=teamDriveId)
       entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
-    except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.forbidden) as e:
+    except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.forbidden, GAPI.cannotDeleteResourceWithChildren) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)

@@ -1,6 +1,19 @@
+4.54.55
+
+Handle error when trying to delete a Team Drive that contains files/folders.
+
 4.54.54
 
 Fixed bug in gam info group.
+
+Made gam info group and gam info user consistent when printing aliases.
+Previously:
+* gam info user showed the Aliases: and Non-Editable Aliases: lines even if there were no aliases of the type; counts for each alias type were not shown.
+* gam info group showed the Aliases: and Non-Editable Aliases: lines only if there were aliases of the type; counts for each alias type were shown.
+
+Currently:
+* gam info user shows the Aliases: and Non-Editable Aliases: lines only if there are aliases of the type; counts for each alias type are shown.
+* gam info group shows the Aliases: and Non-Editable Aliases: lines only if there are aliases of the type; counts for each alias type are shown.
 
 4.54.53
 

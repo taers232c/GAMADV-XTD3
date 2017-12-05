@@ -33,6 +33,7 @@ CANNOT_COPY_FILE = u'cannotCopyFile'
 CANNOT_DELETE_ONLY_REVISION = u'cannotDeleteOnlyRevision'
 CANNOT_DELETE_PRIMARY_CALENDAR = u'cannotDeletePrimaryCalendar'
 CANNOT_DELETE_PRIMARY_SENDAS = u'cannotDeletePrimarySendAs'
+CANNOT_DELETE_RESOURCE_WITH_CHILDREN = u'cannotDeleteResourceWithChildren'
 CONDITION_NOT_MET = u'conditionNotMet'
 CUSTOMER_NOT_FOUND = u'customerNotFound'
 CYCLIC_MEMBERSHIPS_NOT_ALLOWED = u'cyclicMembershipsNotAllowed'
@@ -213,6 +214,8 @@ class cannotDeletePrimaryCalendar(Exception):
   pass
 class cannotDeletePrimarySendAs(Exception):
   pass
+class cannotDeleteResourceWithChildren(Exception):
+  pass
 class conditionNotMet(Exception):
   pass
 class customerNotFound(Exception):
@@ -367,6 +370,7 @@ REASON_EXCEPTION_MAP = {
   CANNOT_DELETE_ONLY_REVISION: cannotDeleteOnlyRevision,
   CANNOT_DELETE_PRIMARY_CALENDAR: cannotDeletePrimaryCalendar,
   CANNOT_DELETE_PRIMARY_SENDAS: cannotDeletePrimarySendAs,
+  CANNOT_DELETE_RESOURCE_WITH_CHILDREN: cannotDeleteResourceWithChildren,
   CONDITION_NOT_MET: conditionNotMet,
   CUSTOMER_NOT_FOUND: customerNotFound,
   CYCLIC_MEMBERSHIPS_NOT_ALLOWED: cyclicMembershipsNotAllowed,
