@@ -1,3 +1,7 @@
+4.54.57
+
+Fixed bug in gam oauth create where entering `e` to exit without changes didn't exit.
+
 4.54.56
 
 Added options to allow getting only non-suspended users from groups and OUs. Using a type with a trailing _ns causes Gam to get only

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.56'
+__version__ = u'4.54.57'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -5067,7 +5067,7 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
 '''
   num_scopes = len(API.OAUTH2_SCOPES)
   menu = oauth2_menu % tuple(range(num_scopes))
-  selected_scopes = [u'*'] * num_scopes
+  selectedScopes = [u'*'] * num_scopes
   for cred_family in API.FAM_LIST:
     credentials = getCredentialsForScope(cred_family)
     if credentials and not credentials.invalid:
@@ -5075,31 +5075,31 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
       i = 0
       for a_scope in API.OAUTH2_SCOPES:
         if cred_family == a_scope[u'credfam']:
-          selected_scopes[i] = u' '
+          selectedScopes[i] = u' '
           possibleScope = a_scope[u'scope']
           for currentScope in currentScopes:
             if currentScope == possibleScope:
-              selected_scopes[i] = u'*'
+              selectedScopes[i] = u'*'
               break
             if u'readonly' in a_scope[u'subscopes']:
               if currentScope == possibleScope+u'.readonly':
-                selected_scopes[i] = u'R'
+                selectedScopes[i] = u'R'
                 break
             if u'action' in a_scope[u'subscopes']:
               if currentScope == possibleScope+u'.action':
-                selected_scopes[i] = u'A'
+                selectedScopes[i] = u'A'
                 break
         i += 1
     else:
       i = 0
       for a_scope in API.OAUTH2_SCOPES:
         if cred_family == a_scope[u'credfam']:
-          selected_scopes[i] = [u'*', u' '][a_scope.get(u'offByDefault', False)]
+          selectedScopes[i] = [u'*', u' '][a_scope.get(u'offByDefault', False)]
         i += 1
   prompt = u'Please enter 0-{0}[a|r] or {1}: '.format(num_scopes-1, u'|'.join(OAUTH2_CMDS))
   while True:
     os.system([u'clear', u'cls'][GM.Globals[GM.WINDOWS]])
-    sys.stdout.write(menu % tuple(selected_scopes))
+    sys.stdout.write(menu % tuple(selectedScopes))
     while True:
       choice = readStdin(prompt)
       if choice:
@@ -5123,26 +5123,26 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
             if u'action' not in API.OAUTH2_SCOPES[selection][u'subscopes']:
               sys.stdout.write(u'{0}Scope {1} does not support action-only mode!\n'.format(ERROR_PREFIX, selection))
               continue
-          elif selected_scopes[selection] != u'*':
+          elif selectedScopes[selection] != u'*':
             mode = u'*'
           else:
             mode = u' '
-          selected_scopes[selection] = mode
+          selectedScopes[selection] = mode
           break
         elif isinstance(selection, string_types) and selection in OAUTH2_CMDS:
           if selection == u's':
             for i in range(num_scopes):
-              selected_scopes[i] = u'*'
+              selectedScopes[i] = u'*'
           elif selection == u'u':
             for i in range(num_scopes):
-              selected_scopes[i] = u' '
+              selectedScopes[i] = u' '
           elif selection == u'e':
-            return
+            return None
           break
         sys.stdout.write(u'{0}Invalid input "{1}"\n'.format(ERROR_PREFIX, choice))
     if selection == u'c':
       break
-  return selected_scopes
+  return selectedScopes
 
 class cmd_flags(object):
   def __init__(self, noLocalWebserver):
@@ -5157,7 +5157,9 @@ def doOAuthRequest():
   client_id, client_secret = getOAuthClientIDAndSecret()
   login_hint = getEmailAddress(noUid=True, optional=True)
   checkForExtraneousArguments()
-  selected_scopes = getScopesFromUser()
+  selectedScopes = getScopesFromUser()
+  if selectedScopes is None:
+    return
   login_hint = getValidateLoginHint(login_hint)
   revokeCredentials(API.FAM_LIST)
   flags = cmd_flags(noLocalWebserver=GC.Values[GC.NO_BROWSER])
@@ -5167,11 +5169,11 @@ def doOAuthRequest():
     i = 0
     for a_scope in API.OAUTH2_SCOPES:
       if cred_family == a_scope[u'credfam']:
-        if selected_scopes[i] == u'*':
+        if selectedScopes[i] == u'*':
           scopes.append(a_scope[u'scope'])
-        elif selected_scopes[i] == u'R':
+        elif selectedScopes[i] == u'R':
           scopes.append(u'{0}.readonly'.format(a_scope[u'scope']))
-        elif selected_scopes[i] == u'A':
+        elif selectedScopes[i] == u'A':
           scopes.append(u'{0}.action'.format(a_scope[u'scope']))
       i += 1
     flow = oauth2client.client.OAuth2WebServerFlow(client_id=client_id,
