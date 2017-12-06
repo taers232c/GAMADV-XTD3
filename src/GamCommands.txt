@@ -396,13 +396,13 @@ Specify a collection of Users by directly specifying them or by specifiying item
 	(all users)|
 	(user <UserItem>)|
 	(users <UserList>)|
-	(group <GroupItem>)|
-	(groups <GroupList>)|
-	(group_users <GroupList> [members] [managers] [owners] [primarydomain] [domains <DomainNameList>] [recursive] end)|
-	(ou|org <OrgUnitItem>)|
-	(ou_and_children|ou_and_child <OrgUnitItem>)|
-	(ous|orgs <OrgUnitList>)|
-	(ous_and_children|ous_and_child <OrgUnitList>)|
+	(group|group_ns <GroupItem>)|
+	(groups|groups_ns <GroupList>)|
+	(group_users|group_users_ns <GroupList> [members] [managers] [owners] [primarydomain] [domains <DomainNameList>] [recursive] end)|
+	(ou|ou_ns <OrgUnitItem>)|
+	(ou_and_children|ou_and_children_ns <OrgUnitItem>)|
+	(ous|ous_ns <OrgUnitList>)|
+	(ous_and_children|ous_and_children_ns <OrgUnitList>)|
 	(courseparticipants <CourseIDList>)|
 	(students <CourseIDList>)|
 	(teachers <CourseIDList>)|
@@ -1184,11 +1184,11 @@ gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member 
 <MembersFieldNameList> ::= "<MembersFieldName>(,<MembersFieldName>)*"
 
 gam print group-members [todrive [<ToDriveAttributes>]]
-	[domain <DomainName>] [member <UserItem>])|[group <GroupItem>]|[select <GroupEntity>]
+	[domain <DomainName>] [member <UserItem>])|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
 	[members] [managers] [owners] [membernames] <MembersFieldName>*
 	[fields <MembersFieldNameList>] [userfields <UserFieldNameList>] [recursive [noduplicates]]
 gam show group-members
-	([domain <DomainName>] [member <UserItem>])|[group <GroupItem>]|[select <GroupEntity>]
+	([domain <DomainName>] [member <UserItem>])|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
 	[members] [managers] [owners] [depth <Number>]
 
 # Guardians
@@ -1590,8 +1590,8 @@ gam print vaultmatters|matters [todrive [<ToDriveAttributes>]] [basic|full]
 	ipwhitelisted|
 	isdelegatedadmin|admin|isadmin|
 	ismailboxsetup|
-	is2svenforced|
-	is2svenrolled|
+	isenforcedin2sv|is2svenforced|
+	isenrolledin2sv|is2svenrolled|
 	keyword|keywords|
 	language|languages|
 	lastlogintime|
@@ -1688,7 +1688,7 @@ Print a header row and selected fields for specified users; primaryEmail is the 
 If you specify allfields|basic|full, all other column headers are sorted.
 If you specify <UserFieldName>* | fields <UserFieldNameList>, the column headers appear in the order specified.
 
-gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [query <QueryUsers>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
+gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [query <QueryUser>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
 	[groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
 	[orderby <UserOrderByFieldName> [ascending|descending]]
 	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]

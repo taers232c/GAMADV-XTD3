@@ -41,6 +41,7 @@ class GamEntity(object):
   ALIAS_EMAIL = u'alie'
   ALIAS_TARGET = u'alit'
   API = u'api '
+  APP_ACCESS_SETTINGS = u'apps'
   APPLICATION_SPECIFIC_PASSWORD = u'aspa'
   ARROWS_ENABLED = u'arro'
   ATTENDEE = u'atnd'
@@ -172,6 +173,7 @@ class GamEntity(object):
   TOKEN = u'tokn'
   TRANSFER_ID = u'trid'
   TRANSFER_REQUEST = u'trnr'
+  TRUSTED_APPLICATION = u'trap'
   UNICODE_ENCODING_ENABLED = u'unic'
   UNIQUE_ID = u'uniq'
   USER = u'user'
@@ -198,6 +200,7 @@ class GamEntity(object):
     ALIAS_EMAIL: [u'Alias Emails', u'Alias Email'],
     ALIAS_TARGET: [u'Alias Targets', u'Alias Target'],
     API: [u'APIs', u'API'],
+    APP_ACCESS_SETTINGS: [u'Application Access Settings', u'Application Access Settings'],
     APPLICATION_SPECIFIC_PASSWORD: [u'Application Specific Password IDs', u'Application Specific Password ID'],
     ARROWS_ENABLED: [u'Personal Indicator Arrows Enabled', u'Personal Indicator Arrows Enabled'],
     ATTENDEE: [u'Attendees', u'Attendee'],
@@ -329,6 +332,7 @@ class GamEntity(object):
     TOKEN: [u'Tokens', u'Token'],
     TRANSFER_ID: [u'Transfer IDs', u'Transfer ID'],
     TRANSFER_REQUEST: [u'Transfer Requests', u'Transfer Request'],
+    TRUSTED_APPLICATION: [u'Trusted Applications', u'TRusted Application'],
     UNICODE_ENCODING_ENABLED: [u'UTF-8 Encoding Enabled', u'UTF-8 Encoding Enabled'],
     UNIQUE_ID: [u'Unique IDs', u'Unique ID'],
     USER: [u'Users', u'User'],

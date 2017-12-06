@@ -1,3 +1,27 @@
+4.54.56
+
+Added options to allow getting only non-suspended users from groups and OUs. Using a type with a trailing _ns causes Gam to get only
+the non-suspended users.
+<UserTypeEntity> ::=
+	(group|group_ns <GroupItem>)|
+	(groups|groups_ns <GroupList>)|
+	(group_users|group_users_ns <GroupList> [members] [managers] [owners] [primarydomain] [domains <DomainNameList>] [recursive] end)|
+	(ou|ou_ns <OrgUnitItem>)|
+	(ou_and_children|ou_and_children_ns <OrgUnitItem>)|
+	(ous|ous_ns <OrgUnitList>)|
+	(ous_and_children|ous_and_children_ns <OrgUnitList>)|
+
+gam print group-members [todrive [<ToDriveAttributes>]]
+	[domain <DomainName>] [member <UserItem>])|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
+	[members] [managers] [owners] [membernames] <MembersFieldName>*
+	[fields <MembersFieldNameList>] [userfields <UserFieldNameList>] [recursive [noduplicates]]
+gam show group-members
+	([domain <DomainName>] [member <UserItem>])|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
+	[members] [managers] [owners] [depth <Number>]
+
+To maintain compatabiity with Jay Lee's Gam, gam oauth create has been changed to prompt for the G Suite admin email address
+after the scopes have been selected.
+
 4.54.55
 
 Handle error when trying to delete a Team Drive that contains files/folders.

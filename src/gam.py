@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.55'
+__version__ = u'4.54.56'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -229,7 +229,7 @@ VX_ID_FILENAME_MIMETYPE_OWNEDBYME = u'id,{0},mimeType,ownedByMe'.format(VX_FILEN
 VX_ID_FILENAME_PARENTS_MIMETYPE = u'id,{0},{1},mimeType'.format(VX_FILENAME, VX_PARENTS_ID)
 VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME = u'id,{0},{1},mimeType,ownedByMe'.format(VX_FILENAME, VX_PARENTS_ID)
 VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED = u'id,{0},{1},mimeType,ownedByMe,{2}'.format(VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
-VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNER = u'id,{0},{1},mimeType,ownedByMe,{2},owners(emailAddress,permissionId)'.format(VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
+VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS = u'id,{0},{1},mimeType,ownedByMe,{2},owners(emailAddress,permissionId)'.format(VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
 VX_ID_MIMETYPE_CANEDIT = u'id,mimeType,capabilities(canEdit)'
 VX_NPT_FILES_FIELDLIST = u'nextPageToken,{0}({{0}})'.format(VX_PAGES_FILES)
 VX_NPT_FILES_ID = u'nextPageToken,{0}(id)'.format(VX_PAGES_FILES)
@@ -238,8 +238,9 @@ VX_NPT_FILES_ID_FILENAME_MIMETYPE_CANCOPY = u'nextPageToken,{0}(id,{1},mimeType,
 VX_NPT_FILES_ID_FILENAME_OWNEDBYME = u'nextPageToken,{0}(id,{1},ownedByMe)'.format(VX_PAGES_FILES, VX_FILENAME)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE = u'nextPageToken,{0}(id,{1},{2},mimeType)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
+VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_OWNERS = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,owners(emailAddress,permissionId))'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,{3})'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
-VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNER = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,{3},owners(emailAddress,permissionId))'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
+VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,{3},owners(emailAddress,permissionId))'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
 VX_NPT_FILES_ID_MIMETYPE_CANEDIT = u'nextPageToken,{0}(id,mimeType,capabilities(canEdit))'.format(VX_PAGES_FILES)
 VX_NPT_PERMISSIONS = u'nextPageToken,{0}'.format(VX_PAGES_PERMISSIONS)
 VX_NPT_PERMISSIONS_TYPE_EMAIL_ROLE = u'nextPageToken,{0}(type,emailAddress,role)'.format(VX_PAGES_PERMISSIONS)
@@ -2501,6 +2502,8 @@ def getClientCredentials(cred_family):
   credentials = getCredentialsForScope(cred_family)
   if not credentials or credentials.invalid:
     invalidOauth2TxtExit()
+  if credentials.access_token_expired:
+    credentials.refresh(httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]))
   credentials.user_agent = GAM_INFO
   return credentials
 
@@ -3345,9 +3348,11 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
       printGotAccountEntities(len(entityList))
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       accessErrorExit(cd)
-  elif entityType in [Cmd.ENTITY_GROUP, Cmd.ENTITY_GROUPS]:
+  elif entityType in [Cmd.ENTITY_GROUP, Cmd.ENTITY_GROUPS, Cmd.ENTITY_GROUP_NS, Cmd.ENTITY_GROUPS_NS]:
+    if entityType in [Cmd.ENTITY_GROUP_NS, Cmd.ENTITY_GROUPS_NS]:
+      checkNotSuspended = True
     cd = buildGAPIObject(API.DIRECTORY)
-    groups = convertEntityToList(entity, nonListEntityType=entityType == Cmd.ENTITY_GROUP)
+    groups = convertEntityToList(entity, nonListEntityType=entityType in [Cmd.ENTITY_GROUP, Cmd.ENTITY_GROUP_NS])
     for group in groups:
       if validateEmailAddressOrUID(group):
         try:
@@ -3370,7 +3375,9 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
       else:
         _showInvalidEntity(Ent.GROUP, group)
         invalid += 1
-  elif entityType == Cmd.ENTITY_GROUP_USERS:
+  elif entityType in [Cmd.ENTITY_GROUP_USERS, Cmd.ENTITY_GROUP_USERS_NS]:
+    if entityType == Cmd.ENTITY_GROUP_USERS_NS:
+      checkNotSuspended = True
     cd = buildGAPIObject(API.DIRECTORY)
     groups = convertEntityToList(entity)
     recursive = False
@@ -3883,7 +3890,7 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
       GM.Globals[GM.ENTITY_CL_DELAY_START] = Cmd.Location()
       buildGAPIObject(API.DIRECTORY)
       if entityClass == Cmd.ENTITY_USERS:
-        if entityType == Cmd.ENTITY_GROUP_USERS:
+        if entityType in [Cmd.ENTITY_GROUP_USERS, Cmd.ENTITY_GROUP_USERS_NS]:
           # Skip over sub-arguments
           while Cmd.ArgumentsRemaining():
             myarg = getArgument()
@@ -5003,16 +5010,6 @@ def doListCrOS(entityList):
 def doListUser(entityList):
   _doList(entityList, Cmd.ENTITY_USERS)
 
-class cmd_flags(object):
-  def __init__(self, noLocalWebserver):
-    self.short_url = True
-    self.noauth_local_webserver = noLocalWebserver
-    self.logging_level = u'ERROR'
-    self.auth_host_name = u'localhost'
-    self.auth_host_port = [8080, 9090]
-
-OAUTH2_CMDS = [u's', u'u', u'e', u'c']
-
 def revokeCredentials(credFamilyList):
   httpObj = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL])
   for cred_family in credFamilyList:
@@ -5038,21 +5035,20 @@ def getValidateLoginHint(login_hint):
       return login_hint
     sys.stdout.write(u'Error: that is not a valid email address\n')
 
-# gam oauth|oauth2 create|request [<EmailAddress>]
-def doOAuthRequest():
+def getOAuthClientIDAndSecret():
   cs_data = readFile(GC.Values[GC.CLIENT_SECRETS_JSON], continueOnError=True, displayError=True)
   if not cs_data:
     invalidClientSecretsJsonExit()
   try:
     cs_json = json.loads(cs_data)
-    client_id = cs_json[u'installed'][u'client_id']
-    client_secret = cs_json[u'installed'][u'client_secret']
+    # chop off .apps.googleusercontent.com suffix as it's not needed and we need to keep things short for the Auth URL.
+    return (re.sub(r'\.apps\.googleusercontent\.com$', u'', cs_json[u'installed'][u'client_id']),
+            cs_json[u'installed'][u'client_secret'])
   except (ValueError, IndexError, KeyError):
     invalidClientSecretsJsonExit()
 
-  login_hint = getEmailAddress(noUid=True, optional=True)
-  checkForExtraneousArguments()
-  login_hint = getValidateLoginHint(login_hint)
+def getScopesFromUser():
+  OAUTH2_CMDS = [u's', u'u', u'e', u'c']
   oauth2_menu = u'''
 Select the authorized scopes by entering a number.
 Append an 'r' to grant read-only access or an 'a' to grant action-only access.
@@ -5146,6 +5142,23 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
         sys.stdout.write(u'{0}Invalid input "{1}"\n'.format(ERROR_PREFIX, choice))
     if selection == u'c':
       break
+  return selected_scopes
+
+class cmd_flags(object):
+  def __init__(self, noLocalWebserver):
+    self.short_url = True
+    self.noauth_local_webserver = noLocalWebserver
+    self.logging_level = u'ERROR'
+    self.auth_host_name = u'localhost'
+    self.auth_host_port = [8080, 9090]
+
+# gam oauth|oauth2 create|request [<EmailAddress>]
+def doOAuthRequest():
+  client_id, client_secret = getOAuthClientIDAndSecret()
+  login_hint = getEmailAddress(noUid=True, optional=True)
+  checkForExtraneousArguments()
+  selected_scopes = getScopesFromUser()
+  login_hint = getValidateLoginHint(login_hint)
   revokeCredentials(API.FAM_LIST)
   flags = cmd_flags(noLocalWebserver=GC.Values[GC.NO_BROWSER])
   httpObj = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL])
@@ -5948,8 +5961,7 @@ def doReport():
                              maxResults=maxResults)
         while feed:
           activity = feed.popleft()
-          events = activity[u'events']
-          del activity[u'events']
+          events = activity.pop(u'events')
           if not countsOnly:
             activity_row = flattenJSON(activity, timeObjects=REPORT_ACTIVITIES_TIME_OBJECTS)
             for event in events:
@@ -6522,8 +6534,7 @@ def doPrintDomains():
       csvRows.append(row)
       if u'domainAliases' in domain:
         for aliasdomain in domain[u'domainAliases']:
-          aliasdomain[u'domainName'] = aliasdomain[u'domainAliasName']
-          del aliasdomain[u'domainAliasName']
+          aliasdomain[u'domainName'] = aliasdomain.pop(u'domainAliasName')
           aliasdomain[u'type'] = u'alias'
           row = {}
           for attr in aliasdomain:
@@ -12244,7 +12255,7 @@ def doPrintGroups():
     sortCSVTitles([fieldsTitles[u'email']], titles)
   writeCSVfile(csvRows, titles, u'Groups', todrive, quotechar)
 
-def getGroupMembers(cd, groupEmail, roles, membersList, membersSet, i, count, noduplicates, recursive, level):
+def getGroupMembers(cd, groupEmail, roles, membersList, membersSet, i, count, checkNotSuspended, noduplicates, recursive, level):
   try:
     printGettingAllEntityItemsForWhom(Ent.MEMBER, groupEmail, i, count)
     groupMembers = callGAPIpages(cd.members(), u'list', u'members',
@@ -12254,37 +12265,37 @@ def getGroupMembers(cd, groupEmail, roles, membersList, membersSet, i, count, no
     if not recursive:
       if noduplicates:
         for member in groupMembers:
-          if member[u'id'] in membersSet:
-            continue
-          membersSet.add(member[u'id'])
-          membersList.append(member)
+          if not (checkNotSuspended and (member[u'status'] == u'SUSPENDED')) and  member[u'id'] not in membersSet:
+            membersSet.add(member[u'id'])
+            membersList.append(member)
       else:
-        membersList.extend(groupMembers)
+        for member in groupMembers:
+          if not (checkNotSuspended and (member[u'status'] == u'SUSPENDED')):
+            membersList.append(member)
     elif noduplicates:
       groupMemberList = []
       for member in groupMembers:
         if member[u'type'] == u'USER':
-          if member[u'id'] in membersSet:
-            continue
-          membersSet.add(member[u'id'])
-          member[u'level'] = level
-          member[u'subgroup'] = groupEmail
-          membersList.append(member)
+          if not (checkNotSuspended and (member[u'status'] == u'SUSPENDED')) and member[u'id'] not in membersSet:
+            membersSet.add(member[u'id'])
+            member[u'level'] = level
+            member[u'subgroup'] = groupEmail
+            membersList.append(member)
         elif member[u'type'] == u'GROUP':
-          if member[u'id'] in membersSet:
-            continue
-          membersSet.add(member[u'id'])
-          groupMemberList.append(member[u'email'])
+          if member[u'id'] not in membersSet:
+            membersSet.add(member[u'id'])
+            groupMemberList.append(member[u'email'])
       for member in groupMemberList:
-        getGroupMembers(cd, member, roles, membersList, membersSet, i, count, noduplicates, recursive, level+1)
+        getGroupMembers(cd, member, roles, membersList, membersSet, i, count, checkNotSuspended, noduplicates, recursive, level+1)
     else:
       for member in groupMembers:
         if member[u'type'] == u'USER':
-          member[u'level'] = level
-          member[u'subgroup'] = groupEmail
-          membersList.append(member)
+          if not (checkNotSuspended and (member[u'status'] == u'SUSPENDED')):
+            member[u'level'] = level
+            member[u'subgroup'] = groupEmail
+            membersList.append(member)
         elif member[u'type'] == u'GROUP':
-          getGroupMembers(cd, member[u'email'], roles, membersList, membersSet, i, count, noduplicates, recursive, level+1)
+          getGroupMembers(cd, member[u'email'], roles, membersList, membersSet, i, count, checkNotSuspended, noduplicates, recursive, level+1)
   except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden):
     entityUnknownWarning(Ent.GROUP, groupEmail, i, count)
 
@@ -12302,7 +12313,7 @@ GROUPMEMBERS_FIELD_NAMES_MAP = {
 GROUPMEMBERS_DEFAULT_FIELDS = [u'id', u'role', u'group', u'email', u'type', u'status']
 
 # gam print group-members|groups-members [todrive [<ToDriveAttributes>]]
-#	([domain <DomainName>] [member <UserItem>])|[group <GroupItem>]|[select <GroupEntity>]
+#	([domain <DomainName>] [member <UserItem>])|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
 #	[members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>] [userfields <UserFieldNameList>] [recursive [noduplicates]]
 def doPrintGroupMembers():
   cd = buildGAPIObject(API.DIRECTORY)
@@ -12315,6 +12326,7 @@ def doPrintGroupMembers():
   entityList = None
   userFieldsList = []
   rolesSet = set()
+  checkNotSuspended = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
@@ -12329,9 +12341,13 @@ def doPrintGroupMembers():
       subTitle = u'{0}={1}'.format(Ent.Singular(Ent.MEMBER), kwargs[u'userKey'])
     elif myarg in GROUP_ROLES_MAP:
       rolesSet.add(GROUP_ROLES_MAP[myarg])
-    elif myarg == u'group':
+    elif myarg in [u'group', u'groupns']:
       entityList = [getEmailAddress()]
       subTitle = u'{0}={1}'.format(Ent.Singular(Ent.GROUP), entityList[0])
+      if myarg == u'groupns':
+        checkNotSuspended = True
+    elif myarg == u'notsuspended':
+      checkNotSuspended = True
     elif myarg == u'select':
       entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
       subTitle = u'{0} {1}'.format(Msg.SELECTED, Ent.Plural(Ent.GROUP))
@@ -12410,7 +12426,7 @@ def doPrintGroupMembers():
     else:
       groupEmail = convertUIDtoEmailAddress(group, cd, u'group')
     membersList = []
-    getGroupMembers(cd, groupEmail, roles, membersList, membersSet, i, count, noduplicates, recursive, level)
+    getGroupMembers(cd, groupEmail, roles, membersList, membersSet, i, count, checkNotSuspended, noduplicates, recursive, level)
     for member in membersList:
       memberId = member[u'id']
       row = {}
@@ -12433,8 +12449,7 @@ def doPrintGroupMembers():
                               throw_reasons=GAPI.USER_GET_THROW_REASONS,
                               userKey=memberId, fields=userFields)
             if membernames:
-              row[u'name'] = mbinfo[u'name'][u'fullName']
-              del mbinfo[u'name'][u'fullName']
+              row[u'name'] = mbinfo[u'name'].pop(u'fullName')
             addRowTitlesToCSVfile(flattenJSON(mbinfo, flattened=row), csvRows, titles)
             continue
           except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
@@ -12463,7 +12478,7 @@ def doPrintGroupMembers():
   writeCSVfile(csvRows, titles, u'Group Members ({0})'.format(subTitle), todrive)
 
 # gam show group-members
-#	([domain <DomainName>] [member <UserItem>])|[group <GroupItem>]|[select <GroupEntity>]
+#	([domain <DomainName>] [member <UserItem>])|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
 #	[members] [managers] [owners] [depth <Number>]
 def doShowGroupMembers():
   def _roleOrder(key):
@@ -12489,10 +12504,11 @@ def doShowGroupMembers():
       return
     Ind.Increment()
     for member in sorted(membersList, key=lambda k: (_roleOrder(k.get(u'role', Ent.ROLE_MEMBER)), _typeOrder(k[u'type']), _statusOrder(k['status']))):
-      if (member[u'role'] in rolesSet) or (member[u'type'] == u'GROUP'):
-        printKeyValueList([u'{0}, {1}, {2}, {3}'.format(member.get(u'role', Ent.ROLE_MEMBER), member[u'type'], member.get(u'email', member[u'id']), member[u'status'])])
-      if (member[u'type'] == u'GROUP') and (maxdepth == -1 or depth < maxdepth):
-        _showGroup(member[u'email'], depth+1)
+      if not (checkNotSuspended and (member[u'status'] == u'SUSPENDED')):
+        if (member[u'role'] in rolesSet) or (member[u'type'] == u'GROUP'):
+          printKeyValueList([u'{0}, {1}, {2}, {3}'.format(member.get(u'role', Ent.ROLE_MEMBER), member[u'type'], member.get(u'email', member[u'id']), member[u'status'])])
+        if (member[u'type'] == u'GROUP') and (maxdepth == -1 or depth < maxdepth):
+          _showGroup(member[u'email'], depth+1)
     Ind.Decrement()
 
   cd = buildGAPIObject(API.DIRECTORY)
@@ -12500,6 +12516,7 @@ def doShowGroupMembers():
   kwargs = {u'customer': customerKey}
   entityList = None
   rolesSet = set()
+  checkNotSuspended = False
   maxdepth = -1
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -12511,8 +12528,12 @@ def doShowGroupMembers():
       kwargs.pop(u'customer', None)
     elif myarg in GROUP_ROLES_MAP:
       rolesSet.add(GROUP_ROLES_MAP[myarg])
-    elif myarg == u'group':
+    elif myarg in [u'group', u'groupns']:
       entityList = [getEmailAddress()]
+      if myarg == u'groupns':
+        checkNotSuspended = True
+    elif myarg == u'notsuspended':
+      checkNotSuspended = True
     elif myarg == u'select':
       entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
     elif myarg == u'depth':
@@ -16648,6 +16669,8 @@ USER_ARGUMENT_TO_PROPERTY_MAP = {
   u'ipwhitelisted': [u'ipWhitelisted',],
   u'isadmin': [u'isAdmin', u'isDelegatedAdmin',],
   u'isdelegatedadmin': [u'isAdmin', u'isDelegatedAdmin',],
+  u'isenforcedin2sv': [u'isEnforcedIn2Sv',],
+  u'isenrolledin2sv': [u'isEnrolledIn2Sv',],
   u'is2svenforced': [u'isEnforcedIn2Sv',],
   u'is2svenrolled': [u'isEnrolledIn2Sv',],
   u'ismailboxsetup': [u'isMailboxSetup',],
@@ -17402,13 +17425,16 @@ def doInviteGuardian():
   checkForExtraneousArguments()
   try:
     result = callGAPI(croom.userProfiles().guardianInvitations(), u'create',
-                      throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED, GAPI.ALREADY_EXISTS],
+                      throw_reasons=[GAPI.NOT_FOUND, GAPI.ALREADY_EXISTS,
+                                     GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED, GAPI.RESOURCE_EXHAUSTED],
                       studentId=studentId, body=body, fields=u'invitationId')
     entityActionPerformed([Ent.STUDENT, studentId, Ent.GUARDIAN, body[u'invitedEmailAddress'], Ent.GUARDIAN_INVITATION, result[u'invitationId']])
-  except (GAPI.notFound, GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden):
+  except GAPI.notFound:
     entityUnknownWarning(Ent.STUDENT, studentId)
   except GAPI.alreadyExists:
     entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN, body[u'invitedEmailAddress']], Msg.DUPLICATE)
+  except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied, GAPI.resourceExhausted) as e:
+    entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN, body[u'invitedEmailAddress']], str(e))
 
 def _cancelGuardianInvitation(croom, studentId, invitationId):
   try:
@@ -21094,24 +21120,17 @@ def _mapDrive3TitlesToDrive2(titles, drive3TitlesMap):
 
 def _mapDriveUser(field):
   if u'me' in field:
-    field[u'isAuthenticatedUser'] = field[u'me']
-    del field[u'me']
+    field[u'isAuthenticatedUser'] = field.pop(u'me')
   if u'photoLink' in field:
-    field[u'picture'] = {u'url': field[u'photoLink']}
-    del field[u'photoLink']
+    field[u'picture'] = {u'url': field.pop(u'photoLink')}
 
 def _mapDrivePermissionNames(permission):
   if u'displayName' in permission:
-    permission[u'name'] = permission[u'displayName']
-    del permission[u'displayName']
+    permission[u'name'] = permission.pop(u'displayName')
   if VX_EXPIRATION_TIME in permission:
-    permission[u'expirationDate'] = formatLocalTime(permission[VX_EXPIRATION_TIME])
-    del permission[VX_EXPIRATION_TIME]
+    permission[u'expirationDate'] = formatLocalTime(permission.pop(VX_EXPIRATION_TIME))
   if u'allowFileDiscovery' in permission:
-    permission[u'withLink'] = not permission[u'allowFileDiscovery']
-    del permission[u'allowFileDiscovery']
-  if u'emailAddress' in permission and u'domain' not in permission:
-    _, permission[u'domain'] = splitEmailAddress(permission[u'emailAddress'])
+    permission[u'withLink'] = not permission.pop(u'allowFileDiscovery')
 
 def _mapDriveParents(f_file):
   if u'parents' in f_file:
@@ -21126,17 +21145,15 @@ def _mapDriveFieldNames(f_file, user, mapToLabels=False):
       if attrib in f_file:
         f_file.setdefault(u'labels', {})
         if attrib != u'viewersCanCopyContent':
-          f_file[u'labels'][API.DRIVE3_TO_DRIVE2_LABELS_MAP[attrib]] = f_file[attrib]
+          f_file[u'labels'][API.DRIVE3_TO_DRIVE2_LABELS_MAP[attrib]] = f_file.pop(attrib)
         else:
-          f_file[u'labels'][API.DRIVE3_TO_DRIVE2_LABELS_MAP[attrib]] = not f_file[attrib]
-        del f_file[attrib]
+          f_file[u'labels'][API.DRIVE3_TO_DRIVE2_LABELS_MAP[attrib]] = not f_file.pop(attrib)
   for attrib in API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP:
     if attrib in f_file:
       if attrib != u'viewersCanCopyContent':
-        f_file[API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP[attrib]] = f_file[attrib]
+        f_file[API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP[attrib]] = f_file.pop(attrib)
       else:
-        f_file[API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP[attrib]] = not f_file[attrib]
-      del f_file[attrib]
+        f_file[API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP[attrib]] = not f_file.pop(attrib)
   capabilities = f_file.get(u'capabilities')
   if capabilities:
     for attrib in API.DRIVE3_TO_DRIVE2_CAPABILITIES_FIELDS_MAP:
@@ -21144,8 +21161,7 @@ def _mapDriveFieldNames(f_file, user, mapToLabels=False):
         f_file[API.DRIVE3_TO_DRIVE2_CAPABILITIES_FIELDS_MAP[attrib]] = capabilities[attrib]
     for attrib in API.DRIVE3_TO_DRIVE2_CAPABILITIES_NAMES_MAP:
       if attrib in capabilities:
-        capabilities[API.DRIVE3_TO_DRIVE2_CAPABILITIES_NAMES_MAP[attrib]] = capabilities[attrib]
-        del capabilities[attrib]
+        capabilities[API.DRIVE3_TO_DRIVE2_CAPABILITIES_NAMES_MAP[attrib]] = capabilities.pop(attrib)
   if u'spaces' in f_file:
     f_file[u'appDataContents'] = u'appDataFolder' in f_file[u'spaces']
   if u'lastModifyingUser' in f_file:
@@ -21175,8 +21191,7 @@ def _mapDriveFieldNames(f_file, user, mapToLabels=False):
 def _mapDriveRevisionNames(revision):
   for attrib in API.DRIVE3_TO_DRIVE2_REVISIONS_FIELDS_MAP:
     if attrib in revision:
-      revision[API.DRIVE3_TO_DRIVE2_REVISIONS_FIELDS_MAP[attrib]] = revision[attrib]
-      del revision[attrib]
+      revision[API.DRIVE3_TO_DRIVE2_REVISIONS_FIELDS_MAP[attrib]] = revision.pop(attrib)
   if u'lastModifyingUser' in revision:
     if u'displayName' in revision[u'lastModifyingUser']:
       revision[u'lastModifyingUserName'] = revision[u'lastModifyingUser'][u'displayName']
@@ -23686,7 +23701,7 @@ def claimOwnership(users):
     try:
       children = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                               orderBy=orderBy, q=VX_WITH_PARENTS.format(fileEntry[u'id']), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNER,
+                               orderBy=orderBy, q=VX_WITH_PARENTS.format(fileEntry[u'id']), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS,
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -23812,7 +23827,7 @@ def claimOwnership(users):
         feed = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                              page_message=getPageMessageForWhom(),
                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                             orderBy=orderBy, fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNER,
+                             orderBy=orderBy, fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS,
                              pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -23835,7 +23850,7 @@ def claimOwnership(users):
         try:
           fileEntryInfo = callGAPI(drive.files(), u'get',
                                    throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
-                                   fileId=fileId, fields=VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNER)
+                                   fileId=fileId, fields=VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS)
         except GAPI.fileNotFound:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, fileId], Msg.NOT_FOUND, j, jcount)
           continue
@@ -26537,8 +26552,7 @@ def printShowLabels(users, csvFormat):
         if parent in labelTree:
           if label in labelTree:
             labelTree[label][u'info'][u'base'] = base
-            labelTree[parent][u'children'].append(labelTree[label])
-            del labelTree[label]
+            labelTree[parent][u'children'].append(labelTree.pop(label))
           _checkChildLabel(parent)
 
     labelTree = {}
