@@ -227,6 +227,10 @@ If an item contains spaces, it should be surrounded by ".
 <CourseID> ::= <Number>|d:<CourseAlias>
 <CourseParticipantType> ::= teacher|teachers|student|students
 <CourseState> ::= active|archived|provisioned|declined
+<CourseSubmissionID> ::= <Number>
+<CourseSubmissionState> ::= new|created|turned_in|returned|reclaimed_by_student
+<CourseWorkID> ::= <Number>
+<CourseWorkState> ::= draft|published|deleted
 <CrOSID> ::= <String>
 <CrOSItem> ::= <CrOSID>|(query:<QueryCrOS>)|(query:orgunitpath:<OrgUnitPath>)|(query <QueryCrOS>)
 <CustomerID> ::= <String>
@@ -329,11 +333,15 @@ Items, separated by spaces, with spaces or commas in the items themselves: "'it 
 <ASPIDList> ::= "<ASPID>(,<ASPID>)*"
 <CalendarACLScopeList> ::== "<CalendarACLScope>(,<CalendarACLScope>)*"
 <CalendarList> ::= "<CalendarItem>(,<CalendarItem>)*"
+<ContactGroupList> ::= "<ContactGroupItem>(,<ContactGroupItem>)*"
+<ContactIDList> ::= "<ContactID>(,<ContactID>)*"
 <CourseAliasList> ::= "<CourseAlias>(,<CourseAlias>)*"
 <CourseIDList> ::= "<CourseID>(,<CourseID>)*"
 <CourseStateList> ::= "<CourseState>(,<CourseState>)*"
-<ContactGroupList> ::= "<ContactGroupItem>(,<ContactGroupItem>)*"
-<ContactIDList> ::= "<ContactID>(,<ContactID>)*"
+<CourseSubmissionIDList> ::= "<CourseSubmissionID>(,<CourseSubmissionID>)*"
+<CourseSubmissionStateList> ::= "<CourseSubmissionState>(,<CourseSubmissionState>)*"
+<CourseWorkIDList> ::= "<CourseWorkID>(,<CourseWorkID>)*"
+<CourseWorkStateList> ::= "<CourseWorkState>(,<CourseWorkState>)*"
 <CrOSList> ::= "<CrOSID>(,<CrOSID>)*"
 <DomainNameList> ::== "<DomainName>(,<DomainName>)*"
 <DriveFolderIDList> ::= "<DriveFolderID>(,<DriveFolderID>)*"
@@ -440,6 +448,8 @@ Specify a collection of items by directly specifying them; the item type is dete
 <ContactGroupEntity> ::= <ContactGroupList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <CourseAliasEntity> ::= <CourseAliasList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <CourseEntity> ::= <CourseIDList> | <FileSelector> | <CSVkmdSelector>
+<CourseSubmissionIDEntity> ::= <CourseSubmissionIDList> | <FileSelector> | <CSVDataSelector>
+<CourseWorkIDEntity> ::= <CourseWorkIDList> | <FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>
 <CrOSEntity> ::= <CrOSItem> | <CrOSList> | <FileSelector> | <CSVkmdSelector>
 <DomainNameEntity> ::= <DomainNameList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <DriveFileIDEntity> ::= (<DriveFileItem>) | (id <DriveFileItem>) | (id:<DriveFileItem>) | (ids <DriveFileList>) | (ids:<DriveFileList>)
@@ -1026,11 +1036,64 @@ gam info course <CourseID> [owneremail] [alias|aliases] [show all|students|teach
 	[fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
 gam info courses <CourseEntity> [owneremail] [alias|aliases] [show all|students|teachers] [countsonly]
 	[fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
-gam print courses [todrive [<ToDriveAttributes>]] (course|class <CourseID>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
+gam print courses [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
 	[owneremail] [alias|aliases][delimiter <Character>] [show all|students|teachers] [countsonly]
 	[fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
-gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <CourseID>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
+gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
 	[show all|students|teachers]
+
+<CourseWorkFieldName> ::=
+	alternatelink|
+	assigneemode|
+	associatedwithdeveloper|
+	courseid|
+	courseworkid|
+	courseworktype|
+	creationtime|
+	description|
+	duedate|
+	id|
+	individualstudentsoptions|
+	materials|
+	maxpoints|
+	scheduledtime|
+	state|
+	submissionmodificationmode|
+	title|
+	updatetime|
+	worktype
+<CourseWorkFieldNameList> ::= "<CourseWorkFieldName>(,<CourseWorkFieldName>)*"
+
+<CourseWorkOrderByFieldName> ::=
+	duedate|
+	updatetime|
+	updatedate
+
+<CourseSubmissionFieldName> ::=
+	alternatelink|
+	assignedgrade|
+	associatedwithdeveloper|
+	courseid|
+	courseworkid|
+	courseworktype|
+	creationtime|
+	draftgrade|
+	id|
+	late|
+	state|
+	submissionhistory|
+	updatetime|
+	userid|
+	worktype
+<CourseSubmissionFieldNameList> ::= "<CourseSubmissionFieldName>(,<CourseSubmissionFieldName>)*"
+
+gam print course-work [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+	(courseworkids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)* (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
+	[fields <CourseWorkFieldNameList>]
+gam print course-submissions [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+	(courseworkids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)* (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
+	(coursesubmissionids <CourseSubmissionIDEntity>)|((submissionstates <CourseSubmissionStateList>)*) [late|notlate]
+	[fields <CourseSubmissionFieldNameList>]
 
 # Customer
 
@@ -2014,7 +2077,8 @@ gam <UserTypeEntity> claim ownership <DriveFileEntity> [includetrashed]
 
 gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>]
 	[(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>] [targetuserorphansfoldername <DriveFolderName>]
-	[keepuser | (retainrole commenter|reader|writer|none)] [noretentionmessages]
+	[keepuser | (retainrole reader|commenter|writer|editor|none)] [noretentionmessages]
+	[nonowner-retainrole reader|commenter|writer|editor|current|none] [nonowner-targetrole reader|commenter|writer|editor|current|none|source]
 	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 	[preview] [todrive [<ToDriveAttributes>]]
 

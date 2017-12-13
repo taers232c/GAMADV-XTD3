@@ -61,6 +61,11 @@ class GamEntity(object):
   COURSE = u'cour'
   COURSE_ALIAS = u'coal'
   COURSE_ID = u'coid'
+  COURSE_STATE = u'cost'
+  COURSE_SUBMISSION_ID = u'csid'
+  COURSE_SUBMISSION_STATE = u'csst'
+  COURSE_WORK_ID = u'cwid'
+  COURSE_WORK_STATE = u'cwst'
   CUSTOMER_ID = u'cust'
   CREDENTIALS = u'cred'
   CRITERIA = u'crit'
@@ -220,6 +225,11 @@ class GamEntity(object):
     COURSE: [u'Courses', u'Course'],
     COURSE_ALIAS: [u'Course Aliases', u'Course Alias'],
     COURSE_ID: [u'Course IDs', u'Course ID'],
+    COURSE_STATE: [u'Course States', u'Course State'],
+    COURSE_SUBMISSION_ID: [u'Course Submission IDs', u'Course Submission ID'],
+    COURSE_SUBMISSION_STATE: [u'Course Submission States', u'Course Submission State'],
+    COURSE_WORK_ID: [u'Course Work IDs', u'Course Work ID'],
+    COURSE_WORK_STATE: [u'Course Work States', u'Course Work State'],
     CUSTOMER_DOMAIN: [u'Customer Domains', u'Customer Domain'],
     CUSTOMER_ID: [u'Customer IDs', u'Customer ID'],
     CREDENTIALS: [u'Credentials', u'Credentials'],
@@ -332,7 +342,7 @@ class GamEntity(object):
     TOKEN: [u'Tokens', u'Token'],
     TRANSFER_ID: [u'Transfer IDs', u'Transfer ID'],
     TRANSFER_REQUEST: [u'Transfer Requests', u'Transfer Request'],
-    TRUSTED_APPLICATION: [u'Trusted Applications', u'TRusted Application'],
+    TRUSTED_APPLICATION: [u'Trusted Applications', u'Trusted Application'],
     UNICODE_ENCODING_ENABLED: [u'UTF-8 Encoding Enabled', u'UTF-8 Encoding Enabled'],
     UNIQUE_ID: [u'Unique IDs', u'Unique ID'],
     USER: [u'Users', u'User'],

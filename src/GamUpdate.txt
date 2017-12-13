@@ -1,3 +1,29 @@
+4.54.58
+
+Updated options in gam transfer drive to give more control over processing files.
+
+See: https://github.com/taers232c/GAMADV-XTD/wiki/Users---Drive---Transfer
+
+gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>]
+	[(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>] [targetuserorphansfoldername <DriveFolderName>]
+	[keepuser | (retainrole reader|commenter|writer|editor|none)] [noretentionmessages]
+	[nonowner-retainrole reader|commenter|writer|editor|current|none] [nonowner-targetrole reader|commenter|writer|editor|current|none|source]
+	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
+	[preview] [todrive [<ToDriveAttributes>]]
+
+Added commands to print course work and course submissions.
+You need to execute the following command to enable the scope that authorizes these commands: gam oauth create
+
+See: https://github.com/taers232c/GAMADV-XTD/wiki/Courses
+
+gam print course-work [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+	(courseworkids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)* (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
+	[fields <CourseWorkFieldNameList>]
+gam print course-submissions [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+	(courseworkids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)* (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
+	(coursesubmissionids <CourseSubmissionIDEntity>)|((submissionstates <CourseSubmissionStateList>)*) [late|notlate]
+	[fields <CourseSubmissionFieldNameList>]
+
 4.54.57
 
 Fixed bug in gam oauth create where entering `e` to exit without changes didn't exit.

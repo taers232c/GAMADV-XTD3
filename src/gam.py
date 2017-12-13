@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.57'
+__version__ = u'4.54.58'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -201,15 +201,15 @@ VX_VIEWED_BY_ME_TIME = u'viewedByMeTime'
 VX_SIZE = u'size'
 VX_WEB_VIEW_LINK = u'webViewLink'
 # Queries
-VX_NON_TRASHED = u"trashed = false"
-VX_ANY_FOLDERS = u"mimeType = '{0}'".format(MIMETYPE_GA_FOLDER)
-VX_MY_FOLDERS = ME_IN_OWNERS_AND+u"mimeType = '{0}'".format(MIMETYPE_GA_FOLDER)
+ANY_FOLDERS = u"mimeType = '{0}'".format(MIMETYPE_GA_FOLDER)
+MY_FOLDERS = ME_IN_OWNERS_AND+u"mimeType = '{0}'".format(MIMETYPE_GA_FOLDER)
+NON_TRASHED = u"trashed = false"
+WITH_PARENTS = u"'{0}' in parents"
 VX_ANY_NON_TRASHED_FOLDER_NAME = u"mimeType = '{0}' and {1} = '{{0}}' and trashed = false".format(MIMETYPE_GA_FOLDER, VX_FILENAME)
 VX_MY_NON_TRASHED_FOLDER_NAME = ME_IN_OWNERS_AND+u"mimeType = '{0}' and {1} = '{{0}}' and trashed = false".format(MIMETYPE_GA_FOLDER, VX_FILENAME)
 VX_MY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS = ME_IN_OWNERS_AND+u"mimeType = '{0}' and {1} = '{{0}}' and trashed = false and '{{1}}' in parents".format(MIMETYPE_GA_FOLDER, VX_FILENAME)
 VX_WITH_ANY_FILE_NAME = u"{0} = '{{0}}'".format(VX_FILENAME)
 VX_WITH_MY_FILE_NAME = ME_IN_OWNERS_AND+u"{0} = '{{0}}'".format(VX_FILENAME)
-VX_WITH_PARENTS = u"'{0}' in parents"
 # Fields lists
 VX_PAGES_FILES = u'files'
 VX_PAGES_PERMISSIONS = u'permissions'
@@ -230,6 +230,7 @@ VX_ID_FILENAME_PARENTS_MIMETYPE = u'id,{0},{1},mimeType'.format(VX_FILENAME, VX_
 VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME = u'id,{0},{1},mimeType,ownedByMe'.format(VX_FILENAME, VX_PARENTS_ID)
 VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED = u'id,{0},{1},mimeType,ownedByMe,{2}'.format(VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
 VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS = u'id,{0},{1},mimeType,ownedByMe,{2},owners(emailAddress,permissionId)'.format(VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
+VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS_PERMISSIONS = u'id,{0},{1},mimeType,ownedByMe,{2},owners(emailAddress,permissionId),permissions(id,role)'.format(VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
 VX_ID_MIMETYPE_CANEDIT = u'id,mimeType,capabilities(canEdit)'
 VX_NPT_FILES_FIELDLIST = u'nextPageToken,{0}({{0}})'.format(VX_PAGES_FILES)
 VX_NPT_FILES_ID = u'nextPageToken,{0}(id)'.format(VX_PAGES_FILES)
@@ -239,8 +240,10 @@ VX_NPT_FILES_ID_FILENAME_OWNEDBYME = u'nextPageToken,{0}(id,{1},ownedByMe)'.form
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE = u'nextPageToken,{0}(id,{1},{2},mimeType)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_OWNERS = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,owners(emailAddress,permissionId))'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
+VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_OWNERS_PERMISSIONS = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,owners(emailAddress,permissionId),permissions(id,role))'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,{3})'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,{3},owners(emailAddress,permissionId))'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
+VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS_PERMISSIONS = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,{3},owners(emailAddress,permissionId),permissions(id,role))'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
 VX_NPT_FILES_ID_MIMETYPE_CANEDIT = u'nextPageToken,{0}(id,mimeType,capabilities(canEdit))'.format(VX_PAGES_FILES)
 VX_NPT_PERMISSIONS = u'nextPageToken,{0}'.format(VX_PAGES_PERMISSIONS)
 VX_NPT_PERMISSIONS_TYPE_EMAIL_ROLE = u'nextPageToken,{0}(type,emailAddress,role)'.format(VX_PAGES_PERMISSIONS)
@@ -917,14 +920,6 @@ def addCourseIdScope(courseId):
   if not courseId.isdigit() and courseId[:2] != u'd:':
     return u'd:{0}'.format(courseId)
   return courseId
-
-def getCourseId():
-  if Cmd.ArgumentsRemaining():
-    courseId = Cmd.Current()
-    if courseId:
-      Cmd.Advance()
-      return addCourseIdScope(courseId)
-  missingArgumentExit(Cmd.OB_COURSE_ID)
 
 def getCourseAlias():
   if Cmd.ArgumentsRemaining():
@@ -4189,9 +4184,9 @@ def initializeTitlesCSVfile(baseTitles):
     addTitlesToCSVfile(baseTitles, titles)
   return (titles, csvRows)
 
-def sortCSVTitles(firstTitle, titles):
+def sortCSVTitles(sortTitles, titles):
   restoreTitles = []
-  for title in firstTitle:
+  for title in sortTitles:
     if title in titles[u'set']:
       titles[u'list'].remove(title)
       restoreTitles.append(title)
@@ -4199,7 +4194,7 @@ def sortCSVTitles(firstTitle, titles):
   for title in restoreTitles[::-1]:
     titles[u'list'].insert(0, title)
 
-def writeCSVfile(csvRows, titles, list_type, todrive, quotechar=None):
+def writeCSVfile(csvRows, titles, list_type, todrive, sortTitles=None, quotechar=None):
 
   def writeCSVData(writer):
     try:
@@ -4286,8 +4281,11 @@ def writeCSVfile(csvRows, titles, list_type, todrive, quotechar=None):
     GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_NAME, list_type))
     GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_TODRIVE, todrive))
     GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_TITLES, titles[u'list']))
+    GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_SORTTITLES, sortTitles))
     GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_DATA, csvRows))
     return
+  if sortTitles is not None:
+    sortCSVTitles(sortTitles, titles)
   if quotechar is None:
     quotechar = GM.Globals[GM.CSVFILE][GM.REDIRECT_QUOTE_CHAR]
   quotechar = str(quotechar)
@@ -4496,6 +4494,9 @@ def CSVFileQueueHandler(mpQueue):
       todrive = dataItem
     elif dataType == GM.REDIRECT_QUEUE_TITLES:
       addTitlesToCSVfile(dataItem, titles)
+    elif dataType == GM.REDIRECT_QUEUE_SORTTITLES:
+      if dataItem is not None:
+        sortCSVTitles(dataItem, titles)
     elif dataType == GM.REDIRECT_QUEUE_DATA:
       csvRows.extend(dataItem)
     elif dataType == GM.REDIRECT_QUEUE_ARGS:
@@ -5872,8 +5873,7 @@ def doReport():
           accessErrorExit(None)
       if exitUserLoop:
         break
-    sortCSVTitles([u'email', u'date'], titles)
-    writeCSVfile(csvRows, titles, u'User Reports - {0}'.format(tryDate), todrive)
+    writeCSVfile(csvRows, titles, u'User Reports - {0}'.format(tryDate), todrive, [u'email', u'date'])
   elif report == u'customer':
     titles, csvRows = initializeTitlesCSVfile([u'name', u'value', u'client_id'])
     auth_apps = []
@@ -6311,8 +6311,7 @@ def _doPrintShowResoldSubscriptions(csvFormat):
     else:
       for subscription in subscriptions:
         addRowTitlesToCSVfile(flattenJSON(subscription, timeObjects=[u'creationTime', u'startTime', u'endTime', u'trialEndTime', u'transferabilityExpirationTime']), csvRows, titles)
-      sortCSVTitles(PRINT_RESOLD_SUBSCRIPTIONS_TITLES, titles)
-      writeCSVfile(csvRows, titles, u'Resold Subscriptions', todrive)
+      writeCSVfile(csvRows, titles, u'Resold Subscriptions', todrive, PRINT_RESOLD_SUBSCRIPTIONS_TITLES)
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.SUBSCRIPTION, None], str(e))
 
@@ -6415,8 +6414,7 @@ def doPrintDomainAliases():
       csvRows.append(row)
   except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
     accessErrorExit(cd)
-  sortCSVTitles([u'domainAliasName', u'parentDomainName', u'creationTime', u'verified'], titles)
-  writeCSVfile(csvRows, titles, u'Domain Aliases', todrive)
+  writeCSVfile(csvRows, titles, u'Domain Aliases', todrive, [u'domainAliasName', u'parentDomainName', u'creationTime', u'verified'])
 
 # gam create domain <DomainName>
 def doCreateDomain():
@@ -6603,8 +6601,7 @@ def _doPrintShowPrivileges(csvFormat):
   except (GAPI.badRequest, GAPI.customerNotFound, GAPI.forbidden):
     accessErrorExit(cd)
   if csvFormat:
-    sortCSVTitles(PRINT_PRIVILEGES_FIELDS, titles)
-    writeCSVfile(csvRows, titles, u'Privileges', todrive)
+    writeCSVfile(csvRows, titles, u'Privileges', todrive, PRINT_PRIVILEGES_FIELDS)
 
 # gam print privileges [todrive [<ToDriveAttributes>]]
 def doPrintPrivileges():
@@ -6672,8 +6669,7 @@ def _doPrintShowAdminRoles(csvFormat):
   except (GAPI.badRequest, GAPI.customerNotFound, GAPI.forbidden):
     accessErrorExit(cd)
   if csvFormat:
-    sortCSVTitles(PRINT_ADMIN_ROLES_FIELDS, titles)
-    writeCSVfile(csvRows, titles, u'Admin Roles', todrive)
+    writeCSVfile(csvRows, titles, u'Admin Roles', todrive, PRINT_ADMIN_ROLES_FIELDS)
 
 # gam print adminroles|roles [todrive [<ToDriveAttributes>]] [privileges]
 def doPrintAdminRoles():
@@ -9940,8 +9936,7 @@ def _printShowContacts(users, entityType, csvFormat, contactFeed=True):
     elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT] and entityType == Ent.USER:
       csvRows.append({Ent.Singular(entityType): user})
   if csvFormat:
-    sortCSVTitles([Ent.Singular(entityType), CONTACT_ID, CONTACT_NAME], titles)
-    writeCSVfile(csvRows, titles, u'Contacts', todrive)
+    writeCSVfile(csvRows, titles, u'Contacts', todrive, [Ent.Singular(entityType), CONTACT_ID, CONTACT_NAME])
 
 # gam <UserTypeEntity> print contacts [todrive [<ToDriveAttributes>]] [query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]
 #	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]] [fields <ContactFieldNameList>]
@@ -10738,11 +10733,9 @@ def doPrintCrOSDevices(entityList=None):
     else:
       for cros in entityList:
         _printCrOS({u'deviceId': cros})
-  if sortHeaders:
-    sortCSVTitles([u'deviceId',], titles)
   if sortRows and orderBy and orderBy in titles[u'set']:
     csvRows.sort(key=lambda k: k[orderBy], reverse=sortOrder == u'DESCENDING')
-  writeCSVfile(csvRows, titles, u'CrOS', todrive)
+  writeCSVfile(csvRows, titles, u'CrOS', todrive, [u'deviceId',] if sortHeaders else None)
 
 # gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [listlimit <Number>] [start <Date>] [end <Date>]
@@ -11151,8 +11144,7 @@ def doPrintMobileDevices():
     return
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
     accessErrorExit(cd)
-  sortCSVTitles([u'resourceId', u'deviceId', u'serialNumber', u'name', u'email', u'status'], titles)
-  writeCSVfile(csvRows, titles, u'Mobile', todrive)
+  writeCSVfile(csvRows, titles, u'Mobile', todrive, [u'resourceId', u'deviceId', u'serialNumber', u'name', u'email', u'status'])
 
 GROUP_ATTRIBUTES = {
   u'allowexternalmembers': [u'allowExternalMembers', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
@@ -12253,9 +12245,7 @@ def doPrintGroups():
       bcount = 0
   if bcount > 0:
     executeBatch(dbatch)
-  if sortHeaders:
-    sortCSVTitles([fieldsTitles[u'email']], titles)
-  writeCSVfile(csvRows, titles, u'Groups', todrive, quotechar)
+  writeCSVfile(csvRows, titles, u'Groups', todrive, [fieldsTitles[u'email']] if sortHeaders else None, quotechar)
 
 def getGroupMembers(cd, groupEmail, roles, membersList, membersSet, i, count, checkNotSuspended, noduplicates, recursive, level):
   try:
@@ -13015,8 +13005,7 @@ def _doPrintShowResourceCalendars(csvFormat):
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
     accessErrorExit(cd)
   if csvFormat:
-    sortCSVTitles(RESOURCE_ALLFIELDS, titles)
-    writeCSVfile(csvRows, titles, u'Resources', todrive)
+    writeCSVfile(csvRows, titles, u'Resources', todrive, RESOURCE_ALLFIELDS)
 
 # gam show resources [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)] [acls] [convertcrnl]
 def doShowResourceCalendars():
@@ -13309,8 +13298,7 @@ def _doCalendarsPrintShowACLs(cal, calIds, csvFormat):
       unknownArgumentExit()
   _doPrintShowCalendarACLs(None, cal, calIds, len(calIds), csvFormat, csvRows, titles)
   if csvFormat:
-    sortCSVTitles([u'calendarId', ], titles)
-    writeCSVfile(csvRows, titles, u'Calendar ACLs', todrive)
+    writeCSVfile(csvRows, titles, u'Calendar ACLs', todrive, [u'calendarId',])
 
 # gam calendars <CalendarEntity> print acls
 def doCalendarsPrintACLs(cal, calIds):
@@ -13979,8 +13967,7 @@ def calendarsPrintShowEvents(cal, calIds, csvFormat):
       unknownArgumentExit()
   _printShowCalendarEvents(None, cal, calIds, len(calIds), calendarEventEntity, csvFormat, csvRows, titles)
   if csvFormat:
-    sortCSVTitles([u'calendarId',]+EVENT_PRINT_ORDER, titles)
-    writeCSVfile(csvRows, titles, u'Calendar Events', todrive)
+    writeCSVfile(csvRows, titles, u'Calendar Events', todrive, [u'calendarId',]+EVENT_PRINT_ORDER)
 
 # gam calendars <UserEntity> print events ([allevents] <EventSelectProperties>*) [todrive [<ToDriveAttributes>]] <EventDisplayProperties>*
 def doCalendarsPrintEvents(cal, calIds):
@@ -14115,8 +14102,7 @@ def _doResourcePrintShowCalendarACLs(entityList, csvFormat):
     except GAPI.forbidden as e:
       entityActionFailedWarning([Ent.RESOURCE_CALENDAR, calId], str(e), i, count)
   if csvFormat:
-    sortCSVTitles([u'resourceId', u'resourceEmail'], titles)
-    writeCSVfile(csvRows, titles, u'Resource Calendar ACLs', todrive)
+    writeCSVfile(csvRows, titles, u'Resource Calendar ACLs', todrive, [u'resourceId', u'resourceEmail'])
 
 # gam resource <ResourceID> print calendaracls [todrive [<ToDriveAttributes>]]
 # gam resources <ResourceEntity> print calendaracls [todrive [<ToDriveAttributes>]]
@@ -14316,8 +14302,7 @@ def _doPrintShowUserSchemas(csvFormat):
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
     accessErrorExit(cd)
   if csvFormat:
-    sortCSVTitles([u'schemaId', u'schemaName', u'fields.Count'], titles)
-    writeCSVfile(csvRows, titles, u'User Schemas', todrive)
+    writeCSVfile(csvRows, titles, u'User Schemas', todrive, [u'schemaId', u'schemaName', u'fields.Count'])
 
 # gam print schema|schemas [todrive [<ToDriveAttributes>]]
 def doPrintUserSchemas():
@@ -14390,12 +14375,13 @@ def getMatterItem(v):
   matterId, _, matterNameId = convertMatterNameToID(v, getString(Cmd.OB_MATTER_ITEM))
   return (matterId, matterNameId)
 
+VAULT_HOLD_CORPUS_ARGUMENT_MAP = {u'drive': u'DRIVE', u'groups': u'GROUPS', u'mail': u'MAIL'}
+
 # gam create vaulthold|hold corpus drive|groups|mail matter <MatterItem> [name <String>] [query <QueryVaultCorpus>]
 #	[(accounts|groups|users <EmailItemList>) | (orgunit|ou <OrgUnit>)]
 #	[starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>]
 def doCreateVaultHold():
   v = buildGAPIObject(API.VAULT)
-  validCorpuses = [corpus.lower() for corpus in v._rootDesc[u'schemas'][u'Hold'][u'properties'][u'corpus'][u'enum'] if corpus != u'CORPUS_TYPE_UNSPECIFIED']
   body = {u'query': {}}
   query = matterId = startTime = endTime = None
   accounts = []
@@ -14409,7 +14395,7 @@ def doCreateVaultHold():
       queryLocation = Cmd.Location()
       query = getString(Cmd.OB_QUERY)
     elif myarg == u'corpus':
-      body[u'corpus'] = getChoice(validCorpuses).upper()
+      body[u'corpus'] = getChoice(VAULT_HOLD_CORPUS_ARGUMENT_MAP, mapChoice=True)
     elif myarg in [u'accounts', u'users', u'groups']:
       accountsLocation = Cmd.Location()
       accounts = getEntityList(Cmd.OB_EMAIL_ADDRESS_ENTITY)
@@ -14427,7 +14413,7 @@ def doCreateVaultHold():
   if not body.get(u'name'):
     missingArgumentExit(u'name')
   if not body.get(u'corpus'):
-    missingArgumentExit(u'corpus {0}'.format(u'|'.join(validCorpuses)))
+    missingArgumentExit(u'corpus {0}'.format(u'|'.join(VAULT_HOLD_CORPUS_ARGUMENT_MAP)))
   query_type = u'{0}Query'.format(body[u'corpus'].lower())
   body[u'query'][query_type] = {}
   if body[u'corpus'] == u'DRIVE':
@@ -14735,8 +14721,7 @@ def _doPrintShowVaultHolds(csvFormat):
           _getHoldEmailAddressesOrgUnitName(hold, cd)
         addRowTitlesToCSVfile(flattenJSON(hold, flattened={u'matterId': matterId, u'matterName': matterName}, timeObjects=VAULT_HOLD_TIME_OBJECTS), csvRows, titles)
   if csvFormat:
-    sortCSVTitles(PRINT_VAULT_HOLDS_TITLES, titles)
-    writeCSVfile(csvRows, titles, u'Vault Holds', todrive)
+    writeCSVfile(csvRows, titles, u'Vault Holds', todrive, PRINT_VAULT_HOLDS_TITLES)
 
 # gam print vaultholds|holds [todrive [<ToDriveAttributes>]] [matters <MatterItemList>] [shownames]
 def doPrintVaultHolds():
@@ -14983,8 +14968,7 @@ def _doPrintShowVaultMatters(csvFormat):
   except GAPI.forbidden as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, None], str(e))
   if csvFormat:
-    sortCSVTitles(PRINT_VAULT_MATTERS_TITLES, titles)
-    writeCSVfile(csvRows, titles, u'Vault Matters', todrive)
+    writeCSVfile(csvRows, titles, u'Vault Matters', todrive, PRINT_VAULT_MATTERS_TITLES)
 
 # gam print vaultmatters|matters [todrive [<ToDriveAttributes>]] [basic|full]
 def doPrintVaultMatters():
@@ -17281,7 +17265,7 @@ def doPrintUsers(entityList=None):
           user[u'LicensesCount'] = len(u_licenses)
           user[u'Licenses'] = delimiter.join(u_licenses)
           user[u'LicensesDisplay'] = delimiter.join([SKU.skuIdToDisplayName(skuId) for skuId in u_licenses])
-  writeCSVfile(csvRows, titles, u'Users', todrive, quotechar)
+  writeCSVfile(csvRows, titles, u'Users', todrive, quotechar=quotechar)
 
 # gam <UserTypeEntity> print
 def doPrintUserEntity(entityList):
@@ -17609,18 +17593,21 @@ def doShowGuardians():
 def doPrintGuardians():
   printShowGuardians(True)
 
-def _getValidCourseStates(croom):
-  return [state.lower() for state in croom._rootDesc[u'schemas'][u'Course'][u'properties'][u'courseState'][u'enum'] if state != u'COURSE_STATE_UNSPECIFIED']
+COURSE_STATE_ARGUMENT_MAP = {
+  u'active': u'ACTIVE',
+  u'archived': u'ARCHIVED',
+  u'provisioned': u'PROVISIONED',
+  u'declined': u'DECLINED',
+  }
 
-def _getCourseStates(croom, courseStates):
-  validStates = _getValidCourseStates(croom)
+def _getCourseStates(courseStates):
   for state in getString(Cmd.OB_COURSE_STATE_LIST).lower().replace(u',', u' ').split():
-    if state in validStates:
-      courseStates.append(state.upper())
+    if state in COURSE_STATE_ARGUMENT_MAP:
+      courseStates.append(COURSE_STATE_ARGUMENT_MAP[state])
     else:
-      invalidChoiceExit(validStates, True)
+      invalidChoiceExit(COURSE_STATE_ARGUMENT_MAP, True)
 
-def getCourseAttribute(myarg, body, croom):
+def getCourseAttribute(myarg, body):
   if myarg == u'name':
     body[u'name'] = getString(Cmd.OB_STRING)
   elif myarg == u'section':
@@ -17634,7 +17621,7 @@ def getCourseAttribute(myarg, body, croom):
   elif myarg in [u'owner', u'ownerid', u'teacher']:
     body[u'ownerId'] = getEmailAddress()
   elif myarg in [u'state', u'status']:
-    body[u'courseState'] = getChoice(_getValidCourseStates(croom)).upper()
+    body[u'courseState'] = getChoice(COURSE_STATE_ARGUMENT_MAP, mapChoice=True)
   else:
     unknownArgumentExit()
 
@@ -17647,7 +17634,7 @@ def doCreateCourse():
     if myarg in [u'alias', u'id']:
       body[u'id'] = getCourseAlias()
     else:
-      getCourseAttribute(myarg, body, croom)
+      getCourseAttribute(myarg, body)
   try:
     result = callGAPI(croom.courses(), u'create',
                       throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
@@ -17661,7 +17648,7 @@ def _doUpdateCourses(entityList):
   body = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    getCourseAttribute(myarg, body, croom)
+    getCourseAttribute(myarg, body)
   updateMask = u','.join(list(body))
   i = 0
   count = len(entityList)
@@ -17909,7 +17896,19 @@ def doInfoCourses():
 def doInfoCourse():
   _doInfoCourses(getStringReturnInList(Cmd.OB_COURSE_ID))
 
-# gam print courses [todrive [<ToDriveAttributes>]] (course|class <CourseID>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
+def _gettingCoursesQuery(teacherId, studentId, courseStates):
+  query = u''
+  if teacherId:
+    query += u'{0}: {1}, '.format(Ent.Singular(Ent.TEACHER), teacherId)
+  if studentId:
+    query += u'{0}: {1}, '.format(Ent.Singular(Ent.STUDENT), studentId)
+  if courseStates:
+    query += u'{0}: {1}, '.format(Ent.Choose(Ent.COURSE_STATE, len(courseStates)), u','.join(courseStates))
+  if query:
+    query = query[:-2]
+  return query
+
+# gam print courses [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
 #	[owneremail] [alias|aliases] [delimiter <Character>] [show none|all|students|teachers] [countsonly] [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
 def doPrintCourses():
 
@@ -17946,32 +17945,31 @@ def doPrintCourses():
   courseShowProperties = _initCourseShowProperties()
   todrive = {}
   titles, csvRows = initializeTitlesCSVfile([u'id',])
-  courses = []
-  teacherId = None
-  studentId = None
+  courseIds = []
+  teacherId = studentId = None
   courseStates = []
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
       todrive = getTodriveParameters()
-    elif myarg in [u'course', u'class']:
-      courses.append(getCourseId())
+    elif myarg in [u'course', u'courses', u'class', u'classes']:
+      courseIds.extend(getEntityList(Cmd.OB_COURSE_ENTITY))
     elif myarg == u'teacher':
       teacherId = getEmailAddress()
     elif myarg == u'student':
       studentId = getEmailAddress()
     elif myarg in [u'state', u'states', u'status']:
-      _getCourseStates(croom, courseStates)
+      _getCourseStates(courseStates)
     elif myarg == u'delimiter':
       delimiter = getCharacter()
     else:
       _getCourseShowProperties(myarg, courseShowProperties)
-  if len(courses) == 0:
+  if not courseIds:
     fields = _setCourseFields(courseShowProperties, True)
-    printGettingAllAccountEntities(Ent.COURSE)
+    printGettingAllAccountEntities(Ent.COURSE, _gettingCoursesQuery(teacherId, studentId, courseStates))
     try:
-      all_courses = callGAPIpages(croom.courses(), u'list', u'courses',
+      coursesInfo = callGAPIpages(croom.courses(), u'list', u'courses',
                                   page_message=getPageMessage(),
                                   throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
                                   teacherId=teacherId, studentId=studentId, courseStates=courseStates,
@@ -17986,22 +17984,22 @@ def doPrintCourses():
       if studentId and teacherId:
         entityOrEntityUnknownWarning(Ent.TEACHER, teacherId, Ent.STUDENT, studentId)
         return
-      all_courses = collections.deque()
+      coursesInfo = collections.deque()
   else:
     fields = _setCourseFields(courseShowProperties, False)
-    all_courses = collections.deque()
-    for course in courses:
-      courseId = addCourseIdScope(course)
+    coursesInfo = collections.deque()
+    for courseId in courseIds:
+      courseId = addCourseIdScope(courseId)
       try:
         info = callGAPI(croom.courses(), u'get',
                         throw_reasons=[GAPI.NOT_FOUND],
-                        id=courseId)
-        all_courses.append(info)
+                        id=courseId, fields=fields)
+        coursesInfo.append(info)
       except GAPI.notFound:
         entityDoesNotExistWarning(Ent.COURSE, courseId)
   if courseShowProperties[u'ownerEmail']:
     cd = buildGAPIObject(API.DIRECTORY)
-  for course in all_courses:
+  for course in coursesInfo:
     for field in courseShowProperties[u'skips']:
       course.pop(field, None)
     if courseShowProperties[u'ownerEmail']:
@@ -18067,6 +18065,372 @@ def doPrintCourses():
         titles[u'list'].extend(ttitles[u'list'])
         titles[u'list'].extend(stitles[u'list'])
   writeCSVfile(csvRows, titles, u'Courses', todrive)
+
+COURSE_WORK_ARGUMENT_TO_PROPERTY_MAP = {
+  u'alternatelink': [u'alternateLink',],
+  u'assigneemode': [u'assigneeMode',],
+  u'associatedwithdeveloper': [u'associatedWithDeveloper',],
+  u'courseid': [u'courseId',],
+  u'courseworkid': [u'id',],
+  u'courseworktype': [u'courseWorkType',],
+  u'creationtime': [u'creationTime',],
+  u'description': [u'description',],
+  u'duedate': [u'dueDate',],
+  u'id': [u'id',],
+  u'individualstudentsoptions': [u'individualStudentsOptions',],
+  u'materials': [u'materials',],
+  u'maxpoints': [u'maxPoints',],
+  u'scheduledtime': [u'scheduledTome',],
+  u'state': [u'state',],
+  u'submissionmodificationmode': [u'submissionModificationMode',],
+  u'title': [u'title',],
+  u'updatetime': [u'updateTime',],
+  u'worktype': [u'workType',],
+  }
+
+COURSE_WORK_ORDERBY_CHOICE_MAP = {
+  u'duedate': u'dueDate',
+  u'updatetime': u'updateTime',
+  u'updatedate': u'updateTime',
+  }
+
+COURSE_WORK_STATE_ARGUMENT_MAP = {
+  u'draft': u'DRAFT',
+  u'published': u'PUBLISHED',
+  u'deleted': u'DELETED',
+  }
+
+def _getCourseWorkStates(courseWorkStates):
+  for state in getString(Cmd.OB_COURSE_WORK_STATE_LIST).lower().replace(u',', u' ').split():
+    if state in COURSE_WORK_STATE_ARGUMENT_MAP:
+      courseWorkStates.append(COURSE_WORK_STATE_ARGUMENT_MAP[state])
+    else:
+      invalidChoiceExit(COURSE_WORK_STATE_ARGUMENT_MAP, True)
+
+def _gettingCourseWorkQuery(courseWorkStates):
+  query = u''
+  if courseWorkStates:
+    query += u'{0}: {1}, '.format(Ent.Choose(Ent.COURSE_WORK_STATE, len(courseWorkStates)), u','.join(courseWorkStates))
+  if query:
+    query = query[:-2]
+  return query
+
+# gam print course-work [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+#	(courseworkids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)*  (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
+#	[fields <CourseWorkFieldNameList>]
+def doPrintCourseWork():
+  croom = buildGAPIObject(API.CLASSROOM)
+  todrive = {}
+  titles, csvRows = initializeTitlesCSVfile([u'courseId',])
+  fieldsList = []
+  courseIds = []
+  teacherId = studentId = None
+  courseStates = []
+  courseWorkIds = []
+  courseWorkStates = []
+  orderByList = []
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'todrive':
+      todrive = getTodriveParameters()
+    elif myarg in [u'course', u'courses', u'class', u'classes']:
+      courseIds.extend(getEntityList(Cmd.OB_COURSE_ENTITY))
+    elif myarg == u'teacher':
+      teacherId = getEmailAddress()
+    elif myarg == u'student':
+      studentId = getEmailAddress()
+    elif myarg in [u'state', u'states', u'status']:
+      _getCourseStates(courseStates)
+    elif myarg in [u'courseworkd', u'courseworkds']:
+      courseWorkIds = getEntityList(Cmd.OB_COURSE_WORK_ID_ENTITY)
+    elif myarg in [u'workstate', u'workstates']:
+      _getCourseWorkStates(courseWorkStates)
+    elif myarg == u'orderby':
+      fieldName = getChoice(COURSE_WORK_ORDERBY_CHOICE_MAP, mapChoice=True)
+      if getChoice(SORTORDER_CHOICE_MAP, defaultChoice=None, mapChoice=True) != u'DESCENDING':
+        orderByList.append(fieldName)
+      else:
+        orderByList.append(u'{0} desc'.format(fieldName))
+    elif myarg == u'fields':
+      if not fieldsList:
+        addFieldToCSVfile(u'id', COURSE_WORK_ARGUMENT_TO_PROPERTY_MAP, fieldsList, titles)
+      for field in getString(Cmd.OB_FIELD_NAME_LIST).lower().replace(u',', u' ').split():
+        if field in COURSE_WORK_ARGUMENT_TO_PROPERTY_MAP:
+          addFieldToCSVfile(field, COURSE_WORK_ARGUMENT_TO_PROPERTY_MAP, fieldsList, titles)
+        else:
+          invalidChoiceExit(list(COURSE_WORK_ARGUMENT_TO_PROPERTY_MAP), True)
+    else:
+      unknownArgumentExit()
+  orderBy = u','.join(orderByList) if orderByList else None
+  if not courseIds:
+    printGettingAllAccountEntities(Ent.COURSE, _gettingCoursesQuery(teacherId, studentId, courseStates))
+    try:
+      coursesInfo = callGAPIpages(croom.courses(), u'list', u'courses',
+                                  page_message=getPageMessage(),
+                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                                  teacherId=teacherId, studentId=studentId, courseStates=courseStates,
+                                  fields=u'nextPageToken,courses(id,name)', pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
+    except (GAPI.notFound, GAPI.forbidden, GAPI.badRequest):
+      if not studentId:
+        entityUnknownWarning(Ent.TEACHER, teacherId)
+      elif not teacherId:
+        entityUnknownWarning(Ent.STUDENT, studentId)
+      else:
+        entityOrEntityUnknownWarning(Ent.TEACHER, teacherId, Ent.STUDENT, studentId)
+      return
+  else:
+    coursesInfo = collections.deque()
+    for courseId in courseIds:
+      courseId = addCourseIdScope(courseId)
+      try:
+        info = callGAPI(croom.courses(), u'get',
+                        throw_reasons=[GAPI.NOT_FOUND],
+                        id=courseId, fields=u'id,name')
+        coursesInfo.append(info)
+      except GAPI.notFound:
+        entityDoesNotExistWarning(Ent.COURSE, courseId)
+  courseWorkIdsLists = courseWorkIds if isinstance(courseWorkIds, dict) else None
+  i = 0
+  count = len(coursesInfo)
+  for course in coursesInfo:
+    i += 1
+    courseId = course[u'id']
+    if courseWorkIdsLists:
+      courseWorkIds = courseWorkIdsLists[courseId]
+    if not courseWorkIds:
+      fields = u'nextPageToken,courseWork({0})'.format(u','.join(set(fieldsList))) if fieldsList else None
+      printGettingAllEntityItemsForWhom(Ent.COURSE_WORK_ID, Ent.TypeName(Ent.COURSE, courseId), i, count, _gettingCourseWorkQuery(courseWorkStates))
+      try:
+        results = callGAPIpages(croom.courses().courseWork(), u'list', u'courseWork',
+                                page_message=getPageMessage(),
+                                throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                courseId=courseId, courseWorkStates=courseWorkStates, orderBy=orderBy,
+                                fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
+        for courseWork in results:
+          addRowTitlesToCSVfile(flattenJSON(courseWork, flattened={u'courseId': courseId, u'courseName': course[u'name']}), csvRows, titles)
+      except GAPI.forbidden:
+        APIAccessDeniedExit()
+    else:
+      jcount = len(courseWorkIds)
+      if jcount == 0:
+        continue
+      fields = u'{0}'.format(u','.join(set(fieldsList))) if fieldsList else None
+      j = 0
+      for courseWorkId in courseWorkIds:
+        j += 1
+        try:
+          courseWork = callGAPI(croom.courses().courseWork(), u'get',
+                                throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                courseId=courseId, id=courseWorkId, fields=fields)
+          addRowTitlesToCSVfile(flattenJSON(courseWork, flattened={u'courseId': courseId, u'courseName': course[u'name']}), csvRows, titles)
+        except GAPI.notFound:
+          entityDoesNotHaveItemWarning([Ent.COURSE, course[u'name'], Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
+        except GAPI.forbidden:
+          APIAccessDeniedExit()
+  writeCSVfile(csvRows, titles, u'Course Work', todrive, [u'courseId', u'courseName', u'id', u'title', u'description', u'state'])
+
+COURSE_SUBMISSION_ARGUMENT_TO_PROPERTY_MAP = {
+  u'alternatelink': [u'alternateLink',],
+  u'assignedgrade': [u'assignedGrade',],
+  u'associatedwithdeveloper': [u'associatedWithDeveloper',],
+  u'courseid': [u'courseId',],
+  u'courseworkid': [u'courseWorkId',],
+  u'courseworktype': [u'courseWorkType',],
+  u'creationtime': [u'creationTime',],
+  u'draftgrade': [u'draftGrade',],
+  u'id': [u'id',],
+  u'late': [u'late',],
+  u'state': [u'state',],
+  u'submissionhistory': [u'submissionHistory',],
+  u'updatetime': [u'updateTime',],
+  u'userid': [u'userId',],
+  u'worktype': [u'courseWorkType',],
+  }
+
+COURSE_SUBMISSION_STATE_ARGUMENT_MAP = {
+  u'new': u'NEW',
+  u'created': u'CREATED',
+  u'turnedin': u'TURNED_IN',
+  u'returned': u'RETURNED',
+  u'reclaimedbystudent': u'RECLAIMED_BY_STUDENT',
+  }
+
+def _getCourseSubmissionStates(courseSubmissionStates):
+  for state in getString(Cmd.OB_COURSE_SUBMISSION_STATE_LIST).lower().replace(u',', u' ').split():
+    if state in COURSE_SUBMISSION_STATE_ARGUMENT_MAP:
+      courseSubmissionStates.append(COURSE_SUBMISSION_STATE_ARGUMENT_MAP[state])
+    else:
+      invalidChoiceExit(COURSE_SUBMISSION_STATE_ARGUMENT_MAP, True)
+
+def _gettingCourseSubmissionQuery(courseSubmissionStates, late, userId):
+  query = u''
+  if courseSubmissionStates:
+    query += u'{0}: {1}, '.format(Ent.Choose(Ent.COURSE_SUBMISSION_STATE, len(courseSubmissionStates)), u','.join(courseSubmissionStates))
+  if late:
+    query += u'{0}, '.format(late)
+  if userId:
+    query += u'{0}: {1}, '.format(Ent.Singular(Ent.USER), userId)
+  if query:
+    query = query[:-2]
+  return query
+
+# gam print course-submissions [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+#	(courseworkids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)*  (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
+#	(coursesubmissionids <CourseSubmissionIDEntity>)|((submissionstates <CourseSubmissionStateList>)*) [late|notlate]
+#	[fields <CourseSubmissionFieldNameList>]
+def doPrintCourseSubmissions():
+  croom = buildGAPIObject(API.CLASSROOM)
+  todrive = {}
+  titles, csvRows = initializeTitlesCSVfile([u'courseId',])
+  fieldsList = []
+  courseIds = []
+  teacherId = studentId = None
+  courseStates = []
+  courseWorkStates = []
+  courseWorkIds = []
+  courseSubmissionStates = []
+  courseSubmissionIds = []
+  orderByList = []
+  late = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'todrive':
+      todrive = getTodriveParameters()
+    elif myarg in [u'course', u'courses', u'class', u'classes']:
+      courseIds.extend(getEntityList(Cmd.OB_COURSE_ENTITY))
+    elif myarg == u'teacher':
+      teacherId = getEmailAddress()
+    elif myarg == u'student':
+      studentId = getEmailAddress()
+    elif myarg in [u'state', u'states', u'status']:
+      _getCourseStates(courseStates)
+    elif myarg in [u'courseworkd', u'courseworkds']:
+      courseWorkIds = getEntityList(Cmd.OB_COURSE_WORK_ID_ENTITY)
+    elif myarg in [u'workstate', u'workstates']:
+      _getCourseWorkStates(courseWorkStates)
+    elif myarg == u'orderby':
+      fieldName = getChoice(COURSE_WORK_ORDERBY_CHOICE_MAP, mapChoice=True)
+      if getChoice(SORTORDER_CHOICE_MAP, defaultChoice=None, mapChoice=True) != u'DESCENDING':
+        orderByList.append(fieldName)
+      else:
+        orderByList.append(u'{0} desc'.format(fieldName))
+    elif myarg == u'coursesubmissionids':
+      courseSubmissionIds = getEntityList(Cmd.OB_COURSE_SUBMISSION_ID_ENTITY)
+    elif myarg in [u'submissionstate', u'submissionstates']:
+      _getCourseSubmissionStates(courseSubmissionStates)
+    elif myarg == u'late':
+      late = u'LATE_ONLY'
+    elif myarg == u'notlate':
+      late = u'NOT_LATE_ONLY'
+    elif myarg == u'fields':
+      if not fieldsList:
+        for field in [u'courseWorkId', u'id', u'userId']:
+          addFieldToCSVfile(field, COURSE_SUBMISSION_ARGUMENT_TO_PROPERTY_MAP, fieldsList, titles)
+      for field in getString(Cmd.OB_FIELD_NAME_LIST).lower().replace(u',', u' ').split():
+        if field in COURSE_SUBMISSION_ARGUMENT_TO_PROPERTY_MAP:
+          addFieldToCSVfile(field, COURSE_SUBMISSION_ARGUMENT_TO_PROPERTY_MAP, fieldsList, titles)
+        else:
+          invalidChoiceExit(list(COURSE_SUBMISSION_ARGUMENT_TO_PROPERTY_MAP), True)
+    else:
+      unknownArgumentExit()
+  orderBy = u','.join(orderByList) if orderByList else None
+  if not courseIds:
+    printGettingAllAccountEntities(Ent.COURSE, _gettingCoursesQuery(teacherId, studentId, courseStates))
+    try:
+      coursesInfo = callGAPIpages(croom.courses(), u'list', u'courses',
+                                  page_message=getPageMessage(),
+                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                                  teacherId=teacherId, studentId=studentId, courseStates=courseStates,
+                                  fields=u'nextPageToken,courses(id,name)', pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
+    except (GAPI.notFound, GAPI.forbidden, GAPI.badRequest):
+      if not studentId:
+        entityUnknownWarning(Ent.TEACHER, teacherId)
+      elif not teacherId:
+        entityUnknownWarning(Ent.STUDENT, studentId)
+      else:
+        entityOrEntityUnknownWarning(Ent.TEACHER, teacherId, Ent.STUDENT, studentId)
+      return
+  else:
+    coursesInfo = collections.deque()
+    for courseId in courseIds:
+      courseId = addCourseIdScope(courseId)
+      try:
+        info = callGAPI(croom.courses(), u'get',
+                        throw_reasons=[GAPI.NOT_FOUND],
+                        id=courseId, fields=u'id,name')
+        coursesInfo.append(info)
+      except GAPI.notFound:
+        entityDoesNotExistWarning(Ent.COURSE, courseId)
+  courseWorkIdsLists = courseWorkIds if isinstance(courseWorkIds, dict) else None
+  courseSubmissionIdsLists = courseSubmissionIds if isinstance(courseSubmissionIds, dict) else None
+  i = 0
+  count = len(coursesInfo)
+  for course in coursesInfo:
+    i += 1
+    courseId = course[u'id']
+    if courseWorkIdsLists:
+      courseWorkIds = courseWorkIdsLists[courseId]
+    if not courseWorkIds:
+      printGettingAllEntityItemsForWhom(Ent.COURSE_WORK_ID, Ent.TypeName(Ent.COURSE, courseId), i, count, _gettingCourseWorkQuery(courseWorkStates))
+      try:
+        results = callGAPIpages(croom.courses().courseWork(), u'list', u'courseWork',
+                                page_message=getPageMessage(),
+                                throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                courseId=courseId, courseWorkStates=courseWorkStates, orderBy=orderBy,
+                                fields=u'nextPageToken,courseWork(id)', pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
+        courseWorkIdsForCourse = [courseWork[u'id'] for courseWork in results]
+      except GAPI.notFound:
+        continue
+      except GAPI.forbidden:
+        APIAccessDeniedExit()
+    else:
+      courseWorkIdsForCourse = courseWorkIds
+    jcount = len(courseWorkIdsForCourse)
+    if jcount == 0:
+      continue
+    j = 0
+    for courseWorkId in courseWorkIdsForCourse:
+      j += 1
+      if not courseSubmissionIds:
+        fields = u'nextPageToken,studentSubmissions({0})'.format(u','.join(set(fieldsList))) if fieldsList else None
+        printGettingAllEntityItemsForWhom(Ent.COURSE_SUBMISSION_ID, Ent.TypeName(Ent.COURSE_WORK_ID, courseWorkId), j, jcount,
+                                          _gettingCourseSubmissionQuery(courseSubmissionStates, late, studentId))
+        try:
+          results = callGAPIpages(croom.courses().courseWork().studentSubmissions(), u'list', u'studentSubmissions',
+                                  page_message=getPageMessage(),
+                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                  courseId=courseId, courseWorkId=courseWorkId, states=courseSubmissionStates, late=late, userId=studentId,
+                                  fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
+          for submission in results:
+            addRowTitlesToCSVfile(flattenJSON(submission, flattened={u'courseId': courseId, u'courseName': course[u'name']}), csvRows, titles)
+        except GAPI.notFound:
+          entityDoesNotHaveItemWarning([Ent.COURSE, course[u'name'], Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
+        except GAPI.forbidden:
+          APIAccessDeniedExit()
+      else:
+        if courseSubmissionIdsLists:
+          if not GM.Globals[GM.CSV_SUBKEY_FIELD]:
+            courseSubmissionIds = courseSubmissionIdsLists[courseWorkId]
+          else:
+            courseSubmissionIds = courseSubmissionIdsLists[courseId][courseWorkId]
+        kcount = len(courseSubmissionIds)
+        if kcount == 0:
+          continue
+        fields = u'{0}'.format(u','.join(set(fieldsList))) if fieldsList else None
+        k = 0
+        for courseSubmissionId in courseSubmissionIds:
+          k += 1
+          try:
+            submission = callGAPI(croom.courses().courseWork().studentSubmissions(), u'get',
+                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                  courseId=courseId, courseWorkId=courseWorkId, id=courseSubmissionId,
+                                  fields=fields)
+            addRowTitlesToCSVfile(flattenJSON(submission, flattened={u'courseId': courseId, u'courseName': course[u'name']}), csvRows, titles)
+          except GAPI.notFound:
+            entityDoesNotHaveItemWarning([Ent.COURSE, course[u'name'], Ent.COURSE_WORK_ID, courseWorkId, Ent.COURSE_SUBMISSION_ID, courseSubmissionId], k, kcount)
+          except GAPI.forbidden:
+            APIAccessDeniedExit()
+  writeCSVfile(csvRows, titles, u'Course Submissions', todrive, [u'courseId', u'courseName', u'courseWorkId', u'id', u'userId', u'state'])
 
 def checkCourseExists(croom, courseId, i=0, count=0):
   courseId = addCourseIdScope(courseId)
@@ -18288,12 +18652,12 @@ def doCourseSyncParticipants(courseIdList, getEntityListArg):
       _batchAddParticipantsToCourse(croom, courseId, i, count, list(syncParticipantsSet-currentParticipantsSet), role)
       _batchRemoveParticipantsFromCourse(croom, courseId, i, count, list(currentParticipantsSet-syncParticipantsSet), role)
 
-# gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <CourseID>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>]) [show all|students|teachers]
+# gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>]) [show all|students|teachers]
 def doPrintCourseParticipants():
   croom = buildGAPIObject(API.CLASSROOM)
   todrive = {}
   titles, csvRows = initializeTitlesCSVfile([u'courseId',])
-  courses = []
+  courseIds = []
   teacherId = None
   studentId = None
   courseStates = []
@@ -18302,22 +18666,22 @@ def doPrintCourseParticipants():
     myarg = getArgument()
     if myarg == u'todrive':
       todrive = getTodriveParameters()
-    elif myarg in [u'course', u'class']:
-      courses.append(getCourseId())
+    elif myarg in [u'course', u'courses', u'class', u'classes']:
+      courseIds.extend(getEntityList(Cmd.OB_COURSE_ENTITY))
     elif myarg == u'teacher':
       teacherId = getEmailAddress()
     elif myarg == u'student':
       studentId = getEmailAddress()
     elif myarg in [u'state', u'states', u'status']:
-      _getCourseStates(croom, courseStates)
+      _getCourseStates(courseStates)
     elif myarg == u'show':
       showMembers = getChoice([u'all', u'students', u'teachers'])
     else:
       unknownArgumentExit()
-  if len(courses) == 0:
-    printGettingAllAccountEntities(Ent.COURSE)
+  if not courseIds:
+    printGettingAllAccountEntities(Ent.COURSE, _gettingCoursesQuery(teacherId, studentId, courseStates))
     try:
-      all_courses = callGAPIpages(croom.courses(), u'list', u'courses',
+      coursesInfo = callGAPIpages(croom.courses(), u'list', u'courses',
                                   page_message=getPageMessage(),
                                   throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
                                   teacherId=teacherId, studentId=studentId, courseStates=courseStates,
@@ -18331,19 +18695,19 @@ def doPrintCourseParticipants():
         entityOrEntityUnknownWarning(Ent.TEACHER, teacherId, Ent.STUDENT, studentId)
       return
   else:
-    all_courses = collections.deque()
-    for course in courses:
-      courseId = addCourseIdScope(course)
+    coursesInfo = collections.deque()
+    for courseId in courseIds:
+      courseId = addCourseIdScope(courseId)
       try:
         info = callGAPI(croom.courses(), u'get',
                         throw_reasons=[GAPI.NOT_FOUND],
                         id=courseId, fields=u'id,name')
-        all_courses.append(info)
+        coursesInfo.append(info)
       except GAPI.notFound:
         entityDoesNotExistWarning(Ent.COURSE, courseId)
   i = 0
-  count = len(all_courses)
-  for course in all_courses:
+  count = len(coursesInfo)
+  for course in coursesInfo:
     i += 1
     courseId = course[u'id']
     page_message = getPageMessageForWhom(forWhom=formatKeyValueList(u'',
@@ -18368,8 +18732,7 @@ def doPrintCourseParticipants():
           addRowTitlesToCSVfile(flattenJSON(member, flattened={u'courseId': courseId, u'courseName': course[u'name'], u'userRole': u'STUDENT'}), csvRows, titles)
     except GAPI.forbidden:
       APIAccessDeniedExit()
-  sortCSVTitles([u'courseId', u'courseName', u'userRole', u'userId'], titles)
-  writeCSVfile(csvRows, titles, u'Course Participants', todrive)
+  writeCSVfile(csvRows, titles, u'Course Participants', todrive, [u'courseId', u'courseName', u'userRole', u'userId'])
 
 def encode_multipart(fields, files, boundary=None):
   def escape_quote(s):
@@ -18582,8 +18945,7 @@ def doPrintPrinters():
     printer[u'updateTime'] = formatLocalTimestamp(printer[u'updateTime'])
     printer[u'tags'] = delimiter.join(printer[u'tags'])
     addRowTitlesToCSVfile(flattenJSON(printer), csvRows, titles)
-  sortCSVTitles([u'id', u'name', u'displayName', u'description', u'createTime', u'updateTime', u'accessTime'], titles)
-  writeCSVfile(csvRows, titles, u'Printers', todrive)
+  writeCSVfile(csvRows, titles, u'Printers', todrive, [u'id', u'name', u'displayName', u'description', u'createTime', u'updateTime', u'accessTime'])
 
 def normalizePrinterScopeList(rawScopeList):
   scopeList = []
@@ -19079,8 +19441,7 @@ def doPrintPrintJobs():
       addRowTitlesToCSVfile(flattenJSON(job), csvRows, titles)
     if jobCount >= totalJobs:
       break
-  sortCSVTitles([u'printerid', u'id', u'printerName', u'title', u'ownerId', u'createTime', u'updateTime'], titles)
-  writeCSVfile(csvRows, titles, u'Print Jobs', todrive)
+  writeCSVfile(csvRows, titles, u'Print Jobs', todrive, [u'printerid', u'id', u'printerName', u'title', u'ownerId', u'createTime', u'updateTime'])
 
 # gam printjob <PrinterID> submit <FileName>|<URL> [name|title <String>] (tag <String>)*
 def doPrintJobSubmit(printerIdList):
@@ -19701,8 +20062,7 @@ def _printShowCalendars(users, csvFormat):
     except (GAPI.serviceNotAvailable, GAPI.authError):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvFormat:
-    sortCSVTitles([u'primaryEmail', u'calendarId'], titles)
-    writeCSVfile(csvRows, titles, u'Calendars', todrive)
+    writeCSVfile(csvRows, titles, u'Calendars', todrive, [u'primaryEmail', u'calendarId'])
 
 # gam <UserTypeEntity> print calendars [allcalendars] [primary] <CalendarSelectProperties>* [todrive [<ToDriveAttributes>]] [permissions]
 def printCalendars(users):
@@ -19823,8 +20183,7 @@ def printShowCalendarACLs(users, csvFormat):
     _doPrintShowCalendarACLs(user, cal, calIds, jcount, csvFormat, csvRows, titles)
     Ind.Decrement()
   if csvFormat:
-    sortCSVTitles([u'primaryEmail', u'calendarId'], titles)
-    writeCSVfile(csvRows, titles, u'Calendar ACLs', todrive)
+    writeCSVfile(csvRows, titles, u'Calendar ACLs', todrive, [u'primaryEmail', u'calendarId'])
 
 # gam <UserTypeEntity> print calendaracls <CalendarEntity> [todrive [<ToDriveAttributes>]]
 def printCalendarACLs(users):
@@ -20164,8 +20523,7 @@ def printShowCalendarEvents(users, csvFormat):
     _printShowCalendarEvents(user, cal, calIds, jcount, calendarEventEntity, csvFormat, csvRows, titles)
     Ind.Decrement()
   if csvFormat:
-    sortCSVTitles([u'primaryEmail', u'calendarId']+EVENT_PRINT_ORDER, titles)
-    writeCSVfile(csvRows, titles, u'Calendar Events', todrive)
+    writeCSVfile(csvRows, titles, u'Calendar Events', todrive, [u'primaryEmail', u'calendarId']+EVENT_PRINT_ORDER)
 
 # gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventSelectProperties>*) [todrive [<ToDriveAttributes>]] <EventDisplayProperties>*
 def printCalendarEvents(users):
@@ -20801,8 +21159,7 @@ def printDriveActivity(users):
         addRowTitlesToCSVfile(flattenJSON(event), csvRows, titles)
     except GAPI.serviceNotAvailable:
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
-  sortCSVTitles(PRINT_DRIVE_ACTIVITY_TITLES, titles)
-  writeCSVfile(csvRows, titles, u'Drive Activity', todrive)
+  writeCSVfile(csvRows, titles, u'Drive Activity', todrive, PRINT_DRIVE_ACTIVITY_TITLES)
 
 DRIVESETTINGS_FIELDS_CHOICE_MAP = {
   u'appinstalled': u'appInstalled',
@@ -20976,8 +21333,7 @@ def _printShowDriveSettings(users, csvFormat):
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
   if csvFormat:
-    sortCSVTitles([u'email',]+DRIVESETTINGS_SCALAR_FIELDS, titles)
-    writeCSVfile(csvRows, titles, u'User Drive Settings', todrive)
+    writeCSVfile(csvRows, titles, u'User Drive Settings', todrive, [u'email',]+DRIVESETTINGS_SCALAR_FIELDS)
 
 # gam <UserTypeEntity> print drivesettings [todrive [<ToDriveAttributes>]] [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <Character>]
 def printDriveSettings(users):
@@ -21319,10 +21675,10 @@ SUBFIELDS_CHOICE_MAP = {
   u'trashinguser': SHARINGUSER_SUBFIELDS_CHOICE_MAP,
 }
 
-DRIVEFILE_FIELDS_TIME_OBJECTS = [VX_CREATED_TIME, VX_VIEWED_BY_ME_TIME, VX_MODIFIED_BY_ME_TIME, VX_MODIFIED_TIME, VX_SHARED_WITH_ME_TIME]
+VX_DRIVEFILE_FIELDS_TIME_OBJECTS = [VX_CREATED_TIME, VX_VIEWED_BY_ME_TIME, VX_MODIFIED_BY_ME_TIME, VX_MODIFIED_TIME, VX_SHARED_WITH_ME_TIME]
 
-FILEINFO_FIELDS_TITLES = [VX_FILENAME, u'mimeType']
-FILEPATH_FIELDS_TITLES = [VX_FILENAME, u'id', u'mimeType', u'parents']
+VX_FILEINFO_FIELDS_TITLES = [VX_FILENAME, u'mimeType']
+VX_FILEPATH_FIELDS_TITLES = [VX_FILENAME, u'id', u'mimeType', u'parents']
 
 def _getFieldSubField(field, fieldsList, titles):
   field, subField = field.split(u'.', 1)
@@ -21355,9 +21711,9 @@ def _setSkipObjects(skipObjects, skipTitles, fieldsList):
 # gam <UserTypeEntity> show fileinfo <DriveFileEntity> [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 def showFileInfo(users):
   def _setSelectionFields():
-    _setSkipObjects(skipObjects, FILEINFO_FIELDS_TITLES, fieldsList)
+    _setSkipObjects(skipObjects, VX_FILEINFO_FIELDS_TITLES, fieldsList)
     if filepath:
-      _setSkipObjects(skipObjects, FILEPATH_FIELDS_TITLES, fieldsList)
+      _setSkipObjects(skipObjects, VX_FILEPATH_FIELDS_TITLES, fieldsList)
 
   filepath = False
   fieldsList = []
@@ -21398,7 +21754,7 @@ def showFileInfo(users):
   else:
     fields = u'*'
     skipObjects.extend([u'kind', u'etag'])
-  timeObjects = DRIVEFILE_FIELDS_TIME_OBJECTS[:]
+  timeObjects = VX_DRIVEFILE_FIELDS_TIME_OBJECTS[:]
   if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
     _mapDrive3TitlesToDrive2(timeObjects, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
   i, count, users = getEntityArgument(users)
@@ -21865,10 +22221,9 @@ def _printShowFileRevisions(users, csvFormat):
     Ind.Decrement()
   if csvFormat:
     if oneItemPerRow:
-      sortCSVTitles([u'Owner', u'id', fileNameTitle, u'revision.id'], titles)
+      writeCSVfile(csvRows, titles, u'Drive File Revisions', todrive, [u'Owner', u'id', fileNameTitle, u'revision.id'])
     else:
-      sortCSVTitles([u'Owner', u'id', fileNameTitle], titles)
-    writeCSVfile(csvRows, titles, u'Drive File Revisions', todrive)
+      writeCSVfile(csvRows, titles, u'Drive File Revisions', todrive, [u'Owner', u'id', fileNameTitle])
 
 # gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] [select <DriveFileRevisionIDEntity>] [previewdelete]
 #	[showtitles] [<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
@@ -21902,12 +22257,12 @@ def initFileTree(drive, teamdrive, getTeamDriveNames):
     if not teamdrive:
       f_file = callGAPI(drive.files(), u'get',
                         throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                        fileId=u'root', fields=u','.join(FILEPATH_FIELDS_TITLES+OWNED_BY_ME_FIELDS_TITLES))
+                        fileId=u'root', fields=u','.join(VX_FILEPATH_FIELDS_TITLES+OWNED_BY_ME_FIELDS_TITLES))
       fileTree[f_file[u'id']] = {u'info': f_file, u'children': []}
     elif u'teamDriveId' in teamdrive:
       f_file = callGAPI(drive.files(), u'get',
                         throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
-                        fileId=teamdrive[u'teamDriveId'], supportsTeamDrives=True, fields=u','.join(FILEPATH_FIELDS_TITLES+OWNED_BY_ME_FIELDS_TITLES))
+                        fileId=teamdrive[u'teamDriveId'], supportsTeamDrives=True, fields=u','.join(VX_FILEPATH_FIELDS_TITLES+OWNED_BY_ME_FIELDS_TITLES))
       fileTree[f_file[u'id']] = {u'info': f_file, u'children': []}
       fileTree[f_file[u'id']][u'info'][VX_FILENAME] = u'TeamDrive({0})'.format(callGAPI(drive.teamdrives(), u'get',
                                                                                         throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND],
@@ -21969,7 +22324,7 @@ def printFileList(users):
     if fileIdEntity:
       _setSkipObjects(skipObjects, FILELIST_FIELDS_TITLES, fieldsList)
     if filepath:
-      _setSkipObjects(skipObjects, FILEPATH_FIELDS_TITLES, fieldsList)
+      _setSkipObjects(skipObjects, VX_FILEPATH_FIELDS_TITLES, fieldsList)
     if showOwnedBy is not None:
       _setSkipObjects(skipObjects, OWNED_BY_ME_FIELDS_TITLES, fieldsList)
     if mimeTypeCheck[u'mimeTypes']:
@@ -22039,7 +22394,7 @@ def printFileList(users):
           if childEntry[u'info'][u'mimeType'] == MIMETYPE_GA_FOLDER and (maxdepth == -1 or depth < maxdepth):
             _printChildDriveFolderContents(drive, childEntry[u'info'], user, i, count, depth+1)
       return
-    q = VX_WITH_PARENTS.format(fileEntry[u'id'])
+    q = WITH_PARENTS.format(fileEntry[u'id'])
     if selectSubQuery:
       q += ' and '+selectSubQuery
     try:
@@ -22194,7 +22549,7 @@ def printFileList(users):
   orderBy = u','.join(orderByList) if orderByList else None
   if filepath:
     addTitlesToCSVfile([u'paths',], titles)
-  timeObjects = DRIVEFILE_FIELDS_TIME_OBJECTS[:]
+  timeObjects = VX_DRIVEFILE_FIELDS_TIME_OBJECTS[:]
   if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
     fileNameTitle = V2_FILENAME
     _mapDrive3TitlesToDrive2(titles[u'list'], API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
@@ -22401,9 +22756,7 @@ def _printShowFilePaths(users, csvFormat):
         break
     Ind.Decrement()
   if csvFormat:
-    if not oneItemPerRow:
-      sortCSVTitles([u'Owner', u'id', fileNameTitle, u'paths'], titles)
-    writeCSVfile(csvRows, titles, u'Drive File Paths', todrive)
+    writeCSVfile(csvRows, titles, u'Drive File Paths', todrive, [u'Owner', u'id', fileNameTitle, u'paths'] if not oneItemPerRow else None)
 
 # gam <UserTypeEntity> print filepaths <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 def printFilePaths(users):
@@ -22429,7 +22782,7 @@ def showFileTree(users):
           Ind.Decrement()
 
   def _showChildDriveFolderContents(drive, fileEntry, user, i, count, depth):
-    q = VX_WITH_PARENTS.format(fileEntry[u'id'])
+    q = WITH_PARENTS.format(fileEntry[u'id'])
     if selectSubQuery:
       q += ' and '+selectSubQuery
     try:
@@ -22730,7 +23083,7 @@ def copyDriveFile(users):
       return
     source_children = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                                     throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                    q=VX_WITH_PARENTS.format(folderId), fields=VX_NPT_FILES_ID_FILENAME_MIMETYPE_CANCOPY,
+                                    q=WITH_PARENTS.format(folderId), fields=VX_NPT_FILES_ID_FILENAME_MIMETYPE_CANCOPY,
                                     pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], supportsTeamDrives=True)
     jcount = len(source_children)
     if jcount > 0:
@@ -23141,82 +23494,109 @@ def collectOrphans(users):
   if csvFormat:
     writeCSVfile(csvRows, titles, u'Orphans to Collect', todrive)
 
-DRIVEFILE_ACL_ROLES_MAP = {
+TRANSFER_DRIVEFILE_ACL_ROLES_MAP = {
   u'commenter': u'commenter',
   u'editor': u'writer',
   u'organizer': u'organizer',
-  u'owner': u'owner',
-  u'read': u'reader',
   u'reader': u'reader',
   u'writer': u'writer',
+  u'current': u'current',
+  u'none': u'none',
+  u'source': u'source',
   }
 
-DRIVEFILE_ACL_PERMISSION_TYPES = [u'anyone', u'domain', u'group', u'user',] # anyone must be first element
-
-# gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>] [keepuser | (retainrole reader|commenter|writer|editor|none)] [noretentionmessages]
+# gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>]
 #	[(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>] [targetuserorphansfoldername <DriveFolderName>]
+#	[keepuser | (retainrole reader|commenter|writer|editor|none)] [noretentionmessages]
+#	[nonowner-retainrole reader|commenter|writer|editor|current|none] [nonowner-targetrole reader|commenter|writer|editor|current|none|source]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[preview] [todrive [<ToDriveAttributes>]]
 def transferDrive(users):
 
-  def _addRemoveParents(oldParents, rootId):
-    addParents = []
-    removeParents = []
-    for parentId in oldParents:
-      if parentId == rootId:
-        addParents.append(targetParentId)
-        removeParents.append(rootId)
-      elif parentId in parentIdMap:
-        addParents.append(parentIdMap[parentId])
-        removeParents.append(parentId)
-    if not addParents:
-      addParents.append(targetParentId)
-    return (addParents, removeParents)
+  TARGET_PARENT_ID = 0
+  TARGET_ORPHANS_PARENT_ID = 1
 
-  def _newParents(oldParents, rootId):
-    parents = []
-    for parent in oldParents:
-      parentId = parent[u'id']
-      if parentId == rootId:
-        parents.append(targetParentId)
+  def _buildTargetFile(folderName, folderParentId):
+    try:
+      result = callGAPIpages(targetDrive.files(), u'list', VX_PAGES_FILES,
+                             throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                             q=VX_MY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS.format(folderName, folderParentId),
+                             fields=VX_NPT_FILES_ID)
+      if len(result) > 0:
+        return result[0][u'id']
       else:
-        parents.append(parentIdMap.get(parentId, parentId))
-    if not parents:
-      parents.append(targetParentId)
-    return parents
+        return callGAPI(targetDrive.files(), u'create',
+                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                        body={u'parents': [folderParentId], VX_FILENAME: folderName, u'mimeType': MIMETYPE_GA_FOLDER}, fields=u'id')[u'id']
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(targetUser, str(e))
+    return None
 
-  def _transferFile(childEntry, rootId, i, count, j, jcount):
-    childFileId = childEntry[u'id']
-    childFileName = childEntry[VX_FILENAME]
-    childFileType = _getEntityMimeType(childEntry)
-    if csvFormat:
-      if childEntry[u'ownedByMe']:
-        csvRows.append({u'OldOwner': sourceUser, u'NewOwner': targetUser, u'type': Ent.Singular(childFileType), u'id': childFileId, VX_FILENAME: childFileName})
-      return
-    if childEntry[u'ownedByMe']:
+  def _buildTargetOrphanFolder():
+    targetIds[TARGET_ORPHANS_PARENT_ID] = _buildTargetFile(_substituteForUser(targetUserOrphansFolderPattern, sourceUser, sourceUserName), targetIds[TARGET_PARENT_ID])
+    if targetIds[TARGET_ORPHANS_PARENT_ID] is None:
+      targetIds[TARGET_ORPHANS_PARENT_ID] = targetIds[TARGET_PARENT_ID]
+
+  def _getMappedParentForRootParentOrOrphan(childEntryInfo):
+    if not childEntryInfo[u'parents']:
+      return targetIds[TARGET_ORPHANS_PARENT_ID]
+    for parentId in childEntryInfo[u'parents']:
+      if parentId == sourceRootId:
+        return targetIds[TARGET_PARENT_ID]
+    return None
+
+  def _setSourceUpdateRole(permission):
+    if permission[u'role'] == u'owner':
+      return {u'role': u'writer'}
+    return {u'role': permission[u'role']}
+
+  def _transferFile(childEntry, i, count, j, jcount):
+    childEntryInfo = childEntry[u'info']
+    childFileId = childEntryInfo[u'id']
+    childFileName = childEntryInfo[VX_FILENAME]
+    childFileType = _getEntityMimeType(childEntryInfo)
+    if childEntryInfo[u'ownedByMe']:
+      childEntryInfo[u'sourcePermission'] = {u'role': u'owner'}
+      for permission in childEntryInfo[u'permissions']:
+        if targetPermissionId == permission[u'id']:
+          childEntryInfo[u'targetPermission'] = _setSourceUpdateRole(permission)
+          break
+      else:
+        childEntryInfo[u'targetPermission'] = {u'role': u'none'}
+      childEntryInfo.pop(u'permissions', None)
+      if csvFormat:
+        csvRows.append({u'OldOwner': sourceUser, u'NewOwner': targetUser, u'type': Ent.Singular(childFileType), u'id': childFileId, VX_FILENAME: childFileName, u'role': u'owner'})
+        return
+      Act.Set(Act.TRANSFER_OWNERSHIP)
+      addTargetParents = set()
+      removeSourceParents = set()
+      removeTargetParents = set()
+      if childEntryInfo[u'parents']:
+        for parentId in childEntryInfo[u'parents']:
+          if parentId in parentIdMap:
+            addTargetParents.add(parentIdMap[parentId])
+            if parentId != sourceRootId:
+              removeSourceParents.add(parentId)
+            else:
+              removeTargetParents.add(targetRootId)
+      else:
+        if targetIds[TARGET_ORPHANS_PARENT_ID] is None:
+          _buildTargetOrphanFolder()
+        addTargetParents.add(targetIds[TARGET_ORPHANS_PARENT_ID])
+        removeTargetParents.add(targetRootId)
       try:
-        Act.Set(Act.TRANSFER_OWNERSHIP)
         callGAPI(sourceDrive.permissions(), u'create',
                  throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST],
-                 fileId=childFileId, sendNotificationEmail=True, emailMessage=None, transferOwnership=True, body=targetPermissionsBody, fields=u'')
+                 fileId=childFileId, sendNotificationEmail=True, emailMessage=None, transferOwnership=True, body=targetOwnerPermissionsBody, fields=u'')
+        if removeSourceParents:
+          callGAPI(sourceDrive.files(), u'update',
+                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS, retry_reasons=[GAPI.FILE_NOT_FOUND],
+                   fileId=childFileId, removeParents=u','.join(removeSourceParents), fields=u'')
+        if addTargetParents or removeTargetParents:
+          callGAPI(targetDrive.files(), u'update',
+                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS, retry_reasons=[GAPI.FILE_NOT_FOUND],
+                   fileId=childFileId, addParents=u','.join(addTargetParents), removeParents=u','.join(removeTargetParents), fields=u'')
         entityModifierNewValueItemValueListActionPerformed([Ent.USER, sourceUser, childFileType, childFileName], Act.MODIFIER_TO, None, [Ent.USER, targetUser], j, jcount)
-        addParents, removeParents = _addRemoveParents(childEntry[u'parents'], rootId)
-        callGAPI(targetDrive.files(), u'update',
-                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
-                 retry_reasons=[GAPI.FILE_NOT_FOUND],
-                 fileId=childFileId, addParents=addParents, removeParents=removeParents, fields=u'')
-        Act.Set(Act.RETAIN)
-        if retainRoleBody[u'role'] != u'none':
-          if retainRoleBody[u'role'] != u'writer':
-            callGAPI(targetDrive.permissions(), u'update',
-                     throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
-                     fileId=childFileId, permissionId=sourcePermissionId, body=retainRoleBody, fields=u'')
-        else:
-          callGAPI(targetDrive.permissions(), u'delete',
-                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
-                   fileId=childFileId, permissionId=sourcePermissionId)
-        if showRetentionMessages:
-          entityActionPerformed([Ent.USER, sourceUser, childFileType, childFileName, Ent.ROLE, retainRoleBody[u'role']], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
         entityActionFailedWarning([Ent.USER, sourceUser, childFileType, childFileName], str(e), j, jcount)
       except GAPI.permissionNotFound:
@@ -23226,27 +23606,210 @@ def transferDrive(users):
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(sourceUser, str(e), i, count)
     else:
-      if childFileType == Ent.DRIVE_FILE:
+      Act.Set(Act.PROCESS)
+      for permission in childEntryInfo[u'permissions']:
+        if sourcePermissionId == permission[u'id']:
+          childEntryInfo[u'sourcePermission'] = _setSourceUpdateRole(permission)
+          break
+      else:
+        childEntryInfo[u'sourcePermission'] = nonOwnerRetainRoleBody
+      for permission in childEntryInfo[u'permissions']:
+        if targetPermissionId == permission[u'id']:
+          childEntryInfo[u'targetPermission'] = _setSourceUpdateRole(permission)
+          break
+      else:
+        childEntryInfo[u'targetPermission'] = {u'role': u'none'}
+      childEntryInfo.pop(u'permissions', None)
+      if csvFormat:
+        csvRows.append({u'OldOwner': sourceUser, u'NewOwner': targetUser, u'type': Ent.Singular(childFileType),
+                        u'id': childFileId, VX_FILENAME: childFileName, u'role': childEntryInfo[u'sourcePermission'][u'role']})
         return
-### Skip if no children??
+      ownerUser = childEntryInfo[u'owners'][0][u'emailAddress']
+      if ownerUser not in thirdPartyOwners:
+        _, ownerDrive = buildGAPIServiceObject(API.DRIVE3, ownerUser)
+        if not ownerDrive:
+          return
+        thirdPartyOwners[ownerUser] = ownerDrive
+      else:
+        ownerDrive = thirdPartyOwners[ownerUser]
+      targetPreviousRole = childEntryInfo[u'targetPermission']
+      if (childFileType == Ent.DRIVE_FOLDER) and (targetPreviousRole[u'role'] == u'none') and (ownerRetainRoleBody[u'role'] == u'none'):
+        if targetIds[TARGET_ORPHANS_PARENT_ID] is None:
+          _buildTargetOrphanFolder()
+        parentIdMap[childFileId] = _buildTargetFile(childFileName, targetIds[TARGET_ORPHANS_PARENT_ID])
+        entityActionPerformed([Ent.USER, sourceUser, childFileType, childFileName], j, jcount)
+        return
+      mappedParentId = _getMappedParentForRootParentOrOrphan(childEntryInfo)
+      if mappedParentId is not None:
+        if targetPreviousRole[u'role'] in [u'none', u'reader']:
+          try:
+            callGAPI(ownerDrive.permissions(), u'create',
+                     throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST],
+                     fileId=childFileId, sendNotificationEmail=False, body=targetWriterPermissionsBody, fields=u'')
+          except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
+            entityActionFailedWarning([Ent.USER, ownerUser, childFileType, childFileName], str(e), j, jcount)
+            return
+          except GAPI.invalidSharingRequest as e:
+            entityActionFailedWarning([Ent.USER, ownerUser, childFileType, childFileName], Ent.TypeNameMessage(Ent.PERMISSION_ID, sourcePermissionId, str(e)), j, jcount)
+            return
+          except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+            userSvcNotApplicableOrDriveDisabled(ownerUser, str(e), i, count)
+            return
+        try:
+          callGAPI(targetDrive.files(), u'update',
+                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS, retry_reasons=[GAPI.FILE_NOT_FOUND],
+                   fileId=childFileId, addParents=mappedParentId, body={}, fields=u'')
+        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
+          entityActionFailedWarning([Ent.USER, targetUser, childFileType, childFileName], str(e), j, jcount)
+          return
+        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+          userSvcNotApplicableOrDriveDisabled(targetUser, str(e), i, count)
+          return
+      entityActionPerformed([Ent.USER, sourceUser, childFileType, childFileName], j, jcount)
+
+  def _manageRoleRetention(childEntry, i, count, j, jcount):
+    def _setTargetInsertBody(permission):
+      return {u'role': permission[u'role'], u'type': u'user', u'emailAddress': targetUser}
+
+    def _checkForDiminishedTargetRole(currentPermission, newPermission):
+      if currentPermission[u'role'] in [u'owner', u'organizer', u'writer']:
+        return False
+      if (currentPermission[u'role'] == u'commenter') and (newPermission[u'role'] == u'reader'):
+        return False
+      return True
+
+    childEntryInfo = childEntry[u'info']
+    childFileId = childEntryInfo[u'id']
+    childFileName = childEntryInfo[VX_FILENAME]
+    childFileType = _getEntityMimeType(childEntryInfo)
+    if childEntryInfo[u'ownedByMe']:
+      if ownerRetainRoleBody[u'role'] == u'current':
+        sourceUpdateRole = childEntryInfo[u'sourcePermission']
+      else:
+        sourceUpdateRole = ownerRetainRoleBody
       try:
-        result = callGAPIpages(targetDrive.files(), u'list', VX_PAGES_FILES,
-                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                               q=VX_MY_NON_TRASHED_FOLDER_NAME.format(childFileName),
-                               fields=VX_NPT_FILES_ID)
-        if len(result) > 0:
-          parentIdMap[childFileId] = result[0][u'id']
+        if ownerRetainRoleBody[u'role'] != u'none':
+          if sourceUpdateRole[u'role'] != u'writer':
+            callGAPI(targetDrive.permissions(), u'update',
+                     throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
+                     fileId=childFileId, permissionId=sourcePermissionId, body=sourceUpdateRole, fields=u'')
         else:
-          parentIdMap[childFileId] = callGAPI(targetDrive.files(), u'create',
-                                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST],
-                                              body={u'parents': _newParents(childEntry[u'parents'], rootId), VX_FILENAME: childFileName, u'mimeType': MIMETYPE_GA_FOLDER},
-                                              fields=u'id')[u'id']
+          callGAPI(targetDrive.permissions(), u'delete',
+                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
+                   fileId=childFileId, permissionId=sourcePermissionId)
+        if showRetentionMessages:
+          entityActionPerformed([Ent.USER, sourceUser, childFileType, childFileName, Ent.ROLE, sourceUpdateRole[u'role']], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
         entityActionFailedWarning([Ent.USER, sourceUser, childFileType, childFileName], str(e), j, jcount)
+      except GAPI.permissionNotFound:
+        entityDoesNotHaveItemWarning([Ent.USER, sourceUser, childFileType, childFileName, Ent.PERMISSION_ID, sourcePermissionId], j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-        userSvcNotApplicableOrDriveDisabled(targetUser, str(e), i, count)
+        userSvcNotApplicableOrDriveDisabled(sourceUser, str(e), i, count)
+    else:
+      ownerUser = childEntryInfo[u'owners'][0][u'emailAddress']
+      if ownerUser not in thirdPartyOwners:
+        _, ownerDrive = buildGAPIServiceObject(API.DRIVE, ownerUser)
+        if not ownerDrive:
+          return
+        thirdPartyOwners[ownerUser] = ownerDrive
+      else:
+        ownerDrive = thirdPartyOwners[ownerUser]
+      if nonOwnerRetainRoleBody[u'role'] == u'current':
+        sourceUpdateRole = childEntryInfo[u'sourcePermission']
+      else:
+        sourceUpdateRole = nonOwnerRetainRoleBody
+      if nonOwnerTargetRoleBody[u'role'] == u'current':
+        targetInsertBody = {u'role': u'none'}
+        resetTargetRole = False
+      elif nonOwnerTargetRoleBody[u'role'] == u'source':
+        targetInsertBody = _setTargetInsertBody(childEntryInfo[u'sourcePermission'])
+        resetTargetRole = True
+      else:
+        targetInsertBody = _setTargetInsertBody(nonOwnerTargetRoleBody)
+        resetTargetRole = True
+      if resetTargetRole:
+        resetTargetRole = _checkForDiminishedTargetRole(childEntryInfo[u'targetPermission'], targetInsertBody)
+      mappedParentId = _getMappedParentForRootParentOrOrphan(childEntryInfo)
+      if mappedParentId is not None:
+        if targetInsertBody[u'role'] in [u'none', u'reader']:
+          resetTargetRole = True
+      try:
+        if nonOwnerRetainRoleBody[u'role'] != u'none':
+          if nonOwnerRetainRoleBody[u'role'] != u'current':
+            callGAPI(ownerDrive.permissions(), u'update',
+                     throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
+                     fileId=childFileId, permissionId=sourcePermissionId, body=sourceUpdateRole, fields=u'')
+        else:
+          try:
+            callGAPI(ownerDrive.permissions(), u'delete',
+                     throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
+                     fileId=childFileId, permissionId=sourcePermissionId)
+          except GAPI.permissionNotFound:
+            pass
+        if showRetentionMessages:
+          entityActionPerformed([Ent.USER, sourceUser, childFileType, childFileName, Ent.ROLE, sourceUpdateRole[u'role']], j, jcount)
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
+        entityActionFailedWarning([Ent.USER, ownerUser, childFileType, childFileName], str(e), j, jcount)
+      except GAPI.permissionNotFound:
+        entityDoesNotHaveItemWarning([Ent.USER, ownerUser, childFileType, childFileName, Ent.PERMISSION_ID, sourcePermissionId], j, jcount)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(ownerUser, str(e), i, count)
+      if resetTargetRole:
+        try:
+          if targetInsertBody[u'role'] != u'none':
+            callGAPI(ownerDrive.permissions(), u'create',
+                     throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST],
+                     fileId=childFileId, sendNotificationEmail=False, body=targetInsertBody, fields=u'')
+          else:
+            try:
+              callGAPI(ownerDrive.permissions(), u'delete',
+                       throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
+                       fileId=childFileId, permissionId=targetPermissionId)
+            except GAPI.permissionNotFound:
+              pass
+          if showRetentionMessages:
+            entityActionPerformed([Ent.USER, targetUser, childFileType, childFileName, Ent.ROLE, targetInsertBody[u'role']], j, jcount)
+        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
+          entityActionFailedWarning([Ent.USER, ownerUser, childFileType, childFileName], str(e), j, jcount)
+        except GAPI.invalidSharingRequest as e:
+          entityActionFailedWarning([Ent.USER, ownerUser, childFileType, childFileName], Ent.TypeNameMessage(Ent.PERMISSION_ID, targetPermissionId, str(e)), j, jcount)
+        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+          userSvcNotApplicableOrDriveDisabled(sourceUser, str(e), i, count)
 
-  def _transferDriveFiles(fileEntry, rootId, i, count):
+  def _getPermissionsForNonOwnedFilesFromTree(fileEntry, i, count):
+    jcount = len(fileEntry[u'children'])
+    if jcount == 0:
+      return
+    j = 0
+    for childFileId in fileEntry[u'children']:
+      j += 1
+      childEntry = fileTree.get(childFileId)
+      if not childEntry or childFileId in filesTransferred:
+        continue
+      if not childEntry[u'info'][u'ownedByMe']:
+        ownerUser = childEntry[u'info'][u'owners'][0][u'emailAddress']
+        if ownerUser not in thirdPartyOwners:
+          _, ownerDrive = buildGAPIServiceObject(API.DRIVE3, ownerUser)
+          if not ownerDrive:
+            return
+          thirdPartyOwners[ownerUser] = ownerDrive
+        else:
+          ownerDrive = thirdPartyOwners[ownerUser]
+        try:
+          result = callGAPI(ownerDrive.files(), u'get',
+                            throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                            fileId=childFileId, fields=u'permissions(id,role)')
+          childEntry[u'info'].update(result)
+        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
+          pass
+        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+          pass
+      if childEntry[u'info'][u'mimeType'] == MIMETYPE_GA_FOLDER:
+        Ind.Increment()
+        _getPermissionsForNonOwnedFilesFromTree(childEntry, i, count)
+        Ind.Decrement()
+
+  def _transferDriveFilesFromTree(fileEntry, i, count):
     jcount = len(fileEntry[u'children'])
     if jcount == 0:
       return
@@ -23257,35 +23820,103 @@ def transferDrive(users):
       if not childEntry or childFileId in filesTransferred:
         continue
       filesTransferred.add(childFileId)
-      _transferFile(childEntry[u'info'], rootId, i, count, j, jcount)
+      _transferFile(childEntry, i, count, j, jcount)
       if childEntry[u'info'][u'mimeType'] == MIMETYPE_GA_FOLDER:
         Ind.Increment()
-        _transferDriveFiles(childEntry, rootId, i, count)
+        _transferDriveFilesFromTree(childEntry, i, count)
         Ind.Decrement()
 
-  def _transferDriveFileAndChildren(fileEntry, rootId, i, count, j, jcount):
+  def _manageRoleRetentionDriveFilesFromTree(fileEntry, i, count):
+    jcount = len(fileEntry[u'children'])
+    if jcount == 0:
+      return
+    j = 0
+    for childFileId in fileEntry[u'children']:
+      j += 1
+      childEntry = fileTree.get(childFileId)
+      if not childEntry or childFileId in filesTransferred:
+        continue
+      filesTransferred.add(childFileId)
+      _manageRoleRetention(childEntry, i, count, j, jcount)
+      if childEntry[u'info'][u'mimeType'] == MIMETYPE_GA_FOLDER:
+        Ind.Increment()
+        _manageRoleRetentionDriveFilesFromTree(childEntry, i, count)
+        Ind.Decrement()
+
+  def _identifyDriveFileAndChildren(fileEntry, i, count):
     fileId = fileEntry[u'id']
+    if fileId not in fileTree:
+      fileTree[fileId] = {u'info': fileEntry, u'children': []}
+    if fileEntry[u'mimeType'] != MIMETYPE_GA_FOLDER:
+      return
+    try:
+      children = callGAPIpages(sourceDrive.files(), u'list', VX_PAGES_FILES,
+                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                               orderBy=orderBy, q=WITH_PARENTS.format(fileId), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS_PERMISSIONS,
+                               maxResults=GC.Values[GC.DRIVE_MAX_RESULTS])
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(sourceUser, str(e), i, count)
+      return
+    for childEntry in children:
+      if not childEntry[u'trashed']:
+        childId = childEntry[u'id']
+        fileTree[fileId][u'children'].append(childId)
+        if not childEntry[u'ownedByMe']:
+          ownerUser = childEntry[u'owners'][0][u'emailAddress']
+          if ownerUser not in thirdPartyOwners:
+            _, ownerDrive = buildGAPIServiceObject(API.DRIVE, ownerUser)
+            if not ownerDrive:
+              continue
+            thirdPartyOwners[ownerUser] = ownerDrive
+          else:
+            ownerDrive = thirdPartyOwners[ownerUser]
+          try:
+            result = callGAPI(ownerDrive.files(), u'get',
+                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                              fileId=childEntry[u'id'], fields=u'permissions(id,role)')
+            childEntry.update(result)
+          except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
+            continue
+          except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+            continue
+        _identifyDriveFileAndChildren(childEntry, i, count)
+
+  def _transferDriveFileAndChildren(fileEntry, i, count, j, jcount):
+    fileId = fileEntry[u'info'][u'id']
     if fileId in filesTransferred:
       return
-    filesTransferred.add(fileId)
-    if fileEntry[VX_FILENAME] != u'My Drive':
-      _transferFile(fileEntry, rootId, i, count, j, jcount)
-    if fileEntry[u'mimeType'] == MIMETYPE_GA_FOLDER:
-      try:
-        children = callGAPIpages(sourceDrive.files(), u'list', VX_PAGES_FILES,
-                                 throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                 orderBy=orderBy, q=VX_WITH_PARENTS.format(fileId), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED,
-                                 pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
-      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-        userSvcNotApplicableOrDriveDisabled(sourceUser, str(e), i, count)
-        return
-      kcount = len(children)
-      k = 0
-      for childEntry in children:
-        k += 1
+    if fileEntry[u'info'][VX_FILENAME] != u'My Drive':
+      _transferFile(fileEntry, i, count, j, jcount)
+      filesTransferred.add(fileId)
+    kcount = len(fileEntry[u'children'])
+    if kcount == 0:
+      return
+    k = 0
+    for childFileId in fileEntry[u'children']:
+      k += 1
+      childEntry = fileTree.get(childFileId)
+      if childEntry:
         Ind.Increment()
-        if not childEntry[u'trashed']:
-          _transferDriveFileAndChildren(childEntry, rootId, i, count, k, kcount)
+        _transferDriveFileAndChildren(childEntry, i, count, k, kcount)
+        Ind.Decrement()
+
+  def _manageRoleRetentionDriveFileAndChildren(fileEntry, i, count, j, jcount):
+    fileId = fileEntry[u'info'][u'id']
+    if fileId in filesTransferred:
+      return
+    if fileEntry[u'info'][VX_FILENAME] != u'My Drive':
+      _manageRoleRetention(fileEntry, i, count, j, jcount)
+      filesTransferred.add(fileId)
+    kcount = len(fileEntry[u'children'])
+    if kcount == 0:
+      return
+    k = 0
+    for childFileId in fileEntry[u'children']:
+      k += 1
+      childEntry = fileTree.get(childFileId)
+      if childEntry:
+        Ind.Increment()
+        _manageRoleRetentionDriveFileAndChildren(childEntry, i, count, k, kcount)
         Ind.Decrement()
 
   targetUser = getEmailAddress()
@@ -23293,20 +23924,29 @@ def transferDrive(users):
   csvFormat = False
   todrive = {}
   orderByList = []
-  retainRoleBody = {u'role': u'none'}
+  ownerRetainRoleBody = {u'role': u'none'}
+  nonOwnerRetainRoleBody = {}
+  nonOwnerTargetRoleBody = {u'role': u'source'}
   showRetentionMessages = True
   targetFolderId = targetFolderName = None
   targetUserFolderPattern = u'#user# old files'
-  parentIdMap = {}
+  targetUserOrphansFolderPattern = u'#user# orphaned files'
+  targetIds = [None, None]
+  thirdPartyOwners = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'keepuser':
-      retainRoleBody[u'role'] = u'writer'
+      ownerRetainRoleBody[u'role'] = u'writer'
     elif myarg == u'retainrole':
-      aclRolesMap = DRIVEFILE_ACL_ROLES_MAP.copy()
-      aclRolesMap[u'owner'] = u'writer'
-      aclRolesMap[u'none'] = u'none'
-      retainRoleBody[u'role'] = getChoice(aclRolesMap, mapChoice=True)
+      ownerRetainRoleBody[u'role'] = getChoice(TRANSFER_DRIVEFILE_ACL_ROLES_MAP, mapChoice=True)
+      if ownerRetainRoleBody[u'role'] in [u'source', u'current']:
+        ownerRetainRoleBody[u'role'] = u'writer'
+    elif myarg == u'nonownerretainrole':
+      nonOwnerRetainRoleBody[u'role'] = getChoice(TRANSFER_DRIVEFILE_ACL_ROLES_MAP, mapChoice=True)
+      if nonOwnerRetainRoleBody[u'role'] == u'source':
+        nonOwnerRetainRoleBody[u'role'] = u'current'
+    elif myarg == u'nonownertargetrole':
+      nonOwnerTargetRoleBody[u'role'] = getChoice(TRANSFER_DRIVEFILE_ACL_ROLES_MAP, mapChoice=True)
     elif myarg == u'noretentionmessages':
       showRetentionMessages = False
     elif myarg == u'orderby':
@@ -23319,6 +23959,8 @@ def transferDrive(users):
       targetFolderName = getString(Cmd.OB_DRIVE_FILE_NAME)
     elif myarg == u'targetuserfoldername':
       targetUserFolderPattern = getString(Cmd.OB_DRIVE_FILE_NAME)
+    elif myarg == u'targetuserorphansfoldername':
+      targetUserOrphansFolderPattern = getString(Cmd.OB_DRIVE_FILE_NAME)
     elif myarg == u'preview':
       csvFormat = True
     elif myarg == u'select':
@@ -23328,6 +23970,8 @@ def transferDrive(users):
       todrive = getTodriveParameters()
     else:
       unknownArgumentExit()
+  if not nonOwnerRetainRoleBody:
+    nonOwnerRetainRoleBody = ownerRetainRoleBody
   orderBy = u','.join(orderByList) if orderByList else None
   targetUser, targetDrive = buildGAPIServiceObject(API.DRIVE3, targetUser)
   if not targetDrive:
@@ -23335,16 +23979,18 @@ def transferDrive(users):
   try:
     result = callGAPI(targetDrive.about(), u'get',
                       throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                      fields=u'storageQuota')
+                      fields=u'storageQuota,user(permissionId)')
     if result[u'storageQuota'].get(u'limit'):
       targetDriveFree = int(result[u'storageQuota'][u'limit']) - int(result[u'storageQuota'][u'usageInDrive'])
     else:
-      targetDriveFree = 0
+      targetDriveFree = None
+    targetPermissionId = result[u'user'][u'permissionId']
+    result = callGAPI(targetDrive.files(), u'get',
+                      throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                      fileId=u'root', fields=VX_ID_FILENAME)
+    targetRootId = result[u'id']
     if not targetFolderId and not targetFolderName:
-      result = callGAPI(targetDrive.files(), u'get',
-                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                        fileId=u'root', fields=VX_ID_FILENAME)
-      targetFolderId = result[u'id']
+      targetFolderId = targetRootId
       targetFolderName = result[VX_FILENAME]
     else:
       if targetFolderId:
@@ -23389,9 +24035,10 @@ def transferDrive(users):
   except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
     userSvcNotApplicableOrDriveDisabled(targetUser, str(e))
     return
-  targetPermissionsBody = {u'role': u'owner', u'type': u'user', u'emailAddress': targetUser}
+  targetOwnerPermissionsBody = {u'role': u'owner', u'type': u'user', u'emailAddress': targetUser}
+  targetWriterPermissionsBody = {u'role': u'writer', u'type': u'user', u'emailAddress': targetUser}
   if csvFormat:
-    titles, csvRows = initializeTitlesCSVfile([u'OldOwner', u'NewOwner', u'type', u'id', VX_FILENAME])
+    titles, csvRows = initializeTitlesCSVfile([u'OldOwner', u'NewOwner', u'type', u'id', VX_FILENAME, u'role'])
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -23410,10 +24057,10 @@ def transferDrive(users):
                         fields=u'storageQuota,user(permissionId)')
       sourceDriveSize = int(result[u'storageQuota'][u'usageInDrive'])
       sourcePermissionId = result[u'user'][u'permissionId']
-      sourceRoot = callGAPI(sourceDrive.files(), u'get',
-                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                            fileId=u'root', fields=u'id')[u'id']
-      if targetDriveFree < sourceDriveSize:
+      sourceRootId = callGAPI(sourceDrive.files(), u'get',
+                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                              fileId=u'root', fields=u'id')[u'id']
+      if (targetDriveFree is not None) and (targetDriveFree < sourceDriveSize):
         printWarningMessage(TARGET_DRIVE_SPACE_ERROR_RC,
                             u'{0} {1}'.format(Msg.NO_TRANSFER_LACK_OF_DISK_SPACE,
                                               formatKeyValueList(u'',
@@ -23422,55 +24069,65 @@ def transferDrive(users):
                                                                  u'')))
         continue
       printKeyValueList([u'Source drive size', formatFileSize(sourceDriveSize),
-                         u'Target drive free', formatFileSize(targetDriveFree)])
-      targetDriveFree = targetDriveFree - sourceDriveSize # prep targetDriveFree for next user
-      targetUserFolderName = _substituteForUser(targetUserFolderPattern, sourceUser, sourceUserName)
+                         u'Target drive free', formatFileSize(targetDriveFree) if targetDriveFree != 0 else u'UNLIMITED'])
+      if targetDriveFree is not None:
+        targetDriveFree = targetDriveFree - sourceDriveSize # prep targetDriveFree for next user
       if not csvFormat:
-        try:
-          result = callGAPIpages(targetDrive.files(), u'list', VX_PAGES_FILES,
-                                 throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                 q=VX_MY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS.format(targetUserFolderName, targetFolderId),
-                                 fields=VX_NPT_FILES_ID)
-          if len(result) > 0:
-            targetParentId = result[0][u'id']
-          else:
-            targetParentId = callGAPI(targetDrive.files(), u'create',
-                                      throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                      body={u'parents': [targetFolderId], VX_FILENAME: targetUserFolderName, u'mimeType': MIMETYPE_GA_FOLDER}, fields=u'id')[u'id']
-          targetUserFolderName = os.path.join(targetFolderName, targetUserFolderName)
-        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-          userSvcNotApplicableOrDriveDisabled(targetUser, str(e))
+        targetIds[TARGET_PARENT_ID] = _buildTargetFile(_substituteForUser(targetUserFolderPattern, sourceUser, sourceUserName), targetFolderId)
+        if targetIds[TARGET_PARENT_ID] is None:
           return
-      filesTransferred = set()
       Ind.Increment()
       if buildTree:
+        parentIdMap = {sourceRootId: targetIds[TARGET_PARENT_ID]}
         printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, Ent.TypeName(Ent.SOURCE_USER, user), i, count)
         sourceDriveFiles = callGAPIpages(sourceDrive.files(), u'list', VX_PAGES_FILES,
                                          page_message=getPageMessageForWhom(),
                                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                         q=VX_NON_TRASHED, orderBy=orderBy,
-                                         fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME,
+                                         q=NON_TRASHED, orderBy=orderBy,
+                                         fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_OWNERS_PERMISSIONS,
                                          pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
         fileTree = buildFileTree(sourceDriveFiles, sourceDrive)
-        _transferDriveFiles(fileTree[sourceRoot], sourceRoot, i, count)
-        _transferDriveFiles(fileTree[u'orphans'], u'orphans', i, count)
+        filesTransferred = set()
+        _getPermissionsForNonOwnedFilesFromTree(fileTree[sourceRootId], i, count)
+        _getPermissionsForNonOwnedFilesFromTree(fileTree[u'orphans'], i, count)
+        filesTransferred = set()
+        _transferDriveFilesFromTree(fileTree[sourceRootId], i, count)
+        if fileTree[u'orphans'][u'children']:
+          if not csvFormat:
+            _buildTargetOrphanFolder()
+          _transferDriveFilesFromTree(fileTree[u'orphans'], i, count)
+        if not csvFormat:
+          Act.Set(Act.RETAIN)
+          filesTransferred = set()
+          _manageRoleRetentionDriveFilesFromTree(fileTree[sourceRootId], i, count)
+          if fileTree[u'orphans'][u'children']:
+            _manageRoleRetentionDriveFilesFromTree(fileTree[u'orphans'], i, count)
       else:
         j = 0
         for fileId in fileIdEntity[u'list']:
           j += 1
+          fileTree = {}
+          parentIdMap = {sourceRootId: targetIds[TARGET_PARENT_ID]}
           try:
             fileEntry = callGAPI(sourceDrive.files(), u'get',
                                  throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
-                                 fileId=fileId, fields=VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED)
+                                 fileId=fileId, fields=VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS_PERMISSIONS)
+            entityType = _getEntityMimeType(fileEntry)
+            entityPerformActionItemValue([Ent.USER, sourceUser], entityType, u'{0} ({1})'.format(fileEntry[VX_FILENAME], fileId), j, jcount)
+            for parentId in fileEntry[u'parents']:
+              parentIdMap[parentId] = targetIds[TARGET_PARENT_ID]
+            _identifyDriveFileAndChildren(fileEntry, i, count)
+            filesTransferred = set()
+            _transferDriveFileAndChildren(fileTree[fileEntry[u'id']], i, count, j, jcount)
+            if not csvFormat:
+              Act.Set(Act.RETAIN)
+              filesTransferred = set()
+              _manageRoleRetentionDriveFileAndChildren(fileTree[fileEntry[u'id']], i, count, j, jcount)
           except GAPI.fileNotFound:
             entityActionFailedWarning([Ent.USER, sourceUser, Ent.DRIVE_FILE_OR_FOLDER, fileId], Msg.NOT_FOUND, j, jcount)
-            continue
           except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
             userSvcNotApplicableOrDriveDisabled(sourceUser, str(e), i, count)
             break
-          entityType = _getEntityMimeType(fileEntry)
-          entityPerformActionItemValue([Ent.USER, sourceUser], entityType, u'{0} ({1})'.format(fileEntry[VX_FILENAME], fileId), j, jcount)
-          _transferDriveFileAndChildren(fileEntry, sourceRoot, i, count, j, jcount)
       Ind.Decrement()
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(sourceUser, str(e), i, count)
@@ -23510,7 +24167,7 @@ def transferOwnership(users):
     try:
       children = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                               orderBy=orderBy, q=VX_WITH_PARENTS.format(fileEntry[u'id']), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED,
+                               orderBy=orderBy, q=WITH_PARENTS.format(fileEntry[u'id']), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED,
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -23703,7 +24360,7 @@ def claimOwnership(users):
     try:
       children = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                               orderBy=orderBy, q=VX_WITH_PARENTS.format(fileEntry[u'id']), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS,
+                               orderBy=orderBy, q=WITH_PARENTS.format(fileEntry[u'id']), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS,
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -23726,17 +24383,17 @@ def claimOwnership(users):
     oldOwnerPermissionId = oldOwnerPermissionIds[oldOwner]
     Act.Set(Act.RETAIN)
     try:
-      if retainRoleBody[u'role'] != u'none':
-        if retainRoleBody[u'role'] != u'writer':
+      if sourceRetainRoleBody[u'role'] != u'none':
+        if sourceRetainRoleBody[u'role'] != u'writer':
           callGAPI(sourceDrive.permissions(), u'update',
                    throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
-                   fileId=fileId, permissionId=oldOwnerPermissionId, body=retainRoleBody, fields=u'')
+                   fileId=fileId, permissionId=oldOwnerPermissionId, body=sourceRetainRoleBody, fields=u'')
       else:
         callGAPI(sourceDrive.permissions(), u'delete',
                  throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
                  fileId=fileId, permissionId=oldOwnerPermissionId)
       if showRetentionMessages:
-        entityActionPerformed([Ent.USER, oldOwner, entityType, fileDesc, Ent.ROLE, retainRoleBody[u'role']], l, lcount)
+        entityActionPerformed([Ent.USER, oldOwner, entityType, fileDesc, Ent.ROLE, sourceRetainRoleBody[u'role']], l, lcount)
     except GAPI.permissionNotFound:
       entityDoesNotHaveItemWarning([Ent.USER, oldOwner, entityType, fileDesc, Ent.PERMISSION_ID, oldOwnerPermissionId], l, lcount)
     except GAPI.badRequest as e:
@@ -23753,7 +24410,7 @@ def claimOwnership(users):
   subdomains = []
   csvFormat = filepath = trashed = False
   todrive = {}
-  retainRoleBody = {u'role': u'writer'}
+  sourceRetainRoleBody = {u'role': u'writer'}
   showRetentionMessages = True
   oldOwnerPermissionIds = {}
   fileTree = None
@@ -23762,12 +24419,9 @@ def claimOwnership(users):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'keepuser':
-      retainRoleBody[u'role'] = u'writer'
+      sourceRetainRoleBody[u'role'] = u'writer'
     elif myarg == u'retainrole':
-      aclRolesMap = DRIVEFILE_ACL_ROLES_MAP.copy()
-      aclRolesMap[u'owner'] = u'writer'
-      aclRolesMap[u'none'] = u'none'
-      retainRoleBody[u'role'] = getChoice(aclRolesMap, mapChoice=True)
+      sourceRetainRoleBody[u'role'] = getChoice(TRANSFER_DRIVEFILE_ACL_ROLES_MAP, mapChoice=True)
     elif myarg == u'noretentionmessages':
       showRetentionMessages = False
     elif myarg == u'skipids':
@@ -23960,10 +24614,10 @@ def deleteEmptyDriveFolders(users):
   Act.Set(Act.DELETE_EMPTY)
   if Cmd.ArgumentsRemaining():
     fileIdEntity = getTeamDriveEntity()
-    query = VX_ANY_FOLDERS
+    query = ANY_FOLDERS
   else:
     fileIdEntity = {}
-    query = VX_MY_FOLDERS
+    query = MY_FOLDERS
   checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -24003,12 +24657,12 @@ def deleteEmptyDriveFolders(users):
             if not fileIdEntity.get(u'teamdrive'):
               children = callGAPIitems(drive.files(), u'list', VX_PAGES_FILES,
                                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                       q=VX_WITH_PARENTS.format(folder[u'id']), fields=VX_FILES_ID_FILENAME,
+                                       q=WITH_PARENTS.format(folder[u'id']), fields=VX_FILES_ID_FILENAME,
                                        pageSize=1)
             else:
               children = callGAPIitems(drive.files(), u'list', VX_PAGES_FILES,
                                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
-                                       q=VX_WITH_PARENTS.format(folder[u'id']), fields=VX_FILES_ID_FILENAME,
+                                       q=WITH_PARENTS.format(folder[u'id']), fields=VX_FILES_ID_FILENAME,
                                        pageSize=1, **fileIdEntity[u'teamdrive'])
             if len(children) == 0:
               try:
@@ -24126,6 +24780,18 @@ def _showDriveFilePermission(permission, printKeys, timeObjects, i=0, count=0):
     else:
       printKeyValueList([key, formatLocalTime(value)])
   Ind.Decrement()
+
+DRIVEFILE_ACL_ROLES_MAP = {
+  u'commenter': u'commenter',
+  u'editor': u'writer',
+  u'organizer': u'organizer',
+  u'owner': u'owner',
+  u'read': u'reader',
+  u'reader': u'reader',
+  u'writer': u'writer',
+  }
+
+DRIVEFILE_ACL_PERMISSION_TYPES = [u'anyone', u'domain', u'group', u'user',] # anyone must be first element
 
 def _createDriveFileACL(users, useDomainAdminAccess):
   sendNotificationEmail = showTitles = _transferOwnership = False
@@ -24677,8 +25343,7 @@ def _printShowDriveFileACLs(users, csvFormat, useDomainAdminAccess):
         break
     Ind.Decrement()
   if csvFormat:
-    sortCSVTitles([u'Owner', u'id', fileNameTitle], titles)
-    writeCSVfile(csvRows, titles, u'Drive File ACLs', todrive)
+    writeCSVfile(csvRows, titles, u'Drive File ACLs', todrive, [u'Owner', u'id', fileNameTitle])
 
 # gam <UserTypeEntity> print drivefileacl <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] [adminaccess|asadmin] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 def printDriveFileACLs(users):
@@ -24952,8 +25617,7 @@ def _printShowTeamDrives(users, csvFormat, useDomainAdminAccess):
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
   if csvFormat:
-    sortCSVTitles([u'User', u'id', u'name'], titles)
-    writeCSVfile(csvRows, titles, u'TeamDrives', todrive)
+    writeCSVfile(csvRows, titles, u'TeamDrives', todrive, [u'User', u'id', u'name'])
 
 # gam <UserTypeEntity> print teamdrives [adminaccess|asadmin [query <QueryTeamDrive>]] (role commenter|organizer|owner|reader|writer)* [checkgroups] [todrive [<ToDriveAttributes>]]
 def printTeamDrives(users):
@@ -25835,10 +26499,9 @@ def _printShowSheetRanges(users, csvFormat):
     Ind.Decrement()
   if csvFormat:
     if formatJSON:
-      sortCSVTitles(PRINT_SHEETS_JSON_TITLES, titles)
+      writeCSVfile(csvRows, titles, u'Spreadsheet', todrive, PRINT_SHEETS_JSON_TITLES, quotechar)
     else:
-      sortCSVTitles(PRINT_SHEETS_TITLES, titles)
-    writeCSVfile(csvRows, titles, u'Spreadsheet', todrive, quotechar)
+      writeCSVfile(csvRows, titles, u'Spreadsheet', todrive, PRINT_SHEETS_TITLES, quotechar)
 
 # gam <UserTypeEntity> print sheetrange <DriveFileEntity> (range <SpreadsheetRange>)*  [todrive [<ToDriveAttributes>]]
 #	[rows|columns] [serialnumber|formattedstring] [formula|formattedvalue|unformattedvalue]
@@ -26070,8 +26733,7 @@ def _printShowGmailProfile(users, csvFormat):
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvFormat:
-    sortCSVTitles([u'emailAddress',], titles)
-    writeCSVfile(csvRows, titles, u'Gmail Profiles', todrive)
+    writeCSVfile(csvRows, titles, u'Gmail Profiles', todrive, [u'emailAddress',])
 
 # gam <UserTypeEntity> print gmailprofile [todrive [<ToDriveAttributes>]]
 def printGmailProfile(users):
@@ -26199,8 +26861,7 @@ def _printShowGplusProfile(users, csvFormat):
     except GAPI.serviceNotAvailable:
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvFormat:
-    sortCSVTitles([u'emailAddress', u'id', u'displayName', u'domain'], titles)
-    writeCSVfile(csvRows, titles, u'Gplus Profiles', todrive)
+    writeCSVfile(csvRows, titles, u'Gplus Profiles', todrive, [u'emailAddress', u'id', u'displayName', u'domain'])
 
 # gam <UserTypeEntity> print gplusprofile [todrive [<ToDriveAttributes>]]
 def printGplusProfile(users):
@@ -26672,8 +27333,7 @@ def printShowLabels(users, csvFormat):
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvFormat:
-    sortCSVTitles(PRINT_LABELS_TITLES, titles)
-    writeCSVfile(csvRows, titles, u'Labels', todrive)
+    writeCSVfile(csvRows, titles, u'Labels', todrive, PRINT_LABELS_TITLES)
 
 # gam <UserTypeEntity> print labels|label [onlyuser [<Boolean>]] [showcounts [<Boolean>]] [todrive [<ToDriveAttributes>]]
 def printLabels(users):
@@ -28265,8 +28925,7 @@ def _printShowFilters(users, csvFormat):
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvFormat:
-    sortCSVTitles([u'User', u'id'], titles)
-    writeCSVfile(csvRows, titles, u'Filters', todrive)
+    writeCSVfile(csvRows, titles, u'Filters', todrive, [u'User', u'id'])
 
 # gam <UserTypeEntity> print filters [labelidsonly] [todrive [<ToDriveAttributes>]]
 def printFilters(users):
