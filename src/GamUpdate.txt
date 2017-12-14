@@ -1,3 +1,7 @@
+4.54.59
+
+Fix reporting of target free space in gam transfer drive.
+
 4.54.58
 
 Updated options in gam transfer drive to give more control over processing files.

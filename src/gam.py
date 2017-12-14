@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.58'
+__version__ = u'4.54.59'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -24069,7 +24069,7 @@ def transferDrive(users):
                                                                  u'')))
         continue
       printKeyValueList([u'Source drive size', formatFileSize(sourceDriveSize),
-                         u'Target drive free', formatFileSize(targetDriveFree) if targetDriveFree != 0 else u'UNLIMITED'])
+                         u'Target drive free', formatFileSize(targetDriveFree) if targetDriveFree is not None else u'UNLIMITED'])
       if targetDriveFree is not None:
         targetDriveFree = targetDriveFree - sourceDriveSize # prep targetDriveFree for next user
       if not csvFormat:
