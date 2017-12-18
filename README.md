@@ -1,18 +1,18 @@
-GAMADV-X3
+GAMADV-XTD3
 ========
-GAMADV-X3 is a free, open source command line tool for Google G Suite Administrators to manage domain and user settings quickly and easily.
+GAMADV-XTD3 is a free, open source command line tool for Google G Suite Administrators to manage domain and user settings quickly and easily.
 
-GAMADV-X3 requires G Suite for Business, Education, Partner or Government Edition. Google Apps Free Edition has limited API support and not all GAM commands work.
+GAMADV-XTD3 requires G Suite for Business, Education, Partner or Government Edition. Google Apps Free Edition has limited API support and not all GAM commands work.
 
-GAMADV-X3 is a rewrite/extension of Jay Lee's [GAM](https://github.com/jay0lee/GAM), without his efforts, this version wouldn't exist.
+GAMADV-XTD3 is a rewrite/extension of Jay Lee's [GAM](https://github.com/jay0lee/GAM), without his efforts, this version wouldn't exist.
 
 Documentation
 -------------
-General GAM documentation is hosted in the [GitHub Wiki]. Documentation specifically for GAMADV-X3 is hosted in the [GitHub GAMADV-XTD Wiki] and in Gam*.txt files.
+General GAM documentation is hosted in the [GitHub Wiki]. Documentation specifically for GAMADV-XTD3 is hosted in the [GitHub GAMADV-XTD Wiki] and in Gam*.txt files.
 
 Downloads
 ---------
-You can download the current GAMADV-X3 release from the [GitHub Releases] page. Choose one of the following:
+You can download the current GAMADV-XTD3 release from the [GitHub Releases] page. Choose one of the following:
 
 * Source, all platforms - Source code(zip), Source code(tar.gz)
   - Download the archive, extract the contents into some directory.
@@ -28,27 +28,27 @@ Enter the following gam commands and follow instructions to create the necessary
 - Authorize Gam Client: `gam oauth create`
 - Authorize Service Account: `gam user <email address> check serviceaccount`
 
-Installation - Upgrading from a GAM version other than a prior version of GAMADV-X3 or GAMADV-XTD or GAMADV-X
+Installation - Upgrading from a GAM version other than a prior version of GAMADV-XTD3 or GAMADV-XTD or GAMADV-X
 -------------------------------------------------------------------------------------------------------------
 Read GamConfig.txt.
 
 ## Linux/Mac OS
 
-This example assumes that GAMADV-X3 has beem installed in /usr/local/gamadv-x3.
+This example assumes that GAMADV-XTD3 has beem installed in /usr/local/gamadv-xtd3.
 Set environment variable OLDGAMPATH to point to the existing Gam directory; /usr/local/gam will be used in this example.
 ```
-admin@server:/usr/local/gamadv-x3$ export OLDGAMPATH=/usr/local/gam
+admin@server:/usr/local/gamadv-xtd3$ export OLDGAMPATH=/usr/local/gam
 ```
 Verify that OLDGAMPATH points to the correct location.
 ```
-admin@server:/usr/local/gamadv-x3$ ls -l $OLDGAMPATH/*.json
+admin@server:/usr/local/gamadv-xtd3$ ls -l $OLDGAMPATH/*.json
 -rw-r-----@ 1 admin  staff   553 Feb 26 10:39 /usr/local/gam/client_secrets.json
 -rw-r-----@ 1 admin  staff  2377 Feb 26 10:39 /usr/local/gam/oauth2service.json
-admin@server:/usr/local/gamadv-x3$ 
+admin@server:/usr/local/gamadv-xtd3$ 
 ```
-Initialize GAMADV-X3; this should be the first GAMADV-X3 command executed.
+Initialize GAMADV-XTD3; this should be the first GAMADV-XTD3 command executed.
 ```
-admin@server:/usr/local/gamadv-x3$ ./gam config verify
+admin@server:/usr/local/gamadv-xtd3$ ./gam config verify
 Created: /Users/admin/.gam
 Created: /Users/admin/.gam/gamcache
 Copied: /usr/local/gam/oauth2service.json, To: /Users/admin/.gam/oauth2service.json
@@ -103,11 +103,11 @@ Section: DEFAULT
   todrive_timestamp = false
   todrive_user = ''
   user_max_results = 500
-admin@server:/usr/local/gamadv-x3$ 
+admin@server:/usr/local/gamadv-xtd3$ 
 ```
 Verify initialization, this was a successful installation.
 ```
-admin@server:/usr/local/gamadv-x3$ ls -l ~/.gam
+admin@server:/usr/local/gamadv-xtd3$ ls -l ~/.gam
 total 48
 -rw-r-----+ 1 admin  staff   553 Mar  3 09:23 client_secrets.json
 -rw-r-----+ 1 admin  staff  1069 Mar  3 09:23 gam.cfg
@@ -116,20 +116,20 @@ drwxr-x---+ 2 admin  staff    68 Mar  3 09:23 gamcache
 -rw-r-----+ 1 admin  staff  5104 Mar  3 09:23 oauth2.txt
 -rw-rw-rw-+ 1 admin  staff     0 Mar  3 09:23 oauth2.txt.lock
 -rw-r-----+ 1 admin  staff  2377 Mar  3 09:23 oauth2service.json
-admin@server:/usr/local/gamadv-x3$ 
+admin@server:/usr/local/gamadv-xtd3$ 
 ```
 If the verification looks like this, then you'll have to copy client_secrets.json and oauth2service.json manually.
 ```
-admin@server:/usr/local/gamadv-x3$ ls -l ~/.gam
+admin@server:/usr/local/gamadv-xtd3$ ls -l ~/.gam
 total 40
 -rw-r-----+  1 admin  admin  1427 Nov  1 11:38 gam.cfg
 drwxr-x---+ 16 admin  admin   544 Nov  2 07:25 gamcache
 -rw-r--r--+  1 admin  admin    10 Nov  2 15:31 lastupdatecheck.txt
 -rw-rw-rw-+  1 admin  admin     0 Sep 19 17:28 oauth2.txt.lock
 
-admin@server:/usr/local/gamadv-x3$ cp -p $OLDGAMPATH/client_secrets.json ~/.gam/
-admin@server:/usr/local/gamadv-x3$ cp -p $OLDGAMPATH/oauth2service.json ~/.gam/
-admin@server:/usr/local/gamadv-x3$ ls -l ~/.gam
+admin@server:/usr/local/gamadv-xtd3$ cp -p $OLDGAMPATH/client_secrets.json ~/.gam/
+admin@server:/usr/local/gamadv-xtd3$ cp -p $OLDGAMPATH/oauth2service.json ~/.gam/
+admin@server:/usr/local/gamadv-xtd3$ ls -l ~/.gam
 total 40
 -rw-r-----+ 1 admin  staff   553 Mar  3 09:23 client_secrets.json
 -rw-r-----+ 1 admin  staff  1069 Mar  3 09:23 gam.cfg
@@ -139,7 +139,7 @@ drwxr-x---+ 2 admin  staff    68 Mar  3 09:23 gamcache
 -rw-rw-rw-+ 1 admin  staff     0 Mar  3 09:23 oauth2.txt.lock
 -rw-r-----+ 1 admin  staff  2377 Mar  3 09:23 oauth2service.json
 ```
-Update your project to include the additional APIs that GAMADV-X3 uses.
+Update your project to include the additional APIs that GAMADV-XTD3 uses.
 ```
 admin@server:/usr/local/gamadv-xtd$ gam update project
 
@@ -171,19 +171,19 @@ Enable 3 APIs
   API: groupsmigration.googleapis.com, Enabled (2/3)
   API: sheets.googleapis.com, Enabled (3/3)
 ```
-Enable GAMADV-X3 client access, create oauth2.txt; it must be deleted and recreated because it is in a different format than in basic Gam.
+Enable GAMADV-XTD3 client access, create oauth2.txt; it must be deleted and recreated because it is in a different format than in basic Gam.
 ```
-admin@server:/usr/local/gamadv-x3$ rm -f ~/.gam/oauth2.txt
-admin@server:/usr/local/gamadv-x3$ ./gam version
+admin@server:/usr/local/gamadv-xtd3$ rm -f ~/.gam/oauth2.txt
+admin@server:/usr/local/gamadv-xtd3$ ./gam version
 WARNING: Config File: /Users/admin/.gam/gam.cfg, Section: DEFAULT, Item: oauth2_txt, Value: /Users/admin/.gam/oauth2.txt, Not Found
-GAM 4.54.46 - https://github.com/taers232c/GAMADV-X3
+GAM 4.54.46 - https://github.com/taers232c/GAMADV-XTD3
 Ross Scroggs <ross.scroggs@gmail.com>
 Python 2.7.14 64-bit final
 google-api-python-client 1.6.4
 Darwin-15.6.0-x86_64-i386-64bit x86_64
-Path: /usr/local/gamadv-x3
+Path: /usr/local/gamadv-xtd3
 
-admin@server:/usr/local/gamadv-x3$ ./gam oauth create
+admin@server:/usr/local/gamadv-xtd3$ ./gam oauth create
 
 What is your G Suite admin email address?admin@domain.com
 
@@ -252,7 +252,7 @@ Client OAuth2 File: /Users/admin/.gam/oauth2.txt, Created
 ```
 Gam service account access must be enabled.
 ```
-admin@server:/usr/local/gamadv-x3$ ./gam user testuser1@domain.com check serviceaccount
+admin@server:/usr/local/gamadv-xtd3$ ./gam user testuser1@domain.com check serviceaccount
 User: testuser1@domain.com, Check 12 Scopes
   Scope: https://mail.google.com/                                    , Checked: PASS (1/12)
   Scope: https://sites.google.com/feeds                              , Checked: FAIL (2/12)
@@ -296,7 +296,7 @@ Paste SVCACCTID in the `Client Name` box and the complete list of scopes in the 
 Wait a moment and then perform the following command; it it still fails, wait a bit longer, it can sometimes take serveral minutes
 for the authorization to complete.
 ```
-admin@server:/usr/local/gamadv-x3$ ./gam user testuser1@domain.com check serviceaccount
+admin@server:/usr/local/gamadv-xtd3$ ./gam user testuser1@domain.com check serviceaccount
 User: testuser1@domain.com, Check 12 Scopes
   Scope: https://mail.google.com/                                    , Checked: PASS (1/12)
   Scope: https://sites.google.com/feeds                              , Checked: PASS (2/12)
@@ -316,7 +316,7 @@ Service Account Client name SVCACCTID is fully authorized.
 ```
 Update gam.cfg to have your customer_id and domain.
 ```
-admin@server:/usr/local/gamadv-x3$ ./gam info domain
+admin@server:/usr/local/gamadv-xtd3$ ./gam info domain
 Customer ID: C01234567
 Primary Domain: domain.com
 Customer Creation Time: 2007-06-06T15:47:55.444Z
@@ -324,7 +324,7 @@ Primary Domain Verified: True
 Default Language: en
 ...
 
-admin@server:/usr/local/gamadv-x3$ ./gam config customer_id C01234567 domain domain.com save verify
+admin@server:/usr/local/gamadv-xtd3$ ./gam config customer_id C01234567 domain domain.com save verify
 Config File: /Users/admin/.gam/gam.cfg, Saved
 Section: DEFAULT
   activity_max_results = 100
@@ -375,19 +375,19 @@ Section: DEFAULT
   todrive_user = ''
   user_max_results = 500
 
-admin@server:/usr/local/gamadv-x3$ 
+admin@server:/usr/local/gamadv-xtd3$ 
 ```
 
 ## Windows
 
-This example assumes that GAMADV-X3 has beem installed in C:\GAMADV-X3.
+This example assumes that GAMADV-XTD3 has beem installed in C:\GAMADV-XTD3.
 Set environment variable OLDGAMPATH to point to the existing Gam directory; C:\GAM will be used in this example.
 ```
-C:\GAMADV-X3>set OLDGAMPATH=C:\GAM
+C:\GAMADV-XTD3>set OLDGAMPATH=C:\GAM
 ```
 Verify that OLDGAMPATH points to the correct location.
 ```
-C:\GAMADV-X3>dir %OLDGAMPATH%\*.json
+C:\GAMADV-XTD3>dir %OLDGAMPATH%\*.json
  Volume in drive C has no label.
  Volume Serial Number is 663F-DA8B
 
@@ -400,9 +400,9 @@ C:\GAMADV-X3>dir %OLDGAMPATH%\*.json
                4 File(s)         16,511 bytes
                0 Dir(s)  434,214,162,432 bytes free
 ```
-Initialize GAMADV-X3; this should be the first GAMADV-X3 command executed.
+Initialize GAMADV-XTD3; this should be the first GAMADV-XTD3 command executed.
 ```
-C:\GAMADV-X3>gam config verify
+C:\GAMADV-XTD3>gam config verify
 Created: C:\Users\Administrator.DOMAIN\.gam
 Created: C:\Users\Administrator.DOMAIN\.gam\gamcache
 Copied: C:\GAM\oauth2service.json, To: C:\Users\Administrator.DOMAIN\.gam\oauth2service.json
@@ -460,7 +460,7 @@ Section: DEFAULT
 ```
 Verify initialization, this was a successful installation.
 ```
-C:\GAMADV-X3>dir %HOMEPATH%\.gam
+C:\GAMADV-XTD3>dir %HOMEPATH%\.gam
  Volume in drive C has no label.
  Volume Serial Number is 663F-DA8B
 
@@ -477,11 +477,11 @@ C:\GAMADV-X3>dir %HOMEPATH%\.gam
 03/03/2017  10:15 AM             2,377 oauth2service.json
                6 File(s)         15,769 bytes
                3 Dir(s)  110,532,562,944 bytes free
-C:\GAMADV-X3>
+C:\GAMADV-XTD3>
 ```
 If the verification looks like this, then you'll have to copy client_secrets.json and oauth2service.json manually.
 ```
-C:\GAMADV-X3>dir %HOMEPATH%\.gam
+C:\GAMADV-XTD3>dir %HOMEPATH%\.gam
  Volume in drive C has no label.
  Volume Serial Number is 663F-DA8B
 
@@ -496,13 +496,13 @@ C:\GAMADV-X3>dir %HOMEPATH%\.gam
                3 File(s)          1,135 bytes
                3 Dir(s)  110,532,562,944 bytes free
 
-C:\GAMADV-X3>copy %OLDGAMPATH%\client_secrets.json %HOMEPATH%\.gam\
+C:\GAMADV-XTD3>copy %OLDGAMPATH%\client_secrets.json %HOMEPATH%\.gam\
         1 file(s) copied.
 
-C:\GAMADV-X3>copy %OLDGAMPATH%\oauth2service.json %HOMEPATH%\.gam\
+C:\GAMADV-XTD3>copy %OLDGAMPATH%\oauth2service.json %HOMEPATH%\.gam\
         1 file(s) copied.
 
-C:\GAMADV-X3>dir %HOMEPATH%\.gam
+C:\GAMADV-XTD3>dir %HOMEPATH%\.gam
  Volume in drive C has no label.
  Volume Serial Number is 663F-DA8B
 
@@ -519,7 +519,7 @@ C:\GAMADV-X3>dir %HOMEPATH%\.gam
                5 File(s)          4,065 bytes
                3 Dir(s)  110,532,538,368 bytes free
 ```
-Update your project to include the additional APIs that GAMADV-X3 uses.
+Update your project to include the additional APIs that GAMADV-XTD3 uses.
 ```
 C:\GAMADV-XTD>gam update project
 
@@ -551,19 +551,19 @@ Enable 3 APIs
   API: groupsmigration.googleapis.com, Enabled (2/3)
   API: sheets.googleapis.com, Enabled (3/3)
 ```
-Enable GAMADV-X3 client access, create oauth2.txt; it must be deleted and recreated because it is in a different format than in basic Gam.
+Enable GAMADV-XTD3 client access, create oauth2.txt; it must be deleted and recreated because it is in a different format than in basic Gam.
 ```
-C:\GAMADV-X3>del %HOMEPATH%\.gam\oauth2.txt
-C:\GAMADV-X3>gam version
+C:\GAMADV-XTD3>del %HOMEPATH%\.gam\oauth2.txt
+C:\GAMADV-XTD3>gam version
 WARNING: Config File: C:\Users\Administrator.DOMAIN\.gam\gam.cfg, Section: DEFAULT, Item: oauth2_txt, Value: C:\Users\Administrator.DOMAIN\.gam\oauth2.txt, Not Found
-GAM 4.54.46 - https://github.com/taers232c/GAMADV-X3
+GAM 4.54.46 - https://github.com/taers232c/GAMADV-XTD3
 Ross Scroggs <ross.scroggs@gmail.com>
 Python 2.7.14 64-bit final
 google-api-python-client 1.6.4
 Windows-10-10.0.14393 AMD64
-Path: C:\GAMADV-X3
+Path: C:\GAMADV-XTD3
 
-C:\GAMADV-X3>gam oauth create
+C:\GAMADV-XTD3>gam oauth create
 
 What is your G Suite admin email address?admin@domain.com
 
@@ -632,7 +632,7 @@ Client OAuth2 File: C:\Users\Administrator.DOMAIN\.gam\oauth2.txt, Created
 ```
 Gam service account access must be enabled.
 ```
-C:\GAMADV-X3>gam user testuser1@domain.com check serviceaccount
+C:\GAMADV-XTD3>gam user testuser1@domain.com check serviceaccount
 User: testuser1@domain.com, Check 12 Scopes
   Scope: https://mail.google.com/                                    , Checked: PASS (1/12)
   Scope: https://sites.google.com/feeds                              , Checked: FAIL (2/12)
@@ -676,7 +676,7 @@ Paste SVCACCTID in the `Client Name` box and the complete list of scopes in the 
 Wait a moment and then perform the following command; it it still fails, wait a bit longer, it can sometimes take serveral minutes
 for the authorization to complete.
 ```
-C:\GAMADV-X3>gam user testuser1@domain.com check serviceaccount
+C:\GAMADV-XTD3>gam user testuser1@domain.com check serviceaccount
 User: testuser1@domain.com, Check 12 Scopes
   Scope: https://mail.google.com/                                    , Checked: PASS (1/12)
   Scope: https://sites.google.com/feeds                              , Checked: PASS (2/12)
@@ -696,7 +696,7 @@ Service Account Client name SVCACCTID is fully authorized.
 ```
 Update gam.cfg to have your customer_id and domain.
 ```
-C:\GAMADV-X3>gam info domain
+C:\GAMADV-XTD3>gam info domain
 Customer ID: C01234567
 Primary Domain: domain.com
 Customer Creation Time: 2007-06-06T15:47:55.444Z
@@ -704,7 +704,7 @@ Primary Domain Verified: True
 Default Language: en
 ...
 
-C:\GAMADV-X3>gam config customer_id C01234567 domain domain.com save verify
+C:\GAMADV-XTD3>gam config customer_id C01234567 domain domain.com save verify
 Config File: C:\Users\Administrator.DOMAIN\.gam\gam.cfg, Saved
 Section: DEFAULT
   activity_max_results = 100
@@ -755,10 +755,10 @@ Section: DEFAULT
   todrive_user = ''
   user_max_results = 500
 
-C:\GAMADV-X3>
+C:\GAMADV-XTD3>
 ```
 
-Installation - Upgrading from a prior version of GAMADV-X3
+Installation - Upgrading from a prior version of GAMADV-XTD3
 ---------------------------------------------------------
 Read GamUpdate.txt
 
@@ -768,14 +768,14 @@ The GAM mailing list / discussion group is hosted on [Google Groups].  You can j
 
 Source Repository
 -----------------
-The official GAMADV-X3 source repository is on [GitHub] in the master branch.
+The official GAMADV-XTD3 source repository is on [GitHub] in the master branch.
 
 Author
 ------
-GAMADV-X3 is maintained by <a href="mailto:ross.scroggs@gmail.com">Ross Scroggs</a>.
+GAMADV-XTD3 is maintained by <a href="mailto:ross.scroggs@gmail.com">Ross Scroggs</a>.
 
-[GitHub Releases]: https://github.com/taers232c/GAMADV-X3/releases
-[GitHub]: https://github.com/taers232c/GAMADV-X3/tree/master
+[GitHub Releases]: https://github.com/taers232c/GAMADV-XTD3/releases
+[GitHub]: https://github.com/taers232c/GAMADV-XTD3/tree/master
 [GitHub Wiki]: https://github.com/jay0lee/GAM/wiki/
 [GitHub GAMADV-XTD Wiki]: https://github.com/taers232c/GAMADV-XTD/wiki/
 [Google Groups]: http://groups.google.com/group/google-apps-manager
