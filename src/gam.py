@@ -6064,6 +6064,7 @@ def doSendEmail():
       matchTag = getString(Cmd.OB_TAG)
       matchReplacement = getString(Cmd.OB_STRING, minLen=0)
       tagReplacements[matchTag] = matchReplacement
+    else:
       unknownArgumentExit()
   if u'message' in notify:
     notify[u'message'] = notify[u'message'].replace(u'\r', u'').replace(u'\\n', u'\n')
