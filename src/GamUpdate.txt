@@ -1,3 +1,52 @@
+4.55.01
+
+Fixed bug in gam sendemail.
+
+4.55.00
+
+The GAMADV-X and GAMADVX-TD version numbers are now the same.
+
+Added option to allow setting Google Drive file properties.
+See: https://developers.google.com/drive/v2/reference/properties#resource
+
+<DriveFileAttributes> ::=
+	(privateproperty <PropertyKey> <PropertyValue>)|
+	(publicproperty <PropertyKey> <PropertyValue>)|
+	(property <PropertyKey> <PropertyValue> [private|public])|
+The first two forms are similar to other Gam commands, the third form can accept fields from a CSV files produced by print filelist.
+In the third form, if neither private or public is specified, public is assumed.
+To clear a property, set <PropertyValue> to the empty string "".
+
+Based on initial work by Jay, added support for ChromeOS device files; these are associated with ChromeOS devices running in kiosk mode.
+See: https://support.google.com/chrome/a/answer/1375678?hl=en#kiosk
+See: https://github.com/taers232c/GAMADV-XTD/wiki/ChromeOS-Devices
+
+<CrOSFieldName> ::=
+	devicefiles|
+gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
+	[orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
+	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
+	[orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [both] [devicefiles] [all] [listlimit <Number>] [start <Date>] [end <Date>]
+	[delimiter <Character>]
+
+gam info cros <CrOSEntity> [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
+	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>]
+gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
+	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>]
+
+You can download a ChromeOS device file by specifying the downloadfile latest|<Time> option in the previous two commands.
+The following commands provide more options for downloading device files.
+
+gam get devicefile <CrOSEntity> [select <DeviceFileEntity>] [targetfolder <FilePath>]
+gam <CrOSTypeEntity> get devicefile [select <DeviceFileEntity>] [targetfolder <FilePath>]
+
+Based on initial work by Jay, added support for buildings and features in resource calendars.
+See: https://github.com/taers232c/GAMADV-XTD/wiki/Resource-Calendars
+
+Added command to allow Gam to send emails.
+See: https://github.com/taers232c/GAMADV-XTD/wiki/Send-Email
+
 4.54.59
 
 Fix reporting of target free space in gam transfer drive.

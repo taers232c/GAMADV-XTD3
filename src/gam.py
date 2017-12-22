@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.00'
+__version__ = u'4.55.01'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -6074,7 +6074,7 @@ def doSendEmail():
       notify[u'subject'] = _processTags(tagReplacements, notify[u'subject'])
   i = 0
   count = len(recipients)
-  if body[u'primaryEmail']:
+  if body.get(u'primaryEmail'):
     if (count == 1) and (u'password' in body) and (u'name' in body) and (u'givenName' in body[u'name']) and (u'familyName' in body[u'name']):
       notify[u'emailAddress'] = recipients[0]
       sendCreateUserNotification(notify, body)
