@@ -6081,9 +6081,9 @@ def doSendEmail():
     else:
       usageErrorExit(Msg.NEWUSER_REQUIREMENTS, True)
     return
-  if not notify[u'subject']:
+  if not notify.get(u'subject'):
     missingArgumentExit(u'subject')
-  if not notify[u'message']:
+  if not notify.get(u'message'):
     missingArgumentExit(u'message')
   performActionModifierNumItems(Act.MODIFIER_TO, count, Ent.RECIPIENT)
   for recipient in recipients:
