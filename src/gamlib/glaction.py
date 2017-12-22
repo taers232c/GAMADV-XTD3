@@ -72,6 +72,7 @@ class GamAction(object):
   RESUBMIT = u'resu'
   RETAIN = u'reta'
   SAVE = u'save'
+  SENDEMAIL = u'send'
   SET = u'set '
   SHOW = u'show'
   SPAM = u'spam'
@@ -141,6 +142,7 @@ class GamAction(object):
     RESUBMIT: [u'Resubmitted', u'Resubmit'],
     RETAIN: [u'Retained', u'Retain'],
     SAVE: [u'Saved', u'Save'],
+    SENDEMAIL: [u'Email Sent', u'Send Email'],
     SET: [u'Set', u'Set'],
     SHOW: [u'Shown', u'Show'],
     SPAM: [u'Marked as Spam', u'Mark as Spam'],

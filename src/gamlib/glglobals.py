@@ -101,6 +101,10 @@ OAUTH2_TXT_LOCK = u'oalk'
 CACHE_DIR = u'gacd'
 # Reset GAM cache directory after discovery
 CACHE_DISCOVERY_ONLY = u'gcdo'
+# Dictionary mapping Building ID to Name
+MAP_BUILDING_ID_TO_NAME = u'bi2n'
+# Dictionary mapping Building Name to ID
+MAP_BUILDING_NAME_TO_ID = u'bn2i'
 # Shared by threadBatchWorker and threadBatchGAMCommands
 TBATCH_QUEUE = u'batq'
 # Location of cacerts.txt for GData calls
@@ -143,6 +147,8 @@ Globals = {
   OAUTH2_TXT_LOCK: None,
   CACHE_DIR: None,
   CACHE_DISCOVERY_ONLY: True,
+  MAP_BUILDING_ID_TO_NAME: None,
+  MAP_BUILDING_NAME_TO_ID: None,
   TBATCH_QUEUE: None,
   CACERTS_TXT: None,
   DATETIME_NOW: None,

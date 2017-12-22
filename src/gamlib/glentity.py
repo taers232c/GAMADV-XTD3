@@ -49,6 +49,8 @@ class GamEntity(object):
   AUDIT_EXPORT_REQUEST = u'audx'
   AUDIT_MONITOR_REQUEST = u'audm'
   BACKUP_VERIFICATION_CODES = u'buvc'
+  BUILDING = u'bldg'
+  BUILDING_ID = u'bldi'
   CALENDAR = u'cale'
   CALENDAR_ACL = u'cacl'
   CALENDAR_SETTINGS = u'cset'
@@ -76,6 +78,7 @@ class GamEntity(object):
   DELEGATE = u'dele'
   DELEGATOR = u'delo'
   DELETED_USER = u'delu'
+  DEVICE_FILE = u'devf'
   DISCOVERY_JSON_FILE = u'disc'
   DOMAIN = u'doma'
   DOMAIN_ALIAS = u'doal'
@@ -98,6 +101,7 @@ class GamEntity(object):
   EMAIL_SETTINGS = u'emse'
   ENTITY = u'enti'
   EVENT = u'evnt'
+  FEATURE = u'feat'
   FIELD = u'fiel'
   FILTER = u'filt'
   FORWARD_ENABLED = u'fwde'
@@ -145,6 +149,7 @@ class GamEntity(object):
   PROJECT = u'proj'
   PUBLIC_KEY = u'pubk'
   QUERY = u'quer'
+  RECIPIENT = u'recp'
   REPORT = u'rept'
   REQUEST_ID = u'reqi'
   RESOURCE_CALENDAR = u'resc'
@@ -213,6 +218,8 @@ class GamEntity(object):
     AUDIT_EXPORT_REQUEST: [u'Audit Export Requests', u'Audit Export Request'],
     AUDIT_MONITOR_REQUEST: [u'Audit Monitor Requests', u'Audit Monitor Request'],
     BACKUP_VERIFICATION_CODES: [u'Backup Verification Codes', u'Backup Verification Codes'],
+    BUILDING: [u'Buildings', u'Building'],
+    BUILDING_ID: [u'Building IDs', u'Building ID'],
     CALENDAR: [u'Calendars', u'Calendar'],
     CALENDAR_ACL: [u'Calendar ACLs', u'Calendar ACL'],
     CALENDAR_SETTINGS: [u'Calendar Settings', u'Calendar Settings'],
@@ -240,6 +247,7 @@ class GamEntity(object):
     DELEGATE: [u'Delegates', u'Delegate'],
     DELEGATOR: [u'Delegators', u'Delegator'],
     DELETED_USER: [u'Deleted Users', u'Deleted User'],
+    DEVICE_FILE: [u'Device Files', u'Device File'],
     DISCOVERY_JSON_FILE: [u'Discovery File', u'Discovery File'],
     DOMAIN: [u'Domains', u'Domain'],
     DOMAIN_ALIAS: [u'Domain Aliases', u'Domain Alias'],
@@ -262,6 +270,7 @@ class GamEntity(object):
     EMAIL_SETTINGS: [u'Email Settings', u'Email Settings'],
     ENTITY: [u'Entities', u'Entity'],
     EVENT: [u'Events', u'Event'],
+    FEATURE: [u'Features', u'Feature'],
     FIELD: [u'Fields', u'Field'],
     FILTER: [u'Filters', u'Filter'],
     FORWARD_ENABLED: [u'Forward Enabled', u'Forward Enabled'],
@@ -309,6 +318,7 @@ class GamEntity(object):
     PROJECT: [u'Projects', u'Project'],
     PUBLIC_KEY: [u'Public Key', u'Public Key'],
     QUERY: [u'Queries', u'Query'],
+    RECIPIENT: [u'Recipients', u'Recipient'],
     REPORT: [u'Reports', u'Report'],
     REQUEST_ID: [u'Request IDs', u'Request ID'],
     RESOURCE_CALENDAR: [u'Resource Calendars', u'Resource Calendar'],

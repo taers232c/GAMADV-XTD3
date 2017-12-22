@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# GAMADV-X3
+# GAMADV-XTD3
 #
 # Copyright 2017, All Rights Reserved.
 #
@@ -16,13 +16,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-u"""GAMADV-X3 is a command line tool which allows Administrators to control their G Suite domain and accounts.
+u"""GAMADV-XTD3 is a command line tool which allows Administrators to control their G Suite domain and accounts.
 
 For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.54.59'
+__version__ = u'4.55.00'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -121,7 +121,7 @@ Go to the following link in your browser:
 """
 
 GIT_USER = u'taers232c'
-GAM = u'GAMADV-X3'
+GAM = u'GAMADV-XTD3'
 GAM_URL = u'https://github.com/{0}/{1}'.format(GIT_USER, GAM)
 GAM_INFO = u'GAM {0} - {1} / {2} / Python {3}.{4}.{5} {6} / {7} {8} /'.format(__version__, GAM_URL,
                                                                               __author__,
@@ -1209,7 +1209,7 @@ def getString(item, checkBlank=False, optional=False, minLen=1, maxLen=None):
   missingArgumentExit(item)
 
 def getStringReturnInList(item):
-  argstr = getString(item, minLen=0)
+  argstr = getString(item, minLen=0).strip()
   if argstr:
     return [argstr]
   return []
@@ -1586,10 +1586,10 @@ def entityDoesNotHaveItemWarning(entityValueList, i=0, count=0):
                                  Ent.FormatEntityValueList(entityValueList)+[Msg.DOES_NOT_EXIST],
                                  currentCountNL(i, count)))
 
-def entityDuplicateWarning(entityType, entityName, i=0, count=0):
+def entityDuplicateWarning(entityValueList, i=0, count=0):
   setSysExitRC(ENTITY_DUPLICATE_RC)
   writeStderr(formatKeyValueList(Ind.Spaces(),
-                                 [Ent.Singular(entityType), entityName, Act.Failed(), Msg.DUPLICATE],
+                                 Ent.FormatEntityValueList(entityValueList)+[Act.Failed(), Msg.DUPLICATE],
                                  currentCountNL(i, count)))
 
 def entityActionFailedWarning(entityValueList, errMessage, i=0, count=0):
@@ -1747,6 +1747,11 @@ def printEntityKVList(entityValueList, infoKVList, i=0, count=0):
 def performActionNumItems(itemCount, itemType, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
                                  [u'{0} {1} {2}'.format(Act.ToPerform(), itemCount, Ent.Choose(itemType, itemCount))],
+                                 currentCountNL(i, count)))
+
+def performActionModifierNumItems(modifier, itemCount, itemType, i=0, count=0):
+  writeStdout(formatKeyValueList(Ind.Spaces(),
+                                 [u'{0} {1} {2} {3}'.format(Act.ToPerform(), modifier, itemCount, Ent.Choose(itemType, itemCount))],
                                  currentCountNL(i, count)))
 
 def entityPerformActionNumItems(entityValueList, itemCount, itemType, i=0, count=0):
@@ -2033,6 +2038,8 @@ def SetGlobalVariables():
 
   def _getCfgCharacter(sectionName, itemName):
     value = codecs.escape_decode(bytes(_stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName)), UTF8))[0].decode(UTF8)
+    if (len(value) == 0) and (itemName == u'csv_output_field_delimiter'):
+      return u' '
     if len(value) == 1:
       return value
     _printValueError(sectionName, itemName, u'"{0}"'.format(value), u'{0}: {1}'.format(Msg.EXPECTED, integerLimits(1, 1, Msg.STRING_LENGTH)))
@@ -2893,7 +2900,6 @@ def callGAPIpages(service, function, items,
     throw_reasons = []
   if retry_reasons is None:
     retry_reasons = []
-  pageToken = None
   allResults = collections.deque()
   totalItems = 0
   maxResults = kwargs.get(u'maxResults', 0)
@@ -2904,7 +2910,6 @@ def callGAPIpages(service, function, items,
       kwargs[u'maxResults'] = maxItems-totalItems
     results = callGAPI(service, function,
                        throw_reasons=throw_reasons, retry_reasons=retry_reasons,
-                       pageToken=pageToken,
                        **kwargs)
     pageToken, totalItems = _processGAPIpagesResult(results, items, allResults, totalItems, page_message, message_attribute, entityType)
     if not pageToken or maxItems and totalItems >= maxItems:
@@ -2912,6 +2917,7 @@ def callGAPIpages(service, function, items,
         writeStderr(u'\r\n')
         flushStderr()
       return allResults
+    kwargs[u'pageToken'] = pageToken
 
 def callGAPIitems(service, function, items,
                   throw_reasons=None, retry_reasons=None,
@@ -3266,7 +3272,7 @@ def convertEntityToList(entity, shlexSplit=False, nonListEntityType=False):
   if isinstance(entity, (list, set, dict)):
     return list(entity)
   if nonListEntityType:
-    return [entity,]
+    return [entity.strip(),]
   if not shlexSplit:
     return entity.replace(u',', u' ').split()
   return shlexSplitList(entity)
@@ -4105,7 +4111,7 @@ def getTodriveParameters():
   return todrive
 
 # Send an email
-def send_email(msg_subj, msg_txt, msg_rcpt):
+def send_email(msg_subj, msg_txt, msg_rcpt, i=0, count=0):
   from email.mime.text import MIMEText
   userId, gmail = buildGAPIServiceObject(API.GMAIL, _getValueFromOAuth(u'email'))
   if not gmail:
@@ -4114,8 +4120,15 @@ def send_email(msg_subj, msg_txt, msg_rcpt):
   msg[u'Subject'] = msg_subj
   msg[u'From'] = userId
   msg[u'To'] = msg_rcpt
-  callGAPI(gmail.users().messages(), u'send',
-           userId=userId, body={u'raw': base64.urlsafe_b64encode(msg.as_string())}, fields=u'')
+  action = Act.Get()
+  Act.Set(Act.SENDEMAIL)
+  try:
+    callGAPI(gmail.users().messages(), u'send',
+             userId=userId, body={u'raw': base64.urlsafe_b64encode(msg.as_string())}, fields=u'')
+    entityActionPerformed([Ent.RECIPIENT, msg_rcpt, Ent.MESSAGE, msg_subj], i, count)
+  except googleapiclient.errors.HttpError as e:
+    entityActionFailedWarning([Ent.RECIPIENT, msg_rcpt, Ent.MESSAGE, msg_subj], str(e), i, count)
+  Act.Set(action)
 
 # Write a CSV file
 def addTitleToCSVfile(title, titles):
@@ -4335,7 +4348,7 @@ def flattenJSON(structure, key=u'', path=u'', flattened=None, listLimit=None, ti
       flattenJSON(structure[i], u'{0}'.format(i), u'.'.join([item for item in [path, key] if item]), flattened, listLimit, timeObjects, noLenObjects)
   else:
     for new_key, value in iteritems(structure):
-      if new_key in [u'kind', u'etag']:
+      if new_key in [u'kind', u'etag', u'etags']:
         continue
       flattenJSON(value, new_key, u'.'.join([item for item in [path, key] if item]), flattened, listLimit, timeObjects, noLenObjects)
   return flattened
@@ -5912,17 +5925,22 @@ def doReport():
               else:
                 values = []
                 for subitem in item[u'msgValue']:
-                  if u'count' not in subitem:
+                  if u'count' in subitem:
+                    mycount = myvalue = None
+                    for key, value in subitem.items():
+                      if key == u'count':
+                        mycount = value
+                      else:
+                        myvalue = value
+                      if mycount and myvalue:
+                        values.append(u'%s:%s' % (myvalue, mycount))
+                    value = u' '.join(values)
+                  elif u'version_number' in subitem and u'num_devices' in subitem:
+                    values.append(u'%s:%s' % (subitem[u'version_number'], subitem[u'num_devices']))
+                  else:
                     continue
-                  mycount = myvalue = None
-                  for key, value in iteritems(subitem):
-                    if key == u'count':
-                      mycount = value
-                    else:
-                      myvalue = value
-                    if mycount and myvalue:
-                      values.append(u'{0}:{1}'.format(myvalue, mycount))
-                csvRows.append({u'name': name, u'value': u' '.join(values)})
+                  value = u' '.join(sorted(values, reverse=True))
+                csvRows.append({u'name': name, u'value': value})
         csvRows.sort(key=lambda k: k[u'name'])
         for row in sorted(auth_apps, key=lambda k: k[u'name'].lower()):
           csvRows.append(row)
@@ -6013,6 +6031,64 @@ def doReport():
       for event in sorted(eventCounts):
         csvRows.append({u'event': event, u'count': eventCounts[event]})
     writeCSVfile(csvRows, titles, u'{0} Activity Report'.format(report.capitalize()), todrive)
+
+# gam sendemail <RecipientEntity> subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)*
+#	[newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
+def doSendEmail():
+  body = {}
+  notify = {}
+  tagReplacements = {}
+  recipients = getEntityList(Cmd.OB_RECIPIENT_ENTITY)
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'subject':
+      notify[u'subject'] = getString(Cmd.OB_STRING)
+    elif myarg == u'message':
+      if checkArgumentPresent(u'file'):
+        filename = getString(Cmd.OB_FILE_NAME)
+        encoding = getCharSet()
+        notify[u'message'] = readFile(filename, encoding=encoding)
+      else:
+        notify[u'message'] = getString(Cmd.OB_STRING)
+    elif myarg == u'newuser':
+      body[u'primaryEmail'] = getEmailAddress()
+    elif myarg in [u'firstname', u'givenname']:
+      body.setdefault(u'name', {})
+      body[u'name'][u'givenName'] = getString(Cmd.OB_STRING, minLen=0, maxLen=60)
+    elif myarg in [u'lastname', u'familyname']:
+      body.setdefault(u'name', {})
+      body[u'name'][u'familyName'] = getString(Cmd.OB_STRING, minLen=0, maxLen=60)
+    elif myarg == u'password':
+      body[u'password'] = notify[u'password'] = getString(Cmd.OB_PASSWORD, maxLen=100)
+    elif myarg == u'replace':
+      matchTag = getString(Cmd.OB_TAG)
+      matchReplacement = getString(Cmd.OB_STRING, minLen=0)
+      tagReplacements[matchTag] = matchReplacement
+      unknownArgumentExit()
+  if u'message' in notify:
+    notify[u'message'] = notify[u'message'].replace(u'\r', u'').replace(u'\\n', u'\n')
+    if tagReplacements:
+      notify[u'message'] = _processTags(tagReplacements, notify['message'])
+  if u'subject' in notify:
+    if tagReplacements:
+      notify[u'subject'] = _processTags(tagReplacements, notify[u'subject'])
+  i = 0
+  count = len(recipients)
+  if body[u'primaryEmail']:
+    if (count == 1) and (u'password' in body) and (u'name' in body) and (u'givenName' in body[u'name']) and (u'familyName' in body[u'name']):
+      notify[u'emailAddress'] = recipients[0]
+      sendCreateUserNotification(notify, body)
+    else:
+      usageErrorExit(Msg.NEWUSER_REQUIREMENTS, True)
+    return
+  if not notify[u'subject']:
+    missingArgumentExit(u'subject')
+  if not notify[u'message']:
+    missingArgumentExit(u'message')
+  performActionModifierNumItems(Act.MODIFIER_TO, count, Ent.RECIPIENT)
+  for recipient in recipients:
+    i += 1
+    send_email(notify[u'subject'], notify[u'message'], recipient, i, count)
 
 ADDRESS_FIELDS_PRINT_ORDER = [u'contactName', u'organizationName', u'addressLine1', u'addressLine2', u'addressLine3', u'locality', u'region', u'postalCode', u'countryCode']
 
@@ -6427,7 +6503,7 @@ def doCreateDomain():
              customer=GC.Values[GC.CUSTOMER_ID], body=body, fields=u'')
     entityActionPerformed([Ent.DOMAIN, body[u'domainName']])
   except GAPI.duplicate:
-    entityDuplicateWarning(Ent.DOMAIN, body[u'domainName'])
+    entityDuplicateWarning([Ent.DOMAIN, body[u'domainName']])
   except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
     accessErrorExit(cd)
 
@@ -7251,7 +7327,7 @@ def doCreateOrg():
       entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, fullPath, Ent.PARENT_ORGANIZATIONAL_UNIT, parentPath], Msg.ENTITY_DOES_NOT_EXIST.format(Ent.Singular(Ent.PARENT_ORGANIZATIONAL_UNIT)))
       return False
     except (GAPI.invalidOrgunit, GAPI.backendError):
-      entityDuplicateWarning(Ent.ORGANIZATIONAL_UNIT, fullPath)
+      entityDuplicateWarning([Ent.ORGANIZATIONAL_UNIT, fullPath])
     except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, fullPath)
     return True
@@ -10358,6 +10434,19 @@ def updateCrOSDevices(entityList):
 def doUpdateCrOSDevices():
   updateCrOSDevices(getCrOSDeviceEntity())
 
+# From https://www.chromium.org/chromium-os/tpm_firmware_update
+CROS_TPM_VULN_VERSIONS = [u'41f', u'420', u'628', u'8520',]
+CROS_TPM_FIXED_VERSIONS = [u'422', u'62b', u'8521',]
+
+def _checkTPMVulnerability(cros):
+  if u'tpmVersionInfo' in cros and u'firmwareVersion' in cros[u'tpmVersionInfo']:
+    if cros[u'tpmVersionInfo'][u'firmwareVersion'] in CROS_TPM_VULN_VERSIONS:
+      cros[u'tpmVersionInfo'][u'tpmVulnerability'] = u'VULNERABLE'
+    elif cros[u'tpmVersionInfo'][u'firmwareVersion'] in CROS_TPM_FIXED_VERSIONS:
+      cros[u'tpmVersionInfo'][u'tpmVulnerability'] = u'UPDATED'
+    else:
+      cros[u'tpmVersionInfo'][u'tpmVulnerability'] = u'NOT IMPACTED'
+
 def _filterTimeRanges(activeTimeRanges, startDate, endDate):
   if startDate is None and endDate is None:
     return activeTimeRanges
@@ -10368,6 +10457,20 @@ def _filterTimeRanges(activeTimeRanges, startDate, endDate):
       filteredTimeRanges.append(timeRange)
   return filteredTimeRanges
 
+def _filterDeviceFiles(deviceFiles, startTime, endTime):
+  if startTime is None and endTime is None:
+    return deviceFiles
+  filteredDeviceFiles = []
+  for deviceFile in deviceFiles:
+    createTime, _ = iso8601.parse_date(deviceFile[u'createTime'])
+    if ((startTime is None) or (createTime >= startTime)) and ((endTime is None) or (createTime <= endTime)):
+      filteredDeviceFiles.append(deviceFile)
+  return filteredDeviceFiles
+
+def _getFilterDateTime():
+  filterDate = getYYYYMMDD(returnDateTime=True)
+  return (filterDate, filterDate.replace(tzinfo=iso8601.UTC))
+
 CROS_ARGUMENT_TO_PROPERTY_MAP = {
   u'activetimeranges': [u'activeTimeRanges.activeTime', u'activeTimeRanges.date'],
   u'annotatedassetid': [u'annotatedAssetId',],
@@ -10376,6 +10479,7 @@ CROS_ARGUMENT_TO_PROPERTY_MAP = {
   u'asset': [u'annotatedAssetId',],
   u'assetid': [u'annotatedAssetId',],
   u'bootmode': [u'bootMode',],
+  u'devicefiles': [u'deviceFiles.type', u'deviceFiles.createTime'],
   u'deviceid': [u'deviceId',],
   u'ethernetmacaddress': [u'ethernetMacAddress',],
   u'firmwareversion': [u'firmwareVersion',],
@@ -10399,6 +10503,7 @@ CROS_ARGUMENT_TO_PROPERTY_MAP = {
   u'tag': [u'annotatedAssetId',],
   u'timeranges': [u'activeTimeRanges.activeTime', u'activeTimeRanges.date'],
   u'times': [u'activeTimeRanges.activeTime', u'activeTimeRanges.date'],
+  u'tpmversioninfo': [u'tpmVersionInfo',],
   u'user': [u'annotatedUser',],
   u'users': [u'recentUsers.email', u'recentUsers.type'],
   u'willautorenew': [u'willAutoRenew',],
@@ -10430,20 +10535,23 @@ CROS_SCALAR_PROPERTY_PRINT_ORDER = [
   ]
 
 CROS_TIME_OBJECTS = [u'lastSync', u'lastEnrollmentTime', u'supportEndDate']
-CROS_RECENT_USERS_ARGUMENTS = [u'recentusers', u'users']
 CROS_ACTIVE_TIME_RANGES_ARGUMENTS = [u'timeranges', u'activetimeranges', u'times']
+CROS_DEVICE_FILES_ARGUMENTS = [u'devicefiles', u'files']
+CROS_RECENT_USERS_ARGUMENTS = [u'recentusers', u'users']
 CROS_START_ARGUMENTS = [u'start', u'startdate', u'oldestdate']
 CROS_END_ARGUMENTS = [u'end', u'enddate']
 
 # gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
-#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>]
 def infoCrOSDevices(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
+  downloadfile = None
+  targetFolder = GC.Values[GC.DRIVE_DIR]
   projection = None
   fieldsList = []
   noLists = False
   listLimit = 0
-  startDate = endDate = None
+  startDate = endDate = startTime = endTime = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'nolists':
@@ -10451,9 +10559,9 @@ def infoCrOSDevices(entityList):
     elif myarg == u'listlimit':
       listLimit = getInteger(minVal=0)
     elif myarg in CROS_START_ARGUMENTS:
-      startDate = getYYYYMMDD(returnDateTime=True)
+      startDate, startTime = _getFilterDateTime()
     elif myarg in CROS_END_ARGUMENTS:
-      endDate = getYYYYMMDD(returnDateTime=True)
+      endDate, endTime = _getFilterDateTime()
     elif myarg == u'allfields':
       projection = u'FULL'
       fieldsList = []
@@ -10474,13 +10582,24 @@ def infoCrOSDevices(entityList):
       for field in fieldNameList.lower().replace(u',', u' ').split():
         if field in CROS_ARGUMENT_TO_PROPERTY_MAP:
           fieldsList.extend(CROS_ARGUMENT_TO_PROPERTY_MAP[field])
-          if field in CROS_RECENT_USERS_ARGUMENTS+CROS_ACTIVE_TIME_RANGES_ARGUMENTS:
+          if field in CROS_ACTIVE_TIME_RANGES_ARGUMENTS+CROS_DEVICE_FILES_ARGUMENTS+CROS_RECENT_USERS_ARGUMENTS:
             projection = u'FULL'
             noLists = False
         else:
           invalidChoiceExit(CROS_ARGUMENT_TO_PROPERTY_MAP, True)
+    elif myarg == u'downloadfile':
+      downloadfile = getString(Cmd.OB_STRING).lower()
+      if downloadfile != u'latest':
+        Cmd.Backup()
+        downloadfile = formatLocalTime(getTimeOrDeltaFromNow())
+    elif myarg == u'targetfolder':
+      targetFolder = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
+      if not os.path.isdir(targetFolder):
+        os.makedirs(targetFolder)
     else:
       unknownArgumentExit()
+  if downloadfile and fieldsList:
+    fieldsList.append(u'deviceFiles.downloadUrl')
   fields = u','.join(set(fieldsList)).replace(u'.', u'/') if fieldsList else None
   i, count, entityList = getEntityArgument(entityList)
   for deviceId in entityList:
@@ -10489,6 +10608,7 @@ def infoCrOSDevices(entityList):
       cros = callGAPI(cd.chromeosdevices(), u'get',
                       throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                       customerId=GC.Values[GC.CUSTOMER_ID], deviceId=deviceId, projection=projection, fields=fields)
+      _checkTPMVulnerability(cros)
       printEntity([Ent.CROS_DEVICE, deviceId], i, count)
       Ind.Increment()
       if u'notes' in cros:
@@ -10524,14 +10644,182 @@ def infoCrOSDevices(entityList):
             printKeyValueList([u'email', recentUser.get(u'email', [u'Unknown', u'UnmanagedUser'][recentUser[u'type'] == u'USER_TYPE_UNMANAGED'])])
             Ind.Decrement()
           Ind.Decrement()
+        deviceFiles = _filterDeviceFiles(cros.get(u'deviceFiles', []), startTime, endTime)
+        lenDF = len(deviceFiles)
+        if lenDF:
+          printKeyValueList([u'deviceFiles'])
+          Ind.Increment()
+          for deviceFile in deviceFiles[:min(lenDF, listLimit or lenDF)]:
+            deviceFile[u'createTime'] = formatLocalTime(deviceFile[u'createTime'])
+            printKeyValueList([deviceFile[u'type'], deviceFile[u'createTime']])
+          Ind.Decrement()
+          if downloadfile:
+            if downloadfile == u'latest':
+              deviceFile = deviceFiles[-1]
+            else:
+              for deviceFile in deviceFiles:
+                if deviceFile[u'createTime'] == downloadfile:
+                  break
+              else:
+                deviceFile = None
+            if deviceFile:
+              downloadfilename = os.path.join(targetFolder, u'cros-logs-{0}-{1}.zip'.format(deviceId, deviceFile[u'createTime']))
+              _, content = cd._http.request(deviceFile[u'downloadUrl'])
+              writeFile(downloadfilename, content, continueOnError=True)
+              printKeyValueList([u'Downloaded', downloadfilename])
+            else:
+              Act.Set(Act.DOWNLOAD)
+              entityActionFailedWarning([Ent.CROS_DEVICE, deviceId, Ent.DEVICE_FILE, downloadfile],
+                                        Msg.DOES_NOT_EXIST, i, count)
+              Act.Set(Act.INFO)
+        elif downloadfile:
+          Act.Set(Act.DOWNLOAD)
+          entityActionNotPerformedWarning([Ent.CROS_DEVICE, deviceId, Ent.DEVICE_FILE, downloadfile],
+                                          Msg.NO_ENTITIES_FOUND.format(Ent.Plural(Ent.DEVICE_FILE)), i, count)
+          Act.Set(Act.INFO)
       Ind.Decrement()
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.CROS_DEVICE, deviceId, i, count)
 
 # gam info cros|croses <CrOSEntity> [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
-#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>]
 def doInfoCrOSDevices():
   infoCrOSDevices(getCrOSDeviceEntity())
+
+def getDeviceFilesEntity():
+
+  deviceFilesEntity = {u'list': [], u'dict': None, u'count': None, u'time': None, u'range': None}
+  entitySelector = getEntitySelector()
+  if entitySelector:
+    entityList = getEntitySelection(entitySelector, False)
+    if isinstance(entityList, dict):
+      deviceFilesEntity[u'dict'] = entityList
+    else:
+      deviceFilesEntity[u'list'] = entityList
+  else:
+    myarg = getString(Cmd.OB_DEVICE_FILE_ENTITY, checkBlank=True)
+    mycmd = myarg.lower()
+    if mycmd in [u'first', u'last', u'allexceptfirst', u'allexceptlast']:
+      deviceFilesEntity[u'count'] = (mycmd, getInteger(minVal=1))
+    elif mycmd in [u'before', u'after']:
+      dateTime, _, _ = getTimeOrDeltaFromNow(True)
+      deviceFilesEntity[u'time'] = (mycmd, dateTime)
+    elif mycmd == u'range':
+      startDateTime, _, startTime = getTimeOrDeltaFromNow(True)
+      endDateTime, _, endTime = getTimeOrDeltaFromNow(True)
+      if endDateTime < startDateTime:
+        Cmd.Backup()
+        usageErrorExit(Msg.INVALID_TIME_RANGE.format(u'end', endTime, u'start', startTime))
+      deviceFilesEntity[u'range'] = (mycmd, startDateTime, endDateTime)
+    else:
+      for timeItem in myarg.split(u','):
+        try:
+          timestamp, _ = iso8601.parse_date(timeItem)
+          deviceFilesEntity[u'list'].append(ISOformatTimeStamp(timestamp.astimezone(GC.Values[GC.TIMEZONE])))
+        except iso8601.ParseError:
+          Cmd.Backup()
+          invalidArgumentExit(YYYYMMDDTHHMMSS_FORMAT_REQUIRED)
+  return deviceFilesEntity
+
+def _selectDeviceFiles(deviceId, deviceFiles, deviceFilesEntity):
+  numDeviceFiles = len(deviceFiles)
+  if numDeviceFiles == 0:
+    return deviceFiles
+  for deviceFile in deviceFiles:
+    deviceFile[u'createTime'] = formatLocalTime(deviceFile[u'createTime'])
+  if deviceFilesEntity[u'count']:
+    countType = deviceFilesEntity[u'count'][0]
+    count = deviceFilesEntity[u'count'][1]
+    if countType == u'first':
+      return deviceFiles[:count]
+    if countType == u'last':
+      return deviceFiles[-count:]
+    if countType == u'allexceptfirst':
+      return deviceFiles[count:]
+#   if countType == u'allexceptlast':
+    return deviceFiles[:-count]
+  if deviceFilesEntity[u'time']:
+    dateTime = deviceFilesEntity[u'time'][1]
+    count = 0
+    if deviceFilesEntity[u'time'][0] == u'before':
+      for deviceFile in deviceFiles:
+        createTime, _ = iso8601.parse_date(deviceFile[u'createTime'])
+        if createTime >= dateTime:
+          break
+        count += 1
+      return deviceFiles[:count]
+#   if deviceFilesEntity[u'time'][0] == u'after':
+    for deviceFile in deviceFiles:
+      createTime, _ = iso8601.parse_date(deviceFile[u'createTime'])
+      if createTime >= dateTime:
+        break
+      count += 1
+    return deviceFiles[count:]
+  if deviceFilesEntity[u'range']:
+    dateTime = deviceFilesEntity[u'range'][1]
+    spos = 0
+    for deviceFile in deviceFiles:
+      createTime, _ = iso8601.parse_date(deviceFile[u'createTime'])
+      if createTime >= dateTime:
+        break
+      spos += 1
+    dateTime = deviceFilesEntity[u'range'][2]
+    epos = spos
+    for deviceFile in deviceFiles[spos:]:
+      createTime, _ = iso8601.parse_date(deviceFile[u'createTime'])
+      if createTime >= dateTime:
+        break
+      epos += 1
+    return deviceFiles[spos:epos]
+#  if deviceFilesEntity[u'range'] or deviceFilesEntity[u'dict']:
+  if deviceFilesEntity[u'dict']:
+    deviceFileCreateTimes = deviceFilesEntity[u'dict'][deviceId]
+  else:
+    deviceFileCreateTimes = deviceFilesEntity[u'list']
+  return [deviceFile for deviceFile in deviceFiles if deviceFile[u'createTime'] in deviceFileCreateTimes]
+
+# gam <CrOSTypeEntity> get devicefile [select <DeviceFileEntity>] [targetfolder <FilePath>]
+def getCrOSDeviceFiles(entityList):
+  cd = buildGAPIObject(API.DIRECTORY)
+  targetFolder = GC.Values[GC.DRIVE_DIR]
+  deviceFilesEntity = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'select':
+      deviceFilesEntity = getDeviceFilesEntity()
+    elif myarg == u'targetfolder':
+      targetFolder = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
+      if not os.path.isdir(targetFolder):
+        os.makedirs(targetFolder)
+    else:
+      unknownArgumentExit()
+  fields = u'deviceFiles(type,createTime,downloadUrl)'
+  i, count, entityList = getEntityArgument(entityList)
+  for deviceId in entityList:
+    i += 1
+    try:
+      deviceFiles = callGAPIitems(cd.chromeosdevices(), u'get', u'deviceFiles',
+                                  throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                                  customerId=GC.Values[GC.CUSTOMER_ID], deviceId=deviceId, fields=fields)
+      if deviceFilesEntity:
+        deviceFiles = _selectDeviceFiles(deviceId, deviceFiles, deviceFilesEntity)
+      jcount = len(deviceFiles)
+      entityPerformActionNumItems([Ent.CROS_DEVICE, deviceId], jcount, Ent.DEVICE_FILE, i, count)
+      Ind.Increment()
+      j = 0
+      for deviceFile in deviceFiles:
+        j += 1
+        downloadfilename = os.path.join(targetFolder, u'cros-logs-{0}-{1}.zip'.format(deviceId, deviceFile[u'createTime']))
+        _, content = cd._http.request(deviceFile[u'downloadUrl'])
+        writeFile(downloadfilename, content, continueOnError=True)
+        entityActionPerformed([Ent.DEVICE_FILE, downloadfilename], j, jcount)
+      Ind.Decrement()
+    except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+      checkEntityAFDNEorAccessErrorExit(cd, Ent.CROS_DEVICE, deviceId, i, count)
+
+# gam get devicefile <CrOSEntity> [select <DeviceFileEntity>] [targetfolder <FilePath>]
+def doGetCrOSDeviceFiles():
+  getCrOSDeviceFiles(getCrOSDeviceEntity())
 
 CROS_ORDERBY_CHOICE_MAP = {
   u'lastsync': u'lastSync',
@@ -10544,18 +10832,19 @@ CROS_ORDERBY_CHOICE_MAP = {
   }
 
 # gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
-#	[orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges] [listlimit <Number>] [start <Date>] [end <Date>]
+#	[orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
 def doPrintCrOSDevices(entityList=None):
   def _printCrOS(cros):
+    _checkTPMVulnerability(cros)
     if u'notes' in cros:
       cros[u'notes'] = convertCRsNLs(cros[u'notes'])
-    if (not noLists) and (not selectActiveTimeRanges) and (not selectRecentUsers):
+    if (not noLists) and (not selectActiveTimeRanges) and (not selectRecentUsers) and (not selectDeviceFiles):
       addRowTitlesToCSVfile(flattenJSON(cros, listLimit=listLimit, timeObjects=CROS_TIME_OBJECTS), csvRows, titles)
       return
     row = {}
     for attrib in cros:
-      if attrib in [u'kind', u'etag', u'recentUsers', u'activeTimeRanges']:
+      if attrib in [u'kind', u'etag', u'recentUsers', u'activeTimeRanges', u'deviceFiles']:
         continue
       if attrib not in titles[u'set']:
         addTitleToCSVfile(attrib, titles)
@@ -10565,12 +10854,14 @@ def doPrintCrOSDevices(entityList=None):
         row[attrib] = formatLocalTime(cros[attrib])
     activeTimeRanges = _filterTimeRanges(cros.get(u'activeTimeRanges', []) if selectActiveTimeRanges else [], startDate, endDate)
     recentUsers = cros.get(u'recentUsers', []) if selectRecentUsers else []
-    if noLists or (not activeTimeRanges and not recentUsers):
+    deviceFiles = _filterDeviceFiles(cros.get(u'deviceFiles', []) if selectDeviceFiles else [], startTime, endTime)
+    if noLists or (not activeTimeRanges and not recentUsers and not deviceFiles):
       csvRows.append(row)
       return
     lenATR = len(activeTimeRanges)
     lenRU = len(recentUsers)
-    for i in range(min(max(lenATR, lenRU), listLimit or max(lenATR, lenRU))):
+    lenDF = len(deviceFiles)
+    for i in range(min(max(lenATR, lenRU, lenDF), listLimit or max(lenATR, lenRU, lenDF))):
       new_row = row.copy()
       if i < lenATR:
         new_row[u'activeTimeRanges.date'] = activeTimeRanges[i][u'date']
@@ -10580,6 +10871,9 @@ def doPrintCrOSDevices(entityList=None):
       if i < lenRU:
         new_row[u'recentUsers.email'] = recentUsers[i].get(u'email', [u'Unknown', u'UnmanagedUser'][recentUsers[i][u'type'] == u'USER_TYPE_UNMANAGED'])
         new_row[u'recentUsers.type'] = recentUsers[i][u'type']
+      if i < lenDF:
+        new_row[u'deviceFiles.type'] = deviceFiles[i][u'type']
+        new_row[u'deviceFiles.createTime'] = formatLocalTime(deviceFiles[i][u'createTime'])
       csvRows.append(new_row)
 
   def _callbackPrintCrOS(request_id, response, exception):
@@ -10603,8 +10897,8 @@ def doPrintCrOSDevices(entityList=None):
   orgUnitPath = query = projection = orderBy = sortOrder = None
   noLists = False
   listLimit = 0
-  startDate = endDate = None
-  selectActiveTimeRanges = selectRecentUsers = False
+  startDate = endDate = startTime = endTime = None
+  selectActiveTimeRanges = selectDeviceFiles = selectRecentUsers = False
   selectLookup = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -10616,24 +10910,27 @@ def doPrintCrOSDevices(entityList=None):
       query = getString(Cmd.OB_QUERY)
     elif myarg == u'select':
       _, entityList = getEntityToModify(defaultEntityType=Cmd.ENTITY_CROS, crosAllowed=True, userAllowed=False)
-    elif myarg in CROS_RECENT_USERS_ARGUMENTS:
-      selectRecentUsers = True
-      noLists = False
     elif myarg in CROS_ACTIVE_TIME_RANGES_ARGUMENTS:
       selectActiveTimeRanges = True
+      noLists = False
+    elif myarg in CROS_DEVICE_FILES_ARGUMENTS:
+      selectDeviceFiles = True
+      noLists = False
+    elif myarg in CROS_RECENT_USERS_ARGUMENTS:
+      selectRecentUsers = True
       noLists = False
     elif myarg == u'orderby':
       orderBy = getChoice(CROS_ORDERBY_CHOICE_MAP, mapChoice=True)
       sortOrder = getChoice(SORTORDER_CHOICE_MAP, defaultChoice=u'ASCENDING', mapChoice=True)
     elif myarg == u'nolists':
       noLists = True
-      selectActiveTimeRanges = selectRecentUsers = False
+      selectActiveTimeRanges = selectDeviceFiles = selectRecentUsers = False
     elif myarg == u'listlimit':
       listLimit = getInteger(minVal=0)
     elif myarg in CROS_START_ARGUMENTS:
-      startDate = getYYYYMMDD(returnDateTime=True)
+      startDate, startTime = _getFilterDateTime()
     elif myarg in CROS_END_ARGUMENTS:
-      endDate = getYYYYMMDD(returnDateTime=True)
+      endDate, endTime = _getFilterDateTime()
     elif myarg == u'allfields':
       projection = u'FULL'
       sortHeaders = True
@@ -10656,11 +10953,14 @@ def doPrintCrOSDevices(entityList=None):
       for field in fieldNameList.lower().replace(u',', u' ').split():
         if field in CROS_ARGUMENT_TO_PROPERTY_MAP:
           addFieldToCSVfile(field, CROS_ARGUMENT_TO_PROPERTY_MAP, fieldsList, titles)
-          if field in CROS_RECENT_USERS_ARGUMENTS:
-            selectRecentUsers = True
-            noLists = False
-          elif field in CROS_ACTIVE_TIME_RANGES_ARGUMENTS:
+          if field in CROS_ACTIVE_TIME_RANGES_ARGUMENTS:
             selectActiveTimeRanges = True
+            noLists = False
+          elif field in CROS_DEVICE_FILES_ARGUMENTS:
+            selectDeviceFiles = True
+            noLists = False
+          elif field in CROS_RECENT_USERS_ARGUMENTS:
+            selectRecentUsers = True
             noLists = False
         else:
           invalidChoiceExit(CROS_ARGUMENT_TO_PROPERTY_MAP, True)
@@ -10672,6 +10972,8 @@ def doPrintCrOSDevices(entityList=None):
     if selectActiveTimeRanges:
       addTitlesToCSVfile(CROS_ARGUMENT_TO_PROPERTY_MAP[u'activetimeranges'], titles)
       addTitlesToCSVfile([u'activeTimeRanges.duration', u'activeTimeRanges.minutes'], titles)
+    if selectDeviceFiles:
+      addTitlesToCSVfile(CROS_ARGUMENT_TO_PROPERTY_MAP[u'devicefiles'], titles)
   else:
     if selectRecentUsers:
       if not fieldsList:
@@ -10684,6 +10986,11 @@ def doPrintCrOSDevices(entityList=None):
       projection = u'FULL'
       addFieldToCSVfile(u'activeTimeRanges', CROS_ARGUMENT_TO_PROPERTY_MAP, fieldsList, titles)
       addTitlesToCSVfile([u'activeTimeRanges.duration', u'activeTimeRanges.minutes'], titles)
+    if selectDeviceFiles:
+      if not fieldsList:
+        fieldsList = [u'deviceId',]
+      projection = u'FULL'
+      addFieldToCSVfile(u'deviceFiles', CROS_ARGUMENT_TO_PROPERTY_MAP, fieldsList, titles)
   _, _, entityList = getEntityArgument(entityList)
   if entityList is None:
     sortRows = False
@@ -10738,13 +11045,13 @@ def doPrintCrOSDevices(entityList=None):
   writeCSVfile(csvRows, titles, u'CrOS', todrive, [u'deviceId',] if sortHeaders else None)
 
 # gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
-#	[orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [listlimit <Number>] [start <Date>] [end <Date>]
+#	[orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [devicefiles] [both|all] [listlimit <Number>] [start <Date>] [end <Date>]
 #	[delimiter <Character>]
 def doPrintCrOSActivity(entityList=None):
   def _printCrOS(cros):
     row = {}
     for attrib in cros:
-      if attrib not in [u'recentUsers', u'activeTimeRanges']:
+      if attrib not in [u'recentUsers', u'activeTimeRanges', u'deviceFiles']:
         row[attrib] = cros[attrib]
     if selectActiveTimeRanges:
       activeTimeRanges = _filterTimeRanges(cros.get(u'activeTimeRanges', []), startDate, endDate)
@@ -10760,6 +11067,14 @@ def doPrintCrOSActivity(entityList=None):
       lenRU = len(recentUsers)
       row[u'recentUsers.email'] = delimiter.join([recent_user.get(u'email', [u'Unknown', u'UnmanagedUser'][recent_user[u'type'] == u'USER_TYPE_UNMANAGED']) for recent_user in recentUsers[:min(lenRU, listLimit or lenRU)]])
       csvRows.append(row)
+    if selectDeviceFiles:
+      deviceFiles = _filterDeviceFiles(cros.get(u'deviceFiles', []), startTime, endTime)
+      lenDF = len(deviceFiles)
+      for deviceFile in deviceFiles[:min(lenDF, listLimit or lenDF)]:
+        new_row = row.copy()
+        new_row[u'deviceFiles.type'] = deviceFile[u'type']
+        new_row[u'deviceFiles.createTime'] = formatLocalTime(deviceFile[u'createTime'])
+        csvRows.append(new_row)
 
   def _callbackPrintCrOS(request_id, response, exception):
     ri = request_id.splitlines()
@@ -10781,8 +11096,8 @@ def doPrintCrOSActivity(entityList=None):
   projection = u'FULL'
   orgUnitPath = query = orderBy = sortOrder = None
   listLimit = 0
-  startDate = endDate = None
-  selectActiveTimeRanges = selectRecentUsers = False
+  startDate = endDate = startTime = endTime = None
+  selectActiveTimeRanges = selectDeviceFiles = selectRecentUsers = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
@@ -10796,13 +11111,19 @@ def doPrintCrOSActivity(entityList=None):
     elif myarg == u'listlimit':
       listLimit = getInteger(minVal=0)
     elif myarg in CROS_START_ARGUMENTS:
-      startDate = getYYYYMMDD(returnDateTime=True)
+      startDate, startTime = _getFilterDateTime()
     elif myarg in CROS_END_ARGUMENTS:
-      endDate = getYYYYMMDD(returnDateTime=True)
-    elif myarg in CROS_RECENT_USERS_ARGUMENTS:
-      selectRecentUsers = True
+      endDate, endTime = _getFilterDateTime()
     elif myarg in CROS_ACTIVE_TIME_RANGES_ARGUMENTS:
       selectActiveTimeRanges = True
+    elif myarg in CROS_DEVICE_FILES_ARGUMENTS:
+      selectDeviceFiles = True
+    elif myarg in CROS_RECENT_USERS_ARGUMENTS:
+      selectRecentUsers = True
+    elif myarg == u'both':
+      selectActiveTimeRanges = selectRecentUsers = True
+    elif myarg == u'all':
+      selectActiveTimeRanges = selectDeviceFiles = selectRecentUsers = True
     elif myarg == u'orderby':
       orderBy = getChoice(CROS_ORDERBY_CHOICE_MAP, mapChoice=True)
       sortOrder = getChoice(SORTORDER_CHOICE_MAP, defaultChoice=u'ASCENDING', mapChoice=True)
@@ -10810,7 +11131,7 @@ def doPrintCrOSActivity(entityList=None):
       delimiter = getCharacter()
     else:
       unknownArgumentExit()
-  if not selectRecentUsers and not selectActiveTimeRanges:
+  if not selectActiveTimeRanges and not selectDeviceFiles and not selectRecentUsers:
     selectActiveTimeRanges = selectRecentUsers = True
   if selectRecentUsers:
     fieldsList.append(u'recentUsers')
@@ -10818,6 +11139,9 @@ def doPrintCrOSActivity(entityList=None):
   if selectActiveTimeRanges:
     fieldsList.append(u'activeTimeRanges')
     addTitlesToCSVfile([u'activeTimeRanges.date', u'activeTimeRanges.duration', u'activeTimeRanges.minutes'], titles)
+  if selectDeviceFiles:
+    fieldsList.append(u'deviceFiles')
+    addTitlesToCSVfile([u'deviceFiles.type', u'deviceFiles.createTime'], titles)
   _, _, entityList = getEntityArgument(entityList)
   if entityList is None:
     sortRows = False
@@ -11264,7 +11588,7 @@ def doCreateGroup():
         errMsg = Msg.API_ERROR_SETTINGS
     entityActionPerformedMessage([Ent.GROUP, body[u'email']], errMsg)
   except GAPI.duplicate:
-    entityDuplicateWarning(Ent.GROUP, body[u'email'])
+    entityDuplicateWarning([Ent.GROUP, body[u'email']])
   except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.invalid, GAPI.invalidInput,
           GAPI.badRequest, GAPI.permissionDenied, GAPI.backendError, GAPI.systemError) as e:
     entityActionFailedWarning([Ent.GROUP, body[u'email']], str(e))
@@ -12291,7 +12615,7 @@ def getGroupMembers(cd, groupEmail, roles, membersList, membersSet, i, count, ch
   except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden):
     entityUnknownWarning(Ent.GROUP, groupEmail, i, count)
 
-GROUPMEMBERS_FIELD_NAMES_MAP = {
+GROUPMEMBERS_FIELDs_CHOICE_MAP = {
   u'email': u'email',
   u'groupemail': u'group',
   u'id': u'id',
@@ -12343,17 +12667,17 @@ def doPrintGroupMembers():
     elif myarg == u'select':
       entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
       subTitle = u'{0} {1}'.format(Msg.SELECTED, Ent.Plural(Ent.GROUP))
-    elif myarg in GROUPMEMBERS_FIELD_NAMES_MAP:
-      myarg = GROUPMEMBERS_FIELD_NAMES_MAP[myarg]
+    elif myarg in GROUPMEMBERS_FIELDs_CHOICE_MAP:
+      myarg = GROUPMEMBERS_FIELDs_CHOICE_MAP[myarg]
       addFieldToCSVfile(myarg, {myarg: [myarg]}, fieldsList, titles)
     elif myarg == u'fields':
       fieldNameList = getString(Cmd.OB_FIELD_NAME_LIST)
       for field in fieldNameList.lower().replace(u',', u' ').split():
-        if field in GROUPMEMBERS_FIELD_NAMES_MAP:
-          field = GROUPMEMBERS_FIELD_NAMES_MAP[field]
+        if field in GROUPMEMBERS_FIELDs_CHOICE_MAP:
+          field = GROUPMEMBERS_FIELDs_CHOICE_MAP[field]
           addFieldToCSVfile(field, {field: [field]}, fieldsList, titles)
         else:
-          invalidChoiceExit(GROUPMEMBERS_FIELD_NAMES_MAP, True)
+          invalidChoiceExit(GROUPMEMBERS_FIELDs_CHOICE_MAP, True)
     elif myarg == u'membernames':
       membernames = True
     elif myarg == u'userfields':
@@ -12790,34 +13114,382 @@ def makeRoleRuleIdBody(role, ruleId):
     return {u'role': role, u'scope': {u'type': u'user', u'value': ruleIdParts[0]}}
   return {u'role': role, u'scope': {u'type': ruleIdParts[0], u'value': ruleIdParts[1]}}
 
-# gam create resource <ResourceID> <String> [description <String>] [type <String>]
-def doCreateResourceCalendar():
-  cd = buildGAPIObject(API.DIRECTORY)
-  body = {u'resourceId': getString(Cmd.OB_RESOURCE_ID),
-          u'resourceName': getString(Cmd.OB_NAME)}
+def _getBuildingAttributes(body):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == u'description':
-      body[u'resourceDescription'] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
-    elif myarg == u'type':
-      body[u'resourceType'] = getString(Cmd.OB_STRING)
+    if myarg == u'id':
+      body[u'buildingId'] = getString(Cmd.OB_BUILDING_ID, maxLen=100)
+    elif myarg == u'name':
+      body[u'buildingName'] = getString(Cmd.OB_STRING, maxLen=100)
+    elif myarg in [u'lat', u'latitude']:
+      body.setdefault(u'coordinates', {})
+      body[u'coordinates'][u'latitude'] = getFloat(minVal=-180.0, maxVal=180.0)
+    elif myarg in [u'long', u'lng', u'longitude']:
+      body.setdefault(u'coordinates', {})
+      body[u'coordinates'][u'longitude'] = getFloat(minVal=-180.0, maxVal=180.0)
+    elif myarg == u'description':
+      body[u'description'] = getString(Cmd.OB_STRING)
+    elif myarg == u'floors':
+      body[u'floorNames'] = getString(Cmd.OB_STRING).split(u',')
     else:
       unknownArgumentExit()
+  return body
+
+# gam create|add building <BuildingID> <Name> <BuildingAttributes>*
+def doCreateBuilding():
+  cd = buildGAPIObject(API.DIRECTORY)
+  body = _getBuildingAttributes({u'buildingId': unicode(uuid.uuid4()),
+                                 u'buildingName': getString(Cmd.OB_NAME, maxLen=100),
+                                 u'floorNames': [u'1',]})
   try:
-    callGAPI(cd.resources().calendars(), u'insert',
-             throw_reasons=[GAPI.INVALID, GAPI.DUPLICATE, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-             customer=GC.Values[GC.CUSTOMER_ID], body=body, fields=u'')
-    entityActionPerformed([Ent.RESOURCE_CALENDAR, body[u'resourceId']])
-  except GAPI.invalid as e:
-    entityActionFailedWarning([Ent.RESOURCE_CALENDAR, body[u'resourceId']], str(e))
+    callGAPI(cd.resources().buildings(), u'insert',
+             throw_reasons=[GAPI.DUPLICATE, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+             customer=GC.Values[GC.CUSTOMER_ID], body=body)
+    entityActionPerformed([Ent.BUILDING_ID, body[u'buildingId'], Ent.BUILDING, body[u'buildingName']])
   except GAPI.duplicate:
-    entityDuplicateWarning(Ent.RESOURCE_CALENDAR, body[u'resourceId'])
-  except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+    entityDuplicateWarning([Ent.BUILDING_ID, body[u'buildingId'], Ent.BUILDING, body[u'buildingName']])
+  except GAPI.invalidInput as e:
+    entityActionFailedWarning([Ent.BUILDING_ID, body[u'buildingId'], Ent.BUILDING, body[u'buildingName']], str(e))
+  except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
     accessErrorExit(cd)
 
-def _doUpdateResourceCalendars(entityList):
+def _makeBuildingIdNameMap(cd):
+  try:
+    buildings = callGAPIpages(cd.resources().buildings(), u'list', u'buildings',
+                              throw_reasons=[GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                              customer=GC.Values[GC.CUSTOMER_ID],
+                              fields=u'nextPageToken,buildings(buildingId,buildingName)')
+  except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
+    accessErrorExit(cd)
+  GM.Globals[GM.MAP_BUILDING_ID_TO_NAME] = {}
+  GM.Globals[GM.MAP_BUILDING_NAME_TO_ID] = {}
+  for building in buildings:
+    GM.Globals[GM.MAP_BUILDING_ID_TO_NAME][building[u'buildingId']] = building[u'buildingName']
+    GM.Globals[GM.MAP_BUILDING_NAME_TO_ID][building[u'buildingName']] = building[u'buildingId']
+
+def _getBuildingByNameOrId(cd):
+  which_building = getString(Cmd.OB_BUILDING_ID)
+  cg = UID_PATTERN.match(which_building)
+  if cg:
+    return cg.group(1)
+  if GM.Globals[GM.MAP_BUILDING_NAME_TO_ID] is None:
+    _makeBuildingIdNameMap(cd)
+# Exact name match, return ID
+  if which_building in GM.Globals[GM.MAP_BUILDING_NAME_TO_ID]:
+    return GM.Globals[GM.MAP_BUILDING_NAME_TO_ID][which_building]
+# No exact name match, check for case insensitive name matches
+  which_building_lower = which_building.lower()
+  ci_matches = []
+  for buildingName, buildingId in GM.Globals[GM.MAP_BUILDING_NAME_TO_ID].iteritems():
+    if buildingName.lower() == which_building_lower:
+      ci_matches.append({u'buildingName': buildingName, u'buildingId': buildingId})
+# One match, return ID
+  if len(ci_matches) == 1:
+    return ci_matches[0][u'buildingId']
+# No or multiple name matches, try ID
+# Exact ID match, return ID
+  if which_building in GM.Globals[GM.MAP_BUILDING_ID_TO_NAME]:
+    return which_building
+# No exact ID match, check for case insensitive id match
+  for buildingId in GM.Globals[GM.MAP_BUILDING_ID_TO_NAME]:
+# Match, return ID
+    if buildingId.lower() == which_building_lower:
+      return buildingId
+# Multiple name  matches
+  if len(ci_matches) > 1:
+    printErrorMessage(1, Msg.MULTIPLE_BUILDINGS_SAME_NAME.format(len(ci_matches), Ent.Plural(Ent.BUILDING)))
+    Ind.Increment()
+    for building in ci_matches:
+      printEntity([Ent.BUILDING, building[u'buildingName'], Ent.BUILDING_ID, building[u'buildingId']])
+    Ind.Decrement()
+    Cmd.Backup()
+    usageErrorExit(Msg.PLEASE_SPECIFY_BUILDING_EXACT_CASE_NAME_OR_ID)
+# No matches
+  entityDoesNotExistExit(Ent.BUILDING, which_building)
+
+def _getBuildingNameById(cd, buildingId):
+  if GM.Globals[GM.MAP_BUILDING_ID_TO_NAME]is None:
+    _makeBuildingIdNameMap(cd)
+  return GM.Globals[GM.MAP_BUILDING_ID_TO_NAME].get(buildingId, u'UNKNOWN')
+
+# gam update building <BuildIngID> <BuildingAttributes>*
+def doUpdateBuilding():
   cd = buildGAPIObject(API.DIRECTORY)
-  body = {}
+  buildingId = _getBuildingByNameOrId(cd)
+  body = _getBuildingAttributes({})
+  try:
+    callGAPI(cd.resources().buildings(), u'patch',
+             throw_reasons=[GAPI.DUPLICATE, GAPI.RESOURCE_NOT_FOUND, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+             customer=GC.Values[GC.CUSTOMER_ID], buildingId=buildingId, body=body)
+    entityActionPerformed([Ent.BUILDING_ID, buildingId])
+  except GAPI.duplicate:
+    entityDuplicateWarning([Ent.BUILDING, body[u'buildingName']])
+  except GAPI.resourceNotFound:
+    entityUnknownWarning(Ent.BUILDING_ID, buildingId)
+  except GAPI.invalidInput as e:
+    entityActionFailedWarning([Ent.BUILDING_ID, buildingId], str(e))
+  except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
+    accessErrorExit(cd)
+
+# gam delete building <BuildIngID>
+def doDeleteBuilding():
+  cd = buildGAPIObject(API.DIRECTORY)
+  buildingId = _getBuildingByNameOrId(cd)
+  checkForExtraneousArguments()
+  try:
+    callGAPI(cd.resources().buildings(), u'delete',
+             throw_reasons=[GAPI.RESOURCE_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+             customer=GC.Values[GC.CUSTOMER_ID], buildingId=buildingId)
+    entityActionPerformed([Ent.BUILDING_ID, buildingId])
+  except GAPI.resourceNotFound:
+    entityUnknownWarning(Ent.BUILDING_ID, buildingId)
+  except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
+    accessErrorExit(cd)
+
+def _showBuilding(building, delimiter=u',', i=0, count=0):
+  if u'buildingName' in building:
+    printEntity([Ent.BUILDING, building[u'buildingName']], i, count)
+    Ind.Increment()
+    printKeyValueList([u'buildingId', u'id:{0}'.format(building[u'buildingId'])])
+  else:
+    printEntity([Ent.BUILDING_ID, u'id:{0}'.format(building[u'buildingId'])], i, count)
+    Ind.Increment()
+  if u'description' in building:
+    printKeyValueList([u'description', building[u'description']])
+  if u'floorNames' in building:
+    printKeyValueList([u'floorNames', delimiter.join(building[u'floorNames'])])
+  if u'coordinates' in building:
+    printKeyValueList([u'coordinates', None])
+    Ind.Increment()
+    printKeyValueList([u'latitude', building[u'coordinates'].get(u'latitude', 0)])
+    printKeyValueList([u'longitude', building[u'coordinates'].get(u'longitude', 0)])
+    Ind.Decrement()
+  Ind.Decrement()
+
+# gam info building <BuildingID>
+def doInfoBuilding():
+  cd = buildGAPIObject(API.DIRECTORY)
+  buildingId = _getBuildingByNameOrId(cd)
+  checkForExtraneousArguments()
+  try:
+    building = callGAPI(cd.resources().buildings(), u'get',
+                        throw_reasons=[GAPI.RESOURCE_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                        customer=GC.Values[GC.CUSTOMER_ID], buildingId=buildingId)
+    _showBuilding(building)
+  except GAPI.resourceNotFound:
+    entityUnknownWarning(Ent.BUILDING_ID, buildingId)
+  except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
+    accessErrorExit(cd)
+
+BUILDINGS_FIELDS_CHOICE_MAP = {
+  u'buildingid': u'buildingId',
+  u'buildingname': u'buildingName',
+  u'coordinates': u'coordinates',
+  u'description': u'description',
+  u'floors': u'floorNames',
+  u'floornames': u'floorNames',
+  u'id': u'buildingId',
+  u'name': u'buildingName',
+  }
+
+def _doPrintShowBuildings(csvFormat):
+  cd = buildGAPIObject(API.DIRECTORY)
+  if csvFormat:
+    todrive = {}
+    titles, csvRows = initializeTitlesCSVfile([u'buildingId',])
+    delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
+  else:
+    delimiter = u','
+  fieldsList = []
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvFormat and myarg == u'todrive':
+      todrive = getTodriveParameters()
+    elif csvFormat and myarg == u'delimiter':
+      delimiter = getCharacter()
+    elif myarg == u'allfields':
+      fieldsList = []
+    elif myarg in BUILDINGS_FIELDS_CHOICE_MAP:
+      if not fieldsList:
+        fieldsList = [u'buildingId',]
+      fieldsList.append(BUILDINGS_FIELDS_CHOICE_MAP[myarg])
+    elif myarg == u'fields':
+      if not fieldsList:
+        fieldsList = [u'buildingId',]
+      fieldNameList = getString(Cmd.OB_FIELD_NAME_LIST)
+      for field in fieldNameList.lower().replace(u',', u' ').split():
+        if field in BUILDINGS_FIELDS_CHOICE_MAP:
+          fieldsList.append(BUILDINGS_FIELDS_CHOICE_MAP[field])
+        else:
+          invalidChoiceExit(BUILDINGS_FIELDS_CHOICE_MAP, True)
+    else:
+      unknownArgumentExit()
+  fields = u'nextPageToken,buildings({0})'.format(u','.join(set(fieldsList))) if fieldsList else None
+  try:
+    buildings = callGAPIpages(cd.resources().buildings(), u'list', u'buildings',
+                              throw_reasons=[GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                              customer=GC.Values[GC.CUSTOMER_ID], fields=fields)
+    if not csvFormat:
+      jcount = len(buildings)
+      performActionNumItems(jcount, Ent.BUILDING)
+      Ind.Increment()
+      j = 0
+      for building in buildings:
+        j += 1
+        _showBuilding(building, delimiter, j, jcount)
+      Ind.Decrement()
+    else:
+      for building in buildings:
+        if u'buildingId' in building:
+          building[u'buildingId'] = u'id:{0}'.format(building[u'buildingId'])
+        if u'floorNames' in building:
+          building[u'floorNames'] = delimiter.join(building[u'floorNames'])
+        addRowTitlesToCSVfile(flattenJSON(building), csvRows, titles)
+  except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
+    accessErrorExit(cd)
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'Buildings', todrive, [u'buildingId',])
+
+# gam print buildings [todrive [<ToDriveAttributes>]]
+def doPrintBuildings():
+  _doPrintShowBuildings(True)
+
+# gam show buildings
+def doShowBuildings():
+  _doPrintShowBuildings(False)
+
+def _getFeatureAttributes(body):
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'name':
+      body[u'name'] = getString(Cmd.OB_STRING)
+    else:
+      unknownArgumentExit()
+  return body
+
+# gam create|add feature <Name>
+def doCreateFeature():
+  cd = buildGAPIObject(API.DIRECTORY)
+  body = _getFeatureAttributes({})
+  try:
+    callGAPI(cd.resources().features(), u'insert',
+             throw_reasons=[GAPI.DUPLICATE, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+             customer=GC.Values[GC.CUSTOMER_ID], body=body)
+    entityActionPerformed([Ent.BUILDING, body[u'name']])
+  except GAPI.duplicate:
+    entityDuplicateWarning([Ent.FEATURE, body[u'name']])
+  except GAPI.invalidInput as e:
+    entityActionFailedWarning([Ent.FEATURE, body[u'name']], str(e))
+  except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
+    accessErrorExit(cd)
+
+#gam update feature <Name> name <Name>
+def doUpdateFeature():
+  # update does not work for name and name is only field to be updated
+  # if additional writable fields are added to feature in the future
+  # we'll add support for update as well as rename
+  cd = buildGAPIObject(API.DIRECTORY)
+  oldName = getString(Cmd.OB_STRING)
+  getChoice([u'name'])
+  body = {u'newName': getString(Cmd.OB_STRING)}
+  checkForExtraneousArguments()
+  try:
+    callGAPI(cd.resources().features(), u'rename',
+             throw_reasons=[GAPI.DUPLICATE, GAPI.RESOURCE_NOT_FOUND, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+             customer=GC.Values[GC.CUSTOMER_ID], oldName=oldName, body=body)
+    entityActionPerformed([Ent.FEATURE, oldName])
+  except GAPI.duplicate:
+    entityDuplicateWarning([Ent.FEATURE, body[u'newName']])
+  except GAPI.resourceNotFound:
+    entityUnknownWarning(Ent.FEATURE, oldName)
+  except GAPI.invalidInput as e:
+    entityActionFailedWarning([Ent.FEATURE, oldName], str(e))
+  except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
+    accessErrorExit(cd)
+
+# gam delete feature <eName>
+def doDeleteFeature():
+  cd = buildGAPIObject(API.DIRECTORY)
+  featureKey = getString(Cmd.OB_NAME)
+  checkForExtraneousArguments()
+  try:
+    callGAPI(cd.resources().features(), u'delete',
+             throw_reasons=[GAPI.RESOURCE_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+             customer=GC.Values[GC.CUSTOMER_ID], featureKey=featureKey)
+    entityActionPerformed([Ent.FEATURE, featureKey])
+  except GAPI.resourceNotFound:
+    entityUnknownWarning(Ent.FEATURE, featureKey)
+  except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
+    accessErrorExit(cd)
+
+FEATURE_FIELDS_CHOICE_MAP = {
+  u'name': u'name',
+  }
+
+def _doPrintShowFeatures(csvFormat):
+  cd = buildGAPIObject(API.DIRECTORY)
+  if csvFormat:
+    todrive = {}
+    titles, csvRows = initializeTitlesCSVfile([u'name',])
+  fieldsList = []
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvFormat and myarg == u'todrive':
+      todrive = getTodriveParameters()
+    elif myarg == u'allfields':
+      fieldsList = []
+    elif myarg in FEATURE_FIELDS_CHOICE_MAP:
+      if not fieldsList:
+        fieldsList = [u'buildingId',]
+      fieldsList.append(FEATURE_FIELDS_CHOICE_MAP[myarg])
+    elif myarg == u'fields':
+      if not fieldsList:
+        fieldsList = [u'buildingId',]
+      fieldNameList = getString(Cmd.OB_FIELD_NAME_LIST)
+      for field in fieldNameList.lower().replace(u',', u' ').split():
+        if field in FEATURE_FIELDS_CHOICE_MAP:
+          fieldsList.append(FEATURE_FIELDS_CHOICE_MAP[field])
+        else:
+          invalidChoiceExit(FEATURE_FIELDS_CHOICE_MAP, True)
+    else:
+      unknownArgumentExit()
+  fields = u'nextPageToken,features({0})'.format(u','.join(set(fieldsList))) if fieldsList else None
+  try:
+    features = callGAPIpages(cd.resources().features(), u'list', u'features',
+                             throw_reasons=[GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                             customer=GC.Values[GC.CUSTOMER_ID], fields=fields)
+    if not csvFormat:
+      jcount = len(features)
+      performActionNumItems(jcount, Ent.FEATURE)
+      Ind.Increment()
+      j = 0
+      for feature in features:
+        j += 1
+        printEntity([Ent.FEATURE, feature[u'name']], j, jcount)
+    else:
+      for feature in features:
+        addRowTitlesToCSVfile(flattenJSON(feature), csvRows, titles)
+  except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
+    accessErrorExit(cd)
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'Features', todrive)
+
+# gam print features [todrive [<ToDriveAttributes>]]
+def doPrintFeatures():
+  _doPrintShowFeatures(True)
+
+# gam show features
+def doShowFeatures():
+  _doPrintShowFeatures(False)
+
+RESOURCE_CATEGORY_MAP = {
+  u'conference': u'CONFERENCE_ROOM',
+  u'conferenceroom': u'CONFERENCE_ROOM',
+  u'room': u'CONFERENCE_ROOM',
+  u'other': u'OTHER',
+  }
+
+def _getResourceCalendarAttributes(cd, body):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'name':
@@ -12826,27 +13498,65 @@ def _doUpdateResourceCalendars(entityList):
       body[u'resourceDescription'] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
     elif myarg == u'type':
       body[u'resourceType'] = getString(Cmd.OB_STRING)
+    elif myarg in [u'building', u'buildingid']:
+      body[u'buildingId'] = _getBuildingByNameOrId(cd)
+    elif myarg in [u'capacity']:
+      body[u'capacity'] = getInteger()
+    elif myarg in [u'feature', u'features']:
+      features = getString(Cmd.OB_STRING).split(u',')
+      body[u'featureInstances'] = []
+      for feature in features:
+        body[u'featureInstances'].append({u'feature': {u'name': feature}})
+    elif myarg in [u'floor', u'floorname']:
+      body[u'floorName'] = getString(Cmd.OB_STRING)
+    elif myarg in [u'floorsection']:
+      body[u'floorSection'] = getString(Cmd.OB_STRING)
+    elif myarg in [u'category']:
+      body[u'resourceCategory'] = getChoice(RESOURCE_CATEGORY_MAP, mapChoice=True)
+    elif myarg in [u'uservisibledescription', u'userdescription']:
+      body[u'userVisibleDescription'] = getString(Cmd.OB_STRING)
     else:
       unknownArgumentExit()
+  return body
+
+# gam create|add resource <ResourceID> <Name> <ResourceAttributes>*
+def doCreateResourceCalendar():
+  cd = buildGAPIObject(API.DIRECTORY)
+  body = _getResourceCalendarAttributes(cd, {u'resourceId': getString(Cmd.OB_RESOURCE_ID), u'resourceName': getString(Cmd.OB_NAME)})
+  try:
+    callGAPI(cd.resources().calendars(), u'insert',
+             throw_reasons=[GAPI.INVALID, GAPI.DUPLICATE, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+             customer=GC.Values[GC.CUSTOMER_ID], body=body, fields=u'')
+    entityActionPerformed([Ent.RESOURCE_CALENDAR, body[u'resourceId']])
+  except GAPI.invalid as e:
+    entityActionFailedWarning([Ent.RESOURCE_CALENDAR, body[u'resourceId']], str(e))
+  except GAPI.duplicate:
+    entityDuplicateWarning([Ent.RESOURCE_CALENDAR, body[u'resourceId']])
+  except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+    accessErrorExit(cd)
+
+def _doUpdateResourceCalendars(entityList):
+  cd = buildGAPIObject(API.DIRECTORY)
+  body = _getResourceCalendarAttributes(cd, {})
   i = 0
   count = len(entityList)
   for resourceId in entityList:
     i += 1
     try:
       callGAPI(cd.resources().calendars(), u'patch',
-               throw_reasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+               throw_reasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                customer=GC.Values[GC.CUSTOMER_ID], calendarResourceId=resourceId, body=body, fields=u'')
       entityActionPerformed([Ent.RESOURCE_CALENDAR, resourceId], i, count)
-    except GAPI.invalid as e:
+    except (GAPI.invalid, GAPI.invalidInput)  as e:
       entityActionFailedWarning([Ent.RESOURCE_CALENDAR, resourceId], str(e), i, count)
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.RESOURCE_CALENDAR, resourceId, i, count)
 
-# gam update resources <ResourceEntity> [name <String>] [description <String>] [type <String>]
+# gam update resources <ResourceEntity> <ResourceAttributes>*
 def doUpdateResourceCalendars():
   _doUpdateResourceCalendars(getEntityList(Cmd.OB_RESOURCE_ENTITY))
 
-# gam update resource <ResourceID> [name <String>] [description <String>] [type <String>]
+# gam update resource <ResourceID> <ResourceAttributes>*
 def doUpdateResourceCalendar():
   _doUpdateResourceCalendars(getStringReturnInList(Cmd.OB_RESOURCE_ID))
 
@@ -12873,10 +13583,21 @@ def doDeleteResourceCalendars():
 def doDeleteResourceCalendar():
   _doDeleteResourceCalendars(getStringReturnInList(Cmd.OB_RESOURCE_ID))
 
-RESOURCE_ALLFIELDS = [u'resourceId', u'resourceName', u'resourceEmail', u'resourceDescription', u'resourceType',]
+RESOURCE_DFLT_FIELDS = [u'resourceId', u'resourceName', u'resourceEmail', u'resourceDescription', u'resourceType',]
+RESOURCE_ADDTL_FIELDS = [
+  u'buildingId',	# buildingId must be first element
+  u'capacity',
+  u'featureInstances',
+  u'floorName',
+  u'floorSection',
+  u'generatedResourceName',
+  u'resourceCategory',
+  u'userVisibleDescription',
+  ]
+RESOURCE_ALL_FIELDS = RESOURCE_DFLT_FIELDS+RESOURCE_ADDTL_FIELDS
 RESOURCE_FIELDS_WITH_CRS_NLS = [u'resourceDescription',]
 
-def _showResource(resource, i, count, acls=None):
+def _showResource(cd, resource, i, count, acls=None):
 
   def _showResourceField(title, resource, field):
     if field in resource:
@@ -12895,6 +13616,15 @@ def _showResource(resource, i, count, acls=None):
   _showResourceField(u'Email', resource, u'resourceEmail')
   _showResourceField(u'Type', resource, u'resourceType')
   _showResourceField(u'Description', resource, u'resourceDescription')
+  if u'featureInstances' in resource:
+    resource[u'featureInstances'] = u', '.join([a_feature[u'feature'][u'name'] for a_feature in resource.pop(u'featureInstances')])
+  if u'buildingId' in resource:
+    resource[u'buildingName'] = _getBuildingNameById(cd, resource[u'buildingId'])
+    resource[u'buildingId'] = u'id:{0}'.format(resource[u'buildingId'])
+    _showResourceField(u'buildingId', resource, u'buildingId')
+    _showResourceField(u'buildingName', resource, u'buildingName')
+  for field in RESOURCE_ADDTL_FIELDS[1:]:
+    _showResourceField(field, resource, field)
   if acls:
     j = 0
     jcount = len(acls)
@@ -12913,8 +13643,8 @@ def _doInfoResourceCalendars(entityList):
     try:
       resource = callGAPI(cd.resources().calendars(), u'get',
                           throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                          customer=GC.Values[GC.CUSTOMER_ID], calendarResourceId=resourceId, fields=u','.join(RESOURCE_ALLFIELDS))
-      _showResource(resource, i, count)
+                          customer=GC.Values[GC.CUSTOMER_ID], calendarResourceId=resourceId, fields=u','.join(RESOURCE_ALL_FIELDS))
+      _showResource(cd, resource, i, count)
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.RESOURCE_CALENDAR, resourceId, i, count)
 
@@ -12928,10 +13658,22 @@ def doInfoResourceCalendar():
 
 RESOURCE_ARGUMENT_TO_PROPERTY_MAP = {
   u'description': u'resourceDescription',
+  u'building': u'buildingId',
+  u'buildingid': u'buildingId',
+  u'capacity': u'capacity',
+  u'catagory': u'resourceCatagory',
   u'email': u'resourceEmail',
+  u'feature': u'featureInstances',
+  u'features': u'featureInstances',
+  u'floor': u'floorName',
+  u'floorname': u'floorName',
+  u'floorsection': u'floorSection',
+  u'generatedresourcename': u'generatedResourceName',
   u'id': u'resourceId',
   u'name': u'resourceName',
   u'type': u'resourceType',
+  u'userdescription': u'userVisibleDescription',
+  u'uservisibledescription': u'userVisibleDescription',
   }
 
 def _doPrintShowResourceCalendars(csvFormat):
@@ -12948,7 +13690,7 @@ def _doPrintShowResourceCalendars(csvFormat):
     if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
     elif myarg == u'allfields':
-      fieldsList = RESOURCE_ALLFIELDS[:]
+      fieldsList = RESOURCE_ALL_FIELDS[:]
     elif myarg in [Cmd.ARG_ACLS, Cmd.ARG_CALENDARACLS, Cmd.ARG_PERMISSIONS]:
       showPermissions = True
     elif myarg in RESOURCE_ARGUMENT_TO_PROPERTY_MAP:
@@ -12966,14 +13708,16 @@ def _doPrintShowResourceCalendars(csvFormat):
     else:
       unknownArgumentExit()
   if not fieldsList:
-    fieldsList = RESOURCE_ALLFIELDS[:]
-  if csvFormat:
-    addTitlesToCSVfile(fieldsList, titles)
+    fieldsList = RESOURCE_DFLT_FIELDS[:]
   if showPermissions:
     cal = buildGAPIObject(API.CALENDAR)
     fields = u'nextPageToken,items({0})'.format(u','.join(set(fieldsList+[u'resourceEmail',])))
   else:
     fields = u'nextPageToken,items({0})'.format(u','.join(set(fieldsList)))
+  if u'buildingId' in fieldsList:
+    fieldsList.append(u'buildingName')
+  if csvFormat:
+    addTitlesToCSVfile(fieldsList, titles)
   printGettingAllAccountEntities(Ent.RESOURCE_CALENDAR)
   try:
     resources = callGAPIpages(cd.resources().calendars(), u'list', u'items',
@@ -12989,8 +13733,13 @@ def _doPrintShowResourceCalendars(csvFormat):
                              throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                              calendarId=resource[u'resourceEmail'], fields=u'nextPageToken,items(id,role,scope)')
       if not csvFormat:
-        _showResource(resource, i, count, acls)
+        _showResource(cd, resource, i, count, acls)
       else:
+        if u'featureInstances' in resource:
+          resource[u'featureInstances'] = u', '.join([a_feature[u'feature'][u'name'] for a_feature in resource.pop(u'featureInstances')])
+        if u'buildingId' in resource:
+          resource[u'buildingName'] = _getBuildingNameById(cd, resource[u'buildingId'])
+          resource[u'buildingId'] = u'id:{0}'.format(resource[u'buildingId'])
         row = {}
         for field in fieldsList:
           if convertCRNL and field in RESOURCE_FIELDS_WITH_CRS_NLS:
@@ -13005,7 +13754,7 @@ def _doPrintShowResourceCalendars(csvFormat):
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
     accessErrorExit(cd)
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'Resources', todrive, RESOURCE_ALLFIELDS)
+    writeCSVfile(csvRows, titles, u'Resources', todrive, RESOURCE_DFLT_FIELDS)
 
 # gam show resources [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)] [acls] [convertcrnl]
 def doShowResourceCalendars():
@@ -14220,7 +14969,7 @@ def _doCreateUpdateUserSchemas(updateCmd, entityList):
                           customerId=GC.Values[GC.CUSTOMER_ID], body=addBody, fields=u'schemaName')
         entityActionPerformed([Ent.USER_SCHEMA, result[u'schemaName']], i, count)
     except GAPI.duplicate:
-      entityDuplicateWarning(Ent.USER_SCHEMA, schemaName, i, count)
+      entityDuplicateWarning([Ent.USER_SCHEMA, schemaName], i, count)
     except GAPI.conditionNotMet as e:
       entityActionFailedWarning([Ent.USER_SCHEMA, schemaName], str(e), i, count)
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
@@ -16086,7 +16835,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       elif up == u'locations':
         if checkClearBodyList(body, up):
           continue
-        entry = {}
+        entry = {u'type': u'desk', u'area': u''}
         while Cmd.ArgumentsRemaining():
           argument = getArgument()
           if argument == clTypeKeyword:
@@ -16094,7 +16843,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
           elif argument == u'area':
             entry[u'area'] = getString(Cmd.OB_STRING)
           elif argument in [u'building', u'buildingid']:
-            entry[u'buildingId'] = getString(Cmd.OB_STRING, minLen=0)
+            entry[u'buildingId'] = _getBuildingByNameOrId(cd)
           elif argument in [u'floor', u'floorname']:
             entry[u'floorName'] = getString(Cmd.OB_STRING, minLen=0)
           elif argument in [u'section', u'floorsection']:
@@ -16296,7 +17045,7 @@ def changeAdminStatus(cd, user, admin_body, i=0, count=0):
   except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden):
     entityUnknownWarning(Ent.USER, user, i, count)
 
-def sendCreateUserNotification(notify, body):
+def sendCreateUserNotification(notify, body, i=0, count=0):
   def _makeSubstitutions(field):
     notify[field] = _substituteForUser(notify[field], body[u'primaryEmail'], userName)
     notify[field] = notify[field].replace(u'#domain#', domain)
@@ -16311,7 +17060,7 @@ def sendCreateUserNotification(notify, body):
   if not notify.get(u'message'):
     notify[u'message'] = Msg.CREATE_USER_NOTIFY_MESSAGE
   _makeSubstitutions(u'message')
-  send_email(notify[u'subject'], notify[u'message'], notify[u'emailAddress'])
+  send_email(notify[u'subject'], notify[u'message'], notify[u'emailAddress'], i, count)
 
 # gam create user <EmailAddress> <UserAttributes> [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
 def doCreateUser():
@@ -16329,7 +17078,7 @@ def doCreateUser():
     if notify.get(u'emailAddress'):
       sendCreateUserNotification(notify, body)
   except GAPI.duplicate:
-    entityDuplicateWarning(Ent.USER, user)
+    entityDuplicateWarning([Ent.USER, user])
   except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.USER, user], str(e))
   except GAPI.invalidSchemaValue:
@@ -16382,9 +17131,9 @@ def updateUsers(entityList):
               Act.Set(Act.CREATE)
               entityActionPerformed([Ent.USER, user], i, count)
               if notify.get(u'emailAddress'):
-                sendCreateUserNotification(notify, body)
+                sendCreateUserNotification(notify, body, i, count)
             except GAPI.duplicate:
-              entityDuplicateWarning(Ent.USER, user, i, count)
+              entityDuplicateWarning([Ent.USER, user], i, count)
           else:
             entityUnknownWarning(Ent.USER, user, i, count)
             continue
@@ -21030,6 +21779,18 @@ def initializeDriveFileAttributes():
           DFA_TEAMDRIVE_PARENT: None, DFA_TEAMDRIVE_PARENTID: None, DFA_TEAMDRIVE_PARENTQUERY: None, DFA_KWARGS: {},
           DFA_IGNORE_DEFAULT_VISIBILITY: False, DFA_KEEP_REVISION_FOREVER: False, DFA_USE_CONTENT_AS_INDEXABLE_TEXT: False}
 
+DRIVEFILE_PROPERTY_VISIBILITY_CHOICE_MAP = {
+  u'private': u'appProperties',
+  u'public': u'properties'
+  }
+
+def getDriveFileProperty(visibility=None):
+  key = getString(Cmd.OB_PROPERTY_KEY)
+  value = getString(Cmd.OB_PROPERTY_VALUE, minLen=0) or None
+  if visibility is None:
+    visibility = getChoice(DRIVEFILE_PROPERTY_VISIBILITY_CHOICE_MAP, defaultChoice=u'PUBLIC', mapChoice=True)
+  return {u'key': key, u'value': value, u'visibility': visibility}
+
 def getDriveFileParentAttribute(myarg, parameters):
   if myarg == u'parentid':
     parameters[DFA_PARENTIDS].append(getString(Cmd.OB_DRIVE_FOLDER_ID))
@@ -21117,6 +21878,18 @@ def getDriveFileAttribute(myarg, body, parameters):
   elif myarg == u'indexabletext':
     body.setdefault(u'contentHints', {})
     body[u'contentHints'][u'indexableText'] = getString(Cmd.OB_STRING)
+  elif myarg == u'property':
+    driveprop = getDriveFileProperty()
+    body.setdefault(driveprop[u'visibility'], [])
+    body[driveprop[u'visibility']].append({driveprop[u'key']: driveprop[u'value']})
+  elif myarg == u'privateproperty':
+    driveprop = getDriveFileProperty(u'PRIVATE')
+    body.setdefault(u'properties', [])
+    body[u'properties'].append(driveprop)
+  elif myarg == u'publicproperty':
+    driveprop = getDriveFileProperty(u'PUBLIC')
+    body.setdefault(u'properties', [])
+    body[u'properties'].append(driveprop)
   else:
     unknownArgumentExit()
 
@@ -21497,6 +22270,18 @@ def _mapDriveParents(f_file):
     for parent in parents:
       f_file[u'parents'].append({u'id': parent})
 
+def _mapDriveProperties(f_file):
+  appProperties = f_file.pop(u'appProperties', [])
+  properties = f_file.pop(u'properties', [])
+  if appProperties:
+    f_file.setdefault(u'properties', [])
+    for key, value in sorted(iteritems(appProperties)):
+      f_file[u'properties'].append({u'key': key, u'value': value, u'visibility': u'PRIVATE'})
+  if properties:
+    f_file.setdefault(u'properties', [])
+    for key, value in sorted(iteritems(properties)):
+      f_file[u'properties'].append({u'key': key, u'value': value, u'visibility': u'PUBLIC'})
+
 def _mapDriveFieldNames(f_file, user, mapToLabels=False):
   if mapToLabels:
     for attrib in API.DRIVE3_TO_DRIVE2_LABELS_MAP:
@@ -21532,19 +22317,11 @@ def _mapDriveFieldNames(f_file, user, mapToLabels=False):
     f_file[u'ownerNames'] = [owner[u'displayName'] for owner in f_file[u'owners']]
   _mapDriveUser(f_file.get(u'sharingUser', {}))
   _mapDriveParents(f_file)
+  _mapDriveProperties(f_file)
   for permission in f_file.get(u'permissions', []):
     if (permission.get(u'type') == u'user') and (permission.get(u'emailAddress', u'').lower() == user) and (u'role' in permission):
       f_file[u'userPermission'] = {u'id': u'me', u'role': permission[u'role'], u'type': permission[u'type']}
     _mapDrivePermissionNames(permission)
-  if u'properties' in f_file:
-    properties = f_file[u'properties'].copy()
-    f_file[u'properties'] = []
-    for key, value in iteritems(properties):
-      if key != u'appProperties':
-        f_file[u'properties'].append({u'key': key, u'value': value, u'visibility': True})
-      else:
-        for pkey, pvalue in iteritems(value):
-          f_file[u'properties'].append({u'key': pkey, u'value': pvalue, u'visibility': False})
 
 def _mapDriveRevisionNames(revision):
   for attrib in API.DRIVE3_TO_DRIVE2_REVISIONS_FIELDS_MAP:
@@ -21558,6 +22335,7 @@ def _mapDriveRevisionNames(revision):
 DRIVEFILE_FIELDS_CHOICE_MAP = {
   u'alternatelink': VX_WEB_VIEW_LINK,
   u'appdatacontents': u'spaces',
+  u'appproperties': u'appProperties',
   u'cancomment': u'capabilities.canComment',
   u'canreadrevisions': u'capabilities.canReadRevisions',
   u'capabilities': u'capabilities',
@@ -21649,12 +22427,6 @@ PERMISSIONS_SUBFIELDS_CHOICE_MAP = {
   u'deleted': u'deleted',
   }
 
-PROPERTIES_SUBFIELDS_CHOICE_MAP = {
-  u'key': u'key',
-  u'visibility': u'visibility',
-  u'value': u'value',
-  }
-
 SHARINGUSER_SUBFIELDS_CHOICE_MAP = {
   u'name': u'displayName',
   u'displayname': u'displayName',
@@ -21670,7 +22442,6 @@ SUBFIELDS_CHOICE_MAP = {
   u'lastmodifyinguser': SHARINGUSER_SUBFIELDS_CHOICE_MAP,
   u'parents': PARENTS_SUBFIELDS_CHOICE_MAP,
   u'permissions': PERMISSIONS_SUBFIELDS_CHOICE_MAP,
-  u'properties': PROPERTIES_SUBFIELDS_CHOICE_MAP,
   u'sharinguser': SHARINGUSER_SUBFIELDS_CHOICE_MAP,
   u'trashinguser': SHARINGUSER_SUBFIELDS_CHOICE_MAP,
 }
@@ -21789,6 +22560,7 @@ def showFileInfo(users):
           _mapDriveFieldNames(result, user, True)
         else:
           _mapDriveParents(result)
+          _mapDriveProperties(result)
         showJSON(None, result, skipObjects, timeObjects, {u'owners': u'displayName', u'parents': u'id', u'permissions': [u'name', u'displayName'][GC.Values[GC.DRIVE_V3_NATIVE_NAMES]]})
         Ind.Decrement()
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError) as e:
@@ -22343,6 +23115,8 @@ def printFileList(users):
       addFilePathsToRow(drive, fileTree, fileInfo, filePathInfo, row, titles)
     if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
       _mapDriveFieldNames(fileInfo, user)
+    else:
+      _mapDriveProperties(fileInfo)
     for attrib in fileInfo:
       if attrib in skipObjects:
         continue
@@ -23800,9 +24574,9 @@ def transferDrive(users):
                             throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
                             fileId=childFileId, fields=u'permissions(id,role)')
           childEntry[u'info'].update(result)
-        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
+        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest):
           pass
-        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
           pass
       if childEntry[u'info'][u'mimeType'] == MIMETYPE_GA_FOLDER:
         Ind.Increment()
@@ -24885,12 +25659,12 @@ def _createDriveFileACL(users, useDomainAdminAccess):
     Ind.Decrement()
 
 # gam <UserTypeEntity> create|add drivefileacl <DriveFileEntity> [adminaccess|asadmin] anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
-#	(role reader|commenter|writer|owner|editor|organizer) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>] [sendmail] [emailmessage <String>] [showtitles] [nodetails]
+#	(role reader|commenter|writer|owner|editor|organizer) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>] [sendemail] [emailmessage <String>] [showtitles] [nodetails]
 def createDriveFileACL(users):
   _createDriveFileACL(users, False)
 
 # gam create|add drivefileacl <DriveFileEntity> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
-#	(role reader|commenter|writer|owner|editor|organizer) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>] [sendmail] [emailmessage <String>] [showtitles] [nodetails]
+#	(role reader|commenter|writer|owner|editor|organizer) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>] [sendemail] [emailmessage <String>] [showtitles] [nodetails]
 def doCreateDriveFileACL():
   _createDriveFileACL([_getValueFromOAuth(u'email')], True)
 
@@ -30041,6 +30815,7 @@ MAIN_COMMANDS = {
   u'help': (Act.PERFORM, doUsage),
   u'list': (Act.LIST, doListType),
   u'report': (Act.REPORT, doReport),
+  u'sendemail': (Act.SENDEMAIL, doSendEmail),
   u'version': (Act.PERFORM, doVersion),
   u'whatis': (Act.INFO, doWhatIs),
   }
@@ -30049,12 +30824,14 @@ MAIN_COMMANDS = {
 MAIN_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_ADMIN:	doCreateAdmin,
   Cmd.ARG_ALIAS:	doCreateAliases,
+  Cmd.ARG_BUILDING:	doCreateBuilding,
   Cmd.ARG_CONTACT:	doCreateDomainContact,
   Cmd.ARG_COURSE:	doCreateCourse,
   Cmd.ARG_DATATRANSFER:	doCreateDataTransfer,
   Cmd.ARG_DOMAIN:	doCreateDomain,
   Cmd.ARG_DOMAINALIAS:	doCreateDomainAlias,
   Cmd.ARG_DRIVEFILEACL:	doCreateDriveFileACL,
+  Cmd.ARG_FEATURE:	doCreateFeature,
   Cmd.ARG_GROUP:	doCreateGroup,
   Cmd.ARG_GUARDIAN: 	doInviteGuardian,
   Cmd.ARG_ORG:		doCreateOrg,
@@ -30081,12 +30858,14 @@ MAIN_COMMANDS_WITH_OBJECTS = {
     (Act.DELETE,
      {Cmd.ARG_ADMIN:		doDeleteAdmin,
       Cmd.ARG_ALIAS:		doDeleteAliases,
+      Cmd.ARG_BUILDING:		doDeleteBuilding,
       Cmd.ARG_CONTACT:		doDeleteDomainContacts,
       Cmd.ARG_COURSE:		doDeleteCourse,
       Cmd.ARG_COURSES:		doDeleteCourses,
       Cmd.ARG_DOMAIN:		doDeleteDomain,
       Cmd.ARG_DOMAINALIAS:	doDeleteDomainAlias,
       Cmd.ARG_DRIVEFILEACL:	doDeleteDriveFileACLs,
+      Cmd.ARG_FEATURE:		doDeleteFeature,
       Cmd.ARG_GROUP:		doDeleteGroups,
       Cmd.ARG_GUARDIAN: 	doDeleteGuardian,
       Cmd.ARG_MOBILE:		doDeleteMobileDevices,
@@ -30107,9 +30886,11 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_VAULTMATTER:	doDeleteVaultMatter,
      }
     ),
+  u'get': (Act.DOWNLOAD, {Cmd.ARG_DEVICEFILE:	doGetCrOSDeviceFiles}),
   u'info':
     (Act.INFO,
      {Cmd.ARG_ALIAS:		doInfoAliases,
+      Cmd.ARG_BUILDING:		doInfoBuilding,
       Cmd.ARG_CONTACT:		doInfoDomainContacts,
       Cmd.ARG_COURSE:		doInfoCourse,
       Cmd.ARG_COURSES:		doInfoCourses,
@@ -30146,16 +30927,20 @@ MAIN_COMMANDS_WITH_OBJECTS = {
      {Cmd.ARG_ADMINROLES:	doPrintAdminRoles,
       Cmd.ARG_ADMIN:		doPrintAdmins,
       Cmd.ARG_ALIAS:		doPrintAliases,
+      Cmd.ARG_BUILDING:		doPrintBuildings,
       Cmd.ARG_CONTACT:		doPrintDomainContacts,
       Cmd.ARG_COURSE:		doPrintCourses,
       Cmd.ARG_COURSES:		doPrintCourses,
       Cmd.ARG_COURSEPARTICIPANTS:	doPrintCourseParticipants,
+      Cmd.ARG_COURSESUBMISSIONS:	doPrintCourseSubmissions,
+      Cmd.ARG_COURSEWORK:	doPrintCourseWork,
       Cmd.ARG_CROS:		doPrintCrOSDevices,
       Cmd.ARG_CROSACTIVITY:	doPrintCrOSActivity,
       Cmd.ARG_DATATRANSFER:	doPrintDataTransfers,
       Cmd.ARG_DOMAIN:		doPrintDomains,
       Cmd.ARG_DOMAINALIAS:	doPrintDomainAliases,
       Cmd.ARG_DRIVEFILEACL:	doPrintDriveFileACLs,
+      Cmd.ARG_FEATURE:		doPrintFeatures,
       Cmd.ARG_GAL:		doPrintGAL,
       Cmd.ARG_GROUPMEMBERS:	doPrintGroupMembers,
       Cmd.ARG_GROUP:		doPrintGroups,
@@ -30187,8 +30972,10 @@ MAIN_COMMANDS_WITH_OBJECTS = {
     (Act.SHOW,
      {Cmd.ARG_ADMINROLES:	doShowAdminRoles,
       Cmd.ARG_ADMIN:		doShowAdmins,
+      Cmd.ARG_BUILDING:		doShowBuildings,
       Cmd.ARG_CONTACT:		doShowDomainContacts,
       Cmd.ARG_DRIVEFILEACL:	doShowDriveFileACLs,
+      Cmd.ARG_FEATURE:		doShowFeatures,
       Cmd.ARG_GAL:		doShowGAL,
       Cmd.ARG_GROUPMEMBERS:	doShowGroupMembers,
       Cmd.ARG_GUARDIAN: 	doShowGuardians,
@@ -30211,6 +30998,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
   u'update':
     (Act.UPDATE,
      {Cmd.ARG_ALIAS:		doUpdateAliases,
+      Cmd.ARG_BUILDING:		doUpdateBuilding,
       Cmd.ARG_CONTACT:		doUpdateDomainContacts,
       Cmd.ARG_COURSE:		doUpdateCourse,
       Cmd.ARG_COURSES:		doUpdateCourses,
@@ -30218,8 +31006,9 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CUSTOMER:		doUpdateCustomer,
       Cmd.ARG_DOMAIN:		doUpdateDomain,
       Cmd.ARG_DRIVEFILEACL:	doUpdateDriveFileACLs,
-      Cmd.ARG_INSTANCE:		doUpdateInstance,
+      Cmd.ARG_FEATURE:		doUpdateFeature,
       Cmd.ARG_GROUP:		doUpdateGroups,
+      Cmd.ARG_INSTANCE:		doUpdateInstance,
       Cmd.ARG_MOBILE:		doUpdateMobileDevices,
       Cmd.ARG_NOTIFICATION:	doUpdateNotification,
       Cmd.ARG_ORG:		doUpdateOrg,
@@ -30250,13 +31039,16 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_ALIASDOMAINS:	Cmd.ARG_DOMAINALIAS,
   Cmd.ARG_ALIASES:	Cmd.ARG_ALIAS,
   Cmd.ARG_APIPROJECT:	Cmd.ARG_PROJECT,
+  Cmd.ARG_BUILDINGS:	Cmd.ARG_BUILDING,
   Cmd.ARG_CLASS:	Cmd.ARG_COURSE,
   Cmd.ARG_CLASSES:	Cmd.ARG_COURSES,
   Cmd.ARG_CLASSPARTICIPANTS:	Cmd.ARG_COURSEPARTICIPANTS,
   Cmd.ARG_CONTACTS:	Cmd.ARG_CONTACT,
+  Cmd.ARG_DEVICEFILES:	Cmd.ARG_DEVICEFILE,
   Cmd.ARG_DOMAINS:	Cmd.ARG_DOMAIN,
   Cmd.ARG_DOMAINALIASES:	Cmd.ARG_DOMAINALIAS,
   Cmd.ARG_DRIVEFILEACLS:	Cmd.ARG_DRIVEFILEACL,
+  Cmd.ARG_FEATURES:	Cmd.ARG_FEATURE,
   Cmd.ARG_GROUPS:	Cmd.ARG_GROUP,
   Cmd.ARG_GROUPSMEMBERS:	Cmd.ARG_GROUPMEMBERS,
   Cmd.ARG_GUARDIANINVITATIONS:	Cmd.ARG_GUARDIANINVITATION,
@@ -30542,6 +31334,14 @@ CROS_COMMANDS = {
   u'list': (Act.LIST, doListCrOS),
   u'print': (Act.PRINT, doPrintCrOSEntity),
   u'update': (Act.UPDATE, updateCrOSDevices),
+  }
+
+CROS_COMMANDS_WITH_OBJECTS = {
+  u'get': (Act.DOWNLOAD, {Cmd.ARG_DEVICEFILE: getCrOSDeviceFiles}),
+  }
+
+CROS_COMMANDS_OBJ_ALIASES = {
+  Cmd.ARG_DEVICEFILES:	Cmd.ARG_DEVICEFILE,
   }
 
 # <UserTypeEntity> commands
@@ -30918,15 +31718,21 @@ def ProcessGAMCommand(args, processGamCfg=True):
                                   defaultChoice=[Cmd.ARG_USER, NO_DEFAULT][CL_command != u'print'])
         USER_COMMANDS_WITH_OBJECTS[CL_command][CMD_FUNCTION][CL_objectName](entityList)
     else:
-      CL_command = getChoice(CROS_COMMANDS)
+      CL_command = getChoice(list(CROS_COMMANDS)+list(CROS_COMMANDS_WITH_OBJECTS))
       if (CL_command != u'list') and (GC.Values[GC.AUTO_BATCH_MIN] > 0):
         _, count, entityList = getEntityArgument(entityList)
         if count > GC.Values[GC.AUTO_BATCH_MIN]:
           doAutoBatch(Cmd.ENTITY_CROS, entityList, CL_command)
           sys.exit(GM.Globals[GM.SYSEXITRC])
       adjustRedirectedSTDFilesIfNotMultiprocessing()
-      Act.Set(CROS_COMMANDS[CL_command][CMD_ACTION])
-      CROS_COMMANDS[CL_command][CMD_FUNCTION](entityList)
+      if CL_command in CROS_COMMANDS:
+        Act.Set(CROS_COMMANDS[CL_command][CMD_ACTION])
+        CROS_COMMANDS[CL_command][CMD_FUNCTION](entityList)
+      else:
+        Act.Set(CROS_COMMANDS_WITH_OBJECTS[CL_command][CMD_ACTION])
+        CL_objectName = getChoice(CROS_COMMANDS_WITH_OBJECTS[CL_command][CMD_FUNCTION], choiceAliases=CROS_COMMANDS_OBJ_ALIASES,
+                                  defaultChoice=NO_DEFAULT)
+        CROS_COMMANDS_WITH_OBJECTS[CL_command][CMD_FUNCTION][CL_objectName](entityList)
     sys.exit(GM.Globals[GM.SYSEXITRC])
   except KeyboardInterrupt:
     setSysExitRC(KEYBOARD_INTERRUPT_RC)
