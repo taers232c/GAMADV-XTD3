@@ -1089,7 +1089,6 @@ gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <Cou
         creationtime|
 	creator|creatoruserid|
         id|
-        individualstudentsoptions|
         materials|
         scheduledtime|
         state|
@@ -1104,7 +1103,6 @@ gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <Cou
 <CourseWorkFieldName> ::=
         alternatelink|
         assigneemode|
-        associatedwithdeveloper|
         courseid|
         courseworkid|
         courseworktype|
@@ -1113,7 +1111,6 @@ gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <Cou
         description|
         duedate|
         id|
-        individualstudentsoptions|
         materials|
         maxpoints|
         scheduledtime|
@@ -1132,7 +1129,6 @@ gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <Cou
 <CourseSubmissionFieldName> ::=
         alternatelink|
         assignedgrade|
-        associatedwithdeveloper|
         courseid|
         courseworkid|
         courseworktype|
@@ -2162,8 +2158,8 @@ gam <UserTypeEntity> delete permissions <DriveFileEntity> <DriveFilePermissionID
         modifiedtime|
         originalfilename|
         pinned|
+        publishauto|
         published|
-        publishedauto|
         publishedoutsidedomain|
         size
 <RevisionsFieldNameList> ::= "<RevisionsFieldName>(,<RevisionsFieldName>)*"
