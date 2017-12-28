@@ -62,6 +62,8 @@ class GamEntity(object):
   CONTACT_GROUP_NAME = u'cogn'
   COURSE = u'cour'
   COURSE_ALIAS = u'coal'
+  COURSE_ANNOUNCEMENT_ID = u'caid'
+  COURSE_ANNOUNCEMENT_STATE = u'cast'
   COURSE_ID = u'coid'
   COURSE_STATE = u'cost'
   COURSE_SUBMISSION_ID = u'csid'
@@ -231,6 +233,8 @@ class GamEntity(object):
     CONTACT_GROUP_NAME: [u'Contact Group Names', u'Contact Group Name'],
     COURSE: [u'Courses', u'Course'],
     COURSE_ALIAS: [u'Course Aliases', u'Course Alias'],
+    COURSE_ANNOUNCEMENT_ID: [u'Course Announcement IDs', u'Course Announcement ID'],
+    COURSE_ANNOUNCEMENT_STATE: [u'Course Announcement States', u'Course Announcement State'],
     COURSE_ID: [u'Course IDs', u'Course ID'],
     COURSE_STATE: [u'Course States', u'Course State'],
     COURSE_SUBMISSION_ID: [u'Course Submission IDs', u'Course Submission ID'],

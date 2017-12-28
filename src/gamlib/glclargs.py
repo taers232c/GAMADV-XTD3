@@ -240,6 +240,7 @@ class GamCLArgs(object):
   ARG_CONTACTGROUPS = u'contactgroups'
   ARG_COURSE = u'course'
   ARG_COURSES = u'courses'
+  ARG_COURSEANNOUNCEMENTS = u'courseannouncements'
   ARG_COURSEPARTICIPANTS = u'courseparticipants'
   ARG_COURSESUBMISSIONS = u'coursesubmissions'
   ARG_COURSEWORK = u'coursework'
@@ -415,6 +416,8 @@ class GamCLArgs(object):
   OB_CONTACT_GROUP_ITEM = u'ContactGroupItem'
   OB_COURSE_ALIAS = u'CourseAlias'
   OB_COURSE_ALIAS_ENTITY = u'CourseAliasEntity'
+  OB_COURSE_ANNOUNCEMENT_ID_ENTITY = "CourseAnnouncementIDEntity"
+  OB_COURSE_ANNOUNCEMENT_STATE_LIST = "CourseAnnouncementStateList"
   OB_COURSE_ENTITY = u'CourseEntity'
   OB_COURSE_ID = u'CourseID'
   OB_COURSE_STATE_LIST = "CourseStateList"

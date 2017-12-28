@@ -1,3 +1,18 @@
+4.55.03
+
+Fixed a bug in gam delete contacts where using just the emailmatchpattern option threw an exception.
+
+Cleaned up code for print courses, print course-work, print course-submissions, print course_participants.
+
+Added command to print course announcements.
+You need to execute the following command to enable the scope that authorizes this command: gam oauth create
+
+See: https://github.com/taers232c/GAMADV-XTD/wiki/Courses
+
+gam print course-announcements [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+	(courseannouncementids <CourseAnnouncementIDEntity>)|((announcementstates <CourseAnnouncementStateList>)* (orderby <CourseAnnouncementOrderByFieldName> [ascending|descending])*)
+	[creatoremail] [fields <CourseAnnouncementFieldNameList>]
+
 4.55.02
 
 Fixed bug in gam transfer drive.
