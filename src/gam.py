@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.05'
+__version__ = u'4.55.06'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -4407,7 +4407,7 @@ def flattenJSON(structure, key=u'', path=u'', flattened=None, listLimit=None, ti
     for i in range(listLen):
       flattenJSON(structure[i], u'{0}'.format(i), u'.'.join([item for item in [path, key] if item]), flattened, listLimit, timeObjects, noLenObjects)
   else:
-    for new_key, value in iteritems(structure):
+    for new_key, value in sorted(iteritems(structure)):
       if new_key in [u'kind', u'etag', u'etags']:
         continue
       flattenJSON(value, new_key, u'.'.join([item for item in [path, key] if item]), flattened, listLimit, timeObjects, noLenObjects)
@@ -10678,6 +10678,13 @@ def infoCrOSDevices(entityList):
             printKeyValueList([up, cros[up]])
           else:
             printKeyValueList([up, formatLocalTime(cros[up])])
+      up = u'tpmVersionInfo'
+      if up in cros:
+        printKeyValueList([up, u''])
+        Ind.Increment()
+        for key, value in sorted(iteritems(cros[up])):
+          printKeyValueList([key, value])
+        Ind.Decrement()
       if not noLists:
         activeTimeRanges = _filterTimeRanges(cros.get(u'activeTimeRanges', []), startDate, endDate)
         lenATR = len(activeTimeRanges)
@@ -10892,7 +10899,7 @@ CROS_ORDERBY_CHOICE_MAP = {
 
 # gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
-#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders]
 def doPrintCrOSDevices(entityList=None):
   def _printCrOS(cros):
     _checkTPMVulnerability(cros)
@@ -10903,7 +10910,7 @@ def doPrintCrOSDevices(entityList=None):
       return
     row = {}
     for attrib in cros:
-      if attrib in [u'kind', u'etag', u'recentUsers', u'activeTimeRanges', u'deviceFiles']:
+      if attrib in [u'kind', u'etag', u'tpmVersionInfo', u'recentUsers', u'activeTimeRanges', u'deviceFiles']:
         continue
       if attrib not in titles[u'set']:
         addTitleToCSVfile(attrib, titles)
@@ -10911,6 +10918,13 @@ def doPrintCrOSDevices(entityList=None):
         row[attrib] = cros[attrib]
       else:
         row[attrib] = formatLocalTime(cros[attrib])
+    attrib = u'tpmVersionInfo'
+    if attrib in cros:
+      for key, value in sorted(iteritems(cros[attrib])):
+        attribKey = u'{0}.{1}'.format(attrib, key)
+        if attribKey not in titles[u'set']:
+          addTitleToCSVfile(attribKey, titles)
+        row[attribKey] = value
     activeTimeRanges = _filterTimeRanges(cros.get(u'activeTimeRanges', []) if selectActiveTimeRanges else [], startDate, endDate)
     recentUsers = cros.get(u'recentUsers', []) if selectRecentUsers else []
     deviceFiles = _filterDeviceFiles(cros.get(u'deviceFiles', []) if selectDeviceFiles else [], startTime, endTime)
@@ -10990,10 +11004,6 @@ def doPrintCrOSDevices(entityList=None):
       startDate, startTime = _getFilterDateTime()
     elif myarg in CROS_END_ARGUMENTS:
       endDate, endTime = _getFilterDateTime()
-    elif myarg == u'allfields':
-      projection = u'FULL'
-      sortHeaders = True
-      fieldsList = []
     elif myarg in PROJECTION_CHOICE_MAP:
       projection = PROJECTION_CHOICE_MAP[myarg]
       sortHeaders = True
@@ -11001,6 +11011,12 @@ def doPrintCrOSDevices(entityList=None):
         fieldsList = []
       else:
         fieldsList = CROS_BASIC_FIELDS_LIST[:]
+    elif myarg == u'allfields':
+      projection = u'FULL'
+      sortHeaders = True
+      fieldsList = []
+    elif myarg == u'sortheaders':
+      sortHeaders = getBoolean()
     elif myarg in CROS_FIELDS_CHOICE_MAP:
       if not fieldsList:
         fieldsList = [u'deviceId',]
@@ -18986,7 +19002,7 @@ COURSE_WORK_FIELDS_CHOICE_MAP = {
   u'assigneemode': u'assigneeMode',
   u'courseid': u'courseId',
   u'courseworkid': u'id',
-  u'courseworktype': u'courseWorkType',
+  u'courseworktype': u'workType',
   u'creationtime': u'creationTime',
   u'creator': u'creatorUserId',
   u'creatoruserid': u'creatorUserId',

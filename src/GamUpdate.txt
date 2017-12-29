@@ -1,3 +1,7 @@
+4.55.06
+
+Properly output tpmVersionInfo field in gam info/print cros.
+
 4.55.05
 
 Handle API exception when trying to update an unknown group.

@@ -851,7 +851,7 @@ If you specify allfields|basic|full, all other column headers are sorted.
 If you specify <CrOSFieldName>* | fields <CrOSFieldNameList>, the column headers appear in the order specified.
 gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
-        [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+        [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders]
 
 The basic argument outputs these column headers: deviceId,annotatedAssetId,annotatedLocation,annotatedUser,lastSync,notes,serialNumber,status
 The allfields/full arguments output all column headers including three headers, recentUsers, activeTimeRanges and deviceFiles,
