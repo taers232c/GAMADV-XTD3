@@ -1,3 +1,7 @@
+4.55.07
+
+Based on initial work by Jay, converted service account access to use the google-auth library for authentication rather than the deprecated oauth2client library.
+
 4.55.06
 
 Properly output tpmVersionInfo field in gam info/print cros.

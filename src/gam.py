@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.06'
+__version__ = u'4.55.07'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -70,9 +70,10 @@ import googleapiclient.errors
 import googleapiclient.http
 import httplib2
 from iso8601 import iso8601
+import google.oauth2.service_account
+import google_auth_httplib2
 import oauth2client.client
 from oauth2client.contrib.multiprocess_file_storage import MultiprocessFileStorage
-import oauth2client.service_account
 import oauth2client.tools
 
 # Python 3
@@ -2520,12 +2521,11 @@ def getSvcAcctCredentials(scopes, act_as):
       if not json_string:
         invalidOauth2serviceJsonExit()
       GM.Globals[GM.OAUTH2SERVICE_JSON_DATA] = json.loads(json_string)
-    credentials = oauth2client.service_account.ServiceAccountCredentials.from_json_keyfile_dict(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA], scopes)
-    credentials = credentials.create_delegated(act_as)
-    credentials.user_agent = GAM_INFO
-    serialization_data = credentials.serialization_data
-    GM.Globals[GM.ADMIN] = serialization_data[u'client_email']
-    GM.Globals[GM.OAUTH2_CLIENT_ID] = serialization_data[u'client_id']
+    credentials = google.oauth2.service_account.Credentials.from_service_account_info(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
+    credentials = credentials.with_scopes(scopes)
+    credentials = credentials.with_subject(act_as)
+    GM.Globals[GM.ADMIN] = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA][u'client_email']
+    GM.Globals[GM.OAUTH2_CLIENT_ID] = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
     return credentials
   except (ValueError, IndexError, KeyError):
     invalidOauth2serviceJsonExit()
@@ -3047,11 +3047,13 @@ def buildGAPIServiceObject(api, user):
   GM.Globals[GM.CURRENT_API_USER] = userEmail
   GM.Globals[GM.CURRENT_API_SCOPES] = API.getSvcAcctScopes(api)
   credentials = getSvcAcctCredentials(GM.Globals[GM.CURRENT_API_SCOPES], userEmail)
+  request = google_auth_httplib2.Request(httpObj, user_agent=GAM_INFO)
   try:
-    service._http = credentials.authorize(httpObj)
+    credentials.refresh(request)
+    service._http = google_auth_httplib2.AuthorizedHttp(credentials, http=httpObj, user_agent=GAM_INFO)
   except httplib2.ServerNotFoundError as e:
     systemErrorExit(NETWORK_ERROR_RC, str(e))
-  except oauth2client.client.AccessTokenRefreshError as e:
+  except google.auth.exceptions.RefreshError as e:
     return (userEmail, handleOAuthTokenError(str(e), True))
   return (userEmail, service)
 
@@ -3088,12 +3090,13 @@ def getGDataUserCredentials(api, user, i, count):
   if not GM.Globals[GM.CURRENT_API_SCOPES]:
     systemErrorExit(NO_SCOPES_FOR_API_RC, Msg.NO_SCOPES_FOR_API.format(discovery.get(u'title', api_version)))
   credentials = getSvcAcctCredentials(GM.Globals[GM.CURRENT_API_SCOPES], userEmail)
+  request = google_auth_httplib2.Request(httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]), user_agent=GAM_INFO)
   try:
-    credentials.refresh(httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]))
+    credentials.refresh(request)
     return (userEmail, credentials)
   except httplib2.ServerNotFoundError as e:
     systemErrorExit(NETWORK_ERROR_RC, str(e))
-  except oauth2client.client.AccessTokenRefreshError as e:
+  except google.auth.exceptions.RefreshError as e:
     handleOAuthTokenError(str(e), True)
     entityUnknownWarning(Ent.USER, userEmail, i, count)
     return (userEmail, None)
@@ -3101,10 +3104,6 @@ def getGDataUserCredentials(api, user, i, count):
 def getAdminSettingsObject():
   import gdata.apps.adminsettings.service
   return initGDataObject(gdata.apps.adminsettings.service.AdminSettingsService(), API.ADMIN_SETTINGS)
-
-def getAuditObject():
-  import gdata.apps.audit.service
-  return initGDataObject(gdata.apps.audit.service.AuditService(), API.EMAIL_AUDIT)
 
 def getContactsObject(entityType=Ent.DOMAIN, entityName=None, i=0, count=0, contactFeed=True):
   import gdata.apps.contacts.service
@@ -3116,7 +3115,7 @@ def getContactsObject(entityType=Ent.DOMAIN, entityName=None, i=0, count=0, cont
   if not credentials:
     return (userEmail, None)
   contactsObject = gdata.apps.contacts.service.ContactsService(source=GAM_INFO, contactFeed=contactFeed,
-                                                               additional_headers={u'Authorization': u'Bearer {0}'.format(credentials.access_token)})
+                                                               additional_headers={u'Authorization': u'Bearer {0}'.format(credentials.token)})
   if GC.Values[GC.DEBUG_LEVEL] > 0:
     contactsObject.debug = True
   return (userEmail, contactsObject)
@@ -3124,6 +3123,10 @@ def getContactsObject(entityType=Ent.DOMAIN, entityName=None, i=0, count=0, cont
 def getContactsQuery(**kwargs):
   import gdata.apps.contacts.service
   return gdata.apps.contacts.service.ContactsQuery(**kwargs)
+
+def getEmailAuditObject():
+  import gdata.apps.audit.service
+  return initGDataObject(gdata.apps.audit.service.AuditService(), API.EMAIL_AUDIT)
 
 def getEmailSettingsObject():
   import gdata.apps.emailsettings.service
@@ -3138,7 +3141,7 @@ def getSitesObject(entityType=Ent.DOMAIN, entityName=None, i=0, count=0):
   if not credentials:
     return (userEmail, None)
   sitesObject = gdata.apps.sites.service.SitesService(source=GAM_INFO,
-                                                      additional_headers={u'Authorization': u'Bearer {0}'.format(credentials.access_token)})
+                                                      additional_headers={u'Authorization': u'Bearer {0}'.format(credentials.token)})
   if GC.Values[GC.DEBUG_LEVEL] > 0:
     sitesObject.debug = True
   return (userEmail, sitesObject)
@@ -5425,18 +5428,19 @@ def checkServiceAccount(users):
     j = 0
     for scope in all_scopes:
       j += 1
+      credentials = getSvcAcctCredentials([scope], user)
+      request = google_auth_httplib2.Request(httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]), user_agent=GAM_INFO)
       try:
-        credentials = getSvcAcctCredentials(scope, user)
-        credentials.refresh(httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]))
+        credentials.refresh(request)
         result = u'PASS'
       except httplib2.ServerNotFoundError as e:
         systemErrorExit(NETWORK_ERROR_RC, str(e))
-      except oauth2client.client.HttpAccessTokenRefreshError:
+      except google.auth.exceptions.RefreshError:
         result = u'FAIL'
         all_scopes_pass = False
       entityActionPerformedMessage([Ent.SCOPE, u'{0:60}'.format(scope)], result, j, jcount)
     Ind.Decrement()
-    service_account = credentials.serialization_data[u'client_id']
+    service_account = GM.Globals[GM.OAUTH2_CLIENT_ID]
     _, _, user_domain = splitEmailAddressOrUID(user)
   printBlankLine()
   if all_scopes_pass:
@@ -5461,8 +5465,7 @@ def getCRMService(login_hint):
   except httplib2.CertificateValidationUnsupportedInPython31:
     noPythonSSLExit()
   credentials.user_agent = GAM_INFO
-  httpObj = credentials.authorize(httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL],
-                                                cache=None))
+  httpObj = credentials.authorize(httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]))
   return (googleapiclient.discovery.build(u'cloudresourcemanager', u'v1', http=httpObj, cache_discovery=False), httpObj)
 
 def enableProjectAPIs(simplehttp, httpObj, projectName, checkEnabled):
@@ -8250,7 +8253,7 @@ def doPrintAliases():
 
 # gam audit uploadkey [<FileName>]
 def doUploadAuditKey():
-  auditObject = getAuditObject()
+  auditObject = getEmailAuditObject()
   if Cmd.ArgumentsRemaining():
     filename = getString(Cmd.OB_FILE_NAME)
     auditkey = readFile(filename)
@@ -8274,7 +8277,7 @@ def checkDownloadResults(results):
 
 # Audit command utilities
 def getAuditParameters(emailAddressRequired=True, requestIdRequired=True, destUserRequired=False):
-  auditObject = getAuditObject()
+  auditObject = getEmailAuditObject()
   emailAddress = getEmailAddress(noUid=True, optional=not emailAddressRequired)
   parameters = {}
   if emailAddress:
