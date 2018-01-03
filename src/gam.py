@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.07'
+__version__ = u'4.55.08'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -232,6 +232,7 @@ VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME = u'id,{0},{1},mimeType,ownedByMe'.for
 VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED = u'id,{0},{1},mimeType,ownedByMe,{2}'.format(VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
 VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS = u'id,{0},{1},mimeType,ownedByMe,{2},owners(emailAddress,permissionId)'.format(VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
 VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS_PERMISSIONS = u'id,{0},{1},mimeType,ownedByMe,{2},owners(emailAddress,permissionId),permissions(id,role)'.format(VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
+VX_ID_FILENAME_PARENTS_MIMETYPE_OWNERS = u'id,{0},{1},mimeType,owners(emailAddress)'.format(VX_FILENAME, VX_PARENTS_ID)
 VX_ID_MIMETYPE_CANEDIT = u'id,mimeType,capabilities(canEdit)'
 VX_NPT_FILES_FIELDLIST = u'nextPageToken,{0}({{0}})'.format(VX_PAGES_FILES)
 VX_NPT_FILES_ID = u'nextPageToken,{0}(id)'.format(VX_PAGES_FILES)
@@ -245,6 +246,7 @@ VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_OWNERS_PERMISSIONS = u'nextP
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,{3})'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,{3},owners(emailAddress,permissionId))'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS_PERMISSIONS = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,{3},owners(emailAddress,permissionId),permissions(id,role))'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
+VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNERS = u'nextPageToken,{0}(id,{1},{2},mimeType,owners(emailAddress))'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_MIMETYPE_CANEDIT = u'nextPageToken,{0}(id,mimeType,capabilities(canEdit))'.format(VX_PAGES_FILES)
 VX_NPT_PERMISSIONS = u'nextPageToken,{0}'.format(VX_PAGES_PERMISSIONS)
 VX_NPT_PERMISSIONS_TYPE_EMAIL_ROLE = u'nextPageToken,{0}(type,emailAddress,role)'.format(VX_PAGES_PERMISSIONS)
@@ -2507,7 +2509,12 @@ def getClientCredentials(cred_family):
   if not credentials or credentials.invalid:
     invalidOauth2TxtExit()
   if credentials.access_token_expired:
-    credentials.refresh(httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]))
+    try:
+      credentials.refresh(httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]))
+    except httplib2.ServerNotFoundError as e:
+      systemErrorExit(NETWORK_ERROR_RC, str(e))
+    except oauth2client.client.AccessTokenRefreshError as e:
+      handleOAuthTokenError(str(e), False)
   credentials.user_agent = GAM_INFO
   return credentials
 
@@ -2538,7 +2545,7 @@ def getGDataOAuthToken(gdataObj, credentials=None):
   except httplib2.ServerNotFoundError as e:
     systemErrorExit(NETWORK_ERROR_RC, str(e))
   except oauth2client.client.AccessTokenRefreshError as e:
-    return handleOAuthTokenError(str(e), False)
+    handleOAuthTokenError(str(e), False)
   gdataObj.additional_headers[u'Authorization'] = u'Bearer {0}'.format(credentials.access_token)
   if not GC.Values[GC.DOMAIN]:
     GC.Values[GC.DOMAIN] = credentials.id_token.get(u'hd', u'UNKNOWN').lower()
@@ -3032,7 +3039,7 @@ def buildGAPIObject(api):
   except httplib2.ServerNotFoundError as e:
     systemErrorExit(NETWORK_ERROR_RC, str(e))
   except oauth2client.client.AccessTokenRefreshError as e:
-    return handleOAuthTokenError(str(e), False)
+    handleOAuthTokenError(str(e), False)
   if not GC.Values[GC.DOMAIN]:
     GC.Values[GC.DOMAIN] = credentials.id_token.get(u'hd', u'UNKNOWN').lower()
   if not GC.Values[GC.CUSTOMER_ID]:
@@ -21563,7 +21570,7 @@ def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
     elif mycmd in [u'root', u'mydrive']:
       cleanFileIDsList(fileIdEntity, [u'root',])
     elif orphansOK and mycmd == u'orphans':
-      cleanFileIDsList(fileIdEntity, [mycmd])
+      cleanFileIDsList(fileIdEntity, [u'Orphans',])
     elif mycmd.startswith(u'teamdrive'):
       fileIdEntity[u'teamdrive'] = {u'teamDriveId': None,
                                     u'corpora': u'teamDrive', u'includeTeamDriveItems': True, u'supportsTeamDrives': True}
@@ -23114,7 +23121,7 @@ def _stripNotMeInOwners(query):
 OWNED_BY_ME_FIELDS_TITLES = [u'ownedByMe',]
 
 def initFileTree(drive, teamdrive, getTeamDriveNames):
-  fileTree = {u'orphans': {u'info': {u'id': u'orphans', VX_FILENAME: u'orphans', u'mimeType': MIMETYPE_GA_FOLDER, u'ownedByMe': True}, u'children': []}}
+  fileTree = {u'Orphans': {u'info': {u'id': u'Orphans', VX_FILENAME: u'Orphans', u'mimeType': MIMETYPE_GA_FOLDER, u'ownedByMe': True}, u'children': []}}
   try:
     if not teamdrive:
       f_file = callGAPI(drive.files(), u'get',
@@ -23151,7 +23158,7 @@ def extendFileTree(fileTree, feed):
       fileTree[fileId][u'info'] = f_file
     parents = f_file[u'parents']
     if not parents:
-      parents = [u'orphans',]
+      parents = [u'Orphans',]
     for parentId in parents:
       if parentId not in fileTree:
         fileTree[parentId] = {u'info': {u'id': parentId, VX_FILENAME: parentId, u'mimeType': MIMETYPE_GA_FOLDER}, u'children': []}
@@ -23630,16 +23637,50 @@ def printFilePaths(users):
 def showFilePaths(users):
   _printShowFilePaths(users, False)
 
+FILETREE_FIELDS_CHOICE_MAP = {
+  u'id': u'id',
+  u'mime': u'mimeType',
+  u'mimetype': u'mimeType',
+  u'owners': u'owners',
+  u'parents': u'parents',
+  }
+
+FILETREE_FIELDS_PRINT_ORDER = [u'id', u'parents', u'owners', u'mimeType']
+
 # gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
 #	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [showmimetype [not] <MimeTypeList>] [depth <Number>]
-#	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
+#	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
 def showFileTree(users):
+  def _simpleFileIdEntityList(fileIdEntityList):
+    for fileId in fileIdEntityList:
+      if fileId not in [u'root', u'Orphans']:
+        return False
+    return True
+
+  def _showFileInfo(fileEntry, j=0, jcount=0):
+    fileInfoList = []
+    for field in FILETREE_FIELDS_PRINT_ORDER:
+      if showFields[field]:
+        if field == u'parents':
+          parents = fileEntry.get(field, [])
+          fileInfoList.extend([field, u'{0} [{1}]'.format(len(parents), delimiter.join(parents))])
+        elif field == u'owners':
+          owners = [owner[u'emailAddress'] for owner in fileEntry.get(field, [])]
+          if owners:
+            fileInfoList.extend([field, delimiter.join(owners)])
+        else:
+          fileInfoList.extend([field, fileEntry[field]])
+    if fileInfoList:
+      printKeyValueListWithCount([fileEntry[VX_FILENAME], formatKeyValueList(u'(', fileInfoList, u')')], j, jcount)
+    else:
+      printKeyValueList([fileEntry[VX_FILENAME]])
+
   def _showDriveFolderContents(fileEntry, depth):
     for childId in fileEntry[u'children']:
       childEntry = fileTree.get(childId)
       if childEntry:
         if checkMimeType(mimeTypeCheck, childEntry[u'info']):
-          printKeyValueList([childEntry[u'info'][VX_FILENAME]])
+          _showFileInfo(childEntry[u'info'])
         if childEntry[u'info'][u'mimeType'] == MIMETYPE_GA_FOLDER and (maxdepth == -1 or depth < maxdepth):
           Ind.Increment()
           _showDriveFolderContents(childEntry, depth+1)
@@ -23652,7 +23693,7 @@ def showFileTree(users):
     try:
       children = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID],
-                               q=q, orderBy=orderBy, fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE,
+                               q=q, orderBy=orderBy, fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNERS,
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], supportsTeamDrives=True, includeTeamDriveItems=True)
     except (GAPI.invalidQuery, GAPI.invalid):
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(selectSubQuery), i, count)
@@ -23662,7 +23703,7 @@ def showFileTree(users):
       return
     for childEntryInfo in children:
       if checkMimeType(mimeTypeCheck, childEntryInfo):
-        printKeyValueList([childEntryInfo[VX_FILENAME]])
+        _showFileInfo(childEntryInfo)
       if childEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER and (maxdepth == -1 or depth < maxdepth):
         Ind.Increment()
         _showChildDriveFolderContents(drive, childEntryInfo, user, i, count, depth+1)
@@ -23673,9 +23714,13 @@ def showFileTree(users):
   fileIdEntity = initDriveFileEntity()
   selectSubQuery = u''
   showOwnedBy = fileTree = None
+  showFields = {}
+  for field in FILETREE_FIELDS_CHOICE_MAP:
+    showFields[FILETREE_FIELDS_CHOICE_MAP[field]] = False
   buildTree = getTeamDriveNames = False
   mimeTypeCheck = initMimeTypeCheck()
   orderByList = []
+  delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'select':
@@ -23698,18 +23743,27 @@ def showFileTree(users):
         query = ME_IN_OWNERS
     elif myarg == u'showmimetype':
       getMimeTypeCheck(mimeTypeCheck)
+    elif myarg == u'fields':
+      for field in _getFieldsList():
+        if field in FILETREE_FIELDS_CHOICE_MAP:
+          showFields[FILETREE_FIELDS_CHOICE_MAP[field]] = True
+        else:
+          invalidChoiceExit(FILETREE_FIELDS_CHOICE_MAP, True)
+    elif myarg == u'delimiter':
+      delimiter = getCharacter()
     else:
       unknownArgumentExit()
   buildTree = (not fileIdEntity[u'dict']
                and not fileIdEntity[u'query']
                and not fileIdEntity[u'teamdrivefilequery']
-               and not fileIdEntity[u'list'])
+               and _simpleFileIdEntityList(fileIdEntity[u'list']))
   if buildTree:
     if not fileIdEntity.get(u'teamdrive'):
       btkwargs = {u'q': query}
-      cleanFileIDsList(fileIdEntity, [u'root',])
+      defaultSelection = not fileIdEntity[u'list']
     else:
       btkwargs = fileIdEntity[u'teamdrive']
+      defaultSelection = False
       getTeamDriveNames = True
   orderBy = u','.join(orderByList) if orderByList else None
   i, count, users = getEntityArgument(users)
@@ -23731,7 +23785,7 @@ def showFileTree(users):
           feed = callGAPI(drive.files(), u'list',
                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                           pageToken=pageToken,
-                          orderBy=orderBy, fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE,
+                          orderBy=orderBy, fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNERS,
                           pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
           if feed:
             pageToken = feed.get(u'nextPageToken')
@@ -23755,9 +23809,14 @@ def showFileTree(users):
           break
       if userError:
         continue
+      if defaultSelection:
+        if u'Orphans' in fileTree and fileTree[u'Orphans'][u'children']:
+          cleanFileIDsList(fileIdEntity, [u'root', u'Orphans'])
+        else:
+          cleanFileIDsList(fileIdEntity, [u'root',])
     else:
       fileTree = {}
-    user, drive, jcount = _validateUserGetFileIDs(origUser, i, count, fileIdEntity, drive=drive, entityType=Ent.DRIVE_FOLDER)
+    user, drive, jcount = _validateUserGetFileIDs(origUser, i, count, fileIdEntity, drive=drive, entityType=Ent.DRIVE_FILE_OR_FOLDER)
     if jcount == 0:
       continue
     j = 0
@@ -23784,7 +23843,7 @@ def showFileTree(users):
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
           break
-      printEntity([_getEntityMimeType(fileEntryInfo), fileEntryInfo[VX_FILENAME]], j, jcount)
+      _showFileInfo(fileEntryInfo, j, jcount)
       Ind.Increment()
       if buildTree:
         _showDriveFolderContents(fileEntry, 0)
@@ -24953,19 +25012,19 @@ def transferDrive(users):
         fileTree = buildFileTree(sourceDriveFiles, sourceDrive)
         filesTransferred = set()
         _getPermissionsForNonOwnedFilesFromTree(fileTree[sourceRootId], i, count)
-        _getPermissionsForNonOwnedFilesFromTree(fileTree[u'orphans'], i, count)
+        _getPermissionsForNonOwnedFilesFromTree(fileTree[u'Orphans'], i, count)
         filesTransferred = set()
         _transferDriveFilesFromTree(fileTree[sourceRootId], i, count)
-        if fileTree[u'orphans'][u'children']:
+        if fileTree[u'Orphans'][u'children']:
           if not csvFormat:
             _buildTargetOrphanFolder()
-          _transferDriveFilesFromTree(fileTree[u'orphans'], i, count)
+          _transferDriveFilesFromTree(fileTree[u'Orphans'], i, count)
         if not csvFormat:
           Act.Set(Act.RETAIN)
           filesTransferred = set()
           _manageRoleRetentionDriveFilesFromTree(fileTree[sourceRootId], i, count)
-          if fileTree[u'orphans'][u'children']:
-            _manageRoleRetentionDriveFilesFromTree(fileTree[u'orphans'], i, count)
+          if fileTree[u'Orphans'][u'children']:
+            _manageRoleRetentionDriveFilesFromTree(fileTree[u'Orphans'], i, count)
       else:
         j = 0
         for fileId in fileIdEntity[u'list']:

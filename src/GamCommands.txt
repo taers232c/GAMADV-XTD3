@@ -307,7 +307,7 @@ If an item contains spaces, it should be surrounded by ".
 <Section> ::= <String>
 <SiteACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|default
 <SiteItem> ::= [<DomainName>/]<SiteName>
-<S/MIMEID> ::= <String>	
+<S/MIMEID> ::= <String>
 <StudentItem> ::= <EmailAddress>|<UniqueID>|<String>
 <Tag> ::= <String>
 <TeamDriveID> ::= <String>
@@ -402,10 +402,10 @@ Specify a collection of ChromeOS devices by directly specifying them or by speci
         (crosquery <QueryCrOS>)|
         (datafile cros|cros_ous|cros_ous_and_children <FileName> [charset <Charset>] [delimiter <Character>])|
         (csvkmd cros|cros_ous|cros_ous_and_children <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
-        	keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
-        	subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
-        	(matchfield <FieldName> <RegularExpression>)*
-        	[datafield <FieldName>(:<FieldName)* [delimiter <Character>]])|
+                keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+                subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+                (matchfield <FieldName> <RegularExpression>)*
+                [datafield <FieldName>(:<FieldName)* [delimiter <Character>]])|
         (croscsvdata <FieldName>(:<FieldName>*))
 
 ## Collections of Users
@@ -432,10 +432,10 @@ Specify a collection of Users by directly specifying them or by specifiying item
         (query <QueryUser>)|
         (datafile users|groups|ous|ous_and_children|courseparticipants|students|teachers <FileName> [charset <Charset>] [delimiter <Character>])|
         (csvkmd users|groups|ous|ous_and_children|courseparticipants|students|teachers <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
-        	keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
-        	subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
-        	(matchfield <FieldName> <RegularExpression>)*
-        	[datafield <FieldName>(:<FieldName)* [delimiter <Character>]])|
+                keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+                subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+                (matchfield <FieldName> <RegularExpression>)*
+                [datafield <FieldName>(:<FieldName)* [delimiter <Character>]])|
         (csvdata <FieldName>(:<FieldName>*))
 
 ## Collections of Items
@@ -484,7 +484,7 @@ Specify a collection of items by directly specifying them; the item type is dete
 <TeamDriveEntityAdmin> ::=
         <TeamDriveIDEntity> |
         <TeamDriveNameEntity>|
-        <TeamDriveAdminQueryEntity> 
+        <TeamDriveAdminQueryEntity>
 <TeamDriveFileNameEntity> ::= (teamdrivefilename <DriveFileName>) | (teamdrivefilename:<DriveFileName>)
 <TeamDriveFileQueryEntity> ::= (teamdrivequery <QueryDriveFile>) | (teamdrivequery:<QueryDriveFile>)
 <TeamDriveFileQueryShortcut> ::=
@@ -1087,7 +1087,7 @@ gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <Cou
         courseid|
         courseannouncementid|
         creationtime|
-	creator|creatoruserid|
+        creator|creatoruserid|
         id|
         materials|
         scheduledtime|
@@ -1107,7 +1107,7 @@ gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <Cou
         courseworkid|
         courseworktype|
         creationtime|
-	creator|creatoruserid|
+        creator|creatoruserid|
         description|
         duedate|
         id|
@@ -1561,7 +1561,7 @@ gam print resoldsubscriptions [todrive [<ToDriveAttributes>]] [customerid <Custo
         (name <String>)|
         (type <String>)|
         (uservisibledescription <String>)
-        
+       
 <ResourceFieldName> ::=
         buildingid|
         capacity|
@@ -1716,10 +1716,10 @@ gam <UserTypeEntity> delete permissions <TeamDriveEntityAdmin> <DriveFilePermiss
 
 gam create|add vaulthold|hold corpus drive|groups|mail matter <MatterItem> [name <String>] [query <QueryVaultCorpus>]
         [(accounts|groups|users <EmailItemList>) | (orgunit|ou <OrgUnit>)]
-        [starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>] 
+        [starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>]
 gam update vaulthold|hold <HoldItem> matter <MatterItem> [query <QueryVaultCorpus>]
         [([addaccounts|addgroups|addusers <EmailItemList>] [removeaccounts|removegroups|removeusers <EmailItemList>]) | (orgunit|ou <OrgUnit>)]
-        [starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>] 
+        [starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>]
 gam delete vaulthold|hold <HoldItem> matter <MatterItem>
 gam info vaulthold|hold <HoldItem> matter <MatterItem> [shownames]
 gam show vaultholds|holds [matter|matters <MatterItemList>] [shownames]
@@ -1781,7 +1781,7 @@ gam print vaultmatters|matters [todrive [<ToDriveAttributes>]] [basic|full]
 
 <UserAttributes> ::=
         (address clear|(type work|home|other|(custom <String>) [unstructured|formatted <String>] [pobox <String>] [extendedaddress <String>] [streetaddress <String>]
-        	[locality <String>] [region <String>] [postalcode <String>] [country <String>] [countrycode <String>] notprimary|primary))|
+                [locality <String>] [region <String>] [postalcode <String>] [country <String>] [countrycode <String>] notprimary|primary))|
         (admin <Boolean>)|
         (agreed2terms|agreedtoterms <Boolean>)|
         (changepassword|changepasswordatnextlogin <Boolean>)|
@@ -1801,11 +1801,11 @@ gam print vaultmatters|matters [todrive [<ToDriveAttributes>]] [basic|full]
         (location clear|(type default|desk|<String> area <String> [building|buildingid <String>] [floor|floorname <String>] [section|floorsection <String>] [desk|deskcode <String>] endlocation))|
         (note clear|([text_plain|text_html] <String>|(file <FileName> [charset <Charset>])))|
         (organization clear|([type domain_only|school|unknown|work] [customtype <String>] [name <String>] [title <String>] [department <String>] [symbol <String>]
-        	[costcenter <String>]  [location <String>] [description <String>] [domain <String>] notprimary|primary))|
+                [costcenter <String>]  [location <String>] [description <String>] [domain <String>] notprimary|primary))|
         (org|ou|orgunitpath <OrgUnitPath>)
         (password random|<Password>)|
         (phone clear|([type work|home|other|work_fax|home_fax|other_fax|main|company_main|assistant|mobile|work_mobile|pager|work_pager|car|radio|callback|isdn|telex|tty_tdd|grand_central|(custom <String>)]
-        	[value <String>] notprimary|primary))|
+                [value <String>] notprimary|primary))|
         (posix clear|(username <String> uid <Integer> gid <Integer> [system|systemid <String>] [home|homedirectory <String>] [shell <String>] [gecos <String>] [primary <Boolean>] endposix))|
         (relation clear|(spouse|child|mother|father|parent|brother|sister|friend|relative|domestic_partner|manager|dotted-line_manager|assistant|admin_assistant|exec_assistant|referred_by|partner|<String> <String>))|
         (sshkeys clear|(key <String> [expires <Integer>] endssh))|
@@ -2315,9 +2315,17 @@ gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [anyown
         [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>] [corpora <CorporaAttribute>]
         [select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [showmimetype [not] <MimeTypeList>] [depth <Number>] [showparent]
         [filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
+
+<FileTreeFieldName> ::=
+        id|
+        mimetype|
+        owners|
+        parents
+<FileTreeFieldNameList> ::= "<FileTreeFieldName>(,<FileTreeFieldName>)*"
+
 gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
         [select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [showmimetype [not] <MimeTypeList>] [depth <Number>]
-        (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+        (orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
 
 gam <UserTypeEntity> print|show driveactivity [todrive [<ToDriveAttributes>]] [fileid <DriveFileID>] [folderid <DriveFolderID>]
 
@@ -2463,7 +2471,7 @@ gam <UserTypeEntity> vacation <FalseValues>
 gam <UserTypeEntity> vacation <TrueValues> subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*
         [html [<Boolean>]] [contactsonly [<Boolean>]] [domainonly [<Boolean>]] [startdate <Date>|Started] [enddate <Date>|NotSpecified]
 gam <UserTypeEntity> show vacation [format]
-gam <UserTypeEntity> print vacation [todrive [<ToDriveAttributes>]]	
+gam <UserTypeEntity> print vacation [todrive [<ToDriveAttributes>]]
 
 # Users - Gmail - Settings
 

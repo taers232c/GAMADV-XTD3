@@ -1,3 +1,9 @@
+4.55.08
+
+Added options to gam show filetree to allow additional fields beyond the file/folder name to be shown.
+
+See: https://github.com/taers232c/GAMADV-XTD/wiki/Users---Drive---Files
+
 4.55.07
 
 Based on initial work by Jay, converted service account access to use the google-auth library for authentication rather than the deprecated oauth2client library.
