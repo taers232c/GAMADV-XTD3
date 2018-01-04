@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.08'
+__version__ = u'4.55.09'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -25939,6 +25939,7 @@ def _createDriveFilePermissions(users, useDomainAdminAccess):
     ri = request_id.splitlines()
     if int(ri[RI_J]) == 1:
       entityPerformActionNumItems([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY]], int(ri[RI_JCOUNT]), Ent.PERMITTEE, int(ri[RI_I]), int(ri[RI_COUNT]))
+      Ind.Increment()
     if exception is None:
       entityActionPerformed([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
@@ -25946,6 +25947,8 @@ def _createDriveFilePermissions(users, useDomainAdminAccess):
       if reason not in GAPI.DEFAULT_RETRY_REASONS+[GAPI.SERVICE_LIMIT]:
         errMsg = getHTTPError({}, http_status, reason, message)
         entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        if int(ri[RI_J]) == int(ri[RI_JCOUNT]):
+          Ind.Decrement()
         return
       waitOnFailure(1, 10, reason, message)
       try:
@@ -25961,6 +25964,8 @@ def _createDriveFilePermissions(users, useDomainAdminAccess):
               GAPI.invalidSharingRequest, GAPI.ownerOnTeamDriveItemNotSupported, GAPI.organizerOnNonTeamDriveItemNotSupported,
               GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
+    if int(ri[RI_J]) == int(ri[RI_JCOUNT]):
+      Ind.Decrement()
 
   sendNotificationEmail = False
   emailMessage = expiration = None
@@ -25990,7 +25995,7 @@ def _createDriveFilePermissions(users, useDomainAdminAccess):
     try:
       callGAPI(drive.about(), u'get',
                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-               fields=u'')
+               fields=u'kind')
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
       continue
@@ -26098,6 +26103,7 @@ def _deletePermissions(users, useDomainAdminAccess):
     ri = request_id.splitlines()
     if int(ri[RI_J]) == 1:
       entityPerformActionNumItems([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY]], int(ri[RI_JCOUNT]), Ent.PERMISSION_ID, int(ri[RI_I]), int(ri[RI_COUNT]))
+      Ind.Increment()
     if exception is None:
       entityActionPerformed([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMISSION_ID, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
@@ -26108,18 +26114,21 @@ def _deletePermissions(users, useDomainAdminAccess):
         else:
           errMsg = getHTTPError({}, http_status, reason, message)
           entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMISSION_ID, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        if int(ri[RI_J]) == int(ri[RI_JCOUNT]):
+          Ind.Decrement()
         return
       waitOnFailure(1, 10, reason, message)
       try:
         callGAPI(drive.permissions(), u'delete',
                  throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.PERMISSION_NOT_FOUND],
                  retry_reasons=[GAPI.SERVICE_LIMIT],
-                 useDomainAdminAccess=useDomainAdminAccess,
-                 fileId=ri[RI_ENTITY], permissionId=ri[RI_ITEM], supportsTeamDrives=True)
+                 fileId=ri[RI_ENTITY], permissionId=ri[RI_ITEM], useDomainAdminAccess=useDomainAdminAccess, supportsTeamDrives=True)
         entityActionPerformed([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMISSION_ID, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
               GAPI.badRequest, GAPI.permissionNotFound, GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMISSION_ID, ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
+    if int(ri[RI_J]) == int(ri[RI_JCOUNT]):
+      Ind.Decrement()
 
   fileIdEntity = getDriveFileEntity()
   permissionIds = getEntityList(Cmd.OB_DRIVE_FILE_PERMISSION_ID_ENTITY)
@@ -26140,7 +26149,7 @@ def _deletePermissions(users, useDomainAdminAccess):
     try:
       callGAPI(drive.about(), u'get',
                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-               fields=u'')
+               fields=u'kind')
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
       continue

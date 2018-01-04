@@ -1,3 +1,8 @@
+4.55.09
+
+Fixed bug in gam add/delete permissions that caused an exception.
+Improved output formatting in gam add/delete permissions.
+
 4.55.08
 
 Added options to gam show filetree to allow additional fields beyond the file/folder name to be shown.
