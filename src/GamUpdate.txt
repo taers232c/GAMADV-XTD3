@@ -1,3 +1,7 @@
+4.55.10
+
+Update 4.55.07 broke the error message handling for unknown/inapplicable users, it has been corrected.
+
 4.55.09
 
 Fixed bug in gam add/delete permissions that caused an exception.
