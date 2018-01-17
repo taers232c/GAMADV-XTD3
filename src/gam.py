@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.10'
+__version__ = u'4.55.11'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -21904,7 +21904,7 @@ def getDriveFileProperty(visibility=None):
   key = getString(Cmd.OB_PROPERTY_KEY)
   value = getString(Cmd.OB_PROPERTY_VALUE, minLen=0) or None
   if visibility is None:
-    visibility = getChoice(DRIVEFILE_PROPERTY_VISIBILITY_CHOICE_MAP, defaultChoice=u'PUBLIC', mapChoice=True)
+    visibility = getChoice(DRIVEFILE_PROPERTY_VISIBILITY_CHOICE_MAP, defaultChoice=u'properties', mapChoice=True)
   return {u'key': key, u'value': value, u'visibility': visibility}
 
 def getDriveFileParentAttribute(myarg, parameters):
@@ -21999,13 +21999,13 @@ def getDriveFileAttribute(myarg, body, parameters):
     body.setdefault(driveprop[u'visibility'], [])
     body[driveprop[u'visibility']].append({driveprop[u'key']: driveprop[u'value']})
   elif myarg == u'privateproperty':
-    driveprop = getDriveFileProperty(u'PRIVATE')
-    body.setdefault(u'properties', [])
-    body[u'properties'].append(driveprop)
+    driveprop = getDriveFileProperty(u'appProperties')
+    body.setdefault(driveprop[u'visibility'], [])
+    body[driveprop[u'visibility']].append({driveprop[u'key']: driveprop[u'value']})
   elif myarg == u'publicproperty':
-    driveprop = getDriveFileProperty(u'PUBLIC')
-    body.setdefault(u'properties', [])
-    body[u'properties'].append(driveprop)
+    driveprop = getDriveFileProperty(u'properties')
+    body.setdefault(driveprop[u'visibility'], [])
+    body[driveprop[u'visibility']].append({driveprop[u'key']: driveprop[u'value']})
   else:
     unknownArgumentExit()
 

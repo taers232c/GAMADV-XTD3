@@ -1,3 +1,7 @@
+4.55.11
+
+Fixed error in setting file properties.
+
 4.55.10
 
 Update 4.55.07 broke the error message handling for unknown/inapplicable users, it has been corrected.
