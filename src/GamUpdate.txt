@@ -1,3 +1,7 @@
+4.55.12
+
+Fixed errors in gam transfer drive command.
+
 4.55.11
 
 Fixed error in setting file properties.

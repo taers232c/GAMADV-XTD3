@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.11'
+__version__ = u'4.55.12'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -24637,7 +24637,7 @@ def transferDrive(users):
     else:
       ownerUser = childEntryInfo[u'owners'][0][u'emailAddress']
       if ownerUser not in thirdPartyOwners:
-        _, ownerDrive = buildGAPIServiceObject(API.DRIVE, ownerUser, 0, 0)
+        _, ownerDrive = buildGAPIServiceObject(API.DRIVE3, ownerUser, 0, 0)
         if not ownerDrive:
           return
         thirdPartyOwners[ownerUser] = ownerDrive
@@ -24793,7 +24793,7 @@ def transferDrive(users):
         if not childEntry[u'ownedByMe']:
           ownerUser = childEntry[u'owners'][0][u'emailAddress']
           if ownerUser not in thirdPartyOwners:
-            _, ownerDrive = buildGAPIServiceObject(API.DRIVE, ownerUser, 0, 0)
+            _, ownerDrive = buildGAPIServiceObject(API.DRIVE3, ownerUser, 0, 0)
             if not ownerDrive:
               continue
             thirdPartyOwners[ownerUser] = ownerDrive
@@ -25043,7 +25043,7 @@ def transferDrive(users):
                                  fileId=fileId, fields=VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS_PERMISSIONS)
             entityType = _getEntityMimeType(fileEntry)
             entityPerformActionItemValue([Ent.USER, sourceUser], entityType, u'{0} ({1})'.format(fileEntry[VX_FILENAME], fileId), j, jcount)
-            for parentId in fileEntry[u'parents']:
+            for parentId in fileEntry.get(u'parents', []):
               parentIdMap[parentId] = targetIds[TARGET_PARENT_ID]
             _identifyDriveFileAndChildren(fileEntry, i, count)
             filesTransferred = set()
