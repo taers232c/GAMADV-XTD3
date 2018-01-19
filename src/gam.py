@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.12'
+__version__ = u'4.55.13'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -3424,10 +3424,13 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
       else:
         _showInvalidEntity(Ent.GROUP, group)
         invalid += 1
-  elif entityType in [Cmd.ENTITY_OU, Cmd.ENTITY_OUS, Cmd.ENTITY_OU_AND_CHILDREN, Cmd.ENTITY_OUS_AND_CHILDREN]:
+  elif entityType in [Cmd.ENTITY_OU, Cmd.ENTITY_OUS, Cmd.ENTITY_OU_AND_CHILDREN, Cmd.ENTITY_OUS_AND_CHILDREN,
+                      Cmd.ENTITY_OU_NS, Cmd.ENTITY_OUS_NS, Cmd.ENTITY_OU_AND_CHILDREN_NS, Cmd.ENTITY_OUS_AND_CHILDREN_NS]:
+    if entityType in [Cmd.ENTITY_OU_NS, Cmd.ENTITY_OUS_NS, Cmd.ENTITY_OU_AND_CHILDREN_NS, Cmd.ENTITY_OUS_AND_CHILDREN_NS]:
+      checkNotSuspended = True
     cd = buildGAPIObject(API.DIRECTORY)
     ous = convertEntityToList(entity, shlexSplit=True, nonListEntityType=entityType in [Cmd.ENTITY_OU, Cmd.ENTITY_OU_AND_CHILDREN])
-    directlyInOU = entityType in [Cmd.ENTITY_OU, Cmd.ENTITY_OUS]
+    directlyInOU = entityType in [Cmd.ENTITY_OU, Cmd.ENTITY_OUS, Cmd.ENTITY_OU_NS, Cmd.ENTITY_OUS_NS]
     qualifier = [Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)),
                  Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))][directlyInOU]
     prevLen = 0

@@ -1,3 +1,12 @@
+4.55.13
+
+Fixed error where the following collections of users were not recognized; these all select non-suspended users from OUs.
+<UserTypeEntity> ::=
+        (ou_ns <OrgUnitItem>)|
+        (ou_and_children_ns <OrgUnitItem>)|
+        (ous_ns <OrgUnitList>)|
+        (ous_and_children_ns <OrgUnitList>)
+
 4.55.12
 
 Fixed errors in gam transfer drive command.
