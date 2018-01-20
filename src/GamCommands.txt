@@ -260,6 +260,7 @@ If an item contains spaces, it should be surrounded by ".
 <FilterID> ::= <String>
 <FloorName> ::= <String>
 <GroupItem> ::= <EmailAddress>|<UniqueID>|<String>
+<GroupRole> :;= owner|manager|member
 <GuardianItem> ::= <EmailAddress>|<UniqueID>|<String>
 <GuardianInvitationID> ::= <String>
 <HoldItem> ::= <UniqueID>|<String>
@@ -364,6 +365,7 @@ Items, separated by spaces, with spaces or commas in the items themselves: "'it 
 <FileFormatList> ::= "<FileFormat>(,<FileFormat)*"
 <FilterIDList> ::= "<FilterID>(,<FilterID>)*"
 <GroupList> ::= "<GroupItem>(,<GroupItem>)*"
+<GroupRoleList> ::= "<GroupRole>(,<GroupRole>)*"
 <LabelNameList> ::= "<LabelName>(,<LabelName)*"
 <LanguageList> ::= "<Language>(,<Language)*"
 <MatterItemList> ::= "<MatterItem>(,<MatterItem>)*"
@@ -712,6 +714,7 @@ gam calendar|calendars <CalendarEntity> showacl
 
 <EventAttributes> ::=
         (anyonecanaddself [<Boolean>])|
+        (attachment <String> <URL>)|
         (attendee <EmailAddress>)|
         available|
         (colorindex|colorid <EventColorIndex>))|
@@ -749,6 +752,7 @@ gam calendar|calendars <CalendarEntity> showacl
 <EventUpdateAttributes> ::=
         <EventAttributes>|
         notifyattendees|(sendnotifications <Boolean>)|
+        clearattachments|
         (clearprivateproperty <PropertyKey>)|
         (clearsharedproperty <PropertyKey>)
 
@@ -1307,11 +1311,11 @@ gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member 
 
 gam print group-members [todrive [<ToDriveAttributes>]]
         [domain <DomainName>] [member <UserItem>])|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
-        [members] [managers] [owners] [membernames] <MembersFieldName>*
+        [roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>*
         [fields <MembersFieldNameList>] [userfields <UserFieldNameList>] [recursive [noduplicates]]
 gam show group-members
         ([domain <DomainName>] [member <UserItem>])|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
-        [members] [managers] [owners] [depth <Number>]
+        [roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
 
 # Guardians
 

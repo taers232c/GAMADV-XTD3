@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.13'
+__version__ = u'4.55.14'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -12720,7 +12720,7 @@ GROUPMEMBERS_DEFAULT_FIELDS = [u'id', u'role', u'group', u'email', u'type', u'st
 
 # gam print group-members|groups-members [todrive [<ToDriveAttributes>]]
 #	([domain <DomainName>] [member <UserItem>])|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
-#	[members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>] [userfields <UserFieldNameList>] [recursive [noduplicates]]
+#	[roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>] [userfields <UserFieldNameList>] [recursive [noduplicates]]
 def doPrintGroupMembers():
   cd = buildGAPIObject(API.DIRECTORY)
   groupname = membernames = noduplicates = recursive = False
@@ -12745,6 +12745,12 @@ def doPrintGroupMembers():
       kwargs[u'userKey'] = getEmailAddress()
       kwargs.pop(u'customer', None)
       subTitle = u'{0}={1}'.format(Ent.Singular(Ent.MEMBER), kwargs[u'userKey'])
+    elif myarg in [u'role', u'roles']:
+      for role in getString(Cmd.OB_GROUP_ROLE_LIST).lower().replace(u',', u' ').split():
+        if role in GROUP_ROLES_MAP:
+          rolesSet.add(GROUP_ROLES_MAP[role])
+        else:
+          invalidChoiceExit(GROUP_ROLES_MAP, True)
     elif myarg in GROUP_ROLES_MAP:
       rolesSet.add(GROUP_ROLES_MAP[myarg])
     elif myarg in [u'group', u'groupns']:
@@ -12875,7 +12881,7 @@ def doPrintGroupMembers():
 
 # gam show group-members
 #	([domain <DomainName>] [member <UserItem>])|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
-#	[members] [managers] [owners] [depth <Number>]
+#	[roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
 def doShowGroupMembers():
   def _roleOrder(key):
     return {Ent.ROLE_OWNER: 0, Ent.ROLE_MANAGER: 1, Ent.ROLE_MEMBER: 2}.get(key, 3)
@@ -12922,6 +12928,12 @@ def doShowGroupMembers():
     elif myarg == u'member':
       kwargs[u'userKey'] = getEmailAddress()
       kwargs.pop(u'customer', None)
+    elif myarg in [u'role', u'roles']:
+      for role in getString(Cmd.OB_GROUP_ROLE_LIST).lower().replace(u',', u' ').split():
+        if role in GROUP_ROLES_MAP:
+          rolesSet.add(GROUP_ROLES_MAP[role])
+        else:
+          invalidChoiceExit(GROUP_ROLES_MAP, True)
     elif myarg in GROUP_ROLES_MAP:
       rolesSet.add(GROUP_ROLES_MAP[myarg])
     elif myarg in [u'group', u'groupns']:
@@ -14235,6 +14247,11 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
     body[u'start'] = getEventTime()
   elif myarg == u'end':
     body[u'end'] = getEventTime()
+  elif myarg == u'attachment':
+    body.setdefault(u'attachments', [])
+    body[u'attachments'].append({u'title': getString(Cmd.OB_STRING), u'fileUrl': getString(Cmd.OB_URL)})
+  elif function == u'update' and myarg == u'clearattachments':
+    body[u'attachments'] = []
   elif myarg == u'recurrence':
     body.setdefault(u'recurrence', [])
     body[u'recurrence'].append(getString(Cmd.OB_RECURRENCE))
@@ -14486,11 +14503,11 @@ def _createCalendarEvents(user, cal, function, calIds, count,
       if function == u'insert':
         event = callGAPI(cal.events(), u'insert',
                          throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY, GAPI.DUPLICATE, GAPI.FORBIDDEN],
-                         calendarId=calId, sendNotifications=sendNotifications, body=body, fields=u'id')
+                         calendarId=calId, sendNotifications=sendNotifications, supportsAttachments=True, body=body, fields=u'id')
       else:
         event = callGAPI(cal.events(), u'import_',
                          throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY, GAPI.DUPLICATE, GAPI.FORBIDDEN],
-                         calendarId=calId, body=body, fields=u'id')
+                         calendarId=calId, supportsAttachments=True, body=body, fields=u'id')
       entityActionPerformed([Ent.CALENDAR, calId, Ent.EVENT, event[u'id']], i, count)
     except (GAPI.invalid, GAPI.required, GAPI.timeRangeEmpty) as e:
       entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, u''], str(e), i, count)
@@ -14708,7 +14725,7 @@ def doCalendarsUpdateEvents(cal, calIds):
       unknownArgumentExit()
   _updateDeleteCalendarEvents(None, None, cal, calIds, len(calIds), u'patch', calendarEventEntity, True,
                               _checkIfEventRecurrenceTimeZoneRequired(body, parameters), body,
-                              {u'body': body, u'sendNotifications': parameters[u'sendNotifications'], u'fields': u''})
+                              {u'supportsAttachments': True, u'body': body, u'sendNotifications': parameters[u'sendNotifications'], u'fields': u''})
 
 # gam calendars <UserEntity> delete event <EventEntity> [doit] [notifyattendees]
 # gam calendar <UserItem> deleteevent <EventEntity> [doit] [notifyattendees]
@@ -21191,7 +21208,7 @@ def updateCalendarEvents(users):
     Ind.Increment()
     status = _updateDeleteCalendarEvents(origUser, user, cal, calIds, jcount, u'patch', calendarEventEntity, True,
                                          _checkIfEventRecurrenceTimeZoneRequired(body, parameters), body,
-                                         {u'body': body, u'sendNotifications': parameters[u'sendNotifications'], u'fields': u''})
+                                         {u'supportsAttachments': True, u'body': body, u'sendNotifications': parameters[u'sendNotifications'], u'fields': u''})
     Ind.Decrement()
     if not status:
       return
