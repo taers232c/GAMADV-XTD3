@@ -461,6 +461,7 @@ class GamCLArgs(object):
   OB_GAM_ARGUMENT_LIST = u'GAM argument list'
   OB_GROUP_ENTITY = u'GroupEntity'
   OB_GROUP_ITEM = u'GroupItem'
+  OB_GROUP_ROLE_LIST = u'GroupRoleList'
   OB_GUARDIAN_INVITATION_ID = u'GuardianInvitationID'
   OB_GUARDIAN_ITEM = u'GuardianItem'
   OB_GUARDIAN_STATE_LIST = u'GuardianStateList'

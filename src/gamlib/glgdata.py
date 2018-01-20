@@ -28,6 +28,7 @@ FORBIDDEN = 603
 INSUFFICIENT_PERMISSIONS = 604
 INTERNAL_SERVER_ERROR = 1000
 INVALID_DOMAIN = 605
+INVALID_INPUT = 1317
 INVALID_VALUE = 1801
 NAME_NOT_VALID = 1303
 NOT_FOUND = 606
@@ -57,6 +58,8 @@ class internalServerError(Exception):
   pass
 class invalidDomain(Exception):
   pass
+class invalidInput(Exception):
+  pass
 class invalidValue(Exception):
   pass
 class nameNotValid(Exception):
@@ -78,6 +81,7 @@ ERROR_CODE_EXCEPTION_MAP = {
   INSUFFICIENT_PERMISSIONS: insufficientPermissions,
   INTERNAL_SERVER_ERROR: internalServerError,
   INVALID_DOMAIN: invalidDomain,
+  INVALID_INPUT: invalidInput,
   INVALID_VALUE: invalidValue,
   NAME_NOT_VALID: nameNotValid,
   NOT_FOUND: notFound,

@@ -1,3 +1,8 @@
+4.55.15
+
+Improved error handling for gam audit commands.
+Miscellaneous cleanup.
+
 4.55.14
 
 Added the ability to add/remove attachments to/from calendar events.
