@@ -24042,6 +24042,9 @@ def _cloneFolder(drive, user, i, count, j, jcount, folderId, folderTitle, newFol
     entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], str(e), j, jcount)
     Act.Set(action)
     return None
+  except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+    userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+    return None
 
 # gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [recursive [depth <Number>]]
 #	[parentid <DriveFolderID>] [parentname <DriveFolderName>]
