@@ -1,3 +1,48 @@
+4.55.17
+
+Added fulltimeequivalent <Integer> field to organization item in <UserAttributes>.
+From the API documentation: the full-time equivalent percent within the organization (100000 = 100%).
+
+Added showuserprofile option to gam print course-submissions to display the user email address and name in addition to the numeric userId.
+
+Updated sync operations for classrooms, groups and printers to allow more control over adds and removes.
+A sync operation gets the current roster for an entity and compares it to the proposed roster.
+
+Current/Default:
+* members in the proposed roster that are not in the current roster will be added
+* members in the current roster that are not in the proposed roster will deleted
+
+When the addonly option is specified:
+* members in the proposed roster that are not in the current roster will be added
+* members in the current roster that are not in the proposed roster will not be deleted
+
+When the removeonly option is specified:
+* members in the proposed roster that are not in the current roster will not be added
+* members in the current roster that are not in the proposed roster will be deleted
+
+gam courses <CourseEntity> sync teachers|students [addonly|removeonly] <UserTypeEntity>
+gam update group|groups <GroupEntity> sync [owner|manager|member] [usersonly|groupsonly] [addonly|removeonly] [notsuspended] <UserTypeEntity>
+gam printer|printers <PrinterIDEntity> sync user|manager|owner [usersonly|groupsonly] [addonly|removeonly] <PrinterACLScopeEntity> [notify]
+
+Added a command to simplify moving a Drive file/folder to a new location; this command replaces all existing parents with a new parent.
+Use gam <UserTypeEntity> update for more complex parent changes.
+<DriveFileMoveAttributes> ::=
+        ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>))|
+         (teamdriveparentid <DriveFolderID>)|
+         ((teamdriveparentid <TeamDriveID>)|(teamdriveparent <TeamDriveName>) [teamdriveparentname <DriveFolderName>]))
+gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>] <DriveFileMoveAttributes>*
+
+Moving a Drive folder to a Team Drive is not directly supported by the API; Gam has to make a copy of the folder on the Team Drive and
+recursively adjust the files/folders within it to point to the new parent folder.
+
+Added the ability to replace tags with user attributes in the following commands: import message, insert message, create sendas, update sendas, signature, vacation.
+See: https://github.com/taers232c/GAMADV-XTD/wiki/Tag-Replace
+
+4.55.16
+
+The following command has been restored.
+gam <UserTypeEntity> create|add teamdrive <Name> [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+
 4.55.15
 
 Improved error handling for gam audit commands.
@@ -11,7 +56,7 @@ Added the ability to add/remove attachments to/from calendar events.
 <EventUpdateAttributes> ::=
         clearattachments
 
-On an add, import or update, you can specify multiple attachments; <String> is the title of the attachment and <URL> is a sharable link from Google Drive.
+On an add or update, you can specify multiple attachments; <String> is the title of the attachment and <URL> is a sharable link from Google Drive.
 You must specify all attachments in each command, you can not incrementally add attachmets. You delete all attachments with the clearattachments option.
 
 4.55.13

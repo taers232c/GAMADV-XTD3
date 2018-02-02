@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.16'
+__version__ = u'4.55.17'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -233,13 +233,14 @@ VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED = u'id,{0},{1},mimeType,ownedB
 VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS = u'id,{0},{1},mimeType,ownedByMe,{2},owners(emailAddress,permissionId)'.format(VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
 VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS_PERMISSIONS = u'id,{0},{1},mimeType,ownedByMe,{2},owners(emailAddress,permissionId),permissions(id,role)'.format(VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
 VX_ID_FILENAME_PARENTS_MIMETYPE_OWNERS = u'id,{0},{1},mimeType,owners(emailAddress)'.format(VX_FILENAME, VX_PARENTS_ID)
+VX_ID_FILENAME_PARENTS_MIMETYPE_TEAMDRIVEID = u'id,{0},{1},mimeType,teamDriveId'.format(VX_FILENAME, VX_PARENTS_ID)
 VX_ID_MIMETYPE_CANEDIT = u'id,mimeType,capabilities(canEdit)'
 VX_NPT_FILES_FIELDLIST = u'nextPageToken,{0}({{0}})'.format(VX_PAGES_FILES)
 VX_NPT_FILES_ID = u'nextPageToken,{0}(id)'.format(VX_PAGES_FILES)
 VX_NPT_FILES_ID_FILENAME = u'nextPageToken,{0}(id,{1})'.format(VX_PAGES_FILES, VX_FILENAME)
-VX_NPT_FILES_ID_FILENAME_MIMETYPE_CANCOPY = u'nextPageToken,{0}(id,{1},mimeType,capabilities/canCopy)'.format(VX_PAGES_FILES, VX_FILENAME)
 VX_NPT_FILES_ID_FILENAME_OWNEDBYME = u'nextPageToken,{0}(id,{1},ownedByMe)'.format(VX_PAGES_FILES, VX_FILENAME)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE = u'nextPageToken,{0}(id,{1},{2},mimeType)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
+VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_CAPABILITIES = u'nextPageToken,{0}(id,{1},{2},mimeType,capabilities)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_OWNERS = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,owners(emailAddress,permissionId))'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_OWNERS_PERMISSIONS = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,owners(emailAddress,permissionId),permissions(id,role))'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
@@ -249,6 +250,7 @@ VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS_PERMISSIONS =
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNERS = u'nextPageToken,{0}(id,{1},{2},mimeType,owners(emailAddress))'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_MIMETYPE_CANEDIT = u'nextPageToken,{0}(id,mimeType,capabilities(canEdit))'.format(VX_PAGES_FILES)
 VX_NPT_PERMISSIONS = u'nextPageToken,{0}'.format(VX_PAGES_PERMISSIONS)
+VX_NPT_PERMISSIONS_FIELDLIST = u'nextPageToken,{0}({{0}})'.format(VX_PAGES_PERMISSIONS)
 VX_NPT_PERMISSIONS_TYPE_EMAIL_ROLE = u'nextPageToken,{0}(type,emailAddress,role)'.format(VX_PAGES_PERMISSIONS)
 VX_NPT_REVISIONS_FIELDLIST = u'nextPageToken,{0}({{0}})'.format(VX_PAGES_REVISIONS)
 VX_NPT_REVISIONS_ID_MODIFIEDTIME = u'nextPageToken,{0}(id,{1})'.format(VX_PAGES_REVISIONS, VX_MODIFIED_TIME)
@@ -5434,11 +5436,11 @@ def doOAuthImport():
 # gam <UserTypeEntity> check serviceaccount
 def checkServiceAccount(users):
   checkForExtraneousArguments()
-  all_scopes_pass = True
   all_scopes, jcount = API.getSortedSvcAcctScopesList()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
+    all_scopes_pass = True
     user = convertUIDtoEmailAddress(user)
     entityPerformActionNumItems([Ent.USER, user], jcount, Ent.SCOPE, i, count)
     Ind.Increment()
@@ -5459,11 +5461,11 @@ def checkServiceAccount(users):
     Ind.Decrement()
     service_account = GM.Globals[GM.OAUTH2_CLIENT_ID]
     _, _, user_domain = splitEmailAddressOrUID(user)
-  printBlankLine()
-  if all_scopes_pass:
-    printLine(Msg.SCOPE_AUTHORIZATION_PASSED.format(service_account))
-  else:
-    printErrorMessage(SCOPES_NOT_AUTHORIZED, Msg.SCOPE_AUTHORIZATION_FAILED.format(user_domain, service_account, u',\n'.join(all_scopes)))
+    if all_scopes_pass:
+      printLine(Msg.SCOPE_AUTHORIZATION_PASSED.format(service_account))
+    else:
+      printErrorMessage(SCOPES_NOT_AUTHORIZED, Msg.SCOPE_AUTHORIZATION_FAILED.format(user_domain, service_account, u',\n'.join(all_scopes)))
+    printBlankLine()
 
 def getCRMService(login_hint):
   from oauth2client.contrib.dictionary_storage import DictionaryStorage
@@ -6112,12 +6114,216 @@ def doReport():
         csvRows.append({u'event': event, u'count': eventCounts[event]})
     writeCSVfile(csvRows, titles, u'{0} Activity Report'.format(report.capitalize()), todrive)
 
+# Substitute for #user#, #email#, #usernamne#
+def _substituteForUser(field, user, userName):
+  if field.find(u'#') == -1:
+    return field
+  return field.replace(u'#user#', user).replace(u'#email#', user).replace(u'#username#', userName)
+
+# Tag utilities
+TAG_ADDRESS_ARGUMENT_TO_FIELD_MAP = {
+  u'country': u'country',
+  u'countrycode': u'countryCode',
+  u'customtype': u'customType',
+  u'extendedaddress': u'extendedAddress',
+  u'formatted': u'formatted',
+  u'locality': u'locality',
+  u'pobox': u'poBox',
+  u'postalcode': u'postalCode',
+  u'region': u'region',
+  u'streetaddress': u'streetAddress',
+  u'type': u'type',
+  }
+
+TAG_EMAIL_ARGUMENT_TO_FIELD_MAP = {
+  u'domain': u'domain',
+  u'primaryemail': u'primaryEmail',
+  u'username': u'username',
+  }
+
+TAG_LOCATION_ARGUMENT_TO_FIELD_MAP = {
+  u'area': u'area',
+  u'buildingid': u'buildingId',
+  u'buildingname': u'buildingName',
+  u'customtype': u'customType',
+  u'deskcode': u'deskCode',
+  u'floorname': u'floorName',
+  u'floorsection': u'floorSection',
+  u'type': u'type',
+  }
+
+TAG_NAME_ARGUMENT_TO_FIELD_MAP = {
+  u'familyname': u'familyName',
+  u'fullname': u'fullName',
+  u'givenname': u'givenName',
+  }
+
+TAG_ORGANIZATION_ARGUMENT_TO_FIELD_MAP = {
+  u'costcenter': u'costCenter',
+  u'customtype': u'customType',
+  u'department': u'department',
+  u'description': u'description',
+  u'domain': u'domain',
+  u'fulltimeequivalent': u'fullTimeEquivalent',
+  u'location': u'location',
+  u'name': u'name',
+  u'symbol': u'symbol',
+  u'title': u'title',
+  u'type': u'type',
+  }
+
+TAG_PHONE_ARGUMENT_TO_FIELD_MAP = {
+  u'customtype': u'customType',
+  u'type': u'type',
+  u'value': u'value',
+  }
+
+TAG_FIELD_SUBFIELD_CHOICE_MAP = {
+  u'address': (u'addresses', TAG_ADDRESS_ARGUMENT_TO_FIELD_MAP),
+  u'addresses': (u'addresses', TAG_ADDRESS_ARGUMENT_TO_FIELD_MAP),
+  u'email': (u'primaryEmail', TAG_EMAIL_ARGUMENT_TO_FIELD_MAP),
+  u'location': (u'locations', TAG_LOCATION_ARGUMENT_TO_FIELD_MAP),
+  u'locations': (u'locations', TAG_LOCATION_ARGUMENT_TO_FIELD_MAP),
+  u'name': (u'name', TAG_NAME_ARGUMENT_TO_FIELD_MAP),
+  u'organization': (u'organizations', TAG_ORGANIZATION_ARGUMENT_TO_FIELD_MAP),
+  u'organizations': (u'organizations', TAG_ORGANIZATION_ARGUMENT_TO_FIELD_MAP),
+  u'phone': (u'phones', TAG_PHONE_ARGUMENT_TO_FIELD_MAP),
+  u'phones': (u'phones', TAG_PHONE_ARGUMENT_TO_FIELD_MAP),
+  }
+
+def _initTagReplacements():
+  return {u'cd': None, u'tags': {}, u'subs': False,
+          u'fieldsSet': set(), u'fields': u'',
+          u'schemasSet': set(), u'customFieldMask': None}
+
+def _getTagReplacement(tagReplacements, allowSubs):
+  matchTag = getString(Cmd.OB_TAG)
+  matchReplacement = getString(Cmd.OB_STRING, minLen=0)
+  if matchReplacement.startswith(u'field:'):
+    if not allowSubs:
+      usageErrorExit(Msg.USER_SUBS_NOT_ALLOWED_TAG_REPLACEMENT)
+    tagReplacements[u'subs'] = True
+    field = matchReplacement[6:].strip().lower()
+    if field.find(u'.') != -1:
+      field, subfield = field.split(u'.', 1)
+    else:
+      field = u''
+    if not field or field not in TAG_FIELD_SUBFIELD_CHOICE_MAP:
+      invalidChoiceExit(TAG_FIELD_SUBFIELD_CHOICE_MAP, True)
+    field, subfieldsChoiceMap = TAG_FIELD_SUBFIELD_CHOICE_MAP[field]
+    if subfield not in subfieldsChoiceMap:
+      invalidChoiceExit(subfieldsChoiceMap, True)
+    subfield = subfieldsChoiceMap[subfield]
+    tagReplacements[u'fieldsSet'].add(field)
+    tagReplacements[u'fields'] = u','.join(tagReplacements[u'fieldsSet'])
+    tagReplacements[u'tags'][matchTag] = {u'field': field, u'subfield': subfield, u'value': u''}
+    if field == u'locations' and subfield == u'buildingName':
+      _makeBuildingIdNameMap()
+  elif matchReplacement.startswith(u'schema:'):
+    if not allowSubs:
+      usageErrorExit(Msg.USER_SUBS_NOT_ALLOWED_TAG_REPLACEMENT)
+    tagReplacements[u'subs'] = True
+    matchReplacement = matchReplacement[7:].strip()
+    if matchReplacement.find(u'.') != -1:
+      schemaName, schemaField = matchReplacement.split(u'.', 1)
+    else:
+      schemaName = u''
+    if not schemaName or not schemaField:
+      invalidArgumentExit(Cmd.OB_SCHEMA_NAME_FIELD_NAME)
+    tagReplacements[u'fieldsSet'].add(u'customSchemas')
+    tagReplacements[u'fields'] = u','.join(tagReplacements[u'fieldsSet'])
+    tagReplacements[u'schemasSet'].add(schemaName)
+    tagReplacements[u'customFieldMask'] = u','.join(tagReplacements[u'schemasSet'])
+    tagReplacements[u'tags'][matchTag] = {u'schema': schemaName, u'schemafield': schemaField, u'value': u''}
+  elif ((matchReplacement.find(u'#') >= 0) and
+        (matchReplacement.find(u'#user#') >= 0) or (matchReplacement.find(u'#email#') >= 0) or (matchReplacement.find(u'#username#') >= 0)):
+    if not allowSubs:
+      usageErrorExit(Msg.USER_SUBS_NOT_ALLOWED_TAG_REPLACEMENT)
+    tagReplacements[u'subs'] = True
+    tagReplacements[u'tags'][matchTag] = {u'template': matchReplacement, u'value': u''}
+  else:
+    tagReplacements[u'tags'][matchTag] = {u'value': matchReplacement}
+
+def _getTagReplacementFieldValues(user, i, count, tagReplacements):
+  if tagReplacements[u'fields'] and tagReplacements[u'fields'] != u'primaryEmail':
+    if not tagReplacements[u'cd']:
+      tagReplacements[u'cd'] = buildGAPIObject(API.DIRECTORY)
+    try:
+      results = callGAPI(tagReplacements[u'cd'].users(), u'get',
+                         throw_reasons=GAPI.USER_GET_THROW_REASONS,
+                         userKey=user, projection=u'custom', customFieldMask=tagReplacements[u'customFieldMask'], fields=tagReplacements[u'fields'])
+    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+      entityUnknownWarning(Ent.USER, user, i, count)
+      return
+  else:
+    results = {u'primaryEmail': user}
+  userName, domain = splitEmailAddress(user)
+  for _, tag in iteritems(tagReplacements[u'tags']):
+    if tag.get(u'field'):
+      field = tag[u'field']
+      if field == u'primaryEmail':
+        subfield = tag[u'subfield']
+        if subfield == u'username':
+          tag[u'value'] = userName
+        elif subfield == u'domain':
+          tag[u'value'] = domain
+        else:
+          tag[u'value'] = user
+      else:
+        if field in [u'addresses', u'organizations', u'phones']:
+          items = results.get(field, [])
+          for data in items:
+            if data.get(u'primary'):
+              break
+          else:
+            if len(items) > 0:
+              data = items[0]
+            else:
+              data = {}
+        elif field == u'locations':
+          items = results.get(field, [])
+          if len(items) > 0:
+            data = items[0]
+            data[u'buildingName'] = GM.Globals[GM.MAP_BUILDING_ID_TO_NAME].get(data.get(u'buildingId', u''), u'')
+          else:
+            data = {}
+        else:
+          data = results.get(field, {})
+        tag[u'value'] = str(data.get(tag[u'subfield'], u''))
+    elif tag.get(u'schema'):
+      tag[u'value'] = str(results.get(u'customSchemas', {}).get(tag[u'schema'], {}).get(tag[u'schemafield'], u''))
+    elif tag.get(u'template'):
+      tag[u'value'] = _substituteForUser(tag[u'template'], user, userName)
+
+RT_PATTERN = re.compile(r'(?s){RT}.*?{(.+?)}.*?{/RT}')
+RT_OPEN_PATTERN = re.compile(r'{RT}')
+RT_CLOSE_PATTERN = re.compile(r'{/RT}')
+RT_STRIP_PATTERN = re.compile(r'(?s){RT}.*?{/RT}')
+RT_TAG_REPLACE_PATTERN = re.compile(r'{(.*?)}')
+
+def _processTagReplacements(tagReplacements, message):
+  while True:
+    match = RT_PATTERN.search(message)
+    if not match:
+      break
+    if tagReplacements[u'tags'].get(match.group(1)):
+      message = RT_OPEN_PATTERN.sub(u'', message, count=1)
+      message = RT_CLOSE_PATTERN.sub(u'', message, count=1)
+    else:
+      message = RT_STRIP_PATTERN.sub(u'', message, count=1)
+  while True:
+    match = RT_TAG_REPLACE_PATTERN.search(message)
+    if not match:
+      break
+    message = re.sub(match.group(0), tagReplacements[u'tags'].get(match.group(1), {u'value': u''})[u'value'], message)
+  return message
+
 # gam sendemail <RecipientEntity> subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)*
 #	[newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
 def doSendEmail():
   body = {}
   notify = {}
-  tagReplacements = {}
+  tagReplacements = _initTagReplacements()
   recipients = getEntityList(Cmd.OB_RECIPIENT_ENTITY)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -6141,18 +6347,16 @@ def doSendEmail():
     elif myarg == u'password':
       body[u'password'] = notify[u'password'] = getString(Cmd.OB_PASSWORD, maxLen=100)
     elif myarg == u'replace':
-      matchTag = getString(Cmd.OB_TAG)
-      matchReplacement = getString(Cmd.OB_STRING, minLen=0)
-      tagReplacements[matchTag] = matchReplacement
+      _getTagReplacement(tagReplacements, False)
     else:
       unknownArgumentExit()
   if u'message' in notify:
     notify[u'message'] = notify[u'message'].replace(u'\r', u'').replace(u'\\n', u'\n')
-    if tagReplacements:
-      notify[u'message'] = _processTags(tagReplacements, notify['message'])
+    if tagReplacements[u'tags']:
+      notify[u'message'] = _processTagReplacements(tagReplacements, notify['message'])
   if u'subject' in notify:
-    if tagReplacements:
-      notify[u'subject'] = _processTags(tagReplacements, notify[u'subject'])
+    if tagReplacements[u'tags']:
+      notify[u'subject'] = _processTagReplacements(tagReplacements, notify[u'subject'])
   i = 0
   count = len(recipients)
   if body.get(u'primaryEmail'):
@@ -7893,7 +8097,7 @@ def _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs
       retrievedOrgIds.append(orgUnit[u'orgUnitId'])
       if orgUnit[u'parentOrgUnitId'] not in parentOrgIds:
         parentOrgIds.append(orgUnit[u'parentOrgUnitId'])
-    missing_parents = set(parentOrgIds) - set(retrievedOrgIds)
+    missing_parents = set(parentOrgIds)-set(retrievedOrgIds)
     for missing_parent in missing_parents:
       try:
         result = callGAPI(cd.orgunits(), u'get',
@@ -10596,7 +10800,6 @@ CROS_FIELDS_CHOICE_MAP = {
   u'users': [u'recentUsers.email', u'recentUsers.type'],
   u'willautorenew': u'willAutoRenew',
   }
-
 CROS_BASIC_FIELDS_LIST = [u'deviceId', u'annotatedAssetId', u'annotatedLocation', u'annotatedUser', u'lastSync', u'notes', u'serialNumber', u'status']
 
 CROS_SCALAR_PROPERTY_PRINT_ORDER = [
@@ -11699,7 +11902,7 @@ UPDATE_GROUP_SUBCMDS = [u'add', u'create', u'delete', u'remove', u'clear', u'syn
 # gam update groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] <GroupAttributes>
 # gam update groups <GroupEntity> create|add [member|manager|owner] [usersonly|groupsonly] [notsuspended] <UserTypeEntity>
 # gam update groups <GroupEntity> delete|remove [member|manager|owner] [usersonly|groupsonly] <UserTypeEntity>
-# gam update groups <GroupEntity> sync [member|manager|owner] [usersonly|groupsonly] [notsuspended] <UserTypeEntity>
+# gam update groups <GroupEntity> sync [member|manager|owner] [usersonly|groupsonly] [addonly|removeonly] [notsuspended] <UserTypeEntity>
 # gam update groups <GroupEntity> update [member|manager|owner] [usersonly|groupsonly] <UserTypeEntity>
 # gam update groups <GroupEntity> clear [member] [manager] [owner] [suspended]
 def doUpdateGroups():
@@ -11995,6 +12198,7 @@ def doUpdateGroups():
         _batchRemoveGroupMembers(group, i, count, [convertUIDtoEmailAddress(member, cd=cd, emailType=u'any', checkForCustomerId=True) for member in removeMembers], role)
   elif CL_subCommand == u'sync':
     role, groupMemberType = _getRoleGroupMemberType()
+    syncOperation = getChoice([u'addonly', 'removeonly'], defaultChoice=u'addremove')
     checkNotSuspended = checkArgumentPresent(u'notsuspended')
     _, syncMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, checkNotSuspended=checkNotSuspended, groupMemberType=groupMemberType)
     groupMemberLists = syncMembers if isinstance(syncMembers, dict) else None
@@ -12019,12 +12223,14 @@ def doUpdateGroups():
         currentMembersMap = {}
         for member in getUsersToModify(Cmd.ENTITY_GROUP, group, memberRole=role, groupMemberType=groupMemberType):
           currentMembersSet.add(_cleanConsumerAddress(member, currentMembersMap))
-        _batchAddGroupMembers(group, i, count,
-                              [syncMembersMap.get(emailAddress, emailAddress) for emailAddress in syncMembersSet-currentMembersSet],
-                              role)
-        _batchRemoveGroupMembers(group, i, count,
-                                 [currentMembersMap.get(emailAddress, emailAddress) for emailAddress in currentMembersSet-syncMembersSet],
-                                 role)
+        if syncOperation != u'removeonly':
+          _batchAddGroupMembers(group, i, count,
+                                [syncMembersMap.get(emailAddress, emailAddress) for emailAddress in syncMembersSet-currentMembersSet],
+                                role)
+        if syncOperation != u'addonly':
+          _batchRemoveGroupMembers(group, i, count,
+                                   [currentMembersMap.get(emailAddress, emailAddress) for emailAddress in currentMembersSet-syncMembersSet],
+                                   role)
   elif CL_subCommand == u'update':
     role, groupMemberType = _getRoleGroupMemberType()
     _, updateMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, groupMemberType=groupMemberType)
@@ -13236,7 +13442,7 @@ def _getBuildingAttributes(body):
       unknownArgumentExit()
   return body
 
-# gam create|add building <BuildingID> <Name> <BuildingAttributes>*
+# gam create|add building <Name> <BuildingAttributes>*
 def doCreateBuilding():
   cd = buildGAPIObject(API.DIRECTORY)
   body = _getBuildingAttributes({u'buildingId': unicode(uuid.uuid4()),
@@ -13254,7 +13460,9 @@ def doCreateBuilding():
   except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
     accessErrorExit(cd)
 
-def _makeBuildingIdNameMap(cd):
+def _makeBuildingIdNameMap(cd=None):
+  if cd is None:
+    cd = buildGAPIObject(API.DIRECTORY)
   try:
     buildings = callGAPIpages(cd.resources().buildings(), u'list', u'buildings',
                               throw_reasons=[GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
@@ -16589,36 +16797,6 @@ def printUserSiteActivity(users):
 def doPrintDomainSiteActivity():
   _printSiteActivity([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
-# User commands utilities
-RT_PATTERN = re.compile(r'(?s){RT}.*?{(.+?)}.*?{/RT}')
-RT_OPEN_PATTERN = re.compile(r'{RT}')
-RT_CLOSE_PATTERN = re.compile(r'{/RT}')
-RT_STRIP_PATTERN = re.compile(r'(?s){RT}.*?{/RT}')
-RT_TAG_REPLACE_PATTERN = re.compile(r'{(.*?)}')
-
-def _processTags(tagReplacements, message):
-  while True:
-    match = RT_PATTERN.search(message)
-    if not match:
-      break
-    if tagReplacements.get(match.group(1)):
-      message = RT_OPEN_PATTERN.sub(u'', message, count=1)
-      message = RT_CLOSE_PATTERN.sub(u'', message, count=1)
-    else:
-      message = RT_STRIP_PATTERN.sub(u'', message, count=1)
-  while True:
-    match = RT_TAG_REPLACE_PATTERN.search(message)
-    if not match:
-      break
-    message = re.sub(match.group(0), tagReplacements.get(match.group(1), u''), message)
-  return message
-
-# Substitute for #user#, #email#, #usernamne#
-def _substituteForUser(field, user, userName):
-  if field.find(u'#') == -1:
-    return field
-  return field.replace(u'#user#', user).replace(u'#email#', user).replace(u'#username#', userName)
-
 UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP = {
   u'address': u'addresses',
   u'addresses': u'addresses',
@@ -16702,6 +16880,7 @@ ORGANIZATION_ARGUMENT_TO_FIELD_MAP = {
   u'department': u'department',
   u'description': u'description',
   u'domain': u'domain',
+  u'fulltimeequivalent': u'fullTimeEquivalent',
   u'location': u'location',
   u'name': u'name',
   u'symbol': u'symbol',
@@ -16965,9 +17144,13 @@ def getUserAttributes(cd, updateCmd, noUid=False):
             entry[typeKeywords[UProp.PTKW_ATTR_CUSTOMTYPE_KEYWORD]] = getString(Cmd.OB_STRING)
             entry.pop(typeKeywords[UProp.PTKW_ATTR_TYPE_KEYWORD], None)
           elif argument in ORGANIZATION_ARGUMENT_TO_FIELD_MAP:
-            value = getString(Cmd.OB_STRING, minLen=0)
-            if value:
-              entry[ORGANIZATION_ARGUMENT_TO_FIELD_MAP[argument]] = value
+            argument = ORGANIZATION_ARGUMENT_TO_FIELD_MAP[argument]
+            if argument != u'fullTimeEquivalent':
+              value = getString(Cmd.OB_STRING, minLen=0)
+              if value:
+                entry[argument] = value
+            else:
+              entry[argument] = getInteger(minVal=0, maxVal=100000)
           elif primaryNotPrimary(argument, entry):
             break
           else:
@@ -17440,6 +17623,7 @@ USER_ADDRESSES_PROPERTY_PRINT_ORDER = [
 USER_LOCATIONS_PROPERTY_PRINT_ORDER = [
   u'area',
   u'buildingId',
+  u'buildingName',
   u'floorName',
   u'floorSection',
   u'deskCode',
@@ -17532,7 +17716,7 @@ USER_FIELDS_CHOICE_MAP = {
   u'websites': u'websites',
   }
 
-INFO_USER_OPTIONS = [u'noaliases', u'nogroups', u'nolicenses', u'nolicences', u'noschemas', u'schemas', u'userview',]
+INFO_USER_OPTIONS = [u'noaliases', u'nobuildingnames', u'nogroups', u'nolicenses', u'nolicences', u'noschemas', u'schemas', u'userview',]
 USER_TIME_OBJECTS = [u'creationTime', u'deletionTime', u'lastLoginTime']
 
 def infoUsers(entityList):
@@ -17559,7 +17743,7 @@ def infoUsers(entityList):
         licenses.append(response[u'skuId'])
 
   cd = buildGAPIObject(API.DIRECTORY)
-  getSchemas = getAliases = getGroups = getLicenses = True
+  getAliases = getBuildingNames = getGroups = getLicenses = getSchemas = True
   formatJSON = False
   projection = u'full'
   customFieldMask = viewType = None
@@ -17570,17 +17754,15 @@ def infoUsers(entityList):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'quick':
-      getSchemas = getAliases = getGroups = getLicenses = False
+      getAliases = getBuildingNames = getGroups = getLicenses = getSchemas = False
     elif myarg == u'noaliases':
       getAliases = False
+    elif myarg == u'nobuildingnames':
+      getBuildingNames = False
     elif myarg == u'nogroups':
       getGroups = False
     elif myarg in [u'nolicenses', u'nolicences']:
       getLicenses = False
-    elif myarg in [u'products', u'product']:
-      skus = SKU.convertProductListToSKUList(getGoogleProductList())
-    elif myarg in [u'sku', u'skus']:
-      skus = getGoogleSKUList()
     elif myarg == u'noschemas':
       getSchemas = False
       projection = u'basic'
@@ -17588,6 +17770,10 @@ def infoUsers(entityList):
       getSchemas = True
       projection = u'custom'
       customFieldMask = getString(Cmd.OB_SCHEMA_NAME_LIST)
+    elif myarg in [u'products', u'product']:
+      skus = SKU.convertProductListToSKUList(getGoogleProductList())
+    elif myarg in [u'sku', u'skus']:
+      skus = getGoogleSKUList()
     elif myarg == u'userview':
       viewType = u'domain_public'
       getGroups = getLicenses = False
@@ -17776,6 +17962,8 @@ def infoUsers(entityList):
               for row in propertyValue:
                 _showType(row, typeKey, typeCustomValue, customTypeKey)
                 Ind.Increment()
+                if getBuildingNames:
+                  row[u'buildingName'] = _getBuildingNameById(cd, row.get(u'buildingId', u''))
                 for key in USER_LOCATIONS_PROPERTY_PRINT_ORDER:
                   if key in row:
                     printKeyValueList([key, row[key]])
@@ -17906,6 +18094,8 @@ def doPrintUsers(entityList=None):
       userEmail = userEntity[u'primaryEmail']
       if userEmail.find(u'@') != -1:
         userEntity[u'primaryEmailLocal'], userEntity[u'primaryEmailDomain'] = splitEmailAddress(userEmail)
+    for location in userEntity.get(u'locations', []):
+      location[u'buildingName'] = _getBuildingNameById(cd, location.get(u'buildingId', u''))
     if not formatJSON:
       addRowTitlesToCSVfile(flattenJSON(userEntity, timeObjects=USER_TIME_OBJECTS), csvRows, titles)
     else:
@@ -19243,7 +19433,7 @@ def _gettingCourseSubmissionQuery(courseSubmissionStates, late, userId):
 # gam print course-submissions [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
 #	(workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)*  (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
 #	(submissionids <CourseSubmissionIDEntity>)|((submissionstates <CourseSubmissionStateList>)*) [late|notlate]
-#	[fields <CourseSubmissionFieldNameList>]
+#	[fields <CourseSubmissionFieldNameList>] [showuserprofile]
 def doPrintCourseSubmissions():
   croom = buildGAPIObject(API.CLASSROOM)
   todrive = {}
@@ -19256,6 +19446,8 @@ def doPrintCourseSubmissions():
   courseSubmissionIds = []
   orderByList = []
   late = None
+  showUserProfile = False
+  userProfiles = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
@@ -19278,6 +19470,8 @@ def doPrintCourseSubmissions():
       late = u'LATE_ONLY'
     elif myarg == u'notlate':
       late = u'NOT_LATE_ONLY'
+    elif myarg == u'showuserprofile':
+      showUserProfile = True
     elif getFieldsList(myarg, COURSE_SUBMISSION_FIELDS_CHOICE_MAP, fieldsList, u'id'):
       pass
     else:
@@ -19328,6 +19522,18 @@ def doPrintCourseSubmissions():
                                   courseId=courseId, courseWorkId=courseWorkId, states=courseSubmissionStates, late=late, userId=courseSelectionParameters[u'studentId'],
                                   fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
           for submission in results:
+            if showUserProfile:
+              userId = submission.get(u'userId')
+              if userId:
+                if userId not in userProfiles:
+                  try:
+                    userProfile = callGAPI(croom.userProfiles(), u'get',
+                                           throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                                           userId=userId, fields=u'emailAddress,name')
+                    userProfiles[userId] = {u'profile': {u'emailAddress': userProfile[u'emailAddress'], u'name': userProfile[u'name']}}
+                  except (GAPI.notFound, GAPI.permissionDenied):
+                    userProfiles[userId] = {u'profile': {u'emailAddress', u'', u'name', {u'givenName': u'', u'familyName': u'', u'fullName': u''}}}
+                submission.update(userProfiles[userId])
             addRowTitlesToCSVfile(flattenJSON(submission, flattened={u'courseId': courseId, u'courseName': course[u'name']}, timeObjects=COURSE_SUBMISSION_TIME_OBJECTS), csvRows, titles)
         except GAPI.notFound:
           entityDoesNotHaveItemWarning([Ent.COURSE, course[u'name'], Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
@@ -19351,12 +19557,15 @@ def doPrintCourseSubmissions():
                                   throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                                   courseId=courseId, courseWorkId=courseWorkId, id=courseSubmissionId,
                                   fields=fields)
-            addRowTitlesToCSVfile(flattenJSON(submission, flattened={u'courseId': courseId, u'courseName': course[u'name']}, timeObjects=COURSE_SUBMISSION_TIME_OBJECTS), csvRows, titles)
+            addRowTitlesToCSVfile(flattenJSON(submission, flattened={u'courseId': courseId, u'courseName': course[u'name']},
+                                              timeObjects=COURSE_SUBMISSION_TIME_OBJECTS), csvRows, titles)
           except GAPI.notFound:
             entityDoesNotHaveItemWarning([Ent.COURSE, course[u'name'], Ent.COURSE_WORK_ID, courseWorkId, Ent.COURSE_SUBMISSION_ID, courseSubmissionId], k, kcount)
           except GAPI.forbidden:
             APIAccessDeniedExit()
-  writeCSVfile(csvRows, titles, u'Course Submissions', todrive, [u'courseId', u'courseName', u'courseWorkId', u'id', u'userId', u'state'])
+  writeCSVfile(csvRows, titles, u'Course Submissions', todrive, [u'courseId', u'courseName', u'courseWorkId', u'id', u'userId',
+                                                                 u'profile.emailAddress', u'profile.name.givenName', u'profile.name.familyName', u'profile.name.fullName',
+                                                                 u'state'])
 
 # gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>]) [show all|students|teachers]
 def doPrintCourseParticipants():
@@ -19599,11 +19808,12 @@ def doCourseRemoveParticipants(courseIdList, getEntityListArg):
     if courseId:
       _batchRemoveParticipantsFromCourse(croom, courseId, i, count, removeParticipants, role)
 
-# gam courses <CourseEntity> sync teachers|students <UserTypeEntity>
-# gam course <CourseID> sync teachers|students <UserTypeEntity>
+# gam courses <CourseEntity> sync teachers|students [addonly|removeonly] <UserTypeEntity>
+# gam course <CourseID> sync teachers|students [addonly|removeonly] <UserTypeEntity>
 def doCourseSyncParticipants(courseIdList, getEntityListArg):
   croom = buildGAPIObject(API.CLASSROOM)
   role = getChoice(SYNC_PARTICIPANT_TYPES_MAP, mapChoice=True)
+  syncOperation = getChoice([u'addonly', 'removeonly'], defaultChoice=u'addremove')
   _, syncParticipants = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
                                           typeMap={Cmd.ENTITY_COURSEPARTICIPANTS: PARTICIPANT_EN_MAP[role]}, checkNotSuspended=True)
   checkForExtraneousArguments()
@@ -19625,8 +19835,10 @@ def doCourseSyncParticipants(courseIdList, getEntityListArg):
       currentParticipantsSet = set()
       for user in getUsersToModify(PARTICIPANT_EN_MAP[role], courseId):
         currentParticipantsSet.add(normalizeEmailAddressOrUID(user))
-      _batchAddParticipantsToCourse(croom, courseId, i, count, list(syncParticipantsSet-currentParticipantsSet), role)
-      _batchRemoveParticipantsFromCourse(croom, courseId, i, count, list(currentParticipantsSet-syncParticipantsSet), role)
+      if syncOperation != u'removeonly':
+        _batchAddParticipantsToCourse(croom, courseId, i, count, list(syncParticipantsSet-currentParticipantsSet), role)
+      if syncOperation != u'addonly':
+        _batchRemoveParticipantsFromCourse(croom, courseId, i, count, list(currentParticipantsSet-syncParticipantsSet), role)
 
 def encode_multipart(fields, files, boundary=None):
   def escape_quote(s):
@@ -19976,10 +20188,11 @@ def getPrinterScopeListsForRole(cp, printerId, i, count, role):
     entityActionFailedWarning([Ent.PRINTER, printerId], str(e), i, count)
     return None
 
-# gam printer|printers <PrinterIDEntity> sync user|manager|owner <PrinterACLScopeEntity> [notify]
+# gam printer|printers <PrinterIDEntity> sync user|manager|owner [addonly|removeonly] <PrinterACLScopeEntity> [notify]
 def doPrinterSyncACLs(printerIdList):
   cp = buildGAPIObject(API.CLOUDPRINT)
   role = getChoice(PRINTER_ROLE_MAP, mapChoice=True)
+  syncOperation = getChoice([u'addonly', 'removeonly'], defaultChoice=u'addremove')
   scopeList, printerScopeLists = getPrinterACLScopeEntity()
   notify = checkArgumentPresent(u'notify')
   checkForExtraneousArguments()
@@ -19991,8 +20204,10 @@ def doPrinterSyncACLs(printerIdList):
       scopeList = normalizePrinterScopeList(printerScopeLists[printerId])
     currentScopeList = getPrinterScopeListsForRole(cp, printerId, i, count, role)
     if currentScopeList is not None:
-      _batchCreatePrinterACLs(cp, printerId, i, count, list(set(scopeList) - set(currentScopeList)), role, notify)
-      _batchDeletePrinterACLs(cp, printerId, i, count, list(set(currentScopeList) - set(scopeList)), role)
+      if syncOperation != u'removeonly':
+        _batchCreatePrinterACLs(cp, printerId, i, count, list(set(scopeList)-set(currentScopeList)), role, notify)
+      if syncOperation != u'addonly':
+        _batchDeletePrinterACLs(cp, printerId, i, count, list(set(currentScopeList)-set(scopeList)), role)
 
 # gam printer|printers <PrinterIDEntity> wipe user|manager|owner
 def doPrinterWipeACLs(printerIdList):
@@ -20554,7 +20769,8 @@ def initCalendarEntity():
 def getCalendarEntity(default=u'primary', noSelectionKwargs=None):
 
   def _noSelectionMade():
-    return not calendarEntity[u'list'] and not calendarEntity[u'kwargs'] and calendarEntity[u'dict'] is None and not calendarEntity[u'all'] and not calendarEntity[u'primary'] and not calendarEntity[u'resourceIds']
+    return (not calendarEntity[u'list'] and not calendarEntity[u'kwargs'] and calendarEntity[u'dict'] is None and
+            not calendarEntity[u'all'] and not calendarEntity[u'primary'] and not calendarEntity[u'resourceIds'])
 
   calendarEntity = initCalendarEntity()
   while Cmd.ArgumentsRemaining():
@@ -24027,15 +24243,55 @@ def updateDriveFile(users):
       Ind.Decrement()
 
 def _cloneFolder(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents, action):
-  body = {VX_FILENAME: newFolderTitle, u'mimeType': MIMETYPE_GA_FOLDER, u'parents': parents}
+  try:
+    body = callGAPI(drive.files(), u'get',
+                    throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
+                    fileId=folderId,
+                    fields=u'appProperties,contentHints,description,folderColorRgb,starred,mimeType,properties,teamDriveId',
+                    supportsTeamDrives=True)
+    if not body.get(u'teamDriveId'):
+      permissions = callGAPIpages(drive.permissions(), u'list', VX_PAGES_PERMISSIONS,
+                                  throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                                  fileId=folderId, fields=VX_NPT_PERMISSIONS_FIELDLIST.format(u'allowFileDiscovery,domain,emailAddress,role,type'),
+                                  supportsTeamDrives=True)
+    else:
+      permissions = None
+  except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError) as e:
+    entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, folderTitle], str(e), j, jcount)
+    return None
+  except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+    userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+    return None
+  body[VX_FILENAME] = newFolderTitle
+  body[u'parents'] = parents
   try:
     result = callGAPI(drive.files(), u'create',
                       throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INTERNAL_ERROR],
-                      body=body, fields=u'id', supportsTeamDrives=True)
+                      body=body, fields=u'id,teamDriveId', supportsTeamDrives=True)
     newFolderId = result[u'id']
     Act.Set(Act.CREATE)
     entityActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle, Ent.DRIVE_FOLDER_ID, newFolderId], j, jcount)
     Act.Set(action)
+    if permissions and not result.get(u'teamDriveId'):
+      sendNotificationEmail = False
+      emailMessage = None
+      for permission in permissions:
+        if permission[u'role'] != u'owner': ### organizer
+          try:
+            callGAPI(drive.permissions(), u'create',
+                     throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST,
+                                                                    GAPI.OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
+                                                                    GAPI.ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED],
+                     fileId=newFolderId, sendNotificationEmail=sendNotificationEmail, emailMessage=emailMessage,
+                     body=permission, fields=u'permission(id)', supportsTeamDrives=True)
+          except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+                  GAPI.ownerOnTeamDriveItemNotSupported, GAPI.organizerOnNonTeamDriveItemNotSupported) as e:
+            entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], str(e), j, jcount)
+          except GAPI.invalidSharingRequest as e:
+            entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], Ent.TypeNameMessage(Ent.PERMISSION_ID, permission[u'id'], str(e)), j, jcount)
+          except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+            userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+            break
     return newFolderId
   except (GAPI.forbidden, GAPI.internalError) as e:
     Act.Set(Act.CREATE)
@@ -24056,7 +24312,7 @@ def copyDriveFile(users):
       return
     source_children = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                                     throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                    q=WITH_PARENTS.format(folderId), fields=VX_NPT_FILES_ID_FILENAME_MIMETYPE_CANCOPY,
+                                    q=WITH_PARENTS.format(folderId), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_CAPABILITIES,
                                     pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], supportsTeamDrives=True)
     kcount = len(source_children)
     if kcount > 0:
@@ -24070,6 +24326,9 @@ def copyDriveFile(users):
           entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], Msg.NOT_COPYABLE, k, kcount)
           continue
         newParents = [newFolderId]
+        for parentId in child[u'parents']:
+          if parentId != folderId:
+            newParents.append(parentId)
         if child[u'mimeType'] == MIMETYPE_GA_FOLDER:
           if maxdepth == -1 or depth < maxdepth:
             _recursiveFolderCopy(drive, user, i, count, k, kcount, childId, childTitle, childTitle, newParents, depth+1)
@@ -24141,6 +24400,128 @@ def copyDriveFile(users):
                             body=body, fields=VX_ID_FILENAME, supportsTeamDrives=True)
           entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, metadata[VX_FILENAME]],
                                                              Act.MODIFIER_TO, result[VX_FILENAME], [Ent.DRIVE_FILE_ID, result[u'id']], j, jcount)
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.cannotCopyFile) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+        break
+    Ind.Decrement()
+
+# gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>]
+#	[parentid <DriveFolderID>] [parentname <DriveFolderName>]
+#	[teamdriveparentid <DriveFolderID>] [teamdriveparent <TeamDriveName>] [teamdriveparentname <DriveFolderName>]
+def moveDriveFile(users):
+  def _recursiveFolderMove(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents):
+    newFolderId = _cloneFolder(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents, Act.MOVE)
+    if newFolderId is None:
+      return
+    source_children = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
+                                    throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                    q=WITH_PARENTS.format(folderId), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_CAPABILITIES,
+                                    pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], supportsTeamDrives=True)
+    kcount = len(source_children)
+    if kcount > 0:
+      Ind.Increment()
+      k = 0
+      for child in source_children:
+        k += 1
+        childId = child[u'id']
+        childTitle = child[VX_FILENAME]
+        if childId == newFolderId:
+          entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], Msg.NOT_COPYABLE, k, kcount)
+          continue
+        newParents = [newFolderId]
+        for parentId in child[u'parents']:
+          if parentId != folderId:
+            newParents.append(parentId)
+        if child[u'mimeType'] == MIMETYPE_GA_FOLDER:
+          _recursiveFolderMove(drive, user, i, count, k, kcount, childId, childTitle, childTitle, newParents)
+        else:
+          try:
+            result = callGAPI(drive.files(), u'update',
+                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                              fileId=childId, addParents=newFolderId, removeParents=folderId, fields=VX_ID_FILENAME, supportsTeamDrives=True)
+            entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, childTitle],
+                                                               Act.MODIFIER_TO, result[VX_FILENAME], [Ent.DRIVE_FILE_ID, result[u'id']], k, kcount)
+          except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError) as e:
+            entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], str(e), k, kcount)
+      Ind.Decrement()
+      try:
+        callGAPI(drive.files(), u'delete',
+                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
+                 fileId=folderId, supportsTeamDrives=True)
+        Act.Set(Act.DELETE)
+        entityActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, folderTitle, Ent.DRIVE_FOLDER_ID, folderId], i, count)
+        Act.Set(Act.MOVE)
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.fileNeverWritable) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER_ID, folderId], str(e), j, jcount)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+      entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, folderTitle],
+                                                         Act.MODIFIER_TO, newFolderTitle, [Ent.DRIVE_FOLDER_ID, newFolderId], j, jcount)
+
+  fileIdEntity = getDriveFileEntity()
+  body = {}
+  parentBody = {}
+  parameters = initializeDriveFileAttributes()
+  newfilename = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'newfilename':
+      newfilename = getString(Cmd.OB_DRIVE_FILE_NAME)
+      body[VX_FILENAME] = newfilename
+    elif getDriveFileParentAttribute(myarg, parameters):
+      pass
+    else:
+      unknownArgumentExit()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER)
+    if jcount == 0:
+      continue
+    if not _getDriveFileParentInfo(user, i, count, parentBody, parameters, drive):
+      continue
+    addParents = u','.join(parentBody[u'parents'])
+    tdAddParents = None
+    Ind.Increment()
+    j = 0
+    for fileId in fileIdEntity[u'list']:
+      j += 1
+      try:
+        metadata = callGAPI(drive.files(), u'get',
+                            throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
+                            fileId=fileId, fields=VX_ID_FILENAME_PARENTS_MIMETYPE_TEAMDRIVEID, supportsTeamDrives=True)
+        if not metadata.get(u'teamDriveId') and metadata[u'mimeType'] == MIMETYPE_GA_FOLDER:
+          if tdAddParents is None:
+            tdAddParents = False
+            for parentId in parentBody[u'parents']:
+              try:
+                result = callGAPI(drive.files(), u'get',
+                                  throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
+                                  fileId=parentId, fields=u'teamDriveId', supportsTeamDrives=True)
+                if result.get(u'teamDriveId'):
+                  tdAddParents = True
+                  break
+              except GAPI.fileNotFound as e:
+                entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
+                break
+              except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+                userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+                break
+        if metadata[u'mimeType'] != MIMETYPE_GA_FOLDER or not tdAddParents:
+          nameBody = body.copy()
+          nameBody.setdefault(VX_FILENAME, metadata[VX_FILENAME])
+          removeParents = u','.join(metadata.get(u'parents', []))
+          result = callGAPI(drive.files(), u'update',
+                            throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                            fileId=fileId, addParents=addParents, removeParents=removeParents,
+                            body=body, fields=VX_FILENAME, supportsTeamDrives=True)
+          entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, metadata[VX_FILENAME]],
+                                                             Act.MODIFIER_TO, result[VX_FILENAME], [Ent.DRIVE_FOLDER_ID, addParents], j, jcount)
+        else:
+          destFilename = newfilename or metadata[VX_FILENAME]
+          _recursiveFolderMove(drive, user, i, count, j, jcount, fileId, metadata[VX_FILENAME], destFilename, parentBody[u'parents'])
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.cannotCopyFile) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -24963,7 +25344,7 @@ def transferDrive(users):
                       throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                       fields=u'storageQuota,user(permissionId)')
     if result[u'storageQuota'].get(u'limit'):
-      targetDriveFree = int(result[u'storageQuota'][u'limit']) - int(result[u'storageQuota'][u'usageInDrive'])
+      targetDriveFree = int(result[u'storageQuota'][u'limit'])-int(result[u'storageQuota'][u'usageInDrive'])
     else:
       targetDriveFree = None
     targetPermissionId = result[u'user'][u'permissionId']
@@ -25053,7 +25434,7 @@ def transferDrive(users):
       printKeyValueList([u'Source drive size', formatFileSize(sourceDriveSize),
                          u'Target drive free', formatFileSize(targetDriveFree) if targetDriveFree is not None else u'UNLIMITED'])
       if targetDriveFree is not None:
-        targetDriveFree = targetDriveFree - sourceDriveSize # prep targetDriveFree for next user
+        targetDriveFree = targetDriveFree-sourceDriveSize # prep targetDriveFree for next user
       if not csvFormat:
         targetIds[TARGET_PARENT_ID] = _buildTargetUserFolder()
         if targetIds[TARGET_PARENT_ID] is None:
@@ -28817,11 +29198,10 @@ def _importInsertMessage(users, importMsg):
   addLabelNames = []
   msgHTML = msgText = u''
   msgHeaders = {}
-  tagReplacements = {}
+  tagReplacements = _initTagReplacements()
   attachments = []
   internalDateSource = u'receivedTime'
-  deleted = neverMarkSpam = processForCalendar = False
-  substituteForUserInHeaders = substituteForUserInReplace = False
+  deleted = neverMarkSpam = processForCalendar = substituteForUserInHeaders = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in SMTP_HEADERS_MAP:
@@ -28854,11 +29234,7 @@ def _importInsertMessage(users, importMsg):
       encoding = getCharSet()
       msgHTML = readFile(filename, encoding=encoding)
     elif myarg == u'replace':
-      matchTag = getString(Cmd.OB_TAG)
-      matchReplacement = getString(Cmd.OB_STRING, minLen=0)
-      tagReplacements[matchTag] = matchReplacement
-      if (matchReplacement.find(u'#user#') >= 0) or (matchReplacement.find(u'#email#') >= 0) or (matchReplacement.find(u'#username#') >= 0):
-        substituteForUserInReplace = True
+      _getTagReplacement(tagReplacements, False)
     elif myarg == u'addlabel':
       addLabelNames.append(getString(Cmd.OB_LABEL_NAME, minLen=1))
     elif myarg == u'attach':
@@ -28875,6 +29251,9 @@ def _importInsertMessage(users, importMsg):
     missingArgumentExit(u'textmessage|textfile|htmlmessage|htmlfile')
   msgText = msgText.replace(u'\r', u'').replace(u'\\n', u'\n')
   msgHTML = msgHTML.replace(u'\r', u'').replace(u'\\n', u'<br/>')
+  if not tagReplacements[u'tags']:
+    tmpText = msgText
+    tmpHTML = msgHTML
   if u'To' not in msgHeaders:
     msgHeaders[u'To'] = u'#user#'
     substituteForUserInHeaders = True
@@ -28894,18 +29273,11 @@ def _importInsertMessage(users, importMsg):
     if not gmail:
       continue
     userName, _ = splitEmailAddress(user)
-    tmpText = msgText[:]
-    tmpHTML = msgHTML[:]
-    if tagReplacements:
-      if not substituteForUserInReplace:
-        tmpText = _processTags(tagReplacements, tmpText)
-        tmpHTML = _processTags(tagReplacements, tmpHTML)
-      else:
-        tmpReplacements = tagReplacements.copy()
-        for tag in tmpReplacements:
-          tmpReplacements[tag] = _substituteForUser(tmpReplacements[tag], user, userName)
-        tmpText = _processTags(tmpReplacements, tmpText)
-        tmpHTML = _processTags(tmpReplacements, tmpHTML)
+    if tagReplacements[u'tags']:
+      if tagReplacements[u'subs']:
+        _getTagReplacementFieldValues(user, i, count, tagReplacements)
+      tmpText = _processTagReplacements(tagReplacements, msgText)
+      tmpHTML = _processTagReplacements(tagReplacements, msgHTML)
     if attachments:
       if tmpText and tmpHTML:
         message = MIMEMultipart(u'alternative')
@@ -30315,8 +30687,8 @@ def _showSendAs(result, j, jcount, formatSig):
 def _processSignature(tagReplacements, signature, html):
   if signature:
     signature = signature.replace(u'\r', u'').replace(u'\\n', u'<br/>')
-    if tagReplacements:
-      signature = _processTags(tagReplacements, signature)
+    if tagReplacements[u'tags']:
+      signature = _processTagReplacements(tagReplacements, signature)
     if not html:
       signature = signature.replace(u'\n', u'<br/>')
   return signature
@@ -30341,9 +30713,7 @@ def _processSendAs(user, i, count, entityType, emailAddress, j, jcount, gmail, f
 
 def getSendAsAttributes(myarg, body, tagReplacements):
   if myarg == u'replace':
-    matchTag = getString(Cmd.OB_TAG)
-    matchReplacement = getString(Cmd.OB_STRING, minLen=0)
-    tagReplacements[matchTag] = matchReplacement
+    _getTagReplacement(tagReplacements, True)
   elif myarg == u'name':
     body[u'displayName'] = getString(Cmd.OB_NAME, minLen=0)
   elif myarg == u'replyto':
@@ -30362,7 +30732,7 @@ def _createUpdateSendAs(users, addCmd):
   else:
     body = {}
   signature = None
-  tagReplacements = {}
+  tagReplacements = _initTagReplacements()
   html = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -30377,7 +30747,7 @@ def _createUpdateSendAs(users, addCmd):
       html = getBoolean()
     else:
       getSendAsAttributes(myarg, body, tagReplacements)
-  if signature is not None:
+  if signature is not None and not tagReplacements[u'subs']:
     body[u'signature'] = _processSignature(tagReplacements, signature, html)
   kwargs = {u'body': body, u'fields': u''}
   if not addCmd:
@@ -30388,6 +30758,9 @@ def _createUpdateSendAs(users, addCmd):
     user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
     if not gmail:
       continue
+    if signature is not None and tagReplacements[u'subs']:
+      _getTagReplacementFieldValues(user, i, count, tagReplacements)
+      kwargs[u'body'][u'signature'] = _processSignature(tagReplacements, signature, html)
     _processSendAs(user, i, count, Ent.SENDAS_ADDRESS, emailAddress, i, count, gmail, [u'patch', u'create'][addCmd], False, **kwargs)
 
 # gam <UserTypeEntity> [create|add] sendas <EmailAddress> <String> [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)*]
@@ -30718,7 +31091,7 @@ def showSmimes(users):
 # gam <UserTypeEntity> signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)*
 #	[html [<Boolean>]] [name <String>] [replyto <EmailAddress>] [default] [primary] [treatasalias <Boolean>]
 def setSignature(users):
-  tagReplacements = {}
+  tagReplacements = _initTagReplacements()
   if checkArgumentPresent(u'file'):
     filename = getString(Cmd.OB_FILE_NAME)
     encoding = getCharSet()
@@ -30735,13 +31108,17 @@ def setSignature(users):
       html = getBoolean()
     else:
       getSendAsAttributes(myarg, body, tagReplacements)
-  body[u'signature'] = _processSignature(tagReplacements, signature, html)
+  if not tagReplacements[u'subs']:
+    body[u'signature'] = _processSignature(tagReplacements, signature, html)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
     if not gmail:
       continue
+    if tagReplacements[u'subs']:
+      _getTagReplacementFieldValues(user, i, count, tagReplacements)
+      body[u'signature'] = _processSignature(tagReplacements, signature, html)
     if primary:
       try:
         result = callGAPI(gmail.users().settings().sendAs(), u'list',
@@ -30864,7 +31241,7 @@ def setVacation(users):
   if enable:
     responseBodyType = u'responseBodyPlainText'
     message = None
-    tagReplacements = {}
+    tagReplacements = _initTagReplacements()
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if myarg == u'subject':
@@ -30876,9 +31253,7 @@ def setVacation(users):
         encoding = getCharSet()
         message = readFile(filename, encoding=encoding)
       elif myarg == u'replace':
-        matchTag = getString(Cmd.OB_TAG)
-        matchReplacement = getString(Cmd.OB_STRING, minLen=0)
-        tagReplacements[matchTag] = matchReplacement
+        _getTagReplacement(tagReplacements, True)
       elif myarg == u'html':
         if getBoolean():
           responseBodyType = u'responseBodyHtml'
@@ -30901,8 +31276,8 @@ def setVacation(users):
         message = message.replace(u'\r', u'').replace(u'\\n', u'<br/>')
       else:
         message = message.replace(u'\r', u'').replace(u'\\n', u'\n')
-      if tagReplacements:
-        message = _processTags(tagReplacements, message)
+      if tagReplacements[u'tags'] and not tagReplacements[u'subs']:
+        message = _processTagReplacements(tagReplacements, message)
       body[responseBodyType] = message
     if not message and not body.get(u'responseSubject'):
       missingArgumentExit(u'message or subject')
@@ -30912,6 +31287,9 @@ def setVacation(users):
     user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
     if not gmail:
       continue
+    if tagReplacements[u'subs']:
+      _getTagReplacementFieldValues(user, i, count, tagReplacements)
+      body[responseBodyType] = _processTagReplacements(tagReplacements, message)
     try:
       result = callGAPI(gmail.users().settings(), u'updateVacation',
                         throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.INVALID_ARGUMENT],
@@ -31677,7 +32055,7 @@ USER_COMMANDS_WITH_OBJECTS = {
     ),
   u'insert': (Act.INSERT, {Cmd.ARG_MESSAGE: insertMessage}),
   u'modify': (Act.MODIFY, {Cmd.ARG_CALENDAR: modifyCalendars, Cmd.ARG_MESSAGE: processMessages, Cmd.ARG_THREAD: processThreads}),
-  u'move': (Act.MOVE, {Cmd.ARG_EVENT: moveCalendarEvents}),
+  u'move': (Act.MOVE, {Cmd.ARG_DRIVEFILE: moveDriveFile, Cmd.ARG_EVENT: moveCalendarEvents}),
   u'purge': (Act.PURGE, {Cmd.ARG_DRIVEFILE: purgeDriveFile}),
   u'print':
     (Act.PRINT,

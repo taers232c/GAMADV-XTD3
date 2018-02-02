@@ -327,6 +327,15 @@ If an item contains spaces, it should be surrounded by ".
 <URI> ::= <String>
 <URL> ::= <String>
 <UserItem> ::= <EmailAddress>|<UniqueID>|<String>
+<UserReplacementFieldName> ::=
+        domain|
+        familyname|lastname|
+        firstname|givenname|
+        fullname|name|
+        org|ou|
+        primaryemail|user|
+        username
+<UserReplacement> ::= (field:<UserReplacementFieldName>)|(schema:<SchemaName>.<FieldName>)|<String>
 
 ## Lists of items
 
@@ -1066,14 +1075,14 @@ gam course <CourseID> delete alias <CourseAlias>
 
 gam course <CourseID> create|add teachers|students <UserItem>
 gam course <CourseID> delete|remove teachers|students <UserItem>
-gam course <CourseID> sync teachers|students <UserTypeEntity>
+gam course <CourseID> sync teachers|students [addonly|removeonly] <UserTypeEntity>
 
 gam courses <CourseEntity> create|add alias <CourseAliasEntity>
 gam courses <CourseEntity> delete alias <CourseAliasEntity>
 
 gam courses <CourseEntity> create|add teachers|students <UserTypeEntity>
 gam courses <CourseEntity> delete|remove teachers|students <UserTypeEntity>
-gam courses <CourseEntity> sync teachers|students <UserTypeEntity>
+gam courses <CourseEntity> sync teachers|students [addonly|removeonly] <UserTypeEntity>
 
 gam info course <CourseID> [owneremail] [alias|aliases] [show all|students|teachers] [countsonly]
         [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
@@ -1156,7 +1165,7 @@ gam print course-work [todrive [<ToDriveAttributes>]] (course|class <CourseEntit
 gam print course-submissions [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         (workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)* (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
         (submissionids <CourseSubmissionIDEntity>)|((submissionstates <CourseSubmissionStateList>)*) [late|notlate]
-        [fields <CourseSubmissionFieldNameList>]
+        [fields <CourseSubmissionFieldNameList>] [showuserprofile]
 
 # Customer
 
@@ -1253,7 +1262,7 @@ gam create|add group <EmailAddress> <GroupAttributes>*
 gam update group|groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] <GroupAttributes>*
 gam update group|groups <GroupEntity> create|add [owner|manager|member] [usersonly|groupsonly] [notsuspended] <UserTypeEntity>
 gam update group|groups <GroupEntity> delete|remove [owner|manager|member] [usersonly|groupsonly] <UserTypeEntity>
-gam update group|groups <GroupEntity> sync [owner|manager|member] [usersonly|groupsonly] [notsuspended] <UserTypeEntity>
+gam update group|groups <GroupEntity> sync [owner|manager|member] [usersonly|groupsonly] [addonly|removeonly] [notsuspended] <UserTypeEntity>
 gam update group|groups <GroupEntity> update [owner|manager|member] [usersonly|groupsonly] <UserTypeEntity>
 gam update group|groups <GroupEntity> clear [member] [manager] [owner] [suspended]
 gam delete group|groups <GroupEntity>
@@ -1475,7 +1484,7 @@ gam print printer|printers [todrive [<ToDriveAttributes>]] [query <QueryPrinter>
 
 gam printer|printers <PrinterIDEntity> create|add user|manager|owner [usersonly|groupsonly] <PrinterACLScopeEntity> [notify]
 gam printer|printers <PrinterIDEntity> delete [usersonly|groupsonly] <PrinterACLScopeEntity>
-gam printer|printers <PrinterIDEntity> sync user|manager|owner [usersonly|groupsonly] <PrinterACLScopeEntity> [notify]
+gam printer|printers <PrinterIDEntity> sync user|manager|owner [usersonly|groupsonly] [addonly|removeonly] <PrinterACLScopeEntity> [notify]
 gam printer|printers <PrinterIDEntity> wipe user|manager|owner
 gam printer|printers <PrinterIDEntity> showacls
 gam printer|printers <PrinterIDEntity> printacls [todrive [<ToDriveAttributes>]]
@@ -1805,7 +1814,7 @@ gam print vaultmatters|matters [todrive [<ToDriveAttributes>]] [basic|full]
         (location clear|(type default|desk|<String> area <String> [building|buildingid <String>] [floor|floorname <String>] [section|floorsection <String>] [desk|deskcode <String>] endlocation))|
         (note clear|([text_plain|text_html] <String>|(file <FileName> [charset <Charset>])))|
         (organization clear|([type domain_only|school|unknown|work] [customtype <String>] [name <String>] [title <String>] [department <String>] [symbol <String>]
-                [costcenter <String>]  [location <String>] [description <String>] [domain <String>] notprimary|primary))|
+                [costcenter <String>]  [location <String>] [description <String>] [domain <String>] [fulltimeequivalent <Integer>] notprimary|primary))|
         (org|ou|orgunitpath <OrgUnitPath>)
         (password random|<Password>)|
         (phone clear|([type work|home|other|work_fax|home_fax|other_fax|main|company_main|assistant|mobile|work_mobile|pager|work_pager|car|radio|callback|isdn|telex|tty_tdd|grand_central|(custom <String>)]
@@ -2071,12 +2080,10 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
         <DriveFileAttributes>|
         ignoredefaultvisibility|
         (modifieddate|modifiedtime <Time>)|
-        (parentid <DriveFolderID>)|
-        (parentname <DriveFolderName>)|
-        (anyownerparentname <DriveFolderName>)|
-        (teamdriveparent <TeamDriveName>)|
-        (teamdriveparentid <TeamDriveID>|<DriveFolderID>)|
-        (teamdriveparentname <DriveFolderName>)|
+        ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>))|
+        ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>)|
+         (teamdriveparentid <DriveFolderID>)|
+         ((teamdriveparentid <TeamDriveID>)|(teamdriveparent <TeamDriveName>) [teamdriveparentname <DriveFolderName>]))|
         usecontentasindexabletext
 
 <DriveFileUpdateAttributes> ::=
@@ -2087,20 +2094,23 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
         (removeparents <DriveFolderIDList>)|
         (removeparentname <DriveFolderName>)|
         (removeanyownerparentname <DriveFolderName>)|
-        (parentid <DriveFolderID>)|
-        (parentname <DriveFolderName>)|
-        (anyownerparentname <DriveFolderName>)|
+        ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>))|
+        ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>)|
+         (teamdriveparentid <DriveFolderID>)|
+         ((teamdriveparentid <TeamDriveID>)|(teamdriveparent <TeamDriveName>) [teamdriveparentname <DriveFolderName>]))|
         usecontentasindexabletext
 
 <DriveFileCopyAttributes> ::=
         <DriveFileAttributes>|
         ignoredefaultvisibility|
-        (parentid <DriveFolderID>)|
-        (parentname <DriveFolderName>)|
-        (anyownerparentname <DriveFolderName>)|
-        (teamdriveparent <TeamDriveName>)|
-        (teamdriveparentid <TeamDriveID>|<DriveFolderID>)|
-        (teamdriveparentname <DriveFolderName>)
+        ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>))|
+         (teamdriveparentid <DriveFolderID>)|
+         ((teamdriveparentid <TeamDriveID>)|(teamdriveparent <TeamDriveName>) [teamdriveparentname <DriveFolderName>]))
+
+<DriveFileMoveAttributes> ::=
+        ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>))|
+         (teamdriveparentid <DriveFolderID>)|
+         ((teamdriveparentid <TeamDriveID>)|(teamdriveparent <TeamDriveName>) [teamdriveparentname <DriveFolderName>]))
 
 <DriveFileOrderByFieldName> ::=
         createddate|createdtime|
@@ -2123,7 +2133,8 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 
 gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] <DriveFileAddAttributes>*
 gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [newfilename <DriveFileName>] <DriveFileUpdateAttributes>*
-gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [recursive [depth <Number>]] <DriveFileCopyAttributes>*
+gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] <DriveFileCopyAttributes>* [recursive [depth <Number>]]
+gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>] <DriveFileMoveAttributes>*
 gam <UserTypeEntity> get drivefile <DriveFileEntity> [format <FileFormatList>] [targetfolder <FilePath>] [revision <DriveFileRevisionID>]
 gam <UserTypeEntity> delete drivefile <DriveFileEntity> [purge|untrash|trash]
 gam <UserTypeEntity> purge drivefile <DriveFileEntity>
@@ -2424,11 +2435,11 @@ gam <UserTypeEntity> print labels|label [onlyuser [<Boolean>]] [showcounts [<Boo
 
 gam <UserTypeEntity> import message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)* (addlabel <LabelName>)*
         (textmessage <String>)|(textfile <FileName> [charset <CharSet>]) (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
-        (replace <Tag> <String>)* (attach <FileName>)*
+        (replace <Tag> <UserReplacement>)* (attach <FileName>)*
         [deleted [<Boolean>]] [nevermarkspam [<Boolean>]] [processforcalendar [<Boolean>]]
 gam <UserTypeEntity> insert message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)* (addlabel <LabelName>)*
         (textmessage <String>)|(textfile <FileName> [charset <CharSet>]) (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
-        (replace <Tag> <String>)* (attach <FileName>)*
+        (replace <Tag> <UserReplacement>)* (attach <FileName>)*
         [deleted [<Boolean>]]
 
 gam <UserTypeEntity> archive messages <GroupItem> (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_archive|max_to_process <Number>])|(ids <MessageIDEntity>)
@@ -2451,9 +2462,9 @@ gam <UserTypeEntity> print gmailprofile [todrive [<ToDriveAttributes>]]
 
 # Users - Gmail - Send As/Signature/Vacation
 
-gam <UserTypeEntity> [create|add] sendas <EmailAddress> <String> [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*]
+gam <UserTypeEntity> [create|add] sendas <EmailAddress> <String> [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <Tag> <UserReplacement>)*]
         [html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
-gam <UserTypeEntity> update sendas <EmailAddress> [name <String>] [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*]
+gam <UserTypeEntity> update sendas <EmailAddress> [name <String>] [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <Tag> <UserReplacement>)*]
         [html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
 gam <UserTypeEntity> delete sendas <EmailAddressEntity>
 gam <UserTypeEntity> info sendas <EmailAddressEntity> [format]
@@ -2466,13 +2477,13 @@ gam <UserTypeEntity> delete smime [id <S/MIMEID>] [sendas|sendasemail <EmailAddr
 gam <UserTypeEntity> show smimes [primaryonly]
 gam <UserTypeEntity> print smimes [todrive [<ToDriveAttributes>]] [primaryonly]
 
-gam <UserTypeEntity> signature|sig <String>|(file <FileName> [charset <Charset>]) (replace <Tag> <String>)*
+gam <UserTypeEntity> signature|sig <String>|(file <FileName> [charset <Charset>]) (replace <Tag> <UserReplacement>)*
         [html [<Boolean>]] [name <String>] [replyto <EmailAddress>] [default] [primary] [treatasalias <Boolean>]
 gam <UserTypeEntity> show signature|sig [format] [primary]
 gam <UserTypeEntity> print signature [todrive [<ToDriveAttributes>]]
 
 gam <UserTypeEntity> vacation <FalseValues>
-gam <UserTypeEntity> vacation <TrueValues> subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*
+gam <UserTypeEntity> vacation <TrueValues> subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <Tag> <UserReplacement>)*
         [html [<Boolean>]] [contactsonly [<Boolean>]] [domainonly [<Boolean>]] [startdate <Date>|Started] [enddate <Date>|NotSpecified]
 gam <UserTypeEntity> show vacation [format]
 gam <UserTypeEntity> print vacation [todrive [<ToDriveAttributes>]]
@@ -2549,8 +2560,9 @@ See: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets/cre
 See: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets/batchUpdate
 
 gam <UserTypeEntity> create|add sheet json <SpreadsheetJSONCreateRequest> [formatjson]
-        [parentid <DriveFolderID>] | [parentname <DriveFolderName>] | [anyownerparentname <DriveFolderName>]
-        [teamdriveparentid <DriveFolderID>] [teamdriveparent <TeamDriveName>] [teamdriveparentname <DriveFolderName>]
+        [(parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>)|
+         (teamdriveparentid <DriveFolderID>)|
+         ((teamdriveparentid <TeamDriveID>)|(teamdriveparent <TeamDriveName>) [teamdriveparentname <DriveFolderName>])]
 gam <UserTypeEntity> update sheet <DriveFileEntity> json <SpreadsheetJSONUpdateRequest> [formatjson]
 gam <UserTypeEntity> info sheet <DriveFileEntity> (range <SpreadsheetRange>)* [includegriddata [<Boolean>]] [formatjson]
 
