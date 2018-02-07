@@ -1,3 +1,40 @@
+4.55.18
+
+Many gam print commands display "Getting ... (n/m)" messages while stepping through lists of items; this let's you monitor Gam's progress.
+Other gam print commands display no output as they progress; a "Getting ... (n/m)" message has been added to these commands.
+
+Added enabledonly option to gam print forward/vacation to disable output of users with these options disabled.
+gam <UserTypeEntity> print forward [enabledonly] [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> print vacation [enabledonly] [todrive [<ToDriveAttributes>]]
+
+Added retainname option to gam update drivefile to allow updating a Google Drive file from a local file without renaming it.
+gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [retainname | (newfilename <DriveFileName>)] <DriveFileUpdateAttributes>*
+Here are the file naming rules:
+create drivefile localfile "LocalFile.csv" - Google Drive file is named "LocalFile.csv"
+create drivefile drivefilename "GoogleFile.csv" localfile "LocalFile.csv" - Google Drive file is named "GoogleFile.csv"
+update drivefile drivefilename "GoogleFile.csv" localfile "NewLocalFile.csv" - Google Drive file "GoogleFile.csv" is renamed "NewLocalFile.csv"
+update drivefile drivefilename "GoogleFile.csv" newfilename "NewGoogleFile.csv" localfile "NewLocalFile.csv" - Google Drive file "GoogleFile.csv" is renamed "NewGoogleFile.csv"
+update drivefile drivefilename "GoogleFile.csv" retainname localfile "NewLocalFile.csv" - Google Drive file "GoogleFile.csv" is not renamed
+
+Added matchname <RegularExpression> argument to all commands that print or show Team Drives to allow retrieving Team Drives with names that match a pattern.
+It is more flexible that the administrator query for a Team Drive name described here: https://developers.google.com/drive/v3/web/search-parameters#team_drive_fields
+It can be used with all commands, the administrator query can ony be used when adminaccess is implied or explicitly specified.
+
+gam print teamdrives [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] (role <TeamDriveACLRole>)* [todrive [<ToDriveAttributes>]]
+gam show teamdrives [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] (role <TeamDriveACLRole>)*
+
+gam <UserTypeEntity> print teamdrives adminaccess [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] (role <TeamDriveACLRole>)* [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> show teamdrives adminaccess [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] (role <TeamDriveACLRole>)*
+
+gam <UserTypeEntity> print teamdrives [matchname <RegularExpression>] (role <TeamDriveACLRole>)* [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> show teamdrives [matchname <RegularExpression>] (role <TeamDriveACLRole>)*
+
+Added commands to display Team Drive ACLs. These commands can be time consuming as Gam gets the list of Team Drives with one API call and then makes an API call per Team Drive to get the ACL information.
+gam print teamdriveacls [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)* [oneitemperrow] [todrive [<ToDriveAttributes>]]
+gam show teamdriveacls [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
+gam <UserTypeEntity> print teamdriveacls adminaccess [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)* [oneitemperrow] [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> show teamdriveacls adminaccess [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
+
 4.55.17
 
 Added fulltimeequivalent <Integer> field to organization item in <UserAttributes>.

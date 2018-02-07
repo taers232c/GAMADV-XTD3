@@ -237,9 +237,9 @@ If an item contains spaces, it should be surrounded by ".
 <CustomerID> ::= <String>
 <DomainAlias> ::= <String>
 <DomainName> ::= <String>(.<String>)+
-<DriveFileACLRole> :: =commenter|editor|organizer|owner|reader|writer
+<DriveFileACLRole> ::= commenter|editor|organizer|owner|reader|writer
 <DriveFileID> ::= <String>
-<DriveFileURL> :: = https://docs.google.com/a/<DomainName>/document/d/<DriveFileID>/<String>
+<DriveFileURL> ::= https://docs.google.com/a/<DomainName>/document/d/<DriveFileID>/<String>
 <DriveFileItem> ::= <DriveFileID>|<DriveFileURL>
 <DriveFileName> ::= <String>
 <DriveFolderID> ::= <String>
@@ -293,13 +293,13 @@ If an item contains spaces, it should be surrounded by ".
 <QueryCalendar> ::= <String>
 <QueryContact> ::= <String> See: https://developers.google.com/google-apps/contacts/v3/reference#contacts-query-parameters-reference
 <QueryCrOS> ::= <String> See: https://support.google.com/chrome/a/answer/1698333?hl=en
-<QueryDriveFile> :: = <String> See: https://developers.google.com/drive/v3/web/search-parameters
+<QueryDriveFile> ::= <String> See: https://developers.google.com/drive/v3/web/search-parameters
 <QueryGmail> ::= <String> See: https://support.google.com/mail/answer/7190
 <QueryMobile> ::= <String> See: https://support.google.com/a/answer/1408863?hl=en#search
 <QueryPrinter> ::= <String> See: https://developers.google.com/cloud-print/docs/appInterfaces#search
 <QueryPrintJob> ::= <String> See: https://developers.google.com/cloud-print/docs/appInterfaces#parameters_3
 <QueryTeamDrive> ::= <String> See: https://developers.google.com/drive/v3/web/search-parameters#team_drive_fields
-<QueryUser> :: = <String> See: https://developers.google.com/admin-sdk/directory/v1/guides/search-users
+<QueryUser> ::= <String> See: https://developers.google.com/admin-sdk/directory/v1/guides/search-users
 <QueryVaultCorpus> ::= <String> See: https://developers.google.com/vault/reference/rest/v1/matters.holds#CorpusQuery
 <Recipient> ::= <EmailAddress>
 <RequestID> ::= <String>
@@ -311,6 +311,7 @@ If an item contains spaces, it should be surrounded by ".
 <S/MIMEID> ::= <String>
 <StudentItem> ::= <EmailAddress>|<UniqueID>|<String>
 <Tag> ::= <String>
+<TeamDriveACLRole> ::= commenter|organizer|reader|writer
 <TeamDriveID> ::= <String>
 <TeamDriveName> ::= <String>
 <ThreadID> ::= <String>
@@ -491,6 +492,9 @@ Specify a collection of items by directly specifying them; the item type is dete
         writable_files
 <TeamDriveIDEntity> ::= (<DriveFileItem>) | (teamdriveid <DriveFileItem>) | (teamdriveid:<DriveFileItem>)
 <TeamDriveNameEntity> ::= (teamdrive <TeamDriveName>) | (teamdrive:<TeamDriveName>)
+<TeamDriveEntity> ::=
+        <TeamDriveIDEntity> |
+        <TeamDriveNameEntity>
 <TeamDriveAdminQueryEntity> ::= (teamdriveadminquery <QueryTeamDrive>) | (teamdriveadminquery:<QueryTeamDrive>)
 <TeamDriveEntityAdmin> ::=
         <TeamDriveIDEntity> |
@@ -1689,15 +1693,15 @@ In these commands, the Google administrator named in oauth2.txt is used.
 gam show teamdrivethemes
 gam info teamdrive <TeamDriveEntity>
 gam show teamdriveinfo <TeamDriveEntity>
-gam print teamdrives [teamdriveadminquery|query <QueryTeamDrive>] (role commenter|organizer|owner|reader|writer)* [checkgroups] [todrive [<ToDriveAttributes>]]
-gam show teamdrives [teamdriveadminquery|query <QueryTeamDrive>] (role commenter|organizer|owner|reader|writer)* [checkgroups]
+gam print teamdrives [<TeamDriveAdminQueryEntity>] [matchname <RegularExpression>] [todrive [<ToDriveAttributes>]]
+gam show teamdrives [<TeamDriveAdminQueryEntity>] [matchname <RegularExpression>]
 
-In these commands, you specify a user and then indicate that you want domain administrator access with the adminaccess option.
+In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
 
 gam <UserTypeEntity> info teamdrive <TeamDriveEntity> adminaccess
 gam <UserTypeEntity> show teamdriveinfo <TeamDriveEntity> adminaccess
-gam <UserTypeEntity> print teamdrives adminaccess [teamdriveadminquery|query <QueryTeamDrive>] (role commenter|organizer|owner|reader|writer)* [checkgroups] [todrive [<ToDriveAttributes>]]
-gam <UserTypeEntity> show teamdrives adminaccess [teamdriveadminquery|query <QueryTeamDrive>] (role commenter|organizer|owner|reader|writer)* [checkgroups]
+gam <UserTypeEntity> print teamdrives adminaccess [<TeamDriveAdminQueryEntity>] [matchname <RegularExpression>] [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> show teamdrives adminaccess [<TeamDriveAdminQueryEntity>] [matchname <RegularExpression>]
 
 These commands are used to manage the ACLs on the Team Drives themselves, not the files/folders on the Team Drives.
 
@@ -1724,6 +1728,16 @@ gam <UserTypeEntity> show drivefileacl <TeamDriveEntityAdmin> adminaccess [showt
 gam <UserTypeEntity> print drivefileacls <TeamDriveEntityAdmin> [todrive [<ToDriveAttributes>]] adminaccess [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> create|add permissions <TeamDriveEntityAdmin> <DriveFilePermissionEntity> adminaccess [expires|expiration <Time>] [sendemail] [emailmessage <String>]
 gam <UserTypeEntity> delete permissions <TeamDriveEntityAdmin> <DriveFilePermissionIDEntity> adminaccess
+
+In these commands, the Google administrator named in oauth2.txt is used.
+
+gam print teamdriveacls [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)* [oneitemperrow] [todrive [<ToDriveAttributes>]]
+gam show teamdriveacls [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
+
+In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
+
+gam <UserTypeEntity> print teamdriveacls adminaccess [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)* [oneitemperrow] [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> show teamdriveacls adminaccess [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
 
 # Vault
 
@@ -2132,7 +2146,7 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 <DriveFileEntity> ::= <DriveFileIDEntity> | <DriveFileNameEntity> | <DriveFileQueryEntity> | <DriveFileQueryShortcut> |  root | <FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
 
 gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] <DriveFileAddAttributes>*
-gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [newfilename <DriveFileName>] <DriveFileUpdateAttributes>*
+gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [retainname | (newfilename <DriveFileName>)] <DriveFileUpdateAttributes>*
 gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] <DriveFileCopyAttributes>* [recursive [depth <Number>]]
 gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>] <DriveFileMoveAttributes>*
 gam <UserTypeEntity> get drivefile <DriveFileEntity> [format <FileFormatList>] [targetfolder <FilePath>] [revision <DriveFileRevisionID>]
@@ -2144,7 +2158,7 @@ gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
 <DriveFilePermissionEntity> ::= <DriveFilePermissionList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <DriveFilePermissionIDEntity> ::= <DriveFilePermissionIDList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
-<DriveFileACLRole> :: =commenter|organizer|owner|reader|writer
+<DriveFileACLRole> ::= commenter|organizer|owner|reader|writer
 <DriveFilePermission> ::= anyone|anyonewithlink|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>;<DriveFileACLRole>
 <DriveFilePermissionID> ::= anyone|anyonewithlink|id:<String>
 <DriveFilePermissionIDorEmail> ::= <DriveFilePermissionID>|<EmailAddress>
@@ -2419,9 +2433,8 @@ gam <UserTypeEntity> print forwardingaddress|forwardingaddresses [todrive [<ToDr
 
 gam <UserTypeEntity> forward <FalseValues>
 gam <UserTypeEntity> forward <TrueValues> keep|leaveininbox|archive|delete|trash|markread <EmailAddress>
-
 gam <UserTypeEntity> show forward
-gam <UserTypeEntity> print forward [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> print forward [enabledonly] [todrive [<ToDriveAttributes>]]
 
 # Users - Gmail - Labels/Messages
 
@@ -2486,7 +2499,7 @@ gam <UserTypeEntity> vacation <FalseValues>
 gam <UserTypeEntity> vacation <TrueValues> subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <Tag> <UserReplacement>)*
         [html [<Boolean>]] [contactsonly [<Boolean>]] [domainonly [<Boolean>]] [startdate <Date>|Started] [enddate <Date>|NotSpecified]
 gam <UserTypeEntity> show vacation [format]
-gam <UserTypeEntity> print vacation [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> print vacation [enabledonly] [todrive [<ToDriveAttributes>]]
 
 # Users - Gmail - Settings
 
@@ -2540,8 +2553,8 @@ gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>] [(theme|th
 gam <UserTypeEntity> delete teamdrive <TeamDriveEntity>
 gam <UserTypeEntity> info teamdrive <TeamDriveEntity>
 gam <UserTypeEntity> show teamdriveinfo <TeamDriveEntity>
-gam <UserTypeEntity> print teamdrives (role commenter|organizer|owner|reader|writer)* [checkgroups] [todrive [<ToDriveAttributes>]]
-gam <UserTypeEntity> show teamdrives (role commenter|organizer|owner|reader|writer)* [checkgroups]
+gam <UserTypeEntity> print teamdrives [matchname <RegularExpression>] (role <TeamDriveACLRole>)* [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> show teamdrives [matchname <RegularExpression>] (role <TeamDriveACLRole>)*
 
 # Users - Spreadsheets
 

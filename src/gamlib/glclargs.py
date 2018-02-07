@@ -372,6 +372,7 @@ class GamCLArgs(object):
   ARG_SMIMES = u'smimes'
   ARG_TEAMDRIVE = u'teamdrive'
   ARG_TEAMDRIVES = u'teamdrives'
+  ARG_TEAMDRIVEACLS = u'teamdriveacls'
   ARG_TEAMDRIVEINFO = u'teamdriveinfo'
   ARG_TEAMDRIVETHEMES = u'teamdrivethemes'
   ARG_THREAD = u'thread'
