@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.18'
+__version__ = u'4.55.19'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -18827,13 +18827,14 @@ def _setCourseFields(courseShowProperties, pagesMode):
     return u','.join(set(courseShowProperties[u'fields']))
   return u'nextPageToken,courses({0})'.format(u','.join(set(courseShowProperties[u'fields'])))
 
-def _convertCourseUserIdToEmail(croom, userId, emails):
+def _convertCourseUserIdToEmail(croom, userId, emails, entityValueList, i, count):
   if userId not in emails:
     try:
       emails[userId] = callGAPI(croom.userProfiles(), u'get',
-                                throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                                throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.BAD_REQUEST],
                                 userId=userId, fields=u'emailAddress')[u'emailAddress']
-    except (GAPI.notFound, GAPI.permissionDenied):
+    except (GAPI.notFound, GAPI.permissionDenied, GAPI.badRequest):
+      entityDoesNotHaveItemWarning(entityValueList, i, count)
       emails[userId] = userId
   return emails[userId]
 
@@ -18857,7 +18858,8 @@ def _doInfoCourses(entityList):
       printEntity([Ent.COURSE, course[u'id']], i, count)
       Ind.Increment()
       if courseShowProperties[u'ownerEmail']:
-        course['ownerEmail'] = _convertCourseUserIdToEmail(croom, course['ownerId'], ownerEmails)
+        course['ownerEmail'] = _convertCourseUserIdToEmail(croom, course['ownerId'], ownerEmails,
+                                                           [Ent.COURSE_ID, course[u'id'], Ent.OWNER_ID, course['ownerId']], i, count)
       showJSON(None, course, courseShowProperties[u'skips'], COURSE_TIME_OBJECTS)
       if courseShowProperties[u'aliases']:
         try:
@@ -19043,11 +19045,15 @@ def doPrintCourses():
   coursesInfo = _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties)
   if coursesInfo is None:
     return
+  count = len(coursesInfo)
+  i = 0
   for course in coursesInfo:
+    i += 1
     for field in courseShowProperties[u'skips']:
       course.pop(field, None)
     if courseShowProperties[u'ownerEmail']:
-      course['ownerEmail'] = _convertCourseUserIdToEmail(croom, course['ownerId'], ownerEmails)
+      course['ownerEmail'] = _convertCourseUserIdToEmail(croom, course['ownerId'], ownerEmails,
+                                                         [Ent.COURSE_ID, course[u'id'], Ent.OWNER_ID, course['ownerId']], i, count)
     addRowTitlesToCSVfile(flattenJSON(course, timeObjects=COURSE_TIME_OBJECTS, noLenObjects=COURSE_NOLEN_OBJECTS), csvRows, titles)
   if courseShowProperties[u'aliases']:
     addTitleToCSVfile(u'Aliases', titles)
@@ -19217,7 +19223,9 @@ def doPrintCourseAnnouncements():
                                 fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         for courseAnnouncement in results:
           if showCreatorEmail:
-            courseAnnouncement[u'creatorUserEmail'] = _convertCourseUserIdToEmail(croom, courseAnnouncement[u'creatorUserId'], creatorEmails)
+            courseAnnouncement[u'creatorUserEmail'] = _convertCourseUserIdToEmail(croom, courseAnnouncement[u'creatorUserId'], creatorEmails,
+                                                                                  [Ent.COURSE_ID, courseId, Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncement[u'id'],
+                                                                                   Ent.CREATOR_ID, courseAnnouncement[u'creatorUserId']], i, count)
           addRowTitlesToCSVfile(flattenJSON(courseAnnouncement, flattened={u'courseId': courseId, u'courseName': course[u'name']}, timeObjects=COURSE_ANNOUNCEMENTS_TIME_OBJECTS), csvRows, titles)
       except GAPI.forbidden:
         APIAccessDeniedExit()
@@ -19234,7 +19242,9 @@ def doPrintCourseAnnouncements():
                                         throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                                         courseId=courseId, id=courseAnnouncementId, fields=fields)
           if showCreatorEmail:
-            courseAnnouncement[u'creatorUserEmail'] = _convertCourseUserIdToEmail(croom, courseAnnouncement[u'creatorUserId'], creatorEmails)
+            courseAnnouncement[u'creatorUserEmail'] = _convertCourseUserIdToEmail(croom, courseAnnouncement[u'creatorUserId'], creatorEmails,
+                                                                                  [Ent.COURSE_ID, courseId, Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId,
+                                                                                   Ent.CREATOR_ID, courseAnnouncement[u'creatorUserId']], i, count)
           addRowTitlesToCSVfile(flattenJSON(courseAnnouncement, flattened={u'courseId': courseId, u'courseName': course[u'name']}, timeObjects=COURSE_ANNOUNCEMENTS_TIME_OBJECTS), csvRows, titles)
         except GAPI.notFound:
           entityDoesNotHaveItemWarning([Ent.COURSE, course[u'name'], Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], j, jcount)
@@ -19366,7 +19376,9 @@ def doPrintCourseWork():
                                 fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         for courseWork in results:
           if showCreatorEmail:
-            courseWork[u'creatorUserEmail'] = _convertCourseUserIdToEmail(croom, courseWork[u'creatorUserId'], creatorEmails)
+            courseWork[u'creatorUserEmail'] = _convertCourseUserIdToEmail(croom, courseWork[u'creatorUserId'], creatorEmails,
+                                                                          [Ent.COURSE_ID, courseId, Ent.COURSE_WORK_ID, courseWork[u'id'],
+                                                                           Ent.CREATOR_ID, courseWork[u'creatorUserId']], i, count)
           addRowTitlesToCSVfile(flattenJSON(courseWork, flattened={u'courseId': courseId, u'courseName': course[u'name']}, timeObjects=COURSE_WORK_TIME_OBJECTS), csvRows, titles)
       except GAPI.forbidden:
         APIAccessDeniedExit()
@@ -19383,7 +19395,9 @@ def doPrintCourseWork():
                                 throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                                 courseId=courseId, id=courseWorkId, fields=fields)
           if showCreatorEmail:
-            courseWork[u'creatorUserEmail'] = _convertCourseUserIdToEmail(croom, courseWork[u'creatorUserId'], creatorEmails)
+            courseWork[u'creatorUserEmail'] = _convertCourseUserIdToEmail(croom, courseWork[u'creatorUserId'], creatorEmails,
+                                                                          [Ent.COURSE_ID, courseId, Ent.COURSE_WORK_ID, courseWorkId,
+                                                                           Ent.CREATOR_ID, courseWork[u'creatorUserId']], i, count)
           addRowTitlesToCSVfile(flattenJSON(courseWork, flattened={u'courseId': courseId, u'courseName': course[u'name']}, timeObjects=COURSE_WORK_TIME_OBJECTS), csvRows, titles)
         except GAPI.notFound:
           entityDoesNotHaveItemWarning([Ent.COURSE, course[u'name'], Ent.COURSE_WORK_ID, courseWorkId], j, jcount)

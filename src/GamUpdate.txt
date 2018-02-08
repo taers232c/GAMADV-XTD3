@@ -1,3 +1,7 @@
+4.55.19
+
+Added error handling for invalid ownerId/creatorUserId in gam print courses/course-announcements/course-work.
+
 4.55.18
 
 Many gam print commands display "Getting ... (n/m)" messages while stepping through lists of items; this let's you monitor Gam's progress.

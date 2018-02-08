@@ -70,7 +70,7 @@ class GamEntity(object):
   COURSE_SUBMISSION_STATE = u'csst'
   COURSE_WORK_ID = u'cwid'
   COURSE_WORK_STATE = u'cwst'
-  CUSTOMER_ID = u'cust'
+  CREATOR_ID = u'crid'
   CREDENTIALS = u'cred'
   CRITERIA = u'crit'
   CROS_DEVICE = u'cros'
@@ -134,6 +134,7 @@ class GamEntity(object):
   OAUTH2_TXT_FILE = u'oaut'
   OAUTH2SERVICE_JSON_FILE = u'oau2'
   ORGANIZATIONAL_UNIT = u'orgu'
+  OWNER_ID = u'owid'
   PAGE_SIZE = u'page'
   PARENT_ORGANIZATIONAL_UNIT = u'porg'
   PARTICIPANT = u'part'
@@ -242,11 +243,11 @@ class GamEntity(object):
     COURSE_SUBMISSION_STATE: [u'Course Submission States', u'Course Submission State'],
     COURSE_WORK_ID: [u'Course Work IDs', u'Course Work ID'],
     COURSE_WORK_STATE: [u'Course Work States', u'Course Work State'],
-    CUSTOMER_DOMAIN: [u'Customer Domains', u'Customer Domain'],
-    CUSTOMER_ID: [u'Customer IDs', u'Customer ID'],
+    CREATOR_ID: [u'Creator IDs', u'Creator ID'],
     CREDENTIALS: [u'Credentials', u'Credentials'],
     CRITERIA: [u'Criteria', u'Criteria'],
     CROS_DEVICE: [u'CrOS Devices', u'CrOS Device'],
+    CUSTOMER_DOMAIN: [u'Customer Domains', u'Customer Domain'],
     CUSTOMER_ID: [u'Customer IDs', u'Customer ID'],
     DEFAULT_LANGUAGE: [u'Default Language', u'Default Language'],
     DELEGATE: [u'Delegates', u'Delegate'],
@@ -306,6 +307,7 @@ class GamEntity(object):
     OAUTH2_TXT_FILE: [u'Client OAuth2 File', u'Client OAuth2 File'],
     OAUTH2SERVICE_JSON_FILE: [u'Service Account OAuth2 File', u'Service Account OAuth2 File'],
     ORGANIZATIONAL_UNIT: [u'Organizational Units', u'Organizational Unit'],
+    OWNER_ID: [u'Owner IDs', u'Owner ID'],
     PAGE_SIZE: [u'Page Size', u'Page Size'],
     PARENT_ORGANIZATIONAL_UNIT: [u'Parent Organizational Units', u'Parent Organizational Unit'],
     PARTICIPANT: [u'Participants', u'Participant'],
