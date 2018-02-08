@@ -18831,9 +18831,9 @@ def _convertCourseUserIdToEmail(croom, userId, emails, entityValueList, i, count
   if userId not in emails:
     try:
       emails[userId] = callGAPI(croom.userProfiles(), u'get',
-                                throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.BAD_REQUEST],
+                                throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
                                 userId=userId, fields=u'emailAddress')[u'emailAddress']
-    except (GAPI.notFound, GAPI.permissionDenied, GAPI.badRequest):
+    except (GAPI.notFound, GAPI.permissionDenied, GAPI.badRequest, GAPI.forbidden):
       entityDoesNotHaveItemWarning(entityValueList, i, count)
       emails[userId] = userId
   return emails[userId]
