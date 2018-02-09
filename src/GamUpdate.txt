@@ -1,3 +1,9 @@
+4.55.20
+
+Added from and replyto options to gam sendemail. By default, emails will be from the admin user named in oauth2.txt, override this with the from <UserItem> option.
+gam sendemail <RecipientEntity> [from <UserItem>] [replyto <EmailAddress>] subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*
+        [newuser <UserItem> firstname|givenname <String> lastname|familyname <string> password <Password>]
+
 4.55.19
 
 Added error handling for invalid ownerId/creatorUserId in gam print courses/course-announcements/course-work.

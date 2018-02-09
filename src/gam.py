@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.19'
+__version__ = u'4.55.20'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -4134,23 +4134,27 @@ def getTodriveParameters():
   return todrive
 
 # Send an email
-def send_email(msg_subj, msg_txt, msg_rcpt, i=0, count=0):
+def send_email(msgSubject, msgBody, msgTo, i=0, count=0, msgFrom=None, msgReplyTo=None):
   from email.mime.text import MIMEText
-  userId, gmail = buildGAPIServiceObject(API.GMAIL, _getValueFromOAuth(u'email'), 0, 0)
+  if msgFrom is None:
+    msgFrom = _getValueFromOAuth(u'email')
+  userId, gmail = buildGAPIServiceObject(API.GMAIL, msgFrom, 0, 0)
   if not gmail:
     return
-  msg = MIMEText(msg_txt)
-  msg[u'Subject'] = msg_subj
+  msg = MIMEText(msgBody)
+  msg[u'Subject'] = msgSubject
   msg[u'From'] = userId
-  msg[u'To'] = msg_rcpt
+  msg[u'To'] = msgTo
+  if msgReplyTo is not None:
+    msg[u'Reply-To'] = msgReplyTo
   action = Act.Get()
   Act.Set(Act.SENDEMAIL)
   try:
     callGAPI(gmail.users().messages(), u'send',
              userId=userId, body={u'raw': base64.urlsafe_b64encode(msg.as_string())}, fields=u'')
-    entityActionPerformed([Ent.RECIPIENT, msg_rcpt, Ent.MESSAGE, msg_subj], i, count)
+    entityActionPerformed([Ent.RECIPIENT, msgTo, Ent.MESSAGE, msgSubject], i, count)
   except googleapiclient.errors.HttpError as e:
-    entityActionFailedWarning([Ent.RECIPIENT, msg_rcpt, Ent.MESSAGE, msg_subj], str(e), i, count)
+    entityActionFailedWarning([Ent.RECIPIENT, msgTo, Ent.MESSAGE, msgSubject], str(e), i, count)
   Act.Set(action)
 
 def addFieldToFieldsList(fieldName, fieldsChoiceMap, fieldsList):
@@ -6321,16 +6325,21 @@ def _processTagReplacements(tagReplacements, message):
     message = re.sub(match.group(0), tagReplacements[u'tags'].get(match.group(1), {u'value': u''})[u'value'], message)
   return message
 
-# gam sendemail <RecipientEntity> subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)*
+# gam sendemail <RecipientEntity> [from <UserItem>] [replyto <EmailAddress>] subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)*
 #	[newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
 def doSendEmail():
   body = {}
   notify = {}
+  msgFrom = msgReplyTo = None
   tagReplacements = _initTagReplacements()
   recipients = getEntityList(Cmd.OB_RECIPIENT_ENTITY)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == u'subject':
+    if myarg == u'from':
+      msgFrom = getString(Cmd.OB_EMAIL_ADDRESS)
+    elif myarg == u'replyto':
+      msgReplyTo = getString(Cmd.OB_EMAIL_ADDRESS)
+    elif myarg == u'subject':
       notify[u'subject'] = getString(Cmd.OB_STRING)
     elif myarg == u'message':
       if checkArgumentPresent(u'file'):
@@ -6376,7 +6385,7 @@ def doSendEmail():
   performActionModifierNumItems(Act.MODIFIER_TO, count, Ent.RECIPIENT)
   for recipient in recipients:
     i += 1
-    send_email(notify[u'subject'], notify[u'message'], recipient, i, count)
+    send_email(notify[u'subject'], notify[u'message'], recipient, i, count, msgFrom, msgReplyTo)
 
 ADDRESS_FIELDS_PRINT_ORDER = [u'contactName', u'organizationName', u'addressLine1', u'addressLine2', u'addressLine3', u'locality', u'region', u'postalCode', u'countryCode']
 
@@ -18835,7 +18844,7 @@ def _convertCourseUserIdToEmail(croom, userId, emails, entityValueList, i, count
                                 userId=userId, fields=u'emailAddress')[u'emailAddress']
     except (GAPI.notFound, GAPI.permissionDenied, GAPI.badRequest, GAPI.forbidden):
       entityDoesNotHaveItemWarning(entityValueList, i, count)
-      emails[userId] = userId
+      emails[userId] = u'Unknown user'
   return emails[userId]
 
 def _doInfoCourses(entityList):

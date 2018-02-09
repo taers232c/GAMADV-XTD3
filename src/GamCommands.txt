@@ -1655,7 +1655,7 @@ gam print schema|schemas [todrive [<ToDriveAttributes>]]
 
 # Send Email
 
-gam sendemail <RecipientEntity> subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*
+gam sendemail <RecipientEntity> [from <UserItem>] [replyto <EmailAddress>] subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*
         [newuser <UserItem> firstname|givenname <String> lastname|familyname <string> password <Password>]
 
 # Sites
