@@ -1093,7 +1093,7 @@ gam info course <CourseID> [owneremail] [alias|aliases] [show all|students|teach
 gam info courses <CourseEntity> [owneremail] [alias|aliases] [show all|students|teachers] [countsonly]
         [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
 gam print courses [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
-        [owneremail] [alias|aliases][delimiter <Character>] [show all|students|teachers] [countsonly]
+        [owneremail] [owneremailmatchpattern <RegularExpression>] [alias|aliases][delimiter <Character>] [show all|students|teachers] [countsonly]
         [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
 gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
         [show all|students|teachers]

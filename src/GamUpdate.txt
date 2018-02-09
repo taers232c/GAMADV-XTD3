@@ -1,3 +1,12 @@
+4.55.21
+
+Added owneremailmatchpattern <RegularExpression> option to gam print courses to allow filtering of courses based on the owner emailaddress.
+The `<RegularExpression>` can be used to match a specific address "foo@bar.com", a pattern ".*test.*" or the special value "Unknown user" for those
+courses where the owner has been deleted.
+gam print courses [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
+        [owneremail] [owneremailmatchpattern <RegularExpression>] [alias|aliases][delimiter <Character>] [show all|students|teachers] [countsonly]
+        [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
+
 4.55.20
 
 Added from and replyto options to gam sendemail. By default, emails will be from the admin user named in oauth2.txt, override this with the from <UserItem> option.

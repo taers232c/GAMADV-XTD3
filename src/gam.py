@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.20'
+__version__ = u'4.55.21'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -18772,13 +18772,17 @@ COURSE_PROPERTY_PRINT_ORDER = [
   ]
 
 def _initCourseShowProperties(fields=None):
-  return {u'aliases': False, u'ownerEmail': False, u'members': u'none', u'countsOnly': False, u'fields': fields if fields is not None else [], u'skips': []}
+  return {u'aliases': False, u'ownerEmail': False, u'ownerEmailMatchPattern': None, u'members': u'none', u'countsOnly': False,
+          u'fields': fields if fields is not None else [], u'skips': []}
 
 def _getCourseShowProperties(myarg, courseShowProperties):
   if myarg in [u'alias', u'aliases']:
     courseShowProperties[u'aliases'] = True
   elif myarg == u'owneremail':
     courseShowProperties[u'ownerEmail'] = True
+  elif myarg == u'owneremailmatchpattern':
+    courseShowProperties[u'ownerEmail'] = True
+    courseShowProperties[u'ownerEmailMatchPattern'] = getREPattern()
   elif myarg == u'show':
     courseShowProperties[u'members'] = getChoice(COURSE_MEMBER_ARGUMENTS)
   elif myarg == u'countsonly':
@@ -19003,7 +19007,7 @@ def _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties):
   return coursesInfo
 
 # gam print courses [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
-#	[owneremail] [alias|aliases] [delimiter <Character>] [show none|all|students|teachers] [countsonly] [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
+#	[owneremail] [owneremailmatchpattern <RegularExpression>] [alias|aliases] [delimiter <Character>] [show none|all|students|teachers] [countsonly] [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
 def doPrintCourses():
 
   def _saveParticipants(course, participants, role, rtitles):
@@ -19063,6 +19067,8 @@ def doPrintCourses():
     if courseShowProperties[u'ownerEmail']:
       course['ownerEmail'] = _convertCourseUserIdToEmail(croom, course['ownerId'], ownerEmails,
                                                          [Ent.COURSE_ID, course[u'id'], Ent.OWNER_ID, course['ownerId']], i, count)
+      if courseShowProperties[u'ownerEmailMatchPattern'] and not courseShowProperties[u'ownerEmailMatchPattern'].match(course['ownerEmail']):
+        continue
     addRowTitlesToCSVfile(flattenJSON(course, timeObjects=COURSE_TIME_OBJECTS, noLenObjects=COURSE_NOLEN_OBJECTS), csvRows, titles)
   if courseShowProperties[u'aliases']:
     addTitleToCSVfile(u'Aliases', titles)
