@@ -1,3 +1,22 @@
+4.55.23
+
+Added emailmatchpattern <RegularExpression> and namematchpattern <RegularExpression> to the following commands to
+allow filtering on the group email address and name; Gam applies these filters after downloading the groups from the API.
+gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member <UserItem>])|[select <GroupEntity>]
+        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
+        [maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
+        [members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
+        [convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
+gam print group-members [todrive [<ToDriveAttributes>]]
+        [domain <DomainName>] [member <UserItem>])|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
+        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
+        [roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>*
+        [fields <MembersFieldNameList>] [userfields <UserFieldNameList>] [recursive [noduplicates]]
+gam show group-members
+        ([domain <DomainName>] [member <UserItem>])|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
+        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
+        [roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
+
 4.55.22
 
 Improve error reporting when scopes are not authorized.
