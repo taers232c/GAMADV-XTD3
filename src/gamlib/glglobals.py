@@ -38,13 +38,21 @@ SYS_ENCODING = u'syen'
 EXTRA_ARGS_LIST = u'exad'
 # GAM admin user
 ADMIN = u'admin'
-# Current API user
-CURRENT_API_USER = u'capu'
-# Current API scope
-CURRENT_API_SCOPES = u'scoc'
-# Values retrieved from oauth2service.json
-OAUTH2SERVICE_JSON_DATA = u'oajd'
+# Current Client API
+CURRENT_CLIENT_API = u'ccap'
+# Current Client API scopes
+CURRENT_CLIENT_API_SCOPES = u'ccas'
+# Current Service Account API
+CURRENT_SVCACCT_API = u'csap'
+# Current Service Account API scopes
+CURRENT_SVCACCT_API_SCOPES = u'csas'
+# Current Service Account user
+CURRENT_SVCACCT_USER = u'csau'
+# Values retrieved from oauth2.txt
 OAUTH2_CLIENT_ID = u'oaci'
+# Values retrieved from oauth2service.json
+OAUTH2SERVICE_JSON_DATA = u'osjd'
+OAUTH2SERVICE_CLIENT_ID = u'osci'
 # gam.cfg parser
 PARSER = u'pars'
 # gam.cfg file
@@ -122,10 +130,14 @@ Globals = {
   SYS_ENCODING: u'utf-8',
   EXTRA_ARGS_LIST: [],
   ADMIN: None,
-  CURRENT_API_USER: None,
-  CURRENT_API_SCOPES: [],
-  OAUTH2SERVICE_JSON_DATA: None,
+  CURRENT_CLIENT_API: None,
+  CURRENT_CLIENT_API_SCOPES: [],
+  CURRENT_SVCACCT_API: None,
+  CURRENT_SVCACCT_API_SCOPES: [],
+  CURRENT_SVCACCT_USER: None,
   OAUTH2_CLIENT_ID: None,
+  OAUTH2SERVICE_JSON_DATA: None,
+  OAUTH2SERVICE_CLIENT_ID: None,
   PARSER: None,
   GAM_CFG_PATH: u'',
   GAM_CFG_FILE: u'',

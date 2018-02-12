@@ -228,7 +228,7 @@ class GamEntity(object):
     CALENDAR_ACL: [u'Calendar ACLs', u'Calendar ACL'],
     CALENDAR_SETTINGS: [u'Calendar Settings', u'Calendar Settings'],
     CLIENT_SECRETS_JSON_FILE: [u'Client Secrets File', u'Client Secrets File'],
-    COLLABORATOR: [u'Collaborators', u'Collaborator'],    
+    COLLABORATOR: [u'Collaborators', u'Collaborator'],
     CONFIG_FILE: [u'Config File', u'Config File'],
     CONTACT: [u'Contacts', u'Contact'],
     CONTACT_GROUP: [u'Contact Groups', u'Contact Group'],
