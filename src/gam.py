@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.24'
+__version__ = u'4.55.25'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -22863,6 +22863,16 @@ DRIVEFILE_FIELDS_CHOICE_MAP = {
   u'writerscanshare': u'writersCanShare',
   }
 
+OWNERS_SUBFIELDS_CHOICE_MAP = {
+  u'displayname': u'displayName',
+  u'emailaddress': u'emailAddress',
+  u'isauthenticateduser': u'me',
+  u'me': u'me',
+  u'permissionid': u'permissionId',
+  u'photolink': u'photoLink',
+  u'picture': u'photoLink',
+  }
+
 PARENTS_SUBFIELDS_CHOICE_MAP = {
   u'id': u'parents',
   }
@@ -22898,6 +22908,7 @@ SHARINGUSER_SUBFIELDS_CHOICE_MAP = {
 
 SUBFIELDS_CHOICE_MAP = {
   u'lastmodifyinguser': SHARINGUSER_SUBFIELDS_CHOICE_MAP,
+  u'owners': OWNERS_SUBFIELDS_CHOICE_MAP,
   u'parents': PARENTS_SUBFIELDS_CHOICE_MAP,
   u'permissions': PERMISSIONS_SUBFIELDS_CHOICE_MAP,
   u'sharinguser': SHARINGUSER_SUBFIELDS_CHOICE_MAP,

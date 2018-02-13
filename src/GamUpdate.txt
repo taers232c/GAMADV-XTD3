@@ -1,3 +1,16 @@
+4.55.25
+
+Added the ability to select owners subfields in gam show fileinfo and gam print filelist; these fields are included
+in <DriveFieldName> and <DriveFieldNameList>.
+<DriveOwnersSubfieldName> ::=
+        owners.displayname|
+        owners.emailaddress|
+        owners.isauthenticateduser|
+        owners.me|
+        owners.permissionid|
+        owners.photolink|
+        owners.picture
+
 4.55.24
 
 Commands that use the emailmatchpattern, owneremailmatchpattern, namematchpattern or attachmentnamepattern options will now

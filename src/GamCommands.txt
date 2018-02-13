@@ -2223,6 +2223,15 @@ gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>]
 gam <UserTypeEntity> collect orphans (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [targetuserfoldername <DriveFileName>] [preview] [todrive [<ToDriveAttributes>]]
 
+<DriveOwnersSubfieldName> ::=
+        owners.displayname|
+        owners.emailaddress|
+        owners.isauthenticateduser|
+        owners.me|
+        owners.permissionid|
+        owners.photolink|
+        owners.picture
+
 <DriveParentsSubfieldName> ::=
         parents.id
 
@@ -2307,6 +2316,7 @@ gam <UserTypeEntity> collect orphans (orderby <DriveFileOrderByFieldName> [ascen
         ownedbyme|
         ownernames|
         owners|
+        <DriveOwnersSubfieldName>|
         parents|
         <DriveParentsSubfieldName>|
         permissions|
