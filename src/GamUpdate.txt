@@ -1,3 +1,8 @@
+4.55.24
+
+Commands that use the emailmatchpattern, owneremailmatchpattern, namematchpattern or attachmentnamepattern options will now
+perform case insensitive matches. The same is true for the matchfield option in gam info/show/print events.
+
 4.55.23
 
 Added emailmatchpattern <RegularExpression> and namematchpattern <RegularExpression> to the following commands to
