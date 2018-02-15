@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.25'
+__version__ = u'4.55.26'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -24755,7 +24755,7 @@ DOCUMENT_FORMATS_MAP = {
                   {u'mime': u'application/vnd.oasis.opendocument.text', u'ext': u'.odt'}],
   }
 
-# gam <UserTypeEntity> get drivefile <DriveFileEntity> [format <FileFormatList>] [targetfolder <FilePath>] [revision <Number>]
+# gam <UserTypeEntity> get drivefile <DriveFileEntity> [format <FileFormatList>] [targetfolder <FilePath>] [targetname <FileName>] [overwrite [<Boolean>]] [revision <Number>]
 def getDriveFile(users):
   fileIdEntity = getDriveFileEntity()
   revisionId = None
@@ -24763,6 +24763,8 @@ def getDriveFile(users):
   exportFormatChoices = [exportFormatName]
   exportFormats = DOCUMENT_FORMATS_MAP[exportFormatName]
   targetFolder = GC.Values[GC.DRIVE_DIR]
+  targetName = None
+  overwrite = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'format':
@@ -24777,6 +24779,10 @@ def getDriveFile(users):
       targetFolder = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
       if not os.path.isdir(targetFolder):
         os.makedirs(targetFolder)
+    elif myarg == u'targetname':
+      targetName = getString(Cmd.OB_FILE_NAME)
+    elif myarg == u'overwrite':
+      overwrite = getBoolean(True)
     elif myarg == u'revision':
       revisionId = getInteger(minVal=1)
     elif myarg == u'nocache':
@@ -24821,13 +24827,13 @@ def getDriveFile(users):
           extension = extension or exportFormat[u'ext']
           if googleDoc and (extension not in validExtensions):
             continue
-          safe_file_title = cleanFilename(result[VX_FILENAME])
+          safe_file_title = targetName if targetName is not None else cleanFilename(result[VX_FILENAME])
           filename = os.path.join(targetFolder, safe_file_title)
           y = 0
           while True:
             if filename.lower()[-len(extension):] != extension:
               filename += extension
-            if not os.path.isfile(filename):
+            if overwrite or not os.path.isfile(filename):
               break
             y += 1
             filename = os.path.join(targetFolder, u'({0})-{1}'.format(y, safe_file_title))

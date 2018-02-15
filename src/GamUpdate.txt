@@ -1,3 +1,10 @@
+4.55.26
+
+Added targetname <FileName> and overwrite [<Boolean>] to gam get drivefile. By default, the target (local) filename is the Google Drive filename; targetname <FileName>
+let's you specify the target filename. By default, an existing target file will not be overwritten; a numeric prefix is added to the filename.
+Specifying overwrite or overwrite true will cause the target file to be overwritten. Not specifying overwrite or specifying overwrite false means a new file will be created.
+gam <UserTypeEntity> get drivefile <DriveFileEntity> [format <FileFormatList>] [targetfolder <FilePath>] [targetname <FileName>] [overwrite [<Boolean>]] [revision <DriveFileRevisionID>]
+
 4.55.25
 
 Added the ability to select owners subfields in gam show fileinfo and gam print filelist; these fields are included
