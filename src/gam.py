@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.26'
+__version__ = u'4.55.27'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -24698,7 +24698,7 @@ NON_DOWNLOADABLE_MIMETYPES = [MIMETYPE_GA_FORM, MIMETYPE_GA_FUSIONTABLE, MIMETYP
 GOOGLEDOC_VALID_EXTENSIONS_MAP = {
   MIMETYPE_GA_DRAWING: [u'.jpeg', u'.jpg', u'.pdf', u'.png', u'.svg'],
   MIMETYPE_GA_DOCUMENT: [u'.docx', u'.html', u'.odt', u'.pdf', u'.rtf', u'.txt', u'.zip'],
-  MIMETYPE_GA_PRESENTATION: [u'.pdf', u'.pptx', u'.txt'],
+  MIMETYPE_GA_PRESENTATION: [u'.pdf', u'.pptx', u'.odp', u'.txt'],
   MIMETYPE_GA_SPREADSHEET: [u'.csv', u'.ods', u'.pdf', u'.xlsx', u'zip'],
   }
 
@@ -24799,12 +24799,12 @@ def getDriveFile(users):
     j = 0
     for fileId in fileIdEntity[u'list']:
       j += 1
-      extension = None
+      fileExtension = None
       try:
         result = callGAPI(drive.files(), u'get',
                           throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
                           fileId=fileId, fields=u'name,fileExtension,mimeType,size', supportsTeamDrives=True)
-        extension = result.get(u'fileExtension')
+        fileExtension = result.get(u'fileExtension')
         mimeType = result[u'mimeType']
         if mimeType == MIMETYPE_GA_FOLDER:
           entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, result[VX_FILENAME]], Msg.CAN_NOT_BE_DOWNLOADED, j, jcount)
@@ -24824,10 +24824,10 @@ def getDriveFile(users):
           googleDoc = False
         fileDownloaded = fileDownloadFailed = False
         for exportFormat in exportFormats:
-          extension = extension or exportFormat[u'ext']
+          extension = fileExtension or exportFormat[u'ext']
           if googleDoc and (extension not in validExtensions):
             continue
-          safe_file_title = targetName if targetName is not None else cleanFilename(result[VX_FILENAME])
+          safe_file_title = targetName or cleanFilename(result[VX_FILENAME])
           filename = os.path.join(targetFolder, safe_file_title)
           y = 0
           while True:

@@ -1,3 +1,7 @@
+4.55.27
+
+Fixed bug in gam get drivefile where Google Docs files would not be downloaded if format <FileFormatList> was not specified.
+
 4.55.26
 
 Added targetname <FileName> and overwrite [<Boolean>] to gam get drivefile. By default, the target (local) filename is the Google Drive filename; targetname <FileName>
