@@ -10031,7 +10031,7 @@ def _deleteContacts(users, entityType):
     queriedContacts = True
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
-      _getContactQueryAttributes(contactQuery, myarg, entityType, False)
+      _getContactQueryAttributes(contactQuery, myarg, entityType, True, False)
   else:
     entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
     queriedContacts = False
@@ -10263,7 +10263,7 @@ def _printShowContacts(users, entityType, csvFormat, contactFeed=True):
       if contactFeed and CONTACT_GROUPS in displayFieldsList:
         showContactGroups = True
     else:
-      _getContactQueryAttributes(contactQuery, myarg, entityType, True)
+      _getContactQueryAttributes(contactQuery, myarg, entityType, True, True)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
