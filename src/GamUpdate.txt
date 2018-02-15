@@ -1,3 +1,9 @@
+4.55.28
+
+Added the ability to update domain/user contacts by querying for them.
+gam update contacts <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]) <ContactAttributes>+
+gam <UserTypeEntity> update contacts <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>] [endquery]) [contactgroup <ContactGroupItem>] <ContactAttributes>+
+
 4.55.27
 
 Fixed bug in gam get drivefile where Google Docs files would not be downloaded if format <FileFormatList> was not specified.

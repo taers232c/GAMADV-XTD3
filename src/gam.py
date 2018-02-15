@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.27'
+__version__ = u'4.55.28'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -9776,7 +9776,7 @@ def _initContactQueryAttributes():
   return {u'query': None, u'projection': u'full', u'url_params': {u'max-results': str(GC.Values[GC.CONTACT_MAX_RESULTS])},
           u'contactGroup': None, u'group': None, u'emailMatchPattern': None, u'emailMatchType': None}
 
-def _getContactQueryAttributes(contactQuery, myarg, entityType, allowOutputAttributes):
+def _getContactQueryAttributes(contactQuery, myarg, entityType, errorOnUnknown, allowOutputAttributes):
   if myarg == u'query':
     contactQuery[u'query'] = getString(Cmd.OB_QUERY)
   elif myarg == u'contactgroup':
@@ -9790,8 +9790,13 @@ def _getContactQueryAttributes(contactQuery, myarg, entityType, allowOutputAttri
     contactQuery[u'emailMatchType'] = getString(Cmd.OB_CONTACT_EMAIL_TYPE)
   elif myarg == u'updatedmin':
     contactQuery[u'url_params'][u'updated-min'] = getYYYYMMDD()
+  elif myarg == u'endquery':
+    return False
   elif not allowOutputAttributes:
-    unknownArgumentExit()
+    if errorOnUnknown:
+      unknownArgumentExit()
+    Cmd.Backup()
+    return False
   elif myarg == u'orderby':
     contactQuery[u'url_params'][u'orderby'] = getChoice(CONTACTS_ORDERBY_CHOICE_MAP, mapChoice=True)
     contactQuery[u'url_params'][u'sortorder'] = getChoice(SORTORDER_CHOICE_MAP, defaultChoice=u'ascending')
@@ -9800,7 +9805,11 @@ def _getContactQueryAttributes(contactQuery, myarg, entityType, allowOutputAttri
   elif myarg == u'showdeleted':
     contactQuery[u'url_params'][u'showdeleted'] = u'true'
   else:
-    unknownArgumentExit()
+    if errorOnUnknown:
+      unknownArgumentExit()
+    Cmd.Backup()
+    return False
+  return True
 
 def queryContacts(contactsObject, contactQuery, entityType, user, i=0, count=0):
   if contactQuery[u'query'] or contactQuery[u'group']:
@@ -9922,16 +9931,38 @@ def createUserContact(users):
 def doCreateDomainContact():
   _createContact([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
-def _uppdateContacts(users, entityType):
+def _updateContacts(users, entityType):
   contactsManager = ContactsManager()
-  entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
+  contactQuery = _initContactQueryAttributes()
+  if peekArgumentPresent([u'query', u'contactgroup', u'emailmatchpattern', u'updatedmin']):
+    entityList = None
+    queriedContacts = True
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if not _getContactQueryAttributes(contactQuery, myarg, entityType, False, False):
+        break
+  else:
+    entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
+    queriedContacts = False
+  contactIdLists = entityList if isinstance(entityList, dict) else None
   update_fields = contactsManager.GetContactFields(entityType)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
+    if contactIdLists:
+      entityList = contactIdLists[user]
     user, contactsObject = getContactsObject(entityType, user, i, count)
     if not contactsObject:
       continue
+    if contactQuery[u'contactGroup']:
+      groupId, _, contactGroupNames = validateContactGroup(contactsManager, contactsObject, contactQuery[u'contactGroup'], None, None, entityType, user, i, count)
+      if not groupId:
+        if contactGroupNames:
+          entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery[u'contactGroup']], Msg.DOES_NOT_EXIST, i, count)
+        continue
+      contactQuery[u'group'] = contactsObject.GetContactGroupFeedUri(contact_list=user, projection=u'base', groupId=groupId)
+    if queriedContacts:
+      entityList = queryContacts(contactsObject, contactQuery, entityType, user, i, count)
     j = 0
     jcount = len(entityList)
     entityPerformActionNumItems([entityType, user], jcount, Ent.CONTACT, i, count)
@@ -9940,19 +9971,25 @@ def _uppdateContacts(users, entityType):
       continue
     contactGroupsList = None
     Ind.Increment()
-    for contactId in entityList:
+    for contact in entityList:
       j += 1
-      contactId = normalizeContactId(contactId)
-      if update_fields.get(CONTACT_GROUPS_LIST) and not contactGroupsList:
-        result, contactGroupsList = validateContactGroupsList(contactsManager, contactsObject, contactId, update_fields, entityType, user, i, count)
-        if not result:
-          break
       try:
-        contact = callGData(contactsObject, u'GetContact',
-                            throw_errors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN, GDATA.NOT_IMPLEMENTED],
-                            retry_errors=[GDATA.INTERNAL_SERVER_ERROR],
-                            uri=contactsObject.GetContactFeedUri(contact_list=user, contactId=contactId))
-        fields = contactsManager.ContactToFields(contact)
+        if not queriedContacts:
+          contactId = normalizeContactId(contact)
+          contact = callGData(contactsObject, u'GetContact',
+                              throw_errors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN, GDATA.NOT_IMPLEMENTED],
+                              retry_errors=[GDATA.INTERNAL_SERVER_ERROR],
+                              uri=contactsObject.GetContactFeedUri(contact_list=user, contactId=contactId))
+          fields = contactsManager.ContactToFields(contact)
+        else:
+          contactId = contactsManager.GetContactShortId(contact)
+          fields = contactsManager.ContactToFields(contact)
+          if contactQuery[u'emailMatchPattern'] and not contactEmailAddressMatches(contactsManager, contactQuery, fields):
+            continue
+        if update_fields.get(CONTACT_GROUPS_LIST) and not contactGroupsList:
+          result, contactGroupsList = validateContactGroupsList(contactsManager, contactsObject, contactId, update_fields, entityType, user, i, count)
+          if not result:
+            break
         for field in update_fields:
           fields[field] = update_fields[field]
         contactEntry = contactsManager.FieldsToContact(fields)
@@ -9978,13 +10015,13 @@ def _uppdateContacts(users, entityType):
         break
     Ind.Decrement()
 
-# gam <UserTypeEntity> update contacts <ContactEntity> [contactgroup <ContactGroupItem>] <ContactAttributes>+
+# gam <UserTypeEntity> update contacts <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [updated_min <Date>] [endquery]) [contactgroup <ContactGroupItem>] <ContactAttributes>+
 def updateUserContacts(users):
-  _uppdateContacts(users, Ent.USER)
+  _updateContacts(users, Ent.USER)
 
-# gam update contacts <ContactEntity> <ContactAttributes>+
+# gam update contacts <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]) <ContactAttributes>+
 def doUpdateDomainContacts():
-  _uppdateContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
+  _updateContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
 def _deleteContacts(users, entityType):
   contactsManager = ContactsManager()
