@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.28'
+__version__ = u'4.55.29'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -6324,7 +6324,7 @@ def _processTagReplacements(tagReplacements, message):
     match = RT_PATTERN.search(message)
     if not match:
       break
-    if tagReplacements[u'tags'].get(match.group(1)):
+    if tagReplacements[u'tags'].get(match.group(1), {u'value': u''})[u'value']:
       message = RT_OPEN_PATTERN.sub(u'', message, count=1)
       message = RT_CLOSE_PATTERN.sub(u'', message, count=1)
     else:

@@ -1,3 +1,7 @@
+4.55.29
+
+Fixed bug where {RT}...{Tag}...{/RT} was not properly deleted when Tag was not defined/empty.
+
 4.55.28
 
 Added the ability to update domain/user contacts by querying for them.
