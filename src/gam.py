@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.29'
+__version__ = u'4.55.30'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -6089,8 +6089,10 @@ def doReport():
                 if item[u'name'] in [u'start_time', u'end_time']:
                   val = item.get(u'intValue')
                   if val is not None:
-                    item[u'dateTimeValue'] = ISOformatTimeStamp(datetime.datetime.fromtimestamp(int(val)-62135683200, GC.Values[GC.TIMEZONE]))
-                    item.pop(u'intValue')
+                    val = int(val)
+                    if val >= 62135683200:
+                      item[u'dateTimeValue'] = ISOformatTimeStamp(datetime.datetime.fromtimestamp(val-62135683200, GC.Values[GC.TIMEZONE]))
+                      item.pop(u'intValue')
                 if u'value' in item:
                   item[u'value'] = NL_SPACES_PATTERN.sub(u'', item[u'value'])
               row = flattenJSON(event)
