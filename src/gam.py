@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.30'
+__version__ = u'4.55.31'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -523,7 +523,7 @@ def accessErrorExit(cd):
 def APIAccessDeniedExit():
   stderrErrorMsg(Msg.API_ACCESS_DENIED)
   if GM.Globals[GM.CURRENT_CLIENT_API]:
-    missingScopes = API.getClientScopesSe(GM.Globals[GM.CURRENT_CLIENT_API])-GM.Globals[GM.CURRENT_CLIENT_API_SCOPES]
+    missingScopes = API.getClientScopesSet(GM.Globals[GM.CURRENT_CLIENT_API])-GM.Globals[GM.CURRENT_CLIENT_API_SCOPES]
     if missingScopes:
       writeStderr(Msg.API_CHECK_CLIENT_AUTHORIZATION.format(GM.Globals[GM.OAUTH2_CLIENT_ID],
                                                             u','.join(sorted(missingScopes))))
@@ -1127,7 +1127,7 @@ def getInteger(minVal=None, maxVal=None):
   missingArgumentExit(integerLimits(minVal, maxVal))
 
 def orgUnitPathQuery(path):
-  return u"orgUnitPath='{0}'".format(path.replace(u"'", u"\'")) if path != u'/' else None
+  return u"orgUnitPath='{0}'".format(path.replace(u"'", u"\\'")) if path != u'/' else None
 
 def makeOrgUnitPathAbsolute(path):
   if path == u'/':
@@ -2574,7 +2574,8 @@ def checkGDataError(e, service):
     getGDataOAuthToken(service)
     service.domain = keep_domain
     return (GDATA.TOKEN_EXPIRED, e[0][u'reason'])
-  if e.error_code == 600:
+  error_code = getattr(e, u'error_code', 600)
+  if error_code == 600:
     if e[0][u'body'].startswith(u'Quota exceeded for the current request'):
       return (GDATA.QUOTA_EXCEEDED, e[0][u'body'])
     if e[0][u'body'].startswith(u'Request rate higher than configured'):
@@ -2609,7 +2610,7 @@ def checkGDataError(e, service):
       return (GDATA.NOT_IMPLEMENTED, e[0][u'body'])
     if e[0][u'reason'] == u'Precondition Failed':
       return (GDATA.PRECONDITION_FAILED, e[0][u'reason'])
-  elif e.error_code == 602:
+  elif error_code == 602:
     if e[0][u'reason'] == u'Bad Request':
       return (GDATA.BAD_REQUEST, e[0][u'body'])
 
@@ -2651,7 +2652,7 @@ def checkGDataError(e, service):
     1800: u'Group Cannot Contain Cycle',
     1801: u'Invalid value %s' % getattr(e, u'invalidInput', u'<unknown>'),
   }
-  return (e.error_code, error_code_map.get(e.error_code, u'Unknown Error: {0}'.format(str(e))))
+  return (error_code, error_code_map.get(error_code, u'Unknown Error: {0}'.format(str(e))))
 
 def waitOnFailure(n, retries, error_code, error_message):
   wait_on_fail = min(2 ** n, 60)+float(random.randint(1, 1000))/1000
@@ -2674,7 +2675,7 @@ def callGData(service, function,
   for n in range(1, retries+1):
     try:
       return method(**kwargs)
-    except gdata.apps.service.AppsForYourDomainException as e:
+    except (gdata.service.RequestError, gdata.apps.service.AppsForYourDomainException) as e:
       error_code, error_message = checkGDataError(e, service)
       if (n != retries) and (error_code in all_retry_errors):
         waitOnFailure(n, retries, error_code, error_message)
@@ -7879,11 +7880,14 @@ def _doUpdateOrgs(entityList):
       i += 1
       try:
         callGAPI(cd.orgunits(), u'update',
-                 throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                 throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.INVALID_ORGUNIT_NAME,
+                                GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
                  customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=makeOrgUnitPathRelative(orgUnitPath), body=body, fields=u'')
         entityActionPerformed([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], i, count)
       except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
         entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], Msg.DOES_NOT_EXIST, i, count)
+      except GAPI.invalidOrgunitName as e:
+        entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.NAME, body[u'name']], str(e), i, count)
       except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
         checkEntityAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, orgUnitPath)
 
@@ -9813,6 +9817,22 @@ def _getContactQueryAttributes(contactQuery, myarg, entityType, errorOnUnknown, 
     return False
   return True
 
+def _getContactEntityList(entityType, errorOnUnknown, allowOutputAttributes):
+  contactQuery = _initContactQueryAttributes()
+  if peekArgumentPresent([u'query', u'contactgroup', u'emailmatchpattern', u'updatedmin']):
+    entityList = None
+    queriedContacts = True
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if not _getContactQueryAttributes(contactQuery, myarg, entityType, errorOnUnknown, allowOutputAttributes):
+        break
+  else:
+    entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
+    queriedContacts = False
+    if errorOnUnknown:
+      checkForExtraneousArguments()
+  return (entityList, entityList if isinstance(entityList, dict) else None, contactQuery, queriedContacts)
+
 def queryContacts(contactsObject, contactQuery, entityType, user, i=0, count=0):
   if contactQuery[u'query'] or contactQuery[u'group']:
     uri = getContactsQuery(feed=contactsObject.GetContactFeedUri(contact_list=user, projection=contactQuery[u'projection']),
@@ -9935,18 +9955,7 @@ def doCreateDomainContact():
 
 def _updateContacts(users, entityType):
   contactsManager = ContactsManager()
-  contactQuery = _initContactQueryAttributes()
-  if peekArgumentPresent([u'query', u'contactgroup', u'emailmatchpattern', u'updatedmin']):
-    entityList = None
-    queriedContacts = True
-    while Cmd.ArgumentsRemaining():
-      myarg = getArgument()
-      if not _getContactQueryAttributes(contactQuery, myarg, entityType, False, False):
-        break
-  else:
-    entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
-    queriedContacts = False
-  contactIdLists = entityList if isinstance(entityList, dict) else None
+  entityList, contactIdLists, contactQuery, queriedContacts = _getContactEntityList(entityType, False, False)
   update_fields = contactsManager.GetContactFields(entityType)
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -10027,17 +10036,7 @@ def doUpdateDomainContacts():
 
 def _deleteContacts(users, entityType):
   contactsManager = ContactsManager()
-  contactQuery = _initContactQueryAttributes()
-  if peekArgumentPresent([u'query', u'contactgroup', u'emailmatchpattern', u'updatedmin']):
-    entityList = None
-    queriedContacts = True
-    while Cmd.ArgumentsRemaining():
-      myarg = getArgument()
-      _getContactQueryAttributes(contactQuery, myarg, entityType, True, False)
-  else:
-    entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
-    queriedContacts = False
-  contactIdLists = entityList if isinstance(entityList, dict) else None
+  entityList, contactIdLists, contactQuery, queriedContacts = _getContactEntityList(entityType, True, False)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -10388,7 +10387,7 @@ def doPrintDomainContacts():
 def doShowDomainContacts():
   _printShowContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN, False)
 
-# gam print [todrive [<ToDriveAttributes>]] [query <QueryContact>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]
+# gam print gal [todrive [<ToDriveAttributes>]] [query <QueryContact>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]
 #	[basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]] [fields <ContactFieldNameList>]
 def doPrintGAL():
   _printShowContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN, True, False)
@@ -10397,6 +10396,160 @@ def doPrintGAL():
 #	[basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]] [fields <ContactFieldNameList>]
 def doShowGAL():
   _printShowContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN, False, False)
+
+def _processContactPhotos(users, entityType, function):
+  def _makeFilenameFromPattern():
+    filename = filenamePattern[:]
+    if subForContactId:
+      filename = filename.replace(u'#contactid#', contactId)
+    if subForEmail:
+      for email in fields.get(u'Emails', []):
+        if email.get(u'primary', u'false') == u'true':
+          filename = filename.replace(u'#email#', email[u'value'])
+          break
+      else:
+        filename = filename.replace(u'#email#', contactId)
+    return filename
+
+  contactsManager = ContactsManager()
+  entityList, contactIdLists, contactQuery, queriedContacts = _getContactEntityList(entityType, False, False)
+  if function in [u'ChangePhoto', u'GetPhoto']:
+    targetFolder = os.getcwd()
+    filenamePattern = u'#contactid#.jpg'
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if myarg == u'drivedir':
+        targetFolder = GC.Values[GC.DRIVE_DIR]
+      elif myarg in [u'sourcefolder', u'targetfolder']:
+        targetFolder = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
+        if function == u'GetPhoto' and not os.path.isdir(targetFolder):
+          os.makedirs(targetFolder)
+      elif myarg == u'filename':
+        filenamePattern = getString(Cmd.OB_PHOTO_FILENAME_PATTERN)
+      else:
+        unknownArgumentExit()
+    subForContactId = filenamePattern.find(u'#contactid#') != -1
+    subForEmail = filenamePattern.find(u'#email#') != -1
+    if not subForContactId and not subForEmail:
+      filename = filenamePattern
+  else: #elif function == u'DeletePhoto':
+    checkForExtraneousArguments()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    if contactIdLists:
+      entityList = contactIdLists[user]
+    user, contactsObject = getContactsObject(entityType, user, i, count, contactFeed=True)
+    if not contactsObject:
+      continue
+    if contactQuery[u'contactGroup']:
+      groupId, _, contactGroupNames = validateContactGroup(contactsManager, contactsObject, contactQuery[u'contactGroup'], None, None, entityType, user, i, count)
+      if not groupId:
+        if contactGroupNames:
+          entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery[u'contactGroup']], Msg.DOES_NOT_EXIST, i, count)
+        continue
+      contactQuery[u'group'] = contactsObject.GetContactGroupFeedUri(contact_list=user, projection=u'base', groupId=groupId)
+    if queriedContacts:
+      entityList = queryContacts(contactsObject, contactQuery, entityType, user, i, count)
+    j = 0
+    jcount = len(entityList)
+    entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, Ent.PHOTO, i, count)
+    if jcount == 0:
+      setSysExitRC(NO_ENTITIES_FOUND)
+      continue
+    Ind.Increment()
+    for contact in entityList:
+      j += 1
+      try:
+        if not queriedContacts:
+          contactId = normalizeContactId(contact)
+          contact = callGData(contactsObject, u'GetContact',
+                              throw_errors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN, GDATA.NOT_IMPLEMENTED],
+                              retry_errors=[GDATA.INTERNAL_SERVER_ERROR],
+                              uri=contactsObject.GetContactFeedUri(contact_list=user, contactId=contactId))
+          fields = contactsManager.ContactToFields(contact)
+        else:
+          contactId = contactsManager.GetContactShortId(contact)
+          fields = contactsManager.ContactToFields(contact)
+          if contactQuery[u'emailMatchPattern'] and not contactEmailAddressMatches(contactsManager, contactQuery, fields):
+            continue
+      except (GDATA.notFound, GDATA.badRequest) as e:
+        entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId], str(e), j, jcount)
+        break
+      except (GDATA.forbidden, GDATA.notImplemented):
+        entityServiceNotApplicableWarning(entityType, user, i, count)
+        break
+      except GDATA.serviceNotApplicable:
+        entityUnknownWarning(entityType, user, i, count)
+        break
+      try:
+        if function == u'ChangePhoto':
+          if subForContactId or subForEmail:
+            filename = _makeFilenameFromPattern()
+          callGData(contactsObject, function,
+                    throw_errors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN, GDATA.NOT_IMPLEMENTED],
+                    retry_errors=[GDATA.INTERNAL_SERVER_ERROR],
+                    media=filename, contact_entry_or_url=contact,
+                    content_type=u'image/*', content_length=os.path.getsize(filename), extra_headers={u'If-Match': u'*'})
+          entityActionPerformed([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, filename], i, count)
+        elif function == u'GetPhoto':
+          if subForContactId or subForEmail:
+            filename = _makeFilenameFromPattern()
+          filename = os.path.join(targetFolder, filename)
+          photo_data = callGData(contactsObject, function,
+                                 throw_errors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN, GDATA.NOT_IMPLEMENTED],
+                                 retry_errors=[GDATA.INTERNAL_SERVER_ERROR],
+                                 contact_entry_or_url=contact)
+          if photo_data:
+            status, e = writeFileReturnError(filename, photo_data)
+            if status:
+              entityActionPerformed([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, filename], i, count)
+            else:
+              entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, filename], str(e), i, count)
+          else:
+            entityDoesNotHaveItemWarning([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, u''], i, count)
+        else: #elif function == u'DeletePhoto':
+          filename = u''
+          callGData(contactsObject, function,
+                    throw_errors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN, GDATA.NOT_IMPLEMENTED],
+                    retry_errors=[GDATA.INTERNAL_SERVER_ERROR],
+                    contact_entry_or_url=contact, extra_headers={u'If-Match': u'*'})
+          entityActionPerformed([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, filename], i, count)
+      except GDATA.notFound as e:
+        entityDoesNotHaveItemWarning([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, u''], i, count)
+      except (GDATA.badRequest, OSError, IOError) as e:
+        entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, filename], str(e), j, jcount)
+      except (GDATA.forbidden, GDATA.notImplemented):
+        entityServiceNotApplicableWarning(entityType, user, i, count)
+        break
+      except GDATA.serviceNotApplicable:
+        entityUnknownWarning(entityType, user, i, count)
+        break
+    Ind.Decrement()
+
+# gam <UserTypeEntity> update contactphoto <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]) [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
+def updateUserContactPhoto(users):
+  _processContactPhotos(users, Ent.USER, u'ChangePhoto')
+
+# gam update contactphoto <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]) [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
+def doUpdateDomainContactPhoto():
+  _processContactPhotos([GC.Values[GC.DOMAIN]], Ent.DOMAIN, u'ChangePhoto')
+
+# gam <UserTypeEntity> get contactphoto <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]) [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
+def getUserContactPhoto(users):
+  _processContactPhotos(users, Ent.USER, u'GetPhoto')
+
+# gam get contactphoto <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]) [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
+def doGetDomainContactPhoto():
+  _processContactPhotos([GC.Values[GC.DOMAIN]], Ent.DOMAIN, u'GetPhoto')
+
+# gam <UserTypeEntity> delete contactphotos <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [updated_min <Date>])
+def deleteUserContactPhoto(users):
+  _processContactPhotos(users, Ent.USER, u'DeletePhoto')
+
+# gam delete contactphotos <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [updated_min <Date>])
+def doDeleteDomainContactPhoto():
+  _processContactPhotos([GC.Values[GC.DOMAIN]], Ent.DOMAIN, u'DeletePhoto')
 
 # gam <UserTypeEntity> create contactgroup <ContactGroupAttributes>+
 def createUserContactGroup(users):
@@ -10775,10 +10928,11 @@ def updateCrOSDevices(entityList):
     kwargs[parmId] = deviceId
     try:
       callGAPI(cd.chromeosdevices(), function,
-               throw_reasons=[GAPI.INVALID, GAPI.INVALID_ORGUNIT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+               throw_reasons=[GAPI.INVALID, GAPI.CONDITION_NOT_MET, GAPI.INVALID_ORGUNIT,
+                              GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                customerId=GC.Values[GC.CUSTOMER_ID], **kwargs)
       entityActionPerformed([Ent.CROS_DEVICE, deviceId], i, count)
-    except GAPI.invalid as e:
+    except (GAPI.invalid, GAPI.conditionNotMet) as e:
       entityActionFailedWarning([Ent.CROS_DEVICE, deviceId], str(e), i, count)
     except GAPI.invalidOrgunit:
       entityActionFailedWarning([Ent.CROS_DEVICE, deviceId], Msg.INVALID_ORGUNIT, i, count)
@@ -25661,6 +25815,17 @@ def validateUserGetPermissionId(user, i=0, count=0):
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
   return None
 
+def getPermissionIdForEmail(email):
+  _, drive = buildGAPIServiceObject(API.DRIVE, _getValueFromOAuth(u'email'), 0, 0)
+  if drive:
+    try:
+      return callGAPI(drive.permissions(), u'getIdForEmail',
+                      throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                      email=email, fields=u'id')[u'id']
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(email, str(e), 0, 0)
+  return None
+
 # gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[preview] [filepath] [buildtree] [todrive [<ToDriveAttributes>]]
@@ -26447,7 +26612,7 @@ def _updateDriveFileACLs(users, useDomainAdminAccess):
   if removeExpiration is None and u'role' not in body:
     missingArgumentExit(u'role {0}'.format(formatChoiceList(DRIVEFILE_ACL_ROLES_MAP)))
   if isEmail:
-    permissionId = validateUserGetPermissionId(permissionId)
+    permissionId = getPermissionIdForEmail(permissionId)
     if not permissionId:
       return
   printKeys = DRIVEFILE_ACL_KEY_PRINT_ORDER[:]
@@ -26655,7 +26820,7 @@ def _deleteDriveFileACLs(users, useDomainAdminAccess):
     else:
       unknownArgumentExit()
   if isEmail:
-    permissionId = validateUserGetPermissionId(permissionId)
+    permissionId = getPermissionIdForEmail(permissionId)
     if not permissionId:
       return
   i, count, users = getEntityArgument(users)
@@ -27611,12 +27776,29 @@ def deleteLicense(users):
     except (GAPI.userNotFound, GAPI.forbidden, GAPI.backendError):
       entityUnknownWarning(Ent.USER, user, i, count)
 
-# gam <UserTypeEntity> update photo <FileNamePattern>
+# gam <UserTypeEntity> update photo [<FileNamePattern>]
+# gam <UserTypeEntity> update photo [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
 #	#  #user# and #email" will be replaced with user email address #username# will be replaced by portion of email address in front of @
 def updatePhoto(users):
   cd = buildGAPIObject(API.DIRECTORY)
-  filenamePattern = getString(Cmd.OB_PHOTO_FILENAME_PATTERN)
-  checkForExtraneousArguments()
+  if Cmd.NumArgumentsRemaining() == 1 and not peekArgumentPresent(u'drivedir'):
+    sourceFolder = None
+    filenamePattern = getString(Cmd.OB_PHOTO_FILENAME_PATTERN)
+  else:
+    sourceFolder = os.getcwd()
+    filenamePattern = u'#email#.jpg'
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if myarg == u'drivedir':
+        sourceFolder = GC.Values[GC.DRIVE_DIR]
+      elif myarg in [u'sourcefolder', u'targetfolder']:
+        sourceFolder = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
+        if not os.path.isdir(sourceFolder):
+          os.makedirs(sourceFolder)
+      elif myarg == u'filename':
+        filenamePattern = getString(Cmd.OB_PHOTO_FILENAME_PATTERN)
+      else:
+        unknownArgumentExit()
   p = re.compile(u'^(ht|f)tps?://.*$')
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -27636,9 +27818,13 @@ def updatePhoto(users):
         entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], str(e), i, count)
         continue
     else:
-      image_data = readFile(filename, mode=u'rb', continueOnError=True, displayError=True)
-      if image_data is None:
-        entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], None, i, count)
+      if sourceFolder is not None:
+        filename = os.path.join(sourceFolder, filename)
+      try:
+        with open(os.path.expanduser(filename), u'rb') as f:
+          image_data = f.read()
+      except (OSError, IOError) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], str(e), i, count)
         continue
     body = {u'photoData': base64.urlsafe_b64encode(image_data)}
     try:
@@ -27669,19 +27855,22 @@ def deletePhoto(users):
     except (GAPI.userNotFound, GAPI.forbidden):
       entityUnknownWarning(Ent.USER, user, i, count)
 
-# gam <UserTypeEntity> get photo [drivedir|(targetfolder <FilePath>)] [noshow]
+# gam <UserTypeEntity> get photo [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>] [noshow]
 def getPhoto(users):
   cd = buildGAPIObject(API.DIRECTORY)
   targetFolder = os.getcwd()
+  filenamePattern = u'#email#.jpg'
   showPhotoData = True
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'drivedir':
       targetFolder = GC.Values[GC.DRIVE_DIR]
-    elif myarg == u'targetfolder':
+    elif myarg in [u'sourcefolder', u'targetfolder']:
       targetFolder = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
       if not os.path.isdir(targetFolder):
         os.makedirs(targetFolder)
+    elif myarg == u'filename':
+      filenamePattern = getString(Cmd.OB_PHOTO_FILENAME_PATTERN)
     elif myarg == u'noshow':
       showPhotoData = False
     else:
@@ -27690,12 +27879,13 @@ def getPhoto(users):
   for user in users:
     i += 1
     user = normalizeEmailAddressOrUID(user)
+    _, userName, _ = splitEmailAddressOrUID(user)
+    filename = os.path.join(targetFolder, _substituteForUser(filenamePattern, user, userName))
     try:
       entityPerformActionNumItems([Ent.USER, user], 1, Ent.PHOTO, i, count)
       photo = callGAPI(cd.users().photos(), u'get',
                        throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.PHOTO_NOT_FOUND],
                        userKey=user)
-      filename = os.path.join(targetFolder, u'{0}.jpg'.format(user))
       photo_data = str(photo[u'photoData'])
       if showPhotoData:
         writeStdout(photo_data+'\n')
@@ -31821,6 +32011,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ALIAS:		doDeleteAliases,
       Cmd.ARG_BUILDING:		doDeleteBuilding,
       Cmd.ARG_CONTACT:		doDeleteDomainContacts,
+      Cmd.ARG_CONTACTPHOTO:	doDeleteDomainContactPhoto,
       Cmd.ARG_COURSE:		doDeleteCourse,
       Cmd.ARG_COURSES:		doDeleteCourses,
       Cmd.ARG_DOMAIN:		doDeleteDomain,
@@ -31847,7 +32038,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_VAULTMATTER:	doDeleteVaultMatter,
      }
     ),
-  u'get': (Act.DOWNLOAD, {Cmd.ARG_DEVICEFILE:	doGetCrOSDeviceFiles}),
+  u'get': (Act.DOWNLOAD, {Cmd.ARG_CONTACTPHOTO: doGetDomainContactPhoto, Cmd.ARG_DEVICEFILE: doGetCrOSDeviceFiles}),
   u'info':
     (Act.INFO,
      {Cmd.ARG_ALIAS:		doInfoAliases,
@@ -31964,6 +32155,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
      {Cmd.ARG_ALIAS:		doUpdateAliases,
       Cmd.ARG_BUILDING:		doUpdateBuilding,
       Cmd.ARG_CONTACT:		doUpdateDomainContacts,
+      Cmd.ARG_CONTACTPHOTO:	doUpdateDomainContactPhoto,
       Cmd.ARG_COURSE:		doUpdateCourse,
       Cmd.ARG_COURSES:		doUpdateCourses,
       Cmd.ARG_CROS:		doUpdateCrOSDevices,
@@ -32008,6 +32200,7 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_CLASSES:	Cmd.ARG_COURSES,
   Cmd.ARG_CLASSPARTICIPANTS:	Cmd.ARG_COURSEPARTICIPANTS,
   Cmd.ARG_CONTACTS:	Cmd.ARG_CONTACT,
+  Cmd.ARG_CONTACTPHOTOS:	Cmd.ARG_CONTACTPHOTO,
   Cmd.ARG_DATATRANSFERS:	Cmd.ARG_DATATRANSFER,
   Cmd.ARG_DEVICEFILES:	Cmd.ARG_DEVICEFILE,
   Cmd.ARG_DOMAINS:	Cmd.ARG_DOMAIN,
@@ -32376,6 +32569,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CALENDARACL:	deleteCalendarACLs,
       Cmd.ARG_CONTACT:		deleteUserContacts,
       Cmd.ARG_CONTACTGROUP:	deleteUserContactGroups,
+      Cmd.ARG_CONTACTPHOTO:	deleteUserContactPhoto,
       Cmd.ARG_DELEGATE:		deleteDelegate,
       Cmd.ARG_DRIVEFILE:	deleteDriveFile,
       Cmd.ARG_DRIVEFILEACL:	deleteDriveFileACLs,
@@ -32400,7 +32594,7 @@ USER_COMMANDS_WITH_OBJECTS = {
      }
     ),
   u'empty': (Act.EMPTY, {Cmd.ARG_DRIVETRASH: emptyDriveTrash}),
-  u'get': (Act.DOWNLOAD, {Cmd.ARG_DRIVEFILE: getDriveFile, Cmd.ARG_PHOTO: getPhoto}),
+  u'get': (Act.DOWNLOAD, {Cmd.ARG_CONTACTPHOTO: getUserContactPhoto, Cmd.ARG_DRIVEFILE: getDriveFile, Cmd.ARG_PHOTO: getPhoto}),
   u'import': (Act.IMPORT, {Cmd.ARG_EVENT: importCalendarEvent, Cmd.ARG_MESSAGE: importMessage}),
   u'info':
     (Act.INFO,
@@ -32459,7 +32653,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_VACATION:		printVacation,
      }
     ),
-  u'remove': (Act.REMOVE, {Cmd.ARG_CALENDAR: removeCalendars,}),
+  u'remove': (Act.REMOVE, {Cmd.ARG_CALENDAR: removeCalendars}),
   u'show':
     (Act.SHOW,
      {Cmd.ARG_ASP:		showASPs,
@@ -32519,6 +32713,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CALENDARACL:	updateCalendarACLs,
       Cmd.ARG_CONTACT:		updateUserContacts,
       Cmd.ARG_CONTACTGROUP:	updateUserContactGroup,
+      Cmd.ARG_CONTACTPHOTO:	updateUserContactPhoto,
       Cmd.ARG_DRIVEFILE:	updateDriveFile,
       Cmd.ARG_DRIVEFILEACL:	updateDriveFileACLs,
       Cmd.ARG_EVENT:		updateCalendarEvents,
@@ -32562,6 +32757,7 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_CALENDARACLS:	Cmd.ARG_CALENDARACL,
   Cmd.ARG_CONTACTS:	Cmd.ARG_CONTACT,
   Cmd.ARG_CONTACTGROUPS:	Cmd.ARG_CONTACTGROUP,
+  Cmd.ARG_CONTACTPHOTOS:	Cmd.ARG_CONTACTPHOTO,
   Cmd.ARG_DELEGATES:	Cmd.ARG_DELEGATE,
   Cmd.ARG_DRIVEFILEACLS:	Cmd.ARG_DRIVEFILEACL,
   Cmd.ARG_EVENTS:	Cmd.ARG_EVENT,

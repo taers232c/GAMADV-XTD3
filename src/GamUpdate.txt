@@ -1,3 +1,35 @@
+4.55.31
+
+Fixed error in `gam update drivefileacl/updatedrivefileacl` where specifying a group email address caused the command to fail.
+
+Added support for domain/user contact photos.
+gam update contactphotos <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]) [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
+gam get contactphotos <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]) [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
+gam delete contactphotos <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>])
+gam <UserTypeEntity> update contactphotos <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]) [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
+gam <UserTypeEntity> get contactphotos <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]) [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
+gam <UserTypeEntity> delete contactphotos <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>])
+The default directory is the current working directory, drivedir specifies the value of drive_dir from gam.cfg and
+sourcefolder/targetfolder <FilePath> specifies a user-chosen path.
+<FileNamePattern> can contain the strings #email# and #contactid# which will be replaced by the the contact's primary emailaddress or the contact ID.
+If not specified, <FileNamePattern> defaults to "#contactid#.jpg".
+
+Previously, when upating a user's photo, you specified a <FileNamePattern> that> had to specify a full file path and
+could contain the strings #email#, #user# and #username# which would be replaced by the the user's full emailaddress or just the name portion.
+<FileNamePattern> can now be omitted, it defaults to "#email#.jpg".
+gam <UserTypeEntity> update photo [<FileNamePattern>]
+
+A new form of the command allows you to separate the directory and file name specifications.
+The default directory is the current working directory, drivedir specifies the value of drive_dir from gam.cfg and
+sourcefolder <FilePath> specifies a user-chosen path.
+If not specified, <FileNamePattern> defaults to "#email#.jpg".
+gam <UserTypeEntity> update photo [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
+
+Previously, when downloading a user's photo, the file name was always the user's email address with a .jpg extension.
+You can now specify a <FileNamePattern> that can contain the strings #email#, #user# and #username# which will be replaced by the the user's full emailaddress or just the name portion.
+<FileNamePattern> defaults to "#email#.jpg".
+gam <UserTypeEntity> get photo [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>] [noshow]
+
 4.55.30
 
 Handle mysterious start_time and end_time values in gam report calendar.
@@ -4513,7 +4545,7 @@ Added arguments to gam info cros to allow specification of desired output fields
 Added drivedir and targetfolder <FilePath> arguments to gam printjob fetch and gam get photo to
 allow specification of the destination folder for the file retrieved from Google. The default
 location for these commands is the current working directory, drivedir specifies the value of drive_dir from gam.cfg and
-targetfolder <FilePath> specifies a user-choosen path.
+targetfolder <FilePath> specifies a user-chosen path.
     gam printjob|printjobs <PrinterID>|any fetch
         [olderthan|newerthan <PrintJobAge>] [query <QueryPrintJob>]
         [status <PrintJobStatus>]

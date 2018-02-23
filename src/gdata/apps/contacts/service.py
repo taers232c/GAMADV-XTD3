@@ -165,6 +165,7 @@ class ContactsService(gdata.service.GDataService):
     Args:
       edit_uri: string The edit URL of the entry to be deleted. Example:
                '/m8/feeds/contacts/default/full/xxx/yyy'
+      extra_headers: dict (optional)
       url_params: dict (optional) Additional URL parameters to be included
                   in the deletion request.
       escape_params: boolean (optional) If true, the url_parameters will be
@@ -185,7 +186,7 @@ class ContactsService(gdata.service.GDataService):
       raise gdata.apps.service.AppsForYourDomainException(e.args[0])
 
   def ChangePhoto(self, media, contact_entry_or_url, content_type=None,
-                  content_length=None):
+                  content_length=None, extra_headers=None):
     """Change the photo for the contact by uploading a new photo.
 
     Performs a PUT against the photo edit URL to send the binary data for the
@@ -206,9 +207,11 @@ class ContactsService(gdata.service.GDataService):
                       is a filename, the length is determined using
                       os.path.getsize. If media is a MediaSource object, it is
                       assumed that it already contains the content length.
+      extra_headers: dict (optional)
     """
     if isinstance(contact_entry_or_url, gdata.apps.contacts.ContactEntry):
-      url = contact_entry_or_url.GetPhotoEditLink().href
+#      url = contact_entry_or_url.GetPhotoEditLink().href
+      url = contact_entry_or_url.GetPhotoLink().href
     else:
       url = contact_entry_or_url
     if isinstance(media, gdata.MediaSource):
@@ -222,13 +225,13 @@ class ContactsService(gdata.service.GDataService):
     else:
       payload = gdata.MediaSource(content_type=content_type,
                                   content_length=content_length, file_path=media)
-    return self.Put(payload, url)
+    return self.Put(payload, url, extra_headers=extra_headers)
 
   def GetPhoto(self, contact_entry_or_url):
     """Retrives the binary data for the contact's profile photo as a string.
 
     Args:
-      contact_entry_or_url: a gdata.apps.contacts.ContactEntry objecr or a string
+      contact_entry_or_url: a gdata.apps.contacts.ContactEntry object or a string
          containing the photo link's URL. If the contact entry does not
          contain a photo link, the image will not be fetched and this method
          will return None.
@@ -251,14 +254,23 @@ class ContactsService(gdata.service.GDataService):
     else:
       return None
 
-  def DeletePhoto(self, contact_entry_or_url):
+  def DeletePhoto(self, contact_entry_or_url, extra_headers=None):
+    """Deletes the contact's profile photo.
+
+    Args:
+      contact_entry_or_url: a gdata.apps.contacts.ContactEntry object or a string
+         containing the photo link's URL.
+         will return None.
+      extra_headers: dict (optional)
+    """
     url = None
     if isinstance(contact_entry_or_url, gdata.apps.contacts.ContactEntry):
-      url = contact_entry_or_url.GetPhotoEditLink().href
+#      url = contact_entry_or_url.GetPhotoEditLink().href
+      url = contact_entry_or_url.GetPhotoLink().href
     else:
       url = contact_entry_or_url
     if url:
-      self.Delete(url)
+      self.Delete(url, extra_headers=extra_headers)
 
   def ExecuteBatch(self, batch_feed, url,
                    converter=gdata.apps.contacts.ContactsFeedFromString):
@@ -341,4 +353,3 @@ class ContactsQuery(gdata.service.Query):
       self['group'] = group
     gdata.service.Query.__init__(self, feed=self.feed, text_query=text_query,
                                  params=params, categories=categories)
-

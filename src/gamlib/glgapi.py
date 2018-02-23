@@ -63,6 +63,7 @@ INVALID_INPUT = u'invalidInput'
 INVALID_MEMBER = u'invalidMember'
 INVALID_MESSAGE_ID = u'invalidMessageId'
 INVALID_ORGUNIT = u'invalidOrgunit'
+INVALID_ORGUNIT_NAME = u'invalidOrgunitName'
 INVALID_OWNERSHIP_TRANSFER = u'invalidOwnershipTransfer'
 INVALID_PARAMETER = u'invalidParameter'
 INVALID_PARENT_ORGUNIT = u'invalidParentOrgunit'
@@ -151,6 +152,7 @@ REASON_MESSAGE_MAP = {
     (u'Invalid Input:', INVALID_INPUT),
     (u'Invalid Org Unit', INVALID_ORGUNIT),
     (u'Invalid Ou Id', INVALID_ORGUNIT),
+    (u'Invalid Ou Name', INVALID_ORGUNIT_NAME),
     (u'Invalid Parent Orgunit Id', INVALID_PARENT_ORGUNIT),
     (u'Invalid query', INVALID_QUERY),
     (u'Invalid scope value', INVALID_SCOPE_VALUE),
@@ -274,6 +276,8 @@ class invalidMember(Exception):
 class invalidMessageId(Exception):
   pass
 class invalidOrgunit(Exception):
+  pass
+class invalidOrgunitName(Exception):
   pass
 class invalidOwnershipTransfer(Exception):
   pass
@@ -403,6 +407,7 @@ REASON_EXCEPTION_MAP = {
   INVALID_MEMBER: invalidMember,
   INVALID_MESSAGE_ID: invalidMessageId,
   INVALID_ORGUNIT: invalidOrgunit,
+  INVALID_ORGUNIT_NAME: invalidOrgunitName,
   INVALID_OWNERSHIP_TRANSFER: invalidOwnershipTransfer,
   INVALID_PARAMETER: invalidParameter,
   INVALID_PARENT_ORGUNIT: invalidParentOrgunit,

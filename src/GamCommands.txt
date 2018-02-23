@@ -959,6 +959,10 @@ gam create|add contact <ContactAttributes>+
 gam update contacts <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]) <ContactAttributes>+
 gam delete contacts <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>])
 
+gam update contactphotos <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]) [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
+gam get contactphotos <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]) [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
+gam delete contactphotos <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>])
+
 <ContactFieldName> ::=
         additionalname|middlename|
         address|
@@ -1015,6 +1019,10 @@ gam <UserTypeEntity> show contacts [query <QueryContact>] [contactgroup <Contact
         [basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]] [fields <ContactFieldNameList>]
 gam <UserTypeEntity> print contacts [todrive [<ToDriveAttributes>]] [query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
         [basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]] [fields <ContactFieldNameList>]
+
+gam <UserTypeEntity> update contactphotos <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]) [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
+gam <UserTypeEntity> get contactphotos <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]) [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
+gam <UserTypeEntity> delete contactphotos <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>])
 
 gam <UserTypeEntity> create|add contactgroup <ContactGroupAttributes>+
 gam <UserTypeEntity> update contactgroup <ContactGroupItem> <ContactGroupAttributes>+
@@ -2549,9 +2557,10 @@ gam <UserTypeEntity> delete license <SKUID> [product|productid <ProductID>]
 
 # Users - Photo
 
-gam <UserTypeEntity> update photo <FileNamePattern>
+gam <UserTypeEntity> update photo [<FileNamePattern>]
+gam <UserTypeEntity> update photo [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
 gam <UserTypeEntity> delete photo
-gam <UserTypeEntity> get photo [drivedir|(targetfolder <FilePath>)] [noshow]
+gam <UserTypeEntity> get photo [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>] [noshow]
 
 # Users - Profile
 

@@ -238,6 +238,8 @@ class GamCLArgs(object):
   ARG_CONTACTS = u'contacts'
   ARG_CONTACTGROUP = u'contactgroup'
   ARG_CONTACTGROUPS = u'contactgroups'
+  ARG_CONTACTPHOTO = u'contactphoto'
+  ARG_CONTACTPHOTOS = u'contactphotos'
   ARG_COURSE = u'course'
   ARG_COURSES = u'courses'
   ARG_COURSEANNOUNCEMENTS = u'courseannouncements'
@@ -566,6 +568,10 @@ class GamCLArgs(object):
     self.argv = args[:]
     self.argvI = 1
     self.argvLen = len(self.argv)
+
+# Number of arguments remaining
+  def NumArgumentsRemaining(self):
+    return self.argvLen - self.argvI
 
 # Any arguments remaining
   def ArgumentsRemaining(self):

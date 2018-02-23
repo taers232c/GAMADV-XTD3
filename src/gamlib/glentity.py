@@ -129,6 +129,7 @@ class GamEntity(object):
   MEMBER = u'memb'
   MESSAGE = u'mesg'
   MOBILE_DEVICE = u'mobi'
+  NAME = u'name'
   NONEDITABLE_ALIAS = u'neal'
   NOTIFICATION = u'noti'
   OAUTH2_TXT_FILE = u'oaut'
@@ -302,6 +303,7 @@ class GamEntity(object):
     MEMBER: [u'Members', u'Member'],
     MESSAGE: [u'Messages', u'Message'],
     MOBILE_DEVICE: [u'Mobile Devices', u'Mobile Device'],
+    NAME: [u'Names', u'Name'],
     NONEDITABLE_ALIAS: [u'Non-Editable Aliases', u'Non-Editable Alias'],
     NOTIFICATION: [u'Notifications', u'Notification'],
     OAUTH2_TXT_FILE: [u'Client OAuth2 File', u'Client OAuth2 File'],
