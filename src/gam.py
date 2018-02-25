@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.31'
+__version__ = u'4.55.32'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -1150,6 +1150,19 @@ def makeOrgUnitPathRelative(path):
   if path.startswith(u'uid:'):
     return path[1:]
   return path.rstrip(u'/')
+
+def encodeOrgUnitPath(path):
+  if path.find(u'+') == -1 and path.find(u'%') == -1:
+    return path
+  encpath = u''
+  for c in path:
+    if c == u'+':
+      encpath += u'%2B'
+    elif c == u'%':
+      encpath += u'%25'
+    else:
+      encpath += c
+  return encpath
 
 def getOrgUnitItem(pathOnly=False, absolutePath=True):
   if Cmd.ArgumentsRemaining():
@@ -3621,7 +3634,7 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
         try:
           result = callGAPI(cd.orgunits(), u'get',
                             throw_reasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
-                            customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=makeOrgUnitPathRelative(ou), fields=u'orgUnitPath')
+                            customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(makeOrgUnitPathRelative(ou)), fields=u'orgUnitPath')
           ouSet.add(result[u'orgUnitPath'].lower())
         except (GAPI.badRequest, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
           checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
@@ -7113,8 +7126,7 @@ def getOrgUnitId(cd=None):
   try:
     result = callGAPI(cd.orgunits(), u'get',
                       throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
-                      customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=makeOrgUnitPathRelative(orgUnit),
-                      fields=u'orgUnitId')
+                      customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(makeOrgUnitPathRelative(orgUnit)), fields=u'orgUnitId')
     return (orgUnit, result[u'orgUnitId'])
   except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
     entityDoesNotExistExit(Ent.ORGANIZATIONAL_UNIT, orgUnit)
@@ -7708,7 +7720,7 @@ def doCreateOrg():
     try:
       callGAPI(cd.orgunits(), u'get',
                throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
-               customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=getPath, fields=u'')
+               customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(getPath), fields=u'')
       printKeyValueList([Ent.Singular(Ent.ORGANIZATIONAL_UNIT), fullPath, Msg.EXISTS])
     except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
       body[u'name'] = orgNames[i]
@@ -7725,7 +7737,7 @@ def checkOrgUnitPathExists(cd, orgUnitPath, i=0, count=0, showError=False):
   try:
     return (True, callGAPI(cd.orgunits(), u'get',
                            throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
-                           customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=makeOrgUnitPathRelative(orgUnitPath),
+                           customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(makeOrgUnitPathRelative(orgUnitPath)),
                            fields=u'orgUnitPath')[u'orgUnitPath'])
   except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
     pass
@@ -7882,7 +7894,7 @@ def _doUpdateOrgs(entityList):
         callGAPI(cd.orgunits(), u'update',
                  throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.INVALID_ORGUNIT_NAME,
                                 GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
-                 customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=makeOrgUnitPathRelative(orgUnitPath), body=body, fields=u'')
+                 customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(makeOrgUnitPathRelative(orgUnitPath)), body=body, fields=u'')
         entityActionPerformed([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], i, count)
       except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
         entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], Msg.DOES_NOT_EXIST, i, count)
@@ -7914,7 +7926,7 @@ def _doDeleteOrgs(entityList):
       orgUnitPath = makeOrgUnitPathAbsolute(orgUnitPath)
       callGAPI(cd.orgunits(), u'delete',
                throw_reasons=[GAPI.CONDITION_NOT_MET, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
-               customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=makeOrgUnitPathRelative(orgUnitPath))
+               customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(makeOrgUnitPathRelative(orgUnitPath)))
       entityActionPerformed([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], i, count)
     except GAPI.conditionNotMet:
       entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], Msg.HAS_CHILD_ORGS.format(Ent.Plural(Ent.ORGANIZATIONAL_UNIT)), i, count)
@@ -7986,7 +7998,7 @@ def _doInfoOrgs(entityList):
         orgUnitPath = makeOrgUnitPathRelative(orgUnitPath)
       result = callGAPI(cd.orgunits(), u'get',
                         throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
-                        customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=orgUnitPath)
+                        customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(orgUnitPath))
       printEntity([Ent.ORGANIZATIONAL_UNIT, result[u'orgUnitPath']], i, count)
       Ind.Increment()
       for field in ORG_FIELD_INFO_ORDER:

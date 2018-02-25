@@ -1,3 +1,7 @@
+4.55.32
+
+Add special handling for Organizational Unit names containing the characters + and %.
+
 4.55.31
 
 Fixed error in `gam update drivefileacl/updatedrivefileacl` where specifying a group email address caused the command to fail.
