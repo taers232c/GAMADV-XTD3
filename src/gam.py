@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.32'
+__version__ = u'4.55.33'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -11062,14 +11062,14 @@ CROS_START_ARGUMENTS = [u'start', u'startdate', u'oldestdate']
 CROS_END_ARGUMENTS = [u'end', u'enddate']
 
 # gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
-#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>]
+#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
 def infoCrOSDevices(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
   downloadfile = None
   targetFolder = GC.Values[GC.DRIVE_DIR]
   projection = None
   fieldsList = []
-  noLists = False
+  formatJSON = noLists = False
   listLimit = 0
   startDate = endDate = startTime = endTime = None
   while Cmd.ArgumentsRemaining():
@@ -11115,6 +11115,8 @@ def infoCrOSDevices(entityList):
       targetFolder = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
       if not os.path.isdir(targetFolder):
         os.makedirs(targetFolder)
+    elif myarg == "formatjson":
+      formatJSON = True
     else:
       unknownArgumentExit()
   if downloadfile and fieldsList:
@@ -11128,6 +11130,9 @@ def infoCrOSDevices(entityList):
                       throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                       customerId=GC.Values[GC.CUSTOMER_ID], deviceId=deviceId, projection=projection, fields=fields)
       _checkTPMVulnerability(cros)
+      if formatJSON:
+        printLine(json.dumps(cros, ensure_ascii=False, sort_keys=True))
+        continue
       printEntity([Ent.CROS_DEVICE, deviceId], i, count)
       Ind.Increment()
       if u'notes' in cros:
@@ -11208,7 +11213,7 @@ def infoCrOSDevices(entityList):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.CROS_DEVICE, deviceId, i, count)
 
 # gam info cros|croses <CrOSEntity> [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
-#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>]
+#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
 def doInfoCrOSDevices():
   infoCrOSDevices(getCrOSDeviceEntity())
 
@@ -11359,10 +11364,13 @@ CROS_ORDERBY_CHOICE_MAP = {
 
 # gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
-#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders]
+#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
 def doPrintCrOSDevices(entityList=None):
   def _printCrOS(cros):
     _checkTPMVulnerability(cros)
+    if formatJSON:
+      csvRows.append({u'deviceId': cros[u'deviceId'], u'JSON': json.dumps(cros, ensure_ascii=False, sort_keys=True)})
+      return
     if u'notes' in cros:
       cros[u'notes'] = convertCRsNLs(cros[u'notes'])
     if (not noLists) and (not selectActiveTimeRanges) and (not selectRecentUsers) and (not selectDeviceFiles):
@@ -11428,7 +11436,8 @@ def doPrintCrOSDevices(entityList=None):
   addFieldToCSVfile(u'deviceId', CROS_FIELDS_CHOICE_MAP, fieldsList, titles)
   sortHeaders = False
   orgUnitPath = query = projection = orderBy = sortOrder = None
-  noLists = False
+  formatJSON = noLists = False
+  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
   listLimit = 0
   startDate = endDate = startTime = endTime = None
   selectActiveTimeRanges = selectDeviceFiles = selectRecentUsers = False
@@ -11498,6 +11507,10 @@ def doPrintCrOSDevices(entityList=None):
             noLists = False
         else:
           invalidChoiceExit(CROS_FIELDS_CHOICE_MAP, True)
+    elif myarg == "formatjson":
+      formatJSON = True
+    elif myarg == u'quotechar':
+      quotechar = getCharacter()
     else:
       unknownArgumentExit()
   if projection == u'FULL':
@@ -11526,6 +11539,9 @@ def doPrintCrOSDevices(entityList=None):
       projection = u'FULL'
       addFieldToCSVfile(u'deviceFiles', CROS_FIELDS_CHOICE_MAP, fieldsList, titles)
   _, _, entityList = getEntityArgument(entityList)
+  if formatJSON:
+    sortHeaders = False
+    titles, csvRows = initializeTitlesCSVfile([u'deviceId', u'JSON'])
   if entityList is None:
     sortRows = False
     fields = u'nextPageToken,chromeosdevices({0})'.format(u','.join(fieldsList)).replace(u'.', u'/') if fieldsList else None
@@ -11576,14 +11592,17 @@ def doPrintCrOSDevices(entityList=None):
         _printCrOS({u'deviceId': cros})
   if sortRows and orderBy and orderBy in titles[u'set']:
     csvRows.sort(key=lambda k: k[orderBy], reverse=sortOrder == u'DESCENDING')
-  writeCSVfile(csvRows, titles, u'CrOS', todrive, [u'deviceId',] if sortHeaders else None)
+  writeCSVfile(csvRows, titles, u'CrOS', todrive, [u'deviceId',] if sortHeaders else None, quotechar)
 
 # gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [devicefiles] [both|all] [listlimit <Number>] [start <Date>] [end <Date>]
-#	[delimiter <Character>]
+#	[delimiter <Character>] [formatjson] [quotechar <Character>]
 def doPrintCrOSActivity(entityList=None):
   def _printCrOS(cros):
     row = {}
+    if formatJSON:
+      csvRows.append({u'deviceId': cros[u'deviceId'], u'JSON': json.dumps(cros, ensure_ascii=False, sort_keys=True)})
+      return
     for attrib in cros:
       if attrib not in [u'recentUsers', u'activeTimeRanges', u'deviceFiles']:
         row[attrib] = cros[attrib]
@@ -11629,6 +11648,8 @@ def doPrintCrOSActivity(entityList=None):
   titles, csvRows = initializeTitlesCSVfile(fieldsList)
   projection = u'FULL'
   orgUnitPath = query = orderBy = sortOrder = None
+  formatJSON = False
+  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
   listLimit = 0
   startDate = endDate = startTime = endTime = None
   selectActiveTimeRanges = selectDeviceFiles = selectRecentUsers = False
@@ -11663,6 +11684,10 @@ def doPrintCrOSActivity(entityList=None):
       sortOrder = getChoice(SORTORDER_CHOICE_MAP, defaultChoice=u'ASCENDING', mapChoice=True)
     elif myarg == u'delimiter':
       delimiter = getCharacter()
+    elif myarg == "formatjson":
+      formatJSON = True
+    elif myarg == u'quotechar':
+      quotechar = getCharacter()
     else:
       unknownArgumentExit()
   if not selectActiveTimeRanges and not selectDeviceFiles and not selectRecentUsers:
@@ -11677,6 +11702,8 @@ def doPrintCrOSActivity(entityList=None):
     fieldsList.append(u'deviceFiles')
     addTitlesToCSVfile([u'deviceFiles.type', u'deviceFiles.createTime'], titles)
   _, _, entityList = getEntityArgument(entityList)
+  if formatJSON:
+    titles, csvRows = initializeTitlesCSVfile([u'deviceId', u'JSON'])
   if entityList is None:
     sortRows = False
     fields = u'nextPageToken,chromeosdevices({0})'.format(u','.join(fieldsList))
@@ -11718,7 +11745,7 @@ def doPrintCrOSActivity(entityList=None):
       executeBatch(dbatch)
   if sortRows and orderBy and orderBy in titles[u'set']:
     csvRows.sort(key=lambda k: k[orderBy], reverse=sortOrder == u'DESCENDING')
-  writeCSVfile(csvRows, titles, u'CrOS Activity', todrive)
+  writeCSVfile(csvRows, titles, u'CrOS Activity', todrive, None, quotechar)
 
 # gam <CrOSTypeEntity> print
 def doPrintCrOSEntity(entityList):
@@ -12732,7 +12759,7 @@ PRINT_GROUPS_JSON_TITLES = [u'Email', u'JSON']
 #	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
 #	[maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
 #	[members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
-#	[convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [guotechar <Character>]
+#	[convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
 def doPrintGroups():
 
   def _printGroupRow(groupEntity, groupMembers, groupSettings):
@@ -18343,8 +18370,6 @@ def doInfoUser():
   else:
     infoUsers([_getValueFromOAuth(u'email')])
 
-PRINT_USERS_JSON_TITLES = [u'primaryEmail', u'JSON']
-
 USERS_ORDERBY_CHOICE_MAP = {
   u'familyname': u'familyName',
   u'lastname': u'familyName',
@@ -18357,7 +18382,7 @@ USERS_ORDERBY_CHOICE_MAP = {
 #	[groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
 #	[orderby <UserOrderByFieldName> [ascending|descending]]
 #	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
-#	[delimiter <Character>] [sortheaders] [formatjson] [guotechar <Character>]
+#	[delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
 def doPrintUsers(entityList=None):
   def _printUser(userEntity):
     if email_parts and (u'primaryEmail' in userEntity):
@@ -18458,7 +18483,7 @@ def doPrintUsers(entityList=None):
   _, _, entityList = getEntityArgument(entityList)
   if formatJSON:
     sortHeaders = False
-    titles, csvRows = initializeTitlesCSVfile(PRINT_USERS_JSON_TITLES)
+    titles, csvRows = initializeTitlesCSVfile([u'primaryEmail', u'JSON'])
   if entityList is None:
     sortRows = False
     fields = u'nextPageToken,users({0})'.format(u','.join(set(fieldsList))).replace(u'.', u'/') if fieldsList else None

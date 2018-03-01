@@ -1,3 +1,24 @@
+4.55.33
+
+Added formatjson argument to gam info cros/print cros/print crosactivity to cause output to be in JSON format.
+
+By default, when writing CSV files, Gam uses a quote character of double quote ". The quote character is used to enclose columns that contain
+the quote character itself, the column delimiter (comma by default) and new-line characters. Any quote characters within the column are doubled.
+When using the gam print cros/crosactivity commands with the formatjson option, double quotes are used extensively in the data resulting in hard to read/process output.
+The quotechar <Character> option allows you to choose an alternate quote character, single quote for instance, that makes for readable/processable output.
+quotechar defaults to gam.cfg/csv_output_quote_char.
+
+gam info cros <CrOSEntity> [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
+        [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
+gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
+        [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
+gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
+        [orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
+        [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
+gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
+        [orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [both] [devicefiles] [all] [listlimit <Number>] [start <Date>] [end <Date>]
+        [delimiter <Character>] [formatjson] [quotechar <Character>]
+
 4.55.32
 
 Add special handling for Organizational Unit names containing the characters + and %.

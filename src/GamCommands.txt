@@ -848,9 +848,9 @@ gam <CrOSTypeEntity> update (<CrOSAttributes>+ [quickcrosmove [<Boolean>]])|(act
         lastsync|location|notes|serialnumber|status|supportenddate|user
 
 gam info cros <CrOSEntity> [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
-        [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>]
+        [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
 gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
-        [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>]
+        [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
 
 Print no header row and deviceId for specified CrOS devices; there is no CSV file redirection with these commands.
 
@@ -868,7 +868,7 @@ If you specify allfields|basic|full, all other column headers are sorted.
 If you specify <CrOSFieldName>* | fields <CrOSFieldNameList>, the column headers appear in the order specified.
 gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
-        [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders]
+        [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
 
 The basic argument outputs these column headers: deviceId,annotatedAssetId,annotatedLocation,annotatedUser,lastSync,notes,serialNumber,status
 The allfields/full arguments output all column headers including three headers, recentUsers, activeTimeRanges and deviceFiles,
@@ -889,7 +889,7 @@ The start <Date> and end <Date> arguments filter the time ranges and device file
 
 gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [both] [devicefiles] [all] [listlimit <Number>] [start <Date>] [end <Date>]
-        [delimiter <Character>]
+        [delimiter <Character>] [formatjson] [quotechar <Character>]
 
 The basic column headers are: deviceId,annotatedAssetId,annotatedLocation,serialNumber,orgUnitPath.
 
