@@ -1,3 +1,12 @@
+4.55.34
+
+Added showstudentemails option to gam show/print guardians so that the student email address will be displayed in addition to the student ID.
+This requires an additional API call per guardian.
+gam show guardian|guardians invitations [showstudentemails] [states <GuardianStateList>] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
+gam print guardian|guardians invitations [todrive [<ToDriveAttributes>]] [showstudentemails] [states <GuardianStateList>] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
+gam show guardian|guardians [showstudentemails] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
+gam print guardian|guardians [todrive [<ToDriveAttributes>]] [showstudentemails] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
+
 4.55.33
 
 Added formatjson argument to gam info cros/print cros/print crosactivity to cause output to be in JSON format.

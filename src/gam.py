@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.33'
+__version__ = u'4.55.34'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -18817,9 +18817,27 @@ def doDeleteGuardian():
 GUARDIAN_STATES = [u'complete', u'pending']
 
 def printShowGuardians(csvFormat):
+  def _getStudentEmail(guardian, studentId):
+    if studentId.find(u'@') != -1:
+      return studentId
+    studentEmail = studentEmails.get(guardian[u'studentId'])
+    if studentEmail is not None:
+      return studentEmail
+    try:
+      studentEmail = callGAPI(croom.userProfiles(), u'get',
+                              throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                              userId=guardian[u'studentId'], fields=u'emailAddress')[u'emailAddress']
+    except (GAPI.notFound, GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied):
+      studentEmail = guardian[u'studentId']
+    studentEmails[guardian[u'studentId']] = studentEmail
+    return studentEmail
+
   croom = buildGAPIObject(API.CLASSROOM)
   invitedEmailAddress = None
   studentIds = [u'-',]
+  allStudents = True
+  showStudentEmails = False
+  studentEmails = {}
   states = []
   service = croom.userProfiles().guardians()
   items = u'guardians'
@@ -18835,6 +18853,7 @@ def printShowGuardians(csvFormat):
       invitedEmailAddress = getEmailAddress()
     elif myarg == u'student':
       studentIds = [getString(Cmd.OB_STUDENT_ITEM)]
+      allStudents = False
     elif myarg == u'invitations':
       service = croom.userProfiles().guardianInvitations()
       items = u'guardianInvitations'
@@ -18843,16 +18862,19 @@ def printShowGuardians(csvFormat):
       if not states:
         states = [state.upper() for state in GUARDIAN_STATES]
     elif myarg == u'states':
-      statesList = getString(Cmd.OB_GUARDIAN_STATE_LIST).split(u',')
+      statesList = getString(Cmd.OB_GUARDIAN_STATE_LIST).lower().split(u',')
       states = []
       for state in statesList:
         if state in GUARDIAN_STATES:
           states.append(state.upper())
         else:
           invalidChoiceExit(GUARDIAN_STATES, True)
+    elif myarg == u'showstudentemails':
+      showStudentEmails = True
     else:
       Cmd.Backup()
       _, studentIds = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
+      allStudents = False
   i = 0
   count = len(studentIds)
   for studentId in studentIds:
@@ -18861,7 +18883,7 @@ def printShowGuardians(csvFormat):
     kwargs = {u'invitedEmailAddress': invitedEmailAddress, u'studentId': studentId}
     if items == u'guardianInvitations':
       kwargs[u'states'] = states
-    if studentId != u'-':
+    if not allStudents:
       if csvFormat:
         printGettingAllEntityItemsForWhom(entityType, studentId, i, count)
     try:
@@ -18870,19 +18892,24 @@ def printShowGuardians(csvFormat):
                              **kwargs)
       jcount = len(result)
       if not csvFormat:
-        entityPerformActionNumItems([Ent.STUDENT, studentId], jcount, entityType, i, count)
+        entityPerformActionNumItems([Ent.STUDENT, studentId if not allStudents else u'All'], jcount, entityType, i, count)
         Ind.Increment()
         j = 0
         for guardian in result:
           j += 1
           printKeyValueListWithCount([u'invitedEmailAddress', guardian[u'invitedEmailAddress']], j, jcount)
           Ind.Increment()
+          if showStudentEmails:
+            guardian[u'studentEmail'] = _getStudentEmail(guardian, studentId)
           showJSON(None, guardian, [u'invitedEmailAddress',], COURSE_TIME_OBJECTS)
           Ind.Decrement()
         Ind.Decrement()
       else:
         for guardian in result:
-          guardian[u'studentEmail'] = studentId
+          if showStudentEmails:
+            guardian[u'studentEmail'] = _getStudentEmail(guardian, studentId)
+          else:
+            guardian[u'studentEmail'] = studentId
           addRowTitlesToCSVfile(flattenJSON(guardian, timeObjects=COURSE_TIME_OBJECTS), csvRows, titles)
     except (GAPI.notFound, GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden):
       entityUnknownWarning(Ent.STUDENT, studentId, i, count)
@@ -18891,11 +18918,11 @@ def printShowGuardians(csvFormat):
   if csvFormat:
     writeCSVfile(csvRows, titles, u'Guardians', todrive)
 
-# gam show guardian|guardians [invitations [states <GuardianStateList>]] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
+# gam show guardian|guardians [showstudentemails] [invitations [states <GuardianStateList>]] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
 def doShowGuardians():
   printShowGuardians(False)
 
-# gam print guardian|guardians [todrive [<ToDriveAttributes>]] [invitations [states <GuardianStateList>]] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
+# gam print guardian|guardians [todrive [<ToDriveAttributes>]] [showstudentemails] [invitations [states <GuardianStateList>]] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
 def doPrintGuardians():
   printShowGuardians(True)
 

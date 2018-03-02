@@ -1351,12 +1351,12 @@ gam show group-members
 gam create|add guardian|guardianinvite|inviteguardian <EmailAddress> <StudentItem>
 gam cancel guardianinvitation|guardianinvitations <GuardianInvitationID> <StudentItem>
 gam delete guardian|guardians <GuardianItem> <StudentItem> invitation
-gam show guardian|guardians invitations [states <GuardianStateList>] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
-gam print guardian|guardians invitations [todrive [<ToDriveAttributes>]] [states <GuardianStateList>] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
+gam show guardian|guardians invitations [showstudentemails] [states <GuardianStateList>] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
+gam print guardian|guardians invitations [todrive [<ToDriveAttributes>]] [showstudentemails] [states <GuardianStateList>] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
 
 gam delete guardian|guardians <GuardianItem> <StudentItem>
-gam show guardian|guardians [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
-gam print guardian|guardians [todrive [<ToDriveAttributes>]] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
+gam show guardian|guardians [showstudentemails] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
+gam print guardian|guardians [todrive [<ToDriveAttributes>]] [showstudentemails] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
 
 # Licenses
 
