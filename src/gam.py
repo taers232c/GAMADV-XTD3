@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.34'
+__version__ = u'4.55.35'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -22968,12 +22968,13 @@ def _mapDriveUser(field):
     field[u'picture'] = {u'url': field.pop(u'photoLink')}
 
 def _mapDrivePermissionNames(permission):
-  if u'displayName' in permission:
-    permission[u'name'] = permission.pop(u'displayName')
-  if VX_EXPIRATION_TIME in permission:
-    permission[u'expirationDate'] = formatLocalTime(permission.pop(VX_EXPIRATION_TIME))
-  if u'allowFileDiscovery' in permission:
-    permission[u'withLink'] = not permission.pop(u'allowFileDiscovery')
+  if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
+    if u'displayName' in permission:
+      permission[u'name'] = permission.pop(u'displayName')
+    if VX_EXPIRATION_TIME in permission:
+      permission[u'expirationDate'] = formatLocalTime(permission.pop(VX_EXPIRATION_TIME))
+    if u'allowFileDiscovery' in permission:
+      permission[u'withLink'] = not permission.pop(u'allowFileDiscovery')
   emailAddress = permission.get(u'emailAddress')
   if emailAddress:
     _, permission[u'domain'] = splitEmailAddress(emailAddress)
@@ -23029,7 +23030,9 @@ def _mapDriveFieldNames(f_file, user, mapToLabels=False):
   if u'owners' in f_file:
     for owner in f_file[u'owners']:
       _mapDriveUser(owner)
-    f_file[u'ownerNames'] = [owner[u'displayName'] for owner in f_file[u'owners']]
+      if u'displayName' in owner:
+        f_file.setdefault('ownerNames', [])
+        f_file['ownerNames'].append(owner[u'displayName'])
   _mapDriveUser(f_file.get(u'sharingUser', {}))
   _mapDriveParents(f_file)
   _mapDriveProperties(f_file)
@@ -26480,21 +26483,18 @@ def emptyDriveTrash(users):
           break
       Ind.Decrement()
 
-DRIVEFILE_ACL_TIME_OBJECTS = [VX_EXPIRATION_TIME]
-DRIVEFILE_ACL_KEY_PRINT_ORDER = [
-  u'id', u'type', u'emailAddress', u'domain', u'role', u'teamDrivePermissionDetails',
-  VX_EXPIRATION_TIME, u'photoLink', u'allowFileDiscovery',
-  ]
+def _getDriveFileACLPrintKeysTimeObjects():
+  printKeys = [u'id', u'type', u'emailAddress', u'domain', u'role', u'teamDrivePermissionDetails', VX_EXPIRATION_TIME, u'photoLink', u'allowFileDiscovery']
+  timeObjects = [VX_EXPIRATION_TIME]
+  if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
+    _mapDrive3TitlesToDrive2(printKeys, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
+    _mapDrive3TitlesToDrive2(timeObjects, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
+  return (printKeys, timeObjects)
 
 # DriveFileACL commands utilities
 def _showDriveFilePermission(permission, printKeys, timeObjects, i=0, count=0):
-  if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
-    nameField = u'name'
-    _mapDrivePermissionNames(permission)
-  else:
-    nameField = u'displayName'
-  if nameField in permission:
-    name = permission[nameField]
+  if u'displayName' in permission:
+    name = permission[u'displayName']
   elif u'id' in permission:
     if permission[u'id'] == u'anyone':
       name = u'Anyone'
@@ -26502,6 +26502,7 @@ def _showDriveFilePermission(permission, printKeys, timeObjects, i=0, count=0):
       name = u'Anyone with Link'
     else:
       name = permission[u'id']
+  _mapDrivePermissionNames(permission)
   printKeyValueListWithCount([name], i, count)
   Ind.Increment()
   for key in printKeys:
@@ -26591,11 +26592,7 @@ def _createDriveFileACL(users, useDomainAdminAccess):
   if u'allowFileDiscovery' in body and body[u'type'] in [u'user', u'group']:
     Cmd.SetLocation(withLinkLocation-1)
     usageErrorExit(Msg.WITHLINK_INCOMPATIBILITY.format(body[u'type']))
-  printKeys = DRIVEFILE_ACL_KEY_PRINT_ORDER[:]
-  timeObjects = DRIVEFILE_ACL_TIME_OBJECTS[:]
-  if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
-    _mapDrive3TitlesToDrive2(printKeys, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
-    _mapDrive3TitlesToDrive2(timeObjects, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
+  printKeys, timeObjects = _getDriveFileACLPrintKeysTimeObjects()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -26679,11 +26676,7 @@ def _updateDriveFileACLs(users, useDomainAdminAccess):
     permissionId = getPermissionIdForEmail(permissionId)
     if not permissionId:
       return
-  printKeys = DRIVEFILE_ACL_KEY_PRINT_ORDER[:]
-  timeObjects = DRIVEFILE_ACL_TIME_OBJECTS[:]
-  if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
-    _mapDrive3TitlesToDrive2(printKeys, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
-    _mapDrive3TitlesToDrive2(timeObjects, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
+  printKeys, timeObjects = _getDriveFileACLPrintKeysTimeObjects()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -27045,11 +27038,7 @@ def _printShowDriveFileACLs(users, csvFormat, useDomainAdminAccess):
     else:
       unknownArgumentExit()
   orderBy = u','.join(orderByList) if orderByList else None
-  printKeys = DRIVEFILE_ACL_KEY_PRINT_ORDER[:]
-  timeObjects = DRIVEFILE_ACL_TIME_OBJECTS[:]
-  if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
-    _mapDrive3TitlesToDrive2(printKeys, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
-    _mapDrive3TitlesToDrive2(timeObjects, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
+  printKeys, timeObjects = _getDriveFileACLPrintKeysTimeObjects()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -27085,13 +27074,11 @@ def _printShowDriveFileACLs(users, csvFormat, useDomainAdminAccess):
                 row = {u'Owner': user, u'id': fileId}
                 if showTitles:
                   row[fileNameTitle] = fileName
-                if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
-                  _mapDrivePermissionNames(permission)
+                _mapDrivePermissionNames(permission)
                 addRowTitlesToCSVfile(flattenJSON({u'permission': permission}, flattened=row, timeObjects=timeObjects), csvRows, titles)
             else:
-              if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
-                for permission in results:
-                  _mapDrivePermissionNames(permission)
+              for permission in results:
+                _mapDrivePermissionNames(permission)
               if showTitles:
                 addRowTitlesToCSVfile(flattenJSON({u'permissions': results}, flattened={u'Owner': user, u'id': fileId, fileNameTitle: fileName}, timeObjects=timeObjects), csvRows, titles)
               else:
@@ -27451,11 +27438,7 @@ def _printShowTeamDriveACLs(users, csvFormat, useDomainAdminAccess):
       useDomainAdminAccess = True
     else:
       unknownArgumentExit()
-  printKeys = DRIVEFILE_ACL_KEY_PRINT_ORDER[:]
-  timeObjects = DRIVEFILE_ACL_TIME_OBJECTS[:]
-  if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
-    _mapDrive3TitlesToDrive2(printKeys, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
-    _mapDrive3TitlesToDrive2(timeObjects, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
+  printKeys, timeObjects = _getDriveFileACLPrintKeysTimeObjects()
   if checkGroups:
     cd = buildGAPIObject(API.DIRECTORY)
     groups = callGAPIpages(cd.groups(), u'list', u'groups',
@@ -27546,14 +27529,12 @@ def _printShowTeamDriveACLs(users, csvFormat, useDomainAdminAccess):
         for teamdrive in matchFeed:
           for permission in teamdrive[u'permissions']:
             row = {u'User': user, u'id': teamdrive[u'id'], u'name': teamdrive[u'name']}
-            if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
-              _mapDrivePermissionNames(permission)
+            _mapDrivePermissionNames(permission)
             addRowTitlesToCSVfile(flattenJSON({u'permission': permission}, flattened=row, timeObjects=timeObjects), csvRows, titles)
       else:
         for teamdrive in matchFeed:
-          if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
-            for permission in teamdrive[u'permissions']:
-              _mapDrivePermissionNames(permission)
+          for permission in teamdrive[u'permissions']:
+            _mapDrivePermissionNames(permission)
           addRowTitlesToCSVfile(flattenJSON({u'permissions': teamdrive[u'permissions']}, flattened={u'User': user, u'id': teamdrive[u'id'], u'name': teamdrive[u'name']}, timeObjects=timeObjects), csvRows, titles)
   if csvFormat:
     writeCSVfile(csvRows, titles, u'TeamDrive ACLs', todrive, [u'User', u'id', u'name'])
