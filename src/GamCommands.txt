@@ -2242,7 +2242,8 @@ gam <UserTypeEntity> collect orphans (orderby <DriveFileOrderByFieldName> [ascen
         owners.picture
 
 <DriveParentsSubfieldName> ::=
-        parents.id
+        parents.id|
+        parents.isroot
 
 <DrivePermissionsSubfieldName> ::=
         permissions.additionalroles|

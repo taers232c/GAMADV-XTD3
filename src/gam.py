@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.35'
+__version__ = u'4.55.36'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -22979,12 +22979,23 @@ def _mapDrivePermissionNames(permission):
   if emailAddress:
     _, permission[u'domain'] = splitEmailAddress(emailAddress)
 
-def _mapDriveParents(f_file):
+def _initParentsSubFields():
+  return {u'id': False, u'isRoot': False, u'rootFolderId': None}
+
+def _setAllParentsSubFields(parentsSubFields):
+  parentsSubFields[u'id'] = parentsSubFields[u'isRoot'] = True
+
+def _mapDriveParents(f_file, parentsSubFields):
   if u'parents' in f_file:
     parents = f_file[u'parents'][:]
     f_file[u'parents'] = []
-    for parent in parents:
-      f_file[u'parents'].append({u'id': parent})
+    for parentId in parents:
+      parent = {}
+      if parentsSubFields[u'id']:
+        parent[u'id'] = parentId
+      if parentsSubFields[u'isRoot']:
+        parent[u'isRoot'] = parentId == parentsSubFields[u'rootFolderId']
+      f_file[u'parents'].append(parent)
 
 def _mapDriveProperties(f_file):
   appProperties = f_file.pop(u'appProperties', [])
@@ -22998,7 +23009,7 @@ def _mapDriveProperties(f_file):
     for key, value in sorted(iteritems(properties)):
       f_file[u'properties'].append({u'key': key, u'value': value, u'visibility': u'PUBLIC'})
 
-def _mapDriveFieldNames(f_file, user, mapToLabels=False):
+def _mapDriveFieldNames(f_file, user, parentsSubFields, mapToLabels):
   if mapToLabels:
     for attrib in API.DRIVE3_TO_DRIVE2_LABELS_MAP:
       if attrib in f_file:
@@ -23034,7 +23045,7 @@ def _mapDriveFieldNames(f_file, user, mapToLabels=False):
         f_file.setdefault('ownerNames', [])
         f_file['ownerNames'].append(owner[u'displayName'])
   _mapDriveUser(f_file.get(u'sharingUser', {}))
-  _mapDriveParents(f_file)
+  _mapDriveParents(f_file, parentsSubFields)
   _mapDriveProperties(f_file)
   for permission in f_file.get(u'permissions', []):
     if (permission.get(u'type') == u'user') and (permission.get(u'emailAddress', u'').lower() == user) and (u'role' in permission):
@@ -23134,7 +23145,8 @@ OWNERS_SUBFIELDS_CHOICE_MAP = {
   }
 
 PARENTS_SUBFIELDS_CHOICE_MAP = {
-  u'id': u'parents',
+  u'id': u'id',
+  u'isroot': u'isRoot',
   }
 
 PERMISSIONS_SUBFIELDS_CHOICE_MAP = {
@@ -23180,13 +23192,14 @@ VX_DRIVEFILE_FIELDS_TIME_OBJECTS = [VX_CREATED_TIME, VX_VIEWED_BY_ME_TIME, VX_MO
 VX_FILEINFO_FIELDS_TITLES = [VX_FILENAME, u'mimeType']
 VX_FILEPATH_FIELDS_TITLES = [VX_FILENAME, u'id', u'mimeType', u'parents']
 
-def _getFieldSubField(field, fieldsList, titles):
+def _getDriveFieldSubField(field, fieldsList, titles, parentsSubFields):
   field, subField = field.split(u'.', 1)
   if field in SUBFIELDS_CHOICE_MAP:
     if titles is not None:
       addTitlesToCSVfile(DRIVEFILE_FIELDS_CHOICE_MAP[field], titles)
     if field == u'parents':
       fieldsList.append(DRIVEFILE_FIELDS_CHOICE_MAP[field])
+      parentsSubFields[SUBFIELDS_CHOICE_MAP[field][subField]] = True
     elif subField in SUBFIELDS_CHOICE_MAP[field]:
       fieldsList.append(u'{0}.{1}'.format(DRIVEFILE_FIELDS_CHOICE_MAP[field], SUBFIELDS_CHOICE_MAP[field][subField]))
     else:
@@ -23215,11 +23228,12 @@ def showFileInfo(users):
     if filepath:
       _setSkipObjects(skipObjects, VX_FILEPATH_FIELDS_TITLES, fieldsList)
 
-  filepath = False
+  filepath = showNoParents = False
   fieldsList = []
+  orderByList = []
   skipObjects = []
   fileIdEntity = getDriveFileEntity()
-  orderByList = []
+  parentsSubFields = _initParentsSubFields()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'filepath':
@@ -23228,10 +23242,12 @@ def showFileInfo(users):
       getDrivefileOrderBy(orderByList)
     elif myarg == u'allfields':
       fieldsList = []
-    elif myarg in DRIVEFILE_FIELDS_CHOICE_MAP:
-      fieldsList.append(DRIVEFILE_FIELDS_CHOICE_MAP[myarg])
     elif myarg in DRIVEFILE_LABEL_CHOICE_MAP:
       fieldsList.append(DRIVEFILE_LABEL_CHOICE_MAP[myarg])
+    elif myarg in DRIVEFILE_FIELDS_CHOICE_MAP:
+      fieldsList.append(DRIVEFILE_FIELDS_CHOICE_MAP[myarg])
+      if myarg == u'parents':
+        _setAllParentsSubFields(parentsSubFields)
     elif myarg == u'fields':
       for field in _getFieldsList():
         if field in DRIVEFILE_LABEL_CHOICE_MAP:
@@ -23239,21 +23255,26 @@ def showFileInfo(users):
         elif field.find(u'.') == -1:
           if field in DRIVEFILE_FIELDS_CHOICE_MAP:
             fieldsList.append(DRIVEFILE_FIELDS_CHOICE_MAP[field])
+            if field == u'parents':
+              _setAllParentsSubFields(parentsSubFields)
           else:
             invalidChoiceExit(list(DRIVEFILE_FIELDS_CHOICE_MAP)+list(DRIVEFILE_LABEL_CHOICE_MAP), True)
         else:
-          _getFieldSubField(field, fieldsList, None)
+          _getDriveFieldSubField(field, fieldsList, None, parentsSubFields)
     elif myarg.find(u'.') != -1:
-      _getFieldSubField(myarg, fieldsList, None)
+      _getDriveFieldSubField(myarg, fieldsList, None, parentsSubFields)
     else:
       unknownArgumentExit()
   orderBy = u','.join(orderByList) if orderByList else None
   if fieldsList:
     _setSelectionFields()
     fields = u','.join(set(fieldsList)).replace(u'.', u'/')
+    showNoParents = u'parents' in fieldsList
   else:
     fields = u'*'
+    _setAllParentsSubFields(parentsSubFields)
     skipObjects.extend([u'kind', u'etag'])
+    showNoParents = True
   timeObjects = VX_DRIVEFILE_FIELDS_TIME_OBJECTS[:]
   if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
     _mapDrive3TitlesToDrive2(timeObjects, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
@@ -23263,6 +23284,10 @@ def showFileInfo(users):
     user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER, orderBy=orderBy)
     if jcount == 0:
       continue
+    if parentsSubFields[u'isRoot']:
+      parentsSubFields[u'rootFolderId'] = callGAPI(drive.files(), u'get',
+                                                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                                   fileId=u'root', fields=u'id')[u'id']
     if filepath:
       filePathInfo = initFilePathInfo()
     Ind.Increment()
@@ -23275,6 +23300,8 @@ def showFileInfo(users):
                           fileId=fileId, fields=fields, supportsTeamDrives=True)
         if (result[u'mimeType'] == MIMETYPE_GA_FOLDER) and (result[VX_FILENAME] == TEAM_DRIVE) and result.get(u'teamDriveId'):
           result[VX_FILENAME] = _getTeamDriveNameFromId(drive, result[u'teamDriveId'])
+        if showNoParents:
+          result.setdefault(u'parents', [])
         printEntity([_getEntityMimeType(result), u'{0} ({1})'.format(result[VX_FILENAME], fileId)], j, jcount)
         Ind.Increment()
         if filepath:
@@ -23286,9 +23313,9 @@ def showFileInfo(users):
             printKeyValueList([u'path', path])
           Ind.Decrement()
         if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
-          _mapDriveFieldNames(result, user, True)
+          _mapDriveFieldNames(result, user, parentsSubFields, True)
         else:
-          _mapDriveParents(result)
+          _mapDriveParents(result, parentsSubFields)
           _mapDriveProperties(result)
         showJSON(None, result, skipObjects, timeObjects, {u'owners': u'displayName', u'parents': u'id', u'permissions': [u'name', u'displayName'][GC.Values[GC.DRIVE_V3_NATIVE_NAMES]]})
         Ind.Decrement()
@@ -23833,8 +23860,9 @@ def printFileList(users):
     if filepath:
       addFilePathsToRow(drive, fileTree, fileInfo, filePathInfo, row, titles)
     if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
-      _mapDriveFieldNames(fileInfo, user)
+      _mapDriveFieldNames(fileInfo, user, parentsSubFields, False)
     else:
+      _mapDriveParents(fileInfo, parentsSubFields)
       _mapDriveProperties(fileInfo)
     for attrib in fileInfo:
       if attrib in skipObjects:
@@ -23921,6 +23949,7 @@ def printFileList(users):
   query = ME_IN_OWNERS
   selectSubQuery = u''
   fileIdEntity = {}
+  parentsSubFields = _initParentsSubFields()
   showOwnedBy = fileTree = None
   mimeTypeCheck = initMimeTypeCheck()
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
@@ -23963,10 +23992,12 @@ def printFileList(users):
     elif myarg == u'allfields':
       fieldsList = []
       allfields = True
-    elif myarg in DRIVEFILE_FIELDS_CHOICE_MAP:
-      addFieldToCSVfile(myarg, DRIVEFILE_FIELDS_CHOICE_MAP, fieldsList, titles)
     elif myarg in DRIVEFILE_LABEL_CHOICE_MAP:
       addFieldToCSVfile(myarg, DRIVEFILE_LABEL_CHOICE_MAP, fieldsList, titles)
+    elif myarg in DRIVEFILE_FIELDS_CHOICE_MAP:
+      addFieldToCSVfile(myarg, DRIVEFILE_FIELDS_CHOICE_MAP, fieldsList, titles)
+      if myarg == u'parents':
+        _setAllParentsSubFields(parentsSubFields)
     elif myarg == u'fields':
       for field in _getFieldsList():
         if field in DRIVEFILE_LABEL_CHOICE_MAP:
@@ -23974,12 +24005,14 @@ def printFileList(users):
         elif field.find(u'.') == -1:
           if field in DRIVEFILE_FIELDS_CHOICE_MAP:
             addFieldToCSVfile(field, DRIVEFILE_FIELDS_CHOICE_MAP, fieldsList, titles)
+            if field == u'parents':
+              _setAllParentsSubFields(parentsSubFields)
           else:
             invalidChoiceExit(list(DRIVEFILE_FIELDS_CHOICE_MAP)+list(DRIVEFILE_LABEL_CHOICE_MAP), True)
         else:
-          _getFieldSubField(field, fieldsList, titles)
+          _getDriveFieldSubField(field, fieldsList, titles, parentsSubFields)
     elif myarg.find(u'.') != -1:
-      _getFieldSubField(myarg, fieldsList, titles)
+      _getDriveFieldSubField(myarg, fieldsList, titles, parentsSubFields)
     elif myarg == u'anyowner':
       query = _stripMeInOwners(query)
       query = _stripNotMeInOwners(query)
@@ -24038,6 +24071,7 @@ def printFileList(users):
     pagesfields = VX_NPT_FILES_FIELDLIST.format(fields)
   else:
     fields = pagesfields = u'*'
+    _setAllParentsSubFields(parentsSubFields)
     skipObjects.extend([u'kind', u'etag'])
   orderBy = u','.join(orderByList) if orderByList else None
   if filepath:
@@ -24069,6 +24103,10 @@ def printFileList(users):
     user, drive = _validateUserTeamDrive(user, i, count, fileIdEntity)
     if not drive:
       continue
+    if parentsSubFields[u'isRoot']:
+      parentsSubFields[u'rootFolderId'] = callGAPI(drive.files(), u'get',
+                                                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                                   fileId=u'root', fields=u'id')[u'id']
     if filepath:
       filePathInfo = initFilePathInfo()
     filesPrinted = set()

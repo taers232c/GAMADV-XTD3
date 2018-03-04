@@ -1,3 +1,16 @@
+4.55.36
+
+Changed gam print filelist to display parents information in the same format regardless of the value of drive_v3_native_name in gam.cfg.
+Previously, if drive_v3_native_names was false, the columns were:
+* parents - The number of parents
+# parents.N.id - The id of parent N: N repeats from 0 to number of parents-1
+Previously, if drive_v3_native_names was true, the single column was:
+* parents - The space separated list of parent ids
+Now, regardless of the value of drive_v3_native_names, the columns are:
+* parents - The number of parents
+# parents.N.id - The id of parent N: N repeats from 0 to number of parents-1
+# parents.N.isRoot - True if parents.N.id is the root folder id, False otherwise
+
 4.55.35
 
 Code cleanup.
