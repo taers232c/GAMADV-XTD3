@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.36'
+__version__ = u'4.55.37'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -13675,14 +13675,20 @@ def doInfoNotifications():
     printKeyValueList([u'--------------'])
     printBlankLine()
 
-def ACLRoleKeyValueList(rule):
+def ACLRuleDict(rule):
+  if rule[u'scope'][u'type'] != u'default':
+    return {u'Scope': u'{0}:{1}'.format(rule[u'scope'][u'type'], rule[u'scope'][u'value']), u'Role': rule[u'role']}
+  else:
+    return {u'Scope': u'{0}'.format(rule[u'scope'][u'type']), u'Role': rule[u'role']}
+
+def ACLRuleKeyValueList(rule):
   if rule[u'scope'][u'type'] != u'default':
     return [u'Scope', u'{0}:{1}'.format(rule[u'scope'][u'type'], rule[u'scope'][u'value']), u'Role', rule[u'role']]
   else:
     return [u'Scope', u'{0}'.format(rule[u'scope'][u'type']), u'Role', rule[u'role']]
 
 def formatACLRule(rule):
-  return formatKeyValueList(u'(', ACLRoleKeyValueList(rule), u')')
+  return formatKeyValueList(u'(', ACLRuleKeyValueList(rule), u')')
 
 def formatACLScopeRole(scope, role):
   if role:
@@ -16775,13 +16781,9 @@ def _printShowSites(entityList, entityType, csvFormat):
             fields = sitesManager.AclEntryToFields(acl)
             if fields[u'role'] in roles:
               siteACLRow = siteRow.copy()
-              siteACLRow[u'Role'] = fields[u'role']
-              if fields[u'scope'][u'type'] != u'default':
-                siteACLRow[u'Scope'] = u'{0}:{1}'.format(fields[u'scope'][u'type'], fields[u'scope'][u'value'])
-              else:
-                siteACLRow[u'Scope'] = fields[u'scope'][u'type']
-              rowShown = True
+              siteACLRow.update(ACLRuleDict(fields))
               addRowTitlesToCSVfile(siteACLRow, csvRows, titles)
+              rowShown = True
         except (GDATA.notFound, GDATA.forbidden) as e:
           entityActionFailedWarning([Ent.SITE, domainSite], str(e), i, count)
       if not rowShown:
@@ -16911,18 +16913,30 @@ SITE_ACTION_TO_MODIFIER_MAP = {
   Act.UPDATE: Act.MODIFIER_IN,
   Act.DELETE: Act.MODIFIER_FROM,
   Act.INFO: Act.MODIFIER_FROM,
+  Act.PRINT: Act.MODIFIER_FROM,
   Act.SHOW: Act.MODIFIER_FROM,
   }
 
 def _processSiteACLs(users, entityType):
   action = Act.Get()
   siteEntity = getSiteEntity()
+  csvFormat = False
   if action in [Act.ADD, Act.UPDATE]:
     role = getChoice(SITE_ACL_ROLES_MAP, mapChoice=True)
+  elif action == Act.PRINT:
+    csvFormat = True
+    todrive = {}
+    titles, csvRows = initializeTitlesCSVfile([Ent.Singular(entityType), SITE_SITE, u'Scope', u'Role'])
   else:
     role = None
-  ACLScopeEntity = getCalendarSiteACLScopeEntity() if action != Act.SHOW else {}
-  checkForExtraneousArguments()
+  actionPrintShow = action in [Act.PRINT, Act.SHOW]
+  ACLScopeEntity = getCalendarSiteACLScopeEntity() if not actionPrintShow else {}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvFormat and myarg == u'todrive':
+      todrive = getTodriveParameters()
+    else:
+      unknownArgumentExit()
   modifier = SITE_ACTION_TO_MODIFIER_MAP[action]
   sitesManager = SitesManager()
   i, count, users = getEntityArgument(users)
@@ -16936,10 +16950,10 @@ def _processSiteACLs(users, entityType):
     j = 0
     for site in sites:
       j += 1
-      domain, site, domainSite, ruleIds, kcount = _validateSiteGetRuleIds(origUser, site, j, jcount, ACLScopeEntity, showAction=action != Act.SHOW)
+      domain, site, domainSite, ruleIds, kcount = _validateSiteGetRuleIds(origUser, site, j, jcount, ACLScopeEntity, showAction=not actionPrintShow)
       if not domainSite:
         continue
-      if action != Act.SHOW:
+      if not actionPrintShow:
         Ind.Increment()
         k = 0
         for ruleId in ruleIds:
@@ -16999,22 +17013,32 @@ def _processSiteACLs(users, entityType):
                                 throw_errors=[GDATA.NOT_FOUND, GDATA.FORBIDDEN],
                                 retry_errors=[GDATA.INTERNAL_SERVER_ERROR],
                                 domain=domain, site=site)
-          kcount = len(acls)
-          entityPerformActionNumItems([Ent.SITE, domainSite], kcount, Ent.SITE_ACL, j, jcount)
-          if kcount == 0:
-            continue
-          Ind.Increment()
-          k = 0
-          for acl in acls:
-            k += 1
-            fields = sitesManager.AclEntryToFields(acl)
-            printEntity([Ent.SITE, domainSite, Ent.SITE_ACL, formatACLRule(fields)], k, kcount)
-          Ind.Decrement()
+          if not csvFormat:
+            kcount = len(acls)
+            entityPerformActionNumItems([Ent.SITE, domainSite], kcount, Ent.SITE_ACL, j, jcount)
+            if kcount == 0:
+              continue
+            Ind.Increment()
+            k = 0
+            for acl in acls:
+              k += 1
+              fields = sitesManager.AclEntryToFields(acl)
+              printEntity([Ent.SITE, domainSite, Ent.SITE_ACL, formatACLRule(fields)], k, kcount)
+            Ind.Decrement()
+          else:
+            siteRow = {Ent.Singular(entityType): user, SITE_SITE: domainSite}
+            for acl in acls:
+              fields = sitesManager.AclEntryToFields(acl)
+              siteACLRow = siteRow.copy()
+              siteACLRow.update(ACLRuleDict(fields))
+              addRowTitlesToCSVfile(siteACLRow, csvRows, titles)
         except GDATA.notFound:
           entityUnknownWarning(Ent.SITE, domainSite, j, jcount)
         except GDATA.forbidden as e:
           entityActionFailedWarning([Ent.SITE, domainSite], str(e), j, jcount)
     Ind.Decrement()
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'Site ACLs', todrive)
 
 # gam [<UserTypeEntity>] create|add siteacls <SiteEntity> <SiteACLRole> <ACLScopeEntity>
 # gam [<UserTypeEntity>] update siteacls <SiteEntity> <SiteACLRole> <ACLScopeEntity>
@@ -21274,7 +21298,7 @@ def _showCalendar(userCalendar, j, jcount, acls=None):
     printKeyValueList([u'ACLs', None])
     Ind.Increment()
     for rule in acls:
-      printKeyValueList(ACLRoleKeyValueList(rule))
+      printKeyValueList(ACLRuleKeyValueList(rule))
     Ind.Decrement()
   Ind.Decrement()
 
@@ -32193,6 +32217,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_RESOURCES:	doPrintResourceCalendars,
       Cmd.ARG_SCHEMA:		doPrintUserSchemas,
       Cmd.ARG_SITE:		doPrintDomainSites,
+      Cmd.ARG_SITEACL:		doProcessDomainSiteACLs,
       Cmd.ARG_SITEACTIVITY:	doPrintDomainSiteActivity,
       Cmd.ARG_TEAMDRIVE:	doPrintTeamDrives,
       Cmd.ARG_TEAMDRIVEACLS:	doPrintTeamDriveACLs,
@@ -32727,6 +32752,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_SIGNATURE:	printSendAs,
       Cmd.ARG_SMIME:		printSmimes,
       Cmd.ARG_SITE:		printUserSites,
+      Cmd.ARG_SITEACL:		processUserSiteACLs,
       Cmd.ARG_SITEACTIVITY:	printUserSiteActivity,
       Cmd.ARG_TEAMDRIVE:	printTeamDrives,
       Cmd.ARG_TEAMDRIVEACLS:	printTeamDriveACLs,

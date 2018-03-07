@@ -1,3 +1,8 @@
+4.55.37
+
+Added command to print classic sites ACLs.
+gam [<UserTypeEntity>] print siteacls <SiteEntity> [todrive [<ToDriveAttributes>]]
+
 4.55.36
 
 Changed gam print filelist to display parents information in the same format regardless of the value of drive_v3_native_name in gam.cfg.

@@ -1695,7 +1695,8 @@ gam [<UserTypeEntity>] create|add siteacls <SiteEntity> <SiteACLRole> <SiteACLSc
 gam [<UserTypeEntity>] update siteacls <SiteEntity> <SiteACLRole> <SiteACLScopeEntity>
 gam [<UserTypeEntity>] delete siteacls <SiteEntity> <SiteACLScopeEntity>
 gam [<UserTypeEntity>] info siteacls <SiteEntity> <SiteACLScopeEntity>
-gam [<UserTypeEntity>] show siteacls  <SiteEntity>
+gam [<UserTypeEntity>] show siteacls <SiteEntity>
+gam [<UserTypeEntity>] print siteacls <SiteEntity> [todrive [<ToDriveAttributes>]]
 
 # Team Drives
 
