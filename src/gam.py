@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.37'
+__version__ = u'4.55.38'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -4432,7 +4432,7 @@ def convertCRsNLs(value):
   return value.replace(u'\r', u'\\r').replace(u'\n', u'\\n')
 
 # Flatten a JSON object
-def flattenJSON(structure, key=u'', path=u'', flattened=None, listLimit=None, timeObjects=None, noLenObjects=None):
+def flattenJSON(structure, key=u'', path=u'', flattened=None, listLimit=None, timeObjects=None, noLenObjects=None, simpleLists=None):
   if flattened is None:
     flattened = {}
   if timeObjects is None:
@@ -4453,15 +4453,18 @@ def flattenJSON(structure, key=u'', path=u'', flattened=None, listLimit=None, ti
   elif isinstance(structure, (list, collections.deque)):
     listLen = len(structure)
     listLen = min(listLen, listLimit or listLen)
-    if key not in noLenObjects:
-      flattened[((path+u'.') if path else u'')+key] = listLen
-    for i in range(listLen):
-      flattenJSON(structure[i], u'{0}'.format(i), u'.'.join([item for item in [path, key] if item]), flattened, listLimit, timeObjects, noLenObjects)
+    if key in simpleLists:
+      flattened[((path+u'.') if path else u'')+key] = u','.join(structure[:listLen])
+    else:
+      if key not in noLenObjects:
+        flattened[((path+u'.') if path else u'')+key] = listLen
+      for i in range(listLen):
+        flattenJSON(structure[i], u'{0}'.format(i), u'.'.join([item for item in [path, key] if item]), flattened, listLimit, timeObjects, noLenObjects, simpleLists)
   else:
     for new_key, value in sorted(iteritems(structure)):
       if new_key in [u'kind', u'etag', u'etags']:
         continue
-      flattenJSON(value, new_key, u'.'.join([item for item in [path, key] if item]), flattened, listLimit, timeObjects, noLenObjects)
+      flattenJSON(value, new_key, u'.'.join([item for item in [path, key] if item]), flattened, listLimit, timeObjects, noLenObjects, simpleLists)
   return flattened
 
 # Show a json object
@@ -17045,6 +17048,7 @@ def _processSiteACLs(users, entityType):
 # gam [<UserTypeEntity>] delete siteacls <SiteEntity> <ACLScopeEntity>
 # gam [<UserTypeEntity>] info siteacls <SiteEntity> <ACLScopeEntity>
 # gam [<UserTypeEntity>] show siteacls <SiteEntity>
+# gam [<UserTypeEntity>] print siteacls <SiteEntity> [todrive [<ToDriveAttributes>]]
 def processUserSiteACLs(users):
   _processSiteACLs(users, Ent.USER)
 
@@ -21283,6 +21287,10 @@ def _showCalendar(userCalendar, j, jcount, acls=None):
   printKeyValueList([u'Hidden', userCalendar.get(u'hidden', FALSE)])
   printKeyValueList([u'Selected', userCalendar.get(u'selected', FALSE)])
   printKeyValueList([u'Color ID', userCalendar[u'colorId'], u'Background Color', userCalendar[u'backgroundColor'], u'Foreground Color', userCalendar[u'foregroundColor']])
+  printKeyValueList([u'ConferenceProperties', None])
+  Ind.Increment()
+  printKeyValueList([u'AllowedConferenceSolutionTypes', u','.join(userCalendar.get(u'conferenceProperties', {}).get(u'allowedConferenceSolutionTypes', []))])
+  Ind.Decrement()
   printKeyValueList([u'Default Reminders', None])
   Ind.Increment()
   for reminder in userCalendar.get(u'defaultReminders', []):
@@ -21534,7 +21542,7 @@ def _printShowCalendars(users, csvFormat):
             if showPermissions:
               flattenJSON(_getPermissions(cal, calendar), key=u'permissions', flattened=row)
             calendar.pop(u'id', None)
-            addRowTitlesToCSVfile(flattenJSON(calendar, flattened=row), csvRows, titles)
+            addRowTitlesToCSVfile(flattenJSON(calendar, flattened=row, simpleLists=[u'allowedConferenceSolutionTypes',]), csvRows, titles)
         elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
           csvRows.append({u'primaryEmail': user})
     except GAPI.notACalendarUser as e:
@@ -25298,7 +25306,7 @@ TRANSFER_DRIVEFILE_ACL_ROLES_MAP = {
 # gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>]
 #	[(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>] [targetuserorphansfoldername <DriveFolderName>]
 #	[keepuser | (retainrole reader|commenter|writer|editor|none)] [noretentionmessages]
-#	[nonowner-retainrole reader|commenter|writer|editor|current|none] [nonowner-targetrole reader|commenter|writer|editor|current|none|source]
+#	[nonowner_retainrole reader|commenter|writer|editor|current|none] [nonowner_targetrole reader|commenter|writer|editor|current|none|source]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[preview] [todrive [<ToDriveAttributes>]]
 def transferDrive(users):

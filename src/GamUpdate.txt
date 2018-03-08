@@ -1,3 +1,7 @@
+4.55.38
+
+Display allowedConferenceSolutionTypes in gam info/print/show calendars.
+
 4.55.37
 
 Added command to print classic sites ACLs.
