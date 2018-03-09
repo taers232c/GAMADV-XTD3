@@ -1,3 +1,8 @@
+4.55.39
+
+Fixed bug in gam update group sync when the command was of the following form:
+gam update group csvkmd groups.csv keyfield group matchfield role MEMBER datafield email sync member csvdata email
+
 4.55.38
 
 Display allowedConferenceSolutionTypes in gam info/print/show calendars.

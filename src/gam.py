@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.38'
+__version__ = u'4.55.39'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -12474,7 +12474,7 @@ def doUpdateGroups():
       if groupMemberLists:
         syncMembersSet = set()
         syncMembersMap = {}
-        for member in syncMembers:
+        for member in groupMemberLists[group]:
           syncMembersSet.add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailType=u'any', checkForCustomerId=True), syncMembersMap))
       group = checkGroupExists(cd, group, i, count)
       if group:
