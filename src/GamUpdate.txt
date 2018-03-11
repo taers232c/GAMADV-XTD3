@@ -1,3 +1,7 @@
+4.55.40
+
+Update MacOS version of GAM to use OpenSSL 1.0.2n.
+
 4.55.39
 
 Fixed bug in gam update group sync when the command was of the following form:
