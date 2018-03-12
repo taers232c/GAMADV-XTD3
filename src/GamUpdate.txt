@@ -1,3 +1,7 @@
+4.55.41
+
+Fixed bug that made some gam print commands throw an exception.
+
 4.55.40
 
 Update MacOS version of GAM to use OpenSSL 1.0.2n.

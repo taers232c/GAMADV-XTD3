@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.40'
+__version__ = u'4.55.41'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -4453,7 +4453,7 @@ def flattenJSON(structure, key=u'', path=u'', flattened=None, listLimit=None, ti
   elif isinstance(structure, (list, collections.deque)):
     listLen = len(structure)
     listLen = min(listLen, listLimit or listLen)
-    if key in simpleLists:
+    if simpleLists is not None and key in simpleLists:
       flattened[((path+u'.') if path else u'')+key] = u','.join(structure[:listLen])
     else:
       if key not in noLenObjects:
