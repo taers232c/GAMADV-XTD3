@@ -272,6 +272,8 @@ class GamCLArgs(object):
   ARG_EVENTS = u'events'
   ARG_FEATURE = u'feature'
   ARG_FEATURES = u'features'
+  ARG_FILECOUNT = u'filecount'
+  ARG_FILECOUNTS = u'filecounts'
   ARG_FILEINFO = u'fileinfo'
   ARG_FILELIST = u'filelist'
   ARG_FILEPATH = u'filepath'

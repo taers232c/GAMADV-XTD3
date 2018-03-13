@@ -2366,6 +2366,10 @@ gam <UserTypeEntity> collect orphans (orderby <DriveFileOrderByFieldName> [ascen
 gam <UserTypeEntity> show fileinfo <DriveFileEntity> [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> show filepath <DriveFileEntity> (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> print filepath <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+gam <UserTypeEntity> show filecounts [anyowner|(showownedby any|me|others)]
+        [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>] [showmimetype [not] <MimeTypeList>]
+gam <UserTypeEntity> print filecounts [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)]
+        [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>] [showmimetype [not] <MimeTypeList>]
 
 gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)]
         [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>] [corpora <CorporaAttribute>]

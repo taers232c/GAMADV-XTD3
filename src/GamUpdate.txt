@@ -1,3 +1,11 @@
+4.55.42
+
+Added commands to print/show file counts by MIME type for users.
+gam <UserTypeEntity> show filecounts [anyowner|(showownedby any|me|others)]
+        [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>] [showmimetype [not] <MimeTypeList>]
+gam <UserTypeEntity> print filecounts [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)]
+        [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>] [showmimetype [not] <MimeTypeList>]
+
 4.55.41
 
 Fixed bug that made some gam print commands throw an exception.

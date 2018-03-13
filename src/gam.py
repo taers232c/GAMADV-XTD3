@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.41'
+__version__ = u'4.55.42'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -23799,6 +23799,30 @@ def _stripNotMeInOwners(query):
   query = query.replace(AND_NOT_ME_IN_OWNERS, u'')
   return query.replace(NOT_ME_IN_OWNERS, u'').strip() or None
 
+def _updateAnyOwnerQuery(query):
+  query = _stripNotMeInOwners(query)
+  return _stripMeInOwners(query)
+
+def _getShowOwnedBy(query):
+  showOwnedBy = getChoice(SHOW_OWNED_BY_CHOICE_MAP, mapChoice=True)
+  if showOwnedBy is None:
+    query = _updateAnyOwnerQuery(query)
+  elif not showOwnedBy:
+    query = _stripMeInOwners(query)
+    if query:
+      if query.find(NOT_ME_IN_OWNERS) == -1:
+        query = NOT_ME_IN_OWNERS_AND+query
+    else:
+      query = NOT_ME_IN_OWNERS
+  else:
+    query = _stripNotMeInOwners(query)
+    if query:
+      if query.find(ME_IN_OWNERS) == -1:
+        query = ME_IN_OWNERS_AND+query
+    else:
+      query = ME_IN_OWNERS
+  return (showOwnedBy, query)
+
 OWNED_BY_ME_FIELDS_TITLES = [u'ownedByMe',]
 
 def initFileTree(drive, teamdrive, getTeamDriveNames):
@@ -24008,8 +24032,7 @@ def printFileList(users):
       if not query:
         query = None
     elif myarg in QUERY_SHORTCUTS_MAP:
-      query = _stripMeInOwners(query)
-      query = _stripNotMeInOwners(query)
+      query = _updateAnyOwnerQuery(query)
       if query:
         query += u' and '+QUERY_SHORTCUTS_MAP[myarg]
       else:
@@ -24046,27 +24069,9 @@ def printFileList(users):
     elif myarg.find(u'.') != -1:
       _getDriveFieldSubField(myarg, fieldsList, titles, parentsSubFields)
     elif myarg == u'anyowner':
-      query = _stripMeInOwners(query)
-      query = _stripNotMeInOwners(query)
+      query = _updateAnyOwnerQuery(query)
     elif myarg == u'showownedby':
-      showOwnedBy = getChoice(SHOW_OWNED_BY_CHOICE_MAP, mapChoice=True)
-      if showOwnedBy is None:
-        query = _stripMeInOwners(query)
-        query = _stripNotMeInOwners(query)
-      elif not showOwnedBy:
-        query = _stripMeInOwners(query)
-        if query:
-          if query.find(NOT_ME_IN_OWNERS) == -1:
-            query = NOT_ME_IN_OWNERS_AND+query
-        else:
-          query = NOT_ME_IN_OWNERS
-      else:
-        query = _stripNotMeInOwners(query)
-        if query:
-          if query.find(ME_IN_OWNERS) == -1:
-            query = ME_IN_OWNERS_AND+query
-        else:
-          query = ME_IN_OWNERS
+      showOwnedBy, query = _getShowOwnedBy(query)
     elif myarg == u'showmimetype':
       getMimeTypeCheck(mimeTypeCheck)
     elif myarg == u'delimiter':
@@ -24074,8 +24079,7 @@ def printFileList(users):
     elif myarg == u'corpora':
       _getCorpora(kwargs)
       getTeamDriveNames = True
-      query = _stripMeInOwners(query)
-      query = _stripNotMeInOwners(query)
+      query = _updateAnyOwnerQuery(query)
     else:
       unknownArgumentExit()
   noSelect = (not fileIdEntity
@@ -24124,8 +24128,7 @@ def printFileList(users):
     if not fileIdEntity.get(u'teamdrive'):
       btkwargs = kwargs
     else:
-      query = _stripMeInOwners(query)
-      query = _stripNotMeInOwners(query)
+      query = _updateAnyOwnerQuery(query)
       btkwargs = fileIdEntity[u'teamdrive']
       getTeamDriveNames = True
   i, count, users = getEntityArgument(users)
@@ -24328,6 +24331,100 @@ def printFilePaths(users):
 # gam <UserTypeEntity> show filepaths <DriveFileEntity> (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 def showFilePaths(users):
   _printShowFilePaths(users, False)
+
+def _printShowFileCounts(users, csvFormat):
+  if csvFormat:
+    todrive = {}
+    titles, csvRows = initializeTitlesCSVfile([u'User', u'Total'])
+  query = ME_IN_OWNERS
+  mimeTypeCheck = initMimeTypeCheck()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvFormat and myarg == u'todrive':
+      todrive = getTodriveParameters()
+    elif myarg == u'showmimetype':
+      getMimeTypeCheck(mimeTypeCheck)
+      if query:
+        query += u' and ('
+      if not mimeTypeCheck[u'reverse']:
+        for mimeType in mimeTypeCheck[u'mimeTypes']:
+          query += u"mimeType = '{0}' or ".format(mimeType)
+        query = query[:-4]
+      else:
+        for mimeType in mimeTypeCheck[u'mimeTypes']:
+          query += u"mimeType != '{0}' and ".format(mimeType)
+        query = query[:-5]
+      query += u')'
+    elif myarg == u'query':
+      if query:
+        query += u' and '+getString(Cmd.OB_QUERY)
+      else:
+        query = getString(Cmd.OB_QUERY)
+    elif myarg == u'fullquery':
+      query = getString(Cmd.OB_QUERY, minLen=0)
+      if not query:
+        query = None
+    elif myarg in QUERY_SHORTCUTS_MAP:
+      query = _updateAnyOwnerQuery(query)
+      if query:
+        query += u' and '+QUERY_SHORTCUTS_MAP[myarg]
+      else:
+        query = QUERY_SHORTCUTS_MAP[myarg]
+    elif myarg == u'anyowner':
+      query = _updateAnyOwnerQuery(query)
+    elif myarg == u'showownedby':
+      _, query = _getShowOwnedBy(query)
+    else:
+      unknownArgumentExit()
+  query = _mapDrive2QueryToDrive3(query)
+  pagesfields = VX_NPT_FILES_FIELDLIST.format(u'mimeType')
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, drive = buildGAPIServiceObject(API.DRIVE3, user, i, count)
+    if not drive:
+      continue
+    total = 0
+    mimeTypeCounts = {}
+    Ind.Increment()
+    try:
+      printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=query)
+      feed = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
+                           page_message=getPageMessageForWhom(),
+                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID],
+                           q=query, fields=pagesfields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
+      for f_file in feed:
+        total += 1
+        mimeTypeCounts.setdefault(f_file[u'mimeType'], 0)
+        mimeTypeCounts[f_file[u'mimeType']] += 1
+      if not csvFormat:
+        printEntityKVList([Ent.USER, user], [Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, total), total], i, count)
+        Ind.Increment()
+        for mimeType, mimeTypeCount in sorted(iteritems(mimeTypeCounts)):
+          printKeyValueList([mimeType, mimeTypeCount])
+        Ind.Decrement()
+      else:
+        row = {u'User': user, u'Total': total}
+        row.update(mimeTypeCounts)
+        addRowTitlesToCSVfile(row, csvRows, titles)
+    except (GAPI.invalidQuery, GAPI.invalid):
+      entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, None], invalidQuery(query), i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+      break
+    Ind.Decrement()
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'Drive File Counts', todrive, [u'User', u'Total'])
+
+# gam <UserTypeEntity> print filecounts [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)]
+#	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>] [showmimetype [not] <MimeTypeList>]
+def printFileCounts(users):
+  _printShowFileCounts(users, True)
+
+# gam <UserTypeEntity> show filecounts [anyowner|(showownedby any|me|others)]
+#	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>] [showmimetype [not] <MimeTypeList>]
+def showFileCounts(users):
+  _printShowFileCounts(users, False)
 
 FILETREE_FIELDS_CHOICE_MAP = {
   u'id': u'id',
@@ -32744,6 +32841,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DRIVEFILEACL:	printDriveFileACLs,
       Cmd.ARG_DRIVESETTINGS:	printDriveSettings,
       Cmd.ARG_EVENT:		printCalendarEvents,
+      Cmd.ARG_FILECOUNT:	printFileCounts,
       Cmd.ARG_FILEINFO:		showFileInfo,
       Cmd.ARG_FILELIST:		printFileList,
       Cmd.ARG_FILEPATH:		printFilePaths,
@@ -32785,6 +32883,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DRIVEFILEACL:	showDriveFileACLs,
       Cmd.ARG_DRIVESETTINGS:	showDriveSettings,
       Cmd.ARG_EVENT:		showCalendarEvents,
+      Cmd.ARG_FILECOUNT:	showFileCounts,
       Cmd.ARG_FILEINFO:		showFileInfo,
       Cmd.ARG_FILELIST:		printFileList,
       Cmd.ARG_FILEPATH:		showFilePaths,
@@ -32878,6 +32977,7 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_DELEGATES:	Cmd.ARG_DELEGATE,
   Cmd.ARG_DRIVEFILEACLS:	Cmd.ARG_DRIVEFILEACL,
   Cmd.ARG_EVENTS:	Cmd.ARG_EVENT,
+  Cmd.ARG_FILECOUNTS:	Cmd.ARG_FILECOUNT,
   Cmd.ARG_FILEPATHS:	Cmd.ARG_FILEPATH,
   Cmd.ARG_FILEREVISIONS:	Cmd.ARG_FILEREVISION,
   Cmd.ARG_FILTERS:	Cmd.ARG_FILTER,
