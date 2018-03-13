@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.43'
+__version__ = u'4.55.44'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -3100,6 +3100,7 @@ def initGDataObject(gdataObj, api):
     GM.Globals[GM.CACERTS_TXT] = os.path.join(sys._MEIPASS, u'httplib2', u'cacerts.txt')
     os.environ['REQUESTS_CA_BUNDLE'] = GM.Globals[GM.CACERTS_TXT]
     os.environ['DEFAULT_CA_BUNDLE_PATH'] = GM.Globals[GM.CACERTS_TXT]
+    os.environ['SSL_CERT_FILE'] = GM.Globals[GM.CACERTS_TXT]
   _, _, api_version, cred_family = API.getVersion(api)
   disc_file, discovery = readDiscoveryFile(api_version)
   GM.Globals[GM.CURRENT_CLIENT_API] = api
@@ -3120,10 +3121,11 @@ def getGDataUserCredentials(api, user, i, count):
   _, _, api_version, cred_family = API.getVersion(api)
   disc_file, discovery = readDiscoveryFile(api_version)
   GM.Globals[GM.CURRENT_SVCACCT_API] = api
+  GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = set(list(discovery[u'auth'][u'oauth2'][u'scopes']))
   GM.Globals[GM.CURRENT_SVCACCT_USER] = userEmail
   credentials = getClientCredentials(cred_family)
   try:
-    GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = set(list(discovery[u'auth'][u'oauth2'][u'scopes'])).intersection(credentials.scopes)
+    GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES].intersection(credentials.scopes)
   except KeyError:
     invalidDiscoveryJsonExit(disc_file)
   if not GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES]:

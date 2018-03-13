@@ -1,3 +1,8 @@
+4.55.44
+
+Improve MacOS version of GAM's use of OpenSSL 1.0.2n.
+Recode pyinstaller .spec files.
+
 4.55.43
 
 Added Team Drive support to print/show file counts by MIME type for users.
