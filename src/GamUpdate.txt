@@ -1,3 +1,13 @@
+4.55.43
+
+Added Team Drive support to print/show file counts by MIME type for users.
+gam <UserTypeEntity> show filecounts [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
+        [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>] [showmimetype [not] <MimeTypeList>]
+        [select <TeamDriveEntity>]
+gam <UserTypeEntity> print filecounts [todrive [<ToDriveAttributes>]] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
+        [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>] [showmimetype [not] <MimeTypeList>]
+        [select <TeamDriveEntity>]
+
 4.55.42
 
 Added commands to print/show file counts by MIME type for users.
