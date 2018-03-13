@@ -24400,7 +24400,7 @@ def _printShowFileCounts(users, csvFormat):
       printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=query)
       feed = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                            page_message=getPageMessageForWhom(),
-                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID],
+                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                            q=query, fields=pagesfields,
                            pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **fileIdEntity[u'teamdrive'])
       for f_file in feed:
@@ -24417,6 +24417,8 @@ def _printShowFileCounts(users, csvFormat):
         row = {u'User': user, u'Total': total}
         row.update(mimeTypeCounts)
         addRowTitlesToCSVfile(row, csvRows, titles)
+    except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, fileIdEntity[u'teamdrive'][u'teamDriveId']], str(e), i, count)
     except (GAPI.invalidQuery, GAPI.invalid):
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, None], invalidQuery(query), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
