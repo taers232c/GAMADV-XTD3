@@ -1,6 +1,6 @@
 # -*- mode: python -*-
 a = Analysis(['gam.py'],
-             hiddenimports=['appdirs', 'six','packaging', 'packaging.version', 'packaging.specifiers', 'packaging.requirements', 'packaging.version'],
+             hiddenimports=['appdirs', 'six', 'packaging', 'packaging.version', 'packaging.specifiers', 'packaging.requirements'],
              hookspath=None,
              excludes=['_tkinter'],
              runtime_hooks=None)

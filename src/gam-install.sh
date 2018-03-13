@@ -90,11 +90,14 @@ case $gamos in
     if (( $osver < 9 )); then
       echo_red "ERROR: GAM currently requires MacOS 10.9 or newer. You are running MacOS 10.$osver. Please upgrade." 
       exit
-    else
-      echo_green "Good, you're running MacOS 10.$osver..."
     fi
+    echo_green "Good, you're running MacOS 10.$osver..."
     gamos="macos"
-    gamfile="macos.tar.xz"
+    if (( $osver < 12 )); then
+      gamfile="macos-10.10-11.tar"
+     else
+      gamfile="macos-10.12-13.tar"
+    fi
     ;;
   *)
     echo_red "Sorry, this installer currently only supports Linux and MacOS. Looks like you're runnning on $gamos. Exiting."
@@ -103,9 +106,9 @@ case $gamos in
 esac
 
 if [ "$gamversion" == "latest" -o "$gamversion" == "prerelease" -o "$gamversion" == "draft" ]; then
-  release_url="https://api.github.com/repos/taers232c/GAMADV-X3/releases"
+  release_url="https://api.github.com/repos/taers232c/GAMADV-XTD3/releases"
 else
-  release_url="https://api.github.com/repos/taers232c/GAMADV-X3/releases/tags/v$gamversion"
+  release_url="https://api.github.com/repos/taers232c/GAMADV-XTD3/releases/tags/v$gamversion"
 fi
 
 echo_yellow "Checking GitHub URL $release_url for $gamversion GAM release..."
@@ -227,7 +230,7 @@ while true; do
         project_created=true
         break
       else
-        echo_red "Project creation failed. Trying again. Say N to skip projection creation."
+        echo_red "Project creation failed. Trying again. Say N to skip project creation."
       fi
       ;;
     [Nn]*)
