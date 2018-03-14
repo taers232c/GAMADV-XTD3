@@ -1,3 +1,7 @@
+4.55.46
+
+Handle errors when gamcache directory is not accessible.
+
 4.55.45
 
 Fixed incompatability with Basic Gam when the fields option is used with gam print group-members.
