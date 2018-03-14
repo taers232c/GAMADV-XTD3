@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.44'
+__version__ = u'4.55.45'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -13195,6 +13195,7 @@ def getGroupMembers(cd, groupEmail, roles, membersList, membersSet, i, count, ch
 
 GROUPMEMBERS_FIELDS_CHOICE_MAP = {
   u'email': u'email',
+  u'group': u'group',
   u'groupemail': u'group',
   u'id': u'id',
   u'name': u'name',
@@ -13209,15 +13210,17 @@ GROUPMEMBERS_DEFAULT_FIELDS = [u'id', u'role', u'group', u'email', u'type', u'st
 # gam print group-members|groups-members [todrive [<ToDriveAttributes>]]
 #	([domain <DomainName>] [member <UserItem>])|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
 #	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
-#	[roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>] [userfields <UserFieldNameList>] [recursive [noduplicates]]
+#	[roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
+#	[userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
 def doPrintGroupMembers():
   cd = buildGAPIObject(API.DIRECTORY)
-  groupname = membernames = noduplicates = recursive = False
+  membernames = noduplicates = recursive = False
+  groupColumn = True
   todrive = {}
   kwargs = {u'customer': GC.Values[GC.CUSTOMER_ID]}
   subTitle = u'{0} {1}'.format(Msg.ALL, Ent.Plural(Ent.GROUP))
   fieldsList = []
-  titles, csvRows = initializeTitlesCSVfile(None)
+  titles, csvRows = initializeTitlesCSVfile([u'group',])
   entityList = emailMatchPattern = nameMatchPattern = None
   cdfieldsList = [u'email',]
   userFieldsList = []
@@ -13272,6 +13275,8 @@ def doPrintGroupMembers():
       noduplicates = True
     elif myarg == u'recursive':
       recursive = True
+    elif myarg == u'nogroupemail':
+      groupColumn = False
     else:
       unknownArgumentExit()
   if entityList is None:
@@ -13300,8 +13305,9 @@ def doPrintGroupMembers():
       membernames = True
       fieldsList.remove(u'name')
   if u'group' in fieldsList:
-    groupname = True
     fieldsList.remove(u'group')
+  if not groupColumn:
+    removeTitlesFromCSVfile([u'group',], titles)
   if userFieldsList:
     if not membernames and u'name.fullName' in userFieldsList:
       membernames = True
@@ -13333,7 +13339,7 @@ def doPrintGroupMembers():
     for member in membersList:
       memberId = member[u'id']
       row = {}
-      if groupname:
+      if groupColumn:
         row[u'group'] = groupEmail
       if recursive:
         row[u'level'] = member[u'level']

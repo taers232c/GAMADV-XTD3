@@ -1323,7 +1323,7 @@ gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member 
 
 <MembersFieldName> ::=
         email|useremail|
-        groupemail|
+        group|groupemail|
         id|
         name|
         role|
@@ -1334,8 +1334,8 @@ gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member 
 gam print group-members [todrive [<ToDriveAttributes>]]
         [domain <DomainName>] [member <UserItem>])|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
-        [roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>*
-        [fields <MembersFieldNameList>] [userfields <UserFieldNameList>] [recursive [noduplicates]]
+        [roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
+        [userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
 gam show group-members
         ([domain <DomainName>] [member <UserItem>])|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]

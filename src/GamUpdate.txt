@@ -1,3 +1,17 @@
+4.55.45
+
+Fixed incompatability with Basic Gam when the fields option is used with gam print group-members.
+With Basic Gam, the command "gam print group-members fields email,type" produced three columns: group,email,type
+With Advanced Gam, the command "gam print group-members fields email,type" produced two columns: email,type
+The group email address column was included only if group was in the fields list; now, Advanced Gam will also output the group
+email address column even if it's not in the field list. In the special case where you don't want the group email address column,
+use the option nogroupemail.
+gam print group-members [todrive [<ToDriveAttributes>]]
+        [domain <DomainName>] [member <UserItem>])|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
+        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
+        [roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
+        [userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
+
 4.55.44
 
 Improve MacOS version of GAM's use of OpenSSL 1.0.2n.
