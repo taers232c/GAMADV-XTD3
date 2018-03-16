@@ -1530,10 +1530,27 @@ gam print printjob|printjobs [todrive [<ToDriveAttributes>]] [printer|printerid 
 
 # Reports
 
-gam report users|user [todrive [<ToDriveAttributes>]] [nodatechange] [maxresults <Number>] [maxactivities <Number>]
-        [date <Date>] [(user all|<UserItem>)|(select <UserTypeEntity>)] [filter|filters <String>] [fields|parameters <String>]
-gam report customers|customer|domain [todrive [<ToDriveAttributes>]] [nodatechange]
-        [date <Date>] [fields|parameters <String>]
+<ReportsApp> ::=
+      accounts|
+      app_maker|
+      apps_scripts|
+      calendar|
+      classroom|
+      cros|
+      device_management|
+      drive|
+      gmail|
+      gplus|
+      meet|
+      mobile|
+      sites
+<ReportsAppList> ::= "<ReportsApp>(,<ReportsApp>)*"
+
+gam report users|user [todrive [<ToDriveAttributes>]] [date <Date>] [nodatechange | (fulldatarequired all|<ReportsAppList>)]
+        [(user all|<UserItem>)|(select <UserTypeEntity>)] [filter|filters <String>] [fields|parameters <String>]
+        [maxactivities <Number>] [maxresults <Number>]
+gam report customers|customer|domain [todrive [<ToDriveAttributes>]] [date <Date>] [nodatechange | (fulldatarequired all|<ReportsAppList>)]
+        [fields|parameters <String>]
 gam report admin|calendar|calendars|drive|docs|doc|groups|group|logins|login|mobile|tokens|token [todrive [<ToDriveAttributes>]] [maxresults <Number>] [maxactivities <Number>]
         [([start <Time>] [end <Time>])|yesterday] [(user all|<UserItem>)|(select <UserTypeEntity>)] [event <String>] [filter|filters <String>] [ip <String>] [countsonly] [summary]
 

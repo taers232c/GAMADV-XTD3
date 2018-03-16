@@ -1,3 +1,35 @@
+4.55.47
+
+The Google Reports API does not have complete data available in real time, you must go back some number of days to get the full report data.
+The fulldatarequired all|<ReportsAppList> option tells Gam to go backward a day at a time until the Reports API indicates that full data is
+available for the applications specified in <ReportsAppList>.
+<ReportsApp> ::=
+      accounts|
+      app_maker|
+      apps_scripts|
+      calendar|
+      classroom|
+      cros|
+      device_management|
+      drive|
+      gmail|
+      gplus|
+      meet|
+      mobile|
+      sites
+<ReportsAppList> ::= "<ReportsApp>(,<ReportsApp>)*"
+
+gam report users|user [todrive [<ToDriveAttributes>]] [date <Date>] [nodatechange | (fulldatarequired all|<ReportsAppList>)]
+        [(user all|<UserItem>)|(select <UserTypeEntity>)] [filter|filters <String>] [fields|parameters <String>]
+        [maxactivities <Number>] [maxresults <Number>]
+gam report customers|customer|domain [todrive [<ToDriveAttributes>]] [date <Date>] [nodatechange | (fulldatarequired all|<ReportsAppList>)]
+        [fields|parameters <String>]
+
+A good example is user drive quotas: accounts:drive_used_quota_in_mb,accounts:gmail_used_quota_in_mb,accounts:total_quota_in_mb,accounts:used_quota_in_mb.
+These items are not available immediately, you must go back several days to get the full data.
+
+gam report users user user@domain.com fulldatarequired accounts
+
 4.55.46
 
 Handle errors when gamcache directory is not accessible.

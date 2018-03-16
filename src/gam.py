@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.46'
+__version__ = u'4.55.47'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -5846,6 +5846,19 @@ def _adjustTryDate(errMsg, noDateChange):
     return None
   return match_date.group(1)
 
+def _checkFullDataAvailable(warnings, tryDate, fullDataRequired):
+  for warning in warnings:
+    if warning[u'code'] == u'PARTIAL_DATA_AVAILABLE':
+      for app in warning[u'data']:
+        if app[u'key'] == u'application' and app[u'value'] != u'docs' and (not fullDataRequired or app[u'value'] in fullDataRequired):
+          tryDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)-datetime.timedelta(days=1)
+          return (0, tryDateTime.strftime(YYYYMMDD_FORMAT))
+    elif warning[u'code'] == u'DATA_NOT_AVAILABLE':
+      for app in warning[u'data']:
+        if app[u'key'] == u'application' and app[u'value'] != u'docs' and (not fullDataRequired or app[u'value'] in fullDataRequired):
+          return (-1, tryDate)
+  return (1, tryDate)
+
 NL_SPACES_PATTERN = re.compile(r'\n +')
 
 REPORTS_PARAMETERS_SIMPLE_TYPES = [u'intValue', u'boolValue', u'datetimeValue', u'stringValue',]
@@ -5871,12 +5884,29 @@ REPORT_CHOICE_MAP = {
   u'users': u'user',
   }
 
+REPORT_FULLDATA_APPS = [
+  u'accounts',
+  u'app_maker',
+  u'apps_scripts',
+  u'calendar',
+  u'classroom',
+  u'cros',
+  u'device_management',
+  u'drive',
+  u'gmail',
+  u'gplus',
+  u'meet',
+  u'mobile',
+  u'sites',
+  ]
+
 REPORT_ACTIVITIES_TIME_OBJECTS = [u'time']
 
-# gam report <users|user> [todrive [<ToDriveAttributes>]] [nodatechange] [maxresults <Number>] [maxactivities <Number>]
-#	[date <Date>] [user all|<UserItem>] [select <UserTypeEntity>] [filter|filters <String>] [fields|parameters <String>]
-# gam report <customers|customer|domain> [todrive [<ToDriveAttributes>]] [nodatechange]
-#	[date <Date>] [fields|parameters <String>]
+# gam report <users|user> [todrive [<ToDriveAttributes>]] [date <Date>] [nodatechange | (fulldatarequired all|<ReportAppsList>)]
+#	[user all|<UserItem>] [select <UserTypeEntity>] [filter|filters <String>] [fields|parameters <String>]
+#	[maxactivities <Number>] [maxresults <Number>]
+# gam report <customers|customer|domain> [todrive [<ToDriveAttributes>]] [date <Date>] [nodatechange | (fulldatarequired all|<ReportAppsList>)]
+#	[fields|parameters <String>]
 # gam report <admin|calendars|drive|docs|doc|groups|group|logins|login|mobile|tokens|token> [todrive [<ToDriveAttributes>]] [maxresults <Number>] [maxactivities <Number>]
 #	[([start <Time>] [end <Time>])|yesterday] [user all|<UserItem>] [select <UserTypeEntity>] [event <String>] [filter|filters <String>] [fields|parameters <String>] [ip <String>] countsonly summary
 def doReport():
@@ -5885,7 +5915,8 @@ def doReport():
   customerId = GC.Values[GC.CUSTOMER_ID]
   if customerId == GC.MY_CUSTOMER:
     customerId = None
-  tryDate = filters = parameters = actorIpAddress = startTime = endTime = startDateTime = endDateTime = eventName = None
+  filters = parameters = actorIpAddress = startTime = endTime = startDateTime = endDateTime = eventName = None
+  tryDate = todaysDate().strftime(YYYYMMDD_FORMAT)
   maxActivities = 0
   maxResults = 1000
   countsOnly = exitUserLoop = noDateChange = normalizeUsers = select = summary = False
@@ -5894,6 +5925,7 @@ def doReport():
   filtersUserValid = report != u'customer'
   usageReports = report in [u'customer', u'user']
   activityReports = not usageReports
+  fullDataRequired = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
@@ -5904,6 +5936,15 @@ def doReport():
       noDateChange = True
     elif usageReports and myarg in [u'fields', u'parameters']:
       parameters = getString(Cmd.OB_STRING)
+    elif usageReports and myarg == u'fulldatarequired':
+      fullDataRequired = []
+      fdr = getString(Cmd.OB_FIELD_NAME_LIST, minLen=0).lower()
+      if len(fdr) > 0  and fdr != u'all':
+        for field in fdr.replace(u',', u' ').split():
+          if field in REPORT_FULLDATA_APPS:
+            fullDataRequired.append(field)
+          else:
+            invalidChoiceExit(REPORT_FULLDATA_APPS, True)
     elif activityReports and myarg == u'start':
       startDateTime, tzinfo, startTime = getTimeOrDeltaFromNow(True)
       earliestDateTime = datetime.datetime.now(tzinfo)-datetime.timedelta(days=180)
@@ -5944,8 +5985,6 @@ def doReport():
       filters = getString(Cmd.OB_STRING)
     else:
       unknownArgumentExit()
-  if tryDate is None:
-    tryDate = todaysDate().strftime(YYYYMMDD_FORMAT)
   if report == u'user':
     if select:
       page_message = None
@@ -5968,10 +6007,20 @@ def doReport():
       printGettingEntityItemForWhom(Ent.REPORT, user, i, count)
       while True:
         try:
+          if fullDataRequired is not None:
+            warnings = callGAPIitems(rep.userUsageReport(), u'get', u'warnings',
+                                     throw_reasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                                     userKey=user, date=tryDate, customerId=customerId, fields=u'warnings')
+            fullData, tryDate = _checkFullDataAvailable(warnings, tryDate, fullDataRequired)
+            if fullData < 0:
+              printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_REPORT_AVAILABLE.format(report))
+              return
+            if fullData == 0:
+              continue
           usage = callGAPIpages(rep.userUsageReport(), u'get', u'usageReports',
                                 page_message=page_message, maxItems=maxActivities,
                                 throw_reasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
-                                date=tryDate, userKey=user, customerId=customerId, filters=filters, parameters=parameters,
+                                userKey=user, date=tryDate, customerId=customerId, filters=filters, parameters=parameters,
                                 maxResults=maxResults)
           if not usage:
             printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_REPORT_AVAILABLE.format(report))
@@ -6019,9 +6068,19 @@ def doReport():
     auth_apps = []
     while True:
       try:
+        if fullDataRequired is not None:
+          warnings = callGAPIitems(rep.customerUsageReports(), u'get', u'warnings',
+                                   throw_reasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                                   date=tryDate, customerId=customerId, fields=u'warnings')
+          fullData, tryDate = _checkFullDataAvailable(warnings, tryDate, fullDataRequired)
+          if fullData < 0:
+            printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_REPORT_AVAILABLE.format(report))
+            return
+          if fullData == 0:
+            continue
         usage = callGAPIpages(rep.customerUsageReports(), u'get', u'usageReports',
                               throw_reasons=[GAPI.INVALID, GAPI.FORBIDDEN],
-                              customerId=customerId, date=tryDate, parameters=parameters)
+                              date=tryDate, customerId=customerId, parameters=parameters)
         if not usage:
           printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_REPORT_AVAILABLE.format(report))
           return
