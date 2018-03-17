@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.47'
+__version__ = u'4.55.48'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -3327,7 +3327,7 @@ def convertEntityToList(entity, shlexSplit=False, nonListEntityType=False):
   if isinstance(entity, (list, set, dict)):
     return list(entity)
   if nonListEntityType:
-    return [entity.strip(),]
+    return [entity.strip()]
   if not shlexSplit:
     return entity.replace(u',', u' ').split()
   return shlexSplitList(entity)
@@ -3507,22 +3507,29 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
               GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
         checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
         doNotExist += 1
-  elif entityType == Cmd.ENTITY_QUERY:
+  elif entityType in [Cmd.ENTITY_QUERY, Cmd.ENTITY_QUERIES]:
     cd = buildGAPIObject(API.DIRECTORY)
+    queries = convertEntityToList(entity, shlexSplit=True, nonListEntityType=entityType == Cmd.ENTITY_QUERY)
+    prevLen = 0
     try:
-      printGettingAllAccountEntities(Ent.USER, entity)
-      result = callGAPIpages(cd.users(), u'list', u'users',
-                             page_message=getPageMessage(noNL=True),
-                             throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
-                                            GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                             customer=GC.Values[GC.CUSTOMER_ID], query=entity,
-                             fields=u'nextPageToken,users(primaryEmail,suspended)',
-                             maxResults=GC.Values[GC.USER_MAX_RESULTS])
-      while result:
-        user = result.popleft()
-        if not (checkNotSuspended and user[u'suspended']):
-          entityList.append(user[u'primaryEmail'])
-      printGotAccountEntities(len(entityList))
+      for query in queries:
+        printGettingAllAccountEntities(Ent.USER, query)
+        result = callGAPIpages(cd.users(), u'list', u'users',
+                               page_message=getPageMessage(noNL=True),
+                               throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
+                                              GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                               customer=GC.Values[GC.CUSTOMER_ID], query=query,
+                               fields=u'nextPageToken,users(primaryEmail,suspended)',
+                               maxResults=GC.Values[GC.USER_MAX_RESULTS])
+        while result:
+          user = result.popleft()
+          email = user[u'primaryEmail']
+          if not (checkNotSuspended and user[u'suspended']) and email not in entitySet:
+            entitySet.add(email)
+            entityList.append(email)
+        totalLen = len(entityList)
+        printGotAccountEntities(totalLen-prevLen)
+        prevLen = totalLen
     except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.invalidInput):
       Cmd.Backup()
       usageErrorExit(Msg.INVALID_QUERY)
@@ -3589,20 +3596,28 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
         entityList.append(device[u'deviceId'])
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       accessErrorExit(cd)
-  elif entityType == Cmd.ENTITY_CROS_QUERY:
+  elif entityType in [Cmd.ENTITY_CROS_QUERY, Cmd.ENTITY_CROS_QUERIES]:
     cd = buildGAPIObject(API.DIRECTORY)
+    queries = convertEntityToList(entity, shlexSplit=True, nonListEntityType=entityType == Cmd.ENTITY_CROS_QUERY)
+    prevLen = 0
     try:
-      printGettingAllAccountEntities(Ent.CROS_DEVICE, entity)
-      result = callGAPIpages(cd.chromeosdevices(), u'list', u'chromeosdevices',
-                             page_message=getPageMessage(noNL=True),
-                             throw_reasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                             customerId=GC.Values[GC.CUSTOMER_ID], query=entity,
-                             fields=u'nextPageToken,chromeosdevices(deviceId)',
-                             maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
-      while result:
-        device = result.popleft()
-        entityList.append(device[u'deviceId'])
-      printGotAccountEntities(len(entityList))
+      for query in queries:
+        printGettingAllAccountEntities(Ent.CROS_DEVICE, query)
+        result = callGAPIpages(cd.chromeosdevices(), u'list', u'chromeosdevices',
+                               page_message=getPageMessage(noNL=True),
+                               throw_reasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                               customerId=GC.Values[GC.CUSTOMER_ID], query=query,
+                               fields=u'nextPageToken,chromeosdevices(deviceId)',
+                               maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
+        while result:
+          device = result.popleft()
+          deviceId = device[u'deviceId']
+          if deviceId not in entitySet:
+            entitySet.add(deviceId)
+            entityList.append(deviceId)
+        totalLen = len(entityList)
+        printGotAccountEntities(totalLen-prevLen)
+        prevLen = totalLen
     except GAPI.invalidInput:
       Cmd.Backup()
       usageErrorExit(Msg.INVALID_QUERY)

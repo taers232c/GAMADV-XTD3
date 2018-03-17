@@ -387,6 +387,8 @@ Items, separated by spaces, with spaces or commas in the items themselves: "'it 
 <PrinterIDList> ::= "<PrinterID>(,<PrinterID>)*"
 <PrintJobIDList> ::= "<PrintJobID>(,<PrintJobID>)*"
 <ProductIDList> ::= "(<ProductID>|SKUID>)(,<ProductID>|SKUID>)*"
+<QueryCrOSList> ::= "<QueryCrOS>(,<QueryCrOS>)*"
+<QueryUserList> ::= "<QueryUser>(,<QueryUser>)*"
 <RecipientList> ::= "<Recipient>(,<Recipient>)*"
 <ResourceIDList> ::= "<ResourceID>(,<ResourceID>)*"
 <SchemaNameList> ::= "<SchemaName>(,<SchemaName>)*"
@@ -412,6 +414,7 @@ Specify a collection of ChromeOS devices by directly specifying them or by speci
         (crosfile <FileName> [charset <Charset>] [delimiter <Character>])|
         (croscsvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
         (crosquery <QueryCrOS>)|
+        (crosqueries <QueryCrOSList>)|
         (datafile cros|cros_ous|cros_ous_and_children <FileName> [charset <Charset>] [delimiter <Character>])|
         (csvkmd cros|cros_ous|cros_ous_and_children <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
                 keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
@@ -442,6 +445,7 @@ Specify a collection of Users by directly specifying them or by specifiying item
         (file <FileName> [charset <Charset>] [delimiter <Character>])|
         (csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
         (query <QueryUser>)|
+        (queries <QueryUserList>)|
         (datafile users|groups|ous|ous_and_children|courseparticipants|students|teachers <FileName> [charset <Charset>] [delimiter <Character>])|
         (csvkmd users|groups|ous|ous_and_children|courseparticipants|students|teachers <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
                 keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]

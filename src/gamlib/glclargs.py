@@ -25,6 +25,7 @@ class GamCLArgs(object):
 # GAM entity types as specified on the command line
   ENTITY_COURSEPARTICIPANTS = u'courseparticipants'
   ENTITY_CROS = u'cros'
+  ENTITY_CROS_QUERIES = u'crosqueries'
   ENTITY_CROS_QUERY = u'crosquery'
   ENTITY_CROS_OU = u'cros_ou'
   ENTITY_CROS_OU_AND_CHILDREN = u'cros_ou_and_children'
@@ -45,6 +46,7 @@ class GamCLArgs(object):
   ENTITY_OUS_NS = u'ous_ns'
   ENTITY_OUS_AND_CHILDREN = u'ous_and_children'
   ENTITY_OUS_AND_CHILDREN_NS = u'ous_and_children_ns'
+  ENTITY_QUERIES = u'queries'
   ENTITY_QUERY = u'query'
   ENTITY_STUDENTS = u'students'
   ENTITY_TEACHERS = u'teachers'
@@ -53,6 +55,7 @@ class GamCLArgs(object):
 #
   CROS_ENTITIES = [
     ENTITY_CROS,
+    ENTITY_CROS_QUERIES,
     ENTITY_CROS_QUERY,
     ENTITY_CROS_OU,
     ENTITY_CROS_OU_AND_CHILDREN,
@@ -76,6 +79,7 @@ class GamCLArgs(object):
     ENTITY_OUS_NS,
     ENTITY_OUS_AND_CHILDREN,
     ENTITY_OUS_AND_CHILDREN_NS,
+    ENTITY_QUERIES,
     ENTITY_QUERY,
     ENTITY_STUDENTS,
     ENTITY_TEACHERS,

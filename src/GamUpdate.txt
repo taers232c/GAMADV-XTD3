@@ -1,3 +1,23 @@
+4.55.48
+
+Added the ability to specify multiple queries when specifying collections of Users or ChromeOS devices.
+<QueryCrOSList> ::= "<QueryCrOS>(,<QueryCrOS>)*"
+<QueryUserList> ::= "<QueryUser>(,<QueryUser>)*"
+<CrOSTypeEntity> ::=
+        (crosqueries <QueryCrOSList>)|
+<UserTypeEntity> ::=
+        (queries <QueryUserList>)|
+
+Quoting a query list takes some thought, in particular if a query contains a space, a comma or a single quote.
+In all cases, the list of queries is surrounded with double quotes.
+If a query doesn't contain spaces or single quotes, no special quoting is required.
+gam queries "orgTitle=Specialist,orgTitle=Technician" print users allfields
+gam cros_queries "id:HY3,id:5CD" print cros allfields nolists
+If a query does contain a single quote, you surround it with escaped double quotes.
+gam queries "\"orgName='Sales Org' orgTitle=Manager\",\"orgName='Marketing Org'\"" print users allfields
+
+For quoting rules, see: https://github.com/taers232c/GAMADV-XTD/wiki/Lists
+
 4.55.47
 
 The Google Reports API does not have complete data available in real time, you must go back some number of days to get the full report data.
