@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.49'
+__version__ = u'4.55.50'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -14179,6 +14179,8 @@ RESOURCE_CATEGORY_MAP = {
   u'conferenceroom': u'CONFERENCE_ROOM',
   u'room': u'CONFERENCE_ROOM',
   u'other': u'OTHER',
+  u'categoryunknown': u'CATEGORY_UNKNOWN',
+  u'unknown': u'CATEGORY_UNKNOWN',
   }
 
 def _getResourceCalendarAttributes(cd, body):

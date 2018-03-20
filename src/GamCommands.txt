@@ -1617,7 +1617,7 @@ gam print resoldsubscriptions [todrive [<ToDriveAttributes>]] [customerid <Custo
 <ResourceAttributes> ::=
         (buildingid <BuildingID>)|
         (capacity <Number>)|
-        (category other|room|conference_room)|
+        (category other|room|conference_room|category_unknown|unknown)|
         (description <String>)|
         (features <FeatureNameList>)|
         (floor <FloorName>)|

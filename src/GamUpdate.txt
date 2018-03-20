@@ -1,3 +1,9 @@
+4.55.50
+
+Added category synonyms category_unknown and unknown to <ResourceAttributes>.
+<ResourceAttributes> ::=
+        (category other|room|conference_room|category_unknown|unknown)|
+
 4.55.49
 
 Added the ability to specify multiple queries in the following print commands.
