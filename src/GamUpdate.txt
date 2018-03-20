@@ -1,3 +1,23 @@
+4.55.49
+
+Added the ability to specify multiple queries in the following print commands.
+gam print alias|aliases [todrive [<ToDriveAttributes>]]
+        [(query <QueryUser>)|(queries <QueryUserList>)]
+gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttributes>]]
+        [(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
+gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttributes>]]
+        [(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
+gam print mobile [todrive [<ToDriveAttributes>]]
+        [(query <QueryMobile>)|(queries <QueryMobileList>)]
+gam print printer|printers [todrive [<ToDriveAttributes>]]
+        [(query <QueryPrinter>)|(queries <QueryPrinterList>)] [type <String>] [status <String>]
+gam printjob|printjobs <PrinterID>|any fetch
+        [(query <QueryPrintJob>)|(queries <QueryPrintJobList>)] [olderthan|newerthan <PrintJobAge>] [status <PrintJobStatus>]
+gam print printjob|printjobs [todrive [<ToDriveAttributes>]] [printer|printerid <PrinterID>]
+        [(query <QueryPrintJob>)|(queries <QueryPrintJobList>)] [olderthan|newerthan <PrintJobAge>] [status <PrintJobStatus>]
+gam print users [todrive [<ToDriveAttributes>]]
+        ([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])|[select <UserTypeEntity>]
+
 4.55.48
 
 Added the ability to specify multiple queries when specifying collections of Users or ChromeOS devices.

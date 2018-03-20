@@ -212,7 +212,7 @@ If an item contains spaces, it should be surrounded by ".
 <AccessToken> ::= <String>
 <ASPID> ::= <String>
 <CalendarACLScope> ::= [user:]<EmailAddress>|group:<EmailAddress>|domain[:<DomainName>]|default
-<BuildingID> ::= <String>
+<BuildingID> ::= <String>|id:<String>
 <CalendarColorIndex> ::= <Number in range 1-24>
 <CalendarItem> ::= <EmailAddress>|<String>
 <ClientID> ::= <String>
@@ -340,11 +340,17 @@ If an item contains spaces, it should be surrounded by ".
 
 ## Lists of items
 
-Lists can be in the following formats:
-Items, separated by commas, without spaces or commas in the items themselves: item(,item)*
-Items, separated by spaces, without spaces or commas in the items themselves: "item( item)*"
-Items, separated by commas, with spaces or commas in the items themselves: "'it em'(,'it,em')*"
-Items, separated by spaces, with spaces or commas in the items themselves: "'it em'( 'it,em')*"
+Items in a list can be separated by commas or spaces; if an item itself contains a comma, a space or a single quote, special quoting must be used.
+Typically, you will enclose the entire list in double quotes and quote each item in the list as detailed below.
+
+Items, separated by commas, without spaces, commas or single quotes in the items themselves
+    "item,item,item"
+Items, separated by spaces, without spaces, commas or single quotes in the items themselves
+    "item item item"
+Items, separated by commas, with spaces, commas or single quotes in the items themselves
+    "'it em','it,em',\"it'em\""
+Items, separated by spaces, with spaces, commas or single quotes in the items themselves
+    "'it em' 'it,em' \"it'em\""
 
 <ASPIDList> ::= "<ASPID>(,<ASPID>)*"
 <CalendarACLScopeList> ::= "<CalendarACLScope>(,<CalendarACLScope>)*"
@@ -388,6 +394,9 @@ Items, separated by spaces, with spaces or commas in the items themselves: "'it 
 <PrintJobIDList> ::= "<PrintJobID>(,<PrintJobID>)*"
 <ProductIDList> ::= "(<ProductID>|SKUID>)(,<ProductID>|SKUID>)*"
 <QueryCrOSList> ::= "<QueryCrOS>(,<QueryCrOS>)*"
+<QueryMobileList> ::= "<QueryMobile>(,<QueryMobile>)*"
+<QueryPrinterList> ::= "<QueryPrinter>(,<QueryPrinter>)*"
+<QueryPrintJobList> ::= "<QueryPrintJob>(,<QueryPrintJob>)*"
 <QueryUserList> ::= "<QueryUser>(,<QueryUser>)*"
 <RecipientList> ::= "<Recipient>(,<Recipient>)*"
 <ResourceIDList> ::= "<ResourceID>(,<ResourceID>)*"
@@ -660,7 +669,9 @@ gam update alias|aliases <EmailAddressEntity> user|group|target <UniqueID>|<Emai
 gam delete alias|aliases [user|group|target] <EmailAddressEntity>
 gam info alias|aliases <EmailAddressEntity>
 
-gam print alias|aliases [todrive [<ToDriveAttributes>]] [shownoneditable] [nogroups] [nousers] [query <QueryUser>]
+gam print alias|aliases [todrive [<ToDriveAttributes>]]
+        [(query <QueryUser>)|(queries <QueryUserList>)]
+        [shownoneditable] [nogroups] [nousers]
 
 gam whatis <EmailItem> [noinfo]
 
@@ -870,7 +881,8 @@ gam print cros
 Print a header row and selected fields for specified CrOS devices; deviceId is the always the first column.
 If you specify allfields|basic|full, all other column headers are sorted.
 If you specify <CrOSFieldName>* | fields <CrOSFieldNameList>, the column headers appear in the order specified.
-gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
+gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttributes>]]
+        [(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
 
@@ -891,7 +903,8 @@ with all of the other headers.
 The listlimit <Number> argument limits the number of repetitions to <Number>; if not specified or <Number> equals zero, there is no limit.
 The start <Date> and end <Date> arguments filter the time ranges and device files.
 
-gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
+gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttributes>]]
+        [(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [both] [devicefiles] [all] [listlimit <Number>] [start <Date>] [end <Date>]
         [delimiter <Character>] [formatjson] [quotechar <Character>]
 
@@ -1426,7 +1439,8 @@ gam delete mobile <MobileEntity>
 
 gam info mobile <MobileEntity>
         [basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>]
-gam print mobile [todrive [<ToDriveAttributes>]] [query <QueryMobile>]
+gam print mobile [todrive [<ToDriveAttributes>]]
+        [(query <QueryMobile>)|(queries <QueryMobileList>)]
         [orderby <MobileOrderByFieldName> [ascending|descending]]
         [basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>]
         [delimiter <Character>] [appslimit <Number>] [listlimit <Number>]
@@ -1495,7 +1509,9 @@ gam update printer|printers <PrinterIDEntity> <PrinterAttributes>+
 gam delete printer|printers <PrinterIDEntity>
 gam info printer|printers <PrinterIDEntity> [everything]
 
-gam print printer|printers [todrive [<ToDriveAttributes>]] [query <QueryPrinter>] [type <String>] [status <String>] [extrafields <String>] [delimiter <Character>]
+gam print printer|printers [todrive [<ToDriveAttributes>]]
+        [(query <QueryPrinter>)|(queries <QueryPrinterList>)] [type <String>] [status <String>]
+        [extrafields <String>] [delimiter <Character>]
 
 <PrinterACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|public
 <PrinterACLScopeList> ::= "<PrinterACLScope>(,<PrinterACLScope>)*"
@@ -1519,15 +1535,13 @@ gam printjob|printjobs <PrintJobEntity> resubmit <PrinterID>
         create_time|status|title
 
 gam printjob|printjobs <PrinterID>|any fetch
-        [olderthan|newerthan <PrintJobAge>] [query <QueryPrintJob>]
-        [status <PrintJobStatus>]
+        [(query <QueryPrintJob>)|(queries <QueryPrintJobList>)] [olderthan|newerthan <PrintJobAge>] [status <PrintJobStatus>]
         [orderby <PrintJobOrderByFieldName> [ascending|descending]]
         [owner|user <EmailAddress>]
         [limit <Number>] [drivedir|(targetfolder <FilePath>)]
 
 gam print printjob|printjobs [todrive [<ToDriveAttributes>]] [printer|printerid <PrinterID>]
-        [olderthan|newerthan <PrintJobAge>] [query <QueryPrintJob>]
-        [status <PrintJobStatus>]
+        [(query <QueryPrintJob>)|(queries <QueryPrintJobList>)] [olderthan|newerthan <PrintJobAge>] [status <PrintJobStatus>]
         [orderby <PrintJobOrderByFieldName> [ascending|descending]]
         [owner|user <EmailAddress>]
         [limit <Number>] [delimiter <Character>]
@@ -1595,6 +1609,7 @@ gam print resoldsubscriptions [todrive [<ToDriveAttributes>]] [customerid <Custo
 <BuildingAttributes> ::=
         (description <String>)|
         (floors <FloorNameList>)|
+        (id <String>)|
         (latitude <Float>)|
         (longitude <Float>)|
         (name <String>)
@@ -1610,7 +1625,7 @@ gam print resoldsubscriptions [todrive [<ToDriveAttributes>]] [customerid <Custo
         (name <String>)|
         (type <String>)|
         (uservisibledescription <String>)
-       
+
 <ResourceFieldName> ::=
         buildingid|
         capacity|
@@ -1914,9 +1929,10 @@ Print a header row and selected fields for specified users; primaryEmail is the 
 If you specify allfields|basic|full, all other column headers are sorted.
 If you specify <UserFieldName>* | fields <UserFieldNameList>, the column headers appear in the order specified.
 
-gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [query <QueryUser>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
-        [groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
+gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]]
+        ([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])|[select <UserTypeEntity>]
         [orderby <UserOrderByFieldName> [ascending|descending]]
+        [groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
         [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
 
@@ -1977,7 +1993,7 @@ gam <UserTypeEntity> show backupcodes|verificationcodes
         summary <String>|
         description <String>|
         location <String>|
-        timezone <String>|
+        timezone <String>
 
 Manage a users list of calendars
 
