@@ -1,6 +1,6 @@
 # -*- mode: python -*-
 ssl_json_files = [
-    ('httplib2/cacerts.txt', 'httplib2'),
+    ('cacerts.pem', '.'),
     ('admin-settings-v2.json', '.'),
     ('cloudprint-v2.json', '.'),
     ('contacts-v3.json', '.'),

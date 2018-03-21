@@ -8,5 +8,6 @@ cp LICENSE gam
 cp license.rtf gam
 cp whatsnew.txt gam
 cp Gam*.txt gam
+cp cacerts.pem gam
 
 tar -cf gamadv-xtd3-$1-macos.tar gam/ 
