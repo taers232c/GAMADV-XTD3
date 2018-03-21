@@ -59,6 +59,9 @@ batch_size
 	Default: 50
 	Range: 1 - 1000
 	Environment variable: GAM_BATCH_SIZE
+cacerts_pem
+	SSL Root CA certificates file
+	Default: Blank, internal cacerts.pem will be used
 cache_dir
 	GAM cache directory.
 	Default: ~/.gam/gamcache
@@ -78,7 +81,6 @@ classroom_max_results
 	When retrieving lists of Google Classroom items from API, how many should be retrieved in each chunk
 	Default: 0 (Google defined limit)
 	Range: 0 - 1000
-	Environment variable: GAM_CLASSROOM_MAX_RESULTS
 client_secrets_json
 	Path to client_secrets.json
 	Default: GamConfigDir/client_secrets.json
@@ -91,55 +93,46 @@ contact_max_results
 	When retrieving lists of Google Contacts from API, how many should be retrieved in each chunk
 	Default: 100
 	Range: 1 - 10000
-	Environment variable: GAM_CONTACT_MAX_RESULTS
 csv_input_column_delimiter
 	Column delimiter used when reading CSV files; this must be a single character
 	All places where an input CSV file can be specified have an argument columndelimiter <String> that can override this value.
 	Default: ','
-	Environment variable: GAM_CSV_INPUT_COLUMN_DELIMITER 
 csv_input_quote_char
 	A one-character string used to quote fields containing special characters, such as the csv_input_column_delimiter or csv_input_quote_char,
 	or new-line characters. This typically used when reading CSV files produced by gam print ranges formatjson where csv_output_char
 	was set to a value other than double quote.
 	Defaults: '"'
-	Environment variable: GAM_CSV_INPUT_QUOTE_CHAR
 csv_output_convert_cr_nl
 	Convert carriage returns (CR) to '\r' and newlines (NL) to '\n' when writing CSV files
 	The commands gam print groups|sites|messages|threads and gam show sites|messages|threads have
 	an argument, converttextnl, that can set this value to true.
 	Default: False
-	Environment variable: GAM_CSV_OUTPUT_CONVERT_CR_NL
 csv_output_column_delimiter
 	Column delimiter used when writing CSV files; this must be a single character
 	The argument redirect csv <FileName> [multiprocess] [append] [noheader] [charset <CharSet>] [columndelimiter <Character>] can override this value.
 	Default: ','
-	Environment variable: GAM_CSV_OUTPUT_COLUMN_DELIMITER
 csv_output_field_delimiter
 	Field list delimiter used when writing CSV output files; this must be a single character
 	With the default value of an empty string:
 	Each of the gam print courses|groups|users  commands has a delimiter <String> argument that can override this value.
 	Default: ' '
-	Environment variable: GAM_CSV_OUTPUT_FIELD_DELIMITER
 csv_output_line_terminator
 	Allowed values: cr, lf, crlf
 	Designates character(s) used to terminate the lines of a CSV file.
 	For Linux and Mac OS, this would typically be lf.
 	For Windows, this would typically be crlf.
 	Default: lf
-	Environment variable: GAM_CSV_OUTPUT_LINE_TERMINATOR
 csv_output_quote_char
 	A one-character string used to quote fields containing special characters, such as the csv_output_column_delimiter or csv_output_quote_char,
 	or new-line characters. This is most useful with gam print sheetranges formatjson where the JSON column contains many
 	double quotes; by setting csv_output_quote_char to a single quote, the output is much cleaner.
 	Default: '"'
-	Environment variable: GAM_CSV_OUTPUT_QUOTE_CHAR
 csv_output_users_audit
 	Gam print commands that print objects belonging to users don't print rows for users that don't have any of the objects.
 	The objects are: calendars, calendar ACLs, calendar events, delegates, filters, forwarding addresses, sendas addresses,
 	S/MIME certificates and tokens. When csv_output_users_audit is true, a placeholder row will be output with the
 	user's email address; these rows will useful for auditing purposes only, they can not be successfuly used in a gam csv command.
 	Default: False
-	Environment variable: GAM_CSV_OUTPUT_USERS_AUDIT
 customer_id
 	Google Custmer ID
 	Default: Blank
@@ -169,17 +162,14 @@ drive_max_results
 drive_v3_native_names
 	Enable/disable use of Drive API v3 native column names in all gam print/show commands related to Google Drive
 	Default: False
-	Environment variable: GAM_DRIVE_V3_NATIVE_NAMES
 email_batch_size
 	When processing Gmail items in batches, how many should be processed in each batch
 	Default: 100
 	Range: 1 - 100
-	Environment variable: GAM_EMAIL_BATCH_SIZE
 event_max_results
 	When retrieving lists of Calendar events from API, how many should be retrieved in each chunk
 	Default: 250
 	Range: 1 - 2500
-	Environment variable: GAM_EVENT_MAX_RESULTS
 extra_args
 	Path to extra_args.txt
 	Default: Blank
@@ -188,26 +178,21 @@ inter_batch_wait
 	When processing items in batches, how many seconds should GAM wait between batches
 	Default: 0
 	Range: 0 - 60
-	Environment variable: GAM_INTER_BATCH_WAIT
 member_max_results
 	When retrieving lists of Google Group members from API, how many should be retrieved in each chunk
 	Default: 200
 	Range: 1 - 10000
-	Environment variable: GAM_MEMBER_MAX_RESULTS
 message_batch_size
 	When deleting or modifying Gmail messages, how many should be processed in each batch
 	Default: 1000
 	Range: 1 - 1000
-	Environment variable: GAM_MESSAGE_BATCH_SIZE
 message_max_results
 	When retrieving lists of Gmail messages from API, how many should be retrieved in each chunk
 	Default: 1000
 	Range: 1 - 10000
-	Environment variable: GAM_MESSAGE_MAX_RESULTS
 never_time
 	The value to be substituted whenever a Google datetime variable has the value "1970-01-01T00:00:00.000Z"
 	Default: Never
-	Environment variable: GAM_NEVER_TIME
 no_browser
 	If no_browser is True, GAM won't open a browser if todrive is set when creating CSV files
 	and GAM prints a link and waits for the verification code when oauth2.txt is being created
@@ -225,7 +210,6 @@ num_tbatch_threads
 	Number of threads for gam tbatch
 	Default: 2
 	Range: 1 - 100
-	Environment variable: GAM_TBATCH_THREADS
 num_threads
 	Number of processes for gam batch/csv
 	Default: 5
@@ -242,52 +226,40 @@ oauth2service_json
 print_native_names
 	Enable/disable use of native column names in gam print groups/orgs
 	Default: False
-	Environment variable: GAM_PRINT_NATIVE_NAMES
 section
 	Default section of gam.cfg.
 	Default: DEFAULT
-	Environment variable: GAM_SECTION
 show_convert_cr_nl
 	Convert carriage returns (CR) to '\r' and newlines (NL) to '\n' when showing data
 	Default: False
-	Environment variable: GAM_SHOW_CONVERT_CR_NL
 show_counts_min
 	Add (n/m) to end of messages if number of items to be processed exceeds this number
 	Default: 1
 	Range: 0 - 100
-	Environment variable: GAM_SHOW_COUNTS_MIN
 show_gettings
 	Enable/disable "Getting ... " messages
 	Default: True
-	Environment variable: GAM_SHOW_GETTINGS
 show_multiprocess_info
 	Enable/disable showing multiprocess info in redirected stdout/stderr with gam csv
 	Default: False
-	Environment variable: GAM_SHOW_MULTIPROCESS_INFO
 timezone
 	Specify time conversion
 	Default: utc
-	Environment variable: GAM_TIMEZONE
 todrive_conversion
 	Enable/disable conversion of CSV files to Google Sheets when todrive is specified
 	Default: True
-	Environment variable: GAM_TODRIVE_CONVERSION
 todrive_localcopy
 	Enable/disable saving a local copy of CSV files when todrive is specified
 	Default: False
-	Environment variable: GAM_TODRIVE_LOCALCOPY
 todrive_parent
 	Parent folder for CSV files when todrive is specified; can be id:<DriveFolderID> or <DriveFolderName>
 	Default: root
-	Environment variable: GAM_TODRIVE_PARENT
 todrive_timestamp
 	Enable/disable adding a timestamp to the title of CSV files when todrive is specified
 	Default: False
-	Environment variable: GAM_TODRIVE_TIMESTAMP
 todrive_user
 	Email address of user to receive CSV files when todrive is specified
 	Default: '' which becomes admin user in oauth2.txt
-	Environment variable: GAM_TODRIVE_USER
 user_max_results
 	When retrieving lists of Users from API, how many should be retrieved in each chunk
 	Default: 500
@@ -302,6 +274,7 @@ Section: DEFAULT
   activity_max_results = 100
   auto_batch_min = 0
   batch_size = 50
+  cacerts_pem =
   cache_dir = /Users/admin/.gam/gamcache
   cache_discovery_only = true
   charset = utf-8
@@ -429,6 +402,7 @@ Edit gam.cfg to set up additional clients; it should look like this when complet
 activity_max_results = 100
 auto_batch_min = 0
 batch_size = 50
+cacerts_pem =
 cache_dir = /Users/admin/.gam/gamcache
 cache_discovery_only = true
 charset = utf-8

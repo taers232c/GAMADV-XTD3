@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.50'
+__version__ = u'4.55.51'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -1994,7 +1994,7 @@ def SetGlobalVariables():
   def _getDefault(itemName, itemEntry, oldGamPath):
     if GC.VAR_SIGFILE in itemEntry:
       GC.Defaults[itemName] = itemEntry[GC.VAR_SFFT][os.path.isfile(os.path.join(oldGamPath, itemEntry[GC.VAR_SIGFILE]))]
-    else:
+    elif GC.VAR_ENVVAR in itemEntry:
       value = os.environ.get(itemEntry[GC.VAR_ENVVAR], GC.Defaults[itemName])
       if itemEntry[GC.VAR_TYPE] == GC.TYPE_INTEGER:
         try:
@@ -2142,6 +2142,11 @@ def SetGlobalVariables():
     value = os.path.expanduser(_stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName)))
     if value and not os.path.isabs(value):
       value = os.path.expanduser(os.path.join(_getCfgDirectory(sectionName, GC.CONFIG_DIR), value))
+    elif not value and itemName == GC.CACERTS_PEM:
+      if hasattr(sys, u'_MEIPASS'):
+        value = os.path.join(sys._MEIPASS, GC.FN_CACERTS_PEM)
+      else:
+        value = os.path.join(GM.Globals[GM.GAM_PATH], GC.FN_CACERTS_PEM)
     return value
 
   def _readGamCfgFile(config, fileName):
@@ -2210,13 +2215,24 @@ def SetGlobalVariables():
         if (not fileName) and (itemName == GC.EXTRA_ARGS):
           continue
         if not os.path.isfile(fileName):
-          writeStderr(formatKeyValueList(WARNING_PREFIX,
+          writeStderr(formatKeyValueList([WARNING_PREFIX, ERROR_PREFIX][itemName == GC.CACERTS_PEM],
                                          [Ent.Singular(Ent.CONFIG_FILE), GM.Globals[GM.GAM_CFG_FILE],
                                           Ent.Singular(Ent.SECTION), sectionName,
                                           Ent.Singular(Ent.ITEM), itemName,
                                           Ent.Singular(Ent.VALUE), fileName,
                                           Msg.NOT_FOUND],
                                          u'\n'))
+          if itemName == GC.CACERTS_PEM:
+            status[u'errors'] = True
+        elif not os.access(fileName, GC.VAR_INFO[itemName][GC.VAR_ACCESS]):
+          writeStderr(formatKeyValueList(ERROR_PREFIX,
+                                         [Ent.Singular(Ent.CONFIG_FILE), GM.Globals[GM.GAM_CFG_FILE],
+                                          Ent.Singular(Ent.SECTION), sectionName,
+                                          Ent.Singular(Ent.ITEM), itemName,
+                                          Ent.Singular(Ent.VALUE), fileName,
+                                          [Msg.NEED_READ_ACCESS, Msg.NEED_READ_WRITE_ACCESS][GC.VAR_INFO[itemName][GC.VAR_ACCESS] == os.R_OK | os.W_OK]],
+                                         u'\n'))
+          status[u'errors'] = True
 
   def _setCSVFile(filename, mode, encoding, writeHeader, multi):
     if filename != u'-':
@@ -2438,6 +2454,8 @@ def SetGlobalVariables():
   if (Cmd.Location() == 1) or (Cmd.ArgumentsRemaining()):
     _chkCfgDirectories(sectionName)
     _chkCfgFiles(sectionName)
+    if status[u'errors']:
+      sys.exit(CONFIG_ERROR_RC)
     if GC.Values[GC.NO_CACHE]:
       GM.Globals[GM.CACHE_DIR] = None
       GM.Globals[GM.CACHE_DISCOVERY_ONLY] = False
@@ -2447,6 +2465,11 @@ def SetGlobalVariables():
     return True
 # We're done, nothing else to do
   return False
+
+def getHttpObj(cache=None):
+  return httplib2.Http(cache=cache,
+                       ca_certs=GC.Values[GC.CACERTS_PEM],
+                       disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL])
 
 def doGAMCheckForUpdates(forceCheck=False):
   import calendar
@@ -2466,7 +2489,7 @@ def doGAMCheckForUpdates(forceCheck=False):
       return
     check_url = GAM_LATEST_RELEASE # latest full release
   try:
-    _, c = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]).request(check_url, u'GET', headers={u'Accept': u'application/vnd.github.v3.text+json'})
+    _, c = getHttpObj().request(check_url, u'GET', headers={u'Accept': u'application/vnd.github.v3.text+json'})
     try:
       release_data = json.loads(c)
     except ValueError:
@@ -2533,7 +2556,7 @@ def getClientCredentials(cred_family):
     invalidOauth2TxtExit()
   if credentials.access_token_expired:
     try:
-      credentials.refresh(httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]))
+      credentials.refresh(getHttpObj())
     except httplib2.ServerNotFoundError as e:
       systemErrorExit(NETWORK_ERROR_RC, str(e))
     except oauth2client.client.AccessTokenRefreshError as e:
@@ -2564,7 +2587,7 @@ def getGDataOAuthToken(gdataObj, credentials=None):
   if not credentials:
     credentials = getClientCredentials(API.FAM2_SCOPES)
   try:
-    credentials.refresh(httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]))
+    credentials.refresh(getHttpObj())
   except httplib2.ServerNotFoundError as e:
     systemErrorExit(NETWORK_ERROR_RC, str(e))
   except oauth2client.client.AccessTokenRefreshError as e:
@@ -2789,7 +2812,7 @@ def checkGAPIError(e, soft_errors=False, silent_errors=False, retryOnHttpError=F
     elif (e.resp[u'status'] == u'400') and (u'EntityNameNotValid' in str(e.content)):
       error = {u'error': {u'code': 400, u'errors': [{u'reason': GAPI.INVALID_INPUT, u'message': u'Entity Name Not Valid'}]}}
     elif retryOnHttpError:
-      service._http.request.credentials.refresh(httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]))
+      service._http.request.credentials.refresh(getHttpObj())
       return (-1, None, None)
     elif soft_errors:
       if not silent_errors:
@@ -2997,13 +3020,9 @@ def readDiscoveryFile(api_version):
   disc_filename = u'%s.json' % (api_version)
   disc_file = os.path.join(GM.Globals[GM.GAM_PATH], disc_filename)
   if hasattr(sys, u'_MEIPASS'):
-    pyinstaller_disc_file = os.path.join(sys._MEIPASS, disc_filename)
-  else:
-    pyinstaller_disc_file = None
-  if os.path.isfile(disc_file):
+    json_string = readFile(os.path.join(sys._MEIPASS, disc_filename), continueOnError=True, displayError=True)
+  elif os.path.isfile(disc_file):
     json_string = readFile(disc_file, continueOnError=True, displayError=True)
-  elif pyinstaller_disc_file:
-    json_string = readFile(pyinstaller_disc_file, continueOnError=True, displayError=True)
   else:
     json_string = None
   if not json_string:
@@ -3017,8 +3036,7 @@ def readDiscoveryFile(api_version):
 def getAPIversionHttpService(api):
   hasLocalJSON = API.hasLocalJSON(api)
   api, version, api_version, cred_family = API.getVersion(api)
-  httpObj = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL],
-                          cache=GM.Globals[GM.CACHE_DIR])
+  httpObj = getHttpObj(cache=GM.Globals[GM.CACHE_DIR])
   if not hasLocalJSON:
     retries = 3
     for n in range(1, retries+1):
@@ -3104,11 +3122,9 @@ def buildGAPIServiceObject(api, user, i, count, displayError=True):
   return (userEmail, service)
 
 def initGDataObject(gdataObj, api):
-  if hasattr(sys, u'_MEIPASS') and not GM.Globals[GM.CACERTS_TXT]:
-    GM.Globals[GM.CACERTS_TXT] = os.path.join(sys._MEIPASS, u'httplib2', u'cacerts.txt')
-    os.environ['REQUESTS_CA_BUNDLE'] = GM.Globals[GM.CACERTS_TXT]
-    os.environ['DEFAULT_CA_BUNDLE_PATH'] = GM.Globals[GM.CACERTS_TXT]
-    os.environ['SSL_CERT_FILE'] = GM.Globals[GM.CACERTS_TXT]
+  os.environ['REQUESTS_CA_BUNDLE'] = GC.Values[GC.CACERTS_PEM]
+  os.environ['DEFAULT_CA_BUNDLE_PATH'] = GC.Values[GC.CACERTS_PEM]
+  os.environ['SSL_CERT_FILE'] = GC.Values[GC.CACERTS_PEM]
   _, _, api_version, cred_family = API.getVersion(api)
   disc_file, discovery = readDiscoveryFile(api_version)
   GM.Globals[GM.CURRENT_CLIENT_API] = api
@@ -3139,7 +3155,7 @@ def getGDataUserCredentials(api, user, i, count):
   if not GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES]:
     systemErrorExit(NO_SCOPES_FOR_API_RC, Msg.NO_SCOPES_FOR_API.format(discovery.get(u'title', api_version)))
   credentials = getSvcAcctCredentials(GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES], userEmail)
-  request = google_auth_httplib2.Request(httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]), user_agent=GAM_INFO)
+  request = google_auth_httplib2.Request(getHttpObj(), user_agent=GAM_INFO)
   try:
     credentials.refresh(request)
     return (userEmail, credentials)
@@ -5172,7 +5188,7 @@ def doListUser(entityList):
   _doList(entityList, Cmd.ENTITY_USERS)
 
 def revokeCredentials(credFamilyList):
-  httpObj = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL])
+  httpObj = getHttpObj()
   for cred_family in credFamilyList:
     credentials = getCredentialsForScope(cred_family)
     if credentials and not credentials.invalid:
@@ -5324,7 +5340,7 @@ def doOAuthRequest():
   login_hint = getValidateLoginHint(login_hint)
   revokeCredentials(API.FAM_LIST)
   flags = cmd_flags(noLocalWebserver=GC.Values[GC.NO_BROWSER])
-  httpObj = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL])
+  httpObj = getHttpObj()
   for cred_family in API.FAM_LIST:
     scopes = [API.EMAIL_SCOPE, API.PROFILE_SCOPE] # Email Display Scope, always included for client
     i = 0
@@ -5513,7 +5529,7 @@ def checkServiceAccount(users):
     for scope in all_scopes:
       j += 1
       credentials = getSvcAcctCredentials([scope], user)
-      request = google_auth_httplib2.Request(httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]), user_agent=GAM_INFO)
+      request = google_auth_httplib2.Request(getHttpObj(), user_agent=GAM_INFO)
       try:
         credentials.refresh(request)
         result = u'PASS'
@@ -5543,13 +5559,13 @@ def getCRMService(login_hint):
   storage_dict = {}
   storage = DictionaryStorage(storage_dict, u'credentials')
   flags = cmd_flags(noLocalWebserver=GC.Values[GC.NO_BROWSER])
-  httpObj = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL])
+  httpObj = getHttpObj()
   try:
     credentials = oauth2client.tools.run_flow(flow=flow, storage=storage, flags=flags, http=httpObj)
   except httplib2.CertificateValidationUnsupportedInPython31:
     noPythonSSLExit()
   credentials.user_agent = GAM_INFO
-  httpObj = credentials.authorize(httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]))
+  httpObj = credentials.authorize(getHttpObj())
   return (googleapiclient.discovery.build(u'cloudresourcemanager', u'v1', http=httpObj, cache_discovery=False), httpObj)
 
 def enableProjectAPIs(simplehttp, httpObj, projectName, checkEnabled):
@@ -5700,7 +5716,7 @@ and accept the Terms of Service (ToS). As soon as you've accepted the ToS popup,
     elif u'error' in status:
       systemErrorExit(2, status[u'error']+u'\n')
     break
-  simplehttp = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL])
+  simplehttp = getHttpObj()
   enableProjectAPIs(simplehttp, httpObj, projectName, False)
   iam = googleapiclient.discovery.build(u'iam', u'v1', http=httpObj, cache_discovery=False)
   sys.stdout.write(u'Creating Service Account\n')
@@ -5796,7 +5812,7 @@ def doUpdateProject():
     projectName = 'project:%s' % cs_json[u'installed'][u'project_id']
   except (ValueError, IndexError, KeyError):
     systemErrorExit(3, u'The format of your client secrets file:\n\n%s\n\nis incorrect. Please recreate the file.' % GC.Values[GC.CLIENT_SECRETS_JSON])
-  simplehttp = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL])
+  simplehttp = getHttpObj()
   enableProjectAPIs(simplehttp, httpObj, projectName, True)
 
 # gam whatis <EmailItem> [noinfo]
@@ -7718,7 +7734,7 @@ def doInfoInstance():
     Act.Set(Act.DOWNLOAD)
     logoFile = getString(Cmd.OB_FILE_NAME)
     checkForExtraneousArguments()
-    _, data = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]).request(u'http://www.google.com/a/cpanel/{0}/images/logo.gif'.format(GC.Values[GC.DOMAIN]), u'GET')
+    _, data = getHttpObj().request(u'http://www.google.com/a/cpanel/{0}/images/logo.gif'.format(GC.Values[GC.DOMAIN]), u'GET')
     writeFile(logoFile, data, mode=u'wb')
     entityActionPerformed([Ent.INSTANCE, u'', Ent.LOGO, logoFile])
     return
@@ -8743,7 +8759,7 @@ def doDownloadExportRequest():
       #file so partial/corrupt downloads will need to be deleted manually.
       if not os.path.isfile(filename):
         entityPerformActionInfo([Ent.USER, parameters[u'auditUser'], Ent.AUDIT_EXPORT_REQUEST, parameters[u'requestId']], filename, i+1, count)
-        _, data = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]).request(results[u'fileUrl'+str(i)], u'GET')
+        _, data = getHttpObj().request(results[u'fileUrl'+str(i)], u'GET')
         writeFile(filename, data)
   except (GDATA.invalidDomain, GDATA.doesNotExist):
     entityUnknownWarning(Ent.USER, parameters[u'auditUser'])
@@ -25381,7 +25397,7 @@ def getDriveFile(users):
           filename = os.path.join(targetFolder, safe_file_title)
           y = 0
           while True:
-            if filename.lower()[-len(extension):] != extension:
+            if filename.lower()[-len(extension):] != extension.lower():
               filename += extension
             if overwrite or not os.path.isfile(filename):
               break
@@ -28142,7 +28158,7 @@ def updatePhoto(users):
     filename = _substituteForUser(filenamePattern, user, userName)
     if p.match(filename):
       try:
-        status, image_data = httplib2.Http(disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL]).request(filename, u'GET')
+        status, image_data = getHttpObj().request(filename, u'GET')
         if status[u'status'] != u'200':
           entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], Msg.NOT_ALLOWED, i, count)
           continue

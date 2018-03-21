@@ -115,8 +115,6 @@ MAP_BUILDING_ID_TO_NAME = u'bi2n'
 MAP_BUILDING_NAME_TO_ID = u'bn2i'
 # Shared by threadBatchWorker and threadBatchGAMCommands
 TBATCH_QUEUE = u'batq'
-# Location of cacerts.txt for GData calls
-CACERTS_TXT = u'cert'
 # datetime.datetime.now
 DATETIME_NOW = u'dtno'
 # Convert to local time
@@ -162,7 +160,6 @@ Globals = {
   MAP_BUILDING_ID_TO_NAME: None,
   MAP_BUILDING_NAME_TO_ID: None,
   TBATCH_QUEUE: None,
-  CACERTS_TXT: None,
   DATETIME_NOW: None,
   CONVERT_TO_LOCAL_TIME: False,
   }

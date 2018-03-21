@@ -1,3 +1,17 @@
+4.55.51
+
+Added cacerts_pem variable to gam.cfg to allow specification of an alternative SSL Root CA certificates file.
+This would typically be used when your site uses SSL decryption and you need a vendor specific certificate.
+By default, GAM uses an internal copy of the cacerts.pem file found in the folder containing gam.py/gam.exe.
+If you need to add a vendor specific certificate, copy cacerts.pem to the folder containing gam.cfg, append your
+vendor certificate PEM file to the copied file and change gam.cfg/cacerts_pem to point to the copied file.
+cacerts_pem
+	SSL Root CA certificates file
+	Default: Blank, internal cacerts.pem will be used
+
+Fixed a bug where a duplicate extension was added to a file downloaded from Google Drive; this occurred when the file
+had an uppercase extension on Google Drive.
+
 4.55.50
 
 Added category synonyms category_unknown and unknown to <ResourceAttributes>.
