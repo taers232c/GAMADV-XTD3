@@ -2,7 +2,7 @@
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" >
   <Product
       Id="*"
-      Name="GAMADV-X3"
+      Name="GAMADV-XTD3"
       Language="1033"
       Version="$(env.GAMVERSION)"
       Manufacturer="Ross Scroggs - ross.scroggs@gmail.com"
@@ -22,7 +22,7 @@
 
     <Feature
         Id="gam"
-        Title="GAMADV-X3"
+        Title="GAMADV-XTD3"
         Level="1">
       <ComponentGroupRef Id="ProductComponents" />
     </Feature>
@@ -31,7 +31,7 @@
   <Fragment>
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ROOTDRIVE">
-          <Directory Id="INSTALLFOLDER" Name="GAMADV-X3" />
+          <Directory Id="INSTALLFOLDER" Name="GAMADV-XTD3" />
         </Directory>
     </Directory>
   </Fragment>
@@ -72,6 +72,9 @@
       </Component>
       <Component Id="GamUpdate_txt" Guid="1b7cdd48-0fff-4943-a219-102fcd14c755">
         <File Name="GamUpdate.txt" KeyPath="yes" />
+      </Component>
+      <Component Id="cacerts_pem" Guid="61fe2b2d-1646-4bed-b844-193965e97727">
+        <File Name="cacerts.pem" KeyPath="yes" />
       </Component>
     </ComponentGroup>
   </Fragment>
