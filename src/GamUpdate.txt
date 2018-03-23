@@ -1,3 +1,8 @@
+4.55.52
+
+Allow having an empty buildingid with gam create/update resource; this is only valid for resources with
+category category_unknown.
+
 4.55.51
 
 Added cacerts_pem variable to gam.cfg to allow specification of an alternative SSL Root CA certificates file.

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.51'
+__version__ = u'4.55.52'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -13897,8 +13897,10 @@ def _makeBuildingIdNameMap(cd=None):
     GM.Globals[GM.MAP_BUILDING_ID_TO_NAME][building[u'buildingId']] = building[u'buildingName']
     GM.Globals[GM.MAP_BUILDING_NAME_TO_ID][building[u'buildingName']] = building[u'buildingId']
 
-def _getBuildingByNameOrId(cd):
+def _getBuildingByNameOrId(cd, minLen=1):
   which_building = getString(Cmd.OB_BUILDING_ID)
+  if not which_building or (minLen == 0 and which_building in [u'id:', u'uid:']):
+    return u''
   cg = UID_PATTERN.match(which_building)
   if cg:
     return cg.group(1)
@@ -14209,7 +14211,7 @@ def _getResourceCalendarAttributes(cd, body):
     elif myarg == u'type':
       body[u'resourceType'] = getString(Cmd.OB_STRING)
     elif myarg in [u'building', u'buildingid']:
-      body[u'buildingId'] = _getBuildingByNameOrId(cd)
+      body[u'buildingId'] = _getBuildingByNameOrId(cd, minLen=0)
     elif myarg in [u'capacity']:
       body[u'capacity'] = getInteger()
     elif myarg in [u'feature', u'features']:
@@ -14235,10 +14237,10 @@ def doCreateResourceCalendar():
   body = _getResourceCalendarAttributes(cd, {u'resourceId': getString(Cmd.OB_RESOURCE_ID), u'resourceName': getString(Cmd.OB_NAME)})
   try:
     callGAPI(cd.resources().calendars(), u'insert',
-             throw_reasons=[GAPI.INVALID, GAPI.DUPLICATE, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+             throw_reasons=[GAPI.INVALID, GAPI.REQUIRED, GAPI.DUPLICATE, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
              customer=GC.Values[GC.CUSTOMER_ID], body=body, fields=u'')
     entityActionPerformed([Ent.RESOURCE_CALENDAR, body[u'resourceId']])
-  except GAPI.invalid as e:
+  except (GAPI.invalid, GAPI.required) as e:
     entityActionFailedWarning([Ent.RESOURCE_CALENDAR, body[u'resourceId']], str(e))
   except GAPI.duplicate:
     entityDuplicateWarning([Ent.RESOURCE_CALENDAR, body[u'resourceId']])
@@ -14254,10 +14256,10 @@ def _doUpdateResourceCalendars(entityList):
     i += 1
     try:
       callGAPI(cd.resources().calendars(), u'patch',
-               throw_reasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+               throw_reasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.REQUIRED, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                customer=GC.Values[GC.CUSTOMER_ID], calendarResourceId=resourceId, body=body, fields=u'')
       entityActionPerformed([Ent.RESOURCE_CALENDAR, resourceId], i, count)
-    except (GAPI.invalid, GAPI.invalidInput)  as e:
+    except (GAPI.invalid, GAPI.invalidInput, GAPI.required)  as e:
       entityActionFailedWarning([Ent.RESOURCE_CALENDAR, resourceId], str(e), i, count)
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.RESOURCE_CALENDAR, resourceId, i, count)
