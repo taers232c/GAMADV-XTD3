@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.52'
+__version__ = u'4.55.53'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -25414,7 +25414,7 @@ def getDriveFile(users):
           fh = None
           try:
             fh = open(filename, u'wb')
-            downloader = googleapiclient.http.MediaIoBaseDownload(fh, request)
+            downloader = googleapiclient.http.MediaIoBaseDownload(fh, request, chunksize=1*1024*1024)
             done = False
             while not done:
               _, done = downloader.next_chunk()

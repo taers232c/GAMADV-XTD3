@@ -1,3 +1,7 @@
+4.55.53
+
+Update to Google API CLient 1.6.5. This should resolve a problem with downloading large Google Docs.
+
 4.55.52
 
 Allow having an empty buildingid with gam create/update resource; this is only valid for resources with

@@ -20,7 +20,7 @@ file. When the cache content is corrupted, it will be initialized with
 an empty cache.
 """
 
-
+from __future__ import division
 
 import datetime
 import json

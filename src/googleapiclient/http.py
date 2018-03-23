@@ -89,7 +89,7 @@ def _should_retry_response(resp_status, content):
 
   Args:
     resp_status: The response status received.
-    content: The response content body. 
+    content: The response content body.
 
   Returns:
     True if the response should be retried, otherwise False.
@@ -112,7 +112,10 @@ def _should_retry_response(resp_status, content):
     # Content is in JSON format.
     try:
       data = json.loads(content.decode('utf-8'))
-      reason = data['error']['errors'][0]['reason']
+      if isinstance(data, dict):
+        reason = data['error']['errors'][0]['reason']
+      else:
+        reason = data[0]['error']['errors']['reason']
     except (UnicodeDecodeError, ValueError, KeyError):
       LOGGER.warning('Invalid JSON content from response: %s', content)
       return False
@@ -510,7 +513,6 @@ class MediaFileUpload(MediaIoBaseUpload):
   Construct a MediaFileUpload and pass as the media_body parameter of the
   method. For example, if we had a service that allowed uploading images:
 
-
     media = MediaFileUpload('cow.png', mimetype='image/png',
       chunksize=1024*1024, resumable=True)
     farm.animals().insert(
@@ -654,9 +656,9 @@ class MediaIoBaseDownload(object):
             request only once.
 
     Returns:
-      (status, done): (MediaDownloadStatus, boolean)
+      (status, done): (MediaDownloadProgress, boolean)
          The value of 'done' will be True when the media has been fully
-         downloaded.
+         downloaded or the total size of the media is unknown.
 
     Raises:
       googleapiclient.errors.HttpError if the response was not a 2xx.
@@ -685,7 +687,7 @@ class MediaIoBaseDownload(object):
       elif 'content-length' in resp:
         self._total_size = int(resp['content-length'])
 
-      if self._progress == self._total_size:
+      if self._total_size is None or self._progress == self._total_size:
         self._done = True
       return MediaDownloadProgress(self._progress, self._total_size), self._done
     else:
@@ -1344,7 +1346,7 @@ class BatchHttpRequest(object):
     # encode the body: note that we can't use `as_string`, because
     # it plays games with `From ` lines.
     fp = StringIO()
-    g = Generator(fp, maxheaderlen=0, mangle_from_=False)
+    g = Generator(fp, mangle_from_=False)
     g.flatten(message, unixfrom=False)
     body = fp.getvalue()
 
