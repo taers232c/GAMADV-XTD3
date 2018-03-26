@@ -221,7 +221,7 @@ If an item contains spaces, it should be surrounded by ".
 <ContactGroupID> ::= id:<String>
 <ContactGroupName> ::= <String>
 <ContactGroupItem> ::= <ContactGroupID>|<ContactGroupName>
-<CorporaAttribute> ::= allteamdrives|domain|user
+<CorporaAttribute> ::= allteamdrives|domain|onlyteamdrives|user
 <CourseAlias> ::= <String>
 <CourseAnnouncementID> ::= <Number>
 <CourseAnnouncementState> ::= draft|published|deleted
@@ -2371,6 +2371,7 @@ gam <UserTypeEntity> collect orphans (orderby <DriveFileOrderByFieldName> [ascen
         parents|
         <DriveParentsSubfieldName>|
         permissions|
+        permissionids|
         <DrivePermissionsSubfieldName>|
         properties|
         quotabytesused|quotaused|

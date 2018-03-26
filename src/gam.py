@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.53'
+__version__ = u'4.55.54'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -4529,7 +4529,7 @@ def showJSON(object_name, object_value, skipObjects=None, timeObjects=None, dict
   if object_name is not None:
     printJSONKey(object_name)
     subObjectKey = dictObjectsKey.get(object_name)
-  if isinstance(object_value, list):
+  if isinstance(object_value, (list, collections.deque)):
     if len(object_value) == 1 and isinstance(object_value[0], non_compound_types):
       if object_name is not None:
         printJSONValue(object_value[0])
@@ -22161,12 +22161,15 @@ def _getEntityMimeType(fileEntry):
 CORPORA_CHOICE_MAP = {
   u'allteamdrives': u'allTeamDrives,user',
   u'domain': u'domain',
+  u'onlyteamdrives': u'allTeamDrives,user',
   u'user': u'user',
   }
 
 def _getCorpora(kwargs):
-  kwargs[u'corpora'] = getChoice(CORPORA_CHOICE_MAP, mapChoice=True)
+  corpora = getChoice(CORPORA_CHOICE_MAP)
+  kwargs[u'corpora'] = CORPORA_CHOICE_MAP[corpora]
   kwargs[u'includeTeamDriveItems'] = kwargs[u'supportsTeamDrives'] = True
+  return corpora == u'onlyteamdrives'
 
 QUERY_SHORTCUTS_MAP = {
   u'allfiles': u"mimeType != '{0}'".format(MIMETYPE_GA_FOLDER),
@@ -23269,6 +23272,7 @@ DRIVEFILE_FIELDS_CHOICE_MAP = {
   u'owners': u'owners',
   u'parents': u'parents',
   u'permissions': u'permissions',
+  u'permissionids': u'permissionIds',
   u'properties': u'properties',
   u'quotabytesused': u'quotaBytesUsed',
   u'quotaused': u'quotaBytesUsed',
@@ -23285,7 +23289,7 @@ DRIVEFILE_FIELDS_CHOICE_MAP = {
   u'trasheddate': u'trashedTime',
   u'trashedtime': u'trashedTime',
   u'trashinguser': u'trashingUser',
-  u'userpermission': u'userPermission',
+  u'userpermission': [u'ownedByMe,capabilities.canEdit,capabilities.canComment'],
   u'version': u'version',
   u'viewedbyme': u'viewedByMe',
   u'viewedbymedate': VX_VIEWED_BY_ME_TIME,
@@ -23383,12 +23387,30 @@ def _setSkipObjects(skipObjects, skipTitles, fieldsList):
         skipObjects.append(field)
       fieldsList.append(u'parents')
 
+def _setGetPermissionsForTeamDrives(fieldsList):
+  getPermissionsForTeamDrives = False
+  permissionsFieldsList = []
+  permissionsFields = None
+  for field in fieldsList:
+    if field.startswith(u'permissions'):
+      getPermissionsForTeamDrives = True
+      if field.find(u'.') != -1:
+        field, subField = field.split(u'.', 1)
+        permissionsFieldsList.append(subField)
+  if getPermissionsForTeamDrives:
+    permissionsFields = VX_NPT_PERMISSIONS_FIELDLIST.format(u','.join(set(permissionsFieldsList)).replace(u'.', u'/')) if permissionsFieldsList else VX_NPT_PERMISSIONS
+  return (getPermissionsForTeamDrives, permissionsFields)
+
 # gam <UserTypeEntity> show fileinfo <DriveFileEntity> [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 def showFileInfo(users):
   def _setSelectionFields():
     _setSkipObjects(skipObjects, VX_FILEINFO_FIELDS_TITLES, fieldsList)
     if filepath:
       _setSkipObjects(skipObjects, VX_FILEPATH_FIELDS_TITLES, fieldsList)
+    if getPermissionsForTeamDrives:
+      if u'teamDriveId' not in fieldsList:
+        skipObjects.append(u'teamDriveId')
+        fieldsList.append(u'teamDriveId')
 
   filepath = showNoParents = False
   fieldsList = []
@@ -23405,18 +23427,18 @@ def showFileInfo(users):
     elif myarg == u'allfields':
       fieldsList = []
     elif myarg in DRIVEFILE_LABEL_CHOICE_MAP:
-      fieldsList.append(DRIVEFILE_LABEL_CHOICE_MAP[myarg])
+      addFieldToFieldsList(myarg, DRIVEFILE_LABEL_CHOICE_MAP, fieldsList)
     elif myarg in DRIVEFILE_FIELDS_CHOICE_MAP:
-      fieldsList.append(DRIVEFILE_FIELDS_CHOICE_MAP[myarg])
+      addFieldToFieldsList(myarg, DRIVEFILE_FIELDS_CHOICE_MAP, fieldsList)
       if myarg == u'parents':
         _setAllParentsSubFields(parentsSubFields)
     elif myarg == u'fields':
       for field in _getFieldsList():
         if field in DRIVEFILE_LABEL_CHOICE_MAP:
-          fieldsList.append(DRIVEFILE_LABEL_CHOICE_MAP[field])
+          addFieldToFieldsList(field, DRIVEFILE_LABEL_CHOICE_MAP, fieldsList)
         elif field.find(u'.') == -1:
           if field in DRIVEFILE_FIELDS_CHOICE_MAP:
-            fieldsList.append(DRIVEFILE_FIELDS_CHOICE_MAP[field])
+            addFieldToFieldsList(field, DRIVEFILE_FIELDS_CHOICE_MAP, fieldsList)
             if field == u'parents':
               _setAllParentsSubFields(parentsSubFields)
           else:
@@ -23428,7 +23450,9 @@ def showFileInfo(users):
     else:
       unknownArgumentExit()
   orderBy = u','.join(orderByList) if orderByList else None
+  getPermissionsForTeamDrives = False
   if fieldsList:
+    getPermissionsForTeamDrives, permissionsFields = _setGetPermissionsForTeamDrives(fieldsList)
     _setSelectionFields()
     fields = u','.join(set(fieldsList)).replace(u'.', u'/')
     showNoParents = u'parents' in fieldsList
@@ -23464,6 +23488,15 @@ def showFileInfo(users):
           result[VX_FILENAME] = _getTeamDriveNameFromId(drive, result[u'teamDriveId'])
         if showNoParents:
           result.setdefault(u'parents', [])
+        if getPermissionsForTeamDrives and result.get(u'teamDriveId') and u'permissions' not in result:
+          try:
+            result[u'permissions'] = callGAPIpages(drive.permissions(), u'list', VX_PAGES_PERMISSIONS,
+                                                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                                                   fileId=fileId, fields=permissionsFields, supportsTeamDrives=True)
+          except GAPI.insufficientFilePermissions as e:
+            if fields != u'*':
+              entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
+              continue
         printEntity([_getEntityMimeType(result), u'{0} ({1})'.format(result[VX_FILENAME], fileId)], j, jcount)
         Ind.Increment()
         if filepath:
@@ -24035,12 +24068,26 @@ def printFileList(users):
       if u'mimeType' not in fieldsList:
         skipObjects.append(u'mimeType')
         fieldsList.append(u'mimeType')
+    if onlyTeamDrives or getPermissionsForTeamDrives:
+      if u'teamDriveId' not in fieldsList:
+        skipObjects.append(u'teamDriveId')
+        fieldsList.append(u'teamDriveId')
 
   def _printFileInfo(drive, f_file):
     if showOwnedBy is not None and f_file.get(u'ownedByMe', showOwnedBy) != showOwnedBy:
       return
     if not checkMimeType(mimeTypeCheck, f_file):
       return
+    if onlyTeamDrives and not f_file.get(u'teamDriveId'):
+      return
+    if getPermissionsForTeamDrives and f_file.get(u'teamDriveId') and u'permissions' not in f_file:
+      try:
+        f_file[u'permissions'] = callGAPIpages(drive.permissions(), u'list', VX_PAGES_PERMISSIONS,
+                                               throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                                               fileId=f_file[u'id'], fields=permissionsFields, supportsTeamDrives=True)
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.internalError,
+              GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
+        pass
     row = {u'Owner': user}
     fileInfo = f_file.copy()
     if filepath:
@@ -24054,7 +24101,7 @@ def printFileList(users):
       if attrib in skipObjects:
         continue
       if not isinstance(fileInfo[attrib], dict):
-        if isinstance(fileInfo[attrib], list):
+        if isinstance(fileInfo[attrib], (list, collections.deque)):
           if fileInfo[attrib]:
             if attrib not in titles[u'set']:
               addTitleToCSVfile(attrib, titles)
@@ -24125,13 +24172,13 @@ def printFileList(users):
       if childEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER and (maxdepth == -1 or depth < maxdepth):
         _printChildDriveFolderContents(drive, childEntryInfo, user, i, count, depth+1)
 
-  allfields = buildTree = filepath = getTeamDriveNames = showParent = False
   todrive = {}
+  titles, csvRows = initializeTitlesCSVfile([u'Owner',])
+  allfields = buildTree = filepath = getTeamDriveNames = onlyTeamDrives = showParent = False
   maxdepth = -1
   fieldsList = []
   orderByList = []
   skipObjects = []
-  titles, csvRows = initializeTitlesCSVfile([u'Owner',])
   query = ME_IN_OWNERS
   selectSubQuery = u''
   fileIdEntity = {}
@@ -24207,7 +24254,7 @@ def printFileList(users):
     elif myarg == u'delimiter':
       delimiter = getCharacter()
     elif myarg == u'corpora':
-      _getCorpora(kwargs)
+      onlyTeamDrives = _getCorpora(kwargs)
       getTeamDriveNames = True
       query = _updateAnyOwnerQuery(query)
     else:
@@ -24225,7 +24272,9 @@ def printFileList(users):
       if not fileIdEntity[u'teamdrive']:
         cleanFileIDsList(fileIdEntity, [u'root',])
       noSelect = False
+  getPermissionsForTeamDrives = False
   if fieldsList:
+    getPermissionsForTeamDrives, permissionsFields = _setGetPermissionsForTeamDrives(fieldsList)
     _setSelectionFields()
     fields = u','.join(set(fieldsList)).replace(u'.', u'/')
     pagesfields = VX_NPT_FILES_FIELDLIST.format(fields)
@@ -24466,6 +24515,8 @@ def _printShowFileCounts(users, csvFormat):
   if csvFormat:
     todrive = {}
     titles, csvRows = initializeTitlesCSVfile([u'User', u'Total'])
+  fieldsList = [u'mimeType',]
+  onlyTeamDrives = False
   query = ME_IN_OWNERS
   mimeTypeCheck = initMimeTypeCheck()
   fileIdEntity = initDriveFileEntity()
@@ -24506,7 +24557,9 @@ def _printShowFileCounts(users, csvFormat):
     elif myarg == u'showownedby':
       _, query = _getShowOwnedBy(query)
     elif myarg == u'corpora':
-      _getCorpora(fileIdEntity[u'teamdrive'])
+      onlyTeamDrives = _getCorpora(fileIdEntity[u'teamdrive'])
+      if onlyTeamDrives:
+        fieldsList.append(u'teamDriveId')
     elif myarg == u'select':
       fileIdEntity = getTeamDriveEntity()
     else:
@@ -24514,7 +24567,7 @@ def _printShowFileCounts(users, csvFormat):
   if fileIdEntity.get(u'teamdrive'):
     query = _updateAnyOwnerQuery(query)
   query = _mapDrive2QueryToDrive3(query)
-  pagesfields = VX_NPT_FILES_FIELDLIST.format(u'mimeType')
+  pagesfields = VX_NPT_FILES_FIELDLIST.format(u','.join(fieldsList))
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -24532,9 +24585,10 @@ def _printShowFileCounts(users, csvFormat):
                            q=query, fields=pagesfields,
                            pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **fileIdEntity[u'teamdrive'])
       for f_file in feed:
-        total += 1
-        mimeTypeCounts.setdefault(f_file[u'mimeType'], 0)
-        mimeTypeCounts[f_file[u'mimeType']] += 1
+        if not onlyTeamDrives or f_file.get(u'teamDriveId'):
+          total += 1
+          mimeTypeCounts.setdefault(f_file[u'mimeType'], 0)
+          mimeTypeCounts[f_file[u'mimeType']] += 1
       if not csvFormat:
         printEntityKVList([Ent.USER, user], [Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, total), total], i, count)
         Ind.Increment()

@@ -1,3 +1,15 @@
+4.55.54
+
+Code cleanup.
+
+Added onlyteamdrives to <CorporaAttribute>; this is used in gam print filelist/filecounts to limit the operation to files/folders on Team Drives.
+The <CorporaAttribute> allteamdrives actually means files owned by or shared to the user and Team Drive files.
+<CorporaAttribute> ::= allteamdrives|domain|onlyteamdrives|user
+
+The Drive REST API V3 does not return permissions for Team Drive files, only permissionsIds which are not typically useful.
+gam show fileinfo/print filelist have been enhanced to get permissions for Team Drive files if permissions is explicitly
+specified in <DriveFieldName>*|(fields <DriveFieldNameList>). This requires an extra API call per Team Drive file so use sparingly.
+
 4.55.53
 
 Update to Google API CLient 1.6.5. This should resolve a problem with downloading large Google Docs.
