@@ -1,3 +1,15 @@
+4.55.55
+
+Fixed a bug where <FileName>(:<FieldName>)+ was not parsed correctly on Windows when <FileName> contained a drive specification;
+e.g., csvfile C:\Users\Admin\Downloads\Data.csv:primaryEmail.
+
+<CrOSTypeEntity> ::=
+        croscsvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>]
+<UserTypeEntity> ::=
+        csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>]
+<FileSelector> ::=
+        csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>]
+
 4.55.54
 
 Code cleanup.

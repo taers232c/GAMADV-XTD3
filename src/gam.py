@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.54'
+__version__ = u'4.55.55'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -3743,14 +3743,12 @@ def getEntitiesFromFile(shlexSplit):
 
 # <FileName>(:<FieldName>)+ [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>]
 def getEntitiesFromCSVFile(shlexSplit):
-  try:
-    fileFieldNameList = getString(Cmd.OB_FILE_NAME_FIELD_NAME).split(u':')
-  except ValueError:
-    fileFieldNameList = []
-  if len(fileFieldNameList) < 2:
+  drive, fileFieldName = os.path.splitdrive(getString(Cmd.OB_FILE_NAME_FIELD_NAME))
+  if fileFieldName.find(u':') == -1:
     Cmd.Backup()
     invalidArgumentExit(Cmd.OB_FILE_NAME_FIELD_NAME)
-  f, csvFile = openCSVFileReader(fileFieldNameList[0])
+  fileFieldNameList = fileFieldName.split(u':')
+  f, csvFile = openCSVFileReader(drive+fileFieldNameList[0])
   for fieldName in fileFieldNameList[1:]:
     if fieldName not in csvFile.fieldnames:
       csvFieldErrorExit(fieldName, csvFile.fieldnames, backupArg=True, checkForCharset=True)
