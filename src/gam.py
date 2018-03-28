@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.55'
+__version__ = u'4.55.56'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -12837,7 +12837,7 @@ def infoGroups(entityList):
             printEntitiesCount([Ent.NONEDITABLE_ALIAS, Ent.EMAIL_ALIAS][up == u'aliases'], aliases)
             Ind.Increment()
             for alias in aliases:
-              printKeyValueList([alias])
+              printKeyValueList([u'alias', alias])
             Ind.Decrement()
       if getGroups:
         printEntitiesCount(Ent.GROUP, groups)
@@ -18484,7 +18484,7 @@ def infoUsers(entityList):
             printEntitiesCount([Ent.NONEDITABLE_ALIAS, Ent.EMAIL_ALIAS][up == u'aliases'], propertyValue)
             Ind.Increment()
             for alias in propertyValue:
-              printKeyValueList([alias])
+              printKeyValueList([u'alias', alias])
             Ind.Decrement()
       if groups:
         printEntitiesCount(Ent.GROUP, groups)
@@ -19183,6 +19183,7 @@ def doDeleteCourse():
 
 COURSE_FIELDS_CHOICE_MAP = {
   u'alternatelink': u'alternateLink',
+  u'calendarid': u'calendarId',
   u'coursegroupemail': u'courseGroupEmail',
   u'coursematerialsets': u'courseMaterialSets',
   u'coursestate': u'courseState',
@@ -19220,6 +19221,7 @@ COURSE_PROPERTY_PRINT_ORDER = [
   u'ownerId',
   u'creationTime',
   u'updateTime',
+  u'calendarId',
   u'courseGroupEmail',
   u'teacherGroupEmail',
   u'teacherFolder.id',

@@ -1,3 +1,7 @@
+4.55.56
+
+In gam info group/user, aliases will be displayed as `alias: <EmailAddress>` to be consistent with other items.
+
 4.55.55
 
 Fixed a bug where <FileName>(:<FieldName>)+ was not parsed correctly on Windows when <FileName> contained a drive specification;

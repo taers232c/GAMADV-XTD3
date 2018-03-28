@@ -1071,6 +1071,7 @@ gam <UserTypeEntity> print gal [todrive [<ToDriveAttributes>]] [query <QueryCont
 <CourseFieldName> ::=
         aliases|
         alternatelink|
+        calendarid|
         coursegroupemail|
         coursematerialsets|
         coursestate|
