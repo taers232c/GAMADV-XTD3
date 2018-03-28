@@ -19,6 +19,7 @@ EOF
 }
 
 target_dir="$HOME/bin"
+target_gam="gamadvxtd/gam"
 gamarch=$(uname -m)
 gamos=$(uname -s)
 update_profile=true
@@ -175,7 +176,7 @@ fi
 
 if [ "$upgrade_only" = true ]; then
   echo_green "Here's information about your GAM upgrade:"
-  "$target_dir/gam/gam" version
+  "$target_dir/$target_gam" version
   rc=$?
   if (( $rc != 0 )); then
     echo_red "ERROR: Failed running GAM for the first time with $rc. Please report this error to GAM mailing list. Exiting."
@@ -188,7 +189,7 @@ fi
 
 # Update profile to add gam command
 if [ "$update_profile" = true ]; then
-  alias_line="alias gam=\"${target_dir// /\\ }/gam/gam\""
+  alias_line="alias gam=\"${target_dir// /\\ }/$target_gam\""
   if [ "$gamos" == "linux" ]; then
     update_profile "$HOME/.bashrc" || update_profile "$HOME/.bash_profile"
   elif [ "$gamos" == "macos" ]; then
@@ -223,7 +224,7 @@ while true; do
       if [ "$adminuser" == "" ]; then
         read -p "Please enter your G Suite admin email address: " adminuser
       fi
-      "$target_dir/gam/gam" create project $adminuser
+      "$target_dir/$target_gam" create project $adminuser
       rc=$?
       if (( $rc == 0 )); then
         echo_green "Project creation complete."
@@ -248,7 +249,7 @@ while $project_created; do
   read -p "Are you ready to authorize GAM to perform G Suite management operations as your admin account? (yes or no) " yn
   case $yn in
     [Yy]*)
-      "$target_dir/gam/gam" oauth create $adminuser
+      "$target_dir/$target_gam" oauth create $adminuser
       rc=$?
       if (( $rc == 0 )); then
         echo_green "Admin authorization complete."
@@ -277,7 +278,7 @@ while $project_created; do
         read -p "Please enter the email address of a regular G Suite user: " regularuser
       fi
       echo_yellow "Great! Checking service account scopes.This will fail the first time. Follow the steps to authorize and retry. It can take a few minutes for scopes to PASS after they've been authorized in the admin console."
-      "$target_dir/gam/gam" user $adminuser check serviceaccount
+      "$target_dir/$target_gam" user $adminuser check serviceaccount
       rc=$?
       if (( $rc == 0 )); then
         echo_green "Service account authorization complete."
@@ -298,7 +299,7 @@ while $project_created; do
 done
 
 echo_green "Here's information about your new GAM installation:"
-"$target_dir/gam/gam" version
+"$target_dir/$target_gam" version
 rc=$?
 if (( $rc != 0 )); then
   echo_red "ERROR: Failed running GAM for the first time with $rc. Please report this error to GAM mailing list. Exiting."
