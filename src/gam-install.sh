@@ -19,7 +19,7 @@ EOF
 }
 
 target_dir="$HOME/bin"
-target_gam="gamadvxtd/gam"
+target_gam="gamadv-xtd3/gam"
 gamarch=$(uname -m)
 gamos=$(uname -s)
 update_profile=true
