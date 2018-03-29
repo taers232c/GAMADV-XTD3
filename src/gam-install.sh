@@ -31,14 +31,14 @@ while getopts "hd:a:o:lp:u:r:v:" OPTION
 do
      case $OPTION in
          h) usage; exit;;
-         d) target_dir=$OPTARG;;
-         a) gamarch=$OPTARG;;
-         o) gamos=$OPTARG;;
+         d) target_dir="$OPTARG";;
+         a) gamarch="$OPTARG";;
+         o) gamos="$OPTARG";;
          l) upgrade_only=true;;
-         p) update_profile=$OPTARG;;
-         u) adminuser=$OPTARG;;
-         r) regularuser=$OPTARG;;
-         v) gamversion=$OPTARG;;
+         p) update_profile="$OPTARG";;
+         u) adminuser="$OPTARG";;
+         r) regularuser="$OPTARG";;
+         v) gamversion="$OPTARG";;
          ?) usage; exit;;
      esac
 done
