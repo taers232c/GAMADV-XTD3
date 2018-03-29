@@ -8,7 +8,7 @@ del /q /f gamadv-xtd3-%1-windows-x64.msi
 del /q /f *.wixobj
 del /q /f *.wixpdb
 
-c:\python36-32\scripts\pyinstaller --clean -F --distpath=gam windows-gam.spec
+c:\python36-32\scripts\pyinstaller --clean -F --distpath=gamadv-xtd3 windows-gam.spec
 xcopy LICENSE gamadv-xtd3\
 xcopy license.rtf gamadv-xtd3\
 xcopy whatsnew.txt gamadv-xtd3\
