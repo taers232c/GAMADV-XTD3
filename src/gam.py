@@ -13896,7 +13896,7 @@ def _makeBuildingIdNameMap(cd=None):
     GM.Globals[GM.MAP_BUILDING_NAME_TO_ID][building[u'buildingName']] = building[u'buildingId']
 
 def _getBuildingByNameOrId(cd, minLen=1):
-  which_building = getString(Cmd.OB_BUILDING_ID)
+  which_building = getString(Cmd.OB_BUILDING_ID, minLen=minLen)
   if not which_building or (minLen == 0 and which_building in [u'id:', u'uid:']):
     return u''
   cg = UID_PATTERN.match(which_building)

@@ -43,6 +43,9 @@ do
      esac
 done
 
+# remove possible / from end of target_dir
+target_dir=${target_dir%/}
+
 update_profile() {
 	[ -f "$1" ] || return 1
 
