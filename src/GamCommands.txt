@@ -812,6 +812,14 @@ gam calendar|calendars <CalendarEntity> addevent <EventAddAttributes>+
 gam calendar|calendars <CalendarEntity> deleteevent <EventEntity> [doit] [notifyattendees]
 gam calendar|calendars <CalendarEntity> wipe
 
+<CalendarSettings> ::=
+        summary <String>|
+        description <String>|
+        location <String>|
+        timezone <String>
+
+gam calendar|calendars <CalendarEntity> modify <CalendarSettings>+
+
 # ChromeOS Devices
 
 <CrOSAttributes> ::=
@@ -1226,17 +1234,24 @@ gam info instance [logo <FileName>]
 
 # Data Transfers
 
-gam print transferapps
+gam print|show transferapps
 
-<DataTransferService> ::= googledrive|gdrive|drive|"drive and docs"|calendar
+<DataTransferService> ::=
+        calendar|
+        googledrive|gdrive|drive|"drive and docs"|
+	gplus|googleplus|google+
+<DataTransferServiceList> ::= "<DataTransferService>(,<DataTransferService>)*"
 
 <OldOwnerID> ::= <UserItem>
 <NewOwnerID> ::= <UserItem>
 
-gam create|add datatransfer|transfer <OldOwnerID> <DataTransferService> <NewOwnerID> [private|shared|all] (<ParameterKey> <ParameterValue>)*
+gam create|add datatransfer|transfer <OldOwnerID> <DataTransferServiceList> <NewOwnerID>
+        [private|shared|all] (<ParameterKey> <ParameterValue>)* 
+        [release_resources]
 
 gam info datatransfer|transfer <TransferID>
 gam print datatransfers|transfers [todrive [<ToDriveAttributes>]] [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>] [status <String>] [delimiter <Character>]
+gam show datatransfers|transfers [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>] [status <String>] [delimiter <Character>]
 
 # Domains
 
@@ -2198,7 +2213,7 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 <DriveFileQueryEntity> ::= (query <QueryDriveFile>) | (query:<QueryDriveFile>)
 <DriveFileEntity> ::= <DriveFileIDEntity> | <DriveFileNameEntity> | <DriveFileQueryEntity> | <DriveFileQueryShortcut> |  root | <FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
 
-gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] <DriveFileAddAttributes>*
+gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] <DriveFileAddAttributes>* [csv [todrive [<ToDriveAttributes>]]]
 gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [retainname | (newfilename <DriveFileName>)] <DriveFileUpdateAttributes>*
 gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] <DriveFileCopyAttributes>* [recursive [depth <Number>]]
 gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>] <DriveFileMoveAttributes>*

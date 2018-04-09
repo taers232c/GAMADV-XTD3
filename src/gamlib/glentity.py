@@ -186,9 +186,10 @@ class GamEntity(object):
   TEAMDRIVE_THEME = u'tdth'
   THREAD = u'thre'
   TOKEN = u'tokn'
+  TRANSFER_APPLICATION = u'trap'
   TRANSFER_ID = u'trid'
   TRANSFER_REQUEST = u'trnr'
-  TRUSTED_APPLICATION = u'trap'
+  TRUSTED_APPLICATION = u'trus'
   UNICODE_ENCODING_ENABLED = u'unic'
   UNIQUE_ID = u'uniq'
   USER = u'user'
@@ -360,6 +361,7 @@ class GamEntity(object):
     TEAMDRIVE_THEME: [u'TeamDrive Themes', u'TeamDrive Theme'],
     THREAD: [u'Threads', u'Thread'],
     TOKEN: [u'Tokens', u'Token'],
+    TRANSFER_APPLICATION: [u'Transfer Applications', u'Transfer Application'],
     TRANSFER_ID: [u'Transfer IDs', u'Transfer ID'],
     TRANSFER_REQUEST: [u'Transfer Requests', u'Transfer Request'],
     TRUSTED_APPLICATION: [u'Trusted Applications', u'Trusted Application'],

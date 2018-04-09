@@ -520,7 +520,7 @@ class GamCLArgs(object):
   OB_SCHEMA_NAME_FIELD_NAME = u'SchemaName.FieldName'
   OB_SCHEMA_NAME_LIST = u'SchemaNameList'
   OB_SECTION_NAME = u'SectionName'
-  OB_SERVICE_NAME = u'ServiceName'
+  OB_SERVICE_NAME_LIST = u'ServiceNameList'
   OB_SITE_ENTITY = u'SiteEntity'
   OB_SKU_ID = u'SKUID'
   OB_SKU_ID_LIST = u'SKUIDList'

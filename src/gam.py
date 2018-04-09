@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.55.56'
+__version__ = u'4.55.57'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -203,14 +203,16 @@ VX_SIZE = u'size'
 VX_WEB_VIEW_LINK = u'webViewLink'
 # Queries
 ANY_FOLDERS = u"mimeType = '{0}'".format(MIMETYPE_GA_FOLDER)
-MY_FOLDERS = ME_IN_OWNERS_AND+u"mimeType = '{0}'".format(MIMETYPE_GA_FOLDER)
+MY_FOLDERS = ME_IN_OWNERS_AND+ANY_FOLDERS
 NON_TRASHED = u"trashed = false"
 WITH_PARENTS = u"'{0}' in parents"
 VX_ANY_NON_TRASHED_FOLDER_NAME = u"mimeType = '{0}' and {1} = '{{0}}' and trashed = false".format(MIMETYPE_GA_FOLDER, VX_FILENAME)
-VX_MY_NON_TRASHED_FOLDER_NAME = ME_IN_OWNERS_AND+u"mimeType = '{0}' and {1} = '{{0}}' and trashed = false".format(MIMETYPE_GA_FOLDER, VX_FILENAME)
-VX_MY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS = ME_IN_OWNERS_AND+u"mimeType = '{0}' and {1} = '{{0}}' and trashed = false and '{{1}}' in parents".format(MIMETYPE_GA_FOLDER, VX_FILENAME)
+VX_ANY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS = u"mimeType = '{0}' and {1} = '{{0}}' and trashed = false and '{{1}}' in parents".format(MIMETYPE_GA_FOLDER, VX_FILENAME)
+VX_ANY_NON_TRASHED_MIMETYPE_NAME_WITH_PARENTS = u"mimeType = '{{0}}' and {0} = '{{1}}' and trashed = false and '{{2}}' in parents".format(VX_FILENAME)
+VX_MY_NON_TRASHED_FOLDER_NAME = ME_IN_OWNERS_AND+VX_ANY_NON_TRASHED_FOLDER_NAME
+VX_MY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS = ME_IN_OWNERS_AND+VX_ANY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS
 VX_WITH_ANY_FILE_NAME = u"{0} = '{{0}}'".format(VX_FILENAME)
-VX_WITH_MY_FILE_NAME = ME_IN_OWNERS_AND+u"{0} = '{{0}}'".format(VX_FILENAME)
+VX_WITH_MY_FILE_NAME = ME_IN_OWNERS_AND+VX_WITH_ANY_FILE_NAME
 # Fields lists
 VX_PAGES_FILES = u'files'
 VX_PAGES_PERMISSIONS = u'permissions'
@@ -227,6 +229,7 @@ VX_FILES_ID_FILENAME = u'{0}(id,{1})'.format(VX_PAGES_FILES, VX_FILENAME)
 VX_ID_FILENAME = u'id,{0}'.format(VX_FILENAME)
 VX_ID_FILENAME_MIMETYPE = u'id,{0},mimeType'.format(VX_FILENAME)
 VX_ID_FILENAME_MIMETYPE_OWNEDBYME = u'id,{0},mimeType,ownedByMe'.format(VX_FILENAME)
+VX_ID_FILENAME_MIMETYPE_CAPABILITIES = u'id,{0},mimeType,capabilities'.format(VX_FILENAME)
 VX_ID_FILENAME_PARENTS_MIMETYPE = u'id,{0},{1},mimeType'.format(VX_FILENAME, VX_PARENTS_ID)
 VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME = u'id,{0},{1},mimeType,ownedByMe'.format(VX_FILENAME, VX_PARENTS_ID)
 VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED = u'id,{0},{1},mimeType,ownedByMe,{2}'.format(VX_FILENAME, VX_PARENTS_ID, VX_TRASHED)
@@ -237,10 +240,11 @@ VX_ID_FILENAME_PARENTS_MIMETYPE_TEAMDRIVEID = u'id,{0},{1},mimeType,teamDriveId'
 VX_ID_MIMETYPE_CANEDIT = u'id,mimeType,capabilities(canEdit)'
 VX_NPT_FILES_FIELDLIST = u'nextPageToken,{0}({{0}})'.format(VX_PAGES_FILES)
 VX_NPT_FILES_ID = u'nextPageToken,{0}(id)'.format(VX_PAGES_FILES)
+VX_NPT_FILES_ID_DESCRIPTION = u'nextPageToken,{0}(id,description)'.format(VX_PAGES_FILES)
 VX_NPT_FILES_ID_FILENAME = u'nextPageToken,{0}(id,{1})'.format(VX_PAGES_FILES, VX_FILENAME)
 VX_NPT_FILES_ID_FILENAME_OWNEDBYME = u'nextPageToken,{0}(id,{1},ownedByMe)'.format(VX_PAGES_FILES, VX_FILENAME)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE = u'nextPageToken,{0}(id,{1},{2},mimeType)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
-VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_CAPABILITIES = u'nextPageToken,{0}(id,{1},{2},mimeType,capabilities)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
+VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_CAPABILITIES_DESCRIPTION = u'nextPageToken,{0}(id,{1},{2},mimeType,capabilities,description)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_OWNERS = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,owners(emailAddress,permissionId))'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_OWNERS_PERMISSIONS = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,owners(emailAddress,permissionId),permissions(id,role))'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
@@ -300,6 +304,7 @@ DFA_TEAMDRIVE_PARENT = u'teamDriveParent'
 DFA_TEAMDRIVE_PARENTID = u'teamDriveParentId'
 DFA_TEAMDRIVE_PARENTQUERY = u'teamDriveParentQuery'
 DFA_KWARGS = u'kwargs'
+DFA_SEARCHARGS = u'searchargs'
 DFA_USE_CONTENT_AS_INDEXABLE_TEXT = u'useContentAsIndexableText'
 # Program return codes
 UNKNOWN_ERROR_RC = 1
@@ -2525,7 +2530,8 @@ def doGAMCheckForUpdates(forceCheck=False):
       sys.exit(0)
     writeFile(GM.Globals[GM.LAST_UPDATE_CHECK_TXT], str(now_time), continueOnError=True, displayError=forceCheck)
     return
-  except (httplib2.HttpLib2Error, httplib2.ServerNotFoundError, httplib2.CertificateValidationUnsupportedInPython31):
+  except (httplib2.HttpLib2Error, httplib2.ServerNotFoundError,
+          google.auth.exceptions.TransportError, httplib2.CertificateValidationUnsupportedInPython31):
     return
 
 def handleOAuthTokenError(e, soft_errors):
@@ -2557,7 +2563,7 @@ def getClientCredentials(cred_family):
   if credentials.access_token_expired:
     try:
       credentials.refresh(getHttpObj())
-    except httplib2.ServerNotFoundError as e:
+    except (httplib2.ServerNotFoundError, google.auth.exceptions.TransportError) as e:
       systemErrorExit(NETWORK_ERROR_RC, str(e))
     except oauth2client.client.AccessTokenRefreshError as e:
       handleOAuthTokenError(e, False)
@@ -2588,7 +2594,7 @@ def getGDataOAuthToken(gdataObj, credentials=None):
     credentials = getClientCredentials(API.FAM2_SCOPES)
   try:
     credentials.refresh(getHttpObj())
-  except httplib2.ServerNotFoundError as e:
+  except (httplib2.ServerNotFoundError, google.auth.exceptions.TransportError) as e:
     systemErrorExit(NETWORK_ERROR_RC, str(e))
   except oauth2client.client.AccessTokenRefreshError as e:
     handleOAuthTokenError(e, False)
@@ -2738,7 +2744,7 @@ def callGData(service, function,
         writeStderr(convertUTF8(u'\n{0}{1} - Giving up.\n'.format(ERROR_PREFIX, errMsg)))
         return None
       systemErrorExit(SOCKET_ERROR_RC, errMsg)
-    except httplib2.ServerNotFoundError as e:
+    except (httplib2.ServerNotFoundError, google.auth.exceptions.TransportError) as e:
       systemErrorExit(NETWORK_ERROR_RC, str(e))
     except IOError as e:
       systemErrorExit(FILE_ERROR_RC, str(e))
@@ -2834,6 +2840,8 @@ def checkGAPIError(e, soft_errors=False, silent_errors=False, retryOnHttpError=F
         error = {u'error': {u'errors': [{u'reason': GAPI.BACKEND_ERROR, u'message': message}]}}
       elif u'Role assignment exists: RoleAssignment' in message:
         error = {u'error': {u'errors': [{u'reason': GAPI.DUPLICATE, u'message': message}]}}
+      elif u'Operation not supported' in message:
+        error = {u'error': {u'errors': [{u'reason': GAPI.OPERATION_NOT_SUPPORTED, u'message': message}]}}
   else:
     if u'error_description' in error:
       if error[u'error_description'] == u'Invalid Value':
@@ -2914,7 +2922,7 @@ def callGAPI(service, function,
       systemErrorExit(GOOGLE_API_ERROR_RC, str(e))
     except TypeError as e:
       systemErrorExit(GOOGLE_API_ERROR_RC, str(e))
-    except httplib2.ServerNotFoundError as e:
+    except (httplib2.ServerNotFoundError, google.auth.exceptions.TransportError) as e:
       systemErrorExit(NETWORK_ERROR_RC, str(e))
     except IOError as e:
       systemErrorExit(FILE_ERROR_RC, str(e))
@@ -3059,7 +3067,7 @@ def getAPIversionHttpService(api):
           waitOnFailure(n, retries, SOCKET_ERROR_RC, errMsg)
           continue
         systemErrorExit(SOCKET_ERROR_RC, errMsg)
-      except httplib2.ServerNotFoundError as e:
+      except (httplib2.ServerNotFoundError, google.auth.exceptions.TransportError) as e:
         systemErrorExit(NETWORK_ERROR_RC, str(e))
       except IOError as e:
         systemErrorExit(FILE_ERROR_RC, str(e))
@@ -3087,7 +3095,7 @@ def buildGAPIObject(api):
     systemErrorExit(NO_SCOPES_FOR_API_RC, Msg.NO_SCOPES_FOR_API.format(service._rootDesc[u'title']))
   try:
     service._http = credentials.authorize(httpObj)
-  except httplib2.ServerNotFoundError as e:
+  except (httplib2.ServerNotFoundError, google.auth.exceptions.TransportError) as e:
     systemErrorExit(NETWORK_ERROR_RC, str(e))
   except oauth2client.client.AccessTokenRefreshError as e:
     handleOAuthTokenError(e, False)
@@ -3110,7 +3118,7 @@ def buildGAPIServiceObject(api, user, i, count, displayError=True):
   try:
     credentials.refresh(request)
     service._http = google_auth_httplib2.AuthorizedHttp(credentials, http=httpObj, user_agent=GAM_INFO)
-  except httplib2.ServerNotFoundError as e:
+  except (httplib2.ServerNotFoundError, google.auth.exceptions.TransportError) as e:
     systemErrorExit(NETWORK_ERROR_RC, str(e))
   except google.auth.exceptions.RefreshError as e:
     if isinstance(e.args, tuple):
@@ -3159,7 +3167,7 @@ def getGDataUserCredentials(api, user, i, count):
   try:
     credentials.refresh(request)
     return (userEmail, credentials)
-  except httplib2.ServerNotFoundError as e:
+  except (httplib2.ServerNotFoundError, google.auth.exceptions.TransportError) as e:
     systemErrorExit(NETWORK_ERROR_RC, str(e))
   except google.auth.exceptions.RefreshError as e:
     if isinstance(e.args, tuple):
@@ -3498,11 +3506,10 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
       try:
         ou = makeOrgUnitPathAbsolute(ou)
         if ou.startswith(u'id:'):
-          result = callGAPI(cd.orgunits(), u'get',
-                            throw_reasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR,
-                                           GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
-                            customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=ou)
-          ou = result[u'orgUnitPath']
+          ou = callGAPI(cd.orgunits(), u'get',
+                        throw_reasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR,
+                                       GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                        customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=ou, fields=u'orgUnitPath')[u'orgUnitPath']
         printGettingAllEntityItemsForWhom(Ent.USER, ou, qualifier=qualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
         result = callGAPIpages(cd.users(), u'list', u'users',
                                page_message=getPageMessageForWhom(noNL=True),
@@ -5531,7 +5538,7 @@ def checkServiceAccount(users):
       try:
         credentials.refresh(request)
         result = u'PASS'
-      except httplib2.ServerNotFoundError as e:
+      except (httplib2.ServerNotFoundError, google.auth.exceptions.TransportError) as e:
         systemErrorExit(NETWORK_ERROR_RC, str(e))
       except google.auth.exceptions.RefreshError:
         result = u'FAIL'
@@ -7283,11 +7290,11 @@ def doDeleteAdmin():
   checkForExtraneousArguments()
   try:
     callGAPI(cd.roleAssignments(), u'delete',
-             throw_reasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN],
+             throw_reasons=[GAPI.NOT_FOUND, GAPI.OPERATION_NOT_SUPPORTED, GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN],
              customer=GC.Values[GC.CUSTOMER_ID], roleAssignmentId=roleAssignmentId)
     entityActionPerformed([Ent.ROLE_ASSIGNMENT_ID, roleAssignmentId])
-  except GAPI.notFound:
-    entityActionFailedWarning([Ent.ROLE_ASSIGNMENT_ID, roleAssignmentId], Msg.DOES_NOT_EXIST)
+  except (GAPI.notFound, GAPI.operationNotSupported) as e:
+    entityActionFailedWarning([Ent.ROLE_ASSIGNMENT_ID, roleAssignmentId], str(e))
   except (GAPI.badRequest, GAPI.customerNotFound, GAPI.forbidden):
     accessErrorExit(cd)
 
@@ -7454,53 +7461,45 @@ def doUpdateCustomer():
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       accessErrorExit(cd)
 
-SERVICE_NAME_TO_ID_MAP = {
-  u'Drive and Docs': u'55656082996',
-  u'Google+': u'553547912911',
-  u'Calendar': u'435070579839'
-  }
-
-def appID2app(dt, appID):
-  for serviceName, serviceID in iteritems(SERVICE_NAME_TO_ID_MAP):
-    if appID == serviceID:
-      return serviceName
+def getTransferApplications(dt):
   try:
-    online_services = callGAPIpages(dt.applications(), u'list', u'applications',
-                                    throw_reasons=[GAPI.UNKNOWN_ERROR, GAPI.FORBIDDEN],
-                                    customerId=GC.Values[GC.CUSTOMER_ID])
-    for online_service in online_services:
-      if appID == online_service[u'id']:
-        return online_service[u'name']
-    return u'applicationId: {0}'.format(appID)
+    return callGAPIpages(dt.applications(), u'list', u'applications',
+                         throw_reasons=[GAPI.UNKNOWN_ERROR, GAPI.FORBIDDEN],
+                         customerId=GC.Values[GC.CUSTOMER_ID], fields=u'applications(id,name,transferParams)')
   except (GAPI.unknownError, GAPI.forbidden):
     accessErrorExit(None)
+
+def _convertTransferAppIDtoName(apps, appID):
+  for app in apps:
+    if appID == app[u'id']:
+      return app[u'name']
+  return u'applicationId: {0}'.format(appID)
+
+CALENDAR_APP_NAME = u'Calendar'
+DRIVE_AND_DOCS_APP_NAME = u'Drive and Docs'
+GOOGLE_PLUS_APP_NAME = u'Google+'
 
 SERVICE_NAME_CHOICE_MAP = {
-  u'drive': u'Drive and Docs',
-  u'drive and docs': u'Drive and Docs',
-  u'googledrive': u'Drive and Docs',
-  u'gdrive': u'Drive and Docs',
-  u'calendar': u'Calendar',
+  u'calendar': CALENDAR_APP_NAME,
+  u'drive': DRIVE_AND_DOCS_APP_NAME,
+  u'drive and docs': DRIVE_AND_DOCS_APP_NAME,
+  u'googledrive': DRIVE_AND_DOCS_APP_NAME,
+  u'gdrive': DRIVE_AND_DOCS_APP_NAME,
+  u'gplus': GOOGLE_PLUS_APP_NAME,
+  u'google+': GOOGLE_PLUS_APP_NAME,
+  u'googleplus': GOOGLE_PLUS_APP_NAME,
   }
 
-def getService(dt):
-  serviceName = getString(Cmd.OB_SERVICE_NAME).lower()
-  if serviceName in SERVICE_NAME_CHOICE_MAP:
-    return (SERVICE_NAME_CHOICE_MAP[serviceName], SERVICE_NAME_TO_ID_MAP[SERVICE_NAME_CHOICE_MAP[serviceName]])
-  try:
-    online_services = callGAPIpages(dt.applications(), u'list', u'applications',
-                                    throw_reasons=[GAPI.UNKNOWN_ERROR, GAPI.FORBIDDEN],
-                                    customerId=GC.Values[GC.CUSTOMER_ID])
-    serviceNameList = []
-    for online_service in online_services:
-      olServiceName = online_service[u'name']
-      if olServiceName:
-        if serviceName == olServiceName.lower():
-          return (olServiceName, online_service[u'id'])
-        serviceNameList.append(olServiceName.lower())
-    invalidChoiceExit(serviceNameList, True)
-  except (GAPI.unknownError, GAPI.forbidden):
-    accessErrorExit(None)
+def _validateTransferAppName(apps, appName):
+  appName = appName.strip().lower()
+  if appName in SERVICE_NAME_CHOICE_MAP:
+    appName = SERVICE_NAME_CHOICE_MAP[appName].lower()
+  appNameList = []
+  for app in apps:
+    if appName == app[u'name'].lower():
+      return (app[u'name'], app[u'id'])
+    appNameList.append(app[u'name'].lower())
+  invalidChoiceExit(appNameList, True)
 
 PRIVACY_LEVEL_CHOICE_MAP = {
   u'private': [u'PRIVATE',],
@@ -7508,67 +7507,99 @@ PRIVACY_LEVEL_CHOICE_MAP = {
   u'all': [u'PRIVATE', u'SHARED'],
   }
 
-# gam create datatransfer|transfer <OldOwnerID> <Service> <NewOwnerID> [private|shared|all] (<ParameterKey> <ParameterValue>)*
+# gam create datatransfer|transfer <OldOwnerID> <ServiceNameList> <NewOwnerID> [private|shared|all] [release_resources] (<ParameterKey> <ParameterValue>)*
 def doCreateDataTransfer():
+  def _assignAppParameter(key, value, doubleBackup=False):
+    for app in apps:
+      for params in app.get(u'transferParams', []):
+        if key == params[u'key']:
+          appIndex = appIndicies.get(app[u'id'])
+          if appIndex is not None:
+            body[u'applicationDataTransfers'][appIndex].setdefault(u'applicationTransferParams', [])
+            body[u'applicationDataTransfers'][appIndex][u'applicationTransferParams'].append({u'key': key, u'value': value})
+            return
+          break
+    Cmd.Backup()
+    if doubleBackup:
+      Cmd.Backup()
+    usageErrorExit(Msg.NO_DATA_TRANSFER_APP_FOR_PARAMETER.format(key))
+
   dt = buildGAPIObject(API.DATATRANSFER)
+  apps = getTransferApplications(dt)
   old_owner = getEmailAddress()
   body = {u'oldOwnerUserId': convertEmailAddressToUID(old_owner)}
-  serviceName, serviceID = getService(dt)
+  appIndicies = {}
+  appNameList = []
+  i = 0
+  body[u'applicationDataTransfers'] = []
+  for appName in getString(Cmd.OB_SERVICE_NAME_LIST).split(u','):
+    appName, appId = _validateTransferAppName(apps, appName)
+    body[u'applicationDataTransfers'].append({u'applicationId': appId})
+    appIndicies[appId] = i
+    i += 1
+    appNameList.append(appName)
   new_owner = getEmailAddress()
   body[u'newOwnerUserId'] = convertEmailAddressToUID(new_owner)
   if body[u'oldOwnerUserId'] == body[u'newOwnerUserId']:
     Cmd.Backup()
     usageErrorExit(Msg.NEW_OWNER_MUST_DIFFER_FROM_OLD_OWNER)
-  parameters = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in PRIVACY_LEVEL_CHOICE_MAP:
-      parameters[u'PRIVACY_LEVEL'] = PRIVACY_LEVEL_CHOICE_MAP[myarg]
+      _assignAppParameter(u'PRIVACY_LEVEL', PRIVACY_LEVEL_CHOICE_MAP[myarg])
+    elif myarg == u'releaseresources':
+      if getBoolean():
+        _assignAppParameter(u'RELEASE_RESOURCES', [u'TRUE',])
     else:
-      parameters[myarg.upper()] = getString(Cmd.OB_PARAMETER_VALUE).upper().split(u',')
-  body[u'applicationDataTransfers'] = [{u'applicationId': serviceID}]
-  for key, value in iteritems(parameters):
-    body[u'applicationDataTransfers'][0].setdefault(u'applicationTransferParams', [])
-    body[u'applicationDataTransfers'][0][u'applicationTransferParams'].append({u'key': key, u'value': value})
+      _assignAppParameter(Cmd.Previous().upper(), getString(Cmd.OB_PARAMETER_VALUE).upper().split(u','), True)
   result = callGAPI(dt.transfers(), u'insert',
                     body=body, fields=u'id')
   entityActionPerformed([Ent.TRANSFER_REQUEST, None])
   Ind.Increment()
   printEntity([Ent.TRANSFER_ID, result[u'id']])
-  printEntity([Ent.SERVICE, serviceName])
+  printEntity([Ent.SERVICE, u','.join(appNameList)])
   printKeyValueList([Msg.FROM, old_owner])
   printKeyValueList([Msg.TO, new_owner])
+  Ind.Decrement()
+
+def _showTransfer(apps, transfer, i, count):
+  printEntity([Ent.TRANSFER_ID, transfer[u'id']], i, count)
+  Ind.Increment()
+  printKeyValueList([u'Request Time', formatLocalTime(transfer[u'requestTime'])])
+  printKeyValueList([u'Old Owner', convertUserIDtoEmail(transfer[u'oldOwnerUserId'])])
+  printKeyValueList([u'New Owner', convertUserIDtoEmail(transfer[u'newOwnerUserId'])])
+  printKeyValueList([u'Overall Transfer Status', transfer[u'overallTransferStatusCode']])
+  for app in transfer[u'applicationDataTransfers']:
+    printKeyValueList([u'Application', _convertTransferAppIDtoName(apps, app[u'applicationId'])])
+    Ind.Increment()
+    printKeyValueList([u'Status', app[u'applicationTransferStatus']])
+    printKeyValueList([u'Parameters'])
+    Ind.Increment()
+    if u'applicationTransferParams' in app:
+      for param in app[u'applicationTransferParams']:
+        key = param[u'key']
+        value = param.get(u'value', [])
+        if value:
+          printKeyValueList([key, u','.join(value)])
+        else:
+          printKeyValueList([key])
+    else:
+      printKeyValueList([u'None'])
+    Ind.Decrement()
+    Ind.Decrement()
   Ind.Decrement()
 
 # gam info datatransfer|transfer <TransferID>
 def doInfoDataTransfer():
   dt = buildGAPIObject(API.DATATRANSFER)
+  apps = getTransferApplications(dt)
   dtId = getString(Cmd.OB_TRANSFER_ID)
   checkForExtraneousArguments()
   try:
     transfer = callGAPI(dt.transfers(), u'get',
                         throw_reasons=[GAPI.NOT_FOUND],
                         dataTransferId=dtId)
-    printEntity([Ent.TRANSFER_ID, transfer[u'id']])
-    Ind.Increment()
-    printKeyValueList([u'Old Owner', convertUserIDtoEmail(transfer[u'oldOwnerUserId'])])
-    printKeyValueList([u'New Owner', convertUserIDtoEmail(transfer[u'newOwnerUserId'])])
-    printKeyValueList([u'Request Time', transfer[u'requestTime']])
-    for app in transfer[u'applicationDataTransfers']:
-      printKeyValueList([u'Application', appID2app(dt, app[u'applicationId'])])
-      Ind.Increment()
-      printKeyValueList([u'Status', app[u'applicationTransferStatus']])
-      printKeyValueList([u'Parameters', None])
-      Ind.Increment()
-      if u'applicationTransferParams' in app:
-        for param in app[u'applicationTransferParams']:
-          printKeyValueList([param[u'key'], u','.join(param[u'value'])])
-      else:
-        printKeyValueList([u'None', None])
-      Ind.Decrement()
-      Ind.Decrement()
-    Ind.Decrement()
-    printBlankLine()
+    _showTransfer(apps, transfer, 0, 0)
   except GAPI.notFound:
     entityActionFailedWarning([Ent.TRANSFER_ID, dtId], Msg.DOES_NOT_EXIST)
 
@@ -7579,18 +7610,19 @@ DATA_TRANSFER_STATUS_MAP = {
   u'inprogress': u'inProgress',
   }
 
-# gam print datatransfers|transfers [todrive [<ToDriveAttributes>]] [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>] [status <String>] [delimiter <Character>]]
-def doPrintDataTransfers():
+def _doPrintShowDataTransfers(csvFormat):
   dt = buildGAPIObject(API.DATATRANSFER)
+  apps = getTransferApplications(dt)
   newOwnerUserId = None
   oldOwnerUserId = None
   status = None
-  todrive = {}
-  titles, csvRows = initializeTitlesCSVfile([u'id',])
+  if csvFormat:
+    todrive = {}
+    titles, csvRows = initializeTitlesCSVfile([u'id',])
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == u'todrive':
+    if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
     elif myarg in [u'olduser', u'oldowner']:
       oldOwnerUserId = convertEmailAddressToUID(getEmailAddress())
@@ -7607,34 +7639,77 @@ def doPrintDataTransfers():
                               throw_reasons=[GAPI.UNKNOWN_ERROR, GAPI.FORBIDDEN],
                               customerId=GC.Values[GC.CUSTOMER_ID], status=status,
                               newOwnerUserId=newOwnerUserId, oldOwnerUserId=oldOwnerUserId)
-    for transfer in transfers:
-      for i in range(len(transfer[u'applicationDataTransfers'])):
-        a_transfer = {}
-        a_transfer[u'oldOwnerUserEmail'] = convertUserIDtoEmail(transfer[u'oldOwnerUserId'])
-        a_transfer[u'newOwnerUserEmail'] = convertUserIDtoEmail(transfer[u'newOwnerUserId'])
-        a_transfer[u'requestTime'] = formatLocalTime(transfer[u'requestTime'])
-        a_transfer[u'applicationId'] = transfer[u'applicationDataTransfers'][i][u'applicationId']
-        a_transfer[u'application'] = appID2app(dt, a_transfer[u'applicationId'])
-        a_transfer[u'status'] = transfer[u'applicationDataTransfers'][i][u'applicationTransferStatus']
-        a_transfer[u'id'] = transfer[u'id']
-        for param in transfer[u'applicationDataTransfers'][i].get(u'applicationTransferParams', []):
-          a_transfer[param[u'key']] = delimiter.join(param[u'value'])
-      addRowTitlesToCSVfile(a_transfer, csvRows, titles)
+    count = len(transfers)
+    if not csvFormat:
+      performActionNumItems(count, Ent.TRANSFER_REQUEST)
+      Ind.Increment()
+      i = 0
+      for transfer in sorted(transfers, key=lambda k: k[u'requestTime']):
+        i += 1
+        _showTransfer(apps, transfer, i, count)
+      Ind.Decrement()
+    else:
+      for transfer in sorted(transfers, key=lambda k: k[u'requestTime']):
+        row = {}
+        row[u'id'] = transfer[u'id']
+        row[u'requestTime'] = formatLocalTime(transfer[u'requestTime'])
+        row[u'oldOwnerUserEmail'] = convertUserIDtoEmail(transfer[u'oldOwnerUserId'])
+        row[u'newOwnerUserEmail'] = convertUserIDtoEmail(transfer[u'newOwnerUserId'])
+        row[u'overallTransferStatusCode'] = transfer[u'overallTransferStatusCode']
+        for app in transfer[u'applicationDataTransfers']:
+          xrow = row.copy()
+          xrow[u'application'] = _convertTransferAppIDtoName(apps, app[u'applicationId'])
+          xrow[u'applicationId'] = app[u'applicationId']
+          xrow[u'status'] = app[u'applicationTransferStatus']
+          for param in app.get(u'applicationTransferParams', []):
+            key = param[u'key']
+            xrow[key] = delimiter.join(param.get(u'value', [] if key != u'RELEASE_RESOURCES' else [u'TRUE',]))
+          addRowTitlesToCSVfile(xrow, csvRows, titles)
   except (GAPI.unknownError, GAPI.forbidden):
     accessErrorExit(None)
-  writeCSVfile(csvRows, titles, u'Data Transfers', todrive)
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'Data Transfers', todrive,
+                 [u'id', u'requestTime', u'oldOwnerUserEmail', u'newOwnerUserEmail',
+                  u'overallTransferStatusCode', u'application', u'applicationId', u'status'])
 
-# gam print transferapps
-def doPrintTransferApps():
+# gam print datatransfers|transfers [todrive [<ToDriveAttributes>]] [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>] [status <String>] [delimiter <Character>]]
+def doPrintDataTransfers():
+  _doPrintShowDataTransfers(True)
+
+# gam show datatransfers|transfers [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>] [status <String>] [delimiter <Character>]]
+def doShowDataTransfers():
+  _doPrintShowDataTransfers(False)
+
+# gam show transferapps
+def doShowTransferApps():
   dt = buildGAPIObject(API.DATATRANSFER)
   checkForExtraneousArguments()
+  Act.Set(Act.SHOW)
   try:
     apps = callGAPIpages(dt.applications(), u'list', u'applications',
                          throw_reasons=[GAPI.UNKNOWN_ERROR, GAPI.FORBIDDEN],
-                         customerId=GC.Values[GC.CUSTOMER_ID])
+                         customerId=GC.Values[GC.CUSTOMER_ID], fields=u'applications(id,name,transferParams)')
+    count = len(apps)
+    performActionNumItems(count, Ent.TRANSFER_APPLICATION)
+    Ind.Increment()
+    i = 0
     for app in apps:
-      showJSON(None, app)
-      printBlankLine()
+      i += 1
+      printKeyValueListWithCount([app[u'name']], i, count)
+      Ind.Increment()
+      printKeyValueList([u'id', app[u'id']])
+      transferParams = app.get(u'transferParams', [])
+      if transferParams:
+        printKeyValueList([u'Parameters'])
+        Ind.Increment()
+        for param in transferParams:
+          printKeyValueList([u'key', param[u'key']])
+          Ind.Increment()
+          printKeyValueList([u'value', u','.join(param[u'value'])])
+          Ind.Decrement()
+        Ind.Decrement()
+      Ind.Decrement()
+    Ind.Decrement()
   except (GAPI.unknownError, GAPI.forbidden):
     accessErrorExit(None)
 
@@ -7877,7 +7952,7 @@ def _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, i, count, items, quickCrOSMove):
   if not quickCrOSMove:
     svcargs = dict([(u'customerId', GC.Values[GC.CUSTOMER_ID]), (u'deviceId', None), (u'body', {u'orgUnitPath': orgUnitPath}), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(cd.chromeosdevices(), u'patch')
-    dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackMoveCrOSesToOrgUnit)
+    dbatch = cd.new_batch_http_request(callback=_callbackMoveCrOSesToOrgUnit)
     bcount = 0
     j = 0
     for deviceId in items:
@@ -7888,7 +7963,7 @@ def _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, i, count, items, quickCrOSMove):
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
         executeBatch(dbatch)
-        dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackMoveCrOSesToOrgUnit)
+        dbatch = cd.new_batch_http_request(callback=_callbackMoveCrOSesToOrgUnit)
         bcount = 0
     if bcount > 0:
       executeBatch(dbatch)
@@ -7930,7 +8005,7 @@ def _batchMoveUsersToOrgUnit(cd, orgUnitPath, i, count, items):
   Ind.Increment()
   svcargs = dict([(u'userKey', None), (u'body', {u'orgUnitPath': orgUnitPath}), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
   method = getattr(cd.users(), u'patch')
-  dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackMoveUsersToOrgUnit)
+  dbatch = cd.new_batch_http_request(callback=_callbackMoveUsersToOrgUnit)
   bcount = 0
   j = 0
   for user in items:
@@ -7941,7 +8016,7 @@ def _batchMoveUsersToOrgUnit(cd, orgUnitPath, i, count, items):
     bcount += 1
     if bcount >= GC.Values[GC.BATCH_SIZE]:
       executeBatch(dbatch)
-      dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackMoveUsersToOrgUnit)
+      dbatch = cd.new_batch_http_request(callback=_callbackMoveUsersToOrgUnit)
       bcount = 0
   if bcount > 0:
     executeBatch(dbatch)
@@ -8194,7 +8269,7 @@ def _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs
   def _batchListOrgUnits(topLevelOrgUnits):
     svcargs = dict([(u'customerId', GC.Values[GC.CUSTOMER_ID]), (u'orgUnitPath', None), (u'type', u'all'), (u'fields', listfields)]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(cd.orgunits(), u'list')
-    dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackListOrgUnits)
+    dbatch = cd.new_batch_http_request(callback=_callbackListOrgUnits)
     bcount = 0
     for orgUnitPath in topLevelOrgUnits:
       svcparms = svcargs.copy()
@@ -8203,7 +8278,7 @@ def _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
         executeBatch(dbatch)
-        dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackListOrgUnits)
+        dbatch = cd.new_batch_http_request(callback=_callbackListOrgUnits)
         bcount = 0
     if bcount > 0:
       executeBatch(dbatch)
@@ -11684,7 +11759,7 @@ def doPrintCrOSDevices(entityList=None):
       jcount = len(entityList)
       svcargs = dict([(u'customerId', GC.Values[GC.CUSTOMER_ID]), (u'deviceId', None), (u'projection', projection), (u'fields', fields)]+GM.Globals[GM.EXTRA_ARGS_LIST])
       method = getattr(cd.chromeosdevices(), u'get')
-      dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackPrintCrOS)
+      dbatch = cd.new_batch_http_request(callback=_callbackPrintCrOS)
       bcount = 0
       j = 0
       for deviceId in entityList:
@@ -11695,7 +11770,7 @@ def doPrintCrOSDevices(entityList=None):
         bcount += 1
         if bcount >= GC.Values[GC.BATCH_SIZE]:
           executeBatch(dbatch)
-          dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackPrintCrOS)
+          dbatch = cd.new_batch_http_request(callback=_callbackPrintCrOS)
           bcount = 0
       if bcount > 0:
         executeBatch(dbatch)
@@ -11842,7 +11917,7 @@ def doPrintCrOSActivity(entityList=None):
     jcount = len(entityList)
     svcargs = dict([(u'customerId', GC.Values[GC.CUSTOMER_ID]), (u'deviceId', None), (u'projection', projection), (u'fields', fields)]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(cd.chromeosdevices(), u'get')
-    dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackPrintCrOS)
+    dbatch = cd.new_batch_http_request(callback=_callbackPrintCrOS)
     bcount = 0
     j = 0
     for deviceId in entityList:
@@ -11853,7 +11928,7 @@ def doPrintCrOSActivity(entityList=None):
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
         executeBatch(dbatch)
-        dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackPrintCrOS)
+        dbatch = cd.new_batch_http_request(callback=_callbackPrintCrOS)
         bcount = 0
     if bcount > 0:
       executeBatch(dbatch)
@@ -12361,7 +12436,7 @@ def doUpdateGroups():
     Ind.Increment()
     svcargs = dict([(u'groupKey', group), (u'body', {u'role': role}), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(cd.members(), u'insert')
-    dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackAddGroupMembers)
+    dbatch = cd.new_batch_http_request(callback=_callbackAddGroupMembers)
     bcount = 0
     j = 0
     for member in addMembers:
@@ -12378,7 +12453,7 @@ def doUpdateGroups():
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
         executeBatch(dbatch)
-        dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackAddGroupMembers)
+        dbatch = cd.new_batch_http_request(callback=_callbackAddGroupMembers)
         bcount = 0
     if bcount > 0:
       executeBatch(dbatch)
@@ -12419,7 +12494,7 @@ def doUpdateGroups():
       return
     Ind.Increment()
     method = getattr(cd.members(), u'delete')
-    dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackRemoveGroupMembers)
+    dbatch = cd.new_batch_http_request(callback=_callbackRemoveGroupMembers)
     bcount = 0
     j = 0
     for member in removeMembers:
@@ -12430,7 +12505,7 @@ def doUpdateGroups():
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
         executeBatch(dbatch)
-        dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackRemoveGroupMembers)
+        dbatch = cd.new_batch_http_request(callback=_callbackRemoveGroupMembers)
         bcount = 0
     if bcount > 0:
       executeBatch(dbatch)
@@ -12460,7 +12535,7 @@ def doUpdateGroups():
       return
     Ind.Increment()
     method = getattr(cd.members(), u'update')
-    dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackUpdateGroupMembers)
+    dbatch = cd.new_batch_http_request(callback=_callbackUpdateGroupMembers)
     bcount = 0
     j = 0
     for member in updateMembers:
@@ -12471,7 +12546,7 @@ def doUpdateGroups():
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
         executeBatch(dbatch)
-        dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackUpdateGroupMembers)
+        dbatch = cd.new_batch_http_request(callback=_callbackUpdateGroupMembers)
         bcount = 0
     if bcount > 0:
       executeBatch(dbatch)
@@ -12985,11 +13060,6 @@ def doPrintGroups():
     entityList.append(response)
 
   def _callbackProcessGroupMembers(request_id, response, exception):
-    def _writeRowIfComplete(i):
-      if groupData[i][u'settings'] is False:
-        _printGroupRow(groupData[i][u'entity'], groupData[i][u'members'], groupData[i][u'settings'])
-        del groupData[i]
-
     ri = request_id.splitlines()
     i = int(ri[RI_I])
     totalItems = 0
@@ -13000,7 +13070,7 @@ def doPrintGroups():
       if reason not in GAPI.DEFAULT_RETRY_REASONS+GAPI.MEMBERS_RETRY_REASONS:
         errMsg = getHTTPError({}, http_status, reason, message)
         entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], None], errMsg, i, int(ri[RI_COUNT]))
-        _writeRowIfComplete(i)
+        groupData[i][u'required'] -= 1
         return
       waitOnFailure(1, 10, reason, message)
       try:
@@ -13009,7 +13079,7 @@ def doPrintGroups():
                             groupKey=ri[RI_ENTITY], roles=ri[RI_ROLE], fields=u'nextPageToken,members(email,id,role)', maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden) as e:
         entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], None], str(e), i, int(ri[RI_COUNT]))
-        _writeRowIfComplete(i)
+        groupData[i][u'required'] -= 1
         return
     while True:
       pageToken, totalItems = _processGAPIpagesResult(response, items, groupData[i][items], totalItems, page_message, u'email', ri[RI_ROLE])
@@ -13023,13 +13093,9 @@ def doPrintGroups():
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden) as e:
         entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], None], str(e), i, int(ri[RI_COUNT]))
         break
-    _writeRowIfComplete(i)
+    groupData[i][u'required'] -= 1
 
   def _callbackProcessGroupSettings(request_id, response, exception):
-    def _writeRowIfComplete(i):
-      _printGroupRow(groupData[i][u'entity'], groupData[i][u'members'], groupData[i][u'settings'])
-      del groupData[i]
-
     ri = request_id.splitlines()
     i = int(ri[RI_I])
     if exception is not None:
@@ -13037,7 +13103,7 @@ def doPrintGroups():
       if reason not in GAPI.DEFAULT_RETRY_REASONS+GAPI.GROUP_SETTINGS_RETRY_REASONS:
         errMsg = getHTTPError({}, http_status, reason, message)
         entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], Ent.GROUP_SETTINGS, None], errMsg, i, int(ri[RI_COUNT]))
-        _writeRowIfComplete(i)
+        groupData[i][u'required'] -= 1
         return
       waitOnFailure(1, 10, reason, message)
       try:
@@ -13051,7 +13117,13 @@ def doPrintGroups():
         entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], Ent.GROUP_SETTINGS, None], str(e), i, int(ri[RI_COUNT]))
         response = {}
     groupData[i][u'settings'] = response
-    _writeRowIfComplete(i)
+    groupData[i][u'required'] -= 1
+
+  def _writeCompleteRows():
+    complete = [k for k in groupData if groupData[k][u'required'] == 0]
+    for k in complete:
+      _printGroupRow(groupData[k][u'entity'], groupData[k][u'members'], groupData[k][u'settings'])
+      del groupData[k]
 
   cd = buildGAPIObject(API.DIRECTORY)
   kwargs = {u'customer': GC.Values[GC.CUSTOMER_ID]}
@@ -13069,7 +13141,6 @@ def doPrintGroups():
   addFieldTitleToCSVfile(u'email', GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP, cdfieldsList, fieldsTitles, titles, nativeTitles)
   rolesSet = set()
   entitySelection = emailMatchPattern = nameMatchPattern = None
-  groupData = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
@@ -13193,9 +13264,9 @@ def doPrintGroups():
         accessErrorExit(cd)
   else:
     svcargs = dict([(u'groupKey', None), (u'fields', cdfields)]+GM.Globals[GM.EXTRA_ARGS_LIST])
-    method = getattr(cd.groups(), u'get')
-    dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackProcessGroupBasic)
-    bcount = 0
+    cdmethod = getattr(cd.groups(), u'get')
+    cdbatch = cd.new_batch_http_request(callback=_callbackProcessGroupBasic)
+    cdbcount = 0
     entityList = collections.deque()
     i = 0
     count = len(entitySelection)
@@ -13204,23 +13275,28 @@ def doPrintGroups():
       svcparms = svcargs.copy()
       svcparms[u'groupKey'] = normalizeEmailAddressOrUID(groupEntity)
       printGettingEntityItem(Ent.GROUP, svcparms[u'groupKey'], i, count)
-      dbatch.add(method(**svcparms), request_id=batchRequestID(svcparms[u'groupKey'], i, count, 0, 0, None))
-      bcount += 1
-      if bcount >= GC.Values[GC.BATCH_SIZE]:
-        executeBatch(dbatch)
-        dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackProcessGroupBasic)
-        bcount = 0
-    if bcount > 0:
-      executeBatch(dbatch)
+      cdbatch.add(cdmethod(**svcparms), request_id=batchRequestID(svcparms[u'groupKey'], i, count, 0, 0, None))
+      cdbcount += 1
+      if cdbcount >= GC.Values[GC.BATCH_SIZE]:
+        executeBatch(cdbatch)
+        cdbatch = cd.new_batch_http_request(callback=_callbackProcessGroupBasic)
+        cdbcount = 0
+    if cdbcount > 0:
+      executeBatch(cdbatch)
+  required = 0
   if roles:
+    required += 1
     svcargs = dict([(u'groupKey', None), (u'roles', roles), (u'fields', u'nextPageToken,members(email,id,role)'), (u'maxResults', GC.Values[GC.MEMBER_MAX_RESULTS])]+GM.Globals[GM.EXTRA_ARGS_LIST])
   if getSettings:
+    required += 1
     svcargsgs = dict([(u'groupUniqueId', None), (u'fields', gsfields)]+GM.Globals[GM.EXTRA_ARGS_LIST])
   cdmethod = getattr(cd.members(), u'list')
+  cdbatch = cd.new_batch_http_request(callback=_callbackProcessGroupMembers)
+  cdbcount = 0
   if getSettings:
     gsmethod = getattr(gs.groups(), u'get')
-  dbatch = googleapiclient.http.BatchHttpRequest()
-  bcount = 0
+    gsbatch = gs.new_batch_http_request(callback=_callbackProcessGroupSettings)
+    gsbcount = 0
   groupData = {}
   i = 0
   count = len(entityList)
@@ -13234,28 +13310,38 @@ def doPrintGroups():
     if not rolesOrSettings:
       _printGroupRow(groupEntity, None, None)
       continue
-    groupData[i] = {u'entity': groupEntity, u'members': [], u'settings': getSettings}
+    groupData[i] = {u'entity': groupEntity, u'members': [], u'settings': getSettings, u'required': required}
     if roles:
       printGettingEntityItemForWhom(roles, groupEmail, i, count)
       svcparms = svcargs.copy()
       svcparms[u'groupKey'] = groupEmail
-      dbatch.add(cdmethod(**svcparms), callback=_callbackProcessGroupMembers, request_id=batchRequestID(groupEmail, i, count, 0, 0, None, roles))
-      bcount += 1
+      cdbatch.add(cdmethod(**svcparms), request_id=batchRequestID(groupEmail, i, count, 0, 0, None, roles))
+      cdbcount += 1
+      if cdbcount >= GC.Values[GC.BATCH_SIZE]:
+        executeBatch(cdbatch)
+        cdbatch = cd.new_batch_http_request(callback=_callbackProcessGroupMembers)
+        cdbcount = 0
+        _writeCompleteRows()
     if getSettings:
       if not GroupIsAbuseOrPostmaster(groupEmail):
         printGettingEntityItemForWhom(Ent.GROUP_SETTINGS, groupEmail, i, count)
         svcparmsgs = svcargsgs.copy()
         svcparmsgs[u'groupUniqueId'] = groupEmail
-        dbatch.add(gsmethod(**svcparmsgs), callback=_callbackProcessGroupSettings, request_id=batchRequestID(groupEmail, i, count, 0, 0, None))
-        bcount += 1
+        gsbatch.add(gsmethod(**svcparmsgs), request_id=batchRequestID(groupEmail, i, count, 0, 0, None))
+        gsbcount += 1
+        if gsbcount >= GC.Values[GC.BATCH_SIZE]:
+          executeBatch(gsbatch)
+          gsbatch = gs.new_batch_http_request(callback=_callbackProcessGroupSettings)
+          gsbcount = 0
+          _writeCompleteRows()
       else:
         groupData[i][u'settings'] = False
-    if bcount >= GC.Values[GC.BATCH_SIZE]:
-      executeBatch(dbatch)
-      dbatch = googleapiclient.http.BatchHttpRequest()
-      bcount = 0
-  if bcount > 0:
-    executeBatch(dbatch)
+        groupData[i][u'required'] -= 1
+  if cdbcount > 0:
+    executeBatch(cdbatch)
+  if getSettings and gsbcount > 0:
+    executeBatch(gsbatch)
+  _writeCompleteRows()
   writeCSVfile(csvRows, titles, u'Groups', todrive, [fieldsTitles[u'email']] if sortHeaders else None, quotechar)
 
 def getGroupMembers(cd, groupEmail, roles, membersList, membersSet, i, count, checkNotSuspended, noduplicates, recursive, level):
@@ -14697,7 +14783,7 @@ def _doPrintShowCalendarACLs(user, cal, calIds, count, csvFormat, csvRows, title
     except GAPI.notFound:
       entityUnknownWarning(Ent.CALENDAR, calId, i, count)
 
-# gam calendar <CalendarItem> create|add <CalendarACLRole> <ACLScope>
+# gam calendar <CalendarEntity> create|add <CalendarACLRole> <ACLScope>
 def doCalendarsCreateACL(cal, calIds):
   role = getChoice(CALENDAR_ACL_ROLES_MAP, mapChoice=True)
   ACLScopeEntity = getCalendarACLScope()
@@ -14711,7 +14797,7 @@ def doCalendarsCreateACLs(cal, calIds):
   checkForExtraneousArguments()
   _doCalendarsCreateACLs(None, None, cal, calIds, len(calIds), role, ACLScopeEntity)
 
-# gam calendar <CalendarItem> update <CalendarACLRole> <ACLScope>
+# gam calendar <CalendarEntity> update <CalendarACLRole> <ACLScope>
 def doCalendarsUpdateACL(cal, calIds):
   body = {u'role': getChoice(CALENDAR_ACL_ROLES_MAP, mapChoice=True)}
   ACLScopeEntity = getCalendarACLScope()
@@ -14725,7 +14811,7 @@ def doCalendarsUpdateACLs(cal, calIds):
   checkForExtraneousArguments()
   _doUpdateDeleteCalendarACLs(None, None, cal, u'patch', calIds, len(calIds), ACLScopeEntity, body[u'role'], body)
 
-# gam calendar <CalendarItem> del|delete [<CalendarACLRole>] <ACLScope>
+# gam calendar <CalendarEntity> del|delete [<CalendarACLRole>] <ACLScope>
 def doCalendarsDeleteACL(cal, calIds):
   role = getChoice(CALENDAR_ACL_ROLES_MAP, defaultChoice=None, mapChoice=True)
   ACLScopeEntity = getCalendarACLScope()
@@ -14767,7 +14853,7 @@ def doCalendarsPrintACLs(cal, calIds):
   _doCalendarsPrintShowACLs(cal, calIds, True)
 
 # gam calendars <CalendarEntity> show acls
-# gam calendar <CalendarItem> showacl
+# gam calendar <CalendarEntity> showacl
 def doCalendarsShowACLs(cal, calIds):
   checkForExtraneousArguments()
   _doCalendarsPrintShowACLs(cal, calIds, False)
@@ -15347,16 +15433,16 @@ def _doCalendarsCreateImportEvent(cal, calIds, function):
   _createCalendarEvents(None, cal, function, calIds, len(calIds),
                         _checkIfEventRecurrenceTimeZoneRequired(body, parameters), parameters[u'sendNotifications'], body)
 
-# gam calendars <UserEntity> create|add event [id <String>] <EventAddAttributes>+
+# gam calendars <CalendarEntity> create|add event [id <String>] <EventAddAttributes>+
 # gam calendar <UserItem> addevent [id <String>] <EventAddAttributes>+
 def doCalendarsCreateEvent(cal, calIds):
   _doCalendarsCreateImportEvent(cal, calIds, u'insert')
 
-# gam calendars <UserEntity> import event icaluid <iCalUID> <EventImportAttributes>+
+# gam calendars <CalendarEntity> import event icaluid <iCalUID> <EventImportAttributes>+
 def doCalendarsImportEvent(cal, calIds):
   _doCalendarsCreateImportEvent(cal, calIds, u'import')
 
-# gam calendars <UserEntity> update event <EventEntity> <EventUpdateAttributes>+
+# gam calendars <CalendarEntity> update event <EventEntity> <EventUpdateAttributes>+
 def doCalendarsUpdateEvents(cal, calIds):
   calendarEventEntity = getCalendarEventEntity()
   body = {}
@@ -15371,7 +15457,7 @@ def doCalendarsUpdateEvents(cal, calIds):
                               _checkIfEventRecurrenceTimeZoneRequired(body, parameters), body,
                               {u'supportsAttachments': True, u'body': body, u'sendNotifications': parameters[u'sendNotifications'], u'fields': u''})
 
-# gam calendars <UserEntity> delete event <EventEntity> [doit] [notifyattendees]
+# gam calendars <CalendarEntity> delete event <EventEntity> [doit] [notifyattendees]
 # gam calendar <UserItem> deleteevent <EventEntity> [doit] [notifyattendees]
 def doCalendarsDeleteEvents(cal, calIds):
   doIt = sendNotifications = False
@@ -15388,14 +15474,14 @@ def doCalendarsDeleteEvents(cal, calIds):
                               False, {},
                               {u'sendNotifications': sendNotifications})
 
-# gam calendars <UserEntity> wipe events
+# gam calendars <CalendarEntity> wipe events
 # gam calendar <UserItem> wipe
 def doCalendarsWipeEvents(cal, calIds):
   checkArgumentPresent([Cmd.ARG_EVENT, Cmd.ARG_EVENTS])
   checkForExtraneousArguments()
   _wipeCalendarEvents(None, cal, calIds, len(calIds))
 
-# gam calendars <UserEntity> move events <EventEntity> to <CalendarItem> [notifyattendees]
+# gam calendars <CalendarEntity> move events <EventEntity> to <CalendarItem> [notifyattendees]
 def doCalendarsMoveEvents(cal, calIds):
   sendNotifications = False
   calendarEventEntity = getCalendarEventEntity()
@@ -15412,7 +15498,7 @@ def doCalendarsMoveEvents(cal, calIds):
     return
   _moveCalendarEvents(None, None, cal, calIds, len(calIds), calendarEventEntity, newCalId, sendNotifications)
 
-# gam calendars <UserEntity> info event <EventEntity>
+# gam calendars <CalendarEntity> info event <EventEntity>
 def doCalendarsInfoEvents(cal, calIds):
   calendarEventEntity = getCalendarEventEntity()
   checkForExtraneousArguments()
@@ -15437,13 +15523,33 @@ def calendarsPrintShowEvents(cal, calIds, csvFormat):
   if csvFormat:
     writeCSVfile(csvRows, titles, u'Calendar Events', todrive, [u'calendarId',]+EVENT_PRINT_ORDER)
 
-# gam calendars <UserEntity> print events ([allevents] <EventSelectProperties>*) [todrive [<ToDriveAttributes>]] <EventDisplayProperties>*
+# gam calendars <CalendarEntity> print events ([allevents] <EventSelectProperties>*) [todrive [<ToDriveAttributes>]] <EventDisplayProperties>*
 def doCalendarsPrintEvents(cal, calIds):
   calendarsPrintShowEvents(cal, calIds, True)
 
-# gam calendars <UserEntity> show events ([allevents] <EventSelectProperties>*) <EventDisplayProperties>*
+# gam calendars <CalendarEntity> show events ([allevents] <EventSelectProperties>*) <EventDisplayProperties>*
 def doCalendarsShowEvents(cal, calIds):
   calendarsPrintShowEvents(cal, calIds, False)
+
+# gam calendars <CalendarEntity> modify <CalendarSettings>
+def doCalendarsModifySettings(cal, calIds):
+  body = _getCalendarSettings(summaryRequired=False)
+  count = len(calIds)
+  i = 0
+  for calId in calIds:
+    i += 1
+    calId, cal = buildGAPIServiceObject(API.CALENDAR, calId, i, count)
+    if not cal:
+      continue
+    try:
+      callGAPI(cal.calendars(), u'patch',
+               throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+               calendarId=calId, body=body)
+      entityActionPerformed([Ent.CALENDAR, calId], i, count)
+    except (GAPI.notACalendarUser, GAPI.notFound, GAPI.forbidden) as e:
+      entityActionFailedWarning([Ent.CALENDAR, calId], str(e), i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError):
+      entityServiceNotApplicableWarning(Ent.CALENDAR, calId, i, count)
 
 def _validateResourceId(resourceId, i, count):
   cd = buildGAPIObject(API.DIRECTORY)
@@ -18263,7 +18369,7 @@ def infoUsers(entityList):
       if getLicenses:
         svcargs = dict([(u'userId', None), (u'productId', None), (u'skuId', None), (u'fields', u'skuId')]+GM.Globals[GM.EXTRA_ARGS_LIST])
         method = getattr(lic.licenseAssignments(), u'get')
-        dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackGetLicense)
+        dbatch = lic.new_batch_http_request(callback=_callbackGetLicense)
         for skuId in skus:
           svcparms = svcargs.copy()
           svcparms[u'userId'] = user[u'primaryEmail']
@@ -18678,7 +18784,7 @@ def doPrintUsers(entityList=None):
       jcount = len(entityList)
       svcargs = dict([(u'userKey', None), (u'fields', fields), (u'projection', projection), (u'customFieldMask', customFieldMask), (u'viewType', viewType)]+GM.Globals[GM.EXTRA_ARGS_LIST])
       method = getattr(cd.users(), u'get')
-      dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackPrintUser)
+      dbatch = cd.new_batch_http_request(callback=_callbackPrintUser)
       bcount = 0
       j = 0
       for userEntity in entityList:
@@ -18689,7 +18795,7 @@ def doPrintUsers(entityList=None):
         bcount += 1
         if bcount >= GC.Values[GC.BATCH_SIZE]:
           executeBatch(dbatch)
-          dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackPrintUser)
+          dbatch = cd.new_batch_http_request(callback=_callbackPrintUser)
           bcount = 0
       if bcount > 0:
         executeBatch(dbatch)
@@ -21494,7 +21600,7 @@ def updateCalendars(users):
   calendarEntity = getCalendarEntity()
   body = {}
   colorRgbFormat = _getCalendarAttributes(body)
-  _updateDeleteCalendars(users, calendarEntity, u'update', body=body, colorRgbFormat=colorRgbFormat, fields=u'')
+  _updateDeleteCalendars(users, calendarEntity, u'patch', body=body, colorRgbFormat=colorRgbFormat, fields=u'')
 
 # gam <UserTypeEntity> delete calendars <CalendarEntity>
 def deleteCalendars(users):
@@ -22519,6 +22625,8 @@ def _getDriveFileParentInfo(user, i, count, body, parameters, drive):
     else:
       parameters[DFA_KWARGS][u'corpora'] = u'teamDrive'
       parameters[DFA_KWARGS][u'teamDriveId'] = parameters[DFA_TEAMDRIVE_PARENTID]
+    parameters[DFA_SEARCHARGS] = {u'teamDriveId': parameters[DFA_TEAMDRIVE_PARENTID], u'corpora': u'teamDrive',
+                                  u'includeTeamDriveItems': True, u'supportsTeamDrives': True}
   if parameters[DFA_TEAMDRIVE_PARENT]:
     tempIdEntity = {u'teamdrivename': parameters[DFA_TEAMDRIVE_PARENT], u'teamdrive': {}}
     if not _convertTeamDriveNameToId(drive, user, i, count, tempIdEntity):
@@ -22529,6 +22637,8 @@ def _getDriveFileParentInfo(user, i, count, body, parameters, drive):
     else:
       parameters[DFA_KWARGS][u'corpora'] = u'teamDrive'
       parameters[DFA_KWARGS][u'teamDriveId'] = tempIdEntity[u'teamdrive'][u'teamDriveId']
+    parameters[DFA_SEARCHARGS] = {u'teamDriveId': tempIdEntity[u'teamdrive'][u'teamDriveId'], u'corpora': u'teamDrive',
+                                  u'includeTeamDriveItems': True, u'supportsTeamDrives': True}
   if parameters[DFA_TEAMDRIVE_PARENTQUERY]:
     parents = doDriveSearch(drive, user, i, count, query=parameters[DFA_TEAMDRIVE_PARENTQUERY], parentQuery=True, teamDriveOnly=True, **parameters[DFA_KWARGS])
     if parents is None:
@@ -22655,7 +22765,7 @@ def initializeDriveFileAttributes():
           DFA_PARENTIDS: [], DFA_PARENTQUERY: None,
           DFA_ADD_PARENT_IDS: [], DFA_ADD_PARENT_NAMES: [],
           DFA_REMOVE_PARENT_IDS: [], DFA_REMOVE_PARENT_NAMES: [],
-          DFA_TEAMDRIVE_PARENT: None, DFA_TEAMDRIVE_PARENTID: None, DFA_TEAMDRIVE_PARENTQUERY: None, DFA_KWARGS: {},
+          DFA_TEAMDRIVE_PARENT: None, DFA_TEAMDRIVE_PARENTID: None, DFA_TEAMDRIVE_PARENTQUERY: None, DFA_KWARGS: {}, DFA_SEARCHARGS: {},
           DFA_IGNORE_DEFAULT_VISIBILITY: False, DFA_KEEP_REVISION_FOREVER: False, DFA_USE_CONTENT_AS_INDEXABLE_TEXT: False}
 
 DRIVEFILE_PROPERTY_VISIBILITY_CHOICE_MAP = {
@@ -24836,8 +24946,10 @@ def showFileTree(users):
       Ind.Decrement()
     Ind.Decrement()
 
-# gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] [<DriveFileAttributes>]
+# gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] [<DriveFileAttributes>] [csv [todrive [<ToDriveAttributes>]]]
 def createDriveFile(users):
+  csvFormat = False
+  todrive = {}
   media_body = None
   fileIdEntity = initDriveFileEntity()
   body = {}
@@ -24846,8 +24958,15 @@ def createDriveFile(users):
     myarg = getArgument()
     if myarg == u'drivefilename':
       body[VX_FILENAME] = getString(Cmd.OB_DRIVE_FILE_NAME)
+    elif myarg == u'csv':
+      csvFormat = True
+    elif myarg == u'todrive':
+      todrive = getTodriveParameters()
     else:
       getDriveFileAttribute(myarg, body, parameters, True)
+  if csvFormat:
+    fileNameTitle = [V3_FILENAME, V2_FILENAME][not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]]
+    titles, csvRows = initializeTitlesCSVfile([u'User', fileNameTitle, u'id'])
   body.setdefault(VX_FILENAME, u'Untitled')
   Act.Set(Act.CREATE)
   i, count, users = getEntityArgument(users)
@@ -24871,15 +24990,20 @@ def createDriveFile(users):
                         keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                         useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
                         media_body=media_body, body=body, fields=VX_ID_FILENAME_MIMETYPE, supportsTeamDrives=True)
-      titleInfo = u'{0}({1})'.format(result[VX_FILENAME], result[u'id'])
-      if parameters[DFA_LOCALFILENAME]:
-        entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, titleInfo], Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], i, count)
+      if not csvFormat:
+        titleInfo = u'{0}({1})'.format(result[VX_FILENAME], result[u'id'])
+        if parameters[DFA_LOCALFILENAME]:
+          entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, titleInfo], Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], i, count)
+        else:
+          entityActionPerformed([Ent.USER, user, _getEntityMimeType(result), titleInfo], i, count)
       else:
-        entityActionPerformed([Ent.USER, user, _getEntityMimeType(result), titleInfo], i, count)
+        csvRows.append({u'User': user, fileNameTitle: result[VX_FILENAME], u'id': result[u'id']})
     except (GAPI.forbidden, GAPI.invalid) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, body[VX_FILENAME]], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'Files', todrive)
 
 # gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [retainname | (newfilename <DriveFileName>)] [<DriveFileUpdateAttributes>]
 def updateDriveFile(users):
@@ -24972,7 +25096,22 @@ def updateDriveFile(users):
           break
       Ind.Decrement()
 
-def _cloneFolder(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents, action):
+def _cloneFolder(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents, action, noDuplicates, searchArgs):
+  if noDuplicates:
+    for parentId in parents:
+      targetFolders = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
+                                    throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                    q=VX_ANY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS.format(newFolderTitle, parentId),
+                                    fields=VX_NPT_FILES_FIELDLIST.format(u'id,capabilities/canAddChildren'), **searchArgs)
+      if len(targetFolders) > 0:
+        for targetFolder in targetFolders:
+          if targetFolder[u'capabilities'][u'canAddChildren']:
+            Act.Set(Act.FIND)
+            entityActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle, Ent.DRIVE_FOLDER_ID, targetFolder[u'id']], j, jcount)
+            Act.Set(action)
+            return targetFolder[u'id']
+        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], Msg.NOT_WRITABLE, j, jcount)
+        return None
   try:
     body = callGAPI(drive.files(), u'get',
                     throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
@@ -25032,17 +25171,30 @@ def _cloneFolder(drive, user, i, count, j, jcount, folderId, folderTitle, newFol
     userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
     return None
 
+def _checkForDuplicateFile(drive, user, k, kcount, child, newFolderId, searchArgs):
+  targetFiles = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
+                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                              q=VX_ANY_NON_TRASHED_MIMETYPE_NAME_WITH_PARENTS.format(child[u'mimeType'], child[VX_FILENAME], newFolderId),
+                              fields=VX_NPT_FILES_ID_DESCRIPTION, **searchArgs)
+  for targetFile in targetFiles:
+    if child[u'description'] == targetFile[u'description']:
+      Act.Set(Act.FIND)
+      entityActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, child[VX_FILENAME], Ent.DRIVE_FILE_ID, targetFile[u'id']], k, kcount)
+      Act.Set(Act.COPY)
+      return True
+  return False
+
 # gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [recursive [depth <Number>]]
 #	[parentid <DriveFolderID>] [parentname <DriveFolderName>]
 #	[teamdriveparentid <DriveFolderID>] [teamdriveparent <TeamDriveName>] [teamdriveparentname <DriveFolderName>]
 def copyDriveFile(users):
-  def _recursiveFolderCopy(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents, depth):
-    newFolderId = _cloneFolder(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents, Act.COPY)
+  def _recursiveFolderCopy(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents, depth, searchArgs):
+    newFolderId = _cloneFolder(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents, Act.COPY, noDuplicates, searchArgs)
     if newFolderId is None:
       return
     source_children = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                                     throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                    q=WITH_PARENTS.format(folderId), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_CAPABILITIES,
+                                    q=WITH_PARENTS.format(folderId), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_CAPABILITIES_DESCRIPTION,
                                     pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], supportsTeamDrives=True)
     kcount = len(source_children)
     if kcount > 0:
@@ -25055,13 +25207,15 @@ def copyDriveFile(users):
         if childId == newFolderId:
           entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], Msg.NOT_COPYABLE, k, kcount)
           continue
+        if noDuplicates and _checkForDuplicateFile(drive, user, k, kcount, child, newFolderId, searchArgs):
+          continue
         newParents = [newFolderId]
         for parentId in child[u'parents']:
           if parentId != folderId:
             newParents.append(parentId)
         if child[u'mimeType'] == MIMETYPE_GA_FOLDER:
           if maxdepth == -1 or depth < maxdepth:
-            _recursiveFolderCopy(drive, user, i, count, k, kcount, childId, childTitle, childTitle, newParents, depth+1)
+            _recursiveFolderCopy(drive, user, i, count, k, kcount, childId, childTitle, childTitle, newParents, depth+1, searchArgs)
         else:
           if not child[u'capabilities'][u'canCopy']:
             entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], Msg.NOT_COPYABLE, k, kcount)
@@ -25085,7 +25239,7 @@ def copyDriveFile(users):
   parameters = initializeDriveFileAttributes()
   maxdepth = -1
   newfilename = None
-  recursive = False
+  noDuplicates = recursive = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'newfilename':
@@ -25093,6 +25247,8 @@ def copyDriveFile(users):
       body[VX_FILENAME] = newfilename
     elif myarg == u'recursive':
       recursive = True
+    elif myarg == u'noduplicates':
+      noDuplicates = True
     elif myarg == u'depth':
       maxdepth = getInteger(minVal=-1)
     elif getDriveFileParentAttribute(myarg, parameters):
@@ -25114,20 +25270,21 @@ def copyDriveFile(users):
       try:
         metadata = callGAPI(drive.files(), u'get',
                             throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
-                            fileId=fileId, fields=VX_ID_FILENAME_MIMETYPE, supportsTeamDrives=True)
+                            fileId=fileId, fields=VX_ID_FILENAME_MIMETYPE_CAPABILITIES, supportsTeamDrives=True)
         if metadata[u'mimeType'] == MIMETYPE_GA_FOLDER:
           destFilename = newfilename or u'{0} of {1}'.format(Act.ToPerform(), metadata[VX_FILENAME])
           if recursive:
-            _recursiveFolderCopy(drive, user, i, count, j, jcount, fileId, metadata[VX_FILENAME], destFilename, body[u'parents'], 0)
+            _recursiveFolderCopy(drive, user, i, count, j, jcount, fileId, metadata[VX_FILENAME], destFilename, body[u'parents'], 0, parameters[DFA_SEARCHARGS])
           else:
-            _cloneFolder(drive, user, i, count, j, jcount, fileId, metadata[VX_FILENAME], destFilename, body[u'parents'], Act.COPY)
+            _cloneFolder(drive, user, i, count, j, jcount, fileId, metadata[VX_FILENAME], destFilename, body[u'parents'], Act.COPY, noDuplicates, parameters[DFA_SEARCHARGS])
         else:
+### No duplicates
+          if not metadata[u'capabilities'][u'canCopy']:
+            entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, metadata[VX_FILENAME]], Msg.NOT_COPYABLE, j, jcount)
+            continue
           result = callGAPI(drive.files(), u'copy',
                             throw_reasons=GAPI.DRIVE_COPY_THROW_REASONS,
-                            fileId=fileId, ocrLanguage=parameters[DFA_OCRLANGUAGE],
-                            ignoreDefaultVisibility=parameters[DFA_IGNORE_DEFAULT_VISIBILITY],
-                            keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
-                            body=body, fields=VX_ID_FILENAME, supportsTeamDrives=True)
+                            fileId=fileId, body=body, fields=VX_ID_FILENAME, supportsTeamDrives=True)
           entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, metadata[VX_FILENAME]],
                                                              Act.MODIFIER_TO, result[VX_FILENAME], [Ent.DRIVE_FILE_ID, result[u'id']], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.cannotCopyFile) as e:
@@ -25141,13 +25298,13 @@ def copyDriveFile(users):
 #	[parentid <DriveFolderID>] [parentname <DriveFolderName>]
 #	[teamdriveparentid <DriveFolderID>] [teamdriveparent <TeamDriveName>] [teamdriveparentname <DriveFolderName>]
 def moveDriveFile(users):
-  def _recursiveFolderMove(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents):
-    newFolderId = _cloneFolder(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents, Act.MOVE)
+  def _recursiveFolderMove(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents, searchArgs):
+    newFolderId = _cloneFolder(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents, Act.MOVE, noDuplicates, searchArgs)
     if newFolderId is None:
       return
     source_children = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                                     throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                    q=WITH_PARENTS.format(folderId), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_CAPABILITIES,
+                                    q=WITH_PARENTS.format(folderId), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_CAPABILITIES_DESCRIPTION,
                                     pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], supportsTeamDrives=True)
     kcount = len(source_children)
     if kcount > 0:
@@ -25160,12 +25317,14 @@ def moveDriveFile(users):
         if childId == newFolderId:
           entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], Msg.NOT_COPYABLE, k, kcount)
           continue
+        if noDuplicates and _checkForDuplicateFile(drive, user, k, kcount, child, newFolderId, searchArgs):
+          continue
         newParents = [newFolderId]
         for parentId in child[u'parents']:
           if parentId != folderId:
             newParents.append(parentId)
         if child[u'mimeType'] == MIMETYPE_GA_FOLDER:
-          _recursiveFolderMove(drive, user, i, count, k, kcount, childId, childTitle, childTitle, newParents)
+          _recursiveFolderMove(drive, user, i, count, k, kcount, childId, childTitle, childTitle, newParents, searchArgs)
         else:
           try:
             result = callGAPI(drive.files(), u'update',
@@ -25195,11 +25354,14 @@ def moveDriveFile(users):
   parentBody = {}
   parameters = initializeDriveFileAttributes()
   newfilename = None
+  noDuplicates = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'newfilename':
       newfilename = getString(Cmd.OB_DRIVE_FILE_NAME)
       body[VX_FILENAME] = newfilename
+    elif myarg == u'noduplicates':
+      noDuplicates = True
     elif getDriveFileParentAttribute(myarg, parameters):
       pass
     else:
@@ -25246,12 +25408,12 @@ def moveDriveFile(users):
           result = callGAPI(drive.files(), u'update',
                             throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
                             fileId=fileId, addParents=addParents, removeParents=removeParents,
-                            body=body, fields=VX_FILENAME, supportsTeamDrives=True)
+                            body=nameBody, fields=VX_FILENAME, supportsTeamDrives=True)
           entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, metadata[VX_FILENAME]],
                                                              Act.MODIFIER_TO, result[VX_FILENAME], [Ent.DRIVE_FOLDER_ID, addParents], j, jcount)
         else:
           destFilename = newfilename or metadata[VX_FILENAME]
-          _recursiveFolderMove(drive, user, i, count, j, jcount, fileId, metadata[VX_FILENAME], destFilename, parentBody[u'parents'])
+          _recursiveFolderMove(drive, user, i, count, j, jcount, fileId, metadata[VX_FILENAME], destFilename, parentBody[u'parents'], parameters[DFA_SEARCHARGS])
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.cannotCopyFile) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -25404,7 +25566,7 @@ def getDriveFile(users):
     elif myarg == u'targetname':
       targetName = getString(Cmd.OB_FILE_NAME)
     elif myarg == u'overwrite':
-      overwrite = getBoolean(True)
+      overwrite = getBoolean()
     elif myarg == u'revision':
       revisionId = getInteger(minVal=1)
     elif myarg == u'nocache':
@@ -27186,7 +27348,7 @@ def _createDriveFilePermissions(users, useDomainAdminAccess):
                     (u'useDomainAdminAccess', useDomainAdminAccess),
                     (u'body', None), (u'fields', u''), (u'supportsTeamDrives', True)]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(drive.permissions(), u'create')
-    dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackCreatePermission)
+    dbatch = drive.new_batch_http_request(callback=_callbackCreatePermission)
     bcount = 0
     j = 0
     for fileId in fileIdEntity[u'list']:
@@ -27212,7 +27374,7 @@ def _createDriveFilePermissions(users, useDomainAdminAccess):
         bcount += 1
         if bcount >= GC.Values[GC.BATCH_SIZE]:
           executeBatch(dbatch)
-          dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackCreatePermission)
+          dbatch = drive.new_batch_http_request(callback=_callbackCreatePermission)
           bcount = 0
     if bcount > 0:
       executeBatch(dbatch)
@@ -27338,7 +27500,7 @@ def _deletePermissions(users, useDomainAdminAccess):
     Ind.Increment()
     svcargs = dict([(u'fileId', None), (u'permissionId', None), (u'useDomainAdminAccess', useDomainAdminAccess), (u'supportsTeamDrives', True)]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(drive.permissions(), u'delete')
-    dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackDeletePermissionId)
+    dbatch = drive.new_batch_http_request(callback=_callbackDeletePermissionId)
     bcount = 0
     j = 0
     for fileId in fileIdEntity[u'list']:
@@ -27361,7 +27523,7 @@ def _deletePermissions(users, useDomainAdminAccess):
         bcount += 1
         if bcount >= GC.Values[GC.BATCH_SIZE]:
           executeBatch(dbatch)
-          dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackDeletePermissionId)
+          dbatch = drive.new_batch_http_request(callback=_callbackDeletePermissionId)
           bcount = 0
     if bcount > 0:
       executeBatch(dbatch)
@@ -28011,7 +28173,7 @@ def addUserToGroups(users):
     Ind.Increment()
     svcargs = dict([(u'groupKey', None), (u'body', body), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(cd.members(), u'insert')
-    dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackAddUserToGroups)
+    dbatch = cd.new_batch_http_request(callback=_callbackAddUserToGroups)
     bcount = 0
     j = 0
     for group in groupKeys:
@@ -28022,7 +28184,7 @@ def addUserToGroups(users):
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
         executeBatch(dbatch)
-        dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackAddUserToGroups)
+        dbatch = cd.new_batch_http_request(callback=_callbackAddUserToGroups)
         bcount = 0
     if bcount > 0:
       executeBatch(dbatch)
@@ -28068,7 +28230,7 @@ def deleteUserFromGroups(users):
     Ind.Increment()
     svcargs = dict([(u'groupKey', None), (u'memberKey', user), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(cd.members(), u'delete')
-    dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackDeleteUserFromGroups)
+    dbatch = cd.new_batch_http_request(callback=_callbackDeleteUserFromGroups)
     bcount = 0
     j = 0
     for group in groupKeys:
@@ -28079,7 +28241,7 @@ def deleteUserFromGroups(users):
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
         executeBatch(dbatch)
-        dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackDeleteUserFromGroups)
+        dbatch = cd.new_batch_http_request(callback=_callbackDeleteUserFromGroups)
         bcount = 0
     if bcount > 0:
       executeBatch(dbatch)
@@ -28221,7 +28383,8 @@ def updatePhoto(users):
         if status[u'content-location'] != filename:
           entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], Msg.NOT_FOUND, i, count)
           continue
-      except (httplib2.HttpLib2Error, httplib2.ServerNotFoundError, httplib2.CertificateValidationUnsupportedInPython31) as e:
+      except (httplib2.HttpLib2Error, httplib2.ServerNotFoundError,
+              google.auth.exceptions.TransportError, httplib2.CertificateValidationUnsupportedInPython31) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], str(e), i, count)
         continue
     else:
@@ -29490,7 +29653,7 @@ def deleteLabel(users):
       Ind.Increment()
       svcargs = dict([(u'userId', u'me'), (u'id', None), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
       method = getattr(gmail.users().labels(), u'delete')
-      dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackDeleteLabel)
+      dbatch = gmail.new_batch_http_request(callback=_callbackDeleteLabel)
       bcount = 0
       j = 0
       for del_me in del_labels:
@@ -29502,7 +29665,7 @@ def deleteLabel(users):
         bcount += 1
         if bcount == 10:
           executeBatch(dbatch)
-          dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackDeleteLabel)
+          dbatch = gmail.new_batch_http_request(callback=_callbackDeleteLabel)
           bcount = 0
       if bcount > 0:
         executeBatch(dbatch)
@@ -29844,7 +30007,7 @@ def _processMessagesThreads(users, entityType):
   def _batchProcessMessagesThreads(service, function, user, jcount, messageIds, **kwargs):
     svcargs = dict([(u'userId', u'me'), (u'id', None), (u'fields', u'')]+list(kwargs.items())+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(service, function)
-    dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackProcessMessage)
+    dbatch = gmail.new_batch_http_request(callback=_callbackProcessMessage)
     bcount = 0
     j = 0
     for messageId in messageIds:
@@ -29855,7 +30018,7 @@ def _processMessagesThreads(users, entityType):
       bcount += 1
       if bcount == GC.Values[GC.EMAIL_BATCH_SIZE]:
         executeBatch(dbatch)
-        dbatch = googleapiclient.http.BatchHttpRequest(callback=_callbackProcessMessage)
+        dbatch = gmail.new_batch_http_request(callback=_callbackProcessMessage)
         bcount = 0
     if bcount > 0:
       executeBatch(dbatch)
@@ -30511,7 +30674,7 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
   def _batchPrintShowMessagesThreads(service, user, jcount, messageIds, callback):
     svcargs = dict([(u'userId', u'me'), (u'id', None), (u'format', [u'metadata', u'full'][show_body or show_attachments])]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(service, u'get')
-    dbatch = googleapiclient.http.BatchHttpRequest(callback=callback)
+    dbatch = gmail.new_batch_http_request(callback=callback)
     bcount = 0
     j = 0
     for messageId in messageIds:
@@ -30524,7 +30687,7 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
         break
       if bcount == GC.Values[GC.EMAIL_BATCH_SIZE]:
         executeBatch(dbatch)
-        dbatch = googleapiclient.http.BatchHttpRequest(callback=callback)
+        dbatch = gmail.new_batch_http_request(callback=callback)
         bcount = 0
     if bcount > 0:
       executeBatch(dbatch)
@@ -32522,7 +32685,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_TEAMDRIVE:	doPrintTeamDrives,
       Cmd.ARG_TEAMDRIVEACLS:	doPrintTeamDriveACLs,
       Cmd.ARG_TOKEN:		doPrintTokens,
-      Cmd.ARG_TRANSFERAPPS:	doPrintTransferApps,
+      Cmd.ARG_TRANSFERAPPS:	doShowTransferApps,
       Cmd.ARG_USER:		doPrintUsers,
       Cmd.ARG_USERS:		doPrintUsers,
       Cmd.ARG_VAULTHOLD:	doPrintVaultHolds,
@@ -32536,6 +32699,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ADMIN:		doShowAdmins,
       Cmd.ARG_BUILDING:		doShowBuildings,
       Cmd.ARG_CONTACT:		doShowDomainContacts,
+      Cmd.ARG_DATATRANSFER:	doShowDataTransfers,
       Cmd.ARG_DRIVEFILEACL:	doShowDriveFileACLs,
       Cmd.ARG_FEATURE:		doShowFeatures,
       Cmd.ARG_GAL:		doShowGAL,
@@ -32553,6 +32717,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_TEAMDRIVEACLS:	doShowTeamDriveACLs,
       Cmd.ARG_TEAMDRIVEINFO:	doInfoTeamDrive,
       Cmd.ARG_TEAMDRIVETHEMES:	doShowTeamDriveThemes,
+      Cmd.ARG_TRANSFERAPPS:	doShowTransferApps,
       Cmd.ARG_VAULTHOLD:	doShowVaultHolds,
       Cmd.ARG_VAULTMATTER:	doShowVaultMatters,
      }
@@ -32713,6 +32878,7 @@ CALENDAR_SUBCOMMANDS = {
   u'addevent': (Act.ADD, doCalendarsCreateEvent),
   u'deleteevent': (Act.DELETE, doCalendarsDeleteEvents),
   u'wipe': (Act.WIPE, doCalendarsWipeEvents),
+  u'modify': (Act.MODIFY, doCalendarsModifySettings),
   }
 
 CALENDAR_OLDACL_SUBCOMMANDS = {

@@ -1,3 +1,28 @@
+4.55.57
+
+GAM has been updated to address the issues addressed in the article: "Discontinuing support for JSON-RPC and Global HTTP Batch Endpoints" at https://developers.googleblog.com/.
+
+GAM has been updated to use the `patch` method with `gam update calendar` so that the values of parameters `selected` and `hidden` are preserved.
+
+Thanks to Jan Almeroth for suggesting the following enhancement.
+Added [csv [todrive [<ToDriveAttributes>]]] to gam create drivefile so that the user, name and drive file ID
+of the created files will be written to a CSV file.
+gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] <DriveFileAddAttributes>* [csv [todrive [<ToDriveAttributes>]]]
+
+Added the ability to transfer all of a user's assets: drive files, calendars and Google+ information, in a single command.
+<DataTransferService> ::=
+        calendar|
+        googledrive|gdrive|drive|"drive and docs"|
+	gplus|googleplus|google+
+<DataTransferServiceList> ::= "<DataTransferService>(,<DataTransferService>)*"
+
+gam create|add datatransfer|transfer <OldOwnerID> <DataTransferServiceList> <NewOwnerID>
+        [private|shared|all] (<ParameterKey> <ParameterValue>)*
+        [release_resources]
+
+Added a command to display transfer requests in a formatted form.
+gam show datatransfers|transfers [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>] [status <String>] [delimiter <Character>]
+
 4.55.56
 
 In gam info group/user, aliases will be displayed as `alias: <EmailAddress>` to be consistent with other items.

@@ -46,6 +46,7 @@ class GamAction(object):
   ENABLE = u'enbl'
   EXPORT = u'expo'
   FETCH = u'fetc'
+  FIND = u'find'
   FORWARD = u'forw'
   IMPORT = u'impo'
   INFO = u'info'
@@ -116,6 +117,7 @@ class GamAction(object):
     EMPTY: [u'Emptied', u'Empty'],
     ENABLE: [u'Enabled', u'Enable'],
     EXPORT: [u'Exported', u'Export'],
+    FIND: [u'Found', u'Find'],
     FORWARD: [u'Forwarded', u'Forward'],
     IMPORT: [u'Imported', u'Import'],
     INFO: [u'Shown', u'Show Info'],
