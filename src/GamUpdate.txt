@@ -1,3 +1,10 @@
+4.55.58
+
+Improved error handling for gam update/delete/info mobile when an invalid <MobileID> is given. The API returns an error indicating that Gam should retry the command
+but this will usually never succeed. Gam now retries the command once rather than ten times and then generates an error.
+
+Mobile devices can have a deviceId with an embedded newline (NL) character; these are now converted to "\n" in gam print mobile if gam.cfg csv_output_convert_cr_nl = True.
+
 4.55.57
 
 GAM has been updated to address the issues addressed in the article: "Discontinuing support for JSON-RPC and Global HTTP Batch Endpoints" at https://developers.googleblog.com/.
