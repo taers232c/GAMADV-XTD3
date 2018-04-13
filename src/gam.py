@@ -25160,7 +25160,7 @@ def _cloneFolder(drive, user, i, count, j, jcount, folderId, folderTitle, newFol
                                                                     GAPI.OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                                                     GAPI.ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED],
                      fileId=newFolderId, sendNotificationEmail=sendNotificationEmail, emailMessage=emailMessage,
-                     body=permission, fields=u'permissions(id)', supportsTeamDrives=True)
+                     body=permission, fields=u'id', supportsTeamDrives=True)
           except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
                   GAPI.ownerOnTeamDriveItemNotSupported, GAPI.organizerOnNonTeamDriveItemNotSupported) as e:
             entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], str(e), j, jcount)
