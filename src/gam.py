@@ -4508,7 +4508,7 @@ def cleanJSON(structure, key, listLimit=None, skipObjects=None, timeObjects=None
       else:
         return structure
     else:
-      if isinstance(structure, string_types):
+      if isinstance(structure, string_types) and not structure.isdigit():
         return formatLocalTime(structure)
       else:
         return formatLocalTimestamp(structure)
@@ -4538,7 +4538,7 @@ def flattenJSON(structure, key=u'', path=u'', flattened=None, listLimit=None, sk
       else:
         flattened[((path+u'.') if path else u'')+key] = structure
     else:
-      if isinstance(structure, string_types):
+      if isinstance(structure, string_types) and not structure.isdigit():
         flattened[((path+u'.') if path else u'')+key] = formatLocalTime(structure)
       else:
         flattened[((path+u'.') if path else u'')+key] = formatLocalTimestamp(structure)
@@ -4621,7 +4621,7 @@ def showJSON(object_name, object_value, skipObjects=None, timeObjects=None, dict
       else:
         printJSONValue(object_value)
     else:
-      if isinstance(object_value, string_types):
+      if isinstance(object_value, string_types) and not object_value.isdigit():
         printJSONValue(formatLocalTime(object_value))
       else:
         printJSONValue(formatLocalTimestamp(object_value))
@@ -6954,10 +6954,10 @@ def doPrintDomainAliases():
     else:
       unknownArgumentExit()
   try:
-    result = callGAPI(cd.domainAliases(), u'list',
-                      throw_reasons=[GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                      customer=GC.Values[GC.CUSTOMER_ID])
-    for domainAlias in result.get(u'domainAliases', []):
+    domainAliases = callGAPIitems(cd.domainAliases(), u'list', u'domainAliases',
+                                  throw_reasons=[GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                  customer=GC.Values[GC.CUSTOMER_ID])
+    for domainAlias in domainAliases:
       row = {}
       for attr in domainAlias:
         if attr not in DEFAULT_SKIP_OBJECTS:
@@ -7071,48 +7071,55 @@ def doInfoDomain():
   except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
     accessErrorExit(cd)
 
-# gam print domains [todrive [<ToDriveAttributes>]]
+# gam print domains [todrive [<ToDriveAttributes>]] [formatjson] [quotechar <Character>]
 def doPrintDomains():
+  def _printDomain(domain):
+    row = {}
+    for attr in domain:
+      if attr not in DEFAULT_SKIP_OBJECTS:
+        if attr == u'creationTime':
+          row[attr] = formatLocalTimestamp(domain[attr])
+        else:
+          row[attr] = domain[attr]
+        if attr not in titles[u'set']:
+          addTitleToCSVfile(attr, titles)
+    csvRows.append(row)
+
   cd = buildGAPIObject(API.DIRECTORY)
+  formatJSON = False
+  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
   todrive = {}
   titles, csvRows = initializeTitlesCSVfile([u'domainName',])
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
       todrive = getTodriveParameters()
+    elif myarg == "formatjson":
+      formatJSON = True
+      addTitlesToCSVfile([u'JSON',], titles)
+    elif myarg == u'quotechar':
+      quotechar = getCharacter()
     else:
       unknownArgumentExit()
   try:
-    domains = callGAPI(cd.domains(), u'list',
-                       throw_reasons=[GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                       customer=GC.Values[GC.CUSTOMER_ID])
-    for domain in domains[u'domains']:
-      row = {}
-      domain[u'type'] = [u'secondary', u'primary'][domain[u'isPrimary']]
-      for attr in domain:
-        if attr not in set([u'kind', u'etag', u'domainAliases', u'isPrimary']):
-          if attr == u'creationTime':
-            domain[attr] = formatLocalTimestamp(domain[attr])
-          row[attr] = domain[attr]
-          if attr not in titles[u'set']:
-            addTitleToCSVfile(attr, titles)
-      csvRows.append(row)
-      if u'domainAliases' in domain:
-        for aliasdomain in domain[u'domainAliases']:
-          aliasdomain[u'domainName'] = aliasdomain.pop(u'domainAliasName')
-          aliasdomain[u'type'] = u'alias'
-          row = {}
-          for attr in aliasdomain:
-            if attr not in DEFAULT_SKIP_OBJECTS:
-              if attr == u'creationTime':
-                aliasdomain[attr] = formatLocalTimestamp(aliasdomain[attr])
-              row[attr] = aliasdomain[attr]
-              if attr not in titles[u'set']:
-                addTitleToCSVfile(attr, titles)
-          csvRows.append(row)
+    domains = callGAPIitems(cd.domains(), u'list', u'domains',
+                            throw_reasons=[GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                            customer=GC.Values[GC.CUSTOMER_ID])
+    for domain in domains:
+      if formatJSON:
+        csvRows.append({u'domainName': domain[u'domainName'],
+                        u'JSON': json.dumps(cleanJSON(domain, u'', timeObjects=DOMAIN_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
+        continue
+      domain[u'type'] = [u'secondary', u'primary'][domain.pop(u'isPrimary')]
+      domainAliases = domain.pop(u'domainAliases', [])
+      _printDomain(domain)
+      for domainAlias in domainAliases:
+        domainAlias[u'type'] = u'alias'
+        domainAlias[u'domainName'] = domainAlias.pop(u'domainAliasName')
+        _printDomain(domainAlias)
   except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
     accessErrorExit(cd)
-  writeCSVfile(csvRows, titles, u'Domains', todrive)
+  writeCSVfile(csvRows, titles, u'Domains', todrive, quotechar=quotechar)
 
 PRINT_PRIVILEGES_FIELDS = [u'serviceId', u'serviceName', u'privilegeName', u'isOuScopable', u'childPrivileges']
 
