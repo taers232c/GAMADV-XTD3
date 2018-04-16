@@ -1,3 +1,33 @@
+Added formatjson argument to gam info course/courses.
+gam info course <CourseID> [owneremail] [alias|aliases] [show all|students|teachers] [countsonly]
+        [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson]
+gam info courses <CourseEntity> [owneremail] [alias|aliases] [show all|students|teachers] [countsonly]
+        [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson]
+
+Added formatjson and quotechar <Character> arguments to gam print courses/course-participants/course-announcements/course-work/course-submissions.
+gam print courses [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
+        [owneremail] [owneremailmatchpattern <RegularExpression>] [alias|aliases][delimiter <Character>] [show all|students|teachers] [countsonly]
+        [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson] [quotechar <Character>]
+gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
+        [show all|students|teachers] [formatjson] [quotechar <Character>]
+gam print course-announcements [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+        (announcementids <CourseAnnouncementIDEntity>)|((announcementstates <CourseAnnouncementStateList>)* (orderby <CourseAnnouncementOrderByFieldName> [ascending|descending])*)
+        [creatoremail] [fields <CourseAnnouncementFieldNameList>] [formatjson] [quotechar <Character>]
+gam print course-work [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+        (workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)* (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
+        [creatoremail] [fields <CourseWorkFieldNameList>] [formatjson] [quotechar <Character>]
+gam print course-submissions [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+        (workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)* (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
+        (submissionids <CourseSubmissionIDEntity>)|((submissionstates <CourseSubmissionStateList>)*) [late|notlate]
+        [fields <CourseSubmissionFieldNameList>] [formatjson] [quotechar <Character>] [showuserprofile]
+
+4.55.59
+
+Added formatjson argument to gam info customer/instance/domain.
+gam info customer [formatjson]
+gam info instance [logo <FileName>] [formatjson]
+gam info domain [<DomainName>] [formatjson]
+
 4.55.58
 
 Improved error handling for gam update/delete/info mobile when an invalid <MobileID> is given. The API returns an error indicating that Gam should retry the command

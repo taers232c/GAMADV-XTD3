@@ -1123,14 +1123,14 @@ gam courses <CourseEntity> delete|remove teachers|students <UserTypeEntity>
 gam courses <CourseEntity> sync teachers|students [addonly|removeonly] <UserTypeEntity>
 
 gam info course <CourseID> [owneremail] [alias|aliases] [show all|students|teachers] [countsonly]
-        [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
+        [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson]
 gam info courses <CourseEntity> [owneremail] [alias|aliases] [show all|students|teachers] [countsonly]
-        [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
+        [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson]
 gam print courses [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
         [owneremail] [owneremailmatchpattern <RegularExpression>] [alias|aliases][delimiter <Character>] [show all|students|teachers] [countsonly]
-        [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
+        [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson] [quotechar <Character>]
 gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
-        [show all|students|teachers]
+        [show all|students|teachers] [formatjson] [quotechar <Character>]
 
 <CourseAnnouncementFieldName> ::=
         alternatelink|
@@ -1196,14 +1196,14 @@ gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <Cou
 
 gam print course-announcements [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         (announcementids <CourseAnnouncementIDEntity>)|((announcementstates <CourseAnnouncementStateList>)* (orderby <CourseAnnouncementOrderByFieldName> [ascending|descending])*)
-        [creatoremail] [fields <CourseAnnouncementFieldNameList>]
+        [creatoremail] [fields <CourseAnnouncementFieldNameList>] [formatjson] [quotechar <Character>]
 gam print course-work [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         (workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)* (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
-        [creatoremail] [fields <CourseWorkFieldNameList>]
+        [creatoremail] [fields <CourseWorkFieldNameList>] [formatjson] [quotechar <Character>]
 gam print course-submissions [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         (workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)* (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
         (submissionids <CourseSubmissionIDEntity>)|((submissionstates <CourseSubmissionStateList>)*) [late|notlate]
-        [fields <CourseSubmissionFieldNameList>] [showuserprofile]
+        [fields <CourseSubmissionFieldNameList>] [formatjson] [quotechar <Character>] [showuserprofile]
 
 # Customer
 
@@ -1224,13 +1224,13 @@ gam print course-submissions [todrive [<ToDriveAttributes>]] (course|class <Cour
 
 gam update customer <CustomerAttributes>*
 
-gam info customer
+gam info customer [formatjson]
 
 gam update instance sso_settings [enabled <Boolean>] [sign_on_uri <URI>] [sign_out_uri <URI>] [password_uri <URI>] [whitelist <CIDRnetmask>] [use_domain_specific_issuer <Boolean>]
 gam update instance sso_key <FileName>
 gam update instance logo <FileName>
 
-gam info instance [logo <FileName>]
+gam info instance [logo <FileName>] [formatjson]
 
 # Data Transfers
 
@@ -1261,7 +1261,7 @@ gam create|add domain <DomainName>
 gam update domain <DomainName> primary
 gam delete domain <DomainName>
 
-gam info domain [<DomainName>]
+gam info domain [<DomainName>] [formatjson]
 gam print domains [todrive [<ToDriveAttributes>]]
 
 gam create|add domainalias|aliasdomain <DomainAlias> <DomainName>
@@ -2356,6 +2356,7 @@ gam <UserTypeEntity> collect orphans (orderby <DriveFileOrderByFieldName> [ascen
         cancomment|
         canreadrevisions|
         capabilities|
+	contenthints|
         copyable|
         createddate|createdtime|
         description|
@@ -2366,9 +2367,11 @@ gam <UserTypeEntity> collect orphans (orderby <DriveFileOrderByFieldName> [ascen
         foldercolorrgb|
         fullfileextension|
         hasaugmentedpermissions|
+	hasthumbnail|
         headrevisionid|
         iconlink|
         id|
+	imagemediametadata|
         isappauthorized|
         lastmodifyinguser|
         <DriveLastModifyingUserSubfieldName>|
@@ -2402,6 +2405,7 @@ gam <UserTypeEntity> collect orphans (orderby <DriveFileOrderByFieldName> [ascen
         starred|
         teamdriveid|
         thumbnaillink|
+        thumbnailversion|
         title|
         trashed|
         trasheddate|trashedtime|
@@ -2409,6 +2413,7 @@ gam <UserTypeEntity> collect orphans (orderby <DriveFileOrderByFieldName> [ascen
         <DriveTrashingUserSubfieldName>|
         userpermission|
         version|
+	videomediametadata|
         viewed|
         viewedbymedate|viewedbymetime|
         viewerscancopycontent|
