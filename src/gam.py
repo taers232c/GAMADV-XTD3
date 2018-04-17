@@ -3117,6 +3117,29 @@ def buildGAPIObject(api):
   GM.Globals[GM.OAUTH2_CLIENT_ID] = credentials.client_id
   return service
 
+# Override and wrap google_auth_httplib2 request methods so that the GAM
+# user-agent string is inserted into HTTP request headers.
+def _request_with_user_agent(request_method):
+  """Inserts the GAM user-agent header kwargs sent to a method."""
+  GAM_USER_AGENT = GAM_INFO
+
+  def wrapped_request_method(self, *args, **kwargs):
+    if kwargs.get('headers') is not None:
+      if kwargs['headers'].get('user-agent'):
+        if GAM_USER_AGENT not in kwargs['headers']['user-agent']:
+          # Save the existing user-agent header and tack on the GAM user-agent.
+          kwargs['headers']['user-agent'] = '%s %s' % (GAM_USER_AGENT, kwargs['headers']['user-agent'])
+      else:
+        kwargs['headers']['user-agent'] = GAM_USER_AGENT
+    else:
+      kwargs['headers'] = {'user-agent': GAM_USER_AGENT}
+    return request_method(self, *args, **kwargs)
+
+  return wrapped_request_method
+
+google_auth_httplib2.Request.__call__ = _request_with_user_agent(google_auth_httplib2.Request.__call__)
+google_auth_httplib2.AuthorizedHttp.request = _request_with_user_agent(google_auth_httplib2.AuthorizedHttp.request)
+
 def buildGAPIServiceObject(api, user, i, count, displayError=True):
   userEmail = convertUIDtoEmailAddress(user)
   _, httpObj, service, _ = getAPIversionHttpService(api)
@@ -3124,10 +3147,10 @@ def buildGAPIServiceObject(api, user, i, count, displayError=True):
   GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = API.getSvcAcctScopesSet(api)
   GM.Globals[GM.CURRENT_SVCACCT_USER] = userEmail
   credentials = getSvcAcctCredentials(GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES], userEmail)
-  request = google_auth_httplib2.Request(httpObj, user_agent=GAM_INFO)
+  request = google_auth_httplib2.Request(httpObj)
   try:
     credentials.refresh(request)
-    service._http = google_auth_httplib2.AuthorizedHttp(credentials, http=httpObj, user_agent=GAM_INFO)
+    service._http = google_auth_httplib2.AuthorizedHttp(credentials, http=httpObj)
   except (httplib2.ServerNotFoundError, google.auth.exceptions.TransportError) as e:
     systemErrorExit(NETWORK_ERROR_RC, str(e))
   except google.auth.exceptions.RefreshError as e:
@@ -3173,7 +3196,7 @@ def getGDataUserCredentials(api, user, i, count):
   if not GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES]:
     systemErrorExit(NO_SCOPES_FOR_API_RC, Msg.NO_SCOPES_FOR_API.format(discovery.get(u'title', api_version)))
   credentials = getSvcAcctCredentials(GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES], userEmail)
-  request = google_auth_httplib2.Request(getHttpObj(), user_agent=GAM_INFO)
+  request = google_auth_httplib2.Request(getHttpObj())
   try:
     credentials.refresh(request)
     return (userEmail, credentials)
@@ -5571,7 +5594,7 @@ def checkServiceAccount(users):
     for scope in all_scopes:
       j += 1
       credentials = getSvcAcctCredentials([scope], user)
-      request = google_auth_httplib2.Request(getHttpObj(), user_agent=GAM_INFO)
+      request = google_auth_httplib2.Request(getHttpObj())
       try:
         credentials.refresh(request)
         result = u'PASS'
