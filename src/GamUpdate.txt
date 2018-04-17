@@ -1,3 +1,14 @@
+4.56.00
+
+Update httplib2 to 0.11.3.
+
+4.55.59
+
+Added formatjson argument to gam info customer/instance/domain.
+gam info customer [formatjson]
+gam info instance [logo <FileName>] [formatjson]
+gam info domain [<DomainName>] [formatjson]
+
 Added formatjson argument to gam info course/courses.
 gam info course <CourseID> [owneremail] [alias|aliases] [show all|students|teachers] [countsonly]
         [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson]
@@ -21,13 +32,6 @@ gam print course-submissions [todrive [<ToDriveAttributes>]] (course|class <Cour
         (workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)* (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
         (submissionids <CourseSubmissionIDEntity>)|((submissionstates <CourseSubmissionStateList>)*) [late|notlate]
         [fields <CourseSubmissionFieldNameList>] [formatjson] [quotechar <Character>] [showuserprofile]
-
-4.55.59
-
-Added formatjson argument to gam info customer/instance/domain.
-gam info customer [formatjson]
-gam info instance [logo <FileName>] [formatjson]
-gam info domain [<DomainName>] [formatjson]
 
 4.55.58
 
