@@ -22,6 +22,7 @@ target_dir="$HOME/bin"
 target_gam="gamadv-xtd3/gam"
 gamarch=$(uname -m)
 gamos=$(uname -s)
+kernel=$(uname -v)
 update_profile=true
 upgrade_only=false
 gamversion="latest"
@@ -47,15 +48,15 @@ done
 target_dir=${target_dir%/}
 
 update_profile() {
-	[ -f "$1" ] || return 1
+        [ -f "$1" ] || return 1
 
-	grep -F "$alias_line" "$1" > /dev/null 2>&1
-	if [ $? -ne 0 ]; then
+        grep -F "$alias_line" "$1" > /dev/null 2>&1
+        if [ $? -ne 0 ]; then
                 echo_yellow "Adding gam alias to profile file $1."
-		echo -e "\n$alias_line" >> "$1"
+                echo -e "\n$alias_line" >> "$1"
         else
           echo_yellow "gam alias already exists in profile file $1. Skipping add."
-	fi
+        fi
 }
 
 echo_red()
@@ -80,13 +81,19 @@ case $gamos in
   [lL]inux)
     gamos="linux"
     case $gamarch in
-      x86_64) gamfile="linux-x86_64.tar.xz";;
+      x86_64)
+        case $kernel in
+          *Debian*)  gamfile="debian-x86_64.tar.xz";;
+          *)  gamfile="linux-x86_64.tar.xz";;
+        esac
+        ;;
 #      i?86) gamfile="linux-i686.tar.xz";;
 #      arm*) gamfile="linux-armv7l.tar.xz";;
       *)
 #        echo_red "ERROR: this installer currently only supports i386, x86_64 and arm Linux. Looks like you're running on $gamarch. Exiting."
         echo_red "ERROR: this installer currently only supports x86_64 Linux. Looks like you're running on $gamarch. Exiting."
         exit
+        ;;
     esac
     ;;
   [Mm]ac[Oo][sS]|[Dd]arwin)
