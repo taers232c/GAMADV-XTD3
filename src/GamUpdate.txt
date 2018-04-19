@@ -1,3 +1,39 @@
+4.56.02
+
+Added formatjson argument to gam info/show contacts/contactgroups/gal.
+gam info contacts <ContactEntity> [basic|full] [showgroups]
+        [fields <ContactFieldNameList>] [formatjson]
+gam show contacts [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+        [basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+        [fields <ContactFieldNameList>] [formatjson]
+gam <UserTypeEntity> info contacts <ContactEntity> [basic|full] [showgroups]
+        [fields <ContactFieldNameList>] [formatjson]
+gam <UserTypeEntity> show contacts [query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+        [basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+        [fields <ContactFieldNameList>] [formatjson]
+gam <UserTypeEntity> print contacts [todrive [<ToDriveAttributes>]] [query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+        [basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+        [fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
+gam <UserTypeEntity> info contactgroups <ContactGroupEntity> [formatjson]
+gam <UserTypeEntity> show contactgroups [updated_min <Date>]
+        [basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+gam <UserTypeEntity> info gal <ContactEntity> [basic|full]
+        [fields <ContactFieldNameList>] [formatjson]
+gam <UserTypeEntity> show gal [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+        [basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]]
+        [fields <ContactFieldNameList>] [formatjson]
+
+Added formatjson and quotechar <Character> arguments to gam print contacts/contactgroups/gal
+gam print contacts [todrive [<ToDriveAttributes>]] [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+        [basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+        [fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
+gam <UserTypeEntity> print contactgroups [todrive [<ToDriveAttributes>]] [updated_min <Date>]
+        [basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+	[formatjson] [quotechar <Character>]
+gam <UserTypeEntity> print gal [todrive [<ToDriveAttributes>]] [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+        [basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]]
+        [fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
+
 4.56.00
 
 Update httplib2 to 0.11.3.

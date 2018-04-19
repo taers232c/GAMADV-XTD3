@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.56.00'
+__version__ = u'4.56.01'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -10397,7 +10397,12 @@ def deleteUserContacts(users):
 def doDeleteDomainContacts():
   _deleteContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
-def _showContact(contactsManager, fields, displayFieldsList, contactGroupIDs, j, jcount):
+CONTACT_TIME_OBJECTS = set([CONTACT_UPDATED])
+
+def _showContact(contactsManager, fields, displayFieldsList, contactGroupIDs, j, jcount, formatJSON):
+  if formatJSON:
+    printLine(json.dumps(cleanJSON(fields, u'', timeObjects=CONTACT_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+    return
   printEntity([Ent.CONTACT, fields[CONTACT_ID]], j, jcount)
   Ind.Increment()
   for key in contactsManager.CONTACT_NAME_PROPERTY_PRINT_ORDER:
@@ -10481,7 +10486,7 @@ def _infoContacts(users, entityType, contactFeed=True):
   entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
   contactIdLists = entityList if isinstance(entityList, dict) else None
   contactQuery = _initContactQueryAttributes()
-  showContactGroups = False
+  formatJSON = showContactGroups = False
   displayFieldsList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -10493,6 +10498,8 @@ def _infoContacts(users, entityType, contactFeed=True):
       _getContactFieldsList(contactsManager, displayFieldsList)
       if CONTACT_GROUPS in displayFieldsList:
         showContactGroups = True
+    elif myarg == u'formatjson':
+      formatJSON = True
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
@@ -10522,7 +10529,7 @@ def _infoContacts(users, entityType, contactFeed=True):
         fields = contactsManager.ContactToFields(contact)
         if showContactGroups and CONTACT_GROUPS in fields and not contactGroupIDs:
           contactGroupIDs, _ = getContactGroupsInfo(contactsManager, contactsObject, entityType, user, i, count)
-        _showContact(contactsManager, fields, displayFieldsList, [None, contactGroupIDs][showContactGroups], j, jcount)
+        _showContact(contactsManager, fields, displayFieldsList, [None, contactGroupIDs][showContactGroups], j, jcount, formatJSON)
       except (GDATA.notFound, GDATA.badRequest) as e:
         entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId], str(e), j, jcount)
       except (GDATA.forbidden, GDATA.notImplemented):
@@ -10533,15 +10540,18 @@ def _infoContacts(users, entityType, contactFeed=True):
         break
     Ind.Decrement()
 
-# gam <UserTypeEntity> info contacts <ContactEntity> [basic|full] [showgroups] [fields <ContactFieldNameList>]
+# gam <UserTypeEntity> info contacts <ContactEntity> [basic|full] [showgroups]
+#	[fields <ContactFieldNameList>] [formatjson]
 def infoUserContacts(users):
   _infoContacts(users, Ent.USER)
 
-# gam info contacts <ContactEntity> [basic|full] [showgroups] [fields <ContactFieldNameList>]
+# gam info contacts <ContactEntity> [basic|full] [showgroups]
+#	[fields <ContactFieldNameList>] [formatjson]
 def doInfoDomainContacts():
   _infoContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
-# gam info gal <GalEntity> [basic|full] [fields <ContactFieldNameList>]
+# gam info gal <GalEntity> [basic|full]
+#	[fields <ContactFieldNameList>] [formatjson]
 def doInfoGAL():
   _infoContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN, False)
 
@@ -10551,7 +10561,8 @@ def _printShowContacts(users, entityType, csvFormat, contactFeed=True):
     todrive = {}
     titles, csvRows = initializeTitlesCSVfile([Ent.Singular(entityType), CONTACT_ID, CONTACT_NAME])
   contactQuery = _initContactQueryAttributes()
-  showContactGroups = False
+  formatJSON = showContactGroups = False
+  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
   displayFieldsList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -10563,6 +10574,12 @@ def _printShowContacts(users, entityType, csvFormat, contactFeed=True):
       _getContactFieldsList(contactsManager, displayFieldsList)
       if contactFeed and CONTACT_GROUPS in displayFieldsList:
         showContactGroups = True
+    elif myarg == u'formatjson':
+      formatJSON = True
+      if csvFormat:
+        addTitlesToCSVfile([u'JSON',], titles)
+    elif myarg == u'quotechar':
+      quotechar = getCharacter()
     else:
       _getContactQueryAttributes(contactQuery, myarg, entityType, True, True)
   i, count, users = getEntityArgument(users)
@@ -10594,7 +10611,7 @@ def _printShowContacts(users, entityType, csvFormat, contactFeed=True):
           continue
         if showContactGroups and CONTACT_GROUPS in fields and not contactGroupIDs:
           contactGroupIDs, _ = getContactGroupsInfo(contactsManager, contactsObject, entityType, user, i, count)
-        _showContact(contactsManager, fields, displayFieldsList, [None, contactGroupIDs][showContactGroups], j, jcount)
+        _showContact(contactsManager, fields, displayFieldsList, [None, contactGroupIDs][showContactGroups], j, jcount, formatJSON)
       Ind.Decrement()
     elif contacts:
       for contact in contacts:
@@ -10603,6 +10620,10 @@ def _printShowContacts(users, entityType, csvFormat, contactFeed=True):
           continue
         if showContactGroups and CONTACT_GROUPS in fields and not contactGroupIDs:
           contactGroupIDs, _ = getContactGroupsInfo(contactsManager, contactsObject, entityType, user, i, count)
+        if formatJSON:
+          csvRows.append({Ent.Singular(entityType): user, CONTACT_ID: fields[CONTACT_ID], CONTACT_NAME: fields.get(CONTACT_NAME, u''),
+                          u'JSON': json.dumps(cleanJSON(fields, u'', timeObjects=CONTACT_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
+          continue
         contactRow = {Ent.Singular(entityType): user, CONTACT_ID: fields[CONTACT_ID]}
         for key in contactsManager.CONTACT_NAME_PROPERTY_PRINT_ORDER:
           if displayFieldsList and key not in displayFieldsList:
@@ -10665,35 +10686,41 @@ def _printShowContacts(users, entityType, csvFormat, contactFeed=True):
     elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT] and entityType == Ent.USER:
       csvRows.append({Ent.Singular(entityType): user})
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'Contacts', todrive, [Ent.Singular(entityType), CONTACT_ID, CONTACT_NAME])
+    writeCSVfile(csvRows, titles, u'Contacts', todrive, [Ent.Singular(entityType), CONTACT_ID, CONTACT_NAME], quotechar=quotechar)
 
 # gam <UserTypeEntity> print contacts [todrive [<ToDriveAttributes>]] [query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]
-#	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]] [fields <ContactFieldNameList>]
+#	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+#	[fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
 def printUserContacts(users):
   _printShowContacts(users, Ent.USER, True)
 
 # gam <UserTypeEntity> show contacts [query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]
-#	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]] [fields <ContactFieldNameList>]
+#	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+#	[fields <ContactFieldNameList>] [formatjson]
 def showUserContacts(users):
   _printShowContacts(users, Ent.USER, False)
 
 # gam print contacts [todrive [<ToDriveAttributes>]] [query <QueryContact>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]
-#	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]] [fields <ContactFieldNameList>]
+#	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+#	[fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
 def doPrintDomainContacts():
   _printShowContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN, True)
 
 # gam show contacts [query <QueryContact>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]
-#	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]] [fields <ContactFieldNameList>]
+#	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+#	[fields <ContactFieldNameList>] [formatjson]
 def doShowDomainContacts():
   _printShowContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN, False)
 
 # gam print gal [todrive [<ToDriveAttributes>]] [query <QueryContact>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]
-#	[basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]] [fields <ContactFieldNameList>]
+#	[basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+#	[fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
 def doPrintGAL():
   _printShowContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN, True, False)
 
 # gam show gal [query <QueryContact>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]
-#	[basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]] [fields <ContactFieldNameList>]
+#	[basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+#	[fields <ContactFieldNameList>] [formatjson]
 def doShowGAL():
   _printShowContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN, False, False)
 
@@ -10991,21 +11018,32 @@ def deleteUserContactGroups(users):
         break
     Ind.Decrement()
 
-def _showContactGroup(contactsManager, group, j, jcount):
+CONTACT_GROUP_TIME_OBJECTS = set([CONTACT_GROUP_UPDATED])
+
+def _showContactGroup(contactsManager, group, j, jcount, formatJSON):
   fields = contactsManager.ContactGroupToFields(group)
+  if formatJSON:
+    printLine(json.dumps(cleanJSON(fields, u'', timeObjects=CONTACT_GROUP_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+    return
   printEntity([Ent.CONTACT_GROUP, fields[CONTACT_GROUP_NAME]], j, jcount)
   Ind.Increment()
   printKeyValueList([u'updated', formatLocalTime(fields[CONTACT_GROUP_UPDATED])])
   printKeyValueList([u'id', fields[CONTACT_GROUP_ID]])
   Ind.Decrement()
 
-# gam <UserTypeEntity> info contactgroups <ContactGroupEntity>
+# gam <UserTypeEntity> info contactgroups <ContactGroupEntity> [formatjson]
 def infoUserContactGroups(users):
   contactsManager = ContactsManager()
   entityType = Ent.USER
   entityList = getEntityList(Cmd.OB_CONTACT_GROUP_ENTITY, shlexSplit=True)
   contactGroupIdLists = entityList if isinstance(entityList, dict) else None
-  checkForExtraneousArguments()
+  formatJSON = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'formatjson':
+      formatJSON = True
+    else:
+      unknownArgumentExit()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -11036,7 +11074,7 @@ def infoUserContactGroups(users):
                           throw_errors=[GDATA.NOT_FOUND, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
                           retry_errors=[GDATA.INTERNAL_SERVER_ERROR],
                           uri=contactsObject.GetContactGroupFeedUri(contact_list=user, groupId=groupId))
-        _showContactGroup(contactsManager, group, j, jcount)
+        _showContactGroup(contactsManager, group, j, jcount, formatJSON)
       except GDATA.notFound as e:
         entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactGroup], str(e), j, jcount)
       except GDATA.forbidden:
@@ -11054,6 +11092,8 @@ def _printShowContactGroups(users, csvFormat):
     titles, csvRows = initializeTitlesCSVfile([Ent.Singular(entityType), CONTACT_GROUP_ID, CONTACT_GROUP_NAME])
   projection = u'full'
   url_params = {u'max-results': str(GC.Values[GC.CONTACT_MAX_RESULTS])}
+  formatJSON = False
+  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
@@ -11067,6 +11107,12 @@ def _printShowContactGroups(users, csvFormat):
       url_params[u'showdeleted'] = u'true'
     elif myarg == u'updatedmin':
       url_params[u'updated-min'] = getYYYYMMDD()
+    elif myarg == u'formatjson':
+      formatJSON = True
+      if csvFormat:
+        addTitlesToCSVfile([u'JSON',], titles)
+    elif myarg == u'quotechar':
+      quotechar = getCharacter()
     else:
       unknownArgumentExit()
   contactsManager = ContactsManager()
@@ -11091,15 +11137,19 @@ def _printShowContactGroups(users, csvFormat):
         j = 0
         for group in groups:
           j += 1
-          _showContactGroup(contactsManager, group, j, jcount)
+          _showContactGroup(contactsManager, group, j, jcount, formatJSON)
         Ind.Decrement()
       else:
         if groups:
           for group in groups:
             fields = contactsManager.ContactGroupToFields(group)
-            groupRow = {Ent.Singular(entityType): user, CONTACT_GROUP_ID: u'id:{0}'.format(fields[CONTACT_GROUP_ID]),
-                        CONTACT_GROUP_NAME: fields[CONTACT_GROUP_NAME], CONTACT_GROUP_UPDATED: formatLocalTime(fields[CONTACT_GROUP_UPDATED])}
-            addRowTitlesToCSVfile(groupRow, csvRows, titles)
+            if formatJSON:
+              csvRows.append({Ent.Singular(entityType): user, CONTACT_GROUP_ID: u'id:{0}'.format(fields[CONTACT_GROUP_ID]),
+                              CONTACT_GROUP_NAME: fields[CONTACT_GROUP_NAME],
+                              u'JSON': json.dumps(cleanJSON(fields, u'', timeObjects=CONTACT_GROUP_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
+            else:
+              addRowTitlesToCSVfile({Ent.Singular(entityType): user, CONTACT_GROUP_ID: u'id:{0}'.format(fields[CONTACT_GROUP_ID]),
+                                     CONTACT_GROUP_NAME: fields[CONTACT_GROUP_NAME], CONTACT_GROUP_UPDATED: formatLocalTime(fields[CONTACT_GROUP_UPDATED])}, csvRows, titles)
         elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT] and entityType == Ent.USER:
           csvRows.append({Ent.Singular(entityType): user})
     except GDATA.forbidden:
@@ -11107,15 +11157,17 @@ def _printShowContactGroups(users, csvFormat):
     except GDATA.serviceNotApplicable:
       entityUnknownWarning(entityType, user, i, count)
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'Contact Groups', todrive)
+    writeCSVfile(csvRows, titles, u'Contact Groups', todrive, quotechar=quotechar)
 
 # gam <UserTypeEntity> print contactgroups [todrive [<ToDriveAttributes>]] [updated_min <Date>]
 #	[basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+#	[formatjson] [quotechar <Character>]
 def printUserContactGroups(users):
   _printShowContactGroups(users, True)
 
 # gam <UserTypeEntity> show contactgroups [updated_min <Date>]
 #	[basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+#	[formatjson]
 def showUserContactGroups(users):
   _printShowContactGroups(users, False)
 
