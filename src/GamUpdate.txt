@@ -1,4 +1,4 @@
-4.56.02
+4.56.01
 
 Added formatjson argument to gam info/show contacts/contactgroups/gal.
 gam info contacts <ContactEntity> [basic|full] [showgroups]
@@ -23,7 +23,7 @@ gam <UserTypeEntity> show gal [query <QueryContact>] [emailmatchpattern <Regular
         [basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]]
         [fields <ContactFieldNameList>] [formatjson]
 
-Added formatjson and quotechar <Character> arguments to gam print contacts/contactgroups/gal
+Added formatjson and quotechar <Character> arguments to gam print contacts/contactgroups/gal.
 gam print contacts [todrive [<ToDriveAttributes>]] [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
         [basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
         [fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
