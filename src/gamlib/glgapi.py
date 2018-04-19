@@ -27,6 +27,7 @@ AUTH_ERROR = u'authError'
 BACKEND_ERROR = u'backendError'
 BAD_GATEWAY = u'badGateway'
 BAD_REQUEST = u'badRequest'
+CANNOT_CHANGE_ORGANIZER = u'cannotChangeOrganizer'
 CANNOT_CHANGE_OWN_ACL = u'cannotChangeOwnAcl'
 CANNOT_CHANGE_OWNER_ACL = u'cannotChangeOwnerAcl'
 CANNOT_COPY_FILE = u'cannotCopyFile'
@@ -206,6 +207,8 @@ class backendError(Exception):
   pass
 class badRequest(Exception):
   pass
+class cannotChangeOrganizer(Exception):
+  pass
 class cannotChangeOwnAcl(Exception):
   pass
 class cannotChangeOwnerAcl(Exception):
@@ -374,6 +377,7 @@ REASON_EXCEPTION_MAP = {
   AUTH_ERROR: authError,
   BACKEND_ERROR: backendError,
   BAD_REQUEST: badRequest,
+  CANNOT_CHANGE_ORGANIZER: cannotChangeOrganizer,
   CANNOT_CHANGE_OWN_ACL: cannotChangeOwnAcl,
   CANNOT_CHANGE_OWNER_ACL: cannotChangeOwnerAcl,
   CANNOT_COPY_FILE: cannotCopyFile,

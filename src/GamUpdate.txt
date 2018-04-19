@@ -1,3 +1,11 @@
+4.56.02
+
+When formatjson argument is used with gam info/show contacts/contactgroups/gal, non JSON output is suppressed.
+
+Handle "cannotChangeOrganizer - Cannot change the organizer of attendees copy of the event." error in the following commands:
+gam calendar|calendars <CalendarEntity> move events <EventEntity> to <CalendarItem> [notifyattendees]
+gam <UserTypeEntity> move events <CalendarManageEntity> <EventEntity> to <CalendarItem> [notifyattendees]
+
 4.56.01
 
 Added formatjson argument to gam info/show contacts/contactgroups/gal.

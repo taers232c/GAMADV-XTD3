@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.56.01'
+__version__ = u'4.56.02'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -10513,7 +10513,8 @@ def _infoContacts(users, entityType, contactFeed=True):
     contactGroupIDs = None
     j = 0
     jcount = len(entityList)
-    entityPerformActionNumItems([entityType, user], jcount, Ent.CONTACT, i, count)
+    if not formatJSON:
+      entityPerformActionNumItems([entityType, user], jcount, Ent.CONTACT, i, count)
     if jcount == 0:
       setSysExitRC(NO_ENTITIES_FOUND)
       continue
@@ -10601,7 +10602,8 @@ def _printShowContacts(users, entityType, csvFormat, contactFeed=True):
       continue
     jcount = len(contacts)
     if not csvFormat:
-      entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, Ent.CONTACT, i, count)
+      if not formatJSON:
+        entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, Ent.CONTACT, i, count)
       Ind.Increment()
       j = 0
       for contact in contacts:
@@ -11055,7 +11057,8 @@ def infoUserContactGroups(users):
     contactGroupIDs = contactGroupNames = None
     j = 0
     jcount = len(entityList)
-    entityPerformActionNumItems([entityType, user], jcount, Ent.CONTACT_GROUP, i, count)
+    if not formatJSON:
+      entityPerformActionNumItems([entityType, user], jcount, Ent.CONTACT_GROUP, i, count)
     if jcount == 0:
       setSysExitRC(NO_ENTITIES_FOUND)
       continue
@@ -11132,7 +11135,8 @@ def _printShowContactGroups(users, csvFormat):
                               uri=uri, url_params=url_params)
       jcount = len(groups)
       if not csvFormat:
-        entityPerformActionNumItems([Ent.USER, user], jcount, Ent.CONTACT_GROUP, i, count)
+        if not formatJSON:
+          entityPerformActionNumItems([Ent.USER, user], jcount, Ent.CONTACT_GROUP, i, count)
         Ind.Increment()
         j = 0
         for group in groups:
@@ -15478,7 +15482,7 @@ def _moveCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntity,
       j += 1
       try:
         callGAPI(cal.events(), u'move',
-                 throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                 throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.CANNOT_CHANGE_ORGANIZER],
                  calendarId=calId, eventId=eventId, destination=newCalId, sendNotifications=sendNotifications, fields=u'')
         entityModifierNewValueActionPerformed([Ent.CALENDAR, calId, Ent.EVENT, eventId], Act.MODIFIER_TO, u'{0}: {1}'.format(Ent.Singular(Ent.CALENDAR), newCalId), j, jcount)
       except GAPI.notFound as e:
@@ -15487,7 +15491,7 @@ def _moveCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntity,
           break
         else:
           entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId, Ent.CALENDAR, newCalId], Ent.TypeNameMessage(Ent.EVENT, eventId, str(e)), j, jcount)
-      except (GAPI.notACalendarUser, GAPI.forbidden) as e:
+      except (GAPI.notACalendarUser, GAPI.forbidden, GAPI.cannotChangeOrganizer) as e:
         entityActionFailedWarning([Ent.CALENDAR, calId], str(e), i, count)
         break
       except (GAPI.serviceNotAvailable, GAPI.authError):
