@@ -25389,7 +25389,7 @@ def updateDriveFile(users):
           break
       Ind.Decrement()
 
-def _cloneFolder(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents, action, noDuplicates, searchArgs):
+def _cloneFolder(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents, noDuplicates, searchArgs):
   if noDuplicates:
     for parentId in parents:
       targetFolders = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
@@ -25454,9 +25454,7 @@ def _cloneFolder(drive, user, i, count, j, jcount, folderId, folderTitle, newFol
             break
     return newFolderId
   except (GAPI.forbidden, GAPI.internalError) as e:
-    Act.Set(Act.CREATE)
     entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], str(e), j, jcount)
-    Act.Set(action)
     return None
   except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
     userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -25478,7 +25476,7 @@ def _checkForDuplicateFile(drive, user, k, kcount, child, newFolderId, searchArg
 #	[teamdriveparentid <DriveFolderID>] [teamdriveparent <TeamDriveName>] [teamdriveparentname <DriveFolderName>]
 def copyDriveFile(users):
   def _recursiveFolderCopy(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents, depth, searchArgs):
-    newFolderId = _cloneFolder(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents, Act.COPY, noDuplicates, searchArgs)
+    newFolderId = _cloneFolder(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents, noDuplicates, searchArgs)
     if newFolderId is None:
       return
     source_children = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
@@ -25565,7 +25563,7 @@ def copyDriveFile(users):
           if recursive:
             _recursiveFolderCopy(drive, user, i, count, j, jcount, fileId, metadata[VX_FILENAME], destFilename, body[u'parents'], 0, parameters[DFA_SEARCHARGS])
           else:
-            _cloneFolder(drive, user, i, count, j, jcount, fileId, metadata[VX_FILENAME], destFilename, body[u'parents'], Act.COPY, noDuplicates, parameters[DFA_SEARCHARGS])
+            _cloneFolder(drive, user, i, count, j, jcount, fileId, metadata[VX_FILENAME], destFilename, body[u'parents'], noDuplicates, parameters[DFA_SEARCHARGS])
         else:
           if noDuplicates:
             child = metadata.copy()
@@ -25593,7 +25591,7 @@ def copyDriveFile(users):
 #	[teamdriveparentid <DriveFolderID>] [teamdriveparent <TeamDriveName>] [teamdriveparentname <DriveFolderName>]
 def moveDriveFile(users):
   def _recursiveFolderMove(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents, searchArgs):
-    newFolderId = _cloneFolder(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents, Act.MOVE, noDuplicates, searchArgs)
+    newFolderId = _cloneFolder(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents, noDuplicates, searchArgs)
     if newFolderId is None:
       return
     source_children = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
