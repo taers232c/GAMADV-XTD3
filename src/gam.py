@@ -28154,9 +28154,9 @@ def _printShowTeamDrives(users, csvFormat, useDomainAdminAccess):
     titles, csvRows = initializeTitlesCSVfile([u'User', u'id', u'name'])
   roles = set()
   query = matchPattern = None
+  showCapabilities = True
   fieldsList = []
   formatJSON = False
-  showCapabilities = True
   quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
