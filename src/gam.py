@@ -28262,7 +28262,7 @@ def _printShowTeamDrives(users, csvFormat, useDomainAdminAccess):
           if formatJSON:
             row = {u'User': user, u'id': teamdrive[u'id'], u'name': teamdrive[u'name']}
             if not useDomainAdminAccess:
-              row[u'role'] = teamdrive.pop(u'role')
+              row[u'role'] = teamdrive[u'role']
             row[u'JSON'] = json.dumps(cleanJSON(teamdrive, u'', timeObjects=TEAMDRIVE_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)
             csvRows.append(row)
           else:
