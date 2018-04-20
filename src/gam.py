@@ -28252,13 +28252,13 @@ def _printShowTeamDrives(users, csvFormat, useDomainAdminAccess):
         for teamdrive in matchedFeed:
           j += 1
           if not showCapabilities:
-            teamdrive.pop(u'capabilities')
+            teamdrive.pop(u'capabilities', None)
           _showTeamDrive(user, teamdrive, j, jcount, formatJSON)
         Ind.Decrement()
       else:
         for teamdrive in matchedFeed:
           if not showCapabilities:
-            teamdrive.pop(u'capabilities')
+            teamdrive.pop(u'capabilities', None)
           if formatJSON:
             row = {u'User': user, u'id': teamdrive[u'id'], u'name': teamdrive[u'name']}
             if not useDomainAdminAccess:
