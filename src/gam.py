@@ -28186,7 +28186,6 @@ def _printShowTeamDrives(users, csvFormat, useDomainAdminAccess):
     if not useDomainAdminAccess and u'capabilities' not in fieldsList:
       addFieldToFieldsList(u'capabilities', TEAMDRIVE_FIELDS_CHOICE_MAP, fieldsList)
       showCapabilities = False
-  if fieldsList:
     fields = VX_NPT_TEAMDRIVES_FIELDLIST.format(u','.join(set(fieldsList)).replace(u'.', u'/'))
   else:
     fields = u'*'
