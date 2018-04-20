@@ -1,3 +1,23 @@
+4.56.03
+
+Added fields <TeamDriveFieldNameList> and formatjson arguments to gam info teamdrive and gam show teamdriveinfo/teamdrives.
+
+gam info teamdrive <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
+gam show teamdriveinfo <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
+gam show teamdrives [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
+        [fields <TeamDriveFieldNameList>] [formatjson]
+gam <UserTypeEntity> info teamdrive <TeamDriveEntity> adminaccess [fields <TeamDriveFieldNameList>] [formatjson]
+gam <UserTypeEntity> show teamdriveinfo <TeamDriveEntity> adminaccess [fields <TeamDriveFieldNameList>] [formatjson]
+gam <UserTypeEntity> show teamdrives [adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]] [matchname <RegularExpression>] (role <TeamDriveACLRole>)*
+        [fields <TeamDriveFieldNameList>] [formatjson]
+
+Added fields <TeamDriveFieldNameList> and formatjson and quotechar <Character> arguments to gam print teamdrives.
+
+gam print teamdrives [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [todrive [<ToDriveAttributes>]]
+        [fields <TeamDriveFieldNameList>] [formatjson] [quotechar <Character>]
+gam <UserTypeEntity> print teamdrives [adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]] [matchname <RegularExpression>] (role <TeamDriveACLRole>)* [todrive [<ToDriveAttributes>]]
+        [fields <TeamDriveFieldNameList>] [formatjson] [quotechar <Character>]
+
 4.56.02
 
 When formatjson argument is used with gam info/show contacts/contactgroups/gal, non JSON output is suppressed.

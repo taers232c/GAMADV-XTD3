@@ -244,8 +244,7 @@ If an item contains spaces, it should be surrounded by ".
 <DriveFileName> ::= <String>
 <DriveFolderID> ::= <String>
 <DriveFolderName> ::= <String>
-<DriveFilePermissionScope> ::= anyone|anyonewithlink|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>|domainwithlink:<DomainName>
-<DriveFilePermission> ::= <DriveFilePermissionScope>;<DriveFileACLRole>
+<DriveFilePermission> ::= anyone|anyonewithlink|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>|domainwithlink:<DomainName>;<DriveFileACLRole>
 <DriveFilePermissionID> ::= anyone|anyonewithlink|id:<String>
 <DriveFilePermissionIDorEmail> ::= <DriveFilePermissionID>|<EmailAddress>
 <DriveFileRevisionID> ::= <String>
@@ -1762,20 +1761,36 @@ gam [<UserTypeEntity>] print siteacls <SiteEntity> [todrive [<ToDriveAttributes>
 
 # Team Drives
 
+<TeamDriveFieldName> ::=
+        backgroundimagefile|
+        backgroundimagelink|
+        capabilities|
+        colorrgb|
+        createdtime|
+        id|
+        name|
+        themeid
+<TeamDriveFieldNameList> ::= "<TeamDriveFieldName>(,<TeamDriveFieldName>)*"
+
 In these commands, the Google administrator named in oauth2.txt is used.
 
 gam show teamdrivethemes
-gam info teamdrive <TeamDriveEntity>
-gam show teamdriveinfo <TeamDriveEntity>
-gam print teamdrives [<TeamDriveAdminQueryEntity>] [matchname <RegularExpression>] [todrive [<ToDriveAttributes>]]
-gam show teamdrives [<TeamDriveAdminQueryEntity>] [matchname <RegularExpression>]
+gam info teamdrive <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
+gam show teamdriveinfo <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
+gam print teamdrives [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [todrive [<ToDriveAttributes>]]
+        [fields <TeamDriveFieldNameList>] [formatjson] [quotechar <Character>]
+gam show teamdrives [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
+        [fields <TeamDriveFieldNameList>] [formatjson]
 
 In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
 
-gam <UserTypeEntity> info teamdrive <TeamDriveEntity> adminaccess
-gam <UserTypeEntity> show teamdriveinfo <TeamDriveEntity> adminaccess
-gam <UserTypeEntity> print teamdrives adminaccess [<TeamDriveAdminQueryEntity>] [matchname <RegularExpression>] [todrive [<ToDriveAttributes>]]
-gam <UserTypeEntity> show teamdrives adminaccess [<TeamDriveAdminQueryEntity>] [matchname <RegularExpression>]
+gam <UserTypeEntity> show teamdrivethemes
+gam <UserTypeEntity> info teamdrive <TeamDriveEntity> adminaccess [fields <TeamDriveFieldNameList>] [formatjson]
+gam <UserTypeEntity> show teamdriveinfo <TeamDriveEntity> adminaccess [fields <TeamDriveFieldNameList>] [formatjson]
+gam <UserTypeEntity> print teamdrives [adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]] [matchname <RegularExpression>] (role <TeamDriveACLRole>)* [todrive [<ToDriveAttributes>]]
+        [fields <TeamDriveFieldNameList>] [formatjson] [quotechar <Character>]
+gam <UserTypeEntity> show teamdrives [adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]] [matchname <RegularExpression>] (role <TeamDriveACLRole>)*
+        [fields <TeamDriveFieldNameList>] [formatjson]
 
 These commands are used to manage the ACLs on the Team Drives themselves, not the files/folders on the Team Drives.
 
@@ -2237,7 +2252,7 @@ gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
 <DriveFilePermissionEntity> ::= <DriveFilePermissionList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <DriveFilePermissionIDEntity> ::= <DriveFilePermissionIDList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
-<DriveFileACLRole> ::= commenter|organizer|owner|reader|writer
+<DriveFileACLRole> ::= commenter|editor|organizer|owner|reader|writer
 <DriveFilePermission> ::= anyone|anyonewithlink|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>;<DriveFileACLRole>
 <DriveFilePermissionID> ::= anyone|anyonewithlink|id:<String>
 <DriveFilePermissionIDorEmail> ::= <DriveFilePermissionID>|<EmailAddress>
@@ -2654,10 +2669,12 @@ gam <UserTypeEntity> show teamdrivethemes
 gam <UserTypeEntity> create|add teamdrive <Name> [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>] [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 gam <UserTypeEntity> delete teamdrive <TeamDriveEntity>
-gam <UserTypeEntity> info teamdrive <TeamDriveEntity>
-gam <UserTypeEntity> show teamdriveinfo <TeamDriveEntity>
+gam <UserTypeEntity> info teamdrive <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
+gam <UserTypeEntity> show teamdriveinfo <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
 gam <UserTypeEntity> print teamdrives [matchname <RegularExpression>] (role <TeamDriveACLRole>)* [todrive [<ToDriveAttributes>]]
+        [fields <TeamDriveFieldNameList>] [formatjson] [quotechar <Character>]
 gam <UserTypeEntity> show teamdrives [matchname <RegularExpression>] (role <TeamDriveACLRole>)*
+        [fields <TeamDriveFieldNameList>] [formatjson]
 
 # Users - Spreadsheets
 
