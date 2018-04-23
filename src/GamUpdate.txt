@@ -1,3 +1,7 @@
+4.56.04
+
+Fixed a bug in gam print messages that would cause a trap when the showlabels option was specified.
+
 4.56.03
 
 Added fields <TeamDriveFieldNameList> and formatjson arguments to gam info teamdrive and gam show teamdriveinfo/teamdrives.

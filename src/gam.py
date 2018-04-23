@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.56.03'
+__version__ = u'4.56.04'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -25479,15 +25479,15 @@ def copyDriveFile(users):
     newFolderId = _cloneFolder(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents, noDuplicates, searchArgs)
     if newFolderId is None:
       return
-    source_children = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
-                                    throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                    q=WITH_PARENTS.format(folderId), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_CAPABILITIES_DESCRIPTION,
-                                    pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], supportsTeamDrives=True)
-    kcount = len(source_children)
+    sourceChildren = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
+                                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                   q=WITH_PARENTS.format(folderId), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_CAPABILITIES_DESCRIPTION,
+                                   pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], supportsTeamDrives=True)
+    kcount = len(sourceChildren)
     if kcount > 0:
       Ind.Increment()
       k = 0
-      for child in source_children:
+      for child in sourceChildren:
         k += 1
         childId = child[u'id']
         childTitle = child[VX_FILENAME]
@@ -25594,15 +25594,15 @@ def moveDriveFile(users):
     newFolderId = _cloneFolder(drive, user, i, count, j, jcount, folderId, folderTitle, newFolderTitle, parents, noDuplicates, searchArgs)
     if newFolderId is None:
       return
-    source_children = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
-                                    throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                    q=WITH_PARENTS.format(folderId), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_CAPABILITIES_DESCRIPTION,
-                                    pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], supportsTeamDrives=True)
-    kcount = len(source_children)
+    sourceChildren = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
+                                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                   q=WITH_PARENTS.format(folderId), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_CAPABILITIES_DESCRIPTION,
+                                   pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], supportsTeamDrives=True)
+    kcount = len(sourceChildren)
     if kcount > 0:
       Ind.Increment()
       k = 0
-      for child in source_children:
+      for child in sourceChildren:
         k += 1
         childId = child[u'id']
         childTitle = child[VX_FILENAME]
@@ -30965,7 +30965,7 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
       row[u'SizeEstimate'] = result[u'sizeEstimate']
     if show_labels:
       messageLabels = []
-      for labelId in result[u'labelIds']:
+      for labelId in result.get(u'labelIds', []):
         for label in labels[u'labels']:
           if label[u'id'] == labelId:
             messageLabels.append(label[u'name'])
