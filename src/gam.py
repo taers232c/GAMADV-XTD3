@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.56.04'
+__version__ = u'4.56.05'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -24735,7 +24735,7 @@ def printFileList(users):
       queryError = False
       while True:
         try:
-          feed = callGAPI(drive.files(), u'list', VX_PAGES_FILES,
+          feed = callGAPI(drive.files(), u'list',
                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                           pageToken=pageToken,
                           q=query, orderBy=orderBy, fields=pagesfields,
@@ -25429,9 +25429,7 @@ def _cloneFolder(drive, user, i, count, j, jcount, folderId, folderTitle, newFol
                       throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INTERNAL_ERROR],
                       body=body, fields=u'id,teamDriveId', supportsTeamDrives=True)
     newFolderId = result[u'id']
-    Act.Set(Act.CREATE)
     entityActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle, Ent.DRIVE_FOLDER_ID, newFolderId], j, jcount)
-    Act.Set(action)
     if permissions and not result.get(u'teamDriveId'):
       sendNotificationEmail = False
       emailMessage = None
