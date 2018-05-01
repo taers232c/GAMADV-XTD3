@@ -1,3 +1,47 @@
+4.56.06
+
+Fixed a parsing error in gam print/show tokens where an invalid argument was not caught.
+
+Added countsonly option to gam print/show messages/threads that displays only the count of number of messages/threads, not any message content.
+gam <UserTypeEntity> show messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show|max_to_process <Number>] [includespamtrash])|(ids <MessageIDEntity>)
+        [countsonly] [headers <SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [showattachments [attachmentnamepattern <RegularExpression>]]
+gam <UserTypeEntity> print messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_print|max_to_process <Number>] [includespamtrash])|(ids <MessageIDEntity>)
+        [countsonly] [headers <SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <Character>] [todrive [<ToDriveAttributes>]]
+
+Added formatjson argument to gam info/show calendars/calsettings/calendaracls/events/resources.
+gam <UserTypeEntity> info calendars <CalendarManageEntity> [formatjson]
+gam <UserTypeEntity> show calendars <CalendarPrintShowEntity> [permissions] [formatjson]
+gam <UserTypeEntity> show calsettings [formatjson]
+gam calendar|calendars <CalendarEntity> info calendaracls <CalendarACLScopeEntity> [formatjson]
+gam calendar|calendars <CalendarEntity> show calendaracls [formatjson]
+gam calendar|calendars <CalendarEntity> showacl [formatjson]
+gam resource <ResourceID> info calendaracls <CalendarACLScopeEntity> [formatjson]
+gam resource <ResourceID> show calendaracls [formatjson]
+gam resources <ResourceEntity> info calendaracls <CalendarACLScopeEntity> [formatjson]
+gam resources <ResourceEntity> show calendaracls [formatjson]
+gam <UserTypeEntity> info calendaracls <CalendarManageEntity> <CalendarACLScopeEntity> [formatjson]
+gam <UserTypeEntity> show calendaracls <CalendarManageEntity> [formatjson]
+gam calendar|calendars <CalendarEntity> info events <EventEntity> [maxinstances <Number>] [formatjson]
+gam calendar|calendars <CalendarEntity> show events ([allevents] <EventSelectProperties>*) <EventDisplayProperties>* [formatjson]
+gam <UserTypeEntity> info events <CalendarManageEntity> <EventEntity> [maxinstances <Number>] [formatjson]
+gam <UserTypeEntity> show events <CalendarPrintShowEntity> ([allevents] <EventSelectProperties>*) <EventDisplayProperties>* [formatjson]
+gam show resources [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)] [convertcrnl] [formatjson]
+
+Added formatjson and quotechar <Character> arguments to gam print calendars/calsettings/calendaracls/events/resources.
+gam <UserTypeEntity> print calendars <CalendarPrintShowEntity> [todrive [<ToDriveAttributes>]] [permissions]
+         [formatjson] [quotechar <Character>]
+gam <UserTypeEntity> print calsettings [todrive [<ToDriveAttributes>]] [formatjson] [quotechar <Character>]
+gam calendar|calendars <CalendarEntity> print calendaracls [todrive [<ToDriveAttributes>]] [formatjson] [quotechar <Character>]
+gam resource <ResourceID> print calendaracls [todrive [<ToDriveAttributes>]] [formatjson] [quotechar <Character>]
+gam resources <ResourceEntity> print calendaracls [todrive [<ToDriveAttributes>]] [formatjson] [quotechar <Character>]
+gam <UserTypeEntity> print calendaracls <CalendarManageEntity> [todrive [<ToDriveAttributes>]] [formatjson] [quotechar <Character>]
+gam calendar|calendars <CalendarEntity> print events [todrive [<ToDriveAttributes>]] <EventSelectProperties>*) [todrive [<ToDriveAttributes>]] <EventDisplayProperties>*
+         [formatjson] [quotechar <Character>]
+gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventSelectProperties>*) [todrive [<ToDriveAttributes>]] <EventDisplayProperties>*
+         [formatjson] [quotechar <Character>]
+gam print resources [todrive [<ToDriveAttributes>]] [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)] [convertcrnl]
+        [formatjson] [quotechar <Character>]
+
 4.56.05
 
 Fixed a bug in gam copy drivefile that would cause a trap.
