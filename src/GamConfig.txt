@@ -307,7 +307,7 @@ Section: DEFAULT
   never_time = Never
   no_browser = false
   no_cache = false
-  no_update_check = false
+  no_update_check = true
   no_verify_ssl = false
   num_tbatch_threads = 2
   num_threads = 5
@@ -435,7 +435,7 @@ message_max_results = 1000
 never_time = Never
 no_browser = false
 no_cache = false
-no_update_check = false
+no_update_check = true
 no_verify_ssl = false
 num_tbatch_threads = 2
 num_threads = 5
