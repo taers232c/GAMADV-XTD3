@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.56.07'
+__version__ = u'4.56.08'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -15437,28 +15437,25 @@ def _validateCalendarGetEventIDs(origUser, user, cal, calId, j, jcount, calendar
     entityPerformActionNumItems([Ent.CALENDAR, calId], kcount, Ent.EVENT, j, jcount)
   return (calId, cal, calEventIds, kcount)
 
-def _validateCalendarGetEvents(user, cal, calId, j, jcount, calendarEventEntity, showAction):
-  calId = normalizeCalendarId(calId, user)
-  try:
-    eventIdsSet = set()
-    eventsList = collections.deque()
-    if len(calendarEventEntity[u'queries']) <= 1:
-      if len(calendarEventEntity[u'queries']) == 1:
-        calendarEventEntity[u'kwargs'][u'q'] = calendarEventEntity[u'queries'][0]
-      events = callGAPIpages(cal.events(), u'list', u'items',
-                             throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                             calendarId=calId, fields=u'nextPageToken,items',
-                             maxResults=GC.Values[GC.EVENT_MAX_RESULTS], **calendarEventEntity[u'kwargs'])
-      while events:
-        event = events.popleft()
-        for match in calendarEventEntity[u'matches']:
-          if not _eventMatches(event, match):
-            break
-        else:
-          eventsList.append(event)
+def _validateCalendarGetEvents(origUser, user, cal, calId, j, jcount, calendarEventEntity, showAction):
+  if calendarEventEntity[u'dict']:
+    if origUser:
+      if not GM.Globals[GM.CSV_SUBKEY_FIELD]:
+        calEventIds = calendarEventEntity[u'dict'][calId][:]
+      else:
+        calEventIds = calendarEventEntity[u'dict'][origUser][calId][:]
     else:
-      for query in calendarEventEntity[u'queries']:
-        calendarEventEntity[u'kwargs'][u'q'] = query
+      calEventIds = calendarEventEntity[u'dict'][calId][:]
+  else:
+    calEventIds = calendarEventEntity[u'list'][:]
+  calId = normalizeCalendarId(calId, user)
+  eventIdsSet = set()
+  eventsList = collections.deque()
+  try:
+    if not calEventIds:
+      if len(calendarEventEntity[u'queries']) <= 1:
+        if len(calendarEventEntity[u'queries']) == 1:
+          calendarEventEntity[u'kwargs'][u'q'] = calendarEventEntity[u'queries'][0]
         events = callGAPIpages(cal.events(), u'list', u'items',
                                throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                                calendarId=calId, fields=u'nextPageToken,items',
@@ -15469,19 +15466,44 @@ def _validateCalendarGetEvents(user, cal, calId, j, jcount, calendarEventEntity,
             if not _eventMatches(event, match):
               break
           else:
-            eventId = event[u'id']
-            if eventId not in eventIdsSet:
-              eventsList.append(event)
-              eventIdsSet.add(eventId)
+            eventsList.append(event)
+      else:
+        for query in calendarEventEntity[u'queries']:
+          calendarEventEntity[u'kwargs'][u'q'] = query
+          events = callGAPIpages(cal.events(), u'list', u'items',
+                                 throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                 calendarId=calId, fields=u'nextPageToken,items',
+                                 maxResults=GC.Values[GC.EVENT_MAX_RESULTS], **calendarEventEntity[u'kwargs'])
+          while events:
+            event = events.popleft()
+            for match in calendarEventEntity[u'matches']:
+              if not _eventMatches(event, match):
+                break
+            else:
+              eventId = event[u'id']
+              if eventId not in eventIdsSet:
+                eventsList.append(event)
+                eventIdsSet.add(eventId)
+    else:
+      k = 0
+      for eventId in calEventIds:
+        k += 1
+        if eventId not in eventIdsSet:
+          eventsList.append(callGAPI(cal.events(), u'get',
+                                     throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.DELETED, GAPI.FORBIDDEN],
+                                     calendarId=calId, eventId=eventId))
+          eventIdsSet.add(eventId)
     kcount = len(eventsList)
     if showAction:
       entityPerformActionNumItems([Ent.CALENDAR, calId], kcount, Ent.EVENT, j, jcount)
     if kcount == 0:
       setSysExitRC(NO_ENTITIES_FOUND)
     return (calId, cal, eventsList, kcount)
-  except GAPI.notFound:
-    entityUnknownWarning(Ent.CALENDAR, calId, j, jcount)
-    return (calId, cal, [], 0)
+  except (GAPI.notFound, GAPI.deleted) as e:
+    if not checkCalendarExists(cal, calId):
+      entityUnknownWarning(Ent.CALENDAR, calId, j, jcount)
+      return (calId, cal, [], 0)
+    entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId], str(e), k, kcount)
   except (GAPI.notACalendarUser, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.CALENDAR, calId], str(e), j, jcount)
     return (calId, cal, [], 0)
@@ -15702,11 +15724,11 @@ def _infoCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntity,
         break
     Ind.Decrement()
 
-def _printShowCalendarEvents(user, cal, calIds, count, calendarEventEntity, csvFormat, formatJSON, csvRows, titles):
+def _printShowCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntity, csvFormat, formatJSON, csvRows, titles):
   i = 0
   for calId in calIds:
     i += 1
-    calId, cal, events, jcount = _validateCalendarGetEvents(user, cal, calId, i, count, calendarEventEntity, not csvFormat and not formatJSON)
+    calId, cal, events, jcount = _validateCalendarGetEvents(origUser, user, cal, calId, i, count, calendarEventEntity, not csvFormat and not formatJSON)
     if not csvFormat:
       Ind.Increment()
       j = 0
@@ -15867,7 +15889,7 @@ def calendarsPrintShowEvents(cal, calIds, csvFormat):
     titles, csvRows = initializeTitlesCSVfile(sortTitles)
   else:
     titles = csvRows = None
-  _printShowCalendarEvents(None, cal, calIds, len(calIds), calendarEventEntity, csvFormat, formatJSON, csvRows, titles)
+  _printShowCalendarEvents(None, None, cal, calIds, len(calIds), calendarEventEntity, csvFormat, formatJSON, csvRows, titles)
   if csvFormat:
     writeCSVfile(csvRows, titles, u'Calendar Events', todrive, sortTitles, quotechar)
 
@@ -22630,6 +22652,7 @@ def updateCalendarAttendees(users):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
+    origUser = user
     user, cal, calIds, jcount = _validateUserGetCalendarIds(user, i, count, calendarEntity)
     if jcount == 0:
       continue
@@ -22638,7 +22661,7 @@ def updateCalendarAttendees(users):
     for calId in calIds:
       j += 1
       Act.Set(Act.UPDATE)
-      calId, cal, events, kcount = _validateCalendarGetEvents(user, cal, calId, j, jcount, calendarEventEntity, True)
+      calId, cal, events, kcount = _validateCalendarGetEvents(origUser, user, cal, calId, j, jcount, calendarEventEntity, True)
       if kcount == 0:
         continue
       Ind.Increment()
@@ -22719,11 +22742,12 @@ def printShowCalendarEvents(users, csvFormat):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
+    origUser = user
     user, cal, calIds, jcount = _validateUserGetCalendarIds(user, i, count, calendarEntity, Ent.EVENT, Act.MODIFIER_FROM, showAction=not csvFormat and not formatJSON)
     if jcount == 0:
       continue
     Ind.Increment()
-    _printShowCalendarEvents(user, cal, calIds, jcount, calendarEventEntity, csvFormat, formatJSON, csvRows, titles)
+    _printShowCalendarEvents(origUser, user, cal, calIds, jcount, calendarEventEntity, csvFormat, formatJSON, csvRows, titles)
     Ind.Decrement()
   if csvFormat:
     writeCSVfile(csvRows, titles, u'Calendar Events', todrive, sortTitles, quotechar)

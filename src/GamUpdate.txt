@@ -1,3 +1,7 @@
+4.56.08
+
+Fixed bug in gam update calattendees.
+
 4.56.07
 
 Added delete <EmailAddress> option to gam update calattendees to allow for attendee deletion.
