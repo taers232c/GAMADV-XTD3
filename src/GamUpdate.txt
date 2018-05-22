@@ -1,3 +1,13 @@
+4.56.07
+
+Added delete <EmailAddress> option to gam update calattendees to allow for attendee deletion.
+gam <UserTypeEntity> update calattendees <CalendarManageEntity> <EventEntity> [anyorganizer]
+        [csv <FileName>] (replace <EmailAddress> <EmailAddress>)* (delete <EmailAddress>)* [doit]
+For details, see: https://github.com/taers232c/GAMADV-XTD/wiki/Users-Calendars-Events
+
+Updated gam update user to be able to send a notification email when a user's password is changed.
+For details, see: https://github.com/taers232c/GAMADV-XTD/wiki/Users
+
 4.56.06
 
 Fixed a parsing error in gam print/show tokens where an invalid argument was not caught.
@@ -671,7 +681,7 @@ Improved output formatting in gam add/delete permissions.
 
 Added options to gam show filetree to allow additional fields beyond the file/folder name to be shown.
 
-See: https://github.com/taers232c/GAMADV-XTD/wiki/Users---Drive---Files
+See: https://github.com/taers232c/GAMADV-XTD/wiki/Users-Drive-Files
 
 4.55.07
 
@@ -765,7 +775,7 @@ Fix reporting of target free space in gam transfer drive.
 
 Updated options in gam transfer drive to give more control over processing files.
 
-See: https://github.com/taers232c/GAMADV-XTD/wiki/Users---Drive---Transfer
+See: https://github.com/taers232c/GAMADV-XTD/wiki/Users-Drive-Transfer
 
 gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>]
         [(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>] [targetuserorphansfoldername <DriveFolderName>]
@@ -1229,7 +1239,7 @@ gam <UserTypeEntity> claim ownership <DriveFileEntity> [includetrashed]
         [restricted [<Boolean>]] [writerscanshare|writerscantshare [<Boolean>]] [keepuser | (retainrole reader|commenter|writer|editor|none)]
         [preview] [filepath] [buildtree] [todrive [<ToDriveAttributes>]]
 
-For details, see: https://github.com/taers232c/GAMADV-XTD/wiki/Users---Drive---Ownership
+For details, see: https://github.com/taers232c/GAMADV-XTD/wiki/Users-Drive-Ownership
 
 4.54.27
 
@@ -1349,7 +1359,7 @@ gam <UserTypeEntity> create sheet json <SpreadsheetJSONCreateRequest> [formatjso
 gam <UserTypeEntity> update sheet <DriveFileEntity> json <SpreadsheetJSONUpdateRequest> [formatjson]
 gam <UserTypeEntity> info sheet <DriveFileEntity> (range <SpreadsheetRange>)* [includegriddata [<Boolean>]] [formatjson]
 
-For details, see: https://github.com/taers232c/GAMADV-XTD/wiki/Users---Spreadsheets
+For details, see: https://github.com/taers232c/GAMADV-XTD/wiki/Users-Spreadsheets
 
 4.54.11
 
@@ -1473,7 +1483,7 @@ Added commands to manipulate spreadsheets.
         [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
         [formatjson]
 
-For details, see: https://github.com/taers232c/GAMADV-XTD/wiki/Users---Spreadsheets
+For details, see: https://github.com/taers232c/GAMADV-XTD/wiki/Users-Spreadsheets
 
 To use these commands, you must update your project to use the Google Sheets API and you must update your service account authorization.
 You can update your project manually or with the command: gam update project
@@ -1509,7 +1519,7 @@ API Documentation: https://developers.google.com/gmail/api/v1/reference/users/me
         (replace <Tag> <String>)* (attach <FileName>)*
         [deleted [<Boolean>]]
 
-For details, see: https://github.com/taers232c/GAMADV-X/wiki/Users---Gmail---Messages-Threads
+For details, see: https://github.com/taers232c/GAMADV-X/wiki/Users-Gmail-Messages-Threads
 
 4.54.02
 
