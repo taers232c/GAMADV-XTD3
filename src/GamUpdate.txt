@@ -1,3 +1,7 @@
+4.56.09
+
+Added support for License SKU G Suite Enterprise for Education.
+
 4.56.08
 
 Fixed bug in gam update calattendees.

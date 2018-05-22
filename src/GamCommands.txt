@@ -67,7 +67,8 @@ If an item contains spaces, it should be surrounded by ".
         Google-Chrome-Device-Management|
         Google-Coordinate|
         Google-Drive-storage|
-        Google-Vault
+        Google-Vault|
+        101031
 <SKUID> ::=
         free|standard|Google-Apps|
         gafb|gafw|basic|gsuitebasic|Google-Apps-For-Business|
@@ -76,6 +77,7 @@ If an item contains spaces, it should be surrounded by ".
         gal|lite|gsuitelite|Google-Apps-Lite|
         gau|unlimited|gsuitebusiness|Google-Apps-Unlimited|
         gae|enterprise|gsuiteenterprise|1010020020|
+        gsefe|e4e|gsuiteenterpriseeducation|1010310002|
         chrome|cdm|googlechromedevicemanagement|Google-Chrome-Device-Management|
         coordinate|googlecoordinate|Google-Coordinate|
         drive20gb|20gb|googledrivestorage20gb|Google-Drive-storage-20GB|

@@ -36,6 +36,8 @@ _SKUS = {
     u'product': u'Google-Apps', u'aliases': [u'gau', u'unlimited', u'gsuitebusiness'], u'displayName': u'G Suite Business'},
   u'1010020020': {
     u'product': u'Google-Apps', u'aliases': [u'gae', u'enterprise', u'gsuiteenterprise'], u'displayName': u'G Suite Enterprise'},
+  u'1010310002': {
+    u'product': u'101031', u'aliases': [u'gsefe', u'e4e', u'gsuiteenterpriseeducation'], u'displayName': u'G Suite Enterprise for Education'},
   u'Google-Drive-storage-20GB': {
     u'product': u'Google-Drive-storage', u'aliases': [u'drive20gb', u'20gb', u'googledrivestorage20gb'], u'displayName': u'Google Drive Storage 20GB'},
   u'Google-Drive-storage-50GB': {

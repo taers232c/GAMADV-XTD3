@@ -145,10 +145,13 @@ if type(release) is list:
       continue
     release = a_release
     break
-for asset in release['assets']:
-  if asset[sys.argv[1]].endswith('$gamfile'):
-    print(asset[sys.argv[1]])
-    break"
+try:
+  for asset in release['assets']:
+    if asset[sys.argv[1]].endswith('$gamfile'):
+      print(asset[sys.argv[1]])
+      break
+except KeyError:
+  print 'ERROR: assets value not found in JSON value of:\n\n%s' % release"
 
 pycmd="python"
 $pycmd -V >/dev/null 2>&1
@@ -164,7 +167,15 @@ if (( $rc != 0 )); then
 fi
 
 browser_download_url=$(echo "$release_json" | $pycmd -c "$pycode" browser_download_url $gamversion)
+if [[ ${browser_download_url:0:5} = "ERROR" ]]; then
+  echo_red "${browser_download_url}"
+  exit
+fi
 name=$(echo "$release_json" | $pycmd -c "$pycode" name $gamversion)
+if [[ ${name:0:5} = "ERROR" ]]; then
+  echo_red "${name}"
+  exit
+fi
 # Temp dir for archive
 #temp_archive_dir=$(mktemp -d)
 temp_archive_dir=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')
