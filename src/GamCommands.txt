@@ -252,6 +252,7 @@ If an item contains spaces, it should be surrounded by ".
 <DriveFileRevisionID> ::= <String>
 <EmailAddress> ::= <String>@<DomainName>
 <EmailItem> ::= <EmailAddress>|<UniqueID>|<String>
+<EmailReplacement> ::= <String>
 <EventColorIndex> ::= <Number in range 1-11>
 <EventID> ::= <String>
 <FeatureName> ::= <String>
@@ -270,6 +271,7 @@ If an item contains spaces, it should be surrounded by ".
 <Key> ::= <String>
 <LabelID> ::= <String>
 <LabelName> ::= <String>
+<LabelReplacement> ::= <String>
 <Marker> ::= <String>
 <MatterItem> ::= <UniqueID>|<String>
 <MaximumNumberOfSeats> ::= <Number>
@@ -1944,7 +1946,8 @@ gam print vaultmatters|matters [todrive [<ToDriveAttributes>]] [basic|full]
         (<SchemaName>.<FieldName> [multivalued|multivalue|value|multinonempty [type work|home|other|(custom <String>)]] <String>)
 
 gam create|add user <EmailAddress> <UserAttributes>* [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
-gam update user <UserItem> <UserAttributes>* [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
+gam update user <UserItem> <UserAttributes> [updateprimaryemail <RegularExpression> <EmailReplacement>]
+        [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
         [createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
 gam delete user <UserItem>
 gam undelete user <UserItem> [org|ou <OrgUnitPath>]
@@ -1953,7 +1956,9 @@ gam unsuspend user <UserItem>
 gam info user [<UserItem>] [quick] [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>]
         [userview] <UserFieldName>* [fields <UserFieldNameList>] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
 
-gam update users <UserTypeEntity> <UserAttributes>* [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>] [createifnotfound]
+gam update users <UserTypeEntity> <UserAttributes>* [updateprimaryemail <RegularExpression> <EmailReplacement>]
+        [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
+        [createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
 gam delete users <UserTypeEntity>
 gam undelete users <UserEntity> [org|ou <OrgUnitPath>]
 gam suspend users <UserTypeEntity>
@@ -1961,7 +1966,9 @@ gam unsuspend users <UserTypeEntity>
 gam info users <UserTypeEntity> [quick] [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>]
         [userview] <UserFieldName>* [fields <UserFieldNameList>] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
 
-gam <UserTypeEntity> update users <UserAttributes>* [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>] [createifnotfound]
+gam <UserTypeEntity> update users <UserAttributes>* [updateprimaryemail <RegularExpression> <EmailReplacement>]
+        [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
+        [createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
 gam <UserTypeEntity> delete users
 gam <UserEntity> undelete users [org|ou <OrgUnitPath>]
 gam <UserTypeEntity> suspend users
@@ -2573,7 +2580,7 @@ gam <UserTypeEntity> print forward [enabledonly] [todrive [<ToDriveAttributes>]]
 
 gam <UserTypeEntity> [create|add] label|labels <String> [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread] [buildpath [<Boolean>]]
 gam <UserTypeEntity> update labelsettings <LabelName> [name <String>] [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
-gam <UserTypeEntity> update label|labels [search <RegularExpression>] [replace <String>] [merge]
+gam <UserTypeEntity> update label|labels [search <RegularExpression>] [replace <LabelReplacement>] [merge]
 gam <UserTypeEntity> delete label|labels <LabelName>|regex:<RegularExpression>|--ALL_LABELS--
 
 gam <UserTypeEntity> show labels|label [onlyuser [<Boolean>]] [showcounts [<Boolean>]] [nested [<Boolean>]] [display allfields|basename|fullname]

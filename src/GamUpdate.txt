@@ -1,3 +1,12 @@
+4.56.10
+
+Added updateprimaryemail <RegularExpression> <EmailReplacement> option to gam update user to allow modifying the user's current primary email address.
+For example, to change the domain of a set of users from the current domain to newdomain.com:
+gam ou /Path/To/Ou update user updateprimaryemail "^(.+)@.*$" "\1@newdomain.com"
+To change graduating students email addresses from flastname@domain.com to flastname_grad@domain.com:
+gam ou /Path/To/Ou update user updateprimaryemail "^(.+)@(.+)$" "\1_grad@\2"
+If the user's current primary email address does not match the <RegularExpression> then no modification is made.
+
 4.56.09
 
 Added support for License SKU G Suite Enterprise for Education.

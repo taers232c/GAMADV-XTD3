@@ -455,6 +455,7 @@ class GamCLArgs(object):
   OB_EMAIL_ADDRESS = u'EmailAddress'
   OB_EMAIL_ADDRESS_ENTITY = u'EmailAddressEntity'
   OB_EMAIL_ADDRESS_OR_UID = u'EmailAaddress|UniqueID'
+  OB_EMAIL_REPLACEMENT = u'EmailReplacement'
   OB_ENTITY = u'Entity'
   OB_ENTITY_TYPE = u'EntityType'
   OB_EVENT_ID = u'EventID'

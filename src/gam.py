@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.56.09'
+__version__ = u'4.56.10'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -188,6 +188,7 @@ AND_ME_IN_OWNERS = u" and "+ME_IN_OWNERS
 NOT_ME_IN_OWNERS = u"not "+ME_IN_OWNERS
 NOT_ME_IN_OWNERS_AND = NOT_ME_IN_OWNERS+u" and "
 AND_NOT_ME_IN_OWNERS = u" and "+NOT_ME_IN_OWNERS
+REPLACE_GROUP_PATTERN = re.compile(r'\\(\d+)')
 # Drive v3
 # Fields
 V2_FILENAME = u'title'
@@ -1182,16 +1183,19 @@ def getOrgUnitItem(pathOnly=False, absolutePath=True):
       return makeOrgUnitPathRelative(path)
   missingArgumentExit([Cmd.OB_ORGUNIT_ITEM, Cmd.OB_ORGUNIT_PATH][pathOnly])
 
+def validateREPattern(patstr, flags=0):
+  try:
+    return re.compile(patstr, flags)
+  except re.error as e:
+    Cmd.Backup()
+    usageErrorExit(u'{0} {1}: {2}'.format(Cmd.OB_RE_PATTERN, Msg.ERROR, e))
+
 def getREPattern(flags=0):
   if Cmd.ArgumentsRemaining():
     patstr = Cmd.Current()
     if patstr:
-      try:
-        pattern = re.compile(patstr, flags)
-        Cmd.Advance()
-        return pattern
-      except re.error as e:
-        usageErrorExit(u'{0} {1}: {2}'.format(Cmd.OB_RE_PATTERN, Msg.ERROR, e))
+      Cmd.Advance()
+      return validateREPattern(patstr, flags)
   missingArgumentExit(Cmd.OB_RE_PATTERN)
 
 SITENAME_PATTERN = re.compile(r'^[a-z0-9\-_]+$')
@@ -17888,6 +17892,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
   admin_body = {}
   notify = {}
   primary = {}
+  updatePrimaryEmail = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'notify':
@@ -17905,6 +17910,19 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       admin_body[u'status'] = getBoolean()
     elif myarg == u'nohash':
       need_to_hash_password = False
+    elif updateCmd and myarg == u'updateprimaryemail':
+      search = getString(Cmd.OB_RE_PATTERN)
+      pattern = validateREPattern(search, re.IGNORECASE)
+      replace = getString(Cmd.OB_EMAIL_REPLACEMENT)
+      patternGroups = pattern.groups
+      replSubs = REPLACE_GROUP_PATTERN.findall(replace)
+      for replSub in replSubs:
+        if int(replSub) > patternGroups:
+          Cmd.Backup()
+          usageErrorExit(Msg.MISMATCH_RE_SEARCH_REPLACE_SUBFIELDS.format(pattern.groups, search, int(replSub), replace))
+      updatePrimaryEmail[u'search'] = search
+      updatePrimaryEmail[u'pattern'] = pattern
+      updatePrimaryEmail[u'replace'] = replace
     elif myarg in UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP:
       up = UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP[myarg]
       userProperty = UProp.PROPERTIES[up]
@@ -18198,7 +18216,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
   if u'password' in body and need_to_hash_password:
     body[u'password'] = gen_sha512_hash(body[u'password'])
     body[u'hashFunction'] = u'crypt'
-  return (body, admin_body, notify, createIfNotFound)
+  return (body, admin_body, notify, updatePrimaryEmail, createIfNotFound)
 
 def changeAdminStatus(cd, user, admin_body, i=0, count=0):
   try:
@@ -18229,7 +18247,7 @@ def sendCreateUpdateUserNotification(notify, body, i=0, count=0, createMessage=T
 # gam create user <EmailAddress> <UserAttributes> [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
 def doCreateUser():
   cd = buildGAPIObject(API.DIRECTORY)
-  body, admin_body, notify, _ = getUserAttributes(cd, False, noUid=True)
+  body, admin_body, notify, _, _ = getUserAttributes(cd, False, noUid=True)
   user = body[u'primaryEmail']
   try:
     callGAPI(cd.users(), u'insert',
@@ -18252,36 +18270,42 @@ def doCreateUser():
   except GAPI.invalidOrgunit:
     entityActionFailedWarning([Ent.USER, user], Msg.INVALID_ORGUNIT)
 
-# gam <UserTypeEntity> update user <UserAttributes> [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
+# gam <UserTypeEntity> update user <UserAttributes> [updateprimaryemail <RegularExpression> <EmailReplacement>]
+#	[clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
 #	[createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
 def updateUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
-  body, admin_body, notify, createIfNotFound = getUserAttributes(cd, True)
+  body, admin_body, notify, updatePrimaryEmail, createIfNotFound = getUserAttributes(cd, True)
+  vfe = u'primaryEmail' in body and body[u'primaryEmail'][:4].lower() == u'vfe@'
   i, count, entityList = getEntityArgument(entityList)
   for user in entityList:
     i += 1
-    user = normalizeEmailAddressOrUID(user)
+    user = userKey = normalizeEmailAddressOrUID(user)
     try:
-      if (u'primaryEmail' in body) and (body[u'primaryEmail'][:4].lower() == u'vfe@'):
-        vfe = True
-        user_primary = callGAPI(cd.users(), u'get',
-                                throw_reasons=GAPI.USER_GET_THROW_REASONS,
-                                userKey=user, fields=u'primaryEmail,id')
-        user = user_primary[u'id']
-        user_primary = user_primary[u'primaryEmail']
-        user_name, user_domain = splitEmailAddress(user_primary)
-        body[u'primaryEmail'] = u'vfe.{0}.{1:05}@{2}'.format(user_name, random.randint(1, 99999), user_domain)
+      if vfe:
+        result = callGAPI(cd.users(), u'get',
+                          throw_reasons=GAPI.USER_GET_THROW_REASONS,
+                          userKey=userKey, fields=u'primaryEmail,id')
+        userKey = result[u'id']
+        userPrimary = result[u'primaryEmail']
+        userName, userDomain = splitEmailAddress(userPrimary)
+        body[u'primaryEmail'] = u'vfe.{0}.{1:05}@{2}'.format(userName, random.randint(1, 99999), userDomain)
         body[u'emails'] = [{u'type': u'custom',
                             u'customType': u'former_employee',
-                            u'primary': False, u'address': user_primary}]
-      else:
-        vfe = False
+                            u'primary': False, u'address': userPrimary}]
+      elif updatePrimaryEmail:
+        if updatePrimaryEmail[u'pattern'].search(user) is not None:
+          body[u'primaryEmail'] = updatePrimaryEmail[u'pattern'].sub(updatePrimaryEmail[u'replace'], user)
+        else:
+          body.pop(u'primaryEmail', None)
+          if not body:
+            entityActionNotPerformedWarning([Ent.USER, user], Msg.PRIMARY_EMAIL_DID_NOT_MATCH_PATTERN.format(updatePrimaryEmail[u'search']), i, count)
       if body:
         try:
           result = callGAPI(cd.users(), u'update',
                             throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN,
                                            GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
-                            userKey=user, body=body, fields=u'primaryEmail,name')
+                            userKey=userKey, body=body, fields=u'primaryEmail,name')
           entityActionPerformed([Ent.USER, user], i, count)
           if notify.get(u'emailAddress') and notify.get(u'password'):
             sendCreateUpdateUserNotification(notify, result, i, count, False)
@@ -18314,11 +18338,15 @@ def updateUsers(entityList):
     except GAPI.invalidOrgunit:
       entityActionFailedWarning([Ent.USER, user], Msg.INVALID_ORGUNIT, i, count)
 
-# gam update users <UserTypeEntity> <UserAttributes> [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>] [createifnotfound]
+# gam update users <UserTypeEntity> <UserAttributes> [updateprimaryemail <RegularExpression> <EmailReplacement>]
+#	[clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
+#	[createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
 def doUpdateUsers():
   updateUsers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)[1])
 
-# gam update user <UserItem> <UserAttributes> [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>] [createifnotfound]
+# gam update user <UserItem> <UserAttributes> [updateprimaryemail <RegularExpression> <EmailReplacement>]
+#	[clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
+#	[createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
 def doUpdateUser():
   updateUsers(getStringReturnInList(Cmd.OB_USER_ITEM))
 
@@ -22682,8 +22710,8 @@ def updateCalendarAttendees(users):
             if new_email:
               event[u'attendees'].remove(attendee)
               if new_email != u'delete':
-                entityModifierNewValueActionPerformed([Ent.EVENT, event_summary, Ent.ATTENDEE, old_email], Act.MODIFIER_WITH, new_email, k, kcount)
                 event[u'attendees'].append({u'email': new_email})
+                entityModifierNewValueActionPerformed([Ent.EVENT, event_summary, Ent.ATTENDEE, old_email], Act.MODIFIER_WITH, new_email, k, kcount)
               else:
                 Act.Set(Act.DELETE)
                 entityActionPerformed([Ent.EVENT, event_summary, Ent.ATTENDEE, old_email], k, kcount)
@@ -27320,9 +27348,9 @@ def claimOwnership(users):
       k = 0
       for oldOwner in filesToClaim:
         k += 1
-        _, userdomain = splitEmailAddress(oldOwner)
+        _, userDomain = splitEmailAddress(oldOwner)
         lcount = len(filesToClaim[oldOwner])
-        if userdomain == GC.Values[GC.DOMAIN] or userdomain in subdomains:
+        if userDomain == GC.Values[GC.DOMAIN] or userDomain in subdomains:
           _, sourceDrive = buildGAPIServiceObject(API.DRIVE3, oldOwner, k, kcount)
           if not sourceDrive:
             continue
@@ -30070,19 +30098,19 @@ def updateLabelSettings(users):
 LABEL_TYPE_SYSTEM = u'system'
 LABEL_TYPE_USER = u'user'
 
-REPLACE_GROUP_PATTERN = re.compile(r'\\(\d+)')
-
 # gam <UserTypeEntity> update label|labels [search <RegularExpression>] [replace <LabelReplacement>] [merge]
 #	search defaults to '^Inbox/(.*)$' which will find all labels in the Inbox
 #	replace defaults to '%s'
 def updateLabels(users):
   search = u'^Inbox/(.*)$'
+  pattern = re.compile(search, re.IGNORECASE)
   replace = u'%s'
   merge = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'search':
       search = getString(Cmd.OB_RE_PATTERN)
+      pattern = validateREPattern(search, re.IGNORECASE)
     elif myarg == u'replace':
       replaceLocation = Cmd.Location()
       replace = getString(Cmd.OB_LABEL_REPLACEMENT)
@@ -30091,7 +30119,6 @@ def updateLabels(users):
     else:
       unknownArgumentExit()
 # Validate that number of substitions in replace matches the number of groups in pattern
-  pattern = re.compile(search, re.IGNORECASE)
   useRegexSub = replace.find(u'%s') == -1
   if useRegexSub:
     patternGroups = pattern.groups
@@ -30181,6 +30208,10 @@ def deleteLabel(users):
       _handleProcessGmailError(exception, ri)
 
   label = getString(Cmd.OB_LABEL_NAME)
+  if label[:6].lower() == u'regex:':
+    labelPattern = validateREPattern(label[6:])
+  else:
+    labelPattern = None
   label_name_lower = label.lower()
   checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
@@ -30198,16 +30229,11 @@ def deleteLabel(users):
       if label == u'--ALL_LABELS--':
         count = len(labels[u'labels'])
         for del_label in labels[u'labels']:
-          if del_label[u'type'] == LABEL_TYPE_SYSTEM:
-            continue
-          del_labels.append(del_label)
-      elif label[:6].lower() == u'regex:':
-        regex = label[6:]
-        p = re.compile(regex)
+          if del_label[u'type'] != LABEL_TYPE_SYSTEM:
+            del_labels.append(del_label)
+      elif labelPattern:
         for del_label in labels[u'labels']:
-          if del_label[u'type'] == LABEL_TYPE_SYSTEM:
-            continue
-          elif p.match(del_label[u'name']):
+          if del_label[u'type'] != LABEL_TYPE_SYSTEM and labelPattern.match(del_label[u'name']):
             del_labels.append(del_label)
       else:
         for del_label in labels[u'labels']:
