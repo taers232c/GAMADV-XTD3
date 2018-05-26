@@ -2,8 +2,8 @@
 - [Requirements](#requirements)
 - [Downloads](#downloads)
 - [Installation - New Users](#installation---new-users)
-- [Installation - Upgrading from a GAM version other than a prior version of GAMADV-XTD or GAMADV-X](#installation---upgrading-from-a-gam-version-other-than-a-prior-version-of-gamadv-xtd-or-gamadv-x)
-- [Installation - Upgrading from a prior version of GAMADV-XTD](#installation---upgrading-from-a-prior-version-of-gamadv-xtd)
+- [Installation - Upgrading from a GAM version other than a prior version of GAMADV-XTD3 or GAMADV-XTD or GAMADV-X](#installation---upgrading-from-a-gam-version-other-than-a-prior-version-of-gamadv-xtd3-or-gamadv-xtd-or-gamadv-x)
+- [Installation - Upgrading from a prior version of GAMADV-XTD3 or GAMADV-XTD or GAMADV-X](#installation---upgrading-from-a-prior-version-of-gamadv-xtd3-or-gamadv-xtd-or-gamadv-x)
 
 # Introduction
 GAMADV-XTD3 is a free, open source command line tool for Google G Suite Administrators to manage domain and user settings quickly and easily.
@@ -776,7 +776,7 @@ Section: DEFAULT
 
 C:\GAMADV-XTD3>
 ```
-# Installation - Upgrading from a prior version of GAMADV-XTD3
+# Installation - Upgrading from a prior version of GAMADV-XTD3 or GAMADV-XTD or GAMADV-X
 Read GamUpdate.txt
 
 Download latest version, install over existing installation or in a parallel directory.
