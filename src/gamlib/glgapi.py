@@ -36,6 +36,8 @@ CANNOT_DELETE_PRIMARY_CALENDAR = u'cannotDeletePrimaryCalendar'
 CANNOT_DELETE_PRIMARY_SENDAS = u'cannotDeletePrimarySendAs'
 CANNOT_DELETE_RESOURCE_WITH_CHILDREN = u'cannotDeleteResourceWithChildren'
 CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION = u'cannotModifyInheritedTeamDrivePermission'
+CANNOT_SHARE_GROUPS_WITHLINK = u'cannotShareGroupsWithLink'
+CANNOT_SHARE_USERS_WITHLINK = u'cannotShareUsersWithLink'
 CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS = u'cannotShareTeamDriveTopFolderWithAnyoneOrDomains'
 CONDITION_NOT_MET = u'conditionNotMet'
 CUSTOMER_NOT_FOUND = u'customerNotFound'
@@ -228,6 +230,10 @@ class cannotDeleteResourceWithChildren(Exception):
   pass
 class cannotModifyInheritedTeamDrivePermission(Exception):
   pass
+class cannotShareGroupsWithLink(Exception):
+  pass
+class cannotShareUsersWithLink(Exception):
+  pass
 class cannotShareTeamDriveTopFolderWithAnyoneOrDomains(Exception):
   pass
 class conditionNotMet(Exception):
@@ -395,6 +401,8 @@ REASON_EXCEPTION_MAP = {
   CANNOT_DELETE_PRIMARY_SENDAS: cannotDeletePrimarySendAs,
   CANNOT_DELETE_RESOURCE_WITH_CHILDREN: cannotDeleteResourceWithChildren,
   CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION: cannotModifyInheritedTeamDrivePermission,
+  CANNOT_SHARE_GROUPS_WITHLINK: cannotShareGroupsWithLink,
+  CANNOT_SHARE_USERS_WITHLINK: cannotShareUsersWithLink,
   CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS: cannotShareTeamDriveTopFolderWithAnyoneOrDomains,
   CONDITION_NOT_MET: conditionNotMet,
   CUSTOMER_NOT_FOUND: customerNotFound,
