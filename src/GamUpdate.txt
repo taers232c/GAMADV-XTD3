@@ -1,3 +1,7 @@
+4.56.11
+
+Allow empty replyto <EmailAddress> in gam create/update sendas and gam signature.
+
 4.56.10
 
 Added updateprimaryemail <RegularExpression> <EmailReplacement> option to gam update user to allow modifying the user's current primary email address.

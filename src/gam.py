@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.56.10'
+__version__ = u'4.56.11'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -32402,7 +32402,7 @@ def getSendAsAttributes(myarg, body, tagReplacements):
   elif myarg == u'name':
     body[u'displayName'] = getString(Cmd.OB_NAME, minLen=0)
   elif myarg == u'replyto':
-    body[u'replyToAddress'] = getEmailAddress(noUid=True)
+    body[u'replyToAddress'] = getEmailAddress(noUid=True, minLen=0)
   elif myarg == u'default':
     body[u'isDefault'] = True
   elif myarg == u'treatasalias':
