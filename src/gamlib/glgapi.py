@@ -158,7 +158,7 @@ REASON_MESSAGE_MAP = {
     (u'Invalid Input: custom_schema', INVALID_SCHEMA_VALUE),
     (u'Invalid Input: resource', INVALID_RESOURCE),
     (u'Invalid Input:', INVALID_INPUT),
-    (u'Invalid input', INVALID_INPUT),
+    (u'Invalid Input', INVALID_INPUT),
     (u'Invalid Org Unit', INVALID_ORGUNIT),
     (u'Invalid Ou Id', INVALID_ORGUNIT),
     (u'Invalid Ou Name', INVALID_ORGUNIT_NAME),
