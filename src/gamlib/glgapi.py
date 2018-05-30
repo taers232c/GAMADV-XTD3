@@ -54,6 +54,7 @@ FAILED_PRECONDITION = u'failedPrecondition'
 FIELD_NOT_WRITABLE = u'fieldNotWritable'
 FILE_NEVER_WRITABLE = u'fileNeverWritable'
 FILE_NOT_FOUND = u'fileNotFound'
+FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN = u'fileOwnerNotMemberOfWriterDomain'
 FORBIDDEN = u'forbidden'
 GROUP_NOT_FOUND = u'groupNotFound'
 ILLEGAL_ACCESS_ROLE_FOR_DEFAULT = u'illegalAccessRoleForDefault'
@@ -157,6 +158,7 @@ REASON_MESSAGE_MAP = {
     (u'Invalid Input: custom_schema', INVALID_SCHEMA_VALUE),
     (u'Invalid Input: resource', INVALID_RESOURCE),
     (u'Invalid Input:', INVALID_INPUT),
+    (u'Invalid input', INVALID_INPUT),
     (u'Invalid Org Unit', INVALID_ORGUNIT),
     (u'Invalid Ou Id', INVALID_ORGUNIT),
     (u'Invalid Ou Name', INVALID_ORGUNIT_NAME),
@@ -265,6 +267,8 @@ class fieldNotWritable(Exception):
 class fileNeverWritable(Exception):
   pass
 class fileNotFound(Exception):
+  pass
+class fileOwnerNotMemberOfWriterDomain(Exception):
   pass
 class forbidden(Exception):
   pass
@@ -419,6 +423,7 @@ REASON_EXCEPTION_MAP = {
   FIELD_NOT_WRITABLE: fieldNotWritable,
   FILE_NEVER_WRITABLE: fileNeverWritable,
   FILE_NOT_FOUND: fileNotFound,
+  FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN: fileOwnerNotMemberOfWriterDomain,
   FORBIDDEN: forbidden,
   GROUP_NOT_FOUND: groupNotFound,
   ILLEGAL_ACCESS_ROLE_FOR_DEFAULT: illegalAccessRoleForDefault,
