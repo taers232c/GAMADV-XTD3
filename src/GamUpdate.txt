@@ -1,3 +1,28 @@
+4.56.12
+
+Added query <QueryGroup> to gam print groups and gam print/show groupmembers to take advantage of API group filtering.
+See: https://developers.google.com/admin-sdk/directory/v1/guides/search-groups
+
+The emailmatchpattern <RegularExpression> and namematchpattern <RegularExpression> already did filtering but this was after downloading
+all groups; query <QueryGroup> does the filtering at Google but is limited to exact and prefix-only filtering.
+
+The arguments member <UserItem> and query <QueryGroup> are mutually exclusive.
+
+gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[select <GroupEntity>]
+        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
+        [maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
+        [members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
+        [convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
+gam print group-members [todrive [<ToDriveAttributes>]]
+        [domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
+        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
+        [roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
+        [userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
+gam show group-members
+        ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
+        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
+        [roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
+
 4.56.11
 
 Allow empty replyto <EmailAddress> in gam create/update sendas and gam signature.
