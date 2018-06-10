@@ -1,3 +1,25 @@
+4.56.13
+
+Added descriptionmatchpattern <RegularExpression> to the following commands to allow filtering on the group description;
+Gam applies this filter after downloading the groups from the API.
+gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[select <GroupEntity>]
+        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
+        [maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
+        [members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
+        [convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
+gam print group-members [todrive [<ToDriveAttributes>]]
+        [domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
+        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
+        [roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
+        [userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
+gam show group-members
+        ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
+        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
+        [roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
+
+Modified gam update customer to use the patch API so that single fields of the customer address can be updated;
+previously, all fields had to be specified in order to update a single field.
+
 4.56.12
 
 Added query <QueryGroup> to gam print groups and gam print/show groupmembers to take advantage of API group filtering.

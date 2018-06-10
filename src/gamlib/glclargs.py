@@ -486,6 +486,7 @@ class GamCLArgs(object):
   OB_MATTER_ITEM = u'MatterItem'
   OB_MATTER_ITEM_LIST = u'MatterItemList'
   OB_MESSAGE_ID = u'MessageID'
+  OB_MIMETYPE = u'MimeType'
   OB_MIMETYPE_LIST = u'MimeTypeList'
   OB_MOBILE_DEVICE_ENTITY = u'MobileDeviceEntity'
   OB_MOBILE_ENTITY = u'MobileEntity'

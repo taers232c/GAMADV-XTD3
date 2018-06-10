@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.56.12'
+__version__ = u'4.56.13'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -7571,10 +7571,8 @@ def doUpdateCustomer():
     else:
       unknownArgumentExit()
   if body:
-    if u'postalAddress' in body and u'countryCode' not in body[u'postalAddress']:
-      missingArgumentExit(u'countrycode')
     try:
-      callGAPI(cd.customers(), u'update',
+      callGAPI(cd.customers(), u'patch',
                throw_reasons=[GAPI.DOMAIN_NOT_VERIFIED_SECONDARY, GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                customerKey=GC.Values[GC.CUSTOMER_ID], body=body, fields=u'')
       entityActionPerformed([Ent.CUSTOMER_ID, GC.Values[GC.CUSTOMER_ID]])
@@ -12921,7 +12919,8 @@ def doUpdateGroups():
         result = callGAPIpages(cd.members(), u'list', u'members',
                                page_message=getPageMessageForWhom(noNL=True),
                                throw_reasons=GAPI.MEMBERS_THROW_REASONS,
-                               groupKey=group, roles=roles, fields=u'nextPageToken,members({0})'.format(u','.join(fields)), maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
+                               groupKey=group, roles=roles, fields=u'nextPageToken,members({0})'.format(u','.join(fields)),
+                               maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
         if not suspended:
           removeMembers = [member.get(u'email', member[u'id']) for member in result]
         else:
@@ -13165,10 +13164,42 @@ def getGroupFilters(myarg, kwargs):
     usageErrorExit(Msg.ARE_MUTUALLY_EXCLUSIVE.format(u'member', u'query'))
   return True
 
+def getGroupMatchPatterns(myarg, matchPatterns):
+  if myarg == u'emailmatchpattern':
+    matchPatterns[u'email'] = getREPattern(re.IGNORECASE)
+  elif myarg == u'namematchpattern':
+    matchPatterns[u'name'] = getREPattern(re.IGNORECASE|re.UNICODE)
+  elif myarg == u'descriptionmatchpattern':
+    matchPatterns[u'description'] = getREPattern(re.IGNORECASE|re.UNICODE)
+  else:
+    return False
+  return True
+
+def updateFieldsTitlesForGroupMatchPatterns(matchPatterns, fieldsList, fieldsTitles=None, titles=None, nativeTitles=None):
+  for field in [u'name', u'description']:
+    if matchPatterns.get(field):
+      if fieldsTitles is not None:
+        addFieldTitleToCSVfile(field, GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP, fieldsList, fieldsTitles, titles, nativeTitles)
+      else:
+        fieldsList.append(field)
+
+def clearUnneededGroupMatchPatterns(matchPatterns):
+  for field in [u'name', u'description']:
+    matchPatterns.pop(field, None)
+
+def checkGroupMatchPatterns(groupEmail, group, matchPatterns):
+  for field, pattern in iteritems(matchPatterns):
+    if field == u'email':
+      if not pattern.match(groupEmail):
+        return False
+    elif not pattern.match(group[field]):
+      return False
+  return True
+
 PRINT_GROUPS_JSON_TITLES = [u'Email', u'JSON']
 
 # gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[select <GroupEntity>]
-#	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
+#	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
 #	[maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
 #	[members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
 #	[convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
@@ -13296,7 +13327,8 @@ def doPrintGroups():
       try:
         response = callGAPI(cd.members(), u'list',
                             throw_reasons=GAPI.MEMBERS_THROW_REASONS, retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
-                            groupKey=ri[RI_ENTITY], roles=ri[RI_ROLE], fields=u'nextPageToken,members(email,id,role)', maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
+                            groupKey=ri[RI_ENTITY], roles=ri[RI_ROLE], fields=u'nextPageToken,members(email,id,role)',
+                            maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden) as e:
         entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], None], str(e), i, int(ri[RI_COUNT]))
         groupData[i][u'required'] -= 1
@@ -13309,7 +13341,8 @@ def doPrintGroups():
         response = callGAPI(cd.members(), u'list',
                             throw_reasons=GAPI.MEMBERS_THROW_REASONS, retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                             pageToken=pageToken,
-                            groupKey=ri[RI_ENTITY], roles=ri[RI_ROLE], fields=u'nextPageToken,members(email,id,role)', maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
+                            groupKey=ri[RI_ENTITY], roles=ri[RI_ROLE], fields=u'nextPageToken,members(email,id,role)',
+                            maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden) as e:
         entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], None], str(e), i, int(ri[RI_COUNT]))
         break
@@ -13360,18 +13393,16 @@ def doPrintGroups():
   titles, csvRows = initializeTitlesCSVfile(None)
   addFieldTitleToCSVfile(u'email', GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP, cdfieldsList, fieldsTitles, titles, nativeTitles)
   rolesSet = set()
-  entitySelection = emailMatchPattern = nameMatchPattern = None
+  entitySelection = None
+  matchPatterns = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
       todrive = getTodriveParameters()
     elif getGroupFilters(myarg, kwargs):
       pass
-    elif myarg == u'emailmatchpattern':
-      emailMatchPattern = getREPattern(re.IGNORECASE)
-    elif myarg == u'namematchpattern':
-      nameMatchPattern = getREPattern(re.IGNORECASE|re.UNICODE)
-      addFieldTitleToCSVfile(u'name', GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP, cdfieldsList, fieldsTitles, titles, nativeTitles)
+    elif getGroupMatchPatterns(myarg, matchPatterns):
+      pass
     elif myarg == u'select':
       entitySelection = getEntityList(Cmd.OB_GROUP_ENTITY)
     elif myarg == u'maxresults':
@@ -13426,6 +13457,7 @@ def doPrintGroups():
       quotechar = getCharacter()
     else:
       unknownArgumentExit()
+  updateFieldsTitlesForGroupMatchPatterns(matchPatterns, cdfieldsList, fieldsTitles, titles, nativeTitles)
   if cdfieldsList:
     cdfields = u','.join(set(cdfieldsList))
     cdfieldsnp = u'nextPageToken,groups({0})'.format(cdfields)
@@ -13522,9 +13554,7 @@ def doPrintGroups():
   for groupEntity in entityList:
     i += 1
     groupEmail = groupEntity[u'email']
-    if emailMatchPattern is not None and not emailMatchPattern.match(groupEmail):
-      continue
-    if nameMatchPattern is not None and not nameMatchPattern.match(groupEntity[u'name']):
+    if not checkGroupMatchPatterns(groupEmail, groupEntity, matchPatterns):
       continue
     if not rolesOrSettings:
       _printGroupRow(groupEntity, None, None)
@@ -13623,7 +13653,7 @@ GROUPMEMBERS_DEFAULT_FIELDS = [u'id', u'role', u'group', u'email', u'type', u'st
 
 # gam print group-members|groups-members [todrive [<ToDriveAttributes>]]
 #	([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
-#	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
+#	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
 #	[roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
 #	[userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
 def doPrintGroupMembers():
@@ -13635,22 +13665,20 @@ def doPrintGroupMembers():
   subTitle = u'{0} {1}'.format(Msg.ALL, Ent.Plural(Ent.GROUP))
   fieldsList = []
   titles, csvRows = initializeTitlesCSVfile([u'group',])
-  entityList = emailMatchPattern = nameMatchPattern = None
+  entityList = None
   cdfieldsList = [u'email',]
   userFieldsList = []
   rolesSet = set()
   checkNotSuspended = False
+  matchPatterns = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
       todrive = getTodriveParameters()
     elif getGroupFilters(myarg, kwargs):
       pass
-    elif myarg == u'emailmatchpattern':
-      emailMatchPattern = getREPattern(re.IGNORECASE)
-    elif myarg == u'namematchpattern':
-      nameMatchPattern = getREPattern(re.IGNORECASE|re.UNICODE)
-      cdfieldsList.append(u'name')
+    elif getGroupMatchPatterns(myarg, matchPatterns):
+      pass
     elif myarg in [u'group', u'groupns']:
       entityList = [getEmailAddress()]
       subTitle = u'{0}={1}'.format(Ent.Singular(Ent.GROUP), entityList[0])
@@ -13688,6 +13716,7 @@ def doPrintGroupMembers():
     else:
       unknownArgumentExit()
   if entityList is None:
+    updateFieldsTitlesForGroupMatchPatterns(matchPatterns, cdfieldsList)
     subTitle = groupFilters(kwargs)
     printGettingAllAccountEntities(Ent.GROUP, subTitle)
     try:
@@ -13708,14 +13737,13 @@ def doPrintGroupMembers():
       badRequestWarning(Ent.GROUP, Ent.QUERY, invalidQuery(kwargs[u'query']))
       entityList = collections.deque()
   else:
-    nameMatchPattern = None
+    clearUnneededGroupMatchPatterns(matchPatterns)
   if not fieldsList:
     for field in GROUPMEMBERS_DEFAULT_FIELDS:
       addFieldToCSVfile(field, {field: field}, fieldsList, titles)
-  else:
-    if u'name'in fieldsList:
-      membernames = True
-      fieldsList.remove(u'name')
+  elif u'name'in fieldsList:
+    membernames = True
+    fieldsList.remove(u'name')
   if u'group' in fieldsList:
     fieldsList.remove(u'group')
   if not groupColumn:
@@ -13742,9 +13770,7 @@ def doPrintGroupMembers():
       groupEmail = group[u'email']
     else:
       groupEmail = convertUIDtoEmailAddress(group, cd, u'group')
-    if emailMatchPattern is not None and not emailMatchPattern.match(groupEmail):
-      continue
-    if nameMatchPattern is not None and not nameMatchPattern.match(group[u'name']):
+    if not checkGroupMatchPatterns(groupEmail, group, matchPatterns):
       continue
     membersList = []
     getGroupMembers(cd, groupEmail, roles, membersList, membersSet, i, count, checkNotSuspended, noduplicates, recursive, level)
@@ -13800,7 +13826,7 @@ def doPrintGroupMembers():
 
 # gam show group-members
 #	([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
-#	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
+#	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
 #	[roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
 def doShowGroupMembers():
   def _roleOrder(key):
@@ -13836,20 +13862,18 @@ def doShowGroupMembers():
   cd = buildGAPIObject(API.DIRECTORY)
   customerKey = GC.Values[GC.CUSTOMER_ID]
   kwargs = {u'customer': customerKey}
-  entityList = emailMatchPattern = nameMatchPattern = None
+  entityList = None
   cdfieldsList = [u'email',]
   rolesSet = set()
   checkNotSuspended = False
+  matchPatterns = {}
   maxdepth = -1
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if getGroupFilters(myarg, kwargs):
       pass
-    elif myarg == u'emailmatchpattern':
-      emailMatchPattern = getREPattern(re.IGNORECASE)
-    elif myarg == u'namematchpattern':
-      nameMatchPattern = getREPattern(re.IGNORECASE|re.UNICODE)
-      cdfieldsList.append(u'name')
+    elif getGroupMatchPatterns(myarg, matchPatterns):
+      pass
     elif myarg in [u'group', u'groupns']:
       entityList = [getEmailAddress()]
       if myarg == u'groupns':
@@ -13873,6 +13897,7 @@ def doShowGroupMembers():
   if not rolesSet:
     rolesSet = set([Ent.ROLE_OWNER, Ent.ROLE_MANAGER, Ent.ROLE_MEMBER])
   if entityList is None:
+    updateFieldsTitlesForGroupMatchPatterns(matchPatterns, cdfieldsList)
     printGettingAllAccountEntities(Ent.GROUP, groupFilters(kwargs))
     try:
       groupsList = callGAPIpages(cd.groups(), u'list', u'groups',
@@ -13891,7 +13916,7 @@ def doShowGroupMembers():
       badRequestWarning(Ent.GROUP, Ent.QUERY, invalidQuery(kwargs[u'query']))
       return
   else:
-    nameMatchPattern = None
+    clearUnneededGroupMatchPatterns(matchPatterns)
     groupsList = collections.deque()
     for group in entityList:
       if isinstance(group, dict):
@@ -13902,11 +13927,9 @@ def doShowGroupMembers():
   count = len(groupsList)
   for group in groupsList:
     i += 1
-    if emailMatchPattern is not None and not emailMatchPattern.match(group[u'email']):
-      continue
-    if nameMatchPattern is not None and not nameMatchPattern.match(group[u'name']):
-      continue
-    _showGroup(group[u'email'], 0)
+    groupEmail = group[u'email']
+    if checkGroupMatchPatterns(groupEmail, group, matchPatterns):
+      _showGroup(groupEmail, 0)
 
 # gam print licenses [todrive [<ToDriveAttributes>]] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)]
 def doPrintLicenses(returnFields=None, skus=None):
@@ -23281,24 +23304,27 @@ MIMETYPE_CHOICE_MAP = {
 
 MIMETYPE_TYPES = [u'application', u'audio', u'font', u'image', u'message', u'model', u'multipart', u'text', u'video',]
 
+def validateMimeType(mimeType):
+  if mimeType in MIMETYPE_CHOICE_MAP:
+    return MIMETYPE_CHOICE_MAP[mimeType]
+  if mimeType.startswith(APPLICATION_VND_GOOGLE_APPS):
+    return mimeType
+  if mimeType.find(u'/') > 0:
+    mediaType, subType = mimeType.split(u'/', 1)
+    if mediaType in MIMETYPE_TYPES and subType:
+      return mimeType
+  invalidChoiceExit(list(MIMETYPE_CHOICE_MAP)+[u'({0})/mediatype'.format(formatChoiceList(MIMETYPE_TYPES))], True)
+
+def getMimeType():
+  return validateMimeType(getString(Cmd.OB_MIMETYPE).lower())
+
 def initMimeTypeCheck():
   return {u'mimeTypes': set(), u'reverse': False}
 
 def getMimeTypeCheck(mimeTypeCheck):
   mimeTypeCheck[u'reverse'] = checkArgumentPresent(u'not')
   for mimeType in getString(Cmd.OB_MIMETYPE_LIST).lower().replace(u',', u' ').split():
-    if mimeType in MIMETYPE_CHOICE_MAP:
-      mimeTypeCheck[u'mimeTypes'].add(MIMETYPE_CHOICE_MAP[mimeType])
-    elif mimeType.startswith(APPLICATION_VND_GOOGLE_APPS):
-      mimeTypeCheck[u'mimeTypes'].add(mimeType)
-    elif mimeType.find(u'/') > 0:
-      mediaType, subType = mimeType.split(u'/', 1)
-      if mediaType in MIMETYPE_TYPES and subType:
-        mimeTypeCheck[u'mimeTypes'].add(mimeType)
-      else:
-        invalidChoiceExit(list(MIMETYPE_CHOICE_MAP)+[u'({0})/mediatype'.format(formatChoiceList(MIMETYPE_TYPES))], True)
-    else:
-      invalidChoiceExit(list(MIMETYPE_CHOICE_MAP)+[u'({0})/mediatype'.format(formatChoiceList(MIMETYPE_TYPES))], True)
+    mimeTypeCheck[u'mimeTypes'].add(validateMimeType(mimeType))
 
 def checkMimeType(mimeTypeCheck, fileEntry):
   if not mimeTypeCheck[u'mimeTypes']:
@@ -23399,7 +23425,7 @@ def getDriveFileAttribute(myarg, body, parameters, assignLocalName):
   elif myarg == u'description':
     body[u'description'] = getString(Cmd.OB_STRING, minLen=0)
   elif myarg == u'mimetype':
-    body[u'mimeType'] = getChoice(MIMETYPE_CHOICE_MAP, mapChoice=True)
+    body[u'mimeType'] = getMimeType()
   elif getDriveFileParentAttribute(myarg, parameters):
     pass
   elif myarg == u'writerscanshare':
@@ -25601,7 +25627,7 @@ def updateDriveFile(users):
         try:
           if media_body:
             result = callGAPI(drive.files(), u'update',
-                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.TEAMDRIVES_PARENT_LIMIT, GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED],
+                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST+GAPI.TEAMDRIVES_PARENT_LIMIT, GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED],
                               fileId=fileId, ocrLanguage=parameters[DFA_OCRLANGUAGE],
                               keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                               useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
@@ -25611,7 +25637,7 @@ def updateDriveFile(users):
             entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, result[VX_FILENAME]], Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], j, jcount)
           else:
             result = callGAPI(drive.files(), u'update',
-                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.TEAMDRIVES_PARENT_LIMIT, GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED],
+                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST+GAPI.TEAMDRIVES_PARENT_LIMIT, GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED],
                               fileId=fileId, ocrLanguage=parameters[DFA_OCRLANGUAGE],
                               keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                               useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
@@ -25619,7 +25645,8 @@ def updateDriveFile(users):
                               body=body, fields=VX_ID_FILENAME_MIMETYPE,
                               supportsTeamDrives=True)
             entityActionPerformed([Ent.USER, user, _getEntityMimeType(result), result[VX_FILENAME]], j, jcount)
-        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.invalid,
+        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
+                GAPI.unknownError, GAPI.invalid, GAPI.badRequest,
                 GAPI.teamDrivesParentLimit, GAPI.teamDrivesFolderMoveInNotSupported) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -25633,14 +25660,15 @@ def updateDriveFile(users):
         j += 1
         try:
           result = callGAPI(drive.files(), u'copy',
-                            throw_reasons=GAPI.DRIVE_COPY_THROW_REASONS,
-                            fileId=fileId, ocrLanguage=parameters[DFA_OCRLANGUAGE],
+                            throw_reasons=GAPI.DRIVE_COPY_THROW_REASONS+[GAPI.BAD_REQUEST],
+                            fileId=fileId,
                             ignoreDefaultVisibility=parameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                             keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                             body=body, fields=VX_ID_FILENAME, supportsTeamDrives=True)
           entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, fileId],
                                                              Act.MODIFIER_TO, result[VX_FILENAME], [Ent.DRIVE_FILE_ID, result[u'id']], j, jcount)
-        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.invalid, GAPI.cannotCopyFile) as e:
+        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
+                GAPI.unknownError, GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, fileId], str(e), j, jcount)
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)

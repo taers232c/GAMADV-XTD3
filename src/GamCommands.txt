@@ -772,7 +772,7 @@ gam calendar|calendars <CalendarEntity> showacl [formatjson]
         (transparency opaque|transparent)|
         (visibility default|public|private)
 
-<EventAddAttributes> ::=
+<EventCreateAttributes> ::=
         <EventAttributes>|
         notifyattendees|(sendnotifications <Boolean>)
 
@@ -794,7 +794,7 @@ The following attributes are equivalent:
         guestscantseeothers = guestscanseeotherguests False
         tentative = status tentative
 
-gam calendar|calendars <CalendarEntity> create|add event [id <String>] <EventAddAttributes>+
+gam calendar|calendars <CalendarEntity> create|add event [id <String>] <EventCreateAttributes>+
 gam calendar|calendars <CalendarEntity> import event icaluid <iCalUID> <EventImportAttributes>+
 gam calendar|calendars <CalendarEntity> update events <EventEntity> <EventUpdateAttributes>+
 gam calendar|calendars <CalendarEntity> delete events <EventEntity> [doit] [notifyattendees]
@@ -813,7 +813,7 @@ gam calendar|calendars <CalendarEntity> show events ([allevents] <EventSelectPro
 gam calendar|calendars <CalendarEntity> print events [todrive [<ToDriveAttributes>]] <EventSelectProperties>*) [todrive [<ToDriveAttributes>]] <EventDisplayProperties>*
          [formatjson] [quotechar <Character>]
 
-gam calendar|calendars <CalendarEntity> addevent <EventAddAttributes>+
+gam calendar|calendars <CalendarEntity> addevent <EventCreateAttributes>+
 gam calendar|calendars <CalendarEntity> deleteevent <EventEntity> [doit] [notifyattendees]
 gam calendar|calendars <CalendarEntity> wipe
 
@@ -1364,7 +1364,7 @@ gam delete group|groups <GroupEntity>
 
 gam info group|groups <GroupEntity> [members] [managers] [owners] [nousers] [quick] [noaliases] [groups] <GroupFieldName>* [fields <GroupFieldNameList>] [formatjson]
 gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[select <GroupEntity>]
-        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
+        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
         [maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
         [members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
         [convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
@@ -1381,12 +1381,12 @@ gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] ([member
 
 gam print group-members [todrive [<ToDriveAttributes>]]
         [domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
-        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
+        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
         [roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
         [userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
 gam show group-members
         ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
-        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
+        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
         [roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
 
 # Guardians
@@ -1824,14 +1824,14 @@ gam delete permissions <TeamDriveEntityAdmin> <DriveFilePermissionIDEntity>
 
 In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
 
-gam <UserTypeEntity> create|add drivefileacl <TeamDriveEntityAdmin> adminaccess anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
-        (role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [sendemail] [emailmessage <String>] [showtitles] [nodetails]
-gam <UserTypeEntity> update drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> adminaccess
-        (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails]
-gam <UserTypeEntity> delete drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> adminaccess [showtitles]
-gam <UserTypeEntity> show drivefileacl <TeamDriveEntityAdmin> adminaccess [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-gam <UserTypeEntity> print drivefileacls <TeamDriveEntityAdmin> [todrive [<ToDriveAttributes>]] adminaccess [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-gam <UserTypeEntity> create|add permissions <TeamDriveEntityAdmin> <DriveFilePermissionEntity> adminaccess [expires|expiration <Time>] [sendemail] [emailmessage <String>]
+gam <UserTypeEntity> create|add drivefileacl <TeamDriveEntityAdmin> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
+        (role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [sendemail] [emailmessage <String>] [showtitles] [nodetails] adminaccess
+gam <UserTypeEntity> update drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail>
+        (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails] adminaccess
+gam <UserTypeEntity> delete drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles] adminaccess
+gam <UserTypeEntity> show drivefileacl <TeamDriveEntityAdmin> [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])* adminaccess
+gam <UserTypeEntity> print drivefileacls <TeamDriveEntityAdmin> [todrive [<ToDriveAttributes>]] [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])* adminaccess
+gam <UserTypeEntity> create|add permissions <TeamDriveEntityAdmin> <DriveFilePermissionEntity> [expires|expiration <Time>] [sendemail] [emailmessage <String>] adminaccess
 gam <UserTypeEntity> delete permissions <TeamDriveEntityAdmin> <DriveFilePermissionIDEntity> adminaccess
 
 In these commands, the Google administrator named in oauth2.txt is used.
@@ -1841,8 +1841,8 @@ gam show teamdriveacls [teamdriveadminquery|query <QueryTeamDrive>] [matchname <
 
 In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
 
-gam <UserTypeEntity> print teamdriveacls adminaccess [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)* [oneitemperrow] [todrive [<ToDriveAttributes>]]
-gam <UserTypeEntity> show teamdriveacls adminaccess [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
+gam <UserTypeEntity> print teamdriveacls [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)* [oneitemperrow] [todrive [<ToDriveAttributes>]] adminaccess
+gam <UserTypeEntity> show teamdriveacls [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)* adminaccess
 
 # Vault
 
@@ -2142,7 +2142,7 @@ gam <UserTypeEntity> transfer calendars <CalendarManageEntity> <UserItem> [keepu
         (transparency opaque|transparent)|
         (visibility default|public|private)
 
-<EventAddAttributes> ::=
+<EventCreateAttributes> ::=
         <EventAttributes>|
         notifyattendees|(sendnotifications <Boolean>)
 
@@ -2165,7 +2165,7 @@ The following attributes are equivalent:
 
 Add update and delete events in any calendar for which a user has access
 
-gam <UserTypeEntity> create|add event <CalendarManageEntity> [id <String>] <EventAddAttributes>+
+gam <UserTypeEntity> create|add event <CalendarManageEntity> [id <String>] <EventCreateAttributes>+
 gam <UserTypeEntity> import event <CalendarEntity> icaluid <iCalUID> <EventImportAttributes>+
 gam <UserTypeEntity> update events <CalendarManageEntity> <EventEntity> <EventUpdateAttributes>+
 gam <UserTypeEntity> delete events <CalendarManageEntity> <EventEntity> [doit] [notifyattendees]
