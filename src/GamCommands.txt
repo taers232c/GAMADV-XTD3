@@ -1817,6 +1817,7 @@ gam create|add drivefileacl <TeamDriveEntityAdmin> anyone|(user <UserItem>)|(gro
 gam update drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail>
         (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails]
 gam delete drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles]
+gam info drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles]
 gam show drivefileacl <TeamDriveEntityAdmin> [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam print drivefileacls <TeamDriveEntityAdmin> [todrive [<ToDriveAttributes>]] [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam create|add permissions <TeamDriveEntityAdmin> <DriveFilePermissionEntity> [expires|expiration <Time>] [sendemail] [emailmessage <String>]
@@ -1829,6 +1830,7 @@ gam <UserTypeEntity> create|add drivefileacl <TeamDriveEntityAdmin> anyone|(user
 gam <UserTypeEntity> update drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail>
         (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails] adminaccess
 gam <UserTypeEntity> delete drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles] adminaccess
+gam <UserTypeEntity> info drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles] adminaccess
 gam <UserTypeEntity> show drivefileacl <TeamDriveEntityAdmin> [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])* adminaccess
 gam <UserTypeEntity> print drivefileacls <TeamDriveEntityAdmin> [todrive [<ToDriveAttributes>]] [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])* adminaccess
 gam <UserTypeEntity> create|add permissions <TeamDriveEntityAdmin> <DriveFilePermissionEntity> [expires|expiration <Time>] [sendemail] [emailmessage <String>] adminaccess
@@ -2288,6 +2290,7 @@ gam <UserTypeEntity> create|add drivefileacl <DriveFileEntity> anyone|(user <Use
 gam <UserTypeEntity> update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail>
         (role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails]
 gam <UserTypeEntity> delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles]
+gam <UserTypeEntity> info drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles]
 gam <UserTypeEntity> show drivefileacl <DriveFileEntity> [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> create|add permissions <DriveFileEntity> <DriveFilePermissionEntity> [expires|expiration <Time>] [sendemail] [emailmessage <String>]

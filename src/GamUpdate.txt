@@ -1,3 +1,10 @@
+4.56.14
+
+Added commands to display information aboout a specific drive file ACL.
+gam info drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles]
+gam <UserTypeEntity> info drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles] adminaccess
+gam <UserTypeEntity> info drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles]
+
 4.56.13
 
 Added descriptionmatchpattern <RegularExpression> to the following commands to allow filtering on the group description;
