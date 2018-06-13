@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.56.14'
+__version__ = u'4.56.15'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -27597,6 +27597,13 @@ def _getDriveFileACLPrintKeysTimeObjects():
   return (printKeys, set(timeObjects))
 
 # DriveFileACL commands utilities
+def _showDriveFilePermissionJSON(user, fileId, fileName, permission, printKeys, timeObjects):
+  _mapDrivePermissionNames(permission)
+  flattened = {u'Owner': user, u'id': fileId, u'permission': permission}
+  if fileId != fileName:
+    flattened[VX_FILENAME] = fileName
+  printLine(json.dumps(cleanJSON(flattened, u'', timeObjects=timeObjects), ensure_ascii=False, sort_keys=True))
+
 def _showDriveFilePermission(permission, printKeys, timeObjects, i=0, count=0):
   if u'displayName' in permission:
     name = permission[u'displayName']
@@ -28125,11 +28132,13 @@ def doDeletePermissions():
 def _infoDriveFileACLs(users, useDomainAdminAccess):
   fileIdEntity = getDriveFileEntity()
   isEmail, permissionId = getPermissionId()
-  showTitles = False
+  formatJSON = showTitles = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'showtitles':
       showTitles = getBoolean()
+    elif myarg == u'formatjson':
+      formatJSON = True
     elif myarg in [u'adminaccess', u'asadmin']:
       useDomainAdminAccess = True
     else:
@@ -28142,7 +28151,8 @@ def _infoDriveFileACLs(users, useDomainAdminAccess):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER_ACL, useDomainAdminAccess=useDomainAdminAccess)
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=[Ent.DRIVE_FILE_OR_FOLDER_ACL, None][formatJSON],
+                                                  useDomainAdminAccess=useDomainAdminAccess)
     if jcount == 0:
       continue
     Ind.Increment()
@@ -28153,15 +28163,18 @@ def _infoDriveFileACLs(users, useDomainAdminAccess):
         fileName = fileId
         entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
         if showTitles:
-          fileName, entityType = _getDriveFileNameFromId(drive, fileId)
+          fileName, entityType = _getDriveFileNameFromId(drive, fileId, not formatJSON)
         permission = callGAPI(drive.permissions(), u'get',
                               throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.PERMISSION_NOT_FOUND],
                               useDomainAdminAccess=useDomainAdminAccess,
                               fileId=fileId, permissionId=permissionId, fields=u'*', supportsTeamDrives=True)
-        entityPerformActionNumItems([entityType, fileName], jcount, Ent.PERMITTEE)
-        Ind.Increment()
-        _showDriveFilePermission(permission, printKeys, timeObjects, j, jcount)
-        Ind.Decrement()
+        if not formatJSON:
+          entityPerformActionNumItems([entityType, fileName], jcount, Ent.PERMITTEE)
+          Ind.Increment()
+          _showDriveFilePermission(permission, printKeys, timeObjects, j, jcount)
+          Ind.Decrement()
+        else:
+          _showDriveFilePermissionJSON(user, fileId, fileName, permission, printKeys, timeObjects)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
       except GAPI.permissionNotFound:
@@ -28171,27 +28184,29 @@ def _infoDriveFileACLs(users, useDomainAdminAccess):
         break
     Ind.Decrement()
 
-# gam <UserTypeEntity> info drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [adminaccess|asadmin] [showtitles]
+# gam <UserTypeEntity> info drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [adminaccess|asadmin] [showtitles] [formatjson]
 def infoDriveFileACLs(users):
   _infoDriveFileACLs(users, False)
 
-# gam info drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles]
+# gam info drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles] [formatjson]
 def doInfoDriveFileACLs():
   _infoDriveFileACLs([_getValueFromOAuth(u'email')], True)
 
 def _printShowDriveFileACLs(users, csvFormat, useDomainAdminAccess):
   if csvFormat:
     todrive = {}
-    titles, csvRows = initializeTitlesCSVfile([u'Owner', u'id'])
+    sortTitles = [u'Owner', u'id']
+    titles, csvRows = initializeTitlesCSVfile(sortTitles)
   fileIdEntity = getDriveFileEntity()
-  oneItemPerRow = showTitles = False
+  formatJSON = oneItemPerRow = showTitles = False
+  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
   orderByList = []
   fileNameTitle = [V3_FILENAME, V2_FILENAME][not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
-    elif csvFormat and myarg == u'oneitemperrow':
+    elif myarg == u'oneitemperrow':
       oneItemPerRow = True
     elif myarg == u'orderby':
       getDrivefileOrderBy(orderByList)
@@ -28199,6 +28214,13 @@ def _printShowDriveFileACLs(users, csvFormat, useDomainAdminAccess):
       showTitles = True
       if csvFormat:
         addTitlesToCSVfile(fileNameTitle, titles)
+        sortTitles.append(fileNameTitle)
+    elif myarg == u'formatjson':
+      formatJSON = True
+      if csvFormat:
+        addTitlesToCSVfile(u'JSON', titles)
+    elif myarg == u'quotechar':
+      quotechar = getCharacter()
     elif myarg in [u'adminaccess', u'asadmin']:
       useDomainAdminAccess = True
     else:
@@ -28208,7 +28230,8 @@ def _printShowDriveFileACLs(users, csvFormat, useDomainAdminAccess):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][csvFormat], orderBy=orderBy, useDomainAdminAccess=useDomainAdminAccess)
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][csvFormat or formatJSON], orderBy=orderBy,
+                                                  useDomainAdminAccess=useDomainAdminAccess)
     if jcount == 0:
       continue
     Ind.Increment()
@@ -28219,36 +28242,56 @@ def _printShowDriveFileACLs(users, csvFormat, useDomainAdminAccess):
         fileName = fileId
         entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
         if showTitles:
-          fileName, entityType = _getDriveFileNameFromId(drive, fileId, not csvFormat)
+          fileName, entityType = _getDriveFileNameFromId(drive, fileId, not (csvFormat or formatJSON))
         results = callGAPIpages(drive.permissions(), u'list', VX_PAGES_PERMISSIONS,
                                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
                                 useDomainAdminAccess=useDomainAdminAccess,
                                 fileId=fileId, fields=VX_NPT_PERMISSIONS, supportsTeamDrives=True)
         if not csvFormat:
-          kcount = len(results)
-          entityPerformActionNumItems([entityType, fileName], kcount, Ent.PERMITTEE, j, jcount)
-          Ind.Increment()
-          k = 0
-          for permission in results:
-            k += 1
-            _showDriveFilePermission(permission, printKeys, timeObjects, k, kcount)
-          Ind.Decrement()
-        else:
-          if results:
+          if not formatJSON:
+            kcount = len(results)
+            entityPerformActionNumItems([entityType, fileName], kcount, Ent.PERMITTEE, j, jcount)
+            Ind.Increment()
+            k = 0
+            for permission in results:
+              k += 1
+              _showDriveFilePermission(permission, printKeys, timeObjects, k, kcount)
+            Ind.Decrement()
+          else:
             if oneItemPerRow:
               for permission in results:
-                row = {u'Owner': user, u'id': fileId}
-                if showTitles:
-                  row[fileNameTitle] = fileName
-                _mapDrivePermissionNames(permission)
-                addRowTitlesToCSVfile(flattenJSON({u'permission': permission}, flattened=row, timeObjects=timeObjects), csvRows, titles)
+                _showDriveFilePermissionJSON(user, fileId, fileName, permission, printKeys, timeObjects)
             else:
+              flattened = {u'Owner': user, u'id': fileId}
+              if showTitles:
+                flattened[fileNameTitle] = fileName
               for permission in results:
                 _mapDrivePermissionNames(permission)
+              flattened[u'permissions'] = results
+              printLine(json.dumps(cleanJSON(flattened, u'', timeObjects=timeObjects), ensure_ascii=False, sort_keys=True))
+        elif results:
+          if oneItemPerRow:
+            for permission in results:
+              flattened = {u'Owner': user, u'id': fileId}
               if showTitles:
-                addRowTitlesToCSVfile(flattenJSON({u'permissions': results}, flattened={u'Owner': user, u'id': fileId, fileNameTitle: fileName}, timeObjects=timeObjects), csvRows, titles)
+                flattened[fileNameTitle] = fileName
+              _mapDrivePermissionNames(permission)
+              if not formatJSON:
+                addRowTitlesToCSVfile(flattenJSON({u'permission': permission}, flattened=flattened, timeObjects=timeObjects), csvRows, titles)
               else:
-                addRowTitlesToCSVfile(flattenJSON({u'permissions': results}, flattened={u'Owner': user, u'id': fileId}, timeObjects=timeObjects), csvRows, titles)
+                flattened[u'JSON'] = json.dumps(cleanJSON({u'permission': permission}, u'', timeObjects=timeObjects), ensure_ascii=False, sort_keys=True)
+                csvRows.append(flattened)
+          else:
+            flattened = {u'Owner': user, u'id': fileId}
+            if showTitles:
+              flattened[fileNameTitle] = fileName
+            for permission in results:
+              _mapDrivePermissionNames(permission)
+            if not formatJSON:
+              addRowTitlesToCSVfile(flattenJSON({u'permissions': results}, flattened=flattened, timeObjects=timeObjects), csvRows, titles)
+            else:
+              flattened[u'JSON'] = json.dumps(cleanJSON({u'permissions': results}, u'', timeObjects=timeObjects), ensure_ascii=False, sort_keys=True)
+              csvRows.append(flattened)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -28256,21 +28299,24 @@ def _printShowDriveFileACLs(users, csvFormat, useDomainAdminAccess):
         break
     Ind.Decrement()
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'Drive File ACLs', todrive, [u'Owner', u'id', fileNameTitle])
+    writeCSVfile(csvRows, titles, u'Drive File ACLs', todrive, sortTitles, quotechar)
 
-# gam <UserTypeEntity> print drivefileacl <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] [adminaccess|asadmin] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+# gam <UserTypeEntity> print drivefileacl <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] [showtitles] [formatjson] [quotechar <Character>]
+#	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [adminaccess|asadmin]
 def printDriveFileACLs(users):
   _printShowDriveFileACLs(users, True, False)
 
-# gam <UserTypeEntity> show drivefileacl <DriveFileEntity> [adminaccess|asadmin] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+# gam <UserTypeEntity> show drivefileacl <DriveFileEntity> [oneitemperrow] [showtitles] [formatjson]
+#	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [adminaccess|asadmin]
 def showDriveFileACLs(users):
   _printShowDriveFileACLs(users, False, False)
 
-# gam print drivefileacl <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+# gam print drivefileacl <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] [showtitles] [formatjson] [quotechar <Character>]
+#	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 def doPrintDriveFileACLs():
   _printShowDriveFileACLs([_getValueFromOAuth(u'email')], True, True)
 
-# gam show drivefileacl <DriveFileEntity> [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+# gam show drivefileacl <DriveFileEntity> [oneitemperrow] [showtitles] [formatjson] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 def doShowDriveFileACLs():
   _printShowDriveFileACLs([_getValueFromOAuth(u'email')], False, True)
 
