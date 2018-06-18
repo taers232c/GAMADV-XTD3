@@ -33,19 +33,26 @@ class GamCLArgs(object):
   ENTITY_CROS_OUS_AND_CHILDREN = u'cros_ous_and_children'
   ENTITY_GROUP = u'group'
   ENTITY_GROUP_NS = u'group_ns'
+  ENTITY_GROUP_SUSP = u'group_susp'
   ENTITY_GROUPS = u'groups'
   ENTITY_GROUPS_NS = u'groups_ns'
+  ENTITY_GROUPS_SUSP = u'groups_susp'
   ENTITY_GROUP_USERS = u'group_users'
   ENTITY_GROUP_USERS_NS = u'group_users_ns'
+  ENTITY_GROUP_USERS_SUSP = u'group_users_susp'
   ENTITY_LICENSES = u'licenses'
   ENTITY_OU = u'ou'
   ENTITY_OU_NS = u'ou_ns'
+  ENTITY_OU_SUSP = u'ou_susp'
   ENTITY_OU_AND_CHILDREN = u'ou_and_children'
   ENTITY_OU_AND_CHILDREN_NS = u'ou_and_children_ns'
+  ENTITY_OU_AND_CHILDREN_SUSP = u'ou_and_children_susp'
   ENTITY_OUS = u'ous'
   ENTITY_OUS_NS = u'ous_ns'
+  ENTITY_OUS_SUSP = u'ous_susp'
   ENTITY_OUS_AND_CHILDREN = u'ous_and_children'
   ENTITY_OUS_AND_CHILDREN_NS = u'ous_and_children_ns'
+  ENTITY_OUS_AND_CHILDREN_SUSP = u'ous_and_children_susp'
   ENTITY_QUERIES = u'queries'
   ENTITY_QUERY = u'query'
   ENTITY_STUDENTS = u'students'
@@ -66,19 +73,26 @@ class GamCLArgs(object):
     ENTITY_COURSEPARTICIPANTS,
     ENTITY_GROUP,
     ENTITY_GROUP_NS,
+    ENTITY_GROUP_SUSP,
     ENTITY_GROUPS,
     ENTITY_GROUPS_NS,
+    ENTITY_GROUPS_SUSP,
     ENTITY_GROUP_USERS,
     ENTITY_GROUP_USERS_NS,
+    ENTITY_GROUP_USERS_SUSP,
     ENTITY_LICENSES,
     ENTITY_OU,
     ENTITY_OU_NS,
+    ENTITY_OU_SUSP,
     ENTITY_OU_AND_CHILDREN,
     ENTITY_OU_AND_CHILDREN_NS,
+    ENTITY_OU_AND_CHILDREN_SUSP,
     ENTITY_OUS,
     ENTITY_OUS_NS,
+    ENTITY_OUS_SUSP,
     ENTITY_OUS_AND_CHILDREN,
     ENTITY_OUS_AND_CHILDREN_NS,
+    ENTITY_OUS_AND_CHILDREN_SUSP,
     ENTITY_QUERIES,
     ENTITY_QUERY,
     ENTITY_STUDENTS,
@@ -111,20 +125,28 @@ class GamCLArgs(object):
     u'licences': ENTITY_LICENSES,
     u'org': ENTITY_OU,
     u'org_ns': ENTITY_OU_NS,
+    u'org_susp': ENTITY_OU_SUSP,
     u'org_and_child': ENTITY_OU_AND_CHILDREN,
     u'org_and_child_ns': ENTITY_OU_AND_CHILDREN_NS,
+    u'org_and_child_susp': ENTITY_OU_AND_CHILDREN_SUSP,
     u'org_and_children': ENTITY_OU_AND_CHILDREN,
     u'org_and_children_ns': ENTITY_OU_AND_CHILDREN_NS,
+    u'org_and_children_susp': ENTITY_OU_AND_CHILDREN_SUSP,
     u'orgs': ENTITY_OUS,
     u'orgs_ns': ENTITY_OUS_NS,
+    u'orgs_susp': ENTITY_OUS_SUSP,
     u'orgs_and_child': ENTITY_OUS_AND_CHILDREN,
     u'orgs_and_child_ns': ENTITY_OUS_AND_CHILDREN_NS,
+    u'orgs_and_child_susp': ENTITY_OUS_AND_CHILDREN_SUSP,
     u'orgs_and_children': ENTITY_OUS_AND_CHILDREN,
     u'orgs_and_children_ns': ENTITY_OUS_AND_CHILDREN_NS,
+    u'orgs_and_children_susp': ENTITY_OUS_AND_CHILDREN_SUSP,
     u'ou_and_child': ENTITY_OU_AND_CHILDREN,
     u'ou_and_child_ns': ENTITY_OU_AND_CHILDREN_NS,
+    u'ou_and_child_susp': ENTITY_OU_AND_CHILDREN_SUSP,
     u'ous_and_child': ENTITY_OUS_AND_CHILDREN,
     u'ous_and_child_ns': ENTITY_OUS_AND_CHILDREN_NS,
+    u'ous_and_child_susp': ENTITY_OUS_AND_CHILDREN_SUSP,
     }
 # CL entity source selectors
   ENTITY_SELECTOR_ALL = u'all'
@@ -185,12 +207,16 @@ class GamCLArgs(object):
     ENTITY_USERS,
     ENTITY_GROUPS,
     ENTITY_GROUPS_NS,
+    ENTITY_GROUPS_SUSP,
     ENTITY_GROUP_USERS,
     ENTITY_GROUP_USERS_NS,
+    ENTITY_GROUP_USERS_SUSP,
     ENTITY_OUS,
     ENTITY_OUS_NS,
+    ENTITY_OUS_SUSP,
     ENTITY_OUS_AND_CHILDREN,
     ENTITY_OUS_AND_CHILDREN_NS,
+    ENTITY_OUS_AND_CHILDREN_SUSP,
     ENTITY_COURSEPARTICIPANTS,
     ENTITY_STUDENTS,
     ENTITY_TEACHERS,

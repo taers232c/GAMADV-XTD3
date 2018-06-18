@@ -198,13 +198,16 @@ If an item contains spaces, it should be surrounded by ".
 <MilliSeconds> ::= <Digit><Digit><Digit>
 <Date> ::=
         <Year>-<Month>-<Day> |
-        (+|-)<Number>(d|w)
+        (+|-)<Number>(d|w) |
+	today
 <DateTime> ::=
         <Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute> |
-        (+|-)<Number>(m|h|d|w)
+        (+|-)<Number>(m|h|d|w) |
+	now|today
 <Time> ::=
         <Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute>:<Second>[.<MilliSeconds>](Z|(+|-(<Hour>:<Minute>))) |
-        (+|-)<Number>(m|h|d|w)
+        (+|-)<Number>(m|h|d|w) |
+	now|today
 <RegularExpression> ::= <Python Regular Expression, see: https://docs.python.org/2/library/re.html>
 <SiteName> ::= [a-z,0-9,-]+
 <UniqueID> ::= uid:<String>
@@ -428,8 +431,10 @@ Specify a collection of ChromeOS devices by directly specifying them or by speci
         (croscsvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
         (crosquery <QueryCrOS>)|
         (crosqueries <QueryCrOSList>)|
-        (datafile cros|cros_ous|cros_ous_and_children <FileName> [charset <Charset>] [delimiter <Character>])|
-        (csvkmd cros|cros_ous|cros_ous_and_children <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+        (datafile cros|cros_ous|cros_ous_and_children
+                <FileName> [charset <Charset>] [delimiter <Character>])|
+        (csvkmd cros|cros_ous|cros_ous_and_children
+                <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
                 keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
                 subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
                 (matchfield <FieldName> <RegularExpression>)*
@@ -444,13 +449,13 @@ Specify a collection of Users by directly specifying them or by specifiying item
         (all users)|
         (user <UserItem>)|
         (users <UserList>)|
-        (group|group_ns <GroupItem>)|
-        (groups|groups_ns <GroupList>)|
-        (group_users|group_users_ns <GroupList> [members] [managers] [owners] [primarydomain] [domains <DomainNameList>] [recursive] end)|
-        (ou|ou_ns <OrgUnitItem>)|
-        (ou_and_children|ou_and_children_ns <OrgUnitItem>)|
-        (ous|ous_ns <OrgUnitList>)|
-        (ous_and_children|ous_and_children_ns <OrgUnitList>)|
+        (group|group_ns|group_susp <GroupItem>)|
+        (groups|groups_ns|groups_susp <GroupList>)|
+        (group_users|group_users_ns|group_users_susp <GroupList> [members] [managers] [owners] [primarydomain] [domains <DomainNameList>] [recursive] end)|
+        (ou|ou_ns|ou_susp <OrgUnitItem>)|
+        (ou_and_children|ou_and_children_ns|ou_and_children_susp <OrgUnitItem>)|
+        (ous|ous_ns|ous_susp <OrgUnitList>)|
+        (ous_and_children|ous_and_children_ns|ous_and_children_susp <OrgUnitList>)|
         (courseparticipants <CourseIDList>)|
         (students <CourseIDList>)|
         (teachers <CourseIDList>)|
@@ -459,8 +464,10 @@ Specify a collection of Users by directly specifying them or by specifiying item
         (csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
         (query <QueryUser>)|
         (queries <QueryUserList>)|
-        (datafile users|groups|ous|ous_and_children|courseparticipants|students|teachers <FileName> [charset <Charset>] [delimiter <Character>])|
-        (csvkmd users|groups|ous|ous_and_children|courseparticipants|students|teachers <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+        (datafile users|groups|groups_ns|groups_susp|ous|ous_ns|ous_susp|ous_and_children|ous_and_children_ns|ous_and_children_susp|courseparticipants|students|teachers
+                <FileName> [charset <Charset>] [delimiter <Character>])|
+        (csvkmd users|groups|groups_ns_|groups_susp|ous|ous_ns|ous_susp|ous_and_children|ous_and_children_ns|ous_and_children_susp|courseparticipants|students|teachers
+                <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
                 keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
                 subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
                 (matchfield <FieldName> <RegularExpression>)*
@@ -1320,9 +1327,9 @@ gam print domainaliases|aliasdomains [todrive [<ToDriveAttributes>]]
 
 gam create|add group <EmailAddress> <GroupAttributes>*
 gam update group|groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] <GroupAttributes>*
-gam update group|groups <GroupEntity> create|add [owner|manager|member] [usersonly|groupsonly] [notsuspended] <UserTypeEntity>
+gam update group|groups <GroupEntity> create|add [owner|manager|member] [usersonly|groupsonly] [notsuspended|suspended] <UserTypeEntity>
 gam update group|groups <GroupEntity> delete|remove [owner|manager|member] [usersonly|groupsonly] <UserTypeEntity>
-gam update group|groups <GroupEntity> sync [owner|manager|member] [usersonly|groupsonly] [addonly|removeonly] [notsuspended] <UserTypeEntity>
+gam update group|groups <GroupEntity> sync [owner|manager|member] [usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended] <UserTypeEntity>
 gam update group|groups <GroupEntity> update [owner|manager|member] [usersonly|groupsonly] <UserTypeEntity>
 gam update group|groups <GroupEntity> clear [member] [manager] [owner] [suspended]
 gam delete group|groups <GroupEntity>
@@ -1380,12 +1387,12 @@ gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] ([member
 <MembersFieldNameList> ::= "<MembersFieldName>(,<MembersFieldName>)*"
 
 gam print group-members [todrive [<ToDriveAttributes>]]
-        [domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
+        [domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns|group_susp <GroupItem>]|[select <GroupEntity>] [notsuspended|suspended]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
         [roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
         [userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
 gam show group-members
-        ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
+        ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns|group_susp <GroupItem>]|[select <GroupEntity>] [notsuspended|suspended]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
         [roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
 
@@ -1499,13 +1506,14 @@ gam update org|ou <OrgUnitItem> [name <String>] [description <String>] [parent <
 gam update org|ou <OrgUnitItem> add|move <CrOSTypeEntity> [quickcrosmove [<Boolean>]]
 gam update org|ou <OrgUnitItem> add|move <UserTypeEntity>
 gam delete org|ou <OrgUnitItem>
-gam info org|ou <OrgUnitItem> [nousers] [children|child]
 
 gam update orgs|ous <OrgUnitEntity> [name <String>] [description <String>] [parent <OrgUnitItem>] [inherit|noinherit|(blockinheritance <Boolean>)]
 gam update orgs|ous <OrgUnitEntity> add|move <CrOSTypeEntity> [quickcrosmove [<Boolean>]]
 gam update orgs|ous <OrgUnitEntity> add|move <UserTypeEntity>
 gam delete orgs|ous <OrgUnitEntity>
-gam info orgs|ous <OrgUnitEntity> [nousers] [children|child]
+
+gam info org|ou <OrgUnitItem> [nousers|notsuspended|suspended] [children|child]
+gam info orgs|ous <OrgUnitEntity> [nousers|notsuspended|suspended] [children|child]
 
 gam print orgs|ous [todrive [<ToDriveAttributes>]] [showparent] [toplevelonly] [fromparent <OrgUnitItem>]
         [allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)] [convertcrnl] [batchsuborgs [<Boolean>]]
@@ -1744,19 +1752,19 @@ gam sendemail <RecipientEntity> [from <UserItem>] [replyto <EmailAddress>] subje
 
 # Sites
 
-<SiteAttributes> ::=
-        (categories <String>)|
-        (name <String>)|
-        (sourcelink <URI>])|
-        (summary <String>)|
-        (theme <String>)
-
 <SiteACLRole> ::= editor|invite|owner|reader|writer
 <SiteACLRoleList> ::= "<SiteACLRole>(,<SiteACLRole>)*"
 
 <SiteACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|default
 <SiteACLScopeList> ::= "<SiteACLScope>(,<SiteACLScope>)*"
 <SiteACLScopeEntity>::= <SiteACLScopeList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+
+<SiteAttributes> ::=
+        (categories <String>)|
+        (name <String>)|
+        (sourcelink <URI>])|
+        (summary <String>)|
+        (theme <String>)
 
 gam [<UserTypeEntity>] create|add site <SiteItem> <SiteAttributes>*
 gam [<UserTypeEntity>] update sites <SiteEntity> <SiteAttributes>+
@@ -2046,7 +2054,6 @@ gam <UserTypeEntity> show backupcodes|verificationcodes
 <CalendarACLScopeList> ::= "<CalendarACLScope>(,<CalendarACLScope>)*"
 <CalendarACLScopeEntity>::= <CalendarACLScopeList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
-
 <CalendarAttributes> ::=
         (backgroundcolor <ColorValue>)|
         (colorindex|colorid <CalendarColorIndex>)|
@@ -2069,9 +2076,10 @@ gam <UserTypeEntity> add calendars <CalendarAddEntity> <CalendarAttributes>*
 gam <UserTypeEntity> update calendars <CalendarManageEntity> <CalendarAttributes>+
 gam <UserTypeEntity> delete calendars <CalendarManageEntity>
 
-gam <UserTypeEntity> info calendars <CalendarManageEntity>
-gam <UserTypeEntity> show calendars <CalendarPrintShowEntity> [permissions]
+gam <UserTypeEntity> info calendars <CalendarManageEntity> [formatjson]
+gam <UserTypeEntity> show calendars <CalendarPrintShowEntity> [permissions] [formatjson]
 gam <UserTypeEntity> print calendars <CalendarPrintShowEntity> [todrive [<ToDriveAttributes>]] [permissions]
+         [formatjson] [quotechar <Character>]
 
 gam <UserTypeEntity> show calsettings [formatjson]
 gam <UserTypeEntity> print calsettings [todrive [<ToDriveAttributes>]] [formatjson] [quotechar <Character>]
@@ -2194,61 +2202,6 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 
 # Users - Drive
 
-<DriveFileAttributes> ::=
-        (description <String>)|
-        (folderColorRgb <ColorValue>)|
-        (indexabletext <String>)|
-        (keeprevisionforever|pinned)|
-        (lastviewedbyme <Time>)|
-        (localfile <FileName>)|
-        (mimetype <MimeType>)|
-        (ocrlanguage <Language>)|
-        (privateproperty <PropertyKey> <PropertyValue>)|
-        (publicproperty <PropertyKey> <PropertyValue>)|
-        (property <PropertyKey> <PropertyValue> [private|public])|
-        (restricted|restrict [<Boolean>])|
-        (starred|star [<Boolean>])|
-        (trashed|trash [<Boolean>])|
-        (viewed|view [<Boolean>])|
-        (viewerscancopycontent [<Boolean>])|
-        (writerscanshare|writerscantshare [<Boolean>])
-
-<DriveFileAddAttributes> ::=
-        <DriveFileAttributes>|
-        ignoredefaultvisibility|
-        (modifieddate|modifiedtime <Time>)|
-        ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>))|
-        ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>)|
-         (teamdriveparentid <DriveFolderID>)|
-         ((teamdriveparentid <TeamDriveID>)|(teamdriveparent <TeamDriveName>) [teamdriveparentname <DriveFolderName>]))|
-        usecontentasindexabletext
-
-<DriveFileUpdateAttributes> ::=
-        <DriveFileAttributes>|
-        (addparents <DriveFolderIDList>)|
-        (addparentname <DriveFolderName>)|
-        (addanyownerparentname <DriveFolderName>)|
-        (removeparents <DriveFolderIDList>)|
-        (removeparentname <DriveFolderName>)|
-        (removeanyownerparentname <DriveFolderName>)|
-        ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>))|
-        ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>)|
-         (teamdriveparentid <DriveFolderID>)|
-         ((teamdriveparentid <TeamDriveID>)|(teamdriveparent <TeamDriveName>) [teamdriveparentname <DriveFolderName>]))|
-        usecontentasindexabletext
-
-<DriveFileCopyAttributes> ::=
-        <DriveFileAttributes>|
-        ignoredefaultvisibility|
-        ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>))|
-         (teamdriveparentid <DriveFolderID>)|
-         ((teamdriveparentid <TeamDriveID>)|(teamdriveparent <TeamDriveName>) [teamdriveparentname <DriveFolderName>]))
-
-<DriveFileMoveAttributes> ::=
-        ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>))|
-         (teamdriveparentid <DriveFolderID>)|
-         ((teamdriveparentid <TeamDriveID>)|(teamdriveparent <TeamDriveName>) [teamdriveparentname <DriveFolderName>]))
-
 <DriveFileOrderByFieldName> ::=
         createddate|createdtime|
         folder|
@@ -2268,12 +2221,71 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
 <DriveFileQueryEntity> ::= (query <QueryDriveFile>) | (query:<QueryDriveFile>)
 <DriveFileEntity> ::= <DriveFileIDEntity> | <DriveFileNameEntity> | <DriveFileQueryEntity> | <DriveFileQueryShortcut> |  root | <FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
 
-gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] <DriveFileAddAttributes>* [csv [todrive [<ToDriveAttributes>]]]
+<DriveFileAttributes> ::=
+        (description <String>)|
+        (folderColorRgb <ColorValue>)|
+        (indexabletext <String>)|
+        (keeprevisionforever|pinned)|
+        (lastviewedbyme <Time>)|
+        (localfile <FileName>)|
+        (mimetype <MimeType>)|
+        (ocrlanguage <Language>)|
+        (privateproperty <PropertyKey> <PropertyValue>)|
+        (publicproperty <PropertyKey> <PropertyValue>)|
+        (property <PropertyKey> <PropertyValue> [private|public])|
+        (restricted|restrict [<Boolean>])|
+        (starred|star [<Boolean>])|
+        (trashed|trash [<Boolean>])|
+        (viewed|view [<Boolean>])|
+        (viewerscancopycontent [<Boolean>])|
+        (writerscanshare|writerscantshare [<Boolean>])
+
+<DriveFileCreateAttributes> ::=
+        <DriveFileAttributes>|
+        ignoredefaultvisibility|
+        (modifieddate|modifiedtime <Time>)|
+        ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>)|
+         (teamdriveparentid <DriveFolderID>)|
+         ((teamdriveparentid <TeamDriveID>)|(teamdriveparent <TeamDriveName>) [teamdriveparentname <DriveFolderName>]))|
+        usecontentasindexabletext
+
+gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] <DriveFileCreateAttributes>* [csv [todrive [<ToDriveAttributes>]]]
+
+<DriveFileUpdateAttributes> ::=
+        <DriveFileAttributes>|
+        (addparents <DriveFolderIDList>)|
+        (addparentname <DriveFolderName>)|
+        (addanyownerparentname <DriveFolderName>)|
+        (removeparents <DriveFolderIDList>)|
+        (removeparentname <DriveFolderName>)|
+        (removeanyownerparentname <DriveFolderName>)|
+        ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>)|
+         (teamdriveparentid <DriveFolderID>)|
+         ((teamdriveparentid <TeamDriveID>)|(teamdriveparent <TeamDriveName>) [teamdriveparentname <DriveFolderName>]))|
+        usecontentasindexabletext
+
 gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [retainname | (newfilename <DriveFileName>)] <DriveFileUpdateAttributes>*
+
+<DriveFileCopyAttributes> ::=
+        ignoredefaultvisibility|
+        (modifieddate|modifiedtime <Time>)|
+        (mimetype <MimeType>)|
+        ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>)|
+         (teamdriveparentid <DriveFolderID>)|
+         ((teamdriveparentid <TeamDriveID>)|(teamdriveparent <TeamDriveName>) [teamdriveparentname <DriveFolderName>]))
+
 gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] <DriveFileCopyAttributes>* [recursive [depth <Number>]]
+
+<DriveFileMoveAttributes> ::=
+        ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>)|
+         (teamdriveparentid <DriveFolderID>)|
+         ((teamdriveparentid <TeamDriveID>)|(teamdriveparent <TeamDriveName>) [teamdriveparentname <DriveFolderName>]))
+
 gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>] <DriveFileMoveAttributes>*
+
 gam <UserTypeEntity> get drivefile <DriveFileEntity> [revision <DriveFileRevisionID>] [format <FileFormatList>]
         [targetfolder <FilePath>] [targetname <FileName>] [overwrite [<Boolean>]]
+
 gam <UserTypeEntity> delete drivefile <DriveFileEntity> [purge|untrash|trash]
 gam <UserTypeEntity> purge drivefile <DriveFileEntity>
 gam <UserTypeEntity> trash drivefile <DriveFileEntity>

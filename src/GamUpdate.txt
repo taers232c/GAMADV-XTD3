@@ -1,3 +1,63 @@
+4.56.16
+
+Added today and now options to date and time specifications.
+<Date> ::=
+        <Year>-<Month>-<Day> |
+        (+|-)<Number>(d|w) |
+        today
+<DateTime> ::=
+        <Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute> |
+        (+|-)<Number>(m|h|d|w) |
+        now|today
+<Time> ::=
+        <Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute>:<Second>[.<MilliSeconds>](Z|(+|-(<Hour>:<Minute>))) |
+        (+|-)<Number>(m|h|d|w) |
+        now|today
+For <DateTime> and <Time>, now specifies the current hour, minute and second; today specifies zero for hour, minute and second.
+
+Added elements to `<UserTypeEntity>` to allow specification of suspended members of groups and organization units:
+    group_susp, groups_susp, group_users_susp, ou_susp, ou_and_children_susp, ous_susp, ous_and_children_susp
+
+<UserTypeEntity> ::=
+        (all users)|
+        (user <UserItem>)|
+        (users <UserList>)|
+        (group|group_ns|group_susp <GroupItem>)|
+        (groups|groups_ns|groups_susp <GroupList>)|
+        (group_users|group_users_ns|group_users_susp <GroupList> [members] [managers] [owners] [primarydomain] [domains <DomainNameList>] [recursive] end)|
+        (ou|ou_ns|ou_susp <OrgUnitItem>)|
+        (ou_and_children|ou_and_children_ns|ou_and_children_susp <OrgUnitItem>)|
+        (ous|ous_ns|ous_susp <OrgUnitList>)|
+        (ous_and_children|ous_and_children_ns|ous_and_children_susp <OrgUnitList>)|
+        (courseparticipants <CourseIDList>)|
+        (students <CourseIDList>)|
+        (teachers <CourseIDList>)|
+        (license|licenses|licence|licences <SKUIDList>)|
+        (file <FileName> [charset <Charset>] [delimiter <Character>])|
+        (csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
+        (query <QueryUser>)|
+        (queries <QueryUserList>)|
+        (datafile users|groups|groups_ns|groups_susp|ous|ous_ns|ous_susp|ous_and_children|ous_and_children_ns|ous_and_children_susp|courseparticipants|students|teachers
+                <FileName> [charset <Charset>] [delimiter <Character>])|
+        (csvkmd users|groups|groups_ns_|groups_susp|ous|ous_ns|ous_susp|ous_and_children|ous_and_children_ns|ous_and_children_susp|courseparticipants|students|teachers
+                <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+                keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+                subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+                (matchfield <FieldName> <RegularExpression>)*
+                [datafield <FieldName>(:<FieldName)* [delimiter <Character>]])|
+        (csvdata <FieldName>(:<FieldName>*))
+
+Updated gam update group create/sync to allow specification of suspended users.
+gam update group|groups <GroupEntity> create|add [owner|manager|member] [usersonly|groupsonly] [notsuspended|suspended] <UserTypeEntity>
+gam update group|groups <GroupEntity> sync [owner|manager|member] [usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended] <UserTypeEntity>
+
+Updated `gam update group clear` to allow specification of non-suspended users.
+gam update group|groups <GroupEntity> clear [member] [manager] [owner] [notsuspended|suspended]
+
+Updated gam info org to allow specification of suspended users.
+gam info org|ou <OrgUnitItem> [nousers|notsuspended|suspended] [children|child]
+gam info orgs|ous <OrgUnitEntity> [nousers|notsuspended|suspended] [children|child]
+
 4.56.15
 
 Added formatjson option to gam info/show/print drivefileacls; added quotechar <Character> option to gam print drivefileacls.

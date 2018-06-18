@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.56.15'
+__version__ = u'4.56.165'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -294,7 +294,7 @@ DFA_LOCALFILEPATH = u'localFilepath'
 DFA_LOCALFILENAME = u'localFilename'
 DFA_LOCALMIMETYPE = u'localMimeType'
 DFA_OCRLANGUAGE = u'ocrLanguage'
-DFA_PARENTIDS = u'parentIds'
+DFA_PARENTID = u'parentId'
 DFA_PARENTQUERY = u'parentQuery'
 DFA_ADD_PARENT_IDS = u'addParentIds'
 DFA_REMOVE_PARENT_IDS = u'removeParentIds'
@@ -1133,8 +1133,11 @@ def getInteger(minVal=None, maxVal=None):
     invalidArgumentExit(integerLimits(minVal, maxVal))
   missingArgumentExit(integerLimits(minVal, maxVal))
 
-def orgUnitPathQuery(path):
-  return u"orgUnitPath='{0}'".format(path.replace(u"'", u"\\'")) if path != u'/' else None
+def orgUnitPathQuery(path, checkSuspended):
+  query = u"orgUnitPath='{0}'".format(path.replace(u"'", u"\\'")) if path != u'/' else None
+  if checkSuspended is not None:
+    query += u' isSuspended={0}'.format(checkSuspended)
+  return query
 
 def makeOrgUnitPathAbsolute(path):
   if path == u'/':
@@ -1255,6 +1258,10 @@ def todaysDate():
                            tzinfo=GC.Values[GC.TIMEZONE])
 
 def getDelta(argstr, pattern, formatRequired):
+  if argstr == u'NOW':
+    return todaysDate()+datetime.timedelta(hours=GM.Globals[GM.DATETIME_NOW].hour, minutes=GM.Globals[GM.DATETIME_NOW].minute)
+  elif argstr == u'TODAY':
+    return todaysDate()
   tg = pattern.match(argstr.lower())
   if tg is None:
     invalidArgumentExit(formatRequired)
@@ -1292,12 +1299,14 @@ YYYYMMDD_FORMAT_REQUIRED = u'yyyy-mm-dd'
 
 def getYYYYMMDD(minLen=1, returnTimeStamp=False, returnDateTime=False, alternateValue=None):
   if Cmd.ArgumentsRemaining():
-    argstr = Cmd.Current().strip()
+    argstr = Cmd.Current().strip().upper()
     if argstr:
-      if alternateValue is not None and argstr.lower() == alternateValue.lower():
+      if alternateValue is not None and argstr == alternateValue.upper():
         Cmd.Advance()
         return None
-      if argstr[0] in [u'+', u'-']:
+      if argstr in [u'TODAY', u'NOW'] or argstr[0] in [u'+', u'-']:
+        if argstr == u'NOW':
+          argstr = u'TODAY'
         argstr = getDeltaDate(argstr).strftime(YYYYMMDD_FORMAT)
       try:
         dateTime = datetime.datetime.strptime(argstr, YYYYMMDD_FORMAT)
@@ -1320,10 +1329,11 @@ YYYYMMDD_HHMMSS_FORMAT = u'%Y-%m-%d %H:%M:%S'
 
 def getYYYYMMDD_HHMM():
   if Cmd.ArgumentsRemaining():
-    argstr = Cmd.Current().strip().upper().replace(u'T', u' ')
+    argstr = Cmd.Current().strip().upper()
     if argstr:
-      if argstr[0] in [u'+', u'-']:
+      if argstr in [u'TODAY', u'NOW'] or argstr[0] in [u'+', u'-']:
         argstr = getDeltaTime(argstr).strftime(YYYYMMDD_HHMM_FORMAT)
+      argstr = argstr.replace(u'T', u' ')
       try:
         datetime.datetime.strptime(argstr, YYYYMMDD_HHMM_FORMAT)
         Cmd.Advance()
@@ -1340,7 +1350,7 @@ def getTimeOrDeltaFromNow(returnDateTime=False):
   if Cmd.ArgumentsRemaining():
     argstr = Cmd.Current().strip().upper()
     if argstr:
-      if argstr[0] in [u'+', u'-']:
+      if argstr in [u'TODAY', u'NOW'] or argstr[0] in [u'+', u'-']:
         argstr = ISOformatTimeStamp(getDeltaTime(argstr))
       elif YYYYMMDD_PATTERN.match(argstr):
         try:
@@ -3413,7 +3423,7 @@ GROUP_ROLES_MAP = {
   }
 
 # Turn the entity into a list of Users/CrOS devices
-def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=False, includeSuspendedInAll=False, groupMemberType=u'USER'):
+def getUsersToModify(entityType, entity, memberRole=None, checkSuspended=None, includeSuspendedInAll=False, groupMemberType=u'USER'):
   def _addGroupMembersToUsers(group, domains, recursive):
     doNotExist = 0
     try:
@@ -3431,7 +3441,7 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
             _, domain = splitEmailAddress(email)
             if domain not in domains:
               continue
-          if not (checkNotSuspended and (member[u'status'] == u'SUSPENDED')) and email not in entitySet:
+          if (checkSuspended is None or (not checkSuspended and member[u'status'] != u'SUSPENDED') or (checkSuspended and member[u'status'] == u'SUSPENDED')) and email not in entitySet:
             entitySet.add(email)
             entityList.append(email)
         elif recursive and member[u'type'] == u'GROUP':
@@ -3460,26 +3470,27 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
         invalid += 1
   elif entityType == Cmd.ENTITY_ALL_USERS:
     cd = buildGAPIObject(API.DIRECTORY)
+    query = None if includeSuspendedInAll else u'isSuspended=False'
     try:
       printGettingAllAccountEntities(Ent.USER)
       result = callGAPIpages(cd.users(), u'list', u'users',
                              page_message=getPageMessage(noNL=True),
                              throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                              customer=GC.Values[GC.CUSTOMER_ID],
-                             fields=u'nextPageToken,users(primaryEmail,suspended)',
+                             query=query, fields=u'nextPageToken,users(primaryEmail)',
                              maxResults=GC.Values[GC.USER_MAX_RESULTS])
       while result:
-        user = result.popleft()
-        if includeSuspendedInAll or not user[u'suspended']:
-          entityList.append(user[u'primaryEmail'])
+        entityList.append(result.popleft()[u'primaryEmail'])
       printGotAccountEntities(len(entityList))
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       accessErrorExit(cd)
-  elif entityType in [Cmd.ENTITY_GROUP, Cmd.ENTITY_GROUPS, Cmd.ENTITY_GROUP_NS, Cmd.ENTITY_GROUPS_NS]:
+  elif entityType in [Cmd.ENTITY_GROUP, Cmd.ENTITY_GROUPS, Cmd.ENTITY_GROUP_NS, Cmd.ENTITY_GROUPS_NS, Cmd.ENTITY_GROUP_SUSP, Cmd.ENTITY_GROUPS_SUSP]:
     if entityType in [Cmd.ENTITY_GROUP_NS, Cmd.ENTITY_GROUPS_NS]:
-      checkNotSuspended = True
+      checkSuspended = False
+    elif entityType in [Cmd.ENTITY_GROUP_SUSP, Cmd.ENTITY_GROUPS_SUSP]:
+      checkSuspended = True
     cd = buildGAPIObject(API.DIRECTORY)
-    groups = convertEntityToList(entity, nonListEntityType=entityType in [Cmd.ENTITY_GROUP, Cmd.ENTITY_GROUP_NS])
+    groups = convertEntityToList(entity, nonListEntityType=entityType in [Cmd.ENTITY_GROUP, Cmd.ENTITY_GROUP_NS, Cmd.ENTITY_GROUP_SUSP])
     for group in groups:
       if validateEmailAddressOrUID(group):
         try:
@@ -3493,7 +3504,8 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
           while result:
             member = result.popleft()
             email = member[u'email'].lower() if member[u'type'] != u'CUSTOMER' else member[u'id']
-            if ((groupMemberType == u'ALL') or (groupMemberType == member[u'type'])) and not (checkNotSuspended and (member[u'status'] == u'SUSPENDED')) and email not in entitySet:
+            if (((groupMemberType == u'ALL') or (groupMemberType == member[u'type'])) and
+                (checkSuspended is None or (not checkSuspended and member[u'status'] != u'SUSPENDED') or (checkSuspended and member[u'status'] == u'SUSPENDED')) and email not in entitySet):
               entitySet.add(email)
               entityList.append(email)
         except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden):
@@ -3502,9 +3514,11 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
       else:
         _showInvalidEntity(Ent.GROUP, group)
         invalid += 1
-  elif entityType in [Cmd.ENTITY_GROUP_USERS, Cmd.ENTITY_GROUP_USERS_NS]:
+  elif entityType in [Cmd.ENTITY_GROUP_USERS, Cmd.ENTITY_GROUP_USERS_NS, Cmd.ENTITY_GROUP_USERS_SUSP]:
     if entityType == Cmd.ENTITY_GROUP_USERS_NS:
-      checkNotSuspended = True
+      checkSuspended = False
+    elif entityType == Cmd.ENTITY_GROUP_USERS_SUSP:
+      checkSuspended = True
     cd = buildGAPIObject(API.DIRECTORY)
     groups = convertEntityToList(entity)
     recursive = False
@@ -3534,14 +3548,20 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
         _showInvalidEntity(Ent.GROUP, group)
         invalid += 1
   elif entityType in [Cmd.ENTITY_OU, Cmd.ENTITY_OUS, Cmd.ENTITY_OU_AND_CHILDREN, Cmd.ENTITY_OUS_AND_CHILDREN,
-                      Cmd.ENTITY_OU_NS, Cmd.ENTITY_OUS_NS, Cmd.ENTITY_OU_AND_CHILDREN_NS, Cmd.ENTITY_OUS_AND_CHILDREN_NS]:
+                      Cmd.ENTITY_OU_NS, Cmd.ENTITY_OUS_NS, Cmd.ENTITY_OU_AND_CHILDREN_NS, Cmd.ENTITY_OUS_AND_CHILDREN_NS,
+                      Cmd.ENTITY_OU_SUSP, Cmd.ENTITY_OUS_SUSP, Cmd.ENTITY_OU_AND_CHILDREN_SUSP, Cmd.ENTITY_OUS_AND_CHILDREN_SUSP]:
     if entityType in [Cmd.ENTITY_OU_NS, Cmd.ENTITY_OUS_NS, Cmd.ENTITY_OU_AND_CHILDREN_NS, Cmd.ENTITY_OUS_AND_CHILDREN_NS]:
-      checkNotSuspended = True
+      checkSuspended = False
+    elif entityType in [Cmd.ENTITY_OU_SUSP, Cmd.ENTITY_OUS_SUSP, Cmd.ENTITY_OU_AND_CHILDREN_SUSP, Cmd.ENTITY_OUS_AND_CHILDREN_SUSP]:
+      checkSuspended = True
     cd = buildGAPIObject(API.DIRECTORY)
-    ous = convertEntityToList(entity, shlexSplit=True, nonListEntityType=entityType in [Cmd.ENTITY_OU, Cmd.ENTITY_OU_AND_CHILDREN, Cmd.ENTITY_OU_NS, Cmd.ENTITY_OU_AND_CHILDREN_NS])
-    directlyInOU = entityType in [Cmd.ENTITY_OU, Cmd.ENTITY_OUS, Cmd.ENTITY_OU_NS, Cmd.ENTITY_OUS_NS]
+    ous = convertEntityToList(entity, shlexSplit=True, nonListEntityType=entityType in [Cmd.ENTITY_OU, Cmd.ENTITY_OU_AND_CHILDREN,
+                                                                                        Cmd.ENTITY_OU_NS, Cmd.ENTITY_OU_AND_CHILDREN_NS,
+                                                                                        Cmd.ENTITY_OU_SUSP, Cmd.ENTITY_OU_AND_CHILDREN_SUSP])
+    directlyInOU = entityType in [Cmd.ENTITY_OU, Cmd.ENTITY_OUS, Cmd.ENTITY_OU_NS, Cmd.ENTITY_OUS_NS, Cmd.ENTITY_OU_SUSP, Cmd.ENTITY_OUS_SUSP]
     qualifier = [Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)),
                  Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))][directlyInOU]
+    fields = u'nextPageToken,users(primaryEmail,orgUnitPath)' if directlyInOU else u'nextPageToken,users(primaryEmail)'
     prevLen = 0
     for ou in ous:
       try:
@@ -3556,20 +3576,17 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
                                page_message=getPageMessageForWhom(noNL=True),
                                throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
                                               GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                               customer=GC.Values[GC.CUSTOMER_ID], query=orgUnitPathQuery(ou),
-                               fields=u'nextPageToken,users(primaryEmail,suspended,orgUnitPath)',
-                               maxResults=GC.Values[GC.USER_MAX_RESULTS])
+                               customer=GC.Values[GC.CUSTOMER_ID], query=orgUnitPathQuery(ou, checkSuspended),
+                               fields=fields, maxResults=GC.Values[GC.USER_MAX_RESULTS])
         if directlyInOU:
           ou = ou.lower()
           while result:
             user = result.popleft()
-            if (ou == user[u'orgUnitPath'].lower()) and (not (checkNotSuspended and user[u'suspended'])):
+            if ou == user[u'orgUnitPath'].lower():
               entityList.append(user[u'primaryEmail'])
         else:
           while result:
-            user = result.popleft()
-            if not (checkNotSuspended and user[u'suspended']):
-              entityList.append(user[u'primaryEmail'])
+            entityList.append(result.popleft()[u'primaryEmail'])
         totalLen = len(entityList)
         printGotEntityItemsForWhom(totalLen-prevLen)
         prevLen = totalLen
@@ -3594,7 +3611,7 @@ def getUsersToModify(entityType, entity, memberRole=None, checkNotSuspended=Fals
         while result:
           user = result.popleft()
           email = user[u'primaryEmail']
-          if not (checkNotSuspended and user[u'suspended']) and email not in entitySet:
+          if (checkSuspended is None or (not checkSuspended and user[u'status'] != u'SUSPENDED') or (checkSuspended and user[u'status'] == u'SUSPENDED')) and email not in entitySet:
             entitySet.add(email)
             entityList.append(email)
         totalLen = len(entityList)
@@ -3951,7 +3968,7 @@ def getEntityArgument(entityList):
     Cmd.SetLocation(clLoc)
   return (0, len(entityList), entityList)
 
-def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=False, userAllowed=True, typeMap=None, checkNotSuspended=False, groupMemberType=u'USER', delayGet=False):
+def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=False, userAllowed=True, typeMap=None, checkSuspended=None, groupMemberType=u'USER', delayGet=False):
   selectorChoices = Cmd.ENTITY_SELECTORS[:]
   if userAllowed:
     selectorChoices += Cmd.CSVDATA_ENTITY_SELECTORS
@@ -3995,7 +4012,10 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
         choices += Cmd.CROS_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES
       entityType = mapEntityType(getChoice(choices), typeMap)
       return ([Cmd.ENTITY_CROS, Cmd.ENTITY_USERS][entityType not in Cmd.CROS_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES],
-              getUsersToModify(entityType, getEntitiesFromFile(shlexSplit=entityType in [Cmd.ENTITY_OUS, Cmd.ENTITY_OUS_AND_CHILDREN, Cmd.ENTITY_CROS_OUS, Cmd.ENTITY_CROS_OUS_AND_CHILDREN])))
+              getUsersToModify(entityType, getEntitiesFromFile(shlexSplit=entityType in [Cmd.ENTITY_OUS, Cmd.ENTITY_OUS_AND_CHILDREN,
+                                                                                         Cmd.ENTITY_OUS_NS, Cmd.ENTITY_OUS_AND_CHILDREN_NS,
+                                                                                         Cmd.ENTITY_OUS_SUSP, Cmd.ENTITY_OUS_AND_CHILDREN_SUSP,
+                                                                                         Cmd.ENTITY_CROS_OUS, Cmd.ENTITY_CROS_OUS_AND_CHILDREN])))
     if entitySelector == Cmd.ENTITY_SELECTOR_CSVKMD:
       if userAllowed:
         choices += Cmd.USER_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES
@@ -4024,7 +4044,7 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
     if not delayGet:
       if entityClass == Cmd.ENTITY_USERS:
         return (entityClass,
-                getUsersToModify(entityType, entityItem, checkNotSuspended=checkNotSuspended, groupMemberType=groupMemberType))
+                getUsersToModify(entityType, entityItem, checkSuspended=checkSuspended, groupMemberType=groupMemberType))
       else:
         return (entityClass,
                 getUsersToModify(entityType, entityItem))
@@ -4032,7 +4052,7 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
       GM.Globals[GM.ENTITY_CL_DELAY_START] = Cmd.Location()
       buildGAPIObject(API.DIRECTORY)
       if entityClass == Cmd.ENTITY_USERS:
-        if entityType in [Cmd.ENTITY_GROUP_USERS, Cmd.ENTITY_GROUP_USERS_NS]:
+        if entityType in [Cmd.ENTITY_GROUP_USERS, Cmd.ENTITY_GROUP_USERS_NS, Cmd.ENTITY_GROUP_USERS_SUSP]:
           # Skip over sub-arguments
           while Cmd.ArgumentsRemaining():
             myarg = getArgument()
@@ -4044,7 +4064,7 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
               Cmd.Backup()
               missingArgumentExit(u'end')
         return (entityClass,
-                {u'entityType': entityType, u'entity': entityItem, u'checkNotSuspended': checkNotSuspended, u'groupMemberType': groupMemberType})
+                {u'entityType': entityType, u'entity': entityItem, u'checkSuspended': checkSuspended, u'groupMemberType': groupMemberType})
       else:
         return (entityClass,
                 {u'entityType': entityType, u'entity': entityItem})
@@ -8282,12 +8302,14 @@ def getTopLevelOrgId(cd, parentOrgUnitPath):
     checkEntityAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, parentOrgUnitPath)
   return temp_org[u'parentOrgUnitId']
 
+CHECK_SUSPENDED_CHOICE_MAP = {u'notsuspended': False, u'suspended': True}
 ORG_FIELD_INFO_ORDER = [u'orgUnitId', u'name', u'description', u'parentOrgUnitPath', u'parentOrgUnitId', u'blockInheritance']
 ORG_FIELDS_WITH_CRS_NLS = [u'description']
 
 def _doInfoOrgs(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
   getUsers = True
+  checkSuspended = None
   showChildren = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -8295,6 +8317,8 @@ def _doInfoOrgs(entityList):
       getUsers = False
     elif myarg in [u'children', u'child']:
       showChildren = True
+    elif myarg in CHECK_SUSPENDED_CHOICE_MAP:
+      checkSuspended = CHECK_SUSPENDED_CHOICE_MAP[myarg]
     else:
       unknownArgumentExit()
   i = 0
@@ -8331,7 +8355,7 @@ def _doInfoOrgs(entityList):
         orgUnitPath = result[u'orgUnitPath']
         users = callGAPIpages(cd.users(), u'list', u'users',
                               throw_reasons=[GAPI.BAD_REQUEST, GAPI.INVALID_INPUT, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                              customer=GC.Values[GC.CUSTOMER_ID], query=orgUnitPathQuery(orgUnitPath),
+                              customer=GC.Values[GC.CUSTOMER_ID], query=orgUnitPathQuery(orgUnitPath, checkSuspended),
                               fields=u'nextPageToken,users(primaryEmail,orgUnitPath)',
                               maxResults=GC.Values[GC.USER_MAX_RESULTS])
         printEntitiesCount(Ent.USER, users)
@@ -8349,11 +8373,11 @@ def _doInfoOrgs(entityList):
     except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, orgUnitPath)
 
-# gam info orgs|ous <OrgUnitEntity> [nousers] [children|child]
+# gam info orgs|ous <OrgUnitEntity> [nousers] [children|child] [notsuspended|suspended]
 def doInfoOrgs():
   _doInfoOrgs(getEntityList(Cmd.OB_ORGUNIT_ENTITY, shlexSplit=True))
 
-# gam info org|ou <OrgUnitItem> [nousers] [children|child]
+# gam info org|ou <OrgUnitItem> [nousers] [children|child] [notsuspended|suspended]
 def doInfoOrg():
   _doInfoOrgs([getOrgUnitItem()])
 
@@ -12549,11 +12573,11 @@ def checkGroupExists(cd, group, i=0, count=0):
 UPDATE_GROUP_SUBCMDS = [u'add', u'create', u'delete', u'remove', u'clear', u'sync', u'update']
 
 # gam update groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] <GroupAttributes>
-# gam update groups <GroupEntity> create|add [member|manager|owner] [usersonly|groupsonly] [notsuspended] <UserTypeEntity>
+# gam update groups <GroupEntity> create|add [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended] <UserTypeEntity>
 # gam update groups <GroupEntity> delete|remove [member|manager|owner] [usersonly|groupsonly] <UserTypeEntity>
-# gam update groups <GroupEntity> sync [member|manager|owner] [usersonly|groupsonly] [addonly|removeonly] [notsuspended] <UserTypeEntity>
+# gam update groups <GroupEntity> sync [member|manager|owner] [usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended] <UserTypeEntity>
 # gam update groups <GroupEntity> update [member|manager|owner] [usersonly|groupsonly] <UserTypeEntity>
-# gam update groups <GroupEntity> clear [member] [manager] [owner] [suspended]
+# gam update groups <GroupEntity> clear [member] [manager] [owner] [notsuspended|suspended]
 def doUpdateGroups():
 
 # Convert foo@googlemail.com to foo@gmail.com; eliminate periods in name for foo.bar@gmail.com
@@ -12818,8 +12842,8 @@ def doUpdateGroups():
       entityActionPerformedMessage([Ent.GROUP, group], errMsg, i, count)
   elif CL_subCommand in [u'create', u'add']:
     role, groupMemberType = _getRoleGroupMemberType()
-    checkNotSuspended = checkArgumentPresent(u'notsuspended')
-    _, addMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, checkNotSuspended=checkNotSuspended, groupMemberType=groupMemberType)
+    checkSuspended = getChoice(CHECK_SUSPENDED_CHOICE_MAP, defaultChoice=None)
+    _, addMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, checkSuspended=checkSuspended, groupMemberType=groupMemberType)
     groupMemberLists = addMembers if isinstance(addMembers, dict) else None
     checkForExtraneousArguments()
     i = 0
@@ -12848,8 +12872,8 @@ def doUpdateGroups():
   elif CL_subCommand == u'sync':
     role, groupMemberType = _getRoleGroupMemberType()
     syncOperation = getChoice([u'addonly', 'removeonly'], defaultChoice=u'addremove')
-    checkNotSuspended = checkArgumentPresent(u'notsuspended')
-    _, syncMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, checkNotSuspended=checkNotSuspended, groupMemberType=groupMemberType)
+    checkSuspended = getChoice(CHECK_SUSPENDED_CHOICE_MAP, defaultChoice=None)
+    _, syncMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, checkSuspended=checkSuspended, groupMemberType=groupMemberType)
     groupMemberLists = syncMembers if isinstance(syncMembers, dict) else None
     if not groupMemberLists:
       syncMembersSet = set()
@@ -12895,36 +12919,41 @@ def doUpdateGroups():
       if group:
         _batchUpdateGroupMembers(group, i, count, [convertUIDtoEmailAddress(member, cd=cd, emailType=u'any', checkForCustomerId=True) for member in updateMembers], role)
   else: #clear
-    suspended = False
-    fields = [u'email', u'id']
+    checkSuspended = None
+    qualifier = u''
+    fieldsList = [u'email', u'id']
     rolesSet = set()
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if myarg in GROUP_ROLES_MAP:
         rolesSet.add(GROUP_ROLES_MAP[myarg])
-      elif myarg == u'suspended':
-        suspended = True
-        fields.append(u'status')
+      elif myarg in CHECK_SUSPENDED_CHOICE_MAP:
+        checkSuspended = CHECK_SUSPENDED_CHOICE_MAP[myarg]
+        qualifier = [u' (Non-suspended)', u' (Suspended)'][checkSuspended]
+        fieldsList.append(u'status')
       else:
         unknownArgumentExit()
     Act.Set(Act.REMOVE)
     roles = u','.join(sorted(rolesSet)) if rolesSet else Ent.ROLE_MEMBER
+    fields = u'nextPageToken,members({0})'.format(u','.join(set(fieldsList)))
     i = 0
     count = len(entityList)
     for group in entityList:
       i += 1
       group = normalizeEmailAddressOrUID(group)
-      printGettingAllEntityItemsForWhom(roles, group, qualifier=[u'', u' (Suspended)'][suspended], entityType=Ent.GROUP)
+      printGettingAllEntityItemsForWhom(roles, group, qualifier=qualifier, entityType=Ent.GROUP)
       try:
         result = callGAPIpages(cd.members(), u'list', u'members',
                                page_message=getPageMessageForWhom(noNL=True),
                                throw_reasons=GAPI.MEMBERS_THROW_REASONS,
-                               groupKey=group, roles=roles, fields=u'nextPageToken,members({0})'.format(u','.join(fields)),
+                               groupKey=group, roles=roles, fields=fields,
                                maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
-        if not suspended:
+        if checkSuspended is None:
           removeMembers = [member.get(u'email', member[u'id']) for member in result]
-        else:
+        elif checkSuspended:
           removeMembers = [member.get(u'email', member[u'id']) for member in result if member[u'status'] == u'SUSPENDED']
+        else: # elif not checkSuspended
+          removeMembers = [member.get(u'email', member[u'id']) for member in result if member[u'status'] != u'SUSPENDED']
         _batchRemoveGroupMembers(group, i, count, removeMembers, Ent.ROLE_MEMBER)
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden):
         entityUnknownWarning(Ent.GROUP, group, i, count)
@@ -13593,7 +13622,7 @@ def doPrintGroups():
   _writeCompleteRows()
   writeCSVfile(csvRows, titles, u'Groups', todrive, [fieldsTitles[u'email']] if sortHeaders else None, quotechar)
 
-def getGroupMembers(cd, groupEmail, roles, membersList, membersSet, i, count, checkNotSuspended, noduplicates, recursive, level):
+def getGroupMembers(cd, groupEmail, roles, membersList, membersSet, i, count, checkSuspended, noduplicates, recursive, level):
   try:
     printGettingAllEntityItemsForWhom(Ent.MEMBER, groupEmail, i, count)
     groupMembers = callGAPIpages(cd.members(), u'list', u'members',
@@ -13603,18 +13632,18 @@ def getGroupMembers(cd, groupEmail, roles, membersList, membersSet, i, count, ch
     if not recursive:
       if noduplicates:
         for member in groupMembers:
-          if not (checkNotSuspended and (member[u'status'] == u'SUSPENDED')) and member[u'id'] not in membersSet:
+          if (checkSuspended is None or (not checkSuspended and member[u'status'] != u'SUSPENDED') or (checkSuspended and member[u'status'] == u'SUSPENDED')) and member[u'id'] not in membersSet:
             membersSet.add(member[u'id'])
             membersList.append(member)
       else:
         for member in groupMembers:
-          if not (checkNotSuspended and (member[u'status'] == u'SUSPENDED')):
+          if checkSuspended is None or (not checkSuspended and member[u'status'] != u'SUSPENDED') or (checkSuspended and member[u'status'] == u'SUSPENDED'):
             membersList.append(member)
     elif noduplicates:
       groupMemberList = []
       for member in groupMembers:
         if member[u'type'] == u'USER':
-          if not (checkNotSuspended and (member[u'status'] == u'SUSPENDED')) and member[u'id'] not in membersSet:
+          if (checkSuspended is None or (not checkSuspended and member[u'status'] != u'SUSPENDED') or (checkSuspended and member[u'status'] == u'SUSPENDED')) and member[u'id'] not in membersSet:
             membersSet.add(member[u'id'])
             member[u'level'] = level
             member[u'subgroup'] = groupEmail
@@ -13624,16 +13653,16 @@ def getGroupMembers(cd, groupEmail, roles, membersList, membersSet, i, count, ch
             membersSet.add(member[u'id'])
             groupMemberList.append(member[u'email'])
       for member in groupMemberList:
-        getGroupMembers(cd, member, roles, membersList, membersSet, i, count, checkNotSuspended, noduplicates, recursive, level+1)
+        getGroupMembers(cd, member, roles, membersList, membersSet, i, count, checkSuspended, noduplicates, recursive, level+1)
     else:
       for member in groupMembers:
         if member[u'type'] == u'USER':
-          if not (checkNotSuspended and (member[u'status'] == u'SUSPENDED')):
+          if checkSuspended is None or (not checkSuspended and member[u'status'] != u'SUSPENDED') or (checkSuspended and member[u'status'] == u'SUSPENDED'):
             member[u'level'] = level
             member[u'subgroup'] = groupEmail
             membersList.append(member)
         elif member[u'type'] == u'GROUP':
-          getGroupMembers(cd, member[u'email'], roles, membersList, membersSet, i, count, checkNotSuspended, noduplicates, recursive, level+1)
+          getGroupMembers(cd, member[u'email'], roles, membersList, membersSet, i, count, checkSuspended, noduplicates, recursive, level+1)
   except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden):
     entityUnknownWarning(Ent.GROUP, groupEmail, i, count)
 
@@ -13652,7 +13681,7 @@ GROUPMEMBERS_FIELDS_CHOICE_MAP = {
 GROUPMEMBERS_DEFAULT_FIELDS = [u'id', u'role', u'group', u'email', u'type', u'status']
 
 # gam print group-members|groups-members [todrive [<ToDriveAttributes>]]
-#	([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
+#	([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns|group_susp <GroupItem>]|[select <GroupEntity>] [notsuspended|suspended]
 #	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
 #	[roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
 #	[userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
@@ -13669,7 +13698,7 @@ def doPrintGroupMembers():
   cdfieldsList = [u'email',]
   userFieldsList = []
   rolesSet = set()
-  checkNotSuspended = False
+  checkSuspended = None
   matchPatterns = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -13679,16 +13708,18 @@ def doPrintGroupMembers():
       pass
     elif getGroupMatchPatterns(myarg, matchPatterns):
       pass
-    elif myarg in [u'group', u'groupns']:
+    elif myarg in [u'group', u'groupns', u'groususp']:
       entityList = [getEmailAddress()]
       subTitle = u'{0}={1}'.format(Ent.Singular(Ent.GROUP), entityList[0])
       if myarg == u'groupns':
-        checkNotSuspended = True
+        checkSuspended = False
+      elif myarg == u'groupsusp':
+        checkSuspended = True
     elif myarg == u'select':
       entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
       subTitle = u'{0} {1}'.format(Msg.SELECTED, Ent.Plural(Ent.GROUP))
-    elif myarg == u'notsuspended':
-      checkNotSuspended = True
+    elif myarg in CHECK_SUSPENDED_CHOICE_MAP:
+      checkSuspended = CHECK_SUSPENDED_CHOICE_MAP[myarg]
     elif myarg in [u'role', u'roles']:
       for role in getString(Cmd.OB_GROUP_ROLE_LIST).lower().replace(u',', u' ').split():
         if role in GROUP_ROLES_MAP:
@@ -13773,7 +13804,7 @@ def doPrintGroupMembers():
     if not checkGroupMatchPatterns(groupEmail, group, matchPatterns):
       continue
     membersList = []
-    getGroupMembers(cd, groupEmail, roles, membersList, membersSet, i, count, checkNotSuspended, noduplicates, recursive, level)
+    getGroupMembers(cd, groupEmail, roles, membersList, membersSet, i, count, checkSuspended, noduplicates, recursive, level)
     for member in membersList:
       memberId = member[u'id']
       row = {}
@@ -13825,7 +13856,7 @@ def doPrintGroupMembers():
   writeCSVfile(csvRows, titles, u'Group Members ({0})'.format(subTitle), todrive)
 
 # gam show group-members
-#	([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
+#	([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns|group_susp <GroupItem>]|[select <GroupEntity>] [notsuspended|suspended]
 #	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
 #	[roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
 def doShowGroupMembers():
@@ -13852,7 +13883,7 @@ def doShowGroupMembers():
       return
     Ind.Increment()
     for member in sorted(membersList, key=lambda k: (_roleOrder(k.get(u'role', Ent.ROLE_MEMBER)), _typeOrder(k[u'type']), _statusOrder(k['status']))):
-      if not (checkNotSuspended and (member[u'status'] == u'SUSPENDED')):
+      if checkSuspended is None or (not checkSuspended and member[u'status'] != u'SUSPENDED') or (checkSuspended and member[u'status'] == u'SUSPENDED'):
         if (member[u'role'] in rolesSet) or (member[u'type'] == u'GROUP'):
           printKeyValueList([u'{0}, {1}, {2}, {3}'.format(member.get(u'role', Ent.ROLE_MEMBER), member[u'type'], member.get(u'email', member[u'id']), member[u'status'])])
         if (member[u'type'] == u'GROUP') and (maxdepth == -1 or depth < maxdepth):
@@ -13865,7 +13896,7 @@ def doShowGroupMembers():
   entityList = None
   cdfieldsList = [u'email',]
   rolesSet = set()
-  checkNotSuspended = False
+  checkSuspended = None
   matchPatterns = {}
   maxdepth = -1
   while Cmd.ArgumentsRemaining():
@@ -13874,14 +13905,16 @@ def doShowGroupMembers():
       pass
     elif getGroupMatchPatterns(myarg, matchPatterns):
       pass
-    elif myarg in [u'group', u'groupns']:
+    elif myarg in [u'group', u'groupns', u'groupsusp']:
       entityList = [getEmailAddress()]
       if myarg == u'groupns':
-        checkNotSuspended = True
+        checkSuspended = False
+      elif myarg == u'groupsusp':
+        checkSuspended = True
     elif myarg == u'select':
       entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
-    elif myarg == u'notsuspended':
-      checkNotSuspended = True
+    elif myarg in CHECK_SUSPENDED_CHOICE_MAP:
+      checkSuspended = CHECK_SUSPENDED_CHOICE_MAP[myarg]
     elif myarg in [u'role', u'roles']:
       for role in getString(Cmd.OB_GROUP_ROLE_LIST).lower().replace(u',', u' ').split():
         if role in GROUP_ROLES_MAP:
@@ -20899,7 +20932,7 @@ def doCourseAddParticipants(courseIdList, getEntityListArg):
     if role != Ent.COURSE_ALIAS:
       _, addParticipants = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
                                              typeMap={Cmd.ENTITY_COURSEPARTICIPANTS: PARTICIPANT_EN_MAP[role]},
-                                             checkNotSuspended=True)
+                                             checkSuspended=False)
     else:
       addParticipants = getEntityList(Cmd.OB_COURSE_ALIAS_ENTITY)
     courseParticipantLists = addParticipants if isinstance(addParticipants, dict) else None
@@ -20952,7 +20985,7 @@ def doCourseSyncParticipants(courseIdList, getEntityListArg):
   role = getChoice(SYNC_PARTICIPANT_TYPES_MAP, mapChoice=True)
   syncOperation = getChoice([u'addonly', 'removeonly'], defaultChoice=u'addremove')
   _, syncParticipants = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
-                                          typeMap={Cmd.ENTITY_COURSEPARTICIPANTS: PARTICIPANT_EN_MAP[role]}, checkNotSuspended=True)
+                                          typeMap={Cmd.ENTITY_COURSEPARTICIPANTS: PARTICIPANT_EN_MAP[role]}, checkSuspended=False)
   checkForExtraneousArguments()
   courseParticipantLists = syncParticipants if isinstance(syncParticipants, dict) else None
   if not courseParticipantLists:
@@ -23177,10 +23210,24 @@ def _validateUserGetFileIDs(user, i, count, fileIdEntity, drive=None, entityType
 
 def _getDriveFileParentInfo(user, i, count, body, parameters, drive):
   body.pop(u'parents', None)
-  if parameters[DFA_PARENTIDS]:
+  if parameters[DFA_PARENTID]:
     body.setdefault(u'parents', [])
-    for parent in parameters[DFA_PARENTIDS]:
-      body[u'parents'].append(parent)
+    try:
+      result = callGAPI(drive.files(), u'get',
+                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND],
+                        fileId=parameters[DFA_PARENTID], fields=u'id,mimeType')
+      if result[u'mimeType'] != MIMETYPE_GA_FOLDER:
+        entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
+                                        u'parentid: {0}, {1}'.format(parameters[DFA_PARENTID], Msg.NOT_AN_ENTITY.format((Ent.Singular(Ent.DRIVE_FOLDER)))), i, count)
+        return False
+      body[u'parents'].append(result[u'id'])
+    except GAPI.fileNotFound as e:
+      entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
+                                      u'parentid: {0}, {1}'.format(parameters[DFA_PARENTID], str(e)), i, count)
+      return False
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+      return False
   if parameters[DFA_PARENTQUERY]:
     parents = doDriveSearch(drive, user, i, count, query=parameters[DFA_PARENTQUERY], parentQuery=True)
     if parents is None:
@@ -23190,14 +23237,38 @@ def _getDriveFileParentInfo(user, i, count, body, parameters, drive):
     for parent in parents:
       body[u'parents'].append(parent)
   if parameters[DFA_TEAMDRIVE_PARENTID]:
-    if not parameters[DFA_TEAMDRIVE_PARENTQUERY]:
-      body.setdefault(u'parents', [])
-      body[u'parents'].append(parameters[DFA_TEAMDRIVE_PARENTID])
-    else:
-      parameters[DFA_KWARGS][u'corpora'] = u'teamDrive'
-      parameters[DFA_KWARGS][u'teamDriveId'] = parameters[DFA_TEAMDRIVE_PARENTID]
-    parameters[DFA_SEARCHARGS] = {u'teamDriveId': parameters[DFA_TEAMDRIVE_PARENTID], u'corpora': u'teamDrive',
-                                  u'includeTeamDriveItems': True, u'supportsTeamDrives': True}
+    try:
+      if not parameters[DFA_TEAMDRIVE_PARENTQUERY]:
+        body.setdefault(u'parents', [])
+        result = callGAPI(drive.files(), u'get',
+                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND],
+                          fileId=parameters[DFA_TEAMDRIVE_PARENTID], fields=u'id,mimeType,teamDriveId', supportsTeamDrives=True)
+        if result[u'mimeType'] != MIMETYPE_GA_FOLDER:
+          entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
+                                          u'teamdriveparentid: {0}, {1}'.format(parameters[DFA_TEAMDRIVE_PARENTID], Msg.NOT_AN_ENTITY.format((Ent.Singular(Ent.DRIVE_FOLDER)))), i, count)
+          return False
+        if not result.get(u'teamDriveId'):
+          entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
+                                          u'teamdriveparentid: {0}, {1}'.format(parameters[DFA_TEAMDRIVE_PARENTID], Msg.NOT_AN_ENTITY.format((Ent.Singular(Ent.TEAMDRIVE_FOLDER)))), i, count)
+          return False
+        body[u'parents'].append(result[u'id'])
+        parameters[DFA_SEARCHARGS] = {u'teamDriveId': result[u'teamDriveId'], u'corpora': u'teamDrive',
+                                      u'includeTeamDriveItems': True, u'supportsTeamDrives': True}
+      else:
+        result = callGAPI(drive.teamdrives(), u'get',
+                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND],
+                          teamDriveId=parameters[DFA_TEAMDRIVE_PARENTID], fields=u'id')
+        parameters[DFA_KWARGS][u'corpora'] = u'teamDrive'
+        parameters[DFA_KWARGS][u'teamDriveId'] = result[u'id']
+        parameters[DFA_SEARCHARGS] = {u'teamDriveId': result[u'id'], u'corpora': u'teamDrive',
+                                      u'includeTeamDriveItems': True, u'supportsTeamDrives': True}
+    except (GAPI.fileNotFound, GAPI.teamDriveNotFound) as e:
+      entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
+                                      u'temadriveparentid: {0}, {1}'.format(parameters[DFA_TEAMDRIVE_PARENTID], str(e)), i, count)
+      return False
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+      return False
   if parameters[DFA_TEAMDRIVE_PARENT]:
     tempIdEntity = {u'teamdrivename': parameters[DFA_TEAMDRIVE_PARENT], u'teamdrive': {}}
     if not _convertTeamDriveNameToId(drive, user, i, count, tempIdEntity):
@@ -23336,7 +23407,7 @@ def checkMimeType(mimeTypeCheck, fileEntry):
 def initializeDriveFileAttributes():
   return {DFA_LOCALFILEPATH: None, DFA_LOCALFILENAME: None, DFA_LOCALMIMETYPE: None,
           DFA_OCRLANGUAGE: None,
-          DFA_PARENTIDS: [], DFA_PARENTQUERY: None,
+          DFA_PARENTID: None, DFA_PARENTQUERY: None,
           DFA_ADD_PARENT_IDS: [], DFA_ADD_PARENT_NAMES: [],
           DFA_REMOVE_PARENT_IDS: [], DFA_REMOVE_PARENT_NAMES: [],
           DFA_TEAMDRIVE_PARENT: None, DFA_TEAMDRIVE_PARENTID: None, DFA_TEAMDRIVE_PARENTQUERY: None, DFA_KWARGS: {}, DFA_SEARCHARGS: {},
@@ -23359,7 +23430,7 @@ def getDriveFileProperty(visibility=None):
 
 def getDriveFileParentAttribute(myarg, parameters):
   if myarg == u'parentid':
-    parameters[DFA_PARENTIDS].append(getString(Cmd.OB_DRIVE_FOLDER_ID))
+    parameters[DFA_PARENTID] = getString(Cmd.OB_DRIVE_FOLDER_ID)
   elif myarg == u'parentname':
     parameters[DFA_PARENTQUERY] = VX_MY_NON_TRASHED_FOLDER_NAME.format(getString(Cmd.OB_DRIVE_FOLDER_NAME))
   elif myarg in [u'anyownerparentname', u'sharedparentname']:
@@ -25523,7 +25594,7 @@ def showFileTree(users):
       Ind.Decrement()
     Ind.Decrement()
 
-# gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] [<DriveFileAttributes>] [csv [todrive [<ToDriveAttributes>]]]
+# gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] [<DriveFileCreateAttributes>] [csv [todrive [<ToDriveAttributes>]]]
 def createDriveFile(users):
   csvFormat = False
   todrive = {}

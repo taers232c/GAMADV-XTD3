@@ -181,6 +181,7 @@ class GamEntity(object):
   TEACHER = u'teac'
   TEAMDRIVE = u'tdrv'
   TEAMDRIVE_ACL = u'tdac'
+  TEAMDRIVE_FOLDER = u'tdfo'
   TEAMDRIVE_ID = u'tdid'
   TEAMDRIVE_NAME = u'tdna'
   TEAMDRIVE_THEME = u'tdth'
@@ -356,6 +357,7 @@ class GamEntity(object):
     TEACHER: [u'Teachers', u'Teacher'],
     TEAMDRIVE: [u'TeamDrives', u'TeamDrive'],
     TEAMDRIVE_ACL: [u'TeamDrive ACLs', u'TeamDrive ACL'],
+    TEAMDRIVE_FOLDER: [u'TeamDrive Folders', u'TeamDrive Folder'],
     TEAMDRIVE_ID: [u'TeamDrive IDs', u'TeamDrive ID'],
     TEAMDRIVE_NAME: [u'TeamDrive Names', u'TeamDrive Name'],
     TEAMDRIVE_THEME: [u'TeamDrive Themes', u'TeamDrive Theme'],
