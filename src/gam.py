@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.56.165'
+__version__ = u'4.56.17'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -3683,9 +3683,12 @@ def getUsersToModify(entityType, entity, memberRole=None, checkSuspended=None, i
         entityList.append(device[u'deviceId'])
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       accessErrorExit(cd)
-  elif entityType in [Cmd.ENTITY_CROS_QUERY, Cmd.ENTITY_CROS_QUERIES]:
+  elif entityType in [Cmd.ENTITY_CROS_QUERY, Cmd.ENTITY_CROS_QUERIES, Cmd.ENTITY_CROS_SN]:
     cd = buildGAPIObject(API.DIRECTORY)
-    queries = convertEntityToList(entity, shlexSplit=True, nonListEntityType=entityType == Cmd.ENTITY_CROS_QUERY)
+    queries = convertEntityToList(entity, shlexSplit=entityType == Cmd.ENTITY_CROS_QUERIES,
+                                  nonListEntityType=entityType == Cmd.ENTITY_CROS_QUERY)
+    if entityType == Cmd.ENTITY_CROS_SN:
+      queries = [u'id:{0}'.format(query) for query in queries]
     prevLen = 0
     for query in queries:
       printGettingAllAccountEntities(Ent.CROS_DEVICE, query)
@@ -3969,9 +3972,9 @@ def getEntityArgument(entityList):
   return (0, len(entityList), entityList)
 
 def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=False, userAllowed=True, typeMap=None, checkSuspended=None, groupMemberType=u'USER', delayGet=False):
-  selectorChoices = Cmd.ENTITY_SELECTORS[:]
+  selectorChoices = Cmd.BASE_ENTITY_SELECTORS[:]
   if userAllowed:
-    selectorChoices += Cmd.CSVDATA_ENTITY_SELECTORS
+    selectorChoices += Cmd.USER_ENTITY_SELECTORS+Cmd.USER_CSVDATA_ENTITY_SELECTORS
   if crosAllowed:
     selectorChoices += Cmd.CROS_ENTITY_SELECTORS+Cmd.CROS_CSVDATA_ENTITY_SELECTORS
   entitySelector = getChoice(selectorChoices, defaultChoice=None)
@@ -4002,9 +4005,15 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
       if entitySelector == Cmd.ENTITY_SELECTOR_CROSFILE:
         return (Cmd.ENTITY_CROS,
                 getUsersToModify(Cmd.ENTITY_CROS, getEntitiesFromFile(False)))
+      if entitySelector == Cmd.ENTITY_SELECTOR_CROSFILE_SN:
+        return (Cmd.ENTITY_CROS,
+                getUsersToModify(Cmd.ENTITY_CROS_SN, getEntitiesFromFile(False)))
       if entitySelector in [Cmd.ENTITY_SELECTOR_CROSCSV, Cmd.ENTITY_SELECTOR_CROSCSVFILE]:
         return (Cmd.ENTITY_CROS,
                 getUsersToModify(Cmd.ENTITY_CROS, getEntitiesFromCSVFile(False)))
+      if entitySelector in [Cmd.ENTITY_SELECTOR_CROSCSV_SN, Cmd.ENTITY_SELECTOR_CROSCSVFILE_SN]:
+        return (Cmd.ENTITY_CROS,
+                getUsersToModify(Cmd.ENTITY_CROS_SN, getEntitiesFromCSVFile(False)))
     if entitySelector == Cmd.ENTITY_SELECTOR_DATAFILE:
       if userAllowed:
         choices += Cmd.USER_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES
@@ -4073,11 +4082,7 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
   invalidChoiceExit(selectorChoices+entityChoices, False)
 
 def getEntitySelector():
-  selectorChoices = Cmd.ENTITY_SELECTORS[:]
-  selectorChoices.remove(Cmd.ENTITY_SELECTOR_ALL)
-  selectorChoices.remove(Cmd.ENTITY_SELECTOR_DATAFILE)
-  selectorChoices += Cmd.CSVDATA_ENTITY_SELECTORS
-  return getChoice(selectorChoices, defaultChoice=None)
+  return getChoice(Cmd.ENTITY_LIST_SELECTORS, defaultChoice=None)
 
 def getEntitySelection(entitySelector, shlexSplit):
   if entitySelector in [Cmd.ENTITY_SELECTOR_FILE]:
@@ -11233,6 +11238,8 @@ def showUserContactGroups(users):
 
 # CrOS commands utilities
 def getCrOSDeviceEntity():
+  if checkArgumentPresent(u'crossn'):
+    return getUsersToModify(Cmd.ENTITY_CROS_SN, getString(Cmd.OB_SERIAL_NUMBER_LIST))
   if checkArgumentPresent(u'query'):
     return getUsersToModify(Cmd.ENTITY_CROS_QUERY, getString(Cmd.OB_QUERY))
   deviceId = getString(Cmd.OB_CROS_DEVICE_ENTITY)
@@ -12443,7 +12450,7 @@ GROUP_ATTRIBUTES = {
   u'allowwebposting': [u'allowWebPosting', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   u'archiveonly': [u'archiveOnly', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   u'customfootertext': [u'customFooterText', {GC.VAR_TYPE: GC.TYPE_STRING}],
-  u'customreplyto': [u'customReplyTo', {GC.VAR_TYPE: GC.TYPE_EMAIL}],
+  u'customreplyto': [u'customReplyTo', {GC.VAR_TYPE: GC.TYPE_EMAIL_OPTIONAL}],
   u'defaultmessagedenynotificationtext': [u'defaultMessageDenyNotificationText', {GC.VAR_TYPE: GC.TYPE_STRING}],
   u'description': [u'description', {GC.VAR_TYPE: GC.TYPE_STRING}],
   u'gal': [u'includeInGlobalAddressList', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
@@ -12512,8 +12519,10 @@ def getGroupAttrValue(argument, body, gs_body):
       body[attrName] = cdvalue
   elif attrType == GC.TYPE_CHOICE:
     gs_body[attrName] = getChoice(attribute[u'choices'], mapChoice=True)
-  elif attrType == GC.TYPE_EMAIL:
-    gs_body[attrName] = getEmailAddress(noUid=True)
+  elif attrType in [GC.TYPE_EMAIL, GC.TYPE_EMAIL_OPTIONAL]:
+    gs_body[attrName] = getEmailAddress(noUid=True, optional=attrType == GC.TYPE_EMAIL_OPTIONAL)
+    if attrType == GC.TYPE_EMAIL_OPTIONAL and gs_body[attrName] is None:
+      gs_body[attrName] = u''
   elif attrType == GC.TYPE_LANGUAGE:
     gs_body[attrName] = getChoice(LANGUAGE_CODES_MAP, mapChoice=True)
   else: # GC.TYPE_INTEGER

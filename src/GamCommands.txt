@@ -91,97 +91,6 @@ If an item contains spaces, it should be surrounded by ".
         drive16tb|16tb|googledrivestorage16tb|Google-Drive-storage-16TB|
         vault|googlevault|Google-Vault|
         vfe|googlevaultformeremployee|Google-Vault-Former-Employee
-<SMTPDateHeader> ::=
-        date|
-        delivery-date|
-        expires|
-        expiry-date|
-        latest-delivery-time|
-        reply-by|
-        resent-date
-<SMTPHeader> ::=
-        accept-language|
-        alternate-recipient|
-        autoforwarded|
-        autosubmitted|
-        bcc|
-        cc|
-        comments|
-        content-alternative|
-        content-base|
-        content-description|
-        content-disposition|
-        content-duration|
-        content-id|
-        content-identifier|
-        content-language|
-        content-location|
-        content-md5|
-        content-return|
-        content-transfer-encoding|
-        content-type|
-        content-features|
-        conversion|
-        conversion-with-loss|
-        dl-expansion-history|
-        deferred-delivery|
-        delivered-to|
-        discarded-x400-ipms-extensions|
-        discarded-x400-mts-extensions|
-        disclose-recipients|
-        disposition-notification-options|
-        disposition-notification-to|
-        encoding|
-        encrypted|
-        from|
-        generate-delivery-report|
-        importance|
-        in-reply-to|
-        incomplete-copy|
-        keywords|
-        language|
-        list-archive|
-        list-help|
-        list-id|
-        list-owner|
-        list-post|
-        list-subscribe|
-        list-unsubscribe|
-        mime-version|
-        message-context|
-        message-id|
-        message-type|
-        obsoletes|
-        original-encoded-information-types|
-        original-message-id|
-        originator-return-address|
-        pics-label|
-        prevent-nondelivery-report|
-        priority|
-        received|
-        references|
-        reply-to|
-        resent-bcc|
-        resent-cc|
-        resent-from|
-        resent-message-id|
-        resent-reply-to|
-        resent-sender|
-        resent-to|
-        return-path|
-        sender|
-        sensitivity|
-        subject|
-        supersedes|
-        to|
-        x400-content-identifier|
-        x400-content-return|
-        x400-content-type|
-        x400-mts-identifier|
-        x400-originator|
-        x400-received|
-        x400-recipients|
-        x400-trace
 
 ## Basic items built from primitives
 
@@ -199,15 +108,15 @@ If an item contains spaces, it should be surrounded by ".
 <Date> ::=
         <Year>-<Month>-<Day> |
         (+|-)<Number>(d|w) |
-	today
+        today
 <DateTime> ::=
         <Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute> |
         (+|-)<Number>(m|h|d|w) |
-	now|today
+        now|today
 <Time> ::=
         <Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute>:<Second>[.<MilliSeconds>](Z|(+|-(<Hour>:<Minute>))) |
         (+|-)<Number>(m|h|d|w) |
-	now|today
+        now|today
 <RegularExpression> ::= <Python Regular Expression, see: https://docs.python.org/2/library/re.html>
 <SiteName> ::= [a-z,0-9,-]+
 <UniqueID> ::= uid:<String>
@@ -216,7 +125,7 @@ If an item contains spaces, it should be surrounded by ".
 
 <AccessToken> ::= <String>
 <ASPID> ::= <String>
-<CalendarACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>)|domain|default
+<CalendarACLScope> ::= <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>)|domain|default
 <BuildingID> ::= <String>|id:<String>
 <CalendarColorIndex> ::= <Number in range 1-24>
 <CalendarItem> ::= <EmailAddress>|<String>
@@ -238,7 +147,6 @@ If an item contains spaces, it should be surrounded by ".
 <CourseWorkID> ::= <Number>
 <CourseWorkState> ::= draft|published|deleted
 <CrOSID> ::= <String>
-<CrOSItem> ::= <CrOSID>|(query:<QueryCrOS>)|(query:orgunitpath:<OrgUnitPath>)|(query <QueryCrOS>)
 <CustomerID> ::= <String>
 <DomainAlias> ::= <String>
 <DomainName> ::= <String>(.<String>)+
@@ -313,6 +221,7 @@ If an item contains spaces, it should be surrounded by ".
 <ResourceID> ::= <String>
 <SchemaName> ::= <String>
 <Section> ::= <String>
+<SerialNumber> ::= <String>
 <SiteACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|default
 <SiteItem> ::= [<DomainName>/]<SiteName>
 <S/MIMEID> ::= <String>
@@ -373,7 +282,7 @@ Items, separated by spaces, with spaces, commas or single quotes in the items th
 <CourseSubmissionStateList> ::= "<CourseSubmissionState>(,<CourseSubmissionState>)*"
 <CourseWorkIDList> ::= "<CourseWorkID>(,<CourseWorkID>)*"
 <CourseWorkStateList> ::= "<CourseWorkState>(,<CourseWorkState>)*"
-<CrOSList> ::= "<CrOSID>(,<CrOSID>)*"
+<CrOSIDList> ::= "<CrOSID>(,<CrOSID>)*"
 <DomainNameList> ::= "<DomainName>(,<DomainName>)*"
 <DriveFolderIDList> ::= "<DriveFolderID>(,<DriveFolderID>)*"
 <DriveFileList> ::= "<DriveFileItem>(,<DriveFileItem>)*"
@@ -408,10 +317,10 @@ Items, separated by spaces, with spaces, commas or single quotes in the items th
 <RecipientList> ::= "<Recipient>(,<Recipient>)*"
 <ResourceIDList> ::= "<ResourceID>(,<ResourceID>)*"
 <SchemaNameList> ::= "<SchemaName>(,<SchemaName>)*"
+<SerialNumberList> ::= "<SerialNumber>(,<SerialNumber>)*"
 <SiteACLScopeList> ::= "<SiteACLScope>(,<SiteACLScope>)*"
 <SiteList> ::= "<SiteItem>(,<SiteItem>)*"
 <SKUIDList> ="<SKUID>(,<SKUID>)*"
-<SMTPHeaderList> ::= "<SMTPDateHeader|SMTPHeader>(,<SMTPDateHeader|SMTPHeader>)*"
 <ThreadIDList> ::= "<ThreadID>(,<ThreadID>)*"
 <TimeList> ::= "<Time>(,<Time>)*"
 <UserList> ::= "<UserItem>(,<UserItem>)*"
@@ -422,18 +331,19 @@ Specify a collection of ChromeOS devices by directly specifying them or by speci
 
 <CrOSTypeEntity> ::=
         (all cros)|
-        (cros <CrOSList>)|
+        (cros <CrOSIDList>)|
+        (cros_sn <SerialNumberList>)|
         (cros_ou|cros_org <OrgUnitItem>)|
         (cros_ou_and_children|cros_org_and_children <OrgUnitItem>)|
         (cros_ous|cros_orgs <OrgUnitList>)|
         (cros_ous_and_children|cros_orgs_and_children <OrgUnitList>)|
-        (crosfile <FileName> [charset <Charset>] [delimiter <Character>])|
-        (croscsvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
+        (crosfile|crosfile_sn <FileName> [charset <Charset>] [delimiter <Character>])|
+        (croscsvfile|croscsvfile_sn <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
         (crosquery <QueryCrOS>)|
         (crosqueries <QueryCrOSList>)|
-        (datafile cros|cros_ous|cros_ous_and_children
+        (datafile cros|cros_sn|cros_ous|cros_ous_and_children
                 <FileName> [charset <Charset>] [delimiter <Character>])|
-        (csvkmd cros|cros_ous|cros_ous_and_children
+        (csvkmd cros|cros_sn|cros_ous|cros_ous_and_children
                 <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
                 keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
                 subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
@@ -499,7 +409,10 @@ Specify a collection of items by directly specifying them; the item type is dete
 <CourseAnnouncementIDEntity> ::= <CourseAnnouncementIDList> | <FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>
 <CourseSubmissionIDEntity> ::= <CourseSubmissionIDList> | <FileSelector> | <CSVDataSelector>
 <CourseWorkIDEntity> ::= <CourseWorkIDList> | <FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>
-<CrOSEntity> ::= <CrOSItem> | <CrOSList> | <FileSelector> | <CSVkmdSelector>
+<CrOSEntity> ::=
+        <CrOSIDList> | (cros_ns <SerialNumberList>) |
+        (query:<QueryCrOS>)|(query:orgunitpath:<OrgUnitPath>)|(query <QueryCrOS>) |
+        <FileSelector> | <CSVkmdSelector>
 <DeviceFileEntity> ::=
         <TimeList> |
         (first|last|allexceptfirst|allexceptlast <Number>) |
@@ -1331,7 +1244,7 @@ gam update group|groups <GroupEntity> create|add [owner|manager|member] [userson
 gam update group|groups <GroupEntity> delete|remove [owner|manager|member] [usersonly|groupsonly] <UserTypeEntity>
 gam update group|groups <GroupEntity> sync [owner|manager|member] [usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended] <UserTypeEntity>
 gam update group|groups <GroupEntity> update [owner|manager|member] [usersonly|groupsonly] <UserTypeEntity>
-gam update group|groups <GroupEntity> clear [member] [manager] [owner] [suspended]
+gam update group|groups <GroupEntity> clear [member] [manager] [owner] [notsuspended|suspended]
 gam delete group|groups <GroupEntity>
 
 <GroupFieldName> ::=
@@ -2607,6 +2520,99 @@ gam <UserTypeEntity> delete label|labels <LabelName>|regex:<RegularExpression>|-
 
 gam <UserTypeEntity> show labels|label [onlyuser [<Boolean>]] [showcounts [<Boolean>]] [nested [<Boolean>]] [display allfields|basename|fullname]
 gam <UserTypeEntity> print labels|label [onlyuser [<Boolean>]] [showcounts [<Boolean>]] [todrive [<ToDriveAttributes>]]
+
+<SMTPDateHeader> ::=
+        date|
+        delivery-date|
+        expires|
+        expiry-date|
+        latest-delivery-time|
+        reply-by|
+        resent-date
+<SMTPHeader> ::=
+        accept-language|
+        alternate-recipient|
+        autoforwarded|
+        autosubmitted|
+        bcc|
+        cc|
+        comments|
+        content-alternative|
+        content-base|
+        content-description|
+        content-disposition|
+        content-duration|
+        content-id|
+        content-identifier|
+        content-language|
+        content-location|
+        content-md5|
+        content-return|
+        content-transfer-encoding|
+        content-type|
+        content-features|
+        conversion|
+        conversion-with-loss|
+        dl-expansion-history|
+        deferred-delivery|
+        delivered-to|
+        discarded-x400-ipms-extensions|
+        discarded-x400-mts-extensions|
+        disclose-recipients|
+        disposition-notification-options|
+        disposition-notification-to|
+        encoding|
+        encrypted|
+        from|
+        generate-delivery-report|
+        importance|
+        in-reply-to|
+        incomplete-copy|
+        keywords|
+        language|
+        list-archive|
+        list-help|
+        list-id|
+        list-owner|
+        list-post|
+        list-subscribe|
+        list-unsubscribe|
+        mime-version|
+        message-context|
+        message-id|
+        message-type|
+        obsoletes|
+        original-encoded-information-types|
+        original-message-id|
+        originator-return-address|
+        pics-label|
+        prevent-nondelivery-report|
+        priority|
+        received|
+        references|
+        reply-to|
+        resent-bcc|
+        resent-cc|
+        resent-from|
+        resent-message-id|
+        resent-reply-to|
+        resent-sender|
+        resent-to|
+        return-path|
+        sender|
+        sensitivity|
+        subject|
+        supersedes|
+        to|
+        x400-content-identifier|
+        x400-content-return|
+        x400-content-type|
+        x400-mts-identifier|
+        x400-originator|
+        x400-received|
+        x400-recipients|
+        x400-trace
+<SMTPHeaderList> ::= "<SMTPDateHeader|SMTPHeader>(,<SMTPDateHeader|SMTPHeader>)*"
 
 gam <UserTypeEntity> import message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)* (addlabel <LabelName>)*
         (textmessage <String>)|(textfile <FileName> [charset <CharSet>]) (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])

@@ -1,3 +1,38 @@
+4.56.17
+
+Allow customreplyto "" in gam create/update group to allow for an empty custom reply-to email address.
+
+Added cros_sn/crosfile_sn/croscsvfile_sn to <CrOSEntity> and <CrOSTypeEntity> to allow specifying ChromeOS devices by serial number.
+This requires an additional API call per serial number to convert it to the deviceId that is required by the API.
+For example:
+    gam cros_ns 01234,56789 update ou "/PathToOu"
+    gam info cros cros_ns 01234,56789
+<CrOSEntity> ::=
+        <CrOSIDList> | (cros_ns <SerialNumberList>) |
+        (query:<QueryCrOS>)|(query:orgunitpath:<OrgUnitPath>)|(query <QueryCrOS>) |
+        <FileSelector> | <CSVkmdSelector>
+<CrOSTypeEntity> ::=
+        (all cros)|
+        (cros <CrOSList>)|
+        (cros_sn <SerialNumberList>)|
+        (cros_ou|cros_org <OrgUnitItem>)|
+        (cros_ou_and_children|cros_org_and_children <OrgUnitItem>)|
+        (cros_ous|cros_orgs <OrgUnitList>)|
+        (cros_ous_and_children|cros_orgs_and_children <OrgUnitList>)|
+        (crosfile|crosfile_sn <FileName> [charset <Charset>] [delimiter <Character>])|
+        (croscsvfile|croscsvfile_sn <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
+        (crosquery <QueryCrOS>)|
+        (crosqueries <QueryCrOSList>)|
+        (datafile cros|cros_sn|cros_ous|cros_ous_and_children
+                <FileName> [charset <Charset>] [delimiter <Character>])|
+        (csvkmd cros|cros_sn|cros_ous|cros_ous_and_children
+                <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+                keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+                subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+                (matchfield <FieldName> <RegularExpression>)*
+                [datafield <FieldName>(:<FieldName)* [delimiter <Character>]])|
+        (croscsvdata <FieldName>(:<FieldName>*))
+
 4.56.16
 
 Added today and now options to date and time specifications.
