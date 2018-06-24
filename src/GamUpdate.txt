@@ -1,3 +1,8 @@
+4.56.18
+
+Modified code to mitigate a Google API bug that causes gam update group sync member to erroneously delete owners and managers.
+There is small performance cost but as Google has introduced the bug twice, it's probably worth it.
+
 4.56.17
 
 Allow customreplyto "" in gam create/update group to allow for an empty custom reply-to email address.
