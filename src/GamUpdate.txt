@@ -1,3 +1,14 @@
+4.56.19
+
+Rewrote gam copy/move drivefile to provide more options and more useful (in my opinion) default options.
+
+In prior versions of Gam, if you copied a source file/folder to a target folder that contained a file/folder of the same name as the source,
+a new copy with the same name was created. Now, a source file is copied only it it is newer than the target file of the same name
+in the target folder. Now, a source folder and its contents are merged with the target folder of the same name. There are options that
+allow you to get the prior behavior.
+
+Read the dcomentation here (https://github.com/taers232c/GAMADV-XTD/wiki/Users-Drive-Copy-Move) and test before using in production.
+
 4.56.18
 
 Modified code to mitigate a Google API bug that causes gam update group sync member to erroneously delete owners and managers.
@@ -146,7 +157,7 @@ gam show group-members
 Modified gam update customer to use the patch API so that single fields of the customer address can be updated;
 previously, all fields had to be specified in order to update a single field.
 
-4.56.12
+!4.56.12
 
 Added query <QueryGroup> to gam print groups and gam print/show groupmembers to take advantage of API group filtering.
 See: https://developers.google.com/admin-sdk/directory/v1/guides/search-groups
@@ -313,7 +324,7 @@ gam print contacts [todrive [<ToDriveAttributes>]] [query <QueryContact>] [email
         [fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
 gam <UserTypeEntity> print contactgroups [todrive [<ToDriveAttributes>]] [updated_min <Date>]
         [basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
-	[formatjson] [quotechar <Character>]
+        [formatjson] [quotechar <Character>]
 gam print gal [todrive [<ToDriveAttributes>]] [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
         [basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]]
         [fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
@@ -375,7 +386,7 @@ Added the ability to transfer all of a user's assets: drive files, calendars and
 <DataTransferService> ::=
         calendar|
         googledrive|gdrive|drive|"drive and docs"|
-	gplus|googleplus|google+
+        gplus|googleplus|google+
 <DataTransferServiceList> ::= "<DataTransferService>(,<DataTransferService>)*"
 
 gam create|add datatransfer|transfer <OldOwnerID> <DataTransferServiceList> <NewOwnerID>
@@ -430,8 +441,8 @@ By default, GAM uses an internal copy of the cacerts.pem file found in the folde
 If you need to add a vendor specific certificate, copy cacerts.pem to the folder containing gam.cfg, append your
 vendor certificate PEM file to the copied file and change gam.cfg/cacerts_pem to point to the copied file.
 cacerts_pem
-	SSL Root CA certificates file
-	Default: Blank, internal cacerts.pem will be used
+        SSL Root CA certificates file
+        Default: Blank, internal cacerts.pem will be used
 
 Fixed a bug where a duplicate extension was added to a file downloaded from Google Drive; this occurred when the file
 had an uppercase extension on Google Drive.

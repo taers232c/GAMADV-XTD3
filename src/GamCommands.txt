@@ -91,7 +91,6 @@ If an item contains spaces, it should be surrounded by ".
         drive16tb|16tb|googledrivestorage16tb|Google-Drive-storage-16TB|
         vault|googlevault|Google-Vault|
         vfe|googlevaultformeremployee|Google-Vault-Former-Employee
-
 ## Basic items built from primitives
 
 <Boolean> ::= <TrueValues>|<FalseValues>
@@ -2157,9 +2156,16 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventS
         <DriveFileAttributes>|
         ignoredefaultvisibility|
         (modifieddate|modifiedtime <Time>)|
-        ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>)|
+        ((parentid <DriveFolderID>)|
+         (parentname <DriveFolderName>)|
+         (anyownerparentname <DriveFolderName>)|
          (teamdriveparentid <DriveFolderID>)|
-         ((teamdriveparentid <TeamDriveID>)|(teamdriveparent <TeamDriveName>) [teamdriveparentname <DriveFolderName>]))|
+         (teamdriveparent <TeamDriveName>)|
+         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
+         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))|
+         (teamdriveparentid <DriveFolderID>)|(teamdriveparent <TeamDriveName>)|
+         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
+         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))|
         usecontentasindexabletext
 
 gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] <DriveFileCreateAttributes>* [csv [todrive [<ToDriveAttributes>]]]
@@ -2172,9 +2178,16 @@ gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] <Drive
         (removeparents <DriveFolderIDList>)|
         (removeparentname <DriveFolderName>)|
         (removeanyownerparentname <DriveFolderName>)|
-        ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>)|
+        ((parentid <DriveFolderID>)|
+         (parentname <DriveFolderName>)|
+         (anyownerparentname <DriveFolderName>)|
          (teamdriveparentid <DriveFolderID>)|
-         ((teamdriveparentid <TeamDriveID>)|(teamdriveparent <TeamDriveName>) [teamdriveparentname <DriveFolderName>]))|
+         (teamdriveparent <TeamDriveName>)|
+         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
+         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))|
+         (teamdriveparentid <DriveFolderID>)|(teamdriveparent <TeamDriveName>)|
+         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
+         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))|
         usecontentasindexabletext
 
 gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [retainname | (newfilename <DriveFileName>)] <DriveFileUpdateAttributes>*
@@ -2183,18 +2196,43 @@ gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [retainname | (ne
         ignoredefaultvisibility|
         (modifieddate|modifiedtime <Time>)|
         (mimetype <MimeType>)|
-        ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>)|
+        ((parentid <DriveFolderID>)|
+         (parentname <DriveFolderName>)|
+         (anyownerparentname <DriveFolderName>)|
          (teamdriveparentid <DriveFolderID>)|
-         ((teamdriveparentid <TeamDriveID>)|(teamdriveparent <TeamDriveName>) [teamdriveparentname <DriveFolderName>]))
+         (teamdriveparent <TeamDriveName>)|
+         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
+         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))|
+         (teamdriveparentid <DriveFolderID>)|(teamdriveparent <TeamDriveName>)|
+         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
+         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))
 
-gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] <DriveFileCopyAttributes>* [recursive [depth <Number>]]
+gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [recursive [depth <Number>]] [summary [<Boolean>]]
+        <DriveFileCopyAttributes>*
+        [duplicatefiles overwriteall|overwriteolder|duplicatename|uniquename|skip]
+        [duplicatefolders merge|duplicatename|uniquename]
+        [copytopfileparents all|none] [copytopfolderparents all|none]
+        [copysubfileparents all|none|nonpath] [copysubfolderparents all|none|nonpath]
+        [copyfilepermissions <Boolean>]
+        [copytopfolderpermissions <Boolean>] [copysubfolderpermissions <Boolean>]
 
 <DriveFileMoveAttributes> ::=
-        ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>)|
+        ((parentid <DriveFolderID>)|
+         (parentname <DriveFolderName>)|
+         (anyownerparentname <DriveFolderName>)|
          (teamdriveparentid <DriveFolderID>)|
-         ((teamdriveparentid <TeamDriveID>)|(teamdriveparent <TeamDriveName>) [teamdriveparentname <DriveFolderName>]))
+         (teamdriveparent <TeamDriveName>)|
+         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
+         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))|
+         (teamdriveparentid <DriveFolderID>)|(teamdriveparent <TeamDriveName>)|
+         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
+         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))
 
-gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>] <DriveFileMoveAttributes>*
+gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>] [summary [<Boolean>]]
+        <DriveFileMoveAttributes>*
+        [duplicatefiles overwriteall|duplicatename|uniquename]
+        [duplicatefolders merge|duplicatename|uniquename]
+        [retainsourcefolders]
 
 gam <UserTypeEntity> get drivefile <DriveFileEntity> [revision <DriveFileRevisionID>] [format <FileFormatList>]
         [targetfolder <FilePath>] [targetname <FileName>] [overwrite [<Boolean>]]
@@ -2744,9 +2782,16 @@ See: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets/cre
 See: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets/batchUpdate
 
 gam <UserTypeEntity> create|add sheet json <SpreadsheetJSONCreateRequest> [formatjson]
-        [(parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>)|
+        ((parentid <DriveFolderID>)|
+         (parentname <DriveFolderName>)|
+         (anyownerparentname <DriveFolderName>)|
          (teamdriveparentid <DriveFolderID>)|
-         ((teamdriveparentid <TeamDriveID>)|(teamdriveparent <TeamDriveName>) [teamdriveparentname <DriveFolderName>])]
+         (teamdriveparent <TeamDriveName>)|
+         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
+         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))|
+         (teamdriveparentid <DriveFolderID>)|(teamdriveparent <TeamDriveName>)|
+         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
+         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))
 gam <UserTypeEntity> update sheet <DriveFileEntity> json <SpreadsheetJSONUpdateRequest> [formatjson]
 gam <UserTypeEntity> info sheet <DriveFileEntity> (range <SpreadsheetRange>)* [includegriddata [<Boolean>]] [formatjson]
 
