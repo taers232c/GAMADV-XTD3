@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.00'
+__version__ = u'4.57.01'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -23007,6 +23007,19 @@ def _mapDrive2QueryToDrive3(query):
     query = TITLE_QUERY_PATTERN.sub(r'name\1', query).replace(u'modifiedDate', VX_MODIFIED_TIME).replace(u'lastViewedByMeDate', VX_VIEWED_BY_ME_TIME)
   return query
 
+def encodeDriveFilename(filename):
+  if filename.find(u"'") == -1 and filename.find(u'\\') == -1:
+    return filename
+  encfilename = u''
+  for c in filename:
+    if c == u"'":
+      encfilename += u"\\'"
+    elif c == u'\\':
+      encfilename += u'\\\\'
+    else:
+      encfilename += c
+  return encfilename
+
 def initDriveFileEntity():
   return {u'list': [], u'teamdrivename': None, u'teamdriveadminquery': None, u'query': None, u'teamdrivefilequery': None, u'dict': None, u'root': [], u'teamdrive': {}}
 
@@ -23021,9 +23034,9 @@ def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
     elif kw == u'query':
       fileIdEntity[u'query'] = _mapDrive2QueryToDrive3(value)
     elif kw == u'drivefilename':
-      fileIdEntity[u'query'] = VX_WITH_MY_FILE_NAME.format(value)
+      fileIdEntity[u'query'] = VX_WITH_MY_FILE_NAME.format(encodeDriveFilename(value))
     elif kw in [u'anydrivefilename', u'anyownerdrivefilename', u'shareddrivefilename']:
-      fileIdEntity[u'query'] = VX_WITH_ANY_FILE_NAME.format(value)
+      fileIdEntity[u'query'] = VX_WITH_ANY_FILE_NAME.format(encodeDriveFilename(value))
     else:
       return False
     return True
@@ -23038,7 +23051,7 @@ def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
     elif kw == u'teamdriveadminquery':
       fileIdEntity[u'teamdriveadminquery'] = value
     elif kw == u'teamdrivefilename':
-      fileIdEntity[u'teamdrivefilequery'] = VX_WITH_ANY_FILE_NAME.format(value)
+      fileIdEntity[u'teamdrivefilequery'] = VX_WITH_ANY_FILE_NAME.format(encodeDriveFilename(value))
     elif kw == u'teamdrivequery':
       fileIdEntity[u'teamdrivefilequery'] = _mapDrive2QueryToDrive3(value)
     else:
@@ -23060,12 +23073,12 @@ def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
       cleanFileIDsList(fileIdEntity, getStringReturnInList(Cmd.OB_DRIVE_FILE_ID))
     elif mycmd == u'ids':
       cleanFileIDsList(fileIdEntity, getString(Cmd.OB_DRIVE_FILE_ID).replace(u',', u' ').split())
+    elif mycmd == u'drivefilename':
+      fileIdEntity[u'query'] = VX_WITH_MY_FILE_NAME.format(encodeDriveFilename(getString(Cmd.OB_DRIVE_FILE_NAME)))
+    elif mycmd in [u'anydrivefilename', u'anyownerdrivefilename', u'shareddrivefilename']:
+      fileIdEntity[u'query'] = VX_WITH_ANY_FILE_NAME.format(encodeDriveFilename(getString(Cmd.OB_DRIVE_FILE_NAME)))
     elif mycmd == u'query':
       fileIdEntity[u'query'] = _mapDrive2QueryToDrive3(getString(Cmd.OB_QUERY))
-    elif mycmd == u'drivefilename':
-      fileIdEntity[u'query'] = VX_WITH_MY_FILE_NAME.format(getString(Cmd.OB_DRIVE_FILE_NAME))
-    elif mycmd in [u'anydrivefilename', u'anyownerdrivefilename', u'shareddrivefilename']:
-      fileIdEntity[u'query'] = VX_WITH_ANY_FILE_NAME.format(getString(Cmd.OB_DRIVE_FILE_NAME))
     elif queryShortcutsOK and mycmd in QUERY_SHORTCUTS_MAP:
       fileIdEntity[u'query'] = QUERY_SHORTCUTS_MAP[mycmd]
     elif mycmd in [u'root', u'mydrive']:
@@ -23083,7 +23096,7 @@ def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
         elif mycmd == u'teamdriveadminquery':
           fileIdEntity[u'teamdriveadminquery'] = getString(Cmd.OB_QUERY)
         elif mycmd == u'teamdrivefilename':
-          fileIdEntity[u'teamdrivefilequery'] = VX_WITH_ANY_FILE_NAME.format(getString(Cmd.OB_DRIVE_FILE_NAME))
+          fileIdEntity[u'teamdrivefilequery'] = VX_WITH_ANY_FILE_NAME.format(encodeDriveFilename(getString(Cmd.OB_DRIVE_FILE_NAME)))
         elif mycmd == u'teamdrivequery':
           fileIdEntity[u'teamdrivefilequery'] = _mapDrive2QueryToDrive3(getString(Cmd.OB_QUERY))
         elif queryShortcutsOK and mycmd in TEAMDRIVE_QUERY_SHORTCUTS_MAP:

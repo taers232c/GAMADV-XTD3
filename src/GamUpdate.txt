@@ -1,3 +1,15 @@
+4.57.01
+
+Drive filenames that contain a single quote (') or a backslash (\) have to be quoted before being passed to the Drive REST API;
+otherwise, Google gives an invalid query error.` GAM now performs this quoting, you do not have to quote them on the command line.
+drivefilename "Foo'Bar"
+drivefilename "Foo\Bar"
+
+Drive filenames that contain a double quote (") or open single quote (`), do not have to be quoted before being passed to the Drive REST API;
+however, you must quote them on the command line for Gam to receive the correct value.
+drivefilename "Foo\"Bar"
+drivefilename "Foo\`Bar"
+
 4.57.00
 
 Rewrote gam copy/move drivefile to provide more options and more useful (in my opinion) default options.
