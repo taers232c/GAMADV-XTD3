@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.01'
+__version__ = u'4.57.02'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -4218,7 +4218,7 @@ def getTodriveParameters():
       tduserLocation = Cmd.Location()
       localUser = True
     elif myarg == u'tdparent':
-      todrive[u'parent'] = getString(Cmd.OB_DRIVE_FOLDER_NAME, minLen=0)
+      todrive[u'parent'] = escapeDriveFileName(getString(Cmd.OB_DRIVE_FOLDER_NAME, minLen=0))
       tdparentLocation = Cmd.Location()
       localParent = True
     elif myarg == u'tdtimestamp':
@@ -23007,7 +23007,7 @@ def _mapDrive2QueryToDrive3(query):
     query = TITLE_QUERY_PATTERN.sub(r'name\1', query).replace(u'modifiedDate', VX_MODIFIED_TIME).replace(u'lastViewedByMeDate', VX_VIEWED_BY_ME_TIME)
   return query
 
-def encodeDriveFilename(filename):
+def escapeDriveFileName(filename):
   if filename.find(u"'") == -1 and filename.find(u'\\') == -1:
     return filename
   encfilename = u''
@@ -23019,6 +23019,12 @@ def encodeDriveFilename(filename):
     else:
       encfilename += c
   return encfilename
+
+def getEscapedDriveFileName():
+  return escapeDriveFileName(getString(Cmd.OB_DRIVE_FILE_NAME))
+
+def getEscapedDriveFolderName():
+  return escapeDriveFileName(getString(Cmd.OB_DRIVE_FOLDER_NAME))
 
 def initDriveFileEntity():
   return {u'list': [], u'teamdrivename': None, u'teamdriveadminquery': None, u'query': None, u'teamdrivefilequery': None, u'dict': None, u'root': [], u'teamdrive': {}}
@@ -23034,9 +23040,9 @@ def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
     elif kw == u'query':
       fileIdEntity[u'query'] = _mapDrive2QueryToDrive3(value)
     elif kw == u'drivefilename':
-      fileIdEntity[u'query'] = VX_WITH_MY_FILE_NAME.format(encodeDriveFilename(value))
+      fileIdEntity[u'query'] = VX_WITH_MY_FILE_NAME.format(escapeDriveFileName(value))
     elif kw in [u'anydrivefilename', u'anyownerdrivefilename', u'shareddrivefilename']:
-      fileIdEntity[u'query'] = VX_WITH_ANY_FILE_NAME.format(encodeDriveFilename(value))
+      fileIdEntity[u'query'] = VX_WITH_ANY_FILE_NAME.format(escapeDriveFileName(value))
     else:
       return False
     return True
@@ -23051,7 +23057,7 @@ def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
     elif kw == u'teamdriveadminquery':
       fileIdEntity[u'teamdriveadminquery'] = value
     elif kw == u'teamdrivefilename':
-      fileIdEntity[u'teamdrivefilequery'] = VX_WITH_ANY_FILE_NAME.format(encodeDriveFilename(value))
+      fileIdEntity[u'teamdrivefilequery'] = VX_WITH_ANY_FILE_NAME.format(escapeDriveFileName(value))
     elif kw == u'teamdrivequery':
       fileIdEntity[u'teamdrivefilequery'] = _mapDrive2QueryToDrive3(value)
     else:
@@ -23074,9 +23080,9 @@ def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
     elif mycmd == u'ids':
       cleanFileIDsList(fileIdEntity, getString(Cmd.OB_DRIVE_FILE_ID).replace(u',', u' ').split())
     elif mycmd == u'drivefilename':
-      fileIdEntity[u'query'] = VX_WITH_MY_FILE_NAME.format(encodeDriveFilename(getString(Cmd.OB_DRIVE_FILE_NAME)))
+      fileIdEntity[u'query'] = VX_WITH_MY_FILE_NAME.format(getEscapedDriveFileName())
     elif mycmd in [u'anydrivefilename', u'anyownerdrivefilename', u'shareddrivefilename']:
-      fileIdEntity[u'query'] = VX_WITH_ANY_FILE_NAME.format(encodeDriveFilename(getString(Cmd.OB_DRIVE_FILE_NAME)))
+      fileIdEntity[u'query'] = VX_WITH_ANY_FILE_NAME.format(getEscapedDriveFileName())
     elif mycmd == u'query':
       fileIdEntity[u'query'] = _mapDrive2QueryToDrive3(getString(Cmd.OB_QUERY))
     elif queryShortcutsOK and mycmd in QUERY_SHORTCUTS_MAP:
@@ -23096,7 +23102,7 @@ def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
         elif mycmd == u'teamdriveadminquery':
           fileIdEntity[u'teamdriveadminquery'] = getString(Cmd.OB_QUERY)
         elif mycmd == u'teamdrivefilename':
-          fileIdEntity[u'teamdrivefilequery'] = VX_WITH_ANY_FILE_NAME.format(encodeDriveFilename(getString(Cmd.OB_DRIVE_FILE_NAME)))
+          fileIdEntity[u'teamdrivefilequery'] = VX_WITH_ANY_FILE_NAME.format(getEscapedDriveFileName())
         elif mycmd == u'teamdrivequery':
           fileIdEntity[u'teamdrivefilequery'] = _mapDrive2QueryToDrive3(getString(Cmd.OB_QUERY))
         elif queryShortcutsOK and mycmd in TEAMDRIVE_QUERY_SHORTCUTS_MAP:
@@ -23470,15 +23476,15 @@ def getDriveFileParentAttribute(myarg, parameters):
   if myarg == u'parentid':
     parameters[DFA_PARENTID] = getString(Cmd.OB_DRIVE_FOLDER_ID)
   elif myarg == u'parentname':
-    parameters[DFA_PARENTQUERY] = VX_MY_NON_TRASHED_FOLDER_NAME.format(getString(Cmd.OB_DRIVE_FOLDER_NAME))
+    parameters[DFA_PARENTQUERY] = VX_MY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName())
   elif myarg in [u'anyownerparentname', u'sharedparentname']:
-    parameters[DFA_PARENTQUERY] = VX_ANY_NON_TRASHED_FOLDER_NAME.format(getString(Cmd.OB_DRIVE_FOLDER_NAME))
+    parameters[DFA_PARENTQUERY] = VX_ANY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName())
   elif myarg == u'teamdriveparent':
     parameters[DFA_TEAMDRIVE_PARENT] = getString(Cmd.OB_TEAMDRIVE_NAME)
   elif myarg == u'teamdriveparentid':
     parameters[DFA_TEAMDRIVE_PARENTID] = getString(Cmd.OB_DRIVE_FOLDER_ID)
   elif myarg == u'teamdriveparentname':
-    parameters[DFA_TEAMDRIVE_PARENTQUERY] = VX_ANY_NON_TRASHED_FOLDER_NAME.format(getString(Cmd.OB_DRIVE_FOLDER_NAME))
+    parameters[DFA_TEAMDRIVE_PARENTQUERY] = VX_ANY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName())
     parameters[DFA_KWARGS][u'corpora'] = u'user,allTeamDrives'
     parameters[DFA_KWARGS][u'includeTeamDriveItems'] = True
     parameters[DFA_KWARGS][u'supportsTeamDrives'] = True
@@ -23492,13 +23498,13 @@ def getDriveFileAddRemoveParentAttribute(myarg, parameters):
   elif myarg in [u'removeparent', u'removeparents']:
     parameters[DFA_REMOVE_PARENT_IDS].extend(getString(Cmd.OB_DRIVE_FOLDER_ID_LIST).replace(u',', u' ').split())
   elif myarg == u'addparentname':
-    parameters[DFA_ADD_PARENT_NAMES].append(VX_MY_NON_TRASHED_FOLDER_NAME.format(getString(Cmd.OB_DRIVE_FOLDER_NAME)))
+    parameters[DFA_ADD_PARENT_NAMES].append(VX_MY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName()))
   elif myarg == u'removeparentname':
-    parameters[DFA_REMOVE_PARENT_NAMES].append(VX_MY_NON_TRASHED_FOLDER_NAME.format(getString(Cmd.OB_DRIVE_FOLDER_NAME)))
+    parameters[DFA_REMOVE_PARENT_NAMES].append(VX_MY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName()))
   elif myarg in [u'addanyownerparentname', u'addsharedparentname']:
-    parameters[DFA_ADD_PARENT_NAMES].append(VX_ANY_NON_TRASHED_FOLDER_NAME.format(getString(Cmd.OB_DRIVE_FOLDER_NAME)))
+    parameters[DFA_ADD_PARENT_NAMES].append(VX_ANY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName()))
   elif myarg in [u'removeanyownerparentname', u'removesharedparentname']:
-    parameters[DFA_REMOVE_PARENT_NAMES].append(VX_ANY_NON_TRASHED_FOLDER_NAME.format(getString(Cmd.OB_DRIVE_FOLDER_NAME)))
+    parameters[DFA_REMOVE_PARENT_NAMES].append(VX_ANY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName()))
   else:
     return False
   return True
@@ -26248,7 +26254,7 @@ def copyDriveFile(users):
           destFilename = u'Copy of {0}'.format(sourceFilename)
         targetChildren = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                       q=VX_ANY_NON_TRASHED_MIMETYPE_NAME_PREFIX_WITH_PARENTS.format(source[u'mimeType'], destFilename, newParentId),
+                                       q=VX_ANY_NON_TRASHED_MIMETYPE_NAME_PREFIX_WITH_PARENTS.format(source[u'mimeType'], escapeDriveFileName(destFilename), newParentId),
                                        orderBy=VX_ORDERBY_FOLDER_DESC_NAME_MODIFIED_TIME,
                                        fields=VX_NPT_FILES_ID_FILENAME_CAPABILITIES_MIMETYPE_MODIFIEDTIME, **parameters[DFA_SEARCHARGS])
         destTeamDriveId = callGAPI(drive.files(), u'get',
@@ -26488,7 +26494,7 @@ def moveDriveFile(users):
           destFilename = sourceFilename
         targetChildren = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                       q=VX_ANY_NON_TRASHED_MIMETYPE_NAME_PREFIX_WITH_PARENTS.format(source[u'mimeType'], destFilename, newParentId),
+                                       q=VX_ANY_NON_TRASHED_MIMETYPE_NAME_PREFIX_WITH_PARENTS.format(source[u'mimeType'], escapeDriveFileName(destFilename), newParentId),
                                        orderBy=VX_ORDERBY_FOLDER_DESC_NAME_MODIFIED_TIME,
                                        fields=VX_NPT_FILES_ID_FILENAME_CAPABILITIES_MIMETYPE_MODIFIEDTIME, **parameters[DFA_SEARCHARGS])
         destTeamDriveId = callGAPI(drive.files(), u'get',
@@ -26832,7 +26838,7 @@ def collectOrphans(users):
       if not csvFormat:
         result = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                               q=VX_MY_NON_TRASHED_FOLDER_NAME.format(trgtUserFolderName),
+                               q=VX_MY_NON_TRASHED_FOLDER_NAME.format(escapeDriveFileName(trgtUserFolderName)),
                                fields=VX_NPT_FILES_ID)
         if len(result) > 0:
           trgtParentId = result[0][u'id']
@@ -26895,7 +26901,7 @@ def transferDrive(users):
     try:
       result = callGAPIpages(targetDrive.files(), u'list', VX_PAGES_FILES,
                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                             orderBy=orderBy, q=VX_MY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS.format(folderName, folderParentId),
+                             orderBy=orderBy, q=VX_MY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS.format(escapeDriveFileName(folderName), folderParentId),
                              fields=VX_NPT_FILES_ID)
       if len(result) > 0:
         return result[0][u'id']
@@ -27399,7 +27405,7 @@ def transferDrive(users):
       elif targetFolderName:
         result = callGAPIpages(targetDrive.files(), u'list', VX_PAGES_FILES,
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                               q=VX_MY_NON_TRASHED_FOLDER_NAME.format(targetFolderName),
+                               q=VX_MY_NON_TRASHED_FOLDER_NAME.format(escapeDriveFileName(targetFolderName)),
                                fields=VX_NPT_FILES_ID)
         if len(result) == 0:
           Cmd.SetLocation(targetFolderNameLocation)

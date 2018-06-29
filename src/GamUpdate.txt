@@ -1,7 +1,15 @@
+4.57.02
+
+Extend drive filename escaping to all options:
+drivefilename, anyownerdrivefilename, teamdrivefilename,
+parentname, anyownerparentname, teamdriveparentname,
+addparentname, addanyownerparentname, removeparentname, removeanyownerparentname, 
+tdparent
+
 4.57.01
 
 Drive filenames that contain a single quote (') or a backslash (\) have to be escaped before being passed to the Drive REST API;
-otherwise, Google gives an invalid query error.` GAM now performs this quoting, you do not have to escape them on the command line.
+otherwise, Google gives an invalid query error.` GAM now performs this escaping, you do not have to escape them on the command line.
 drivefilename "Foo'Bar"
 drivefilename "Foo\Bar"
 
