@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.02'
+__version__ = u'4.57.03'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -2226,7 +2226,7 @@ def SetGlobalVariables():
     for itemName in GC.VAR_INFO:
       if GC.VAR_INFO[itemName][GC.VAR_TYPE] == GC.TYPE_DIRECTORY:
         dirPath = GC.Values[itemName]
-        if not os.path.isdir(dirPath):
+        if (itemName != GC.CACHE_DIR or not GC.Values[GC.NO_CACHE]) and not os.path.isdir(dirPath):
           writeStderr(formatKeyValueList(WARNING_PREFIX,
                                          [Ent.Singular(Ent.CONFIG_FILE), GM.Globals[GM.GAM_CFG_FILE],
                                           Ent.Singular(Ent.SECTION), sectionName,
@@ -12456,6 +12456,26 @@ def doPrintMobileDevices():
       accessErrorExit(cd)
   writeCSVfile(csvRows, titles, u'Mobile', todrive, [u'resourceId', u'deviceId', u'serialNumber', u'name', u'email', u'status'])
 
+COLLABORATIVE_INBOX_ATTRIBUTES = [
+  u'whoCanAddReferences',
+  u'whoCanAssignTopics',
+  u'whoCanEnterFreeFormTags',
+  u'whoCanMarkDuplicate',
+  u'whoCanMarkFavoriteReplyOnAnyTopic',
+  u'whoCanMarkFavoriteReplyOnOwnTopic',
+  u'whoCanMarkNoResponseNeeded',
+  u'whoCanModifyTagsAndCategories',
+  u'whocantaketopics',
+  u'whoCanUnassignTopic',
+  u'whoCanUnmarkFavoriteReplyOnAnyTopic',
+  ]
+COLLABORATIVE_INBOX_CHOICES = {
+  u'allmembers': u'ALL_MEMBERS',
+  u'ownersandmanagers': u'OWNERS_AND_MANAGERS',
+  u'managersonly': u'MANAGERS_ONLY',
+  u'ownersonly': u'OWNERS_ONLY',
+  u'none': u'NONE',
+  }
 GROUP_ATTRIBUTES = {
   u'allowexternalmembers': [u'allowExternalMembers', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   u'allowgooglecommunication': [u'allowGoogleCommunication', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
@@ -12465,6 +12485,7 @@ GROUP_ATTRIBUTES = {
   u'customreplyto': [u'customReplyTo', {GC.VAR_TYPE: GC.TYPE_EMAIL_OPTIONAL}],
   u'defaultmessagedenynotificationtext': [u'defaultMessageDenyNotificationText', {GC.VAR_TYPE: GC.TYPE_STRING}],
   u'description': [u'description', {GC.VAR_TYPE: GC.TYPE_STRING}],
+  u'favoriterepliesontop': [u'favoriteRepliesOnTop', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   u'gal': [u'includeInGlobalAddressList', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   u'includecustomfooter': [u'includeCustomFooter', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   u'includeinglobaladdresslist': [u'includeInGlobalAddressList', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
@@ -12487,9 +12508,12 @@ GROUP_ATTRIBUTES = {
                                                     u'choices': {u'allow': u'ALLOW', u'moderate': u'MODERATE', u'silentlymoderate': u'SILENTLY_MODERATE', u'reject': u'REJECT',}}],
   u'whocanadd': [u'whoCanAdd', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                 u'choices': {u'allmemberscanadd': u'ALL_MEMBERS_CAN_ADD', u'allmanagerscanadd': u'ALL_MANAGERS_CAN_ADD', u'nonecanadd': u'NONE_CAN_ADD',}}],
+  u'whocanaddreferences': [u'whoCanAddReferences', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
+  u'whocanassigntopics': [u'whoCanAssignTopics', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
   u'whocancontactowner': [u'whoCanContactOwner', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                                   u'choices': {u'anyonecancontact': u'ANYONE_CAN_CONTACT', u'allindomaincancontact': u'ALL_IN_DOMAIN_CAN_CONTACT',
                                                                u'allmemberscancontact': u'ALL_MEMBERS_CAN_CONTACT', u'allmanagerscancontact': u'ALL_MANAGERS_CAN_CONTACT',}}],
+  u'whocanenterfreeformtags': [u'whoCanEnterFreeFormTags', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
   u'whocaninvite': [u'whoCanInvite', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                       u'choices': {u'allmemberscaninvite': u'ALL_MEMBERS_CAN_INVITE', u'allmanagerscaninvite': u'ALL_MANAGERS_CAN_INVITE', u'nonecaninvite': u'NONE_CAN_INVITE',}}],
   u'whocanjoin': [u'whoCanJoin', {GC.VAR_TYPE: GC.TYPE_CHOICE,
@@ -12497,9 +12521,17 @@ GROUP_ATTRIBUTES = {
                                                u'invitedcanjoin': u'INVITED_CAN_JOIN', u'canrequesttojoin': u'CAN_REQUEST_TO_JOIN',}}],
   u'whocanleavegroup': [u'whoCanLeaveGroup', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                               u'choices': {u'allmanagerscanleave': u'ALL_MANAGERS_CAN_LEAVE', u'allmemberscanleave': u'ALL_MEMBERS_CAN_LEAVE', u'nonecanleave': u'NONE_CAN_LEAVE',}}],
+  u'whocanmarkduplicate': [u'whoCanMarkDuplicate', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
+  u'whocanmarkfavoritereplyonanytopic': [u'whoCanMarkFavoriteReplyOnAnyTopic', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
+  u'whocanmarkfavoritereplyonowntopic': [u'whoCanMarkFavoriteReplyOnOwnTopic', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
+  u'whocanmarknoresponseneeded': [u'whoCanMarkNoResponseNeeded', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
+  u'whocanmodifytagsandcategories': [u'whoCanModifyTagsAndCategories', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
+  u'whocantaketopics': [u'whoCanTakeTopics', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
   u'whocanpostmessage': [u'whoCanPostMessage', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                                 u'choices': {u'nonecanpost': u'NONE_CAN_POST', u'allmanagerscanpost': u'ALL_MANAGERS_CAN_POST', u'allmemberscanpost': u'ALL_MEMBERS_CAN_POST',
                                                              u'allindomaincanpost': u'ALL_IN_DOMAIN_CAN_POST', u'anyonecanpost': u'ANYONE_CAN_POST',}}],
+  u'whocanunassigntopic': [u'whoCanUnassignTopic', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
+  u'whocanunmarkfavoritereplyonanytopic': [u'whoCanUnmarkFavoriteReplyOnAnyTopic', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
   u'whocanviewgroup': [u'whoCanViewGroup', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                             u'choices': {u'anyonecanview': u'ANYONE_CAN_VIEW', u'allindomaincanview': u'ALL_IN_DOMAIN_CAN_VIEW',
                                                          u'allmemberscanview': u'ALL_MEMBERS_CAN_VIEW', u'allmanagerscanview': u'ALL_MANAGERS_CAN_VIEW',}}],
@@ -12543,6 +12575,11 @@ def getGroupAttrValue(argument, body, gs_body):
     else:
       gs_body[attrName] = getInteger()
 
+def setCollaborativeAttributes(gs_body):
+  choice = getChoice(COLLABORATIVE_INBOX_CHOICES, mapChoice=True)
+  for attrName in COLLABORATIVE_INBOX_ATTRIBUTES:
+    gs_body[attrName] = choice
+
 def GroupIsAbuseOrPostmaster(emailAddr):
   return emailAddr.startswith(u'abuse@') or emailAddr.startswith(u'postmaster@')
 
@@ -12553,7 +12590,10 @@ def doCreateGroup():
   gs_body = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    getGroupAttrValue(myarg, body, gs_body)
+    if myarg == u'collaborative':
+      setCollaborativeAttributes(gs_body)
+    else:
+      getGroupAttrValue(myarg, body, gs_body)
   body.setdefault(u'name', body[u'email'])
   try:
     callGAPI(cd.groups(), u'insert',
@@ -12811,6 +12851,8 @@ def doUpdateGroups():
         body[u'email'] = getEmailAddress(noUid=True)
       elif myarg == u'admincreated':
         body[u'adminCreated'] = getBoolean()
+      elif myarg == u'collaborative':
+        setCollaborativeAttributes(gs_body)
       else:
         getGroupAttrValue(myarg, body, gs_body)
     if gs_body:
@@ -26248,7 +26290,8 @@ def copyDriveFile(users):
         source[u'parents'] = newParents
         if newFilename:
           destFilename = newFilename
-        elif newParentsSpecified and newParentId not in sourceParents:
+        elif ((newParentsSpecified and newParentId not in sourceParents) or
+              (newParentId in sourceParents and copyMoveOptions[u'duplicateFiles'] not in [DUPLICATE_FILE_OVERWRITE_ALL, DUPLICATE_FILE_OVERWRITE_OLDER])):
           destFilename = sourceFilename
         else:
           destFilename = u'Copy of {0}'.format(sourceFilename)

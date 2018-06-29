@@ -1,3 +1,10 @@
+4.57.03
+
+Added support for Collaborative Inbox Groups.
+* Feature documentation: https://support.google.com/a/answer/167430?hl=en
+* API documentation: https://developers.google.com/admin-sdk/groups-settings/v1/reference/groups
+* GAM documentation: https://github.com/taers232c/GAMADV-XTD/wiki/Groups
+
 4.57.02
 
 Extend drive filename escaping to all options:

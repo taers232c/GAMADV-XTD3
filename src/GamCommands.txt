@@ -1211,31 +1211,44 @@ gam print domainaliases|aliasdomains [todrive [<ToDriveAttributes>]]
         (allowgooglecommunication <Boolean>)|
         (allowwebposting <Boolean>)|
         (archiveonly <Boolean>)|
+        (collaborative all_members|owners_and_managers|managers_only|owners_only|none)|
         (customfootertext <String>)|
         (customreplyto <EmailAddress>)|
         (defaultmessagedenynotificationtext <String>)|
         (description <String>)|
+        (favoriterepliesontop <Boolean>)|
         (gal|includeInGlobalAddressList <Boolean>)|
         (includecustomfooter <Boolean>)|
         (isarchived <Boolean>)|
         (maxmessagebytes <ByteCount>)|
         (memberscanpostasthegroup <Boolean>)|
-        (messagedisplayfont DEFAULT_FONT|FIXED_WIDTH_FONT)|
-        (messagemoderationlevel MODERATE_ALL_MESSAGES|MODERATE_NON_MEMBERS|MODERATE_NEW_MEMBERS|MODERATE_NONE)|
+        (messagedisplayfont default_font|fixed_width_font)|
+        (messagemoderationlevel moderate_all_messages|moderate_non_members|moderate_new_members|moderate_none)|
         (name <String>)|
         (primarylanguage <Language>)|
-        (replyto REPLY_TO_CUSTOM|REPLY_TO_SENDER|REPLY_TO_LIST|REPLY_TO_OWNER|REPLY_TO_IGNORE|REPLY_TO_MANAGERS)|
+        (replyto reply_to_custom|reply_to_sender|reply_to_list|reply_to_owner|reply_to_ignore|reply_to_managers)|
         (sendmessagedenynotification <Boolean>)|
         (showingroupdirectory <Boolean>)|
-        (spammoderationlevel ALLOW|MODERATE|SILENTLY_MODERATE|REJECT)|
-        (whocanadd ALL_MEMBERS_CAN_ADD|ALL_MANAGERS_CAN_ADD|NONE_CAN_ADD)|
-        (whocancontactowner ANYONE_CAN_CONTACT|ALL_IN_DOMAIN_CAN_CONTACT|ALL_MEMBERS_CAN_CONTACT|ALL_MANAGERS_CAN_CONTACT)|
-        (whocaninvite ALL_MEMBERS_CAN_INVITE|ALL_MANAGERS_CAN_INVITE|NONE_CAN_INVITE)|
-        (whocanjoin ANYONE_CAN_JOIN|ALL_IN_DOMAIN_CAN_JOIN|INVITED_CAN_JOIN|CAN_REQUEST_TO_JOIN)|
-        (whocanleavegroup ALL_MANAGERS_CAN_LEAVE|ALL_MEMBERS_CAN_LEAVE|NONE_CAN_LEAVE)|
-        (whocanpostmessage NONE_CAN_POST|ALL_MANAGERS_CAN_POST|ALL_MEMBERS_CAN_POST|ALL_IN_DOMAIN_CAN_POST|ANYONE_CAN_POST)|
-        (whocanviewgroup ANYONE_CAN_VIEW|ALL_IN_DOMAIN_CAN_VIEW|ALL_MEMBERS_CAN_VIEW|ALL_MANAGERS_CAN_VIEW)|
-        (whocanviewmembership ALL_IN_DOMAIN_CAN_VIEW|ALL_MEMBERS_CAN_VIEW|ALL_MANAGERS_CAN_VIEW)
+        (spammoderationlevel allow|moderate|silently_moderate|reject)|
+        (whocanadd all_members_can_add|all_managers_can_add|none_can_add)|
+        (whocanaddreferences all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocanassigntopics all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocancontactowner anyone_can_contact|all_in_domain_can_contact|all_members_can_contact|all_managers_can_contact)|
+        (whocanenterfreeformtags all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocaninvite all_members_can_invite|all_managers_can_invite|none_can_invite)|
+        (whocanjoin anyone_can_join|all_in_domain_can_join|invited_can_join|can_request_to_join)|
+        (whocanleavegroup all_managers_can_leave|all_members_can_leave|none_can_leave)|
+        (whocanmarkduplicate all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocanmarkfavoritereplyonanytopic all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocanmarkfavoritereplyonowntopic all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocanmarknoresponseneeded all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocanmodifytagsandcategories all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocantaketopics all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocanpostmessage none_can_post|all_managers_can_post|all_members_can_post|all_in_domain_can_post|anyone_can_post)|
+        (whocanunassigntopic all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocanunmarkfavoritereplyonanytopic all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocanviewgroup anyone_can_view|all_in_domain_can_view|all_members_can_view|all_managers_can_view)|
+        (whocanviewmembership all_in_domain_can_view|all_members_can_view|all_managers_can_view)
 
 gam create|add group <EmailAddress> <GroupAttributes>*
 gam update group|groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] <GroupAttributes>*
@@ -1253,11 +1266,13 @@ gam delete group|groups <GroupEntity>
         allowgooglecommunication|
         allowwebposting|
         archiveonly|
+        collaborative|
         customreplyto|
         defaultmessagedenynotificationtext|
         description|
         directmemberscount|
         email|
+        favoriterepliesontop|
         id|
         includeinglobaladdresslist|gal|
         isarchived|
@@ -1272,11 +1287,22 @@ gam delete group|groups <GroupEntity>
         showingroupdirectory|
         spammoderationlevel|
         whocanadd|
+        whocanaddreferences|
+        whocanassigntopics|
         whocancontactowner|
+        whocanenterfreeformtags|
         whocaninvite|
         whocanjoin|
         whocanleavegroup|
+        whocanmarkduplicate|
+        whocanmarkfavoritereplyonanytopic|
+        whocanmarkfavoritereplyonowntopic|
+        whocanmarknoresponseneeded|
+        whocanmodifytagsandcategories|
+        whocantaketopics|
         whocanpostmessage|
+        whocanunassigntopic|
+        whocanunmarkfavoritereplyonanytopic
         whocanviewgroup|
         whocanviewmembership
 <GroupFieldNameList> ::= "<GroupFieldName>(,<GroupFieldName>)*"
