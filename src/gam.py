@@ -13098,6 +13098,10 @@ def infoGroups(entityList):
       if not gsfieldsList:
         gsfieldsList = []
       gsfieldsList.extend([GROUP_ATTRIBUTES[myarg][0]])
+    elif myarg == u'collaborative':
+      if not gsfieldsList:
+        gsfieldsList = []
+      gsfieldsList.extend(COLLABORATIVE_INBOX_ATTRIBUTES)
     elif myarg == u'fields':
       if not cdfieldsList:
         cdfieldsList = [u'email',]
@@ -13110,6 +13114,8 @@ def infoGroups(entityList):
             gsfieldsList.append(field)
         elif field in GROUP_ATTRIBUTES:
           gsfieldsList.extend([GROUP_ATTRIBUTES[field][0]])
+        elif field == u'collaborative':
+          gsfieldsList.extend(COLLABORATIVE_INBOX_ATTRIBUTES)
         else:
           invalidChoiceExit(list(GROUP_FIELDS_CHOICE_MAP)+list(GROUP_ATTRIBUTES), True)
 # Ignore info user arguments that may have come from whatis
@@ -13519,12 +13525,20 @@ def doPrintGroups():
       addFieldTitleToCSVfile(myarg, GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP, cdfieldsList, fieldsTitles, titles, nativeTitles)
     elif myarg in GROUP_ATTRIBUTES:
       addFieldTitleToCSVfile(myarg, {myarg: [GROUP_ATTRIBUTES[myarg][0], GROUP_ATTRIBUTES[myarg][0]]}, gsfieldsList, fieldsTitles, titles, nativeTitles)
+    elif myarg == u'collaborative':
+      for attr in COLLABORATIVE_INBOX_ATTRIBUTES:
+        attr = attr.lower()
+        addFieldTitleToCSVfile(attr, {attr: [GROUP_ATTRIBUTES[attr][0], GROUP_ATTRIBUTES[attr][0]]}, gsfieldsList, fieldsTitles, titles, nativeTitles)
     elif myarg == u'fields':
       for field in _getFieldsList():
         if field in GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP:
           addFieldTitleToCSVfile(field, GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP, cdfieldsList, fieldsTitles, titles, nativeTitles)
         elif field in GROUP_ATTRIBUTES:
           addFieldTitleToCSVfile(field, {field: [GROUP_ATTRIBUTES[field][0], GROUP_ATTRIBUTES[field][0]]}, gsfieldsList, fieldsTitles, titles, nativeTitles)
+        elif field == u'collaborative':
+          for attr in COLLABORATIVE_INBOX_ATTRIBUTES:
+            attr = attr.lower()
+            addFieldTitleToCSVfile(attr, {attr: [GROUP_ATTRIBUTES[attr][0], GROUP_ATTRIBUTES[attr][0]]}, gsfieldsList, fieldsTitles, titles, nativeTitles)
         else:
           invalidChoiceExit(list(GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP)+list(GROUP_ATTRIBUTES), True)
     elif myarg in [u'members', u'memberscount']:
