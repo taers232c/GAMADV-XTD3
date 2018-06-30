@@ -1,3 +1,7 @@
+4.57.04
+
+Corrected the error message "Add Failed: Invalid Role" to "Add Failed: Invalid Member address" when an invalid email address was used in gam update group add.
+
 4.57.03
 
 Added support for Collaborative Inbox Groups.
