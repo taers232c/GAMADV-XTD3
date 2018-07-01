@@ -26316,8 +26316,8 @@ def copyDriveFile(users):
         source[u'parents'] = newParents
         if newFilename:
           destFilename = newFilename
-        elif ((newParentsSpecified and newParentId not in sourceParentsList) or
-              ((newParentId in sourceParentsList and
+        elif ((newParentsSpecified and newParentId not in sourceParents) or
+              ((newParentId in sourceParents and
                 (source[u'mimeType'] == MIMETYPE_GA_FOLDER and copyMoveOptions[u'duplicateFolders'] != DUPLICATE_FOLDER_MERGE) or
                 (source[u'mimeType'] != MIMETYPE_GA_FOLDER and copyMoveOptions[u'duplicateFiles'] not in [DUPLICATE_FILE_OVERWRITE_ALL, DUPLICATE_FILE_OVERWRITE_OLDER])))):
           destFilename = sourceFilename
