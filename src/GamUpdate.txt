@@ -1,3 +1,9 @@
+4.57.05
+
+If you copy a folder into its existing parent folder without specifying newfilename <DriveFileName> and duplicatefolders merge is set (the default),
+the copied folder will be named 'Copy of <ExistingName>'.
+For example, 'gam user user@domain.com copy drivefile drivefilename TestFolder' will copy 'TestFolder' to 'Copy of TestFolder'.
+
 4.57.04
 
 Corrected the error message "Add Failed: Invalid Role" to "Add Failed: Invalid Member address" when an invalid email address was used in gam update group add.

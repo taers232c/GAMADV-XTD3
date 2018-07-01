@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.04'
+__version__ = u'4.57.05'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -210,8 +210,8 @@ WITH_PARENTS = u"'{0}' in parents"
 VX_ANY_NON_TRASHED_WITH_PARENTS = u"trashed = false and '{0}' in parents"
 VX_ANY_NON_TRASHED_FOLDER_NAME = u"mimeType = '{0}' and {1} = '{{0}}' and trashed = false".format(MIMETYPE_GA_FOLDER, VX_FILENAME)
 VX_ANY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS = u"mimeType = '{0}' and {1} = '{{0}}' and trashed = false and '{{1}}' in parents".format(MIMETYPE_GA_FOLDER, VX_FILENAME)
-VX_ANY_NON_TRASHED_MIMETYPE_NAME_WITH_PARENTS = u"mimeType = '{{0}}' and {0} = '{{1}}' and trashed = false and '{{2}}' in parents".format(VX_FILENAME)
 VX_ANY_NON_TRASHED_MIMETYPE_NAME_PREFIX_WITH_PARENTS = u"mimeType = '{{0}}' and {0} contains '{{1}}' and trashed = false and '{{2}}' in parents".format(VX_FILENAME)
+VX_ANY_NON_TRASHED_MIMETYPE_NAME_WITH_PARENTS = u"mimeType = '{{0}}' and {0} = '{{1}}' and trashed = false and '{{2}}' in parents".format(VX_FILENAME)
 VX_MY_NON_TRASHED_FOLDER_NAME = ME_IN_OWNERS_AND+VX_ANY_NON_TRASHED_FOLDER_NAME
 VX_MY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS = ME_IN_OWNERS_AND+VX_ANY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS
 VX_WITH_ANY_FILE_NAME = u"{0} = '{{0}}'".format(VX_FILENAME)
@@ -25961,19 +25961,31 @@ def _targetFilenameExists(destFilename, mimeType, targetChildren):
       return True
   return False
 
+UNIQUE_PREFIX_PATTERN = re.compile(r'^(.+)\(\d+\)$')
+
+def _getFilenamePrefix(destFilename):
+  if destFilename.find(u'.') != -1:
+    (base, _) = destFilename.rsplit('.', 1)
+  else:
+    base = destFilename
+  mg = UNIQUE_PREFIX_PATTERN.match(base)
+  if mg:
+    return mg.group(1)
+  return base
+
 def _getUniqueFilename(destFilename, mimeType, targetChildren):
   if not _targetFilenameExists(destFilename, mimeType, targetChildren):
     return destFilename
   if destFilename.find(u'.') != -1:
     (base, ext) = destFilename.rsplit('.', 1)
-    mg = re.match(r'^(.*)\(\d+\)$', base)
+    mg = UNIQUE_PREFIX_PATTERN.match(base)
     if mg:
       base = mg.group(1)
     pattern = re.compile(r'^{0}\((\d+)\)\.{1}$'.format(base, ext), flags=re.IGNORECASE)
   else:
     base = destFilename
     ext = None
-    mg = re.match(r'^(.*)\(\d+\)$', base)
+    mg = UNIQUE_PREFIX_PATTERN.match(base)
     if mg:
       base = mg.group(1)
     pattern = re.compile(r'^{0}\((\d+)\)$'.format(base), flags=re.IGNORECASE)
@@ -26304,14 +26316,16 @@ def copyDriveFile(users):
         source[u'parents'] = newParents
         if newFilename:
           destFilename = newFilename
-        elif ((newParentsSpecified and newParentId not in sourceParents) or
-              (newParentId in sourceParents and copyMoveOptions[u'duplicateFiles'] not in [DUPLICATE_FILE_OVERWRITE_ALL, DUPLICATE_FILE_OVERWRITE_OLDER])):
+        elif ((newParentsSpecified and newParentId not in sourceParentsList) or
+              ((newParentId in sourceParentsList and
+                (source[u'mimeType'] == MIMETYPE_GA_FOLDER and copyMoveOptions[u'duplicateFolders'] != DUPLICATE_FOLDER_MERGE) or
+                (source[u'mimeType'] != MIMETYPE_GA_FOLDER and copyMoveOptions[u'duplicateFiles'] not in [DUPLICATE_FILE_OVERWRITE_ALL, DUPLICATE_FILE_OVERWRITE_OLDER])))):
           destFilename = sourceFilename
         else:
           destFilename = u'Copy of {0}'.format(sourceFilename)
         targetChildren = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                       q=VX_ANY_NON_TRASHED_MIMETYPE_NAME_PREFIX_WITH_PARENTS.format(source[u'mimeType'], escapeDriveFileName(destFilename), newParentId),
+                                       q=VX_ANY_NON_TRASHED_MIMETYPE_NAME_PREFIX_WITH_PARENTS.format(source[u'mimeType'], escapeDriveFileName(_getFilenamePrefix(destFilename)), newParentId),
                                        orderBy=VX_ORDERBY_FOLDER_DESC_NAME_MODIFIED_TIME,
                                        fields=VX_NPT_FILES_ID_FILENAME_CAPABILITIES_MIMETYPE_MODIFIEDTIME, **parameters[DFA_SEARCHARGS])
         destTeamDriveId = callGAPI(drive.files(), u'get',
@@ -26551,7 +26565,7 @@ def moveDriveFile(users):
           destFilename = sourceFilename
         targetChildren = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                       q=VX_ANY_NON_TRASHED_MIMETYPE_NAME_PREFIX_WITH_PARENTS.format(source[u'mimeType'], escapeDriveFileName(destFilename), newParentId),
+                                       q=VX_ANY_NON_TRASHED_MIMETYPE_NAME_PREFIX_WITH_PARENTS.format(source[u'mimeType'], escapeDriveFileName(_getFilenamePrefix(destFilename)), newParentId),
                                        orderBy=VX_ORDERBY_FOLDER_DESC_NAME_MODIFIED_TIME,
                                        fields=VX_NPT_FILES_ID_FILENAME_CAPABILITIES_MIMETYPE_MODIFIEDTIME, **parameters[DFA_SEARCHARGS])
         destTeamDriveId = callGAPI(drive.files(), u'get',
