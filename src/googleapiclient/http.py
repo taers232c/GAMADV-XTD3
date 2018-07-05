@@ -16,7 +16,7 @@
 
 The classes implement a command pattern, with every
 object supporting an execute() method that does the
-actuall HTTP request.
+actual HTTP request.
 """
 from __future__ import absolute_import
 import six
@@ -55,12 +55,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.nonmultipart import MIMENonMultipart
 from email.parser import FeedParser
 
-# Oauth2client < 3 has the positional helper in 'util', >= 3 has it
-# in '_helpers'.
-try:
-  from oauth2client import util
-except ImportError:
-  from oauth2client import _helpers as util
+from googleapiclient import _helpers as util
 
 from googleapiclient import _auth
 from googleapiclient.errors import BatchError
@@ -168,10 +163,14 @@ def _retry_request(http, num_retries, req_type, sleep, rand, uri, method, *args,
     # Retry on SSL errors and socket timeout errors.
     except _ssl_SSLError as ssl_error:
       exception = ssl_error
+    except socket.timeout as socket_timeout:
+      # It's important that this be before socket.error as it's a subclass
+      # socket.timeout has no errorcode
+      exception = socket_timeout
     except socket.error as socket_error:
       # errno's contents differ by platform, so we have to match by name.
-      if socket.errno.errorcode.get(socket_error.errno) not in (
-          'WSAETIMEDOUT', 'ETIMEDOUT', 'EPIPE', 'ECONNABORTED', ):
+      if socket.errno.errorcode.get(socket_error.errno) not in {
+        'WSAETIMEDOUT', 'ETIMEDOUT', 'EPIPE', 'ECONNABORTED'}:
         raise
       exception = socket_error
 
@@ -1291,7 +1290,7 @@ class BatchHttpRequest(object):
     from the server. The default behavior is to have the library generate it's
     own unique id. If the caller passes in a request_id then they must ensure
     uniqueness for each request_id, and if they are not an exception is
-    raised. Callers should either supply all request_ids or nevery supply a
+    raised. Callers should either supply all request_ids or never supply a
     request id, to avoid such an error.
 
     Args:
@@ -1353,7 +1352,7 @@ class BatchHttpRequest(object):
     # encode the body: note that we can't use `as_string`, because
     # it plays games with `From ` lines.
     fp = StringIO()
-    g = Generator(fp, mangle_from_=False, maxheaderlen=0)
+    g = Generator(fp, mangle_from_=False)
     g.flatten(message, unixfrom=False)
     body = fp.getvalue()
 

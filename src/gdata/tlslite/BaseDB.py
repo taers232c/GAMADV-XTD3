@@ -1,7 +1,7 @@
 """Base class for SharedKeyDB and VerifierDB."""
 
-import dbm
-import _thread
+import anydbm
+import thread
 
 class BaseDB:
     def __init__(self, filename, type):
@@ -11,7 +11,7 @@ class BaseDB:
             self.db = None
         else:
             self.db = {}
-        self.lock = _thread.allocate_lock()
+        self.lock = thread.allocate_lock()
 
     def create(self):
         """Create a new on-disk database.
@@ -19,7 +19,7 @@ class BaseDB:
         @raise anydbm.error: If there's a problem creating the database.
         """
         if self.filename:
-            self.db = dbm.open(self.filename, "n") #raises anydbm.error
+            self.db = anydbm.open(self.filename, "n") #raises anydbm.error
             self.db["--Reserved--type"] = self.type
             self.db.sync()
         else:
@@ -33,7 +33,7 @@ class BaseDB:
         """
         if not self.filename:
             raise ValueError("Can only open on-disk databases")
-        self.db = dbm.open(self.filename, "w") #raises anydbm.error
+        self.db = anydbm.open(self.filename, "w") #raises anydbm.error
         try:
             if self.db["--Reserved--type"] != self.type:
                 raise ValueError("Not a %s database" % self.type)
@@ -94,7 +94,7 @@ class BaseDB:
 
         self.lock.acquire()
         try:
-            return username in self.db
+            return self.db.has_key(username)
         finally:
             self.lock.release()
 
@@ -113,7 +113,7 @@ class BaseDB:
 
         self.lock.acquire()
         try:
-            usernames = list(self.db.keys())
+            usernames = self.db.keys()
         finally:
             self.lock.release()
         usernames = [u for u in usernames if not u.startswith("--Reserved--")]

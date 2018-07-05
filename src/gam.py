@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.05'
+__version__ = u'4.57.06'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -12471,9 +12471,14 @@ COLLABORATIVE_INBOX_ATTRIBUTES = [
   ]
 COLLABORATIVE_INBOX_CHOICES = {
   u'allmembers': u'ALL_MEMBERS',
+  u'members': u'ALL_MEMBERS',
   u'ownersandmanagers': u'OWNERS_AND_MANAGERS',
+  u'ownersmanagers': u'OWNERS_AND_MANAGERS',
+  u'managersowners': u'OWNERS_AND_MANAGERS',
   u'managersonly': u'MANAGERS_ONLY',
+  u'managers': u'MANAGERS_ONLY',
   u'ownersonly': u'OWNERS_ONLY',
+  u'owners': u'OWNERS_ONLY',
   u'none': u'NONE',
   }
 GROUP_ATTRIBUTES = {

@@ -26,7 +26,7 @@ import gdata.apps
 import gdata.apps.service
 import gdata.service
 
-import urllib.request, urllib.parse, urllib.error
+import urllib
 
 API_VER='2.0'
 # Forwarding and POP3 options
@@ -70,7 +70,7 @@ class EmailSettingsService(gdata.apps.service.PropertyService):
     Returns:
       Nothing
     """
-    label = urllib.parse.quote_plus(label, '')
+    label = urllib.quote_plus(label, '')
     uri = self._serviceUrl('label/%s' % label, username)
     return self._DeleteProperties(uri)
     
@@ -365,7 +365,7 @@ class EmailSettingsService(gdata.apps.service.PropertyService):
     return self._PutProperties(uri, properties)
 
   def UpdateGeneral(self, username, page_size=None, shortcuts=None, arrows=None,
-                    snippets=None, str=None):
+                    snippets=None, unicode=None):
     """Update general settings.
 
     Args:
@@ -389,6 +389,6 @@ class EmailSettingsService(gdata.apps.service.PropertyService):
       properties['arrows'] = gdata.apps.service._bool2str(arrows)
     if snippets != None:
       properties['snippets'] = gdata.apps.service._bool2str(snippets)
-    if str != None:
-      properties['unicode'] = gdata.apps.service._bool2str(str)
+    if unicode != None:
+      properties['unicode'] = gdata.apps.service._bool2str(unicode)
     return self._PutProperties(uri, properties)

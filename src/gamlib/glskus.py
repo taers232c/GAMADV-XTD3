@@ -24,6 +24,10 @@ import re
 
 # Products/SKUs
 _SKUS = {
+  u'1010010001': {
+    u'product': u'101001', u'aliases': [u'identity', u'cloudidentity'], u'displayName': 'Cloud Identity'},
+  u'1010050001': {
+    u'product': u'101005', u'aliases': [u'identitypremium', u'cloudidentitypremium'], u'displayName': 'Cloud Identity Premium'},
   u'Google-Apps-For-Business': {
     u'product': u'Google-Apps', u'aliases': [u'gafb', u'gafw', u'basic', u'gsuitebasic'], u'displayName': u'G Suite Basic'},
   u'Google-Apps-For-Government': {

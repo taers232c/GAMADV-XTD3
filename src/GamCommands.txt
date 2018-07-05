@@ -70,6 +70,8 @@ If an item contains spaces, it should be surrounded by ".
         Google-Vault|
         101031
 <SKUID> ::=
+        cloudidentity|identity|1010010001|
+        cloudidentitypremium|identitypremium|1010050001|
         free|standard|Google-Apps|
         gafb|gafw|basic|gsuitebasic|Google-Apps-For-Business|
         gafg|gsuitegovernment|gsuitegov|Google-Apps-For-Government|
@@ -91,6 +93,7 @@ If an item contains spaces, it should be surrounded by ".
         drive16tb|16tb|googledrivestorage16tb|Google-Drive-storage-16TB|
         vault|googlevault|Google-Vault|
         vfe|googlevaultformeremployee|Google-Vault-Former-Employee
+
 ## Basic items built from primitives
 
 <Boolean> ::= <TrueValues>|<FalseValues>
@@ -1299,8 +1302,8 @@ gam delete group|groups <GroupEntity>
         whocanmarkfavoritereplyonowntopic|
         whocanmarknoresponseneeded|
         whocanmodifytagsandcategories|
-        whocantaketopics|
         whocanpostmessage|
+        whocantaketopics|
         whocanunassigntopic|
         whocanunmarkfavoritereplyonanytopic
         whocanviewgroup|

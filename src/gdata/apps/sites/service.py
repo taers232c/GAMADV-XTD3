@@ -61,7 +61,7 @@ class SitesService(gdata.service.GDataService):
 
   def make_site_feed_uri(self, domain=None, site=None):
     if not domain:
-      domain = 'site'
+      domain = u'site'
     if not site:
       return SITE_FEED_TEMPLATE % domain
     return (SITE_FEED_TEMPLATE % domain) + site
@@ -76,7 +76,7 @@ class SitesService(gdata.service.GDataService):
       return self.Get(uri,
                       url_params=url_params, extra_headers=extra_headers, escape_params=escape_params,
                       converter=gdata.apps.sites.SiteFeedFromString)
-    except gdata.service.RequestError as e:
+    except gdata.service.RequestError, e:
       raise gdata.apps.service.AppsForYourDomainException(e.args[0])
 
   GetSiteFeed = get_site_feed
@@ -90,7 +90,7 @@ class SitesService(gdata.service.GDataService):
       return self.Post(siteentry, uri,
                        url_params=url_params, extra_headers=extra_headers, escape_params=escape_params,
                        converter=gdata.apps.sites.SiteEntryFromString)
-    except gdata.service.RequestError as e:
+    except gdata.service.RequestError, e:
       raise gdata.apps.service.AppsForYourDomainException(e.args[0])
 
   CreateSite = create_site
@@ -103,7 +103,7 @@ class SitesService(gdata.service.GDataService):
       return self.Get(uri,
                       url_params=url_params, extra_headers=extra_headers, escape_params=escape_params,
                       converter=gdata.apps.sites.SiteEntryFromString)
-    except gdata.service.RequestError as e:
+    except gdata.service.RequestError, e:
       raise gdata.apps.service.AppsForYourDomainException(e.args[0])
 
   GetSite = get_site
@@ -116,7 +116,7 @@ class SitesService(gdata.service.GDataService):
       return self.Put(siteentry, uri,
                       url_params=url_params, extra_headers=extra_headers, escape_params=escape_params,
                       converter=gdata.apps.sites.SiteEntryFromString)
-    except gdata.service.RequestError as e:
+    except gdata.service.RequestError, e:
       raise gdata.apps.service.AppsForYourDomainException(e.args[0])
 
   UpdateSite = update_site
@@ -134,7 +134,7 @@ class SitesService(gdata.service.GDataService):
       return self.Get(uri,
                       url_params=url_params, extra_headers=extra_headers, escape_params=escape_params,
                       converter=gdata.apps.sites.AclFeedFromString)
-    except gdata.service.RequestError as e:
+    except gdata.service.RequestError, e:
       raise gdata.apps.service.AppsForYourDomainException(e.args[0])
 
   GetAclFeed = get_acl_feed
@@ -152,7 +152,7 @@ class SitesService(gdata.service.GDataService):
       return self.Post(aclentry, uri,
                        url_params=url_params, extra_headers=extra_headers, escape_params=escape_params,
                        converter=gdata.apps.sites.AclEntryFromString)
-    except gdata.service.RequestError as e:
+    except gdata.service.RequestError, e:
       raise gdata.apps.service.AppsForYourDomainException(e.args[0])
 
   CreateAclEntry = create_acl_entry
@@ -165,7 +165,7 @@ class SitesService(gdata.service.GDataService):
       return self.Get(uri,
                       url_params=url_params, extra_headers=extra_headers, escape_params=escape_params,
                       converter=gdata.apps.sites.AclEntryFromString)
-    except gdata.service.RequestError as e:
+    except gdata.service.RequestError, e:
       raise gdata.apps.service.AppsForYourDomainException(e.args[0])
 
   GetAclEntry = get_acl_entry
@@ -178,7 +178,7 @@ class SitesService(gdata.service.GDataService):
       return self.Put(aclentry, uri,
                       url_params=url_params, extra_headers=extra_headers, escape_params=escape_params,
                       converter=gdata.apps.sites.AclEntryFromString)
-    except gdata.service.RequestError as e:
+    except gdata.service.RequestError, e:
       raise gdata.apps.service.AppsForYourDomainException(e.args[0])
 
   UpdateAclEntry = update_acl_entry
@@ -190,7 +190,7 @@ class SitesService(gdata.service.GDataService):
     try:
       return self.Delete(uri,
                          url_params=url_params, escape_params=escape_params, extra_headers=extra_headers)
-    except gdata.service.RequestError as e:
+    except gdata.service.RequestError, e:
       raise gdata.apps.service.AppsForYourDomainException(e.args[0])
 
   DeleteAclEntry = delete_acl_entry
@@ -208,7 +208,7 @@ class SitesService(gdata.service.GDataService):
       return self.Get(uri,
                       url_params=url_params, extra_headers=extra_headers, escape_params=escape_params,
                       converter=gdata.apps.sites.ActivityFeedFromString)
-    except gdata.service.RequestError as e:
+    except gdata.service.RequestError, e:
       raise gdata.apps.service.AppsForYourDomainException(e.args[0])
 
   GetActivityFeed = get_activity_feed
@@ -226,7 +226,7 @@ class SitesService(gdata.service.GDataService):
       return self.Get(uri,
                       url_params=url_params, extra_headers=extra_headers, escape_params=escape_params,
                       converter=gdata.apps.sites.ActivityEntryFromString)
-    except gdata.service.RequestError as e:
+    except gdata.service.RequestError, e:
       raise gdata.apps.service.AppsForYourDomainException(e.args[0])
 
   GetActivityEntry = get_activity_entry
@@ -235,7 +235,7 @@ class SitesQuery(gdata.service.Query):
 
   def make_site_feed_uri(self, domain=None, site=None):
     if not domain:
-      domain = 'site'
+      domain = u'site'
     if not site:
       return SITE_FEED_TEMPLATE % domain
     return (SITE_FEED_TEMPLATE % domain) + site

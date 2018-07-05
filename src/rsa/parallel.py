@@ -24,7 +24,7 @@ Introduced in Python-RSA 3.1.
 
 """
 
-
+from __future__ import print_function
 
 import multiprocessing as mp
 

@@ -19,7 +19,7 @@
 These scripts are called by the executables defined in setup.py.
 """
 
-
+from __future__ import with_statement, print_function
 
 import abc
 import sys
@@ -87,8 +87,10 @@ def keygen():
         sys.stdout.write(data)
 
 
-class CryptoOperation(object, metaclass=abc.ABCMeta):
+class CryptoOperation(object):
     """CLI callable that operates with input, output, and a key."""
+
+    __metaclass__ = abc.ABCMeta
 
     keyname = 'public'  # or 'private'
     usage = 'usage: %%prog [options] %(keyname)s_key'

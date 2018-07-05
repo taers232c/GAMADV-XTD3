@@ -113,8 +113,8 @@ def parse_timezone(matches):
   if matches["timezone"] == "Z":
     return UTC
   sign = matches["tz_sign"]
-  hours = int(matches['tz_hour'])
-  minutes = int(matches['tz_minute'])
+  hours = int(matches[u'tz_hour'])
+  minutes = int(matches[u'tz_minute'])
   description = "%s%02d:%02d" % (sign, hours, minutes)
   if sign == "-":
     hours = -hours
@@ -148,12 +148,12 @@ def parse_date(datestring):
   groups = m.groupdict()
   tz = parse_timezone(groups)
   try:
-    return (datetime(year=int(groups['year']),
-                     month=int(groups['month']),
-                     day=int(groups['day']),
-                     hour=int(groups['hour']),
-                     minute=int(groups['minute']),
-                     second=int(groups['second']),
+    return (datetime(year=int(groups[u'year']),
+                     month=int(groups[u'month']),
+                     day=int(groups[u'day']),
+                     hour=int(groups[u'hour']),
+                     minute=int(groups[u'minute']),
+                     second=int(groups[u'second']),
                      tzinfo=tz),
             tz)
   except Exception as e:
