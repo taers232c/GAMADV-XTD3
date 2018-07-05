@@ -2632,56 +2632,59 @@ def getGDataOAuthToken(gdataObj, credentials=None):
   return True
 
 def checkGDataError(e, service):
+  error = e.args
+  reason = error[0].get(u'reason', u'')
+  body = error[0].get(u'body', u'').decode(u'utf-8')
   # First check for errors that need special handling
-  if e[0].get(u'reason', u'') in [u'Token invalid - Invalid token: Stateless token expired', u'Token invalid - Invalid token: Token not found']:
+  if reason in [u'Token invalid - Invalid token: Stateless token expired', u'Token invalid - Invalid token: Token not found']:
     keep_domain = service.domain
     getGDataOAuthToken(service)
     service.domain = keep_domain
-    return (GDATA.TOKEN_EXPIRED, e[0][u'reason'])
+    return (GDATA.TOKEN_EXPIRED, reason)
   error_code = getattr(e, u'error_code', 600)
   if error_code == 600:
-    if e[0][u'body'].startswith(u'Quota exceeded for the current request'):
-      return (GDATA.QUOTA_EXCEEDED, e[0][u'body'])
-    if e[0][u'body'].startswith(u'Request rate higher than configured'):
-      return (GDATA.QUOTA_EXCEEDED, e[0][u'body'])
-    if e[0][u'reason'] == u'Bad Gateway':
-      return (GDATA.BAD_GATEWAY, e[0][u'reason'])
-    if e[0][u'reason'] == u'Service Unavailable':
-      return (GDATA.SERVICE_UNAVAILABLE, e[0][u'reason'])
-    if e[0][u'reason'] == u'Internal Server Error':
-      return (GDATA.INTERNAL_SERVER_ERROR, e[0][u'reason'])
-    if e[0][u'reason'] == u'Token invalid - Invalid token: Token disabled, revoked, or expired.':
+    if body.startswith(u'Quota exceeded for the current request'):
+      return (GDATA.QUOTA_EXCEEDED, body)
+    if body.startswith(u'Request rate higher than configured'):
+      return (GDATA.QUOTA_EXCEEDED, body)
+    if reason == u'Bad Gateway':
+      return (GDATA.BAD_GATEWAY, reason)
+    if reason == u'Service Unavailable':
+      return (GDATA.SERVICE_UNAVAILABLE, reason)
+    if reason == u'Internal Server Error':
+      return (GDATA.INTERNAL_SERVER_ERROR, reason)
+    if reason == u'Token invalid - Invalid token: Token disabled, revoked, or expired.':
       return (GDATA.TOKEN_INVALID, u'Token disabled, revoked, or expired. Please delete and re-create oauth.txt')
-    if e[0][u'reason'] == u'Token invalid - AuthSub token has wrong scope':
-      return (GDATA.INSUFFICIENT_PERMISSIONS, e[0][u'reason'])
-    if e[0][u'reason'].startswith(u'Only administrators can request entries belonging to'):
-      return (GDATA.INSUFFICIENT_PERMISSIONS, e[0][u'reason'])
-    if e[0][u'reason'] == u'You are not authorized to access this API':
-      return (GDATA.INSUFFICIENT_PERMISSIONS, e[0][u'reason'])
-    if e[0][u'reason'] == u'Invalid domain.':
-      return (GDATA.INVALID_DOMAIN, e[0][u'reason'])
-    if e[0][u'reason'].startswith(u'You are not authorized to perform operations on the domain'):
-      return (GDATA.INVALID_DOMAIN, e[0][u'reason'])
-    if e[0][u'reason'] == u'Bad Request':
-      if u'already exists' in e[0][u'body']:
+    if reason == u'Token invalid - AuthSub token has wrong scope':
+      return (GDATA.INSUFFICIENT_PERMISSIONS, reason)
+    if reason.startswith(u'Only administrators can request entries belonging to'):
+      return (GDATA.INSUFFICIENT_PERMISSIONS, reason)
+    if reason == u'You are not authorized to access this API':
+      return (GDATA.INSUFFICIENT_PERMISSIONS, reason)
+    if reason == u'Invalid domain.':
+      return (GDATA.INVALID_DOMAIN, reason)
+    if reason.startswith(u'You are not authorized to perform operations on the domain'):
+      return (GDATA.INVALID_DOMAIN, reason)
+    if reason == u'Bad Request':
+      if u'already exists' in body:
         return (GDATA.ENTITY_EXISTS, Msg.DUPLICATE)
-      return (GDATA.BAD_REQUEST, e[0][u'body'])
-    if e[0][u'reason'] == u'Forbidden':
-      return (GDATA.FORBIDDEN, e[0][u'body'])
-    if e[0][u'reason'] == u'Not Found':
+      return (GDATA.BAD_REQUEST, body)
+    if reason == u'Forbidden':
+      return (GDATA.FORBIDDEN, body)
+    if reason == u'Not Found':
       return (GDATA.NOT_FOUND, Msg.DOES_NOT_EXIST)
-    if e[0][u'reason'] == u'Not Implemented':
-      return (GDATA.NOT_IMPLEMENTED, e[0][u'body'])
-    if e[0][u'reason'] == u'Precondition Failed':
-      return (GDATA.PRECONDITION_FAILED, e[0][u'reason'])
+    if reason == u'Not Implemented':
+      return (GDATA.NOT_IMPLEMENTED, body)
+    if reason == u'Precondition Failed':
+      return (GDATA.PRECONDITION_FAILED, reason)
   elif error_code == 602:
-    if e[0][u'reason'] == u'Bad Request':
-      return (GDATA.BAD_REQUEST, e[0][u'body'])
+    if reason == u'Bad Request':
+      return (GDATA.BAD_REQUEST, body)
 
   # We got a "normal" error, define the mapping below
   error_code_map = {
-    1000: e[0][u'reason'],
-    1001: e[0][u'reason'],
+    1000: reason,
+    1001: reason,
     1002: u'Unauthorized and forbidden',
     1100: u'User deleted recently',
     1200: u'Domain user limit exceeded',
@@ -19809,10 +19812,10 @@ def _doDeleteCourses(entityList):
     courseId = addCourseIdScope(course)
     try:
       callGAPI(croom.courses(), u'delete',
-               throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+               throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION],
                id=courseId)
       entityActionPerformed([Ent.COURSE, removeCourseIdScope(courseId)], i, count)
-    except (GAPI.notFound, GAPI.permissionDenied) as e:
+    except (GAPI.notFound, GAPI.permissionDenied. GAPI.failedPrecondition) as e:
       entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
 
 # gam delete courses <CourseEntity>
