@@ -12456,7 +12456,7 @@ def doPrintMobileDevices():
       accessErrorExit(cd)
   writeCSVfile(csvRows, titles, u'Mobile', todrive, [u'resourceId', u'deviceId', u'serialNumber', u'name', u'email', u'status'])
 
-COLLABORATIVE_INBOX_ATTRIBUTES = [
+COLLABORATIVE_ACL_ATTRIBUTES = [
   u'whoCanAddReferences',
   u'whoCanAssignTopics',
   u'whoCanEnterFreeFormTags',
@@ -12469,14 +12469,12 @@ COLLABORATIVE_INBOX_ATTRIBUTES = [
   u'whoCanUnassignTopic',
   u'whoCanUnmarkFavoriteReplyOnAnyTopic',
   ]
-COLLABORATIVE_INBOX_CHOICES = {
+COLLABORATIVE_ACL_CHOICES = {
   u'allmembers': u'ALL_MEMBERS',
   u'members': u'ALL_MEMBERS',
   u'ownersandmanagers': u'OWNERS_AND_MANAGERS',
-  u'ownersmanagers': u'OWNERS_AND_MANAGERS',
-  u'managersowners': u'OWNERS_AND_MANAGERS',
   u'managersonly': u'MANAGERS_ONLY',
-  u'managers': u'MANAGERS_ONLY',
+  u'managers': u'OWNERS_AND_MANAGERS',
   u'ownersonly': u'OWNERS_ONLY',
   u'owners': u'OWNERS_ONLY',
   u'none': u'NONE',
@@ -12513,12 +12511,12 @@ GROUP_ATTRIBUTES = {
                                                     u'choices': {u'allow': u'ALLOW', u'moderate': u'MODERATE', u'silentlymoderate': u'SILENTLY_MODERATE', u'reject': u'REJECT',}}],
   u'whocanadd': [u'whoCanAdd', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                 u'choices': {u'allmemberscanadd': u'ALL_MEMBERS_CAN_ADD', u'allmanagerscanadd': u'ALL_MANAGERS_CAN_ADD', u'nonecanadd': u'NONE_CAN_ADD',}}],
-  u'whocanaddreferences': [u'whoCanAddReferences', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
-  u'whocanassigntopics': [u'whoCanAssignTopics', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
+  u'whocanaddreferences': [u'whoCanAddReferences', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
+  u'whocanassigntopics': [u'whoCanAssignTopics', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
   u'whocancontactowner': [u'whoCanContactOwner', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                                   u'choices': {u'anyonecancontact': u'ANYONE_CAN_CONTACT', u'allindomaincancontact': u'ALL_IN_DOMAIN_CAN_CONTACT',
                                                                u'allmemberscancontact': u'ALL_MEMBERS_CAN_CONTACT', u'allmanagerscancontact': u'ALL_MANAGERS_CAN_CONTACT',}}],
-  u'whocanenterfreeformtags': [u'whoCanEnterFreeFormTags', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
+  u'whocanenterfreeformtags': [u'whoCanEnterFreeFormTags', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
   u'whocaninvite': [u'whoCanInvite', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                       u'choices': {u'allmemberscaninvite': u'ALL_MEMBERS_CAN_INVITE', u'allmanagerscaninvite': u'ALL_MANAGERS_CAN_INVITE', u'nonecaninvite': u'NONE_CAN_INVITE',}}],
   u'whocanjoin': [u'whoCanJoin', {GC.VAR_TYPE: GC.TYPE_CHOICE,
@@ -12526,17 +12524,17 @@ GROUP_ATTRIBUTES = {
                                                u'invitedcanjoin': u'INVITED_CAN_JOIN', u'canrequesttojoin': u'CAN_REQUEST_TO_JOIN',}}],
   u'whocanleavegroup': [u'whoCanLeaveGroup', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                               u'choices': {u'allmanagerscanleave': u'ALL_MANAGERS_CAN_LEAVE', u'allmemberscanleave': u'ALL_MEMBERS_CAN_LEAVE', u'nonecanleave': u'NONE_CAN_LEAVE',}}],
-  u'whocanmarkduplicate': [u'whoCanMarkDuplicate', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
-  u'whocanmarkfavoritereplyonanytopic': [u'whoCanMarkFavoriteReplyOnAnyTopic', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
-  u'whocanmarkfavoritereplyonowntopic': [u'whoCanMarkFavoriteReplyOnOwnTopic', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
-  u'whocanmarknoresponseneeded': [u'whoCanMarkNoResponseNeeded', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
-  u'whocanmodifytagsandcategories': [u'whoCanModifyTagsAndCategories', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
-  u'whocantaketopics': [u'whoCanTakeTopics', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
+  u'whocanmarkduplicate': [u'whoCanMarkDuplicate', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
+  u'whocanmarkfavoritereplyonanytopic': [u'whoCanMarkFavoriteReplyOnAnyTopic', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
+  u'whocanmarkfavoritereplyonowntopic': [u'whoCanMarkFavoriteReplyOnOwnTopic', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
+  u'whocanmarknoresponseneeded': [u'whoCanMarkNoResponseNeeded', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
+  u'whocanmodifytagsandcategories': [u'whoCanModifyTagsAndCategories', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
+  u'whocantaketopics': [u'whoCanTakeTopics', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
   u'whocanpostmessage': [u'whoCanPostMessage', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                                 u'choices': {u'nonecanpost': u'NONE_CAN_POST', u'allmanagerscanpost': u'ALL_MANAGERS_CAN_POST', u'allmemberscanpost': u'ALL_MEMBERS_CAN_POST',
                                                              u'allindomaincanpost': u'ALL_IN_DOMAIN_CAN_POST', u'anyonecanpost': u'ANYONE_CAN_POST',}}],
-  u'whocanunassigntopic': [u'whoCanUnassignTopic', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
-  u'whocanunmarkfavoritereplyonanytopic': [u'whoCanUnmarkFavoriteReplyOnAnyTopic', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_INBOX_CHOICES}],
+  u'whocanunassigntopic': [u'whoCanUnassignTopic', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
+  u'whocanunmarkfavoritereplyonanytopic': [u'whoCanUnmarkFavoriteReplyOnAnyTopic', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
   u'whocanviewgroup': [u'whoCanViewGroup', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                             u'choices': {u'anyonecanview': u'ANYONE_CAN_VIEW', u'allindomaincanview': u'ALL_IN_DOMAIN_CAN_VIEW',
                                                          u'allmemberscanview': u'ALL_MEMBERS_CAN_VIEW', u'allmanagerscanview': u'ALL_MANAGERS_CAN_VIEW',}}],
@@ -12581,9 +12579,10 @@ def getGroupAttrValue(argument, body, gs_body):
       gs_body[attrName] = getInteger()
 
 def setCollaborativeAttributes(gs_body):
-  choice = getChoice(COLLABORATIVE_INBOX_CHOICES, mapChoice=True)
-  for attrName in COLLABORATIVE_INBOX_ATTRIBUTES:
+  choice = getChoice(COLLABORATIVE_ACL_CHOICES, mapChoice=True)
+  for attrName in COLLABORATIVE_ACL_ATTRIBUTES:
     gs_body[attrName] = choice
+  gs_body[u'favoriteRepliesOnTop'] = True
 
 def GroupIsAbuseOrPostmaster(emailAddr):
   return emailAddr.startswith(u'abuse@') or emailAddr.startswith(u'postmaster@')
@@ -13106,7 +13105,7 @@ def infoGroups(entityList):
     elif myarg == u'collaborative':
       if not gsfieldsList:
         gsfieldsList = []
-      gsfieldsList.extend(COLLABORATIVE_INBOX_ATTRIBUTES)
+      gsfieldsList.extend(COLLABORATIVE_ACL_ATTRIBUTES)
     elif myarg == u'fields':
       if not cdfieldsList:
         cdfieldsList = [u'email',]
@@ -13120,7 +13119,7 @@ def infoGroups(entityList):
         elif field in GROUP_ATTRIBUTES:
           gsfieldsList.extend([GROUP_ATTRIBUTES[field][0]])
         elif field == u'collaborative':
-          gsfieldsList.extend(COLLABORATIVE_INBOX_ATTRIBUTES)
+          gsfieldsList.extend(COLLABORATIVE_ACL_ATTRIBUTES)
         else:
           invalidChoiceExit(list(GROUP_FIELDS_CHOICE_MAP)+list(GROUP_ATTRIBUTES), True)
 # Ignore info user arguments that may have come from whatis
@@ -13531,7 +13530,7 @@ def doPrintGroups():
     elif myarg in GROUP_ATTRIBUTES:
       addFieldTitleToCSVfile(myarg, {myarg: [GROUP_ATTRIBUTES[myarg][0], GROUP_ATTRIBUTES[myarg][0]]}, gsfieldsList, fieldsTitles, titles, nativeTitles)
     elif myarg == u'collaborative':
-      for attr in COLLABORATIVE_INBOX_ATTRIBUTES:
+      for attr in COLLABORATIVE_ACL_ATTRIBUTES:
         attr = attr.lower()
         addFieldTitleToCSVfile(attr, {attr: [GROUP_ATTRIBUTES[attr][0], GROUP_ATTRIBUTES[attr][0]]}, gsfieldsList, fieldsTitles, titles, nativeTitles)
     elif myarg == u'fields':
@@ -13541,7 +13540,7 @@ def doPrintGroups():
         elif field in GROUP_ATTRIBUTES:
           addFieldTitleToCSVfile(field, {field: [GROUP_ATTRIBUTES[field][0], GROUP_ATTRIBUTES[field][0]]}, gsfieldsList, fieldsTitles, titles, nativeTitles)
         elif field == u'collaborative':
-          for attr in COLLABORATIVE_INBOX_ATTRIBUTES:
+          for attr in COLLABORATIVE_ACL_ATTRIBUTES:
             attr = attr.lower()
             addFieldTitleToCSVfile(attr, {attr: [GROUP_ATTRIBUTES[attr][0], GROUP_ATTRIBUTES[attr][0]]}, gsfieldsList, fieldsTitles, titles, nativeTitles)
         else:

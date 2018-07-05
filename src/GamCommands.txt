@@ -1214,7 +1214,7 @@ gam print domainaliases|aliasdomains [todrive [<ToDriveAttributes>]]
         (allowgooglecommunication <Boolean>)|
         (allowwebposting <Boolean>)|
         (archiveonly <Boolean>)|
-        (collaborative (members|all_members)|(ownersmanagers|owners_and_managers)|(managers|managers_only)|(owners|owners_only)|none)|
+        (collaborative (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
         (customfootertext <String>)|
         (customreplyto <EmailAddress>)|
         (defaultmessagedenynotificationtext <String>)|
@@ -1234,22 +1234,22 @@ gam print domainaliases|aliasdomains [todrive [<ToDriveAttributes>]]
         (showingroupdirectory <Boolean>)|
         (spammoderationlevel allow|moderate|silently_moderate|reject)|
         (whocanadd all_members_can_add|all_managers_can_add|none_can_add)|
-        (whocanaddreferences (members|all_members)|(ownersmanagers|owners_and_managers)|(managers|managers_only)|(owners|owners_only)|none)|
-        (whocanassigntopics (members|all_members)|(ownersmanagers|owners_and_managers)|(managers|managers_only)|(owners|owners_only)|none)|
+        (whocanaddreferences (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
+        (whocanassigntopics (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
         (whocancontactowner anyone_can_contact|all_in_domain_can_contact|all_members_can_contact|all_managers_can_contact)|
-        (whocanenterfreeformtags (members|all_members)|(ownersmanagers|owners_and_managers)|(managers|managers_only)|(owners|owners_only)|none)|
+        (whocanenterfreeformtags (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
         (whocaninvite all_members_can_invite|all_managers_can_invite|none_can_invite)|
         (whocanjoin anyone_can_join|all_in_domain_can_join|invited_can_join|can_request_to_join)|
         (whocanleavegroup all_managers_can_leave|all_members_can_leave|none_can_leave)|
-        (whocanmarkduplicate (members|all_members)|(ownersmanagers|owners_and_managers)|(managers|managers_only)|(owners|owners_only)|none)|
-        (whocanmarkfavoritereplyonanytopic (members|all_members)|(ownersmanagers|owners_and_managers)|(managers|managers_only)|(owners|owners_only)|none)|
-        (whocanmarkfavoritereplyonowntopic (members|all_members)|(ownersmanagers|owners_and_managers)|(managers|managers_only)|(owners|owners_only)|none)|
-        (whocanmarknoresponseneeded (members|all_members)|(ownersmanagers|owners_and_managers)|(managers|managers_only)|(owners|owners_only)|none)|
-        (whocanmodifytagsandcategories (members|all_members)|(ownersmanagers|owners_and_managers)|(managers|managers_only)|(owners|owners_only)|none)|
-        (whocantaketopics (members|all_members)|(ownersmanagers|owners_and_managers)|(managers|managers_only)|(owners|owners_only)|none)|
+        (whocanmarkduplicate (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
+        (whocanmarkfavoritereplyonanytopic (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
+        (whocanmarkfavoritereplyonowntopic (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
+        (whocanmarknoresponseneeded (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
+        (whocanmodifytagsandcategories (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
+        (whocantaketopics (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
         (whocanpostmessage none_can_post|all_managers_can_post|all_members_can_post|all_in_domain_can_post|anyone_can_post)|
-        (whocanunassigntopic (members|all_members)|(ownersmanagers|owners_and_managers)|(managers|managers_only)|(owners|owners_only)|none)|
-        (whocanunmarkfavoritereplyonanytopic (members|all_members)|(ownersmanagers|owners_and_managers)|(managers|managers_only)|(owners|owners_only)|none)|
+        (whocanunassigntopic (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
+        (whocanunmarkfavoritereplyonanytopic (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
         (whocanviewgroup anyone_can_view|all_in_domain_can_view|all_members_can_view|all_managers_can_view)|
         (whocanviewmembership all_in_domain_can_view|all_members_can_view|all_managers_can_view)
 
