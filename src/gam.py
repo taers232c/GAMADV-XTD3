@@ -28360,9 +28360,11 @@ def _createDriveFileACL(users, useDomainAdminAccess):
         if showDetails:
           _showDriveFilePermission(permission, printKeys, timeObjects)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.teamDriveNotFound, GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.ownerOnTeamDriveItemNotSupported,
+              GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.ownerOnTeamDriveItemNotSupported,
               GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.teamDrivesFolderSharingNotSupported) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
+      except GAPI.teamDriveNotFound as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE, fileName], str(e), j, jcount)
       except GAPI.invalidSharingRequest as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], Ent.TypeNameMessage(Ent.PERMISSION_ID, permissionId, str(e)), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -28431,6 +28433,7 @@ def _updateDriveFileACLs(users, useDomainAdminAccess):
           fileName, entityType = _getDriveFileNameFromId(drive, fileId)
         permission = callGAPI(drive.permissions(), u'update',
                               throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID_OWNERSHIP_TRANSFER,
+                                                                             GAPI.TEAMDRIVE_NOT_FOUND,
                                                                              GAPI.CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS,
                                                                              GAPI.OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                                                              GAPI.ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
@@ -28447,6 +28450,8 @@ def _updateDriveFileACLs(users, useDomainAdminAccess):
               GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.ownerOnTeamDriveItemNotSupported, GAPI.organizerOnNonTeamDriveItemNotSupported,
               GAPI.cannotModifyInheritedTeamDrivePermission, GAPI.fieldNotWritable) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
+      except GAPI.teamDriveNotFound as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE, fileName], str(e), j, jcount)
       except GAPI.permissionNotFound:
         entityDoesNotHaveItemWarning([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -28512,6 +28517,7 @@ def _createDriveFilePermissions(users, useDomainAdminAccess):
       try:
         callGAPI(drive.permissions(), u'create',
                  throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST,
+                                                                GAPI.TEAMDRIVE_NOT_FOUND,
                                                                 GAPI.CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS,
                                                                 GAPI.OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                                                 GAPI.ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
@@ -28525,6 +28531,8 @@ def _createDriveFilePermissions(users, useDomainAdminAccess):
               GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.teamDrivesFolderSharingNotSupported,
               GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      except GAPI.teamDriveNotFound as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE, fileName], str(e), j, jcount)
     if int(ri[RI_J]) == int(ri[RI_JCOUNT]):
       Ind.Decrement()
 
@@ -28637,13 +28645,16 @@ def _deleteDriveFileACLs(users, useDomainAdminAccess):
         if showTitles:
           fileName, entityType = _getDriveFileNameFromId(drive, fileId)
         callGAPI(drive.permissions(), u'delete',
-                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION, GAPI.PERMISSION_NOT_FOUND],
+                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION,
+                                                                GAPI.TEAMDRIVE_NOT_FOUND, GAPI.PERMISSION_NOT_FOUND],
                  useDomainAdminAccess=useDomainAdminAccess,
                  fileId=fileId, permissionId=permissionId, supportsTeamDrives=True)
         entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
               GAPI.badRequest, GAPI.cannotModifyInheritedTeamDrivePermission) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
+      except GAPI.teamDriveNotFound as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE, fileName], str(e), j, jcount)
       except GAPI.permissionNotFound:
         entityDoesNotHaveItemWarning([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -28870,7 +28881,7 @@ def _printShowDriveFileACLs(users, csvFormat, useDomainAdminAccess):
         if showTitles:
           fileName, entityType = _getDriveFileNameFromId(drive, fileId, not (csvFormat or formatJSON))
         results = callGAPIpages(drive.permissions(), u'list', VX_PAGES_PERMISSIONS,
-                                throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                                throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND],
                                 useDomainAdminAccess=useDomainAdminAccess,
                                 fileId=fileId, fields=VX_NPT_PERMISSIONS, supportsTeamDrives=True)
         if not csvFormat:
@@ -28920,6 +28931,8 @@ def _printShowDriveFileACLs(users, csvFormat, useDomainAdminAccess):
               csvRows.append(flattened)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
+      except GAPI.teamDriveNotFound as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE, fileName], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
