@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.06'
+__version__ = u'4.57.07'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -28215,7 +28215,7 @@ def emptyDriveTrash(users):
       Ind.Decrement()
 
 def _getDriveFileACLPrintKeysTimeObjects():
-  printKeys = [u'id', u'type', u'emailAddress', u'domain', u'role', u'teamDrivePermissionDetails', VX_EXPIRATION_TIME, u'photoLink', u'allowFileDiscovery']
+  printKeys = [u'id', u'type', u'emailAddress', u'domain', u'role', u'teamDrivePermissionDetails', VX_EXPIRATION_TIME, u'photoLink', u'allowFileDiscovery', u'deleted']
   timeObjects = [VX_EXPIRATION_TIME]
   if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
     _mapDrive3TitlesToDrive2(printKeys, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
@@ -28231,7 +28231,7 @@ def _showDriveFilePermissionJSON(user, fileId, fileName, permission, timeObjects
   printLine(json.dumps(cleanJSON(flattened, u'', timeObjects=timeObjects), ensure_ascii=False, sort_keys=True))
 
 def _showDriveFilePermission(permission, printKeys, timeObjects, i=0, count=0):
-  if u'displayName' in permission:
+  if permission.get(u'displayName'):
     name = permission[u'displayName']
   elif u'id' in permission:
     if permission[u'id'] == u'anyone':

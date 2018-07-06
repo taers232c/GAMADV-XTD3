@@ -1,3 +1,7 @@
+4.57.07
+
+Updated gam info/show drivefileacl to show deleted field.
+
 4.57.06
 
 Update cachetools, googleapiclient, httplib2, pyasn1, pyasn1_modules libraries.
