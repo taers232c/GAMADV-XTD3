@@ -28532,7 +28532,7 @@ def _createDriveFilePermissions(users, useDomainAdminAccess):
               GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
       except GAPI.teamDriveNotFound as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE, fileName], str(e), j, jcount)
+        entityActionFailedWarning([Ent.TEAMDRIVE, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
     if int(ri[RI_J]) == int(ri[RI_JCOUNT]):
       Ind.Decrement()
 
