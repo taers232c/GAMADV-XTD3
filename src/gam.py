@@ -26691,7 +26691,7 @@ GOOGLEDOC_VALID_EXTENSIONS_MAP = {
   MIMETYPE_GA_DRAWING: [u'.jpeg', u'.jpg', u'.pdf', u'.png', u'.svg'],
   MIMETYPE_GA_DOCUMENT: [u'.docx', u'.html', u'.odt', u'.pdf', u'.rtf', u'.txt', u'.zip'],
   MIMETYPE_GA_PRESENTATION: [u'.pdf', u'.pptx', u'.odp', u'.txt'],
-  MIMETYPE_GA_SPREADSHEET: [u'.csv', u'.ods', u'.pdf', u'.xlsx', u'zip'],
+  MIMETYPE_GA_SPREADSHEET: [u'.csv', u'.ods', u'.pdf', u'.xlsx', u'.zip'],
   }
 
 MICROSOFT_FORMATS_LIST = [{u'mime': u'application/vnd.openxmlformats-officedocument.wordprocessingml.document', u'ext': u'.docx'},
