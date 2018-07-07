@@ -1,3 +1,7 @@
+4.57.08
+
+Added showprogress option to gam get drivefile which will show file download progress as a percentage.
+
 4.57.07
 
 Updated gam info/show drivefileacl to show deleted field.

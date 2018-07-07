@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.07'
+__version__ = u'4.57.08'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -227,6 +227,7 @@ VX_PARENTS_ID = u'parents'
 VX_TRASHED = u'trashed'
 
 VX_COPY_FOLDER_FIELDS = u'{0},appProperties,contentHints,description,folderColorRgb,mimeType,modifiedTime,properties,starred,teamDriveId,viewedByMeTime,viewersCanCopyContent,writersCanShare'.format(VX_PARENTS_ID)
+VX_DOWNLOAD_FIELDS = u'{0},fileExtension,mimeType,{1}'.format(VX_FILENAME, VX_SIZE)
 VX_FILENAME_MIMETYPE_TEAMDRIVEID = u'{0},mimeType,teamDriveId'.format(VX_FILENAME)
 VX_FILENAME_PARENTS = u'{0},{1}'.format(VX_FILENAME, VX_PARENTS_ID)
 VX_FILENAME_PARENTS_COPY_FILE_FIELDS = u'id,{0},{1},appProperties,contentHints,capabilities,description,mimeType,modifiedTime,properties,starred,teamDriveId,viewedByMeTime,viewersCanCopyContent,writersCanShare'.format(VX_FILENAME, VX_PARENTS_ID)
@@ -26746,7 +26747,7 @@ DOCUMENT_FORMATS_MAP = {
                   {u'mime': u'application/vnd.oasis.opendocument.text', u'ext': u'.odt'}],
   }
 
-# gam <UserTypeEntity> get drivefile <DriveFileEntity> [format <FileFormatList>] [targetfolder <FilePath>] [targetname <FileName>] [overwrite [<Boolean>]] [revision <Number>]
+# gam <UserTypeEntity> get drivefile <DriveFileEntity> [format <FileFormatList>] [targetfolder <FilePath>] [targetname <FileName>] [overwrite [<Boolean>]] [showprogress [<Boolean>]] [revision <Number>]
 def getDriveFile(users):
   fileIdEntity = getDriveFileEntity()
   revisionId = None
@@ -26755,7 +26756,7 @@ def getDriveFile(users):
   exportFormats = DOCUMENT_FORMATS_MAP[exportFormatName]
   targetFolder = GC.Values[GC.DRIVE_DIR]
   targetName = None
-  overwrite = False
+  overwrite = showProgress = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'format':
@@ -26777,7 +26778,9 @@ def getDriveFile(users):
     elif myarg == u'revision':
       revisionId = getInteger(minVal=1)
     elif myarg == u'nocache':
-      deprecatedArgument(myarg)
+      pass
+    elif myarg == u'showprogress':
+      showProgress = getBoolean()
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
@@ -26794,7 +26797,7 @@ def getDriveFile(users):
       try:
         result = callGAPI(drive.files(), u'get',
                           throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
-                          fileId=fileId, fields=u'name,fileExtension,mimeType,size', supportsTeamDrives=True)
+                          fileId=fileId, fields=VX_DOWNLOAD_FIELDS)
         fileExtension = result.get(u'fileExtension')
         mimeType = result[u'mimeType']
         if mimeType == MIMETYPE_GA_FOLDER:
@@ -26840,7 +26843,9 @@ def getDriveFile(users):
             downloader = googleapiclient.http.MediaIoBaseDownload(fh, request)
             done = False
             while not done:
-              _, done = downloader.next_chunk()
+              status, done = downloader.next_chunk()
+              if showProgress:
+                entityActionPerformedMessage([Ent.USER, user, Ent.DRIVE_FILE, result[VX_FILENAME]], u'{0:>7.2%}'.format(status.progress()), j, jcount)
             closeFile(fh)
             entityModifierNewValueKeyValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, result[VX_FILENAME]], Act.MODIFIER_TO, filename, my_line[0], my_line[1], j, jcount)
             fileDownloaded = True
