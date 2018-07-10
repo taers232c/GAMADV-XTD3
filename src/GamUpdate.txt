@@ -1,3 +1,13 @@
+4.57.09
+
+Added json <JSONData> option to <ContactAttributes>; this will allow creating/updating complex contacts.
+If charset <Charset> is not specified, the value of charset from gam.cfg is assumed.
+For example, to copy contacts from one user to another you could do the following:
+gam redirect csv ./User1ContactGroups.csv user user1@domain.com print contactgroups full formatjson quotechar "'"
+gam csv ./User1ContactGroups.csv gam user user2@domain.com create contactgroup json ~JSON
+gam redirect csv ./User1Contacts.csv user user1@domain.com print contacts full formatjson quotechar "'"
+gam csv ./User1Contacts.csv gam user user2@domain.com create contact json ~JSON
+
 4.57.08
 
 Added showprogress option to gam get drivefile which will show file download progress as a percentage.

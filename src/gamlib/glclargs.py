@@ -525,6 +525,7 @@ class GamCLArgs(object):
   OB_ICALUID = u'iCalUID'
   OB_JOB_ID = u'JobID'
   OB_JOB_OR_PRINTER_ID = u'JobID|PrinterID'
+  OB_JSON_DATA = u'JSONData'
   OB_LABEL_NAME = u'LabelName'
   OB_LABEL_REPLACEMENT = u'LabelReplacement'
   OB_LANGUAGE_LIST = u'LanguageList'

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.08'
+__version__ = u'4.57.09'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -1456,6 +1456,20 @@ def getDelimiter():
   if not checkArgumentPresent(u'delimiter'):
     return None
   return getCharacter()
+
+def getJSON(deleteFields):
+  encoding = getCharSet()
+  if Cmd.ArgumentsRemaining():
+    argstr = Cmd.Current()
+    try:
+      jsonData = json.loads(argstr, encoding=encoding)
+      for field in deleteFields:
+        jsonData.pop(field, None)
+      Cmd.Advance()
+      return jsonData
+    except (TypeError, ValueError) as e:
+      usageErrorExit(str(e))
+  missingArgumentExit(Cmd.OB_JSON)
 
 def getMatchFields(fieldNames):
   matchFields = {}
@@ -9691,7 +9705,9 @@ class ContactsManager(object):
 
     while Cmd.ArgumentsRemaining():
       fieldName = getChoice(ContactsManager.CONTACT_ARGUMENT_TO_PROPERTY_MAP, mapChoice=True)
-      if fieldName == CONTACT_BIRTHDAY:
+      if fieldName == CONTACT_JSON:
+        fields.update(getJSON([u'ContactID',]))
+      elif fieldName == CONTACT_BIRTHDAY:
         fields[fieldName] = getYYYYMMDD(minLen=0)
       elif fieldName == CONTACT_GENDER:
         fields[fieldName] = getChoice(ContactsManager.GENDER_CHOICE_MAP, mapChoice=True)
@@ -10111,7 +10127,9 @@ class ContactsManager(object):
     fields = {}
     while Cmd.ArgumentsRemaining():
       fieldName = getChoice(ContactsManager.CONTACT_GROUP_ARGUMENT_TO_PROPERTY_MAP, mapChoice=True)
-      if fieldName == CONTACT_GROUP_NAME:
+      if fieldName == CONTACT_JSON:
+        fields.update(getJSON([u'ContactGroupID',]))
+      elif fieldName == CONTACT_GROUP_NAME:
         fields[fieldName] = getString(Cmd.OB_STRING)
       else:
         fields[fieldName] = getString(Cmd.OB_STRING, minLen=0)
@@ -16062,14 +16080,34 @@ def calendarsPrintShowEvents(cal, calIds, csvFormat):
   if csvFormat:
     writeCSVfile(csvRows, titles, u'Calendar Events', todrive, sortTitles, quotechar)
 
-# gam calendars <CalendarEntity> print events ([allevents] <EventSelectProperties>*) [todrive [<ToDriveAttributes>]] <EventDisplayProperties>*
-#	[formatjson] [quotechar <Character>]
+# gam calendars <CalendarEntity> print events <EventSelectProperties>* <EventDisplayProperties>*
+#	[formatjson] [quotechar <Character>] [todrive [<ToDriveAttributes>]]
 def doCalendarsPrintEvents(cal, calIds):
   calendarsPrintShowEvents(cal, calIds, True)
 
-# gam calendars <CalendarEntity> show events ([allevents] <EventSelectProperties>*) <EventDisplayProperties>* [formatjson]
+# gam calendars <CalendarEntity> show events <EventSelectProperties>* <EventDisplayProperties>* [formatjson]
 def doCalendarsShowEvents(cal, calIds):
   calendarsPrintShowEvents(cal, calIds, False)
+
+# <CalendarSettings> ::==
+#	[description <String>] [location <String>] [summary <String>] [timezone <String>]
+def _getCalendarSettings(summaryRequired=False):
+  body = {}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'description':
+      body[u'description'] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
+    elif myarg == u'location':
+      body[u'location'] = getString(Cmd.OB_STRING, minLen=0)
+    elif myarg == u'summary':
+      body[u'summary'] = getString(Cmd.OB_STRING)
+    elif myarg == u'timezone':
+      body[u'timeZone'] = getString(Cmd.OB_STRING)
+    else:
+      unknownArgumentExit()
+  if summaryRequired and not body.get(u'summary', None):
+    missingArgumentExit(u'summary <String>')
+  return body
 
 # gam calendars <CalendarEntity> modify <CalendarSettings>
 def doCalendarsModifySettings(cal, calIds):
@@ -22292,26 +22330,6 @@ def infoCalendars(users):
         entityActionFailedWarning([Ent.USER, user, Ent.CALENDAR, calId], str(e), j, jcount)
     Ind.Decrement()
 
-# <CalendarSettings> ::==
-#	[description <String>] [location <String>] [summary <String>] [timezone <String>]
-def _getCalendarSettings(summaryRequired=False):
-  body = {}
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == u'description':
-      body[u'description'] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
-    elif myarg == u'location':
-      body[u'location'] = getString(Cmd.OB_STRING, minLen=0)
-    elif myarg == u'summary':
-      body[u'summary'] = getString(Cmd.OB_STRING)
-    elif myarg == u'timezone':
-      body[u'timeZone'] = getString(Cmd.OB_STRING)
-    else:
-      unknownArgumentExit()
-  if summaryRequired and not body.get(u'summary', None):
-    missingArgumentExit(u'summary <String>')
-  return body
-
 # gam <UserTypeEntity> create calendars <CalendarSettings>
 def createCalendar(users):
   calendarEntity = initCalendarEntity()
@@ -22476,12 +22494,12 @@ def _printShowCalendars(users, csvFormat):
   if csvFormat:
     writeCSVfile(csvRows, titles, u'Calendars', todrive, sortTitles, quotechar)
 
-# gam <UserTypeEntity> print calendars [allcalendars] [primary] <CalendarSelectProperties>* [todrive [<ToDriveAttributes>]] [permissions]
+# gam <UserTypeEntity> print calendars <CalendarPrintShowEntity> [todrive [<ToDriveAttributes>]] [permissions]
 #	[formatjson] [quotechar <Character>}
 def printCalendars(users):
   _printShowCalendars(users, True)
 
-# gam <UserTypeEntity> show calendars [allcalendars] [primary] <CalendarSelectProperties>* [permissions] [formatjson]
+# gam <UserTypeEntity> show calendars <CalendarPrintShowEntity> [permissions] [formatjson]
 def showCalendars(users):
   _printShowCalendars(users, False)
 
@@ -22945,12 +22963,12 @@ def printShowCalendarEvents(users, csvFormat):
   if csvFormat:
     writeCSVfile(csvRows, titles, u'Calendar Events', todrive, sortTitles, quotechar)
 
-# gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventSelectProperties>*) [todrive [<ToDriveAttributes>]] <EventDisplayProperties>*
-#	[formatjson] [quotechar <Character>]
+# gam <UserTypeEntity> print events <CalendarPrintShowEntity> <EventSelectProperties>* <EventDisplayProperties>*
+#	[formatjson] [quotechar <Character>] [todrive [<ToDriveAttributes>]]
 def printCalendarEvents(users):
   printShowCalendarEvents(users, True)
 
-# gam <UserTypeEntity> show events <CalendarPrintShowEntity> ([allevents] <EventSelectProperties>*) <EventDisplayProperties>* [formatjson]
+# gam <UserTypeEntity> show events <CalendarPrintShowEntity> <EventSelectProperties>* <EventDisplayProperties>* [formatjson]
 def showCalendarEvents(users):
   printShowCalendarEvents(users, False)
 
