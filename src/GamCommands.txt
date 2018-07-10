@@ -68,7 +68,7 @@ If an item contains spaces, it should be surrounded by ".
         Google-Coordinate|
         Google-Drive-storage|
         Google-Vault|
-        101031
+        101001|101005|101031
 <SKUID> ::=
         cloudidentity|identity|1010010001|
         cloudidentitypremium|identitypremium|1010050001|

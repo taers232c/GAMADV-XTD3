@@ -1,3 +1,7 @@
+4.57.10
+
+Fixed error in gam print events formatjson where extraneous columns were included.
+
 4.57.09
 
 Added json <JSONData> option to <ContactAttributes>; this will allow creating/updating complex contacts.

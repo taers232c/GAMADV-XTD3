@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.09'
+__version__ = u'4.57.10'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -14103,8 +14103,8 @@ def doPrintLicenses(returnFields=None, skus=None):
                               page_message=getPageMessageForWhom(forWhom=skuId),
                               throw_reasons=[GAPI.INVALID, GAPI.FORBIDDEN],
                               customerId=GC.Values[GC.DOMAIN], productId=productId, skuId=skuId, fields=fields)
-      except (GAPI.invalid, GAPI.forbidden):
-        pass
+      except (GAPI.invalid, GAPI.forbidden) as e:
+        entityActionNotPerformedWarning([Ent.PRODUCT, productId, Ent.SKU, skuId], str(e))
   else:
     if not products:
       products = SKU.getSortedProductList()
@@ -14115,8 +14115,8 @@ def doPrintLicenses(returnFields=None, skus=None):
                               page_message=getPageMessageForWhom(forWhom=productId),
                               throw_reasons=[GAPI.INVALID, GAPI.FORBIDDEN],
                               customerId=GC.Values[GC.DOMAIN], productId=productId, fields=fields)
-      except (GAPI.invalid, GAPI.forbidden):
-        pass
+      except (GAPI.invalid, GAPI.forbidden) as e:
+        entityActionNotPerformedWarning([Ent.PRODUCT, productId], str(e))
   if returnFields:
     if returnFields == u'userId':
       userIds = []
@@ -16062,10 +16062,12 @@ def _getCalendarPrintShowEventOptions(calendarEventEntity, csvFormat, entityType
   sortTitles = []
   if csvFormat:
     if entityType == Ent.USER:
-      sortTitles.extend([u'primaryEmail', u'calendarId']+EVENT_PRINT_ORDER)
+      sortTitles = [u'primaryEmail', u'calendarId']
     else: # Ent.CALENDAR:
-      sortTitles.extend([u'calendarId',]+EVENT_PRINT_ORDER)
-    if formatJSON:
+      sortTitles = [u'calendarId',]
+    if not formatJSON:
+      sortTitles.extend(EVENT_PRINT_ORDER)
+    else:
       sortTitles.append(u'JSON')
   return (todrive, formatJSON, quotechar, sortTitles)
 
