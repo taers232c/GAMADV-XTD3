@@ -9200,6 +9200,8 @@ def doShowMonitors():
 
 # Contact commands utilities
 #
+CONTACT_JSON = u'JSON'
+
 CONTACT_ID = u'ContactID'
 CONTACT_UPDATED = u'Updated'
 CONTACT_NAME_PREFIX = u'Name Prefix'
