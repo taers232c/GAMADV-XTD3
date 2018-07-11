@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.11'
+__version__ = u'4.57.12'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -13771,7 +13771,7 @@ def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, cou
               membersList.append(member)
         elif member[u'type'] == u'GROUP':
           getGroupMembers(cd, member[u'email'], memberRoles, membersList, membersSet, i, count, checkSuspended, noduplicates, recursive, level+1)
-  except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden):
+  except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
     entityUnknownWarning(Ent.GROUP, groupEmail, i, count)
 
 GROUPMEMBERS_FIELDS_CHOICE_MAP = {

@@ -1,3 +1,7 @@
+4.57.12
+
+Handle domainCannotUseApis error in gam print groupmembers.
+
 4.57.11
 
 Fixed bug in gam create vaultmatter collaborators <EmailItemList> that caused a trap.
