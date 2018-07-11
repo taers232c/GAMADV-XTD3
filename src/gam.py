@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.10'
+__version__ = u'4.57.11'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -16906,7 +16906,7 @@ def doCreateVaultMatter():
         callGAPI(v.matters(), u'addPermissions',
                  throw_reasons=[GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
                  matterId=matterId, body={u'matterPermission': {u'role': u'COLLABORATOR', u'accountId': collaborator[u'id']}})
-        entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, Ent.COLLABORATOR, collaborator[u'email']], j, jcount)
+        entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.COLLABORATOR, collaborator[u'email']], j, jcount)
       except (GAPI.failedPrecondition, GAPI.forbidden) as e:
         entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId], str(e))
         break

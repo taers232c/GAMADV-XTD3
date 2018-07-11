@@ -1,3 +1,7 @@
+4.57.11
+
+Fixed bug in gam create vaultmatter collaborators <EmailItemList> that caused a trap.
+
 4.57.10
 
 Fixed error in gam print events formatjson where extraneous columns were included.
