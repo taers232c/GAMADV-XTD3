@@ -1469,7 +1469,7 @@ def getJSON(deleteFields):
       return jsonData
     except (TypeError, ValueError) as e:
       usageErrorExit(str(e))
-  missingArgumentExit(Cmd.OB_JSON)
+  missingArgumentExit(Cmd.OB_JSON_DATA)
 
 def getMatchFields(fieldNames):
   matchFields = {}
