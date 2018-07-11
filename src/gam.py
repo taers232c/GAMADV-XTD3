@@ -3475,7 +3475,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
               entityList.append(email)
         elif recursive and member[u'type'] == u'GROUP':
           doNotExist += _addGroupMembersToUsers(member[u'email'], domains, recursive)
-    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden):
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(Ent.GROUP, group)
       doNotExist += 1
     return doNotExist
@@ -3538,7 +3538,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
                 (checkSuspended is None or (not checkSuspended and member[u'status'] != u'SUSPENDED') or (checkSuspended and member[u'status'] == u'SUSPENDED')) and email not in entitySet):
               entitySet.add(email)
               entityList.append(email)
-        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden):
+        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
           entityUnknownWarning(Ent.GROUP, group)
           doNotExist += 1
       else:
@@ -13044,7 +13044,7 @@ def doUpdateGroups():
         else: # elif not checkSuspended
           removeMembers = [member.get(u'email', member[u'id']) for member in result if (not validRoles or member.get(u'role', Ent.ROLE_MEMBER) in validRoles) and member[u'status'] != u'SUSPENDED']
         _batchRemoveGroupMembers(group, i, count, removeMembers, Ent.ROLE_MEMBER)
-      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden):
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
         entityUnknownWarning(Ent.GROUP, group, i, count)
 
 # gam delete groups <GroupEntity>
@@ -13255,7 +13255,8 @@ def infoGroups(entityList):
         Ind.Decrement()
         printKeyValueList([u'Total users in group', len(members)])
       Ind.Decrement()
-    except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+    except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden,
+            GAPI.badRequest, GAPI.backendError, GAPI.systemError):
       entityUnknownWarning(Ent.GROUP, group, i, count)
 
 # gam info groups <GroupEntity> [members] [managers] [owners] [nousers] [quick] [noaliases] [groups] <GroupFieldName>* [fields <GroupFieldNameList>] [formatjson]
@@ -13984,7 +13985,7 @@ def doShowGroupMembers():
                                   groupKey=groupEmail, fields=u'nextPageToken,members(email,id,role,status,type)', maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
       if depth == 0:
         printEntity([Ent.GROUP, groupEmail], i, count)
-    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden):
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       if depth == 0:
         entityUnknownWarning(Ent.GROUP, groupEmail, i, count)
       return
