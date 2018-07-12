@@ -1,3 +1,7 @@
+4.57.13
+
+Fixed bug in gam print filepaths where extraneous data was output before header row.
+
 4.57.12
 
 Handle domainCannotUseApis error in gam print groupmembers.
