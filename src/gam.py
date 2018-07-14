@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.13'
+__version__ = u'4.57.14'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -2881,6 +2881,9 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False, service=None):
         error = {u'error': {u'errors': [{u'reason': GAPI.DUPLICATE, u'message': message}]}}
       elif u'Operation not supported' in message:
         error = {u'error': {u'errors': [{u'reason': GAPI.OPERATION_NOT_SUPPORTED, u'message': message}]}}
+    elif http_status == 409:
+      if u'Requested entity already exists' in message:
+        error = {u'error': {u'errors': [{u'reason': GAPI.ALREADY_EXISTS, u'message': message}]}}
   else:
     if u'error_description' in error:
       if error[u'error_description'] == u'Invalid Value':
@@ -19800,21 +19803,25 @@ def getCourseAttribute(myarg, body):
   else:
     unknownArgumentExit()
 
-# gam create course id|alias <CourseAlias> <CourseAttributes>*
+# gam create course [id|alias <CourseAlias>] <CourseAttributes>*
 def doCreateCourse():
   croom = buildGAPIObject(API.CLASSROOM)
-  body = {u'ownerId': u'me', u'name': u'Unknown Course'}
+  body = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in [u'alias', u'id']:
       body[u'id'] = getCourseAlias()
     else:
       getCourseAttribute(myarg, body)
+  if u'ownerId' not in body:
+    missingArgumentExit(u'teacher <UserItem>)')
+  if u'name' not in body:
+    missingArgumentExit(u'name <String>)')
   try:
-    result = callGAPI(croom.courses(), u'create',
-                      throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
-                      body=body, fields=u'id')
-    entityActionPerformed([Ent.COURSE, body[u'name'], Ent.COURSE_ID, result[u'id']])
+    newCourseId = callGAPI(croom.courses(), u'create',
+                           throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                           body=body, fields=u'id')[u'id']
+    entityActionPerformed([Ent.COURSE, body[u'name'], Ent.COURSE_ID, newCourseId])
   except (GAPI.alreadyExists, GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition, GAPI.forbidden, GAPI.badRequest) as e:
     entityActionFailedWarning([Ent.COURSE, body[u'name'], Ent.TEACHER, body[u'ownerId']], str(e))
 
@@ -19848,25 +19855,36 @@ def doUpdateCourse():
 
 def _doDeleteCourses(entityList):
   croom = buildGAPIObject(API.CLASSROOM)
-  checkForExtraneousArguments()
+  body = {}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg in [u'archive', u'archived']:
+      body[u'courseState'] = u'ARCHIVED'
+      updateMask = u'courseState'
+    else:
+      unknownArgumentExit()
   i = 0
   count = len(entityList)
   for course in entityList:
     i += 1
     courseId = addCourseIdScope(course)
     try:
+      if body:
+        callGAPI(croom.courses(), u'patch',
+                 throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                 id=courseId, body=body, updateMask=updateMask, fields=u'id')
       callGAPI(croom.courses(), u'delete',
                throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION],
                id=courseId)
       entityActionPerformed([Ent.COURSE, removeCourseIdScope(courseId)], i, count)
-    except (GAPI.notFound, GAPI.permissionDenied. GAPI.failedPrecondition) as e:
+    except (GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition, GAPI.forbidden, GAPI.badRequest) as e:
       entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
 
-# gam delete courses <CourseEntity>
+# gam delete courses <CourseEntity> [archive|archived]
 def doDeleteCourses():
   _doDeleteCourses(getEntityList(Cmd.OB_COURSE_ENTITY))
 
-# gam delete course <CourseID>
+# gam delete course <CourseID> [archive|archived]
 def doDeleteCourse():
   _doDeleteCourses(getStringReturnInList(Cmd.OB_COURSE_ID))
 
@@ -20047,6 +20065,7 @@ def _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFiel
 def _doInfoCourses(entityList):
   croom = buildGAPIObject(API.CLASSROOM)
   courseShowProperties = _initCourseShowProperties()
+  courseShowProperties[u'ownerEmail'] = True
   ownerEmails = {}
   formatJSON = False
   while Cmd.ArgumentsRemaining():

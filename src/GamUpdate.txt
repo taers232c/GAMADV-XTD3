@@ -1,3 +1,16 @@
+4.57.14
+
+Improved error message given when a duplicate teacher/student is added to a class.
+
+The options name <String> and teacher <UserItem> are now required when creating a class.
+Previously, name defaulted to "Unknown Course" and teacher defaulted to the admin user named in oauth2.txt.
+
+Classes can only be deleted when they are in the ARCHIVED state; previously, to delete a class, you had to issue two gam commands:
+gam update course <CourseID> state archived
+gam delete course <CourseID>
+Now you can optionally specify that the class should be archived as an option when deleting the class.
+gam delete course <CourseID> [archived]
+
 4.57.13
 
 Fixed bug in gam print filepaths where extraneous data was output before header row.

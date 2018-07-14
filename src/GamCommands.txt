@@ -1042,10 +1042,10 @@ gam print gal [todrive [<ToDriveAttributes>]] [query <QueryContact>] [emailmatch
 
 gam create|add course id|alias <CourseAlias> <CourseAttributes>*
 gam update course <CourseID> <CourseAttributes>+
-gam delete course <CourseID>
+gam delete course <CourseID> [archive|archived]
 
 gam update courses <CourseEntity> <CourseAttributes>+
-gam delete courses <CourseEntity>
+gam delete courses <CourseEntity> [archive|archived]
 
 gam course <CourseID> create|add alias <CourseAlias>
 gam course <CourseID> delete alias <CourseAlias>
