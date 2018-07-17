@@ -1,3 +1,8 @@
+4.57.15
+
+In gam get drivefile you can now include the strings #email#, #user# and #username# in targetfolder <FilePath> and targetname <FileName>
+which will be replaced by the the user's full emailaddress or just the name portion.
+
 4.57.14
 
 Improved error message given when a duplicate teacher/student is added to a class.

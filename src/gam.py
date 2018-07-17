@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.14'
+__version__ = u'4.57.15'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -26796,8 +26796,8 @@ def getDriveFile(users):
   exportFormatName = u'openoffice'
   exportFormatChoices = [exportFormatName]
   exportFormats = DOCUMENT_FORMATS_MAP[exportFormatName]
-  targetFolder = GC.Values[GC.DRIVE_DIR]
-  targetName = None
+  targetFolderPattern = GC.Values[GC.DRIVE_DIR]
+  targetNamePattern = None
   overwrite = showProgress = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -26810,11 +26810,9 @@ def getDriveFile(users):
         else:
           invalidChoiceExit(DOCUMENT_FORMATS_MAP, True)
     elif myarg == u'targetfolder':
-      targetFolder = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
-      if not os.path.isdir(targetFolder):
-        os.makedirs(targetFolder)
+      targetFolderPattern = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
     elif myarg == u'targetname':
-      targetName = getString(Cmd.OB_FILE_NAME)
+      targetNamePattern = getString(Cmd.OB_FILE_NAME)
     elif myarg == u'overwrite':
       overwrite = getBoolean()
     elif myarg == u'revision':
@@ -26831,6 +26829,11 @@ def getDriveFile(users):
     user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE)
     if jcount == 0:
       continue
+    _, userName, _ = splitEmailAddressOrUID(user)
+    targetFolder = _substituteForUser(targetFolderPattern, user, userName)
+    if not os.path.isdir(targetFolder):
+      os.makedirs(targetFolder)
+    targetName = _substituteForUser(targetNamePattern, user, userName) if targetNamePattern else None
     Ind.Increment()
     j = 0
     for fileId in fileIdEntity[u'list']:

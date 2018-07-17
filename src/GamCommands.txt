@@ -213,7 +213,7 @@ If an item contains spaces, it should be surrounded by ".
 <QueryDriveFile> ::= <String> See: https://developers.google.com/drive/v3/web/search-parameters
 <QueryGmail> ::= <String> See: https://support.google.com/mail/answer/7190
 <QueryGroup> ::= <String> See: https://developers.google.com/admin-sdk/directory/v1/guides/search-groups
-<QueryMobile> ::= <String> See: https://support.google.com/a/answer/1408863?hl=en#search
+<QueryMobile> ::= <String> See: https://support.google.com/a/answer/7549103
 <QueryPrinter> ::= <String> See: https://developers.google.com/cloud-print/docs/appInterfaces#search
 <QueryPrintJob> ::= <String> See: https://developers.google.com/cloud-print/docs/appInterfaces#parameters_3
 <QueryTeamDrive> ::= <String> See: https://developers.google.com/drive/v3/web/search-parameters#team_drive_fields
@@ -1040,7 +1040,7 @@ gam print gal [todrive [<ToDriveAttributes>]] [query <QueryContact>] [emailmatch
         updatetime
 <CourseFieldNameList> ::= "<CourseFieldName>(,<CourseFieldName>)*"
 
-gam create|add course id|alias <CourseAlias> <CourseAttributes>*
+gam create|add course [id|alias <CourseAlias>] <CourseAttributes>*
 gam update course <CourseID> <CourseAttributes>+
 gam delete course <CourseID> [archive|archived]
 
