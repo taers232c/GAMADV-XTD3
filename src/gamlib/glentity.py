@@ -54,6 +54,7 @@ class GamEntity(object):
   CALENDAR = u'cale'
   CALENDAR_ACL = u'cacl'
   CALENDAR_SETTINGS = u'cset'
+  CLASSROOM_OAUTH2_TXT_FILE = u'coau'
   CLIENT_SECRETS_JSON_FILE = u'clis'
   COLLABORATOR = u'cola'
   CONFIG_FILE = u'conf'
@@ -64,7 +65,7 @@ class GamEntity(object):
   COURSE_ALIAS = u'coal'
   COURSE_ANNOUNCEMENT_ID = u'caid'
   COURSE_ANNOUNCEMENT_STATE = u'cast'
-  COURSE_ID = u'coid'
+  COURSE_NAME = u'cona'
   COURSE_STATE = u'cost'
   COURSE_SUBMISSION_ID = u'csid'
   COURSE_SUBMISSION_STATE = u'csst'
@@ -230,6 +231,7 @@ class GamEntity(object):
     CALENDAR: [u'Calendars', u'Calendar'],
     CALENDAR_ACL: [u'Calendar ACLs', u'Calendar ACL'],
     CALENDAR_SETTINGS: [u'Calendar Settings', u'Calendar Settings'],
+    CLASSROOM_OAUTH2_TXT_FILE: [u'Classroom OAuth2 File', u'Classroom OAuth2 File'],
     CLIENT_SECRETS_JSON_FILE: [u'Client Secrets File', u'Client Secrets File'],
     COLLABORATOR: [u'Collaborators', u'Collaborator'],
     CONFIG_FILE: [u'Config File', u'Config File'],
@@ -240,7 +242,7 @@ class GamEntity(object):
     COURSE_ALIAS: [u'Course Aliases', u'Course Alias'],
     COURSE_ANNOUNCEMENT_ID: [u'Course Announcement IDs', u'Course Announcement ID'],
     COURSE_ANNOUNCEMENT_STATE: [u'Course Announcement States', u'Course Announcement State'],
-    COURSE_ID: [u'Course IDs', u'Course ID'],
+    COURSE_NAME: [u'Course Names', u'Course Name'],
     COURSE_STATE: [u'Course States', u'Course State'],
     COURSE_SUBMISSION_ID: [u'Course Submission IDs', u'Course Submission ID'],
     COURSE_SUBMISSION_STATE: [u'Course Submission States', u'Course Submission State'],

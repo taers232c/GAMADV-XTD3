@@ -1006,6 +1006,15 @@ gam print gal [todrive [<ToDriveAttributes>]] [query <QueryContact>] [emailmatch
 
 # Courses
 
+<CourseAnnouncementState> ::= draft|published|deleted
+<CourseAnnouncementStateList> ::= "<CourseAnnouncementState>(,<CourseAnnouncementState>)*"
+
+<CourseSubmissionState> ::= new|created|turned_in|returned|reclaimed_by_student
+<CourseSubmissionStateList> ::= "<CourseSubmissionState>(,<CourseSubmissionState>)*"
+
+<CourseWorkState> ::= draft|published|deleted
+<CourseWorkStateList> ::= "<CourseWorkState>(,<CourseWorkState>)*"
+
 <CourseAttributes> ::=
         (description <String>)|
         (heading <String>)|
@@ -1040,11 +1049,18 @@ gam print gal [todrive [<ToDriveAttributes>]] [query <QueryContact>] [emailmatch
         updatetime
 <CourseFieldNameList> ::= "<CourseFieldName>(,<CourseFieldName>)*"
 
+gam <UserTypeEntity> create classroomoauth2
+gam <UserTypeEntity> delete classroomoauth2
+gam <UserTypeEntity> info classroomoauth2
+
 gam create|add course [id|alias <CourseAlias>] <CourseAttributes>*
+        [copyfrom <CourseID> [announcementstates <CourseAnnouncementStateList>] [workstates <CourseWorkStateList>] [members none|all|students|teachers]]
 gam update course <CourseID> <CourseAttributes>+
+        [copyfrom <CourseID> [announcementstates <CourseAnnouncementStateList>] [workstates <CourseWorkStateList>] [members none|all|students|teachers]]
 gam delete course <CourseID> [archive|archived]
 
 gam update courses <CourseEntity> <CourseAttributes>+
+        [copyfrom <CourseID> [announcementstates <CourseAnnouncementStateList>] [workstates <CourseWorkStateList>] [members none|all|students|teachers]]
 gam delete courses <CourseEntity> [archive|archived]
 
 gam course <CourseID> create|add alias <CourseAlias>
@@ -1255,8 +1271,8 @@ gam print domainaliases|aliasdomains [todrive [<ToDriveAttributes>]]
         (whocanviewgroup anyone_can_view|all_in_domain_can_view|all_members_can_view|all_managers_can_view)|
         (whocanviewmembership all_in_domain_can_view|all_members_can_view|all_managers_can_view)
 
-gam create|add group <EmailAddress> <GroupAttributes>*
-gam update group|groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] <GroupAttributes>*
+gam create|add group <EmailAddress> [copyfrom <GroupItem>] <GroupAttributes>*
+gam update group|groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] [copyfrom <GroupItem>] <GroupAttributes>*
 gam update group|groups <GroupEntity> create|add [owner|manager|member] [usersonly|groupsonly] [notsuspended|suspended] <UserTypeEntity>
 gam update group|groups <GroupEntity> delete|remove [owner|manager|member] [usersonly|groupsonly] <UserTypeEntity>
 gam update group|groups <GroupEntity> sync [owner|manager|member] [usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended] <UserTypeEntity>
@@ -1551,7 +1567,7 @@ gam report users|user [todrive [<ToDriveAttributes>]] [date <Date>] [nodatechang
         [maxactivities <Number>] [maxresults <Number>]
 gam report customers|customer|domain [todrive [<ToDriveAttributes>]] [date <Date>] [nodatechange | (fulldatarequired all|<ReportsAppList>)]
         [fields|parameters <String>]
-gam report admin|calendar|calendars|drive|docs|doc|groups|group|logins|login|mobile|tokens|token [todrive [<ToDriveAttributes>]] [maxresults <Number>] [maxactivities <Number>]
+gam report admin|calendar|calendars|drive|docs|doc|gplus|groups|group|logins|login|mobile|rules|tokens|token [todrive [<ToDriveAttributes>]] [maxresults <Number>] [maxactivities <Number>]
         [([start <Time>] [end <Time>])|yesterday] [(user all|<UserItem>)|(select <UserTypeEntity>)] [event <String>] [filter|filters <String>] [ip <String>] [countsonly] [summary]
 
 # Reseller

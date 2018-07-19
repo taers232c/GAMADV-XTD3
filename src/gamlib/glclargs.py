@@ -283,6 +283,7 @@ class GamCLArgs(object):
   ARG_CLASS = u'class'
   ARG_CLASSES = u'classes'
   ARG_CLASSPARTICIPANTS = u'classparticipants'
+  ARG_CLASSROOMOAUTH2 = u'classroomoauth2'
   ARG_CONTACT = u'contact'
   ARG_CONTACTS = u'contacts'
   ARG_CONTACTGROUP = u'contactgroup'

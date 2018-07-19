@@ -1,3 +1,31 @@
+4.57.16
+
+Added copyfrom <GroupItem> to gam create/update group to allow copying of group attributes from one group to another.
+The following attributes are not copied: name, description, email, admincreated, aliases, noneditablealiases.
+Any <GroupAttributes> specified will override the copied attributes.
+
+gam create|add group <EmailAddress> [copyfrom <GroupItem>] <GroupAttributes>*
+gam update group|groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] [copyfrom <GroupItem>] <GroupAttributes>*
+
+Added copyfrom <CourseID> [announcementstates <CourseAnnouncementStateList>] [workstates <CourseWorkStateList>] [members none|all|students|teachers]
+to gam create/update course to allow copying of course announcements, work and members from one course to another.
+
+In order for GAM to be able to copy course announcements and work, it must have a special oauth2.txt file for the the course owner.
+The create/update course commands will create the special oauth2.txt when executed by starting a browser to get authentication.
+If this is not convenient, you can manually build the files before creating/updating the course.
+These files will be created in the directory specified by config_dir in gam.cfg; they will be named classroom-<OwnerID>-oauth2.txt.
+
+gam <UserTypeEntity> create classroomoauth2
+gam <UserTypeEntity> delete classroomoauth2
+gam <UserTypeEntity> info classroomoauth2
+
+gam create|add course [id|alias <CourseAlias>] <CourseAttributes>*
+        [copyfrom <CourseID> [announcementstates <CourseAnnouncementStateList>] [workstates <CourseWorkStateList>] [members none|all|students|teachers]]
+gam update course <CourseID> <CourseAttributes>+
+        [copyfrom <CourseID> [announcementstates <CourseAnnouncementStateList>] [workstates <CourseWorkStateList>] [members none|all|students|teachers]]
+gam update courses <CourseEntity> <CourseAttributes>+
+        [copyfrom <CourseID> [announcementstates <CourseAnnouncementStateList>] [workstates <CourseWorkStateList>] [members none|all|students|teachers]]
+
 4.57.15
 
 In gam get drivefile you can now include the strings #email#, #user# and #username# in targetfolder <FilePath> and targetname <FileName>

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.15'
+__version__ = u'4.57.16'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -73,6 +73,7 @@ from iso8601 import iso8601
 import google.oauth2.service_account
 import google_auth_httplib2
 import oauth2client.client
+import oauth2client.file
 from oauth2client.contrib.multiprocess_file_storage import MultiprocessFileStorage
 import oauth2client.tools
 
@@ -580,6 +581,13 @@ def invalidOauth2TxtExit():
 
 def invalidOauth2TxtImportExit(importFile):
   stderrErrorMsg(Msg.HAS_INVALID_FORMAT.format(Ent.Singular(Ent.OAUTH2_TXT_FILE), importFile))
+  systemErrorExit(OAUTH2_TXT_REQUIRED_RC, None)
+
+def invalidClassroomOauth2TxtExit(filename, noExit=False):
+  stderrErrorMsg(Msg.DOES_NOT_EXIST_OR_HAS_INVALID_FORMAT.format(Ent.Singular(Ent.CLASSROOM_OAUTH2_TXT_FILE), filename))
+  if noExit:
+    setSysExitRC(OAUTH2_TXT_REQUIRED_RC)
+    return
   systemErrorExit(OAUTH2_TXT_REQUIRED_RC, None)
 
 def invalidDiscoveryJsonExit(fileName):
@@ -2602,7 +2610,7 @@ def getClientCredentials(cred_family):
       credentials.refresh(getHttpObj())
     except (httplib2.ServerNotFoundError, google.auth.exceptions.TransportError) as e:
       systemErrorExit(NETWORK_ERROR_RC, str(e))
-    except oauth2client.client.AccessTokenRefreshError as e:
+    except (oauth2client.client.AccessTokenRefreshError, google.auth.exceptions.RefreshError) as e:
       handleOAuthTokenError(e, False)
   credentials.user_agent = GAM_INFO
   return credentials
@@ -2666,6 +2674,8 @@ def checkGDataError(e, service):
       return (GDATA.BAD_GATEWAY, reason)
     if reason == u'Service Unavailable':
       return (GDATA.SERVICE_UNAVAILABLE, reason)
+    if reason == u'Service <jotspot> disabled by G Suite admin.':
+      return (GDATA.FORBIDDEN, reason)
     if reason == u'Internal Server Error':
       return (GDATA.INTERNAL_SERVER_ERROR, reason)
     if reason == u'Token invalid - Invalid token: Token disabled, revoked, or expired.':
@@ -2695,6 +2705,9 @@ def checkGDataError(e, service):
   elif error_code == 602:
     if reason == u'Bad Request':
       return (GDATA.BAD_REQUEST, body)
+  elif error_code == 610:
+    if reason == u'Service <jotspot> disabled by G Suite admin.':
+      return (GDATA.FORBIDDEN, reason)
 
   # We got a "normal" error, define the mapping below
   error_code_map = {
@@ -2945,7 +2958,7 @@ def callGAPI(service, function,
       if reason == GAPI.INSUFFICIENT_PERMISSIONS:
         APIAccessDeniedExit()
       systemErrorExit(HTTP_ERROR_RC, formatHTTPError(http_status, reason, message))
-    except oauth2client.client.AccessTokenRefreshError as e:
+    except (oauth2client.client.AccessTokenRefreshError, google.auth.exceptions.RefreshError) as e:
       handleOAuthTokenError(e, GAPI.SERVICE_NOT_AVAILABLE in throw_reasons)
       raise GAPI.REASON_EXCEPTION_MAP[GAPI.SERVICE_NOT_AVAILABLE](str(e))
     except httplib2.CertificateValidationUnsupportedInPython31:
@@ -3150,7 +3163,7 @@ def buildGAPIObject(api):
     service._http = credentials.authorize(httpObj)
   except (httplib2.ServerNotFoundError, google.auth.exceptions.TransportError) as e:
     systemErrorExit(NETWORK_ERROR_RC, str(e))
-  except oauth2client.client.AccessTokenRefreshError as e:
+  except (oauth2client.client.AccessTokenRefreshError, google.auth.exceptions.RefreshError) as e:
     handleOAuthTokenError(e, False)
   if not GC.Values[GC.DOMAIN]:
     GC.Values[GC.DOMAIN] = credentials.id_token.get(u'hd', u'UNKNOWN').lower()
@@ -3351,7 +3364,7 @@ def convertEmailAddressToUID(emailAddressOrUID, cd=None, emailType=u'user', save
     return callGAPI(cd.groups(), u'get',
                     throw_reasons=GAPI.GROUP_GET_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
                     groupKey=normalizedEmailAddressOrUID, fields=u'id')[u'id']
-  except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest):
+  except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.invalid, GAPI.systemError):
     if savedLocation is not None:
       Cmd.SetLocation(savedLocation)
     entityDoesNotExistExit([Ent.USER, Ent.GROUP][emailType == u'group'], normalizedEmailAddressOrUID, errMsg=getPhraseDNEorSNA(normalizedEmailAddressOrUID))
@@ -6066,11 +6079,13 @@ REPORT_CHOICE_MAP = {
   u'docs': u'drive',
   u'domain': u'customer',
   u'drive': u'drive',
+  u'gplus': u'gplus',
   u'group': u'groups',
   u'groups': u'groups',
   u'login': u'login',
   u'logins': u'login',
   u'mobile': u'mobile',
+  u'rules': u'rules',
   u'token': u'token',
   u'tokens': u'token',
   u'user': u'user',
@@ -6100,7 +6115,7 @@ REPORT_ACTIVITIES_TIME_OBJECTS = set([u'time',])
 #	[maxactivities <Number>] [maxresults <Number>]
 # gam report <customers|customer|domain> [todrive [<ToDriveAttributes>]] [date <Date>] [nodatechange | (fulldatarequired all|<ReportAppsList>)]
 #	[fields|parameters <String>]
-# gam report <admin|calendars|drive|docs|doc|groups|group|logins|login|mobile|tokens|token> [todrive [<ToDriveAttributes>]] [maxresults <Number>] [maxactivities <Number>]
+# gam report <admin|calendars|drive|docs|doc|gplus|groups|group|logins|login|mobile|rules|tokens|token> [todrive [<ToDriveAttributes>]] [maxresults <Number>] [maxactivities <Number>]
 #	[([start <Time>] [end <Time>])|yesterday] [user all|<UserItem>] [select <UserTypeEntity>] [event <String>] [filter|filters <String>] [fields|parameters <String>] [ip <String>] countsonly summary
 def doReport():
   report = getChoice(REPORT_CHOICE_MAP, mapChoice=True)
@@ -6331,7 +6346,7 @@ def doReport():
       except GAPI.forbidden:
         accessErrorExit(None)
     writeCSVfile(csvRows, titles, u'Customer Report - {0}'.format(tryDate), todrive)
-  else:     # admin, calendar, drive, groups, login, mobile, token
+  else:     # admin, calendar, drive, gplus, groups, login, mobile, rules, token
     if select:
       page_message = None
       normalizeUsers = True
@@ -9253,6 +9268,7 @@ class ContactsManager(object):
   import gdata.apps.contacts
 
   CONTACT_ARGUMENT_TO_PROPERTY_MAP = {
+    u'json': CONTACT_JSON,
     u'name': CONTACT_NAME,
     u'prefix': CONTACT_NAME_PREFIX,
     u'givenname': CONTACT_GIVEN_NAME,
@@ -9672,6 +9688,7 @@ class ContactsManager(object):
     }
 
   CONTACT_GROUP_ARGUMENT_TO_PROPERTY_MAP = {
+    u'json': CONTACT_JSON,
     u'name': CONTACT_GROUP_NAME,
     }
 
@@ -12573,6 +12590,9 @@ GROUP_ATTRIBUTES = {
 GROUP_FIELDS_WITH_CRS_NLS = [u'customFooterText', u'defaultMessageDenyNotificationText', u'description', u'groupDescription']
 
 def getGroupAttrValue(argument, body, gs_body):
+  if argument == u'copyfrom':
+    gs_body[argument] = getEmailAddress()
+    return
   attrProperties = GROUP_ATTRIBUTES.get(argument)
   if not attrProperties:
     unknownArgumentExit()
@@ -12614,7 +12634,34 @@ def setCollaborativeAttributes(gs_body):
 def GroupIsAbuseOrPostmaster(emailAddr):
   return emailAddr.startswith(u'abuse@') or emailAddr.startswith(u'postmaster@')
 
-# gam create group <EmailAddress> <GroupAttributes>
+def getSettingsFromGroup(cd, gs, gs_body):
+  if gs_body:
+    copySettingsFromGroup = gs_body.pop(u'copyfrom', None)
+    if copySettingsFromGroup:
+      try:
+        if copySettingsFromGroup.find(u'@') == -1: # group settings API won't take uid so we make sure cd API is used so that we can grab real email.
+          copySettingsFromGroup = callGAPI(cd.groups(), u'get',
+                                           throw_reasons=GAPI.GROUP_GET_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
+                                           groupKey=copySettingsFromGroup, fields=u'email')[u'email']
+        settings = callGAPI(gs.groups(), u'get',
+                            throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
+                            groupUniqueId=copySettingsFromGroup, fields=u'*')
+        if settings is not None:
+          for field in [u'email', u'name', u'description']:
+            settings.pop(field, None)
+          settings.update(gs_body)
+          return settings
+        else:
+          entityActionNotPerformedWarning([Ent.GROUP, copySettingsFromGroup], Msg.API_ERROR_SETTINGS)
+          return None
+      except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+              GAPI.backendError, GAPI.invalid, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
+              GAPI.systemError, GAPI.serviceLimit) as e:
+        entityActionNotPerformedWarning([Ent.GROUP, copySettingsFromGroup], str(e))
+        return None
+  return gs_body
+
+# gam create group <EmailAddress> [copyfrom <GroupItem>] <GroupAttributes>
 def doCreateGroup():
   cd = buildGAPIObject(API.DIRECTORY)
   body = {u'email': getEmailAddress(noUid=True)}
@@ -12626,30 +12673,29 @@ def doCreateGroup():
     else:
       getGroupAttrValue(myarg, body, gs_body)
   body.setdefault(u'name', body[u'email'])
+  if gs_body:
+    gs = buildGAPIObject(API.GROUPSSETTINGS)
+    gs_body = getSettingsFromGroup(cd, gs, gs_body)
+    if not gs_body:
+      return
   try:
     callGAPI(cd.groups(), u'insert',
              throw_reasons=GAPI.GROUP_CREATE_THROW_REASONS,
              body=body, fields=u'')
-    errMsg = u''
     if gs_body and not GroupIsAbuseOrPostmaster(body[u'email']):
-      gs = buildGAPIObject(API.GROUPSSETTINGS)
       settings = callGAPI(gs.groups(), u'get',
-                          soft_errors=True, throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
+                          throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
                           groupUniqueId=body[u'email'], fields=u'*')
-      if settings is not None:
-        settings.update(gs_body)
-        result = callGAPI(gs.groups(), u'update',
-                          soft_errors=True, throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
-                          groupUniqueId=body[u'email'], body=settings, fields=u'')
-        if result is None:
-          errMsg = Msg.API_ERROR_SETTINGS
-      else:
-        errMsg = Msg.API_ERROR_SETTINGS
-    entityActionPerformedMessage([Ent.GROUP, body[u'email']], errMsg)
+      settings.update(gs_body)
+      callGAPI(gs.groups(), u'update',
+               throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
+               groupUniqueId=body[u'email'], body=settings, fields=u'')
+    entityActionPerformed([Ent.GROUP, body[u'email']])
   except GAPI.duplicate:
     entityDuplicateWarning([Ent.GROUP, body[u'email']])
-  except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.invalid, GAPI.invalidInput,
-          GAPI.badRequest, GAPI.permissionDenied, GAPI.backendError, GAPI.systemError) as e:
+  except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+          GAPI.backendError, GAPI.invalid, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
+          GAPI.systemError, GAPI.serviceLimit) as e:
     entityActionFailedWarning([Ent.GROUP, body[u'email']], str(e))
 
 def checkGroupExists(cd, group, i=0, count=0):
@@ -12658,13 +12704,13 @@ def checkGroupExists(cd, group, i=0, count=0):
     return callGAPI(cd.groups(), u'get',
                     throw_reasons=GAPI.GROUP_GET_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
                     groupKey=group, fields=u'email')[u'email']
-  except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest):
+  except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.invalid, GAPI.systemError):
     entityUnknownWarning(Ent.GROUP, group, i, count)
     return None
 
 UPDATE_GROUP_SUBCMDS = [u'add', u'create', u'delete', u'remove', u'clear', u'sync', u'update']
 
-# gam update groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] <GroupAttributes>
+# gam update groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] [copyfrom <GroupItem>] <GroupAttributes>
 # gam update groups <GroupEntity> create|add [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended] <UserTypeEntity>
 # gam update groups <GroupEntity> delete|remove [member|manager|owner] [usersonly|groupsonly] <UserTypeEntity>
 # gam update groups <GroupEntity> sync [member|manager|owner] [usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended] <UserTypeEntity>
@@ -12888,6 +12934,11 @@ def doUpdateGroups():
         getGroupAttrValue(myarg, body, gs_body)
     if gs_body:
       gs = buildGAPIObject(API.GROUPSSETTINGS)
+      gs_body = getSettingsFromGroup(cd, gs, gs_body)
+      if not gs_body:
+        return
+    elif not body:
+      return
     Act.Set(Act.UPDATE)
     i = 0
     count = len(entityList)
@@ -12899,41 +12950,35 @@ def doUpdateGroups():
           if group.find(u'@') == -1: # group settings API won't take uid so we make sure cd API is used so that we can grab real email.
             group = callGAPI(cd.groups(), u'get',
                              throw_reasons=GAPI.GROUP_GET_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
-                             groupKey=group, body=body, fields=u'email')[u'email']
+                             groupKey=group, fields=u'email')[u'email']
           settings = callGAPI(gs.groups(), u'get',
-                              soft_errors=True, throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
+                              throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
                               groupUniqueId=group, fields=u'*')
-          if settings is not None:
-            settings.update(gs_body)
-          else:
-            entityActionFailedWarning([Ent.GROUP, group], Msg.API_ERROR_SETTINGS, i, count)
-            continue
-        except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.backendError, GAPI.systemError, GAPI.badRequest):
-          entityUnknownWarning(Ent.GROUP, group, i, count)
+          settings.update(gs_body)
+        except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+                GAPI.backendError, GAPI.invalid, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
+                GAPI.systemError, GAPI.serviceLimit) as e:
+          entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
           continue
       if body:
         try:
           group = callGAPI(cd.groups(), u'update',
                            throw_reasons=GAPI.GROUP_UPDATE_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
                            groupKey=group, body=body, fields=u'email')[u'email']
-        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.backendError, GAPI.badRequest):
-          entityUnknownWarning(Ent.GROUP, group, i, count)
-          continue
-      errMsg = u''
-      if gs_body and not GroupIsAbuseOrPostmaster(group):
-        try:
-          result = callGAPI(gs.groups(), u'update',
-                            soft_errors=True, throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
-                            groupUniqueId=group, body=settings, fields=u'')
-          if result is None:
-            errMsg = Msg.API_ERROR_SETTINGS
-        except (GAPI.permissionDenied, GAPI.invalid, GAPI.invalidInput) as e:
+        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalid, GAPI.systemError) as e:
           entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
           continue
-        except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.backendError, GAPI.systemError):
-          entityUnknownWarning(Ent.GROUP, group, i, count)
+      if gs_body and not GroupIsAbuseOrPostmaster(group):
+        try:
+          callGAPI(gs.groups(), u'update',
+                   throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
+                   groupUniqueId=group, body=settings, fields=u'')
+        except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+                GAPI.backendError, GAPI.invalid, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
+                GAPI.systemError, GAPI.serviceLimit) as e:
+          entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
           continue
-      entityActionPerformedMessage([Ent.GROUP, group], errMsg, i, count)
+      entityActionPerformed([Ent.GROUP, group], i, count)
   elif CL_subCommand in [u'create', u'add']:
     role, groupMemberType = _getRoleGroupMemberType()
     checkSuspended = getChoice(CHECK_SUSPENDED_CHOICE_MAP, defaultChoice=None)
@@ -13182,16 +13227,13 @@ def infoGroups(entityList):
       settings = {}
       if getSettings and not GroupIsAbuseOrPostmaster(group):
         settings = callGAPI(gs.groups(), u'get',
-                            soft_errors=True, throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
+                            throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
                             groupUniqueId=group, fields=gsfields) # Use email address retrieved from cd since GS API doesn't support uid
-        if settings is None:
-          settings = {}
-        else:
-          for key in GROUP_BASIC_FIELD_TO_GROUP_FIELD_MAP:
-            if key in settings and ((key not in basic_info) or (basic_info[key] != settings[key])):
-              if key in basic_info:
-                basic_info[GROUP_BASIC_FIELD_TO_GROUP_FIELD_MAP[key]] = basic_info.pop(key)
-              basic_info[key] = settings.pop(key)
+        for key in GROUP_BASIC_FIELD_TO_GROUP_FIELD_MAP:
+          if key in settings and ((key not in basic_info) or (basic_info[key] != settings[key])):
+            if key in basic_info:
+              basic_info[GROUP_BASIC_FIELD_TO_GROUP_FIELD_MAP[key]] = basic_info.pop(key)
+            basic_info[key] = settings.pop(key)
       if getGroups:
         groups = callGAPIpages(cd.groups(), u'list', u'groups',
                                userKey=group, fields=u'nextPageToken,groups(name,email)')
@@ -13260,9 +13302,10 @@ def infoGroups(entityList):
         Ind.Decrement()
         printKeyValueList([u'Total users in group', len(members)])
       Ind.Decrement()
-    except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden,
-            GAPI.badRequest, GAPI.backendError, GAPI.systemError):
-      entityUnknownWarning(Ent.GROUP, group, i, count)
+    except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+            GAPI.backendError, GAPI.invalid, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
+            GAPI.systemError, GAPI.serviceLimit) as e:
+      entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
 
 # gam info groups <GroupEntity> [members] [managers] [owners] [nousers] [quick] [noaliases] [groups] <GroupFieldName>* [fields <GroupFieldNameList>] [formatjson]
 def doInfoGroups():
@@ -13431,13 +13474,10 @@ def doPrintGroups():
       waitOnFailure(1, 10, reason, message)
       try:
         response = callGAPI(cd.groups(), u'get',
-                            soft_errors=True, throw_reasons=GAPI.GROUP_GET_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
+                            throw_reasons=GAPI.GROUP_GET_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
                             groupKey=ri[RI_ENTITY], fields=cdfields)
-        if response is None:
-          entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], Ent.GROUP, None], Msg.UNRECOVERABLE_ERROR, i, int(ri[RI_COUNT]))
-          return
-      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest):
-        entityUnknownWarning(Ent.GROUP, ri[RI_ENTITY], i, int(ri[RI_COUNT]))
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.invalid, GAPI.systemError) as e:
+        entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], Ent.GROUP, None], str(e), i, int(ri[RI_COUNT]))
         return
     entityList.append(response)
 
@@ -13492,12 +13532,11 @@ def doPrintGroups():
       waitOnFailure(1, 10, reason, message)
       try:
         response = callGAPI(gs.groups(), u'get',
-                            soft_errors=True, throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
+                            throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
                             groupUniqueId=ri[RI_ENTITY], fields=gsfields)
-        if response is None:
-          entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], Ent.GROUP_SETTINGS, None], Msg.UNRECOVERABLE_ERROR, i, int(ri[RI_COUNT]))
-          response = {}
-      except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.backendError, GAPI.systemError) as e:
+      except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+              GAPI.backendError, GAPI.invalid, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
+              GAPI.systemError, GAPI.serviceLimit) as e:
         entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], Ent.GROUP_SETTINGS, None], str(e), i, int(ri[RI_COUNT]))
         response = {}
     groupData[i][u'settings'] = response
@@ -13952,7 +13991,7 @@ def doPrintGroupMembers():
               row[u'name'] = callGAPI(cd.groups(), u'get',
                                       throw_reasons=GAPI.GROUP_GET_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
                                       groupKey=memberId, fields=u'name')[u'name']
-            except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest):
+            except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.invalid, GAPI.systemError):
               pass
         elif memberType == u'CUSTOMER':
           if membernames:
@@ -19771,6 +19810,130 @@ def doShowGuardians():
 def doPrintGuardians():
   printShowGuardians(True)
 
+def getClassroomOauth2Credentials(filename):
+  if not os.path.isfile(filename):
+    invalidClassroomOauth2TxtExit(filename)
+  try:
+    storage = oauth2client.file.Storage(filename)
+    return storage.get()
+  except (KeyError, ValueError):
+    invalidClassroomOauth2TxtExit(filename)
+  except IOError as e:
+    systemErrorExit(FILE_ERROR_RC, e)
+
+def getClassroomOauth2Filename(userId):
+  return os.path.join(GC.Values[GC.CONFIG_DIR], u'classroom-{0}-oauth2.txt'.format(userId))
+
+# gam <UserTypeEntity> create classroomoauth2
+def createClassroomOauth2(users, checkArguments=True):
+  cd = buildGAPIObject(API.DIRECTORY)
+  if checkArguments:
+    checkForExtraneousArguments()
+  client_id, client_secret = getOAuthClientIDAndSecret()
+  flags = cmd_flags(noLocalWebserver=GC.Values[GC.NO_BROWSER])
+  httpObj = getHttpObj()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user = normalizeEmailAddressOrUID(user)
+    if user.find(u'@') == -1:
+      userId = user
+      login_hint = convertUIDtoEmailAddress(user, cd=cd)
+    else:
+      userId = convertEmailAddressToUID(user, cd=cd)
+      login_hint = user
+    flow = oauth2client.client.OAuth2WebServerFlow(client_id=client_id,
+                                                   client_secret=client_secret, scope=API.CLASSROOM_OAUTH_SCOPES, redirect_uri=oauth2client.client.OOB_CALLBACK_URN,
+                                                   user_agent=GAM_INFO, response_type=u'code', login_hint=login_hint)
+    classroomOauth2File = getClassroomOauth2Filename(userId)
+    storage = oauth2client.file.Storage(classroomOauth2File)
+    try:
+      oauth2client.tools.run_flow(flow=flow, storage=storage, flags=flags, http=httpObj)
+      time.sleep(2)
+      action = Act.Get()
+      Act.Set(Act.CREATE)
+      entityActionPerformed([Ent.USER, user, Ent.CLASSROOM_OAUTH2_TXT_FILE, classroomOauth2File], i, count)
+      Act.Set(action)
+    except httplib2.CertificateValidationUnsupported:
+      noPythonSSLExit()
+
+# gam <UserTypeEntity> delete classroomoauth2
+def deleteClassroomOauth2(users):
+  cd = buildGAPIObject(API.DIRECTORY)
+  checkForExtraneousArguments()
+  httpObj = getHttpObj()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user = normalizeEmailAddressOrUID(user)
+    if user.find(u'@') == -1:
+      userId = user
+    else:
+      userId = convertEmailAddressToUID(user, cd=cd)
+    classroomOauth2File = getClassroomOauth2Filename(userId)
+    if os.path.isfile(classroomOauth2File):
+      credentials = getClassroomOauth2Credentials(classroomOauth2File)
+      if credentials and not credentials.invalid:
+        credentials.revoke_uri = oauth2client.GOOGLE_REVOKE_URI
+        try:
+          credentials.revoke(httpObj)
+        except oauth2client.client.TokenRevokeError as e:
+          printErrorMessage(INVALID_TOKEN_RC, str(e))
+      deleteFile(classroomOauth2File, continueOnError=True)
+      entityActionPerformed([Ent.USER, user, Ent.CLASSROOM_OAUTH2_TXT_FILE, classroomOauth2File], i, count)
+    else:
+      entityDoesNotHaveItemWarning([Ent.USER, user, Ent.CLASSROOM_OAUTH2_TXT_FILE, classroomOauth2File], i, count)
+
+# gam <UserTypeEntity> info classroomoauth2
+def infoClassroomOauth2(users):
+  cd = buildGAPIObject(API.DIRECTORY)
+  checkForExtraneousArguments()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user = normalizeEmailAddressOrUID(user)
+    if user.find(u'@') == -1:
+      userId = user
+    else:
+      userId = convertEmailAddressToUID(user, cd=cd)
+    classroomOauth2File = getClassroomOauth2Filename(userId)
+    if os.path.isfile(classroomOauth2File):
+      credentials = getClassroomOauth2Credentials(classroomOauth2File)
+      if credentials and not credentials.invalid:
+        printEntity([Ent.USER, user, Ent.CLASSROOM_OAUTH2_TXT_FILE, classroomOauth2File], i, count)
+        Ind.Increment()
+        printKeyValueList([u'Client ID', credentials.client_id])
+        scopes = sorted(credentials.scopes)
+        for scope in [API.EMAIL_SCOPE, API.PROFILE_SCOPE]:
+          if scope in scopes:
+            scopes.remove(scope)
+        printKeyValueList([u'Scopes', len(scopes)])
+        Ind.Increment()
+        for scope in scopes:
+          printKeyValueList([scope])
+        Ind.Decrement()
+        Ind.Decrement()
+      else:
+        entityActionFailedWarning([Ent.USER, user],
+                                  Msg.HAS_INVALID_FORMAT.format(Ent.Singular(Ent.CLASSROOM_OAUTH2_TXT_FILE), classroomOauth2File), i, count)
+    else:
+      entityDoesNotHaveItemWarning([Ent.USER, user, Ent.CLASSROOM_OAUTH2_TXT_FILE, classroomOauth2File], i, count)
+
+def buildClassroomGAPIObject(classroomOauth2File):
+  api = API.CLASSROOM
+  _, httpObj, service, _ = getAPIversionHttpService(api)
+  credentials = getClassroomOauth2Credentials(classroomOauth2File)
+  GM.Globals[GM.CURRENT_CLIENT_API] = api
+  GM.Globals[GM.CURRENT_CLIENT_API_SCOPES] = credentials.scopes
+  try:
+    service._http = credentials.authorize(httpObj)
+  except (httplib2.ServerNotFoundError, google.auth.exceptions.TransportError) as e:
+    systemErrorExit(NETWORK_ERROR_RC, str(e))
+  except oauth2client.client.AccessTokenRefreshError as e:
+    handleOAuthTokenError(e, False)
+  GM.Globals[GM.OAUTH2_CLIENT_ID] = credentials.client_id
+  return service
+
 COURSE_STATE_ARGUMENT_MAP = {
   u'active': u'ACTIVE',
   u'archived': u'ARCHIVED',
@@ -19785,7 +19948,10 @@ def _getCourseStates(courseStates):
     else:
       invalidChoiceExit(COURSE_STATE_ARGUMENT_MAP, True)
 
-def getCourseAttribute(myarg, body):
+def _initCourseAttributesFrom():
+  return {u'courseId': None, u'members': u'none', u'announcementStates': [], u'workStates': []}
+
+def _getCourseAttribute(myarg, body, courseAttributesFrom):
   if myarg == u'name':
     body[u'name'] = getString(Cmd.OB_STRING)
   elif myarg == u'section':
@@ -19800,56 +19966,180 @@ def getCourseAttribute(myarg, body):
     body[u'ownerId'] = getEmailAddress()
   elif myarg in [u'state', u'status']:
     body[u'courseState'] = getChoice(COURSE_STATE_ARGUMENT_MAP, mapChoice=True)
+  elif myarg == u'copyfrom':
+    courseAttributesFrom[u'courseId'] = getString(Cmd.OB_COURSE_ID)
+  elif myarg in [u'announcementstate', u'announcementstates']:
+    _getCourseAnnouncementStates(courseAttributesFrom[u'announcementStates'])
+  elif myarg in [u'workstate', u'workstates', u'courseworkstate', u'courseworkstates']:
+    _getCourseWorkStates(courseAttributesFrom[u'workStates'])
+  elif myarg == u'members':
+    courseAttributesFrom[u'members'] = getChoice(COURSE_MEMBER_ARGUMENTS)
   else:
     unknownArgumentExit()
 
+def _checkCourseAttributesFrom(croom, courseAttributesFrom):
+  if courseAttributesFrom[u'courseId']:
+    courseAttributesFrom[u'courseId'] = checkCourseExists(croom, courseAttributesFrom[u'courseId'])
+    if courseAttributesFrom[u'courseId'] is None:
+      return False
+  elif courseAttributesFrom[u'members'] != u'none' or courseAttributesFrom[u'announcementStates'] or courseAttributesFrom[u'workStates']:
+    missingArgumentExit(u'copyfrom <CourseId>)')
+  return True
+
+COURSE_ANNOUNCEMENT_REACDONLY_FIELDS = [
+  u'alternateLink',
+  u'courseId',
+  u'creationTime',
+  u'creatorUserId',
+  u'id',
+  u'updateTime',
+  ]
+COURSE_COURSEWORK_READONLY_FIELDS = [
+  u'alternateLink',
+  u'assignment',
+  u'associatedWithDeveloper',
+  u'courseId',
+  u'creationTime',
+  u'creatorUserId',
+  u'id',
+  u'updateTime',
+  ]
+
+def copyCourseAttributes(croom, newCourseId, ownerId, courseAttributesFrom, i, count):
+  courseId = courseAttributesFrom[u'courseId']
+  if courseAttributesFrom[u'announcementStates'] or courseAttributesFrom[u'workStates']:
+    classroomOauth2File = getClassroomOauth2Filename(ownerId)
+    if not os.path.isfile(classroomOauth2File):
+      createClassroomOauth2([u'uid:{0}'.format(ownerId)], False)
+  _, teachers, students = _getCourseAliasesMembers(croom, courseId, courseAttributesFrom,
+                                                   u'nextPageToken,teachers(profile(emailAddress,id))',
+                                                   u'nextPageToken,students(profile(emailAddress))')
+  if courseAttributesFrom[u'announcementStates']:
+    printGettingAllEntityItemsForWhom(Ent.COURSE_ANNOUNCEMENT_ID, Ent.TypeName(Ent.COURSE, courseId), i, count,
+                                      _gettingCourseAnnouncementQuery(courseAttributesFrom[u'announcementStates']))
+    try:
+      courseAnnouncements = callGAPIpages(croom.courses().announcements(), u'list', u'announcements',
+                                          page_message=getPageMessage(),
+                                          throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                          courseId=courseId, announcementStates=courseAttributesFrom[u'announcementStates'],
+                                          pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
+    except GAPI.forbidden:
+      APIAccessDeniedExit()
+  if courseAttributesFrom[u'workStates']:
+    printGettingAllEntityItemsForWhom(Ent.COURSE_WORK_ID, Ent.TypeName(Ent.COURSE, courseId), i, count,
+                                      _gettingCourseWorkQuery(courseAttributesFrom[u'workStates']))
+    try:
+      courseWorks = callGAPIpages(croom.courses().courseWork(), u'list', u'courseWork',
+                                  page_message=getPageMessage(),
+                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                  courseId=courseId, courseWorkStates=courseAttributesFrom[u'workStates'],
+                                  pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
+    except GAPI.forbidden:
+      APIAccessDeniedExit()
+  if courseAttributesFrom[u'members'] in [u'all', u'students']:
+    addParticipants = [student[u'profile'][u'emailAddress'] for student in students]
+    _batchAddParticipantsToCourse(croom, newCourseId, i, count, addParticipants, Ent.STUDENT)
+  if courseAttributesFrom[u'members'] in [u'all', u'teachers']:
+    addParticipants = [teacher[u'profile'][u'emailAddress'] for teacher in teachers if teacher[u'profile'][u'id'] != ownerId]
+    _batchAddParticipantsToCourse(croom, newCourseId, i, count, addParticipants, Ent.TEACHER)
+  if (courseAttributesFrom[u'announcementStates'] and courseAnnouncements) or (courseAttributesFrom[u'workStates'] and courseWorks):
+    croom = buildClassroomGAPIObject(classroomOauth2File)
+    if courseAnnouncements:
+      jcount = len(courseAnnouncements)
+      j = 0
+      for body in courseAnnouncements:
+        j += 1
+        courseAnnouncementId = body[u'id']
+        for field in COURSE_ANNOUNCEMENT_REACDONLY_FIELDS:
+          body.pop(field, None)
+        try:
+          callGAPI(croom.courses().announcements(), u'create',
+                   throw_reasons=[GAPI.FORBIDDEN],
+                   courseId=newCourseId, body=body)
+          entityActionPerformed([Ent.COURSE, newCourseId, Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], j, jcount)
+        except GAPI.forbidden:
+          APIAccessDeniedExit()
+    if courseWorks:
+      jcount = len(courseWorks)
+      j = 0
+      for body in courseWorks:
+        j += 1
+        courseWorkId = body[u'id']
+        for field in COURSE_COURSEWORK_READONLY_FIELDS:
+          body.pop(field, None)
+        try:
+          callGAPI(croom.courses().courseWork(), u'create',
+                   throw_reasons=[GAPI.FORBIDDEN],
+                   courseId=newCourseId, body=body)
+          entityActionPerformed([Ent.COURSE, newCourseId, Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
+        except GAPI.forbidden:
+          APIAccessDeniedExit()
+
 # gam create course [id|alias <CourseAlias>] <CourseAttributes>*
+#	 [copyfrom <CourseID> [announcementstates <CourseAnnouncementStateList>] [workstates <CourseWorkStateList>] [members none|all|students|teachers]]
 def doCreateCourse():
   croom = buildGAPIObject(API.CLASSROOM)
   body = {}
+  courseAttributesFrom = _initCourseAttributesFrom()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in [u'alias', u'id']:
       body[u'id'] = getCourseAlias()
     else:
-      getCourseAttribute(myarg, body)
+      _getCourseAttribute(myarg, body, courseAttributesFrom)
   if u'ownerId' not in body:
     missingArgumentExit(u'teacher <UserItem>)')
   if u'name' not in body:
     missingArgumentExit(u'name <String>)')
+  if not _checkCourseAttributesFrom(croom, courseAttributesFrom):
+    return
   try:
-    newCourseId = callGAPI(croom.courses(), u'create',
-                           throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
-                           body=body, fields=u'id')[u'id']
-    entityActionPerformed([Ent.COURSE, body[u'name'], Ent.COURSE_ID, newCourseId])
+    result = callGAPI(croom.courses(), u'create',
+                      throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                      body=body, fields=u'id,name,ownerId')
+    entityActionPerformed([Ent.COURSE_NAME, result[u'name'], Ent.COURSE, result[u'id']])
   except (GAPI.alreadyExists, GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition, GAPI.forbidden, GAPI.badRequest) as e:
-    entityActionFailedWarning([Ent.COURSE, body[u'name'], Ent.TEACHER, body[u'ownerId']], str(e))
+    entityActionFailedWarning([Ent.COURSE_NAME, body[u'name'], Ent.TEACHER, body[u'ownerId']], str(e))
+  if courseAttributesFrom[u'courseId']:
+    copyCourseAttributes(croom, result[u'id'], result[u'ownerId'], courseAttributesFrom, 0, 0)
 
 def _doUpdateCourses(entityList):
   croom = buildGAPIObject(API.CLASSROOM)
   body = {}
+  courseAttributesFrom = _initCourseAttributesFrom()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    getCourseAttribute(myarg, body)
+    _getCourseAttribute(myarg, body, courseAttributesFrom)
+  if not _checkCourseAttributesFrom(croom, courseAttributesFrom):
+    return
   updateMask = u','.join(list(body))
   i = 0
   count = len(entityList)
   for course in entityList:
     i += 1
-    body[u'id'] = addCourseIdScope(course)
+    courseId = addCourseIdScope(course)
     try:
-      result = callGAPI(croom.courses(), u'patch',
-                        throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
-                        id=body[u'id'], body=body, updateMask=updateMask, fields=u'id')
-      entityActionPerformed([Ent.COURSE, result[u'id']], i, count)
+      if body:
+        result = callGAPI(croom.courses(), u'patch',
+                          throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                          id=courseId, body=body, updateMask=updateMask, fields=u'id,name,ownerId')
+        entityActionPerformed([Ent.COURSE_NAME, result[u'name'], Ent.COURSE, result[u'id']], i, count)
+      else:
+        result = callGAPI(croom.courses(), u'get',
+                          throw_reasons=[GAPI.NOT_FOUND],
+                          id=courseId, fields=u'id,name,ownerId')
+      if courseAttributesFrom[u'courseId']:
+        copyCourseAttributes(croom, result[u'id'], result[u'ownerId'], courseAttributesFrom, i, count)
     except (GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition, GAPI.forbidden, GAPI.badRequest) as e:
-      entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(body[u'id'])], str(e), i, count)
+      entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
 
 # gam update courses <CourseEntity> <CourseAttributes>+
+#	 [copyfrom <CourseID> [announcementstates <CourseAnnouncementStateList>] [workstates <CourseWorkStateList>] [members none|all|students|teachers]]
 def doUpdateCourses():
   _doUpdateCourses(getEntityList(Cmd.OB_COURSE_ENTITY))
 
 # gam update course <CourseID> <CourseAttributes>+
+#	 [copyfrom <CourseID> [announcementstates <CourseAnnouncementStateList>] [workstates <CourseWorkStateList>] [members none|all|students|teachers]]
 def doUpdateCourse():
   _doUpdateCourses(getStringReturnInList(Cmd.OB_COURSE_ID))
 
@@ -19872,7 +20162,7 @@ def _doDeleteCourses(entityList):
       if body:
         callGAPI(croom.courses(), u'patch',
                  throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
-                 id=courseId, body=body, updateMask=updateMask, fields=u'id')
+                 id=courseId, body=body, updateMask=updateMask, fields=u'')
       callGAPI(croom.courses(), u'delete',
                throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION],
                id=courseId)
@@ -20027,7 +20317,7 @@ def _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFiel
   else:
     page_message = None
   try:
-    if courseShowProperties[u'aliases']:
+    if courseShowProperties.get(u'aliases'):
       if showGettings:
         Ent.SetGetting(Ent.ALIAS)
       try:
@@ -20095,7 +20385,7 @@ def _doInfoCourses(entityList):
                         id=courseId, fields=fields)
       if courseShowProperties[u'ownerEmail']:
         course['ownerEmail'] = _convertCourseUserIdToEmail(croom, course['ownerId'], ownerEmails,
-                                                           [Ent.COURSE_ID, course[u'id'], Ent.OWNER_ID, course['ownerId']], i, count)
+                                                           [Ent.COURSE, course[u'id'], Ent.OWNER_ID, course['ownerId']], i, count)
       aliases, teachers, students = _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFields, studentsFields)
       if formatJSON:
         if courseShowProperties[u'aliases']:
@@ -20322,7 +20612,7 @@ def doPrintCourses():
     courseId = course[u'id']
     if courseShowProperties[u'ownerEmail']:
       course['ownerEmail'] = _convertCourseUserIdToEmail(croom, course['ownerId'], ownerEmails,
-                                                         [Ent.COURSE_ID, courseId, Ent.OWNER_ID, course['ownerId']], i, count)
+                                                         [Ent.COURSE, courseId, Ent.OWNER_ID, course['ownerId']], i, count)
       if courseShowProperties[u'ownerEmailMatchPattern'] and not courseShowProperties[u'ownerEmailMatchPattern'].match(course['ownerEmail']):
         continue
     aliases, teachers, students = _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFields, studentsFields, True, i, count)
@@ -20418,7 +20708,7 @@ def doPrintCourseAnnouncements():
   def _printCourseAnnouncement(course, courseAnnouncement, i, count):
     if showCreatorEmail:
       courseAnnouncement[u'creatorUserEmail'] = _convertCourseUserIdToEmail(croom, courseAnnouncement[u'creatorUserId'], creatorEmails,
-                                                                            [Ent.COURSE_ID, course[u'id'], Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncement[u'id'],
+                                                                            [Ent.COURSE, course[u'id'], Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncement[u'id'],
                                                                              Ent.CREATOR_ID, courseAnnouncement[u'creatorUserId']], i, count)
     if formatJSON:
       csvRows.append({u'courseId': course[u'id'], u'courseName': course[u'name'],
@@ -20507,7 +20797,7 @@ def doPrintCourseAnnouncements():
                                         courseId=courseId, id=courseAnnouncementId, fields=fields)
           _printCourseAnnouncement(course, courseAnnouncement, i, count)
         except GAPI.notFound:
-          entityDoesNotHaveItemWarning([Ent.COURSE, course[u'name'], Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], j, jcount)
+          entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course[u'name'], Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], j, jcount)
         except GAPI.forbidden:
           APIAccessDeniedExit()
   writeCSVfile(csvRows, titles, u'Course Announcements', todrive, [u'courseId', u'courseName', u'id', u'text', u'state'], quotechar)
@@ -20583,7 +20873,7 @@ def doPrintCourseWork():
   def _printCourseWork(course, courseWork, i, count):
     if showCreatorEmail:
       courseWork[u'creatorUserEmail'] = _convertCourseUserIdToEmail(croom, courseWork[u'creatorUserId'], creatorEmails,
-                                                                    [Ent.COURSE_ID, course[u'id'], Ent.COURSE_WORK_ID, courseWork[u'id'],
+                                                                    [Ent.COURSE, course[u'id'], Ent.COURSE_WORK_ID, courseWork[u'id'],
                                                                      Ent.CREATOR_ID, courseWork[u'creatorUserId']], i, count)
     if formatJSON:
       csvRows.append({u'courseId': course[u'id'], u'courseName': course[u'name'],
@@ -20670,7 +20960,7 @@ def doPrintCourseWork():
                                 courseId=courseId, id=courseWorkId, fields=fields)
           _printCourseWork(course, courseWork, i, count)
         except GAPI.notFound:
-          entityDoesNotHaveItemWarning([Ent.COURSE, course[u'name'], Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
+          entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course[u'name'], Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
         except GAPI.forbidden:
           APIAccessDeniedExit()
   writeCSVfile(csvRows, titles, u'Course Work', todrive, [u'courseId', u'courseName', u'id', u'title', u'description', u'state'], quotechar)
@@ -20844,7 +21134,7 @@ def doPrintCourseSubmissions():
           for submission in results:
             _printCourseSubmission(course, submission)
         except GAPI.notFound:
-          entityDoesNotHaveItemWarning([Ent.COURSE, course[u'name'], Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
+          entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course[u'name'], Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
         except GAPI.forbidden:
           APIAccessDeniedExit()
       else:
@@ -20867,7 +21157,7 @@ def doPrintCourseSubmissions():
                                   fields=fields)
             _printCourseSubmission(course, submission)
           except GAPI.notFound:
-            entityDoesNotHaveItemWarning([Ent.COURSE, course[u'name'], Ent.COURSE_WORK_ID, courseWorkId, Ent.COURSE_SUBMISSION_ID, courseSubmissionId], k, kcount)
+            entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course[u'name'], Ent.COURSE_WORK_ID, courseWorkId, Ent.COURSE_SUBMISSION_ID, courseSubmissionId], k, kcount)
           except GAPI.forbidden:
             APIAccessDeniedExit()
   writeCSVfile(csvRows, titles, u'Course Submissions', todrive, [u'courseId', u'courseName', u'courseWorkId', u'id', u'userId',
@@ -30761,16 +31051,13 @@ def _printShowGplusProfile(users, csvFormat):
       printGettingEntityItemForWhom(Ent.GPLUS_PROFILE, user, i, count)
     try:
       result = callGAPI(gplus.people(), u'get',
-                        soft_errors=True, throw_reasons=GAPI.GPLUS_THROW_REASONS, retry_reasons=[GAPI.UNKNOWN_ERROR],
+                        throw_reasons=GAPI.GPLUS_THROW_REASONS, retry_reasons=[GAPI.UNKNOWN_ERROR],
                         userId=u'me')
-      if result:
-        if not csvFormat:
-          _showGplusProfile(user, i, count, result)
-        else:
-          addRowTitlesToCSVfile(flattenJSON(result, flattened={u'emailAddress': user}), csvRows, titles)
+      if not csvFormat:
+        _showGplusProfile(user, i, count, result)
       else:
-        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
-    except GAPI.serviceNotAvailable:
+        addRowTitlesToCSVfile(flattenJSON(result, flattened={u'emailAddress': user}), csvRows, titles)
+    except (GAPI.serviceNotAvailable, GAPI.unknownError):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvFormat:
     writeCSVfile(csvRows, titles, u'Gplus Profiles', todrive, [u'emailAddress', u'id', u'displayName', u'domain'])
@@ -34520,6 +34807,7 @@ USER_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_CALENDAR:	addCreateCalendars,
   Cmd.ARG_GROUP:	addUserToGroups,
   Cmd.ARG_CALENDARACL:	createCalendarACLs,
+  Cmd.ARG_CLASSROOMOAUTH2:	createClassroomOauth2,
   Cmd.ARG_CONTACT:	createUserContact,
   Cmd.ARG_CONTACTGROUP:	createUserContactGroup,
   Cmd.ARG_DELEGATE:	createDelegate,
@@ -34556,6 +34844,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_BACKUPCODE:	deleteBackupCodes,
       Cmd.ARG_CALENDAR:		deleteCalendars,
       Cmd.ARG_CALENDARACL:	deleteCalendarACLs,
+      Cmd.ARG_CLASSROOMOAUTH2:	deleteClassroomOauth2,
       Cmd.ARG_CONTACT:		deleteUserContacts,
       Cmd.ARG_CONTACTGROUP:	deleteUserContactGroups,
       Cmd.ARG_CONTACTPHOTO:	deleteUserContactPhoto,
@@ -34589,6 +34878,7 @@ USER_COMMANDS_WITH_OBJECTS = {
     (Act.INFO,
      {Cmd.ARG_CALENDAR:		infoCalendars,
       Cmd.ARG_CALENDARACL:	infoCalendarACLs,
+      Cmd.ARG_CLASSROOMOAUTH2:	infoClassroomOauth2,
       Cmd.ARG_CONTACT:		infoUserContacts,
       Cmd.ARG_CONTACTGROUP:	infoUserContactGroups,
       Cmd.ARG_DRIVEFILEACL:	infoDriveFileACLs,
