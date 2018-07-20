@@ -1,3 +1,7 @@
+4.57.17
+
+Fixed bug whan handling error in gam create course.
+
 4.57.16
 
 Added copyfrom <GroupItem> to gam create/update group to allow copying of group attributes from one group to another.

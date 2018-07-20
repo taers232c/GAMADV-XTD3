@@ -64,6 +64,25 @@ OAUTH2_TOKEN_ERRORS = [
   u'unauthorized_client: Unauthorized client or scope in request',
   ]
 
+PROJECT_APIS = [
+  u'admin.googleapis.com',
+  u'appsactivity.googleapis.com',
+  u'audit.googleapis.com',
+  u'calendar-json.googleapis.com',
+  u'classroom.googleapis.com',
+  u'contacts.googleapis.com',
+  u'drive.googleapis.com',
+  u'gmail.googleapis.com',
+  u'groupsmigration.googleapis.com',
+  u'groupssettings.googleapis.com',
+  u'licensing.googleapis.com',
+  u'plus.googleapis.com',
+  u'reseller.googleapis.com',
+  u'sheets.googleapis.com',
+  u'siteverification.googleapis.com',
+  u'vault.googleapis.com',
+  ]
+
 _INFO = {
   ADMIN_SETTINGS: {u'version': u'v2', u'credfam': FAM2_SCOPES, u'localjson': True},
   APPSACTIVITY: {u'version': u'v1', u'credfam': FAM1_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/activity',

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.16'
+__version__ = u'4.57.17'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -5737,9 +5737,8 @@ def getCRMService(login_hint):
   httpObj = credentials.authorize(getHttpObj())
   return (googleapiclient.discovery.build(u'cloudresourcemanager', u'v1', http=httpObj, cache_discovery=False), httpObj)
 
-def enableProjectAPIs(simplehttp, httpObj, projectName, checkEnabled):
-  _, c = simplehttp.request(GAM_PROJECT_APIS, u'GET')
-  apis = c.splitlines()
+def enableProjectAPIs(httpObj, projectName, checkEnabled):
+  apis = API.PROJECT_APIS[:]
   serveman = googleapiclient.discovery.build(u'servicemanagement', u'v1', http=httpObj, cache_discovery=False)
   if checkEnabled:
     enabledServices = callGAPIpages(serveman.services(), u'list', u'services',
@@ -5886,7 +5885,7 @@ and accept the Terms of Service (ToS). As soon as you've accepted the ToS popup,
       systemErrorExit(2, status[u'error']+u'\n')
     break
   simplehttp = getHttpObj()
-  enableProjectAPIs(simplehttp, httpObj, projectName, False)
+  enableProjectAPIs(httpObj, projectName, False)
   iam = googleapiclient.discovery.build(u'iam', u'v1', http=httpObj, cache_discovery=False)
   sys.stdout.write(u'Creating Service Account\n')
   service_account = callGAPI(iam.projects().serviceAccounts(), u'create',
@@ -5981,8 +5980,7 @@ def doUpdateProject():
     projectName = 'project:%s' % cs_json[u'installed'][u'project_id']
   except (ValueError, IndexError, KeyError):
     systemErrorExit(3, u'The format of your client secrets file:\n\n%s\n\nis incorrect. Please recreate the file.' % GC.Values[GC.CLIENT_SECRETS_JSON])
-  simplehttp = getHttpObj()
-  enableProjectAPIs(simplehttp, httpObj, projectName, True)
+  enableProjectAPIs(httpObj, projectName, True)
 
 # gam whatis <EmailItem> [noinfo]
 def doWhatIs():
@@ -19934,19 +19932,41 @@ def buildClassroomGAPIObject(classroomOauth2File):
   GM.Globals[GM.OAUTH2_CLIENT_ID] = credentials.client_id
   return service
 
-COURSE_STATE_ARGUMENT_MAP = {
-  u'active': u'ACTIVE',
-  u'archived': u'ARCHIVED',
-  u'provisioned': u'PROVISIONED',
-  u'declined': u'DECLINED',
+COURSE_STATE_MAPS = {
+  Cmd.OB_COURSE_STATE_LIST: {
+    u'active': u'ACTIVE',
+    u'archived': u'ARCHIVED',
+    u'provisioned': u'PROVISIONED',
+    u'declined': u'DECLINED',
+    },
+  Cmd.OB_COURSE_ANNOUNCEMENT_STATE_LIST: {
+    u'draft': u'DRAFT',
+    u'published': u'PUBLISHED',
+    u'deleted': u'DELETED',
+    },
+  Cmd.OB_COURSE_WORK_STATE_LIST: {
+    u'draft': u'DRAFT',
+    u'published': u'PUBLISHED',
+    u'deleted': u'DELETED',
+    },
+  Cmd.OB_COURSE_SUBMISSION_STATE_LIST: {
+    u'new': u'NEW',
+    u'created': u'CREATED',
+    u'turnedin': u'TURNED_IN',
+    u'returned': u'RETURNED',
+    u'reclaimedbystudent': u'RECLAIMED_BY_STUDENT',
+    },
   }
 
-def _getCourseStates(courseStates):
-  for state in getString(Cmd.OB_COURSE_STATE_LIST).lower().replace(u',', u' ').split():
-    if state in COURSE_STATE_ARGUMENT_MAP:
-      courseStates.append(COURSE_STATE_ARGUMENT_MAP[state])
+def _getCourseStates(item, states):
+  stateMap = COURSE_STATE_MAPS[item]
+  for state in getString(item).lower().replace(u',', u' ').split():
+    if state == u'all':
+      states.extend([stateMap[state] for state in stateMap])
+    elif state in stateMap:
+      states.append(stateMap[state])
     else:
-      invalidChoiceExit(COURSE_STATE_ARGUMENT_MAP, True)
+      invalidChoiceExit(stateMap, True)
 
 def _initCourseAttributesFrom():
   return {u'courseId': None, u'members': u'none', u'announcementStates': [], u'workStates': []}
@@ -19965,13 +19985,13 @@ def _getCourseAttribute(myarg, body, courseAttributesFrom):
   elif myarg in [u'owner', u'ownerid', u'teacher']:
     body[u'ownerId'] = getEmailAddress()
   elif myarg in [u'state', u'status']:
-    body[u'courseState'] = getChoice(COURSE_STATE_ARGUMENT_MAP, mapChoice=True)
+    body[u'courseState'] = getChoice(COURSE_STATE_MAPS[Cmd.OB_COURSE_STATE_LIST], mapChoice=True)
   elif myarg == u'copyfrom':
     courseAttributesFrom[u'courseId'] = getString(Cmd.OB_COURSE_ID)
   elif myarg in [u'announcementstate', u'announcementstates']:
-    _getCourseAnnouncementStates(courseAttributesFrom[u'announcementStates'])
+    _getCourseStates(Cmd.OB_COURSE_ANNOUNCEMENT_STATE_LIST, courseAttributesFrom[u'announcementStates'])
   elif myarg in [u'workstate', u'workstates', u'courseworkstate', u'courseworkstates']:
-    _getCourseWorkStates(courseAttributesFrom[u'workStates'])
+    _getCourseStates(Cmd.OB_COURSE_WORK_STATE_LIST, courseAttributesFrom[u'workStates'])
   elif myarg == u'members':
     courseAttributesFrom[u'members'] = getChoice(COURSE_MEMBER_ARGUMENTS)
   else:
@@ -20098,10 +20118,10 @@ def doCreateCourse():
                       throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
                       body=body, fields=u'id,name,ownerId')
     entityActionPerformed([Ent.COURSE_NAME, result[u'name'], Ent.COURSE, result[u'id']])
+    if courseAttributesFrom[u'courseId']:
+      copyCourseAttributes(croom, result[u'id'], result[u'ownerId'], courseAttributesFrom, 0, 0)
   except (GAPI.alreadyExists, GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition, GAPI.forbidden, GAPI.badRequest) as e:
     entityActionFailedWarning([Ent.COURSE_NAME, body[u'name'], Ent.TEACHER, body[u'ownerId']], str(e))
-  if courseAttributesFrom[u'courseId']:
-    copyCourseAttributes(croom, result[u'id'], result[u'ownerId'], courseAttributesFrom, 0, 0)
 
 def _doUpdateCourses(entityList):
   croom = buildGAPIObject(API.CLASSROOM)
@@ -20465,7 +20485,7 @@ def _getCourseSelectionParameters(myarg, courseSelectionParameters):
   elif myarg == u'student':
     courseSelectionParameters[u'studentId'] = getEmailAddress()
   elif myarg in [u'state', u'states', u'status']:
-    _getCourseStates(courseSelectionParameters[u'courseStates'])
+    _getCourseStates(Cmd.OB_COURSE_STATE_LIST, courseSelectionParameters[u'courseStates'])
   else:
     return False
   return True
@@ -20678,20 +20698,8 @@ COURSE_ANNOUNCEMENTS_ORDERBY_CHOICE_MAP = {
   u'updatedate': u'updateTime',
   }
 
-COURSE_ANNOUNCEMENTS_STATE_ARGUMENT_MAP = {
-  u'draft': u'DRAFT',
-  u'published': u'PUBLISHED',
-  u'deleted': u'DELETED',
-  }
 
 COURSE_ANNOUNCEMENTS_TIME_OBJECTS = set([u'creationTime', u'scheduledTime', u'updateTime'])
-
-def _getCourseAnnouncementStates(courseAnnouncementStates):
-  for state in getString(Cmd.OB_COURSE_ANNOUNCEMENT_STATE_LIST).lower().replace(u',', u' ').split():
-    if state in COURSE_ANNOUNCEMENTS_STATE_ARGUMENT_MAP:
-      courseAnnouncementStates.append(COURSE_ANNOUNCEMENTS_STATE_ARGUMENT_MAP[state])
-    else:
-      invalidChoiceExit(COURSE_ANNOUNCEMENTS_STATE_ARGUMENT_MAP, True)
 
 def _gettingCourseAnnouncementQuery(courseAnnouncementStates):
   query = u''
@@ -20738,7 +20746,7 @@ def doPrintCourseAnnouncements():
     elif myarg in [u'announcementid', u'announcementids']:
       courseAnnouncementIds = getEntityList(Cmd.OB_COURSE_ANNOUNCEMENT_ID_ENTITY)
     elif myarg in [u'announcementstate', u'announcementstates']:
-      _getCourseAnnouncementStates(courseAnnouncementStates)
+      _getCourseStates(Cmd.OB_COURSE_ANNOUNCEMENT_STATE_LIST, courseAnnouncementStates)
     elif myarg == u'orderby':
       fieldName = getChoice(COURSE_ANNOUNCEMENTS_ORDERBY_CHOICE_MAP, mapChoice=True)
       if getChoice(SORTORDER_CHOICE_MAP, defaultChoice=None, mapChoice=True) != u'DESCENDING':
@@ -20831,20 +20839,7 @@ COURSE_WORK_ORDERBY_CHOICE_MAP = {
   u'updatedate': u'updateTime',
   }
 
-COURSE_WORK_STATE_ARGUMENT_MAP = {
-  u'draft': u'DRAFT',
-  u'published': u'PUBLISHED',
-  u'deleted': u'DELETED',
-  }
-
 COURSE_WORK_TIME_OBJECTS = set([u'creationTime', u'scheduledTime', u'updateTime'])
-
-def _getCourseWorkStates(courseWorkStates):
-  for state in getString(Cmd.OB_COURSE_WORK_STATE_LIST).lower().replace(u',', u' ').split():
-    if state in COURSE_WORK_STATE_ARGUMENT_MAP:
-      courseWorkStates.append(COURSE_WORK_STATE_ARGUMENT_MAP[state])
-    else:
-      invalidChoiceExit(COURSE_WORK_STATE_ARGUMENT_MAP, True)
 
 def _initCourseWorkSelectionParameters():
   return {u'courseWorkIds': [], u'courseWorkStates': []}
@@ -20853,7 +20848,7 @@ def _getCourseWorkSelectionParameters(myarg, courseWorkSelectionParameters):
   if myarg in [u'workid', u'workids', u'courseworkid', u'courseworkids']:
     courseWorkSelectionParameters[u'courseWorkIds'] = getEntityList(Cmd.OB_COURSE_WORK_ID_ENTITY)
   elif myarg in [u'workstate', u'workstates', u'courseworkstate', u'courseworkstates']:
-    _getCourseWorkStates(courseWorkSelectionParameters[u'courseWorkStates'])
+    _getCourseStates(Cmd.OB_COURSE_WORK_STATE_LIST, courseWorkSelectionParameters[u'courseWorkStates'])
   else:
     return False
   return True
@@ -20985,22 +20980,7 @@ COURSE_SUBMISSION_FIELDS_CHOICE_MAP = {
   u'worktype': u'courseWorkType',
   }
 
-COURSE_SUBMISSION_STATE_ARGUMENT_MAP = {
-  u'new': u'NEW',
-  u'created': u'CREATED',
-  u'turnedin': u'TURNED_IN',
-  u'returned': u'RETURNED',
-  u'reclaimedbystudent': u'RECLAIMED_BY_STUDENT',
-  }
-
 COURSE_SUBMISSION_TIME_OBJECTS = set([u'creationTime', u'updateTime', u'gradeTimestamp', u'stateTimestamp'])
-
-def _getCourseSubmissionStates(courseSubmissionStates):
-  for state in getString(Cmd.OB_COURSE_SUBMISSION_STATE_LIST).lower().replace(u',', u' ').split():
-    if state in COURSE_SUBMISSION_STATE_ARGUMENT_MAP:
-      courseSubmissionStates.append(COURSE_SUBMISSION_STATE_ARGUMENT_MAP[state])
-    else:
-      invalidChoiceExit(COURSE_SUBMISSION_STATE_ARGUMENT_MAP, True)
 
 def _gettingCourseSubmissionQuery(courseSubmissionStates, late, userId):
   query = u''
@@ -21070,7 +21050,7 @@ def doPrintCourseSubmissions():
     elif myarg in [u'submissionid', u'submissionids', u'coursesubmissionid', u'coursesubmissionids']:
       courseSubmissionIds = getEntityList(Cmd.OB_COURSE_SUBMISSION_ID_ENTITY)
     elif myarg in [u'submissionstate', u'submissionstates', u'coursesubmissionstate', u'coursesubmissionstates']:
-      _getCourseSubmissionStates(courseSubmissionStates)
+      _getCourseStates(Cmd.OB_COURSE_SUBMISSION_STATE_LIST, courseSubmissionStates)
     elif myarg == u'late':
       late = u'LATE_ONLY'
     elif myarg == u'notlate':
