@@ -1706,7 +1706,7 @@ gam print schema|schemas [todrive [<ToDriveAttributes>]]
 
 # Send Email
 
-gam sendemail <RecipientEntity> [from <UserItem>] [replyto <EmailAddress>] subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*
+gam sendemail <RecipientEntity> [from <UserItem>] [replyto <EmailAddress>] subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)* [html [<Boolean>]]
         [newuser <UserItem> firstname|givenname <String> lastname|familyname <string> password <Password>]
 
 # Sites
@@ -1919,10 +1919,10 @@ gam print vaultmatters|matters [todrive [<ToDriveAttributes>]] [basic|full]
         (website clear|(home_page|blog|profile|work|home|other|ftp|reservations|app_install_page|<String> <URL> [notprimary|primary]))|
         (<SchemaName>.<FieldName> [multivalued|multivalue|value|multinonempty [type work|home|other|(custom <String>)]] <String>)
 
-gam create|add user <EmailAddress> <UserAttributes>* [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
+gam create|add user <EmailAddress> <UserAttributes>* [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]] 
 gam update user <UserItem> <UserAttributes> [updateprimaryemail <RegularExpression> <EmailReplacement>]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
-        [createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
+        [createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]] 
 gam delete user <UserItem>
 gam undelete user <UserItem> [org|ou <OrgUnitPath>]
 gam suspend user <UserItem>
@@ -1932,7 +1932,7 @@ gam info user [<UserItem>] [quick] [noaliases] [nogroups] [nolicenses|nolicences
 
 gam update users <UserTypeEntity> <UserAttributes>* [updateprimaryemail <RegularExpression> <EmailReplacement>]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
-        [createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
+        [createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]] 
 gam delete users <UserTypeEntity>
 gam undelete users <UserEntity> [org|ou <OrgUnitPath>]
 gam suspend users <UserTypeEntity>

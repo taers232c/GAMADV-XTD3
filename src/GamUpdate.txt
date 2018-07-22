@@ -1,3 +1,11 @@
+4.57.18
+
+Fixed a bug where file descriptions containing carriage returns (\r) but not newlines (\n) were not properly displayed.
+
+Added html [<Boolean>] option to gam sendemail and gam create/update user to allow specifying whether the email message is plain text or HTML.
+
+Fixed a bug in gam sendemail and gam create/update user where the message file <FileName> charset <CharSet> option didn't properly handle <CharSet> leading to a trap.
+
 4.57.17
 
 Fixed bug whan handling error in gam create course.

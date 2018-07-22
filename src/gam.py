@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.17'
+__version__ = u'4.57.18'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -367,6 +367,12 @@ USER_SUSPENDED_ERROR_RC = 76
 #
 def convertUTF8(data):
   return data
+
+def escapeCRsNLs(value):
+  return value.replace(u'\r', u'\\r').replace(u'\n', u'\\n')
+
+def unescapeCRsNLs(value):
+  return value.replace(u'\\r', u'\r').replace(u'\\n', u'\n')
 
 def executeBatch(dbatch):
   dbatch.execute()
@@ -4323,14 +4329,14 @@ def getTodriveParameters():
   return todrive
 
 # Send an email
-def send_email(msgSubject, msgBody, msgTo, i=0, count=0, msgFrom=None, msgReplyTo=None):
+def send_email(msgSubject, msgBody, msgTo, i=0, count=0, msgFrom=None, msgReplyTo=None, html=False, charset=u'utf-8'):
   from email.mime.text import MIMEText
   if msgFrom is None:
     msgFrom = _getValueFromOAuth(u'email')
   userId, gmail = buildGAPIServiceObject(API.GMAIL, msgFrom, 0, 0)
   if not gmail:
     return
-  msg = MIMEText(msgBody)
+  msg = MIMEText(msgBody, [u'plain', u'html'][html], charset)
   msg[u'Subject'] = msgSubject
   msg[u'From'] = userId
   msg[u'To'] = msgTo
@@ -4340,7 +4346,7 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, msgFrom=None, msgReplyT
   Act.Set(Act.SENDEMAIL)
   try:
     callGAPI(gmail.users().messages(), u'send',
-             userId=userId, body={u'raw': base64.urlsafe_b64encode(msg.as_string())}, fields=u'')
+             userId=userId, body={u'raw': base64.urlsafe_b64encode(msg.as_bytes()).decode()}, fields=u'')
     entityActionPerformed([Ent.RECIPIENT, msgTo, Ent.MESSAGE, msgSubject], i, count)
   except googleapiclient.errors.HttpError as e:
     entityActionFailedWarning([Ent.RECIPIENT, msgTo, Ent.MESSAGE, msgSubject], str(e), i, count)
@@ -4608,9 +4614,6 @@ def writeCSVfile(csvRows, titles, list_type, todrive, sortTitles=None, quotechar
   if GM.Globals[GM.CSVFILE][GM.REDIRECT_MODE] == DEFAULT_FILE_APPEND_MODE:
     GM.Globals[GM.CSVFILE][GM.REDIRECT_WRITE_HEADER] = False
 
-def convertCRsNLs(value):
-  return value.replace(u'\r', u'\\r').replace(u'\n', u'\\n')
-
 DEFAULT_SKIP_OBJECTS = set([u'kind', u'etag', u'etags'])
 
 # Clean a JSON object
@@ -4622,7 +4625,7 @@ def cleanJSON(structure, key, listLimit=None, skipObjects=None, timeObjects=None
   if not isinstance(structure, (dict, list, collections.deque)):
     if key not in timeObjects:
       if isinstance(structure, string_types) and GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]:
-        return convertCRsNLs(structure)
+        return escapeCRsNLs(structure)
       else:
         return structure
     else:
@@ -4656,7 +4659,7 @@ def flattenJSON(structure, key=u'', path=u'', flattened=None, listLimit=None, sk
   if not isinstance(structure, (dict, list, collections.deque)):
     if key not in timeObjects:
       if isinstance(structure, string_types) and GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]:
-        flattened[((path+u'.') if path else u'')+key] = convertCRsNLs(structure)
+        flattened[((path+u'.') if path else u'')+key] = escapeCRsNLs(structure)
       else:
         flattened[((path+u'.') if path else u'')+key] = structure
     else:
@@ -4732,9 +4735,9 @@ def showJSON(object_name, object_value, skipObjects=None, timeObjects=None, dict
       Ind.Decrement()
   else:
     if object_name not in timeObjects:
-      if isinstance(object_value, string_types) and object_value.find(u'\n') >= 0:
+      if isinstance(object_value, string_types) and (object_value.find(u'\n') >= 0 or object_value.find(u'\r') >= 0):
         if GC.Values[GC.SHOW_CONVERT_CR_NL]:
-          printJSONValue(convertCRsNLs(object_value))
+          printJSONValue(escapeCRsNLs(object_value))
         else:
           printBlankLine()
           Ind.Increment()
@@ -6308,7 +6311,7 @@ def doReport():
                   app = {}
                   for an_item in subitem:
                     if an_item == u'client_name':
-                      app[u'name'] = u'App: {0}'.format(convertCRsNLs(subitem[an_item]))
+                      app[u'name'] = u'App: {0}'.format(escapeCRsNLs(subitem[an_item]))
                     elif an_item == u'num_users':
                       app[u'value'] = u'{0} users'.format(subitem[an_item])
                     elif an_item == u'client_id':
@@ -6632,11 +6635,28 @@ def _processTagReplacements(tagReplacements, message):
     message = re.sub(match.group(0), tagReplacements[u'tags'].get(match.group(1), {u'value': u''})[u'value'], message)
   return message
 
-# gam sendemail <RecipientEntity> [from <UserItem>] [replyto <EmailAddress>] subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)*
+def sendCreateUpdateUserNotification(notify, body, i=0, count=0, createMessage=True):
+  def _makeSubstitutions(field):
+    notify[field] = _substituteForUser(notify[field], body[u'primaryEmail'], userName)
+    notify[field] = notify[field].replace(u'#domain#', domain)
+    notify[field] = notify[field].replace(u'#givenname#', body[u'name'].get(u'givenName', u''))
+    notify[field] = notify[field].replace(u'#familyname#', body[u'name'].get(u'familyName', u''))
+    notify[field] = notify[field].replace(u'#password#', notify[u'password'])
+
+  userName, domain = splitEmailAddress(body[u'primaryEmail'])
+  if not notify.get(u'subject'):
+    notify[u'subject'] = [Msg.UPDATE_USER_PASSWORD_CHANGE_NOTIFY_SUBJECT, Msg.CREATE_USER_NOTIFY_SUBJECT][createMessage]
+  _makeSubstitutions(u'subject')
+  if not notify.get(u'message'):
+    notify[u'message'] = [Msg.UPDATE_USER_PASSWORD_CHANGE_NOTIFY_MESSAGE, Msg.CREATE_USER_NOTIFY_MESSAGE][createMessage]
+  _makeSubstitutions(u'message')
+  send_email(notify[u'subject'], notify[u'message'], notify[u'emailAddress'], i, count, html=notify[u'html'], charset=notify[u'charset'])
+
+# gam sendemail <RecipientEntity> [from <UserItem>] [replyto <EmailAddress>] subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <RegularExpression> <String>)* [html [<Boolean>]]
 #	[newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
 def doSendEmail():
   body = {}
-  notify = {}
+  notify = {u'html': False, u'charset': u'utf-8'}
   msgFrom = msgReplyTo = None
   tagReplacements = _initTagReplacements()
   recipients = getEntityList(Cmd.OB_RECIPIENT_ENTITY)
@@ -6651,10 +6671,12 @@ def doSendEmail():
     elif myarg == u'message':
       if checkArgumentPresent(u'file'):
         filename = getString(Cmd.OB_FILE_NAME)
-        encoding = getCharSet()
-        notify[u'message'] = readFile(filename, encoding=encoding)
+        notify[u'charset'] = getCharSet()
+        notify[u'message'] = readFile(filename, encoding=notify[u'charset'])
       else:
         notify[u'message'] = getString(Cmd.OB_STRING)
+    elif myarg == u'html':
+      notify[u'html'] = getBoolean()
     elif myarg == u'newuser':
       body[u'primaryEmail'] = getEmailAddress()
     elif myarg in [u'firstname', u'givenname']:
@@ -6692,7 +6714,7 @@ def doSendEmail():
   performActionModifierNumItems(Act.MODIFIER_TO, count, Ent.RECIPIENT)
   for recipient in recipients:
     i += 1
-    send_email(notify[u'subject'], notify[u'message'], recipient, i, count, msgFrom, msgReplyTo)
+    send_email(notify[u'subject'], notify[u'message'], recipient, i, count, msgFrom, msgReplyTo, notify[u'html'], notify[u'charset'])
 
 ADDRESS_FIELDS_PRINT_ORDER = [u'contactName', u'organizationName', u'addressLine1', u'addressLine2', u'addressLine3', u'locality', u'region', u'postalCode', u'countryCode']
 
@@ -8401,7 +8423,7 @@ def _doInfoOrgs(entityList):
           if field not in ORG_FIELDS_WITH_CRS_NLS:
             printKeyValueList([field, value])
           else:
-            printKeyValueList([field, convertCRsNLs(value)])
+            printKeyValueList([field, escapeCRsNLs(value)])
       if getUsers:
         orgUnitPath = result[u'orgUnitPath']
         users = callGAPIpages(cd.users(), u'list', u'users',
@@ -8610,7 +8632,7 @@ def doPrintOrgs():
     row = {}
     for field in fieldsList:
       if convertCRNL and field in ORG_FIELDS_WITH_CRS_NLS:
-        row[fieldsTitles[field]] = convertCRsNLs(orgUnit.get(field, u''))
+        row[fieldsTitles[field]] = escapeCRsNLs(orgUnit.get(field, u''))
       else:
         row[fieldsTitles[field]] = orgUnit.get(field, u'')
     csvRows.append(row)
@@ -10562,7 +10584,7 @@ def _showContact(contactsManager, fields, displayFieldsList, contactGroupIDs, j,
           Ind.Decrement()
           for org_key in contactsManager.ADDRESS_FIELD_PRINT_ORDER:
             if item[org_key]:
-              printKeyValueList([contactsManager.ADDRESS_FIELD_TO_ARGUMENT_MAP[org_key], convertCRsNLs(item[org_key])])
+              printKeyValueList([contactsManager.ADDRESS_FIELD_TO_ARGUMENT_MAP[org_key], escapeCRsNLs(item[org_key])])
         elif key == CONTACT_ORGANIZATIONS:
           printKeyValueList([keymap[u'infoTitle'], value])
           for org_key in contactsManager.ORGANIZATION_FIELD_PRINT_ORDER:
@@ -10751,7 +10773,7 @@ def _printShowContacts(users, entityType, csvFormat, contactFeed=True):
             elif (key != CONTACT_NOTES) and (key != CONTACT_BILLING_INFORMATION):
               contactRow[key] = fields[key]
             else:
-              contactRow[key] = convertCRsNLs(fields[key])
+              contactRow[key] = escapeCRsNLs(fields[key])
         for key in contactsManager.CONTACT_ARRAY_PROPERTY_PRINT_ORDER:
           if displayFieldsList and key not in displayFieldsList:
             continue
@@ -10776,10 +10798,10 @@ def _printShowContacts(users, entityType, csvFormat, contactFeed=True):
                 contactRow[fn+u'protocol'] = contactsManager.IM_REL_TO_PROTOCOL_MAP.get(item[u'protocol'], item[u'protocol'])
                 contactRow[fn+keymap[u'infoTitle']] = value
               elif key == CONTACT_ADDRESSES:
-                contactRow[fn+keymap[u'infoTitle']] = convertCRsNLs(value)
+                contactRow[fn+keymap[u'infoTitle']] = escapeCRsNLs(value)
                 for org_key in contactsManager.ADDRESS_FIELD_PRINT_ORDER:
                   if item[org_key]:
-                    contactRow[fn+contactsManager.ADDRESS_FIELD_TO_ARGUMENT_MAP[org_key]] = convertCRsNLs(item[org_key])
+                    contactRow[fn+contactsManager.ADDRESS_FIELD_TO_ARGUMENT_MAP[org_key]] = escapeCRsNLs(item[org_key])
               elif key == CONTACT_ORGANIZATIONS:
                 contactRow[fn+keymap[u'infoTitle']] = value
                 for org_key in contactsManager.ORGANIZATION_FIELD_PRINT_ORDER:
@@ -11597,7 +11619,7 @@ def infoCrOSDevices(entityList):
       printEntity([Ent.CROS_DEVICE, deviceId], i, count)
       Ind.Increment()
       if u'notes' in cros:
-        cros[u'notes'] = convertCRsNLs(cros[u'notes'])
+        cros[u'notes'] = escapeCRsNLs(cros[u'notes'])
       for up in CROS_SCALAR_PROPERTY_PRINT_ORDER:
         if up in cros:
           if up not in CROS_TIME_OBJECTS:
@@ -11834,7 +11856,7 @@ def doPrintCrOSDevices(entityList=None):
                       u'JSON': json.dumps(cleanJSON(cros, u'', listLimit=listLimit, timeObjects=CROS_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
       return
     if u'notes' in cros:
-      cros[u'notes'] = convertCRsNLs(cros[u'notes'])
+      cros[u'notes'] = escapeCRsNLs(cros[u'notes'])
     if (not noLists) and (not selectActiveTimeRanges) and (not selectRecentUsers) and (not selectDeviceFiles):
       addRowTitlesToCSVfile(flattenJSON(cros, listLimit=listLimit, timeObjects=CROS_TIME_OBJECTS), csvRows, titles)
       return
@@ -12485,7 +12507,7 @@ def doPrintMobileDevices():
                 applications.append(u'-'.join(appDetails))
               row[attrib] = delimiter.join(applications)
           elif attrib == u'deviceId' and GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]:
-            row[attrib] = convertCRsNLs(mobile[attrib])
+            row[attrib] = escapeCRsNLs(mobile[attrib])
           elif attrib not in MOBILE_TIME_OBJECTS:
             row[attrib] = mobile[attrib]
           else:
@@ -13264,7 +13286,7 @@ def infoGroups(entityList):
           Ind.Decrement()
         else:
           if key in GROUP_FIELDS_WITH_CRS_NLS:
-            value = convertCRsNLs(value)
+            value = escapeCRsNLs(value)
           printKeyValueList([key, value])
       if settings:
         for key in sorted(settings):
@@ -13273,7 +13295,7 @@ def infoGroups(entityList):
             if key == u'maxMessageBytes':
               value = formatMaxMessageBytes(value)
             elif key in GROUP_FIELDS_WITH_CRS_NLS:
-              value = convertCRsNLs(value)
+              value = escapeCRsNLs(value)
             printKeyValueList([key, value])
       Ind.Decrement()
       if getAliases:
@@ -13393,7 +13415,7 @@ def doPrintGroups():
         if isinstance(groupEntity[field], list):
           row[fieldsTitles[field]] = delimiter.join(groupEntity[field])
         elif convertCRNL and field in GROUP_FIELDS_WITH_CRS_NLS:
-          row[fieldsTitles[field]] = convertCRsNLs(groupEntity[field])
+          row[fieldsTitles[field]] = escapeCRsNLs(groupEntity[field])
         else:
           row[fieldsTitles[field]] = groupEntity[field]
     if groupMembers is not None:
@@ -13452,7 +13474,7 @@ def doPrintGroups():
           if key not in titles[u'set']:
             addTitleToCSVfile(key, titles)
           if convertCRNL and key in GROUP_FIELDS_WITH_CRS_NLS:
-            row[key] = convertCRsNLs(setting_value)
+            row[key] = escapeCRsNLs(setting_value)
           else:
             row[key] = setting_value
     csvRows.append(row)
@@ -14822,7 +14844,7 @@ def _showResource(cd, resource, i, count, formatJSON, acls=None):
       if field not in RESOURCE_FIELDS_WITH_CRS_NLS:
         printKeyValueList([title, resource[field]])
       else:
-        printKeyValueList([title, convertCRsNLs(resource[field])])
+        printKeyValueList([title, escapeCRsNLs(resource[field])])
 
   if u'buildingId' in resource:
     resource[u'buildingName'] = _getBuildingNameById(cd, resource[u'buildingId'])
@@ -14988,7 +15010,7 @@ def _doPrintShowResourceCalendars(csvFormat):
           row = {}
           for field in fieldsList:
             if convertCRNL and field in RESOURCE_FIELDS_WITH_CRS_NLS:
-              row[field] = convertCRsNLs(resource.get(field, u''))
+              row[field] = escapeCRsNLs(resource.get(field, u''))
             else:
               row[field] = resource.get(field, u'')
           if showPermissions:
@@ -17594,7 +17616,7 @@ def _printShowSites(entityList, entityType, csvFormat):
             if field != SITE_SUMMARY or not convertCRNL:
               siteRow[field] = fields[field]
             else:
-              siteRow[field] = convertCRsNLs(fields[field])
+              siteRow[field] = escapeCRsNLs(fields[field])
           else:
             siteRow[field] = delimiter.join(fields[field])
       rowShown = False
@@ -18138,7 +18160,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
     need_password = True
   need_to_hash_password = True
   admin_body = {}
-  notify = {}
+  notify = {u'html': False, u'charset': u'utf-8'}
   primary = {}
   updatePrimaryEmail = {}
   while Cmd.ArgumentsRemaining():
@@ -18150,10 +18172,12 @@ def getUserAttributes(cd, updateCmd, noUid=False):
     elif myarg == u'message':
       if checkArgumentPresent(u'file'):
         filename = getString(Cmd.OB_FILE_NAME)
-        encoding = getCharSet()
-        notify[u'message'] = readFile(filename, encoding=encoding)
+        notify[u'charset'] = getCharSet()
+        notify[u'message'] = readFile(filename, encoding=notify[u'charset'])
       else:
         notify[u'message'] = getString(Cmd.OB_STRING)
+    elif myarg == u'html':
+      notify[u'html'] = getBoolean()
     elif myarg == u'admin':
       admin_body[u'status'] = getBoolean()
     elif myarg == u'nohash':
@@ -18475,24 +18499,7 @@ def changeAdminStatus(cd, user, admin_body, i=0, count=0):
   except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden):
     entityUnknownWarning(Ent.USER, user, i, count)
 
-def sendCreateUpdateUserNotification(notify, body, i=0, count=0, createMessage=True):
-  def _makeSubstitutions(field):
-    notify[field] = _substituteForUser(notify[field], body[u'primaryEmail'], userName)
-    notify[field] = notify[field].replace(u'#domain#', domain)
-    notify[field] = notify[field].replace(u'#givenname#', body[u'name'].get(u'givenName', u''))
-    notify[field] = notify[field].replace(u'#familyname#', body[u'name'].get(u'familyName', u''))
-    notify[field] = notify[field].replace(u'#password#', notify[u'password'])
-
-  userName, domain = splitEmailAddress(body[u'primaryEmail'])
-  if not notify.get(u'subject'):
-    notify[u'subject'] = [Msg.UPDATE_USER_PASSWORD_CHANGE_NOTIFY_SUBJECT, Msg.CREATE_USER_NOTIFY_SUBJECT][createMessage]
-  _makeSubstitutions(u'subject')
-  if not notify.get(u'message'):
-    notify[u'message'] = [Msg.UPDATE_USER_PASSWORD_CHANGE_NOTIFY_MESSAGE, Msg.CREATE_USER_NOTIFY_MESSAGE][createMessage]
-  _makeSubstitutions(u'message')
-  send_email(notify[u'subject'], notify[u'message'], notify[u'emailAddress'], i, count)
-
-# gam create user <EmailAddress> <UserAttributes> [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
+# gam create user <EmailAddress> <UserAttributes> [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
 def doCreateUser():
   cd = buildGAPIObject(API.DIRECTORY)
   body, admin_body, notify, _, _ = getUserAttributes(cd, False, noUid=True)
@@ -18520,7 +18527,7 @@ def doCreateUser():
 
 # gam <UserTypeEntity> update user <UserAttributes> [updateprimaryemail <RegularExpression> <EmailReplacement>]
 #	[clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
-#	[createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
+#	[createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
 def updateUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
   body, admin_body, notify, updatePrimaryEmail, createIfNotFound = getUserAttributes(cd, True)
@@ -18588,13 +18595,13 @@ def updateUsers(entityList):
 
 # gam update users <UserTypeEntity> <UserAttributes> [updateprimaryemail <RegularExpression> <EmailReplacement>]
 #	[clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
-#	[createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
+#	[createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
 def doUpdateUsers():
   updateUsers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)[1])
 
 # gam update user <UserItem> <UserAttributes> [updateprimaryemail <RegularExpression> <EmailReplacement>]
 #	[clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
-#	[createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
+#	[createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
 def doUpdateUser():
   updateUsers(getStringReturnInList(Cmd.OB_USER_ITEM))
 
@@ -19072,7 +19079,7 @@ def infoUsers(entityList):
                   if key != u'formatted':
                     printKeyValueList([key, row[key]])
                   else:
-                    printKeyValueList([key, convertCRsNLs(row[key])])
+                    printKeyValueList([key, escapeCRsNLs(row[key])])
               Ind.Decrement()
             Ind.Decrement()
         elif propertyClass == UProp.PC_EMAILS:
@@ -22504,7 +22511,7 @@ def _showCalendar(userCalendar, j, jcount, formatJSON, acls=None):
   printEntity([Ent.CALENDAR, userCalendar[u'id']], j, jcount)
   Ind.Increment()
   printKeyValueList([u'Summary', userCalendar.get(u'summaryOverride', userCalendar[u'summary'])])
-  printKeyValueList([u'Description', convertCRsNLs(userCalendar.get(u'description', u''))])
+  printKeyValueList([u'Description', escapeCRsNLs(userCalendar.get(u'description', u''))])
   printKeyValueList([u'Location', userCalendar.get(u'location', u'')])
   printKeyValueList([u'Timezone', userCalendar[u'timeZone']])
   printKeyValueList([u'Primary', userCalendar.get(u'primary', FALSE)])
@@ -32319,7 +32326,7 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
       if not convertCRNL:
         row[u'Body'] = _getMessageBody(result[u'payload'])
       else:
-        row[u'Body'] = convertCRsNLs(_getMessageBody(result[u'payload']))
+        row[u'Body'] = escapeCRsNLs(_getMessageBody(result[u'payload']))
     addRowTitlesToCSVfile(row, csvRows, titles)
 
   def _callbackPrintMessage(request_id, response, exception):
@@ -33475,7 +33482,7 @@ def _showSendAs(result, j, jcount, formatSig):
     signature = result.get(u'signature')
     if not signature:
       signature = u'None'
-    printKeyValueList([u'Signature', convertCRsNLs(signature)])
+    printKeyValueList([u'Signature', escapeCRsNLs(signature)])
   Ind.Decrement()
 
 def _processSignature(tagReplacements, signature, html):
@@ -33998,7 +34005,7 @@ def _showVacation(user, i, count, result, formatReply):
       Ind.Decrement()
     else:
       if result.get(u'responseBodyPlainText'):
-        printKeyValueList([u'Message', convertCRsNLs(result[u'responseBodyPlainText'])])
+        printKeyValueList([u'Message', escapeCRsNLs(result[u'responseBodyPlainText'])])
       elif result.get(u'responseBodyHtml'):
         printKeyValueList([u'Message', result[u'responseBodyHtml']])
       else:
@@ -34093,7 +34100,7 @@ def _printShowVacation(users, csvFormat):
       row[u'subject'] = result.get(u'responseSubject', u'None')
       if result.get(u'responseBodyPlainText'):
         row[u'html'] = False
-        row[u'message'] = convertCRsNLs(result[u'responseBodyPlainText'])
+        row[u'message'] = escapeCRsNLs(result[u'responseBodyPlainText'])
       elif result.get(u'responseBodyHtml'):
         row[u'html'] = True
         row[u'message'] = result[u'responseBodyHtml']
