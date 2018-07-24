@@ -1,3 +1,9 @@
+4.57.19
+
+Fixed a bug in gam create/update course where copyfrom was specified and only one of announcementstates and workstates was specified; a trap was thrown.
+
+Fixed a bug where setting file descriptions with newlines (\n) or carriage returns (\r) improperly set them to the two character sequence '\ n' or '\ r'.
+
 4.57.18
 
 Fixed a bug where file descriptions containing carriage returns (\r) but not newlines (\n) were not properly displayed.

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.18'
+__version__ = u'4.57.19'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -1266,6 +1266,9 @@ def getString(item, checkBlank=False, optional=False, minLen=1, maxLen=None):
     return u''
   missingArgumentExit(item)
 
+def getStringWithCRsNLs():
+  return unescapeCRsNLs(getString(Cmd.OB_STRING, minLen=0))
+
 def getStringReturnInList(item):
   argstr = getString(item, minLen=0).strip()
   if argstr:
@@ -1804,6 +1807,15 @@ def printKeyValueListWithCount(kvList, i, count):
 def printKeyValueDict(kvDict):
   for key, value in iteritems(kvDict):
     writeStdout(formatKeyValueList(Ind.Spaces(), [key, value], u'\n'))
+
+def printKeyValueWithCRsNLs(key, value):
+  if value.find(u'\n') >= 0 or value.find(u'\r') >= 0:
+    if GC.Values[GC.SHOW_CONVERT_CR_NL]:
+      printKeyValueList([key, escapeCRsNLs(value)])
+    else:
+      printKeyValueList([key, Ind.MultiLineText(value, n=1)])
+  else:
+    printKeyValueList([key, value])
 
 def printJSONKey(key):
   writeStdout(formatKeyValueList(Ind.Spaces(), [key, None], u''))
@@ -4658,8 +4670,11 @@ def flattenJSON(structure, key=u'', path=u'', flattened=None, listLimit=None, sk
     simpleLists = set()
   if not isinstance(structure, (dict, list, collections.deque)):
     if key not in timeObjects:
-      if isinstance(structure, string_types) and GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]:
-        flattened[((path+u'.') if path else u'')+key] = escapeCRsNLs(structure)
+      if isinstance(structure, string_types) and (structure.find(u'\n') >= 0 or structure.find(u'\r') >= 0):
+        if GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]:
+          flattened[((path+u'.') if path else u'')+key] = escapeCRsNLs(structure)
+        else:
+          flattened[((path+u'.') if path else u'')+key] = structure
       else:
         flattened[((path+u'.') if path else u'')+key] = structure
     else:
@@ -8075,7 +8090,7 @@ def doCreateOrg():
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'description':
-      body[u'description'] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
+      body[u'description'] = getStringWithCRsNLs()
     elif myarg == u'parent':
       parent = getOrgUnitItem()
     elif myarg == u'noinherit':
@@ -8283,7 +8298,7 @@ def _doUpdateOrgs(entityList):
       if myarg == u'name':
         body[u'name'] = getString(Cmd.OB_STRING)
       elif myarg == u'description':
-        body[u'description'] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
+        body[u'description'] = getStringWithCRsNLs()
       elif myarg == u'parent':
         parent = getOrgUnitItem()
         if parent.startswith(u'id:'):
@@ -8423,7 +8438,7 @@ def _doInfoOrgs(entityList):
           if field not in ORG_FIELDS_WITH_CRS_NLS:
             printKeyValueList([field, value])
           else:
-            printKeyValueList([field, escapeCRsNLs(value)])
+            printKeyValueWithCRsNLs(field, value)
       if getUsers:
         orgUnitPath = result[u'orgUnitPath']
         users = callGAPIpages(cd.users(), u'list', u'users',
@@ -9765,7 +9780,7 @@ class ContactsManager(object):
           encoding = getCharSet()
           fields[fieldName] = readFile(filename, encoding=encoding)
         else:
-          fields[fieldName] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
+          fields[fieldName] = getStringWithCRsNLs()
       elif fieldName == CONTACT_ADDRESSES:
         if CheckClearFieldsList(fieldName):
           continue
@@ -10535,6 +10550,7 @@ def doDeleteDomainContacts():
   _deleteContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
 CONTACT_TIME_OBJECTS = set([CONTACT_UPDATED])
+CONTACT_FIELDS_WITH_CRS_NLS = [CONTACT_NOTES, CONTACT_BILLING_INFORMATION]
 
 def _showContact(contactsManager, fields, displayFieldsList, contactGroupIDs, j, jcount, formatJSON):
   if formatJSON:
@@ -10546,15 +10562,12 @@ def _showContact(contactsManager, fields, displayFieldsList, contactGroupIDs, j,
     if displayFieldsList and key not in displayFieldsList:
       continue
     if key in fields:
-      if key == CONTACT_UPDATED:
+      if key in CONTACT_TIME_OBJECTS:
         printKeyValueList([key, formatLocalTime(fields[key])])
-      elif (key != CONTACT_NOTES) and (key != CONTACT_BILLING_INFORMATION):
+      elif key not in CONTACT_FIELDS_WITH_CRS_NLS:
         printKeyValueList([key, fields[key]])
       else:
-        printKeyValueList([key, None])
-        Ind.Increment()
-        printKeyValueList([Ind.MultiLineText(fields[key])])
-        Ind.Decrement()
+        printKeyValueWithCRsNLs(key, fields[key])
   for key in contactsManager.CONTACT_ARRAY_PROPERTY_PRINT_ORDER:
     if displayFieldsList and key not in displayFieldsList:
       continue
@@ -10578,13 +10591,10 @@ def _showContact(contactsManager, fields, displayFieldsList, contactGroupIDs, j,
           printKeyValueList([u'protocol', contactsManager.IM_REL_TO_PROTOCOL_MAP.get(item[u'protocol'], item[u'protocol'])])
           printKeyValueList([keymap[u'infoTitle'], value])
         elif key == CONTACT_ADDRESSES:
-          printKeyValueList([keymap[u'infoTitle'], None])
-          Ind.Increment()
-          printKeyValueList([Ind.MultiLineText(value)])
-          Ind.Decrement()
+          printKeyValueWithCRsNLs(keymap[u'infoTitle'], value)
           for org_key in contactsManager.ADDRESS_FIELD_PRINT_ORDER:
             if item[org_key]:
-              printKeyValueList([contactsManager.ADDRESS_FIELD_TO_ARGUMENT_MAP[org_key], escapeCRsNLs(item[org_key])])
+              printKeyValueList([contactsManager.ADDRESS_FIELD_TO_ARGUMENT_MAP[org_key], item[org_key]])
         elif key == CONTACT_ORGANIZATIONS:
           printKeyValueList([keymap[u'infoTitle'], value])
           for org_key in contactsManager.ORGANIZATION_FIELD_PRINT_ORDER:
@@ -11372,7 +11382,7 @@ def updateCrOSDevices(entityList):
       if up == u'orgUnitPath':
         orgUnitPath = getOrgUnitItem()
       elif up == u'notes':
-        update_body[up] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
+        update_body[up] = getStringWithCRsNLs()
       else:
         update_body[up] = getString(Cmd.OB_STRING, minLen=[0, 1][up == u'annotatedAssetId'])
     elif myarg == u'action':
@@ -11538,6 +11548,7 @@ CROS_SCALAR_PROPERTY_PRINT_ORDER = [
   ]
 
 CROS_TIME_OBJECTS = set([u'lastSync', u'lastEnrollmentTime', u'supportEndDate'])
+CROS_FIELDS_WITH_CRS_NLS = [u'notes']
 CROS_ACTIVE_TIME_RANGES_ARGUMENTS = [u'timeranges', u'activetimeranges', u'times']
 CROS_DEVICE_FILES_ARGUMENTS = [u'devicefiles', u'files']
 CROS_RECENT_USERS_ARGUMENTS = [u'recentusers', u'users']
@@ -11618,12 +11629,13 @@ def infoCrOSDevices(entityList):
         continue
       printEntity([Ent.CROS_DEVICE, deviceId], i, count)
       Ind.Increment()
-      if u'notes' in cros:
-        cros[u'notes'] = escapeCRsNLs(cros[u'notes'])
       for up in CROS_SCALAR_PROPERTY_PRINT_ORDER:
         if up in cros:
           if up not in CROS_TIME_OBJECTS:
-            printKeyValueList([up, cros[up]])
+            if up not in CROS_FIELDS_WITH_CRS_NLS:
+              printKeyValueList([up, cros[up]])
+            else:
+              printKeyValueWithCRsNLs(up, cros[up])
           else:
             printKeyValueList([up, formatLocalTime(cros[up])])
       up = u'tpmVersionInfo'
@@ -12609,7 +12621,7 @@ GROUP_ATTRIBUTES = {
 
 GROUP_FIELDS_WITH_CRS_NLS = [u'customFooterText', u'defaultMessageDenyNotificationText', u'description', u'groupDescription']
 
-def getGroupAttrValue(argument, body, gs_body):
+def getGroupAttrValue(argument, gs_body):
   if argument == u'copyfrom':
     gs_body[argument] = getEmailAddress()
     return
@@ -12623,14 +12635,9 @@ def getGroupAttrValue(argument, body, gs_body):
     gs_body[attrName] = getBoolean()
   elif attrType == GC.TYPE_STRING:
     if attrName in GROUP_FIELDS_WITH_CRS_NLS:
-      gs_body[attrName] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
+      gs_body[attrName] = getStringWithCRsNLs()
     else:
       gs_body[attrName] = getString(Cmd.OB_STRING, minLen=0)
-    if attrName in [u'name', u'description']:
-      cdvalue = gs_body[attrName]
-      for c in u'\n<>=':
-        cdvalue = cdvalue.replace(c, u' ')
-      body[attrName] = cdvalue
   elif attrType == GC.TYPE_CHOICE:
     gs_body[attrName] = getChoice(attribute[u'choices'], mapChoice=True)
   elif attrType in [GC.TYPE_EMAIL, GC.TYPE_EMAIL_OPTIONAL]:
@@ -12691,8 +12698,8 @@ def doCreateGroup():
     if myarg == u'collaborative':
       setCollaborativeAttributes(gs_body)
     else:
-      getGroupAttrValue(myarg, body, gs_body)
-  body.setdefault(u'name', body[u'email'])
+      getGroupAttrValue(myarg, gs_body)
+  gs_body.setdefault(u'name', body[u'email'])
   if gs_body:
     gs = buildGAPIObject(API.GROUPSSETTINGS)
     gs_body = getSettingsFromGroup(cd, gs, gs_body)
@@ -12951,7 +12958,7 @@ def doUpdateGroups():
       elif myarg == u'collaborative':
         setCollaborativeAttributes(gs_body)
       else:
-        getGroupAttrValue(myarg, body, gs_body)
+        getGroupAttrValue(myarg, gs_body)
     if gs_body:
       gs = buildGAPIObject(API.GROUPSSETTINGS)
       gs_body = getSettingsFromGroup(cd, gs, gs_body)
@@ -13284,19 +13291,20 @@ def infoGroups(entityList):
           for val in value:
             printKeyValueList([val])
           Ind.Decrement()
-        else:
-          if key in GROUP_FIELDS_WITH_CRS_NLS:
-            value = escapeCRsNLs(value)
+        elif key not in GROUP_FIELDS_WITH_CRS_NLS:
           printKeyValueList([key, value])
+        else:
+          printKeyValueWithCRsNLs(key, value)
       if settings:
         for key in sorted(settings):
           if key not in set([u'kind', u'etag', u'email', u'name', u'description']):
             value = settings[key]
             if key == u'maxMessageBytes':
-              value = formatMaxMessageBytes(value)
-            elif key in GROUP_FIELDS_WITH_CRS_NLS:
-              value = escapeCRsNLs(value)
-            printKeyValueList([key, value])
+              printKeyValueList([key, formatMaxMessageBytes(value)])
+            elif key not in GROUP_FIELDS_WITH_CRS_NLS:
+              printKeyValueList([key, value])
+            else:
+              printKeyValueWithCRsNLs(key, value)
       Ind.Decrement()
       if getAliases:
         for up in [u'aliases', u'nonEditableAliases']:
@@ -14735,7 +14743,7 @@ def _getResourceCalendarAttributes(cd, body):
     if myarg == u'name':
       body[u'resourceName'] = getString(Cmd.OB_STRING)
     elif myarg == u'description':
-      body[u'resourceDescription'] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
+      body[u'resourceDescription'] = getStringWithCRsNLs()
     elif myarg == u'type':
       body[u'resourceType'] = getString(Cmd.OB_STRING)
     elif myarg in [u'building', u'buildingid']:
@@ -14844,7 +14852,7 @@ def _showResource(cd, resource, i, count, formatJSON, acls=None):
       if field not in RESOURCE_FIELDS_WITH_CRS_NLS:
         printKeyValueList([title, resource[field]])
       else:
-        printKeyValueList([title, escapeCRsNLs(resource[field])])
+        printKeyValueWithCRsNLs(title, resource[field])
 
   if u'buildingId' in resource:
     resource[u'buildingName'] = _getBuildingNameById(cd, resource[u'buildingId'])
@@ -15511,7 +15519,7 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
   elif function == u'import' and myarg == u'icaluid':
     body[u'iCalUID'] = getString(Cmd.OB_ICALUID)
   elif myarg == u'description':
-    body[u'description'] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
+    body[u'description'] = getStringWithCRsNLs()
   elif myarg == u'location':
     body[u'location'] = getString(Cmd.OB_STRING, minLen=0)
   elif myarg == u'source':
@@ -16163,7 +16171,7 @@ def _getCalendarSettings(summaryRequired=False):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'description':
-      body[u'description'] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
+      body[u'description'] = getStringWithCRsNLs()
     elif myarg == u'location':
       body[u'location'] = getString(Cmd.OB_STRING, minLen=0)
     elif myarg == u'summary':
@@ -17316,7 +17324,7 @@ class SitesManager(object):
         elif fieldName == SITE_SOURCELINK:
           fields[fieldName] = getString(Cmd.OB_URI)
         elif fieldName == SITE_SUMMARY:
-          fields[fieldName] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
+          fields[fieldName] = getStringWithCRsNLs()
         elif fieldName == SITE_THEME:
           fields[fieldName] = getString(Cmd.OB_STRING)
         elif fieldName == SITE_CATEGORIES:
@@ -17496,10 +17504,7 @@ def _showSite(sitesManager, sitesObject, domain, site, roles, j, jcount):
         if field != SITE_SUMMARY:
           printKeyValueList([field, fields[field]])
         else:
-          printKeyValueList([field, None])
-          Ind.Increment()
-          printKeyValueList([Ind.MultiLineText(fields[field])])
-          Ind.Decrement()
+          printKeyValueWithCRsNLs(field, fields[field])
       else:
         printKeyValueList([field, u','.join(fields[field])])
   if fields.get(SITE_WEB_ADDRESS_MAPPINGS):
@@ -18249,7 +18254,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         getKeywordAttribute(UProp, typeKeywords, entry)
         if checkArgumentPresent([u'unstructured', u'formatted']):
           entry[u'sourceIsStructured'] = False
-          entry[u'formatted'] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
+          entry[u'formatted'] = getStringWithCRsNLs()
         while Cmd.ArgumentsRemaining():
           argument = getArgument()
           if argument in ADDRESS_ARGUMENT_TO_FIELD_MAP:
@@ -18317,7 +18322,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
           encoding = getCharSet()
           entry[u'value'] = readFile(filename, encoding=encoding)
         else:
-          entry[u'value'] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
+          entry[u'value'] = getStringWithCRsNLs()
         body[up] = entry
       elif up == u'organizations':
         if checkClearBodyList(body, up):
@@ -19079,7 +19084,7 @@ def infoUsers(entityList):
                   if key != u'formatted':
                     printKeyValueList([key, row[key]])
                   else:
-                    printKeyValueList([key, escapeCRsNLs(row[key])])
+                    printKeyValueWithCRsNLs(key, row[key])
               Ind.Decrement()
             Ind.Decrement()
         elif propertyClass == UProp.PC_EMAILS:
@@ -19130,9 +19135,9 @@ def infoUsers(entityList):
               printKeyValueList([typeKey, typeVal])
               Ind.Increment()
               if typeVal == u'text_html':
-                printKeyValueList([u'value', Ind.MultiLineText(dehtml(propertyValue[u'value']), n=1)])
+                printKeyValueWithCRsNLs(u'value', dehtml(propertyValue[u'value']))
               else:
-                printKeyValueList([u'value', Ind.MultiLineText(propertyValue[u'value'], n=1)])
+                printKeyValueWithCRsNLs(u'value', propertyValue[u'value'])
               Ind.Decrement()
             else:
               printKeyValueList([Ind.MultiLineText(propertyValue)])
@@ -19986,7 +19991,7 @@ def _getCourseAttribute(myarg, body, courseAttributesFrom):
   elif myarg == u'heading':
     body[u'descriptionHeading'] = getString(Cmd.OB_STRING, minLen=0)
   elif myarg == u'description':
-    body[u'description'] = getString(Cmd.OB_STRING, minLen=0).replace(u'\\n', u'\n')
+    body[u'description'] = getStringWithCRsNLs()
   elif myarg == u'room':
     body[u'room'] = getString(Cmd.OB_STRING, minLen=0)
   elif myarg in [u'owner', u'ownerid', u'teacher']:
@@ -20052,6 +20057,8 @@ def copyCourseAttributes(croom, newCourseId, ownerId, courseAttributesFrom, i, c
                                           pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
     except GAPI.forbidden:
       APIAccessDeniedExit()
+  else:
+    courseAnnouncements = collections.deque()
   if courseAttributesFrom[u'workStates']:
     printGettingAllEntityItemsForWhom(Ent.COURSE_WORK_ID, Ent.TypeName(Ent.COURSE, courseId), i, count,
                                       _gettingCourseWorkQuery(courseAttributesFrom[u'workStates']))
@@ -20063,13 +20070,15 @@ def copyCourseAttributes(croom, newCourseId, ownerId, courseAttributesFrom, i, c
                                   pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
     except GAPI.forbidden:
       APIAccessDeniedExit()
+    else:
+      courseWorks = collections.deque()
   if courseAttributesFrom[u'members'] in [u'all', u'students']:
     addParticipants = [student[u'profile'][u'emailAddress'] for student in students]
     _batchAddParticipantsToCourse(croom, newCourseId, i, count, addParticipants, Ent.STUDENT)
   if courseAttributesFrom[u'members'] in [u'all', u'teachers']:
     addParticipants = [teacher[u'profile'][u'emailAddress'] for teacher in teachers if teacher[u'profile'][u'id'] != ownerId]
     _batchAddParticipantsToCourse(croom, newCourseId, i, count, addParticipants, Ent.TEACHER)
-  if (courseAttributesFrom[u'announcementStates'] and courseAnnouncements) or (courseAttributesFrom[u'workStates'] and courseWorks):
+  if courseAnnouncements or courseWorks:
     croom = buildClassroomGAPIObject(classroomOauth2File)
     if courseAnnouncements:
       jcount = len(courseAnnouncements)
@@ -22511,7 +22520,7 @@ def _showCalendar(userCalendar, j, jcount, formatJSON, acls=None):
   printEntity([Ent.CALENDAR, userCalendar[u'id']], j, jcount)
   Ind.Increment()
   printKeyValueList([u'Summary', userCalendar.get(u'summaryOverride', userCalendar[u'summary'])])
-  printKeyValueList([u'Description', escapeCRsNLs(userCalendar.get(u'description', u''))])
+  printKeyValueWithCRsNLs(u'Description', userCalendar.get(u'description', u''))
   printKeyValueList([u'Location', userCalendar.get(u'location', u'')])
   printKeyValueList([u'Timezone', userCalendar[u'timeZone']])
   printKeyValueList([u'Primary', userCalendar.get(u'primary', FALSE)])
@@ -23921,7 +23930,7 @@ def getDriveFileAttribute(myarg, body, parameters, assignLocalName):
   elif myarg in [u'lastviewedbyme', u'lastviewedbyuser', u'lastviewedbymedate', u'lastviewedbymetime']:
     body[VX_VIEWED_BY_ME_TIME] = getTimeOrDeltaFromNow()
   elif myarg == u'description':
-    body[u'description'] = getString(Cmd.OB_STRING, minLen=0)
+    body[u'description'] = getStringWithCRsNLs()
   elif myarg == u'mimetype':
     body[u'mimeType'] = getMimeType()
   elif getDriveFileParentAttribute(myarg, parameters):
@@ -25312,7 +25321,13 @@ def printFileList(users):
                       addTitleToCSVfile(x_attrib, titles)
         elif isinstance(fileInfo[attrib], non_compound_types):
           if attrib not in timeObjects:
-            row[attrib] = fileInfo[attrib]
+            if isinstance(fileInfo[attrib], string_types) and (fileInfo[attrib].find(u'\n') >= 0 or fileInfo[attrib].find(u'\r') >= 0):
+              if GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]:
+                row[attrib] = escapeCRsNLs(fileInfo[attrib])
+              else:
+                row[attrib] = fileInfo[attrib]
+            else:
+              row[attrib] = fileInfo[attrib]
           else:
             row[attrib] = formatLocalTime(fileInfo[attrib])
           if attrib not in titles[u'set']:
