@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.19'
+__version__ = u'4.57.20'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -970,7 +970,7 @@ def getCourseAlias():
       return courseAlias
   missingArgumentExit(Cmd.OB_COURSE_ALIAS)
 
-UID_PATTERN = re.compile(r'u?id: ?(.+)')
+UID_PATTERN = re.compile(r'u?id: ?(.+)', re.IGNORECASE)
 
 def validateEmailAddressOrUID(emailAddressOrUID):
   cg = UID_PATTERN.match(emailAddressOrUID)
@@ -7252,7 +7252,7 @@ def doPrintDomains():
       todrive = getTodriveParameters()
     elif myarg == "formatjson":
       formatJSON = True
-      addTitlesToCSVfile([u'JSON',], titles)
+      addTitlesToCSVfile(u'JSON', titles)
     elif myarg == u'quotechar':
       quotechar = getCharacter()
     else:
@@ -10725,7 +10725,7 @@ def _printShowContacts(users, entityType, csvFormat, contactFeed=True):
     elif myarg == u'formatjson':
       formatJSON = True
       if csvFormat:
-        addTitlesToCSVfile([u'JSON',], titles)
+        addTitlesToCSVfile(u'JSON', titles)
     elif myarg == u'quotechar':
       quotechar = getCharacter()
     else:
@@ -11260,7 +11260,7 @@ def _printShowContactGroups(users, csvFormat):
     elif myarg == u'formatjson':
       formatJSON = True
       if csvFormat:
-        addTitlesToCSVfile([u'JSON',], titles)
+        addTitlesToCSVfile(u'JSON', titles)
     elif myarg == u'quotechar':
       quotechar = getCharacter()
     else:
@@ -20609,7 +20609,7 @@ def doPrintCourses():
       delimiter = getCharacter()
     elif myarg == u'formatjson':
       formatJSON = True
-      addTitlesToCSVfile([u'JSON',], titles)
+      addTitlesToCSVfile(u'JSON', titles)
     elif myarg == u'quotechar':
       quotechar = getCharacter()
     else:
@@ -20619,18 +20619,18 @@ def doPrintCourses():
     return
   if courseShowProperties[u'aliases']:
     if formatJSON:
-      addTitlesToCSVfile([u'JSON-aliases',], titles)
+      addTitlesToCSVfile(u'JSON-aliases', titles)
   if courseShowProperties[u'members'] != u'none':
     ttitles = {u'set': set(), u'list': []}
     stitles = {u'set': set(), u'list': []}
     if courseShowProperties[u'members'] != u'students':
       addTitlesToCSVfile(u'teachers', ttitles)
       if formatJSON:
-        addTitlesToCSVfile([u'JSON-teachers',], titles)
+        addTitlesToCSVfile(u'JSON-teachers', titles)
     if courseShowProperties[u'members'] != u'teachers':
       addTitlesToCSVfile(u'students', stitles)
       if formatJSON:
-        addTitlesToCSVfile([u'JSON-students',], titles)
+        addTitlesToCSVfile(u'JSON-students', titles)
     if courseShowProperties[u'countsOnly']:
       teachersFields = u'nextPageToken,teachers(profile(id))'
       studentsFields = u'nextPageToken,students(profile(id))'
@@ -20773,7 +20773,7 @@ def doPrintCourseAnnouncements():
       showCreatorEmail = True
     elif myarg == u'formatjson':
       formatJSON = True
-      addTitlesToCSVfile([u'JSON',], titles)
+      addTitlesToCSVfile(u'JSON', titles)
     elif myarg == u'quotechar':
       quotechar = getCharacter()
     elif getFieldsList(myarg, COURSE_ANNOUNCEMENTS_FIELDS_CHOICE_MAP, fieldsList, u'id'):
@@ -20922,7 +20922,7 @@ def doPrintCourseWork():
       showCreatorEmail = True
     elif myarg == u'formatjson':
       formatJSON = True
-      addTitlesToCSVfile([u'JSON',], titles)
+      addTitlesToCSVfile(u'JSON', titles)
     elif myarg == u'quotechar':
       quotechar = getCharacter()
     elif getFieldsList(myarg, COURSE_WORK_FIELDS_CHOICE_MAP, fieldsList, u'id'):
@@ -21073,7 +21073,7 @@ def doPrintCourseSubmissions():
       late = u'NOT_LATE_ONLY'
     elif myarg == u'formatjson':
       formatJSON = True
-      addTitlesToCSVfile([u'JSON',], titles)
+      addTitlesToCSVfile(u'JSON', titles)
     elif myarg == u'quotechar':
       quotechar = getCharacter()
     elif myarg == u'showuserprofile':
@@ -21189,10 +21189,10 @@ def doPrintCourseParticipants():
   if courseShowProperties[u'members'] != u'none':
     if courseShowProperties[u'members'] != u'students':
       if formatJSON:
-        addTitlesToCSVfile([u'JSON-teachers',], titles)
+        addTitlesToCSVfile(u'JSON-teachers', titles)
     if courseShowProperties[u'members'] != u'teachers':
       if formatJSON:
-        addTitlesToCSVfile([u'JSON-students',], titles)
+        addTitlesToCSVfile(u'JSON-students', titles)
     teachersFields = u'nextPageToken,teachers(userId,profile)'
     studentsFields = u'nextPageToken,students(userId,profile)'
   else:
@@ -22743,7 +22743,7 @@ def _printShowCalendars(users, csvFormat):
     elif myarg == "formatjson":
       formatJSON = True
       if csvFormat:
-        addTitlesToCSVfile([u'JSON',], titles)
+        addTitlesToCSVfile(u'JSON', titles)
     elif myarg == u'quotechar':
       quotechar = getCharacter()
     else:
@@ -22827,7 +22827,7 @@ def _printShowCalSettings(users, csvFormat):
     elif myarg == "formatjson":
       formatJSON = True
       if csvFormat:
-        addTitlesToCSVfile([u'JSON',], titles)
+        addTitlesToCSVfile(u'JSON', titles)
     elif myarg == u'quotechar':
       quotechar = getCharacter()
     else:
@@ -29302,6 +29302,131 @@ def doPrintDriveFileACLs():
 def doShowDriveFileACLs():
   _printShowDriveFileACLs([_getValueFromOAuth(u'email')], False, True)
 
+def _doPrintShowOwnership(csvFormat):
+  rep = buildGAPIObject(API.REPORTS)
+  customerId = GC.Values[GC.CUSTOMER_ID]
+  if customerId == GC.MY_CUSTOMER:
+    customerId = None
+  fileNameTitle = [V3_FILENAME, V2_FILENAME][not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]]
+  if csvFormat:
+    todrive = {}
+    sortTitles = [u'Owner', u'id', fileNameTitle, u'type', u'ownerIsTeamDrive', u'teamDriveId']
+    titles, csvRows = initializeTitlesCSVfile(sortTitles)
+  formatJSON = False
+  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  showComplete = False
+  entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
+  myarg = getString(Cmd.OB_DRIVE_FILE_ID, checkBlank=True)
+  mycmd = myarg.lower().replace(u'_', u'').replace(u'-', u'')
+  if mycmd == u'id':
+    fileId = getString(Cmd.OB_DRIVE_FILE_ID, checkBlank=True)
+  elif mycmd == u'drivefilename':
+    entityType = Ent.DRIVE_FILE_OR_FOLDER
+    fileId = getString(Cmd.OB_DRIVE_FILE_NAME, checkBlank=True)
+  elif mycmd.find(u':') != -1:
+    kw, fileId = myarg.split(u':', 1)
+    kw = kw.lower().replace(u'_', u'').replace(u'-', u'')
+    if fileId.isspace():
+      Cmd.Backup()
+      blankArgumentExit(Cmd.OB_DRIVE_FILE_ID)
+    if kw == u'id':
+      pass
+    elif kw == u'drivefilename':
+      entityType = Ent.DRIVE_FILE_OR_FOLDER
+    else:
+      Cmd.Backup()
+      invalidArgumentExit(Cmd.OB_DRIVE_FILE_ID)
+  else:
+    fileId = myarg
+  if not fileId:
+    Cmd.Backup()
+    invalidArgumentExit(Cmd.OB_DRIVE_FILE_ID)
+  if entityType == Ent.DRIVE_FILE_OR_FOLDER_ID:
+    filters = u'doc_id=={0}'.format(fileId)
+  else:
+    filters = u'doc_title=={0}'.format(fileId)
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvFormat and myarg == u'todrive':
+      todrive = getTodriveParameters()
+    elif myarg == u'formatjson':
+      formatJSON = True
+      if csvFormat:
+        titles, csvRows = initializeTitlesCSVfile([u'JSON',])
+    elif myarg == u'quotechar':
+      quotechar = getCharacter()
+    else:
+      unknownArgumentExit()
+  foundIds = {}
+  try:
+    feed = callGAPIpages(rep.activities(), u'list', u'items',
+                         throw_reasons=[GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.AUTH_ERROR],
+                         applicationName=u'drive', userKey='all', customerId=customerId,
+                         filters=filters, fields=u'nextPageToken,items(events(parameters))')
+    while feed:
+      activity = feed.popleft()
+      events = activity.pop(u'events')
+      for event in events:
+        fileInfo = {}
+        for item in event.get(u'parameters', []):
+          if item[u'name'] == u'primary_event':
+            if not item[u'boolValue']:
+              break
+          elif item[u'name'] == u'doc_id':
+            if item[u'value'] in foundIds:
+              break
+            fileInfo[u'id'] = item[u'value']
+          elif item[u'name'] == u'owner':
+            fileInfo[u'Owner'] = item[u'value']
+          elif item[u'name'] == u'doc_title':
+            fileInfo[fileNameTitle] = item[u'value']
+          elif item[u'name'] == u'doc_type':
+            fileInfo[u'type'] = item[u'value']
+          elif item[u'name'] == u'owner_is_team_drive':
+            fileInfo[u'ownerIsTeamDrive'] = item[u'boolValue']
+          elif item[u'name'] == u'team_drive_id':
+            fileInfo[u'teamDriveId'] = item[u'value']
+        else:
+          if u'Owner' in fileInfo and u'id' in fileInfo:
+            foundIds[fileInfo[u'id']] = True
+            if not csvFormat:
+              if not formatJSON:
+                printEntityKVList([Ent.OWNER, fileInfo[u'Owner']],
+                                  [u'id', fileInfo[u'id'], fileNameTitle, fileInfo.get(u'title', ''),
+                                   u'type', fileInfo.get(u'type', ''), u'ownerIsTeamDrive', fileInfo.get(u'ownerIsTeamDrive', False), u'teamDriveId', fileInfo.get(u'teamDriveId', '')])
+              else:
+                printLine(json.dumps(cleanJSON(fileInfo, u''), ensure_ascii=False, sort_keys=True))
+            else:
+              if not formatJSON:
+                addRowTitlesToCSVfile(flattenJSON(fileInfo), csvRows, titles)
+              else:
+                csvRows.append({u'JSON': json.dumps(cleanJSON(fileInfo, u''), ensure_ascii=False, sort_keys=True)})
+            if entityType == Ent.DRIVE_FILE_OR_FOLDER_ID:
+              showComplete = True
+              break
+        if showComplete:
+          break
+      if showComplete:
+        break
+    if not foundIds:
+      entityActionFailedWarning([entityType, fileId], Msg.NOT_FOUND)
+  except GAPI.badRequest:
+    printErrorMessage(BAD_REQUEST_RC, Msg.BAD_REQUEST)
+  except GAPI.invalid as e:
+    systemErrorExit(GOOGLE_API_ERROR_RC, str(e))
+  except GAPI.authError:
+    accessErrorExit(None)
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'Drive File Ownership', todrive, sortTitles, quotechar)
+
+# gam print ownership <DriveFileID>|(drivefilename <DriveFileName>) [todrive [<ToDriveAttributes>]] [formatjson] [quotechar <Character>]
+def doPrintOwnership():
+  _doPrintShowOwnership(True)
+
+# gam show ownership <DriveFileID>|(drivefilename <DriveFileName>) [formatjson]
+def doShowOwnership():
+  _doPrintShowOwnership(False)
+
 def _getTeamDriveTheme(myarg, body):
   if myarg in [u'theme', u'themeid']:
     body.pop(u'backgroundImageFile', None)
@@ -29548,7 +29673,7 @@ def _printShowTeamDrives(users, csvFormat, useDomainAdminAccess):
     elif myarg == "formatjson":
       formatJSON = True
       if csvFormat:
-        addTitlesToCSVfile([u'JSON',], titles)
+        addTitlesToCSVfile(u'JSON', titles)
     elif myarg == u'quotechar':
       quotechar = getCharacter()
     elif getFieldsList(myarg, TEAMDRIVE_FIELDS_CHOICE_MAP, fieldsList, [u'id', u'name']):
@@ -34376,6 +34501,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_MOBILE:		doPrintMobileDevices,
       Cmd.ARG_ORG:		doPrintOrgs,
       Cmd.ARG_ORGS:		doPrintOrgs,
+      Cmd.ARG_OWNERSHIP:	doPrintOwnership,
       Cmd.ARG_PRINTER:		doPrintPrinters,
       Cmd.ARG_PRINTJOBS:	doPrintPrintJobs,
       Cmd.ARG_PRIVILEGES:	doPrintPrivileges,
@@ -34410,6 +34536,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_GROUPMEMBERS:	doShowGroupMembers,
       Cmd.ARG_GUARDIAN: 	doShowGuardians,
       Cmd.ARG_ORGTREE:		doShowOrgTree,
+      Cmd.ARG_OWNERSHIP:	doShowOwnership,
       Cmd.ARG_PRIVILEGES:	doShowPrivileges,
       Cmd.ARG_RESOLDSUBSCRIPTION:	doShowResoldSubscriptions,
       Cmd.ARG_RESOURCE:		doShowResourceCalendars,

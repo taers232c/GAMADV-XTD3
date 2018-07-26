@@ -1,3 +1,11 @@
+4.57.20
+
+Added commands to show the owner of a file when only the file ID or name is known. The command uses the Reports API audit activity
+and may not find the owner if the file has not been accessed in 180 days.
+
+gam show ownership <DriveFileID>|(drivefilename <DriveFileName>) [formatjson]
+gam print ownership <DriveFileID>|(drivefilename <DriveFileName>) [todrive [<ToDriveAttributes>]] [formatjson] [quotechar <Character>]
+
 4.57.19
 
 Fixed a bug in gam create/update course where copyfrom was specified and only one of announcementstates and workstates was specified; a trap was thrown.

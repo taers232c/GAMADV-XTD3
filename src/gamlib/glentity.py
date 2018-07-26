@@ -136,6 +136,7 @@ class GamEntity(object):
   OAUTH2_TXT_FILE = u'oaut'
   OAUTH2SERVICE_JSON_FILE = u'oau2'
   ORGANIZATIONAL_UNIT = u'orgu'
+  OWNER = u'ownr'
   OWNER_ID = u'owid'
   PAGE_SIZE = u'page'
   PARENT_ORGANIZATIONAL_UNIT = u'porg'
@@ -313,6 +314,7 @@ class GamEntity(object):
     OAUTH2_TXT_FILE: [u'Client OAuth2 File', u'Client OAuth2 File'],
     OAUTH2SERVICE_JSON_FILE: [u'Service Account OAuth2 File', u'Service Account OAuth2 File'],
     ORGANIZATIONAL_UNIT: [u'Organizational Units', u'Organizational Unit'],
+    OWNER: [u'Owners', u'Owner'],
     OWNER_ID: [u'Owner IDs', u'Owner ID'],
     PAGE_SIZE: [u'Page Size', u'Page Size'],
     PARENT_ORGANIZATIONAL_UNIT: [u'Parent Organizational Units', u'Parent Organizational Unit'],
