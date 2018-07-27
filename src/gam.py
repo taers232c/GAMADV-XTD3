@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.20'
+__version__ = u'4.57.21'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -939,16 +939,39 @@ COLORHEX_FORMAT_REQUIRED = u'ColorName|ColorHex'
 
 def getColor():
   if Cmd.ArgumentsRemaining():
-    color = getChoice(WEBCOLOR_MAP, defaultChoice=None, mapChoice=True)
-    if color:
+    color = Cmd.Current().strip().lower()
+    if color in WEBCOLOR_MAP:
       Cmd.Advance()
-      return color
-    tg = COLORHEX_PATTERN.match(Cmd.Current().strip())
+      return WEBCOLOR_MAP[color]
+    tg = COLORHEX_PATTERN.match(color)
     if tg:
       Cmd.Advance()
       return tg.group(0)
     invalidArgumentExit(COLORHEX_FORMAT_REQUIRED)
   missingArgumentExit(COLORHEX_FORMAT_REQUIRED)
+
+LABEL_COLORS = [
+  u'#000000', u'#076239', u'#0b804b', u'#149e60', u'#16a766', u'#1a764d', u'#1c4587', u'#285bac',
+  u'#2a9c68', u'#3c78d8', u'#3dc789', u'#41236d', u'#434343', u'#43d692', u'#44b984', u'#4a86e8',
+  u'#653e9b', u'#666666', u'#68dfa9', u'#6d9eeb', u'#822111', u'#83334c', u'#89d3b2', u'#8e63ce',
+  u'#999999', u'#a0eac9', u'#a46a21', u'#a479e2', u'#a4c2f4', u'#aa8831', u'#ac2b16', u'#b65775',
+  u'#b694e8', u'#b9e4d0', u'#c6f3de', u'#c9daf8', u'#cc3a21', u'#cccccc', u'#cf8933', u'#d0bcf1',
+  u'#d5ae49', u'#e07798', u'#e4d7f5', u'#e66550', u'#eaa041', u'#efa093', u'#efefef', u'#f2c960',
+  u'#f3f3f3', u'#f691b3', u'#f6c5be', u'#f7a7c0', u'#fad165', u'#fb4c2f', u'#fbc8d9', u'#fcda83',
+  u'#fcdee8', u'#fce8b3', u'#fef1d1', u'#ffad47', u'#ffbc6b', u'#ffd6a2', u'#ffe6c7', u'#ffffff',
+  ]
+
+def getLabelColor():
+  if Cmd.ArgumentsRemaining():
+    color = Cmd.Current().strip().lower()
+    tg = COLORHEX_PATTERN.match(color)
+    if tg:
+      color = tg.group(0)
+      if color in LABEL_COLORS:
+        Cmd.Advance()
+        return color
+    invalidArgumentExit(u'|'.join(LABEL_COLORS))
+  missingArgumentExit(Cmd.OB_LABEL_COLOR_HEX)
 
 def removeCourseIdScope(courseId):
   if courseId.startswith(u'd:'):
@@ -1813,7 +1836,10 @@ def printKeyValueWithCRsNLs(key, value):
     if GC.Values[GC.SHOW_CONVERT_CR_NL]:
       printKeyValueList([key, escapeCRsNLs(value)])
     else:
-      printKeyValueList([key, Ind.MultiLineText(value, n=1)])
+      printKeyValueList([key, u''])
+      Ind.Increment()
+      printKeyValueList([Ind.MultiLineText(value)])
+      Ind.Decrement()
   else:
     printKeyValueList([key, value])
 
@@ -19275,6 +19301,8 @@ USERS_ORDERBY_CHOICE_MAP = {
 #	[orderby <UserOrderByFieldName> [ascending|descending]]
 #	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
 #	[delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
+#
+# gam print users countonly [domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted]
 def doPrintUsers(entityList=None):
   def _printUser(userEntity):
     if email_parts and (u'primaryEmail' in userEntity):
@@ -19309,7 +19337,7 @@ def doPrintUsers(entityList=None):
   fieldsList = []
   titles, csvRows = initializeTitlesCSVfile(None)
   addFieldToCSVfile(u'primaryEmail', USER_FIELDS_CHOICE_MAP, fieldsList, titles)
-  sortHeaders = getGroupFeed = getLicenseFeed = email_parts = False
+  countOnly = sortHeaders = getGroupFeed = getLicenseFeed = email_parts = False
   customer = GC.Values[GC.CUSTOMER_ID]
   domain = None
   queries = [None]
@@ -19371,6 +19399,8 @@ def doPrintUsers(entityList=None):
       formatJSON = True
     elif myarg == u'quotechar':
       quotechar = getCharacter()
+    elif myarg == u'countonly':
+      countOnly = True
     else:
       unknownArgumentExit()
   _, _, entityList = getEntityArgument(entityList)
@@ -19390,6 +19420,9 @@ def doPrintUsers(entityList=None):
                              customer=customer, domain=domain, fields=fields, query=query,
                              showDeleted=deleted_only, orderBy=orderBy, sortOrder=sortOrder, viewType=viewType,
                              projection=projection, customFieldMask=customFieldMask, maxResults=GC.Values[GC.USER_MAX_RESULTS])
+        if countOnly:
+          printKeyValueList([Ent.Plural(Ent.USER), len(feed)])
+          return
         while feed:
           _printUser(feed.popleft())
       except GAPI.domainNotFound:
@@ -31228,22 +31261,43 @@ LABEL_LABEL_LIST_VISIBILITY_CHOICE_MAP = {
   }
 LABEL_MESSAGE_LIST_VISIBILITY_CHOICES = [u'hide', u'show',]
 
+def getLabelAttributes(myarg, body):
+  if myarg == u'labellistvisibility':
+    body[u'labelListVisibility'] = getChoice(LABEL_LABEL_LIST_VISIBILITY_CHOICE_MAP, mapChoice=True)
+  elif myarg == u'messagelistvisibility':
+    body[u'messageListVisibility'] = getChoice(LABEL_MESSAGE_LIST_VISIBILITY_CHOICES)
+  elif myarg == u'backgroundcolor':
+    body.setdefault(u'color', {})
+    body[u'color']['backgroundColor'] = getLabelColor()
+  elif myarg == u'textcolor':
+    body.setdefault(u'color', {})
+    body[u'color']['textColor'] = getLabelColor()
+  else:
+    unknownArgumentExit()
+
+def checkLabelColor(body):
+  if u'color' not in body:
+    return
+  if u'backgroundColor' in body[u'color']:
+    if u'textColor' in body[u'color']:
+      return
+    missingArgumentExit(u'textcolor <LabelColorHex>')
+  missingArgumentExit(u'backgroundcolor <LabelColorHex>')
+
 # gam <UserTypeEntity> [create|add] label|labels <String> [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread] [buildpath [<Boolean>]]
+#	[backgroundcolor <LabelColorHex>] [textcolor <LabelColorHex>]
 def createLabel(users):
   label = getString(Cmd.OB_LABEL_NAME)
   body = {u'name': label}
   buildPath = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == u'labellistvisibility':
-      body[u'labelListVisibility'] = getChoice(LABEL_LABEL_LIST_VISIBILITY_CHOICE_MAP, mapChoice=True)
-    elif myarg == u'messagelistvisibility':
-      body[u'messageListVisibility'] = getChoice(LABEL_MESSAGE_LIST_VISIBILITY_CHOICES)
-    elif myarg == u'buildpath':
+    if myarg == u'buildpath':
       buildPath = getBoolean()
       label = label.strip(u'/')
     else:
-      unknownArgumentExit()
+      getLabelAttributes(myarg, body)
+  checkLabelColor(body)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -31314,6 +31368,7 @@ def createLabel(users):
       Ind.Decrement()
 
 # gam <UserTypeEntity> update labelsettings <LabelName> [name <String>] [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
+#	[backgroundcolor <LabelColorHex>] [textcolor <LabelColorHex>]
 def updateLabelSettings(users):
   label_name = getString(Cmd.OB_LABEL_NAME)
   label_name_lower = label_name.lower()
@@ -31322,12 +31377,9 @@ def updateLabelSettings(users):
     myarg = getArgument()
     if myarg == u'name':
       body[u'name'] = getString(Cmd.OB_STRING)
-    elif myarg == u'messagelistvisibility':
-      body[u'messageListVisibility'] = getChoice(LABEL_MESSAGE_LIST_VISIBILITY_CHOICES)
-    elif myarg == u'labellistvisibility':
-      body[u'labelListVisibility'] = getChoice(LABEL_LABEL_LIST_VISIBILITY_CHOICE_MAP, mapChoice=True)
     else:
-      unknownArgumentExit()
+      getLabelAttributes(myarg, body)
+  checkLabelColor(body)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -31343,6 +31395,7 @@ def updateLabelSettings(users):
           callGAPI(gmail.users().labels(), u'patch',
                    throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT],
                    userId=u'me', id=label[u'id'], body=body, fields=u'')
+          entityActionPerformed([Ent.USER, user, Ent.LABEL, label_name], i, count)
           break
       else:
         entityActionFailedWarning([Ent.USER, user, Ent.LABEL, label_name], Msg.DOES_NOT_EXIST, i, count)
@@ -31527,7 +31580,7 @@ def deleteLabel(users):
 
 PRINT_LABELS_TITLES = [u'User', u'type', u'name', u'id']
 SHOW_LABELS_DISPLAY_CHOICES = [u'allfields', u'basename', u'fullname']
-LABEL_DISPLAY_FIELDS_LIST = [u'type', u'id', u'labelListVisibility', u'messageListVisibility']
+LABEL_DISPLAY_FIELDS_LIST = [u'type', u'id', u'labelListVisibility', u'messageListVisibility', u'color']
 LABEL_COUNTS_FIELDS_LIST = [u'messagesTotal', u'messagesUnread', u'threadsTotal', u'threadsUnread']
 LABEL_COUNTS_FIELDS = u','.join(LABEL_COUNTS_FIELDS_LIST)
 
@@ -31558,7 +31611,11 @@ def printShowLabels(users, csvFormat):
       Ind.Increment()
       for a_key in LABEL_DISPLAY_FIELDS_LIST:
         if a_key in label:
-          printKeyValueList([a_key, label[a_key]])
+          if a_key != u'color':
+            printKeyValueList([a_key, label[a_key]])
+          else:
+            printKeyValueList([u'backgroundColor', label[a_key][u'backgroundColor']])
+            printKeyValueList([u'textColor', label[a_key][u'textColor']])
       if showCounts:
         counts = callGAPI(gmail.users().labels(), u'get',
                           throw_reasons=GAPI.GMAIL_THROW_REASONS,

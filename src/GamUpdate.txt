@@ -1,3 +1,23 @@
+4.57.21
+
+Added backgroundcolor <LabelColorHex> and textcolor <LabelColorHex> options to gam create label/update labelsettings.
+<LabelColorHex> ::=
+        #000000|#076239|#0b804b|#149e60|#16a766|#1a764d|#1c4587|#285bac|
+        #2a9c68|#3c78d8|#3dc789|#41236d|#434343|#43d692|#44b984|#4a86e8|
+        #653e9b|#666666|#68dfa9|#6d9eeb|#822111|#83334c|#89d3b2|#8e63ce|
+        #999999|#a0eac9|#a46a21|#a479e2|#a4c2f4|#aa8831|#ac2b16|#b65775|
+        #b694e8|#b9e4d0|#c6f3de|#c9daf8|#cc3a21|#cccccc|#cf8933|#d0bcf1|
+        #d5ae49|#e07798|#e4d7f5|#e66550|#eaa041|#efa093|#efefef|#f2c960|
+        #f3f3f3|#f691b3|#f6c5be|#f7a7c0|#fad165|#fb4c2f|#fbc8d9|#fcda83|
+        #fcdee8|#fce8b3|#fef1d1|#ffad47|#ffbc6b|#ffd6a2|#ffe6c7|#ffffff
+gam <UserTypeEntity> [create|add] label|labels <String> [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread] [buildpath [<Boolean>]]
+        [backgroundcolor <LabelColorHex>] [textcolor <LabelColorHex>]
+gam <UserTypeEntity> update labelsettings <LabelName> [name <String>] [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
+        [backgroundcolor <LabelColorHex>] [textcolor <LabelColorHex>]
+
+Added countonly option to gam print users to allow getting a count of the number of users that match selected criteria.
+gam print users countonly [domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted]
+
 4.57.20
 
 Added commands to show the owner of a file when only the file ID or name is known. The command uses the Reports API audit activity
