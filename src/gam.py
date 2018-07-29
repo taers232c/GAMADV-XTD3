@@ -19302,7 +19302,9 @@ USERS_ORDERBY_CHOICE_MAP = {
 #	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
 #	[delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
 #
-# gam print users countonly [domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted]
+# gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]]
+#	([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])|[select <UserTypeEntity>]
+#	[formatjson] [quotechar <Character>] [countonly]
 def doPrintUsers(entityList=None):
   def _printUser(userEntity):
     if email_parts and (u'primaryEmail' in userEntity):
