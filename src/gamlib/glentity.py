@@ -82,6 +82,7 @@ class GamEntity(object):
   DELEGATOR = u'delo'
   DELETED_USER = u'delu'
   DEVICE_FILE = u'devf'
+  DIRECTORY = u'drct'
   DISCOVERY_JSON_FILE = u'disc'
   DOMAIN = u'doma'
   DOMAIN_ALIAS = u'doal'
@@ -260,6 +261,7 @@ class GamEntity(object):
     DELEGATOR: [u'Delegators', u'Delegator'],
     DELETED_USER: [u'Deleted Users', u'Deleted User'],
     DEVICE_FILE: [u'Device Files', u'Device File'],
+    DIRECTORY: [u'Directories', u'Directory'],
     DISCOVERY_JSON_FILE: [u'Discovery File', u'Discovery File'],
     DOMAIN: [u'Domains', u'Domain'],
     DOMAIN_ALIAS: [u'Domain Aliases', u'Domain Alias'],

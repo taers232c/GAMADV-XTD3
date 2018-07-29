@@ -1,3 +1,11 @@
+4.57.22
+
+Changed `countonly` option of `gam print users` to print a CSV file with headers `domain,count` that gives the number of users
+in each domain from the account, `<UserTypeEntity>` or any queries.
+gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]]
+        ([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])|[select <UserTypeEntity>]
+        [formatjson] [quotechar <Character>] [countonly]
+
 4.57.21
 
 Added backgroundcolor <LabelColorHex> and textcolor <LabelColorHex> options to gam create label/update labelsettings.

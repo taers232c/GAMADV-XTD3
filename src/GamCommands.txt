@@ -1986,9 +1986,11 @@ gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
         [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
 
-Print user count
+Print user domain counts
 
-gam print users countonly [domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted]
+gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]]
+        ([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])|[select <UserTypeEntity>]
+        [formatjson] [quotechar <Character>] [countonly]
 
 # Users - Aliases
 
