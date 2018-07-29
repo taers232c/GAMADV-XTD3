@@ -19525,7 +19525,7 @@ def doPrintUsers(entityList=None):
       csvRows.append({u'domain': domain, u'count': count})
   else:
     csvRows.append({u'JSON': json.dumps(cleanJSON(domainCounts, u''), ensure_ascii=False, sort_keys=True)})
-  writeCSVfile(csvRows, titles, u'Users', todrive, quotechar=quotechar)
+  writeCSVfile(csvRows, titles, [u'Users', u'User Domain Counts'][countOnly], todrive, quotechar=quotechar)
 
 # gam <UserTypeEntity> print
 def doPrintUserEntity(entityList):
