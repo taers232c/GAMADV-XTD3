@@ -1,3 +1,7 @@
+4.57.23
+
+Fixed bugs in gam transfer drive that caused traps.
+
 4.57.22
 
 Changed `countonly` option of `gam print users` to print a CSV file with headers `domain,count` that gives the number of users

@@ -758,7 +758,7 @@ gam calendar|calendars <CalendarEntity> wipe
         (description <String>)|
         (location <String>)|
         (summary <String>)|
-        (timezone <String>)
+        (timezone <TimeZone>)
 
 gam calendar|calendars <CalendarEntity> modify <CalendarSettings>+
 
@@ -1990,7 +1990,7 @@ Print user domain counts
 
 gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]]
         ([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])|[select <UserTypeEntity>]
-        [formatjson] [quotechar <Character>] [countonly]
+        [formatjson] [quotechar <Character>] [countsonly|countonly]
 
 # Users - Aliases
 
@@ -2047,7 +2047,7 @@ gam <UserTypeEntity> show backupcodes|verificationcodes
         (description <String>)|
         (location <String>)|
         (summary <String>)|
-        (timezone <String>)
+        (timezone <TimeZone>)
 
 Manage a users list of calendars
 
