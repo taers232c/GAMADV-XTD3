@@ -1,3 +1,7 @@
+4.57.25
+
+Update scopes to reflect Google's deprecation of https://www.googleapis.com/auth/plus.login.
+
 4.57.24
 
 Added option skipfield <FieldName> <RegularExpression> to options that specify CSV files: csv, csvfile, csvkmd, croscsvfile and loop.
