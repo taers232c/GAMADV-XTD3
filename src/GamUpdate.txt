@@ -1,3 +1,14 @@
+4.57.24
+
+Added option skipfield <FieldName> <RegularExpression> to options that specify CSV files: csv, csvfile, csvkmd, croscsvfile and loop.
+When processing the CSV file, if <FieldName> is present and matches <RegularExpression>, the row will be skipped. You can specify
+multiple skipfields, if any of them match the row will be skipped. You can specify both `matchfield <FieldName> <RegularExpression>`
+and `skipfield <FieldName> <RegularExpression>` options on the same command line; the row will be skipped if any of the `matchfields`
+don't match or if any of the `skipfields` do match.
+
+The gam transfer drive command cannot process files/folders owned by a user outside of your domain, an error message is displayed for
+each file/folder for which this is the case.
+
 4.57.23
 
 Fixed bugs in gam transfer drive that caused traps.

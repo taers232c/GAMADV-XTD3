@@ -352,7 +352,8 @@ Specify a collection of ChromeOS devices by directly specifying them or by speci
         (cros_ous|cros_orgs <OrgUnitList>)|
         (cros_ous_and_children|cros_orgs_and_children <OrgUnitList>)|
         (crosfile|crosfile_sn <FileName> [charset <Charset>] [delimiter <Character>])|
-        (croscsvfile|croscsvfile_sn <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
+        (croscsvfile|croscsvfile_sn <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>]
+                [fields <FieldNameList>] (matchfield|skipfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
         (crosquery <QueryCrOS>)|
         (crosqueries <QueryCrOSList>)|
         (datafile cros|cros_sn|cros_ous|cros_ous_and_children
@@ -361,7 +362,7 @@ Specify a collection of ChromeOS devices by directly specifying them or by speci
                 <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
                 keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
                 subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
-                (matchfield <FieldName> <RegularExpression>)*
+                (matchfield|skipfield <FieldName> <RegularExpression>)*
                 [datafield <FieldName>(:<FieldName)* [delimiter <Character>]])|
         (croscsvdata <FieldName>(:<FieldName>*))
 
@@ -385,7 +386,8 @@ Specify a collection of Users by directly specifying them or by specifiying item
         (teachers <CourseIDList>)|
         (license|licenses|licence|licences <SKUIDList>)|
         (file <FileName> [charset <Charset>] [delimiter <Character>])|
-        (csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
+        (csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+                (matchfield|skipfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
         (query <QueryUser>)|
         (queries <QueryUserList>)|
         (datafile users|groups|groups_ns|groups_susp|ous|ous_ns|ous_susp|ous_and_children|ous_and_children_ns|ous_and_children_susp|courseparticipants|students|teachers
@@ -394,7 +396,7 @@ Specify a collection of Users by directly specifying them or by specifiying item
                 <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
                 keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
                 subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
-                (matchfield <FieldName> <RegularExpression>)*
+                (matchfield|skipfield <FieldName> <RegularExpression>)*
                 [datafield <FieldName>(:<FieldName)* [delimiter <Character>]])|
         (csvdata <FieldName>(:<FieldName>*))
 
@@ -405,13 +407,14 @@ Specify a collection of items by directly specifying them; the item type is dete
 <FileSelector> ::=
         file <FileName> [charset <Charset>] [delimiter <Character>]
 <CSVFileSelector> ::=
-        csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* [delimiter <Character>]
+        csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+                (matchfield|skipfield <FieldName> <RegularExpression>)* [delimiter <Character>]
 <CSVkmdSelector> ::=
         csvkmd <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
-               keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
-               subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
-               (matchfield <FieldName> <RegularExpression>)*
-               [datafield <FieldName>(:<FieldName)* [delimiter <Character>]]
+                keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+                subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+                (matchfield|skipfield <FieldName> <RegularExpression>)*
+                [datafield <FieldName>(:<FieldName)* [delimiter <Character>]]
 <CSVSubkeySelector> ::= csvsubkey <FieldName>
 <CSVDataSelector> ::= csvdata <FieldName>(:<FieldName)*
 
@@ -557,10 +560,12 @@ gam help
 # Bulk Processing
 
 gam batch <FileName>|- [charset <Charset>] [showcmds]
-gam csv <FileName>|- [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
+gam csv <FileName>|- [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+        (matchfield|skipfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
 gam tbatch <FileName>|- [charset <Charset>] [showcmds]
 
-gam loop <FileName>|- [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
+gam loop <FileName>|- [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+        (matchfield|skipfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
 
 You can make substitutions in <GAMArgumentList> with values from the CSV file.
 An argument containing exactly ~xxx is replaced by the value of field xxx from the CSV file
