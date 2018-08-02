@@ -1,3 +1,7 @@
+4.57.26
+
+Handle situation where Google API is returning users without an Organizational Unit.
+
 4.57.25
 
 Update scopes to reflect Google's deprecation of https://www.googleapis.com/auth/plus.login.

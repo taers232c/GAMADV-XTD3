@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.25'
+__version__ = u'4.57.26'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -3683,7 +3683,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
           ou = ou.lower()
           while result:
             user = result.popleft()
-            if ou == user[u'orgUnitPath'].lower():
+            if ou == user.get(u'orgUnitPath', u'').lower():
               entityList.append(user[u'primaryEmail'])
         else:
           while result:
