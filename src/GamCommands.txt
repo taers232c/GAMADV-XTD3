@@ -2522,15 +2522,16 @@ gam <UserTypeEntity> show fileinfo <DriveFileEntity> [filepath] [allfields|<Driv
 gam <UserTypeEntity> show filepath <DriveFileEntity> (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> print filepath <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> show filecounts [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
-        [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>] [showmimetype [not] <MimeTypeList>]
-        [select <TeamDriveEntity>]
+        [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
+        [select <TeamDriveEntity>] [showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
 gam <UserTypeEntity> print filecounts [todrive [<ToDriveAttributes>]] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
-        [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>] [showmimetype [not] <MimeTypeList>]
-        [select <TeamDriveEntity>]
+        [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
+        [select <TeamDriveEntity>] [showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
 
 gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)]
         [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>] [corpora <CorporaAttribute>]
-        [select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [showmimetype [not] <MimeTypeList>] [depth <Number>] [showparent]
+        [select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [depth <Number>] [showparent]
+        [showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
         [filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [quotechar <Character>]
 
 <FileTreeFieldName> ::=
@@ -2541,7 +2542,8 @@ gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [anyown
 <FileTreeFieldNameList> ::= "<FileTreeFieldName>(,<FileTreeFieldName>)*"
 
 gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
-        [select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [showmimetype [not] <MimeTypeList>] [depth <Number>]
+        [select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [depth <Number>]
+        [showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
 
 gam <UserTypeEntity> print|show driveactivity [todrive [<ToDriveAttributes>]] [fileid <DriveFileID>] [folderid <DriveFolderID>]

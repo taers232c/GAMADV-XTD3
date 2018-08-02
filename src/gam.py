@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.26'
+__version__ = u'4.57.27'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -25326,7 +25326,8 @@ FILELIST_FIELDS_TITLES = [u'id', u'mimeType', u'parents']
 
 # gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
 #	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
-#	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [showmimetype [not] <MimeTypeList>] [depth <Number>] [showparent]
+#	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [depth <Number>] [showparent]
+#	[showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
 #	[filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [quotechar <Character>]
 def printFileList(users):
   def _setSelectionFields():
@@ -25340,17 +25341,20 @@ def printFileList(users):
       if u'mimeType' not in fieldsList:
         skipObjects.add(u'mimeType')
         fieldsList.append(u'mimeType')
+    if filenameMatchPattern:
+      if VX_FILENAME not in fieldsList:
+        skipObjects.add(VX_FILENAME)
+        fieldsList.append(VX_FILENAME)
     if onlyTeamDrives or getPermissionsForTeamDrives:
       if u'teamDriveId' not in fieldsList:
         skipObjects.add(u'teamDriveId')
         fieldsList.append(u'teamDriveId')
 
   def _printFileInfo(drive, f_file):
-    if showOwnedBy is not None and f_file.get(u'ownedByMe', showOwnedBy) != showOwnedBy:
-      return
-    if not checkMimeType(mimeTypeCheck, f_file):
-      return
-    if onlyTeamDrives and not f_file.get(u'teamDriveId'):
+    if ((showOwnedBy is not None and f_file.get(u'ownedByMe', showOwnedBy) != showOwnedBy) or
+        (not checkMimeType(mimeTypeCheck, f_file)) or
+        (filenameMatchPattern and not filenameMatchPattern.match(f_file[VX_FILENAME])) or
+        (onlyTeamDrives and not f_file.get(u'teamDriveId'))):
       return
     if getPermissionsForTeamDrives and f_file.get(u'teamDriveId') and u'permissions' not in f_file:
       try:
@@ -25461,7 +25465,7 @@ def printFileList(users):
   selectSubQuery = u''
   fileIdEntity = {}
   parentsSubFields = _initParentsSubFields()
-  showOwnedBy = fileTree = None
+  filenameMatchPattern = fileTree = showOwnedBy = None
   mimeTypeCheck = initMimeTypeCheck()
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
@@ -25530,6 +25534,8 @@ def printFileList(users):
       showOwnedBy, query = _getShowOwnedBy(query)
     elif myarg == u'showmimetype':
       getMimeTypeCheck(mimeTypeCheck)
+    elif myarg == u'filenamematchpattern':
+      filenameMatchPattern = getREPattern(re.IGNORECASE)
     elif myarg == u'delimiter':
       delimiter = getCharacter()
     elif myarg == u'quotechar':
@@ -25789,6 +25795,7 @@ def _printShowFileCounts(users, csvFormat):
   fieldsList = [u'mimeType',]
   onlyTeamDrives = False
   query = ME_IN_OWNERS
+  filenameMatchPattern = None
   mimeTypeCheck = initMimeTypeCheck()
   fileIdEntity = initDriveFileEntity()
   while Cmd.ArgumentsRemaining():
@@ -25808,6 +25815,9 @@ def _printShowFileCounts(users, csvFormat):
           query += u"mimeType != '{0}' and ".format(mimeType)
         query = query[:-5]
       query += u')'
+    elif myarg == u'filenamematchpattern':
+      filenameMatchPattern = getREPattern(re.IGNORECASE)
+      fieldsList.append(VX_FILENAME)
     elif myarg == u'query':
       if query:
         query += u' and '+getString(Cmd.OB_QUERY)
@@ -25856,7 +25866,8 @@ def _printShowFileCounts(users, csvFormat):
                            q=query, fields=pagesfields,
                            pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **fileIdEntity[u'teamdrive'])
       for f_file in feed:
-        if not onlyTeamDrives or f_file.get(u'teamDriveId'):
+        if (((not filenameMatchPattern) or filenameMatchPattern.match(f_file[VX_FILENAME])) and
+            ((not onlyTeamDrives) or f_file.get(u'teamDriveId'))):
           total += 1
           mimeTypeCounts.setdefault(f_file[u'mimeType'], 0)
           mimeTypeCounts[f_file[u'mimeType']] += 1
@@ -25903,7 +25914,8 @@ FILETREE_FIELDS_CHOICE_MAP = {
 FILETREE_FIELDS_PRINT_ORDER = [u'id', u'parents', u'owners', u'mimeType']
 
 # gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
-#	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [showmimetype [not] <MimeTypeList>] [depth <Number>]
+#	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [depth <Number>]
+#	[showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
 def showFileTree(users):
   def _simpleFileIdEntityList(fileIdEntityList):
@@ -25934,7 +25946,8 @@ def showFileTree(users):
     for childId in fileEntry[u'children']:
       childEntry = fileTree.get(childId)
       if childEntry:
-        if checkMimeType(mimeTypeCheck, childEntry[u'info']):
+        if (checkMimeType(mimeTypeCheck, childEntry[u'info']) and
+            ((not filenameMatchPattern) or filenameMatchPattern.match(childEntry[u'info'][VX_FILENAME]))):
           _showFileInfo(childEntry[u'info'])
         if childEntry[u'info'][u'mimeType'] == MIMETYPE_GA_FOLDER and (maxdepth == -1 or depth < maxdepth):
           Ind.Increment()
@@ -25968,7 +25981,7 @@ def showFileTree(users):
   query = ME_IN_OWNERS
   fileIdEntity = initDriveFileEntity()
   selectSubQuery = u''
-  showOwnedBy = fileTree = None
+  filenameMatchPattern = fileTree = showOwnedBy = None
   showFields = {}
   for field in FILETREE_FIELDS_CHOICE_MAP:
     showFields[FILETREE_FIELDS_CHOICE_MAP[field]] = False
@@ -25998,6 +26011,8 @@ def showFileTree(users):
         query = ME_IN_OWNERS
     elif myarg == u'showmimetype':
       getMimeTypeCheck(mimeTypeCheck)
+    elif myarg == u'filenamematchpattern':
+      filenameMatchPattern = getREPattern(re.IGNORECASE)
     elif myarg == u'fields':
       for field in _getFieldsList():
         if field in FILETREE_FIELDS_CHOICE_MAP:

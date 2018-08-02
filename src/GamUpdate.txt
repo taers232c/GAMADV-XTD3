@@ -1,3 +1,13 @@
+4.57.27
+
+Added option filenamematchpattern <RegularExpression> to gam print/show filecounts, gam print filelist and gam show filetree
+to give more powerful selection of file names than query <QueryDriveFile>. In particular, this is useful when
+the select <DriveFileEntityListTree> option is used and query <QueryDriveFile> is not applicable.
+For example, to list all files whose name ends in ".exe" that are in the folder named "Folder Name" and its sub-folders:
+     gam user user@domain.com print filelist select drivefilename "Folder Name" filenamematchpattern ".*\.exe"
+If you only want files whose name ends in ".exe" that are directly in the folder named "Folder Name":
+     gam user user@domain.com print filelist select drivefilename "Folder Name" depth 0 filenamematchpattern ".*\.exe"
+
 4.57.26
 
 Handle situation where Google API is returning users without an Organizational Unit.
