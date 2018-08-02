@@ -150,6 +150,8 @@ try:
     if asset[attrib].endswith('$gamfile'):
       print(asset[attrib])
       break
+  else:
+    print('ERROR: Attribute: {0} for $gamfile version {1} not found'.format(attrib, gamversion))
 except KeyError:
   print('ERROR: assets value not found in JSON value of:\n\n%s' % release)"
 
