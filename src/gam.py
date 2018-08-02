@@ -27386,6 +27386,8 @@ TRANSFER_DRIVEFILE_ACL_ROLES_MAP = {
 def transferDrive(users):
 
   def _getOwnerUser(childEntryInfo):
+    if u'owners' not in childEntryInfo or not childEntryInfo[u'owners']:
+      return (u'Unknown', None)
     ownerUser = childEntryInfo[u'owners'][0][u'emailAddress']
     if ownerUser not in thirdPartyOwners:
       _, ownerDrive = buildGAPIServiceObject(API.DRIVE3, ownerUser, 0, 0, displayError=False)
