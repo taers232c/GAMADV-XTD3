@@ -56,6 +56,7 @@ class GamEntity(object):
   CALENDAR_SETTINGS = u'cset'
   CLASSROOM_OAUTH2_TXT_FILE = u'coau'
   CLIENT_SECRETS_JSON_FILE = u'clis'
+  CLOUD_STORAGE_FILE = 'clsf'
   COLLABORATOR = u'cola'
   CONFIG_FILE = u'conf'
   CONTACT = u'cont'
@@ -107,6 +108,7 @@ class GamEntity(object):
   EVENT = u'evnt'
   FEATURE = u'feat'
   FIELD = u'fiel'
+  FILE = u'file'
   FILTER = u'filt'
   FORWARD_ENABLED = u'fwde'
   FORWARDING_ADDRESS = u'fwda'
@@ -128,6 +130,7 @@ class GamEntity(object):
   LANGUAGE = u'lang'
   LICENSE = u'lice'
   LOGO = u'logo'
+  MD5HASH = u'md5h'
   MEMBER = u'memb'
   MESSAGE = u'mesg'
   MOBILE_DEVICE = u'mobi'
@@ -203,6 +206,7 @@ class GamEntity(object):
   VACATION = u'vaca'
   VACATION_ENABLED = u'vace'
   VALUE = u'valu'
+  VAULT_EXPORT = u'vlte'
   VAULT_HOLD = u'vlth'
   VAULT_MATTER = u'vltm'
   VAULT_MATTER_ID = u'vlmi'
@@ -235,6 +239,7 @@ class GamEntity(object):
     CALENDAR_SETTINGS: [u'Calendar Settings', u'Calendar Settings'],
     CLASSROOM_OAUTH2_TXT_FILE: [u'Classroom OAuth2 File', u'Classroom OAuth2 File'],
     CLIENT_SECRETS_JSON_FILE: [u'Client Secrets File', u'Client Secrets File'],
+    CLOUD_STORAGE_FILE: [u'Cloud Storage Files', u'Cloud Storage File'],
     COLLABORATOR: [u'Collaborators', u'Collaborator'],
     CONFIG_FILE: [u'Config File', u'Config File'],
     CONTACT: [u'Contacts', u'Contact'],
@@ -286,6 +291,7 @@ class GamEntity(object):
     EVENT: [u'Events', u'Event'],
     FEATURE: [u'Features', u'Feature'],
     FIELD: [u'Fields', u'Field'],
+    FILE: [u'Files', u'File'],
     FILTER: [u'Filters', u'Filter'],
     FORWARD_ENABLED: [u'Forward Enabled', u'Forward Enabled'],
     FORWARDING_ADDRESS: [u'Forwarding Addresses', u'Forwarding Address'],
@@ -307,6 +313,7 @@ class GamEntity(object):
     LANGUAGE: [u'Languages', u'Language'],
     LICENSE: [u'Licenses', u'License'],
     LOGO: [u'Logos', u'Logo'],
+    MD5HASH: [u'MD5 hash', u'MD5 Hash'],
     MEMBER: [u'Members', u'Member'],
     MESSAGE: [u'Messages', u'Message'],
     MOBILE_DEVICE: [u'Mobile Devices', u'Mobile Device'],
@@ -382,6 +389,7 @@ class GamEntity(object):
     VACATION: [u'Vacation', u'Vacation'],
     VACATION_ENABLED: [u'Vacation Enabled', u'Vacation Enabled'],
     VALUE: [u'Values', u'Value'],
+    VAULT_EXPORT: [u'Vault Exports', u'Vault Export'],
     VAULT_HOLD: [u'Vault Holds', u'Vault Hold'],
     VAULT_MATTER: [u'Vault Matters', u'Vault Matter'],
     VAULT_MATTER_ID: [u'Vault Matter IDs', u'Vault Matter ID'],

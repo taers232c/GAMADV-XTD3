@@ -108,7 +108,7 @@ If an item contains spaces, it should be surrounded by ".
 <Boolean> ::= <TrueValues>|<FalseValues>
 <ByteCount> ::= <Number>[m|k|b]
 <CIDRnetmask> ::= <Number>.<Number>.<Number>.<Number>/<Number>
-<ColorHex> ::= #<Hex><Hex><Hex><Hex><Hex><Hex>
+<ColorHex> ::= "#<Hex><Hex><Hex><Hex><Hex><Hex>"
 <Year> ::= <Digit><Digit><Digit><Digit>
 <Month> ::= <Digit><Digit>
 <Day> ::= <Digit><Digit>
@@ -140,6 +140,7 @@ If an item contains spaces, it should be surrounded by ".
 <BuildingID> ::= <String>|id:<String>
 <CalendarColorIndex> ::= <Number in range 1-24>
 <CalendarItem> ::= <EmailAddress>|<String>
+<ChatRoom> ::= <String>
 <ClientID> ::= <String>
 <ColorValue> ::= <ColorName>|<ColorHex>
 <ContactID> ::= <String>
@@ -271,6 +272,7 @@ If an item contains spaces, it should be surrounded by ".
 <ASPIDList> ::= "<ASPID>(,<ASPID>)*"
 <CalendarACLScopeList> ::= "<CalendarACLScope>(,<CalendarACLScope>)*"
 <CalendarList> ::= "<CalendarItem>(,<CalendarItem>)*"
+<ChatRoomList> ::= "<ChatRoom>(,<ChatRoom>)*"
 <ContactGroupList> ::= "<ContactGroupItem>(,<ContactGroupItem>)*"
 <ContactIDList> ::= "<ContactID>(,<ContactID>)*"
 <CourseAliasList> ::= "<CourseAlias>(,<CourseAlias>)*"
@@ -321,6 +323,7 @@ If an item contains spaces, it should be surrounded by ".
 <SiteACLScopeList> ::= "<SiteACLScope>(,<SiteACLScope>)*"
 <SiteList> ::= "<SiteItem>(,<SiteItem>)*"
 <SKUIDList> ="<SKUID>(,<SKUID>)*"
+<TeamDriveIDList> ::= "<TeamDriveID>(,<TeamDriveID>)*"
 <ThreadIDList> ::= "<ThreadID>(,<ThreadID>)*"
 <TimeList> ::= "<Time>(,<Time>)*"
 <UserList> ::= "<UserItem>(,<UserItem>)*"
@@ -1838,14 +1841,33 @@ gam <UserTypeEntity> show teamdriveacls [teamdriveadminquery|query <QueryTeamDri
 
 # Vault
 
+gam create vaultexport|export matter <MatterItem>] [name <String>] corpus <drive|mail|groups|hangouts_chat>
+        (accounts <EmailAddressList>) | (orgunit|org|ou <OrgUnitPath>) | (teamdrives <TeamDriveIDList>) | (rooms <ChatRoomList>) | everyone
+        [scope <all_data|held_data|unprocessed_data>]
+        [terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>] [timezone <timezone>]
+        [includerooms <Boolean>]
+        [excludedrafts <Boolean>] [format mbox|pst]
+        [driveversiondate <Date>|<DateTime>] [includeteamdrives <Boolean>] [includeaccessinfo <Boolean>]
+        [nodetails]
+gam delete vaultexport|export <ExportItem> matter <MatterItem>
+gam delete vaultexport|export <MatterItem> <ExportItem>
+gam download vaultexport|export <ExportItem> matter <MatterItem> [noverify] [noextract] [targetfolder <FilePath>]
+gam download vaultexport|export <MatterItem> <ExportItem> [noverify] [noextract] [targetfolder <FilePath>]
+gam info vaultexport|export <ExportItem> matter <MatterItem>
+gam info vaultexport|export <MatterItem> <ExportItem>
+gam show vaultexports|exports [matter|matters <MatterItemList>] [shownames]
+gam print vaultexports|exports [todrive [<ToDriveAttributes>]] [matter|matters <MatterItemList>] [shownames]
+
 gam create|add vaulthold|hold corpus drive|groups|mail matter <MatterItem> [name <String>] [query <QueryVaultCorpus>]
-        [(accounts|groups|users <EmailItemList>) | (orgunit|ou <OrgUnit>)]
-        [starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>]
+        [(accounts|groups|users <EmailItemList>) | (orgunit|org|ou <OrgUnit>)]
+        [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
 gam update vaulthold|hold <HoldItem> matter <MatterItem> [query <QueryVaultCorpus>]
-        [([addaccounts|addgroups|addusers <EmailItemList>] [removeaccounts|removegroups|removeusers <EmailItemList>]) | (orgunit|ou <OrgUnit>)]
-        [starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>]
+        [([addaccounts|addgroups|addusers <EmailItemList>] [removeaccounts|removegroups|removeusers <EmailItemList>]) | (orgunit|org|ou <OrgUnit>)]
+        [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
 gam delete vaulthold|hold <HoldItem> matter <MatterItem>
+gam delete vaulthold|hold <MatterItem> <HoldItem>
 gam info vaulthold|hold <HoldItem> matter <MatterItem> [shownames]
+gam info vaulthold|hold <MatterItem> <HoldItem> [shownames]
 gam show vaultholds|holds [matter|matters <MatterItemList>] [shownames]
 gam print vaultholds|holds [todrive [<ToDriveAttributes>]] [matter|matters <MatterItemList>] [shownames]
 

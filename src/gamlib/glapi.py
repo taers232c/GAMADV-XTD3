@@ -44,6 +44,7 @@ RESELLER = u'reseller'
 SHEETS = u'sheets'
 SITES = u'sites'
 SITEVERIFICATION = u'siteVerification'
+STORAGE = u'storage'
 VAULT = u'vault'
 #
 FAM1_SCOPES = u'fam1'
@@ -80,6 +81,7 @@ PROJECT_APIS = [
   u'reseller.googleapis.com',
   u'sheets.googleapis.com',
   u'siteverification.googleapis.com',
+  u'storage-api.googleapis.com',
   u'vault.googleapis.com',
   ]
 
@@ -113,6 +115,7 @@ _INFO = {
   SHEETS: {u'version': u'v4', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/spreadsheets',]},
   SITES: {u'version': u'v1', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://sites.google.com/feeds',], u'localjson': True},
   SITEVERIFICATION: {u'version': u'v1', u'credfam': FAM2_SCOPES},
+  STORAGE: {u'version': u'v1', u'credfam': FAM2_SCOPES},
   VAULT: {u'version': u'v1', u'credfam': FAM2_SCOPES},
   }
 
@@ -174,6 +177,11 @@ OAUTH2_SCOPES = [
    u'credfam': FAM2_SCOPES,
    u'subscopes': [],
    u'scope': u'https://www.googleapis.com/auth/cloudprint'},
+  {u'name': u'Cloud Storage (Vault Export - read only)',
+   u'api': STORAGE,
+   u'subscopes': [],
+   u'credfam': FAM2_SCOPES,
+   u'scope': u'https://www.googleapis.com/auth/devstorage.read_only'},
   {u'name': u'Contacts API - Domain Shared and Users and GAL',
    u'api': CONTACTS,
    u'credfam': FAM2_SCOPES,

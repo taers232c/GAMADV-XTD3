@@ -1,3 +1,29 @@
+4.60.00
+
+Based on the initial work of Jay Lee, the following Vault export commands have been added.
+
+To use these commands you must perform the following commands:
+```
+gam update project
+gam oauth create
+```
+gam create vaultexport|export matter <MatterItem>] [name <String>] corpus <drive|mail|groups|hangouts_chat>
+        (accounts <EmailAddressList>) | (orgunit|org|ou <OrgUnitPath>) | (teamdrives <TeamDriveIDList>) | (rooms <ChatRoomList>) | everyone
+        [scope <all_data|held_data|unprocessed_data>]
+        [terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>] [timezone <timezone>]
+        [includerooms <Boolean>]
+        [excludedrafts <Boolean>] [format mbox|pst]
+        [driveversiondate <Date>|<DateTime>] [includeteamdrives <Boolean>] [includeaccessinfo <Boolean>]
+        [nodetails]
+gam delete vaultexport|export <ExportItem> matter <MatterItem>
+gam delete vaultexport|export <MatterItem> <ExportItem>
+gam download vaultexport|export <ExportItem> matter <MatterItem> [noverify] [noextract] [targetfolder <FilePath>]
+gam download vaultexport|export <MatterItem> <ExportItem> [noverify] [noextract] [targetfolder <FilePath>]
+gam info vaultexport|export <ExportItem> matter <MatterItem>
+gam info vaultexport|export <MatterItem> <ExportItem>
+gam show vaultexports|exports [matter|matters <MatterItemList>] [shownames]
+gam print vaultexports|exports [todrive [<ToDriveAttributes>]] [matter|matters <MatterItemList>] [shownames]
+
 4.57.27
 
 Added option filenamematchpattern <RegularExpression> to gam print/show filecounts, gam print filelist and gam show filetree

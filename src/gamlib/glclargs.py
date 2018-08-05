@@ -320,6 +320,8 @@ class GamCLArgs(object):
   ARG_EMPTYDRIVEFOLDERS = u'emptydrivefolders'
   ARG_EVENT = u'event'
   ARG_EVENTS = u'events'
+  ARG_EXPORT = u'export'
+  ARG_EXPORTS = u'exports'
   ARG_FEATURE = u'feature'
   ARG_FEATURES = u'features'
   ARG_FILECOUNT = u'filecount'
@@ -440,6 +442,8 @@ class GamCLArgs(object):
   ARG_USER = u'user'
   ARG_USERS = u'users'
   ARG_VACATION = u'vacation'
+  ARG_VAULTEXPORT = u'vaultexport'
+  ARG_VAULTEXPORTS = u'vaultexports'
   ARG_VAULTHOLD = u'vaulthold'
   ARG_VAULTHOLDS = u'vaultholds'
   ARG_VAULTMATTER = u'vaultmatter'
@@ -500,12 +504,14 @@ class GamCLArgs(object):
   OB_DRIVE_FOLDER_NAME = u'DriveFolderName'
   OB_EMAIL_ADDRESS = u'EmailAddress'
   OB_EMAIL_ADDRESS_ENTITY = u'EmailAddressEntity'
+  OB_EMAIL_ADDRESS_LIST = u'EmailAddressList'
   OB_EMAIL_ADDRESS_OR_UID = u'EmailAaddress|UniqueID'
   OB_EMAIL_REPLACEMENT = u'EmailReplacement'
   OB_ENTITY = u'Entity'
   OB_ENTITY_TYPE = u'EntityType'
   OB_EVENT_ID = u'EventID'
   OB_EVENT_ID_ENTITY = u'EventIDEntity'
+  OB_EXPORT_ITEM = u'ExportItem'
   OB_FIELD_NAME = u'FieldName'
   OB_FIELD_NAME_LIST = "FieldNameList"
   OB_FILE_NAME = u'FileName'
@@ -565,6 +571,7 @@ class GamCLArgs(object):
   OB_ROLE_ASSIGNMENT_ID = u'RoleAssignmentID'
   OB_ROLE_ID = u'RoleID'
   OB_ROLE_LIST = u'RoleList'
+  OB_ROOM_LIST = u'RoomList'
   OB_SCHEMA_ENTITY = u'SchemaEntity'
   OB_SCHEMA_NAME = u'SchemaName'
   OB_SCHEMA_NAME_FIELD_NAME = u'SchemaName.FieldName'
@@ -708,3 +715,23 @@ class GamCLArgs(object):
                                                     self.QuotedArgumentList([self.argv[self.argvI]]),
                                                     self.QuotedArgumentList(self.argv[self.argvI+1:]))
     return u'Command: {0} >>><<<\n'.format(self.QuotedArgumentList(self.argv))
+
+# Peek to see if next argument is in choices
+  def PeekArgumentPresent(self, choices):
+    if self.ArgumentsRemaining():
+      choiceList = choices if isinstance(choices, list) else [choices]
+      choice = self.Current().strip().lower().replace(u'_', u'')
+      if choice and choice in choiceList:
+        return True
+    return False
+
+# Look ahead to see if argumwnt is present
+  def ArgumentIsAhead(self, argument):
+    self.SaveLocation()
+    while self.ArgumentsRemaining():
+      if argument == self.Current().strip().lower().replace(u'_', u''):
+        self.ResetLocation(0)
+        return True
+      self.Advance()
+    self.ResetLocation(0)
+    return False

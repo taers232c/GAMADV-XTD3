@@ -45,6 +45,7 @@ class GamAction(object):
   EMPTY = u'empt'
   ENABLE = u'enbl'
   EXPORT = u'expo'
+  EXTRACT = u'extr'
   FETCH = u'fetc'
   FORWARD = u'forw'
   IMPORT = u'impo'
@@ -87,6 +88,8 @@ class GamAction(object):
   UNTRASH = u'untr'
   UPDATE = u'upda'
   UPLOAD = u'uplo'
+  UNZIP = U'unzi'
+  VERIFY = u'vrfy'
   WATCH = u'watc'
   WIPE = u'wipe'
   # Usage:
@@ -116,6 +119,7 @@ class GamAction(object):
     EMPTY: [u'Emptied', u'Empty'],
     ENABLE: [u'Enabled', u'Enable'],
     EXPORT: [u'Exported', u'Export'],
+    EXTRACT: [u'Extracted', u'Extract'],
     FORWARD: [u'Forwarded', u'Forward'],
     IMPORT: [u'Imported', u'Import'],
     INFO: [u'Shown', u'Show Info'],
@@ -155,8 +159,10 @@ class GamAction(object):
     UNDELETE: [u'Undeleted', u'Undelete'],
     UNSUSPEND: [u'Unsuspended', u'Unsuspend'],
     UNTRASH: [u'Untrashed', u'Untrash'],
+    UNZIP: [u'Unzipped', u'Unzip'],
     UPDATE: [u'Updated', u'Update'],
     UPLOAD: [u'Uploaded', u'Upload'],
+    VERIFY: [u'Verified', u'Verify'],
     WATCH: [u'Watched', u'Watch'],
     WIPE: [u'Wiped', u'Wipe'],
     }

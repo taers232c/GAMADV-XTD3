@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.57.27'
+__version__ = u'4.60.00'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -34,6 +34,7 @@ import codecs
 import collections
 import csv
 import datetime
+import hashlib
 import json
 import logging
 import mimetypes
@@ -44,6 +45,7 @@ import re
 import signal
 import socket
 import uuid
+import zipfile
 
 import configparser
 from html.entities import name2codepoint
@@ -706,15 +708,6 @@ def checkArgumentPresent(choices, required=False):
   elif not required:
     return False
   missingChoiceExit(choiceList)
-
-# Peek to see if argument present, do not advance
-def peekArgumentPresent(choices):
-  if Cmd.ArgumentsRemaining():
-    choiceList = choices if isinstance(choices, list) else [choices]
-    choice = Cmd.Current().strip().lower().replace(u'_', u'')
-    if choice and choice in choiceList:
-      return True
-  return False
 
 # Check that there are no extraneous arguments at the end of the command line
 def checkForExtraneousArguments():
@@ -1874,6 +1867,11 @@ def printEntitiesCount(entityType, entityList):
 def printEntityKVList(entityValueList, infoKVList, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
                                  Ent.FormatEntityValueList(entityValueList)+infoKVList,
+                                 currentCountNL(i, count)))
+
+def performAction(entityType, entityValue, i=0, count=0):
+  writeStdout(formatKeyValueList(Ind.Spaces(),
+                                 [u'{0} {1} {2}'.format(Act.ToPerform(), Ent.Singular(entityType), entityValue)],
                                  currentCountNL(i, count)))
 
 def performActionNumItems(itemCount, itemType, i=0, count=0):
@@ -4595,8 +4593,7 @@ def writeCSVfile(csvRows, titles, list_type, todrive, sortTitles=None, quotechar
         mimeType = u'text/csv'
       title = todrive[u'title'] or u'{0} - {1}'.format(GC.Values[GC.DOMAIN], list_type)
       if todrive[u'timestamp']:
-        timestamp = datetime.datetime.now(GC.Values[GC.TIMEZONE])+datetime.timedelta(days=-todrive[u'daysoffset'], hours=-todrive[u'hoursoffset'])
-        title += u' - '+ISOformatTimeStamp(timestamp)
+        title += u' - '+ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])+datetime.timedelta(days=-todrive[u'daysoffset'], hours=-todrive[u'hoursoffset']))
       _, drive = buildGAPIServiceObject(API.DRIVE3, todrive[u'user'], 0, 0)
       try:
         if not todrive[u'fileId']:
@@ -10308,7 +10305,7 @@ def _getContactQueryAttributes(contactQuery, myarg, entityType, errorOnUnknown, 
 
 def _getContactEntityList(entityType, errorOnUnknown, allowOutputAttributes):
   contactQuery = _initContactQueryAttributes()
-  if peekArgumentPresent([u'query', u'contactgroup', u'emailmatchpattern', u'updatedmin']):
+  if Cmd.PeekArgumentPresent([u'query', u'contactgroup', u'emailmatchpattern', u'updatedmin']):
     entityList = None
     queriedContacts = True
     while Cmd.ArgumentsRemaining():
@@ -16550,8 +16547,32 @@ def doPrintUserSchemas():
 def doShowUserSchemas():
   _doPrintShowUserSchemas(False)
 
-def formatHoldNameId(holdName, holdId):
-  return u'{0}({1})'.format(holdName, holdId)
+def formatVaultNameId(vaultName, vaultId):
+  return u'{0}({1})'.format(vaultName, vaultId)
+
+def convertExportNameToID(v, nameOrId, matterId, matterNameId):
+  cg = UID_PATTERN.match(nameOrId)
+  if cg:
+    try:
+      export = callGAPI(v.matters().exports(), u'get',
+                        throw_reasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                        matterId=matterId, exportId=cg.group(1))
+      return (export[u'id'], export[u'name'], formatVaultNameId(export[u'id'], export[u'name']))
+    except (GAPI.notFound, GAPI.badRequest):
+      entityDoesNotHaveItemExit([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, nameOrId])
+    except GAPI.forbidden:
+      APIAccessDeniedExit()
+  nameOrIdlower = nameOrId.lower()
+  try:
+    exports = callGAPIpages(v.matters().exports(), u'list', u'exports',
+                            throw_reasons=[GAPI.FORBIDDEN],
+                            matterId=matterId, fields=u'exports(id,name),nextPageToken')
+    for export in exports:
+      if export[u'name'].lower() == nameOrIdlower:
+        return (export[u'id'], export[u'name'], formatVaultNameId(export[u'id'], export[u'name']))
+  except GAPI.forbidden:
+    APIAccessDeniedExit()
+  entityDoesNotHaveItemExit([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, nameOrId])
 
 def convertHoldNameToID(v, nameOrId, matterId, matterNameId):
   cg = UID_PATTERN.match(nameOrId)
@@ -16560,7 +16581,7 @@ def convertHoldNameToID(v, nameOrId, matterId, matterNameId):
       hold = callGAPI(v.matters().holds(), u'get',
                       throw_reasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
                       matterId=matterId, holdId=cg.group(1))
-      return (hold[u'holdId'], hold[u'name'], formatHoldNameId(hold[u'holdId'], hold[u'name']))
+      return (hold[u'holdId'], hold[u'name'], formatVaultNameId(hold[u'holdId'], hold[u'name']))
     except (GAPI.notFound, GAPI.badRequest):
       entityDoesNotHaveItemExit([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, nameOrId])
     except GAPI.forbidden:
@@ -16572,13 +16593,10 @@ def convertHoldNameToID(v, nameOrId, matterId, matterNameId):
                           matterId=matterId, fields=u'holds(holdId,name),nextPageToken')
     for hold in holds:
       if hold[u'name'].lower() == nameOrIdlower:
-        return (hold[u'holdId'], hold[u'name'], formatHoldNameId(hold[u'holdId'], hold[u'name']))
+        return (hold[u'holdId'], hold[u'name'], formatVaultNameId(hold[u'holdId'], hold[u'name']))
   except GAPI.forbidden:
     APIAccessDeniedExit()
   entityDoesNotHaveItemExit([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, nameOrId])
-
-def formatMatterNameId(matterName, matterId):
-  return u'{0}({1})'.format(matterName, matterId)
 
 def convertMatterNameToID(v, nameOrId):
   cg = UID_PATTERN.match(nameOrId)
@@ -16586,38 +16604,429 @@ def convertMatterNameToID(v, nameOrId):
     try:
       matter = callGAPI(v.matters(), u'get',
                         throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                        matterId=cg.group(1), view=u'BASIC', fields=u'matterId,name')
-      return (matter[u'matterId'], matter[u'name'], formatMatterNameId(matter[u'name'], matter[u'matterId']))
+                        matterId=cg.group(1), view=u'BASIC', fields=u'matterId,name,state')
+      return (matter[u'matterId'], matter[u'name'], formatVaultNameId(matter[u'name'], matter[u'matterId']), matter[u'state'])
     except (GAPI.notFound, GAPI.forbidden):
       entityDoesNotExistExit(Ent.VAULT_MATTER, nameOrId)
   nameOrIdlower = nameOrId.lower()
   ids = []
+  states = []
   try:
     matters = callGAPIpages(v.matters(), u'list', u'matters',
                             throw_reasons=[GAPI.FORBIDDEN],
-                            view=u'BASIC', fields=u'matters(matterId,name),nextPageToken')
+                            view=u'BASIC', fields=u'matters(matterId,name,state),nextPageToken')
     for matter in matters:
       if matter[u'name'].lower() == nameOrIdlower:
         nameOrId = matter[u'name']
         ids.append(matter[u'matterId'])
+        states.append(matter[u'state'])
   except GAPI.forbidden:
     APIAccessDeniedExit()
   if len(ids) == 1:
-    return (ids[0], nameOrId, formatMatterNameId(nameOrId, ids[0]))
+    return (ids[0], nameOrId, formatVaultNameId(nameOrId, ids[0]), states[0])
   if len(ids) == 0:
     entityDoesNotExistExit(Ent.VAULT_MATTER, nameOrId)
   else:
     entityIsNotUniqueExit(Ent.VAULT_MATTER, nameOrId, Ent.VAULT_MATTER_ID, ids)
 
 def getMatterItem(v):
-  matterId, _, matterNameId = convertMatterNameToID(v, getString(Cmd.OB_MATTER_ITEM))
+  matterId, _, matterNameId, _ = convertMatterNameToID(v, getString(Cmd.OB_MATTER_ITEM))
   return (matterId, matterNameId)
+
+def warnMatterNotOpen(matter, matterNameId, j, jcount):
+  printWarningMessage(DATA_NOT_AVALIABLE_RC, formatKeyValueList(u'',
+                                                                Ent.FormatEntityValueList([Ent.VAULT_MATTER, matterNameId])+[Msg.MATTER_NOT_OPEN.format(matter[u'state'])],
+                                                                currentCount(j, jcount)))
+
+VAULT_SEARCH_METHODS_MAP = {
+  u'account': u'ACCOUNT',
+  u'accounts': u'ACCOUNT',
+  u'entireorg': u'ENTIRE_ORG',
+  u'everyone': u'ENTIRE_ORG',
+  u'org': u'ORG_UNIT',
+  u'orgunit': u'ORG_UNIT',
+  u'ou': u'ORG_UNIT',
+  u'room': u'ROOM',
+  u'rooms': u'ROOM',
+  u'teamdrive': u'TEAM_DRIVE',
+  u'teamdrives': u'TEAM_DRIVE',
+  }
+VAULT_EXPORT_CORPUS_MAP = {
+  u'drive': u'DRIVE',
+  u'mail': u'MAIL',
+  u'groups': u'GROUPS',
+  u'hangoutschat': u'HANGOUTS_CHAT',
+  }
+VAULT_EXPORT_DATASCOPE_MAP = {
+  u'alldata': u'ALL_DATA',
+  u'helddata': u'HELD_DATA',
+  u'unprocesseddata': u'UNPROCESSED_DATA',
+  }
+VAULT_EXPORT_FORMAT_MAP = {
+  u'mbox': u'MBOX',
+  u'pst': u'PST',
+  }
+VAULT_CORPUS_OPTIONS_MAP = {
+  u'DRIVE': u'driveOptions',
+  u'MAIL': u'mailOptions',
+  u'GROUPS': u'groupsOptions',
+  u'HANGOUTS_CHAT': u'hangoutsChatOptions',
+  }
+
+# gam create vaultexport|export matter <MatterItem>] [name <String>] corpus <drive|mail|groups|hangouts_chat>
+#	(accounts <EmailAddressList>) | (orgunit|org|ou <OrgUnitPath>) | (teamdrives <TeamDriveIDList>) | (rooms <RoomList>) | everyone
+#	[scope <all_data|held_data|unprocessed_data>]
+#	[terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>] [timezone <timezone>]
+#	[includerooms <Boolean>]
+#	[excludedrafts <Boolean>] [format mbox|pst]
+#	[driveversiondate <Date>|<DateTime>] [includeteamdrives <Boolean>] [includeaccessinfo <Boolean>]
+#	[nodetails]
+def doCreateVaultExport():
+  v = buildGAPIObject(API.VAULT)
+  matterId = None
+  body = {u'query': {u'dataScope': u'ALL_DATA'}, u'exportOptions': {}}
+  export_format = u'MBOX'
+  showDetails = True
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'matter':
+      matterId, matterNameId = getMatterItem(v)
+      body[u'matterId'] = matterId
+    elif myarg == u'name':
+      body[u'name'] = getString(Cmd.OB_STRING)
+    elif myarg == u'corpus':
+      body[u'query'][u'corpus'] = getChoice(VAULT_EXPORT_CORPUS_MAP, mapChoice=True)
+    elif myarg in VAULT_SEARCH_METHODS_MAP:
+      if body[u'query'].get(u'searchMethod'):
+        Cmd.Backup()
+        usageErrorExit(Msg.MULTIPLE_SEARCH_METHODS_SPECIFIED.format(formatChoiceList(VAULT_SEARCH_METHODS_MAP)))
+      searchMethod = VAULT_SEARCH_METHODS_MAP[myarg]
+      body[u'query'][u'searchMethod'] = searchMethod
+      if searchMethod == u'ACCOUNT':
+        body[u'query'][u'accountInfo'] = {u'emails': [normalizeEmailAddressOrUID(email, noUid=True) for email in getString(Cmd.OB_EMAIL_ADDRESS_LIST).replace(u',', u' ').split()]}
+      elif searchMethod == u'ORG_UNIT':
+        body[u'query'][u'orgUnitInfo'] = {u'orgUnitId': getOrgUnitId()[1]}
+      elif searchMethod == u'TEAM_DRIVE':
+        body[u'query'][u'teamDriveInfo'] = {u'teamDriveIds': getString(Cmd.OB_TEAMDRIVE_ID_LIST).replace(u',', u' ').split()}
+      elif searchMethod == u'ROOM':
+        body[u'query'][u'hangoutsChatInfo'] = {u'roomId': getString(Cmd.OB_ROOM_LIST).replace(u',', u' ').split()}
+    elif myarg == u'scope':
+      body[u'query'][u'dataScope'] = getChoice(VAULT_EXPORT_DATASCOPE_MAP, mapChoice=True)
+    elif myarg in [u'terms']:
+      body[u'query'][u'terms'] = getString(Cmd.OB_STRING)
+    elif myarg in [u'start', u'starttime']:
+      body[u'query'][u'startTime'] = getTimeOrDeltaFromNow()
+    elif myarg in [u'end', u'endtime']:
+      body[u'query'][u'endTime'] = getTimeOrDeltaFromNow()
+    elif myarg in [u'timezone']:
+      body[u'query'][u'timeZone'] = getString(Cmd.OB_STRING)
+    elif myarg in [u'includerooms']:
+      body[u'query'][u'hangoutsChatOptions'] = {u'includeRooms': getBoolean()}
+    elif myarg in [u'excludedrafts']:
+      body[u'query'][u'mailOptions'] = {u'excludeDrafts': getBoolean()}
+    elif myarg in [u'format']:
+      export_format = getChoice(VAULT_EXPORT_FORMAT_MAP, mapChoice=True)
+    elif myarg in [u'driveversiondate']:
+      body[u'query'].setdefault(u'driveOptions', {})[u'versionDate'] = getTimeOrDeltaFromNow()
+    elif myarg in [u'includeteamdrives']:
+      body[u'query'].setdefault(u'driveOptions', {})[u'includeTeamDrives'] = getBoolean()
+    elif myarg in [u'includeaccessinfo']:
+      body[u'exportOptions'].setdefault(u'driveOptions', {})[u'includeAccessInfo'] = getBoolean()
+    elif myarg == u'nodetails':
+      showDetails = False
+    else:
+      unknownArgumentExit()
+  if not matterId:
+    missingArgumentExit(Cmd.OB_MATTER_ITEM)
+  if u'corpus' not in body[u'query']:
+    missingArgumentExit(u'corpus {0}'.format(formatChoiceList(VAULT_EXPORT_CORPUS_MAP)))
+  if u'searchMethod' not in body[u'query']:
+    missingArgumentExit(formatChoiceList(VAULT_SEARCH_METHODS_MAP))
+  if u'name' not in body:
+    body[u'name'] = u'GAM {0} export - {1}'.format(body[u'query'][u'corpus'], ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])))
+  if body[u'query'][u'corpus'] != u'DRIVE':
+    body[u'exportOptions'].pop(u'driveOptions', None)
+    body[u'exportOptions'][VAULT_CORPUS_OPTIONS_MAP[body[u'query'][u'corpus']]] = {u'exportFormat': export_format}
+  try:
+    result = callGAPI(v.matters().exports(), u'create',
+                      throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.BAD_REQUEST, GAPI.BACKEND_ERROR, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
+                      matterId=matterId, body=body)
+    entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, formatVaultNameId(result[u'name'], result[u'id'])])
+    if showDetails:
+      showJSON(None, result)
+  except (GAPI.alreadyExists, GAPI.badRequest, GAPI.backendError, GAPI.failedPrecondition, GAPI.forbidden) as e:
+    entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, body.get(u'name')], str(e))
+
+# gam delete vaultexport|export <ExportItem> matter <MatterItem>
+# gam delete vaultexport|export <MatterItem> <ExportItem>
+def doDeleteVaultExport():
+  v = buildGAPIObject(API.VAULT)
+  if not Cmd.ArgumentIsAhead(u'matter'):
+    matterId, matterNameId = getMatterItem(v)
+    exportId, exportName, exportNameId = convertExportNameToID(v, getString(Cmd.OB_EXPORT_ITEM), matterId, matterNameId)
+  else:
+    exportName = getString(Cmd.OB_EXPORT_ITEM)
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'matter':
+      matterId, matterNameId = getMatterItem(v)
+      exportId, exportName, exportNameId = convertExportNameToID(v, exportName, matterId, matterNameId)
+    else:
+      unknownArgumentExit()
+  try:
+    callGAPI(v.matters().exports(), u'delete',
+             throw_reasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+             matterId=matterId, exportId=exportId)
+    entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId])
+  except (GAPI.notFound, GAPI.badRequest, GAPI.forbidden) as e:
+    entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], str(e))
+
+VAULT_EXPORT_TIME_OBJECTS = set([u'versionDate', u'createTime', u'startTime', u'endTime'])
+
+def _getExportOrgUnitName(export, cd):
+  query = export.get(u'query')
+  if query:
+    if u'orgUnitInfo' in query:
+      query[u'orgUnitInfo'][u'orgUnitPath'] = convertOrgUnitIDtoPath(query[u'orgUnitInfo'][u'orgUnitId'], cd)
+
+def _showVaultExport(export, cd):
+  if cd is not None:
+    _getExportOrgUnitName(export, cd)
+  Ind.Increment()
+  showJSON(None, export, timeObjects=VAULT_EXPORT_TIME_OBJECTS)
+  Ind.Decrement()
+
+# gam info vaultexport|export <ExportItem> matter <MatterItem> [shownames]
+# gam info vaultexport|export <MatterItem> <ExportItem> [shownames]
+def doInfoVaultExport():
+  v = buildGAPIObject(API.VAULT)
+  if not Cmd.ArgumentIsAhead(u'matter'):
+    matterId, matterNameId = getMatterItem(v)
+    exportId, exportName, exportNameId = convertExportNameToID(v, getString(Cmd.OB_EXPORT_ITEM), matterId, matterNameId)
+  else:
+    exportName = getString(Cmd.OB_EXPORT_ITEM)
+  cd = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'matter':
+      matterId, matterNameId = getMatterItem(v)
+      exportId, exportName, exportNameId = convertExportNameToID(v, exportName, matterId, matterNameId)
+    elif myarg == u'shownames':
+      cd = buildGAPIObject(API.DIRECTORY)
+    else:
+      unknownArgumentExit()
+  try:
+    export = callGAPI(v.matters().exports(), u'get',
+                      throw_reasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                      matterId=matterId, exportId=exportId)
+    entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, formatVaultNameId(export[u'name'], export[u'id'])])
+    _showVaultExport(export, cd)
+  except (GAPI.notFound, GAPI.badRequest, GAPI.forbidden) as e:
+    entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], str(e))
+
+PRINT_VAULT_EXPORTS_TITLES = [u'matterId', u'matterName', u'id', u'name', u'createTime', u'status']
+
+def _doPrintShowVaultExports(csvFormat):
+  v = buildGAPIObject(API.VAULT)
+  if csvFormat:
+    titles, csvRows = initializeTitlesCSVfile(PRINT_VAULT_EXPORTS_TITLES)
+    todrive = {}
+  matters = []
+  cd = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvFormat and myarg == u'todrive':
+      todrive = getTodriveParameters()
+    elif myarg in [u'matter', u'matters']:
+      matters = shlexSplitList(getString(Cmd.OB_MATTER_ITEM_LIST))
+    elif myarg == u'shownames':
+      cd = buildGAPIObject(API.DIRECTORY)
+    else:
+      unknownArgumentExit()
+  if not matters:
+    printGettingAllAccountEntities(Ent.VAULT_MATTER)
+    try:
+      results = callGAPIpages(v.matters(), u'list', u'matters',
+                              page_message=getPageMessage(),
+                              throw_reasons=[GAPI.FORBIDDEN],
+                              view=u'BASIC', fields=u'matters(matterId,name,state),nextPageToken')
+    except GAPI.forbidden as e:
+      entityActionFailedWarning([Ent.VAULT_EXPORT, None], str(e))
+      return
+  else:
+    results = collections.deque()
+    for matter in matters:
+      matterId, matterName, _, state = convertMatterNameToID(v, matter)
+      results.append({u'matterId': matterId, u'name': matterName, u'state': state})
+  jcount = len(results)
+  if not csvFormat:
+    if jcount == 0:
+      setSysExitRC(NO_ENTITIES_FOUND)
+  j = 0
+  for matter in results:
+    j += 1
+    matterId = matter[u'matterId']
+    matterName = matter[u'name']
+    matterNameId = formatVaultNameId(matterName, matterId)
+    if csvFormat:
+      printGettingAllEntityItemsForWhom(Ent.VAULT_EXPORT, u'{0}: {1}'.format(Ent.Singular(Ent.VAULT_MATTER), matterNameId), j, jcount)
+      page_message = getPageMessageForWhom(noNL=True)
+    else:
+      page_message = None
+    if matter[u'state'] == u'OPEN':
+      try:
+        exports = callGAPIpages(v.matters().exports(), u'list', u'exports',
+                                page_message=page_message,
+                                throw_reasons=[GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
+                                matterId=matterId)
+      except GAPI.failedPrecondition:
+        warnMatterNotOpen(matter, matterNameId, j, jcount)
+        continue
+      except GAPI.forbidden as e:
+        entityActionFailedWarning([Ent.VAULT_EXPORT, None], str(e))
+        break
+    else:
+      warnMatterNotOpen(matter, matterNameId, j, jcount)
+      continue
+    kcount = len(exports)
+    if not csvFormat:
+      entityPerformActionNumItems([Ent.VAULT_MATTER, matterNameId], kcount, Ent.VAULT_EXPORT, j, jcount)
+      Ind.Increment()
+      k = 0
+      for export in exports:
+        k += 1
+        printEntity([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, formatVaultNameId(export[u'name'], export[u'id'])], k, kcount)
+        _showVaultExport(export, cd)
+      Ind.Decrement()
+    else:
+      for export in exports:
+        if cd is not None:
+          _getExportOrgUnitName(export, cd)
+        addRowTitlesToCSVfile(flattenJSON(export, flattened={u'matterId': matterId, u'matterName': matterName}, timeObjects=VAULT_EXPORT_TIME_OBJECTS), csvRows, titles)
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'Vault Exports', todrive, PRINT_VAULT_EXPORTS_TITLES)
+
+# gam print vaultexports|exports [todrive [<ToDriveAttributes>]] [matters <MatterItemList>] [shownames]
+def doPrintVaultExports():
+  _doPrintShowVaultExports(True)
+
+# gam show vaultexports|exports [matters <MatterItemList>] [shownames]
+def doShowVaultExports():
+  _doPrintShowVaultExports(False)
+
+ZIP_EXTENSION_PATTERN = re.compile(r'^.*\.zip$', re.IGNORECASE)
+
+# gam download vaultexport|export <ExportItem> matter <MatterItem> [targetfolder <FilePath>] [noverify] [noextract]
+# gam download vaultexport|export <MatterItem> <ExportItem> [targetfolder <FilePath>] [noverify] [noextract]
+def doDownloadVaultExport():
+  def extract_nested_zip(zippedFile):
+    """ Extract a zip file including any nested zip files
+        Delete the zip file(s) after extraction
+    """
+    Act.Set(Act.UNZIP)
+    performAction(Ent.FILE, zippedFile)
+    Ind.Increment()
+    with zipfile.ZipFile(zippedFile, 'r') as zfile:
+      inner_files = zfile.infolist()
+      for inner_file in inner_files:
+        Act.Set(Act.EXTRACT)
+        performAction(Ent.FILE, inner_file.filename)
+        zfile.extract(inner_file)
+        if ZIP_EXTENSION_PATTERN.match(inner_file.filename):
+          extract_nested_zip(inner_file.filename)
+    Ind.Decrement()
+    try:
+      os.remove(zippedFile)
+    except OSError as e:
+      stderrWarningMsg(e)
+
+  v = buildGAPIObject(API.VAULT)
+  s = buildGAPIObject(API.STORAGE)
+  verifyFiles = extractFiles = True
+  targetFolder = GC.Values[GC.DRIVE_DIR]
+  if not Cmd.ArgumentIsAhead(u'matter'):
+    matterId, matterNameId = getMatterItem(v)
+    exportId, exportName, exportNameId = convertExportNameToID(v, getString(Cmd.OB_EXPORT_ITEM), matterId, matterNameId)
+  else:
+    exportName = getString(Cmd.OB_EXPORT_ITEM)
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'matter':
+      matterId, matterNameId = getMatterItem(v)
+      exportId, exportName, exportNameId = convertExportNameToID(v, exportName, matterId, matterNameId)
+    elif myarg == u'targetfolder':
+      targetFolder = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
+      if not os.path.isdir(targetFolder):
+        os.makedirs(targetFolder)
+    elif myarg == u'noverify':
+      verifyFiles = False
+    elif myarg == u'noextract':
+      extractFiles = False
+    else:
+      unknownArgumentExit()
+  try:
+    export = callGAPI(v.matters().exports(), u'get',
+                      throw_reasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                      matterId=matterId, exportId=exportId)
+  except (GAPI.notFound, GAPI.badRequest, GAPI.forbidden) as e:
+    entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], str(e))
+    return
+  if export[u'status'] != u'COMPLETED':
+    entityActionNotPerformedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], Msg.EXPORT_NOT_COMPLETE.format(export[u'status']))
+    return
+  jcount = len(export[u'cloudStorageSink']['files'])
+  entityPerformActionNumItems([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], jcount, Ent.CLOUD_STORAGE_FILE)
+  Ind.Increment()
+  j = 0
+  for s_file in export[u'cloudStorageSink']['files']:
+    j += 1
+    bucket = s_file['bucketName']
+    s_object = s_file['objectName']
+    filename = os.path.join(targetFolder, s_object.replace(u'/', u'-'))
+    Act.Set(Act.DOWNLOAD)
+    performAction(Ent.CLOUD_STORAGE_FILE, s_object, j, jcount)
+    Ind.Increment()
+    try:
+      request = s.objects().get_media(bucket=bucket, object=s_object)
+      f = openFile(filename, 'wb')
+      downloader = googleapiclient.http.MediaIoBaseDownload(f, request)
+      done = False
+      while not done:
+        status, done = downloader.next_chunk()
+        entityActionPerformedMessage([Ent.CLOUD_STORAGE_FILE, s_object], u'{0:>7.2%}'.format(status.progress()), j, jcount)
+      entityModifierNewValueActionPerformed([Ent.CLOUD_STORAGE_FILE, s_object], Act.MODIFIER_TO, filename, j, jcount)
+      # Necessary to make sure file is flushed by both Python and OS
+      # https://stackoverflow.com/a/13762137/1503886
+      f.flush()
+      os.fsync(f.fileno())
+      closeFile(f)
+      if verifyFiles:
+        f = openFile(filename, 'rb')
+        Act.Set(Act.VERIFY)
+        hash_md5 = hashlib.md5()
+        for chunk in iter(lambda: f.read(4096), b""):
+          hash_md5.update(chunk)
+        actual_hash = hash_md5.hexdigest()
+        closeFile(f)
+        if actual_hash == s_file['md5Hash']:
+          entityActionPerformed([Ent.CLOUD_STORAGE_FILE, s_object, Ent.MD5HASH, s_file['md5Hash']], j, jcount)
+        else:
+          entityActionFailedWarning([Ent.CLOUD_STORAGE_FILE, s_object, Ent.MD5HASH, s_file['md5Hash']], u'', j, jcount)
+          break
+      if extractFiles and ZIP_EXTENSION_PATTERN.match(filename):
+        Act.Set(Act.EXTRACT)
+        extract_nested_zip(filename)
+        Act.Set(Act.DOWNLOAD)
+    except (IOError, httplib2.HttpLib2Error) as e:
+      entityModifierNewValueActionFailedWarning([Ent.CLOUD_STORAGE_FILE, s_object], Act.MODIFIER_TO, filename, str(e), j, jcount)
+    Ind.Decrement()
+  Ind.Decrement()
 
 VAULT_HOLD_CORPUS_ARGUMENT_MAP = {u'drive': u'DRIVE', u'groups': u'GROUPS', u'mail': u'MAIL'}
 
 # gam create vaulthold|hold corpus drive|groups|mail matter <MatterItem> [name <String>] [query <QueryVaultCorpus>]
-#	[(accounts|groups|users <EmailItemList>) | (orgunit|ou <OrgUnit>)]
-#	[starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>]
+#	[(accounts|groups|users <EmailItemList>) | (orgunit|org|ou <OrgUnit>)]
+#	[start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
 def doCreateVaultHold():
   v = buildGAPIObject(API.VAULT)
   body = {u'query': {}}
@@ -16637,12 +17046,11 @@ def doCreateVaultHold():
     elif myarg in [u'accounts', u'users', u'groups']:
       accountsLocation = Cmd.Location()
       accounts = getEntityList(Cmd.OB_EMAIL_ADDRESS_ENTITY)
-    elif myarg in [u'orgunit', u'ou']:
-      _, orgUnitId = getOrgUnitId(None)
-      body[u'orgUnit'] = {u'orgUnitId': orgUnitId}
-    elif myarg == u'starttime':
+    elif myarg in [u'orgunit', u'org', u'ou']:
+      body[u'orgUnit'] = {u'orgUnitId': getOrgUnitId()[1]}
+    elif myarg in [u'start', u'starttime']:
       startTime = getTimeOrDeltaFromNow()
-    elif myarg == u'endtime':
+    elif myarg in [u'end', u'endtime']:
       endTime = getTimeOrDeltaFromNow()
     else:
       unknownArgumentExit()
@@ -16678,13 +17086,13 @@ def doCreateVaultHold():
     result = callGAPI(v.matters().holds(), u'create',
                       throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.BAD_REQUEST, GAPI.BACKEND_ERROR, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
                       matterId=matterId, body=body, fields=u'holdId,name')
-    entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, formatHoldNameId(result[u'name'], result[u'holdId'])])
+    entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, formatVaultNameId(result[u'name'], result[u'holdId'])])
   except (GAPI.alreadyExists, GAPI.badRequest, GAPI.backendError, GAPI.failedPrecondition, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, None], str(e))
+    entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, body.get(u'name')], str(e))
 
 # gam update vaulthold|hold <HoldItem> matter <MatterItem> [query <QueryVaultCorpus>]
-#	[([addaccounts|addgroups|addusers <EmailItemList>] [removeaccounts|removegroups|removeusers <EmailItemList>]) | (orgunit|ou <OrgUnit>)]
-#	[starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>]
+#	[([addaccounts|addgroups|addusers <EmailItemList>] [removeaccounts|removegroups|removeusers <EmailItemList>]) | (orgunit|org|ou <OrgUnit>)]
+#	[start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
 def doUpdateVaultHold():
   v = buildGAPIObject(API.VAULT)
   holdName = getString(Cmd.OB_HOLD_ITEM)
@@ -16703,12 +17111,11 @@ def doUpdateVaultHold():
     elif myarg == u'query':
       queryLocation = Cmd.Location()
       query = getString(Cmd.OB_QUERY)
-    elif myarg in [u'orgunit', u'ou']:
-      _, orgUnitId = getOrgUnitId(None)
-      body[u'orgUnit'] = {u'orgUnitId': orgUnitId}
-    elif myarg == u'starttime':
+    elif myarg in [u'orgunit', u'org', u'ou']:
+      body[u'orgUnit'] = {u'orgUnitId': getOrgUnitId()[1]}
+    elif myarg in [u'start', u'starttime']:
       startTime = getTimeOrDeltaFromNow()
-    elif myarg == u'endtime':
+    elif myarg in [u'end', u'endtime']:
       endTime = getTimeOrDeltaFromNow()
     elif myarg in [u'addusers', u'addaccounts', u'addgroups']:
       addAccountsLocation = Cmd.Location()
@@ -16812,10 +17219,14 @@ def doUpdateVaultHold():
     Ind.Decrement()
 
 # gam delete vaulthold|hold <HoldItem> matter <MatterItem>
+# gam delete vaulthold|hold <MatterItem> <HoldItem>
 def doDeleteVaultHold():
   v = buildGAPIObject(API.VAULT)
-  holdName = getString(Cmd.OB_HOLD_ITEM)
-  matterId = None
+  if not Cmd.ArgumentIsAhead(u'matter'):
+    matterId, matterNameId = getMatterItem(v)
+    holdId, holdName, holdNameId = convertHoldNameToID(v, getString(Cmd.OB_HOLD_ITEM), matterId, matterNameId)
+  else:
+    holdName = getString(Cmd.OB_HOLD_ITEM)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'matter':
@@ -16823,8 +17234,6 @@ def doDeleteVaultHold():
       holdId, holdName, holdNameId = convertHoldNameToID(v, holdName, matterId, matterNameId)
     else:
       unknownArgumentExit()
-  if matterId is None:
-    missingArgumentExit(Cmd.OB_MATTER_ITEM)
   try:
     callGAPI(v.matters().holds(), u'delete',
              throw_reasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
@@ -16851,10 +17260,15 @@ def _showVaultHold(hold, cd):
   Ind.Decrement()
 
 # gam info vaulthold|hold <HoldItem> matter <MatterItem> [shownames]
+# gam info vaulthold|hold <MatterItem> <HoldItem> [shownames]
 def doInfoVaultHold():
   v = buildGAPIObject(API.VAULT)
-  holdName = getString(Cmd.OB_HOLD_ITEM)
-  cd = matterId = None
+  if not Cmd.ArgumentIsAhead(u'matter'):
+    matterId, matterNameId = getMatterItem(v)
+    holdId, holdName, holdNameId = convertHoldNameToID(v, getString(Cmd.OB_HOLD_ITEM), matterId, matterNameId)
+  else:
+    holdName = getString(Cmd.OB_HOLD_ITEM)
+  cd = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'matter':
@@ -16864,13 +17278,11 @@ def doInfoVaultHold():
       cd = buildGAPIObject(API.DIRECTORY)
     else:
       unknownArgumentExit()
-  if matterId is None:
-    missingArgumentExit(Cmd.OB_MATTER_ITEM)
   try:
     hold = callGAPI(v.matters().holds(), u'get',
                     throw_reasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
                     matterId=matterId, holdId=holdId)
-    entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, formatHoldNameId(hold[u'name'], hold[u'holdId'])])
+    entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, formatVaultNameId(hold[u'name'], hold[u'holdId'])])
     _showVaultHold(hold, cd)
   except (GAPI.notFound, GAPI.badRequest, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, holdNameId], str(e))
@@ -16878,10 +17290,6 @@ def doInfoVaultHold():
 PRINT_VAULT_HOLDS_TITLES = [u'matterId', u'matterName', u'holdId', u'name', u'corpus', u'updateTime']
 
 def _doPrintShowVaultHolds(csvFormat):
-  def _warnMatterNotOpen(matterNameId, j, jcount):
-    printWarningMessage(DATA_NOT_AVALIABLE_RC, formatKeyValueList(u'',
-                                                                  Ent.FormatEntityValueList([Ent.VAULT_MATTER, matterNameId])+[u'state is not OPEN',],
-                                                                  currentCount(j, jcount)))
   v = buildGAPIObject(API.VAULT)
   if csvFormat:
     titles, csvRows = initializeTitlesCSVfile(PRINT_VAULT_HOLDS_TITLES)
@@ -16893,7 +17301,7 @@ def _doPrintShowVaultHolds(csvFormat):
     if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
     elif myarg in [u'matter', u'matters']:
-      matters = getString(Cmd.OB_MATTER_ITEM_LIST).split(u',')
+      matters = shlexSplitList(getString(Cmd.OB_MATTER_ITEM_LIST))
     elif myarg == u'shownames':
       cd = buildGAPIObject(API.DIRECTORY)
     else:
@@ -16911,8 +17319,8 @@ def _doPrintShowVaultHolds(csvFormat):
   else:
     results = collections.deque()
     for matter in matters:
-      matterId, matterName, _ = convertMatterNameToID(v, matter)
-      results.append({u'matterId': matterId, u'name': matterName, u'state': u'OPEN'})
+      matterId, matterName, _, state = convertMatterNameToID(v, matter)
+      results.append({u'matterId': matterId, u'name': matterName, u'state': state})
   jcount = len(results)
   if not csvFormat:
     if jcount == 0:
@@ -16922,7 +17330,7 @@ def _doPrintShowVaultHolds(csvFormat):
     j += 1
     matterId = matter[u'matterId']
     matterName = matter[u'name']
-    matterNameId = formatMatterNameId(matterName, matterId)
+    matterNameId = formatVaultNameId(matterName, matterId)
     if csvFormat:
       printGettingAllEntityItemsForWhom(Ent.VAULT_HOLD, u'{0}: {1}'.format(Ent.Singular(Ent.VAULT_MATTER), matterNameId), j, jcount)
       page_message = getPageMessageForWhom(noNL=True)
@@ -16934,14 +17342,14 @@ def _doPrintShowVaultHolds(csvFormat):
                               page_message=page_message,
                               throw_reasons=[GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
                               matterId=matterId)
-      except GAPI.failedPrecondition as e:
-        _warnMatterNotOpen(matterNameId, j, jcount)
+      except GAPI.failedPrecondition:
+        warnMatterNotOpen(matter, matterNameId, j, jcount)
         continue
       except GAPI.forbidden as e:
         entityActionFailedWarning([Ent.VAULT_HOLD, None], str(e))
         break
     else:
-      _warnMatterNotOpen(matterNameId, j, jcount)
+      warnMatterNotOpen(matter, matterNameId, j, jcount)
       continue
     kcount = len(holds)
     if not csvFormat:
@@ -16950,7 +17358,7 @@ def _doPrintShowVaultHolds(csvFormat):
       k = 0
       for hold in holds:
         k += 1
-        printEntity([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, formatHoldNameId(hold[u'name'], hold[u'holdId'])], k, kcount)
+        printEntity([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, formatVaultNameId(hold[u'name'], hold[u'holdId'])], k, kcount)
         _showVaultHold(hold, cd)
       Ind.Decrement()
     else:
@@ -16999,7 +17407,7 @@ def doCreateVaultMatter():
                       throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.FORBIDDEN],
                       body=body, fields=u'matterId,name')
     matterId = result[u'matterId']
-    matterNameId = formatMatterNameId(result[u'name'], matterId)
+    matterNameId = formatVaultNameId(result[u'name'], matterId)
     entityActionPerformed([Ent.VAULT_MATTER, matterNameId])
   except (GAPI.alreadyExists, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, body[u'name']], str(e))
@@ -17197,7 +17605,7 @@ def _doPrintShowVaultMatters(csvFormat):
       j = 0
       for matter in matters:
         j += 1
-        printEntity([Ent.VAULT_MATTER, formatMatterNameId(matter[u'name'], matter[u'matterId'])], j, jcount)
+        printEntity([Ent.VAULT_MATTER, formatVaultNameId(matter[u'name'], matter[u'matterId'])], j, jcount)
         _showVaultMatter(matter, cd)
       Ind.Decrement()
     else:
@@ -23929,7 +24337,7 @@ def getDriveFileProperty(visibility=None):
   key = getString(Cmd.OB_PROPERTY_KEY)
   value = getString(Cmd.OB_PROPERTY_VALUE, minLen=0) or None
   if visibility is None:
-    if peekArgumentPresent(DRIVEFILE_PROPERTY_VISIBILITY_CHOICE_MAP):
+    if Cmd.PeekArgumentPresent(DRIVEFILE_PROPERTY_VISIBILITY_CHOICE_MAP):
       visibility = getChoice(DRIVEFILE_PROPERTY_VISIBILITY_CHOICE_MAP, mapChoice=True)
     else:
       visibility = u'properties'
@@ -30285,7 +30693,7 @@ def deleteLicense(users):
 #	#  #user# and #email" will be replaced with user email address #username# will be replaced by portion of email address in front of @
 def updatePhoto(users):
   cd = buildGAPIObject(API.DIRECTORY)
-  if Cmd.NumArgumentsRemaining() == 1 and not peekArgumentPresent([u'drivedir', u'sourcefolder', u'filename']):
+  if Cmd.NumArgumentsRemaining() == 1 and not Cmd.PeekArgumentPresent([u'drivedir', u'sourcefolder', u'filename']):
     sourceFolder = None
     filenamePattern = getString(Cmd.OB_PHOTO_FILENAME_PATTERN)
   else:
@@ -34497,6 +34905,7 @@ MAIN_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_SITE:		doCreateDomainSite,
   Cmd.ARG_SITEACL:	doProcessDomainSiteACLs,
   Cmd.ARG_USER:		doCreateUser,
+  Cmd.ARG_VAULTEXPORT:	doCreateVaultExport,
   Cmd.ARG_VAULTHOLD:	doCreateVaultHold,
   Cmd.ARG_VAULTMATTER:	doCreateVaultMatter,
   Cmd.ARG_VERIFY:	doCreateSiteVerification,
@@ -34536,10 +34945,12 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_SITEACL:		doProcessDomainSiteACLs,
       Cmd.ARG_USER:		doDeleteUser,
       Cmd.ARG_USERS:		doDeleteUsers,
+      Cmd.ARG_VAULTEXPORT:	doDeleteVaultExport,
       Cmd.ARG_VAULTHOLD:	doDeleteVaultHold,
       Cmd.ARG_VAULTMATTER:	doDeleteVaultMatter,
      }
     ),
+  u'download': (Act.DOWNLOAD, {Cmd.ARG_VAULTEXPORT: doDownloadVaultExport}),
   u'get': (Act.DOWNLOAD, {Cmd.ARG_CONTACTPHOTO: doGetDomainContactPhoto, Cmd.ARG_DEVICEFILE: doGetCrOSDeviceFiles}),
   u'info':
     (Act.INFO,
@@ -34572,6 +34983,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_TEAMDRIVE:	doInfoTeamDrive,
       Cmd.ARG_USER:		doInfoUser,
       Cmd.ARG_USERS:		doInfoUsers,
+      Cmd.ARG_VAULTEXPORT:	doInfoVaultExport,
       Cmd.ARG_VAULTHOLD:	doInfoVaultHold,
       Cmd.ARG_VAULTMATTER:	doInfoVaultMatter,
       Cmd.ARG_VERIFY:		doInfoSiteVerification,
@@ -34622,6 +35034,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_TRANSFERAPPS:	doShowTransferApps,
       Cmd.ARG_USER:		doPrintUsers,
       Cmd.ARG_USERS:		doPrintUsers,
+      Cmd.ARG_VAULTEXPORT:	doPrintVaultExports,
       Cmd.ARG_VAULTHOLD:	doPrintVaultHolds,
       Cmd.ARG_VAULTMATTER:	doPrintVaultMatters,
      }
@@ -34653,6 +35066,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_TEAMDRIVEINFO:	doInfoTeamDrive,
       Cmd.ARG_TEAMDRIVETHEMES:	doShowTeamDriveThemes,
       Cmd.ARG_TRANSFERAPPS:	doShowTransferApps,
+      Cmd.ARG_VAULTEXPORT:	doShowVaultExports,
       Cmd.ARG_VAULTHOLD:	doShowVaultHolds,
       Cmd.ARG_VAULTMATTER:	doShowVaultMatters,
      }
@@ -34714,12 +35128,15 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_DOMAINS:	Cmd.ARG_DOMAIN,
   Cmd.ARG_DOMAINALIASES:	Cmd.ARG_DOMAINALIAS,
   Cmd.ARG_DRIVEFILEACLS:	Cmd.ARG_DRIVEFILEACL,
+  Cmd.ARG_EXPORT:	Cmd.ARG_VAULTEXPORT,
+  Cmd.ARG_EXPORTS:	Cmd.ARG_VAULTEXPORT,
   Cmd.ARG_FEATURES:	Cmd.ARG_FEATURE,
   Cmd.ARG_GROUPS:	Cmd.ARG_GROUP,
   Cmd.ARG_GROUPSMEMBERS:	Cmd.ARG_GROUPMEMBERS,
   Cmd.ARG_GUARDIANINVITATIONS:	Cmd.ARG_GUARDIANINVITATION,
   Cmd.ARG_GUARDIANINVITE:	Cmd.ARG_GUARDIAN,
   Cmd.ARG_GUARDIANS:	Cmd.ARG_GUARDIAN,
+  Cmd.ARG_HOLD:		Cmd.ARG_VAULTHOLD,
   Cmd.ARG_HOLDS:	Cmd.ARG_VAULTHOLD,
   Cmd.ARG_INVITEGUARDIAN:	Cmd.ARG_GUARDIAN,
   Cmd.ARG_LICENCE:	Cmd.ARG_LICENSE,
@@ -34750,6 +35167,7 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_TOKENS:	Cmd.ARG_TOKEN,
   Cmd.ARG_TRANSFER:	Cmd.ARG_DATATRANSFER,
   Cmd.ARG_TRANSFERS:	Cmd.ARG_DATATRANSFER,
+  Cmd.ARG_VAULTEXPORTS:	Cmd.ARG_VAULTEXPORT,
   Cmd.ARG_VAULTHOLDS:	Cmd.ARG_VAULTHOLD,
   Cmd.ARG_VAULTMATTERS:	Cmd.ARG_VAULTMATTER,
   Cmd.ARG_VERIFICATION:	Cmd.ARG_VERIFY,
