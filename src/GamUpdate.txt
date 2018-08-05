@@ -10,7 +10,7 @@ gam oauth create
 gam create vaultexport|export matter <MatterItem>] [name <String>] corpus <drive|mail|groups|hangouts_chat>
         (accounts <EmailAddressList>) | (orgunit|org|ou <OrgUnitPath>) | (teamdrives <TeamDriveIDList>) | (rooms <ChatRoomList>) | everyone
         [scope <all_data|held_data|unprocessed_data>]
-        [terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>] [timezone <timezone>]
+        [terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>] [timezone <TimeZone>]
         [includerooms <Boolean>]
         [excludedrafts <Boolean>] [format mbox|pst]
         [driveversiondate <Date>|<DateTime>] [includeteamdrives <Boolean>] [includeaccessinfo <Boolean>]
@@ -3909,7 +3909,7 @@ gam <UserTypeEntity> print calendars <CalendarPrintShowEntity> [todrive [<ToDriv
 gam <UserTypeEntity> show calsettings
 
 <CalendarSettings> ::==
-        (summary <String>)|(description <String>)|(location <String>)|(timezone <String>)
+        (summary <String>)|(description <String>)|(location <String>)|(timezone <TimeZone>)
 
 Create, modify and remove calendars for a user
 
@@ -3988,7 +3988,7 @@ gam <UserTypeEntity> transfer calendars <UserItem> <CalendarEntity> [keepuser] [
         (status confirmed|tentative|cancelled)|
         (summary <String>)|
         tentative
-        (timezone <Timezone>)|
+        (timezone <TimeZone>)|
         (transparency opaque|transparent)|
         (visibility default|public|prvate)
 
@@ -5822,7 +5822,7 @@ Implement pull request #93 to be able to mark messages as spam.
 
 Support user calendar creation/modification/deletion/information.
     <CalendarSettings> ::==
-        (summary <String>)|(description <String>)|(location <String>)|(timezone <String>)
+        (summary <String>)|(description <String>)|(location <String>)|(timezone <TimeZone>)
     gam <UserTypeEntity> create calendar|calendars <CalendarSettings>
     gam <UserTypeEntity> modify calendar <CalendarItem>|primary <CalendarSettings>
     gam <UserTypeEntity> remove calendar <CalendarItem>

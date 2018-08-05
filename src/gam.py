@@ -16199,7 +16199,7 @@ def doCalendarsShowEvents(cal, calIds):
   calendarsPrintShowEvents(cal, calIds, False)
 
 # <CalendarSettings> ::==
-#	[description <String>] [location <String>] [summary <String>] [timezone <String>]
+#	[description <String>] [location <String>] [summary <String>] [timezone <TimeZone>]
 def _getCalendarSettings(summaryRequired=False):
   body = {}
   while Cmd.ArgumentsRemaining():
@@ -16676,7 +16676,7 @@ VAULT_CORPUS_OPTIONS_MAP = {
 # gam create vaultexport|export matter <MatterItem>] [name <String>] corpus <drive|mail|groups|hangouts_chat>
 #	(accounts <EmailAddressList>) | (orgunit|org|ou <OrgUnitPath>) | (teamdrives <TeamDriveIDList>) | (rooms <RoomList>) | everyone
 #	[scope <all_data|held_data|unprocessed_data>]
-#	[terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>] [timezone <timezone>]
+#	[terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>] [timezone <TimeZone>]
 #	[includerooms <Boolean>]
 #	[excludedrafts <Boolean>] [format mbox|pst]
 #	[driveversiondate <Date>|<DateTime>] [includeteamdrives <Boolean>] [includeaccessinfo <Boolean>]

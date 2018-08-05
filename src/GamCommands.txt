@@ -1844,7 +1844,7 @@ gam <UserTypeEntity> show teamdriveacls [teamdriveadminquery|query <QueryTeamDri
 gam create vaultexport|export matter <MatterItem>] [name <String>] corpus <drive|mail|groups|hangouts_chat>
         (accounts <EmailAddressList>) | (orgunit|org|ou <OrgUnitPath>) | (teamdrives <TeamDriveIDList>) | (rooms <ChatRoomList>) | everyone
         [scope <all_data|held_data|unprocessed_data>]
-        [terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>] [timezone <timezone>]
+        [terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>] [timezone <TimeZone>]
         [includerooms <Boolean>]
         [excludedrafts <Boolean>] [format mbox|pst]
         [driveversiondate <Date>|<DateTime>] [includeteamdrives <Boolean>] [includeaccessinfo <Boolean>]
