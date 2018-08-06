@@ -1,19 +1,57 @@
+4.60.01
+
+Changed gam create vaultexport to not show the newly created item details by default; this is what gam create vaulthold/vaultmatter do.
+You can display the details of gam create vaultexport/vaultexport/vaultmatter and update vaulthold with the showdetails option.
+
+gam create vaultexport|export matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
+        (accounts <EmailAddressList>) | (orgunit|org|ou <OrgUnitPath>) | (teamdrives <TeamDriveIDList>) | (rooms <RoomList>) | everyone
+        [scope <all_data|held_data|unprocessed_data>]
+        [terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>] [timezone <TimeZone>]
+        [excludedrafts <Boolean>] [format mbox|pst]
+        [includerooms <Boolean>]
+        [includeteamdrives <Boolean>] [driveversiondate <Date>|<DateTime>]
+        [includeaccessinfo <Boolean>]
+        [showdetails]
+
+Added the terms <String>, includerooms <Boolean> and includeteamdrives <Boolean> options to gam create/update vaulthold to simplify building queries.
+
+gam create vaulthold|hold matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
+        [(accounts|groups|users <EmailItemList>) | (orgunit|org|ou <OrgUnit>)]
+        [query <QueryVaultCorpus>]
+        [terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
+        [includerooms <Boolean>]
+        [includeteamdrives <Boolean>]
+        [showdetails]
+gam update vaulthold|hold <HoldItem> matter <MatterItem>
+        [([addaccounts|addgroups|addusers <EmailItemList>] [removeaccounts|removegroups|removeusers <EmailItemList>]) | (orgunit|org|ou <OrgUnit>)]
+        [query <QueryVaultCorpus>]
+        [terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
+        [includerooms <Boolean>]
+        [includeteamdrives <Boolean>]
+        [showdetails]
+
+Added the sendemails <Boolean> and ccme <Boolean> options to gam create vaultmatter.
+
+gam create|add vaultmatter|matter [name <String>] [description <string>]
+        [collaborator|collaborators <EmailItemList>] [sendemails <Boolean>] [ccme <Boolean>]
+        [showdetails]
+
 4.60.00
 
 Based on the initial work of Jay Lee, the following Vault export commands have been added.
 
 To use these commands you must perform the following commands:
-```
 gam update project
 gam oauth create
-```
-gam create vaultexport|export matter <MatterItem>] [name <String>] corpus <drive|mail|groups|hangouts_chat>
-        (accounts <EmailAddressList>) | (orgunit|org|ou <OrgUnitPath>) | (teamdrives <TeamDriveIDList>) | (rooms <ChatRoomList>) | everyone
+
+gam create vaultexport|export matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
+        (accounts <EmailAddressList>) | (orgunit|org|ou <OrgUnitPath>) | (teamdrives <TeamDriveIDList>) | (rooms <RoomList>) | everyone
         [scope <all_data|held_data|unprocessed_data>]
         [terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>] [timezone <TimeZone>]
-        [includerooms <Boolean>]
         [excludedrafts <Boolean>] [format mbox|pst]
-        [driveversiondate <Date>|<DateTime>] [includeteamdrives <Boolean>] [includeaccessinfo <Boolean>]
+        [includerooms <Boolean>]
+        [includeteamdrives <Boolean>] [driveversiondate <Date>|<DateTime>]
+        [includeaccessinfo <Boolean>]
         [nodetails]
 gam delete vaultexport|export <ExportItem> matter <MatterItem>
 gam delete vaultexport|export <MatterItem> <ExportItem>

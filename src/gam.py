@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.00'
+__version__ = u'4.60.01'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -1291,13 +1291,18 @@ def getStringReturnInList(item):
     return [argstr]
   return []
 
+def todaysTime():
+  return datetime.datetime(GM.Globals[GM.DATETIME_NOW].year, GM.Globals[GM.DATETIME_NOW].month, GM.Globals[GM.DATETIME_NOW].day,
+                           GM.Globals[GM.DATETIME_NOW].hour, GM.Globals[GM.DATETIME_NOW].minute,
+                           tzinfo=GC.Values[GC.TIMEZONE])
+
 def todaysDate():
   return datetime.datetime(GM.Globals[GM.DATETIME_NOW].year, GM.Globals[GM.DATETIME_NOW].month, GM.Globals[GM.DATETIME_NOW].day,
                            tzinfo=GC.Values[GC.TIMEZONE])
 
 def getDelta(argstr, pattern, formatRequired):
   if argstr == u'NOW':
-    return todaysDate()+datetime.timedelta(hours=GM.Globals[GM.DATETIME_NOW].hour, minutes=GM.Globals[GM.DATETIME_NOW].minute)
+    return todaysTime()
   elif argstr == u'TODAY':
     return todaysDate()
   tg = pattern.match(argstr.lower())
@@ -16638,6 +16643,21 @@ def warnMatterNotOpen(matter, matterNameId, j, jcount):
                                                                 Ent.FormatEntityValueList([Ent.VAULT_MATTER, matterNameId])+[Msg.MATTER_NOT_OPEN.format(matter[u'state'])],
                                                                 currentCount(j, jcount)))
 
+def _getExportOrgUnitName(export, cd):
+  query = export.get(u'query')
+  if query:
+    if u'orgUnitInfo' in query:
+      query[u'orgUnitInfo'][u'orgUnitPath'] = convertOrgUnitIDtoPath(query[u'orgUnitInfo'][u'orgUnitId'], cd)
+
+VAULT_EXPORT_TIME_OBJECTS = set([u'versionDate', u'createTime', u'startTime', u'endTime'])
+
+def _showVaultExport(export, cd):
+  if cd is not None:
+    _getExportOrgUnitName(export, cd)
+  Ind.Increment()
+  showJSON(None, export, timeObjects=VAULT_EXPORT_TIME_OBJECTS)
+  Ind.Decrement()
+
 VAULT_SEARCH_METHODS_MAP = {
   u'account': u'ACCOUNT',
   u'accounts': u'ACCOUNT',
@@ -16651,7 +16671,7 @@ VAULT_SEARCH_METHODS_MAP = {
   u'teamdrive': u'TEAM_DRIVE',
   u'teamdrives': u'TEAM_DRIVE',
   }
-VAULT_EXPORT_CORPUS_MAP = {
+VAULT_CORPUS_ARGUMENT_MAP = {
   u'drive': u'DRIVE',
   u'mail': u'MAIL',
   u'groups': u'GROUPS',
@@ -16672,21 +16692,28 @@ VAULT_CORPUS_OPTIONS_MAP = {
   u'GROUPS': u'groupsOptions',
   u'HANGOUTS_CHAT': u'hangoutsChatOptions',
   }
+VAULT_CORPUS_QUERY_MAP = {
+  u'DRIVE': u'driveQuery',
+  u'MAIL': u'mailQuery',
+  u'GROUPS': u'groupsQuery',
+  u'HANGOUTS_CHAT': u'hangoutsChatQuery',
+  }
 
-# gam create vaultexport|export matter <MatterItem>] [name <String>] corpus <drive|mail|groups|hangouts_chat>
+# gam create vaultexport|export matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
 #	(accounts <EmailAddressList>) | (orgunit|org|ou <OrgUnitPath>) | (teamdrives <TeamDriveIDList>) | (rooms <RoomList>) | everyone
 #	[scope <all_data|held_data|unprocessed_data>]
 #	[terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>] [timezone <TimeZone>]
-#	[includerooms <Boolean>]
 #	[excludedrafts <Boolean>] [format mbox|pst]
-#	[driveversiondate <Date>|<DateTime>] [includeteamdrives <Boolean>] [includeaccessinfo <Boolean>]
-#	[nodetails]
+#	[includerooms <Boolean>]
+#	[includeteamdrives <Boolean>] [driveversiondate <Date>|<DateTime>]
+#	[includeaccessinfo <Boolean>]
+#	[showdetails]
 def doCreateVaultExport():
   v = buildGAPIObject(API.VAULT)
   matterId = None
   body = {u'query': {u'dataScope': u'ALL_DATA'}, u'exportOptions': {}}
   export_format = u'MBOX'
-  showDetails = True
+  showDetails = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'matter':
@@ -16695,7 +16722,7 @@ def doCreateVaultExport():
     elif myarg == u'name':
       body[u'name'] = getString(Cmd.OB_STRING)
     elif myarg == u'corpus':
-      body[u'query'][u'corpus'] = getChoice(VAULT_EXPORT_CORPUS_MAP, mapChoice=True)
+      body[u'query'][u'corpus'] = getChoice(VAULT_CORPUS_ARGUMENT_MAP, mapChoice=True)
     elif myarg in VAULT_SEARCH_METHODS_MAP:
       if body[u'query'].get(u'searchMethod'):
         Cmd.Backup()
@@ -16732,28 +16759,28 @@ def doCreateVaultExport():
       body[u'query'].setdefault(u'driveOptions', {})[u'includeTeamDrives'] = getBoolean()
     elif myarg in [u'includeaccessinfo']:
       body[u'exportOptions'].setdefault(u'driveOptions', {})[u'includeAccessInfo'] = getBoolean()
-    elif myarg == u'nodetails':
-      showDetails = False
+    elif myarg == u'showdetails':
+      showDetails = True
     else:
       unknownArgumentExit()
   if not matterId:
     missingArgumentExit(Cmd.OB_MATTER_ITEM)
   if u'corpus' not in body[u'query']:
-    missingArgumentExit(u'corpus {0}'.format(formatChoiceList(VAULT_EXPORT_CORPUS_MAP)))
+    missingArgumentExit(u'corpus {0}'.format(formatChoiceList(VAULT_CORPUS_ARGUMENT_MAP)))
   if u'searchMethod' not in body[u'query']:
     missingArgumentExit(formatChoiceList(VAULT_SEARCH_METHODS_MAP))
   if u'name' not in body:
-    body[u'name'] = u'GAM {0} export - {1}'.format(body[u'query'][u'corpus'], ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])))
+    body[u'name'] = u'GAM {0} Export - {1}'.format(body[u'query'][u'corpus'], ISOformatTimeStamp(todaysTime()))
   if body[u'query'][u'corpus'] != u'DRIVE':
     body[u'exportOptions'].pop(u'driveOptions', None)
     body[u'exportOptions'][VAULT_CORPUS_OPTIONS_MAP[body[u'query'][u'corpus']]] = {u'exportFormat': export_format}
   try:
-    result = callGAPI(v.matters().exports(), u'create',
+    export = callGAPI(v.matters().exports(), u'create',
                       throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.BAD_REQUEST, GAPI.BACKEND_ERROR, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
                       matterId=matterId, body=body)
-    entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, formatVaultNameId(result[u'name'], result[u'id'])])
+    entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, formatVaultNameId(export[u'name'], export[u'id'])])
     if showDetails:
-      showJSON(None, result)
+      _showVaultExport(export, None)
   except (GAPI.alreadyExists, GAPI.badRequest, GAPI.backendError, GAPI.failedPrecondition, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, body.get(u'name')], str(e))
 
@@ -16780,21 +16807,6 @@ def doDeleteVaultExport():
     entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId])
   except (GAPI.notFound, GAPI.badRequest, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], str(e))
-
-VAULT_EXPORT_TIME_OBJECTS = set([u'versionDate', u'createTime', u'startTime', u'endTime'])
-
-def _getExportOrgUnitName(export, cd):
-  query = export.get(u'query')
-  if query:
-    if u'orgUnitInfo' in query:
-      query[u'orgUnitInfo'][u'orgUnitPath'] = convertOrgUnitIDtoPath(query[u'orgUnitInfo'][u'orgUnitId'], cd)
-
-def _showVaultExport(export, cd):
-  if cd is not None:
-    _getExportOrgUnitName(export, cd)
-  Ind.Increment()
-  showJSON(None, export, timeObjects=VAULT_EXPORT_TIME_OBJECTS)
-  Ind.Decrement()
 
 # gam info vaultexport|export <ExportItem> matter <MatterItem> [shownames]
 # gam info vaultexport|export <MatterItem> <ExportItem> [shownames]
@@ -17022,60 +17034,106 @@ def doDownloadVaultExport():
     Ind.Decrement()
   Ind.Decrement()
 
-VAULT_HOLD_CORPUS_ARGUMENT_MAP = {u'drive': u'DRIVE', u'groups': u'GROUPS', u'mail': u'MAIL'}
+def _getHoldEmailAddressesOrgUnitName(hold, cd):
+  if u'accounts' in hold:
+    accountType = u'group' if hold[u'corpus'] == u'GROUPS' else u'user'
+    for i in range(0, len(hold[u'accounts'])):
+      hold[u'accounts'][i][u'email'] = convertUIDtoEmailAddress(u'uid:{0}'.format(hold[u'accounts'][i][u'accountId']), cd, accountType)
+  if u'orgUnit' in hold:
+    hold[u'orgUnit'][u'orgUnitPath'] = convertOrgUnitIDtoPath(hold[u'orgUnit'][u'orgUnitId'], cd)
 
-# gam create vaulthold|hold corpus drive|groups|mail matter <MatterItem> [name <String>] [query <QueryVaultCorpus>]
+VAULT_HOLD_TIME_OBJECTS = set([u'holdTime', u'updateTime', u'startTime', u'endTime'])
+
+def _showVaultHold(hold, cd):
+  if cd is not None:
+    _getHoldEmailAddressesOrgUnitName(hold, cd)
+  Ind.Increment()
+  showJSON(None, hold, timeObjects=VAULT_HOLD_TIME_OBJECTS)
+  Ind.Decrement()
+
+def _getHoldQueryParameters(myarg, queryParameters):
+  if myarg == u'query':
+    queryParameters[u'queryLocation'] = Cmd.Location()
+    queryParameters[u'query'] = getString(Cmd.OB_QUERY)
+  elif myarg in [u'terms']:
+    queryParameters[u'terms'] = getString(Cmd.OB_STRING)
+  elif myarg in [u'start', u'starttime']:
+    queryParameters[u'startTime'] = getTimeOrDeltaFromNow()
+  elif myarg in [u'end', u'endtime']:
+    queryParameters[u'endTime'] = getTimeOrDeltaFromNow()
+  elif myarg in [u'includerooms']:
+    queryParameters[u'includeRooms'] = getBoolean()
+  elif myarg in [u'includeteamdrives']:
+    queryParameters[u'includeTeamDriveFiles'] = getBoolean()
+  else:
+    return False
+  return True
+
+def _setHoldQuery(body, queryParameters):
+  queryType = VAULT_CORPUS_QUERY_MAP[body[u'corpus']]
+  body[u'query'] = {queryType: {}}
+  if body[u'corpus'] == u'DRIVE':
+    if queryParameters.get(u'query'):
+      try:
+        body[u'query'][queryType] = json.loads(queryParameters[u'query'])
+      except ValueError as e:
+        Cmd.SetLocation(queryParameters[u'queryLocation'])
+        usageErrorExit(str(e))
+    elif queryParameters.get(u'includeTeamDriveFiles'):
+      body[u'query'][queryType][u'includeTeamDriveFiles'] = queryParameters[u'includeTeamDriveFiles']
+  elif body[u'corpus'] in [u'GROUPS', u'MAIL']:
+    if queryParameters.get(u'query'):
+      body[u'query'][queryType][u'terms'] = queryParameters[u'query']
+    elif queryParameters.get(u'terms'):
+      body[u'query'][queryType][u'terms'] = queryParameters[u'terms']
+    if queryParameters.get(u'startTime'):
+      body[u'query'][queryType][u'startTime'] = queryParameters[u'startTime']
+    if queryParameters.get(u'endTime'):
+      body[u'query'][queryType][u'endTime'] = queryParameters[u'endTime']
+  elif body[u'corpus'] == u'HANGOUTS_CHAT':
+    if queryParameters.get(u'includeRooms'):
+      body[u'query'][queryType][u'includeRooms'] = queryParameters[u'includeRooms']
+
+# gam create vaulthold|hold matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
 #	[(accounts|groups|users <EmailItemList>) | (orgunit|org|ou <OrgUnit>)]
-#	[start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
+#	[query <QueryVaultCorpus>]
+#	[terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
+#	[includerooms <Boolean>]
+#	[includeteamdrives <Boolean>]
+#	[showdetails]
 def doCreateVaultHold():
   v = buildGAPIObject(API.VAULT)
-  body = {u'query': {}}
-  query = matterId = startTime = endTime = None
+  body = {}
+  matterId = None
   accounts = []
+  queryParameters = {}
+  showDetails = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'matter':
       matterId, matterNameId = getMatterItem(v)
     elif myarg == u'name':
       body[u'name'] = getString(Cmd.OB_STRING)
-    elif myarg == u'query':
-      queryLocation = Cmd.Location()
-      query = getString(Cmd.OB_QUERY)
     elif myarg == u'corpus':
-      body[u'corpus'] = getChoice(VAULT_HOLD_CORPUS_ARGUMENT_MAP, mapChoice=True)
+      body[u'corpus'] = getChoice(VAULT_CORPUS_ARGUMENT_MAP, mapChoice=True)
     elif myarg in [u'accounts', u'users', u'groups']:
       accountsLocation = Cmd.Location()
       accounts = getEntityList(Cmd.OB_EMAIL_ADDRESS_ENTITY)
     elif myarg in [u'orgunit', u'org', u'ou']:
       body[u'orgUnit'] = {u'orgUnitId': getOrgUnitId()[1]}
-    elif myarg in [u'start', u'starttime']:
-      startTime = getTimeOrDeltaFromNow()
-    elif myarg in [u'end', u'endtime']:
-      endTime = getTimeOrDeltaFromNow()
+    elif _getHoldQueryParameters(myarg, queryParameters):
+      pass
+    elif myarg == u'showdetails':
+      showDetails = True
     else:
       unknownArgumentExit()
   if matterId is None:
     missingArgumentExit(Cmd.OB_MATTER_ITEM)
-  if not body.get(u'name'):
-    missingArgumentExit(u'name')
   if not body.get(u'corpus'):
-    missingArgumentExit(u'corpus {0}'.format(u'|'.join(VAULT_HOLD_CORPUS_ARGUMENT_MAP)))
-  query_type = u'{0}Query'.format(body[u'corpus'].lower())
-  body[u'query'][query_type] = {}
-  if body[u'corpus'] == u'DRIVE':
-    if query:
-      try:
-        body[u'query'][query_type] = json.loads(query)
-      except ValueError as e:
-        Cmd.SetLocation(queryLocation)
-        usageErrorExit(str(e))
-  elif body[u'corpus'] in [u'GROUPS', u'MAIL']:
-    if query:
-      body[u'query'][query_type] = {u'terms': query}
-    if startTime:
-      body[u'query'][query_type][u'startTime'] = startTime
-    if endTime:
-      body[u'query'][query_type][u'endTime'] = endTime
+    missingArgumentExit(u'corpus {0}'.format(u'|'.join(VAULT_CORPUS_ARGUMENT_MAP)))
+  if u'name' not in body:
+    body[u'name'] = u'GAM {0} Hold - {1}'.format(body[u'corpus'], ISOformatTimeStamp(todaysTime()))
+  _setHoldQuery(body, queryParameters)
   if accounts:
     body[u'accounts'] = []
     cd = buildGAPIObject(API.DIRECTORY)
@@ -17083,46 +17141,50 @@ def doCreateVaultHold():
     for account in accounts:
       body[u'accounts'].append({u'accountId': convertEmailAddressToUID(account, cd, accountType, accountsLocation)})
   try:
-    result = callGAPI(v.matters().holds(), u'create',
-                      throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.BAD_REQUEST, GAPI.BACKEND_ERROR, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
-                      matterId=matterId, body=body, fields=u'holdId,name')
-    entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, formatVaultNameId(result[u'name'], result[u'holdId'])])
+    hold = callGAPI(v.matters().holds(), u'create',
+                    throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.BAD_REQUEST, GAPI.BACKEND_ERROR, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
+                    matterId=matterId, body=body)
+    entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, formatVaultNameId(hold[u'name'], hold[u'holdId'])])
+    if showDetails:
+      _showVaultHold(hold, None)
   except (GAPI.alreadyExists, GAPI.badRequest, GAPI.backendError, GAPI.failedPrecondition, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, body.get(u'name')], str(e))
 
-# gam update vaulthold|hold <HoldItem> matter <MatterItem> [query <QueryVaultCorpus>]
+# gam update vaulthold|hold <HoldItem> matter <MatterItem>
 #	[([addaccounts|addgroups|addusers <EmailItemList>] [removeaccounts|removegroups|removeusers <EmailItemList>]) | (orgunit|org|ou <OrgUnit>)]
-#	[start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
+#	[query <QueryVaultCorpus>]
+#	[terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
+#	[includerooms <Boolean>]
+#	[includeteamdrives <Boolean>]
+#	[showdetails]
 def doUpdateVaultHold():
   v = buildGAPIObject(API.VAULT)
   holdName = getString(Cmd.OB_HOLD_ITEM)
-  matterId = None
   body = {}
+  cd = matterId = None
   addAccounts = []
   addAccountIds = []
   removeAccounts = []
   removeAccountIds = []
-  cd = query = startTime = endTime = None
+  queryParameters = {}
+  showDetails = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'matter':
       matterId, matterNameId = getMatterItem(v)
       holdId, holdName, holdNameId = convertHoldNameToID(v, holdName, matterId, matterNameId)
-    elif myarg == u'query':
-      queryLocation = Cmd.Location()
-      query = getString(Cmd.OB_QUERY)
-    elif myarg in [u'orgunit', u'org', u'ou']:
-      body[u'orgUnit'] = {u'orgUnitId': getOrgUnitId()[1]}
-    elif myarg in [u'start', u'starttime']:
-      startTime = getTimeOrDeltaFromNow()
-    elif myarg in [u'end', u'endtime']:
-      endTime = getTimeOrDeltaFromNow()
     elif myarg in [u'addusers', u'addaccounts', u'addgroups']:
       addAccountsLocation = Cmd.Location()
       addAccounts = getEntityList(Cmd.OB_EMAIL_ADDRESS_ENTITY)
     elif myarg in [u'removeusers', u'removeaccounts', u'removegroups']:
       removeAccountsLocation = Cmd.Location()
       removeAccounts = getEntityList(Cmd.OB_EMAIL_ADDRESS_ENTITY)
+    elif myarg in [u'orgunit', u'org', u'ou']:
+      body[u'orgUnit'] = {u'orgUnitId': getOrgUnitId()[1]}
+    elif _getHoldQueryParameters(myarg, queryParameters):
+      pass
+    elif myarg == u'showdetails':
+      showDetails = True
     else:
       unknownArgumentExit()
   if matterId is None:
@@ -17138,41 +17200,27 @@ def doUpdateVaultHold():
   if addAccounts:
     if cd is None:
       cd = buildGAPIObject(API.DIRECTORY)
-    addAccountIds = []
     for account in addAccounts:
       addAccountIds.append({u'email': account, u'id': convertEmailAddressToUID(account, cd, accountType, addAccountsLocation)})
   if removeAccounts:
     if cd is None:
       cd = buildGAPIObject(API.DIRECTORY)
-    removeAccountIds = []
     for account in removeAccounts:
       removeAccountIds.append({u'email': account, u'id': convertEmailAddressToUID(account, cd, accountType, removeAccountsLocation)})
-  if query or startTime or endTime or body.get(u'orgUnit'):
-    body[u'query'] = old_body[u'query']
+  if queryParameters or body.get(u'orgUnit'):
     body[u'corpus'] = old_body[u'corpus']
     if u'orgUnit' in old_body and u'orgUnit' not in body:
       # bah, API requires this to be sent on update even when it's not changing
       body[u'orgUnit'] = old_body[u'orgUnit']
-    query_type = '{0}Query'.format(body[u'corpus'].lower())
-    if body[u'corpus'] == u'DRIVE':
-      if query:
-        try:
-          body[u'query'][query_type] = json.loads(query)
-        except ValueError as e:
-          Cmd.SetLocation(queryLocation)
-          usageErrorExit(str(e))
-    elif body[u'corpus'] in [u'GROUPS', u'MAIL']:
-      if  query:
-        body[u'query'][query_type][u'terms'] = query
-      if startTime:
-        body[u'query'][query_type][u'startTime'] = startTime
-      if endTime:
-        body[u'query'][query_type][u'endTime'] = endTime
+    if queryParameters:
+      _setHoldQuery(body, queryParameters)
+    else:
+      body[u'query'] = old_body[u'query']
   if body:
     try:
-      callGAPI(v.matters().holds(), u'update',
-               throw_reasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
-               matterId=matterId, holdId=holdId, body=body)
+      hold = callGAPI(v.matters().holds(), u'update',
+                      throw_reasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                      matterId=matterId, holdId=holdId, body=body)
       entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, holdNameId])
     except (GAPI.notFound, GAPI.badRequest, GAPI.forbidden) as e:
       entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, holdNameId], str(e))
@@ -17217,6 +17265,8 @@ def doUpdateVaultHold():
         entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, None], str(e))
         return
     Ind.Decrement()
+  if showDetails:
+    _showVaultHold(hold, cd)
 
 # gam delete vaulthold|hold <HoldItem> matter <MatterItem>
 # gam delete vaulthold|hold <MatterItem> <HoldItem>
@@ -17241,23 +17291,6 @@ def doDeleteVaultHold():
     entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, holdNameId])
   except (GAPI.notFound, GAPI.badRequest, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, holdNameId], str(e))
-
-VAULT_HOLD_TIME_OBJECTS = set([u'holdTime', u'updateTime', u'startTime', u'endTime'])
-
-def _getHoldEmailAddressesOrgUnitName(hold, cd):
-  if u'accounts' in hold:
-    accountType = u'group' if hold[u'corpus'] == u'GROUPS' else u'user'
-    for i in range(0, len(hold[u'accounts'])):
-      hold[u'accounts'][i][u'email'] = convertUIDtoEmailAddress(u'uid:{0}'.format(hold[u'accounts'][i][u'accountId']), cd, accountType)
-  if u'orgUnit' in hold:
-    hold[u'orgUnit'][u'orgUnitPath'] = convertOrgUnitIDtoPath(hold[u'orgUnit'][u'orgUnitId'], cd)
-
-def _showVaultHold(hold, cd):
-  if cd is not None:
-    _getHoldEmailAddressesOrgUnitName(hold, cd)
-  Ind.Increment()
-  showJSON(None, hold, timeObjects=VAULT_HOLD_TIME_OBJECTS)
-  Ind.Decrement()
 
 # gam info vaulthold|hold <HoldItem> matter <MatterItem> [shownames]
 # gam info vaulthold|hold <MatterItem> <HoldItem> [shownames]
@@ -17383,13 +17416,24 @@ def validateCollaborators(cd):
     collaborators.append({u'email': collaborator, u'id': convertEmailAddressToUID(collaborator, cd)})
   return collaborators
 
+def _showVaultMatter(matter, cd):
+  if u'matterPermissions' in matter:
+    for i in range(0, len(matter[u'matterPermissions'])):
+      matter[u'matterPermissions'][i][u'email'] = convertUIDtoEmailAddress(u'uid:{0}'.format(matter[u'matterPermissions'][i][u'accountId']), cd)
+  Ind.Increment()
+  showJSON(None, matter)
+  Ind.Decrement()
+
 # gam create vaultmatter|matter [name <String>] [description <string>]
-#	[collaborator|collaborators <CollaboratorItemList>]
+#	[collaborator|collaborators <CollaboratorItemList>] [sendemails <Boolean>] [ccme <Boolean>]
+#	[showdetails]
 def doCreateVaultMatter():
   v = buildGAPIObject(API.VAULT)
-  body = {u'name': u'New Matter - {0}'.format(GM.Globals[GM.DATETIME_NOW].strftime(YYYYMMDD_HHMMSS_FORMAT))}
+  body = {}
+  cbody = {u'matterPermission': {u'role': u'COLLABORATOR', u'accountId': u''}, u'sendEmails': False, u'ccMe': False}
   collaborators = []
   cd = None
+  showDetails = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'name':
@@ -17400,14 +17444,22 @@ def doCreateVaultMatter():
       if not cd:
         cd = buildGAPIObject(API.DIRECTORY)
       collaborators.extend(validateCollaborators(cd))
+    elif myarg == u'sendemails':
+      cbody[u'sendEmails'] = getBoolean()
+    elif myarg == u'ccme':
+      cbody[u'ccMe'] = getBoolean()
+    elif myarg == u'showdetails':
+      showDetails = True
     else:
       unknownArgumentExit()
+  if u'name' not in body:
+    body[u'name'] = u'GAM Matter - {0}'.format(ISOformatTimeStamp(todaysTime()))
   try:
-    result = callGAPI(v.matters(), u'create',
+    matter = callGAPI(v.matters(), u'create',
                       throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.FORBIDDEN],
-                      body=body, fields=u'matterId,name')
-    matterId = result[u'matterId']
-    matterNameId = formatVaultNameId(result[u'name'], matterId)
+                      body=body)
+    matterId = matter[u'matterId']
+    matterNameId = formatVaultNameId(matter[u'name'], matterId)
     entityActionPerformed([Ent.VAULT_MATTER, matterNameId])
   except (GAPI.alreadyExists, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, body[u'name']], str(e))
@@ -17420,15 +17472,18 @@ def doCreateVaultMatter():
     j = 0
     for collaborator in collaborators:
       j += 1
+      cbody[u'matterPermission'][u'accountId'] = collaborator[u'id']
       try:
         callGAPI(v.matters(), u'addPermissions',
                  throw_reasons=[GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
-                 matterId=matterId, body={u'matterPermission': {u'role': u'COLLABORATOR', u'accountId': collaborator[u'id']}})
+                 matterId=matterId, body=cbody)
         entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.COLLABORATOR, collaborator[u'email']], j, jcount)
       except (GAPI.failedPrecondition, GAPI.forbidden) as e:
         entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId], str(e))
         break
     Ind.Decrement()
+  if showDetails:
+    _showVaultMatter(matter, cd)
 
 VAULT_MATTER_ACTIONS = {
   u'close': Act.CLOSE,
@@ -17548,14 +17603,6 @@ def doUpdateVaultMatter():
         entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId], str(e))
         break
     Ind.Decrement()
-
-def _showVaultMatter(matter, cd):
-  if u'matterPermissions' in matter:
-    for i in range(0, len(matter[u'matterPermissions'])):
-      matter[u'matterPermissions'][i][u'email'] = convertUIDtoEmailAddress(u'uid:{0}'.format(matter[u'matterPermissions'][i][u'accountId']), cd)
-  Ind.Increment()
-  showJSON(None, matter)
-  Ind.Decrement()
 
 # gam info vaultmatter|matter <MatterItem>
 def doInfoVaultMatter():
@@ -29146,7 +29193,7 @@ def _createDriveFileACL(users, useDomainAdminAccess):
       emailMessage = getString(Cmd.OB_STRING)
     elif myarg == u'showtitles':
       showTitles = True
-    elif myarg == u'nodetails':
+    elif myarg == u'showdetails':
       showDetails = False
     elif myarg in [u'adminaccess', u'asadmin']:
       useDomainAdminAccess = True

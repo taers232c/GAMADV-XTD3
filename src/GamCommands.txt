@@ -1841,14 +1841,15 @@ gam <UserTypeEntity> show teamdriveacls [teamdriveadminquery|query <QueryTeamDri
 
 # Vault
 
-gam create vaultexport|export matter <MatterItem>] [name <String>] corpus <drive|mail|groups|hangouts_chat>
-        (accounts <EmailAddressList>) | (orgunit|org|ou <OrgUnitPath>) | (teamdrives <TeamDriveIDList>) | (rooms <ChatRoomList>) | everyone
+gam create vaultexport|export matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
+        (accounts <EmailAddressList>) | (orgunit|org|ou <OrgUnitPath>) | (teamdrives <TeamDriveIDList>) | (rooms <RoomList>) | everyone
         [scope <all_data|held_data|unprocessed_data>]
         [terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>] [timezone <TimeZone>]
-        [includerooms <Boolean>]
         [excludedrafts <Boolean>] [format mbox|pst]
-        [driveversiondate <Date>|<DateTime>] [includeteamdrives <Boolean>] [includeaccessinfo <Boolean>]
-        [nodetails]
+        [includerooms <Boolean>]
+        [includeteamdrives <Boolean>] [driveversiondate <Date>|<DateTime>]
+        [includeaccessinfo <Boolean>]
+        [showdetails]
 gam delete vaultexport|export <ExportItem> matter <MatterItem>
 gam delete vaultexport|export <MatterItem> <ExportItem>
 gam download vaultexport|export <ExportItem> matter <MatterItem> [noverify] [noextract] [targetfolder <FilePath>]
@@ -1858,12 +1859,20 @@ gam info vaultexport|export <MatterItem> <ExportItem>
 gam show vaultexports|exports [matter|matters <MatterItemList>] [shownames]
 gam print vaultexports|exports [todrive [<ToDriveAttributes>]] [matter|matters <MatterItemList>] [shownames]
 
-gam create|add vaulthold|hold corpus drive|groups|mail matter <MatterItem> [name <String>] [query <QueryVaultCorpus>]
+gam create vaulthold|hold matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
         [(accounts|groups|users <EmailItemList>) | (orgunit|org|ou <OrgUnit>)]
-        [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
-gam update vaulthold|hold <HoldItem> matter <MatterItem> [query <QueryVaultCorpus>]
+        [query <QueryVaultCorpus>]
+        [terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
+        [includerooms <Boolean>]
+        [includeteamdrives <Boolean>]
+        [showdetails]
+gam update vaulthold|hold <HoldItem> matter <MatterItem>
         [([addaccounts|addgroups|addusers <EmailItemList>] [removeaccounts|removegroups|removeusers <EmailItemList>]) | (orgunit|org|ou <OrgUnit>)]
-        [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
+        [query <QueryVaultCorpus>]
+        [terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
+        [includerooms <Boolean>]
+        [includeteamdrives <Boolean>]
+        [showdetails]
 gam delete vaulthold|hold <HoldItem> matter <MatterItem>
 gam delete vaulthold|hold <MatterItem> <HoldItem>
 gam info vaulthold|hold <HoldItem> matter <MatterItem> [shownames]
@@ -1872,7 +1881,8 @@ gam show vaultholds|holds [matter|matters <MatterItemList>] [shownames]
 gam print vaultholds|holds [todrive [<ToDriveAttributes>]] [matter|matters <MatterItemList>] [shownames]
 
 gam create|add vaultmatter|matter [name <String>] [description <string>]
-        [collaborator|collaborators <EmailItemList>]
+        [collaborator|collaborators <EmailItemList>] [sendemails <Boolean>] [ccme <Boolean>]
+        [showdetails]
 gam update vaultmatter|matter <MatterItem> [name <String>] [description <string>]
         [addcollaborator|addcollaborators <EmailItemList>] [removecollaborator|removecollaborators <EmailItemList>]
 gam update vaultmatter|matter <MatterItem> action close|reopen|delete|undelete
@@ -2060,7 +2070,7 @@ gam <UserTypeEntity> show backupcodes|verificationcodes
 <CalendarACLScopeList> ::= "<CalendarACLScope>(,<CalendarACLScope>)*"
 <CalendarACLScopeEntity>::= <CalendarACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
-!<CalendarAttributes> ::=
+<CalendarAttributes> ::=
         (backgroundcolor <ColorValue>)|
         (colorindex|colorid <CalendarColorIndex>)|
         (foregroundcolor <ColorValue>)|
