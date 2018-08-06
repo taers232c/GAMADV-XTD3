@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.01'
+__version__ = u'4.60.02'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -13047,7 +13047,7 @@ def doUpdateGroups():
       entityActionPerformed([Ent.GROUP, group], i, count)
   elif CL_subCommand in [u'create', u'add']:
     role, groupMemberType = _getRoleGroupMemberType()
-    checkSuspended = getChoice(CHECK_SUSPENDED_CHOICE_MAP, defaultChoice=None)
+    checkSuspended = getChoice(CHECK_SUSPENDED_CHOICE_MAP, defaultChoice=None, mapChoice=True)
     _, addMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, checkSuspended=checkSuspended, groupMemberType=groupMemberType)
     groupMemberLists = addMembers if isinstance(addMembers, dict) else None
     checkForExtraneousArguments()
@@ -13077,7 +13077,7 @@ def doUpdateGroups():
   elif CL_subCommand == u'sync':
     role, groupMemberType = _getRoleGroupMemberType()
     syncOperation = getChoice([u'addonly', 'removeonly'], defaultChoice=u'addremove')
-    checkSuspended = getChoice(CHECK_SUSPENDED_CHOICE_MAP, defaultChoice=None)
+    checkSuspended = getChoice(CHECK_SUSPENDED_CHOICE_MAP, defaultChoice=None, mapChoice=True)
     _, syncMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, checkSuspended=checkSuspended, groupMemberType=groupMemberType)
     groupMemberLists = syncMembers if isinstance(syncMembers, dict) else None
     if not groupMemberLists:

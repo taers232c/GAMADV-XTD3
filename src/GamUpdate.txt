@@ -1,3 +1,7 @@
+4.60.02
+
+Fixed bug where notsuspended option was not properly processed in gam add/sync member, this led to an incorrect error message.
+
 4.60.01
 
 Changed gam create vaultexport to not show the newly created item details by default; this is what gam create vaulthold/vaultmatter do.
