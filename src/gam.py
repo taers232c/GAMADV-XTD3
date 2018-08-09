@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.02'
+__version__ = u'4.60.03'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -27974,19 +27974,30 @@ def transferDrive(users):
         entityActionNotPerformedWarning([Ent.USER, sourceUser, childFileType, childFileName],
                                         Msg.SERVICE_NOT_APPLICABLE_THIS_ADDRESS.format(ownerUser), j, jcount)
         return
-      for permission in childEntryInfo[u'permissions']:
+      permissions = childEntryInfo.pop(u'permissions', None)
+      if permissions is None:
+        try:
+          permissions = callGAPIpages(ownerDrive.permissions(), u'list', VX_PAGES_PERMISSIONS,
+                                      throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                                      fileId=childFileId, fields=VX_NPT_PERMISSIONS)
+        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
+          entityActionFailedWarning([Ent.USER, ownerUser, childFileType, childFileName], str(e), j, jcount)
+          return
+        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+          userSvcNotApplicableOrDriveDisabled(ownerUser, str(e), i, count)
+          return
+      for permission in permissions:
         if sourcePermissionId == permission[u'id']:
           childEntryInfo[u'sourcePermission'] = _setSourceUpdateRole(permission)
           break
       else:
         childEntryInfo[u'sourcePermission'] = nonOwnerRetainRoleBody
-      for permission in childEntryInfo[u'permissions']:
+      for permission in permissions:
         if targetPermissionId == permission[u'id']:
           childEntryInfo[u'targetPermission'] = _setSourceUpdateRole(permission)
           break
       else:
-        childEntryInfo[u'targetPermission'] = {u'role': u'none'}
-      childEntryInfo.pop(u'permissions', None)
+        childEntryInfo[u'targetPermission'] = nonOwnerTargetRoleBody
       if csvFormat:
         csvRows.append({u'OldOwner': sourceUser, u'NewOwner': targetUser, u'type': Ent.Singular(childFileType),
                         u'id': childFileId, VX_FILENAME: childFileName, u'role': childEntryInfo[u'sourcePermission'][u'role']})

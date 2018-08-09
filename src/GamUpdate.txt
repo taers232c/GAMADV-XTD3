@@ -1,3 +1,17 @@
+4.60.03
+
+Fixed an issue in gam transfer drive where a role was not properly transferred from one non-owner to another non-owner.
+Confirguration:
+* Harry owns a file Test
+* Tom has read access to Test
+* Dick has no access to Test
+
+Command:
+gam user tom transfer drive dick
+
+Result:
+* Dick did not get read access to Test
+
 4.60.02
 
 Fixed bug where notsuspended option was not properly processed in gam add/sync member, this led to an incorrect error message.
