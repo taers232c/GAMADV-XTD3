@@ -1,3 +1,7 @@
+4.60.04
+
+Handle "invalid_grant: Invalid JWT: No valid verifier found for issuer." as a non-fatal error for service account access.
+
 4.60.03
 
 Fixed an issue in gam transfer drive where a role was not properly transferred from one non-owner to another non-owner.
