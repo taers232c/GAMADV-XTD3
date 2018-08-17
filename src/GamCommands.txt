@@ -686,7 +686,7 @@ gam calendar|calendars <CalendarEntity> showacl [formatjson]
         (matchfield summary <RegularExpression>)
 
 <EventEntity> ::=
-        (events <EventIdList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|
+        (id|eventid <EventId>)|(event|events <EventIdList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|
         (<EventSelectProperties>+ <EventMatchProperties>*)
 
 <EventAttributes> ::=
@@ -2225,11 +2225,13 @@ gam <UserTypeEntity> print events <CalendarPrintShowEntity> <EventSelectProperti
         modifiedbyme|modifiedbymedate|modifiedbymetime|modifiedbyuser|
         modifieddate|modifiedtime|
         name|
+        name_natural|
         quotabytesused|quotaused|
         recency|
         sharedwithmedate|sharedwithmetime|
         starred|
         title|
+        title_natural|
         viewedbymedate|viewedbymetime
 
 <DriveFileIDEntity> ::= (<DriveFileItem>) | (id <DriveFileItem>) | (id:<DriveFileItem>) | (ids <DriveFileList>) | (ids:<DriveFileList>)

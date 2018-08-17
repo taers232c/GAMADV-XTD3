@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.04'
+__version__ = u'4.60.05'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -15523,6 +15523,10 @@ def getCalendarEventEntity(noIds=False):
           calendarEventEntity[u'list'] = entityList
       else:
         calendarEventEntity[u'list'].extend(convertEntityToList(getString(Cmd.OB_EVENT_ID)))
+    elif myarg in [u'id', u'eventid']:
+      if noIds:
+        unknownArgumentExit()
+      calendarEventEntity[u'list'].append(getString(Cmd.OB_EVENT_ID))
     elif myarg in [u'q', u'query', u'eventquery']:
       calendarEventEntity[u'queries'].append(getString(Cmd.OB_QUERY))
     elif myarg == u'matchfield':
@@ -20522,7 +20526,7 @@ def _getCourseAttribute(myarg, body, courseAttributesFrom):
     body[u'room'] = getString(Cmd.OB_STRING, minLen=0)
   elif myarg in [u'owner', u'ownerid', u'teacher']:
     body[u'ownerId'] = getEmailAddress()
-  elif myarg in [u'state', u'status']:
+  elif myarg in [u'state', u'status', u'coursestate']:
     body[u'courseState'] = getChoice(COURSE_STATE_MAPS[Cmd.OB_COURSE_STATE_LIST], mapChoice=True)
   elif myarg == u'copyfrom':
     courseAttributesFrom[u'courseId'] = getString(Cmd.OB_COURSE_ID)
@@ -24820,6 +24824,7 @@ DRIVEFILE_ORDERBY_CHOICE_MAP = {
   u'modifieddate': VX_MODIFIED_TIME,
   u'modifiedtime': VX_MODIFIED_TIME,
   u'name': VX_FILENAME,
+  u'namenatural': VX_FILENAME+u'_natural',
   u'quotabytesused': u'quotaBytesUsed',
   u'quotaused': u'quotaBytesUsed',
   u'recency': u'recency',
@@ -24827,6 +24832,7 @@ DRIVEFILE_ORDERBY_CHOICE_MAP = {
   u'sharedwithmetime': VX_SHARED_WITH_ME_TIME,
   u'starred': u'starred',
   u'title': VX_FILENAME,
+  u'titlenatural': VX_FILENAME+u'_natural',
   u'viewedbymedate': VX_VIEWED_BY_ME_TIME,
   u'viewedbymetime': VX_VIEWED_BY_ME_TIME,
   }
@@ -27675,7 +27681,7 @@ def getDriveFile(users):
       try:
         result = callGAPI(drive.files(), u'get',
                           throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
-                          fileId=fileId, fields=VX_DOWNLOAD_FIELDS)
+                          fileId=fileId, fields=VX_DOWNLOAD_FIELDS, supportsTeamDrives=True)
         fileExtension = result.get(u'fileExtension')
         mimeType = result[u'mimeType']
         if mimeType == MIMETYPE_GA_FOLDER:
@@ -29204,7 +29210,7 @@ def _createDriveFileACL(users, useDomainAdminAccess):
       emailMessage = getString(Cmd.OB_STRING)
     elif myarg == u'showtitles':
       showTitles = True
-    elif myarg == u'showdetails':
+    elif myarg == u'nodetails':
       showDetails = False
     elif myarg in [u'adminaccess', u'asadmin']:
       useDomainAdminAccess = True
@@ -29320,7 +29326,7 @@ def _updateDriveFileACLs(users, useDomainAdminAccess):
         if showTitles:
           fileName, entityType = _getDriveFileNameFromId(drive, fileId)
         permission = callGAPI(drive.permissions(), u'update',
-                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID_OWNERSHIP_TRANSFER,
+                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID_OWNERSHIP_TRANSFER, GAPI.CANNOT_REMOVE_OWNER,
                                                                              GAPI.TEAMDRIVE_NOT_FOUND,
                                                                              GAPI.CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS,
                                                                              GAPI.OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
@@ -29334,7 +29340,7 @@ def _updateDriveFileACLs(users, useDomainAdminAccess):
         if showDetails:
           _showDriveFilePermission(permission, printKeys, timeObjects)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.badRequest, GAPI.invalidOwnershipTransfer,
+              GAPI.badRequest, GAPI.invalidOwnershipTransfer, GAPI.cannotRemoveOwner,
               GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.ownerOnTeamDriveItemNotSupported, GAPI.organizerOnNonTeamDriveItemNotSupported,
               GAPI.cannotModifyInheritedTeamDrivePermission, GAPI.fieldNotWritable) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
@@ -29533,13 +29539,14 @@ def _deleteDriveFileACLs(users, useDomainAdminAccess):
         if showTitles:
           fileName, entityType = _getDriveFileNameFromId(drive, fileId)
         callGAPI(drive.permissions(), u'delete',
-                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION,
+                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_REMOVE_OWNER,
+                                                                GAPI.CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION,
                                                                 GAPI.TEAMDRIVE_NOT_FOUND, GAPI.PERMISSION_NOT_FOUND],
                  useDomainAdminAccess=useDomainAdminAccess,
                  fileId=fileId, permissionId=permissionId, supportsTeamDrives=True)
         entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.badRequest, GAPI.cannotModifyInheritedTeamDrivePermission) as e:
+              GAPI.badRequest, GAPI.cannotRemoveOwner, GAPI.cannotModifyInheritedTeamDrivePermission) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
       except GAPI.teamDriveNotFound as e:
         entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE, fileName], str(e), j, jcount)
@@ -29572,6 +29579,8 @@ def _deletePermissions(users, useDomainAdminAccess):
       if reason not in GAPI.DEFAULT_RETRY_REASONS+[GAPI.SERVICE_LIMIT]:
         if reason == GAPI.PERMISSION_NOT_FOUND:
           entityDoesNotHaveItemWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMISSION_ID, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        elif reason == GAPI.CANNOT_REMOVE_OWNER:
+          entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMISSION_ID, ri[RI_ITEM]], message, int(ri[RI_J]), int(ri[RI_JCOUNT]))
         else:
           errMsg = getHTTPError({}, http_status, reason, message)
           entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMISSION_ID, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
@@ -29581,12 +29590,14 @@ def _deletePermissions(users, useDomainAdminAccess):
       waitOnFailure(1, 10, reason, message)
       try:
         callGAPI(drive.permissions(), u'delete',
-                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION, GAPI.PERMISSION_NOT_FOUND],
+                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_REMOVE_OWNER,
+                                                                GAPI.CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION, GAPI.PERMISSION_NOT_FOUND],
                  retry_reasons=[GAPI.SERVICE_LIMIT],
                  fileId=ri[RI_ENTITY], permissionId=ri[RI_ITEM], useDomainAdminAccess=useDomainAdminAccess, supportsTeamDrives=True)
         entityActionPerformed([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMISSION_ID, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.badRequest, GAPI.cannotModifyInheritedTeamDrivePermission, GAPI.permissionNotFound, GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+              GAPI.badRequest, GAPI.cannotRemoveOwner, GAPI.cannotModifyInheritedTeamDrivePermission, GAPI.permissionNotFound,
+              GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMISSION_ID, ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
     if int(ri[RI_J]) == int(ri[RI_JCOUNT]):
       Ind.Decrement()
