@@ -1,3 +1,7 @@
+4.60.06
+
+Worked around constraint that Google API batch requests can't take UTF characters in request_ids; this caused traps when adding Users/ChromeOS devices to OUs.
+
 4.60.05
 
 Fixed a backward compatibility bug where id|eventid <EventId> was not recognized as an <EventEntity>.

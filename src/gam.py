@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.05'
+__version__ = u'4.60.06'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -8219,14 +8219,14 @@ def _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, i, count, items, quickCrOSMove):
   def _callbackMoveCrOSesToOrgUnit(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
-      entityActionPerformed([Ent.ORGANIZATIONAL_UNIT, ri[RI_ENTITY], Ent.CROS_DEVICE, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      entityActionPerformed([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CROS_DEVICE, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
       http_status, reason, message = checkGAPIError(exception)
       if reason in [GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN]:
-        checkEntityItemValueAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ri[RI_ENTITY], Ent.CROS_DEVICE, ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        checkEntityItemValueAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CROS_DEVICE, ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
       else:
         errMsg = getHTTPError({}, http_status, reason, message)
-        entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, ri[RI_ENTITY], Ent.CROS_DEVICE, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CROS_DEVICE, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
   jcount = len(items)
   entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.CROS_DEVICE, i, count)
@@ -8241,7 +8241,7 @@ def _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, i, count, items, quickCrOSMove):
       j += 1
       svcparms = svcargs.copy()
       svcparms[u'deviceId'] = deviceId
-      dbatch.add(method(**svcparms), request_id=batchRequestID(orgUnitPath, 0, 0, j, jcount, deviceId))
+      dbatch.add(method(**svcparms), request_id=batchRequestID(u'', 0, 0, j, jcount, deviceId))
       bcount += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
         executeBatch(dbatch)
@@ -8276,11 +8276,11 @@ def _batchMoveUsersToOrgUnit(cd, orgUnitPath, i, count, items):
   def _callbackMoveUsersToOrgUnit(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
-      entityActionPerformed([Ent.ORGANIZATIONAL_UNIT, ri[RI_ENTITY], Ent.USER, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      entityActionPerformed([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.USER, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
       http_status, reason, message = checkGAPIError(exception)
       errMsg = getHTTPError(_MOVE_USER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
-      entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, ri[RI_ENTITY], Ent.USER, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.USER, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
   jcount = len(items)
   entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.USER, i, count)
@@ -8294,7 +8294,7 @@ def _batchMoveUsersToOrgUnit(cd, orgUnitPath, i, count, items):
     j += 1
     svcparms = svcargs.copy()
     svcparms[u'userKey'] = normalizeEmailAddressOrUID(user)
-    dbatch.add(method(**svcparms), request_id=batchRequestID(orgUnitPath, 0, 0, j, jcount, svcparms[u'userKey']))
+    dbatch.add(method(**svcparms), request_id=batchRequestID(u'', 0, 0, j, jcount, svcparms[u'userKey']))
     bcount += 1
     if bcount >= GC.Values[GC.BATCH_SIZE]:
       executeBatch(dbatch)
@@ -8539,29 +8539,31 @@ def _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs
       if reason not in GAPI.DEFAULT_RETRY_REASONS:
         if reason in [GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED]:
           accessErrorExit(cd)
-        entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, ri[RI_ENTITY]], errMsg)
+        entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, topLevelOrgUnits[int(ri[RI_I])]], errMsg)
         return
       waitOnFailure(1, 10, reason, message)
       try:
         response = callGAPI(cd.orgunits(), u'list',
                             throw_reasons=[GAPI.ORGUNIT_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
-                            customerId=GC.Values[GC.CUSTOMER_ID], type=u'all', orgUnitPath=ri[RI_ENTITY], fields=listfields)
+                            customerId=GC.Values[GC.CUSTOMER_ID], type=u'all', orgUnitPath=topLevelOrgUnits[int(ri[RI_I])], fields=listfields)
         orgUnits.extend(response.get(u'organizationUnits', []))
       except GAPI.orgunitNotFound:
-        entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, ri[RI_ENTITY]], Msg.DOES_NOT_EXIST)
+        entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, topLevelOrgUnits[int(ri[RI_I])]], Msg.DOES_NOT_EXIST)
       except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
         accessErrorExit(cd)
 
-  def _batchListOrgUnits(topLevelOrgUnits):
+  def _batchListOrgUnits():
     svcargs = dict([(u'customerId', GC.Values[GC.CUSTOMER_ID]), (u'orgUnitPath', None), (u'type', u'all'), (u'fields', listfields)]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(cd.orgunits(), u'list')
     dbatch = cd.new_batch_http_request(callback=_callbackListOrgUnits)
     bcount = 0
+    i = 0
     for orgUnitPath in topLevelOrgUnits:
       svcparms = svcargs.copy()
       svcparms[u'orgUnitPath'] = orgUnitPath
-      dbatch.add(method(**svcparms), request_id=batchRequestID(orgUnitPath, 0, 0, 0, 0, u''))
+      dbatch.add(method(**svcparms), request_id=batchRequestID(u'', i, 0, 0, 0, u''))
       bcount += 1
+      i += 1
       if bcount >= GC.Values[GC.BATCH_SIZE]:
         executeBatch(dbatch)
         dbatch = cd.new_batch_http_request(callback=_callbackListOrgUnits)
@@ -8595,8 +8597,9 @@ def _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs
   except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
     accessErrorExit(cd)
   orgUnits = orgs.get(u'organizationUnits', [])
+  topLevelOrgUnits = [orgUnit[u'orgUnitPath'] for orgUnit in orgUnits]
   if batchSubOrgs:
-    _batchListOrgUnits([orgUnit[u'orgUnitPath'] for orgUnit in orgUnits])
+    _batchListOrgUnits()
   if showParent:
     parentOrgIds = []
     retrievedOrgIds = []
