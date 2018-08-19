@@ -2416,7 +2416,7 @@ gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [preview] [todrive [<ToDriveAttributes>]]
 
-gam <UserTypeEntity> collect orphans (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [targetuserfoldername <DriveFileName>] [preview] [todrive [<ToDriveAttributes>]]
 
 <DriveOwnersSubfieldName> ::=

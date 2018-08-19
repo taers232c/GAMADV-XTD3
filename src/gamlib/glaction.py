@@ -130,7 +130,7 @@ class GamAction(object):
     MERGE: [u'Merged', u'Merge'],
     MODIFY: [u'Modified', u'Modify'],
     MOVE: [u'Moved', u'Move'],
-    PERFORM: [u'Action Performed', u'Perfrom Action'],
+    PERFORM: [u'Action Performed', u'Perform Action'],
     PRINT: [u'Printed', u'Print'],
     PROCESS: [u'Processed', u'Process'],
     PURGE: [u'Purged', u'Purge'],

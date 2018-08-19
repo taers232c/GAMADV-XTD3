@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.06'
+__version__ = u'4.60.07'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -25702,6 +25702,8 @@ def _updateAnyOwnerQuery(query):
   query = _stripNotMeInOwners(query)
   return _stripMeInOwners(query)
 
+SHOW_OWNED_BY_CHOICE_MAP = {u'any': None, u'me': True, u'others': False}
+
 def _getShowOwnedBy(query):
   showOwnedBy = getChoice(SHOW_OWNED_BY_CHOICE_MAP, mapChoice=True)
   if showOwnedBy is None:
@@ -25785,7 +25787,6 @@ def addFilePathsToRow(drive, fileTree, fileEntryInfo, filePathInfo, row, titles)
     row[key] = path
     k += 1
 
-SHOW_OWNED_BY_CHOICE_MAP = {u'any': None, u'me': True, u'others': False}
 FILELIST_FIELDS_TITLES = [u'id', u'mimeType', u'parents']
 
 # gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
@@ -27757,7 +27758,7 @@ def getDriveFile(users):
         break
     Ind.Decrement()
 
-# gam <UserTypeEntity> collect orphans (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+# gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[targetuserfoldername <DriveFileName>] [preview] [todrive [<ToDriveAttributes>]]
 def collectOrphans(users):
   orderByList = []
@@ -27775,6 +27776,10 @@ def collectOrphans(users):
       csvFormat = True
     elif myarg == u'todrive':
       todrive = getTodriveParameters()
+    elif myarg == u'anyowner':
+      query = _updateAnyOwnerQuery(query)
+    elif myarg == u'showownedby':
+      _, query = _getShowOwnedBy(query)
     else:
       unknownArgumentExit()
   orderBy = u','.join(orderByList) if orderByList else None
@@ -27909,16 +27914,14 @@ def transferDrive(users):
       targetIds[TARGET_ORPHANS_PARENT_ID] = targetIds[TARGET_PARENT_ID]
 
   def _getMappedParentForRootParentOrOrphan(childEntryInfo):
-    if u'parents' not in childEntryInfo:
+    if u'parents' not in childEntryInfo or not childEntryInfo[u'parents']:
       return targetIds[TARGET_ORPHANS_PARENT_ID]
     for parentId in childEntryInfo[u'parents']:
       if parentId == sourceRootId:
         return targetIds[TARGET_PARENT_ID]
     return None
 
-  def _setSourceUpdateRole(permission):
-    if permission[u'role'] == u'owner':
-      return {u'role': u'writer'}
+  def _setUpdateRole(permission):
     return {u'role': permission[u'role']}
 
   def _transferFile(childEntry, i, count, j, jcount):
@@ -27930,11 +27933,12 @@ def transferDrive(users):
       childEntryInfo[u'sourcePermission'] = {u'role': u'owner'}
       for permission in childEntryInfo[u'permissions']:
         if targetPermissionId == permission[u'id']:
-          childEntryInfo[u'targetPermission'] = _setSourceUpdateRole(permission)
+          childEntryInfo[u'targetPermission'] = _setUpdateRole(permission)
+          updateTargetPermission = True
           break
       else:
         childEntryInfo[u'targetPermission'] = {u'role': u'none'}
-      childEntryInfo.pop(u'permissions', None)
+        updateTargetPermission = False
       if csvFormat:
         csvRows.append({u'OldOwner': sourceUser, u'NewOwner': targetUser, u'type': Ent.Singular(childFileType), u'id': childFileId, VX_FILENAME: childFileName, u'role': u'owner'})
         return
@@ -27942,7 +27946,7 @@ def transferDrive(users):
       addTargetParents = set()
       removeSourceParents = set()
       removeTargetParents = set()
-      if u'parents' in childEntryInfo:
+      if u'parents' in childEntryInfo and childEntryInfo[u'parents']:
         for parentId in childEntryInfo[u'parents']:
           if parentId in parentIdMap:
             addTargetParents.add(parentIdMap[parentId])
@@ -27956,26 +27960,35 @@ def transferDrive(users):
         addTargetParents.add(targetIds[TARGET_ORPHANS_PARENT_ID])
         removeTargetParents.add(targetRootId)
       try:
-        callGAPI(sourceDrive.permissions(), u'create',
-                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST],
-                 fileId=childFileId, sendNotificationEmail=True, emailMessage=None, transferOwnership=True, body=targetOwnerPermissionsBody, fields=u'')
+        actionUser = sourceUser
+        if not updateTargetPermission:
+          callGAPI(sourceDrive.permissions(), u'create',
+                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST],
+                   fileId=childFileId, sendNotificationEmail=False, body=targetWriterPermissionsBody, fields=u'')
+        callGAPI(sourceDrive.permissions(), u'update',
+                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID_OWNERSHIP_TRANSFER,
+                                                                GAPI.PERMISSION_NOT_FOUND],
+                 fileId=childFileId, permissionId=targetPermissionId,
+                 transferOwnership=True, body={u'role': u'owner'}, fields=u'')
         if removeSourceParents:
           callGAPI(sourceDrive.files(), u'update',
                    throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS, retry_reasons=[GAPI.FILE_NOT_FOUND], retries=3,
                    fileId=childFileId, removeParents=u','.join(removeSourceParents), fields=u'')
+        actionUser = targetUser
         if addTargetParents or removeTargetParents:
           callGAPI(targetDrive.files(), u'update',
                    throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS, retry_reasons=[GAPI.FILE_NOT_FOUND], retries=3,
                    fileId=childFileId, addParents=u','.join(addTargetParents), removeParents=u','.join(removeTargetParents), fields=u'')
         entityModifierNewValueItemValueListActionPerformed([Ent.USER, sourceUser, childFileType, childFileName], Act.MODIFIER_TO, None, [Ent.USER, targetUser], j, jcount)
-      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
-        entityActionFailedWarning([Ent.USER, sourceUser, childFileType, childFileName], str(e), j, jcount)
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+              GAPI.badRequest) as e:
+        entityActionFailedWarning([Ent.USER, actionUser, childFileType, childFileName], str(e), j, jcount)
       except GAPI.permissionNotFound:
-        entityDoesNotHaveItemWarning([Ent.USER, sourceUser, childFileType, childFileName, Ent.PERMISSION_ID, sourcePermissionId], j, jcount)
+        entityDoesNotHaveItemWarning([Ent.USER, actionUser, childFileType, childFileName, Ent.PERMISSION_ID, targetPermissionId], j, jcount)
       except GAPI.invalidSharingRequest as e:
-        entityActionFailedWarning([Ent.USER, sourceUser, childFileType, childFileName], Ent.TypeNameMessage(Ent.PERMISSION_ID, sourcePermissionId, str(e)), j, jcount)
+        entityActionFailedWarning([Ent.USER, actionUser, childFileType, childFileName], Ent.TypeNameMessage(Ent.PERMISSION_ID, targetPermissionId, str(e)), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-        userSvcNotApplicableOrDriveDisabled(sourceUser, str(e), i, count)
+        userSvcNotApplicableOrDriveDisabled(actionUser, str(e), i, count)
     else:
       Act.Set(Act.PROCESS)
       ownerUser, ownerDrive = _getOwnerUser(childEntryInfo)
@@ -27983,36 +27996,33 @@ def transferDrive(users):
         entityActionNotPerformedWarning([Ent.USER, sourceUser, childFileType, childFileName],
                                         Msg.SERVICE_NOT_APPLICABLE_THIS_ADDRESS.format(ownerUser), j, jcount)
         return
-      permissions = childEntryInfo.pop(u'permissions', None)
-      if permissions is None:
-        try:
-          permissions = callGAPIpages(ownerDrive.permissions(), u'list', VX_PAGES_PERMISSIONS,
-                                      throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
-                                      fileId=childFileId, fields=VX_NPT_PERMISSIONS)
-        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
-          entityActionFailedWarning([Ent.USER, ownerUser, childFileType, childFileName], str(e), j, jcount)
-          return
-        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-          userSvcNotApplicableOrDriveDisabled(ownerUser, str(e), i, count)
-          return
+      try:
+        permissions = callGAPIpages(ownerDrive.permissions(), u'list', VX_PAGES_PERMISSIONS,
+                                    throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                                    fileId=childFileId, fields=VX_NPT_PERMISSIONS)
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
+        entityActionFailedWarning([Ent.USER, ownerUser, childFileType, childFileName], str(e), j, jcount)
+        return
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(ownerUser, str(e), i, count)
+        return
       for permission in permissions:
         if sourcePermissionId == permission[u'id']:
-          childEntryInfo[u'sourcePermission'] = _setSourceUpdateRole(permission)
+          childEntryInfo[u'sourcePermission'] = _setUpdateRole(permission)
           break
       else:
         childEntryInfo[u'sourcePermission'] = nonOwnerRetainRoleBody
       for permission in permissions:
         if targetPermissionId == permission[u'id']:
-          childEntryInfo[u'targetPermission'] = _setSourceUpdateRole(permission)
+          childEntryInfo[u'targetPermission'] = _setUpdateRole(permission)
           break
       else:
-        childEntryInfo[u'targetPermission'] = nonOwnerTargetRoleBody
+        childEntryInfo[u'targetPermission'] = {u'role': u'none'}
       if csvFormat:
         csvRows.append({u'OldOwner': sourceUser, u'NewOwner': targetUser, u'type': Ent.Singular(childFileType),
                         u'id': childFileId, VX_FILENAME: childFileName, u'role': childEntryInfo[u'sourcePermission'][u'role']})
         return
-      targetPreviousRole = childEntryInfo[u'targetPermission']
-      if (childFileType == Ent.DRIVE_FOLDER) and (targetPreviousRole[u'role'] == u'none') and (ownerRetainRoleBody[u'role'] == u'none'):
+      if (childFileType == Ent.DRIVE_FOLDER) and (childEntryInfo[u'targetPermission'][u'role'] == u'none') and (ownerRetainRoleBody[u'role'] == u'none'):
         if targetIds[TARGET_ORPHANS_PARENT_ID] is None:
           _buildTargetUserOrphansFolder()
         parentIdMap[childFileId] = _buildTargetFile(childFileName, targetIds[TARGET_ORPHANS_PARENT_ID])
@@ -28020,7 +28030,7 @@ def transferDrive(users):
         return
       mappedParentId = _getMappedParentForRootParentOrOrphan(childEntryInfo)
       if mappedParentId is not None:
-        if targetPreviousRole[u'role'] in [u'none', u'reader']:
+        if childEntryInfo[u'targetPermission'][u'role'] in [u'none', u'reader']:
           try:
             callGAPI(ownerDrive.permissions(), u'create',
                      throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST],
@@ -28036,7 +28046,7 @@ def transferDrive(users):
             return
         try:
           callGAPI(targetDrive.files(), u'update',
-                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS, retry_reasons=[GAPI.FILE_NOT_FOUND], retries=3,
+                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS, retry_reasons=[GAPI.FILE_NOT_FOUND], retries=3,
                    fileId=childFileId, addParents=mappedParentId, body={}, fields=u'')
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
           entityActionFailedWarning([Ent.USER, targetUser, childFileType, childFileName], str(e), j, jcount)
@@ -28062,22 +28072,18 @@ def transferDrive(users):
     childFileName = childEntryInfo[VX_FILENAME]
     childFileType = _getEntityMimeType(childEntryInfo)
     if childEntryInfo[u'ownedByMe']:
-      if ownerRetainRoleBody[u'role'] == u'current':
-        sourceUpdateRole = childEntryInfo[u'sourcePermission']
-      else:
-        sourceUpdateRole = ownerRetainRoleBody
       try:
         if ownerRetainRoleBody[u'role'] != u'none':
-          if sourceUpdateRole[u'role'] not in [u'writer', u'current']:
+          if ownerRetainRoleBody[u'role'] != u'writer':
             callGAPI(targetDrive.permissions(), u'update',
                      throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
-                     fileId=childFileId, permissionId=sourcePermissionId, body=sourceUpdateRole, fields=u'')
+                     fileId=childFileId, permissionId=sourcePermissionId, body=ownerRetainRoleBody, fields=u'')
         else:
           callGAPI(targetDrive.permissions(), u'delete',
                    throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
                    fileId=childFileId, permissionId=sourcePermissionId)
         if showRetentionMessages:
-          entityActionPerformed([Ent.USER, sourceUser, childFileType, childFileName, Ent.ROLE, sourceUpdateRole[u'role']], j, jcount)
+          entityActionPerformed([Ent.USER, sourceUser, childFileType, childFileName, Ent.ROLE, ownerRetainRoleBody[u'role']], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
         entityActionFailedWarning([Ent.USER, sourceUser, childFileType, childFileName], str(e), j, jcount)
       except GAPI.permissionNotFound:
@@ -28093,7 +28099,7 @@ def transferDrive(users):
       else:
         sourceUpdateRole = nonOwnerRetainRoleBody
       if nonOwnerTargetRoleBody[u'role'] == u'current':
-        targetInsertBody = {u'role': u'current'}
+        targetInsertBody = _setTargetInsertBody(childEntryInfo[u'targetPermission'])
         resetTargetRole = False
       elif nonOwnerTargetRoleBody[u'role'] == u'source':
         targetInsertBody = _setTargetInsertBody(childEntryInfo[u'sourcePermission'])
@@ -28103,10 +28109,8 @@ def transferDrive(users):
         resetTargetRole = True
       if resetTargetRole:
         resetTargetRole = _checkForDiminishedTargetRole(childEntryInfo[u'targetPermission'], targetInsertBody)
-      mappedParentId = _getMappedParentForRootParentOrOrphan(childEntryInfo)
-      if mappedParentId is not None:
-        if targetInsertBody[u'role'] in [u'none', u'reader']:
-          resetTargetRole = True
+      elif _getMappedParentForRootParentOrOrphan(childEntryInfo) is not None and childEntryInfo[u'targetPermission'][u'role'] in [u'none', u'reader']:
+        resetTargetRole = True
       try:
         if nonOwnerRetainRoleBody[u'role'] != u'none':
           if nonOwnerRetainRoleBody[u'role'] != u'current':
@@ -28128,10 +28132,10 @@ def transferDrive(users):
         entityDoesNotHaveItemWarning([Ent.USER, ownerUser, childFileType, childFileName, Ent.PERMISSION_ID, sourcePermissionId], j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(ownerUser, str(e), i, count)
-      if resetTargetRole:
+      if resetTargetRole and targetUser != ownerUser:
         try:
-          if targetInsertBody[u'role'] != u'none':
-            if targetInsertBody[u'role'] != u'current':
+          if nonOwnerTargetRoleBody[u'role'] != u'none':
+            if nonOwnerTargetRoleBody[u'role'] != u'current':
               callGAPI(ownerDrive.permissions(), u'create',
                        throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST],
                        fileId=childFileId, sendNotificationEmail=False, body=targetInsertBody, fields=u'')
@@ -28150,34 +28154,8 @@ def transferDrive(users):
           entityActionFailedWarning([Ent.USER, ownerUser, childFileType, childFileName], Ent.TypeNameMessage(Ent.PERMISSION_ID, targetPermissionId, str(e)), j, jcount)
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           userSvcNotApplicableOrDriveDisabled(sourceUser, str(e), i, count)
-
-  def _getPermissionsForNonOwnedFilesFromTree(fileEntry, i, count):
-    jcount = len(fileEntry[u'children'])
-    if jcount == 0:
-      return
-    j = 0
-    for childFileId in fileEntry[u'children']:
-      j += 1
-      childEntry = fileTree.get(childFileId)
-      if not childEntry or childFileId in filesTransferred:
-        continue
-      if not childEntry[u'info'][u'ownedByMe']:
-        _, ownerDrive = _getOwnerUser(childEntry)
-        if not ownerDrive:
-          return
-        try:
-          result = callGAPI(ownerDrive.files(), u'get',
-                            throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
-                            fileId=childFileId, fields=u'permissions(id,role)')
-          childEntry[u'info'].update(result)
-        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest):
-          pass
-        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
-          pass
-      if childEntry[u'info'][u'mimeType'] == MIMETYPE_GA_FOLDER:
-        Ind.Increment()
-        _getPermissionsForNonOwnedFilesFromTree(childEntry, i, count)
-        Ind.Decrement()
+      elif showRetentionMessages:
+        entityActionPerformed([Ent.USER, targetUser, childFileType, childFileName, Ent.ROLE, childEntryInfo[u'targetPermission'][u'role']], j, jcount)
 
   def _transferDriveFilesFromTree(fileEntry, i, count):
     jcount = len(fileEntry[u'children'])
@@ -28231,19 +28209,6 @@ def transferDrive(users):
       if not childEntry[u'trashed']:
         childId = childEntry[u'id']
         fileTree[fileId][u'children'].append(childId)
-        if not childEntry[u'ownedByMe']:
-          _, ownerDrive = _getOwnerUser(childEntry)
-          if not ownerDrive:
-            continue
-          try:
-            result = callGAPI(ownerDrive.files(), u'get',
-                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
-                              fileId=childEntry[u'id'], fields=u'permissions(id,role)')
-            childEntry.update(result)
-          except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
-            continue
-          except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-            continue
         _identifyDriveFileAndChildren(childEntry, i, count)
 
   def _transferDriveFileAndChildren(fileEntry, i, count, j, jcount):
@@ -28251,8 +28216,8 @@ def transferDrive(users):
     if fileId in filesTransferred:
       return
     if fileEntry[u'info'][VX_FILENAME] != u'My Drive':
-      _transferFile(fileEntry, i, count, j, jcount)
       filesTransferred.add(fileId)
+      _transferFile(fileEntry, i, count, j, jcount)
     kcount = len(fileEntry[u'children'])
     if kcount == 0:
       return
@@ -28270,8 +28235,8 @@ def transferDrive(users):
     if fileId in filesTransferred:
       return
     if fileEntry[u'info'][VX_FILENAME] != u'My Drive':
-      _manageRoleRetention(fileEntry, i, count, j, jcount)
       filesTransferred.add(fileId)
+      _manageRoleRetention(fileEntry, i, count, j, jcount)
     kcount = len(fileEntry[u'children'])
     if kcount == 0:
       return
@@ -28337,7 +28302,7 @@ def transferDrive(users):
       unknownArgumentExit()
   if not nonOwnerRetainRoleBody:
     nonOwnerRetainRoleBody = ownerRetainRoleBody
-  orderBy = u','.join(orderByList) if orderByList else None
+  orderBy = u','.join(orderByList) if orderByList else u'folder,{0}'.format(VX_CREATED_TIME)
   targetUser, targetDrive = buildGAPIServiceObject(API.DRIVE3, targetUser, 0, 0)
   if not targetDrive:
     return
@@ -28400,7 +28365,6 @@ def transferDrive(users):
   except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
     userSvcNotApplicableOrDriveDisabled(targetUser, str(e))
     return
-  targetOwnerPermissionsBody = {u'role': u'owner', u'type': u'user', u'emailAddress': targetUser}
   targetWriterPermissionsBody = {u'role': u'writer', u'type': u'user', u'emailAddress': targetUser}
   if csvFormat:
     titles, csvRows = initializeTitlesCSVfile([u'OldOwner', u'NewOwner', u'type', u'id', VX_FILENAME, u'role'])
@@ -28452,9 +28416,6 @@ def transferDrive(users):
                                          fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_OWNERS_PERMISSIONS,
                                          pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
         fileTree = buildFileTree(sourceDriveFiles, sourceDrive)
-        filesTransferred = set()
-        _getPermissionsForNonOwnedFilesFromTree(fileTree[sourceRootId], i, count)
-        _getPermissionsForNonOwnedFilesFromTree(fileTree[u'Orphans'], i, count)
         filesTransferred = set()
         _transferDriveFilesFromTree(fileTree[sourceRootId], i, count)
         if fileTree[u'Orphans'][u'children']:
