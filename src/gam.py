@@ -16957,9 +16957,9 @@ def doDownloadVaultExport():
       for inner_file in inner_files:
         Act.Set(Act.EXTRACT)
         performAction(Ent.FILE, inner_file.filename)
-        zfile.extract(inner_file, targetFolder)
+        innerFilePath = zfile.extract(inner_file, targetFolder)
         if ZIP_EXTENSION_PATTERN.match(inner_file.filename):
-          extract_nested_zip(inner_file.filename)
+          extract_nested_zip(innerFilePath)
     Ind.Decrement()
     try:
       os.remove(zippedFile)
