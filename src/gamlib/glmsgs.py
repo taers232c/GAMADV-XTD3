@@ -32,6 +32,7 @@ API_CHECK_SVCACCT_AUTHORIZATION = u'Please make sure the Service Account Client 
 API_ERROR_SETTINGS = u'API error, some settings not set'
 ARE_MUTUALLY_EXCLUSIVE = u'arguments {0} and {1} are mutually exclusive'
 AS = u'as'
+BAD_ENTITIES_IN_SOURCE = u'{0} {1} {2} in source marked >>> <<< above'
 BAD_REQUEST = u'Bad Request'
 BATCH = u'Batch'
 BATCH_CSV_LOOP_DASH_DEBUG_INCOMPATIBLE = u'"gam {0} - ..." is not compatible with debugging. Disable debugging by setting debug_level = 0 in gam.cfg'

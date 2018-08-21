@@ -1,3 +1,8 @@
+4.60.08
+
+Corrected a bug in gam download vaultexport where the contents of a downloaded Zip file were extracted into the current
+working directory rather than the default directory gam.cfg/drive_dir or the value specified by targetfolder <FilePath>.
+
 4.60.07
 
 Improve handling of files with multiple parents in gam transfer drive.

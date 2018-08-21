@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.07'
+__version__ = u'4.60.08'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -346,6 +346,7 @@ ORPHANS_COLLECTED_RC = 30
 # Warnings/Errors
 AC_FAILED_RC = 50
 AC_NOT_PERFORMED_RC = 51
+INVALID_ENTITY_RC = 52
 BAD_REQUEST_RC = 53
 ENTITY_IS_NOT_UNIQUE_RC = 54
 DATA_NOT_AVALIABLE_RC = 55
@@ -633,10 +634,16 @@ def usageErrorExit(message, extraneous=False):
   writeStderr(Msg.HELP_WIKI.format(GAM_WIKI))
   sys.exit(USAGE_ERROR_RC)
 
-def badEntitiesExit(entityType, count, phraseList, backupArg=False):
-  if backupArg:
-    Cmd.Backup()
-  usageErrorExit(u'{0} {1} {2}'.format(count, Ent.Choose(entityType, count), phraseList[count == 1]))
+def badEntitiesExit(entityError, errorType):
+  Cmd.Backup()
+  writeStderr(convertUTF8(Cmd.CommandLineWithBadArgumentMarked(False)))
+  count = entityError[errorType]
+  if errorType == u'doesNotExist':
+    stderrErrorMsg(Msg.BAD_ENTITIES_IN_SOURCE.format(count, Ent.Choose(entityError[u'entityType'], count), [Msg.DO_NOT_EXIST, Msg.DOES_NOT_EXIST][count == 1]))
+    sys.exit(ENTITY_DOES_NOT_EXIST_RC)
+  else:
+    stderrErrorMsg(Msg.BAD_ENTITIES_IN_SOURCE.format(count, [Msg.INVALID, Msg.INVALID][count == 1], Ent.Choose(entityError[u'entityType'], count)))
+    sys.exit(INVALID_ENTITY_RC)
 
 def csvFieldErrorExit(fieldName, fieldNames, backupArg=False, checkForCharset=False):
   if backupArg:
@@ -3526,8 +3533,16 @@ def _getRoleVerification(memberRoles, fields):
 
 # Turn the entity into a list of Users/CrOS devices
 def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, includeSuspendedInAll=False, groupMemberType=u'USER'):
+  def _incrEntityDoesNotExist(entityType):
+    entityError[u'entityType'] = entityType
+    entityError[u'doesNotExist'] += 1
+
+  def _showInvalidEntity(entityType, entityName):
+    entityError[u'entityType'] = entityType
+    entityError[u'invalid'] += 1
+    printErrorMessage(INVALID_ENTITY_RC, formatKeyValueList(u'', [Ent.Singular(entityType), entityName, Msg.INVALID], u''))
+
   def _addGroupMembersToUsers(group, domains, recursive):
-    doNotExist = 0
     try:
       printGettingAllEntityItemsForWhom(memberRoles if memberRoles else Ent.ROLE_MANAGER_MEMBER_OWNER, group, entityType=Ent.GROUP)
       validRoles, listRoles, listFields = _getRoleVerification(memberRoles, u'nextPageToken,members(email,type,status)')
@@ -3548,16 +3563,13 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
               entitySet.add(email)
               entityList.append(email)
         elif recursive and member[u'type'] == u'GROUP':
-          doNotExist += _addGroupMembersToUsers(member[u'email'], domains, recursive)
+          _addGroupMembersToUsers(member[u'email'], domains, recursive)
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(Ent.GROUP, group)
-      doNotExist += 1
-    return doNotExist
+      _incrEntityDoesNotExist(Ent.GROUP)
+    return
 
-  def _showInvalidEntity(entityType, entityName):
-    printErrorMessage(USAGE_ERROR_RC, formatKeyValueList(u'', [Ent.Singular(entityType), entityName, Msg.INVALID], u''))
-
-  doNotExist = invalid = 0
+  entityError = {u'entityType': None, u'doesNotExist': 0, u'invalid': 0}
   entityList = []
   entitySet = set()
   if entityType in [Cmd.ENTITY_USER, Cmd.ENTITY_USERS]:
@@ -3570,7 +3582,6 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
           entityList.append(user)
       else:
         _showInvalidEntity(Ent.USER, user)
-        invalid += 1
   elif entityType == Cmd.ENTITY_ALL_USERS:
     cd = buildGAPIObject(API.DIRECTORY)
     query = None if includeSuspendedInAll else u'isSuspended=False'
@@ -3614,10 +3625,9 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
               entityList.append(email)
         except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
           entityUnknownWarning(Ent.GROUP, group)
-          doNotExist += 1
+          _incrEntityDoesNotExist(Ent.GROUP)
       else:
         _showInvalidEntity(Ent.GROUP, group)
-        invalid += 1
   elif entityType in [Cmd.ENTITY_GROUP_USERS, Cmd.ENTITY_GROUP_USERS_NS, Cmd.ENTITY_GROUP_USERS_SUSP]:
     if entityType == Cmd.ENTITY_GROUP_USERS_NS:
       checkSuspended = False
@@ -3647,10 +3657,9 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
       memberRoles = u','.join(sorted(rolesSet))
     for group in groups:
       if validateEmailAddressOrUID(group):
-        doNotExist += _addGroupMembersToUsers(normalizeEmailAddressOrUID(group), domains, recursive)
+        _addGroupMembersToUsers(normalizeEmailAddressOrUID(group), domains, recursive)
       else:
         _showInvalidEntity(Ent.GROUP, group)
-        invalid += 1
   elif entityType in [Cmd.ENTITY_OU, Cmd.ENTITY_OUS, Cmd.ENTITY_OU_AND_CHILDREN, Cmd.ENTITY_OUS_AND_CHILDREN,
                       Cmd.ENTITY_OU_NS, Cmd.ENTITY_OUS_NS, Cmd.ENTITY_OU_AND_CHILDREN_NS, Cmd.ENTITY_OUS_AND_CHILDREN_NS,
                       Cmd.ENTITY_OU_SUSP, Cmd.ENTITY_OUS_SUSP, Cmd.ENTITY_OU_AND_CHILDREN_SUSP, Cmd.ENTITY_OUS_AND_CHILDREN_SUSP]:
@@ -3697,7 +3706,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
       except (GAPI.badRequest, GAPI.invalidInput, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError,
               GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
         checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
-        doNotExist += 1
+        _incrEntityDoesNotExist(Ent.ORGANIZATIONAL_UNIT)
   elif entityType in [Cmd.ENTITY_QUERY, Cmd.ENTITY_QUERIES]:
     cd = buildGAPIObject(API.DIRECTORY)
     queries = convertEntityToList(entity, shlexSplit=True, nonListEntityType=entityType == Cmd.ENTITY_QUERY)
@@ -3762,7 +3771,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
               entityList.append(email)
       except GAPI.notFound:
         entityDoesNotExistWarning(Ent.COURSE, removeCourseIdScope(courseId))
-        doNotExist += 1
+        _incrEntityDoesNotExist(Ent.COURSE)
       except (GAPI.forbidden, GAPI.badRequest):
         APIAccessDeniedExit()
   elif entityType == Cmd.ENTITY_CROS:
@@ -3842,7 +3851,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
             entityList.append(device[u'deviceId'])
         except (GAPI.badRequest, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.resourceNotFound, GAPI.forbidden):
           checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
-          doNotExist += 1
+          _incrEntityDoesNotExist(Ent.ORGANIZATIONAL_UNIT)
       Ent.SetGettingQualifier(Ent.CROS_DEVICE, allQualifier)
       Ent.SetGettingForWhom(u','.join(ous))
       printGotEntityItemsForWhom(len(entityList))
@@ -3857,8 +3866,8 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
           ouSet.add(result[u'orgUnitPath'].lower())
         except (GAPI.badRequest, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
           checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
-          doNotExist += 1
-      if doNotExist == 0:
+          _incrEntityDoesNotExist(Ent.ORGANIZATIONAL_UNIT)
+      if entityError[u'doesNotExist'] == 0:
         try:
           qualifier = Msg.IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, len(ous)))
           printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, u','.join(ous), qualifier=allQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
@@ -3880,12 +3889,11 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
           accessErrorExit(cd)
   else:
     systemErrorExit(UNKNOWN_ERROR_RC, u'getUsersToModify coding error')
-  if doNotExist == 0 and invalid == 0:
-    return entityList
-  if doNotExist > 0:
-    badEntitiesExit(Ent.ENTITY, doNotExist, [Msg.DO_NOT_EXIST, Msg.DOES_NOT_EXIST], backupArg=True)
-  if invalid > 0:
-    badEntitiesExit(Ent.ENTITY, invalid, [Msg.INVALID, Msg.INVALID], backupArg=True)
+  if entityError[u'doesNotExist'] > 0:
+    badEntitiesExit(entityError, u'doesNotExist')
+  if entityError[u'invalid'] > 0:
+    badEntitiesExit(entityError, u'invalid')
+  return entityList
 
 def splitEntityList(entity, dataDelimiter, shlexSplit):
   if not entity:
@@ -16950,7 +16958,7 @@ def doDownloadVaultExport():
       for inner_file in inner_files:
         Act.Set(Act.EXTRACT)
         performAction(Ent.FILE, inner_file.filename)
-        zfile.extract(inner_file)
+        zfile.extract(inner_file, targetFolder)
         if ZIP_EXTENSION_PATTERN.match(inner_file.filename):
           extract_nested_zip(inner_file.filename)
     Ind.Decrement()
