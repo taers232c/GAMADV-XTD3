@@ -3567,7 +3567,6 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(Ent.GROUP, group)
       _incrEntityDoesNotExist(Ent.GROUP)
-    return
 
   entityError = {u'entityType': None, u'doesNotExist': 0, u'invalid': 0}
   entityList = []
