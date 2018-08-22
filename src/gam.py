@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.08'
+__version__ = u'4.60.09'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -26099,8 +26099,9 @@ def printFileList(users):
             pageToken = feed.get(u'nextPageToken')
             if VX_PAGES_FILES in feed:
               totalItems += len(feed[VX_PAGES_FILES])
-              show_message = page_message.replace(TOTAL_ITEMS_MARKER, str(totalItems))
-              writeStderr(show_message.format(Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, totalItems)))
+              if page_message:
+                show_message = page_message.replace(TOTAL_ITEMS_MARKER, str(totalItems))
+                writeStderr(show_message.format(Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, totalItems)))
               for f_file in feed[VX_PAGES_FILES]:
                 _printFileInfo(drive, f_file)
             del feed
@@ -26533,8 +26534,9 @@ def showFileTree(users):
             pageToken = feed.get(u'nextPageToken')
             if VX_PAGES_FILES in feed:
               totalItems += len(feed[VX_PAGES_FILES])
-              show_message = page_message.replace(TOTAL_ITEMS_MARKER, str(totalItems))
-              writeStderr(show_message.format(Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, totalItems)))
+              if page_message:
+                show_message = page_message.replace(TOTAL_ITEMS_MARKER, str(totalItems))
+                writeStderr(show_message.format(Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, totalItems)))
               extendFileTree(fileTree, feed[VX_PAGES_FILES])
             del feed
           else:
