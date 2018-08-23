@@ -279,6 +279,7 @@ class GamCLArgs(object):
   ARG_CALENDARS = u'calendars'
   ARG_CALENDARACL = u'calendaracl'
   ARG_CALENDARACLS = u'calendaracls'
+  ARG_CALENDARTRASH = u'calendartrash'
   ARG_CALSETTINGS = u'calsettings'
   ARG_CLASS = u'class'
   ARG_CLASSES = u'classes'

@@ -196,6 +196,7 @@ class GamEntity(object):
   TRANSFER_APPLICATION = u'trap'
   TRANSFER_ID = u'trid'
   TRANSFER_REQUEST = u'trnr'
+  TRASHED_EVENT = u'trev'
   TRUSTED_APPLICATION = u'trus'
   UNICODE_ENCODING_ENABLED = u'unic'
   UNIQUE_ID = u'uniq'
@@ -379,6 +380,7 @@ class GamEntity(object):
     TRANSFER_APPLICATION: [u'Transfer Applications', u'Transfer Application'],
     TRANSFER_ID: [u'Transfer IDs', u'Transfer ID'],
     TRANSFER_REQUEST: [u'Transfer Requests', u'Transfer Request'],
+    TRASHED_EVENT: [u'Trashed Events', u'Trashed Event'],
     TRUSTED_APPLICATION: [u'Trusted Applications', u'Trusted Application'],
     UNICODE_ENCODING_ENABLED: [u'UTF-8 Encoding Enabled', u'UTF-8 Encoding Enabled'],
     UNIQUE_ID: [u'Unique IDs', u'Unique ID'],

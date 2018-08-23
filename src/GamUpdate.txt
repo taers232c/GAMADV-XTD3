@@ -1,6 +1,23 @@
+4.60.10
+
+When events are deleted from a calendar, they are moved to the calendar's trash and are only permanently deleted (purged) after 30 days.
+A user signed in to Google Calendar can empty the calendar trash but there is no direct API support for this operation. Following a suggestion
+here (https://stackoverflow.com/questions/41043053/how-to-empty-calendar-trash-via-google-services) commands have been added to permanently delete
+calendar events. This is achieved by creating a temporary calendar, deleting the events, moving the deleted events to the temporary calendar
+and then deleting the temporary calendar.
+
+gam calendar|calendars <CalendarEntity> purge events <EventEntity> [doit] [notifyattendees]
+gam <UserTypeEntity> purge events <CalendarManageEntity> <EventEntity> [doit] [notifyattendees]
+
+Commands have been added to empty the calendar trash. This is achieved by creating a temporary calendar,
+moving the deleted events to the temporary calendar and then deleting the temporary calendar.
+
+gam calendar|calendars <CalendarEntity> empty calendartrash
+gam <UserTypeEntity> empty calendartrash <CalendarEntity>
+
 4.60.09
 
-Fixed a bug in gam print/show filelist that would cause a trap when gam.cfg/show_gattings = False.
+Fixed a bug in gam print/show filelist that would cause a trap when gam.cfg/show_gettings = False.
 
 4.60.08
 

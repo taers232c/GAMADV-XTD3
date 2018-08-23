@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.09'
+__version__ = u'4.60.10'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -15581,6 +15581,8 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
     body[u'summary'] = getString(Cmd.OB_STRING, minLen=0)
   elif myarg == u'start':
     body[u'start'] = getEventTime()
+  elif myarg == u'originalstart':
+    body[u'originalStart'] = getEventTime()
   elif myarg == u'end':
     body[u'end'] = getEventTime()
   elif myarg == u'attachment':
@@ -15609,6 +15611,8 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
     body[u'guestsCanInviteOthers'] = getBoolean()
   elif myarg == u'guestscantinviteothers':
     body[u'guestsCanInviteOthers'] = False
+  elif myarg == u'guestscanmodify':
+    body[u'guestsCanModify'] = getBoolean()
   elif myarg == u'guestscanseeotherguests':
     body[u'guestsCanSeeOtherGuests'] = getBoolean()
   elif myarg == u'guestscantseeotherguests':
@@ -15631,6 +15635,8 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
     body.setdefault(u'reminders', {u'overrides': [], u'useDefault': False})
     body[u'reminders'][u'overrides'].append(getCalendarReminder())
     body[u'reminders'][u'useDefault'] = False
+  elif myarg == u'sequence':
+    body[u'sequence'] = getInteger(minVal=0)
   elif myarg == u'privateproperty':
     body.setdefault(u'extendedProperties', {})
     body[u'extendedProperties'].setdefault(u'private', {})
@@ -16132,8 +16138,43 @@ def doCalendarsDeleteEvents(cal, calIds):
   calendarEventEntity = getCalendarEventEntity()
   doIt, sendNotifications = _getCalendarDeleteEventOptions()
   _updateDeleteCalendarEvents(None, None, cal, calIds, len(calIds), u'delete', calendarEventEntity, doIt,
-                              False, {},
-                              {u'sendNotifications': sendNotifications})
+                              False, {}, {u'sendNotifications': sendNotifications})
+
+def _purgeCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntity, doIt, sendNotifications, emptyTrash):
+  body = {u'summary': u'GamPurgeCalendar-{0:05}'.format(random.randint(1, 99999))}
+  if user:
+    entityValueList = [Ent.USER, user, Ent.CALENDAR, body[u'summary']]
+  else:
+    entityValueList = [Ent.CALENDAR, body[u'summary']]
+  try:
+    purgeCalId = callGAPI(cal.calendars(), u'insert',
+                          throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.FORBIDDEN],
+                          body=body, fields=u'id')[u'id']
+    Act.Set(Act.CREATE)
+    entityActionPerformed(entityValueList)
+    Ind.Increment()
+    if not emptyTrash:
+      Act.Set(Act.DELETE)
+      _updateDeleteCalendarEvents(origUser, user, cal, calIds, count, u'delete', calendarEventEntity, doIt,
+                                  False, {}, {u'sendNotifications': sendNotifications})
+    Act.Set(Act.MOVE)
+    _moveCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntity, purgeCalId, False)
+    Ind.Decrement()
+    callGAPI(cal.calendars(), u'delete',
+             throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+             calendarId=purgeCalId)
+    Act.Set(Act.REMOVE)
+    entityActionPerformed(entityValueList)
+  except (GAPI.notFound, GAPI.notACalendarUser, GAPI.forbidden) as e:
+    entityActionFailedWarning([Ent.USER, user, Ent.CALENDAR, body[u'summary']], str(e))
+  except (GAPI.serviceNotAvailable, GAPI.authError):
+    entityServiceNotApplicableWarning(Ent.USER, user)
+
+# gam calendars <CalendarEntity> purge event <EventEntity> [doit] [notifyattendees]
+def doCalendarsPurgeEvents(cal, calIds):
+  calendarEventEntity = getCalendarEventEntity()
+  doIt, sendNotifications = _getCalendarDeleteEventOptions()
+  _purgeCalendarEvents(None, None, cal, calIds, len(calIds), calendarEventEntity, doIt, sendNotifications, False)
 
 # gam calendars <CalendarEntity> wipe events
 # gam calendar <UserItem> wipe
@@ -16141,6 +16182,46 @@ def doCalendarsWipeEvents(cal, calIds):
   checkArgumentPresent([Cmd.ARG_EVENT, Cmd.ARG_EVENTS])
   checkForExtraneousArguments()
   _wipeCalendarEvents(None, cal, calIds, len(calIds))
+
+def _emptyCalendarTrash(user, cal, calIds, count):
+  i = 0
+  for calId in calIds:
+    i += 1
+    if user:
+      calId = normalizeCalendarId(calId, user)
+    else:
+      calId, cal = buildGAPIServiceObject(API.CALENDAR, calId, i, count)
+      if not cal:
+        continue
+    Act.Set(Act.PURGE)
+    calendarEventEntity = initCalendarEventEntity()
+    try:
+      events = callGAPIpages(cal.events(), u'list', u'items',
+                             throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                             calendarId=calId, showDeleted=True, fields=u'nextPageToken,items(id,status,creator(self))',
+                             maxResults=GC.Values[GC.EVENT_MAX_RESULTS])
+      while events:
+        event = events.popleft()
+        if event[u'status'] == u'cancelled' and event.get(u'creator', {}).get(u'self', False):
+          calendarEventEntity[u'list'].append(event[u'id'])
+      jcount = len(calendarEventEntity[u'list'])
+      if not user:
+        entityPerformActionNumItems([Ent.CALENDAR, calId], jcount, Ent.TRASHED_EVENT, i, count)
+        Ind.Increment()
+      if jcount > 0:
+        _purgeCalendarEvents(user, user, cal, [calId], 1, calendarEventEntity, True, False, True)
+      if not user:
+        Ind.Decrement()
+    except (GAPI.notACalendarUser, GAPI.notFound, GAPI.forbidden) as e:
+      entityActionFailedWarning([Ent.CALENDAR, calId], str(e), i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError):
+      entityServiceNotApplicableWarning(Ent.CALENDAR, calId, i, count)
+
+# gam calendars <CalendarEntity> empty calendartrash
+def doCalendarsEmptyTrash(cal, calIds):
+  checkForExtraneousArguments()
+  Act.Set(Act.PURGE)
+  _emptyCalendarTrash(None, cal, calIds, len(calIds))
 
 def _getMoveEventsOptions():
   sendNotifications = False
@@ -21254,7 +21335,6 @@ COURSE_ANNOUNCEMENTS_ORDERBY_CHOICE_MAP = {
   u'updatedate': u'updateTime',
   }
 
-
 COURSE_ANNOUNCEMENTS_TIME_OBJECTS = set([u'creationTime', u'scheduledTime', u'updateTime'])
 
 def _gettingCourseAnnouncementQuery(courseAnnouncementStates):
@@ -23643,6 +23723,22 @@ def deleteCalendarEvents(users):
                                 False, {}, {u'sendNotifications': sendNotifications})
     Ind.Decrement()
 
+# gam <UserTypeEntity> purge events <CalendarEntity> <EventEntity> [doit] [notifyattendees]
+def purgeCalendarEvents(users):
+  calendarEntity = getCalendarEntity()
+  calendarEventEntity = getCalendarEventEntity()
+  doIt, sendNotifications = _getCalendarDeleteEventOptions()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    origUser = user
+    user, cal, calIds, jcount = _validateUserGetCalendarIds(user, i, count, calendarEntity, Ent.EVENT, Act.MODIFIER_FROM)
+    if jcount == 0:
+      continue
+    Ind.Increment()
+    _purgeCalendarEvents(origUser, user, cal, calIds, jcount, calendarEventEntity, doIt, sendNotifications, False)
+    Ind.Decrement()
+
 # gam <UserTypeEntity> wipe events <CalendarEntity>
 def wipeCalendarEvents(users):
   calendarEntity = getCalendarEntity()
@@ -23675,6 +23771,21 @@ def moveCalendarEvents(users):
       continue
     Ind.Increment()
     _moveCalendarEvents(origUser, user, cal, calIds, jcount, calendarEventEntity, newCalId, sendNotifications)
+    Ind.Decrement()
+
+# gam <UserTypeEntity> empty calendartrash <CalendarEntity>
+def emptyCalendarTrash(users):
+  calendarEntity = getCalendarEntity()
+  checkForExtraneousArguments()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    Act.Set(Act.PURGE)
+    user, cal, calIds, jcount = _validateUserGetCalendarIds(user, i, count, calendarEntity, Ent.TRASHED_EVENT, Act.MODIFIER_FROM)
+    if jcount == 0:
+      continue
+    Ind.Increment()
+    _emptyCalendarTrash(user, cal, calIds, jcount)
     Ind.Decrement()
 
 # gam <UserTypeEntity> update calattendees <CalendarEntity> <EventEntity> [anyorganizer]
@@ -35292,13 +35403,15 @@ CALENDAR_OLDACL_SUBCOMMAND_ALIASES = {
 CALENDARS_SUBCOMMANDS_WITH_OBJECTS = {
   u'add': (Act.ADD, {Cmd.ARG_CALENDARACL: doCalendarsCreateACLs, Cmd.ARG_EVENT: doCalendarsCreateEvent}),
   u'create': (Act.CREATE, {Cmd.ARG_CALENDARACL: doCalendarsCreateACLs, Cmd.ARG_EVENT: doCalendarsCreateEvent}),
-  u'import': (Act.IMPORT, {Cmd.ARG_EVENT: doCalendarsImportEvent}),
-  u'update': (Act.UPDATE, {Cmd.ARG_CALENDARACL: doCalendarsUpdateACLs, Cmd.ARG_EVENT: doCalendarsUpdateEvents}),
   u'delete': (Act.DELETE, {Cmd.ARG_CALENDARACL: doCalendarsDeleteACLs, Cmd.ARG_EVENT: doCalendarsDeleteEvents}),
+  u'empty': (Act.EMPTY, {Cmd.ARG_CALENDARTRASH: doCalendarsEmptyTrash}),
+  u'import': (Act.IMPORT, {Cmd.ARG_EVENT: doCalendarsImportEvent}),
   u'info': (Act.INFO, {Cmd.ARG_CALENDARACL: doCalendarsInfoACLs, Cmd.ARG_EVENT: doCalendarsInfoEvents}),
   u'move': (Act.MOVE, {Cmd.ARG_EVENT: doCalendarsMoveEvents}),
   u'print': (Act.PRINT, {Cmd.ARG_CALENDARACL: doCalendarsPrintACLs, Cmd.ARG_EVENT: doCalendarsPrintEvents}),
+  u'purge': (Act.PURGE, {Cmd.ARG_EVENT: doCalendarsPurgeEvents}),
   u'show': (Act.SHOW, {Cmd.ARG_CALENDARACL: doCalendarsShowACLs, Cmd.ARG_EVENT: doCalendarsShowEvents}),
+  u'update': (Act.UPDATE, {Cmd.ARG_CALENDARACL: doCalendarsUpdateACLs, Cmd.ARG_EVENT: doCalendarsUpdateEvents}),
   u'wipe': (Act.WIPE, {Cmd.ARG_EVENT: doCalendarsWipeEvents}),
   }
 
@@ -35564,7 +35677,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_USER:		deleteUsers,
      }
     ),
-  u'empty': (Act.EMPTY, {Cmd.ARG_DRIVETRASH: emptyDriveTrash}),
+  u'empty': (Act.EMPTY, {Cmd.ARG_CALENDARTRASH: emptyCalendarTrash, Cmd.ARG_DRIVETRASH: emptyDriveTrash}),
   u'get': (Act.DOWNLOAD, {Cmd.ARG_CONTACTPHOTO: getUserContactPhoto, Cmd.ARG_DRIVEFILE: getDriveFile, Cmd.ARG_PHOTO: getPhoto}),
   u'import': (Act.IMPORT, {Cmd.ARG_EVENT: importCalendarEvent, Cmd.ARG_MESSAGE: importMessage}),
   u'info':
@@ -35589,7 +35702,7 @@ USER_COMMANDS_WITH_OBJECTS = {
   u'insert': (Act.INSERT, {Cmd.ARG_MESSAGE: insertMessage}),
   u'modify': (Act.MODIFY, {Cmd.ARG_CALENDAR: modifyCalendars, Cmd.ARG_MESSAGE: processMessages, Cmd.ARG_THREAD: processThreads}),
   u'move': (Act.MOVE, {Cmd.ARG_DRIVEFILE: moveDriveFile, Cmd.ARG_EVENT: moveCalendarEvents}),
-  u'purge': (Act.PURGE, {Cmd.ARG_DRIVEFILE: purgeDriveFile}),
+  u'purge': (Act.PURGE, {Cmd.ARG_DRIVEFILE: purgeDriveFile, Cmd.ARG_EVENT: purgeCalendarEvents}),
   u'print':
     (Act.PRINT,
      {Cmd.ARG_CALENDAR:		printCalendars,

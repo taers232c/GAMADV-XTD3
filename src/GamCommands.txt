@@ -743,9 +743,10 @@ gam calendar|calendars <CalendarEntity> create|add event [id <String>] <EventCre
 gam calendar|calendars <CalendarEntity> import event icaluid <iCalUID> <EventImportAttributes>+
 gam calendar|calendars <CalendarEntity> update events <EventEntity> <EventUpdateAttributes>+
 gam calendar|calendars <CalendarEntity> delete events <EventEntity> [doit] [notifyattendees]
+gam calendar|calendars <CalendarEntity> purge events <EventEntity> [doit] [notifyattendees]
 gam calendar|calendars <CalendarEntity> wipe events
 gam calendar|calendars <CalendarEntity> move events <EventEntity> to <CalendarItem> [notifyattendees]
-gam calendar|calendars <CalendarEntity> info events <EventEntity> [maxinstances <Number>] [formatjson]
+gam calendar|calendars <CalendarEntity> empty calendartrash
 
 <EventDisplayProperties> ::=
         (alwaysincludeemail)|
@@ -754,6 +755,7 @@ gam calendar|calendars <CalendarEntity> info events <EventEntity> [maxinstances 
         (orderby starttime|updated)|
         (timezone <TimeZone>)
 
+gam calendar|calendars <CalendarEntity> info events <EventEntity> [maxinstances <Number>] [formatjson]
 gam calendar|calendars <CalendarEntity> show events <EventSelectProperties>* <EventDisplayProperties>* [formatjson]
 gam calendar|calendars <CalendarEntity> print events <EventSelectProperties>* <EventDisplayProperties>*
          [formatjson] [quotechar <Character>] [todrive [<ToDriveAttributes>]]
@@ -908,8 +910,8 @@ gam <CrOSTypeEntity> get devicefile [select <DeviceFileEntity>] [targetfolder <F
         (hobby clear|(<String>))|
         (im clear|(work|home|other|<String> aim|gtalk|icq|jabber|msn|net_meeting|qq|skype|yahoo <String> notprimary|primary))|
         (initials <String>)|
-        (json [charset <Charset>] <JSONData>)|
         (jot clear|(work|home|other|keywords|user> <String>))|
+        (json [charset <Charset>] <JSONData>)|
         (language <Language>)|
         (location <String>)|
         (maidenname <String>)|
@@ -2147,6 +2149,7 @@ gam <UserTypeEntity> transfer calendars <CalendarManageEntity> <UserItem> [keepu
 
 <EventAttributes> ::=
         (anyonecanaddself [<Boolean>])|
+        (attachment <String> <URL>)|
         (attendee <EmailAddress>)|
         available|
         (colorindex|colorid <EventColorIndex>))|
@@ -2154,14 +2157,17 @@ gam <UserTypeEntity> transfer calendars <CalendarManageEntity> <UserItem> [keepu
         (end (allday <Date>)|<Time>)|
         (guestscaninviteothers <Boolean>)|
         guestscantinviteothers|
+        (guestscanmodify <Boolean>)|
         (guestscanseeotherguests <Boolean>)|
         guestscantseeotherguests|
         (location <String>)|
         (noreminders|(reminder email|popup|sms <Number>))|
         (optionalattendee <EmailAddress>)|
+        (originalstart (allday <Date>)|<Time>)|
         (privateproperty <PropertyKey> <PropertyValue>)|
         (recurrence <RRULE, EXRULE, RDATE and EXDATE line>)|
         (reminder <Number> email|popup|sms))|
+        (sequence <Integer>)|
         (sharedproperty <PropertyKey> <PropertyValue>)|
         (source <String> <URL>)|
         (start (allday <Date>)|<Time>)|
@@ -2199,10 +2205,10 @@ gam <UserTypeEntity> create|add event <CalendarManageEntity> [id <String>] <Even
 gam <UserTypeEntity> import event <CalendarEntity> icaluid <iCalUID> <EventImportAttributes>+
 gam <UserTypeEntity> update events <CalendarManageEntity> <EventEntity> <EventUpdateAttributes>+
 gam <UserTypeEntity> delete events <CalendarManageEntity> <EventEntity> [doit] [notifyattendees]
+gam <UserTypeEntity> purge events <CalendarManageEntity> <EventEntity> [doit] [notifyattendees]
 gam <UserTypeEntity> wipe events <CalendarManageEntity>
 gam <UserTypeEntity> move events <CalendarManageEntity> <EventEntity> to <CalendarItem> [notifyattendees]
-gam <UserTypeEntity> update calattendees <CalendarManageEntity> <EventEntity> [anyorganizer]
-        [csv <FileName>] (replace <EmailAddress> <EmailAddress>)* (delete <EmailAddress>)* [doit]
+gam <UserTypeEntity> empty calendartrash <CalendarEntity>
 
 <EventDisplayProperties> ::=
         (alwaysincludeemail)|
@@ -2215,6 +2221,9 @@ gam <UserTypeEntity> info events <CalendarManageEntity> <EventEntity> [maxinstan
 gam <UserTypeEntity> show events <CalendarPrintShowEntity> <EventSelectProperties>* <EventDisplayProperties>* [formatjson]
 gam <UserTypeEntity> print events <CalendarPrintShowEntity> <EventSelectProperties>* <EventDisplayProperties>*
          [formatjson] [quotechar <Character>] [todrive [<ToDriveAttributes>]]
+
+gam <UserTypeEntity> update calattendees <CalendarManageEntity> <EventEntity> [anyorganizer]
+        [csv <FileName>] (replace <EmailAddress> <EmailAddress>)* (delete <EmailAddress>)* [doit]
 
 # Users - Drive
 
