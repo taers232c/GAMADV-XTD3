@@ -1,3 +1,9 @@
+4.60.11
+
+Fixed error in gam update labels where labels with spaces in their name or nested labels were not properly formatted for the API.
+This resulted in Gam believing that no messages had the existing label, thus, when the existing label was deleted, the messages
+wound up in All Mail.
+
 4.60.10
 
 When events are deleted from a calendar, they are moved to the calendar's trash and are only permanently deleted (purged) after 30 days.

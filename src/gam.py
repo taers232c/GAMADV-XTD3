@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.10'
+__version__ = u'4.60.11'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -32078,7 +32078,7 @@ def updateLabels(users):
               Act.Set(Act.MERGE)
               entityPerformActionModifierNewValue([Ent.USER, user, Ent.LABEL, label[u'name']], Act.MODIFIER_WITH, newLabelName, i, count)
               messagesToRelabel = callGAPIpages(gmail.users().messages(), u'list', u'messages',
-                                                userId=u'me', q=u'label:"{0}"'.format(label[u'name']))
+                                                userId=u'me', q=u'label:{0}'.format(label[u'name'].lower().replace(u'/', u'-').replace(u' ', u'-')))
               Act.Set(Act.RELABEL)
               jcount = len(messagesToRelabel)
               Ind.Increment()
