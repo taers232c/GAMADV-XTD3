@@ -1,3 +1,9 @@
+4.60.12
+
+For backwards compatability with standard GAM, when updating a Gmail label with merge, the old label will be deleted
+unless the keepoldlabel option is specified.
+gam <UserTypeEntity> update label|labels [search <RegularExpression>] [replace <LabelReplacement>] [merge [keepoldlabel]]
+
 4.60.11
 
 Fixed error in gam update labels where labels with spaces in their name or nested labels were not properly formatted for the API.

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.11'
+__version__ = u'4.60.12'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -32015,14 +32015,14 @@ def updateLabelSettings(users):
 LABEL_TYPE_SYSTEM = u'system'
 LABEL_TYPE_USER = u'user'
 
-# gam <UserTypeEntity> update label|labels [search <RegularExpression>] [replace <LabelReplacement>] [merge [deleteoldlabel]]
+# gam <UserTypeEntity> update label|labels [search <RegularExpression>] [replace <LabelReplacement>] [merge [keepoldlabel]]
 #	search defaults to '^Inbox/(.*)$' which will find all labels in the Inbox
 #	replace defaults to '%s'
 def updateLabels(users):
   search = u'^Inbox/(.*)$'
   pattern = re.compile(search, re.IGNORECASE)
   replace = u'%s'
-  deleteOldLabel = merge = False
+  keepOldLabel = merge = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'search':
@@ -32033,8 +32033,8 @@ def updateLabels(users):
       replace = getString(Cmd.OB_LABEL_REPLACEMENT)
     elif myarg == u'merge':
       merge = True
-    elif myarg == u'deleteoldlabel':
-      deleteOldLabel = True
+    elif myarg == u'keepoldlabel':
+      keepOldLabel = True
     else:
       unknownArgumentExit()
 # Validate that number of substitions in replace matches the number of groups in pattern
@@ -32100,7 +32100,7 @@ def updateLabels(users):
                                   [Msg.NO_MESSAGES_WITH_LABEL, label[u'name']],
                                   i, count)
               Ind.Decrement()
-              if deleteOldLabel:
+              if not keepOldLabel:
                 callGAPI(gmail.users().labels(), u'delete',
                          userId=u'me', id=label[u'id'])
                 Act.Set(Act.DELETE)
