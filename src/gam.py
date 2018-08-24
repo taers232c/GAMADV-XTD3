@@ -32015,14 +32015,14 @@ def updateLabelSettings(users):
 LABEL_TYPE_SYSTEM = u'system'
 LABEL_TYPE_USER = u'user'
 
-# gam <UserTypeEntity> update label|labels [search <RegularExpression>] [replace <LabelReplacement>] [merge]
+# gam <UserTypeEntity> update label|labels [search <RegularExpression>] [replace <LabelReplacement>] [merge [deleteoldlabel]]
 #	search defaults to '^Inbox/(.*)$' which will find all labels in the Inbox
 #	replace defaults to '%s'
 def updateLabels(users):
   search = u'^Inbox/(.*)$'
   pattern = re.compile(search, re.IGNORECASE)
   replace = u'%s'
-  merge = False
+  deleteOldLabel = merge = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'search':
@@ -32033,6 +32033,8 @@ def updateLabels(users):
       replace = getString(Cmd.OB_LABEL_REPLACEMENT)
     elif myarg == u'merge':
       merge = True
+    elif myarg == u'deleteoldlabel':
+      deleteOldLabel = True
     else:
       unknownArgumentExit()
 # Validate that number of substitions in replace matches the number of groups in pattern
@@ -32062,7 +32064,7 @@ def updateLabels(users):
       for label in labels[u'labels']:
         if label[u'type'] == LABEL_TYPE_SYSTEM:
           continue
-        match_result = pattern.search(convertUTF8(label[u'name']))
+        match_result = pattern.match(convertUTF8(label[u'name']))
         if match_result is not None:
           labelMatches += 1
           newLabelName = pattern.sub(replace, convertUTF8(label[u'name'])) if useRegexSub else replace % match_result.groups()
@@ -32098,10 +32100,11 @@ def updateLabels(users):
                                   [Msg.NO_MESSAGES_WITH_LABEL, label[u'name']],
                                   i, count)
               Ind.Decrement()
-              callGAPI(gmail.users().labels(), u'delete',
-                       userId=u'me', id=label[u'id'])
-              Act.Set(Act.DELETE)
-              entityActionPerformed([Ent.USER, user, Ent.LABEL, label[u'name']], i, count)
+              if deleteOldLabel:
+                callGAPI(gmail.users().labels(), u'delete',
+                         userId=u'me', id=label[u'id'])
+                Act.Set(Act.DELETE)
+                entityActionPerformed([Ent.USER, user, Ent.LABEL, label[u'name']], i, count)
             else:
               entityActionNotPerformedWarning([Ent.USER, user, Ent.LABEL, newLabelName], Msg.ALREADY_EXISTS_USE_MERGE_ARGUMENT, i, count)
       if labels and (labelMatches == 0):
