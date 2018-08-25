@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.12'
+__version__ = u'4.60.13'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -1176,7 +1176,7 @@ def getInteger(minVal=None, maxVal=None):
   missingArgumentExit(integerLimits(minVal, maxVal))
 
 def orgUnitPathQuery(path, checkSuspended):
-  query = u"orgUnitPath='{0}'".format(path.replace(u"'", u"\\'")) if path != u'/' else None
+  query = u"orgUnitPath='{0}'".format(path.replace(u"'", u"\\'")) if path != u'/' else u''
   if checkSuspended is not None:
     query += u' isSuspended={0}'.format(checkSuspended)
   return query
@@ -3723,7 +3723,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
         while result:
           user = result.popleft()
           email = user[u'primaryEmail']
-          if (checkSuspended is None or (not checkSuspended and user[u'status'] != u'SUSPENDED') or (checkSuspended and user[u'status'] == u'SUSPENDED')) and email not in entitySet:
+          if (checkSuspended is None or checkSuspended == user[u'suspended']) and email not in entitySet:
             entitySet.add(email)
             entityList.append(email)
         totalLen = len(entityList)
@@ -4248,18 +4248,6 @@ def _validateUserGetMessageIds(user, i, count, entity):
   if not gmail:
     return (user, None, None)
   return (user, gmail, entityList)
-
-def _validateDelegatorGetObjectList(user, i, count, entity):
-  if entity[u'dict']:
-    entityList = entity[u'dict'][user]
-  else:
-    entityList = entity[u'list']
-  jcount = len(entityList)
-  delegatorEmail, delegatorName, delegatorDomain = splitEmailAddressOrUID(user)
-  entityPerformActionNumItems([Ent.DELEGATOR, delegatorEmail], jcount, entity[u'item'], i, count)
-  if jcount == 0:
-    setSysExitRC(NO_ENTITIES_FOUND)
-  return (delegatorEmail, delegatorName, delegatorDomain, entityList, jcount)
 
 def checkUserExists(cd, user, i=0, count=0):
   user = normalizeEmailAddressOrUID(user)
@@ -8444,6 +8432,7 @@ def _doInfoOrgs(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
   getUsers = True
   checkSuspended = None
+  entityType = Ent.USER
   showChildren = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -8453,6 +8442,7 @@ def _doInfoOrgs(entityList):
       showChildren = True
     elif myarg in CHECK_SUSPENDED_CHOICE_MAP:
       checkSuspended = CHECK_SUSPENDED_CHOICE_MAP[myarg]
+      entityType = [Ent.USER_NOT_SUSPENDED, Ent.USER_SUSPENDED][checkSuspended]
     else:
       unknownArgumentExit()
   i = 0
@@ -8492,7 +8482,7 @@ def _doInfoOrgs(entityList):
                               customer=GC.Values[GC.CUSTOMER_ID], query=orgUnitPathQuery(orgUnitPath, checkSuspended),
                               fields=u'nextPageToken,users(primaryEmail,orgUnitPath)',
                               maxResults=GC.Values[GC.USER_MAX_RESULTS])
-        printEntitiesCount(Ent.USER, users)
+        printEntitiesCount(entityType, users)
         Ind.Increment()
         orgUnitPath = orgUnitPath.lower()
         for user in users:
@@ -18751,7 +18741,6 @@ def getUserAttributes(cd, updateCmd, noUid=False):
     body[u'primaryEmail'] = getEmailAddress(noUid=noUid)
     need_password = True
   need_to_hash_password = True
-  admin_body = {}
   notify = {u'html': False, u'charset': u'utf-8'}
   primary = {}
   updatePrimaryEmail = {}
@@ -18771,7 +18760,10 @@ def getUserAttributes(cd, updateCmd, noUid=False):
     elif myarg == u'html':
       notify[u'html'] = getBoolean()
     elif myarg == u'admin':
-      admin_body[u'status'] = getBoolean()
+      value = getBoolean()
+      if updateCmd or value:
+        Cmd.Backup()
+        unknownArgumentExit()
     elif myarg == u'nohash':
       need_to_hash_password = False
     elif updateCmd and myarg == u'updateprimaryemail':
@@ -19080,21 +19072,12 @@ def getUserAttributes(cd, updateCmd, noUid=False):
   if u'password' in body and need_to_hash_password:
     body[u'password'] = gen_sha512_hash(body[u'password'])
     body[u'hashFunction'] = u'crypt'
-  return (body, admin_body, notify, updatePrimaryEmail, createIfNotFound)
-
-def changeAdminStatus(cd, user, admin_body, i=0, count=0):
-  try:
-    callGAPI(cd.users(), u'makeAdmin',
-             throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN],
-             userKey=user, body=admin_body)
-    printEntityKVList([Ent.USER, user], [Msg.ADMIN_STATUS_CHANGED_TO, admin_body[u'status']], i, count)
-  except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden):
-    entityUnknownWarning(Ent.USER, user, i, count)
+  return (body, notify, updatePrimaryEmail, createIfNotFound)
 
 # gam create user <EmailAddress> <UserAttributes> [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
 def doCreateUser():
   cd = buildGAPIObject(API.DIRECTORY)
-  body, admin_body, notify, _, _ = getUserAttributes(cd, False, noUid=True)
+  body, notify, _, _ = getUserAttributes(cd, False, noUid=True)
   user = body[u'primaryEmail']
   try:
     callGAPI(cd.users(), u'insert',
@@ -19102,8 +19085,6 @@ def doCreateUser():
                             GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
              body=body, fields=u'')
     entityActionPerformed([Ent.USER, user])
-    if admin_body:
-      changeAdminStatus(cd, user, admin_body)
     if notify.get(u'emailAddress'):
       sendCreateUpdateUserNotification(notify, body)
   except GAPI.duplicate:
@@ -19122,7 +19103,7 @@ def doCreateUser():
 #	[createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
 def updateUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
-  body, admin_body, notify, updatePrimaryEmail, createIfNotFound = getUserAttributes(cd, True)
+  body, notify, updatePrimaryEmail, createIfNotFound = getUserAttributes(cd, True)
   vfe = u'primaryEmail' in body and body[u'primaryEmail'][:4].lower() == u'vfe@'
   i, count, entityList = getEntityArgument(entityList)
   for user in entityList:
@@ -19174,8 +19155,6 @@ def updateUsers(entityList):
           else:
             entityUnknownWarning(Ent.USER, user, i, count)
             continue
-      if admin_body:
-        changeAdminStatus(cd, user, admin_body, i, count)
     except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
       entityUnknownWarning(Ent.USER, user, i, count)
     except GAPI.invalidSchemaValue:
@@ -33345,53 +33324,9 @@ def showMessages(users):
 def showThreads(users):
   _printShowMessagesThreads(users, Ent.THREAD, False)
 
-def _checkDelegator(cd, delegatorEmail, i, count, jcount):
-  try:
-    result = callGAPI(cd.users(), u'get',
-                      throw_reasons=GAPI.USER_GET_THROW_REASONS,
-                      userKey=delegatorEmail, fields=u'suspended,changePasswordAtNextLogin')
-    if result[u'suspended']:
-      entityNumEntitiesActionFailedWarning(Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, jcount, Ent.TypeMessage(Ent.DELEGATOR, Msg.IS_SUSPENDED_NO_DELEGATION), i, count)
-      setSysExitRC(USER_SUSPENDED_ERROR_RC)
-    elif result[u'changePasswordAtNextLogin']:
-      entityNumEntitiesActionFailedWarning(Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, jcount, Ent.TypeMessage(Ent.DELEGATOR, Msg.IS_REQD_TO_CHG_PWD_NO_DELEGATION), i, count)
-      setSysExitRC(USER_REQUIRED_TO_CHANGE_PASSWORD_ERROR_RC)
-    else:
-      return True
-  except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError) as e:
-    entityNumEntitiesActionFailedWarning(Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, jcount, Ent.TypeMessage(Ent.DELEGATOR, str(e)), i, count)
-  return False
-
-def _checkDelegate(cd, delegatorEmail, delegateEmail, j, jcount):
-  try:
-    result = callGAPI(cd.users(), u'get',
-                      throw_reasons=GAPI.USER_GET_THROW_REASONS,
-                      userKey=delegateEmail, fields=u'suspended,changePasswordAtNextLogin')
-    if result[u'suspended']:
-      entityActionFailedWarning([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail], Ent.TypeMessage(Ent.DELEGATE, Msg.IS_SUSPENDED_NO_DELEGATION), j, jcount)
-      setSysExitRC(USER_SUSPENDED_ERROR_RC)
-    elif result[u'changePasswordAtNextLogin']:
-      entityActionFailedWarning([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail], Ent.TypeMessage(Ent.DELEGATE, Msg.IS_REQD_TO_CHG_PWD_NO_DELEGATION), j, jcount)
-      setSysExitRC(USER_REQUIRED_TO_CHANGE_PASSWORD_ERROR_RC)
-    else:
-      entityActionFailedWarning([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail], Msg.GOOGLE_DELEGATION_ERROR, j, jcount)
-      setSysExitRC(GOOGLE_API_ERROR_RC)
-  except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError) as e:
-    entityActionFailedWarning([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail], Ent.TypeMessage(Ent.DELEGATE, str(e)), j, jcount)
-
-def _checkDelegatorDelegate(cd, delegatorEmail, delegateEmail, i, count, j, jcount):
-  if not _checkDelegator(cd, delegatorEmail, i, count, jcount):
-    return False
-  _checkDelegate(cd, delegatorEmail, delegateEmail, j, jcount)
-  return True
-
-HTTP_400_RESULT_PATTERN = re.compile(r'errorCode="(.*)".*invalidInput="(.*)".*reason="(.*)"')
-HTTP_4XX_5XX_RESULT_PATTERN = re.compile(r'<TITLE>(.*)</TITLE>')
-
 # gam <UserTypeEntity> delegate to <UserEntity>
 def delegateTo(users, checkForTo=True):
   cd = buildGAPIObject(API.DIRECTORY)
-  emailSettings = buildGAPIObject(API.EMAIL_SETTINGS)
   if checkForTo:
     checkArgumentPresent(u'to', required=True)
   delegateEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DELEGATE)
@@ -33399,62 +33334,23 @@ def delegateTo(users, checkForTo=True):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    delegatorEmail, delegatorName, delegatorDomain, delegates, jcount = _validateDelegatorGetObjectList(user, i, count, delegateEntity)
+    user, gmail, delegates, jcount = _validateUserGetObjectList(user, i, count, delegateEntity)
+    if jcount == 0:
+      continue
     Ind.Increment()
     j = 0
     for delegate in delegates:
       j += 1
       delegateEmail = convertUIDtoEmailAddress(delegate, cd=cd)
-      uri = u'https://apps-apis.google.com/a/feeds/emailsettings/2.0/{0}/{1}/delegation'.format(delegatorDomain, delegatorName)
-      body = u'''<?xml version="1.0" encoding="utf-8"?>
-  <atom:entry xmlns:atom="http://www.w3.org/2005/Atom" xmlns:apps="http://schemas.google.com/apps/2006">
-  <apps:property name="address" value="{0}" />
-  </atom:entry>'''.format(delegateEmail)
-      headers = {u'GData-Version': u'2.0', u'Content-Type': u'application/atom+xml; charset=UTF-8'}
-      retries = 10
-      delegatorOK = True
-      for n in range(1, retries+1):
-        status, result = emailSettings._http.request(uri=uri, method=u'POST', body=body, headers=headers)
-        httpStatus = int(status[u'status'])
-        if httpStatus == 201: # Success
-          entityActionPerformed([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail], j, jcount)
-          time.sleep(10) # on success, sleep 10 seconds before exiting or moving on to next user to prevent ghost delegates
-          break
-        if httpStatus == 400:
-          tg = HTTP_400_RESULT_PATTERN.search(str(result))
-          if tg is not None:
-            errorCode = int(tg.group(1))
-            invalidInput = tg.group(2)
-            reason = tg.group(3)
-            if errorCode == GDATA.DOES_NOT_EXIST:
-              delegatorOK = _checkDelegatorDelegate(cd, delegatorEmail, delegateEmail, i, count, j, jcount)
-            elif errorCode == GDATA.NAME_NOT_VALID:
-              entityActionFailedWarning([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail],
-                                        Ent.TypeMessage(Ent.DELEGATE, Msg.ENTITY_NAME_NOT_VALID), j, jcount)
-            elif errorCode == GDATA.ENTITY_EXISTS:
-              entityActionFailedWarning([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail],
-                                        Ent.TypeMessage(Ent.DELEGATE, Msg.DUPLICATE), j, jcount)
-            else:
-              if not invalidInput:
-                delegatorOK = False
-                entityActionFailedWarning([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail],
-                                          Ent.TypeMessage(Ent.DELEGATOR, u'errorCode: {0}, reason: {1}'.format(errorCode, reason)), i, count)
-              else:
-                entityActionFailedWarning([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail],
-                                          Ent.TypeMessage(Ent.DELEGATE, u'errorCode: {0}, reason: {1}'.format(errorCode, reason)), j, jcount)
-          else:
-            delegatorOK = _checkDelegatorDelegate(cd, delegatorEmail, delegateEmail, i, count, j, jcount)
-          break
-        if httpStatus < 500:
-          delegatorOK = _checkDelegatorDelegate(cd, delegatorEmail, delegateEmail, i, count, j, jcount)
-          break
-        tg = HTTP_4XX_5XX_RESULT_PATTERN.search(str(result))
-        reason = tg.group(1) if tg is not None else u'Unknown Error'
-        waitOnFailure(n, retries, httpStatus, reason)
-      else: #retries exceeded
-        delegatorOK = _checkDelegatorDelegate(cd, delegatorEmail, delegateEmail, i, count, j, jcount)
-      if not delegatorOK:
-        break
+      try:
+        callGAPI(gmail.users().settings().delegates(), u'create',
+                 throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION, GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT],
+                 userId=u'me', body={u'delegateEmail': delegateEmail})
+        entityActionPerformed([Ent.USER, user, Ent.DELEGATE, delegateEmail], j, jcount)
+      except (GAPI.alreadyExists, GAPI.failedPrecondition, GAPI.notFound, GAPI.invalidArgument) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.DELEGATE, delegateEmail], str(e), j, jcount)
+      except (GAPI.serviceNotAvailable, GAPI.badRequest):
+        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
     Ind.Decrement()
 
 # gam <UserTypeEntity> create|add delegate|delegates <UserEntity>
@@ -33463,140 +33359,132 @@ def createDelegate(users):
 
 # gam <UserTypeEntity> delete delegate|delegates <UserEntity>
 def deleteDelegate(users):
-
-# Add domain to foo or convert uid:xxx to foo. Return foo@bar.com
-  def addDomainToEmailAddressOrUID(emailAddressOrUID, addDomain):
-    cg = UID_PATTERN.match(emailAddressOrUID)
-    if cg:
-      try:
-        result = callGAPI(cd.users(), u'get',
-                          throw_reasons=GAPI.USER_GET_THROW_REASONS,
-                          userKey=cg.group(1), fields=u'primaryEmail')
-        if u'primaryEmail' in result:
-          return result[u'primaryEmail'].lower()
-      except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
-        pass
-      return None
-    atLoc = emailAddressOrUID.find(u'@')
-    if atLoc == -1:
-      return u'{0}@{1}'.format(emailAddressOrUID, addDomain)
-    if atLoc == len(emailAddressOrUID)-1:
-      return u'{0}{1}'.format(emailAddressOrUID, addDomain)
-    return emailAddressOrUID
-
   cd = buildGAPIObject(API.DIRECTORY)
-  emailSettings = buildGAPIObject(API.EMAIL_SETTINGS)
   delegateEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DELEGATE)
   checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    delegatorEmail, delegatorName, delegatorDomain, delegates, jcount = _validateDelegatorGetObjectList(user, i, count, delegateEntity)
+    user, gmail, delegates, jcount = _validateUserGetObjectList(user, i, count, delegateEntity)
+    if jcount == 0:
+      continue
     Ind.Increment()
     j = 0
     for delegate in delegates:
       j += 1
-      delegateEmail = addDomainToEmailAddressOrUID(delegate, delegatorDomain)
-      if not delegateEmail:
-        entityActionFailedWarning([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegate], Msg.DOES_NOT_EXIST, j, jcount)
-        continue
+      delegateEmail = convertUIDtoEmailAddress(delegate, cd=cd)
       try:
-        callGAPI(emailSettings.delegates(), u'delete',
-                 throw_reasons=[GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE, GAPI.DOMAIN_NOT_FOUND, GAPI.INVALID_INPUT],
-                 v=u'2.0', delegator=delegatorName, domainName=delegatorDomain, delegate=delegateEmail)
-        entityActionPerformed([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail], j, jcount)
-      except (GAPI.notFound, GAPI.serviceNotAvailable, GAPI.domainNotFound):
-        if not _checkDelegatorDelegate(cd, delegatorEmail, delegateEmail, i, count, j, jcount):
-          break
-      except GAPI.invalidInput as e:
-        entityActionFailedWarning([Ent.DELEGATOR, delegatorEmail, Ent.DELEGATE, delegateEmail], str(e), j, jcount)
+        callGAPI(gmail.users().settings().delegates(), u'delete',
+                 throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_INPUT],
+                 userId=u'me', delegateEmail=delegateEmail)
+        entityActionPerformed([Ent.USER, user, Ent.DELEGATE, delegateEmail], j, jcount)
+      except (GAPI.notFound, GAPI.invalidInput) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.DELEGATE, delegateEmail], str(e), j, jcount)
+      except (GAPI.serviceNotAvailable, GAPI.badRequest):
+        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
     Ind.Decrement()
 
-DELEGATES_FIELD_TITLES_MAP = {
-  u'user': [u'User', u'Delegator'],
-  u'delegateName': [u'delegateName', u'Delegate'],
-  u'delegateAddress': [u'delegateAddress', u'Delegate Email'],
-  u'delegationStatus': [u'delegationStatus', u'Status'],
-  }
-DELEGATE_FIELD_PRINT_ORDER = [u'user', u'delegateName', u'delegateAddress', u'delegationStatus']
-
 def _printShowDelegates(users, csvFormat):
+  def _getDelegateName(delegateEmail):
+    if delegateEmail in delegateNames:
+      return delegateNames[delegateEmail]
+    try:
+      result = callGAPI(cd.users(), u'get',
+                        throw_reasons=GAPI.USER_GET_THROW_REASONS,
+                        userKey=delegateEmail, fields=u'name(fullName)')
+      delegateName = result.get(u'name', {u'fullName': delegateEmail}).get(u'fullName', delegateEmail)
+    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+      delegateName = delegateEmail
+    delegateNames[delegateEmail] = delegateName
+    return delegateName
 
-  def getDelegateFields(delegate):
-    delegateName = u''
-    delegateAddress = u''
-    delegationStatus = u''
-    for item in delegate[u'apps$property']:
-      if item[u'name'] == u'delegate':
-        delegateName = item[u'value']
-      elif item[u'name'] == u'address':
-        delegateAddress = item[u'value']
-      elif item[u'name'] == u'status':
-        delegationStatus = item[u'value']
-    return delegateName, delegateAddress, delegationStatus
-
-  emailSettings = buildGAPIObject(API.EMAIL_SETTINGS)
   if csvFormat:
     todrive = {}
-    titlesList = []
-    titleIndex = [1, 0][GC.Values[GC.PRINT_NATIVE_NAMES]]
-    fieldsTitles = {}
-    for field in DELEGATE_FIELD_PRINT_ORDER:
-      fieldsTitles[field] = DELEGATES_FIELD_TITLES_MAP[field][titleIndex]
-      titlesList.append(fieldsTitles[field])
-    titles, csvRows = initializeTitlesCSVfile(titlesList)
+    titlesList = [u'User', u'delegateAddress', u'delegationStatus']
+    titles, csvRows = initializeTitlesCSVfile(None)
+  cd = None
+  csvStyle = False
+  delegateNames = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
+    elif not csvFormat and myarg == u'csv':
+      csvStyle = True
+    elif myarg == u'shownames':
+      cd = buildGAPIObject(API.DIRECTORY)
+      titlesList = [u'User', u'delegateName', u'delegateAddress', u'delegationStatus']
     else:
       unknownArgumentExit()
+  if csvFormat:
+    addTitlesToCSVfile(titlesList, titles)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    delegatorEmail, delegatorName, delegatorDomain = splitEmailAddressOrUID(user)
+    user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
+    if not gmail:
+      continue
     if csvFormat:
-      printGettingAllEntityItemsForWhom(Ent.DELEGATE, delegatorEmail, i, count)
+      printGettingAllEntityItemsForWhom(Ent.DELEGATE, user, i, count)
     try:
-      result = callGAPI(emailSettings.delegates(), u'get',
-                        throw_reasons=[GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE, GAPI.DOMAIN_NOT_FOUND],
-                        v=u'2.0', delegator=delegatorName, domainName=delegatorDomain)
-      if result is not None and u'feed' in result and u'entry' in result[u'feed']:
-        delegates = result[u'feed'][u'entry']
-      else:
-        delegates = []
+      result = callGAPI(gmail.users().settings().delegates(), u'list',
+                        throw_reasons=GAPI.GMAIL_THROW_REASONS,
+                        userId=u'me')
+      delegates = result.get(u'delegates', []) if result is not None else []
       jcount = len(delegates)
       if not csvFormat:
-        entityPerformActionNumItems([Ent.DELEGATOR, delegatorEmail], jcount, Ent.DELEGATE, i, count)
-        Ind.Increment()
-        j = 0
-        for delegate in delegates:
-          j += 1
-          delegateName, delegateAddress, delegationStatus = getDelegateFields(delegate)
-          printEntity([Ent.DELEGATE, delegateName], j, jcount)
+        if not csvStyle:
+          entityPerformActionNumItems([Ent.USER, user], jcount, Ent.DELEGATE, i, count)
           Ind.Increment()
-          printKeyValueList([u'Delegate Email', delegateAddress])
-          printKeyValueList([u'Status', delegationStatus])
+          j = 0
+          for delegate in delegates:
+            j += 1
+            status = delegate[u'verificationStatus']
+            delegateEmail = delegate[u'delegateEmail']
+            if cd:
+              printEntity([Ent.DELEGATE, _getDelegateName(delegateEmail)], j, jcount)
+              Ind.Increment()
+              printKeyValueList([u'Status', status])
+              printKeyValueList([u'Delegate Email', delegateEmail])
+              Ind.Decrement()
+            else:
+              printEntity([Ent.DELEGATE, delegateEmail], j, jcount)
+              Ind.Increment()
+              printKeyValueList([u'Status', status])
+              Ind.Decrement()
           Ind.Decrement()
-        Ind.Decrement()
+        else:
+          j = 0
+          for delegate in delegates:
+            j += 1
+            status = delegate[u'verificationStatus']
+            delegateEmail = delegate[u'delegateEmail']
+            if cd:
+              writeStdout(convertUTF8(u'{0},{1},{2},{3}\n'.format(user, _getDelegateName(delegateEmail), status, delegateEmail)))
+            else:
+              writeStdout(u'{0},{1},{2}\n'.format(user, status, delegateEmail))
       else:
         if delegates:
-          for delegate in delegates:
-            delegateName, delegateAddress, delegationStatus = getDelegateFields(delegate)
-            csvRows.append({fieldsTitles[u'user']: delegatorEmail, fieldsTitles[u'delegateName']: delegateName,
-                            fieldsTitles[u'delegateAddress']: delegateAddress, fieldsTitles[u'delegationStatus']: delegationStatus})
+          if cd:
+            for delegate in delegates:
+              csvRows.append({u'User': user, u'delegateName': _getDelegateName(delegate[u'delegateEmail']),
+                              u'delegateAddress': delegate[u'delegateEmail'], u'delegationStatus': delegate[u'verificationStatus']})
+          else:
+            for delegate in delegates:
+              csvRows.append({u'User': user, u'delegateAddress': delegate[u'delegateEmail'],
+                              u'delegationStatus': delegate[u'verificationStatus']})
         elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
-          csvRows.append({fieldsTitles[u'user']: delegatorEmail})
-    except (GAPI.notFound, GAPI.serviceNotAvailable, GAPI.domainNotFound):
-      entityServiceNotApplicableWarning(Ent.DELEGATOR, delegatorEmail, i, count)
+          csvRows.append({u'User': user})
+    except (GAPI.serviceNotAvailable, GAPI.badRequest):
+      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvFormat:
     writeCSVfile(csvRows, titles, u'Delegates', todrive)
 
-# gam <UserTypeEntity> print delegates|delegate [todrive [<ToDriveAttributes>]]
+# gam <UserTypeEntity> print delegates|delegate [todrive [<ToDriveAttributes>]] [shownames]
 def printDelegates(users):
   _printShowDelegates(users, True)
 
-# gam <UserTypeEntity> show delegates|delegate
+# gam <UserTypeEntity> show delegates|delegate [shownames] [csv]
 def showDelegates(users):
   _printShowDelegates(users, False)
 

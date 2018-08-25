@@ -80,7 +80,6 @@ class GamEntity(object):
   CUSTOMER_ID = u'cuid'
   DEFAULT_LANGUAGE = u'dfla'
   DELEGATE = u'dele'
-  DELEGATOR = u'delo'
   DELETED_USER = u'delu'
   DEVICE_FILE = u'devf'
   DIRECTORY = u'drct'
@@ -202,8 +201,10 @@ class GamEntity(object):
   UNIQUE_ID = u'uniq'
   USER = u'user'
   USER_ALIAS = u'uali'
-  USER_EMAIL = u'ual'
+  USER_EMAIL = u'uema'
+  USER_NOT_SUSPENDED = u'unsu'
   USER_SCHEMA = u'usch'
+  USER_SUSPENDED = u'usup'
   VACATION = u'vaca'
   VACATION_ENABLED = u'vace'
   VALUE = u'valu'
@@ -264,7 +265,6 @@ class GamEntity(object):
     CUSTOMER_ID: [u'Customer IDs', u'Customer ID'],
     DEFAULT_LANGUAGE: [u'Default Language', u'Default Language'],
     DELEGATE: [u'Delegates', u'Delegate'],
-    DELEGATOR: [u'Delegators', u'Delegator'],
     DELETED_USER: [u'Deleted Users', u'Deleted User'],
     DEVICE_FILE: [u'Device Files', u'Device File'],
     DIRECTORY: [u'Directories', u'Directory'],
@@ -387,7 +387,9 @@ class GamEntity(object):
     USER: [u'Users', u'User'],
     USER_ALIAS: [u'User Aliases', u'User Alias'],
     USER_EMAIL: [u'User Emails', u'User Email'],
+    USER_NOT_SUSPENDED: [u'Users (Not suspended)', u'User (Not suspended)'],
     USER_SCHEMA: [u'Schemas', u'Schema'],
+    USER_SUSPENDED: [u'Users (Suspended)', u'User (Suspended)'],
     VACATION: [u'Vacation', u'Vacation'],
     VACATION_ENABLED: [u'Vacation Enabled', u'Vacation Enabled'],
     VALUE: [u'Values', u'Value'],

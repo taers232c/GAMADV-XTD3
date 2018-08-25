@@ -1941,7 +1941,6 @@ gam print vaultmatters|matters [todrive [<ToDriveAttributes>]] [basic|full]
 <UserAttributes> ::=
         (address clear|(type work|home|other|(custom <String>) [unstructured|formatted <String>] [pobox <String>] [extendedaddress <String>] [streetaddress <String>]
                 [locality <String>] [region <String>] [postalcode <String>] [country <String>] [countrycode <String>] notprimary|primary))|
-        (admin <Boolean>)|
         (agreed2terms|agreedtoterms <Boolean>)|
         (changepassword|changepasswordatnextlogin <Boolean>)|
         (crypt|sha|sha1|sha-1|md5|nohash)|
@@ -2624,8 +2623,8 @@ gam <UserTypeEntity> deprovision|deprov
 gam <UserTypeEntity> delegate to <UserEntity>
 gam <UserTypeEntity> create|add delegate|delegates <UserEntity>
 gam <UserTypeEntity> delete delegate|delegates <UserEntity>
-gam <UserTypeEntity> show delegates|delegate
-gam <UserTypeEntity> print delegates [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> show delegates|delegate [shownames] [csv]
+gam <UserTypeEntity> print delegates|delegate [todrive [<ToDriveAttributes>]] [shownames]
 
 # Users - Gmail - Filters
 

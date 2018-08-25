@@ -1,6 +1,25 @@
+4.60.13
+
+Delegates are now handled by the Gmail API rather than a soon to be deprecated Email Settings API.
+This simplifies the code but Google took something away in the change; delegate names are no longer
+returned with the delegate email address. The shownames option has been added to cause Gam to retrieve the
+delegate name; this involves an extra API call per delegate email address.
+
+Added the csv option to show delegates for backwards compatibility with standard Gam; this displays the
+same data as print delegates without the header row.
+
+gam <UserTypeEntity> show delegates|delegate [shownames]
+gam <UserTypeEntity> print delegates|delegate [todrive [<ToDriveAttributes>]] [shownames]
+
+Revoved the <UserAttribute> admin <Boolean> that allowed Gam to promote/demote users as super administrators.
+* create user admin False - This will be silently ignored
+* create user admin True - This will generate an error
+* update user admin False - This will generate an error
+* update user admin True - This will generate an error
+
 4.60.12
 
-For backwards compatability with standard GAM, when updating a Gmail label with merge, the old label will be deleted
+For backwards compatibility with standard GAM, when updating a Gmail label with merge, the old label will be deleted
 unless the keepoldlabel option is specified.
 gam <UserTypeEntity> update label|labels [search <RegularExpression>] [replace <LabelReplacement>] [merge [keepoldlabel]]
 
@@ -888,7 +907,7 @@ Handle errors when gamcache directory is not accessible.
 
 4.55.45
 
-Fixed incompatability with Basic Gam when the fields option is used with gam print group-members.
+Fixed incompatibility with Basic Gam when the fields option is used with gam print group-members.
 With Basic Gam, the command "gam print group-members fields email,type" produced three columns: group,email,type
 With Advanced Gam, the command "gam print group-members fields email,type" produced two columns: email,type
 The group email address column was included only if group was in the fields list; now, Advanced Gam will also output the group
@@ -2387,7 +2406,7 @@ Fix coding error in gam add permissions.
 
 4.53.06
 
-Added new method (query:orgunitpath:<OrgUnitPath>) of specifying CrOS OU for backwards compatability with Jay's version.
+Added new method (query:orgunitpath:<OrgUnitPath>) of specifying CrOS OU for backwards compatibility with Jay's version.
     <CrOSItem> ::= <CrOSID>|(query:<QueryCrOS>)|(query:orgunitpath:<OrgUnitPath>)|(query <QueryCrOS>)
     <CrOSEntity> ::= <CrOSItem> | <CrOSList> | <FileSelector> | <CSVkmdSelector>
     gam info cros <CrOSEntity> [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
@@ -4625,7 +4644,7 @@ Added csv_input_column_delimiter, csv_output_convert_text_nl, csv_output_column_
         Convert carriage returns (CR) to "\r" and newlines (NL) to "\n" when writing CSV files
         The commands gam print groups|sites|messages|threads and gam show sites|messages|threads have
         an argument, convertcrnl, that can set this value to true.
-        For backwards compatability the default is False, True is probably the preferred value.
+        For backwards compatibility the default is False, True is probably the preferred value.
         Default: False
     csv_output_column_delimiter
         Column delimiter used when writing CSV files; this must be a single character
@@ -5184,7 +5203,7 @@ TestSchema.SVField <String> - value is <String>
 TestSchema.MVField <String> - type is work (default), value is <String>
 TestSchema.MVField type home <String> - type is home, value is <String>
 TestSchema.MVField type custom <CustomType> <String> - type is custom, customType is <CustomType>, value is <String>
-Compatability note: In the unlikely case that you are currently setting a multi-valued schema field with the value "type",
+Compatibility note: In the unlikely case that you are currently setting a multi-valued schema field with the value "type",
 i.e., TestSchema.MVField type, you will have to change this to TestSchema.MVField type work type.
 
 If you have external programs that produce multi-column files of data, but witout headers, you have to add a
