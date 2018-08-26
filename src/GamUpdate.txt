@@ -1,3 +1,19 @@
+4.60.14
+
+Added option matchsetting to gam print groups to allow filtering of groups based on attribute values.
+* matchsetting <GroupAttribute> - The group must have the specified attribute
+* matchsetting not <GroupAttribute> - The group must not have the specified attribute
+
+* You can specify multiple matchsetting options, all of them must match for the group to be displayed.
+* You can specify multiple matchsetting options for the same <GroupAttribute>, it is a match if the group has any of the <GroupAttribute> values.
+* You can specify multiple matchsetting not options for the same <GroupAttribute>, it is a match if the group has none of the <GroupAttribute> values.
+
+gam print groups [todrive [<ToDriveAttribute>]] ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[select <GroupEntity>]
+        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>] (matchsetting <GroupAttribute>)*
+        [maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
+        [members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
+        [convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
+
 4.60.13
 
 Delegates are now handled by the Gmail API rather than a soon to be deprecated Email Settings API.
@@ -9,7 +25,7 @@ Added the csv option to show delegates for backwards compatibility with standard
 same data as print delegates without the header row.
 
 gam <UserTypeEntity> show delegates|delegate [shownames]
-gam <UserTypeEntity> print delegates|delegate [todrive [<ToDriveAttributes>]] [shownames]
+gam <UserTypeEntity> print delegates|delegate [todrive [<ToDriveAttribute>]] [shownames]
 
 Revoved the <UserAttribute> admin <Boolean> that allowed Gam to promote/demote users as super administrators.
 * create user admin False - This will be silently ignored
@@ -160,7 +176,7 @@ gam download vaultexport|export <MatterItem> <ExportItem> [noverify] [noextract]
 gam info vaultexport|export <ExportItem> matter <MatterItem>
 gam info vaultexport|export <MatterItem> <ExportItem>
 gam show vaultexports|exports [matter|matters <MatterItemList>] [shownames]
-gam print vaultexports|exports [todrive [<ToDriveAttributes>]] [matter|matters <MatterItemList>] [shownames]
+gam print vaultexports|exports [todrive [<ToDriveAttribute>]] [matter|matters <MatterItemList>] [shownames]
 
 4.57.27
 
@@ -199,7 +215,7 @@ Fixed bugs in gam transfer drive that caused traps.
 
 Changed `countonly` option of `gam print users` to print a CSV file with headers `domain,count` that gives the number of users
 in each domain from the account, `<UserTypeEntity>` or any queries.
-gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]]
+gam [<UserTypeEntity>] print users [todrive [<ToDriveAttribute>]]
         ([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])|[select <UserTypeEntity>]
         [formatjson] [quotechar <Character>] [countonly]
 
@@ -229,7 +245,7 @@ Added commands to show the owner of a file when only the file ID or name is know
 and may not find the owner if the file has not been accessed in 180 days.
 
 gam show ownership <DriveFileID>|(drivefilename <DriveFileName>) [formatjson]
-gam print ownership <DriveFileID>|(drivefilename <DriveFileName>) [todrive [<ToDriveAttributes>]] [formatjson] [quotechar <Character>]
+gam print ownership <DriveFileID>|(drivefilename <DriveFileName>) [todrive [<ToDriveAttribute>]] [formatjson] [quotechar <Character>]
 
 4.57.19
 
@@ -253,10 +269,10 @@ Fixed bug whan handling error in gam create course.
 
 Added copyfrom <GroupItem> to gam create/update group to allow copying of group attributes from one group to another.
 The following attributes are not copied: name, description, email, admincreated, aliases, noneditablealiases.
-Any <GroupAttributes> specified will override the copied attributes.
+Any <GroupAttribute> specified will override the copied attributes.
 
-gam create|add group <EmailAddress> [copyfrom <GroupItem>] <GroupAttributes>*
-gam update group|groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] [copyfrom <GroupItem>] <GroupAttributes>*
+gam create|add group <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>*
+gam update group|groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] [copyfrom <GroupItem>] <GroupAttribute>*
 
 Added copyfrom <CourseID> [announcementstates <CourseAnnouncementStateList>] [workstates <CourseWorkStateList>] [members none|all|students|teachers]
 to gam create/update course to allow copying of course announcements, work and members from one course to another.
@@ -270,11 +286,11 @@ gam <UserTypeEntity> create classroomoauth2
 gam <UserTypeEntity> delete classroomoauth2
 gam <UserTypeEntity> info classroomoauth2
 
-gam create|add course [id|alias <CourseAlias>] <CourseAttributes>*
+gam create|add course [id|alias <CourseAlias>] <CourseAttribute>*
         [copyfrom <CourseID> [announcementstates <CourseAnnouncementStateList>] [workstates <CourseWorkStateList>] [members none|all|students|teachers]]
-gam update course <CourseID> <CourseAttributes>+
+gam update course <CourseID> <CourseAttribute>+
         [copyfrom <CourseID> [announcementstates <CourseAnnouncementStateList>] [workstates <CourseWorkStateList>] [members none|all|students|teachers]]
-gam update courses <CourseEntity> <CourseAttributes>+
+gam update courses <CourseEntity> <CourseAttribute>+
         [copyfrom <CourseID> [announcementstates <CourseAnnouncementStateList>] [workstates <CourseWorkStateList>] [members none|all|students|teachers]]
 
 4.57.15
@@ -313,7 +329,7 @@ Fixed error in gam print events formatjson where extraneous columns were include
 
 4.57.09
 
-Added json <JSONData> option to <ContactAttributes>; this will allow creating/updating complex contacts.
+Added json <JSONData> option to <ContactAttribute>; this will allow creating/updating complex contacts.
 If charset <Charset> is not specified, the value of charset from gam.cfg is assumed.
 For example, to copy contacts from one user to another you could do the following:
 gam redirect csv ./User1ContactGroups.csv user user1@domain.com print contactgroups full formatjson quotechar "'"
@@ -491,17 +507,17 @@ Added formatjson option to gam info/show/print drivefileacls; added quotechar <C
 gam info drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles] [formatjson]
 gam show drivefileacl <TeamDriveEntityAdmin> [oneitemperrow] [showtitles] [formatjson]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-gam print drivefileacls <TeamDriveEntityAdmin> [todrive [<ToDriveAttributes>]] [oneitemperrow] [showtitles] [formatjson] [quotechar <Character>]
+gam print drivefileacls <TeamDriveEntityAdmin> [todrive [<ToDriveAttribute>]] [oneitemperrow] [showtitles] [formatjson] [quotechar <Character>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> info drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles] [formatjson] adminaccess
 gam <UserTypeEntity> show drivefileacl <TeamDriveEntityAdmin> [oneitemperrow] [showtitles] [formatjson]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* adminaccess
-gam <UserTypeEntity> print drivefileacls <TeamDriveEntityAdmin> [todrive [<ToDriveAttributes>]] [oneitemperrow] [showtitles] [formatjson] [quotechar <Character>]
+gam <UserTypeEntity> print drivefileacls <TeamDriveEntityAdmin> [todrive [<ToDriveAttribute>]] [oneitemperrow] [showtitles] [formatjson] [quotechar <Character>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* adminaccess
 gam <UserTypeEntity> info drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles] [formatjson]
 gam <UserTypeEntity> show drivefileacl <DriveFileEntity> [oneitemperrow] [showtitles] [formatjson]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] [showtitles] [formatjson] [quotechar <Character>]
+gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive [<ToDriveAttribute>]] [oneitemperrow] [showtitles] [formatjson] [quotechar <Character>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 
 4.56.14
@@ -515,12 +531,12 @@ gam <UserTypeEntity> info drivefileacl <DriveFileEntity> <DriveFilePermissionIDo
 
 Added descriptionmatchpattern <RegularExpression> to the following commands to allow filtering on the group description;
 Gam applies this filter after downloading the groups from the API.
-gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[select <GroupEntity>]
+gam print groups [todrive [<ToDriveAttribute>]] ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[select <GroupEntity>]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
         [maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
         [members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
         [convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
-gam print group-members [todrive [<ToDriveAttributes>]]
+gam print group-members [todrive [<ToDriveAttribute>]]
         [domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
         [roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
@@ -543,12 +559,12 @@ all groups; query <QueryGroup> does the filtering at Google but is limited to ex
 
 The arguments member <UserItem> and query <QueryGroup> are mutually exclusive.
 
-gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[select <GroupEntity>]
+gam print groups [todrive [<ToDriveAttribute>]] ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[select <GroupEntity>]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
         [maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
         [members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
         [convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
-gam print group-members [todrive [<ToDriveAttributes>]]
+gam print group-members [todrive [<ToDriveAttribute>]]
         [domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
         [roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
@@ -597,7 +613,7 @@ Added countsonly option to gam print/show messages/threads that displays only th
 gam <UserTypeEntity> show messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show|max_to_process <Number>] [includespamtrash])|(ids <MessageIDEntity>)
         [countsonly] [headers <SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [showattachments [attachmentnamepattern <RegularExpression>]]
 gam <UserTypeEntity> print messages|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_print|max_to_process <Number>] [includespamtrash])|(ids <MessageIDEntity>)
-        [countsonly] [headers <SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <Character>] [todrive [<ToDriveAttributes>]]
+        [countsonly] [headers <SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <Character>] [todrive [<ToDriveAttribute>]]
 
 Added formatjson argument to gam info/show calendars/calsettings/calendaracls/events/resources.
 gam <UserTypeEntity> info calendars <CalendarManageEntity> [formatjson]
@@ -619,18 +635,18 @@ gam <UserTypeEntity> show events <CalendarPrintShowEntity> ([allevents] <EventSe
 gam show resources [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)] [convertcrnl] [formatjson]
 
 Added formatjson and quotechar <Character> arguments to gam print calendars/calsettings/calendaracls/events/resources.
-gam <UserTypeEntity> print calendars <CalendarPrintShowEntity> [todrive [<ToDriveAttributes>]] [permissions]
+gam <UserTypeEntity> print calendars <CalendarPrintShowEntity> [todrive [<ToDriveAttribute>]] [permissions]
          [formatjson] [quotechar <Character>]
-gam <UserTypeEntity> print calsettings [todrive [<ToDriveAttributes>]] [formatjson] [quotechar <Character>]
-gam calendar|calendars <CalendarEntity> print calendaracls [todrive [<ToDriveAttributes>]] [formatjson] [quotechar <Character>]
-gam resource <ResourceID> print calendaracls [todrive [<ToDriveAttributes>]] [formatjson] [quotechar <Character>]
-gam resources <ResourceEntity> print calendaracls [todrive [<ToDriveAttributes>]] [formatjson] [quotechar <Character>]
-gam <UserTypeEntity> print calendaracls <CalendarManageEntity> [todrive [<ToDriveAttributes>]] [formatjson] [quotechar <Character>]
-gam calendar|calendars <CalendarEntity> print events [todrive [<ToDriveAttributes>]] <EventSelectProperties>*) [todrive [<ToDriveAttributes>]] <EventDisplayProperties>*
+gam <UserTypeEntity> print calsettings [todrive [<ToDriveAttribute>]] [formatjson] [quotechar <Character>]
+gam calendar|calendars <CalendarEntity> print calendaracls [todrive [<ToDriveAttribute>]] [formatjson] [quotechar <Character>]
+gam resource <ResourceID> print calendaracls [todrive [<ToDriveAttribute>]] [formatjson] [quotechar <Character>]
+gam resources <ResourceEntity> print calendaracls [todrive [<ToDriveAttribute>]] [formatjson] [quotechar <Character>]
+gam <UserTypeEntity> print calendaracls <CalendarManageEntity> [todrive [<ToDriveAttribute>]] [formatjson] [quotechar <Character>]
+gam calendar|calendars <CalendarEntity> print events [todrive [<ToDriveAttribute>]] <EventSelectProperties>*) [todrive [<ToDriveAttribute>]] <EventDisplayProperties>*
          [formatjson] [quotechar <Character>]
-gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventSelectProperties>*) [todrive [<ToDriveAttributes>]] <EventDisplayProperties>*
+gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventSelectProperties>*) [todrive [<ToDriveAttribute>]] <EventDisplayProperties>*
          [formatjson] [quotechar <Character>]
-gam print resources [todrive [<ToDriveAttributes>]] [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)] [convertcrnl]
+gam print resources [todrive [<ToDriveAttribute>]] [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)] [convertcrnl]
         [formatjson] [quotechar <Character>]
 
 4.56.05
@@ -656,9 +672,9 @@ gam <UserTypeEntity> show teamdrives [adminaccess|asadmin [teamdriveadminquery|q
 
 Added fields <TeamDriveFieldNameList> and formatjson and quotechar <Character> arguments to gam print teamdrives.
 
-gam print teamdrives [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [todrive [<ToDriveAttributes>]]
+gam print teamdrives [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [todrive [<ToDriveAttribute>]]
         [fields <TeamDriveFieldNameList>] [formatjson] [quotechar <Character>]
-gam <UserTypeEntity> print teamdrives [adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]] [matchname <RegularExpression>] (role <TeamDriveACLRole>)* [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> print teamdrives [adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]] [matchname <RegularExpression>] (role <TeamDriveACLRole>)* [todrive [<ToDriveAttribute>]]
         [fields <TeamDriveFieldNameList>] [formatjson] [quotechar <Character>]
 
 4.56.02
@@ -682,7 +698,7 @@ gam <UserTypeEntity> info contacts <ContactEntity> [basic|full] [showgroups]
 gam <UserTypeEntity> show contacts [query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
         [basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
         [fields <ContactFieldNameList>] [formatjson]
-gam <UserTypeEntity> print contacts [todrive [<ToDriveAttributes>]] [query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+gam <UserTypeEntity> print contacts [todrive [<ToDriveAttribute>]] [query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
         [basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
         [fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
 gam <UserTypeEntity> info contactgroups <ContactGroupEntity> [formatjson]
@@ -695,13 +711,13 @@ gam show gal [query <QueryContact>] [emailmatchpattern <RegularExpression>] [ema
         [fields <ContactFieldNameList>] [formatjson]
 
 Added formatjson and quotechar <Character> arguments to gam print contacts/contactgroups/gal.
-gam print contacts [todrive [<ToDriveAttributes>]] [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+gam print contacts [todrive [<ToDriveAttribute>]] [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
         [basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
         [fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
-gam <UserTypeEntity> print contactgroups [todrive [<ToDriveAttributes>]] [updated_min <Date>]
+gam <UserTypeEntity> print contactgroups [todrive [<ToDriveAttribute>]] [updated_min <Date>]
         [basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
         [formatjson] [quotechar <Character>]
-gam print gal [todrive [<ToDriveAttributes>]] [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+gam print gal [todrive [<ToDriveAttribute>]] [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
         [basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]]
         [fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
 
@@ -723,19 +739,19 @@ gam info courses <CourseEntity> [owneremail] [alias|aliases] [show all|students|
         [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson]
 
 Added formatjson and quotechar <Character> arguments to gam print domains/courses/course-participants/course-announcements/course-work/course-submissions.
-gam print domains [todrive [<ToDriveAttributes>]] [formatjson] [quotechar <Character>]
-gam print courses [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
+gam print domains [todrive [<ToDriveAttribute>]] [formatjson] [quotechar <Character>]
+gam print courses [todrive [<ToDriveAttribute>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
         [owneremail] [owneremailmatchpattern <RegularExpression>] [alias|aliases][delimiter <Character>] [show all|students|teachers] [countsonly]
         [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson] [quotechar <Character>]
-gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
+gam print course-participants [todrive [<ToDriveAttribute>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
         [show all|students|teachers] [formatjson] [quotechar <Character>]
-gam print course-announcements [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+gam print course-announcements [todrive [<ToDriveAttribute>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         (announcementids <CourseAnnouncementIDEntity>)|((announcementstates <CourseAnnouncementStateList>)* (orderby <CourseAnnouncementOrderByFieldName> [ascending|descending])*)
         [creatoremail] [fields <CourseAnnouncementFieldNameList>] [formatjson] [quotechar <Character>]
-gam print course-work [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+gam print course-work [todrive [<ToDriveAttribute>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         (workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)* (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
         [creatoremail] [fields <CourseWorkFieldNameList>] [formatjson] [quotechar <Character>]
-gam print course-submissions [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+gam print course-submissions [todrive [<ToDriveAttribute>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         (workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)* (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
         (submissionids <CourseSubmissionIDEntity>)|((submissionstates <CourseSubmissionStateList>)*) [late|notlate]
         [fields <CourseSubmissionFieldNameList>] [formatjson] [quotechar <Character>] [showuserprofile]
@@ -754,9 +770,9 @@ GAM has been updated to address the issues addressed in the article: "Discontinu
 GAM has been updated to use the `patch` method with `gam update calendar` so that the values of parameters `selected` and `hidden` are preserved.
 
 Thanks to Jan Almeroth for suggesting the following enhancement.
-Added [csv [todrive [<ToDriveAttributes>]]] to gam create drivefile so that the user, name and drive file ID
+Added [csv [todrive [<ToDriveAttribute>]]] to gam create drivefile so that the user, name and drive file ID
 of the created files will be written to a CSV file.
-gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] <DriveFileAddAttributes>* [csv [todrive [<ToDriveAttributes>]]]
+gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] <DriveFileAddAttribute>* [csv [todrive [<ToDriveAttribute>]]]
 
 Added the ability to transfer all of a user's assets: drive files, calendars and Google+ information, in a single command.
 <DataTransferService> ::=
@@ -825,28 +841,28 @@ had an uppercase extension on Google Drive.
 
 4.55.50
 
-Added category synonyms category_unknown and unknown to <ResourceAttributes>.
-<ResourceAttributes> ::=
+Added category synonyms category_unknown and unknown to <ResourceAttribute>.
+<ResourceAttribute> ::=
         (category other|room|conference_room|category_unknown|unknown)|
 
 4.55.49
 
 Added the ability to specify multiple queries in the following print commands.
-gam print alias|aliases [todrive [<ToDriveAttributes>]]
+gam print alias|aliases [todrive [<ToDriveAttribute>]]
         [(query <QueryUser>)|(queries <QueryUserList>)]
-gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttributes>]]
+gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttribute>]]
         [(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
-gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttributes>]]
+gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttribute>]]
         [(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
-gam print mobile [todrive [<ToDriveAttributes>]]
+gam print mobile [todrive [<ToDriveAttribute>]]
         [(query <QueryMobile>)|(queries <QueryMobileList>)]
-gam print printer|printers [todrive [<ToDriveAttributes>]]
+gam print printer|printers [todrive [<ToDriveAttribute>]]
         [(query <QueryPrinter>)|(queries <QueryPrinterList>)] [type <String>] [status <String>]
 gam printjob|printjobs <PrinterID>|any fetch
         [(query <QueryPrintJob>)|(queries <QueryPrintJobList>)] [olderthan|newerthan <PrintJobAge>] [status <PrintJobStatus>]
-gam print printjob|printjobs [todrive [<ToDriveAttributes>]] [printer|printerid <PrinterID>]
+gam print printjob|printjobs [todrive [<ToDriveAttribute>]] [printer|printerid <PrinterID>]
         [(query <QueryPrintJob>)|(queries <QueryPrintJobList>)] [olderthan|newerthan <PrintJobAge>] [status <PrintJobStatus>]
-gam print users [todrive [<ToDriveAttributes>]]
+gam print users [todrive [<ToDriveAttribute>]]
         ([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])|[select <UserTypeEntity>]
 
 4.55.48
@@ -890,10 +906,10 @@ available for the applications specified in <ReportsAppList>.
       sites
 <ReportsAppList> ::= "<ReportsApp>(,<ReportsApp>)*"
 
-gam report users|user [todrive [<ToDriveAttributes>]] [date <Date>] [nodatechange | (fulldatarequired all|<ReportsAppList>)]
+gam report users|user [todrive [<ToDriveAttribute>]] [date <Date>] [nodatechange | (fulldatarequired all|<ReportsAppList>)]
         [(user all|<UserItem>)|(select <UserTypeEntity>)] [filter|filters <String>] [fields|parameters <String>]
         [maxactivities <Number>] [maxresults <Number>]
-gam report customers|customer|domain [todrive [<ToDriveAttributes>]] [date <Date>] [nodatechange | (fulldatarequired all|<ReportsAppList>)]
+gam report customers|customer|domain [todrive [<ToDriveAttribute>]] [date <Date>] [nodatechange | (fulldatarequired all|<ReportsAppList>)]
         [fields|parameters <String>]
 
 A good example is user drive quotas: accounts:drive_used_quota_in_mb,accounts:gmail_used_quota_in_mb,accounts:total_quota_in_mb,accounts:used_quota_in_mb.
@@ -913,7 +929,7 @@ With Advanced Gam, the command "gam print group-members fields email,type" produ
 The group email address column was included only if group was in the fields list; now, Advanced Gam will also output the group
 email address column even if it's not in the field list. In the special case where you don't want the group email address column,
 use the option nogroupemail.
-gam print group-members [todrive [<ToDriveAttributes>]]
+gam print group-members [todrive [<ToDriveAttribute>]]
         [domain <DomainName>] [member <UserItem>])|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
         [roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
@@ -930,7 +946,7 @@ Added Team Drive support to print/show file counts by MIME type for users.
 gam <UserTypeEntity> show filecounts [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
         [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>] [showmimetype [not] <MimeTypeList>]
         [select <TeamDriveEntity>]
-gam <UserTypeEntity> print filecounts [todrive [<ToDriveAttributes>]] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
+gam <UserTypeEntity> print filecounts [todrive [<ToDriveAttribute>]] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
         [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>] [showmimetype [not] <MimeTypeList>]
         [select <TeamDriveEntity>]
 
@@ -939,7 +955,7 @@ gam <UserTypeEntity> print filecounts [todrive [<ToDriveAttributes>]] [corpora <
 Added commands to print/show file counts by MIME type for users.
 gam <UserTypeEntity> show filecounts [anyowner|(showownedby any|me|others)]
         [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>] [showmimetype [not] <MimeTypeList>]
-gam <UserTypeEntity> print filecounts [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)]
+gam <UserTypeEntity> print filecounts [todrive [<ToDriveAttribute>]] [anyowner|(showownedby any|me|others)]
         [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>] [showmimetype [not] <MimeTypeList>]
 
 4.55.41
@@ -962,7 +978,7 @@ Display allowedConferenceSolutionTypes in gam info/print/show calendars.
 4.55.37
 
 Added command to print classic sites ACLs.
-gam [<UserTypeEntity>] print siteacls <SiteEntity> [todrive [<ToDriveAttributes>]]
+gam [<UserTypeEntity>] print siteacls <SiteEntity> [todrive [<ToDriveAttribute>]]
 
 4.55.36
 
@@ -988,9 +1004,9 @@ Fixed bug in gam print filelist where specifying the field owners.emailaddress c
 Added showstudentemails option to gam show/print guardians so that the student email address will be displayed in addition to the student ID.
 This requires an additional API call per guardian.
 gam show guardian|guardians invitations [showstudentemails] [states <GuardianStateList>] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
-gam print guardian|guardians invitations [todrive [<ToDriveAttributes>]] [showstudentemails] [states <GuardianStateList>] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
+gam print guardian|guardians invitations [todrive [<ToDriveAttribute>]] [showstudentemails] [states <GuardianStateList>] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
 gam show guardian|guardians [showstudentemails] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
-gam print guardian|guardians [todrive [<ToDriveAttributes>]] [showstudentemails] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
+gam print guardian|guardians [todrive [<ToDriveAttribute>]] [showstudentemails] [invitedguardian <EmailAddress>] [student <StudentItem>] [<UserTypeEntity>]
 
 4.55.33
 
@@ -1006,10 +1022,10 @@ gam info cros <CrOSEntity> [nolists] [listlimit <Number>] [start <Date>] [end <D
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
 gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
-gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
+gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttribute>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
-gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
+gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttribute>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [both] [devicefiles] [all] [listlimit <Number>] [start <Date>] [end <Date>]
         [delimiter <Character>] [formatjson] [quotechar <Character>]
 
@@ -1060,8 +1076,8 @@ Fixed bug where {RT}...{Tag}...{/RT} was not properly deleted when Tag was not d
 4.55.28
 
 Added the ability to update domain/user contacts by querying for them.
-gam update contacts <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]) <ContactAttributes>+
-gam <UserTypeEntity> update contacts <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>] [endquery]) [contactgroup <ContactGroupItem>] <ContactAttributes>+
+gam update contacts <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]) <ContactAttribute>+
+gam <UserTypeEntity> update contacts <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>] [endquery]) [contactgroup <ContactGroupItem>] <ContactAttribute>+
 
 4.55.27
 
@@ -1096,12 +1112,12 @@ perform case insensitive matches. The same is true for the matchfield option in 
 
 Added emailmatchpattern <RegularExpression> and namematchpattern <RegularExpression> to the following commands to
 allow filtering on the group email address and name; Gam applies these filters after downloading the groups from the API.
-gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member <UserItem>])|[select <GroupEntity>]
+gam print groups [todrive [<ToDriveAttribute>]] ([domain <DomainName>] [member <UserItem>])|[select <GroupEntity>]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
         [maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
         [members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
         [convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
-gam print group-members [todrive [<ToDriveAttributes>]]
+gam print group-members [todrive [<ToDriveAttribute>]]
         [domain <DomainName>] [member <UserItem>])|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
         [roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>*
@@ -1120,7 +1136,7 @@ Improve error reporting when scopes are not authorized.
 Added owneremailmatchpattern <RegularExpression> option to gam print courses to allow filtering of courses based on the owner emailaddress.
 The `<RegularExpression>` can be used to match a specific address "foo@bar.com", a pattern ".*test.*" or the special value "Unknown user" for those
 courses where the owner has been deleted.
-gam print courses [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
+gam print courses [todrive [<ToDriveAttribute>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
         [owneremail] [owneremailmatchpattern <RegularExpression>] [alias|aliases][delimiter <Character>] [show all|students|teachers] [countsonly]
         [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
 
@@ -1140,11 +1156,11 @@ Many gam print commands display "Getting ... (n/m)" messages while stepping thro
 Other gam print commands display no output as they progress; a "Getting ... (n/m)" message has been added to these commands.
 
 Added enabledonly option to gam print forward/vacation to disable output of users with these options disabled.
-gam <UserTypeEntity> print forward [enabledonly] [todrive [<ToDriveAttributes>]]
-gam <UserTypeEntity> print vacation [enabledonly] [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> print forward [enabledonly] [todrive [<ToDriveAttribute>]]
+gam <UserTypeEntity> print vacation [enabledonly] [todrive [<ToDriveAttribute>]]
 
 Added retainname option to gam update drivefile to allow updating a Google Drive file from a local file without renaming it.
-gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [retainname | (newfilename <DriveFileName>)] <DriveFileUpdateAttributes>*
+gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [retainname | (newfilename <DriveFileName>)] <DriveFileUpdateAttribute>*
 Here are the file naming rules:
 create drivefile localfile "LocalFile.csv" - Google Drive file is named "LocalFile.csv"
 create drivefile drivefilename "GoogleFile.csv" localfile "LocalFile.csv" - Google Drive file is named "GoogleFile.csv"
@@ -1156,24 +1172,24 @@ Added matchname <RegularExpression> argument to all commands that print or show 
 It is more flexible that the administrator query for a Team Drive name described here: https://developers.google.com/drive/v3/web/search-parameters#team_drive_fields
 It can be used with all commands, the administrator query can ony be used when adminaccess is implied or explicitly specified.
 
-gam print teamdrives [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] (role <TeamDriveACLRole>)* [todrive [<ToDriveAttributes>]]
+gam print teamdrives [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] (role <TeamDriveACLRole>)* [todrive [<ToDriveAttribute>]]
 gam show teamdrives [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] (role <TeamDriveACLRole>)*
 
-gam <UserTypeEntity> print teamdrives adminaccess [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] (role <TeamDriveACLRole>)* [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> print teamdrives adminaccess [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] (role <TeamDriveACLRole>)* [todrive [<ToDriveAttribute>]]
 gam <UserTypeEntity> show teamdrives adminaccess [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] (role <TeamDriveACLRole>)*
 
-gam <UserTypeEntity> print teamdrives [matchname <RegularExpression>] (role <TeamDriveACLRole>)* [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> print teamdrives [matchname <RegularExpression>] (role <TeamDriveACLRole>)* [todrive [<ToDriveAttribute>]]
 gam <UserTypeEntity> show teamdrives [matchname <RegularExpression>] (role <TeamDriveACLRole>)*
 
 Added commands to display Team Drive ACLs. These commands can be time consuming as Gam gets the list of Team Drives with one API call and then makes an API call per Team Drive to get the ACL information.
-gam print teamdriveacls [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)* [oneitemperrow] [todrive [<ToDriveAttributes>]]
+gam print teamdriveacls [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)* [oneitemperrow] [todrive [<ToDriveAttribute>]]
 gam show teamdriveacls [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
-gam <UserTypeEntity> print teamdriveacls adminaccess [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)* [oneitemperrow] [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> print teamdriveacls adminaccess [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)* [oneitemperrow] [todrive [<ToDriveAttribute>]]
 gam <UserTypeEntity> show teamdriveacls adminaccess [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
 
 4.55.17
 
-Added fulltimeequivalent <Integer> field to organization item in <UserAttributes>.
+Added fulltimeequivalent <Integer> field to organization item in <UserAttribute>.
 From the API documentation: the full-time equivalent percent within the organization (100000 = 100%).
 
 Added showuserprofile option to gam print course-submissions to display the user email address and name in addition to the numeric userId.
@@ -1199,11 +1215,11 @@ gam printer|printers <PrinterIDEntity> sync user|manager|owner [usersonly|groups
 
 Added a command to simplify moving a Drive file/folder to a new location; this command replaces all existing parents with a new parent.
 Use gam <UserTypeEntity> update for more complex parent changes.
-<DriveFileMoveAttributes> ::=
+<DriveFileMoveAttribute> ::=
         ((parentid <DriveFolderID>)|(parentname <DriveFolderName>)|(anyownerparentname <DriveFolderName>))|
          (teamdriveparentid <DriveFolderID>)|
          ((teamdriveparentid <TeamDriveID>)|(teamdriveparent <TeamDriveName>) [teamdriveparentname <DriveFolderName>]))
-gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>] <DriveFileMoveAttributes>*
+gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>] <DriveFileMoveAttribute>*
 
 Moving a Drive folder to a Team Drive is not directly supported by the API; Gam has to make a copy of the folder on the Team Drive and
 recursively adjust the files/folders within it to point to the new parent folder.
@@ -1224,9 +1240,9 @@ Miscellaneous cleanup.
 4.55.14
 
 Added the ability to add/remove attachments to/from calendar events.
-<EventAttributes> ::=
+<EventAttribute> ::=
         (attachment <String> <URL>)
-<EventUpdateAttributes> ::=
+<EventUpdateAttribute> ::=
         clearattachments
 
 On an add or update, you can specify multiple attachments; <String> is the title of the attachment and <URL> is a sharable link from Google Drive.
@@ -1291,7 +1307,7 @@ You need to execute the following command to enable the scope that authorizes th
 
 See: https://github.com/taers232c/GAMADV-XTD/wiki/Courses
 
-gam print course-announcements [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+gam print course-announcements [todrive [<ToDriveAttribute>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         (courseannouncementids <CourseAnnouncementIDEntity>)|((announcementstates <CourseAnnouncementStateList>)* (orderby <CourseAnnouncementOrderByFieldName> [ascending|descending])*)
         [creatoremail] [fields <CourseAnnouncementFieldNameList>]
 
@@ -1310,7 +1326,7 @@ The GAMADV-X and GAMADVX-TD version numbers are now the same.
 Added option to allow setting Google Drive file properties.
 See: https://developers.google.com/drive/v2/reference/properties#resource
 
-<DriveFileAttributes> ::=
+<DriveFileAttribute> ::=
         (privateproperty <PropertyKey> <PropertyValue>)|
         (publicproperty <PropertyKey> <PropertyValue>)|
         (property <PropertyKey> <PropertyValue> [private|public])|
@@ -1324,10 +1340,10 @@ See: https://github.com/taers232c/GAMADV-XTD/wiki/ChromeOS-Devices
 
 <CrOSFieldName> ::=
         devicefiles|
-gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
+gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttribute>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
-gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
+gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttribute>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>] [limittoou <OrgUnitItem>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [both] [devicefiles] [all] [listlimit <Number>] [start <Date>] [end <Date>]
         [delimiter <Character>]
 
@@ -1363,17 +1379,17 @@ gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>]
         [keepuser | (retainrole reader|commenter|writer|editor|none)] [noretentionmessages]
         [nonowner-retainrole reader|commenter|writer|editor|current|none] [nonowner-targetrole reader|commenter|writer|editor|current|none|source]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-        [preview] [todrive [<ToDriveAttributes>]]
+        [preview] [todrive [<ToDriveAttribute>]]
 
 Added commands to print course work and course submissions.
 You need to execute the following command to enable the scope that authorizes these commands: gam oauth create
 
 See: https://github.com/taers232c/GAMADV-XTD/wiki/Courses
 
-gam print course-work [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+gam print course-work [todrive [<ToDriveAttribute>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         (courseworkids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)* (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
         [fields <CourseWorkFieldNameList>]
-gam print course-submissions [todrive [<ToDriveAttributes>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+gam print course-submissions [todrive [<ToDriveAttribute>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         (courseworkids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)* (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
         (coursesubmissionids <CourseSubmissionIDEntity>)|((submissionstates <CourseSubmissionStateList>)*) [late|notlate]
         [fields <CourseSubmissionFieldNameList>]
@@ -1395,7 +1411,7 @@ the non-suspended users.
         (ous|ous_ns <OrgUnitList>)|
         (ous_and_children|ous_and_children_ns <OrgUnitList>)|
 
-gam print group-members [todrive [<ToDriveAttributes>]]
+gam print group-members [todrive [<ToDriveAttribute>]]
         [domain <DomainName>] [member <UserItem>])|[group|group_ns <GroupItem>]|[select <GroupEntity>] [notsuspended]
         [members] [managers] [owners] [membernames] <MembersFieldName>*
         [fields <MembersFieldNameList>] [userfields <UserFieldNameList>] [recursive [noduplicates]]
@@ -1582,10 +1598,10 @@ For example, you can now specify purple instead of #800080.
 <ColorHex> ::= #<Hex><Hex><Hex><Hex><Hex><Hex>
 <ColorValue> ::= <ColorName>|<ColorHex>
 
-<CalendarAttributes> ::=
+<CalendarAttribute> ::=
         (backgroundcolor <ColorValue>)|
         (foregroundcolor <ColorValue>)
-<DriveFileAttributes> ::=
+<DriveFileAttribute> ::=
         (folderColorRgb <ColorValue>)
 
 Thanks to Jay for providing impetus to add customtheme and color options to gam update teamdrive.
@@ -1651,7 +1667,7 @@ Extended gam print/show teamdrives role processing. Previously, a user had to di
 for a Team Drive for it to be included in the output. Now, the checkgroups options causes a Team Drive to be displayed
 if a group has one of the specified roles and the user is a member of the group.
 
-gam <UserTypeEntity> print teamdrives (role commenter|organizer|owner|reader|writer)* [checkgroups] [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> print teamdrives (role commenter|organizer|owner|reader|writer)* [checkgroups] [todrive [<ToDriveAttribute>]]
 gam <UserTypeEntity> show teamdrives (role commenter|organizer|owner|reader|writer)* [checkgroups]
 
 4.54.39
@@ -1670,7 +1686,7 @@ csv_output_line_terminator
 By default, Gam displays all Team Drives to which the user has access; you can limit the display
 by using the `role` option; multiple instances of `role` are allowed.
 
-gam <UserTypeEntity> print teamdrives (role commenter|organizer|owner|reader|writer)* [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> print teamdrives (role commenter|organizer|owner|reader|writer)* [todrive [<ToDriveAttribute>]]
 gam <UserTypeEntity> show teamdrives (role commenter|organizer|owner|reader|writer)*
 
 4.54.37
@@ -1679,11 +1695,11 @@ Thanks to Jay for suggesting extending gam delete asps to delete all of a user's
 gam <UserTypeEntity> delete asps|applicationspecificpasswords all|<ASPIDList>
 
 Extended commands relating to administrators.
-gam print privileges [todrive [<ToDriveAttributes>]]
+gam print privileges [todrive [<ToDriveAttribute>]]
 gam show privileges
-gam print adminroles|roles [todrive [<ToDriveAttributes>]] [privileges]
+gam print adminroles|roles [todrive [<ToDriveAttribute>]] [privileges]
 gam show adminroles|roles [privileges]
-gam print admins [todrive [<ToDriveAttributes>]] [user <UserItem>] [role <RoleItem>]
+gam print admins [todrive [<ToDriveAttribute>]] [user <UserItem>] [role <RoleItem>]
 gam show admins [user <UserItem>] [role <RoleItem>]
 
 4.54.36
@@ -1695,11 +1711,11 @@ When using the gam print groups/users commands with the formatjson option, doubl
 The quotechar <Character> option allows you to choose an alternate quote character, single quote for instance, that makes for readable/processable output.
 quotechar defaults to gam.cfg/csv_output_quote_char.
 
-gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member <UserItem>])|[select <GroupEntity>]
+gam print groups [todrive [<ToDriveAttribute>]] ([domain <DomainName>] [member <UserItem>])|[select <GroupEntity>]
         [maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
         [members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
         [convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
-gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [query <QueryUsers>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
+gam [<UserTypeEntity>] print users [todrive [<ToDriveAttribute>]] ([domain <DomainName>] [query <QueryUsers>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
         [groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
         [orderby <UserOrderByFieldName> [ascending|descending]]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
@@ -1708,13 +1724,13 @@ gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]] ([domain <Dom
 4.54.35
 
 Allow user attribute gender to be cleared.
-<UserAttributes> ::=
+<UserAttribute> ::=
         (gender clear|(female|male|unknown|(other <String>) [addressmeas <String>]))
 
 4.54.34
 
 Added new user attributes.
-<UserAttributes> ::=
+<UserAttribute> ::=
         (gender type female|male|unknown|(other <String>) [addressmeas <String>])|
         (keyword|keywords clear|(type occupation|outlook|(custom <string>) <String>))|
         (language|languages clear|<LanguageList>)|
@@ -1784,7 +1800,7 @@ in <DriveFieldName> and <DriveFieldNameList>.
         trashinguser.picture
 
 gam <UserTypeEntity> show fileinfo <DriveFileEntity> [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)]
+gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttribute>]] [anyowner|(showownedby any|me|others)]
         [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
         [select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [mimetype [not] <MimeTypeList>] [depth <Number>] [showparent]
         [filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
@@ -1805,7 +1821,7 @@ Code cleanup.
 
 Added showparent option to gam print filelist. By default, when the select <DriveFileEntityListTree> option is used,
 only the children of the selected folder are displayed; the showparent option causes the selected folder to also be displayed.
-gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)]
+gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttribute>]] [anyowner|(showownedby any|me|others)]
         [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
         [select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [mimetype [not] <MimeTypeList>] [depth <Number>] [showparent]
         [filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
@@ -1818,7 +1834,7 @@ gam <UserTypeEntity> claim ownership <DriveFileEntity> [includetrashed]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
         [restricted [<Boolean>]] [writerscanshare|writerscantshare [<Boolean>]] [keepuser | (retainrole reader|commenter|writer|editor|none)]
-        [preview] [filepath] [buildtree] [todrive [<ToDriveAttributes>]]
+        [preview] [filepath] [buildtree] [todrive [<ToDriveAttribute>]]
 
 For details, see: https://github.com/taers232c/GAMADV-XTD/wiki/Users-Drive-Ownership
 
@@ -1843,7 +1859,7 @@ When batchsuborgs is specified, Gam gets all of the top level org units with one
 in subsequent API calls to get the sub org units. There is no benefit to using this option unless the commands fail
 without it. The number of sub org units processed in each batch is controlled by batch_size in gam.cfg.
 
-gam print orgs|ous [todrive [<ToDriveAttributes>]] [showparent] [toplevelonly] [fromparent <OrgUnitItem>]
+gam print orgs|ous [todrive [<ToDriveAttribute>]] [showparent] [toplevelonly] [fromparent <OrgUnitItem>]
         [allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)] [convertcrnl] [batchsuborgs [<Boolean>]]
 gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [<Boolean>]]
 
@@ -1891,10 +1907,10 @@ Added states <CourseStateList> option to gam print courses/course-participants t
 
 <CourseState> ::= active|archived|provisioned|declined
 <CourseStateList> ::= "<CourseState>(,<CourseState>)*"
-gam print courses [todrive [<ToDriveAttributes>]] (course|class <CourseID>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
+gam print courses [todrive [<ToDriveAttribute>]] (course|class <CourseID>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
         [owneremail] [alias|aliases][delimiter <Character>] [show all|students|teachers] [countsonly]
         [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
-gam print course-participants [todrive [<ToDriveAttributes>]] (course|class <CourseID>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
+gam print course-participants [todrive [<ToDriveAttribute>]] (course|class <CourseID>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
         [show all|students|teachers]
 
 By default, all course states are selected.
@@ -1915,9 +1931,9 @@ gam <UserTypeEntity> info users [quick] [noaliases] [nogroups] [nolicenses|nolic
 
 Added maxactivities <Number> option to gam report to allow specification of the maximum number of activities to report.
 
-gam report users|user [todrive [<ToDriveAttributes>]] [nodatechange] [maxresults <Number>] [maxactivities <Number>]
+gam report users|user [todrive [<ToDriveAttribute>]] [nodatechange] [maxresults <Number>] [maxactivities <Number>]
         [date <Date>] [(user all|<UserItem>)|(select <UserTypeEntity>)] [filter|filters <String>] [fields|parameters <String>]
-gam report admin|calendar|calendars|drive|docs|doc|groups|group|logins|login|mobile|tokens|token [todrive [<ToDriveAttributes>]] [maxresults <Number>] [maxactivities <Number>]
+gam report admin|calendar|calendars|drive|docs|doc|groups|group|logins|login|mobile|tokens|token [todrive [<ToDriveAttribute>]] [maxresults <Number>] [maxactivities <Number>]
         [([start <Time>] [end <Time>])|yesterday] [(user all|<UserItem>)|(select <UserTypeEntity>)] [event <String>] [filter|filters <String>] [ip <String>] [countsonly] [summary]
 
 (n.b., maxresults <Number> limits the number of activities downloaded per API call, not the total number of activities.)
@@ -2021,7 +2037,7 @@ to supply a CSV file to an external source that uses a different quote character
 When using the gam print sheetranges command with the formatjson option, double quotes are used extensively in the data resulting in hard to read output.
 This command allows you to define the quote character directly.
 
-gam <UserTypeEntity> print sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+  [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> print sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+  [todrive [<ToDriveAttribute>]]
         [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
         [formatjson] [quotechar <Character>]
 
@@ -2057,7 +2073,7 @@ Added commands to manipulate spreadsheets.
 
     gam <UserTypeEntity> clear sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+
 
-    gam <UserTypeEntity> print sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+  [todrive [<ToDriveAttributes>]]
+    gam <UserTypeEntity> print sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+  [todrive [<ToDriveAttribute>]]
         [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
         [formatjson]
     gam <UserTypeEntity> show sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+
@@ -2130,7 +2146,7 @@ By default, all types of files and folders are displayed. You can specify a list
         gsheet|gspreadsheet|
         <String>
     <MimeTypeList> ::= "<MimeType>(,<MimeType>)*"
-    gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)]
+    gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttribute>]] [anyowner|(showownedby any|me|others)]
         [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
         [select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [mimetype [not] <MimeTypeList>] [depth <Number>]
         [filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <String>]
@@ -2149,7 +2165,7 @@ recursively beneath the specified folder. Depending on the number of folders, th
 additional API calls are being made.
 
 The buildtree argument specifies that you want the first mode (build file tree) mode of operation.
-    gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [anyowner|(showownedby any|me|others)]
+    gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttribute>]] [anyowner|(showownedby any|me|others)]
         [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
         [select <DriveFileEntityListTree>] [showmimetype [not] <MimeTypeList>] [depth <Number>]
         [filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <String>]
@@ -2176,7 +2192,7 @@ additional API calls are being made.
 The buildtree argument specifies that you want the first mode (build file tree) mode of operation.
     gam <UserTypeEntity> claim ownership <DriveFileEntity> [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
         [includetrashed] [restricted [<Boolean>]] [writerscantshare [<Boolean>]]
-        [filepath] [preview] [buildtree] [todrive [<ToDriveAttributes>]]
+        [filepath] [preview] [buildtree] [todrive [<ToDriveAttribute>]]
 
 Typically, the filepath option is used with the preview option so you can verify what files are going to be transferred.
 If buildtree is specified, you will see the full path to each file. If buildtree is not specified, you will see the
@@ -2194,7 +2210,7 @@ For posixaccounts, no two values with the same systemId can be marked primary.
 With thanks to Jay for the initial code, new user attributes have been added.
 See: https://developers.google.com/admin-sdk/directory/v1/reference/users#resource
 
-    <UserAttributes> ::=
+    <UserAttribute> ::=
         (location|locations clear|([type default|desk|<String>] area <String> [building|buildingid <String>] [floor|floorname <String>] [section|floorsection <String>] [desk|deskcode <String>] endlocation))|
         (posix|posixaccounts clear|(username <String> uid <Integer> [gid <Integer>] [system|systemid <String>] [home|homedirectory <String>] [shell <String>] [gecos <String>] [primary <Boolean>] endposix))|
         (ssh|sshkeys|sshpublickeys clear|(key <String> [expires <Integer>] endssh))|
@@ -2211,14 +2227,14 @@ that format uses \r as a line terminator and it was not recognized by Gam.
 4.53.24
 
 Added command to print Gmail labels to a CSV file.
-    gam <UserTypeEntity> print labels|label [onlyuser [<Boolean>]] [showcounts [<Boolean>]] [todrive [<ToDriveAttributes>]]
+    gam <UserTypeEntity> print labels|label [onlyuser [<Boolean>]] [showcounts [<Boolean>]] [todrive [<ToDriveAttribute>]]
 
 Added select <DriveFileEntity> argument to gam transfer drive to allow transferring selected files/folders of a source user
 to a target user rather that all of the source users file/folders.
     gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>] [keepuser | (retainrole reader|commenter|writer|editor)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>]
-        [preview] [todrive [<ToDriveAttributes>]]
+        [preview] [todrive [<ToDriveAttribute>]]
 
 Added owneremail option to gam info/print courses to have Gam display the course owners email address. There is an extra API call per course to
 get the email address.
@@ -2226,7 +2242,7 @@ get the email address.
         [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
     gam info courses <CourseEntity> [owneremail] [alias|aliases] [show all|students|teachers] [countsonly]
         [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
-    gam print courses [todrive [<ToDriveAttributes>]] (course|class <CourseID>)*|([teacher <UserItem>] [student <UserItem>])
+    gam print courses [todrive [<ToDriveAttribute>]] (course|class <CourseID>)*|([teacher <UserItem>] [student <UserItem>])
         [owneremail] [alias|aliases][delimiter <String>] [show all|students|teachers] [countsonly]
         [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
 
@@ -2290,7 +2306,7 @@ additional API calls are being made.
 
 The buildtree argument specifies that you want the first mode (build file tree) mode of operation.
     gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-        [filepath] [preview] [buildtree] [todrive [<ToDriveAttributes>]]
+        [filepath] [preview] [buildtree] [todrive [<ToDriveAttribute>]]
 
 Typically, the filepath option is used with the preview option so you can verify what files are going to be transferred.
 If buildtree is specified, you will see the full path to each file. If buildtree is not specified, you will see the
@@ -2314,7 +2330,7 @@ In particular, you must use the exact case of an alias in order to delete it.
 
 Updated todrive to allow choosing whether to open a browser to view the uploaded file.
 The default value is the value of no_browser from gam.cfg.
-    <ToDriveAttributes> ::=
+    <ToDriveAttribute> ::=
         (tduser <EmailAddress>)|
         (tdtitle <String>)|
         (tdparent id:<DriveFolderID>|<DriveFolderName>)|(tdfileid <DriveFileID>)
@@ -2333,7 +2349,7 @@ Corrected gam delete guardian to properly delete a guardian specified by email a
 4.53.12
 
 Updated todrive to allow updating an existing file rather than creating a new file.
-<ToDriveAttributes> ::=
+<ToDriveAttribute> ::=
         (tduser <EmailAddress>)|
         (tdtitle <String>)|
         (tdparent id:<DriveFolderID>|<DriveFolderName>)|(tdfileid <DriveFileID>)
@@ -2366,7 +2382,7 @@ The field names are always the Google Drive REST API v3 native names; drive_v3_n
         usageindrivetrash
 <DriveSettingsFieldNameList> ::= "<DriveSettingsFieldName>(,<DriveSettingsFieldName>)*"
 
-gam <UserTypeEntity> print drivesettings [todrive [<ToDriveAttributes>]] [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <String>]
+gam <UserTypeEntity> print drivesettings [todrive [<ToDriveAttribute>]] [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <String>]
 gam <UserTypeEntity> show drivesettings [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <String>]
 
 If no fields are selected, these fields will be displayed:
@@ -2411,7 +2427,7 @@ Added new method (query:orgunitpath:<OrgUnitPath>) of specifying CrOS OU for bac
     <CrOSEntity> ::= <CrOSItem> | <CrOSList> | <FileSelector> | <CSVkmdSelector>
     gam info cros <CrOSEntity> [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
-    gam update cros <CrOSEntity> (<CrOSAttributes>+ [quickcrosmove [<Boolean>]])|(action <CrOSAction> [acknowledge_device_touch_requirement])
+    gam update cros <CrOSEntity> (<CrOSAttribute>+ [quickcrosmove [<Boolean>]])|(action <CrOSAction> [acknowledge_device_touch_requirement])
 Example: move CrOS devices from one OU to another:
     gam update cros query:orgunitpath:/Students/2017 ou /Students/2018
 The simpler way to do this is:
@@ -2420,11 +2436,11 @@ The simpler way to do this is:
 Google has introduced a new, faster method for moving CrOS devices to a new OU. The quickcrosmove argument in the
 following commands causes Gam to use the new method; if not specified, the previous individual/batch method is used.
 In the CrOS update commands, the quickcrosmove is applicable only if the OU is the only <CrOSAttribute> being updated;
-if other <CrOSAttributes> are being updated, each CrOS device is updated individually.
+if other <CrOSAttribute> are being updated, each CrOS device is updated individually.
 In the new method, Google doesn't seem to do any error checking of the CrOS deviceIds, there is no error message
 given if invalid CrOS deviceIds are specified.
-    gam update cros <CrOSEntity> (<CrOSAttributes>+ [quickcrosmove [<Boolean>]])|(action <CrOSAction> [acknowledge_device_touch_requirement])
-    gam <CrOSTypeEntity> update (<CrOSAttributes>+ [quickcrosmove [<Boolean>]])|(action <CrOSAction> [acknowledge_device_touch_requirement])
+    gam update cros <CrOSEntity> (<CrOSAttribute>+ [quickcrosmove [<Boolean>]])|(action <CrOSAction> [acknowledge_device_touch_requirement])
+    gam <CrOSTypeEntity> update (<CrOSAttribute>+ [quickcrosmove [<Boolean>]])|(action <CrOSAction> [acknowledge_device_touch_requirement])
     gam update org|ou <OrgUnitItem> add|move <CrOSTypeEntity> [quickcrosmove [<Boolean>]]
     gam update orgs|ous <OrgUnitEntity> add|move <CrOSTypeEntity> [quickcrosmove [<Boolean>]]
 If <Boolean> is not specified for quickcrosmove, the default is True.
@@ -2448,13 +2464,13 @@ Changed anyparentname to sharedparentname in gam add/copy/update drivefile.
 Added members, managers, owners arguments to gam info group and gam print group-members to allow display of specific roles.
 By default, all members, managers and owners are displayed.
     gam info group|groups <GroupEntity> [members] [managers] [owners] [nousers] [noaliases] [groups] <GroupFieldName>* [fields <GroupFieldNameList>] [formatjson]
-    gam print group-members|groups-members [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member <UserItem>])|[group <GroupItem>]|[select <GroupEntity>]
+    gam print group-members|groups-members [todrive [<ToDriveAttribute>]] ([domain <DomainName>] [member <UserItem>])|[group <GroupItem>]|[select <GroupEntity>]
         [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>] [userfields <UserFieldNameList>] [recursive [noduplicates]]
 
 Added sharedparentname argument to gam add/copy/update drivefile to allow specifying a parent folder owned by anyone,
 not just the user in the command. This is typically used to specify a shared folder.
-    <DriveFileAddAttributes> ::=
-        <DriveFileAttributes>|
+    <DriveFileAddAttribute> ::=
+        <DriveFileAttribute>|
         ignoredefaultvisibility|
         (modifieddate|modifiedtime <Time>)|
         (parentid <DriveFolderID>)|
@@ -2464,10 +2480,10 @@ not just the user in the command. This is typically used to specify a shared fol
         (teamdriveparentid <TeamDriveID>|<DriveFolderID>)|
         (teamdriveparentname <DriveFolderName>)|
         usecontentasindexabletext
-    gam <UserTypeEntity> add drivefile [drivefilename <DriveFileName>] <DriveFileAddAttributes>*
+    gam <UserTypeEntity> add drivefile [drivefilename <DriveFileName>] <DriveFileAddAttribute>*
 
-    <DriveFileCopyAttributes> ::=
-        <DriveFileAttributes>|
+    <DriveFileCopyAttribute> ::=
+        <DriveFileAttribute>|
         ignoredefaultvisibility|
         (parentid <DriveFolderID>)|
         (parentname <DriveFolderName>)|
@@ -2475,17 +2491,17 @@ not just the user in the command. This is typically used to specify a shared fol
         (teamdriveparent <TeamDriveName>)|
         (teamdriveparentid <TeamDriveID>|<DriveFolderID>)|
         (teamdriveparentname <DriveFolderName>)
-    gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [recursive [depth <Number>]] <DriveFileCopyAttributes>*
+    gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [recursive [depth <Number>]] <DriveFileCopyAttribute>*
 
-    <DriveFileUpdateAttributes> ::=
-        <DriveFileAttributes>|
+    <DriveFileUpdateAttribute> ::=
+        <DriveFileAttribute>|
         (addparents <DriveFolderIDList>)|
         (removeparents <DriveFolderIDList>)|
         (parentid <DriveFolderID>)|
         (parentname <DriveFolderName>)|
         (sharedparentname <DriveFolderName>)|
         usecontentasindexabletext
-    gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [newfilename <DriveFileName>] <DriveFileUpdateAttributes>*
+    gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [newfilename <DriveFileName>] <DriveFileUpdateAttribute>*
 
 parentid <DriveFolderID> - Specify parent folder by Id
 parentname <FolderName> - Specify parent folder by name, folder is owned by user in command
@@ -2499,12 +2515,12 @@ iCalUID but different event IDs. The import command supports two new attributes 
 event organizer, but the API doesn't seem to honor the values; the organizer is set to
 the calendar owner.
 See: https://developers.google.com/google-apps/calendar/v3/reference/events/import
-    <EventImportAttributes> ::=
-        <EventAttributes>|
+    <EventImportAttribute> ::=
+        <EventAttribute>|
         (organizername <String>)|
         (organizeremail <EmailAddress>)
-    gam calendar|calendars <CalendarEntity> import event icaluid <iCalUID> <EventImportAttributes>+
-    gam <UserTypeEntity> import event <CalendarEntity> icaluid <iCalUID> <EventImportAttributes>+
+    gam calendar|calendars <CalendarEntity> import event icaluid <iCalUID> <EventImportAttribute>+
+    gam <UserTypeEntity> import event <CalendarEntity> icaluid <iCalUID> <EventImportAttribute>+
 
 Added maxinstances argument to gam info events to allow display of instances of recurring events.
     gam calendar|calendars <CalendarEntity> info events <EventEntity> [maxinstances <Number>]
@@ -2575,7 +2591,7 @@ Fixed error in copy drivefile recursive where only the first 100 files in a fold
 4.52.00
 
 Added arguments to print aliases to allow selection of aliases to print.
-    gam print alias|aliases [todrive [<ToDriveAttributes>]] [shownoneditable] [nogroups] [nousers] [query <QueryUser>]
+    gam print alias|aliases [todrive [<ToDriveAttribute>]] [shownoneditable] [nogroups] [nousers] [query <QueryUser>]
 By default, all group and user aliases are printed.
 nogroups - Print only user aliases
 nousers - Print only group aliases
@@ -2591,7 +2607,7 @@ Based on initial code provided by Jay Lee, Google Vault is now supported.
     gam delete vaulthold|hold <HoldItem> matter <MatterItem>
     gam info vaulthold|hold <HoldItem> matter <MatterItem>
     gam show vaultholds|holds [matter|matters <MatterItemList>] [shownames]
-    gam print vaultholds|holds [todrive [<ToDriveAttributes>]] [matter|matters <MatterItemList>] [shownames]
+    gam print vaultholds|holds [todrive [<ToDriveAttribute>]] [matter|matters <MatterItemList>] [shownames]
 
     gam create vaultmatter|matter [name <String>] [description <string>]
         [collaborator|collaborators <CollaboratorItemList>]
@@ -2603,7 +2619,7 @@ Based on initial code provided by Jay Lee, Google Vault is now supported.
     gam undelete vaultmatter|matter <MatterItem>
     gam info vaultmatter|matter <MatterItem>
     gam show vaultmatters|matters [basic|full]
-    gam print vaultmatters|matters [todrive [<ToDriveAttributes>]] [basic|full]
+    gam print vaultmatters|matters [todrive [<ToDriveAttribute>]] [basic|full]
 
 
 To use Vault commands you must do the following two steps.
@@ -2684,7 +2700,7 @@ Updated gam create group to avoid a Google API issue that generated an error whe
 
 * Create User
 Added arguments to gam create user to allow sending a message with account details to a secondary email address upon successful creation.
-    gam create user <EmailAddress> <UserAttributes>* [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
+    gam create user <EmailAddress> <UserAttribute>* [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
 In the subject and message, these strings will be replaced with the specified values:
 #givenname# - first/given name
 #familyname# - last/family name
@@ -2723,7 +2739,7 @@ Orgs:
     print_native_names =  true - orgUnitPath,OrgUnitId,parentOrgUnitPath,parentOrgUnitId,name,description,blockInheritance
 
 Added showparent argument to gam print orgs.
-    gam print orgs|ous [todrive [<ToDriveAttributes>]] [showparent] [toplevelonly] [fromparent <OrgUnitItem>]
+    gam print orgs|ous [todrive [<ToDriveAttribute>]] [showparent] [toplevelonly] [fromparent <OrgUnitItem>]
         [allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)] [convertcrnl]
 By default, gam print orgs prints all child org units of /; if fromparent <OrgUnitItem> is specified, gam prints all child org units of <OrgUnitItem>.
 The showparent argument causes the parent org unit, / or fromparent <OrgUnitItem>, to be printed as well.
@@ -2783,7 +2799,7 @@ Added arguments to gam info/print mobile to allow field specification.
 
     gam info mobile <MobileEntity>
         [basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>]
-    gam print mobile [todrive [<ToDriveAttributes>]] [query <QueryMobile>]
+    gam print mobile [todrive [<ToDriveAttribute>]] [query <QueryMobile>]
         [orderby <MobileOrderByFieldName> [ascending|descending]]
         [basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>]
         [delimiter <String>] [appslimit <Number>] [listlimit <Number>]
@@ -2819,8 +2835,8 @@ depth 1 - copy the folder and its immediate descendants
 depth N - copy the folder and N levels of descendants
 
 Added arguments to gam add/copy drivefile to allow adding/copying files to Team Drives.
-    <DriveFileAddAttributes> ::=
-        <DriveFileAttributes>|
+    <DriveFileAddAttribute> ::=
+        <DriveFileAttribute>|
         ignoredefaultvisibility|
         (modifieddate|modifiedtime <Time>)|
         (parentid <DriveFolderID>)|
@@ -2829,16 +2845,16 @@ Added arguments to gam add/copy drivefile to allow adding/copying files to Team 
         (teamdriveparentid <TeamDriveID>|<DriveFolderID>)|
         (teamdriveparentname <DriveFolderName>)|
         usecontentasindexabletext
-    <DriveFileCopyAttributes> ::=
-        <DriveFileAttributes>|
+    <DriveFileCopyAttribute> ::=
+        <DriveFileAttribute>|
         ignoredefaultvisibility|
         (parentid <DriveFolderID>)|
         (parentname <DriveFolderName>)|
         (teamdriveparent <TeamDriveName>)|
         (teamdriveparentid <TeamDriveID>|<DriveFolderID>)|
         (teamdriveparentname <DriveFolderName>)
-    gam <UserTypeEntity> add drivefile [drivefilename <DriveFileName>] <DriveFileAddAttributes>*
-    gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [recursive [depth <Number>]] <DriveFileCopyAttributes>*
+    gam <UserTypeEntity> add drivefile [drivefilename <DriveFileName>] <DriveFileAddAttribute>*
+    gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [recursive [depth <Number>]] <DriveFileCopyAttribute>*
 To add/copy a file to the root folder of a Team Drive, specify one of the following arguments:
     teamdriveparentid <TeamDriveID> - <TeamDriveID> identifies a Team Drive by ID
     teamdriveparent <TeamDriveName> - <TeamDriveName> identifies a Team Drive by name
@@ -2906,16 +2922,16 @@ writable_files - "'me' in writers and mimeType != application/vnd.google-apps.fo
 
 Added sorting capability to the following commands.
     gam <UserTypeEntity> show drivefileacl <DriveFileEntity> [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-    gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive [<ToDriveAttributes>]]> [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+    gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive [<ToDriveAttribute>]]> [oneitemperrow] [showtitles] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
     gam <UserTypeEntity> show filerevisions <DriveFileEntity> [select <DriveFileRevisionIDEntity>] [previewdelete]
         [showtitles] [<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-    gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] [select <DriveFileRevisionIDEntity>] [previewdelete]
+    gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive [<ToDriveAttribute>]] [oneitemperrow] [select <DriveFileRevisionIDEntity>] [previewdelete]
         [showtitles] [<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
     gam <UserTypeEntity> show fileinfo <DriveFileEntity> [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
     gam <UserTypeEntity> show filepath <DriveFileEntity> (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 
 Added print filepath command. gam print/show filepath require multiple API calls per file to construct the filepath, plan your use accordingly.
-    gam <UserTypeEntity> print filepath <DriveFileEntity> [todrive [<ToDriveAttributes>]] [oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+    gam <UserTypeEntity> print filepath <DriveFileEntity> [todrive [<ToDriveAttribute>]] [oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 
 Several shortcuts have been introduced to allow specifying basic Drive file queries.
 They can be used in any command that uses <DriveFileEntity>.
@@ -2954,7 +2970,7 @@ Print a file list of all of the users folders: gam user testuser@domain.com prin
 4.50.02
 
 Added argument oneitemperrow to print drivefileacls.
-    gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [showtitles] [oneitemperrow] [todrive [<ToDriveAttributes>]]
+    gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [showtitles] [oneitemperrow] [todrive [<ToDriveAttribute>]]
 
 With print drivefileacls, by default the ACLs selected for display are all output on one line as a repeating item with the matching file id.
 When oneitemperrow is specified, each ACL is output on a separate row with the matching file id. This simplifies processing the CSV file
@@ -3017,7 +3033,7 @@ range <DateTime> <DateTime> - leave the earliest revision
 
     gam <UserTypeEntity> show filerevisions <DriveFileEntity> [select <DriveFileRevisionIDEntity>] [previewdelete]
         [showtitles] [<DriveFieldName>*|(fields <DriveFieldNameList>)]
-    gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive [<ToDriveAttributes>]] [select <DriveFileRevisionIDEntity>] [previewdelete]
+    gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive [<ToDriveAttribute>]] [select <DriveFileRevisionIDEntity>] [previewdelete]
         [showtitles] [oneitemperrow] [<DriveFieldName>*|(fields <DriveFieldNameList>)]
 
 When select <DriveFileRevisionIDEntity> is omitted, all revisions are displayed. When select <DriveFileRevisionIDEntity> is specified,
@@ -3035,7 +3051,7 @@ Extended commands for managing Drive file revisions.
     gam <UserTypeEntity> delete filerevision <DriveFileEntity> <DriveFileRevisionID> [showtitles]
     gam <UserTypeEntity> info filerevision <DriveFileEntity> <DriveFileRevisionID> [showtitles]
     gam <UserTypeEntity> show filerevisions <DriveFileEntity> [showtitles]
-    gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive [<ToDriveAttributes>]] [showtitles]
+    gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive [<ToDriveAttribute>]] [showtitles]
 
 4.50.00
 
@@ -3151,7 +3167,7 @@ Added commands to directly manipulate Team Drives.
     gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>] [themeid <String>]
     gam <UserTypeEntity> delete teamdrive <TeamDriveEntity>
     gam <UserTypeEntity> info teamdrive <TeamDriveEntity>
-    gam <UserTypeEntity> print teamdrives [todrive [<ToDriveAttributes>]]
+    gam <UserTypeEntity> print teamdrives [todrive [<ToDriveAttribute>]]
     gam <UserTypeEntity> show teamdrives
 
 The Team Drive theme IDs are available with gam <UserTypeEntity> show drivesettings.
@@ -3179,7 +3195,7 @@ For these commands, <DriveFileEntity> is extended:
         (role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>] [removeexpiration [<Boolean>]] [showtitles]
     gam <UserTypeEntity> delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles]
     gam <UserTypeEntity> show drivefileacl <DriveFileEntity> [showtitles]
-    gam <UserTypeEntity> print drivefileacl <DriveFileEntity> [todrive [<ToDriveAttributes>]] [showtitles]
+    gam <UserTypeEntity> print drivefileacl <DriveFileEntity> [todrive [<ToDriveAttribute>]] [showtitles]
 
 To manage permission roles for files/folders on a Team Drive, <DriveFileEntity> is extended:
     <TeamDriveFileNameEntity> ::= (teamdrivefilename <DriveFileName>) | (teamdrivefilename:<DriveFileName>)
@@ -3188,8 +3204,8 @@ To manage permission roles for files/folders on a Team Drive, <DriveFileEntity> 
         <TeamDriveFileNameEntity> |
         <TeamDriveFileQueryEntity>
 
-When adding/updating/copying files/folders on Team Drives, <DriveFileAttributes> is extended to support Team Drives.
-    <DriveFileAttributes> ::=
+When adding/updating/copying files/folders on Team Drives, <DriveFileAttribute> is extended to support Team Drives.
+    <DriveFileAttribute> ::=
         (teamdriveparent <TeamDriveName>)|
         (teamdriveparentid <DriveFolderID>)|
         (teamdriveparentname <DriveFolderName>)
@@ -3233,7 +3249,7 @@ allteamdrives: Lists files that the user has accessed and all Team Drives in whi
 domain: Lists files that are shared to the domain, including both Team Drive and non-Team Drive files.
 user: Lists files that the user has accessed, including both Team Drive and non-Team Drive files.
 
-    gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
+    gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttribute>]] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
         [query <QueryDriveFile>] [fullquery <QueryDriveFile>]
         [select <DriveFileEntity>|orphans] [depth <Number>] (orderby <DriveOrderByFieldName> [ascending|descending])*
         [filepath] [allfields|<DriveFieldName>*|(fields <DriveFiledNameList>)] [delimiter <String>]
@@ -3246,10 +3262,10 @@ To empty the trash on a Team Drive, the empty drivetrash command has been extend
 
 The following commands are not applicable to Team Drives.
     gam <UserTypeEntity> transfer drive <UserItem> [keepuser]
-    gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed] (orderby <DriveOrderByFieldName> [ascending|descending])* [preview] [filepath] [todrive [<ToDriveAttributes>]]
-    gam <UserTypeEntity> claim ownership <DriveFileEntity> [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>] [includetrashed] [restricted [<Boolean>]] [writerscantshare [<Boolean>]] [preview] [filepath] [todrive [<ToDriveAttributes>]]
+    gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed] (orderby <DriveOrderByFieldName> [ascending|descending])* [preview] [filepath] [todrive [<ToDriveAttribute>]]
+    gam <UserTypeEntity> claim ownership <DriveFileEntity> [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>] [includetrashed] [restricted [<Boolean>]] [writerscantshare [<Boolean>]] [preview] [filepath] [todrive [<ToDriveAttribute>]]
     gam <UserTypeEntity> collect orphans (orderby <DriveOrderByFieldName> [ascending|descending])*
-        [targetuserfoldername <DriveFileName>] [preview] [todrive [<ToDriveAttributes>]]
+        [targetuserfoldername <DriveFileName>] [preview] [todrive [<ToDriveAttribute>]]
 
 4.44.53
 
@@ -3328,7 +3344,7 @@ Added command to collect a users orphaned Drive files/folders into a single fold
 Only orphaned files not in the trash are processed.
 
     gam <UserTypeEntity> collect orphans (orderby <DriveOrderByFieldName> [ascending|descending])*
-        [targetuserfoldername <DriveFileName>] [preview] [todrive [<ToDriveAttributes>]]
+        [targetuserfoldername <DriveFileName>] [preview] [todrive [<ToDriveAttribute>]]
 
 (orderby <DriveOrderByFieldName> [ascending|descending])* - Specify the order in which files are processed.
 
@@ -3336,7 +3352,7 @@ Only orphaned files not in the trash are processed.
 In this string, #user# and #email# will be replaced by the source user email address, #username# will be replaced by the source user mail address without the domain.
 
 [preview] - If preview is specified, no files are collected; a CSV file listing the files to be collected is output.
-[todrive [<ToDriveAttributes>]] - Specifies that the CSV file be written to Google Drive.
+[todrive [<ToDriveAttribute>]] - Specifies that the CSV file be written to Google Drive.
 
 Example:
 Collect a users orphaned files into the folder "Orphans - testuser@domain.com" on their Drive.
@@ -3360,11 +3376,11 @@ Handle ERROR: 403: domainPolicy - The domain policy has disabled third-party Dri
 
 Added charset option to file option of note option of contact attributes.
 Added charset option to file option of note option of user attributes.
-    <ContactAttributes> ::=
+    <ContactAttribute> ::=
         ...
         (note <String>|(file <FileName> [charset <Charset>]))|
         ...
-    <UserAttributes> ::=
+    <UserAttribute> ::=
         ...
         (note|notes clear|([text_plain|text_html] <String>|(file <FileName> [charset <Charset>])))|
         ...
@@ -3437,7 +3453,7 @@ the download order must be reversed so that the printjobs are downloaded in asce
 
 Added countsonly argument to gam print courses; in conjunction with show all|students|teachers, it eliminates
 the student/teacher profile columns and outputs only the columns with student/teacher counts.
-    gam print courses [todrive [<ToDriveAttributes>]] [teacher <UserItem>] [student <UserItem>]
+    gam print courses [todrive [<ToDriveAttribute>]] [teacher <UserItem>] [student <UserItem>]
         [delimiter <String>] [alias|aliases] [show all|students|teachers] [countsonly] [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
 
 4.44.25
@@ -3460,12 +3476,12 @@ If end <Date> is not specified, then there is no filtering for ending date.
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
     gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
-    gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>]
+    gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttribute>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
 
 Based on code by Jay, added a command to get CrOS device activity.
-    gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttributes>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>]
+    gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttribute>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [listlimit <Number>] [start <Date>] [end <Date>]
         [delimiter <String>] 
 
@@ -3558,7 +3574,7 @@ it could not be saved locally at the same time. Now, you can have the CSV file s
 in the same command. The tdlocalcopy subargument to todrive causes the CSV file to be saved and uploaded.
 Added todrive_localcopy to gam.cfg with a default value of false; this value is the default for tdlocalcopy.
 You can specify tdlocalcopy false/true on the command line to override the default value from gam.cfg.
-    <ToDriveAttributes> ::=
+    <ToDriveAttribute> ::=
         (tdtitle <String>)|
         (tduser <EmailAddress>)|
         (tdparent id:<DriveFolderID>|<DriveFolderName>)|
@@ -3615,7 +3631,7 @@ Changed headings of gam print vacation CSV file to match command line arguments.
 4.44.05
 
 Added print vacation command.
-    gam <UserTypeEntity> print vacation [todrive [<ToDriveAttributes>]]        
+    gam <UserTypeEntity> print vacation [todrive [<ToDriveAttribute>]]        
 
 Handle 1801 - Invalid value error in gam audit export.
 
@@ -3642,7 +3658,7 @@ Clean up error messages when Google API requires that Gam wait before retrying.
 4.44.00
 
 Added Reseller API support, derived from Jay's initial code.
-    <ResoldCustomerAttributes> ::=
+    <ResoldCustomerAttribute> ::=
         (email|alternateemail <EmailAddress>)|
         (contact|contactname <String>)|
         (phone|phonenumber <String>)|
@@ -3655,7 +3671,7 @@ Added Reseller API support, derived from Jay's initial code.
         (zipcode|postal|postalcode <String>)|
         (country|countrycode <String>)
 
-    gam create resoldcustomer <CustomerDomain> (customer_auth_token <String>) <ResoldCustomerAttributes>+
+    gam create resoldcustomer <CustomerDomain> (customer_auth_token <String>) <ResoldCustomerAttribute>+
     gam update resoldcustomer <CustomerID> [customer_auth_token <String>] <ResoldCustomerAttribues>+
     gam info resoldcustomer <CustomerID>
 
@@ -3670,13 +3686,13 @@ Added Reseller API support, derived from Jay's initial code.
     gam delete resoldsubscription <CustomerID> <SKUID> cancel|downgrade|transfer_to_direct
     gam info resoldsubscription <CustomerID>  <SKUID>
     gam show resoldsubscriptions [customerid <CustomerID>] [customer_auth_token <String>] [customer_prefix <String>]
-    gam print resoldsubscriptions [todrive [<ToDriveAttributes>]] [customerid <CustomerID>] [customer_auth_token <String>] [customer_prefix <String>]
+    gam print resoldsubscriptions [todrive [<ToDriveAttribute>]] [customerid <CustomerID>] [customer_auth_token <String>] [customer_prefix <String>]
 
 Added createifnotfound to update users. If, when attempting to update a single user, the user is not found, this argument causes Gam to create the user.
 This is a special purpose feature, it will typically be used when an information system outputs a CSV file of user data but does not indicate which
 users are new.
-    gam update user <UserItem> <UserAttributes>* [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>] [createifnotfound]
-    gam update users <UserTypeEntity> <UserAttributes>* [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>] [createifnotfound]
+    gam update user <UserItem> <UserAttribute>* [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>] [createifnotfound]
+    gam update users <UserTypeEntity> <UserAttribute>* [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>] [createifnotfound]
     gam <UserTypeEntity> update users <UserAttrubutes>* [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>] [createifnotfound]
 Example:
     gam  redirect stdout Update.log multiprocess redirect stderr stdout csv Users.csv gam update user "~Email" firstname "~Firstname" lastname "~Lastname" password "~Password" org "~Org" createifnotfound
@@ -3709,11 +3725,11 @@ and gam licenses <SKUIDLIst> <Command> ...
 Added LicensesDisplay column to CSV file for gam print users licenses to show descriptive name of license SKU.
 The Licenses column still displays the actual SKU.
 
-Added tduser <EmailAddress> to <ToDriveAttributes>.
+Added tduser <EmailAddress> to <ToDriveAttribute>.
 Added todrive_user to gam.cfg
 Anywhere you can specify todrive, there are additional subarguments following the todrive argument that let you title the file,
 direct the uploaded file to a particular user and location and add a timestamp to the file title.
-    <ToDriveAttributes> ::=
+    <ToDriveAttribute> ::=
         (tdtitle <String>)|(tduser <EmailAddress>)|(tdparent id:<DriveFolderID>|<DriveFolderName>)|(tdtimestamp <Boolean> [tddaysoffset <Number>] [tdhoursoffset <Number])
 The tdtitle argument specifies the title for the uploaded file, if not specified, the Gam default title is used.
 The tduser argument specifies the user to receive the uploaded file; if not specified, the todrive_user value from gam.cfg is used;
@@ -3752,7 +3768,7 @@ In gam print courses, length columns are not included for the materials field in
 
 Added restricted argument to gam claim ownership to restrict viewers and commenters from copying, downloading and printing the claimed files.
     gam <UserTypeEntity> claim ownership <DriveFileEntity> [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>] [includetrashed]
-        [restricted [<Boolean>]] [writerscantshare [<Boolean>]] [preview] [filepath] [todrive [<ToDriveAttributes>]]
+        [restricted [<Boolean>]] [writerscantshare [<Boolean>]] [preview] [filepath] [todrive [<ToDriveAttribute>]]
 
 4.42.04
 
@@ -3788,7 +3804,7 @@ When you get a filter from Google, all labels mentioned in the filter are specif
 Gam has to make an extra API call to get the labels so it can map from id to name so the output reflects the label names that are familiar to the user.
 If you don't need to see the label names, you can eliminate the extra API call by specifying labelidsonly.
     gam <UserTypeEntity> show filters [labelidsonly]
-    gam <UserTypeEntity> print filters [labelidsonly] [todrive [<ToDriveAttributes>]]
+    gam <UserTypeEntity> print filters [labelidsonly] [todrive [<ToDriveAttribute>]]
 
 4.41.06
 
@@ -3872,7 +3888,7 @@ Added S/MIME support thanks to Jay. You must be a G Suite Enterprise customer to
     gam <UserTypeEntity> update smime [id <SmimeID>] [sendas|sendasemail <EmailAddress>] [default]
     gam <UserTypeEntity> delete smime [id <SmimeID>] [sendas|sendasemail <EmailAddress>]
     gam <UserTypeEntity> show smimes [primaryonly]
-    gam <UserTypeEntity> print smimes [todrive [<ToDriveAttributes>]] [primaryonly]
+    gam <UserTypeEntity> print smimes [todrive [<ToDriveAttribute>]] [primaryonly]
 
 4.40.05
 
@@ -3922,7 +3938,7 @@ Added classroom_max_results to gam.cfg
         Default: 0 (Google defined limit)
 
 Added convertcrnl argument to gam print orgs, it causes \n to be converted to \\n in description, otherwise \n is not changed in that field.
-gam print orgs|ous [todrive [<ToDriveAttributes>]] [toplevelonly] [from_parent <OrgUnitItem>] [allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)] [convertcrnl]
+gam print orgs|ous [todrive [<ToDriveAttribute>]] [toplevelonly] [from_parent <OrgUnitItem>] [allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)] [convertcrnl]
 
 SKU Google-Apps-Unlimited renamed to Google-Apps-Enterprise.
 
@@ -3994,7 +4010,7 @@ Added new forms of commands to manage multiple users.
     gam <UserEntity> undelete users [org|ou <OrgUnitPath>]
     gam <UserTypeEntity> info users [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>] [userview] <UserFieldName>* [fields <UserFieldNameList>] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
 The existing forms are:
-    gam update users <UserTypeEntity> <UserAttributes>* [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
+    gam update users <UserTypeEntity> <UserAttribute>* [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
     gam delete users <UserTypeEntity>
     gam undelete users <UserEntity> [org|ou <OrgUnitPath>]
     gam info users <UserTypeEntity> [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>] [userview] <UserFieldName>* [fields <UserFieldNameList>] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
@@ -4024,7 +4040,7 @@ Replace attendees for selected events in any calendar for which a user has acces
 <CalendarEntity> ::= allcalendars | primary | EmailAddressList> | resource <ResourceID> | resources <ResourceIDList> | (calendars <CalendarList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>) | <CalendarSelectProperties>+
 <CalendarPrintShowEntity> ::= allcalendars | primary | <CalendarSelectProperties>+
 
-<CalendarAttributes> ::=
+<CalendarAttribute> ::=
         (backgroundcolor <ColorHex>)|
         (colorindex|colorid <CalendarColorIndex>)|
         (foregroundcolor <ColorHex>)|
@@ -4036,13 +4052,13 @@ Replace attendees for selected events in any calendar for which a user has acces
 
 Manage a users list of calendars
 
-gam <UserTypeEntity> add calendars <CalendarAddEntity> <CalendarAttributes>*
-gam <UserTypeEntity> update calendars <CalendarEntity> <CalendarAttributes>+
+gam <UserTypeEntity> add calendars <CalendarAddEntity> <CalendarAttribute>*
+gam <UserTypeEntity> update calendars <CalendarEntity> <CalendarAttribute>+
 gam <UserTypeEntity> delete calendars <CalendarEntity>
 
 gam <UserTypeEntity> info calendars <CalendarEntity>
 gam <UserTypeEntity> show calendars <CalendarPrintShowEntity> [permissions]
-gam <UserTypeEntity> print calendars <CalendarPrintShowEntity> [todrive [<ToDriveAttributes>]] [permissions]
+gam <UserTypeEntity> print calendars <CalendarPrintShowEntity> [todrive [<ToDriveAttribute>]] [permissions]
 
 gam <UserTypeEntity> show calsettings
 
@@ -4070,7 +4086,7 @@ gam <UserTypeEntity> delete calendaracls <CalendarEntity> <CalendarACLRole>] <Ca
 
 gam <UserTypeEntity> info calendaracls <CalendarEntity> <CalendarACLScopeEntity>
 gam <UserTypeEntity> show calendaracls <CalendarEntity>
-gam <UserTypeEntity> print calendaracls <CalendarEntity> [todrive [<ToDriveAttributes>]]
+gam <UserTypeEntity> print calendaracls <CalendarEntity> [todrive [<ToDriveAttribute>]]
 
 Transfer ownership of a selection of a users calendars to another user
 
@@ -4101,7 +4117,7 @@ gam <UserTypeEntity> transfer calendars <UserItem> <CalendarEntity> [keepuser] [
         (events <EventIdList> | <FileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|
         (<EventSelectProperties>+ <EventMatchProperties>*)
 
-<EventAddAttributes> ::=
+<EventAddAttribute> ::=
         (anyonecanaddself <Boolean>)|
         (attendee <EmailAddress>)|
         available|
@@ -4137,15 +4153,15 @@ The following attributes are equivalent:
         guestscantseeothers = guestscanseeotherguests False
         tentative = status tentative
 
-<EventUpdateAttributes> ::=
-        <EventAddAttributes>|
+<EventUpdateAttribute> ::=
+        <EventAddAttribute>|
         (clearprivateproperty <PropertyKey>)|
         (clearsharedproperty <PropertyKey>)
 
 Add update and delete events in any calendar for which a user has access
 
-gam <UserTypeEntity> add event <CalendarEntity> [id <String>] <EventAddAttributes>+
-gam <UserTypeEntity> update events <CalendarEntity> <EventEntity> <EventUpdateAttributes>+
+gam <UserTypeEntity> add event <CalendarEntity> [id <String>] <EventAddAttribute>+
+gam <UserTypeEntity> update events <CalendarEntity> <EventEntity> <EventUpdateAttribute>+
 gam <UserTypeEntity> delete events <CalendarEntity> <EventEntity> [doit] [notifyattendees]
 gam <UserTypeEntity> wipe events <CalendarEntity>
 gam <UserTypeEntity> move events <CalendarEntity> <EventEntity> to <CalendarItem> [notifyattendees]
@@ -4160,7 +4176,7 @@ gam <UserTypeEntity> update calattendees <CalendarEntity> <EventEntity> [anyorga
 
 gam <UserTypeEntity> info events <CalendarEntity> <EventEntity>
 gam <UserTypeEntity> show events <CalendarPrintShowEntity> ([allevents] <EventSelectProperties>*) <EventDisplayProperties>*
-gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventSelectProperties>*) [todrive [<ToDriveAttributes>]] <EventDisplayProperties>*
+gam <UserTypeEntity> print events <CalendarPrintShowEntity> ([allevents] <EventSelectProperties>*) [todrive [<ToDriveAttribute>]] <EventDisplayProperties>*
 
 gam resource calendar processing has been rewritten.
 
@@ -4189,7 +4205,7 @@ gam delete resources <ResourceEntity>
 gam info resources <ResourceEntity>
 
 gam show resources [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)] [convertcrnl]
-gam print resources [todrive [<ToDriveAttributes>]] [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)] [convertcrnl]
+gam print resources [todrive [<ToDriveAttribute>]] [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)] [convertcrnl]
 
 gam resource <ResourceID> add calendaracls <CalendarACLRole> <CalendarACLScopeEntity>
 gam resource <ResourceID> update calendaracls <CalendarACLRole> <CalendarACLScopeEntity>
@@ -4206,7 +4222,7 @@ gam resources <ResourceEntity> info calendaracls <CalendarACLScopeEntity>
 The csv argument has been dropped from gam printer <PrinterIDEntity> showacls. A new command has been added to
 output printer ACLs to a CSV file.
     gam printers <PrinterIDEntity> showacls
-    gam printers <PrinterIDEntity> printacls [todrive [<ToDriveAttributes>]]
+    gam printers <PrinterIDEntity> printacls [todrive [<ToDriveAttribute>]]
 
 Added fields <ResourceFieldNameList> to gam print resources
     <ResourceFieldName> ::=
@@ -4217,7 +4233,7 @@ Added fields <ResourceFieldNameList> to gam print resources
         type
     <ResourceFieldNameList> ::= '<ResourceFieldName>(,<ResourceFieldName>)*'
 
-    gam print resources [todrive [<ToDriveAttributes>]] [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)] [convertcrnl]
+    gam print resources [todrive [<ToDriveAttribute>]] [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)] [convertcrnl]
 
 Handle bad data from Google in gam report users.
 
@@ -4246,7 +4262,7 @@ Added fields argument to gam print orgs.
         path|orgunitpath
     <OrgUnitFieldNameList> ::= '<OrgUnitFieldName>(,<OrgUnitFieldName>)*'
 
-    gam print orgs|ous [todrive [<ToDriveAttributes>]] [toplevelonly] [from_parent <OrgUnitItem>] [allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)]
+    gam print orgs|ous [todrive [<ToDriveAttribute>]] [toplevelonly] [from_parent <OrgUnitItem>] [allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)]
 
 4.39.24
 
@@ -4275,7 +4291,7 @@ Handle group member of type customer when processing groups.
 4.39.19
 
 Added skipfields <CourseFieldNameList> argument to gam print courses to allow deselection of specific fields to print.
-    gam print courses [todrive [<ToDriveAttributes>]] [teacher <UserItem>] [student <UserItem>] [alias|aliases] [delimiter <String>]
+    gam print courses [todrive [<ToDriveAttribute>]] [teacher <UserItem>] [student <UserItem>] [alias|aliases] [delimiter <String>]
         [show all|students|teachers] [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
 
 4.39.18
@@ -4298,7 +4314,7 @@ Allow newlines in calendar event descriptions.
 Start transition of delegate handling from GData to GAPI.
 Dropped csv argument from gam show delegates; use gam print delegates to get CSV format.
     gam <UserTypeEntity> show delegates|delegate
-    gam <UserTypeEntity> print delegates [todrive [<ToDriveAttributes>]]
+    gam <UserTypeEntity> print delegates [todrive [<ToDriveAttribute>]]
 
 4.39.14
 
@@ -4332,7 +4348,7 @@ Added fields <CourseFieldNameList> argument to gam print courses to allow select
         updatetime
 <CourseFieldNameList> ::= '<CourseFieldName>(,<CourseFieldName>)*'
 
-    gam print courses [todrive [<ToDriveAttributes>]] [teacher <UserItem>] [student <UserItem>] [alias|aliases] [delimiter <String>] [show all|students|teachers] [fields <CourseFieldNameList>]
+    gam print courses [todrive [<ToDriveAttribute>]] [teacher <UserItem>] [student <UserItem>] [alias|aliases] [delimiter <String>] [show all|students|teachers] [fields <CourseFieldNameList>]
 
 4.39.11
 
@@ -4395,7 +4411,7 @@ For calendar/calendars add/update/delete acl, the scope can be specified in a ne
     gam calendar <CalendarEntity> del|delete acl [<CalendarACLRole>] <ACLScope>
 
 Updated calendars update/delete/move/info event to allow queries. You specify event queries or event IDs.
-    gam calendar <CalendarEntity> update event (q|query|eventquery <QueryCalendar>)+|<EventIDEntity> <EventAttributes>+
+    gam calendar <CalendarEntity> update event (q|query|eventquery <QueryCalendar>)+|<EventIDEntity> <EventAttribute>+
     gam calendar <CalendarEntity> delete event (q|query|eventquery <QueryCalendar>)+|<EventIDEntity> [doit] [notifyattendees]
     gam calendar <CalendarEntity> move event (q|query|eventquery <QueryCalendar>)+|<EventIDEntity> to <CalendarItem> [notifyattendees]
     gam calendar <CalendarEntity> info event (q|query|eventquery <QueryCalendar>)+|<EventIDEntity>
@@ -4403,7 +4419,7 @@ Updated calendars update/delete/move/info event to allow queries. You specify ev
 Added primary, role <CalendarACLRole>, showdeleted, showhidden and permissions to gam print/show calendars.
     <CalendarACLRole> ::= editor|freebusy|freebusyreader|owner|reader|writer
     gam <UserTypeEntity> show calendars [primary] [role <CalendarACLRole>] [showdeleted] [showhidden] [permissions]
-    gam <UserTypeEntity> print calendars [todrive [<ToDriveAttributes>]] [primary] [role <CalendarACLRole>] [showdeleted] [showhidden] [permissions]
+    gam <UserTypeEntity> print calendars [todrive [<ToDriveAttribute>]] [primary] [role <CalendarACLRole>] [showdeleted] [showhidden] [permissions]
 By default, information for all visible, non-deleted calendars is shown.
 primary limits the selection to the user's primary calendar.
 role <CalendarACLRole> limits the selection to those calendars where the user's role is at least <CalendarACLRole>.
@@ -4458,7 +4474,7 @@ All of the permissions for each driveFileId for each owner can be added with a s
 Added countsonly and summary arguments to gam report when activities are selected. When countsonly is specified, the columns will be (emailAddress, event names)
 showing counts for each event for each email address. When countsonly and summary are both specified there will be two columns output (event, count) showing event names and counts.
 Added yesterday to gam report when activities are selected; this sets start and end to the 24 hour period spanning the previous day.
-    gam report admin|calendar|calendars|drive|docs|doc|groups|group|logins|login|mobile|tokens|token [todrive [<ToDriveAttributes>]] [maxresults <Number>]
+    gam report admin|calendar|calendars|drive|docs|doc|groups|group|logins|login|mobile|tokens|token [todrive [<ToDriveAttribute>]] [maxresults <Number>]
         [([start <Time>] [end <Time>])|yesterday] [(user all|<UserItem>)|(select <UserTypeEntity>)] [event <String>] [filter|filters <String>] [ip <String>] [countsonly] [summary]
 
 4.37.06
@@ -4511,7 +4527,7 @@ Handle GAPI Bad Gateway error.
 4.37.02
 
 Added show all|students|teachers argument to gam print courses. This allows you to get course and participant information in the same CSV file.
-    gam print courses [todrive [<ToDriveAttributes>]] [teacher <UserItem>] [student <UserItem>] [alias|aliases] [delimiter <String>] [show all|students|teachers]
+    gam print courses [todrive [<ToDriveAttribute>]] [teacher <UserItem>] [student <UserItem>] [alias|aliases] [delimiter <String>] [show all|students|teachers]
 
 Handle additional Google misreporting invalid group in gam print groups settings.
 
@@ -4541,12 +4557,12 @@ Fix bug in SetGlobalVariables.
 4.36.03
 
 Added addparents and removeparents arguments to gam update drivefile to allow adding/removing parents to/from a file.
-    <DriveFileUpdateAttributes> ::=
+    <DriveFileUpdateAttribute> ::=
         (localfile <FileName>)|
         (ocr)|(ocrlanguage <Language>)|(restricted|restrict <Boolean>)|(starred|star <Boolean>)|(trashed|trash <Boolean>)|(viewed|view <Boolean>)|
         (lastviewedbyme <Time>)|(modifieddate <Time>)|(description <String>)|(mimetype gdoc|gdocument|gdrawing|gfolder|gdirectory|gform|gfusion|gpresentation|gscript|gsite|gsheet|gspreadsheet)|
         (parentid <DriveFolderID>)|(parentname <FolderName>)|(addparents <DriveFolderIDList>)|(removeparents <DriveFolderIDList>)|writerscantshare
-    gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [newfilename <DriveFileName>] <DriveFileUpdateAttributes>*
+    gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [newfilename <DriveFileName>] <DriveFileUpdateAttribute>*
 
 4.36.02
 
@@ -4619,14 +4635,14 @@ Call logging.basicConfig to handle logging messages for oauth2client.contrib.mul
 
 Added memberscount, managerscount and ownerscount arguments to gam print groups; they cause the number of members/managers/owners to be shown,
 not the list of email addresses. If any of the members, managers or owners arguments are specified and countsonly is specified, only the counts will be shown.
-    gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member <UserItem>])|[select <GroupEntity>]
+    gam print groups [todrive [<ToDriveAttribute>]] ([domain <DomainName>] [member <UserItem>])|[select <GroupEntity>]
         [maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])] [convertcrnl] [delimiter <String>]
         [members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
 
 4.34.02
 
 Added allfields argument to gam print groups; this selects all of the basic group settings and all of the extended groups settings.
-    gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member <UserItem>])|[select <GroupEntity>]
+    gam print groups [todrive [<ToDriveAttribute>]] ([domain <DomainName>] [member <UserItem>])|[select <GroupEntity>]
         [maxresults <Number>] [convertcrnl] [delimiter <String>] [countsonly]
         [members] [managers] [owners] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
 
@@ -4671,7 +4687,7 @@ For redirect csv, the optional arguments must appear in the order shown.
 4.33.01
 
 Anywhere you can specify todrive, there are additional subarguments following the todrive argument that let you title the file,  direct the uploaded file to a particular location and add a timestamp to the file title.
-    <ToDriveAttributes> ::=
+    <ToDriveAttribute> ::=
         (tdtitle <String>)|(tdparent id:<DriveFolderID>|<DriveFolderName>)|(tdtimestamp <Boolean> [tddaysoffset <Number>] [tdhoursoffset <Number])
 The tdtitle argument specifies the title for the uploaded file, if not specified, the Gam default title is used.
 The tdparent argument specifies the parent folder for the uploaded file; it must specify an existing Drive folder owned by the user named in oauth2.txt.
@@ -4694,7 +4710,7 @@ Thanks to Jay, multithreading was changed to multiprocessing for gam batch and g
 
 Converted convertfooternl argument to converttextnl in gam print groups, it causes \n to be converted to \\n in customFooterText, defaultMessageDenyNotificationText and description,
 otherwise \n is not changed in those fields.
-    gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] [member <UserItem>])|[select <GroupEntity>]
+    gam print groups [todrive [<ToDriveAttribute>]] ([domain <DomainName>] [member <UserItem>])|[select <GroupEntity>]
         [maxresults <Number>] [delimiter <String>] [converttextnl] [countsonly]
         [members] [managers] [owners] [settings] <GroupFieldName>* [fields <GroupFieldNameList>]
 
@@ -4869,7 +4885,7 @@ todrive_timestamp enables/disables adding a timestamp to the title of CSV files 
 
 Note!!! Syntax changed.
 Anywhere you can specify todrive, there are additional subarguments following the todrive argument that let you direct the uploaded file to a particular location and add a timestamp to the file title.
-    <ToDriveAttributes> ::=
+    <ToDriveAttribute> ::=
         (tdparent id:<DriveFolderID>|<DriveFolderName>)|(tdtimestamp <Boolean> [tddaysoffset <Number>] [tdhoursoffset <Number])
 The tdparent argument specifies the parent folder for the uploaded file; it must specify an existing Drive folder owned by the user named in oauth2.txt.
 The tdtimestamp argument specifies whether a timestamp (of the time the file is uploaded to Google) will be added to the title of the uploaded file.
@@ -4927,7 +4943,7 @@ To use this command you must add the following scope to the list of authorized s
 
 Thanks to Mattias Bystedt for the following enhancement.
 Anywhere you can specify todrive, there are additional subarguments following the todrive argument that let you direct the uploaded file to a particular location and add a timestamp to the file title.
-    <ToDriveAttributes> ::=
+    <ToDriveAttribute> ::=
         (tdparentid <DriveFolderID>)|(tdparentname <DriveFolderName>)|(tdtimestamp [tddaysoffset <Number>] [tdhoursoffset <Number])
 The tdparentid/tdparentname arguments specify the parent folder for the uploaded file; they must specify an existing Drive folder owned by the user named in oauth2.txt.
 The tdtimestamp argument adds a timestamp (of the time the file is uploaded to Google) to the title of the uploaded file. The tddaysoffset and tdhoursoffset let you specify values that
@@ -5068,7 +5084,7 @@ Added a command to cancel guardian invitations by invitation ID.
     gam cancel guardianinvitation|guardianinvitations <GuardianInvitationID> <StudentItem>
 
 Added arguments to gam update user to enable clearing entire schemas or schema fields.
-    gam update user <UserItem> <UserAttributes>+ [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
+    gam update user <UserItem> <UserAttribute>+ [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
 See 4.23.03 for note about updating multi-valued schema fields.
 
 Note!!! Functionality change.
@@ -5087,7 +5103,7 @@ for your OAuth2 Client and Service Accounts. (You are removing /contacts.)
 Thanks to Jay for the following change.
 Added arguments to gam update cros to perform device actions. See: https://developers.google.com/admin-sdk/directory/v1/reference/chromeosdevices/action
 You can either update CrOS device attributes or perform a CrOS device action; if you specify both, only the device action will be performed.
-    gam update cros <CrOSList> (<CrOSAttributes>+)|(action deprovision_same_model_replace|deprovision_different_model_replace|deprovision_retiring_device|disable|reenable [acknowledge_device_touch_requirement])
+    gam update cros <CrOSList> (<CrOSAttribute>+)|(action deprovision_same_model_replace|deprovision_different_model_replace|deprovision_retiring_device|disable|reenable [acknowledge_device_touch_requirement])
 As a precatuion, none of the deprovisioning actions are performed unless you also specify the acknowledge_device_touch_requirement argument.
 
 Implemented commands to show the global address list.
@@ -5949,10 +5965,10 @@ Marketing,mktg-nj@bar.com
 
 Add a command to support updating a list of ChromeOS devices.
 Currently:
-    gam update cros <DeviceID>|query:<Query> <CrOSAttributes>
-    gam all cros update <CrOSAttributes>
+    gam update cros <DeviceID>|query:<Query> <CrOSAttribute>
+    gam all cros update <CrOSAttribute>
 Proposed:
-    gam cros <DeviceIDList> update <CrOSAttributes>
+    gam cros <DeviceIDList> update <CrOSAttribute>
 
 Implement pull request #93 to be able to mark messages as spam.
     gam <UserTypeEntity> spam message|messages query <Query> [doit] [max_to_move <Number>]
@@ -6111,8 +6127,8 @@ Most already were but the following commands wrote to stdout:
     gam <UserTypeEntity> get drivefile
 
 Add additional commands to manage calendar events.
-    gam calendar <CalendarEntity> add event <EventAttributes>
-    gam calendar <CalendarEntity> update event <EventIDEntity> <EventAttributes>
+    gam calendar <CalendarEntity> add event <EventAttribute>
+    gam calendar <CalendarEntity> update event <EventIDEntity> <EventAttribute>
     gam calendar <CalendarEntity> delete event <EventIDEntity>
     gam calendar <CalendarEntity> move event <EventIDEntity> to <CalendarItem>
     gam calendar <CalendarEntity> info event <EventIDEntity>

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.13'
+__version__ = u'4.60.14'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -148,9 +148,12 @@ ERROR = u'ERROR'
 ERROR_PREFIX = ERROR+u': '
 WARNING = u'WARNING'
 WARNING_PREFIX = WARNING+u': '
-ONE_KILO_BYTES = 1000
-ONE_MEGA_BYTES = 1000000
-ONE_GIGA_BYTES = 1000000000
+ONE_KILO_10_BYTES = 1000
+ONE_MEGA_10_BYTES = 1000000
+ONE_GIGA_10_BYTES = 1000000000
+ONE_KILO_BYTES = 1024
+ONE_MEGA_BYTES = 1048576
+ONE_GIGA_BYTES = 1073741824
 SECONDS_PER_MINUTE = 60
 SECONDS_PER_HOUR = 3600
 SECONDS_PER_DAY = 86400
@@ -1564,16 +1567,16 @@ def checkDataField():
 MAX_MESSAGE_BYTES_PATTERN = re.compile(r'^(\d+)([mkb]?)$')
 MAX_MESSAGE_BYTES_FORMAT_REQUIRED = u'<Number>[m|k|b]'
 
-def getMaxMessageBytes():
+def getMaxMessageBytes(oneKiloBytes, oneMegaBytes):
   if Cmd.ArgumentsRemaining():
     tg = MAX_MESSAGE_BYTES_PATTERN.match(Cmd.Current().strip().lower())
     if tg:
       mmb = int(tg.group(1))
       mmb_unit = tg.group(2)
       if mmb_unit == u'm':
-        mmb *= ONE_MEGA_BYTES
+        mmb *= oneMegaBytes
       elif mmb_unit == u'k':
-        mmb *= ONE_KILO_BYTES
+        mmb *= oneKiloBytes
       Cmd.Advance()
       return mmb
     invalidArgumentExit(MAX_MESSAGE_BYTES_FORMAT_REQUIRED)
@@ -1603,13 +1606,13 @@ def splitEmailAddress(emailAddress):
 def formatFileSize(fileSize):
   if fileSize == 0:
     return u'0kb'
-  if fileSize < ONE_KILO_BYTES:
+  if fileSize < ONE_KILO_10_BYTES:
     return u'1kb'
-  if fileSize < ONE_MEGA_BYTES:
-    return u'{0}kb'.format(fileSize//ONE_KILO_BYTES)
-  if fileSize < ONE_GIGA_BYTES:
-    return u'{0}mb'.format(fileSize//ONE_MEGA_BYTES)
-  return u'{0}gb'.format(fileSize//ONE_GIGA_BYTES)
+  if fileSize < ONE_MEGA_10_BYTES:
+    return u'{0}kb'.format(fileSize//ONE_KILO_10_BYTES)
+  if fileSize < ONE_GIGA_10_BYTES:
+    return u'{0}mb'.format(fileSize//ONE_MEGA_10_BYTES)
+  return u'{0}gb'.format(fileSize//ONE_GIGA_10_BYTES)
 
 def formatLocalTime(dateTimeStr):
   if dateTimeStr == NEVER_TIME:
@@ -1628,12 +1631,12 @@ def formatLocalTimestamp(timestamp):
 def formatLocalDatestamp(timestamp):
   return datetime.datetime.fromtimestamp(int(timestamp)//1000, GC.Values[GC.TIMEZONE]).strftime(YYYYMMDD_FORMAT)
 
-def formatMaxMessageBytes(maxMessageBytes):
-  if maxMessageBytes < ONE_KILO_BYTES:
+def formatMaxMessageBytes(maxMessageBytes, oneKiloBytes, oneMegaBytes):
+  if maxMessageBytes < oneKiloBytes:
     return maxMessageBytes
-  if maxMessageBytes < ONE_MEGA_BYTES:
-    return u'{0}K'.format(maxMessageBytes//ONE_KILO_BYTES)
-  return u'{0}M'.format(maxMessageBytes//ONE_MEGA_BYTES)
+  if maxMessageBytes < oneMegaBytes:
+    return u'{0}K'.format(maxMessageBytes/oneKiloBytes)
+  return u'{0}M'.format(maxMessageBytes/oneMegaBytes)
 
 def formatMilliSeconds(millis):
   seconds, millis = divmod(millis, 1000)
@@ -12671,7 +12674,7 @@ def getGroupAttrValue(argument, gs_body):
   attribute = attrProperties[1]
   attrType = attribute[GC.VAR_TYPE]
   if attrType == GC.TYPE_BOOLEAN:
-    gs_body[attrName] = getBoolean()
+    gs_body[attrName] = str(getBoolean()).lower()
   elif attrType == GC.TYPE_STRING:
     if attrName in GROUP_FIELDS_WITH_CRS_NLS:
       gs_body[attrName] = getStringWithCRsNLs()
@@ -12687,7 +12690,7 @@ def getGroupAttrValue(argument, gs_body):
     gs_body[attrName] = getChoice(LANGUAGE_CODES_MAP, mapChoice=True)
   else: # GC.TYPE_INTEGER
     if attrName == u'maxMessageBytes':
-      gs_body[attrName] = getMaxMessageBytes()
+      gs_body[attrName] = getMaxMessageBytes(ONE_KILO_BYTES, ONE_MEGA_BYTES)
     else:
       gs_body[attrName] = getInteger()
 
@@ -13339,7 +13342,7 @@ def infoGroups(entityList):
           if key not in set([u'kind', u'etag', u'email', u'name', u'description']):
             value = settings[key]
             if key == u'maxMessageBytes':
-              printKeyValueList([key, formatMaxMessageBytes(value)])
+              printKeyValueList([key, formatMaxMessageBytes(value, ONE_KILO_BYTES, ONE_MEGA_BYTES)])
             elif key not in GROUP_FIELDS_WITH_CRS_NLS:
               printKeyValueList([key, value])
             else:
@@ -13440,7 +13443,7 @@ def checkGroupMatchPatterns(groupEmail, group, matchPatterns):
 PRINT_GROUPS_JSON_TITLES = [u'Email', u'JSON']
 
 # gam print groups [todrive [<ToDriveAttributes>]] ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[select <GroupEntity>]
-#	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
+#	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>] (matchsetting [not] <GroupAttributes>)*
 #	[maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
 #	[members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
 #	[convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
@@ -13448,6 +13451,15 @@ def doPrintGroups():
 
   def _printGroupRow(groupEntity, groupMembers, groupSettings):
     row = {}
+    if matchSettings:
+      if not isinstance(groupSettings, dict):
+        return
+      for key, match in iteritems(matchSettings):
+        gvalue = groupSettings.get(key)
+        if match[u'notvalues'] and gvalue in match[u'notvalues']:
+          return
+        if match[u'values'] and gvalue not in match[u'values']:
+          return
     if formatJSON:
       row[u'Email'] = groupEntity[u'email']
       row[u'JSON'] = json.dumps(groupEntity, ensure_ascii=False, sort_keys=True)
@@ -13632,6 +13644,7 @@ def doPrintGroups():
   rolesSet = set()
   entitySelection = None
   matchPatterns = {}
+  matchSettings = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
@@ -13679,6 +13692,13 @@ def doPrintGroups():
             addFieldTitleToCSVfile(attr, {attr: [GROUP_ATTRIBUTES[attr][0], GROUP_ATTRIBUTES[attr][0]]}, gsfieldsList, fieldsTitles, titles, nativeTitles)
         else:
           invalidChoiceExit(list(GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP)+list(GROUP_ATTRIBUTES), True)
+    elif myarg == u'matchsetting':
+      valueList = getChoice({u'not': u'notvalues'}, mapChoice=True, defaultChoice=u'values')
+      matchBody = {}
+      getGroupAttrValue(getString(Cmd.OB_FIELD_NAME).lower(), matchBody)
+      for key, value in iteritems(matchBody):
+        matchSettings.setdefault(key, {u'notvalues': [], u'values': []})
+        matchSettings[key][valueList].append(value)
     elif myarg in [u'members', u'memberscount']:
       rolesSet.add(Ent.ROLE_MEMBER)
       members = True
@@ -13708,6 +13728,8 @@ def doPrintGroups():
     cdfieldsnp = u'nextPageToken,groups({0})'.format(cdfields)
   else:
     cdfields = cdfieldsnp = None
+  if matchSettings:
+    gsfieldsList.extend(list(matchSettings))
   if gsfieldsList:
     getSettings = True
     gsfields = u','.join(set(gsfieldsList))
@@ -14487,7 +14509,7 @@ def _getBuildingByNameOrId(cd, minLen=1):
 # No exact name match, check for case insensitive name matches
   which_building_lower = which_building.lower()
   ci_matches = []
-  for buildingName, buildingId in GM.Globals[GM.MAP_BUILDING_NAME_TO_ID].iteritems():
+  for buildingName, buildingId in iteritems(GM.Globals[GM.MAP_BUILDING_NAME_TO_ID]):
     if buildingName.lower() == which_building_lower:
       ci_matches.append({u'buildingName': buildingName, u'buildingId': buildingId})
 # One match, return ID
@@ -33508,7 +33530,8 @@ def _printFilter(user, userFilter, labels):
       if item in [u'hasAttachment', u'excludeChats']:
         row[item] = item
       elif item == u'size':
-        row[item] = u'size {0} {1}'.format(userFilter[u'criteria'][u'sizeComparison'], formatMaxMessageBytes(userFilter[u'criteria'][item]))
+        row[item] = u'size {0} {1}'.format(userFilter[u'criteria'][u'sizeComparison'],
+                                           formatMaxMessageBytes(userFilter[u'criteria'][item], ONE_KILO_10_BYTES, ONE_MEGA_10_BYTES))
       elif item == u'sizeComparison':
         pass
       else:
@@ -33540,7 +33563,8 @@ def _showFilter(userFilter, j, jcount, labels):
       if item in [u'hasAttachment', u'excludeChats']:
         printKeyValueList([item])
       elif item == u'size':
-        printKeyValueList([u'{0} {1} {2}'.format(item, userFilter[u'criteria'][u'sizeComparison'], formatMaxMessageBytes(userFilter[u'criteria'][item]))])
+        printKeyValueList([u'{0} {1} {2}'.format(item, userFilter[u'criteria'][u'sizeComparison'],
+                                                 formatMaxMessageBytes(userFilter[u'criteria'][item], ONE_KILO_10_BYTES, ONE_MEGA_10_BYTES))])
       elif item == u'sizeComparison':
         pass
       else:
@@ -33612,7 +33636,7 @@ def createFilter(users):
         body[u'criteria'][myarg] = True
       elif myarg == u'size':
         body[u'criteria'][u'sizeComparison'] = getChoice([u'larger', u'smaller'])
-        body[u'criteria'][myarg] = getMaxMessageBytes()
+        body[u'criteria'][myarg] = getMaxMessageBytes(ONE_KILO_10_BYTES, ONE_MEGA_10_BYTES)
     elif myarg in FILTER_ACTION_CHOICES:
       body.setdefault(u'action', {})
       if myarg in FILTER_ADD_LABEL_ACTIONS:
