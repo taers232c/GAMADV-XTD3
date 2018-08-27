@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.14'
+__version__ = u'4.60.15'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -183,9 +183,11 @@ MIMETYPE_GA_SITE = APPLICATION_VND_GOOGLE_APPS+u'site'
 MIMETYPE_GA_SPREADSHEET = APPLICATION_VND_GOOGLE_APPS+u'spreadsheet'
 
 GOOGLE_NAMESERVERS = [u'8.8.8.8', u'8.8.4.4']
+NEVER_DATE = u'1970-01-01'
+NEVER_DATETIME = u'1970-01-01T00:00'
 NEVER_TIME = u'1970-01-01T00:00:00.000Z'
-NEVER_START_DATE = u'1970-01-01'
 NEVER_END_DATE = u'1969-12-31'
+NEVER_START_DATE = NEVER_DATE
 PROJECTION_CHOICE_MAP = {u'basic': u'BASIC', u'full': u'FULL',}
 SORTORDER_CHOICE_MAP = {u'ascending': u'ASCENDING', u'descending': u'DESCENDING',}
 ME_IN_OWNERS = u"'me' in owners"
@@ -1321,7 +1323,9 @@ def getDelta(argstr, pattern, formatRequired):
   sign = tg.group(1)
   delta = int(tg.group(2))
   unit = tg.group(3)
-  if unit == u'w':
+  if  unit == u'y':
+    deltaTime = datetime.timedelta(days=delta*365)
+  elif unit == u'w':
     deltaTime = datetime.timedelta(weeks=delta)
   elif unit == u'd':
     deltaTime = datetime.timedelta(days=delta)
@@ -1336,12 +1340,12 @@ def getDelta(argstr, pattern, formatRequired):
     return baseTime-deltaTime
   return baseTime+deltaTime
 
-DELTA_DATE_PATTERN = re.compile(r'^([+-])(\d+)([dw])$')
+DELTA_DATE_PATTERN = re.compile(r'^([+-])(\d+)([dwy])$')
 DELTA_DATE_FORMAT_REQUIRED = u'(+|-)<Number>(d|w)'
 def getDeltaDate(argstr):
   return getDelta(argstr, DELTA_DATE_PATTERN, DELTA_DATE_FORMAT_REQUIRED)
 
-DELTA_TIME_PATTERN = re.compile(r'^([+-])(\d+)([mhdw])$')
+DELTA_TIME_PATTERN = re.compile(r'^([+-])(\d+)([mhdwy])$')
 DELTA_TIME_FORMAT_REQUIRED = u'(+|-)<Number>(m|h|d|w)'
 
 def getDeltaTime(argstr):
@@ -1361,6 +1365,8 @@ def getYYYYMMDD(minLen=1, returnTimeStamp=False, returnDateTime=False, alternate
         if argstr == u'NOW':
           argstr = u'TODAY'
         argstr = getDeltaDate(argstr).strftime(YYYYMMDD_FORMAT)
+      elif argstr == u'NEVER':
+        argstr = NEVER_DATE
       try:
         dateTime = datetime.datetime.strptime(argstr, YYYYMMDD_FORMAT)
         Cmd.Advance()
@@ -1386,6 +1392,8 @@ def getYYYYMMDD_HHMM():
     if argstr:
       if argstr in [u'TODAY', u'NOW'] or argstr[0] in [u'+', u'-']:
         argstr = getDeltaTime(argstr).strftime(YYYYMMDD_HHMM_FORMAT)
+      elif argstr == u'NEVER':
+        argstr = NEVER_DATETIME
       argstr = argstr.replace(u'T', u' ')
       try:
         datetime.datetime.strptime(argstr, YYYYMMDD_HHMM_FORMAT)
@@ -1405,6 +1413,8 @@ def getTimeOrDeltaFromNow(returnDateTime=False):
     if argstr:
       if argstr in [u'TODAY', u'NOW'] or argstr[0] in [u'+', u'-']:
         argstr = ISOformatTimeStamp(getDeltaTime(argstr))
+      elif argstr == u'NEVER':
+        argstr = NEVER_TIME
       elif YYYYMMDD_PATTERN.match(argstr):
         try:
           dateTime = datetime.datetime.strptime(argstr, YYYYMMDD_FORMAT)
@@ -6164,19 +6174,20 @@ REPORT_FULLDATA_APPS = [
 REPORT_ACTIVITIES_TIME_OBJECTS = set([u'time',])
 
 # gam report <users|user> [todrive [<ToDriveAttributes>]] [date <Date>] [nodatechange | (fulldatarequired all|<ReportAppsList>)]
-#	[user all|<UserItem>] [select <UserTypeEntity>] [filter|filters <String>] [fields|parameters <String>]
+#	[user all|<UserItem>] [select <UserTypeEntity>] [filtertime <Time>] [filter|filters <String>] [fields|parameters <String>]
 #	[maxactivities <Number>] [maxresults <Number>]
 # gam report <customers|customer|domain> [todrive [<ToDriveAttributes>]] [date <Date>] [nodatechange | (fulldatarequired all|<ReportAppsList>)]
 #	[fields|parameters <String>]
 # gam report <admin|calendars|drive|docs|doc|gplus|groups|group|logins|login|mobile|rules|tokens|token> [todrive [<ToDriveAttributes>]] [maxresults <Number>] [maxactivities <Number>]
-#	[([start <Time>] [end <Time>])|yesterday] [user all|<UserItem>] [select <UserTypeEntity>] [event <String>] [filter|filters <String>] [fields|parameters <String>] [ip <String>] countsonly summary
+#	[([start <Time>] [end <Time>])|yesterday] [user all|<UserItem>] [select <UserTypeEntity>]
+#	[event <String>] [filtertime <Time>] [filter|filters <String>] [fields|parameters <String>] [ip <String>] countsonly summary
 def doReport():
   report = getChoice(REPORT_CHOICE_MAP, mapChoice=True)
   rep = buildGAPIObject(API.REPORTS)
   customerId = GC.Values[GC.CUSTOMER_ID]
   if customerId == GC.MY_CUSTOMER:
     customerId = None
-  filters = parameters = actorIpAddress = startTime = endTime = startDateTime = endDateTime = eventName = None
+  filters = parameters = actorIpAddress = filterDateTime = startTime = endTime = startDateTime = endDateTime = eventName = None
   tryDate = todaysDate().strftime(YYYYMMDD_FORMAT)
   maxActivities = 0
   maxResults = 1000
@@ -6233,6 +6244,8 @@ def doReport():
       countsOnly = True
     elif activityReports and myarg == u'summary':
       summary = True
+    elif filtersUserValid and myarg == u'filtertime':
+      filterDateTime = getTimeOrDeltaFromNow()
     elif filtersUserValid and myarg == u'maxresults':
       maxResults = getInteger(minVal=1, maxVal=1000)
     elif filtersUserValid and myarg == u'maxactivities':
@@ -6246,6 +6259,8 @@ def doReport():
       filters = getString(Cmd.OB_STRING)
     else:
       unknownArgumentExit()
+  if filterDateTime is not None and filters is not None:
+    filters = filters.replace(u'#filtertime#', filterDateTime)
   if report == u'user':
     if select:
       page_message = None

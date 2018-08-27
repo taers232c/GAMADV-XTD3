@@ -1,3 +1,42 @@
+4.60.15
+
+Added units of years to <Date>, <DateTime> and <Time>; a year is 365 days. Added never to <Date>, <DateTime> and <Time>.
+* <Date> - never is 1970-01-01
+* <DateTime> - never is 1970-01-00 00:00
+* <Time> - never is 1970-01-01T00:00:00Z
+
+<Date> ::=
+        <Year>-<Month>-<Day> |
+        (+|-)<Number>(d|w|y) |
+        never|
+        today
+<DateTime> ::=
+        <Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute> |
+        (+|-)<Number>(m|h|d|w|y) |
+        never|
+        now|today
+<Time> ::=
+        <Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute>:<Second>[.<MilliSeconds>](Z|(+|-(<Hour>:<Minute>))) |
+        (+|-)<Number>(m|h|d|w|y) |
+        never|
+        now|today
+
+Added filtertime <Time> option to gam report to allow times, usually relative, to be substituted into the filter <String> option.
+If both filtertime and filter are specified, the filtertime value replaces the string #filtertime# in the filter <String>.
+
+gam report users|user [todrive <ToDriveAttribute>*] [date <Date>] [nodatechange | (fulldatarequired all|<ReportsAppList>)]
+        [(user all|<UserItem>)|(select <UserTypeEntity>)] [filtertime <Time>] [filter|filters <String>] [fields|parameters <String>]
+        [maxactivities <Number>] [maxresults <Number>]
+gam report admin|calendar|calendars|drive|docs|doc|gplus|groups|group|logins|login|mobile|rules|tokens|token [todrive <ToDriveAttribute>*] [maxresults <Number>] [maxactivities <Number>]
+        [([start <Time>] [end <Time>])|yesterday] [(user all|<UserItem>)|(select <UserTypeEntity>)]
+        [event <String>] [filtertime <Time>] [filter|filters <String>] [ip <String>] [countsonly] [summary]
+
+For example, this command reports on the users that haven't logged in in the last 5 years.
+gam report users parameters accounts:last_login_time filters "accounts:last_login_time<#filtertime#" filtertime -5y
+
+For example, this command reports on the users that haven't ever logged in.
+gam report users parameters accounts:last_login_time filters "accounts:last_login_time==#filtertime#" filtertime never
+
 4.60.14
 
 Added option matchsetting to gam print groups to allow filtering of groups based on attribute values.

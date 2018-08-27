@@ -118,15 +118,18 @@ If an item contains spaces, it should be surrounded by ".
 <MilliSeconds> ::= <Digit><Digit><Digit>
 <Date> ::=
         <Year>-<Month>-<Day> |
-        (+|-)<Number>(d|w) |
+        (+|-)<Number>(d|w|y) |
+        never|
         today
 <DateTime> ::=
         <Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute> |
-        (+|-)<Number>(m|h|d|w) |
+        (+|-)<Number>(m|h|d|w|y) |
+        never|
         now|today
 <Time> ::=
         <Year>-<Month>-<Day>(<Space>|T)<Hour>:<Minute>:<Second>[.<MilliSeconds>](Z|(+|-(<Hour>:<Minute>))) |
-        (+|-)<Number>(m|h|d|w) |
+        (+|-)<Number>(m|h|d|w|y) |
+        never|
         now|today
 <RegularExpression> ::= <Python Regular Expression, see: https://docs.python.org/2/library/re.html>
 <SiteName> ::= [a-z,0-9,-]+
@@ -1587,12 +1590,13 @@ gam print printjob|printjobs [todrive <ToDriveAttribute>*] [printer|printerid <P
 <ReportsAppList> ::= "<ReportsApp>(,<ReportsApp>)*"
 
 gam report users|user [todrive <ToDriveAttribute>*] [date <Date>] [nodatechange | (fulldatarequired all|<ReportsAppList>)]
-        [(user all|<UserItem>)|(select <UserTypeEntity>)] [filter|filters <String>] [fields|parameters <String>]
+        [(user all|<UserItem>)|(select <UserTypeEntity>)] [filtertime <Time>] [filter|filters <String>] [fields|parameters <String>]
         [maxactivities <Number>] [maxresults <Number>]
 gam report customers|customer|domain [todrive <ToDriveAttribute>*] [date <Date>] [nodatechange | (fulldatarequired all|<ReportsAppList>)]
         [fields|parameters <String>]
 gam report admin|calendar|calendars|drive|docs|doc|gplus|groups|group|logins|login|mobile|rules|tokens|token [todrive <ToDriveAttribute>*] [maxresults <Number>] [maxactivities <Number>]
-        [([start <Time>] [end <Time>])|yesterday] [(user all|<UserItem>)|(select <UserTypeEntity>)] [event <String>] [filter|filters <String>] [ip <String>] [countsonly] [summary]
+        [([start <Time>] [end <Time>])|yesterday] [(user all|<UserItem>)|(select <UserTypeEntity>)]
+        [event <String>] [filtertime <Time>] [filter|filters <String>] [ip <String>] [countsonly] [summary]
 
 # Reseller
 
