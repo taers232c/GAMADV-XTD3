@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.15'
+__version__ = u'4.60.16'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -6049,8 +6049,11 @@ def doUpdateProject():
 
 # gam whatis <EmailItem> [noinfo]
 def doWhatIs():
-  def _showEmailType(entityType, email):
+  def _showPrimaryType(entityType, email):
     printEntity([entityType, email])
+
+  def _showAliasType(entityType, email, primaryEntityType, primaryEmail):
+    printEntity([entityType, email, primaryEntityType, primaryEmail])
 
   cd = buildGAPIObject(API.DIRECTORY)
   email = getEmailAddress()
@@ -6065,13 +6068,13 @@ def doWhatIs():
       if showInfo:
         infoUsers(entityList=[email])
       else:
-        _showEmailType(Ent.USER, email)
+        _showPrimaryType(Ent.USER, email)
       setSysExitRC(ENTITY_IS_A_USER_RC)
     else:
       if showInfo:
         infoAliases(entityList=[email])
       else:
-        _showEmailType(Ent.USER_ALIAS, email)
+        _showAliasType(Ent.USER_ALIAS, email, Ent.USER, result[u'primaryEmail'])
       setSysExitRC(ENTITY_IS_A_USER_ALIAS_RC)
     return
   except (GAPI.userNotFound, GAPI.badRequest):
@@ -6088,13 +6091,13 @@ def doWhatIs():
       if showInfo:
         infoGroups(entityList=[email])
       else:
-        _showEmailType(Ent.GROUP, email)
+        _showPrimaryType(Ent.GROUP, email)
       setSysExitRC(ENTITY_IS_A_GROUP_RC)
     else:
       if showInfo:
         infoAliases(entityList=[email])
       else:
-        _showEmailType(Ent.GROUP_ALIAS, email)
+        _showAliasType(Ent.GROUP_ALIAS, email, Ent.GROUP, result[u'email'])
       setSysExitRC(ENTITY_IS_A_GROUP_ALIAS_RC)
     return
   except GAPI.groupNotFound:

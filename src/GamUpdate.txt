@@ -1,3 +1,16 @@
+4.60.16
+
+Updated gam whatis <EmailItem> [noinfo] to show the primary email address whenever <EmailItem> is an alias.
+
+$ gam whatis testuser noinfo
+User: testuser@domain.com
+$ gam whatis testuseralias noinfo
+User Alias: testuseralias@domain.com, User: testuser@domain.com
+$ gam whatis testgroup noinfo
+Group: testgroup@domain.com
+$ gam whatis testgroupalias noinfo
+Group Alias: testgroupalias@domain.com, Group: testgroup@domain.com
+
 4.60.15
 
 Added units of years to <Date>, <DateTime> and <Time>; a year is 365 days. Added never to <Date>, <DateTime> and <Time>.
