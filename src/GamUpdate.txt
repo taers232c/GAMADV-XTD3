@@ -1,3 +1,21 @@
+4.60.17
+
+Added sendnotifications <Boolean> option to all commands that create or update calendar ACL; the default value is true.
+Wnen true, notifications are sent to the members referenced in the <CalendarACLScopeEntity>.
+gam calendar|calendars <CalendarEntity> create|add acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
+gam calendar|calendars <CalendarEntity> update acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
+gam calendar|calendars <CalendarEntity> create|add <CalendarACLRole> ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default [sendnotifications <Boolean>]
+gam calendar|calendars <CalendarEntity> update <CalendarACLRole> ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default [sendnotifications <Boolean>]
+gam resource <ResourceID> create|add acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
+gam resource <ResourceID> update acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
+gam resources <ResourceEntity> create|add acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
+gam resources <ResourceEntity> update acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
+gam <UserTypeEntity> create|add calendaracls <CalendarManageEntity> <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
+gam <UserTypeEntity> update calendaracls <CalendarManageEntity> <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
+
+Extended gam show labels to display message/thread counts when the showcounts option is used with display basename|fullname.
+Previously, showcounts was only effective when used with display allfields.
+
 4.60.16
 
 Updated gam whatis <EmailItem> [noinfo] to show the primary email address whenever <EmailItem> is an alias.

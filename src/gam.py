@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.16'
+__version__ = u'4.60.17'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -137,7 +137,6 @@ GAM_WIKI = u'https://github.com/{0}/{1}/wiki'.format(GIT_USER, u'GAMADV-XTD')
 GAM_ALL_RELEASES = u'https://api.github.com/repos/{0}/{1}/releases'.format(GIT_USER, GAM)
 GAM_LATEST_RELEASE = GAM_ALL_RELEASES+u'/latest'
 GAM_LATEST_SOURCE = u'https://raw.githubusercontent.com/{0}/{1}/master/src'.format(GIT_USER, GAM)
-GAM_PROJECT_APIS = GAM_LATEST_SOURCE+u'/project-apis.txt'
 
 TRUE = u'true'
 FALSE = u'false'
@@ -7704,7 +7703,7 @@ def doInfoCustomer(returnCustomerInfo=None):
     printKeyValueList([u'Primary Domain', customerInfo[u'customerDomain']])
     printKeyValueList([u'Customer Creation Time', formatLocalTime(customerInfo[u'customerCreationTime'])])
     printKeyValueList([u'Primary Domain Verified', customerInfo[u'verified']])
-    printKeyValueList([u'Default Language', customerInfo[u'language']])
+    printKeyValueList([u'Default Language', customerInfo.get(u'language', u'Unset (defaults to en)')])
     _showCustomerAddressPhoneNumber(customerInfo)
     printKeyValueList([u'Admin Secondary Email', customerInfo[u'alternateEmail']])
     _showCustomerLicenseInfo(customerInfo, False)
@@ -15205,6 +15204,22 @@ def getCalendarSiteACLScopeEntity():
     ACLScopeEntity[u'dict'] = ACLScopeEntity[u'list']
   return ACLScopeEntity
 
+def getCalendarACLSendNotifications():
+  return getBoolean() if checkArgumentPresent(u'sendnotifications') else True
+
+def getCalendarCreateUpdateACLsOptions(getScopeEntity):
+  role = getChoice(CALENDAR_ACL_ROLES_MAP, mapChoice=True)
+  ACLScopeEntity = getCalendarSiteACLScopeEntity() if getScopeEntity else getCalendarACLScope()
+  sendNotifications = getCalendarACLSendNotifications()
+  checkForExtraneousArguments()
+  return (role, ACLScopeEntity, sendNotifications)
+
+def getCalendarDeleteACLsOptions(getScopeEntity):
+  role = getChoice(CALENDAR_ACL_ROLES_MAP, defaultChoice=None, mapChoice=True)
+  ACLScopeEntity = getCalendarSiteACLScopeEntity() if getScopeEntity else getCalendarACLScope()
+  checkForExtraneousArguments()
+  return (role, ACLScopeEntity)
+
 def _normalizeCalIdGetRuleIds(origUser, user, cal, calId, j, jcount, ACLScopeEntity, showAction=True):
   if ACLScopeEntity[u'dict']:
     if origUser:
@@ -15224,14 +15239,14 @@ def _normalizeCalIdGetRuleIds(origUser, user, cal, calId, j, jcount, ACLScopeEnt
     entityPerformActionNumItems([Ent.CALENDAR, calId], kcount, Ent.CALENDAR_ACL, j, jcount)
   return (calId, cal, ruleIds, kcount)
 
-def _processCalendarACLs(cal, function, entityType, calId, j, jcount, k, kcount, ruleId, role, body):
+def _processCalendarACLs(cal, function, entityType, calId, j, jcount, k, kcount, role, ruleId, sendNotifications):
   result = True
-  kwargs = {}
-  if function in [u'insert', u'patch']:
-    kwargs[u'body'] = body
-    kwargs[u'fields'] = u''
-  if function in [u'patch', u'delete']:
-    kwargs[u'ruleId'] = ruleId
+  if function == u'insert':
+    kwargs = {u'body': makeRoleRuleIdBody(role, ruleId), u'fields': u'', u'sendNotifications': sendNotifications}
+  elif function == u'patch':
+    kwargs = {u'ruleId': ruleId, u'fields': u'', u'sendNotifications': sendNotifications}
+  else: # elif function == u'delete':
+    kwargs = {'ruleId': ruleId}
   try:
     callGAPI(cal.acl(), function,
              throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_PARAMETER, GAPI.INVALID_SCOPE_VALUE,
@@ -15249,85 +15264,73 @@ def _processCalendarACLs(cal, function, entityType, calId, j, jcount, k, kcount,
     entityActionFailedWarning([entityType, calId, Ent.CALENDAR_ACL, formatACLScopeRole(ruleId, role)], str(e), k, kcount)
   return result
 
-def _createCalendarACLs(cal, entityType, calId, j, jcount, role, ruleIds, kcount):
+def _createCalendarACLs(cal, entityType, calId, j, jcount, role, ruleIds, kcount, sendNotifications):
   Ind.Increment()
   k = 0
   for ruleId in ruleIds:
     k += 1
     ruleId = normalizeRuleId(ruleId)
-    if not _processCalendarACLs(cal, u'insert', entityType, calId, j, jcount, k, kcount, ruleId, role, makeRoleRuleIdBody(role, ruleId)):
+    if not _processCalendarACLs(cal, u'insert', entityType, calId, j, jcount, k, kcount, role, ruleId, sendNotifications):
       break
   Ind.Decrement()
 
-def _doCalendarsCreateACLs(origUser, user, cal, calIds, count, role, ACLScopeEntity):
+def _doCalendarsCreateACLs(origUser, user, cal, calIds, count, role, ACLScopeEntity, sendNotifications):
   i = 0
   for calId in calIds:
     i += 1
     calId, cal, ruleIds, jcount = _normalizeCalIdGetRuleIds(origUser, user, cal, calId, i, count, ACLScopeEntity)
     if jcount == 0:
       continue
-    _createCalendarACLs(cal, Ent.CALENDAR, calId, i, count, role, ruleIds, jcount)
+    _createCalendarACLs(cal, Ent.CALENDAR, calId, i, count, role, ruleIds, jcount, sendNotifications)
 
-# gam calendar <CalendarEntity> create|add <CalendarACLRole> <CalendarACLScope>
+# gam calendar <CalendarEntity> create|add <CalendarACLRole> <CalendarACLScope> [sendnotifications <Boolean>]
 def doCalendarsCreateACL(cal, calIds):
-  role = getChoice(CALENDAR_ACL_ROLES_MAP, mapChoice=True)
-  ACLScopeEntity = getCalendarACLScope()
-  checkForExtraneousArguments()
-  _doCalendarsCreateACLs(None, None, cal, calIds, len(calIds), role, ACLScopeEntity)
+  role, ACLScopeEntity, sendNotifications = getCalendarCreateUpdateACLsOptions(False)
+  _doCalendarsCreateACLs(None, None, cal, calIds, len(calIds), role, ACLScopeEntity, sendNotifications)
 
-# gam calendars <CalendarEntity> create|add acls <CalendarACLRole> <CalendarACLScopeEntity>
+# gam calendars <CalendarEntity> create|add acls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
 def doCalendarsCreateACLs(cal, calIds):
-  role = getChoice(CALENDAR_ACL_ROLES_MAP, mapChoice=True)
-  ACLScopeEntity = getCalendarSiteACLScopeEntity()
-  checkForExtraneousArguments()
-  _doCalendarsCreateACLs(None, None, cal, calIds, len(calIds), role, ACLScopeEntity)
+  role, ACLScopeEntity, sendNotifications = getCalendarCreateUpdateACLsOptions(True)
+  _doCalendarsCreateACLs(None, None, cal, calIds, len(calIds), role, ACLScopeEntity, sendNotifications)
 
-def _updateDeleteCalendarACLs(cal, function, entityType, calId, j, jcount, role, body, ruleIds, kcount):
+def _updateDeleteCalendarACLs(cal, function, entityType, calId, j, jcount, role, ruleIds, kcount, sendNotifications):
   Ind.Increment()
   k = 0
   for ruleId in ruleIds:
     k += 1
     ruleId = normalizeRuleId(ruleId)
-    if not _processCalendarACLs(cal, function, entityType, calId, j, jcount, k, kcount, ruleId, role, body):
+    if not _processCalendarACLs(cal, function, entityType, calId, j, jcount, k, kcount, role, ruleId, sendNotifications):
       break
   Ind.Decrement()
 
-def _doUpdateDeleteCalendarACLs(origUser, user, cal, function, calIds, count, ACLScopeEntity, role, body):
+def _doUpdateDeleteCalendarACLs(origUser, user, cal, function, calIds, count, ACLScopeEntity, role, sendNotifications):
   i = 0
   for calId in calIds:
     i += 1
     calId, cal, ruleIds, jcount = _normalizeCalIdGetRuleIds(origUser, user, cal, calId, i, count, ACLScopeEntity)
     if jcount == 0:
       continue
-    _updateDeleteCalendarACLs(cal, function, Ent.CALENDAR, calId, i, count, role, body, ruleIds, jcount)
+    _updateDeleteCalendarACLs(cal, function, Ent.CALENDAR, calId, i, count, role, ruleIds, jcount, sendNotifications)
 
-# gam calendar <CalendarEntity> update <CalendarACLRole> <CalendarACLScope>
+# gam calendar <CalendarEntity> update <CalendarACLRole> <CalendarACLScope> [sendnotifications <Boolean>]
 def doCalendarsUpdateACL(cal, calIds):
-  body = {u'role': getChoice(CALENDAR_ACL_ROLES_MAP, mapChoice=True)}
-  ACLScopeEntity = getCalendarACLScope()
-  checkForExtraneousArguments()
-  _doUpdateDeleteCalendarACLs(None, None, cal, u'patch', calIds, len(calIds), ACLScopeEntity, body[u'role'], body)
+  role, ACLScopeEntity, sendNotifications = getCalendarCreateUpdateACLsOptions(False)
+  _doUpdateDeleteCalendarACLs(None, None, cal, u'patch', calIds, len(calIds), ACLScopeEntity, role, sendNotifications)
 
-# gam calendars <CalendarEntity> update acls <CalendarACLRole> <CalendarACLScopeEntity>
+# gam calendars <CalendarEntity> update acls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
 def doCalendarsUpdateACLs(cal, calIds):
-  body = {u'role': getChoice(CALENDAR_ACL_ROLES_MAP, mapChoice=True)}
-  ACLScopeEntity = getCalendarSiteACLScopeEntity()
-  checkForExtraneousArguments()
-  _doUpdateDeleteCalendarACLs(None, None, cal, u'patch', calIds, len(calIds), ACLScopeEntity, body[u'role'], body)
+  role, ACLScopeEntity, sendNotifications = getCalendarCreateUpdateACLsOptions(True)
+  _doUpdateDeleteCalendarACLs(None, None, cal, u'patch', calIds, len(calIds), ACLScopeEntity, role, sendNotifications)
 
 # gam calendar <CalendarEntity> del|delete [<CalendarACLRole>] <CalendarACLScope>
 def doCalendarsDeleteACL(cal, calIds):
-  role = getChoice(CALENDAR_ACL_ROLES_MAP, defaultChoice=None, mapChoice=True)
-  ACLScopeEntity = getCalendarACLScope()
-  checkForExtraneousArguments()
-  _doUpdateDeleteCalendarACLs(None, None, cal, u'delete', calIds, len(calIds), ACLScopeEntity, role, {})
+  role, ACLScopeEntity = getCalendarDeleteACLsOptions(False)
+  _doUpdateDeleteCalendarACLs(None, None, cal, u'delete', calIds, len(calIds), ACLScopeEntity, role, False)
 
 # gam calendars <CalendarEntity> del|delete acls <CalendarACLScopeEntity>
 def doCalendarsDeleteACLs(cal, calIds):
-  role = getChoice(CALENDAR_ACL_ROLES_MAP, defaultChoice=None, mapChoice=True)
-  ACLScopeEntity = getCalendarSiteACLScopeEntity()
-  checkForExtraneousArguments()
-  _doUpdateDeleteCalendarACLs(None, None, cal, u'delete', calIds, len(calIds), ACLScopeEntity, role, {})
+  role, ACLScopeEntity = getCalendarDeleteACLsOptions(True)
+  _doUpdateDeleteCalendarACLs(None, None, cal, u'delete', calIds, len(calIds), ACLScopeEntity, role, False)
 
 def _showCalendarACL(user, entityType, calId, acl, k, kcount, formatJSON):
   if formatJSON:
@@ -16393,13 +16396,11 @@ def _normalizeResourceIdGetRuleIds(resourceId, i, count, ACLScopeEntity, showAct
     setSysExitRC(NO_ENTITIES_FOUND)
   return (calId, ruleIds, jcount)
 
-# gam resource <ResourceID> create|add calendaracls <CalendarACLRole> <CalendarACLScopeEntity>
-# gam resources <ResourceEntity> create|add calendaracls <CalendarACLRole> <CalendarACLScopeEntity>
+# gam resource <ResourceID> create|add calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
+# gam resources <ResourceEntity> create|add calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
 def doResourceCreateCalendarACLs(entityList):
   cal = buildGAPIObject(API.CALENDAR)
-  role = getChoice(CALENDAR_ACL_ROLES_MAP, mapChoice=True)
-  ACLScopeEntity = getCalendarSiteACLScopeEntity()
-  checkForExtraneousArguments()
+  role, ACLScopeEntity, sendNotifications = getCalendarCreateUpdateACLsOptions(True)
   i = 0
   count = len(entityList)
   for resourceId in entityList:
@@ -16407,12 +16408,10 @@ def doResourceCreateCalendarACLs(entityList):
     calId, ruleIds, jcount = _normalizeResourceIdGetRuleIds(resourceId, i, count, ACLScopeEntity)
     if jcount == 0:
       continue
-    _createCalendarACLs(cal, Ent.RESOURCE_CALENDAR, calId, i, count, role, ruleIds, jcount)
+    _createCalendarACLs(cal, Ent.RESOURCE_CALENDAR, calId, i, count, role, ruleIds, jcount, sendNotifications)
 
-def _resourceUpdateDeleteCalendarACLs(entityList, function, role, body):
+def _resourceUpdateDeleteCalendarACLs(entityList, function, ACLScopeEntity, role, sendNotifications):
   cal = buildGAPIObject(API.CALENDAR)
-  ACLScopeEntity = getCalendarSiteACLScopeEntity()
-  checkForExtraneousArguments()
   i = 0
   count = len(entityList)
   for resourceId in entityList:
@@ -16420,21 +16419,19 @@ def _resourceUpdateDeleteCalendarACLs(entityList, function, role, body):
     calId, ruleIds, jcount = _normalizeResourceIdGetRuleIds(resourceId, i, count, ACLScopeEntity)
     if jcount == 0:
       continue
-    _updateDeleteCalendarACLs(cal, function, Ent.RESOURCE_CALENDAR, calId, i, count, role, body, ruleIds, jcount)
+    _updateDeleteCalendarACLs(cal, function, Ent.RESOURCE_CALENDAR, calId, i, count, role, ruleIds, jcount, sendNotifications)
 
-# gam resource <ResourceID> update calendaracls <CalendarACLRole> <CalendarACLScopeEntity>
-# gam resources <ResourceEntity> update calendaracls <CalendarACLRole> <CalendarACLScopeEntity>
+# gam resource <ResourceID> update calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
+# gam resources <ResourceEntity> update calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
 def doResourceUpdateCalendarACLs(entityList):
-  role = getChoice(CALENDAR_ACL_ROLES_MAP, mapChoice=True)
-  body = {u'role': role}
-  _resourceUpdateDeleteCalendarACLs(entityList, u'patch', role, body)
+  role, ACLScopeEntity, sendNotifications = getCalendarCreateUpdateACLsOptions(True)
+  _resourceUpdateDeleteCalendarACLs(entityList, u'patch', ACLScopeEntity, role, sendNotifications)
 
 # gam resource <ResourceID> delete calendaracls [<CalendarACLRole>] <CalendarACLScopeEntity>
 # gam resources <ResourceEntity> delete calendaracls [<CalendarACLRole>] <CalendarACLScopeEntity>
 def doResourceDeleteCalendarACLs(entityList):
-  role = getChoice(CALENDAR_ACL_ROLES_MAP, defaultChoice=None, mapChoice=True)
-  body = {}
-  _resourceUpdateDeleteCalendarACLs(entityList, u'delete', role, body)
+  role, ACLScopeEntity = getCalendarDeleteACLsOptions(True)
+  _resourceUpdateDeleteCalendarACLs(entityList, u'delete', ACLScopeEntity, role, False)
 
 # gam resource <ResourceID> info calendaracls <CalendarACLScopeEntity> [formatjson]
 # gam resources <ResourceEntity> info calendaracls <CalendarACLScopeEntity> [formatjson]
@@ -23512,12 +23509,10 @@ def printCalSettings(users):
 def showCalSettings(users):
   _printShowCalSettings(users, False)
 
-# gam <UserTypeEntity> create|add calendaracls <CalendarEntity> <CalendarACLRole> <CalendarACLScopeEntity>
+# gam <UserTypeEntity> create|add calendaracls <CalendarEntity> <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
 def createCalendarACLs(users):
   calendarEntity = getCalendarEntity()
-  role = getChoice(CALENDAR_ACL_ROLES_MAP, mapChoice=True)
-  ACLScopeEntity = getCalendarSiteACLScopeEntity()
-  checkForExtraneousArguments()
+  role, ACLScopeEntity, sendNotifications = getCalendarCreateUpdateACLsOptions(True)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -23526,12 +23521,10 @@ def createCalendarACLs(users):
     if jcount == 0:
       continue
     Ind.Increment()
-    _doCalendarsCreateACLs(origUser, user, cal, calIds, jcount, role, ACLScopeEntity)
+    _doCalendarsCreateACLs(origUser, user, cal, calIds, jcount, role, ACLScopeEntity, sendNotifications)
     Ind.Decrement()
 
-def updateDeleteCalendarACLs(users, calendarEntity, function, modifier, role, body):
-  ACLScopeEntity = getCalendarSiteACLScopeEntity()
-  checkForExtraneousArguments()
+def updateDeleteCalendarACLs(users, calendarEntity, function, modifier, ACLScopeEntity, role, sendNotifications):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -23540,22 +23533,20 @@ def updateDeleteCalendarACLs(users, calendarEntity, function, modifier, role, bo
     if jcount == 0:
       continue
     Ind.Increment()
-    _doUpdateDeleteCalendarACLs(origUser, user, cal, function, calIds, jcount, ACLScopeEntity, role, body)
+    _doUpdateDeleteCalendarACLs(origUser, user, cal, function, calIds, jcount, ACLScopeEntity, role, sendNotifications)
     Ind.Decrement()
 
-# gam <UserTypeEntity> update calendaracls <CalendarEntity> <CalendarACLRole> <CalendarACLScopeEntity>
+# gam <UserTypeEntity> update calendaracls <CalendarEntity> <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
 def updateCalendarACLs(users):
   calendarEntity = getCalendarEntity()
-  role = getChoice(CALENDAR_ACL_ROLES_MAP, mapChoice=True)
-  body = {u'role': role}
-  updateDeleteCalendarACLs(users, calendarEntity, u'patch', Act.MODIFIER_IN, role, body)
+  role, ACLScopeEntity, sendNotifications = getCalendarCreateUpdateACLsOptions(True)
+  updateDeleteCalendarACLs(users, calendarEntity, u'patch', Act.MODIFIER_IN, ACLScopeEntity, role, sendNotifications)
 
 # gam <UserTypeEntity> delete calendaracls <CalendarEntity> [<CalendarACLRole>] <CalendarACLScopeEntity>
 def deleteCalendarACLs(users):
   calendarEntity = getCalendarEntity()
-  role = getChoice(CALENDAR_ACL_ROLES_MAP, defaultChoice=None, mapChoice=True)
-  body = {}
-  updateDeleteCalendarACLs(users, calendarEntity, u'delete', Act.MODIFIER_FROM, role, body)
+  role, ACLScopeEntity = getCalendarDeleteACLsOptions(True)
+  updateDeleteCalendarACLs(users, calendarEntity, u'delete', Act.MODIFIER_FROM, ACLScopeEntity, role, False)
 
 # gam <UserTypeEntity> info calendaracls <CalendarEntity> <CalendarACLScopeEntity> [formatjson]
 def infoCalendarACLs(users):
@@ -25927,8 +25918,8 @@ def addFilePathsToRow(drive, fileTree, fileEntryInfo, filePathInfo, row, titles)
 FILELIST_FIELDS_TITLES = [u'id', u'mimeType', u'parents']
 
 # gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
-#	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
-#	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [depth <Number>] [showparent]
+#	[((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) |
+#	  (select <DriveFileEntityListTree> [selectsubquery <QueryDriveFile>] [depth <Number>] [showparent])]
 #	[showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
 #	[filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [quotechar <Character>]
 def printFileList(users):
@@ -32236,8 +32227,20 @@ def printShowLabels(users, csvFormat):
     return labelTree
 
   def _printLabel(label):
-    printKeyValueList([label[nameField]])
-    if displayAllFields:
+    if not displayAllFields:
+      if not showCounts:
+        printKeyValueList([label[nameField]])
+      else:
+        counts = callGAPI(gmail.users().labels(), u'get',
+                          throw_reasons=GAPI.GMAIL_THROW_REASONS,
+                          userId=u'me', id=label[u'id'],
+                          fields=LABEL_COUNTS_FIELDS)
+        kvlist = [label[nameField], u'Counts']
+        for a_key in LABEL_COUNTS_FIELDS_LIST:
+          kvlist.extend([a_key, counts[a_key]])
+        printKeyValueList(kvlist)
+    else:
+      printKeyValueList([label[nameField]])
       Ind.Increment()
       for a_key in LABEL_DISPLAY_FIELDS_LIST:
         if a_key in label:
