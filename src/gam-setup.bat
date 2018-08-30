@@ -8,7 +8,7 @@
 @if /I not "%nu%"=="n" (
 @  echo.
 @  echo Please answer n or u.
-@  goto createproject
+@  goto neworupgrade
    )
 
 :createproject
