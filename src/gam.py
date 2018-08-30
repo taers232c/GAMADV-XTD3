@@ -15244,7 +15244,7 @@ def _processCalendarACLs(cal, function, entityType, calId, j, jcount, k, kcount,
   if function == u'insert':
     kwargs = {u'body': makeRoleRuleIdBody(role, ruleId), u'fields': u'', u'sendNotifications': sendNotifications}
   elif function == u'patch':
-    kwargs = {u'ruleId': ruleId, u'fields': u'', u'sendNotifications': sendNotifications}
+    kwargs = {u'ruleId': ruleId, u'body': {u'role': role}, u'fields': u'', u'sendNotifications': sendNotifications}
   else: # elif function == u'delete':
     kwargs = {'ruleId': ruleId}
   try:
