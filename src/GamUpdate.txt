@@ -1,3 +1,19 @@
+4.60.18
+
+Added additional formatting options for signatures and vacation reply messages.
+* compact - Escape carriage returns as \r and newlines as \n in original HTML; this format produces output that can be used as input to Gam
+* format - Strip HTML keywords leaving basic printable information
+* html - Show original HTML; this is the default option; the output is human readable but cannot be used an input to Gam
+The previous default was compact, I changed it to html to match standard Gam.
+
+# gam <UserTypeEntity> info sendas <EmailAddressEntity> [compact|format|html]
+# gam <UserTypeEntity> show sendas [compact|format|html]
+# gam <UserTypeEntity> show signature|sig [compact|format|html] [primary]
+# gam <UserTypeEntity> show vacation [compact|format|html] [enabledonly]
+
+Previously, gam print/show vacation would not show details for a user's vacation settings if the responder was off; the details
+are now displayed in all cases. Use the enabledonly option to display vacation settings for only those users with the responder on.
+
 4.60.17
 
 Added sendnotifications <Boolean> option to all commands that create or update calendar ACL; the default value is true.

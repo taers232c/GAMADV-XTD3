@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.17'
+__version__ = u'4.60.18'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -34198,7 +34198,12 @@ def showPop(users):
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
-def _showSendAs(result, j, jcount, formatSig):
+SIG_REPLY_HTML = u'html'
+SIG_REPLY_COMPACT = u'compact'
+SIG_REPLY_FORMAT = u'format'
+SIG_REPLY_OPTIONS = [SIG_REPLY_HTML, SIG_REPLY_COMPACT, SIG_REPLY_FORMAT]
+
+def _showSendAs(result, j, jcount, sigReplyFormat):
   if result[u'displayName']:
     printEntity([Ent.SENDAS_ADDRESS, u'{0} <{1}>'.format(result[u'displayName'], result[u'sendAsEmail'])], j, jcount)
   else:
@@ -34211,18 +34216,20 @@ def _showSendAs(result, j, jcount, formatSig):
   if not result.get(u'isPrimary', False):
     printKeyValueList([u'TreatAsAlias', result.get(u'treatAsAlias', False)])
     printKeyValueList([u'Verification Status', result.get(u'verificationStatus', u'unspecified')])
-  if formatSig:
+  signature = result.get(u'signature')
+  if not signature:
+    signature = u'None'
+  if sigReplyFormat == SIG_REPLY_HTML:
     printKeyValueList([u'Signature', None])
     Ind.Increment()
-    signature = result.get(u'signature')
-    if not signature:
-      signature = u'None'
+    printKeyValueList([Ind.MultiLineText(signature)])
+    Ind.Decrement()
+  elif sigReplyFormat == SIG_REPLY_FORMAT:
+    printKeyValueList([u'Signature', None])
+    Ind.Increment()
     printKeyValueList([Ind.MultiLineText(dehtml(signature))])
     Ind.Decrement()
-  else:
-    signature = result.get(u'signature')
-    if not signature:
-      signature = u'None'
+  else: # SIG_REPLY_COMPACT
     printKeyValueList([u'Signature', escapeCRsNLs(signature)])
   Ind.Decrement()
 
@@ -34236,14 +34243,14 @@ def _processSignature(tagReplacements, signature, html):
   return signature
 
 # Process SendAs functions
-def _processSendAs(user, i, count, entityType, emailAddress, j, jcount, gmail, function, formatSig, **kwargs):
+def _processSendAs(user, i, count, entityType, emailAddress, j, jcount, gmail, function, sigReplyFormat, **kwargs):
   userDefined = True
   try:
     result = callGAPI(gmail.users().settings().sendAs(), function,
                       throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.ALREADY_EXISTS, GAPI.DUPLICATE, GAPI.CANNOT_DELETE_PRIMARY_SENDAS, GAPI.INVALID_ARGUMENT],
                       userId=u'me', **kwargs)
     if function == u'get':
-      _showSendAs(result, j, jcount, formatSig)
+      _showSendAs(result, j, jcount, sigReplyFormat)
     else:
       entityActionPerformed([Ent.USER, user, entityType, emailAddress], j, jcount)
   except (GAPI.notFound, GAPI.alreadyExists, GAPI.duplicate, GAPI.cannotDeletePrimarySendAs, GAPI.invalidArgument) as e:
@@ -34317,12 +34324,12 @@ def updateSendAs(users):
 
 def _deleteInfoSendAs(users, function):
   emailAddressEntity = getUserObjectEntity(Cmd.OB_EMAIL_ADDRESS_ENTITY, Ent.SENDAS_ADDRESS)
-  formatSig = False
+  sigReplyFormat = SIG_REPLY_HTML
   if function == u'get':
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
-      if myarg == u'format':
-        formatSig = True
+      if myarg in SIG_REPLY_OPTIONS:
+        sigReplyFormat = myarg
       else:
         unknownArgumentExit()
   else:
@@ -34338,7 +34345,7 @@ def _deleteInfoSendAs(users, function):
     for emailAddress in emailAddresses:
       j += 1
       emailAddress = normalizeEmailAddressOrUID(emailAddress, noUid=True)
-      if not _processSendAs(user, i, count, Ent.SENDAS_ADDRESS, emailAddress, j, jcount, gmail, function, formatSig, sendAsEmail=emailAddress):
+      if not _processSendAs(user, i, count, Ent.SENDAS_ADDRESS, emailAddress, j, jcount, gmail, function, sigReplyFormat, sendAsEmail=emailAddress):
         break
     Ind.Decrement()
 
@@ -34346,7 +34353,7 @@ def _deleteInfoSendAs(users, function):
 def deleteSendAs(users):
   _deleteInfoSendAs(users, u'delete')
 
-# gam <UserTypeEntity> info sendas <EmailAddressEntity> [format]
+# gam <UserTypeEntity> info sendas <EmailAddressEntity> [compact|format|html]
 def infoSendAs(users):
   _deleteInfoSendAs(users, u'get')
 
@@ -34354,13 +34361,13 @@ def _printShowSendAs(users, csvFormat):
   if csvFormat:
     todrive = {}
     titles, csvRows = initializeTitlesCSVfile([u'User', u'displayName', u'sendAsEmail', u'replyToAddress', u'isPrimary', u'isDefault', u'treatAsAlias', u'verificationStatus'])
-  formatSig = False
+  sigReplyFormat = SIG_REPLY_HTML
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
-    elif not csvFormat and myarg == u'format':
-      formatSig = True
+    elif not csvFormat and myarg in SIG_REPLY_OPTIONS:
+      sigReplyFormat = myarg
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
@@ -34380,7 +34387,7 @@ def _printShowSendAs(users, csvFormat):
         j = 0
         for sendas in results:
           j += 1
-          _showSendAs(sendas, j, jcount, formatSig)
+          _showSendAs(sendas, j, jcount, sigReplyFormat)
         Ind.Decrement()
       else:
         printGettingEntityItemForWhom(Ent.SENDAS_ADDRESS, user, i, count)
@@ -34401,7 +34408,7 @@ def _printShowSendAs(users, csvFormat):
 def printSendAs(users):
   _printShowSendAs(users, True)
 
-# gam <UserTypeEntity> show sendas [format]
+# gam <UserTypeEntity> show sendas [compact|format|html]
 def showSendAs(users):
   _printShowSendAs(users, False)
 
@@ -34680,15 +34687,16 @@ def setSignature(users):
     else:
       _processSendAs(user, i, count, Ent.SIGNATURE, user, i, count, gmail, u'patch', False, body=body, sendAsEmail=user, fields=u'')
 
-# gam <UserTypeEntity> show signature|sig [format] [primary]
+# gam <UserTypeEntity> show signature|sig [compact|format|html] [primary]
 def showSignature(users):
-  formatSig = primary = False
+  sigReplyFormat = SIG_REPLY_HTML
+  primary = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'primary':
       primary = True
-    elif myarg == u'format':
-      formatSig = True
+    elif myarg in SIG_REPLY_OPTIONS:
+      sigReplyFormat = myarg
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
@@ -34706,115 +34714,129 @@ def showSignature(users):
         Ind.Increment()
         for sendas in result[u'sendAs']:
           if sendas.get(u'isPrimary', False):
-            _showSendAs(sendas, 0, 0, formatSig)
+            _showSendAs(sendas, 0, 0, sigReplyFormat)
             break
         Ind.Decrement()
       except (GAPI.serviceNotAvailable, GAPI.badRequest):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
     else:
-      _processSendAs(user, i, count, Ent.SIGNATURE, user, i, count, gmail, u'get', formatSig, sendAsEmail=user)
+      _processSendAs(user, i, count, Ent.SIGNATURE, user, i, count, gmail, u'get', sigReplyFormat, sendAsEmail=user)
 
 VACATION_START_STARTED = u'Started'
 VACATION_END_NOT_SPECIFIED = u'NotSpecified'
 
-def _showVacation(user, i, count, result, formatReply):
+def _showVacation(user, i, count, result, showDisabled, sigReplyFormat):
   enabled = result[u'enableAutoReply']
+  if not enabled and not showDisabled:
+    return
   printEntity([Ent.USER, user, Ent.VACATION, None], i, count)
   Ind.Increment()
   printKeyValueList([u'Enabled', enabled])
-  if enabled:
-    printKeyValueList([u'Contacts Only', result[u'restrictToContacts']])
-    printKeyValueList([u'Domain Only', result[u'restrictToDomain']])
-    if u'startTime' in result:
-      printKeyValueList([u'Start Date', formatLocalDatestamp(result[u'startTime'])])
+  printKeyValueList([u'Contacts Only', result[u'restrictToContacts']])
+  printKeyValueList([u'Domain Only', result[u'restrictToDomain']])
+  if u'startTime' in result:
+    printKeyValueList([u'Start Date', formatLocalDatestamp(result[u'startTime'])])
+  elif enabled:
+    printKeyValueList([u'Start Date', VACATION_START_STARTED])
+  if u'endTime' in result:
+    printKeyValueList([u'End Date', formatLocalDatestamp(result[u'endTime'])])
+  elif enabled:
+    printKeyValueList([u'End Date', VACATION_END_NOT_SPECIFIED])
+  printKeyValueList([u'Subject', result.get(u'responseSubject', u'None')])
+  if sigReplyFormat == SIG_REPLY_HTML:
+    printKeyValueList([u'Message', None])
+    Ind.Increment()
+    if result.get(u'responseBodyPlainText'):
+      printKeyValueList([Ind.MultiLineText(result[u'responseBodyPlainText'])])
+    elif result.get(u'responseBodyHtml'):
+      printKeyValueList([Ind.MultiLineText(result[u'responseBodyHtml'])])
     else:
-      printKeyValueList([u'Start Date', VACATION_START_STARTED])
-    if u'endTime' in result:
-      printKeyValueList([u'End Date', formatLocalDatestamp(result[u'endTime'])])
+      printKeyValueList([u'None'])
+    Ind.Decrement()
+  elif sigReplyFormat == SIG_REPLY_FORMAT:
+    printKeyValueList([u'Message', None])
+    Ind.Increment()
+    if result.get(u'responseBodyPlainText'):
+      printKeyValueList([Ind.MultiLineText(result[u'responseBodyPlainText'])])
+    elif result.get(u'responseBodyHtml'):
+      printKeyValueList([Ind.MultiLineText(dehtml(result[u'responseBodyHtml']))])
     else:
-      printKeyValueList([u'End Date', VACATION_END_NOT_SPECIFIED])
-    printKeyValueList([u'Subject', result.get(u'responseSubject', u'None')])
-    if formatReply:
-      printKeyValueList([u'Message', None])
-      Ind.Increment()
-      if result.get(u'responseBodyPlainText'):
-        printKeyValueList([Ind.MultiLineText(result[u'responseBodyPlainText'])])
-      elif result.get(u'responseBodyHtml'):
-        printKeyValueList([Ind.MultiLineText(dehtml(result[u'responseBodyHtml']))])
-      else:
-        printKeyValueList([u'None'])
-      Ind.Decrement()
+      printKeyValueList([u'None'])
+    Ind.Decrement()
+  else: # SIG_REPLY_COMPACT
+    if result.get(u'responseBodyPlainText'):
+      printKeyValueList([u'Message', escapeCRsNLs(result[u'responseBodyPlainText'])])
+    elif result.get(u'responseBodyHtml'):
+      printKeyValueList([u'Message', escapeCRsNLs(result[u'responseBodyHtml'])])
     else:
-      if result.get(u'responseBodyPlainText'):
-        printKeyValueList([u'Message', escapeCRsNLs(result[u'responseBodyPlainText'])])
-      elif result.get(u'responseBodyHtml'):
-        printKeyValueList([u'Message', result[u'responseBodyHtml']])
-      else:
-        printKeyValueList([u'Message', u'None'])
+      printKeyValueList([u'Message', u'None'])
   Ind.Decrement()
 
-# gam <UserTypeEntity> vacation <FalseValues>
-# gam <UserTypeEntity> vacation <TrueValues> subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*
+# gam <UserTypeEntity> vacation <Boolean> subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*
 #	[html [<Boolean>]] [contactsonly [<Boolean>]] [domainonly [<Boolean>]] [startdate <Date>|Started] [enddate <Date>|NotSpecified]
 def setVacation(users):
   enable = getBoolean(None)
   body = {u'enableAutoReply': enable}
-  if enable:
-    responseBodyType = u'responseBodyPlainText'
-    message = None
-    tagReplacements = _initTagReplacements()
-    while Cmd.ArgumentsRemaining():
-      myarg = getArgument()
-      if myarg == u'subject':
-        body[u'responseSubject'] = getString(Cmd.OB_STRING, minLen=0)
-      elif myarg == u'message':
-        message = getString(Cmd.OB_STRING, minLen=0)
-      elif myarg == u'file':
-        filename = getString(Cmd.OB_FILE_NAME)
-        encoding = getCharSet()
-        message = readFile(filename, encoding=encoding)
-      elif myarg == u'replace':
-        _getTagReplacement(tagReplacements, True)
-      elif myarg == u'html':
-        if getBoolean():
-          responseBodyType = u'responseBodyHtml'
-      elif myarg == u'contactsonly':
-        body[u'restrictToContacts'] = getBoolean()
-      elif myarg == u'domainonly':
-        body[u'restrictToDomain'] = getBoolean()
-      elif myarg == u'startdate':
-        body[u'startTime'] = getYYYYMMDD(returnTimeStamp=True, alternateValue=VACATION_START_STARTED)
-        if body[u'startTime'] is None:
-          del body[u'startTime']
-      elif myarg == u'enddate':
-        body[u'endTime'] = getYYYYMMDD(returnTimeStamp=True, alternateValue=VACATION_END_NOT_SPECIFIED)
-        if body[u'endTime'] is None:
-          del body[u'endTime']
-      else:
-        unknownArgumentExit()
-    if message:
-      if responseBodyType == u'responseBodyHtml':
-        message = message.replace(u'\r', u'').replace(u'\\n', u'<br/>')
-      else:
-        message = message.replace(u'\r', u'').replace(u'\\n', u'\n')
-      if tagReplacements[u'tags'] and not tagReplacements[u'subs']:
-        message = _processTagReplacements(tagReplacements, message)
-      body[responseBodyType] = message
-    if not message and not body.get(u'responseSubject'):
-      missingArgumentExit(u'message or subject')
+  responseBodyType = u'responseBodyPlainText'
+  message = None
+  tagReplacements = _initTagReplacements()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'subject':
+      body[u'responseSubject'] = getString(Cmd.OB_STRING, minLen=0)
+    elif myarg == u'message':
+      message = getString(Cmd.OB_STRING, minLen=0)
+    elif myarg == u'file':
+      filename = getString(Cmd.OB_FILE_NAME)
+      encoding = getCharSet()
+      message = readFile(filename, encoding=encoding)
+    elif myarg == u'replace':
+      _getTagReplacement(tagReplacements, True)
+    elif myarg == u'html':
+      if getBoolean():
+        responseBodyType = u'responseBodyHtml'
+    elif myarg == u'contactsonly':
+      body[u'restrictToContacts'] = getBoolean()
+    elif myarg == u'domainonly':
+      body[u'restrictToDomain'] = getBoolean()
+    elif myarg == u'startdate':
+      body[u'startTime'] = getYYYYMMDD(returnTimeStamp=True, alternateValue=VACATION_START_STARTED)
+      if body[u'startTime'] is None:
+        del body[u'startTime']
+    elif myarg == u'enddate':
+      body[u'endTime'] = getYYYYMMDD(returnTimeStamp=True, alternateValue=VACATION_END_NOT_SPECIFIED)
+      if body[u'endTime'] is None:
+        del body[u'endTime']
+    else:
+      unknownArgumentExit()
+  if message:
+    if responseBodyType == u'responseBodyHtml':
+      message = message.replace(u'\r', u'').replace(u'\\n', u'<br/>')
+    else:
+      message = message.replace(u'\r', u'').replace(u'\\n', u'\n')
+    if tagReplacements[u'tags'] and not tagReplacements[u'subs']:
+      message = _processTagReplacements(tagReplacements, message)
+    body[responseBodyType] = message
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
     if not gmail:
       continue
-    if tagReplacements[u'subs']:
+    if message and tagReplacements[u'subs']:
       _getTagReplacementFieldValues(user, i, count, tagReplacements)
       body[responseBodyType] = _processTagReplacements(tagReplacements, message)
     try:
+      oldBody = callGAPI(gmail.users().settings(), u'getVacation',
+                         throw_reasons=GAPI.GMAIL_THROW_REASONS,
+                         userId=u'me')
+      if body.get(responseBodyType):
+        oldBody.pop(u'responseBodyPlainText', None)
+        oldBody.pop(u'responseBodyHtml', None)
+      oldBody.update(body)
       result = callGAPI(gmail.users().settings(), u'updateVacation',
                         throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.INVALID_ARGUMENT],
-                        userId=u'me', body=body)
+                        userId=u'me', body=oldBody)
       printEntity([Ent.USER, user, Ent.VACATION_ENABLED, result[u'enableAutoReply']], i, count)
     except GAPI.invalidArgument as e:
       entityActionFailedWarning([Ent.USER, user, Ent.VACATION_ENABLED, enable], str(e), i, count)
@@ -34827,27 +34849,26 @@ def _printShowVacation(users, csvFormat):
     if not enabled and not showDisabled:
       return
     row = {u'User': user, u'enabled': enabled}
-    if enabled:
-      row[u'contactsonly'] = result[u'restrictToContacts']
-      row[u'domainonly'] = result[u'restrictToDomain']
-      if u'startTime' in result:
-        row[u'startdate'] = formatLocalDatestamp(result[u'startTime'])
-      else:
-        row[u'startdate'] = VACATION_START_STARTED
-      if u'endTime' in result:
-        row[u'enddate'] = formatLocalDatestamp(result[u'endTime'])
-      else:
-        row[u'enddate'] = VACATION_END_NOT_SPECIFIED
-      row[u'subject'] = result.get(u'responseSubject', u'None')
-      if result.get(u'responseBodyPlainText'):
-        row[u'html'] = False
-        row[u'message'] = escapeCRsNLs(result[u'responseBodyPlainText'])
-      elif result.get(u'responseBodyHtml'):
-        row[u'html'] = True
-        row[u'message'] = result[u'responseBodyHtml']
-      else:
-        row[u'html'] = False
-        row[u'message'] = u'None'
+    row[u'contactsonly'] = result[u'restrictToContacts']
+    row[u'domainonly'] = result[u'restrictToDomain']
+    if u'startTime' in result:
+      row[u'startdate'] = formatLocalDatestamp(result[u'startTime'])
+    elif enabled:
+      row[u'startdate'] = VACATION_START_STARTED
+    if u'endTime' in result:
+      row[u'enddate'] = formatLocalDatestamp(result[u'endTime'])
+    elif enabled:
+      row[u'enddate'] = VACATION_END_NOT_SPECIFIED
+    row[u'subject'] = result.get(u'responseSubject', u'None')
+    if result.get(u'responseBodyPlainText'):
+      row[u'html'] = False
+      row[u'message'] = escapeCRsNLs(result[u'responseBodyPlainText'])
+    elif result.get(u'responseBodyHtml'):
+      row[u'html'] = True
+      row[u'message'] = escapeCRsNLs(result[u'responseBodyHtml'])
+    else:
+      row[u'html'] = False
+      row[u'message'] = u'None'
     csvRows.append(row)
 
   if csvFormat:
@@ -34855,14 +34876,14 @@ def _printShowVacation(users, csvFormat):
     titles, csvRows = initializeTitlesCSVfile([u'User', u'enabled', u'contactsonly', u'domainonly',
                                                u'startdate', u'enddate', u'subject', u'html', u'message'])
   showDisabled = True
-  formatReply = False
+  sigReplyFormat = SIG_REPLY_HTML
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
-    elif not csvFormat and myarg == u'format':
-      formatReply = True
-    elif csvFormat and myarg == u'enabledonly':
+    elif not csvFormat and myarg in SIG_REPLY_OPTIONS:
+      sigReplyFormat = myarg
+    elif myarg == u'enabledonly':
       showDisabled = False
     else:
       unknownArgumentExit()
@@ -34877,7 +34898,7 @@ def _printShowVacation(users, csvFormat):
                         throw_reasons=GAPI.GMAIL_THROW_REASONS,
                         userId=u'me')
       if not csvFormat:
-        _showVacation(user, i, count, result, formatReply)
+        _showVacation(user, i, count, result, showDisabled, sigReplyFormat)
       else:
         printGettingEntityItemForWhom(Ent.VACATION, user, i, count)
         _printVacation(user, result, showDisabled)
@@ -34890,7 +34911,7 @@ def _printShowVacation(users, csvFormat):
 def printVacation(users):
   _printShowVacation(users, True)
 
-# gam <UserTypeEntity> show vacation [format]
+# gam <UserTypeEntity> show vacation [compact|format|html] [enabledonly]
 def showVacation(users):
   _printShowVacation(users, False)
 
