@@ -28,6 +28,7 @@ BACKEND_ERROR = u'backendError'
 BAD_GATEWAY = u'badGateway'
 BAD_REQUEST = u'badRequest'
 CANNOT_CHANGE_ORGANIZER = u'cannotChangeOrganizer'
+CANNOT_CHANGE_ORGANIZER_OF_INSTANCE = u'cannotChangeOrganizerOfInstance'
 CANNOT_CHANGE_OWN_ACL = u'cannotChangeOwnAcl'
 CANNOT_CHANGE_OWNER_ACL = u'cannotChangeOwnerAcl'
 CANNOT_COPY_FILE = u'cannotCopyFile'
@@ -112,12 +113,13 @@ TEAMDRIVES_FOLDER_SHARING_NOT_SUPPORTED = u'teamDrivesFolderSharingNotSupported'
 TEAMDRIVES_PARENT_LIMIT = u'teamDrivesParentLimit'
 TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED = u'teamDrivesSharingRestrictionNotAllowed'
 TIME_RANGE_EMPTY = u'timeRangeEmpty'
+TRANSIENT_ERROR = u'transientError'
 UNKNOWN_ERROR = u'unknownError'
 USER_ACCESS = u'userAccess'
 USER_NOT_FOUND = u'userNotFound'
 USER_RATE_LIMIT_EXCEEDED = u'userRateLimitExceeded'
 #
-DEFAULT_RETRY_REASONS = [QUOTA_EXCEEDED, RATE_LIMIT_EXCEEDED, USER_RATE_LIMIT_EXCEEDED, BACKEND_ERROR, BAD_GATEWAY, INTERNAL_ERROR]
+DEFAULT_RETRY_REASONS = [QUOTA_EXCEEDED, RATE_LIMIT_EXCEEDED, USER_RATE_LIMIT_EXCEEDED, BACKEND_ERROR, BAD_GATEWAY, INTERNAL_ERROR, TRANSIENT_ERROR]
 ACTIVITY_THROW_REASONS = [SERVICE_NOT_AVAILABLE]
 CALENDAR_THROW_REASONS = [SERVICE_NOT_AVAILABLE, AUTH_ERROR, NOT_A_CALENDAR_USER]
 DRIVE_USER_THROW_REASONS = [SERVICE_NOT_AVAILABLE, AUTH_ERROR, DOMAIN_POLICY]
@@ -216,6 +218,8 @@ class backendError(Exception):
 class badRequest(Exception):
   pass
 class cannotChangeOrganizer(Exception):
+  pass
+class cannotChangeOrganizerOfInstance(Exception):
   pass
 class cannotChangeOwnAcl(Exception):
   pass
@@ -383,6 +387,8 @@ class teamDrivesSharingRestrictionNotAllowed(Exception):
   pass
 class timeRangeEmpty(Exception):
   pass
+class transientError(Exception):
+  pass
 class unknownError(Exception):
   pass
 class userAccess(Exception):
@@ -400,6 +406,7 @@ REASON_EXCEPTION_MAP = {
   BACKEND_ERROR: backendError,
   BAD_REQUEST: badRequest,
   CANNOT_CHANGE_ORGANIZER: cannotChangeOrganizer,
+  CANNOT_CHANGE_ORGANIZER_OF_INSTANCE: cannotChangeOrganizerOfInstance,
   CANNOT_CHANGE_OWN_ACL: cannotChangeOwnAcl,
   CANNOT_CHANGE_OWNER_ACL: cannotChangeOwnerAcl,
   CANNOT_COPY_FILE: cannotCopyFile,
@@ -483,6 +490,7 @@ REASON_EXCEPTION_MAP = {
   TEAMDRIVES_PARENT_LIMIT: teamDrivesParentLimit,
   TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED: teamDrivesSharingRestrictionNotAllowed,
   TIME_RANGE_EMPTY: timeRangeEmpty,
+  TRANSIENT_ERROR: transientError,
   UNKNOWN_ERROR: unknownError,
   USER_ACCESS: userAccess,
   USER_NOT_FOUND: userNotFound,

@@ -667,7 +667,7 @@ gam calendar|calendars <CalendarEntity> update <CalendarACLRole> ([user] <EmailA
 gam calendar|calendars <CalendarEntity> delete [<CalendarACLRole>] ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default
 gam calendar|calendars <CalendarEntity> showacl [formatjson]
 
-<EventSelectProperties:> ::=
+<EventSelectProperty:> ::=
         (endtime|timemax <Time>)|
         (query <QueryCalendar>)|
         (privateextendedproperty <String>)|
@@ -678,7 +678,7 @@ gam calendar|calendars <CalendarEntity> showacl [formatjson]
         (starttime|timemin <Time>)|
         (updatedmin <Time>)
 
-<EventMatchProperties:> ::=
+<EventMatchProperty:> ::=
         (matchfield attendees <EmailAddressList>)|
         (matchfield creatoremail <RegularExpression>)|
         (matchfield creatorname <RegularExpression>)|
@@ -690,7 +690,7 @@ gam calendar|calendars <CalendarEntity> showacl [formatjson]
 
 <EventEntity> ::=
         (id|eventid <EventId>)|(event|events <EventIdList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|
-        (<EventSelectProperties>+ <EventMatchProperties>*)
+        (<EventSelectProperty>+ <EventMatchProperty>*)
 
 <EventAttribute> ::=
         (anyonecanaddself [<Boolean>])|
@@ -751,7 +751,7 @@ gam calendar|calendars <CalendarEntity> wipe events
 gam calendar|calendars <CalendarEntity> move events <EventEntity> to <CalendarItem> [notifyattendees]
 gam calendar|calendars <CalendarEntity> empty calendartrash
 
-<EventDisplayProperties> ::=
+<EventDisplayProperty> ::=
         (alwaysincludeemail)|
         (icaluid <String>)|
         (maxattendees <Integer>)|
@@ -759,8 +759,8 @@ gam calendar|calendars <CalendarEntity> empty calendartrash
         (timezone <TimeZone>)
 
 gam calendar|calendars <CalendarEntity> info events <EventEntity> [maxinstances <Number>] [formatjson]
-gam calendar|calendars <CalendarEntity> show events <EventSelectProperties>* <EventDisplayProperties>* [formatjson]
-gam calendar|calendars <CalendarEntity> print events <EventSelectProperties>* <EventDisplayProperties>*
+gam calendar|calendars <CalendarEntity> show events <EventSelectProperty>* <EventDisplayProperty>* [formatjson]
+gam calendar|calendars <CalendarEntity> print events <EventSelectProperty>* <EventDisplayProperty>*
          [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
 
 gam calendar|calendars <CalendarEntity> addevent <EventCreateAttribute>+
@@ -2049,28 +2049,28 @@ gam <UserTypeEntity> show backupcodes|verificationcodes
 
 # Users - Calendars
 
-<CalendarSelectProperties> ::=
-        (minaccessrole <CalendarACLRole>)|showdeleted|showhidden
+<CalendarACLRole> ::= editor|freebusy|freebusyreader|owner|reader|writer
 
-<CalendarAddEntity> ::=
+<CalendarSelectProperty> ::=
+        (minaccessrole <CalendarACLRole>)|
+        showdeleted|
+        showhidden
+
+<UserCalendarAddEntity> ::=
         <EmailAddressList>|
         (resource <ResourceID>)|
         (resources <ResourceIDList>)|
         ((calendars <CalendarList>) | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>)
-<CalendarManageEntity> ::=
+
+<UserCalendarEntity> ::=
         allcalendars|
         primary|
         <EmailAddressList>|
         (resource <ResourceID>)|
         (resources <ResourceIDList>)|
         ((calendars <CalendarList>) | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>)|
-        <CalendarSelectProperties>+
-<CalendarPrintShowEntity> ::=
-        allcalendars|
-        primary|
-        <CalendarSelectProperties>+
+        <CalendarSelectProperty>+
 
-<CalendarACLRole> ::= editor|freebusy|freebusyreader|owner|reader|writer
 <CalendarACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>)|domain|default
 <CalendarACLScopeList> ::= "<CalendarACLScope>(,<CalendarACLScope>)*"
 <CalendarACLScopeEntity>::= <CalendarACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
@@ -2093,13 +2093,13 @@ gam <UserTypeEntity> show backupcodes|verificationcodes
 
 Manage a users list of calendars
 
-gam <UserTypeEntity> add calendars <CalendarAddEntity> <CalendarAttribute>*
-gam <UserTypeEntity> update calendars <CalendarManageEntity> <CalendarAttribute>+
-gam <UserTypeEntity> delete calendars <CalendarManageEntity>
+gam <UserTypeEntity> add calendars <UserCalendarAddEntity> <CalendarAttribute>*
+gam <UserTypeEntity> update calendars <UserCalendarEntity> <CalendarAttribute>+
+gam <UserTypeEntity> delete calendars <UserCalendarEntity>
 
-gam <UserTypeEntity> info calendars <CalendarManageEntity> [formatjson]
-gam <UserTypeEntity> show calendars <CalendarPrintShowEntity> [permissions] [formatjson]
-gam <UserTypeEntity> print calendars <CalendarPrintShowEntity> [todrive <ToDriveAttribute>*] [permissions]
+gam <UserTypeEntity> info calendars <UserCalendarEntity> [formatjson]
+gam <UserTypeEntity> show calendars <UserCalendarEntity> [permissions] [formatjson]
+gam <UserTypeEntity> print calendars <UserCalendarEntity> [todrive <ToDriveAttribute>*] [permissions]
          [formatjson] [quotechar <Character>]
 
 gam <UserTypeEntity> show calsettings [formatjson]
@@ -2108,24 +2108,24 @@ gam <UserTypeEntity> print calsettings [todrive <ToDriveAttribute>*] [formatjson
 Create, modify and remove calendars for a user
 
 gam <UserTypeEntity> create calendar <CalendarSettings>+
-gam <UserTypeEntity> modify calendars <CalendarManageEntity> <CalendarSettings>+
-gam <UserTypeEntity> remove calendars <CalendarManageEntity>
+gam <UserTypeEntity> modify calendars <UserCalendarEntity> <CalendarSettings>+
+gam <UserTypeEntity> remove calendars <UserCalendarEntity>
 
 Manage access to any calendar a user owns
 
-gam <UserTypeEntity> create|add calendaracls <CalendarManageEntity> <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
-gam <UserTypeEntity> update calendaracls <CalendarManageEntity> <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
-gam <UserTypeEntity> delete calendaracls <CalendarManageEntity> <CalendarACLRole>] <CalendarACLScopeEntity>
+gam <UserTypeEntity> create|add calendaracls <UserCalendarEntity> <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
+gam <UserTypeEntity> update calendaracls <UserCalendarEntity> <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
+gam <UserTypeEntity> delete calendaracls <UserCalendarEntity> <CalendarACLRole>] <CalendarACLScopeEntity>
 
-gam <UserTypeEntity> info calendaracls <CalendarManageEntity> <CalendarACLScopeEntity> [formatjson]
-gam <UserTypeEntity> show calendaracls <CalendarManageEntity> [formatjson]
-gam <UserTypeEntity> print calendaracls <CalendarManageEntity> [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
+gam <UserTypeEntity> info calendaracls <UserCalendarEntity> <CalendarACLScopeEntity> [formatjson]
+gam <UserTypeEntity> show calendaracls <UserCalendarEntity> [formatjson]
+gam <UserTypeEntity> print calendaracls <UserCalendarEntity> [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
 
 Transfer ownership of a selection of users calendars to another user
 
-gam <UserTypeEntity> transfer calendars <CalendarManageEntity> <UserItem> [keepuser | (retainrole <CalendarACLRole>)] [noretentionmessages]
+gam <UserTypeEntity> transfer calendars <UserCalendarEntity> <UserItem> [keepuser | (retainrole <CalendarACLRole>)] [noretentionmessages]
 
-<EventSelectProperties:> ::=
+<EventSelectProperty:> ::=
         (endtime|timemax <Time>)|
         (query <QueryCalendar>)|
         (privateextendedproperty <String>)|
@@ -2136,7 +2136,7 @@ gam <UserTypeEntity> transfer calendars <CalendarManageEntity> <UserItem> [keepu
         (starttime|timemin <Time>)|
         (updatedmin <Time>)
 
-<EventMatchProperties:> ::=
+<EventMatchProperty:> ::=
         (matchfield attendees <EmailAddressList>)|
         (matchfield creatoremail <RegularExpression>)|
         (matchfield creatorname <RegularExpression>)|
@@ -2148,7 +2148,7 @@ gam <UserTypeEntity> transfer calendars <CalendarManageEntity> <UserItem> [keepu
 
 <EventEntity> ::=
         (events <EventIdList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|
-        (<EventSelectProperties>+ <EventMatchProperties>*)
+        (<EventSelectProperty>+ <EventMatchProperty>*)
 
 <EventAttribute> ::=
         (anyonecanaddself [<Boolean>])|
@@ -2205,28 +2205,28 @@ The following attributes are equivalent:
 
 Add update and delete events in any calendar for which a user has access
 
-gam <UserTypeEntity> create|add event <CalendarManageEntity> [id <String>] <EventCreateAttribute>+
-gam <UserTypeEntity> import event <CalendarEntity> icaluid <iCalUID> <EventImportAttribute>+
-gam <UserTypeEntity> update events <CalendarManageEntity> <EventEntity> <EventUpdateAttribute>+
-gam <UserTypeEntity> delete events <CalendarManageEntity> <EventEntity> [doit] [notifyattendees]
-gam <UserTypeEntity> purge events <CalendarManageEntity> <EventEntity> [doit] [notifyattendees]
-gam <UserTypeEntity> wipe events <CalendarManageEntity>
-gam <UserTypeEntity> move events <CalendarManageEntity> <EventEntity> to <CalendarItem> [notifyattendees]
-gam <UserTypeEntity> empty calendartrash <CalendarEntity>
+gam <UserTypeEntity> create|add event <UserCalendarEntity> [id <String>] <EventCreateAttribute>+
+gam <UserTypeEntity> import event <UserCalendarEntity> icaluid <iCalUID> <EventImportAttribute>+
+gam <UserTypeEntity> update events <UserCalendarEntity> <EventEntity> <EventUpdateAttribute>+
+gam <UserTypeEntity> delete events <UserCalendarEntity> <EventEntity> [doit] [notifyattendees]
+gam <UserTypeEntity> purge events <UserCalendarEntity> <EventEntity> [doit] [notifyattendees]
+gam <UserTypeEntity> wipe events <UserCalendarEntity>
+gam <UserTypeEntity> move events <UserCalendarEntity> <EventEntity> to <CalendarItem> [notifyattendees]
+gam <UserTypeEntity> empty calendartrash <UserCalendarEntity>
 
-<EventDisplayProperties> ::=
+<EventDisplayProperty> ::=
         (alwaysincludeemail)|
         (icaluid <String>)|
         (maxattendees <Integer>)|
         (orderby starttime|updated)|
         (timezone <TimeZone>)
 
-gam <UserTypeEntity> info events <CalendarManageEntity> <EventEntity> [maxinstances <Number>] [formatjson]
-gam <UserTypeEntity> show events <CalendarPrintShowEntity> <EventSelectProperties>* <EventDisplayProperties>* [formatjson]
-gam <UserTypeEntity> print events <CalendarPrintShowEntity> <EventSelectProperties>* <EventDisplayProperties>*
+gam <UserTypeEntity> info events <UserCalendarEntity> <EventEntity> [maxinstances <Number>] [formatjson]
+gam <UserTypeEntity> show events <UserCalendarEntity> <EventSelectProperty>* <EventDisplayProperty>* [formatjson]
+gam <UserTypeEntity> print events <UserCalendarEntity> <EventSelectProperty>* <EventDisplayProperty>*
          [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
 
-gam <UserTypeEntity> update calattendees <CalendarManageEntity> <EventEntity> [anyorganizer]
+gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer]
         [csv <FileName>] (replace <EmailAddress> <EmailAddress>)* (delete <EmailAddress>)* [doit]
 
 # Users - Drive
@@ -2828,7 +2828,7 @@ gam <UserTypeEntity> show signature|sig [compact|format|html] [primary]
 gam <UserTypeEntity> print signature [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> vacation <Boolean> subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <Tag> <UserReplacement>)*
-        [html [<Boolean>]] [contactsonly [<Boolean>]] [domainonly [<Boolean>]] [startdate <Date>|Started] [enddate <Date>|NotSpecified]
+        [html [<Boolean>]] [contactsonly [<Boolean>]] [domainonly [<Boolean>]] [astart|startdate <Date>|Started] [end|enddate <Date>|NotSpecified]
 gam <UserTypeEntity> show vacation [compact|format|html] [enabledonly]
 gam <UserTypeEntity> print vacation [enabledonly] [todrive <ToDriveAttribute>*]
 

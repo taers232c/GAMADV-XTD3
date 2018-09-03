@@ -1,3 +1,9 @@
+4.60.19
+
+Attempt to handle "ERROR: 503: transientError - Transient failure.".
+
+The purge events and empty calendartrash commands introduced in 4.60.10 can't handle recurring events; they will be ignored by these commands.
+
 4.60.18
 
 Added additional formatting options for signatures and vacation reply messages.
