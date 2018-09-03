@@ -1,3 +1,9 @@
+4.60.20
+
+Enhanced Tag Replace processing to handle instances of the form "{RT}...{Tag1}...{Tag2}...{/RT}" (multiple tags).
+The instance will be eliminated if there are no replacement values for all "TagN" or if the replacement values are all empty strings.
+Previously, only the form "{RT}...{Tag1}...{/RT}" (one tag) was supported.
+
 4.60.19
 
 Attempt to handle "ERROR: 503: transientError - Transient failure.".

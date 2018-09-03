@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.19'
+__version__ = u'4.60.20'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -6681,27 +6681,54 @@ def _getTagReplacementFieldValues(user, i, count, tagReplacements):
     elif tag.get(u'template'):
       tag[u'value'] = _substituteForUser(tag[u'template'], user, userName)
 
-RT_PATTERN = re.compile(r'(?s){RT}.*?{(.+?)}.*?{/RT}')
-RT_OPEN_PATTERN = re.compile(r'{RT}')
-RT_CLOSE_PATTERN = re.compile(r'{/RT}')
-RT_STRIP_PATTERN = re.compile(r'(?s){RT}.*?{/RT}')
-RT_TAG_REPLACE_PATTERN = re.compile(r'{(.*?)}')
+RT_PATTERN = re.compile(r'(?s){RT}.*?{/RT}')
+TAG_REPLACE_PATTERN = re.compile(r'{(.*?)}')
 
 def _processTagReplacements(tagReplacements, message):
+# Find all {tag}, note replacement value and starting location
+  trFields = []
+  trSubs = {}
+  pos = 0
   while True:
-    match = RT_PATTERN.search(message)
+    match = TAG_REPLACE_PATTERN.search(message, pos)
     if not match:
       break
-    if tagReplacements[u'tags'].get(match.group(1), {u'value': u''})[u'value']:
-      message = RT_OPEN_PATTERN.sub(u'', message, count=1)
-      message = RT_CLOSE_PATTERN.sub(u'', message, count=1)
-    else:
-      message = RT_STRIP_PATTERN.sub(u'', message, count=1)
+    tag = match.group(1)
+    trSubs.setdefault(tag, tagReplacements[u'tags'].get(tag, {u'value': u''})[u'value'])
+    trFields.append((trSubs[tag], match.start()))
+    pos = match.end()
+# Find all {RT}.*{/RT} sequences
+# If any non-empty {tag} replacement value falls between them, then mark {RT} and {/RT} to be stripped
+# Otherwise, mark the entire {RT}.*{/RT} sequence to be stripped
+  rtStrips = []
+  pos = 0
   while True:
-    match = RT_TAG_REPLACE_PATTERN.search(message)
+    match = RT_PATTERN.search(message, pos)
     if not match:
       break
-    message = re.sub(match.group(0), tagReplacements[u'tags'].get(match.group(1), {u'value': u''})[u'value'], message)
+    start = match.start()
+    end = match.end()
+    stripEntireRT = True
+    for field in trFields:
+      if field[1] >= end:
+        break
+      if field[1] >= start and field[0]:
+        rtStrips.append((start, start+4))
+        rtStrips.append((end-5, end))
+        stripEntireRT = False
+        break
+    if stripEntireRT:
+      rtStrips.append((start, end))
+    pos = end
+# Strip {RT} {/RT} or {RT}.*{/RT} sequence
+  for rtStrip in rtStrips[::-1]:
+    message = message[:rtStrip[0]]+message[rtStrip[1]:]
+# Make {tag} replacements
+  while True:
+    match = TAG_REPLACE_PATTERN.search(message)
+    if not match:
+      break
+    message = re.sub(match.group(0), trSubs[match.group(1)], message)
   return message
 
 def sendCreateUpdateUserNotification(notify, body, i=0, count=0, createMessage=True):
