@@ -6733,13 +6733,21 @@ def _processTagReplacements(tagReplacements, message):
     start = match.start()
     end = match.end()
     stripEntireRTL = True
-    for rtStrip in rtStrips:
-      if rtStrip[1] >= end:
+    for tagField in tagFields:
+      if tagField[1] >= end:
         break
-      if rtStrip[1] >= start and not rtStrip[0]:
+      if tagField[1] >= start and tagField[0]:
         rtlStrips.append((False, start, start+5, end-6, end))
         stripEntireRTL = False
         break
+    if stripEntireRTL:
+      for rtStrip in rtStrips:
+        if rtStrip[1] >= end:
+          break
+        if rtStrip[1] >= start and not rtStrip[0]:
+          rtlStrips.append((False, start, start+5, end-6, end))
+          stripEntireRTL = False
+          break
     if stripEntireRTL:
       rtlStrips.append((True, start, end))
     pos = end
