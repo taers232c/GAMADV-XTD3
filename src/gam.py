@@ -6683,7 +6683,8 @@ def _getTagReplacementFieldValues(user, i, count, tagReplacements):
 
 RTL_PATTERN = re.compile(r'(?s){RTL}.*?{/RTL}')
 RT_PATTERN = re.compile(r'(?s){RT}.*?{/RT}')
-TAG_REPLACE_PATTERN = re.compile(r'{(.*?)}')
+TAG_REPLACE_PATTERN = re.compile(r'{(.+?)}')
+RT_MARKERS = set([u'RT', u'/RT', u'RTL', u'/RTL'])
 
 def _processTagReplacements(tagReplacements, message):
 # Find all {tag}, note replacement value and starting location
@@ -6695,8 +6696,9 @@ def _processTagReplacements(tagReplacements, message):
     if not match:
       break
     tag = match.group(1)
-    tagSubs.setdefault(tag, tagReplacements[u'tags'].get(tag, {u'value': u''})[u'value'])
-    tagFields.append((tagSubs[tag], match.start()))
+    if tag not in RT_MARKERS:
+      tagSubs.setdefault(tag, tagReplacements[u'tags'].get(tag, {u'value': u''})[u'value'])
+      tagFields.append((tagSubs[tag], match.start()))
     pos = match.end()
 # Find all {RT}.*{/RT} sequences
 # If any non-empty {tag} replacement value falls between them, then mark {RT} and {/RT} to be stripped
@@ -6710,16 +6712,23 @@ def _processTagReplacements(tagReplacements, message):
     start = match.start()
     end = match.end()
     stripEntireRT = True
+    hasTags = False
     for tagField in tagFields:
       if tagField[1] >= end:
         break
-      if tagField[1] >= start and tagField[0]:
+      if tagField[1] >= start:
+        hasTags = True
+        if tagField[0]:
+          rtStrips.append((False, start, start+4))
+          rtStrips.append((False, end-5, end))
+          stripEntireRT = False
+          break
+    if stripEntireRT:
+      if hasTags or start+4 == end-5:
+        rtStrips.append((True, start, end))
+      else:
         rtStrips.append((False, start, start+4))
         rtStrips.append((False, end-5, end))
-        stripEntireRT = False
-        break
-    if stripEntireRT:
-      rtStrips.append((True, start, end))
     pos = end
 # Find all {RTL}.*{/RTL} sequences
 # If any non-empty {RT}...{tag}... {/RT} falls between them, then mark {RTL} and {/RTL} to be stripped
@@ -6733,23 +6742,31 @@ def _processTagReplacements(tagReplacements, message):
     start = match.start()
     end = match.end()
     stripEntireRTL = True
+    hasTags = False
     for tagField in tagFields:
       if tagField[1] >= end:
         break
-      if tagField[1] >= start and tagField[0]:
-        rtlStrips.append((False, start, start+5, end-6, end))
-        stripEntireRTL = False
-        break
-    if stripEntireRTL:
-      for rtStrip in rtStrips:
-        if rtStrip[1] >= end:
-          break
-        if rtStrip[1] >= start and not rtStrip[0]:
+      if tagField[1] >= start:
+        hasTags = True
+        if tagField[0]:
           rtlStrips.append((False, start, start+5, end-6, end))
           stripEntireRTL = False
           break
     if stripEntireRTL:
-      rtlStrips.append((True, start, end))
+      for rtStrip in rtStrips:
+        if rtStrip[1] >= end:
+          break
+        if rtStrip[1] >= start:
+          hasTags = True
+          if not rtStrip[0]:
+            rtlStrips.append((False, start, start+5, end-6, end))
+            stripEntireRTL = False
+            break
+    if stripEntireRTL:
+      if hasTags or start+5 == end-6:
+        rtlStrips.append((True, start, end))
+      else:
+        rtlStrips.append((False, start, start+5, end-6, end))
     pos = end
   if rtlStrips:
     allStrips = []
@@ -6768,6 +6785,9 @@ def _processTagReplacements(tagReplacements, message):
       else:
         while i < l and rtStrips[i][1] < rtlStrip[2]:
           i += 1
+    while i < l:
+      allStrips.append(rtStrips[i])
+      i += 1
   else:
     allStrips = rtStrips
 # Strip {RTL} {/RTL}, {RT} {/RT}, {RTL}.*{/RTL}, {RT}.*{/RT} sequences
@@ -6778,7 +6798,9 @@ def _processTagReplacements(tagReplacements, message):
     match = TAG_REPLACE_PATTERN.search(message)
     if not match:
       break
-    message = re.sub(match.group(0), tagSubs[match.group(1)], message)
+    tag = match.group(1)
+    if tag not in RT_MARKERS:
+      message = re.sub(match.group(0), tagSubs[tag], message)
   return message
 
 def sendCreateUpdateUserNotification(notify, body, i=0, count=0, createMessage=True):
