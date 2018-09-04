@@ -37,6 +37,7 @@ CANNOT_DELETE_PRIMARY_CALENDAR = u'cannotDeletePrimaryCalendar'
 CANNOT_DELETE_PRIMARY_SENDAS = u'cannotDeletePrimarySendAs'
 CANNOT_DELETE_RESOURCE_WITH_CHILDREN = u'cannotDeleteResourceWithChildren'
 CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION = u'cannotModifyInheritedTeamDrivePermission'
+CANNOT_MOVE_TRASHED_ITEM_INTO_TEAM_DRIVE = u'cannotMoveTrashedItemIntoTeamDrive'
 CANNOT_REMOVE_OWNER = u'cannotRemoveOwner'
 CANNOT_SHARE_GROUPS_WITHLINK = u'cannotShareGroupsWithLink'
 CANNOT_SHARE_USERS_WITHLINK = u'cannotShareUsersWithLink'
@@ -237,6 +238,8 @@ class cannotDeleteResourceWithChildren(Exception):
   pass
 class cannotModifyInheritedTeamDrivePermission(Exception):
   pass
+class cannotMoveTrashedItemIntoTeamDrive(Exception):
+  pass
 class cannotRemoveOwner(Exception):
   pass
 class cannotShareGroupsWithLink(Exception):
@@ -415,6 +418,7 @@ REASON_EXCEPTION_MAP = {
   CANNOT_DELETE_PRIMARY_SENDAS: cannotDeletePrimarySendAs,
   CANNOT_DELETE_RESOURCE_WITH_CHILDREN: cannotDeleteResourceWithChildren,
   CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION: cannotModifyInheritedTeamDrivePermission,
+  CANNOT_MOVE_TRASHED_ITEM_INTO_TEAM_DRIVE: cannotMoveTrashedItemIntoTeamDrive,
   CANNOT_REMOVE_OWNER: cannotRemoveOwner,
   CANNOT_SHARE_GROUPS_WITHLINK: cannotShareGroupsWithLink,
   CANNOT_SHARE_USERS_WITHLINK: cannotShareUsersWithLink,

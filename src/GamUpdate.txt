@@ -1,3 +1,9 @@
+4.60.21
+
+In gam move drivefile, when moving directly from root (My Drive) to another location, do not attempt to delete root after the move.
+
+In gam move drivefile, do not attempt to move files in the trash to a Team Drive.
+
 4.60.20
 
 Enhanced Tag Replace processing to handle instances of the form `{RT}...{Tag1}...{Tag2}...{/RT}` (multiple tags).
@@ -5,11 +11,11 @@ The instance will be eliminated if there are no replacement values for all `TagN
 Previously, only the form `{RT}...{Tag1}...{/RT}` (one tag) was supported.
 
 Added new form `{RTL}...{RT}...{Tag1}...{/RT}{RT}...{Tag2}...{/RT}{/RTL}` to allow elimination of entire lines when no replacement values are supplied.
-With this template: `{RTL}{RT}Office: {officephone} {/RT}{RT}Mobile: {mobilephone}{/RT}{/RTL}`
+With this template: `{RTL}Phone:{RT} Office: {officephone}{/RT}{RT} Mobile: {mobilephone}{/RT}{/RTL}`
 * replace officephone '' replace mobilephone '' - Entire line is eliminated
-* replace officephone '123' replace mobilephone '' - Produces "Office: 123 "
-* replace officephone '' replace mobilephone '456' - Produces "Mobile: 456"
-* replace officephone '123' replace mobilephone '456' - Produces "Office: 123 Mobile: 456"
+* replace officephone '123' replace mobilephone '' - Produces "Phone: Office: 123"
+* replace officephone '' replace mobilephone '456' - Produces "Phone: Mobile: 456"
+* replace officephone '123' replace mobilephone '456' - Produces "Phone: Office: 123 Mobile: 456"
 
 4.60.19
 
