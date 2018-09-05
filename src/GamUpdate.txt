@@ -1,3 +1,7 @@
+4.60.24
+
+Fixed bug in gam move drivefile that threw exception.
+
 4.60.23
 
 Support `gam.cfg/no_verify_ssl = true` for user contacts and sites to avoid this error:

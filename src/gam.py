@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.23'
+__version__ = u'4.60.24'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -27188,6 +27188,7 @@ def _cloneFolder(drive, user, i, count, j, jcount, source, newFolderTitle, targe
         return (None, False)
   body = source.copy()
   body.pop(u'capabilities')
+  body.pop(u'trashed')
   body[VX_FILENAME] = newFolderTitle
   try:
     if destTeamDriveId:
