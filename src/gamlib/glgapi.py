@@ -57,6 +57,7 @@ FAILED_PRECONDITION = u'failedPrecondition'
 FIELD_NOT_WRITABLE = u'fieldNotWritable'
 FILE_NEVER_WRITABLE = u'fileNeverWritable'
 FILE_NOT_FOUND = u'fileNotFound'
+FILE_OWNER_NOT_MEMBER_OF_TEAM_DRIVE = u'fileOwnerNotMemberOfTeamDrive'
 FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN = u'fileOwnerNotMemberOfWriterDomain'
 FORBIDDEN = u'forbidden'
 GROUP_NOT_FOUND = u'groupNotFound'
@@ -278,6 +279,8 @@ class fileNeverWritable(Exception):
   pass
 class fileNotFound(Exception):
   pass
+class fileOwnerNotMemberOfTeamDrive(Exception):
+  pass
 class fileOwnerNotMemberOfWriterDomain(Exception):
   pass
 class forbidden(Exception):
@@ -438,6 +441,7 @@ REASON_EXCEPTION_MAP = {
   FIELD_NOT_WRITABLE: fieldNotWritable,
   FILE_NEVER_WRITABLE: fileNeverWritable,
   FILE_NOT_FOUND: fileNotFound,
+  FILE_OWNER_NOT_MEMBER_OF_TEAM_DRIVE: fileOwnerNotMemberOfTeamDrive,
   FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN: fileOwnerNotMemberOfWriterDomain,
   FORBIDDEN: forbidden,
   GROUP_NOT_FOUND: groupNotFound,

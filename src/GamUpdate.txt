@@ -1,3 +1,7 @@
+4.60.22
+
+In gam move drivefile, handle error when the owner of the file being moved is not a member of the destination Team Drive.
+
 4.60.21
 
 In gam move drivefile, when moving directly from root (My Drive) to another location, do not attempt to delete root after the move.

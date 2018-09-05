@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.21'
+__version__ = u'4.60.22'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -27577,6 +27577,7 @@ def moveDriveFile(users):
           try:
             result = callGAPI(drive.files(), u'update',
                               throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST,
+                                                                             GAPI.FILE_OWNER_NOT_MEMBER_OF_TEAM_DRIVE,
                                                                              GAPI.FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN,
                                                                              GAPI.CANNOT_MOVE_TRASHED_ITEM_INTO_TEAM_DRIVE],
                               fileId=childId, addParents=newFolderId, removeParents=folderId,
@@ -27585,7 +27586,7 @@ def moveDriveFile(users):
                                                                Act.MODIFIER_TO, result[VX_FILENAME], [Ent.DRIVE_FILE_ID, result[u'id']], k, kcount)
             _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
           except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-                  GAPI.badRequest, GAPI.fileOwnerNotMemberOfWriterDomain, GAPI.cannotMoveTrashedItemIntoTeamDrive) as e:
+                  GAPI.badRequest, GAPI.fileOwnerNotMemberOfTeamDrive, GAPI.fileOwnerNotMemberOfWriterDomain, GAPI.cannotMoveTrashedItemIntoTeamDrive) as e:
             entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], str(e), k, kcount)
             _incrStatistic(statistics, STAT_FILE_FAILED)
             copyMoveOptions[u'retainSourceFolders'] = True
@@ -27733,6 +27734,7 @@ def moveDriveFile(users):
         removeParents = u','.join(sourceParents)
         result = callGAPI(drive.files(), u'update',
                           throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST,
+                                                                         GAPI.FILE_OWNER_NOT_MEMBER_OF_TEAM_DRIVE,
                                                                          GAPI.FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN,
                                                                          GAPI.CANNOT_MOVE_TRASHED_ITEM_INTO_TEAM_DRIVE],
                           fileId=fileId, addParents=addParents, removeParents=removeParents,
@@ -27742,7 +27744,7 @@ def moveDriveFile(users):
         _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
               GAPI.unknownError, GAPI.cannotCopyFile,
-              GAPI.badRequest, GAPI.fileOwnerNotMemberOfWriterDomain, GAPI.cannotMoveTrashedItemIntoTeamDrive) as e:
+              GAPI.badRequest, GAPI.fileOwnerNotMemberOfTeamDrive, GAPI.fileOwnerNotMemberOfWriterDomain, GAPI.cannotMoveTrashedItemIntoTeamDrive) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
         _incrStatistic(statistics, STAT_FILE_FAILED)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
