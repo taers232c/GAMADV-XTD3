@@ -1,3 +1,7 @@
+4.60.23
+
+Handle socket.error messages in non-ASCII character sets.
+
 4.60.22
 
 In gam move drivefile, handle error when the owner of the file being moved is not a member of the destination Team Drive.

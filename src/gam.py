@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.22'
+__version__ = u'4.60.23'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -161,6 +161,7 @@ UTF8 = u'utf-8'
 FN_GAM_CFG = u'gam.cfg'
 FN_LAST_UPDATE_CHECK_TXT = u'lastupdatecheck.txt'
 FN_GAMCOMMANDS_TXT = u'GamCommands.txt'
+MY_DRIVE = u'My Drive'
 TEAM_DRIVE = u'Team Drive'
 
 # Python 3.6 values
@@ -372,7 +373,7 @@ TARGET_DRIVE_SPACE_ERROR_RC = 74
 USER_REQUIRED_TO_CHANGE_PASSWORD_ERROR_RC = 75
 USER_SUSPENDED_ERROR_RC = 76
 #
-def convertUTF8(data):
+def convertUTF8toSys(data):
   return data
 
 def escapeCRsNLs(value):
@@ -509,10 +510,10 @@ def printErrorMessage(sysRC, message):
   writeStderr(formatKeyValueList(Ind.Spaces(), [ERROR, message], u'\n'))
 
 def stderrErrorMsg(message):
-  writeStderr(convertUTF8(u'\n{0}{1}\n'.format(ERROR_PREFIX, message)))
+  writeStderr(convertUTF8toSys(u'\n{0}{1}\n'.format(ERROR_PREFIX, message)))
 
 def stderrWarningMsg(message):
-  writeStderr(convertUTF8(u'\n{0}{1}\n'.format(WARNING_PREFIX, message)))
+  writeStderr(convertUTF8toSys(u'\n{0}{1}\n'.format(WARNING_PREFIX, message)))
 
 def systemErrorExit(sysRC, message):
   if message:
@@ -612,27 +613,27 @@ def noPythonSSLExit():
 
 def entityDoesNotExistExit(entityType, entityName, i=0, count=0, errMsg=None):
   Cmd.Backup()
-  writeStderr(convertUTF8(Cmd.CommandLineWithBadArgumentMarked(False)))
+  writeStderr(convertUTF8toSys(Cmd.CommandLineWithBadArgumentMarked(False)))
   systemErrorExit(ENTITY_DOES_NOT_EXIST_RC, formatKeyValueList(Ind.Spaces(),
                                                                [Ent.Singular(entityType), entityName, errMsg or Msg.DOES_NOT_EXIST],
                                                                currentCountNL(i, count)))
 
 def entityDoesNotHaveItemExit(entityValueList, i=0, count=0):
   Cmd.Backup()
-  writeStderr(convertUTF8(Cmd.CommandLineWithBadArgumentMarked(False)))
+  writeStderr(convertUTF8toSys(Cmd.CommandLineWithBadArgumentMarked(False)))
   systemErrorExit(ENTITY_DOES_NOT_EXIST_RC, formatKeyValueList(Ind.Spaces(),
                                                                Ent.FormatEntityValueList(entityValueList)+[Msg.DOES_NOT_EXIST],
                                                                currentCountNL(i, count)))
 
 def entityIsNotUniqueExit(entityType, entityName, valueType, valueList, i=0, count=0):
   Cmd.Backup()
-  writeStderr(convertUTF8(Cmd.CommandLineWithBadArgumentMarked(False)))
+  writeStderr(convertUTF8toSys(Cmd.CommandLineWithBadArgumentMarked(False)))
   systemErrorExit(ENTITY_IS_NOT_UNIQUE_RC, formatKeyValueList(Ind.Spaces(),
                                                               [Ent.Singular(entityType), entityName, Msg.IS_NOT_UNIQUE.format(Ent.Plural(valueType), u','.join(valueList))],
                                                               currentCountNL(i, count)))
 
 def usageErrorExit(message, extraneous=False):
-  writeStderr(convertUTF8(Cmd.CommandLineWithBadArgumentMarked(extraneous)))
+  writeStderr(convertUTF8toSys(Cmd.CommandLineWithBadArgumentMarked(extraneous)))
   stderrErrorMsg(message)
   writeStderr(Msg.HELP_SYNTAX.format(os.path.join(GM.Globals[GM.GAM_PATH], FN_GAMCOMMANDS_TXT)))
   writeStderr(Msg.HELP_WIKI.format(GAM_WIKI))
@@ -640,7 +641,7 @@ def usageErrorExit(message, extraneous=False):
 
 def badEntitiesExit(entityError, errorType):
   Cmd.Backup()
-  writeStderr(convertUTF8(Cmd.CommandLineWithBadArgumentMarked(False)))
+  writeStderr(convertUTF8toSys(Cmd.CommandLineWithBadArgumentMarked(False)))
   count = entityError[errorType]
   if errorType == u'doesNotExist':
     stderrErrorMsg(Msg.BAD_ENTITIES_IN_SOURCE.format(count, Ent.Choose(entityError[u'entityType'], count), [Msg.DO_NOT_EXIST, Msg.DOES_NOT_EXIST][count == 1]))
@@ -684,7 +685,7 @@ def missingArgumentExit(argument):
 
 def deprecatedArgument(argument):
   Cmd.Backup()
-  writeStderr(convertUTF8(Cmd.CommandLineWithBadArgumentMarked(False)))
+  writeStderr(convertUTF8toSys(Cmd.CommandLineWithBadArgumentMarked(False)))
   Cmd.Advance()
   stderrWarningMsg(u'{0}: {1} <{2}>'.format(Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_DEPRECATED][1], Msg.IGNORED, argument))
 
@@ -1780,11 +1781,11 @@ def printGettingAllAccountEntities(entityType, query=u''):
       Ent.SetGettingQuery(entityType, query)
     else:
       Ent.SetGetting(entityType)
-    writeStderr(convertUTF8(u'{0} {1}{2}{3}\n'.format(Msg.GETTING_ALL, Ent.PluralGetting(), Ent.GettingPreQualifier(), Ent.MayTakeTime(Ent.ACCOUNT))))
+    writeStderr(convertUTF8toSys(u'{0} {1}{2}{3}\n'.format(Msg.GETTING_ALL, Ent.PluralGetting(), Ent.GettingPreQualifier(), Ent.MayTakeTime(Ent.ACCOUNT))))
 
 def printGotAccountEntities(count):
   if GC.Values[GC.SHOW_GETTINGS]:
-    writeStderr(convertUTF8(u'{0} {1} {2}{3}\n'.format(Msg.GOT, count, Ent.ChooseGetting(count), Ent.GettingPostQualifier())))
+    writeStderr(convertUTF8toSys(u'{0} {1} {2}{3}\n'.format(Msg.GOT, count, Ent.ChooseGetting(count), Ent.GettingPostQualifier())))
 
 def printGettingAllEntityItemsForWhom(entityItem, forWhom, i=0, count=0, query=u'', qualifier=u'', entityType=None):
   if GC.Values[GC.SHOW_GETTINGS]:
@@ -1795,21 +1796,21 @@ def printGettingAllEntityItemsForWhom(entityItem, forWhom, i=0, count=0, query=u
     else:
       Ent.SetGetting(entityItem)
     Ent.SetGettingForWhom(forWhom)
-    writeStderr(convertUTF8(u'{0} {1}{2} {3} {4}{5}{6}'.format(Msg.GETTING_ALL, Ent.PluralGetting(), Ent.GettingPreQualifier(), Msg.FOR, forWhom, Ent.MayTakeTime(entityType), currentCountNL(i, count))))
+    writeStderr(convertUTF8toSys(u'{0} {1}{2} {3} {4}{5}{6}'.format(Msg.GETTING_ALL, Ent.PluralGetting(), Ent.GettingPreQualifier(), Msg.FOR, forWhom, Ent.MayTakeTime(entityType), currentCountNL(i, count))))
 
 def printGotEntityItemsForWhom(count):
   if GC.Values[GC.SHOW_GETTINGS]:
-    writeStderr(convertUTF8(u'{0} {1} {2}{3} {4} {5}\n'.format(Msg.GOT, count, Ent.ChooseGetting(count), Ent.GettingPostQualifier(), Msg.FOR, Ent.GettingForWhom())))
+    writeStderr(convertUTF8toSys(u'{0} {1} {2}{3} {4} {5}\n'.format(Msg.GOT, count, Ent.ChooseGetting(count), Ent.GettingPostQualifier(), Msg.FOR, Ent.GettingForWhom())))
 
 def printGettingEntityItem(entityType, entityItem, i=0, count=0):
   if GC.Values[GC.SHOW_GETTINGS]:
-    writeStderr(convertUTF8(u'{0} {1} {2}{3}'.format(Msg.GETTING, Ent.Singular(entityType), entityItem, currentCountNL(i, count))))
+    writeStderr(convertUTF8toSys(u'{0} {1} {2}{3}'.format(Msg.GETTING, Ent.Singular(entityType), entityItem, currentCountNL(i, count))))
 
 def printGettingEntityItemForWhom(entityItem, forWhom, i=0, count=0):
   if GC.Values[GC.SHOW_GETTINGS]:
     Ent.SetGetting(entityItem)
     Ent.SetGettingForWhom(forWhom)
-    writeStderr(convertUTF8(u'{0} {1} {2} {3}{4}'.format(Msg.GETTING, Ent.PluralGetting(), Msg.FOR, forWhom, currentCountNL(i, count))))
+    writeStderr(convertUTF8toSys(u'{0} {1} {2} {3}{4}'.format(Msg.GETTING, Ent.PluralGetting(), Msg.FOR, forWhom, currentCountNL(i, count))))
 
 FIRST_ITEM_MARKER = u'%%first_item%%'
 LAST_ITEM_MARKER = u'%%last_item%%'
@@ -1845,7 +1846,7 @@ def getPageMessageForWhom(forWhom=None, showTotal=True, showFirstLastItems=False
   return pageMessage
 
 def printLine(message):
-  writeStdout(convertUTF8(message+u'\n'))
+  writeStdout(convertUTF8toSys(message+u'\n'))
 
 def printBlankLine():
   writeStdout(u'\n')
@@ -2867,12 +2868,12 @@ def callGData(service, function,
       handleOAuthTokenError(e, GDATA.SERVICE_NOT_APPLICABLE in throw_errors)
       raise GDATA.ERROR_CODE_EXCEPTION_MAP[GDATA.SERVICE_NOT_APPLICABLE](str(e))
     except (http_client.ResponseNotReady, socket.error) as e:
-      errMsg = u'Connection error: {0}'.format(str(e) or repr(e))
+      errMsg = u'Connection error: {0}'.format(convertSysToUTF8(str(e) or repr(e)))
       if n != retries:
         waitOnFailure(n, retries, SOCKET_ERROR_RC, errMsg)
         continue
       if soft_errors:
-        writeStderr(convertUTF8(u'\n{0}{1} - Giving up.\n'.format(ERROR_PREFIX, errMsg)))
+        writeStderr(convertUTF8toSys(u'\n{0}{1} - Giving up.\n'.format(ERROR_PREFIX, errMsg)))
         return None
       systemErrorExit(SOCKET_ERROR_RC, errMsg)
     except (httplib2.ServerNotFoundError, google.auth.exceptions.TransportError) as e:
@@ -3041,12 +3042,12 @@ def callGAPI(service, function,
     except httplib2.CertificateValidationUnsupportedInPython31:
       noPythonSSLExit()
     except (http_client.ResponseNotReady, socket.error) as e:
-      errMsg = u'Connection error: {0}'.format(str(e) or repr(e))
+      errMsg = u'Connection error: {0}'.format(convertSysToUTF8(str(e) or repr(e)))
       if n != retries:
         waitOnFailure(n, retries, SOCKET_ERROR_RC, errMsg)
         continue
       if soft_errors:
-        writeStderr(convertUTF8(u'\n{0}{1} - Giving up.\n'.format(ERROR_PREFIX, errMsg)))
+        writeStderr(convertUTF8toSys(u'\n{0}{1} - Giving up.\n'.format(ERROR_PREFIX, errMsg)))
         return None
       systemErrorExit(SOCKET_ERROR_RC, errMsg)
     except ValueError as e:
@@ -3203,7 +3204,7 @@ def getAPIversionHttpService(api):
           continue
         systemErrorExit(INVALID_JSON_RC, Msg.INVALID_JSON_INFORMATION)
       except (http_client.ResponseNotReady, socket.error) as e:
-        errMsg = u'Connection error: {0}'.format(str(e) or repr(e))
+        errMsg = u'Connection error: {0}'.format(convertSysToUTF8(str(e) or repr(e)))
         if n != retries:
           waitOnFailure(n, retries, SOCKET_ERROR_RC, errMsg)
           continue
@@ -5218,7 +5219,7 @@ def doBatch(threadBatch=False):
       try:
         argv = shlex.split(line)
       except ValueError as e:
-        writeStderr(convertUTF8(u'Command: >>>{0}<<<\n'.format(line.strip())))
+        writeStderr(convertUTF8toSys(u'Command: >>>{0}<<<\n'.format(line.strip())))
         writeStderr(u'{0}{1}\n'.format(ERROR_PREFIX, str(e)))
         errors += 1
         continue
@@ -5233,7 +5234,7 @@ def doBatch(threadBatch=False):
         elif cmd == Cmd.PRINT_CMD:
           items.append(argv)
         else:
-          writeStderr(convertUTF8(u'Command: >>>{0}<<< {1}\n'.format(Cmd.QuotedArgumentList([argv[0]]), Cmd.QuotedArgumentList(argv[1:]))))
+          writeStderr(convertUTF8toSys(u'Command: >>>{0}<<< {1}\n'.format(Cmd.QuotedArgumentList([argv[0]]), Cmd.QuotedArgumentList(argv[1:]))))
           writeStderr(u'{0}{1}: {2} <{3}>\n'.format(ERROR_PREFIX, Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1],
                                                     Msg.EXPECTED, formatChoiceList([Cmd.GAM_CMD, Cmd.COMMIT_BATCH_CMD, Cmd.PRINT_CMD])))
           errors += 1
@@ -23955,7 +23956,7 @@ def updateCalendarAttendees(users):
         Act.Set(Act.REPLACE)
         if event[u'status'] == u'cancelled':
           continue
-        event_summary = convertUTF8(event.get(u'summary', event[u'id']))
+        event_summary = convertUTF8toSys(event.get(u'summary', event[u'id']))
         if not anyOrganizer and not event.get(u'organizer', {}).get(u'self'):
           continue
         needs_update = False
@@ -27592,8 +27593,8 @@ def moveDriveFile(users):
             copyMoveOptions[u'retainSourceFolders'] = True
       Ind.Decrement()
     Act.Set(Act.DELETE)
-    if not copyMoveOptions[u'retainSourceFolders'] and source[VX_FILENAME] != u'My Drive':
-      try:
+    if not copyMoveOptions[u'retainSourceFolders'] and source[VX_FILENAME] not in [MY_DRIVE, TEAM_DRIVE]:
+>      try:
         callGAPI(drive.files(), u'delete',
                  throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
                  fileId=folderId, supportsTeamDrives=True)
@@ -28456,7 +28457,7 @@ def transferDrive(users):
     fileId = fileEntry[u'info'][u'id']
     if fileId in filesTransferred:
       return
-    if fileEntry[u'info'][VX_FILENAME] != u'My Drive':
+    if fileEntry[u'info'][VX_FILENAME] != MY_DRIVE:
       filesTransferred.add(fileId)
       _transferFile(fileEntry, i, count, j, jcount)
     kcount = len(fileEntry[u'children'])
@@ -28475,7 +28476,7 @@ def transferDrive(users):
     fileId = fileEntry[u'info'][u'id']
     if fileId in filesTransferred:
       return
-    if fileEntry[u'info'][VX_FILENAME] != u'My Drive':
+    if fileEntry[u'info'][VX_FILENAME] != MY_DRIVE:
       filesTransferred.add(fileId)
       _manageRoleRetention(fileEntry, i, count, j, jcount)
     kcount = len(fileEntry[u'children'])
@@ -28852,7 +28853,7 @@ def transferOwnership(users):
       filesTransferred.add(fileId)
       filesToTransfer = {}
       if trashed or not fileEntryInfo[u'trashed']:
-        if fileEntryInfo[u'ownedByMe'] and fileEntryInfo[VX_FILENAME] != u'My Drive':
+        if fileEntryInfo[u'ownedByMe'] and fileEntryInfo[VX_FILENAME] != MY_DRIVE:
           filesToTransfer[fileId] = {VX_FILENAME: fileEntryInfo[VX_FILENAME], u'type': entityType}
         if fileEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER:
           if buildTree:
@@ -32185,10 +32186,10 @@ def updateLabels(users):
       for label in labels[u'labels']:
         if label[u'type'] == LABEL_TYPE_SYSTEM:
           continue
-        match_result = pattern.match(convertUTF8(label[u'name']))
+        match_result = pattern.match(convertUTF8toSys(label[u'name']))
         if match_result is not None:
           labelMatches += 1
-          newLabelName = pattern.sub(replace, convertUTF8(label[u'name'])) if useRegexSub else replace % match_result.groups()
+          newLabelName = pattern.sub(replace, convertUTF8toSys(label[u'name'])) if useRegexSub else replace % match_result.groups()
           newLabelNameLower = newLabelName.lower()
           try:
             Act.Set(Act.RENAME)
@@ -33614,7 +33615,7 @@ def _printShowDelegates(users, csvFormat):
             status = delegate[u'verificationStatus']
             delegateEmail = delegate[u'delegateEmail']
             if cd:
-              writeStdout(convertUTF8(u'{0},{1},{2},{3}\n'.format(user, _getDelegateName(delegateEmail), status, delegateEmail)))
+              writeStdout(convertUTF8toSys(u'{0},{1},{2},{3}\n'.format(user, _getDelegateName(delegateEmail), status, delegateEmail)))
             else:
               writeStdout(u'{0},{1},{2}\n'.format(user, status, delegateEmail))
       else:
@@ -36057,7 +36058,7 @@ def ProcessGAMCommand(args, processGamCfg=True):
     setSysExitRC(KEYBOARD_INTERRUPT_RC)
     adjustRedirectedSTDFilesIfNotMultiprocessing()
   except socket.error as e:
-    printErrorMessage(SOCKET_ERROR_RC, str(e).decode(u'latin1'))
+    printErrorMessage(SOCKET_ERROR_RC, convertSysToUTF8(str(e)))
     adjustRedirectedSTDFilesIfNotMultiprocessing()
   except MemoryError:
     printErrorMessage(MEMORY_ERROR_RC, Msg.GAM_OUT_OF_MEMORY)
