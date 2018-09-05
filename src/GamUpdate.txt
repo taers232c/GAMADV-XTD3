@@ -1,5 +1,8 @@
 4.60.23
 
+Support `gam.cfg/no_verify_ssl = true` for user contacts and sites to avoid this error:
+`Temporary error: 3 - Connection error: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:661)`
+
 Handle socket.error messages in non-ASCII character sets.
 
 4.60.22

@@ -44,6 +44,7 @@ import random
 import re
 import signal
 import socket
+import ssl
 import uuid
 import zipfile
 
@@ -3356,6 +3357,8 @@ def getContactsObject(entityType=Ent.DOMAIN, entityName=None, i=0, count=0, cont
   userEmail, credentials = getGDataUserCredentials(API.CONTACTS, entityName, i, count)
   if not credentials:
     return (userEmail, None)
+  if GC.Values[GC.NO_VERIFY_SSL]:
+    ssl._create_default_https_context = ssl._create_unverified_context
   contactsObject = gdata.apps.contacts.service.ContactsService(source=GAM_INFO, contactFeed=contactFeed,
                                                                additional_headers={u'Authorization': u'Bearer {0}'.format(credentials.token)})
   if GC.Values[GC.DEBUG_LEVEL] > 0:
@@ -3364,6 +3367,8 @@ def getContactsObject(entityType=Ent.DOMAIN, entityName=None, i=0, count=0, cont
 
 def getContactsQuery(**kwargs):
   import gdata.apps.contacts.service
+  if GC.Values[GC.NO_VERIFY_SSL]:
+    ssl._create_default_https_context = ssl._create_unverified_context
   return gdata.apps.contacts.service.ContactsQuery(**kwargs)
 
 def getEmailAuditObject():
@@ -3382,15 +3387,13 @@ def getSitesObject(entityType=Ent.DOMAIN, entityName=None, i=0, count=0):
   userEmail, credentials = getGDataUserCredentials(API.SITES, entityName, i, count)
   if not credentials:
     return (userEmail, None)
+  if GC.Values[GC.NO_VERIFY_SSL]:
+    ssl._create_default_https_context = ssl._create_unverified_context
   sitesObject = gdata.apps.sites.service.SitesService(source=GAM_INFO,
                                                       additional_headers={u'Authorization': u'Bearer {0}'.format(credentials.token)})
   if GC.Values[GC.DEBUG_LEVEL] > 0:
     sitesObject.debug = True
   return (userEmail, sitesObject)
-
-def getSitesQuery(**kwargs):
-  import gdata.apps.sites.service
-  return gdata.apps.sites.service.SitesQuery(**kwargs)
 
 # Convert UID to email address
 def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, emailType=u'user', checkForCustomerId=False):
