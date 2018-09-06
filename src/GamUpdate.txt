@@ -1,3 +1,7 @@
+4.60.25
+
+Fixed bug where user contacts and sites were not using correct SSL cacerts.pem.
+
 4.60.24
 
 Fixed bug in gam move drivefile that threw exception.
