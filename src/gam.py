@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.26'
+__version__ = u'4.60.27'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -1819,7 +1819,7 @@ LAST_ITEM_MARKER = u'%%last_item%%'
 NUM_ITEMS_MARKER = u'%%num_items%%'
 TOTAL_ITEMS_MARKER = u'%%total_items%%'
 
-def getPageMessage(showTotal=True, showFirstLastItems=False, noNL=False):
+def getPageMessage(showTotal=True, showFirstLastItems=False):
   if not GC.Values[GC.SHOW_GETTINGS]:
     return None
   Ent.SetGettingShowTotal(showTotal)
@@ -1828,11 +1828,11 @@ def getPageMessage(showTotal=True, showFirstLastItems=False, noNL=False):
     pageMessage += u': {0} - {1}'.format(FIRST_ITEM_MARKER, LAST_ITEM_MARKER)
   else:
     pageMessage += u'...'
-  if not noNL:
+  if GC.Values[GC.SHOW_GETTINGS_GOT_NL]:
     pageMessage += u'\n'
   return pageMessage
 
-def getPageMessageForWhom(forWhom=None, showTotal=True, showFirstLastItems=False, noNL=False):
+def getPageMessageForWhom(forWhom=None, showTotal=True, showFirstLastItems=False):
   if not GC.Values[GC.SHOW_GETTINGS]:
     return None
   Ent.SetGettingShowTotal(showTotal)
@@ -1843,7 +1843,7 @@ def getPageMessageForWhom(forWhom=None, showTotal=True, showFirstLastItems=False
     pageMessage += u': {0} - {1}'.format(FIRST_ITEM_MARKER, LAST_ITEM_MARKER)
   else:
     pageMessage += u'...'
-  if not noNL:
+  if GC.Values[GC.SHOW_GETTINGS_GOT_NL]:
     pageMessage += u'\n'
   return pageMessage
 
@@ -3565,7 +3565,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
       printGettingAllEntityItemsForWhom(memberRoles if memberRoles else Ent.ROLE_MANAGER_MEMBER_OWNER, group, entityType=Ent.GROUP)
       validRoles, listRoles, listFields = _getRoleVerification(memberRoles, u'nextPageToken,members(email,type,status)')
       result = callGAPIpages(cd.members(), u'list', u'members',
-                             page_message=getPageMessageForWhom(noNL=True),
+                             page_message=getPageMessageForWhom(),
                              throw_reasons=GAPI.MEMBERS_THROW_REASONS,
                              groupKey=group, roles=listRoles, fields=listFields, maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
       while result:
@@ -3605,7 +3605,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
     try:
       printGettingAllAccountEntities(Ent.USER)
       result = callGAPIpages(cd.users(), u'list', u'users',
-                             page_message=getPageMessage(noNL=True),
+                             page_message=getPageMessage(),
                              throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                              customer=GC.Values[GC.CUSTOMER_ID],
                              query=query, fields=u'nextPageToken,users(primaryEmail)',
@@ -3629,7 +3629,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
           printGettingAllEntityItemsForWhom(memberRoles if memberRoles else Ent.ROLE_MANAGER_MEMBER_OWNER, group, entityType=Ent.GROUP)
           validRoles, listRoles, listFields = _getRoleVerification(memberRoles, u'nextPageToken,members(email,id,type,status)')
           result = callGAPIpages(cd.members(), u'list', u'members',
-                                 page_message=getPageMessageForWhom(noNL=True),
+                                 page_message=getPageMessageForWhom(),
                                  throw_reasons=GAPI.MEMBERS_THROW_REASONS,
                                  groupKey=group, roles=listRoles, fields=listFields, maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
           while result:
@@ -3703,7 +3703,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
                         customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=ou, fields=u'orgUnitPath')[u'orgUnitPath']
         printGettingAllEntityItemsForWhom(Ent.USER, ou, qualifier=qualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
         result = callGAPIpages(cd.users(), u'list', u'users',
-                               page_message=getPageMessageForWhom(noNL=True),
+                               page_message=getPageMessageForWhom(),
                                throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
                                               GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                                customer=GC.Values[GC.CUSTOMER_ID], query=orgUnitPathQuery(ou, checkSuspended),
@@ -3732,7 +3732,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
       printGettingAllAccountEntities(Ent.USER, query)
       try:
         result = callGAPIpages(cd.users(), u'list', u'users',
-                               page_message=getPageMessage(noNL=True),
+                               page_message=getPageMessage(),
                                throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
                                               GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                                customer=GC.Values[GC.CUSTOMER_ID], query=query,
@@ -3763,7 +3763,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
         if entityType in [Cmd.ENTITY_COURSEPARTICIPANTS, Cmd.ENTITY_TEACHERS]:
           printGettingAllEntityItemsForWhom(Ent.TEACHER, removeCourseIdScope(courseId), entityType=Ent.COURSE)
           result = callGAPIpages(croom.courses().teachers(), u'list', u'teachers',
-                                 page_message=getPageMessageForWhom(noNL=True),
+                                 page_message=getPageMessageForWhom(),
                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
                                  courseId=courseId, fields=u'nextPageToken,teachers/profile/emailAddress',
                                  pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
@@ -3776,7 +3776,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
         if entityType in [Cmd.ENTITY_COURSEPARTICIPANTS, Cmd.ENTITY_STUDENTS]:
           printGettingAllEntityItemsForWhom(Ent.STUDENT, removeCourseIdScope(courseId), entityType=Ent.COURSE)
           result = callGAPIpages(croom.courses().students(), u'list', u'students',
-                                 page_message=getPageMessageForWhom(noNL=True),
+                                 page_message=getPageMessageForWhom(),
                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
                                  courseId=courseId, fields=u'nextPageToken,students/profile/emailAddress',
                                  pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
@@ -3803,7 +3803,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
     try:
       printGettingAllAccountEntities(Ent.CROS_DEVICE)
       result = callGAPIpages(cd.chromeosdevices(), u'list', u'chromeosdevices',
-                             page_message=getPageMessage(noNL=True),
+                             page_message=getPageMessage(),
                              throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                              customerId=GC.Values[GC.CUSTOMER_ID],
                              fields=u'nextPageToken,chromeosdevices(deviceId)',
@@ -3824,7 +3824,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
       printGettingAllAccountEntities(Ent.CROS_DEVICE, query)
       try:
         result = callGAPIpages(cd.chromeosdevices(), u'list', u'chromeosdevices',
-                               page_message=getPageMessage(noNL=True),
+                               page_message=getPageMessage(),
                                throw_reasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                                customerId=GC.Values[GC.CUSTOMER_ID], query=query,
                                fields=u'nextPageToken,chromeosdevices(deviceId)',
@@ -3858,7 +3858,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
         try:
           printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, ou, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
           result = callGAPIpages(cd.chromeosdevices(), u'list', u'chromeosdevices',
-                                 page_message=getPageMessage(noNL=True),
+                                 page_message=getPageMessage(),
                                  throw_reasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                                  customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=ou,
                                  fields=u'nextPageToken,chromeosdevices(deviceId)',
@@ -3889,7 +3889,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, checkSuspended=None, 
           qualifier = Msg.IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, len(ous)))
           printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, u','.join(ous), qualifier=allQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
           result = callGAPIpages(cd.chromeosdevices(), u'list', u'chromeosdevices',
-                                 page_message=getPageMessage(noNL=True),
+                                 page_message=getPageMessage(),
                                  throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                                  customerId=GC.Values[GC.CUSTOMER_ID],
                                  fields=u'nextPageToken,chromeosdevices(deviceId,orgUnitPath)',
@@ -4677,6 +4677,18 @@ def writeCSVfile(csvRows, titles, list_type, todrive, sortTitles=None, quotechar
     writeCSVToDrive()
   if GM.Globals[GM.CSVFILE][GM.REDIRECT_MODE] == DEFAULT_FILE_APPEND_MODE:
     GM.Globals[GM.CSVFILE][GM.REDIRECT_WRITE_HEADER] = False
+
+def writeEntityNoHeaderCSVFile(entityType, entityList):
+  titles, csvRows = initializeTitlesCSVfile(entityType)
+  _, _, entityList = getEntityArgument(entityList)
+  if entityType == Ent.USER:
+    for entity in entityList:
+      csvRows.append({entityType: normalizeEmailAddressOrUID(entity)})
+  else:
+    for entity in entityList:
+      csvRows.append({entityType: entity})
+  GM.Globals[GM.CSVFILE][GM.REDIRECT_WRITE_HEADER] = False
+  writeCSVfile(csvRows, titles, Ent.Plural(entityType), {})
 
 DEFAULT_SKIP_OBJECTS = set([u'kind', u'etag', u'etags'])
 
@@ -12021,7 +12033,12 @@ CROS_ORDERBY_CHOICE_MAP = {
   u'user': u'annotatedUser',
   }
 
-# gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttributes>]] [(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
+# gam [<CrOSTypeEntity>] print cros [todrive [<ToDriveAttributes>]]
+#	[(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
+#	[orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
+#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
+#
+# gam <CrOSTypeEntity> print cros [todrive [<ToDriveAttributes>]]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
 def doPrintCrOSDevices(entityList=None):
@@ -12106,11 +12123,11 @@ def doPrintCrOSDevices(entityList=None):
     myarg = getArgument()
     if myarg == u'todrive':
       todrive = getTodriveParameters()
-    elif myarg == u'limittoou':
+    elif entityList is None and myarg == u'limittoou':
       orgUnitPath = getOrgUnitItem()
-    elif myarg in [u'query', u'queries']:
+    elif entityList is None and myarg in [u'query', u'queries']:
       queries = getQueries(myarg)
-    elif myarg == u'select':
+    elif entityList is None and myarg == u'select':
       _, entityList = getEntityToModify(defaultEntityType=Cmd.ENTITY_CROS, crosAllowed=True, userAllowed=False)
     elif myarg in CROS_ACTIVE_TIME_RANGES_ARGUMENTS:
       selectActiveTimeRanges = True
@@ -12260,7 +12277,12 @@ def doPrintCrOSDevices(entityList=None):
 
 CROS_ACTIVITY_TIME_OBJECTS = set([u'createTime',])
 
-# gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttributes>]] [(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
+# gam  print crosactivity [todrive [<ToDriveAttributes>]]
+#	[(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
+#	[orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [devicefiles] [both|all] [listlimit <Number>] [start <Date>] [end <Date>]
+#	[delimiter <Character>] [formatjson] [quotechar <Character>]
+#
+# gam <CrOSTypeEntity> print crosactivity [todrive [<ToDriveAttributes>]]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [devicefiles] [both|all] [listlimit <Number>] [start <Date>] [end <Date>]
 #	[delimiter <Character>] [formatjson] [quotechar <Character>]
 def doPrintCrOSActivity(entityList=None):
@@ -12325,11 +12347,11 @@ def doPrintCrOSActivity(entityList=None):
     myarg = getArgument()
     if myarg == u'todrive':
       todrive = getTodriveParameters()
-    elif myarg == u'limittoou':
+    elif entityList is None and myarg == u'limittoou':
       orgUnitPath = getOrgUnitItem()
-    elif myarg in [u'query', u'queries']:
+    elif entityList is None and myarg in [u'query', u'queries']:
       queries = getQueries(myarg)
-    elif myarg == u'select':
+    elif entityList is None and myarg == u'select':
       _, entityList = getEntityToModify(defaultEntityType=Cmd.ENTITY_CROS, crosAllowed=True, userAllowed=False)
     elif myarg == u'listlimit':
       listLimit = getInteger(minVal=0)
@@ -12419,15 +12441,13 @@ def doPrintCrOSActivity(entityList=None):
     csvRows.sort(key=lambda k: k[orderBy], reverse=sortOrder == u'DESCENDING')
   writeCSVfile(csvRows, titles, u'CrOS Activity', todrive, None, quotechar)
 
-# gam <CrOSTypeEntity> print
+# gam <CrOSTypeEntity> print [cros|croses|crosactivity]
 def doPrintCrOSEntity(entityList):
   if getChoice([Cmd.ARG_CROS, Cmd.ARG_CROSES, Cmd.ARG_CROSACTIVITY], defaultChoice=None) != Cmd.ARG_CROSACTIVITY:
     if not Cmd.ArgumentsRemaining():
-      _, _, entityList = getEntityArgument(entityList)
-      for entity in entityList:
-        printLine(entity)
-      return
-    doPrintCrOSDevices(entityList)
+      writeEntityNoHeaderCSVFile(Ent.CROS_DEVICE, entityList)
+    else:
+      doPrintCrOSDevices(entityList)
   else:
     doPrintCrOSActivity(entityList)
 
@@ -13275,7 +13295,7 @@ def doUpdateGroups():
       validRoles, listRoles, listFields = _getRoleVerification(memberRoles, fields)
       try:
         result = callGAPIpages(cd.members(), u'list', u'members',
-                               page_message=getPageMessageForWhom(noNL=True),
+                               page_message=getPageMessageForWhom(),
                                throw_reasons=GAPI.MEMBERS_THROW_REASONS,
                                groupKey=group, roles=listRoles, fields=listFields, maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
         if checkSuspended is None:
@@ -17112,7 +17132,7 @@ def _doPrintShowVaultExports(csvFormat):
     matterNameId = formatVaultNameId(matterName, matterId)
     if csvFormat:
       printGettingAllEntityItemsForWhom(Ent.VAULT_EXPORT, u'{0}: {1}'.format(Ent.Singular(Ent.VAULT_MATTER), matterNameId), j, jcount)
-      page_message = getPageMessageForWhom(noNL=True)
+      page_message = getPageMessageForWhom()
     else:
       page_message = None
     if matter[u'state'] == u'OPEN':
@@ -17596,7 +17616,7 @@ def _doPrintShowVaultHolds(csvFormat):
     matterNameId = formatVaultNameId(matterName, matterId)
     if csvFormat:
       printGettingAllEntityItemsForWhom(Ent.VAULT_HOLD, u'{0}: {1}'.format(Ent.Singular(Ent.VAULT_MATTER), matterNameId), j, jcount)
-      page_message = getPageMessageForWhom(noNL=True)
+      page_message = getPageMessageForWhom()
     else:
       page_message = None
     if matter[u'state'] == u'OPEN':
@@ -20226,11 +20246,9 @@ def doPrintUsers(entityList=None):
 # gam <UserTypeEntity> print users
 def doPrintUserEntity(entityList):
   if not Cmd.ArgumentsRemaining():
-    _, _, entityList = getEntityArgument(entityList)
-    for entity in entityList:
-      printLine(normalizeEmailAddressOrUID(entity))
-    return
-  doPrintUsers(entityList)
+    writeEntityNoHeaderCSVFile(Ent.USER, entityList)
+  else:
+    doPrintUsers(entityList)
 
 SITEVERIFICATION_METHOD_CHOICE_MAP = {
   u'cname': u'DNS_CNAME',
@@ -24775,7 +24793,7 @@ def printDriveActivity(users):
     try:
       printGettingAllEntityItemsForWhom(Ent.ACTIVITY, user, i, count)
       feed = callGAPIpages(activity.activities(), u'list', u'activities',
-                           page_message=getPageMessageForWhom(noNL=True),
+                           page_message=getPageMessageForWhom(),
                            throw_reasons=GAPI.ACTIVITY_THROW_REASONS,
                            source=u'drive.google.com', userId=u'me',
                            drive_ancestorId=drive_ancestorId, groupingStrategy=u'none',
@@ -35358,6 +35376,7 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_CLASSPARTICIPANTS:	Cmd.ARG_COURSEPARTICIPANTS,
   Cmd.ARG_CONTACTS:	Cmd.ARG_CONTACT,
   Cmd.ARG_CONTACTPHOTOS:	Cmd.ARG_CONTACTPHOTO,
+  Cmd.ARG_CROSES:	Cmd.ARG_CROS,
   Cmd.ARG_DATATRANSFERS:	Cmd.ARG_DATATRANSFER,
   Cmd.ARG_DEVICEFILES:	Cmd.ARG_DEVICEFILE,
   Cmd.ARG_DOMAINS:	Cmd.ARG_DOMAIN,

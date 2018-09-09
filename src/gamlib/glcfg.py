@@ -133,6 +133,8 @@ SHOW_CONVERT_CR_NL = u'show_convert_cr_nl'
 SHOW_COUNTS_MIN = u'show_counts_min'
 # Enable/disable "Getting ... " messages
 SHOW_GETTINGS = u'show_gettings'
+# Enable/disable NL at end of "Got ..." messages
+SHOW_GETTINGS_GOT_NL = u'show_gettings_got_nl'
 # Enable/disable showing multiprocess info in redirected stdout/stderr
 SHOW_MULTIPROCESS_INFO = u'show_multiprocess_info'
 # Time Zone
@@ -198,6 +200,7 @@ Defaults = {
   SHOW_CONVERT_CR_NL: FALSE,
   SHOW_COUNTS_MIN: u'1',
   SHOW_GETTINGS: TRUE,
+  SHOW_GETTINGS_GOT_NL: FALSE,
   SHOW_MULTIPROCESS_INFO: FALSE,
   TIMEZONE: u'utc',
   TODRIVE_CONVERSION: TRUE,
@@ -279,6 +282,7 @@ VAR_INFO = {
   SHOW_CONVERT_CR_NL: {VAR_TYPE: TYPE_BOOLEAN},
   SHOW_COUNTS_MIN: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (0, 100)},
   SHOW_GETTINGS: {VAR_TYPE: TYPE_BOOLEAN},
+  SHOW_GETTINGS_GOT_NL: {VAR_TYPE: TYPE_BOOLEAN},
   SHOW_MULTIPROCESS_INFO: {VAR_TYPE: TYPE_BOOLEAN},
   TIMEZONE: {VAR_TYPE: TYPE_TIMEZONE},
   TODRIVE_CONVERSION: {VAR_TYPE: TYPE_BOOLEAN},

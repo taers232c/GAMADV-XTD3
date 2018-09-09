@@ -239,6 +239,9 @@ show_counts_min
 show_gettings
 	Enable/disable "Getting ... " messages
 	Default: True
+show_gettings_got_nl
+	Enable/disable NL at end of "Got ... " messages
+	Default: False
 show_multiprocess_info
 	Enable/disable showing multiprocess info in redirected stdout/stderr with gam csv
 	Default: False
@@ -318,6 +321,7 @@ Section: DEFAULT
   show_convert_cr_nl = false
   show_counts_min = 1
   show_gettings = true
+  show_gettings_got_nl = false
   show_multiprocess_info = false
   timezone = utc
   todrive_conversion = true
@@ -446,6 +450,7 @@ section =
 show_convert_cr_nl = false
 show_counts_min = 1
 show_gettings = true
+show_gettings_got_nl = false
 show_multiprocess_info = false
 timezone = utc
 todrive_conversion = true

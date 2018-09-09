@@ -1,3 +1,17 @@
+4.60.27
+
+Code/documentation cleanup for gam print cros/crosactivity. Make explicit that when then these forms of the commands are used:
+    gam <CrOSTypeEntity> print cros [todrive <ToDriveAttribute>*]
+    gam <CrOSTypeEntity> print crosactivity [todrive <ToDriveAttribute>*]
+these options are not allowed:
+    [(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
+
+Added show_gettings_got_nl variable to gam.cfg to standardize the output of the "Got nnn ..." messages when getting lists of items.
+Previously, some "Got nnn ..." messages were written on separate lines and other "Got nnn ..." messages overwrote the previous message on the same line.
+* gam.cfg/show_gettings_got_nl = true - "Got nnn ..." messages are written on separate lines
+* gam.cfg/show_gettings_got_bl = false - "Got nnn ..." messages overwrite the previous message on the same line
+The default value is false.
+
 4.60.26
 
 Code/documentation cleanup for gam print users. Make explicit that when then this form of the command is used:

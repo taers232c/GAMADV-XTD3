@@ -830,24 +830,27 @@ gam info cros <CrOSEntity> [nolists] [listlimit <Number>] [start <Date>] [end <D
 gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
 
-Print no header row and deviceId for specified CrOS devices; there is no CSV file redirection with these commands.
+Print fields for selected CrOS devices; use these options to select CrOS devices:
+        [(query <QueryCrOS>)|(queries <QueryCrOSList>)] [limittoou <OrgUnitItem>]
+If none of these options are chosen, all CrOS devices are selected.
 
-gam <CrOSTypeEntity> print
-gam <CrOSTypeEntity> print cros
-
-All of the following commands support CSV file redirection.
-
-Print a header row and deviceId for all CrOS devices.
-
-gam print cros
-
-Print a header row and selected fields for specified CrOS devices; deviceId is the always the first column.
-If you specify allfields|basic|full, all other column headers are sorted.
-If you specify <CrOSFieldName>* | fields <CrOSFieldNameList>, the column headers appear in the order specified.
-gam [<CrOSTypeEntity>] print cros [todrive <ToDriveAttribute>*]
+gam print cros [todrive <ToDriveAttribute>*]
         [(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
+
+Print fields for specified CrOS devices.
+
+gam gam print cros [todrive <ToDriveAttribute>*] select <CrOSTypeEntity>
+        [orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
+        [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
+
+gam <CrOSTypeEntity> print cros [todrive <ToDriveAttribute>*]
+        [orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
+        [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
+
+The first column will always be deviceId; the remaining field names will be sorted if allfields, basic, full or sortheders is specified;
+otherwise, the remaining field names will appear in the order specified.
 
 The basic argument outputs these column headers: deviceId,annotatedAssetId,annotatedLocation,annotatedUser,lastSync,notes,serialNumber,status
 The allfields/full arguments output all column headers including three headers, recentUsers, activeTimeRanges and deviceFiles,
@@ -866,8 +869,23 @@ with all of the other headers.
 The listlimit <Number> argument limits the number of repetitions to <Number>; if not specified or <Number> equals zero, there is no limit.
 The start <Date> and end <Date> arguments filter the time ranges and device files.
 
-gam [<CrOSTypeEntity>] print crosactivity [todrive <ToDriveAttribute>*]
+Print no header row and deviceId for specified CrOS devices.
+
+gam <CrOSTypeEntity> print
+gam <CrOSTypeEntity> print cros
+
+Print activity for selected CrOS devices; use these options to select CrOS devices:
         [(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
+If none of these options are chosen, all CrOS devices are selected.
+
+gam print crosactivity [todrive <ToDriveAttribute>*]
+        [(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
+        [orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [both] [devicefiles] [all] [listlimit <Number>] [start <Date>] [end <Date>]
+        [delimiter <Character>] [formatjson] [quotechar <Character>]
+
+Print activity for specified CrOS devices.
+
+gam <CrOSTypeEntity> print crosactivity [todrive <ToDriveAttribute>*]
         [orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [both] [devicefiles] [all] [listlimit <Number>] [start <Date>] [end <Date>]
         [delimiter <Character>] [formatjson] [quotechar <Character>]
 
@@ -2006,25 +2024,24 @@ gam <UserTypeEntity> unsuspend users
 gam <UserTypeEntity> info users [quick] [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>]
         [userview] <UserFieldName>* [fields <UserFieldNameList>] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
 
-The following two commands support CSV file redirection.
-
 Print fields for selected users; use these options to select users:
-         ([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])|[select <UserTypeEntity>]
+         ([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])
 If none of these options are chosen, all users are selected.
 
-The first column will always be primaryEmail; the remaining field names will be sorted if allfields, basic, full or sortheders is specified;
-otherwise, the remaining field names will appear in the order specified.
-
 gam print users [todrive <ToDriveAttribute>*]
-        ([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])|[select <UserTypeEntity>]
+        ([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])
         [orderby <UserOrderByFieldName> [ascending|descending]]
         [groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
         [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
 
 Print fields for specified users.
-The first column will always be primaryEmail; the remaining field names will be sorted if allfields, basic, full or sortheders is specified;
-otherwise, the remaining field names will appear in the order specified.
+
+gam print users [todrive <ToDriveAttribute>*] select <UserTypeEntity>
+        [orderby <UserOrderByFieldName> [ascending|descending]]
+        [groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
+        [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
+        [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
 
 gam <UserTypeEntity> print users [todrive <ToDriveAttribute>*]
         [orderby <UserOrderByFieldName> [ascending|descending]]
@@ -2032,7 +2049,10 @@ gam <UserTypeEntity> print users [todrive <ToDriveAttribute>*]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
         [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
 
-Print no header row and primaryEmail for specified users; there is no CSV file redirection with these two commands.
+The first column will always be primaryEmail; the remaining field names will be sorted if allfields, basic, full or sortheders is specified;
+otherwise, the remaining field names will appear in the order specified.
+
+Print no header row and primaryEmail for specified users.
 
 gam <UserTypeEntity> print
 gam <UserTypeEntity> print users
