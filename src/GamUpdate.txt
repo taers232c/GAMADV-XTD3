@@ -1,3 +1,10 @@
+4.60.26
+
+Code/documentation cleanup for gam print users. Make explicit that when then this form of the command is used:
+    gam <UserTypeEntity> print users
+these options are not allowed:
+    ([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])|[select <UserTypeEntity>]
+
 4.60.25
 
 Fixed bug where user contacts and sites were not using correct SSL cacerts.pem.

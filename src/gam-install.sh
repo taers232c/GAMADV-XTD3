@@ -194,7 +194,7 @@ if (( $rc != 0 )); then
   echo_red "ERROR: extracting the GAM archive with tar failed with error $rc. Exiting."
   exit
 else
-  echo_green "Finished extracting GAM archive."
+  echo_green "Finished `extracting GAM archive."
 fi
 
 if [ "$upgrade_only" = true ]; then
@@ -214,9 +214,9 @@ fi
 if [ "$update_profile" = true ]; then
   alias_line="alias gam=\"${target_dir// /\\ }/$target_gam\""
   if [ "$gamos" == "linux" ]; then
-    update_profile "$HOME/.bashrc" || update_profile "$HOME/.bash_profile"
+    update_profile "$HOME/.bash_aliases" || update_profile "$HOME/.bash_profile" || update_profile "$HOME/.bashrc"
   elif [ "$gamos" == "macos" ]; then
-    update_profile "$HOME/.profile" || update_profile "$HOME/.bash_profile"
+    update_profile "$HOME/.bash_aliases" || update_profile "$HOME/.bash_profile" || update_profile "$HOME/.bashrc" ||  update_profile "$HOME/.profile"
   fi
 else
   echo_yellow "skipping profile update."

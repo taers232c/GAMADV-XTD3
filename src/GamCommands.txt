@@ -2006,32 +2006,48 @@ gam <UserTypeEntity> unsuspend users
 gam <UserTypeEntity> info users [quick] [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas|custom <SchemaNameList>]
         [userview] <UserFieldName>* [fields <UserFieldNameList>] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
 
-Print no header row and primaryEmail for specified users; there is no CSV file redirection with these commands.
+The following two commands support CSV file redirection.
 
-gam <UserTypeEntity> print
-gam <UserTypeEntity> print users
+Print fields for selected users; use these options to select users:
+         ([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])|[select <UserTypeEntity>]
+If none of these options are chosen, all users are selected.
 
-All of the following commands support CSV file redirection.
+The first column will always be primaryEmail; the remaining field names will be sorted if allfields, basic, full or sortheders is specified;
+otherwise, the remaining field names will appear in the order specified.
 
-Print a header row and primaryEmail for all users.
-
-gam print users
-
-Print a header row and selected fields for specified users; primaryEmail is the always the first column.
-If you specify allfields|basic|full, all other column headers are sorted.
-If you specify <UserFieldName>* | fields <UserFieldNameList>, the column headers appear in the order specified.
-
-gam [<UserTypeEntity>] print users [todrive <ToDriveAttribute>*]
+gam print users [todrive <ToDriveAttribute>*]
         ([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])|[select <UserTypeEntity>]
         [orderby <UserOrderByFieldName> [ascending|descending]]
         [groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
         [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
 
-Print user domain counts
+Print fields for specified users.
+The first column will always be primaryEmail; the remaining field names will be sorted if allfields, basic, full or sortheders is specified;
+otherwise, the remaining field names will appear in the order specified.
 
-gam [<UserTypeEntity>] print users [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> print users [todrive <ToDriveAttribute>*]
+        [orderby <UserOrderByFieldName> [ascending|descending]]
+        [groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
+        [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
+        [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
+
+Print no header row and primaryEmail for specified users; there is no CSV file redirection with these two commands.
+
+gam <UserTypeEntity> print
+gam <UserTypeEntity> print users
+
+Print user domain counts for selected users; use these options to select users:
+         ([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])|[select <UserTypeEntity>]
+If none of these options are chosen, all users are selected.
+
+gam print users [todrive <ToDriveAttribute>*]
         ([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])|[select <UserTypeEntity>]
+        [formatjson] [quotechar <Character>] [countsonly|countonly]
+
+Print user domain counts for specified users.
+
+gam <UserTypeEntity> print users [todrive <ToDriveAttribute>*]
         [formatjson] [quotechar <Character>] [countsonly|countonly]
 
 # Users - Aliases
@@ -2049,7 +2065,8 @@ gam <UserTypeEntity> show backupcodes|verificationcodes
 
 # Users - Calendars
 
-<CalendarACLRole> ::= editor|freebusy|freebusyreader|owner|reader|writer
+<CalendarACLRole> ::=
+        editor|freebusy|freebusyreader|owner|reader|writer
 
 <CalendarSelectProperty> ::=
         (minaccessrole <CalendarACLRole>)|
@@ -2374,7 +2391,7 @@ gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
 gam <UserTypeEntity> create|add drivefileacl <DriveFileEntity> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
         (role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [sendemail] [emailmessage <String>] [showtitles] [nodetails]
 gam <UserTypeEntity> update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail>
-        (role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails]
+        (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails]
 gam <UserTypeEntity> delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles]
 gam <UserTypeEntity> info drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles] [formatjson]
 gam <UserTypeEntity> show drivefileacl <DriveFileEntity> [oneitemperrow] [showtitles] [formatjson]
@@ -2828,7 +2845,7 @@ gam <UserTypeEntity> show signature|sig [compact|format|html] [primary]
 gam <UserTypeEntity> print signature [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> vacation <Boolean> subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <Tag> <UserReplacement>)*
-        [html [<Boolean>]] [contactsonly [<Boolean>]] [domainonly [<Boolean>]] [astart|startdate <Date>|Started] [end|enddate <Date>|NotSpecified]
+        [html [<Boolean>]] [contactsonly [<Boolean>]] [domainonly [<Boolean>]] [start|startdate <Date>|Started] [end|enddate <Date>|NotSpecified]
 gam <UserTypeEntity> show vacation [compact|format|html] [enabledonly]
 gam <UserTypeEntity> print vacation [enabledonly] [todrive <ToDriveAttribute>*]
 

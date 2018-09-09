@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.25'
+__version__ = u'4.60.26'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -210,7 +210,8 @@ VX_MODIFIED_TIME = u'modifiedTime'
 VX_SHARED_WITH_ME_TIME = u'sharedWithMeTime'
 VX_VIEWED_BY_ME_TIME = u'viewedByMeTime'
 VX_SIZE = u'size'
-VX_WEB_VIEW_LINK = u'webViewLink'
+V3_WEB_VIEW_LINK = u'webViewLink'
+VX_WEB_VIEW_LINK = V3_WEB_VIEW_LINK
 # Queries
 ANY_FOLDERS = u"mimeType = '{0}'".format(MIMETYPE_GA_FOLDER)
 MY_FOLDERS = ME_IN_OWNERS_AND+ANY_FOLDERS
@@ -4464,7 +4465,7 @@ def getFieldsListTitles(fieldName, fieldsChoiceMap, fieldsList, titles, initialF
   elif fieldName == u'fields':
     if not fieldsList and initialField is not None:
       _addInitialField(fieldsList, initialField)
-    for field in  _getFieldsList():
+    for field in _getFieldsList():
       if field in fieldsChoiceMap:
         addFieldToCSVfile(field, fieldsChoiceMap, fieldsList, titles)
       else:
@@ -4617,13 +4618,13 @@ def writeCSVfile(csvRows, titles, list_type, todrive, sortTitles=None, quotechar
           result = callGAPI(drive.files(), u'create',
                             throw_reasons=[GAPI.INSUFFICIENT_PERMISSIONS, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR],
                             body={u'parents': [todrive[u'parentId']], u'description': u' '.join(Cmd.AllArguments()), V3_FILENAME: title, u'mimeType': mimeType},
-                            media_body=googleapiclient.http.MediaIoBaseUpload(csvFile, mimetype=u'text/csv', resumable=True), fields=VX_WEB_VIEW_LINK, supportsTeamDrives=True)
+                            media_body=googleapiclient.http.MediaIoBaseUpload(csvFile, mimetype=u'text/csv', resumable=True), fields=V3_WEB_VIEW_LINK, supportsTeamDrives=True)
         else:
           result = callGAPI(drive.files(), u'update',
                             throw_reasons=[GAPI.INSUFFICIENT_PERMISSIONS, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR],
                             fileId=todrive[u'fileId'], body={u'description': u' '.join(Cmd.AllArguments()), V3_FILENAME: title, u'mimeType': mimeType},
-                            media_body=googleapiclient.http.MediaIoBaseUpload(csvFile, mimetype=u'text/csv', resumable=True), fields=VX_WEB_VIEW_LINK, supportsTeamDrives=True)
-        file_url = result[VX_WEB_VIEW_LINK]
+                            media_body=googleapiclient.http.MediaIoBaseUpload(csvFile, mimetype=u'text/csv', resumable=True), fields=V3_WEB_VIEW_LINK, supportsTeamDrives=True)
+        file_url = result[V3_WEB_VIEW_LINK]
         if todrive[u'nobrowser']:
           msg_txt = u'{0}:\n{1}'.format(Msg.DATA_UPLOADED_TO_DRIVE_FILE, file_url)
           send_email(title, msg_txt, todrive[u'user'])
@@ -19979,15 +19980,24 @@ USERS_ORDERBY_CHOICE_MAP = {
   u'email': u'email',
   }
 
-# gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]]
+# gam print users [todrive [<ToDriveAttributes>]]
 #	([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])|[select <UserTypeEntity>]
 #	[groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
 #	[orderby <UserOrderByFieldName> [ascending|descending]]
 #	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
 #	[delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
 #
-# gam [<UserTypeEntity>] print users [todrive [<ToDriveAttributes>]]
+# gam <UserTypeEntity> print users [todrive [<ToDriveAttributes>]]
+#	[groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
+#	[orderby <UserOrderByFieldName> [ascending|descending]]
+#	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
+#	[delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
+#
+# gam print users [todrive [<ToDriveAttributes>]]
 #	([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])|[select <UserTypeEntity>]
+#	[formatjson] [quotechar <Character>] [countonly]
+#
+# gam <UserTypeEntity> print users [todrive [<ToDriveAttributes>]]
 #	[formatjson] [quotechar <Character>] [countonly]
 def doPrintUsers(entityList=None):
   def _printUser(userEntity):
@@ -20037,14 +20047,14 @@ def doPrintUsers(entityList=None):
     myarg = getArgument()
     if myarg == u'todrive':
       todrive = getTodriveParameters()
-    elif myarg == u'domain':
+    elif entityList is None and myarg == u'domain':
       domain = getString(Cmd.OB_DOMAIN_NAME).lower()
       customer = None
-    elif myarg in [u'query', u'queries']:
+    elif entityList is None and myarg in [u'query', u'queries']:
       queries = getQueries(myarg)
-    elif myarg in [u'deletedonly', u'onlydeleted']:
+    elif entityList is None and myarg in [u'deletedonly', u'onlydeleted']:
       deleted_only = True
-    elif myarg == u'select':
+    elif entityList is None and myarg == u'select':
       _, entityList = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
     elif myarg == u'orderby':
       orderBy = getChoice(USERS_ORDERBY_CHOICE_MAP, mapChoice=True)
@@ -20144,6 +20154,7 @@ def doPrintUsers(entityList=None):
     else:
       fields = None
       selectLookup = True
+# If no individual fields were specified (all_fields, basic, full) or individual fields other than primaryEmail were specified, look up each user
     if selectLookup:
       jcount = len(entityList)
       svcargs = dict([(u'userKey', None), (u'fields', fields), (u'projection', projection), (u'customFieldMask', customFieldMask), (u'viewType', viewType)]+GM.Globals[GM.EXTRA_ARGS_LIST])
@@ -20163,6 +20174,7 @@ def doPrintUsers(entityList=None):
           bcount = 0
       if bcount > 0:
         executeBatch(dbatch)
+# The only field specified was primaryEmail, just list the users/count the domains
     elif not countOnly:
       for userEntity in entityList:
         _printUser({u'primaryEmail': normalizeEmailAddressOrUID(userEntity)})
@@ -20211,7 +20223,7 @@ def doPrintUsers(entityList=None):
     csvRows.append({u'JSON': json.dumps(cleanJSON(domainCounts, u''), ensure_ascii=False, sort_keys=True)})
   writeCSVfile(csvRows, titles, [u'Users', u'User Domain Counts'][countOnly], todrive, quotechar=quotechar)
 
-# gam <UserTypeEntity> print
+# gam <UserTypeEntity> print users
 def doPrintUserEntity(entityList):
   if not Cmd.ArgumentsRemaining():
     _, _, entityList = getEntityArgument(entityList)
