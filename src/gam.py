@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.27'
+__version__ = u'4.60.28'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -2979,6 +2979,9 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False, service=None):
         error = {u'error': {u'errors': [{u'reason': GAPI.DUPLICATE, u'message': message}]}}
       elif u'Operation not supported' in message:
         error = {u'error': {u'errors': [{u'reason': GAPI.OPERATION_NOT_SUPPORTED, u'message': message}]}}
+    elif http_status == 403:
+      if u'The caller does not have permission' in message:
+        error = {u'error': {u'errors': [{u'reason': GAPI.PERMISSION_DENIED, u'message': message}]}}
     elif http_status == 409:
       if u'Requested entity already exists' in message:
         error = {u'error': {u'errors': [{u'reason': GAPI.ALREADY_EXISTS, u'message': message}]}}
@@ -22058,7 +22061,9 @@ def _batchAddParticipantsToCourse(croom, courseId, i, count, addParticipants, ro
   Ind.Decrement()
 
 def _batchRemoveParticipantsFromCourse(croom, courseId, i, count, removeParticipants, role):
-  _REMOVE_PART_REASON_TO_MESSAGE_MAP = {GAPI.NOT_FOUND: Msg.DOES_NOT_EXIST, GAPI.FORBIDDEN: Msg.FORBIDDEN}
+  _REMOVE_PART_REASON_TO_MESSAGE_MAP = {GAPI.NOT_FOUND: Msg.DOES_NOT_EXIST,
+                                        GAPI.FORBIDDEN: Msg.FORBIDDEN,
+                                        GAPI.PERMISSION_DENIED: Msg.PERMISSION_DENIED}
   def _callbackRemoveParticipantsFromCourse(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
@@ -27629,7 +27634,7 @@ def moveDriveFile(users):
       Ind.Decrement()
     Act.Set(Act.DELETE)
     if not copyMoveOptions[u'retainSourceFolders'] and source[VX_FILENAME] not in [MY_DRIVE, TEAM_DRIVE]:
->      try:
+      try:
         callGAPI(drive.files(), u'delete',
                  throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
                  fileId=folderId, supportsTeamDrives=True)

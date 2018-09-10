@@ -1,3 +1,7 @@
+4.60.28
+
+Improve error message in gam course delete teacher.
+
 4.60.27
 
 Code/documentation cleanup for gam print cros/crosactivity. Make explicit that when then these forms of the commands are used:
