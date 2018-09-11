@@ -1035,8 +1035,8 @@ def normalizeEmailAddressOrUID(emailAddressOrUID, noUid=False, checkForCustomerI
 # 12345678 -> 12345678
 # - -> -
 # Otherwise, same results as normalizeEmailAddressOrUID
-def normalizeStudentGuardianEmailAddressOrUID(emailAddressOrUID):
-  if emailAddressOrUID.isdigit() or emailAddressOrUID == u'-':
+def normalizeStudentGuardianEmailAddressOrUID(emailAddressOrUID, noAll=False):
+  if emailAddressOrUID.isdigit() or (not noAll and emailAddressOrUID == u'-'):
     return emailAddressOrUID
   return normalizeEmailAddressOrUID(emailAddressOrUID)
 
@@ -20847,8 +20847,8 @@ def copyCourseAttributes(croom, newCourseId, ownerId, courseAttributesFrom, i, c
                                   pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
     except GAPI.forbidden:
       APIAccessDeniedExit()
-    else:
-      courseWorks = collections.deque()
+  else:
+    courseWorks = collections.deque()
   if courseAttributesFrom[u'members'] in [u'all', u'students']:
     addParticipants = [student[u'profile'][u'emailAddress'] for student in students]
     _batchAddParticipantsToCourse(croom, newCourseId, i, count, addParticipants, Ent.STUDENT)
@@ -20856,7 +20856,7 @@ def copyCourseAttributes(croom, newCourseId, ownerId, courseAttributesFrom, i, c
     addParticipants = [teacher[u'profile'][u'emailAddress'] for teacher in teachers if teacher[u'profile'][u'id'] != ownerId]
     _batchAddParticipantsToCourse(croom, newCourseId, i, count, addParticipants, Ent.TEACHER)
   if courseAnnouncements or courseWorks:
-    croom = buildClassroomGAPIObject(classroomOauth2File)
+    tcroom = buildClassroomGAPIObject(classroomOauth2File)
     if courseAnnouncements:
       jcount = len(courseAnnouncements)
       j = 0
@@ -20866,11 +20866,13 @@ def copyCourseAttributes(croom, newCourseId, ownerId, courseAttributesFrom, i, c
         for field in COURSE_ANNOUNCEMENT_REACDONLY_FIELDS:
           body.pop(field, None)
         try:
-          callGAPI(croom.courses().announcements(), u'create',
-                   throw_reasons=[GAPI.FORBIDDEN],
+          callGAPI(tcroom.courses().announcements(), u'create',
+                   throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN],
                    courseId=newCourseId, body=body)
           entityActionPerformed([Ent.COURSE, newCourseId, Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], j, jcount)
-        except GAPI.forbidden:
+        except GAPI.notFound as e:
+          entityActionFailedWarning([Ent.COURSE, newCourseId, Ent.COURSE_WORK_ID, courseWorkId], str(e), j, jcount)
+        except (GAPI.permissionDenied, GAPI.forbidden):
           APIAccessDeniedExit()
     if courseWorks:
       jcount = len(courseWorks)
@@ -20881,11 +20883,13 @@ def copyCourseAttributes(croom, newCourseId, ownerId, courseAttributesFrom, i, c
         for field in COURSE_COURSEWORK_READONLY_FIELDS:
           body.pop(field, None)
         try:
-          callGAPI(croom.courses().courseWork(), u'create',
-                   throw_reasons=[GAPI.FORBIDDEN],
+          callGAPI(tcroom.courses().courseWork(), u'create',
+                   throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN],
                    courseId=newCourseId, body=body)
           entityActionPerformed([Ent.COURSE, newCourseId, Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
-        except GAPI.forbidden:
+        except GAPI.notFound as e:
+          entityActionFailedWarning([Ent.COURSE, newCourseId, Ent.COURSE_WORK_ID, courseWorkId], str(e), j, jcount)
+        except (GAPI.permissionDenied, GAPI.forbidden):
           APIAccessDeniedExit()
 
 # gam create course [id|alias <CourseAlias>] <CourseAttributes>*

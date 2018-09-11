@@ -2,6 +2,8 @@
 
 Improve error message in gam course delete teacher.
 
+Fix errors in gam create/update course when copyfrom and workstates were combined.
+
 4.60.27
 
 Code/documentation cleanup for gam print cros/crosactivity. Make explicit that when then these forms of the commands are used:
