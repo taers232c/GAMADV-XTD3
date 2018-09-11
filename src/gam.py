@@ -20871,7 +20871,7 @@ def copyCourseAttributes(croom, newCourseId, ownerId, courseAttributesFrom, i, c
                    courseId=newCourseId, body=body)
           entityActionPerformed([Ent.COURSE, newCourseId, Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], j, jcount)
         except GAPI.notFound as e:
-          entityActionFailedWarning([Ent.COURSE, newCourseId, Ent.COURSE_WORK_ID, courseWorkId], str(e), j, jcount)
+          entityActionFailedWarning([Ent.COURSE, newCourseId, Ent.COURSE_WORK_ID, courseAnnouncementId], str(e), j, jcount)
         except (GAPI.permissionDenied, GAPI.forbidden):
           APIAccessDeniedExit()
     if courseWorks:
