@@ -375,6 +375,9 @@ TARGET_DRIVE_SPACE_ERROR_RC = 74
 USER_REQUIRED_TO_CHANGE_PASSWORD_ERROR_RC = 75
 USER_SUSPENDED_ERROR_RC = 76
 #
+def convertSysToUTF8(data):
+  return data
+
 def convertUTF8toSys(data):
   return data
 
