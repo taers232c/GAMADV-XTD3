@@ -26370,6 +26370,8 @@ def printFileList(users):
             if VX_PAGES_FILES in feed:
               totalItems += len(feed[VX_PAGES_FILES])
               if page_message:
+                writeStderr(u'\r')
+                flushStderr()
                 show_message = page_message.replace(TOTAL_ITEMS_MARKER, str(totalItems))
                 writeStderr(show_message.format(Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, totalItems)))
               for f_file in feed[VX_PAGES_FILES]:
@@ -26805,6 +26807,8 @@ def showFileTree(users):
             if VX_PAGES_FILES in feed:
               totalItems += len(feed[VX_PAGES_FILES])
               if page_message:
+                writeStderr(u'\r')
+                flushStderr()
                 show_message = page_message.replace(TOTAL_ITEMS_MARKER, str(totalItems))
                 writeStderr(show_message.format(Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, totalItems)))
               extendFileTree(fileTree, feed[VX_PAGES_FILES])
