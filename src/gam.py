@@ -3,7 +3,7 @@
 #
 # GAMADV-XTD3
 #
-# Copyright 2017, All Rights Reserved.
+# Copyright 2018, All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.60.28'
+__version__ = u'4.60.29'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -26207,7 +26207,8 @@ def printFileList(users):
   selectSubQuery = u''
   fileIdEntity = {}
   parentsSubFields = _initParentsSubFields()
-  filenameMatchPattern = fileTree = showOwnedBy = None
+  filenameMatchPattern = fileTree = None
+  showOwnedBy = True
   mimeTypeCheck = initMimeTypeCheck()
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
@@ -26380,6 +26381,9 @@ def printFileList(users):
           else:
             pageToken = None
           if not pageToken:
+            if page_message and (page_message[-1] != u'\n'):
+              writeStderr(u'\r\n')
+              flushStderr()
             break
         except (GAPI.invalidQuery, GAPI.invalid):
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(query), i, count)
@@ -26816,6 +26820,9 @@ def showFileTree(users):
           else:
             pageToken = None
           if not pageToken:
+            if page_message and (page_message[-1] != u'\n'):
+              writeStderr(u'\r\n')
+              flushStderr()
             break
         except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, fileIdEntity[u'teamdrive'][u'teamDriveId']], str(e), i, count)

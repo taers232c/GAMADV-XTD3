@@ -1,3 +1,7 @@
+4.60.29
+
+Fixed bug in gam print filelist where showownedby defaulted to any rather than me when the select option was used.
+
 4.60.28
 
 Improve error message in gam course delete teacher.
