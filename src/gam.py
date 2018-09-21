@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.61.00'
+__version__ = u'4.61.01'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -1041,9 +1041,10 @@ def normalizeEmailAddressOrUID(emailAddressOrUID, noUid=False, checkForCustomerI
 
 # Normalize student/guardian email address/uid
 # 12345678 -> 12345678
+# - -> -
 # Otherwise, same results as normalizeEmailAddressOrUID
-def normalizeStudentGuardianEmailAddressOrUID(emailAddressOrUID):
-  if emailAddressOrUID.isdigit():
+def normalizeStudentGuardianEmailAddressOrUID(emailAddressOrUID, allowDash=False):
+  if emailAddressOrUID.isdigit() or (allowDash and emailAddressOrUID == u'-'):
     return emailAddressOrUID
   return normalizeEmailAddressOrUID(emailAddressOrUID)
 
@@ -20209,7 +20210,7 @@ USERS_ORDERBY_CHOICE_MAP = {
 def doPrintUsers(entityList=None):
   def _printUser(userEntity):
     if isSuspended is None or isSuspended == userEntity.get(u'suspended', isSuspended):
-      if email_parts and (u'primaryEmail' in userEntity):
+      if emailParts and (u'primaryEmail' in userEntity):
         userEmail = userEntity[u'primaryEmail']
         if userEmail.find(u'@') != -1:
           userEntity[u'primaryEmailLocal'], userEntity[u'primaryEmailDomain'] = splitEmailAddress(userEmail)
@@ -20241,11 +20242,12 @@ def doPrintUsers(entityList=None):
   fieldsList = []
   titles, csvRows = initializeTitlesCSVfile(None)
   addFieldToCSVfile(u'primaryEmail', USER_FIELDS_CHOICE_MAP, fieldsList, titles)
-  countOnly = sortHeaders = getGroupFeed = getLicenseFeed = email_parts = False
+  countOnly = sortHeaders = getGroupFeed = getLicenseFeed = emailParts = False
   customer = GC.Values[GC.CUSTOMER_ID]
   domain = None
   queries = [None]
   projection = u'basic'
+  projectionSet = False
   customFieldMask = None
   deleted_only = isSuspended = orderBy = sortOrder = viewType = None
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
@@ -20282,15 +20284,16 @@ def doPrintUsers(entityList=None):
         projection = u'full'
       else:
         projection = u'custom'
+      projectionSet = True
     elif myarg == u'delimiter':
       delimiter = getCharacter()
     elif myarg in PROJECTION_CHOICE_MAP:
       projection = myarg
-      sortHeaders = True
+      projectionSet = sortHeaders = True
       fieldsList = []
     elif myarg == u'allfields':
       projection = u'basic'
-      sortHeaders = True
+      projectionSet = sortHeaders = True
       fieldsList = []
     elif myarg == u'sortheaders':
       sortHeaders = getBoolean()
@@ -20301,7 +20304,7 @@ def doPrintUsers(entityList=None):
     elif myarg in [u'license', u'licenses', u'licence', u'licences']:
       getLicenseFeed = True
     elif myarg in [u'emailpart', u'emailparts', u'username']:
-      email_parts = True
+      emailParts = True
     elif myarg == "formatjson":
       formatJSON = True
     elif myarg == u'quotechar':
@@ -20369,8 +20372,8 @@ def doPrintUsers(entityList=None):
         accessErrorExit(cd)
   else:
     sortRows = True
-# If no individual fields were specified (all_fields, basic, full) or individual fields other than primaryEmail were specified, look up each user
-    if len(fieldsList) > 1:
+# If no individual fields were specified (allfields, basic, full) or individual fields other than primaryEmail were specified, look up each user
+    if len(fieldsList) > 1 or projectionSet:
       jcount = len(entityList)
       if minimizeQuotaCount > 0 and jcount >= minimizeQuotaCount:
         minimizeQuota = True
@@ -20814,10 +20817,10 @@ def _doDeleteGuardian(croom, studentId, guardianId, guardianClass, i=0, count=0,
         invitations = callGAPIpages(croom.userProfiles().guardianInvitations(), u'list', u'guardianInvitations',
                                     throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
                                     studentId=studentId, invitedEmailAddress=guardianId, states=[u'PENDING',],
-                                    fields=u'nextPageToken,guardianInvitations(invitationId)')
+                                    fields=u'nextPageToken,guardianInvitations(studentId,invitationId)')
         if len(invitations) > 0:
           for invitation in invitations:
-            result = _cancelGuardianInvitation(croom, studentId, invitation[u'invitationId'], i, count, j, jcount)
+            result = _cancelGuardianInvitation(croom, invitation[u'studentId'], invitation[u'invitationId'], i, count, j, jcount)
             if result < 0:
               return result
             if result > 0:
@@ -20832,10 +20835,10 @@ def _doDeleteGuardian(croom, studentId, guardianId, guardianClass, i=0, count=0,
         guardians = callGAPIpages(croom.userProfiles().guardians(), u'list', u'guardians',
                                   throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
                                   studentId=studentId, invitedEmailAddress=guardianId,
-                                  fields=u'nextPageToken,guardians(guardianId)')
+                                  fields=u'nextPageToken,guardians(studentId,guardianId)')
         if len(guardians) > 0:
           for guardian in guardians:
-            result = _deleteGuardian(croom, studentId, guardian[u'guardianId'], guardianId, i, count, j, jcount)
+            result = _deleteGuardian(croom, guardian[u'studentId'], guardian[u'guardianId'], guardianId, i, count, j, jcount)
             if result < 0:
               return result
             if result > 0:
@@ -20860,7 +20863,7 @@ def _doDeleteGuardian(croom, studentId, guardianId, guardianClass, i=0, count=0,
 def doDeleteGuardian():
   croom = buildGAPIObject(API.CLASSROOM)
   guardianId = normalizeStudentGuardianEmailAddressOrUID(getString(Cmd.OB_GUARDIAN_ITEM))
-  studentId = normalizeStudentGuardianEmailAddressOrUID(getString(Cmd.OB_STUDENT_ITEM))
+  studentId = normalizeStudentGuardianEmailAddressOrUID(getString(Cmd.OB_STUDENT_ITEM), allowDash=True)
   guardianClass = getChoice(GUARDIAN_CLASS_MAP, mapChoice=True, defaultChoice=GUARDIAN_CLASS_ALL)
   checkForExtraneousArguments()
   _doDeleteGuardian(croom, studentId, guardianId, guardianClass)

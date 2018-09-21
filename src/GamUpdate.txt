@@ -1,10 +1,15 @@
+4.61.01
+
+Fixed bug in gam <UserTypeEntity> print users where allfields|full|basic options were ignored.
+
 4.61.00
 
 Fixed bug in gam print filelist where the anyowner option was ignored.
 
-Uodated gam sendemail to allow empty subjects and messages.
+Updated gam sendemail to allow empty subjects and messages.
 
 Enhanced all guardian commands to support a syntax similar to other commands.
+* See: https://github.com/taers232c/GAMADV-XTD/wiki/Classroom-Guardians
 * Added a command to clear all guardian invitations and accepted guardians for a student.
 * Added a command to sync guardians where the new set of guardians is specified in the command line
 and Gam deletes any pending guardian invitations and accepted guardians that are not in the new set and sends
