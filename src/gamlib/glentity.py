@@ -120,6 +120,7 @@ class GamEntity(object):
   GROUP_SETTINGS = u'gset'
   GUARDIAN = u'guar'
   GUARDIAN_INVITATION = u'gari'
+  GUARDIAN_AND_INVITATION = u'gani'
   IMAP_ENABLED = u'imap'
   INSTANCE = u'inst'
   ITEM = u'item'
@@ -131,6 +132,8 @@ class GamEntity(object):
   LOGO = u'logo'
   MD5HASH = u'md5h'
   MEMBER = u'memb'
+  MEMBER_NOT_SUSPENDED = u'mnsu'
+  MEMBER_SUSPENDED = u'msup'
   MESSAGE = u'mesg'
   MOBILE_DEVICE = u'mobi'
   NAME = u'name'
@@ -305,6 +308,7 @@ class GamEntity(object):
     GROUP_SETTINGS: [u'Group Settings', u'Group Settings'],
     GUARDIAN: [u'Guardians', u'Guardian'],
     GUARDIAN_INVITATION: [u'Guardian Invitations', u'Guardian Invitation'],
+    GUARDIAN_AND_INVITATION: [u'Guardians and Invitations', u'Guardian and Invitation'],
     IMAP_ENABLED: [u'IMAP Enabled', u'IMAP Enabled'],
     INSTANCE: [u'Instances', u'Instance'],
     ISSUER_CN: [u'Issuer CNs', u'Issuer CN'],
@@ -316,6 +320,8 @@ class GamEntity(object):
     LOGO: [u'Logos', u'Logo'],
     MD5HASH: [u'MD5 hash', u'MD5 Hash'],
     MEMBER: [u'Members', u'Member'],
+    MEMBER_NOT_SUSPENDED: [u'Members (Not suspended)', u'Member (Not suspended)'],
+    MEMBER_SUSPENDED: [u'Members (Suspended)', u'Member (Suspended)'],
     MESSAGE: [u'Messages', u'Message'],
     MOBILE_DEVICE: [u'Mobile Devices', u'Mobile Device'],
     NAME: [u'Names', u'Name'],

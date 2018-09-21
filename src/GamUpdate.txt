@@ -1,3 +1,86 @@
+4.61.00
+
+Fixed bug in gam print filelist where the anyowner option was ignored.
+
+Uodated gam sendemail to allow empty subjects and messages.
+
+Enhanced all guardian commands to support a syntax similar to other commands.
+* Added a command to clear all guardian invitations and accepted guardians for a student.
+* Added a command to sync guardians where the new set of guardians is specified in the command line
+and Gam deletes any pending guardian invitations and accepted guardians that are not in the new set and sends
+invitations to the members in the new set that don't have a pending invitation or have not accepted.
+* Multiple guardians can be specified in create, cancel, delete and sync.
+* Added formatjson option to gam show/print guardians; added quotechar <Character> option to gam print guardians.
+    gam <UserTypeEntity> create|add guardian|guardianinvite|inviteguardian <GuardianEntity>
+    gam <UserTypeEnfity> cancel guardianinvitation|guardianinvitations <GuardianInvitationIDEntity>
+    gam <UserTypeEntity> delete guardian|guardians <GuardianEntity> [accepted|invitations|all]
+    gam <UserTypeEntity> clear guardian|guardians [accepted|invitations|all]
+    gam <UserTypeEntity> sync guardian|guardians <GuardianEntity>
+    gam <UserTypeEntity> show guardian|guardians [accepted|invitations|all] [states <GuardianInvitationStateList>] [invitedguardian <EmailAddress>]
+        [showstudentemails] [formatjson]
+    gam <UserTypeEntity> print guardian|guardians [todrive <ToDriveAttribute>*] [accepted|invitations|all] [states <GuardianInvitationStateList>] [invitedguardian <EmailAddress>]
+        [showstudentemails] [formatjson] [quotechar <Character>]
+
+For example, your school SIS produces a CSV file, StudentGuardians.csv, each evening with two columns: Student,Guardian.
+There is no indication as to what changes have been made from the night before. The following command will perform the necessary changes.
+gam csvkmd users StudentGuardians.csv keyfield Student datafield Guardian sync guardians csvdata Guardian
+
+Added issuspended <Boolean> option to gam print users to allow display of subsets of users based on their status.
+    gam print users [todrive <ToDriveAttribute>*]
+        ([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])
+        [orderby <UserOrderByFieldName> [ascending|descending]]
+        [groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
+        [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
+        [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
+        [issuspended <Boolean>]
+
+Added notsuspended|suspended option to gam info groups to allow display of subsets of group members based on their status.
+    gam info group|groups <GroupEntity> [members] [managers] [owners] [nousers|notsuspended|suspended] [quick]
+        [noaliases] [groups] <GroupFieldName>* [fields <GroupFieldNameList>] [formatjson]
+
+Added querytime.* <Time> option to gam print cros/crosactivity/mobile to allow times,
+usually relative, to be substituted into the query <QueryCrOS> and queries <QueryCrOSList> options.
+The querytime.* <Time> value replaces the string #querytime.*# in any queries.
+The characters following quicktime can be any combination of lowercase letters and numbers.
+    gam print cros [todrive <ToDriveAttribute>*]
+        [(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
+        (querytime.* <Time>)*
+        [orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
+        [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
+    gam print crosactivity [todrive <ToDriveAttribute>*]
+        [(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
+        (querytime.* <Time>)*
+        [orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [both] [devicefiles] [all] [listlimit <Number>] [start <Date>] [end <Date>]
+        [delimiter <Character>] [formatjson] [quotechar <Character>]
+
+For example, to print information about CrOS devices synced more than 30 days ago:
+gam print cros query "sync:..#querytime1#" querytime1 -30d
+
+For example, to print information about CrOS devices synced in the last 30 days:
+gam print cros query "sync:#querytime1#.." querytime1 -30d
+
+For example, to print information about CrOS devices synced between 45 days ago and 30 days ago:
+gam print cros query "sync:#querytime1#..#querytime2#" querytime1 -45d querytime2 -30d
+
+Added filtertime.* <Time> option to gam report to allow times, usually relative, to be substituted into the filter <String> option.
+The filtertime.* value replaces the string #filtertime.*# in the filter <String>.
+The characters following filtertime can be any combination of lowercase letters and numbers.
+    gam report users|user [todrive <ToDriveAttribute>*] [date <Date>] [nodatechange | (fulldatarequired all|<ReportsAppList>)]
+        [(user all|<UserItem>)|(select <UserTypeEntity>)] (filtertime.* <Time>)* [filter|filters <String>] [fields|parameters <String>]
+        [maxactivities <Number>] [maxresults <Number>]
+    gam report admin|calendar|calendars|drive|docs|doc|gplus|groups|group|logins|login|mobile|rules|tokens|token [todrive <ToDriveAttribute>*] [maxresults <Number>] [maxactivities <Number>]
+        [([start <Time>] [end <Time>])|yesterday] [(user all|<UserItem>)|(select <UserTypeEntity>)]
+        [event <String>] (filtertime.* <Time>)* [filter|filters <String>] [ip <String>] [countsonly] [summary]
+
+For example, this command reports on the users that haven't logged in in the last 5 years.
+gam report users parameters accounts:last_login_time filters "accounts:last_login_time<#filtertime#" filtertime -5y
+
+For example, this command reports on the users that haven't logged in in the last 30 to 60 days.
+gam report users parameters accounts:last_login_time filters "accounts:last_login_time<#filtertime1# accounts:last_login_time>#filtertime2#" filtertime1 -30d filtertime2 -60d
+
+For example, this command reports on the users that haven't ever logged in.
+gam report users parameters accounts:last_login_time filters "accounts:last_login_time==#filtertime#" filtertime never
+
 4.60.29
 
 Fixed bug in gam print filelist where showownedby defaulted to any rather than me when the select option was used.

@@ -24,6 +24,7 @@ ADMIN = u'admin'
 ADMIN_SETTINGS = u'admin-settings'
 APPSACTIVITY = u'appsactivity'
 CALENDAR = u'calendar'
+CHAT = u'chat'
 CLASSROOM = u'classroom'
 CLOUDPRINT = u'cloudprint'
 CONTACTS = u'contacts'
@@ -71,6 +72,7 @@ PROJECT_APIS = [
   u'appsactivity.googleapis.com',
   u'audit.googleapis.com',
   u'calendar-json.googleapis.com',
+#  u'chat.googleapis.com',
   u'classroom.googleapis.com',
   u'contacts.googleapis.com',
   u'drive.googleapis.com',
@@ -91,6 +93,7 @@ _INFO = {
   APPSACTIVITY: {u'version': u'v1', u'credfam': FAM1_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/activity',
                                                                                 u'https://www.googleapis.com/auth/drive',]},
   CALENDAR: {u'version': u'v3', u'credfam': FAM1_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/calendar',]},
+#  CHAT: {u'version': u'v1', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/chat.bot',]},
   CLASSROOM: {u'version': u'v1', u'credfam': FAM2_SCOPES},
   CLOUDPRINT: {u'version': u'v2', u'credfam': FAM2_SCOPES, u'localjson': True},
   CONTACTS: {u'version': u'v3', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://www.google.com/m8/feeds',], u'localjson': True},
