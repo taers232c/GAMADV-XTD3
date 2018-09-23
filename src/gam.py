@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.61.01'
+__version__ = u'4.61.02'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -9006,36 +9006,59 @@ def doDeleteAliases():
   count = len(entityList)
   for aliasEmail in entityList:
     i += 1
-    aliasEmail = normalizeEmailAddressOrUID(aliasEmail, noUid=True, noLower=True)
+    aliasEmail = normalizeEmailAddressOrUID(aliasEmail, noUid=True)
+    aliasDeleted = False
     if targetType != u'group':
       try:
-        callGAPI(cd.users().aliases(), u'delete',
+        result = callGAPI(cd.users().aliases(), u'list',
                  throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE,
                                 GAPI.CONDITION_NOT_MET],
-                 userKey=aliasEmail, alias=aliasEmail)
-        entityActionPerformed([Ent.USER_ALIAS, aliasEmail], i, count)
-        continue
+                 userKey=aliasEmail, fields=u'aliases(alias)')
+        for aliasEntry in result.get(u'aliases', []):
+          if aliasEmail == aliasEntry[u'alias'].lower():
+            aliasEmail = aliasEntry[u'alias']
+            callGAPI(cd.users().aliases(), u'delete',
+                     throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE,
+                                    GAPI.CONDITION_NOT_MET],
+                     userKey=aliasEmail, alias=aliasEmail)
+            entityActionPerformed([Ent.USER_ALIAS, aliasEmail], i, count)
+            aliasDeleted = True
+            break
+        if aliasDeleted:
+          continue
       except GAPI.conditionNotMet as e:
         entityActionFailedWarning([Ent.USER_ALIAS, aliasEmail], str(e), i, count)
         continue
       except (GAPI.userNotFound, GAPI.badRequest, GAPI.invalid, GAPI.forbidden, GAPI.invalidResource):
-        if targetType == u'user':
-          entityUnknownWarning(Ent.USER_ALIAS, aliasEmail, i, count)
-          continue
+        pass
+      if targetType == u'user':
+        entityUnknownWarning(Ent.USER_ALIAS, aliasEmail, i, count)
+        continue
     try:
-      callGAPI(cd.groups().aliases(), u'delete',
-               throw_reasons=[GAPI.GROUP_NOT_FOUND, GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE,
-                              GAPI.CONDITION_NOT_MET],
-               groupKey=aliasEmail, alias=aliasEmail)
-      entityActionPerformed([Ent.GROUP_ALIAS, aliasEmail], i, count)
-      continue
+      result = callGAPI(cd.groups().aliases(), u'list',
+                        throw_reasons=[GAPI.GROUP_NOT_FOUND, GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE,
+                                       GAPI.CONDITION_NOT_MET],
+                        groupKey=aliasEmail, fields=u'aliases(alias)')
+      for aliasEntry in result.get(u'aliases', []):
+        if aliasEmail == aliasEntry[u'alias'].lower():
+          aliasEmail = aliasEntry[u'alias']
+          callGAPI(cd.groups().aliases(), u'delete',
+                   throw_reasons=[GAPI.GROUP_NOT_FOUND, GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE,
+                                  GAPI.CONDITION_NOT_MET],
+                   groupKey=aliasEmail, alias=aliasEmail)
+          entityActionPerformed([Ent.GROUP_ALIAS, aliasEmail], i, count)
+          aliasDeleted = True
+          break
+      if aliasDeleted:
+        continue
     except GAPI.conditionNotMet as e:
       entityActionFailedWarning([Ent.GROUP_ALIAS, aliasEmail], str(e), i, count)
       continue
     except (GAPI.groupNotFound, GAPI.userNotFound, GAPI.badRequest, GAPI.invalid, GAPI.forbidden, GAPI.invalidResource):
-      if targetType == u'group':
-        entityUnknownWarning(Ent.GROUP_ALIAS, aliasEmail, i, count)
-        continue
+      pass
+    if targetType == u'group':
+      entityUnknownWarning(Ent.GROUP_ALIAS, aliasEmail, i, count)
+      continue
     entityUnknownWarning(Ent.ALIAS, aliasEmail, i, count)
 
 def infoAliases(entityList):
@@ -9050,8 +9073,7 @@ def infoAliases(entityList):
     else:
       setSysExitRC(ENTITY_IS_NOT_AN_ALIAS_RC)
       printEntityKVList([Ent.EMAIL, aliasEmail],
-                        [u'Is a {0}, not a {1}'.format(Ent.Singular(entityType),
-                                                       Ent.Singular(aliasEntityType))],
+                        [u'Is a {0}, not a {1}'.format(Ent.Singular(entityType), Ent.Singular(aliasEntityType))],
                         i, count)
 
   cd = buildGAPIObject(API.DIRECTORY)

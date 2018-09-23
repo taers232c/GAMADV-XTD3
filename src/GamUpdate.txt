@@ -1,3 +1,8 @@
+4.61.02
+
+Google allows mixed-case aliases and requires the exact case when deleting an alias; allow mixed case aliases
+and delete a mixed-case alias regardless of case specified on the command line.
+
 4.61.01
 
 Fixed bug in gam <UserTypeEntity> print users where allfields|full|basic options were ignored.
