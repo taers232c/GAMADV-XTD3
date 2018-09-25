@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.61.03'
+__version__ = u'4.61.04'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -6273,10 +6273,6 @@ def doReport():
             invalidChoiceExit(REPORT_FULLDATA_APPS, True)
     elif activityReports and myarg == u'start':
       startDateTime, tzinfo, startTime = getTimeOrDeltaFromNow(True)
-      earliestDateTime = datetime.datetime.now(tzinfo)-datetime.timedelta(days=180)
-      if startDateTime < earliestDateTime:
-        Cmd.Backup()
-        usageErrorExit(Msg.INVALID_TIME_RANGE.format(u'start', startTime, Msg.GOOGLE_EARLIEST_REPORT_TIME, ISOformatTimeStamp(earliestDateTime)))
       if endDateTime and endDateTime < startDateTime:
         Cmd.Backup()
         usageErrorExit(Msg.INVALID_TIME_RANGE.format(u'end', endTime, u'start', startTime))

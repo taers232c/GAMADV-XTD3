@@ -1,3 +1,8 @@
+4.61.04
+
+Previously, Gam issued an error if the start <Time> in gam report was earlier that 180 days before today as Google would issue an error if it was.
+Now, Google adjusts the start time to the earliest acceptable value so the check by Gam is unnecessary.
+
 4.61.03
 
 Fixed bug in gam <UserTypeEntity> print filelist select orphans that gave an invalid error message.
@@ -631,7 +636,7 @@ Added support for Collaborative Inbox Groups.
 Extend drive filename escaping to all options:
 drivefilename, anyownerdrivefilename, teamdrivefilename,
 parentname, anyownerparentname, teamdriveparentname,
-addparentname, addanyownerparentname, removeparentname, removeanyownerparentname, 
+addparentname, addanyownerparentname, removeparentname, removeanyownerparentname,
 tdparent
 
 4.57.01
@@ -2817,7 +2822,7 @@ exercise caution to avoid overloading your system.
 
 With gam tbatch, Gam has no ability to intelligently process redirected stdout/stderr files.
 For example, if you execute: gam redirect stdout ./Batch.out redirect stderr ./Batch.err tbatch Batch.bat
-all of the threads will have stdout set to ./Batch.out and stderr to ./Batch.err, but the multiple threads will be 
+all of the threads will have stdout set to ./Batch.out and stderr to ./Batch.err, but the multiple threads will be
 writing to the output files simultaneously. Of course, you can use redirect on the commands within the batch file
 to precisely control the output.
 
@@ -2860,10 +2865,10 @@ query <QueryUser> - Print aliases for selected users
 Based on initial code provided by Jay Lee, Google Vault is now supported.
     gam create vaulthold|hold corpus drive|groups|mail matter <MatterItem> [name <String>] [query <QueryVaultCorpus>]
         [(accounts|groups|users <EmailItemList>) | (orgunit|ou <OrgUnit>)]
-        [starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>] 
+        [starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>]
     gam update vaulthold|hold <HoldItem> matter <MatterItem> [query <QueryVaultCorpus>]
         [([addaccounts|addgroups|addusers <EmailItemList>] [removeaccounts|removegroups|removeusers <EmailItemList>]) | (orgunit|ou <OrgUnit>)]
-        [starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>] 
+        [starttime <Date>|<DateTime>] [endtime <Date>|<DateTime>]
     gam delete vaulthold|hold <HoldItem> matter <MatterItem>
     gam info vaulthold|hold <HoldItem> matter <MatterItem>
     gam show vaultholds|holds [matter|matters <MatterItemList>] [shownames]
@@ -3355,7 +3360,7 @@ Dropped fields:
 Renamed fields (Old->New):
         name->displayName
         withLink->allowFileDiscovery
-        
+
 print/show fileinfo/filelist
 Dropped fields:
         defaultOpenWithLink
@@ -3530,7 +3535,7 @@ The following commands are not applicable to Team Drives.
 4.44.53
 
 Modified progress messages in gam claim ownership to match those in gam transfer ownership.
-        
+
 4.44.52
 
 When all users is specified with gam info users, suspended users are now included.
@@ -3650,7 +3655,7 @@ Added charset option to file option of note option of user attributes.
 4.44.33
 
 Added never_time to gam.cfg to specify the value to be substituted whenever a Google datetime variable
-has the value "1970-01-01T00:00:00.000Z"; the default value is 'Never'. 
+has the value "1970-01-01T00:00:00.000Z"; the default value is 'Never'.
 To keep the Google value: never_time = 1970-01-01T00:00:00.000Z
 To use some other date/time value: never_time = 1999-12-31T23:59:59.999Z
 To use some distinguished value: never_time = 0
@@ -3743,7 +3748,7 @@ If end <Date> is not specified, then there is no filtering for ending date.
 Based on code by Jay, added a command to get CrOS device activity.
     gam [<CrOSTypeEntity>] print crosactivity [todrive [<ToDriveAttribute>]] [query <QueryCrOS>]|[select <CrOSTypeEntity>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [listlimit <Number>] [start <Date>] [end <Date>]
-        [delimiter <String>] 
+        [delimiter <String>]
 
 The basic column headers are: deviceId,annotatedAssetId,annotatedLocation,serialNumber,orgUnitPath.
 If recentusers is specified, all of the recent users email addresses, separated by the delimiter <String>,
@@ -3891,7 +3896,7 @@ Changed headings of gam print vacation CSV file to match command line arguments.
 4.44.05
 
 Added print vacation command.
-    gam <UserTypeEntity> print vacation [todrive [<ToDriveAttribute>]]        
+    gam <UserTypeEntity> print vacation [todrive [<ToDriveAttribute>]]
 
 Handle 1801 - Invalid value error in gam audit export.
 
@@ -4152,7 +4157,7 @@ Added S/MIME support thanks to Jay. You must be a G Suite Enterprise customer to
 
 4.40.05
 
-Fixed todrive. 
+Fixed todrive.
 
 Restore gam calendar/calendars commands.
 The column labeled id in gam print calendars has been changed to calendarId.
@@ -5447,7 +5452,7 @@ Added formatjson argument to info user/users to cause output to be in JSON forma
 
 4.24.00
 
-Gam forward and print/show forward now use Gmail API. 
+Gam forward and print/show forward now use Gmail API.
 
 4.23.06
 
@@ -5508,7 +5513,7 @@ Improve handling of inappropriate email addresses in GAPI Service calls.
 
 4.23.00
 
-Allow mapping of keyfield value in csvkmd selectors. 
+Allow mapping of keyfield value in csvkmd selectors.
     <CSVkmdSelector> ::= csvkmd <FileName> [charset <Charset>]
         keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <String>]
         (matchfield <FieldName> <RegularExpression>)*
@@ -5714,7 +5719,7 @@ For example, ~~primaryEmail~!~^(.+)@(.+)$~!~\1 AT \2~~ would replace foo@bar.com
 Added products <ProductIDList> argument to gam info user <User> so that licenses for desired products can be shown.
 You can specify products or skus but not both.
     gam info user [<UserItem>] [noaliases] [nogroups] [nolicenses|nolicences] [noschemas] [schemas <SchemaNameList>] [userview] <UserFieldName>* [fields <UserFieldNameList>] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)]
-         
+
 
 4.19.04
 
@@ -5893,7 +5898,7 @@ Improve Gmail sendas processing.
     gam <UserTypeEntity> print sendas [todrive]
 
 Improve Gmail signature processing.
-    gam <UserTypeEntity> signature|sig <String>|(file <FileName> [charset <Charset>]) (replace <Tag> <String>)* [name <String>] [replyto <EmailAddress>] 
+    gam <UserTypeEntity> signature|sig <String>|(file <FileName> [charset <Charset>]) (replace <Tag> <String>)* [name <String>] [replyto <EmailAddress>]
     gam <UserTypeEntity> show signature|sig [format]
 
 Use Gmail API for POP/IMAP/Vacation processing.
@@ -6047,7 +6052,7 @@ Getting the file path for many files is expensive, use sparingly.
 
 Processing of the arguments orderby <DriveOrderByFieldName> and ascending|descending has been slightly restricted. Previously, these areguments
 could appear in any order and they could be separated by other arguments; now, they must appear as: orderby <OrderByFieldName> [ascending|descending]
-gam show filelist/filetree allow specification of multiple orderby fields; all other commands allow specification of a single orderby field. 
+gam show filelist/filetree allow specification of multiple orderby fields; all other commands allow specification of a single orderby field.
 
 The commands gam get drivefile, gam copy drivefile and gam update drivefile have been slightly restricted. Previously, these commands
 allowed the <DriveFileEntity> to be specified anywhere in the list of arguments; now, <DriveFileEntity> must appear as the first argument after
@@ -6358,7 +6363,7 @@ Make reminder argument consistent in add/update calendar and calendar addevent.
 
 Make the file selection arguments for all drivefile and drivefileacl commands consistent.
     <DriveFileEntity> ::= ([id] <DriveFileItem>)|(ids <DriveFileList>|<FileSelector>|<ArgsSelector>|<CSVkmdSelector>|<CSVDataSelector>)|(drivefilename[:| ]<DriveFileName>)|(query[:| ]<QueryDriveFile>)|root
-    
+
 Corrected gam create resource so that type argument is properly recognized.
 
 Add name and type specification argument for gam print resources.
@@ -6373,7 +6378,7 @@ Additionally, each of the doGetxxxInfo functions silently ignore non-relevant ar
     gam whatis foo@bar.com nousers nogroups
 If foo@bar.com is a user, nogroups takes effect and nousers is ignored.
 If foo@bar.com is a group, nousers takes effect and nogroups is ignored.
-If foo@bar.com is an alias, all arguments are ignored. 
+If foo@bar.com is an alias, all arguments are ignored.
 
 All "Getting ...", "Retrieving ...", "Got ..." messages are now written to stderr.
 Most already were but the following commands wrote to stdout:

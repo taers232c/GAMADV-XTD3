@@ -77,7 +77,6 @@ GAM_OUT_OF_MEMORY = u'GAM has run out of memory. If this is a large G Suite inst
 GETTING = u'Getting'
 GETTING_ALL = u'Getting all'
 GOOGLE_DELEGATION_ERROR = u'Google delegation error, delegator and delegate both exist and are valid for delegation'
-GOOGLE_EARLIEST_REPORT_TIME = u'Google earliest report time'
 GOT = u'Got'
 GUARDIAN_INVITATION_STATUS_NOT_PENDING = u'Guardian invitation status is not PENDING'
 HAS_CHILD_ORGS = u'Has child {0}'
