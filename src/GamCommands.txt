@@ -1501,7 +1501,7 @@ gam delete mobile <MobileEntity>
         deviceid|email|lastsync|model|name|os|status|type
 
 gam info mobile <MobileEntity>
-        [basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>]
+        [basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>] [formatjson]
 gam print mobile [todrive <ToDriveAttribute>*]
         [(query <QueryMobile>)|(queries <QueryMobileList>)]
         (querytime.* <Time>)*

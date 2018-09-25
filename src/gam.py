@@ -12790,26 +12790,33 @@ def _getMobileFieldsArguments(myarg, parameters):
     unknownArgumentExit()
 
 # gam info mobile|mobiles <MobileDeviceEntity>
-#	[basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>]
+#	[basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>] [formatjson]
 def doInfoMobileDevices():
   entityList, cd = getMobileDeviceEntity()
   parameters = _initMobileFieldsParameters()
+  formatJSON = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    _getMobileFieldsArguments(myarg, parameters)
+    if myarg == "formatjson":
+      formatJSON = True
+    else:
+      _getMobileFieldsArguments(myarg, parameters)
   fields = u','.join(set(parameters[u'fieldsList'])) if parameters[u'fieldsList'] else None
   i = 0
   count = len(entityList)
   for resourceId in entityList:
     i += 1
     try:
-      info = callGAPI(cd.mobiledevices(), u'get',
-                      bailOnInternalError=True, throw_reasons=[GAPI.INTERNAL_ERROR, GAPI.RESOURCE_ID_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                      customerId=GC.Values[GC.CUSTOMER_ID], resourceId=resourceId, projection=parameters[u'projection'], fields=fields)
-      printEntity([Ent.MOBILE_DEVICE, resourceId], i, count)
-      Ind.Increment()
-      showJSON(None, info, timeObjects=MOBILE_TIME_OBJECTS)
-      Ind.Decrement()
+      mobile = callGAPI(cd.mobiledevices(), u'get',
+                        bailOnInternalError=True, throw_reasons=[GAPI.INTERNAL_ERROR, GAPI.RESOURCE_ID_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                        customerId=GC.Values[GC.CUSTOMER_ID], resourceId=resourceId, projection=parameters[u'projection'], fields=fields)
+      if formatJSON:
+        printLine(json.dumps(cleanJSON(mobile, u'', timeObjects=MOBILE_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+      else:
+        printEntity([Ent.MOBILE_DEVICE, resourceId], i, count)
+        Ind.Increment()
+        showJSON(None, mobile, timeObjects=MOBILE_TIME_OBJECTS)
+        Ind.Decrement()
     except GAPI.internalError:
       entityActionFailedWarning([Ent.MOBILE_DEVICE, resourceId], Msg.DOES_NOT_EXIST, i, count)
     except (GAPI.resourceIdNotFound, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
