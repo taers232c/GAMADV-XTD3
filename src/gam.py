@@ -6272,7 +6272,7 @@ def doReport():
           else:
             invalidChoiceExit(REPORT_FULLDATA_APPS, True)
     elif activityReports and myarg == u'start':
-      startDateTime, tzinfo, startTime = getTimeOrDeltaFromNow(True)
+      startDateTime, _, startTime = getTimeOrDeltaFromNow(True)
       if endDateTime and endDateTime < startDateTime:
         Cmd.Backup()
         usageErrorExit(Msg.INVALID_TIME_RANGE.format(u'end', endTime, u'start', startTime))
