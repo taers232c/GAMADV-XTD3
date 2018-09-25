@@ -850,7 +850,7 @@ gam <CrOSTypeEntity> print cros [todrive <ToDriveAttribute>*]
         [orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
 
-The first column will always be deviceId; the remaining field names will be sorted if allfields, basic, full or sortheders is specified;
+The first column will always be deviceId; the remaining field names will be sorted if allfields, basic, full or sortheaders is specified;
 otherwise, the remaining field names will appear in the order specified.
 
 The basic argument outputs these column headers: deviceId,annotatedAssetId,annotatedLocation,annotatedUser,lastSync,notes,serialNumber,status
@@ -1507,7 +1507,7 @@ gam print mobile [todrive <ToDriveAttribute>*]
         (querytime.* <Time>)*
         [orderby <MobileOrderByFieldName> [ascending|descending]]
         [basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>]
-        [delimiter <Character>] [appslimit <Number>] [listlimit <Number>]
+        [delimiter <Character>] [appslimit <Number>] [listlimit <Number>] [formatjson] [quotechar <Character>]
 
 # Notifications
 
@@ -2074,7 +2074,7 @@ gam <UserTypeEntity> print users [todrive <ToDriveAttribute>*]
         [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
         [issuspended <Boolean>]
 
-The first column will always be primaryEmail; the remaining field names will be sorted if allfields, basic, full or sortheders is specified;
+The first column will always be primaryEmail; the remaining field names will be sorted if allfields, basic, full or sortheaders is specified;
 otherwise, the remaining field names will appear in the order specified.
 
 Print no header row and primaryEmail for specified users.

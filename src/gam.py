@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.61.02'
+__version__ = u'4.61.03'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -9011,9 +9011,9 @@ def doDeleteAliases():
     if targetType != u'group':
       try:
         result = callGAPI(cd.users().aliases(), u'list',
-                 throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE,
-                                GAPI.CONDITION_NOT_MET],
-                 userKey=aliasEmail, fields=u'aliases(alias)')
+                          throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE,
+                                         GAPI.CONDITION_NOT_MET],
+                          userKey=aliasEmail, fields=u'aliases(alias)')
         for aliasEntry in result.get(u'aliases', []):
           if aliasEmail == aliasEntry[u'alias'].lower():
             aliasEmail = aliasEntry[u'alias']
@@ -9089,7 +9089,7 @@ def infoAliases(entityList):
   count = len(entityList)
   for aliasEmail in entityList:
     i += 1
-    aliasEmail = normalizeEmailAddressOrUID(aliasEmail, noUid=True, noLower=True)
+    aliasEmail = normalizeEmailAddressOrUID(aliasEmail, noUid=True)
     try:
       result = callGAPI(cd.users(), u'get',
                         throw_reasons=GAPI.USER_GET_THROW_REASONS,
@@ -12190,15 +12190,13 @@ def doPrintCrOSDevices(entityList=None):
   fieldsList = []
   titles, csvRows = initializeTitlesCSVfile(None)
   addFieldToCSVfile(u'deviceId', CROS_FIELDS_CHOICE_MAP, fieldsList, titles)
-  sortHeaders = False
   orgUnitPath = projection = orderBy = sortOrder = None
   queries = [None]
-  formatJSON = noLists = False
   quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
   listLimit = 0
   startDate = endDate = startTime = endTime = None
   queryTimes = {}
-  selectActiveTimeRanges = selectDeviceFiles = selectRecentUsers = False
+  formatJSON = noLists = sortHeaders = selectActiveTimeRanges = selectDeviceFiles = selectRecentUsers = False
   minimizeQuotaCount = minimizeQuotaPct = 0
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -12314,23 +12312,33 @@ def doPrintCrOSDevices(entityList=None):
         for queryTimeName, queryTimeValue in iteritems(queryTimes):
           query = query.replace(u'#{0}#'.format(queryTimeName), queryTimeValue)
       printGettingAllAccountEntities(Ent.CROS_DEVICE, query)
-      try:
-        feed = callGAPIpages(cd.chromeosdevices(), u'list', u'chromeosdevices',
-                             page_message=getPageMessage(),
-                             throw_reasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                             customerId=GC.Values[GC.CUSTOMER_ID], query=query, projection=projection, orgUnitPath=orgUnitPath,
-                             orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
-        printGotAccountEntities(len(feed))
-        while feed:
-          _printCrOS(feed.popleft())
-      except GAPI.invalidInput:
-        entityActionFailedWarning([Ent.CROS_DEVICE, None], invalidQuery(query))
-        return
-      except GAPI.invalidOrgunit as e:
-        entityActionFailedWarning([Ent.CROS_DEVICE, None], str(e))
-        return
-      except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-        accessErrorExit(cd)
+      page_message = getPageMessage()
+      pageToken = None
+      totalItems = 0
+      while True:
+        try:
+          feed = callGAPI(cd.chromeosdevices(), u'list',
+                          throw_reasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                          pageToken=pageToken,
+                          customerId=GC.Values[GC.CUSTOMER_ID], query=query, projection=projection, orgUnitPath=orgUnitPath,
+                          orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
+        except GAPI.invalidInput:
+          entityActionFailedWarning([Ent.CROS_DEVICE, None], invalidQuery(query))
+          return
+        except GAPI.invalidOrgunit as e:
+          entityActionFailedWarning([Ent.CROS_DEVICE, None], str(e))
+          return
+        except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+          accessErrorExit(cd)
+        pageToken, totalItems = _processGAPIpagesResult(feed, u'chromeosdevices', None, totalItems, page_message, None, Ent.CROS_DEVICE)
+        if feed:
+          for cros in feed.get(u'chromeosdevices', []):
+            _printCrOS(cros)
+          del feed
+        if not pageToken:
+          _finalizeGAPIpagesResult(page_message)
+          printGotAccountEntities(totalItems)
+          break
   else:
     sortRows = True
     if len(fieldsList) > 1:
@@ -12378,22 +12386,21 @@ def doPrintCrOSDevices(entityList=None):
                             pageToken=pageToken,
                             customerId=GC.Values[GC.CUSTOMER_ID], projection=projection,
                             orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
-            pageToken, totalItems = _processGAPIpagesResult(feed, u'chromeosdevices', None, totalItems, page_message, None, Ent.CROS_DEVICE)
-            if feed:
-              if u'chromeosdevices' in feed:
-                for cros in feed[u'chromeosdevices']:
-                  if cros[u'deviceId'] in entitySet:
-                    _printCrOS(cros)
-                    entitySet.remove(cros[u'deviceId'])
-                    jcount -= 1
-                    if jcount == 0:
-                      break
-              del feed
-            if not pageToken or jcount == 0:
-              _finalizeGAPIpagesResult(page_message)
-              break
           except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
             accessErrorExit(cd)
+          pageToken, totalItems = _processGAPIpagesResult(feed, u'chromeosdevices', None, totalItems, page_message, None, Ent.CROS_DEVICE)
+          if feed:
+            for cros in feed.get(u'chromeosdevices', []):
+              if cros[u'deviceId'] in entitySet:
+                _printCrOS(cros)
+                entitySet.remove(cros[u'deviceId'])
+                jcount -= 1
+                if jcount == 0:
+                  break
+            del feed
+          if not pageToken or jcount == 0:
+            _finalizeGAPIpagesResult(page_message)
+            break
 # The only field specified was deviceId, just list the CrOS devices
     else:
       for cros in entityList:
@@ -12468,12 +12475,11 @@ def doPrintCrOSActivity(entityList=None):
   projection = u'FULL'
   orgUnitPath = orderBy = sortOrder = None
   queries = [None]
-  formatJSON = False
   quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
   listLimit = 0
   startDate = endDate = startTime = endTime = None
   queryTimes = {}
-  selectActiveTimeRanges = selectDeviceFiles = selectRecentUsers = False
+  formatJSON = selectActiveTimeRanges = selectDeviceFiles = selectRecentUsers = False
   minimizeQuotaCount = minimizeQuotaPct = 0
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -12540,23 +12546,33 @@ def doPrintCrOSActivity(entityList=None):
         for queryTimeName, queryTimeValue in iteritems(queryTimes):
           query = query.replace(u'#{0}#'.format(queryTimeName), queryTimeValue)
       printGettingAllAccountEntities(Ent.CROS_DEVICE, query)
-      try:
-        feed = callGAPIpages(cd.chromeosdevices(), u'list', u'chromeosdevices',
-                             page_message=getPageMessage(),
-                             throw_reasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                             customerId=GC.Values[GC.CUSTOMER_ID], query=query, projection=projection, orgUnitPath=orgUnitPath,
-                             orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
-        printGotAccountEntities(len(feed))
-        while feed:
-          _printCrOS(feed.popleft())
-      except GAPI.invalidInput:
-        entityActionFailedWarning([Ent.CROS_DEVICE, None], invalidQuery(query))
-        return
-      except GAPI.invalidOrgunit as e:
-        entityActionFailedWarning([Ent.CROS_DEVICE, None], str(e))
-        return
-      except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-        accessErrorExit(cd)
+      page_message = getPageMessage()
+      pageToken = None
+      totalItems = 0
+      while True:
+        try:
+          feed = callGAPI(cd.chromeosdevices(), u'list',
+                          throw_reasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                          pageToken=pageToken,
+                          customerId=GC.Values[GC.CUSTOMER_ID], query=query, projection=projection, orgUnitPath=orgUnitPath,
+                          orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
+        except GAPI.invalidInput:
+          entityActionFailedWarning([Ent.CROS_DEVICE, None], invalidQuery(query))
+          return
+        except GAPI.invalidOrgunit as e:
+          entityActionFailedWarning([Ent.CROS_DEVICE, None], str(e))
+          return
+        except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+          accessErrorExit(cd)
+        pageToken, totalItems = _processGAPIpagesResult(feed, u'chromeosdevices', None, totalItems, page_message, None, Ent.CROS_DEVICE)
+        if feed:
+          for cros in feed.get(u'chromeosdevices', []):
+            _printCrOS(cros)
+          del feed
+        if not pageToken:
+          _finalizeGAPIpagesResult(page_message)
+          printGotAccountEntities(totalItems)
+          break
   else:
     sortRows = True
     jcount = len(entityList)
@@ -12603,22 +12619,21 @@ def doPrintCrOSActivity(entityList=None):
                           pageToken=pageToken,
                           customerId=GC.Values[GC.CUSTOMER_ID], projection=projection,
                           orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
-          pageToken, totalItems = _processGAPIpagesResult(feed, u'chromeosdevices', None, totalItems, page_message, None, Ent.CROS_DEVICE)
-          if feed:
-            if u'chromeosdevices' in feed:
-              for cros in feed[u'chromeosdevices']:
-                if cros[u'deviceId'] in entitySet:
-                  _printCrOS(cros)
-                  entitySet.remove(cros[u'deviceId'])
-                  jcount -= 1
-                  if jcount == 0:
-                    break
-            del feed
-          if not pageToken or jcount == 0:
-            _finalizeGAPIpagesResult(page_message)
-            break
         except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
           accessErrorExit(cd)
+        pageToken, totalItems = _processGAPIpagesResult(feed, u'chromeosdevices', None, totalItems, page_message, None, Ent.CROS_DEVICE)
+        if feed:
+          for cros in feed.get(u'chromeosdevices', []):
+            if cros[u'deviceId'] in entitySet:
+              _printCrOS(cros)
+              entitySet.remove(cros[u'deviceId'])
+              jcount -= 1
+              if jcount == 0:
+                break
+          del feed
+        if not pageToken or jcount == 0:
+          _finalizeGAPIpagesResult(page_message)
+          break
   if sortRows and orderBy and orderBy in titles[u'set']:
     csvRows.sort(key=lambda k: k[orderBy], reverse=sortOrder == u'DESCENDING')
   writeCSVfile(csvRows, titles, u'CrOS Activity', todrive, None, quotechar)
@@ -12815,8 +12830,50 @@ MOBILE_ORDERBY_CHOICE_MAP = {
 #	[querytime.* <Time>]
 #	[orderby <MobileOrderByFieldName> [ascending|descending]] [noapps]
 #	[basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>]
-#	[delimiter <Character>] [appslimit <Number>] [listlimit <Number>]
+#	[delimiter <Character>] [appslimit <Number>] [listlimit <Number>] [formatjson] [quotechar <Character>]
 def doPrintMobileDevices():
+  def _printMobile(mobile):
+    if formatJSON:
+      csvRows.append({u'resourceId': mobile[u'resourceId'],
+                      u'JSON': json.dumps(cleanJSON(mobile, u'', listLimit=listLimit, skipObjects=DEFAULT_SKIP_OBJECTS, timeObjects=MOBILE_TIME_OBJECTS),
+                                          ensure_ascii=False, sort_keys=True)})
+      return
+    row = {}
+    for attrib in mobile:
+      if attrib in DEFAULT_SKIP_OBJECTS:
+        pass
+      elif attrib in [u'name', u'email', u'otherAccountsInfo']:
+        if listLimit > 0:
+          row[attrib] = delimiter.join(mobile[attrib][0:listLimit])
+        elif listLimit == 0:
+          row[attrib] = delimiter.join(mobile[attrib])
+      elif attrib == u'applications':
+        if appsLimit >= 0:
+          applications = []
+          j = 0
+          for app in mobile[attrib]:
+            j += 1
+            if appsLimit and (j > appsLimit):
+              break
+            appDetails = []
+            for field in [u'displayName', u'packageName', u'versionName']:
+              appDetails.append(app.get(field, u'<None>'))
+            appDetails.append(text_type(app.get(u'versionCode', u'<None>')))
+            permissions = app.get(u'permission', [])
+            if permissions:
+              appDetails.append(u'/'.join(permissions))
+            else:
+              appDetails.append(u'<None>')
+            applications.append(u'-'.join(appDetails))
+          row[attrib] = delimiter.join(applications)
+      elif attrib == u'deviceId' and GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]:
+        row[attrib] = escapeCRsNLs(mobile[attrib])
+      elif attrib not in MOBILE_TIME_OBJECTS:
+        row[attrib] = mobile[attrib]
+      else:
+        row[attrib] = formatLocalTime(mobile[attrib])
+    addRowTitlesToCSVfile(row, csvRows, titles)
+
   cd = buildGAPIObject(API.DIRECTORY)
   todrive = {}
   parameters = _initMobileFieldsParameters()
@@ -12825,6 +12882,8 @@ def doPrintMobileDevices():
   queryTimes = {}
   queries = [None]
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
+  formatJSON = False
+  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
   listLimit = 1
   appsLimit = -1
   while Cmd.ArgumentsRemaining():
@@ -12844,8 +12903,17 @@ def doPrintMobileDevices():
       listLimit = getInteger(minVal=-1)
     elif myarg == u'appslimit':
       appsLimit = getInteger(minVal=-1)
+    elif myarg == "formatjson":
+      formatJSON = True
+    elif myarg == u'quotechar':
+      quotechar = getCharacter()
     else:
       _getMobileFieldsArguments(myarg, parameters)
+  if formatJSON:
+    sortTitles = [u'resourceId', u'JSON']
+    titles, csvRows = initializeTitlesCSVfile(sortTitles)
+  else:
+    sortTitles = [u'resourceId', u'deviceId', u'serialNumber', u'name', u'email', u'status']
   if appsLimit >= 0:
     parameters[u'projection'] = u'FULL'
   fields = u'nextPageToken,mobiledevices({0})'.format(u','.join(parameters[u'fieldsList'])) if parameters[u'fieldsList'] else None
@@ -12854,56 +12922,31 @@ def doPrintMobileDevices():
       for queryTimeName, queryTimeValue in iteritems(queryTimes):
         query = query.replace(u'#{0}#'.format(queryTimeName), queryTimeValue)
     printGettingAllAccountEntities(Ent.MOBILE_DEVICE, query)
-    try:
-      feed = callGAPIpages(cd.mobiledevices(), u'list', u'mobiledevices',
-                           page_message=getPageMessage(),
-                           throw_reasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                           customerId=GC.Values[GC.CUSTOMER_ID], query=query, projection=parameters[u'projection'],
-                           orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
-      printGotAccountEntities(len(feed))
-      while feed:
-        mobile = feed.popleft()
-        row = {}
-        for attrib in mobile:
-          if attrib in DEFAULT_SKIP_OBJECTS:
-            pass
-          elif attrib in [u'name', u'email', u'otherAccountsInfo']:
-            if listLimit > 0:
-              row[attrib] = delimiter.join(mobile[attrib][0:listLimit])
-            elif listLimit == 0:
-              row[attrib] = delimiter.join(mobile[attrib])
-          elif attrib == u'applications':
-            if appsLimit >= 0:
-              applications = []
-              j = 0
-              for app in mobile[attrib]:
-                j += 1
-                if appsLimit and (j > appsLimit):
-                  break
-                appDetails = []
-                for field in [u'displayName', u'packageName', u'versionName']:
-                  appDetails.append(app.get(field, u'<None>'))
-                appDetails.append(text_type(app.get(u'versionCode', u'<None>')))
-                permissions = app.get(u'permission', [])
-                if permissions:
-                  appDetails.append(u'/'.join(permissions))
-                else:
-                  appDetails.append(u'<None>')
-                applications.append(u'-'.join(appDetails))
-              row[attrib] = delimiter.join(applications)
-          elif attrib == u'deviceId' and GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]:
-            row[attrib] = escapeCRsNLs(mobile[attrib])
-          elif attrib not in MOBILE_TIME_OBJECTS:
-            row[attrib] = mobile[attrib]
-          else:
-            row[attrib] = formatLocalTime(mobile[attrib])
-        addRowTitlesToCSVfile(row, csvRows, titles)
-    except GAPI.invalidInput:
-      entityActionFailedWarning([Ent.MOBILE_DEVICE, None], invalidQuery(query))
-      return
-    except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-      accessErrorExit(cd)
-  writeCSVfile(csvRows, titles, u'Mobile', todrive, [u'resourceId', u'deviceId', u'serialNumber', u'name', u'email', u'status'])
+    page_message = getPageMessage()
+    pageToken = None
+    totalItems = 0
+    while True:
+      try:
+        feed = callGAPI(cd.mobiledevices(), u'list',
+                        throw_reasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                        pageToken=pageToken,
+                        customerId=GC.Values[GC.CUSTOMER_ID], query=query, projection=parameters[u'projection'],
+                        orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
+      except GAPI.invalidInput:
+        entityActionFailedWarning([Ent.MOBILE_DEVICE, None], invalidQuery(query))
+        return
+      except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+        accessErrorExit(cd)
+      pageToken, totalItems = _processGAPIpagesResult(feed, u'mobiledevices', None, totalItems, page_message, None, Ent.MOBILE_DEVICE)
+      if feed:
+        for mobile in feed.get(u'mobiledevices', []):
+          _printMobile(mobile)
+        del feed
+      if not pageToken:
+        _finalizeGAPIpagesResult(page_message)
+        printGotAccountEntities(totalItems)
+        break
+  writeCSVfile(csvRows, titles, u'Mobile', todrive, sortTitles, quotechar)
 
 COLLABORATIVE_ACL_ATTRIBUTES = [
   u'whoCanAddReferences',
@@ -20361,37 +20404,47 @@ def doPrintUsers(entityList=None):
           query += u' '
         query += u'isSuspended={0}'.format(isSuspended)
       printGettingAllAccountEntities(Ent.USER, query)
-      try:
-        feed = callGAPIpages(cd.users(), u'list', u'users',
-                             page_message=getPageMessage(showFirstLastItems=True), message_attribute=u'primaryEmail',
-                             throw_reasons=[GAPI.DOMAIN_NOT_FOUND, GAPI.INVALID_ORGUNIT, GAPI.INVALID_INPUT,
-                                            GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                             customer=customer, domain=domain, query=query, fields=fields,
-                             showDeleted=deleted_only, orderBy=orderBy, sortOrder=sortOrder, viewType=viewType,
-                             projection=projection, customFieldMask=customFieldMask, maxResults=GC.Values[GC.USER_MAX_RESULTS])
-        if not countOnly:
-          while feed:
-            _printUser(feed.popleft())
-        else:
-          for user in feed:
-            _, domain = splitEmailAddress(user[u'primaryEmail'])
-            domainCounts.setdefault(domain, 0)
-            domainCounts[domain] += 1
-      except GAPI.domainNotFound:
-        entityActionFailedWarning([Ent.USER, None, Ent.DOMAIN, domain], Msg.NOT_FOUND)
-        return
-      except (GAPI.invalidOrgunit, GAPI.invalidInput) as e:
-        if query and not customFieldMask:
-          entityActionFailedWarning([Ent.USER, None], invalidQuery(query))
-        elif customFieldMask and not query:
-          entityActionFailedWarning([Ent.USER, None], invalidUserSchema(customFieldMask))
-        elif query and customFieldMask:
-          entityActionFailedWarning([Ent.USER, None], u'{0} or {1}'.format(invalidQuery(query), invalidUserSchema(customFieldMask)))
-        else:
-          entityActionFailedWarning([Ent.USER, None], str(e))
-        return
-      except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-        accessErrorExit(cd)
+      page_message = getPageMessage(showFirstLastItems=True)
+      pageToken = None
+      totalItems = 0
+      while True:
+        try:
+          feed = callGAPI(cd.users(), u'list',
+                          throw_reasons=[GAPI.DOMAIN_NOT_FOUND, GAPI.INVALID_ORGUNIT, GAPI.INVALID_INPUT,
+                                         GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                          pageToken=pageToken,
+                          customer=customer, domain=domain, query=query, fields=fields,
+                          showDeleted=deleted_only, orderBy=orderBy, sortOrder=sortOrder, viewType=viewType,
+                          projection=projection, customFieldMask=customFieldMask, maxResults=GC.Values[GC.USER_MAX_RESULTS])
+        except GAPI.domainNotFound:
+          entityActionFailedWarning([Ent.USER, None, Ent.DOMAIN, domain], Msg.NOT_FOUND)
+          return
+        except (GAPI.invalidOrgunit, GAPI.invalidInput) as e:
+          if query and not customFieldMask:
+            entityActionFailedWarning([Ent.USER, None], invalidQuery(query))
+          elif customFieldMask and not query:
+            entityActionFailedWarning([Ent.USER, None], invalidUserSchema(customFieldMask))
+          elif query and customFieldMask:
+            entityActionFailedWarning([Ent.USER, None], u'{0} or {1}'.format(invalidQuery(query), invalidUserSchema(customFieldMask)))
+          else:
+            entityActionFailedWarning([Ent.USER, None], str(e))
+          return
+        except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+          accessErrorExit(cd)
+        pageToken, totalItems = _processGAPIpagesResult(feed, u'users', None, totalItems, page_message, u'primaryEmail', Ent.USER)
+        if feed:
+          if not countOnly:
+            for user in feed.get(u'users', []):
+              _printUser(user)
+          else:
+            for user in feed.get(u'users', []):
+              _, domain = splitEmailAddress(user[u'primaryEmail'])
+              domainCounts.setdefault(domain, 0)
+              domainCounts[domain] += 1
+          del feed
+        if not pageToken:
+          _finalizeGAPIpagesResult(page_message)
+          break
   else:
     sortRows = True
 # If no individual fields were specified (allfields, basic, full) or individual fields other than primaryEmail were specified, look up each user
@@ -20447,31 +20500,6 @@ def doPrintUsers(entityList=None):
                             customer=customer, domain=domain, query=query, fields=fields,
                             orderBy=orderBy, sortOrder=sortOrder, viewType=viewType,
                             projection=projection, customFieldMask=customFieldMask, maxResults=GC.Values[GC.USER_MAX_RESULTS])
-            pageToken, totalItems = _processGAPIpagesResult(feed, u'users', None, totalItems, page_message, u'primaryEmail', Ent.USER)
-            if feed:
-              if u'users' in feed:
-                if not countOnly:
-                  for user in feed[u'users']:
-                    if user[u'primaryEmail'] in entitySet:
-                      _printUser(user)
-                      entitySet.remove(user[u'primaryEmail'])
-                      jcount -= 1
-                      if jcount == 0:
-                        break
-                else:
-                  for user in feed[u'users']:
-                    if user[u'primaryEmail'] in entitySet:
-                      _, domain = splitEmailAddress(user[u'primaryEmail'])
-                      domainCounts.setdefault(domain, 0)
-                      domainCounts[domain] += 1
-                      entitySet.remove(user[u'primaryEmail'])
-                      jcount -= 1
-                      if jcount == 0:
-                        break
-              del feed
-            if not pageToken or jcount == 0:
-              _finalizeGAPIpagesResult(page_message)
-              break
           except GAPI.domainNotFound:
             entityActionFailedWarning([Ent.USER, None, Ent.DOMAIN, domain], Msg.NOT_FOUND)
             return
@@ -20483,6 +20511,30 @@ def doPrintUsers(entityList=None):
             return
           except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
             accessErrorExit(cd)
+          pageToken, totalItems = _processGAPIpagesResult(feed, u'users', None, totalItems, page_message, u'primaryEmail', Ent.USER)
+          if feed:
+            if not countOnly:
+              for user in feed.get(u'users', []):
+                if user[u'primaryEmail'] in entitySet:
+                  _printUser(user)
+                  entitySet.remove(user[u'primaryEmail'])
+                  jcount -= 1
+                  if jcount == 0:
+                    break
+            else:
+              for user in feed.get(u'users', []):
+                if user[u'primaryEmail'] in entitySet:
+                  _, domain = splitEmailAddress(user[u'primaryEmail'])
+                  domainCounts.setdefault(domain, 0)
+                  domainCounts[domain] += 1
+                  entitySet.remove(user[u'primaryEmail'])
+                  jcount -= 1
+                  if jcount == 0:
+                    break
+            del feed
+          if not pageToken or jcount == 0:
+            _finalizeGAPIpagesResult(page_message)
+            break
 # The only field specified was primaryEmail, just list the users/count the domains
     elif not countOnly:
       for userEntity in entityList:
@@ -26657,6 +26709,12 @@ def addFilePathsToRow(drive, fileTree, fileEntryInfo, filePathInfo, row, titles)
     row[key] = path
     k += 1
 
+def _simpleFileIdEntityList(fileIdEntityList):
+  for fileId in fileIdEntityList:
+    if fileId not in [u'root', u'Orphans']:
+      return False
+  return True
+
 FILELIST_FIELDS_TITLES = [u'id', u'mimeType', u'parents']
 
 # gam <UserTypeEntity> print|show filelist [todrive [<ToDriveAttributes>]] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
@@ -26685,7 +26743,7 @@ def printFileList(users):
         skipObjects.add(u'teamDriveId')
         fieldsList.append(u'teamDriveId')
 
-  def _printFileInfo(drive, f_file):
+  def _printFileInfo(drive, user, f_file):
     if ((showOwnedBy is not None and f_file.get(u'ownedByMe', showOwnedBy) != showOwnedBy) or
         (not checkMimeType(mimeTypeCheck, f_file)) or
         (filenameMatchPattern and not filenameMatchPattern.match(f_file[VX_FILENAME])) or
@@ -26761,7 +26819,7 @@ def printFileList(users):
         if childEntry:
           if childFileId not in filesPrinted:
             filesPrinted.add(childFileId)
-            _printFileInfo(drive, childEntry[u'info'].copy())
+            _printFileInfo(drive, user, childEntry[u'info'].copy())
           if childEntry[u'info'][u'mimeType'] == MIMETYPE_GA_FOLDER and (maxdepth == -1 or depth < maxdepth):
             _printChildDriveFolderContents(drive, childEntry[u'info'], user, i, count, depth+1)
       return
@@ -26785,7 +26843,7 @@ def printFileList(users):
         fileTree.setdefault(childFileId, {u'info': childEntryInfo})
       if childFileId not in filesPrinted:
         filesPrinted.add(childFileId)
-        _printFileInfo(drive, childEntryInfo.copy())
+        _printFileInfo(drive, user, childEntryInfo.copy())
       if childEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER and (maxdepth == -1 or depth < maxdepth):
         _printChildDriveFolderContents(drive, childEntryInfo, user, i, count, depth+1)
 
@@ -26894,8 +26952,13 @@ def printFileList(users):
       if not fileIdEntity:
         fileIdEntity = initDriveFileEntity()
       if not fileIdEntity[u'teamdrive']:
-        cleanFileIDsList(fileIdEntity, [u'root',])
+        cleanFileIDsList(fileIdEntity, [u'root', u'Orphans'])
       noSelect = False
+  elif not buildTree:
+    buildTree = (not fileIdEntity[u'dict']
+                 and not fileIdEntity[u'query']
+                 and not fileIdEntity[u'teamdrivefilequery']
+                 and _simpleFileIdEntityList(fileIdEntity[u'list']))
   getPermissionsForTeamDrives = False
   if fieldsList:
     getPermissionsForTeamDrives, permissionsFields = _setGetPermissionsForTeamDrives(fieldsList)
@@ -26925,7 +26988,7 @@ def printFileList(users):
     fileNameTitle = V3_FILENAME
   removeTitlesFromCSVfile([u'capabilities',], titles)
   query = _mapDrive2QueryToDrive3(query)
-  incrementalPrint = (buildTree and (not filepath) and noSelect)
+  incrementalPrint = buildTree and (not filepath) and noSelect
   if buildTree:
     if not fileIdEntity.get(u'teamdrive'):
       btkwargs = kwargs
@@ -26961,9 +27024,8 @@ def printFileList(users):
                           q=query, orderBy=orderBy, fields=pagesfields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
           pageToken, totalItems = _processGAPIpagesResult(feed, VX_PAGES_FILES, None, totalItems, page_message, None, Ent.DRIVE_FILE_OR_FOLDER)
           if feed:
-            if VX_PAGES_FILES in feed:
-              for f_file in feed[VX_PAGES_FILES]:
-                _printFileInfo(drive, f_file)
+            for f_file in feed.get(VX_PAGES_FILES, []):
+              _printFileInfo(drive, user, f_file)
             del feed
           if not pageToken:
             _finalizeGAPIpagesResult(page_message)
@@ -26993,8 +27055,6 @@ def printFileList(users):
                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                              q=query, orderBy=orderBy, fields=pagesfields,
                              pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
-        if filepath:
-          fileTree = buildFileTree(feed, drive, getTeamDriveNames=getTeamDriveNames)
       except (GAPI.invalidQuery, GAPI.invalid):
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(query), i, count)
         break
@@ -27007,43 +27067,44 @@ def printFileList(users):
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         continue
-    if noSelect:
-      if filepath:
+      if filepath or not noSelect:
+        fileTree = buildFileTree(feed, drive, getTeamDriveNames=getTeamDriveNames)
+      if noSelect:
         for f_file in feed:
-          _printFileInfo(drive, f_file)
-      else:
-        while feed:
-          _printFileInfo(drive, feed.popleft())
-    else:
-      user, drive, jcount = _validateUserGetFileIDs(origUser, i, count, fileIdEntity, drive=drive)
-      if jcount == 0:
+          _printFileInfo(drive, user, f_file)
+        del feed
         continue
-      j = 0
-      for fileId in fileIdEntity[u'list']:
-        j += 1
+    user, drive, jcount = _validateUserGetFileIDs(origUser, i, count, fileIdEntity, drive=drive)
+    if jcount == 0:
+      continue
+    j = 0
+    for fileId in fileIdEntity[u'list']:
+      j += 1
+      fileEntry = fileTree.get(fileId)
+      if fileEntry:
+        fileEntryInfo = fileEntry[u'info']
+      else:
         try:
-          fileEntry = fileTree.get(fileId)
-          if fileEntry:
-            fileEntryInfo = fileEntry[u'info']
-          else:
-            fileEntryInfo = callGAPI(drive.files(), u'get',
-                                     throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
-                                     fileId=fileId, fields=fields, supportsTeamDrives=True)
-            if filepath:
-              fileTree[fileId] = {u'info': fileEntryInfo}
-          if showParent or fileEntryInfo[u'mimeType'] != MIMETYPE_GA_FOLDER:
-            if fileId not in filesPrinted:
-              filesPrinted.add(fileId)
-              _printFileInfo(drive, fileEntryInfo.copy())
-          if fileEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER:
-            _printChildDriveFolderContents(drive, fileEntryInfo, user, i, count, 0)
+          fileEntryInfo = callGAPI(drive.files(), u'get',
+                                   throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
+                                   fileId=fileId, fields=fields, supportsTeamDrives=True)
+          if filepath:
+            fileTree[fileId] = {u'info': fileEntryInfo}
         except GAPI.fileNotFound:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, fileId], Msg.NOT_FOUND, j, jcount)
+          continue
         except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, fileIdEntity[u'teamdrive'][u'teamDriveId']], str(e), j, jcount)
+          continue
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
           break
+      if (showParent and fileEntryInfo[u'id'] != u'Orphans') or fileEntryInfo[u'mimeType'] != MIMETYPE_GA_FOLDER:
+        if fileId not in filesPrinted:
+          filesPrinted.add(fileId)
+          _printFileInfo(drive, user, fileEntryInfo.copy())
+      if fileEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER:
+        _printChildDriveFolderContents(drive, fileEntryInfo, user, i, count, 0)
   writeCSVfile(csvRows, titles,
                u'{0} {1} Drive Files'.format(Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]),
                                              Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)),
@@ -27250,12 +27311,6 @@ FILETREE_FIELDS_PRINT_ORDER = [u'id', u'parents', u'owners', u'mimeType']
 #	[showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
 def showFileTree(users):
-  def _simpleFileIdEntityList(fileIdEntityList):
-    for fileId in fileIdEntityList:
-      if fileId not in [u'root', u'Orphans']:
-        return False
-    return True
-
   def _showFileInfo(fileEntry, j=0, jcount=0):
     fileInfoList = []
     for field in FILETREE_FIELDS_PRINT_ORDER:
@@ -27391,8 +27446,7 @@ def showFileTree(users):
                           pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
           pageToken, totalItems = _processGAPIpagesResult(feed, VX_PAGES_FILES, None, totalItems, page_message, None, Ent.DRIVE_FILE_OR_FOLDER)
           if feed:
-            if VX_PAGES_FILES in feed:
-              extendFileTree(fileTree, feed[VX_PAGES_FILES])
+            extendFileTree(fileTree, feed.get(VX_PAGES_FILES, []))
             del feed
           if not pageToken:
             _finalizeGAPIpagesResult(page_message)
