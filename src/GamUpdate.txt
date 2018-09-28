@@ -1,3 +1,7 @@
+4.61.06
+
+Fixed a bug in gam <UserTypeEntity> delete contacts that caused a trap for a suspended user.
+
 4.61.05
 
 Add ability to add attachments in gam sendemail.
