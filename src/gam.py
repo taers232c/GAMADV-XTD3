@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.61.06'
+__version__ = u'4.61.07'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -23812,7 +23812,7 @@ def updateBackupCodes(users):
     user = normalizeEmailAddressOrUID(user)
     try:
       callGAPI(cd.verificationCodes(), u'generate',
-               throw_reasons=[GAPI.USER_NOT_FOUND],
+               throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.INVALID, GAPI.INVALID_INPUT],
                userKey=user)
       codes = callGAPIitems(cd.verificationCodes(), u'list', u'items',
                             throw_reasons=[GAPI.USER_NOT_FOUND],
@@ -23820,6 +23820,8 @@ def updateBackupCodes(users):
       _showBackupCodes(user, codes, i, count)
     except GAPI.userNotFound:
       entityUnknownWarning(Ent.USER, user, i, count)
+    except (GAPI.invalid, GAPI.invalidInput) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.BACKUP_VERIFICATION_CODES, None], str(e), i, count)
 
 # gam <UserTypeEntity> delete backupcodes|verificationcodes
 def deleteBackupCodes(users):
@@ -23831,11 +23833,13 @@ def deleteBackupCodes(users):
     user = normalizeEmailAddressOrUID(user)
     try:
       callGAPI(cd.verificationCodes(), u'invalidate',
-               throw_reasons=[GAPI.USER_NOT_FOUND],
+               throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.INVALID, GAPI.INVALID_INPUT],
                userKey=user)
       printEntityKVList([Ent.USER, user], [Ent.Plural(Ent.BACKUP_VERIFICATION_CODES), u'', u'Invalidated'], i, count)
     except GAPI.userNotFound:
       entityUnknownWarning(Ent.USER, user, i, count)
+    except (GAPI.invalid, GAPI.invalidInput) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.BACKUP_VERIFICATION_CODES, None], str(e), i, count)
 
 # gam <UserTypeEntity> show backupcodes|verificationcodes
 def showBackupCodes(users):
@@ -32523,10 +32527,10 @@ def deprovisionUser(users):
         entityPerformActionNumItems([Ent.USER, user], jcount, Ent.BACKUP_VERIFICATION_CODES, i, count)
         if jcount > 0:
           callGAPI(cd.verificationCodes(), u'invalidate',
-                   throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.INVALID],
+                   throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.INVALID, GAPI.INVALID_INPUT],
                    userKey=user)
           entityActionPerformed([Ent.USER, user, Ent.BACKUP_VERIFICATION_CODES, None], i, count)
-      except GAPI.invalid as e:
+      except (GAPI.invalid, GAPI.invalidInput) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.BACKUP_VERIFICATION_CODES, None], str(e), i, count)
 #
       printGettingEntityItemForWhom(Ent.ACCESS_TOKEN, user, i, count)

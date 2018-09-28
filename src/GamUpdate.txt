@@ -1,3 +1,8 @@
+4.61.07
+
+Added error checking so that gam <UserTypeEntity> delete backupcodes and gam <UserTypeEntity> deprovision
+do not throw a trap for a suspended user.
+
 4.61.06
 
 Fixed a bug in gam <UserTypeEntity> delete contacts that caused a trap for a suspended user.
