@@ -37,7 +37,7 @@ CANNOT_DELETE_PRIMARY_CALENDAR = u'cannotDeletePrimaryCalendar'
 CANNOT_DELETE_PRIMARY_SENDAS = u'cannotDeletePrimarySendAs'
 CANNOT_DELETE_RESOURCE_WITH_CHILDREN = u'cannotDeleteResourceWithChildren'
 CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION = u'cannotModifyInheritedTeamDrivePermission'
-CANNOT_MOVE_TRASHED_ITEM_INTO_TEAM_DRIVE = u'cannotMoveTrashedItemIntoTeamDrive'
+CANNOT_MOVE_TRASHED_ITEM_INTO_TEAMDRIVE = u'cannotMoveTrashedItemIntoTeamDrive'
 CANNOT_REMOVE_OWNER = u'cannotRemoveOwner'
 CANNOT_SHARE_GROUPS_WITHLINK = u'cannotShareGroupsWithLink'
 CANNOT_SHARE_USERS_WITHLINK = u'cannotShareUsersWithLink'
@@ -57,7 +57,9 @@ FAILED_PRECONDITION = u'failedPrecondition'
 FIELD_NOT_WRITABLE = u'fieldNotWritable'
 FILE_NEVER_WRITABLE = u'fileNeverWritable'
 FILE_NOT_FOUND = u'fileNotFound'
-FILE_OWNER_NOT_MEMBER_OF_TEAM_DRIVE = u'fileOwnerNotMemberOfTeamDrive'
+FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE = u'fileOrganizerNotYetEnabledForThisTeamDrive'
+FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED = u'fileOrganizerOnNonTeamDriveNotSupported'
+FILE_OWNER_NOT_MEMBER_OF_TEAMDRIVE = u'fileOwnerNotMemberOfTeamDrive'
 FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN = u'fileOwnerNotMemberOfWriterDomain'
 FORBIDDEN = u'forbidden'
 GROUP_NOT_FOUND = u'groupNotFound'
@@ -281,6 +283,10 @@ class fileNeverWritable(Exception):
   pass
 class fileNotFound(Exception):
   pass
+class fileOrganizerNotYetEnabledForThisTeamDrive(Exception):
+  pass
+class fileOrganizerOnNonTeamDriveNotSupported(Exception):
+  pass
 class fileOwnerNotMemberOfTeamDrive(Exception):
   pass
 class fileOwnerNotMemberOfWriterDomain(Exception):
@@ -425,7 +431,7 @@ REASON_EXCEPTION_MAP = {
   CANNOT_DELETE_PRIMARY_SENDAS: cannotDeletePrimarySendAs,
   CANNOT_DELETE_RESOURCE_WITH_CHILDREN: cannotDeleteResourceWithChildren,
   CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION: cannotModifyInheritedTeamDrivePermission,
-  CANNOT_MOVE_TRASHED_ITEM_INTO_TEAM_DRIVE: cannotMoveTrashedItemIntoTeamDrive,
+  CANNOT_MOVE_TRASHED_ITEM_INTO_TEAMDRIVE: cannotMoveTrashedItemIntoTeamDrive,
   CANNOT_REMOVE_OWNER: cannotRemoveOwner,
   CANNOT_SHARE_GROUPS_WITHLINK: cannotShareGroupsWithLink,
   CANNOT_SHARE_USERS_WITHLINK: cannotShareUsersWithLink,
@@ -445,7 +451,9 @@ REASON_EXCEPTION_MAP = {
   FIELD_NOT_WRITABLE: fieldNotWritable,
   FILE_NEVER_WRITABLE: fileNeverWritable,
   FILE_NOT_FOUND: fileNotFound,
-  FILE_OWNER_NOT_MEMBER_OF_TEAM_DRIVE: fileOwnerNotMemberOfTeamDrive,
+  FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE: fileOrganizerNotYetEnabledForThisTeamDrive,
+  FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED: fileOrganizerOnNonTeamDriveNotSupported,
+  FILE_OWNER_NOT_MEMBER_OF_TEAMDRIVE: fileOwnerNotMemberOfTeamDrive,
   FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN: fileOwnerNotMemberOfWriterDomain,
   FORBIDDEN: forbidden,
   GROUP_NOT_FOUND: groupNotFound,

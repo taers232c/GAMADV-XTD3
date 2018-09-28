@@ -165,7 +165,7 @@ If an item contains spaces, it should be surrounded by ".
 <CustomerID> ::= <String>
 <DomainAlias> ::= <String>
 <DomainName> ::= <String>(.<String>)+
-<DriveFileACLRole> ::= commenter|editor|organizer|owner|reader|writer
+<DriveFileACLRole> ::= commenter|editor|fileorganizer|organizer|owner|reader|writer
 <DriveFileID> ::= <String>
 <DriveFileURL> ::= https://docs.google.com/a/<DomainName>/document/d/<DriveFileID>/<String>
 <DriveFileItem> ::= <DriveFileID>|<DriveFileURL>
@@ -243,7 +243,7 @@ If an item contains spaces, it should be surrounded by ".
 <S/MIMEID> ::= <String>
 <StudentItem> ::= <EmailAddress>|<UniqueID>|<String>
 <Tag> ::= <String>
-<TeamDriveACLRole> ::= commenter|organizer|reader|writer
+<TeamDriveACLRole> ::= commenter|fileorganizer|organizer|reader|writer
 <TeamDriveID> ::= <String>
 <TeamDriveName> ::= <String>
 <ThreadID> ::= <String>
@@ -1774,7 +1774,8 @@ gam print schema|schemas [todrive <ToDriveAttribute>*]
 
 # Send Email
 
-gam sendemail <RecipientEntity> [from <UserItem>] [replyto <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] (replace <Tag> <String>)* [html [<Boolean>]]
+gam sendemail <RecipientEntity> [from <UserItem>] [replyto <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
+        (replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName>)*
         [newuser <UserItem> firstname|givenname <String> lastname|familyname <string> password <Password>]
 
 # Sites
@@ -2431,7 +2432,7 @@ gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
 <DriveFilePermissionEntity> ::= <DriveFilePermissionList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <DriveFilePermissionIDEntity> ::= <DriveFilePermissionIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
-<DriveFileACLRole> ::= commenter|editor|organizer|owner|reader|writer
+<DriveFileACLRole> ::= commenter|editor|fileorganizer|organizer|owner|reader|writer
 <DriveFilePermission> ::= anyone|anyonewithlink|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>|domainwithlink:<DomainName>;<DriveFileACLRole>
 <DriveFilePermissionID> ::= anyone|anyonewithlink|id:<String>
 <DriveFilePermissionIDorEmail> ::= <DriveFilePermissionID>|<EmailAddress>
@@ -2485,14 +2486,14 @@ gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetra
 gam <UserTypeEntity> claim ownership <DriveFileEntity> [includetrashed]
         [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
         [restricted [<Boolean>]] [writerscanshare|writerscantshare [<Boolean>]]
-        [keepuser | (retainrole commenter|reader|writer|none)] [noretentionmessages]
+        [keepuser | (retainrole commenter|reader|writer|editor|fileorganizer|none)] [noretentionmessages]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [preview] [filepath] [buildtree] [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>]
         [(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>] [targetuserorphansfoldername <DriveFolderName>]
-        [keepuser | (retainrole reader|commenter|writer|editor|none)] [noretentionmessages]
-        [nonowner_retainrole reader|commenter|writer|editor|current|none] [nonowner_targetrole reader|commenter|writer|editor|current|none|source]
+        [keepuser | (retainrole reader|commenter|writer|editor|fileorganizer|none)] [noretentionmessages]
+        [nonowner_retainrole reader|commenter|writer|editor|fileorganizer|current|none] [nonowner_targetrole reader|commenter|writer|editor|fileorganizer|current|none|source]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [preview] [todrive <ToDriveAttribute>*]
 

@@ -1,3 +1,15 @@
+4.61.05
+
+Add ability to add attachments in gam sendemail.
+    gam sendemail <RecipientEntity> [from <UserItem>] [replyto <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
+        (replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName>)*
+        [newuser <UserItem> firstname|givenname <String> lastname|familyname <string> password <Password>]
+
+Google is adding a new role for team drive files, see: https://gsuiteupdates.googleblog.com/ "New Content manager role coming to Team Drives"
+Added fileorganizer role for team drive file permissions.
+<DriveFileACLRole> ::= commenter|editor|fileorganizer|organizer|owner|reader|writer
+<TeamDriveACLRole> ::= commenter|fileorganizer|organizer|reader|writer
+
 4.61.04
 
 Previously, Gam issued an error if the start <Time> in gam report was earlier that 180 days before today as Google would issue an error if it was.
