@@ -29660,7 +29660,7 @@ def transferOwnership(users):
 # gam <UserTypeEntity> claim ownership <DriveFileEntity> [includetrashed]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
-#	[restricted [<Boolean>]] [writerscanshare|writerscantshare [<Boolean>]] [keepuser | (retainrole reader|commenter|writer|editor|fileorganizer|none)] [noretentionmessages]
+#	[restricted [<Boolean>]] [writerscanshare|writerscantshare [<Boolean>]] [keepuser | (retainrole reader|commenter|writer|editor|none)] [noretentionmessages]
 #	[preview] [filepath] [buildtree] [todrive [<ToDriveAttributes>]]d
 def claimOwnership(users):
   def _identifyFilesToClaim(fileEntry, skipids):
