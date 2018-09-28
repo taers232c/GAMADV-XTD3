@@ -1088,7 +1088,7 @@ def getFilename():
   if os.path.isfile(filename):
     return filename
   entityDoesNotExistExit(Ent.FILE, filename)
-  
+
 def getPermissionId():
   if Cmd.ArgumentsRemaining():
     emailAddress = Cmd.Current().strip().lower()
