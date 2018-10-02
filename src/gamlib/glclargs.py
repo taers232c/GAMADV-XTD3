@@ -565,7 +565,6 @@ class GamCLArgs(object):
   OB_PROPERTY_VALUE = u'PropertyValue'
   OB_QUERY = u'Query'
   OB_QUERY_LIST = u'QueryList'
-  OB_RECIPIENT_ENTITY = u'RecipientEntity'
   OB_RECURRENCE = u'RRULE EXRULE RDATE and EXDATE lines'
   OB_REQUEST_ID = u'RequestID'
   OB_RESOURCE_ENTITY = u'ResourceEntity'

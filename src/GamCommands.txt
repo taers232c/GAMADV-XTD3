@@ -232,7 +232,6 @@ If an item contains spaces, it should be surrounded by ".
 <QueryTeamDrive> ::= <String> See: https://developers.google.com/drive/v3/web/search-parameters#team_drive_fields
 <QueryUser> ::= <String> See: https://developers.google.com/admin-sdk/directory/v1/guides/search-users
 <QueryVaultCorpus> ::= <String> See: https://developers.google.com/vault/reference/rest/v1/matters.holds#CorpusQuery
-<Recipient> ::= <EmailAddress>
 <RequestID> ::= <String>
 <ResourceID> ::= <String>
 <SchemaName> ::= <String>
@@ -319,7 +318,6 @@ If an item contains spaces, it should be surrounded by ".
 <QueryPrinterList> ::= "<QueryPrinter>(,<QueryPrinter>)*"
 <QueryPrintJobList> ::= "<QueryPrintJob>(,<QueryPrintJob>)*"
 <QueryUserList> ::= "<QueryUser>(,<QueryUser>)*"
-<RecipientList> ::= "<Recipient>(,<Recipient>)*"
 <ResourceIDList> ::= "<ResourceID>(,<ResourceID>)*"
 <SchemaNameList> ::= "<SchemaName>(,<SchemaName>)*"
 <SerialNumberList> ::= "<SerialNumber>(,<SerialNumber>)*"
@@ -506,7 +504,6 @@ Specify a collection of items by directly specifying them; the item type is dete
 <PrinterACLScopeEntity>::= <PrinterACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <PrinterIDEntity> ::= <PrinterIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
 <PrintJobEntity> ::= <PrintJobIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
-<RecipientEntity> ::= <RecipientList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
 <ResourceEntity> ::= <ResourceIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
 <SchemaEntity> ::= <SchemaNameList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
 <SiteACLScopeEntity>::= <SiteACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
@@ -679,7 +676,7 @@ gam calendar|calendars <CalendarEntity> showacl [formatjson]
         (updatedmin <Time>)
 
 <EventMatchProperty:> ::=
-        (matchfield attendees <EmailAddressList>)|
+        (matchfield attendees <EmailAddressEntity>)|
         (matchfield creatoremail <RegularExpression>)|
         (matchfield creatorname <RegularExpression>)|
         (matchfield description <RegularExpression>)|
@@ -1774,7 +1771,9 @@ gam print schema|schemas [todrive <ToDriveAttribute>*]
 
 # Send Email
 
-gam sendemail <RecipientEntity> [from <UserItem>] [replyto <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
+gam sendemail <EmailAddressEntity> [from <UserItem>] [replyto <EmailAddress>]
+        [cc <EmailAddressEntity>] [bcc <EmailAddressEntity>] [singlemessage [<Boolean>]]
+        [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
         (replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName>)*
         [newuser <UserItem> firstname|givenname <String> lastname|familyname <string> password <Password>]
 
@@ -1889,7 +1888,7 @@ gam <UserTypeEntity> show teamdriveacls [teamdriveadminquery|query <QueryTeamDri
 # Vault
 
 gam create vaultexport|export matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
-        (accounts <EmailAddressList>) | (orgunit|org|ou <OrgUnitPath>) | (teamdrives <TeamDriveIDList>) | (rooms <RoomList>) | everyone
+        (accounts <EmailAddressEntity>) | (orgunit|org|ou <OrgUnitPath>) | (teamdrives <TeamDriveIDList>) | (rooms <RoomList>) | everyone
         [scope <all_data|held_data|unprocessed_data>]
         [terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>] [timezone <TimeZone>]
         [excludedrafts <Boolean>] [format mbox|pst]
@@ -2125,7 +2124,7 @@ gam <UserTypeEntity> show backupcodes|verificationcodes
         showhidden
 
 <UserCalendarAddEntity> ::=
-        <EmailAddressList>|
+        <EmailAddressEntity>|
         (resource <ResourceID>)|
         (resources <ResourceIDList>)|
         ((calendars <CalendarList>) | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>)
@@ -2133,7 +2132,7 @@ gam <UserTypeEntity> show backupcodes|verificationcodes
 <UserCalendarEntity> ::=
         allcalendars|
         primary|
-        <EmailAddressList>|
+        <EmailAddressEntity>|
         (resource <ResourceID>)|
         (resources <ResourceIDList>)|
         ((calendars <CalendarList>) | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>)|
@@ -2205,7 +2204,7 @@ gam <UserTypeEntity> transfer calendars <UserCalendarEntity> <UserItem> [keepuse
         (updatedmin <Time>)
 
 <EventMatchProperty:> ::=
-        (matchfield attendees <EmailAddressList>)|
+        (matchfield attendees <EmailAddressEntity>)|
         (matchfield creatoremail <RegularExpression>)|
         (matchfield creatorname <RegularExpression>)|
         (matchfield description <RegularExpression>)|
@@ -2215,7 +2214,7 @@ gam <UserTypeEntity> transfer calendars <UserCalendarEntity> <UserItem> [keepuse
         (matchfield summary <RegularExpression>)
 
 <EventEntity> ::=
-        (events <EventIdList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|
+        (id|eventid <EventId>)|(events <EventIdList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|
         (<EventSelectProperty>+ <EventMatchProperty>*)
 
 <EventAttribute> ::=
@@ -2661,7 +2660,7 @@ gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
         [showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
 
-gam <UserTypeEntity> print|show driveactivity [todrive <ToDriveAttribute>*] [fileid <DriveFileID>] [folderid <DriveFolderID>]
+gam <UserTypeEntity> print|show driveactivity [todrive <ToDriveAttributes>*] [(fileid <DriveFileID>)|(folderid <DriveFolderID>)]
 
 <DriveSettingsFieldName> ::=
         appinstalled|

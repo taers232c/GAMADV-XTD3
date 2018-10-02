@@ -1,3 +1,19 @@
+4.61.08
+
+Added cc <EmailAddressEntity>, bcc <EmailAddressEntity> and  singlemessage <Boolean> options to gam sendemail.
+gam sendemail <EmailAddressEntity> [from <UserItem>] [replyto <EmailAddress>]
+        [cc <EmailAddressEntity>] [bcc <EmailAddressEntity>] [singlemessage [<Boolean>]]
+        [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
+        (replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName>)*
+        [newuser <UserItem> firstname|givenname <String> lastname|familyname <string> password <Password>]
+By default, a separate email is sent to each recipient; this isolates the recipient email addresses.
+If any of these options are specified, a single email will be sent to all of the recipients:
+* cc <EmailAddressEntity>
+* bcc <EmailAddressEntity>
+* singlemessage True
+
+Code cleanup of exception handling.
+
 4.61.07
 
 Added error checking so that gam <UserTypeEntity> delete backupcodes and gam <UserTypeEntity> deprovision
@@ -10,7 +26,7 @@ Fixed a bug in gam <UserTypeEntity> delete contacts that caused a trap for a sus
 4.61.05
 
 Add ability to add attachments in gam sendemail.
-    gam sendemail <RecipientEntity> [from <UserItem>] [replyto <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
+    gam sendemail <EmailAddressEntity> [from <UserItem>] [replyto <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
         (replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName>)*
         [newuser <UserItem> firstname|givenname <String> lastname|familyname <string> password <Password>]
 
@@ -1429,7 +1445,7 @@ gam print courses [todrive [<ToDriveAttribute>]] (course|class <CourseEntity>)*|
 4.55.20
 
 Added from and replyto options to gam sendemail. By default, emails will be from the admin user named in oauth2.txt, override this with the from <UserItem> option.
-gam sendemail <RecipientEntity> [from <UserItem>] [replyto <EmailAddress>] subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*
+gam sendemail <EmailAddressEntity> [from <UserItem>] [replyto <EmailAddress>] subject <String> (message <String>)|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*
         [newuser <UserItem> firstname|givenname <String> lastname|familyname <string> password <Password>]
 
 4.55.19
