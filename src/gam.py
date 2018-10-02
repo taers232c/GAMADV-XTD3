@@ -2980,6 +2980,8 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False, service=None):
       error = {u'error': {u'code': 400, u'errors': [{u'reason': GAPI.NOT_FOUND, u'message': u'Entity Does Not Exist'}]}}
     elif (e.resp[u'status'] == u'400') and (u'EntityNameNotValid' in str(e.content)):
       error = {u'error': {u'code': 400, u'errors': [{u'reason': GAPI.INVALID_INPUT, u'message': u'Entity Name Not Valid'}]}}
+    elif (e.resp[u'status'] == u'400') and (u'Failed to parse Content-Range header' in e.content):
+      error = {u'error': {u'code': 400, u'errors': [{u'reason': GAPI.BAD_REQUEST, u'message': u'Failed to parse Content-Range header'}]}}
     elif retryOnHttpError:
       service._http.request.credentials.refresh(getHttpObj())
       return (-1, None, None)
@@ -4825,7 +4827,7 @@ def flattenJSON(structure, key=u'', path=u'', flattened=None, listLimit=None, sk
     else:
       if key not in noLenObjects:
         flattened[((path+u'.') if path else u'')+key] = listLen
-      for i in xrange(listLen):
+      for i in range(listLen):
         flattenJSON(structure[i], u'{0}'.format(i), u'.'.join([item for item in [path, key] if item]), flattened, listLimit, skipObjects, timeObjects, noLenObjects, simpleLists)
   else:
     for k, v in sorted(iteritems(structure)):
@@ -27625,11 +27627,13 @@ def createDriveFile(users):
     if parameters[DFA_LOCALFILEPATH]:
       try:
         media_body = googleapiclient.http.MediaFileUpload(parameters[DFA_LOCALFILEPATH], mimetype=parameters[DFA_LOCALMIMETYPE], resumable=True)
+        if media_body.size() == 0:
+          media_body = None
       except IOError as e:
         systemErrorExit(FILE_ERROR_RC, e)
     try:
       result = callGAPI(drive.files(), u'create',
-                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INVALID],
+                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INVALID, GAPI.BAD_REQUEST],
                         ocrLanguage=parameters[DFA_OCRLANGUAGE],
                         ignoreDefaultVisibility=parameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                         keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
@@ -27643,7 +27647,7 @@ def createDriveFile(users):
           entityActionPerformed([Ent.USER, user, _getEntityMimeType(result), titleInfo], i, count)
       else:
         csvRows.append({u'User': user, fileNameTitle: result[VX_FILENAME], u'id': result[u'id']})
-    except (GAPI.forbidden, GAPI.invalid) as e:
+    except (GAPI.forbidden, GAPI.invalid, GAPI.badRequest) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, body[VX_FILENAME]], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -27683,6 +27687,8 @@ def updateDriveFile(users):
       if parameters[DFA_LOCALFILEPATH]:
         try:
           media_body = googleapiclient.http.MediaFileUpload(parameters[DFA_LOCALFILEPATH], mimetype=parameters[DFA_LOCALMIMETYPE], resumable=True)
+          if media_body.size() == 0:
+            media_body = None
         except IOError as e:
           systemErrorExit(FILE_ERROR_RC, e)
       status, addParents, removeParents = _getDriveFileAddRemoveParentInfo(user, i, count, parameters, drive)

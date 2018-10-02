@@ -14,6 +14,8 @@ If any of these options are specified, a single email will be sent to all of the
 
 Code cleanup of exception handling.
 
+Added checking to avoid an API bug when trying to upload a zero-length file with gam create/update drivefile.
+
 4.61.07
 
 Added error checking so that gam <UserTypeEntity> delete backupcodes and gam <UserTypeEntity> deprovision
