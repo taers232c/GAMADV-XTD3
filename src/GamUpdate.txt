@@ -1,3 +1,10 @@
+4.61.09
+
+Handle rare HTTP retry error.
+
+Fixed bug in gam copy drivefile that caused the following error:
+"ERROR: 403: fieldNotWritable - The resource body includes fields which are not directly writable."
+
 4.61.08
 
 Added cc <EmailAddressEntity>, bcc <EmailAddressEntity> and  singlemessage <Boolean> options to gam sendemail.

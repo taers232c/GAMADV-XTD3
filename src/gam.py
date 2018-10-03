@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.61.08'
+__version__ = u'4.61.09'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -259,7 +259,7 @@ VX_NPT_FILES_ID = u'nextPageToken,{0}(id)'.format(VX_PAGES_FILES)
 VX_NPT_FILES_ID_FILENAME = u'nextPageToken,{0}(id,{1})'.format(VX_PAGES_FILES, VX_FILENAME)
 VX_NPT_FILES_ID_FILENAME_CAPABILITIES_MIMETYPE_MODIFIEDTIME = u'nextPageToken,{0}({1},id,capabilities,mimeType,{2})'.format(VX_PAGES_FILES, VX_FILENAME, VX_MODIFIED_TIME)
 VX_NPT_FILES_ID_FILENAME_OWNEDBYME = u'nextPageToken,{0}(id,{1},ownedByMe)'.format(VX_PAGES_FILES, VX_FILENAME)
-VX_NPT_FILES_ID_FILENAME_PARENTS_COPY_FIELDS = u'nextPageToken,{0}(id,{1},{2},appProperties,contentHints,capabilities,description,folderColorRgb,mimeType,modifiedTime,properties,starred,teamDriveId,trashed,viewedByMeTime,viewersCanCopyContent,writersCanShare)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
+VX_NPT_FILES_ID_FILENAME_PARENTS_COPY_FIELDS = u'nextPageToken,{0}(id,{1},{2},appProperties,contentHints,capabilities,copyRequiresWriterPermission,description,folderColorRgb,mimeType,modifiedTime,properties,starred,teamDriveId,viewedByMeTime,writersCanShare)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE = u'nextPageToken,{0}(id,{1},{2},mimeType)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_OWNERS = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,owners(emailAddress,permissionId))'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
@@ -2983,7 +2983,8 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False, service=None):
     elif (e.resp[u'status'] == u'400') and (u'Failed to parse Content-Range header' in e.content):
       error = {u'error': {u'code': 400, u'errors': [{u'reason': GAPI.BAD_REQUEST, u'message': u'Failed to parse Content-Range header'}]}}
     elif retryOnHttpError:
-      service._http.request.credentials.refresh(getHttpObj())
+      if hasattr(service._http.request, u'credentials'):
+        service._http.request.credentials.refresh(getHttpObj())
       return (-1, None, None)
     elif soft_errors:
       stderrErrorMsg(str(e.content))
