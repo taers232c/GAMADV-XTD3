@@ -1,3 +1,13 @@
+4.61.10
+
+The Google Drive API v3 has deprecated the drive file field viewersCanCopyContent; it is now called copyRequiresWriterPermission.
+The description of the copyRequiresWriterPermission field in the API documentation is:
+* "Whether the options to copy, print, or download this file, should be disabled for readers and commenters."
+GAM still recognizes the viewersCanCopyContent field name; n.b., the sense of the two field names is reversed:
+* viewersCanCopyContent False = copyRequiresWriterPermission True
+* viewersCanCopyContent True = copyRequiresWriterPermission False
+GAM properly sets the value of copyRequiresWriterPermission regardless of the option used on the command line.
+
 4.61.09
 
 Handle rare HTTP retry error.

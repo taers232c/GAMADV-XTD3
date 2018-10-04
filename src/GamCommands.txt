@@ -2320,6 +2320,7 @@ gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [any
 <DriveFileEntity> ::= <DriveFileIDEntity> | <DriveFileNameEntity> | <DriveFileQueryEntity> | <DriveFileQueryShortcut> |  root | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
 
 <DriveFileAttribute> ::=
+        (copyrequireswriterpermission [<Boolean>])|
         (description <String>)|
         (folderColorRgb <ColorValue>)|
         (indexabletext <String>)|
@@ -2568,6 +2569,7 @@ gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (ord
         capabilities|
         contenthints|
         copyable|
+        copyrequireswriterpermission|
         createddate|createdtime|
         description|
         editable|

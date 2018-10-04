@@ -355,13 +355,11 @@ DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP = {
   u'trashedTime': u'trashedDate',
   u'viewedByMe': u'viewed',
   u'viewedByMeTime': u'lastViewedByMeDate',
-  u'viewersCanCopyContent': u'restricted',
   u'webViewLink': u'alternateLink',
   }
 
 DRIVE3_TO_DRIVE2_LABELS_MAP = {
   u'modifiedByMe': u'modified',
-  u'viewersCanCopyContent': u'restricted',
   u'starred': u'starred',
   u'trashed': u'trashed',
   u'viewedByMe': u'viewed',

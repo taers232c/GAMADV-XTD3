@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.61.09'
+__version__ = u'4.61.10'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -236,11 +236,11 @@ VX_PAGES_REVISIONS = u'revisions'
 VX_PARENTS_ID = u'parents'
 VX_TRASHED = u'trashed'
 
-VX_COPY_FOLDER_FIELDS = u'{0},appProperties,contentHints,description,folderColorRgb,mimeType,modifiedTime,properties,starred,teamDriveId,viewedByMeTime,viewersCanCopyContent,writersCanShare'.format(VX_PARENTS_ID)
+VX_COPY_FOLDER_FIELDS = u'{0},appProperties,contentHints,copyRequiresWriterPermission,description,folderColorRgb,mimeType,modifiedTime,properties,starred,teamDriveId,viewedByMeTime,writersCanShare'.format(VX_PARENTS_ID)
 VX_DOWNLOAD_FIELDS = u'{0},fileExtension,mimeType,{1}'.format(VX_FILENAME, VX_SIZE)
 VX_FILENAME_MIMETYPE_TEAMDRIVEID = u'{0},mimeType,teamDriveId'.format(VX_FILENAME)
 VX_FILENAME_PARENTS = u'{0},{1}'.format(VX_FILENAME, VX_PARENTS_ID)
-VX_FILENAME_PARENTS_COPY_FILE_FIELDS = u'id,{0},{1},appProperties,contentHints,capabilities,description,mimeType,modifiedTime,properties,starred,teamDriveId,viewedByMeTime,viewersCanCopyContent,writersCanShare'.format(VX_FILENAME, VX_PARENTS_ID)
+VX_FILENAME_PARENTS_COPY_FILE_FIELDS = u'id,{0},{1},appProperties,capabilities,contentHints,copyRequiresWriterPermission,description,mimeType,modifiedTime,properties,starred,teamDriveId,viewedByMeTime,writersCanShare'.format(VX_FILENAME, VX_PARENTS_ID)
 VX_FILENAME_PARENTS_MIMETYPE = u'{0},{1},mimeType'.format(VX_FILENAME, VX_PARENTS_ID)
 VX_FILENAME_PARENTS_MIMETYPE_TEAMDRIVEID = u'{0},{1},mimeType,teamDriveId'.format(VX_FILENAME, VX_PARENTS_ID)
 VX_FILES_ID_FILENAME = u'{0}(id,{1})'.format(VX_PAGES_FILES, VX_FILENAME)
@@ -259,7 +259,7 @@ VX_NPT_FILES_ID = u'nextPageToken,{0}(id)'.format(VX_PAGES_FILES)
 VX_NPT_FILES_ID_FILENAME = u'nextPageToken,{0}(id,{1})'.format(VX_PAGES_FILES, VX_FILENAME)
 VX_NPT_FILES_ID_FILENAME_CAPABILITIES_MIMETYPE_MODIFIEDTIME = u'nextPageToken,{0}({1},id,capabilities,mimeType,{2})'.format(VX_PAGES_FILES, VX_FILENAME, VX_MODIFIED_TIME)
 VX_NPT_FILES_ID_FILENAME_OWNEDBYME = u'nextPageToken,{0}(id,{1},ownedByMe)'.format(VX_PAGES_FILES, VX_FILENAME)
-VX_NPT_FILES_ID_FILENAME_PARENTS_COPY_FIELDS = u'nextPageToken,{0}(id,{1},{2},appProperties,contentHints,capabilities,copyRequiresWriterPermission,description,folderColorRgb,mimeType,modifiedTime,properties,starred,teamDriveId,viewedByMeTime,writersCanShare)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
+VX_NPT_FILES_ID_FILENAME_PARENTS_COPY_FIELDS = u'nextPageToken,{0}(id,{1},{2},appProperties,capabilities,contentHints,copyRequiresWriterPermission,description,folderColorRgb,mimeType,modifiedTime,properties,starred,teamDriveId,viewedByMeTime,writersCanShare)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE = u'nextPageToken,{0}(id,{1},{2},mimeType)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_OWNERS = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,owners(emailAddress,permissionId))'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
@@ -25325,8 +25325,6 @@ def _validateUserTeamDrive(user, i, count, fileIdEntity, useDomainAdminAccess=Fa
   return (user, drive)
 
 DRIVEFILE_LABEL_CHOICE_MAP = {
-  u'restrict': u'viewersCanCopyContent',
-  u'restricted': u'viewersCanCopyContent',
   u'star': u'starred',
   u'starred': u'starred',
   u'trash': u'trashed',
@@ -25464,12 +25462,13 @@ def getDriveFileAttribute(myarg, body, parameters, assignLocalName):
     deprecatedArgument(myarg)
   elif myarg == u'ocrlanguage':
     parameters[DFA_OCRLANGUAGE] = getChoice(LANGUAGE_CODES_MAP, mapChoice=True)
+  elif myarg == u'viewerscancopycontent':
+    body[u'copyRequiresWriterPermission'] = not getBoolean()
+  elif myarg in [u'copyrequireswriterpermission', u'restrict', u'restricted']:
+    body[u'copyRequiresWriterPermission'] = getBoolean()
   elif myarg in DRIVEFILE_LABEL_CHOICE_MAP:
     myarg = DRIVEFILE_LABEL_CHOICE_MAP[myarg]
-    if myarg != u'viewersCanCopyContent':
-      body[myarg] = getBoolean()
-    else:
-      body[myarg] = not getBoolean()
+    body[myarg] = getBoolean()
   elif myarg in [u'lastviewedbyme', u'lastviewedbyuser', u'lastviewedbymedate', u'lastviewedbymetime']:
     body[VX_VIEWED_BY_ME_TIME] = getTimeOrDeltaFromNow()
   elif myarg == u'description':
@@ -25482,8 +25481,6 @@ def getDriveFileAttribute(myarg, body, parameters, assignLocalName):
     body[u'writersCanShare'] = getBoolean()
   elif myarg == u'writerscantshare':
     body[u'writersCanShare'] = not getBoolean()
-  elif myarg == u'viewerscancopycontent':
-    body[u'viewersCanCopyContent'] = getBoolean()
   elif myarg == u'foldercolorrgb':
     body[u'folderColorRgb'] = getColor()
   elif myarg == u'ignoredefaultvisibility':
@@ -25931,16 +25928,10 @@ def _mapDriveFieldNames(f_file, user, parentsSubFields, mapToLabels):
     for attrib in API.DRIVE3_TO_DRIVE2_LABELS_MAP:
       if attrib in f_file:
         f_file.setdefault(u'labels', {})
-        if attrib != u'viewersCanCopyContent':
-          f_file[u'labels'][API.DRIVE3_TO_DRIVE2_LABELS_MAP[attrib]] = f_file.pop(attrib)
-        else:
-          f_file[u'labels'][API.DRIVE3_TO_DRIVE2_LABELS_MAP[attrib]] = not f_file.pop(attrib)
+        f_file[u'labels'][API.DRIVE3_TO_DRIVE2_LABELS_MAP[attrib]] = f_file.pop(attrib)
   for attrib in API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP:
     if attrib in f_file:
-      if attrib != u'viewersCanCopyContent':
-        f_file[API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP[attrib]] = f_file.pop(attrib)
-      else:
-        f_file[API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP[attrib]] = not f_file.pop(attrib)
+      f_file[API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP[attrib]] = f_file.pop(attrib)
   capabilities = f_file.get(u'capabilities')
   if capabilities:
     for attrib in API.DRIVE3_TO_DRIVE2_CAPABILITIES_FIELDS_MAP:
@@ -25987,6 +25978,7 @@ DRIVEFILE_FIELDS_CHOICE_MAP = {
   u'capabilities': u'capabilities',
   u'contenthints': u'contentHints',
   u'copyable': u'capabilities.canCopy',
+  u'copyrequireswriterpermission': u'copyRequiresWriterPermission',
   u'createddate': VX_CREATED_TIME,
   u'createdtime': VX_CREATED_TIME,
   u'description': u'description',
@@ -26031,6 +26023,8 @@ DRIVEFILE_FIELDS_CHOICE_MAP = {
   u'properties': u'properties',
   u'quotabytesused': u'quotaBytesUsed',
   u'quotaused': u'quotaBytesUsed',
+  u'restrict': u'copyRequiresWriterPermission',
+  u'restricted': u'copyRequiresWriterPermission',
   u'shareable': u'capabilities.canShare',
   u'shared': u'shared',
   u'sharedwithmedate': VX_SHARED_WITH_ME_TIME,
@@ -26051,7 +26045,7 @@ DRIVEFILE_FIELDS_CHOICE_MAP = {
   u'viewedbyme': u'viewedByMe',
   u'viewedbymedate': VX_VIEWED_BY_ME_TIME,
   u'viewedbymetime': VX_VIEWED_BY_ME_TIME,
-  u'viewerscancopycontent': u'viewersCanCopyContent',
+  u'viewerscancopycontent': u'copyRequiresWriterPermission',
   u'webcontentlink': u'webContentLink',
   u'webviewlink': VX_WEB_VIEW_LINK,
   u'writerscanshare': u'writersCanShare',
@@ -27967,7 +27961,6 @@ def _cloneFolder(drive, user, i, count, j, jcount, source, newFolderTitle, targe
   body[VX_FILENAME] = newFolderTitle
   try:
     if destTeamDriveId:
-      body.pop(u'viewersCanCopyContent', None)
       body.pop(u'writersCanShare', None)
     newFolderId = callGAPI(drive.files(), u'create',
                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INTERNAL_ERROR],
@@ -28113,7 +28106,6 @@ def copyDriveFile(users):
                 child[u'parents'].append(parentId)
           child.pop(u'id')
           if destTeamDriveId:
-            child.pop(u'viewersCanCopyContent', None)
             child.pop(u'writersCanShare', None)
           try:
             result = callGAPI(drive.files(), u'copy',
@@ -28278,7 +28270,6 @@ def copyDriveFile(users):
                 source[u'parents'].append(parentId)
           sourceId = source.pop(u'id')
           if destTeamDriveId:
-            source.pop(u'viewersCanCopyContent', None)
             source.pop(u'writersCanShare', None)
           source.update(copyBody)
           result = callGAPI(drive.files(), u'copy',
@@ -29792,7 +29783,7 @@ def claimOwnership(users):
     elif myarg == u'orderby':
       getDrivefileOrderBy(orderByList)
     elif myarg == u'restricted':
-      bodyShare[u'viewersCanCopyContent'] = not getBoolean()
+      bodyShare[u'copyRequiresWriterPermission'] = getBoolean()
     elif myarg == u'writerscanshare':
       bodyShare[u'writersCanShare'] = getBoolean()
     elif myarg == u'writerscantshare':
