@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.61.10'
+__version__ = u'4.61.11'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -13610,8 +13610,8 @@ def doUpdateGroups():
         continue
       removeMembers = []
       for member in result:
-        if _checkMemberRoleIsSuspended(member.get(u'email', member[u'id']), validRoles, isSuspended):
-          removeMembers.append(member)
+        if _checkMemberRoleIsSuspended(member, validRoles, isSuspended):
+          removeMembers.append(member.get(u'email', member[u'id']))
       _batchRemoveGroupMembers(group, i, count, removeMembers, Ent.ROLE_MEMBER)
 
 # gam delete groups <GroupEntity>
@@ -28862,9 +28862,10 @@ def collectOrphans(users):
 
 TRANSFER_DRIVEFILE_ACL_ROLES_MAP = {
   u'commenter': u'commenter',
+  u'contentmanager': u'fileOrganizer',
   u'editor': u'writer',
-  u'organizer': u'organizer',
   u'fileorganizer': u'fileOrganizer',
+  u'organizer': u'organizer',
   u'reader': u'reader',
   u'writer': u'writer',
   u'current': u'current',
@@ -30138,9 +30139,10 @@ def _showDriveFilePermission(permission, printKeys, timeObjects, i=0, count=0):
 
 DRIVEFILE_ACL_ROLES_MAP = {
   u'commenter': u'commenter',
+  u'contentmanager': u'fileOrganizer',
   u'editor': u'writer',
-  u'organizer': u'organizer',
   u'fileorganizer': u'fileOrganizer',
+  u'organizer': u'organizer',
   u'owner': u'owner',
   u'read': u'reader',
   u'reader': u'reader',

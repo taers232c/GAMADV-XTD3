@@ -1,3 +1,7 @@
+4.61.11
+
+Fixed bug in gam update group clear members that caused a trap.
+
 4.61.10
 
 The Google Drive API v3 has deprecated the drive file field viewersCanCopyContent; it is now called copyRequiresWriterPermission.
