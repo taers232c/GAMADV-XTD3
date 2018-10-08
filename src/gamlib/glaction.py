@@ -24,6 +24,7 @@ class GamAction(object):
 
 # Keys into NAMES; arbitrary values but must be unique
   ADD = u'add '
+  ADD_PREVIEW = u'addp'
   ADD_OWNERSHIP = u'adow'
   APPEND = u'apnd'
   ARCHIVE = u'arch'
@@ -65,6 +66,7 @@ class GamAction(object):
   REGISTER = u'regi'
   RELABEL = u'rela'
   REMOVE = u'remo'
+  REMOVE_PREVIEW = u'remp'
   RENAME = u'rena'
   REOPEN = u'reop'
   REPLACE = u'repl'
@@ -87,6 +89,7 @@ class GamAction(object):
   UNSUSPEND = u'unsu'
   UNTRASH = u'untr'
   UPDATE = u'upda'
+  UPDATE_PREVIEW = u'updp'
   UPLOAD = u'uplo'
   UNZIP = U'unzi'
   VERIFY = u'vrfy'
@@ -98,6 +101,7 @@ class GamAction(object):
   # These values can be translated into other languages
   _NAMES = {
     ADD: [u'Added', u'Add'],
+    ADD_PREVIEW: [u'Added (Preview)', u'Add (Preview)'],
     ADD_OWNERSHIP: [u'Ownership Added', u'Add Ownership'],
     APPEND: [u'Appended', u'Append'],
     ARCHIVE: [u'Archived', u'Archive'],
@@ -138,6 +142,7 @@ class GamAction(object):
     REGISTER: [u'Registered', u'Register'],
     RELABEL: [u'Relabeled', u'Relabel'],
     REMOVE: [u'Removed', u'Remove'],
+    REMOVE_PREVIEW: [u'Removed (Preview)', u'Remove (Preview)'],
     RENAME: [u'Renamed', u'Rename'],
     REOPEN: [u'Reopened', u'Reopen'],
     REPLACE: [u'Replaced', u'Replace'],
@@ -161,6 +166,7 @@ class GamAction(object):
     UNTRASH: [u'Untrashed', u'Untrash'],
     UNZIP: [u'Unzipped', u'Unzip'],
     UPDATE: [u'Updated', u'Update'],
+    UPDATE_PREVIEW: [u'Updated (Preview)', u'Update (Preview)'],
     UPLOAD: [u'Uploaded', u'Upload'],
     VERIFY: [u'Verified', u'Verify'],
     WATCH: [u'Watched', u'Watch'],

@@ -1,3 +1,12 @@
+4.61.12
+
+Added preview option to gam update group create/delete/sync/update/clear; if specified, the changes will be previewed but not executed.
+gam update group|groups <GroupEntity> create|add [owner|manager|member] [usersonly|groupsonly] [notsuspended|suspended] [preview] <UserTypeEntity>
+gam update group|groups <GroupEntity> delete|remove [owner|manager|member] [usersonly|groupsonly] [notsuspended|suspended] [preview] <UserTypeEntity>
+gam update group|groups <GroupEntity> sync [owner|manager|member] [usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended] [preview] <UserTypeEntity>
+gam update group|groups <GroupEntity> update [owner|manager|member] [usersonly|groupsonly] [notsuspended|suspended] [preview] <UserTypeEntity>
+gam update group|groups <GroupEntity> clear [member] [manager] [owner] [notsuspended|suspended] [preview]
+
 4.61.11
 
 Fixed bug in gam update group clear members that caused a trap.
