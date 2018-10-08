@@ -13382,6 +13382,7 @@ def doUpdateGroups():
       return
     if preview:
       _previewAction(group, removeMembers, role, jcount)
+      return
     svcargs = dict([(u'groupKey', group), (u'memberKey', None)]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(cd.members(), u'delete')
     dbatch = cd.new_batch_http_request(callback=_callbackRemoveGroupMembers)
