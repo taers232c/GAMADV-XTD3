@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2016 Ross Scroggs All Rights Reserved.
+# Copyright (C) 2018 Ross Scroggs All Rights Reserved.
 #
 # All Rights Reserved.
 #
@@ -23,6 +23,7 @@
 class GamAction(object):
 
 # Keys into NAMES; arbitrary values but must be unique
+  ACCEPT = u'acpt'
   ADD = u'add '
   ADD_PREVIEW = u'addp'
   ADD_OWNERSHIP = u'adow'
@@ -100,6 +101,7 @@ class GamAction(object):
   # Item xxx ACTION_NAMES[0] - User xxx Deleted
   # These values can be translated into other languages
   _NAMES = {
+    ACCEPT: [u'Accepted', u'Accept'],
     ADD: [u'Added', u'Add'],
     ADD_PREVIEW: [u'Added (Preview)', u'Add (Preview)'],
     ADD_OWNERSHIP: [u'Ownership Added', u'Add Ownership'],

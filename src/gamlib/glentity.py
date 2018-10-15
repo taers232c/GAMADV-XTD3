@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2016 Ross Scroggs All Rights Reserved.
+# Copyright (C) 2018 Ross Scroggs All Rights Reserved.
 #
 # All Rights Reserved.
 #
@@ -54,8 +54,12 @@ class GamEntity(object):
   CALENDAR = u'cale'
   CALENDAR_ACL = u'cacl'
   CALENDAR_SETTINGS = u'cset'
+  CLASSROOM_INVITATION = u'clai'
+  CLASSROOM_INVITATION_OWNER = u'clio'
+  CLASSROOM_INVITATION_STUDENT = u'clis'
+  CLASSROOM_INVITATION_TEACHER = u'clit'
   CLASSROOM_OAUTH2_TXT_FILE = u'coau'
-  CLIENT_SECRETS_JSON_FILE = u'clis'
+  CLIENT_SECRETS_JSON_FILE = u'csjf'
   CLOUD_STORAGE_FILE = 'clsf'
   COLLABORATOR = u'cola'
   CONFIG_FILE = u'conf'
@@ -242,6 +246,10 @@ class GamEntity(object):
     CALENDAR: [u'Calendars', u'Calendar'],
     CALENDAR_ACL: [u'Calendar ACLs', u'Calendar ACL'],
     CALENDAR_SETTINGS: [u'Calendar Settings', u'Calendar Settings'],
+    CLASSROOM_INVITATION: [u'Classroom Invitations', u'Classroom Invitation'],
+    CLASSROOM_INVITATION_OWNER: [u'Classroom Owner Invitations', u'Classroom Owner Invitation'],
+    CLASSROOM_INVITATION_STUDENT: [u'Classroom Student Invitations', u'Classroom Student Invitation'],
+    CLASSROOM_INVITATION_TEACHER: [u'Classroom Teacher Invitations', u'Classroom Teacher Invitation'],
     CLASSROOM_OAUTH2_TXT_FILE: [u'Classroom OAuth2 File', u'Classroom OAuth2 File'],
     CLIENT_SECRETS_JSON_FILE: [u'Client Secrets File', u'Client Secrets File'],
     CLOUD_STORAGE_FILE: [u'Cloud Storage Files', u'Cloud Storage File'],

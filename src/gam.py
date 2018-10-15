@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.61.12'
+__version__ = u'4.61.13'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -1156,11 +1156,11 @@ def getGoogleSKUList():
 
 def floatLimits(minVal, maxVal, item=u'float'):
   if (minVal is not None) and (maxVal is not None):
-    return u'{0} {1:5.3f}<=x<={2:5.3f}'.format(item, minVal, maxVal)
+    return u'{0} {1:.3f}<=x<={2:.3f}'.format(item, minVal, maxVal)
   if minVal is not None:
-    return u'{0} x>={1:5.3f}'.format(item, minVal)
+    return u'{0} x>={1:.3f}'.format(item, minVal)
   if maxVal is not None:
-    return u'{0} x<={1:5.3f}'.format(item, maxVal)
+    return u'{0} x<={1:.3f}'.format(item, maxVal)
   return u'{0} x'.format(item)
 
 def getFloat(minVal=None, maxVal=None):
@@ -2152,9 +2152,9 @@ def SetGlobalVariables():
       GC.Defaults[itemName] = itemEntry[GC.VAR_SFFT][os.path.isfile(os.path.join(oldGamPath, itemEntry[GC.VAR_SIGFILE]))]
     elif GC.VAR_ENVVAR in itemEntry:
       value = os.environ.get(itemEntry[GC.VAR_ENVVAR], GC.Defaults[itemName])
-      if itemEntry[GC.VAR_TYPE] == GC.TYPE_INTEGER:
+      if itemEntry[GC.VAR_TYPE] in [GC.TYPE_INTEGER, GC.TYPE_FLOAT]:
         try:
-          number = int(value)
+          number = int(value) if itemEntry[GC.VAR_TYPE] == GC.TYPE_INTEGER else float(value)
           minVal, maxVal = itemEntry[GC.VAR_LIMITS]
           if (minVal is not None) and (number < minVal):
             number = minVal
@@ -2237,11 +2237,11 @@ def SetGlobalVariables():
     status[u'errors'] = True
     return u''
 
-  def _getCfgInteger(sectionName, itemName):
+  def _getCfgNumber(sectionName, itemName):
     value = GM.Globals[GM.PARSER].get(sectionName, itemName)
     minVal, maxVal = GC.VAR_INFO[itemName][GC.VAR_LIMITS]
     try:
-      number = int(value)
+      number = int(value) if GC.VAR_INFO[itemName][GC.VAR_TYPE] == GC.TYPE_INTEGER else float(value)
       if ((minVal is None) or (number >= minVal)) and ((maxVal is None) or (number <= maxVal)):
         return number
     except ValueError:
@@ -2336,7 +2336,7 @@ def SetGlobalVariables():
           if cfgValue == value:
             cfgValue = choice
             break
-      elif varType not in [GC.TYPE_BOOLEAN, GC.TYPE_INTEGER]:
+      elif varType not in [GC.TYPE_BOOLEAN, GC.TYPE_INTEGER, GC.TYPE_FLOAT]:
         cfgValue = _quoteStringIfLeadingTrailingBlanks(cfgValue)
       if varType == GC.TYPE_FILE:
         expdValue = _getCfgFile(sectionName, itemName)
@@ -2501,6 +2501,9 @@ def SetGlobalVariables():
         elif varType == GC.TYPE_INTEGER:
           minVal, maxVal = GC.VAR_INFO[itemName][GC.VAR_LIMITS]
           value = text_type(getInteger(minVal=minVal, maxVal=maxVal))
+        elif varType == GC.TYPE_FLOAT:
+          minVal, maxVal = GC.VAR_INFO[itemName][GC.VAR_LIMITS]
+          value = text_type(getFloat(minVal=minVal, maxVal=maxVal))
         elif varType == GC.TYPE_TIMEZONE:
           value = getString(Cmd.OB_STRING, checkBlank=True)
         else:
@@ -2522,8 +2525,8 @@ def SetGlobalVariables():
       GC.Values[itemName] = _getCfgCharacter(sectionName, itemName)
     elif varType == GC.TYPE_CHOICE:
       GC.Values[itemName] = _getCfgChoice(sectionName, itemName)
-    elif varType == GC.TYPE_INTEGER:
-      GC.Values[itemName] = _getCfgInteger(sectionName, itemName)
+    elif varType in [GC.TYPE_INTEGER, GC.TYPE_FLOAT]:
+      GC.Values[itemName] = _getCfgNumber(sectionName, itemName)
     elif varType == GC.TYPE_STRING:
       GC.Values[itemName] = _getCfgString(sectionName, itemName)
     elif varType == GC.TYPE_TIMEZONE:
@@ -3010,6 +3013,9 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False, service=None):
     elif http_status == 403:
       if u'The caller does not have permission' in message:
         error = {u'error': {u'errors': [{u'reason': GAPI.PERMISSION_DENIED, u'message': message}]}}
+    elif http_status == 404:
+      if u'Requested entity was not found' in message:
+        error = {u'error': {u'errors': [{u'reason': GAPI.NOT_FOUND, u'message': message}]}}
     elif http_status == 409:
       if u'Requested entity already exists' in message:
         error = {u'error': {u'errors': [{u'reason': GAPI.ALREADY_EXISTS, u'message': message}]}}
@@ -4558,15 +4564,12 @@ def addTitleToCSVfile(title, titles):
   titles[u'list'].append(title)
 
 def addTitlesToCSVfile(addTitles, titles):
-  if isinstance(addTitles, list):
-    for title in addTitles:
-      if title not in titles[u'set']:
-        addTitleToCSVfile(title, titles)
-  elif addTitles not in titles[u'set']:
-    addTitleToCSVfile(addTitles, titles)
+  for title in addTitles if isinstance(addTitles, list) else [addTitles]:
+    if title not in titles[u'set']:
+      addTitleToCSVfile(title, titles)
 
 def removeTitlesFromCSVfile(removeTitles, titles):
-  for title in removeTitles:
+  for title in removeTitles if isinstance(removeTitles, list) else [removeTitles]:
     if title in titles[u'set']:
       titles[u'set'].remove(title)
       titles[u'list'].remove(title)
@@ -4912,9 +4915,13 @@ RI_J = 3
 RI_JCOUNT = 4
 RI_ITEM = 5
 RI_ROLE = 6
+RI_OPTION = 7
 
-def batchRequestID(entityName, i, count, j, jcount, item, role=u''):
-  return u'{0}\n{1}\n{2}\n{3}\n{4}\n{5}\n{6}'.format(entityName, i, count, j, jcount, item, role)
+def batchRequestID(entityName, i, count, j, jcount, item, role=None, option=None):
+  if role is None and option is None:
+    return u'{0}\n{1}\n{2}\n{3}\n{4}\n{5}'.format(entityName, i, count, j, jcount, item)
+  else:
+    return u'{0}\n{1}\n{2}\n{3}\n{4}\n{5}\n{6}\n{7}'.format(entityName, i, count, j, jcount, item, role, option)
 
 # gam version
 def doVersion(checkForArgs=True):
@@ -8500,7 +8507,7 @@ def _batchMoveUsersToOrgUnit(cd, orgUnitPath, i, count, items):
   entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.USER, i, count)
   Ind.Increment()
   svcargs = dict([(u'userKey', None), (u'body', {u'orgUnitPath': orgUnitPath}), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
-  method = getattr(cd.users(), u'patch')
+  method = getattr(cd.users(), u'update')
   dbatch = cd.new_batch_http_request(callback=_callbackMoveUsersToOrgUnit)
   bcount = 0
   j = 0
@@ -9209,7 +9216,7 @@ def doPrintAliases():
       printGettingAllAccountEntities(Ent.USER, query)
       try:
         entityList = callGAPIpages(cd.users(), u'list', u'users',
-                                   page_message=getPageMessage(showTotal=False, showFirstLastItems=True), message_attribute=u'primaryEmail',
+                                   page_message=getPageMessage(showFirstLastItems=True), message_attribute=u'primaryEmail',
                                    throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.INVALID_INPUT,
                                                   GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
                                    customer=GC.Values[GC.CUSTOMER_ID], query=query, fields=u'nextPageToken,users({0})'.format(u','.join(userFields)),
@@ -9228,7 +9235,7 @@ def doPrintAliases():
     printGettingAllAccountEntities(Ent.GROUP)
     try:
       entityList = callGAPIpages(cd.groups(), u'list', u'groups',
-                                 page_message=getPageMessage(showTotal=False, showFirstLastItems=True), message_attribute=u'email',
+                                 page_message=getPageMessage(showFirstLastItems=True), message_attribute=u'email',
                                  throw_reasons=[GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
                                  customer=GC.Values[GC.CUSTOMER_ID], fields=u'nextPageToken,groups({0})'.format(u','.join(groupFields)))
     except (GAPI.resourceNotFound, GAPI.forbidden, GAPI.badRequest):
@@ -11777,6 +11784,16 @@ def _filterDeviceFiles(deviceFiles, startTime, endTime):
       filteredDeviceFiles.append(deviceFile)
   return filteredDeviceFiles
 
+def _filterReportTime(reports, startTime, endTime):
+  if startTime is None and endTime is None:
+    return reports
+  filteredReports = []
+  for report in reports:
+    reportTime, _ = iso8601.parse_date(report[u'reportTime'])
+    if ((startTime is None) or (reportTime >= startTime)) and ((endTime is None) or (reportTime <= endTime)):
+      filteredReports.append(report)
+  return filteredReports
+
 def _getFilterDateTime():
   filterDate = getYYYYMMDD(returnDateTime=True)
   return (filterDate, filterDate.replace(tzinfo=iso8601.UTC))
@@ -11789,8 +11806,10 @@ CROS_FIELDS_CHOICE_MAP = {
   u'asset': u'annotatedAssetId',
   u'assetid': u'annotatedAssetId',
   u'bootmode': u'bootMode',
+  u'cpustatusreports': u'cpuStatusReports',
   u'devicefiles': [u'deviceFiles.type', u'deviceFiles.createTime'],
   u'deviceid': u'deviceId',
+  u'diskvolumereports': u'diskVolumeReports',
   u'ethernetmacaddress': u'ethernetMacAddress',
   u'firmwareversion': u'firmwareVersion',
   u'lastenrollmenttime': u'lastEnrollmentTime',
@@ -11810,6 +11829,8 @@ CROS_FIELDS_CHOICE_MAP = {
   u'serialnumber': u'serialNumber',
   u'status': u'status',
   u'supportenddate': u'supportEndDate',
+  u'systemramtotal': u'systemRamTotal',
+  u'systemramfreereports': u'systemRamFreeReports',
   u'tag': u'annotatedAssetId',
   u'timeranges': [u'activeTimeRanges.activeTime', u'activeTimeRanges.date'],
   u'times': [u'activeTimeRanges.activeTime', u'activeTimeRanges.date'],
@@ -11837,17 +11858,22 @@ CROS_SCALAR_PROPERTY_PRINT_ORDER = [
   u'meid',
   u'ethernetMacAddress',
   u'macAddress',
+  u'systemRamTotal',
   u'lastEnrollmentTime',
   u'orderNumber',
   u'supportEndDate',
   u'willAutoRenew',
   ]
 
-CROS_TIME_OBJECTS = set([u'lastSync', u'lastEnrollmentTime', u'supportEndDate'])
+CROS_TIME_OBJECTS = set([u'lastSync', u'lastEnrollmentTime', u'supportEndDate', u'reportTime'])
 CROS_FIELDS_WITH_CRS_NLS = [u'notes']
 CROS_ACTIVE_TIME_RANGES_ARGUMENTS = [u'timeranges', u'activetimeranges', u'times']
-CROS_DEVICE_FILES_ARGUMENTS = [u'devicefiles', u'files']
 CROS_RECENT_USERS_ARGUMENTS = [u'recentusers', u'users']
+CROS_DEVICE_FILES_ARGUMENTS = [u'devicefiles', u'files']
+CROS_CPU_STATUS_REPORTS_ARGUMENTS = [u'cpustatusreports']
+CROS_DISK_VOLUME_REPORTS_ARGUMENTS = [u'diskvolumereports']
+CROS_SYSTEM_RAM_FREE_REPORTS_ARGUMENTS = [u'systemramfreereports']
+CROS_LISTS_ARGUMENTS = CROS_ACTIVE_TIME_RANGES_ARGUMENTS+CROS_RECENT_USERS_ARGUMENTS+CROS_DEVICE_FILES_ARGUMENTS+CROS_CPU_STATUS_REPORTS_ARGUMENTS+CROS_DISK_VOLUME_REPORTS_ARGUMENTS+CROS_SYSTEM_RAM_FREE_REPORTS_ARGUMENTS
 CROS_START_ARGUMENTS = [u'start', u'startdate', u'oldestdate']
 CROS_END_ARGUMENTS = [u'end', u'enddate']
 
@@ -11891,7 +11917,7 @@ def infoCrOSDevices(entityList):
       for field in _getFieldsList():
         if field in CROS_FIELDS_CHOICE_MAP:
           addFieldToFieldsList(field, CROS_FIELDS_CHOICE_MAP, fieldsList)
-          if field in CROS_ACTIVE_TIME_RANGES_ARGUMENTS+CROS_DEVICE_FILES_ARGUMENTS+CROS_RECENT_USERS_ARGUMENTS:
+          if field in CROS_LISTS_ARGUMENTS:
             projection = u'FULL'
             noLists = False
         else:
@@ -11919,89 +11945,134 @@ def infoCrOSDevices(entityList):
       cros = callGAPI(cd.chromeosdevices(), u'get',
                       throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                       customerId=GC.Values[GC.CUSTOMER_ID], deviceId=deviceId, projection=projection, fields=fields)
-      _checkTPMVulnerability(cros)
-      if formatJSON:
-        printLine(json.dumps(cleanJSON(cros, u'', timeObjects=CROS_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
-        continue
-      printEntity([Ent.CROS_DEVICE, deviceId], i, count)
-      Ind.Increment()
-      for up in CROS_SCALAR_PROPERTY_PRINT_ORDER:
-        if up in cros:
-          if up not in CROS_TIME_OBJECTS:
-            if up not in CROS_FIELDS_WITH_CRS_NLS:
-              printKeyValueList([up, cros[up]])
-            else:
-              printKeyValueWithCRsNLs(up, cros[up])
-          else:
-            printKeyValueList([up, formatLocalTime(cros[up])])
-      up = u'tpmVersionInfo'
-      if up in cros:
-        printKeyValueList([up, u''])
-        Ind.Increment()
-        for key, value in sorted(iteritems(cros[up])):
-          printKeyValueList([key, value])
-        Ind.Decrement()
-      if not noLists:
-        activeTimeRanges = _filterTimeRanges(cros.get(u'activeTimeRanges', []), startDate, endDate)
-        lenATR = len(activeTimeRanges)
-        if lenATR:
-          printKeyValueList([u'activeTimeRanges'])
-          Ind.Increment()
-          for activeTimeRange in activeTimeRanges[:min(lenATR, listLimit or lenATR)]:
-            printKeyValueList([u'date', activeTimeRange[u'date']])
-            Ind.Increment()
-            printKeyValueList([u'activeTime', str(activeTimeRange[u'activeTime'])])
-            printKeyValueList([u'duration', formatMilliSeconds(activeTimeRange[u'activeTime'])])
-            printKeyValueList([u'minutes', activeTimeRange[u'activeTime']//60000])
-            Ind.Decrement()
-          Ind.Decrement()
-        recentUsers = cros.get(u'recentUsers', [])
-        lenRU = len(recentUsers)
-        if lenRU:
-          printKeyValueList([u'recentUsers'])
-          Ind.Increment()
-          for recentUser in recentUsers[:min(lenRU, listLimit or lenRU)]:
-            printKeyValueList([u'type', recentUser[u'type']])
-            Ind.Increment()
-            printKeyValueList([u'email', recentUser.get(u'email', [u'Unknown', u'UnmanagedUser'][recentUser[u'type'] == u'USER_TYPE_UNMANAGED'])])
-            Ind.Decrement()
-          Ind.Decrement()
-        deviceFiles = _filterDeviceFiles(cros.get(u'deviceFiles', []), startTime, endTime)
-        lenDF = len(deviceFiles)
-        if lenDF:
-          printKeyValueList([u'deviceFiles'])
-          Ind.Increment()
-          for deviceFile in deviceFiles[:min(lenDF, listLimit or lenDF)]:
-            deviceFile[u'createTime'] = formatLocalTime(deviceFile[u'createTime'])
-            printKeyValueList([deviceFile[u'type'], deviceFile[u'createTime']])
-          Ind.Decrement()
-          if downloadfile:
-            if downloadfile == u'latest':
-              deviceFile = deviceFiles[-1]
-            else:
-              for deviceFile in deviceFiles:
-                if deviceFile[u'createTime'] == downloadfile:
-                  break
-              else:
-                deviceFile = None
-            if deviceFile:
-              downloadfilename = os.path.join(targetFolder, u'cros-logs-{0}-{1}.zip'.format(deviceId, deviceFile[u'createTime']))
-              _, content = cd._http.request(deviceFile[u'downloadUrl'])
-              writeFile(downloadfilename, content, continueOnError=True)
-              printKeyValueList([u'Downloaded', downloadfilename])
-            else:
-              Act.Set(Act.DOWNLOAD)
-              entityActionFailedWarning([Ent.CROS_DEVICE, deviceId, Ent.DEVICE_FILE, downloadfile],
-                                        Msg.DOES_NOT_EXIST, i, count)
-              Act.Set(Act.INFO)
-        elif downloadfile:
-          Act.Set(Act.DOWNLOAD)
-          entityActionNotPerformedWarning([Ent.CROS_DEVICE, deviceId, Ent.DEVICE_FILE, downloadfile],
-                                          Msg.NO_ENTITIES_FOUND.format(Ent.Plural(Ent.DEVICE_FILE)), i, count)
-          Act.Set(Act.INFO)
-      Ind.Decrement()
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.CROS_DEVICE, deviceId, i, count)
+      continue
+    _checkTPMVulnerability(cros)
+    if formatJSON:
+      printLine(json.dumps(cleanJSON(cros, u'', timeObjects=CROS_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+      continue
+    printEntity([Ent.CROS_DEVICE, deviceId], i, count)
+    Ind.Increment()
+    for up in CROS_SCALAR_PROPERTY_PRINT_ORDER:
+      if up in cros:
+        if up not in CROS_TIME_OBJECTS:
+          if up not in CROS_FIELDS_WITH_CRS_NLS:
+            printKeyValueList([up, cros[up]])
+          else:
+            printKeyValueWithCRsNLs(up, cros[up])
+        else:
+          printKeyValueList([up, formatLocalTime(cros[up])])
+    up = u'tpmVersionInfo'
+    if up in cros:
+      printKeyValueList([up, u''])
+      Ind.Increment()
+      for key, value in sorted(iteritems(cros[up])):
+        printKeyValueList([key, value])
+      Ind.Decrement()
+    if not noLists:
+      activeTimeRanges = _filterTimeRanges(cros.get(u'activeTimeRanges', []), startDate, endDate)
+      lenATR = len(activeTimeRanges)
+      if lenATR:
+        printKeyValueList([u'activeTimeRanges'])
+        Ind.Increment()
+        for activeTimeRange in activeTimeRanges[:min(lenATR, listLimit or lenATR)]:
+          printKeyValueList([u'date', activeTimeRange[u'date']])
+          Ind.Increment()
+          printKeyValueList([u'activeTime', str(activeTimeRange[u'activeTime'])])
+          printKeyValueList([u'duration', formatMilliSeconds(activeTimeRange[u'activeTime'])])
+          printKeyValueList([u'minutes', activeTimeRange[u'activeTime']//60000])
+          Ind.Decrement()
+        Ind.Decrement()
+      recentUsers = cros.get(u'recentUsers', [])
+      lenRU = len(recentUsers)
+      if lenRU:
+        printKeyValueList([u'recentUsers'])
+        Ind.Increment()
+        for recentUser in recentUsers[:min(lenRU, listLimit or lenRU)]:
+          printKeyValueList([u'type', recentUser[u'type']])
+          Ind.Increment()
+          printKeyValueList([u'email', recentUser.get(u'email', [u'Unknown', u'UnmanagedUser'][recentUser[u'type'] == u'USER_TYPE_UNMANAGED'])])
+          Ind.Decrement()
+        Ind.Decrement()
+      deviceFiles = _filterDeviceFiles(cros.get(u'deviceFiles', []), startTime, endTime)
+      lenDF = len(deviceFiles)
+      if lenDF:
+        printKeyValueList([u'deviceFiles'])
+        Ind.Increment()
+        for deviceFile in deviceFiles[:min(lenDF, listLimit or lenDF)]:
+          deviceFile[u'createTime'] = formatLocalTime(deviceFile[u'createTime'])
+          printKeyValueList([deviceFile[u'type'], deviceFile[u'createTime']])
+        Ind.Decrement()
+        if downloadfile:
+          if downloadfile == u'latest':
+            deviceFile = deviceFiles[-1]
+          else:
+            for deviceFile in deviceFiles:
+              if deviceFile[u'createTime'] == downloadfile:
+                break
+            else:
+              deviceFile = None
+          if deviceFile:
+            downloadfilename = os.path.join(targetFolder, u'cros-logs-{0}-{1}.zip'.format(deviceId, deviceFile[u'createTime']))
+            _, content = cd._http.request(deviceFile[u'downloadUrl'])
+            writeFile(downloadfilename, content, continueOnError=True)
+            printKeyValueList([u'Downloaded', downloadfilename])
+          else:
+            Act.Set(Act.DOWNLOAD)
+            entityActionFailedWarning([Ent.CROS_DEVICE, deviceId, Ent.DEVICE_FILE, downloadfile],
+                                      Msg.DOES_NOT_EXIST, i, count)
+            Act.Set(Act.INFO)
+      elif downloadfile:
+        Act.Set(Act.DOWNLOAD)
+        entityActionNotPerformedWarning([Ent.CROS_DEVICE, deviceId, Ent.DEVICE_FILE, downloadfile],
+                                        Msg.NO_ENTITIES_FOUND.format(Ent.Plural(Ent.DEVICE_FILE)), i, count)
+        Act.Set(Act.INFO)
+      cpuStatusReports = _filterReportTime(cros.get(u'cpuStatusReports', []), startTime, endTime)
+      lenCSR = len(cpuStatusReports)
+      if lenCSR:
+        printKeyValueList([u'cpuStatusReports'])
+        Ind.Increment()
+        for cpuStatusReport in cpuStatusReports[:min(lenCSR, listLimit or lenCSR)]:
+          printKeyValueList([u'reportTime', formatLocalTime(cpuStatusReport[u'reportTime'])])
+          Ind.Increment()
+          printKeyValueList([u'cpuTemperatureInfo'])
+          Ind.Increment()
+          for tempInfo in cpuStatusReport.get(u'cpuTemperatureInfo', []):
+            printKeyValueList([tempInfo[u'label'].strip(), tempInfo[u'temperature']])
+          Ind.Decrement()
+          printKeyValueList([u'cpuUtilizationPercentageInfo', u','.join([str(x) for x in cpuStatusReport[u'cpuUtilizationPercentageInfo']])])
+          Ind.Decrement()
+        Ind.Decrement()
+      diskVolumeReports = cros.get(u'diskVolumeReports', [])
+      lenDVR = len(diskVolumeReports)
+      if lenDVR:
+        printKeyValueList([u'diskVolumeReports'])
+        Ind.Increment()
+        printKeyValueList([u'volumeInfo'])
+        for diskVolumeReport in diskVolumeReports[:min(lenDVR, listLimit or lenDVR)]:
+          volumeInfo = diskVolumeReport[u'volumeInfo']
+          Ind.Increment()
+          for volume in volumeInfo:
+            printKeyValueList([u'volumeId', volume[u'volumeId']])
+            Ind.Increment()
+            printKeyValueList([u'storageFree', volume[u'storageFree']])
+            printKeyValueList([u'storageTotal', volume[u'storageTotal']])
+            Ind.Decrement()
+          Ind.Decrement()
+        Ind.Decrement()
+      systemRamFreeReports = _filterReportTime(cros.get(u'systemRamFreeReports', []), startTime, endTime)
+      lenSRFR = len(systemRamFreeReports)
+      if lenSRFR:
+        printKeyValueList([u'systemRamFreeReports'])
+        Ind.Increment()
+        for systemRamFreeReport in systemRamFreeReports[:min(lenSRFR, listLimit or lenSRFR)]:
+          printKeyValueList([u'reportTime', formatLocalTime(systemRamFreeReport[u'reportTime'])])
+          Ind.Increment()
+          printKeyValueList([u'systemRamFreeInfo', u','.join(systemRamFreeReport[u'systemRamFreeInfo'])])
+          Ind.Decrement()
+        Ind.Decrement()
+    Ind.Decrement()
 
 # gam info cros|croses <CrOSEntity> [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
@@ -12177,15 +12248,29 @@ CROS_ORDERBY_CHOICE_MAP = {
 # gam print cros [todrive <ToDriveAttributes>*]
 #	[(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
 #	[querytime.* <Time>]
-#	[orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
+#	[orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles|cpustatusreports|diskvolumereports|systemramfreereports] [listlimit <Number>] [start <Date>] [end <Date>]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
 #	[minimize_quota_count|minimize_quota_pct <Number>]
 #
 # gam <CrOSTypeEntity> print cros [todrive <ToDriveAttributes>*]
-#	[orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
+#	[orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles|cpustatusreports|diskvolumereports|systemramfreereports] [listlimit <Number>] [start <Date>] [end <Date>]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
 #	[minimize_quota_count|minimize_quota_pct <Number>]
 def doPrintCrOSDevices(entityList=None):
+  def _getSelectedLists(myarg):
+    if myarg in CROS_ACTIVE_TIME_RANGES_ARGUMENTS:
+      selectedLists[u'activeTimeRanges'] = True
+    elif myarg in CROS_RECENT_USERS_ARGUMENTS:
+      selectedLists[u'recentUsers'] = True
+    elif myarg in CROS_DEVICE_FILES_ARGUMENTS:
+      selectedLists[u'deviceFiles'] = True
+    elif myarg in CROS_CPU_STATUS_REPORTS_ARGUMENTS:
+      selectedLists[u'cpuStatusReports'] = True
+    elif myarg in CROS_DISK_VOLUME_REPORTS_ARGUMENTS:
+      selectedLists[u'diskVolumeReports'] = True
+    elif myarg in CROS_SYSTEM_RAM_FREE_REPORTS_ARGUMENTS:
+      selectedLists[u'yystemRamFreeReports'] = True
+
   def _printCrOS(cros):
     _checkTPMVulnerability(cros)
     if formatJSON:
@@ -12194,14 +12279,13 @@ def doPrintCrOSDevices(entityList=None):
       return
     if u'notes' in cros:
       cros[u'notes'] = escapeCRsNLs(cros[u'notes'])
-    if (not noLists) and (not selectActiveTimeRanges) and (not selectRecentUsers) and (not selectDeviceFiles):
+    if not noLists and not selectedLists:
       addRowTitlesToCSVfile(flattenJSON(cros, listLimit=listLimit, timeObjects=CROS_TIME_OBJECTS), csvRows, titles)
       return
     row = {}
     for attrib in cros:
-      if attrib not in set([u'kind', u'etag', u'tpmVersionInfo', u'recentUsers', u'activeTimeRanges', u'deviceFiles']):
-        if attrib not in titles[u'set']:
-          addTitleToCSVfile(attrib, titles)
+      if attrib not in set([u'kind', u'etag', u'tpmVersionInfo', u'recentUsers', u'activeTimeRanges',
+                            u'deviceFiles', u'cpuStatusReports', u'diskVolumeReports', u'systemRamFreeReports']):
         if attrib not in CROS_TIME_OBJECTS:
           row[attrib] = cros[attrib]
         else:
@@ -12210,19 +12294,24 @@ def doPrintCrOSDevices(entityList=None):
     if attrib in cros:
       for key, value in sorted(iteritems(cros[attrib])):
         attribKey = u'{0}.{1}'.format(attrib, key)
-        if attribKey not in titles[u'set']:
-          addTitleToCSVfile(attribKey, titles)
         row[attribKey] = value
-    activeTimeRanges = _filterTimeRanges(cros.get(u'activeTimeRanges', []) if selectActiveTimeRanges else [], startDate, endDate)
-    recentUsers = cros.get(u'recentUsers', []) if selectRecentUsers else []
-    deviceFiles = _filterDeviceFiles(cros.get(u'deviceFiles', []) if selectDeviceFiles else [], startTime, endTime)
-    if noLists or (not activeTimeRanges and not recentUsers and not deviceFiles):
-      csvRows.append(row)
+    activeTimeRanges = _filterTimeRanges(cros.get(u'activeTimeRanges', []) if selectedLists.get(u'activeTimeRanges') else [], startDate, endDate)
+    recentUsers = cros.get(u'recentUsers', []) if selectedLists.get(u'recentUsers') else []
+    deviceFiles = _filterDeviceFiles(cros.get(u'deviceFiles', []) if selectedLists.get(u'deviceFiles') else [], startTime, endTime)
+    cpuStatusReports = _filterReportTime(cros.get(u'cpuStatusReports', []) if selectedLists.get(u'cpuStatusReports') else [], startTime, endTime)
+    diskVolumeReports = cros.get(u'diskVolumeReports', []) if selectedLists.get(u'diskVolumeReports') else []
+    systemRamFreeReports = _filterReportTime(cros.get(u'systemRamFreeReports', []) if selectedLists.get(u'systemRamFreeReports') else [], startTime, endTime)
+    if noLists or (not activeTimeRanges and not recentUsers and not deviceFiles and
+                   not cpuStatusReports and not diskVolumeReports and not systemRamFreeReports):
+      addRowTitlesToCSVfile(row, csvRows, titles)
       return
     lenATR = len(activeTimeRanges)
     lenRU = len(recentUsers)
     lenDF = len(deviceFiles)
-    for i in range(min(max(lenATR, lenRU, lenDF), listLimit or max(lenATR, lenRU, lenDF))):
+    lenCSR = len(cpuStatusReports)
+    lenDVR = len(diskVolumeReports)
+    lenSRFR = len(systemRamFreeReports)
+    for i in range(min(max(lenATR, lenRU, lenDF, lenCSR, lenDVR, lenSRFR), listLimit or max(lenATR, lenRU, lenDF, lenCSR, lenDVR, lenSRFR))):
       new_row = row.copy()
       if i < lenATR:
         new_row[u'activeTimeRanges.date'] = activeTimeRanges[i][u'date']
@@ -12235,7 +12324,23 @@ def doPrintCrOSDevices(entityList=None):
       if i < lenDF:
         new_row[u'deviceFiles.type'] = deviceFiles[i][u'type']
         new_row[u'deviceFiles.createTime'] = formatLocalTime(deviceFiles[i][u'createTime'])
-      csvRows.append(new_row)
+      if i < lenCSR:
+        new_row[u'cpuStatusReports.reportTime'] = formatLocalTime(cpuStatusReports[i][u'reportTime'])
+        for tempInfo in cpuStatusReports[i].get(u'cpuTemperatureInfo', []):
+          new_row[u'cpuStatusReports.cpuTemperatureInfo.{0}'.format(tempInfo[u'label'].strip())] = tempInfo[u'temperature']
+        new_row[u'cpuStatusReports.cpuUtilizationPercentageInfo'] = u','.join([str(x) for x in cpuStatusReports[i][u'cpuUtilizationPercentageInfo']])
+      if i < lenDVR:
+        volumeInfo = diskVolumeReports[i][u'volumeInfo']
+        j = 0
+        for volume in volumeInfo:
+          new_row[u'diskVolumeReports.volumeInfo.{0}.volumeId'.format(j)] = volume[u'volumeId']
+          new_row[u'diskVolumeReports.volumeInfo.{0}.storageFree'.format(j)] = volume[u'storageFree']
+          new_row[u'diskVolumeReports.volumeInfo.{0}.storageTotal'.format(j)] = volume[u'storageTotal']
+          j += 1
+      if i < lenSRFR:
+        new_row[u'systemRamFreeReports.reportTime'] = formatLocalTime(systemRamFreeReports[i][u'reportTime'])
+        new_row[u'systenRamFreeReports.systemRamFreeInfo'] = u','.join([str(x) for x in systemRamFreeReports[i][u'systemRamFreeInfo']])
+      addRowTitlesToCSVfile(new_row, csvRows, titles)
 
   def _callbackPrintCrOS(request_id, response, exception):
     ri = request_id.splitlines()
@@ -12259,8 +12364,9 @@ def doPrintCrOSDevices(entityList=None):
   quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
   listLimit = 0
   startDate = endDate = startTime = endTime = None
+  selectedLists = {}
   queryTimes = {}
-  formatJSON = noLists = sortHeaders = selectActiveTimeRanges = selectDeviceFiles = selectRecentUsers = False
+  formatJSON = noLists = sortHeaders = False
   minimizeQuotaCount = minimizeQuotaPct = 0
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -12274,21 +12380,12 @@ def doPrintCrOSDevices(entityList=None):
       queryTimes[myarg] = getTimeOrDeltaFromNow()[0:19]
     elif entityList is None and myarg == u'select':
       _, entityList = getEntityToModify(defaultEntityType=Cmd.ENTITY_CROS, crosAllowed=True, userAllowed=False)
-    elif myarg in CROS_ACTIVE_TIME_RANGES_ARGUMENTS:
-      selectActiveTimeRanges = True
-      noLists = False
-    elif myarg in CROS_DEVICE_FILES_ARGUMENTS:
-      selectDeviceFiles = True
-      noLists = False
-    elif myarg in CROS_RECENT_USERS_ARGUMENTS:
-      selectRecentUsers = True
-      noLists = False
     elif myarg == u'orderby':
       orderBy = getChoice(CROS_ORDERBY_CHOICE_MAP, mapChoice=True)
       sortOrder = getChoice(SORTORDER_CHOICE_MAP, defaultChoice=u'ASCENDING', mapChoice=True)
     elif myarg == u'nolists':
       noLists = True
-      selectActiveTimeRanges = selectDeviceFiles = selectRecentUsers = False
+      selectedLists = {}
     elif myarg == u'listlimit':
       listLimit = getInteger(minVal=0)
     elif myarg in CROS_START_ARGUMENTS:
@@ -12308,25 +12405,17 @@ def doPrintCrOSDevices(entityList=None):
       fieldsList = []
     elif myarg == u'sortheaders':
       sortHeaders = getBoolean()
+    elif myarg in CROS_LISTS_ARGUMENTS:
+      _getSelectedLists(myarg)
     elif myarg in CROS_FIELDS_CHOICE_MAP:
-      if not fieldsList:
-        fieldsList = [u'deviceId',]
-      addFieldToCSVfile(myarg, CROS_FIELDS_CHOICE_MAP, fieldsList, titles)
+      addFieldToFieldsList(myarg, CROS_FIELDS_CHOICE_MAP, fieldsList)
     elif myarg == u'fields':
-      if not fieldsList:
-        fieldsList = [u'deviceId',]
       for field in _getFieldsList():
         if field in CROS_FIELDS_CHOICE_MAP:
-          addFieldToCSVfile(field, CROS_FIELDS_CHOICE_MAP, fieldsList, titles)
-          if field in CROS_ACTIVE_TIME_RANGES_ARGUMENTS:
-            selectActiveTimeRanges = True
-            noLists = False
-          elif field in CROS_DEVICE_FILES_ARGUMENTS:
-            selectDeviceFiles = True
-            noLists = False
-          elif field in CROS_RECENT_USERS_ARGUMENTS:
-            selectRecentUsers = True
-            noLists = False
+          if field in CROS_LISTS_ARGUMENTS:
+            _getSelectedLists(field)
+          else:
+            addFieldToFieldsList(field, CROS_FIELDS_CHOICE_MAP, fieldsList)
         else:
           invalidChoiceExit(CROS_FIELDS_CHOICE_MAP, True)
     elif myarg == "formatjson":
@@ -12339,38 +12428,20 @@ def doPrintCrOSDevices(entityList=None):
       minimizeQuotaPct = getInteger(minVal=0, maxVal=100)
     else:
       unknownArgumentExit()
-  if projection == u'FULL':
-    if selectRecentUsers:
-      addTitlesToCSVfile(CROS_FIELDS_CHOICE_MAP[u'recentusers'], titles)
-    if selectActiveTimeRanges:
-      addTitlesToCSVfile(CROS_FIELDS_CHOICE_MAP[u'activetimeranges'], titles)
-      addTitlesToCSVfile([u'activeTimeRanges.duration', u'activeTimeRanges.minutes'], titles)
-    if selectDeviceFiles:
-      addTitlesToCSVfile(CROS_FIELDS_CHOICE_MAP[u'devicefiles'], titles)
-  else:
-    if selectRecentUsers:
-      if not fieldsList:
-        fieldsList = [u'deviceId',]
+    if selectedLists:
+      noLists = False
       projection = u'FULL'
-      addFieldToCSVfile(u'recentUsers', CROS_FIELDS_CHOICE_MAP, fieldsList, titles)
-    if selectActiveTimeRanges:
-      if not fieldsList:
-        fieldsList = [u'deviceId',]
-      projection = u'FULL'
-      addFieldToCSVfile(u'activeTimeRanges', CROS_FIELDS_CHOICE_MAP, fieldsList, titles)
-      addTitlesToCSVfile([u'activeTimeRanges.duration', u'activeTimeRanges.minutes'], titles)
-    if selectDeviceFiles:
-      if not fieldsList:
-        fieldsList = [u'deviceId',]
-      projection = u'FULL'
-      addFieldToCSVfile(u'deviceFiles', CROS_FIELDS_CHOICE_MAP, fieldsList, titles)
+      for selectList in selectedLists:
+        addFieldToFieldsList(selectList, CROS_FIELDS_CHOICE_MAP, fieldsList)
+    if fieldsList:
+      fieldsList.append(u'deviceId')
   _, _, entityList = getEntityArgument(entityList)
   if formatJSON:
     sortHeaders = False
     titles, csvRows = initializeTitlesCSVfile([u'deviceId', u'JSON'])
   if entityList is None:
     sortRows = False
-    fields = u'nextPageToken,chromeosdevices({0})'.format(u','.join(fieldsList)).replace(u'.', u'/') if fieldsList else None
+    fields = u'nextPageToken,chromeosdevices({0})'.format(u','.join(set(fieldsList))).replace(u'.', u'/') if fieldsList else None
     for query in queries:
       if queryTimes and query is not None:
         for queryTimeName, queryTimeValue in iteritems(queryTimes):
@@ -13224,19 +13295,39 @@ def checkGroupExists(cd, group, i=0, count=0):
     return None
 
 UPDATE_GROUP_SUBCMDS = [u'add', u'create', u'delete', u'remove', u'clear', u'sync', u'update']
+DELIVERY_SETTINGS_UNDEFINED = u'DSU'
+GROUP_DELIVERY_SETTINGS_MAP = {
+  u'allmail': u'ALL_MAIL',
+  u'abridged': u'DAILY',
+  u'daily': u'DAILY',
+  u'digest': u'DIGEST',
+  u'none': u'NONE',
+  u'noemail': u'NONE',
+  }
 
 # gam update groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] [copyfrom <GroupItem>] <GroupAttributes>
-# gam update groups <GroupEntity> create|add [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended] [preview] <UserTypeEntity>
+# gam update groups <GroupEntity> create|add [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended] [deliverysettings allmail|daily|digest|none] [preview] <UserTypeEntity>
 # gam update groups <GroupEntity> delete|remove [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended] [preview] <UserTypeEntity>
 # gam update groups <GroupEntity> sync [member|manager|owner] [usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended] [preview] <UserTypeEntity>
-# gam update groups <GroupEntity> update [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended] [preview] <UserTypeEntity>
+# gam update groups <GroupEntity> update [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended] [deliverysettings allmail|daily|digest|none] [preview] <UserTypeEntity>
 # gam update groups <GroupEntity> clear [member] [manager] [owner] [notsuspended|suspended] [preview]
 def doUpdateGroups():
 
-  def _getRoleGroupMemberType():
-    role = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True)
+  def _getRoleGroupMemberType(defaultRole=Ent.ROLE_MEMBER):
+    role = getChoice(GROUP_ROLES_MAP, defaultChoice=defaultRole, mapChoice=True)
     groupMemberType = getChoice({u'usersonly': u'USER', 'groupsonly': u'GROUP'}, defaultChoice=u'ALL', mapChoice=True)
     return (role, groupMemberType)
+
+  def getDeliverySettings():
+    if checkArgumentPresent(u'deliverysettings'):
+      return getChoice(GROUP_DELIVERY_SETTINGS_MAP, mapChoice=True)
+    else:
+      return DELIVERY_SETTINGS_UNDEFINED
+
+  def _executeBatch(dbatch, batchParms):
+    dbatch.execute()
+    if batchParms[u'wait'] > 0:
+      time.sleep(batchParms[u'wait'])
 
 # Convert foo@googlemail.com to foo@gmail.com; eliminate periods in name for foo.bar@gmail.com
   def _cleanConsumerAddress(emailAddress, mapCleanToOriginal):
@@ -13264,7 +13355,26 @@ def doUpdateGroups():
                                        GAPI.INVALID_MEMBER: Msg.INVALID_MEMBER,
                                        GAPI.CYCLIC_MEMBERSHIPS_NOT_ALLOWED: Msg.WOULD_MAKE_MEMBERSHIP_CYCLE}
 
-  def _handleDuplicateAdd(group, i, count, role, member, j, jcount):
+  def _addMember(group, i, count, role, delivery_settings, member, j, jcount):
+    body = {u'role': role}
+    if member.find(u'@') != -1:
+      body[u'email'] = member
+    else:
+      body[u'id'] = member
+    if delivery_settings != DELIVERY_SETTINGS_UNDEFINED:
+      body[u'delivery_settings'] = delivery_settings
+    try:
+      callGAPI(cd.members(), u'insert',
+               throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.DUPLICATE, GAPI.MEMBER_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND, GAPI.INVALID_MEMBER, GAPI.CYCLIC_MEMBERSHIPS_NOT_ALLOWED],
+               retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
+               groupKey=group, body=body, fields=u'')
+      entityActionPerformed([Ent.GROUP, group, role, member], j, jcount)
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
+      entityUnknownWarning(Ent.GROUP, group, i, count)
+    except (GAPI.duplicate, GAPI.memberNotFound, GAPI.resourceNotFound, GAPI.invalidMember, GAPI.cyclicMembershipsNotAllowed) as e:
+      entityActionFailedWarning([Ent.GROUP, group, role, member], str(e), j, jcount)
+
+  def _handleDuplicateAdd(group, i, count, role, delivery_settings, member, j, jcount):
     try:
       result = callGAPI(cd.members(), u'get',
                         throw_reasons=[GAPI.MEMBER_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND],
@@ -13281,23 +13391,7 @@ def doUpdateGroups():
     except (GAPI.memberNotFound, GAPI.resourceNotFound):
       entityActionFailedWarning([Ent.GROUP, group, role, member], Msg.DUPLICATE, j, jcount)
       return
-    body = {u'role': role}
-    if member.find(u'@') != -1:
-      body[u'email'] = member
-    else:
-      body[u'id'] = member
-    try:
-      callGAPI(cd.members(), u'insert',
-               throw_reasons=[GAPI.DUPLICATE, GAPI.MEMBER_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND, GAPI.INVALID_MEMBER, GAPI.CYCLIC_MEMBERSHIPS_NOT_ALLOWED],
-               groupKey=group, body=body, fields=u'')
-      entityActionPerformed([Ent.GROUP, group, role, member], j, jcount)
-    except (GAPI.duplicate, GAPI.memberNotFound, GAPI.resourceNotFound, GAPI.invalidMember, GAPI.cyclicMembershipsNotAllowed) as e:
-      http_status, reason, message = checkGAPIError(e)
-      if reason in GAPI.MEMBERS_THROW_REASONS:
-        entityUnknownWarning(Ent.GROUP, group, i, count)
-      else:
-        errMsg = getHTTPError(_ADD_MEMBER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
-        entityActionFailedWarning([Ent.GROUP, group, role, member], errMsg, j, jcount)
+    _addMember(group, i, count, role, delivery_settings, member, j, jcount)
 
   def _callbackAddGroupMembers(request_id, response, exception):
     ri = request_id.splitlines()
@@ -13308,12 +13402,19 @@ def doUpdateGroups():
       if reason in GAPI.MEMBERS_THROW_REASONS:
         entityUnknownWarning(Ent.GROUP, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
       elif reason in [GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET]:
-        _handleDuplicateAdd(ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]), ri[RI_ROLE], ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
-      else:
+        _handleDuplicateAdd(ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]), ri[RI_ROLE], ri[RI_OPTION], ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      elif reason not in GAPI.DEFAULT_RETRY_REASONS+GAPI.MEMBERS_RETRY_REASONS:
         errMsg = getHTTPError(_ADD_MEMBER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
         entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      else:
+        if addBatchParms[u'adjust']:
+          addBatchParms[u'adjust'] = False
+          addBatchParms[u'wait'] += 0.25
+          writeStderr(u'{0}{1}\n'.format(WARNING_PREFIX, Msg.INTER_BATCH_WAIT_INCREASED.format(addBatchParms[u'wait'])))
+        time.sleep(0.1)
+        _addMember(ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]), ri[RI_ROLE], ri[RI_OPTION], ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
-  def _batchAddGroupMembers(group, i, count, addMembers, role):
+  def _batchAddGroupMembers(group, i, count, addMembers, role, delivery_settings):
     Act.Set([Act.ADD, Act.ADD_PREVIEW][preview])
     jcount = len(addMembers)
     entityPerformActionNumItems([Ent.GROUP, group], jcount, role, i, count)
@@ -13322,11 +13423,22 @@ def doUpdateGroups():
     if preview:
       _previewAction(group, addMembers, role, jcount)
       return
-    Ind.Increment()
-    svcargs = dict([(u'groupKey', group), (u'body', {u'role': role}), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    if addBatchParms[u'size'] == 1 or jcount <= addBatchParms[u'size']:
+      Ind.Increment()
+      j = 0
+      for member in addMembers:
+        j += 1
+        _addMember(group, i, count, role, delivery_settings, normalizeEmailAddressOrUID(member, checkForCustomerId=True), j, jcount)
+      Ind.Decrement()
+      return
+    body = {u'role': role}
+    if delivery_settings != DELIVERY_SETTINGS_UNDEFINED:
+      body[u'delivery_settings'] = delivery_settings
+    svcargs = dict([(u'groupKey', group), (u'body', body), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(cd.members(), u'insert')
     dbatch = cd.new_batch_http_request(callback=_callbackAddGroupMembers)
     bcount = 0
+    Ind.Increment()
     j = 0
     for member in addMembers:
       j += 1
@@ -13338,15 +13450,28 @@ def doUpdateGroups():
       else:
         svcparms[u'body'][u'id'] = member
         svcparms[u'body'].pop(u'email', None)
-      dbatch.add(method(**svcparms), request_id=batchRequestID(group, i, count, j, jcount, member, role))
+      dbatch.add(method(**svcparms), request_id=batchRequestID(group, i, count, j, jcount, member, role, delivery_settings))
       bcount += 1
-      if bcount >= GC.Values[GC.BATCH_SIZE]:
-        executeBatch(dbatch)
+      if bcount >= addBatchParms[u'size']:
+        addBatchParms[u'adjust'] = True
+        _executeBatch(dbatch, addBatchParms)
         dbatch = cd.new_batch_http_request(callback=_callbackAddGroupMembers)
         bcount = 0
     if bcount > 0:
       dbatch.execute()
     Ind.Decrement()
+
+  def _removeMember(group, i, count, role, member, j, jcount):
+    try:
+      callGAPI(cd.members(), u'delete',
+               throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER],
+               retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
+               groupKey=group, memberKey=member)
+      entityActionPerformed([Ent.GROUP, group, role, member], j, jcount)
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
+      entityUnknownWarning(Ent.GROUP, group, i, count)
+    except (GAPI.memberNotFound, GAPI.invalidMember) as e:
+      entityActionFailedWarning([Ent.GROUP, group, role, member], str(e), j, jcount)
 
   _REMOVE_MEMBER_REASON_TO_MESSAGE_MAP = {GAPI.MEMBER_NOT_FOUND: u'{0} {1}'.format(Msg.NOT_A, Ent.Singular(Ent.MEMBER)),
                                           GAPI.CONDITION_NOT_MET: u'{0} {1}'.format(Msg.NOT_A, Ent.Singular(Ent.MEMBER)),
@@ -13364,15 +13489,12 @@ def doUpdateGroups():
         errMsg = getHTTPError(_REMOVE_MEMBER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
         entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
       else:
-        try:
-          callGAPI(cd.members(), u'delete',
-                   throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER], retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
-                   groupKey=ri[RI_ENTITY], memberKey=ri[RI_ITEM])
-          entityActionPerformed([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
-        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden) as e:
-          entityUnknownWarning(Ent.GROUP, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
-        except (GAPI.memberNotFound, GAPI.invalidMember) as e:
-          entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        if remBatchParms[u'adjust']:
+          remBatchParms[u'adjust'] = False
+          remBatchParms[u'wait'] += 0.25
+          writeStderr(u'{0}{1}\n'.format(WARNING_PREFIX, Msg.INTER_BATCH_WAIT_INCREASED.format(remBatchParms[u'wait'])))
+        time.sleep(0.1)
+        _removeMember(ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]), ri[RI_ROLE], ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
   def _batchRemoveGroupMembers(group, i, count, removeMembers, role):
     Act.Set([Act.REMOVE, Act.REMOVE_PREVIEW][preview])
@@ -13382,6 +13504,14 @@ def doUpdateGroups():
       return
     if preview:
       _previewAction(group, removeMembers, role, jcount)
+      return
+    if remBatchParms[u'size'] == 1 or jcount <= remBatchParms[u'size']:
+      Ind.Increment()
+      j = 0
+      for member in removeMembers:
+        j += 1
+        _removeMember(group, i, count, role, normalizeEmailAddressOrUID(member, checkForCustomerId=True), j, jcount)
+      Ind.Decrement()
       return
     svcargs = dict([(u'groupKey', group), (u'memberKey', None)]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(cd.members(), u'delete')
@@ -13395,8 +13525,9 @@ def doUpdateGroups():
       svcparms[u'memberKey'] = normalizeEmailAddressOrUID(member, checkForCustomerId=True)
       dbatch.add(method(**svcparms), request_id=batchRequestID(group, i, count, j, jcount, svcparms[u'memberKey'], role))
       bcount += 1
-      if bcount >= GC.Values[GC.BATCH_SIZE]:
-        executeBatch(dbatch)
+      if bcount >= remBatchParms[u'size']:
+        remBatchParms[u'adjust'] = True
+        _executeBatch(dbatch, remBatchParms)
         dbatch = cd.new_batch_http_request(callback=_callbackRemoveGroupMembers)
         bcount = 0
     if bcount > 0:
@@ -13405,6 +13536,32 @@ def doUpdateGroups():
 
   _UPDATE_MEMBER_REASON_TO_MESSAGE_MAP = {GAPI.MEMBER_NOT_FOUND: u'{0} {1}'.format(Msg.NOT_A, Ent.Singular(Ent.MEMBER)),
                                           GAPI.INVALID_MEMBER: Msg.DOES_NOT_EXIST}
+
+  def _getUpdateBody(role, delivery_settings):
+    body = {}
+    if role is not None:
+      body[u'role'] = role
+    else:
+      role = Ent.ROLE_MEMBER
+      if delivery_settings is None:
+        # Backwards compatability; if neither role or delivery is specified, role = MEMBER
+        body[u'role'] = role
+    if delivery_settings != DELIVERY_SETTINGS_UNDEFINED:
+      body[u'delivery_settings'] = delivery_settings
+    return (body, role)
+
+  def _updateMember(group, i, count, role, delivery_settings, member, j, jcount):
+    body, role = _getUpdateBody(role, delivery_settings)
+    try:
+      callGAPI(cd.members(), u'patch',
+               throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER],
+               retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
+               groupKey=group, memberKey=member, body=body, fields=u'')
+      entityActionPerformed([Ent.GROUP, group, role, member], j, jcount)
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
+      entityUnknownWarning(Ent.GROUP, group, i, count)
+    except (GAPI.memberNotFound, GAPI.invalidMember) as e:
+      entityActionFailedWarning([Ent.GROUP, group, role, member], str(e), j, jcount)
 
   def _callbackUpdateGroupMembers(request_id, response, exception):
     ri = request_id.splitlines()
@@ -13418,16 +13575,25 @@ def doUpdateGroups():
         errMsg = getHTTPError(_UPDATE_MEMBER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
         entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
-  def _batchUpdateGroupMembers(group, i, count, updateMembers, role):
+  def _batchUpdateGroupMembers(group, i, count, updateMembers, role, delivery_settings):
     Act.Set([Act.UPDATE, Act.UPDATE_PREVIEW][preview])
     jcount = len(updateMembers)
-    entityPerformActionNumItems([Ent.GROUP, group], jcount, role, i, count)
+    entityPerformActionNumItems([Ent.GROUP, group], jcount, role or Ent.ROLE_MEMBER, i, count)
     if jcount == 0:
       return
     if preview:
       _previewAction(group, updateMembers, role, jcount)
       return
-    svcargs = dict([(u'groupKey', group), (u'memberKey', None), (u'body', {u'role': role}), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    if updBatchParms[u'size'] == 1 or jcount <= updBatchParms[u'size']:
+      Ind.Increment()
+      j = 0
+      for member in updateMembers:
+        j += 1
+        _updateMember(group, i, count, role, delivery_settings, normalizeEmailAddressOrUID(member, checkForCustomerId=True), j, jcount)
+      Ind.Decrement()
+      return
+    body, role = _getUpdateBody(role, delivery_settings)
+    svcargs = dict([(u'groupKey', group), (u'memberKey', None), (u'body', body), (u'fields', u'')]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(cd.members(), u'patch')
     dbatch = cd.new_batch_http_request(callback=_callbackUpdateGroupMembers)
     bcount = 0
@@ -13437,10 +13603,11 @@ def doUpdateGroups():
       j += 1
       svcparms = svcargs.copy()
       svcparms[u'memberKey'] = normalizeEmailAddressOrUID(member, checkForCustomerId=True)
-      dbatch.add(method(**svcparms), request_id=batchRequestID(group, i, count, j, jcount, svcparms[u'memberKey'], role))
+      dbatch.add(method(**svcparms), request_id=batchRequestID(group, i, count, j, jcount, svcparms[u'memberKey'], role, delivery_settings))
       bcount += 1
-      if bcount >= GC.Values[GC.BATCH_SIZE]:
-        executeBatch(dbatch)
+      if bcount >= updBatchParms[u'size']:
+        updBatchParms[u'adjust'] = True
+        _executeBatch(dbatch, updBatchParms)
         dbatch = cd.new_batch_http_request(callback=_callbackUpdateGroupMembers)
         bcount = 0
     if bcount > 0:
@@ -13451,6 +13618,9 @@ def doUpdateGroups():
   preview = False
   entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
   CL_subCommand = getChoice(UPDATE_GROUP_SUBCMDS, defaultChoice=None)
+  addBatchParms = {u'size': GC.Values[GC.BATCH_SIZE], u'wait': GC.Values[GC.INTER_BATCH_WAIT], u'adjust': True}
+  remBatchParms = {u'size': GC.Values[GC.BATCH_SIZE], u'wait': GC.Values[GC.INTER_BATCH_WAIT], u'adjust': True}
+  updBatchParms = {u'size': GC.Values[GC.BATCH_SIZE], u'wait': GC.Values[GC.INTER_BATCH_WAIT], u'adjust': True}
   if not CL_subCommand:
     body = {}
     gs_body = {}
@@ -13514,6 +13684,7 @@ def doUpdateGroups():
   elif CL_subCommand in [u'create', u'add']:
     role, groupMemberType = _getRoleGroupMemberType()
     isSuspended = _getOptionalIsSuspended()
+    delivery_settings = getDeliverySettings()
     preview = checkArgumentPresent(u'preview')
     _, addMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
     groupMemberLists = addMembers if isinstance(addMembers, dict) else None
@@ -13526,7 +13697,8 @@ def doUpdateGroups():
         addMembers = groupMemberLists[group]
       group = checkGroupExists(cd, group, i, count)
       if group:
-        _batchAddGroupMembers(group, i, count, [convertUIDtoEmailAddress(member, cd=cd, emailType=u'any', checkForCustomerId=True) for member in addMembers], role)
+        _batchAddGroupMembers(group, i, count, [convertUIDtoEmailAddress(member, cd=cd, emailType=u'any', checkForCustomerId=True) for member in addMembers],
+                              role, delivery_settings)
   elif CL_subCommand in [u'delete', u'remove']:
     role, groupMemberType = _getRoleGroupMemberType()
     isSuspended = _getOptionalIsSuspended()
@@ -13578,10 +13750,11 @@ def doUpdateGroups():
         if syncOperation != u'removeonly':
           _batchAddGroupMembers(group, i, count,
                                 [syncMembersMap.get(emailAddress, emailAddress) for emailAddress in syncMembersSet-currentMembersSet],
-                                role)
+                                role, None)
   elif CL_subCommand == u'update':
-    role, groupMemberType = _getRoleGroupMemberType()
+    role, groupMemberType = _getRoleGroupMemberType(defaultRole=None)
     isSuspended = _getOptionalIsSuspended()
+    delivery_settings = getDeliverySettings()
     preview = checkArgumentPresent(u'preview')
     _, updateMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
     groupMemberLists = updateMembers if isinstance(updateMembers, dict) else None
@@ -13594,7 +13767,8 @@ def doUpdateGroups():
         updateMembers = groupMemberLists[group]
       group = checkGroupExists(cd, group, i, count)
       if group:
-        _batchUpdateGroupMembers(group, i, count, [convertUIDtoEmailAddress(member, cd=cd, emailType=u'any', checkForCustomerId=True) for member in updateMembers], role)
+        _batchUpdateGroupMembers(group, i, count, [convertUIDtoEmailAddress(member, cd=cd, emailType=u'any', checkForCustomerId=True) for member in updateMembers],
+                                 role, delivery_settings)
   else: #clear
     isSuspended = None
     qualifier = u''
@@ -14246,7 +14420,7 @@ def doPrintGroups():
     printGettingAllAccountEntities(Ent.GROUP, groupFilters(kwargs))
     try:
       entityList = callGAPIpages(cd.groups(), u'list', u'groups',
-                                 page_message=getPageMessage(showTotal=False, showFirstLastItems=True), message_attribute=u'email',
+                                 page_message=getPageMessage(showFirstLastItems=True), message_attribute=u'email',
                                  throw_reasons=[GAPI.INVALID_MEMBER, GAPI.RESOURCE_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_INPUT],
                                  fields=cdfieldsnp, maxResults=maxResults, **kwargs)
     except GAPI.invalidMember:
@@ -14472,7 +14646,7 @@ def doPrintGroupMembers():
     printGettingAllAccountEntities(Ent.GROUP, subTitle)
     try:
       entityList = callGAPIpages(cd.groups(), u'list', u'groups',
-                                 page_message=getPageMessage(showTotal=False, showFirstLastItems=True), message_attribute=u'email',
+                                 page_message=getPageMessage(showFirstLastItems=True), message_attribute=u'email',
                                  throw_reasons=[GAPI.INVALID_MEMBER, GAPI.RESOURCE_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_INPUT],
                                  fields=u'nextPageToken,groups({0})'.format(u','.join(set(cdfieldsList))), **kwargs)
     except GAPI.invalidMember:
@@ -14653,7 +14827,7 @@ def doShowGroupMembers():
     printGettingAllAccountEntities(Ent.GROUP, groupFilters(kwargs))
     try:
       groupsList = callGAPIpages(cd.groups(), u'list', u'groups',
-                                 page_message=getPageMessage(showTotal=False, showFirstLastItems=True), message_attribute=u'email',
+                                 page_message=getPageMessage(showFirstLastItems=True), message_attribute=u'email',
                                  throw_reasons=[GAPI.INVALID_MEMBER, GAPI.RESOURCE_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_INPUT],
                                  fields=u'nextPageToken,groups({0})'.format(u','.join(set(cdfieldsList))), **kwargs)
     except GAPI.invalidMember:
@@ -15531,7 +15705,7 @@ def _doPrintShowResourceCalendars(csvFormat):
   printGettingAllAccountEntities(Ent.RESOURCE_CALENDAR)
   try:
     resources = callGAPIpages(cd.resources().calendars(), u'list', u'items',
-                              page_message=getPageMessage(showTotal=False, showFirstLastItems=True), message_attribute=u'resourceName',
+                              page_message=getPageMessage(showFirstLastItems=True), message_attribute=u'resourceName',
                               throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                               customer=GC.Values[GC.CUSTOMER_ID], fields=fields)
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
@@ -16435,10 +16609,10 @@ def _wipeCalendarEvents(user, cal, calIds, count):
         continue
     try:
       callGAPI(cal.calendars(), u'clear',
-               throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+               throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.REQUIRED_ACCESS_LEVEL],
                calendarId=calId)
       entityActionPerformed([Ent.CALENDAR, calId], i, count)
-    except (GAPI.notACalendarUser, GAPI.notFound, GAPI.forbidden) as e:
+    except (GAPI.notACalendarUser, GAPI.notFound, GAPI.forbidden, GAPI.requiredAccessLevel) as e:
       entityActionFailedWarning([Ent.CALENDAR, calId], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError):
       entityServiceNotApplicableWarning(Ent.CALENDAR, calId, i, count)
@@ -20817,529 +20991,6 @@ def doInfoSiteVerification():
   else:
     printKeyValueList([u'No Sites Verified.'])
 
-def studentUnknownWarning(studentId, errMsg, i, count):
-  setSysExitRC(SERVICE_NOT_APPLICABLE_RC)
-  writeStderr(formatKeyValueList(Ind.Spaces(),
-                                 [Ent.Singular(Ent.STUDENT), studentId, u'{0}: {1}'.format(Msg.SERVICE_NOT_APPLICABLE, errMsg)],
-                                 currentCountNL(i, count)))
-
-def getGuardianEntity():
-  guardians = getEntityList(Cmd.OB_GUARDIAN_ENTITY)
-  if isinstance(guardians, dict):
-    return (guardians, guardians)
-  else:
-    return ([normalizeEmailAddressOrUID(guardian) for guardian in guardians], None)
-
-def getGuardianEmails(user, guardianEntity, guardianEntityList):
-  studentId = normalizeStudentGuardianEmailAddressOrUID(user)
-  if guardianEntityList:
-    guardianEmails = [normalizeEmailAddressOrUID(guardian) for guardian in guardianEntityList[user]]
-  else:
-    guardianEmails = guardianEntity
-  return (studentId, guardianEmails, len(guardianEmails))
-
-def getInvitationEntity():
-  invitations = getEntityList(Cmd.OB_GUARDIAN_INVITATION_ID_ENTITY)
-  if isinstance(invitations, dict):
-    return (invitations, invitations)
-  else:
-    return (invitations, None)
-
-def getInvitationIds(user, invitationEntity, invitationEntityList):
-  studentId = normalizeStudentGuardianEmailAddressOrUID(user)
-  if invitationEntityList:
-    invitationIds = invitationEntityList[user]
-  else:
-    invitationIds = invitationEntity
-  return (studentId, invitationIds, len(invitationIds))
-
-GUARDIAN_CLASS_UNDEFINED = 0
-GUARDIAN_CLASS_ACCEPTED = 1
-GUARDIAN_CLASS_INVITATIONS = 2
-GUARDIAN_CLASS_ALL = 3
-
-GUARDIAN_CLASS_MAP = {
-  u'all': GUARDIAN_CLASS_ALL,
-  u'accepted': GUARDIAN_CLASS_ACCEPTED,
-  u'invitation': GUARDIAN_CLASS_INVITATIONS,
-  u'invitations': GUARDIAN_CLASS_INVITATIONS,
-  }
-GUARDIAN_CLASS_ENTITY = {
-  GUARDIAN_CLASS_ALL: Ent.GUARDIAN_AND_INVITATION,
-  GUARDIAN_CLASS_ACCEPTED: Ent.GUARDIAN,
-  GUARDIAN_CLASS_INVITATIONS: Ent.GUARDIAN_INVITATION,
-  }
-
-def _inviteGuardian(croom, studentId, guardianEmail, i=0, count=0, j=0, jcount=0):
-  body = {u'invitedEmailAddress': guardianEmail}
-  try:
-    result = callGAPI(croom.userProfiles().guardianInvitations(), u'create',
-                      throw_reasons=[GAPI.NOT_FOUND, GAPI.ALREADY_EXISTS,
-                                     GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED, GAPI.RESOURCE_EXHAUSTED],
-                      studentId=studentId, body=body, fields=u'invitationId')
-    entityActionPerformed([Ent.STUDENT, studentId, Ent.GUARDIAN, body[u'invitedEmailAddress'], Ent.GUARDIAN_INVITATION, result[u'invitationId']], j, jcount)
-    return 1
-  except GAPI.notFound:
-    entityUnknownWarning(Ent.STUDENT, studentId, i, count)
-    return -1
-  except GAPI.alreadyExists:
-    entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN, body[u'invitedEmailAddress']], Msg.DUPLICATE, j, jcount)
-    return 0
-  except GAPI.resourceExhausted as e:
-    entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN, body[u'invitedEmailAddress']], str(e), j, jcount)
-    return -1
-  except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied) as e:
-    studentUnknownWarning(studentId, str(e), i, count)
-    return -1
-
-# gam create guardian|guardianinvite|inviteguardian <EmailAddress> <StudentItem>
-def doInviteGuardian():
-  croom = buildGAPIObject(API.CLASSROOM)
-  guardianEmail = getEmailAddress()
-  studentId = normalizeStudentGuardianEmailAddressOrUID(getString(Cmd.OB_STUDENT_ITEM))
-  checkForExtraneousArguments()
-  _inviteGuardian(croom, studentId, guardianEmail)
-
-# gam <UserTypeEntity> create guardian|guardianinvite|inviteguardian <GuardianEntity>
-def inviteGuardians(users):
-  croom = buildGAPIObject(API.CLASSROOM)
-  guardianEntity, guardianEntityList = getGuardianEntity()
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    studentId, guardianEmails, jcount = getGuardianEmails(user, guardianEntity, guardianEntityList)
-    entityPerformActionNumItems([Ent.STUDENT, studentId], jcount, Ent.GUARDIAN_INVITATION, i, count)
-    Ind.Increment()
-    j = 0
-    for guardianEmail in guardianEmails:
-      j += 1
-      if _inviteGuardian(croom, studentId, guardianEmail, i, count, j, jcount) < 0:
-        break
-    Ind.Decrement()
-
-def _cancelGuardianInvitation(croom, studentId, invitationId, i=0, count=0, j=0, jcount=0):
-  try:
-    result = callGAPI(croom.userProfiles().guardianInvitations(), u'patch',
-                      throw_reasons=[GAPI.NOT_FOUND, GAPI.FAILED_PRECONDITION,
-                                     GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
-                      studentId=studentId, invitationId=invitationId, updateMask=u'state', body={u'state': u'COMPLETE'}, fields=u'invitedEmailAddress')
-    entityActionPerformed([Ent.STUDENT, studentId, Ent.GUARDIAN_INVITATION, result[u'invitedEmailAddress']], j, jcount)
-    return 1
-  except GAPI.notFound:
-    entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN_INVITATION, invitationId], Msg.NOT_FOUND, j, jcount)
-    return 0
-  except GAPI.failedPrecondition:
-    entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN_INVITATION, invitationId], Msg.GUARDIAN_INVITATION_STATUS_NOT_PENDING, j, jcount)
-    return 1
-  except (GAPI.invalidArgument, GAPI.badRequest) as e:
-    entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN_INVITATION, invitationId], str(e), j, jcount)
-    return -1
-  except (GAPI.forbidden, GAPI.permissionDenied) as e:
-    studentUnknownWarning(studentId, str(e), i, count)
-    return -1
-
-# gam cancel guardianinvitation|guardianinvitations <GuardianInvitationID> <StudentItem>
-def doCancelGuardianInvitation():
-  croom = buildGAPIObject(API.CLASSROOM)
-  invitationId = getString(Cmd.OB_GUARDIAN_INVITATION_ID)
-  studentId = normalizeStudentGuardianEmailAddressOrUID(getString(Cmd.OB_STUDENT_ITEM))
-  checkForExtraneousArguments()
-  _cancelGuardianInvitation(croom, studentId, invitationId)
-
-# gam <UserTypeEntity> cancel guardianinvitation|guardianinvitations <GuardianInvitationIDEntity>
-def cancelGuardianInvitations(users):
-  croom = buildGAPIObject(API.CLASSROOM)
-  invitationEntity, invitationEntityList = getInvitationEntity()
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    studentId, invitationIds, jcount = getInvitationIds(user, invitationEntity, invitationEntityList)
-    entityPerformActionNumItems([Ent.STUDENT, studentId], jcount, Ent.GUARDIAN_INVITATION, i, count)
-    Ind.Increment()
-    j = 0
-    for invitationId in invitationIds:
-      j += 1
-      if _cancelGuardianInvitation(croom, studentId, invitationId, i, count, j, jcount) == -1:
-        break
-    Ind.Decrement()
-
-def _deleteGuardian(croom, studentId, guardianId, guardianEmail, i, count, j, jcount):
-  try:
-    callGAPI(croom.userProfiles().guardians(), u'delete',
-             throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
-             studentId=studentId, guardianId=guardianId)
-    entityActionPerformed([Ent.STUDENT, studentId, Ent.GUARDIAN, guardianEmail], j, jcount)
-    return 1
-  except GAPI.notFound:
-    if guardianId == guardianEmail:
-      entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN, guardianEmail], Msg.NOT_FOUND, j, jcount)
-    return 0
-  except (GAPI.forbidden, GAPI.permissionDenied) as e:
-    studentUnknownWarning(studentId, str(e), i, count)
-    return -1
-
-def _doDeleteGuardian(croom, studentId, guardianId, guardianClass, i=0, count=0, j=0, jcount=0):
-  guardianIdIsEmail = guardianId.find(u'@') != -1
-  guardianFound = False
-  try:
-    if guardianClass != GUARDIAN_CLASS_ACCEPTED:
-      Act.Set(Act.CANCEL)
-      if guardianIdIsEmail:
-        invitations = callGAPIpages(croom.userProfiles().guardianInvitations(), u'list', u'guardianInvitations',
-                                    throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
-                                    studentId=studentId, invitedEmailAddress=guardianId, states=[u'PENDING',],
-                                    fields=u'nextPageToken,guardianInvitations(studentId,invitationId)')
-        if len(invitations) > 0:
-          for invitation in invitations:
-            result = _cancelGuardianInvitation(croom, invitation[u'studentId'], invitation[u'invitationId'], i, count, j, jcount)
-            if result < 0:
-              return result
-            if result > 0:
-              guardianFound = True
-      else:
-        result = _cancelGuardianInvitation(croom, studentId, guardianId, i, count, j, jcount)
-        if result != 0:
-          return result
-    if guardianClass != GUARDIAN_CLASS_INVITATIONS:
-      Act.Set(Act.DELETE)
-      if guardianIdIsEmail:
-        guardians = callGAPIpages(croom.userProfiles().guardians(), u'list', u'guardians',
-                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
-                                  studentId=studentId, invitedEmailAddress=guardianId,
-                                  fields=u'nextPageToken,guardians(studentId,guardianId)')
-        if len(guardians) > 0:
-          for guardian in guardians:
-            result = _deleteGuardian(croom, guardian[u'studentId'], guardian[u'guardianId'], guardianId, i, count, j, jcount)
-            if result < 0:
-              return result
-            if result > 0:
-              guardianFound = True
-      else:
-        result = _deleteGuardian(croom, studentId, guardianId, guardianId, i, count, j, jcount)
-        if result != 0:
-          return result
-  except GAPI.notFound:
-    entityUnknownWarning(Ent.STUDENT, studentId, i, count)
-    return -1
-  except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied) as e:
-    studentUnknownWarning(studentId, str(e), i, count)
-    return -1
-  if not guardianFound:
-    Act.Set(Act.DELETE)
-    entityActionFailedWarning([Ent.STUDENT, studentId, GUARDIAN_CLASS_ENTITY[guardianClass], guardianId], Msg.NOT_FOUND)
-    return 0
-  return 1
-
-# gam delete guardian|guardians <GuardianItem> <StudentItem> [accepted|invitations|all]
-def doDeleteGuardian():
-  croom = buildGAPIObject(API.CLASSROOM)
-  guardianId = normalizeStudentGuardianEmailAddressOrUID(getString(Cmd.OB_GUARDIAN_ITEM))
-  studentId = normalizeStudentGuardianEmailAddressOrUID(getString(Cmd.OB_STUDENT_ITEM), allowDash=True)
-  guardianClass = getChoice(GUARDIAN_CLASS_MAP, mapChoice=True, defaultChoice=GUARDIAN_CLASS_ALL)
-  checkForExtraneousArguments()
-  _doDeleteGuardian(croom, studentId, guardianId, guardianClass)
-
-# gam <UserTypeEntity> delete guardian|guardians <GuardianEntity> [accepted|invitations|all]
-def deleteGuardians(users):
-  croom = buildGAPIObject(API.CLASSROOM)
-  guardianEntity, guardianEntityList = getGuardianEntity()
-  guardianClass = getChoice(GUARDIAN_CLASS_MAP, mapChoice=True, defaultChoice=GUARDIAN_CLASS_ALL)
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    studentId, guardianEmails, jcount = getGuardianEmails(user, guardianEntity, guardianEntityList)
-    entityPerformActionNumItems([Ent.STUDENT, studentId], jcount, GUARDIAN_CLASS_ENTITY[guardianClass], i, count)
-    Ind.Increment()
-    j = 0
-    for guardianEmail in guardianEmails:
-      j += 1
-      if _doDeleteGuardian(croom, studentId, guardianEmail, guardianClass, i, count, j, jcount) < 0:
-        break
-    Ind.Decrement()
-
-# gam <UserTypeEntity> clear guardian|guardians [accepted|invitations|all]
-def clearGuardians(users):
-  croom = buildGAPIObject(API.CLASSROOM)
-  guardianClass = getChoice(GUARDIAN_CLASS_MAP, mapChoice=True, defaultChoice=GUARDIAN_CLASS_ALL)
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    studentId = normalizeStudentGuardianEmailAddressOrUID(user)
-    try:
-      if guardianClass != GUARDIAN_CLASS_ACCEPTED:
-        invitations = callGAPIpages(croom.userProfiles().guardianInvitations(), u'list', u'guardianInvitations',
-                                    throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
-                                    studentId=studentId, states=[U'PENDING',], fields=u'nextPageToken,guardianInvitations(invitationId)')
-        Act.Set(Act.CANCEL)
-        jcount = len(invitations)
-        entityPerformActionNumItems([Ent.STUDENT, studentId], jcount, Ent.GUARDIAN_INVITATION, i, count)
-        Ind.Increment()
-        j = 0
-        for invitation in invitations:
-          j += 1
-          _cancelGuardianInvitation(croom, studentId, invitation[u'invitationId'], i, count, j, jcount)
-        Ind.Decrement()
-      if guardianClass != GUARDIAN_CLASS_INVITATIONS:
-        guardians = callGAPIpages(croom.userProfiles().guardians(), u'list', u'guardians',
-                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
-                                  studentId=studentId, fields=u'nextPageToken,guardians(guardianId,invitedEmailAddress)')
-        Act.Set(Act.DELETE)
-        jcount = len(guardians)
-        entityPerformActionNumItems([Ent.STUDENT, studentId], jcount, Ent.GUARDIAN, i, count)
-        Ind.Increment()
-        j = 0
-        for guardian in guardians:
-          j += 1
-          _deleteGuardian(croom, studentId, guardian[u'guardianId'], guardian[u'invitedEmailAddress'], i, count, j, jcount)
-        Ind.Decrement()
-    except GAPI.notFound:
-      entityUnknownWarning(Ent.STUDENT, studentId, i, count)
-    except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied) as e:
-      studentUnknownWarning(studentId, str(e), i, count)
-
-# gam <UserTypeEntity> sync guardian|guardians <GuardianEntity>
-def syncGuardians(users):
-  croom = buildGAPIObject(API.CLASSROOM)
-  guardianEntity, guardianEntityList = getGuardianEntity()
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    Act.Set(Act.SYNC)
-    studentId, guardianEmails, jcount = getGuardianEmails(user, guardianEntity, guardianEntityList)
-    entityPerformActionNumItems([Ent.STUDENT, studentId], jcount, Ent.GUARDIAN, i, count)
-    try:
-      invitations = callGAPIpages(croom.userProfiles().guardianInvitations(), u'list', u'guardianInvitations',
-                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
-                                  studentId=studentId, states=[U'PENDING',], fields=u'nextPageToken,guardianInvitations(invitationId,invitedEmailAddress)')
-      guardians = callGAPIpages(croom.userProfiles().guardians(), u'list', u'guardians',
-                                throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
-                                studentId=studentId, fields=u'nextPageToken,guardians(guardianId,invitedEmailAddress)')
-    except GAPI.notFound:
-      entityUnknownWarning(Ent.STUDENT, studentId, i, count)
-      continue
-    except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied) as e:
-      studentUnknownWarning(studentId, str(e), i, count)
-      continue
-    Ind.Increment()
-    Act.Set(Act.CANCEL)
-    jcount = len(invitations)
-    j = 0
-    for invitation in invitations:
-      j += 1
-      if invitation[u'invitedEmailAddress'] not in guardianEmails:
-        _cancelGuardianInvitation(croom, studentId, invitation[u'invitationId'], i, count, j, jcount)
-    Act.Set(Act.DELETE)
-    jcount = len(guardians)
-    j = 0
-    for guardian in guardians:
-      j += 1
-      if guardian[u'invitedEmailAddress'] not in guardianEmails:
-        _deleteGuardian(croom, studentId, guardian[u'guardianId'], guardian[u'invitedEmailAddress'], i, count, j, jcount)
-    Act.Set(Act.CREATE)
-    for guardianEmail in guardianEmails:
-      for guardian in guardians:
-        if guardianEmail == guardian[u'invitedEmailAddress']:
-          break
-      else:
-        for invitation in invitations:
-          if guardianEmail == invitation[u'invitedEmailAddress']:
-            break
-        else:
-          _inviteGuardian(croom, studentId, guardianEmail, i, count)
-    Ind.Decrement()
-
-GUARDIAN_TIME_OBJECTS = set([u'creationTime',])
-GUARDIAN_STATES = [u'complete', u'pending']
-
-def printShowGuardians(csvFormat, entityList=None):
-  def _getStudentEmail(studentId, user):
-    if user.find(u'@') != -1:
-      return user
-    studentEmail = studentEmails.get(studentId)
-    if studentEmail is None:
-      try:
-        studentEmail = callGAPI(croom.userProfiles(), u'get',
-                                throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
-                                userId=studentId, fields=u'emailAddress').get(u'emailAddress')
-      except (GAPI.notFound, GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied):
-        pass
-      if studentEmail is None:
-        studentEmail = studentId
-      studentEmails[studentId] = studentEmail
-    return studentEmail
-
-  croom = buildGAPIObject(API.CLASSROOM)
-  if entityList is None:
-    studentIds = [u'-',]
-    allStudents = True
-  else:
-    studentIds = entityList
-    allStudents = False
-  showStudentEmails = False
-  studentEmails = {}
-  invitedEmailAddress = None
-  states = []
-  guardianClass = GUARDIAN_CLASS_ACCEPTED
-  if csvFormat:
-    todrive = {}
-  formatJSON = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvFormat and myarg == u'todrive':
-      todrive = getTodriveParameters()
-    elif myarg == u'invitedguardian':
-      invitedEmailAddress = getEmailAddress()
-    elif myarg in [u'invitation', u'invitations']:
-      guardianClass = GUARDIAN_CLASS_INVITATIONS
-      if not states:
-        states = [state.upper() for state in GUARDIAN_STATES]
-    elif myarg == u'accepted':
-      guardianClass = GUARDIAN_CLASS_ACCEPTED
-    elif myarg == u'all':
-      guardianClass = GUARDIAN_CLASS_ALL
-    elif myarg in [u'state', u'states', u'status']:
-      statesList = getString(Cmd.OB_GUARDIAN_STATE_LIST).lower().split(u',')
-      states = []
-      for state in statesList:
-        if state in GUARDIAN_STATES:
-          states.append(state.upper())
-        else:
-          invalidChoiceExit(GUARDIAN_STATES, True)
-    elif myarg == u'showstudentemails':
-      showStudentEmails = True
-    elif entityList is None and myarg == u'student':
-      studentIds = [getString(Cmd.OB_STUDENT_ITEM)]
-      allStudents = studentIds[0] == u'-'
-    elif myarg == "formatjson":
-      formatJSON = True
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
-    elif entityList is None:
-      Cmd.Backup()
-      _, studentIds = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
-      allStudents = False
-    else:
-      unknownArgumentExit()
-  if csvFormat:
-    if formatJSON:
-      sortTitles = [u'studentEmail', u'studentId', u'JSON']
-    else:
-      sortTitles = [u'studentEmail', u'studentId', u'invitedEmailAddress']
-      if guardianClass != GUARDIAN_CLASS_ACCEPTED:
-        sortTitles.extend([u'invitationId', u'creationTime', u'state'])
-      if guardianClass != GUARDIAN_CLASS_INVITATIONS:
-        sortTitles.append(u'guardianId')
-    titles, csvRows = initializeTitlesCSVfile(sortTitles)
-  i, count, studentIds = getEntityArgument(studentIds)
-  for studentId in studentIds:
-    i += 1
-    if not allStudents:
-      studentId = normalizeStudentGuardianEmailAddressOrUID(studentId)
-      if showStudentEmails:
-        studentId = _getStudentEmail(studentId, studentId)
-      if csvFormat:
-        printGettingAllEntityItemsForWhom(GUARDIAN_CLASS_ENTITY[guardianClass], studentId, i, count)
-    try:
-      if guardianClass != GUARDIAN_CLASS_ACCEPTED:
-        invitations = callGAPIpages(croom.userProfiles().guardianInvitations(), u'list', u'guardianInvitations',
-                                    throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
-                                    studentId=studentId, invitedEmailAddress=invitedEmailAddress, states=states)
-        jcount = len(invitations)
-        if not csvFormat:
-          if not formatJSON:
-            entityPerformActionNumItems([Ent.STUDENT, studentId if not allStudents else u'All'], jcount, Ent.GUARDIAN_INVITATION, i, count)
-            Ind.Increment()
-            j = 0
-            for invitation in invitations:
-              j += 1
-              printKeyValueListWithCount([u'invitedEmailAddress', invitation[u'invitedEmailAddress']], j, jcount)
-              Ind.Increment()
-              if showStudentEmails:
-                invitation[u'studentEmail'] = _getStudentEmail(invitation[u'studentId'], studentId)
-              showJSON(None, invitation, [u'invitedEmailAddress',], GUARDIAN_TIME_OBJECTS)
-              Ind.Decrement()
-            Ind.Decrement()
-          else:
-            printLine(json.dumps(cleanJSON(invitations, u'', timeObjects=GUARDIAN_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
-        else:
-          if not formatJSON:
-            for invitation in invitations:
-              if showStudentEmails:
-                invitation[u'studentEmail'] = _getStudentEmail(invitation[u'studentId'], studentId)
-              else:
-                invitation[u'studentEmail'] = studentId
-              addRowTitlesToCSVfile(flattenJSON(invitation, timeObjects=GUARDIAN_TIME_OBJECTS), csvRows, titles)
-          else:
-            csvRows.append({u'studentId': studentId, u'studentEmail': _getStudentEmail(studentId, studentId),
-                            u'JSON': json.dumps(cleanJSON(invitations, u'', timeObjects=GUARDIAN_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
-      if guardianClass != GUARDIAN_CLASS_INVITATIONS:
-        guardians = callGAPIpages(croom.userProfiles().guardians(), u'list', u'guardians',
-                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
-                                  studentId=studentId, invitedEmailAddress=invitedEmailAddress)
-        jcount = len(guardians)
-        if not csvFormat:
-          if not formatJSON:
-            entityPerformActionNumItems([Ent.STUDENT, studentId if not allStudents else u'All'], jcount, Ent.GUARDIAN, i, count)
-            Ind.Increment()
-            j = 0
-            for guardian in guardians:
-              j += 1
-              printKeyValueListWithCount([u'invitedEmailAddress', guardian[u'invitedEmailAddress']], j, jcount)
-              Ind.Increment()
-              if showStudentEmails:
-                guardian[u'studentEmail'] = _getStudentEmail(guardian[u'studentId'], studentId)
-              showJSON(None, guardian, [u'invitedEmailAddress',])
-              Ind.Decrement()
-            Ind.Decrement()
-          else:
-            printLine(json.dumps(cleanJSON(guardians, u''), ensure_ascii=False, sort_keys=True))
-        else:
-          if not formatJSON:
-            for guardian in guardians:
-              if showStudentEmails:
-                guardian[u'studentEmail'] = _getStudentEmail(guardian[u'studentId'], studentId)
-              else:
-                guardian[u'studentEmail'] = studentId
-              if not formatJSON:
-                addRowTitlesToCSVfile(flattenJSON(guardian), csvRows, titles)
-          else:
-            csvRows.append({u'studentId': studentId, u'studentEmail': _getStudentEmail(studentId, studentId),
-                            u'JSON': json.dumps(cleanJSON(guardians, u''), ensure_ascii=False, sort_keys=True)})
-    except GAPI.notFound:
-      entityUnknownWarning(Ent.STUDENT, studentId, i, count)
-    except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied) as e:
-      studentUnknownWarning(studentId, str(e), i, count)
-  if csvFormat:
-    writeCSVfile(csvRows, titles, u'Guardians', todrive, sortTitles, quotechar)
-
-# gam show guardian|guardians [accepted|invitations|all] [states <GuardianInvitationStateList>] [invitedguardian <EmailAddress>]
-#	[student <StudentItem>] [<UserTypeEntity>]
-#	[showstudentemails] [formatjson]
-def doShowGuardians():
-  printShowGuardians(False)
-
-# gam print guardian|guardians [todrive <ToDriveAttributes>*] [accepted|invitations|all] [states <GuardianInvitationStateList>] [invitedguardian <EmailAddress>]
-#	[student <StudentItem>] [<UserTypeEntity>]
-#	[showstudentemails] [formatjson] [quotechar <Character>]
-def doPrintGuardians():
-  printShowGuardians(True)
-
-# gam <UserTypeEntity> show guardian|guardians [accepted|invitations|all] [states <GuardianInvitationStateList>] [invitedguardian <EmailAddress>]
-#	[showstudentemails] [formatjson]
-def showGuardians(users):
-  printShowGuardians(False, users)
-
-# gam <UserTypeEntity> print guardian|guardians [todrive <ToDriveAttributes>*] [accepted|invitations|all] [states <GuardianInvitationStateList>] [invitedguardian <EmailAddress>]
-#	[showstudentemails] [formatjson] [quotechar <Character>]
-def printGuardians(users):
-  printShowGuardians(True, users)
-
 def getClassroomOauth2Credentials(filename):
   if not os.path.isfile(filename):
     invalidClassroomOauth2TxtExit(filename)
@@ -21535,8 +21186,16 @@ def _checkCourseAttributesFrom(croom, courseAttributesFrom):
     if courseAttributesFrom[u'courseId'] is None:
       return False
   elif courseAttributesFrom[u'members'] != u'none' or courseAttributesFrom[u'announcementStates'] or courseAttributesFrom[u'workStates']:
-    missingArgumentExit(u'copyfrom <CourseId>)')
+    missingArgumentExit(u'copyfrom <CourseID>)')
   return True
+
+def _gettingCourseAnnouncementQuery(courseAnnouncementStates):
+  query = u''
+  if courseAnnouncementStates:
+    query += u'{0}: {1}, '.format(Ent.Choose(Ent.COURSE_ANNOUNCEMENT_STATE, len(courseAnnouncementStates)), u','.join(courseAnnouncementStates))
+  if query:
+    query = query[:-2]
+  return query
 
 COURSE_ANNOUNCEMENT_REACDONLY_FIELDS = [
   u'alternateLink',
@@ -22247,17 +21906,9 @@ COURSE_ANNOUNCEMENTS_ORDERBY_CHOICE_MAP = {
 
 COURSE_ANNOUNCEMENTS_TIME_OBJECTS = set([u'creationTime', u'scheduledTime', u'updateTime'])
 
-def _gettingCourseAnnouncementQuery(courseAnnouncementStates):
-  query = u''
-  if courseAnnouncementStates:
-    query += u'{0}: {1}, '.format(Ent.Choose(Ent.COURSE_ANNOUNCEMENT_STATE, len(courseAnnouncementStates)), u','.join(courseAnnouncementStates))
-  if query:
-    query = query[:-2]
-  return query
-
 # gam print course-announcements [todrive <ToDriveAttributes>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
 #	(announcementids <CourseAnnouncementIDEntity>)|((announcementstates <CourseAnnouncementStateList>)* (orderby <CourseAnnouncementOrderByFieldName> [ascending|descending])*)
-#	[creatoremail] [fields <CourseAnnouncementFieldNameList>] [formatjson] [quotechar <Character>]
+#	[showcreatoremails] [fields <CourseAnnouncementFieldNameList>] [formatjson] [quotechar <Character>]
 def doPrintCourseAnnouncements():
   def _printCourseAnnouncement(course, courseAnnouncement, i, count):
     if showCreatorEmail:
@@ -22299,7 +21950,7 @@ def doPrintCourseAnnouncements():
         orderByList.append(fieldName)
       else:
         orderByList.append(u'{0} desc'.format(fieldName))
-    elif myarg == u'creatoremail':
+    elif myarg in [u'showcreatoremails', u'creatoremail']:
       showCreatorEmail = True
     elif myarg == u'formatjson':
       formatJSON = True
@@ -22409,7 +22060,7 @@ def _gettingCourseWorkQuery(courseWorkStates):
 
 # gam print course-work [todrive <ToDriveAttributes>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
 #	(workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)*  (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
-#	[creatoremail] [fields <CourseWorkFieldNameList>] [formatjson] [quotechar <Character>]
+#	[showcreatoremails] [fields <CourseWorkFieldNameList>] [formatjson] [quotechar <Character>]
 def doPrintCourseWork():
   def _printCourseWork(course, courseWork, i, count):
     if showCreatorEmail:
@@ -22448,7 +22099,7 @@ def doPrintCourseWork():
         orderByList.append(fieldName)
       else:
         orderByList.append(u'{0} desc'.format(fieldName))
-    elif myarg == u'creatoremail':
+    elif myarg in [u'showcreatoremails', u'creatoremail']:
       showCreatorEmail = True
     elif myarg == u'formatjson':
       formatJSON = True
@@ -22874,7 +22525,7 @@ ADD_REMOVE_PARTICIPANT_TYPES_MAP = {
   u'teacher': Ent.TEACHER,
   u'teachers': Ent.TEACHER,
   }
-SYNC_PARTICIPANT_TYPES_MAP = {
+CLEAR_SYNC_PARTICIPANT_TYPES_MAP = {
   u'student': Ent.STUDENT,
   u'students': Ent.STUDENT,
   u'teacher': Ent.TEACHER,
@@ -22948,11 +22599,24 @@ def doCourseRemoveParticipants(courseIdList, getEntityListArg):
     if courseId:
       _batchRemoveParticipantsFromCourse(croom, courseId, i, count, removeParticipants, role)
 
+# gam courses <CourseEntity> clear teachers|students
+# gam course <CourseID> clear teacher|student
+def doCourseClearParticipants(courseIdList, getEntityListArg):
+  croom = buildGAPIObject(API.CLASSROOM)
+  role = getChoice(CLEAR_SYNC_PARTICIPANT_TYPES_MAP, mapChoice=True)
+  checkForExtraneousArguments()
+  i = 0
+  count = len(courseIdList)
+  for courseId in courseIdList:
+    i += 1
+    removeParticipants = getUsersToModify(PARTICIPANT_EN_MAP[role], courseId)
+    _batchRemoveParticipantsFromCourse(croom, courseId, i, count, removeParticipants, role)
+
 # gam courses <CourseEntity> sync teachers|students [addonly|removeonly] <UserTypeEntity>
 # gam course <CourseID> sync teachers|students [addonly|removeonly] <UserTypeEntity>
 def doCourseSyncParticipants(courseIdList, getEntityListArg):
   croom = buildGAPIObject(API.CLASSROOM)
-  role = getChoice(SYNC_PARTICIPANT_TYPES_MAP, mapChoice=True)
+  role = getChoice(CLEAR_SYNC_PARTICIPANT_TYPES_MAP, mapChoice=True)
   syncOperation = getChoice([u'addonly', 'removeonly'], defaultChoice=u'addremove')
   _, syncParticipants = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
                                           typeMap={Cmd.ENTITY_COURSEPARTICIPANTS: PARTICIPANT_EN_MAP[role]}, isSuspended=False)
@@ -22979,6 +22643,922 @@ def doCourseSyncParticipants(courseIdList, getEntityListArg):
         _batchAddParticipantsToCourse(croom, courseId, i, count, list(syncParticipantsSet-currentParticipantsSet), role)
       if syncOperation != u'addonly':
         _batchRemoveParticipantsFromCourse(croom, courseId, i, count, list(currentParticipantsSet-syncParticipantsSet), role)
+
+def studentUnknownWarning(studentId, errMsg, i, count):
+  setSysExitRC(SERVICE_NOT_APPLICABLE_RC)
+  writeStderr(formatKeyValueList(Ind.Spaces(),
+                                 [Ent.Singular(Ent.STUDENT), studentId, u'{0}: {1}'.format(Msg.SERVICE_NOT_APPLICABLE, errMsg)],
+                                 currentCountNL(i, count)))
+
+def getGuardianEntity():
+  guardians = getEntityList(Cmd.OB_GUARDIAN_ENTITY)
+  if isinstance(guardians, dict):
+    return (guardians, guardians)
+  else:
+    return ([normalizeEmailAddressOrUID(guardian) for guardian in guardians], None)
+
+def getGuardianEmails(user, guardianEntity, guardianEntityList):
+  studentId = normalizeStudentGuardianEmailAddressOrUID(user)
+  if guardianEntityList:
+    guardianEmails = [normalizeEmailAddressOrUID(guardian) for guardian in guardianEntityList[user]]
+  else:
+    guardianEmails = guardianEntity
+  return (studentId, guardianEmails, len(guardianEmails))
+
+def getGuardianInvitationEntity():
+  invitations = getEntityList(Cmd.OB_GUARDIAN_INVITATION_ID_ENTITY)
+  if isinstance(invitations, dict):
+    return (invitations, invitations)
+  else:
+    return (invitations, None)
+
+def getGuardianInvitationIds(user, invitationEntity, invitationEntityList):
+  studentId = normalizeStudentGuardianEmailAddressOrUID(user)
+  if invitationEntityList:
+    invitationIds = invitationEntityList[user]
+  else:
+    invitationIds = invitationEntity
+  return (studentId, invitationIds, len(invitationIds))
+
+GUARDIAN_CLASS_UNDEFINED = 0
+GUARDIAN_CLASS_ACCEPTED = 1
+GUARDIAN_CLASS_INVITATIONS = 2
+GUARDIAN_CLASS_ALL = 3
+
+GUARDIAN_CLASS_MAP = {
+  u'all': GUARDIAN_CLASS_ALL,
+  u'accepted': GUARDIAN_CLASS_ACCEPTED,
+  u'invitation': GUARDIAN_CLASS_INVITATIONS,
+  u'invitations': GUARDIAN_CLASS_INVITATIONS,
+  }
+GUARDIAN_CLASS_ENTITY = {
+  GUARDIAN_CLASS_ALL: Ent.GUARDIAN_AND_INVITATION,
+  GUARDIAN_CLASS_ACCEPTED: Ent.GUARDIAN,
+  GUARDIAN_CLASS_INVITATIONS: Ent.GUARDIAN_INVITATION,
+  }
+
+def _inviteGuardian(croom, studentId, guardianEmail, i=0, count=0, j=0, jcount=0):
+  body = {u'invitedEmailAddress': guardianEmail}
+  try:
+    result = callGAPI(croom.userProfiles().guardianInvitations(), u'create',
+                      throw_reasons=[GAPI.NOT_FOUND, GAPI.ALREADY_EXISTS,
+                                     GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED, GAPI.RESOURCE_EXHAUSTED],
+                      studentId=studentId, body=body, fields=u'invitationId')
+    entityActionPerformed([Ent.STUDENT, studentId, Ent.GUARDIAN, body[u'invitedEmailAddress'], Ent.GUARDIAN_INVITATION, result[u'invitationId']], j, jcount)
+    return 1
+  except GAPI.notFound:
+    entityUnknownWarning(Ent.STUDENT, studentId, i, count)
+    return -1
+  except GAPI.alreadyExists:
+    entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN, body[u'invitedEmailAddress']], Msg.DUPLICATE, j, jcount)
+    return 0
+  except GAPI.resourceExhausted as e:
+    entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN, body[u'invitedEmailAddress']], str(e), j, jcount)
+    return -1
+  except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied) as e:
+    studentUnknownWarning(studentId, str(e), i, count)
+    return -1
+
+# gam create guardian|guardianinvite|inviteguardian <EmailAddress> <StudentItem>
+def doInviteGuardian():
+  croom = buildGAPIObject(API.CLASSROOM)
+  guardianEmail = getEmailAddress()
+  studentId = normalizeStudentGuardianEmailAddressOrUID(getString(Cmd.OB_STUDENT_ITEM))
+  checkForExtraneousArguments()
+  _inviteGuardian(croom, studentId, guardianEmail)
+
+# gam <UserTypeEntity> create guardian|guardianinvite|inviteguardian <GuardianEntity>
+def inviteGuardians(users):
+  croom = buildGAPIObject(API.CLASSROOM)
+  guardianEntity, guardianEntityList = getGuardianEntity()
+  checkForExtraneousArguments()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    studentId, guardianEmails, jcount = getGuardianEmails(user, guardianEntity, guardianEntityList)
+    entityPerformActionNumItems([Ent.STUDENT, studentId], jcount, Ent.GUARDIAN_INVITATION, i, count)
+    Ind.Increment()
+    j = 0
+    for guardianEmail in guardianEmails:
+      j += 1
+      if _inviteGuardian(croom, studentId, guardianEmail, i, count, j, jcount) < 0:
+        break
+    Ind.Decrement()
+
+def _cancelGuardianInvitation(croom, studentId, invitationId, i=0, count=0, j=0, jcount=0):
+  try:
+    result = callGAPI(croom.userProfiles().guardianInvitations(), u'patch',
+                      throw_reasons=[GAPI.NOT_FOUND, GAPI.FAILED_PRECONDITION,
+                                     GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                      studentId=studentId, invitationId=invitationId, updateMask=u'state', body={u'state': u'COMPLETE'}, fields=u'invitedEmailAddress')
+    entityActionPerformed([Ent.STUDENT, studentId, Ent.GUARDIAN_INVITATION, result[u'invitedEmailAddress']], j, jcount)
+    return 1
+  except GAPI.notFound:
+    entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN_INVITATION, invitationId], Msg.NOT_FOUND, j, jcount)
+    return 0
+  except GAPI.failedPrecondition:
+    entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN_INVITATION, invitationId], Msg.GUARDIAN_INVITATION_STATUS_NOT_PENDING, j, jcount)
+    return 1
+  except (GAPI.invalidArgument, GAPI.badRequest) as e:
+    entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN_INVITATION, invitationId], str(e), j, jcount)
+    return -1
+  except (GAPI.forbidden, GAPI.permissionDenied) as e:
+    studentUnknownWarning(studentId, str(e), i, count)
+    return -1
+
+# gam cancel guardianinvitation|guardianinvitations <GuardianInvitationID> <StudentItem>
+def doCancelGuardianInvitation():
+  croom = buildGAPIObject(API.CLASSROOM)
+  invitationId = getString(Cmd.OB_GUARDIAN_INVITATION_ID)
+  studentId = normalizeStudentGuardianEmailAddressOrUID(getString(Cmd.OB_STUDENT_ITEM))
+  checkForExtraneousArguments()
+  _cancelGuardianInvitation(croom, studentId, invitationId)
+
+# gam <UserTypeEntity> cancel guardianinvitation|guardianinvitations <GuardianInvitationIDEntity>
+def cancelGuardianInvitations(users):
+  croom = buildGAPIObject(API.CLASSROOM)
+  invitationEntity, invitationEntityList = getGuardianInvitationEntity()
+  checkForExtraneousArguments()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    studentId, invitationIds, jcount = getGuardianInvitationIds(user, invitationEntity, invitationEntityList)
+    entityPerformActionNumItems([Ent.STUDENT, studentId], jcount, Ent.GUARDIAN_INVITATION, i, count)
+    Ind.Increment()
+    j = 0
+    for invitationId in invitationIds:
+      j += 1
+      if _cancelGuardianInvitation(croom, studentId, invitationId, i, count, j, jcount) == -1:
+        break
+    Ind.Decrement()
+
+def _deleteGuardian(croom, studentId, guardianId, guardianEmail, i, count, j, jcount):
+  try:
+    callGAPI(croom.userProfiles().guardians(), u'delete',
+             throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+             studentId=studentId, guardianId=guardianId)
+    entityActionPerformed([Ent.STUDENT, studentId, Ent.GUARDIAN, guardianEmail], j, jcount)
+    return 1
+  except GAPI.notFound:
+    if guardianId == guardianEmail:
+      entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN, guardianEmail], Msg.NOT_FOUND, j, jcount)
+    return 0
+  except (GAPI.forbidden, GAPI.permissionDenied) as e:
+    studentUnknownWarning(studentId, str(e), i, count)
+    return -1
+
+def _doDeleteGuardian(croom, studentId, guardianId, guardianClass, i=0, count=0, j=0, jcount=0):
+  guardianIdIsEmail = guardianId.find(u'@') != -1
+  guardianFound = False
+  try:
+    if guardianClass != GUARDIAN_CLASS_ACCEPTED:
+      Act.Set(Act.CANCEL)
+      if guardianIdIsEmail:
+        invitations = callGAPIpages(croom.userProfiles().guardianInvitations(), u'list', u'guardianInvitations',
+                                    throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                                    studentId=studentId, invitedEmailAddress=guardianId, states=[u'PENDING',],
+                                    fields=u'nextPageToken,guardianInvitations(studentId,invitationId)')
+        if len(invitations) > 0:
+          for invitation in invitations:
+            result = _cancelGuardianInvitation(croom, invitation[u'studentId'], invitation[u'invitationId'], i, count, j, jcount)
+            if result < 0:
+              return result
+            if result > 0:
+              guardianFound = True
+      else:
+        result = _cancelGuardianInvitation(croom, studentId, guardianId, i, count, j, jcount)
+        if result != 0:
+          return result
+    if guardianClass != GUARDIAN_CLASS_INVITATIONS:
+      Act.Set(Act.DELETE)
+      if guardianIdIsEmail:
+        guardians = callGAPIpages(croom.userProfiles().guardians(), u'list', u'guardians',
+                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                                  studentId=studentId, invitedEmailAddress=guardianId,
+                                  fields=u'nextPageToken,guardians(studentId,guardianId)')
+        if len(guardians) > 0:
+          for guardian in guardians:
+            result = _deleteGuardian(croom, guardian[u'studentId'], guardian[u'guardianId'], guardianId, i, count, j, jcount)
+            if result < 0:
+              return result
+            if result > 0:
+              guardianFound = True
+      else:
+        result = _deleteGuardian(croom, studentId, guardianId, guardianId, i, count, j, jcount)
+        if result != 0:
+          return result
+  except GAPI.notFound:
+    entityUnknownWarning(Ent.STUDENT, studentId, i, count)
+    return -1
+  except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied) as e:
+    studentUnknownWarning(studentId, str(e), i, count)
+    return -1
+  if not guardianFound:
+    Act.Set(Act.DELETE)
+    entityActionFailedWarning([Ent.STUDENT, studentId, GUARDIAN_CLASS_ENTITY[guardianClass], guardianId], Msg.NOT_FOUND)
+    return 0
+  return 1
+
+# gam delete guardian|guardians <GuardianItem> <StudentItem> [accepted|invitations|all]
+def doDeleteGuardian():
+  croom = buildGAPIObject(API.CLASSROOM)
+  guardianId = normalizeStudentGuardianEmailAddressOrUID(getString(Cmd.OB_GUARDIAN_ITEM))
+  studentId = normalizeStudentGuardianEmailAddressOrUID(getString(Cmd.OB_STUDENT_ITEM), allowDash=True)
+  guardianClass = getChoice(GUARDIAN_CLASS_MAP, mapChoice=True, defaultChoice=GUARDIAN_CLASS_ALL)
+  checkForExtraneousArguments()
+  _doDeleteGuardian(croom, studentId, guardianId, guardianClass)
+
+# gam <UserTypeEntity> delete guardian|guardians <GuardianEntity> [accepted|invitations|all]
+def deleteGuardians(users):
+  croom = buildGAPIObject(API.CLASSROOM)
+  guardianEntity, guardianEntityList = getGuardianEntity()
+  guardianClass = getChoice(GUARDIAN_CLASS_MAP, mapChoice=True, defaultChoice=GUARDIAN_CLASS_ALL)
+  checkForExtraneousArguments()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    studentId, guardianEmails, jcount = getGuardianEmails(user, guardianEntity, guardianEntityList)
+    entityPerformActionNumItems([Ent.STUDENT, studentId], jcount, GUARDIAN_CLASS_ENTITY[guardianClass], i, count)
+    Ind.Increment()
+    j = 0
+    for guardianEmail in guardianEmails:
+      j += 1
+      if _doDeleteGuardian(croom, studentId, guardianEmail, guardianClass, i, count, j, jcount) < 0:
+        break
+    Ind.Decrement()
+
+# gam <UserTypeEntity> clear guardian|guardians [accepted|invitations|all]
+def clearGuardians(users):
+  croom = buildGAPIObject(API.CLASSROOM)
+  guardianClass = getChoice(GUARDIAN_CLASS_MAP, mapChoice=True, defaultChoice=GUARDIAN_CLASS_ALL)
+  checkForExtraneousArguments()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    studentId = normalizeStudentGuardianEmailAddressOrUID(user)
+    try:
+      if guardianClass != GUARDIAN_CLASS_ACCEPTED:
+        invitations = callGAPIpages(croom.userProfiles().guardianInvitations(), u'list', u'guardianInvitations',
+                                    throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                                    studentId=studentId, states=[U'PENDING',], fields=u'nextPageToken,guardianInvitations(invitationId)')
+        Act.Set(Act.CANCEL)
+        jcount = len(invitations)
+        entityPerformActionNumItems([Ent.STUDENT, studentId], jcount, Ent.GUARDIAN_INVITATION, i, count)
+        Ind.Increment()
+        j = 0
+        for invitation in invitations:
+          j += 1
+          _cancelGuardianInvitation(croom, studentId, invitation[u'invitationId'], i, count, j, jcount)
+        Ind.Decrement()
+      if guardianClass != GUARDIAN_CLASS_INVITATIONS:
+        guardians = callGAPIpages(croom.userProfiles().guardians(), u'list', u'guardians',
+                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                                  studentId=studentId, fields=u'nextPageToken,guardians(guardianId,invitedEmailAddress)')
+        Act.Set(Act.DELETE)
+        jcount = len(guardians)
+        entityPerformActionNumItems([Ent.STUDENT, studentId], jcount, Ent.GUARDIAN, i, count)
+        Ind.Increment()
+        j = 0
+        for guardian in guardians:
+          j += 1
+          _deleteGuardian(croom, studentId, guardian[u'guardianId'], guardian[u'invitedEmailAddress'], i, count, j, jcount)
+        Ind.Decrement()
+    except GAPI.notFound:
+      entityUnknownWarning(Ent.STUDENT, studentId, i, count)
+    except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied) as e:
+      studentUnknownWarning(studentId, str(e), i, count)
+
+# gam <UserTypeEntity> sync guardian|guardians <GuardianEntity>
+def syncGuardians(users):
+  croom = buildGAPIObject(API.CLASSROOM)
+  guardianEntity, guardianEntityList = getGuardianEntity()
+  checkForExtraneousArguments()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    Act.Set(Act.SYNC)
+    studentId, guardianEmails, jcount = getGuardianEmails(user, guardianEntity, guardianEntityList)
+    entityPerformActionNumItems([Ent.STUDENT, studentId], jcount, Ent.GUARDIAN, i, count)
+    try:
+      invitations = callGAPIpages(croom.userProfiles().guardianInvitations(), u'list', u'guardianInvitations',
+                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                                  studentId=studentId, states=[U'PENDING',], fields=u'nextPageToken,guardianInvitations(invitationId,invitedEmailAddress)')
+      guardians = callGAPIpages(croom.userProfiles().guardians(), u'list', u'guardians',
+                                throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                                studentId=studentId, fields=u'nextPageToken,guardians(guardianId,invitedEmailAddress)')
+    except GAPI.notFound:
+      entityUnknownWarning(Ent.STUDENT, studentId, i, count)
+      continue
+    except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied) as e:
+      studentUnknownWarning(studentId, str(e), i, count)
+      continue
+    Ind.Increment()
+    Act.Set(Act.CANCEL)
+    jcount = len(invitations)
+    j = 0
+    for invitation in invitations:
+      j += 1
+      if invitation[u'invitedEmailAddress'] not in guardianEmails:
+        _cancelGuardianInvitation(croom, studentId, invitation[u'invitationId'], i, count, j, jcount)
+    Act.Set(Act.DELETE)
+    jcount = len(guardians)
+    j = 0
+    for guardian in guardians:
+      j += 1
+      if guardian[u'invitedEmailAddress'] not in guardianEmails:
+        _deleteGuardian(croom, studentId, guardian[u'guardianId'], guardian[u'invitedEmailAddress'], i, count, j, jcount)
+    Act.Set(Act.CREATE)
+    for guardianEmail in guardianEmails:
+      for guardian in guardians:
+        if guardianEmail == guardian[u'invitedEmailAddress']:
+          break
+      else:
+        for invitation in invitations:
+          if guardianEmail == invitation[u'invitedEmailAddress']:
+            break
+        else:
+          _inviteGuardian(croom, studentId, guardianEmail, i, count)
+    Ind.Decrement()
+
+def _getCourseName(croom, courseNames, courseId):
+  courseName = courseNames.get(courseId)
+  if courseName is None:
+    try:
+      courseName = callGAPI(croom.courses(), u'get',
+                            throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                            id=courseId, fields=u'name')[u'name']
+    except (GAPI.notFound, GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied):
+      pass
+    if courseName is None:
+      courseName = courseId
+    courseNames[courseId] = courseName
+  return courseName
+
+def _getClassroomEmail(croom, classroomEmails, userId, user):
+  if user.find(u'@') != -1:
+    return user
+  userEmail = classroomEmails.get(userId)
+  if userEmail is None:
+    try:
+      userEmail = callGAPI(croom.userProfiles(), u'get',
+                           throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                           userId=userId, fields=u'emailAddress').get(u'emailAddress')
+    except (GAPI.notFound, GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied):
+      pass
+    if userEmail is None:
+      userEmail = userId
+    classroomEmails[userId] = userEmail
+  return userEmail
+
+GUARDIAN_TIME_OBJECTS = set([u'creationTime',])
+GUARDIAN_STATES = [u'complete', u'pending']
+
+def printShowGuardians(csvFormat, entityList=None):
+  croom = buildGAPIObject(API.CLASSROOM)
+  if entityList is None:
+    studentIds = [u'-',]
+    allStudents = True
+  else:
+    studentIds = entityList
+    allStudents = False
+  showStudentEmails = False
+  classroomEmails = {}
+  invitedEmailAddress = None
+  states = []
+  guardianClass = GUARDIAN_CLASS_ACCEPTED
+  if csvFormat:
+    todrive = {}
+  formatJSON = False
+  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvFormat and myarg == u'todrive':
+      todrive = getTodriveParameters()
+    elif myarg == u'invitedguardian':
+      invitedEmailAddress = getEmailAddress()
+    elif myarg in [u'invitation', u'invitations']:
+      guardianClass = GUARDIAN_CLASS_INVITATIONS
+      if not states:
+        states = [state.upper() for state in GUARDIAN_STATES]
+    elif myarg == u'accepted':
+      guardianClass = GUARDIAN_CLASS_ACCEPTED
+    elif myarg == u'all':
+      guardianClass = GUARDIAN_CLASS_ALL
+    elif myarg in [u'state', u'states', u'status']:
+      statesList = getString(Cmd.OB_GUARDIAN_STATE_LIST).lower().split(u',')
+      states = []
+      for state in statesList:
+        if state in GUARDIAN_STATES:
+          states.append(state.upper())
+        else:
+          invalidChoiceExit(GUARDIAN_STATES, True)
+    elif myarg == u'showstudentemails':
+      showStudentEmails = True
+    elif entityList is None and myarg == u'student':
+      studentIds = [getString(Cmd.OB_STUDENT_ITEM)]
+      allStudents = studentIds[0] == u'-'
+    elif myarg == "formatjson":
+      formatJSON = True
+    elif myarg == u'quotechar':
+      quotechar = getCharacter()
+    elif entityList is None:
+      Cmd.Backup()
+      _, studentIds = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
+      allStudents = False
+    else:
+      unknownArgumentExit()
+  if csvFormat:
+    if formatJSON:
+      sortTitles = [u'studentEmail', u'studentId', u'JSON']
+    else:
+      sortTitles = [u'studentEmail', u'studentId', u'invitedEmailAddress']
+      if guardianClass != GUARDIAN_CLASS_ACCEPTED:
+        sortTitles.extend([u'invitationId', u'creationTime', u'state'])
+      if guardianClass != GUARDIAN_CLASS_INVITATIONS:
+        sortTitles.append(u'guardianId')
+    titles, csvRows = initializeTitlesCSVfile(sortTitles)
+  i, count, studentIds = getEntityArgument(studentIds)
+  for studentId in studentIds:
+    i += 1
+    if not allStudents:
+      studentId = normalizeStudentGuardianEmailAddressOrUID(studentId)
+      if showStudentEmails:
+        studentId = _getClassroomEmail(croom, classroomEmails, studentId, studentId)
+      if csvFormat:
+        printGettingAllEntityItemsForWhom(GUARDIAN_CLASS_ENTITY[guardianClass], studentId, i, count)
+    try:
+      if guardianClass != GUARDIAN_CLASS_ACCEPTED:
+        invitations = callGAPIpages(croom.userProfiles().guardianInvitations(), u'list', u'guardianInvitations',
+                                    throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                                    studentId=studentId, invitedEmailAddress=invitedEmailAddress, states=states)
+        jcount = len(invitations)
+        if not csvFormat:
+          if not formatJSON:
+            entityPerformActionNumItems([Ent.STUDENT, studentId if not allStudents else u'All'], jcount, Ent.GUARDIAN_INVITATION, i, count)
+            Ind.Increment()
+            j = 0
+            for invitation in invitations:
+              j += 1
+              printKeyValueListWithCount([u'invitedEmailAddress', invitation[u'invitedEmailAddress']], j, jcount)
+              Ind.Increment()
+              if showStudentEmails:
+                invitation[u'studentEmail'] = _getClassroomEmail(croom, classroomEmails, invitation[u'studentId'], studentId)
+              showJSON(None, invitation, [u'invitedEmailAddress',], GUARDIAN_TIME_OBJECTS)
+              Ind.Decrement()
+            Ind.Decrement()
+          else:
+            printLine(json.dumps(cleanJSON(invitations, u'', timeObjects=GUARDIAN_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+        else:
+          if not formatJSON:
+            for invitation in invitations:
+              if showStudentEmails:
+                invitation[u'studentEmail'] = _getClassroomEmail(croom, classroomEmails, invitation[u'studentId'], studentId)
+              else:
+                invitation[u'studentEmail'] = studentId
+              addRowTitlesToCSVfile(flattenJSON(invitation, timeObjects=GUARDIAN_TIME_OBJECTS), csvRows, titles)
+          else:
+            csvRows.append({u'studentId': studentId, u'studentEmail': _getClassroomEmail(croom, classroomEmails, studentId, studentId),
+                            u'JSON': json.dumps(cleanJSON(invitations, u'', timeObjects=GUARDIAN_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
+      if guardianClass != GUARDIAN_CLASS_INVITATIONS:
+        guardians = callGAPIpages(croom.userProfiles().guardians(), u'list', u'guardians',
+                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                                  studentId=studentId, invitedEmailAddress=invitedEmailAddress)
+        jcount = len(guardians)
+        if not csvFormat:
+          if not formatJSON:
+            entityPerformActionNumItems([Ent.STUDENT, studentId if not allStudents else u'All'], jcount, Ent.GUARDIAN, i, count)
+            Ind.Increment()
+            j = 0
+            for guardian in guardians:
+              j += 1
+              printKeyValueListWithCount([u'invitedEmailAddress', guardian[u'invitedEmailAddress']], j, jcount)
+              Ind.Increment()
+              if showStudentEmails:
+                guardian[u'studentEmail'] = _getClassroomEmail(croom, classroomEmails, guardian[u'studentId'], studentId)
+              showJSON(None, guardian, [u'invitedEmailAddress',])
+              Ind.Decrement()
+            Ind.Decrement()
+          else:
+            printLine(json.dumps(cleanJSON(guardians, u''), ensure_ascii=False, sort_keys=True))
+        else:
+          if not formatJSON:
+            for guardian in guardians:
+              if showStudentEmails:
+                guardian[u'studentEmail'] = _getClassroomEmail(croom, classroomEmails, guardian[u'studentId'], studentId)
+              else:
+                guardian[u'studentEmail'] = studentId
+              if not formatJSON:
+                addRowTitlesToCSVfile(flattenJSON(guardian), csvRows, titles)
+          else:
+            csvRows.append({u'studentId': studentId, u'studentEmail': _getClassroomEmail(croom, classroomEmails, studentId, studentId),
+                            u'JSON': json.dumps(cleanJSON(guardians, u''), ensure_ascii=False, sort_keys=True)})
+    except GAPI.notFound:
+      entityUnknownWarning(Ent.STUDENT, studentId, i, count)
+    except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied) as e:
+      studentUnknownWarning(studentId, str(e), i, count)
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'Guardians', todrive, sortTitles, quotechar)
+
+# gam show guardian|guardians [accepted|invitations|all] [states <GuardianInvitationStateList>] [invitedguardian <EmailAddress>]
+#	[student <StudentItem>] [<UserTypeEntity>]
+#	[showstudentemails] [formatjson]
+def doShowGuardians():
+  printShowGuardians(False)
+
+# gam print guardian|guardians [todrive <ToDriveAttributes>*] [accepted|invitations|all] [states <GuardianInvitationStateList>] [invitedguardian <EmailAddress>]
+#	[student <StudentItem>] [<UserTypeEntity>]
+#	[showstudentemails] [formatjson] [quotechar <Character>]
+def doPrintGuardians():
+  printShowGuardians(True)
+
+# gam <UserTypeEntity> show guardian|guardians [accepted|invitations|all] [states <GuardianInvitationStateList>] [invitedguardian <EmailAddress>]
+#	[showstudentemails] [formatjson]
+def showGuardians(users):
+  printShowGuardians(False, users)
+
+# gam <UserTypeEntity> print guardian|guardians [todrive <ToDriveAttributes>*] [accepted|invitations|all] [states <GuardianInvitationStateList>] [invitedguardian <EmailAddress>]
+#	[showstudentemails] [formatjson] [quotechar <Character>]
+def printGuardians(users):
+  printShowGuardians(True, users)
+
+CLASSROOM_ROLE_ALL = u'ALL'
+CLASSROOM_ROLE_OWNER = u'OWNER'
+CLASSROOM_ROLE_STUDENT = u'STUDENT'
+CLASSROOM_ROLE_TEACHER = u'TEACHER'
+
+def _getClassroomInvitations(croom, userId, courseId, role, i, count, j=0, jcount=0):
+  try:
+    invitations = callGAPIpages(croom.invitations(), u'list', u'invitations',
+                                throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                                userId=userId, courseId=courseId)
+  except GAPI.notFound:
+    if userId is not None:
+      entityUnknownWarning(Ent.USER, userId, i, count)
+      return (-1, None)
+    else:
+      entityUnknownWarning(Ent.COURSE, courseId, j, jcount)
+      return (0, [])
+  except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied) as e:
+    if userId is not None:
+      entityActionFailedWarning([Ent.USER, userId], str(e), i, count)
+      return (-1, None)
+    else:
+      entityActionFailedWarning([Ent.COURSE, courseId], str(e), j, jcount)
+      return (0, [])
+  if role == CLASSROOM_ROLE_ALL:
+    return (1, invitations)
+  else:
+    return (1, [invitation for invitation in invitations if invitation[u'role'] == role])
+
+def _getClassroomInvitationIds(croom, userId, courseIds, role, i, count):
+  invitationIds = []
+  if courseIds is not None:
+    jcount = len(courseIds)
+    j = 0
+    for courseId in courseIds:
+      j += 1
+      courseId = addCourseIdScope(courseId)
+      status, invitations = _getClassroomInvitations(croom, userId, courseId, role, i, count, j, jcount)
+      if status < 0:
+        return (status, None)
+      if status > 0:
+        invitationIds.extend([invitation[u'id'] for invitation in invitations])
+  else:
+    status, invitations = _getClassroomInvitations(croom, userId, None, role, i, count)
+    if status < 0:
+      return (status, None)
+    if status > 0:
+      invitationIds.extend([invitation[u'id'] for invitation in invitations])
+  return (1, invitationIds)
+
+CLASSROOM_CREATE_ROLE_MAP = {
+  u'owner': CLASSROOM_ROLE_OWNER,
+  u'student': CLASSROOM_ROLE_STUDENT,
+  u'teacher': CLASSROOM_ROLE_TEACHER,
+  }
+
+CLASSROOM_ROLE_MAP = {
+  u'all': CLASSROOM_ROLE_ALL,
+  u'owner': CLASSROOM_ROLE_OWNER,
+  u'student': CLASSROOM_ROLE_STUDENT,
+  u'teacher': CLASSROOM_ROLE_TEACHER,
+  }
+
+CLASSROOM_ROLE_ENTITY_MAP = {
+  CLASSROOM_ROLE_ALL: Ent.CLASSROOM_INVITATION,
+  CLASSROOM_ROLE_OWNER: Ent.CLASSROOM_INVITATION_OWNER,
+  CLASSROOM_ROLE_STUDENT: Ent.CLASSROOM_INVITATION_STUDENT,
+  CLASSROOM_ROLE_TEACHER: Ent.CLASSROOM_INVITATION_TEACHER,
+  }
+
+# gam <UserTypeEntity> create classroominvitation courses <CourseEntity> [role owner|student|teacher]
+#	[csvformat] [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
+def createClassroomInvitations(users):
+  croom = buildGAPIObject(API.CLASSROOM)
+  courseIds = None
+  role = CLASSROOM_ROLE_STUDENT
+  todrive = {}
+  csvFormat = formatJSON = False
+  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg in [u'course', u'courses', u'class', u'classes']:
+      courseIds = getEntityList(Cmd.OB_COURSE_ENTITY)
+    elif myarg == u'role':
+      role = getChoice(CLASSROOM_CREATE_ROLE_MAP, mapChoice=True)
+    elif myarg == u'csvformat':
+      csvFormat = True
+    elif myarg == u'todrive':
+      todrive = getTodriveParameters()
+    elif myarg == "formatjson":
+      formatJSON = True
+    elif myarg == u'quotechar':
+      quotechar = getCharacter()
+    else:
+      unknownArgumentExit()
+  if courseIds is None:
+    missingArgumentExit(u'courses <CourseEntity>')
+  if csvFormat:
+    sortTitles = [u'userId',]
+    if formatJSON:
+      sortTitles.append(u'JSON')
+    else:
+      sortTitles.extend([u'courseId', u'id', u'role'])
+    titles, csvRows = initializeTitlesCSVfile(sortTitles)
+  courseIdsLists = courseIds if isinstance(courseIds, dict) else None
+  entityType = CLASSROOM_ROLE_ENTITY_MAP[role]
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    userId = normalizeEmailAddressOrUID(user)
+    if courseIdsLists:
+      courseIds = courseIdsLists[user]
+    jcount = len(courseIds)
+    if csvFormat or not formatJSON:
+      entityPerformActionNumItems([Ent.USER, userId], jcount, entityType, i, count)
+    if jcount == 0:
+      continue
+    j = 0
+    for courseId in courseIds:
+      j += 1
+      courseId = addCourseIdScope(courseId)
+      try:
+        invitation = callGAPI(croom.invitations(), u'create',
+                              throw_reasons=[GAPI.NOT_FOUND, GAPI.FAILED_PRECONDITION, GAPI.ALREADY_EXISTS, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                              body={u'userId': userId, u'courseId': courseId, u'role': role})
+        if not csvFormat:
+          if not formatJSON:
+            Ind.Increment()
+            entityActionPerformed([Ent.USER, userId, Ent.COURSE, courseId, entityType, invitation[u'id']], j, jcount)
+            Ind.Decrement()
+          else:
+            printLine(json.dumps(cleanJSON(invitation, u''), ensure_ascii=False, sort_keys=True))
+        else:
+          if not formatJSON:
+            csvRows.append(invitation)
+          else:
+            csvRows.append({u'userId': userId,
+                            u'JSON': json.dumps(cleanJSON(invitation, u''), ensure_ascii=False, sort_keys=True)})
+      except GAPI.permissionDenied:
+        entityUnknownWarning(Ent.USER, userId, i, count)
+        break
+      except GAPI.notFound:
+        entityUnknownWarning(Ent.COURSE, courseId, j, jcount)
+      except (GAPI.failedPrecondition, GAPI.alreadyExists, GAPI.forbidden) as e:
+        entityActionFailedWarning([Ent.USER, userId, Ent.COURSE, courseId, entityType, None], str(e), j, jcount)
+    Ind.Decrement()
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'ClassroomInvitations', todrive, sortTitles, quotechar)
+
+def acceptDeleteClassroomInvitations(users, function):
+  croom = buildGAPIObject(API.CLASSROOM)
+  if function == u'delete':
+    ucroom = croom
+  courseIds = invitationIds = None
+  role = CLASSROOM_ROLE_ALL
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg in [u'id', u'ids']:
+      invitationIds = getEntityList(Cmd.OB_CLASSROOM_INVITATION_ID_ENTITY)
+      courseIds = None
+    elif myarg in [u'course', u'courses', u'class', u'classes']:
+      courseIds = getEntityList(Cmd.OB_COURSE_ENTITY)
+      invitationIds = None
+    elif myarg == u'role':
+      role = getChoice(CLASSROOM_ROLE_MAP, mapChoice=True)
+    else:
+      unknownArgumentExit()
+  courseIdsLists = courseIds if isinstance(courseIds, dict) else None
+  invitationIdsLists = invitationIds if isinstance(invitationIds, dict) else None
+  entityType = CLASSROOM_ROLE_ENTITY_MAP[role]
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    if function == u'delete':
+      userId = normalizeEmailAddressOrUID(user)
+    else:
+      userId, ucroom = buildGAPIServiceObject(API.CLASSROOM, user, i, count)
+      if not ucroom:
+        continue
+    if invitationIdsLists:
+      userInvitationIds = invitationIdsLists[user]
+    elif invitationIds is not None:
+      userInvitationIds = invitationIds
+    else:
+      if courseIdsLists:
+        courseIds = courseIdsLists[user]
+      status, userInvitationIds = _getClassroomInvitationIds(croom, userId, courseIds, role, i, count)
+      if status < 0:
+        continue
+    jcount = len(userInvitationIds)
+    entityPerformActionNumItems([Ent.USER, userId], jcount, entityType, i, count)
+    Ind.Increment()
+    j = 0
+    for invitationId in userInvitationIds:
+      j += 1
+      try:
+        callGAPI(ucroom.invitations(), function,
+                 throw_reasons=[GAPI.NOT_FOUND, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                 id=invitationId)
+        entityActionPerformed([Ent.USER, userId, entityType, invitationId], j, jcount)
+      except (GAPI.notFound, GAPI.failedPrecondition, GAPI.forbidden, GAPI.permissionDenied) as e:
+        entityActionFailedWarning([Ent.USER, userId, entityType, invitationId], str(e), j, jcount)
+
+# gam <UserTypeEntity> accept classroominvitation (ids <ClassroomInvitationIDEntity>)|([courses <CourseEntity>] [role all|owner|student|teacher])
+def acceptClassroomInvitations(users):
+  acceptDeleteClassroomInvitations(users, u'accept')
+
+# gam <UserTypeEntity> delete classroominvitation (ids <ClassroomInvitationIDEntity>)|([courses <CourseEntity>] [role all|owner|student|teacher])
+def deleteClassroomInvitations(users):
+  acceptDeleteClassroomInvitations(users, u'delete')
+
+def printShowClassroomInvitations(users, csvFormat):
+  croom = buildGAPIObject(API.CLASSROOM)
+  classroomEmails = {}
+  courseNames = {}
+  role = CLASSROOM_ROLE_ALL
+  if csvFormat:
+    todrive = {}
+  formatJSON = False
+  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvFormat and myarg == u'todrive':
+      todrive = getTodriveParameters()
+    elif myarg == u'role':
+      role = getChoice(CLASSROOM_ROLE_MAP, mapChoice=True)
+    elif myarg == "formatjson":
+      formatJSON = True
+    elif myarg == u'quotechar':
+      quotechar = getCharacter()
+    else:
+      unknownArgumentExit()
+  if csvFormat:
+    sortTitles = [u'userId', u'userEmail',]
+    if formatJSON:
+      sortTitles.append(u'JSON')
+    else:
+      sortTitles.extend([u'courseId', u'courseName', u'id', u'role'])
+    titles, csvRows = initializeTitlesCSVfile(sortTitles)
+  entityType = CLASSROOM_ROLE_ENTITY_MAP[role]
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    userId = normalizeEmailAddressOrUID(user)
+    userEmail = _getClassroomEmail(croom, classroomEmails, userId, userId)
+    if csvFormat:
+      printGettingAllEntityItemsForWhom(entityType, userId, i, count)
+    status, invitations = _getClassroomInvitations(croom, userId, None, role, i, count)
+    if status > 0:
+      jcount = len(invitations)
+      if not formatJSON:
+        entityPerformActionNumItems([Ent.USER, userId], jcount, entityType, i, count)
+      if not csvFormat:
+        if not formatJSON:
+          Ind.Increment()
+          j = 0
+          for invitation in invitations:
+            j += 1
+            courseId = invitation[u'courseId']
+            courseName = _getCourseName(croom, courseNames, courseId)
+            printKeyValueListWithCount([Ent.Singular(Ent.COURSE), u'{0} ({1})'.format(courseName, courseId)], j, jcount)
+            Ind.Increment()
+            printKeyValueList([u'id', invitation[u'id']])
+            printKeyValueList([u'role', invitation[u'role']])
+            printKeyValueList([u'userid', invitation[u'userId']])
+            printKeyValueList([u'userEmail', userEmail])
+            Ind.Decrement()
+          Ind.Decrement()
+        else:
+          printLine(json.dumps(cleanJSON(invitations, u''), ensure_ascii=False, sort_keys=True))
+      else:
+        if not formatJSON:
+          for invitation in invitations:
+            invitation[u'courseName'] = _getCourseName(croom, courseNames, invitation[u'courseId'])
+            invitation[u'userEmail'] = userEmail
+            csvRows.append(invitation)
+        else:
+          csvRows.append({u'userId': userId, u'userEmail': userEmail,
+                          u'JSON': json.dumps(cleanJSON(invitations, u''), ensure_ascii=False, sort_keys=True)})
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'ClassroomInvitations', todrive, sortTitles, quotechar)
+
+# gam <UserTypeEntity> show classroominvitations [role all|owner|student|teacher]
+#	[formatjson]
+def showClassroomInvitations(users):
+  printShowClassroomInvitations(users, False)
+
+# gam <UserTypeEntity> print classroominvitations [todrive <ToDriveAttributes>*] [role all|owner|student|teacher]
+#	[formatjson] [quotechar <Character>]
+def printClassroomInvitations(users):
+  printShowClassroomInvitations(users, True)
+
+def doPrintShowClassroomInvitations(csvFormat):
+  croom = buildGAPIObject(API.CLASSROOM)
+  classroomEmails = {}
+  courseSelectionParameters = _initCourseSelectionParameters()
+  courseShowProperties = _initCourseShowProperties([u'id', u'name'])
+  role = CLASSROOM_ROLE_ALL
+  if csvFormat:
+    todrive = {}
+  formatJSON = False
+  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvFormat and myarg == u'todrive':
+      todrive = getTodriveParameters()
+    elif _getCourseSelectionParameters(myarg, courseSelectionParameters):
+      pass
+    elif myarg == u'role':
+      role = getChoice(CLASSROOM_ROLE_MAP, mapChoice=True)
+    elif myarg == "formatjson":
+      formatJSON = True
+    elif myarg == u'quotechar':
+      quotechar = getCharacter()
+    else:
+      unknownArgumentExit()
+  coursesInfo = _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties)
+  if coursesInfo is None:
+    return
+  if csvFormat:
+    sortTitles = [u'courseId', u'courseName']
+    if formatJSON:
+      sortTitles.append(u'JSON')
+    else:
+      sortTitles.extend([u'id', u'role', u'userId', u'userEmail'])
+    titles, csvRows = initializeTitlesCSVfile(sortTitles)
+  entityType = CLASSROOM_ROLE_ENTITY_MAP[role]
+  i = 0
+  count = len(coursesInfo)
+  for course in coursesInfo:
+    i += 1
+    courseId = course[u'id']
+    courseName = course[u'name']
+    status, invitations = _getClassroomInvitations(croom, None, courseId, role, i, count)
+    if status > 0:
+      jcount = len(invitations)
+      if not formatJSON:
+        entityPerformActionNumItems([Ent.COURSE, u'{0} ({1})'.format(courseName, courseId)], jcount, entityType, i, count)
+      if not csvFormat:
+        if not formatJSON:
+          Ind.Increment()
+          j = 0
+          for invitation in invitations:
+            j += 1
+            printKeyValueListWithCount([u'id', invitation[u'id']], j, jcount)
+            Ind.Increment()
+            printKeyValueList([u'role', invitation[u'role']])
+            userId = invitation.get(u'userId')
+            if userId is not None:
+              printKeyValueList([u'userid', userId])
+              printKeyValueList([u'userEmail', _getClassroomEmail(croom, classroomEmails, userId, userId)])
+            Ind.Decrement()
+          Ind.Decrement()
+        else:
+          printLine(json.dumps(cleanJSON(invitations, u''), ensure_ascii=False, sort_keys=True))
+      else:
+        if not formatJSON:
+          for invitation in invitations:
+            invitation[u'courseName'] = courseName
+            userId = invitation.get(u'userId')
+            if userId is not None:
+              invitation[u'userEmail'] = _getClassroomEmail(croom, classroomEmails, userId, userId)
+            csvRows.append(invitation)
+        else:
+          csvRows.append({u'courseId': courseId, u'courseName': courseName,
+                          u'JSON': json.dumps(cleanJSON(invitations, u''), ensure_ascii=False, sort_keys=True)})
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'ClassroomInvitations', todrive, sortTitles, quotechar)
+
+# gam show classroominvitations (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
+#	[role all|owner|student|teacher] [formatjson]
+def doShowClassroomInvitations():
+  doPrintShowClassroomInvitations(False)
+
+# gam print classroominvitations [todrive <ToDriveAttributes>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
+#	[role all|owner|student|teacher] [formatjson] [quotechar <Character>]
+def doPrintClassroomInvitations():
+  doPrintShowClassroomInvitations(True)
 
 def encode_multipart(fields, files, boundary=None):
   def escape_quote(s):
@@ -34861,13 +35441,13 @@ def _processForwardingAddress(user, i, count, emailAddress, j, jcount, gmail, fu
   userDefined = True
   try:
     result = callGAPI(gmail.users().settings().forwardingAddresses(), function,
-                      throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.ALREADY_EXISTS, GAPI.DUPLICATE],
+                      throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.ALREADY_EXISTS, GAPI.DUPLICATE, GAPI.INVALID_ARGUMENT],
                       userId=u'me', **kwargs)
     if function == u'get':
       _showForwardingAddress(j, count, result)
     else:
       entityActionPerformed([Ent.USER, user, Ent.FORWARDING_ADDRESS, emailAddress], j, jcount)
-  except (GAPI.notFound, GAPI.alreadyExists, GAPI.duplicate) as e:
+  except (GAPI.notFound, GAPI.alreadyExists, GAPI.duplicate, GAPI.invalidArgument) as e:
     entityActionFailedWarning([Ent.USER, user, Ent.FORWARDING_ADDRESS, emailAddress], str(e), j, jcount)
   except (GAPI.serviceNotAvailable, GAPI.badRequest):
     entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -35980,6 +36560,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ADMIN:		doPrintAdmins,
       Cmd.ARG_ALIAS:		doPrintAliases,
       Cmd.ARG_BUILDING:		doPrintBuildings,
+      Cmd.ARG_CLASSROOMINVITATION:	doPrintClassroomInvitations,
       Cmd.ARG_CONTACT:		doPrintDomainContacts,
       Cmd.ARG_COURSE:		doPrintCourses,
       Cmd.ARG_COURSES:		doPrintCourses,
@@ -36030,6 +36611,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
      {Cmd.ARG_ADMINROLES:	doShowAdminRoles,
       Cmd.ARG_ADMIN:		doShowAdmins,
       Cmd.ARG_BUILDING:		doShowBuildings,
+      Cmd.ARG_CLASSROOMINVITATION:	doShowClassroomInvitations,
       Cmd.ARG_CONTACT:		doShowDomainContacts,
       Cmd.ARG_DATATRANSFER:	doShowDataTransfers,
       Cmd.ARG_DRIVEFILEACL:	doShowDriveFileACLs,
@@ -36106,6 +36688,7 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_CLASS:	Cmd.ARG_COURSE,
   Cmd.ARG_CLASSES:	Cmd.ARG_COURSES,
   Cmd.ARG_CLASSPARTICIPANTS:	Cmd.ARG_COURSEPARTICIPANTS,
+  Cmd.ARG_CLASSROOMINVITATIONS:	Cmd.ARG_CLASSROOMINVITATION,
   Cmd.ARG_CONTACTS:	Cmd.ARG_CONTACT,
   Cmd.ARG_CONTACTPHOTOS:	Cmd.ARG_CONTACTPHOTO,
   Cmd.ARG_CROSES:	Cmd.ARG_CROS,
@@ -36280,6 +36863,7 @@ def processCalendarsCommands():
 # Course command sub-commands
 COURSE_SUBCOMMANDS = {
   u'add': (Act.ADD, doCourseAddParticipants),
+  u'clear': (Act.REMOVE, doCourseClearParticipants),
   u'remove': (Act.REMOVE, doCourseRemoveParticipants),
   u'sync': (Act.SYNC, doCourseSyncParticipants),
   }
@@ -36446,6 +37030,7 @@ USER_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_CALENDAR:	addCreateCalendars,
   Cmd.ARG_GROUP:	addUserToGroups,
   Cmd.ARG_CALENDARACL:	createCalendarACLs,
+  Cmd.ARG_CLASSROOMINVITATION:	createClassroomInvitations,
   Cmd.ARG_CLASSROOMOAUTH2:	createClassroomOauth2,
   Cmd.ARG_CONTACT:	createUserContact,
   Cmd.ARG_CONTACTGROUP:	createUserContactGroup,
@@ -36469,6 +37054,7 @@ USER_ADD_CREATE_FUNCTIONS = {
   }
 
 USER_COMMANDS_WITH_OBJECTS = {
+  u'accept': (Act.ACCEPT, {Cmd.ARG_CLASSROOMINVITATION:	acceptClassroomInvitations}),
   u'add': (Act.ADD, USER_ADD_CREATE_FUNCTIONS),
   u'append': (Act.APPEND, {Cmd.ARG_SHEETRANGE: appendSheetRanges}),
   u'archive': (Act.ARCHIVE, {Cmd.ARG_MESSAGE: archiveMessages}),
@@ -36486,6 +37072,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_BACKUPCODE:	deleteBackupCodes,
       Cmd.ARG_CALENDAR:		deleteCalendars,
       Cmd.ARG_CALENDARACL:	deleteCalendarACLs,
+      Cmd.ARG_CLASSROOMINVITATION:	deleteClassroomInvitations,
       Cmd.ARG_CLASSROOMOAUTH2:	deleteClassroomOauth2,
       Cmd.ARG_CONTACT:		deleteUserContacts,
       Cmd.ARG_CONTACTGROUP:	deleteUserContactGroups,
@@ -36545,6 +37132,7 @@ USER_COMMANDS_WITH_OBJECTS = {
      {Cmd.ARG_CALENDAR:		printCalendars,
       Cmd.ARG_CALENDARACL:	printCalendarACLs,
       Cmd.ARG_CALSETTINGS:	printCalSettings,
+      Cmd.ARG_CLASSROOMINVITATION:	printClassroomInvitations,
       Cmd.ARG_CONTACT:		printUserContacts,
       Cmd.ARG_CONTACTGROUP:	printUserContactGroups,
       Cmd.ARG_DELEGATE:		printDelegates,
@@ -36588,6 +37176,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CALENDAR:		showCalendars,
       Cmd.ARG_CALENDARACL:	showCalendarACLs,
       Cmd.ARG_CALSETTINGS:	showCalSettings,
+      Cmd.ARG_CLASSROOMINVITATION:	showClassroomInvitations,
       Cmd.ARG_CONTACT:		showUserContacts,
       Cmd.ARG_CONTACTGROUP:	showUserContactGroups,
       Cmd.ARG_DELEGATE:		showDelegates,
@@ -36685,6 +37274,7 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_BACKUPCODES:	Cmd.ARG_BACKUPCODE,
   Cmd.ARG_CALENDARS:	Cmd.ARG_CALENDAR,
   Cmd.ARG_CALENDARACLS:	Cmd.ARG_CALENDARACL,
+  Cmd.ARG_CLASSROOMINVITATIONS:	Cmd.ARG_CLASSROOMINVITATION,
   Cmd.ARG_CONTACTS:	Cmd.ARG_CONTACT,
   Cmd.ARG_CONTACTGROUPS:	Cmd.ARG_CONTACTGROUP,
   Cmd.ARG_CONTACTPHOTOS:	Cmd.ARG_CONTACTPHOTO,

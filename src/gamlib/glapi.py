@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2016 Ross Scroggs All Rights Reserved.
+# Copyright (C) 2018 Ross Scroggs All Rights Reserved.
 #
 # All Rights Reserved.
 #
@@ -94,7 +94,7 @@ _INFO = {
                                                                                 u'https://www.googleapis.com/auth/drive',]},
   CALENDAR: {u'version': u'v3', u'credfam': FAM1_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/calendar',]},
 #  CHAT: {u'version': u'v1', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/chat.bot',]},
-  CLASSROOM: {u'version': u'v1', u'credfam': FAM2_SCOPES},
+  CLASSROOM: {u'version': u'v1', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/classroom.rosters',]},
   CLOUDPRINT: {u'version': u'v2', u'credfam': FAM2_SCOPES, u'localjson': True},
   CONTACTS: {u'version': u'v3', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://www.google.com/m8/feeds',], u'localjson': True},
   DATATRANSFER: {u'version': u'datatransfer_v1', u'credfam': FAM1_SCOPES},

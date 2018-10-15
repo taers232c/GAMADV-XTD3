@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2016 Ross Scroggs All Rights Reserved.
+# Copyright (C) 2018 Ross Scroggs All Rights Reserved.
 #
 # All Rights Reserved.
 #
@@ -284,6 +284,8 @@ class GamCLArgs(object):
   ARG_CLASS = u'class'
   ARG_CLASSES = u'classes'
   ARG_CLASSPARTICIPANTS = u'classparticipants'
+  ARG_CLASSROOMINVITATION = u'classroominvitation'
+  ARG_CLASSROOMINVITATIONS = u'classroominvitations'
   ARG_CLASSROOMOAUTH2 = u'classroomoauth2'
   ARG_CONTACT = u'contact'
   ARG_CONTACTS = u'contacts'
@@ -467,6 +469,7 @@ class GamCLArgs(object):
   OB_CHARACTER = u'Character'
   OB_CHAR_SET = u'CharacterSet'
   OB_CIDR_NETMASK = u'CIDRnetmask'
+  OB_CLASSROOM_INVITATION_ID_ENTITY = u'ClassroomInvitationIDEntity'
   OB_CLIENT_ID = u'ClientID'
   OB_COLLABORATOR_ITEM = u'CollaboratorItem'
   OB_COLLABORATOR_ENTITY = u'CollaboratorEntity'

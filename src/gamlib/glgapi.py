@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2016 Ross Scroggs All Rights Reserved.
+# Copyright (C) 2018 Ross Scroggs All Rights Reserved.
 #
 # All Rights Reserved.
 #
@@ -45,6 +45,7 @@ CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS = u'cannotShareTeamDriveTo
 CONDITION_NOT_MET = u'conditionNotMet'
 CUSTOMER_NOT_FOUND = u'customerNotFound'
 CYCLIC_MEMBERSHIPS_NOT_ALLOWED = u'cyclicMembershipsNotAllowed'
+DAILY_LIMIT_EXCEEDED = u'dailyLimitExceeded'
 DELETED = u'deleted'
 DELETED_USER_NOT_FOUND = u'deletedUserNotFound'
 DOMAIN_ALIAS_NOT_FOUND = u'domainAliasNotFound'
@@ -101,6 +102,7 @@ QUERY_REQUIRES_ADMIN_CREDENTIALS = u'queryRequiresAdminCredentials'
 QUOTA_EXCEEDED = u'quotaExceeded'
 RATE_LIMIT_EXCEEDED = u'rateLimitExceeded'
 REQUIRED = u'required'
+REQUIRED_ACCESS_LEVEL = u'requiredAccessLevel'
 RESOURCE_EXHAUSTED = u'resourceExhausted'
 RESOURCE_ID_NOT_FOUND = u'resourceIdNotFound'
 RESOURCE_NOT_FOUND = u'resourceNotFound'
@@ -369,6 +371,8 @@ class rateLimitExceeded(Exception):
   pass
 class required(Exception):
   pass
+class requiredAccessLevel(Exception):
+  pass
 class resourceExhausted(Exception):
   pass
 class resourceIdNotFound(Exception):
@@ -494,6 +498,7 @@ REASON_EXCEPTION_MAP = {
   QUERY_REQUIRES_ADMIN_CREDENTIALS: queryRequiresAdminCredentials,
   RATE_LIMIT_EXCEEDED: rateLimitExceeded,
   REQUIRED: required,
+  REQUIRED_ACCESS_LEVEL: requiredAccessLevel,
   RESOURCE_EXHAUSTED: resourceExhausted,
   RESOURCE_ID_NOT_FOUND: resourceIdNotFound,
   RESOURCE_NOT_FOUND: resourceNotFound,

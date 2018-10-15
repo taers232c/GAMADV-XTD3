@@ -1,3 +1,38 @@
+4.61.13
+
+Improved handling of Quota Exceeded errors when updating group membership.
+Gam processes the members in batches and pauses between batches in order to avoid exceeding Google's quota limits. The size of the batch
+is set in gam.cfg/batch_size and the pause in gam.cfg/inter_watch_wait. For each batch, if the quota rate limit is exceeded, Gam increases inter_batch_wait by .25 seconds.
+You can set these values on the command line:
+    gam config batch_size 20 inter_batch_wait 1 update group testgroup@domain.com add/clear/delete/sync members ...
+
+Added command to clear(remove) students or teachers from a course. For teachers, the owner teacher will not be removed.
+gam course <CourseID> clear teachers|students
+gam courses <CourseEntity> clear teachers|students
+
+Added support for Google Classroom invitations:
+gam <UserTypeEntity> create classroominvitation courses <CourseEntity> [role owner|student|teacher]
+        [csvformat] [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
+gam <UserTypeEntity> accept classroominvitation (ids <ClassroomInvitationIDEntity>)|([courses <CourseEntity>] [role all|owner|student|teacher])
+gam <UserTypeEntity> delete classroominvitation (ids <ClassroomInvitationIDEntity>)|([courses <CourseEntity>] [role all|owner|student|teacher])
+gam <UserTypeEntity> show classroominvitations [role all|owner|student|teacher]
+        [formatjson]
+gam <UserTypeEntity> print classroominvitations [todrive <ToDriveAttributes>*] [role all|owner|student|teacher]
+        [formatjson] [quotechar <Character>]
+
+gam show classroominvitations (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
+        [role all|owner|student|teacher] [formatjson]
+gam print classroominvitations [todrive <ToDriveAttributes>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
+        [role all|owner|student|teacher] [formatjson] [quotechar <Character>]
+
+You must authorize an additional Service Account scope to use these commands.
+Do this command; sustitute a valid email address for user@domain.com.
+    gam user user@domain.com check serviceaccount
+You should see the following scope fail:
+    Scope: https://www.googleapis.com/auth/classroom.rosters           , Checked: FAIL (6/15)
+
+Follow the directions to authorize the Service Account scopes.
+
 4.61.12
 
 Added preview option to gam update group create/delete/sync/update/clear; if specified, the changes will be previewed but not executed.

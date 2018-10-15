@@ -176,8 +176,8 @@ extra_args
 	Data file: extra_args.txt
 inter_batch_wait
 	When processing items in batches, how many seconds should GAM wait between batches
-	Default: 0
-	Range: 0 - 60
+	Default: 0.0
+	Range: 0.0 - 60.0
 member_max_results
 	When retrieving lists of Google Group members from API, how many should be retrieved in each chunk
 	Default: 200
