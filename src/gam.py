@@ -13543,7 +13543,7 @@ def doUpdateGroups():
       body[u'role'] = role
     else:
       role = Ent.ROLE_MEMBER
-      if delivery_settings is None:
+      if delivery_settings == DELIVERY_SETTINGS_UNDEFINED:
         # Backwards compatability; if neither role or delivery is specified, role = MEMBER
         body[u'role'] = role
     if delivery_settings != DELIVERY_SETTINGS_UNDEFINED:
@@ -13750,7 +13750,7 @@ def doUpdateGroups():
         if syncOperation != u'removeonly':
           _batchAddGroupMembers(group, i, count,
                                 [syncMembersMap.get(emailAddress, emailAddress) for emailAddress in syncMembersSet-currentMembersSet],
-                                role, None)
+                                role, DELIVERY_SETTINGS_UNDEFINED)
   elif CL_subCommand == u'update':
     role, groupMemberType = _getRoleGroupMemberType(defaultRole=None)
     isSuspended = _getOptionalIsSuspended()
@@ -19635,6 +19635,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
           elif argument in [u'primary']:
             primary[u'location'] = Cmd.Location()
             entry[u'primary'] = getBoolean()
+          elif argument in [u'os', u'operatingsystemtype']:
+            entry[u'operatingSystemType'] = getChoice([u'linux', u'unspecified', u'windows'])
           elif argument == u'endposix':
             break
           else:
@@ -20053,9 +20055,11 @@ USER_LOCATIONS_PROPERTY_PRINT_ORDER = [
   ]
 
 USER_POSIX_PROPERTY_PRINT_ORDER = [
+  u'accountId',
   u'uid',
   u'gid',
   u'systemId',
+  u'operatingSystemType',
   u'homeDirectory',
   u'shell',
   u'gecos',

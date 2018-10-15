@@ -2033,7 +2033,8 @@ gam print vaultmatters|matters [todrive <ToDriveAttribute>*] [basic|full]
         (password random|<Password>)|
         (phone clear|([type work|home|other|work_fax|home_fax|other_fax|main|company_main|assistant|mobile|work_mobile|pager|work_pager|car|radio|callback|isdn|telex|tty_tdd|grand_central|(custom <String>)]
                 [value <String>] notprimary|primary))|
-        (posix clear|(username <String> uid <Integer> gid <Integer> [system|systemid <String>] [home|homedirectory <String>] [shell <String>] [gecos <String>] [primary <Boolean>] endposix))|
+        (posix clear|(username <String> uid <Integer> gid <Integer> [system|systemid <String>] [home|homedirectory <String>] [shell <String>]
+                [gecos <String>] [os|operatingSystemType linux|unspecified|windows] [primary <Boolean>] endposix))|
         (relation clear|(spouse|child|mother|father|parent|brother|sister|friend|relative|domestic_partner|manager|dotted-line_manager|assistant|admin_assistant|exec_assistant|referred_by|partner|<String> <String>))|
         (sshkeys clear|(key <String> [expires <Integer>] endssh))|
         (suspended <Boolean>)|
