@@ -125,7 +125,12 @@ _INFO = {
 
 EMAIL_SCOPE = u'email'
 PROFILE_SCOPE = u'profile'
-CLASSROOM_OAUTH_SCOPES = [EMAIL_SCOPE, u'https://www.googleapis.com/auth/classroom.announcements', u'https://www.googleapis.com/auth/classroom.coursework.students']
+CLASSROOM_OAUTH_SCOPES = [
+  EMAIL_SCOPE,
+  u'https://www.googleapis.com/auth/classroom.announcements',
+  u'https://www.googleapis.com/auth/classroom.coursework.students',
+  u'https://www.googleapis.com/auth/classroom.rosters',
+  ]
 VAULT_SCOPES = [u'https://www.googleapis.com/auth/ediscovery', u'https://www.googleapis.com/auth/ediscovery.readonly']
 
 READONLY = [u'readonly',]

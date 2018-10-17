@@ -1,3 +1,7 @@
+4.61.14
+
+Simplify gam <UserTypeEntity> add/delete groups; handle additional errors.
+
 4.61.13
 
 Improved handling of Quota Exceeded errors when updating group membership.
