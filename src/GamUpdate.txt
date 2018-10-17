@@ -1,3 +1,7 @@
+4.61.15
+
+Fixed bug in gam move drivefile that threw an exception.
+
 4.61.14
 
 Simplify gam <UserTypeEntity> add/delete groups; handle additional errors.

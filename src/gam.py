@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.61.14'
+__version__ = u'4.61.15'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -259,7 +259,7 @@ VX_NPT_FILES_ID = u'nextPageToken,{0}(id)'.format(VX_PAGES_FILES)
 VX_NPT_FILES_ID_FILENAME = u'nextPageToken,{0}(id,{1})'.format(VX_PAGES_FILES, VX_FILENAME)
 VX_NPT_FILES_ID_FILENAME_CAPABILITIES_MIMETYPE_MODIFIEDTIME = u'nextPageToken,{0}({1},id,capabilities,mimeType,{2})'.format(VX_PAGES_FILES, VX_FILENAME, VX_MODIFIED_TIME)
 VX_NPT_FILES_ID_FILENAME_OWNEDBYME = u'nextPageToken,{0}(id,{1},ownedByMe)'.format(VX_PAGES_FILES, VX_FILENAME)
-VX_NPT_FILES_ID_FILENAME_PARENTS_COPY_FIELDS = u'nextPageToken,{0}(id,{1},{2},appProperties,capabilities,contentHints,copyRequiresWriterPermission,description,folderColorRgb,mimeType,modifiedTime,properties,starred,teamDriveId,viewedByMeTime,writersCanShare)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
+VX_NPT_FILES_ID_FILENAME_PARENTS_COPY_FIELDS = u'nextPageToken,{0}(id,{1},{2},appProperties,capabilities,contentHints,copyRequiresWriterPermission,description,folderColorRgb,mimeType,modifiedTime,properties,starred,teamDriveId,trashed,viewedByMeTime,writersCanShare)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE = u'nextPageToken,{0}(id,{1},{2},mimeType)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe)'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
 VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_OWNERS = u'nextPageToken,{0}(id,{1},{2},mimeType,ownedByMe,owners(emailAddress,permissionId))'.format(VX_PAGES_FILES, VX_FILENAME, VX_PARENTS_ID)
@@ -28696,6 +28696,7 @@ def copyDriveFile(users):
           entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(child), childTitle], Msg.NOT_COPYABLE, k, kcount)
           _incrStatistic(statistics, STAT_FILE_NOT_COPYABLE_MOVABLE)
           continue
+        child.pop(u'trashed', None)
         childParents = child.pop(u'parents', [])
         child[u'parents'] = [newFolderId]
         if child[u'mimeType'] == MIMETYPE_GA_FOLDER:
@@ -28943,9 +28944,10 @@ def moveDriveFile(users):
         childTitle = child[VX_FILENAME]
         if movedFiles.get(childId):
           continue
-        if (childId == newFolderId) or (destTeamDriveId and child[u'trashed']):
+        trashed = child.pop(u'trashed', False)
+        if (childId == newFolderId) or (destTeamDriveId and trashed):
           entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(child), childTitle],
-                                          [Msg.NOT_MOVABLE, Msg.NOT_MOVABLE_IN_TRASH][child[u'trashed']], k, kcount)
+                                          [Msg.NOT_MOVABLE, Msg.NOT_MOVABLE_IN_TRASH][trashed], k, kcount)
           _incrStatistic(statistics, STAT_FILE_NOT_COPYABLE_MOVABLE)
           continue
         if child[u'mimeType'] == MIMETYPE_GA_FOLDER:
