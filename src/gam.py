@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.61.16'
+__version__ = u'4.61.17'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -600,13 +600,6 @@ def invalidOauth2TxtExit():
 
 def invalidOauth2TxtImportExit(importFile):
   stderrErrorMsg(Msg.HAS_INVALID_FORMAT.format(Ent.Singular(Ent.OAUTH2_TXT_FILE), importFile))
-  systemErrorExit(OAUTH2_TXT_REQUIRED_RC, None)
-
-def invalidClassroomOauth2TxtExit(filename, noExit=False):
-  stderrErrorMsg(Msg.DOES_NOT_EXIST_OR_HAS_INVALID_FORMAT.format(Ent.Singular(Ent.CLASSROOM_OAUTH2_TXT_FILE), filename))
-  if noExit:
-    setSysExitRC(OAUTH2_TXT_REQUIRED_RC)
-    return
   systemErrorExit(OAUTH2_TXT_REQUIRED_RC, None)
 
 def invalidDiscoveryJsonExit(fileName):
@@ -20999,130 +20992,6 @@ def doInfoSiteVerification():
   else:
     printKeyValueList([u'No Sites Verified.'])
 
-def getClassroomOauth2Credentials(filename):
-  if not os.path.isfile(filename):
-    invalidClassroomOauth2TxtExit(filename)
-  try:
-    storage = oauth2client.file.Storage(filename)
-    return storage.get()
-  except (KeyError, ValueError):
-    invalidClassroomOauth2TxtExit(filename)
-  except IOError as e:
-    systemErrorExit(FILE_ERROR_RC, e)
-
-def getClassroomOauth2Filename(userId):
-  return os.path.join(GC.Values[GC.CONFIG_DIR], u'classroom-{0}-oauth2.txt'.format(userId))
-
-# gam <UserTypeEntity> create classroomoauth2
-def createClassroomOauth2(users, checkArguments=True):
-  cd = buildGAPIObject(API.DIRECTORY)
-  if checkArguments:
-    checkForExtraneousArguments()
-  client_id, client_secret = getOAuthClientIDAndSecret()
-  flags = cmd_flags(noLocalWebserver=GC.Values[GC.NO_BROWSER])
-  httpObj = getHttpObj()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user = normalizeEmailAddressOrUID(user)
-    if user.find(u'@') == -1:
-      userId = user
-      login_hint = convertUIDtoEmailAddress(user, cd=cd)
-    else:
-      userId = convertEmailAddressToUID(user, cd=cd)
-      login_hint = user
-    flow = oauth2client.client.OAuth2WebServerFlow(client_id=client_id,
-                                                   client_secret=client_secret, scope=API.CLASSROOM_OAUTH_SCOPES, redirect_uri=oauth2client.client.OOB_CALLBACK_URN,
-                                                   user_agent=GAM_INFO, response_type=u'code', login_hint=login_hint)
-    classroomOauth2File = getClassroomOauth2Filename(userId)
-    storage = oauth2client.file.Storage(classroomOauth2File)
-    try:
-      oauth2client.tools.run_flow(flow=flow, storage=storage, flags=flags, http=httpObj)
-      time.sleep(2)
-      action = Act.Get()
-      Act.Set(Act.CREATE)
-      entityActionPerformed([Ent.USER, user, Ent.CLASSROOM_OAUTH2_TXT_FILE, classroomOauth2File], i, count)
-      Act.Set(action)
-    except httplib2.CertificateValidationUnsupported:
-      noPythonSSLExit()
-
-# gam <UserTypeEntity> delete classroomoauth2
-def deleteClassroomOauth2(users):
-  cd = buildGAPIObject(API.DIRECTORY)
-  checkForExtraneousArguments()
-  httpObj = getHttpObj()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user = normalizeEmailAddressOrUID(user)
-    if user.find(u'@') == -1:
-      userId = user
-    else:
-      userId = convertEmailAddressToUID(user, cd=cd)
-    classroomOauth2File = getClassroomOauth2Filename(userId)
-    if os.path.isfile(classroomOauth2File):
-      credentials = getClassroomOauth2Credentials(classroomOauth2File)
-      if credentials and not credentials.invalid:
-        credentials.revoke_uri = oauth2client.GOOGLE_REVOKE_URI
-        try:
-          credentials.revoke(httpObj)
-        except oauth2client.client.TokenRevokeError as e:
-          printErrorMessage(INVALID_TOKEN_RC, str(e))
-      deleteFile(classroomOauth2File, continueOnError=True)
-      entityActionPerformed([Ent.USER, user, Ent.CLASSROOM_OAUTH2_TXT_FILE, classroomOauth2File], i, count)
-    else:
-      entityDoesNotHaveItemWarning([Ent.USER, user, Ent.CLASSROOM_OAUTH2_TXT_FILE, classroomOauth2File], i, count)
-
-# gam <UserTypeEntity> info classroomoauth2
-def infoClassroomOauth2(users):
-  cd = buildGAPIObject(API.DIRECTORY)
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user = normalizeEmailAddressOrUID(user)
-    if user.find(u'@') == -1:
-      userId = user
-    else:
-      userId = convertEmailAddressToUID(user, cd=cd)
-    classroomOauth2File = getClassroomOauth2Filename(userId)
-    if os.path.isfile(classroomOauth2File):
-      credentials = getClassroomOauth2Credentials(classroomOauth2File)
-      if credentials and not credentials.invalid:
-        printEntity([Ent.USER, user, Ent.CLASSROOM_OAUTH2_TXT_FILE, classroomOauth2File], i, count)
-        Ind.Increment()
-        printKeyValueList([u'Client ID', credentials.client_id])
-        scopes = sorted(credentials.scopes)
-        for scope in [API.EMAIL_SCOPE, API.PROFILE_SCOPE]:
-          if scope in scopes:
-            scopes.remove(scope)
-        printKeyValueList([u'Scopes', len(scopes)])
-        Ind.Increment()
-        for scope in scopes:
-          printKeyValueList([scope])
-        Ind.Decrement()
-        Ind.Decrement()
-      else:
-        entityActionFailedWarning([Ent.USER, user],
-                                  Msg.HAS_INVALID_FORMAT.format(Ent.Singular(Ent.CLASSROOM_OAUTH2_TXT_FILE), classroomOauth2File), i, count)
-    else:
-      entityDoesNotHaveItemWarning([Ent.USER, user, Ent.CLASSROOM_OAUTH2_TXT_FILE, classroomOauth2File], i, count)
-
-def buildClassroomGAPIObject(classroomOauth2File):
-  api = API.CLASSROOM
-  _, httpObj, service, _ = getAPIversionHttpService(api)
-  credentials = getClassroomOauth2Credentials(classroomOauth2File)
-  GM.Globals[GM.CURRENT_CLIENT_API] = api
-  GM.Globals[GM.CURRENT_CLIENT_API_SCOPES] = credentials.scopes
-  try:
-    service._http = credentials.authorize(httpObj)
-  except (httplib2.ServerNotFoundError, google.auth.exceptions.TransportError) as e:
-    systemErrorExit(NETWORK_ERROR_RC, str(e))
-  except oauth2client.client.AccessTokenRefreshError as e:
-    handleOAuthTokenError(e, False)
-  GM.Globals[GM.OAUTH2_CLIENT_ID] = credentials.client_id
-  return service
-
 COURSE_STATE_MAPS = {
   Cmd.OB_COURSE_STATE_LIST: {
     u'active': u'ACTIVE',
@@ -21226,10 +21095,6 @@ COURSE_COURSEWORK_READONLY_FIELDS = [
 
 def copyCourseAttributes(croom, newCourseId, ownerId, courseAttributesFrom, i, count):
   courseId = courseAttributesFrom[u'courseId']
-  if courseAttributesFrom[u'announcementStates'] or courseAttributesFrom[u'workStates']:
-    classroomOauth2File = getClassroomOauth2Filename(ownerId)
-    if not os.path.isfile(classroomOauth2File):
-      createClassroomOauth2([u'uid:{0}'.format(ownerId)], False)
   _, teachers, students = _getCourseAliasesMembers(croom, courseId, courseAttributesFrom,
                                                    u'nextPageToken,teachers(profile(emailAddress,id))',
                                                    u'nextPageToken,students(profile(emailAddress))')
@@ -21266,7 +21131,7 @@ def copyCourseAttributes(croom, newCourseId, ownerId, courseAttributesFrom, i, c
     addParticipants = [teacher[u'profile'][u'emailAddress'] for teacher in teachers if teacher[u'profile'][u'id'] != ownerId]
     _batchAddParticipantsToCourse(croom, newCourseId, i, count, addParticipants, Ent.TEACHER)
   if courseAnnouncements or courseWorks:
-    tcroom = buildClassroomGAPIObject(classroomOauth2File)
+    _, tcroom = buildGAPIServiceObject(API.CLASSROOM, u'uid:{0}'.format(ownerId), 0, 0)
     if courseAnnouncements:
       jcount = len(courseAnnouncements)
       j = 0
@@ -36993,7 +36858,6 @@ USER_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_GROUP:	addUserToGroups,
   Cmd.ARG_CALENDARACL:	createCalendarACLs,
   Cmd.ARG_CLASSROOMINVITATION:	createClassroomInvitations,
-  Cmd.ARG_CLASSROOMOAUTH2:	createClassroomOauth2,
   Cmd.ARG_CONTACT:	createUserContact,
   Cmd.ARG_CONTACTGROUP:	createUserContactGroup,
   Cmd.ARG_DELEGATE:	createDelegate,
@@ -37035,7 +36899,6 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CALENDAR:		deleteCalendars,
       Cmd.ARG_CALENDARACL:	deleteCalendarACLs,
       Cmd.ARG_CLASSROOMINVITATION:	deleteClassroomInvitations,
-      Cmd.ARG_CLASSROOMOAUTH2:	deleteClassroomOauth2,
       Cmd.ARG_CONTACT:		deleteUserContacts,
       Cmd.ARG_CONTACTGROUP:	deleteUserContactGroups,
       Cmd.ARG_CONTACTPHOTO:	deleteUserContactPhoto,
@@ -37070,7 +36933,6 @@ USER_COMMANDS_WITH_OBJECTS = {
     (Act.INFO,
      {Cmd.ARG_CALENDAR:		infoCalendars,
       Cmd.ARG_CALENDARACL:	infoCalendarACLs,
-      Cmd.ARG_CLASSROOMOAUTH2:	infoClassroomOauth2,
       Cmd.ARG_CONTACT:		infoUserContacts,
       Cmd.ARG_CONTACTGROUP:	infoUserContactGroups,
       Cmd.ARG_DRIVEFILEACL:	infoDriveFileACLs,

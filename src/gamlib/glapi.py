@@ -94,7 +94,9 @@ _INFO = {
                                                                                 u'https://www.googleapis.com/auth/drive',]},
   CALENDAR: {u'version': u'v3', u'credfam': FAM1_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/calendar',]},
 #  CHAT: {u'version': u'v1', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/chat.bot',]},
-  CLASSROOM: {u'version': u'v1', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/classroom.rosters',]},
+  CLASSROOM: {u'version': u'v1', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/classroom.rosters',
+                                                                             u'https://www.googleapis.com/auth/classroom.announcements',
+                                                                             u'https://www.googleapis.com/auth/classroom.coursework.students',]},
   CLOUDPRINT: {u'version': u'v2', u'credfam': FAM2_SCOPES, u'localjson': True},
   CONTACTS: {u'version': u'v3', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://www.google.com/m8/feeds',], u'localjson': True},
   DATATRANSFER: {u'version': u'datatransfer_v1', u'credfam': FAM1_SCOPES},
@@ -125,12 +127,6 @@ _INFO = {
 
 EMAIL_SCOPE = u'email'
 PROFILE_SCOPE = u'profile'
-CLASSROOM_OAUTH_SCOPES = [
-  EMAIL_SCOPE,
-  u'https://www.googleapis.com/auth/classroom.announcements',
-  u'https://www.googleapis.com/auth/classroom.coursework.students',
-  u'https://www.googleapis.com/auth/classroom.rosters',
-  ]
 VAULT_SCOPES = [u'https://www.googleapis.com/auth/ediscovery', u'https://www.googleapis.com/auth/ediscovery.readonly']
 
 READONLY = [u'readonly',]

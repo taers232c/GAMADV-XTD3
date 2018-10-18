@@ -1,3 +1,27 @@
+4.61.17
+
+Changed the gam create/update course copyfrom option to use Service Accounts for authorization
+rather than the special teacher oauth2.txt files.
+
+You must authorize additional Service Account scopes to use gam create/update course copyfrom with the
+Service Account authorizations.
+Do this command; sustitute a valid email address for user@domain.com.
+    gam user user@domain.com check serviceaccount
+You might see the following scopes fail:
+    Scope: https://www.googleapis.com/auth/classroom.announcements     , Checked: FAIL (6/17)
+    Scope: https://www.googleapis.com/auth/classroom.coursework.students, Checked: FAIL (7/17)
+    Scope: https://www.googleapis.com/auth/classroom.rosters           , Checked: FAIL (8/17)
+
+Follow the directions to authorize the Service Account scopes.
+
+The following commands have been deleted as they are no longer required. 
+
+gam <UserTypeEntity> create classroomoauth2
+gam <UserTypeEntity> delete classroomoauth2
+gam <UserTypeEntity> info classroomoauth2
+
+All files named classroom-<OwnerID>-oauth2.txt in the directory specified by config_dir in gam.cfg can be deleted.
+
 4.61.16
 
 Updated gam create classroominvitation to send invitations as the owner of the course rather than as

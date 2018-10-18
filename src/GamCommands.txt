@@ -1100,10 +1100,6 @@ gam print gal [todrive <ToDriveAttribute>*] [query <QueryContact>] [emailmatchpa
         updatetime
 <CourseFieldNameList> ::= "<CourseFieldName>(,<CourseFieldName>)*"
 
-gam <UserTypeEntity> create classroomoauth2
-gam <UserTypeEntity> delete classroomoauth2
-gam <UserTypeEntity> info classroomoauth2
-
 gam create|add course [id|alias <CourseAlias>] <CourseAttribute>*
         [copyfrom <CourseID> [announcementstates <CourseAnnouncementStateList>] [workstates <CourseWorkStateList>] [members none|all|students|teachers]]
 gam update course <CourseID> <CourseAttribute>+
