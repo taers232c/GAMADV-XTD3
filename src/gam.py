@@ -21132,6 +21132,8 @@ def copyCourseAttributes(croom, newCourseId, ownerId, courseAttributesFrom, i, c
     _batchAddParticipantsToCourse(croom, newCourseId, i, count, addParticipants, Ent.TEACHER)
   if courseAnnouncements or courseWorks:
     _, tcroom = buildGAPIServiceObject(API.CLASSROOM, u'uid:{0}'.format(ownerId), 0, 0)
+    if tcroom is None:
+      return
     if courseAnnouncements:
       jcount = len(courseAnnouncements)
       j = 0
