@@ -1,3 +1,7 @@
+4.61.18
+
+Fixed parsing bug in gam print cros command.
+
 4.61.17
 
 Changed the gam create/update course copyfrom option to use Service Accounts for authorization

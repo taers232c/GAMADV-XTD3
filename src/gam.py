@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.61.17'
+__version__ = u'4.61.18'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -12263,7 +12263,7 @@ def doPrintCrOSDevices(entityList=None):
     elif myarg in CROS_DISK_VOLUME_REPORTS_ARGUMENTS:
       selectedLists[u'diskVolumeReports'] = True
     elif myarg in CROS_SYSTEM_RAM_FREE_REPORTS_ARGUMENTS:
-      selectedLists[u'yystemRamFreeReports'] = True
+      selectedLists[u'systemRamFreeReports'] = True
 
   def _printCrOS(cros):
     _checkTPMVulnerability(cros)
@@ -12422,13 +12422,13 @@ def doPrintCrOSDevices(entityList=None):
       minimizeQuotaPct = getInteger(minVal=0, maxVal=100)
     else:
       unknownArgumentExit()
-    if selectedLists:
-      noLists = False
-      projection = u'FULL'
-      for selectList in selectedLists:
-        addFieldToFieldsList(selectList, CROS_FIELDS_CHOICE_MAP, fieldsList)
-    if fieldsList:
-      fieldsList.append(u'deviceId')
+  if selectedLists:
+    noLists = False
+    projection = u'FULL'
+    for selectList in selectedLists:
+      addFieldToFieldsList(selectList, CROS_FIELDS_CHOICE_MAP, fieldsList)
+  if fieldsList:
+    fieldsList.append(u'deviceId')
   _, _, entityList = getEntityArgument(entityList)
   if formatJSON:
     sortHeaders = False
