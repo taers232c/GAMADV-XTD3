@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.61.15'
+__version__ = u'4.61.16'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -23194,6 +23194,23 @@ CLASSROOM_ROLE_OWNER = u'OWNER'
 CLASSROOM_ROLE_STUDENT = u'STUDENT'
 CLASSROOM_ROLE_TEACHER = u'TEACHER'
 
+def _getCoursesOwnerInfo(croom, courseIds, coursesInfo):
+  for courseId in courseIds:
+    courseId = addCourseIdScope(courseId)
+    if courseId not in coursesInfo:
+      coursesInfo[courseId] = {}
+      try:
+        info = callGAPI(croom.courses(), u'get',
+                        throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                        id=courseId, fields=u'name,ownerId')
+        ownerEmail, ocroom = buildGAPIServiceObject(API.CLASSROOM, u'uid:{0}'.format(info[u'ownerId']), 0, 0)
+        if ocroom is not None:
+          coursesInfo[courseId] = {u'name': info[u'name'], u'croom': ocroom}
+      except GAPI.notFound:
+        entityDoesNotExistWarning(Ent.COURSE, courseId)
+      except GAPI.forbidden:
+        APIAccessDeniedExit()
+
 def _getClassroomInvitations(croom, userId, courseId, role, i, count, j=0, jcount=0):
   try:
     invitations = callGAPIpages(croom.invitations(), u'list', u'invitations',
@@ -23263,7 +23280,9 @@ CLASSROOM_ROLE_ENTITY_MAP = {
 #	[csvformat] [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
 def createClassroomInvitations(users):
   croom = buildGAPIObject(API.CLASSROOM)
+  classroomEmails = {}
   courseIds = None
+  coursesInfo = {}
   role = CLASSROOM_ROLE_STUDENT
   todrive = {}
   csvFormat = formatJSON = False
@@ -23287,20 +23306,23 @@ def createClassroomInvitations(users):
   if courseIds is None:
     missingArgumentExit(u'courses <CourseEntity>')
   if csvFormat:
-    sortTitles = [u'userId',]
     if formatJSON:
-      sortTitles.append(u'JSON')
+      sortTitles = [u'userEmail', u'JSON']
     else:
-      sortTitles.extend([u'courseId', u'id', u'role'])
+      sortTitles = [u'userId', u'userEmail', u'courseId', u'courseName', u'id', u'role']
     titles, csvRows = initializeTitlesCSVfile(sortTitles)
   courseIdsLists = courseIds if isinstance(courseIds, dict) else None
+  if courseIdsLists is None:
+    _getCoursesOwnerInfo(croom, courseIds, coursesInfo)
   entityType = CLASSROOM_ROLE_ENTITY_MAP[role]
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     userId = normalizeEmailAddressOrUID(user)
+    userEmail = _getClassroomEmail(croom, classroomEmails, userId, userId)
     if courseIdsLists:
       courseIds = courseIdsLists[user]
+      _getCoursesOwnerInfo(croom, courseIds, coursesInfo)
     jcount = len(courseIds)
     if csvFormat or not formatJSON:
       entityPerformActionNumItems([Ent.USER, userId], jcount, entityType, i, count)
@@ -23310,30 +23332,36 @@ def createClassroomInvitations(users):
     for courseId in courseIds:
       j += 1
       courseId = addCourseIdScope(courseId)
+      courseInfo = coursesInfo[courseId]
+      if not courseInfo:
+        continue
+      courseNameId = u'{0} ({1})'.format(courseInfo[u'name'], courseId)
       try:
-        invitation = callGAPI(croom.invitations(), u'create',
+        invitation = callGAPI(courseInfo[u'croom'].invitations(), u'create',
                               throw_reasons=[GAPI.NOT_FOUND, GAPI.FAILED_PRECONDITION, GAPI.ALREADY_EXISTS, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
                               body={u'userId': userId, u'courseId': courseId, u'role': role})
         if not csvFormat:
           if not formatJSON:
             Ind.Increment()
-            entityActionPerformed([Ent.USER, userId, Ent.COURSE, courseId, entityType, invitation[u'id']], j, jcount)
+            entityActionPerformed([Ent.USER, userEmail, Ent.COURSE, courseNameId, entityType, invitation[u'id']], j, jcount)
             Ind.Decrement()
           else:
             printLine(json.dumps(cleanJSON(invitation, u''), ensure_ascii=False, sort_keys=True))
         else:
           if not formatJSON:
+            invitation[u'courseName'] = courseInfo[u'name']
+            invitation[u'userEmail'] = userEmail
             csvRows.append(invitation)
           else:
-            csvRows.append({u'userId': userId,
+            csvRows.append({u'userEmail': userEmail,
                             u'JSON': json.dumps(cleanJSON(invitation, u''), ensure_ascii=False, sort_keys=True)})
       except GAPI.permissionDenied:
         entityUnknownWarning(Ent.USER, userId, i, count)
         break
       except GAPI.notFound:
-        entityUnknownWarning(Ent.COURSE, courseId, j, jcount)
+        entityUnknownWarning(Ent.COURSE, courseNameId, j, jcount)
       except (GAPI.failedPrecondition, GAPI.alreadyExists, GAPI.forbidden) as e:
-        entityActionFailedWarning([Ent.USER, userId, Ent.COURSE, courseId, entityType, None], str(e), j, jcount)
+        entityActionFailedWarning([Ent.USER, userId, Ent.COURSE, courseNameId, entityType, None], str(e), j, jcount)
     Ind.Decrement()
   if csvFormat:
     writeCSVfile(csvRows, titles, u'ClassroomInvitations', todrive, sortTitles, quotechar)
@@ -23423,11 +23451,10 @@ def printShowClassroomInvitations(users, csvFormat):
     else:
       unknownArgumentExit()
   if csvFormat:
-    sortTitles = [u'userId', u'userEmail',]
     if formatJSON:
-      sortTitles.append(u'JSON')
+      sortTitles = [u'userEmail', u'JSON']
     else:
-      sortTitles.extend([u'courseId', u'courseName', u'id', u'role'])
+      sortTitles = [u'userId', u'userEmail', u'courseId', u'courseName', u'id', u'role']
     titles, csvRows = initializeTitlesCSVfile(sortTitles)
   entityType = CLASSROOM_ROLE_ENTITY_MAP[role]
   i, count, users = getEntityArgument(users)
@@ -23467,7 +23494,7 @@ def printShowClassroomInvitations(users, csvFormat):
             invitation[u'userEmail'] = userEmail
             csvRows.append(invitation)
         else:
-          csvRows.append({u'userId': userId, u'userEmail': userEmail,
+          csvRows.append({u'userEmail': userEmail,
                           u'JSON': json.dumps(cleanJSON(invitations, u''), ensure_ascii=False, sort_keys=True)})
   if csvFormat:
     writeCSVfile(csvRows, titles, u'ClassroomInvitations', todrive, sortTitles, quotechar)
