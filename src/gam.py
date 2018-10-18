@@ -23203,7 +23203,7 @@ def _getCoursesOwnerInfo(croom, courseIds, coursesInfo):
         info = callGAPI(croom.courses(), u'get',
                         throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                         id=courseId, fields=u'name,ownerId')
-        ownerEmail, ocroom = buildGAPIServiceObject(API.CLASSROOM, u'uid:{0}'.format(info[u'ownerId']), 0, 0)
+        _, ocroom = buildGAPIServiceObject(API.CLASSROOM, u'uid:{0}'.format(info[u'ownerId']), 0, 0)
         if ocroom is not None:
           coursesInfo[courseId] = {u'name': info[u'name'], u'croom': ocroom}
       except GAPI.notFound:
