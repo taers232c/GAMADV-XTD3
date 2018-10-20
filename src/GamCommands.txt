@@ -833,7 +833,7 @@ gam <CrOSTypeEntity> update (<CrOSAttribute>+ [quickcrosmove [<Boolean>]])|(acti
 <CrOSListFieldName> ::=
         activetimeranges|timeranges|
         cpustatusreports|
-	devicefiles|
+        devicefiles|
         diskvolumereports|
         recentusers|
         systemramfreereports
