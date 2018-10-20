@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2016 Ross Scroggs All Rights Reserved.
+# Copyright (C) 2018 Ross Scroggs All Rights Reserved.
 #
 # All Rights Reserved.
 #
@@ -172,6 +172,7 @@ PROCESS = u'process'
 PROCESSES = u'processes'
 PROCESSING_ITEM_N = u'Processing item {0}\n'
 REFUSING_TO_DEPROVISION_DEVICES = u'Refusing to deprovision {0} devices because acknowledge_device_touch_requirement not specified.\nDeprovisioning a device means the device will have to be physically wiped and re-enrolled to be managed by your domain again.\nThis requires physical access to the device and is very time consuming to perform for each device.\nPlease add "acknowledge_device_touch_requirement" to the GAM command if you understand this and wish to proceed with the deprovision.\nPlease also be aware that deprovisioning can have an effect on your device license count.\nSee https://support.google.com/chrome/a/answer/3523633 for full details.'
+REPLY_TO_CUSTOM_REQUIRES_EMAIL_ADDRESS = u'replyto REPLY_TO_CUSTOM requires cumtomReplyTo <EmailAddress>'
 REQUEST_COMPLETED_NO_FILES = u'Request completed but no results/files were returned, try requesting again'
 REQUEST_NOT_COMPLETE = u'Request needs to be completed before downloading, current status is: {0}'
 RESULTS_TOO_LARGE_FOR_GOOGLE_SPREADSHEET = u'Results are too large for Google Spreadsheets. Uploading as a regular CSV file.'

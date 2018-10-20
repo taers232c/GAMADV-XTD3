@@ -1,3 +1,10 @@
+4.61.19
+
+Fixed bug in gam create/update user where use of the crypt|sha|sha1|sha-1|md5|nohash options caused a trap.
+
+Added error check in gam create/update group to confirm that customreplyto <EmailAddress> is specified when
+replyto reply_to_custom is specified.
+
 4.61.18
 
 Fixed parsing bug in gam print cros command.

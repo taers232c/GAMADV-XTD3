@@ -122,6 +122,8 @@ PROPERTIES = {
     {CLASS: PC_LANGUAGES, TITLE: u'Custom Languages',},
   u'password':
     {CLASS: PC_STRING, TITLE: u'Password',},
+  u'hashFunction':
+    {CLASS: PC_STRING, TITLE: u'Hash Function',},
   u'isAdmin':
     {CLASS: PC_BOOLEAN, TITLE: u'Is a Super Admin',},
   u'isDelegatedAdmin':

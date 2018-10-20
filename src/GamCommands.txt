@@ -804,8 +804,10 @@ gam <CrOSTypeEntity> update (<CrOSAttribute>+ [quickcrosmove [<Boolean>]])|(acti
         annotatedlocation|location|
         annotateduser|user|
         bootmode|
+        cpustatusreports|
         devicefiles|
         deviceid|
+        diskvolumereports|
         ethernetmacaddress|
         firmwareversion|
         lastenrollmenttime|
@@ -822,6 +824,8 @@ gam <CrOSTypeEntity> update (<CrOSAttribute>+ [quickcrosmove [<Boolean>]])|(acti
         serialnumber|
         status|
         supportenddate|
+        systemramtotal|
+        systemramfreereports|
         tpmversioninfo|
         willautorenew
 <CrOSFieldNameList> ::= "<CrOSFieldName>(,<CrOSFieldName>)*"
@@ -1373,10 +1377,10 @@ gam print domainaliases|aliasdomains [todrive <ToDriveAttribute>*]
 
 gam create|add group <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>*
 gam update group|groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] [copyfrom <GroupItem>] <GroupAttribute>*
-gam update group|groups <GroupEntity> create|add [owner|manager|member] [usersonly|groupsonly] [notsuspended|suspended] [preview] <UserTypeEntity>
+gam update group|groups <GroupEntity> create|add [owner|manager|member] [usersonly|groupsonly] [notsuspended|suspended] [deliverysettings allmail|daily|digest|none|disabled] [preview] <UserTypeEntity>
 gam update group|groups <GroupEntity> delete|remove [owner|manager|member] [usersonly|groupsonly] [notsuspended|suspended] [preview] <UserTypeEntity>
 gam update group|groups <GroupEntity> sync [owner|manager|member] [usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended] [preview] <UserTypeEntity>
-gam update group|groups <GroupEntity> update [owner|manager|member] [usersonly|groupsonly] [notsuspended|suspended] [preview] <UserTypeEntity>
+gam update group|groups <GroupEntity> update [owner|manager|member] [usersonly|groupsonly] [notsuspended|suspended] [deliverysettings allmail|daily|digest|none|disabled] [preview] <UserTypeEntity>
 gam update group|groups <GroupEntity> clear [member] [manager] [owner] [notsuspended|suspended] [preview]
 gam delete group|groups <GroupEntity>
 

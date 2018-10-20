@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.61.18'
+__version__ = u'4.61.19'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -3003,6 +3003,8 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False, service=None):
         error = {u'error': {u'errors': [{u'reason': GAPI.DUPLICATE, u'message': message}]}}
       elif u'Operation not supported' in message:
         error = {u'error': {u'errors': [{u'reason': GAPI.OPERATION_NOT_SUPPORTED, u'message': message}]}}
+      elif u'Failed status in update settings response' in message:
+        error = {u'error': {u'errors': [{u'reason': GAPI.INVALID_INPUT, u'message': message}]}}
     elif http_status == 403:
       if u'The caller does not have permission' in message:
         error = {u'error': {u'errors': [{u'reason': GAPI.PERMISSION_DENIED, u'message': message}]}}
@@ -13241,6 +13243,12 @@ def getSettingsFromGroup(cd, gs, gs_body):
         return None
   return gs_body
 
+def checkReplyToCustom(group, settings, i=0, count=0):
+  if settings.get(u'replyTo') != u'REPLY_TO_CUSTOM' or settings.get(u'customReplyTo', u''):
+    return True
+  entityActionFailedWarning([Ent.GROUP, group], Msg.REPLY_TO_CUSTOM_REQUIRES_EMAIL_ADDRESS, i, count)
+  return False
+
 # gam create group <EmailAddress> [copyfrom <GroupItem>] <GroupAttributes>
 def doCreateGroup():
   cd = buildGAPIObject(API.DIRECTORY)
@@ -13256,7 +13264,7 @@ def doCreateGroup():
   if gs_body:
     gs = buildGAPIObject(API.GROUPSSETTINGS)
     gs_body = getSettingsFromGroup(cd, gs, gs_body)
-    if not gs_body:
+    if not gs_body or not checkReplyToCustom(body[u'email'], gs_body):
       return
   try:
     callGAPI(cd.groups(), u'insert',
@@ -13295,15 +13303,16 @@ GROUP_DELIVERY_SETTINGS_MAP = {
   u'abridged': u'DAILY',
   u'daily': u'DAILY',
   u'digest': u'DIGEST',
+  u'disabled': U'DISABLED',
   u'none': u'NONE',
   u'noemail': u'NONE',
   }
 
 # gam update groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] [copyfrom <GroupItem>] <GroupAttributes>
-# gam update groups <GroupEntity> create|add [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended] [deliverysettings allmail|daily|digest|none] [preview] <UserTypeEntity>
+# gam update groups <GroupEntity> create|add [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended] [deliverysettings allmail|daily|digest|none|disabled] [preview] <UserTypeEntity>
 # gam update groups <GroupEntity> delete|remove [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended] [preview] <UserTypeEntity>
 # gam update groups <GroupEntity> sync [member|manager|owner] [usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended] [preview] <UserTypeEntity>
-# gam update groups <GroupEntity> update [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended] [deliverysettings allmail|daily|digest|none] [preview] <UserTypeEntity>
+# gam update groups <GroupEntity> update [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended] [deliverysettings allmail|daily|digest|none|disabled] [preview] <UserTypeEntity>
 # gam update groups <GroupEntity> clear [member] [manager] [owner] [notsuspended|suspended] [preview]
 def doUpdateGroups():
 
@@ -13653,6 +13662,8 @@ def doUpdateGroups():
                               throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
                               groupUniqueId=group, fields=u'*')
           settings.update(gs_body)
+          if not checkReplyToCustom(group, settings, i, count):
+            continue
         except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
                 GAPI.backendError, GAPI.invalid, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
                 GAPI.systemError, GAPI.serviceLimit) as e:
