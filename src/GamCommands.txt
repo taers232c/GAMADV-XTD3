@@ -830,6 +830,14 @@ gam <CrOSTypeEntity> update (<CrOSAttribute>+ [quickcrosmove [<Boolean>]])|(acti
         willautorenew
 <CrOSFieldNameList> ::= "<CrOSFieldName>(,<CrOSFieldName>)*"
 
+<CrOSListFieldName> ::=
+        activetimeranges|timeranges|
+        cpustatusreports|
+	devicefiles|
+        diskvolumereports|
+        recentusers|
+        systemramfreereports
+
 <CrOSOrderByFieldName> ::=
         lastsync|location|notes|serialnumber|status|supportenddate|user
 
@@ -843,40 +851,32 @@ Print fields for selected CrOS devices; use these options to select CrOS devices
 If none of these options are chosen, all CrOS devices are selected.
 
 gam print cros [todrive <ToDriveAttribute>*]
-        [(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
+        [(query <QueryCrOS>)|(queries <QueryCrOSList>)] [limittoou <OrgUnitItem>]
         (querytime.* <Time>)*
-        [orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
+        [orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|<CrOSListFieldName>*] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
 
 Print fields for specified CrOS devices.
 
 gam print cros [todrive <ToDriveAttribute>*] select <CrOSTypeEntity>
-        [orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
+        [orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|<CrOSListFieldName>*] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
 
 gam <CrOSTypeEntity> print cros [todrive <ToDriveAttribute>*]
-        [orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|recentusers|timeranges|devicefiles] [listlimit <Number>] [start <Date>] [end <Date>]
+        [orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|<CrOSListFieldName>*] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
 
 The first column will always be deviceId; the remaining field names will be sorted if allfields, basic, full or sortheaders is specified;
 otherwise, the remaining field names will appear in the order specified.
 
-The basic argument outputs these column headers: deviceId,annotatedAssetId,annotatedLocation,annotatedUser,lastSync,notes,serialNumber,status
-The allfields/full arguments output all column headers including three headers, recentUsers, activeTimeRanges and deviceFiles,
-that repeat with two/four/two subvalues each, yielding a large number of columns that make the output hard to process.
-The nolists argument suppresses these three headers; if you want these headers in a more manageable form use the following arguments.
-
-If recentusers is specified, for each recent user, the columns recentUsers.email and recentUsers.type are output on a separate row
-with all of the other headers.
-
-If timeranges is specified, for each time range entry, the columns activeTimeRanges.date, activeTimeRange.activeTime,
-activeTimeRanges.duration and activeTimeRanges.minutes are output on a separate row with all of the other headers.
-
-If devicefiles is specified, for each deviceFile, the columns deviceFiles.type and deviceFiles.createTime are output on a separate row
-with all of the other headers.
+The basic argument outputs these column headers: deviceId,annotatedAssetId,annotatedLocation,annotatedUser,lastSync,notes,serialNumber,status.
+The allfields/full arguments output all column headers including six headers: activeTimeRanges, cpuStatusReports, deviceFiles, diskVolumeReports, recentUsers and systemRamFreeReports
+that repeat with multiple subvalues each, yielding a large number of columns that make the output hard to process.
+The nolists argument suppresses these six headers; if you want these headers in a more manageable form specify <CrOSListFieldName> values as desired.
+One set of values for all <CrOSListFieldName> fields specified will be output on a separate row with all of the other headers.
 
 The listlimit <Number> argument limits the number of repetitions to <Number>; if not specified or <Number> equals zero, there is no limit.
-The start <Date> and end <Date> arguments filter the time ranges and device files.
+The start <Date> and end <Date> arguments constrain activeTimeRanges, cpuStatusReports, deviceFiles and systemRamFreeReports to fall within the specified <Dates>.
 
 Print no header row and deviceId for specified CrOS devices.
 

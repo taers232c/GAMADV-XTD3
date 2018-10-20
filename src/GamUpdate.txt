@@ -1,3 +1,8 @@
+4.61.20
+
+Added support for new ChromeOS fields: cpuStatusReports, diskVolumeReports and systemRamFreeReports. These fields
+are supported in gam info cros and gam print cros.
+
 4.61.19
 
 Fixed bug in gam create/update user where use of the crypt|sha|sha1|sha-1|md5|nohash options caused a trap.

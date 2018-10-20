@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.61.19'
+__version__ = u'4.61.20'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -12276,6 +12276,9 @@ def doPrintCrOSDevices(entityList=None):
     if u'notes' in cros:
       cros[u'notes'] = escapeCRsNLs(cros[u'notes'])
     if not noLists and not selectedLists:
+      for cpuStatusReport in cros.get(u'cpuStatusReports', []):
+        for tempInfo in cpuStatusReport.get(u'cpuTemperatureInfo', []):
+          tempInfo[u'label'] = tempInfo[u'label'].strip()
       addRowTitlesToCSVfile(flattenJSON(cros, listLimit=listLimit, timeObjects=CROS_TIME_OBJECTS), csvRows, titles)
       return
     row = {}
