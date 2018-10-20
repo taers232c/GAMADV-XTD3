@@ -13246,7 +13246,7 @@ def getSettingsFromGroup(cd, gs, gs_body):
 def checkReplyToCustom(group, settings, i=0, count=0):
   if settings.get(u'replyTo') != u'REPLY_TO_CUSTOM' or settings.get(u'customReplyTo', u''):
     return True
-  entityActionFailedWarning([Ent.GROUP, group], Msg.REPLY_TO_CUSTOM_REQUIRES_EMAIL_ADDRESS, i, count)
+  entityActionNotPerformedWarning([Ent.GROUP, group], Msg.REPLY_TO_CUSTOM_REQUIRES_EMAIL_ADDRESS, i, count)
   return False
 
 # gam create group <EmailAddress> [copyfrom <GroupItem>] <GroupAttributes>
