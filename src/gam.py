@@ -14607,7 +14607,7 @@ def infoGroupMembers(entityList):
     Ind.Decrement()
 
 # gam info member <UserTypeEntity> <GroupEntity>
-def doInfoGroupMembers(entityList):
+def doInfoGroupMembers():
   infoGroupMembers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)[1])
 
 GROUPMEMBERS_FIELDS_CHOICE_MAP = {
