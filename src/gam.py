@@ -14603,7 +14603,7 @@ def infoGroupMembers(entityList):
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
         entityActionFailedWarning([Ent.GROUP, group], str(e), j, jcount)
       except GAPI.memberNotFound:
-        entityActionFailedWarning([Ent.MEMBER, memberKey], Msg.DOES_NOT_EXIST, j, jcount)
+        entityActionFailedWarning([Ent.GROUP, group], Msg.NOT_AN_ENTITY.format(Ent.Singular(Ent.MEMBER)), j, jcount)
     Ind.Decrement()
 
 # gam info member <UserTypeEntity> <GroupEntity>
