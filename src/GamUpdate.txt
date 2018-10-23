@@ -1,3 +1,10 @@
+4.61.21
+
+Added adminaccess option to gam create classroominvitation. By default, classroom invitations are issued by
+the owner of the course, the adminaccess option causes the invitations to be issued by the admin named in oauth2.txt.
+gam <UserTypeEntity> create classroominvitation courses <CourseEntity> [role owner|student|teacher]
+        [adminaccess|asadmin] [csvformat] [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
+
 4.61.20
 
 Added support for new ChromeOS fields: cpuStatusReports, diskVolumeReports and systemRamFreeReports. These fields

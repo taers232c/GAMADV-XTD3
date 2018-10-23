@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.61.20'
+__version__ = u'4.61.21'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -2682,7 +2682,7 @@ def doGAMCheckForUpdates(forceCheck=False):
     writeFile(GM.Globals[GM.LAST_UPDATE_CHECK_TXT], str(now_time), continueOnError=True, displayError=forceCheck)
     return
   except (httplib2.HttpLib2Error, httplib2.ServerNotFoundError,
-          google.auth.exceptions.TransportError, httplib2.CertificateValidationUnsupportedInPython31):
+          google.auth.exceptions.TransportError):
     return
 
 def handleOAuthTokenError(e, soft_errors):
@@ -3077,8 +3077,6 @@ def callGAPI(service, function,
     except (oauth2client.client.AccessTokenRefreshError, google.auth.exceptions.RefreshError) as e:
       handleOAuthTokenError(e, GAPI.SERVICE_NOT_AVAILABLE in throw_reasons)
       raise GAPI.REASON_EXCEPTION_MAP[GAPI.SERVICE_NOT_AVAILABLE](str(e))
-    except httplib2.CertificateValidationUnsupportedInPython31:
-      noPythonSSLExit()
     except (http_client.ResponseNotReady, socket.error) as e:
       errMsg = u'Connection error: {0}'.format(convertSysToUTF8(str(e) or repr(e)))
       if n != retries:
@@ -4676,31 +4674,38 @@ def writeCSVfile(csvRows, titles, list_type, todrive, sortTitles=None, quotechar
                             quoting=csv.QUOTE_MINIMAL, quotechar=quotechar,
                             delimiter=delimiter, lineterminator='\n')
     if writeCSVData(writer):
-      if GC.Values[GC.TODRIVE_CONVERSION]:
-        columns = len(titles[u'list'])
-        rows = len(csvRows)
-        cell_count = rows * columns
-        mimeType = MIMETYPE_GA_SPREADSHEET
-        if cell_count > 2000000 or columns > 256:
-          printKeyValueList([WARNING, Msg.RESULTS_TOO_LARGE_FOR_GOOGLE_SPREADSHEET])
-          mimeType = u'text/csv'
-      else:
-        mimeType = u'text/csv'
       title = todrive[u'title'] or u'{0} - {1}'.format(GC.Values[GC.DOMAIN], list_type)
       if todrive[u'timestamp']:
         title += u' - '+ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])+datetime.timedelta(days=-todrive[u'daysoffset'], hours=-todrive[u'hoursoffset']))
       _, drive = buildGAPIServiceObject(API.DRIVE3, todrive[u'user'], 0, 0)
+      if drive is None:
+        closeFile(csvFile)
+        return
+      csvBytes = io.BytesIO(csvFile.getvalue().encode())
+      closeFile(csvFile)
       try:
+        if GC.Values[GC.TODRIVE_CONVERSION]:
+          columns = len(titles[u'list'])
+          rows = len(csvRows)
+          cell_count = rows * columns
+          mimeType = MIMETYPE_GA_SPREADSHEET
+          result = callGAPI(drive.about(), u'get',
+                            fields=u'maxImportSizes')
+          if cell_count > 2000000 or columns > 256 or csvBytes.tell() > int(result[u'maxImportSizes'][MIMETYPE_GA_SPREADSHEET]):
+            printKeyValueList([WARNING, Msg.RESULTS_TOO_LARGE_FOR_GOOGLE_SPREADSHEET])
+            mimeType = u'text/csv'
+        else:
+          mimeType = u'text/csv'
         if not todrive[u'fileId']:
           result = callGAPI(drive.files(), u'create',
                             throw_reasons=[GAPI.INSUFFICIENT_PERMISSIONS, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR],
                             body={u'parents': [todrive[u'parentId']], u'description': u' '.join(Cmd.AllArguments()), V3_FILENAME: title, u'mimeType': mimeType},
-                            media_body=googleapiclient.http.MediaIoBaseUpload(csvFile, mimetype=u'text/csv', resumable=True), fields=V3_WEB_VIEW_LINK, supportsTeamDrives=True)
+                            media_body=googleapiclient.http.MediaIoBaseUpload(csvBytes, mimetype=u'text/csv', resumable=True), fields=V3_WEB_VIEW_LINK, supportsTeamDrives=True)
         else:
           result = callGAPI(drive.files(), u'update',
                             throw_reasons=[GAPI.INSUFFICIENT_PERMISSIONS, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR],
                             fileId=todrive[u'fileId'], body={u'description': u' '.join(Cmd.AllArguments()), V3_FILENAME: title, u'mimeType': mimeType},
-                            media_body=googleapiclient.http.MediaIoBaseUpload(csvFile, mimetype=u'text/csv', resumable=True), fields=V3_WEB_VIEW_LINK, supportsTeamDrives=True)
+                            media_body=googleapiclient.http.MediaIoBaseUpload(csvBytes, mimetype=u'text/csv', resumable=True), fields=V3_WEB_VIEW_LINK, supportsTeamDrives=True)
         file_url = result[V3_WEB_VIEW_LINK]
         if todrive[u'nobrowser']:
           msg_txt = u'{0}:\n{1}'.format(Msg.DATA_UPLOADED_TO_DRIVE_FILE, file_url)
@@ -4716,7 +4721,7 @@ def writeCSVfile(csvRows, titles, list_type, todrive, sortTitles=None, quotechar
           entityActionFailedWarning([Ent.DRIVE_FOLDER, todrive[u'parentId']], str(e))
         else:
           entityActionFailedWarning([Ent.DRIVE_FILE, todrive[u'fileId']], str(e))
-    closeFile(csvFile)
+    closeFile(csvBytes)
 
   if GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] is not None:
     GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_NAME, list_type))
@@ -5683,11 +5688,8 @@ def doOAuthRequest():
                                                    client_secret=client_secret, scope=scopes, redirect_uri=oauth2client.client.OOB_CALLBACK_URN,
                                                    user_agent=GAM_INFO, response_type=u'code', login_hint=login_hint)
     storage = getCredentialsForScope(cred_family, storageOnly=True)
-    try:
-      oauth2client.tools.run_flow(flow=flow, storage=storage, flags=flags, http=httpObj)
-      time.sleep(3)
-    except httplib2.CertificateValidationUnsupportedInPython31:
-      noPythonSSLExit()
+    oauth2client.tools.run_flow(flow=flow, storage=storage, flags=flags, http=httpObj)
+    time.sleep(3)
   entityActionPerformed([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]])
 
 CRED_FAMILY_CHOICE_MAP = [u'current', u'previous']
@@ -5886,10 +5888,7 @@ def getCRMService(login_hint):
   storage = DictionaryStorage(storage_dict, u'credentials')
   flags = cmd_flags(noLocalWebserver=GC.Values[GC.NO_BROWSER])
   httpObj = getHttpObj()
-  try:
-    credentials = oauth2client.tools.run_flow(flow=flow, storage=storage, flags=flags, http=httpObj)
-  except httplib2.CertificateValidationUnsupportedInPython31:
-    noPythonSSLExit()
+  credentials = oauth2client.tools.run_flow(flow=flow, storage=storage, flags=flags, http=httpObj)
   credentials.user_agent = GAM_INFO
   httpObj = credentials.authorize(getHttpObj())
   return (googleapiclient.discovery.build(u'cloudresourcemanager', u'v1', http=httpObj, cache_discovery=False), httpObj)
@@ -23075,7 +23074,7 @@ CLASSROOM_ROLE_OWNER = u'OWNER'
 CLASSROOM_ROLE_STUDENT = u'STUDENT'
 CLASSROOM_ROLE_TEACHER = u'TEACHER'
 
-def _getCoursesOwnerInfo(croom, courseIds, coursesInfo):
+def _getCoursesOwnerInfo(croom, courseIds, coursesInfo, useAdminAccess):
   for courseId in courseIds:
     courseId = addCourseIdScope(courseId)
     if courseId not in coursesInfo:
@@ -23084,7 +23083,10 @@ def _getCoursesOwnerInfo(croom, courseIds, coursesInfo):
         info = callGAPI(croom.courses(), u'get',
                         throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                         id=courseId, fields=u'name,ownerId')
-        _, ocroom = buildGAPIServiceObject(API.CLASSROOM, u'uid:{0}'.format(info[u'ownerId']), 0, 0)
+        if not useAdminAccess:
+          _, ocroom = buildGAPIServiceObject(API.CLASSROOM, u'uid:{0}'.format(info[u'ownerId']), 0, 0)
+        else:
+          ocroom = croom
         if ocroom is not None:
           coursesInfo[courseId] = {u'name': info[u'name'], u'croom': ocroom}
       except GAPI.notFound:
@@ -23158,7 +23160,7 @@ CLASSROOM_ROLE_ENTITY_MAP = {
   }
 
 # gam <UserTypeEntity> create classroominvitation courses <CourseEntity> [role owner|student|teacher]
-#	[csvformat] [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
+#	[adminaccess|asadmin] [csvformat] [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
 def createClassroomInvitations(users):
   croom = buildGAPIObject(API.CLASSROOM)
   classroomEmails = {}
@@ -23166,7 +23168,7 @@ def createClassroomInvitations(users):
   coursesInfo = {}
   role = CLASSROOM_ROLE_STUDENT
   todrive = {}
-  csvFormat = formatJSON = False
+  csvFormat = formatJSON = useAdminAccess = False
   quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -23182,6 +23184,8 @@ def createClassroomInvitations(users):
       formatJSON = True
     elif myarg == u'quotechar':
       quotechar = getCharacter()
+    elif myarg in [u'adminaccess', u'asadmin']:
+      useAdminAccess = True
     else:
       unknownArgumentExit()
   if courseIds is None:
@@ -23194,7 +23198,7 @@ def createClassroomInvitations(users):
     titles, csvRows = initializeTitlesCSVfile(sortTitles)
   courseIdsLists = courseIds if isinstance(courseIds, dict) else None
   if courseIdsLists is None:
-    _getCoursesOwnerInfo(croom, courseIds, coursesInfo)
+    _getCoursesOwnerInfo(croom, courseIds, coursesInfo, useAdminAccess)
   entityType = CLASSROOM_ROLE_ENTITY_MAP[role]
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -23203,7 +23207,7 @@ def createClassroomInvitations(users):
     userEmail = _getClassroomEmail(croom, classroomEmails, userId, userId)
     if courseIdsLists:
       courseIds = courseIdsLists[user]
-      _getCoursesOwnerInfo(croom, courseIds, coursesInfo)
+      _getCoursesOwnerInfo(croom, courseIds, coursesInfo, useAdminAccess)
     jcount = len(courseIds)
     if csvFormat or not formatJSON:
       entityPerformActionNumItems([Ent.USER, userId], jcount, entityType, i, count)
@@ -32228,7 +32232,7 @@ def updatePhoto(users):
           entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], Msg.NOT_FOUND, i, count)
           continue
       except (httplib2.HttpLib2Error, httplib2.ServerNotFoundError,
-              google.auth.exceptions.TransportError, httplib2.CertificateValidationUnsupportedInPython31) as e:
+              google.auth.exceptions.TransportError) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], str(e), i, count)
         continue
     else:

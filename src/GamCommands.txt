@@ -1216,7 +1216,7 @@ gam print course-submissions [todrive <ToDriveAttribute>*] (course|class <Course
 # Classroom - Invitations
 
 gam <UserTypeEntity> create classroominvitation courses <CourseEntity> [role owner|student|teacher]
-        [csvformat] [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
+        [adminaccess|asadmin] [csvformat] [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
 gam <UserTypeEntity> accept classroominvitation (ids <ClassroomInvitationIDEntity>)|([courses <CourseEntity>] [role all|owner|student|teacher])
 gam <UserTypeEntity> delete classroominvitation (ids <ClassroomInvitationIDEntity>)|([courses <CourseEntity>] [role all|owner|student|teacher])
 gam <UserTypeEntity> show classroominvitations [role all|owner|student|teacher]
