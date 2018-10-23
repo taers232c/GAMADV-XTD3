@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.61.21'
+__version__ = u'4.61.22'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -4685,15 +4685,12 @@ def writeCSVfile(csvRows, titles, list_type, todrive, sortTitles=None, quotechar
       closeFile(csvFile)
       try:
         if GC.Values[GC.TODRIVE_CONVERSION]:
-          columns = len(titles[u'list'])
-          rows = len(csvRows)
-          cell_count = rows * columns
-          mimeType = MIMETYPE_GA_SPREADSHEET
-          result = callGAPI(drive.about(), u'get',
-                            fields=u'maxImportSizes')
-          if cell_count > 2000000 or columns > 256 or csvBytes.tell() > int(result[u'maxImportSizes'][MIMETYPE_GA_SPREADSHEET]):
+          result = callGAPI(drive.about(), u'get', fields=u'maxImportSizes')
+          if len(csvRows)*len(titles[u'list']) > 2000000 or csvFile.tell() > int(result[u'maxImportSizes'][MIMETYPE_GA_SPREADSHEET]):
             printKeyValueList([WARNING, Msg.RESULTS_TOO_LARGE_FOR_GOOGLE_SPREADSHEET])
             mimeType = u'text/csv'
+          else:
+            mimeType = MIMETYPE_GA_SPREADSHEET
         else:
           mimeType = u'text/csv'
         if not todrive[u'fileId']:
@@ -11769,25 +11766,15 @@ def _filterTimeRanges(activeTimeRanges, startDate, endDate):
       filteredTimeRanges.append(timeRange)
   return filteredTimeRanges
 
-def _filterDeviceFiles(deviceFiles, startTime, endTime):
+def _filterCreateReportTime(items, timeField, startTime, endTime):
   if startTime is None and endTime is None:
-    return deviceFiles
-  filteredDeviceFiles = []
-  for deviceFile in deviceFiles:
-    createTime, _ = iso8601.parse_date(deviceFile[u'createTime'])
-    if ((startTime is None) or (createTime >= startTime)) and ((endTime is None) or (createTime <= endTime)):
-      filteredDeviceFiles.append(deviceFile)
-  return filteredDeviceFiles
-
-def _filterReportTime(reports, startTime, endTime):
-  if startTime is None and endTime is None:
-    return reports
-  filteredReports = []
-  for report in reports:
-    reportTime, _ = iso8601.parse_date(report[u'reportTime'])
-    if ((startTime is None) or (reportTime >= startTime)) and ((endTime is None) or (reportTime <= endTime)):
-      filteredReports.append(report)
-  return filteredReports
+    return items
+  filteredItems = []
+  for item in items:
+    timeValue, _ = iso8601.parse_date(item[timeField])
+    if ((startTime is None) or (timeValue >= startTime)) and ((endTime is None) or (timeValue <= endTime)):
+      filteredItems.append(item)
+  return filteredItems
 
 def _getFilterDateTime():
   filterDate = getYYYYMMDD(returnDateTime=True)
@@ -11990,7 +11977,7 @@ def infoCrOSDevices(entityList):
           printKeyValueList([u'email', recentUser.get(u'email', [u'Unknown', u'UnmanagedUser'][recentUser[u'type'] == u'USER_TYPE_UNMANAGED'])])
           Ind.Decrement()
         Ind.Decrement()
-      deviceFiles = _filterDeviceFiles(cros.get(u'deviceFiles', []), startTime, endTime)
+      deviceFiles = _filterCreateReportTime(cros.get(u'deviceFiles', []), u'createTime', startTime, endTime)
       lenDF = len(deviceFiles)
       if lenDF:
         printKeyValueList([u'deviceFiles'])
@@ -12023,7 +12010,7 @@ def infoCrOSDevices(entityList):
         entityActionNotPerformedWarning([Ent.CROS_DEVICE, deviceId, Ent.DEVICE_FILE, downloadfile],
                                         Msg.NO_ENTITIES_FOUND.format(Ent.Plural(Ent.DEVICE_FILE)), i, count)
         Act.Set(Act.INFO)
-      cpuStatusReports = _filterReportTime(cros.get(u'cpuStatusReports', []), startTime, endTime)
+      cpuStatusReports = _filterCreateReportTime(cros.get(u'cpuStatusReports', []), u'reportTime', startTime, endTime)
       lenCSR = len(cpuStatusReports)
       if lenCSR:
         printKeyValueList([u'cpuStatusReports'])
@@ -12056,7 +12043,7 @@ def infoCrOSDevices(entityList):
             Ind.Decrement()
           Ind.Decrement()
         Ind.Decrement()
-      systemRamFreeReports = _filterReportTime(cros.get(u'systemRamFreeReports', []), startTime, endTime)
+      systemRamFreeReports = _filterCreateReportTime(cros.get(u'systemRamFreeReports', []), u'reportTime', startTime, endTime)
       lenSRFR = len(systemRamFreeReports)
       if lenSRFR:
         printKeyValueList([u'systemRamFreeReports'])
@@ -12295,10 +12282,10 @@ def doPrintCrOSDevices(entityList=None):
         row[attribKey] = value
     activeTimeRanges = _filterTimeRanges(cros.get(u'activeTimeRanges', []) if selectedLists.get(u'activeTimeRanges') else [], startDate, endDate)
     recentUsers = cros.get(u'recentUsers', []) if selectedLists.get(u'recentUsers') else []
-    deviceFiles = _filterDeviceFiles(cros.get(u'deviceFiles', []) if selectedLists.get(u'deviceFiles') else [], startTime, endTime)
-    cpuStatusReports = _filterReportTime(cros.get(u'cpuStatusReports', []) if selectedLists.get(u'cpuStatusReports') else [], startTime, endTime)
+    deviceFiles = _filterCreateReportTime(cros.get(u'deviceFiles', []) if selectedLists.get(u'deviceFiles') else [], u'createTime', startTime, endTime)
+    cpuStatusReports = _filterCreateReportTime(cros.get(u'cpuStatusReports', []) if selectedLists.get(u'cpuStatusReports') else [], u'reportTime', startTime, endTime)
     diskVolumeReports = cros.get(u'diskVolumeReports', []) if selectedLists.get(u'diskVolumeReports') else []
-    systemRamFreeReports = _filterReportTime(cros.get(u'systemRamFreeReports', []) if selectedLists.get(u'systemRamFreeReports') else [], startTime, endTime)
+    systemRamFreeReports = _filterCreateReportTime(cros.get(u'systemRamFreeReports', []) if selectedLists.get(u'systemRamFreeReports') else [], u'reportTime', startTime, endTime)
     if noLists or (not activeTimeRanges and not recentUsers and not deviceFiles and
                    not cpuStatusReports and not diskVolumeReports and not systemRamFreeReports):
       addRowTitlesToCSVfile(row, csvRows, titles)
@@ -12580,7 +12567,7 @@ def doPrintCrOSActivity(entityList=None):
       row[u'recentUsers.email'] = delimiter.join([recent_user.get(u'email', [u'Unknown', u'UnmanagedUser'][recent_user[u'type'] == u'USER_TYPE_UNMANAGED']) for recent_user in recentUsers[:min(lenRU, listLimit or lenRU)]])
       csvRows.append(row)
     if selectDeviceFiles:
-      deviceFiles = _filterDeviceFiles(cros.get(u'deviceFiles', []), startTime, endTime)
+      deviceFiles = _filterCreateReportTime(cros.get(u'deviceFiles', []), u'createTime', startTime, endTime)
       lenDF = len(deviceFiles)
       for deviceFile in deviceFiles[:min(lenDF, listLimit or lenDF)]:
         new_row = row.copy()
@@ -13307,14 +13294,17 @@ GROUP_DELIVERY_SETTINGS_MAP = {
   u'digest': u'DIGEST',
   u'disabled': U'DISABLED',
   u'none': u'NONE',
-  u'noemail': u'NONE',
+  u'nomail': u'NONE',
   }
 
 # gam update groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] [copyfrom <GroupItem>] <GroupAttributes>
-# gam update groups <GroupEntity> create|add [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended] [deliverysettings allmail|daily|digest|none|disabled] [preview] <UserTypeEntity>
+# gam update groups <GroupEntity> create|add [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended]
+#	[delivery allmail|daily|digest|none|disabled] [preview] <UserTypeEntity>
 # gam update groups <GroupEntity> delete|remove [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended] [preview] <UserTypeEntity>
-# gam update groups <GroupEntity> sync [member|manager|owner] [usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended] [preview] <UserTypeEntity>
-# gam update groups <GroupEntity> update [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended] [deliverysettings allmail|daily|digest|none|disabled] [preview] <UserTypeEntity>
+# gam update groups <GroupEntity> sync [member|manager|owner] [usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended]
+#	[delivery allmail|daily|digest|none|disabled] [preview] <UserTypeEntity>
+# gam update groups <GroupEntity> update [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended]
+#	[delivery allmail|daily|digest|none|disabled] [preview] <UserTypeEntity>
 # gam update groups <GroupEntity> clear [member] [manager] [owner] [notsuspended|suspended] [preview]
 def doUpdateGroups():
 
@@ -13324,7 +13314,7 @@ def doUpdateGroups():
     return (role, groupMemberType)
 
   def getDeliverySettings():
-    if checkArgumentPresent(u'deliverysettings'):
+    if checkArgumentPresent([u'delivery', u'deliverysettings']):
       return getChoice(GROUP_DELIVERY_SETTINGS_MAP, mapChoice=True)
     else:
       return DELIVERY_SETTINGS_UNDEFINED
@@ -13353,6 +13343,14 @@ def doUpdateGroups():
       entityActionPerformed([Ent.GROUP, group, role, normalizeEmailAddressOrUID(member, checkForCustomerId=True)], j, jcount)
     Ind.Decrement()
 
+  def _showAction(group, role, delivery_settings, member, j, jcount):
+    kvList = []
+    if role is not None and role != u'None':
+      kvList.append(u'{0}: {1}'.format(Ent.Singular(Ent.ROLE), role))
+    if delivery_settings != DELIVERY_SETTINGS_UNDEFINED:
+      kvList.append(u'{0}: {1}'.format(Ent.Singular(Ent.DELIVERY), delivery_settings))
+    entityActionPerformedMessage([Ent.GROUP, group, Ent.MEMBER, member], u', '.join(kvList), j, jcount)
+
   def _addMember(group, i, count, role, delivery_settings, member, j, jcount):
     body = {u'role': role}
     if member.find(u'@') != -1:
@@ -13367,29 +13365,29 @@ def doUpdateGroups():
                                                          GAPI.INVALID_MEMBER, GAPI.CYCLIC_MEMBERSHIPS_NOT_ALLOWED, GAPI.CONDITION_NOT_MET],
                retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                groupKey=group, body=body, fields=u'')
-      entityActionPerformed([Ent.GROUP, group, role, member], j, jcount)
+      _showAction(group, role, delivery_settings, member, j, jcount)
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
       entityUnknownWarning(Ent.GROUP, group, i, count)
     except (GAPI.duplicate, GAPI.memberNotFound, GAPI.resourceNotFound,
             GAPI.invalidMember, GAPI.cyclicMembershipsNotAllowed, GAPI.conditionNotMet) as e:
-      entityActionFailedWarning([Ent.GROUP, group, role, member], str(e), j, jcount)
+      entityActionFailedWarning([Ent.GROUP, group, Ent.MEMBER, member], str(e), j, jcount)
 
   def _handleDuplicateAdd(group, i, count, role, delivery_settings, member, j, jcount):
     try:
       result = callGAPI(cd.members(), u'get',
                         throw_reasons=[GAPI.MEMBER_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND],
                         groupKey=group, memberKey=member, fields=u'role')
-      entityActionFailedWarning([Ent.GROUP, group, role, member], Msg.DUPLICATE_ALREADY_A_ROLE.format(Ent.Singular(result[u'role'])), j, jcount)
+      entityActionFailedWarning([Ent.GROUP, group, Ent.MEMBER, member], Msg.DUPLICATE_ALREADY_A_ROLE.format(Ent.Singular(result[u'role'])), j, jcount)
       return
     except (GAPI.memberNotFound, GAPI.resourceNotFound):
       pass
-    printEntityKVList([Ent.GROUP, group, role, member], [Msg.MEMBERSHIP_IS_PENDING_WILL_DELETE_ADD_TO_ACCEPT], j, jcount)
+    printEntityKVList([Ent.GROUP, group, Ent.MEMBER, member], [Msg.MEMBERSHIP_IS_PENDING_WILL_DELETE_ADD_TO_ACCEPT], j, jcount)
     try:
       callGAPI(cd.members(), u'delete',
                throw_reasons=[GAPI.MEMBER_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND],
                groupKey=group, memberKey=member)
     except (GAPI.memberNotFound, GAPI.resourceNotFound):
-      entityActionFailedWarning([Ent.GROUP, group, role, member], Msg.DUPLICATE, j, jcount)
+      entityActionFailedWarning([Ent.GROUP, group, Ent.MEMBER, member], Msg.DUPLICATE, j, jcount)
       return
     _addMember(group, i, count, role, delivery_settings, member, j, jcount)
 
@@ -13403,7 +13401,7 @@ def doUpdateGroups():
   def _callbackAddGroupMembers(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
-      entityActionPerformed([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      _showAction(ri[RI_ENTITY], ri[RI_ROLE], ri[RI_OPTION], ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
       http_status, reason, message = checkGAPIError(exception)
       if reason in GAPI.MEMBERS_THROW_REASONS:
@@ -13412,7 +13410,7 @@ def doUpdateGroups():
         _handleDuplicateAdd(ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]), ri[RI_ROLE], ri[RI_OPTION], ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
       elif reason not in GAPI.DEFAULT_RETRY_REASONS+GAPI.MEMBERS_RETRY_REASONS:
         errMsg = getHTTPError(_ADD_MEMBER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
-        entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], Ent.MEMBER, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
       else:
         if addBatchParms[u'adjust']:
           addBatchParms[u'adjust'] = False
@@ -13474,11 +13472,11 @@ def doUpdateGroups():
                throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER, GAPI.CONDITION_NOT_MET],
                retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                groupKey=group, memberKey=member)
-      entityActionPerformed([Ent.GROUP, group, role, member], j, jcount)
+      _showAction(group, role, DELIVERY_SETTINGS_UNDEFINED, member, j, jcount)
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
       entityUnknownWarning(Ent.GROUP, group, i, count)
     except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet) as e:
-      entityActionFailedWarning([Ent.GROUP, group, role, member], str(e), j, jcount)
+      entityActionFailedWarning([Ent.GROUP, group, Ent.MEMBER, member], str(e), j, jcount)
 
   _REMOVE_MEMBER_REASON_TO_MESSAGE_MAP = {GAPI.MEMBER_NOT_FOUND: u'{0} {1}'.format(Msg.NOT_A, Ent.Singular(Ent.MEMBER)),
                                           GAPI.CONDITION_NOT_MET: u'{0} {1}'.format(Msg.NOT_A, Ent.Singular(Ent.MEMBER)),
@@ -13487,14 +13485,14 @@ def doUpdateGroups():
   def _callbackRemoveGroupMembers(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
-      entityActionPerformed([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      _showAction(ri[RI_ENTITY], ri[RI_ROLE], DELIVERY_SETTINGS_UNDEFINED, ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
       http_status, reason, message = checkGAPIError(exception)
       if reason in GAPI.MEMBERS_THROW_REASONS:
         entityUnknownWarning(Ent.GROUP, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
       elif reason not in GAPI.DEFAULT_RETRY_REASONS+GAPI.MEMBERS_RETRY_REASONS:
         errMsg = getHTTPError(_REMOVE_MEMBER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
-        entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], Ent.MEMBER, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
       else:
         if remBatchParms[u'adjust']:
           remBatchParms[u'adjust'] = False
@@ -13549,9 +13547,9 @@ def doUpdateGroups():
     if role is not None:
       body[u'role'] = role
     else:
-      role = Ent.ROLE_MEMBER
       if delivery_settings == DELIVERY_SETTINGS_UNDEFINED:
         # Backwards compatability; if neither role or delivery is specified, role = MEMBER
+        role = Ent.ROLE_MEMBER
         body[u'role'] = role
     if delivery_settings != DELIVERY_SETTINGS_UNDEFINED:
       body[u'delivery_settings'] = delivery_settings
@@ -13564,28 +13562,28 @@ def doUpdateGroups():
                throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER],
                retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                groupKey=group, memberKey=member, body=body, fields=u'')
-      entityActionPerformed([Ent.GROUP, group, role, member], j, jcount)
+      _showAction(group, role, delivery_settings, member, j, jcount)
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
       entityUnknownWarning(Ent.GROUP, group, i, count)
     except (GAPI.memberNotFound, GAPI.invalidMember) as e:
-      entityActionFailedWarning([Ent.GROUP, group, role, member], str(e), j, jcount)
+      entityActionFailedWarning([Ent.GROUP, group, Ent.MEMBER, member], str(e), j, jcount)
 
   def _callbackUpdateGroupMembers(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
-      entityActionPerformed([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      _showAction(ri[RI_ENTITY], ri[RI_ROLE], ri[RI_OPTION], ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
       http_status, reason, message = checkGAPIError(exception)
       if reason in GAPI.MEMBERS_THROW_REASONS:
         entityUnknownWarning(Ent.GROUP, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
       else:
         errMsg = getHTTPError(_UPDATE_MEMBER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
-        entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], Ent.MEMBER, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
   def _batchUpdateGroupMembers(group, i, count, updateMembers, role, delivery_settings):
     Act.Set([Act.UPDATE, Act.UPDATE_PREVIEW][preview])
     jcount = len(updateMembers)
-    entityPerformActionNumItems([Ent.GROUP, group], jcount, role or Ent.ROLE_MEMBER, i, count)
+    entityPerformActionNumItems([Ent.GROUP, group], jcount, Ent.MEMBER, i, count)
     if jcount == 0:
       return
     if preview:
@@ -13728,6 +13726,7 @@ def doUpdateGroups():
     role, groupMemberType = _getRoleGroupMemberType()
     syncOperation = getChoice([u'addonly', 'removeonly'], defaultChoice=u'addremove')
     isSuspended = _getOptionalIsSuspended()
+    delivery_settings = getDeliverySettings()
     preview = checkArgumentPresent(u'preview')
     _, syncMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
     groupMemberLists = syncMembers if isinstance(syncMembers, dict) else None
@@ -13759,7 +13758,7 @@ def doUpdateGroups():
         if syncOperation != u'removeonly':
           _batchAddGroupMembers(group, i, count,
                                 [syncMembersMap.get(emailAddress, emailAddress) for emailAddress in syncMembersSet-currentMembersSet],
-                                role, DELIVERY_SETTINGS_UNDEFINED)
+                                role, delivery_settings)
   elif CL_subCommand == u'update':
     role, groupMemberType = _getRoleGroupMemberType(defaultRole=None)
     isSuspended = _getOptionalIsSuspended()
@@ -14569,6 +14568,48 @@ def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, cou
       elif member[u'type'] == u'GROUP':
         getGroupMembers(cd, member[u'email'], memberRoles, membersList, membersSet, i, count, isSuspended, noduplicates, recursive, level+1)
 
+INFO_GROUPMEMBERS_FIELDS = [u'role', u'type', u'status', u'delivery_settings']
+
+# gam <UserTypeEntity> info member <GroupEntity>
+def infoGroupMembers(entityList):
+  cd = buildGAPIObject(API.DIRECTORY)
+  groups = getEntityList(Cmd.OB_GROUP_ENTITY)
+  checkForExtraneousArguments()
+  fields = u','.join(INFO_GROUPMEMBERS_FIELDS)
+  groupsLists = groups if isinstance(groups, dict) else None
+  i, count, entityList = getEntityArgument(entityList)
+  for user in entityList:
+    i += 1
+    memberKey = normalizeEmailAddressOrUID(user)
+    if groupsLists:
+      groups = groupsLists[user]
+    jcount = len(groups)
+    entityPerformActionNumItems([Ent.USER, memberKey], jcount, Ent.GROUP, i, count)
+    Ind.Increment()
+    j = 0
+    for group in groups:
+      j += 1
+      groupKey = normalizeEmailAddressOrUID(group)
+      try:
+        result = callGAPI(cd.members(), u'get',
+                          throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND], retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
+                          groupKey=groupKey, memberKey=memberKey, fields=fields)
+        result.setdefault(u'role', Ent.ROLE_MEMBER)
+        printEntity([Ent.GROUP, groupKey], j, jcount)
+        Ind.Increment()
+        for field in INFO_GROUPMEMBERS_FIELDS:
+          printKeyValueList([field, result[field]])
+        Ind.Decrement()
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
+        entityActionFailedWarning([Ent.GROUP, group], str(e), j, jcount)
+      except GAPI.memberNotFound:
+        entityActionFailedWarning([Ent.MEMBER, memberKey], Msg.DOES_NOT_EXIST, j, jcount)
+    Ind.Decrement()
+
+# gam info member <UserTypeEntity> <GroupEntity>
+def doInfoGroupMembers(entityList):
+  infoGroupMembers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)[1])
+
 GROUPMEMBERS_FIELDS_CHOICE_MAP = {
   u'deliverysettings': u'delivery_settings',
   u'email': u'email',
@@ -14582,7 +14623,7 @@ GROUPMEMBERS_FIELDS_CHOICE_MAP = {
   u'useremail': u'email',
   }
 
-GROUPMEMBERS_DEFAULT_FIELDS = [u'id', u'role', u'group', u'email', u'type', u'status', u'delivery_settings']
+GROUPMEMBERS_DEFAULT_FIELDS = [u'id', u'role', u'group', u'email', u'type', u'status']
 
 # gam print group-members|groups-members [todrive <ToDriveAttributes>*]
 #	([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns|group_susp <GroupItem>]|[select <GroupEntity>] [notsuspended|suspended]
@@ -36380,6 +36421,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_INSTANCE:		doInfoInstance,
       Cmd.ARG_GAL:		doInfoGAL,
       Cmd.ARG_GROUP:		doInfoGroups,
+      Cmd.ARG_GROUPMEMBERS:	doInfoGroupMembers,
       Cmd.ARG_MOBILE:		doInfoMobileDevices,
       Cmd.ARG_NOTIFICATION:	doInfoNotifications,
       Cmd.ARG_ORG:		doInfoOrg,
@@ -36560,6 +36602,8 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_LICENSES:	Cmd.ARG_LICENSE,
   Cmd.ARG_MATTER:	Cmd.ARG_VAULTMATTER,
   Cmd.ARG_MATTERS:	Cmd.ARG_VAULTMATTER,
+  Cmd.ARG_MEMBER:	Cmd.ARG_GROUPMEMBERS,
+  Cmd.ARG_MEMBERS:	Cmd.ARG_GROUPMEMBERS,
   Cmd.ARG_MOBILES:	Cmd.ARG_MOBILE,
   Cmd.ARG_NICKNAME:	Cmd.ARG_ALIAS,
   Cmd.ARG_NICKNAMES:	Cmd.ARG_ALIAS,
@@ -36959,6 +37003,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_EVENT:		infoCalendarEvents,
       Cmd.ARG_FILTER:		infoFilters,
       Cmd.ARG_FORWARDINGADDRESS:	infoForwardingAddresses,
+      Cmd.ARG_GROUPMEMBERS:	infoGroupMembers,
       Cmd.ARG_SENDAS:		infoSendAs,
       Cmd.ARG_SHEET:		infoSheets,
       Cmd.ARG_SITE:		infoUserSites,
@@ -37131,6 +37176,7 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_FILTERS:	Cmd.ARG_FILTER,
   Cmd.ARG_FORWARDINGADDRESSES:	Cmd.ARG_FORWARDINGADDRESS,
   Cmd.ARG_GROUPS:	Cmd.ARG_GROUP,
+  Cmd.ARG_GROUPSMEMBERS:	Cmd.ARG_GROUPMEMBERS,
   Cmd.ARG_GUARDIANINVITATIONS:	Cmd.ARG_GUARDIANINVITATION,
   Cmd.ARG_GUARDIANINVITE:	Cmd.ARG_GUARDIANINVITATION,
   Cmd.ARG_GUARDIANS:	Cmd.ARG_GUARDIAN,
@@ -37140,6 +37186,8 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_LICENCE:	Cmd.ARG_LICENSE,
   Cmd.ARG_LICENCES:	Cmd.ARG_LICENSE,
   Cmd.ARG_LICENSES:	Cmd.ARG_LICENSE,
+  Cmd.ARG_MEMBER:	Cmd.ARG_GROUPMEMBERS,
+  Cmd.ARG_MEMBERS:	Cmd.ARG_GROUPMEMBERS,
   Cmd.ARG_MESSAGES:	Cmd.ARG_MESSAGE,
   Cmd.ARG_OAUTH:	Cmd.ARG_TOKEN,
   Cmd.ARG_POP3:		Cmd.ARG_POP,

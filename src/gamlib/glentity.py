@@ -85,6 +85,7 @@ class GamEntity(object):
   DEFAULT_LANGUAGE = u'dfla'
   DELEGATE = u'dele'
   DELETED_USER = u'delu'
+  DELIVERY = u'deli'
   DEVICE_FILE = u'devf'
   DIRECTORY = u'drct'
   DISCOVERY_JSON_FILE = u'disc'
@@ -277,6 +278,7 @@ class GamEntity(object):
     DEFAULT_LANGUAGE: [u'Default Language', u'Default Language'],
     DELEGATE: [u'Delegates', u'Delegate'],
     DELETED_USER: [u'Deleted Users', u'Deleted User'],
+    DELIVERY: [u'Delivery', u'Delivery'],
     DEVICE_FILE: [u'Device Files', u'Device File'],
     DIRECTORY: [u'Directories', u'Directory'],
     DISCOVERY_JSON_FILE: [u'Discovery File', u'Discovery File'],

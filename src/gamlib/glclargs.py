@@ -369,6 +369,8 @@ class GamCLArgs(object):
   ARG_LOGO = u'logo'
   ARG_MATTER = u'matter'
   ARG_MATTERS = u'matters'
+  ARG_MEMBER = u'member'
+  ARG_MEMBERS = u'members'
   ARG_MESSAGE = u'message'
   ARG_MESSAGES = u'messages'
   ARG_MOBILE = u'mobile'

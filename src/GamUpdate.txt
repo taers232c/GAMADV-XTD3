@@ -1,9 +1,22 @@
+4.66.22
+
+Added delivery option to gam update group create/sync/update; this allows you to set the delivery option for group members.
+gam update group|groups <GroupEntity> create|add [owner|manager|member] [usersonly|groupsonly] [notsuspended|suspended]
+        [delivery allmail|abridged|daily|digest|none|nomail|disabled] [preview] <UserTypeEntity>
+gam update group|groups <GroupEntity> sync [owner|manager|member] [usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended]
+        [delivery allmail|abridged|daily|digest|none|nomail|disabled] [preview] <UserTypeEntity>
+gam update group|groups <GroupEntity> update [owner|manager|member] [usersonly|groupsonly] [notsuspended|suspended]
+        [delivery allmail|abridged|daily|digest|none|nomail|disabled] [preview] <UserTypeEntity>
+
+At the moment, the Google API does not provide delivery information when you list the members of a group, you must
+make a API call per member to get delivery information. The following commands will display delivery information.
+gam <UserTypeEntity> info member|group-members <GroupEntity>
+gam info member|group-members <UserTypeEntity> <GroupEntity>
+
 4.61.21
 
 Added adminaccess option to gam create classroominvitation. By default, classroom invitations are issued by
 the owner of the course, the adminaccess option causes the invitations to be issued by the admin named in oauth2.txt.
-gam <UserTypeEntity> create classroominvitation courses <CourseEntity> [role owner|student|teacher]
-        [adminaccess|asadmin] [csvformat] [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
 
 4.61.20
 
