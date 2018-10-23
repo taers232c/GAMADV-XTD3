@@ -14584,7 +14584,7 @@ def infoGroupMembers(entityList):
     if groupsLists:
       groups = groupsLists[user]
     jcount = len(groups)
-    entityPerformActionNumItems([Ent.USER, memberKey], jcount, Ent.GROUP, i, count)
+    entityPerformActionNumItems([Ent.MEMBER, memberKey], jcount, Ent.GROUP, i, count)
     Ind.Increment()
     j = 0
     for group in groups:
