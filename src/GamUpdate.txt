@@ -1,3 +1,7 @@
+4.61.24
+
+Fixed bug in gam print/show messages that caused a trap.
+
 4.61.23
 
 Updated gam print groupmembers to get delivery options for members; you must explicitly specify delivery in the fields option.
