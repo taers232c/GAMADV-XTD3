@@ -10067,7 +10067,7 @@ class ContactsManager(object):
     def AppendItemToFieldsList(fieldName, fieldValue, checkBlankField=None):
       fields.setdefault(fieldName, [])
       if checkBlankField is None or fieldValue[checkBlankField]:
-        if fieldValue.get(u'primary', u'false') == u'true':
+        if isinstance(fieldValue, dict) and fieldValue.get(u'primary', u'false') == u'true':
           for citem in fields[fieldName]:
             if citem.get(u'primary', u'false') == u'true':
               Cmd.SetLocation(primary[u'location']-1)
