@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.61.22'
+__version__ = u'4.61.23'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -705,7 +705,7 @@ def missingChoiceExit(choices):
 
 # Check if argument present
 def checkArgumentPresent(choices, required=False):
-  choiceList = choices if isinstance(choices, list) else [choices]
+  choiceList = choices if isinstance(choices, (list, set)) else [choices]
   if Cmd.ArgumentsRemaining():
     choice = Cmd.Current().strip().lower().replace(u'_', u'')
     if choice:
@@ -9666,8 +9666,6 @@ class ContactsManager(object):
     u'private': u'private',
     }
 
-  PRIMARY_NOTPRIMARY_CHOICE_MAP = {u'primary': u'true', u'notprimary': u'false',}
-
   CONTACT_NAME_FIELDS = (
     CONTACT_NAME_PREFIX,
     CONTACT_GIVEN_NAME,
@@ -10049,11 +10047,34 @@ class ContactsManager(object):
         item[u'label'] = getString(Cmd.OB_STRING)
       return item
 
+    def PrimaryNotPrimary(pnp, entry):
+      if pnp == u'notprimary':
+        entry[u'primary'] = u'false'
+        return True
+      if pnp == u'primary':
+        entry[u'primary'] = u'true'
+        primary[u'location'] = Cmd.Location()
+        return True
+      return False
+
+    def GetPrimaryNotPrimaryChoice(entry):
+      if not getChoice({u'primary': True, u'notprimary': False}, mapChoice=True):
+        entry[u'primary'] = u'false'
+      else:
+        entry[u'primary'] = u'true'
+        primary[u'location'] = Cmd.Location()
+
     def AppendItemToFieldsList(fieldName, fieldValue, checkBlankField=None):
       fields.setdefault(fieldName, [])
       if checkBlankField is None or fieldValue[checkBlankField]:
+        if fieldValue.get(u'primary', u'false') == u'true':
+          for citem in fields[fieldName]:
+            if citem.get(u'primary', u'false') == u'true':
+              Cmd.SetLocation(primary[u'location']-1)
+              usageErrorExit(Msg.MULTIPLE_ITEMS_MARKED_PRIMARY.format(fieldName))
         fields[fieldName].append(fieldValue)
 
+    primary = {}
     while Cmd.ArgumentsRemaining():
       fieldName = getChoice(ContactsManager.CONTACT_ARGUMENT_TO_PROPERTY_MAP, mapChoice=True)
       if fieldName == CONTACT_JSON:
@@ -10081,8 +10102,7 @@ class ContactsManager(object):
             value = getString(Cmd.OB_STRING, minLen=0)
             if value:
               entry[ContactsManager.ADDRESS_ARGUMENT_TO_FIELD_MAP[argument]] = value.replace(u'\\n', u'\n')
-          elif argument in ContactsManager.PRIMARY_NOTPRIMARY_CHOICE_MAP:
-            entry[u'primary'] = ContactsManager.PRIMARY_NOTPRIMARY_CHOICE_MAP[argument]
+          elif PrimaryNotPrimary(argument, entry):
             break
           else:
             unknownArgumentExit()
@@ -10092,14 +10112,14 @@ class ContactsManager(object):
           continue
         entry = InitArrayItem(ContactsManager.CALENDAR_TYPE_ARGUMENT_TO_REL)
         entry[u'value'] = getString(Cmd.OB_STRING, minLen=0)
-        entry[u'primary'] = getChoice(ContactsManager.PRIMARY_NOTPRIMARY_CHOICE_MAP, mapChoice=True)
+        GetPrimaryNotPrimaryChoice(entry)
         AppendItemToFieldsList(fieldName, entry, u'value')
       elif fieldName == CONTACT_EMAILS:
         if CheckClearFieldsList(fieldName):
           continue
         entry = InitArrayItem(ContactsManager.EMAIL_TYPE_ARGUMENT_TO_REL)
         entry[u'value'] = getEmailAddress(noUid=True, minLen=0)
-        entry[u'primary'] = getChoice(ContactsManager.PRIMARY_NOTPRIMARY_CHOICE_MAP, mapChoice=True)
+        GetPrimaryNotPrimaryChoice(entry)
         AppendItemToFieldsList(fieldName, entry, u'value')
       elif fieldName == CONTACT_EVENTS:
         if CheckClearFieldsList(fieldName):
@@ -10124,7 +10144,7 @@ class ContactsManager(object):
         entry = InitArrayItem(ContactsManager.IM_TYPE_ARGUMENT_TO_REL)
         entry[u'protocol'] = getChoice(ContactsManager.IM_PROTOCOL_TO_REL_MAP, mapChoice=True)
         entry[u'value'] = getString(Cmd.OB_STRING, minLen=0)
-        entry[u'primary'] = getChoice(ContactsManager.PRIMARY_NOTPRIMARY_CHOICE_MAP, mapChoice=True)
+        GetPrimaryNotPrimaryChoice(entry)
         AppendItemToFieldsList(fieldName, entry, u'value')
       elif fieldName == CONTACT_JOTS:
         if CheckClearFieldsList(fieldName):
@@ -10144,8 +10164,7 @@ class ContactsManager(object):
             value = getString(Cmd.OB_STRING, minLen=0)
             if value:
               entry[ContactsManager.ORGANIZATION_ARGUMENT_TO_FIELD_MAP[argument]] = value
-          elif argument in ContactsManager.PRIMARY_NOTPRIMARY_CHOICE_MAP:
-            entry[u'primary'] = ContactsManager.PRIMARY_NOTPRIMARY_CHOICE_MAP[argument]
+          elif PrimaryNotPrimary(argument, entry):
             break
           else:
             unknownArgumentExit()
@@ -10155,7 +10174,7 @@ class ContactsManager(object):
           continue
         entry = InitArrayItem(ContactsManager.PHONE_TYPE_ARGUMENT_TO_REL)
         entry[u'value'] = getString(Cmd.OB_STRING, minLen=0)
-        entry[u'primary'] = getChoice(ContactsManager.PRIMARY_NOTPRIMARY_CHOICE_MAP, mapChoice=True)
+        GetPrimaryNotPrimaryChoice(entry)
         AppendItemToFieldsList(fieldName, entry, u'value')
       elif fieldName == CONTACT_RELATIONS:
         if CheckClearFieldsList(fieldName):
@@ -10175,7 +10194,7 @@ class ContactsManager(object):
           continue
         entry = InitArrayItem(ContactsManager.WEBSITE_TYPE_ARGUMENT_TO_REL)
         entry[u'value'] = getString(Cmd.OB_STRING, minLen=0)
-        entry[u'primary'] = getChoice(ContactsManager.PRIMARY_NOTPRIMARY_CHOICE_MAP, mapChoice=True)
+        GetPrimaryNotPrimaryChoice(entry)
         AppendItemToFieldsList(fieldName, entry, u'value')
       elif fieldName == CONTACT_GROUPS:
         if entityType != Ent.USER:
@@ -10526,7 +10545,7 @@ def _initContactQueryAttributes():
 def _getContactQueryAttributes(contactQuery, myarg, entityType, errorOnUnknown, allowOutputAttributes):
   if myarg == u'query':
     contactQuery[u'query'] = getString(Cmd.OB_QUERY)
-  elif myarg == u'contactgroup':
+  elif myarg in [u'contactgroup', u'selectcontactgroup']:
     if entityType == Ent.USER:
       contactQuery[u'contactGroup'] = getString(Cmd.OB_CONTACT_GROUP_ITEM)
     else:
@@ -10558,9 +10577,11 @@ def _getContactQueryAttributes(contactQuery, myarg, entityType, errorOnUnknown, 
     return False
   return True
 
+CONTACT_SELECT_ARGUMENTS = set([u'query', u'contactgroup', u'selectcontactgroup', u'emailmatchpattern', u'emailmatchtype', u'updatedmin'])
+
 def _getContactEntityList(entityType, errorOnUnknown, allowOutputAttributes):
   contactQuery = _initContactQueryAttributes()
-  if Cmd.PeekArgumentPresent([u'query', u'contactgroup', u'emailmatchpattern', u'updatedmin']):
+  if Cmd.PeekArgumentPresent(CONTACT_SELECT_ARGUMENTS):
     entityList = None
     queriedContacts = True
     while Cmd.ArgumentsRemaining():
@@ -10603,6 +10624,22 @@ def contactEmailAddressMatches(contactsManager, contactQuery, fields):
       if not emailMatchType or emailMatchType == item.get(u'label') or emailMatchType == contactsManager.CONTACT_ARRAY_PROPERTIES[CONTACT_EMAILS][u'relMap'].get(item[u'rel'], u'custom'):
         return True
   return False
+
+def clearEmailAddressMatches(contactsManager, contactClear, fields):
+  savedAddresses = []
+  updateRequired = False
+  emailMatchType = contactClear[u'emailClearType']
+  for item in fields.get(CONTACT_EMAILS, []):
+    if (contactClear[u'emailClearPattern'].match(item[u'value']) and
+        (not emailMatchType or
+         emailMatchType == item.get(u'label') or
+         emailMatchType == contactsManager.CONTACT_ARRAY_PROPERTIES[CONTACT_EMAILS][u'relMap'].get(item[u'rel'], u'custom'))):
+      updateRequired = True
+    else:
+      savedAddresses.append(item)
+  if updateRequired:
+    fields[CONTACT_EMAILS] = savedAddresses
+  return updateRequired
 
 def getContactGroupsInfo(contactsManager, contactsObject, entityType, entityName, i, count):
   uri = contactsObject.GetContactGroupFeedUri(contact_list=entityName)
@@ -10686,7 +10723,7 @@ def _createContact(users, entityType):
     except GDATA.serviceNotApplicable:
       entityUnknownWarning(entityType, user, i, count)
 
-# gam <UserTypeEntity> create contact <ContactAttributes>+
+# gam <UserTypeEntity> create contact [contactgroup <ContactGroupItem>] <ContactAttributes>+
 def createUserContact(users):
   _createContact(users, Ent.USER)
 
@@ -10694,10 +10731,23 @@ def createUserContact(users):
 def doCreateDomainContact():
   _createContact([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
-def _updateContacts(users, entityType):
+def _clearUpdateContacts(users, entityType, updateContacts):
   contactsManager = ContactsManager()
   entityList, contactIdLists, contactQuery, queriedContacts = _getContactEntityList(entityType, False, False)
-  update_fields = contactsManager.GetContactFields(entityType)
+  if updateContacts:
+    update_fields = contactsManager.GetContactFields(entityType)
+  else:
+    contactClear = {u'emailClearPattern': contactQuery[u'emailMatchPattern'], u'emailClearType': contactQuery[u'emailMatchType']}
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if myarg == u'emailclearpattern':
+        contactClear[u'emailClearPattern'] = getREPattern(re.IGNORECASE)
+      elif myarg == u'emailcleartype':
+        contactClear[u'emailClearType'] = getString(Cmd.OB_CONTACT_EMAIL_TYPE)
+      else:
+        unknownArgumentExit()
+    if not contactClear[u'emailClearPattern']:
+      missingArgumentExit(u'emailClearPattern')
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -10719,7 +10769,7 @@ def _updateContacts(users, entityType):
         continue
     j = 0
     jcount = len(entityList)
-    entityPerformActionNumItems([entityType, user], jcount, Ent.CONTACT, i, count)
+    entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, Ent.CONTACT, i, count)
     if jcount == 0:
       setSysExitRC(NO_ENTITIES_FOUND)
       continue
@@ -10738,19 +10788,25 @@ def _updateContacts(users, entityType):
         else:
           contactId = contactsManager.GetContactShortId(contact)
           fields = contactsManager.ContactToFields(contact)
-          if contactQuery[u'emailMatchPattern'] and not contactEmailAddressMatches(contactsManager, contactQuery, fields):
+          if contactQuery[u'emailMatchPattern']:
+            if not contactEmailAddressMatches(contactsManager, contactQuery, fields):
+              continue
+        if updateContacts:
+          if update_fields.get(CONTACT_GROUPS_LIST) and not contactGroupsList:
+            result, contactGroupsList = validateContactGroupsList(contactsManager, contactsObject, contactId, update_fields, entityType, user, i, count)
+            if not result:
+              break
+          for field in update_fields:
+            fields[field] = update_fields[field]
+          contactEntry = contactsManager.FieldsToContact(fields)
+          if contactGroupsList:
+            contactsManager.AddContactGroupsToContact(contactsObject, contactEntry, contactGroupsList, user)
+          elif fields.get(CONTACT_GROUPS):
+            contactsManager.AddContactGroupsToContact(contactsObject, contactEntry, fields[CONTACT_GROUPS], user)
+        else:
+          if not clearEmailAddressMatches(contactsManager, contactClear, fields):
             continue
-        if update_fields.get(CONTACT_GROUPS_LIST) and not contactGroupsList:
-          result, contactGroupsList = validateContactGroupsList(contactsManager, contactsObject, contactId, update_fields, entityType, user, i, count)
-          if not result:
-            break
-        for field in update_fields:
-          fields[field] = update_fields[field]
-        contactEntry = contactsManager.FieldsToContact(fields)
-        if contactGroupsList:
-          contactsManager.AddContactGroupsToContact(contactsObject, contactEntry, contactGroupsList, user)
-        elif fields.get(CONTACT_GROUPS):
-          contactsManager.AddContactGroupsToContact(contactsObject, contactEntry, fields[CONTACT_GROUPS], user)
+          contactEntry = contactsManager.FieldsToContact(fields)
         contactEntry.category = contact.category
         contactEntry.link = contact.link
         contactEntry.etag = contact.etag
@@ -10769,13 +10825,21 @@ def _updateContacts(users, entityType):
         break
     Ind.Decrement()
 
-# gam <UserTypeEntity> update contacts <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [updated_min <Date>] [endquery]) [contactgroup <ContactGroupItem>] <ContactAttributes>+
+# gam <UserTypeEntity> update contacts <ContactEntity>|(<UserContactSelection> [endquery]) [contactgroup <ContactGroupItem>] <ContactAttribute>+
 def updateUserContacts(users):
-  _updateContacts(users, Ent.USER)
+  _clearUpdateContacts(users, Ent.USER, True)
 
-# gam update contacts <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]) <ContactAttributes>+
+# gam update contacts <ContactEntity>|<ContactSelection> <ContactAttributes>+
 def doUpdateDomainContacts():
-  _updateContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
+  _clearUpdateContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN, True)
+
+# gam <UserTypeEntity> clear contacts <ContactEntity>|<UserContactSelection> [clearmatchpattern <RegularExpression>] [clearmatchtype work|home|other|<String>]
+def clearUserContacts(users):
+  _clearUpdateContacts(users, Ent.USER, False)
+
+# gam clear contacts <ContactEntity>|<ContactSelection> [clearmatchpattern <RegularExpression>] [clearmatchtype work|home|other|<String>]
+def doClearDomainContacts(users):
+  _clearUpdateContacts(users, Ent.USER, False)
 
 def _deleteContacts(users, entityType):
   contactsManager = ContactsManager()
@@ -10834,11 +10898,11 @@ def _deleteContacts(users, entityType):
         break
     Ind.Decrement()
 
-# gam <UserTypeEntity> delete contacts <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [updated_min <Date>])
+# gam <UserTypeEntity> delete contacts <ContactEntity>|<UserContactSelection>
 def deleteUserContacts(users):
   _deleteContacts(users, Ent.USER)
 
-# gam delete contacts <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [updated_min <Date>])
+# gam delete contacts <ContactEntity>|<ContactSelection>
 def doDeleteDomainContacts():
   _deleteContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
@@ -10981,17 +11045,20 @@ def _infoContacts(users, entityType, contactFeed=True):
         break
     Ind.Decrement()
 
-# gam <UserTypeEntity> info contacts <ContactEntity> [basic|full] [showgroups]
+# gam <UserTypeEntity> info contacts <ContactEntity>
+#	[basic|full] [showgroups]
 #	[fields <ContactFieldNameList>] [formatjson]
 def infoUserContacts(users):
   _infoContacts(users, Ent.USER)
 
-# gam info contacts <ContactEntity> [basic|full] [showgroups]
+# gam info contacts <ContactEntity>
+#	[basic|full] [showgroups]
 #	[fields <ContactFieldNameList>] [formatjson]
 def doInfoDomainContacts():
   _infoContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
-# gam info gal <GalEntity> [basic|full]
+# gam info gal <GalEntity>
+#	[basic|full]
 #	[fields <ContactFieldNameList>] [formatjson]
 def doInfoGAL():
   _infoContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN, False)
@@ -11130,38 +11197,38 @@ def _printShowContacts(users, entityType, csvFormat, contactFeed=True):
   if csvFormat:
     writeCSVfile(csvRows, titles, u'Contacts', todrive, [Ent.Singular(entityType), CONTACT_ID, CONTACT_NAME], quotechar=quotechar)
 
-# gam <UserTypeEntity> print contacts [todrive <ToDriveAttributes>*] [query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]
+# gam <UserTypeEntity> print contacts [todrive <ToDriveAttribute>*] <UserContactSelection>
 #	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
 #	[fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
 def printUserContacts(users):
   _printShowContacts(users, Ent.USER, True)
 
-# gam <UserTypeEntity> show contacts [query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]
+# gam <UserTypeEntity> show contacts <UserContactSelection>
 #	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
 #	[fields <ContactFieldNameList>] [formatjson]
 def showUserContacts(users):
   _printShowContacts(users, Ent.USER, False)
 
-# gam print contacts [todrive <ToDriveAttributes>*] [query <QueryContact>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]
+# gam print contacts [todrive <ToDriveAttribute>*] <ContactSelection>
 #	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
 #	[fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
 def doPrintDomainContacts():
   _printShowContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN, True)
 
-# gam show contacts [query <QueryContact>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]
+# gam show contacts <ContactSelection>
 #	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
 #	[fields <ContactFieldNameList>] [formatjson]
 def doShowDomainContacts():
   _printShowContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN, False)
 
-# gam print gal [todrive <ToDriveAttributes>*] [query <QueryContact>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]
-#	[basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+# gam print gal [todrive <ToDriveAttribute>*] <ContactSelection>
+#	[basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]]
 #	[fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
 def doPrintGAL():
   _printShowContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN, True, False)
 
-# gam show gal [query <QueryContact>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]
-#	[basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+# gam show gal <ContactSelection>
+#	[basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]]
 #	[fields <ContactFieldNameList>] [formatjson]
 def doShowGAL():
   _printShowContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN, False, False)
@@ -11298,27 +11365,31 @@ def _processContactPhotos(users, entityType, function):
         break
     Ind.Decrement()
 
-# gam <UserTypeEntity> update contactphoto <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]) [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
+# gam <UserTypeEntity> update contactphotos <ContactEntity>|<UserContactSelection>
+#	[drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
 def updateUserContactPhoto(users):
   _processContactPhotos(users, Ent.USER, u'ChangePhoto')
 
-# gam update contactphoto <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]) [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
+# gam update contactphotos <ContactEntity>|<ContactSelection>
+#	[drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
 def doUpdateDomainContactPhoto():
   _processContactPhotos([GC.Values[GC.DOMAIN]], Ent.DOMAIN, u'ChangePhoto')
 
-# gam <UserTypeEntity> get contactphoto <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]) [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
+# gam <UserTypeEntity> get contactphotos <ContactEntity>|<UserContactSelection>
+#	[drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
 def getUserContactPhoto(users):
   _processContactPhotos(users, Ent.USER, u'GetPhoto')
 
-# gam get contactphoto <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [updated_min <Date>]) [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
+# gam get contactphotos <ContactEntity>|<ContactSelection>
+#	[drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
 def doGetDomainContactPhoto():
   _processContactPhotos([GC.Values[GC.DOMAIN]], Ent.DOMAIN, u'GetPhoto')
 
-# gam <UserTypeEntity> delete contactphotos <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [updated_min <Date>])
+# gam <UserTypeEntity> delete contactphotos <ContactEntity>|<UserContactSelection>
 def deleteUserContactPhoto(users):
   _processContactPhotos(users, Ent.USER, u'DeletePhoto')
 
-# gam delete contactphotos <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [updated_min <Date>])
+# gam delete contactphotos <ContactEntity>|<ContactSelection>
 def doDeleteDomainContactPhoto():
   _processContactPhotos([GC.Values[GC.DOMAIN]], Ent.DOMAIN, u'DeletePhoto')
 
@@ -11475,7 +11546,8 @@ def _showContactGroup(contactsManager, group, j, jcount, formatJSON):
   printKeyValueList([u'id', fields[CONTACT_GROUP_ID]])
   Ind.Decrement()
 
-# gam <UserTypeEntity> info contactgroups <ContactGroupEntity> [formatjson]
+# gam <UserTypeEntity> info contactgroups <ContactGroupEntity>
+#	[formatjson]
 def infoUserContactGroups(users):
   contactsManager = ContactsManager()
   entityType = Ent.USER
@@ -14523,51 +14595,6 @@ def doPrintGroups():
   _writeCompleteRows()
   writeCSVfile(csvRows, titles, u'Groups', todrive, [fieldsTitles[u'email']] if sortHeaders else None, quotechar)
 
-def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, count, isSuspended, noduplicates, recursive, level):
-  printGettingAllEntityItemsForWhom(memberRoles if memberRoles else Ent.ROLE_MANAGER_MEMBER_OWNER, groupEmail, i, count)
-  validRoles, listRoles, listFields = _getRoleVerification(memberRoles, u'nextPageToken,members(email,id,role,status,type)')
-  try:
-    groupMembers = callGAPIpages(cd.members(), u'list', u'members',
-                                 throw_reasons=GAPI.MEMBERS_THROW_REASONS, retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
-                                 groupKey=groupEmail, roles=listRoles, fields=listFields, maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
-  except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
-    entityUnknownWarning(Ent.GROUP, groupEmail, i, count)
-    return
-  if not recursive:
-    if noduplicates:
-      for member in groupMembers:
-        if _checkMemberRoleIsSuspended(member, validRoles, isSuspended) and member[u'id'] not in membersSet:
-          membersSet.add(member[u'id'])
-          membersList.append(member)
-    else:
-      for member in groupMembers:
-        if _checkMemberRoleIsSuspended(member, validRoles, isSuspended):
-          membersList.append(member)
-  elif noduplicates:
-    groupMemberList = []
-    for member in groupMembers:
-      if member[u'type'] == u'USER':
-        if _checkMemberRoleIsSuspended(member, validRoles, isSuspended) and member[u'id'] not in membersSet:
-          membersSet.add(member[u'id'])
-          member[u'level'] = level
-          member[u'subgroup'] = groupEmail
-          membersList.append(member)
-      elif member[u'type'] == u'GROUP':
-        if member[u'id'] not in membersSet:
-          membersSet.add(member[u'id'])
-          groupMemberList.append(member[u'email'])
-    for member in groupMemberList:
-      getGroupMembers(cd, member, memberRoles, membersList, membersSet, i, count, isSuspended, noduplicates, recursive, level+1)
-  else:
-    for member in groupMembers:
-      if member[u'type'] == u'USER':
-        if _checkMemberRoleIsSuspended(member, validRoles, isSuspended):
-          member[u'level'] = level
-          member[u'subgroup'] = groupEmail
-          membersList.append(member)
-      elif member[u'type'] == u'GROUP':
-        getGroupMembers(cd, member[u'email'], memberRoles, membersList, membersSet, i, count, isSuspended, noduplicates, recursive, level+1)
-
 INFO_GROUPMEMBERS_FIELDS = [u'role', u'type', u'status', u'delivery_settings']
 
 # gam <UserTypeEntity> info member <GroupEntity>
@@ -14610,7 +14637,85 @@ def infoGroupMembers(entityList):
 def doInfoGroupMembers():
   infoGroupMembers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)[1])
 
+MEMBEROPTION_MEMBERNAMES = 0
+MEMBEROPTION_NODUPLICATES = 1
+MEMBEROPTION_RECURSIVE = 2
+MEMBEROPTION_GETDELIVERYSETTINGS = 3
+MEMBEROPTION_ISSUSPENDED = 4
+
+def _initMemberOptions():
+  return [False, False, False, False, None]
+
+def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, count, memberOptions, level):
+  def _getDeliverySettings(member):
+    if u'delivery_settings' not in member:
+      try:
+        member[u'delivery_settings'] = callGAPI(cd.members(), u'get',
+                                                throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND], retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
+                                                groupKey=groupEmail, memberKey=member[u'id'], fields=u'delivery_settings')[u'delivery_settings']
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+        pass
+      except GAPI.memberNotFound:
+        pass
+    else:
+      memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS] = False
+
+  printGettingAllEntityItemsForWhom(memberRoles if memberRoles else Ent.ROLE_MANAGER_MEMBER_OWNER, groupEmail, i, count)
+  validRoles, listRoles, listFields = _getRoleVerification(memberRoles, u'nextPageToken,members(email,id,role,status,type,delivery_settings)')
+  try:
+    groupMembers = callGAPIpages(cd.members(), u'list', u'members',
+                                 throw_reasons=GAPI.MEMBERS_THROW_REASONS, retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
+                                 groupKey=groupEmail, roles=listRoles, fields=listFields, maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
+  except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+    entityUnknownWarning(Ent.GROUP, groupEmail, i, count)
+    return
+  if not memberOptions[MEMBEROPTION_RECURSIVE]:
+    if memberOptions[MEMBEROPTION_NODUPLICATES]:
+      for member in groupMembers:
+        if _checkMemberRoleIsSuspended(member, validRoles, memberOptions[MEMBEROPTION_ISSUSPENDED]) and member[u'id'] not in membersSet:
+          if memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS]:
+            _getDeliverySettings(member)
+          membersSet.add(member[u'id'])
+          membersList.append(member)
+    else:
+      for member in groupMembers:
+        if _checkMemberRoleIsSuspended(member, validRoles, memberOptions[MEMBEROPTION_ISSUSPENDED]):
+          if memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS]:
+            _getDeliverySettings(member)
+          membersList.append(member)
+  elif memberOptions[MEMBEROPTION_NODUPLICATES]:
+    groupMemberList = []
+    for member in groupMembers:
+      if member[u'type'] == u'USER':
+        if _checkMemberRoleIsSuspended(member, validRoles, memberOptions[MEMBEROPTION_ISSUSPENDED]) and member[u'id'] not in membersSet:
+          if memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS]:
+            _getDeliverySettings(member)
+          membersSet.add(member[u'id'])
+          member[u'level'] = level
+          member[u'subgroup'] = groupEmail
+          membersList.append(member)
+      elif member[u'type'] == u'GROUP':
+        if member[u'id'] not in membersSet:
+          if memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS]:
+            _getDeliverySettings(member)
+          membersSet.add(member[u'id'])
+          groupMemberList.append(member[u'email'])
+    for member in groupMemberList:
+      getGroupMembers(cd, member, memberRoles, membersList, membersSet, i, count, memberOptions, level+1)
+  else:
+    for member in groupMembers:
+      if member[u'type'] == u'USER':
+        if _checkMemberRoleIsSuspended(member, validRoles, memberOptions[MEMBEROPTION_ISSUSPENDED]):
+          if memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS]:
+            _getDeliverySettings(member)
+          member[u'level'] = level
+          member[u'subgroup'] = groupEmail
+          membersList.append(member)
+      elif member[u'type'] == u'GROUP':
+        getGroupMembers(cd, member[u'email'], memberRoles, membersList, membersSet, i, count, memberOptions, level+1)
+
 GROUPMEMBERS_FIELDS_CHOICE_MAP = {
+  u'delivery': u'delivery_settings',
   u'deliverysettings': u'delivery_settings',
   u'email': u'email',
   u'group': u'group',
@@ -14632,7 +14737,7 @@ GROUPMEMBERS_DEFAULT_FIELDS = [u'id', u'role', u'group', u'email', u'type', u'st
 #	[userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
 def doPrintGroupMembers():
   cd = buildGAPIObject(API.DIRECTORY)
-  membernames = noduplicates = recursive = False
+  memberOptions = _initMemberOptions()
   groupColumn = True
   todrive = {}
   kwargs = {u'customer': GC.Values[GC.CUSTOMER_ID]}
@@ -14643,7 +14748,6 @@ def doPrintGroupMembers():
   cdfieldsList = [u'email',]
   userFieldsList = []
   rolesSet = set()
-  isSuspended = None
   matchPatterns = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -14657,14 +14761,14 @@ def doPrintGroupMembers():
       entityList = [getEmailAddress()]
       subTitle = u'{0}={1}'.format(Ent.Singular(Ent.GROUP), entityList[0])
       if myarg == u'groupns':
-        isSuspended = False
+        memberOptions[MEMBEROPTION_ISSUSPENDED] = False
       elif myarg == u'groupsusp':
-        isSuspended = True
+        memberOptions[MEMBEROPTION_ISSUSPENDED] = True
     elif myarg == u'select':
       entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
       subTitle = u'{0} {1}'.format(Msg.SELECTED, Ent.Plural(Ent.GROUP))
     elif myarg in SUSPENDED_ARGUMENTS:
-      isSuspended = _getIsSuspended(myarg)
+      memberOptions[MEMBEROPTION_ISSUSPENDED] = _getIsSuspended(myarg)
     elif myarg in [u'role', u'roles']:
       for role in getString(Cmd.OB_GROUP_ROLE_LIST).lower().replace(u',', u' ').split():
         if role in GROUP_ROLES_MAP:
@@ -14676,7 +14780,7 @@ def doPrintGroupMembers():
     elif getFieldsListTitles(myarg, GROUPMEMBERS_FIELDS_CHOICE_MAP, fieldsList, titles):
       pass
     elif myarg == u'membernames':
-      membernames = True
+      memberOptions[MEMBEROPTION_MEMBERNAMES] = True
     elif myarg == u'userfields':
       for field in _getFieldsList():
         if field in USER_FIELDS_CHOICE_MAP:
@@ -14684,9 +14788,9 @@ def doPrintGroupMembers():
         else:
           invalidChoiceExit(USER_FIELDS_CHOICE_MAP, True)
     elif myarg == u'noduplicates':
-      noduplicates = True
+      memberOptions[MEMBEROPTION_NODUPLICATES] = True
     elif myarg == u'recursive':
-      recursive = True
+      memberOptions[MEMBEROPTION_RECURSIVE] = True
     elif myarg == u'nogroupemail':
       groupColumn = False
     else:
@@ -14718,20 +14822,21 @@ def doPrintGroupMembers():
     for field in GROUPMEMBERS_DEFAULT_FIELDS:
       addFieldToCSVfile(field, {field: field}, fieldsList, titles)
   elif u'name'in fieldsList:
-    membernames = True
+    memberOptions[MEMBEROPTION_MEMBERNAMES] = True
     fieldsList.remove(u'name')
   if u'group' in fieldsList:
     fieldsList.remove(u'group')
   if not groupColumn:
     removeTitlesFromCSVfile([u'group',], titles)
   if userFieldsList:
-    if not membernames and u'name.fullName' in userFieldsList:
-      membernames = True
-  if membernames:
+    if not memberOptions[MEMBEROPTION_MEMBERNAMES] and u'name.fullName' in userFieldsList:
+      memberOptions[MEMBEROPTION_MEMBERNAMES] = True
+  if memberOptions[MEMBEROPTION_MEMBERNAMES]:
     if u'name.fullName' not in userFieldsList:
       userFieldsList.append(u'name.fullName')
     addTitlesToCSVfile(u'name', titles)
     removeTitlesFromCSVfile([u'name.fullName'], titles)
+  memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS] = u'delivery_settings' in fieldsList
   userFields = u','.join(set(userFieldsList)).replace(u'.', u'/') if userFieldsList else None
   memberRoles = u','.join(sorted(rolesSet)) if rolesSet else None
   membersSet = set()
@@ -14749,13 +14854,13 @@ def doPrintGroupMembers():
     if not checkGroupMatchPatterns(groupEmail, group, matchPatterns):
       continue
     membersList = []
-    getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, count, isSuspended, noduplicates, recursive, level)
+    getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, count, memberOptions, level)
     for member in membersList:
       memberId = member[u'id']
       row = {}
       if groupColumn:
         row[u'group'] = groupEmail
-      if recursive:
+      if memberOptions[MEMBEROPTION_RECURSIVE]:
         row[u'level'] = member[u'level']
         row[u'subgroup'] = member[u'subgroup']
       for title in fieldsList:
@@ -14763,7 +14868,7 @@ def doPrintGroupMembers():
       if setCustomerMemberEmail and (memberId == customerKey):
         row[u'email'] = memberId
       if userFieldsList:
-        if membernames:
+        if memberOptions[MEMBEROPTION_MEMBERNAMES]:
           row[u'name'] = u'Unknown'
         memberType = member.get(u'type')
         if memberType == u'USER':
@@ -14771,14 +14876,14 @@ def doPrintGroupMembers():
             mbinfo = callGAPI(cd.users(), u'get',
                               throw_reasons=GAPI.USER_GET_THROW_REASONS,
                               userKey=memberId, fields=userFields)
-            if membernames:
+            if memberOptions[MEMBEROPTION_MEMBERNAMES]:
               row[u'name'] = mbinfo[u'name'].pop(u'fullName')
             addRowTitlesToCSVfile(flattenJSON(mbinfo, flattened=row), csvRows, titles)
             continue
           except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
             pass
         elif memberType == u'GROUP':
-          if membernames:
+          if memberOptions[MEMBEROPTION_MEMBERNAMES]:
             try:
               row[u'name'] = callGAPI(cd.groups(), u'get',
                                       throw_reasons=GAPI.GROUP_GET_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
@@ -14786,7 +14891,7 @@ def doPrintGroupMembers():
             except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.invalid, GAPI.systemError):
               pass
         elif memberType == u'CUSTOMER':
-          if membernames:
+          if memberOptions[MEMBEROPTION_MEMBERNAMES]:
             try:
               row[u'name'] = callGAPI(cd.customers(), u'get',
                                       throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
@@ -14795,7 +14900,7 @@ def doPrintGroupMembers():
               pass
       csvRows.append(row)
   sortCSVTitles(GROUPMEMBERS_DEFAULT_FIELDS, titles)
-  if recursive:
+  if memberOptions[MEMBEROPTION_RECURSIVE]:
     removeTitlesFromCSVfile([u'level', u'subgroup'], titles)
     addTitlesToCSVfile([u'level', u'subgroup'], titles)
   writeCSVfile(csvRows, titles, u'Group Members ({0})'.format(subTitle), todrive)
@@ -14827,7 +14932,7 @@ def doShowGroupMembers():
       printEntity([Ent.GROUP, groupEmail], i, count)
     Ind.Increment()
     for member in sorted(membersList, key=lambda k: (_roleOrder(k.get(u'role', Ent.ROLE_MEMBER)), _typeOrder(k[u'type']), _statusOrder(k['status']))):
-      if _checkMemberIsSuspended(member, isSuspended):
+      if _checkMemberIsSuspended(member, memberOptions[MEMBEROPTION_ISSUSPENDED]):
         if (member.get(u'role', Ent.ROLE_MEMBER) in rolesSet) or (member[u'type'] == u'GROUP'):
           printKeyValueList([u'{0}, {1}, {2}, {3}'.format(member.get(u'role', Ent.ROLE_MEMBER), member[u'type'], member.get(u'email', member[u'id']), member[u'status'])])
         if (member[u'type'] == u'GROUP') and (maxdepth == -1 or depth < maxdepth):
@@ -14840,7 +14945,7 @@ def doShowGroupMembers():
   entityList = None
   cdfieldsList = [u'email',]
   rolesSet = set()
-  isSuspended = None
+  memberOptions = _initMemberOptions()
   matchPatterns = {}
   maxdepth = -1
   while Cmd.ArgumentsRemaining():
@@ -14852,13 +14957,13 @@ def doShowGroupMembers():
     elif myarg in [u'group', u'groupns', u'groupsusp']:
       entityList = [getEmailAddress()]
       if myarg == u'groupns':
-        isSuspended = False
+        memberOptions[MEMBEROPTION_ISSUSPENDED] = False
       elif myarg == u'groupsusp':
-        isSuspended = True
+        memberOptions[MEMBEROPTION_ISSUSPENDED] = True
     elif myarg == u'select':
       entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
     elif myarg in SUSPENDED_ARGUMENTS:
-      isSuspended = _getIsSuspended(myarg)
+      memberOptions[MEMBEROPTION_ISSUSPENDED] = _getIsSuspended(myarg)
     elif myarg in [u'role', u'roles']:
       for role in getString(Cmd.OB_GROUP_ROLE_LIST).lower().replace(u',', u' ').split():
         if role in GROUP_ROLES_MAP:
@@ -36367,6 +36472,7 @@ MAIN_ADD_CREATE_FUNCTIONS = {
 MAIN_COMMANDS_WITH_OBJECTS = {
   u'add': (Act.ADD, MAIN_ADD_CREATE_FUNCTIONS),
   u'cancel': (Act.CANCEL, {Cmd.ARG_GUARDIANINVITATION: doCancelGuardianInvitation}),
+  u'clear': (Act.CLEAR, {Cmd.ARG_CONTACT: doClearDomainContacts}),
   u'close': (Act.CLOSE, {Cmd.ARG_VAULTMATTER: doCloseVaultMatter}),
   u'create': (Act.CREATE, MAIN_ADD_CREATE_FUNCTIONS),
   u'delete':
@@ -36950,8 +37056,8 @@ USER_COMMANDS_WITH_OBJECTS = {
   u'archive': (Act.ARCHIVE, {Cmd.ARG_MESSAGE: archiveMessages}),
   u'cancel': (Act.CANCEL, {Cmd.ARG_GUARDIANINVITATION: cancelGuardianInvitations}),
   u'check': (Act.CHECK, {Cmd.ARG_SERVICEACCOUNT: checkServiceAccount}),
-  u'claim': (Act.CLAIM, {Cmd.ARG_OWNERSHIP:  claimOwnership}),
-  u'clear': (Act.CLEAR, {Cmd.ARG_GUARDIAN: clearGuardians, Cmd.ARG_SHEETRANGE: clearSheetRanges}),
+  u'claim': (Act.CLAIM, {Cmd.ARG_OWNERSHIP: claimOwnership}),
+  u'clear': (Act.CLEAR, {Cmd.ARG_CONTACT: clearUserContacts, Cmd.ARG_GUARDIAN: clearGuardians, Cmd.ARG_SHEETRANGE: clearSheetRanges}),
   u'collect': (Act.COLLECT, {Cmd.ARG_ORPHANS: collectOrphans}),
   u'copy': (Act.COPY, {Cmd.ARG_DRIVEFILE: copyDriveFile}),
   u'create': (Act.CREATE, USER_ADD_CREATE_FUNCTIONS),

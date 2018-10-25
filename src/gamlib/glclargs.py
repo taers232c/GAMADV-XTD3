@@ -726,7 +726,7 @@ class GamCLArgs(object):
 # Peek to see if next argument is in choices
   def PeekArgumentPresent(self, choices):
     if self.ArgumentsRemaining():
-      choiceList = choices if isinstance(choices, list) else [choices]
+      choiceList = choices if isinstance(choices, (list, set)) else [choices]
       choice = self.Current().strip().lower().replace(u'_', u'')
       if choice and choice in choiceList:
         return True

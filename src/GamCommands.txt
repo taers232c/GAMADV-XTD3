@@ -951,7 +951,7 @@ gam <CrOSTypeEntity> get devicefile [select <DeviceFileEntity>] [targetfolder <F
         (nickname <String>)|
         (note <String>|(file <FileName> [charset <Charset>]))|
         (occupation <String>)|
-        (organization clear|(work|other|<String> <String>|(location <String>)|(department <String>)|(title <String>)|(jobdescription <String>)|(symbol <String>) notprimary|primary))|
+        (organization clear|(work|other|<String> <String> ((location <String>)|(department <String>)|(title <String>)|(jobdescription <String>)|(symbol <String>))* notprimary|primary))|
         (phone clear|(work|home|other|fax|work_fax|home_fax|other_fax|main|company_main|assistant|mobile|work_mobile|pager|work_pager|car|radio|callback|isdn|telex|tty_tdd|<String> <String> notprimary|primary))|
         (prefix <String>)|
         (relation clear|(spouse|child|mother|father|parent|brother|sister|friend|relative|domestic_partner|manager|assistant|referred_by|partner|<String> <String>))|
@@ -964,13 +964,19 @@ gam <CrOSTypeEntity> get devicefile [select <DeviceFileEntity>] [targetfolder <F
 <ContactGroupAttribute> ::=
         (name <String>)
 
-gam create|add contact <ContactAttribute>+
-gam update contacts <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]) <ContactAttribute>+
-gam delete contacts <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>])
+<ContactSelection> ::=
+        [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
 
-gam update contactphotos <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]) [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
-gam get contactphotos <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]) [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
-gam delete contactphotos <ContactEntity>|([query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>])
+gam create contact <ContactAttribute>+
+gam update contacts <ContactEntity>|<ContactSelection> <ContactAttribute>+
+gam clear contacts <ContactEntity>|<ContactSelection> [emailclearpattern <RegularExpression>] [emailcleartype work|home|other|<String>]
+gam delete contacts <ContactEntity>|<ContactSelection>
+
+gam update contactphotos <ContactEntity>|<ContactSelection>
+        [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
+gam get contactphotos <ContactEntity>|<ContactSelection>
+        [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
+gam delete contactphotos <ContactEntity>|<ContactSelection>
 
 <ContactFieldName> ::=
         additionalname|middlename|
@@ -1013,49 +1019,59 @@ gam delete contactphotos <ContactEntity>|([query <QueryContact>] [emailmatchpatt
 <ContactOrderByFieldName> ::=
         lastmodified
 
-gam info contacts <ContactEntity> [basic|full] [showgroups]
+gam info contacts <ContactEntity>
+        [basic|full] [showgroups]
         [fields <ContactFieldNameList>] [formatjson]
-gam show contacts [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+gam show contacts <ContactSelection>
         [basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
         [fields <ContactFieldNameList>] [formatjson]
-gam print contacts [todrive <ToDriveAttribute>*] [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
-        [basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
-        [fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
-
-gam <UserTypeEntity> create|add contact [contactgroup <ContactGroupItem>] <ContactAttribute>+
-gam <UserTypeEntity> update contacts <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>] [endquery]) [contactgroup <ContactGroupItem>] <ContactAttribute>+
-gam <UserTypeEntity> delete contacts <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>])
-
-gam <UserTypeEntity> info contacts <ContactEntity> [basic|full] [showgroups]
-        [fields <ContactFieldNameList>] [formatjson]
-gam <UserTypeEntity> show contacts [query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
-        [basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
-        [fields <ContactFieldNameList>] [formatjson]
-gam <UserTypeEntity> print contacts [todrive <ToDriveAttribute>*] [query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+gam print contacts [todrive <ToDriveAttribute>*] <ContactSelection>
         [basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
         [fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
 
-gam <UserTypeEntity> update contactphotos <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]) [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
-gam <UserTypeEntity> get contactphotos <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]) [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
-gam <UserTypeEntity> delete contactphotos <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>])
+<UserContactSelection> ::=
+        [query <QueryContact>] [selectcontactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
 
-gam <UserTypeEntity> create|add contactgroup <ContactGroupAttribute>+
+gam <UserTypeEntity> create contact [contactgroup <ContactGroupItem>] <ContactAttribute>+
+gam <UserTypeEntity> update contacts <ContactEntity>|(<UserContactSelection> [endquery]) [contactgroup <ContactGroupItem>] <ContactAttribute>+
+gam <UserTypeEntity> clear contacts <ContactEntity>|<UserContactSelection> [emailclearpattern <RegularExpression>] [emailcleartype work|home|other|<String>]
+gam <UserTypeEntity> delete contacts <ContactEntity>|<UserContactSelection>
+
+gam <UserTypeEntity> info contacts <ContactEntity>
+        [basic|full] [showgroups]
+        [fields <ContactFieldNameList>] [formatjson]
+gam <UserTypeEntity> show contacts <UserContactSelection>
+        [basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+        [fields <ContactFieldNameList>] [formatjson]
+gam <UserTypeEntity> print contacts [todrive <ToDriveAttribute>*] <UserContactSelection>
+        [basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+        [fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
+
+gam <UserTypeEntity> update contactphotos <ContactEntity>|<UserContactSelection>
+        [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
+gam <UserTypeEntity> get contactphotos <ContactEntity>|<UserContactSelection>
+         [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
+gam <UserTypeEntity> delete contactphotos <ContactEntity>|<UserContactSelection>
+
+gam <UserTypeEntity> create contactgroup <ContactGroupAttribute>+
 gam <UserTypeEntity> update contactgroup <ContactGroupItem> <ContactGroupAttribute>+
 gam <UserTypeEntity> delete contactgroups <ContactGroupEntity>
 
-gam <UserTypeEntity> info contactgroups <ContactGroupEntity> [formatjson]
+gam <UserTypeEntity> info contactgroups <ContactGroupEntity>
+        [formatjson]
 gam <UserTypeEntity> show contactgroups [updated_min <Date>]
         [basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
 gam <UserTypeEntity> print contactgroups [todrive <ToDriveAttribute>*] [updated_min <Date>]
         [basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
         [formatjson] [quotechar <Character>]
 
-gam info gal <ContactEntity> [basic|full]
+gam info gal <ContactEntity>
+        [basic|full]
         [fields <ContactFieldNameList>] [formatjson]
-gam show gal [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+gam show gal <ContactSelection>
         [basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]]
         [fields <ContactFieldNameList>] [formatjson]
-gam print gal [todrive <ToDriveAttribute>*] [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+gam print gal [todrive <ToDriveAttribute>*] <ContactSelection>
         [basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]]
         [fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
 

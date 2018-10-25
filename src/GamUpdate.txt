@@ -1,4 +1,33 @@
-4.66.22
+4.61.23
+
+Updated gam print groupmembers to get delivery options for members; you must explicitly specify delivery in the fields option.
+(Both delivery and delivery_settings are recognized as the field name.)
+This is currently expensive, it takes a separate API call per member per group to get this data; use sparingly.
+If the members list API starts to return the delivery option data, then GAM will use that and not make the per member API calls.
+For example:
+gam print groupmembers group testgroup fields role,group,email,type,status,delivery
+
+Added command gam clear contacts to help clear old email addresses out of domain shared contacts and user contacts.
+Typically, you would select contacts by emailmatchpattern <RegularExpression> (and optionally emailmatchtype work|home|other|<String>),
+then the matching email addresses will be deleted from the contact's email list. Email addresses that don't match will be unaffected.
+You can specify emailclearpattern <RegularExpression> (and optionally emailcleartype work|home|other|<String>) if you want to
+clear email addresses other than the ones used to match the contacts or if you specify <ContactEntity>.
+
+<ContactSelection> ::=
+        [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+gam clear contacts <ContactEntity>|<ContactSelection> [emailclearpattern <RegularExpression>] [emailcleartype work|home|other|<String>]
+<UserContactSelection> ::=
+        [query <QueryContact>] [selectcontactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+gam <UserTypeEntity> clear contacts <ContactEntity>|<UserContactSelection> [emailclearpattern <RegularExpression>] [emailcleartype work|home|other|<String>]
+
+For example, you want to eliminate any contact email addresses that use your company's old domain name.
+First, do show contacts emailmatchpattern "<RegularExpression>" to verify that you're getting the right contacts.
+Then do clear contacts emailmatchpattern "<RegularExpression>" to clear the email addresses.
+
+gam user user@domain.com show contacts emailmatchpattern ".*@olddomain.com" fields email
+gam user user@domain.com clear contacts emailmatchpattern ".*@olddomain.com"
+
+4.61.22
 
 Added delivery option to gam update group create/sync/update; this allows you to set the delivery option for group members.
 gam update group|groups <GroupEntity> create|add [owner|manager|member] [usersonly|groupsonly] [notsuspended|suspended]
