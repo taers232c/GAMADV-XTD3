@@ -49,26 +49,11 @@
       <Component Id="license" Guid="c76864c5-d005-44d5-bb7c-a27e5923792d">
         <File Name="LICENSE" KeyPath="yes" />
       </Component>
-      <Component Id="whatsnew_txt" Guid="64c29297-d693-4340-aca6-7185cac9e9fa">
-        <File Name="whatsnew.txt" KeyPath="yes" />
-      </Component>
       <Component Id="gam_setup_bat" Guid="5e6bbacb-d86f-4d80-a10b-89b81ee63fcb">
         <File Name="gam-setup.bat" KeyPath="yes" />
       </Component>
       <Component Id="GamCommands_txt" Guid="a2dca862-b222-469e-a637-95ea2a1c53e7">
         <File Name="GamCommands.txt" KeyPath="yes" />
-      </Component>
-      <Component Id="GamConfig_txt" Guid="5d264757-2598-4104-9829-dd50d5b98ef7">
-        <File Name="GamConfig.txt" KeyPath="yes" />
-      </Component>
-      <Component Id="GamContacts_txt" Guid="f1ece4ca-95a4-419b-aa26-35c1ae8935ef">
-        <File Name="GamContacts.txt" KeyPath="yes" />
-      </Component>
-      <Component Id="GamDataSelection_txt" Guid="3e170320-35f8-4daf-b546-0b8368774175">
-        <File Name="GamDataSelection.txt" KeyPath="yes" />
-      </Component>
-      <Component Id="GamSites_txt" Guid="3022e387-aa76-4533-bf4d-3784aaa44cda">
-        <File Name="GamSites.txt" KeyPath="yes" />
       </Component>
       <Component Id="GamUpdate_txt" Guid="1b7cdd48-0fff-4943-a219-102fcd14c755">
         <File Name="GamUpdate.txt" KeyPath="yes" />
