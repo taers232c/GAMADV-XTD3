@@ -1,8 +1,0 @@
-GAMADV-XTD
-  -See GamAuthorization.txt for a description of the the alternate authorization model: oauth2service.json, client_secrets.json, oauth2.txt.
-  -See GamUpdate.txt for changes in this version
-  -See GamCommands.txt for a complete syntax description.
-  -See GamConfig.txt for a description of the gam.cfg configuration file.
-  -See GamContacts.txt for a description of the commands to manage contacts.
-  -See GamSites.txt for a description of the commands to manage sites.
-  -See GamDataSelection.txt for a description of the extended data selection capabilities.
