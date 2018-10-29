@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.61.24'
+__version__ = u'4.61.25'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -18713,7 +18713,8 @@ class SitesManager(object):
     GetSiteField(SITE_UPDATED, [u'updated', u'text'])
     if len(site_entry.category) > 0:
       for category in site_entry.category:
-        AppendItemToFieldsList(SITE_CATEGORIES, category.term)
+        if category.term:
+          AppendItemToFieldsList(SITE_CATEGORIES, category.term)
     link = site_entry.FindAlternateLink()
     if link:
       fields[SITE_LINK] = link

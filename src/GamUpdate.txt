@@ -1,3 +1,7 @@
+4.61.25
+
+Fixed bug in gam print/show sites that caused a trap.
+
 4.61.24
 
 Fixed bug in gam print/show messages that caused a trap.
