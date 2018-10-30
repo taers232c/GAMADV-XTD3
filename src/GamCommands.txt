@@ -969,7 +969,9 @@ gam <CrOSTypeEntity> get devicefile [select <DeviceFileEntity>] [targetfolder <F
 
 gam create contact <ContactAttribute>+
 gam update contacts <ContactEntity>|<ContactSelection> <ContactAttribute>+
-gam clear contacts <ContactEntity>|<ContactSelection> [emailclearpattern <RegularExpression>] [emailcleartype work|home|other|<String>]
+gam clear contacts <ContactEntity>|<ContactSelection>
+        [emailclearpattern <RegularExpression>] [emailcleartype work|home|other|<String>]
+        [delete_cleared_contacts_with_no_emails]
 gam delete contacts <ContactEntity>|<ContactSelection>
 
 gam update contactphotos <ContactEntity>|<ContactSelection>
@@ -1030,11 +1032,13 @@ gam print contacts [todrive <ToDriveAttribute>*] <ContactSelection>
         [fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
 
 <UserContactSelection> ::=
-        [query <QueryContact>] [selectcontactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+        [query <QueryContact>] [(selectcontactgroup <ContactGroupItem>)|selectothercontacts] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
 
 gam <UserTypeEntity> create contact [contactgroup <ContactGroupItem>] <ContactAttribute>+
 gam <UserTypeEntity> update contacts <ContactEntity>|(<UserContactSelection> [endquery]) [contactgroup <ContactGroupItem>] <ContactAttribute>+
-gam <UserTypeEntity> clear contacts <ContactEntity>|<UserContactSelection> [emailclearpattern <RegularExpression>] [emailcleartype work|home|other|<String>]
+gam <UserTypeEntity> clear contacts <ContactEntity>|<UserContactSelection>
+        [emailclearpattern <RegularExpression>] [emailcleartype work|home|other|<String>]
+        [delete_cleared_contacts_with_no_emails]
 gam <UserTypeEntity> delete contacts <ContactEntity>|<UserContactSelection>
 
 gam <UserTypeEntity> info contacts <ContactEntity>
