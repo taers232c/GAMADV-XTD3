@@ -366,7 +366,6 @@ class GamCLArgs(object):
   ARG_LICENCES = u'licences'
   ARG_LICENSE = u'license'
   ARG_LICENSES = u'licenses'
-  ARG_LOGO = u'logo'
   ARG_MATTER = u'matter'
   ARG_MATTERS = u'matters'
   ARG_MEMBER = u'member'
@@ -590,6 +589,7 @@ class GamCLArgs(object):
   OB_SKU_ID = u'SKUID'
   OB_SKU_ID_LIST = u'SKUIDList'
   OB_SMIME_ID = u'S/MIMEID'
+  OB_SMTP_HOST_NAME = u'SMTPHostName'
   OB_SPREADSHEET_JSON_CREATEREQUEST = u'SpreadsheetJSONCreateRequest'
   OB_SPREADSHEET_JSON_RANGEVALUESLIST = u'SpreadsheetJSONRangeValuesList'
   OB_SPREADSHEET_JSON_UPDATEREQUEST = u'SpreadsheetJSONUpdateRequest'
@@ -608,6 +608,7 @@ class GamCLArgs(object):
   OB_URL = u'URL'
   OB_USER_ENTITY = u'UserEntity'
   OB_USER_ITEM = u'UserItem'
+  OB_USER_NAME = u'UserName'
 
 #
 # Error message types; keys into ARGUMENT_ERROR_NAMES; arbitrary values but must be unique

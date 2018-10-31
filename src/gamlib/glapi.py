@@ -21,7 +21,6 @@
 """
 # APIs
 ADMIN = u'admin'
-ADMIN_SETTINGS = u'admin-settings'
 APPSACTIVITY = u'appsactivity'
 CALENDAR = u'calendar'
 CHAT = u'chat'
@@ -89,7 +88,6 @@ PROJECT_APIS = [
   ]
 
 _INFO = {
-  ADMIN_SETTINGS: {u'version': u'v2', u'credfam': FAM2_SCOPES, u'localjson': True},
   APPSACTIVITY: {u'version': u'v1', u'credfam': FAM1_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/activity',
                                                                                 u'https://www.googleapis.com/auth/drive',]},
   CALENDAR: {u'version': u'v3', u'credfam': FAM1_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/calendar',]},
@@ -132,11 +130,6 @@ VAULT_SCOPES = [u'https://www.googleapis.com/auth/ediscovery', u'https://www.goo
 READONLY = [u'readonly',]
 
 OAUTH2_SCOPES = [
-  {u'name': u'Admin Settings API',
-   u'api': ADMIN_SETTINGS,
-   u'credfam': FAM2_SCOPES,
-   u'subscopes': [],
-   u'scope': u'https://apps-apis.google.com/a/feeds/domain/'},
   {u'name': u'Calendar API',
    u'api': CALENDAR,
    u'credfam': FAM1_SCOPES,

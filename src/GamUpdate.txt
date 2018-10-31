@@ -1,3 +1,19 @@
+4.65.01
+
+The Admin Settings API was turned off on 2018/10/31; here what you will notice:
+gam info domain and gam info instance will no longer display these values:
+Maximum Users, Current Users, Domain Edition, Customer PIN
+SSO Enabled, SSO Signon Page, SSO Logout Page, SSO Password Page, SSO Whitelist IPs, SSO Use Domain Specific Issuer
+SSO Key Algorithm, SSO Key Format, SSO Key Modulus, SSO Key Exponent, SSO Key yValue, Full SSO Key
+
+gam info instance logo <FileName> and gam info domain logo <FileName> will no longer download the Customer logo.
+
+Added options to gam create sendas to allow sendas addresses outside of your domain.
+See: https://developers.google.com/gmail/api/v1/reference/users/settings/sendAs#resource
+gam <UserTypeEntity> [create|add] sendas <EmailAddress> <String> [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <Tag> <UserReplacement>)*]
+        [html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
+        [smtpmsa.host <SMTPHostName> smtpmsa.port 25|465|587 smtpmsa.username <UserName> smtpmsa.password <Password> [smtpmsa.securitymode none|ssl|starttls]]
+
 4.65.00
 
 Added delete_cleared_contacts_with_no_emails option to gam clear contacts.

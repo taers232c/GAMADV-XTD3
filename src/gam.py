@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.00'
+__version__ = u'4.65.01'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -3379,10 +3379,6 @@ def getGDataUserCredentials(api, user, i, count):
     handleOAuthTokenError(e, True)
     entityServiceNotApplicableWarning(Ent.USER, user, i, count)
     return (userEmail, None)
-
-def getAdminSettingsObject():
-  import gdata.apps.adminsettings.service
-  return initGDataObject(gdata.apps.adminsettings.service.AdminSettingsService(), API.ADMIN_SETTINGS)
 
 def getContactsObject(entityType=Ent.DOMAIN, entityName=None, i=0, count=0, contactFeed=True):
   import gdata.apps.contacts.service
@@ -7445,12 +7441,98 @@ def doDeleteDomain():
   except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
     accessErrorExit(cd)
 
+CUSTOMER_TIME_OBJECTS = set([u'customerCreationTime',])
+
+# gam info customer [formatjson]
+def doInfoCustomer(returnCustomerInfo=None):
+  cd = buildGAPIObject(API.DIRECTORY)
+  formatJSON = returnCustomerInfo is not None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'formatjson':
+      formatJSON = True
+    else:
+      unknownArgumentExit()
+  try:
+    customerInfo = callGAPI(cd.customers(), u'get',
+                            throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                            customerKey=GC.Values[GC.CUSTOMER_ID])
+    customerInfo[u'verified'] = callGAPI(cd.domains(), u'get',
+                                         customer=customerInfo[u'id'], domainName=customerInfo[u'customerDomain'], fields=u'verified')[u'verified']
+    if formatJSON:
+      _showCustomerLicenseInfo(customerInfo, True)
+      if returnCustomerInfo is not None:
+        returnCustomerInfo.update(customerInfo)
+        return
+      printLine(json.dumps(cleanJSON(customerInfo, u'', timeObjects=CUSTOMER_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+      return
+    printKeyValueList([u'Customer ID', customerInfo[u'id']])
+    printKeyValueList([u'Primary Domain', customerInfo[u'customerDomain']])
+    printKeyValueList([u'Customer Creation Time', formatLocalTime(customerInfo[u'customerCreationTime'])])
+    printKeyValueList([u'Primary Domain Verified', customerInfo[u'verified']])
+    printKeyValueList([u'Default Language', customerInfo.get(u'language', u'Unset (defaults to en)')])
+    _showCustomerAddressPhoneNumber(customerInfo)
+    printKeyValueList([u'Admin Secondary Email', customerInfo[u'alternateEmail']])
+    _showCustomerLicenseInfo(customerInfo, False)
+  except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+    accessErrorExit(cd)
+
+# gam update customer [primary <DomainName>] [adminsecondaryemail|alternateemail <EmailAddress>] [language <LanguageCode] [phone|phonenumber <String>]
+#	[contact|contactname <String>] [name|organizationname <String>]
+#	[address1|addressline1 <String>] [address2|addressline2 <String>] [address3|addressline3 <String>]
+#	[locality <String>] [region <String>] [postalcode <String>] [country|countrycode <String>]
+def doUpdateCustomer():
+  cd = buildGAPIObject(API.DIRECTORY)
+  body = {}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg in ADDRESS_FIELDS_ARGUMENT_MAP:
+      body.setdefault(u'postalAddress', {})
+      body[u'postalAddress'][ADDRESS_FIELDS_ARGUMENT_MAP[myarg]] = getString(Cmd.OB_STRING, minLen=0)
+    elif myarg == u'primary':
+      body[u'customerDomain'] = getString(Cmd.OB_DOMAIN_NAME)
+    elif myarg in [u'adminsecondaryemail', u'alternateemail']:
+      body[u'alternateEmail'] = getEmailAddress(noUid=True)
+    elif myarg in [u'phone', u'phonenumber']:
+      body[u'phoneNumber'] = getString(Cmd.OB_STRING, minLen=0)
+    elif myarg == u'language':
+      body[u'language'] = getChoice(LANGUAGE_CODES_MAP, mapChoice=True)
+    else:
+      unknownArgumentExit()
+  if body:
+    try:
+      callGAPI(cd.customers(), u'patch',
+               throw_reasons=[GAPI.DOMAIN_NOT_VERIFIED_SECONDARY, GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+               customerKey=GC.Values[GC.CUSTOMER_ID], body=body, fields=u'')
+      entityActionPerformed([Ent.CUSTOMER_ID, GC.Values[GC.CUSTOMER_ID]])
+    except GAPI.domainNotVerifiedSecondary:
+      entityActionFailedWarning([Ent.CUSTOMER_ID, GC.Values[GC.CUSTOMER_ID], Ent.DOMAIN, body[u'customerDomain']], Msg.DOMAIN_NOT_VERIFIED_SECONDARY)
+    except (GAPI.invalid, GAPI.invalidInput) as e:
+      entityActionFailedWarning([Ent.CUSTOMER_ID, GC.Values[GC.CUSTOMER_ID]], str(e))
+    except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+      accessErrorExit(cd)
+
+# gam info instance [formatjson]
+def doInfoInstance():
+  formatJSON = False
+  customerInfo = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == u'formatjson':
+      formatJSON = True
+      customerInfo = {}
+    else:
+      unknownArgumentExit()
+  doInfoCustomer(customerInfo)
+  if formatJSON:
+    printLine(json.dumps(cleanJSON(customerInfo, u'', timeObjects=CUSTOMER_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+
 DOMAIN_PRINT_ORDER = [u'customerDomain', u'creationTime', u'isPrimary', u'verified',]
 DOMAIN_SKIP_OBJECTS = set([u'domainName', u'domainAliases'])
 
 # gam info domain [<DomainName>] [formatjson]
 def doInfoDomain():
-  if (not Cmd.ArgumentsRemaining()) or (Cmd.Current().lower() in [u'logo', u'formatjson']):
+  if (not Cmd.ArgumentsRemaining()) or (Cmd.Current().lower() == u'formatjson'):
     doInfoInstance()
     return
   cd = buildGAPIObject(API.DIRECTORY)
@@ -7873,77 +7955,6 @@ def _showCustomerLicenseInfo(customerInfo, formatJSON):
   else:
     printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_USER_COUNTS_DATA_AVAILABLE)
 
-CUSTOMER_TIME_OBJECTS = set([u'customerCreationTime',])
-
-# gam info customer [formatjson]
-def doInfoCustomer(returnCustomerInfo=None):
-  cd = buildGAPIObject(API.DIRECTORY)
-  formatJSON = returnCustomerInfo is not None
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == u'formatjson':
-      formatJSON = True
-    else:
-      unknownArgumentExit()
-  try:
-    customerInfo = callGAPI(cd.customers(), u'get',
-                            throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                            customerKey=GC.Values[GC.CUSTOMER_ID])
-    customerInfo[u'verified'] = callGAPI(cd.domains(), u'get',
-                                         customer=customerInfo[u'id'], domainName=customerInfo[u'customerDomain'], fields=u'verified')[u'verified']
-    if formatJSON:
-      _showCustomerLicenseInfo(customerInfo, True)
-      if returnCustomerInfo is not None:
-        returnCustomerInfo.update(customerInfo)
-        return
-      printLine(json.dumps(cleanJSON(customerInfo, u'', timeObjects=CUSTOMER_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
-      return
-    printKeyValueList([u'Customer ID', customerInfo[u'id']])
-    printKeyValueList([u'Primary Domain', customerInfo[u'customerDomain']])
-    printKeyValueList([u'Customer Creation Time', formatLocalTime(customerInfo[u'customerCreationTime'])])
-    printKeyValueList([u'Primary Domain Verified', customerInfo[u'verified']])
-    printKeyValueList([u'Default Language', customerInfo.get(u'language', u'Unset (defaults to en)')])
-    _showCustomerAddressPhoneNumber(customerInfo)
-    printKeyValueList([u'Admin Secondary Email', customerInfo[u'alternateEmail']])
-    _showCustomerLicenseInfo(customerInfo, False)
-  except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-    accessErrorExit(cd)
-
-# gam update customer [primary <DomainName>] [adminsecondaryemail|alternateemail <EmailAddress>] [language <LanguageCode] [phone|phonenumber <String>]
-#	[contact|contactname <String>] [name|organizationname <String>]
-#	[address1|addressline1 <String>] [address2|addressline2 <String>] [address3|addressline3 <String>]
-#	[locality <String>] [region <String>] [postalcode <String>] [country|countrycode <String>]
-def doUpdateCustomer():
-  cd = buildGAPIObject(API.DIRECTORY)
-  body = {}
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg in ADDRESS_FIELDS_ARGUMENT_MAP:
-      body.setdefault(u'postalAddress', {})
-      body[u'postalAddress'][ADDRESS_FIELDS_ARGUMENT_MAP[myarg]] = getString(Cmd.OB_STRING, minLen=0)
-    elif myarg == u'primary':
-      body[u'customerDomain'] = getString(Cmd.OB_DOMAIN_NAME)
-    elif myarg in [u'adminsecondaryemail', u'alternateemail']:
-      body[u'alternateEmail'] = getEmailAddress(noUid=True)
-    elif myarg in [u'phone', u'phonenumber']:
-      body[u'phoneNumber'] = getString(Cmd.OB_STRING, minLen=0)
-    elif myarg == u'language':
-      body[u'language'] = getChoice(LANGUAGE_CODES_MAP, mapChoice=True)
-    else:
-      unknownArgumentExit()
-  if body:
-    try:
-      callGAPI(cd.customers(), u'patch',
-               throw_reasons=[GAPI.DOMAIN_NOT_VERIFIED_SECONDARY, GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-               customerKey=GC.Values[GC.CUSTOMER_ID], body=body, fields=u'')
-      entityActionPerformed([Ent.CUSTOMER_ID, GC.Values[GC.CUSTOMER_ID]])
-    except GAPI.domainNotVerifiedSecondary:
-      entityActionFailedWarning([Ent.CUSTOMER_ID, GC.Values[GC.CUSTOMER_ID], Ent.DOMAIN, body[u'customerDomain']], Msg.DOMAIN_NOT_VERIFIED_SECONDARY)
-    except (GAPI.invalid, GAPI.invalidInput) as e:
-      entityActionFailedWarning([Ent.CUSTOMER_ID, GC.Values[GC.CUSTOMER_ID]], str(e))
-    except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-      accessErrorExit(cd)
-
 def getTransferApplications(dt):
   try:
     return callGAPIpages(dt.applications(), u'list', u'applications',
@@ -8195,127 +8206,6 @@ def doShowTransferApps():
       Ind.Decrement()
     Ind.Decrement()
   Ind.Decrement()
-
-UPDATE_INSTANCE_CHOICES = [u'logo', u'ssokey', u'ssosettings',]
-
-# gam update instance
-def doUpdateInstance():
-  adminSettingsObject = getAdminSettingsObject()
-  command = getChoice(UPDATE_INSTANCE_CHOICES)
-  try:
-    if command == u'logo':
-# gam update instance logo <FileName>
-      logoFile = getString(Cmd.OB_FILE_NAME)
-      checkForExtraneousArguments()
-      logoImage = readFile(logoFile, mode=u'rb')
-      callGData(adminSettingsObject, u'UpdateDomainLogo',
-                throw_errors=[GDATA.INVALID_DOMAIN, GDATA.INVALID_VALUE],
-                logoImage=logoImage)
-      entityActionPerformed([Ent.INSTANCE, u'', Ent.LOGO, logoFile])
-    elif command == u'ssosettings':
-# gam update instance sso_settings [enabled <Boolean>] [sign_on_uri <URI>] [sign_out_uri <URI>] [password_uri <URI>] [whitelist <CIDRnetmask>] [use_domain_specific_issuer <Boolean>]
-      enableSSO = samlSignonUri = samlLogoutUri = changePasswordUri = ssoWhitelist = useDomainSpecificIssuer = None
-      while Cmd.ArgumentsRemaining():
-        myarg = getArgument()
-        if myarg == u'enabled':
-          enableSSO = getBoolean()
-        elif myarg == u'signonuri':
-          samlSignonUri = getString(Cmd.OB_URI)
-        elif myarg == u'signouturi':
-          samlLogoutUri = getString(Cmd.OB_URI)
-        elif myarg == u'passworduri':
-          changePasswordUri = getString(Cmd.OB_URI)
-        elif myarg == u'whitelist':
-          ssoWhitelist = getString(Cmd.OB_CIDR_NETMASK)
-        elif myarg == u'usedomainspecificissuer':
-          useDomainSpecificIssuer = getBoolean()
-        else:
-          unknownArgumentExit()
-      callGData(adminSettingsObject, u'UpdateSSOSettings',
-                throw_errors=[GDATA.INVALID_DOMAIN, GDATA.INVALID_VALUE],
-                enableSSO=enableSSO, samlSignonUri=samlSignonUri, samlLogoutUri=samlLogoutUri, changePasswordUri=changePasswordUri,
-                ssoWhitelist=ssoWhitelist, useDomainSpecificIssuer=useDomainSpecificIssuer)
-      entityActionPerformed([Ent.INSTANCE, u'', Ent.SSO_SETTINGS, u''])
-    elif command == u'ssokey':
-# gam update instance sso_key <FileName>
-      keyFile = getString(Cmd.OB_FILE_NAME)
-      checkForExtraneousArguments()
-      keyData = readFile(keyFile)
-      callGData(adminSettingsObject, u'UpdateSSOKey',
-                throw_errors=[GDATA.INVALID_DOMAIN, GDATA.INVALID_VALUE],
-                signingKey=keyData)
-      entityActionPerformed([Ent.INSTANCE, u'', Ent.SSO_KEY, keyFile])
-  except GDATA.invalidDomain as e:
-    printErrorMessage(INVALID_DOMAIN_RC, str(e))
-  except GDATA.invalidValue as e:
-    printErrorMessage(INVALID_DOMAIN_VALUE_RC, str(e))
-#
-MAXIMUM_USERS_MAP = [u'maximumNumberOfUsers', u'Maximum Users']
-CURRENT_USERS_MAP = [u'currentNumberOfUsers', u'Current Users']
-DOMAIN_EDITION_MAP = [u'edition', u'Domain Edition']
-CUSTOMER_PIN_MAP = [u'customerPIN', u'Customer PIN']
-SINGLE_SIGN_ON_SETTINGS_MAP = [u'enableSSO', u'SSO Enabled',
-                               u'samlSignonUri', u'SSO Signon Page',
-                               u'samlLogoutUri', u'SSO Logout Page',
-                               u'changePasswordUri', u'SSO Password Page',
-                               u'ssoWhitelist', u'SSO Whitelist IPs',
-                               u'useDomainSpecificIssuer', u'SSO Use Domain Specific Issuer']
-SINGLE_SIGN_ON_SIGNING_KEY_MAP = [u'algorithm', u'SSO Key Algorithm',
-                                  u'format', u'SSO Key Format',
-                                  u'modulus', u'SSO Key Modulus',
-                                  u'exponent', u'SSO Key Exponent',
-                                  u'yValue', u'SSO Key yValue',
-                                  u'signingKey', u'Full SSO Key']
-
-# gam info instance [logo <FileName>] [formatjson]
-def doInfoInstance():
-  def _printAdminSetting(service, propertyTitleMap):
-    try:
-      result = callGAPI(service, u'get',
-                        throw_reasons=[GAPI.DOMAIN_NOT_FOUND, GAPI.INVALID],
-                        domainName=GC.Values[GC.DOMAIN])
-      if result and (u'entry' in result) and (u'apps$property' in result[u'entry']):
-        for i in range(0, len(propertyTitleMap), 2):
-          asProperty = propertyTitleMap[i]
-          for entry in result[u'entry'][u'apps$property']:
-            if entry[u'name'] == asProperty:
-              if formatJSON:
-                customerInfo[asProperty] = entry[u'value']
-              else:
-                printKeyValueList([propertyTitleMap[i+1], entry[u'value']])
-              break
-    except GAPI.domainNotFound:
-      systemErrorExit(INVALID_DOMAIN_RC, formatKeyValueList(u'', [Ent.Singular(Ent.DOMAIN), GC.Values[GC.DOMAIN], Msg.DOES_NOT_EXIST], u''))
-    except GAPI.invalid:
-      pass
-
-  if checkArgumentPresent(u'logo'):
-    Act.Set(Act.DOWNLOAD)
-    logoFile = getString(Cmd.OB_FILE_NAME)
-    checkForExtraneousArguments()
-    _, data = getHttpObj().request(u'http://www.google.com/a/cpanel/{0}/images/logo.gif'.format(GC.Values[GC.DOMAIN]), u'GET')
-    writeFile(logoFile, data, mode=u'wb')
-    entityActionPerformed([Ent.INSTANCE, u'', Ent.LOGO, logoFile])
-    return
-  formatJSON = False
-  customerInfo = None
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == u'formatjson':
-      formatJSON = True
-      customerInfo = {}
-    else:
-      unknownArgumentExit()
-  doInfoCustomer(customerInfo)
-  adm = buildGAPIObject(API.ADMIN_SETTINGS)
-  _printAdminSetting(adm.maximumNumberOfUsers(), MAXIMUM_USERS_MAP)
-  _printAdminSetting(adm.currentNumberOfUsers(), CURRENT_USERS_MAP)
-  _printAdminSetting(adm.edition(), DOMAIN_EDITION_MAP)
-  _printAdminSetting(adm.customerPIN(), CUSTOMER_PIN_MAP)
-  _printAdminSetting(adm.ssoGeneral(), SINGLE_SIGN_ON_SETTINGS_MAP)
-  _printAdminSetting(adm.ssoSigningKey(), SINGLE_SIGN_ON_SIGNING_KEY_MAP)
-  if formatJSON:
-    printLine(json.dumps(cleanJSON(customerInfo, u'', timeObjects=CUSTOMER_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
 
 # gam create org|ou <String> [description <String>] [parent <OrgUnitItem>] [inherit|noinherit|(blockinheritance <Boolean>)] [buildpath]
 def doCreateOrg():
@@ -35370,7 +35260,7 @@ def setForward(users):
       if myarg in EMAILSETTINGS_FORWARD_POP_ACTION_CHOICE_MAP:
         body[u'disposition'] = EMAILSETTINGS_FORWARD_POP_ACTION_CHOICE_MAP[myarg]
       elif myarg == u'confirm':
-        deprecatedArgument(myarg)
+        pass
       elif myarg.find(u'@') != -1:
         body[u'emailAddress'] = normalizeEmailAddressOrUID(Cmd.Previous())
       else:
@@ -35658,7 +35548,7 @@ def setPop(users):
     elif myarg == u'action':
       body[u'disposition'] = getChoice(EMAILSETTINGS_FORWARD_POP_ACTION_CHOICE_MAP, mapChoice=True)
     elif myarg == u'confirm':
-      deprecatedArgument(myarg)
+      pass
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
@@ -35696,6 +35586,7 @@ SIG_REPLY_HTML = u'html'
 SIG_REPLY_COMPACT = u'compact'
 SIG_REPLY_FORMAT = u'format'
 SIG_REPLY_OPTIONS = [SIG_REPLY_HTML, SIG_REPLY_COMPACT, SIG_REPLY_FORMAT]
+SMTPMSA_DISPLAY_FIELDS = [u'host', u'port', u'securityMode']
 
 def _showSendAs(result, j, jcount, sigReplyFormat):
   if result[u'displayName']:
@@ -35709,7 +35600,12 @@ def _showSendAs(result, j, jcount, sigReplyFormat):
   printKeyValueList([u'Default', result.get(u'isDefault', False)])
   if not result.get(u'isPrimary', False):
     printKeyValueList([u'TreatAsAlias', result.get(u'treatAsAlias', False)])
-    printKeyValueList([u'Verification Status', result.get(u'verificationStatus', u'unspecified')])
+  if u'smtpMsa' in result:
+    for field in SMTPMSA_DISPLAY_FIELDS:
+      if field in result[u'smtpMsa']:
+        printKeyValueList([u'smtpMsa.{0}'.format(field), result[u'smtpMsa'][field]])
+  if u'verificationStatus' in result:
+    printKeyValueList([u'Verification Status', result[u'verificationStatus']])
   signature = result.get(u'signature')
   if not signature:
     signature = u'None'
@@ -35741,13 +35637,16 @@ def _processSendAs(user, i, count, entityType, emailAddress, j, jcount, gmail, f
   userDefined = True
   try:
     result = callGAPI(gmail.users().settings().sendAs(), function,
-                      throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.ALREADY_EXISTS, GAPI.DUPLICATE, GAPI.CANNOT_DELETE_PRIMARY_SENDAS, GAPI.INVALID_ARGUMENT],
+                      throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.ALREADY_EXISTS, GAPI.DUPLICATE,
+                                                              GAPI.CANNOT_DELETE_PRIMARY_SENDAS, GAPI.INVALID_ARGUMENT,
+                                                              GAPI.FAILED_PRECONDITION],
                       userId=u'me', **kwargs)
     if function == u'get':
       _showSendAs(result, j, jcount, sigReplyFormat)
     else:
       entityActionPerformed([Ent.USER, user, entityType, emailAddress], j, jcount)
-  except (GAPI.notFound, GAPI.alreadyExists, GAPI.duplicate, GAPI.cannotDeletePrimarySendAs, GAPI.invalidArgument) as e:
+  except (GAPI.notFound, GAPI.alreadyExists, GAPI.duplicate,
+          GAPI.cannotDeletePrimarySendAs, GAPI.invalidArgument, GAPI.failedPrecondition) as e:
     entityActionFailedWarning([Ent.USER, user, entityType, emailAddress], str(e), j, jcount)
   except (GAPI.serviceNotAvailable, GAPI.badRequest):
     entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -35768,6 +35667,10 @@ def getSendAsAttributes(myarg, body, tagReplacements):
   else:
     unknownArgumentExit()
 
+SMTPMSA_PORTS = [u'25', u'465', u'587']
+SMTPMSA_SECURITY_MODES = [u'none', u'ssl', u'starttls']
+SMTPMSA_REQUIRED_FIELDS = [u'host', u'port', u'username', u'password']
+
 def _createUpdateSendAs(users, addCmd):
   emailAddress = getEmailAddress(noUid=True)
   if addCmd:
@@ -35775,6 +35678,7 @@ def _createUpdateSendAs(users, addCmd):
   else:
     body = {}
   signature = None
+  smtpMsa = {}
   tagReplacements = _initTagReplacements()
   html = False
   while Cmd.ArgumentsRemaining():
@@ -35783,10 +35687,28 @@ def _createUpdateSendAs(users, addCmd):
       signature, _ = getStringOrFile(myarg)
     elif myarg == u'html':
       html = getBoolean()
+    elif addCmd and myarg.startswith(u'smtpmsa.'):
+      if myarg == u'smtpmsa.host':
+        smtpMsa[u'host'] = getString(Cmd.OB_SMTP_HOST_NAME)
+      elif myarg == u'smtpmsa.port':
+        smtpMsa[u'port'] = int(getChoice(SMTPMSA_PORTS))
+      elif myarg == u'smtpmsa.username':
+        smtpMsa[u'username'] = getString(Cmd.OB_USER_NAME)
+      elif myarg == u'smtpmsa.password':
+        smtpMsa[u'password'] = getString(Cmd.OB_PASSWORD)
+      elif myarg == u'smtpmsa.securitymode':
+        smtpMsa[u'securityMode'] = getChoice(SMTPMSA_SECURITY_MODES)
+      else:
+        unknownArgumentExit()
     else:
       getSendAsAttributes(myarg, body, tagReplacements)
   if signature is not None and not tagReplacements[u'subs']:
     body[u'signature'] = _processSignature(tagReplacements, signature, html)
+  if smtpMsa:
+    for field in SMTPMSA_REQUIRED_FIELDS:
+      if field not in smtpMsa:
+        missingArgumentExit(u'smtpmsa.{0}'.format(field))
+    body[u'smtpMsa'] = smtpMsa
   kwargs = {u'body': body, u'fields': u''}
   if not addCmd:
     kwargs[u'sendAsEmail'] = emailAddress
@@ -35803,6 +35725,7 @@ def _createUpdateSendAs(users, addCmd):
 
 # gam <UserTypeEntity> [create|add] sendas <EmailAddress> <String> [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*]
 #	[html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
+#	[smtpmsa.host <SMTPHostName> smtpmsa.port 25|465|587 smtpmsa.username <UserName> smtpmsa.password <Password> [smtpmsa.securitymode none|ssl|starttls]]
 def createSendAs(users):
   _createUpdateSendAs(users, True)
 
@@ -35884,7 +35807,12 @@ def _printShowSendAs(users, csvFormat):
           for sendas in results:
             row = {u'User': user, u'isPrimary': False}
             for item in sendas:
-              row[item] = sendas[item]
+              if item != u'smtpMsa':
+                row[item] = sendas[item]
+              else:
+                for field in SMTPMSA_DISPLAY_FIELDS:
+                  if field in sendas[item]:
+                    row[u'smtpMsa.{0}'.format(field)] = sendas[item][field]
             addRowTitlesToCSVfile(row, csvRows, titles)
         elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
           csvRows.append({u'User': user})
@@ -36677,7 +36605,6 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DRIVEFILEACL:	doUpdateDriveFileACLs,
       Cmd.ARG_FEATURE:		doUpdateFeature,
       Cmd.ARG_GROUP:		doUpdateGroups,
-      Cmd.ARG_INSTANCE:		doUpdateInstance,
       Cmd.ARG_MOBILE:		doUpdateMobileDevices,
       Cmd.ARG_NOTIFICATION:	doUpdateNotification,
       Cmd.ARG_ORG:		doUpdateOrg,
