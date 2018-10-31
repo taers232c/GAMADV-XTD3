@@ -1,12 +1,17 @@
 4.65.01
 
-The Admin Settings API was turned off on 2018/10/31; here what you will notice:
+The Admin Settings API was turned off on 2018/10/31; here are the changes.
 gam info domain and gam info instance will no longer display these values:
-Maximum Users, Current Users, Domain Edition, Customer PIN
-SSO Enabled, SSO Signon Page, SSO Logout Page, SSO Password Page, SSO Whitelist IPs, SSO Use Domain Specific Issuer
-SSO Key Algorithm, SSO Key Format, SSO Key Modulus, SSO Key Exponent, SSO Key yValue, Full SSO Key
+    Maximum Users, Current Users, Domain Edition, Customer PIN
+    SSO Enabled, SSO Signon Page, SSO Logout Page, SSO Password Page, SSO Whitelist IPs, SSO Use Domain Specific Issuer
+    SSO Key Algorithm, SSO Key Format, SSO Key Modulus, SSO Key Exponent, SSO Key yValue, Full SSO Key
 
-gam info instance logo <FileName> and gam info domain logo <FileName> will no longer download the Customer logo.
+The following commands are no longer valid:
+gam info instance logo <FileName>
+gam info domain logo <FileName>
+gam update instance sso_settings [enabled <Boolean>] [sign_on_uri <URI>] [sign_out_uri <URI>] [password_uri <URI>] [whitelist <CIDRnetmask>] [use_domain_specific_issuer <Boolean>]
+gam update instance sso_key <FileName>
+gam update instance logo <FileName>
 
 Added options to gam create sendas to allow sendas addresses outside of your domain.
 See: https://developers.google.com/gmail/api/v1/reference/users/settings/sendAs#resource
