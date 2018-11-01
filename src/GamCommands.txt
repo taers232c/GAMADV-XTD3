@@ -1159,6 +1159,7 @@ gam info courses <CourseEntity> [owneremail] [alias|aliases] [show all|students|
 gam print courses [todrive <ToDriveAttribute>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
         [owneremail] [owneremailmatchpattern <RegularExpression>] [alias|aliases] [delimiter <Character>] [show all|students|teachers] [countsonly]
         [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson] [quotechar <Character>]
+        [timefilter creationtime|updatetime] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
 gam print course-participants [todrive <ToDriveAttribute>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
         [show all|students|teachers] [formatjson] [quotechar <Character>]
 
@@ -1227,13 +1228,16 @@ gam print course-participants [todrive <ToDriveAttribute>*] (course|class <Cours
 gam print course-announcements [todrive <ToDriveAttribute>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         (announcementids <CourseAnnouncementIDEntity>)|((announcementstates <CourseAnnouncementStateList>)* (orderby <CourseAnnouncementOrderByFieldName> [ascending|descending])*)
         [showcreatoremails] [fields <CourseAnnouncementFieldNameList>] [formatjson] [quotechar <Character>]
+        [timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
 gam print course-work [todrive <ToDriveAttribute>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         (workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)* (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
         [showcreatoremails] [fields <CourseWorkFieldNameList>] [formatjson] [quotechar <Character>]
+        [timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
 gam print course-submissions [todrive <ToDriveAttribute>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         (workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)* (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
         (submissionids <CourseSubmissionIDEntity>)|((submissionstates <CourseSubmissionStateList>)*) [late|notlate]
         [fields <CourseSubmissionFieldNameList>] [formatjson] [quotechar <Character>] [showuserprofile]
+        [timefilter creationtime|updatetime] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
 
 # Classroom - Invitations
 

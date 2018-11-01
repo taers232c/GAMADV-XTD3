@@ -1,3 +1,14 @@
+4.65.02
+
+Added options to gam print courses/course-announcements/course-work/course-submissions to allow selection of items
+created/updated/scheduled within a particular time frame.
+        [timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
+* timefilter creationtime|updatetime|scheduledtime specifies the field to monitor: creationtime and updatetime are defined for all four course items;
+  scheduledtime is defined for course-announcements and course-work.
+* start|starttime <Date>|<DateTime> specifies the start of the time frame; if not specified, the time frame will be open ended at the start.
+* end|endtime <Date>|<DateTime> specifies the end of the time frame; if not specified, the time frame will be open ended at the end.
+For the filter to apply, timefilter and at least one of start|starttime and end|endtime must be specified.
+
 4.65.01
 
 The Admin Settings API was turned off on 2018/10/31; here are the changes.
