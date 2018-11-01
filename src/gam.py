@@ -21676,9 +21676,12 @@ def _setApplyCourseItemFilter(courseItemFilter, fieldsList):
   return False
 
 def _courseItemPassesFilter(item, courseItemFilter):
+  timeStr = item.get(courseItemFilter[u'timefilter'])
+  if not timeStr:
+    return False
   startTime = courseItemFilter[u'startTime']
   endTime = courseItemFilter[u'endTime']
-  timeValue, _ = iso8601.parse_date(item[courseItemFilter[u'timefilter']])
+  timeValue, _ = iso8601.parse_date(timeStr)
   return ((startTime is None) or (timeValue >= startTime)) and ((endTime is None) or (timeValue <= endTime))
 
 def _gettingCoursesQuery(courseSelectionParameters):
