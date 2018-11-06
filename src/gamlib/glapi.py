@@ -104,6 +104,7 @@ _INFO = {
   EMAIL_AUDIT: {u'version': u'v1', u'credfam': FAM2_SCOPES, u'localjson': True},
   EMAIL_SETTINGS: {u'version': u'v2', u'credfam': FAM1_SCOPES, u'localjson': True},
   GMAIL: {u'version': u'v1', u'credfam': FAM1_SCOPES, u'svcacctscopes': [u'https://mail.google.com/',
+                                                                         u'https://www.googleapis.com/auth/gmail.modify',
                                                                          u'https://www.googleapis.com/auth/gmail.settings.basic',
                                                                          u'https://www.googleapis.com/auth/gmail.settings.sharing',]},
   GPLUS: {u'version': u'v1', u'credfam': FAM1_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/plus.me',

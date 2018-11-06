@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.02'
+__version__ = u'4.65.03'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -34877,6 +34877,54 @@ def deleteDelegate(users):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
     Ind.Decrement()
 
+# gam <UserTypeEntity> update delegate|delegates [<UserEntity>]
+def updateDelegates(users):
+  if  Cmd.ArgumentsRemaining():
+    cd = buildGAPIObject(API.DIRECTORY)
+    delegateEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DELEGATE)
+    checkForExtraneousArguments()
+  else:
+    delegateEntity = None
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    if delegateEntity is None:
+      user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
+      if not gmail:
+        continue
+      try:
+        result = callGAPI(gmail.users().settings().delegates(), u'list',
+                          throw_reasons=GAPI.GMAIL_THROW_REASONS,
+                          userId=u'me')
+      except (GAPI.serviceNotAvailable, GAPI.badRequest):
+        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+        continue
+      delegates = result.get(u'delegates', []) if result is not None else []
+      jcount = len(delegates)
+      entityPerformActionModifierNumItems([Ent.USER, user], Msg.MAXIMUM_OF, jcount, Ent.DELEGATE, i, count)
+    else:
+      user, gmail, delegates, jcount = _validateUserGetObjectList(user, i, count, delegateEntity)
+      if jcount == 0:
+        continue
+    Ind.Increment()
+    j = 0
+    for delegate in delegates:
+      j += 1
+      if delegateEntity is not None or delegate[u'verificationStatus'] == u'accepted':
+        delegateEmail = delegate[u'delegateEmail'] if delegateEntity is None else convertUIDtoEmailAddress(delegate, cd=cd)
+        try:
+          callGAPI(gmail.users().settings().delegates(), u'create',
+                   throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION, GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT],
+                   userId=u'me', body={u'delegateEmail': delegateEmail, u'verificationStatus': u'accepted'})
+          entityActionPerformed([Ent.USER, user, Ent.DELEGATE, delegateEmail], j, jcount)
+        except GAPI.alreadyExists as e:
+          entityActionPerformed([Ent.USER, user, Ent.DELEGATE, delegateEmail], j, jcount)
+        except (GAPI.failedPrecondition, GAPI.notFound, GAPI.invalidArgument) as e:
+          entityActionFailedWarning([Ent.USER, user, Ent.DELEGATE, delegateEmail], str(e), j, jcount)
+        except (GAPI.serviceNotAvailable, GAPI.badRequest):
+          entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+    Ind.Decrement()
+
 def _printShowDelegates(users, csvFormat):
   def _getDelegateName(delegateEmail):
     if delegateEmail in delegateNames:
@@ -37250,6 +37298,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CONTACT:		updateUserContacts,
       Cmd.ARG_CONTACTGROUP:	updateUserContactGroup,
       Cmd.ARG_CONTACTPHOTO:	updateUserContactPhoto,
+      Cmd.ARG_DELEGATE:		updateDelegates,
       Cmd.ARG_DRIVEFILE:	updateDriveFile,
       Cmd.ARG_DRIVEFILEACL:	updateDriveFileACLs,
       Cmd.ARG_EVENT:		updateCalendarEvents,

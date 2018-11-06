@@ -1,3 +1,18 @@
+4.65.03
+
+Currently, when you add a delegate for a user, the delegate is enabled to access the user's mail. Google is changing the Gmail API
+so that the delegate is also enabled to access the user's contacts. Existing contacts must be updated to acquire this additional access.
+gam <UserTypeEntity> update delegate|delegates [<UserEntity>]
+If <UserEntity> is omitted, all of a user's accepted delegates are updated.
+
+The Gamil API appears to require an additional Service Account scope to access delegates.
+Do this command; sustitute a valid email address for user@domain.com.
+    gam user user@domain.com check serviceaccount
+You might see the following scopes fail:
+  Scope: https://www.googleapis.com/auth/gmail.modify                , Checked: FAIL (10/18)
+
+Follow the directions to authorize the Service Account scopes.
+
 4.65.02
 
 Added options to gam print courses/course-announcements/course-work/course-submissions to allow selection of items
