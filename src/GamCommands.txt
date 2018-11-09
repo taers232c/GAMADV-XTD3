@@ -2649,6 +2649,7 @@ gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (ord
         id|
         imagemediametadata|
         isappauthorized|
+        labels|
         <DriveLabelsSubfieldName>|
         lastmodifyinguser|
         <DriveLastModifyingUserSubfieldName>|
