@@ -1,3 +1,17 @@
+4.65.04
+
+Fixed an error on Windows that occurred when redirect csv filename.csv multiprocess was specified but filename.csv was locked by another process.
+
+Added the ability to select invdividual file label fields in gam show fileinfo/gam print filelist.
+The fields can be specifed with the full name or the just the portion to the right of "labels.".
+This is for backwards compatibility with GAMADV-X; the actual field names are shown.
+<DriveLabelsSubfieldName> ::=
+        labels.modified|        # modifiedByMe
+        labels.restricted|      # copyRequiresWriterPermission
+        labels.starred|         # starred
+        labels.trashed|         # trashed
+        labels.viewed           # viewedByMe
+
 4.65.03
 
 Currently, when you add a delegate for a user, the delegate is enabled to access the user's mail. Google is changing the Gmail API
@@ -5,7 +19,7 @@ so that the delegate is also enabled to access the user's contacts. Existing con
 gam <UserTypeEntity> update delegate|delegates [<UserEntity>]
 If <UserEntity> is omitted, all of a user's accepted delegates are updated.
 
-The Gamil API appears to require an additional Service Account scope to access delegates.
+The Gmail API appears to require an additional Service Account scope to access delegates.
 Do this command; sustitute a valid email address for user@domain.com.
     gam user user@domain.com check serviceaccount
 You might see the following scopes fail:
