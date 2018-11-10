@@ -1,3 +1,7 @@
+4.65.05
+
+Handle trap caused by invalid date returned by Google Drive API.
+
 4.65.04
 
 Fixed an error on Windows that occurred when redirect csv filename.csv multiprocess was specified but filename.csv was locked by another process.
