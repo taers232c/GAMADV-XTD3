@@ -1,3 +1,15 @@
+4.65.06
+
+Added command to display Google license counts in "keyword: value" form.
+gam show licenses [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite]
+
+Added countsonly option to gam print licenses to allow display of Google license counts in CSV form.
+gam print licenses [todrive <ToDriveAttributes>*] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite] [countsonly]
+
+Both commands have additional options for selecting which products/SKUs to display.
+* allskus - Select all Google product SKUs
+* gsuite - Select GSuite products: Google-Apps and 101031
+
 4.65.05
 
 Handle trap caused by invalid date returned by Google Drive API.

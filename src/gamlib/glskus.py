@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2016 Ross Scroggs All Rights Reserved.
+# Copyright (C) 2018 Ross Scroggs All Rights Reserved.
 #
 # All Rights Reserved.
 #
@@ -23,6 +23,16 @@
 import re
 
 # Products/SKUs
+_PRODUCTS = {
+  u'101001': u'Cloud Identity',
+  u'101005': u'Cloud Identity Premium',
+  u'101031': u'G Suite Enterprise for Education',
+  u'Google-Apps': u'G Suite',
+  u'Google-Chrome-Device-Management': u'Google Chrome Device Management',
+  u'Google-Coordinate': u'Google Coordinate',
+  u'Google-Drive-storage': u'Google Drive storage',
+  u'Google-Vault': u'Google Vault',
+  }
 _SKUS = {
   u'1010010001': {
     u'product': u'101001', u'aliases': [u'identity', u'cloudidentity'], u'displayName': 'Cloud Identity'},
@@ -81,14 +91,14 @@ def getProductAndSKU(sku):
     product = sku
   return (product, sku)
 
-def skuIdToDisplayName(skuId):
-  return _SKUS[skuId][u'displayName'] if skuId in _SKUS else skuId
+def productIdToDisplayName(productId):
+  return _PRODUCTS.get(productId, productId)
 
-def formatSKUIdDisplayName(skuId):
-  skuIdDisplay = skuIdToDisplayName(skuId)
-  if skuId == skuIdDisplay:
-    return skuId
-  return u'{0} ({1})'.format(skuId, skuIdDisplay)
+def formatProductIdDisplayName(productId):
+  productIdDisplay = productIdToDisplayName(productId)
+  if productId == productIdDisplay:
+    return productId
+  return u'{0} ({1})'.format(productId, productIdDisplay)
 
 def normalizeProductId(product):
   l_product = product.lower().replace(u'-', u'').replace(u' ', u'')
@@ -101,12 +111,16 @@ def normalizeProductId(product):
   return product
 
 def getSortedProductList():
-  products = []
-  for sku in list(_SKUS.values()):
-    if sku[u'product'] not in products:
-      products.append(sku[u'product'])
-  products.sort()
-  return products
+  return sorted(_PRODUCTS.keys())
+
+def skuIdToDisplayName(skuId):
+  return _SKUS[skuId][u'displayName'] if skuId in _SKUS else skuId
+
+def formatSKUIdDisplayName(skuId):
+  skuIdDisplay = skuIdToDisplayName(skuId)
+  if skuId == skuIdDisplay:
+    return skuId
+  return u'{0} ({1})'.format(skuId, skuIdDisplay)
 
 def getSortedSKUList():
   return sorted(_SKUS.keys())
@@ -116,3 +130,6 @@ def convertProductListToSKUList(productList):
   for productId in productList:
     skuList += [skuId for skuId in _SKUS if _SKUS[skuId][u'product'] == productId]
   return skuList
+
+def getGSuiteSKUs():
+  return convertProductListToSKUList([u'Google-Apps', u'101031'])

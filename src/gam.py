@@ -14951,52 +14951,89 @@ def doShowGroupMembers():
     if checkGroupMatchPatterns(groupEmail, group, matchPatterns):
       _showGroup(groupEmail, 0)
 
-# gam print licenses [todrive <ToDriveAttributes>*] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)]
-def doPrintLicenses(returnFields=None, skus=None):
+# gam print licenses [todrive <ToDriveAttributes>*] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite] [countsonly]
+def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts=False):
   lic = buildGAPIObject(API.LICENSING)
   products = []
   feed = []
+  licenseCounts = []
   if not returnFields:
     todrive = {}
-    titles, csvRows = initializeTitlesCSVfile([u'userId', u'productId', u'skuId', u'skuDisplay'])
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
-      if myarg == u'todrive':
+      if not returnCounts and myarg == u'todrive':
         todrive = getTodriveParameters()
       elif myarg in [u'products', u'product']:
         products = getGoogleProductList()
         skus = []
-      elif myarg in [u'sku', u'skus']:
+      elif myarg in [u'skus', u'sku']:
         skus = getGoogleSKUList()
         products = []
+      elif myarg == u'allskus':
+        skus = SKU.getSortedSKUList()
+        products = []
+      elif myarg == u'gsuite':
+        skus = SKU.getGSuiteSKUs()
+        products = []
+      elif myarg == u'countsonly':
+        countsOnly = True
       else:
         unknownArgumentExit()
-    fields = u'nextPageToken,items(productId,skuId,userId)'
+    if not countsOnly:
+      fields = u'nextPageToken,items(productId,skuId,userId)'
+      titles, csvRows = initializeTitlesCSVfile([u'userId', u'productId', u'productDisplay', u'skuId', u'skuDisplay'])
+    else:
+      fields = u'nextPageToken,items(userId)'
+      if not returnCounts:
+        if skus:
+          titles, csvRows = initializeTitlesCSVfile([u'productId', u'productDisplay', u'skuId', u'skuDisplay', u'licenses'])
+        else:
+          titles, csvRows = initializeTitlesCSVfile([u'productId', u'productDisplay', u'licenses'])
   else:
     fields = u'nextPageToken,items({0})'.format(returnFields)
   if skus:
     for skuId in skus:
       Ent.SetGetting(Ent.LICENSE)
+      productId, skuId = SKU.getProductAndSKU(skuId)
+      productDisplay = SKU.formatProductIdDisplayName(productId)
+      skuIdDisplay = SKU.formatSKUIdDisplayName(skuId)
       try:
-        productId, skuId = SKU.getProductAndSKU(skuId)
         feed += callGAPIpages(lic.licenseAssignments(), u'listForProductAndSku', u'items',
-                              page_message=getPageMessageForWhom(forWhom=skuId),
+                              page_message=getPageMessageForWhom(forWhom=skuIdDisplay),
                               throw_reasons=[GAPI.INVALID, GAPI.FORBIDDEN],
                               customerId=GC.Values[GC.DOMAIN], productId=productId, skuId=skuId, fields=fields)
+        if countsOnly:
+          licenseCounts.append([Ent.PRODUCT, productId, Ent.SKU, [skuId, skuIdDisplay][returnCounts], Ent.LICENSE, len(feed)])
+          feed = []
       except (GAPI.invalid, GAPI.forbidden) as e:
-        entityActionNotPerformedWarning([Ent.PRODUCT, productId, Ent.SKU, skuId], str(e))
+        entityActionNotPerformedWarning([Ent.PRODUCT, productDisplay, Ent.SKU, skuIdDisplay], str(e))
   else:
     if not products:
       products = SKU.getSortedProductList()
     for productId in products:
       Ent.SetGetting(Ent.LICENSE)
+      productDisplay = SKU.formatProductIdDisplayName(productId)
       try:
         feed += callGAPIpages(lic.licenseAssignments(), u'listForProduct', u'items',
                               page_message=getPageMessageForWhom(forWhom=productId),
                               throw_reasons=[GAPI.INVALID, GAPI.FORBIDDEN],
                               customerId=GC.Values[GC.DOMAIN], productId=productId, fields=fields)
+        if countsOnly:
+          licenseCounts.append([Ent.PRODUCT, [productId, productDisplay][returnCounts], Ent.LICENSE, len(feed)])
+          feed = []
       except (GAPI.invalid, GAPI.forbidden) as e:
-        entityActionNotPerformedWarning([Ent.PRODUCT, productId], str(e))
+        entityActionNotPerformedWarning([Ent.PRODUCT, productDisplay], str(e))
+  if countsOnly:
+    if returnCounts:
+      return licenseCounts
+    if skus:
+      for u_license in licenseCounts:
+        csvRows.append({u'productId': u_license[1], u'productDisplay': SKU.productIdToDisplayName(u_license[1]), u'skuId': u_license[3], u'skuDisplay': SKU.skuIdToDisplayName(u_license[3]), u'licenses': u_license[5]})
+    else:
+      for u_license in licenseCounts:
+        csvRows.append({u'productId': u_license[1], u'productDisplay': SKU.productIdToDisplayName(u_license[1]), u'licenses': u_license[3]})
+    writeCSVfile(csvRows, titles, u'Licenses', todrive)
+    return
   if returnFields:
     if returnFields == u'userId':
       userIds = []
@@ -15016,10 +15053,18 @@ def doPrintLicenses(returnFields=None, skus=None):
       return userSkuIds
   for u_license in feed:
     userId = u_license.get(u'userId', u'').lower()
+    productId = u_license.get(u'productId', u'')
     skuId = u_license.get(u'skuId', u'')
-    csvRows.append({u'userId': userId, u'productId': u_license.get(u'productId', u''),
+    csvRows.append({u'userId': userId,
+                    u'productId': productId, u'productDisplay': SKU.productIdToDisplayName(productId),
                     u'skuId': skuId, u'skuDisplay': SKU.skuIdToDisplayName(skuId)})
   writeCSVfile(csvRows, titles, u'Licenses', todrive)
+
+# gam show licenses [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite]
+def doShowLicenses():
+  licenseCounts = doPrintLicenses(countsOnly=True, returnCounts=True)
+  for u_license in licenseCounts:
+    printEntityKVList(u_license[:-2], [Ent.Plural(u_license[-2]), u_license[-1]])
 
 # Notification commands utilities
 READ_UNREAD_CHOICES = [u'read', u'unread',]
@@ -36714,6 +36759,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_GAL:		doShowGAL,
       Cmd.ARG_GROUPMEMBERS:	doShowGroupMembers,
       Cmd.ARG_GUARDIAN: 	doShowGuardians,
+      Cmd.ARG_LICENSE:		doShowLicenses,
       Cmd.ARG_ORGTREE:		doShowOrgTree,
       Cmd.ARG_OWNERSHIP:	doShowOwnership,
       Cmd.ARG_PRIVILEGES:	doShowPrivileges,
