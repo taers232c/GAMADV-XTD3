@@ -2012,7 +2012,7 @@ def cleanFilename(filename):
   return filename
 
 # Open a file
-def openFile(filename, mode=u'rU', encoding=GM.Globals[GM.SYS_ENCODING], continueOnError=False, displayError=True):
+def openFile(filename, mode=u'r', encoding=GM.Globals[GM.SYS_ENCODING], continueOnError=False, displayError=True):
   try:
     if filename != u'-':
       if mode.endswith(u'b'):
@@ -2040,7 +2040,7 @@ def closeFile(f):
     return False
 
 # Read a file
-def readFile(filename, mode=u'rU', continueOnError=False, displayError=True, encoding=None):
+def readFile(filename, mode=u'r', continueOnError=False, displayError=True, encoding=None):
   try:
     if filename != u'-':
       if not encoding:
@@ -2300,7 +2300,7 @@ def SetGlobalVariables():
 
   def _readGamCfgFile(config, fileName):
     try:
-      with open(fileName, u'rU') as f:
+      with open(fileName, u'r') as f:
         config.readfp(f)
     except (configparser.MissingSectionHeaderError, configparser.ParsingError) as e:
       systemErrorExit(CONFIG_ERROR_RC, formatKeyValueList(u'',
