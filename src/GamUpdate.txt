@@ -1,3 +1,14 @@
+4.65.07
+
+Added fields <EventFieldNameList> option to gam info/show/print events to allow selection of specific event fields to display.
+See:
+* https://github.com/taers232c/GAMADV-XTD/wiki/Calendars-Events
+* https://github.com/taers232c/GAMADV-XTD/wiki/Users-Calendars-Events
+
+Enhanced <Tag> <Replace> processing to allow greater selection of user fields.
+See: 
+* https://github.com/taers232c/GAMADV-X/wiki/Tag-Replace
+
 4.65.06
 
 Added command to display Google license counts in "keyword: value" form.
@@ -447,8 +458,8 @@ Fixed bug in gam move drivefile that threw exception.
 
 4.60.23
 
-Support `gam.cfg/no_verify_ssl = true` for user contacts and sites to avoid this error:
-`Temporary error: 3 - Connection error: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:661)`
+Support gam.cfg/no_verify_ssl = true for user contacts and sites to avoid this error:
+Temporary error: 3 - Connection error: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:661)
 
 Handle socket.error messages in non-ASCII character sets.
 

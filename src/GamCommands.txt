@@ -757,6 +757,89 @@ gam calendar|calendars <CalendarEntity> wipe events
 gam calendar|calendars <CalendarEntity> move events <EventEntity> to <CalendarItem> [notifyattendees]
 gam calendar|calendars <CalendarEntity> empty calendartrash
 
+<EventAttachmentsSubfieldName> ::=
+        attachments.fileid|
+        attachments.fileurl|
+        attachments.iconlink|
+        attachments.mimetype|
+        attachments.title
+
+<EventAttendeesSubfieldName> ::=
+        attendees.additionalguests|
+        attendees.comment|
+        attendees.displayname|
+        attendees.email|
+        attendees.id|
+        attendees.optional|
+        attendees.organizer|
+        attendees.resource|
+        attendees.responseStatus|
+        attendees.self
+
+<EventConferenceDataSubfieldName> ::=
+        conferencedata.conferenceid|
+        conferencedata.conferencesolution|
+        conferencedata.createrequest|
+        conferencedata.entrypoints|
+        conferencedata.notes|
+        conferencedata.signature
+
+<EventCreatorSubfieldName> ::=
+        creator.displayname|
+        creator.email|
+        creator.id|
+        creator.self
+
+<EventOrganizerSubfieldName> ::=
+        organizer.displayname|
+        organizer.email|
+        organizer.id|
+        organizer.self
+
+<EventFieldName> ::=
+        anyonecanaddself|
+        attachments|
+	<EventAttachmentsSubfieldName>|
+        attendees|
+	<EventAttendeesSubfieldName>|
+        attendeesomitted|
+        colorid|
+        conferencedata|
+	<EventConferenceDataSubfieldName>|
+        created|
+        creator|
+	<EventCreatorSubfieldName>|
+        description|
+        end|
+        endtimeunspecified|
+        extendedproperties|
+        gadget|
+        guestscaninviteothers|
+        guestscanmodify|
+        guestscanseeotherguests|
+        hangoutlink|
+        htmllink|
+        icaluid|
+        id|
+        location|
+        locked|
+        organizer|
+	<EventOrganizerSubfieldName>|
+        originalstarttime|
+        privatecopy|
+        recurrence|
+        recurringeventid|
+        reminders|
+        sequence|
+        source|
+        start|
+        status|
+        summary|
+        transparency|
+        updated|
+        visibility
+<EventFieldNameList> ::= "<EventFieldName>(,<EventFieldName>)*"
+
 <EventDisplayProperty> ::=
         (alwaysincludeemail)|
         (icaluid <String>)|
@@ -764,9 +847,9 @@ gam calendar|calendars <CalendarEntity> empty calendartrash
         (orderby starttime|updated)|
         (timezone <TimeZone>)
 
-gam calendar|calendars <CalendarEntity> info events <EventEntity> [maxinstances <Number>] [formatjson]
-gam calendar|calendars <CalendarEntity> show events <EventSelectProperty>* <EventDisplayProperty>* [formatjson]
-gam calendar|calendars <CalendarEntity> print events <EventSelectProperty>* <EventDisplayProperty>*
+gam calendar|calendars <CalendarEntity> info events <EventEntity> [maxinstances <Number>] [fields <EventFieldNameList>] [formatjson]
+gam calendar|calendars <CalendarEntity> show events <EventSelectProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>] [formatjson]
+gam calendar|calendars <CalendarEntity> print events <EventSelectProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>]
          [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
 
 gam calendar|calendars <CalendarEntity> addevent <EventCreateAttribute>+
@@ -2346,9 +2429,9 @@ gam <UserTypeEntity> empty calendartrash <UserCalendarEntity>
         (orderby starttime|updated)|
         (timezone <TimeZone>)
 
-gam <UserTypeEntity> info events <UserCalendarEntity> <EventEntity> [maxinstances <Number>] [formatjson]
-gam <UserTypeEntity> show events <UserCalendarEntity> <EventSelectProperty>* <EventDisplayProperty>* [formatjson]
-gam <UserTypeEntity> print events <UserCalendarEntity> <EventSelectProperty>* <EventDisplayProperty>*
+gam <UserTypeEntity> info events <UserCalendarEntity> <EventEntity> [maxinstances <Number>] [fields <EventFieldNameList>] [formatjson]
+gam <UserTypeEntity> show events <UserCalendarEntity> <EventSelectProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>] [formatjson]
+gam <UserTypeEntity> print events <UserCalendarEntity> <EventSelectProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>]
          [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer]
