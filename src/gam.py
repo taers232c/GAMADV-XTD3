@@ -6734,9 +6734,10 @@ def _getTagReplacement(tagReplacements, allowSubs):
     if subfield not in subfieldsChoiceMap:
       invalidChoiceExit(subfieldsChoiceMap, True)
     subfield = subfieldsChoiceMap[subfield]
-    if matchfield and matchfield not in subfieldsChoiceMap:
-      invalidChoiceExit(subfieldsChoiceMap, True)
-    matchfield = subfieldsChoiceMap[matchfield]
+    if matchfield:
+      if matchfield not in subfieldsChoiceMap:
+        invalidChoiceExit(subfieldsChoiceMap, True)
+      matchfield = subfieldsChoiceMap[matchfield]
     tagReplacements[u'fieldsSet'].add(field)
     tagReplacements[u'fields'] = u','.join(tagReplacements[u'fieldsSet'])
     tagReplacements[u'tags'][matchTag] = {u'field': field, u'subfield': subfield,
