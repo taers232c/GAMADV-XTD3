@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.07'
+__version__ = u'4.65.08'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -24811,11 +24811,39 @@ def initCalendarEntity():
 
 def getUserCalendarEntity(default=u'primary', noSelectionKwargs=None):
 
+  def _initCourseCalendarSelectionParameters():
+    return {u'courseIds': [], u'teacherId': None, u'myCoursesAsTeacher': False,
+            u'studentId': None, u'myCoursesAsStudent': False, u'courseStates': []}
+
+  def _getCourseCalendarSelectionParameters(myarg):
+    if myarg in [u'course', u'courses', u'class', u'classes']:
+      courseSelectionParameters[u'courseIds'].extend(getEntityList(Cmd.OB_COURSE_ENTITY))
+    elif myarg == u'courseswithteacher':
+      courseSelectionParameters[u'teacherId'] = getEmailAddress()
+      courseSelectionParameters[u'myCoursesAsTeacher'] = False
+    elif myarg == u'mycoursesasteacher':
+      courseSelectionParameters[u'myCoursesAsTeacher'] = True
+      courseSelectionParameters[u'teacherId'] = None
+    elif myarg == u'courseswithstudent':
+      courseSelectionParameters[u'studentId'] = getEmailAddress()
+      courseSelectionParameters[u'myCoursesAsStudent'] = False
+    elif myarg == u'mycoursesasstudent':
+      courseSelectionParameters[u'myCoursesAsStudent'] = True
+      courseSelectionParameters[u'studentId'] = None
+    elif myarg in [u'coursestate', u'coursestates', u'coursestatus']:
+      _getCourseStates(Cmd.OB_COURSE_STATE_LIST, courseSelectionParameters[u'courseStates'])
+    else:
+      return False
+    return True
+
   def _noSelectionMade():
     return (not calendarEntity[u'list'] and not calendarEntity[u'kwargs'] and calendarEntity[u'dict'] is None and
-            not calendarEntity[u'all'] and not calendarEntity[u'primary'] and not calendarEntity[u'resourceIds'])
+            not calendarEntity[u'all'] and not calendarEntity[u'primary'] and not calendarEntity[u'resourceIds'] and
+            not courseCalendarSelected)
 
   calendarEntity = initCalendarEntity()
+  courseSelectionParameters = _initCourseCalendarSelectionParameters()
+  courseCalendarSelected = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in [u'calendar', u'calendars']:
@@ -24838,6 +24866,8 @@ def getUserCalendarEntity(default=u'primary', noSelectionKwargs=None):
       calendarEntity[u'resourceIds'].append(getString(Cmd.OB_RESOURCE_ID))
     elif myarg == u'resources':
       calendarEntity[u'resourceIds'].extend(convertEntityToList(getString(Cmd.OB_RESOURCE_ID, minLen=0), shlexSplit=True))
+    elif _getCourseCalendarSelectionParameters(myarg):
+      courseCalendarSelected = True
     elif _noSelectionMade() and myarg.find(u'@') != -1:
       calendarEntity[u'list'].extend(convertEntityToList(Cmd.Previous().lower()))
     else:
@@ -24849,13 +24879,20 @@ def getUserCalendarEntity(default=u'primary', noSelectionKwargs=None):
     else:
       calendarEntity[u'all'] = True
       calendarEntity[u'kwargs'].update(noSelectionKwargs)
+  elif (courseCalendarSelected and
+        (courseSelectionParameters[u'courseIds'] or
+         courseSelectionParameters[u'teacherId'] or courseSelectionParameters[u'myCoursesAsTeacher'] or
+         courseSelectionParameters[u'studentId'] or courseSelectionParameters[u'myCoursesAsStudent'])):
+    calendarEntity[u'courseSelectionParameters'] = courseSelectionParameters
+    calendarEntity[u'courseShowProperties'] = _initCourseShowProperties([u'calendarId',])
+    calendarEntity[u'croom'] = buildGAPIObject(API.CLASSROOM)
   return calendarEntity
 
 def _validateUserGetCalendarIds(user, i, count, calendarEntity, itemType=None, modifier=None, showAction=True, setRC=True, newCalId=None):
   if user and calendarEntity[u'dict']:
-    calIds = calendarEntity[u'dict'][user]
+    calIds = calendarEntity[u'dict'][user][:]
   else:
-    calIds = calendarEntity[u'list']
+    calIds = calendarEntity[u'list'][:]
   user, cal = validateCalendar(user, i, count)
   if not cal:
     return (user, None, None, 0)
@@ -24865,10 +24902,23 @@ def _validateUserGetCalendarIds(user, i, count, calendarEntity, itemType=None, m
       try:
         calIds.append(callGAPI(cd.resources().calendars(), u'get',
                                throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                               customer=GC.Values[GC.CUSTOMER_ID], calendarResourceId=resourceId, fields=u'resourceEmail')[u'resourceEmail'])
+                               customer=GC.Values[GC.CUSTOMER_ID], calendarResourceId=resourceId,
+                               fields=u'resourceEmail')[u'resourceEmail'])
       except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
         checkEntityAFDNEorAccessErrorExit(cd, Ent.RESOURCE_CALENDAR, resourceId, i, count)
         return (user, None, None, 0)
+  courseSelectionParameters = calendarEntity.get(u'courseSelectionParameters')
+  if courseSelectionParameters is not None:
+    if courseSelectionParameters[u'myCoursesAsTeacher']:
+      courseSelectionParameters[u'teacherId'] = user
+    if courseSelectionParameters[u'myCoursesAsStudent']:
+      courseSelectionParameters[u'studentId'] = user
+    coursesInfo = _getCoursesInfo(calendarEntity[u'croom'], courseSelectionParameters,
+                                  calendarEntity[u'courseShowProperties'])
+    if coursesInfo is None:
+      return (user, None, None, 0)
+    for course in coursesInfo:
+      calIds.append(course[u'calendarId'])
   if calendarEntity[u'primary']:
     calIds.append(user)
   try:

@@ -799,16 +799,16 @@ gam calendar|calendars <CalendarEntity> empty calendartrash
 <EventFieldName> ::=
         anyonecanaddself|
         attachments|
-	<EventAttachmentsSubfieldName>|
+        <EventAttachmentsSubfieldName>|
         attendees|
-	<EventAttendeesSubfieldName>|
+        <EventAttendeesSubfieldName>|
         attendeesomitted|
         colorid|
         conferencedata|
-	<EventConferenceDataSubfieldName>|
+        <EventConferenceDataSubfieldName>|
         created|
         creator|
-	<EventCreatorSubfieldName>|
+        <EventCreatorSubfieldName>|
         description|
         end|
         endtimeunspecified|
@@ -824,7 +824,7 @@ gam calendar|calendars <CalendarEntity> empty calendartrash
         location|
         locked|
         organizer|
-	<EventOrganizerSubfieldName>|
+        <EventOrganizerSubfieldName>|
         originalstarttime|
         privatecopy|
         recurrence|
@@ -2265,7 +2265,10 @@ gam <UserTypeEntity> show backupcodes|verificationcodes
         showhidden
 
 <UserCalendarAddEntity> ::=
-        <EmailAddressEntity>|
+        <EmailAddress>|
+        (courses <CourseIDList>)|
+        ((courses_with_teacher <UserItem>)|my_courses_as_teacher [coursestates <CourseStateList>])|
+        ((courses_with_student <UserItem>)|my_courses_as_student [coursestates <CourseStateList>])|
         (resource <ResourceID>)|
         (resources <ResourceIDList>)|
         ((calendars <CalendarList>) | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>)
@@ -2273,7 +2276,10 @@ gam <UserTypeEntity> show backupcodes|verificationcodes
 <UserCalendarEntity> ::=
         allcalendars|
         primary|
-        <EmailAddressEntity>|
+        <EmailAddress>|
+        (courses <CourseIDList>)|
+        ((courses_with_teacher <UserItem>)|my_courses_as_teacher [coursestates <CourseStateList>])|
+        ((courses_with_student <UserItem>)|my_courses_as_student [coursestates <CourseStateList>])|
         (resource <ResourceID>)|
         (resources <ResourceIDList>)|
         ((calendars <CalendarList>) | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>)|
@@ -2355,7 +2361,7 @@ gam <UserTypeEntity> transfer calendars <UserCalendarEntity> <UserItem> [keepuse
         (matchfield summary <RegularExpression>)
 
 <EventEntity> ::=
-        (id|eventid <EventId>)|(events <EventIdList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|
+        (id|eventid <EventId>)|(event|events <EventIdList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|
         (<EventSelectProperty>+ <EventMatchProperty>*)
 
 <EventAttribute> ::=

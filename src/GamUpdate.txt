@@ -1,3 +1,14 @@
+4.65.08
+
+Added options to <UserCalendarAddEntity> and <UserCalendarEntity> to allow selection of calendars from courses.
+All gam <UserTypeEntity> commands that reference calendars, calendar lists, calendar ACLs and calendar events can
+use these options.
+See:
+* https://github.com/taers232c/GAMADV-XTD/wiki/Users-Calendars
+* https://github.com/taers232c/GAMADV-XTD/wiki/Users-Calendars-List
+* https://github.com/taers232c/GAMADV-XTD/wiki/Users-Calendars-Access
+* https://github.com/taers232c/GAMADV-XTD/wiki/Users-Calendars-Events
+
 4.65.07
 
 Added fields <EventFieldNameList> option to gam info/show/print events to allow selection of specific event fields to display.
