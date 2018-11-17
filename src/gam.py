@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.08'
+__version__ = u'4.65.09'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -15909,9 +15909,9 @@ def _doPrintShowResourceCalendars(csvFormat):
       calId = resource[u'resourceEmail']
       try:
         acls = callGAPIpages(cal.acl(), u'list', u'items',
-                             throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                             throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.AUTH_ERROR],
                              calendarId=calId, fields=u'nextPageToken,items(id,role,scope)')
-      except GAPI.forbidden as e:
+      except (GAPI.forbidden, GAPI.authError) as e:
         entityActionFailedWarning([Ent.RESOURCE_CALENDAR, calId], str(e), i, count)
         continue
       except GAPI.notFound:
@@ -16081,7 +16081,8 @@ def _processCalendarACLs(cal, function, entityType, calId, j, jcount, k, kcount,
   try:
     callGAPI(cal.acl(), function,
              throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_PARAMETER, GAPI.INVALID_SCOPE_VALUE,
-                            GAPI.ILLEGAL_ACCESS_ROLE_FOR_DEFAULT, GAPI.CANNOT_CHANGE_OWN_ACL, GAPI.CANNOT_CHANGE_OWNER_ACL, GAPI.FORBIDDEN],
+                            GAPI.ILLEGAL_ACCESS_ROLE_FOR_DEFAULT, GAPI.CANNOT_CHANGE_OWN_ACL, GAPI.CANNOT_CHANGE_OWNER_ACL,
+                            GAPI.FORBIDDEN, GAPI.AUTH_ERROR],
              calendarId=calId, **kwargs)
     entityActionPerformed([entityType, calId, Ent.CALENDAR_ACL, formatACLScopeRole(ruleId, role)], k, kcount)
   except GAPI.notFound as e:
@@ -16091,7 +16092,8 @@ def _processCalendarACLs(cal, function, entityType, calId, j, jcount, k, kcount,
     else:
       entityActionFailedWarning([entityType, calId, Ent.CALENDAR_ACL, formatACLScopeRole(ruleId, role)], str(e), k, kcount)
   except (GAPI.invalid, GAPI.invalidParameter, GAPI.invalidScopeValue,
-          GAPI.illegalAccessRoleForDefault, GAPI.forbidden, GAPI.cannotChangeOwnAcl, GAPI.cannotChangeOwnerAcl) as e:
+          GAPI.illegalAccessRoleForDefault, GAPI.cannotChangeOwnAcl, GAPI.cannotChangeOwnerAcl,
+          GAPI.forbidden, GAPI.authError) as e:
     entityActionFailedWarning([entityType, calId, Ent.CALENDAR_ACL, formatACLScopeRole(ruleId, role)], str(e), k, kcount)
   return result
 
@@ -16186,7 +16188,7 @@ def _infoCalendarACLs(cal, user, entityType, calId, j, jcount, ruleIds, kcount, 
     ruleId = normalizeRuleId(ruleId)
     try:
       result = callGAPI(cal.acl(), u'get',
-                        throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_SCOPE_VALUE, GAPI.FORBIDDEN],
+                        throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_SCOPE_VALUE, GAPI.FORBIDDEN, GAPI.AUTH_ERROR],
                         calendarId=calId, ruleId=ruleId, fields=u'id,role,scope')
       _showCalendarACL(user, entityType, calId, result, k, kcount, formatJSON)
     except (GAPI.notFound, GAPI.invalid) as e:
@@ -16195,7 +16197,7 @@ def _infoCalendarACLs(cal, user, entityType, calId, j, jcount, ruleIds, kcount, 
         break
       else:
         entityActionFailedWarning([entityType, calId, Ent.CALENDAR_ACL, formatACLScopeRole(ruleId, None)], str(e), k, kcount)
-    except (GAPI.invalidScopeValue, GAPI.forbidden) as e:
+    except (GAPI.invalidScopeValue, GAPI.forbidden, GAPI.authError) as e:
       entityActionFailedWarning([entityType, calId, Ent.CALENDAR_ACL, formatACLScopeRole(ruleId, None)], str(e), k, kcount)
   Ind.Decrement()
 
@@ -16229,9 +16231,9 @@ def _printShowCalendarACLs(cal, user, entityType, calId, i, count, csvFormat, fo
     printGettingEntityItemForWhom(Ent.CALENDAR_ACL, calId, i, count)
   try:
     acls = callGAPIpages(cal.acl(), u'list', u'items',
-                         throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                         throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.AUTH_ERROR],
                          calendarId=calId, fields=u'nextPageToken,items(id,role,scope)')
-  except GAPI.forbidden as e:
+  except (GAPI.forbidden, GAPI.authError) as e:
     entityActionFailedWarning([entityType, calId], str(e), i, count)
     return
   except GAPI.notFound:
@@ -24806,7 +24808,7 @@ def _getCalendarSelectProperty(myarg, kwargs):
     return False
   return True
 
-def initCalendarEntity():
+def initUserCalendarEntity():
   return {u'list': [], u'kwargs': {}, u'dict': None, u'all': False, u'primary': False, u'resourceIds': []}
 
 def getUserCalendarEntity(default=u'primary', noSelectionKwargs=None):
@@ -24841,7 +24843,7 @@ def getUserCalendarEntity(default=u'primary', noSelectionKwargs=None):
             not calendarEntity[u'all'] and not calendarEntity[u'primary'] and not calendarEntity[u'resourceIds'] and
             not courseCalendarSelected)
 
-  calendarEntity = initCalendarEntity()
+  calendarEntity = initUserCalendarEntity()
   courseSelectionParameters = _initCourseCalendarSelectionParameters()
   courseCalendarSelected = False
   while Cmd.ArgumentsRemaining():
@@ -25127,7 +25129,7 @@ def infoCalendars(users):
 
 # gam <UserTypeEntity> create calendars <CalendarSettings>
 def createCalendar(users):
-  calendarEntity = initCalendarEntity()
+  calendarEntity = initUserCalendarEntity()
   body = _getCalendarSettings(summaryRequired=True)
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -25452,7 +25454,7 @@ def showCalendarACLs(users):
 def transferCalendars(users):
   targetUser = getEmailAddress()
   calendarEntity = getUserCalendarEntity(noSelectionKwargs={u'minAccessRole': u'owner', u'showHidden': True})
-  giveForbiddenWarnings = not calendarEntity[u'all']
+  notAllowedForbidden = [Msg.NOT_ALLOWED, Msg.FORBIDDEN][not calendarEntity[u'all'] and not calendarEntity.get(u'kwargs', {}).get(u'minAccessRole', u'') == u'owner']
   retainRoleBody = {u'role': u'none'}
   showRetentionMessages = True
   while Cmd.ArgumentsRemaining():
@@ -25483,14 +25485,14 @@ def transferCalendars(users):
       j += 1
       Act.Set(Act.TRANSFER_OWNERSHIP)
       if calId.find(u'@group.calendar.google.com') == -1:
-        entityActionNotPerformedWarning([Ent.CALENDAR, calId], [None, Msg.FORBIDDEN][giveForbiddenWarnings], j, jcount)
+        entityActionNotPerformedWarning([Ent.CALENDAR, calId], notAllowedForbidden, j, jcount)
         continue
       try:
         callGAPI(sourceCal.acl(), u'insert',
-                 throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.FORBIDDEN],
+                 throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.REQUIRED_ACCESS_LEVEL],
                  calendarId=calId, body=targetRoleBody, fields=u'')
         entityModifierNewValueItemValueListActionPerformed([Ent.CALENDAR, calId], Act.MODIFIER_TO, None, [Ent.USER, targetUser], j, jcount)
-      except GAPI.forbidden as e:
+      except (GAPI.forbidden, GAPI.requiredAccessLevel) as e:
         entityActionFailedWarning([Ent.CALENDAR, calId], str(e), j, jcount)
         continue
       except (GAPI.notFound, GAPI.invalid):

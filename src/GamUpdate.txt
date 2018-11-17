@@ -1,3 +1,7 @@
+4.68.09
+
+Add additional error handling to several calendar commands.
+
 4.65.08
 
 Added options to <UserCalendarAddEntity> and <UserCalendarEntity> to allow selection of calendars from courses.
