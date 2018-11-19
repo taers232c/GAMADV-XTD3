@@ -39,6 +39,10 @@ FN_OAUTH2_TXT = u'oauth2.txt'
 # The following XXX constants are the names of the items in gam.cfg
 # When retrieving lists of Google Drive activities from API, how many should be retrieved in each chunk
 ACTIVITY_MAX_RESULTS = u'activity_max_results'
+# Check if API calls rate exceeds limit
+API_CALLS_RATE_CHECK = u'api_calls_rate_check'
+# API calls per 100 seconds limit
+API_CALLS_RATE_LIMIT = u'api_calls_rate_limit'
 # Automatically generate gam batch command if number of users specified in gam users xxx command exceeds this number
 # Default: 0, don't automatically generate gam batch commands
 AUTO_BATCH_MIN = u'auto_batch_min'
@@ -154,6 +158,8 @@ USER_MAX_RESULTS = u'user_max_results'
 
 Defaults = {
   ACTIVITY_MAX_RESULTS: u'100',
+  API_CALLS_RATE_CHECK: FALSE,
+  API_CALLS_RATE_LIMIT: u'1000',
   AUTO_BATCH_MIN: u'0',
   BATCH_SIZE: u'50',
   CACERTS_PEM: u'',
@@ -237,6 +243,8 @@ VAR_ACCESS = u'aces'
 
 VAR_INFO = {
   ACTIVITY_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_ENVVAR: u'GAM_ACTIVITY_MAX_RESULTS', VAR_LIMITS: (1, 500)},
+  API_CALLS_RATE_CHECK: {VAR_TYPE: TYPE_BOOLEAN},
+  API_CALLS_RATE_LIMIT: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (100, None)},
   AUTO_BATCH_MIN: {VAR_TYPE: TYPE_INTEGER, VAR_ENVVAR: u'GAM_AUTOBATCH', VAR_LIMITS: (0, 100)},
   BATCH_SIZE: {VAR_TYPE: TYPE_INTEGER, VAR_ENVVAR: u'GAM_BATCH_SIZE', VAR_LIMITS: (1, 1000)},
   CACERTS_PEM: {VAR_TYPE: TYPE_FILE, VAR_ACCESS: os.R_OK},

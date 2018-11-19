@@ -1,3 +1,12 @@
+4.65.10
+
+Added basic rate limiting of Google API calls. Google has several quota limits, one of them is the number
+of API calls per 100 seconds. Two variables have been added to gam.cfg to implement rate limiting.
+* api_calls_rate_check - Should rate of Google API calls per 100 seconds be checked; default: False
+* api_calls_rate_limit - Limit on number of Google API calls per 100 seconds; default: 1000; range: 100 - Unlimited
+
+The limits applicable to your account are found on the Developers Console, IAM & admin Quotas page.
+
 4.68.09
 
 Add additional error handling to several calendar commands.

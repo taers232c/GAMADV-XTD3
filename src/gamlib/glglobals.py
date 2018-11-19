@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2016 Ross Scroggs All Rights Reserved.
+# Copyright (C) 2018 Ross Scroggs All Rights Reserved.
 #
 # All Rights Reserved.
 #
@@ -123,6 +123,9 @@ TBATCH_QUEUE = u'batq'
 DATETIME_NOW = u'dtno'
 # Convert to local time
 CONVERT_TO_LOCAL_TIME = u'ctlt'
+# Check API calls rate
+RATE_CHECK_COUNT = u'rccn'
+RATE_CHECK_START = u'rcst'
 #
 Globals = {
   SYSEXITRC: 0,
@@ -167,4 +170,6 @@ Globals = {
   TBATCH_QUEUE: None,
   DATETIME_NOW: None,
   CONVERT_TO_LOCAL_TIME: False,
+  RATE_CHECK_COUNT: 0,
+  RATE_CHECK_START: 0,
   }

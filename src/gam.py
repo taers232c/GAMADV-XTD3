@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.09'
+__version__ = u'4.65.10'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -2118,6 +2118,25 @@ def openCSVFileReader(filename):
   csvFile = csv.DictReader(f, fieldnames=fieldnames, delimiter=delimiter, quotechar=quotechar)
   return (f, csvFile)
 
+def initAPICallsRateCheck():
+  GM.Globals[GM.RATE_CHECK_COUNT] = 0
+  GM.Globals[GM.RATE_CHECK_START] = time.time()
+
+def checkAPICallsRate():
+  GM.Globals[GM.RATE_CHECK_COUNT] += 1
+  if GM.Globals[GM.RATE_CHECK_COUNT] >= GC.Values[GC.API_CALLS_RATE_LIMIT]:
+    current = time.time()
+    delta = int(current-GM.Globals[GM.RATE_CHECK_START])
+    if delta >= 0 and delta < 100:
+      delta = (100-delta)+3
+      writeStderr(u'{0}: API calls per 100 seconds limit {1} exceeded: Backing off: {2} seconds\n'.format(WARNING_PREFIX, GC.Values[GC.API_CALLS_RATE_LIMIT], delta))
+      flushStderr()
+      time.sleep(delta)
+      GM.Globals[GM.RATE_CHECK_START] = time.time()
+    else:
+      GM.Globals[GM.RATE_CHECK_START] = current
+    GM.Globals[GM.RATE_CHECK_COUNT] = 0
+
 # Set global variables from config file
 # Check for GAM updates based on status of no_update_check in config file
 # Return True if there are additional commands on the command line
@@ -2601,6 +2620,7 @@ def SetGlobalVariables():
     _setCSVFile(u'-', GM.Globals[GM.STDOUT].get(GM.REDIRECT_MODE, DEFAULT_FILE_WRITE_MODE), GC.Values[GC.CHARSET], True, False)
   if not GC.Values[GC.NO_UPDATE_CHECK]:
     doGAMCheckForUpdates()
+  initAPICallsRateCheck()
 # If no select/options commands were executed or some were and there are more arguments on the command line,
 # warn if the json files are missing and return True
   if (Cmd.Location() == 1) or (Cmd.ArgumentsRemaining()):
@@ -2873,6 +2893,8 @@ def callGData(service, function,
   all_retry_errors = GDATA.NON_TERMINATING_ERRORS+retry_errors
   method = getattr(service, function)
   retries = 10
+  if GC.Values[GC.API_CALLS_RATE_CHECK]:
+    checkAPICallsRate()
   for n in range(1, retries+1):
     try:
       return method(**kwargs)
@@ -3052,6 +3074,8 @@ def callGAPI(service, function,
   all_retry_reasons = GAPI.DEFAULT_RETRY_REASONS+retry_reasons
   method = getattr(service, function)
   svcparms = dict(list(kwargs.items())+GM.Globals[GM.EXTRA_ARGS_LIST])
+  if GC.Values[GC.API_CALLS_RATE_CHECK]:
+    checkAPICallsRate()
   for n in range(1, retries+1):
     try:
       return method(**svcparms).execute()
