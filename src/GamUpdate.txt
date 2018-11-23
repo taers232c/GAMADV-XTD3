@@ -1,3 +1,13 @@
+4.65.11
+
+Added show_api_calls_retry_data to gam.cfg. When true, Gam will display API calls retry data at the end of ececution.
+This data can be used to determine if rate limiting measures should be used.
+
+Fixed problem on Windows where a Gam command using service account access running for over an hour would throw a trap.
+
+Previously, the command `gam <UserTypeEntity> language <Language>` used the Email Settings API; it no longer seems to function.
+It has been recoded to use the Directory API and is equivalent to `gam update user <UserTypeEntity> language <Language>`.
+
 4.65.10
 
 Added basic rate limiting of Google API calls. Google has several quota limits, one of them is the number

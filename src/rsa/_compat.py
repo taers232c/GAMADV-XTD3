@@ -16,7 +16,7 @@
 
 """Python compatibility wrappers."""
 
-from __future__ import absolute_import
+
 
 import sys
 from struct import pack
@@ -24,7 +24,7 @@ from struct import pack
 try:
     MAX_INT = sys.maxsize
 except AttributeError:
-    MAX_INT = sys.maxint
+    MAX_INT = sys.maxsize
 
 MAX_INT64 = (1 << 63) - 1
 MAX_INT32 = (1 << 31) - 1
@@ -43,7 +43,7 @@ else:
 
 try:
     # < Python3
-    unicode_type = unicode
+    unicode_type = str
 except NameError:
     # Python3.
     unicode_type = str
@@ -58,7 +58,7 @@ else:
 
 # ``long`` is no more. Do type detection using this instead.
 try:
-    integer_types = (int, long)
+    integer_types = (int, int)
 except NameError:
     integer_types = (int,)
 

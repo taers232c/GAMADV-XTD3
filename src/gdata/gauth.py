@@ -46,29 +46,10 @@ ae_save
 """
 
 
-import datetime
 import time
 import random
-import urllib
-import urlparse
+import urllib.request, urllib.parse, urllib.error
 import atom.http_core
-
-try:
-  import simplejson
-  from simplejson.decoder import JSONDecodeError
-except ImportError:
-  JSONDecodeError = None
-  try:
-    # Try to import from django, should work on App Engine
-    from django.utils import simplejson
-  except ImportError:
-    # Should work for Python2.6 and higher.
-    import json as simplejson
-
-try:
-    from urlparse import parse_qsl
-except ImportError:
-    from cgi import parse_qsl
 
 
 __author__ = 'j.s@google.com (Jeff Scudder)'
@@ -76,7 +57,6 @@ __author__ = 'j.s@google.com (Jeff Scudder)'
 
 PROGRAMMATIC_AUTH_LABEL = 'GoogleLogin auth='
 AUTHSUB_AUTH_LABEL = 'AuthSub token='
-OAUTH2_AUTH_LABEL = 'Bearer '
 
 
 # This dict provides the AuthSub and OAuth scopes for all services by service
@@ -101,22 +81,19 @@ AUTH_SCOPES = {
         'https://www.google.com/health/feeds/',),
     'writely': ( # Documents List API
         'https://docs.google.com/feeds/',
-        'https://spreadsheets.google.com/feeds/',
-        'https://docs.googleusercontent.com/'),
+        'http://docs.google.com/feeds/'),
     'lh2': ( # Picasa Web Albums API
         'http://picasaweb.google.com/data/',),
-    'apps': ( # Google Apps Domain Info & Management APIs
-        'https://apps-apis.google.com/a/feeds/user/',
-        'https://apps-apis.google.com/a/feeds/policies/',
-        'https://apps-apis.google.com/a/feeds/alias/',
-        'https://apps-apis.google.com/a/feeds/groups/',
-        'https://apps-apis.google.com/a/feeds/compliance/audit/',
-        'https://apps-apis.google.com/a/feeds/migration/',
-        'https://apps-apis.google.com/a/feeds/emailsettings/2.0/'),
+    'apps': ( # Google Apps Provisioning API
+        'http://www.google.com/a/feeds/',
+        'https://www.google.com/a/feeds/',
+        'http://apps-apis.google.com/a/feeds/',
+        'https://apps-apis.google.com/a/feeds/'),
     'weaver': ( # Health H9 Sandbox
         'https://www.google.com/h9/feeds/',),
     'wise': ( # Spreadsheets Data API
-        'https://spreadsheets.google.com/feeds/',),
+        'https://spreadsheets.google.com/feeds/',
+        'http://spreadsheets.google.com/feeds/'),
     'sitemaps': ( # Google Webmaster Tools API
         'https://www.google.com/webmasters/tools/feeds/',),
     'youtube': ( # YouTube API
@@ -179,7 +156,7 @@ def generate_client_login_request_body(email, password, service, source,
     # user is responding to a captch challenge.
     request_fields['logintoken'] = captcha_token
     request_fields['logincaptcha'] = captcha_response
-  return urllib.urlencode(request_fields)
+  return urllib.parse.urlencode(request_fields)
 
 
 GenerateClientLoginRequestBody = generate_client_login_request_body
@@ -264,7 +241,7 @@ class ClientLoginToken(object):
 
 # AuthSub functions and classes.
 def _to_uri(str_or_uri):
-  if isinstance(str_or_uri, (str, unicode)):
+  if isinstance(str_or_uri, str):
     return atom.http_core.Uri.parse_uri(str_or_uri)
   return str_or_uri
 
@@ -313,16 +290,16 @@ def generate_auth_sub_url(next, scopes, secure=False, session=True,
     An atom.http_core.Uri which the user's browser should be directed to in
     order to authorize this application to access their information.
   """
-  if isinstance(next, (str, unicode)):
+  if isinstance(next, str):
     next = atom.http_core.Uri.parse_uri(next)
   # If the user passed in a string instead of a list for scopes, convert to
   # a single item tuple.
-  if isinstance(scopes, (str, unicode, atom.http_core.Uri)):
+  if isinstance(scopes, (str, atom.http_core.Uri)):
     scopes = (scopes,)
   scopes_string = ' '.join([str(scope) for scope in scopes])
   next.query[scopes_param_prefix] = scopes_string
 
-  if isinstance(request_url, (str, unicode)):
+  if isinstance(request_url, str):
     request_url = atom.http_core.Uri.parse_uri(request_url)
   request_url.query['next'] = str(next)
   request_url.query['scope'] = scopes_string
@@ -363,7 +340,7 @@ def auth_sub_string_from_url(url, scopes_param_prefix='auth_sub_scopes'):
     None. If there was no token param in the url, the tuple returned is
     (None, None)
   """
-  if isinstance(url, (str, unicode)):
+  if isinstance(url, str):
     url = atom.http_core.Uri.parse_uri(url)
   if 'token' not in url.query:
     return (None, None)
@@ -466,11 +443,7 @@ def generate_signature(data, rsa_key):
   try:
     from tlslite.utils import keyfactory
   except ImportError:
-    try:
-      from gdata.tlslite.utils import keyfactory
-    except ImportError:
-      from tlslite.tlslite.utils import keyfactory
-
+    from gdata.tlslite.utils import keyfactory
   private_key = keyfactory.parsePrivateKey(rsa_key)
   signed = private_key.hashAndSign(data)
   # Python2.3 and lower does not have the base64.b64encode function.
@@ -520,7 +493,7 @@ class SecureAuthSubToken(AuthSubToken):
           not be valid.
     """
     timestamp = str(int(time.time()))
-    nonce = ''.join([str(random.randint(0, 9)) for i in xrange(15)])
+    nonce = ''.join([str(random.randint(0, 9)) for i in range(15)])
     data = build_auth_sub_data(http_request, timestamp, nonce)
     signature = generate_signature(data, self.rsa_private_key)
     http_request.headers['Authorization'] = (
@@ -584,14 +557,14 @@ def build_oauth_base_string(http_request, consumer_key, nonce, signaure_type,
     sorted_keys = sorted(params.keys())
   # The sorted function is not available in Python2.3 and lower
   except NameError:
-    sorted_keys = params.keys()
+    sorted_keys = list(params.keys())
     sorted_keys.sort()
   pairs = []
   for key in sorted_keys:
-    pairs.append('%s=%s' % (urllib.quote(key, safe='~'),
-                            urllib.quote(params[key], safe='~')))
+    pairs.append('%s=%s' % (urllib.parse.quote(key, safe='~'),
+                            urllib.parse.quote(params[key], safe='~')))
   # We want to escape /'s too, so use safe='~'
-  all_parameters = urllib.quote('&'.join(pairs), safe='~')
+  all_parameters = urllib.parse.quote('&'.join(pairs), safe='~')
   normailzed_host = http_request.uri.host.lower()
   normalized_scheme = (http_request.uri.scheme or 'http').lower()
   non_default_port = None
@@ -606,12 +579,12 @@ def build_oauth_base_string(http_request, consumer_key, nonce, signaure_type,
   if non_default_port is not None:
     # Set the only safe char in url encoding to ~ since we want to escape /
     # as well.
-    request_path = urllib.quote('%s://%s:%s%s' % (
+    request_path = urllib.parse.quote('%s://%s:%s%s' % (
         normalized_scheme, normailzed_host, non_default_port, path), safe='~')
   else:
     # Set the only safe char in url encoding to ~ since we want to escape /
     # as well.
-    request_path = urllib.quote('%s://%s%s' % (
+    request_path = urllib.parse.quote('%s://%s%s' % (
         normalized_scheme, normailzed_host, path), safe='~')
   # TODO: ensure that token escaping logic is correct, not sure if the token
   # value should be double escaped instead of single.
@@ -632,10 +605,10 @@ def generate_hmac_signature(http_request, consumer_key, consumer_secret,
   hash_key = None
   hashed = None
   if token_secret is not None:
-    hash_key = '%s&%s' % (urllib.quote(consumer_secret, safe='~'),
-                          urllib.quote(token_secret, safe='~'))
+    hash_key = '%s&%s' % (urllib.parse.quote(consumer_secret, safe='~'),
+                          urllib.parse.quote(token_secret, safe='~'))
   else:
-    hash_key = '%s&' % urllib.quote(consumer_secret, safe='~')
+    hash_key = '%s&' % urllib.parse.quote(consumer_secret, safe='~')
   try:
     import hashlib
     hashed = hmac.new(hash_key, base_string, hashlib.sha1)
@@ -656,10 +629,7 @@ def generate_rsa_signature(http_request, consumer_key, rsa_key,
   try:
     from tlslite.utils import keyfactory
   except ImportError:
-    try:
-      from gdata.tlslite.utils import keyfactory
-    except ImportError:
-      from tlslite.tlslite.utils import keyfactory
+    from gdata.tlslite.utils import keyfactory
   base_string = build_oauth_base_string(
       http_request, consumer_key, nonce, RSA_SHA1, timestamp, version,
       next, token, verifier=verifier)
@@ -709,7 +679,7 @@ def generate_auth_header(consumer_key, timestamp, nonce, signature_type,
     params['oauth_verifier'] = verifier
   pairs = [
       '%s="%s"' % (
-          k, urllib.quote(v, safe='~')) for k, v in params.iteritems()]
+          k, urllib.parse.quote(v, safe='~')) for k, v in params.items()]
   return 'OAuth %s' % (', '.join(pairs))
 
 
@@ -752,7 +722,7 @@ def generate_request_for_request_token(
     request.uri.query['scope'] = ' '.join(scopes)
 
   timestamp = str(int(time.time()))
-  nonce = ''.join([str(random.randint(0, 9)) for i in xrange(15)])
+  nonce = ''.join([str(random.randint(0, 9)) for i in range(15)])
   signature = None
   if signature_type == HMAC_SHA1:
     signature = generate_hmac_signature(
@@ -806,9 +776,9 @@ def oauth_token_info_from_body(http_body):
   token_secret = None
   for pair in http_body.split('&'):
     if pair.startswith('oauth_token='):
-      token = urllib.unquote(pair[len('oauth_token='):])
+      token = urllib.parse.unquote(pair[len('oauth_token='):])
     if pair.startswith('oauth_token_secret='):
-      token_secret = urllib.unquote(pair[len('oauth_token_secret='):])
+      token_secret = urllib.parse.unquote(pair[len('oauth_token_secret='):])
   return (token, token_secret)
 
 
@@ -877,14 +847,14 @@ def oauth_token_info_from_url(url):
     A tuple of strings containing the OAuth token and the OAuth verifier which
     need to sent when upgrading a request token to an access token.
   """
-  if isinstance(url, (str, unicode)):
+  if isinstance(url, str):
     url = atom.http_core.Uri.parse_uri(url)
   token = None
   verifier = None
   if 'oauth_token' in url.query:
-    token = urllib.unquote(url.query['oauth_token'])
+    token = urllib.parse.unquote(url.query['oauth_token'])
   if 'oauth_verifier' in url.query:
-    verifier = urllib.unquote(url.query['oauth_verifier'])
+    verifier = urllib.parse.unquote(url.query['oauth_verifier'])
   return (token, verifier)
 
 
@@ -1003,14 +973,14 @@ class OAuthHmacToken(object):
       The same HTTP request object which was passed in.
     """
     timestamp = str(int(time.time()))
-    nonce = ''.join([str(random.randint(0, 9)) for i in xrange(15)])
+    nonce = ''.join([str(random.randint(0, 9)) for i in range(15)])
     signature = generate_hmac_signature(
         http_request, self.consumer_key, self.consumer_secret, timestamp,
-        nonce, version='1.0', next=self.next, token=self.token,
+        nonce, version='1.0', next=self.__next__, token=self.token,
         token_secret=self.token_secret, verifier=self.verifier)
     http_request.headers['Authorization'] = generate_auth_header(
         self.consumer_key, timestamp, nonce, HMAC_SHA1, signature,
-        version='1.0', next=self.next, token=self.token,
+        version='1.0', next=self.__next__, token=self.token,
         verifier=self.verifier)
     return http_request
 
@@ -1041,14 +1011,14 @@ class OAuthRsaToken(OAuthHmacToken):
       The same HTTP request object which was passed in.
     """
     timestamp = str(int(time.time()))
-    nonce = ''.join([str(random.randint(0, 9)) for i in xrange(15)])
+    nonce = ''.join([str(random.randint(0, 9)) for i in range(15)])
     signature = generate_rsa_signature(
         http_request, self.consumer_key, self.rsa_private_key, timestamp,
-        nonce, version='1.0', next=self.next, token=self.token,
+        nonce, version='1.0', next=self.__next__, token=self.token,
         token_secret=self.token_secret, verifier=self.verifier)
     http_request.headers['Authorization'] = generate_auth_header(
         self.consumer_key, timestamp, nonce, RSA_SHA1, signature,
-        version='1.0', next=self.next, token=self.token,
+        version='1.0', next=self.__next__, token=self.token,
         verifier=self.verifier)
     return http_request
 
@@ -1114,7 +1084,7 @@ def _join_token_parts(*args):
   Returns:
     A string in the form 1x|member1|member2|member3...
   """
-  return '|'.join([urllib.quote_plus(a or '') for a in args])
+  return '|'.join([urllib.parse.quote_plus(a or '') for a in args])
 
 
 def _split_token_parts(blob):
@@ -1132,7 +1102,7 @@ def _split_token_parts(blob):
   Returns:
     A list of unescaped strings.
   """
-  return [urllib.unquote_plus(part) or None for part in blob.split('|')]
+  return [urllib.parse.unquote_plus(part) or None for part in blob.split('|')]
 
 
 def token_to_blob(token):
@@ -1175,12 +1145,12 @@ def token_to_blob(token):
   elif isinstance(token, OAuthRsaToken):
     return _join_token_parts(
         '1r', token.consumer_key, token.rsa_private_key, token.token,
-        token.token_secret, str(token.auth_state), token.next,
+        token.token_secret, str(token.auth_state), token.__next__,
         token.verifier)
   elif isinstance(token, OAuthHmacToken):
     return _join_token_parts(
         '1h', token.consumer_key, token.consumer_secret, token.token,
-        token.token_secret, str(token.auth_state), token.next,
+        token.token_secret, str(token.auth_state), token.__next__,
         token.verifier)
   elif isinstance(token, OAuth2Token):
     return _join_token_parts(
@@ -1269,7 +1239,7 @@ def find_scopes_for_services(service_names=None):
   """
   result_scopes = []
   if service_names is None:
-    for service_name, scopes in AUTH_SCOPES.iteritems():
+    for service_name, scopes in AUTH_SCOPES.items():
       result_scopes.extend(scopes)
   else:
     for service_name in service_names:

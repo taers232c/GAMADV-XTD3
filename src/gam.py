@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.10'
+__version__ = u'4.65.11'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import sys
@@ -2118,6 +2118,11 @@ def openCSVFileReader(filename):
   csvFile = csv.DictReader(f, fieldnames=fieldnames, delimiter=delimiter, quotechar=quotechar)
   return (f, csvFile)
 
+def incrAPICallsRetryData(errMsg, delta):
+  GM.Globals[GM.API_CALLS_RETRY_DATA].setdefault(errMsg, [0, 0.0])
+  GM.Globals[GM.API_CALLS_RETRY_DATA][errMsg][0] += 1
+  GM.Globals[GM.API_CALLS_RETRY_DATA][errMsg][1] += delta
+
 def initAPICallsRateCheck():
   GM.Globals[GM.RATE_CHECK_COUNT] = 0
   GM.Globals[GM.RATE_CHECK_START] = time.time()
@@ -2129,9 +2134,12 @@ def checkAPICallsRate():
     delta = int(current-GM.Globals[GM.RATE_CHECK_START])
     if delta >= 0 and delta < 100:
       delta = (100-delta)+3
-      writeStderr(u'{0}: API calls per 100 seconds limit {1} exceeded: Backing off: {2} seconds\n'.format(WARNING_PREFIX, GC.Values[GC.API_CALLS_RATE_LIMIT], delta))
+      error_message = u'API calls per 100 seconds limit {0} exceeded'.format(GC.Values[GC.API_CALLS_RATE_LIMIT])
+      writeStderr(u'{0}{1}: Backing off: {2} seconds\n'.format(WARNING_PREFIX, error_message, delta))
       flushStderr()
       time.sleep(delta)
+      if GC.Values[GC.SHOW_API_CALLS_RETRY_DATA]:
+        incrAPICallsRetryData(error_message, delta)
       GM.Globals[GM.RATE_CHECK_START] = time.time()
     else:
       GM.Globals[GM.RATE_CHECK_START] = current
@@ -2638,6 +2646,7 @@ def SetGlobalVariables():
     os.environ['REQUESTS_CA_BUNDLE'] = GC.Values[GC.CACERTS_PEM]
     os.environ['DEFAULT_CA_BUNDLE_PATH'] = GC.Values[GC.CACERTS_PEM]
     os.environ['SSL_CERT_FILE'] = GC.Values[GC.CACERTS_PEM]
+    httplib2.CA_CERTS = GC.Values[GC.CACERTS_PEM]
     return True
 # We're done, nothing else to do
   return False
@@ -2876,11 +2885,13 @@ def checkGDataError(e, service):
   return (error_code, error_code_map.get(error_code, u'Unknown Error: {0}'.format(str(e))))
 
 def waitOnFailure(n, retries, error_code, error_message):
-  wait_on_fail = min(2 ** n, 60)+float(random.randint(1, 1000))/1000
+  delta = min(2 ** n, 60)+float(random.randint(1, 1000))/1000
   if n > 3:
-    writeStderr(u'Temporary error: {0} - {1}, Backing off: {2} seconds, Retry: {3}/{4}\n'.format(error_code, error_message, int(wait_on_fail), n, retries))
+    writeStderr(u'Temporary error: {0} - {1}, Backing off: {2} seconds, Retry: {3}/{4}\n'.format(error_code, error_message, int(delta), n, retries))
     flushStderr()
-  time.sleep(wait_on_fail)
+  time.sleep(delta)
+  if GC.Values[GC.SHOW_API_CALLS_RETRY_DATA]:
+    incrAPICallsRetryData(error_message, delta)
 
 def callGData(service, function,
               soft_errors=False, throw_errors=None, retry_errors=None,
@@ -4960,11 +4971,11 @@ def doVersion(checkForArgs=True):
     writeStdout(__version__)
     return
   import struct
-  version_data = u'GAM {0} - {1}\n{2}\nPython {3}.{4}.{5} {6}-bit {7}\ngoogle-api-python-client {8}\noauth2client {9}\n{10} {11}\nPath: {12}\n'
+  version_data = u'GAM {0} - {1}\n{2}\nPython {3}.{4}.{5} {6}-bit {7}\ngoogle-api-python-client {8}\nhttplib2 {9}\nauth2client {10}\n{11} {12}\nPath: {13}\n'
   writeStdout(version_data.format(__version__, GAM_URL, __author__, sys.version_info[0],
                                   sys.version_info[1], sys.version_info[2], struct.calcsize(u'P')*8,
-                                  sys.version_info[3], googleapiclient.__version__, oauth2client.__version__, platform.platform(),
-                                  platform.machine(), GM.Globals[GM.GAM_PATH]))
+                                  sys.version_info[3], googleapiclient.__version__, httplib2.__version__, oauth2client.__version__,
+                                  platform.platform(), platform.machine(), GM.Globals[GM.GAM_PATH]))
   if forceCheck:
     doGAMCheckForUpdates(forceCheck=True)
 
@@ -7534,6 +7545,50 @@ def doDeleteDomain():
   except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
     accessErrorExit(cd)
 
+CUSTOMER_LICENSE_MAP = {
+  u'accounts:num_users': u'Total Users',
+  u'accounts:gsuite_basic_total_licenses': u'G Suite Basic Licenses',
+  u'accounts:gsuite_basic_used_licenses': u'G Suite Basic Users',
+  u'accounts:gsuite_enterprise_total_licenses': u'G Suite Enterprise Licenses',
+  u'accounts:gsuite_enterprise_used_licenses': u'G Suite Enterprise Users',
+  u'accounts:gsuite_unlimited_total_licenses': u'G Suite Business Licenses',
+  u'accounts:gsuite_unlimited_used_licenses': u'G Suite Business Users'
+  }
+
+def _showCustomerLicenseInfo(customerInfo, formatJSON):
+  rep = buildGAPIObject(API.REPORTS)
+  parameters = u','.join(CUSTOMER_LICENSE_MAP)
+  tryDate = todaysDate().strftime(YYYYMMDD_FORMAT)
+  while True:
+    try:
+      usage = callGAPIpages(rep.customerUsageReports(), u'get', u'usageReports',
+                            throw_reasons=[GAPI.INVALID, GAPI.FORBIDDEN],
+                            customerId=customerInfo[u'id'], date=tryDate, parameters=parameters)
+      break
+    except GAPI.invalid as e:
+      tryDate = _adjustTryDate(str(e), False)
+      if not tryDate:
+        return
+      continue
+    except GAPI.forbidden:
+      accessErrorExit(None)
+  if usage:
+    if not formatJSON:
+      printKeyValueList([u'User counts as of {0}:'.format(tryDate)])
+      Ind.Increment()
+    for item in usage[0][u'parameters']:
+      api_name = CUSTOMER_LICENSE_MAP.get(item[u'name'])
+      api_value = int(item.get(u'intValue', u'0'))
+      if api_name and api_value:
+        if not formatJSON:
+          printKeyValueList([api_name, u'{:,}'.format(api_value)])
+        else:
+          customerInfo[item[u'name']] = api_value
+    if not formatJSON:
+      Ind.Decrement()
+  else:
+    printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_USER_COUNTS_DATA_AVAILABLE)
+
 CUSTOMER_TIME_OBJECTS = set([u'customerCreationTime',])
 
 # gam info customer [formatjson]
@@ -8003,50 +8058,6 @@ def doPrintAdmins():
 # gam show admins [user <UserItem>] [role <RoleItem>]
 def doShowAdmins():
   _doPrintShowAdmins(False)
-
-USER_COUNTS_MAP = {
-  u'accounts:num_users': u'Total Users',
-  u'accounts:gsuite_basic_total_licenses': u'G Suite Basic Licenses',
-  u'accounts:gsuite_basic_used_licenses': u'G Suite Basic Users',
-  u'accounts:gsuite_enterprise_total_licenses': u'G Suite Enterprise Licenses',
-  u'accounts:gsuite_enterprise_used_licenses': u'G Suite Enterprise Users',
-  u'accounts:gsuite_unlimited_total_licenses': u'G Suite Business Licenses',
-  u'accounts:gsuite_unlimited_used_licenses': u'G Suite Business Users'
-  }
-
-def _showCustomerLicenseInfo(customerInfo, formatJSON):
-  rep = buildGAPIObject(API.REPORTS)
-  parameters = u','.join(USER_COUNTS_MAP)
-  tryDate = todaysDate().strftime(YYYYMMDD_FORMAT)
-  while True:
-    try:
-      usage = callGAPIpages(rep.customerUsageReports(), u'get', u'usageReports',
-                            throw_reasons=[GAPI.INVALID, GAPI.FORBIDDEN],
-                            customerId=customerInfo[u'id'], date=tryDate, parameters=parameters)
-      break
-    except GAPI.invalid as e:
-      tryDate = _adjustTryDate(str(e), False)
-      if not tryDate:
-        return
-      continue
-    except GAPI.forbidden:
-      accessErrorExit(None)
-  if usage:
-    if not formatJSON:
-      printKeyValueList([u'User counts as of {0}:'.format(tryDate)])
-      Ind.Increment()
-    for item in usage[0][u'parameters']:
-      api_name = USER_COUNTS_MAP.get(item[u'name'])
-      api_value = int(item.get(u'intValue', u'0'))
-      if api_name and api_value:
-        if not formatJSON:
-          printKeyValueList([api_name, u'{:,}'.format(api_value)])
-        else:
-          customerInfo[item[u'name']] = api_value
-    if not formatJSON:
-      Ind.Decrement()
-  else:
-    printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_USER_COUNTS_DATA_AVAILABLE)
 
 def getTransferApplications(dt):
   try:
@@ -19285,7 +19296,8 @@ def _printShowSites(entityList, entityType, csvFormat):
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   if csvFormat:
     todrive = {}
-    titles, csvRows = initializeTitlesCSVfile([Ent.Singular(entityType), SITE_SITE, SITE_NAME])
+    sortTitles = [Ent.Singular(entityType), SITE_SITE, SITE_NAME, SITE_SUMMARY]
+    titles, csvRows = initializeTitlesCSVfile(sortTitles)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
@@ -19359,6 +19371,7 @@ def _printShowSites(entityList, entityType, csvFormat):
       else:
         _printSites(domain, i, count, domain, sites)
   if csvFormat:
+    sortCSVTitles(sortTitles, titles)
     if roles:
       removeTitlesFromCSVfile([u'Scope', u'Role'], titles)
       addTitlesToCSVfile([u'Scope', u'Role'], titles)
@@ -19532,7 +19545,8 @@ def _printSiteActivity(users, entityType):
   sitesManager = SitesManager()
   todrive = {}
   url_params = {}
-  titles, csvRows = initializeTitlesCSVfile([SITE_SITE])
+  sortTitles = [SITE_SITE, SITE_SUMMARY, SITE_UPDATED]
+  titles, csvRows = initializeTitlesCSVfile(sortTitles)
   sites = getEntityList(Cmd.OB_SITE_ENTITY)
   siteLists = sites if isinstance(sites, dict) else None
   while Cmd.ArgumentsRemaining():
@@ -19588,7 +19602,7 @@ def _printSiteActivity(users, entityType):
         entityUnknownWarning(Ent.SITE, domainSite, j, jcount)
       except GDATA.forbidden as e:
         entityActionFailedWarning([Ent.SITE, domainSite], str(e), j, jcount)
-  writeCSVfile(csvRows, titles, u'Site Activities', todrive)
+  writeCSVfile(csvRows, titles, u'Site Activities', todrive, sortTitles)
 
 # gam [<UserTypeEntity>] print siteactivity <SiteEntity> [todrive <ToDriveAttributes>*] [startindex <Number>] [maxresults <Number>] [updated_min <Date>] [updated_max <Date>]
 def printUserSiteActivity(users):
@@ -31998,7 +32012,48 @@ def _getTeamDriveTheme(myarg, body):
     body.pop(u'themeId', None)
     body[u'colorRgb'] = getColor()
   else:
-    unknownArgumentExit()
+    return False
+  return True
+
+TEAMDRIVE_CAPABILITIES_MAP = {
+  u'canaddchildren': u'canAddChildren',
+  u'canchangeteamdrivebackground': u'canChangeTeamDriveBackground',
+  u'cancomment': u'canComment',
+  u'cancopy': u'canCopy',
+  u'candeleteteamdrive': u'canDeleteTeamDrive',
+  u'candownload': u'canDownload',
+  u'canedit': u'canEdit',
+  u'canlistchildren': u'canListChildren',
+  u'canmanagemembers': u'canManageMembers',
+  u'canreadrevisions': u'canReadRevisions',
+  u'canremovechildren': u'canRemoveChildren',
+  u'canrename': u'canRename',
+  u'canrenameteamdrive': u'canRenameTeamDrive',
+  u'canshare': u'canShare',
+  }
+TEAMDRIVE_RESTRICTIONS_MAP = {
+  u'adminmanagedrestrictions': u'adminManagedRestrictions',
+  u'copyrequireswriterpermission': u'copyRequiresWriterPermission',
+  u'domainusersonly': u'domainUsersOnly',
+  u'teammembersonly': u'teamMembersOnly',
+  }
+
+def _getTeamDriveCapabilitiesRestrictions(myarg, body):
+  def _getSubField(fieldMap):
+    field, subField = myarg.split(u'.', 1)
+    if subField in fieldMap:
+      body.setdefault(field, {})
+      body[field][fieldMap[subField]] = getBoolean()
+    else:
+      invalidChoiceExit(fieldMap, True)
+
+  if myarg.startswith(u'restrictions.'):
+    _getSubField(TEAMDRIVE_RESTRICTIONS_MAP)
+    return True
+  if myarg.startswith(u'capabilities.'):
+    _getSubField(TEAMDRIVE_CAPABILITIES_MAP)
+    return True
+  return False
 
 # gam <UserTypeEntity> create|add teamdrive <Name> [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 def createTeamDrive(users):
@@ -32006,7 +32061,10 @@ def createTeamDrive(users):
   body = {u'name': getString(Cmd.OB_NAME, checkBlank=True)}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    _getTeamDriveTheme(myarg, body)
+    if _getTeamDriveTheme(myarg, body):
+      pass
+    else:
+      unknownArgumentExit()
   updateBody = {}
   for field in [u'backgroundImageFile', u'colorRgb']:
     if field in body:
@@ -32048,8 +32106,12 @@ def updateTeamDrive(users):
     myarg = getArgument()
     if myarg == u'name':
       body[VX_FILENAME] = getString(Cmd.OB_NAME, checkBlank=True)
+    elif _getTeamDriveTheme(myarg, body):
+      pass
+    elif _getTeamDriveCapabilitiesRestrictions(myarg, body):
+      pass
     else:
-      _getTeamDriveTheme(myarg, body)
+      unknownArgumentExit()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -32096,9 +32158,9 @@ TEAMDRIVE_FIELDS_CHOICE_MAP = {
   u'createdtime': u'createdTime',
   u'id': u'id',
   u'name': u'name',
+  u'restrictions': u'restrictions',
   u'themeid': u'themeId',
   }
-
 TEAMDRIVE_CAPABILITIES_PRINT_ORDER = [
   u'canAddChildren',
   u'canChangeTeamDriveBackground',
@@ -32115,9 +32177,24 @@ TEAMDRIVE_CAPABILITIES_PRINT_ORDER = [
   u'canRenameTeamDrive',
   u'canShare',
   ]
+TEAMDRIVE_RESTRICTIONS_PRINT_ORDER = [
+  u'adminManagedRestrictions',
+  u'copyRequiresWriterPermission',
+  u'domainUsersOnly',
+  u'teamMembersOnly',
+  ]
 TEAMDRIVE_TIME_OBJECTS = set([u'createdTime',])
 
 def _showTeamDrive(user, teamdrive, j, jcount, formatJSON):
+  def _showCapabilitiesRestrictions(field, printOrder):
+    if field in teamdrive:
+      printKeyValueList([field, u''])
+      Ind.Increment()
+      for capability in printOrder:
+        if capability in teamdrive[field]:
+          printKeyValueList([capability, teamdrive[field][capability]])
+      Ind.Decrement()
+
   if formatJSON:
     printLine(json.dumps(cleanJSON(teamdrive, u'', timeObjects=TEAMDRIVE_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
     return
@@ -32130,13 +32207,8 @@ def _showTeamDrive(user, teamdrive, j, jcount, formatJSON):
   for setting in [u'backgroundImageLink', u'colorRgb', u'themeId']:
     if setting in teamdrive:
       printKeyValueList([setting, teamdrive[setting]])
-  if u'capabilities' in teamdrive:
-    printKeyValueList([u'capabilities', u''])
-    Ind.Increment()
-    for capability in TEAMDRIVE_CAPABILITIES_PRINT_ORDER:
-      if capability in teamdrive[u'capabilities']:
-        printKeyValueList([capability, teamdrive[u'capabilities'][capability]])
-    Ind.Decrement()
+  _showCapabilitiesRestrictions(u'capabilities', TEAMDRIVE_CAPABILITIES_PRINT_ORDER)
+  _showCapabilitiesRestrictions(u'restrictions', TEAMDRIVE_RESTRICTIONS_PRINT_ORDER)
   Ind.Decrement()
 
 def _infoTeamDrive(users, useDomainAdminAccess):
@@ -34813,18 +34885,6 @@ def insertMessage(users):
 
 def _printShowMessagesThreads(users, entityType, csvFormat):
 
-  _GMAIL_ERROR_REASON_TO_MESSAGE_MAP = {GAPI.NOT_FOUND: Msg.DOES_NOT_EXIST, GAPI.INVALID_MESSAGE_ID: Msg.INVALID_MESSAGE_ID}
-  def _handleShowGmailError(exception, ri):
-    http_status, reason, message = checkGAPIError(exception)
-    errMsg = getHTTPError(_GMAIL_ERROR_REASON_TO_MESSAGE_MAP, http_status, reason, message)
-    printKeyValueListWithCount([Ent.Singular(entityType), ri[RI_ITEM], errMsg], int(ri[RI_J]), int(ri[RI_JCOUNT]))
-    setSysExitRC(AC_FAILED_RC)
-
-  def _handlePrintGmailError(exception, ri):
-    http_status, reason, message = checkGAPIError(exception)
-    errMsg = getHTTPError(_GMAIL_ERROR_REASON_TO_MESSAGE_MAP, http_status, reason, message)
-    entityActionFailedWarning([Ent.USER, ri[RI_ENTITY], entityType, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
-
   HEADER_ENCODE_PATTERN = re.compile(r'=\?(.*?)\?Q\?(.*?)\?=')
 
   def _decodeHeader(header):
@@ -34924,13 +34984,6 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
       _showAttachments(result[u'id'], result[u'payload'], attachmentNamePattern)
     Ind.Decrement()
 
-  def _callbackShowMessage(request_id, response, exception):
-    ri = request_id.splitlines()
-    if exception is  None:
-      _showMessage(response, int(ri[RI_J]), int(ri[RI_JCOUNT]))
-    else:
-      _handleShowGmailError(exception, ri)
-
   def _printMessage(user, result):
     row = {u'User': user, u'threadId': result[u'threadId'], u'id': result[u'id']}
     if show_snippet:
@@ -34961,13 +35014,6 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
         row[u'Body'] = escapeCRsNLs(_getMessageBody(result[u'payload']))
     addRowTitlesToCSVfile(row, csvRows, titles)
 
-  def _callbackPrintMessage(request_id, response, exception):
-    ri = request_id.splitlines()
-    if exception is None:
-      _printMessage(ri[RI_ENTITY], response)
-    else:
-      _handlePrintGmailError(exception, ri)
-
   def _showThread(result, j, jcount):
     printEntity([Ent.THREAD, result[u'id']], j, jcount)
     Ind.Increment()
@@ -34986,13 +35032,6 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
       pass
     Ind.Decrement()
 
-  def _callbackShowThread(request_id, response, exception):
-    ri = request_id.splitlines()
-    if exception is None:
-      _showThread(response, int(ri[RI_J]), int(ri[RI_JCOUNT]))
-    else:
-      _handleShowGmailError(exception, ri)
-
   def _printThread(user, result):
     try:
       result = callGAPI(service, u'get',
@@ -35003,12 +35042,66 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
     except (GAPI.serviceNotAvailable, GAPI.badRequest, GAPI.notFound):
       pass
 
+  _GMAIL_ERROR_REASON_TO_MESSAGE_MAP = {GAPI.NOT_FOUND: Msg.DOES_NOT_EXIST, GAPI.INVALID_MESSAGE_ID: Msg.INVALID_MESSAGE_ID}
+
+  def _handleGmailError(exception, ri):
+    http_status, reason, message = checkGAPIError(exception)
+    errMsg = getHTTPError(_GMAIL_ERROR_REASON_TO_MESSAGE_MAP, http_status, reason, message)
+    if reason not in GAPI.DEFAULT_RETRY_REASONS:
+      if not csvFormat:
+        printKeyValueListWithCount([Ent.Singular(entityType), ri[RI_ITEM], errMsg], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        setSysExitRC(AC_FAILED_RC)
+      else:
+        entityActionFailedWarning([Ent.USER, ri[RI_ENTITY], entityType, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      return
+    try:
+      response = callGAPI(service, u'get',
+                          throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_MESSAGE_ID],
+                          userId=u'me', id=ri[RI_ITEM], format=[u'metadata', u'full'][show_body or show_attachments])
+      if not csvFormat:
+        if entityType == Ent.MESSAGE:
+          _showMessage(response, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        else:
+          _showThread(response, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      else:
+        if entityType == Ent.MESSAGE:
+          _printMessage(ri[RI_ENTITY], response)
+        else:
+          _printThread(ri[RI_ENTITY], response)
+    except GAPI.notFound:
+      entityActionFailedWarning([Ent.USER, ri[RI_ENTITY], entityType, ri[RI_ITEM]], Msg.DOES_NOT_EXIST, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+    except GAPI.invalidMessageId:
+      entityActionFailedWarning([Ent.USER, ri[RI_ENTITY], entityType, ri[RI_ITEM]], Msg.INVALID_MESSAGE_ID, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+    except (GAPI.serviceNotAvailable, GAPI.badRequest):
+      entityServiceNotApplicableWarning(Ent.USER, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
+
+  def _callbackShowMessage(request_id, response, exception):
+    ri = request_id.splitlines()
+    if exception is  None:
+      _showMessage(response, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+    else:
+      _handleGmailError(exception, ri)
+
+  def _callbackPrintMessage(request_id, response, exception):
+    ri = request_id.splitlines()
+    if exception is None:
+      _printMessage(ri[RI_ENTITY], response)
+    else:
+      _handleGmailError(exception, ri)
+
+  def _callbackShowThread(request_id, response, exception):
+    ri = request_id.splitlines()
+    if exception is None:
+      _showThread(response, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+    else:
+      _handleGmailError(exception, ri)
+
   def _callbackPrintThread(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
       _printThread(ri[RI_ENTITY], response)
     else:
-      _handlePrintGmailError(exception, ri)
+      _handleGmailError(exception, ri)
 
   def _batchPrintShowMessagesThreads(service, user, jcount, messageIds, callback):
     svcargs = dict([(u'userId', u'me'), (u'id', None), (u'format', [u'metadata', u'full'][show_body or show_attachments])]+GM.Globals[GM.EXTRA_ARGS_LIST])
@@ -35685,10 +35778,6 @@ EMAILSETTINGS_OLD_NEW_OLD_FORWARD_ACTION_MAP = {
   u'DELETE': u'trash',
   u'KEEP': u'leaveInInBox',
   u'MARK_READ': u'markRead',
-  u'archive': u'ARCHIVE',
-  u'trash': u'DELETE',
-  u'leaveInInbox': u'KEEP',
-  u'markRead': u'MARK_READ',
   }
 
 def _showForward(user, i, count, result):
@@ -36785,6 +36874,35 @@ def printVacation(users):
 def showVacation(users):
   _printShowVacation(users, False)
 
+# gam <UserTypeEntity> language clear|<LanguageList>
+def setLanguage(users):
+  cd = buildGAPIObject(API.DIRECTORY)
+  languages = getString(Cmd.OB_LANGUAGE_LIST)
+  if languages.lower() == u'clear':
+    body = {u'languages': None}
+  else:
+    body = {u'languages': []}
+    for language in languages.replace(u',', u' ').split():
+      if language.lower() in LANGUAGE_CODES_MAP:
+        body[u'languages'].append({u'languageCode': LANGUAGE_CODES_MAP[language.lower()]})
+      else:
+        body[u'languages'].append({u'customLanguage': language})
+  checkForExtraneousArguments()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user = userKey = normalizeEmailAddressOrUID(user)
+    try:
+      callGAPI(cd.users(), u'update',
+               throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN,
+                              GAPI.INVALID, GAPI.INVALID_INPUT],
+               userKey=userKey, body=body, fields='languages')
+      printEntity([Ent.USER, user, Ent.LANGUAGE, languages], i, count)
+    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.forbidden):
+      entityUnknownWarning(Ent.USER, user, i, count)
+    except (GAPI.invalid, GAPI.invalidInput) as e:
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
+
 # Process Email Settings
 def _processEmailSettings(users, function, entityType, entityValue, **kwargs):
   emailSettings = getEmailSettingsObject()
@@ -36810,11 +36928,6 @@ def _processEmailSettings(users, function, entityType, entityValue, **kwargs):
 def setArrows(users):
   enable = getBoolean(None)
   _processEmailSettings(users, u'UpdateGeneral', Ent.ARROWS_ENABLED, u'arrows', arrows=enable)
-
-# gam <UserTypeEntity> language <Language>
-def setLanguage(users):
-  language = getChoice(LANGUAGE_CODES_MAP, mapChoice=True)
-  _processEmailSettings(users, u'UpdateLanguage', Ent.LANGUAGE, u'language', language=language)
 
 # gam <UserTypeEntity> pagesize 25|50|100
 def setPageSize(users):
@@ -37735,6 +37848,17 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_VERIFICATIONCODES:	Cmd.ARG_BACKUPCODE,
   }
 
+def showAPICallsRetryData():
+  if GC.Values[GC.SHOW_API_CALLS_RETRY_DATA] and GM.Globals[GM.API_CALLS_RETRY_DATA]:
+    Ind.Reset()
+    writeStderr(Msg.API_CALLS_RETRY_DATA)
+    Ind.Increment()
+    for k, v in sorted(iteritems(GM.Globals[GM.API_CALLS_RETRY_DATA])):
+      m, s = divmod(int(v[1]), 60)
+      h, m = divmod(m, 60)
+      writeStderr(formatKeyValueList(Ind.Spaces(), [k, u'{0}/{1}:{2:02d}:{3:02d}'.format(v[0], h, m, s)], u'\n'))
+    Ind.Decrement()
+
 def adjustRedirectedSTDFilesIfNotMultiprocessing():
   def adjustRedirectedSTDFile(stdtype):
     rdFd = GM.Globals[stdtype].get(GM.REDIRECT_FD)
@@ -37847,15 +37971,19 @@ def ProcessGAMCommand(args, processGamCfg=True):
     sys.exit(GM.Globals[GM.SYSEXITRC])
   except KeyboardInterrupt:
     setSysExitRC(KEYBOARD_INTERRUPT_RC)
+    showAPICallsRetryData()
     adjustRedirectedSTDFilesIfNotMultiprocessing()
   except socket.error as e:
     printErrorMessage(SOCKET_ERROR_RC, convertSysToUTF8(str(e)))
+    showAPICallsRetryData()
     adjustRedirectedSTDFilesIfNotMultiprocessing()
   except MemoryError:
     printErrorMessage(MEMORY_ERROR_RC, Msg.GAM_OUT_OF_MEMORY)
+    showAPICallsRetryData()
     adjustRedirectedSTDFilesIfNotMultiprocessing()
   except SystemExit as e:
     GM.Globals[GM.SYSEXITRC] = e.code
+    showAPICallsRetryData()
     try:
       adjustRedirectedSTDFilesIfNotMultiprocessing()
     except SystemExit:
@@ -37864,6 +37992,7 @@ def ProcessGAMCommand(args, processGamCfg=True):
     from traceback import print_exc
     print_exc(file=sys.stderr)
     setSysExitRC(UNKNOWN_ERROR_RC)
+    showAPICallsRetryData()
     adjustRedirectedSTDFilesIfNotMultiprocessing()
   if processGamCfg:
     if GM.Globals.get(GM.SAVED_STDOUT) is not None:

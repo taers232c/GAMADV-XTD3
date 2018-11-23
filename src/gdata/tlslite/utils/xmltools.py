@@ -2,7 +2,7 @@
 
 This module has misc. helper functions for working with XML DOM nodes."""
 
-from compat import *
+from .compat import *
 import os
 import re
 
@@ -26,7 +26,7 @@ else:
 def parseAndStripWhitespace(s):
     try:
         element = parseDocument(s).documentElement
-    except BaseException, e:
+    except BaseException as e:
         raise SyntaxError(str(e))
     stripWhitespace(element)
     return element
@@ -102,7 +102,7 @@ def getChildIter(element, index):
             self.element = element
             self.index = index
 
-        def next(self):
+        def __next__(self):
             if self.index < len(self.element.childNodes):
                 retVal = self.element.childNodes.item(self.index)
                 self.index += 1

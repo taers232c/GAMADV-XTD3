@@ -1,9 +1,9 @@
 """Pure-Python RSA implementation."""
 
-from cryptomath import *
-import xmltools
-from ASN1Parser import ASN1Parser
-from RSAKey import *
+from .cryptomath import *
+from . import xmltools
+from .ASN1Parser import ASN1Parser
+from .RSAKey import *
 
 class Python_RSAKey(RSAKey):
     def __init__(self, n=0, e=0, d=0, p=0, q=0, dP=0, dQ=0, qInv=0):
@@ -99,7 +99,7 @@ class Python_RSAKey(RSAKey):
         q = getRandomPrime(bits/2, False)
         t = lcm(p-1, q-1)
         key.n = p * q
-        key.e = 3L  #Needed to be long, for Java
+        key.e = 3  #Needed to be long, for Java
         key.d = invMod(key.e, t)
         key.p = p
         key.q = q

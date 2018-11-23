@@ -1,7 +1,7 @@
 """OpenSSL/M2Crypto AES implementation."""
 
-from cryptomath import *
-from AES import *
+from .cryptomath import *
+from .AES import *
 
 if m2cryptoLoaded:
 

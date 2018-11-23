@@ -38,7 +38,7 @@ HttpRequest: Function that wraps google.appengine.api.urlfetch.Fetch in a
 __author__ = 'api.jscudder (Jeff Scudder)'
 
 
-import StringIO
+import io
 import atom.service
 import atom.http_interface
 from google.appengine.api import urlfetch
@@ -188,7 +188,7 @@ def HttpRequest(service, operation, data, uri, extra_headers=None,
   if isinstance(service.additional_headers, dict):
     headers = service.additional_headers.copy()
   if isinstance(extra_headers, dict):
-    for header, value in extra_headers.iteritems():
+    for header, value in extra_headers.items():
       headers[header] = value
   # Add the content type header (we don't need to calculate content length,
   # since urlfetch.Fetch will calculate for us).
@@ -229,7 +229,7 @@ class HttpResponse(object):
   """
 
   def __init__(self, urlfetch_response):
-    self.body = StringIO.StringIO(urlfetch_response.content)
+    self.body = io.StringIO(urlfetch_response.content)
     self.headers = urlfetch_response.headers
     self.status = urlfetch_response.status_code
     self.reason = ''
@@ -241,7 +241,7 @@ class HttpResponse(object):
       return self.body.read(length)
 
   def getheader(self, name):
-    if not self.headers.has_key(name):
+    if name not in self.headers:
       return self.headers[name.lower()]
     return self.headers[name]
     

@@ -70,7 +70,7 @@ class FileObject:
     def writelines(self, list):
         # XXX We could do better here for very long lists
         # XXX Should really reject non-string non-buffers
-        self._wbuf.extend(filter(None, map(str, list)))
+        self._wbuf.extend([_f for _f in map(str, list) if _f])
         if (self._wbufsize <= 1 or
             self._get_wbuf_len() >= self._wbufsize):
             self.flush()
@@ -213,7 +213,7 @@ class FileObject:
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         line = self.readline()
         if not line:
             raise StopIteration

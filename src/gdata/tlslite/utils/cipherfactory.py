@@ -2,29 +2,29 @@
 
 import os
 
-import Python_AES
-import Python_RC4
+from . import Python_AES
+from . import Python_RC4
 
-import cryptomath
+from . import cryptomath
 
 tripleDESPresent = False
 
 if cryptomath.m2cryptoLoaded:
-    import OpenSSL_AES
-    import OpenSSL_RC4
-    import OpenSSL_TripleDES
+    from . import OpenSSL_AES
+    from . import OpenSSL_RC4
+    from . import OpenSSL_TripleDES
     tripleDESPresent = True
 
 if cryptomath.cryptlibpyLoaded:
-    import Cryptlib_AES
-    import Cryptlib_RC4
-    import Cryptlib_TripleDES
+    from . import Cryptlib_AES
+    from . import Cryptlib_RC4
+    from . import Cryptlib_TripleDES
     tripleDESPresent = True
 
 if cryptomath.pycryptoLoaded:
-    import PyCrypto_AES
-    import PyCrypto_RC4
-    import PyCrypto_TripleDES
+    from . import PyCrypto_AES
+    from . import PyCrypto_RC4
+    from . import PyCrypto_TripleDES
     tripleDESPresent = True
 
 # **************************************************************************

@@ -48,7 +48,7 @@ class AdminSettingsService(gdata.apps.service.PropertyService):
     uri = self._serviceUrl(location)
     try:
       return self._GetProperties(uri)
-    except gdata.service.RequestError, e:
+    except gdata.service.RequestError as e:
       raise AppsForYourDomainException(e.args[0])
 
   def GetDefaultLanguage(self):
@@ -232,9 +232,9 @@ class AdminSettingsService(gdata.apps.service.PropertyService):
 
     Returns: binary image file"""
  
-    import urllib
+    import urllib.request, urllib.parse, urllib.error
     url = 'http://www.google.com/a/cpanel/'+self.domain+'/images/logo.gif'
-    response = urllib.urlopen(url)
+    response = urllib.request.urlopen(url)
     return response.read()
 
   def UpdateDomainLogo(self, logoImage):
@@ -415,7 +415,7 @@ class AdminSettingsService(gdata.apps.service.PropertyService):
     uri = self._serviceUrl('email/gateway')
     try:
       return self._GetProperties(uri)
-    except gdata.service.RequestError, e:
+    except gdata.service.RequestError as e:
       raise AppsForYourDomainException(e.args[0])
     except TypeError:
       #if no outbound gateway is set, we get a TypeError,

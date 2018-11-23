@@ -266,7 +266,7 @@ class Credentials(object):
         # Add in information we will need later to reconstitute this instance.
         to_serialize['_class'] = curr_type.__name__
         to_serialize['_module'] = curr_type.__module__
-        for key, val in to_serialize.items():
+        for key, val in list(to_serialize.items()):
             if isinstance(val, bytes):
                 to_serialize[key] = val.decode('utf-8')
             if isinstance(val, set):
@@ -1396,7 +1396,7 @@ def _get_application_default_credential_from_file(filename):
             "'type' field should be defined (and have one of the '" +
             AUTHORIZED_USER + "' or '" + SERVICE_ACCOUNT + "' values)")
 
-    missing_fields = required_fields.difference(client_credentials.keys())
+    missing_fields = required_fields.difference(list(client_credentials.keys()))
 
     if missing_fields:
         _raise_exception_for_missing_fields(missing_fields)
@@ -1575,7 +1575,7 @@ def _extract_id_token(id_token):
     if type(id_token) == bytes:
         segments = id_token.split(b'.')
     else:
-        segments = id_token.split(u'.')
+        segments = id_token.split('.')
 
     if len(segments) != 3:
         raise VerifyJwtTokenError(
@@ -2092,8 +2092,7 @@ class OAuth2WebServerFlow(Flow):
 @_helpers.positional(2)
 def flow_from_clientsecrets(filename, scope, redirect_uri=None,
                             message=None, cache=None, login_hint=None,
-                            device_uri=None, pkce=None, code_verifier=None,
-                            prompt=None):
+                            device_uri=None, pkce=None, code_verifier=None):
     """Create a Flow from a clientsecrets file.
 
     Will create the right kind of Flow based on the contents of the
@@ -2142,13 +2141,7 @@ def flow_from_clientsecrets(filename, scope, redirect_uri=None,
                 'login_hint': login_hint,
             }
             revoke_uri = client_info.get('revoke_uri')
-            optional = (
-                'revoke_uri',
-                'device_uri',
-                'pkce',
-                'code_verifier',
-                'prompt'
-            )
+            optional = ('revoke_uri', 'device_uri', 'pkce', 'code_verifier')
             for param in optional:
                 if locals()[param] is not None:
                     constructor_kwargs[param] = locals()[param]

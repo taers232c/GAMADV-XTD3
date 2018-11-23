@@ -126,6 +126,8 @@ CONVERT_TO_LOCAL_TIME = u'ctlt'
 # Check API calls rate
 RATE_CHECK_COUNT = u'rccn'
 RATE_CHECK_START = u'rcst'
+# Number/length of API call retries
+API_CALLS_RETRY_DATA = u'rtry'
 #
 Globals = {
   SYSEXITRC: 0,
@@ -172,4 +174,5 @@ Globals = {
   CONVERT_TO_LOCAL_TIME: False,
   RATE_CHECK_COUNT: 0,
   RATE_CHECK_START: 0,
+  API_CALLS_RETRY_DATA: {}
   }

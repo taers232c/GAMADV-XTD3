@@ -9,7 +9,7 @@ if sys.version_info < (2,2):
 if sys.version_info < (2,3):
 
     def enumerate(collection):
-        return zip(range(len(collection)), collection)
+        return list(zip(list(range(len(collection))), collection))
 
     class Set:
         def __init__(self, seq=None):
@@ -22,31 +22,31 @@ if sys.version_info < (2,3):
             self.values[e] = None
 
         def discard(self, e):
-            if e in self.values.keys():
+            if e in list(self.values.keys()):
                 del(self.values[e])
 
         def union(self, s):
             ret = Set()
-            for e in self.values.keys():
+            for e in list(self.values.keys()):
                 ret.values[e] = None
-            for e in s.values.keys():
+            for e in list(s.values.keys()):
                 ret.values[e] = None
             return ret
 
         def issubset(self, other):
-            for e in self.values.keys():
-                if e not in other.values.keys():
+            for e in list(self.values.keys()):
+                if e not in list(other.values.keys()):
                     return False
             return True
 
-        def __nonzero__( self):
-            return len(self.values.keys())
+        def __bool__( self):
+            return len(list(self.values.keys()))
 
         def __contains__(self, e):
-            return e in self.values.keys()
+            return e in list(self.values.keys())
 
         def __iter__(self):
-            return iter(set.values.keys())
+            return iter(list(set.values.keys()))
 
 
 if os.name != "java":
@@ -83,7 +83,7 @@ if os.name != "java":
     import sys
     import traceback
     def formatExceptionTrace(e):
-        newStr = "".join(traceback.format_exception(sys.exc_type, sys.exc_value, sys.exc_traceback))
+        newStr = "".join(traceback.format_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]))
         return newStr
 
 else:
@@ -120,7 +120,7 @@ else:
     def numBits(n):
         if n==0:
             return 0
-        n= 1L * n; #convert to long, if it isn't already
+        n= 1 * n; #convert to long, if it isn't already
         return n.__tojava__(java.math.BigInteger).bitLength()
 
     #Adjust the string to an array of bytes
@@ -136,5 +136,5 @@ else:
     import sys
     import traceback
     def formatExceptionTrace(e):
-        newStr = "".join(traceback.format_exception(sys.exc_type, sys.exc_value, sys.exc_traceback))
+        newStr = "".join(traceback.format_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]))
         return newStr

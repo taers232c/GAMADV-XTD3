@@ -1,6 +1,6 @@
 """Class representing an X.509 certificate chain."""
 
-from utils import cryptomath
+from .utils import cryptomath
 
 class X509CertChain:
     """This class represents a chain of X.509 certificates.
@@ -150,7 +150,7 @@ class X509CertChain:
                 lastName = array.array('B', [0] * length)
                 cryptlib_py.cryptGetAttributeString(lastC, name, lastName)
                 lastName = lastName.tostring()
-            except cryptlib_py.CryptException, e:
+            except cryptlib_py.CryptException as e:
                 if e[0] == cryptlib_py.CRYPT_ERROR_NOTFOUND:
                     lastName = None
             try:
@@ -158,7 +158,7 @@ class X509CertChain:
                 rootName = array.array('B', [0] * length)
                 cryptlib_py.cryptGetAttributeString(rootC, name, rootName)
                 rootName = rootName.tostring()
-            except cryptlib_py.CryptException, e:
+            except cryptlib_py.CryptException as e:
                 if e[0] == cryptlib_py.CRYPT_ERROR_NOTFOUND:
                     rootName = None
 

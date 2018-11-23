@@ -131,7 +131,7 @@ class AuditService(gdata.apps.service.PropertyService):
     uri = self._serviceUrl('mail/monitor', user=source_user+'/'+destination_user)
     try:
       return self._DeleteProperties(uri)
-    except gdata.service.RequestError, e:
+    except gdata.service.RequestError as e:
       raise AppsForYourDomainException(e.args[0])
 
   def createAccountInformationRequest(self, user):
@@ -148,7 +148,7 @@ class AuditService(gdata.apps.service.PropertyService):
     #XML Body is left empty
     try:
       return self._PostProperties(uri, properties)
-    except gdata.service.RequestError, e:
+    except gdata.service.RequestError as e:
       raise AppsForYourDomainException(e.args[0])
 
   def getAccountInformationRequestStatus(self, user, request_id):
@@ -164,7 +164,7 @@ class AuditService(gdata.apps.service.PropertyService):
     uri = self._serviceUrl('account', user=user+'/'+request_id)
     try:
       return self._GetProperties(uri)
-    except gdata.service.RequestError, e:
+    except gdata.service.RequestError as e:
       raise AppsForYourDomainException(e.args[0])
 
   def getAllAccountInformationRequestsStatus(self):
@@ -195,7 +195,7 @@ class AuditService(gdata.apps.service.PropertyService):
     uri = self._serviceUrl('account', user=user+'/'+request_id)
     try:
       return self._DeleteProperties(uri)
-    except gdata.service.RequestError, e:
+    except gdata.service.RequestError as e:
       raise AppsForYourDomainException(e.args[0])
 
   def createMailboxExportRequest(self, user, begin_date=None, end_date=None, include_deleted=False, search_query=None, headers_only=False):
@@ -242,7 +242,7 @@ class AuditService(gdata.apps.service.PropertyService):
     uri = self._serviceUrl('mail/export', user=user+'/'+request_id)
     try:
       return self._GetProperties(uri)
-    except gdata.service.RequestError, e:
+    except gdata.service.RequestError as e:
       raise AppsForYourDomainException(e.args[0])
 
   def getAllMailboxExportRequestsStatus(self):
@@ -273,5 +273,5 @@ class AuditService(gdata.apps.service.PropertyService):
     uri = self._serviceUrl('mail/export', user=user+'/'+request_id)
     try:
       return self._DeleteProperties(uri)
-    except gdata.service.RequestError, e:
+    except gdata.service.RequestError as e:
       raise AppsForYourDomainException(e.args[0])

@@ -1,9 +1,9 @@
 """Class for post-handshake certificate checking."""
 
-from utils.cryptomath import hashAndBase64
-from X509 import X509
-from X509CertChain import X509CertChain
-from errors import *
+from .utils.cryptomath import hashAndBase64
+from .X509 import X509
+from .X509CertChain import X509CertChain
+from .errors import *
 
 
 class Checker:

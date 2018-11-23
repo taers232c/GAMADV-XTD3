@@ -1,10 +1,10 @@
 """Class for storing shared keys."""
 
-from utils.cryptomath import *
-from utils.compat import *
-from mathtls import *
-from Session import Session
-from BaseDB import BaseDB
+from .utils.cryptomath import *
+from .utils.compat import *
+from .mathtls import *
+from .Session import Session
+from .BaseDB import BaseDB
 
 class SharedKeyDB(BaseDB):
     """This class represent an in-memory or on-disk database of shared

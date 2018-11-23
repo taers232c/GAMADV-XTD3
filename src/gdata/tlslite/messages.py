@@ -1,12 +1,12 @@
 """Classes representing TLS messages."""
 
-from utils.compat import *
-from utils.cryptomath import *
-from errors import *
-from utils.codec import *
-from constants import *
-from X509 import X509
-from X509CertChain import X509CertChain
+from .utils.compat import *
+from .utils.cryptomath import *
+from .errors import *
+from .utils.codec import *
+from .constants import *
+from .X509 import X509
+from .X509CertChain import X509CertChain
 
 import sha
 import md5
@@ -364,10 +364,10 @@ class ServerKeyExchange(HandshakeMsg):
     def __init__(self, cipherSuite):
         self.cipherSuite = cipherSuite
         self.contentType = ContentType.handshake
-        self.srp_N = 0L
-        self.srp_g = 0L
+        self.srp_N = 0
+        self.srp_g = 0
         self.srp_s = createByteArraySequence([])
-        self.srp_B = 0L
+        self.srp_B = 0
         self.signature = createByteArraySequence([])
 
     def createSRP(self, srp_N, srp_g, srp_s, srp_B):

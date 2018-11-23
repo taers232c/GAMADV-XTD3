@@ -19,7 +19,7 @@
 From bytes to a number, number to bytes, etc.
 """
 
-from __future__ import absolute_import
+
 
 try:
     # We'll use psyco if available on 32-bit architectures to speed up code.

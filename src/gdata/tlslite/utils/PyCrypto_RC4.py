@@ -1,7 +1,7 @@
 """PyCrypto RC4 implementation."""
 
-from cryptomath import *
-from RC4 import *
+from .cryptomath import *
+from .RC4 import *
 
 if pycryptoLoaded:
     import Crypto.Cipher.ARC4

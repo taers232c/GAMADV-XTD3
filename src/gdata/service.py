@@ -61,18 +61,9 @@
 __author__ = 'api.jscudder (Jeffrey Scudder)'
 
 import re
-import urllib
-import urlparse
-try:
-  from xml.etree import cElementTree as ElementTree
-except ImportError:
-  try:
-    import cElementTree as ElementTree
-  except ImportError:
-    try:
-      from xml.etree import ElementTree
-    except ImportError:
-      from elementtree import ElementTree
+import urllib.request, urllib.parse, urllib.error
+import urllib.parse
+import lxml.etree as ElementTree
 import atom.service
 import gdata
 import atom
@@ -786,22 +777,22 @@ class GDataService(atom.service.AtomService):
       if captcha_parameters:
         self.__captcha_token = captcha_parameters['token']
         self.__captcha_url = captcha_parameters['url']
-        raise CaptchaRequired, 'Captcha Required'
+        raise CaptchaRequired('Captcha Required')
       elif response_body.splitlines()[0] == 'Error=BadAuthentication':
         self.__captcha_token = None
         self.__captcha_url = None
-        raise BadAuthentication, 'Incorrect username or password'
+        raise BadAuthentication('Incorrect username or password')
       else:
         self.__captcha_token = None
         self.__captcha_url = None
-        raise Error, 'Server responded with a 403 code'
+        raise Error('Server responded with a 403 code')
     elif auth_response.status == 302:
       self.__captcha_token = None
       self.__captcha_url = None
       # Google tries to redirect all bad URLs back to 
       # http://www.google.<locale>. If a redirect
       # attempt is made, assume the user has supplied an incorrect authentication URL
-      raise BadAuthenticationServiceURL, 'Server responded with a 302 code.'
+      raise BadAuthenticationServiceURL('Server responded with a 302 code.')
 
   def ClientLogin(self, username, password, account_type=None, service=None,
       auth_service_url=None, source=None, captcha_token=None, 
@@ -946,8 +937,8 @@ class GDataService(atom.service.AtomService):
     if response.status == 200:
       return result_body
     else:
-      raise RequestError, {'status': response.status,
-          'body': result_body}
+      raise RequestError({'status': response.status,
+          'body': result_body})
 
   def GetWithRetries(self, uri, extra_headers=None, redirects_remaining=4, 
       encoding='UTF-8', converter=None, num_retries=DEFAULT_NUM_RETRIES,
@@ -997,13 +988,13 @@ class GDataService(atom.service.AtomService):
       except SystemExit:
         # Allow this error
         raise
-      except RequestError, e:
+      except RequestError as e:
         # Error 500 is 'internal server error' and warrants a retry
         # Error 503 is 'service unavailable' and warrants a retry
         if e[0]['status'] not in [500, 503]:
           raise e
         # Else, fall through to the retry code...
-      except Exception, e:
+      except Exception as e:
         if logger:
           logger.debug(e)
         # Fall through to the retry code...
@@ -1106,16 +1097,16 @@ class GDataService(atom.service.AtomService):
           return GDataService.Get(self, location, extra_headers, redirects_remaining - 1, 
               encoding=encoding, converter=converter)
         else:
-          raise RequestError, {'status': server_response.status,
+          raise RequestError({'status': server_response.status,
               'reason': '302 received without Location header',
-              'body': result_body}
+              'body': result_body})
       else:
-        raise RequestError, {'status': server_response.status,
+        raise RequestError({'status': server_response.status,
             'reason': 'Redirect received, but redirects_remaining <= 0',
-            'body': result_body}
+            'body': result_body})
     else:
-      raise RequestError, {'status': server_response.status,
-          'reason': server_response.reason, 'body': result_body}
+      raise RequestError({'status': server_response.status,
+          'reason': server_response.reason, 'body': result_body})
 
   def GetMedia(self, uri, extra_headers=None):
     """Returns a MediaSource containing media and its metadata from the given
@@ -1150,7 +1141,7 @@ class GDataService(atom.service.AtomService):
     if isinstance(result, atom.Entry):
       return result
     else:
-      raise UnexpectedReturnType, 'Server did not send an entry' 
+      raise UnexpectedReturnType('Server did not send an entry') 
 
   def GetFeed(self, uri, extra_headers=None, 
               converter=gdata.GDataFeedFromString):
@@ -1175,7 +1166,7 @@ class GDataService(atom.service.AtomService):
     if isinstance(result, atom.Feed):
       return result
     else:
-      raise UnexpectedReturnType, 'Server did not send a feed'  
+      raise UnexpectedReturnType('Server did not send a feed')  
 
   def GetNext(self, feed):
     """Requests the next 'page' of results in the feed.
@@ -1355,16 +1346,16 @@ class GDataService(atom.service.AtomService):
               extra_headers, url_params, escape_params, 
               redirects_remaining - 1, media_source, converter=converter)
         else:
-          raise RequestError, {'status': server_response.status,
+          raise RequestError({'status': server_response.status,
               'reason': '302 received without Location header',
-              'body': result_body}
+              'body': result_body})
       else:
-        raise RequestError, {'status': server_response.status,
+        raise RequestError({'status': server_response.status,
             'reason': 'Redirect received, but redirects_remaining <= 0',
-            'body': result_body}
+            'body': result_body})
     else:
-      raise RequestError, {'status': server_response.status,
-          'reason': server_response.reason, 'body': result_body}
+      raise RequestError({'status': server_response.status,
+          'reason': server_response.reason, 'body': result_body})
 
   def Put(self, data, uri, extra_headers=None, url_params=None, 
           escape_params=True, redirects_remaining=3, media_source=None,
@@ -1452,16 +1443,16 @@ class GDataService(atom.service.AtomService):
           return GDataService.Delete(self, location, extra_headers, 
               url_params, escape_params, redirects_remaining - 1)
         else:
-          raise RequestError, {'status': server_response.status,
+          raise RequestError({'status': server_response.status,
               'reason': '302 received without Location header',
-              'body': result_body}
+              'body': result_body})
       else:
-        raise RequestError, {'status': server_response.status,
+        raise RequestError({'status': server_response.status,
             'reason': 'Redirect received, but redirects_remaining <= 0',
-            'body': result_body}
+            'body': result_body})
     else:
-      raise RequestError, {'status': server_response.status,
-          'reason': server_response.reason, 'body': result_body}
+      raise RequestError({'status': server_response.status,
+          'reason': server_response.reason, 'body': result_body})
 
 
 def ExtractToken(url, scopes_included_in_next=True):
@@ -1484,13 +1475,13 @@ def ExtractToken(url, scopes_included_in_next=True):
     this token should be valid. If the scope was not included in the URL, the
     tuple will contain (token, None).
   """
-  parsed = urlparse.urlparse(url)
+  parsed = urllib.parse.urlparse(url)
   token = gdata.auth.AuthSubTokenFromUrl(parsed[4])
   scopes = ''
   if scopes_included_in_next:
     for pair in parsed[4].split('&'):
       if pair.startswith('%s=' % SCOPE_URL_PARAM_NAME):
-        scopes = urllib.unquote_plus(pair.split('=')[1])
+        scopes = urllib.parse.unquote_plus(pair.split('=')[1])
   return (token, scopes.split(' '))
 
 
@@ -1537,9 +1528,9 @@ def GenerateAuthSubRequestUrl(next, scopes, hd='default', secure=False,
     scope = scopes
   if include_scopes_in_next:
     if next.find('?') > -1:
-      next += '&%s' % urllib.urlencode({SCOPE_URL_PARAM_NAME:scope})
+      next += '&%s' % urllib.parse.urlencode({SCOPE_URL_PARAM_NAME:scope})
     else:
-      next += '?%s' % urllib.urlencode({SCOPE_URL_PARAM_NAME:scope})
+      next += '?%s' % urllib.parse.urlencode({SCOPE_URL_PARAM_NAME:scope})
   return gdata.auth.GenerateAuthSubUrl(next=next, scope=scope, secure=secure,
       session=session, request_url=request_url, domain=hd)
 
@@ -1591,7 +1582,7 @@ class Query(dict):
         self.categories.append(category)
 
   def _GetTextQuery(self):
-    if 'q' in self.keys():
+    if 'q' in list(self.keys()):
       return self['q']
     else:
       return None
@@ -1603,7 +1594,7 @@ class Query(dict):
       doc="""The feed query's q parameter""")
 
   def _GetAuthor(self):
-    if 'author' in self.keys():
+    if 'author' in list(self.keys()):
       return self['author']
     else:
       return None
@@ -1615,7 +1606,7 @@ class Query(dict):
       doc="""The feed query's author parameter""")
 
   def _GetAlt(self):
-    if 'alt' in self.keys():
+    if 'alt' in list(self.keys()):
       return self['alt']
     else:
       return None
@@ -1627,7 +1618,7 @@ class Query(dict):
       doc="""The feed query's alt parameter""")
 
   def _GetUpdatedMin(self):
-    if 'updated-min' in self.keys():
+    if 'updated-min' in list(self.keys()):
       return self['updated-min']
     else:
       return None
@@ -1639,7 +1630,7 @@ class Query(dict):
       doc="""The feed query's updated-min parameter""")
 
   def _GetUpdatedMax(self):
-    if 'updated-max' in self.keys():
+    if 'updated-max' in list(self.keys()):
       return self['updated-max']
     else:
       return None
@@ -1651,7 +1642,7 @@ class Query(dict):
       doc="""The feed query's updated-max parameter""")
 
   def _GetPublishedMin(self):
-    if 'published-min' in self.keys():
+    if 'published-min' in list(self.keys()):
       return self['published-min']
     else:
       return None
@@ -1663,7 +1654,7 @@ class Query(dict):
       doc="""The feed query's published-min parameter""")
 
   def _GetPublishedMax(self):
-    if 'published-max' in self.keys():
+    if 'published-max' in list(self.keys()):
       return self['published-max']
     else:
       return None
@@ -1675,7 +1666,7 @@ class Query(dict):
       doc="""The feed query's published-max parameter""")
 
   def _GetStartIndex(self):
-    if 'start-index' in self.keys():
+    if 'start-index' in list(self.keys()):
       return self['start-index']
     else:
       return None
@@ -1689,7 +1680,7 @@ class Query(dict):
       doc="""The feed query's start-index parameter""")
 
   def _GetMaxResults(self):
-    if 'max-results' in self.keys():
+    if 'max-results' in list(self.keys()):
       return self['max-results']
     else:
       return None
@@ -1703,7 +1694,7 @@ class Query(dict):
       doc="""The feed query's max-results parameter""")
 
   def _GetOrderBy(self):
-    if 'orderby' in self.keys():
+    if 'orderby' in list(self.keys()):
       return self['orderby']
     else:
       return None
@@ -1717,7 +1708,7 @@ class Query(dict):
   def ToUri(self):
     q_feed = self.feed or ''
     category_string = '/'.join(
-        [urllib.quote_plus(c) for c in self.categories])
+        [urllib.parse.quote_plus(c) for c in self.categories])
     # Add categories to the feed if there are any.
     if len(self.categories) > 0:
       q_feed = q_feed + '/-/' + category_string

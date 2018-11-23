@@ -49,7 +49,7 @@ if os.name != "java":
     import traceback
 
     def formatExceptionTrace(e):
-        newStr = "".join(traceback.format_exception(sys.exc_type, sys.exc_value, sys.exc_traceback))
+        newStr = "".join(traceback.format_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]))
         return newStr
 
 else:
@@ -84,7 +84,7 @@ else:
     def numBits(n):
         if n==0:
             return 0
-        n= 1L * n; #convert to long, if it isn't already
+        n= 1 * n; #convert to long, if it isn't already
         return n.__tojava__(java.math.BigInteger).bitLength()
 
     #This properly creates static methods for Jython
@@ -102,7 +102,7 @@ else:
     class StopIteration(Exception): pass
 
     def enumerate(collection):
-        return zip(range(len(collection)), collection)
+        return list(zip(list(range(len(collection))), collection))
 
     class Set:
         def __init__(self, seq=None):
@@ -115,34 +115,34 @@ else:
             self.values[e] = None
 
         def discard(self, e):
-            if e in self.values.keys():
+            if e in list(self.values.keys()):
                 del(self.values[e])
 
         def union(self, s):
             ret = Set()
-            for e in self.values.keys():
+            for e in list(self.values.keys()):
                 ret.values[e] = None
-            for e in s.values.keys():
+            for e in list(s.values.keys()):
                 ret.values[e] = None
             return ret
 
         def issubset(self, other):
-            for e in self.values.keys():
-                if e not in other.values.keys():
+            for e in list(self.values.keys()):
+                if e not in list(other.values.keys()):
                     return False
             return True
 
-        def __nonzero__( self):
-            return len(self.values.keys())
+        def __bool__( self):
+            return len(list(self.values.keys()))
 
         def __contains__(self, e):
-            return e in self.values.keys()
+            return e in list(self.values.keys())
 
     def iterSet(set):
-        return set.values.keys()
+        return list(set.values.keys())
 
     def getListFromSet(set):
-        return set.values.keys()
+        return list(set.values.keys())
 
     """
     class JCE_SHA1:
@@ -191,5 +191,5 @@ else:
     import traceback
 
     def formatExceptionTrace(e):
-        newStr = "".join(traceback.format_exception(sys.exc_type, sys.exc_value, sys.exc_traceback))
+        newStr = "".join(traceback.format_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]))
         return newStr

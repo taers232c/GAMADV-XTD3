@@ -356,7 +356,7 @@ def _find_method_hash(clearsig):
     :raise VerificationFailed: when the hash method cannot be found
     """
 
-    for (hashname, asn1code) in HASH_ASN1.items():
+    for (hashname, asn1code) in list(HASH_ASN1.items()):
         if asn1code in clearsig:
             return hashname
 
@@ -376,6 +376,6 @@ if __name__ == '__main__':
             break
 
         if count and count % 100 == 0:
-            print('%i times' % count)
+            print(('%i times' % count))
 
     print('Doctests done')

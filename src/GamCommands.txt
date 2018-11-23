@@ -1960,6 +1960,7 @@ gam [<UserTypeEntity>] print siteacls <SiteEntity> [todrive <ToDriveAttribute>*]
         createdtime|
         id|
         name|
+        retrrictions|
         themeid
 <TeamDriveFieldNameList> ::= "<TeamDriveFieldName>(,<TeamDriveFieldName>)*"
 
@@ -3067,8 +3068,8 @@ gam <UserTypeEntity> show imap|imap4
 gam <UserTypeEntity> pop|pop3 <Boolean> [for allmail|newmail|mailfromnowon|fromnowown] [action keep|leaveininbox|archive|delete|trash|markread]
 gam <UserTypeEntity> show pop|pop3
 
+# These commands will be deprecated on October 16, 2019.
 gam <UserTypeEntity> arrows <Boolean>
-gam <UserTypeEntity> language <Language>
 gam <UserTypeEntity> pagesize 25|50|100
 gam <UserTypeEntity> shortcuts <Boolean>
 gam <UserTypeEntity> snippets <Boolean>
@@ -3106,9 +3107,16 @@ gam <UserTypeEntity> show profile
 
 # Users - Team Drives
 
+<TeamDriveRestrictionsSubfieldName> ::=
+        restrictions.adminmanagedrestrictions|
+        restrictions.copyrequireswriterpermission|
+        restrictions.domainusersonly|
+        restrictions.teammembersonly
+
 gam <UserTypeEntity> show teamdrivethemes
 gam <UserTypeEntity> create|add teamdrive <Name> [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>] [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+        [<TeamDriveRestrictionsSubfieldName> <Boolean>]
 gam <UserTypeEntity> delete teamdrive <TeamDriveEntity>
 gam <UserTypeEntity> info teamdrive <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
 gam <UserTypeEntity> show teamdriveinfo <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]

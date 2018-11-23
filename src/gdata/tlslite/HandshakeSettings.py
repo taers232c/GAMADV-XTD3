@@ -1,8 +1,8 @@
 """Class for setting handshake parameters."""
 
-from constants import CertificateType
-from utils import cryptomath
-from utils import cipherfactory
+from .constants import CertificateType
+from .utils import cryptomath
+from .utils import cipherfactory
 
 class HandshakeSettings:
     """This class encapsulates various parameters that can be used with

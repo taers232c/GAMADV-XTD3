@@ -1,7 +1,7 @@
 """Pure-Python RC4 implementation."""
 
-from RC4 import RC4
-from cryptomath import *
+from .RC4 import RC4
+from .cryptomath import *
 
 def new(key):
     return Python_RC4(key)

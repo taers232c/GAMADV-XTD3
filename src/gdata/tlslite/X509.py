@@ -1,8 +1,8 @@
 """Class representing an X.509 certificate."""
 
-from utils.ASN1Parser import ASN1Parser
-from utils.cryptomath import *
-from utils.keyfactory import _createPublicRSAKey
+from .utils.ASN1Parser import ASN1Parser
+from .utils.cryptomath import *
+from .utils.keyfactory import _createPublicRSAKey
 
 
 class X509:
@@ -120,7 +120,7 @@ class X509:
                 returnVal = array.array('B', [0] * length)
                 cryptlib_py.cryptGetAttributeString(c, name, returnVal)
                 returnVal = returnVal.tostring()
-            except cryptlib_py.CryptException, e:
+            except cryptlib_py.CryptException as e:
                 if e[0] == cryptlib_py.CRYPT_ERROR_NOTFOUND:
                     returnVal = None
             return returnVal

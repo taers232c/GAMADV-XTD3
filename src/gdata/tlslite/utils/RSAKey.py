@@ -1,6 +1,6 @@
 """Abstract class for RSA."""
 
-from cryptomath import *
+from .cryptomath import *
 
 
 class RSAKey:

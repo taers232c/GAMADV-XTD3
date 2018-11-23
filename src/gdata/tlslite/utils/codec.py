@@ -1,6 +1,6 @@
 """Classes for reading/writing binary data (such as TLS records)."""
 
-from compat import *
+from .compat import *
 
 class Writer:
     def __init__(self, length=0):

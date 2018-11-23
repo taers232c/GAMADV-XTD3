@@ -1,9 +1,9 @@
 """OpenSSL/M2Crypto RSA implementation."""
 
-from cryptomath import *
+from .cryptomath import *
 
-from RSAKey import *
-from Python_RSAKey import Python_RSAKey
+from .RSAKey import *
+from .Python_RSAKey import Python_RSAKey
 
 #copied from M2Crypto.util.py, so when we load the local copy of m2
 #we can still use it

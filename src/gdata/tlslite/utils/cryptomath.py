@@ -12,7 +12,7 @@ if sys.version_info[:2] <= (2, 4):
 else:
   from hashlib import sha1
 
-from compat import *
+from .compat import *
 
 
 # **************************************************************************
@@ -33,7 +33,7 @@ try:
     import cryptlib_py
     try:
         cryptlib_py.cryptInit()
-    except cryptlib_py.CryptException, e:
+    except cryptlib_py.CryptException as e:
         #If tlslite and cryptoIDlib are both present,
         #they might each try to re-initialize this,
         #so we're tolerant of that.
@@ -114,8 +114,8 @@ except:
 # **************************************************************************
 
 def bytesToNumber(bytes):
-    total = 0L
-    multiplier = 1L
+    total = 0
+    multiplier = 1
     for count in range(len(bytes)-1, -1, -1):
         byte = bytes[count]
         total += multiplier * byte
@@ -157,9 +157,9 @@ def numberToString(s):
 def base64ToString(s):
     try:
         return base64.decodestring(s)
-    except binascii.Error, e:
+    except binascii.Error as e:
         raise SyntaxError(e)
-    except binascii.Incomplete, e:
+    except binascii.Incomplete as e:
         raise SyntaxError(e)
 
 def stringToBase64(s):
@@ -258,7 +258,7 @@ if gmpyLoaded:
         power = gmpy.mpz(power)
         modulus = gmpy.mpz(modulus)
         result = pow(base, power, modulus)
-        return long(result)
+        return int(result)
 
 else:
     #Copied from Bryan G. Olson's post to comp.lang.python
@@ -288,7 +288,7 @@ else:
 
         # Make a table of powers of base up to 2**nBitScan - 1
         lowPowers = [1]
-        for i in xrange(1, exp2):
+        for i in range(1, exp2):
             lowPowers.append((lowPowers[i-1] * base) % modulus)
 
         # To exponentiate by the first nibble, look it up in the table
@@ -299,7 +299,7 @@ else:
         # base^nibble
         while nibbles:
             nib, nibbles = nibbles
-            for i in xrange(nBitScan):
+            for i in range(nBitScan):
                 prod = (prod * prod) % modulus
             if nib: prod = (prod * lowPowers[nib]) % modulus
 
@@ -315,7 +315,7 @@ else:
 
 #Pre-calculate a sieve of the ~100 primes < 1000:
 def makeSieve(n):
-    sieve = range(n)
+    sieve = list(range(n))
     for count in range(2, int(math.sqrt(n))):
         if sieve[count] == 0:
             continue
@@ -336,7 +336,7 @@ def isPrime(n, iterations=5, display=False):
     #Passed trial division, proceed to Rabin-Miller
     #Rabin-Miller implemented per Ferguson & Schneier
     #Compute s, t for Rabin-Miller
-    if display: print "*",
+    if display: print("*", end=' ')
     s, t = n-1, 0
     while s % 2 == 0:
         s, t = s/2, t+1
@@ -363,12 +363,12 @@ def getRandomPrime(bits, display=False):
     #
     #Since 30 is lcm(2,3,5), we'll set our test numbers to
     #29 % 30 and keep them there
-    low = (2L ** (bits-1)) * 3/2
-    high = 2L ** bits - 30
+    low = (2 ** (bits-1)) * 3/2
+    high = 2 ** bits - 30
     p = getRandomNumber(low, high)
     p += 29 - (p % 30)
     while 1:
-        if display: print ".",
+        if display: print(".", end=' ')
         p += 30
         if p >= high:
             p = getRandomNumber(low, high)
@@ -390,7 +390,7 @@ def getRandomSafePrime(bits, display=False):
     q = getRandomNumber(low, high)
     q += 29 - (q % 30)
     while 1:
-        if display: print ".",
+        if display: print(".", end=' ')
         q += 30
         if (q >= high):
             q = getRandomNumber(low, high)

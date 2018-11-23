@@ -732,7 +732,7 @@ if __name__ == '__main__':
                 break
 
             if (count and count % 10 == 0) or count == 1:
-                print('%i times' % count)
+                print(('%i times' % count))
     except KeyboardInterrupt:
         print('Aborted')
     else:

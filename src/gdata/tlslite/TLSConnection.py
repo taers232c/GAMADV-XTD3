@@ -1,18 +1,18 @@
 """
 MAIN CLASS FOR TLS LITE (START HERE!).
 """
-from __future__ import generators
+
 
 import socket
-from utils.compat import formatExceptionTrace
-from TLSRecordLayer import TLSRecordLayer
-from Session import Session
-from constants import *
-from utils.cryptomath import getRandomBytes
-from errors import *
-from messages import *
-from mathtls import *
-from HandshakeSettings import HandshakeSettings
+from .utils.compat import formatExceptionTrace
+from .TLSRecordLayer import TLSRecordLayer
+from .Session import Session
+from .constants import *
+from .utils.cryptomath import getRandomBytes
+from .errors import *
+from .messages import *
+from .mathtls import *
+from .HandshakeSettings import HandshakeSettings
 
 
 class TLSConnection(TLSRecordLayer):
@@ -1561,11 +1561,11 @@ class TLSConnection(TLSRecordLayer):
                         for result in self._sendMsg(alert):
                             yield result
                         raise
-            except socket.error, e:
+            except socket.error as e:
                 raise TLSFaultError("socket error!")
-            except TLSAbruptCloseError, e:
+            except TLSAbruptCloseError as e:
                 raise TLSFaultError("abrupt close error!")
-            except TLSAlert, alert:
+            except TLSAlert as alert:
                 if alert.description not in Fault.faultAlerts[self.fault]:
                     raise TLSFaultError(str(alert))
                 else:

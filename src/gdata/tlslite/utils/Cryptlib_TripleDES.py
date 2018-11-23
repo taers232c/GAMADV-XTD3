@@ -1,8 +1,8 @@
 """Cryptlib 3DES implementation."""
 
-from cryptomath import *
+from .cryptomath import *
 
-from TripleDES import *
+from .TripleDES import *
 
 if cryptlibpyLoaded:
 

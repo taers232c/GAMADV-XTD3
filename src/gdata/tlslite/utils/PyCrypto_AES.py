@@ -1,7 +1,7 @@
 """PyCrypto AES implementation."""
 
-from cryptomath import *
-from AES import *
+from .cryptomath import *
+from .AES import *
 
 if pycryptoLoaded:
     import Crypto.Cipher.AES

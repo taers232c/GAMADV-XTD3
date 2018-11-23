@@ -16,17 +16,8 @@
 
 __author__ = 'tmatsuo@sios.com (Takashi MATSUO)'
 
-try:
-  from xml.etree import cElementTree as ElementTree
-except ImportError:
-  try:
-    import cElementTree as ElementTree
-  except ImportError:
-    try:
-      from xml.etree import ElementTree
-    except ImportError:
-      from elementtree import ElementTree
-import urllib
+import lxml.etree as ElementTree
+import urllib.request, urllib.parse, urllib.error
 import gdata
 import atom.service
 import gdata.service
@@ -489,7 +480,7 @@ class PropertyService(gdata.service.GDataService):
   def _GetPropertyEntry(self, properties):
     property_entry = gdata.apps.PropertyEntry()
     property = []
-    for name, value in properties.iteritems():
+    for name, value in properties.items():
       if name is not None and value is not None:
         property.append(gdata.apps.Property(name=name, value=value))
     property_entry.property = property

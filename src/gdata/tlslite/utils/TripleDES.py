@@ -1,6 +1,6 @@
 """Abstract class for 3DES."""
 
-from compat import * #For True
+from .compat import * #For True
 
 class TripleDES:
     def __init__(self, key, mode, IV, implementation):

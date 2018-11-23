@@ -174,26 +174,26 @@ class Fault:
     badUsername = 101
     badPassword = 102
     badA = 103
-    clientSrpFaults = range(101,104)
+    clientSrpFaults = list(range(101,104))
 
     badVerifyMessage = 601
-    clientCertFaults = range(601,602)
+    clientCertFaults = list(range(601,602))
 
     badPremasterPadding = 501
     shortPremasterSecret = 502
-    clientNoAuthFaults = range(501,503)
+    clientNoAuthFaults = list(range(501,503))
 
     badIdentifier = 401
     badSharedKey = 402
-    clientSharedKeyFaults = range(401,403)
+    clientSharedKeyFaults = list(range(401,403))
 
     badB = 201
-    serverFaults = range(201,202)
+    serverFaults = list(range(201,202))
 
     badFinished = 300
     badMAC = 301
     badPadding = 302
-    genericFaults = range(300,303)
+    genericFaults = list(range(300,303))
 
     faultAlerts = {\
         badUsername: (AlertDescription.unknown_srp_username, \
