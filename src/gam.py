@@ -1665,8 +1665,8 @@ def formatMaxMessageBytes(maxMessageBytes, oneKiloBytes, oneMegaBytes):
   if maxMessageBytes < oneKiloBytes:
     return maxMessageBytes
   if maxMessageBytes < oneMegaBytes:
-    return u'{0}K'.format(maxMessageBytes/oneKiloBytes)
-  return u'{0}M'.format(maxMessageBytes/oneMegaBytes)
+    return u'{0}K'.format(maxMessageBytes//oneKiloBytes)
+  return u'{0}M'.format(maxMessageBytes//oneMegaBytes)
 
 def formatMilliSeconds(millis):
   seconds, millis = divmod(millis, 1000)
