@@ -1,4 +1,9 @@
-4.65.11
+4.65.12
+
+Added options to gam transfer calendar that allow updating of calendar settings as part of the transfer.
+See: https://github.com/taers232c/GAMADV-XTD/wiki/Users-Calendars-Access
+
+o4.65.11
 
 Added show_api_calls_retry_data to gam.cfg. When true, Gam will display API calls retry data at the end of ececution.
 This data can be used to determine if rate limiting measures should be used.
@@ -891,7 +896,7 @@ gam update group|groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddr
 Added copyfrom <CourseID> [announcementstates <CourseAnnouncementStateList>] [workstates <CourseWorkStateList>] [members none|all|students|teachers]
 to gam create/update course to allow copying of course announcements, work and members from one course to another.
 
-In order for GAM to be able to copy course announcements and work, it must have a special oauth2.txt file for the the course owner.
+In order for GAM to be able to copy course announcements and work, it must have a special oauth2.txt file for the course owner.
 The create/update course commands will create the special oauth2.txt when executed by starting a browser to get authentication.
 If this is not convenient, you can manually build the files before creating/updating the course.
 These files will be created in the directory specified by config_dir in gam.cfg; they will be named classroom-<OwnerID>-oauth2.txt.
@@ -910,7 +915,7 @@ gam update courses <CourseEntity> <CourseAttribute>+
 4.57.15
 
 In gam get drivefile you can now include the strings #email#, #user# and #username# in targetfolder <FilePath> and targetname <FileName>
-which will be replaced by the the user's full emailaddress or just the name portion.
+which will be replaced by the user's full email address or just the name portion.
 
 4.57.14
 
@@ -1660,11 +1665,11 @@ gam <UserTypeEntity> get contactphotos <ContactEntity>|([query <QueryContact>] [
 gam <UserTypeEntity> delete contactphotos <ContactEntity>|([query <QueryContact>] [contactgroup <ContactGroupItem>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>])
 The default directory is the current working directory, drivedir specifies the value of drive_dir from gam.cfg and
 sourcefolder/targetfolder <FilePath> specifies a user-chosen path.
-<FileNamePattern> can contain the strings #email# and #contactid# which will be replaced by the the contact's primary emailaddress or the contact ID.
+<FileNamePattern> can contain the strings #email# and #contactid# which will be replaced by the contact's primary email address or the contact ID.
 If not specified, <FileNamePattern> defaults to "#contactid#.jpg".
 
 Previously, when upating a user's photo, you specified a <FileNamePattern> that> had to specify a full file path and
-could contain the strings #email#, #user# and #username# which would be replaced by the the user's full emailaddress or just the name portion.
+could contain the strings #email#, #user# and #username# which would be replaced by the user's full email address or just the name portion.
 <FileNamePattern> can now be omitted, it defaults to "#email#.jpg".
 gam <UserTypeEntity> update photo [<FileNamePattern>]
 
@@ -1675,7 +1680,7 @@ If not specified, <FileNamePattern> defaults to "#email#.jpg".
 gam <UserTypeEntity> update photo [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
 
 Previously, when downloading a user's photo, the file name was always the user's email address with a .jpg extension.
-You can now specify a <FileNamePattern> that can contain the strings #email#, #user# and #username# which will be replaced by the the user's full emailaddress or just the name portion.
+You can now specify a <FileNamePattern> that can contain the strings #email#, #user# and #username# which will be replaced by the user's full email address or just the name portion.
 <FileNamePattern> defaults to "#email#.jpg".
 gam <UserTypeEntity> get photo [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>] [noshow]
 
@@ -1747,7 +1752,7 @@ Improve error reporting when scopes are not authorized.
 
 4.55.21
 
-Added owneremailmatchpattern <RegularExpression> option to gam print courses to allow filtering of courses based on the owner emailaddress.
+Added owneremailmatchpattern <RegularExpression> option to gam print courses to allow filtering of courses based on the owner email address.
 The `<RegularExpression>` can be used to match a specific address "foo@bar.com", a pattern ".*test.*" or the special value "Unknown user" for those
 courses where the owner has been deleted.
 gam print courses [todrive [<ToDriveAttribute>]] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
@@ -4651,7 +4656,7 @@ Replace attendees for selected events in any calendar for which a user has acces
         (minaccessrole <CalendarACLRole>)|showdeleted|showhidden
 
 <CalendarAddEntity> ::= <EmailAddressList> | resource <ResourceID> | resources <ResourceIDList> | (calendars <CalendarList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>)
-<CalendarEntity> ::= allcalendars | primary | EmailAddressList> | resource <ResourceID> | resources <ResourceIDList> | (calendars <CalendarList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>) | <CalendarSelectProperties>+
+<CalendarEntity> ::= allcalendars | primary | <EmailAddressList> | resource <ResourceID> | resources <ResourceIDList> | (calendars <CalendarList> | <FileSelector> | <CSVkmdSelector> | <CSVDataSelector>) | <CalendarSelectProperties>+
 <CalendarPrintShowEntity> ::= allcalendars | primary | <CalendarSelectProperties>+
 
 <CalendarAttribute> ::=
