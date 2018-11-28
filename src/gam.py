@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.13'
+__version__ = u'4.65.14'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -722,8 +722,7 @@ def formatChoiceList(choices):
   choiceList = list(choices)
   if len(choiceList) <= 5:
     return u'|'.join(choiceList)
-  else:
-    return u'|'.join(sorted(choiceList))
+  return u'|'.join(sorted(choiceList))
 
 def invalidChoiceExit(choices, backupArg):
   if backupArg:
@@ -1347,16 +1346,14 @@ def getStringOrFile(myarg, minLen=0):
     filename = getString(Cmd.OB_FILE_NAME)
     encoding = getCharSet()
     return (readFile(filename, encoding=encoding), encoding)
-  else:
-    return (getString(Cmd.OB_STRING, minLen=minLen), UTF8)
+  return (getString(Cmd.OB_STRING, minLen=minLen), UTF8)
 
 def getStringWithCRsNLsOrFile(myarg, minLen=0):
   if myarg == u'file' or checkArgumentPresent(u'file'):
     filename = getString(Cmd.OB_FILE_NAME)
     encoding = getCharSet()
     return readFile(filename, encoding=encoding)
-  else:
-    return unescapeCRsNLs(getString(Cmd.OB_STRING, minLen=minLen))
+  return unescapeCRsNLs(getString(Cmd.OB_STRING, minLen=minLen))
 
 def todaysTime():
   return datetime.datetime(GM.Globals[GM.DATETIME_NOW].year, GM.Globals[GM.DATETIME_NOW].month, GM.Globals[GM.DATETIME_NOW].day,
@@ -1370,7 +1367,7 @@ def todaysDate():
 def getDelta(argstr, pattern, formatRequired):
   if argstr == u'NOW':
     return todaysTime()
-  elif argstr == u'TODAY':
+  if argstr == u'TODAY':
     return todaysDate()
   tg = pattern.match(argstr.lower())
   if tg is None:
@@ -3604,8 +3601,7 @@ def shlexSplitList(entity, dataDelimiter=u' ,'):
 def getQueries(myarg):
   if myarg == u'query':
     return [getString(Cmd.OB_QUERY)]
-  else:
-    return shlexSplitList(getString(Cmd.OB_QUERY_LIST))
+  return shlexSplitList(getString(Cmd.OB_QUERY_LIST))
 
 def convertEntityToList(entity, shlexSplit=False, nonListEntityType=False):
   if not entity:
@@ -3630,8 +3626,7 @@ GROUP_ROLES_MAP = {
 def _getRoleVerification(memberRoles, fields):
   if memberRoles and memberRoles.find(Ent.ROLE_MEMBER) != -1:
     return (set(memberRoles.split(u',')), None, fields if fields.find(u'role') != -1 else fields[:-1]+u',role)')
-  else:
-    return (set(), memberRoles, fields)
+  return (set(), memberRoles, fields)
 
 def _checkMemberIsSuspended(member, isSuspended):
   return isSuspended is None or (not isSuspended and member[u'status'] != u'SUSPENDED') or (isSuspended and member[u'status'] == u'SUSPENDED')
@@ -4201,11 +4196,10 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
       if not delayGet:
         return ([Cmd.ENTITY_CROS, Cmd.ENTITY_USERS][entityType == Cmd.ENTITY_ALL_USERS],
                 getUsersToModify(entityType, None))
-      else:
-        GM.Globals[GM.ENTITY_CL_DELAY_START] = Cmd.Location()
-        buildGAPIObject(API.DIRECTORY)
-        return ([Cmd.ENTITY_CROS, Cmd.ENTITY_USERS][entityType == Cmd.ENTITY_ALL_USERS],
-                {u'entityType': entityType, u'entity': None})
+      GM.Globals[GM.ENTITY_CL_DELAY_START] = Cmd.Location()
+      buildGAPIObject(API.DIRECTORY)
+      return ([Cmd.ENTITY_CROS, Cmd.ENTITY_USERS][entityType == Cmd.ENTITY_ALL_USERS],
+              {u'entityType': entityType, u'entity': None})
     if userAllowed:
       if entitySelector == Cmd.ENTITY_SELECTOR_FILE:
         return (Cmd.ENTITY_USERS,
@@ -4266,9 +4260,8 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
       if entityClass == Cmd.ENTITY_USERS:
         return (entityClass,
                 getUsersToModify(entityType, entityItem, isSuspended=isSuspended, groupMemberType=groupMemberType))
-      else:
-        return (entityClass,
-                getUsersToModify(entityType, entityItem))
+      return (entityClass,
+              getUsersToModify(entityType, entityItem))
     else:
       GM.Globals[GM.ENTITY_CL_DELAY_START] = Cmd.Location()
       buildGAPIObject(API.DIRECTORY)
@@ -4823,19 +4816,15 @@ def cleanJSON(structure, key, listLimit=None, skipObjects=None, timeObjects=None
     if key not in timeObjects:
       if isinstance(structure, string_types) and GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]:
         return escapeCRsNLs(structure)
-      else:
-        return structure
-    else:
-      if isinstance(structure, string_types) and not structure.isdigit():
-        return formatLocalTime(structure)
-      else:
-        return formatLocalTimestamp(structure)
-  elif isinstance(structure, list):
+      return structure
+    if isinstance(structure, string_types) and not structure.isdigit():
+      return formatLocalTime(structure)
+    return formatLocalTimestamp(structure)
+  if isinstance(structure, list):
     listLen = len(structure)
     listLen = min(listLen, listLimit or listLen)
     return [cleanJSON(v, u'', listLimit, skipObjects, timeObjects) for v in structure[0:listLen]]
-  else:
-    return {k: cleanJSON(v, k, listLimit, skipObjects, timeObjects) for k, v in sorted(iteritems(structure)) if k not in DEFAULT_SKIP_OBJECTS and k not in skipObjects}
+  return {k: cleanJSON(v, k, listLimit, skipObjects, timeObjects) for k, v in sorted(iteritems(structure)) if k not in DEFAULT_SKIP_OBJECTS and k not in skipObjects}
 
 # Flatten a JSON object
 def flattenJSON(structure, key=u'', path=u'', flattened=None, listLimit=None, skipObjects=None, timeObjects=None, noLenObjects=None, simpleLists=None):
@@ -4960,8 +4949,7 @@ RI_OPTION = 7
 def batchRequestID(entityName, i, count, j, jcount, item, role=None, option=None):
   if role is None and option is None:
     return u'{0}\n{1}\n{2}\n{3}\n{4}\n{5}'.format(entityName, i, count, j, jcount, item)
-  else:
-    return u'{0}\n{1}\n{2}\n{3}\n{4}\n{5}\n{6}\n{7}'.format(entityName, i, count, j, jcount, item, role, option)
+  return u'{0}\n{1}\n{2}\n{3}\n{4}\n{5}\n{6}\n{7}'.format(entityName, i, count, j, jcount, item, role, option)
 
 # gam version
 def doVersion(checkForArgs=True):
@@ -13308,9 +13296,8 @@ def getSettingsFromGroup(cd, gs, gs_body):
             settings.pop(field, None)
           settings.update(gs_body)
           return settings
-        else:
-          entityActionNotPerformedWarning([Ent.GROUP, copySettingsFromGroup], Msg.API_ERROR_SETTINGS)
-          return None
+        entityActionNotPerformedWarning([Ent.GROUP, copySettingsFromGroup], Msg.API_ERROR_SETTINGS)
+        return None
       except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
               GAPI.backendError, GAPI.invalid, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
               GAPI.systemError, GAPI.serviceLimit) as e:
@@ -13402,8 +13389,7 @@ def doUpdateGroups():
   def getDeliverySettings():
     if checkArgumentPresent([u'delivery', u'deliverysettings']):
       return getChoice(GROUP_DELIVERY_SETTINGS_MAP, mapChoice=True)
-    else:
-      return DELIVERY_SETTINGS_UNDEFINED
+    return DELIVERY_SETTINGS_UNDEFINED
 
   def _executeBatch(dbatch, batchParms):
     dbatch.execute()
@@ -15120,15 +15106,14 @@ def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts
         if userId:
           userIds.append(userId)
       return userIds
-    else:
-      userSkuIds = {}
-      for u_license in feed:
-        userId = u_license.get(u'userId', u'').lower()
-        skuId = u_license.get(u'skuId')
-        if userId and skuId:
-          userSkuIds.setdefault(userId, [])
-          userSkuIds[userId].append(skuId)
-      return userSkuIds
+    userSkuIds = {}
+    for u_license in feed:
+      userId = u_license.get(u'userId', u'').lower()
+      skuId = u_license.get(u'skuId')
+      if userId and skuId:
+        userSkuIds.setdefault(userId, [])
+        userSkuIds[userId].append(skuId)
+    return userSkuIds
   for u_license in feed:
     userId = u_license.get(u'userId', u'').lower()
     productId = u_license.get(u'productId', u'')
@@ -15265,14 +15250,12 @@ def doInfoNotifications():
 def ACLRuleDict(rule):
   if rule[u'scope'][u'type'] != u'default':
     return {u'Scope': u'{0}:{1}'.format(rule[u'scope'][u'type'], rule[u'scope'][u'value']), u'Role': rule[u'role']}
-  else:
-    return {u'Scope': u'{0}'.format(rule[u'scope'][u'type']), u'Role': rule[u'role']}
+  return {u'Scope': u'{0}'.format(rule[u'scope'][u'type']), u'Role': rule[u'role']}
 
 def ACLRuleKeyValueList(rule):
   if rule[u'scope'][u'type'] != u'default':
     return [u'Scope', u'{0}:{1}'.format(rule[u'scope'][u'type'], rule[u'scope'][u'value']), u'Role', rule[u'role']]
-  else:
-    return [u'Scope', u'{0}'.format(rule[u'scope'][u'type']), u'Role', rule[u'role']]
+  return [u'Scope', u'{0}'.format(rule[u'scope'][u'type']), u'Role', rule[u'role']]
 
 def formatACLRule(rule):
   return formatKeyValueList(u'(', ACLRuleKeyValueList(rule), u')')
@@ -15280,8 +15263,7 @@ def formatACLRule(rule):
 def formatACLScopeRole(scope, role):
   if role:
     return formatKeyValueList(u'(', [u'Scope', scope, u'Role', role], u')')
-  else:
-    return formatKeyValueList(u'(', [u'Scope', scope], u')')
+  return formatKeyValueList(u'(', [u'Scope', scope], u')')
 
 def normalizeRuleId(ruleId):
   ruleIdParts = ruleId.split(u':')
@@ -19167,8 +19149,8 @@ def getACLRoles(aclRolesMap):
   roles = []
   for role in getString(Cmd.OB_ROLE_LIST, minLen=0).strip().lower().replace(u',', u' ').split():
     if role == u'all':
-      for role in aclRolesMap:
-        roles.append(aclRolesMap[role])
+      for arole in aclRolesMap:
+        roles.append(aclRolesMap[arole])
     elif role in aclRolesMap:
       roles.append(aclRolesMap[role])
     else:
@@ -22957,8 +22939,7 @@ def getGuardianEntity():
   guardians = getEntityList(Cmd.OB_GUARDIAN_ENTITY)
   if isinstance(guardians, dict):
     return (guardians, guardians)
-  else:
-    return ([normalizeEmailAddressOrUID(guardian) for guardian in guardians], None)
+  return ([normalizeEmailAddressOrUID(guardian) for guardian in guardians], None)
 
 def getGuardianEmails(user, guardianEntity, guardianEntityList):
   studentId = normalizeStudentGuardianEmailAddressOrUID(user)
@@ -22972,8 +22953,7 @@ def getGuardianInvitationEntity():
   invitations = getEntityList(Cmd.OB_GUARDIAN_INVITATION_ID_ENTITY)
   if isinstance(invitations, dict):
     return (invitations, invitations)
-  else:
-    return (invitations, None)
+  return (invitations, None)
 
 def getGuardianInvitationIds(user, invitationEntity, invitationEntityList):
   studentId = normalizeStudentGuardianEmailAddressOrUID(user)
@@ -23518,20 +23498,17 @@ def _getClassroomInvitations(croom, userId, courseId, role, i, count, j=0, jcoun
     if userId is not None:
       entityUnknownWarning(Ent.USER, userId, i, count)
       return (-1, None)
-    else:
-      entityUnknownWarning(Ent.COURSE, courseId, j, jcount)
-      return (0, [])
+    entityUnknownWarning(Ent.COURSE, courseId, j, jcount)
+    return (0, [])
   except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied) as e:
     if userId is not None:
       entityActionFailedWarning([Ent.USER, userId], str(e), i, count)
       return (-1, None)
-    else:
-      entityActionFailedWarning([Ent.COURSE, courseId], str(e), j, jcount)
-      return (0, [])
+    entityActionFailedWarning([Ent.COURSE, courseId], str(e), j, jcount)
+    return (0, [])
   if role == CLASSROOM_ROLE_ALL:
     return (1, invitations)
-  else:
-    return (1, [invitation for invitation in invitations if invitation[u'role'] == role])
+  return (1, [invitation for invitation in invitations if invitation[u'role'] == role])
 
 def _getClassroomInvitationIds(croom, userId, courseIds, role, i, count):
   invitationIds = []
@@ -27362,8 +27339,7 @@ def _selectRevisionIds(drive, fileId, origUser, user, i, count, j, jcount, revis
   if revisionsEntity[u'dict']:
     if not GM.Globals[GM.CSV_SUBKEY_FIELD]:
       return revisionsEntity[u'dict'][fileId]
-    else:
-      return revisionsEntity[u'dict'][origUser][fileId]
+    return revisionsEntity[u'dict'][origUser][fileId]
   try:
     results = callGAPIpages(drive.revisions(), u'list', VX_PAGES_REVISIONS,
                             throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.REVISIONS_NOT_SUPPORTED],
@@ -28313,7 +28289,6 @@ def showFilePaths(users):
 def _printShowFileCounts(users, csvFormat):
   if csvFormat:
     todrive = {}
-    titles, csvRows = initializeTitlesCSVfile([u'User', u'Total'])
   fieldsList = [u'mimeType',]
   onlyTeamDrives = False
   query = ME_IN_OWNERS
@@ -28369,6 +28344,9 @@ def _printShowFileCounts(users, csvFormat):
       unknownArgumentExit()
   if fileIdEntity.get(u'teamdrive'):
     query = _updateAnyOwnerQuery(query)
+  if csvFormat:
+    sortTitles = [u'User', u'id', u'Total'] if fileIdEntity.get(u'teamdrive') else [u'User', u'Total']
+    titles, csvRows = initializeTitlesCSVfile(sortTitles)
   query = _mapDrive2QueryToDrive3(query)
   pagesfields = VX_NPT_FILES_FIELDLIST.format(u','.join(fieldsList))
   i, count, users = getEntityArgument(users)
@@ -28377,6 +28355,7 @@ def _printShowFileCounts(users, csvFormat):
     user, drive = _validateUserTeamDrive(user, i, count, fileIdEntity)
     if not drive:
       continue
+    teamDriveId = fileIdEntity.get(u'teamdrive', {}).get(u'teamDriveId', None)
     total = 0
     mimeTypeCounts = {}
     printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=query)
@@ -28387,7 +28366,7 @@ def _printShowFileCounts(users, csvFormat):
                            q=query, fields=pagesfields,
                            pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **fileIdEntity[u'teamdrive'])
     except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, fileIdEntity[u'teamdrive'][u'teamDriveId']], str(e), i, count)
+      entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
       continue
     except (GAPI.invalidQuery, GAPI.invalid):
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, None], invalidQuery(query), i, count)
@@ -28402,17 +28381,22 @@ def _printShowFileCounts(users, csvFormat):
         mimeTypeCounts.setdefault(f_file[u'mimeType'], 0)
         mimeTypeCounts[f_file[u'mimeType']] += 1
     if not csvFormat:
-      printEntityKVList([Ent.USER, user], [Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, total), total], i, count)
+      if teamDriveId:
+        printEntityKVList([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], [Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, total), total], i, count)
+      else:
+        printEntityKVList([Ent.USER, user], [Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, total), total], i, count)
       Ind.Increment()
       for mimeType, mimeTypeCount in sorted(iteritems(mimeTypeCounts)):
         printKeyValueList([mimeType, mimeTypeCount])
       Ind.Decrement()
     else:
       row = {u'User': user, u'Total': total}
+      if teamDriveId:
+        row[u'id'] = teamDriveId
       row.update(mimeTypeCounts)
       addRowTitlesToCSVfile(row, csvRows, titles)
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'Drive File Counts', todrive, [u'User', u'Total'])
+    writeCSVfile(csvRows, titles, u'Drive File Counts', todrive, sortTitles)
 
 # gam <UserTypeEntity> print filecounts [todrive <ToDriveAttributes>*] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
 #	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>] [showmimetype [not] <MimeTypeList>]
@@ -28942,8 +28926,7 @@ def _getUniqueFilename(destFilename, mimeType, targetChildren):
         n = v
   if ext is not None:
     return u'{0}({1}).{2}'.format(base, n+1, ext)
-  else:
-    return u'{0}({1})'.format(base, n+1)
+  return u'{0}({1})'.format(base, n+1)
 
 def _copyPermissions(drive, user, i, count, j, jcount, entityType, fileId, fileTitle, newFileId, newFileTitle, statistics, stat, destTeamDriveId):
   try:
@@ -29952,10 +29935,9 @@ def transferDrive(users):
                              fields=VX_NPT_FILES_ID)
       if len(result) > 0:
         return result[0][u'id']
-      else:
-        return callGAPI(targetDrive.files(), u'create',
-                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                        body={u'parents': [folderParentId], VX_FILENAME: folderName, u'mimeType': MIMETYPE_GA_FOLDER}, fields=u'id')[u'id']
+      return callGAPI(targetDrive.files(), u'create',
+                      throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                      body={u'parents': [folderParentId], VX_FILENAME: folderName, u'mimeType': MIMETYPE_GA_FOLDER}, fields=u'id')[u'id']
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(targetUser, str(e))
     return None
@@ -30777,7 +30759,7 @@ def claimOwnership(users):
         if childEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER:
           _identifyChildrenToClaim(childEntryInfo, skipIds, user, i, count)
 
-  def _processRetainedRole(user, i, count, oldOwner, entityType, fileDesc, l, lcount):
+  def _processRetainedRole(user, i, count, oldOwner, entityType, ofileId, fileDesc, l, lcount):
     oldOwnerPermissionId = oldOwnerPermissionIds[oldOwner]
     Act.Set(Act.RETAIN)
     try:
@@ -30785,11 +30767,11 @@ def claimOwnership(users):
         if sourceRetainRoleBody[u'role'] != u'writer':
           callGAPI(sourceDrive.permissions(), u'update',
                    throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
-                   fileId=fileId, permissionId=oldOwnerPermissionId, body=sourceRetainRoleBody, fields=u'')
+                   fileId=ofileId, permissionId=oldOwnerPermissionId, body=sourceRetainRoleBody, fields=u'')
       else:
         callGAPI(sourceDrive.permissions(), u'delete',
                  throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
-                 fileId=fileId, permissionId=oldOwnerPermissionId)
+                 fileId=ofileId, permissionId=oldOwnerPermissionId)
       if showRetentionMessages:
         entityActionPerformed([Ent.USER, oldOwner, entityType, fileDesc, Ent.ROLE, sourceRetainRoleBody[u'role']], l, lcount)
     except GAPI.permissionNotFound:
@@ -30951,30 +30933,30 @@ def claimOwnership(users):
                                               u'{0} {1}: {2}'.format(Act.MODIFIER_FROM, Ent.Singular(Ent.USER), oldOwner), k, kcount)
           Ind.Increment()
           l = 0
-          for fileId, fileInfo in iteritems(filesToClaim[oldOwner]):
+          for ofileId, fileInfo in iteritems(filesToClaim[oldOwner]):
             l += 1
             if bodyShare:
               callGAPI(sourceDrive.files(), u'update',
-                       fileId=fileId, body=bodyShare, fields=u'')
+                       fileId=ofileId, body=bodyShare, fields=u'')
             entityType = fileInfo[u'type']
-            fileDesc = u'{0} ({1})'.format(fileInfo[VX_FILENAME], fileId)
+            fileDesc = u'{0} ({1})'.format(fileInfo[VX_FILENAME], ofileId)
             try:
               callGAPI(sourceDrive.permissions(), u'update',
                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND, GAPI.PERMISSION_NOT_FOUND, GAPI.FORBIDDEN],
-                       fileId=fileId, permissionId=permissionId, transferOwnership=True, body=body, fields=u'')
+                       fileId=ofileId, permissionId=permissionId, transferOwnership=True, body=body, fields=u'')
               entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, entityType, fileDesc], Act.MODIFIER_FROM, None, [Ent.USER, oldOwner], l, lcount)
-              _processRetainedRole(user, i, count, oldOwner, entityType, fileDesc, l, lcount)
+              _processRetainedRole(user, i, count, oldOwner, entityType, ofileId, fileDesc, l, lcount)
             except GAPI.permissionNotFound:
               # if claimer not in ACL (file might be visible for all with link)
               try:
                 callGAPI(sourceDrive.permissions(), u'create',
                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST, GAPI.FILE_NOT_FOUND, GAPI.FORBIDDEN],
-                         fileId=fileId, sendNotificationEmail=False, body=bodyAdd, fields=u'')
+                         fileId=ofileId, sendNotificationEmail=False, body=bodyAdd, fields=u'')
                 callGAPI(sourceDrive.permissions(), u'update',
                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND, GAPI.PERMISSION_NOT_FOUND],
-                         fileId=fileId, permissionId=permissionId, transferOwnership=True, body=body, fields=u'')
+                         fileId=ofileId, permissionId=permissionId, transferOwnership=True, body=body, fields=u'')
                 entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, entityType, fileDesc], Act.MODIFIER_FROM, None, [Ent.USER, oldOwner], l, lcount)
-                _processRetainedRole(user, i, count, oldOwner, entityType, fileDesc, l, lcount)
+                _processRetainedRole(user, i, count, oldOwner, entityType, ofileId, fileDesc, l, lcount)
               except GAPI.invalidSharingRequest as e:
                 entityActionFailedWarning([Ent.USER, user, entityType, fileDesc], Ent.TypeNameMessage(Ent.PERMISSION_ID, permissionId, str(e)), l, lcount)
               except GAPI.permissionNotFound:
@@ -30998,9 +30980,9 @@ def claimOwnership(users):
                                                       u'{0} {1}: {2}'.format(Act.MODIFIER_FROM, Ent.Singular(Ent.USER), oldOwner), j, jcount)
           Ind.Increment()
           l = 0
-          for fileId, fileInfo in iteritems(filesToClaim[oldOwner]):
+          for ofileId, fileInfo in iteritems(filesToClaim[oldOwner]):
             l += 1
-            entityActionNotPerformedWarning([Ent.USER, user, fileInfo[u'type'], u'{0} ({1})'.format(fileInfo[VX_FILENAME], fileId)],
+            entityActionNotPerformedWarning([Ent.USER, user, fileInfo[u'type'], u'{0} ({1})'.format(fileInfo[VX_FILENAME], ofileId)],
                                             Msg.USER_IN_OTHER_DOMAIN.format(Ent.Singular(Ent.USER), oldOwner), l, lcount)
           Ind.Decrement()
       Ind.Decrement()

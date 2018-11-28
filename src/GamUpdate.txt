@@ -1,3 +1,13 @@
+4.65.14
+
+Code cleanup.
+
+Extended the gam print/show filecounts commands to include the Team Drive ID in the output
+when the select <TeamDriveEntity> option is used. This lets you get file counts for all of
+a user's Team Drives. With that output you can identify empty Team Drives.
+gam redirect csv ./TeamDrives.csv user user@domain.com print teamdrives role organizer fields id,name
+gam redirect csv ./TeamDriveFileCounts.csv multiprocess csv ./TeamDrives.csv gam user ~User print filecounts select teamdriveid ~id
+
 4.65.13
 
 Code cleanup.
