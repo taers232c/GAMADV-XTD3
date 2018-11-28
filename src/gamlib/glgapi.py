@@ -113,6 +113,7 @@ REVISIONS_NOT_SUPPORTED = u'revisionsNotSupported'
 SERVICE_LIMIT = u'serviceLimit'
 SERVICE_NOT_AVAILABLE = u'serviceNotAvailable'
 SYSTEM_ERROR = u'systemError'
+TEAMDRIVE_ALREADY_EXISTS = u'teamDriveAlreadyExists'
 TEAMDRIVE_MEMBERSHIP_REQUIRED = u'teamDriveMembershipRequired'
 TEAMDRIVE_NOT_FOUND = u'teamDriveNotFound'
 TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED = u'teamDrivesFolderMoveInNotSupported'
@@ -393,6 +394,8 @@ class serviceNotAvailable(Exception):
   pass
 class systemError(Exception):
   pass
+class teamDriveAlreadyExists(Exception):
+  pass
 class teamDriveMembershipRequired(Exception):
   pass
 class teamDriveNotFound(Exception):
@@ -509,6 +512,7 @@ REASON_EXCEPTION_MAP = {
   SERVICE_LIMIT: serviceLimit,
   SERVICE_NOT_AVAILABLE: serviceNotAvailable,
   SYSTEM_ERROR: systemError,
+  TEAMDRIVE_ALREADY_EXISTS: teamDriveAlreadyExists,
   TEAMDRIVE_MEMBERSHIP_REQUIRED: teamDriveMembershipRequired,
   TEAMDRIVE_NOT_FOUND: teamDriveNotFound,
   TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED: teamDrivesFolderMoveInNotSupported,

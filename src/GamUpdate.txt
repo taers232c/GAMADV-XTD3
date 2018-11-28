@@ -1,3 +1,9 @@
+4.65.13
+
+Code cleanup.
+
+Added additional error checking to gam create teamdrive to handle errors when building multiple Team Drives for a user.
+
 4.65.12
 
 Added options to gam transfer calendar that allow updating of calendar settings as part of the transfer.

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.12'
+__version__ = u'4.65.13'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -71,11 +71,7 @@ import uuid
 import webbrowser
 import zipfile
 
-try:
-  import dns.resolver
-  dnsAvailable = True
-except ImportError:
-  dnsAvailable = False
+import dns.resolver
 
 from gamlib import glaction
 from gamlib import glapi as API
@@ -2697,16 +2693,13 @@ def doGAMCheckForUpdates(forceCheck=False):
 
   current_version = __version__
   now_time = int(time.time())
-  if forceCheck:
-    check_url = GAM_ALL_RELEASES # includes pre-releases
-  else:
+  if not forceCheck:
     last_check_time_str = readFile(GM.Globals[GM.LAST_UPDATE_CHECK_TXT], continueOnError=True, displayError=False)
     last_check_time = int(last_check_time_str) if last_check_time_str and last_check_time_str.isdigit() else 0
     if last_check_time > now_time-604800:
       return
-    check_url = GAM_LATEST_RELEASE # latest full release
   try:
-    _, c = getHttpObj().request(check_url, u'GET', headers={u'Accept': u'application/vnd.github.v3.text+json'})
+    _, c = getHttpObj().request(GAM_LATEST_RELEASE, u'GET', headers={u'Accept': u'application/vnd.github.v3.text+json'})
     try:
       release_data = json.loads(c)
     except ValueError:
@@ -2740,10 +2733,10 @@ def doGAMCheckForUpdates(forceCheck=False):
       printLine(Msg.GAM_EXITING_FOR_UPDATE)
       sys.exit(0)
     writeFile(GM.Globals[GM.LAST_UPDATE_CHECK_TXT], str(now_time), continueOnError=True, displayError=forceCheck)
-    return
   except (httplib2.HttpLib2Error, httplib2.ServerNotFoundError,
-          google.auth.exceptions.TransportError):
-    return
+          google.auth.exceptions.TransportError) as e:
+    if forceCheck:
+      systemErrorExit(NETWORK_ERROR_RC, str(e))
 
 def handleOAuthTokenError(e, soft_errors):
   errMsg = str(e)
@@ -21326,8 +21319,6 @@ def doUpdateSiteVerification():
     printKeyValueList([u'Method', verify_data[u'method']])
     printKeyValueList([u'Token', verify_data[u'token']])
     if verify_data[u'method'] in [u'DNS_CNAME', u'DNS_TXT']:
-      if not dnsAvailable:
-        systemErrorExit(NETWORK_ERROR_RC, Msg.NO_DNS_CAPABILITY_AVAILABLE)
       resolver = dns.resolver.Resolver()
       resolver.nameservers = [u'8.8.8.8', u'8.8.4.4']
       if verify_data[u'method'] == u'DNS_CNAME':
@@ -32110,28 +32101,46 @@ def createTeamDrive(users):
     user, drive = buildGAPIServiceObject(API.DRIVE3, user, i, count)
     if not drive:
       continue
-    try:
-      Act.Set(Act.CREATE)
-      teamdrive = callGAPI(drive.teamdrives(), u'create',
-                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.DUPLICATE, GAPI.BAD_REQUEST],
-                           requestId=requestId, body=body, fields=u'id')
-      teamDriveId = teamdrive[u'id']
-      entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
-      if updateBody:
-        try:
-          Act.Set(Act.UPDATE)
-          callGAPI(drive.teamdrives(), u'update',
-                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
-                   teamDriveId=teamDriveId, body=updateBody)
-          entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
-        except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.forbidden, GAPI.badRequest) as e:
-          entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
-    except GAPI.duplicate:
-      entityActionFailedWarning([Ent.USER, user, Ent.REQUEST_ID, requestId], Msg.DUPLICATE, i, count)
-    except (GAPI.badRequest) as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.REQUEST_ID, requestId], str(e), i, count)
-    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+    doUpdate = False
+    Act.Set(Act.CREATE)
+    retry = 0
+    while True:
+      try:
+        teamdrive = callGAPI(drive.teamdrives(), u'create',
+                             bailOnTransientError=True,
+                             throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TRANSIENT_ERROR, GAPI.TEAMDRIVE_ALREADY_EXISTS,
+                                                                          GAPI.DUPLICATE, GAPI.BAD_REQUEST],
+                             requestId=requestId, body=body, fields=u'id')
+        teamDriveId = teamdrive[u'id']
+        entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
+        doUpdate = True
+        break
+      except (GAPI.transientError, GAPI.teamDriveAlreadyExists) as e:
+        retry += 1
+        if retry > 3:
+          entityActionFailedWarning([Ent.USER, user, Ent.REQUEST_ID, requestId], str(e), i, count)
+          break
+        requestId = text_type(uuid.uuid4())
+      except GAPI.duplicate:
+        entityActionFailedWarning([Ent.USER, user, Ent.REQUEST_ID, requestId], Msg.DUPLICATE, i, count)
+        break
+      except (GAPI.badRequest) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.REQUEST_ID, requestId], str(e), i, count)
+        break
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+        break
+    if doUpdate and updateBody:
+      Act.Set(Act.UPDATE)
+      try:
+        callGAPI(drive.teamdrives(), u'update',
+                 throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                 teamDriveId=teamDriveId, body=updateBody)
+        entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
+      except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.forbidden, GAPI.badRequest) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
 
 # gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>] [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 def updateTeamDrive(users):
