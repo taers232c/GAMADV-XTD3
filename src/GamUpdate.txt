@@ -1,3 +1,7 @@
+4.65.15
+
+Handle additional ownership change error in gam transfer drive.
+
 4.65.14
 
 Code cleanup.
