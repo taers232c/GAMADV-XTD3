@@ -1,3 +1,8 @@
+4.65.16
+
+Further extended the gam print/show filecounts commands to include the Team Drive name in the output in addition to the
+Team Drive ID when the select <TeamDriveEntity> option is used.
+
 4.65.15
 
 Handle additional ownership change error in gam transfer drive.

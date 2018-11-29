@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.15'
+__version__ = u'4.65.16'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -28345,7 +28345,7 @@ def _printShowFileCounts(users, csvFormat):
   if fileIdEntity.get(u'teamdrive'):
     query = _updateAnyOwnerQuery(query)
   if csvFormat:
-    sortTitles = [u'User', u'id', u'Total'] if fileIdEntity.get(u'teamdrive') else [u'User', u'Total']
+    sortTitles = [u'User', u'id', u'name', u'Total'] if fileIdEntity.get(u'teamdrive') else [u'User', u'Total']
     titles, csvRows = initializeTitlesCSVfile(sortTitles)
   query = _mapDrive2QueryToDrive3(query)
   pagesfields = VX_NPT_FILES_FIELDLIST.format(u','.join(fieldsList))
@@ -28356,6 +28356,8 @@ def _printShowFileCounts(users, csvFormat):
     if not drive:
       continue
     teamDriveId = fileIdEntity.get(u'teamdrive', {}).get(u'teamDriveId', None)
+    if teamDriveId:
+      teamDriveName = _getTeamDriveNameFromId(drive, teamDriveId)
     total = 0
     mimeTypeCounts = {}
     printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=query)
@@ -28382,7 +28384,7 @@ def _printShowFileCounts(users, csvFormat):
         mimeTypeCounts[f_file[u'mimeType']] += 1
     if not csvFormat:
       if teamDriveId:
-        printEntityKVList([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], [Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, total), total], i, count)
+        printEntityKVList([Ent.USER, user, Ent.TEAMDRIVE, u'{0} ({1})'.format(teamDriveName, teamDriveId)], [Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, total), total], i, count)
       else:
         printEntityKVList([Ent.USER, user], [Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, total), total], i, count)
       Ind.Increment()
@@ -28390,9 +28392,10 @@ def _printShowFileCounts(users, csvFormat):
         printKeyValueList([mimeType, mimeTypeCount])
       Ind.Decrement()
     else:
-      row = {u'User': user, u'Total': total}
       if teamDriveId:
-        row[u'id'] = teamDriveId
+        row = {u'User': user, u'id': teamDriveId, u'name': teamDriveName, u'Total': total}
+      else:
+        row = {u'User': user, u'Total': total}
       row.update(mimeTypeCounts)
       addRowTitlesToCSVfile(row, csvRows, titles)
   if csvFormat:
