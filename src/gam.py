@@ -36896,35 +36896,6 @@ def printVacation(users):
 def showVacation(users):
   _printShowVacation(users, False)
 
-# gam <UserTypeEntity> language clear|<LanguageList>
-def setLanguage(users):
-  cd = buildGAPIObject(API.DIRECTORY)
-  languages = getString(Cmd.OB_LANGUAGE_LIST)
-  if languages.lower() == u'clear':
-    body = {u'languages': None}
-  else:
-    body = {u'languages': []}
-    for language in languages.replace(u',', u' ').split():
-      if language.lower() in LANGUAGE_CODES_MAP:
-        body[u'languages'].append({u'languageCode': LANGUAGE_CODES_MAP[language.lower()]})
-      else:
-        body[u'languages'].append({u'customLanguage': language})
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user = userKey = normalizeEmailAddressOrUID(user)
-    try:
-      callGAPI(cd.users(), u'update',
-               throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN,
-                              GAPI.INVALID, GAPI.INVALID_INPUT],
-               userKey=userKey, body=body, fields='languages')
-      printEntity([Ent.USER, user, Ent.LANGUAGE, languages], i, count)
-    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.forbidden):
-      entityUnknownWarning(Ent.USER, user, i, count)
-    except (GAPI.invalid, GAPI.invalidInput) as e:
-      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
-
 # Process Email Settings
 def _processEmailSettings(users, function, entityType, entityValue, **kwargs):
   emailSettings = getEmailSettingsObject()
@@ -36950,6 +36921,11 @@ def _processEmailSettings(users, function, entityType, entityValue, **kwargs):
 def setArrows(users):
   enable = getBoolean(None)
   _processEmailSettings(users, u'UpdateGeneral', Ent.ARROWS_ENABLED, u'arrows', arrows=enable)
+
+# gam <UserTypeEntity> language <Language>
+def setLanguage(users):
+  language = getChoice(LANGUAGE_CODES_MAP, mapChoice=True)
+  _processEmailSettings(users, u'UpdateLanguage', Ent.LANGUAGE, u'language', language=language)
 
 # gam <UserTypeEntity> pagesize 25|50|100
 def setPageSize(users):

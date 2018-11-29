@@ -3070,6 +3070,8 @@ gam <UserTypeEntity> show imap|imap4
 gam <UserTypeEntity> pop|pop3 <Boolean> [for allmail|newmail|mailfromnowon|fromnowown] [action keep|leaveininbox|archive|delete|trash|markread]
 gam <UserTypeEntity> show pop|pop3
 
+gam <UserTypeEntity> language <Language>
+
 # These commands will be deprecated on October 16, 2019.
 gam <UserTypeEntity> arrows <Boolean>
 gam <UserTypeEntity> pagesize 25|50|100
