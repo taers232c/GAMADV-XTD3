@@ -27980,7 +27980,7 @@ def printFileList(users):
         skipObjects.add(VX_FILENAME)
         fieldsList.append(VX_FILENAME)
     if permissionMatches:
-      fieldsList.append(u'permisions')
+      fieldsList.append(u'permissions')
     if onlyTeamDrives or getPermissionsForTeamDrives:
       if u'teamDriveId' not in fieldsList:
         skipObjects.add(u'teamDriveId')
