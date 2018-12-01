@@ -253,6 +253,8 @@ If an item contains spaces, it should be surrounded by ".
 <ToDriveAttribute> ::=
         (tduser <EmailAddress>)|
         (tdtitle <String>)|
+        (tddescription <String>)|
+        (tdsheet <String>)|
         (tdparent id:<DriveFolderID>|<DriveFolderName>)|(tdfileid <DriveFileID>)
         (tdtimestamp [<Boolean>] [tddaysoffset <Number>] [tdhoursoffset <Number])|
         (tdlocalcopy [<Boolean>])|
@@ -2315,7 +2317,7 @@ gam <UserTypeEntity> delete calendars <UserCalendarEntity>
 gam <UserTypeEntity> info calendars <UserCalendarEntity> [formatjson]
 gam <UserTypeEntity> show calendars <UserCalendarEntity> [permissions] [formatjson]
 gam <UserTypeEntity> print calendars <UserCalendarEntity> [todrive <ToDriveAttribute>*] [permissions]
-         [formatjson] [quotechar <Character>]
+         [formatjson] [delimiter <Character>] [quotechar <Character>]
 
 gam <UserTypeEntity> show calsettings [formatjson]
 gam <UserTypeEntity> print calsettings [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
@@ -2793,20 +2795,35 @@ gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (ord
         writerscanshare
 <DriveFieldNameList> ::= "<DriveFieldName>(,<DriveFieldName>)*"
 
+<PermissionMatch> ::=
+        permissionmatch
+            [type anyone|user|group|domain] [role <DriveFileACLRole>] [allowfilediscovery|withlink <Boolean>]
+            [emailaddress <RegularExpression>] [domain <RegularExpression>] [name|displayname <String>]
+            [expirationstart <Time>] [expirationend <Time>]
+            [deleted <Boolean>]
+        endmatch
+<PermissionMatchMode> ::=
+        permissionmatchmode or|and
+<PermissionMatchAction> ::=
+        permissionmatchaction process|skip
+
 gam <UserTypeEntity> show fileinfo <DriveFileEntity> [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> show filepath <DriveFileEntity> (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> print filepath <DriveFileEntity> [todrive <ToDriveAttribute>*] [oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> show filecounts [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
         [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
         [select <TeamDriveEntity>] [showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
+        (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
 gam <UserTypeEntity> print filecounts [todrive <ToDriveAttribute>*] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
         [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
         [select <TeamDriveEntity>] [showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
+        (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
 
 gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*] [anyowner|(showownedby any|me|others)]
         [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) |
           (select <DriveFileEntityListTree> [selectsubquery <QueryDriveFile>] [depth <Number>] [showparent])]
         [showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
+        (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
         [filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [quotechar <Character>]
 
 <FileTreeFieldName> ::=
