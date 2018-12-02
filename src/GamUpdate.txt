@@ -1,3 +1,8 @@
+4.65.19
+
+Added abbreviations for the permission match keywords.
+See: https://github.com/taers232c/GAMADV-X/wiki/Users-Drive-Files#permission-matches
+
 4.65.18
 
 Added tddescription <String> and tdsheet <String> to <ToDriveAttribute> to allow setting an uploaded

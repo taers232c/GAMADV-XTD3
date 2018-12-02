@@ -2796,16 +2796,16 @@ gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (ord
 <DriveFieldNameList> ::= "<DriveFieldName>(,<DriveFieldName>)*"
 
 <PermissionMatch> ::=
-        permissionmatch
+        permissionmatch|pm
             [type anyone|user|group|domain] [role <DriveFileACLRole>] [allowfilediscovery|withlink <Boolean>]
             [emailaddress <RegularExpression>] [domain <RegularExpression>] [name|displayname <String>]
             [expirationstart <Time>] [expirationend <Time>]
             [deleted <Boolean>]
-        endmatch
+        endmatch|em
 <PermissionMatchMode> ::=
-        permissionmatchmode or|and
+        permissionmatchmode|pmm or|and
 <PermissionMatchAction> ::=
-        permissionmatchaction process|skip
+        permissionmatchaction|pma process|skip
 
 gam <UserTypeEntity> show fileinfo <DriveFileEntity> [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> show filepath <DriveFileEntity> (orderby <DriveFileOrderByFieldName> [ascending|descending])*

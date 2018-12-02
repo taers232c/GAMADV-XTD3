@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.18'
+__version__ = u'4.65.19'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -27900,7 +27900,7 @@ def _getPermissionMatch(permissionMatches):
     elif myarg == u'deleted':
       deletedLocation = Cmd.Location()
       body[u'deleted'] = getBoolean()
-    elif myarg == u'endmatch':
+    elif myarg in [u'em', u'endmatch']:
       break
     else:
       unknownArgumentExit()
@@ -28141,11 +28141,11 @@ def printFileList(users):
       getMimeTypeCheck(mimeTypeCheck)
     elif myarg == u'filenamematchpattern':
       filenameMatchPattern = getREPattern(re.IGNORECASE)
-    elif myarg == u'permissionmatch':
+    elif myarg in [u'pm',  u'permissionmatch']:
       _getPermissionMatch(permissionMatches)
-    elif myarg == u'permissionmatchaction':
+    elif myarg in [u'pma', u'permissionmatchaction']:
       permissionMatchKeep = getChoice(PERMISSION_MATCH_ACTION_MAP, mapChoice=True)
-    elif myarg == u'permissionmatchmode':
+    elif myarg in [u'pmm', u'permissionmatchmode']:
       permissionMatchOr = getChoice(PERMISSION_MATCH_MODE_MAP, mapChoice=True)
     elif myarg == u'delimiter':
       delimiter = getCharacter()
@@ -28433,12 +28433,12 @@ def _printShowFileCounts(users, csvFormat):
     elif myarg == u'filenamematchpattern':
       filenameMatchPattern = getREPattern(re.IGNORECASE)
       fieldsList.append(VX_FILENAME)
-    elif myarg == u'permissionmatch':
+    elif myarg in [u'pm',  u'permissionmatch']:
       _getPermissionMatch(permissionMatches)
       fieldsList.extend([u'id', u'permissions'])
-    elif myarg == u'permissionmatchaction':
+    elif myarg in [u'pma', u'permissionmatchaction']:
       permissionMatchKeep = getChoice(PERMISSION_MATCH_ACTION_MAP, mapChoice=True)
-    elif myarg == u'permissionmatchmode':
+    elif myarg in [u'pmm', u'permissionmatchmode']:
       permissionMatchOr = getChoice(PERMISSION_MATCH_MODE_MAP, mapChoice=True)
     elif myarg == u'query':
       if query:
