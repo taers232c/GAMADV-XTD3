@@ -1,3 +1,7 @@
+4.65.20
+
+Handle additional ownership change error in gam transfer drive.
+
 4.65.19
 
 Added abbreviations for the permission match keywords.

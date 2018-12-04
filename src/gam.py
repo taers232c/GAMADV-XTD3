@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.19'
+__version__ = u'4.65.20'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -165,9 +165,7 @@ GAM_INFO = u'GAM {0} - {1} / {2} / Python {3}.{4}.{5} {6} / {7} {8} /'.format(__
                                                                               platform.platform(), platform.machine())
 GAM_RELEASES = u'https://github.com/{0}/{1}/releases'.format(GIT_USER, GAM)
 GAM_WIKI = u'https://github.com/{0}/{1}/wiki'.format(GIT_USER, u'GAMADV-XTD')
-GAM_ALL_RELEASES = u'https://api.github.com/repos/{0}/{1}/releases'.format(GIT_USER, GAM)
-GAM_LATEST_RELEASE = GAM_ALL_RELEASES+u'/latest'
-GAM_LATEST_SOURCE = u'https://raw.githubusercontent.com/{0}/{1}/master/src'.format(GIT_USER, GAM)
+GAM_LATEST_RELEASE = u'https://api.github.com/repos/{0}/{1}/releases/latest'.format(GIT_USER, GAM)
 
 TRUE = u'true'
 FALSE = u'false'
@@ -28141,7 +28139,7 @@ def printFileList(users):
       getMimeTypeCheck(mimeTypeCheck)
     elif myarg == u'filenamematchpattern':
       filenameMatchPattern = getREPattern(re.IGNORECASE)
-    elif myarg in [u'pm',  u'permissionmatch']:
+    elif myarg in [u'pm', u'permissionmatch']:
       _getPermissionMatch(permissionMatches)
     elif myarg in [u'pma', u'permissionmatchaction']:
       permissionMatchKeep = getChoice(PERMISSION_MATCH_ACTION_MAP, mapChoice=True)
@@ -28433,7 +28431,7 @@ def _printShowFileCounts(users, csvFormat):
     elif myarg == u'filenamematchpattern':
       filenameMatchPattern = getREPattern(re.IGNORECASE)
       fieldsList.append(VX_FILENAME)
-    elif myarg in [u'pm',  u'permissionmatch']:
+    elif myarg in [u'pm', u'permissionmatch']:
       _getPermissionMatch(permissionMatches)
       fieldsList.extend([u'id', u'permissions'])
     elif myarg in [u'pma', u'permissionmatchaction']:
@@ -30291,6 +30289,11 @@ def transferDrive(users):
         sourceUpdateRole = childEntryInfo[u'sourcePermission']
       else:
         sourceUpdateRole = nonOwnerRetainRoleBody
+      if u'targetPermission' not in childEntryInfo:
+        childEntryInfo[u'targetPermission'] = {u'role': u'current'}
+        errorTargetRole = True
+      else:
+        errorTargetRole = False
       if nonOwnerTargetRoleBody[u'role'] == u'current':
         targetInsertBody = _setTargetInsertBody(childEntryInfo[u'targetPermission'])
         resetTargetRole = False
@@ -30300,10 +30303,11 @@ def transferDrive(users):
       else:
         targetInsertBody = _setTargetInsertBody(nonOwnerTargetRoleBody)
         resetTargetRole = True
-      if resetTargetRole:
-        resetTargetRole = _checkForDiminishedTargetRole(childEntryInfo[u'targetPermission'], targetInsertBody)
-      elif _getMappedParentForRootParentOrOrphan(childEntryInfo) is not None and childEntryInfo[u'targetPermission'][u'role'] in [u'none', u'reader']:
-        resetTargetRole = True
+      if not errorTargetRole:
+        if resetTargetRole:
+          resetTargetRole = _checkForDiminishedTargetRole(childEntryInfo[u'targetPermission'], targetInsertBody)
+        elif _getMappedParentForRootParentOrOrphan(childEntryInfo) is not None and childEntryInfo[u'targetPermission'][u'role'] in [u'none', u'reader']:
+          resetTargetRole = True
       try:
         if nonOwnerRetainRoleBody[u'role'] != u'none':
           if nonOwnerRetainRoleBody[u'role'] != u'current':
