@@ -1,3 +1,9 @@
+4.65.21
+
+Code cleanup.
+
+Fixed bug due to Google documentation error in gam update drivefile when the viewerscancopycontent/copyrequireswriterpermission/restricted option was specified.
+
 4.65.20
 
 Handle additional ownership change error in gam transfer drive.

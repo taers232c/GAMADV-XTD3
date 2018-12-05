@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.20'
+__version__ = u'4.65.21'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -517,7 +517,7 @@ def formatKeyValueList(prefixStr, kvList, suffixStr):
       val = kvList[i]
       if (val is not None) or (i == l-1):
         msg += u':'
-        if (val is not None) and (not isinstance(val, string_types) or len(val) > 0):
+        if (val is not None) and (not isinstance(val, string_types) or val):
           msg += u' '
           if isinstance(val, simple_types):
             msg += str(val)
@@ -1095,7 +1095,7 @@ def getEmailAddress(noUid=False, minLen=1, optional=False):
     if optional:
       Cmd.Advance()
       return None
-    elif minLen == 0:
+    if minLen == 0:
       Cmd.Advance()
       return u''
   elif optional:
@@ -1288,10 +1288,10 @@ SITENAME_FORMAT_REQUIRED = u'[a-z,0-9,-_]+'
 
 def validateSplitSiteName(fullSite):
   siteParts = fullSite.lower().split(u'/', 1)
-  if (len(siteParts) == 1) or (len(siteParts[1]) == 0):
+  if (len(siteParts) == 1) or not siteParts[1]:
     domain = GC.Values[GC.DOMAIN]
     site = siteParts[0]
-  elif len(siteParts[0]) == 0:
+  elif not siteParts[0]:
     domain = GC.Values[GC.DOMAIN]
     site = siteParts[1]
   else:
@@ -2156,7 +2156,7 @@ def checkAPICallsRate():
   if GM.Globals[GM.RATE_CHECK_COUNT] >= GC.Values[GC.API_CALLS_RATE_LIMIT]:
     current = time.time()
     delta = int(current-GM.Globals[GM.RATE_CHECK_START])
-    if delta >= 0 and delta < 100:
+    if 0 <= delta < 100:
       delta = (100-delta)+3
       error_message = u'API calls per 100 seconds limit {0} exceeded'.format(GC.Values[GC.API_CALLS_RATE_LIMIT])
       writeStderr(u'{0}{1}: Backing off: {2} seconds\n'.format(WARNING_PREFIX, error_message, delta))
@@ -2264,7 +2264,7 @@ def SetGlobalVariables():
 
   def _getCfgCharacter(sectionName, itemName):
     value = codecs.escape_decode(bytes(_stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName)), UTF8))[0].decode(UTF8)
-    if (len(value) == 0) and (itemName == u'csv_output_field_delimiter'):
+    if not value and (itemName == u'csv_output_field_delimiter'):
       return u' '
     if len(value) == 1:
       return value
@@ -2597,7 +2597,7 @@ def SetGlobalVariables():
       ea_config.read(GC.Values[GC.EXTRA_ARGS])
       GM.Globals[GM.EXTRA_ARGS_LIST].extend(ea_config.items(u'extra-args'))
   if prevOauth2serviceJson != GC.Values[GC.OAUTH2SERVICE_JSON]:
-    GM.Globals[GM.OAUTH2SERVICE_JSON_DATA] = None
+    GM.Globals[GM.OAUTH2SERVICE_JSON_DATA] = {}
     GM.Globals[GM.OAUTH2SERVICE_CLIENT_ID] = None
   Cmd.SetEncoding(GM.Globals[GM.SYS_ENCODING])
   GM.Globals[GM.DATETIME_NOW] = datetime.datetime.now(GC.Values[GC.TIMEZONE])
@@ -3534,11 +3534,7 @@ def convertEmailAddressToUID(emailAddressOrUID, cd=None, emailType=u'user', save
 
 # Convert User UID from API call to email address
 def convertUserIDtoEmail(uid, cd=None):
-  if GM.Globals[GM.MAP_USER_ID_TO_NAME] is None:
-    GM.Globals[GM.MAP_USER_ID_TO_NAME] = {}
-    primaryEmail = None
-  else:
-    primaryEmail = GM.Globals[GM.MAP_USER_ID_TO_NAME].get(uid)
+  primaryEmail = GM.Globals[GM.MAP_USER_ID_TO_NAME].get(uid)
   if not primaryEmail:
     if cd is None:
       cd = buildGAPIObject(API.DIRECTORY)
@@ -3573,11 +3569,7 @@ def splitEmailAddressOrUID(emailAddressOrUID):
 
 # Convert Org Unit Id to Org Unit Path
 def convertOrgUnitIDtoPath(orgUnitId, cd):
-  if GM.Globals[GM.MAP_ORGUNIT_ID_TO_NAME] is None:
-    GM.Globals[GM.MAP_ORGUNIT_ID_TO_NAME] = {}
-    orgUnitPath = None
-  else:
-    orgUnitPath = GM.Globals[GM.MAP_ORGUNIT_ID_TO_NAME].get(orgUnitId)
+  orgUnitPath = GM.Globals[GM.MAP_ORGUNIT_ID_TO_NAME].get(orgUnitId)
   if not orgUnitPath:
     if cd is None:
       cd = buildGAPIObject(API.DIRECTORY)
@@ -4260,26 +4252,24 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
                 getUsersToModify(entityType, entityItem, isSuspended=isSuspended, groupMemberType=groupMemberType))
       return (entityClass,
               getUsersToModify(entityType, entityItem))
-    else:
-      GM.Globals[GM.ENTITY_CL_DELAY_START] = Cmd.Location()
-      buildGAPIObject(API.DIRECTORY)
-      if entityClass == Cmd.ENTITY_USERS:
-        if entityType in [Cmd.ENTITY_GROUP_USERS, Cmd.ENTITY_GROUP_USERS_NS, Cmd.ENTITY_GROUP_USERS_SUSP]:
-          # Skip over sub-arguments
-          while Cmd.ArgumentsRemaining():
-            myarg = getArgument()
-            if myarg in GROUP_ROLES_MAP or myarg in [u'primarydomain', u'domains', u'recursive']:
-              pass
-            elif myarg == u'end':
-              break
-            else:
-              Cmd.Backup()
-              missingArgumentExit(u'end')
-        return (entityClass,
-                {u'entityType': entityType, u'entity': entityItem, u'isSuspended': isSuspended, u'groupMemberType': groupMemberType})
-      else:
-        return (entityClass,
-                {u'entityType': entityType, u'entity': entityItem})
+    GM.Globals[GM.ENTITY_CL_DELAY_START] = Cmd.Location()
+    buildGAPIObject(API.DIRECTORY)
+    if entityClass == Cmd.ENTITY_USERS:
+      if entityType in [Cmd.ENTITY_GROUP_USERS, Cmd.ENTITY_GROUP_USERS_NS, Cmd.ENTITY_GROUP_USERS_SUSP]:
+        # Skip over sub-arguments
+        while Cmd.ArgumentsRemaining():
+          myarg = getArgument()
+          if myarg in GROUP_ROLES_MAP or myarg in [u'primarydomain', u'domains', u'recursive']:
+            pass
+          elif myarg == u'end':
+            break
+          else:
+            Cmd.Backup()
+            missingArgumentExit(u'end')
+      return (entityClass,
+              {u'entityType': entityType, u'entity': entityItem, u'isSuspended': isSuspended, u'groupMemberType': groupMemberType})
+    return (entityClass,
+            {u'entityType': entityType, u'entity': entityItem})
   if returnOnError:
     return (None, None)
   invalidChoiceExit(selectorChoices+entityChoices, False)
@@ -5386,7 +5376,7 @@ def doBatch(threadBatch=False):
         writeStderr(u'{0}{1}\n'.format(ERROR_PREFIX, str(e)))
         errors += 1
         continue
-      if len(argv) > 0:
+      if argv:
         cmd = argv[0].strip().lower()
         if (not cmd) or cmd.startswith(u'#') or ((len(argv) == 1) and (cmd not in [Cmd.COMMIT_BATCH_CMD, Cmd.PRINT_CMD])):
           continue
@@ -5718,7 +5708,7 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
       break
   return selectedScopes
 
-class cmd_flags(object):
+class cmd_flags():
   def __init__(self, noLocalWebserver):
     self.short_url = True
     self.noauth_local_webserver = noLocalWebserver
@@ -6370,7 +6360,7 @@ def doReport():
     elif usageReports and myarg == u'fulldatarequired':
       fullDataRequired = []
       fdr = getString(Cmd.OB_FIELD_NAME_LIST, minLen=0).lower()
-      if len(fdr) > 0  and fdr != u'all':
+      if fdr and fdr != u'all':
         for field in fdr.replace(u',', u' ').split():
           if field in REPORT_FULLDATA_APPS:
             fullDataRequired.append(field)
@@ -6852,7 +6842,7 @@ def _getTagReplacementFieldValues(user, i, count, tagReplacements):
               if data.get(u'primary'):
                 break
             else:
-              if len(items) > 0:
+              if items:
                 data = items[0]
               else:
                 data = {}
@@ -6865,7 +6855,7 @@ def _getTagReplacementFieldValues(user, i, count, tagReplacements):
         elif field == u'locations':
           items = results.get(field, [])
           if not tag[u'matchfield']:
-            if len(items) > 0:
+            if items:
               data = items[0]
               data[u'buildingName'] = GM.Globals[GM.MAP_BUILDING_ID_TO_NAME].get(data.get(u'buildingId', u''), u'')
             else:
@@ -7906,7 +7896,8 @@ def doPrintAdminRoles():
 def doShowAdminRoles():
   _doPrintShowAdminRoles(False)
 
-def buildRoleIdToNameToIdMap():
+def makeRoleIdNameMap():
+  GM.Globals[GM.MAKE_ROLE_ID_NAME_MAP] = False
   cd = buildGAPIObject(API.DIRECTORY)
   try:
     result = callGAPIpages(cd.roles(), u'list', u'items',
@@ -7916,20 +7907,18 @@ def buildRoleIdToNameToIdMap():
                            maxResults=100)
   except (GAPI.badRequest, GAPI.customerNotFound, GAPI.forbidden):
     accessErrorExit(cd)
-  GM.Globals[GM.MAP_ROLE_ID_TO_NAME] = {}
-  GM.Globals[GM.MAP_ROLE_NAME_TO_ID] = {}
   for role in result:
     GM.Globals[GM.MAP_ROLE_ID_TO_NAME][role[u'roleId']] = role[u'roleName']
     GM.Globals[GM.MAP_ROLE_NAME_TO_ID][role[u'roleName']] = role[u'roleId']
 
 def role_from_roleid(roleid):
-  if not GM.Globals[GM.MAP_ROLE_ID_TO_NAME]:
-    buildRoleIdToNameToIdMap()
+  if GM.Globals[GM.MAKE_ROLE_ID_NAME_MAP]:
+    makeRoleIdNameMap()
   return GM.Globals[GM.MAP_ROLE_ID_TO_NAME].get(roleid, roleid)
 
 def roleid_from_role(role):
-  if not GM.Globals[GM.MAP_ROLE_NAME_TO_ID]:
-    buildRoleIdToNameToIdMap()
+  if GM.Globals[GM.MAKE_ROLE_ID_NAME_MAP]:
+    makeRoleIdNameMap()
   return GM.Globals[GM.MAP_ROLE_NAME_TO_ID].get(role, None)
 
 def getRoleId():
@@ -9603,7 +9592,7 @@ CONTACT_GROUP_ID = u'ContactGroupID'
 CONTACT_GROUP_UPDATED = u'Updated'
 CONTACT_GROUP_NAME = u'ContactGroupName'
 #
-class ContactsManager(object):
+class ContactsManager():
   CONTACT_ARGUMENT_TO_PROPERTY_MAP = {
     u'json': CONTACT_JSON,
     u'name': CONTACT_NAME,
@@ -12564,7 +12553,7 @@ def doPrintCrOSDevices(entityList=None):
     sortRows = True
     if len(fieldsList) > 1:
       jcount = len(entityList)
-      if minimizeQuotaCount > 0 and jcount >= minimizeQuotaCount:
+      if 0 < minimizeQuotaCount <= jcount:
         minimizeQuota = True
       elif minimizeQuotaPct > 0:
         numCrOSDevices = _getNumCrOSDevices()
@@ -12797,7 +12786,7 @@ def doPrintCrOSActivity(entityList=None):
   else:
     sortRows = True
     jcount = len(entityList)
-    if minimizeQuotaCount > 0 and jcount >= minimizeQuotaCount:
+    if 0 < minimizeQuotaCount <= jcount:
       minimizeQuota = True
     elif minimizeQuotaPct > 0:
       numCrOSDevices = _getNumCrOSDevices()
@@ -15294,7 +15283,7 @@ def formatACLScopeRole(scope, role):
 
 def normalizeRuleId(ruleId):
   ruleIdParts = ruleId.split(u':')
-  if (len(ruleIdParts) == 1) or (len(ruleIdParts[1]) == 0):
+  if (len(ruleIdParts) == 1) or not ruleIdParts[1]:
     if ruleIdParts[0] == u'default':
       return ruleId
     if ruleIdParts[0] == u'domain':
@@ -15338,7 +15327,7 @@ def _getBuildingAttributes(body):
 # gam create|add building <Name> <BuildingAttributes>*
 def doCreateBuilding():
   cd = buildGAPIObject(API.DIRECTORY)
-  body = _getBuildingAttributes({u'buildingId': unicode(uuid.uuid4()),
+  body = _getBuildingAttributes({u'buildingId': uuid.uuid4(),
                                  u'buildingName': getString(Cmd.OB_NAME, maxLen=100),
                                  u'floorNames': [u'1',]})
   try:
@@ -15354,6 +15343,7 @@ def doCreateBuilding():
     accessErrorExit(cd)
 
 def _makeBuildingIdNameMap(cd=None):
+  GM.Globals[GM.MAKE_BUILDING_ID_NAME_MAP] = False
   if cd is None:
     cd = buildGAPIObject(API.DIRECTORY)
   try:
@@ -15363,8 +15353,6 @@ def _makeBuildingIdNameMap(cd=None):
                               fields=u'nextPageToken,buildings(buildingId,buildingName)')
   except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
     accessErrorExit(cd)
-  GM.Globals[GM.MAP_BUILDING_ID_TO_NAME] = {}
-  GM.Globals[GM.MAP_BUILDING_NAME_TO_ID] = {}
   for building in buildings:
     GM.Globals[GM.MAP_BUILDING_ID_TO_NAME][building[u'buildingId']] = building[u'buildingName']
     GM.Globals[GM.MAP_BUILDING_NAME_TO_ID][building[u'buildingName']] = building[u'buildingId']
@@ -15376,7 +15364,7 @@ def _getBuildingByNameOrId(cd, minLen=1):
   cg = UID_PATTERN.match(which_building)
   if cg:
     return cg.group(1)
-  if GM.Globals[GM.MAP_BUILDING_NAME_TO_ID] is None:
+  if GM.Globals[GM.MAKE_BUILDING_ID_NAME_MAP]:
     _makeBuildingIdNameMap(cd)
 # Exact name match, return ID
   if which_building in GM.Globals[GM.MAP_BUILDING_NAME_TO_ID]:
@@ -15412,7 +15400,7 @@ def _getBuildingByNameOrId(cd, minLen=1):
   entityDoesNotExistExit(Ent.BUILDING, which_building)
 
 def _getBuildingNameById(cd, buildingId):
-  if GM.Globals[GM.MAP_BUILDING_ID_TO_NAME]is None:
+  if GM.Globals[GM.MAKE_BUILDING_ID_NAME_MAP]:
     _makeBuildingIdNameMap(cd)
   return GM.Globals[GM.MAP_BUILDING_ID_TO_NAME].get(buildingId, u'UNKNOWN')
 
@@ -17773,7 +17761,7 @@ def convertMatterNameToID(v, nameOrId):
       states.append(matter[u'state'])
   if len(ids) == 1:
     return (ids[0], nameOrId, formatVaultNameId(nameOrId, ids[0]), states[0])
-  if len(ids) == 0:
+  if not ids:
     entityDoesNotExistExit(Ent.VAULT_MATTER, nameOrId)
   else:
     entityIsNotUniqueExit(Ent.VAULT_MATTER, nameOrId, Ent.VAULT_MATTER_ID, ids)
@@ -18842,7 +18830,7 @@ SITE_DATA_SITE = u'site'
 SITE_DATA_DOMAIN_SITE = u'domainSite'
 SITE_DATA_FIELDS = u'fields'
 
-class SitesManager(object):
+class SitesManager():
 
   SITE_ARGUMENT_TO_PROPERTY_MAP = {
     u'categories': SITE_CATEGORIES,
@@ -18933,7 +18921,7 @@ class SitesManager(object):
     GetSiteField(SITE_SUMMARY, [u'summary', u'text'])
     GetSiteField(SITE_THEME, [u'theme', u'text'])
     GetSiteField(SITE_UPDATED, [u'updated', u'text'])
-    if len(site_entry.category) > 0:
+    if site_entry.category:
       for category in site_entry.category:
         if category.term:
           AppendItemToFieldsList(SITE_CATEGORIES, category.term)
@@ -20646,7 +20634,7 @@ def infoUsers(entityList):
       up = u'languages'
       if up in user:
         propertyValue = user[up]
-        if len(propertyValue) > 0:
+        if propertyValue:
           for up in USER_LANGUAGE_PROPERTY_PRINT_ORDER:
             languages = [row[up] for row in propertyValue if up in row]
             if languages:
@@ -20670,7 +20658,7 @@ def infoUsers(entityList):
           typeCustomValue = userProperty[UProp.TYPE_KEYWORDS][UProp.PTKW_ATTR_TYPE_CUSTOM_VALUE]
           customTypeKey = userProperty[UProp.TYPE_KEYWORDS][UProp.PTKW_ATTR_CUSTOMTYPE_KEYWORD]
         if propertyClass == UProp.PC_ARRAY:
-          if len(propertyValue) > 0:
+          if propertyValue:
             printKeyValueList([propertyTitle, None])
             Ind.Increment()
             for row in propertyValue:
@@ -20683,7 +20671,7 @@ def infoUsers(entityList):
               Ind.Decrement()
             Ind.Decrement()
         elif propertyClass == UProp.PC_GENDER:
-          if len(propertyValue) > 0:
+          if propertyValue:
             printKeyValueList([propertyTitle, None])
             Ind.Increment()
             _showType(propertyValue, typeKey, typeCustomValue, customTypeKey)
@@ -20691,7 +20679,7 @@ def infoUsers(entityList):
               printKeyValueList([u'addressMeAs', propertyValue[u'addressMeAs']])
             Ind.Decrement()
         elif propertyClass == UProp.PC_ADDRESSES:
-          if len(propertyValue) > 0:
+          if propertyValue:
             printKeyValueList([propertyTitle, None])
             Ind.Increment()
             for row in propertyValue:
@@ -20706,7 +20694,7 @@ def infoUsers(entityList):
               Ind.Decrement()
             Ind.Decrement()
         elif propertyClass == UProp.PC_EMAILS:
-          if len(propertyValue) > 0:
+          if propertyValue:
             needTitle = True
             for row in propertyValue:
               if row[u'address'].lower() == user[u'primaryEmail'].lower():
@@ -20728,7 +20716,7 @@ def infoUsers(entityList):
             if not needTitle:
               Ind.Decrement()
         elif propertyClass == UProp.PC_IMS:
-          if len(propertyValue) > 0:
+          if propertyValue:
             printKeyValueList([propertyTitle, None])
             Ind.Increment()
             protocolKey = UProp.IM_PROTOCOLS[UProp.PTKW_ATTR_TYPE_KEYWORD]
@@ -20745,7 +20733,7 @@ def infoUsers(entityList):
               Ind.Decrement()
             Ind.Decrement()
         elif propertyClass == UProp.PC_NOTES:
-          if len(propertyValue) > 0:
+          if propertyValue:
             printKeyValueList([propertyTitle, None])
             Ind.Increment()
             if isinstance(propertyValue, dict):
@@ -20761,7 +20749,7 @@ def infoUsers(entityList):
               printKeyValueList([Ind.MultiLineText(propertyValue)])
             Ind.Decrement()
         elif propertyClass == UProp.PC_LOCATIONS:
-          if len(propertyValue) > 0:
+          if propertyValue:
             printKeyValueList([propertyTitle, None])
             Ind.Increment()
             if isinstance(propertyValue, list):
@@ -20778,7 +20766,7 @@ def infoUsers(entityList):
               printKeyValueList([Ind.MultiLineText(propertyValue)])
             Ind.Decrement()
         elif propertyClass == UProp.PC_POSIX:
-          if len(propertyValue) > 0:
+          if propertyValue:
             printKeyValueList([propertyTitle, None])
             Ind.Increment()
             if isinstance(propertyValue, list):
@@ -20793,7 +20781,7 @@ def infoUsers(entityList):
               printKeyValueList([Ind.MultiLineText(propertyValue)])
             Ind.Decrement()
         elif propertyClass == UProp.PC_SSH:
-          if len(propertyValue) > 0:
+          if propertyValue:
             printKeyValueList([propertyTitle, None])
             Ind.Increment()
             if isinstance(propertyValue, list):
@@ -21105,7 +21093,7 @@ def doPrintUsers(entityList=None):
 # If no individual fields were specified (allfields, basic, full) or individual fields other than primaryEmail were specified, look up each user
     if len(fieldsList) > 1 or projectionSet:
       jcount = len(entityList)
-      if minimizeQuotaCount > 0 and jcount >= minimizeQuotaCount:
+      if 0 < minimizeQuotaCount <= jcount:
         minimizeQuota = True
       elif minimizeQuotaPct > 0:
         numUsers = _getNumUsers()
@@ -22013,20 +22001,19 @@ def _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties):
     except GAPI.forbidden:
       APIAccessDeniedExit()
     return None
-  else:
-    fields = _setCourseFields(courseShowProperties, False)
-    coursesInfo = []
-    for courseId in courseSelectionParameters[u'courseIds']:
-      courseId = addCourseIdScope(courseId)
-      try:
-        info = callGAPI(croom.courses(), u'get',
-                        throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                        id=courseId, fields=fields)
-        coursesInfo.append(info)
-      except GAPI.notFound:
-        entityDoesNotExistWarning(Ent.COURSE, courseId)
-      except GAPI.forbidden:
-        APIAccessDeniedExit()
+  fields = _setCourseFields(courseShowProperties, False)
+  coursesInfo = []
+  for courseId in courseSelectionParameters[u'courseIds']:
+    courseId = addCourseIdScope(courseId)
+    try:
+      info = callGAPI(croom.courses(), u'get',
+                      throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                      id=courseId, fields=fields)
+      coursesInfo.append(info)
+    except GAPI.notFound:
+      entityDoesNotExistWarning(Ent.COURSE, courseId)
+    except GAPI.forbidden:
+      APIAccessDeniedExit()
   return coursesInfo
 
 # gam print courses [todrive <ToDriveAttributes>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
@@ -23128,13 +23115,12 @@ def _doDeleteGuardian(croom, studentId, guardianId, guardianClass, i=0, count=0,
                                     throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
                                     studentId=studentId, invitedEmailAddress=guardianId, states=[u'PENDING',],
                                     fields=u'nextPageToken,guardianInvitations(studentId,invitationId)')
-        if len(invitations) > 0:
-          for invitation in invitations:
-            result = _cancelGuardianInvitation(croom, invitation[u'studentId'], invitation[u'invitationId'], i, count, j, jcount)
-            if result < 0:
-              return result
-            if result > 0:
-              guardianFound = True
+        for invitation in invitations:
+          result = _cancelGuardianInvitation(croom, invitation[u'studentId'], invitation[u'invitationId'], i, count, j, jcount)
+          if result < 0:
+            return result
+          if result > 0:
+            guardianFound = True
       else:
         result = _cancelGuardianInvitation(croom, studentId, guardianId, i, count, j, jcount)
         if result != 0:
@@ -23146,13 +23132,12 @@ def _doDeleteGuardian(croom, studentId, guardianId, guardianClass, i=0, count=0,
                                   throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
                                   studentId=studentId, invitedEmailAddress=guardianId,
                                   fields=u'nextPageToken,guardians(studentId,guardianId)')
-        if len(guardians) > 0:
-          for guardian in guardians:
-            result = _deleteGuardian(croom, guardian[u'studentId'], guardian[u'guardianId'], guardianId, i, count, j, jcount)
-            if result < 0:
-              return result
-            if result > 0:
-              guardianFound = True
+        for guardian in guardians:
+          result = _deleteGuardian(croom, guardian[u'studentId'], guardian[u'guardianId'], guardianId, i, count, j, jcount)
+          if result < 0:
+            return result
+          if result > 0:
+            guardianFound = True
       else:
         result = _deleteGuardian(croom, studentId, guardianId, guardianId, i, count, j, jcount)
         if result != 0:
@@ -26515,9 +26500,9 @@ def getDriveFileAttribute(myarg, body, parameters, assignLocalName):
   elif myarg == u'ocrlanguage':
     parameters[DFA_OCRLANGUAGE] = getChoice(LANGUAGE_CODES_MAP, mapChoice=True)
   elif myarg == u'viewerscancopycontent':
-    body[u'copyRequiresWriterPermission'] = not getBoolean()
+    body[u'capabilities.copyRequiresWriterPermission'] = not getBoolean()
   elif myarg in [u'copyrequireswriterpermission', u'restrict', u'restricted']:
-    body[u'copyRequiresWriterPermission'] = getBoolean()
+    body[u'capabilities.copyRequiresWriterPermission'] = getBoolean()
   elif myarg in DRIVE_LABEL_CHOICE_MAP:
     myarg = DRIVE_LABEL_CHOICE_MAP[myarg]
     body[myarg] = getBoolean()
@@ -26873,7 +26858,6 @@ def getFilePaths(drive, fileTree, initialResult, filePathInfo):
       else:
         _makeFilePaths(v, fplist, filePaths, name)
       fplist.pop()
-    return
 
   filePaths = []
   parents = initialResult.get(u'parents', [])
@@ -29187,17 +29171,17 @@ def _checkForDuplicateTargetFile(drive, user, k, kcount, child, destFilename, ta
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.fileNeverWritable) as e:
           entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, child[VX_FILENAME], Ent.DRIVE_FILE, target[VX_FILENAME]], u'{0}: {1}'.format(Msg.NOT_DELETABLE, str(e)), k, kcount)
           _incrStatistic(statistics, STAT_FILE_FAILED)
-        return True
-      elif copyMoveOptions[u'duplicateFiles'] == DUPLICATE_FILE_DUPLICATE_NAME:
+          return True
+      if copyMoveOptions[u'duplicateFiles'] == DUPLICATE_FILE_DUPLICATE_NAME:
         child[VX_FILENAME] = destFilename
         return False
-      elif copyMoveOptions[u'duplicateFiles'] == DUPLICATE_FILE_UNIQUE_NAME:
+      if copyMoveOptions[u'duplicateFiles'] == DUPLICATE_FILE_UNIQUE_NAME:
         child[VX_FILENAME] = _getUniqueFilename(destFilename, child[u'mimeType'], targetChildren)
         return False
-      else: #copyMoveOptions[u'duplicateFiles'] == DUPLICATE_FILE_SKIP
-        entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, child[VX_FILENAME], Ent.DRIVE_FILE, target[VX_FILENAME]], Msg.DUPLICATE, k, kcount)
-        _incrStatistic(statistics, STAT_FILE_DUPLICATE)
-        return True
+      #copyMoveOptions[u'duplicateFiles'] == DUPLICATE_FILE_SKIP
+      entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, child[VX_FILENAME], Ent.DRIVE_FILE, target[VX_FILENAME]], Msg.DUPLICATE, k, kcount)
+      _incrStatistic(statistics, STAT_FILE_DUPLICATE)
+      return True
   child[VX_FILENAME] = destFilename
   return False
 
@@ -30005,7 +29989,7 @@ def collectOrphans(users):
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                                q=VX_MY_NON_TRASHED_FOLDER_NAME.format(escapeDriveFileName(trgtUserFolderName)),
                                fields=VX_NPT_FILES_ID)
-        if len(result) > 0:
+        if result:
           trgtParentId = result[0][u'id']
         else:
           trgtParentId = callGAPI(drive.files(), u'create',
@@ -30080,7 +30064,7 @@ def transferDrive(users):
                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                              orderBy=orderBy, q=VX_MY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS.format(escapeDriveFileName(folderName), folderParentId),
                              fields=VX_NPT_FILES_ID)
-      if len(result) > 0:
+      if result:
         return result[0][u'id']
       return callGAPI(targetDrive.files(), u'create',
                       throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
@@ -30545,7 +30529,7 @@ def transferDrive(users):
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                                q=VX_MY_NON_TRASHED_FOLDER_NAME.format(escapeDriveFileName(targetFolderName)),
                                fields=VX_NPT_FILES_ID)
-        if len(result) == 0:
+        if not result:
           Cmd.SetLocation(targetFolderNameLocation)
           usageErrorExit(formatKeyValueList(Ind.Spaces(),
                                             [Ent.Singular(Ent.USER), targetUser,
@@ -31201,7 +31185,7 @@ def deleteEmptyDriveFolders(users):
                                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                                        q=WITH_PARENTS.format(folder[u'id']), fields=VX_FILES_ID_FILENAME,
                                        pageSize=1, **fileIdEntity[u'teamdrive'])
-            if len(children) == 0:
+            if not children:
               try:
                 callGAPI(drive.files(), u'delete',
                          throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
@@ -32627,7 +32611,7 @@ def _printShowTeamDriveACLs(users, csvFormat, useDomainAdminAccess):
     cd = buildGAPIObject(API.DIRECTORY)
     groups = callGAPIpages(cd.groups(), u'list', u'groups',
                            userKey=emailAddress, fields=u'nextPageToken,groups(email)')
-    groupsSet = set([group['email'] for group in groups])
+    groupsSet = {[group['email'] for group in groups]}
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -34029,7 +34013,7 @@ def createLabel(users):
           break
       if invalid:
         continue
-      labelSet = set([ulabel[u'name'] for ulabel in labels[u'labels'] if ulabel[u'type'] != LABEL_TYPE_SYSTEM])
+      labelSet = {[ulabel[u'name'] for ulabel in labels[u'labels'] if ulabel[u'type'] != LABEL_TYPE_SYSTEM]}
       duplicate = True
       labelPath = u''
       j = 0

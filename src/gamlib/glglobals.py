@@ -101,6 +101,8 @@ CSV_SUBKEY_FIELD = u'cssk'
 CSV_DATA_FIELD = u'csdf'
 # Dictionary mapping OrgUnit ID to Name
 MAP_ORGUNIT_ID_TO_NAME = u'oi2n'
+# Make Role ID/Name map
+MAKE_ROLE_ID_NAME_MAP = 'mkrm'
 # Dictionary mapping Role ID to Name
 MAP_ROLE_ID_TO_NAME = u'ri2n'
 # Dictionary mapping Role Name to ID
@@ -113,6 +115,8 @@ OAUTH2_TXT_LOCK = u'oalk'
 CACHE_DIR = u'gacd'
 # Reset GAM cache directory after discovery
 CACHE_DISCOVERY_ONLY = u'gcdo'
+# Make Building ID/Name map
+MAKE_BUILDING_ID_NAME_MAP = 'mkbm'
 # Dictionary mapping Building ID to Name
 MAP_BUILDING_ID_TO_NAME = u'bi2n'
 # Dictionary mapping Building Name to ID
@@ -144,7 +148,7 @@ Globals = {
   CURRENT_SVCACCT_API_SCOPES: set(),
   CURRENT_SVCACCT_USER: None,
   OAUTH2_CLIENT_ID: None,
-  OAUTH2SERVICE_JSON_DATA: None,
+  OAUTH2SERVICE_JSON_DATA: {},
   OAUTH2SERVICE_CLIENT_ID: None,
   PARSER: None,
   GAM_CFG_PATH: u'',
@@ -160,15 +164,17 @@ Globals = {
   CSV_KEY_FIELD: None,
   CSV_SUBKEY_FIELD: None,
   CSV_DATA_FIELD: None,
-  MAP_ORGUNIT_ID_TO_NAME: None,
-  MAP_ROLE_ID_TO_NAME: None,
-  MAP_ROLE_NAME_TO_ID: None,
-  MAP_USER_ID_TO_NAME: None,
+  MAP_ORGUNIT_ID_TO_NAME: {},
+  MAKE_ROLE_ID_NAME_MAP: True,
+  MAP_ROLE_ID_TO_NAME: {},
+  MAP_ROLE_NAME_TO_ID: {},
+  MAP_USER_ID_TO_NAME: {},
   OAUTH2_TXT_LOCK: None,
   CACHE_DIR: None,
   CACHE_DISCOVERY_ONLY: True,
-  MAP_BUILDING_ID_TO_NAME: None,
-  MAP_BUILDING_NAME_TO_ID: None,
+  MAKE_BUILDING_ID_NAME_MAP: True,
+  MAP_BUILDING_ID_TO_NAME: {},
+  MAP_BUILDING_NAME_TO_ID: {},
   TBATCH_QUEUE: None,
   DATETIME_NOW: None,
   CONVERT_TO_LOCAL_TIME: False,
