@@ -37,6 +37,8 @@ CANNOT_DELETE_PRIMARY_CALENDAR = u'cannotDeletePrimaryCalendar'
 CANNOT_DELETE_PRIMARY_SENDAS = u'cannotDeletePrimarySendAs'
 CANNOT_DELETE_RESOURCE_WITH_CHILDREN = u'cannotDeleteResourceWithChildren'
 CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION = u'cannotModifyInheritedTeamDrivePermission'
+CANNOT_MODIFY_RESTRICTED_LABEL = u'cannotModifyRestrictedLabel'
+CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT = u'cannotModifyViewersCanCopyContent'
 CANNOT_MOVE_TRASHED_ITEM_INTO_TEAMDRIVE = u'cannotMoveTrashedItemIntoTeamDrive'
 CANNOT_REMOVE_OWNER = u'cannotRemoveOwner'
 CANNOT_SHARE_GROUPS_WITHLINK = u'cannotShareGroupsWithLink'
@@ -246,6 +248,10 @@ class cannotDeleteResourceWithChildren(Exception):
   pass
 class cannotModifyInheritedTeamDrivePermission(Exception):
   pass
+class cannotModifyRestrictedLabel(Exception):
+  pass
+class cannotModifyViewersCanCopyContent(Exception):
+  pass
 class cannotMoveTrashedItemIntoTeamDrive(Exception):
   pass
 class cannotRemoveOwner(Exception):
@@ -438,6 +444,8 @@ REASON_EXCEPTION_MAP = {
   CANNOT_DELETE_PRIMARY_SENDAS: cannotDeletePrimarySendAs,
   CANNOT_DELETE_RESOURCE_WITH_CHILDREN: cannotDeleteResourceWithChildren,
   CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION: cannotModifyInheritedTeamDrivePermission,
+  CANNOT_MODIFY_RESTRICTED_LABEL: cannotModifyRestrictedLabel,
+  CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT: cannotModifyViewersCanCopyContent,
   CANNOT_MOVE_TRASHED_ITEM_INTO_TEAMDRIVE: cannotMoveTrashedItemIntoTeamDrive,
   CANNOT_REMOVE_OWNER: cannotRemoveOwner,
   CANNOT_SHARE_GROUPS_WITHLINK: cannotShareGroupsWithLink,

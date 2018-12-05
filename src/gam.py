@@ -28857,7 +28857,8 @@ def updateDriveFile(users):
         try:
           if media_body:
             result = callGAPI(drive.files(), u'update',
-                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST+GAPI.TEAMDRIVES_PARENT_LIMIT, GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED],
+                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT,
+                                                                             GAPI.TEAMDRIVES_PARENT_LIMIT, GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED],
                               fileId=fileId, ocrLanguage=parameters[DFA_OCRLANGUAGE],
                               keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                               useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
@@ -28867,7 +28868,8 @@ def updateDriveFile(users):
             entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, result[VX_FILENAME]], Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], j, jcount)
           else:
             result = callGAPI(drive.files(), u'update',
-                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST+GAPI.TEAMDRIVES_PARENT_LIMIT, GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED],
+                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT,
+                                                                             GAPI.TEAMDRIVES_PARENT_LIMIT, GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED],
                               fileId=fileId, ocrLanguage=parameters[DFA_OCRLANGUAGE],
                               keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                               useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
@@ -28876,7 +28878,7 @@ def updateDriveFile(users):
                               supportsTeamDrives=True)
             entityActionPerformed([Ent.USER, user, _getEntityMimeType(result), result[VX_FILENAME]], j, jcount)
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
-                GAPI.unknownError, GAPI.invalid, GAPI.badRequest,
+                GAPI.unknownError, GAPI.invalid, GAPI.badRequest, GAPI.cannotModifyViewersCanCopyContent,
                 GAPI.teamDrivesParentLimit, GAPI.teamDrivesFolderMoveInNotSupported) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -28890,7 +28892,7 @@ def updateDriveFile(users):
         j += 1
         try:
           result = callGAPI(drive.files(), u'copy',
-                            throw_reasons=GAPI.DRIVE_COPY_THROW_REASONS+[GAPI.BAD_REQUEST],
+                            throw_reasons=GAPI.DRIVE_COPY_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT],
                             fileId=fileId,
                             ignoreDefaultVisibility=parameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                             keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
@@ -28898,7 +28900,7 @@ def updateDriveFile(users):
           entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, fileId],
                                                              Act.MODIFIER_TO, result[VX_FILENAME], [Ent.DRIVE_FILE_ID, result[u'id']], j, jcount)
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
-                GAPI.unknownError, GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest) as e:
+                GAPI.unknownError, GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.cannotModifyViewersCanCopyContent) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, fileId], str(e), j, jcount)
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)

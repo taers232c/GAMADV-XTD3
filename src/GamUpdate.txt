@@ -2,7 +2,8 @@
 
 Code cleanup.
 
-Fixed bug due to Google documentation error in gam update drivefile when the viewerscancopycontent/copyrequireswriterpermission/restricted option was specified.
+Added additional error handling to gam update drivefile when modifying
+options restricted/viewerscancopycontent/copyrequireswriterpermission.
 
 4.65.20
 
