@@ -32613,7 +32613,7 @@ def _printShowTeamDriveACLs(users, csvFormat, useDomainAdminAccess):
     cd = buildGAPIObject(API.DIRECTORY)
     groups = callGAPIpages(cd.groups(), u'list', u'groups',
                            userKey=emailAddress, fields=u'nextPageToken,groups(email)')
-    groupsSet = {[group['email'] for group in groups]}
+    groupsSet = {group['email'] for group in groups}
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -34015,7 +34015,7 @@ def createLabel(users):
           break
       if invalid:
         continue
-      labelSet = {[ulabel[u'name'] for ulabel in labels[u'labels'] if ulabel[u'type'] != LABEL_TYPE_SYSTEM]}
+      labelSet = {ulabel[u'name'] for ulabel in labels[u'labels'] if ulabel[u'type'] != LABEL_TYPE_SYSTEM}
       duplicate = True
       labelPath = u''
       j = 0
