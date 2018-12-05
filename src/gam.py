@@ -26500,9 +26500,9 @@ def getDriveFileAttribute(myarg, body, parameters, assignLocalName):
   elif myarg == u'ocrlanguage':
     parameters[DFA_OCRLANGUAGE] = getChoice(LANGUAGE_CODES_MAP, mapChoice=True)
   elif myarg == u'viewerscancopycontent':
-    body[u'capabilities.copyRequiresWriterPermission'] = not getBoolean()
+    body[u'copyRequiresWriterPermission'] = not getBoolean()
   elif myarg in [u'copyrequireswriterpermission', u'restrict', u'restricted']:
-    body[u'capabilities.copyRequiresWriterPermission'] = getBoolean()
+    body[u'copyRequiresWriterPermission'] = getBoolean()
   elif myarg in DRIVE_LABEL_CHOICE_MAP:
     myarg = DRIVE_LABEL_CHOICE_MAP[myarg]
     body[myarg] = getBoolean()
