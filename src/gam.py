@@ -27842,59 +27842,6 @@ def _validatePermissionAttributes(myarg, location, body, field, validTypes):
     Cmd.SetLocation(location-1)
     usageErrorExit(Msg.INVALID_PERMISSION_ATTRIBUTE_TYPE.format(myarg, body[u'type']))
 
-def _getPermissionMatch(permissionMatches):
-  body = {}
-  startTime = endTime = startDateTime = endDateTime = None
-  roleLocation = withLinkLocation = expirationStartLocation = expirationEndLocation = deletedLocation = None
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == u'type':
-      body[u'type'] = getChoice(DRIVEFILE_ACL_PERMISSION_TYPES)
-    elif myarg == u'role':
-      roleLocation = Cmd.Location()
-      body[u'role'] = getChoice(DRIVEFILE_ACL_ROLES_MAP, mapChoice=True)
-    elif myarg == u'emailaddress':
-      body[u'emailAddress'] = getREPattern(re.IGNORECASE)
-    elif myarg == u'domain':
-      body[u'domain'] = getREPattern(re.IGNORECASE)
-    elif myarg == u'withlink':
-      withLinkLocation = Cmd.Location()
-      body[u'allowFileDiscovery'] = not getBoolean()
-    elif myarg in [u'allowfilediscovery', u'discoverable']:
-      withLinkLocation = Cmd.Location()
-      body[u'allowFileDiscovery'] = getBoolean()
-    elif myarg in [u'name', u'displayname']:
-      body[u'displayName'] = getREPattern(re.IGNORECASE)
-    elif myarg == 'expirationstart':
-      expirationStartLocation = Cmd.Location()
-      startDateTime, _, startTime = getTimeOrDeltaFromNow(True)
-      if endDateTime and endDateTime < startDateTime:
-        Cmd.Backup()
-        usageErrorExit(Msg.INVALID_TIME_RANGE.format(u'expirationend', endTime, u'expirationstart', startTime))
-      body[myarg] = startDateTime
-    elif myarg == u'expirationend':
-      expirationEndLocation = Cmd.Location()
-      endDateTime, _, endTime = getTimeOrDeltaFromNow(True)
-      if startDateTime and endDateTime < startDateTime:
-        Cmd.Backup()
-        usageErrorExit(Msg.INVALID_TIME_RANGE.format(u'expirationend', endTime, u'expirationstart', startTime))
-      body[myarg] = endDateTime
-    elif myarg == u'deleted':
-      deletedLocation = Cmd.Location()
-      body[u'deleted'] = getBoolean()
-    elif myarg in [u'em', u'endmatch']:
-      break
-    else:
-      unknownArgumentExit()
-  if body:
-    if u'type' in body:
-      _validatePermissionOwnerType(roleLocation, body)
-      _validatePermissionAttributes(u'allowfilediscovery/withlink', withLinkLocation, body, u'allowFileDiscovery', [u'anyone', u'domain'])
-      _validatePermissionAttributes(u'expirationstart', expirationStartLocation, body, u'expirationstart', [u'user', u'group'])
-      _validatePermissionAttributes(u'expirationend', expirationEndLocation, body, u'expirationend', [u'user', u'group'])
-      _validatePermissionAttributes(u'deleted', deletedLocation, body, u'deleted', [u'user', u'group'])
-    permissionMatches.append(body)
-
 class DriveListParameters():
   _PERMISSION_MATCH_ACTION_MAP = {u'process': True, u'skip': False}
   _PERMISSION_MATCH_MODE_MAP = {u'or': True, u'and': False}
@@ -27908,6 +27855,59 @@ class DriveListParameters():
     self.permissionMatchKeep = self.permissionMatchOr = True
     self.showOwnedBy = True
     self.allowQuery = allowQuery
+
+  def _getPermissionMatch(self):
+    body = {}
+    startTime = endTime = startDateTime = endDateTime = None
+    roleLocation = withLinkLocation = expirationStartLocation = expirationEndLocation = deletedLocation = None
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if myarg == u'type':
+        body[u'type'] = getChoice(DRIVEFILE_ACL_PERMISSION_TYPES)
+      elif myarg == u'role':
+        roleLocation = Cmd.Location()
+        body[u'role'] = getChoice(DRIVEFILE_ACL_ROLES_MAP, mapChoice=True)
+      elif myarg == u'emailaddress':
+        body[u'emailAddress'] = getREPattern(re.IGNORECASE)
+      elif myarg == u'domain':
+        body[u'domain'] = getREPattern(re.IGNORECASE)
+      elif myarg == u'withlink':
+        withLinkLocation = Cmd.Location()
+        body[u'allowFileDiscovery'] = not getBoolean()
+      elif myarg in [u'allowfilediscovery', u'discoverable']:
+        withLinkLocation = Cmd.Location()
+        body[u'allowFileDiscovery'] = getBoolean()
+      elif myarg in [u'name', u'displayname']:
+        body[u'displayName'] = getREPattern(re.IGNORECASE)
+      elif myarg == 'expirationstart':
+        expirationStartLocation = Cmd.Location()
+        startDateTime, _, startTime = getTimeOrDeltaFromNow(True)
+        if endDateTime and endDateTime < startDateTime:
+          Cmd.Backup()
+          usageErrorExit(Msg.INVALID_TIME_RANGE.format(u'expirationend', endTime, u'expirationstart', startTime))
+        body[myarg] = startDateTime
+      elif myarg == u'expirationend':
+        expirationEndLocation = Cmd.Location()
+        endDateTime, _, endTime = getTimeOrDeltaFromNow(True)
+        if startDateTime and endDateTime < startDateTime:
+          Cmd.Backup()
+          usageErrorExit(Msg.INVALID_TIME_RANGE.format(u'expirationend', endTime, u'expirationstart', startTime))
+        body[myarg] = endDateTime
+      elif myarg == u'deleted':
+        deletedLocation = Cmd.Location()
+        body[u'deleted'] = getBoolean()
+      elif myarg in [u'em', u'endmatch']:
+        break
+      else:
+        unknownArgumentExit()
+    if body:
+      if u'type' in body:
+        _validatePermissionOwnerType(roleLocation, body)
+        _validatePermissionAttributes(u'allowfilediscovery/withlink', withLinkLocation, body, u'allowFileDiscovery', [u'anyone', u'domain'])
+        _validatePermissionAttributes(u'expirationstart', expirationStartLocation, body, u'expirationstart', [u'user', u'group'])
+        _validatePermissionAttributes(u'expirationend', expirationEndLocation, body, u'expirationend', [u'user', u'group'])
+        _validatePermissionAttributes(u'deleted', deletedLocation, body, u'deleted', [u'user', u'group'])
+      self.permissionMatches.append(body)
 
   def ProcessArgument(self, myarg):
     if myarg == u'showmimetype':
@@ -27927,7 +27927,7 @@ class DriveListParameters():
     elif myarg == u'filenamematchpattern':
       self.filenameMatchPattern = getREPattern(re.IGNORECASE)
     elif myarg in [u'pm', u'permissionmatch']:
-      _getPermissionMatch(self.permissionMatches)
+      self._getPermissionMatch()
     elif myarg in [u'pma', u'permissionmatchaction']:
       self.permissionMatchKeep = getChoice(DriveListParameters._PERMISSION_MATCH_ACTION_MAP, mapChoice=True)
     elif myarg in [u'pmm', u'permissionmatchmode']:
@@ -27994,19 +27994,19 @@ class DriveListParameters():
                     break
               else:
                 break
-          elif field != u'domain':
-            if not value.match(permission.get(field, u'')):
-              break
-          else:
-            if field in permission:
-              if not value.match(permission[field]):
-                break
-            elif u'emailAddress' in permission:
-              _, domain = splitEmailAddress(permission[u'emailAddress'])
-              if not value.match(domain):
+            elif field != u'domain':
+              if not value.match(permission.get(field, u'')):
                 break
             else:
-              break
+              if field in permission:
+                if not value.match(permission[field]):
+                  break
+              elif u'emailAddress' in permission:
+                _, domain = splitEmailAddress(permission[u'emailAddress'])
+                if not value.match(domain):
+                  break
+              else:
+                break
           else:
             requiredMatches -= 1
             if requiredMatches == 0:
