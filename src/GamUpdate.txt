@@ -1,3 +1,7 @@
+4.65.23
+
+Handle API errors in gam print filelist/filecounts when query "'xxxyyyxx' in parents" is used and 'xxxyyyzzz' is not a valid file ID.
+
 4.65.22
 
 Extended permission matching to gam show filetree.

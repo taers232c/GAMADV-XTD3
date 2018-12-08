@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.22'
+__version__ = u'4.65.23'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -28264,7 +28264,8 @@ def printFileList(users):
       while True:
         try:
           feed = callGAPI(drive.files(), u'list',
-                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND,
+                                                                       GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                           pageToken=pageToken,
                           q=DLP.query, orderBy=orderBy, fields=pagesfields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
         except (GAPI.invalidQuery, GAPI.invalid):
@@ -28297,9 +28298,9 @@ def printFileList(users):
       try:
         feed = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                              page_message=getPageMessageForWhom(),
-                             throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
-                             q=DLP.query, orderBy=orderBy, fields=pagesfields,
-                             pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
+                             throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND,
+                                                                          GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                             q=DLP.query, orderBy=orderBy, fields=pagesfields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
       except (GAPI.invalidQuery, GAPI.invalid):
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(DLP.query), i, count)
         break
@@ -28478,13 +28479,17 @@ def _printShowFileCounts(users, csvFormat):
     try:
       feed = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                            page_message=getPageMessageForWhom(),
-                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND,
+                                                                        GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                            q=DLP.query, fields=pagesfields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **fileIdEntity[u'teamdrive'])
-    except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
-      continue
     except (GAPI.invalidQuery, GAPI.invalid):
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, None], invalidQuery(DLP.query), i, count)
+      continue
+    except GAPI.fileNotFound:
+      printGotEntityItemsForWhom(0)
+      continue
+    except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
       continue
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
