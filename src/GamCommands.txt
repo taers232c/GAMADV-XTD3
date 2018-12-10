@@ -2796,7 +2796,7 @@ gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (ord
 <DriveFieldNameList> ::= "<DriveFieldName>(,<DriveFieldName>)*"
 
 <PermissionMatch> ::=
-        permissionmatch|pm
+        permissionmatch|pm [not]
             [type anyone|user|group|domain] [role <DriveFileACLRole>] [allowfilediscovery|withlink <Boolean>]
             [emailaddress <RegularExpression>] [domain <RegularExpression>] [name|displayname <String>]
             [expirationstart <Time>] [expirationend <Time>]
@@ -2823,7 +2823,7 @@ gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*] [anyowner
         [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) |
           (select <DriveFileEntityListTree> [selectsubquery <QueryDriveFile>] [depth <Number>] [showparent])]
         [showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
-        (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
+        (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>] 
         [filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [quotechar <Character>]
 
 <FileTreeFieldName> ::=

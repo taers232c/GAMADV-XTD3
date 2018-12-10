@@ -1,3 +1,14 @@
+4.65.24
+
+Added the ability to negate the result of a permission match, this allows for more complex match criteria.
+For example, `pm type group emailaddress group@domain.com em pm not type user user@domain.com em pmm and`
+will select those files shared with group group@domain.com and not shared with user user@domain.com.
+
+Previously, when a permission match was used with print filelist, all permission fields were displayed; this caused
+a large number of fields to be displayed. Now, only the fields used in the match are displayed. If you want all permission
+fields displayed, add `permissions` to the fields list or you can specify permissions subfields to be displayed in addition to
+the match fields.
+
 4.65.23
 
 Handle API errors in gam print filelist/filecounts when query "'xxxyyyxx' in parents" is used and 'xxxyyyzzz' is not a valid file ID.
