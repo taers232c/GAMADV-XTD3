@@ -339,6 +339,7 @@ class GamCLArgs(object):
   ARG_FILTER = u'filter'
   ARG_FILTERS = u'filters'
   ARG_FORWARD = u'forward'
+  ARG_FORWARDS = u'forwards'
   ARG_FORWARDINGADDRESS = u'forwardingaddress'
   ARG_FORWARDINGADDRESSES = u'forwardingaddresses'
   ARG_GAL = u'gal'

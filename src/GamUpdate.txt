@@ -1,3 +1,9 @@
+4.65.25
+
+Made forwards a synonym for forward in the following commands:
+gam <UserTypeEntity> show forward|forwards
+gam <UserTypeEntity> print forward|forwards [enabledonly] [todrive <ToDriveAttribute>*]
+
 4.65.24
 
 Added the ability to negate the result of a permission match, this allows for more complex match criteria.

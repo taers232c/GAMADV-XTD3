@@ -2839,7 +2839,8 @@ gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
         (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
 
-gam <UserTypeEntity> print|show driveactivity [todrive <ToDriveAttributes>*] [(fileid <DriveFileID>)|(folderid <DriveFolderID>)]
+gam <UserTypeEntity> print|show driveactivity [todrive <ToDriveAttributes>*]
+        [fileid <DriveFileID>] [folderid <DriveFolderID>]
 
 <DriveSettingsFieldName> ::=
         appinstalled|
@@ -2917,8 +2918,8 @@ gam <UserTypeEntity> print forwardingaddress|forwardingaddresses [todrive <ToDri
 
 gam <UserTypeEntity> forward <FalseValues>
 gam <UserTypeEntity> forward <TrueValues> keep|leaveininbox|archive|delete|trash|markread <EmailAddress>
-gam <UserTypeEntity> show forward
-gam <UserTypeEntity> print forward [enabledonly] [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> show forward|forwards
+gam <UserTypeEntity> print forward|forwards [enabledonly] [todrive <ToDriveAttribute>*]
 
 # Users - Gmail - Labels/Messages
 
