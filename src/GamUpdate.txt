@@ -1,3 +1,7 @@
+4.65.26
+
+Fixed bug in gam transfer calendars that caused a trap when the append option was used.
+
 4.65.25
 
 Made forwards a synonym for forward in the following commands:
