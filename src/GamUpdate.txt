@@ -1,3 +1,9 @@
+4.65.28
+
+Changed code in gam undelete user to drop requirement that OUs with spaces require two levels of quoting.
+For example, you only need double quotes surrounding an OU with spaces in the name.
+gam undelete user user@domain.com org "/Path/To OU with Spaces"
+
 4.65.27
 
 Fixed bug in gam clear contacts where contacts that matched emailclearpattern <RegularExpression> lost their

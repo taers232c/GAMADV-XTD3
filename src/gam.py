@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.27'
+__version__ = u'4.65.28'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -20243,11 +20243,9 @@ def doDeleteUser():
 def undeleteUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
   if checkArgumentPresent([u'org', u'ou']):
-    orgUnitPaths = getEntityList(Cmd.OB_ORGUNIT_ENTITY, shlexSplit=True)
-    userOrgUnitLists = orgUnitPaths if isinstance(orgUnitPaths, dict) else None
+    orgUnitPath = getOrgUnitItem()
   else:
-    orgUnitPaths = [u'/']
-    userOrgUnitLists = None
+    orgUnitPath = u'/'
   checkForExtraneousArguments()
   body = {u'orgUnitPath': u''}
   i, count, entityList = getEntityArgument(entityList)
@@ -20291,13 +20289,10 @@ def undeleteUsers(entityList):
         setSysExitRC(MULTIPLE_DELETED_USERS_FOUND_RC)
         continue
       user_uid = matching_users[0][u'id']
-    if userOrgUnitLists:
-      orgUnitPaths = userOrgUnitLists[user]
-    body[u'orgUnitPath'] = makeOrgUnitPathAbsolute(orgUnitPaths[0])
     try:
       callGAPI(cd.users(), u'undelete',
                throw_reasons=[GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.INVALID_ORGUNIT, GAPI.DELETED_USER_NOT_FOUND],
-               userKey=user_uid, body=body)
+               userKey=user_uid, body={u'orgUnitPath': orgUnitPath})
       entityActionPerformed([Ent.DELETED_USER, user], i, count)
     except (GAPI.badRequest, GAPI.invalid, GAPI.deletedUserNotFound):
       entityUnknownWarning(Ent.DELETED_USER, user, i, count)
