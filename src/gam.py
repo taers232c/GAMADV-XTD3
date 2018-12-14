@@ -20243,14 +20243,20 @@ def doDeleteUser():
 def undeleteUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
   if checkArgumentPresent([u'org', u'ou']):
-    orgUnitPath = getOrgUnitItem()
+    entitySelector = getEntitySelector()
+    if entitySelector:
+      orgUnitPaths = getEntitySelection(entitySelector, True)
+    else:
+      orgUnitPaths = [getOrgUnitItem()]
+    userOrgUnitLists = orgUnitPaths if isinstance(orgUnitPaths, dict) else None
   else:
-    orgUnitPath = u'/'
+    orgUnitPaths = [u'/']
+    userOrgUnitLists = None
   checkForExtraneousArguments()
-  body = {u'orgUnitPath': u''}
   i, count, entityList = getEntityArgument(entityList)
   for user in entityList:
     i += 1
+    origUser = user
     user = normalizeEmailAddressOrUID(user)
     user_uid = user if user.find(u'@') == -1 else None
     if not user_uid:
@@ -20289,10 +20295,12 @@ def undeleteUsers(entityList):
         setSysExitRC(MULTIPLE_DELETED_USERS_FOUND_RC)
         continue
       user_uid = matching_users[0][u'id']
+    if userOrgUnitLists:
+      orgUnitPaths = userOrgUnitLists[origUser]
     try:
       callGAPI(cd.users(), u'undelete',
                throw_reasons=[GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.INVALID_ORGUNIT, GAPI.DELETED_USER_NOT_FOUND],
-               userKey=user_uid, body={u'orgUnitPath': orgUnitPath})
+               userKey=user_uid, body={u'orgUnitPath': makeOrgUnitPathAbsolute(orgUnitPaths[0])})
       entityActionPerformed([Ent.DELETED_USER, user], i, count)
     except (GAPI.badRequest, GAPI.invalid, GAPI.deletedUserNotFound):
       entityUnknownWarning(Ent.DELETED_USER, user, i, count)
