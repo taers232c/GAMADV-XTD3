@@ -1,3 +1,8 @@
+4.65.27
+
+Fixed bug in gam clear contacts where contacts that matched emailclearpattern <RegularExpression> lost their
+contact group information.
+
 4.65.26
 
 Fixed bug in gam transfer calendars that caused a trap when the append option was used.

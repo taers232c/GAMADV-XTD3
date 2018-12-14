@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.26'
+__version__ = u'4.65.27'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -10816,6 +10816,8 @@ def _clearUpdateContacts(users, entityType, updateContacts):
             entityActionPerformed([entityType, user, Ent.CONTACT, contactId], j, jcount)
             continue
           contactEntry = contactsManager.FieldsToContact(fields)
+          if fields.get(CONTACT_GROUPS):
+            contactsManager.AddContactGroupsToContact(contactsObject, contactEntry, fields[CONTACT_GROUPS], user)
         contactEntry.category = contact.category
         contactEntry.link = contact.link
         contactEntry.etag = contact.etag
