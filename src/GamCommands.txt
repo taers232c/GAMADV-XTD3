@@ -501,7 +501,7 @@ Specify a collection of items by directly specifying them; the item type is dete
 <DriveFileRevisionIDEntity> ::=
         (<DriveFileRevisionID>) | (id <DriveFileRevisionID>) | (id:<DriveFileRevisionID>) | (ids <DriveFileRevisionIDList>) | (ids:<DriveFileRevisionIDList>) |
         (first|last|allexceptfirst|allexceptlast <Number>) |
-        (before|after <DateTime>) | (range <DateTime> <DateTime>) |
+        (before|after <Time>) | (range <Time> <Time>) |
         <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <EmailAddressEntity> ::= <EmailAddressList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <EventIDEntity> ::= <EventIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
@@ -1248,7 +1248,7 @@ gam info courses <CourseEntity> [owneremail] [alias|aliases] [show all|students|
 gam print courses [todrive <ToDriveAttribute>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
         [owneremail] [owneremailmatchpattern <RegularExpression>] [alias|aliases] [delimiter <Character>] [show all|students|teachers] [countsonly]
         [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson] [quotechar <Character>]
-        [timefilter creationtime|updatetime] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
+        [timefilter creationtime|updatetime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 gam print course-participants [todrive <ToDriveAttribute>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
         [show all|students|teachers] [formatjson] [quotechar <Character>]
 
@@ -1317,16 +1317,16 @@ gam print course-participants [todrive <ToDriveAttribute>*] (course|class <Cours
 gam print course-announcements [todrive <ToDriveAttribute>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         (announcementids <CourseAnnouncementIDEntity>)|((announcementstates <CourseAnnouncementStateList>)* (orderby <CourseAnnouncementOrderByFieldName> [ascending|descending])*)
         [showcreatoremails] [fields <CourseAnnouncementFieldNameList>] [formatjson] [quotechar <Character>]
-        [timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
+        [timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 gam print course-work [todrive <ToDriveAttribute>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         (workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)* (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
         [showcreatoremails] [fields <CourseWorkFieldNameList>] [formatjson] [quotechar <Character>]
-        [timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
+        [timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 gam print course-submissions [todrive <ToDriveAttribute>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         (workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)* (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
         (submissionids <CourseSubmissionIDEntity>)|((submissionstates <CourseSubmissionStateList>)*) [late|notlate]
         [fields <CourseSubmissionFieldNameList>] [formatjson] [quotechar <Character>] [showuserprofile]
-        [timefilter creationtime|updatetime] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
+        [timefilter creationtime|updatetime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 
 # Classroom - Invitations
 
@@ -2033,10 +2033,10 @@ gam <UserTypeEntity> show teamdriveacls [teamdriveadminquery|query <QueryTeamDri
 gam create vaultexport|export matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
         (accounts <EmailAddressEntity>) | (orgunit|org|ou <OrgUnitPath>) | (teamdrives <TeamDriveIDList>) | (rooms <RoomList>) | everyone
         [scope <all_data|held_data|unprocessed_data>]
-        [terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>] [timezone <TimeZone>]
+        [terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [timezone <TimeZone>]
         [excludedrafts <Boolean>] [format mbox|pst]
         [includerooms <Boolean>]
-        [includeteamdrives <Boolean>] [driveversiondate <Date>|<DateTime>]
+        [includeteamdrives <Boolean>] [driveversiondate <Date>|<Time>]
         [includeaccessinfo <Boolean>]
         [showdetails]
 gam delete vaultexport|export <ExportItem> matter <MatterItem>
@@ -2051,14 +2051,14 @@ gam print vaultexports|exports [todrive <ToDriveAttribute>*] [matter|matters <Ma
 gam create vaulthold|hold matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
         [(accounts|groups|users <EmailItemList>) | (orgunit|org|ou <OrgUnit>)]
         [query <QueryVaultCorpus>]
-        [terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
+        [terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
         [includerooms <Boolean>]
         [includeteamdrives <Boolean>]
         [showdetails]
 gam update vaulthold|hold <HoldItem> matter <MatterItem>
         [([addaccounts|addgroups|addusers <EmailItemList>] [removeaccounts|removegroups|removeusers <EmailItemList>]) | (orgunit|org|ou <OrgUnit>)]
         [query <QueryVaultCorpus>]
-        [terms <String>] [start|starttime <Date>|<DateTime>] [end|endtime <Date>|<DateTime>]
+        [terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
         [includerooms <Boolean>]
         [includeteamdrives <Boolean>]
         [showdetails]
@@ -2159,10 +2159,10 @@ gam print vaultmatters|matters [todrive <ToDriveAttribute>*] [basic|full]
         (website clear|(home_page|blog|profile|work|home|other|ftp|reservations|app_install_page|<String> <URL> [notprimary|primary]))|
         (<SchemaName>.<FieldName> [multivalued|multivalue|value|multinonempty [type work|home|other|(custom <String>)]] <String>)
 
-gam create|add user <EmailAddress> <UserAttribute>* [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]] 
+gam create|add user <EmailAddress> <UserAttribute>* [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
 gam update user <UserItem> <UserAttribute>* [updateprimaryemail <RegularExpression> <EmailReplacement>]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
-        [createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]] 
+        [createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
 gam delete user <UserItem>
 gam undelete user <UserItem> [org|ou <OrgUnitPath>]
 gam suspend user <UserItem>
@@ -2172,7 +2172,7 @@ gam info user [<UserItem>] [quick] [noaliases] [nogroups] [nolicenses|nolicences
 
 gam update users <UserTypeEntity> <UserAttribute>* [updateprimaryemail <RegularExpression> <EmailReplacement>]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
-        [createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]] 
+        [createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
 gam delete users <UserTypeEntity>
 gam undelete users <UserEntity> [org|ou <OrgUnitPath>]
 gam suspend users <UserTypeEntity>
@@ -2823,7 +2823,7 @@ gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*] [anyowner
         [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) |
           (select <DriveFileEntityListTree> [selectsubquery <QueryDriveFile>] [depth <Number>] [showparent])]
         [showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
-        (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>] 
+        (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
         [filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [quotechar <Character>]
 
 <FileTreeFieldName> ::=
@@ -2839,8 +2839,27 @@ gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
         (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
 
-gam <UserTypeEntity> print|show driveactivity [todrive <ToDriveAttributes>*]
-        [fileid <DriveFileID>] [folderid <DriveFolderID>]
+<DriveActivityAction> ::=
+        comment|
+        create|
+        delete|trash|
+        dlpchange|
+        edit|
+        emptytrash|
+        move|
+        permissionchange|
+        reference|
+        rename|
+        restore|untrash|
+        settingschange|
+        upload
+<DriveActivityActionList> ::= "<DriveActivityAction>(,<DriveActivityAction>)*"
+
+gam <UserTypeEntity> print|show driveactivity [v2] [todrive <ToDriveAttributes>*]
+        [(fileid <DriveFileID>) | (folderid <DriveFolderID>) |
+         (drivefilename <DriveFileName>) | (drivefoldername <DriveFolderName>) | (query <QueryDriveFile>)]
+        [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [action|actions [not] <DriveActivityActionList>]
+        [formatjson] [quotechar <Character>]
 
 <DriveSettingsFieldName> ::=
         appinstalled|

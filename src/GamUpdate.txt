@@ -1,3 +1,13 @@
+4.65.29
+
+Google has introduced Drive Activity API v2; it adds time and action filtering and has reorganized the format of the data.
+Drive Activity API v1 will be deprecated in December 2019. GAMADV-XTD supports both versions of the API.
+* https://developers.google.com/drive/activity/v2/migrating
+* https://developers.google.com/drive/activity/v2/reference/rest/v2/activity/query
+* https://github.com/taers232c/GAMADV-XTD/wiki/Users-Drive-Activity-Settings
+
+Code cleanup.
+
 4.65.28
 
 Changed code in gam undelete user to drop requirement that OUs with spaces require two levels of quoting.
