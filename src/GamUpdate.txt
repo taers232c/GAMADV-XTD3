@@ -1,3 +1,10 @@
+4.65.30
+
+Added fullpath option to gam print filelist. Currently, if you use the select and filepath options,
+GAMADV-XTD only displays file path information back to the selected file or folder. With the fullpath option,
+GAMADV-XTD will display information as far back to the root (My Drive or Team Drive) as possible.
+* https://github.com/taers232c/GAMADV-XTD/wiki/Users-Drive-Files
+
 4.65.29
 
 Google has introduced Drive Activity API v2; it adds time and action filtering and has reorganized the format of the data.

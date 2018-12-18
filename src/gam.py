@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.29'
+__version__ = u'4.65.30'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -26836,45 +26836,49 @@ def doShowTeamDriveThemes():
 def initFilePathInfo():
   return {u'ids': {}, u'allPaths': {}, u'localPaths': None}
 
-def getFilePaths(drive, fileTree, initialResult, filePathInfo):
+def getFilePaths(drive, fileTree, initialResult, filePathInfo, addParentsToTree=False):
+  def _getParentName(result):
+    if (result[u'mimeType'] == MIMETYPE_GA_FOLDER) and (result[VX_FILENAME] == TEAM_DRIVE) and result.get(u'teamDriveId'):
+      parentName = _getTeamDriveNameFromId(drive, result[u'teamDriveId'])
+      if parentName != TEAM_DRIVE:
+        return u'TeamDrive({0})'.format(parentName)
+    return result[VX_FILENAME]
+
   def _followParent(paths, parentId):
     result = None
     paths.setdefault(parentId, {})
     if fileTree:
       parentEntry = fileTree.get(parentId)
-      if parentEntry:
-        if parentEntry[u'info'][VX_FILENAME] == parentEntry[u'info'][u'id']:
-          try:
-            result = callGAPI(drive.files(), u'get',
-                              throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
-                              fileId=parentId, fields=VX_FILENAME_PARENTS_MIMETYPE, supportsTeamDrives=True)
-            parentEntry[u'info'][VX_FILENAME] = result[VX_FILENAME]
-            parentEntry[u'info'][u'parents'] = result.get(u'parents', [])
-          except (GAPI.fileNotFound, GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
-            pass
-        filePathInfo[u'ids'][parentId] = parentEntry[u'info'][VX_FILENAME]
-        parents = parentEntry[u'info'].get(u'parents', [])
-      else:
-        return
+      if not parentEntry:
+        if not addParentsToTree:
+          return
+        parentEntry = fileTree[parentId] = {u'info': {u'id': parentId, VX_FILENAME: parentId, u'mimeType': MIMETYPE_GA_FOLDER}, u'children': []}
+      if parentEntry[u'info'][VX_FILENAME] == parentEntry[u'info'][u'id']:
+        try:
+          result = callGAPI(drive.files(), u'get',
+                            throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
+                            fileId=parentId, fields=VX_FILENAME_PARENTS_MIMETYPE_TEAMDRIVEID, supportsTeamDrives=True)
+          parentEntry[u'info'][VX_FILENAME] = _getParentName(result)
+          parentEntry[u'info'][u'parents'] = result.get(u'parents', [])
+        except (GAPI.fileNotFound, GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
+          pass
+      filePathInfo[u'ids'][parentId] = parentEntry[u'info'][VX_FILENAME]
+      parents = parentEntry[u'info'].get(u'parents', [])
     else:
       try:
         result = callGAPI(drive.files(), u'get',
                           throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
                           fileId=parentId, fields=VX_FILENAME_PARENTS_MIMETYPE_TEAMDRIVEID, supportsTeamDrives=True)
-        filePathInfo[u'ids'][parentId] = result[VX_FILENAME]
+        filePathInfo[u'ids'][parentId] = _getParentName(result)
         parents = result.get(u'parents', [])
       except (GAPI.fileNotFound, GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
         return
-    if parents:
-      for lparentId in parents:
-        if lparentId not in filePathInfo[u'allPaths']:
-          _followParent(paths[parentId], lparentId)
-          filePathInfo[u'allPaths'][lparentId] = paths[parentId][lparentId]
-        else:
-          paths[parentId][lparentId] = filePathInfo[u'allPaths'][lparentId]
-    else:
-      if result and (result[u'mimeType'] == MIMETYPE_GA_FOLDER) and (result[VX_FILENAME] == TEAM_DRIVE) and result.get(u'teamDriveId'):
-        filePathInfo[u'ids'][parentId] = _getTeamDriveNameFromId(drive, result[u'teamDriveId'])
+    for lparentId in parents:
+      if lparentId not in filePathInfo[u'allPaths']:
+        _followParent(paths[parentId], lparentId)
+        filePathInfo[u'allPaths'][lparentId] = paths[parentId][lparentId]
+      else:
+        paths[parentId][lparentId] = filePathInfo[u'allPaths'][lparentId]
 
   def _makeFilePaths(localPaths, fplist, filePaths, name):
     for k, v in iteritems(localPaths):
@@ -28055,7 +28059,7 @@ FILELIST_FIELDS_TITLES = [u'id', u'mimeType', u'parents']
 #	  (select <DriveFileEntityListTree> [selectsubquery <QueryDriveFile>] [depth <Number>] [showparent])]
 #	[showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
 #	(<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
-#	[filepath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [quotechar <Character>]
+#	[filepath|fullpath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [quotechar <Character>]
 def printFileList(users):
   def _setSelectionFields():
     if fileIdEntity:
@@ -28149,7 +28153,7 @@ def printFileList(users):
 
   todrive = {}
   titles, csvRows = initializeTitlesCSVfile([u'Owner',])
-  allfields = buildTree = filepath = getTeamDriveNames = onlyTeamDrives = showParent = False
+  allfields = buildTree = filepath = fullpath = getTeamDriveNames = onlyTeamDrives = showParent = False
   maxdepth = -1
   fieldsList = []
   orderByList = []
@@ -28200,6 +28204,8 @@ def printFileList(users):
       _getDriveFieldSubField(myarg, fieldsList, parentsSubFields)
     elif myarg == u'filepath':
       filepath = True
+    elif myarg == u'fullpath':
+      filepath = fullpath = True
     elif myarg == u'buildtree':
       buildTree = True
     elif myarg == u'showparent':
@@ -28380,6 +28386,8 @@ def printFileList(users):
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
           break
+      if fullpath:
+        getFilePaths(drive, fileTree, fileEntryInfo, filePathInfo, True)
       if (showParent and fileEntryInfo[u'id'] != u'Orphans') or fileEntryInfo[u'mimeType'] != MIMETYPE_GA_FOLDER:
         if fileId not in filesPrinted:
           filesPrinted.add(fileId)
