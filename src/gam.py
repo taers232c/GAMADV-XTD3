@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.30'
+__version__ = u'4.65.31'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -14847,10 +14847,10 @@ def doShowGroupMembers():
     if depth == 0:
       printEntity([Ent.GROUP, groupEmail], i, count)
     Ind.Increment()
-    for member in sorted(membersList, key=lambda k: (_roleOrder(k.get(u'role', Ent.ROLE_MEMBER)), _typeOrder(k[u'type']), _statusOrder(k['status']))):
+    for member in sorted(membersList, key=lambda k: (_roleOrder(k.get(u'role', Ent.ROLE_MEMBER)), _typeOrder(k[u'type']), _statusOrder(k.get('status', u'')))):
       if _checkMemberIsSuspended(member, memberOptions[MEMBEROPTION_ISSUSPENDED]):
         if (member.get(u'role', Ent.ROLE_MEMBER) in rolesSet) or (member[u'type'] == u'GROUP'):
-          printKeyValueList([u'{0}, {1}, {2}, {3}'.format(member.get(u'role', Ent.ROLE_MEMBER), member[u'type'], member.get(u'email', member[u'id']), member[u'status'])])
+          printKeyValueList([u'{0}, {1}, {2}, {3}'.format(member.get(u'role', Ent.ROLE_MEMBER), member[u'type'], member.get(u'email', member[u'id']), member.get('status', u''))])
         if (member[u'type'] == u'GROUP') and (maxdepth == -1 or depth < maxdepth):
           _showGroup(member[u'email'], depth+1)
     Ind.Decrement()

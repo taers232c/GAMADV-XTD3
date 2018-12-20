@@ -1,3 +1,7 @@
+4.65.31
+
+Fixed bug in gam show group-members where a group member without a status caused a trap.
+
 4.65.30
 
 Added fullpath option to gam print filelist. Currently, if you use the select and filepath options,
