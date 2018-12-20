@@ -2547,13 +2547,13 @@ gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [retainname | (ne
          (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))
 
 gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [recursive [depth <Number>]] [summary [<Boolean>]]
-        <DriveFileCopyAttribute>*
+        <DriveFileCopyAttribute>* [mergewithparent [<Boolean>]]
         [duplicatefiles overwriteall|overwriteolder|duplicatename|uniquename|skip]
         [duplicatefolders merge|duplicatename|uniquename]
         [copytopfileparents all|none] [copytopfolderparents all|none]
         [copysubfileparents all|none|nonpath] [copysubfolderparents all|none|nonpath]
-        [copyfilepermissions <Boolean>]
-        [copytopfolderpermissions <Boolean>] [copysubfolderpermissions <Boolean>]
+        [copyfilepermissions [<Boolean>]]
+        [copytopfolderpermissions [<Boolean>]] [copysubfolderpermissions [<Boolean>]]
 
 <DriveFileMoveAttribute> ::=
         ((parentid <DriveFolderID>)|
@@ -2568,10 +2568,10 @@ gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileNam
          (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))
 
 gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>] [summary [<Boolean>]]
-        <DriveFileMoveAttribute>*
+        <DriveFileMoveAttribute>* [mergewithparent [<Boolean>]]
         [duplicatefiles overwriteall|duplicatename|uniquename]
         [duplicatefolders merge|duplicatename|uniquename]
-        [retainsourcefolders]
+        [retainsourcefolders [<Boolean>]]
 
 gam <UserTypeEntity> get drivefile <DriveFileEntity> [revision <DriveFileRevisionID>] [format <FileFormatList>]
         [targetfolder <FilePath>] [targetname <FileName>] [overwrite [<Boolean>]] [showprogress [<Boolean>]]
