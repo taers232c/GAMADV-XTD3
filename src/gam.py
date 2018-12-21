@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.32'
+__version__ = u'4.65.33'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2845,6 +2845,8 @@ def checkGDataError(e, service):
       return (GDATA.QUOTA_EXCEEDED, body)
     if reason == u'Bad Gateway':
       return (GDATA.BAD_GATEWAY, reason)
+    if reason == u'Gateway Timeout':
+      return (GDATA.GATEWAY_TIMEOUT, reason)
     if reason == u'Service Unavailable':
       return (GDATA.SERVICE_UNAVAILABLE, reason)
     if reason == u'Service <jotspot> disabled by G Suite admin.':
@@ -3034,6 +3036,8 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False, service=None):
       return (e.resp[u'status'], GAPI.QUOTA_EXCEEDED, str(e.content))
     if (e.resp[u'status'] == u'502') and (u'Bad Gateway' in str(e.content)):
       return (e.resp[u'status'], GAPI.BAD_GATEWAY, str(e.content))
+    if (e.resp[u'status'] == u'504') and (u'Gateway Timeout' in e.content):
+      return (e.resp[u'status'], GAPI.GATEWAY_TIMEOUT, e.content)
     if (e.resp[u'status'] == u'403') and (u'Invalid domain.' in str(e.content)):
       error = {u'error': {u'code': 403, u'errors': [{u'reason': GAPI.NOT_FOUND, u'message': u'Domain not found'}]}}
     elif (e.resp[u'status'] == u'403') and (u'Domain cannot use apis.' in str(e.content)):
