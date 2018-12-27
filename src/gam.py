@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.33'
+__version__ = u'4.65.34'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -11778,7 +11778,7 @@ def updateCrOSDevices(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
   update_body = {}
   action_body = {}
-  orgUnitPath = None
+  orgUnitPath = updateNotes = None
   ackWipe = quickCrOSMove = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -11827,6 +11827,8 @@ def updateCrOSDevices(entityList):
       function = u'update'
       parmId = u'deviceId'
       kwargs = {parmId: None, u'body': update_body, u'fields': u''}
+      if update_body.get(u'notes', u'').find(u'#notes#') != -1:
+        updateNotes = update_body[u'notes']
     if orgUnitPath:
       Act.Set(Act.ADD)
       _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, 0, 0, entityList, quickCrOSMove)
@@ -11837,6 +11839,11 @@ def updateCrOSDevices(entityList):
     i += 1
     kwargs[parmId] = deviceId
     try:
+      if updateNotes:
+        oldNotes = callGAPI(cd.chromeosdevices(), u'get',
+                            throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                            customerId=GC.Values[GC.CUSTOMER_ID], deviceId=deviceId, fields=u'notes')[u'notes']
+        update_body[u'notes'] = updateNotes.replace(u'#notes#', oldNotes)
       callGAPI(cd.chromeosdevices(), function,
                throw_reasons=[GAPI.INVALID, GAPI.CONDITION_NOT_MET, GAPI.INVALID_ORGUNIT,
                               GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
@@ -29315,7 +29322,7 @@ def copyDriveFile(users):
             for parentId in childParents:
               if parentId != folderId or copyMoveOptions[u'copySubFolderParents'] == COPY_ALL_PARENTS:
                 child[u'parents'].append(parentId)
-            _recursiveFolderCopy(drive, user, i, count, k, kcount, child, childTitle, subTargetChildren, depth, False)
+          _recursiveFolderCopy(drive, user, i, count, k, kcount, child, childTitle, subTargetChildren, depth, False)
         else:
           if not child.pop(u'capabilities')[u'canCopy']:
             entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], Msg.NOT_COPYABLE, k, kcount)
