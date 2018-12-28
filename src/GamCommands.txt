@@ -871,7 +871,7 @@ gam calendar|calendars <CalendarEntity> modify <CalendarSettings>+
 <CrOSAttribute> ::=
         (asset|assetid|tag <String>)|
         (location <String>)|
-        (notes <String>)|
+        (notes <String>)|(updatenotes <String>)|
         (org|ou <OrgUnitPath>)|
         (user <String>)
 

@@ -1,12 +1,12 @@
 4.65.34
 
-Updated `gam update cros` to allow updating of the `notes` field while retaining the existing value.
-If you specify the `notes` field and it contains the string `#notes#`, the existing notes value will replace `#notes#`.
+Added `updatenotes <String>` option to `gam update cros` to allow updating of the `notes` field while retaining the existing value.
+If you specify the `updatenotes <String>` option and it contains the string `#notes#`, the existing notes value will replace `#notes#`.
 This requires an additional API to get the existing value.
 For example, if you have a CSV file, UpdateCrOS.csv with two columns: deviceId,notes
 this command will add a new line of notes to the front of the existing notes:
 
-gam csv UpdateCrOS.csv gam update cros ~deviceId notes "~~notes~~\n#notes#"
+gam csv UpdateCrOS.csv gam update cros ~deviceId updatenotes "~~notes~~\n#notes#"
 
 4.65.33
 

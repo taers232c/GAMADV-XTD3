@@ -11754,6 +11754,7 @@ UPDATE_CROS_ARGUMENT_TO_PROPERTY_MAP = {
   u'orgunitpath': u'orgUnitPath',
   u'ou': u'orgUnitPath',
   u'tag': u'annotatedAssetId',
+  u'updatenotes': u'notes',
   u'user': u'annotatedUser',
   }
 
@@ -11788,6 +11789,7 @@ def updateCrOSDevices(entityList):
         orgUnitPath = getOrgUnitItem()
       elif up == u'notes':
         update_body[up] = getStringWithCRsNLs()
+        updateNotes = update_body[up] if myarg == u'updatenotes' and update_body[up].find(u'#notes#') != -1 else None
       else:
         update_body[up] = getString(Cmd.OB_STRING, minLen=[0, 1][up == u'annotatedAssetId'])
     elif myarg == u'action':
@@ -11827,8 +11829,6 @@ def updateCrOSDevices(entityList):
       function = u'update'
       parmId = u'deviceId'
       kwargs = {parmId: None, u'body': update_body, u'fields': u''}
-      if update_body.get(u'notes', u'').find(u'#notes#') != -1:
-        updateNotes = update_body[u'notes']
     if orgUnitPath:
       Act.Set(Act.ADD)
       _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, 0, 0, entityList, quickCrOSMove)
