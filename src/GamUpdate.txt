@@ -1,3 +1,17 @@
+4.65.35
+
+Updated gam report users to support new orgUnitID argument in Reports API.
+
+gam report users|user [todrive <ToDriveAttribute>*] [date <Date>] [nodatechange | (fulldatarequired all|<ReportsAppList>)]
+        [(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)] (filtertime.* <Time>)* [filter|filters <String>] [fields|parameters <String>]
+        [maxactivities <Number>] [maxresults <Number>]
+
+Select the users for whom information is desired.
+* `user all` - All users, the default
+* `user <UserItem>` - An individual user
+* `orgunit|org|ou <OrgUnitPath>` - All users in the specified OU
+* `select <UserTypeEntity>` - A selected collection of users, e.g., `select group staff@domain.com`
+
 4.65.34
 
 Added `updatenotes <String>` option to `gam update cros` to allow updating of the `notes` field while retaining the existing value.

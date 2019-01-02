@@ -1769,7 +1769,7 @@ gam print printjob|printjobs [todrive <ToDriveAttribute>*] [printer|printerid <P
 <ReportsAppList> ::= "<ReportsApp>(,<ReportsApp>)*"
 
 gam report users|user [todrive <ToDriveAttribute>*] [date <Date>] [nodatechange | (fulldatarequired all|<ReportsAppList>)]
-        [(user all|<UserItem>)|(select <UserTypeEntity>)] (filtertime.* <Time>)* [filter|filters <String>] [fields|parameters <String>]
+        [(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)] [filtertime.* <Time>] [filter|filters <String>] [fields|parameters <String>]
         [maxactivities <Number>] [maxresults <Number>]
 gam report customers|customer|domain [todrive <ToDriveAttribute>*] [date <Date>] [nodatechange | (fulldatarequired all|<ReportsAppList>)]
         [fields|parameters <String>]

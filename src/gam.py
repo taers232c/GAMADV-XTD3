@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.34'
+__version__ = u'4.65.35'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6353,7 +6353,7 @@ REPORT_FULLDATA_APPS = [
 REPORT_ACTIVITIES_TIME_OBJECTS = set([u'time',])
 
 # gam report <users|user> [todrive <ToDriveAttributes>*] [date <Date>] [nodatechange | (fulldatarequired all|<ReportAppsList>)]
-#	[user all|<UserItem>] [select <UserTypeEntity>] [filtertime.* <Time>] [filter|filters <String>] [fields|parameters <String>]
+#	[(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)] [filtertime.* <Time>] [filter|filters <String>] [fields|parameters <String>]
 #	[maxactivities <Number>] [maxresults <Number>]
 # gam report <customers|customer|domain> [todrive <ToDriveAttributes>*] [date <Date>] [nodatechange | (fulldatarequired all|<ReportAppsList>)]
 #	[fields|parameters <String>]
@@ -6366,7 +6366,7 @@ def doReport():
   customerId = GC.Values[GC.CUSTOMER_ID]
   if customerId == GC.MY_CUSTOMER:
     customerId = None
-  filters = parameters = actorIpAddress = eventName = None
+  filters = parameters = actorIpAddress = eventName = orgUnit = orgUnitId = None
   startEndTime = StartEndTime(u'start', u'end')
   filterTimes = {}
   tryDate = todaysDate().strftime(YYYYMMDD_FORMAT)
@@ -6385,6 +6385,8 @@ def doReport():
       todrive = getTodriveParameters()
     elif usageReports and myarg == u'date':
       tryDate = getYYYYMMDD()
+    elif myarg in [u'orgunit', u'org', u'ou']:
+      orgUnit, orgUnitId = getOrgUnitId()
     elif usageReports and myarg == u'nodatechange':
       noDateChange = True
     elif usageReports and myarg in [u'fields', u'parameters']:
@@ -6430,14 +6432,16 @@ def doReport():
     if select:
       page_message = None
       normalizeUsers = True
+      orgUnitId = None
     elif userKey == u'all':
-      printGettingAllAccountEntities(Ent.USER)
+      printGettingEntityItemForWhom(Ent.REPORT, u'users in orgUnit {0}'.format(orgUnit) if orgUnit else u'all users')
       page_message = getPageMessage(showTotal=False)
       users = [u'all']
     else:
       Ent.SetGetting(Ent.USER)
       page_message = getPageMessage(showTotal=False)
       users = [normalizeEmailAddressOrUID(userKey)]
+      orgUnitId = None
     titles, csvRows = initializeTitlesCSVfile([u'email', u'date'])
     i = 0
     count = len(users)
@@ -6445,13 +6449,14 @@ def doReport():
       i += 1
       if normalizeUsers:
         user = normalizeEmailAddressOrUID(user)
-      printGettingEntityItemForWhom(Ent.REPORT, user, i, count)
+      if user != u'all':
+        printGettingEntityItemForWhom(Ent.REPORT, user, i, count)
       while True:
         try:
           if fullDataRequired is not None:
             warnings = callGAPIitems(rep.userUsageReport(), u'get', u'warnings',
                                      throw_reasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
-                                     userKey=user, date=tryDate, customerId=customerId, fields=u'warnings')
+                                     userKey=user, date=tryDate, customerId=customerId, orgUnitID=orgUnitId, fields=u'warnings')
             fullData, tryDate = _checkFullDataAvailable(warnings, tryDate, fullDataRequired)
             if fullData < 0:
               printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_REPORT_AVAILABLE.format(report))
@@ -6461,7 +6466,7 @@ def doReport():
           usage = callGAPIpages(rep.userUsageReport(), u'get', u'usageReports',
                                 page_message=page_message, maxItems=maxActivities,
                                 throw_reasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
-                                userKey=user, date=tryDate, customerId=customerId, filters=filters, parameters=parameters,
+                                userKey=user, date=tryDate, customerId=customerId, orgUnitID=orgUnitId, filters=filters, parameters=parameters,
                                 maxResults=maxResults)
         except GAPI.invalid as e:
           tryDate = _adjustTryDate(str(e), noDateChange)
