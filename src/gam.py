@@ -26254,7 +26254,7 @@ class MimeTypeCheck():
       return fileEntry[u'mimeType'] in self.mimeTypes
     return fileEntry[u'mimeType'] not in self.mimeTypes
 
-def initializeDriveFileAttributes():
+def initDriveFileAttributes():
   return {DFA_LOCALFILEPATH: None, DFA_LOCALFILENAME: None, DFA_LOCALMIMETYPE: None,
           DFA_OCRLANGUAGE: None,
           DFA_PARENTID: None, DFA_PARENTQUERY: None,
@@ -28814,7 +28814,7 @@ def createDriveFile(users):
   media_body = None
   fileIdEntity = initDriveFileEntity()
   body = {}
-  parameters = initializeDriveFileAttributes()
+  parameters = initDriveFileAttributes()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'drivefilename':
@@ -28872,7 +28872,7 @@ def createDriveFile(users):
 def updateDriveFile(users):
   fileIdEntity = getDriveFileEntity()
   body = {}
-  parameters = initializeDriveFileAttributes()
+  parameters = initDriveFileAttributes()
   media_body = None
   assignLocalName = True
   operation = u'update'
@@ -29362,8 +29362,8 @@ def copyDriveFile(users):
   fileIdEntity = getDriveFileEntity()
   copyBody = {}
   parentBody = {}
-  parameters = initializeDriveFileAttributes()
-  copyParameters = initializeDriveFileAttributes()
+  parameters = initDriveFileAttributes()
+  copyParameters = initDriveFileAttributes()
   copyMoveOptions = DEFAULT_COPY_OPTIONS.copy()
   maxdepth = -1
   newFilename = None
@@ -29625,7 +29625,7 @@ def moveDriveFile(users):
 
   fileIdEntity = getDriveFileEntity()
   parentBody = {}
-  parameters = initializeDriveFileAttributes()
+  parameters = initDriveFileAttributes()
   copyMoveOptions = DEFAULT_COPY_OPTIONS.copy()
   newFilename = None
   newParentsSpecified = summary = False
@@ -31437,8 +31437,7 @@ def _createDriveFileACL(users, useDomainAdminAccess):
       roleLocation = Cmd.Location()
       body[u'role'] = getChoice(DRIVEFILE_ACL_ROLES_MAP, mapChoice=True)
       if body[u'role'] == u'owner':
-        sendNotificationEmail = True
-        _transferOwnership = True
+        sendNotificationEmail = _transferOwnership = True
     elif myarg in [u'expiration', u'expires']:
       expirationLocation = Cmd.Location()
       body[VX_EXPIRATION_TIME] = getTimeOrDeltaFromNow()
@@ -31477,7 +31476,7 @@ def _createDriveFileACL(users, useDomainAdminAccess):
         if showTitles:
           fileName, entityType = _getDriveFileNameFromId(drive, fileId)
         permission = callGAPI(drive.permissions(), u'create',
-                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST,
+                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST, GAPI.OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED,
                                                                              GAPI.TEAMDRIVE_NOT_FOUND,
                                                                              GAPI.CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS,
                                                                              GAPI.OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
@@ -31492,6 +31491,7 @@ def _createDriveFileACL(users, useDomainAdminAccess):
         if showDetails:
           _showDriveFilePermission(permission, printKeys, timeObjects)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+              GAPI.ownershipChangeAcrossDomainNotPermitted,
               GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.ownerOnTeamDriveItemNotSupported,
               GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
               GAPI.teamDrivesFolderSharingNotSupported) as e:
@@ -31566,6 +31566,7 @@ def _updateDriveFileACLs(users, useDomainAdminAccess):
           fileName, entityType = _getDriveFileNameFromId(drive, fileId)
         permission = callGAPI(drive.permissions(), u'update',
                               throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID_OWNERSHIP_TRANSFER, GAPI.CANNOT_REMOVE_OWNER,
+                                                                             GAPI.OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED,
                                                                              GAPI.TEAMDRIVE_NOT_FOUND,
                                                                              GAPI.CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS,
                                                                              GAPI.OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
@@ -31581,7 +31582,7 @@ def _updateDriveFileACLs(users, useDomainAdminAccess):
         if showDetails:
           _showDriveFilePermission(permission, printKeys, timeObjects)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.badRequest, GAPI.invalidOwnershipTransfer, GAPI.cannotRemoveOwner,
+              GAPI.badRequest, GAPI.invalidOwnershipTransfer, GAPI.cannotRemoveOwner, GAPI.ownershipChangeAcrossDomainNotPermitted,
               GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.ownerOnTeamDriveItemNotSupported,
               GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
               GAPI.cannotModifyInheritedTeamDrivePermission, GAPI.fieldNotWritable) as e:
@@ -31644,15 +31645,18 @@ def _createDriveFilePermissions(users, useDomainAdminAccess):
     else:
       http_status, reason, message = checkGAPIError(exception)
       if reason not in GAPI.DEFAULT_RETRY_REASONS+[GAPI.SERVICE_LIMIT]:
-        errMsg = getHTTPError({}, http_status, reason, message)
-        entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        if reason in [GAPI.FORBIDDEN, GAPI.INVALID_SHARING_REQUEST, GAPI.OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED]:
+          entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], message, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        else:
+          errMsg = getHTTPError({}, http_status, reason, message)
+          entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
         if int(ri[RI_J]) == int(ri[RI_JCOUNT]):
           Ind.Decrement()
         return
       waitOnFailure(1, 10, reason, message)
       try:
         callGAPI(drive.permissions(), u'create',
-                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST,
+                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST, GAPI.OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED,
                                                                 GAPI.TEAMDRIVE_NOT_FOUND,
                                                                 GAPI.CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS,
                                                                 GAPI.OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
@@ -31665,7 +31669,7 @@ def _createDriveFilePermissions(users, useDomainAdminAccess):
                  fileId=ri[RI_ENTITY], sendNotificationEmail=sendNotificationEmail, emailMessage=emailMessage, body=_makePermissionBody(ri[RI_ITEM]), fields=u'')
         entityActionPerformed([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.invalidSharingRequest, GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains,
+              GAPI.invalidSharingRequest, GAPI.ownershipChangeAcrossDomainNotPermitted, GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains,
               GAPI.ownerOnTeamDriveItemNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
               GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.teamDrivesFolderSharingNotSupported,
               GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -31734,6 +31738,8 @@ def _createDriveFilePermissions(users, useDomainAdminAccess):
         if not svcparms[u'body']:
           entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, fileId, Ent.PERMITTEE, permission], Msg.INVALID, k, kcount)
           continue
+        if svcparms[u'body'][u'role'] == u'owner':
+          svcparms[u'transferOwnership'] = svcparms[u'sendNotificationEmail'] = True
         dbatch.add(method(**svcparms), request_id=batchRequestID(fileId, j, jcount, k, kcount, permission))
         bcount += 1
         if bcount >= GC.Values[GC.BATCH_SIZE]:
@@ -31824,7 +31830,7 @@ def _deletePermissions(users, useDomainAdminAccess):
       if reason not in GAPI.DEFAULT_RETRY_REASONS+[GAPI.SERVICE_LIMIT]:
         if reason == GAPI.PERMISSION_NOT_FOUND:
           entityDoesNotHaveItemWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMISSION_ID, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
-        elif reason == GAPI.CANNOT_REMOVE_OWNER:
+        elif reason in [GAPI.CANNOT_REMOVE_OWNER, GAPI.INSUFFICIENT_FILE_PERMISSIONS]:
           entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMISSION_ID, ri[RI_ITEM]], message, int(ri[RI_J]), int(ri[RI_JCOUNT]))
         else:
           errMsg = getHTTPError({}, http_status, reason, message)
@@ -33160,7 +33166,7 @@ def showProfile(users):
 #	[parentid <DriveFolderID>] | [parentname <DriveFolderName>] | [anyownerparentname <DriveFolderName>]
 #	[teamdriveparentid <DriveFolderID>] [teamdriveparent <TeamDriveName>] [teamdriveparentname <DriveFolderName>]
 def createSheet(users):
-  parameters = initializeDriveFileAttributes()
+  parameters = initDriveFileAttributes()
   parentBody = {}
   changeParents = False
   addParents = u''
@@ -38070,7 +38076,7 @@ USER_COMMANDS_OBJ_ALIASES = {
   }
 
 def showAPICallsRetryData():
-  if GC.Values[GC.SHOW_API_CALLS_RETRY_DATA] and GM.Globals[GM.API_CALLS_RETRY_DATA]:
+  if GC.Values.get(GC.SHOW_API_CALLS_RETRY_DATA) and GM.Globals[GM.API_CALLS_RETRY_DATA]:
     Ind.Reset()
     writeStderr(Msg.API_CALLS_RETRY_DATA)
     Ind.Increment()

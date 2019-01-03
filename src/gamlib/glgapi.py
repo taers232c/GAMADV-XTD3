@@ -98,6 +98,7 @@ OPERATION_NOT_SUPPORTED = u'operationNotSupported'
 ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED = u'organizerOnNonTeamDriveItemNotSupported'
 ORGUNIT_NOT_FOUND = u'orgunitNotFound'
 OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED = u'ownerOnTeamDriveItemNotSupported'
+OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED = u'ownershipChangeAcrossDomainNotPermitted'
 PERMISSION_DENIED = u'permissionDenied'
 PERMISSION_NOT_FOUND = u'permissionNotFound'
 PHOTO_NOT_FOUND = u'photoNotFound'
@@ -367,6 +368,8 @@ class orgunitNotFound(Exception):
   pass
 class ownerOnTeamDriveItemNotSupported(Exception):
   pass
+class ownershipChangeAcrossDomainNotPermitted(Exception):
+  pass
 class permissionDenied(Exception):
   pass
 class permissionNotFound(Exception):
@@ -504,6 +507,7 @@ REASON_EXCEPTION_MAP = {
   ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED: organizerOnNonTeamDriveItemNotSupported,
   ORGUNIT_NOT_FOUND: orgunitNotFound,
   OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED: ownerOnTeamDriveItemNotSupported,
+  OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED: ownershipChangeAcrossDomainNotPermitted,
   PERMISSION_DENIED: permissionDenied,
   PERMISSION_NOT_FOUND: permissionNotFound,
   PHOTO_NOT_FOUND: photoNotFound,
