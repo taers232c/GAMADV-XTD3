@@ -390,6 +390,7 @@ class GamCLArgs(object):
   ARG_OUTREE = u'outree'
   ARG_OWNERSHIP = u'ownership'
   ARG_PARTICIPANTS = u'participants'
+  ARG_PERMISSION = u'permission'
   ARG_PERMISSIONS = u'permissions'
   ARG_PHOTO = u'photo'
   ARG_POP = u'pop'

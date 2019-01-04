@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.35'
+__version__ = u'4.65.36'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -32357,8 +32357,7 @@ def createTeamDrive(users):
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
 
-# gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>] [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
-def updateTeamDrive(users):
+def _updateTeamDrive(users, useDomainAdminAccess):
   fileIdEntity = getTeamDriveEntity()
   body = {}
   while Cmd.ArgumentsRemaining():
@@ -32369,24 +32368,38 @@ def updateTeamDrive(users):
       pass
     elif _getTeamDriveCapabilitiesRestrictions(myarg, body):
       pass
+    elif myarg in [u'adminaccess', u'asadmin']:
+      useDomainAdminAccess = True
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, drive = _validateUserTeamDrive(user, i, count, fileIdEntity)
+    user, drive = _validateUserTeamDrive(user, i, count, fileIdEntity, useDomainAdminAccess=useDomainAdminAccess)
     if not drive:
       continue
     try:
       teamDriveId = fileIdEntity[u'teamdrive'][u'teamDriveId']
       callGAPI(drive.teamdrives(), u'update',
                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
-               teamDriveId=teamDriveId, body=body)
+               useDomainAdminAccess=useDomainAdminAccess, teamDriveId=teamDriveId, body=body)
       entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
     except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.forbidden, GAPI.badRequest) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+
+# gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [adminaccess|asadmin] [name <Name>]
+#	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+#	[<TeamDriveRestrictionsSubfieldName> <Boolean>]
+def updateTeamDrive(users):
+  _updateTeamDrive(users, False)
+
+# gam update teamdrive <TeamDriveEntity> [name <Name>]
+#	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+#	[<TeamDriveRestrictionsSubfieldName> <Boolean>]
+def doUpdateTeamDrive():
+  _updateTeamDrive([_getValueFromOAuth(u'email')], True)
 
 # gam <UserTypeEntity> delete teamdrive <TeamDriveEntity>
 def deleteTeamDrive(users):
@@ -37424,6 +37437,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_SCHEMA:		doUpdateUserSchemas,
       Cmd.ARG_SITE:		doUpdateDomainSites,
       Cmd.ARG_SITEACL:		doProcessDomainSiteACLs,
+      Cmd.ARG_TEAMDRIVE:	doUpdateTeamDrive,
       Cmd.ARG_USER:		doUpdateUser,
       Cmd.ARG_USERS:		doUpdateUsers,
       Cmd.ARG_VAULTHOLD:	doUpdateVaultHold,
@@ -37802,7 +37816,7 @@ USER_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_GUARDIANINVITATION: 	inviteGuardians,
   Cmd.ARG_LABEL:	createLabel,
   Cmd.ARG_LICENSE:	createLicense,
-  Cmd.ARG_PERMISSIONS:	createDriveFilePermissions,
+  Cmd.ARG_PERMISSION:	createDriveFilePermissions,
   Cmd.ARG_SENDAS:	createSendAs,
   Cmd.ARG_SHEET:	createSheet,
   Cmd.ARG_SITE:		createUserSite,
@@ -37847,7 +37861,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_LABEL:		deleteLabel,
       Cmd.ARG_LICENSE:		deleteLicense,
       Cmd.ARG_MESSAGE:		processMessages,
-      Cmd.ARG_PERMISSIONS:	deletePermissions,
+      Cmd.ARG_PERMISSION:	deletePermissions,
       Cmd.ARG_PHOTO:		deletePhoto,
       Cmd.ARG_SENDAS:		deleteSendAs,
       Cmd.ARG_SMIME:		deleteSmime,
@@ -38060,6 +38074,7 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_MEMBERS:	Cmd.ARG_GROUPMEMBERS,
   Cmd.ARG_MESSAGES:	Cmd.ARG_MESSAGE,
   Cmd.ARG_OAUTH:	Cmd.ARG_TOKEN,
+  Cmd.ARG_PERMISSIONS:	Cmd.ARG_PERMISSION,
   Cmd.ARG_POP3:		Cmd.ARG_POP,
   Cmd.ARG_SECCALS:	Cmd.ARG_CALENDAR,
   Cmd.ARG_SHEETS:	Cmd.ARG_SHEET,

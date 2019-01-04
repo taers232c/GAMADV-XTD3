@@ -1,3 +1,14 @@
+4.65.36
+
+Added domain administrator access for updating basic Team Drive settings.
+
+gam update teamdrive <TeamDriveEntity> [name <Name>]
+        [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+        [<TeamDriveRestrictionsSubfieldName> <Boolean>]
+gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [adminaccess|asadmin] [name <Name>]
+        [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+        [<TeamDriveRestrictionsSubfieldName> <Boolean>]
+
 4.65.35
 
 Updated gam report users to support new orgUnitID argument in Reports API.

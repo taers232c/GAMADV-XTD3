@@ -1968,7 +1968,16 @@ gam [<UserTypeEntity>] print siteacls <SiteEntity> [todrive <ToDriveAttribute>*]
 
 In these commands, the Google administrator named in oauth2.txt is used.
 
+<TeamDriveRestrictionsSubfieldName> ::=
+        restrictions.adminmanagedrestrictions|
+        restrictions.copyrequireswriterpermission|
+        restrictions.domainusersonly|
+        restrictions.teammembersonly
+
 gam show teamdrivethemes
+gam update teamdrive <TeamDriveEntity> [name <Name>]
+        [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+        [<TeamDriveRestrictionsSubfieldName> <Boolean>]
 gam info teamdrive <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
 gam show teamdriveinfo <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
 gam print teamdrives [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [todrive <ToDriveAttribute>*]
@@ -3156,8 +3165,10 @@ gam <UserTypeEntity> show profile
         restrictions.teammembersonly
 
 gam <UserTypeEntity> show teamdrivethemes
-gam <UserTypeEntity> create|add teamdrive <Name> [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
-gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [name <Name>] [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+gam <UserTypeEntity> create|add teamdrive <Name>
+        [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [adminaccess|asadmin] [name <Name>]
+        [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         [<TeamDriveRestrictionsSubfieldName> <Boolean>]
 gam <UserTypeEntity> delete teamdrive <TeamDriveEntity>
 gam <UserTypeEntity> info teamdrive <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
