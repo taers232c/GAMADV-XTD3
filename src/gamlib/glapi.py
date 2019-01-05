@@ -39,7 +39,7 @@ GPLUS = u'plus'
 GROUPSMIGRATION = u'groupsmigration'
 GROUPSSETTINGS = u'groupssettings'
 LICENSING = u'licensing'
-#PEOPLE = u'people'
+PEOPLE = u'people'
 PUBSUB = u'pubsub'
 REPORTS = u'reports'
 RESELLER = u'reseller'
@@ -82,7 +82,7 @@ PROJECT_APIS = [
   u'groupsmigration.googleapis.com',
   u'groupssettings.googleapis.com',
   u'licensing.googleapis.com',
-#  u'people.googleapis.com',
+  u'people.googleapis.com',
   u'plus.googleapis.com',
   u'reseller.googleapis.com',
   u'sheets.googleapis.com',
@@ -121,7 +121,7 @@ _INFO = {
   GROUPSMIGRATION: {u'version': u'v1', u'credfam': FAM2_SCOPES},
   GROUPSSETTINGS: {u'version': u'v1', u'credfam': FAM2_SCOPES},
   LICENSING: {u'version': u'v1', u'credfam': FAM1_SCOPES},
-#  PEOPLE: {u'version': u'v1', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/contacts',]},
+  PEOPLE: {u'version': u'v1', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/contacts',]},
   REPORTS: {u'version': u'reports_v1', u'credfam': FAM2_SCOPES},
   RESELLER: {u'version': u'v1', u'credfam': FAM2_SCOPES},
   SHEETS: {u'version': u'v4', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/spreadsheets',]},
@@ -283,11 +283,11 @@ OAUTH2_SCOPES = [
    u'credfam': FAM1_SCOPES,
    u'subscopes': [],
    u'scope': u'https://www.googleapis.com/auth/apps.licensing'},
-#  {u'name': u'People API',
-#   u'api': PEOPLE,
-#   u'credfam': FAM2_SCOPES,
-#   u'subscopes': READONLY,
-#   u'scope': u'https://www.googleapis.com/auth/contacts'},
+  {u'name': u'People API',
+   u'api': PEOPLE,
+   u'credfam': FAM2_SCOPES,
+   u'subscopes': READONLY,
+   u'scope': u'https://www.googleapis.com/auth/contacts'},
   {u'name': u'Reports API - Audit Reports',
    u'api': REPORTS,
    u'credfam': FAM2_SCOPES,

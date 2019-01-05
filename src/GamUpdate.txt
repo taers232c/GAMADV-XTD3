@@ -1,3 +1,10 @@
+4.65.38
+
+Modified gam print group-members to use the People API to get member names for users not in the domain.
+To enable this feature you must perform the following commands:
+gam update project
+gam oauth create - Enable the People API
+
 4.65.37
 
 Simplified specifying Team Drive restrictions.

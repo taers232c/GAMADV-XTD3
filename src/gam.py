@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.37'
+__version__ = u'4.65.38'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -14668,7 +14668,22 @@ GROUPMEMBERS_DEFAULT_FIELDS = [u'id', u'role', u'group', u'email', u'type', u'st
 #	[roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
 #	[userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
 def doPrintGroupMembers():
+  def getNameFromPeople(memberId):
+    try:
+      info = callGAPI(people.people(), u'get',
+                      throw_reasons=[GAPI.NOT_FOUND],
+                      resourceName=u'people/{0}'.format(memberId), personFields=u'names')
+      if u'names' in info:
+        for sourceType in [u'PROFILE', u'CONTACT']:
+          for name in info[u'names']:
+            if name[u'metadata'][u'source'][u'type'] == sourceType:
+              return name[u'displayName']
+    except GAPI.notFound:
+      pass
+    return u''
+
   cd = buildGAPIObject(API.DIRECTORY)
+  people = None
   memberOptions = _initMemberOptions()
   groupColumn = True
   todrive = {}
@@ -14814,7 +14829,14 @@ def doPrintGroupMembers():
                 mbinfo.pop(u'name')
             addRowTitlesToCSVfile(flattenJSON(mbinfo, flattened=row), csvRows, titles)
             continue
-          except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+          except GAPI.userNotFound:
+            if memberOptions[MEMBEROPTION_MEMBERNAMES]:
+              if people is None:
+                people = buildGAPIObject(API.PEOPLE)
+              name = getNameFromPeople(memberId)
+              if name:
+                row[u'name'] = name
+          except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
             pass
         elif memberType == u'GROUP':
           if memberOptions[MEMBEROPTION_MEMBERNAMES]:
