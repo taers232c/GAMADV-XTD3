@@ -1962,17 +1962,17 @@ gam [<UserTypeEntity>] print siteacls <SiteEntity> [todrive <ToDriveAttribute>*]
         createdtime|
         id|
         name|
-        retrrictions|
+        restrictions|
         themeid
 <TeamDriveFieldNameList> ::= "<TeamDriveFieldName>(,<TeamDriveFieldName>)*"
 
 In these commands, the Google administrator named in oauth2.txt is used.
 
 <TeamDriveRestrictionsSubfieldName> ::=
-        restrictions.adminmanagedrestrictions|
-        restrictions.copyrequireswriterpermission|
-        restrictions.domainusersonly|
-        restrictions.teammembersonly
+        adminmanagedrestrictions|
+        copyrequireswriterpermission|
+        domainusersonly|
+        teammembersonly
 
 gam show teamdrivethemes
 gam update teamdrive <TeamDriveEntity> [name <Name>]

@@ -1,3 +1,18 @@
+4.65.37
+
+Simplified specifying Team Drive restrictions.
+<TeamDriveRestrictionsSubfieldName> ::=
+        adminmanagedrestrictions|
+        copyrequireswriterpermission|
+        domainusersonly|
+        teammembersonly
+* Previously, you had to enter: restrictions.<TeamDriveRestrictionsSubfieldName>
+* That is still supported but now you can just enter: <TeamDriveRestrictionsSubfieldName>
+* The following are equivalent:
+
+gam user user@domain.com update teamdrive <TeamDriveID> restrictions.domainusersonly false
+gam user user@domain.com update teamdrive <TeamDriveID> domainusersonly false
+
 4.65.36
 
 Fixed bug in gam print group-members where member name was not being printed when requested.

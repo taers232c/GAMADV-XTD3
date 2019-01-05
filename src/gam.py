@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.36'
+__version__ = u'4.65.37'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -32250,22 +32250,6 @@ def _getTeamDriveTheme(myarg, body):
     return False
   return True
 
-TEAMDRIVE_CAPABILITIES_MAP = {
-  u'canaddchildren': u'canAddChildren',
-  u'canchangeteamdrivebackground': u'canChangeTeamDriveBackground',
-  u'cancomment': u'canComment',
-  u'cancopy': u'canCopy',
-  u'candeleteteamdrive': u'canDeleteTeamDrive',
-  u'candownload': u'canDownload',
-  u'canedit': u'canEdit',
-  u'canlistchildren': u'canListChildren',
-  u'canmanagemembers': u'canManageMembers',
-  u'canreadrevisions': u'canReadRevisions',
-  u'canremovechildren': u'canRemoveChildren',
-  u'canrename': u'canRename',
-  u'canrenameteamdrive': u'canRenameTeamDrive',
-  u'canshare': u'canShare',
-  }
 TEAMDRIVE_RESTRICTIONS_MAP = {
   u'adminmanagedrestrictions': u'adminManagedRestrictions',
   u'copyrequireswriterpermission': u'copyRequiresWriterPermission',
@@ -32273,20 +32257,19 @@ TEAMDRIVE_RESTRICTIONS_MAP = {
   u'teammembersonly': u'teamMembersOnly',
   }
 
-def _getTeamDriveCapabilitiesRestrictions(myarg, body):
-  def _getSubField(fieldMap):
-    field, subField = myarg.split(u'.', 1)
-    if subField in fieldMap:
-      body.setdefault(field, {})
-      body[field][fieldMap[subField]] = getBoolean()
-    else:
-      invalidChoiceExit(fieldMap, True)
+def _getTeamDriveRestrictions(myarg, body):
+  def _setRestriction(restriction):
+    body.setdefault(u'restrictions', {})
+    body[u'restrictions'][TEAMDRIVE_RESTRICTIONS_MAP[restriction]] = getBoolean()
 
   if myarg.startswith(u'restrictions.'):
-    _getSubField(TEAMDRIVE_RESTRICTIONS_MAP)
-    return True
-  if myarg.startswith(u'capabilities.'):
-    _getSubField(TEAMDRIVE_CAPABILITIES_MAP)
+    _, subField = myarg.split(u'.', 1)
+    if subField in TEAMDRIVE_RESTRICTIONS_MAP:
+      _setRestriction(subField)
+      return True
+    invalidChoiceExit(TEAMDRIVE_RESTRICTIONS_MAP, True)
+  if myarg in TEAMDRIVE_RESTRICTIONS_MAP:
+    _setRestriction(myarg)
     return True
   return False
 
@@ -32361,7 +32344,7 @@ def _updateTeamDrive(users, useDomainAdminAccess):
       body[VX_FILENAME] = getString(Cmd.OB_NAME, checkBlank=True)
     elif _getTeamDriveTheme(myarg, body):
       pass
-    elif _getTeamDriveCapabilitiesRestrictions(myarg, body):
+    elif _getTeamDriveRestrictions(myarg, body):
       pass
     elif myarg in [u'adminaccess', u'asadmin']:
       useDomainAdminAccess = True
