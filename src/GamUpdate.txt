@@ -1,7 +1,8 @@
 4.65.36
 
-Added domain administrator access for updating basic Team Drive settings.
+Fixed bug in gam print group-members where member name was not being printed when requested.
 
+Added domain administrator access for updating basic Team Drive settings.
 gam update teamdrive <TeamDriveEntity> [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         [<TeamDriveRestrictionsSubfieldName> <Boolean>]

@@ -26,7 +26,6 @@ class GamAction(object):
   ACCEPT = u'acpt'
   ADD = u'add '
   ADD_PREVIEW = u'addp'
-  ADD_OWNERSHIP = u'adow'
   APPEND = u'apnd'
   ARCHIVE = u'arch'
   BACKUP = u'back'
@@ -104,7 +103,6 @@ class GamAction(object):
     ACCEPT: [u'Accepted', u'Accept'],
     ADD: [u'Added', u'Add'],
     ADD_PREVIEW: [u'Added (Preview)', u'Add (Preview)'],
-    ADD_OWNERSHIP: [u'Ownership Added', u'Add Ownership'],
     APPEND: [u'Appended', u'Append'],
     ARCHIVE: [u'Archived', u'Archive'],
     BACKUP: [u'Backed up', u'Backup'],

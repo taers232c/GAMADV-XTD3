@@ -68,6 +68,7 @@ FORBIDDEN = u'forbidden'
 GATEWAY_TIMEOUT = u'gatewayTimeout'
 GROUP_NOT_FOUND = u'groupNotFound'
 ILLEGAL_ACCESS_ROLE_FOR_DEFAULT = u'illegalAccessRoleForDefault'
+INSUFFICIENT_ADMINISTRATOR_PRIVILEGES = u'insufficientAdministratorPrivileges'
 INSUFFICIENT_FILE_PERMISSIONS = u'insufficientFilePermissions'
 INSUFFICIENT_PERMISSIONS = u'insufficientPermissions'
 INTERNAL_ERROR = u'internalError'
@@ -91,6 +92,7 @@ INVALID_SHARING_REQUEST = u'invalidSharingRequest'
 LOGIN_REQUIRED = u'loginRequired'
 MEMBER_NOT_FOUND = u'memberNotFound'
 NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE = u'noListTeamDrivesAdministratorPrivilege'
+NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE = u'noManageTeamDriveAdministratorPrivilege'
 NOT_A_CALENDAR_USER = u'notACalendarUser'
 NOT_FOUND = u'notFound'
 NOT_IMPLEMENTED = u'notImplemented'
@@ -118,6 +120,7 @@ SERVICE_LIMIT = u'serviceLimit'
 SERVICE_NOT_AVAILABLE = u'serviceNotAvailable'
 SYSTEM_ERROR = u'systemError'
 TEAMDRIVE_ALREADY_EXISTS = u'teamDriveAlreadyExists'
+TEAMDRIVE_DOMAIN_USERS_ONLY_RESTRICTION = u'teamDriveDomainUsersOnlyRestriction'
 TEAMDRIVE_MEMBERSHIP_REQUIRED = u'teamDriveMembershipRequired'
 TEAMDRIVE_NOT_FOUND = u'teamDriveNotFound'
 TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED = u'teamDrivesFolderMoveInNotSupported'
@@ -138,6 +141,30 @@ DRIVE_USER_THROW_REASONS = [SERVICE_NOT_AVAILABLE, AUTH_ERROR, DOMAIN_POLICY]
 DRIVE_ACCESS_THROW_REASONS = DRIVE_USER_THROW_REASONS+[FILE_NOT_FOUND, FORBIDDEN, INTERNAL_ERROR, INSUFFICIENT_FILE_PERMISSIONS, UNKNOWN_ERROR, INVALID]
 DRIVE_COPY_THROW_REASONS = DRIVE_ACCESS_THROW_REASONS+[CANNOT_COPY_FILE, RESPONSE_PREPARATION_FAILURE, RATE_LIMIT_EXCEEDED, USER_RATE_LIMIT_EXCEEDED]
 DRIVE_GET_THROW_REASONS = DRIVE_USER_THROW_REASONS+[FILE_NOT_FOUND]
+DRIVE3_CREATE_ACL_THROW_REASONS = [INVALID_SHARING_REQUEST, OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED,
+                                   TEAMDRIVE_NOT_FOUND, TEAMDRIVE_DOMAIN_USERS_ONLY_RESTRICTION,
+                                   INSUFFICIENT_ADMINISTRATOR_PRIVILEGES,
+                                   CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS,
+                                   OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
+                                   ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
+                                   FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
+                                   FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE,
+                                   TEAMDRIVES_FOLDER_SHARING_NOT_SUPPORTED]
+DRIVE3_UPDATE_ACL_THROW_REASONS = [BAD_REQUEST, INVALID_OWNERSHIP_TRANSFER, CANNOT_REMOVE_OWNER,
+                                   OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED,
+                                   TEAMDRIVE_NOT_FOUND, TEAMDRIVE_DOMAIN_USERS_ONLY_RESTRICTION,
+                                   INSUFFICIENT_ADMINISTRATOR_PRIVILEGES,
+                                   CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS,
+                                   OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
+                                   ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
+                                   FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
+                                   FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE,
+                                   CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION,
+                                   FIELD_NOT_WRITABLE, PERMISSION_NOT_FOUND]
+DRIVE3_DELETE_ACL_THROW_REASONS = [BAD_REQUEST, CANNOT_REMOVE_OWNER,
+                                   CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION,
+                                   INSUFFICIENT_ADMINISTRATOR_PRIVILEGES,
+                                   TEAMDRIVE_NOT_FOUND, PERMISSION_NOT_FOUND]
 GMAIL_THROW_REASONS = [SERVICE_NOT_AVAILABLE, BAD_REQUEST]
 GMAIL_SMIME_THROW_REASONS = [SERVICE_NOT_AVAILABLE, BAD_REQUEST, INVALID_ARGUMENT, FORBIDDEN]
 GPLUS_THROW_REASONS = [SERVICE_NOT_AVAILABLE]
@@ -308,6 +335,8 @@ class groupNotFound(Exception):
   pass
 class illegalAccessRoleForDefault(Exception):
   pass
+class insufficientAdministratorPrivileges(Exception):
+  pass
 class insufficientFilePermissions(Exception):
   pass
 class insufficientPermissions(Exception):
@@ -353,6 +382,8 @@ class loginRequired(Exception):
 class memberNotFound(Exception):
   pass
 class noListTeamDrivesAdministratorPrivilege(Exception):
+  pass
+class noManageTeamDriveAdministratorPrivilege(Exception):
   pass
 class notACalendarUser(Exception):
   pass
@@ -405,6 +436,8 @@ class serviceNotAvailable(Exception):
 class systemError(Exception):
   pass
 class teamDriveAlreadyExists(Exception):
+  pass
+class teamDriveDomainUsersOnlyRestriction(Exception):
   pass
 class teamDriveMembershipRequired(Exception):
   pass
@@ -477,6 +510,7 @@ REASON_EXCEPTION_MAP = {
   FORBIDDEN: forbidden,
   GROUP_NOT_FOUND: groupNotFound,
   ILLEGAL_ACCESS_ROLE_FOR_DEFAULT: illegalAccessRoleForDefault,
+  INSUFFICIENT_ADMINISTRATOR_PRIVILEGES: insufficientAdministratorPrivileges,
   INSUFFICIENT_FILE_PERMISSIONS: insufficientFilePermissions,
   INSUFFICIENT_PERMISSIONS: insufficientPermissions,
   INTERNAL_ERROR: internalError,
@@ -500,6 +534,7 @@ REASON_EXCEPTION_MAP = {
   LOGIN_REQUIRED: loginRequired,
   MEMBER_NOT_FOUND: memberNotFound,
   NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE: noListTeamDrivesAdministratorPrivilege,
+  NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE: noManageTeamDriveAdministratorPrivilege,
   NOT_A_CALENDAR_USER: notACalendarUser,
   NOT_FOUND: notFound,
   NOT_IMPLEMENTED: notImplemented,
@@ -526,6 +561,7 @@ REASON_EXCEPTION_MAP = {
   SERVICE_NOT_AVAILABLE: serviceNotAvailable,
   SYSTEM_ERROR: systemError,
   TEAMDRIVE_ALREADY_EXISTS: teamDriveAlreadyExists,
+  TEAMDRIVE_DOMAIN_USERS_ONLY_RESTRICTION: teamDriveDomainUsersOnlyRestriction,
   TEAMDRIVE_MEMBERSHIP_REQUIRED: teamDriveMembershipRequired,
   TEAMDRIVE_NOT_FOUND: teamDriveNotFound,
   TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED: teamDrivesFolderMoveInNotSupported,

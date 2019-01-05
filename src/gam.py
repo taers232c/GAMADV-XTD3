@@ -14810,6 +14810,8 @@ def doPrintGroupMembers():
                               userKey=memberId, fields=userFields)
             if memberOptions[MEMBEROPTION_MEMBERNAMES]:
               row[u'name'] = mbinfo[u'name'].pop(u'fullName')
+              if not mbinfo[u'name']:
+                mbinfo.pop(u'name')
             addRowTitlesToCSVfile(flattenJSON(mbinfo, flattened=row), csvRows, titles)
             continue
           except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
@@ -29050,19 +29052,59 @@ COPY_NO_PARENTS = 0
 COPY_NONPATH_PARENTS = 1
 COPY_ALL_PARENTS = 2
 
-DEFAULT_COPY_OPTIONS = {
-  u'mergeWithParent': False,
-  u'retainSourceFolders': False,
-  u'duplicateFiles': DUPLICATE_FILE_OVERWRITE_OLDER,
-  u'duplicateFolders': DUPLICATE_FOLDER_MERGE,
-  u'copyTopFileParents': COPY_NO_PARENTS,
-  u'copySubFileParents': COPY_NONPATH_PARENTS,
-  u'copyTopFolderParents': COPY_NO_PARENTS,
-  u'copySubFolderParents': COPY_NONPATH_PARENTS,
-  u'copyFilePermissions': False,
-  u'copyTopFolderPermissions': True,
-  u'copySubFolderPermissions': True,
-  }
+def initCopyMoveOptions():
+  return {
+    u'newFilename': None,
+    u'summary': False,
+    u'mergeWithParent': False,
+    u'retainSourceFolders': False,
+    u'duplicateFiles': DUPLICATE_FILE_OVERWRITE_OLDER,
+    u'duplicateFolders': DUPLICATE_FOLDER_MERGE,
+    u'copyTopFileParents': COPY_NO_PARENTS,
+    u'copySubFileParents': COPY_NONPATH_PARENTS,
+    u'copyTopFolderParents': COPY_NO_PARENTS,
+    u'copySubFolderParents': COPY_NONPATH_PARENTS,
+    u'copyFilePermissions': False,
+    u'copyTopFolderPermissions': True,
+    u'copySubFolderPermissions': True,
+    }
+
+def getCopyMoveOptions(myarg, copyMoveOptions, copyCmd):
+  if myarg == u'newfilename':
+    copyMoveOptions[u'newFilename'] = getString(Cmd.OB_DRIVE_FILE_NAME)
+  elif myarg == u'summary':
+    copyMoveOptions[u'summary'] = getBoolean()
+  elif myarg == u'mergewithparent':
+    copyMoveOptions[u'mergeWithParent'] = getBoolean()
+  elif myarg == u'duplicatefiles':
+    copyMoveOptions[u'duplicateFiles'] = getChoice(DUPLICATE_FILE_CHOICES, mapChoice=True)
+  elif myarg == u'duplicatefolders':
+    copyMoveOptions[u'duplicateFolders'] = getChoice(DUPLICATE_FOLDER_CHOICES, mapChoice=True)
+  elif myarg == u'copysubfileparents':
+    copyMoveOptions[u'copySubFileParents'] = getChoice(COPY_SUB_PARENTS_CHOICES, mapChoice=True)
+  elif myarg == u'copysubfolderparents':
+    copyMoveOptions[u'copySubFolderParents'] = getChoice(COPY_SUB_PARENTS_CHOICES, mapChoice=True)
+  else:
+    if not copyCmd:
+      if myarg == u'retainsourcefolders':
+        copyMoveOptions[u'retainSourceFolders'] = getBoolean()
+      else:
+        return False
+    else:
+      if myarg == u'copytopfileparents':
+        copyMoveOptions[u'copyTopFileParents'] = getChoice(COPY_TOP_PARENTS_CHOICES, mapChoice=True)
+      elif myarg == u'copytopfolderparents':
+        copyMoveOptions[u'copyTopFolderParents'] = getChoice(COPY_TOP_PARENTS_CHOICES, mapChoice=True)
+      elif myarg == u'copyfilepermissions':
+        copyMoveOptions[u'copyFilePermissions'] = getBoolean()
+      elif myarg == u'copytopfolderpermissions':
+        copyMoveOptions[u'copyTopFolderPermissions'] = getBoolean()
+      elif myarg == u'copysubfolderpermissions':
+        copyMoveOptions[u'copySubFolderPermissions'] = getBoolean()
+      else:
+        return False
+  return True
+
 CLEAR_COPY_MOVE_PARENT_OPTIONS = {
   u'copyTopFileParents': COPY_NO_PARENTS,
   u'copySubFileParents': COPY_NO_PARENTS,
@@ -29274,10 +29316,10 @@ COPY_TOP_PARENTS_CHOICES = {u'all': COPY_ALL_PARENTS, u'none': COPY_NO_PARENTS}
 COPY_SUB_PARENTS_CHOICES = {u'all': COPY_ALL_PARENTS, u'none': COPY_NO_PARENTS, u'nonpath': COPY_NONPATH_PARENTS}
 
 # gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [summary [<Boolean>]]
-#	<DriveFileCopyAttributes>* [mergewithparent [<Boolean>] [recursive [depth <Number>]]
+#	<DriveFileCopyAttribute>* [mergewithparent [<Boolean>]] [recursive [depth <Number>]]
 #	[duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
 #	[duplicatefolders merge|duplicatename|uniquename|skip]
-#	[copytopfileparents none|all] [copytopfolderparents all|none]
+#	[copytopfileparents none|all] [copytopfolderparents none|all]
 #	[copysubfileparents nonpath|none|all] [copysubfolderparents nonpath|none|all]
 #	[copyfilepermissions [<Boolean>]]
 #	[copytopfolderpermissions [<Boolean>]] [copysubfolderpermissions [<Boolean>]]
@@ -29364,42 +29406,21 @@ def copyDriveFile(users):
   parentBody = {}
   parameters = initDriveFileAttributes()
   copyParameters = initDriveFileAttributes()
-  copyMoveOptions = DEFAULT_COPY_OPTIONS.copy()
+  copyMoveOptions = initCopyMoveOptions()
+  newParentsSpecified = recursive = False
   maxdepth = -1
-  newFilename = None
-  newParentsSpecified = recursive = summary = False
   copiedFiles = {}
   statistics = _initStatistics()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == u'newfilename':
-      newFilename = getString(Cmd.OB_DRIVE_FILE_NAME)
+    if getCopyMoveOptions(myarg, copyMoveOptions, True):
+      pass
+    elif getDriveFileParentAttribute(myarg, parameters):
+      newParentsSpecified = True
     elif myarg == u'recursive':
       recursive = getBoolean()
     elif myarg == u'depth':
       maxdepth = getInteger(minVal=-1)
-    elif myarg == u'summary':
-      summary = getBoolean()
-    elif myarg == u'mergewithparent':
-      copyMoveOptions[u'mergeWithParent'] = getBoolean()
-    elif myarg == u'duplicatefiles':
-      copyMoveOptions[u'duplicateFiles'] = getChoice(DUPLICATE_FILE_CHOICES, mapChoice=True)
-    elif myarg == u'duplicatefolders':
-      copyMoveOptions[u'duplicateFolders'] = getChoice(DUPLICATE_FOLDER_CHOICES, mapChoice=True)
-    elif myarg == u'copytopfileparents':
-      copyMoveOptions[u'copyTopFileParents'] = getChoice(COPY_TOP_PARENTS_CHOICES, mapChoice=True)
-    elif myarg == u'copysubfileparents':
-      copyMoveOptions[u'copySubFileParents'] = getChoice(COPY_SUB_PARENTS_CHOICES, mapChoice=True)
-    elif myarg == u'copytopfolderparents':
-      copyMoveOptions[u'copyTopFolderParents'] = getChoice(COPY_TOP_PARENTS_CHOICES, mapChoice=True)
-    elif myarg == u'copysubfolderparents':
-      copyMoveOptions[u'copySubFolderParents'] = getChoice(COPY_SUB_PARENTS_CHOICES, mapChoice=True)
-    elif myarg == u'copyfilepermissions':
-      copyMoveOptions[u'copyFilePermissions'] = getBoolean()
-    elif myarg == u'copytopfolderpermissions':
-      copyMoveOptions[u'copyTopFolderPermissions'] = getBoolean()
-    elif myarg == u'copysubfolderpermissions':
-      copyMoveOptions[u'copySubFolderPermissions'] = getBoolean()
     elif myarg == u'convert':
       deprecatedArgument(myarg)
     elif myarg == u'mimetype':
@@ -29408,8 +29429,6 @@ def copyDriveFile(users):
       copyParameters[DFA_IGNORE_DEFAULT_VISIBILITY] = getBoolean()
     elif myarg in [u'keeprevisionforever', u'pinned']:
       copyParameters[DFA_KEEP_REVISION_FOREVER] = getBoolean()
-    elif getDriveFileParentAttribute(myarg, parameters):
-      newParentsSpecified = True
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
@@ -29428,28 +29447,26 @@ def copyDriveFile(users):
         source = callGAPI(drive.files(), u'get',
                           throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
                           fileId=fileId, fields=VX_FILENAME_PARENTS_COPY_FILE_FIELDS, supportsTeamDrives=True)
+        sourceFilename = source[VX_FILENAME]
         sourceTeamDriveId = source.get(u'teamDriveId')
         if sourceTeamDriveId:
           sourceSearchArgs = {u'teamDriveId': sourceTeamDriveId, u'corpora': u'teamDrive', u'includeTeamDriveItems': True, u'supportsTeamDrives': True}
         else:
           sourceSearchArgs = {}
-        sourceParents = source.pop(u'parents', None)
-        if not sourceParents:
-          sourceParents = [u'root',]
-        sourceFilename = source[VX_FILENAME]
+        sourceParents = source.pop(u'parents', [])
         if newParentsSpecified:
           newParents = parentBody[u'parents']
+          numNewParents = len(newParents)
+          if numNewParents > 1:
+            entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(source), sourceFilename], Msg.MULTIPLE_PARENTS_SPECIFIED.format(numNewParents), i, count)
+            _incrStatistic(statistics, STAT_FILE_FAILED)
+            continue
         else:
-          newParents = sourceParents
-        numNewParents = len(newParents)
-        if numNewParents > 1:
-          entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(source), sourceFilename], Msg.MULTIPLE_PARENTS_SPECIFIED.format(numNewParents), i, count)
-          _incrStatistic(statistics, STAT_FILE_FAILED)
-          continue
+          newParents = sourceParents if sourceParents else [u'root',]
         newParentId = newParents[0]
         source[u'parents'] = newParents
-        if newFilename:
-          destFilename = newFilename
+        if copyMoveOptions[u'newFilename']:
+          destFilename = copyMoveOptions[u'newFilename']
         elif copyMoveOptions[u'mergeWithParent']:
           destFilename = callGAPI(drive.files(), u'get',
                                   throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
@@ -29533,13 +29550,14 @@ def copyDriveFile(users):
         _incrStatistic(statistics, STAT_FILE_FAILED)
         break
     Ind.Decrement()
-    if summary:
+    if copyMoveOptions[u'summary']:
       _printStatistics(user, statistics, i, count, True)
 
 # gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>] [summary [<Boolean>]]
 #	<DriveFileMoveAttributes>* [mergewithparent [<Boolean>]]
 #	[duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
 #	[duplicatefolders merge|duplicatename|uniquename|skip]
+#	[copysubfileparents nonpath|none|all] [copysubfolderparents nonpath|none|all]
 #	[retainsourcefolders [<Boolean>]]
 def moveDriveFile(users):
   def _recursiveFolderMove(drive, user, i, count, j, jcount, source, newFolderTitle, targetChildren, atTop):
@@ -29581,22 +29599,29 @@ def moveDriveFile(users):
         if child[u'mimeType'] == MIMETYPE_GA_FOLDER:
           childParents = child.pop(u'parents', [])
           child[u'parents'] = [newFolderId]
-          for parentId in childParents:
-            if parentId != folderId:
-              child[u'parents'].append(parentId)
+          if copyMoveOptions[u'copySubFolderParents'] != COPY_NO_PARENTS:
+            for parentId in childParents:
+              if parentId != folderId or copyMoveOptions[u'copySubFolderParents'] == COPY_ALL_PARENTS:
+                child[u'parents'].append(parentId)
           _recursiveFolderMove(drive, user, i, count, k, kcount, child, childTitle, subTargetChildren, False)
         else:
           if existingTargetFolder and _checkForDuplicateTargetFile(drive, user, k, kcount, child, childTitle, subTargetChildren, copyMoveOptions, statistics):
             copyMoveOptions[u'retainSourceFolders'] = True
             continue
           body = {VX_FILENAME: child[VX_FILENAME]}
+          if copyMoveOptions[u'copySubFileParents'] == COPY_NONPATH_PARENTS:
+            removeParents = folderId
+          elif copyMoveOptions[u'copySubFileParents'] == COPY_NO_PARENTS:
+            removeParents = u','.join(childParents)
+          else: #COPY_ALL_PARENTS
+            removeParents = u''
           try:
             result = callGAPI(drive.files(), u'update',
                               throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST,
                                                                              GAPI.FILE_OWNER_NOT_MEMBER_OF_TEAMDRIVE,
                                                                              GAPI.FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN,
                                                                              GAPI.CANNOT_MOVE_TRASHED_ITEM_INTO_TEAMDRIVE],
-                              fileId=childId, addParents=newFolderId, removeParents=folderId,
+                              fileId=childId, addParents=newFolderId, removeParents=removeParents,
                               body=body, fields=VX_ID_FILENAME, supportsTeamDrives=True)
             entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, childTitle],
                                                                Act.MODIFIER_TO, result[VX_FILENAME], [Ent.DRIVE_FILE_ID, result[u'id']], k, kcount)
@@ -29626,25 +29651,14 @@ def moveDriveFile(users):
   fileIdEntity = getDriveFileEntity()
   parentBody = {}
   parameters = initDriveFileAttributes()
-  copyMoveOptions = DEFAULT_COPY_OPTIONS.copy()
-  newFilename = None
-  newParentsSpecified = summary = False
+  copyMoveOptions = initCopyMoveOptions()
+  newParentsSpecified = False
   movedFiles = {}
   statistics = _initStatistics()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == u'newfilename':
-      newFilename = getString(Cmd.OB_DRIVE_FILE_NAME)
-    elif myarg == u'summary':
-      summary = getBoolean()
-    elif myarg == u'mergewithparent':
-      copyMoveOptions[u'mergeWithParent'] = getBoolean()
-    elif myarg == u'retainsourcefolders':
-      copyMoveOptions[u'retainSourceFolders'] = getBoolean()
-    elif myarg == u'duplicatefiles':
-      copyMoveOptions[u'duplicateFiles'] = getChoice(DUPLICATE_FILE_CHOICES, mapChoice=True)
-    elif myarg == u'duplicatefolders':
-      copyMoveOptions[u'duplicateFolders'] = getChoice(DUPLICATE_FOLDER_CHOICES, mapChoice=True)
+    if getCopyMoveOptions(myarg, copyMoveOptions, False):
+      pass
     elif getDriveFileParentAttribute(myarg, parameters):
       newParentsSpecified = True
     else:
@@ -29689,26 +29703,24 @@ def moveDriveFile(users):
               except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
                 userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
                 break
-        sourceParents = source.pop(u'parents', None)
-        if not sourceParents:
-          sourceParents = [u'root',]
         sourceFilename = source[VX_FILENAME]
+        sourceParents = source.pop(u'parents', [])
         if newParentsSpecified:
           newParents = parentBody[u'parents']
+          numNewParents = len(newParents)
+          if numNewParents > 1:
+            entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(source), sourceFilename], Msg.MULTIPLE_PARENTS_SPECIFIED.format(numNewParents), i, count)
+            _incrStatistic(statistics, STAT_FILE_FAILED)
+            continue
         else:
-          newParents = sourceParents
+          newParents = sourceParents if sourceParents else [u'root',]
           if sourceTeamDriveId and not parameters[DFA_SEARCHARGS]:
             parameters[DFA_SEARCHARGS] = {u'teamDriveId': sourceTeamDriveId, u'corpora': u'teamDrive',
                                           u'includeTeamDriveItems': True, u'supportsTeamDrives': True}
-        numNewParents = len(newParents)
-        if numNewParents > 1:
-          entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(source), sourceFilename], Msg.MULTIPLE_PARENTS_SPECIFIED.format(numNewParents), i, count)
-          _incrStatistic(statistics, STAT_FILE_FAILED)
-          continue
         newParentId = newParents[0]
         source[u'parents'] = newParents
-        if newFilename:
-          destFilename = newFilename
+        if copyMoveOptions[u'newFilename']:
+          destFilename = copyMoveOptions[u'newFilename']
         elif copyMoveOptions[u'mergeWithParent']:
           destFilename = callGAPI(drive.files(), u'get',
                                   throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
@@ -29740,6 +29752,7 @@ def moveDriveFile(users):
               continue
           if (tdAddParents or sourceTeamDriveId or
               copyMoveOptions[u'mergeWithParent'] or copyMoveOptions[u'retainSourceFolders'] or
+              (copyMoveOptions[u'copySubFileParents'] != COPY_NONPATH_PARENTS) or (copyMoveOptions[u'copySubFolderParents'] != COPY_NONPATH_PARENTS) or
               (copyMoveOptions[u'duplicateFolders'] == DUPLICATE_FOLDER_MERGE and _targetFilenameExists(destFilename, source[u'mimeType'], targetChildren))):
             _recursiveFolderMove(drive, user, i, count, j, jcount, source, destFilename, targetChildren, True)
             continue
@@ -29752,17 +29765,16 @@ def moveDriveFile(users):
           if _checkForDuplicateTargetFile(drive, user, j, jcount, source, destFilename, targetChildren, copyMoveOptions, statistics):
             continue
           body = {VX_FILENAME: source[VX_FILENAME]}
-        addParents = u','.join(newParents)
         removeParents = u','.join(sourceParents)
         result = callGAPI(drive.files(), u'update',
                           throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST,
                                                                          GAPI.FILE_OWNER_NOT_MEMBER_OF_TEAMDRIVE,
                                                                          GAPI.FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN,
                                                                          GAPI.CANNOT_MOVE_TRASHED_ITEM_INTO_TEAMDRIVE],
-                          fileId=fileId, addParents=addParents, removeParents=removeParents,
+                          fileId=fileId, addParents=newParentId, removeParents=removeParents,
                           body=body, fields=VX_FILENAME, supportsTeamDrives=True)
         entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, sourceFilename],
-                                                           Act.MODIFIER_TO, result[VX_FILENAME], [Ent.DRIVE_FOLDER_ID, addParents], j, jcount)
+                                                           Act.MODIFIER_TO, result[VX_FILENAME], [Ent.DRIVE_FOLDER_ID, newParentId], j, jcount)
         _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
               GAPI.unknownError, GAPI.cannotCopyFile,
@@ -29774,7 +29786,7 @@ def moveDriveFile(users):
         _incrStatistic(statistics, STAT_FILE_FAILED)
         break
     Ind.Decrement()
-    if summary:
+    if copyMoveOptions[u'summary']:
       _printStatistics(user, statistics, i, count, False)
 
 DELETE_DRIVEFILE_CHOICE_MAP = {u'purge': u'delete', u'trash': u'trash', u'untrash': u'untrash',}
@@ -31476,14 +31488,8 @@ def _createDriveFileACL(users, useDomainAdminAccess):
         if showTitles:
           fileName, entityType = _getDriveFileNameFromId(drive, fileId)
         permission = callGAPI(drive.permissions(), u'create',
-                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST, GAPI.OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED,
-                                                                             GAPI.TEAMDRIVE_NOT_FOUND,
-                                                                             GAPI.CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS,
-                                                                             GAPI.OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
-                                                                             GAPI.ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
-                                                                             GAPI.FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
-                                                                             GAPI.FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE,
-                                                                             GAPI.TEAMDRIVES_FOLDER_SHARING_NOT_SUPPORTED],
+                              bailOnInternalError=True,
+                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_CREATE_ACL_THROW_REASONS,
                               useDomainAdminAccess=useDomainAdminAccess,
                               fileId=fileId, sendNotificationEmail=sendNotificationEmail, emailMessage=emailMessage,
                               transferOwnership=_transferOwnership, body=body, fields=u'*', supportsTeamDrives=True)
@@ -31491,7 +31497,7 @@ def _createDriveFileACL(users, useDomainAdminAccess):
         if showDetails:
           _showDriveFilePermission(permission, printKeys, timeObjects)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.ownershipChangeAcrossDomainNotPermitted,
+              GAPI.ownershipChangeAcrossDomainNotPermitted, GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.insufficientAdministratorPrivileges,
               GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.ownerOnTeamDriveItemNotSupported,
               GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
               GAPI.teamDrivesFolderSharingNotSupported) as e:
@@ -31565,16 +31571,8 @@ def _updateDriveFileACLs(users, useDomainAdminAccess):
         if showTitles:
           fileName, entityType = _getDriveFileNameFromId(drive, fileId)
         permission = callGAPI(drive.permissions(), u'update',
-                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID_OWNERSHIP_TRANSFER, GAPI.CANNOT_REMOVE_OWNER,
-                                                                             GAPI.OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED,
-                                                                             GAPI.TEAMDRIVE_NOT_FOUND,
-                                                                             GAPI.CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS,
-                                                                             GAPI.OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
-                                                                             GAPI.ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
-                                                                             GAPI.FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
-                                                                             GAPI.FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE,
-                                                                             GAPI.CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION,
-                                                                             GAPI.FIELD_NOT_WRITABLE, GAPI.PERMISSION_NOT_FOUND],
+                              bailOnInternalError=True,
+                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_UPDATE_ACL_THROW_REASONS,
                               useDomainAdminAccess=useDomainAdminAccess,
                               fileId=fileId, permissionId=permissionId, removeExpiration=removeExpiration,
                               transferOwnership=_transferOwnership, body=body, fields=u'*', supportsTeamDrives=True)
@@ -31582,7 +31580,8 @@ def _updateDriveFileACLs(users, useDomainAdminAccess):
         if showDetails:
           _showDriveFilePermission(permission, printKeys, timeObjects)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.badRequest, GAPI.invalidOwnershipTransfer, GAPI.cannotRemoveOwner, GAPI.ownershipChangeAcrossDomainNotPermitted,
+              GAPI.badRequest, GAPI.invalidOwnershipTransfer, GAPI.cannotRemoveOwner,
+              GAPI.ownershipChangeAcrossDomainNotPermitted, GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.insufficientAdministratorPrivileges,
               GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.ownerOnTeamDriveItemNotSupported,
               GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
               GAPI.cannotModifyInheritedTeamDrivePermission, GAPI.fieldNotWritable) as e:
@@ -31645,7 +31644,7 @@ def _createDriveFilePermissions(users, useDomainAdminAccess):
     else:
       http_status, reason, message = checkGAPIError(exception)
       if reason not in GAPI.DEFAULT_RETRY_REASONS+[GAPI.SERVICE_LIMIT]:
-        if reason in [GAPI.FORBIDDEN, GAPI.INVALID_SHARING_REQUEST, GAPI.OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED]:
+        if reason in GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_CREATE_ACL_THROW_REASONS:
           entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], message, int(ri[RI_J]), int(ri[RI_JCOUNT]))
         else:
           errMsg = getHTTPError({}, http_status, reason, message)
@@ -31656,20 +31655,15 @@ def _createDriveFilePermissions(users, useDomainAdminAccess):
       waitOnFailure(1, 10, reason, message)
       try:
         callGAPI(drive.permissions(), u'create',
-                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST, GAPI.OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED,
-                                                                GAPI.TEAMDRIVE_NOT_FOUND,
-                                                                GAPI.CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS,
-                                                                GAPI.OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
-                                                                GAPI.ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
-                                                                GAPI.FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
-                                                                GAPI.FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE,
-                                                                GAPI.TEAMDRIVES_FOLDER_SHARING_NOT_SUPPORTED],
-                 retry_reasons=[GAPI.SERVICE_LIMIT],
+                 bailOnInternalError=True,
+                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_CREATE_ACL_THROW_REASONS, retry_reasons=[GAPI.SERVICE_LIMIT],
                  useDomainAdminAccess=useDomainAdminAccess,
-                 fileId=ri[RI_ENTITY], sendNotificationEmail=sendNotificationEmail, emailMessage=emailMessage, body=_makePermissionBody(ri[RI_ITEM]), fields=u'')
+                 fileId=ri[RI_ENTITY], sendNotificationEmail=sendNotificationEmail, emailMessage=emailMessage,
+                 body=_makePermissionBody(ri[RI_ITEM]), fields=u'', supportsTeamDrives=True)
         entityActionPerformed([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.invalidSharingRequest, GAPI.ownershipChangeAcrossDomainNotPermitted, GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains,
+              GAPI.invalidSharingRequest, GAPI.ownershipChangeAcrossDomainNotPermitted, GAPI.teamDriveDomainUsersOnlyRestriction,
+              GAPI.insufficientAdministratorPrivileges, GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains,
               GAPI.ownerOnTeamDriveItemNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
               GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.teamDrivesFolderSharingNotSupported,
               GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -31790,14 +31784,12 @@ def _deleteDriveFileACLs(users, useDomainAdminAccess):
         if showTitles:
           fileName, entityType = _getDriveFileNameFromId(drive, fileId)
         callGAPI(drive.permissions(), u'delete',
-                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_REMOVE_OWNER,
-                                                                GAPI.CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION,
-                                                                GAPI.TEAMDRIVE_NOT_FOUND, GAPI.PERMISSION_NOT_FOUND],
-                 useDomainAdminAccess=useDomainAdminAccess,
-                 fileId=fileId, permissionId=permissionId, supportsTeamDrives=True)
+                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_DELETE_ACL_THROW_REASONS,
+                 useDomainAdminAccess=useDomainAdminAccess, fileId=fileId, permissionId=permissionId, supportsTeamDrives=True)
         entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.badRequest, GAPI.cannotRemoveOwner, GAPI.cannotModifyInheritedTeamDrivePermission) as e:
+              GAPI.badRequest, GAPI.cannotRemoveOwner, GAPI.cannotModifyInheritedTeamDrivePermission,
+              GAPI.insufficientAdministratorPrivileges) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
       except GAPI.teamDriveNotFound as e:
         entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE, fileName], str(e), j, jcount)
@@ -31830,7 +31822,7 @@ def _deletePermissions(users, useDomainAdminAccess):
       if reason not in GAPI.DEFAULT_RETRY_REASONS+[GAPI.SERVICE_LIMIT]:
         if reason == GAPI.PERMISSION_NOT_FOUND:
           entityDoesNotHaveItemWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMISSION_ID, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
-        elif reason in [GAPI.CANNOT_REMOVE_OWNER, GAPI.INSUFFICIENT_FILE_PERMISSIONS]:
+        elif reason in GAPI.DRIVE3_DELETE_ACL_THROW_REASONS:
           entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMISSION_ID, ri[RI_ITEM]], message, int(ri[RI_J]), int(ri[RI_JCOUNT]))
         else:
           errMsg = getHTTPError({}, http_status, reason, message)
@@ -31841,13 +31833,13 @@ def _deletePermissions(users, useDomainAdminAccess):
       waitOnFailure(1, 10, reason, message)
       try:
         callGAPI(drive.permissions(), u'delete',
-                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_REMOVE_OWNER,
-                                                                GAPI.CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION, GAPI.PERMISSION_NOT_FOUND],
+                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_DELETE_ACL_THROW_REASONS,
                  retry_reasons=[GAPI.SERVICE_LIMIT],
-                 fileId=ri[RI_ENTITY], permissionId=ri[RI_ITEM], useDomainAdminAccess=useDomainAdminAccess, supportsTeamDrives=True)
+                 useDomainAdminAccess=useDomainAdminAccess, fileId=ri[RI_ENTITY], permissionId=ri[RI_ITEM], supportsTeamDrives=True)
         entityActionPerformed([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMISSION_ID, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.badRequest, GAPI.cannotRemoveOwner, GAPI.cannotModifyInheritedTeamDrivePermission, GAPI.permissionNotFound,
+              GAPI.badRequest, GAPI.cannotRemoveOwner, GAPI.cannotModifyInheritedTeamDrivePermission,
+              GAPI.insufficientAdministratorPrivileges, GAPI.permissionNotFound,
               GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMISSION_ID, ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
     if int(ri[RI_J]) == int(ri[RI_JCOUNT]):
@@ -31952,7 +31944,7 @@ def _infoDriveFileACLs(users, useDomainAdminAccess):
         if showTitles:
           fileName, entityType = _getDriveFileNameFromId(drive, fileId, not formatJSON)
         permission = callGAPI(drive.permissions(), u'get',
-                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.PERMISSION_NOT_FOUND],
+                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.PERMISSION_NOT_FOUND, GAPI.INSUFFICIENT_ADMINISTRATOR_PRIVILEGES],
                               useDomainAdminAccess=useDomainAdminAccess,
                               fileId=fileId, permissionId=permissionId, fields=u'*', supportsTeamDrives=True)
         if not formatJSON:
@@ -31962,7 +31954,8 @@ def _infoDriveFileACLs(users, useDomainAdminAccess):
           Ind.Decrement()
         else:
           _showDriveFilePermissionJSON(user, fileId, fileName, permission, timeObjects)
-      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+              GAPI.badRequest, GAPI.insufficientAdministratorPrivileges) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
       except GAPI.permissionNotFound:
         entityDoesNotHaveItemWarning([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
@@ -32031,10 +32024,11 @@ def _printShowDriveFileACLs(users, csvFormat, useDomainAdminAccess):
         fileName, entityType = _getDriveFileNameFromId(drive, fileId, not (csvFormat or formatJSON))
       try:
         results = callGAPIpages(drive.permissions(), u'list', VX_PAGES_PERMISSIONS,
-                                throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND],
+                                throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND, GAPI.INSUFFICIENT_ADMINISTRATOR_PRIVILEGES],
                                 useDomainAdminAccess=useDomainAdminAccess,
                                 fileId=fileId, fields=VX_NPT_PERMISSIONS, supportsTeamDrives=True)
-      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError) as e:
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
+              GAPI.unknownError, GAPI.insufficientAdministratorPrivileges) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
         continue
       except GAPI.teamDriveNotFound as e:
@@ -32296,7 +32290,8 @@ def _getTeamDriveCapabilitiesRestrictions(myarg, body):
     return True
   return False
 
-# gam <UserTypeEntity> create|add teamdrive <Name> [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+# gam <UserTypeEntity> create|add teamdrive <Name>
+#	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 def createTeamDrive(users):
   requestId = text_type(uuid.uuid4())
   body = {u'name': getString(Cmd.OB_NAME, checkBlank=True)}
@@ -32381,10 +32376,11 @@ def _updateTeamDrive(users, useDomainAdminAccess):
     try:
       teamDriveId = fileIdEntity[u'teamdrive'][u'teamDriveId']
       callGAPI(drive.teamdrives(), u'update',
-               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST,
+                                                            GAPI.NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE],
                useDomainAdminAccess=useDomainAdminAccess, teamDriveId=teamDriveId, body=body)
       entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
-    except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.forbidden, GAPI.badRequest) as e:
+    except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.forbidden, GAPI.badRequest, GAPI.noManageTeamDriveAdministratorPrivilege) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
