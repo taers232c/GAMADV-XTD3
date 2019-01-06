@@ -1,6 +1,11 @@
 4.65.38
 
-Modified gam print group-members to use the People API to get member names for users not in the domain.
+Added peoplelookup and peoplelookupuser <EmailAddress> options to gam print group-members. When one of these options
+is specified, GAM will use the People API to retrieve names for user members not in the domain. Names are not retrieved
+in all cases and success is dependent on what user is used to perform the retrievals.
+* peoplelookup - Use the administrator named in oauth2.txt to perform the retrievals
+* peoplelookupuser <EmailAddress> - Use <EmailAddress> to perform the retrievals
+
 To enable this feature you must perform the following commands:
 gam update project
 gam oauth create - Enable the People API

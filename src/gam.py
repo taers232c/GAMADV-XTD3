@@ -14667,6 +14667,7 @@ GROUPMEMBERS_DEFAULT_FIELDS = [u'id', u'role', u'group', u'email', u'type', u'st
 #	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
 #	[roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
 #	[userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
+#	[peoplelookup|(peoplelookupuser <EmailAddress>)]
 def doPrintGroupMembers():
   def getNameFromPeople(memberId):
     try:
@@ -14740,6 +14741,12 @@ def doPrintGroupMembers():
       memberOptions[MEMBEROPTION_RECURSIVE] = True
     elif myarg == u'nogroupemail':
       groupColumn = False
+    elif myarg == u'peoplelookup':
+      people = buildGAPIObject(API.PEOPLE)
+    elif myarg == u'peoplelookupuser':
+      _, people = buildGAPIServiceObject(API.PEOPLE, getEmailAddress(), 0, 0)
+      if not people:
+        return
     else:
       unknownArgumentExit()
   if entityList is None:
@@ -14830,9 +14837,7 @@ def doPrintGroupMembers():
             addRowTitlesToCSVfile(flattenJSON(mbinfo, flattened=row), csvRows, titles)
             continue
           except GAPI.userNotFound:
-            if memberOptions[MEMBEROPTION_MEMBERNAMES]:
-              if people is None:
-                people = buildGAPIObject(API.PEOPLE)
+            if memberOptions[MEMBEROPTION_MEMBERNAMES] and people:
               name = getNameFromPeople(memberId)
               if name:
                 row[u'name'] = name
