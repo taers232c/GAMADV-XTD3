@@ -1978,7 +1978,7 @@ In these commands, the Google administrator named in oauth2.txt is used.
 gam show teamdrivethemes
 gam update teamdrive <TeamDriveEntity> [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
-        [<TeamDriveRestrictionsSubfieldName> <Boolean>]
+        (<TeamDriveRestrictionsSubfieldName> <Boolean>)*
 gam info teamdrive <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
 gam show teamdriveinfo <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
 gam print teamdrives [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [todrive <ToDriveAttribute>*]
