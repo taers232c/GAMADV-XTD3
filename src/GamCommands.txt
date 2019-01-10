@@ -1723,7 +1723,9 @@ gam print printer|printers [todrive <ToDriveAttribute>*]
 <PrinterACLScopeEntity>::= <PrinterACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
 gam printer|printers <PrinterIDEntity> create|add user|manager|owner [usersonly|groupsonly] <PrinterACLScopeEntity> [notify]
+gam printer|printers <PrinterIDEntity> create|add print public
 gam printer|printers <PrinterIDEntity> delete [usersonly|groupsonly] <PrinterACLScopeEntity>
+gam printer|printers <PrinterIDEntity> delete public
 gam printer|printers <PrinterIDEntity> sync user|manager|owner [usersonly|groupsonly] [addonly|removeonly] <PrinterACLScopeEntity> [notify]
 gam printer|printers <PrinterIDEntity> wipe user|manager|owner
 gam printer|printers <PrinterIDEntity> showacls

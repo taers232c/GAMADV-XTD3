@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.39'
+__version__ = u'4.65.40'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -24023,13 +24023,21 @@ def _batchCreatePrinterACLs(cp, printerId, i, count, scopeList, role, notify):
       break
   Ind.Decrement()
 
-PRINTER_ROLE_MAP = {u'manager': Ent.ROLE_MANAGER, u'owner': Ent.ROLE_OWNER, u'user': Ent.ROLE_USER,}
+PRINTER_ROLE_MAP = {u'manager': Ent.ROLE_MANAGER, u'owner': Ent.ROLE_OWNER, u'user': Ent.ROLE_USER}
+PRINTER_ROLE_PRINT_MAP = {u'manager': Ent.ROLE_MANAGER, u'owner': Ent.ROLE_OWNER, u'user': Ent.ROLE_USER, u'print': u'print'}
+PRINTER_PUBLIC_SCOPE_LIST = [u'public',]
 
 # gam printer|printers <PrinterIDEntity> create|add user|manager|owner <PrinterACLScopeEntity> [notify]
+# gam printer|printers <PrinterIDEntity> create|add print public
 def doPrinterCreateACL(printerIdList):
   cp = buildGAPIObject(API.CLOUDPRINT)
-  role = getChoice(PRINTER_ROLE_MAP, mapChoice=True)
-  scopeList, printerScopeLists = getPrinterACLScopeEntity()
+  role = getChoice(PRINTER_ROLE_PRINT_MAP, mapChoice=True)
+  if role != u'print':
+    scopeList, printerScopeLists = getPrinterACLScopeEntity()
+  else:
+    scopeList = PRINTER_PUBLIC_SCOPE_LIST
+    printerScopeLists = None
+    checkArgumentPresent(scopeList, required=True)
   notify = checkArgumentPresent(u'notify')
   checkForExtraneousArguments()
   i = 0
@@ -24066,10 +24074,16 @@ def _batchDeletePrinterACLs(cp, printerId, i, count, scopeList, role):
   Ind.Decrement()
 
 # gam printer|printers <PrinterIDEntity> delete [user|manager|owner] <PrinterACLScopeEntity>
+# gam printer|printers <PrinterIDEntity> delete [print] public
 def doPrinterDeleteACLs(printerIdList):
   cp = buildGAPIObject(API.CLOUDPRINT)
-  getChoice(PRINTER_ROLE_MAP, defaultChoice=None, mapChoice=True)
-  scopeList, printerScopeLists = getPrinterACLScopeEntity()
+  role = getChoice(PRINTER_ROLE_PRINT_MAP, defaultChoice=None, mapChoice=True)
+  if role != u'print':
+    scopeList, printerScopeLists = getPrinterACLScopeEntity()
+  else:
+    scopeList = PRINTER_PUBLIC_SCOPE_LIST
+    printerScopeLists = None
+    checkArgumentPresent(scopeList, required=True)
   checkForExtraneousArguments()
   i = 0
   count = len(printerIdList)
