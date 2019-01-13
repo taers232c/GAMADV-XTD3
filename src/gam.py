@@ -3,7 +3,7 @@
 #
 # GAMADV-XTD3
 #
-# Copyright 2018, All Rights Reserved.
+# Copyright 2019, All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.40'
+__version__ = u'4.65.41'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -422,7 +422,12 @@ def StringIOobject(initbuff=None):
     return io.StringIO()
   return io.StringIO(initbuff)
 
-def readStdin(prompt=None):
+def systemErrorExit(sysRC, message):
+  if message:
+    stderrErrorMsg(message)
+  sys.exit(sysRC)
+
+def readStdin(prompt):
   return input(prompt)
 
 def writeStdout(data):
@@ -544,11 +549,6 @@ def stderrErrorMsg(message):
 
 def stderrWarningMsg(message):
   writeStderr(convertUTF8toSys(u'\n{0}{1}\n'.format(WARNING_PREFIX, message)))
-
-def systemErrorExit(sysRC, message):
-  if message:
-    stderrErrorMsg(message)
-  sys.exit(sysRC)
 
 # Something's wrong with CustomerID
 def accessErrorMessage(cd):
@@ -2737,7 +2737,7 @@ def doGAMCheckForUpdates(forceCheck=False):
       writeFile(GM.Globals[GM.LAST_UPDATE_CHECK_TXT], str(now_time), continueOnError=True, displayError=forceCheck)
       return
     announcement = release_data.get(u'body_text', u'No details about this release')
-    writeStderr(u'\nGAM %s release notes:\n\n' % latest_version)
+    writeStderr(u'\n{0} {1} release notes:\n\n'.format(GAM, latest_version))
     writeStderr(announcement)
     try:
       printLine(Msg.HIT_CONTROL_C_TO_UPDATE)
@@ -3284,7 +3284,7 @@ def callGCP(service, function,
   return checkCloudPrintResult(result, throw_messages=throw_messages)
 
 def readDiscoveryFile(api_version):
-  disc_filename = u'%s.json' % (api_version)
+  disc_filename = u'{0}.json'.format(api_version)
   disc_file = os.path.join(GM.Globals[GM.GAM_PATH], disc_filename)
   if hasattr(sys, u'_MEIPASS'):
     json_string = readFile(os.path.join(sys._MEIPASS, disc_filename), continueOnError=True, displayError=True)
@@ -3386,7 +3386,7 @@ def _request_with_user_agent(request_method):
       if kwargs['headers'].get('user-agent'):
         if GAM_USER_AGENT not in kwargs['headers']['user-agent']:
           # Save the existing user-agent header and tack on the GAM user-agent.
-          kwargs['headers']['user-agent'] = '%s %s' % (GAM_USER_AGENT, kwargs['headers']['user-agent'])
+          kwargs['headers']['user-agent'] = '{0} {1}'.format(GAM_USER_AGENT, kwargs['headers']['user-agent'])
       else:
         kwargs['headers']['user-agent'] = GAM_USER_AGENT
     else:
@@ -5620,6 +5620,15 @@ def revokeCredentials(credFamilyList):
       except oauth2client.client.TokenRevokeError as e:
         printErrorMessage(INVALID_TOKEN_RC, str(e))
 
+def getProjects(crm, pfilter):
+  try:
+    return callGAPIpages(crm.projects(), u'list', u'projects',
+                         throw_reasons=[GAPI.BAD_REQUEST],
+                         filter=pfilter)
+  except GAPI.badRequest as e:
+    entityActionFailedWarning([Ent.PROJECT, pfilter], str(e))
+    systemErrorExit(USAGE_ERROR_RC, None)
+
 VALIDEMAIL_PATTERN = re.compile(r'^[^@]+@[^@]+\.[^@]+$')
 
 def getValidateLoginHint(login_hint):
@@ -5632,6 +5641,21 @@ def getValidateLoginHint(login_hint):
     if VALIDEMAIL_PATTERN.match(login_hint):
       return login_hint
     sys.stdout.write(u'Error: that is not a valid email address\n')
+
+PROJECTID_PATTERN = re.compile(r'^[a-z][a-z0-9-]{4,28}[a-z0-9]$')
+PROJECTID_FORMAT_REQUIRED = u'[a-z][a-z0-9-]{4,28}[a-z0-9]'
+
+def getValidateProjectId(crm, login_hint, projectId):
+  if not projectId:
+    projectId = readStdin(u'\nWhat is your API project ID? ').strip()
+    if not PROJECTID_PATTERN.match(projectId):
+      systemErrorExit(USAGE_ERROR_RC, u'{0} {1}: {2} <{3}>'.format(Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1], Cmd.OB_PROJECT_ID,
+                                                                   Msg.EXPECTED, PROJECTID_FORMAT_REQUIRED))
+  projects = getProjects(crm, u'id:{0}'.format(projectId))
+  if projects:
+    return projectId
+  entityActionFailedWarning([Ent.USER, login_hint, Ent.PROJECT, projectId], Msg.DOES_NOT_EXIST)
+  systemErrorExit(USAGE_ERROR_RC, None)
 
 def getOAuthClientIDAndSecret():
   cs_data = readFile(GC.Values[GC.CLIENT_SECRETS_JSON], continueOnError=True, displayError=True)
@@ -5956,7 +5980,7 @@ def checkServiceAccount(users):
       except google.auth.exceptions.RefreshError:
         result = u'FAIL'
         all_scopes_pass = False
-      entityActionPerformedMessage([Ent.SCOPE, u'{0:60}'.format(scope)], result, j, jcount)
+      entityActionPerformedMessage([Ent.SCOPE, u'{0:62}'.format(scope)], result, j, jcount)
     Ind.Decrement()
     service_account = GM.Globals[GM.OAUTH2SERVICE_CLIENT_ID]
     _, _, user_domain = splitEmailAddressOrUID(user)
@@ -5982,19 +6006,25 @@ def getCRMService(login_hint):
   httpObj = credentials.authorize(getHttpObj())
   return (googleapiclient.discovery.build(u'cloudresourcemanager', u'v1', http=httpObj, cache_discovery=False), httpObj)
 
-def enableProjectAPIs(httpObj, projectName, checkEnabled):
+def enableProjectAPIs(httpObj, login_hint, projectId, checkEnabled):
   apis = API.PROJECT_APIS[:]
+  projectName = u'project:{0}'.format(projectId)
   serveman = googleapiclient.discovery.build(u'servicemanagement', u'v1', http=httpObj, cache_discovery=False)
   if checkEnabled:
-    enabledServices = callGAPIpages(serveman.services(), u'list', u'services',
-                                    consumerId=projectName, fields=u'nextPageToken,services(serviceName)')
-    for service in sorted(enabledServices, key=lambda k: k[u'serviceName']):
-      if u'serviceName' in service:
-        if service[u'serviceName'] in apis:
-          printEntityKVList([Ent.API, service[u'serviceName']], [u'already enabled...',])
-          apis.remove(service[u'serviceName'])
-        else:
-          printEntityKVList([Ent.API, service[u'serviceName']], [u'(non-GAM) already enabled...',])
+    try:
+      enabledServices = callGAPIpages(serveman.services(), u'list', u'services',
+                                      throw_reasons=[GAPI.NOT_FOUND],
+                                      consumerId=projectName, fields=u'nextPageToken,services(serviceName)')
+      for service in sorted(enabledServices, key=lambda k: k[u'serviceName']):
+        if u'serviceName' in service:
+          if service[u'serviceName'] in apis:
+            printEntityKVList([Ent.API, service[u'serviceName']], [u'already enabled...',])
+            apis.remove(service[u'serviceName'])
+          else:
+            printEntityKVList([Ent.API, service[u'serviceName']], [u'(non-GAM) already enabled...',])
+    except GAPI.notFound as e:
+      entityActionFailedWarning([Ent.USER, login_hint, Ent.PROJECT, projectId], str(e))
+      systemErrorExit(USAGE_ERROR_RC, None)
   Act.Set(Act.ENABLE)
   count = len(apis)
   performActionNumItems(count, Ent.API)
@@ -6018,16 +6048,15 @@ def enableProjectAPIs(httpObj, projectName, checkEnabled):
         break
   Ind.Decrement()
 
-# gam create project [<EmailAddress>]
-def doCreateProject():
+def _createClientSecretsOauth2service(httpObj, login_hint, projectId):
 
-  def _checkClientAndSecret(simplehttp, client_id, client_secret):
+  def _checkClientAndSecret(csHttpObj, client_id, client_secret):
     url = u'https://www.googleapis.com/oauth2/v4/token'
     post_data = {u'client_id': client_id, u'client_secret': client_secret,
                  u'code': u'ThisIsAnInvalidCodeOnlyBeingUsedToTestIfClientAndSecretAreValid',
                  u'redirect_uri': u'urn:ietf:wg:oauth:2.0:oob', u'grant_type': u'authorization_code'}
     headers = {'Content-type': 'application/x-www-form-urlencoded'}
-    _, content = simplehttp.request(url, u'POST', urlencode(post_data), headers=headers)
+    _, content = csHttpObj.request(url, u'POST', urlencode(post_data), headers=headers)
     try:
       content = json.loads(content)
     except ValueError:
@@ -6047,26 +6076,107 @@ def doCreateProject():
     sys.stderr.write(u'Unknown error: {0}\n'.format(content))
     return False
 
-  service_account_file = GC.Values[GC.OAUTH2SERVICE_JSON]
-  client_secrets_file = GC.Values[GC.CLIENT_SECRETS_JSON]
-  for a_file in [service_account_file, client_secrets_file]:
+  enableProjectAPIs(httpObj, login_hint, projectId, False)
+  iam = googleapiclient.discovery.build(u'iam', u'v1', http=httpObj, cache_discovery=False)
+  sys.stdout.write(u'Creating Service Account\n')
+  service_account = callGAPI(iam.projects().serviceAccounts(), u'create',
+                             name=u'projects/{0}'.format(projectId),
+                             body={u'accountId': projectId, u'serviceAccount': {u'displayName': u'GAM Project'}})
+  key = callGAPI(iam.projects().serviceAccounts().keys(), u'create',
+                 name=service_account[u'name'], body={u'privateKeyType': u'TYPE_GOOGLE_CREDENTIALS_FILE', u'keyAlgorithm': u'KEY_ALG_RSA_2048'})
+  oauth2service_data = base64.b64decode(key[u'privateKeyData'])
+  writeFile(GC.Values[GC.OAUTH2SERVICE_JSON], oauth2service_data, continueOnError=False)
+  console_credentials_url = u'https://console.developers.google.com/apis/credentials?project={0}'.format(projectId)
+  csHttpObj = getHttpObj()
+  while True:
+    sys.stdout.write(u'''Please go to:
+
+{0}
+
+1. Click the blue "Create credentials" button. Choose "OAuth client ID".
+2. Click the blue "Configure consent screen" button. Enter "GAM" for "Application name".
+3. Leave other fields blank. Click "Save" button.
+3. Choose "Other". Enter a desired value for "Name". Click the blue "Create" button.
+4. Copy your "client ID" value.
+
+\n'''.format(console_credentials_url))
+    client_id = readStdin(u'Enter your Client ID: ').strip()
+    if not client_id:
+      client_id = readStdin(u'').strip()
+    sys.stdout.write(u'\nNow go back to your browser and copy your client secret.\n')
+    client_secret = readStdin(u'Enter your Client Secret: ').strip()
+    if not client_secret:
+      client_secret = readStdin(u'').strip()
+    client_valid = _checkClientAndSecret(csHttpObj, client_id, client_secret)
+    if client_valid:
+      break
+    sys.stdout.write(u'\n')
+  cs_data = u'''{
+    "installed": {
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "client_id": "%s",
+        "client_secret": "%s",
+        "project_id": "%s",
+        "redirect_uris": [
+            "urn:ietf:wg:oauth:2.0:oob",
+            "http://localhost"
+        ],
+        "token_uri": "https://accounts.google.com/o/oauth2/token"
+    }
+}''' % (client_id, client_secret, projectId)
+  writeFile(GC.Values[GC.CLIENT_SECRETS_JSON], cs_data, continueOnError=False)
+  sys.stdout.write(u'''Almost there! Now please switch back to your browser and:
+
+1. Click OK to close "OAuth client" popup if it's still open.
+2. Click "Manage service accounts" on the right of the screen.
+3. Click the 3 dots to the right of your service account.
+4. Choose Edit.
+5. Click Save.
+\n''')
+  readStdin(u'Press Enter when done...')
+  sys.stdout.write(u'That\'s it! Your GAM Project is created and ready to use.\n')
+
+def _checkForExistingProjectFiles():
+  for a_file in [GC.Values[GC.OAUTH2SERVICE_JSON], GC.Values[GC.CLIENT_SECRETS_JSON]]:
     if os.path.exists(a_file):
-      systemErrorExit(USAGE_ERROR_RC, u'{0} already exists. Please delete or rename it before attempting to create another project.'.format(a_file))
+      systemErrorExit(5, '{0} already exists. Please delete or rename it before attempting to {1} another project.'.format(a_file, Act.ToPerform()))
+
+def _getLoginHintParameter(projectIdParm):
   login_hint = getEmailAddress(noUid=True, optional=True)
+  if projectIdParm:
+    parameter = getString(Cmd.OB_STRING, optional=True, minLen=6, maxLen=30).strip()
+    if parameter:
+      if not PROJECTID_PATTERN.match(parameter):
+        Cmd.Backup()
+        invalidArgumentExit(PROJECTID_FORMAT_REQUIRED)
+  else:
+    parameter = getString(Cmd.OB_STRING, optional=True)
   checkForExtraneousArguments()
   login_hint = getValidateLoginHint(login_hint)
-  login_domain = getEmailAddressDomain(login_hint)
   crm, httpObj = getCRMService(login_hint)
-  project_id = u'gam-project'
-  for _ in range(3):
-    project_id += u'-%s' % u''.join(random.choice(string.digits + string.ascii_lowercase) for _ in range(3))
-  projectName = u'project:%s' % project_id
-  body = {u'projectId': project_id, u'name': u'GAM Project'}
+  return (crm, httpObj, login_hint, parameter)
+
+# gam create project [<EmailAddress>] [<ProjectID>]
+def doCreateProject():
+  _checkForExistingProjectFiles()
+  crm, httpObj, login_hint, projectId = _getLoginHintParameter(True)
+  login_domain = getEmailAddressDomain(login_hint)
+  if not projectId:
+    projectId = u'gam-project'
+    for _ in range(3):
+      projectId += u'-{0}'.format(u''.join(random.choice(string.digits + string.ascii_lowercase) for _ in range(3)))
+  body = {u'projectId': projectId, u'name': u'GAM Project'}
   while True:
     create_again = False
     sys.stdout.write(u'Creating project "{0}"...\n'.format(body[u'name']))
-    create_operation = callGAPI(crm.projects(), u'create',
-                                body=body)
+    try:
+      create_operation = callGAPI(crm.projects(), u'create',
+                                  throw_reasons=[GAPI.BAD_REQUEST],
+                                  body=body)
+    except GAPI.badRequest as e:
+      entityActionFailedWarning([Ent.USER, login_hint, Ent.PROJECT, projectId], str(e))
+      systemErrorExit(USAGE_ERROR_RC, None)
     operation_name = create_operation[u'name']
     time.sleep(5) # Google recommends always waiting at least 5 seconds
     for i in range(1, 5):
@@ -6128,103 +6238,80 @@ and accept the Terms of Service (ToS). As soon as you've accepted the ToS popup,
     elif u'error' in status:
       systemErrorExit(2, status[u'error']+u'\n')
     break
-  simplehttp = getHttpObj()
-  enableProjectAPIs(httpObj, projectName, False)
-  iam = googleapiclient.discovery.build(u'iam', u'v1', http=httpObj, cache_discovery=False)
-  sys.stdout.write(u'Creating Service Account\n')
-  service_account = callGAPI(iam.projects().serviceAccounts(), u'create',
-                             name=u'projects/%s' % project_id,
-                             body={u'accountId': project_id, u'serviceAccount': {u'displayName': u'GAM Project'}})
-  key = callGAPI(iam.projects().serviceAccounts().keys(), u'create',
-                 name=service_account[u'name'], body={u'privateKeyType': u'TYPE_GOOGLE_CREDENTIALS_FILE', u'keyAlgorithm': u'KEY_ALG_RSA_2048'})
-  oauth2service_data = base64.b64decode(key[u'privateKeyData'])
-  writeFile(service_account_file, oauth2service_data, continueOnError=False)
-  console_credentials_url = u'https://console.developers.google.com/apis/credentials?project=%s' % project_id
-  while True:
-    sys.stdout.write(u'''Please go to:
+  _createClientSecretsOauth2service(httpObj, login_hint, projectId)
 
-{0}
+# gam use project [<EmailAddress>] [<ProjectID>]
+def doUseProject():
+  _checkForExistingProjectFiles()
+  crm, httpObj, login_hint, projectId = _getLoginHintParameter(True)
+  projectId = getValidateProjectId(crm, login_hint, projectId)
+  _createClientSecretsOauth2service(httpObj, login_hint, projectId)
 
-1. Click the blue "Create credentials" button. Choose "OAuth client ID".
-2. Click the blue "Configure consent screen" button. Enter "GAM" for "Product name to show to users".
-3. Leave other fields blank. Click "Save" button.
-3. Choose "Other" and click the blue "Create" button.
-4. Copy your "client ID" value.
+# gam delete project [<EmailAddress>] [<ProjectID>]
+def doDeleteProject():
+  crm, _, login_hint, projectId = _getLoginHintParameter(True)
+  projectId = getValidateProjectId(crm, login_hint, projectId)
+  try:
+    callGAPI(crm.projects(), u'delete',
+             throw_reasons=[GAPI.FORBIDDEN],
+             projectId=projectId)
+    entityActionPerformed([Ent.USER, login_hint, Ent.PROJECT, projectId])
+  except GAPI.forbidden as e:
+    entityActionFailedWarning([Ent.USER, login_hint, Ent.PROJECT, projectId], str(e))
 
-\n'''.format(console_credentials_url))
-    client_id = readStdin(u'Enter your Client ID: ').strip()
-    sys.stdout.write(u'\nNow go back to your browser and copy your client secret.\n')
-    client_secret = readStdin(u'Enter your Client Secret: ').strip()
-    client_valid = _checkClientAndSecret(simplehttp, client_id, client_secret)
-    if client_valid:
-      break
-    sys.stdout.write(u'\n')
-  cs_data = u'''{
-    "installed": {
-        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "client_id": "%s",
-        "client_secret": "%s",
-        "project_id": "%s",
-        "redirect_uris": [
-            "urn:ietf:wg:oauth:2.0:oob",
-            "http://localhost"
-        ],
-        "token_uri": "https://accounts.google.com/o/oauth2/token"
-    }
-}''' % (client_id, client_secret, project_id)
-  writeFile(client_secrets_file, cs_data, continueOnError=False)
-  sys.stdout.write(u'''Almost there! Now please switch back to your browser and:
+# gam update project [<EmailAddress>] [<ProjectID>]
+def doUpdateProject():
+  crm, httpObj, login_hint, projectId = _getLoginHintParameter(True)
+  if not projectId:
+    cs_data = readFile(GC.Values[GC.CLIENT_SECRETS_JSON], mode=u'rb', continueOnError=True, displayError=True, encoding=None)
+    if not cs_data:
+      systemErrorExit(14, u'Your client secrets file: <{0}> is missing; please recreate the file.'.format(GC.Values[GC.CLIENT_SECRETS_JSON]))
+    try:
+      cs_json = json.loads(cs_data)
+      projectId = cs_json[u'installed'][u'project_id']
+    except (ValueError, IndexError, KeyError):
+      systemErrorExit(3, u'The format of your client secrets file: <{0}> is incorrect; please recreate the file.'.format(GC.Values[GC.CLIENT_SECRETS_JSON]))
+  else:
+    projectId = getValidateProjectId(crm, login_hint, projectId)
+  enableProjectAPIs(httpObj, login_hint, projectId, True)
 
-1. Click OK to close "OAuth client" popup if it's still open.
-2. Click "Manage service accounts" on the right of the screen.
-3. Click the 3 dots to the right of your service account.
-4. Choose Edit.
-5. Check the "Enable G Suite Domain-wide Delegation" box and click Save.
-\n''')
-  readStdin(u'Press Enter when done...')
-  sys.stdout.write(u'That\'s it! Your GAM Project is created and ready to use.\n')
+# gam show projects [<EmailAddress>] [all|gam|<String>]
+def doShowProjects():
+  def _showProject(project, i, count):
+    printEntity([Ent.USER, login_hint, Ent.PROJECT, project[u'projectId']], i, count)
+    Ind.Increment()
+    printKeyValueList([u'name', project[u'name']])
+    printKeyValueList([u'lifecycleState', project[u'lifecycleState']])
+    printKeyValueList([u'createTime', formatLocalTime(project[u'createTime'])])
+    jcount = len(project.get(u'labels', []))
+    if jcount > 0:
+      printKeyValueList([u'labels', jcount])
+      Ind.Increment()
+      for k, v in iteritems(project[u'labels']):
+        printKeyValueList([k, v])
+      Ind.Decrement()
+    if u'parent' in project:
+      printKeyValueList([u'parent', u''])
+      Ind.Increment()
+      printKeyValueList([u'type', project[u'parent'][u'type']])
+      printKeyValueList([u'id', project[u'parent'][u'id']])
+      Ind.Decrement()
+    Ind.Decrement()
 
-# gam delete projects [<EmailAddress>]
-def doDeleteProjects():
-  # Leave undocumented. Most users should never need.
-  # Deletes all projects with ID gam-project-*
-  login_hint = getEmailAddress(noUid=True, optional=True)
-  checkForExtraneousArguments()
-  login_hint = getValidateLoginHint(login_hint)
-  crm, _ = getCRMService(login_hint)
-  projects = callGAPIpages(crm.projects(), u'list', u'projects')
-  gam_pids = [project[u'projectId'] for project in projects if project[u'projectId'].startswith(u'gam-project-')]
-  count = len(gam_pids)
+  crm, _, login_hint, pfilter = _getLoginHintParameter(False)
+  if not pfilter or pfilter == u'gam':
+    pfilter = u'id:gam-project-*'
+  elif pfilter.lower() == u'all':
+    pfilter = None
+  projects = getProjects(crm, pfilter)
+  count = len(projects)
   performActionNumItems(count, Ent.PROJECT)
   Ind.Increment()
   i = 0
-  for pid in gam_pids:
+  for project in projects:
     i += 1
-    try:
-      callGAPI(crm.projects(), u'delete',
-               throw_reasons=[GAPI.FORBIDDEN],
-               projectId=pid)
-      entityActionPerformed([Ent.PROJECT, pid], i, count)
-    except GAPI.forbidden as e:
-      entityActionFailedWarning([Ent.PROJECT, pid], str(e), i, count)
+    _showProject(project, i, count)
   Ind.Decrement()
-
-# gam update project [<EmailAddress>]
-def doUpdateProject():
-  login_hint = getEmailAddress(noUid=True, optional=True)
-  checkForExtraneousArguments()
-  login_hint = getValidateLoginHint(login_hint)
-  _, httpObj = getCRMService(login_hint)
-  cs_data = readFile(GC.Values[GC.CLIENT_SECRETS_JSON], mode=u'rb', continueOnError=True, displayError=True, encoding=None)
-  if not cs_data:
-    systemErrorExit(14, u'Your client secrets file:\n\n%s\n\nis missing. Please recreate the file.' % GC.Values[GC.CLIENT_SECRETS_JSON])
-  try:
-    cs_json = json.loads(cs_data)
-    projectName = 'project:%s' % cs_json[u'installed'][u'project_id']
-  except (ValueError, IndexError, KeyError):
-    systemErrorExit(3, u'The format of your client secrets file:\n\n%s\n\nis incorrect. Please recreate the file.' % GC.Values[GC.CLIENT_SECRETS_JSON])
-  enableProjectAPIs(httpObj, projectName, True)
 
 # gam whatis <EmailItem> [noinfo]
 def doWhatIs():
@@ -6575,10 +6662,10 @@ def doReport():
                     else:
                       myvalue = value
                     if mycount and myvalue:
-                      values.append(u'%s:%s' % (myvalue, mycount))
+                      values.append(u'{0}:{1}'.format(myvalue, mycount))
                   value = u' '.join(values)
                 elif u'version_number' in subitem and u'num_devices' in subitem:
-                  values.append(u'%s:%s' % (subitem[u'version_number'], subitem[u'num_devices']))
+                  values.append(u'{0}:{1}'.format(subitem[u'version_number'], subitem[u'num_devices']))
                 else:
                   continue
                 value = u' '.join(sorted(values, reverse=True))
@@ -8569,6 +8656,40 @@ def _doUpdateOrgs(entityList):
         _batchMoveUsersToOrgUnit(cd, orgUnitPath, i, count, items)
       else:
         _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, i, count, items, quickCrOSMove)
+  elif checkArgumentPresent([u'sync',]):
+    entityType, syncMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, crosAllowed=True)
+    orgItemLists = syncMembers if isinstance(syncMembers, dict) else None
+    if orgItemLists is None:
+      syncMembersSet = set(syncMembers)
+    removeToOrgUnitPath = u'/'
+    quickCrOSMove = False
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if entityType == Cmd.ENTITY_CROS and myarg == u'quickcrosmove':
+        quickCrOSMove = getBoolean()
+      elif myarg == u'removetoou':
+        status, removeToOrgUnitPath = checkOrgUnitPathExists(cd, getOrgUnitItem())
+        if not status:
+          entityDoesNotExistExit(Ent.ORGANIZATIONAL_UNIT, removeToOrgUnitPath)
+      else:
+        unknownArgumentExit()
+    Act.Set(Act.ADD)
+    i = 0
+    count = len(entityList)
+    for orgUnitPath in entityList:
+      i += 1
+      if orgItemLists:
+        syncMembersSet = set(orgItemLists[orgUnitPath])
+      status, orgUnitPath = checkOrgUnitPathExists(cd, orgUnitPath, i, count, True)
+      if not status:
+        continue
+      currentMembersSet = set(getUsersToModify(Cmd.ENTITY_OU, orgUnitPath))
+      if entityType == Cmd.ENTITY_USERS:
+        _batchMoveUsersToOrgUnit(cd, orgUnitPath, i, count, list(syncMembersSet-currentMembersSet))
+        _batchMoveUsersToOrgUnit(cd, removeToOrgUnitPath, i, count, list(currentMembersSet-syncMembersSet))
+      else:
+        _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, i, count, list(syncMembersSet-currentMembersSet), quickCrOSMove)
+        _batchMoveCrOSesToOrgUnit(cd, removeToOrgUnitPath, i, count, list(currentMembersSet-syncMembersSet), quickCrOSMove)
   else:
     body = {}
     while Cmd.ArgumentsRemaining():
@@ -8611,12 +8732,16 @@ def _doUpdateOrgs(entityList):
 # gam update orgs|ous <OrgUnitEntity> [name <String>] [description <String>] [parent <OrgUnitItem>] [inherit|noinherit|(blockinheritance <Boolean>)]
 # gam update orgs|ous <OrgUnitEntity> add|move <CrosTypeEntity> [quickcrosmove [<Boolean>]]
 # gam update orgs|ous <OrgUnitEntity> add|move <UserTypeEntity>
+# gam update orgs|ous <OrgUnitEntity> sync <CrosTypeEntity> [removetoou <OrgUnitItem>] [quickcrosmove [<Boolean>]]
+# gam update orgs|ous <OrgUnitEntity> sync <UserTypeEntity> [removetoou <OrgUnitItem>]
 def doUpdateOrgs():
   _doUpdateOrgs(getEntityList(Cmd.OB_ORGUNIT_ENTITY, shlexSplit=True))
 
 # gam update org|ou <OrgUnitItem> [name <String>] [description <String>]  [parent <OrgUnitItem>] [inherit|noinherit|(blockinheritance <Boolean>)]
 # gam update org|ou <OrgUnitItem> add|move <CrosTypeEntity> [quickcrosmove [<Boolean>]]
 # gam update org|ou <OrgUnitItem> add|move <UserTypeEntity>
+# gam update org|ou <OrgUnitItem> sync <CrosTypeEntity> [removetoou <OrgUnitItem>] [quickcrosmove [<Boolean>]]
+# gam update org|ou <OrgUnitItem> sync <UserTypeEntity> [removetoou <OrgUnitItem>]
 def doUpdateOrg():
   _doUpdateOrgs([getOrgUnitItem()])
 
@@ -13322,7 +13447,7 @@ def doUpdateGroups():
   def getDeliverySettings():
     if checkArgumentPresent([u'delivery', u'deliverysettings']):
       return getChoice(GROUP_DELIVERY_SETTINGS_MAP, mapChoice=True)
-    return DELIVERY_SETTINGS_UNDEFINED
+    return getChoice(GROUP_DELIVERY_SETTINGS_MAP, defaultChoice=DELIVERY_SETTINGS_UNDEFINED, mapChoice=True)
 
   def _executeBatch(dbatch, batchParms):
     dbatch.execute()
@@ -13735,7 +13860,7 @@ def doUpdateGroups():
     preview = checkArgumentPresent(u'preview')
     _, syncMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
     groupMemberLists = syncMembers if isinstance(syncMembers, dict) else None
-    if not groupMemberLists:
+    if groupMemberLists is None:
       syncMembersSet = set()
       syncMembersMap = {}
       for member in syncMembers:
@@ -21763,6 +21888,7 @@ def _doInfoCourses(entityList):
               Ind.Decrement()
           Ind.Decrement()
         Ind.Decrement()
+      Ind.Decrement()
     except GAPI.notFound:
       entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], Msg.DOES_NOT_EXIST, i, count)
     except GAPI.forbidden:
@@ -22785,7 +22911,7 @@ def doCourseSyncParticipants(courseIdList, getEntityListArg):
                                           typeMap={Cmd.ENTITY_COURSEPARTICIPANTS: PARTICIPANT_EN_MAP[role]}, isSuspended=False)
   checkForExtraneousArguments()
   courseParticipantLists = syncParticipants if isinstance(syncParticipants, dict) else None
-  if not courseParticipantLists:
+  if courseParticipantLists is None:
     syncParticipantsSet = set()
     for user in syncParticipants:
       syncParticipantsSet.add(normalizeEmailAddressOrUID(user))
@@ -23985,7 +24111,7 @@ def getPrinterACLScopeEntity():
   groupMemberType = getChoice({u'usersonly': u'USER', 'groupsonly': u'GROUP'}, defaultChoice=u'ALL', mapChoice=True)
   _, scopeList = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, groupMemberType=groupMemberType)
   printerScopeLists = scopeList if isinstance(scopeList, dict) else None
-  if not printerScopeLists:
+  if printerScopeLists is None:
     scopeList = normalizePrinterScopeList(scopeList)
   return scopeList, printerScopeLists
 
@@ -24010,10 +24136,10 @@ def _batchCreatePrinterACLs(cp, printerId, i, count, scopeList, role, notify):
       callGCP(cp.printers(), u'share',
               throw_messages=[GCP.UNKNOWN_PRINTER, GCP.FAILED_TO_SHARE_THE_PRINTER, GCP.USER_IS_NOT_AUTHORIZED],
               printerid=printerId, role=roleForScope, scope=scope, public=public, skip_notification=skip_notification)
-      if scope is None:
-        scope = u'public'
-        roleForScope = Ent.ROLE_USER
-      entityActionPerformed([Ent.PRINTER, printerId, roleForScope, scope], j, jcount)
+      if scope is not None:
+        entityActionPerformed([Ent.PRINTER, printerId, roleForScope, scope], j, jcount)
+      else:
+        entityActionPerformed([Ent.PRINTER, printerId, Ent.SCOPE, u'public'], j, jcount)
     except GCP.userIsNotAuthorized:
       entityActionFailedWarning([Ent.PRINTER, printerId, roleForScope, scope], Msg.ONLY_ONE_OWNER_ALLOWED, j, jcount)
     except GCP.failedToShareThePrinter:
@@ -37295,7 +37421,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ORGS:		doDeleteOrgs,
       Cmd.ARG_PERMISSIONS:	doDeletePermissions,
       Cmd.ARG_PRINTER:		doDeletePrinters,
-      Cmd.ARG_PROJECT:		doDeleteProjects,
+      Cmd.ARG_PROJECT:		doDeleteProject,
       Cmd.ARG_RESOLDSUBSCRIPTION:	doDeleteResoldSubscription,
       Cmd.ARG_RESOURCE:		doDeleteResourceCalendar,
       Cmd.ARG_RESOURCES:	doDeleteResourceCalendars,
@@ -37417,6 +37543,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ORGTREE:		doShowOrgTree,
       Cmd.ARG_OWNERSHIP:	doShowOwnership,
       Cmd.ARG_PRIVILEGES:	doShowPrivileges,
+      Cmd.ARG_PROJECT:		doShowProjects,
       Cmd.ARG_RESOLDSUBSCRIPTION:	doShowResoldSubscriptions,
       Cmd.ARG_RESOURCE:		doShowResourceCalendars,
       Cmd.ARG_RESOURCES:	doShowResourceCalendars,
@@ -37471,6 +37598,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
     ),
   u'undelete': (Act.UNDELETE, {Cmd.ARG_USER: doUndeleteUser, Cmd.ARG_USERS: doUndeleteUsers, Cmd.ARG_VAULTMATTER: doUndeleteVaultMatter}),
   u'unsuspend': (Act.UNSUSPEND, {Cmd.ARG_USER: doUnsuspendUser, Cmd.ARG_USERS: doUnsuspendUsers}),
+  u'use': (Act.USE, {Cmd.ARG_PROJECT: doUseProject}),
   }
 
 MAIN_COMMANDS_OBJ_ALIASES = {

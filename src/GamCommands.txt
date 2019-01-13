@@ -132,6 +132,7 @@ If an item contains spaces, it should be surrounded by ".
         never|
         now|today
 <RegularExpression> ::= <Python Regular Expression, see: https://docs.python.org/2/library/re.html>
+<ProjectID> ::= <String> # Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
 <SiteName> ::= [a-z,0-9,-]+
 <UniqueID> ::= uid:<String>
 
@@ -594,8 +595,11 @@ gam <CrOSTypeEntity>|<UserTypeEntity> list [todrive <ToDriveAttribute>*] [data <
 
 # Authorization
 
-gam create|add project [<EmailAddress>]
-gam update project [<EmailAddress>]
+gam create|add project [<EmailAddress>] [<ProjectID>]
+gam use project [<EmailAddress>] [<ProjectID>]
+gam delete project [<EmailAddress>] [<ProjectID>]
+gam update project [<EmailAddress>] [<ProjectID>]
+gam show projects [<EmailAddress>] [all|gam|<String>]
 
 gam oauth|oauth2 create|request [<EmailAddress>]
 gam oauth|oauth2 delete|revoke
@@ -1489,12 +1493,12 @@ gam print domainaliases|aliasdomains [todrive <ToDriveAttribute>*]
 gam create|add group <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>*
 gam update group|groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] [copyfrom <GroupItem>] <GroupAttribute>*
 gam update group|groups <GroupEntity> create|add [owner|manager|member] [usersonly|groupsonly] [notsuspended|suspended]
-        [delivery allmail|abridged|daily|digest|none|disabled] [preview] <UserTypeEntity>
+        [[delivery] allmail|abridged|daily|digest|none|disabled] [preview] <UserTypeEntity>
 gam update group|groups <GroupEntity> delete|remove [owner|manager|member] [usersonly|groupsonly] [notsuspended|suspended] [preview] <UserTypeEntity>
 gam update group|groups <GroupEntity> sync [owner|manager|member] [usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended]
-        [delivery allmail|abridged|daily|digest|none|disabled] [preview] <UserTypeEntity>
+        [[delivery] allmail|abridged|daily|digest|none|disabled] [preview] <UserTypeEntity>
 gam update group|groups <GroupEntity> update [owner|manager|member] [usersonly|groupsonly] [notsuspended|suspended]
-        [delivery allmail|abridged|daily|digest|none|disabled] [preview] <UserTypeEntity>
+        [[delivery] allmail|abridged|daily|digest|none|disabled] [preview] <UserTypeEntity>
 gam update group|groups <GroupEntity> clear [member] [manager] [owner] [notsuspended|suspended] [preview]
 gam delete group|groups <GroupEntity>
 
@@ -1671,11 +1675,15 @@ gam create|add org|ou <OrgUnitPath> [description <String>] [parent <OrgUnitItem>
 gam update org|ou <OrgUnitItem> [name <String>] [description <String>] [parent <OrgUnitItem>] [inherit|noinherit|(blockinheritance <Boolean>)]
 gam update org|ou <OrgUnitItem> add|move <CrOSTypeEntity> [quickcrosmove [<Boolean>]]
 gam update org|ou <OrgUnitItem> add|move <UserTypeEntity>
+gam update org|ou <OrgUnitItem> sync <CrOSTypeEntity> [removetoou <OrgUnitItem>] [quickcrosmove [<Boolean>]]
+gam update org|ou <OrgUnitItem> sync <UserTypeEntity> [removetoou <OrgUnitItem>]
 gam delete org|ou <OrgUnitItem>
 
 gam update orgs|ous <OrgUnitEntity> [name <String>] [description <String>] [parent <OrgUnitItem>] [inherit|noinherit|(blockinheritance <Boolean>)]
 gam update orgs|ous <OrgUnitEntity> add|move <CrOSTypeEntity> [quickcrosmove [<Boolean>]]
 gam update orgs|ous <OrgUnitEntity> add|move <UserTypeEntity>
+gam update orgs|ous <OrgUnitEntity> sync <CrOSTypeEntity> [removetoou <OrgUnitItem>] [quickcrosmove [<Boolean>]]
+gam update orgs|ous <OrgUnitEntity> sync <UserTypeEntity> [removetoou <OrgUnitItem>]
 gam delete orgs|ous <OrgUnitEntity>
 
 gam info org|ou <OrgUnitItem> [nousers|notsuspended|suspended] [children|child]

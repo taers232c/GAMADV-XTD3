@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2018 Ross Scroggs All Rights Reserved.
+# Copyright (C) 2019 Ross Scroggs All Rights Reserved.
 #
 # All Rights Reserved.
 #
@@ -91,7 +91,8 @@ class GamAction(object):
   UPDATE = u'upda'
   UPDATE_PREVIEW = u'updp'
   UPLOAD = u'uplo'
-  UNZIP = U'unzi'
+  UNZIP = u'unzi'
+  USE = u'use '
   VERIFY = u'vrfy'
   WATCH = u'watc'
   WIPE = u'wipe'
@@ -168,6 +169,7 @@ class GamAction(object):
     UPDATE: [u'Updated', u'Update'],
     UPDATE_PREVIEW: [u'Updated (Preview)', u'Update (Preview)'],
     UPLOAD: [u'Uploaded', u'Upload'],
+    USE: [u'Used', u'Use'],
     VERIFY: [u'Verified', u'Verify'],
     WATCH: [u'Watched', u'Watch'],
     WIPE: [u'Wiped', u'Wipe'],

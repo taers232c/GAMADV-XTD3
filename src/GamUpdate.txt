@@ -1,3 +1,21 @@
+4.65.41
+
+Added sync option to gam update org/orgs. A synchronize operation gets the current members in the `<OrgUnitItem>/<OrgUnitEntity>`
+and a list of users from <UserTypeEntity>/<CrOSTypeEntity>:
+* Members in the OU but not in <UserTypeEntity>/<CrOSTypeEntity> will be moved to OU / or the OU specified in removetoou <OrgUnitItem>
+* Members in <UserTypeEntity>/<CrOSTypeEntity> but not in the OU are moved to the OU
+* Members in the OU and in <UserTypeEntity>/<CrOSTypeEntity> are unaffected
+Remember: think before you sync.
+
+gam update org|ou <OrgUnitItem> sync <CrOSTypeEntity> [removetoou <OrgUnitItem>] [quickcrosmove [<Boolean>]]
+gam update org|ou <OrgUnitItem> sync <UserTypeEntity> [removetoou <OrgUnitItem>]
+gam update orgs|ous <OrgUnitEntity> sync <CrOSTypeEntity> [removetoou <OrgUnitItem>] [quickcrosmove [<Boolean>]]
+gam update orgs|ous <OrgUnitEntity> sync <UserTypeEntity> [removetoou <OrgUnitItem>]
+
+Starting from code supplied by Gavin Lam, added a command to allow Gam to use previously defined projects.
+Added additional commands to delete and display projects.
+See: https://github.com/taers232c/GAMADV-X/wiki/Authorization
+
 4.65.40
 
 Modified gam printer create/delete to handle creating/deleting public scope ACL.

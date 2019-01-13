@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2018 Ross Scroggs All Rights Reserved.
+# Copyright (C) 2019 Ross Scroggs All Rights Reserved.
 #
 # All Rights Reserved.
 #
@@ -567,6 +567,7 @@ class GamCLArgs(object):
   OB_PRINTJOB_ID = u'PrintJobID'
   OB_PRODUCT_ID = u'ProductID'
   OB_PRODUCT_ID_LIST = u'ProductIDList'
+  OB_PROJECT_ID = u'ProjectID'
   OB_PROPERTY_KEY = u'PropertyKey'
   OB_PROPERTY_VALUE = u'PropertyValue'
   OB_QUERY = u'Query'
