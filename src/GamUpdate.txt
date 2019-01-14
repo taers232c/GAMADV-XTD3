@@ -1,3 +1,7 @@
+4.65.42
+
+Correct onscreen instructions for gam create/use project to match Google admin console screens.
+
 4.65.41
 
 Added sync option to gam update org/orgs. A synchronize operation gets the current members in the `<OrgUnitItem>/<OrgUnitEntity>`
