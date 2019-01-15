@@ -6315,9 +6315,10 @@ def _doPrintShowProjects(csvFormat):
       i += 1
       printEntity([Ent.PROJECT, project[u'projectId']], i, count)
       Ind.Increment()
+      printKeyValueList([u'projectNumber', project[u'projectNumber']])
       printKeyValueList([u'name', project[u'name']])
-      printKeyValueList([u'lifecycleState', project[u'lifecycleState']])
       printKeyValueList([u'createTime', formatLocalTime(project[u'createTime'])])
+      printKeyValueList([u'lifecycleState', project[u'lifecycleState']])
       jcount = len(project.get(u'labels', []))
       if jcount > 0:
         printKeyValueList([u'labels', jcount])
