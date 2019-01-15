@@ -1,3 +1,12 @@
+4.65.43
+
+Added csvsheet <String> argument to gam get drivefile to allow downloading a specific sheet
+from a Google Sheets file in CSV format.
+See: https://github.com/taers232c/GAMADV-XTD/wiki/Users-Drive-Files#download-files
+
+Added gam print projects command.
+See: https://github.com/taers232c/GAMADV-XTD/wiki/Authorization
+
 4.65.42
 
 Correct onscreen instructions for gam create/use project to match Google admin console screens.
@@ -18,7 +27,7 @@ gam update orgs|ous <OrgUnitEntity> sync <UserTypeEntity> [removetoou <OrgUnitIt
 
 Starting from code supplied by Gavin Lam, added a command to allow Gam to use previously defined projects.
 Added additional commands to delete and display projects.
-See: https://github.com/taers232c/GAMADV-X/wiki/Authorization
+See: https://github.com/taers232c/GAMADV-XTD/wiki/Authorization
 
 4.65.40
 

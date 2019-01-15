@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.42'
+__version__ = u'4.65.43'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6142,7 +6142,7 @@ def _checkForExistingProjectFiles():
     if os.path.exists(a_file):
       systemErrorExit(5, '{0} already exists. Please delete or rename it before attempting to {1} another project.'.format(a_file, Act.ToPerform()))
 
-def _getLoginHintParameter(projectIdParm):
+def _getLoginHintParameter(projectIdParm, additionalArgs=False):
   login_hint = getEmailAddress(noUid=True, optional=True)
   if projectIdParm:
     parameter = getString(Cmd.OB_STRING, optional=True, minLen=6, maxLen=30).strip()
@@ -6152,7 +6152,8 @@ def _getLoginHintParameter(projectIdParm):
         invalidArgumentExit(PROJECTID_FORMAT_REQUIRED)
   else:
     parameter = getString(Cmd.OB_STRING, optional=True)
-  checkForExtraneousArguments()
+  if not additionalArgs:
+    checkForExtraneousArguments()
   login_hint = getValidateLoginHint(login_hint)
   crm, httpObj = getCRMService(login_hint)
   return (crm, httpObj, login_hint, parameter)
@@ -6275,43 +6276,79 @@ def doUpdateProject():
     projectId = getValidateProjectId(crm, login_hint, projectId)
   enableProjectAPIs(httpObj, login_hint, projectId, True)
 
-# gam show projects [<EmailAddress>] [all|gam|<String>]
-def doShowProjects():
-  def _showProject(project, i, count):
-    printEntity([Ent.USER, login_hint, Ent.PROJECT, project[u'projectId']], i, count)
-    Ind.Increment()
-    printKeyValueList([u'name', project[u'name']])
-    printKeyValueList([u'lifecycleState', project[u'lifecycleState']])
-    printKeyValueList([u'createTime', formatLocalTime(project[u'createTime'])])
-    jcount = len(project.get(u'labels', []))
-    if jcount > 0:
-      printKeyValueList([u'labels', jcount])
-      Ind.Increment()
-      for k, v in iteritems(project[u'labels']):
-        printKeyValueList([k, v])
-      Ind.Decrement()
-    if u'parent' in project:
-      printKeyValueList([u'parent', u''])
-      Ind.Increment()
-      printKeyValueList([u'type', project[u'parent'][u'type']])
-      printKeyValueList([u'id', project[u'parent'][u'id']])
-      Ind.Decrement()
-    Ind.Decrement()
-
-  crm, _, login_hint, pfilter = _getLoginHintParameter(False)
-  if not pfilter or pfilter == u'gam':
+def _doPrintShowProjects(csvFormat):
+  crm, _, login_hint, pfilter = _getLoginHintParameter(False, True)
+  if csvFormat:
+    todrive = {}
+    sortTitles = [u'User', u'projectId', u'projectNumber', u'name', u'createTime', u'lifecycleState']
+  formatJSON = False
+  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  if not pfilter or pfilter.lower() == u'gam':
     pfilter = u'id:gam-project-*'
   elif pfilter.lower() == u'all':
     pfilter = None
+  elif pfilter == u'filter':
+    pfilter = getString(Cmd.OB_STRING)
+  elif PROJECTID_PATTERN.match(pfilter):
+    pfilter = u'id:{0}'.format(pfilter)
+  if csvFormat:
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if csvFormat and myarg == u'todrive':
+        todrive = getTodriveParameters()
+      elif myarg == u'formatjson':
+        formatJSON = True
+        sortTitles = [u'User', u'JSON']
+      elif myarg == u'quotechar':
+        quotechar = getCharacter()
+      else:
+        unknownArgumentExit()
+  if csvFormat:
+    titles, csvRows = initializeTitlesCSVfile(sortTitles)
   projects = getProjects(crm, pfilter)
-  count = len(projects)
-  performActionNumItems(count, Ent.PROJECT)
-  Ind.Increment()
-  i = 0
-  for project in projects:
-    i += 1
-    _showProject(project, i, count)
-  Ind.Decrement()
+  if not csvFormat:
+    count = len(projects)
+    entityPerformActionNumItems([Ent.USER, login_hint], count, Ent.PROJECT)
+    Ind.Increment()
+    i = 0
+    for project in projects:
+      i += 1
+      printEntity([Ent.PROJECT, project[u'projectId']], i, count)
+      Ind.Increment()
+      printKeyValueList([u'name', project[u'name']])
+      printKeyValueList([u'lifecycleState', project[u'lifecycleState']])
+      printKeyValueList([u'createTime', formatLocalTime(project[u'createTime'])])
+      jcount = len(project.get(u'labels', []))
+      if jcount > 0:
+        printKeyValueList([u'labels', jcount])
+        Ind.Increment()
+        for k, v in iteritems(project[u'labels']):
+          printKeyValueList([k, v])
+        Ind.Decrement()
+      if u'parent' in project:
+        printKeyValueList([u'parent', u''])
+        Ind.Increment()
+        printKeyValueList([u'type', project[u'parent'][u'type']])
+        printKeyValueList([u'id', project[u'parent'][u'id']])
+        Ind.Decrement()
+      Ind.Decrement()
+    Ind.Decrement()
+  else:
+    if not formatJSON:
+      for project in projects:
+        addRowTitlesToCSVfile(flattenJSON(project, flattened={u'User': login_hint}, timeObjects=[u'createTime',]), csvRows, titles)
+    else:
+      for project in projects:
+        csvRows.append({u'User': login_hint, u'JSON': json.dumps(cleanJSON(project, timeObjects=[u'createTime',]), ensure_ascii=False, sort_keys=True)})
+    writeCSVfile(csvRows, titles, u'Projects', todrive, sortTitles, quotechar=quotechar)
+
+# gam print projects [<EmailAddress>] [all|gam|<ProjectID>|(filter <String>)] [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
+def doPrintProjects():
+  _doPrintShowProjects(True)
+
+# gam show projects [<EmailAddress>] [all|gam|<ProjectID>|(filter <String>)]
+def doShowProjects():
+  _doPrintShowProjects(False)
 
 # gam whatis <EmailItem> [noinfo]
 def doWhatIs():
@@ -25948,26 +25985,27 @@ def doTeamDriveSearch(drive, user, i, count, query, useDomainAdminAccess):
   return None
 
 def cleanFileIDsList(fileIdEntity, fileIds):
+  def _getFileIdFromURL(fileId):
+    loc = fileId.find(u'/d/')
+    if loc > 0:
+      fileId = fileId[loc+3:]
+      loc = fileId.find(u'/')
+      return fileId[:loc] if loc != -1 else fileId
+    loc = fileId.find(u'?id=')
+    if loc > 0:
+      fileId = fileId[loc+4:]
+      loc = fileId.find(u'&')
+      return fileId[:loc] if loc != -1 else fileId
+    return None
+
   fileIdEntity[u'list'] = []
   fileIdEntity[u'root'] = []
   i = 0
   for fileId in fileIds:
     if fileId[:8].lower() == u'https://' or fileId[:7].lower() == u'http://':
-      loc = fileId.find(u'/d/')
-      if loc > 0:
-        fileId = fileId[loc+3:]
-        loc = fileId.find(u'/')
-        if loc != -1:
-          fileId = fileId[:loc]
-      else:
-        loc = fileId.find(u'/folderview?id=')
-        if loc > 0:
-          fileId = fileId[loc+15:]
-          loc = fileId.find(u'&')
-          if loc != -1:
-            fileId = fileId[:loc]
-        else:
-          continue
+      fileId = _getFileIdFromURL(fileId)
+      if fileId is None:
+        continue
     elif fileId.lower() == u'root':
       fileIdEntity[u'root'].append(i)
       fileId = fileId.lower()
@@ -30078,11 +30116,11 @@ DOCUMENT_FORMATS_MAP = {
                   {u'mime': u'application/vnd.oasis.opendocument.text', u'ext': u'.odt'}],
   }
 
-# gam <UserTypeEntity> get drivefile <DriveFileEntity> [revision <Number>] [format <FileFormatList>]
+# gam <UserTypeEntity> get drivefile <DriveFileEntity> [revision <DriveFileRevisionID>] [(format <FileFormatList>)|(csvsheet <String>)]
 #	[targetfolder <FilePath>] [targetname <FileName>] [overwrite [<Boolean>]] [showprogress [<Boolean>]]
 def getDriveFile(users):
   fileIdEntity = getDriveFileEntity()
-  revisionId = None
+  csvSheetTitle = revisionId = None
   exportFormatName = u'openoffice'
   exportFormatChoices = [exportFormatName]
   exportFormats = DOCUMENT_FORMATS_MAP[exportFormatName]
@@ -30106,13 +30144,20 @@ def getDriveFile(users):
     elif myarg == u'overwrite':
       overwrite = getBoolean()
     elif myarg == u'revision':
-      revisionId = getInteger(minVal=1)
+      revisionId = getString(Cmd.OB_DRIVE_FILE_REVISION_ID)
+    elif myarg == u'csvsheet':
+      csvSheetTitle = getString(Cmd.OB_STRING)
+      csvSheetTitleLower = csvSheetTitle.lower()
     elif myarg == u'nocache':
       pass
     elif myarg == u'showprogress':
       showProgress = getBoolean()
     else:
       unknownArgumentExit()
+  if csvSheetTitle:
+    exportFormatName = u'csv'
+    exportFormatChoices = [exportFormatName]
+    exportFormats = DOCUMENT_FORMATS_MAP[exportFormatName]
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -30120,6 +30165,10 @@ def getDriveFile(users):
     if jcount == 0:
       continue
     _, userName, _ = splitEmailAddressOrUID(user)
+    if csvSheetTitle:
+      _, sheet = buildGAPIServiceObject(API.SHEETS, user, i, count)
+      if not sheet:
+        continue
     targetFolder = _substituteForUser(targetFolderPattern, user, userName)
     if not os.path.isdir(targetFolder):
       os.makedirs(targetFolder)
@@ -30138,8 +30187,9 @@ def getDriveFile(users):
         if mimeType == MIMETYPE_GA_FOLDER:
           entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, result[VX_FILENAME]], Msg.CAN_NOT_BE_DOWNLOADED, j, jcount)
           continue
+        entityValueList = [Ent.USER, user, Ent.DRIVE_FILE, result[VX_FILENAME]]
         if mimeType in NON_DOWNLOADABLE_MIMETYPES:
-          entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, result[VX_FILENAME]], Msg.FORMAT_NOT_DOWNLOADABLE, j, jcount)
+          entityActionNotPerformedWarning(entityValueList, Msg.FORMAT_NOT_DOWNLOADABLE, j, jcount)
           continue
         validExtensions = GOOGLEDOC_VALID_EXTENSIONS_MAP.get(mimeType)
         if validExtensions:
@@ -30151,7 +30201,7 @@ def getDriveFile(users):
           else:
             my_line = [u'Size', u'Unknown']
           googleDoc = False
-        fileDownloaded = fileDownloadFailed = False
+        csvSheetNotFound = fileDownloaded = fileDownloadFailed = False
         for exportFormat in exportFormats:
           extension = fileExtension or exportFormat[u'ext']
           if googleDoc and (extension not in validExtensions):
@@ -30166,40 +30216,60 @@ def getDriveFile(users):
               break
             y += 1
             filename = os.path.join(targetFolder, u'({0})-{1}'.format(y, safe_file_title))
-          if googleDoc:
-            request = drive.files().export_media(fileId=fileId, mimeType=exportFormat[u'mime'])
-            if revisionId:
-              request.uri = u'{0}&revision={1}'.format(request.uri, revisionId)
-          else:
-            request = drive.files().get_media(fileId=fileId)
-          fh = None
+          spreadsheetUrl = None
           try:
+            if googleDoc:
+              if csvSheetTitle is None or mimeType != MIMETYPE_GA_SPREADSHEET:
+                request = drive.files().export_media(fileId=fileId, mimeType=exportFormat[u'mime'])
+                if revisionId:
+                  request.uri = u'{0}&revision={1}'.format(request.uri, revisionId)
+              else:
+                entityValueList.extend([Ent.SHEET, csvSheetTitle])
+                spreadsheet = callGAPI(sheet.spreadsheets(), u'get',
+                                       throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
+                                       spreadsheetId=fileId, fields=u'spreadsheetUrl,sheets(properties(sheetId,title))')
+                for sheet in spreadsheet[u'sheets']:
+                  if sheet[u'properties'][u'title'].lower() == csvSheetTitleLower:
+                    spreadsheetUrl = u'{0}?format=csv&id={1}&gid={2}'.format(re.sub(u'/edit$', u'/export', spreadsheet[u'spreadsheetUrl']),
+                                                                             fileId, sheet[u'properties'][u'sheetId'])
+                    break
+                else:
+                  entityActionNotPerformedWarning(entityValueList, Msg.NOT_FOUND, j, jcount)
+                  csvSheetNotFound = True
+                  continue
+            else:
+              request = drive.files().get_media(fileId=fileId)
+            fh = None
             fh = open(filename, u'wb')
-            downloader = googleapiclient.http.MediaIoBaseDownload(fh, request)
-            done = False
-            while not done:
-              status, done = downloader.next_chunk()
-              if showProgress:
-                entityActionPerformedMessage([Ent.USER, user, Ent.DRIVE_FILE, result[VX_FILENAME]], u'{0:>7.2%}'.format(status.progress()), j, jcount)
+            if not spreadsheetUrl:
+              downloader = googleapiclient.http.MediaIoBaseDownload(fh, request)
+              done = False
+              while not done:
+                status, done = downloader.next_chunk()
+                if showProgress:
+                  entityActionPerformedMessage(entityValueList, u'{0:>7.2%}'.format(status.progress()), j, jcount)
+            else:
+              _, content = drive._http.request(uri=spreadsheetUrl, method='GET')
+              fh.write(content)
             closeFile(fh)
-            entityModifierNewValueKeyValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, result[VX_FILENAME]], Act.MODIFIER_TO, filename, my_line[0], my_line[1], j, jcount)
+            entityModifierNewValueKeyValueActionPerformed(entityValueList, Act.MODIFIER_TO, filename, my_line[0], my_line[1], j, jcount)
             fileDownloaded = True
             break
           except (IOError, httplib2.HttpLib2Error) as e:
-            entityModifierNewValueActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, result[VX_FILENAME]], Act.MODIFIER_TO, filename, str(e), j, jcount)
+            entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, filename, str(e), j, jcount)
             fileDownloadFailed = True
             break
           except googleapiclient.http.HttpError:
-            entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, result[VX_FILENAME]],
-                                            Msg.FORMAT_NOT_AVAILABLE.format(extension[1:]), j, jcount)
+            entityActionNotPerformedWarning(entityValueList, Msg.FORMAT_NOT_AVAILABLE.format(extension[1:]), j, jcount)
           if fh:
             closeFile(fh)
             os.remove(filename)
-        if not fileDownloaded and not fileDownloadFailed:
-          entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, result[VX_FILENAME]],
-                                          Msg.FORMAT_NOT_AVAILABLE.format(u','.join(exportFormatChoices)), j, jcount)
+        if not fileDownloaded and not fileDownloadFailed and not csvSheetNotFound:
+          entityActionNotPerformedWarning(entityValueList, Msg.FORMAT_NOT_AVAILABLE.format(u','.join(exportFormatChoices)), j, jcount)
       except GAPI.fileNotFound:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], Msg.DOES_NOT_EXIST, j, jcount)
+      except (GAPI.notFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, fileId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
@@ -37507,6 +37577,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_PRINTER:		doPrintPrinters,
       Cmd.ARG_PRINTJOBS:	doPrintPrintJobs,
       Cmd.ARG_PRIVILEGES:	doPrintPrivileges,
+      Cmd.ARG_PROJECT:		doPrintProjects,
       Cmd.ARG_RESOLDSUBSCRIPTION:	doPrintResoldSubscriptions,
       Cmd.ARG_RESOURCE:		doPrintResourceCalendars,
       Cmd.ARG_RESOURCES:	doPrintResourceCalendars,

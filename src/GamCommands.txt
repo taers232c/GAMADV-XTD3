@@ -599,7 +599,8 @@ gam create|add project [<EmailAddress>] [<ProjectID>]
 gam use project [<EmailAddress>] [<ProjectID>]
 gam delete project [<EmailAddress>] [<ProjectID>]
 gam update project [<EmailAddress>] [<ProjectID>]
-gam show projects [<EmailAddress>] [all|gam|<String>]
+gam show projects [<EmailAddress>] [all|gam|<ProjectID>|(filter <String>)]
+gam print projects [<EmailAddress>] [all|gam|<ProjectID>|(filter <String>)] [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
 
 gam oauth|oauth2 create|request [<EmailAddress>]
 gam oauth|oauth2 delete|revoke
@@ -2595,7 +2596,7 @@ gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileNam
         [copysubfileparents nonpath|none|all] [copysubfolderparents nonpath|none|all]
         [retainsourcefolders [<Boolean>]]
 
-gam <UserTypeEntity> get drivefile <DriveFileEntity> [revision <DriveFileRevisionID>] [format <FileFormatList>]
+gam <UserTypeEntity> get drivefile <DriveFileEntity> [revision <DriveFileRevisionID>] [(format <FileFormatList>)|(csvsheet <String>)]
         [targetfolder <FilePath>] [targetname <FileName>] [overwrite [<Boolean>]] [showprogress [<Boolean>]]
 
 gam <UserTypeEntity> delete drivefile <DriveFileEntity> [purge|untrash|trash]

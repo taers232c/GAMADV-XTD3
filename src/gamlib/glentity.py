@@ -176,6 +176,7 @@ class GamEntity(object):
   SECTION = u'sect'
   SENDAS_ADDRESS = u'sasa'
   SERVICE = u'serv'
+  SHEET = u'shet'
   SIGNATURE = u'sign'
   SITE = u'site'
   SITE_ACL = u'sacl'
@@ -368,6 +369,7 @@ class GamEntity(object):
     SECTION: [u'Sections', u'Section'],
     SENDAS_ADDRESS: [u'SendAs Addresses', u'SendAs Address'],
     SERVICE: [u'Services', u'Service'],
+    SHEET: [u'Sheets', u'Sheet'],
     SIGNATURE: [u'Signatures', u'Signature'],
     SITE: [u'Sites', u'Site'],
     SITE_ACL: [u'Site ACLs', u'Site ACL'],
