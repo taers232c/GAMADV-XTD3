@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.43'
+__version__ = u'4.65.44'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6287,7 +6287,7 @@ def _doPrintShowProjects(csvFormat):
     pfilter = u'id:gam-project-*'
   elif pfilter.lower() == u'all':
     pfilter = None
-  elif pfilter == u'filter':
+  elif pfilter.lower() == u'filter':
     pfilter = getString(Cmd.OB_STRING)
   elif PROJECTID_PATTERN.match(pfilter):
     pfilter = u'id:{0}'.format(pfilter)
@@ -19717,6 +19717,7 @@ UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP = {
   u'addresses': u'addresses',
   u'agreed2terms': u'agreedToTerms',
   u'agreedtoterms': u'agreedToTerms',
+  u'archived': u'archived',
   u'changepassword': u'changePasswordAtNextLogin',
   u'changepasswordatnextlogin': u'changePasswordAtNextLogin',
   u'crypt': u'hashFunction',
@@ -20560,6 +20561,7 @@ USER_FIELDS_CHOICE_MAP = {
   u'agreed2terms': u'agreedToTerms',
   u'agreedtoterms': u'agreedToTerms',
   u'aliases': [u'aliases', u'nonEditableAliases'],
+  u'archived': u'archived',
   u'changepassword': u'changePasswordAtNextLogin',
   u'changepasswordatnextlogin': u'changePasswordAtNextLogin',
   u'creationtime': u'creationTime',
@@ -35384,12 +35386,18 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
     data = headers = u''
     for part in payload.get(u'parts', []):
       if getOrigMsg:
-        for name in headersToShow:
+        if show_all_headers:
+          if not headers:
+            headers = u'---------- Original message ----------\n'
           for header in part[u'headers']:
-            if name == header[u'name'].lower():
-              if not headers:
-                headers = u'---------- Original message ----------\n'
-              headers += SMTP_HEADERS_MAP.get(name, header[u'name'])+u': '+_decodeHeader(header[u'value'])+u'\n'
+            headers += header[u'name']+u': '+_decodeHeader(header[u'value'])+u'\n'
+        else:
+          for name in headersToShow:
+            for header in part[u'headers']:
+              if name == header[u'name'].lower():
+                if not headers:
+                  headers = u'---------- Original message ----------\n'
+                headers += SMTP_HEADERS_MAP.get(name, header[u'name'])+u': '+_decodeHeader(header[u'value'])+u'\n'
         if headers:
           headers += u'Body:\n'
           data = Ind.INDENT_SPACES_PER_LEVEL
@@ -35445,10 +35453,14 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
     Ind.Increment()
     if show_snippet:
       printKeyValueList([u'Snippet', dehtml(result[u'snippet']).replace(u'\n', u' ')])
-    for name in headersToShow:
+    if show_all_headers:
       for header in result[u'payload'].get(u'headers', []):
-        if name == header[u'name'].lower():
-          printKeyValueList([SMTP_HEADERS_MAP.get(name, header[u'name']), _decodeHeader(header[u'value'])])
+        printKeyValueList([header[u'name'], _decodeHeader(header[u'value'])])
+    else:
+      for name in headersToShow:
+        for header in result[u'payload'].get(u'headers', []):
+          if name == header[u'name'].lower():
+            printKeyValueList([SMTP_HEADERS_MAP.get(name, header[u'name']), _decodeHeader(header[u'value'])])
     if show_size:
       printKeyValueList([u'SizeEstimate', result[u'sizeEstimate']])
     if show_labels:
@@ -35472,15 +35484,25 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
     row = {u'User': user, u'threadId': result[u'threadId'], u'id': result[u'id']}
     if show_snippet:
       row[u'Snippet'] = dehtml(result[u'snippet']).replace(u'\n', u' ')
-    for name in headersToShow:
-      j = 0
+    if show_all_headers:
+      headerCounts = {}
       for header in result[u'payload'].get(u'headers', []):
-        if name == header[u'name'].lower():
-          j += 1
-          if j == 1:
-            row[SMTP_HEADERS_MAP.get(name, header[u'name'])] = _decodeHeader(header[u'value'])
-          else:
-            row[u'{0} {1}'.format(SMTP_HEADERS_MAP.get(name, header[u'name']), j)] = _decodeHeader(header[u'value'])
+        headerCounts.setdefault(header[u'name'], 0)
+        if headerCounts[header[u'name']] == 0:
+          row[header[u'name']] = _decodeHeader(header[u'value'])
+        else:
+          row[u'{0} {1}'.format(header[u'name'], headerCounts[header[u'name']])] = _decodeHeader(header[u'value'])
+        headerCounts[header[u'name']] += 1
+    else:
+      for name in headersToShow:
+        j = 0
+        for header in result[u'payload'].get(u'headers', []):
+          if name == header[u'name'].lower():
+            if j == 0:
+              row[SMTP_HEADERS_MAP.get(name, header[u'name'])] = _decodeHeader(header[u'value'])
+            else:
+              row[u'{0} {1}'.format(SMTP_HEADERS_MAP.get(name, header[u'name']), j)] = _decodeHeader(header[u'value'])
+            j += 1
     if show_size:
       row[u'SizeEstimate'] = result[u'sizeEstimate']
     if show_labels:
@@ -35609,12 +35631,12 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
       dbatch.execute()
 
   parameters = _initMessageThreadParameters(entityType, True, 0)
-  includeSpamTrash = False
   convertCRNL = GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
-  countsOnly = show_attachments = show_body = show_labels = show_size = show_snippet = False
+  countsOnly = includeSpamTrash = show_all_headers = show_attachments = show_body = show_labels = show_size = show_snippet = False
   attachmentNamePattern = None
-  headersToShow = [u'Date', u'Subject', u'From', u'Reply-To', u'To', u'Delivered-To', u'Content-Type', u'Message-ID']
+  defaultHeaders = [u'Date', u'Subject', u'From', u'Reply-To', u'To', u'Delivered-To', u'Content-Type', u'Message-ID']
+  headersToShow = [header.lower() for header in defaultHeaders]
   if csvFormat:
     todrive = {}
   while Cmd.ArgumentsRemaining():
@@ -35624,7 +35646,8 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
     elif _getMessageSelectParameters(myarg, parameters):
       pass
     elif myarg == u'headers':
-      headersToShow = getString(Cmd.OB_STRING, minLen=0).replace(u',', u' ').split()
+      headersToShow = getString(Cmd.OB_STRING, minLen=0).lower().replace(u',', u' ').split()
+      show_all_headers = headersToShow and headersToShow[0] == u'all'
     elif myarg in [u'convertcrnl', u'converttextnl', u'convertbodynl']:
       convertCRNL = True
     elif myarg == u'showbody':
@@ -35650,16 +35673,12 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
   _finalizeMessageSelectParameters(parameters, False)
   if csvFormat:
     if countsOnly:
-      headerTitles = [u'User', parameters[u'listType']]
+      sortTitles = [u'User', parameters[u'listType']]
+      titles, csvRows = initializeTitlesCSVfile(sortTitles)
     else:
-      headerTitles = [u'User', u'threadId', u'id']
-      for j, name in enumerate(headersToShow):
-        headersToShow[j] = name.lower()
-        headerTitles.append(SMTP_HEADERS_MAP.get(headersToShow[j], name))
-    titles, csvRows = initializeTitlesCSVfile(headerTitles)
-  else:
-    for j, name in enumerate(headersToShow):
-      headersToShow[j] = name.lower()
+      sortTitles = [u'User', u'threadId', u'id']
+      titles, csvRows = initializeTitlesCSVfile(sortTitles)
+      sortTitles.extend(defaultHeaders)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -35724,25 +35743,25 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
         addTitleToCSVfile(u'Labels', titles)
       if show_body:
         addTitleToCSVfile(u'Body', titles)
-    writeCSVfile(csvRows, titles, u'Messages', todrive)
+    writeCSVfile(csvRows, titles, u'Messages', todrive, sortTitles)
 
 # gam <UserTypeEntity> print message|messages (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_print <Number>] [includespamtrash])|(ids <MessageIDEntity>)
-#	[countsonly] [headers <SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <Character>] [todrive <ToDriveAttributes>*]
+#	[countsonly] [headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <Character>] [todrive <ToDriveAttributes>*]
 def printMessages(users):
   _printShowMessagesThreads(users, Ent.MESSAGE, True)
 
 # gam <UserTypeEntity> print thread|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_print <Number>] [includespamtrash])|(ids <ThreadIDEntity>)
-#	[countsonly] [headers <SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <Character>] [todrive <ToDriveAttributes>*]
+#	[countsonly] [headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <Character>] [todrive <ToDriveAttributes>*]
 def printThreads(users):
   _printShowMessagesThreads(users, Ent.THREAD, True)
 
 # gam <UserTypeEntity> show message|messages (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <MessageIDEntity>)
-#	[countsonly] [headers <SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [showattachments [attachmentnamepattern <RegularExpression>]]
+#	[countsonly] [headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [showattachments [attachmentnamepattern <RegularExpression>]]
 def showMessages(users):
   _printShowMessagesThreads(users, Ent.MESSAGE, False)
 
 # gam <UserTypeEntity> show thread|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <ThreadIDEntity>)
-#	[countsonly] [headers <SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [showattachments [attachmentnamepattern <RegularExpression>]]
+#	[countsonly] [headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [showattachments [attachmentnamepattern <RegularExpression>]]
 def showThreads(users):
   _printShowMessagesThreads(users, Ent.THREAD, False)
 
