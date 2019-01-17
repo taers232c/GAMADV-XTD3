@@ -597,8 +597,8 @@ gam <CrOSTypeEntity>|<UserTypeEntity> list [todrive <ToDriveAttribute>*] [data <
 
 gam create|add project [<EmailAddress>] [<ProjectID>]
 gam use project [<EmailAddress>] [<ProjectID>]
-gam delete project [<EmailAddress>] [<ProjectID>]
-gam update project [<EmailAddress>] [<ProjectID>]
+gam update project [<EmailAddress>] [gam|<ProjectID>|(filter <String>)]
+gam delete project [<EmailAddress>] [gam|<ProjectID>|(filter <String>)]
 gam show projects [<EmailAddress>] [all|gam|<ProjectID>|(filter <String>)]
 gam print projects [<EmailAddress>] [all|gam|<ProjectID>|(filter <String>)] [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
 

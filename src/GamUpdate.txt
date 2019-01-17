@@ -1,3 +1,8 @@
+4.65.45
+
+Enhanced gam delete/update projects commands to allow more project selection options.
+See: https://github.com/taers232c/GAMADV-X/wiki/Authorization
+
 4.65.44
 
 Added the ability to display all message headers in gam print/show messages/threads; use the headers all option.
@@ -1277,10 +1282,10 @@ Allow customreplyto "" in gam create/update group to allow for an empty custom r
 Added cros_sn/crosfile_sn/croscsvfile_sn to <CrOSEntity> and <CrOSTypeEntity> to allow specifying ChromeOS devices by serial number.
 This requires an additional API call per serial number to convert it to the deviceId that is required by the API.
 For example:
-    gam cros_ns 01234,56789 update ou "/PathToOu"
-    gam info cros cros_ns 01234,56789
+    gam cros_sn 01234,56789 update ou "/PathToOu"
+    gam info cros cros_sn 01234,56789
 <CrOSEntity> ::=
-        <CrOSIDList> | (cros_ns <SerialNumberList>) |
+        <CrOSIDList> | (cros_sn <SerialNumberList>) |
         (query:<QueryCrOS>)|(query:orgunitpath:<OrgUnitPath>)|(query <QueryCrOS>) |
         <FileSelector> | <CSVkmdSelector>
 <CrOSTypeEntity> ::=

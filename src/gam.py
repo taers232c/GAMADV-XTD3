@@ -634,6 +634,11 @@ def invalidDiscoveryJsonExit(fileName):
 def noPythonSSLExit():
   systemErrorExit(CERTIFICATE_VALIDATION_UNSUPPORTED_RC, Msg.NO_PYTHON_SSL)
 
+def entityActionFailedExit(entityValueList, errMsg, i=0, count=0):
+  systemErrorExit(AC_FAILED_RC, formatKeyValueList(Ind.Spaces(),
+                                                   Ent.FormatEntityValueList(entityValueList)+[Act.Failed(), errMsg],
+                                                   currentCountNL(i, count)))
+
 def entityDoesNotExistExit(entityType, entityName, i=0, count=0, errMsg=None):
   Cmd.Backup()
   writeStderr(convertUTF8toSys(Cmd.CommandLineWithBadArgumentMarked(False)))
@@ -5620,42 +5625,18 @@ def revokeCredentials(credFamilyList):
       except oauth2client.client.TokenRevokeError as e:
         printErrorMessage(INVALID_TOKEN_RC, str(e))
 
-def getProjects(crm, pfilter):
-  try:
-    return callGAPIpages(crm.projects(), u'list', u'projects',
-                         throw_reasons=[GAPI.BAD_REQUEST],
-                         filter=pfilter)
-  except GAPI.badRequest as e:
-    entityActionFailedWarning([Ent.PROJECT, pfilter], str(e))
-    systemErrorExit(USAGE_ERROR_RC, None)
-
 VALIDEMAIL_PATTERN = re.compile(r'^[^@]+@[^@]+\.[^@]+$')
 
-def getValidateLoginHint(login_hint):
-  if login_hint:
-    login_hint = login_hint.strip()
-    if VALIDEMAIL_PATTERN.match(login_hint):
-      return login_hint
+def _getValidateLoginHint(login_hint):
   while True:
-    login_hint = readStdin(u'\nWhat is your G Suite admin email address? ').strip()
+    if not login_hint:
+      login_hint = readStdin(u'\nWhat is your G Suite admin email address? ').strip()
+    if login_hint.find(u'@') == -1 and GC.Values[GC.DOMAIN]:
+      login_hint = u'{0}@{1}'.format(login_hint, GC.Values[GC.DOMAIN].lower())
     if VALIDEMAIL_PATTERN.match(login_hint):
       return login_hint
-    sys.stdout.write(u'Error: that is not a valid email address\n')
-
-PROJECTID_PATTERN = re.compile(r'^[a-z][a-z0-9-]{4,28}[a-z0-9]$')
-PROJECTID_FORMAT_REQUIRED = u'[a-z][a-z0-9-]{4,28}[a-z0-9]'
-
-def getValidateProjectId(crm, login_hint, projectId):
-  if not projectId:
-    projectId = readStdin(u'\nWhat is your API project ID? ').strip()
-    if not PROJECTID_PATTERN.match(projectId):
-      systemErrorExit(USAGE_ERROR_RC, u'{0} {1}: {2} <{3}>'.format(Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1], Cmd.OB_PROJECT_ID,
-                                                                   Msg.EXPECTED, PROJECTID_FORMAT_REQUIRED))
-  projects = getProjects(crm, u'id:{0}'.format(projectId))
-  if projects:
-    return projectId
-  entityActionFailedWarning([Ent.USER, login_hint, Ent.PROJECT, projectId], Msg.DOES_NOT_EXIST)
-  systemErrorExit(USAGE_ERROR_RC, None)
+    sys.stdout.write('{0}Invalid email address: {1}\n'.format(ERROR_PREFIX, login_hint))
+    login_hint = None
 
 def getOAuthClientIDAndSecret():
   cs_data = readFile(GC.Values[GC.CLIENT_SECRETS_JSON], continueOnError=True, displayError=True)
@@ -5782,7 +5763,7 @@ def doOAuthRequest():
   selectedScopes = getScopesFromUser()
   if selectedScopes is None:
     return
-  login_hint = getValidateLoginHint(login_hint)
+  login_hint = _getValidateLoginHint(login_hint)
   revokeCredentials(API.FAM_LIST)
   flags = cmd_flags(noLocalWebserver=GC.Values[GC.NO_BROWSER])
   httpObj = getHttpObj()
@@ -6006,49 +5987,60 @@ def getCRMService(login_hint):
   httpObj = credentials.authorize(getHttpObj())
   return (googleapiclient.discovery.build(u'cloudresourcemanager', u'v1', http=httpObj, cache_discovery=False), httpObj)
 
-def enableProjectAPIs(httpObj, login_hint, projectId, checkEnabled):
+def enableGAMProjectAPIs(httpObj, projectId, checkEnabled, i=0, count=0):
   apis = API.PROJECT_APIS[:]
   projectName = u'project:{0}'.format(projectId)
   serveman = googleapiclient.discovery.build(u'servicemanagement', u'v1', http=httpObj, cache_discovery=False)
+  status = True
   if checkEnabled:
     try:
-      enabledServices = callGAPIpages(serveman.services(), u'list', u'services',
-                                      throw_reasons=[GAPI.NOT_FOUND],
-                                      consumerId=projectName, fields=u'nextPageToken,services(serviceName)')
-      for service in sorted(enabledServices, key=lambda k: k[u'serviceName']):
+      services = callGAPIpages(serveman.services(), u'list', u'services',
+                               throw_reasons=[GAPI.NOT_FOUND],
+                               consumerId=projectName, fields=u'nextPageToken,services(serviceName)')
+      Act.Set(Act.CHECK)
+      jcount = len(services)
+      entityPerformActionNumItems([Ent.PROJECT, projectId], jcount, Ent.API, i, count)
+      Ind.Increment()
+      j = 0
+      for service in sorted(services, key=lambda k: k[u'serviceName']):
+        j += 1
         if u'serviceName' in service:
           if service[u'serviceName'] in apis:
-            printEntityKVList([Ent.API, service[u'serviceName']], [u'already enabled...',])
+            printEntityKVList([Ent.API, service[u'serviceName']], [u'Already enabled',], j, jcount)
             apis.remove(service[u'serviceName'])
           else:
-            printEntityKVList([Ent.API, service[u'serviceName']], [u'(non-GAM) already enabled...',])
+            printEntityKVList([Ent.API, service[u'serviceName']], [u'Already enabled (non-GAM which is fine)',], j, jcount)
+      Ind.Decrement()
     except GAPI.notFound as e:
-      entityActionFailedWarning([Ent.USER, login_hint, Ent.PROJECT, projectId], str(e))
-      systemErrorExit(USAGE_ERROR_RC, None)
-  Act.Set(Act.ENABLE)
-  count = len(apis)
-  performActionNumItems(count, Ent.API)
-  Ind.Increment()
-  i = 0
-  for api in apis:
-    i += 1
-    while True:
-      try:
-        callGAPI(serveman.services(), u'enable',
-                 throw_reasons=[GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
-                 serviceName=api, body={u'consumerId': projectName})
-        entityActionPerformed([Ent.API, api], i, count)
-        break
-      except GAPI.failedPrecondition as e:
-        entityActionFailedWarning([Ent.API, api], str(e), i, count)
-        writeStderr(u'\nPlease resolve error as described above\n\n')
-        readStdin(u'Press enter once resolved and we will try enabling the API again.')
-      except GAPI.forbidden as e:
-        entityActionFailedWarning([Ent.API, api], str(e), i, count)
-        break
-  Ind.Decrement()
+      entityActionFailedWarning([Ent.PROJECT, projectId], str(e), i, count)
+      status = False
+  jcount = len(apis)
+  if status and jcount > 0:
+    Act.Set(Act.ENABLE)
+    entityPerformActionNumItems([Ent.PROJECT, projectId], jcount, Ent.API, i, count)
+    Ind.Increment()
+    j = 0
+    for api in apis:
+      j += 1
+      while True:
+        try:
+          callGAPI(serveman.services(), u'enable',
+                   throw_reasons=[GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                   serviceName=api, body={u'consumerId': projectName})
+          entityActionPerformed([Ent.API, api], j, jcount)
+          break
+        except GAPI.failedPrecondition as e:
+          entityActionFailedWarning([Ent.API, api], str(e), j, jcount)
+          writeStderr(u'\nPlease resolve error as described above\n\n')
+          readStdin(u'Press enter once resolved and we will try enabling the API again.')
+        except (GAPI.forbidden, GAPI.permissionDenied) as e:
+          entityActionFailedWarning([Ent.API, api], str(e), j, jcount)
+          status = False
+          break
+    Ind.Decrement()
+  return status
 
-def _createClientSecretsOauth2service(httpObj, login_hint, projectId):
+def _createClientSecretsOauth2service(httpObj, projectId):
 
   def _checkClientAndSecret(csHttpObj, client_id, client_secret):
     url = u'https://www.googleapis.com/oauth2/v4/token'
@@ -6076,7 +6068,8 @@ def _createClientSecretsOauth2service(httpObj, login_hint, projectId):
     sys.stderr.write(u'Unknown error: {0}\n'.format(content))
     return False
 
-  enableProjectAPIs(httpObj, login_hint, projectId, False)
+  if not enableGAMProjectAPIs(httpObj, projectId, False):
+    return
   iam = googleapiclient.discovery.build(u'iam', u'v1', http=httpObj, cache_discovery=False)
   sys.stdout.write(u'Creating Service Account\n')
   service_account = callGAPI(iam.projects().serviceAccounts(), u'create',
@@ -6137,36 +6130,92 @@ def _createClientSecretsOauth2service(httpObj, login_hint, projectId):
   readStdin(u'Press Enter when done...')
   sys.stdout.write(u'That\'s it! Your GAM Project is created and ready to use.\n')
 
+def _getProjects(crm, pfilter):
+  try:
+    return callGAPIpages(crm.projects(), u'list', u'projects',
+                         throw_reasons=[GAPI.BAD_REQUEST],
+                         filter=pfilter)
+  except GAPI.badRequest as e:
+    entityActionFailedExit([Ent.PROJECT, pfilter], str(e))
+
+PROJECTID_PATTERN = re.compile(r'^[a-z][a-z0-9-]{4,28}[a-z0-9]$')
+PROJECTID_FORMAT_REQUIRED = u'[a-z][a-z0-9-]{4,28}[a-z0-9]'
+
+def _getLoginHintProjectId(createCmd):
+  login_hint = getEmailAddress(noUid=True, optional=True)
+  projectId = getString(Cmd.OB_STRING, optional=True, minLen=6, maxLen=30).strip()
+  checkForExtraneousArguments()
+  if projectId:
+    if not PROJECTID_PATTERN.match(projectId):
+      Cmd.Backup()
+      invalidArgumentExit(PROJECTID_FORMAT_REQUIRED)
+  elif createCmd:
+    projectId = u'gam-project'
+    for _ in range(3):
+      projectId += u'-{0}'.format(u''.join(random.choice(string.digits + string.ascii_lowercase) for _ in range(3)))
+  else:
+    projectId = readStdin(u'\nWhat is your API project ID? ').strip()
+    if not PROJECTID_PATTERN.match(projectId):
+      systemErrorExit(USAGE_ERROR_RC, u'{0} {1}: {2} <{3}>'.format(Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1], Cmd.OB_PROJECT_ID,
+                                                                   Msg.EXPECTED, PROJECTID_FORMAT_REQUIRED))
+  login_hint = _getValidateLoginHint(login_hint)
+  crm, httpObj = getCRMService(login_hint)
+  projects = _getProjects(crm, u'id:{0}'.format(projectId))
+  if not createCmd:
+    if not projects:
+      entityActionFailedExit([Ent.USER, login_hint, Ent.PROJECT, projectId], Msg.DOES_NOT_EXIST)
+    if projects[0][u'lifecycleState'] != u'ACTIVE':
+      entityActionFailedExit([Ent.USER, login_hint, Ent.PROJECT, projectId], Msg.NOT_ACTIVE)
+  else:
+    if projects:
+      entityActionFailedExit([Ent.USER, login_hint, Ent.PROJECT, projectId], Msg.DUPLICATE)
+  return (crm, httpObj, login_hint, projectId)
+
+PROJECTID_FILTER_REQUIRED = 'gam|<ProjectID>|(filter <String>)'
+
+def _getLoginHintProjects(printShowCmd):
+  login_hint = getEmailAddress(noUid=True, optional=True)
+  pfilter = getString(Cmd.OB_STRING, optional=True)
+  if not pfilter:
+    pfilter = u'current' if not printShowCmd else u'id:gam-project-*'
+  elif printShowCmd and pfilter.lower() == u'all':
+    pfilter = None
+  elif pfilter.lower() == u'gam':
+    pfilter = u'id:gam-project-*'
+  elif pfilter.lower() == u'filter':
+    pfilter = getString(Cmd.OB_STRING)
+  elif PROJECTID_PATTERN.match(pfilter):
+    pfilter = u'id:{0}'.format(pfilter)
+  else:
+    Cmd.Backup()
+    invalidArgumentExit([u'', u'all|'][printShowCmd]+PROJECTID_FILTER_REQUIRED)
+  if not printShowCmd:
+    checkForExtraneousArguments()
+  login_hint = _getValidateLoginHint(login_hint)
+  crm, httpObj = getCRMService(login_hint)
+  if pfilter == u'current':
+    cs_data = readFile(GC.Values[GC.CLIENT_SECRETS_JSON], mode=u'rb', continueOnError=True, displayError=True, encoding=None)
+    if not cs_data:
+      systemErrorExit(14, u'Your client secrets file: <{0}> is missing; please recreate the file.'.format(GC.Values[GC.CLIENT_SECRETS_JSON]))
+    try:
+      cs_json = json.loads(cs_data)
+      projects = [{u'projectId': cs_json[u'installed'][u'project_id']}]
+    except (ValueError, IndexError, KeyError):
+      systemErrorExit(3, u'The format of your client secrets file: <{0}> is incorrect; please recreate the file.'.format(GC.Values[GC.CLIENT_SECRETS_JSON]))
+  else:
+    projects = _getProjects(crm, pfilter)
+  return (crm, httpObj, login_hint, projects)
+
 def _checkForExistingProjectFiles():
   for a_file in [GC.Values[GC.OAUTH2SERVICE_JSON], GC.Values[GC.CLIENT_SECRETS_JSON]]:
     if os.path.exists(a_file):
       systemErrorExit(5, '{0} already exists. Please delete or rename it before attempting to {1} another project.'.format(a_file, Act.ToPerform()))
 
-def _getLoginHintParameter(projectIdParm, additionalArgs=False):
-  login_hint = getEmailAddress(noUid=True, optional=True)
-  if projectIdParm:
-    parameter = getString(Cmd.OB_STRING, optional=True, minLen=6, maxLen=30).strip()
-    if parameter:
-      if not PROJECTID_PATTERN.match(parameter):
-        Cmd.Backup()
-        invalidArgumentExit(PROJECTID_FORMAT_REQUIRED)
-  else:
-    parameter = getString(Cmd.OB_STRING, optional=True)
-  if not additionalArgs:
-    checkForExtraneousArguments()
-  login_hint = getValidateLoginHint(login_hint)
-  crm, httpObj = getCRMService(login_hint)
-  return (crm, httpObj, login_hint, parameter)
-
 # gam create project [<EmailAddress>] [<ProjectID>]
 def doCreateProject():
   _checkForExistingProjectFiles()
-  crm, httpObj, login_hint, projectId = _getLoginHintParameter(True)
+  crm, httpObj, login_hint, projectId = _getLoginHintProjectId(True)
   login_domain = getEmailAddressDomain(login_hint)
-  if not projectId:
-    projectId = u'gam-project'
-    for _ in range(3):
-      projectId += u'-{0}'.format(u''.join(random.choice(string.digits + string.ascii_lowercase) for _ in range(3)))
   body = {u'projectId': projectId, u'name': u'GAM Project'}
   while True:
     create_again = False
@@ -6176,8 +6225,7 @@ def doCreateProject():
                                   throw_reasons=[GAPI.BAD_REQUEST],
                                   body=body)
     except GAPI.badRequest as e:
-      entityActionFailedWarning([Ent.USER, login_hint, Ent.PROJECT, projectId], str(e))
-      systemErrorExit(USAGE_ERROR_RC, None)
+      entityActionFailedExit([Ent.USER, login_hint, Ent.PROJECT, projectId], str(e))
     operation_name = create_operation[u'name']
     time.sleep(5) # Google recommends always waiting at least 5 seconds
     for i in range(1, 5):
@@ -6239,58 +6287,54 @@ and accept the Terms of Service (ToS). As soon as you've accepted the ToS popup,
     elif u'error' in status:
       systemErrorExit(2, status[u'error']+u'\n')
     break
-  _createClientSecretsOauth2service(httpObj, login_hint, projectId)
+  _createClientSecretsOauth2service(httpObj, projectId)
 
 # gam use project [<EmailAddress>] [<ProjectID>]
 def doUseProject():
   _checkForExistingProjectFiles()
-  crm, httpObj, login_hint, projectId = _getLoginHintParameter(True)
-  projectId = getValidateProjectId(crm, login_hint, projectId)
-  _createClientSecretsOauth2service(httpObj, login_hint, projectId)
+  _, httpObj, _, projectId = _getLoginHintProjectId(False)
+  _createClientSecretsOauth2service(httpObj, projectId)
 
-# gam delete project [<EmailAddress>] [<ProjectID>]
-def doDeleteProject():
-  crm, _, login_hint, projectId = _getLoginHintParameter(True)
-  projectId = getValidateProjectId(crm, login_hint, projectId)
-  try:
-    callGAPI(crm.projects(), u'delete',
-             throw_reasons=[GAPI.FORBIDDEN],
-             projectId=projectId)
-    entityActionPerformed([Ent.USER, login_hint, Ent.PROJECT, projectId])
-  except GAPI.forbidden as e:
-    entityActionFailedWarning([Ent.USER, login_hint, Ent.PROJECT, projectId], str(e))
-
-# gam update project [<EmailAddress>] [<ProjectID>]
+# gam update project [<EmailAddress>] [gam|<ProjectID>|(filter <String>)]
 def doUpdateProject():
-  crm, httpObj, login_hint, projectId = _getLoginHintParameter(True)
-  if not projectId:
-    cs_data = readFile(GC.Values[GC.CLIENT_SECRETS_JSON], mode=u'rb', continueOnError=True, displayError=True, encoding=None)
-    if not cs_data:
-      systemErrorExit(14, u'Your client secrets file: <{0}> is missing; please recreate the file.'.format(GC.Values[GC.CLIENT_SECRETS_JSON]))
+  _, httpObj, login_hint, projects = _getLoginHintProjects(False)
+  count = len(projects)
+  entityPerformActionNumItems([Ent.USER, login_hint], count, Ent.PROJECT)
+  Ind.Increment()
+  i = 0
+  for project in projects:
+    i += 1
+    projectId = project[u'projectId']
+    Act.Set(Act.UPDATE)
+    enableGAMProjectAPIs(httpObj, projectId, True, i, count)
+  Ind.Decrement()
+
+# gam delete project [<EmailAddress>] [gam|<ProjectID>|(filter <String>)]
+def doDeleteProject():
+  crm, _, login_hint, projects = _getLoginHintProjects(False)
+  count = len(projects)
+  entityPerformActionNumItems([Ent.USER, login_hint], count, Ent.PROJECT)
+  Ind.Increment()
+  i = 0
+  for project in projects:
+    i += 1
+    projectId = project[u'projectId']
     try:
-      cs_json = json.loads(cs_data)
-      projectId = cs_json[u'installed'][u'project_id']
-    except (ValueError, IndexError, KeyError):
-      systemErrorExit(3, u'The format of your client secrets file: <{0}> is incorrect; please recreate the file.'.format(GC.Values[GC.CLIENT_SECRETS_JSON]))
-  else:
-    projectId = getValidateProjectId(crm, login_hint, projectId)
-  enableProjectAPIs(httpObj, login_hint, projectId, True)
+      callGAPI(crm.projects(), u'delete',
+               throw_reasons=[GAPI.FORBIDDEN],
+               projectId=projectId)
+      entityActionPerformed([Ent.PROJECT, projectId])
+    except GAPI.forbidden as e:
+      entityActionFailedWarning([Ent.PROJECT, projectId], str(e))
+  Ind.Decrement()
 
 def _doPrintShowProjects(csvFormat):
-  crm, _, login_hint, pfilter = _getLoginHintParameter(False, True)
+  _, _, login_hint, projects = _getLoginHintProjects(True)
   if csvFormat:
     todrive = {}
     sortTitles = [u'User', u'projectId', u'projectNumber', u'name', u'createTime', u'lifecycleState']
   formatJSON = False
   quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
-  if not pfilter or pfilter.lower() == u'gam':
-    pfilter = u'id:gam-project-*'
-  elif pfilter.lower() == u'all':
-    pfilter = None
-  elif pfilter.lower() == u'filter':
-    pfilter = getString(Cmd.OB_STRING)
-  elif PROJECTID_PATTERN.match(pfilter):
-    pfilter = u'id:{0}'.format(pfilter)
   if csvFormat:
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
@@ -6305,7 +6349,6 @@ def _doPrintShowProjects(csvFormat):
         unknownArgumentExit()
   if csvFormat:
     titles, csvRows = initializeTitlesCSVfile(sortTitles)
-  projects = getProjects(crm, pfilter)
   if not csvFormat:
     count = len(projects)
     entityPerformActionNumItems([Ent.USER, login_hint], count, Ent.PROJECT)

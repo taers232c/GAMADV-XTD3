@@ -134,6 +134,7 @@ NEWUSER_REQUIREMENTS = u'newuser option requires: 1 recipient and givenname, fam
 NON_BLANK = u'Non-blank'
 NON_EMPTY = u'Non-empty'
 NOT_A = u'Not a'
+NOT_ACTIVE = u'Not Active'
 NOT_ALLOWED = u'Not Allowed'
 NOT_AN_ENTITY = u'Not a {0}'
 NOT_COPYABLE = u'Not Copyable'
