@@ -1,3 +1,18 @@
+4.65.46
+
+At Jay's suggestion changed `gam get drivefile` to allow the option `targetname -` which will output the downloaded file to stdout;
+this option will be most useful in conjunction with the `csvsheet <String>` option that downloads a specific sheet from a Google Sheets file.
+
+For example, the following command downloads sheet NewUsers from Google Sheet UserSheet and then executes a gam command on that CSV file.
+gam user user@domain.com get drivefile drivefilename UserSheet csvsheet NewUsers targetname - | gam redirect stdout - multiprocess csv - gam info user ~primaryEmail name nogroups nolicenses
+
+It is equivalent to the following two commands:
+gam user user@domain.com get drivefile drivefilename UserSheet csvsheet NewUsers targetname Users
+gam redirect stdout - multiprocess csv Users.csv gam info user ~primaryEmail name nogroups nolicenses
+
+* In the first command, the extension `.csv' is automatically added to the `targetname Users` file
+* The `redirect stdout - multiprocess` option produces clean output from the multiple processes
+
 4.65.45
 
 Enhanced gam delete/update projects commands to allow more project selection options.

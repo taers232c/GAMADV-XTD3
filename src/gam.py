@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.45'
+__version__ = u'4.65.46'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1113,11 +1113,13 @@ def getFilename():
 
 def getPermissionId():
   if Cmd.ArgumentsRemaining():
-    emailAddress = Cmd.Current().strip().lower()
+    emailAddress = Cmd.Current().strip()
     if emailAddress:
-      if emailAddress[:3] == u'id:':
+      cg = UID_PATTERN.match(emailAddress)
+      if cg:
         Cmd.Advance()
-        return (False, Cmd.Previous().strip()[3:])
+        return (False, cg.group(1))
+      emailAddress = emailAddress.lower()
       atLoc = emailAddress.find(u'@')
       if atLoc == -1:
         if emailAddress == u'anyone':
@@ -8118,10 +8120,9 @@ def roleid_from_role(role):
 
 def getRoleId():
   role = getString(Cmd.OB_ROLE_ID)
-  if role[:3].lower() == u'id:':
-    roleId = role[3:]
-  elif role[:4].lower() == u'uid:':
-    roleId = role[4:]
+  cg = UID_PATTERN.match(role)
+  if cg:
+    roleId = cg.group(1)
   else:
     roleId = roleid_from_role(role)
     if not roleId:
@@ -30163,7 +30164,7 @@ DOCUMENT_FORMATS_MAP = {
   }
 
 # gam <UserTypeEntity> get drivefile <DriveFileEntity> [revision <DriveFileRevisionID>] [(format <FileFormatList>)|(csvsheet <String>)]
-#	[targetfolder <FilePath>] [targetname <FileName>] [overwrite [<Boolean>]] [showprogress [<Boolean>]]
+#	[targetfolder <FilePath>] [targetname -|<FileName>] [overwrite [<Boolean>]] [showprogress [<Boolean>]]
 def getDriveFile(users):
   fileIdEntity = getDriveFileEntity()
   csvSheetTitle = revisionId = None
@@ -30172,7 +30173,7 @@ def getDriveFile(users):
   exportFormats = DOCUMENT_FORMATS_MAP[exportFormatName]
   targetFolderPattern = GC.Values[GC.DRIVE_DIR]
   targetNamePattern = None
-  overwrite = showProgress = False
+  overwrite = showProgress = suppressStdoutMsgs = targetStdout = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'format':
@@ -30187,6 +30188,8 @@ def getDriveFile(users):
       targetFolderPattern = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
     elif myarg == u'targetname':
       targetNamePattern = getString(Cmd.OB_FILE_NAME)
+      targetStdout = targetNamePattern == u'-'
+      suppressStdoutMsgs = False if not targetStdout else GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD] == sys.stdout
     elif myarg == u'overwrite':
       overwrite = getBoolean()
     elif myarg == u'revision':
@@ -30207,7 +30210,7 @@ def getDriveFile(users):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE)
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE if not suppressStdoutMsgs else None)
     if jcount == 0:
       continue
     _, userName, _ = splitEmailAddressOrUID(user)
@@ -30252,16 +30255,19 @@ def getDriveFile(users):
           extension = fileExtension or exportFormat[u'ext']
           if googleDoc and (extension not in validExtensions):
             continue
-          safe_file_title = targetName or cleanFilename(result[VX_FILENAME])
-          filename = os.path.join(targetFolder, safe_file_title)
-          y = 0
-          while True:
-            if filename.lower()[-len(extension):] != extension.lower():
-              filename += extension
-            if overwrite or not os.path.isfile(filename):
-              break
-            y += 1
-            filename = os.path.join(targetFolder, u'({0})-{1}'.format(y, safe_file_title))
+          if targetStdout:
+            filename = u'stdout'
+          else:
+            safe_file_title = targetName or cleanFilename(result[VX_FILENAME])
+            filename = os.path.join(targetFolder, safe_file_title)
+            y = 0
+            while True:
+              if filename.lower()[-len(extension):] != extension.lower():
+                filename += extension
+              if overwrite or not os.path.isfile(filename):
+                break
+              y += 1
+              filename = os.path.join(targetFolder, u'({0})-{1}'.format(y, safe_file_title))
           spreadsheetUrl = None
           try:
             if googleDoc:
@@ -30286,19 +30292,23 @@ def getDriveFile(users):
             else:
               request = drive.files().get_media(fileId=fileId)
             fh = None
-            fh = open(filename, u'wb')
+            fh = open(filename, u'wb') if not targetStdout else sys.stdout
             if not spreadsheetUrl:
               downloader = googleapiclient.http.MediaIoBaseDownload(fh, request)
               done = False
               while not done:
                 status, done = downloader.next_chunk()
-                if showProgress:
+                if showProgress and not suppressStdoutMsgs:
                   entityActionPerformedMessage(entityValueList, u'{0:>7.2%}'.format(status.progress()), j, jcount)
             else:
               _, content = drive._http.request(uri=spreadsheetUrl, method='GET')
               fh.write(content)
-            closeFile(fh)
-            entityModifierNewValueKeyValueActionPerformed(entityValueList, Act.MODIFIER_TO, filename, my_line[0], my_line[1], j, jcount)
+              if targetStdout and content[-1] != u'\n':
+                fh.write(u'\n')
+            if not targetStdout:
+              closeFile(fh)
+            if not suppressStdoutMsgs:
+              entityModifierNewValueKeyValueActionPerformed(entityValueList, Act.MODIFIER_TO, filename, my_line[0], my_line[1], j, jcount)
             fileDownloaded = True
             break
           except (IOError, httplib2.HttpLib2Error) as e:
@@ -30307,7 +30317,7 @@ def getDriveFile(users):
             break
           except googleapiclient.http.HttpError:
             entityActionNotPerformedWarning(entityValueList, Msg.FORMAT_NOT_AVAILABLE.format(extension[1:]), j, jcount)
-          if fh:
+          if fh and not targetStdout:
             closeFile(fh)
             os.remove(filename)
         if not fileDownloaded and not fileDownloadFailed and not csvSheetNotFound:
