@@ -239,6 +239,7 @@ If an item contains spaces, it should be surrounded by ".
 <SchemaName> ::= <String>
 <Section> ::= <String>
 <SerialNumber> ::= <String>
+<SheetName> ::= <String>
 <SiteACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|default
 <SiteItem> ::= [<DomainName>/]<SiteName>
 <S/MIMEID> ::= <String>
@@ -352,7 +353,13 @@ Items, separated by commas, with spaces, commas or single quotes in the items th
 Items, separated by spaces, with spaces, commas or single quotes in the items themselves
     "'it em' 'it,em' \"it'em\""
 
-## Collections of ChromeOs Devices
+## Data from a user's Google Sheets file sheet
+<UserGoogleDoc> ::=
+        <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity>
+<UserGoogleSheet> ::=
+        <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity> <SheetName>
+
+## Collections of ChromeOS Devices
 
 Specify a collection of ChromeOS devices by directly specifying them or by specifiying items that will yield a list of ChromeOS devices.
 
@@ -364,15 +371,15 @@ Specify a collection of ChromeOS devices by directly specifying them or by speci
         (cros_ou_and_children|cros_org_and_children <OrgUnitItem>)|
         (cros_ous|cros_orgs <OrgUnitList>)|
         (cros_ous_and_children|cros_orgs_and_children <OrgUnitList>)|
-        (crosfile|crosfile_sn <FileName> [charset <Charset>] [delimiter <Character>])|
-        (croscsvfile|croscsvfile_sn <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>]
-                [fields <FieldNameList>] (matchfield|skipfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
+        (crosfile|crosfile_sn <FileName>|(gdoc <UserGoogleDoc>) [charset <Charset>] [delimiter <Character>])|
+        (datafile cros|cros_sn|cros_ous|cros_ous_and_children
+                <FileName>|(gdoc <UserGoogleDoc>) [charset <Charset>] [delimiter <Character>])|
         (crosquery <QueryCrOS>)|
         (crosqueries <QueryCrOSList>)|
-        (datafile cros|cros_sn|cros_ous|cros_ous_and_children
-                <FileName> [charset <Charset>] [delimiter <Character>])|
+        (croscsvfile|croscsvfile_sn (<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>]
+                [fields <FieldNameList>] (matchfield|skipfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
         (csvkmd cros|cros_sn|cros_ous|cros_ous_and_children
-                <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+                <FileName>|(gsheet <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
                 keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
                 subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
@@ -398,15 +405,15 @@ Specify a collection of Users by directly specifying them or by specifiying item
         (students <CourseIDList>)|
         (teachers <CourseIDList>)|
         (license|licenses|licence|licences <SKUIDList>)|
-        (file <FileName> [charset <Charset>] [delimiter <Character>])|
-        (csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
-                (matchfield|skipfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
+        (file <FileName>|(gdoc <UserGoogleDoc>) [charset <Charset>] [delimiter <Character>])|
+        (datafile users|groups|groups_ns|groups_susp|ous|ous_ns|ous_susp|ous_and_children|ous_and_children_ns|ous_and_children_susp|courseparticipants|students|teachers
+                <FileName>|(gdoc <UserGoogleDoc>) [charset <Charset>] [delimiter <Character>])|
         (query <QueryUser>)|
         (queries <QueryUserList>)|
-        (datafile users|groups|groups_ns|groups_susp|ous|ous_ns|ous_susp|ous_and_children|ous_and_children_ns|ous_and_children_susp|courseparticipants|students|teachers
-                <FileName> [charset <Charset>] [delimiter <Character>])|
+        (csvfile (<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+                (matchfield|skipfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
         (csvkmd users|groups|groups_ns_|groups_susp|ous|ous_ns|ous_susp|ous_and_children|ous_and_children_ns|ous_and_children_susp|courseparticipants|students|teachers
-                <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+                <FileName>|(gsheet <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
                 keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
                 subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
@@ -418,12 +425,12 @@ Specify a collection of Users by directly specifying them or by specifiying item
 Specify a collection of items by directly specifying them; the item type is determined by context.
 
 <FileSelector> ::=
-        file <FileName> [charset <Charset>] [delimiter <Character>]
+       file <FileName>|(gdoc <UserGoogleDoc>) [charset <Charset>] [delimiter <Character>]
 <CSVFileSelector> ::=
-        csvfile <FileName>(:<FieldName>)+ [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+        csvfile (<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)* [delimiter <Character>]
 <CSVkmdSelector> ::=
-        csvkmd <FileName> [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+        csvkmd <FileName>|(gsheet <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
                 keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
                 subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
@@ -575,11 +582,11 @@ gam help
 # Bulk Processing
 
 gam batch <FileName>|- [charset <Charset>] [showcmds]
-gam csv <FileName>|- [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+gam csv <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
         (matchfield|skipfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
 gam tbatch <FileName>|- [charset <Charset>] [showcmds]
 
-gam loop <FileName>|- [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+gam loop <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
         (matchfield|skipfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
 
 You can make substitutions in <GAMArgumentList> with values from the CSV file.
@@ -2467,7 +2474,7 @@ gam <UserTypeEntity> print events <UserCalendarEntity> <EventSelectProperty>* <E
          [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer]
-        [csv <FileName>] (replace <EmailAddress> <EmailAddress>)* (delete <EmailAddress>)* [doit]
+        (csv <FileName>|(gsheet <UserGoogleSheet>))* (add <EmailAddress>)* (delete <EmailAddress>)* (replace <EmailAddress> <EmailAddress>)* [doit]
 
 # Users - Drive
 
@@ -2596,7 +2603,7 @@ gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileNam
         [copysubfileparents nonpath|none|all] [copysubfolderparents nonpath|none|all]
         [retainsourcefolders [<Boolean>]]
 
-gam <UserTypeEntity> get drivefile <DriveFileEntity> [revision <DriveFileRevisionID>] [(format <FileFormatList>)|(csvsheet <String>)]
+gam <UserTypeEntity> get drivefile <DriveFileEntity> [revision <DriveFileRevisionID>] [(format <FileFormatList>)|(csvsheet <SheetName>)]
         [targetfolder <FilePath>] [targetname -|<FileName>] [overwrite [<Boolean>]] [showprogress [<Boolean>]]
 
 gam <UserTypeEntity> delete drivefile <DriveFileEntity> [purge|untrash|trash]

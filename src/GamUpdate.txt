@@ -1,7 +1,38 @@
+4.65.47
+
+You can now use a user's Google Doc to supply data to Gam commands by specifying two items:
+<UserGoogleDoc> ::=
+        <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity>
+* gdoc <UserGoogleDoc> - Google Doc
+
+You can now use a user's Google Sheet to supply data to Gam commands by specifying three items:
+<UserGoogleSheet> ::=
+        <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity> <SheetName>
+* gsheet(:<FieldName>)+ <UserGoogleSheet> - Google Sheet and field names
+* gsheet <UserGoogleSheet> - Google Sheet
+
+* https://github.com/taers232c/GAMADV-X/wiki/Collections-of-ChromeOS-Devices
+* https://github.com/taers232c/GAMADV-X/wiki/Collections-of-Users
+* https://github.com/taers232c/GAMADV-X/wiki/Collections-of-Items
+* https://github.com/taers232c/GAMADV-X/wiki/Bulk-Processing
+
+Examples
+Execute a Gam command on user@domain.com's Google Sheet UserSheet sheet NewUsers.
+gam redirect stdout - multiprocess csv gsheet user@domain.com drivefilename UserSheet NewUsers gam info user ~primaryEmail name nogroups nolicenses
+
+Add users to a group from a Google Sheet.
+gam update group group@domain.com add members csvfile gsheet:primaryEmail user@domain.com drivefilename UserSheet NewUsers
+
+Add users to a group from a Google Doc.
+gam update group group@domain.com add members file gdoc user@domain.com drivefilename UserDoc
+
+Execute a batch of commands from a Google Doc.
+gam batch gdoc admin@domain.com drivefilename BatchSyncGroupsFromOUs
+
 4.65.46
 
 At Jay's suggestion changed `gam get drivefile` to allow the option `targetname -` which will output the downloaded file to stdout;
-this option will be most useful in conjunction with the `csvsheet <String>` option that downloads a specific sheet from a Google Sheets file.
+this option will be most useful in conjunction with the `csvsheet <SheetName>` option that downloads a specific sheet from a Google Sheets file.
 
 For example, the following command downloads sheet NewUsers from Google Sheet UserSheet and then executes a gam command on that CSV file.
 gam user user@domain.com get drivefile drivefilename UserSheet csvsheet NewUsers targetname - | gam redirect stdout - multiprocess csv - gam info user ~primaryEmail name nogroups nolicenses
@@ -16,7 +47,7 @@ gam redirect stdout - multiprocess csv Users.csv gam info user ~primaryEmail nam
 4.65.45
 
 Enhanced gam delete/update projects commands to allow more project selection options.
-See: https://github.com/taers232c/GAMADV-X/wiki/Authorization
+See: https://github.com/taers232c/GAMADV-XTD/wiki/Authorization
 
 4.65.44
 
@@ -28,8 +59,7 @@ gam <UserTypeEntity> print messages|threads (((query <QueryGmail>) (matchlabel <
 
 4.65.43
 
-Added csvsheet <String> argument to gam get drivefile to allow downloading a specific sheet
-from a Google Sheets file in CSV format.
+Added csvsheet <SheetName> argument to gam get drivefile to allow downloading a specific sheet from a Google Sheets file in CSV format.
 See: https://github.com/taers232c/GAMADV-XTD/wiki/Users-Drive-Files#download-files
 
 Added gam print projects command.
@@ -217,7 +247,7 @@ Handle additional ownership change error in gam transfer drive.
 4.65.19
 
 Added abbreviations for the permission match keywords.
-See: https://github.com/taers232c/GAMADV-X/wiki/Users-Drive-Files#permission-matches
+See: https://github.com/taers232c/GAMADV-XTD/wiki/Users-Drive-Files#permission-matches
 
 4.65.18
 
@@ -311,7 +341,7 @@ See:
 
 Enhanced <Tag> <Replace> processing to allow greater selection of user fields.
 See: 
-* https://github.com/taers232c/GAMADV-X/wiki/Tag-Replace
+* https://github.com/taers232c/GAMADV-XTD/wiki/Tag-Replace
 
 4.65.06
 
@@ -3000,7 +3030,7 @@ API Documentation: https://developers.google.com/gmail/api/v1/reference/users/me
         (replace <Tag> <String>)* (attach <FileName>)*
         [deleted [<Boolean>]]
 
-For details, see: https://github.com/taers232c/GAMADV-X/wiki/Users-Gmail-Messages-Threads
+For details, see: https://github.com/taers232c/GAMADV-XTD/wiki/Users-Gmail-Messages-Threads
 
 4.54.02
 

@@ -89,6 +89,7 @@ class GamEntity(object):
   DEVICE_FILE = u'devf'
   DIRECTORY = u'drct'
   DISCOVERY_JSON_FILE = u'disc'
+  DOCUMENT = u'docu'
   DOMAIN = u'doma'
   DOMAIN_ALIAS = u'doal'
   DRIVE_FILE = u'file'
@@ -282,6 +283,7 @@ class GamEntity(object):
     DEVICE_FILE: [u'Device Files', u'Device File'],
     DIRECTORY: [u'Directories', u'Directory'],
     DISCOVERY_JSON_FILE: [u'Discovery File', u'Discovery File'],
+    DOCUMENT: [u'Documents', u'Document'],
     DOMAIN: [u'Domains', u'Domain'],
     DOMAIN_ALIAS: [u'Domain Aliases', u'Domain Alias'],
     DRIVE_FILE: [u'Drive Files', u'Drive File'],

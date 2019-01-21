@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.46'
+__version__ = u'4.65.47'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -187,6 +187,7 @@ SECONDS_PER_HOUR = 3600
 SECONDS_PER_DAY = 86400
 SECONDS_PER_WEEK = 604800
 UTF8 = u'utf-8'
+UTF8_SIG = u'utf-8-sig'
 FN_GAM_CFG = u'gam.cfg'
 FN_LAST_UPDATE_CHECK_TXT = u'lastupdatecheck.txt'
 FN_GAMCOMMANDS_TXT = u'GamCommands.txt'
@@ -266,6 +267,8 @@ VX_TRASHED = u'trashed'
 
 VX_COPY_FOLDER_FIELDS = u'{0},appProperties,contentHints,copyRequiresWriterPermission,description,folderColorRgb,mimeType,modifiedTime,properties,starred,teamDriveId,viewedByMeTime,writersCanShare'.format(VX_PARENTS_ID)
 VX_DOWNLOAD_FIELDS = u'{0},fileExtension,mimeType,{1}'.format(VX_FILENAME, VX_SIZE)
+VX_FILENAME_MIMETYPE = u'{0},mimeType'.format(VX_FILENAME)
+VX_FILENAME_MIMETYPE_EXPORTLINKS = u'{0},mimeType,exportLinks'.format(VX_FILENAME)
 VX_FILENAME_MIMETYPE_TEAMDRIVEID = u'{0},mimeType,teamDriveId'.format(VX_FILENAME)
 VX_FILENAME_PARENTS = u'{0},{1}'.format(VX_FILENAME, VX_PARENTS_ID)
 VX_FILENAME_PARENTS_COPY_FILE_FIELDS = u'id,{0},{1},appProperties,capabilities,contentHints,copyRequiresWriterPermission,description,mimeType,modifiedTime,properties,starred,teamDriveId,viewedByMeTime,writersCanShare'.format(VX_FILENAME, VX_PARENTS_ID)
@@ -2092,19 +2095,22 @@ def closeFile(f):
     setSysExitRC(FILE_ERROR_RC)
     return False
 
+def stripUTF8_BOM(f):
+  if f.read(3) != codecs.BOM_UTF8:
+    f.seek(0)
+
 # Read a file
 def readFile(filename, mode=u'r', continueOnError=False, displayError=True, encoding=None):
   try:
     if filename != u'-':
       if not encoding:
         with open(os.path.expanduser(filename), mode, encoding=GM.Globals[GM.SYS_ENCODING]) as f:
+          stripUTF8_BOM(f)
           return f.read()
       with codecs.open(os.path.expanduser(filename), mode, encoding=encoding) as f:
-        content = f.read()
 # codecs does not strip UTF-8 BOM (ef:bb:bf) so we must
-        if not content.startswith(codecs.BOM_UTF8.decode()):
-          return content
-        return content[3:]
+        stripUTF8_BOM(f)
+        return f.read()
     return text_type(sys.stdin.read())
   except IOError as e:
     if continueOnError:
@@ -2152,9 +2158,105 @@ def deleteFile(filename, continueOnError=False, displayError=True):
         return
       systemErrorExit(FILE_ERROR_RC, e)
 
+def getGDocSheetDataFailedExit(entityValueList, errMsg, i=0, count=0):
+  Act.Set(Act.RETRIEVE_DATA)
+  systemErrorExit(AC_FAILED_RC, formatKeyValueList(Ind.Spaces(),
+                                                   Ent.FormatEntityValueList(entityValueList)+[Act.NotPerformed(), errMsg],
+                                                   currentCountNL(i, count)))
+
+# gdoc <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity>
+def getGDocData():
+  user = getEmailAddress()
+  fileIdEntity = getDriveFileEntity(orphansOK=False, queryShortcutsOK=False)
+  user, drive, jcount = _validateUserGetFileIDs(user, 0, 0, fileIdEntity)
+  if not drive:
+    sys.exit(GM.Globals[GM.SYSEXITRC])
+  if jcount == 0:
+    getGDocSheetDataFailedExit([Ent.USER, user], Msg.NO_ENTITIES_FOUND.format(Ent.Singular(Ent.DRIVE_FILE)))
+  if jcount > 1:
+    getGDocSheetDataFailedExit([Ent.USER, user], Msg.MULTIPLE_ENTITIES_FOUND.format(Ent.Plural(Ent.DRIVE_FILE), jcount, u','.join(fileIdEntity[u'list'])))
+  fileId = fileIdEntity[u'list'][0]
+  try:
+    result = callGAPI(drive.files(), u'get',
+                      throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
+                      fileId=fileId, fields=VX_FILENAME_MIMETYPE_EXPORTLINKS, supportsTeamDrives=True)
+    if result[u'mimeType'] != MIMETYPE_GA_DOCUMENT:
+      getGDocSheetDataFailedExit([Ent.USER, user, Ent.DRIVE_FILE, result[VX_FILENAME]],
+                                 Msg.INVALID_MIMETYPE.format(result[u'mimeType'], MIMETYPE_GA_DOCUMENT))
+    f = TemporaryFile(mode=u'w+', encoding=UTF8)
+    _, content = drive._http.request(uri=result[u'exportLinks'][u'text/plain'], method='GET')
+    f.write(content.decode(UTF8_SIG))
+    f.seek(0)
+    return f
+  except GAPI.fileNotFound:
+    getGDocSheetDataFailedExit([Ent.USER, user, Ent.DOCUMENT, fileId], Msg.DOES_NOT_EXIST)
+  except (IOError, httplib2.HttpLib2Error) as e:
+    if f:
+      f.close()
+    getGDocSheetDataFailedExit([Ent.USER, user, Ent.DOCUMENT, fileId], str(e))
+  except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+    userSvcNotApplicableOrDriveDisabled(user, str(e))
+    sys.exit(GM.Globals[GM.SYSEXITRC])
+
+# gsheet <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity> <String>
+def getGSheetData():
+  user = getEmailAddress()
+  fileIdEntity = getDriveFileEntity(orphansOK=False, queryShortcutsOK=False)
+  csvSheetTitle = getString(Cmd.OB_STRING)
+  csvSheetTitleLower = csvSheetTitle.lower()
+  user, drive, jcount = _validateUserGetFileIDs(user, 0, 0, fileIdEntity)
+  if not drive:
+    sys.exit(GM.Globals[GM.SYSEXITRC])
+  if jcount == 0:
+    getGDocSheetDataFailedExit([Ent.USER, user], Msg.NO_ENTITIES_FOUND.format(Ent.Singular(Ent.DRIVE_FILE)))
+  if jcount > 1:
+    getGDocSheetDataFailedExit([Ent.USER, user], Msg.MULTIPLE_ENTITIES_FOUND.format(Ent.Plural(Ent.DRIVE_FILE), jcount, u','.join(fileIdEntity[u'list'])))
+  _, sheet = buildGAPIServiceObject(API.SHEETS, user, 0, 0)
+  if not sheet:
+    sys.exit(GM.Globals[GM.SYSEXITRC])
+  fileId = fileIdEntity[u'list'][0]
+  try:
+    result = callGAPI(drive.files(), u'get',
+                      throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
+                      fileId=fileId, fields=VX_FILENAME_MIMETYPE)
+    if result[u'mimeType'] != MIMETYPE_GA_SPREADSHEET:
+      getGDocSheetDataFailedExit([Ent.USER, user, Ent.DRIVE_FILE, result[VX_FILENAME]],
+                                 Msg.INVALID_MIMETYPE.format(result[u'mimeType'], MIMETYPE_GA_SPREADSHEET))
+    spreadsheet = callGAPI(sheet.spreadsheets(), u'get',
+                           throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
+                           spreadsheetId=fileId, fields=u'spreadsheetUrl,sheets(properties(sheetId,title))')
+    for sheet in spreadsheet[u'sheets']:
+      if sheet[u'properties'][u'title'].lower() == csvSheetTitleLower:
+        spreadsheetUrl = u'{0}?format=csv&id={1}&gid={2}'.format(re.sub(u'/edit$', u'/export', spreadsheet[u'spreadsheetUrl']),
+                                                                 fileId, sheet[u'properties'][u'sheetId'])
+        break
+    else:
+      getGDocSheetDataFailedExit([Ent.USER, user, Ent.SPREADSHEET, result[VX_FILENAME], Ent.SHEET, csvSheetTitle], Msg.NOT_FOUND)
+    f = TemporaryFile(mode=u'w+', encoding=UTF8)
+    _, content = drive._http.request(uri=spreadsheetUrl, method='GET')
+    f.write(content.decode(UTF8_SIG))
+    f.seek(0)
+    return f
+  except GAPI.fileNotFound:
+    getGDocSheetDataFailedExit([Ent.USER, user, Ent.SPREADSHEET, fileId], Msg.DOES_NOT_EXIST)
+  except (GAPI.notFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
+    getGDocSheetDataFailedExit([Ent.USER, user, Ent.SPREADSHEET, fileId], str(e))
+  except (IOError, httplib2.HttpLib2Error) as e:
+    if f:
+      f.close()
+    getGDocSheetDataFailedExit([Ent.USER, user, Ent.SPREADSHEET, fileId], str(e))
+  except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+    userSvcNotApplicableOrDriveDisabled(user, str(e))
+    sys.exit(GM.Globals[GM.SYSEXITRC])
+
 # Open a CSV file, get optional arguments [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
-def openCSVFileReader(filename):
-  encoding = getCharSet()
+def openCSVFileReader(filename, fieldnames=None):
+  if filename.lower() != u'gsheet':
+    encoding = getCharSet()
+    f = openFile(filename, mode=DEFAULT_CSV_READ_MODE, encoding=encoding)
+  else:
+    f = getGSheetData()
+    getCharSet()
   if checkArgumentPresent(u'columndelimiter'):
     delimiter = getCharacter()
   else:
@@ -2165,9 +2267,6 @@ def openCSVFileReader(filename):
     quotechar = GC.Values[GC.CSV_INPUT_QUOTE_CHAR]
   if checkArgumentPresent(u'fields'):
     fieldnames = shlexSplitList(getString(Cmd.OB_FIELD_NAME_LIST))
-  else:
-    fieldnames = None
-  f = openFile(filename, mode=DEFAULT_CSV_READ_MODE, encoding=encoding)
   csvFile = csv.DictReader(f, fieldnames=fieldnames, delimiter=delimiter, quotechar=quotechar)
   return (f, csvFile)
 
@@ -2483,9 +2582,11 @@ def SetGlobalVariables():
   def _setSTDFile(stdtype, filename, mode, multi):
     if stdtype == GM.STDOUT:
       GM.Globals[GM.SAVED_STDOUT] = None
+    GM.Globals[stdtype][GM.REDIRECT_STD] = False
     if filename == u'null':
       GM.Globals[stdtype][GM.REDIRECT_FD] = open(os.devnull, mode)
     elif filename == u'-':
+      GM.Globals[stdtype][GM.REDIRECT_STD] = True
       GM.Globals[stdtype][GM.REDIRECT_FD] = os.fdopen(os.dup([sys.stderr.fileno(), sys.stdout.fileno()][stdtype == GM.STDOUT]), mode, encoding=GM.Globals[GM.SYS_ENCODING])
     else:
       if filename.startswith(u'./') or filename.startswith(u'.\\'):
@@ -4027,11 +4128,16 @@ def splitEntityList(entity, dataDelimiter, shlexSplit):
 # <FileName> [charset <String>] [delimiter <Character>]
 def getEntitiesFromFile(shlexSplit):
   filename = getString(Cmd.OB_FILE_NAME)
-  encoding = getCharSet()
+  if filename.lower() != u'gdoc':
+    encoding = getCharSet()
+    f = openFile(filename, encoding=encoding)
+    stripUTF8_BOM(f)
+  else:
+    f = getGDocData()
+    getCharSet()
   dataDelimiter = getDelimiter()
   entitySet = set()
   entityList = []
-  f = openFile(filename, encoding=encoding)
   for row in f:
     for item in splitEntityList(row.strip(), dataDelimiter, shlexSplit):
       item = item.strip()
@@ -4506,6 +4612,7 @@ def _addAttachmentsToMessage(message, attachments):
   for attachFilename in attachments:
     try:
       attachFd = openFile(attachFilename, u'rb')
+      stripUTF8_BOM(attachFd)
       attachContentType, attachEncoding = mimetypes.guess_type(attachFilename)
       if attachContentType is None or attachEncoding is not None:
         attachContentType = u'application/octet-stream'
@@ -5244,7 +5351,7 @@ def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr, ar
 
 def batchWriteStderr(data):
   fd = GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, sys.stderr)
-  if fd != sys.stderr:
+  if not GM.Globals[GM.STDERR].get(GM.REDIRECT_STD, False):
     try:
       sys.stderr.write(data)
       sys.stderr.flush()
@@ -5391,13 +5498,19 @@ def ThreadBatchGAMCommands(items, logCmds):
     numThreadsInUse += 1
   GM.Globals[GM.TBATCH_QUEUE].join()
 
-# gam batch <FileName>|- [charset <Charset>] [showcmds]
+# gam batch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds]
 def doBatch(threadBatch=False):
   filename = getString(Cmd.OB_FILE_NAME)
   if (filename == u'-') and (GC.Values[GC.DEBUG_LEVEL] > 0):
     Cmd.Backup()
     usageErrorExit(Msg.BATCH_CSV_LOOP_DASH_DEBUG_INCOMPATIBLE.format(Cmd.BATCH_CMD))
-  encoding = getCharSet()
+  if filename.lower() != u'gdoc':
+    encoding = getCharSet()
+    f = openFile(filename, encoding=encoding)
+    stripUTF8_BOM(f)
+  else:
+    f = getGDocData()
+    getCharSet()
   logCmds = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -5406,7 +5519,6 @@ def doBatch(threadBatch=False):
     else:
       unknownArgumentExit()
   items = []
-  f = openFile(filename, encoding=encoding)
   errors = 0
   try:
     for line in f:
@@ -5444,7 +5556,7 @@ def doBatch(threadBatch=False):
     writeStderr(Msg.BATCH_NOT_PROCESSED_ERRORS.format(ERROR_PREFIX, filename, errors, ERROR_PLURAL_SINGULAR[errors == 1]))
     setSysExitRC(USAGE_ERROR_RC)
 
-# gam tbatch <FileName>|- [charset <Charset>] [showcmds]
+# gam tbatch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds]
 def doThreadBatch():
   adjustRedirectedSTDFilesIfNotMultiprocessing()
   doBatch(True)
@@ -5535,7 +5647,7 @@ def processSubFields(GAM_argv, row, subFields):
     argv[GAM_argvI] += oargv[pos:]
   return argv
 
-# gam csv <FileName>|- [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield|skipfield <FieldName> <RegularExpression>)* gam <GAM argument list>
+# gam csv <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield|skipfield <FieldName> <RegularExpression>)* gam <GAM argument list>
 def doCSV():
   filename = getString(Cmd.OB_FILE_NAME)
   if (filename == u'-') and (GC.Values[GC.DEBUG_LEVEL] > 0):
@@ -25800,38 +25912,42 @@ def emptyCalendarTrash(users):
     Ind.Decrement()
 
 # gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer]
-#	[csv <FileName>] (replace <EmailAddress> <EmailAddress>)* (delete <EmailAddress>)* [doit]
+#	(csv <FileName>|(gsheet <UserGoogleSheet>))* (add <EmailAddress>)* (delete <EmailAddress>)* (replace <EmailAddress> <EmailAddress>)* [doit]
 def updateCalendarAttendees(users):
   calendarEntity = getUserCalendarEntity()
   calendarEventEntity = getCalendarEventEntity()
-  csv_file = None
   anyOrganizer = doIt = False
   attendee_map = {}
+  attendee_add = set()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'csv':
-      csv_file = getString(Cmd.OB_FILE_NAME)
-    elif myarg == u'replace':
+      f, csvFile = openCSVFileReader(getString(Cmd.OB_FILE_NAME), fieldnames=[u'old', u'new'])
+      for row in csvFile:
+        if row['old'] and row[u'new']:
+          if row[u'new'].lower() == u'add':
+            attendee_add.add(row[u'old'].lower())
+          else:
+            attendee_map[row[u'old'].lower()] = row[u'new'].lower()
+      closeFile(f)
+    elif myarg == u'add':
       origAttendee = getEmailAddress(noUid=True)
-      attendee_map[origAttendee] = getEmailAddress(noUid=True)
+      attendee_add.add(origAttendee)
     elif myarg == u'delete':
       origAttendee = getEmailAddress(noUid=True)
       attendee_map[origAttendee] = u'delete'
+    elif myarg == u'replace':
+      origAttendee = getEmailAddress(noUid=True)
+      attendee_map[origAttendee] = getEmailAddress(noUid=True)
     elif myarg == u'doit':
       doIt = True
     elif myarg in [u'anyorganizer', u'allevents']:
       anyOrganizer = True
     else:
       unknownArgumentExit()
-  if not attendee_map:
-    missingChoiceExit([u'(csv <FileName>)', u'(replace <EmailAddress> <EmailAddress>)', u'(delete <EmailAddress>)'])
-  if csv_file:
-    f = openFile(csv_file)
-    csvFile = csv.reader(f)
-    for row in csvFile:
-      if len(row) >= 2:
-        attendee_map[row[0].lower()] = row[1].lower()
-    closeFile(f)
+  if not attendee_map and not attendee_add:
+    missingChoiceExit([u'(csv <FileName>)', u'(gsheet <UserGoogleSheet>)', u'(add <EmailAddress>)',
+                       u'(delete <EmailAddress>)', u'(replace <EmailAddress> <EmailAddress>)'])
   fieldsList = [u'attendees', u'id', u'organizer', u'status', u'summary']
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -25860,6 +25976,13 @@ def updateCalendarAttendees(users):
         if not anyOrganizer and not event.get(u'organizer', {}).get(u'self'):
           continue
         needs_update = False
+        if attendee_add:
+          Act.Set(Act.ADD)
+          for attendee in attendee_add:
+            event[u'attendees'].append({u'email': attendee})
+            entityActionPerformed([Ent.EVENT, event_summary, Ent.ATTENDEE, attendee], k, kcount)
+          Act.Set(Act.UPDATE)
+          needs_update = True
         for attendee in event.get(u'attendees', []):
           if u'email' in attendee:
             old_email = attendee[u'email'].lower()
@@ -30163,7 +30286,7 @@ DOCUMENT_FORMATS_MAP = {
                   {u'mime': u'application/vnd.oasis.opendocument.text', u'ext': u'.odt'}],
   }
 
-# gam <UserTypeEntity> get drivefile <DriveFileEntity> [revision <DriveFileRevisionID>] [(format <FileFormatList>)|(csvsheet <String>)]
+# gam <UserTypeEntity> get drivefile <DriveFileEntity> [revision <DriveFileRevisionID>] [(format <FileFormatList>)|(gsheet|csvsheet <String>)]
 #	[targetfolder <FilePath>] [targetname -|<FileName>] [overwrite [<Boolean>]] [showprogress [<Boolean>]]
 def getDriveFile(users):
   fileIdEntity = getDriveFileEntity()
@@ -30189,12 +30312,12 @@ def getDriveFile(users):
     elif myarg == u'targetname':
       targetNamePattern = getString(Cmd.OB_FILE_NAME)
       targetStdout = targetNamePattern == u'-'
-      suppressStdoutMsgs = False if not targetStdout else GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD] == sys.stdout
+      suppressStdoutMsgs = False if not targetStdout else GM.Globals[GM.STDOUT][GM.REDIRECT_STD]
     elif myarg == u'overwrite':
       overwrite = getBoolean()
     elif myarg == u'revision':
       revisionId = getString(Cmd.OB_DRIVE_FILE_REVISION_ID)
-    elif myarg == u'csvsheet':
+    elif myarg in [u'gsheet', u'csvsheet']:
       csvSheetTitle = getString(Cmd.OB_STRING)
       csvSheetTitleLower = csvSheetTitle.lower()
     elif myarg == u'nocache':
@@ -30290,10 +30413,12 @@ def getDriveFile(users):
                   csvSheetNotFound = True
                   continue
             else:
-              request = drive.files().get_media(fileId=fileId)
+              if revisionId:
+                entityValueList.extend([Ent.DRIVE_FILE_REVISION, revisionId])
+              request = drive.revisions().get_media(fileId=fileId, revisionId=revisionId)
             fh = None
-            fh = open(filename, u'wb') if not targetStdout else sys.stdout
             if not spreadsheetUrl:
+              fh = open(filename, u'wb') if not targetStdout else sys.stdout
               downloader = googleapiclient.http.MediaIoBaseDownload(fh, request)
               done = False
               while not done:
@@ -30301,8 +30426,9 @@ def getDriveFile(users):
                 if showProgress and not suppressStdoutMsgs:
                   entityActionPerformedMessage(entityValueList, u'{0:>7.2%}'.format(status.progress()), j, jcount)
             else:
+              fh = open(filename, u'w', encoding=UTF8) if not targetStdout else sys.stdout
               _, content = drive._http.request(uri=spreadsheetUrl, method='GET')
-              fh.write(content)
+              fh.write(content.decode(UTF8_SIG))
               if targetStdout and content[-1] != u'\n':
                 fh.write(u'\n')
             if not targetStdout:
@@ -38537,7 +38663,7 @@ def ProcessGAMCommand(args, processGamCfg=True):
     closeSTDFilesIfNotMultiprocessing()
   return GM.Globals[GM.SYSEXITRC]
 
-# gam loop <FileName>|- [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield|skipfield <FieldName> <RegularExpression>)* gam <GAM argument list>
+# gam loop <FileName>|-|(gsheet <UserGoogleSheet>) [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield|skipfield <FieldName> <RegularExpression>)* gam <GAM argument list>
 def doLoop():
   filename = getString(Cmd.OB_FILE_NAME)
   if (filename == u'-') and (GC.Values[GC.DEBUG_LEVEL] > 0):

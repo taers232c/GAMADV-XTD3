@@ -74,6 +74,7 @@ class GamAction(object):
   RESTORE = u'rest'
   RESUBMIT = u'resu'
   RETAIN = u'reta'
+  RETRIEVE_DATA = u'retd'
   SAVE = u'save'
   SENDEMAIL = u'send'
   SET = u'set '
@@ -151,6 +152,7 @@ class GamAction(object):
     RESTORE: [u'Restored', u'Restore'],
     RESUBMIT: [u'Resubmitted', u'Resubmit'],
     RETAIN: [u'Retained', u'Retain'],
+    RETRIEVE_DATA: [u'Data Retrieved', u'Retrieve Data'],
     SAVE: [u'Saved', u'Save'],
     SENDEMAIL: [u'Email Sent', u'Send Email'],
     SET: [u'Set', u'Set'],
