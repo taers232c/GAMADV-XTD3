@@ -9290,7 +9290,8 @@ def doPrintOrgs():
       pageToken, totalItems = _processGAPIpagesResult(feed, u'users', None, totalItems, page_message, None, Ent.USER)
       if feed:
         for user in feed.get(u'users', []):
-          userCounts[user[u'orgUnitPath']][user[u'suspended']] += 1
+          if user[u'orgUnitPath'] in userCounts:
+            userCounts[user[u'orgUnitPath']][user[u'suspended']] += 1
         del feed
       if not pageToken:
         _finalizeGAPIpagesResult(page_message)
