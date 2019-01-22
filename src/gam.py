@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.47'
+__version__ = u'4.65.48'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -9206,7 +9206,8 @@ def _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs
   return orgUnits
 
 # gam print orgs|ous [todrive <ToDriveAttributes>*] [fromparent <OrgUnitItem>] [showparent] [toplevelonly]
-#	[allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)] [convertcrnl] [batchsuborgs [Boolean>]]
+#	[allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)] [convertcrnl] [batchsuborgs [<Boolean>]]
+#	[showcroscounts [<Boolean>]] [showusercounts [<Boolean>]]
 def doPrintOrgs():
   cd = buildGAPIObject(API.DIRECTORY)
   convertCRNL = GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]
@@ -9217,7 +9218,9 @@ def doPrintOrgs():
   titles, csvRows = initializeTitlesCSVfile(None)
   orgUnitPath = u'/'
   listType = u'all'
-  batchSubOrgs = showParent = False
+  batchSubOrgs = showParent = showCrOSCounts = showUserCounts = False
+  crosCounts = {}
+  userCounts = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
@@ -9226,6 +9229,10 @@ def doPrintOrgs():
       orgUnitPath = getOrgUnitItem()
     elif myarg == u'showparent':
       showParent = getBoolean()
+    elif myarg == u'showcroscounts':
+      showCrOSCounts = getBoolean()
+    elif myarg == u'showusercounts':
+      showUserCounts = getBoolean()
     elif myarg == u'batchsuborgs':
       batchSubOrgs = getBoolean()
     elif myarg == u'toplevelonly':
@@ -9260,16 +9267,83 @@ def doPrintOrgs():
   orgUnits = _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs)
   if orgUnits is None:
     return
+  if showUserCounts:
+    for orgUnit in orgUnits:
+      userCounts[orgUnit[u'orgUnitPath']] = [0, 0]
+    qualifier = Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
+    printGettingAllEntityItemsForWhom(Ent.USER, orgUnitPath, qualifier=qualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
+    page_message = getPageMessage()
+    pageToken = None
+    totalItems = 0
+    while True:
+      try:
+        feed = callGAPI(cd.users(), u'list',
+                        throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
+                                       GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                        pageToken=pageToken,
+                        customer=GC.Values[GC.CUSTOMER_ID], query=orgUnitPathQuery(orgUnitPath, None),
+                        fields=u'nextPageToken,users(orgUnitPath,suspended)', maxResults=GC.Values[GC.USER_MAX_RESULTS])
+      except (GAPI.badRequest, GAPI.invalidInput, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError,
+              GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
+        checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, orgUnitPath)
+        break
+      pageToken, totalItems = _processGAPIpagesResult(feed, u'users', None, totalItems, page_message, None, Ent.USER)
+      if feed:
+        for user in feed.get(u'users', []):
+          userCounts[user[u'orgUnitPath']][user[u'suspended']] += 1
+        del feed
+      if not pageToken:
+        _finalizeGAPIpagesResult(page_message)
+        break
   for orgUnit in orgUnits:
+    orgUnitPath = orgUnit[u'orgUnitPath']
+    if showCrOSCounts:
+      crosCounts[orgUnit[u'orgUnitPath']] = {}
+      printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, orgUnitPath, entityType=Ent.ORGANIZATIONAL_UNIT)
+      page_message = getPageMessage()
+      pageToken = None
+      totalItems = 0
+      while True:
+        try:
+          feed = callGAPI(cd.chromeosdevices(), u'list', u'chromeosdevices',
+                          throw_reasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                          pageToken=pageToken,
+                          customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=orgUnitPath,
+                          fields=u'nextPageToken,chromeosdevices(status)', maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
+        except (GAPI.badRequest, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.resourceNotFound, GAPI.forbidden):
+          checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, orgUnit)
+          break
+        pageToken, totalItems = _processGAPIpagesResult(feed, u'chromeosdevices', None, totalItems, page_message, None, Ent.CROS_DEVICE)
+        if feed:
+          for cros in feed.get(u'chromeosdevices', []):
+            crosCounts[orgUnitPath].setdefault(cros[u'status'], 0)
+            crosCounts[orgUnitPath][cros[u'status']] += 1
+          del feed
+        if not pageToken:
+          _finalizeGAPIpagesResult(page_message)
+          break
     row = {}
     for field in fieldsList:
       if convertCRNL and field in ORG_FIELDS_WITH_CRS_NLS:
         row[fieldsTitles[field]] = escapeCRsNLs(orgUnit.get(field, u''))
       else:
         row[fieldsTitles[field]] = orgUnit.get(field, u'')
-    csvRows.append(row)
+    if showCrOSCounts or showUserCounts:
+      if showCrOSCounts:
+        total = 0
+        for k, v in sorted(iteritems(crosCounts[orgUnitPath])):
+          row[u'CrOS.{0}'.format(k)] = v
+          total += v
+        row[u'CrOS.Total'] = total
+      if showUserCounts:
+        row[u'Users.NotSuspended'] = userCounts[orgUnitPath][0]
+        row[u'Users.Suspended'] = userCounts[orgUnitPath][1]
+        row[u'Users.Total'] = userCounts[orgUnitPath][0]+userCounts[orgUnitPath][1]
+      addRowTitlesToCSVfile(row, csvRows, titles)
+    else:
+      csvRows.append(row)
   csvRows.sort(key=lambda x: x[fieldsTitles[u'orgUnitPath']].lower(), reverse=False)
-  writeCSVfile(csvRows, titles, u'Orgs', todrive)
+  writeCSVfile(csvRows, titles, u'Orgs', todrive, ORG_FIELD_PRINT_ORDER)
 
 # gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [Boolean>]]
 def doShowOrgTree():

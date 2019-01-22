@@ -1,3 +1,10 @@
+4.65.48
+
+Added showcroscounts and showusercounts to gam print orgs. These options will generate
+additional columns displaying the number and status of ChromeOS devices and Users in each OU.
+
+* https://github.com/taers232c/GAMADV-XTD/wiki/Organizational-Units#print-organizational-units
+
 4.65.47
 
 You can now use a user's Google Doc to supply data to Gam commands by specifying two items:
