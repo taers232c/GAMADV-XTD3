@@ -9296,7 +9296,7 @@ def doPrintOrgs():
       if not pageToken:
         _finalizeGAPIpagesResult(page_message)
         break
-  for orgUnit in orgUnits:
+  for orgUnit in sorted(orgUnits, key=lambda k: k[u'orgUnitPath']):
     orgUnitPath = orgUnit[u'orgUnitPath']
     if showCrOSCounts:
       crosCounts[orgUnit[u'orgUnitPath']] = {}
@@ -9343,7 +9343,6 @@ def doPrintOrgs():
       addRowTitlesToCSVfile(row, csvRows, titles)
     else:
       csvRows.append(row)
-  csvRows.sort(key=lambda x: x[fieldsTitles[u'orgUnitPath']].lower(), reverse=False)
   writeCSVfile(csvRows, titles, u'Orgs', todrive, ORG_FIELD_PRINT_ORDER)
 
 # gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [Boolean>]]
