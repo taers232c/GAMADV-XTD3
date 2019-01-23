@@ -1699,7 +1699,8 @@ gam info orgs|ous <OrgUnitEntity> [nousers|notsuspended|suspended] [children|chi
 
 gam print orgs|ous [todrive <ToDriveAttribute>*] [showparent] [toplevelonly] [fromparent <OrgUnitItem>]
         [allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)] [convertcrnl] [batchsuborgs [<Boolean>]]
-        [showcroscounts [<Boolean>]] [showusercounts [<Boolean>]] 
+        [mincroscount <Number>] [maxcroscount <Number>]
+        [minusercount <Number>] [maxusercount <Number>]
 gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [<Boolean>]]
 
 # Printers

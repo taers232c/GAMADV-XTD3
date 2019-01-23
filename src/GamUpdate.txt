@@ -1,7 +1,15 @@
 4.65.48
 
-Added showcroscounts and showusercounts to gam print orgs. These options will generate
-additional columns displaying the number and status of ChromeOS devices and Users in each OU.
+Added `mincroscounts`, `maxcroscounts`, `minusercounts` and `maxusercounts` to `gam print orgs`.
+OUs will only be displayed if the number of ChromeOS devices and/or users falls within the min/max values.
+Additional columns are generated to display the number and status of ChromeOS devices and users in each OU.
+
+Examples:
+* Show all OUs with at least one user.
+gam print orgs minusercount 1
+
+* Show all OUs with no users.
+gam print orgs maxusercount 0
 
 * https://github.com/taers232c/GAMADV-XTD/wiki/Organizational-Units#print-organizational-units
 

@@ -9207,7 +9207,8 @@ def _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs
 
 # gam print orgs|ous [todrive <ToDriveAttributes>*] [fromparent <OrgUnitItem>] [showparent] [toplevelonly]
 #	[allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)] [convertcrnl] [batchsuborgs [<Boolean>]]
-#	[showcroscounts [<Boolean>]] [showusercounts [<Boolean>]]
+#	[mincroscount <Number>] [maxcroscount <Number>]
+#	[minusercount <Number>] [maxusercount <Number>]
 def doPrintOrgs():
   cd = buildGAPIObject(API.DIRECTORY)
   convertCRNL = GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]
@@ -9218,7 +9219,8 @@ def doPrintOrgs():
   titles, csvRows = initializeTitlesCSVfile(None)
   orgUnitPath = u'/'
   listType = u'all'
-  batchSubOrgs = showParent = showCrOSCounts = showUserCounts = False
+  batchSubOrgs = showParent = False
+  minCrOSCounts = maxCrOSCounts = minUserCounts = maxUserCounts = -1
   crosCounts = {}
   userCounts = {}
   while Cmd.ArgumentsRemaining():
@@ -9229,10 +9231,14 @@ def doPrintOrgs():
       orgUnitPath = getOrgUnitItem()
     elif myarg == u'showparent':
       showParent = getBoolean()
-    elif myarg == u'showcroscounts':
-      showCrOSCounts = getBoolean()
-    elif myarg == u'showusercounts':
-      showUserCounts = getBoolean()
+    elif myarg == u'mincroscount':
+      minCrOSCounts = getInteger(minVal=-1)
+    elif myarg == u'maxcroscount':
+      maxCrOSCounts = getInteger(minVal=-1)
+    elif myarg == u'minusercount':
+      minUserCounts = getInteger(minVal=-1)
+    elif myarg == u'maxusercount':
+      maxUserCounts = getInteger(minVal=-1)
     elif myarg == u'batchsuborgs':
       batchSubOrgs = getBoolean()
     elif myarg == u'toplevelonly':
@@ -9259,6 +9265,8 @@ def doPrintOrgs():
       convertCRNL = True
     else:
       unknownArgumentExit()
+  showCrOSCounts = (minCrOSCounts >= 0 or maxCrOSCounts >= 0)
+  showUserCounts = (minUserCounts >= 0 or maxUserCounts >= 0)
   if not fieldsList:
     for field in PRINT_ORGS_DEFAULT_FIELDS:
       addFieldTitleToCSVfile(field, ORG_ARGUMENT_TO_PROPERTY_TITLE_MAP, fieldsList, fieldsTitles, titles, nativeTitles)
@@ -9336,10 +9344,16 @@ def doPrintOrgs():
           row[u'CrOS.{0}'.format(k)] = v
           total += v
         row[u'CrOS.Total'] = total
+        if ((minCrOSCounts != -1 and total < minCrOSCounts) or
+            (maxCrOSCounts != -1 and total > maxCrOSCounts)):
+          continue
       if showUserCounts:
         row[u'Users.NotSuspended'] = userCounts[orgUnitPath][0]
         row[u'Users.Suspended'] = userCounts[orgUnitPath][1]
-        row[u'Users.Total'] = userCounts[orgUnitPath][0]+userCounts[orgUnitPath][1]
+        row[u'Users.Total'] = total = userCounts[orgUnitPath][0]+userCounts[orgUnitPath][1]
+        if ((minUserCounts != -1 and total < minUserCounts) or
+            (maxUserCounts != -1 and total > maxUserCounts)):
+          continue
       addRowTitlesToCSVfile(row, csvRows, titles)
     else:
       csvRows.append(row)
