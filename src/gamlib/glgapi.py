@@ -40,6 +40,7 @@ CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION = u'cannotModifyInheritedTeamDriveP
 CANNOT_MODIFY_RESTRICTED_LABEL = u'cannotModifyRestrictedLabel'
 CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT = u'cannotModifyViewersCanCopyContent'
 CANNOT_MOVE_TRASHED_ITEM_INTO_TEAMDRIVE = u'cannotMoveTrashedItemIntoTeamDrive'
+CANNOT_MOVE_TRASHED_ITEM_OUT_OF_TEAMDRIVE = u'cannotMoveTrashedItemOutOfTeamDrive'
 CANNOT_REMOVE_OWNER = u'cannotRemoveOwner'
 CANNOT_SHARE_GROUPS_WITHLINK = u'cannotShareGroupsWithLink'
 CANNOT_SHARE_USERS_WITHLINK = u'cannotShareUsersWithLink'
@@ -283,6 +284,8 @@ class cannotModifyViewersCanCopyContent(Exception):
   pass
 class cannotMoveTrashedItemIntoTeamDrive(Exception):
   pass
+class cannotMoveTrashedItemOutOfTeamDrive(Exception):
+  pass
 class cannotRemoveOwner(Exception):
   pass
 class cannotShareGroupsWithLink(Exception):
@@ -484,6 +487,7 @@ REASON_EXCEPTION_MAP = {
   CANNOT_MODIFY_RESTRICTED_LABEL: cannotModifyRestrictedLabel,
   CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT: cannotModifyViewersCanCopyContent,
   CANNOT_MOVE_TRASHED_ITEM_INTO_TEAMDRIVE: cannotMoveTrashedItemIntoTeamDrive,
+  CANNOT_MOVE_TRASHED_ITEM_OUT_OF_TEAMDRIVE: cannotMoveTrashedItemOutOfTeamDrive,
   CANNOT_REMOVE_OWNER: cannotRemoveOwner,
   CANNOT_SHARE_GROUPS_WITHLINK: cannotShareGroupsWithLink,
   CANNOT_SHARE_USERS_WITHLINK: cannotShareUsersWithLink,
