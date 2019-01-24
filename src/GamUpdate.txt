@@ -1,3 +1,8 @@
+4.65.49
+
+Fixed a bug in `gam move drivefile` where source files were being copied unnecessarily
+rather than simply being moved.
+
 4.65.48
 
 Added `mincroscounts`, `maxcroscounts`, `minusercounts` and `maxusercounts` to `gam print orgs`.

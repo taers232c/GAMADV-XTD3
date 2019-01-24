@@ -23,7 +23,11 @@ If an item contains spaces, it should be surrounded by ".
 <TrueValues> ::= true|on|yes|enabled|1
 
 <Charset> ::= ascii|latin1|mbcs|utf-8|utf-8-sig|utf-16|<String>
-<ColorName> ::=
+<ColorNameGoogle> ::=
+        asparagus|bluevelvet|bubblegum|cardinal|chocolateicecream|denim|desertsand|earthworm|
+        macaroni|marsorange|mountaingray|mountaingrey|mouse|oldbrickred|pool|purpledino|purplerain|
+        rainysky|seafoam|slimegreen|spearmint|toyeggplant|vernfern|wildstrawberries|yellowcab
+<ColorNameWeb> ::=
         aliceblue|antiquewhite|aqua|aquamarine|azure|beige|bisque|black|blanchedalmond|blue|blueviolet|brown|burlywood|
         cadetblue|chartreuse|chocolate|coral|cornflowerblue|cornsilk|crimson|cyan|
         darkblue|darkcyan|darkgoldenrod|darkgray|darkgrey|darkgreen|darkkhaki|darkmagenta|darkolivegreen|darkorange|darkorchid|darkred|
@@ -38,6 +42,7 @@ If an item contains spaces, it should be surrounded by ".
         papayawhip|peachpuff|peru|pink|plum|powderblue|purple|red|rosybrown|royalblue|
         saddlebrown|salmon|sandybrown|seagreen|seashell|sienna|silver|skyblue|slateblue|slategray|slategrey|snow|springgreen|steelblue|
         tan|teal|thistle|tomato|turquoise|violet|wheat|white|whitesmoke|yellow|yellowgreen
+<ColorName> ::= <ColorNameGoogle>|<ColorNameWeb>
 <FileFormat> ::=
         csv|doc|dot|docx|dotx|epub|html|jpeg|jpg|mht|odp|ods|odt|
         pdf|png|ppt|pot|potx|pptx|rtf|svg|tsv|txt|xls|xlt|xlsx|xltx|zip|

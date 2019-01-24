@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.48'
+__version__ = u'4.65.49'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -824,154 +824,54 @@ def getChoiceAndValue(item, choices, delimiter):
     missingArgumentExit(item)
   invalidChoiceExit(choices, False)
 
-WEBCOLOR_MAP = {
-  u'aliceblue': u'#f0f8ff',
-  u'antiquewhite': u'#faebd7',
-  u'aqua': u'#00ffff',
-  u'aquamarine': u'#7fffd4',
-  u'azure': u'#f0ffff',
-  u'beige': u'#f5f5dc',
-  u'bisque': u'#ffe4c4',
-  u'black': u'#000000',
-  u'blanchedalmond': u'#ffebcd',
-  u'blue': u'#0000ff',
-  u'blueviolet': u'#8a2be2',
-  u'brown': u'#a52a2a',
-  u'burlywood': u'#deb887',
-  u'cadetblue': u'#5f9ea0',
-  u'chartreuse': u'#7fff00',
-  u'chocolate': u'#d2691e',
-  u'coral': u'#ff7f50',
-  u'cornflowerblue': u'#6495ed',
-  u'cornsilk': u'#fff8dc',
-  u'crimson': u'#dc143c',
-  u'cyan': u'#00ffff',
-  u'darkblue': u'#00008b',
-  u'darkcyan': u'#008b8b',
-  u'darkgoldenrod': u'#b8860b',
-  u'darkgray': u'#a9a9a9',
-  u'darkgrey': u'#a9a9a9',
-  u'darkgreen': u'#006400',
-  u'darkkhaki': u'#bdb76b',
-  u'darkmagenta': u'#8b008b',
-  u'darkolivegreen': u'#556b2f',
-  u'darkorange': u'#ff8c00',
-  u'darkorchid': u'#9932cc',
-  u'darkred': u'#8b0000',
-  u'darksalmon': u'#e9967a',
-  u'darkseagreen': u'#8fbc8f',
-  u'darkslateblue': u'#483d8b',
-  u'darkslategray': u'#2f4f4f',
-  u'darkslategrey': u'#2f4f4f',
-  u'darkturquoise': u'#00ced1',
-  u'darkviolet': u'#9400d3',
-  u'deeppink': u'#ff1493',
-  u'deepskyblue': u'#00bfff',
-  u'dimgray': u'#696969',
-  u'dimgrey': u'#696969',
-  u'dodgerblue': u'#1e90ff',
-  u'firebrick': u'#b22222',
-  u'floralwhite': u'#fffaf0',
-  u'forestgreen': u'#228b22',
-  u'fuchsia': u'#ff00ff',
-  u'gainsboro': u'#dcdcdc',
-  u'ghostwhite': u'#f8f8ff',
-  u'gold': u'#ffd700',
-  u'goldenrod': u'#daa520',
-  u'gray': u'#808080',
-  u'grey': u'#808080',
-  u'green': u'#008000',
-  u'greenyellow': u'#adff2f',
-  u'honeydew': u'#f0fff0',
-  u'hotpink': u'#ff69b4',
-  u'indianred': u'#cd5c5c',
-  u'indigo': u'#4b0082',
-  u'ivory': u'#fffff0',
-  u'khaki': u'#f0e68c',
-  u'lavender': u'#e6e6fa',
-  u'lavenderblush': u'#fff0f5',
-  u'lawngreen': u'#7cfc00',
-  u'lemonchiffon': u'#fffacd',
-  u'lightblue': u'#add8e6',
-  u'lightcoral': u'#f08080',
-  u'lightcyan': u'#e0ffff',
-  u'lightgoldenrodyellow': u'#fafad2',
-  u'lightgray': u'#d3d3d3',
-  u'lightgrey': u'#d3d3d3',
-  u'lightgreen': u'#90ee90',
-  u'lightpink': u'#ffb6c1',
-  u'lightsalmon': u'#ffa07a',
-  u'lightseagreen': u'#20b2aa',
-  u'lightskyblue': u'#87cefa',
-  u'lightslategray': u'#778899',
-  u'lightslategrey': u'#778899',
-  u'lightsteelblue': u'#b0c4de',
-  u'lightyellow': u'#ffffe0',
-  u'lime': u'#00ff00',
-  u'limegreen': u'#32cd32',
-  u'linen': u'#faf0e6',
-  u'magenta': u'#ff00ff',
-  u'maroon': u'#800000',
-  u'mediumaquamarine': u'#66cdaa',
-  u'mediumblue': u'#0000cd',
-  u'mediumorchid': u'#ba55d3',
-  u'mediumpurple': u'#9370db',
-  u'mediumseagreen': u'#3cb371',
-  u'mediumslateblue': u'#7b68ee',
-  u'mediumspringgreen': u'#00fa9a',
-  u'mediumturquoise': u'#48d1cc',
-  u'mediumvioletred': u'#c71585',
-  u'midnightblue': u'#191970',
-  u'mintcream': u'#f5fffa',
-  u'mistyrose': u'#ffe4e1',
-  u'moccasin': u'#ffe4b5',
-  u'navajowhite': u'#ffdead',
-  u'navy': u'#000080',
-  u'oldlace': u'#fdf5e6',
-  u'olive': u'#808000',
-  u'olivedrab': u'#6b8e23',
-  u'orange': u'#ffa500',
-  u'orangered': u'#ff4500',
-  u'orchid': u'#da70d6',
-  u'palegoldenrod': u'#eee8aa',
-  u'palegreen': u'#98fb98',
-  u'paleturquoise': u'#afeeee',
-  u'palevioletred': u'#db7093',
-  u'papayawhip': u'#ffefd5',
-  u'peachpuff': u'#ffdab9',
-  u'peru': u'#cd853f',
-  u'pink': u'#ffc0cb',
-  u'plum': u'#dda0dd',
-  u'powderblue': u'#b0e0e6',
-  u'purple': u'#800080',
-  u'red': u'#ff0000',
-  u'rosybrown': u'#bc8f8f',
-  u'royalblue': u'#4169e1',
-  u'saddlebrown': u'#8b4513',
-  u'salmon': u'#fa8072',
-  u'sandybrown': u'#f4a460',
-  u'seagreen': u'#2e8b57',
-  u'seashell': u'#fff5ee',
-  u'sienna': u'#a0522d',
-  u'silver': u'#c0c0c0',
-  u'skyblue': u'#87ceeb',
-  u'slateblue': u'#6a5acd',
-  u'slategray': u'#708090',
-  u'slategrey': u'#708090',
-  u'snow': u'#fffafa',
-  u'springgreen': u'#00ff7f',
-  u'steelblue': u'#4682b4',
-  u'tan': u'#d2b48c',
-  u'teal': u'#008080',
-  u'thistle': u'#d8bfd8',
-  u'tomato': u'#ff6347',
-  u'turquoise': u'#40e0d0',
-  u'violet': u'#ee82ee',
-  u'wheat': u'#f5deb3',
-  u'white': u'#ffffff',
-  u'whitesmoke': u'#f5f5f5',
-  u'yellow': u'#ffff00',
-  u'yellowgreen': u'#9acd32',
+GOOGLE_COLOR_MAP = {
+  u'asparagus': u'#7bd148', u'bluevelvet': u'#9a9cff', u'bubblegum': u'#f691b2', u'cardinal': u'#f83a22',
+  u'chocolateicecream': u'#ac725e', u'denim': u'#9fc6e7', u'desertsand': u'#fbe983', u'earthworm': u'#cca6ac',
+  u'macaroni': u'#fad165', u'marsorange': u'#ff7537', u'mountaingray': u'#cabdbf', u'mountaingrey': u'#cabdbf',
+  u'mouse': u'#8f8f8f', u'oldbrickred': u'#d06b64', u'pool': u'#9fe1e7', u'purpledino': u'#b99aff',
+  u'purplerain': u'#cd74e6', u'rainysky': u'#4986e7', u'seafoam': u'#92e1c0', u'slimegreen': u'#b3dc6c',
+  u'spearmint': u'#42d692', u'toyeggplant': u'#a47ae2', u'vernfern': u'#16a765', u'wildstrawberries': u'#fa573c',
+  u'yellowcab': u'#ffad46',
+  }
+
+WEB_COLOR_MAP = {
+  u'aliceblue': u'#f0f8ff', u'antiquewhite': u'#faebd7', u'aqua': u'#00ffff', u'aquamarine': u'#7fffd4',
+  u'azure': u'#f0ffff', u'beige': u'#f5f5dc', u'bisque': u'#ffe4c4', u'black': u'#000000',
+  u'blanchedalmond': u'#ffebcd', u'blue': u'#0000ff', u'blueviolet': u'#8a2be2', u'brown': u'#a52a2a',
+  u'burlywood': u'#deb887', u'cadetblue': u'#5f9ea0', u'chartreuse': u'#7fff00', u'chocolate': u'#d2691e',
+  u'coral': u'#ff7f50', u'cornflowerblue': u'#6495ed', u'cornsilk': u'#fff8dc', u'crimson': u'#dc143c',
+  u'cyan': u'#00ffff', u'darkblue': u'#00008b', u'darkcyan': u'#008b8b', u'darkgoldenrod': u'#b8860b',
+  u'darkgray': u'#a9a9a9', u'darkgrey': u'#a9a9a9', u'darkgreen': u'#006400', u'darkkhaki': u'#bdb76b',
+  u'darkmagenta': u'#8b008b', u'darkolivegreen': u'#556b2f', u'darkorange': u'#ff8c00', u'darkorchid': u'#9932cc',
+  u'darkred': u'#8b0000', u'darksalmon': u'#e9967a', u'darkseagreen': u'#8fbc8f', u'darkslateblue': u'#483d8b',
+  u'darkslategray': u'#2f4f4f', u'darkslategrey': u'#2f4f4f', u'darkturquoise': u'#00ced1', u'darkviolet': u'#9400d3',
+  u'deeppink': u'#ff1493', u'deepskyblue': u'#00bfff', u'dimgray': u'#696969', u'dimgrey': u'#696969',
+  u'dodgerblue': u'#1e90ff', u'firebrick': u'#b22222', u'floralwhite': u'#fffaf0', u'forestgreen': u'#228b22',
+  u'fuchsia': u'#ff00ff', u'gainsboro': u'#dcdcdc', u'ghostwhite': u'#f8f8ff', u'gold': u'#ffd700',
+  u'goldenrod': u'#daa520', u'gray': u'#808080', u'grey': u'#808080', u'green': u'#008000',
+  u'greenyellow': u'#adff2f', u'honeydew': u'#f0fff0', u'hotpink': u'#ff69b4', u'indianred': u'#cd5c5c',
+  u'indigo': u'#4b0082', u'ivory': u'#fffff0', u'khaki': u'#f0e68c', u'lavender': u'#e6e6fa',
+  u'lavenderblush': u'#fff0f5', u'lawngreen': u'#7cfc00', u'lemonchiffon': u'#fffacd', u'lightblue': u'#add8e6',
+  u'lightcoral': u'#f08080', u'lightcyan': u'#e0ffff', u'lightgoldenrodyellow': u'#fafad2', u'lightgray': u'#d3d3d3',
+  u'lightgrey': u'#d3d3d3', u'lightgreen': u'#90ee90', u'lightpink': u'#ffb6c1', u'lightsalmon': u'#ffa07a',
+  u'lightseagreen': u'#20b2aa', u'lightskyblue': u'#87cefa', u'lightslategray': u'#778899', u'lightslategrey': u'#778899',
+  u'lightsteelblue': u'#b0c4de', u'lightyellow': u'#ffffe0', u'lime': u'#00ff00', u'limegreen': u'#32cd32',
+  u'linen': u'#faf0e6', u'magenta': u'#ff00ff', u'maroon': u'#800000', u'mediumaquamarine': u'#66cdaa',
+  u'mediumblue': u'#0000cd', u'mediumorchid': u'#ba55d3', u'mediumpurple': u'#9370db', u'mediumseagreen': u'#3cb371',
+  u'mediumslateblue': u'#7b68ee', u'mediumspringgreen': u'#00fa9a', u'mediumturquoise': u'#48d1cc', u'mediumvioletred': u'#c71585',
+  u'midnightblue': u'#191970', u'mintcream': u'#f5fffa', u'mistyrose': u'#ffe4e1', u'moccasin': u'#ffe4b5',
+  u'navajowhite': u'#ffdead', u'navy': u'#000080', u'oldlace': u'#fdf5e6', u'olive': u'#808000',
+  u'olivedrab': u'#6b8e23', u'orange': u'#ffa500', u'orangered': u'#ff4500', u'orchid': u'#da70d6',
+  u'palegoldenrod': u'#eee8aa', u'palegreen': u'#98fb98', u'paleturquoise': u'#afeeee', u'palevioletred': u'#db7093',
+  u'papayawhip': u'#ffefd5', u'peachpuff': u'#ffdab9', u'peru': u'#cd853f', u'pink': u'#ffc0cb',
+  u'plum': u'#dda0dd', u'powderblue': u'#b0e0e6', u'purple': u'#800080', u'red': u'#ff0000',
+  u'rosybrown': u'#bc8f8f', u'royalblue': u'#4169e1', u'saddlebrown': u'#8b4513', u'salmon': u'#fa8072',
+  u'sandybrown': u'#f4a460', u'seagreen': u'#2e8b57', u'seashell': u'#fff5ee', u'sienna': u'#a0522d',
+  u'silver': u'#c0c0c0', u'skyblue': u'#87ceeb', u'slateblue': u'#6a5acd', u'slategray': u'#708090',
+  u'slategrey': u'#708090', u'snow': u'#fffafa', u'springgreen': u'#00ff7f', u'steelblue': u'#4682b4',
+  u'tan': u'#d2b48c', u'teal': u'#008080', u'thistle': u'#d8bfd8', u'tomato': u'#ff6347',
+  u'turquoise': u'#40e0d0', u'violet': u'#ee82ee', u'wheat': u'#f5deb3', u'white': u'#ffffff',
+  u'whitesmoke': u'#f5f5f5', u'yellow': u'#ffff00', u'yellowgreen': u'#9acd32',
   }
 
 COLORHEX_PATTERN = re.compile(r'^#[0-9a-fA-F]{6}$')
@@ -980,9 +880,12 @@ COLORHEX_FORMAT_REQUIRED = u'ColorName|ColorHex'
 def getColor():
   if Cmd.ArgumentsRemaining():
     color = Cmd.Current().strip().lower()
-    if color in WEBCOLOR_MAP:
+    if color in GOOGLE_COLOR_MAP:
       Cmd.Advance()
-      return WEBCOLOR_MAP[color]
+      return GOOGLE_COLOR_MAP[color]
+    if color in WEB_COLOR_MAP:
+      Cmd.Advance()
+      return WEB_COLOR_MAP[color]
     tg = COLORHEX_PATTERN.match(color)
     if tg:
       Cmd.Advance()
@@ -29519,8 +29422,10 @@ COPY_NO_PARENTS = 0
 COPY_NONPATH_PARENTS = 1
 COPY_ALL_PARENTS = 2
 
-def initCopyMoveOptions():
+def initCopyMoveOptions(move):
   return {
+    u'move': move,
+    u'tdparents': False,
     u'newFilename': None,
     u'summary': False,
     u'mergeWithParent': False,
@@ -29674,6 +29579,7 @@ def _cloneFolder(drive, user, i, count, j, jcount, source, newFolderTitle, targe
                                                        [Ent.DRIVE_FOLDER_ID, newParentId], j, jcount)
     Act.Set(action)
     _incrStatistic(statistics, STAT_FOLDER_MERGED)
+    source.pop(u'oldparents', None)
     return (newParentId, True)
   if copyMoveOptions[u'duplicateFolders'] == DUPLICATE_FOLDER_MERGE:
     newFolderTitleLower = newFolderTitle.lower()
@@ -29696,6 +29602,23 @@ def _cloneFolder(drive, user, i, count, j, jcount, source, newFolderTitle, targe
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], Msg.NOT_WRITABLE, j, jcount)
         _incrStatistic(statistics, STAT_FOLDER_NOT_WRITABLE)
         return (None, False)
+    if copyMoveOptions[u'move'] and not copyMoveOptions[u'retainSourceFolders'] and not copyMoveOptions[u'tdparents']:
+      body = {VX_FILENAME: source[VX_FILENAME]}
+      addParents = u','.join(source[u'parents'])
+      removeParents = u','.join([parentId for parentId in source.pop(u'oldparents', []) if parentId not in source[u'parents']])
+      result = callGAPI(drive.files(), u'update',
+                        throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST,
+                                                                       GAPI.FILE_OWNER_NOT_MEMBER_OF_TEAMDRIVE,
+                                                                       GAPI.FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN,
+                                                                       GAPI.CANNOT_MOVE_TRASHED_ITEM_INTO_TEAMDRIVE],
+                        fileId=folderId, addParents=addParents, removeParents=removeParents,
+                        body=body, fields=VX_ID_FILENAME, supportsTeamDrives=True)
+      entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, folderTitle],
+                                                         Act.MODIFIER_TO, result[VX_FILENAME],
+                                                         [Ent.DRIVE_FOLDER_ID, result[u'id']], j, jcount)
+      _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
+      return (None, False)
+  source.pop(u'oldparents', None)
   body = source.copy()
   body.pop(u'capabilities', None)
   body.pop(u'trashed', None)
@@ -29791,7 +29714,7 @@ COPY_SUB_PARENTS_CHOICES = {u'all': COPY_ALL_PARENTS, u'none': COPY_NO_PARENTS, 
 #	[copyfilepermissions [<Boolean>]]
 #	[copytopfolderpermissions [<Boolean>]] [copysubfolderpermissions [<Boolean>]]
 def copyDriveFile(users):
-  def _recursiveFolderCopy(drive, user, i, count, j, jcount, source, newFolderTitle, targetChildren, depth, atTop):
+  def _recursiveFolderCopy(drive, user, i, count, j, jcount, source, newFolderTitle, targetChildren, depth, atTop, newParentId):
     folderId = source[u'id']
     sourceChildren = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                                    throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
@@ -29836,7 +29759,7 @@ def copyDriveFile(users):
             for parentId in childParents:
               if parentId != folderId or copyMoveOptions[u'copySubFolderParents'] == COPY_ALL_PARENTS:
                 child[u'parents'].append(parentId)
-          _recursiveFolderCopy(drive, user, i, count, k, kcount, child, childTitle, subTargetChildren, depth, False)
+          _recursiveFolderCopy(drive, user, i, count, k, kcount, child, childTitle, subTargetChildren, depth, False, newFolderId)
         else:
           if not child.pop(u'capabilities')[u'canCopy']:
             entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], Msg.NOT_COPYABLE, k, kcount)
@@ -29873,7 +29796,7 @@ def copyDriveFile(users):
   parentBody = {}
   parameters = initDriveFileAttributes()
   copyParameters = initDriveFileAttributes()
-  copyMoveOptions = initCopyMoveOptions()
+  copyMoveOptions = initCopyMoveOptions(False)
   newParentsSpecified = recursive = False
   maxdepth = -1
   copiedFiles = {}
@@ -29974,7 +29897,7 @@ def copyDriveFile(users):
               if parentId not in newParents:
                 source[u'parents'].append(parentId)
           if recursive:
-            _recursiveFolderCopy(drive, user, i, count, j, jcount, source, destFilename, targetChildren, 0, True)
+            _recursiveFolderCopy(drive, user, i, count, j, jcount, source, destFilename, targetChildren, 0, True, newParentId)
           else:
             _cloneFolder(drive, user, i, count, j, jcount, source, destFilename, targetChildren,
                          True, newParentId, copyMoveOptions, statistics, destTeamDriveId)
@@ -30027,7 +29950,7 @@ def copyDriveFile(users):
 #	[copysubfileparents nonpath|none|all] [copysubfolderparents nonpath|none|all]
 #	[retainsourcefolders [<Boolean>]]
 def moveDriveFile(users):
-  def _recursiveFolderMove(drive, user, i, count, j, jcount, source, newFolderTitle, targetChildren, atTop):
+  def _recursiveFolderMove(drive, user, i, count, j, jcount, source, newFolderTitle, targetChildren, atTop, newParentId):
     folderId = source[u'id']
     sourceChildren = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                                    throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
@@ -30063,14 +29986,15 @@ def moveDriveFile(users):
                                           [Msg.NOT_MOVABLE, Msg.NOT_MOVABLE_IN_TRASH][trashed], k, kcount)
           _incrStatistic(statistics, STAT_FILE_NOT_COPYABLE_MOVABLE)
           continue
+        childParents = child.pop(u'parents', [])
+        child[u'parents'] = [newFolderId]
         if child[u'mimeType'] == MIMETYPE_GA_FOLDER:
-          childParents = child.pop(u'parents', [])
-          child[u'parents'] = [newFolderId]
           if copyMoveOptions[u'copySubFolderParents'] != COPY_NO_PARENTS:
             for parentId in childParents:
               if parentId != folderId or copyMoveOptions[u'copySubFolderParents'] == COPY_ALL_PARENTS:
                 child[u'parents'].append(parentId)
-          _recursiveFolderMove(drive, user, i, count, k, kcount, child, childTitle, subTargetChildren, False)
+          child[u'oldparents'] = childParents
+          _recursiveFolderMove(drive, user, i, count, k, kcount, child, childTitle, subTargetChildren, False, newFolderId)
         else:
           if existingTargetFolder and _checkForDuplicateTargetFile(drive, user, k, kcount, child, childTitle, subTargetChildren, copyMoveOptions, statistics):
             copyMoveOptions[u'retainSourceFolders'] = True
@@ -30091,10 +30015,12 @@ def moveDriveFile(users):
                               fileId=childId, addParents=newFolderId, removeParents=removeParents,
                               body=body, fields=VX_ID_FILENAME, supportsTeamDrives=True)
             entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, childTitle],
-                                                               Act.MODIFIER_TO, result[VX_FILENAME], [Ent.DRIVE_FILE_ID, result[u'id']], k, kcount)
+                                                               Act.MODIFIER_TO, result[VX_FILENAME],
+                                                               [Ent.DRIVE_FILE_ID, result[u'id']], k, kcount)
             _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
           except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-                  GAPI.badRequest, GAPI.fileOwnerNotMemberOfTeamDrive, GAPI.fileOwnerNotMemberOfWriterDomain, GAPI.cannotMoveTrashedItemIntoTeamDrive) as e:
+                  GAPI.badRequest, GAPI.fileOwnerNotMemberOfTeamDrive, GAPI.fileOwnerNotMemberOfWriterDomain,
+                  GAPI.cannotMoveTrashedItemIntoTeamDrive) as e:
             entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], str(e), k, kcount)
             _incrStatistic(statistics, STAT_FILE_FAILED)
             copyMoveOptions[u'retainSourceFolders'] = True
@@ -30106,7 +30032,8 @@ def moveDriveFile(users):
                  throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
                  fileId=folderId, supportsTeamDrives=True)
         entityActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, source[VX_FILENAME], Ent.DRIVE_FOLDER_ID, folderId], i, count)
-      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.fileNeverWritable) as e:
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+              GAPI.fileNeverWritable) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER_ID, folderId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -30118,7 +30045,7 @@ def moveDriveFile(users):
   fileIdEntity = getDriveFileEntity()
   parentBody = {}
   parameters = initDriveFileAttributes()
-  copyMoveOptions = initCopyMoveOptions()
+  copyMoveOptions = initCopyMoveOptions(True)
   newParentsSpecified = False
   movedFiles = {}
   statistics = _initStatistics()
@@ -30217,11 +30144,13 @@ def moveDriveFile(users):
             if _targetFilenameExists(destFilename, source[u'mimeType'], targetChildren):
               _incrStatistic(statistics, STAT_FOLDER_DUPLICATE)
               continue
-          if (tdAddParents or sourceTeamDriveId or
+          copyMoveOptions[u'tdparents'] = tdAddParents or sourceTeamDriveId
+          if (copyMoveOptions[u'tdparents'] or
               copyMoveOptions[u'mergeWithParent'] or copyMoveOptions[u'retainSourceFolders'] or
               (copyMoveOptions[u'copySubFileParents'] != COPY_NONPATH_PARENTS) or (copyMoveOptions[u'copySubFolderParents'] != COPY_NONPATH_PARENTS) or
               (copyMoveOptions[u'duplicateFolders'] == DUPLICATE_FOLDER_MERGE and _targetFilenameExists(destFilename, source[u'mimeType'], targetChildren))):
-            _recursiveFolderMove(drive, user, i, count, j, jcount, source, destFilename, targetChildren, True)
+            source[u'oldparents'] = sourceParents
+            _recursiveFolderMove(drive, user, i, count, j, jcount, source, destFilename, targetChildren, True, newParentId)
             continue
           body = {VX_FILENAME: destFilename}
         else:
