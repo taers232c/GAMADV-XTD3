@@ -29609,6 +29609,7 @@ def _cloneFolder(drive, user, i, count, j, jcount, source, newFolderTitle, targe
         _incrStatistic(statistics, STAT_FOLDER_NOT_WRITABLE)
         return (None, False)
     if (copyMoveOptions[u'move'] and not copyMoveOptions[u'retainSourceFolders'] and
+        (copyMoveOptions[u'copySubFileParents'] == COPY_NONPATH_PARENTS) and (copyMoveOptions[u'copySubFolderParents'] == COPY_NONPATH_PARENTS) and
         (copyMoveOptions[u'sourceTeamDriveId'] or not copyMoveOptions[u'destTeamDriveId'])):
       body = {VX_FILENAME: newFolderTitle}
       addParents = u','.join(source[u'parents'])
