@@ -29722,7 +29722,7 @@ def _getCopyMoveParentInfo(drive, user, i, count, j, jcount, newParentId, statis
   _incrStatistic(statistics, STAT_FILE_FAILED)
   return None
 
-def _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destFilename, newParentId, statistics, parameters):
+def _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destFilename, newParentId, statistics, parentParms):
   try:
     return callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
@@ -29730,7 +29730,7 @@ def _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destFilenam
                                                                                        escapeDriveFileName(_getFilenamePrefix(destFilename)),
                                                                                        newParentId),
                          orderBy=VX_ORDERBY_FOLDER_DESC_NAME_MODIFIED_TIME,
-                         fields=VX_NPT_FILES_ID_FILENAME_CAPABILITIES_MIMETYPE_MODIFIEDTIME, **parameters[DFA_SEARCHARGS])
+                         fields=VX_NPT_FILES_ID_FILENAME_CAPABILITIES_MIMETYPE_MODIFIEDTIME, **parentParms[DFA_SEARCHARGS])
   except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
           GAPI.unknownError, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.fileNeverWritable) as e:
     entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, newParentId], str(e), j, jcount)
@@ -29786,7 +29786,7 @@ def copyDriveFile(users):
                                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                                           q=VX_ANY_NON_TRASHED_WITH_PARENTS.format(newFolderId),
                                           orderBy=VX_ORDERBY_FOLDER_DESC_NAME_MODIFIED_TIME,
-                                          fields=VX_NPT_FILES_ID_FILENAME_CAPABILITIES_MIMETYPE_MODIFIEDTIME, **parameters[DFA_SEARCHARGS])
+                                          fields=VX_NPT_FILES_ID_FILENAME_CAPABILITIES_MIMETYPE_MODIFIEDTIME, **parentParms[DFA_SEARCHARGS])
       else:
         subTargetChildren = []
       Ind.Increment()
@@ -29845,7 +29845,7 @@ def copyDriveFile(users):
   fileIdEntity = getDriveFileEntity()
   copyBody = {}
   parentBody = {}
-  parameters = initDriveFileAttributes()
+  parentParms = initDriveFileAttributes()
   copyParameters = initDriveFileAttributes()
   copyMoveOptions = initCopyMoveOptions(False)
   newParentsSpecified = recursive = False
@@ -29856,7 +29856,7 @@ def copyDriveFile(users):
     myarg = getArgument()
     if getCopyMoveOptions(myarg, copyMoveOptions, True):
       pass
-    elif getDriveFileParentAttribute(myarg, parameters):
+    elif getDriveFileParentAttribute(myarg, parentParms):
       newParentsSpecified = True
     elif myarg == u'recursive':
       recursive = getBoolean()
@@ -29878,7 +29878,7 @@ def copyDriveFile(users):
     user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER)
     if jcount == 0:
       continue
-    if not _getDriveFileParentInfo(user, i, count, parentBody, parameters, drive):
+    if not _getDriveFileParentInfo(user, i, count, parentBody, parentParms, drive):
       continue
     Ind.Increment()
     j = 0
@@ -29905,15 +29905,15 @@ def copyDriveFile(users):
             continue
         else:
           newParents = sourceParents if sourceParents else [u'root',]
-          if copyMoveOptions[u'sourceTeamDriveId'] and not parameters[DFA_SEARCHARGS]:
-            parameters[DFA_SEARCHARGS] = {u'teamDriveId': copyMoveOptions[u'sourceTeamDriveId'], u'corpora': u'teamDrive',
-                                          u'includeTeamDriveItems': True, u'supportsTeamDrives': True}
         newParentId = newParents[0]
         source[u'parents'] = newParents
         dest = _getCopyMoveParentInfo(drive, user, i, count, j, jcount, newParentId, statistics)
         if dest is None:
           continue
         copyMoveOptions[u'destTeamDriveId'] = dest.get(u'teamDriveId')
+        if copyMoveOptions[u'destTeamDriveId'] and not parentParms[DFA_SEARCHARGS]:
+          parentParms[DFA_SEARCHARGS] = {u'teamDriveId': copyMoveOptions[u'destTeamDriveId'], u'corpora': u'teamDrive',
+                                         u'includeTeamDriveItems': True, u'supportsTeamDrives': True}
         if copyMoveOptions[u'newFilename']:
           destFilename = copyMoveOptions[u'newFilename']
         elif copyMoveOptions[u'mergeWithParent']:
@@ -29925,7 +29925,7 @@ def copyDriveFile(users):
           destFilename = sourceFilename
         else:
           destFilename = u'Copy of {0}'.format(sourceFilename)
-        targetChildren = _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destFilename, newParentId, statistics, parameters)
+        targetChildren = _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destFilename, newParentId, statistics, parentParms)
         if targetChildren is None:
           continue
         if copyMoveOptions[u'sourceTeamDriveId'] or copyMoveOptions[u'destTeamDriveId']:
@@ -30021,7 +30021,7 @@ def moveDriveFile(users):
                                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                                           q=VX_ANY_NON_TRASHED_WITH_PARENTS.format(newFolderId),
                                           orderBy=VX_ORDERBY_FOLDER_DESC_NAME_MODIFIED_TIME,
-                                          fields=VX_NPT_FILES_ID_FILENAME_CAPABILITIES_MIMETYPE_MODIFIEDTIME, **parameters[DFA_SEARCHARGS])
+                                          fields=VX_NPT_FILES_ID_FILENAME_CAPABILITIES_MIMETYPE_MODIFIEDTIME, **parentParms[DFA_SEARCHARGS])
       else:
         subTargetChildren = []
       Ind.Increment()
@@ -30097,7 +30097,7 @@ def moveDriveFile(users):
 
   fileIdEntity = getDriveFileEntity()
   parentBody = {}
-  parameters = initDriveFileAttributes()
+  parentParms = initDriveFileAttributes()
   copyMoveOptions = initCopyMoveOptions(True)
   newParentsSpecified = False
   movedFiles = {}
@@ -30106,7 +30106,7 @@ def moveDriveFile(users):
     myarg = getArgument()
     if getCopyMoveOptions(myarg, copyMoveOptions, False):
       pass
-    elif getDriveFileParentAttribute(myarg, parameters):
+    elif getDriveFileParentAttribute(myarg, parentParms):
       newParentsSpecified = True
     else:
       unknownArgumentExit()
@@ -30116,7 +30116,7 @@ def moveDriveFile(users):
     user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER)
     if jcount == 0:
       continue
-    if not _getDriveFileParentInfo(user, i, count, parentBody, parameters, drive):
+    if not _getDriveFileParentInfo(user, i, count, parentBody, parentParms, drive):
       continue
     Ind.Increment()
     j = 0
@@ -30148,22 +30148,22 @@ def moveDriveFile(users):
             continue
         else:
           newParents = sourceParents if sourceParents else [u'root',]
-          if copyMoveOptions[u'sourceTeamDriveId'] and not parameters[DFA_SEARCHARGS]:
-            parameters[DFA_SEARCHARGS] = {u'teamDriveId': copyMoveOptions[u'sourceTeamDriveId'], u'corpora': u'teamDrive',
-                                          u'includeTeamDriveItems': True, u'supportsTeamDrives': True}
         newParentId = newParents[0]
         source[u'parents'] = newParents
         dest = _getCopyMoveParentInfo(drive, user, i, count, j, jcount, newParentId, statistics)
         if dest is None:
           continue
         copyMoveOptions[u'destTeamDriveId'] = dest.get(u'teamDriveId')
+        if copyMoveOptions[u'destTeamDriveId'] and not parentParms[DFA_SEARCHARGS]:
+          parentParms[DFA_SEARCHARGS] = {u'teamDriveId': copyMoveOptions[u'destTeamDriveId'], u'corpora': u'teamDrive',
+                                         u'includeTeamDriveItems': True, u'supportsTeamDrives': True}
         if copyMoveOptions[u'newFilename']:
           destFilename = copyMoveOptions[u'newFilename']
         elif copyMoveOptions[u'mergeWithParent']:
           destFilename = dest[VX_FILENAME]
         else:
           destFilename = sourceFilename
-        targetChildren = _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destFilename, newParentId, statistics, parameters)
+        targetChildren = _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destFilename, newParentId, statistics, parentParms)
         if targetChildren is None:
           continue
         if copyMoveOptions[u'sourceTeamDriveId'] or copyMoveOptions[u'destTeamDriveId']:
