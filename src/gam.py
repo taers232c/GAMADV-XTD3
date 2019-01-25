@@ -29610,7 +29610,7 @@ def _cloneFolder(drive, user, i, count, j, jcount, source, newFolderTitle, targe
         return (None, False)
     if (copyMoveOptions[u'move'] and not copyMoveOptions[u'retainSourceFolders'] and
         (copyMoveOptions[u'sourceTeamDriveId'] or not copyMoveOptions[u'destTeamDriveId'])):
-      body = {VX_FILENAME: source[VX_FILENAME]}
+      body = {VX_FILENAME: newFolderTitle}
       addParents = u','.join(source[u'parents'])
       removeParents = u','.join([parentId for parentId in source.pop(u'oldparents', []) if parentId not in source[u'parents']])
       try:
