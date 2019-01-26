@@ -1,3 +1,13 @@
+4.65.50
+
+Added abreviations for options `drivefilename` and `anydrivefilename`.
+* `name` = `drivefilename`
+* `anyname` = `anydrivefilename`
+
+These are equivalent:
+gam user user@domain.com show fileinfo drivefilename "My File Name"
+gam user user@domain.com show fileinfo name "My File Name"
+
 4.65.49
 
 Fixed a bug in `gam move drivefile` where source files were being copied unnecessarily
