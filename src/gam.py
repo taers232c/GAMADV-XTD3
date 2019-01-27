@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.50'
+__version__ = u'4.65.51'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -30412,6 +30412,10 @@ def getDriveFile(users):
         result = callGAPI(drive.files(), u'get',
                           throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
                           fileId=fileId, fields=VX_DOWNLOAD_FIELDS, supportsTeamDrives=True)
+        if revisionId:
+          callGAPI(drive.revisions(), u'get',
+                   throw_reasons=GAPI.DRIVE_GET_THROW_REASONS+[GAPI.REVISION_NOT_FOUND],
+                   fileId=fileId, revisionId=revisionId, fields=u'id')
         fileExtension = result.get(u'fileExtension')
         mimeType = result[u'mimeType']
         if mimeType == MIMETYPE_GA_FOLDER:
@@ -30473,7 +30477,9 @@ def getDriveFile(users):
             else:
               if revisionId:
                 entityValueList.extend([Ent.DRIVE_FILE_REVISION, revisionId])
-              request = drive.revisions().get_media(fileId=fileId, revisionId=revisionId)
+                request = drive.revisions().get_media(fileId=fileId, revisionId=revisionId)
+              else:
+                request = drive.files().get_media(fileId=fileId)
             fh = None
             if not spreadsheetUrl:
               fh = open(filename, u'wb') if not targetStdout else sys.stdout
@@ -30499,8 +30505,8 @@ def getDriveFile(users):
             entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, filename, str(e), j, jcount)
             fileDownloadFailed = True
             break
-          except googleapiclient.http.HttpError:
-            entityActionNotPerformedWarning(entityValueList, Msg.FORMAT_NOT_AVAILABLE.format(extension[1:]), j, jcount)
+          except googleapiclient.http.HttpError as e:
+            entityActionNotPerformedWarning(entityValueList, str(e), j, jcount)
           if fh and not targetStdout:
             closeFile(fh)
             os.remove(filename)
@@ -30508,6 +30514,8 @@ def getDriveFile(users):
           entityActionNotPerformedWarning(entityValueList, Msg.FORMAT_NOT_AVAILABLE.format(u','.join(exportFormatChoices)), j, jcount)
       except GAPI.fileNotFound:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], Msg.DOES_NOT_EXIST, j, jcount)
+      except GAPI.revisionNotFound:
+        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId, Ent.DRIVE_FILE_REVISION, revisionId], Msg.DOES_NOT_EXIST, j, jcount)
       except (GAPI.notFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, fileId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:

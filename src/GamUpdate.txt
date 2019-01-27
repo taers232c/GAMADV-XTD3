@@ -1,3 +1,7 @@
+4.65.51
+
+Fixed bug in get drivefile that caused an exception.
+
 4.65.50
 
 Added abreviations for options `drivefilename` and `anydrivefilename`.
