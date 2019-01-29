@@ -1,3 +1,9 @@
+4.65.52
+
+Fixed bug in `gam print users countsonly` that reported inaccurate counts.
+
+Fixed bug in `gam print group-members` where group members with no status, typically non-domain addresses, caused an exception.
+
 4.65.51
 
 Fixed bug in get drivefile that caused an exception.

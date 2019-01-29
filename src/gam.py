@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.51'
+__version__ = u'4.65.52'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3660,11 +3660,13 @@ def _getRoleVerification(memberRoles, fields):
   return (set(), memberRoles, fields)
 
 def _checkMemberIsSuspended(member, isSuspended):
-  return isSuspended is None or (not isSuspended and member[u'status'] != u'SUSPENDED') or (isSuspended and member[u'status'] == u'SUSPENDED')
+  memberStatus = member.get(u'status', u'UNKNOWN')
+  return isSuspended is None or (not isSuspended and memberStatus != u'SUSPENDED') or (isSuspended and memberStatus == u'SUSPENDED')
 
 def _checkMemberRoleIsSuspended(member, validRoles, isSuspended):
+  memberStatus = member.get(u'status', u'UNKNOWN')
   return ((not validRoles or member.get(u'role', Ent.ROLE_MEMBER) in validRoles) and
-          (isSuspended is None or (not isSuspended and member[u'status'] != u'SUSPENDED') or (isSuspended and member[u'status'] == u'SUSPENDED')))
+          (isSuspended is None or (not isSuspended and memberStatus != u'SUSPENDED') or (isSuspended and memberStatus == u'SUSPENDED')))
 
 # Turn the entity into a list of Users/CrOS devices
 def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, includeSuspendedInAll=False, groupMemberType=u'USER'):
@@ -21177,6 +21179,15 @@ def doPrintUsers(entityList=None):
         csvRows.append({u'primaryEmail': userEntity[u'primaryEmail'],
                         u'JSON': json.dumps(cleanJSON(userEntity, skipObjects=USER_SKIP_OBJECTS, timeObjects=USER_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
 
+  def _updateDomainCounts(emailAddress):
+    atLoc = emailAddress.find(u'@')
+    if atLoc == -1:
+      dom = u'Unknown'
+    else:
+      dom = emailAddress[atLoc+1:].lower()
+    domainCounts.setdefault(dom, 0)
+    domainCounts[dom] += 1
+
   _PRINT_USER_REASON_TO_MESSAGE_MAP = {GAPI.RESOURCE_NOT_FOUND: Msg.DOES_NOT_EXIST}
   def _callbackPrintUser(request_id, response, exception):
     ri = request_id.splitlines()
@@ -21204,7 +21215,8 @@ def doPrintUsers(entityList=None):
   projection = u'basic'
   projectionSet = False
   customFieldMask = None
-  deleted_only = isSuspended = orderBy = sortOrder = viewType = None
+  showDeleted = False
+  isSuspended = orderBy = sortOrder = viewType = None
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   formatJSON = False
   quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
@@ -21218,7 +21230,7 @@ def doPrintUsers(entityList=None):
     elif entityList is None and myarg in [u'query', u'queries']:
       queries = getQueries(myarg)
     elif entityList is None and myarg in [u'deletedonly', u'onlydeleted']:
-      deleted_only = True
+      showDeleted = True
     elif entityList is None and myarg == u'select':
       _, entityList = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
     elif myarg == u'issuspended':
@@ -21299,7 +21311,7 @@ def doPrintUsers(entityList=None):
                                          GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                           pageToken=pageToken,
                           customer=customer, domain=domain, query=query, fields=fields,
-                          showDeleted=deleted_only, orderBy=orderBy, sortOrder=sortOrder, viewType=viewType,
+                          showDeleted=showDeleted, orderBy=orderBy, sortOrder=sortOrder, viewType=viewType,
                           projection=projection, customFieldMask=customFieldMask, maxResults=GC.Values[GC.USER_MAX_RESULTS])
         except GAPI.domainNotFound:
           entityActionFailedWarning([Ent.USER, None, Ent.DOMAIN, domain], Msg.NOT_FOUND)
@@ -21323,9 +21335,7 @@ def doPrintUsers(entityList=None):
               _printUser(user)
           else:
             for user in feed.get(u'users', []):
-              _, domain = splitEmailAddress(user[u'primaryEmail'])
-              domainCounts.setdefault(domain, 0)
-              domainCounts[domain] += 1
+              _updateDomainCounts(user[u'primaryEmail'])
           del feed
         if not pageToken:
           _finalizeGAPIpagesResult(page_message)
@@ -21361,13 +21371,7 @@ def doPrintUsers(entityList=None):
         _printUser({u'primaryEmail': normalizeEmailAddressOrUID(userEntity)})
     else:
       for userEntity in entityList:
-        userEntity = normalizeEmailAddressOrUID(userEntity)
-        if userEntity.find(u'@') != -1:
-          _, domain = splitEmailAddress(userEntity)
-        else:
-          domain = u'Unknown'
-        domainCounts.setdefault(domain, 0)
-        domainCounts[domain] += 1
+        _updateDomainCounts(normalizeEmailAddressOrUID(userEntity))
   if not countOnly:
     if sortHeaders:
       sortCSVTitles([u'primaryEmail',], titles)
