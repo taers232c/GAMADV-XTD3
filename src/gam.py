@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.52'
+__version__ = u'4.65.53'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -16635,7 +16635,8 @@ LIST_EVENTS_SELECT_PROPERTIES = {
   }
 
 LIST_EVENTS_MATCH_FIELDS = {
-  u'attendees': [u'attendees',],
+  u'attendees': [u'attendees', u'email'],
+  u'attendeespattern': [u'attendees', u'match'],
   u'description': [u'description',],
   u'location': [u'location',],
   u'summary': [u'summary',],
@@ -16693,7 +16694,7 @@ def getCalendarEventEntity(noIds=False):
       calendarEventEntity[u'queries'].append(getString(Cmd.OB_QUERY))
     elif myarg == u'matchfield':
       matchField = getChoice(LIST_EVENTS_MATCH_FIELDS, mapChoice=True)
-      if matchField[0] != u'attendees':
+      if matchField[0] != u'attendees' or matchField[1] == u'match':
         matchPattern = getREPattern(re.IGNORECASE)
       else:
         matchPattern = getNormalizedEmailAddressEntity()
@@ -16818,18 +16819,26 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
   return True
 
 def _eventMatches(event, match):
-  eventAttr = event
-  for attr in match[0]:
-    eventAttr = eventAttr.get(attr)
-    if not eventAttr:
-      return False
   if match[0][0] != u'attendees':
+    eventAttr = event
+    for attr in match[0]:
+      eventAttr = eventAttr.get(attr)
+      if not eventAttr:
+        return False
     return match[1].search(eventAttr) is not None
-  attendees = [attendee[u'email'] for attendee in eventAttr]
-  for attendee in match[1]:
-    if attendee not in attendees:
-      return False
-  return True
+  attendees = [attendee[u'email'] for attendee in event.get(u'attendees', [])]
+  if not attendees:
+    return False
+  if match[0][1] == u'email':
+    for attendee in match[1]:
+      if attendee not in attendees:
+        return False
+    return True
+# match
+  for attendee in attendees:
+    if match[1].search(attendee) is not None:
+      return True
+  return False
 
 def _validateCalendarGetEventIDs(origUser, user, cal, calId, j, jcount, calendarEventEntity, doIt=True, showAction=True):
   if calendarEventEntity[u'dict']:
@@ -17517,7 +17526,7 @@ def _getEventFields(fieldsList):
 
 def _addEventEntitySelectFields(calendarEventEntity, fieldsList):
   if fieldsList:
-    fieldsList.extend([match[0] for match in calendarEventEntity[u'matches']])
+    fieldsList.extend([match[0][0] for match in calendarEventEntity[u'matches']])
     if calendarEventEntity[u'maxinstances'] != -1:
       fieldsList.append(u'recurrence')
 

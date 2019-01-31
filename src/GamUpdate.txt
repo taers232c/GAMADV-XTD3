@@ -1,3 +1,12 @@
+4.65.53
+
+Fixed bug in `gam print/show events` that caused an exception when the `matchfield` option was specified.
+
+Added `matchfield attendeespattern <RegularExpression>` to `gam print/show events` to allow selection of events
+by pattern matching against the attendee list.
+For example, to print all events with any attendee with "staff" in their email address:
+gam user user@domain.com print events primary matchfield attendeespattern "staff"
+
 4.65.52
 
 Fixed bug in `gam print users countsonly` that reported inaccurate counts.
