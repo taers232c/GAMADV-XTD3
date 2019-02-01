@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.53'
+__version__ = u'4.65.54'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -28069,6 +28069,8 @@ def _printShowFileRevisions(users, csvFormat):
       revisionsEntity = getRevisionsEntity()
     elif csvFormat and myarg == u'oneitemperrow':
       oneItemPerRow = True
+      if csvFormat:
+        addTitlesToCSVfile(u'revision.id', titles)
     elif myarg == u'orderby':
       getDrivefileOrderBy(orderByList)
     elif myarg == u'previewdelete':
@@ -28143,10 +28145,7 @@ def _printShowFileRevisions(users, csvFormat):
             addRowTitlesToCSVfile(flattenJSON({u'revisions': results}, flattened={u'Owner': user, u'id': fileId}, timeObjects=timeObjects), csvRows, titles)
     Ind.Decrement()
   if csvFormat:
-    if oneItemPerRow:
-      writeCSVfile(csvRows, titles, u'Drive File Revisions', todrive, [u'Owner', u'id', fileNameTitle, u'revision.id'])
-    else:
-      writeCSVfile(csvRows, titles, u'Drive File Revisions', todrive, [u'Owner', u'id', fileNameTitle])
+    writeCSVfile(csvRows, titles, u'Drive File Revisions', todrive, [u'Owner', u'id', fileNameTitle]+([u'revision.id',] if oneItemPerRow else[]))
 
 # gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive <ToDriveAttributes>*] [oneitemperrow] [select <DriveFileRevisionIDEntity>] [previewdelete]
 #	[showtitles] [<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
@@ -28799,6 +28798,9 @@ def printFileList(users):
           _printFileInfo(drive, user, fileEntryInfo.copy())
       if fileEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER:
         _printChildDriveFolderContents(drive, fileEntryInfo, user, i, count, 0)
+  if not csvRows:
+    addTitlesToCSVfile([u'Owner', u'id', fileNameTitle], titles)
+    setSysExitRC(NO_ENTITIES_FOUND)
   writeCSVfile(csvRows, titles,
                u'{0} {1} Drive Files'.format(Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]),
                                              Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)),

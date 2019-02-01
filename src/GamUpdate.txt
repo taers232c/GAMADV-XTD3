@@ -1,3 +1,7 @@
+4.65.54
+
+Set the GAM return code to (`NO_ENTITIES_FOUND = 60`) when `gam print filelist` finds no files to print.
+
 4.65.53
 
 Fixed bug in `gam print/show events` that caused an exception when the `matchfield` option was specified.
