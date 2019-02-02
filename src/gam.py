@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.54'
+__version__ = u'4.65.55'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1972,12 +1972,12 @@ def cleanFilename(filename):
   return filename
 
 # Open a file
-def openFile(filename, mode=u'r', encoding=GM.Globals[GM.SYS_ENCODING], continueOnError=False, displayError=True):
+def openFile(filename, mode=u'r', encoding=GM.Globals[GM.SYS_ENCODING], newline=None, continueOnError=False, displayError=True):
   try:
     if filename != u'-':
       if mode.endswith(u'b'):
         return open(os.path.expanduser(filename), mode)
-      return open(os.path.expanduser(filename), mode, encoding=encoding)
+      return open(os.path.expanduser(filename), mode, encoding=encoding, newline=newline)
     if mode.startswith(u'r'):
       return StringIOobject(text_type(sys.stdin.read()))
     return sys.stdout
@@ -4738,7 +4738,7 @@ def writeCSVfile(csvRows, titles, list_type, todrive, sortTitles=None, quotechar
     closeFile(csvFile)
 
   def writeCSVToFile():
-    csvFile = openFile(GM.Globals[GM.CSVFILE][GM.REDIRECT_NAME], GM.Globals[GM.CSVFILE][GM.REDIRECT_MODE], continueOnError=True)
+    csvFile = openFile(GM.Globals[GM.CSVFILE][GM.REDIRECT_NAME], GM.Globals[GM.CSVFILE][GM.REDIRECT_MODE], newline=u'', continueOnError=True)
     if csvFile:
       writer = csv.DictWriter(csvFile, titles[u'list'],
                               quoting=csv.QUOTE_MINIMAL, quotechar=quotechar,
