@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.55'
+__version__ = u'4.65.56'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -380,8 +380,9 @@ ENTITY_IS_A_GROUP_RC = 22
 ENTITY_IS_A_GROUP_ALIAS_RC = 23
 ORPHANS_COLLECTED_RC = 30
 # Warnings/Errors
-AC_FAILED_RC = 50
-AC_NOT_PERFORMED_RC = 51
+NO_DATA_TO_PROCESS_RC = 40
+ACTION_FAILED_RC = 50
+ACTION_NOT_PERFORMED_RC = 51
 INVALID_ENTITY_RC = 52
 BAD_REQUEST_RC = 53
 ENTITY_IS_NOT_UNIQUE_RC = 54
@@ -639,9 +640,9 @@ def noPythonSSLExit():
   systemErrorExit(CERTIFICATE_VALIDATION_UNSUPPORTED_RC, Msg.NO_PYTHON_SSL)
 
 def entityActionFailedExit(entityValueList, errMsg, i=0, count=0):
-  systemErrorExit(AC_FAILED_RC, formatKeyValueList(Ind.Spaces(),
-                                                   Ent.FormatEntityValueList(entityValueList)+[Act.Failed(), errMsg],
-                                                   currentCountNL(i, count)))
+  systemErrorExit(ACTION_FAILED_RC, formatKeyValueList(Ind.Spaces(),
+                                                       Ent.FormatEntityValueList(entityValueList)+[Act.Failed(), errMsg],
+                                                       currentCountNL(i, count)))
 
 def entityDoesNotExistExit(entityType, entityName, i=0, count=0, errMsg=None):
   Cmd.Backup()
@@ -1711,19 +1712,19 @@ def entityDuplicateWarning(entityValueList, i=0, count=0):
                                  currentCountNL(i, count)))
 
 def entityActionFailedWarning(entityValueList, errMessage, i=0, count=0):
-  setSysExitRC(AC_FAILED_RC)
+  setSysExitRC(ACTION_FAILED_RC)
   writeStderr(formatKeyValueList(Ind.Spaces(),
                                  Ent.FormatEntityValueList(entityValueList)+[Act.Failed(), errMessage],
                                  currentCountNL(i, count)))
 
 def entityModifierNewValueActionFailedWarning(entityValueList, modifier, newValue, errMessage, i=0, count=0):
-  setSysExitRC(AC_FAILED_RC)
+  setSysExitRC(ACTION_FAILED_RC)
   writeStderr(formatKeyValueList(Ind.Spaces(),
                                  Ent.FormatEntityValueList(entityValueList)+[u'{0} {1}'.format(Act.ToPerform(), modifier), newValue, Act.Failed(), errMessage],
                                  currentCountNL(i, count)))
 
 def entityNumEntitiesActionFailedWarning(entityType, entityName, itemType, itemCount, errMessage, i=0, count=0):
-  setSysExitRC(AC_FAILED_RC)
+  setSysExitRC(ACTION_FAILED_RC)
   writeStderr(formatKeyValueList(Ind.Spaces(),
                                  [Ent.Singular(entityType), entityName,
                                   Ent.Choose(itemType, itemCount), itemCount,
@@ -1731,13 +1732,13 @@ def entityNumEntitiesActionFailedWarning(entityType, entityName, itemType, itemC
                                  currentCountNL(i, count)))
 
 def entityActionNotPerformedWarning(entityValueList, errMessage, i=0, count=0):
-  setSysExitRC(AC_NOT_PERFORMED_RC)
+  setSysExitRC(ACTION_NOT_PERFORMED_RC)
   writeStderr(formatKeyValueList(Ind.Spaces(),
                                  Ent.FormatEntityValueList(entityValueList)+[Act.NotPerformed(), errMessage],
                                  currentCountNL(i, count)))
 
 def entityNumEntitiesActionNotPerformedWarning(entityValueList, itemType, itemCount, errMessage, i=0, count=0):
-  setSysExitRC(AC_NOT_PERFORMED_RC)
+  setSysExitRC(ACTION_NOT_PERFORMED_RC)
   writeStderr(formatKeyValueList(Ind.Spaces(),
                                  Ent.FormatEntityValueList(entityValueList)+[Ent.Choose(itemType, itemCount), itemCount, Act.NotPerformed(), errMessage],
                                  currentCountNL(i, count)))
@@ -2064,9 +2065,9 @@ def deleteFile(filename, continueOnError=False, displayError=True):
 
 def getGDocSheetDataFailedExit(entityValueList, errMsg, i=0, count=0):
   Act.Set(Act.RETRIEVE_DATA)
-  systemErrorExit(AC_FAILED_RC, formatKeyValueList(Ind.Spaces(),
-                                                   Ent.FormatEntityValueList(entityValueList)+[Act.NotPerformed(), errMsg],
-                                                   currentCountNL(i, count)))
+  systemErrorExit(ACTION_FAILED_RC, formatKeyValueList(Ind.Spaces(),
+                                                       Ent.FormatEntityValueList(entityValueList)+[Act.NotPerformed(), errMsg],
+                                                       currentCountNL(i, count)))
 
 # gdoc <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity>
 def getGDocData():
@@ -3285,7 +3286,7 @@ def checkCloudPrintResult(result, throw_messages=None):
     if message in throw_messages:
       if message in GCP.MESSAGE_EXCEPTION_MAP:
         raise GCP.MESSAGE_EXCEPTION_MAP[message](message)
-    systemErrorExit(AC_FAILED_RC, u'{0}: {1}'.format(result[u'errorCode'], result[u'message']))
+    systemErrorExit(ACTION_FAILED_RC, u'{0}: {1}'.format(result[u'errorCode'], result[u'message']))
   return result
 
 def callGCP(service, function,
@@ -4395,33 +4396,33 @@ def checkUserExists(cd, user, i=0, count=0):
 def getTodriveParameters():
   def invalidTodriveFileIdExit(entityType, message):
     Cmd.SetLocation(tdfileidLocation-1)
-    usageErrorExit(Msg.INVALID_ENTITY_MESSAGE.format(Ent.Singular(entityType), message))
+    usageErrorExit(Msg.INVALID_ENTITY.format(Ent.Singular(entityType), message))
 
   def invalidTodriveParentExit(entityType, message):
     Cmd.SetLocation(tdparentLocation-1)
     if not localParent:
-      usageErrorExit(Msg.INVALID_ENTITY_MESSAGE.format(Ent.Singular(entityType),
-                                                       formatKeyValueList(u'',
-                                                                          [Ent.Singular(Ent.CONFIG_FILE), GM.Globals[GM.GAM_CFG_FILE],
-                                                                           Ent.Singular(Ent.ITEM), GC.TODRIVE_PARENT,
-                                                                           Ent.Singular(Ent.VALUE), todrive[u'parent'],
-                                                                           message],
-                                                                          u'')))
+      usageErrorExit(Msg.INVALID_ENTITY.format(Ent.Singular(entityType),
+                                               formatKeyValueList(u'',
+                                                                  [Ent.Singular(Ent.CONFIG_FILE), GM.Globals[GM.GAM_CFG_FILE],
+                                                                   Ent.Singular(Ent.ITEM), GC.TODRIVE_PARENT,
+                                                                   Ent.Singular(Ent.VALUE), todrive[u'parent'],
+                                                                   message],
+                                                                  u'')))
     else:
-      usageErrorExit(Msg.INVALID_ENTITY_MESSAGE.format(Ent.Singular(entityType), message))
+      usageErrorExit(Msg.INVALID_ENTITY.format(Ent.Singular(entityType), message))
 
   def invalidTodriveUserExit(entityType, message):
     Cmd.SetLocation(tduserLocation-1)
     if not localUser:
-      usageErrorExit(Msg.INVALID_ENTITY_MESSAGE.format(Ent.Singular(entityType),
-                                                       formatKeyValueList(u'',
-                                                                          [Ent.Singular(Ent.CONFIG_FILE), GM.Globals[GM.GAM_CFG_FILE],
-                                                                           Ent.Singular(Ent.ITEM), GC.TODRIVE_USER,
-                                                                           Ent.Singular(Ent.VALUE), todrive[u'user'],
-                                                                           message],
-                                                                          u'')))
+      usageErrorExit(Msg.INVALID_ENTITY.format(Ent.Singular(entityType),
+                                               formatKeyValueList(u'',
+                                                                  [Ent.Singular(Ent.CONFIG_FILE), GM.Globals[GM.GAM_CFG_FILE],
+                                                                   Ent.Singular(Ent.ITEM), GC.TODRIVE_USER,
+                                                                   Ent.Singular(Ent.VALUE), todrive[u'user'],
+                                                                   message],
+                                                                  u'')))
     else:
-      usageErrorExit(Msg.INVALID_ENTITY_MESSAGE.format(Ent.Singular(entityType), message))
+      usageErrorExit(Msg.INVALID_ENTITY.format(Ent.Singular(entityType), message))
 
   localUser = localParent = False
   tduserLocation = tdparentLocation = tdfileidLocation = Cmd.Location()
@@ -5275,6 +5276,7 @@ THREAD_PLURAL_SINGULAR = [Msg.THREADS, Msg.THREAD]
 
 def MultiprocessGAMCommands(items, logCmds):
   if not items:
+    setSysExitRC(NO_DATA_TO_PROCESS_RC)
     return
   numPoolProcesses = min(len(items), GC.Values[GC.NUM_THREADS])
   origSigintHandler = signal.signal(signal.SIGINT, signal.SIG_IGN)
@@ -5373,6 +5375,9 @@ def threadBatchWorker():
     GM.Globals[GM.TBATCH_QUEUE].task_done()
 
 def ThreadBatchGAMCommands(items, logCmds):
+  if not items:
+    setSysExitRC(NO_DATA_TO_PROCESS_RC)
+    return
   pythonCmd = [sys.executable.lower(),]
   if not getattr(sys, u'frozen', False): # we're not frozen
     pythonCmd.append(os.path.realpath(Cmd.Argument(0)))
@@ -12137,7 +12142,7 @@ def updateCrOSDevices(entityList):
   if action_body:
     if action_body[u'action'] == u'deprovision' and not ackWipe:
       stderrWarningMsg(Msg.REFUSING_TO_DEPROVISION_DEVICES.format(count))
-      systemErrorExit(AC_NOT_PERFORMED_RC, None)
+      systemErrorExit(ACTION_NOT_PERFORMED_RC, None)
     function = u'action'
     parmId = u'resourceId'
     kwargs = {parmId: None, u'body': action_body}
@@ -19871,6 +19876,38 @@ def printUserSiteActivity(users):
 def doPrintDomainSiteActivity():
   _printSiteActivity([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
+# <FileName> [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+#	[keyfield <FieldName>] [datafield <FieldName>]
+def _getGroupOrgUnitMap():
+
+  def getKeyFieldInfo(keyword, defaultField):
+    if not checkArgumentPresent(keyword):
+      field = defaultField
+    else:
+      field = getString(Cmd.OB_FIELD_NAME)
+    if field not in csvFile.fieldnames:
+      csvFieldErrorExit(field, csvFile.fieldnames, backupArg=True)
+    return field
+
+  filename = getString(Cmd.OB_FILE_NAME)
+  f, csvFile = openCSVFileReader(filename)
+  keyField = getKeyFieldInfo(u'keyfield', u'Group')
+  dataField = getKeyFieldInfo(u'datafield', u'OrgUnit')
+  groupOrgUnitMap = {}
+  for row in csvFile:
+    group = row[keyField].strip().lower()
+    orgUnit = row[dataField].strip()
+    if not group or not orgUnit:
+      systemErrorExit(USAGE_ERROR_RC, Msg.GROUP_MAPS_TO_OU_INVALID_ROW.format(filename, group, orgUnit))
+    orgUnit = makeOrgUnitPathAbsolute(orgUnit)
+    if group in groupOrgUnitMap:
+      origOrgUnit = groupOrgUnitMap[group]
+      if origOrgUnit != orgUnit:
+        systemErrorExit(USAGE_ERROR_RC, Msg.GROUP_MAPS_TO_MULTIPLE_OUS.format(filename, group, u','.join([origOrgUnit, orgUnit])))
+    groupOrgUnitMap[group] = orgUnit
+  closeFile(f)
+  return groupOrgUnitMap
+
 UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP = {
   u'address': u'addresses',
   u'addresses': u'addresses',
@@ -20063,6 +20100,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
   notify = {u'subject': u'', u'message': u'', u'html': False, u'charset': u'utf-8'}
   primary = {}
   updatePrimaryEmail = {}
+  groupOrgUnitMap = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'notify':
@@ -20080,6 +20118,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         unknownArgumentExit()
     elif myarg == u'nohash':
       need_to_hash_password = False
+    elif updateCmd and myarg == u'updateoufromgroup':
+      groupOrgUnitMap = _getGroupOrgUnitMap()
     elif updateCmd and myarg == u'updateprimaryemail':
       search = getString(Cmd.OB_RE_PATTERN)
       pattern = validateREPattern(search, re.IGNORECASE)
@@ -20383,12 +20423,12 @@ def getUserAttributes(cd, updateCmd, noUid=False):
   if u'password' in body and need_to_hash_password:
     body[u'password'] = gen_sha512_hash(body[u'password'])
     body[u'hashFunction'] = u'crypt'
-  return (body, notify, updatePrimaryEmail, createIfNotFound)
+  return (body, notify, updatePrimaryEmail, createIfNotFound, groupOrgUnitMap)
 
 # gam create user <EmailAddress> <UserAttributes> [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
 def doCreateUser():
   cd = buildGAPIObject(API.DIRECTORY)
-  body, notify, _, _ = getUserAttributes(cd, False, noUid=True)
+  body, notify, _, _, _ = getUserAttributes(cd, False, noUid=True)
   user = body[u'primaryEmail']
   try:
     callGAPI(cd.users(), u'insert',
@@ -20414,7 +20454,7 @@ def doCreateUser():
 #	[createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
 def updateUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
-  body, notify, updatePrimaryEmail, createIfNotFound = getUserAttributes(cd, True)
+  body, notify, updatePrimaryEmail, createIfNotFound, groupOrgUnitMap = getUserAttributes(cd, True)
   vfe = u'primaryEmail' in body and body[u'primaryEmail'][:4].lower() == u'vfe@'
   i, count, entityList = getEntityArgument(entityList)
   for user in entityList:
@@ -20439,6 +20479,24 @@ def updateUsers(entityList):
           body.pop(u'primaryEmail', None)
           if not body:
             entityActionNotPerformedWarning([Ent.USER, user], Msg.PRIMARY_EMAIL_DID_NOT_MATCH_PATTERN.format(updatePrimaryEmail[u'search']), i, count)
+      if groupOrgUnitMap:
+        try:
+          groups = callGAPIpages(cd.groups(), u'list', u'groups',
+                                 throw_reasons=[GAPI.INVALID_MEMBER],
+                                 userKey=userKey, fields=u'nextPageToken,groups(email)')
+        except (GAPI.invalidMember) as e:
+          entityUnknownWarning(Ent.USER, userKey, i, count)
+          continue
+        groupList = []
+        for group in groups:
+          orgUnit = groupOrgUnitMap.get(group[u'email'].lower())
+          if orgUnit:
+            groupList.append(group[u'email'])
+        jcount = len(groupList)
+        if jcount != 1:
+          entityActionNotPerformedWarning([Ent.USER, user], Msg.USER_BELONGS_TO_N_GROUPS_THAT_MAP_TO_ORGUNITS.format(jcount, u','.join(groupList)), i, count)
+          continue
+        body[u'orgUnitPath'] = orgUnit
       if body:
         try:
           result = callGAPI(cd.users(), u'update',
@@ -24883,7 +24941,7 @@ def deleteASP(users):
     for codeId in codeIds:
       if not codeId.isdigit():
         Cmd.Backup()
-        usageErrorExit(Msg.INVALID_ENTITY_MESSAGE.format(Ent.Singular(Ent.APPLICATION_SPECIFIC_PASSWORD), Msg.MUST_BE_NUMERIC))
+        usageErrorExit(Msg.INVALID_ENTITY.format(Ent.Singular(Ent.APPLICATION_SPECIFIC_PASSWORD), Msg.MUST_BE_NUMERIC))
   checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -28257,7 +28315,7 @@ def addFilePathsToRow(drive, fileTree, fileEntryInfo, filePathInfo, row, titles)
     key = u'path.{0}'.format(k)
     if key not in titles[u'set']:
       addTitleToCSVfile(key, titles)
-    row[key] = path
+    row[key] = path if not GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL] else escapeCRsNLs(path)
     k += 1
 
 def _simpleFileIdEntityList(fileIdEntityList):
@@ -35816,7 +35874,7 @@ def _printShowMessagesThreads(users, entityType, csvFormat):
     if reason not in GAPI.DEFAULT_RETRY_REASONS:
       if not csvFormat:
         printKeyValueListWithCount([Ent.Singular(entityType), ri[RI_ITEM], errMsg], int(ri[RI_J]), int(ri[RI_JCOUNT]))
-        setSysExitRC(AC_FAILED_RC)
+        setSysExitRC(ACTION_FAILED_RC)
       else:
         entityActionFailedWarning([Ent.USER, ri[RI_ENTITY], entityType, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
       return
@@ -38688,6 +38746,8 @@ def ProcessGAMCommand(args, processGamCfg=True):
         if count > GC.Values[GC.AUTO_BATCH_MIN]:
           doAutoBatch(Cmd.ENTITY_USER, entityList, CL_command)
           sys.exit(GM.Globals[GM.SYSEXITRC])
+        elif count == 0:
+          sys.exit(NO_DATA_TO_PROCESS_RC)
       adjustRedirectedSTDFilesIfNotMultiprocessing()
       if CL_command in USER_COMMANDS:
         Act.Set(USER_COMMANDS[CL_command][CMD_ACTION])
@@ -38704,6 +38764,8 @@ def ProcessGAMCommand(args, processGamCfg=True):
         if count > GC.Values[GC.AUTO_BATCH_MIN]:
           doAutoBatch(Cmd.ENTITY_CROS, entityList, CL_command)
           sys.exit(GM.Globals[GM.SYSEXITRC])
+        elif count == 0:
+          sys.exit(NO_DATA_TO_PROCESS_RC)
       adjustRedirectedSTDFilesIfNotMultiprocessing()
       if CL_command in CROS_COMMANDS:
         Act.Set(CROS_COMMANDS[CL_command][CMD_ACTION])

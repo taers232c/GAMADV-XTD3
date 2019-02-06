@@ -1,3 +1,16 @@
+4.65.56
+
+Added a new return code `NO_DATA_TO_PROCESS_RC = 40` that is set when a `gam csv <FileName> gam ...` command
+is executed and `<FileName>` contains a header row but no data rows.
+
+Added a new option `updateoufromgroup` to `gam update user` that allows updaing a user's OU based on their group membership.
+This would typically be used when an external service creates a Google user and assigns it to a group but does not place it in an OU.
+* https://github.com/taers232c/GAMADV-XTD/wiki/Users#update-a-users-OU-based-on-group-membership
+
+4.65.55
+
+Skipped.
+
 4.65.54
 
 Set the GAM return code to (`NO_ENTITIES_FOUND = 60`) when `gam print filelist` finds no files to print.

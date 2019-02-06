@@ -2207,8 +2207,12 @@ gam print vaultmatters|matters [todrive <ToDriveAttribute>*] [basic|full]
         (website clear|(home_page|blog|profile|work|home|other|ftp|reservations|app_install_page|<String> <URL> [notprimary|primary]))|
         (<SchemaName>.<FieldName> [multivalued|multivalue|value|multinonempty [type work|home|other|(custom <String>)]] <String>)
 
-gam create|add user <EmailAddress> <UserAttribute>* [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
-gam update user <UserItem> <UserAttribute>* [updateprimaryemail <RegularExpression> <EmailReplacement>]
+gam create|add user <EmailAddress> <UserAttribute>*
+        [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
+gam update user <UserItem> <UserAttribute>*
+        [updateprimaryemail <RegularExpression> <EmailReplacement>]
+        [updateoufromgroup <FileName> [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+            [keyfield <FieldName>] [datafield <FieldName>]]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
         [createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
 gam delete user <UserItem>
