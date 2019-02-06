@@ -31324,8 +31324,8 @@ def getPermissionIdForEmail(user, i, count, email):
                       throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                       email=email, fields=u'id')[u'id']
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
-    entityActionNotPerformedWarning([Ent.USER, user], Msg.UNABLE_TO_GET_PERMISSION_ID.format(email), i, count)
-    systemErrorExit(GM.Globals[GM.SYSEXITRC], None)
+      entityActionNotPerformedWarning([Ent.USER, user], Msg.UNABLE_TO_GET_PERMISSION_ID.format(email), i, count)
+      systemErrorExit(GM.Globals[GM.SYSEXITRC], None)
   return None
 
 # gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed]
