@@ -1,3 +1,10 @@
+4.65.57
+
+Fixed bug in `gam print events` where the argument `fields attendees.responsestatus` caused an invalid argument error.
+
+Changed processing in `gam info/delete/update drivefileacl` to not use email address from oauth2.txt in conversion of
+an email address to a permission ID.
+
 4.65.56
 
 Added a new return code `NO_DATA_TO_PROCESS_RC = 40` that is set when a `gam csv <FileName> gam ...` command
