@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.57'
+__version__ = u'4.65.58'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4900,8 +4900,8 @@ def flattenJSON(topStructure, flattened=None,
   def _flatten(structure, key, path):
     if not isinstance(structure, (dict, list)):
       if key not in timeObjects:
-        if isinstance(structure, string_types) and (structure.find(u'\n') >= 0 or structure.find(u'\r') >= 0):
-          if GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]:
+        if isinstance(structure, string_types):
+          if GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL] and (structure.find(u'\n') >= 0 or structure.find(u'\r') >= 0):
             flattened[path] = escapeCRsNLs(structure)
           else:
             flattened[path] = structure
@@ -16021,6 +16021,30 @@ def doDeleteResourceCalendars():
 def doDeleteResourceCalendar():
   _doDeleteResourceCalendars(getStringReturnInList(Cmd.OB_RESOURCE_ID))
 
+def _getResourceACLsCalSettings(cal, resource, getCalSettings, getCalPermissions, i, count):
+  calId = resource[u'resourceEmail']
+  try:
+    if getCalPermissions:
+      acls = callGAPIpages(cal.acl(), u'list', u'items',
+                           throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.AUTH_ERROR],
+                           calendarId=calId, fields=u'nextPageToken,items(id,role,scope)')
+    else:
+      acls = {}
+    if getCalSettings:
+      settings = callGAPI(cal.calendars(), u'get',
+                          throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND],
+                          calendarId=calId)
+      settings.pop(u'etag', None)
+      settings.pop(u'kind', None)
+      settings.pop(u'id', None)
+      resource.update({u'calendar': settings})
+    return (True, acls)
+  except (GAPI.forbidden, GAPI.serviceNotAvailable, GAPI.authError, GAPI.notACalendarUser) as e:
+    entityActionFailedWarning([Ent.RESOURCE_CALENDAR, calId], str(e), i, count)
+  except GAPI.notFound:
+    entityUnknownWarning(Ent.RESOURCE_CALENDAR, calId, i, count)
+  return (False, None)
+
 RESOURCE_DFLT_FIELDS = [u'resourceId', u'resourceName', u'resourceEmail', u'resourceDescription', u'resourceType',]
 RESOURCE_ADDTL_FIELDS = [
   u'buildingId',	# buildingId must be first element
@@ -16065,23 +16089,46 @@ def _showResource(cd, resource, i, count, formatJSON, acls=None):
     _showResourceField(u'buildingName', resource, u'buildingName')
   for field in RESOURCE_ADDTL_FIELDS[1:]:
     _showResourceField(field, resource, field)
+  calendar = resource.get(u'calendar')
+  if calendar:
+    printEntity([Ent.CALENDAR, u''])
+    Ind.Increment()
+    printKeyValueList([u'Summary', calendar[u'summary']])
+    printKeyValueWithCRsNLs(u'Description', calendar.get(u'description', u''))
+    printKeyValueList([u'Location', calendar.get(u'location', u'')])
+    printKeyValueList([u'Timezone', calendar[u'timeZone']])
+    printKeyValueList([u'ConferenceProperties', None])
+    Ind.Increment()
+    printKeyValueList([u'AllowedConferenceSolutionTypes', u','.join(calendar.get(u'conferenceProperties', {}).get(u'allowedConferenceSolutionTypes', []))])
+    Ind.Decrement()
+    Ind.Decrement()
   if acls:
     j = 0
     jcount = len(acls)
+    printEntitiesCount(Ent.CALENDAR_ACL, acls)
+    Ind.Increment()
     for rule in acls:
       j += 1
-      printEntity([Ent.CALENDAR_ACL, formatACLScopeRole(rule[u'id'], rule[u'role'])], j, jcount)
+      printKeyValueListWithCount(ACLRuleKeyValueList(rule), j, jcount)
+    Ind.Decrement()
   Ind.Decrement()
 
 def _doInfoResourceCalendars(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
-  formatJSON = False
+  formatJSON = getCalSettings = getCalPermissions = False
+  acls = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == "formatjson":
+    if myarg in [Cmd.ARG_ACLS, Cmd.ARG_CALENDARACLS, Cmd.ARG_PERMISSIONS]:
+      getCalPermissions = True
+    elif myarg == Cmd.ARG_CALENDAR:
+      getCalSettings = True
+    elif myarg == "formatjson":
       formatJSON = True
     else:
       unknownArgumentExit()
+  if getCalSettings or getCalPermissions:
+    cal = buildGAPIObject(API.CALENDAR)
   i = 0
   count = len(entityList)
   for resourceId in entityList:
@@ -16090,15 +16137,19 @@ def _doInfoResourceCalendars(entityList):
       resource = callGAPI(cd.resources().calendars(), u'get',
                           throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                           customer=GC.Values[GC.CUSTOMER_ID], calendarResourceId=resourceId, fields=u','.join(RESOURCE_ALL_FIELDS))
-      _showResource(cd, resource, i, count, formatJSON)
+      if getCalSettings or getCalPermissions:
+        status, acls = _getResourceACLsCalSettings(cal, resource, getCalSettings, getCalPermissions, i, count)
+        if not status:
+          continue
+      _showResource(cd, resource, i, count, formatJSON, acls)
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.RESOURCE_CALENDAR, resourceId, i, count)
 
-# gam info resources <ResourceEntity>
+# gam info resources <ResourceEntity> [acls] [calendar] [formatjson]
 def doInfoResourceCalendars():
   _doInfoResourceCalendars(getEntityList(Cmd.OB_RESOURCE_ENTITY))
 
-# gam info resource <ResourceID>
+# gam info resource <ResourceID> [acls] [calendar] [formatjson]
 def doInfoResourceCalendar():
   _doInfoResourceCalendars(getStringReturnInList(Cmd.OB_RESOURCE_ID))
 
@@ -16125,7 +16176,7 @@ RESOURCE_FIELDS_CHOICE_MAP = {
 def _doPrintShowResourceCalendars(csvFormat):
   cd = buildGAPIObject(API.DIRECTORY)
   convertCRNL = GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]
-  showPermissions = False
+  getCalSettings = getCalPermissions = False
   acls = None
   fieldsList = []
   if csvFormat:
@@ -16140,7 +16191,9 @@ def _doPrintShowResourceCalendars(csvFormat):
     elif myarg == u'allfields':
       fieldsList = RESOURCE_ALL_FIELDS[:]
     elif myarg in [Cmd.ARG_ACLS, Cmd.ARG_CALENDARACLS, Cmd.ARG_PERMISSIONS]:
-      showPermissions = True
+      getCalPermissions = True
+    elif myarg == Cmd.ARG_CALENDAR:
+      getCalSettings = True
     elif myarg in RESOURCE_FIELDS_CHOICE_MAP:
       if not fieldsList:
         fieldsList = [u'resourceId',]
@@ -16150,7 +16203,9 @@ def _doPrintShowResourceCalendars(csvFormat):
         fieldsList = [u'resourceId',]
       for field in _getFieldsList():
         if field in [Cmd.ARG_ACLS, Cmd.ARG_CALENDARACLS, Cmd.ARG_PERMISSIONS]:
-          showPermissions = True
+          getCalPermissions = True
+        elif field == Cmd.ARG_CALENDAR:
+          getCalSettings = True
         elif field in RESOURCE_FIELDS_CHOICE_MAP:
           fieldsList.append(RESOURCE_FIELDS_CHOICE_MAP[field])
         else:
@@ -16165,7 +16220,7 @@ def _doPrintShowResourceCalendars(csvFormat):
       unknownArgumentExit()
   if not fieldsList:
     fieldsList = RESOURCE_DFLT_FIELDS[:]
-  if showPermissions:
+  if getCalSettings or getCalPermissions:
     cal = buildGAPIObject(API.CALENDAR)
     fields = u'nextPageToken,items({0})'.format(u','.join(set(fieldsList+[u'resourceEmail',])))
   else:
@@ -16194,17 +16249,9 @@ def _doPrintShowResourceCalendars(csvFormat):
   count = len(resources)
   for resource in resources:
     i += 1
-    if showPermissions:
-      calId = resource[u'resourceEmail']
-      try:
-        acls = callGAPIpages(cal.acl(), u'list', u'items',
-                             throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.AUTH_ERROR],
-                             calendarId=calId, fields=u'nextPageToken,items(id,role,scope)')
-      except (GAPI.forbidden, GAPI.authError) as e:
-        entityActionFailedWarning([Ent.RESOURCE_CALENDAR, calId], str(e), i, count)
-        continue
-      except GAPI.notFound:
-        entityUnknownWarning(Ent.RESOURCE_CALENDAR, calId, i, count)
+    if getCalSettings or getCalPermissions:
+      status, acls = _getResourceACLsCalSettings(cal, resource, getCalSettings, getCalPermissions, i, count)
+      if not status:
         continue
     if not csvFormat:
       _showResource(cd, resource, i, count, formatJSON, acls)
@@ -16221,13 +16268,15 @@ def _doPrintShowResourceCalendars(csvFormat):
             row[field] = escapeCRsNLs(resource.get(field, u''))
           else:
             row[field] = resource.get(field, u'')
-        if showPermissions:
+        if getCalSettings and u'calendar' in resource:
+          flattenJSON(resource[u'calendar'], flattened=row)
+        if getCalPermissions:
           for rule in acls:
             addRowTitlesToCSVfile(flattenJSON(rule, flattened=row.copy()), csvRows, titles)
         else:
-          csvRows.append(row)
+          addRowTitlesToCSVfile(row, csvRows, titles)
       else:
-        if showPermissions:
+        if getCalPermissions:
           resource[u'acls'] = [{u'id': rule[u'id'], u'role': rule[u'role']} for rule in acls]
         row = {u'resourceId': resource[u'resourceId'], u'JSON': json.dumps(cleanJSON(resource), ensure_ascii=False, sort_keys=True)}
         if u'resourceName' in resource:
@@ -16236,12 +16285,13 @@ def _doPrintShowResourceCalendars(csvFormat):
   if csvFormat:
     writeCSVfile(csvRows, titles, u'Resources', todrive, sortTitles, quotechar)
 
-# gam show resources [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)] [acls] [convertcrnl] [formatjson]
+# gam show resources [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)]
+#	[acls] [calendar] [convertcrnl] [formatjson]
 def doShowResourceCalendars():
   _doPrintShowResourceCalendars(False)
 
-# gam print resources [todrive <ToDriveAttributes>*] [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)] [acls] [convertcrnl]
-#	[formatjson] [quotechar <Character>]
+# gam print resources [todrive <ToDriveAttributes>*] [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)]
+#	[acls] [calendar] [convertcrnl] [formatjson] [quotechar <Character>]
 def doPrintResourceCalendars():
   _doPrintShowResourceCalendars(True)
 
@@ -16467,7 +16517,7 @@ def _showCalendarACL(user, entityType, calId, acl, k, kcount, formatJSON):
       printLine(json.dumps(cleanJSON({u'resourceId': user, u'resourceEmail': calId, u'acl': acl}),
                            ensure_ascii=False, sort_keys=True))
   else:
-    printEntity([entityType, calId, Ent.CALENDAR_ACL, formatACLScopeRole(acl[u'id'], acl[u'role'])], k, kcount)
+    printKeyValueListWithCount(ACLRuleKeyValueList(acl), k, kcount)
 
 def _infoCalendarACLs(cal, user, entityType, calId, j, jcount, ruleIds, kcount, formatJSON):
   Ind.Increment()
@@ -24535,7 +24585,7 @@ def _doPrinterPrintShowACLs(printerIdList, csvFormat):
   cp = buildGAPIObject(API.CLOUDPRINT)
   if csvFormat:
     todrive = {}
-    titles, csvRows = initializeTitlesCSVfile([u'id',])
+    titles, csvRows = initializeTitlesCSVfile([u'id', u'printerName'])
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
@@ -24557,7 +24607,7 @@ def _doPrinterPrintShowACLs(printerIdList, csvFormat):
       except KeyError:
         jcount = 0
       if not csvFormat:
-        entityPerformActionNumItems([Ent.PRINTER, printerId], jcount, Ent.PRINTER_ACL, i, count)
+        entityPerformActionNumItems([Ent.PRINTER, u'{0} ({1})'.format(result[u'printers'][0][u'name'], printerId)], jcount, Ent.PRINTER_ACL, i, count)
       if jcount == 0:
         setSysExitRC(NO_ENTITIES_FOUND)
         continue
@@ -24573,7 +24623,7 @@ def _doPrinterPrintShowACLs(printerIdList, csvFormat):
         for acl in result[u'printers'][0][u'access']:
           if u'key' in acl:
             acl[u'accessURL'] = CLOUDPRINT_ACCESS_URL.format(printerId, acl[u'key'])
-          addRowTitlesToCSVfile(flattenJSON(acl, flattened={u'id': printerId}), csvRows, titles)
+          addRowTitlesToCSVfile(flattenJSON(acl, flattened={u'id': printerId, u'printerName': result[u'printers'][0][u'name']}), csvRows, titles)
     except GCP.unknownPrinter as e:
       entityActionFailedWarning([Ent.PRINTER, printerId], str(e), i, count)
   if csvFormat:
@@ -25299,10 +25349,13 @@ def _showCalendar(userCalendar, j, jcount, formatJSON, acls=None):
       printKeyValueList([u'Method', notification[u'method'], u'Type', notification[u'type']])
   Ind.Decrement()
   if acls:
-    printKeyValueList([u'ACLs', None])
+    j = 0
+    jcount = len(acls)
+    printEntitiesCount(Ent.CALENDAR_ACL, acls)
     Ind.Increment()
     for rule in acls:
-      printKeyValueList(ACLRuleKeyValueList(rule))
+      j += 1
+      printKeyValueListWithCount(ACLRuleKeyValueList(rule), j, jcount)
     Ind.Decrement()
   Ind.Decrement()
 
@@ -25475,7 +25528,7 @@ def _printShowCalendars(users, csvFormat):
     return []
 
   acls = []
-  primary = showPermissions = False
+  primary = getCalPermissions = False
   sortTitles = [u'primaryEmail', u'calendarId']
   if csvFormat:
     todrive = {}
@@ -25489,7 +25542,7 @@ def _printShowCalendars(users, csvFormat):
     if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
     elif myarg in [Cmd.ARG_ACLS, Cmd.ARG_CALENDARACLS, Cmd.ARG_PERMISSIONS]:
-      showPermissions = True
+      getCalPermissions = True
     elif myarg == u'allcalendars':
       pass
     elif myarg == u'primary':
@@ -25537,7 +25590,7 @@ def _printShowCalendars(users, csvFormat):
       j = 0
       for calendar in calendars:
         j += 1
-        if showPermissions:
+        if getCalPermissions:
           acls = _getPermissions(cal, calendar)
         _showCalendar(calendar, j, jcount, formatJSON, acls)
       Ind.Decrement()
@@ -25547,7 +25600,7 @@ def _printShowCalendars(users, csvFormat):
         if calendars:
           for calendar in calendars:
             row = {u'primaryEmail': user, u'calendarId': calendar[u'id']}
-            if showPermissions:
+            if getCalPermissions:
               flattenJSON({u'permissions': _getPermissions(cal, calendar)}, flattened=row)
             calendar.pop(u'id')
             addRowTitlesToCSVfile(flattenJSON(calendar, flattened=row, simpleLists=CALENDAR_SIMPLE_LISTS, delimiter=delimiter), csvRows, titles)
@@ -25556,7 +25609,7 @@ def _printShowCalendars(users, csvFormat):
       else:
         if calendars:
           for calendar in calendars:
-            if showPermissions:
+            if getCalPermissions:
               calendar[u'acls'] = [{u'id': rule[u'id'], u'role': rule[u'role']} for rule in _getPermissions(cal, calendar)]
             csvRows.append({u'primaryEmail': user, u'calendarId': calendar[u'id'],
                             u'JSON': json.dumps(cleanJSON(calendar), ensure_ascii=False, sort_keys=True)})
@@ -28315,7 +28368,10 @@ def addFilePathsToRow(drive, fileTree, fileEntryInfo, filePathInfo, row, titles)
     key = u'path.{0}'.format(k)
     if key not in titles[u'set']:
       addTitleToCSVfile(key, titles)
-    row[key] = path if not GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL] else escapeCRsNLs(path)
+    if GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL] and (path.find(u'\n') >= 0 or path.find(u'\r') >= 0):
+      row[key] = escapeCRsNLs(path)
+    else:
+      row[key] = path
     k += 1
 
 def _simpleFileIdEntityList(fileIdEntityList):

@@ -1,3 +1,9 @@
+4.65.58
+
+Added `calendar` option to `gam info/show/print resources'; this displays the calendar settings of the calendar associated with the resource.
+
+Added the name of the printer to the output of `gam printer showacls/printacls`. For `printacls`, the column name is `printerName`.
+
 4.65.57
 
 Fixed bug in `gam print events` where the argument `fields attendees.responsestatus` caused an invalid argument error.

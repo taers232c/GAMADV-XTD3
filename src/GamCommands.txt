@@ -1871,7 +1871,9 @@ gam print resoldsubscriptions [todrive <ToDriveAttribute>*] [customerid <Custome
         (uservisibledescription <String>)
 
 <ResourceFieldName> ::=
+        acls|
         buildingid|
+        calendar|
         capacity|
         category|
         description|
@@ -1902,15 +1904,16 @@ gam print features [todrive <ToDriveAttribute>*]
 gam create|add resource <ResourceID> <Name> <ResourceAttribute>*
 gam update resource <ResourceID> <ResourceAttribute>*
 gam delete resource <ResourceID>
-gam info resource <ResourceID>
+gam info resource <ResourceID> [acls] [calendar] [formatjson]
 
 gam update resources <ResourceEntity> <ResourceAttribute>*
 gam delete resources <ResourceEntity>
-gam info resources <ResourceEntity>
+gam info resources <ResourceEntity> [acls] [calendar] [formatjson]
 
-gam show resources [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)] [convertcrnl] [formatjson]
-gam print resources [todrive <ToDriveAttribute>*] [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)] [convertcrnl]
-        [formatjson] [quotechar <Character>]
+gam show resources [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)]
+        [acls] [calendar] [convertcrnl] [formatjson]
+gam print resources [todrive <ToDriveAttribute>*] [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)]
+        [acls] [calendar] [convertcrnl] [formatjson] [quotechar <Character>]
 
 <CalendarACLRole> ::= editor|freebusy|freebusyreader|owner|reader|writer|none
 <CalendarACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>)|domain|default
