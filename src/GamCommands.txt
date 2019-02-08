@@ -174,7 +174,11 @@ If an item contains spaces, it should be surrounded by ".
 <DomainName> ::= <String>(.<String>)+
 <DriveFileACLRole> ::= commenter|contentmanager|editor|fileorganizer|organizer|owner|reader|writer
 <DriveFileID> ::= <String>
-<DriveFileURL> ::= https://docs.google.com/a/<DomainName>/document/d/<DriveFileID>/<String>
+<DriveFileURL> ::=
+        https://docs.google.com/a/<DomainName>/document/d/<DriveFileID>/<String>
+        https://drive.google.com/open?id=<DriveFileID>
+        https://www.googleapis.com/drive/v2/files/<DriveFileID>
+        https://www.googleapis.com/drive/v2/folders/<DriveFileID>
 <DriveFileItem> ::= <DriveFileID>|<DriveFileURL>
 <DriveFileName> ::= <String>
 <DriveFolderID> ::= <String>
@@ -718,13 +722,17 @@ gam calendar|calendars <CalendarEntity> showacl [formatjson]
 
 <EventMatchProperty:> ::=
         (matchfield attendees <EmailAddressEntity>)|
+        (matchfield attendeespattern <RegularExpression>)|
         (matchfield creatoremail <RegularExpression>)|
         (matchfield creatorname <RegularExpression>)|
         (matchfield description <RegularExpression>)|
         (matchfield location <RegularExpression>)|
         (matchfield organizeremail <RegularExpression>)|
         (matchfield organizername <RegularExpression>)|
-        (matchfield summary <RegularExpression>)
+        (matchfield status <RegularExpression>)|
+        (matchfield summary <RegularExpression>)|
+        (matchfield transparency <RegularExpression>)|
+        (matchfield visibility <RegularExpression>)
 
 <EventEntity> ::=
         (id|eventid <EventId>)|(event|events <EventIdList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|

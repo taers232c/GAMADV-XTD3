@@ -1,3 +1,19 @@
+4.65.59
+
+Added additional `matchfield` options to `<EventMatchProperty>`.
+        (matchfield status <RegularExpression>)|
+        (matchfield transparency <RegularExpression>)|
+        (matchfield visibility <RegularExpression>)
+* https://github.com/taers232c/GAMADV-X/wiki/Calendars-Events#event-selection
+* https://github.com/taers232c/GAMADV-X/wiki/Users-Calendars-Events#event-selection
+
+Update code to recognize additional forms of `<DriveFileURL>`; the last two forms were not recognized.
+<DriveFileURL> ::=
+        https://docs.google.com/a/<DomainName>/document/d/<DriveFileID>/<String>
+        https://drive.google.com/open?id=<DriveFileID>
+        https://www.googleapis.com/drive/v2/files/<DriveFileID>
+        https://www.googleapis.com/drive/v2/folders/<DriveFileID>
+
 4.65.58
 
 Added `calendar` option to `gam info/show/print resources'; this displays the calendar settings of the calendar associated with the resource.

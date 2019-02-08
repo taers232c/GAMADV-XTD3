@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.58'
+__version__ = u'4.65.59'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -16699,6 +16699,9 @@ LIST_EVENTS_MATCH_FIELDS = {
   u'creatoremail': [u'creator', u'email'],
   u'organizername': [u'organizer', u'displayName'],
   u'organizeremail': [u'organizer', u'email'],
+  u'status': [u'status',],
+  u'transparency': [u'transparency',],
+  u'visibility': [u'visibility',],
   }
 
 def _getCalendarListEventsProperty(myarg, attributes, kwargs):
@@ -16877,9 +16880,9 @@ def _eventMatches(event, match):
   if match[0][0] != u'attendees':
     eventAttr = event
     for attr in match[0]:
-      eventAttr = eventAttr.get(attr)
+      eventAttr = eventAttr.get(attr, u'')
       if not eventAttr:
-        return False
+        break
     return match[1].search(eventAttr) is not None
   attendees = [attendee[u'email'] for attendee in event.get(u'attendees', [])]
   if not attendees:
@@ -26280,6 +26283,16 @@ def cleanFileIDsList(fileIdEntity, fileIds):
     loc = fileId.find(u'?id=')
     if loc > 0:
       fileId = fileId[loc+4:]
+      loc = fileId.find(u'&')
+      return fileId[:loc] if loc != -1 else fileId
+    loc = fileId.find(u'/files/')
+    if loc > 0:
+      fileId = fileId[loc+7:]
+      loc = fileId.find(u'&')
+      return fileId[:loc] if loc != -1 else fileId
+    loc = fileId.find(u'/folders/')
+    if loc > 0:
+      fileId = fileId[loc+9:]
       loc = fileId.find(u'&')
       return fileId[:loc] if loc != -1 else fileId
     return None
