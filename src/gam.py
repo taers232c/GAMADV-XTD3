@@ -28306,19 +28306,23 @@ def _getShowOwnedBy(query):
   if showOwnedBy is None:
     query = _updateAnyOwnerQuery(query)
   elif not showOwnedBy:
-    query = _stripMeInOwners(query)
-    if query:
-      if query.find(NOT_ME_IN_OWNERS) == -1:
+    if query.find(NOT_ME_IN_OWNERS) >= 0:
+      pass
+    else:
+      query = _stripMeInOwners(query)
+      if query:
         query = NOT_ME_IN_OWNERS_AND+query
-    else:
-      query = NOT_ME_IN_OWNERS
+      else:
+        query = NOT_ME_IN_OWNERS
   else:
-    query = _stripNotMeInOwners(query)
-    if query:
-      if query.find(ME_IN_OWNERS) == -1:
-        query = ME_IN_OWNERS_AND+query
+    if query.find(ME_IN_OWNERS) >= 0:
+      pass
     else:
-      query = ME_IN_OWNERS
+      query = _stripNotMeInOwners(query)
+      if query:
+        query = ME_IN_OWNERS_AND+query
+      else:
+        query = ME_IN_OWNERS
   return (showOwnedBy, query)
 
 OWNED_BY_ME_FIELDS_TITLES = [u'ownedByMe',]
