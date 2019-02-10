@@ -1753,14 +1753,20 @@ gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [<Boolean>]]
         (type <String>)|
         (updateurl <URL>)|
         (uuid <String>)
+<PrinterExtraFields> ::=
+        connectionstatus|
+        semanticstate|
+        uistate|
+        queuedjobscount
+<PrinterExtraFieldsList> ::= "<PrinterExtraFields>(,<PrinterExtraFields>)*"
 
 gam update printer|printers <PrinterIDEntity> <PrinterAttribute>+
 gam delete printer|printers <PrinterIDEntity>
-gam info printer|printers <PrinterIDEntity> [everything]
+gam info printer|printers <PrinterIDEntity> [everything] [extrafields <PrinterExtraFieldList>] 
 
 gam print printer|printers [todrive <ToDriveAttribute>*]
         [(query <QueryPrinter>)|(queries <QueryPrinterList>)] [type <String>] [status <String>]
-        [extrafields <String>] [delimiter <Character>]
+        [extrafields <PrinterExtraFieldList>] [delimiter <Character>]
 
 <PrinterACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|public
 <PrinterACLScopeList> ::= "<PrinterACLScope>(,<PrinterACLScope>)*"

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.59'
+__version__ = u'4.65.60'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -380,7 +380,6 @@ ENTITY_IS_A_GROUP_RC = 22
 ENTITY_IS_A_GROUP_ALIAS_RC = 23
 ORPHANS_COLLECTED_RC = 30
 # Warnings/Errors
-NO_DATA_TO_PROCESS_RC = 40
 ACTION_FAILED_RC = 50
 ACTION_NOT_PERFORMED_RC = 51
 INVALID_ENTITY_RC = 52
@@ -5276,7 +5275,6 @@ THREAD_PLURAL_SINGULAR = [Msg.THREADS, Msg.THREAD]
 
 def MultiprocessGAMCommands(items, logCmds):
   if not items:
-    setSysExitRC(NO_DATA_TO_PROCESS_RC)
     return
   numPoolProcesses = min(len(items), GC.Values[GC.NUM_THREADS])
   origSigintHandler = signal.signal(signal.SIGINT, signal.SIG_IGN)
@@ -5376,7 +5374,6 @@ def threadBatchWorker():
 
 def ThreadBatchGAMCommands(items, logCmds):
   if not items:
-    setSysExitRC(NO_DATA_TO_PROCESS_RC)
     return
   pythonCmd = [sys.executable.lower(),]
   if not getattr(sys, u'frozen', False): # we're not frozen
@@ -24330,15 +24327,34 @@ def doDeletePrinters():
     except GCP.unknownPrinter as e:
       entityActionFailedWarning([Ent.PRINTER, printerId], str(e), i, count)
 
-# gam info printers <PrinterIDEntity> [everything]
+PRINTER_EXTRA_FIELDS_CHOICE_MAP = {
+  u'connectionstatus': u'connectionStatus',
+  u'semanticstate': u'semanticState',
+  u'uistate': u'uiState',
+  u'queuedjobscount': u'queuedJobsCount',
+  }
+
+def _getPrinterExtraFields():
+  extra_fields = []
+  for field in _getFieldsList():
+    if field in PRINTER_EXTRA_FIELDS_CHOICE_MAP:
+      addFieldToFieldsList(field, PRINTER_EXTRA_FIELDS_CHOICE_MAP, extra_fields)
+    else:
+      invalidChoiceExit(PRINTER_EXTRA_FIELDS_CHOICE_MAP, True)
+  return u','.join(extra_fields)
+
+# gam info printers <PrinterIDEntity> [everything] [extrafields <PrinterExtraFieldsList>]
 def doInfoPrinters():
   cp = buildGAPIObject(API.CLOUDPRINT)
   entityList = getEntityList(Cmd.OB_PRINTER_ID_ENTITY)
   everything = False
+  extra_fields = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'everything':
       everything = True
+    elif myarg == u'extrafields':
+      extra_fields = _getPrinterExtraFields()
     else:
       unknownArgumentExit()
   i = 0
@@ -24348,7 +24364,7 @@ def doInfoPrinters():
     try:
       result = callGCP(cp.printers(), u'get',
                        throw_messages=[GCP.UNKNOWN_PRINTER],
-                       printerid=printerId)
+                       printerid=printerId, extra_fields=extra_fields)
       printEntity([Ent.PRINTER, printerId], i, count)
       Ind.Increment()
       printer_info = result[u'printers'][0]
@@ -24364,7 +24380,8 @@ def doInfoPrinters():
     except GCP.unknownPrinter as e:
       entityActionFailedWarning([Ent.PRINTER, printerId], str(e), i, count)
 
-# gam print printers [todrive <ToDriveAttributes>*] [(query <QueryPrinter>)|(queries <QueryPrinterList>)] [type <String>] [status <String>] [extrafields <String>] [delimiter <Character>]
+# gam print printers [todrive <ToDriveAttributes>*] [(query <QueryPrinter>)|(queries <QueryPrinterList>)] [type <String>] [status <String>]
+#	[extrafields <PrinterExtraFieldsList>] [delimiter <Character>]
 def doPrintPrinters():
   cp = buildGAPIObject(API.CLOUDPRINT)
   todrive = {}
@@ -24385,7 +24402,7 @@ def doPrintPrinters():
     elif myarg == u'status':
       connection_status = getString(Cmd.OB_STRING)
     elif myarg == u'extrafields':
-      extra_fields = getString(Cmd.OB_STRING)
+      extra_fields = _getPrinterExtraFields()
     elif myarg == u'delimiter':
       delimiter = getCharacter()
     else:
@@ -38823,8 +38840,6 @@ def ProcessGAMCommand(args, processGamCfg=True):
         if count > GC.Values[GC.AUTO_BATCH_MIN]:
           doAutoBatch(Cmd.ENTITY_USER, entityList, CL_command)
           sys.exit(GM.Globals[GM.SYSEXITRC])
-        elif count == 0:
-          sys.exit(NO_DATA_TO_PROCESS_RC)
       adjustRedirectedSTDFilesIfNotMultiprocessing()
       if CL_command in USER_COMMANDS:
         Act.Set(USER_COMMANDS[CL_command][CMD_ACTION])
@@ -38841,8 +38856,6 @@ def ProcessGAMCommand(args, processGamCfg=True):
         if count > GC.Values[GC.AUTO_BATCH_MIN]:
           doAutoBatch(Cmd.ENTITY_CROS, entityList, CL_command)
           sys.exit(GM.Globals[GM.SYSEXITRC])
-        elif count == 0:
-          sys.exit(NO_DATA_TO_PROCESS_RC)
       adjustRedirectedSTDFilesIfNotMultiprocessing()
       if CL_command in CROS_COMMANDS:
         Act.Set(CROS_COMMANDS[CL_command][CMD_ACTION])
