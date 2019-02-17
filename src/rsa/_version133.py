@@ -38,7 +38,7 @@ __version__ = '1.3.3'
 # this behaviour using the abs() function
 
 try:
-    import pickle as pickle
+    import cPickle as pickle
 except ImportError:
     import pickle
 from pickle import dumps, loads
@@ -75,14 +75,14 @@ def bytes2int(bytes):
     """Converts a list of bytes or a string to an integer
     """
 
-    if not (type(bytes) is list or type(bytes) is bytes):
+    if not (type(bytes) is types.ListType or type(bytes) is types.StringType):
         raise TypeError("You must pass a string or a list")
 
     # Convert byte stream to integer
     integer = 0
     for byte in bytes:
         integer *= 256
-        if type(byte) is bytes: byte = ord(byte)
+        if type(byte) is types.StringType: byte = ord(byte)
         integer += byte
 
     return integer
@@ -91,7 +91,7 @@ def int2bytes(number):
     """Converts a number to a string of bytes
     """
 
-    if not (type(number) is int or type(number) is int):
+    if not (type(number) is types.LongType or type(number) is types.IntType):
         raise TypeError("You must pass a long or an int")
 
     string = ""
@@ -267,7 +267,7 @@ def extended_euclid_gcd(a, b):
         return (a, 1, 0)
 
     q = abs(a % b)
-    r = int(a / b)
+    r = long(a / b)
     (d, k, l) = extended_euclid_gcd(b, q)
 
     return (d, l, k - l*r)
@@ -329,10 +329,10 @@ def encrypt_int(message, ekey, n):
     """Encrypts a message using encryption key 'ekey', working modulo
     n"""
 
-    if type(message) is int:
-        return encrypt_int(int(message), ekey, n)
+    if type(message) is types.IntType:
+        return encrypt_int(long(message), ekey, n)
 
-    if not type(message) is int:
+    if not type(message) is types.LongType:
         raise TypeError("You must pass a long or an int")
 
     if message > 0 and \

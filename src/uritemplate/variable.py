@@ -19,10 +19,9 @@ import collections
 import sys
 
 if (2, 6) <= sys.version_info < (2, 8):
-    import urllib.request, urllib.parse, urllib.error
+    import urllib
 elif (3, 3) <= sys.version_info < (4, 0):
-#    import urllib.parse as urllib
-    import urllib.parse
+    import urllib.parse as urllib
 
 
 class URIVariable(object):
@@ -365,7 +364,7 @@ def dict_test(value):
 
 
 try:
-    texttype = str
+    texttype = unicode
 except NameError:  # Python 3
     texttype = str
 
@@ -382,4 +381,4 @@ def _encode(value, encoding='utf-8'):
 def quote(value, safe):
     if not isinstance(value, stringlikes):
         value = str(value)
-    return urllib.parse.quote(_encode(value), safe)
+    return urllib.quote(_encode(value), safe)
