@@ -419,6 +419,7 @@ class GamCLArgs(object):
   ARG_SECCALS = u'seccals'
   ARG_SENDAS = u'sendas'
   ARG_SERVICEACCOUNT = u'serviceaccount'
+  ARG_SETTINGS = u'settings'
   ARG_SHEET = u'sheet'
   ARG_SHEETS = u'sheets'
   ARG_SHEETRANGE = u'sheetrange'

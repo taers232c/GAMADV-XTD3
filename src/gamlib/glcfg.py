@@ -147,14 +147,18 @@ SHOW_MULTIPROCESS_INFO = u'show_multiprocess_info'
 TIMEZONE = u'timezone'
 # Enable conversion to Google Sheets when uploading todrive files
 TODRIVE_CONVERSION = u'todrive_conversion'
-# User for todrive files
-TODRIVE_USER = u'todrive_user'
+# Suppress opening browser on todrive upload
+TODRIVE_NOBROWSER = u'todrive_nobrowser'
+# Suppress sending email on todrive upload
+TODRIVE_NOEMAIL = u'todrive_noemail'
+# Save local copy of CSV file
+TODRIVE_LOCALCOPY = u'todrive_localcopy'
 # ID/Name of parent folder for todrive files
 TODRIVE_PARENT = u'todrive_parent'
 # Append timestamp to todrive file name
 TODRIVE_TIMESTAMP = u'todrive_timestamp'
-# Save local copy of CSV file
-TODRIVE_LOCALCOPY = u'todrive_localcopy'
+# User for todrive files
+TODRIVE_USER = u'todrive_user'
 # When retrieving lists of Users from API, how many should be retrieved in each chunk
 USER_MAX_RESULTS = u'user_max_results'
 
@@ -213,10 +217,12 @@ Defaults = {
   SHOW_MULTIPROCESS_INFO: FALSE,
   TIMEZONE: u'utc',
   TODRIVE_CONVERSION: TRUE,
-  TODRIVE_USER: u'',
+  TODRIVE_NOBROWSER: u'',
+  TODRIVE_NOEMAIL: u'',
+  TODRIVE_LOCALCOPY: FALSE,
   TODRIVE_PARENT: u'root',
   TODRIVE_TIMESTAMP: FALSE,
-  TODRIVE_LOCALCOPY: FALSE,
+  TODRIVE_USER: u'',
   USER_MAX_RESULTS: u'500',
   }
 
@@ -299,9 +305,11 @@ VAR_INFO = {
   SHOW_MULTIPROCESS_INFO: {VAR_TYPE: TYPE_BOOLEAN},
   TIMEZONE: {VAR_TYPE: TYPE_TIMEZONE},
   TODRIVE_CONVERSION: {VAR_TYPE: TYPE_BOOLEAN},
-  TODRIVE_USER: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
+  TODRIVE_NOBROWSER: {VAR_TYPE: TYPE_BOOLEAN, VAR_SIGFILE: u'nobrowser.txt', VAR_SFFT: (FALSE, TRUE)},
+  TODRIVE_NOEMAIL: {VAR_TYPE: TYPE_BOOLEAN},
+  TODRIVE_LOCALCOPY: {VAR_TYPE: TYPE_BOOLEAN},
   TODRIVE_PARENT: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   TODRIVE_TIMESTAMP: {VAR_TYPE: TYPE_BOOLEAN},
-  TODRIVE_LOCALCOPY: {VAR_TYPE: TYPE_BOOLEAN},
+  TODRIVE_USER: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   USER_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_ENVVAR: u'GAM_USER_MAX_RESULTS', VAR_LIMITS: (1, 500)},
   }

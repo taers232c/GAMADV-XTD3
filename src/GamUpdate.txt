@@ -1,3 +1,40 @@
+4.65.61
+
+Added todrive_nobrowser and todrive_noemail to gam.cfg to provide more control over whether
+a browser is opened and/or an email is sent when a print command uses the todrive option.
+Updated <ToDriveAttribute> to allow overriding the gam.cfg values.
+<ToDriveAttribute> ::=
+        (tduser <EmailAddress>)|
+        (tdtitle <String>)|
+        (tddescription <String>)|
+        (tdsheet <String>)|
+        (tdparent id:<DriveFolderID>|<DriveFolderName>)|(tdfileid <DriveFileID>)
+        (tdtimestamp [<Boolean>] [tddaysoffset <Number>] [tdhoursoffset <Number])|
+        (tdlocalcopy [<Boolean>])|
+        (tdnobrowser [<Boolean>])|
+        (tdnoemail [<Boolean>])
+
+In prior versions of Gam, if gam.cfg/no_browser was false or tdnobrowser was not specified, a browser would be opened
+and no email would be sent. If either of these values was true, no browser would be opened and an email was sent. You
+got one or the other actions; now you can now control these actions independently.
+
+IMPORTANT! When you upgrade to this version, issue the following command to set the desired actions:
+gam select default config todrive_nobrowser <Boolean> todrive_noemail <Boolean> save verify
+
+Added `targetuserfolderid <DriveFolderID>` to `gam collect orphans` to allow specifying the folder for orphans by ID.
+* https://github.com/taers232c/GAMADV-XTD/wiki/Users-Drive-Orphans
+
+Fixed bug in `gam print filelist` where `showownedby others` and no `fullquery/query` caused a trap.
+
+Added commands to print calendar settings by calendar; this will be most useful for resource calendars.
+* https://github.com/taers232c/GAMADV-XTD/wiki/Calendars
+
+Expanded options in `gam move drivefile` when moving the sub files/folders within the top folder, but not the top folder itself.
+Previously, the following option specified this mode of operation.
+* `mergewithparent [<Boolean>]` - If `<Boolean>` is True or not specified, the top folder is deleted after its sub files/folders are moved
+Now, you can have the same mode of operation but retain the top folder.
+* `mergewithparentretain [<Boolean>]` - If `<Boolean>` is True or not specified, the top folder is retained after its sub files/folders are moved
+
 4.65.60
 
 Removed return code `NO_DATA_TO_PROCESS_RC = 40` introduced in 4.65.56 as it negatively affects job scripts.
@@ -8,8 +45,8 @@ Added additional `matchfield` options to `<EventMatchProperty>`.
         (matchfield status <RegularExpression>)|
         (matchfield transparency <RegularExpression>)|
         (matchfield visibility <RegularExpression>)
-* https://github.com/taers232c/GAMADV-X/wiki/Calendars-Events#event-selection
-* https://github.com/taers232c/GAMADV-X/wiki/Users-Calendars-Events#event-selection
+* https://github.com/taers232c/GAMADV-XTD/wiki/Calendars-Events#event-selection
+* https://github.com/taers232c/GAMADV-XTD/wiki/Users-Calendars-Events#event-selection
 
 Update code to recognize additional forms of `<DriveFileURL>`; the last two forms were not recognized.
 <DriveFileURL> ::=
@@ -112,10 +149,10 @@ You can now use a user's Google Sheet to supply data to Gam commands by specifyi
 * gsheet(:<FieldName>)+ <UserGoogleSheet> - Google Sheet and field names
 * gsheet <UserGoogleSheet> - Google Sheet
 
-* https://github.com/taers232c/GAMADV-X/wiki/Collections-of-ChromeOS-Devices
-* https://github.com/taers232c/GAMADV-X/wiki/Collections-of-Users
-* https://github.com/taers232c/GAMADV-X/wiki/Collections-of-Items
-* https://github.com/taers232c/GAMADV-X/wiki/Bulk-Processing
+* https://github.com/taers232c/GAMADV-XTD/wiki/Collections-of-ChromeOS-Devices
+* https://github.com/taers232c/GAMADV-XTD/wiki/Collections-of-Users
+* https://github.com/taers232c/GAMADV-XTD/wiki/Collections-of-Items
+* https://github.com/taers232c/GAMADV-XTD/wiki/Bulk-Processing
 
 Examples
 Execute a Gam command on user@domain.com's Google Sheet UserSheet sheet NewUsers.

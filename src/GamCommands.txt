@@ -269,7 +269,8 @@ If an item contains spaces, it should be surrounded by ".
         (tdparent id:<DriveFolderID>|<DriveFolderName>)|(tdfileid <DriveFileID>)
         (tdtimestamp [<Boolean>] [tddaysoffset <Number>] [tdhoursoffset <Number])|
         (tdlocalcopy [<Boolean>])|
-        (tdnobrowser [<Boolean>])
+        (tdnobrowser [<Boolean>])|
+        (tdnoemail [<Boolean>])
 <TransferID> ::= <String>
 <URI> ::= <String>
 <URL> ::= <String>
@@ -2638,7 +2639,7 @@ gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileNam
          (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))
 
 gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>] [summary [<Boolean>]]
-        <DriveFileMoveAttribute>* [mergewithparent [<Boolean>]]
+        <DriveFileMoveAttribute>* [mergewithparent|mergewithparentretain [<Boolean>]]
         [duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
         [duplicatefolders merge|duplicatename|uniquename|skip]
         [copytopfileparents none|all] [copytopfolderparents none|all]
@@ -2722,7 +2723,7 @@ gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>]
         [preview] [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-        [targetuserfoldername <DriveFileName>] [preview] [todrive <ToDriveAttribute>*]
+        [(targetuserfoldername <DriveFolderName>)|(targetuserfolderid <DriveFolderID>)] [preview] [todrive <ToDriveAttribute>*]
 
 <DriveLabelsSubfieldName> ::=
         labels.modified|        # modifiedByMe
@@ -3296,9 +3297,13 @@ gam <UserTypeEntity> show sheetrange <DriveFileEntity> (range <SpreadsheetRange>
 
 gam <UserTypeEntity> delete tokens clientid <ClientID>
 
-gam <UserTypeEntity> show tokens [clientid <ClientID>]
-gam <UserTypeEntity> print tokens [todrive <ToDriveAttribute>*] [clientid <ClientID>] [delimiter <Character>]
-gam print tokens|token [todrive <ToDriveAttribute>*] [clientid <ClientID>] [delimiter <Character>] [<UserTypeEntity>]
+gam <UserTypeEntity> print tokens|token [todrive <ToDriveAttributes>*] [clientid <ClientID>]
+        [orderby clientid|displaytext] [delimiter <Character>]
+gam <UserTypeEntity> show tokens|token|3lo|oauth [clientid <ClientID>]
+        [orderby clientid|displaytext]
+gam print tokens|token [todrive <ToDriveAttributes>*] [clientid <ClientID>]
+        [orderby clientid|displaytext] [delimiter <Character>]
+        [<UserTypeEntity>]
 
 # Verifications
 

@@ -177,6 +177,7 @@ class GamAction(object):
     WIPE: [u'Wiped', u'Wipe'],
     }
   #
+  MODIFIER_CONTENTS_WITH = u'contents with'
   MODIFIER_FOR = u'for'
   MODIFIER_FROM = u'from'
   MODIFIER_IN = u'in'
@@ -213,3 +214,6 @@ class GamAction(object):
 
   def PerformedName(self, action):
     return self._NAMES[action][0]
+
+  def csvFormat(self):
+    return self.action == self.PRINT
