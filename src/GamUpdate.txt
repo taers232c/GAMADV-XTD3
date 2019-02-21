@@ -1,3 +1,9 @@
+4.65.62
+
+Enhanced <Tag> <Replace> processing to allow selection of user field keyword.
+See: 
+* https://github.com/taers232c/GAMADV-X/wiki/Tag-Replace
+
 4.65.61
 
 Added todrive_nobrowser and todrive_noemail to gam.cfg to provide more control over whether

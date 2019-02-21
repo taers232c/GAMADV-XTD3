@@ -276,15 +276,6 @@ If an item contains spaces, it should be surrounded by ".
 <URL> ::= <String>
 <UserItem> ::= <EmailAddress>|<UniqueID>|<String>
 <UserName> ::= <<String>
-<UserReplacementFieldName> ::=
-        domain|
-        familyname|lastname|
-        firstname|givenname|
-        fullname|name|
-        org|ou|
-        primaryemail|user|
-        username
-<UserReplacement> ::= (field:<UserReplacementFieldName>)|(schema:<SchemaName>.<FieldName>)|<String>
 
 ## Lists of basic items
 
@@ -2093,6 +2084,87 @@ In these commands, you specify an administrator and then indicate that you want 
 
 gam <UserTypeEntity> print teamdriveacls [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)* [oneitemperrow] [todrive <ToDriveAttribute>*] adminaccess
 gam <UserTypeEntity> show teamdriveacls [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)* adminaccess
+
+# Tag Replace
+<AddressSubfieldName> ::=
+        country|
+        countrycode|
+        customtype|
+        extendedaddress|
+        formatted|
+        locality|
+        pobox|
+        postalcode|
+        primary|
+        region|
+        streetaddress|
+        type
+<EmailSubfieldName> ::=
+        domain|
+        primaryemail|
+        username
+<KeywordSubfieldName> ::=
+        customtype|
+        type|
+        value
+<LocationSubfieldName> ::=
+        area|
+        buildingid|
+        buildingname|
+        customtype|
+        deskcode|
+        floorname|
+        floorsection|
+        type
+<NameSubfieldName> ::=
+        familyname|
+        fullname|
+        givenname
+<OrganizationSubfieldName> ::=
+        costcenter|
+        customtype|
+        department|
+        description|
+        domain|
+        fulltimeequivalent|
+        location|
+        name|
+        primary|
+        symbol|
+        title|
+        type
+<OtherEmailSubfieldName> ::=
+        address|
+        customtype|
+        primary|
+        type
+<PhoneSubfieldName> ::=
+        customtype|
+        primary|
+        type|
+        value
+<UserReplacementFieldSubfield> ::=
+        address.<AddressSubfieldName>|
+        email.<EmailSubfieldName>|
+        keyword.<KeywordSubfieldName>|
+        location.<LocationSubfieldName>|
+        name.<NameSubfieldName>|
+        organization.<OrganizationSubfieldName>|
+	otheremail.<OtherEmailSubfieldName>|
+        phone.<PhoneSubfieldName>
+<UserReplacementFieldSubfieldMatchSubfield> ::=
+        address.<AddressSubfieldName>.<AddressSubfieldName>.<String>|
+        keyword.<KeywordSubfieldName>.<KeywordSubfieldName>.<String>|
+        location.<LocationSubfieldName>.<LocationSubfieldName>.<String>|
+        organization.<OrganizationSubfieldName>.<OrganizationSubfieldName>.<String>|
+	otheremail.<OtherEmailSubfieldName>.<OtherEmailSubfieldName>.<String>|
+        phone.<PhoneSubfieldName>.<PhoneSubfieldName>.<String>
+<Tag> ::= <String>
+<UserReplacement> ::=
+        (field:<UserReplacementFieldSubfield>)|
+        (field:<UserReplacementFieldSubfieldMatchSubfield>)|
+        (schema:<SchemaName>.<FieldName>)|
+        <String>
 
 # Vault
 
