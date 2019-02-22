@@ -1,3 +1,7 @@
+4.65.63
+
+Added `sendnotifications <Boolean>` option to `gam transfer calendars|seccals` for backwards compatibility with Basic GAM.
+
 4.65.62
 
 Enhanced <Tag> <Replace> processing to allow selection of user field keyword.

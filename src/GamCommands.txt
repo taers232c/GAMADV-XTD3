@@ -2483,8 +2483,9 @@ gam <UserTypeEntity> print calendaracls <UserCalendarEntity> [todrive <ToDriveAt
 Transfer ownership of a selection of users calendars to another user
 
 gam <UserTypeEntity> transfer calendars <UserItem> <UserCalendarEntity>
-        [keepuser | (retainrole <CalendarACLRole>)] [noretentionmessages]
+        [keepuser | (retainrole <CalendarACLRole>)] [sendnotifications <Boolean>] [noretentionmessages]
         <CalendarSettings>] [append description|location|summary] [noupdatemessages]
+gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <Boolean>]
 
 <EventSelectProperty:> ::=
         (endtime|timemax <Time>)|

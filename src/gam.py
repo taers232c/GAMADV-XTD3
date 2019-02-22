@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.62'
+__version__ = u'4.65.63'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -25187,7 +25187,8 @@ def getUserCalendarEntity(default=u'primary', noSelectionKwargs=None):
     calendarEntity[u'croom'] = buildGAPIObject(API.CLASSROOM)
   return calendarEntity
 
-def _validateUserGetCalendarIds(user, i, count, calendarEntity, itemType=None, modifier=None, showAction=True, setRC=True, newCalId=None):
+def _validateUserGetCalendarIds(user, i, count, calendarEntity,
+                                itemType=None, modifier=None, showAction=True, setRC=True, newCalId=None, secondaryCalendarsOnly=False):
   if user and calendarEntity[u'dict']:
     calIds = calendarEntity[u'dict'][user][:]
   else:
@@ -25225,7 +25226,7 @@ def _validateUserGetCalendarIds(user, i, count, calendarEntity, itemType=None, m
       result = callGAPIpages(cal.calendarList(), u'list', u'items',
                              throw_reasons=GAPI.CALENDAR_THROW_REASONS,
                              fields=u'nextPageToken,items/id', **calendarEntity[u'kwargs'])
-      calIds.extend([calId[u'id'] for calId in result])
+      calIds.extend([calId[u'id'] for calId in result if not secondaryCalendarsOnly or calId[u'id'].find(u'@group.calendar.google.com') != -1])
     else:
       callGAPI(cal.calendars(), u'get',
                throw_reasons=GAPI.CALENDAR_THROW_REASONS,
@@ -25734,14 +25735,15 @@ def printShowCalendarACLs(users):
 TRANSFER_CALENDAR_APPEND_FIELDS = [u'description', u'location', u'summary']
 
 # gam <UserTypeEntity> transfer calendars <UserItem> <UserCalendarEntity>
-#	[keepuser | (retainrole <CalendarACLRole>)] [noretentionmessages]
+#	[keepuser | (retainrole <CalendarACLRole>)] [sendnotifications <Boolean>] [noretentionmessages]
 #	[<CalendarSettings>] [append description|location|summary] [noupdatemessages]
+# gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <Boolean>]
 def transferCalendars(users):
   targetUser = getEmailAddress()
   calendarEntity = getUserCalendarEntity(noSelectionKwargs={u'minAccessRole': u'owner', u'showHidden': True})
   notAllowedForbidden = [Msg.NOT_ALLOWED, Msg.FORBIDDEN][not calendarEntity[u'all'] and not calendarEntity.get(u'kwargs', {}).get(u'minAccessRole', u'') == u'owner']
   retainRoleBody = {u'role': u'none'}
-  showUpdateMessages = showRetentionMessages = True
+  sendNotifications = showUpdateMessages = showRetentionMessages = True
   updateBody = {}
   appendFieldsList = []
   while Cmd.ArgumentsRemaining():
@@ -25750,6 +25752,8 @@ def transferCalendars(users):
       retainRoleBody[u'role'] = u'owner'
     elif myarg == u'retainrole':
       retainRoleBody[u'role'] = getChoice(CALENDAR_ACL_ROLES_MAP, mapChoice=True)
+    elif myarg == u'sendnotifications':
+      sendNotifications = getBoolean()
     elif myarg == u'noretentionmessages':
       showRetentionMessages = False
     elif _getCalendarSetting(myarg, updateBody):
@@ -25775,7 +25779,7 @@ def transferCalendars(users):
   for user in users:
     i += 1
     Act.Set(Act.TRANSFER_OWNERSHIP)
-    user, sourceCal, calIds, jcount = _validateUserGetCalendarIds(user, i, count, calendarEntity)
+    user, sourceCal, calIds, jcount = _validateUserGetCalendarIds(user, i, count, calendarEntity, secondaryCalendarsOnly=True)
     if jcount == 0:
       continue
     if updateBody:
@@ -25796,7 +25800,7 @@ def transferCalendars(users):
       try:
         callGAPI(sourceCal.acl(), u'insert',
                  throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.REQUIRED_ACCESS_LEVEL],
-                 calendarId=calId, body=targetRoleBody, fields=u'')
+                 calendarId=calId, body=targetRoleBody, sendNotifications=sendNotifications, fields=u'')
         entityModifierNewValueItemValueListActionPerformed([Ent.CALENDAR, calId], Act.MODIFIER_TO, None, [Ent.USER, targetUser], j, jcount)
       except (GAPI.forbidden, GAPI.requiredAccessLevel) as e:
         entityActionFailedWarning([Ent.CALENDAR, calId], str(e), j, jcount)
@@ -25829,12 +25833,15 @@ def transferCalendars(users):
         except (GAPI.serviceNotAvailable, GAPI.authError):
           entityServiceNotApplicableWarning(Ent.CALENDAR, calId, j, jcount)
       Act.Set(Act.RETAIN)
-      if retainRoleBody[u'role'] != u'none':
+      if retainRoleBody[u'role'] == u'owner':
+        if showRetentionMessages:
+          entityActionPerformed([Ent.CALENDAR, calId, Ent.CALENDAR_ACL, formatACLScopeRole(sourceRuleId, retainRoleBody[u'role'])], j, jcount)
+      elif retainRoleBody[u'role'] != u'none':
         try:
           callGAPI(targetCal.acl(), u'patch',
                    throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_PARAMETER, GAPI.INVALID_SCOPE_VALUE, GAPI.ILLEGAL_ACCESS_ROLE_FOR_DEFAULT,
                                   GAPI.CANNOT_CHANGE_OWN_ACL, GAPI.CANNOT_CHANGE_OWNER_ACL, GAPI.FORBIDDEN],
-                   calendarId=calId, ruleId=sourceRuleId, body=retainRoleBody, fields=u'')
+                   calendarId=calId, ruleId=sourceRuleId, body=retainRoleBody, sendNotifications=sendNotifications, fields=u'')
           if showRetentionMessages:
             entityActionPerformed([Ent.CALENDAR, calId, Ent.CALENDAR_ACL, formatACLScopeRole(sourceRuleId, retainRoleBody[u'role'])], j, jcount)
         except GAPI.notFound as e:
