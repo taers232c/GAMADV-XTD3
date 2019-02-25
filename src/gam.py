@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.63'
+__version__ = u'4.65.64'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -27768,9 +27768,13 @@ def showFileInfo(users):
     if jcount == 0:
       continue
     if parentsSubFields[u'isRoot']:
-      parentsSubFields[u'rootFolderId'] = callGAPI(drive.files(), u'get',
-                                                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                                   fileId=u'root', fields=u'id')[u'id']
+      try:
+        parentsSubFields[u'rootFolderId'] = callGAPI(drive.files(), u'get',
+                                                     throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                                     fileId=u'root', fields=u'id')[u'id']
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+        continue
     if filepath:
       filePathInfo = initFilePathInfo()
     Ind.Increment()
@@ -28764,9 +28768,13 @@ def printFileList(users):
     if not drive:
       continue
     if parentsSubFields[u'isRoot']:
-      parentsSubFields[u'rootFolderId'] = callGAPI(drive.files(), u'get',
-                                                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                                   fileId=u'root', fields=u'id')[u'id']
+      try:
+        parentsSubFields[u'rootFolderId'] = callGAPI(drive.files(), u'get',
+                                                     throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                                     fileId=u'root', fields=u'id')[u'id']
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+        continue
     if filepath:
       filePathInfo = initFilePathInfo()
     filesPrinted = set()

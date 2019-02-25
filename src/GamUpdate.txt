@@ -1,3 +1,7 @@
+4.65.64
+
+Handle additional errors in gam show fileinfo and gam print filelist.
+
 4.65.63
 
 Added `sendnotifications <Boolean>` option to `gam transfer calendars|seccals` for backwards compatibility with Basic GAM.
