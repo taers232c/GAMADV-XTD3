@@ -1,3 +1,9 @@
+4.65.65
+
+Added date column for gam report customer.
+
+Fixed bug in gam copy drivefile that caused the error: `ERROR: 403: fieldNotWritable -The resource body includes fields which are not directly writable.`
+
 4.65.64
 
 Handle additional errors in gam show fileinfo and gam print filelist.
