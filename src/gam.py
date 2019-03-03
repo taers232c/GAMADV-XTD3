@@ -6615,7 +6615,7 @@ def doReport():
       if u'entity' not in user_report:
         continue
       row = {u'email': user_report[u'entity'][u'userEmail'], u'date': user_report[u'date']}
-      for item in user_report.get(u'parameters', {}):
+      for item in user_report.get(u'parameters', []):
         if u'name' not in item:
           continue
         name = item[u'name']
@@ -6641,7 +6641,7 @@ def doReport():
       return (lastDate is None, lastDate)
     lastDate = usage[0][u'date']
     row = {u'date': lastDate}
-    for item in usage[0][u'parameters']:
+    for item in usage[0].get(u'parameters', []):
       if u'name' not in item:
         continue
       name = item[u'name']
@@ -6700,13 +6700,13 @@ def doReport():
               addTitleToCSVfile(name, titles)
             row[u'name'] = value
       csvRows.append(row)
-      return (True, lastDate)
+    return (True, lastDate)
 
   def processCustomerUsage(usage, lastDate):
     if not usage or lastDate == usage[0][u'date']:
       return (lastDate is None, lastDate)
     lastDate = usage[0][u'date']
-    for item in usage[0][u'parameters']:
+    for item in usage[0].get(u'parameters', []):
       if u'name' not in item:
         continue
       name = item[u'name']
