@@ -65,6 +65,7 @@ OAUTH2_TOKEN_ERRORS = [
   u'invalid_grant: Invalid JWT: No valid verifier found for issuer',
   u'invalid_request: Invalid impersonation prn email address',
   u'unauthorized_client: Client is unauthorized to retrieve access tokens using this method',
+  u'unauthorized_client: Client is unauthorized to retrieve access tokens using this method, or client not authorized for any of the scopes requested',
   u'unauthorized_client: Unauthorized client or scope in request',
   ]
 

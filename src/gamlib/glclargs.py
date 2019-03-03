@@ -519,6 +519,7 @@ class GamCLArgs(object):
   OB_ENTITY_TYPE = u'EntityType'
   OB_EVENT_ID = u'EventID'
   OB_EVENT_ID_ENTITY = u'EventIDEntity'
+  OB_EVENT_NAME_LIST = "EventNameList"
   OB_EXPORT_ITEM = u'ExportItem'
   OB_FIELD_NAME = u'FieldName'
   OB_FIELD_NAME_LIST = "FieldNameList"

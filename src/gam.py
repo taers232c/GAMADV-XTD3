@@ -6518,19 +6518,6 @@ def _adjustTryDate(errMsg, noDateChange):
     return None
   return match_date.group(1)
 
-def _checkFullDataAvailable(warnings, tryDate, fullDataRequired):
-  for warning in warnings:
-    if warning[u'code'] == u'PARTIAL_DATA_AVAILABLE':
-      for app in warning[u'data']:
-        if app[u'key'] == u'application' and app[u'value'] != u'docs' and (not fullDataRequired or app[u'value'] in fullDataRequired):
-          tryDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)-datetime.timedelta(days=1)
-          return (0, tryDateTime.strftime(YYYYMMDD_FORMAT))
-    elif warning[u'code'] == u'DATA_NOT_AVAILABLE':
-      for app in warning[u'data']:
-        if app[u'key'] == u'application' and app[u'value'] != u'docs' and (not fullDataRequired or app[u'value'] in fullDataRequired):
-          return (-1, tryDate)
-  return (1, tryDate)
-
 NL_SPACES_PATTERN = re.compile(r'\n +')
 
 REPORTS_PARAMETERS_SIMPLE_TYPES = [u'intValue', u'boolValue', u'datetimeValue', u'stringValue',]
@@ -6550,15 +6537,18 @@ REPORT_CHOICE_MAP = {
   u'groups': u'groups',
   u'login': u'login',
   u'logins': u'login',
+  u'meet': u'meet',
   u'mobile': u'mobile',
   u'rules': u'rules',
+  u'saml': u'saml',
   u'token': u'token',
   u'tokens': u'token',
   u'user': u'user',
   u'users': u'user',
+  u'useraccounts': u'user_accounts',
   }
 
-REPORT_FULLDATA_APPS = [
+CUSTOMER_REPORT_SERVICES = [
   u'accounts',
   u'app_maker',
   u'apps_scripts',
@@ -6566,6 +6556,7 @@ REPORT_FULLDATA_APPS = [
   u'classroom',
   u'cros',
   u'device_management',
+  u'docs',
   u'drive',
   u'gmail',
   u'gplus',
@@ -6574,85 +6565,294 @@ REPORT_FULLDATA_APPS = [
   u'sites',
   ]
 
+USER_REPORT_SERVICES = [
+  u'accounts',
+  u'classroom',
+  u'docs',
+  u'drive',
+  u'gmail',
+  u'gplus',
+  ]
+
 REPORT_ACTIVITIES_TIME_OBJECTS = set([u'time',])
 
-# gam report <users|user> [todrive <ToDriveAttributes>*] [date <Date>] [nodatechange | (fulldatarequired all|<ReportAppsList>)]
-#	[(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)] [filtertime.* <Time>] [filter|filters <String>] [fields|parameters <String>]
+# gam report <ActivityApplictionName> [todrive <ToDriveAttributes>*]
+#	[user all|<UserItem>] [select <UserTypeEntity>]
+#	[([start <Time>] [end <Time>])|(range <Time> <Time>)|yesterday]
+#	[filtertime.* <Time>] [filter|filters <String>]
+#	[event|events <EventNameList>] [ip <String>]
 #	[maxactivities <Number>] [maxresults <Number>]
-# gam report <customers|customer|domain> [todrive <ToDriveAttributes>*] [date <Date>] [nodatechange | (fulldatarequired all|<ReportAppsList>)]
-#	[fields|parameters <String>]
-# gam report <admin|calendars|drive|docs|doc|gplus|groups|group|logins|login|mobile|rules|tokens|token> [todrive <ToDriveAttributes>*] [maxresults <Number>] [maxactivities <Number>]
-#	[([start <Time>] [end <Time>])|yesterday] [user all|<UserItem>] [select <UserTypeEntity>]
-#	[event <String>] [filtertime.* <Time>] [filter|filters <String>] [fields|parameters <String>] [ip <String>] countsonly summary
+#	[countsonly] [summary]
+# gam report <users|user> [todrive <ToDriveAttributes>*]
+#	[(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
+#	[(date <Date>)|(range <Date> <Date>)] [nodatechange | (fulldatarequired all|<UserServiceNameList>)]
+#	[filtertime.* <Time>] [filter|filters <String>]
+#	[(fields|parameters <String>)|(services <UserServiceNameList>)]
+#	[maxresults <Number>]
+# gam report <customers|customer|domain> [todrive <ToDriveAttributes>*]
+#	[(date <Date>)|(range <Date> <Date>)] [nodatechange | (fulldatarequired all|<CustomerServiceNameList>)]
+#	[(fields|parameters <String>)|(services <CustomerServiceNameList>)] [noauthorizedapps]
 def doReport():
+  def _checkDataRequiredServices(warnings, tryDate):
+
+    for warning in warnings:
+      if warning[u'code'] == u'PARTIAL_DATA_AVAILABLE':
+        for app in warning[u'data']:
+          if app[u'key'] == u'application' and app[u'value'] != u'docs' and (not dataRequiredServices or app[u'value'] in dataRequiredServices):
+            tryDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)-datetime.timedelta(days=1)
+            return (0, tryDateTime.strftime(YYYYMMDD_FORMAT))
+      elif warning[u'code'] == u'DATA_NOT_AVAILABLE':
+        for app in warning[u'data']:
+          if app[u'key'] == u'application' and app[u'value'] != u'docs' and (not dataRequiredServices or app[u'value'] in dataRequiredServices):
+            return (-1, tryDate)
+    return (1, tryDate)
+
+  def processUserUsage(usage, lastDate):
+    if not usage or lastDate == usage[0][u'date']:
+      return (lastDate is None, lastDate)
+    lastDate = usage[0][u'date']
+    for user_report in usage:
+      if u'entity' not in user_report:
+        continue
+      row = {u'email': user_report[u'entity'][u'userEmail'], u'date': user_report[u'date']}
+      for item in user_report.get(u'parameters', {}):
+        if u'name' not in item:
+          continue
+        name = item[u'name']
+        service, _ = name.split(u':', 1)
+        if service not in includeServices:
+          continue
+        if name not in titles[u'set']:
+          addTitleToCSVfile(name, titles)
+        for ptype in REPORTS_PARAMETERS_SIMPLE_TYPES:
+          if ptype in item:
+            if ptype != u'datetimeValue':
+              row[name] = item[ptype]
+            else:
+              row[name] = formatLocalTime(item[ptype])
+            break
+        else:
+          row[name] = u''
+      csvRows.append(row)
+    return (True, lastDate)
+
+  def processCustomerUsageOneRow(usage, lastDate):
+    if not usage or lastDate == usage[0][u'date']:
+      return (lastDate is None, lastDate)
+    lastDate = usage[0][u'date']
+    row = {u'date': lastDate}
+    for item in usage[0][u'parameters']:
+      if u'name' not in item:
+        continue
+      name = item[u'name']
+      service, _ = name.split(u':', 1)
+      if service not in includeServices:
+        continue
+      for ptype in REPORTS_PARAMETERS_SIMPLE_TYPES:
+        if ptype in item:
+          if name not in titles[u'set']:
+            addTitleToCSVfile(name, titles)
+          if ptype != u'datetimeValue':
+            row[name] = item[ptype]
+          else:
+            row[name] = formatLocalTime(item[ptype])
+          break
+      else:
+        if u'msgValue' in item:
+          if name == u'accounts:authorized_apps':
+            if noAuthorizedApps:
+              continue
+            for app in item[u'msgValue']:
+              appName = u'App: {0}'.format(escapeCRsNLs(app[u'client_name']))
+              for key in [u'num_users', u'client_id']:
+                title = u'{0}.{1}'.format(appName, key)
+                if title not in titles[u'set']:
+                  addTitleToCSVfile(title, titles)
+                row[title] = app[key]
+          elif name == u'cros:device_version_distribution':
+            versions = {}
+            for version in item[u'msgValue']:
+              versions[version[u'version_number']] = version[u'num_devices']
+            for k, v in sorted(iteritems(versions), reverse=True):
+              title = u'cros:device_version.{0}'.format(k)
+              if title not in titles[u'set']:
+                addTitleToCSVfile(title, titles)
+              row[title] = v
+          else:
+            values = []
+            for subitem in item[u'msgValue']:
+              if u'count' in subitem:
+                mycount = myvalue = None
+                for key, value in subitem.items():
+                  if key == u'count':
+                    mycount = value
+                  else:
+                    myvalue = value
+                  if mycount and myvalue:
+                    values.append(u'{0}:{1}'.format(myvalue, mycount))
+                value = u' '.join(values)
+              elif u'version_number' in subitem and u'num_devices' in subitem:
+                values.append(u'{0}:{1}'.format(subitem[u'version_number'], subitem[u'num_devices']))
+              else:
+                continue
+              value = u' '.join(sorted(values, reverse=True))
+            if name not in titles[u'set']:
+              addTitleToCSVfile(name, titles)
+            row[u'name'] = value
+      csvRows.append(row)
+      return (True, lastDate)
+
+  def processCustomerUsage(usage, lastDate):
+    if not usage or lastDate == usage[0][u'date']:
+      return (lastDate is None, lastDate)
+    lastDate = usage[0][u'date']
+    for item in usage[0][u'parameters']:
+      if u'name' not in item:
+        continue
+      name = item[u'name']
+      service, _ = name.split(u':', 1)
+      if service not in includeServices:
+        continue
+      for ptype in REPORTS_PARAMETERS_SIMPLE_TYPES:
+        if ptype in item:
+          if ptype != u'datetimeValue':
+            csvRows.append({u'date': lastDate, u'name': name, u'value': item[ptype]})
+          else:
+            csvRows.append({u'date': lastDate, u'name': name, u'value': formatLocalTime(item[ptype])})
+          break
+      else:
+        if u'msgValue' in item:
+          if name == u'accounts:authorized_apps':
+            if noAuthorizedApps:
+              continue
+            for subitem in item[u'msgValue']:
+              app = {u'date': lastDate}
+              for an_item in subitem:
+                if an_item == u'client_name':
+                  app[u'name'] = u'App: {0}'.format(escapeCRsNLs(subitem[an_item]))
+                elif an_item == u'num_users':
+                  app[u'value'] = u'{0} users'.format(subitem[an_item])
+                elif an_item == u'client_id':
+                  app[u'client_id'] = subitem[an_item]
+              authorizedApps.append(app)
+          elif name == u'cros:device_version_distribution':
+            values = []
+            for subitem in item[u'msgValue']:
+              values.append(u'{0}:{1}'.format(subitem[u'version_number'], subitem[u'num_devices']))
+            csvRows.append({u'date': lastDate, u'name': name, u'value': u' '.join(sorted(values, reverse=True))})
+          else:
+            values = []
+            for subitem in item[u'msgValue']:
+              if u'count' in subitem:
+                mycount = myvalue = None
+                for key, value in subitem.items():
+                  if key == u'count':
+                    mycount = value
+                  else:
+                    myvalue = value
+                  if mycount and myvalue:
+                    values.append(u'{0}:{1}'.format(myvalue, mycount))
+              else:
+                continue
+            csvRows.append({u'date': lastDate, u'name': name, u'value': u' '.join(sorted(values, reverse=True))})
+    csvRows.sort(key=lambda k: (k[u'date'], k[u'name']))
+    if authorizedApps:
+      addTitleToCSVfile(u'client_id', titles)
+      for row in sorted(authorizedApps, key=lambda k: (k[u'date'], k[u'name'].lower())):
+        csvRows.append(row)
+    return (True, lastDate)
+
   report = getChoice(REPORT_CHOICE_MAP, mapChoice=True)
   rep = buildGAPIObject(API.REPORTS)
   customerId = GC.Values[GC.CUSTOMER_ID]
   if customerId == GC.MY_CUSTOMER:
     customerId = None
-  filters = parameters = actorIpAddress = eventName = orgUnit = orgUnitId = None
+  filters = parameters = actorIpAddress = orgUnit = orgUnitId = None
+  eventNames = []
   startEndTime = StartEndTime(u'start', u'end')
+  startEndTime.startDateTime = startEndTime.endDateTime = todaysDate()
   filterTimes = {}
-  tryDate = todaysDate().strftime(YYYYMMDD_FORMAT)
   maxActivities = 0
   maxResults = 1000
-  countsOnly = exitUserLoop = noDateChange = normalizeUsers = select = summary = False
+  countsOnly = exitUserLoop = noAuthorizedApps = noDateChange = normalizeUsers = select = summary = userCustomerRange = False
   todrive = {}
   userKey = u'all'
-  filtersUserValid = report != u'customer'
-  usageReports = report in [u'customer', u'user']
+  customerReports = report == u'customer'
+  userReports = report == u'user'
+  usageReports = customerReports or userReports
   activityReports = not usageReports
-  fullDataRequired = None
+  dataRequiredServices = None
+  if usageReports:
+    fullDataServices = CUSTOMER_REPORT_SERVICES if customerReports else USER_REPORT_SERVICES
+    includeServices = set()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
       todrive = getTodriveParameters()
-    elif usageReports and myarg == u'date':
-      tryDate = getYYYYMMDD()
+    elif myarg == u'range':
+      startEndTime.Get(myarg)
+      userCustomerRange = True
     elif myarg in [u'orgunit', u'org', u'ou']:
       orgUnit, orgUnitId = getOrgUnitId()
+    elif usageReports and myarg == u'date':
+      startEndTime.Get(u'start')
+      startEndTime.endDateTime = startEndTime.startDateTime
+      userCustomerRange = False
     elif usageReports and myarg == u'nodatechange':
       noDateChange = True
     elif usageReports and myarg in [u'fields', u'parameters']:
       parameters = getString(Cmd.OB_STRING)
     elif usageReports and myarg == u'fulldatarequired':
-      fullDataRequired = []
-      fdr = getString(Cmd.OB_FIELD_NAME_LIST, minLen=0).lower()
+      if dataRequiredServices is None:
+        dataRequiredServices = set()
+      fdr = getString(Cmd.OB_SERVICE_NAME_LIST, minLen=0).lower()
       if fdr and fdr != u'all':
         for field in fdr.replace(u',', u' ').split():
-          if field in REPORT_FULLDATA_APPS:
-            fullDataRequired.append(field)
+          if field in fullDataServices:
+            dataRequiredServices.add(field)
           else:
-            invalidChoiceExit(REPORT_FULLDATA_APPS, True)
+            invalidChoiceExit(fullDataServices, True)
+    elif usageReports and myarg in [u'service', u'services']:
+      for field in getString(Cmd.OB_SERVICE_NAME_LIST).lower().replace(u',', u' ').split():
+        if field in fullDataServices:
+          includeServices.add(field)
+        else:
+          invalidChoiceExit(fullDataServices, True)
+    elif customerReports and myarg == u'noauthorizedapps':
+      noAuthorizedApps = True
+    elif customerReports and myarg == u'maxactivities':
+      maxActivities = getInteger(minVal=0)
     elif activityReports and myarg in [u'start', u'starttime', u'end', u'endtime', u'yesterday']:
       startEndTime.Get(myarg)
-    elif activityReports and myarg == u'event':
-      eventName = getString(Cmd.OB_STRING)
+    elif activityReports and myarg in [u'event', u'events']:
+      for event in getString(Cmd.OB_EVENT_NAME_LIST).lower().replace(u',', u' ').split():
+        if event not in eventNames:
+          eventNames.append(event)
     elif activityReports and myarg == u'ip':
       actorIpAddress = getString(Cmd.OB_STRING)
     elif activityReports and myarg == u'countsonly':
       countsOnly = True
     elif activityReports and myarg == u'summary':
       summary = True
-    elif filtersUserValid and myarg.startswith(u'filtertime'):
+    elif not customerReports and myarg.startswith(u'filtertime'):
       filterTimes[myarg] = getTimeOrDeltaFromNow()
-    elif filtersUserValid and myarg == u'maxresults':
+    elif not customerReports and myarg in [u'filter', u'filters']:
+      filters = getString(Cmd.OB_STRING)
+    elif not customerReports and myarg == u'maxresults':
       maxResults = getInteger(minVal=1, maxVal=1000)
-    elif filtersUserValid and myarg == u'maxactivities':
-      maxActivities = getInteger(minVal=0)
-    elif filtersUserValid and myarg == u'user':
+    elif not customerReports and myarg == u'user':
       userKey = getString(Cmd.OB_EMAIL_ADDRESS)
-    elif filtersUserValid and myarg == u'select':
+    elif not customerReports and myarg == u'select':
       _, users = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
       select = True
-    elif filtersUserValid and myarg in [u'filter', u'filters']:
-      filters = getString(Cmd.OB_STRING)
     else:
       unknownArgumentExit()
+  if usageReports and not includeServices:
+    includeServices = set(fullDataServices)
   if filterTimes and filters is not None:
     for filterTimeName, filterTimeValue in iteritems(filterTimes):
       filters = filters.replace(u'#{0}#'.format(filterTimeName), filterTimeValue)
-  if report == u'user':
+  if userReports:
     if select:
       page_message = None
       normalizeUsers = True
@@ -6675,27 +6875,42 @@ def doReport():
         user = normalizeEmailAddressOrUID(user)
       if user != u'all':
         printGettingEntityItemForWhom(Ent.REPORT, user, i, count)
-      while True:
+      startDateTime = startEndTime.startDateTime
+      endDateTime = startEndTime.endDateTime
+      lastDate = None
+      while startDateTime <= endDateTime:
+        tryDate = startDateTime.strftime(u'%Y-%m-%d')
         try:
-          if fullDataRequired is not None:
+          if not userCustomerRange and dataRequiredServices is not None:
             warnings = callGAPIitems(rep.userUsageReport(), u'get', u'warnings',
                                      throw_reasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
                                      userKey=user, date=tryDate, customerId=customerId, orgUnitID=orgUnitId, fields=u'warnings')
-            fullData, tryDate = _checkFullDataAvailable(warnings, tryDate, fullDataRequired)
+            fullData, tryDate = _checkDataRequiredServices(warnings, tryDate)
             if fullData < 0:
               printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_REPORT_AVAILABLE.format(report))
               break
             if fullData == 0:
+              startDateTime = endDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)
               continue
           usage = callGAPIpages(rep.userUsageReport(), u'get', u'usageReports',
-                                page_message=page_message, maxItems=maxActivities,
+                                page_message=page_message,
                                 throw_reasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
                                 userKey=user, date=tryDate, customerId=customerId, orgUnitID=orgUnitId, filters=filters, parameters=parameters,
                                 maxResults=maxResults)
+          if not userCustomerRange and not usage:
+            startDateTime += datetime.timedelta(days=-1)
+            endDateTime = startDateTime
+            if noDateChange:
+              break
+            continue
+          status, lastDate = processUserUsage(usage, lastDate)
+          if not status:
+            break
         except GAPI.invalid as e:
           tryDate = _adjustTryDate(str(e), noDateChange)
           if not tryDate:
-            return
+            break
+          startDateTime = endDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)
           continue
         except GAPI.badRequest:
           if user != u'all':
@@ -6706,112 +6921,59 @@ def doReport():
           break
         except GAPI.forbidden:
           accessErrorExit(None)
-        if not usage:
-          printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_REPORT_AVAILABLE.format(report))
-          break
-        for user_report in usage:
-          if u'entity' not in user_report:
-            continue
-          row = {u'email': user_report[u'entity'][u'userEmail'], u'date': tryDate}
-          for item in user_report.get(u'parameters', {}):
-            if u'name' not in item:
-              continue
-            name = item[u'name']
-            if name not in titles[u'set']:
-              addTitleToCSVfile(name, titles)
-            for ptype in REPORTS_PARAMETERS_SIMPLE_TYPES:
-              if ptype in item:
-                if ptype != u'datetimeValue':
-                  row[name] = item[ptype]
-                else:
-                  row[name] = formatLocalTime(item[ptype])
-                break
-            else:
-              row[name] = u''
-          csvRows.append(row)
-        break
+        startDateTime += datetime.timedelta(days=1)
       if exitUserLoop:
         break
+    csvRows.sort(key=lambda k: (k[u'email'], k[u'date']))
     writeCSVfile(csvRows, titles, u'User Reports - {0}'.format(tryDate), todrive, [u'email', u'date'])
-  elif report == u'customer':
-    titles, csvRows = initializeTitlesCSVfile([u'date', u'name', u'value'])
-    auth_apps = []
-    while True:
+  elif customerReports:
+    titles, csvRows = initializeTitlesCSVfile([u'date',])
+    if not userCustomerRange:
+      addTitlesToCSVfile([u'name', u'value'], titles)
+    authorizedApps = []
+    startDateTime = startEndTime.startDateTime
+    endDateTime = startEndTime.endDateTime
+    lastDate = None
+    while startDateTime <= endDateTime:
+      tryDate = startDateTime.strftime(u'%Y-%m-%d')
       try:
-        if fullDataRequired is not None:
+        if not userCustomerRange and dataRequiredServices is not None:
           warnings = callGAPIitems(rep.customerUsageReports(), u'get', u'warnings',
                                    throw_reasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
                                    date=tryDate, customerId=customerId, fields=u'warnings')
-          fullData, tryDate = _checkFullDataAvailable(warnings, tryDate, fullDataRequired)
+          fullData, tryDate = _checkDataRequiredServices(warnings, tryDate)
           if fullData < 0:
             printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_REPORT_AVAILABLE.format(report))
             return
           if fullData == 0:
+            startDateTime = endDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)
             continue
         usage = callGAPIpages(rep.customerUsageReports(), u'get', u'usageReports',
                               throw_reasons=[GAPI.INVALID, GAPI.FORBIDDEN],
                               date=tryDate, customerId=customerId, parameters=parameters)
+        if not userCustomerRange and not usage:
+          startDateTime += datetime.timedelta(days=-1)
+          endDateTime = startDateTime
+          if noDateChange:
+            break
+          continue
+        if userCustomerRange:
+          status, lastDate = processCustomerUsageOneRow(usage, lastDate)
+        else:
+          status, lastDate = processCustomerUsage(usage, lastDate)
+        if not status:
+          break
       except GAPI.invalid as e:
         tryDate = _adjustTryDate(str(e), noDateChange)
         if not tryDate:
-          return
+          break
+        startDateTime = endDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)
         continue
       except GAPI.forbidden:
         accessErrorExit(None)
-      if not usage:
-        printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_REPORT_AVAILABLE.format(report))
-        return
-      for item in usage[0][u'parameters']:
-        if u'name' not in item:
-          continue
-        name = item[u'name']
-        for ptype in REPORTS_PARAMETERS_SIMPLE_TYPES:
-          if ptype in item:
-            if ptype != u'datetimeValue':
-              csvRows.append({u'date': tryDate, u'name': name, u'value': item[ptype]})
-            else:
-              csvRows.append({u'date': tryDate, u'name': name, u'value': formatLocalTime(item[ptype])})
-            break
-        else:
-          if u'msgValue' in item:
-            if name == u'accounts:authorized_apps':
-              for subitem in item[u'msgValue']:
-                app = {u'date': tryDate}
-                for an_item in subitem:
-                  if an_item == u'client_name':
-                    app[u'name'] = u'App: {0}'.format(escapeCRsNLs(subitem[an_item]))
-                  elif an_item == u'num_users':
-                    app[u'value'] = u'{0} users'.format(subitem[an_item])
-                  elif an_item == u'client_id':
-                    app[u'client_id'] = subitem[an_item]
-                auth_apps.append(app)
-            else:
-              values = []
-              for subitem in item[u'msgValue']:
-                if u'count' in subitem:
-                  mycount = myvalue = None
-                  for key, value in subitem.items():
-                    if key == u'count':
-                      mycount = value
-                    else:
-                      myvalue = value
-                    if mycount and myvalue:
-                      values.append(u'{0}:{1}'.format(myvalue, mycount))
-                  value = u' '.join(values)
-                elif u'version_number' in subitem and u'num_devices' in subitem:
-                  values.append(u'{0}:{1}'.format(subitem[u'version_number'], subitem[u'num_devices']))
-                else:
-                  continue
-                value = u' '.join(sorted(values, reverse=True))
-              csvRows.append({u'date': tryDate, u'name': name, u'value': value})
-      csvRows.sort(key=lambda k: (k[u'date'], k[u'name']))
-      if auth_apps:
-        addTitleToCSVfile(u'client_id', titles)
-        for row in sorted(auth_apps, key=lambda k: (k[u'date'], k[u'name'].lower())):
-          csvRows.append(row)
-      break
+      startDateTime += datetime.timedelta(days=1)
     writeCSVfile(csvRows, titles, u'Customer Report - {0}'.format(tryDate), todrive)
-  else:     # admin, calendar, drive, gplus, groups, login, mobile, rules, token
+  else: # activityReports
     if select:
       page_message = None
       normalizeUsers = True
@@ -6823,6 +6985,8 @@ def doReport():
       Ent.SetGetting(Ent.ACTIVITY)
       page_message = getPageMessage(showTotal=False)
       users = [normalizeEmailAddressOrUID(userKey)]
+    if not eventNames:
+      eventNames.append(None)
     eventCounts = {}
     titles, csvRows = initializeTitlesCSVfile(None)
     i = 0
@@ -6833,51 +6997,52 @@ def doReport():
         user = normalizeEmailAddressOrUID(user)
       if select or userKey != u'all':
         printGettingEntityItemForWhom(Ent.ACTIVITY, user, i, count)
-      try:
-        feed = callGAPIpages(rep.activities(), u'list', u'items',
-                             page_message=page_message, maxItems=maxActivities,
-                             throw_reasons=[GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.AUTH_ERROR],
-                             applicationName=report, userKey=user, customerId=customerId,
-                             actorIpAddress=actorIpAddress, startTime=startEndTime.startTime, endTime=startEndTime.endTime,
-                             eventName=eventName, filters=filters, maxResults=maxResults)
-      except GAPI.badRequest:
-        if user != u'all':
-          entityUnknownWarning(Ent.USER, user, i, count)
-          continue
-        printErrorMessage(BAD_REQUEST_RC, Msg.BAD_REQUEST)
-        break
-      except GAPI.invalid as e:
-        systemErrorExit(GOOGLE_API_ERROR_RC, str(e))
-      except GAPI.authError:
-        accessErrorExit(None)
-      for activity in feed:
-        events = activity.pop(u'events')
-        if not countsOnly:
-          activity_row = flattenJSON(activity, timeObjects=REPORT_ACTIVITIES_TIME_OBJECTS)
-          for event in events:
-            for item in event.get(u'parameters', []):
-              if item[u'name'] in [u'start_time', u'end_time']:
-                val = item.get(u'intValue')
-                if val is not None:
-                  val = int(val)
-                  if val >= 62135683200:
-                    item[u'dateTimeValue'] = ISOformatTimeStamp(datetime.datetime.fromtimestamp(val-62135683200, GC.Values[GC.TIMEZONE]))
-                    item.pop(u'intValue')
-              if u'value' in item:
-                item[u'value'] = NL_SPACES_PATTERN.sub(u'', item[u'value'])
-            row = flattenJSON(event)
-            row.update(activity_row)
-            addRowTitlesToCSVfile(row, csvRows, titles)
-        elif not summary:
-          actor = activity[u'actor'][u'email']
-          eventCounts.setdefault(actor, {})
-          for event in events:
-            eventCounts[actor].setdefault(event[u'name'], 0)
-            eventCounts[actor][event[u'name']] += 1
-        else:
-          for event in events:
-            eventCounts.setdefault(event[u'name'], 0)
-            eventCounts[event[u'name']] += 1
+      for eventName in eventNames:
+        try:
+          feed = callGAPIpages(rep.activities(), u'list', u'items',
+                               page_message=page_message, maxItems=maxActivities,
+                               throw_reasons=[GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.AUTH_ERROR],
+                               applicationName=report, userKey=user, customerId=customerId,
+                               actorIpAddress=actorIpAddress, startTime=startEndTime.startTime, endTime=startEndTime.endTime,
+                               eventName=eventName, filters=filters, maxResults=maxResults)
+        except GAPI.badRequest:
+          if user != u'all':
+            entityUnknownWarning(Ent.USER, user, i, count)
+            continue
+          printErrorMessage(BAD_REQUEST_RC, Msg.BAD_REQUEST)
+          break
+        except GAPI.invalid as e:
+          systemErrorExit(GOOGLE_API_ERROR_RC, str(e))
+        except GAPI.authError:
+          accessErrorExit(None)
+        for activity in feed:
+          events = activity.pop(u'events')
+          if not countsOnly:
+            activity_row = flattenJSON(activity, timeObjects=REPORT_ACTIVITIES_TIME_OBJECTS)
+            for event in events:
+              for item in event.get(u'parameters', []):
+                if item[u'name'] in [u'start_time', u'end_time']:
+                  val = item.get(u'intValue')
+                  if val is not None:
+                    val = int(val)
+                    if val >= 62135683200:
+                      item[u'dateTimeValue'] = ISOformatTimeStamp(datetime.datetime.fromtimestamp(val-62135683200, GC.Values[GC.TIMEZONE]))
+                      item.pop(u'intValue')
+                if u'value' in item:
+                  item[u'value'] = NL_SPACES_PATTERN.sub(u'', item[u'value'])
+              row = flattenJSON(event)
+              row.update(activity_row)
+              addRowTitlesToCSVfile(row, csvRows, titles)
+          elif not summary:
+            actor = activity[u'actor'][u'email']
+            eventCounts.setdefault(actor, {})
+            for event in events:
+              eventCounts[actor].setdefault(event[u'name'], 0)
+              eventCounts[actor][event[u'name']] += 1
+          else:
+            for event in events:
+              eventCounts.setdefault(event[u'name'], 0)
+              eventCounts[event[u'name']] += 1
     if not countsOnly:
       sortCSVTitles([u'name',], titles)
     elif not summary:

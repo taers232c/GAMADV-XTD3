@@ -1,3 +1,9 @@
+4.65.66
+
+Improvements to gam report commands that allow greater ability to select reports and specify dates.
+See:
+* https://github.com/taers232c/GAMADV-XTD/wiki/Reports
+
 4.65.65
 
 Added date column for gam report customer.
