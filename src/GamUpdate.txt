@@ -1,3 +1,7 @@
+4.65.68
+
+Added `minimumfilesize <Integer>` to `gam print/show filecounts` and `gam show filetree` to allow selection of files with binary content of size >= `<Integer>`.
+
 4.65.67
 
 Added `minimumfilesize <Integer>` to `gam print filelist` to allow selection of files with binary content of size >= `<Integer>`.

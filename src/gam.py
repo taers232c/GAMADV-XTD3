@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.67'
+__version__ = u'4.65.68'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -28708,7 +28708,7 @@ FILELIST_FIELDS_TITLES = [u'id', u'mimeType', u'parents']
 # gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttributes>*] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
 #	[((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) |
 #	  (select <DriveFileEntityListTree> [selectsubquery <QueryDriveFile>] [depth <Number>] [showparent])]
-#	[showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
+#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
 #	(<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	[filepath|fullpath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [quotechar <Character>]
@@ -29129,12 +29129,12 @@ def printShowFilePaths(users):
 
 # gam <UserTypeEntity> print filecounts [todrive <ToDriveAttributes>*] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
 #	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
-#	[showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
+#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
 #	(<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	[select <TeamDriveEntity>]
 # gam <UserTypeEntity> show filecounts [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
 #	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
-#	[showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
+#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
 #	(<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	[select <TeamDriveEntity>]
 def printShowFileCounts(users):
@@ -29162,6 +29162,8 @@ def printShowFileCounts(users):
   if fileIdEntity.get(u'teamdrive'):
     DLP.UpdateAnyOwnerQuery()
     fieldsList.append(u'teamDriveId')
+  if DLP.minimumFileSize is not None:
+    fieldsList.append(VX_SIZE)
   if DLP.filenameMatchPattern:
     fieldsList.append(VX_FILENAME)
   if DLP.permissionMatches:
@@ -29206,7 +29208,8 @@ def printShowFileCounts(users):
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
       continue
     for f_file in feed:
-      if (not DLP.CheckFilenameMatch(f_file) or
+      if (not DLP.CheckMinimumFileSize(f_file) or
+          not DLP.CheckFilenameMatch(f_file) or
           (u'permissions' in f_file and not DLP.CheckPermissonMatches(f_file)) or
           (onlyTeamDrives and not f_file.get(u'teamDriveId'))):
         continue
@@ -29243,18 +29246,20 @@ def printShowFileCounts(users):
     writeCSVfile(csvRows, titles, u'Drive File Counts', todrive, sortTitles)
 
 FILETREE_FIELDS_CHOICE_MAP = {
+  u'filesize': VX_SIZE,
   u'id': u'id',
   u'mime': u'mimeType',
   u'mimetype': u'mimeType',
   u'owners': u'owners',
   u'parents': u'parents',
+  u'size': VX_SIZE,
   }
 
-FILETREE_FIELDS_PRINT_ORDER = [u'id', u'parents', u'owners', u'mimeType']
+FILETREE_FIELDS_PRINT_ORDER = [u'id', u'parents', u'owners', u'mimeType', VX_SIZE]
 
 # gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
 #	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [depth <Number>]
-#	[showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
+#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
 #	(<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
 def showFileTree(users):
@@ -29270,7 +29275,7 @@ def showFileTree(users):
           if owners:
             fileInfoList.extend([field, delimiter.join(owners)])
         else:
-          fileInfoList.extend([field, fileEntry[field]])
+          fileInfoList.extend([field, fileEntry.get(field, u'')])
     if fileInfoList:
       printKeyValueListWithCount([fileEntry[VX_FILENAME], formatKeyValueList(u'(', fileInfoList, u')')], j, jcount)
     else:
@@ -29281,6 +29286,7 @@ def showFileTree(users):
       childEntry = fileTree.get(childId)
       if childEntry:
         if (DLP.CheckMimeType(childEntry[u'info']) and
+            DLP.CheckMinimumFileSize(childEntry[u'info']) and
             DLP.CheckFilenameMatch(childEntry[u'info']) and
             DLP.CheckPermissonMatches(childEntry[u'info'])):
           _showFileInfo(childEntry[u'info'])
@@ -29306,6 +29312,7 @@ def showFileTree(users):
       return
     for childEntryInfo in children:
       if (DLP.CheckMimeType(childEntryInfo) and
+          DLP.CheckMinimumFileSize(childEntryInfo) and
           DLP.CheckFilenameMatch(childEntryInfo) and
           DLP.CheckPermissonMatches(childEntryInfo)):
         _showFileInfo(childEntryInfo)
@@ -29317,7 +29324,7 @@ def showFileTree(users):
   maxdepth = -1
   fileIdEntity = initDriveFileEntity()
   selectSubQuery = u''
-  fieldsList = [u'id', VX_FILENAME, VX_PARENTS_ID, u'mimeType', u'owners(emailAddress)']
+  fieldsList = [u'id', VX_FILENAME, VX_PARENTS_ID, u'mimeType', u'owners(emailAddress)', VX_SIZE]
   showFields = {}
   for field in FILETREE_FIELDS_CHOICE_MAP:
     showFields[FILETREE_FIELDS_CHOICE_MAP[field]] = False

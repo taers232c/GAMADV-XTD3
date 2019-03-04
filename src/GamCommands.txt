@@ -2994,11 +2994,11 @@ gam <UserTypeEntity> show filepath <DriveFileEntity> (orderby <DriveFileOrderByF
 gam <UserTypeEntity> print filepath <DriveFileEntity> [todrive <ToDriveAttribute>*] [oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> show filecounts [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
         [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
-        [select <TeamDriveEntity>] [showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
+        [select <TeamDriveEntity>] [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
         (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
 gam <UserTypeEntity> print filecounts [todrive <ToDriveAttribute>*] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
         [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
-        [select <TeamDriveEntity>] [showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
+        [select <TeamDriveEntity>] [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
         (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
 
 gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*] [anyowner|(showownedby any|me|others)]
@@ -3009,15 +3009,17 @@ gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*] [anyowner
         [filepath|fullpath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [quotechar <Character>]
 
 <FileTreeFieldName> ::=
+        filesize|
         id|
         mimetype|
         owners|
-        parents
+        parents|
+        size
 <FileTreeFieldNameList> ::= "<FileTreeFieldName>(,<FileTreeFieldName>)*"
 
 gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
         [select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [depth <Number>]
-        [showmimetype [not] <MimeTypeList>] [filenamematchpattern <RegularExpression>]
+        [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
         (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
 
