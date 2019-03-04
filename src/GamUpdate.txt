@@ -1,3 +1,8 @@
+4.65.67
+
+Added minimumfilesize <Integer> to gam print filelist to allow selection of files of size >= <Integer>.
+This is only applicable to files with binary content in Drive.
+
 4.65.66
 
 Improvements to gam report commands that allow greater ability to select reports and specify dates.
