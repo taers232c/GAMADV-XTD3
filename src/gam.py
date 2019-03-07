@@ -30832,7 +30832,7 @@ def getDriveFile(users):
                                        throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                                        spreadsheetId=fileId, fields=u'spreadsheetUrl,sheets(properties(sheetId,title))')
                 spreadsheetUrl = u'{0}?exportFormat={1}&format={1}&id={2}'.format(re.sub(u'/edit$', u'/export', spreadsheet[u'spreadsheetUrl']),
-                                                                 exportFormatName, fileId)
+                                                                                  exportFormatName, fileId)
                 if csvSheetTitle:
                   for sheet in spreadsheet[u'sheets']:
                     if sheet[u'properties'][u'title'].lower() == csvSheetTitleLower:
