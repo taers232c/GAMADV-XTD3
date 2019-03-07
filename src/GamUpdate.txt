@@ -1,3 +1,9 @@
+4.65.70
+
+Added ziptostdout option to gam download vaultexport; this allows the following command structure:
+gam download vaultexport <MatterItem> <ExportItem> ziptostdout | some program that consumes the Zip file
+This will only be successful if there is one main Zip file in the export.
+
 4.65.69
 
 Added `exportsheetaspdf <String>` to `gam get drivefile` to allow downloading Google Sheets into PDF files.

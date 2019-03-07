@@ -2215,8 +2215,8 @@ gam create vaultexport|export matter <MatterItem> [name <String>] corpus drive|m
         [showdetails]
 gam delete vaultexport|export <ExportItem> matter <MatterItem>
 gam delete vaultexport|export <MatterItem> <ExportItem>
-gam download vaultexport|export <ExportItem> matter <MatterItem> [noverify] [noextract] [targetfolder <FilePath>]
-gam download vaultexport|export <MatterItem> <ExportItem> [noverify] [noextract] [targetfolder <FilePath>]
+gam download vaultexport|export <ExportItem> matter <MatterItem> [targetfolder <FilePath>] [noverify] [noextract] [ziptostdout]
+gam download vaultexport|export <MatterItem> <ExportItem> [targetfolder <FilePath>] [noverify] [noextract] [ziptostdout]
 gam info vaultexport|export <ExportItem> matter <MatterItem>
 gam info vaultexport|export <MatterItem> <ExportItem>
 gam show vaultexports|exports [matter|matters <MatterItemList>] [shownames]

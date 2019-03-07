@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.69'
+__version__ = u'4.65.70'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -18561,8 +18561,8 @@ def doPrintShowVaultExports():
 
 ZIP_EXTENSION_PATTERN = re.compile(r'^.*\.zip$', re.IGNORECASE)
 
-# gam download vaultexport|export <ExportItem> matter <MatterItem> [targetfolder <FilePath>] [noverify] [noextract]
-# gam download vaultexport|export <MatterItem> <ExportItem> [targetfolder <FilePath>] [noverify] [noextract]
+# gam download vaultexport|export <ExportItem> matter <MatterItem> [targetfolder <FilePath>] [noverify] [noextract] [ziptostdout]
+# gam download vaultexport|export <MatterItem> <ExportItem> [targetfolder <FilePath>] [noverify] [noextract] [ziptostdout]
 def doDownloadVaultExport():
   def extract_nested_zip(zippedFile):
     """ Extract a zip file including any nested zip files
@@ -18594,6 +18594,7 @@ def doDownloadVaultExport():
     exportId, exportName, exportNameId = convertExportNameToID(v, getString(Cmd.OB_EXPORT_ITEM), matterId, matterNameId)
   else:
     exportName = getString(Cmd.OB_EXPORT_ITEM)
+  zipToStdout = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'matter':
@@ -18607,6 +18608,9 @@ def doDownloadVaultExport():
       verifyFiles = False
     elif myarg == u'noextract':
       extractFiles = False
+    elif myarg == u'ziptostdout':
+      zipToStdout = True
+      verifyFiles = extractFiles = False
     else:
       unknownArgumentExit()
   try:
@@ -18620,7 +18624,8 @@ def doDownloadVaultExport():
     entityActionNotPerformedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], Msg.EXPORT_NOT_COMPLETE.format(export[u'status']))
     return
   jcount = len(export[u'cloudStorageSink']['files'])
-  entityPerformActionNumItems([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], jcount, Ent.CLOUD_STORAGE_FILE)
+  if not zipToStdout:
+    entityPerformActionNumItems([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], jcount, Ent.CLOUD_STORAGE_FILE)
   Ind.Increment()
   j = 0
   for s_file in export[u'cloudStorageSink']['files']:
@@ -18628,23 +18633,29 @@ def doDownloadVaultExport():
     bucket = s_file['bucketName']
     s_object = s_file['objectName']
     filename = os.path.join(targetFolder, s_object.replace(u'/', u'-'))
+    if zipToStdout and not ZIP_EXTENSION_PATTERN.match(filename):
+      continue
     Act.Set(Act.DOWNLOAD)
-    performAction(Ent.CLOUD_STORAGE_FILE, s_object, j, jcount)
+    if not zipToStdout:
+      performAction(Ent.CLOUD_STORAGE_FILE, s_object, j, jcount)
     Ind.Increment()
     try:
       request = s.objects().get_media(bucket=bucket, object=s_object)
-      f = openFile(filename, 'wb')
+      f = openFile(filename if not zipToStdout else u'-', 'wb')
       downloader = googleapiclient.http.MediaIoBaseDownload(f, request)
       done = False
       while not done:
         status, done = downloader.next_chunk()
-        entityActionPerformedMessage([Ent.CLOUD_STORAGE_FILE, s_object], u'{0:>7.2%}'.format(status.progress()), j, jcount)
-      entityModifierNewValueActionPerformed([Ent.CLOUD_STORAGE_FILE, s_object], Act.MODIFIER_TO, filename, j, jcount)
+        if not zipToStdout:
+          entityActionPerformedMessage([Ent.CLOUD_STORAGE_FILE, s_object], u'{0:>7.2%}'.format(status.progress()), j, jcount)
+      if not zipToStdout:
+        entityModifierNewValueActionPerformed([Ent.CLOUD_STORAGE_FILE, s_object], Act.MODIFIER_TO, filename, j, jcount)
       # Necessary to make sure file is flushed by both Python and OS
       # https://stackoverflow.com/a/13762137/1503886
       f.flush()
       os.fsync(f.fileno())
-      closeFile(f)
+      if not zipToStdout:
+        closeFile(f)
       if verifyFiles:
         f = openFile(filename, 'rb')
         Act.Set(Act.VERIFY)
@@ -34809,7 +34820,7 @@ def _showGplusProfile(user, i, count, result):
       else:
         printJSONValue(object_value)
 
-  enabled = result[u'isPlusUser']
+  enabled = result.get(u'isPlusUser', False)
   printEntity([Ent.USER, user, Ent.GPLUS_PROFILE, result[u'id']], i, count)
   Ind.Increment()
   printKeyValueList([u'isPlusUser', enabled])
