@@ -2755,7 +2755,8 @@ gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileNam
         [copysubfileparents nonpath|none|all] [copysubfolderparents nonpath|none|all]
         [retainsourcefolders [<Boolean>]]
 
-gam <UserTypeEntity> get drivefile <DriveFileEntity> [revision <DriveFileRevisionID>] [(format <FileFormatList>)|(csvsheet <SheetName>)]
+gam <UserTypeEntity> get drivefile <DriveFileEntity> [revision <DriveFileRevisionID>]
+        [(format <FileFormatList>)|(csvsheet <SheetName>)] [exportsheetaspdf <String>]
         [targetfolder <FilePath>] [targetname -|<FileName>] [overwrite [<Boolean>]] [showprogress [<Boolean>]]
 
 gam <UserTypeEntity> delete drivefile <DriveFileEntity> [purge|untrash|trash]
@@ -2825,11 +2826,12 @@ gam <UserTypeEntity> claim ownership <DriveFileEntity> [includetrashed]
         [preview] [filepath] [buildtree] [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>]
-        [(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>] [targetuserorphansfoldername <DriveFolderName>]
+        [(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>]
+        [targetuserorphansfoldername <DriveFolderName>]
         [keepuser | (retainrole reader|commenter|writer|editor|fileorganizer|none)] [noretentionmessages]
         [nonowner_retainrole reader|commenter|writer|editor|fileorganizer|current|none] [nonowner_targetrole reader|commenter|writer|editor|fileorganizer|current|none|source]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-        [preview] [todrive <ToDriveAttribute>*]
+        [preview] [todrive <ToDriveAttributes>*]
 
 gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [(targetuserfoldername <DriveFolderName>)|(targetuserfolderid <DriveFolderID>)] [preview] [todrive <ToDriveAttribute>*]
