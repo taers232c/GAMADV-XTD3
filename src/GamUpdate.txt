@@ -1,3 +1,8 @@
+4.65.71
+
+Added `aggregatebydate [Boolean]` option to `gam report user` to allow data aggregation for multiple users.
+* https://github.com/taers232c/GAMADV-XTD/wiki/Reports#user-reports
+
 4.65.70
 
 Added ziptostdout option to gam download vaultexport; this allows the following command structure:

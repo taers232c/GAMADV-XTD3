@@ -1856,6 +1856,7 @@ gam report <users|user> [todrive <ToDriveAttributes>*]
         [(date <Date>)|(range <Date> <Date>)] [nodatechange | (fulldatarequired all|<UserServiceNameList>)]
         [filtertime.* <Time>] [filter|filters <String>]
         [(fields|parameters <String>)|(services <UserServiceNameList>)]
+        [aggregatebydate [Boolean]]
         [maxresults <Number>]
 
 # Reseller

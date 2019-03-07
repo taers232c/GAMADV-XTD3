@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.70'
+__version__ = u'4.65.71'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6588,6 +6588,7 @@ REPORT_ACTIVITIES_TIME_OBJECTS = set([u'time',])
 #	[(date <Date>)|(range <Date> <Date>)] [nodatechange | (fulldatarequired all|<UserServiceNameList>)]
 #	[filtertime.* <Time>] [filter|filters <String>]
 #	[(fields|parameters <String>)|(services <UserServiceNameList>)]
+#	[aggregatebydate [Boolean]]
 #	[maxresults <Number>]
 # gam report <customers|customer|domain> [todrive <ToDriveAttributes>*]
 #	[(date <Date>)|(range <Date> <Date>)] [nodatechange | (fulldatarequired all|<CustomerServiceNameList>)]
@@ -6634,6 +6635,28 @@ def doReport():
         else:
           row[name] = u''
       csvRows.append(row)
+    return (True, lastDate)
+
+  def processAggregateUserUsage(usage, lastDate):
+    if not usage or lastDate == usage[0][u'date']:
+      return (lastDate is None, lastDate)
+    lastDate = usage[0][u'date']
+    for user_report in usage:
+      if u'entity' not in user_report:
+        continue
+      for item in user_report.get(u'parameters', []):
+        if u'name' not in item:
+          continue
+        name = item[u'name']
+        service, _ = name.split(u':', 1)
+        if service not in includeServices:
+          continue
+        if u'intValue' in item:
+          if name not in titles[u'set']:
+            addTitleToCSVfile(name, titles)
+          eventCounts.setdefault(lastDate, {})
+          eventCounts[lastDate].setdefault(name, 0)
+          eventCounts[lastDate][name] += int(item[u'intValue'])
     return (True, lastDate)
 
   def processCustomerUsageOneRow(usage, lastDate):
@@ -6768,13 +6791,14 @@ def doReport():
   if customerId == GC.MY_CUSTOMER:
     customerId = None
   filters = parameters = actorIpAddress = orgUnit = orgUnitId = None
+  eventCounts = {}
   eventNames = []
   startEndTime = StartEndTime(u'start', u'end')
   startEndTime.startDateTime = startEndTime.endDateTime = todaysDate()
   filterTimes = {}
   maxActivities = 0
   maxResults = 1000
-  countsOnly = exitUserLoop = noAuthorizedApps = noDateChange = normalizeUsers = select = summary = userCustomerRange = False
+  aggregateUserUsage = countsOnly = exitUserLoop = noAuthorizedApps = noDateChange = normalizeUsers = select = summary = userCustomerRange = False
   todrive = {}
   userKey = u'all'
   customerReports = report == u'customer'
@@ -6845,6 +6869,8 @@ def doReport():
     elif not customerReports and myarg == u'select':
       _, users = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
       select = True
+    elif userReports and myarg == u'aggregatebydate':
+      aggregateUserUsage = getBoolean()
     else:
       unknownArgumentExit()
   if usageReports and not includeServices:
@@ -6866,7 +6892,11 @@ def doReport():
       page_message = getPageMessage(showTotal=False)
       users = [normalizeEmailAddressOrUID(userKey)]
       orgUnitId = None
-    titles, csvRows = initializeTitlesCSVfile([u'email', u'date'])
+    if not aggregateUserUsage:
+      sortTitles = [u'email', u'date']
+    else:
+      sortTitles = [u'date',]
+    titles, csvRows = initializeTitlesCSVfile(sortTitles)
     i = 0
     count = len(users)
     for user in users:
@@ -6903,7 +6933,10 @@ def doReport():
             if noDateChange:
               break
             continue
-          status, lastDate = processUserUsage(usage, lastDate)
+          if not aggregateUserUsage:
+            status, lastDate = processUserUsage(usage, lastDate)
+          else:
+            status, lastDate = processAggregateUserUsage(usage, lastDate)
           if not status:
             break
         except GAPI.invalid as e:
@@ -6924,8 +6957,17 @@ def doReport():
         startDateTime += datetime.timedelta(days=1)
       if exitUserLoop:
         break
-    csvRows.sort(key=lambda k: (k[u'email'], k[u'date']))
-    writeCSVfile(csvRows, titles, u'User Reports - {0}'.format(tryDate), todrive, [u'email', u'date'])
+    if not aggregateUserUsage:
+      csvRows.sort(key=lambda k: (k[u'email'], k[u'date']))
+      writeCSVfile(csvRows, titles, u'User Reports - {0}'.format(tryDate), todrive, sortTitles)
+    else:
+      for usageDate, events in iteritems(eventCounts):
+        row = {u'date': usageDate}
+        for event, count in iteritems(events):
+          row[event] = count
+        csvRows.append(row)
+      csvRows.sort(key=lambda k: k[u'date'])
+      writeCSVfile(csvRows, titles, u'User Reports Aggregate - {0}'.format(tryDate), todrive, sortTitles)
   elif customerReports:
     titles, csvRows = initializeTitlesCSVfile([u'date',])
     if not userCustomerRange:
@@ -6987,7 +7029,6 @@ def doReport():
       users = [normalizeEmailAddressOrUID(userKey)]
     if not eventNames:
       eventNames.append(None)
-    eventCounts = {}
     titles, csvRows = initializeTitlesCSVfile(None)
     i = 0
     count = len(users)
