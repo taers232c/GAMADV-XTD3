@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.71'
+__version__ = u'4.65.72'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -11138,7 +11138,8 @@ def _getContactQueryAttributes(contactQuery, myarg, entityType, errorOnUnknown, 
     return False
   return True
 
-CONTACT_SELECT_ARGUMENTS = set([u'query', u'contactgroup', u'selectcontactgroup', u'emailmatchpattern', u'emailmatchtype', u'updatedmin'])
+CONTACT_SELECT_ARGUMENTS = set([u'query', u'contactgroup', u'selectcontactgroup', u'othercontacts', u'selectothercontacts',
+                                u'emailmatchpattern', u'emailmatchtype', u'updatedmin'])
 
 def _getContactEntityList(entityType, errorOnUnknown, allowOutputAttributes):
   contactQuery = _initContactQueryAttributes()
@@ -31349,7 +31350,7 @@ def transferDrive(users):
       if resetTargetRole and targetUser != ownerUser:
         try:
           if nonOwnerTargetRoleBody[u'role'] != u'none':
-            if nonOwnerTargetRoleBody[u'role'] != u'current':
+            if nonOwnerTargetRoleBody[u'role'] != u'current' and targetInsertBody[u'role'] != u'none':
               callGAPI(ownerDrive.permissions(), u'create',
                        throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST],
                        fileId=childFileId, sendNotificationEmail=False, body=targetInsertBody, fields=u'')
@@ -34678,10 +34679,14 @@ def printShowTokens(users):
 def doPrintTokens():
   _printShowTokens(None, None)
 
-# gam <UserTypeEntity> deprovision|deprov
+# gam <UserTypeEntity> deprovision|deprov [popimap]
 def deprovisionUser(users):
   cd = buildGAPIObject(API.DIRECTORY)
+  disablePopImap = checkArgumentPresent(u'popimap')
   checkForExtraneousArguments()
+  if disablePopImap:
+    imapBody = _imapDefaults(False)
+    popBody = _popDefaults(False)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -34743,6 +34748,10 @@ def deprovisionUser(users):
           except GAPI.notFound as e:
             entityActionFailedWarning([Ent.USER, user, Ent.ACCESS_TOKEN, clientId], str(e), j, jcount)
         Ind.Decrement()
+#
+      if disablePopImap:
+        _setImap(user, imapBody, i, count)
+        _setPop(user, popBody, i, count)
 #
       entityActionPerformed([Ent.USER, user], i, count)
     except GAPI.userNotFound:
@@ -37171,10 +37180,23 @@ EMAILSETTINGS_IMAP_EXPUNGE_BEHAVIOR_CHOICE_MAP = {
 
 EMAILSETTINGS_IMAP_MAX_FOLDER_SIZE_CHOICES = [u'0', u'1000', u'2000', u'5000', u'10000']
 
+def _imapDefaults(enable):
+  return {u'enabled': enable, u'autoExpunge': True, u'expungeBehavior': u'archive', u'maxFolderSize': 0}
+
+def _setImap(user, body, i, count):
+  user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
+  if gmail:
+    try:
+      result = callGAPI(gmail.users().settings(), u'updateImap',
+                        throw_reasons=GAPI.GMAIL_THROW_REASONS,
+                        userId=u'me', body=body)
+      _showImap(user, i, count, result)
+    except (GAPI.serviceNotAvailable, GAPI.badRequest):
+      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+
 # gam <UserTypeEntity> imap|imap4 <Boolean> [noautoexpunge] [expungebehavior archive|deleteforever|trash] [maxfoldersize 0|1000|2000|5000|10000]
 def setImap(users):
-  enable = getBoolean(None)
-  body = {u'enabled': enable, u'autoExpunge': True, u'expungeBehavior': u'archive', u'maxFolderSize': 0}
+  body = _imapDefaults(getBoolean(None))
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'noautoexpunge':
@@ -37188,16 +37210,7 @@ def setImap(users):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
-    if not gmail:
-      continue
-    try:
-      result = callGAPI(gmail.users().settings(), u'updateImap',
-                        throw_reasons=GAPI.GMAIL_THROW_REASONS,
-                        userId=u'me', body=body)
-      _showImap(user, i, count, result)
-    except (GAPI.serviceNotAvailable, GAPI.badRequest):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+    _setImap(user, body, i, count)
 
 # gam <UserTypeEntity> show imap|imap4
 def showImap(users):
@@ -37230,10 +37243,23 @@ EMAILSETTINGS_POP_ENABLE_FOR_CHOICE_MAP = {
   u'newmail': u'fromNowOn',
   }
 
+def _popDefaults(enable):
+  return {u'accessWindow': [u'disabled', u'allMail'][enable], u'disposition': u'leaveInInbox'}
+
+def _setPop(user, body, i, count):
+  user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
+  if gmail:
+    try:
+      result = callGAPI(gmail.users().settings(), u'updatePop',
+                        throw_reasons=GAPI.GMAIL_THROW_REASONS,
+                        userId=u'me', body=body)
+      _showPop(user, i, count, result)
+    except (GAPI.serviceNotAvailable, GAPI.badRequest):
+      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+
 # gam <UserTypeEntity> pop|pop3 <Boolean> [for allmail|newmail|mailfromnowon|fromnowown] [action keep|leaveininbox|archive|delete|trash|markread]
 def setPop(users):
-  enable = getBoolean(None)
-  body = {u'accessWindow': [u'disabled', u'allMail'][enable], u'disposition': u'leaveInInbox'}
+  body = _popDefaults(getBoolean(None))
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'for':
@@ -37247,16 +37273,7 @@ def setPop(users):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
-    if not gmail:
-      continue
-    try:
-      result = callGAPI(gmail.users().settings(), u'updatePop',
-                        throw_reasons=GAPI.GMAIL_THROW_REASONS,
-                        userId=u'me', body=body)
-      _showPop(user, i, count, result)
-    except (GAPI.serviceNotAvailable, GAPI.badRequest):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+    _setPop(user, body, i, count)
 
 # gam <UserTypeEntity> show pop|pop3
 def showPop(users):

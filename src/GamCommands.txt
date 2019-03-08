@@ -1157,8 +1157,9 @@ gam print contacts [todrive <ToDriveAttribute>*] <ContactSelection>
 <UserContactSelection> ::=
         [query <QueryContact>] [(selectcontactgroup <ContactGroupItem>)|selectothercontacts] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
 
-gam <UserTypeEntity> create contact [contactgroup <ContactGroupItem>] <ContactAttribute>+
-gam <UserTypeEntity> update contacts <ContactEntity>|(<UserContactSelection> [endquery]) [contactgroup <ContactGroupItem>] <ContactAttribute>+
+gam <UserTypeEntity> create contact <ContactAttribute>+
+gam <UserTypeEntity> update contacts <ContactEntity> <ContactAttribute>+
+gam <UserTypeEntity> update contacts <UserContactSelection> endquery <ContactAttribute>+
 gam <UserTypeEntity> clear contacts <ContactEntity>|<UserContactSelection>
         [emailclearpattern <RegularExpression>] [emailcleartype work|home|other|<String>]
         [delete_cleared_contacts_with_no_emails]
@@ -3074,7 +3075,7 @@ gam <UserTypeEntity> empty drivetrash [<TeamDriveEntity>]
 
 # Users - Deprovision
 
-gam <UserTypeEntity> deprovision|deprov
+gam <UserTypeEntity> deprovision|deprov [popimap]
 
 # Users - Gmail - Delegates
 
