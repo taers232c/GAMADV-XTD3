@@ -1,11 +1,3 @@
-- [Introduction](#introduction)
-- [Requirements](#requirements)
-- [Downloads](#downloads)
-- [Installation - First time GAM installation](#installation---first-time-GAM-installation)
-- [Installation - Upgrading from a GAM version other than a prior version of GAMADV-X or GAMADV-XTD or GAMADV-XTD3](#installation---upgrading-from-a-gam-version-other-than-a-prior-version-of-gamadv-x-or-gamadv-xtd)
-- [Installation - Upgrading from a prior version of GAMADV-X or GAMADV-XTD or GAMADV-XTD3](#installation---upgrading-from-a-prior-version-of-gamadv-x-or-gamadv-xtd-or-gamadv-xtd3)
-- [Multiple Versions](#multiple-versions)
-
 # Introduction
 GAMADV-XTD3 is a free, open source command line tool for Google G Suite Administrators to manage domain and user settings quickly and easily.
 
@@ -13,7 +5,7 @@ This page provides simple instructions for downloading, installing and starting 
 
 GAMADV-XTD3 requires G Suite for Business, Education, Partner or Government Edition. Google Apps Free Edition has limited API support and not all GAM commands work.
 
-GAMADV-XTD3 is a rewrite/extension of Jay Lee's [GAM](https://github.com/jay0lee/GAM), without his efforts, this version wouldn't exist.
+GAMADV-XTD3 is a rewrite/extension of Jay Lee's [GAM], without his efforts, this version wouldn't exist.
 
 # Documentation
 Basic GAM documentation is hosted in the [GitHub Wiki]. Documentation specifically for GAMADV-XTD3 is hosted in the [GitHub GAMADV-XTD Wiki] and in Gam*.txt files.
@@ -44,30 +36,36 @@ You can download the current GAMADV-XTD3 release from the [GitHub Releases] page
 Use these steps if you have never used any version of GAM in your domain. They will create a GAM project
 and all necessary authentications.
 
-* Configuration: https://github.com/taers232c/GAMADV-XTD/wiki/gam.cfg
-* Download: https://github.com/taers232c/GAMADV-XTD/wiki#downloads
-* Install: https://github.com/taers232c/GAMADV-XTD/wiki/How-to-Install-Advanced-GAM
+* [Downloads]
+* [Configuration]
+* [Install]
 
 # Installation - Upgrading from a GAM version other than a prior version of GAMADV-X or GAMADV-XTD or GAMADV-XTD3
 Use these steps if you have used any version of GAM in your domain. They will update your GAM project
 and all necessary authentications.
 
-* Configuration: https://github.com/taers232c/GAMADV-XTD/wiki/gam.cfg
-* Download: https://github.com/taers232c/GAMADV-XTD/wiki#downloads
-* Install: https://github.com/taers232c/GAMADV-XTD/wiki/How-to-Upgrade-from-Standard-GAM
+* [Downloads]
+* [Configuration]
+* [Upgrade]
 
 # Installation - Upgrading from a prior version of GAMADV-X or GAMADV-XTD or GAMADV-XTD3
 Use these steps if you already use GAMADV-X or GAMADV-XTD or GAMADV-XTD3. The updates may tell you to update your GAM project
 or authentications because new features have been included.
 
-* Updates: https://github.com/taers232c/GAMADV-XTD/wiki/GAM-Updates
-* Download: https://github.com/taers232c/GAMADV-XTD/wiki#downloads
+* [Updates]
+* [Downloads]
 
 # Multiple Versions
 You can install multiple versions of GAM, GAMADV-X, GAMADV-XTD and GAMADV-XTD3 in different parallel directories.
 
+[GAM]: https://github.com/jay0lee/GAM
 [GitHub Releases]: https://github.com/taers232c/GAMADV-XTD3/releases
 [GitHub]: https://github.com/taers232c/GAMADV-XTD3/tree/master
 [GitHub Wiki]: https://github.com/jay0lee/GAM/wiki/
 [GitHub GAMADV-XTD Wiki]: https://github.com/taers232c/GAMADV-XTD/wiki/
 [Google Groups]: http://groups.google.com/group/google-apps-manager
+[Downloads]: https://github.com/taers232c/GAMADV-XTD3/wiki#downloads
+[Configuration]: https://github.com/taers232c/GAMADV-XTD/wiki/gam.cfg
+[Install]: https://github.com/taers232c/GAMADV-XTD3/wiki/How-to-Install-Advanced-GAM
+[Upgrade]: https://github.com/taers232c/GAMADV-XTD3/wiki/How-to-Upgrade-from-Standard-GAM
+[Updates]: https://github.com/taers232c/GAMADV-XTD/wiki/GAM-Updates
