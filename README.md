@@ -25,13 +25,6 @@ To run all commands properly, GAMADV-XTD3 requires three things:
 * Authorization to act as your G Suite Administrator in order to perform management functions like add users, modify group settings and membership and pull domain reports.
 * A special service account that is authorized to act on behalf of your users in order to modify user-specific settings and data such as Drive files, Calendars and Gmail messages and settings like signatures.
 
-# Downloads
-You can download the current GAMADV-XTD3 release from the [GitHub Releases] page.
-
-* Source, all platforms - Source code(zip), Source code(tar.gz)
-  - Download the archive, extract the contents into some directory.
-  - Start a terminal/Command Prompt/PowerShell session and cd to the install directory.
-
 # Installation - First time GAM installation
 Use these steps if you have never used any version of GAM in your domain. They will create a GAM project
 and all necessary authentications.
