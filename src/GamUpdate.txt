@@ -1,3 +1,7 @@
+4.65.73
+
+Added command gam print filetree to allow that data to be output as a CSV file.
+
 4.65.72
 
 Following a suggestion submitted by Pawel Szubert to Jay, added popimap option to gam deprovision user

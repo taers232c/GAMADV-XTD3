@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.72'
+__version__ = u'4.65.73'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -237,7 +237,9 @@ VX_MODIFIED_BY_ME_TIME = u'modifiedByMeTime'
 VX_MODIFIED_TIME = u'modifiedTime'
 VX_SHARED_WITH_ME_TIME = u'sharedWithMeTime'
 VX_VIEWED_BY_ME_TIME = u'viewedByMeTime'
-VX_SIZE = u'size'
+V2_SIZE = u'fileSize'
+V3_SIZE = u'size'
+VX_SIZE = V3_SIZE
 V3_WEB_VIEW_LINK = u'webViewLink'
 VX_WEB_VIEW_LINK = V3_WEB_VIEW_LINK
 # Queries
@@ -29310,29 +29312,52 @@ FILETREE_FIELDS_CHOICE_MAP = {
 
 FILETREE_FIELDS_PRINT_ORDER = [u'id', u'parents', u'owners', u'mimeType', VX_SIZE]
 
+# gam <UserTypeEntity> print filetree [todrive <ToDriveAttributes>*] [anyowner|(showownedby any|me|others)]
+#	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [depth <Number>]
+#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
+#	(<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
+#	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
+#	[noindent]
 # gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
 #	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [depth <Number>]
 #	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
 #	(<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
-def showFileTree(users):
-  def _showFileInfo(fileEntry, j=0, jcount=0):
-    fileInfoList = []
-    for field in FILETREE_FIELDS_PRINT_ORDER:
-      if showFields[field]:
-        if field == u'parents':
-          parents = fileEntry.get(field, [])
-          fileInfoList.extend([field, u'{0} [{1}]'.format(len(parents), delimiter.join(parents))])
-        elif field == u'owners':
-          owners = [owner[u'emailAddress'] for owner in fileEntry.get(field, [])]
-          if owners:
-            fileInfoList.extend([field, delimiter.join(owners)])
-        else:
-          fileInfoList.extend([field, fileEntry.get(field, u'')])
-    if fileInfoList:
-      printKeyValueListWithCount([fileEntry[VX_FILENAME], formatKeyValueList(u'(', fileInfoList, u')')], j, jcount)
+def printShowFileTree(users):
+  def _showFileInfo(fileEntry, depth, j=0, jcount=0):
+    if not csvFormat:
+      fileInfoList = []
+      for field in FILETREE_FIELDS_PRINT_ORDER:
+        if showFields[field]:
+          if field == u'parents':
+            parents = fileEntry.get(field, [])
+            fileInfoList.extend([field, u'{0} [{1}]'.format(len(parents), delimiter.join(parents))])
+          elif field == u'owners':
+            owners = [owner[u'emailAddress'] for owner in fileEntry.get(field, [])]
+            if owners:
+              fileInfoList.extend([field, delimiter.join(owners)])
+          else:
+            fileInfoList.extend([field, fileEntry.get(field, u'')])
+      if fileInfoList:
+        printKeyValueListWithCount([fileEntry[VX_FILENAME], formatKeyValueList(u'(', fileInfoList, u')')], j, jcount)
+      else:
+        printKeyValueList([fileEntry[VX_FILENAME]])
     else:
-      printKeyValueList([fileEntry[VX_FILENAME]])
+      userInfo[u'index'] += 1
+      row = userInfo.copy()
+      row[u'depth'] = depth+1
+      row[VX_FILENAME] = (u'' if noindent else Ind.SpacesSub1() )+fileEntry[VX_FILENAME]
+      for field in FILETREE_FIELDS_PRINT_ORDER:
+        if showFields[field]:
+          if field == u'parents':
+            row[field] = delimiter.join(fileEntry.get(field, []))
+          elif field == u'owners':
+            row[field] = delimiter.join([owner[u'emailAddress'] for owner in fileEntry.get(field, [])])
+          elif field == VX_SIZE:
+            row[fileSize] = fileEntry.get(field, u'')
+          else:
+            row[field] = fileEntry.get(field, u'')
+      csvRows.append(row)
 
   def _showDriveFolderContents(fileEntry, depth):
     for childId in fileEntry[u'children']:
@@ -29342,7 +29367,7 @@ def showFileTree(users):
             DLP.CheckMinimumFileSize(childEntry[u'info']) and
             DLP.CheckFilenameMatch(childEntry[u'info']) and
             DLP.CheckPermissonMatches(childEntry[u'info'])):
-          _showFileInfo(childEntry[u'info'])
+          _showFileInfo(childEntry[u'info'], depth)
         if childEntry[u'info'][u'mimeType'] == MIMETYPE_GA_FOLDER and (maxdepth == -1 or depth < maxdepth):
           Ind.Increment()
           _showDriveFolderContents(childEntry, depth+1)
@@ -29368,12 +29393,16 @@ def showFileTree(users):
           DLP.CheckMinimumFileSize(childEntryInfo) and
           DLP.CheckFilenameMatch(childEntryInfo) and
           DLP.CheckPermissonMatches(childEntryInfo)):
-        _showFileInfo(childEntryInfo)
+        _showFileInfo(childEntryInfo, depth)
       if childEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER and (maxdepth == -1 or depth < maxdepth):
         Ind.Increment()
         _showChildDriveFolderContents(drive, childEntryInfo, user, i, count, depth+1)
         Ind.Decrement()
 
+  csvFormat = Act.csvFormat()
+  if csvFormat:
+    todrive = {}
+    titles, csvRows = initializeTitlesCSVfile([u'User', u'index', u'depth', VX_FILENAME])
   maxdepth = -1
   fileIdEntity = initDriveFileEntity()
   selectSubQuery = u''
@@ -29381,13 +29410,15 @@ def showFileTree(users):
   showFields = {}
   for field in FILETREE_FIELDS_CHOICE_MAP:
     showFields[FILETREE_FIELDS_CHOICE_MAP[field]] = False
-  buildTree = getTeamDriveNames = False
+  buildTree = noindent = getTeamDriveNames = False
   orderBy = initOrderBy()
   DLP = DriveListParameters(allowQuery=False)
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if DLP.ProcessArgument(myarg):
+    if csvFormat and myarg == u'todrive':
+      todrive = getTodriveParameters()
+    elif DLP.ProcessArgument(myarg):
       pass
     elif myarg == u'select':
       fileIdEntity = getDriveFileEntity(orphansOK=True, queryShortcutsOK=False)
@@ -29401,12 +29432,25 @@ def showFileTree(users):
       for field in _getFieldsList():
         if field in FILETREE_FIELDS_CHOICE_MAP:
           showFields[FILETREE_FIELDS_CHOICE_MAP[field]] = True
+          if csvFormat:
+            addTitleToCSVfile(FILETREE_FIELDS_CHOICE_MAP[field], titles)
         else:
           invalidChoiceExit(FILETREE_FIELDS_CHOICE_MAP, True)
     elif myarg == u'delimiter':
       delimiter = getCharacter()
+    elif csvFormat and myarg == u'noindent':
+      noindent = True
     else:
       unknownArgumentExit()
+  if csvFormat:
+    if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
+      fileNameTitle = V2_FILENAME
+      fileSize = V2_SIZE
+      _mapDrive3TitlesToDrive2(titles[u'list'], API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
+      titles[u'set'] = set(titles[u'list'])
+    else:
+      fileNameTitle = V3_FILENAME
+      fileSize = V3_SIZE
   buildTree = (not fileIdEntity[u'dict']
                and not fileIdEntity[u'query']
                and not fileIdEntity[u'teamdrivefilequery']
@@ -29471,6 +29515,7 @@ def showFileTree(users):
     user, drive, jcount = _validateUserGetFileIDs(origUser, i, count, fileIdEntity, drive=drive, entityType=Ent.DRIVE_FILE_OR_FOLDER)
     if jcount == 0:
       continue
+    userInfo = {u'User': user, u'index': 0, u'depth': 0, VX_FILENAME: u''}
     j = 0
     Ind.Increment()
     for fileId in fileIdEntity[u'list']:
@@ -29495,7 +29540,7 @@ def showFileTree(users):
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
           break
-      _showFileInfo(fileEntryInfo, j, jcount)
+      _showFileInfo(fileEntryInfo, -1, j, jcount)
       Ind.Increment()
       if buildTree:
         _showDriveFolderContents(fileEntry, 0)
@@ -29503,6 +29548,8 @@ def showFileTree(users):
         _showChildDriveFolderContents(drive, fileEntryInfo, user, i, count, 0)
       Ind.Decrement()
     Ind.Decrement()
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'Drive File Tree', todrive)
 
 # gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] [<DriveFileCreateAttributes>] [csv [todrive <ToDriveAttributes>*]]
 def createDriveFile(users):
@@ -38797,6 +38844,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_FILELIST:		printFileList,
       Cmd.ARG_FILEPATH:		printShowFilePaths,
       Cmd.ARG_FILEREVISION:	printShowFileRevisions,
+      Cmd.ARG_FILETREE:		printShowFileTree,
       Cmd.ARG_FILTER:		printShowFilters,
       Cmd.ARG_FORWARD:		printShowForward,
       Cmd.ARG_FORWARDINGADDRESS:	printShowForwardingAddresses,
@@ -38841,7 +38889,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_FILELIST:		printFileList,
       Cmd.ARG_FILEPATH:		printShowFilePaths,
       Cmd.ARG_FILEREVISION:	printShowFileRevisions,
-      Cmd.ARG_FILETREE:		showFileTree,
+      Cmd.ARG_FILETREE:		printShowFileTree,
       Cmd.ARG_FILTER:		printShowFilters,
       Cmd.ARG_FORWARD:		printShowForward,
       Cmd.ARG_FORWARDINGADDRESS:	printShowForwardingAddresses,

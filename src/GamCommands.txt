@@ -3021,6 +3021,12 @@ gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*] [anyowner
         size
 <FileTreeFieldNameList> ::= "<FileTreeFieldName>(,<FileTreeFieldName>)*"
 
+gam <UserTypeEntity> print filetree [todrive <ToDriveAttributes>*] [anyowner|(showownedby any|me|others)]
+        [select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [depth <Number>]
+        [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
+        (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
+        (orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
+        [noindent]
 gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
         [select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [depth <Number>]
         [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
