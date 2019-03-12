@@ -29345,7 +29345,7 @@ def printShowFileTree(users):
     else:
       userInfo[u'index'] += 1
       row = userInfo.copy()
-      row[u'depth'] = depth+1
+      row[u'depth'] = depth
       row[fileNameTitle] = (u'' if noindent else Ind.SpacesSub1())+fileEntry[VX_FILENAME]
       for field in FILETREE_FIELDS_PRINT_ORDER:
         if showFields[field]:
