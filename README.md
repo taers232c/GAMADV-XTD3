@@ -3,12 +3,14 @@ GAMADV-XTD3 is a free, open source command line tool for Google G Suite Administ
 
 This page provides simple instructions for downloading, installing and starting to use GAMADV-XTD3.
 
-GAMADV-XTD3 requires G Suite for Business, Education, Partner or Government Edition. Google Apps Free Edition has limited API support and not all GAM commands work.
+GAMADV-XTD3 requires G Suite for Business, Education, Non Profit, Partner or Government Edition. Google Apps Free Edition has limited API support and not all GAM commands work.
 
 GAMADV-XTD3 is a rewrite/extension of Jay Lee's [GAM], without his efforts, this version wouldn't exist.
 
+GAMADV-XTD3 is backwards compatible with [GAM], meaning that if your command works with regular GAM, it will also work with GAMADV-XTD3. There may be differences in output, but the syntax is compatible.
+
 # Documentation
-Basic GAM documentation is hosted in the [GitHub Wiki]. Documentation specifically for GAMADV-XTD3 is hosted in the [GitHub GAMADV-XTD Wiki] and in Gam*.txt files.
+Basic GAM documentation is hosted in the [GitHub Wiki]. Documentation specifically for GAMADV-XTD3 is hosted in the [GitHub GAMADV-XTD3 Wiki] and in Gam*.txt files.
 
 # Mailing List / Discussion group
 The GAM mailing list / discussion group is hosted on [Google Groups].  You can join the list and interact via email, or just post from the web itself.
@@ -55,8 +57,8 @@ You can install multiple versions of GAM, GAMADV-X, GAMADV-XTD and GAMADV-XTD3 i
 [GitHub Releases]: https://github.com/taers232c/GAMADV-XTD3/releases
 [GitHub]: https://github.com/taers232c/GAMADV-XTD3/tree/master
 [GitHub Wiki]: https://github.com/jay0lee/GAM/wiki/
-[GitHub GAMADV-XTD Wiki]: https://github.com/taers232c/GAMADV-XTD/wiki/
-[Google Groups]: http://groups.google.com/group/google-apps-manager
+[GitHub GAMADV-XTD3 Wiki]: https://github.com/taers232c/GAMADV-XTD3/wiki/
+[Google Groups]: https://groups.google.com/group/google-apps-manager
 [Downloads]: https://github.com/taers232c/GAMADV-XTD3/wiki/Downloads
 [Configuration]: https://github.com/taers232c/GAMADV-XTD/wiki/gam.cfg
 [Install]: https://github.com/taers232c/GAMADV-XTD3/wiki/How-to-Install-Advanced-GAM
