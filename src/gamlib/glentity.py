@@ -92,7 +92,7 @@ class GamEntity(object):
   DOCUMENT = u'docu'
   DOMAIN = u'doma'
   DOMAIN_ALIAS = u'doal'
-  DRIVE_FILE = u'file'
+  DRIVE_FILE = u'dfil'
   DRIVE_FILE_ID = u'fili'
   DRIVE_FILE_NAME = u'filn'
   DRIVE_FILE_REVISION = u'filr'
