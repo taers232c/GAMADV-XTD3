@@ -29515,7 +29515,7 @@ def printShowFileTree(users):
     user, drive, jcount = _validateUserGetFileIDs(origUser, i, count, fileIdEntity, drive=drive, entityType=Ent.DRIVE_FILE_OR_FOLDER)
     if jcount == 0:
       continue
-    userInfo = {u'User': user, u'index': 0, u'depth': 0, VX_FILENAME: u''}
+    userInfo = {u'User': user, u'index': 0, u'depth': 0, fileNameTitle: u''}
     j = 0
     Ind.Increment()
     for fileId in fileIdEntity[u'list']:
