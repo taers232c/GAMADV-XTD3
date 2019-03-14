@@ -2035,11 +2035,13 @@ def stripUTF8_BOM(f):
 def readFile(filename, mode=u'r', continueOnError=False, displayError=True, encoding=None):
   try:
     if filename != u'-':
+      kwargs = {'encoding': GM.Globals[GM.SYS_ENCODING]} if u'b' not in mode else {}
+      
       if not encoding:
-        with open(os.path.expanduser(filename), mode, encoding=GM.Globals[GM.SYS_ENCODING]) as f:
+        with open(os.path.expanduser(filename), mode, **kwargs) as f:
           stripUTF8_BOM(f)
           return f.read()
-      with codecs.open(os.path.expanduser(filename), mode, encoding=encoding) as f:
+      with codecs.open(os.path.expanduser(filename), mode, **kwargs) as f:
 # codecs does not strip UTF-8 BOM (ef:bb:bf) so we must
         stripUTF8_BOM(f)
         return f.read()
