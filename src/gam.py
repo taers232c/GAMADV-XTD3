@@ -28772,8 +28772,8 @@ def printFileList(users):
   fileIdEntity = {}
   parentsSubFields = _initParentsSubFields()
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
   DLP = DriveListParameters()
+  FJQC = FormatJSONQuoteChar()
   kwargs = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -28825,7 +28825,7 @@ def printFileList(users):
     elif myarg == u'delimiter':
       delimiter = getCharacter()
     elif myarg == u'quotechar':
-      quotechar = getCharacter()
+      FJQC.quoteChar = getCharacter()
     elif myarg == u'corpora':
       onlyTeamDrives = _getCorpora(kwargs)
       getTeamDriveNames = True
@@ -29013,7 +29013,7 @@ def printFileList(users):
   writeCSVfile(csvRows, titles,
                u'{0} {1} Drive Files'.format(Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]),
                                              Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)),
-               todrive, [u'Owner', u'id', fileNameTitle], quotechar, filepath)
+               todrive, [u'Owner', u'id', fileNameTitle], FJQC.quoteChar, filepath)
 
 # gam <UserTypeEntity> print filepaths <DriveFileEntity> [todrive <ToDriveAttributes>*] [oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 # gam <UserTypeEntity> show filepaths <DriveFileEntity> (orderby <DriveFileOrderByFieldName> [ascending|descending])*
