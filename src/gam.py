@@ -2413,7 +2413,7 @@ def SetGlobalVariables():
   def _readGamCfgFile(config, fileName):
     try:
       with open(fileName, u'r') as f:
-        config.readfp(f)
+        config.read_file(f)
     except (configparser.MissingSectionHeaderError, configparser.ParsingError) as e:
       systemErrorExit(CONFIG_ERROR_RC, formatKeyValueList(u'',
                                                           [Ent.Singular(Ent.CONFIG_FILE), fileName,
