@@ -1466,12 +1466,14 @@ gam delete domain <DomainName>
 
 gam info domain [<DomainName>] [formatjson]
 gam print domains [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
+gam show domains [formatjson]
 
 gam create|add domainalias|aliasdomain <DomainAlias> <DomainName>
 gam delete domainalias|aliasdomain <DomainAlias>
 
-gam info domainalias|aliasdomain <DomainAlias>
-gam print domainaliases|aliasdomains [todrive <ToDriveAttribute>*]
+gam info domainalias|aliasdomain <DomainAlias> [formatjson]
+gam print domainaliases|aliasdomains [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
+gam show domainaliases|aliasdomains [formatjson]
 
 # Groups
 
@@ -2830,6 +2832,7 @@ gam <UserTypeEntity> claim ownership <DriveFileEntity> [includetrashed]
 gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>]
         [(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>]
         [targetuserorphansfoldername <DriveFolderName>]
+        [skipids <DriveFileEntity>]
         [keepuser | (retainrole reader|commenter|writer|editor|fileorganizer|none)] [noretentionmessages]
         [nonowner_retainrole reader|commenter|writer|editor|fileorganizer|current|none] [nonowner_targetrole reader|commenter|writer|editor|fileorganizer|current|none|source]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*

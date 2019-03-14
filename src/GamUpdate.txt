@@ -1,3 +1,17 @@
+4.65.74
+
+Added commands to show domains and domain aliases as an indented list of keys and values.
+gam show domains [formatjson]
+gam show domainaliases|aliasdomains [formatjson]
+
+Code cleanup to standardize handling of `formatjson` and `quotechar <Character>` options.
+
+Added `skipids <DriveFileEntity>` option to `gam transfer drive` to handle special cases where you want to prevent selected files from being transferred.
+
+4.65.73
+
+Added command `gam print filetree` to allow that data to be output as a CSV file.
+
 4.65.73
 
 Added command gam print filetree to allow that data to be output as a CSV file.

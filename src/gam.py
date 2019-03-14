@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.73'
+__version__ = u'4.65.74'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2035,13 +2035,12 @@ def stripUTF8_BOM(f):
 def readFile(filename, mode=u'r', continueOnError=False, displayError=True, encoding=None):
   try:
     if filename != u'-':
-      kwargs = {'encoding': GM.Globals[GM.SYS_ENCODING]} if u'b' not in mode else {}
-      
       if not encoding:
+        kwargs = {'encoding': GM.Globals[GM.SYS_ENCODING]} if u'b' not in mode else {}
         with open(os.path.expanduser(filename), mode, **kwargs) as f:
           stripUTF8_BOM(f)
           return f.read()
-      with codecs.open(os.path.expanduser(filename), mode, **kwargs) as f:
+      with codecs.open(os.path.expanduser(filename), mode, encoding=encoding) as f:
 # codecs does not strip UTF-8 BOM (ef:bb:bf) so we must
         stripUTF8_BOM(f)
         return f.read()
@@ -5047,6 +5046,37 @@ def showJSON(showName, showValue, skipObjects=None, timeObjects=None, dictObject
   dictObjectsKey = dictObjectsKey or {}
   _show(showName, showValue, None, 0)
 
+class FormatJSONQuoteChar():
+
+  def __init__(self, formatJSONOnly=False):
+    self.formatJSON = False
+    self.quoteChar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+    if not formatJSONOnly:
+      return
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if myarg == u'formatjson':
+        self.formatJSON = True
+        return
+      unknownArgumentExit()
+
+  def getFormatJSON(self, myarg):
+    if myarg == u'formatjson':
+      self.formatJSON = True
+      return
+    unknownArgumentExit()
+
+  def getFormatJSONQuoteChar(self, myarg, titles):
+    if myarg == u'formatjson':
+      self.formatJSON = True
+      if titles:
+        addTitlesToCSVfile(u'JSON', titles)
+      return
+    if myarg == u'quotechar':
+      self.quoteChar = getCharacter()
+      return
+    unknownArgumentExit()
+
 # Batch processing request_id fields
 RI_ENTITY = 0
 RI_I = 1
@@ -5628,7 +5658,7 @@ def _doList(entityList, entityType):
   else:
     keyField = u'Entity'
     dataField = u'Data'
-  titles, csvRows = initializeTitlesCSVfile([keyField])
+  titles, csvRows = initializeTitlesCSVfile(keyField)
   showData = checkArgumentPresent(u'data')
   if showData:
     if not entityType:
@@ -6256,7 +6286,7 @@ def _getLoginHintProjects(printShowCmd):
   login_hint = _getValidateLoginHint(login_hint)
   crm, httpObj = getCRMService(login_hint)
   if pfilter == u'current':
-    cs_data = readFile(GC.Values[GC.CLIENT_SECRETS_JSON], mode=u'rb', continueOnError=True, displayError=True, encoding=None)
+    cs_data = readFile(GC.Values[GC.CLIENT_SECRETS_JSON], continueOnError=True, displayError=True)
     if not cs_data:
       systemErrorExit(14, u'Your client secrets file: <{0}> is missing; please recreate the file.'.format(GC.Values[GC.CLIENT_SECRETS_JSON]))
     try:
@@ -6397,23 +6427,15 @@ def doPrintShowProjects():
   csvFormat = Act.csvFormat()
   if csvFormat:
     todrive = {}
-    sortTitles = [u'User', u'projectId', u'projectNumber', u'name', u'createTime', u'lifecycleState']
-  formatJSON = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+    titles, csvRows = initializeTitlesCSVfile(u'User')
+  FJQC = FormatJSONQuoteChar()
   if csvFormat:
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if csvFormat and myarg == u'todrive':
         todrive = getTodriveParameters()
-      elif myarg == u'formatjson':
-        formatJSON = True
-        sortTitles = [u'User', u'JSON']
-      elif myarg == u'quotechar':
-        quotechar = getCharacter()
       else:
-        unknownArgumentExit()
-  if csvFormat:
-    titles, csvRows = initializeTitlesCSVfile(sortTitles)
+        FJQC.getFormatJSONQuoteChar(myarg, titles if csvFormat else None)
   if not csvFormat:
     count = len(projects)
     entityPerformActionNumItems([Ent.USER, login_hint], count, Ent.PROJECT)
@@ -6443,13 +6465,16 @@ def doPrintShowProjects():
       Ind.Decrement()
     Ind.Decrement()
   else:
-    if not formatJSON:
+    if not FJQC.formatJSON:
+      addTitlesToCSVfile([u'projectId', u'projectNumber', u'name', u'createTime', u'lifecycleState'], titles)
+      sortTitles = titles[u'list'][:]
       for project in projects:
         addRowTitlesToCSVfile(flattenJSON(project, flattened={u'User': login_hint}, timeObjects=[u'createTime',]), csvRows, titles)
     else:
+      sortTitles = None
       for project in projects:
         csvRows.append({u'User': login_hint, u'JSON': json.dumps(cleanJSON(project, timeObjects=[u'createTime',]), ensure_ascii=False, sort_keys=True)})
-    writeCSVfile(csvRows, titles, u'Projects', todrive, sortTitles, quotechar=quotechar)
+    writeCSVfile(csvRows, titles, u'Projects', todrive, sortTitles, quotechar=FJQC.quoteChar)
 
 # gam whatis <EmailItem> [noinfo]
 def doWhatIs():
@@ -6973,7 +6998,7 @@ def doReport():
       csvRows.sort(key=lambda k: k[u'date'])
       writeCSVfile(csvRows, titles, u'User Reports Aggregate - {0}'.format(tryDate), todrive, sortTitles)
   elif customerReports:
-    titles, csvRows = initializeTitlesCSVfile([u'date',])
+    titles, csvRows = initializeTitlesCSVfile(u'date')
     if not userCustomerRange:
       addTitlesToCSVfile([u'name', u'value'], titles)
     authorizedApps = []
@@ -7901,7 +7926,10 @@ DOMAIN_TIME_OBJECTS = set([u'creationTime',])
 DOMAIN_ALIAS_PRINT_ORDER = [u'parentDomainName', u'creationTime', u'verified',]
 DOMAIN_ALIAS_SKIP_OBJECTS = set([u'domainAliasName',])
 
-def _showDomainAlias(alias, aliasSkipObjects):
+def _showDomainAlias(alias, FJQC, aliasSkipObjects, i=0, count=0):
+  if FJQC.formatJSON:
+    printLine(json.dumps(cleanJSON(alias, timeObjects=DOMAIN_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+    return
   printEntity([Ent.DOMAIN_ALIAS, alias[u'domainAliasName']])
   Ind.Increment()
   if u'creationTime' in alias:
@@ -7913,17 +7941,17 @@ def _showDomainAlias(alias, aliasSkipObjects):
   showJSON(None, alias, aliasSkipObjects)
   Ind.Decrement()
 
-# gam info domainalias|aliasdomain <DomainAlias>
+# gam info domainalias|aliasdomain <DomainAlias> [formatjson]
 def doInfoDomainAlias():
   cd = buildGAPIObject(API.DIRECTORY)
   domainAliasName = getString(Cmd.OB_DOMAIN_ALIAS)
-  checkForExtraneousArguments()
+  FJQC = FormatJSONQuoteChar(formatJSONOnly=True)
   try:
     result = callGAPI(cd.domainAliases(), u'get',
                       throw_reasons=[GAPI.DOMAIN_ALIAS_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                       customer=GC.Values[GC.CUSTOMER_ID], domainAliasName=domainAliasName)
     aliasSkipObjects = DOMAIN_ALIAS_SKIP_OBJECTS
-    _showDomainAlias(result, aliasSkipObjects)
+    _showDomainAlias(result, FJQC, aliasSkipObjects)
   except GAPI.domainAliasNotFound:
     entityActionFailedWarning([Ent.DOMAIN_ALIAS, domainAliasName], Msg.DOES_NOT_EXIST)
   except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
@@ -7941,26 +7969,43 @@ def _printDomain(domain, titles, csvRows):
         addTitleToCSVfile(attr, titles)
   csvRows.append(row)
 
-# gam print domainaliases [todrive <ToDriveAttributes>*]
-def doPrintDomainAliases():
+# gam print domainaliases [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
+# gam show domainaliases [formatjson]
+def doPrintShowDomainAliases():
   cd = buildGAPIObject(API.DIRECTORY)
-  todrive = {}
-  titles, csvRows = initializeTitlesCSVfile([u'domainAliasName',])
+  FJQC = FormatJSONQuoteChar()
+  csvFormat = Act.csvFormat()
+  if csvFormat:
+    todrive = {}
+    titles, csvRows = initializeTitlesCSVfile(u'domainAliasName')
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == u'todrive':
+    if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, titles if csvFormat else None)
   try:
     domainAliases = callGAPIitems(cd.domainAliases(), u'list', u'domainAliases',
                                   throw_reasons=[GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                                   customer=GC.Values[GC.CUSTOMER_ID])
+    count = len(domainAliases)
+    i = 0
     for domainAlias in domainAliases:
-      _printDomain(domainAlias, titles, csvRows)
+      i += 1
+      if not csvFormat:
+        aliasSkipObjects = DOMAIN_ALIAS_SKIP_OBJECTS
+        _showDomainAlias(domainAlias, FJQC, aliasSkipObjects, i, count)
+      else:
+        if FJQC.formatJSON:
+          csvRows.append({u'domainAliasName': domainAlias[u'domainAliasName'],
+                          u'JSON': json.dumps(cleanJSON(domainAlias, timeObjects=DOMAIN_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
+        else:
+          _printDomain(domainAlias, titles, csvRows)
   except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
     accessErrorExit(cd)
-  writeCSVfile(csvRows, titles, u'Domain Aliases', todrive, [u'domainAliasName', u'parentDomainName', u'creationTime', u'verified'])
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'Domain Aliases', todrive,
+                 [u'domainAliasName', u'parentDomainName', u'creationTime', u'verified'], quotechar=FJQC.quoteChar)
 
 # gam create domain <DomainName>
 def doCreateDomain():
@@ -7992,12 +8037,12 @@ def doUpdateDomain():
     missingArgumentExit(u'primary')
   try:
     callGAPI(cd.customers(), u'update',
-             throw_reasons=[GAPI.DOMAIN_NOT_VERIFIED_SECONDARY, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+             throw_reasons=[GAPI.DOMAIN_NOT_VERIFIED_SECONDARY, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID_INPUT],
              customerKey=GC.Values[GC.CUSTOMER_ID], body=body, fields=u'')
     entityActionPerformedMessage([Ent.DOMAIN, domainName], Msg.NOW_THE_PRIMARY_DOMAIN)
   except GAPI.domainNotVerifiedSecondary:
     entityActionFailedWarning([Ent.DOMAIN, domainName], Msg.DOMAIN_NOT_VERIFIED_SECONDARY)
-  except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+  except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden, GAPI.invalidInput):
     accessErrorExit(cd)
 
 # gam delete domain <DomainName>
@@ -8023,7 +8068,7 @@ CUSTOMER_LICENSE_MAP = {
   u'accounts:gsuite_unlimited_used_licenses': u'G Suite Business Users'
   }
 
-def _showCustomerLicenseInfo(customerInfo, formatJSON):
+def _showCustomerLicenseInfo(customerInfo, FJQC):
   rep = buildGAPIObject(API.REPORTS)
   parameters = u','.join(CUSTOMER_LICENSE_MAP)
   tryDate = todaysDate().strftime(YYYYMMDD_FORMAT)
@@ -8041,18 +8086,18 @@ def _showCustomerLicenseInfo(customerInfo, formatJSON):
     except GAPI.forbidden:
       accessErrorExit(None)
   if usage:
-    if not formatJSON:
+    if not FJQC.formatJSON:
       printKeyValueList([u'User counts as of {0}:'.format(tryDate)])
       Ind.Increment()
     for item in usage[0][u'parameters']:
       api_name = CUSTOMER_LICENSE_MAP.get(item[u'name'])
       api_value = int(item.get(u'intValue', u'0'))
       if api_name and api_value:
-        if not formatJSON:
+        if not FJQC.formatJSON:
           printKeyValueList([api_name, u'{:,}'.format(api_value)])
         else:
           customerInfo[item[u'name']] = api_value
-    if not formatJSON:
+    if not FJQC.formatJSON:
       Ind.Decrement()
   else:
     printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_USER_COUNTS_DATA_AVAILABLE)
@@ -8060,23 +8105,18 @@ def _showCustomerLicenseInfo(customerInfo, formatJSON):
 CUSTOMER_TIME_OBJECTS = set([u'customerCreationTime',])
 
 # gam info customer [formatjson]
-def doInfoCustomer(returnCustomerInfo=None):
+def doInfoCustomer(returnCustomerInfo=None, FJQC=None):
   cd = buildGAPIObject(API.DIRECTORY)
-  formatJSON = returnCustomerInfo is not None
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == u'formatjson':
-      formatJSON = True
-    else:
-      unknownArgumentExit()
+  if FJQC is None:
+    FJQC = FormatJSONQuoteChar(formatJSONOnly=True)
   try:
     customerInfo = callGAPI(cd.customers(), u'get',
                             throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                             customerKey=GC.Values[GC.CUSTOMER_ID])
     customerInfo[u'verified'] = callGAPI(cd.domains(), u'get',
                                          customer=customerInfo[u'id'], domainName=customerInfo[u'customerDomain'], fields=u'verified')[u'verified']
-    if formatJSON:
-      _showCustomerLicenseInfo(customerInfo, True)
+    if FJQC.formatJSON:
+      _showCustomerLicenseInfo(customerInfo, FJQC)
       if returnCustomerInfo is not None:
         returnCustomerInfo.update(customerInfo)
         return
@@ -8089,7 +8129,7 @@ def doInfoCustomer(returnCustomerInfo=None):
     printKeyValueList([u'Default Language', customerInfo.get(u'language', u'Unset (defaults to en)')])
     _showCustomerAddressPhoneNumber(customerInfo)
     printKeyValueList([u'Admin Secondary Email', customerInfo[u'alternateEmail']])
-    _showCustomerLicenseInfo(customerInfo, False)
+    _showCustomerLicenseInfo(customerInfo, FJQC)
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
     accessErrorExit(cd)
 
@@ -8130,21 +8170,38 @@ def doUpdateCustomer():
 
 # gam info instance [formatjson]
 def doInfoInstance():
-  formatJSON = False
-  customerInfo = None
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == u'formatjson':
-      formatJSON = True
-      customerInfo = {}
-    else:
-      unknownArgumentExit()
-  doInfoCustomer(customerInfo)
-  if formatJSON:
+  FJQC = FormatJSONQuoteChar(formatJSONOnly=True)
+  customerInfo = None if not FJQC.formatJSON else {}
+  doInfoCustomer(customerInfo, FJQC)
+  if FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(customerInfo, timeObjects=CUSTOMER_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
 
 DOMAIN_PRINT_ORDER = [u'customerDomain', u'creationTime', u'isPrimary', u'verified',]
 DOMAIN_SKIP_OBJECTS = set([u'domainName', u'domainAliases'])
+
+def _showDomain(result, FJQC, i=0, count=0):
+  if FJQC.formatJSON:
+    printLine(json.dumps(cleanJSON(result, timeObjects=DOMAIN_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+    return
+  skipObjects = DOMAIN_SKIP_OBJECTS
+  printEntity([Ent.DOMAIN, result[u'domainName']], i, count)
+  Ind.Increment()
+  if u'creationTime' in result:
+    result[u'creationTime'] = formatLocalTimestamp(result[u'creationTime'])
+  for field in DOMAIN_PRINT_ORDER:
+    if field in result:
+      printKeyValueList([field, result[field]])
+      skipObjects.add(field)
+  field = u'domainAliases'
+  aliases = result.get(field)
+  if aliases:
+    skipObjects.add(field)
+    aliasSkipObjects = DOMAIN_ALIAS_SKIP_OBJECTS
+    for alias in aliases:
+      _showDomainAlias(alias, False, aliasSkipObjects)
+      showJSON(None, alias, aliasSkipObjects)
+  showJSON(None, result, skipObjects)
+  Ind.Decrement()
 
 # gam info domain [<DomainName>] [formatjson]
 def doInfoDomain():
@@ -8153,81 +8210,59 @@ def doInfoDomain():
     return
   cd = buildGAPIObject(API.DIRECTORY)
   domainName = getString(Cmd.OB_DOMAIN_NAME)
-  formatJSON = False
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == u'formatjson':
-      formatJSON = True
-    else:
-      unknownArgumentExit()
+  FJQC = FormatJSONQuoteChar(formatJSONOnly=True)
   try:
     result = callGAPI(cd.domains(), u'get',
                       throw_reasons=[GAPI.DOMAIN_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                       customer=GC.Values[GC.CUSTOMER_ID], domainName=domainName)
-    if formatJSON:
-      printLine(json.dumps(cleanJSON(result, timeObjects=DOMAIN_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
-      return
-    skipObjects = DOMAIN_SKIP_OBJECTS
-    printEntity([Ent.DOMAIN, result[u'domainName']])
-    Ind.Increment()
-    if u'creationTime' in result:
-      result[u'creationTime'] = formatLocalTimestamp(result[u'creationTime'])
-    for field in DOMAIN_PRINT_ORDER:
-      if field in result:
-        printKeyValueList([field, result[field]])
-        skipObjects.add(field)
-    field = u'domainAliases'
-    aliases = result.get(field)
-    if aliases:
-      skipObjects.add(field)
-      aliasSkipObjects = DOMAIN_ALIAS_SKIP_OBJECTS
-      for alias in aliases:
-        _showDomainAlias(alias, aliasSkipObjects)
-        showJSON(None, alias, aliasSkipObjects)
-    showJSON(None, result, skipObjects)
-    Ind.Decrement()
+    _showDomain(result, FJQC)
   except GAPI.domainNotFound:
     entityActionFailedWarning([Ent.DOMAIN, domainName], Msg.DOES_NOT_EXIST)
   except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
     accessErrorExit(cd)
 
 # gam print domains [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
-def doPrintDomains():
+# gam show domains [formatjson]
+def doPrintShowDomains():
   cd = buildGAPIObject(API.DIRECTORY)
-  formatJSON = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
-  todrive = {}
-  titles, csvRows = initializeTitlesCSVfile([u'domainName',])
+  FJQC = FormatJSONQuoteChar()
+  csvFormat = Act.csvFormat()
+  if csvFormat:
+    todrive = {}
+    titles, csvRows = initializeTitlesCSVfile(u'domainName')
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == u'todrive':
+    if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
-    elif myarg == "formatjson":
-      formatJSON = True
-      addTitlesToCSVfile(u'JSON', titles)
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, titles if csvFormat else None)
   try:
     domains = callGAPIitems(cd.domains(), u'list', u'domains',
                             throw_reasons=[GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                             customer=GC.Values[GC.CUSTOMER_ID])
+    count = len(domains)
+    i = 0
     for domain in domains:
-      if formatJSON:
-        csvRows.append({u'domainName': domain[u'domainName'],
-                        u'JSON': json.dumps(cleanJSON(domain, timeObjects=DOMAIN_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
-        continue
-      domain[u'type'] = [u'secondary', u'primary'][domain.pop(u'isPrimary')]
-      domainAliases = domain.pop(u'domainAliases', [])
-      _printDomain(domain, titles, csvRows)
-      for domainAlias in domainAliases:
-        domainAlias[u'type'] = u'alias'
-        domainAlias[u'domainName'] = domainAlias.pop(u'domainAliasName')
-        _printDomain(domainAlias, titles, csvRows)
+      i += 1
+      if not csvFormat:
+        _showDomain(domain, FJQC, i, count)
+      else:
+        if FJQC.formatJSON:
+          csvRows.append({u'domainName': domain[u'domainName'],
+                          u'JSON': json.dumps(cleanJSON(domain, timeObjects=DOMAIN_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
+          continue
+        domain[u'type'] = [u'secondary', u'primary'][domain.pop(u'isPrimary')]
+        domainAliases = domain.pop(u'domainAliases', [])
+        _printDomain(domain, titles, csvRows)
+        for domainAlias in domainAliases:
+          domainAlias[u'type'] = u'alias'
+          domainAlias[u'domainName'] = domainAlias.pop(u'domainAliasName')
+          _printDomain(domainAlias, titles, csvRows)
   except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
     accessErrorExit(cd)
-  writeCSVfile(csvRows, titles, u'Domains', todrive, quotechar=quotechar)
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'Domains', todrive,
+                 [u'domainName', u'parentDomainName', u'creationTime', u'type', u'verified'], quotechar=FJQC.quoteChar)
 
 PRINT_PRIVILEGES_FIELDS = [u'serviceId', u'serviceName', u'privilegeName', u'isOuScopable', u'childPrivileges']
 
@@ -8669,7 +8704,7 @@ def doPrintShowDataTransfers():
   csvFormat = Act.csvFormat()
   if csvFormat:
     todrive = {}
-    titles, csvRows = initializeTitlesCSVfile([u'id',])
+    titles, csvRows = initializeTitlesCSVfile(u'id')
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -11497,8 +11532,8 @@ def doDeleteDomainContacts():
 CONTACT_TIME_OBJECTS = set([CONTACT_UPDATED])
 CONTACT_FIELDS_WITH_CRS_NLS = [CONTACT_NOTES, CONTACT_BILLING_INFORMATION]
 
-def _showContact(contactsManager, fields, displayFieldsList, contactGroupIDs, j, jcount, formatJSON):
-  if formatJSON:
+def _showContact(contactsManager, fields, displayFieldsList, contactGroupIDs, j, jcount, FJQC):
+  if FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(fields, timeObjects=CONTACT_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
     return
   printEntity([Ent.CONTACT, fields[CONTACT_ID]], j, jcount)
@@ -11578,7 +11613,8 @@ def _infoContacts(users, entityType, contactFeed=True):
   entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
   contactIdLists = entityList if isinstance(entityList, dict) else None
   contactQuery = _initContactQueryAttributes()
-  formatJSON = showContactGroups = False
+  showContactGroups = False
+  FJQC = FormatJSONQuoteChar()
   displayFieldsList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -11590,10 +11626,8 @@ def _infoContacts(users, entityType, contactFeed=True):
       _getContactFieldsList(contactsManager, displayFieldsList)
       if CONTACT_GROUPS in displayFieldsList:
         showContactGroups = True
-    elif myarg == u'formatjson':
-      formatJSON = True
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSON(myarg)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -11605,7 +11639,7 @@ def _infoContacts(users, entityType, contactFeed=True):
     contactGroupIDs = None
     j = 0
     jcount = len(entityList)
-    if not formatJSON:
+    if not FJQC.formatJSON:
       entityPerformActionNumItems([entityType, user], jcount, Ent.CONTACT, i, count)
     if jcount == 0:
       setSysExitRC(NO_ENTITIES_FOUND)
@@ -11624,7 +11658,7 @@ def _infoContacts(users, entityType, contactFeed=True):
         fields = contactsManager.ContactToFields(contact)
         if showContactGroups and CONTACT_GROUPS in fields and not contactGroupIDs:
           contactGroupIDs, _ = getContactGroupsInfo(contactsManager, contactsObject, entityType, user, i, count)
-        _showContact(contactsManager, fields, displayFieldsList, [None, contactGroupIDs][showContactGroups], j, jcount, formatJSON)
+        _showContact(contactsManager, fields, displayFieldsList, [None, contactGroupIDs][showContactGroups], j, jcount, FJQC)
       except (GDATA.notFound, GDATA.badRequest, GDATA.forbidden, GDATA.notImplemented, GDATA.internalServerError) as e:
         entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId], str(e), j, jcount)
       except GDATA.serviceNotApplicable:
@@ -11657,8 +11691,8 @@ def _printShowContacts(users, entityType, contactFeed=True):
     todrive = {}
     titles, csvRows = initializeTitlesCSVfile([Ent.Singular(entityType), CONTACT_ID, CONTACT_NAME])
   contactQuery = _initContactQueryAttributes()
-  formatJSON = showContactGroups = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  showContactGroups = False
+  FJQC = FormatJSONQuoteChar()
   displayFieldsList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -11670,14 +11704,10 @@ def _printShowContacts(users, entityType, contactFeed=True):
       _getContactFieldsList(contactsManager, displayFieldsList)
       if contactFeed and CONTACT_GROUPS in displayFieldsList:
         showContactGroups = True
-    elif myarg == u'formatjson':
-      formatJSON = True
-      if csvFormat:
-        addTitlesToCSVfile(u'JSON', titles)
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
+    elif _getContactQueryAttributes(contactQuery, myarg, entityType, False, True):
+      pass
     else:
-      _getContactQueryAttributes(contactQuery, myarg, entityType, True, True)
+      FJQC.getFormatJSONQuoteChar(myarg, titles if csvFormat else None)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -11697,7 +11727,7 @@ def _printShowContacts(users, entityType, contactFeed=True):
       continue
     jcount = len(contacts)
     if not csvFormat:
-      if not formatJSON:
+      if not FJQC.formatJSON:
         entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, Ent.CONTACT, i, count)
       Ind.Increment()
       j = 0
@@ -11708,7 +11738,7 @@ def _printShowContacts(users, entityType, contactFeed=True):
           continue
         if showContactGroups and CONTACT_GROUPS in fields and not contactGroupIDs:
           contactGroupIDs, _ = getContactGroupsInfo(contactsManager, contactsObject, entityType, user, i, count)
-        _showContact(contactsManager, fields, displayFieldsList, [None, contactGroupIDs][showContactGroups], j, jcount, formatJSON)
+        _showContact(contactsManager, fields, displayFieldsList, [None, contactGroupIDs][showContactGroups], j, jcount, FJQC)
       Ind.Decrement()
     elif contacts:
       for contact in contacts:
@@ -11717,7 +11747,7 @@ def _printShowContacts(users, entityType, contactFeed=True):
           continue
         if showContactGroups and CONTACT_GROUPS in fields and not contactGroupIDs:
           contactGroupIDs, _ = getContactGroupsInfo(contactsManager, contactsObject, entityType, user, i, count)
-        if formatJSON:
+        if FJQC.formatJSON:
           csvRows.append({Ent.Singular(entityType): user, CONTACT_ID: fields[CONTACT_ID], CONTACT_NAME: fields.get(CONTACT_NAME, u''),
                           u'JSON': json.dumps(cleanJSON(fields, timeObjects=CONTACT_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
           continue
@@ -11783,7 +11813,7 @@ def _printShowContacts(users, entityType, contactFeed=True):
     elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT] and entityType == Ent.USER:
       csvRows.append({Ent.Singular(entityType): user})
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'Contacts', todrive, [Ent.Singular(entityType), CONTACT_ID, CONTACT_NAME], quotechar=quotechar)
+    writeCSVfile(csvRows, titles, u'Contacts', todrive, [Ent.Singular(entityType), CONTACT_ID, CONTACT_NAME], quotechar=FJQC.quoteChar)
 
 # gam <UserTypeEntity> print contacts [todrive <ToDriveAttribute>*] <UserContactSelection>
 #	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
@@ -12114,9 +12144,9 @@ def deleteUserContactGroups(users):
 
 CONTACT_GROUP_TIME_OBJECTS = set([CONTACT_GROUP_UPDATED])
 
-def _showContactGroup(contactsManager, group, j, jcount, formatJSON):
+def _showContactGroup(contactsManager, group, j, jcount, FJQC):
   fields = contactsManager.ContactGroupToFields(group)
-  if formatJSON:
+  if FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(fields, timeObjects=CONTACT_GROUP_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
     return
   printEntity([Ent.CONTACT_GROUP, fields[CONTACT_GROUP_NAME]], j, jcount)
@@ -12132,13 +12162,7 @@ def infoUserContactGroups(users):
   entityType = Ent.USER
   entityList = getEntityList(Cmd.OB_CONTACT_GROUP_ENTITY, shlexSplit=True)
   contactGroupIdLists = entityList if isinstance(entityList, dict) else None
-  formatJSON = False
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == u'formatjson':
-      formatJSON = True
-    else:
-      unknownArgumentExit()
+  FJQC = FormatJSONQuoteChar(formatJSONOnly=True)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -12150,7 +12174,7 @@ def infoUserContactGroups(users):
     contactGroupIDs = contactGroupNames = None
     j = 0
     jcount = len(entityList)
-    if not formatJSON:
+    if not FJQC.formatJSON:
       entityPerformActionNumItems([entityType, user], jcount, Ent.CONTACT_GROUP, i, count)
     if jcount == 0:
       setSysExitRC(NO_ENTITIES_FOUND)
@@ -12170,7 +12194,7 @@ def infoUserContactGroups(users):
                           throw_errors=[GDATA.NOT_FOUND, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
                           retry_errors=[GDATA.INTERNAL_SERVER_ERROR],
                           uri=contactsObject.GetContactGroupFeedUri(contact_list=user, groupId=groupId))
-        _showContactGroup(contactsManager, group, j, jcount, formatJSON)
+        _showContactGroup(contactsManager, group, j, jcount, FJQC)
       except GDATA.notFound as e:
         entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactGroup], str(e), j, jcount)
       except GDATA.forbidden:
@@ -12195,8 +12219,7 @@ def printShowUserContactGroups(users):
     titles, csvRows = initializeTitlesCSVfile([Ent.Singular(entityType), CONTACT_GROUP_ID, CONTACT_GROUP_NAME])
   projection = u'full'
   url_params = {u'max-results': str(GC.Values[GC.CONTACT_MAX_RESULTS])}
-  formatJSON = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
@@ -12209,14 +12232,8 @@ def printShowUserContactGroups(users):
       url_params[u'showdeleted'] = u'true'
     elif myarg == u'updatedmin':
       url_params[u'updated-min'] = getYYYYMMDD()
-    elif myarg == u'formatjson':
-      formatJSON = True
-      if csvFormat:
-        addTitlesToCSVfile(u'JSON', titles)
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, titles if csvFormat else None)
   contactsManager = ContactsManager()
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -12234,19 +12251,19 @@ def printShowUserContactGroups(users):
                               uri=uri, url_params=url_params)
       jcount = len(groups)
       if not csvFormat:
-        if not formatJSON:
+        if not FJQC.formatJSON:
           entityPerformActionNumItems([Ent.USER, user], jcount, Ent.CONTACT_GROUP, i, count)
         Ind.Increment()
         j = 0
         for group in groups:
           j += 1
-          _showContactGroup(contactsManager, group, j, jcount, formatJSON)
+          _showContactGroup(contactsManager, group, j, jcount, FJQC)
         Ind.Decrement()
       else:
         if groups:
           for group in groups:
             fields = contactsManager.ContactGroupToFields(group)
-            if formatJSON:
+            if FJQC.formatJSON:
               csvRows.append({Ent.Singular(entityType): user, CONTACT_GROUP_ID: u'id:{0}'.format(fields[CONTACT_GROUP_ID]),
                               CONTACT_GROUP_NAME: fields[CONTACT_GROUP_NAME],
                               u'JSON': json.dumps(cleanJSON(fields, timeObjects=CONTACT_GROUP_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
@@ -12260,7 +12277,7 @@ def printShowUserContactGroups(users):
     except GDATA.serviceNotApplicable:
       entityUnknownWarning(entityType, user, i, count)
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'Contact Groups', todrive, quotechar=quotechar)
+    writeCSVfile(csvRows, titles, u'Contact Groups', todrive, quotechar=FJQC.quoteChar)
 
 # CrOS commands utilities
 def getCrOSDeviceEntity():
@@ -12520,7 +12537,8 @@ def infoCrOSDevices(entityList):
   targetFolder = GC.Values[GC.DRIVE_DIR]
   projection = None
   fieldsList = []
-  formatJSON = noLists = False
+  FJQC = FormatJSONQuoteChar()
+  noLists = False
   listLimit = 0
   startDate = endDate = startTime = endTime = None
   while Cmd.ArgumentsRemaining():
@@ -12566,10 +12584,8 @@ def infoCrOSDevices(entityList):
       targetFolder = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
       if not os.path.isdir(targetFolder):
         os.makedirs(targetFolder)
-    elif myarg == "formatjson":
-      formatJSON = True
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSON(myarg)
   if downloadfile and fieldsList:
     fieldsList.append(u'deviceFiles.downloadUrl')
   fields = u','.join(set(fieldsList)).replace(u'.', u'/') if fieldsList else None
@@ -12584,7 +12600,7 @@ def infoCrOSDevices(entityList):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.CROS_DEVICE, deviceId, i, count)
       continue
     _checkTPMVulnerability(cros)
-    if formatJSON:
+    if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(cros, timeObjects=CROS_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
       continue
     printEntity([Ent.CROS_DEVICE, deviceId], i, count)
@@ -12882,7 +12898,7 @@ def doPrintCrOSDevices(entityList=None):
 
   def _printCrOS(cros):
     _checkTPMVulnerability(cros)
-    if formatJSON:
+    if FJQC.formatJSON:
       csvRows.append({u'deviceId': cros[u'deviceId'],
                       u'JSON': json.dumps(cleanJSON(cros, listLimit=listLimit, timeObjects=CROS_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
       return
@@ -12973,12 +12989,12 @@ def doPrintCrOSDevices(entityList=None):
   addFieldToCSVfile(u'deviceId', CROS_FIELDS_CHOICE_MAP, fieldsList, titles)
   orgUnitPath = projection = orderBy = sortOrder = None
   queries = [None]
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
   listLimit = 0
   startDate = endDate = startTime = endTime = None
   selectedLists = {}
   queryTimes = {}
-  formatJSON = noLists = sortHeaders = False
+  noLists = sortHeaders = False
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
@@ -13028,12 +13044,8 @@ def doPrintCrOSDevices(entityList=None):
             addFieldToFieldsList(field, CROS_FIELDS_CHOICE_MAP, fieldsList)
         else:
           invalidChoiceExit(CROS_FIELDS_CHOICE_MAP, True)
-    elif myarg == "formatjson":
-      formatJSON = True
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, None)
   if selectedLists:
     noLists = False
     projection = u'FULL'
@@ -13042,7 +13054,7 @@ def doPrintCrOSDevices(entityList=None):
   if fieldsList:
     fieldsList.append(u'deviceId')
   _, _, entityList = getEntityArgument(entityList)
-  if formatJSON:
+  if FJQC.formatJSON:
     sortHeaders = False
     titles, csvRows = initializeTitlesCSVfile([u'deviceId', u'JSON'])
   if entityList is None:
@@ -13108,7 +13120,7 @@ def doPrintCrOSDevices(entityList=None):
         _printCrOS({u'deviceId': cros})
   if sortRows and orderBy and orderBy in titles[u'set']:
     csvRows.sort(key=lambda k: k[orderBy], reverse=sortOrder == u'DESCENDING')
-  writeCSVfile(csvRows, titles, u'CrOS', todrive, [u'deviceId',] if sortHeaders else None, quotechar)
+  writeCSVfile(csvRows, titles, u'CrOS', todrive, [u'deviceId',] if sortHeaders else None, FJQC.quoteChar)
 
 CROS_ACTIVITY_TIME_OBJECTS = set([u'createTime',])
 
@@ -13124,7 +13136,7 @@ CROS_ACTIVITY_TIME_OBJECTS = set([u'createTime',])
 def doPrintCrOSActivity(entityList=None):
   def _printCrOS(cros):
     row = {}
-    if formatJSON:
+    if FJQC.formatJSON:
       csvRows.append({u'deviceId': cros[u'deviceId'],
                       u'JSON': json.dumps(cleanJSON(cros, timeObjects=CROS_ACTIVITY_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
       return
@@ -13174,11 +13186,11 @@ def doPrintCrOSActivity(entityList=None):
   projection = u'FULL'
   orgUnitPath = orderBy = sortOrder = None
   queries = [None]
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
   listLimit = 0
   startDate = endDate = startTime = endTime = None
   queryTimes = {}
-  formatJSON = selectActiveTimeRanges = selectDeviceFiles = selectRecentUsers = False
+  selectActiveTimeRanges = selectDeviceFiles = selectRecentUsers = False
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
@@ -13211,12 +13223,8 @@ def doPrintCrOSActivity(entityList=None):
       orderBy, sortOrder = getOrderBySortOrder(CROS_ORDERBY_CHOICE_MAP)
     elif myarg == u'delimiter':
       delimiter = getCharacter()
-    elif myarg == "formatjson":
-      formatJSON = True
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, None)
   if not selectActiveTimeRanges and not selectDeviceFiles and not selectRecentUsers:
     selectActiveTimeRanges = selectRecentUsers = True
   if selectRecentUsers:
@@ -13229,7 +13237,7 @@ def doPrintCrOSActivity(entityList=None):
     fieldsList.append(u'deviceFiles')
     addTitlesToCSVfile([u'deviceFiles.type', u'deviceFiles.createTime'], titles)
   _, _, entityList = getEntityArgument(entityList)
-  if formatJSON:
+  if FJQC.formatJSON:
     titles, csvRows = initializeTitlesCSVfile([u'deviceId', u'JSON'])
   if entityList is None:
     sortRows = False
@@ -13289,7 +13297,7 @@ def doPrintCrOSActivity(entityList=None):
       dbatch.execute()
   if sortRows and orderBy and orderBy in titles[u'set']:
     csvRows.sort(key=lambda k: k[orderBy], reverse=sortOrder == u'DESCENDING')
-  writeCSVfile(csvRows, titles, u'CrOS Activity', todrive, None, quotechar)
+  writeCSVfile(csvRows, titles, u'CrOS Activity', todrive, None, FJQC.quoteChar)
 
 # gam <CrOSTypeEntity> print [cros|croses|crosactivity]
 def doPrintCrOSEntity(entityList):
@@ -13440,20 +13448,21 @@ def _getMobileFieldsArguments(myarg, parameters):
   elif getFieldsList(myarg, MOBILE_FIELDS_CHOICE_MAP, parameters[u'fieldsList'], u'resourceId'):
     pass
   else:
-    unknownArgumentExit()
+    return False
+  return True
 
 # gam info mobile|mobiles <MobileDeviceEntity>
 #	[basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>] [formatjson]
 def doInfoMobileDevices():
   entityList, cd = getMobileDeviceEntity()
   parameters = _initMobileFieldsParameters()
-  formatJSON = False
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == "formatjson":
-      formatJSON = True
+    if _getMobileFieldsArguments(myarg, parameters):
+      pass
     else:
-      _getMobileFieldsArguments(myarg, parameters)
+      FJQC.getFormatJSON(myarg)
   fields = u','.join(set(parameters[u'fieldsList'])) if parameters[u'fieldsList'] else None
   i = 0
   count = len(entityList)
@@ -13463,7 +13472,7 @@ def doInfoMobileDevices():
       mobile = callGAPI(cd.mobiledevices(), u'get',
                         bailOnInternalError=True, throw_reasons=[GAPI.INTERNAL_ERROR, GAPI.RESOURCE_ID_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                         customerId=GC.Values[GC.CUSTOMER_ID], resourceId=resourceId, projection=parameters[u'projection'], fields=fields)
-      if formatJSON:
+      if FJQC.formatJSON:
         printLine(json.dumps(cleanJSON(mobile, timeObjects=MOBILE_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
       else:
         printEntity([Ent.MOBILE_DEVICE, resourceId], i, count)
@@ -13493,7 +13502,7 @@ MOBILE_ORDERBY_CHOICE_MAP = {
 #	[delimiter <Character>] [appslimit <Number>] [listlimit <Number>] [formatjson] [quotechar <Character>]
 def doPrintMobileDevices():
   def _printMobile(mobile):
-    if formatJSON:
+    if FJQC.formatJSON:
       csvRows.append({u'resourceId': mobile[u'resourceId'],
                       u'JSON': json.dumps(cleanJSON(mobile, listLimit=listLimit, skipObjects=DEFAULT_SKIP_OBJECTS, timeObjects=MOBILE_TIME_OBJECTS),
                                           ensure_ascii=False, sort_keys=True)})
@@ -13537,13 +13546,12 @@ def doPrintMobileDevices():
   cd = buildGAPIObject(API.DIRECTORY)
   todrive = {}
   parameters = _initMobileFieldsParameters()
-  titles, csvRows = initializeTitlesCSVfile([u'resourceId',])
+  titles, csvRows = initializeTitlesCSVfile(u'resourceId')
   orderBy = sortOrder = None
   queryTimes = {}
   queries = [None]
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
-  formatJSON = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  FJQC = FormatJSONQuoteChar()
   listLimit = 1
   appsLimit = -1
   while Cmd.ArgumentsRemaining():
@@ -13562,17 +13570,14 @@ def doPrintMobileDevices():
       listLimit = getInteger(minVal=-1)
     elif myarg == u'appslimit':
       appsLimit = getInteger(minVal=-1)
-    elif myarg == "formatjson":
-      formatJSON = True
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
+    elif _getMobileFieldsArguments(myarg, parameters):
+      pass
     else:
-      _getMobileFieldsArguments(myarg, parameters)
-  if formatJSON:
-    sortTitles = [u'resourceId', u'JSON']
-    titles, csvRows = initializeTitlesCSVfile(sortTitles)
-  else:
+      FJQC.getFormatJSONQuoteChar(myarg, titles)
+  if not FJQC.formatJSON:
     sortTitles = [u'resourceId', u'deviceId', u'serialNumber', u'name', u'email', u'status']
+  else:
+    sortTitles = None
   if appsLimit >= 0:
     parameters[u'projection'] = u'FULL'
   fields = u'nextPageToken,mobiledevices({0})'.format(u','.join(parameters[u'fieldsList'])) if parameters[u'fieldsList'] else None
@@ -13605,7 +13610,7 @@ def doPrintMobileDevices():
         _finalizeGAPIpagesResult(page_message)
         printGotAccountEntities(totalItems)
         break
-  writeCSVfile(csvRows, titles, u'Mobile', todrive, sortTitles, quotechar)
+  writeCSVfile(csvRows, titles, u'Mobile', todrive, sortTitles, FJQC.quoteChar)
 
 COLLABORATIVE_ACL_ATTRIBUTES = [
   u'whoCanAddReferences',
@@ -14396,7 +14401,7 @@ def infoGroups(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
   getAliases = getUsers = True
   getGroups = getSettings = False
-  formatJSON = False
+  FJQC = FormatJSONQuoteChar()
   groups = []
   members = []
   cdfieldsList = gsfieldsList = isSuspended = None
@@ -14454,10 +14459,8 @@ def infoGroups(entityList):
     elif myarg in INFO_USER_OPTIONS:
       if myarg == u'schemas':
         getString(Cmd.OB_SCHEMA_NAME_LIST)
-    elif myarg == "formatjson":
-      formatJSON = True
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSON(myarg)
   cdfields = u','.join(set(cdfieldsList)) if cdfieldsList else None
   memberRoles = u','.join(sorted(rolesSet)) if rolesSet else None
   if gsfieldsList is None:
@@ -14502,7 +14505,7 @@ def infoGroups(entityList):
         for member in result:
           if _checkMemberRoleIsSuspended(member, validRoles, isSuspended):
             members.append(member)
-      if formatJSON:
+      if FJQC.formatJSON:
         basic_info.update(settings)
         if getGroups:
           basic_info[u'groups'] = groups
@@ -14650,7 +14653,7 @@ def doPrintGroups():
           return
         if match[u'values'] and gvalue not in match[u'values']:
           return
-    if formatJSON:
+    if FJQC.formatJSON:
       row[u'Email'] = groupEntity[u'email']
       row[u'JSON'] = json.dumps(groupEntity, ensure_ascii=False, sort_keys=True)
       if memberRoles and groupMembers is not None:
@@ -14822,8 +14825,8 @@ def doPrintGroups():
   kwargs = {u'customer': GC.Values[GC.CUSTOMER_ID]}
   convertCRNL = GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
-  formatJSON = getSettings = members = membersCountOnly = managers = managersCountOnly = owners = ownersCountOnly = sortHeaders = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  getSettings = members = membersCountOnly = managers = managersCountOnly = owners = ownersCountOnly = sortHeaders = False
+  FJQC = FormatJSONQuoteChar()
   todrive = {}
   maxResults = None
   cdfieldsList = []
@@ -14909,12 +14912,8 @@ def doPrintGroups():
         ownersCountOnly = True
     elif myarg == u'countsonly':
       membersCountOnly = managersCountOnly = ownersCountOnly = True
-    elif myarg == "formatjson":
-      formatJSON = True
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, None)
   updateFieldsTitlesForGroupMatchPatterns(matchPatterns, cdfieldsList, fieldsTitles, titles, nativeTitles)
   if cdfieldsList:
     cdfields = u','.join(set(cdfieldsList))
@@ -14947,7 +14946,7 @@ def doPrintGroups():
       addTitlesToCSVfile(u'OwnersCount', titles)
       if not ownersCountOnly:
         addTitlesToCSVfile(u'Owners', titles)
-  if formatJSON:
+  if FJQC.formatJSON:
     sortHeaders = False
     titles, csvRows = initializeTitlesCSVfile(PRINT_GROUPS_JSON_TITLES)
     if memberRoles:
@@ -15053,7 +15052,7 @@ def doPrintGroups():
   if getSettings and gsbcount > 0:
     gsbatch.execute()
   _writeCompleteRows()
-  writeCSVfile(csvRows, titles, u'Groups', todrive, [fieldsTitles[u'email']] if sortHeaders else None, quotechar)
+  writeCSVfile(csvRows, titles, u'Groups', todrive, [fieldsTitles[u'email']] if sortHeaders else None, FJQC.quoteChar)
 
 INFO_GROUPMEMBERS_FIELDS = [u'role', u'type', u'status', u'delivery_settings']
 
@@ -15220,7 +15219,7 @@ def doPrintGroupMembers():
   kwargs = {u'customer': GC.Values[GC.CUSTOMER_ID]}
   subTitle = u'{0} {1}'.format(Msg.ALL, Ent.Plural(Ent.GROUP))
   fieldsList = []
-  titles, csvRows = initializeTitlesCSVfile([u'group',])
+  titles, csvRows = initializeTitlesCSVfile(u'group')
   entityList = None
   cdfieldsList = [u'email',]
   userFieldsList = []
@@ -15967,7 +15966,7 @@ def doPrintShowBuildings():
   csvFormat = Act.csvFormat()
   if csvFormat:
     todrive = {}
-    titles, csvRows = initializeTitlesCSVfile([u'buildingId',])
+    titles, csvRows = initializeTitlesCSVfile(u'buildingId')
     delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   else:
     delimiter = u','
@@ -16085,7 +16084,7 @@ def doPrintShowFeatures():
   csvFormat = Act.csvFormat()
   if csvFormat:
     todrive = {}
-    titles, csvRows = initializeTitlesCSVfile([u'name',])
+    titles, csvRows = initializeTitlesCSVfile(u'name')
   fieldsList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -16258,7 +16257,7 @@ RESOURCE_ADDTL_FIELDS = [
 RESOURCE_ALL_FIELDS = RESOURCE_DFLT_FIELDS+RESOURCE_ADDTL_FIELDS
 RESOURCE_FIELDS_WITH_CRS_NLS = [u'resourceDescription',]
 
-def _showResource(cd, resource, i, count, formatJSON, acls=None):
+def _showResource(cd, resource, i, count, FJQC, acls=None):
 
   def _showResourceField(title, resource, field):
     if field in resource:
@@ -16270,7 +16269,7 @@ def _showResource(cd, resource, i, count, formatJSON, acls=None):
   if u'buildingId' in resource:
     resource[u'buildingName'] = _getBuildingNameById(cd, resource[u'buildingId'])
     resource[u'buildingId'] = u'id:{0}'.format(resource[u'buildingId'])
-  if formatJSON:
+  if FJQC.formatJSON:
     if acls:
       resource[u'acls'] = [{u'id': rule[u'id'], u'role': rule[u'role']} for rule in acls]
     printLine(json.dumps(cleanJSON(resource), ensure_ascii=False, sort_keys=True))
@@ -16304,7 +16303,8 @@ def _showResource(cd, resource, i, count, formatJSON, acls=None):
 
 def _doInfoResourceCalendars(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
-  formatJSON = getCalSettings = getCalPermissions = False
+  getCalSettings = getCalPermissions = False
+  FJQC = FormatJSONQuoteChar()
   acls = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -16312,10 +16312,8 @@ def _doInfoResourceCalendars(entityList):
       getCalPermissions = True
     elif myarg == Cmd.ARG_CALENDAR:
       getCalSettings = True
-    elif myarg == "formatjson":
-      formatJSON = True
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSON(myarg)
   if getCalSettings or getCalPermissions:
     cal = buildGAPIObject(API.CALENDAR)
   i = 0
@@ -16330,7 +16328,7 @@ def _doInfoResourceCalendars(entityList):
         status, acls = _getResourceACLsCalSettings(cal, resource, getCalSettings, getCalPermissions, i, count)
         if not status:
           continue
-      _showResource(cd, resource, i, count, formatJSON, acls)
+      _showResource(cd, resource, i, count, FJQC, acls)
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.RESOURCE_CALENDAR, resourceId, i, count)
 
@@ -16376,8 +16374,7 @@ def doPrintShowResourceCalendars():
   if csvFormat:
     todrive = {}
     titles, csvRows = initializeTitlesCSVfile(None)
-  formatJSON = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
@@ -16406,12 +16403,8 @@ def doPrintShowResourceCalendars():
           invalidChoiceExit(RESOURCE_FIELDS_CHOICE_MAP, True)
     elif myarg in [u'convertcrnl', u'converttextnl']:
       convertCRNL = True
-    elif myarg == "formatjson":
-      formatJSON = True
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, None)
   if not fieldsList:
     fieldsList = RESOURCE_DFLT_FIELDS[:]
   if getCalSettings or getCalPermissions:
@@ -16422,7 +16415,7 @@ def doPrintShowResourceCalendars():
   if u'buildingId' in fieldsList:
     fieldsList.append(u'buildingName')
   if csvFormat:
-    if not formatJSON:
+    if not FJQC.formatJSON:
       addTitlesToCSVfile(fieldsList, titles)
       sortTitles = RESOURCE_DFLT_FIELDS
     else:
@@ -16448,12 +16441,12 @@ def doPrintShowResourceCalendars():
       if not status:
         continue
     if not csvFormat:
-      _showResource(cd, resource, i, count, formatJSON, acls)
+      _showResource(cd, resource, i, count, FJQC, acls)
     else:
       if u'buildingId' in resource:
         resource[u'buildingName'] = _getBuildingNameById(cd, resource[u'buildingId'])
         resource[u'buildingId'] = u'id:{0}'.format(resource[u'buildingId'])
-      if not formatJSON:
+      if not FJQC.formatJSON:
         if u'featureInstances' in resource:
           resource[u'featureInstances'] = u', '.join([a_feature[u'feature'][u'name'] for a_feature in resource.pop(u'featureInstances')])
         row = {}
@@ -16477,7 +16470,7 @@ def doPrintShowResourceCalendars():
           row[u'resourceName'] = resource[u'resourceName']
         csvRows.append(row)
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'Resources', todrive, sortTitles, quotechar)
+    writeCSVfile(csvRows, titles, u'Resources', todrive, sortTitles, FJQC.quoteChar)
 
 # Calendar commands utilities
 def normalizeCalendarId(calId, user):
@@ -16688,8 +16681,8 @@ def doCalendarsDeleteACLs(cal, calIds):
   role, ACLScopeEntity = getCalendarDeleteACLsOptions(True)
   _doUpdateDeleteCalendarACLs(None, None, cal, u'delete', calIds, len(calIds), ACLScopeEntity, role, False)
 
-def _showCalendarACL(user, entityType, calId, acl, k, kcount, formatJSON):
-  if formatJSON:
+def _showCalendarACL(user, entityType, calId, acl, k, kcount, FJQC):
+  if FJQC.formatJSON:
     if entityType == Ent.CALENDAR:
       if user:
         printLine(json.dumps(cleanJSON({u'primaryEmail': user, u'calendarId': calId, u'acl': acl}),
@@ -16703,7 +16696,7 @@ def _showCalendarACL(user, entityType, calId, acl, k, kcount, formatJSON):
   else:
     printKeyValueListWithCount(ACLRuleKeyValueList(acl), k, kcount)
 
-def _infoCalendarACLs(cal, user, entityType, calId, j, jcount, ruleIds, kcount, formatJSON):
+def _infoCalendarACLs(cal, user, entityType, calId, j, jcount, ruleIds, kcount, FJQC):
   Ind.Increment()
   k = 0
   for ruleId in ruleIds:
@@ -16713,7 +16706,7 @@ def _infoCalendarACLs(cal, user, entityType, calId, j, jcount, ruleIds, kcount, 
       result = callGAPI(cal.acl(), u'get',
                         throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_SCOPE_VALUE, GAPI.FORBIDDEN, GAPI.AUTH_ERROR],
                         calendarId=calId, ruleId=ruleId, fields=u'id,role,scope')
-      _showCalendarACL(user, entityType, calId, result, k, kcount, formatJSON)
+      _showCalendarACL(user, entityType, calId, result, k, kcount, FJQC)
     except (GAPI.notFound, GAPI.invalid) as e:
       if not checkCalendarExists(cal, calId):
         entityUnknownWarning(entityType, calId, j, jcount)
@@ -16724,32 +16717,25 @@ def _infoCalendarACLs(cal, user, entityType, calId, j, jcount, ruleIds, kcount, 
       entityActionFailedWarning([entityType, calId, Ent.CALENDAR_ACL, formatACLScopeRole(ruleId, None)], str(e), k, kcount)
   Ind.Decrement()
 
-def _doInfoCalendarACLs(origUser, user, cal, calIds, count, ACLScopeEntity, formatJSON):
+def _doInfoCalendarACLs(origUser, user, cal, calIds, count, ACLScopeEntity, FJQC):
   i = 0
   for calId in calIds:
     i += 1
-    calId, cal, ruleIds, jcount = _normalizeCalIdGetRuleIds(origUser, user, cal, calId, i, count, ACLScopeEntity, showAction=not formatJSON)
+    calId, cal, ruleIds, jcount = _normalizeCalIdGetRuleIds(origUser, user, cal, calId, i, count, ACLScopeEntity, showAction=not FJQC.formatJSON)
     if jcount == 0:
       continue
-    _infoCalendarACLs(cal, user, Ent.CALENDAR, calId, i, count, ruleIds, jcount, formatJSON)
+    _infoCalendarACLs(cal, user, Ent.CALENDAR, calId, i, count, ruleIds, jcount, FJQC)
 
 def _getCalendarInfoACLOptions():
-  formatJSON = False
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == "formatjson":
-      formatJSON = True
-    else:
-      unknownArgumentExit()
-  return formatJSON
+  return FormatJSONQuoteChar(formatJSONOnly=True)
 
 # gam calendars <CalendarEntity> info acl|acls <CalendarACLScopeEntity> [formatjson]
 def doCalendarsInfoACLs(cal, calIds):
   ACLScopeEntity = getCalendarSiteACLScopeEntity()
-  formatJSON = _getCalendarInfoACLOptions()
-  _doInfoCalendarACLs(None, None, cal, calIds, len(calIds), ACLScopeEntity, formatJSON)
+  FJQC = _getCalendarInfoACLOptions()
+  _doInfoCalendarACLs(None, None, cal, calIds, len(calIds), ACLScopeEntity, FJQC)
 
-def _printShowCalendarACLs(cal, user, entityType, calId, i, count, csvFormat, formatJSON, csvRows, titles):
+def _printShowCalendarACLs(cal, user, entityType, calId, i, count, csvFormat, FJQC, csvRows, titles):
   if csvFormat:
     printGettingEntityItemForWhom(Ent.CALENDAR_ACL, calId, i, count)
   try:
@@ -16766,17 +16752,17 @@ def _printShowCalendarACLs(cal, user, entityType, calId, i, count, csvFormat, fo
   if jcount == 0:
     setSysExitRC(NO_ENTITIES_FOUND)
   if not csvFormat:
-    if not formatJSON:
+    if not FJQC.formatJSON:
       entityPerformActionNumItems([entityType, calId], jcount, Ent.CALENDAR_ACL, i, count)
     Ind.Increment()
     j = 0
     for rule in acls:
       j += 1
-      _showCalendarACL(user, entityType, calId, rule, j, jcount, formatJSON)
+      _showCalendarACL(user, entityType, calId, rule, j, jcount, FJQC)
     Ind.Decrement()
   else:
     if entityType == Ent.CALENDAR:
-      if not formatJSON:
+      if not FJQC.formatJSON:
         if acls:
           for rule in acls:
             flattened = {u'calendarId': calId}
@@ -16795,7 +16781,7 @@ def _printShowCalendarACLs(cal, user, entityType, calId, i, count, csvFormat, fo
         elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT] and user:
           csvRows.append({u'primaryEmail': user, u'calendarId': calId, u'JSON': json.dumps({})})
     else: # Ent.RESOURCE_CALENDAR
-      if not formatJSON:
+      if not FJQC.formatJSON:
         for rule in acls:
           addRowTitlesToCSVfile(flattenJSON(rule, flattened={u'resourceId': user, u'resourceEmail': calId}), csvRows, titles)
       else:
@@ -16804,18 +16790,13 @@ def _printShowCalendarACLs(cal, user, entityType, calId, i, count, csvFormat, fo
 
 def _getCalendarPrintShowACLOptions(csvFormat, entityType):
   todrive = {}
-  formatJSON = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
-    elif myarg == "formatjson":
-      formatJSON = True
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, None)
   sortTitles = []
   if csvFormat:
     if entityType == Ent.USER:
@@ -16824,16 +16805,16 @@ def _getCalendarPrintShowACLOptions(csvFormat, entityType):
       sortTitles.append(u'calendarId')
     else: # Ent.RESOURCE_CALENDAR
       sortTitles.extend([u'resourceId', u'resourceEmail'])
-    if formatJSON:
+    if FJQC.formatJSON:
       sortTitles.append(u'JSON')
-  return (todrive, formatJSON, quotechar, sortTitles)
+  return (todrive, FJQC, sortTitles)
 
 # gam calendars <CalendarEntity> print acls [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
 # gam calendars <CalendarEntity> show acls [formatjson]
 # gam calendar <CalendarEntity> showacl [formatjson]
 def doCalendarsPrintShowACLs(cal, calIds):
   csvFormat = Act.csvFormat()
-  todrive, formatJSON, quotechar, sortTitles = _getCalendarPrintShowACLOptions(csvFormat, Ent.CALENDAR)
+  todrive, FJQC, sortTitles = _getCalendarPrintShowACLOptions(csvFormat, Ent.CALENDAR)
   if csvFormat:
     titles, csvRows = initializeTitlesCSVfile(sortTitles)
   else:
@@ -16843,9 +16824,9 @@ def doCalendarsPrintShowACLs(cal, calIds):
   for calId in calIds:
     i += 1
     calId = convertUIDtoEmailAddress(calId)
-    _printShowCalendarACLs(cal, None, Ent.CALENDAR, calId, i, count, csvFormat, formatJSON, csvRows, titles)
+    _printShowCalendarACLs(cal, None, Ent.CALENDAR, calId, i, count, csvFormat, FJQC, csvRows, titles)
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'Calendar ACLs', todrive, sortTitles, quotechar)
+    writeCSVfile(csvRows, titles, u'Calendar ACLs', todrive, sortTitles, FJQC.quoteChar)
 
 LIST_EVENTS_DISPLAY_PROPERTIES = {
   u'alwaysincludeemail': (u'alwaysIncludeEmail', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}),
@@ -17381,8 +17362,8 @@ EVENT_PRINT_ORDER = [u'id', u'summary', u'description', u'location',
 
 EVENT_TIME_OBJECTS = set([u'created', u'updated', u'dateTime'])
 
-def _showCalendarEvent(primaryEmail, calId, eventEntityType, event, k, kcount, formatJSON):
-  if formatJSON:
+def _showCalendarEvent(primaryEmail, calId, eventEntityType, event, k, kcount, FJQC):
+  if FJQC.formatJSON:
     if primaryEmail:
       printLine(json.dumps(cleanJSON({u'primaryEmail': primaryEmail, u'calendarId': calId, u'event': event},
                                      timeObjects=EVENT_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
@@ -17400,13 +17381,13 @@ def _showCalendarEvent(primaryEmail, calId, eventEntityType, event, k, kcount, f
   showJSON(None, event, skipObjects)
   Ind.Decrement()
 
-def _infoCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntity, formatJSON, fieldsList):
+def _infoCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntity, FJQC, fieldsList):
   fields = u','.join(set(fieldsList)).replace(u'.', u'/') if fieldsList else None
   ifields = u'nextPageToken,items({0})'.format(u','.join(set(fieldsList)).replace(u'.', u'/')) if fieldsList else None
   i = 0
   for calId in calIds:
     i += 1
-    calId, cal, calEventIds, jcount = _validateCalendarGetEventIDs(origUser, user, cal, calId, i, count, calendarEventEntity, showAction=not formatJSON)
+    calId, cal, calEventIds, jcount = _validateCalendarGetEventIDs(origUser, user, cal, calId, i, count, calendarEventEntity, showAction=not FJQC.formatJSON)
     if jcount == 0:
       continue
     Ind.Increment()
@@ -17418,20 +17399,20 @@ def _infoCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntity,
                          throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.DELETED, GAPI.FORBIDDEN],
                          calendarId=calId, eventId=eventId, fields=fields)
         if calendarEventEntity[u'maxinstances'] == -1 or u'recurrence' not in event:
-          _showCalendarEvent(user, calId, Ent.EVENT, event, j, jcount, formatJSON)
+          _showCalendarEvent(user, calId, Ent.EVENT, event, j, jcount, FJQC)
         else:
           instances = callGAPIpages(cal.events(), u'instances', u'items',
                                     throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.DELETED, GAPI.FORBIDDEN],
                                     calendarId=calId, eventId=eventId, fields=ifields,
                                     maxItems=calendarEventEntity[u'maxinstances'], maxResults=GC.Values[GC.EVENT_MAX_RESULTS])
           lcount = len(instances)
-          if not formatJSON:
+          if not FJQC.formatJSON:
             entityPerformActionNumItems([Ent.EVENT, event[u'id']], lcount, Ent.INSTANCE, j, jcount)
           Ind.Increment()
           l = 0
           for instance in instances:
             l += 1
-            _showCalendarEvent(user, calId, Ent.INSTANCE, instance, l, lcount, formatJSON)
+            _showCalendarEvent(user, calId, Ent.INSTANCE, instance, l, lcount, FJQC)
           Ind.Decrement()
       except (GAPI.notFound, GAPI.deleted) as e:
         if not checkCalendarExists(cal, calId):
@@ -17448,22 +17429,22 @@ def _infoCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntity,
     Ind.Decrement()
 
 def _printShowCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntity,
-                             csvFormat, formatJSON, fieldsList, csvRows, titles):
+                             csvFormat, FJQC, fieldsList, csvRows, titles):
   i = 0
   for calId in calIds:
     i += 1
     calId, cal, events, jcount = _validateCalendarGetEvents(origUser, user, cal, calId, i, count, calendarEventEntity,
-                                                            fieldsList, not csvFormat and not formatJSON)
+                                                            fieldsList, not csvFormat and not FJQC.formatJSON)
     if not csvFormat:
       Ind.Increment()
       j = 0
       for event in events:
         j += 1
-        _showCalendarEvent(user, calId, Ent.EVENT, event, j, jcount, formatJSON)
+        _showCalendarEvent(user, calId, Ent.EVENT, event, j, jcount, FJQC)
       Ind.Decrement()
     else:
       printGettingEntityItemForWhom(Ent.EVENT, calId, i, count)
-      if not formatJSON:
+      if not FJQC.formatJSON:
         if events:
           for event in events:
             flattened = {u'calendarId': calId}
@@ -17768,57 +17749,50 @@ def _addEventEntitySelectFields(calendarEventEntity, fieldsList):
       fieldsList.append(u'recurrence')
 
 def _getCalendarInfoEventOptions(calendarEventEntity):
-  formatJSON = False
+  FJQC = FormatJSONQuoteChar()
   fieldsList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == "formatjson":
-      formatJSON = True
-    elif myarg == u'fields':
+    if myarg == u'fields':
       _getEventFields(fieldsList)
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSON(myarg)
   _addEventEntitySelectFields(calendarEventEntity, fieldsList)
-  return (formatJSON, fieldsList)
+  return (FJQC, fieldsList)
 
 # gam calendars <CalendarEntity> info events <EventEntity> [maxinstances <Number>] [fields <EventFieldNameList>] [formatjson]
 def doCalendarsInfoEvents(cal, calIds):
   calendarEventEntity = getCalendarEventEntity()
-  formatJSON, fieldsList = _getCalendarInfoEventOptions(calendarEventEntity)
-  _infoCalendarEvents(None, None, cal, calIds, len(calIds), calendarEventEntity, formatJSON, fieldsList)
+  FJQC, fieldsList = _getCalendarInfoEventOptions(calendarEventEntity)
+  _infoCalendarEvents(None, None, cal, calIds, len(calIds), calendarEventEntity, FJQC, fieldsList)
 
 def _getCalendarPrintShowEventOptions(calendarEventEntity, csvFormat, entityType):
   todrive = {}
-  formatJSON = False
+  FJQC = FormatJSONQuoteChar()
   fieldsList = []
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
     elif _getCalendarListEventsDisplayProperty(myarg, calendarEventEntity):
       pass
-    elif myarg == "formatjson":
-      formatJSON = True
     elif myarg == u'fields':
       _getEventFields(fieldsList)
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, None)
   sortTitles = []
   if csvFormat:
     if entityType == Ent.USER:
       sortTitles = [u'primaryEmail', u'calendarId']
     else: # Ent.CALENDAR:
       sortTitles = [u'calendarId',]
-    if not formatJSON:
+    if not FJQC.formatJSON:
       if not fieldsList:
         sortTitles.extend(EVENT_PRINT_ORDER)
     else:
       sortTitles.append(u'JSON')
   _addEventEntitySelectFields(calendarEventEntity, fieldsList)
-  return (todrive, formatJSON, fieldsList, quotechar, sortTitles)
+  return (todrive, FJQC, fieldsList, sortTitles)
 
 # gam calendars <CalendarEntity> print events <EventSelectProperties>* <EventDisplayProperties>* [fields <EventFieldNameList>]
 #	[formatjson] [quotechar <Character>] [todrive <ToDriveAttributes>*]
@@ -17826,15 +17800,15 @@ def _getCalendarPrintShowEventOptions(calendarEventEntity, csvFormat, entityType
 def doCalendarsPrintShowEvents(cal, calIds):
   calendarEventEntity = getCalendarEventEntity(noIds=True)
   csvFormat = Act.csvFormat()
-  todrive, formatJSON, fieldsList, quotechar, sortTitles = _getCalendarPrintShowEventOptions(calendarEventEntity, csvFormat, Ent.CALENDAR)
+  todrive, FJQC, fieldsList, sortTitles = _getCalendarPrintShowEventOptions(calendarEventEntity, csvFormat, Ent.CALENDAR)
   if csvFormat:
     titles, csvRows = initializeTitlesCSVfile(sortTitles)
   else:
     titles = csvRows = None
   _printShowCalendarEvents(None, None, cal, calIds, len(calIds), calendarEventEntity,
-                           csvFormat, formatJSON, fieldsList, csvRows, titles)
+                           csvFormat, FJQC, fieldsList, csvRows, titles)
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'Calendar Events', todrive, sortTitles, quotechar)
+    writeCSVfile(csvRows, titles, u'Calendar Events', todrive, sortTitles, FJQC.quoteChar)
 
 # <CalendarSettings> ::==
 #	[description <String>] [location <String>] [summary <String>] [timezone <TimeZone>]
@@ -17902,20 +17876,13 @@ def doCalendarsPrintShowSettings(cal, calIds):
     todrive = {}
     sortTitles = [u'calendarId',]
     titles, csvRows = initializeTitlesCSVfile(sortTitles)
-  formatJSON = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
-    elif myarg == "formatjson":
-      formatJSON = True
-      if csvFormat:
-        addTitlesToCSVfile(u'JSON', titles)
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, titles if csvFormat else None)
   count = len(calIds)
   i = 0
   for calId in calIds:
@@ -17930,18 +17897,18 @@ def doCalendarsPrintShowSettings(cal, calIds):
     except (GAPI.serviceNotAvailable, GAPI.authError):
       entityServiceNotApplicableWarning(Ent.CALENDAR, calId, i, count)
     if not csvFormat:
-      if not formatJSON:
+      if not FJQC.formatJSON:
         _showCalendarSettings(calendar, i, count)
       else:
         printLine(json.dumps(cleanJSON(calendar), ensure_ascii=False, sort_keys=True))
     else:
-      if not formatJSON:
+      if not FJQC.formatJSON:
         calendar[u'calendarId'] = calendar.pop(u'id')
         addRowTitlesToCSVfile(flattenJSON(calendar), csvRows, titles)
       else:
         csvRows.append({u'calendarId': calId, u'JSON': json.dumps(cleanJSON(calendar), ensure_ascii=False, sort_keys=True)})
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'Calendar Settings', todrive, sortTitles, quotechar)
+    writeCSVfile(csvRows, titles, u'Calendar Settings', todrive, sortTitles, FJQC.quoteChar)
 
 def _validateResourceId(resourceId, i, count):
   cd = buildGAPIObject(API.DIRECTORY)
@@ -18010,15 +17977,15 @@ def doResourceDeleteCalendarACLs(entityList):
 def doResourceInfoCalendarACLs(entityList):
   cal = buildGAPIObject(API.CALENDAR)
   ACLScopeEntity = getCalendarSiteACLScopeEntity()
-  formatJSON = _getCalendarInfoACLOptions()
+  FJQC = _getCalendarInfoACLOptions()
   i = 0
   count = len(entityList)
   for resourceId in entityList:
     i += 1
-    calId, ruleIds, jcount = _normalizeResourceIdGetRuleIds(resourceId, i, count, ACLScopeEntity, showAction=not formatJSON)
+    calId, ruleIds, jcount = _normalizeResourceIdGetRuleIds(resourceId, i, count, ACLScopeEntity, showAction=not FJQC.formatJSON)
     if jcount == 0:
       continue
-    _infoCalendarACLs(cal, resourceId, Ent.RESOURCE_CALENDAR, calId, i, count, ruleIds, jcount, formatJSON)
+    _infoCalendarACLs(cal, resourceId, Ent.RESOURCE_CALENDAR, calId, i, count, ruleIds, jcount, FJQC)
 
 # gam resource <ResourceID> print calendaracls [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
 # gam resources <ResourceEntity> print calendaracls [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
@@ -18027,7 +17994,7 @@ def doResourceInfoCalendarACLs(entityList):
 def doResourcePrintShowCalendarACLs(entityList):
   cal = buildGAPIObject(API.CALENDAR)
   csvFormat = Act.csvFormat()
-  todrive, formatJSON, quotechar, sortTitles = _getCalendarPrintShowACLOptions(csvFormat, Ent.RESOURCE_CALENDAR)
+  todrive, FJQC, sortTitles = _getCalendarPrintShowACLOptions(csvFormat, Ent.RESOURCE_CALENDAR)
   if csvFormat:
     titles, csvRows = initializeTitlesCSVfile(sortTitles)
   else:
@@ -18039,9 +18006,9 @@ def doResourcePrintShowCalendarACLs(entityList):
     calId = _validateResourceId(resourceId, i, count)
     if not calId:
       continue
-    _printShowCalendarACLs(cal, resourceId, Ent.RESOURCE_CALENDAR, calId, i, count, csvFormat, formatJSON, csvRows, titles)
+    _printShowCalendarACLs(cal, resourceId, Ent.RESOURCE_CALENDAR, calId, i, count, csvFormat, FJQC, csvRows, titles)
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'Resource Calendar ACLs', todrive, sortTitles, quotechar)
+    writeCSVfile(csvRows, titles, u'Resource Calendar ACLs', todrive, sortTitles, FJQC.quoteChar)
 
 def _showSchema(schema, i=0, count=0):
   printEntity([Ent.USER_SCHEMA, schema[u'schemaName']], i, count)
@@ -21140,7 +21107,7 @@ def infoUsers(entityList):
 
   cd = buildGAPIObject(API.DIRECTORY)
   getAliases = getBuildingNames = getGroups = getLicenses = getSchemas = True
-  formatJSON = False
+  FJQC = FormatJSONQuoteChar()
   projection = u'full'
   customFieldMask = viewType = None
   fieldsList = []
@@ -21188,10 +21155,8 @@ def infoUsers(entityList):
 # Ignore info group arguments that may have come from whatis
     elif myarg in INFO_GROUP_OPTIONS:
       pass
-    elif myarg == "formatjson":
-      formatJSON = True
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSON(myarg)
   fields = u','.join(set(fieldsList)).replace(u'.', u'/') if fieldsList else None
   if getLicenses:
     lic = buildGAPIObject(API.LICENSING)
@@ -21218,7 +21183,7 @@ def infoUsers(entityList):
           svcparms[u'productId'], svcparms[u'skuId'] = SKU.getProductAndSKU(skuId)
           dbatch.add(method(**svcparms))
         dbatch.execute()
-      if formatJSON:
+      if FJQC.formatJSON:
         if getGroups:
           user[u'groups'] = groups
         if getLicenses:
@@ -21509,7 +21474,7 @@ def doPrintUsers(entityList=None):
           userEntity[u'primaryEmailLocal'], userEntity[u'primaryEmailDomain'] = splitEmailAddress(userEmail)
       for location in userEntity.get(u'locations', []):
         location[u'buildingName'] = _getBuildingNameById(cd, location.get(u'buildingId', u''))
-      if not formatJSON:
+      if not FJQC.formatJSON:
         addRowTitlesToCSVfile(flattenJSON(userEntity, skipObjects=USER_SKIP_OBJECTS, timeObjects=USER_TIME_OBJECTS), csvRows, titles)
       else:
         csvRows.append({u'primaryEmail': userEntity[u'primaryEmail'],
@@ -21554,8 +21519,7 @@ def doPrintUsers(entityList=None):
   showDeleted = False
   isSuspended = orderBy = sortOrder = viewType = None
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
-  formatJSON = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
@@ -21606,23 +21570,19 @@ def doPrintUsers(entityList=None):
       getLicenseFeed = True
     elif myarg in [u'emailpart', u'emailparts', u'username']:
       emailParts = True
-    elif myarg == "formatjson":
-      formatJSON = True
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     elif myarg in [u'countonly', u'countsonly']:
       countOnly = True
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, None)
   _, _, entityList = getEntityArgument(entityList)
   if countOnly:
     fieldsList = [u'primaryEmail',]
     domainCounts = {}
-    if not formatJSON:
+    if not FJQC.formatJSON:
       titles, csvRows = initializeTitlesCSVfile([u'domain', u'count'])
     else:
-      titles, csvRows = initializeTitlesCSVfile([u'JSON',])
-  elif formatJSON:
+      titles, csvRows = initializeTitlesCSVfile(u'JSON')
+  elif FJQC.formatJSON:
     sortHeaders = False
     titles, csvRows = initializeTitlesCSVfile([u'primaryEmail', u'JSON'])
   if entityList is None:
@@ -21736,12 +21696,12 @@ def doPrintUsers(entityList=None):
             user[u'LicensesCount'] = len(u_licenses)
             user[u'Licenses'] = delimiter.join(u_licenses)
             user[u'LicensesDisplay'] = delimiter.join([SKU.skuIdToDisplayName(skuId) for skuId in u_licenses])
-  elif not formatJSON:
+  elif not FJQC.formatJSON:
     for domain, count in sorted(iteritems(domainCounts)):
       csvRows.append({u'domain': domain, u'count': count})
   else:
     csvRows.append({u'JSON': json.dumps(cleanJSON(domainCounts), ensure_ascii=False, sort_keys=True)})
-  writeCSVfile(csvRows, titles, [u'Users', u'User Domain Counts'][countOnly], todrive, quotechar=quotechar)
+  writeCSVfile(csvRows, titles, [u'Users', u'User Domain Counts'][countOnly], todrive, quotechar=FJQC.quoteChar)
 
 # gam <UserTypeEntity> print users
 def doPrintUserEntity(entityList):
@@ -22252,7 +22212,8 @@ def _getCourseShowProperties(myarg, courseShowProperties):
       else:
         invalidChoiceExit(COURSE_FIELDS_CHOICE_MAP, True)
   else:
-    unknownArgumentExit()
+    return False
+  return True
 
 def _setCourseFields(courseShowProperties, pagesMode):
   if not courseShowProperties[u'fields']:
@@ -22333,13 +22294,13 @@ def _doInfoCourses(entityList):
   courseShowProperties = _initCourseShowProperties()
   courseShowProperties[u'ownerEmail'] = True
   ownerEmails = {}
-  formatJSON = False
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == u'formatjson':
-      formatJSON = True
+    if _getCourseShowProperties(myarg, courseShowProperties):
+      pass
     else:
-      _getCourseShowProperties(myarg, courseShowProperties)
+      FJQC.getFormatJSON(myarg)
   fields = _setCourseFields(courseShowProperties, False)
   if courseShowProperties[u'members'] != u'none':
     if courseShowProperties[u'countsOnly']:
@@ -22363,7 +22324,7 @@ def _doInfoCourses(entityList):
         course['ownerEmail'] = _convertCourseUserIdToEmail(croom, course['ownerId'], ownerEmails,
                                                            [Ent.COURSE, course[u'id'], Ent.OWNER_ID, course['ownerId']], i, count)
       aliases, teachers, students = _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFields, studentsFields)
-      if formatJSON:
+      if FJQC.formatJSON:
         if courseShowProperties[u'aliases']:
           course.update({u'aliases': list(aliases)})
         if courseShowProperties[u'members'] != u'none':
@@ -22568,14 +22529,13 @@ def doPrintCourses():
 
   croom = buildGAPIObject(API.CLASSROOM)
   todrive = {}
-  titles, csvRows = initializeTitlesCSVfile([u'id',])
+  titles, csvRows = initializeTitlesCSVfile(u'id')
   courseSelectionParameters = _initCourseSelectionParameters()
   courseItemFilter = _initCourseItemFilter()
   courseShowProperties = _initCourseShowProperties()
   ownerEmails = {}
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
-  formatJSON = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
@@ -22586,13 +22546,10 @@ def doPrintCourses():
       pass
     elif myarg == u'delimiter':
       delimiter = getCharacter()
-    elif myarg == u'formatjson':
-      formatJSON = True
-      addTitlesToCSVfile(u'JSON', titles)
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
+    elif _getCourseShowProperties(myarg, courseShowProperties):
+      pass
     else:
-      _getCourseShowProperties(myarg, courseShowProperties)
+      FJQC.getFormatJSONQuoteChar(myarg, titles)
   applyCourseItemFilter = _setApplyCourseItemFilter(courseItemFilter, None)
   if applyCourseItemFilter:
     if courseShowProperties[u'fields']:
@@ -22601,18 +22558,18 @@ def doPrintCourses():
   if coursesInfo is None:
     return
   if courseShowProperties[u'aliases']:
-    if formatJSON:
+    if FJQC.formatJSON:
       addTitlesToCSVfile(u'JSON-aliases', titles)
   if courseShowProperties[u'members'] != u'none':
     ttitles = {u'set': set(), u'list': []}
     stitles = {u'set': set(), u'list': []}
     if courseShowProperties[u'members'] != u'students':
       addTitlesToCSVfile(u'teachers', ttitles)
-      if formatJSON:
+      if FJQC.formatJSON:
         addTitlesToCSVfile(u'JSON-teachers', titles)
     if courseShowProperties[u'members'] != u'teachers':
       addTitlesToCSVfile(u'students', stitles)
-      if formatJSON:
+      if FJQC.formatJSON:
         addTitlesToCSVfile(u'JSON-students', titles)
     if courseShowProperties[u'countsOnly']:
       teachersFields = u'nextPageToken,teachers(profile(id))'
@@ -22637,7 +22594,7 @@ def doPrintCourses():
       if courseShowProperties[u'ownerEmailMatchPattern'] and not courseShowProperties[u'ownerEmailMatchPattern'].match(course['ownerEmail']):
         continue
     aliases, teachers, students = _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFields, studentsFields, True, i, count)
-    if formatJSON:
+    if FJQC.formatJSON:
       row = {u'id': courseId, u'JSON': json.dumps(cleanJSON(course, timeObjects=COURSE_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)}
       if courseShowProperties[u'aliases']:
         row[u'JSON-aliases'] = json.dumps(list(aliases))
@@ -22662,7 +22619,7 @@ def doPrintCourses():
         if courseShowProperties[u'members'] != u'teachers':
           _saveParticipants(course, students, u'students', stitles)
       addRowTitlesToCSVfile(flattenJSON(course, timeObjects=COURSE_TIME_OBJECTS, noLenObjects=COURSE_NOLEN_OBJECTS), csvRows, titles)
-  if not formatJSON:
+  if not FJQC.formatJSON:
     if courseShowProperties[u'aliases']:
       addTitleToCSVfile(u'Aliases', titles)
     sortCSVTitles(COURSE_PROPERTY_PRINT_ORDER, titles)
@@ -22675,7 +22632,7 @@ def doPrintCourses():
       except ValueError:
         titles[u'list'].extend(ttitles[u'list'])
         titles[u'list'].extend(stitles[u'list'])
-  writeCSVfile(csvRows, titles, u'Courses', todrive, quotechar=quotechar)
+  writeCSVfile(csvRows, titles, u'Courses', todrive, quotechar=FJQC.quoteChar)
 
 COURSE_ANNOUNCEMENTS_FIELDS_CHOICE_MAP = {
   u'alternatelink': u'alternateLink',
@@ -22713,7 +22670,7 @@ def doPrintCourseAnnouncements():
       courseAnnouncement[u'creatorUserEmail'] = _convertCourseUserIdToEmail(croom, courseAnnouncement[u'creatorUserId'], creatorEmails,
                                                                             [Ent.COURSE, course[u'id'], Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncement[u'id'],
                                                                              Ent.CREATOR_ID, courseAnnouncement[u'creatorUserId']], i, count)
-    if formatJSON:
+    if FJQC.formatJSON:
       csvRows.append({u'courseId': course[u'id'], u'courseName': course[u'name'],
                       u'JSON': json.dumps(cleanJSON(courseAnnouncement, timeObjects=COURSE_ANNOUNCEMENTS_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
     else:
@@ -22731,8 +22688,8 @@ def doPrintCourseAnnouncements():
   courseAnnouncementStates = []
   orderBy = initOrderBy()
   creatorEmails = {}
-  formatJSON = showCreatorEmail = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  showCreatorEmail = False
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
@@ -22749,15 +22706,10 @@ def doPrintCourseAnnouncements():
       getOrderBy(COURSE_ANNOUNCEMENTS_ORDERBY_CHOICE_MAP, orderBy)
     elif myarg in [u'showcreatoremails', u'creatoremail']:
       showCreatorEmail = True
-    elif myarg == u'formatjson':
-      formatJSON = True
-      addTitlesToCSVfile(u'JSON', titles)
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     elif getFieldsList(myarg, COURSE_ANNOUNCEMENTS_FIELDS_CHOICE_MAP, fieldsList, u'id'):
       pass
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, titles)
   coursesInfo = _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties)
   if coursesInfo is None:
     return
@@ -22802,7 +22754,7 @@ def doPrintCourseAnnouncements():
           entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course[u'name'], Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], j, jcount)
         except GAPI.forbidden:
           APIAccessDeniedExit()
-  writeCSVfile(csvRows, titles, u'Course Announcements', todrive, [u'courseId', u'courseName', u'id', u'text', u'state'], quotechar)
+  writeCSVfile(csvRows, titles, u'Course Announcements', todrive, [u'courseId', u'courseName', u'id', u'text', u'state'], FJQC.quoteChar)
 
 COURSE_WORK_FIELDS_CHOICE_MAP = {
   u'alternatelink': u'alternateLink',
@@ -22867,7 +22819,7 @@ def doPrintCourseWork():
       courseWork[u'creatorUserEmail'] = _convertCourseUserIdToEmail(croom, courseWork[u'creatorUserId'], creatorEmails,
                                                                     [Ent.COURSE, course[u'id'], Ent.COURSE_WORK_ID, courseWork[u'id'],
                                                                      Ent.CREATOR_ID, courseWork[u'creatorUserId']], i, count)
-    if formatJSON:
+    if FJQC.formatJSON:
       csvRows.append({u'courseId': course[u'id'], u'courseName': course[u'name'],
                       u'JSON': json.dumps(cleanJSON(courseWork, timeObjects=COURSE_WORK_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
     else:
@@ -22884,8 +22836,8 @@ def doPrintCourseWork():
   courseShowProperties = _initCourseShowProperties([u'name',])
   orderBy = initOrderBy()
   creatorEmails = {}
-  formatJSON = showCreatorEmail = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  showCreatorEmail = False
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
@@ -22900,15 +22852,10 @@ def doPrintCourseWork():
       getOrderBy(COURSE_WORK_ORDERBY_CHOICE_MAP, orderBy)
     elif myarg in [u'showcreatoremails', u'creatoremail']:
       showCreatorEmail = True
-    elif myarg == u'formatjson':
-      formatJSON = True
-      addTitlesToCSVfile(u'JSON', titles)
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     elif getFieldsList(myarg, COURSE_WORK_FIELDS_CHOICE_MAP, fieldsList, u'id'):
       pass
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, titles)
   if showCreatorEmail and fieldsList:
     fieldsList.append(u'creatorUserId')
   coursesInfo = _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties)
@@ -22954,7 +22901,7 @@ def doPrintCourseWork():
           entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course[u'name'], Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
         except GAPI.forbidden:
           APIAccessDeniedExit()
-  writeCSVfile(csvRows, titles, u'Course Work', todrive, [u'courseId', u'courseName', u'id', u'title', u'description', u'state'], quotechar)
+  writeCSVfile(csvRows, titles, u'Course Work', todrive, [u'courseId', u'courseName', u'id', u'title', u'description', u'state'], FJQC.quoteChar)
 
 COURSE_SUBMISSION_FIELDS_CHOICE_MAP = {
   u'alternatelink': u'alternateLink',
@@ -23011,7 +22958,7 @@ def doPrintCourseSubmissions():
           except (GAPI.notFound, GAPI.permissionDenied):
             userProfiles[userId] = {u'profile': {u'emailAddress', u'', u'name', {u'givenName': u'', u'familyName': u'', u'fullName': u''}}}
         courseSubmission.update(userProfiles[userId])
-    if formatJSON:
+    if FJQC.formatJSON:
       csvRows.append({u'courseId': course[u'id'], u'courseName': course[u'name'],
                       u'JSON': json.dumps(cleanJSON(courseSubmission, timeObjects=COURSE_SUBMISSION_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
     else:
@@ -23031,8 +22978,8 @@ def doPrintCourseSubmissions():
   orderBy = initOrderBy()
   late = None
   userProfiles = {}
-  formatJSON = showUserProfile = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  showUserProfile = False
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
@@ -23053,17 +23000,12 @@ def doPrintCourseSubmissions():
       late = u'LATE_ONLY'
     elif myarg == u'notlate':
       late = u'NOT_LATE_ONLY'
-    elif myarg == u'formatjson':
-      formatJSON = True
-      addTitlesToCSVfile(u'JSON', titles)
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     elif myarg == u'showuserprofile':
       showUserProfile = True
     elif getFieldsList(myarg, COURSE_SUBMISSION_FIELDS_CHOICE_MAP, fieldsList, u'id'):
       pass
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, titles)
   coursesInfo = _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties)
   if coursesInfo is None:
     return
@@ -23141,7 +23083,7 @@ def doPrintCourseSubmissions():
             APIAccessDeniedExit()
   writeCSVfile(csvRows, titles, u'Course Submissions', todrive, [u'courseId', u'courseName', u'courseWorkId', u'id', u'userId',
                                                                  u'profile.emailAddress', u'profile.name.givenName', u'profile.name.familyName', u'profile.name.fullName',
-                                                                 u'state'], quotechar)
+                                                                 u'state'], FJQC.quoteChar)
 
 # gam print course-participants [todrive <ToDriveAttributes>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
 #	[show all|students|teachers] [formatjson] [quotechar <Character>]
@@ -23152,8 +23094,7 @@ def doPrintCourseParticipants():
   courseSelectionParameters = _initCourseSelectionParameters()
   courseShowProperties = _initCourseShowProperties([u'name',])
   courseShowProperties[u'members'] = u'all'
-  formatJSON = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
@@ -23162,19 +23103,17 @@ def doPrintCourseParticipants():
       pass
     elif myarg == u'show':
       courseShowProperties[u'members'] = getChoice(COURSE_MEMBER_ARGUMENTS)
-    elif myarg == u'formatjson':
-      formatJSON = True
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, None)
   coursesInfo = _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties)
   if coursesInfo is None:
     return
   if courseShowProperties[u'members'] != u'none':
     if courseShowProperties[u'members'] != u'students':
-      if formatJSON:
+      if FJQC.formatJSON:
         addTitlesToCSVfile(u'JSON-teachers', titles)
     if courseShowProperties[u'members'] != u'teachers':
-      if formatJSON:
+      if FJQC.formatJSON:
         addTitlesToCSVfile(u'JSON-students', titles)
     teachersFields = u'nextPageToken,teachers(userId,profile)'
     studentsFields = u'nextPageToken,students(userId,profile)'
@@ -23186,7 +23125,7 @@ def doPrintCourseParticipants():
     i += 1
     courseId = course[u'id']
     _, teachers, students = _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFields, studentsFields, True, i, count)
-    if formatJSON:
+    if FJQC.formatJSON:
       row = {u'courseId': courseId, u'courseName': course[u'name']}
       if courseShowProperties[u'members'] != u'none':
         if courseShowProperties[u'members'] != u'students':
@@ -23202,10 +23141,10 @@ def doPrintCourseParticipants():
         if courseShowProperties[u'members'] != u'teachers':
           for member in students:
             addRowTitlesToCSVfile(flattenJSON(member, flattened={u'courseId': courseId, u'courseName': course[u'name'], u'userRole': u'STUDENT'}), csvRows, titles)
-  if formatJSON:
-    writeCSVfile(csvRows, titles, u'Course Participants', todrive, quotechar=quotechar)
+  if FJQC.formatJSON:
+    writeCSVfile(csvRows, titles, u'Course Participants', todrive, quotechar=FJQC.quoteChar)
   else:
-    writeCSVfile(csvRows, titles, u'Course Participants', todrive, [u'courseId', u'courseName', u'userRole', u'userId'], quotechar=quotechar)
+    writeCSVfile(csvRows, titles, u'Course Participants', todrive, [u'courseId', u'courseName', u'userRole', u'userId'], quotechar=FJQC.quoteChar)
 
 def checkCourseExists(croom, courseId, i=0, count=0):
   courseId = addCourseIdScope(courseId)
@@ -23826,8 +23765,7 @@ def _printShowGuardians(entityList=None):
   csvFormat = Act.csvFormat()
   if csvFormat:
     todrive = {}
-  formatJSON = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
@@ -23855,10 +23793,10 @@ def _printShowGuardians(entityList=None):
     elif entityList is None and myarg == u'student':
       studentIds = [getString(Cmd.OB_STUDENT_ITEM)]
       allStudents = studentIds[0] == u'-'
-    elif myarg == "formatjson":
-      formatJSON = True
+    elif myarg == u'formatjson':
+      FJQC.formatJSON = True
     elif myarg == u'quotechar':
-      quotechar = getCharacter()
+      FJQC.quoteChar = getCharacter()
     elif entityList is None:
       Cmd.Backup()
       _, studentIds = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
@@ -23866,7 +23804,7 @@ def _printShowGuardians(entityList=None):
     else:
       unknownArgumentExit()
   if csvFormat:
-    if formatJSON:
+    if FJQC.formatJSON:
       sortTitles = [u'studentEmail', u'studentId', u'JSON']
     else:
       sortTitles = [u'studentEmail', u'studentId', u'invitedEmailAddress']
@@ -23891,7 +23829,7 @@ def _printShowGuardians(entityList=None):
                                     studentId=studentId, invitedEmailAddress=invitedEmailAddress, states=states)
         jcount = len(invitations)
         if not csvFormat:
-          if not formatJSON:
+          if not FJQC.formatJSON:
             entityPerformActionNumItems([Ent.STUDENT, studentId if not allStudents else u'All'], jcount, Ent.GUARDIAN_INVITATION, i, count)
             Ind.Increment()
             j = 0
@@ -23907,7 +23845,7 @@ def _printShowGuardians(entityList=None):
           else:
             printLine(json.dumps(cleanJSON(invitations, timeObjects=GUARDIAN_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
         else:
-          if not formatJSON:
+          if not FJQC.formatJSON:
             for invitation in invitations:
               if showStudentEmails:
                 invitation[u'studentEmail'] = _getClassroomEmail(croom, classroomEmails, invitation[u'studentId'], studentId)
@@ -23923,7 +23861,7 @@ def _printShowGuardians(entityList=None):
                                   studentId=studentId, invitedEmailAddress=invitedEmailAddress)
         jcount = len(guardians)
         if not csvFormat:
-          if not formatJSON:
+          if not FJQC.formatJSON:
             entityPerformActionNumItems([Ent.STUDENT, studentId if not allStudents else u'All'], jcount, Ent.GUARDIAN, i, count)
             Ind.Increment()
             j = 0
@@ -23939,13 +23877,13 @@ def _printShowGuardians(entityList=None):
           else:
             printLine(json.dumps(cleanJSON(guardians), ensure_ascii=False, sort_keys=True))
         else:
-          if not formatJSON:
+          if not FJQC.formatJSON:
             for guardian in guardians:
               if showStudentEmails:
                 guardian[u'studentEmail'] = _getClassroomEmail(croom, classroomEmails, guardian[u'studentId'], studentId)
               else:
                 guardian[u'studentEmail'] = studentId
-              if not formatJSON:
+              if not FJQC.formatJSON:
                 addRowTitlesToCSVfile(flattenJSON(guardian), csvRows, titles)
           else:
             csvRows.append({u'studentId': studentId, u'studentEmail': _getClassroomEmail(croom, classroomEmails, studentId, studentId),
@@ -23955,7 +23893,7 @@ def _printShowGuardians(entityList=None):
     except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied) as e:
       studentUnknownWarning(studentId, str(e), i, count)
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'Guardians', todrive, sortTitles, quotechar)
+    writeCSVfile(csvRows, titles, u'Guardians', todrive, sortTitles, FJQC.quoteChar)
 
 # gam show guardian|guardians [accepted|invitations|all] [states <GuardianInvitationStateList>] [invitedguardian <EmailAddress>]
 #	[student <StudentItem>] [<UserTypeEntity>]
@@ -24069,8 +24007,8 @@ def createClassroomInvitations(users):
   coursesInfo = {}
   role = CLASSROOM_ROLE_STUDENT
   todrive = {}
-  csvFormat = formatJSON = useAdminAccess = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  csvFormat = useAdminAccess = False
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in [u'course', u'courses', u'class', u'classes']:
@@ -24081,18 +24019,14 @@ def createClassroomInvitations(users):
       csvFormat = True
     elif myarg == u'todrive':
       todrive = getTodriveParameters()
-    elif myarg == "formatjson":
-      formatJSON = True
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     elif myarg in [u'adminaccess', u'asadmin']:
       useAdminAccess = True
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, None)
   if courseIds is None:
     missingArgumentExit(u'courses <CourseEntity>')
   if csvFormat:
-    if formatJSON:
+    if FJQC.formatJSON:
       sortTitles = [u'userEmail', u'JSON']
     else:
       sortTitles = [u'userId', u'userEmail', u'courseId', u'courseName', u'id', u'role']
@@ -24110,7 +24044,7 @@ def createClassroomInvitations(users):
       courseIds = courseIdsLists[user]
       _getCoursesOwnerInfo(croom, courseIds, coursesInfo, useAdminAccess)
     jcount = len(courseIds)
-    if csvFormat or not formatJSON:
+    if csvFormat or not FJQC.formatJSON:
       entityPerformActionNumItems([Ent.USER, userId], jcount, entityType, i, count)
     if jcount == 0:
       continue
@@ -24127,14 +24061,14 @@ def createClassroomInvitations(users):
                               throw_reasons=[GAPI.NOT_FOUND, GAPI.FAILED_PRECONDITION, GAPI.ALREADY_EXISTS, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
                               body={u'userId': userId, u'courseId': courseId, u'role': role})
         if not csvFormat:
-          if not formatJSON:
+          if not FJQC.formatJSON:
             Ind.Increment()
             entityActionPerformed([Ent.USER, userEmail, Ent.COURSE, courseNameId, entityType, invitation[u'id']], j, jcount)
             Ind.Decrement()
           else:
             printLine(json.dumps(cleanJSON(invitation), ensure_ascii=False, sort_keys=True))
         else:
-          if not formatJSON:
+          if not FJQC.formatJSON:
             invitation[u'courseName'] = courseInfo[u'name']
             invitation[u'userEmail'] = userEmail
             csvRows.append(invitation)
@@ -24150,7 +24084,7 @@ def createClassroomInvitations(users):
         entityActionFailedWarning([Ent.USER, userId, Ent.COURSE, courseNameId, entityType, None], str(e), j, jcount)
     Ind.Decrement()
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'ClassroomInvitations', todrive, sortTitles, quotechar)
+    writeCSVfile(csvRows, titles, u'ClassroomInvitations', todrive, sortTitles, FJQC.quoteChar)
 
 def acceptDeleteClassroomInvitations(users, function):
   croom = buildGAPIObject(API.CLASSROOM)
@@ -24227,22 +24161,17 @@ def printShowClassroomInvitations(users):
   csvFormat = Act.csvFormat()
   if csvFormat:
     todrive = {}
-  formatJSON = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
     elif myarg == u'role':
       role = getChoice(CLASSROOM_ROLE_MAP, mapChoice=True)
-    elif myarg == "formatjson":
-      formatJSON = True
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, None)
   if csvFormat:
-    if formatJSON:
+    if FJQC.formatJSON:
       sortTitles = [u'userEmail', u'JSON']
     else:
       sortTitles = [u'userId', u'userEmail', u'courseId', u'courseName', u'id', u'role']
@@ -24258,10 +24187,10 @@ def printShowClassroomInvitations(users):
     status, invitations = _getClassroomInvitations(croom, userId, None, role, i, count)
     if status > 0:
       jcount = len(invitations)
-      if not formatJSON:
+      if not FJQC.formatJSON:
         entityPerformActionNumItems([Ent.USER, userId], jcount, entityType, i, count)
       if not csvFormat:
-        if not formatJSON:
+        if not FJQC.formatJSON:
           Ind.Increment()
           j = 0
           for invitation in invitations:
@@ -24279,7 +24208,7 @@ def printShowClassroomInvitations(users):
         else:
           printLine(json.dumps(cleanJSON(invitations), ensure_ascii=False, sort_keys=True))
       else:
-        if not formatJSON:
+        if not FJQC.formatJSON:
           for invitation in invitations:
             invitation[u'courseName'] = _getCourseName(croom, courseNames, invitation[u'courseId'])
             invitation[u'userEmail'] = userEmail
@@ -24288,7 +24217,7 @@ def printShowClassroomInvitations(users):
           csvRows.append({u'userEmail': userEmail,
                           u'JSON': json.dumps(cleanJSON(invitations), ensure_ascii=False, sort_keys=True)})
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'ClassroomInvitations', todrive, sortTitles, quotechar)
+    writeCSVfile(csvRows, titles, u'ClassroomInvitations', todrive, sortTitles, FJQC.quoteChar)
 
 # gam show classroominvitations (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
 #	[role all|owner|student|teacher] [formatjson]
@@ -24303,8 +24232,7 @@ def doPrintShowClassroomInvitations():
   csvFormat = Act.csvFormat()
   if csvFormat:
     todrive = {}
-  formatJSON = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
@@ -24313,18 +24241,14 @@ def doPrintShowClassroomInvitations():
       pass
     elif myarg == u'role':
       role = getChoice(CLASSROOM_ROLE_MAP, mapChoice=True)
-    elif myarg == "formatjson":
-      formatJSON = True
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, None)
   coursesInfo = _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties)
   if coursesInfo is None:
     return
   if csvFormat:
     sortTitles = [u'courseId', u'courseName']
-    if formatJSON:
+    if FJQC.formatJSON:
       sortTitles.append(u'JSON')
     else:
       sortTitles.extend([u'id', u'role', u'userId', u'userEmail'])
@@ -24339,10 +24263,10 @@ def doPrintShowClassroomInvitations():
     status, invitations = _getClassroomInvitations(croom, None, courseId, role, i, count)
     if status > 0:
       jcount = len(invitations)
-      if not formatJSON:
+      if not FJQC.formatJSON:
         entityPerformActionNumItems([Ent.COURSE, u'{0} ({1})'.format(courseName, courseId)], jcount, entityType, i, count)
       if not csvFormat:
-        if not formatJSON:
+        if not FJQC.formatJSON:
           Ind.Increment()
           j = 0
           for invitation in invitations:
@@ -24359,7 +24283,7 @@ def doPrintShowClassroomInvitations():
         else:
           printLine(json.dumps(cleanJSON(invitations), ensure_ascii=False, sort_keys=True))
       else:
-        if not formatJSON:
+        if not FJQC.formatJSON:
           for invitation in invitations:
             invitation[u'courseName'] = courseName
             userId = invitation.get(u'userId')
@@ -24370,7 +24294,7 @@ def doPrintShowClassroomInvitations():
           csvRows.append({u'courseId': courseId, u'courseName': courseName,
                           u'JSON': json.dumps(cleanJSON(invitations), ensure_ascii=False, sort_keys=True)})
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'ClassroomInvitations', todrive, sortTitles, quotechar)
+    writeCSVfile(csvRows, titles, u'ClassroomInvitations', todrive, sortTitles, FJQC.quoteChar)
 
 def encode_multipart(fields, files, boundary=None):
   def escape_quote(s):
@@ -24573,7 +24497,7 @@ def doInfoPrinters():
 def doPrintPrinters():
   cp = buildGAPIObject(API.CLOUDPRINT)
   todrive = {}
-  titles, csvRows = initializeTitlesCSVfile([u'id',])
+  titles, csvRows = initializeTitlesCSVfile(u'id')
   queries = [None]
   printer_type = None
   connection_status = None
@@ -25520,8 +25444,8 @@ def _getCalendarAttributes(body):
       unknownArgumentExit()
   return colorRgbFormat
 
-def _showCalendar(calendar, j, jcount, formatJSON, acls=None):
-  if formatJSON:
+def _showCalendar(calendar, j, jcount, FJQC, acls=None):
+  if FJQC.formatJSON:
     if acls:
       calendar[u'acls'] = [{u'id': rule[u'id'], u'role': rule[u'role']} for rule in acls]
     printLine(json.dumps(cleanJSON(calendar), ensure_ascii=False, sort_keys=True))
@@ -25617,17 +25541,11 @@ def deleteCalendars(users):
 # gam <UserTypeEntity> info calendars <UserCalendarEntity> [formatjson]
 def infoCalendars(users):
   calendarEntity = getUserCalendarEntity()
-  formatJSON = False
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == "formatjson":
-      formatJSON = True
-    else:
-      unknownArgumentExit()
+  FJQC = FormatJSONQuoteChar(formatJSONOnly=True)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, cal, calIds, jcount = _validateUserGetCalendarIds(user, i, count, calendarEntity, showAction=not formatJSON)
+    user, cal, calIds, jcount = _validateUserGetCalendarIds(user, i, count, calendarEntity, showAction=not FJQC.formatJSON)
     if jcount == 0:
       continue
     Ind.Increment()
@@ -25639,7 +25557,7 @@ def infoCalendars(users):
         result = callGAPI(cal.calendarList(), u'get',
                           throw_reasons=[GAPI.NOT_FOUND, GAPI.DUPLICATE, GAPI.CANNOT_CHANGE_OWN_ACL],
                           calendarId=calId)
-        _showCalendar(result, j, jcount, formatJSON)
+        _showCalendar(result, j, jcount, FJQC)
       except GAPI.notFound as e:
         entityActionFailedWarning([Ent.USER, user, Ent.CALENDAR, calId], str(e), j, jcount)
     Ind.Decrement()
@@ -25734,9 +25652,8 @@ def printShowCalendars(users):
     todrive = {}
     titles, csvRows = initializeTitlesCSVfile(sortTitles)
   kwargs = {}
-  formatJSON = False
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
@@ -25749,16 +25666,10 @@ def printShowCalendars(users):
       primary = True
     elif _getCalendarSelectProperty(myarg, kwargs):
       pass
-    elif myarg == "formatjson":
-      formatJSON = True
-      if csvFormat:
-        addTitlesToCSVfile(u'JSON', titles)
     elif myarg == u'delimiter':
       delimiter = getCharacter()
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, titles if csvFormat else None)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -25784,7 +25695,7 @@ def printShowCalendars(users):
         calendars = []
     jcount = len(calendars)
     if not csvFormat:
-      if not formatJSON:
+      if not FJQC.formatJSON:
         entityPerformActionNumItems([Ent.USER, user], jcount, Ent.CALENDAR, i, count)
       Ind.Increment()
       j = 0
@@ -25792,11 +25703,11 @@ def printShowCalendars(users):
         j += 1
         if getCalPermissions:
           acls = _getPermissions(cal, calendar)
-        _showCalendar(calendar, j, jcount, formatJSON, acls)
+        _showCalendar(calendar, j, jcount, FJQC, acls)
       Ind.Decrement()
     else:
       printGettingEntityItemForWhom(Ent.CALENDAR, user, i, count)
-      if not formatJSON:
+      if not FJQC.formatJSON:
         if calendars:
           for calendar in calendars:
             row = {u'primaryEmail': user, u'calendarId': calendar[u'id']}
@@ -25816,7 +25727,7 @@ def printShowCalendars(users):
         elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
           csvRows.append({u'primaryEmail': user})
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'Calendars', todrive, sortTitles, quotechar)
+    writeCSVfile(csvRows, titles, u'Calendars', todrive, sortTitles, FJQC.quoteChar)
 
 # gam <UserTypeEntity> print calsettings  [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>}
 # gam <UserTypeEntity> show calsettings [formatjson]
@@ -25826,20 +25737,13 @@ def printShowCalSettings(users):
     todrive = {}
     sortTitles = [u'User',]
     titles, csvRows = initializeTitlesCSVfile(sortTitles)
-  formatJSON = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
-    elif myarg == "formatjson":
-      formatJSON = True
-      if csvFormat:
-        addTitlesToCSVfile(u'JSON', titles)
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, titles if csvFormat else None)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -25859,7 +25763,7 @@ def printShowCalSettings(users):
     for setting in feed:
       settings[setting[u'id']] = setting[u'value']
     if not csvFormat:
-      if not formatJSON:
+      if not FJQC.formatJSON:
         printEntityKVList([Ent.USER, user], [Ent.Plural(Ent.CALENDAR_SETTINGS), None], i, count)
         Ind.Increment()
         for attr in sorted(settings):
@@ -25868,12 +25772,12 @@ def printShowCalSettings(users):
       else:
         printLine(json.dumps({u'User': user, u'settings': settings}, ensure_ascii=False, sort_keys=True))
     else:
-      if not formatJSON:
+      if not FJQC.formatJSON:
         addRowTitlesToCSVfile(flattenJSON(settings, flattened={u'User': user}), csvRows, titles)
       else:
         csvRows.append({u'User': user, u'JSON': json.dumps(settings, ensure_ascii=False, sort_keys=True)})
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'Calendar Settings', todrive, sortTitles, quotechar)
+    writeCSVfile(csvRows, titles, u'Calendar Settings', todrive, sortTitles, FJQC.quoteChar)
 
 # gam <UserTypeEntity> create|add calendaracls <UserCalendarEntity> <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
 def createCalendarACLs(users):
@@ -25918,16 +25822,16 @@ def deleteCalendarACLs(users):
 def infoCalendarACLs(users):
   calendarEntity = getUserCalendarEntity()
   ACLScopeEntity = getCalendarSiteACLScopeEntity()
-  formatJSON = _getCalendarInfoACLOptions()
+  FJQC = _getCalendarInfoACLOptions()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     origUser = user
-    user, cal, calIds, jcount = _validateUserGetCalendarIds(user, i, count, calendarEntity, Ent.CALENDAR_ACL, Act.MODIFIER_FROM, showAction=not formatJSON)
+    user, cal, calIds, jcount = _validateUserGetCalendarIds(user, i, count, calendarEntity, Ent.CALENDAR_ACL, Act.MODIFIER_FROM, showAction=not FJQC.formatJSON)
     if jcount == 0:
       continue
     Ind.Increment()
-    _doInfoCalendarACLs(origUser, user, cal, calIds, jcount, ACLScopeEntity, formatJSON)
+    _doInfoCalendarACLs(origUser, user, cal, calIds, jcount, ACLScopeEntity, FJQC)
     Ind.Decrement()
 
 # gam <UserTypeEntity> print calendaracls <UserCalendarEntity> [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
@@ -25935,7 +25839,7 @@ def infoCalendarACLs(users):
 def printShowCalendarACLs(users):
   calendarEntity = getUserCalendarEntity(default=u'all')
   csvFormat = Act.csvFormat()
-  todrive, formatJSON, quotechar, sortTitles = _getCalendarPrintShowACLOptions(csvFormat, Ent.USER)
+  todrive, FJQC, sortTitles = _getCalendarPrintShowACLOptions(csvFormat, Ent.USER)
   if csvFormat:
     titles, csvRows = initializeTitlesCSVfile(sortTitles)
   else:
@@ -25943,7 +25847,7 @@ def printShowCalendarACLs(users):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, cal, calIds, jcount = _validateUserGetCalendarIds(user, i, count, calendarEntity, Ent.CALENDAR_ACL, Act.MODIFIER_FROM, showAction=not csvFormat and not formatJSON)
+    user, cal, calIds, jcount = _validateUserGetCalendarIds(user, i, count, calendarEntity, Ent.CALENDAR_ACL, Act.MODIFIER_FROM, showAction=not csvFormat and not FJQC.formatJSON)
     if jcount == 0:
       continue
     Ind.Increment()
@@ -25951,10 +25855,10 @@ def printShowCalendarACLs(users):
     for calId in calIds:
       j += 1
       calId = convertUIDtoEmailAddress(calId)
-      _printShowCalendarACLs(cal, user, Ent.CALENDAR, calId, j, jcount, csvFormat, formatJSON, csvRows, titles)
+      _printShowCalendarACLs(cal, user, Ent.CALENDAR, calId, j, jcount, csvFormat, FJQC, csvRows, titles)
     Ind.Decrement()
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'Calendar ACLs', todrive, sortTitles, quotechar)
+    writeCSVfile(csvRows, titles, u'Calendar ACLs', todrive, sortTitles, FJQC.quoteChar)
 
 TRANSFER_CALENDAR_APPEND_FIELDS = [u'description', u'location', u'summary']
 
@@ -26329,17 +26233,16 @@ def updateCalendarAttendees(users):
 def infoCalendarEvents(users):
   calendarEntity = getUserCalendarEntity()
   calendarEventEntity = getCalendarEventEntity()
-  formatJSON, fieldsList = _getCalendarInfoEventOptions(calendarEventEntity)
+  FJQC, fieldsList = _getCalendarInfoEventOptions(calendarEventEntity)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     origUser = user
-    user, cal, calIds, jcount = _validateUserGetCalendarIds(user, i, count, calendarEntity, Ent.EVENT, Act.MODIFIER_IN, showAction=not formatJSON)
+    user, cal, calIds, jcount = _validateUserGetCalendarIds(user, i, count, calendarEntity, Ent.EVENT, Act.MODIFIER_IN, showAction=not FJQC.formatJSON)
     if jcount == 0:
       continue
     Ind.Increment()
-    _infoCalendarEvents(origUser, user, cal, calIds, jcount, calendarEventEntity,
-                        formatJSON, fieldsList)
+    _infoCalendarEvents(origUser, user, cal, calIds, jcount, calendarEventEntity, FJQC, fieldsList)
     Ind.Decrement()
 
 # gam <UserTypeEntity> print events <UserCalendarEntity> <EventSelectProperties>* <EventDisplayProperties>* [fields <EventFieldNameList>]
@@ -26350,7 +26253,7 @@ def printShowCalendarEvents(users):
   calendarEntity = getUserCalendarEntity()
   calendarEventEntity = getCalendarEventEntity(noIds=True)
   csvFormat = Act.csvFormat()
-  todrive, formatJSON, fieldsList, quotechar, sortTitles = _getCalendarPrintShowEventOptions(calendarEventEntity, csvFormat, Ent.USER)
+  todrive, FJQC, fieldsList, sortTitles = _getCalendarPrintShowEventOptions(calendarEventEntity, csvFormat, Ent.USER)
   if csvFormat:
     titles, csvRows = initializeTitlesCSVfile(sortTitles)
   else:
@@ -26359,15 +26262,15 @@ def printShowCalendarEvents(users):
   for user in users:
     i += 1
     origUser = user
-    user, cal, calIds, jcount = _validateUserGetCalendarIds(user, i, count, calendarEntity, Ent.EVENT, Act.MODIFIER_FROM, showAction=not csvFormat and not formatJSON)
+    user, cal, calIds, jcount = _validateUserGetCalendarIds(user, i, count, calendarEntity, Ent.EVENT, Act.MODIFIER_FROM, showAction=not csvFormat and not FJQC.formatJSON)
     if jcount == 0:
       continue
     Ind.Increment()
     _printShowCalendarEvents(origUser, user, cal, calIds, jcount, calendarEventEntity,
-                             csvFormat, formatJSON, fieldsList, csvRows, titles)
+                             csvFormat, FJQC, fieldsList, csvRows, titles)
     Ind.Decrement()
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'Calendar Events', todrive, sortTitles, quotechar)
+    writeCSVfile(csvRows, titles, u'Calendar Events', todrive, sortTitles, FJQC.quoteChar)
 
 def _getEntityMimeType(fileEntry):
   return [Ent.DRIVE_FILE, Ent.DRIVE_FOLDER][fileEntry[u'mimeType'] == MIMETYPE_GA_FOLDER]
@@ -27136,8 +27039,7 @@ def printDriveActivity(users):
           break
 
   cd = buildGAPIObject(API.DIRECTORY)
-  formatJSON = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  FJQC = FormatJSONQuoteChar()
   startEndTime = StartEndTime()
   fileList = []
   query = u''
@@ -27176,14 +27078,8 @@ def printDriveActivity(users):
             actions.add(mappedAction)
         else:
           invalidChoiceExit(DRIVE_ACTIVITY_ACTION_MAP, True)
-    elif myarg == "formatjson":
-      formatJSON = True
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     else:
-      unknownArgumentExit()
-  if formatJSON:
-    addTitlesToCSVfile(u'JSON', titles)
+      FJQC.getFormatJSONQuoteChar(myarg, titles)
   if not fileList and not query:
     fileList = [{u'id': u'root', u'mimeType': MIMETYPE_GA_FOLDER}]
   if v2:
@@ -27302,7 +27198,7 @@ def printDriveActivity(users):
                 timeRange = activityEvent[u'timeRange']
                 eventRow[u'eventTime'] = u'{0}-{1}'.format(formatLocalTime(timeRange[u'startTime']), formatLocalTime(timeRange[u'endTime']))
               _updateKnownUsers(activityEvent)
-              if formatJSON:
+              if FJQC.formatJSON:
                 eventRow[u'JSON'] = json.dumps(cleanJSON(activityEvent), ensure_ascii=False, sort_keys=True)
                 csvRows.append(eventRow)
               else:
@@ -27325,7 +27221,7 @@ def printDriveActivity(users):
                 else:
                   if event[u'primaryEventType'] in actions:
                     continue
-              if formatJSON:
+              if FJQC.formatJSON:
                 eventRow = {}
                 if u'user' in event:
                   eventRow[u'user.name'] = event[u'user'][u'name']
@@ -27342,7 +27238,7 @@ def printDriveActivity(users):
         if not pageToken:
           _finalizeGAPIpagesResult(page_message)
           break
-  writeCSVfile(csvRows, titles, u'Drive Activity', todrive, sortTitles, quotechar=quotechar)
+  writeCSVfile(csvRows, titles, u'Drive Activity', todrive, sortTitles, quotechar=FJQC.quoteChar)
 
 DRIVESETTINGS_FIELDS_CHOICE_MAP = {
   u'appinstalled': u'appInstalled',
@@ -28866,7 +28762,7 @@ def printFileList(users):
         _printChildDriveFolderContents(drive, childEntryInfo, user, i, count, depth+1)
 
   todrive = {}
-  titles, csvRows = initializeTitlesCSVfile([u'Owner',])
+  titles, csvRows = initializeTitlesCSVfile(u'Owner')
   allfields = buildTree = filepath = fullpath = getTeamDriveNames = onlyTeamDrives = showParent = False
   maxdepth = -1
   fieldsList = []
@@ -31117,7 +31013,9 @@ TRANSFER_DRIVEFILE_ACL_ROLES_MAP = {
   }
 
 # gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>]
-#	[(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>] [targetuserorphansfoldername <DriveFolderName>]
+#	[(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>]
+#	[targetuserorphansfoldername <DriveFolderName>]
+#	[skipids <DriveFileEntity>]
 #	[keepuser | (retainrole reader|commenter|writer|editor|fileorganizer|none)] [noretentionmessages]
 #	[nonowner_retainrole reader|commenter|writer|editor|fileorganizer|current|none] [nonowner_targetrole reader|commenter|writer|editor|fileorganizer|current|none|source]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
@@ -31163,10 +31061,11 @@ def transferDrive(users):
 
   def _buildTargetUserOrphansFolder():
     folderName = _substituteForUser(targetUserOrphansFolderPattern, sourceUser, sourceUserName)
-    if not folderName:
-      return targetIds[TARGET_PARENT_ID]
-    targetIds[TARGET_ORPHANS_PARENT_ID] = _buildTargetFile(folderName, targetIds[TARGET_PARENT_ID])
-    if targetIds[TARGET_ORPHANS_PARENT_ID] is None:
+    if folderName:
+      targetIds[TARGET_ORPHANS_PARENT_ID] = _buildTargetFile(folderName, targetIds[TARGET_PARENT_ID])
+      if targetIds[TARGET_ORPHANS_PARENT_ID] is None:
+        targetIds[TARGET_ORPHANS_PARENT_ID] = targetIds[TARGET_PARENT_ID]
+    else:
       targetIds[TARGET_ORPHANS_PARENT_ID] = targetIds[TARGET_PARENT_ID]
 
   def _getMappedParentForRootParentOrOrphan(childEntryInfo):
@@ -31431,6 +31330,10 @@ def transferDrive(users):
       childEntry = fileTree.get(childFileId)
       if not childEntry or childFileId in filesTransferred:
         continue
+      if childFileId in skipFileIdEntity[u'list']:
+        entityActionNotPerformedWarning([Ent.USER, sourceUser, _getEntityMimeType(childEntry[u'info']), u'{0} ({1})'.format(childEntry[u'info'][VX_FILENAME], childFileId)],
+                                        Msg.IN_SKIPIDS, j, jcount)
+        continue
       filesTransferred.add(childFileId)
       _transferFile(childEntry, i, count, j, jcount)
       if childEntry[u'info'][u'mimeType'] == MIMETYPE_GA_FOLDER:
@@ -31446,7 +31349,7 @@ def transferDrive(users):
     for childFileId in fileEntry[u'children']:
       j += 1
       childEntry = fileTree.get(childFileId)
-      if not childEntry or childFileId in filesTransferred:
+      if not childEntry or childFileId in filesTransferred or childFileId in skipFileIdEntity[u'list']:
         continue
       filesTransferred.add(childFileId)
       _manageRoleRetention(childEntry, i, count, j, jcount)
@@ -31472,6 +31375,10 @@ def transferDrive(users):
     for childEntry in children:
       if not childEntry[u'trashed']:
         childId = childEntry[u'id']
+        if childId in skipFileIdEntity[u'list']:
+          entityActionNotPerformedWarning([Ent.USER, sourceUser, _getEntityMimeType(childEntry), u'{0} ({1})'.format(childEntry[VX_FILENAME], childId)],
+                                          Msg.IN_SKIPIDS)
+          continue
         fileTree[fileId][u'children'].append(childId)
         _identifyDriveFileAndChildren(childEntry, i, count)
 
@@ -31527,6 +31434,7 @@ def transferDrive(users):
   targetUserOrphansFolderPattern = u'#user# orphaned files'
   targetIds = [None, None]
   thirdPartyOwners = {}
+  skipFileIdEntity = initDriveFileEntity()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'keepuser':
@@ -31560,6 +31468,8 @@ def transferDrive(users):
     elif myarg == u'select':
       fileIdEntity = getDriveFileEntity()
       buildTree = False
+    elif myarg == u'skipids':
+      skipFileIdEntity = getDriveFileEntity()
     elif myarg == u'todrive':
       todrive = getTodriveParameters()
     else:
@@ -31704,16 +31614,20 @@ def transferDrive(users):
                                  throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
                                  fileId=fileId, fields=VX_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS_PERMISSIONS)
             entityType = _getEntityMimeType(fileEntry)
+            if fileId in skipFileIdEntity[u'list']:
+              entityActionNotPerformedWarning([Ent.USER, sourceUser, entityType, u'{0} ({1})'.format(fileEntry[VX_FILENAME], fileId)],
+                                              Msg.IN_SKIPIDS, j, jcount)
+              continue
             entityPerformActionItemValue([Ent.USER, sourceUser], entityType, u'{0} ({1})'.format(fileEntry[VX_FILENAME], fileId), j, jcount)
             for parentId in fileEntry.get(u'parents', []):
               parentIdMap[parentId] = targetIds[TARGET_PARENT_ID]
             _identifyDriveFileAndChildren(fileEntry, i, count)
             filesTransferred = set()
-            _transferDriveFileAndChildren(fileTree[fileEntry[u'id']], i, count, j, jcount)
+            _transferDriveFileAndChildren(fileTree[fileId], i, count, j, jcount)
             if not csvFormat:
               Act.Set(Act.RETAIN)
               filesTransferred = set()
-              _manageRoleRetentionDriveFileAndChildren(fileTree[fileEntry[u'id']], i, count, j, jcount)
+              _manageRoleRetentionDriveFileAndChildren(fileTree[fileId], i, count, j, jcount)
           except GAPI.fileNotFound:
             entityActionFailedWarning([Ent.USER, sourceUser, Ent.DRIVE_FILE_OR_FOLDER, fileId], Msg.NOT_FOUND, j, jcount)
           except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -31943,12 +31857,12 @@ def transferOwnership(users):
 #	[restricted [<Boolean>]] [writerscanshare|writerscantshare [<Boolean>]] [keepuser | (retainrole reader|commenter|writer|editor|none)] [noretentionmessages]
 #	[preview] [filepath] [buildtree] [todrive <ToDriveAttributes>*]d
 def claimOwnership(users):
-  def _identifyFilesToClaim(fileEntry, skipids):
+  def _identifyFilesToClaim(fileEntry):
     for childFileId in fileEntry[u'children']:
       childEntry = fileTree.get(childFileId)
       if childEntry:
         childEntryInfo = childEntry[u'info']
-        if childFileId not in skipids and (trashed or not childEntryInfo[u'trashed']):
+        if childFileId not in skipFileIdEntity[u'list'] and (trashed or not childEntryInfo[u'trashed']):
           owner = childEntryInfo[u'owners'][0][u'emailAddress']
           if not childEntryInfo[u'ownedByMe'] and owner not in skipusers:
             oldOwnerPermissionIds[owner] = childEntryInfo[u'owners'][0][u'permissionId']
@@ -31956,9 +31870,9 @@ def claimOwnership(users):
             if childFileId not in filesToClaim[owner]:
               filesToClaim[owner][childFileId] = {VX_FILENAME: childEntryInfo[VX_FILENAME], u'type': _getEntityMimeType(childEntryInfo)}
           if childEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER:
-            _identifyFilesToClaim(childEntry, skipids)
+            _identifyFilesToClaim(childEntry)
 
-  def _identifyChildrenToClaim(fileEntry, skipIds, user, i, count):
+  def _identifyChildrenToClaim(fileEntry, user, i, count):
     try:
       children = callGAPIpages(drive.files(), u'list', VX_PAGES_FILES,
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
@@ -31969,7 +31883,7 @@ def claimOwnership(users):
       return
     for childEntryInfo in children:
       childFileId = childEntryInfo[u'id']
-      if childFileId not in skipIds and (trashed or not childEntryInfo[u'trashed']):
+      if childFileId not in skipFileIdEntity[u'list'] and (trashed or not childEntryInfo[u'trashed']):
         if filepath:
           fileTree[childFileId] = {u'info': childEntryInfo}
         owner = childEntryInfo[u'owners'][0][u'emailAddress']
@@ -31979,7 +31893,7 @@ def claimOwnership(users):
           if childFileId not in filesToClaim[owner]:
             filesToClaim[owner][childFileId] = {VX_FILENAME: childEntryInfo[VX_FILENAME], u'type': _getEntityMimeType(childEntryInfo)}
         if childEntryInfo[u'mimeType'] == MIMETYPE_GA_FOLDER:
-          _identifyChildrenToClaim(childEntryInfo, skipIds, user, i, count)
+          _identifyChildrenToClaim(childEntryInfo, user, i, count)
 
   def _processRetainedRole(user, i, count, oldOwner, entityType, ofileId, fileDesc, l, lcount):
     oldOwnerPermissionId = oldOwnerPermissionIds[oldOwner]
@@ -32126,9 +32040,9 @@ def claimOwnership(users):
           if fileId not in filesToClaim[owner]:
             filesToClaim[owner][fileId] = {VX_FILENAME: fileEntryInfo[VX_FILENAME], u'type': entityType}
         if buildTree:
-          _identifyFilesToClaim(fileEntry, skipFileIdEntity[u'list'])
+          _identifyFilesToClaim(fileEntry)
         else:
-          _identifyChildrenToClaim(fileEntryInfo, skipFileIdEntity[u'list'], user, i, count)
+          _identifyChildrenToClaim(fileEntryInfo, user, i, count)
       if csvFormat:
         for oldOwner in filesToClaim:
           for claimFileId, fileInfo in iteritems(filesToClaim[oldOwner]):
@@ -32894,22 +32808,21 @@ def doDeletePermissions():
 def _infoDriveFileACLs(users, useDomainAdminAccess):
   fileIdEntity = getDriveFileEntity()
   isEmail, permissionId = getPermissionId()
-  formatJSON = showTitles = False
+  showTitles = False
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'showtitles':
       showTitles = getBoolean()
-    elif myarg == u'formatjson':
-      formatJSON = True
     elif myarg in [u'adminaccess', u'asadmin']:
       useDomainAdminAccess = True
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSON(myarg)
   printKeys, timeObjects = _getDriveFileACLPrintKeysTimeObjects()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=[Ent.DRIVE_FILE_OR_FOLDER_ACL, None][formatJSON],
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=[Ent.DRIVE_FILE_OR_FOLDER_ACL, None][FJQC.formatJSON],
                                                   useDomainAdminAccess=useDomainAdminAccess)
     if jcount == 0:
       continue
@@ -32926,12 +32839,12 @@ def _infoDriveFileACLs(users, useDomainAdminAccess):
         fileName = fileId
         entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
         if showTitles:
-          fileName, entityType = _getDriveFileNameFromId(drive, fileId, not formatJSON)
+          fileName, entityType = _getDriveFileNameFromId(drive, fileId, not FJQC.formatJSON)
         permission = callGAPI(drive.permissions(), u'get',
                               throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.PERMISSION_NOT_FOUND, GAPI.INSUFFICIENT_ADMINISTRATOR_PRIVILEGES],
                               useDomainAdminAccess=useDomainAdminAccess,
                               fileId=fileId, permissionId=permissionId, fields=u'*', supportsTeamDrives=True)
-        if not formatJSON:
+        if not FJQC.formatJSON:
           entityPerformActionNumItems([entityType, fileName], jcount, Ent.PERMITTEE)
           Ind.Increment()
           _showDriveFilePermission(permission, printKeys, timeObjects, j, jcount)
@@ -32963,8 +32876,8 @@ def _printShowDriveFileACLs(users, useDomainAdminAccess):
     sortTitles = [u'Owner', u'id']
     titles, csvRows = initializeTitlesCSVfile(sortTitles)
   fileIdEntity = getDriveFileEntity()
-  formatJSON = oneItemPerRow = showTitles = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  oneItemPerRow = showTitles = False
+  FJQC = FormatJSONQuoteChar()
   orderBy = initOrderBy()
   fileNameTitle = [V3_FILENAME, V2_FILENAME][not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]]
   while Cmd.ArgumentsRemaining():
@@ -32980,21 +32893,15 @@ def _printShowDriveFileACLs(users, useDomainAdminAccess):
       if csvFormat:
         addTitlesToCSVfile(fileNameTitle, titles)
         sortTitles.append(fileNameTitle)
-    elif myarg == u'formatjson':
-      formatJSON = True
-      if csvFormat:
-        addTitlesToCSVfile(u'JSON', titles)
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     elif myarg in [u'adminaccess', u'asadmin']:
       useDomainAdminAccess = True
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, titles if csvFormat else None)
   printKeys, timeObjects = _getDriveFileACLPrintKeysTimeObjects()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][csvFormat or formatJSON], orderBy=orderBy[u'list'],
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][csvFormat or FJQC.formatJSON], orderBy=orderBy[u'list'],
                                                   useDomainAdminAccess=useDomainAdminAccess)
     if jcount == 0:
       continue
@@ -33005,7 +32912,7 @@ def _printShowDriveFileACLs(users, useDomainAdminAccess):
       fileName = fileId
       entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
       if showTitles:
-        fileName, entityType = _getDriveFileNameFromId(drive, fileId, not (csvFormat or formatJSON))
+        fileName, entityType = _getDriveFileNameFromId(drive, fileId, not (csvFormat or FJQC.formatJSON))
       try:
         results = callGAPIpages(drive.permissions(), u'list', VX_PAGES_PERMISSIONS,
                                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND, GAPI.INSUFFICIENT_ADMINISTRATOR_PRIVILEGES],
@@ -33022,7 +32929,7 @@ def _printShowDriveFileACLs(users, useDomainAdminAccess):
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
       if not csvFormat:
-        if not formatJSON:
+        if not FJQC.formatJSON:
           kcount = len(results)
           entityPerformActionNumItems([entityType, fileName], kcount, Ent.PERMITTEE, j, jcount)
           Ind.Increment()
@@ -33050,7 +32957,7 @@ def _printShowDriveFileACLs(users, useDomainAdminAccess):
             if showTitles:
               flattened[fileNameTitle] = fileName
             _mapDrivePermissionNames(permission)
-            if not formatJSON:
+            if not FJQC.formatJSON:
               addRowTitlesToCSVfile(flattenJSON({u'permission': permission}, flattened=flattened, timeObjects=timeObjects), csvRows, titles)
             else:
               flattened[u'JSON'] = json.dumps(cleanJSON({u'permission': permission}, timeObjects=timeObjects), ensure_ascii=False, sort_keys=True)
@@ -33061,14 +32968,14 @@ def _printShowDriveFileACLs(users, useDomainAdminAccess):
             flattened[fileNameTitle] = fileName
           for permission in results:
             _mapDrivePermissionNames(permission)
-          if not formatJSON:
+          if not FJQC.formatJSON:
             addRowTitlesToCSVfile(flattenJSON({u'permissions': results}, flattened=flattened, timeObjects=timeObjects), csvRows, titles)
           else:
             flattened[u'JSON'] = json.dumps(cleanJSON({u'permissions': results}, timeObjects=timeObjects), ensure_ascii=False, sort_keys=True)
             csvRows.append(flattened)
     Ind.Decrement()
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'Drive File ACLs', todrive, sortTitles, quotechar)
+    writeCSVfile(csvRows, titles, u'Drive File ACLs', todrive, sortTitles, FJQC.quoteChar)
 
 # gam <UserTypeEntity> print drivefileacl <DriveFileEntity> [todrive <ToDriveAttributes>*] [oneitemperrow] [showtitles] [formatjson] [quotechar <Character>]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [adminaccess|asadmin]
@@ -33095,10 +33002,8 @@ def doPrintShowOwnership():
   csvFormat = Act.csvFormat()
   if csvFormat:
     todrive = {}
-    sortTitles = [u'Owner', u'id', fileNameTitle, u'type', u'ownerIsTeamDrive', u'teamDriveId']
-    titles, csvRows = initializeTitlesCSVfile(sortTitles)
-  formatJSON = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+    titles, csvRows = initializeTitlesCSVfile(u'Owner')
+  FJQC = FormatJSONQuoteChar()
   showComplete = False
   entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
   myarg = getString(Cmd.OB_DRIVE_FILE_ID, checkBlank=True)
@@ -33134,14 +33039,14 @@ def doPrintShowOwnership():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
       todrive = getTodriveParameters()
-    elif myarg == u'formatjson':
-      formatJSON = True
-      if csvFormat:
-        titles, csvRows = initializeTitlesCSVfile([u'JSON',])
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, titles if csvFormat else None)
+  if csvFormat:
+    if not FJQC.formatJSON:
+      addTitlesToCSVfile(['id', fileNameTitle, u'type', u'ownerIsTeamDrive', u'teamDriveId'], titles)
+      sortTitles = titles[u'list'][:]
+    else:
+      sortTitles = None
   foundIds = {}
   try:
     feed = callGAPIpages(rep.activities(), u'list', u'items',
@@ -33180,14 +33085,14 @@ def doPrintShowOwnership():
         if u'Owner' in fileInfo and u'id' in fileInfo:
           foundIds[fileInfo[u'id']] = True
           if not csvFormat:
-            if not formatJSON:
+            if not FJQC.formatJSON:
               printEntityKVList([Ent.OWNER, fileInfo[u'Owner']],
                                 [u'id', fileInfo[u'id'], fileNameTitle, fileInfo.get(u'title', ''),
                                  u'type', fileInfo.get(u'type', ''), u'ownerIsTeamDrive', fileInfo.get(u'ownerIsTeamDrive', False), u'teamDriveId', fileInfo.get(u'teamDriveId', '')])
             else:
               printLine(json.dumps(cleanJSON(fileInfo), ensure_ascii=False, sort_keys=True))
           else:
-            if not formatJSON:
+            if not FJQC.formatJSON:
               addRowTitlesToCSVfile(flattenJSON(fileInfo), csvRows, titles)
             else:
               csvRows.append({u'JSON': json.dumps(cleanJSON(fileInfo), ensure_ascii=False, sort_keys=True)})
@@ -33201,7 +33106,7 @@ def doPrintShowOwnership():
   if not foundIds:
     entityActionFailedWarning([entityType, fileId], Msg.NOT_FOUND)
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'Drive File Ownership', todrive, sortTitles, quotechar)
+    writeCSVfile(csvRows, titles, u'Drive File Ownership', todrive, sortTitles, FJQC.quoteChar)
 
 def _getTeamDriveTheme(myarg, body):
   if myarg in [u'theme', u'themeid']:
@@ -33409,7 +33314,7 @@ TEAMDRIVE_RESTRICTIONS_PRINT_ORDER = [
   ]
 TEAMDRIVE_TIME_OBJECTS = set([u'createdTime',])
 
-def _showTeamDrive(user, teamdrive, j, jcount, formatJSON):
+def _showTeamDrive(user, teamdrive, j, jcount, FJQC):
   def _showCapabilitiesRestrictions(field, printOrder):
     if field in teamdrive:
       printKeyValueList([field, u''])
@@ -33419,7 +33324,7 @@ def _showTeamDrive(user, teamdrive, j, jcount, formatJSON):
           printKeyValueList([capability, teamdrive[field][capability]])
       Ind.Decrement()
 
-  if formatJSON:
+  if FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(teamdrive, timeObjects=TEAMDRIVE_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
     return
   printEntity([Ent.USER, user, Ent.TEAMDRIVE, u'{0} ({1})'.format(teamdrive[u'name'], teamdrive[u'id'])], j, jcount)
@@ -33438,17 +33343,15 @@ def _showTeamDrive(user, teamdrive, j, jcount, formatJSON):
 def _infoTeamDrive(users, useDomainAdminAccess):
   fileIdEntity = getTeamDriveEntity()
   fieldsList = []
-  formatJSON = False
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in [u'adminaccess', u'asadmin']:
       useDomainAdminAccess = True
-    elif myarg == u'formatjson':
-      formatJSON = True
     elif getFieldsList(myarg, TEAMDRIVE_FIELDS_CHOICE_MAP, fieldsList, [u'id', u'name']):
       pass
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSON(myarg)
   if fieldsList:
     fields = u','.join(set(fieldsList)).replace(u'.', u'/')
   else:
@@ -33465,7 +33368,7 @@ def _infoTeamDrive(users, useDomainAdminAccess):
                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND],
                            useDomainAdminAccess=useDomainAdminAccess,
                            teamDriveId=teamDriveId, fields=fields)
-      _showTeamDrive(user, teamdrive, i, count, formatJSON)
+      _showTeamDrive(user, teamdrive, i, count, FJQC)
     except GAPI.teamDriveNotFound as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -33507,8 +33410,7 @@ def _printShowTeamDrives(users, useDomainAdminAccess):
   query = matchPattern = None
   showCapabilities = True
   fieldsList = []
-  formatJSON = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
@@ -33523,16 +33425,10 @@ def _printShowTeamDrives(users, useDomainAdminAccess):
       pass
     elif myarg in [u'adminaccess', u'asadmin']:
       useDomainAdminAccess = True
-    elif myarg == "formatjson":
-      formatJSON = True
-      if csvFormat:
-        addTitlesToCSVfile(u'JSON', titles)
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     elif getFieldsList(myarg, TEAMDRIVE_FIELDS_CHOICE_MAP, fieldsList, [u'id', u'name']):
       pass
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, titles if csvFormat else None)
   if fieldsList:
     if not useDomainAdminAccess and u'capabilities' not in fieldsList:
       addFieldToFieldsList(u'capabilities', TEAMDRIVE_FIELDS_CHOICE_MAP, fieldsList)
@@ -33590,7 +33486,7 @@ def _printShowTeamDrives(users, useDomainAdminAccess):
       matchedFeed = feed
     jcount = len(matchedFeed)
     if not csvFormat:
-      if not formatJSON:
+      if not FJQC.formatJSON:
         entityPerformActionNumItems([Ent.USER, user], jcount, Ent.TEAMDRIVE, i, count)
     if jcount == 0:
       setSysExitRC(NO_ENTITIES_FOUND)
@@ -33602,13 +33498,13 @@ def _printShowTeamDrives(users, useDomainAdminAccess):
           j += 1
           if not showCapabilities:
             teamdrive.pop(u'capabilities', None)
-          _showTeamDrive(user, teamdrive, j, jcount, formatJSON)
+          _showTeamDrive(user, teamdrive, j, jcount, FJQC)
         Ind.Decrement()
       else:
         for teamdrive in matchedFeed:
           if not showCapabilities:
             teamdrive.pop(u'capabilities', None)
-          if formatJSON:
+          if FJQC.formatJSON:
             row = {u'User': user, u'id': teamdrive[u'id'], u'name': teamdrive[u'name']}
             if not useDomainAdminAccess:
               row[u'role'] = teamdrive[u'role']
@@ -33617,7 +33513,7 @@ def _printShowTeamDrives(users, useDomainAdminAccess):
           else:
             addRowTitlesToCSVfile(flattenJSON(teamdrive, flattened={u'User': user}, timeObjects=TEAMDRIVE_TIME_OBJECTS), csvRows, titles)
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'TeamDrives', todrive, [u'User', u'id', u'name', u'role'], quotechar)
+    writeCSVfile(csvRows, titles, u'TeamDrives', todrive, [u'User', u'id', u'name', u'role'], FJQC.quoteChar)
 
 # gam print teamdrives [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [todrive <ToDriveAttributes>*]
 #	[fields <TeamDriveFieldNameList>] [formatjson] [quotechar <Character>]
@@ -34127,7 +34023,7 @@ def createSheet(users):
   addParents = u''
   removeParents = u'root'
   body = {}
-  formatJSON = False
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'json':
@@ -34137,12 +34033,10 @@ def createSheet(users):
       except (ValueError, IndexError, KeyError, SyntaxError) as e:
         Cmd.Backup()
         usageErrorExit(u'{0}: {1}'.format(str(e), spreadsheetJSON))
-    elif myarg == "formatjson":
-      formatJSON = True
     elif getDriveFileParentAttribute(myarg, parameters):
       changeParents = True
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSON(myarg)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -34161,7 +34055,7 @@ def createSheet(users):
                         throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                         body=body)
       spreadsheetId = result[u'spreadsheetId']
-      if not formatJSON:
+      if not FJQC.formatJSON:
         entityActionPerformed([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], i, count)
       parentId = u'root'
       parentMsg = u'Success'
@@ -34175,7 +34069,7 @@ def createSheet(users):
           parentMsg = u'{0}{1}: {2}'.format(ERROR_PREFIX, addParents, str(e))
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           parentMsg = u'{0}{1}: {2}'.format(ERROR_PREFIX, addParents, str(e))
-      if formatJSON:
+      if FJQC.formatJSON:
         printLine(u'{{"User": "{0}", "spreadsheetId": "{1}", "parentId": "{2}", "parentAssignment": "{3}", "JSON": {4}}}'.format(user, spreadsheetId, parentId, parentMsg, json.dumps(result, ensure_ascii=False, sort_keys=False)))
         continue
       Ind.Increment()
@@ -34205,7 +34099,7 @@ def _validateUserGetSpreadsheetIDs(user, i, count, fileIdEntity, showEntityType)
 def updateSheets(users):
   spreadsheetIdEntity = getDriveFileEntity()
   body = {}
-  formatJSON = False
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'json':
@@ -34215,14 +34109,12 @@ def updateSheets(users):
       except (ValueError, IndexError, KeyError, SyntaxError) as e:
         Cmd.Backup()
         usageErrorExit(u'{0}: {1}'.format(str(e), spreadsheetJSON))
-    elif myarg == "formatjson":
-      formatJSON = True
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSON(myarg)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, sheet, jcount = _validateUserGetSpreadsheetIDs(user, i, count, spreadsheetIdEntity, not formatJSON)
+    user, sheet, jcount = _validateUserGetSpreadsheetIDs(user, i, count, spreadsheetIdEntity, not FJQC.formatJSON)
     if jcount == 0:
       continue
     Ind.Increment()
@@ -34233,7 +34125,7 @@ def updateSheets(users):
         result = callGAPI(sheet.spreadsheets(), u'batchUpdate',
                           throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                           spreadsheetId=spreadsheetId, body=body)
-        if formatJSON:
+        if FJQC.formatJSON:
           printLine(u'{{"User": "{0}", "spreadsheetId": "{1}", "JSON": {2}}}'.format(user, spreadsheetId, json.dumps(result, ensure_ascii=False, sort_keys=False)))
           continue
         entityActionPerformed([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], j, jcount)
@@ -34254,21 +34146,19 @@ def infoSheets(users):
   spreadsheetIdEntity = getDriveFileEntity()
   ranges = []
   includeGridData = False
-  formatJSON = False
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'range':
       ranges.append(getString(Cmd.OB_SPREADSHEET_RANGE))
     elif myarg == u'includegriddata':
       includeGridData = getBoolean()
-    elif myarg == "formatjson":
-      formatJSON = True
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSON(myarg)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, sheet, jcount = _validateUserGetSpreadsheetIDs(user, i, count, spreadsheetIdEntity, not formatJSON)
+    user, sheet, jcount = _validateUserGetSpreadsheetIDs(user, i, count, spreadsheetIdEntity, not FJQC.formatJSON)
     if jcount == 0:
       continue
     Ind.Increment()
@@ -34279,7 +34169,7 @@ def infoSheets(users):
         result = callGAPI(sheet.spreadsheets(), u'get',
                           throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                           spreadsheetId=spreadsheetId, ranges=ranges, includeGridData=includeGridData)
-        if formatJSON:
+        if FJQC.formatJSON:
           printLine(u'{{"User": "{0}", "spreadsheetId": "{1}", "JSON": {2}}}'.format(user, spreadsheetId, json.dumps(result, ensure_ascii=False, sort_keys=False)))
           continue
         printEntity([Ent.SPREADSHEET, spreadsheetId], j, jcount)
@@ -34328,7 +34218,7 @@ def _getSpreadsheetRangesValues(append):
     }
   if append:
     kwargs[u'insertDataOption'] = u'INSERT_ROWS'
-  formatJSON = False
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'json':
@@ -34357,11 +34247,9 @@ def _getSpreadsheetRangesValues(append):
       kwargs[u'responseDateTimeRenderOption'] = SHEET_DATETIME_RENDER_OPTIONS_MAP[myarg]
     elif append and myarg in SHEET_INSERT_DATA_OPTIONS_MAP:
       kwargs[u'insertDataOption'] = SHEET_INSERT_DATA_OPTIONS_MAP[myarg]
-    elif myarg == "formatjson":
-      formatJSON = True
     else:
-      unknownArgumentExit()
-  return (kwargs, spreadsheetRangesValues, formatJSON)
+      FJQC.getFormatJSON(myarg)
+  return (kwargs, spreadsheetRangesValues, FJQC)
 
 def _showValueRange(valueRange):
   Ind.Increment()
@@ -34385,20 +34273,20 @@ def _showUpdateValuesResponse(result, k, kcount):
 #	[includevaluesinresponse [<Boolean>]] [formatjson]
 def appendSheetRanges(users):
   spreadsheetIdEntity = getDriveFileEntity()
-  kwargs, spreadsheetRangesValues, formatJSON = _getSpreadsheetRangesValues(True)
+  kwargs, spreadsheetRangesValues, FJQC = _getSpreadsheetRangesValues(True)
   kcount = len(spreadsheetRangesValues)
   body = spreadsheetRangesValues[0] if kcount > 0 else {}
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, sheet, jcount = _validateUserGetSpreadsheetIDs(user, i, count, spreadsheetIdEntity, not formatJSON)
+    user, sheet, jcount = _validateUserGetSpreadsheetIDs(user, i, count, spreadsheetIdEntity, not FJQC.formatJSON)
     if jcount == 0:
       continue
     Ind.Increment()
     j = 0
     for spreadsheetId in spreadsheetIdEntity[u'list']:
       j += 1
-      if not formatJSON:
+      if not FJQC.formatJSON:
         entityPerformActionNumItems([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], kcount, Ent.SPREADSHEET_RANGE, j, jcount)
       Ind.Increment()
       k = 1
@@ -34406,7 +34294,7 @@ def appendSheetRanges(users):
         result = callGAPI(sheet.spreadsheets().values(), u'append',
                           throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                           spreadsheetId=spreadsheetId, range=body[u'range'], body=body, **kwargs)
-        if formatJSON:
+        if FJQC.formatJSON:
           printLine(u'{{"User": "{0}", "spreadsheetId": "{1}", "JSON": {2}}}'.format(user, spreadsheetId, json.dumps(result, ensure_ascii=False, sort_keys=False)))
           continue
         for field in [u'tableRange',]:
@@ -34425,27 +34313,27 @@ def appendSheetRanges(users):
 #	[includevaluesinresponse [<Boolean>]] [formatjson]
 def updateSheetRanges(users):
   spreadsheetIdEntity = getDriveFileEntity()
-  body, spreadsheetRangesValues, formatJSON = _getSpreadsheetRangesValues(False)
+  body, spreadsheetRangesValues, FJQC = _getSpreadsheetRangesValues(False)
   body[u'data'] = spreadsheetRangesValues
   kcount = len(spreadsheetRangesValues)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, sheet, jcount = _validateUserGetSpreadsheetIDs(user, i, count, spreadsheetIdEntity, not formatJSON)
+    user, sheet, jcount = _validateUserGetSpreadsheetIDs(user, i, count, spreadsheetIdEntity, not FJQC.formatJSON)
     if jcount == 0:
       continue
     Ind.Increment()
     j = 0
     for spreadsheetId in spreadsheetIdEntity[u'list']:
       j += 1
-      if not formatJSON:
+      if not FJQC.formatJSON:
         entityPerformActionNumItems([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], kcount, Ent.SPREADSHEET_RANGE, j, jcount)
       Ind.Increment()
       try:
         result = callGAPI(sheet.spreadsheets().values(), u'batchUpdate',
                           throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                           spreadsheetId=spreadsheetId, body=body)
-        if formatJSON:
+        if FJQC.formatJSON:
           printLine(u'{{"User": "{0}", "spreadsheetId": "{1}", "JSON": {2}}}'.format(user, spreadsheetId, json.dumps(result, ensure_ascii=False, sort_keys=False)))
           continue
         for field in [u'totalUpdatedRows', u'totalUpdatedColumns', u'totalUpdatedCells', u'totalUpdatedSheets']:
@@ -34466,34 +34354,32 @@ def updateSheetRanges(users):
 def clearSheetRanges(users):
   spreadsheetIdEntity = getDriveFileEntity()
   body = {u'ranges': []}
-  formatJSON = False
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'range':
       body[u'ranges'].append(getString(Cmd.OB_SPREADSHEET_RANGE))
-    elif myarg == "formatjson":
-      formatJSON = True
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSON(myarg)
   kcount = len(body[u'ranges'])
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, sheet, jcount = _validateUserGetSpreadsheetIDs(user, i, count, spreadsheetIdEntity, not formatJSON)
+    user, sheet, jcount = _validateUserGetSpreadsheetIDs(user, i, count, spreadsheetIdEntity, not FJQC.formatJSON)
     if jcount == 0:
       continue
     Ind.Increment()
     j = 0
     for spreadsheetId in spreadsheetIdEntity[u'list']:
       j += 1
-      if not formatJSON:
+      if not FJQC.formatJSON:
         entityPerformActionNumItems([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], kcount, Ent.SPREADSHEET_RANGE, j, jcount)
       Ind.Increment()
       try:
         result = callGAPIitems(sheet.spreadsheets().values(), u'batchClear', u'clearedRanges',
                                throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                                spreadsheetId=spreadsheetId, body=body)
-        if formatJSON:
+        if FJQC.formatJSON:
           printLine(u'{{"User": "{0}", "spreadsheetId": "{1}", "JSON": {2}}}'.format(user, spreadsheetId, json.dumps({u'clearedRanges': result}, ensure_ascii=False, sort_keys=False)))
           continue
         k = 0
@@ -34508,12 +34394,9 @@ def clearSheetRanges(users):
       Ind.Decrement()
     Ind.Decrement()
 
-PRINT_SHEETS_TITLES = [u'User', u'spreadsheetId', u'range', u'majorDimension', u'values']
-PRINT_SHEETS_JSON_TITLES = [u'User', u'spreadsheetId', u'JSON']
-
 # gam <UserTypeEntity> print sheetrange <DriveFileEntity> (range <SpreadsheetRange>)*  [todrive <ToDriveAttributes>*]
 #	[rows|columns] [serialnumber|formattedstring] [formula|formattedvalue|unformattedvalue]
-#	[formatjson]
+#	[formatjson] [quotechar <Character>]
 # gam <UserTypeEntity> show sheetrange <DriveFileEntity> (range <SpreadsheetRange>)*
 #	[rows|columns] [serialnumber|formattedstring] [formula|formattedvalue|unformattedvalue]
 #	[formatjson]
@@ -34521,7 +34404,7 @@ def printShowSheetRanges(users):
   csvFormat = Act.csvFormat()
   if csvFormat:
     todrive = {}
-    titles, csvRows = initializeTitlesCSVfile(PRINT_SHEETS_TITLES)
+    titles, csvRows = initializeTitlesCSVfile([u'User', u'spreadsheetId'])
   spreadsheetIdEntity = getDriveFileEntity()
   spreadsheetRanges = []
   kwargs = {
@@ -34529,8 +34412,7 @@ def printShowSheetRanges(users):
     u'valueRenderOption': u'FORMATTED_VALUE',
     u'dateTimeRenderOption': u'FORMATTED_STRING',
     }
-  formatJSON = False
-  quotechar = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
@@ -34543,18 +34425,18 @@ def printShowSheetRanges(users):
       kwargs[u'valueRenderOption'] = SHEET_VALUE_RENDER_OPTIONS_MAP[myarg]
     elif myarg in SHEET_DATETIME_RENDER_OPTIONS_MAP:
       kwargs[u'dateTimeRenderOption'] = SHEET_DATETIME_RENDER_OPTIONS_MAP[myarg]
-    elif myarg == "formatjson":
-      formatJSON = True
-      if csvFormat:
-        titles, csvRows = initializeTitlesCSVfile(PRINT_SHEETS_JSON_TITLES)
-    elif myarg == u'quotechar':
-      quotechar = getCharacter()
     else:
-      unknownArgumentExit()
+      FJQC.getFormatJSONQuoteChar(myarg, titles if csvFormat else None)
+  if csvFormat:
+    if not FJQC.formatJSON:
+      addTitlesToCSVfile([u'range', u'majorDimension', u'values'], titles)
+      sortTitles = titles[u'list'][:]
+    else:
+      sortTitles = None
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, sheet, jcount = _validateUserGetSpreadsheetIDs(user, i, count, spreadsheetIdEntity, not csvFormat and not formatJSON)
+    user, sheet, jcount = _validateUserGetSpreadsheetIDs(user, i, count, spreadsheetIdEntity, not csvFormat and not FJQC.formatJSON)
     if jcount == 0:
       continue
     Ind.Increment()
@@ -34567,7 +34449,7 @@ def printShowSheetRanges(users):
                                spreadsheetId=spreadsheetId, ranges=spreadsheetRanges, **kwargs)
         kcount = len(result)
         if not csvFormat:
-          if formatJSON:
+          if FJQC.formatJSON:
             printLine(u'{{"User": "{0}", "spreadsheetId": "{1}", "JSON": {2}}}'.format(user, spreadsheetId, json.dumps(result, ensure_ascii=False, sort_keys=False)))
             continue
           entityPerformActionNumItems([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], kcount, Ent.SPREADSHEET_RANGE, j, jcount)
@@ -34580,7 +34462,7 @@ def printShowSheetRanges(users):
           Ind.Decrement()
         else:
           if result:
-            if formatJSON:
+            if FJQC.formatJSON:
               csvRows.append({u'User': user, u'spreadsheetId': spreadsheetId, u'JSON': json.dumps(result, ensure_ascii=False, sort_keys=False)})
             else:
               addRowTitlesToCSVfile(flattenJSON(result, flattened={u'User': user, u'spreadsheetId': spreadsheetId}), csvRows, titles)
@@ -34593,10 +34475,7 @@ def printShowSheetRanges(users):
         break
     Ind.Decrement()
   if csvFormat:
-    if formatJSON:
-      writeCSVfile(csvRows, titles, u'Spreadsheet', todrive, PRINT_SHEETS_JSON_TITLES, quotechar)
-    else:
-      writeCSVfile(csvRows, titles, u'Spreadsheet', todrive, PRINT_SHEETS_TITLES, quotechar)
+    writeCSVfile(csvRows, titles, u'Spreadsheet', todrive, sortTitles, FJQC.quoteChar)
 
 # Token commands utilities
 def commonClientIds(clientId):
@@ -38268,8 +38147,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CROS:		doPrintCrOSDevices,
       Cmd.ARG_CROSACTIVITY:	doPrintCrOSActivity,
       Cmd.ARG_DATATRANSFER:	doPrintShowDataTransfers,
-      Cmd.ARG_DOMAIN:		doPrintDomains,
-      Cmd.ARG_DOMAINALIAS:	doPrintDomainAliases,
+      Cmd.ARG_DOMAIN:		doPrintShowDomains,
+      Cmd.ARG_DOMAINALIAS:	doPrintShowDomainAliases,
       Cmd.ARG_DRIVEFILEACL:	doPrintShowDriveFileACLs,
       Cmd.ARG_FEATURE:		doPrintShowFeatures,
       Cmd.ARG_GAL:		doPrintShowGAL,
@@ -38312,6 +38191,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CLASSROOMINVITATION:	doPrintShowClassroomInvitations,
       Cmd.ARG_CONTACT:		doPrintShowDomainContacts,
       Cmd.ARG_DATATRANSFER:	doPrintShowDataTransfers,
+      Cmd.ARG_DOMAIN:		doPrintShowDomains,
+      Cmd.ARG_DOMAINALIAS:	doPrintShowDomainAliases,
       Cmd.ARG_DRIVEFILEACL:	doPrintShowDriveFileACLs,
       Cmd.ARG_FEATURE:		doPrintShowFeatures,
       Cmd.ARG_GAL:		doPrintShowGAL,
