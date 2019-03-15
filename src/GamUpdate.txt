@@ -1,3 +1,14 @@
+4.65.76
+
+Added actual API field names to `<ResourceFieldName>`:
+        featureinstances|
+        resourcecategory|
+        resourcedescription|
+        resourceemail|
+        resourceid|
+        resourcename|
+        resourcetype|
+
 4.65.75
 
 Fix coding in `gam show filetree` that caused a trap.

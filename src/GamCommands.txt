@@ -1924,12 +1924,19 @@ gam print resoldsubscriptions [todrive <ToDriveAttribute>*] [customerid <Custome
         category|
         description|
         email|
+        featureinstances|
         features|
         floor|
         floorsection|
         generatedresourcename|
         id|
         name|
+        resourcecategory|
+        resourcedescription|
+        resourceemail|
+        resourceid|
+        resourcename|
+        resourcetype|
         type|
         uservisibledescription
 <ResourceFieldNameList> ::= "<ResourceFieldName>(,<ResourceFieldName>)*"

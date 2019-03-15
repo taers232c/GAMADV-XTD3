@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.75'
+__version__ = u'4.65.76'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -16349,12 +16349,19 @@ RESOURCE_FIELDS_CHOICE_MAP = {
   u'email': u'resourceEmail',
   u'feature': u'featureInstances',
   u'features': u'featureInstances',
+  u'featureinstances': u'featureInstances',
   u'floor': u'floorName',
   u'floorname': u'floorName',
   u'floorsection': u'floorSection',
   u'generatedresourcename': u'generatedResourceName',
   u'id': u'resourceId',
   u'name': u'resourceName',
+  u'resourcecategory': u'resourceCategory',
+  u'resourcedescription': u'resourceDescription',
+  u'resourceemail': u'resourceEmail',
+  u'resourceid': u'resourceId',
+  u'resourcename': u'resourceName',
+  u'resourcetype': u'resourceType',
   u'type': u'resourceType',
   u'userdescription': u'userVisibleDescription',
   u'uservisibledescription': u'userVisibleDescription',
