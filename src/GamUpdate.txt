@@ -1,3 +1,7 @@
+4.65.75
+
+Fix coding in `gam show filetree` that caused a trap.
+
 4.65.74
 
 Added commands to show domains and domain aliases as an indented list of keys and values.
