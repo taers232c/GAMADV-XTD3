@@ -2703,12 +2703,12 @@ gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] <Drive
         <DriveFileAttribute>|
         (modifieddate|modifiedtime <Time>)|
         usecontentasindexabletext|
-        (addparents <DriveFolderIDList>)|
-        (addparentname <DriveFolderName>)|
-        (addanyownerparentname <DriveFolderName>)|
-        (removeparents <DriveFolderIDList>)|
-        (removeparentname <DriveFolderName>)|
-        (removeanyownerparentname <DriveFolderName>)
+        ((addparents <DriveFolderIDList>)|
+         (addparentname <DriveFolderName>)|
+         (addanyownerparentname <DriveFolderName>))|
+        ((removeparents <DriveFolderIDList>)|
+         (removeparentname <DriveFolderName>)|
+         (removeanyownerparentname <DriveFolderName>))
 
 gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [retainname | (newfilename <DriveFileName>)] <DriveFileUpdateAttribute>*
 
