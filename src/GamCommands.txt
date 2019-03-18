@@ -2685,7 +2685,7 @@ gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [any
 <DriveFileCreateAttribute> ::=
         <DriveFileAttribute>|
         ignoredefaultvisibility|
-        (modifieddate|modifiedtime <Time>)|
+        usecontentasindexabletext|
         ((parentid <DriveFolderID>)|
          (parentname <DriveFolderName>)|
          (anyownerparentname <DriveFolderName>)|
@@ -2695,30 +2695,20 @@ gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [any
          (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))|
          (teamdriveparentid <DriveFolderID>)|(teamdriveparent <TeamDriveName>)|
          (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
-         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))|
-        usecontentasindexabletext
+         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))
 
 gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] <DriveFileCreateAttribute>* [csv [todrive <ToDriveAttribute>*]]
 
 <DriveFileUpdateAttribute> ::=
         <DriveFileAttribute>|
+        (modifieddate|modifiedtime <Time>)|
+        usecontentasindexabletext|
         (addparents <DriveFolderIDList>)|
         (addparentname <DriveFolderName>)|
         (addanyownerparentname <DriveFolderName>)|
         (removeparents <DriveFolderIDList>)|
         (removeparentname <DriveFolderName>)|
-        (removeanyownerparentname <DriveFolderName>)|
-        ((parentid <DriveFolderID>)|
-         (parentname <DriveFolderName>)|
-         (anyownerparentname <DriveFolderName>)|
-         (teamdriveparentid <DriveFolderID>)|
-         (teamdriveparent <TeamDriveName>)|
-         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
-         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))|
-         (teamdriveparentid <DriveFolderID>)|(teamdriveparent <TeamDriveName>)|
-         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
-         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))|
-        usecontentasindexabletext
+        (removeanyownerparentname <DriveFolderName>)
 
 gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [retainname | (newfilename <DriveFileName>)] <DriveFileUpdateAttribute>*
 

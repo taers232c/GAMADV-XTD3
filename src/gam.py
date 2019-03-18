@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.76'
+__version__ = u'4.65.77'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -16129,17 +16129,17 @@ RESOURCE_CATEGORY_MAP = {
 def _getResourceCalendarAttributes(cd, body):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == u'name':
+    if myarg in [u'name', u'resourcename']:
       body[u'resourceName'] = getString(Cmd.OB_STRING)
-    elif myarg == u'description':
+    elif myarg in [u'description', u'resourcedescription']:
       body[u'resourceDescription'] = getStringWithCRsNLs()
-    elif myarg == u'type':
+    elif myarg in [u'type', u'resourcetype']:
       body[u'resourceType'] = getString(Cmd.OB_STRING)
     elif myarg in [u'building', u'buildingid']:
       body[u'buildingId'] = _getBuildingByNameOrId(cd, minLen=0)
     elif myarg in [u'capacity']:
       body[u'capacity'] = getInteger(minVal=0)
-    elif myarg in [u'feature', u'features']:
+    elif myarg in [u'feature', u'features', u'featureinstances']:
       features = getString(Cmd.OB_STRING).split(u',')
       body[u'featureInstances'] = []
       for feature in features:
@@ -16148,9 +16148,9 @@ def _getResourceCalendarAttributes(cd, body):
       body[u'floorName'] = getString(Cmd.OB_STRING)
     elif myarg in [u'floorsection']:
       body[u'floorSection'] = getString(Cmd.OB_STRING)
-    elif myarg in [u'category']:
+    elif myarg in [u'category', u'resourcecategory']:
       body[u'resourceCategory'] = getChoice(RESOURCE_CATEGORY_MAP, mapChoice=True)
-    elif myarg in [u'uservisibledescription', u'userdescription']:
+    elif myarg in [u'userdescription', u'uservisibledescription']:
       body[u'userVisibleDescription'] = getString(Cmd.OB_STRING)
     else:
       unknownArgumentExit()
@@ -26886,44 +26886,43 @@ def getDriveFileProperty(visibility=None):
       visibility = u'properties'
   return {u'key': key, u'value': value, u'visibility': visibility}
 
-def getDriveFileParentAttribute(myarg, parameters):
-  if myarg == u'parentid':
-    parameters[DFA_PARENTID] = getString(Cmd.OB_DRIVE_FOLDER_ID)
-  elif myarg == u'parentname':
-    parameters[DFA_PARENTQUERY] = VX_MY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName())
-  elif myarg in [u'anyownerparentname', u'sharedparentname']:
-    parameters[DFA_PARENTQUERY] = VX_ANY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName())
-  elif myarg == u'teamdriveparent':
-    parameters[DFA_TEAMDRIVE_PARENT] = getString(Cmd.OB_TEAMDRIVE_NAME)
-  elif myarg == u'teamdriveparentid':
-    parameters[DFA_TEAMDRIVE_PARENTID] = getString(Cmd.OB_DRIVE_FOLDER_ID)
-  elif myarg == u'teamdriveparentname':
-    parameters[DFA_TEAMDRIVE_PARENTQUERY] = VX_ANY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName())
-    parameters[DFA_KWARGS][u'corpora'] = u'user,allTeamDrives'
-    parameters[DFA_KWARGS][u'includeTeamDriveItems'] = True
-    parameters[DFA_KWARGS][u'supportsTeamDrives'] = True
+def getDriveFileParentAttribute(myarg, parameters, updateCmd=False):
+  if not updateCmd:
+    if myarg == u'parentid':
+      parameters[DFA_PARENTID] = getString(Cmd.OB_DRIVE_FOLDER_ID)
+    elif myarg == u'parentname':
+      parameters[DFA_PARENTQUERY] = VX_MY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName())
+    elif myarg in [u'anyownerparentname', u'sharedparentname']:
+      parameters[DFA_PARENTQUERY] = VX_ANY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName())
+    elif myarg == u'teamdriveparent':
+      parameters[DFA_TEAMDRIVE_PARENT] = getString(Cmd.OB_TEAMDRIVE_NAME)
+    elif myarg == u'teamdriveparentid':
+      parameters[DFA_TEAMDRIVE_PARENTID] = getString(Cmd.OB_DRIVE_FOLDER_ID)
+    elif myarg == u'teamdriveparentname':
+      parameters[DFA_TEAMDRIVE_PARENTQUERY] = VX_ANY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName())
+      parameters[DFA_KWARGS][u'corpora'] = u'user,allTeamDrives'
+      parameters[DFA_KWARGS][u'includeTeamDriveItems'] = True
+      parameters[DFA_KWARGS][u'supportsTeamDrives'] = True
+    else:
+      return False
   else:
-    return False
+    if myarg in [u'addparent', u'addparents']:
+      parameters[DFA_ADD_PARENT_IDS].extend(getString(Cmd.OB_DRIVE_FOLDER_ID_LIST).replace(u',', u' ').split())
+    elif myarg in [u'removeparent', u'removeparents']:
+      parameters[DFA_REMOVE_PARENT_IDS].extend(getString(Cmd.OB_DRIVE_FOLDER_ID_LIST).replace(u',', u' ').split())
+    elif myarg == u'addparentname':
+      parameters[DFA_ADD_PARENT_NAMES].append(VX_MY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName()))
+    elif myarg == u'removeparentname':
+      parameters[DFA_REMOVE_PARENT_NAMES].append(VX_MY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName()))
+    elif myarg in [u'addanyownerparentname', u'addsharedparentname']:
+      parameters[DFA_ADD_PARENT_NAMES].append(VX_ANY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName()))
+    elif myarg in [u'removeanyownerparentname', u'removesharedparentname']:
+      parameters[DFA_REMOVE_PARENT_NAMES].append(VX_ANY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName()))
+    else:
+      return False
   return True
 
-def getDriveFileAddRemoveParentAttribute(myarg, parameters):
-  if myarg in [u'addparent', u'addparents']:
-    parameters[DFA_ADD_PARENT_IDS].extend(getString(Cmd.OB_DRIVE_FOLDER_ID_LIST).replace(u',', u' ').split())
-  elif myarg in [u'removeparent', u'removeparents']:
-    parameters[DFA_REMOVE_PARENT_IDS].extend(getString(Cmd.OB_DRIVE_FOLDER_ID_LIST).replace(u',', u' ').split())
-  elif myarg == u'addparentname':
-    parameters[DFA_ADD_PARENT_NAMES].append(VX_MY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName()))
-  elif myarg == u'removeparentname':
-    parameters[DFA_REMOVE_PARENT_NAMES].append(VX_MY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName()))
-  elif myarg in [u'addanyownerparentname', u'addsharedparentname']:
-    parameters[DFA_ADD_PARENT_NAMES].append(VX_ANY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName()))
-  elif myarg in [u'removeanyownerparentname', u'removesharedparentname']:
-    parameters[DFA_REMOVE_PARENT_NAMES].append(VX_ANY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName()))
-  else:
-    return False
-  return True
-
-def getDriveFileAttribute(myarg, body, parameters, assignLocalName):
+def getDriveFileAttribute(myarg, body, parameters, assignLocalName, updateCmd):
   if myarg == u'localfile':
     parameters[DFA_LOCALFILEPATH] = getString(Cmd.OB_FILE_NAME)
     try:
@@ -26956,7 +26955,7 @@ def getDriveFileAttribute(myarg, body, parameters, assignLocalName):
     body[u'description'] = getStringWithCRsNLs()
   elif myarg == u'mimetype':
     body[u'mimeType'] = getMimeType()
-  elif getDriveFileParentAttribute(myarg, parameters):
+  elif getDriveFileParentAttribute(myarg, parameters, updateCmd):
     pass
   elif myarg == u'writerscanshare':
     body[u'writersCanShare'] = getBoolean()
@@ -29474,7 +29473,7 @@ def createDriveFile(users):
     elif myarg == u'todrive':
       todrive = getTodriveParameters()
     else:
-      getDriveFileAttribute(myarg, body, parameters, True)
+      getDriveFileAttribute(myarg, body, parameters, True, False)
   if csvFormat:
     fileNameTitle = [V3_FILENAME, V2_FILENAME][not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]]
     titles, csvRows = initializeTitlesCSVfile([u'User', fileNameTitle, u'id'])
@@ -29540,10 +29539,8 @@ def updateDriveFile(users):
       body[VX_FILENAME] = getString(Cmd.OB_DRIVE_FILE_NAME)
     elif myarg in [u'modifieddate', u'modifiedtime']:
       body[VX_MODIFIED_TIME] = getTimeOrDeltaFromNow()
-    elif getDriveFileAddRemoveParentAttribute(myarg, parameters):
-      pass
     else:
-      getDriveFileAttribute(myarg, body, parameters, assignLocalName)
+      getDriveFileAttribute(myarg, body, parameters, assignLocalName, True)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1

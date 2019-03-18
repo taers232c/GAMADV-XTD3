@@ -1,3 +1,8 @@
+4.65.77
+
+Updated code and documentation to reflect that `gam update drivefile` must use the `addparents/removeparents` options
+to change a file's parents; the `parentid/parentname` options are not valid.
+
 4.65.76
 
 Added actual API field names to `<ResourceFieldName>`:
