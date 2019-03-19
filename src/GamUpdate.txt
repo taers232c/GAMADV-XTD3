@@ -1,3 +1,10 @@
+4.65.78
+
+Reverted change introduced in 4.65.77 that indicated that `gam update drivefile` can not use the `parentid/parentname` options to change
+the parents for a file/folder. This is incorrect, those options are valid; however there was a bug, now fixed, that prevented the update from succeeding.
+Remember, when using this option, all existing parents are replaced by the new parent.
+I apologize for the confusion.
+
 4.65.77
 
 Updated code and documentation to reflect that `gam update drivefile` must use the `addparents/removeparents` options

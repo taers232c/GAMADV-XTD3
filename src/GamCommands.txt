@@ -2703,6 +2703,16 @@ gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] <Drive
         <DriveFileAttribute>|
         (modifieddate|modifiedtime <Time>)|
         usecontentasindexabletext|
+        ((parentid <DriveFolderID>)|
+         (parentname <DriveFolderName>)|
+         (anyownerparentname <DriveFolderName>)|
+         (teamdriveparentid <DriveFolderID>)|
+         (teamdriveparent <TeamDriveName>)|
+         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
+         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))|
+         (teamdriveparentid <DriveFolderID>)|(teamdriveparent <TeamDriveName>)|
+         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
+         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))|
         ((addparents <DriveFolderIDList>)|
          (addparentname <DriveFolderName>)|
          (addanyownerparentname <DriveFolderName>))|
