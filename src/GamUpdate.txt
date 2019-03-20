@@ -1,3 +1,10 @@
+4.65.79
+
+Added `createifnotfound` option to `gam update groups update [member|manager|owner]`. If, when attempting to update
+the role of a group member, the group member is not found, this option causes Gam to add the member with the specified role.
+gam update groups <GroupEntity> update [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended]
+        [delivery allmail|daily|digest|none|disabled] [preview] [createifnotfound] <UserTypeEntity>
+
 4.65.78
 
 Reverted change introduced in 4.65.77 that indicated that `gam update drivefile` can not use the `parentid/parentname` options to change

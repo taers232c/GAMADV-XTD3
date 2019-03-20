@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.78'
+__version__ = u'4.65.79'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -13840,7 +13840,7 @@ GROUP_DELIVERY_SETTINGS_MAP = {
 # gam update groups <GroupEntity> sync [member|manager|owner] [usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended]
 #	[delivery allmail|daily|digest|none|disabled] [preview] <UserTypeEntity>
 # gam update groups <GroupEntity> update [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended]
-#	[delivery allmail|daily|digest|none|disabled] [preview] <UserTypeEntity>
+#	[delivery allmail|daily|digest|none|disabled] [preview] [createifnotfound] <UserTypeEntity>
 # gam update groups <GroupEntity> clear [member] [manager] [owner] [notsuspended|suspended] [preview]
 def doUpdateGroups():
 
@@ -14100,7 +14100,14 @@ def doUpdateGroups():
       _showAction(group, role, delivery_settings, member, j, jcount)
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
       entityUnknownWarning(Ent.GROUP, group, i, count)
-    except (GAPI.memberNotFound, GAPI.invalidMember) as e:
+    except GAPI.memberNotFound as e:
+      if createIfNotFound:
+        Act.Set(Act.ADD)
+        _addMember(group, i, count, role, delivery_settings, member, j, jcount)
+        Act.Set(Act.UPDATE)
+      else:
+        entityActionFailedWarning([Ent.GROUP, group, Ent.MEMBER, member], str(e), j, jcount)
+    except GAPI.invalidMember as e:
       entityActionFailedWarning([Ent.GROUP, group, Ent.MEMBER, member], str(e), j, jcount)
 
   def _callbackUpdateGroupMembers(request_id, response, exception):
@@ -14109,7 +14116,11 @@ def doUpdateGroups():
       _showAction(ri[RI_ENTITY], ri[RI_ROLE], ri[RI_OPTION], ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
       http_status, reason, message = checkGAPIError(exception)
-      if reason in GAPI.MEMBERS_THROW_REASONS:
+      if reason == GAPI.MEMBER_NOT_FOUND and createIfNotFound:
+        Act.Set(Act.ADD)
+        _addMember(ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]), ri[RI_ROLE], ri[RI_OPTION], ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        Act.Set(Act.UPDATE)
+      elif reason in GAPI.MEMBERS_THROW_REASONS:
         entityUnknownWarning(Ent.GROUP, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
       else:
         errMsg = getHTTPError(_UPDATE_MEMBER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
@@ -14299,6 +14310,7 @@ def doUpdateGroups():
     isSuspended = _getOptionalIsSuspended()
     delivery_settings = getDeliverySettings()
     preview = checkArgumentPresent(u'preview')
+    createIfNotFound = checkArgumentPresent(u'createifnotfound')
     _, updateMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
     groupMemberLists = updateMembers if isinstance(updateMembers, dict) else None
     checkForExtraneousArguments()

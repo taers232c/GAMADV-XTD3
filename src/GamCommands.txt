@@ -1529,7 +1529,7 @@ gam update group|groups <GroupEntity> delete|remove [owner|manager|member] [user
 gam update group|groups <GroupEntity> sync [owner|manager|member] [usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended]
         [[delivery] allmail|abridged|daily|digest|none|disabled] [preview] <UserTypeEntity>
 gam update group|groups <GroupEntity> update [owner|manager|member] [usersonly|groupsonly] [notsuspended|suspended]
-        [[delivery] allmail|abridged|daily|digest|none|disabled] [preview] <UserTypeEntity>
+        [[delivery] allmail|abridged|daily|digest|none|disabled] [preview] [createifnotfound] <UserTypeEntity>
 gam update group|groups <GroupEntity> clear [member] [manager] [owner] [notsuspended|suspended] [preview]
 gam delete group|groups <GroupEntity>
 
