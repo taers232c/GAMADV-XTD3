@@ -1520,7 +1520,7 @@ gam show domainaliases|aliasdomains [formatjson]
         (whocanmodifytagsandcategories (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
         (whocantaketopics (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
         (whocanunassigntopic (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
-        (whocanunmarkfavoritereplyonanytopic (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
+        (whocanunmarkfavoritereplyonanytopic (members|all_members)|owners_and_managers|managers_only|owners_only|none)
 <GroupWhoCanModerateContentAttribute> ::=
         (whocanmoderatecontent (members|all_members)|owners_and_managers|owners_only|none)|
         (whocanapprovemessages (members|all_members)|owners_and_managers|owners_only|none)|
@@ -1543,7 +1543,7 @@ gam show domainaliases|aliasdomains [formatjson]
         (maxmessagebytes <ByteCount>)|
         (messagedisplayfont default_font|fixed_width_font)|
         (whocanaddreferences (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
-        (whocanmarkfavoritereplyonowntopic (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
+        (whocanmarkfavoritereplyonowntopic (members|all_members)|owners_and_managers|managers_only|owners_only|none)
 <GroupAttribute> ::=
         <GroupSettingsAttribute>|
         <GroupWhoCanDiscoverGroupAttribute>|
@@ -1564,7 +1564,9 @@ gam update group|groups <GroupEntity> update [owner|manager|member] [usersonly|g
 gam update group|groups <GroupEntity> clear [member] [manager] [owner] [notsuspended|suspended] [preview]
 gam delete group|groups <GroupEntity>
 
+<GroupFieldName> ::=
         allowexternalmembers|
+        allowgooglecommunication|
         allowwebposting|
         archiveonly|
         customfootertext|
@@ -1573,52 +1575,51 @@ gam delete group|groups <GroupEntity>
         defaultmessagedenynotificationtext|
         description|
         enablecollaborativeinbox|collaborative|
-        includeinglobaladdresslist|
+        favoriterepliesontop|
         includecustomfooter|
+        includeinglobaladdresslist|
         isarchived|
+        maxmessagebytes|
         memberscanpostasthegroup|
+        messagedisplayfont|
         messagemoderationlevel|
         name|
         primarylanguage|
         replyto|
         sendmessagedenynotification|
+        showingroupdirectory|
         spammoderationlevel|
+        whocanaddreferences|
         whocanadd|
+        whocanapprovemessages|
+        whocanassigntopics|
+        whocanassistcontent|
         whocancontactowner|
+        whocandeleteanypost|
+        whocandeletetopics|
+        whocandiscovergroup|
+        whocanenterfreeformtags|
+        whocanhideabuse|
         whocaninvite|
         whocanjoin|
         whocanleavegroup|
-        whocanpostmessage|
-        whocanviewgroup|
-        whocanviewmembership|
-        whocanassistcontent|
-        whocanassigntopics|
-        whocanenterfreeformtags|
-        whocanhideabuse|
+        whocanlocktopics|
         whocanmaketopicssticky|
         whocanmarkduplicate|
         whocanmarkfavoritereplyonanytopic|
+        whocanmarkfavoritereplyonowntopic|
         whocanmarknoresponseneeded|
-        whocanmodifytagsandcategories|
-        whocantaketopics|
-        whocanunassigntopic|
-        whocanunmarkfavoritereplyonanytopic|
-        whocandiscovergroup|
-        showingroupdirectory|
         whocanmoderatecontent|
-        whocanapprovemessages|
-        whocandeleteanypost|
-        whocandeletetopics|
-        whocanlocktopics|
+        whocanmodifytagsandcategories|
         whocanmovetopicsin|
         whocanmovetopicsout|
         whocanpostannouncements|
-        allowgooglecommunication|
-        favoriterepliesontop|
-        maxmessagebytes|
-        messagedisplayfont|
-        whocanaddreferences|
-        whocanmarkfavoritereplyonowntopic|
+        whocanpostmessage|
+        whocantaketopics|
+        whocanunassigntopic|
+        whocanunmarkfavoritereplyonanytopic|
+        whocanviewgroup|
+        whocanviewmembership
 <GroupFieldNameList> ::= "<GroupFieldName>(,<GroupFieldName>)*"
 
 gam info group|groups <GroupEntity> [members] [managers] [owners] [nousers|notsuspended|suspended] [quick]
