@@ -127,8 +127,6 @@ NUM_THREADS = u'num_threads'
 OAUTH2_TXT = u'oauth2_txt'
 # Path to oauth2service.json
 OAUTH2SERVICE_JSON = u'oauth2service_json'
-# Use native field names in gam print groups/orgs
-PRINT_NATIVE_NAMES = u'print_native_names'
 # Default section to use for processing
 SECTION = u'section'
 # Show API calls retry data
@@ -161,6 +159,8 @@ TODRIVE_TIMESTAMP = u'todrive_timestamp'
 TODRIVE_USER = u'todrive_user'
 # When retrieving lists of Users from API, how many should be retrieved in each chunk
 USER_MAX_RESULTS = u'user_max_results'
+# User service account access only, no client access
+USER_SERVICE_ACCOUNT_ACCESS_ONLY = u'user_service_account_access_only'
 
 Defaults = {
   ACTIVITY_MAX_RESULTS: u'100',
@@ -207,7 +207,6 @@ Defaults = {
   NUM_THREADS: u'5',
   OAUTH2_TXT: FN_OAUTH2_TXT,
   OAUTH2SERVICE_JSON: FN_OAUTH2SERVICE_JSON,
-  PRINT_NATIVE_NAMES: TRUE,
   SECTION: u'',
   SHOW_API_CALLS_RETRY_DATA: FALSE,
   SHOW_CONVERT_CR_NL: FALSE,
@@ -224,6 +223,7 @@ Defaults = {
   TODRIVE_TIMESTAMP: FALSE,
   TODRIVE_USER: u'',
   USER_MAX_RESULTS: u'500',
+  USER_SERVICE_ACCOUNT_ACCESS_ONLY: FALSE,
   }
 
 Values = {DEBUG_LEVEL: 0}
@@ -295,7 +295,6 @@ VAR_INFO = {
   NUM_THREADS: {VAR_TYPE: TYPE_INTEGER, VAR_ENVVAR: u'GAM_THREADS', VAR_LIMITS: (1, 100)},
   OAUTH2_TXT: {VAR_TYPE: TYPE_FILE, VAR_ENVVAR: u'OAUTHFILE', VAR_ACCESS: os.R_OK | os.W_OK},
   OAUTH2SERVICE_JSON: {VAR_TYPE: TYPE_FILE, VAR_ENVVAR: u'OAUTHSERVICEFILE', VAR_ACCESS: os.R_OK},
-  PRINT_NATIVE_NAMES: {VAR_TYPE: TYPE_BOOLEAN},
   SECTION: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   SHOW_API_CALLS_RETRY_DATA: {VAR_TYPE: TYPE_BOOLEAN},
   SHOW_CONVERT_CR_NL: {VAR_TYPE: TYPE_BOOLEAN},
@@ -312,4 +311,5 @@ VAR_INFO = {
   TODRIVE_TIMESTAMP: {VAR_TYPE: TYPE_BOOLEAN},
   TODRIVE_USER: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   USER_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_ENVVAR: u'GAM_USER_MAX_RESULTS', VAR_LIMITS: (1, 500)},
+  USER_SERVICE_ACCOUNT_ACCESS_ONLY: {VAR_TYPE: TYPE_BOOLEAN},
   }

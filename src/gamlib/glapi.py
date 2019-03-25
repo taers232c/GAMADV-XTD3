@@ -119,7 +119,7 @@ _INFO = {
                                                                          u'https://www.googleapis.com/auth/plus.profile.language.read', 
                                                                          u'https://www.googleapis.com/auth/userinfo.email',
                                                                          u'https://www.googleapis.com/auth/userinfo.profile',]},
-  GROUPSMIGRATION: {u'version': u'v1', u'credfam': FAM2_SCOPES},
+  GROUPSMIGRATION: {u'version': u'v1', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/apps.groups.migration',]},
   GROUPSSETTINGS: {u'version': u'v1', u'credfam': FAM2_SCOPES},
   LICENSING: {u'version': u'v1', u'credfam': FAM1_SCOPES},
   PEOPLE: {u'version': u'v1', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/contacts',]},

@@ -1,3 +1,36 @@
+4.65.80
+
+Updated all commands that deal with group settings:
+* https://support.google.com/a/answer/9191148
+* https://drive.google.com/file/d/1-ux3z6-hcjsPbhAj_EIwS7cd_emkE-NC/view
+
+During the transition period between March 25 2019 and May 6 2019, the new group settings are available read-only;
+this will allow you to evaluate how the new merged settings will work in your environment.
+
+Added `nodeprecated` option to `gam info/print groups` to suppress display of the variables that will become
+deprecated in May when the new settings become effective.
+
+Added `basic` option to `gam info/print groups` to select these fields for display:
+`email,id,name,description,directMembersCount,aliases,nonEditableAliases,adminCreated`.
+
+The order of the columns in the CSV file produced by `gam print groups` has been changed to aid in evaluating the new merged settings.
+If you have scripts that expect the fields to be in a particular order, test to see if you have to make changes.
+
+The variable, `print_native_names`, has been deleted from `gam.cfg`; it controlled the field names used in `gam print groups/orgs`.
+Now, `gam print groups/org` will always use the native Directory API field names. If you have scripts that process the output
+of these two commands, verify that they are using the native field names.
+
+Groups:
+* No longer used - Email,ID,Name,Description,DirectMembersCount,Aliases,NonEditableAliases,Admin_Created
+* Native - email,id,name,description,directMembersCount,aliases,nonEditableAliases,adminCreated
+Orgs:
+* No longer used - Path,ID,Parent,ParentID,Name,Description,InheritanceBlocked
+* Native - orgUnitPath,orgUnitId,parentOrgUnitPath,parentOrgUnitId,name,description,blockInheritance
+
+Added `user_service_account_access_only` to `gam.cfg`. It will typically be used by consultants that do not have client access
+to client domains, but only service account access to manage user content: files, messages, calendars. The default value
+is false which is appropriate for almost all Gam users.
+
 4.65.79
 
 Added `createifnotfound` option to `gam update groups update [member|manager|owner]`. If, when attempting to update

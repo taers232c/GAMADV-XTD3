@@ -94,8 +94,10 @@ If an item contains spaces, it should be surrounded by ".
         gau|unlimited|gsuitebusiness|Google-Apps-Unlimited|
         gae|enterprise|gsuiteenterprise|1010020020|
         gsefe|e4e|gsuiteenterpriseeducation|1010310002|
+        gsefes|e4es|gsuiteenterpriseeducationstudent|1010310003|
         chrome|cdm|googlechromedevicemanagement|Google-Chrome-Device-Management|
         coordinate|googlecoordinate|Google-Coordinate|
+        d4e|driveenterprise|drive4enterprise|
         drive20gb|20gb|googledrivestorage20gb|Google-Drive-storage-20GB|
         drive50gb|50gb|googledrivestorage50gb|Google-Drive-storage-50GB|
         drive200gb|200gb|googledrivestorage200gb|Google-Drive-storage-200GB|
@@ -1477,49 +1479,78 @@ gam show domainaliases|aliasdomains [formatjson]
 
 # Groups
 
-<GroupAttribute> ::=
+<GroupSettingsAttribute> ::=
         (allowexternalmembers <Boolean>)|
-        (allowgooglecommunication <Boolean>)|
         (allowwebposting <Boolean>)|
         (archiveonly <Boolean>)|
-        (collaborative (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
         (customfootertext <String>)|
         (customreplyto <EmailAddress>)|
         (defaultmessagedenynotificationtext <String>)|
         (description <String>)|
-        (favoriterepliesontop <Boolean>)|
-        (gal|includeInGlobalAddressList <Boolean>)|
+        (enablecollaborativeinbox|collaborative <Boolean>)|
+        (includeinglobaladdresslist|gal <Boolean>)|
         (includecustomfooter <Boolean>)|
         (isarchived <Boolean>)|
-        (maxmessagebytes <ByteCount>)|
         (memberscanpostasthegroup <Boolean>)|
-        (messagedisplayfont default_font|fixed_width_font)|
         (messagemoderationlevel moderate_all_messages|moderate_non_members|moderate_new_members|moderate_none)|
         (name <String>)|
         (primarylanguage <Language>)|
         (replyto reply_to_custom|reply_to_sender|reply_to_list|reply_to_owner|reply_to_ignore|reply_to_managers)|
         (sendmessagedenynotification <Boolean>)|
-        (showingroupdirectory <Boolean>)|
         (spammoderationlevel allow|moderate|silently_moderate|reject)|
         (whocanadd all_members_can_add|all_managers_can_add|none_can_add)|
-        (whocanaddreferences (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
-        (whocanassigntopics (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
         (whocancontactowner anyone_can_contact|all_in_domain_can_contact|all_members_can_contact|all_managers_can_contact)|
-        (whocanenterfreeformtags (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
-        (whocaninvite all_members_can_invite|all_managers_can_invite|none_can_invite)|
         (whocanjoin anyone_can_join|all_in_domain_can_join|invited_can_join|can_request_to_join)|
         (whocanleavegroup all_managers_can_leave|all_members_can_leave|none_can_leave)|
-        (whocanmarkduplicate (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
-        (whocanmarkfavoritereplyonanytopic (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
-        (whocanmarkfavoritereplyonowntopic (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
-        (whocanmarknoresponseneeded (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
-        (whocanmodifytagsandcategories (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
-        (whocantaketopics (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
         (whocanpostmessage none_can_post|all_managers_can_post|all_members_can_post|all_in_domain_can_post|anyone_can_post)|
-        (whocanunassigntopic (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
-        (whocanunmarkfavoritereplyonanytopic (members|all_members)|(managers|owners_and_managers)|(managers_only)|(owners|owners_only)|none)|
         (whocanviewgroup anyone_can_view|all_in_domain_can_view|all_members_can_view|all_managers_can_view)|
         (whocanviewmembership all_in_domain_can_view|all_members_can_view|all_managers_can_view)
+<GroupWhoCanDiscoverGroupAttribute> ::=
+        (whocandiscovergroup allmemberscandiscover|allindomaincandiscover|anyonecandiscover)|
+        (showingroupdirectory <Boolean>)
+<GroupWhoCanAssistContentAttribute> ::=
+        (whocanassistcontent (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
+        (whocanassigntopics (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
+        (whocanenterfreeformtags (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
+        (whocanhideabuse (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
+        (whocanmaketopicssticky (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
+        (whocanmarkduplicate (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
+        (whocanmarkfavoritereplyonanytopic (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
+        (whocanmarknoresponseneeded (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
+        (whocanmodifytagsandcategories (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
+        (whocantaketopics (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
+        (whocanunassigntopic (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
+        (whocanunmarkfavoritereplyonanytopic (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
+<GroupWhoCanModerateContentAttribute> ::=
+        (whocanmoderatecontent (members|all_members)|owners_and_managers|owners_only|none)|
+        (whocanapprovemessages (members|all_members)|owners_and_managers|owners_only|none)|
+        (whocandeleteanypost (members|all_members)|owners_and_managers|owners_only|none)|
+        (whocandeletetopics (members|all_members)|owners_and_managers|owners_only|none)|
+        (whocanlocktopics (members|all_members)|owners_and_managers|owners_only|none)|
+        (whocanmovetopicsin (members|all_members)|owners_and_managers|owners_only|none)|
+        (whocanmovetopicsout (members|all_members)|owners_and_managers|owners_only|none)|
+        (whocanpostannouncements (members|all_members)|owners_and_managers|owners_only|none)
+<GroupWhoCanModerateMembersAttribute> ::=
+        (whocanmoderatemembers (members|all_members)|owners_and_managers|owners_only|none)|
+        (whocanadd all_members_can_add|all_managers_can_add|none_can_add)|
+        (whocanapprovemembers all_members_can_approve|all_managers_can_approve|all_owners_can_approve|none_can_approve)|
+        (whocanbanusers (members|all_members)|owners_and_managers|owners_only|none)|
+        (whocaninvite all_members_can_invite|all_managers_can_invite|none_can_invite)|
+        (whocanmodifymembers (members|all_members)|owners_and_managers|owners_only|none)
+<GroupDeprecatedAttribute> ::=
+        (allowgooglecommunication <Boolean>)|
+        (favoriterepliesontop <Boolean>)|
+        (maxmessagebytes <ByteCount>)|
+        (messagedisplayfont default_font|fixed_width_font)|
+        (whocanaddreferences (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
+        (whocanmarkfavoritereplyonowntopic (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
+<GroupAttribute> ::=
+        <GroupSettingsAttribute>|
+        <GroupWhoCanDiscoverGroupAttribute>|
+        <GroupWhoCanAssistContentAttribute>|
+        <GroupWhoCanModerateContentAttribute>|
+        <GroupWhoCanModerateMembersAttribute>|
+        <GroupDeprecatedAttribute>
 
 gam create|add group <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>*
 gam update group|groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] [copyfrom <GroupItem>] <GroupAttribute>*
@@ -1533,59 +1564,68 @@ gam update group|groups <GroupEntity> update [owner|manager|member] [usersonly|g
 gam update group|groups <GroupEntity> clear [member] [manager] [owner] [notsuspended|suspended] [preview]
 gam delete group|groups <GroupEntity>
 
-<GroupFieldName> ::=
-        admincreated|
-        aliases|
         allowexternalmembers|
-        allowgooglecommunication|
         allowwebposting|
         archiveonly|
-        collaborative|
+        customfootertext|
         customreplyto|
+        customrolesenabledforsettingstobemerged|
         defaultmessagedenynotificationtext|
         description|
-        directmemberscount|
-        email|
-        favoriterepliesontop|
-        id|
-        includeinglobaladdresslist|gal|
+        enablecollaborativeinbox|collaborative|
+        includeinglobaladdresslist|
+        includecustomfooter|
         isarchived|
-        maxmessagebytes|
         memberscanpostasthegroup|
-        messagedisplayfont|
         messagemoderationlevel|
-        name
+        name|
         primarylanguage|
         replyto|
         sendmessagedenynotification|
-        showingroupdirectory|
         spammoderationlevel|
         whocanadd|
-        whocanaddreferences|
-        whocanassigntopics|
         whocancontactowner|
-        whocanenterfreeformtags|
         whocaninvite|
         whocanjoin|
         whocanleavegroup|
+        whocanpostmessage|
+        whocanviewgroup|
+        whocanviewmembership|
+        whocanassistcontent|
+        whocanassigntopics|
+        whocanenterfreeformtags|
+        whocanhideabuse|
+        whocanmaketopicssticky|
         whocanmarkduplicate|
         whocanmarkfavoritereplyonanytopic|
-        whocanmarkfavoritereplyonowntopic|
         whocanmarknoresponseneeded|
         whocanmodifytagsandcategories|
-        whocanpostmessage|
         whocantaketopics|
         whocanunassigntopic|
-        whocanunmarkfavoritereplyonanytopic
-        whocanviewgroup|
-        whocanviewmembership
+        whocanunmarkfavoritereplyonanytopic|
+        whocandiscovergroup|
+        showingroupdirectory|
+        whocanmoderatecontent|
+        whocanapprovemessages|
+        whocandeleteanypost|
+        whocandeletetopics|
+        whocanlocktopics|
+        whocanmovetopicsin|
+        whocanmovetopicsout|
+        whocanpostannouncements|
+        allowgooglecommunication|
+        favoriterepliesontop|
+        maxmessagebytes|
+        messagedisplayfont|
+        whocanaddreferences|
+        whocanmarkfavoritereplyonowntopic|
 <GroupFieldNameList> ::= "<GroupFieldName>(,<GroupFieldName>)*"
 
 gam info group|groups <GroupEntity> [members] [managers] [owners] [nousers|notsuspended|suspended] [quick]
-        [noaliases] [groups] <GroupFieldName>* [fields <GroupFieldNameList>] [formatjson]
+        [noaliases] [groups] [basic] <GroupFieldName>* [fields <GroupFieldNameList>] [nodeprecated] [formatjson]
 gam print groups [todrive <ToDriveAttribute>*] ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[select <GroupEntity>] [notsuspended|suspended]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>] (matchsetting [not] <GroupAttribute>)*
-        [maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
+        [maxresults <Number>] [allfields|([basic] [settings] <GroupFieldName>* [fields <GroupFieldNameList>])] [nodeprecated]
         [members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
         [convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
 

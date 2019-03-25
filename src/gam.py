@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.79'
+__version__ = u'4.65.80'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3746,7 +3746,8 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, inc
   entityList = []
   entitySet = set()
   if entityType in [Cmd.ENTITY_USER, Cmd.ENTITY_USERS]:
-    buildGAPIObject(API.DIRECTORY)
+    if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
+      buildGAPIObject(API.DIRECTORY)
     result = convertEntityToList(entity, nonListEntityType=entityType == Cmd.ENTITY_USER)
     for user in result:
       if validateEmailAddressOrUID(user):
@@ -3755,6 +3756,8 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, inc
           entityList.append(user)
       else:
         _showInvalidEntity(Ent.USER, user)
+    if GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
+      return entityList
   elif entityType == Cmd.ENTITY_ALL_USERS:
     cd = buildGAPIObject(API.DIRECTORY)
     query = None if includeSuspendedInAll else u'isSuspended=False'
@@ -4251,9 +4254,13 @@ def getEntityArgument(entityList):
     Cmd.SetLocation(clLoc)
   return (0, len(entityList), entityList)
 
-def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=False, userAllowed=True,
+def getEntityToModify(defaultEntityType=None, crosAllowed=False, userAllowed=True,
                       typeMap=None, isSuspended=None, groupMemberType=u'USER', delayGet=False):
-  selectorChoices = Cmd.BASE_ENTITY_SELECTORS[:]
+  if GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
+    crosAllowed = False
+    selectorChoices = Cmd.SERVICE_ACCOUNT_ONLY_ENTITY_SELECTORS[:]
+  else:
+    selectorChoices = Cmd.BASE_ENTITY_SELECTORS[:]
   if userAllowed:
     selectorChoices += Cmd.USER_ENTITY_SELECTORS+Cmd.USER_CSVDATA_ENTITY_SELECTORS
   if crosAllowed:
@@ -4296,7 +4303,7 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
                 getUsersToModify(Cmd.ENTITY_CROS_SN, getEntitiesFromCSVFile(False)))
     if entitySelector == Cmd.ENTITY_SELECTOR_DATAFILE:
       if userAllowed:
-        choices += Cmd.USER_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES
+        choices += Cmd.USER_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY] else [Cmd.ENTITY_USERS]
       if crosAllowed:
         choices += Cmd.CROS_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES
       entityType = mapEntityType(getChoice(choices), typeMap)
@@ -4307,7 +4314,7 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
                                                                                          Cmd.ENTITY_CROS_OUS, Cmd.ENTITY_CROS_OUS_AND_CHILDREN])))
     if entitySelector == Cmd.ENTITY_SELECTOR_CSVKMD:
       if userAllowed:
-        choices += Cmd.USER_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES
+        choices += Cmd.USER_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY] else [Cmd.ENTITY_USERS]
       if crosAllowed:
         choices += Cmd.CROS_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES
       entityType = mapEntityType(getChoice(choices, choiceAliases=Cmd.ENTITY_ALIAS_MAP), typeMap)
@@ -4319,7 +4326,7 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
               GM.Globals[GM.CSV_DATA_DICT])
   entityChoices = []
   if userAllowed:
-    entityChoices += Cmd.USER_ENTITIES
+    entityChoices += Cmd.USER_ENTITIES if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY] else [Cmd.ENTITY_USER, Cmd.ENTITY_USERS]
   if crosAllowed:
     entityChoices += Cmd.CROS_ENTITIES
   entityType = mapEntityType(getChoice(entityChoices, choiceAliases=Cmd.ENTITY_ALIAS_MAP, defaultChoice=defaultEntityType), typeMap)
@@ -4337,7 +4344,8 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
       return (entityClass,
               getUsersToModify(entityType, entityItem))
     GM.Globals[GM.ENTITY_CL_DELAY_START] = Cmd.Location()
-    buildGAPIObject(API.DIRECTORY)
+    if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
+      buildGAPIObject(API.DIRECTORY)
     if entityClass == Cmd.ENTITY_USERS:
       if entityType in [Cmd.ENTITY_GROUP_USERS, Cmd.ENTITY_GROUP_USERS_NS, Cmd.ENTITY_GROUP_USERS_SUSP]:
         # Skip over sub-arguments
@@ -4354,8 +4362,6 @@ def getEntityToModify(defaultEntityType=None, returnOnError=False, crosAllowed=F
               {u'entityType': entityType, u'entity': entityItem, u'isSuspended': isSuspended, u'groupMemberType': groupMemberType})
     return (entityClass,
             {u'entityType': entityType, u'entity': entityItem})
-  if returnOnError:
-    return (None, None)
   invalidChoiceExit(selectorChoices+entityChoices, False)
 
 def getEntitySelector():
@@ -4502,12 +4508,17 @@ def getTodriveParameters():
       break
   if not todrive[u'user']:
     todrive[u'user'] = _getValueFromOAuth(u'email')
-  user = checkUserExists(buildGAPIObject(API.DIRECTORY), todrive[u'user'])
-  if not user:
-    invalidTodriveUserExit(Ent.USER, Msg.NOT_FOUND)
-  todrive[u'user'] = user
+  if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
+    user = checkUserExists(buildGAPIObject(API.DIRECTORY), todrive[u'user'])
+    if not user:
+      invalidTodriveUserExit(Ent.USER, Msg.NOT_FOUND)
+    todrive[u'user'] = user
+  else:
+    todrive[u'user'] = normalizeEmailAddressOrUID(todrive[u'user'])
   if todrive[u'fileId']:
     _, drive = buildGAPIServiceObject(API.DRIVE3, todrive[u'user'], 0, 0)
+    if not drive:
+      invalidTodriveUserExit(Ent.USER, Msg.NOT_FOUND)
     try:
       result = callGAPI(drive.files(), u'get',
                         throw_reasons=[GAPI.FILE_NOT_FOUND],
@@ -4522,6 +4533,8 @@ def getTodriveParameters():
     todrive[u'parentId'] = u'root'
   else:
     _, drive = buildGAPIServiceObject(API.DRIVE3, todrive[u'user'], 0, 0)
+    if not drive:
+      invalidTodriveUserExit(Ent.USER, Msg.NOT_FOUND)
     if todrive[u'parent'].startswith(u'id:'):
       try:
         result = callGAPI(drive.files(), u'get',
@@ -4708,31 +4721,6 @@ def addFieldToCSVfile(fieldName, fieldNameMap, fieldsList, titles):
   elif fields not in fieldsList:
     fieldsList.append(fields)
     addTitlesToCSVfile(fields, titles)
-
-# fieldName is command line argument
-# fieldNameTitleMap maps fieldName to API field name and CSV file header
-#ARGUMENT_TO_PROPERTY_TITLE_MAP = {
-#  u'admincreated': [u'adminCreated', u'Admin_Created'],
-#  u'aliases': [u'aliases', u'Aliases', u'nonEditableAliases', u'NonEditableAliases'],
-#  }
-# fieldsList is the list of API fields
-# fieldsTitles maps the API field name to the CSV file header
-# nativeTitles is the list of native (unmapped) titles
-def addFieldTitleToCSVfile(fieldName, fieldNameTitleMap, fieldsList, fieldsTitles, titles, nativeTitles):
-  ftList = fieldNameTitleMap[fieldName.lower()]
-  for i in range(0, len(ftList), 2):
-    if ftList[i] not in fieldsTitles:
-      fieldsList.append(ftList[i])
-      fieldsTitles[ftList[i]] = ftList[i+1]
-      addTitlesToCSVfile(ftList[i+1], titles)
-    if ftList[i] not in nativeTitles:
-      nativeTitles.append(ftList[i])
-
-def convertToNativeTitles(fieldsTitles, titles, nativeTitles):
-  for field in fieldsTitles:
-    fieldsTitles[field] = field
-  titles[u'set'] = set(nativeTitles)
-  titles[u'list'] = nativeTitles
 
 def initializeTitlesCSVfile(baseTitles):
   titles = {u'set': set(), u'list': []}
@@ -6033,6 +6021,9 @@ def doOAuthImport():
 def checkServiceAccount(users):
   checkForExtraneousArguments()
   all_scopes, jcount = API.getSortedSvcAcctScopesList()
+  if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
+    all_scopes.remove(u'https://www.googleapis.com/auth/apps.groups.migration')
+    jcount -= 1
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -7930,7 +7921,7 @@ def _showDomainAlias(alias, FJQC, aliasSkipObjects, i=0, count=0):
   if FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(alias, timeObjects=DOMAIN_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
     return
-  printEntity([Ent.DOMAIN_ALIAS, alias[u'domainAliasName']])
+  printEntity([Ent.DOMAIN_ALIAS, alias[u'domainAliasName']], i, count)
   Ind.Increment()
   if u'creationTime' in alias:
     alias[u'creationTime'] = formatLocalTimestamp(alias[u'creationTime'])
@@ -8198,7 +8189,7 @@ def _showDomain(result, FJQC, i=0, count=0):
     skipObjects.add(field)
     aliasSkipObjects = DOMAIN_ALIAS_SKIP_OBJECTS
     for alias in aliases:
-      _showDomainAlias(alias, False, aliasSkipObjects)
+      _showDomainAlias(alias, FJQC, aliasSkipObjects)
       showJSON(None, alias, aliasSkipObjects)
   showJSON(None, result, skipObjects)
   Ind.Decrement()
@@ -9251,22 +9242,20 @@ def doInfoOrgs():
 def doInfoOrg():
   _doInfoOrgs([getOrgUnitItem()])
 
-# CL argument: [API field name, CSV field title]
-#
-ORG_ARGUMENT_TO_PROPERTY_TITLE_MAP = {
-  u'blockinheritance': [u'blockInheritance', u'InheritanceBlocked'],
-  u'inheritanceblocked': [u'blockInheritance', u'InheritanceBlocked'],
-  u'inherit': [u'blockInheritance', u'InheritanceBlocked'],
-  u'description': [u'description', u'Description'],
-  u'id': [u'orgUnitId', u'ID'],
-  u'name': [u'name', u'Name'],
-  u'orgunitid': [u'orgUnitId', u'ID'],
-  u'orgunitpath': [u'orgUnitPath', u'Path'],
-  u'path': [u'orgUnitPath', u'Path'],
-  u'parentorgunitid': [u'parentOrgUnitId', u'ParentID'],
-  u'parentid': [u'parentOrgUnitId', u'ParentID'],
-  u'parentorgunitpath': [u'parentOrgUnitPath', u'Parent'],
-  u'parent': [u'parentOrgUnitPath', u'Parent'],
+ORG_ARGUMENT_TO_FIELD_MAP = {
+  u'blockinheritance': u'blockInheritance',
+  u'inheritanceblocked': u'blockInheritance',
+  u'inherit': u'blockInheritance',
+  u'description': u'description',
+  u'id': u'orgUnitId',
+  u'name': u'name',
+  u'orgunitid': u'orgUnitId',
+  u'orgunitpath': u'orgUnitPath',
+  u'path': u'orgUnitPath',
+  u'parentorgunitid': u'parentOrgUnitId',
+  u'parentid': u'parentOrgUnitId',
+  u'parentorgunitpath': u'parentOrgUnitPath',
+  u'parent': u'parentOrgUnitPath',
   }
 ORG_FIELD_PRINT_ORDER = [u'orgUnitPath', u'orgUnitId', u'name', u'description', u'parentOrgUnitPath', u'parentOrgUnitId', u'blockInheritance']
 PRINT_ORGS_DEFAULT_FIELDS = [u'orgUnitPath', u'orgUnitId', u'name', u'parentOrgUnitId']
@@ -9382,8 +9371,6 @@ def doPrintOrgs():
   convertCRNL = GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]
   todrive = {}
   fieldsList = []
-  fieldsTitles = {}
-  nativeTitles = []
   titles, csvRows = initializeTitlesCSVfile(None)
   orgUnitPath = u'/'
   listType = u'all'
@@ -9413,22 +9400,21 @@ def doPrintOrgs():
       listType = u'children'
     elif myarg == u'allfields':
       fieldsList = []
-      fieldsTitles = {}
       titles, csvRows = initializeTitlesCSVfile(None)
       for field in ORG_FIELD_PRINT_ORDER:
-        addFieldTitleToCSVfile(field, ORG_ARGUMENT_TO_PROPERTY_TITLE_MAP, fieldsList, fieldsTitles, titles, nativeTitles)
-    elif myarg in ORG_ARGUMENT_TO_PROPERTY_TITLE_MAP:
+        addFieldToCSVfile(field, ORG_ARGUMENT_TO_FIELD_MAP, fieldsList, titles)
+    elif myarg in ORG_ARGUMENT_TO_FIELD_MAP:
       if not fieldsList:
-        addFieldTitleToCSVfile(u'orgUnitPath', ORG_ARGUMENT_TO_PROPERTY_TITLE_MAP, fieldsList, fieldsTitles, titles, nativeTitles)
-      addFieldTitleToCSVfile(myarg, ORG_ARGUMENT_TO_PROPERTY_TITLE_MAP, fieldsList, fieldsTitles, titles, nativeTitles)
+        addFieldToCSVfile(u'orgUnitPath', ORG_ARGUMENT_TO_FIELD_MAP, fieldsList, titles)
+      addFieldToCSVfile(myarg, ORG_ARGUMENT_TO_FIELD_MAP, fieldsList, titles)
     elif myarg == u'fields':
       if not fieldsList:
-        addFieldTitleToCSVfile(u'orgUnitPath', ORG_ARGUMENT_TO_PROPERTY_TITLE_MAP, fieldsList, fieldsTitles, titles, nativeTitles)
+        addFieldToCSVfile(u'orgUnitPath', ORG_ARGUMENT_TO_FIELD_MAP, fieldsList, titles)
       for field in _getFieldsList():
-        if field in ORG_ARGUMENT_TO_PROPERTY_TITLE_MAP:
-          addFieldTitleToCSVfile(field, ORG_ARGUMENT_TO_PROPERTY_TITLE_MAP, fieldsList, fieldsTitles, titles, nativeTitles)
+        if field in ORG_ARGUMENT_TO_FIELD_MAP:
+          addFieldToCSVfile(field, ORG_ARGUMENT_TO_FIELD_MAP, fieldsList, titles)
         else:
-          invalidChoiceExit(list(ORG_ARGUMENT_TO_PROPERTY_TITLE_MAP), True)
+          invalidChoiceExit(list(ORG_ARGUMENT_TO_FIELD_MAP), True)
     elif myarg in [u'convertcrnl', u'converttextnl']:
       convertCRNL = True
     else:
@@ -9437,9 +9423,7 @@ def doPrintOrgs():
   showUserCounts = (minUserCounts >= 0 or maxUserCounts >= 0)
   if not fieldsList:
     for field in PRINT_ORGS_DEFAULT_FIELDS:
-      addFieldTitleToCSVfile(field, ORG_ARGUMENT_TO_PROPERTY_TITLE_MAP, fieldsList, fieldsTitles, titles, nativeTitles)
-  if GC.Values[GC.PRINT_NATIVE_NAMES]:
-    convertToNativeTitles(fieldsTitles, titles, nativeTitles)
+      addFieldToCSVfile(field, ORG_ARGUMENT_TO_FIELD_MAP, fieldsList, titles)
   orgUnits = _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs)
   if orgUnits is None:
     return
@@ -9502,9 +9486,9 @@ def doPrintOrgs():
     row = {}
     for field in fieldsList:
       if convertCRNL and field in ORG_FIELDS_WITH_CRS_NLS:
-        row[fieldsTitles[field]] = escapeCRsNLs(orgUnit.get(field, u''))
+        row[field] = escapeCRsNLs(orgUnit.get(field, u''))
       else:
-        row[fieldsTitles[field]] = orgUnit.get(field, u'')
+        row[field] = orgUnit.get(field, u'')
     if showCrOSCounts or showUserCounts:
       if showCrOSCounts:
         total = 0
@@ -13612,20 +13596,12 @@ def doPrintMobileDevices():
         break
   writeCSVfile(csvRows, titles, u'Mobile', todrive, sortTitles, FJQC.quoteChar)
 
-COLLABORATIVE_ACL_ATTRIBUTES = [
-  u'whoCanAddReferences',
-  u'whoCanAssignTopics',
-  u'whoCanEnterFreeFormTags',
-  u'whoCanMarkDuplicate',
-  u'whoCanMarkFavoriteReplyOnAnyTopic',
-  u'whoCanMarkFavoriteReplyOnOwnTopic',
-  u'whoCanMarkNoResponseNeeded',
-  u'whoCanModifyTagsAndCategories',
-  u'whoCanTakeTopics',
-  u'whoCanUnassignTopic',
-  u'whoCanUnmarkFavoriteReplyOnAnyTopic',
-  ]
-COLLABORATIVE_ACL_CHOICES = {
+GROUP_DISCOVER_CHOICES = {
+  u'allmemberscandiscover': u'ALL_MEMBERS_CAN_DISCOVER',
+  u'allindomaincandiscover': u'ALL_IN_DOMAIN_CAN_DISCOVER',
+  u'anyonecandiscover': u'ANYONE_CAN_DISCOVER',
+  }
+GROUP_ASSIST_CONTENT_CHOICES = {
   u'allmembers': u'ALL_MEMBERS',
   u'members': u'ALL_MEMBERS',
   u'ownersandmanagers': u'OWNERS_AND_MANAGERS',
@@ -13635,24 +13611,82 @@ COLLABORATIVE_ACL_CHOICES = {
   u'owners': u'OWNERS_ONLY',
   u'none': u'NONE',
   }
+GROUP_MODERATE_CONTENT_CHOICES = {
+  u'allmembers': u'ALL_MEMBERS',
+  u'members': u'ALL_MEMBERS',
+  u'ownersandmanagers': u'OWNERS_AND_MANAGERS',
+  u'ownersonly': u'OWNERS_ONLY',
+  u'owners': u'OWNERS_ONLY',
+  u'none': u'NONE',
+  }
+GROUP_MODERATE_MEMBERS_CHOICES = {
+  u'allmembers': u'ALL_MEMBERS',
+  u'managers': u'OWNERS_AND_MANAGERS',
+  u'members': u'ALL_MEMBERS',
+  u'ownersandmanagers': u'OWNERS_AND_MANAGERS',
+  u'ownersonly': u'OWNERS_ONLY',
+  u'owners': u'OWNERS_ONLY',
+  u'none': u'NONE',
+  }
+GROUP_DEPRECATED_ATTRIBUTES = {
+  u'allowgooglecommunication': [u'allowGoogleCommunication', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
+  u'favoriterepliesontop': [u'favoriteRepliesOnTop', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
+  u'maxmessagebytes': [u'maxMessageBytes', {GC.VAR_TYPE: GC.TYPE_INTEGER, GC.VAR_LIMITS: (ONE_KILO_BYTES, ONE_MEGA_BYTES)}],
+  u'messagedisplayfont': [u'messageDisplayFont', {GC.VAR_TYPE: GC.TYPE_CHOICE,
+                                                  u'choices': {u'defaultfont': u'DEFAULT_FONT', u'fixedwidthfont': u'FIXED_WIDTH_FONT',}}],
+  u'whocanaddreferences': [u'whoCanAddReferences', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_ASSIST_CONTENT_CHOICES}],
+  u'whocanmarkfavoritereplyonowntopic': [u'whoCanMarkFavoriteReplyOnOwnTopic', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_ASSIST_CONTENT_CHOICES}],
+  }
+GROUP_DISCOVER_ATTRIBUTES = {
+  u'showingroupdirectory': [u'showInGroupDirectory', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
+  }
+GROUP_ASSIST_CONTENT_ATTRIBUTES = {
+  u'whocanassigntopics': [u'whoCanAssignTopics', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_ASSIST_CONTENT_CHOICES}],
+  u'whocanenterfreeformtags': [u'whoCanEnterFreeFormTags', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_ASSIST_CONTENT_CHOICES}],
+  u'whocanhideabuse': [u'whoCanHideAbuse', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_ASSIST_CONTENT_CHOICES}],
+  u'whocanmaketopicssticky': [u'whoCanMakeTopicsSticky', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_ASSIST_CONTENT_CHOICES}],
+  u'whocanmarkduplicate': [u'whoCanMarkDuplicate', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_ASSIST_CONTENT_CHOICES}],
+  u'whocanmarkfavoritereplyonanytopic': [u'whoCanMarkFavoriteReplyOnAnyTopic', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_ASSIST_CONTENT_CHOICES}],
+  u'whocanmarknoresponseneeded': [u'whoCanMarkNoResponseNeeded', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_ASSIST_CONTENT_CHOICES}],
+  u'whocanmodifytagsandcategories': [u'whoCanModifyTagsAndCategories', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_ASSIST_CONTENT_CHOICES}],
+  u'whocantaketopics': [u'whoCanTakeTopics', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_ASSIST_CONTENT_CHOICES}],
+  u'whocanunassigntopic': [u'whoCanUnassignTopic', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_ASSIST_CONTENT_CHOICES}],
+  u'whocanunmarkfavoritereplyonanytopic': [u'whoCanUnmarkFavoriteReplyOnAnyTopic', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_ASSIST_CONTENT_CHOICES}],
+  }
+GROUP_MODERATE_CONTENT_ATTRIBUTES = {
+  u'whocanapprovemessages': [u'whoCanApproveMessages', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_MODERATE_CONTENT_CHOICES}],
+  u'whocandeleteanypost': [u'whoCanDeleteAnyPost', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_MODERATE_CONTENT_CHOICES}],
+  u'whocandeletetopics': [u'whoCanDeleteTopics', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_MODERATE_CONTENT_CHOICES}],
+  u'whocanlocktopics': [u'whoCanLockTopics', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_MODERATE_CONTENT_CHOICES}],
+  u'whocanmovetopicsin': [u'whoCanMoveTopicsIn', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_MODERATE_CONTENT_CHOICES}],
+  u'whocanmovetopicsout': [u'whoCanMoveTopicsOut', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_MODERATE_CONTENT_CHOICES}],
+  u'whocanpostannouncements': [u'whoCanPostAnnouncements', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_MODERATE_CONTENT_CHOICES}],
+  }
+GROUP_MODERATE_MEMBERS_ATTRIBUTES = {
+  u'whocanadd': [u'whoCanAdd', {GC.VAR_TYPE: GC.TYPE_CHOICE,
+                                u'choices': {u'allmanagerscanadd': u'ALL_MANAGERS_CAN_ADD', u'allmemberscanadd': u'ALL_MEMBERS_CAN_ADD', u'nonecanadd': u'NONE_CAN_ADD',}}],
+  u'whocanapprovemembers': [u'whoCanApproveMembers', {GC.VAR_TYPE: GC.TYPE_CHOICE,
+                                                      u'choices': {u'allownerscanapprove': u'ALL_OWNERS_CAN_APPROVE', u'allmanagerscanapprove': u'ALL_MANAGERS_CAN_APPROVE',
+                                                                   u'allmemberscanapprove': u'ALL_MEMBERS_CAN_APPROVE', u'nonecanapprove': u'NONE_CAN_APPROVE',}}],
+  u'whocanbanusers': [u'whoCanBanUsers', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_MODERATE_MEMBERS_CHOICES}],
+  u'whocaninvite': [u'whoCanInvite', {GC.VAR_TYPE: GC.TYPE_CHOICE,
+                                      u'choices': {u'allmanagerscaninvite': u'ALL_MANAGERS_CAN_INVITE', u'allmemberscaninvite': u'ALL_MEMBERS_CAN_INVITE', u'nonecaninvite': u'NONE_CAN_INVITE',}}],
+  u'whocanmodifymembers': [u'whoCanModifyMembers', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_MODERATE_MEMBERS_CHOICES}],
+  }
 GROUP_ATTRIBUTES = {
   u'allowexternalmembers': [u'allowExternalMembers', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
-  u'allowgooglecommunication': [u'allowGoogleCommunication', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   u'allowwebposting': [u'allowWebPosting', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   u'archiveonly': [u'archiveOnly', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   u'customfootertext': [u'customFooterText', {GC.VAR_TYPE: GC.TYPE_STRING}],
   u'customreplyto': [u'customReplyTo', {GC.VAR_TYPE: GC.TYPE_EMAIL_OPTIONAL}],
+  u'customrolesenabledforsettingstobemerged': [u'customRolesEnabledForSettingsToBeMerged', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   u'defaultmessagedenynotificationtext': [u'defaultMessageDenyNotificationText', {GC.VAR_TYPE: GC.TYPE_STRING}],
   u'description': [u'description', {GC.VAR_TYPE: GC.TYPE_STRING}],
-  u'favoriterepliesontop': [u'favoriteRepliesOnTop', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
-  u'gal': [u'includeInGlobalAddressList', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
+  u'enablecollaborativeinbox': [u'enableCollaborativeInbox', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   u'includecustomfooter': [u'includeCustomFooter', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   u'includeinglobaladdresslist': [u'includeInGlobalAddressList', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   u'isarchived': [u'isArchived', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
-  u'maxmessagebytes': [u'maxMessageBytes', {GC.VAR_TYPE: GC.TYPE_INTEGER, GC.VAR_LIMITS: (ONE_KILO_BYTES, ONE_MEGA_BYTES)}],
   u'memberscanpostasthegroup': [u'membersCanPostAsTheGroup', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
-  u'messagedisplayfont': [u'messageDisplayFont', {GC.VAR_TYPE: GC.TYPE_CHOICE,
-                                                  u'choices': {u'defaultfont': u'DEFAULT_FONT', u'fixedwidthfont': u'FIXED_WIDTH_FONT',}}],
   u'messagemoderationlevel': [u'messageModerationLevel', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                                           u'choices': {u'moderateallmessages': u'MODERATE_ALL_MESSAGES', u'moderatenonmembers': u'MODERATE_NON_MEMBERS',
                                                                        u'moderatenewmembers': u'MODERATE_NEW_MEMBERS', u'moderatenone': u'MODERATE_NONE',}}],
@@ -13662,35 +13696,19 @@ GROUP_ATTRIBUTES = {
                             u'choices': {u'replytocustom': u'REPLY_TO_CUSTOM', u'replytosender': u'REPLY_TO_SENDER', u'replytolist': u'REPLY_TO_LIST',
                                          u'replytoowner': u'REPLY_TO_OWNER', u'replytoignore': u'REPLY_TO_IGNORE', u'replytomanagers': u'REPLY_TO_MANAGERS',}}],
   u'sendmessagedenynotification': [u'sendMessageDenyNotification', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
-  u'showingroupdirectory': [u'showInGroupDirectory', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   u'spammoderationlevel': [u'spamModerationLevel', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                                     u'choices': {u'allow': u'ALLOW', u'moderate': u'MODERATE', u'silentlymoderate': u'SILENTLY_MODERATE', u'reject': u'REJECT',}}],
-  u'whocanadd': [u'whoCanAdd', {GC.VAR_TYPE: GC.TYPE_CHOICE,
-                                u'choices': {u'allmemberscanadd': u'ALL_MEMBERS_CAN_ADD', u'allmanagerscanadd': u'ALL_MANAGERS_CAN_ADD', u'nonecanadd': u'NONE_CAN_ADD',}}],
-  u'whocanaddreferences': [u'whoCanAddReferences', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
-  u'whocanassigntopics': [u'whoCanAssignTopics', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
   u'whocancontactowner': [u'whoCanContactOwner', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                                   u'choices': {u'anyonecancontact': u'ANYONE_CAN_CONTACT', u'allindomaincancontact': u'ALL_IN_DOMAIN_CAN_CONTACT',
                                                                u'allmemberscancontact': u'ALL_MEMBERS_CAN_CONTACT', u'allmanagerscancontact': u'ALL_MANAGERS_CAN_CONTACT',}}],
-  u'whocanenterfreeformtags': [u'whoCanEnterFreeFormTags', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
-  u'whocaninvite': [u'whoCanInvite', {GC.VAR_TYPE: GC.TYPE_CHOICE,
-                                      u'choices': {u'allmemberscaninvite': u'ALL_MEMBERS_CAN_INVITE', u'allmanagerscaninvite': u'ALL_MANAGERS_CAN_INVITE', u'nonecaninvite': u'NONE_CAN_INVITE',}}],
   u'whocanjoin': [u'whoCanJoin', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                   u'choices': {u'anyonecanjoin': u'ANYONE_CAN_JOIN', u'allindomaincanjoin': u'ALL_IN_DOMAIN_CAN_JOIN',
                                                u'invitedcanjoin': u'INVITED_CAN_JOIN', u'canrequesttojoin': u'CAN_REQUEST_TO_JOIN',}}],
   u'whocanleavegroup': [u'whoCanLeaveGroup', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                               u'choices': {u'allmanagerscanleave': u'ALL_MANAGERS_CAN_LEAVE', u'allmemberscanleave': u'ALL_MEMBERS_CAN_LEAVE', u'nonecanleave': u'NONE_CAN_LEAVE',}}],
-  u'whocanmarkduplicate': [u'whoCanMarkDuplicate', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
-  u'whocanmarkfavoritereplyonanytopic': [u'whoCanMarkFavoriteReplyOnAnyTopic', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
-  u'whocanmarkfavoritereplyonowntopic': [u'whoCanMarkFavoriteReplyOnOwnTopic', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
-  u'whocanmarknoresponseneeded': [u'whoCanMarkNoResponseNeeded', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
-  u'whocanmodifytagsandcategories': [u'whoCanModifyTagsAndCategories', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
-  u'whocantaketopics': [u'whoCanTakeTopics', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
   u'whocanpostmessage': [u'whoCanPostMessage', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                                 u'choices': {u'nonecanpost': u'NONE_CAN_POST', u'allmanagerscanpost': u'ALL_MANAGERS_CAN_POST', u'allmemberscanpost': u'ALL_MEMBERS_CAN_POST',
                                                              u'allindomaincanpost': u'ALL_IN_DOMAIN_CAN_POST', u'anyonecanpost': u'ANYONE_CAN_POST',}}],
-  u'whocanunassigntopic': [u'whoCanUnassignTopic', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
-  u'whocanunmarkfavoritereplyonanytopic': [u'whoCanUnmarkFavoriteReplyOnAnyTopic', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': COLLABORATIVE_ACL_CHOICES}],
   u'whocanviewgroup': [u'whoCanViewGroup', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                             u'choices': {u'anyonecanview': u'ANYONE_CAN_VIEW', u'allindomaincanview': u'ALL_IN_DOMAIN_CAN_VIEW',
                                                          u'allmemberscanview': u'ALL_MEMBERS_CAN_VIEW', u'allmanagerscanview': u'ALL_MANAGERS_CAN_VIEW',}}],
@@ -13698,15 +13716,61 @@ GROUP_ATTRIBUTES = {
                                                       u'choices': {u'allindomaincanview': u'ALL_IN_DOMAIN_CAN_VIEW', u'allmemberscanview': u'ALL_MEMBERS_CAN_VIEW',
                                                                    u'allmanagerscanview': u'ALL_MANAGERS_CAN_VIEW',}}],
   }
-
+GROUP_ALIAS_ATTRIBUTES = {
+  u'collaborative': [u'enableCollaborativeInBox', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
+  u'gal': [u'includeInGlobalAddressList', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
+  }
+GROUP_MERGED_ATTRIBUTES = {
+  u'whocandiscovergroup': [u'whoCanDiscoverGroup', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_DISCOVER_CHOICES}],
+  u'whocanassistcontent': [u'whoCanAssistContent', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_ASSIST_CONTENT_CHOICES}],
+  u'whocanmoderatecontent': [u'whoCanModerateContent', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_MODERATE_CONTENT_CHOICES}],
+  u'whocanmoderatemembers': [u'whoCanModerateMembers', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_MODERATE_MEMBERS_CHOICES}],
+  }
+GROUP_MERGED_ATTRIBUTES_PRINT_ORDER = [u'whoCanDiscoverGroup', u'whoCanAssistContent', u'whoCanModerateContent', u'whoCanModerateMembers']
+GROUP_MERGED_TO_COMPONENT_MAP = {
+  u'whoCanDiscoverGroup': GROUP_DISCOVER_ATTRIBUTES,
+  u'whoCanAssistContent': GROUP_ASSIST_CONTENT_ATTRIBUTES,
+  u'whoCanModerateContent': GROUP_MODERATE_CONTENT_ATTRIBUTES,
+  u'whoCanModerateMembers': GROUP_MODERATE_MEMBERS_ATTRIBUTES,
+  }
+GROUP_ATTRIBUTES_SET = set(list(GROUP_ATTRIBUTES)+list(GROUP_ALIAS_ATTRIBUTES)+
+                           list(GROUP_ASSIST_CONTENT_ATTRIBUTES)+list(GROUP_MODERATE_CONTENT_ATTRIBUTES)+list(GROUP_MODERATE_MEMBERS_ATTRIBUTES)+
+                           list(GROUP_MERGED_ATTRIBUTES)+list(GROUP_DEPRECATED_ATTRIBUTES))
 GROUP_FIELDS_WITH_CRS_NLS = [u'customFooterText', u'defaultMessageDenyNotificationText', u'description', u'groupDescription']
+
+def getGroupAttrProperties(myarg):
+  attrProperties = GROUP_ATTRIBUTES.get(myarg)
+  if attrProperties is not None:
+    return attrProperties
+  attrProperties = GROUP_ALIAS_ATTRIBUTES.get(myarg)
+  if attrProperties is not None:
+    return attrProperties
+  attrProperties = GROUP_DISCOVER_ATTRIBUTES.get(myarg)
+  if attrProperties is not None:
+    return attrProperties
+  attrProperties = GROUP_ASSIST_CONTENT_ATTRIBUTES.get(myarg)
+  if attrProperties is not None:
+    return attrProperties
+  attrProperties = GROUP_MODERATE_CONTENT_ATTRIBUTES.get(myarg)
+  if attrProperties is not None:
+    return attrProperties
+  attrProperties = GROUP_MODERATE_MEMBERS_ATTRIBUTES.get(myarg)
+  if attrProperties is not None:
+    return attrProperties
+  attrProperties = GROUP_MERGED_ATTRIBUTES.get(myarg)
+  if attrProperties is not None:
+    return attrProperties
+  attrProperties = GROUP_DEPRECATED_ATTRIBUTES.get(myarg)
+  if attrProperties is not None:
+    return attrProperties
+  return None
 
 def getGroupAttrValue(argument, gs_body):
   if argument == u'copyfrom':
     gs_body[argument] = getEmailAddress()
     return
-  attrProperties = GROUP_ATTRIBUTES.get(argument)
-  if not attrProperties:
+  attrProperties = getGroupAttrProperties(argument)
+  if attrProperties is None:
     unknownArgumentExit()
   attrName = attrProperties[0]
   attribute = attrProperties[1]
@@ -13732,12 +13796,6 @@ def getGroupAttrValue(argument, gs_body):
       gs_body[attrName] = getMaxMessageBytes(minVal, maxVal)
     else:
       gs_body[attrName] = getInteger(minVal, maxVal)
-
-def setCollaborativeAttributes(gs_body):
-  choice = getChoice(COLLABORATIVE_ACL_CHOICES, mapChoice=True)
-  for attrName in COLLABORATIVE_ACL_ATTRIBUTES:
-    gs_body[attrName] = choice
-  gs_body[u'favoriteRepliesOnTop'] = True
 
 def GroupIsAbuseOrPostmaster(emailAddr):
   return emailAddr.startswith(u'abuse@') or emailAddr.startswith(u'postmaster@')
@@ -13781,10 +13839,7 @@ def doCreateGroup():
   gs_body = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == u'collaborative':
-      setCollaborativeAttributes(gs_body)
-    else:
-      getGroupAttrValue(myarg, gs_body)
+    getGroupAttrValue(myarg, gs_body)
   gs_body.setdefault(u'name', body[u'email'])
   if gs_body:
     gs = buildGAPIObject(API.GROUPSSETTINGS)
@@ -14181,8 +14236,6 @@ def doUpdateGroups():
         body[u'email'] = getEmailAddress(noUid=True)
       elif myarg == u'admincreated':
         body[u'adminCreated'] = getBoolean()
-      elif myarg == u'collaborative':
-        setCollaborativeAttributes(gs_body)
       else:
         getGroupAttrValue(myarg, gs_body)
     if gs_body:
@@ -14393,30 +14446,26 @@ GROUP_FIELDS_CHOICE_MAP = {
   u'id': u'id',
   u'name': u'name',
   }
-
-# CL argument: [API field name, CSV field title]
-GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP = {
-  u'admincreated': [u'adminCreated', u'Admin_Created'],
-  u'aliases': [u'aliases', u'Aliases', u'nonEditableAliases', u'NonEditableAliases'],
-  u'description': [u'description', u'Description'],
-  u'directmemberscount': [u'directMembersCount', u'DirectMembersCount'],
-  u'email': [u'email', u'Email'],
-  u'id': [u'id', u'ID'],
-  u'name': [u'name', u'Name'],
-  }
-
 GROUP_BASIC_FIELD_TO_GROUP_FIELD_MAP = {u'description': u'groupDescription', u'name': u'groupName'}
 GROUP_BASIC_INFO_PRINT_ORDER = [u'id', u'name', u'groupName', u'description', u'groupDescription', u'directMembersCount', u'adminCreated']
 INFO_GROUP_OPTIONS = [u'nousers', u'groups',]
 
 def infoGroups(entityList):
+  def initGroupFieldsLists():
+    if not groupFieldsLists[u'cd']:
+      groupFieldsLists[u'cd'] = [u'email',]
+    if not groupFieldsLists[u'gs']:
+      groupFieldsLists[u'gs'] = []
+
   cd = buildGAPIObject(API.DIRECTORY)
   getAliases = getUsers = True
   getGroups = getSettings = False
+  showDeprecatedAttributes = True
   FJQC = FormatJSONQuoteChar()
   groups = []
   members = []
-  cdfieldsList = gsfieldsList = isSuspended = None
+  groupFieldsLists = {u'cd': None, u'gs': None}
+  isSuspended = None
   entityType = Ent.MEMBER
   rolesSet = set()
   while Cmd.ArgumentsRemaining():
@@ -14425,6 +14474,8 @@ def infoGroups(entityList):
       getAliases = getUsers = False
     elif myarg == u'nousers':
       getUsers = False
+    elif myarg == u'nodeprecated':
+      showDeprecatedAttributes = not getBoolean()
     elif myarg in SUSPENDED_ARGUMENTS:
       isSuspended = _getIsSuspended(myarg)
       entityType = [Ent.MEMBER_NOT_SUSPENDED, Ent.MEMBER_SUSPENDED][isSuspended]
@@ -14435,52 +14486,45 @@ def infoGroups(entityList):
       getUsers = True
     elif myarg == u'groups':
       getGroups = True
+    elif myarg == u'basic':
+      initGroupFieldsLists()
+      for field in GROUP_FIELDS_CHOICE_MAP:
+        addFieldToFieldsList(field, GROUP_FIELDS_CHOICE_MAP, groupFieldsLists[u'cd'])
     elif myarg in GROUP_FIELDS_CHOICE_MAP:
-      if not cdfieldsList:
-        cdfieldsList = [u'email',]
-      addFieldToFieldsList(myarg, GROUP_FIELDS_CHOICE_MAP, cdfieldsList)
+      initGroupFieldsLists()
+      addFieldToFieldsList(myarg, GROUP_FIELDS_CHOICE_MAP, groupFieldsLists[u'cd'])
       if myarg in [u'name', u'description']:
-        if not gsfieldsList:
-          gsfieldsList = []
-        gsfieldsList.append(myarg)
-    elif myarg in GROUP_ATTRIBUTES:
-      if not gsfieldsList:
-        gsfieldsList = []
-      gsfieldsList.extend([GROUP_ATTRIBUTES[myarg][0]])
-    elif myarg == u'collaborative':
-      if not gsfieldsList:
-        gsfieldsList = []
-      gsfieldsList.extend(COLLABORATIVE_ACL_ATTRIBUTES)
+        groupFieldsLists[u'gs'].append(myarg)
+    elif myarg in GROUP_ATTRIBUTES_SET:
+      initGroupFieldsLists()
+      attrProperties = getGroupAttrProperties(myarg)
+      groupFieldsLists[u'gs'].extend([attrProperties[0]])
     elif myarg == u'fields':
-      if not cdfieldsList:
-        cdfieldsList = [u'email',]
-      if not gsfieldsList:
-        gsfieldsList = []
+      initGroupFieldsLists()
       for field in _getFieldsList():
         if field in GROUP_FIELDS_CHOICE_MAP:
-          addFieldToFieldsList(field, GROUP_FIELDS_CHOICE_MAP, cdfieldsList)
+          addFieldToFieldsList(field, GROUP_FIELDS_CHOICE_MAP, groupFieldsLists[u'cd'])
           if field in [u'name', u'description']:
-            gsfieldsList.append(field)
-        elif field in GROUP_ATTRIBUTES:
-          gsfieldsList.extend([GROUP_ATTRIBUTES[field][0]])
-        elif field == u'collaborative':
-          gsfieldsList.extend(COLLABORATIVE_ACL_ATTRIBUTES)
+            groupFieldsLists[u'gs'].append(field)
         else:
-          invalidChoiceExit(list(GROUP_FIELDS_CHOICE_MAP)+list(GROUP_ATTRIBUTES), True)
+          attrProperties = getGroupAttrProperties(field)
+          if attrProperties is None:
+            invalidChoiceExit(list(GROUP_FIELDS_CHOICE_MAP)+list(GROUP_ATTRIBUTES_SET), True)
+          groupFieldsLists[u'gs'].extend([attrProperties[0]])
 # Ignore info user arguments that may have come from whatis
     elif myarg in INFO_USER_OPTIONS:
       if myarg == u'schemas':
         getString(Cmd.OB_SCHEMA_NAME_LIST)
     else:
       FJQC.getFormatJSON(myarg)
-  cdfields = u','.join(set(cdfieldsList)) if cdfieldsList else None
+  cdfields = u','.join(set(groupFieldsLists[u'cd'])) if groupFieldsLists[u'cd'] else None
   memberRoles = u','.join(sorted(rolesSet)) if rolesSet else None
-  if gsfieldsList is None:
+  if groupFieldsLists[u'gs'] is None:
     getSettings = True
     gsfields = None
-  elif gsfieldsList:
+  elif groupFieldsLists[u'gs']:
     getSettings = True
-    gsfields = u','.join(set(gsfieldsList))
+    gsfields = u','.join(set(groupFieldsLists[u'gs']))
   else:
     gsfields = None
   if getSettings:
@@ -14544,15 +14588,46 @@ def infoGroups(entityList):
         else:
           printKeyValueWithCRsNLs(key, value)
       if settings:
-        for key in sorted(settings):
-          if key not in set([u'kind', u'etag', u'email', u'name', u'description']):
-            value = settings[key]
-            if key == u'maxMessageBytes':
-              printKeyValueList([key, formatMaxMessageBytes(value, ONE_KILO_BYTES, ONE_MEGA_BYTES)])
-            elif key not in GROUP_FIELDS_WITH_CRS_NLS:
-              printKeyValueList([key, value])
+        for key, attr in sorted(iteritems(GROUP_ATTRIBUTES)):
+          key = attr[0]
+          if key in settings and key not in set([u'name', u'description']):
+            if key not in GROUP_FIELDS_WITH_CRS_NLS:
+              printKeyValueList([key, settings[key]])
             else:
-              printKeyValueWithCRsNLs(key, value)
+              printKeyValueWithCRsNLs(key, settings[key])
+        for key in GROUP_MERGED_ATTRIBUTES_PRINT_ORDER:
+          if key in settings:
+            printKeyValueList([key, settings[key]])
+            Ind.Increment()
+            showTitle = False
+          else:
+            showTitle = True
+          if showDeprecatedAttributes:
+            for subkey, subattr in sorted(iteritems(GROUP_MERGED_TO_COMPONENT_MAP[key])):
+              subkey = subattr[0]
+              if subkey in settings:
+                if showTitle:
+                  printKeyValueList([key, u''])
+                  Ind.Increment()
+                  showTitle = False
+                printKeyValueList([subkey, settings[subkey]])
+          if not showTitle:
+            Ind.Decrement()
+        if showDeprecatedAttributes:
+          showTitle = True
+          for subkey, attr in sorted(iteritems(GROUP_DEPRECATED_ATTRIBUTES)):
+            subkey = attr[0]
+            if subkey in settings:
+              if showTitle:
+                printKeyValueList([u'Deprecated', u''])
+                Ind.Increment()
+                showTitle = False
+              if subkey != u'maxMessageBytes':
+                printKeyValueList([subkey, settings[subkey]])
+              else:
+                printKeyValueList([subkey, formatMaxMessageBytes(settings[subkey], ONE_KILO_BYTES, ONE_MEGA_BYTES)])
+          if not showTitle:
+            Ind.Decrement()
       Ind.Decrement()
       if getAliases:
         for up in [u'aliases', u'nonEditableAliases']:
@@ -14578,11 +14653,12 @@ def infoGroups(entityList):
         printKeyValueList([Msg.TOTAL_ITEMS_IN_ENTITY.format(Ent.Plural(entityType), Ent.Singular(Ent.GROUP)), len(members)])
       Ind.Decrement()
     except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
-            GAPI.backendError, GAPI.invalid, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
+            GAPI.backendError, GAPI.invalid, GAPI.invalidParameter, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
             GAPI.systemError, GAPI.serviceLimit) as e:
       entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
 
-# gam info groups <GroupEntity> [members] [managers] [owners] [nousers|notsuspended|suspended] [quick] [noaliases] [groups] <GroupFieldName>* [fields <GroupFieldNameList>] [formatjson]
+# gam info groups <GroupEntity> [members] [managers] [owners] [nousers|notsuspended|suspended] [quick] [noaliases] [groups]
+#	[basic] <GroupFieldName>* [fields <GroupFieldNameList>] [nodeprecated] [formatjson]
 def doInfoGroups():
   infoGroups(getEntityList(Cmd.OB_GROUP_ENTITY))
 
@@ -14624,13 +14700,10 @@ def getGroupMatchPatterns(myarg, matchPatterns):
     return False
   return True
 
-def updateFieldsTitlesForGroupMatchPatterns(matchPatterns, fieldsList, fieldsTitles=None, titles=None, nativeTitles=None):
+def updateFieldsForGroupMatchPatterns(matchPatterns, fieldsList):
   for field in [u'name', u'description']:
     if matchPatterns.get(field):
-      if fieldsTitles is not None:
-        addFieldTitleToCSVfile(field, GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP, fieldsList, fieldsTitles, titles, nativeTitles)
-      else:
-        fieldsList.append(field)
+      fieldsList.append(field)
 
 def clearUnneededGroupMatchPatterns(matchPatterns):
   for field in [u'name', u'description']:
@@ -14645,11 +14718,11 @@ def checkGroupMatchPatterns(groupEmail, group, matchPatterns):
       return False
   return True
 
-PRINT_GROUPS_JSON_TITLES = [u'Email', u'JSON']
+PRINT_GROUPS_JSON_TITLES = [u'email', u'JSON']
 
 # gam print groups [todrive <ToDriveAttributes>*] ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[select <GroupEntity>] [notsuspended|suspended]
 #	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>] (matchsetting [not] <GroupAttributes>)*
-#	[maxresults <Number>] [allfields|([settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
+#	[maxresults <Number>] [allfields|([basic] [settings] <GroupFieldName>* [fields <GroupFieldNameList>])] [nodeprecated]
 #	[members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
 #	[convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
 def doPrintGroups():
@@ -14665,8 +14738,15 @@ def doPrintGroups():
           return
         if match[u'values'] and gvalue not in match[u'values']:
           return
+    if deprecatedAttributesSet and isinstance(groupSettings, dict):
+      deprecatedKeys = []
+      for key in groupSettings:
+        if key in deprecatedAttributesSet:
+          deprecatedKeys.append(key)
+      for key in deprecatedKeys:
+        groupSettings.pop(key)
     if FJQC.formatJSON:
-      row[u'Email'] = groupEntity[u'email']
+      row[u'email'] = groupEntity[u'email']
       row[u'JSON'] = json.dumps(groupEntity, ensure_ascii=False, sort_keys=True)
       if memberRoles and groupMembers is not None:
         row[u'JSON-members'] = json.dumps(groupMembers, ensure_ascii=False, sort_keys=True)
@@ -14674,14 +14754,14 @@ def doPrintGroups():
         row[u'JSON-settings'] = json.dumps(groupSettings, ensure_ascii=False, sort_keys=True)
       csvRows.append(row)
       return
-    for field in cdfieldsList:
+    for field in groupFieldsLists[u'cd']:
       if field in groupEntity:
         if isinstance(groupEntity[field], list):
-          row[fieldsTitles[field]] = delimiter.join(groupEntity[field])
+          row[field] = delimiter.join(groupEntity[field])
         elif convertCRNL and field in GROUP_FIELDS_WITH_CRS_NLS:
-          row[fieldsTitles[field]] = escapeCRsNLs(groupEntity[field])
+          row[field] = escapeCRsNLs(groupEntity[field])
         else:
-          row[fieldsTitles[field]] = groupEntity[field]
+          row[field] = groupEntity[field]
     if groupMembers is not None:
       if members:
         membersList = []
@@ -14820,7 +14900,7 @@ def doPrintGroups():
                             throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
                             groupUniqueId=ri[RI_ENTITY], fields=gsfields)
       except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
-              GAPI.backendError, GAPI.invalid, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
+              GAPI.backendError, GAPI.invalid, GAPI.invalidParameter, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
               GAPI.systemError, GAPI.serviceLimit) as e:
         entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], Ent.GROUP_SETTINGS, None], str(e), i, int(ri[RI_COUNT]))
         response = {}
@@ -14841,16 +14921,13 @@ def doPrintGroups():
   FJQC = FormatJSONQuoteChar()
   todrive = {}
   maxResults = None
-  cdfieldsList = []
-  gsfieldsList = []
-  fieldsTitles = {}
-  nativeTitles = []
-  titles, csvRows = initializeTitlesCSVfile(None)
-  addFieldTitleToCSVfile(u'email', GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP, cdfieldsList, fieldsTitles, titles, nativeTitles)
+  groupFieldsLists = {u'cd': [u'email',], u'gs': []}
+  titles, csvRows = initializeTitlesCSVfile(groupFieldsLists[u'cd'])
   rolesSet = set()
   entitySelection = isSuspended = None
   matchPatterns = {}
   matchSettings = {}
+  deprecatedAttributesSet = set()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == u'todrive':
@@ -14865,41 +14942,43 @@ def doPrintGroups():
       isSuspended = _getIsSuspended(myarg)
     elif myarg == u'maxresults':
       maxResults = getInteger(minVal=1)
+    elif myarg == u'nodeprecated':
+      deprecatedAttributesSet.update([attr[0] for attr in GROUP_DISCOVER_ATTRIBUTES.values()])
+      deprecatedAttributesSet.update([attr[0] for attr in GROUP_ASSIST_CONTENT_ATTRIBUTES.values()])
+      deprecatedAttributesSet.update([attr[0] for attr in GROUP_MODERATE_CONTENT_ATTRIBUTES.values()])
+      deprecatedAttributesSet.update([attr[0] for attr in GROUP_MODERATE_MEMBERS_ATTRIBUTES.values()])
+      deprecatedAttributesSet.update([attr[0] for attr in GROUP_DEPRECATED_ATTRIBUTES.values()])
     elif myarg in [u'convertcrnl', u'converttextnl', u'convertfooternl']:
       convertCRNL = True
     elif myarg == u'delimiter':
       delimiter = getCharacter()
+    elif myarg == u'basic':
+      sortHeaders = True
+      for field in GROUP_FIELDS_CHOICE_MAP:
+        addFieldToCSVfile(field, GROUP_FIELDS_CHOICE_MAP, groupFieldsLists[u'cd'], titles)
     elif myarg == u'settings':
       getSettings = sortHeaders = True
     elif myarg == u'allfields':
       getSettings = sortHeaders = True
-      cdfieldsList = []
-      gsfieldsList = []
-      fieldsTitles = {}
-      for field in GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP:
-        addFieldTitleToCSVfile(field, GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP, cdfieldsList, fieldsTitles, titles, nativeTitles)
+      groupFieldsLists = {u'cd': [], u'gs': []}
+      for field in GROUP_FIELDS_CHOICE_MAP:
+        addFieldToCSVfile(field, GROUP_FIELDS_CHOICE_MAP, groupFieldsLists[u'cd'], titles)
     elif myarg == u'sortheaders':
       sortHeaders = getBoolean()
-    elif myarg in GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP:
-      addFieldTitleToCSVfile(myarg, GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP, cdfieldsList, fieldsTitles, titles, nativeTitles)
-    elif myarg in GROUP_ATTRIBUTES:
-      addFieldTitleToCSVfile(myarg, {myarg: [GROUP_ATTRIBUTES[myarg][0], GROUP_ATTRIBUTES[myarg][0]]}, gsfieldsList, fieldsTitles, titles, nativeTitles)
-    elif myarg == u'collaborative':
-      for attr in COLLABORATIVE_ACL_ATTRIBUTES:
-        attr = attr.lower()
-        addFieldTitleToCSVfile(attr, {attr: [GROUP_ATTRIBUTES[attr][0], GROUP_ATTRIBUTES[attr][0]]}, gsfieldsList, fieldsTitles, titles, nativeTitles)
+    elif myarg in GROUP_FIELDS_CHOICE_MAP:
+      addFieldToCSVfile(myarg, GROUP_FIELDS_CHOICE_MAP, groupFieldsLists[u'cd'], titles)
+    elif myarg in GROUP_ATTRIBUTES_SET:
+      attrProperties = getGroupAttrProperties(myarg)
+      addFieldToCSVfile(myarg, {myarg: attrProperties[0]}, groupFieldsLists[u'gs'], titles)
     elif myarg == u'fields':
       for field in _getFieldsList():
-        if field in GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP:
-          addFieldTitleToCSVfile(field, GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP, cdfieldsList, fieldsTitles, titles, nativeTitles)
-        elif field in GROUP_ATTRIBUTES:
-          addFieldTitleToCSVfile(field, {field: [GROUP_ATTRIBUTES[field][0], GROUP_ATTRIBUTES[field][0]]}, gsfieldsList, fieldsTitles, titles, nativeTitles)
-        elif field == u'collaborative':
-          for attr in COLLABORATIVE_ACL_ATTRIBUTES:
-            attr = attr.lower()
-            addFieldTitleToCSVfile(attr, {attr: [GROUP_ATTRIBUTES[attr][0], GROUP_ATTRIBUTES[attr][0]]}, gsfieldsList, fieldsTitles, titles, nativeTitles)
+        if field in GROUP_FIELDS_CHOICE_MAP:
+          addFieldToCSVfile(field, GROUP_FIELDS_CHOICE_MAP, groupFieldsLists[u'cd'], titles)
         else:
-          invalidChoiceExit(list(GROUP_ARGUMENT_TO_PROPERTY_TITLE_MAP)+list(GROUP_ATTRIBUTES), True)
+          attrProperties = getGroupAttrProperties(field)
+          if attrProperties is None:
+            invalidChoiceExit(list(GROUP_FIELDS_CHOICE_MAP)+list(GROUP_ATTRIBUTES_SET), True)
+          addFieldToCSVfile(field, {field: attrProperties[0]}, groupFieldsLists[u'gs'], titles)
     elif myarg == u'matchsetting':
       valueList = getChoice({u'not': u'notvalues'}, mapChoice=True, defaultChoice=u'values')
       matchBody = {}
@@ -14926,21 +15005,19 @@ def doPrintGroups():
       membersCountOnly = managersCountOnly = ownersCountOnly = True
     else:
       FJQC.getFormatJSONQuoteChar(myarg, None)
-  updateFieldsTitlesForGroupMatchPatterns(matchPatterns, cdfieldsList, fieldsTitles, titles, nativeTitles)
-  if cdfieldsList:
-    cdfields = u','.join(set(cdfieldsList))
+  updateFieldsForGroupMatchPatterns(matchPatterns, groupFieldsLists[u'cd'])
+  if groupFieldsLists[u'cd']:
+    cdfields = u','.join(set(groupFieldsLists[u'cd']))
     cdfieldsnp = u'nextPageToken,groups({0})'.format(cdfields)
   else:
     cdfields = cdfieldsnp = None
   if matchSettings:
-    gsfieldsList.extend(list(matchSettings))
-  if gsfieldsList:
+    groupFieldsLists[u'gs'].extend(list(matchSettings))
+  if groupFieldsLists[u'gs']:
     getSettings = True
-    gsfields = u','.join(set(gsfieldsList))
+    gsfields = u','.join(set(groupFieldsLists[u'gs']))
   else:
     gsfields = None
-  if GC.Values[GC.PRINT_NATIVE_NAMES]:
-    convertToNativeTitles(fieldsTitles, titles, nativeTitles)
   if getSettings:
     gs = buildGAPIObject(API.GROUPSSETTINGS)
   memberRoles = u','.join(sorted(rolesSet)) if rolesSet else None
@@ -15064,7 +15141,32 @@ def doPrintGroups():
   if getSettings and gsbcount > 0:
     gsbatch.execute()
   _writeCompleteRows()
-  writeCSVfile(csvRows, titles, u'Groups', todrive, [fieldsTitles[u'email']] if sortHeaders else None, FJQC.quoteChar)
+  if sortHeaders:
+    sortTitles = [u'email',]+GROUP_BASIC_INFO_PRINT_ORDER+[u'aliases', u'nonEditableAliases']
+    if getSettings:
+      sortTitles += sorted([attr[0] for attr in GROUP_ATTRIBUTES.values() if attr[0] not in set([u'name', u'description'])])
+      for key in GROUP_MERGED_ATTRIBUTES_PRINT_ORDER:
+        sortTitles.append(key)
+        if not deprecatedAttributesSet:
+          sortTitles += sorted([attr[0] for attr in GROUP_MERGED_TO_COMPONENT_MAP[key].values()])
+      if not deprecatedAttributesSet:
+        sortTitles += sorted([attr[0] for attr in GROUP_DEPRECATED_ATTRIBUTES.values()])
+    if memberRoles:
+      if members:
+        sortTitles.append(u'MembersCount')
+        if not membersCountOnly:
+          sortTitles.append(u'Members')
+      if managers:
+        sortTitles.append(u'ManagersCount')
+        if not managersCountOnly:
+          sortTitles.append(u'Managers')
+      if owners:
+        sortTitles.append(u'OwnersCount')
+        if not ownersCountOnly:
+          sortTitles.append(u'Owners')
+  else:
+    sortTitles = None
+  writeCSVfile(csvRows, titles, u'Groups', todrive, sortTitles, FJQC.quoteChar)
 
 INFO_GROUPMEMBERS_FIELDS = [u'role', u'type', u'status', u'delivery_settings']
 
@@ -15290,7 +15392,7 @@ def doPrintGroupMembers():
     else:
       unknownArgumentExit()
   if entityList is None:
-    updateFieldsTitlesForGroupMatchPatterns(matchPatterns, cdfieldsList)
+    updateFieldsForGroupMatchPatterns(matchPatterns, cdfieldsList)
     subTitle = groupFilters(kwargs)
     printGettingAllAccountEntities(Ent.GROUP, subTitle)
     try:
@@ -15482,7 +15584,7 @@ def doShowGroupMembers():
   if not rolesSet:
     rolesSet = set([Ent.ROLE_MANAGER, Ent.ROLE_MEMBER, Ent.ROLE_OWNER])
   if entityList is None:
-    updateFieldsTitlesForGroupMatchPatterns(matchPatterns, cdfieldsList)
+    updateFieldsForGroupMatchPatterns(matchPatterns, cdfieldsList)
     printGettingAllAccountEntities(Ent.GROUP, groupFilters(kwargs))
     try:
       groupsList = callGAPIpages(cd.groups(), u'list', u'groups',
@@ -27032,11 +27134,11 @@ def printDriveActivity(users):
     entry = userInfo.get(userId)
     if entry is None:
       try:
-        result = callGAPI(cd.users(), u'get',
-                          throw_reasons=GAPI.USER_GET_THROW_REASONS,
-                          userKey=userId, fields=u'primaryEmail,name(fullName)')
-        entry = (result[u'primaryEmail'], result[u'name'][u'fullName'])
-      except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+        result = callGAPI(drive.about(), u'get',
+                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                          fields=u'user(displayName,emailAddress)')
+        entry = (result[u'user'][u'emailAddress'], result[u'user'][u'displayName'])
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
         entry = (u'uid:{0}'.format(userId), u'')
       userInfo[userId] = entry
     return entry
@@ -27057,10 +27159,9 @@ def printDriveActivity(users):
           v[u'personName'] = entry[1]
           break
 
-  cd = buildGAPIObject(API.DIRECTORY)
   FJQC = FormatJSONQuoteChar()
   startEndTime = StartEndTime()
-  fileList = []
+  baseFileList = []
   query = u''
   activityFilter = u''
   actions = set()
@@ -27076,9 +27177,9 @@ def printDriveActivity(users):
     if myarg == u'todrive':
       todrive = getTodriveParameters()
     elif myarg == u'fileid':
-      fileList.append({u'id': getString(Cmd.OB_DRIVE_FILE_ID), u'mimeType': MIMETYPE_GA_DOCUMENT})
+      baseFileList.append({u'id': getString(Cmd.OB_DRIVE_FILE_ID), u'mimeType': MIMETYPE_GA_DOCUMENT})
     elif myarg == u'folderid':
-      fileList.append({u'id': getString(Cmd.OB_DRIVE_FOLDER_ID), u'mimeType': MIMETYPE_GA_FOLDER})
+      baseFileList.append({u'id': getString(Cmd.OB_DRIVE_FOLDER_ID), u'mimeType': MIMETYPE_GA_FOLDER})
     elif myarg == u'drivefilename':
       query = u"mimeType != '{0}' and {1} = '{2}'".format(MIMETYPE_GA_FOLDER, VX_FILENAME, getEscapedDriveFileName())
     elif myarg == u'drivefoldername':
@@ -27099,8 +27200,8 @@ def printDriveActivity(users):
           invalidChoiceExit(DRIVE_ACTIVITY_ACTION_MAP, True)
     else:
       FJQC.getFormatJSONQuoteChar(myarg, titles)
-  if not fileList and not query:
-    fileList = [{u'id': u'root', u'mimeType': MIMETYPE_GA_FOLDER}]
+  if not baseFileList and not query:
+    baseFileList = [{u'id': u'root', u'mimeType': MIMETYPE_GA_FOLDER}]
   if v2:
     if startEndTime.startTime:
       if activityFilter:
@@ -27120,10 +27221,11 @@ def printDriveActivity(users):
     user, activity = buildGAPIServiceObject([API.APPSACTIVITY, API.DRIVEACTIVITY][v2], user, i, count)
     if not activity:
       continue
+    _, drive = buildGAPIServiceObject(API.DRIVE, user, i, count)
+    if not drive:
+      continue
+    fileList = baseFileList[:]
     if query:
-      _, drive = buildGAPIServiceObject(API.DRIVE, user, i, count)
-      if not drive:
-        continue
       if GC.Values[GC.SHOW_GETTINGS]:
         printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=query)
       try:
@@ -35484,10 +35586,8 @@ def _finalizeMessageSelectParameters(parameters, queryOrIdsRequired):
 
 # gam <UserTypeEntity> archive messages <GroupItem> (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_archive <Number>])|(ids <MessageIDEntity>)
 def archiveMessages(users):
-  gm = buildGAPIObject(API.GROUPSMIGRATION)
   entityType = Ent.MESSAGE
-  parameters = _initMessageThreadParameters(entityType, True, 0)
-  cd = buildGAPIObject(API.DIRECTORY)
+  parameters = _initMessageThreadParameters(entityType, False, 0)
   group = getEmailAddress()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -35496,18 +35596,25 @@ def archiveMessages(users):
     else:
       unknownArgumentExit()
   _finalizeMessageSelectParameters(parameters, False)
-  try:
-    group = callGAPI(cd.groups(), u'get',
-                     throw_reasons=GAPI.GROUP_GET_THROW_REASONS,
-                     groupKey=group, fields=u'email')[u'email']
-  except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest) as e:
-    entityDoesNotExistExit(Ent.GROUP, group)
+  if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
+    gm = buildGAPIObject(API.GROUPSMIGRATION)
+    cd = buildGAPIObject(API.DIRECTORY)
+    try:
+      group = callGAPI(cd.groups(), u'get',
+                       throw_reasons=GAPI.GROUP_GET_THROW_REASONS,
+                       groupKey=group, fields=u'email')[u'email']
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest) as e:
+      entityDoesNotExistExit(Ent.GROUP, group)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     user, gmail, messageIds = _validateUserGetMessageIds(user, i, count, parameters[u'messageEntity'])
     if not gmail:
       continue
+    if GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
+      _, gm = buildGAPIServiceObject(API.GROUPSMIGRATION, user, i, count)
+      if not gm:
+        continue
     service = gmail.users().messages()
     try:
       if parameters[u'messageEntity'] is None:
@@ -35543,13 +35650,13 @@ def archiveMessages(users):
           stream.write(base64.urlsafe_b64decode(str(message[u'raw'])))
           try:
             callGAPI(gm.archive(), u'insert',
-                     throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.BAD_REQUEST],
+                     throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID],
                      groupId=group, media_body=googleapiclient.http.MediaIoBaseUpload(stream, mimetype=u'message/rfc822', resumable=True))
             entityActionPerformed([Ent.USER, user, entityType, messageId], j, jcount)
           except GAPI.serviceNotAvailable:
             entityServiceNotApplicableWarning(Ent.USER, user, i, count)
             break
-          except GAPI.badRequest as e:
+          except (GAPI.badRequest, GAPI.invalid) as e:
             entityActionFailedWarning([Ent.USER, user, entityType, messageId], str(e), j, jcount)
         except (GAPI.serviceNotAvailable, GAPI.badRequest):
           entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -39016,9 +39123,7 @@ def ProcessGAMCommand(args, processGamCfg=True):
       COMMANDS_MAP[CL_command]()
       sys.exit(GM.Globals[GM.SYSEXITRC])
     GM.Globals[GM.ENTITY_CL_START] = Cmd.Location()
-    entityType, entityList = getEntityToModify(crosAllowed=True, returnOnError=True, delayGet=True)
-    if entityType is None:
-      usageErrorExit(Msg.UNKNOWN_COMMAND_SELECTOR)
+    entityType, entityList = getEntityToModify(crosAllowed=True, delayGet=True)
     if entityType == Cmd.ENTITY_USERS:
       CL_command = getChoice(list(USER_COMMANDS)+list(USER_COMMANDS_WITH_OBJECTS), choiceAliases=USER_COMMANDS_ALIASES)
       if (CL_command != u'list') and (GC.Values[GC.AUTO_BATCH_MIN] > 0):
