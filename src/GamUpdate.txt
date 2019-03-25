@@ -1,3 +1,11 @@
+4.65.82
+
+Code and documentation cleanup.
+
+4.65.81
+
+Skipped.
+
 4.65.80
 
 Updated all commands that deal with group settings:

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.81'
+__version__ = u'4.65.82'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1664,7 +1664,7 @@ def currentCountNL(i, count):
   return u' ({0}/{1})\n'.format(i, count) if (count > GC.Values[GC.SHOW_COUNTS_MIN]) else u'\n'
 
 def getPhraseDNEorSNA(email):
-  return [Msg.SERVICE_NOT_APPLICABLE, Msg.DOES_NOT_EXIST][getEmailAddressDomain(email) == GC.Values[GC.DOMAIN]]
+  return Msg.DOES_NOT_EXIST if getEmailAddressDomain(email) == GC.Values[GC.DOMAIN] else Msg.SERVICE_NOT_APPLICABLE
 
 def formatHTTPError(http_status, reason, message):
   return u'{0}: {1} - {2}'.format(http_status, reason, message)
@@ -2445,11 +2445,11 @@ def SetGlobalVariables():
         cfgValue = _quoteStringIfLeadingTrailingBlanks(cfgValue)
       if varType == GC.TYPE_FILE:
         expdValue = _getCfgFile(sectionName, itemName)
-        if cfgValue != u"''" and cfgValue != expdValue:
+        if cfgValue not in (u"''", expdValue):
           cfgValue = u'{0} ; {1}'.format(cfgValue, expdValue)
       elif varType == GC.TYPE_DIRECTORY:
         expdValue = _getCfgDirectory(sectionName, itemName)
-        if cfgValue != u"''" and cfgValue != expdValue:
+        if cfgValue not in (u"''", expdValue):
           cfgValue = u'{0} ; {1}'.format(cfgValue, expdValue)
       elif (itemName == GC.SECTION) and (sectionName != configparser.DEFAULTSECT):
         continue
@@ -2539,7 +2539,7 @@ def SetGlobalVariables():
     GM.Globals[stdtype][GM.REDIRECT_NAME] = filename
     GM.Globals[stdtype][GM.REDIRECT_MODE] = mode
     GM.Globals[stdtype][GM.REDIRECT_MULTIPROCESS] = multi
-    GM.Globals[stdtype][GM.REDIRECT_QUEUE] = [u'stderr', u'stdout'][stdtype == GM.STDOUT]
+    GM.Globals[stdtype][GM.REDIRECT_QUEUE] = u'stdout' if stdtype == GM.STDOUT else u'stderr'
 
   if not GM.Globals[GM.PARSER]:
     homePath = os.path.expanduser(u'~')
@@ -2607,7 +2607,7 @@ def SetGlobalVariables():
         checkArgumentPresent(u'=')
         varType = GC.VAR_INFO[itemName][GC.VAR_TYPE]
         if varType == GC.TYPE_BOOLEAN:
-          value = [FALSE, TRUE][getBoolean(None)]
+          value = TRUE if getBoolean(None) else FALSE
         elif varType == GC.TYPE_CHARACTER:
           value = getCharacter()
         elif varType == GC.TYPE_CHOICE:
@@ -2682,7 +2682,7 @@ def SetGlobalVariables():
     filename = re.sub(r'{{Section}}', sectionName, getString(Cmd.OB_FILE_NAME, checkBlank=True))
     if myarg == u'csv':
       multi = checkArgumentPresent(u'multiprocess')
-      mode = [DEFAULT_FILE_WRITE_MODE, DEFAULT_FILE_APPEND_MODE][checkArgumentPresent(u'append')]
+      mode = DEFAULT_FILE_APPEND_MODE if checkArgumentPresent(u'append') else DEFAULT_FILE_WRITE_MODE
       writeHeader = not checkArgumentPresent(u'noheader')
       encoding = getCharSet()
       if checkArgumentPresent(u'columndelimiter'):
@@ -2696,7 +2696,7 @@ def SetGlobalVariables():
         _setSTDFile(GM.STDOUT, u'null', DEFAULT_FILE_WRITE_MODE, multi)
       else:
         multi = checkArgumentPresent(u'multiprocess')
-        mode = [DEFAULT_FILE_WRITE_MODE, DEFAULT_FILE_APPEND_MODE][checkArgumentPresent(u'append')]
+        mode = DEFAULT_FILE_APPEND_MODE if checkArgumentPresent(u'append') else DEFAULT_FILE_WRITE_MODE
         _setSTDFile(GM.STDOUT, filename, mode, multi)
         if GM.Globals[GM.CSVFILE].get(GM.REDIRECT_NAME) == u'-':
           GM.Globals[GM.CSVFILE] = {}
@@ -2706,7 +2706,7 @@ def SetGlobalVariables():
         _setSTDFile(GM.STDERR, u'null', DEFAULT_FILE_WRITE_MODE, multi)
       elif filename.lower() != u'stdout':
         multi = checkArgumentPresent(u'multiprocess')
-        mode = [DEFAULT_FILE_WRITE_MODE, DEFAULT_FILE_APPEND_MODE][checkArgumentPresent(u'append')]
+        mode = DEFAULT_FILE_APPEND_MODE if checkArgumentPresent(u'append') else DEFAULT_FILE_WRITE_MODE
         _setSTDFile(GM.STDERR, filename, mode, multi)
       else:
         multi = checkArgumentPresent(u'multiprocess')
@@ -3796,7 +3796,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, inc
           continue
         for member in result:
           email = member[u'email'].lower() if member[u'type'] != u'CUSTOMER' else member[u'id']
-          if (((groupMemberType == u'ALL') or (groupMemberType == member[u'type'])) and
+          if ((groupMemberType in (u'ALL', member[u'type'])) and
               _checkMemberRoleIsSuspended(member, validRoles, isSuspended) and email not in entitySet):
             entitySet.add(email)
             entityList.append(email)
@@ -3846,8 +3846,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, inc
                                                                                         Cmd.ENTITY_OU_NS, Cmd.ENTITY_OU_AND_CHILDREN_NS,
                                                                                         Cmd.ENTITY_OU_SUSP, Cmd.ENTITY_OU_AND_CHILDREN_SUSP])
     directlyInOU = entityType in [Cmd.ENTITY_OU, Cmd.ENTITY_OUS, Cmd.ENTITY_OU_NS, Cmd.ENTITY_OUS_NS, Cmd.ENTITY_OU_SUSP, Cmd.ENTITY_OUS_SUSP]
-    qualifier = [Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)),
-                 Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))][directlyInOU]
+    qualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)) if directlyInOU else Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
     fields = u'nextPageToken,users(primaryEmail,orgUnitPath)' if directlyInOU else u'nextPageToken,users(primaryEmail)'
     prevLen = 0
     for ou in ous:
@@ -3998,11 +3997,9 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, inc
     ous = convertEntityToList(entity, shlexSplit=True, nonListEntityType=entityType in [Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OU_AND_CHILDREN])
     directlyInOU = entityType in [Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OUS]
     numOus = len(ous)
-    allQualifier = [Msg.IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, numOus)),
-                    Msg.DIRECTLY_IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, numOus))][directlyInOU]
+    allQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, numOus)) if directlyInOU else Msg.IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, numOus))
     if entityType in [Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OUS]:
-      oneQualifier = [Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)),
-                      Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))][directlyInOU]
+      oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)) if directlyInOU else Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
       for ou in ous:
         ou = makeOrgUnitPathAbsolute(ou)
         printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, ou, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
@@ -5777,7 +5774,7 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
       i = 0
       for a_scope in API.OAUTH2_SCOPES:
         if cred_family == a_scope[u'credfam']:
-          selectedScopes[i] = [u'*', u' '][a_scope.get(u'offByDefault', False)]
+          selectedScopes[i] = u' ' if a_scope.get(u'offByDefault', False) else u'*'
         i += 1
   prompt = u'Please enter 0-{0}[a|r] or {1}: '.format(num_scopes-1, u'|'.join(OAUTH2_CMDS))
   while True:
@@ -7490,10 +7487,10 @@ def sendCreateUpdateUserNotification(notify, body, i=0, count=0, createMessage=T
 
   userName, domain = splitEmailAddress(body[u'primaryEmail'])
   if not notify[u'subject']:
-    notify[u'subject'] = [Msg.UPDATE_USER_PASSWORD_CHANGE_NOTIFY_SUBJECT, Msg.CREATE_USER_NOTIFY_SUBJECT][createMessage]
+    notify[u'subject'] = Msg.CREATE_USER_NOTIFY_SUBJECT if createMessage else Msg.UPDATE_USER_PASSWORD_CHANGE_NOTIFY_SUBJECT
   _makeSubstitutions(u'subject')
   if not notify[u'message']:
-    notify[u'message'] = [Msg.UPDATE_USER_PASSWORD_CHANGE_NOTIFY_MESSAGE, Msg.CREATE_USER_NOTIFY_MESSAGE][createMessage]
+    notify[u'message'] = Msg.CREATE_USER_NOTIFY_MESSAGE if createMessage else Msg.UPDATE_USER_PASSWORD_CHANGE_NOTIFY_MESSAGE
   _makeSubstitutions(u'message')
   send_email(notify[u'subject'], notify[u'message'], notify[u'emailAddress'], i, count, html=notify[u'html'], charset=notify[u'charset'])
 
@@ -8242,7 +8239,7 @@ def doPrintShowDomains():
           csvRows.append({u'domainName': domain[u'domainName'],
                           u'JSON': json.dumps(cleanJSON(domain, timeObjects=DOMAIN_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
           continue
-        domain[u'type'] = [u'secondary', u'primary'][domain.pop(u'isPrimary')]
+        domain[u'type'] = u'primary' if domain.pop(u'isPrimary') else u'secondary'
         domainAliases = domain.pop(u'domainAliases', [])
         _printDomain(domain, titles, csvRows)
         for domainAlias in domainAliases:
@@ -9176,7 +9173,7 @@ def _doInfoOrgs(entityList):
       getUsers = False
     elif myarg in SUSPENDED_ARGUMENTS:
       isSuspended = _getIsSuspended(myarg)
-      entityType = [Ent.USER_NOT_SUSPENDED, Ent.USER_SUSPENDED][isSuspended]
+      entityType = Ent.USER_SUSPENDED if isSuspended else Ent.USER_NOT_SUSPENDED
     elif myarg in [u'children', u'child']:
       showChildren = True
     else:
@@ -11742,7 +11739,7 @@ def _printShowContacts(users, entityType, contactFeed=True):
           if key in fields:
             if key == CONTACT_UPDATED:
               contactRow[key] = formatLocalTime(fields[key])
-            elif (key != CONTACT_NOTES) and (key != CONTACT_BILLING_INFORMATION):
+            elif key not in (CONTACT_NOTES, CONTACT_BILLING_INFORMATION):
               contactRow[key] = fields[key]
             else:
               contactRow[key] = escapeCRsNLs(fields[key])
@@ -11762,7 +11759,7 @@ def _printShowContacts(users, entityType, contactFeed=True):
               elif keymap[u'relMap']:
                 contactRow[fn+u'type'] = keymap[u'relMap'].get(item[u'rel'], u'custom')
               if keymap[u'primary']:
-                contactRow[fn+u'rank'] = [u'notprimary', u'primary'][item[u'primary'] == u'true']
+                contactRow[fn+u'rank'] = u'primary' if item[u'primary'] == u'true' else u'notprimary'
               value = item[u'value']
               if value is None:
                 value = u''
@@ -14393,7 +14390,7 @@ def doUpdateGroups():
       else:
         unknownArgumentExit()
     if isSuspended is not None:
-      qualifier = [u' (Non-suspended)', u' (Suspended)'][isSuspended]
+      qualifier = u' (Suspended)' if isSuspended else u' (Non-suspended)'
       fieldsList.append(u'status')
     Act.Set(Act.REMOVE)
     memberRoles = u','.join(sorted(rolesSet)) if rolesSet else Ent.ROLE_MEMBER
@@ -14478,7 +14475,7 @@ def infoGroups(entityList):
       showDeprecatedAttributes = not getBoolean()
     elif myarg in SUSPENDED_ARGUMENTS:
       isSuspended = _getIsSuspended(myarg)
-      entityType = [Ent.MEMBER_NOT_SUSPENDED, Ent.MEMBER_SUSPENDED][isSuspended]
+      entityType = Ent.MEMBER_SUSPENDED if isSuspended else Ent.MEMBER_NOT_SUSPENDED
     elif myarg == u'noaliases':
       getAliases = False
     elif myarg in GROUP_ROLES_MAP:
@@ -19916,7 +19913,7 @@ def printShowSites(entityList, entityType):
   domains = []
   domainLists = []
   url_params = {}
-  includeAllSites = [u'false', u'true'][entityType == Ent.DOMAIN]
+  includeAllSites = u'true' if entityType == Ent.DOMAIN else u'false'
   roles = None
   convertCRNL = GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
@@ -21792,7 +21789,7 @@ def doPrintUsers(entityList=None):
     if sortHeaders:
       sortCSVTitles([u'primaryEmail',], titles)
     if sortRows and orderBy:
-      orderBy = [u'name.{0}'.format(orderBy), u'primaryEmail'][orderBy == u'email']
+      orderBy = u'primaryEmail' if orderBy == u'email' else u'name.{0}'.format(orderBy)
       if orderBy in titles[u'set']:
         csvRows.sort(key=lambda k: k[orderBy], reverse=sortOrder == u'DESCENDING')
     if getGroupFeed:
@@ -25990,7 +25987,7 @@ TRANSFER_CALENDAR_APPEND_FIELDS = [u'description', u'location', u'summary']
 def transferCalendars(users):
   targetUser = getEmailAddress()
   calendarEntity = getUserCalendarEntity(noSelectionKwargs={u'minAccessRole': u'owner', u'showHidden': True})
-  notAllowedForbidden = [Msg.NOT_ALLOWED, Msg.FORBIDDEN][not calendarEntity[u'all'] and not calendarEntity.get(u'kwargs', {}).get(u'minAccessRole', u'') == u'owner']
+  notAllowedForbidden = Msg.FORBIDDEN if (not calendarEntity[u'all']) and (not calendarEntity.get(u'kwargs', {}).get(u'minAccessRole', u'') == u'owner') else Msg.NOT_ALLOWED
   retainRoleBody = {u'role': u'none'}
   sendNotifications = showUpdateMessages = showRetentionMessages = True
   updateBody = {}
@@ -26394,7 +26391,7 @@ def printShowCalendarEvents(users):
     writeCSVfile(csvRows, titles, u'Calendar Events', todrive, sortTitles, FJQC.quoteChar)
 
 def _getEntityMimeType(fileEntry):
-  return [Ent.DRIVE_FILE, Ent.DRIVE_FOLDER][fileEntry[u'mimeType'] == MIMETYPE_GA_FOLDER]
+  return Ent.DRIVE_FOLDER if fileEntry[u'mimeType'] == MIMETYPE_GA_FOLDER else Ent.DRIVE_FILE
 
 CORPORA_CHOICE_MAP = {
   u'allteamdrives': u'allTeamDrives,user',
@@ -27247,7 +27244,7 @@ def printDriveActivity(users):
         continue
     for f_file in fileList:
       fileId = f_file[u'id']
-      entityType = [Ent.DRIVE_FILE_ID, Ent.DRIVE_FOLDER_ID][f_file[u'mimeType'] == MIMETYPE_GA_FOLDER]
+      entityType = Ent.DRIVE_FOLDER_ID if f_file[u'mimeType'] == MIMETYPE_GA_FOLDER else Ent.DRIVE_FILE_ID
       if entityType == Ent.DRIVE_FILE_ID:
         drive_key = u'itemName' if v2 else  u'drive_fileId'
       else:
@@ -27473,7 +27470,7 @@ def printShowDriveSettings(users):
       feed[u'maxUploadSize'] = formatFileSize(int(feed[u'maxUploadSize']))
       feed[u'permissionId'] = feed[u'user'][u'permissionId']
       feed[u'storageQuota'].setdefault(u'limit', 0)
-      feed[u'limit'] = [u'UNLIMITED', u'LIMITED'][feed[u'storageQuota'].get(u'limit', 0) > 0]
+      feed[u'limit'] = u'LIMITED' if feed[u'storageQuota'].get(u'limit', 0) > 0 else u'UNLIMITED'
       for setting in [u'usage', u'usageInDrive', u'usageInDriveTrash']:
         feed[setting] = formatFileSize(int(feed[u'storageQuota'].get(setting, 0)))
       if u'rootFolderId' in fieldsList:
@@ -28381,7 +28378,7 @@ def printShowFileRevisions(users):
   revisionsEntity = None
   oneItemPerRow = previewDelete = showTitles = False
   orderBy = initOrderBy()
-  fileNameTitle = [V3_FILENAME, V2_FILENAME][not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]]
+  fileNameTitle = V2_FILENAME if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else V3_FILENAME
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
@@ -29141,7 +29138,7 @@ def printFileList(users):
 def printShowFilePaths(users):
   csvFormat = Act.csvFormat()
   if csvFormat:
-    fileNameTitle = [V3_FILENAME, V2_FILENAME][not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]]
+    fileNameTitle = V2_FILENAME if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else V3_FILENAME
     todrive = {}
     titles, csvRows = initializeTitlesCSVfile([u'Owner', u'id', fileNameTitle])
   fileIdEntity = getDriveFileEntity()
@@ -29590,7 +29587,7 @@ def createDriveFile(users):
     else:
       getDriveFileAttribute(myarg, body, parameters, True)
   if csvFormat:
-    fileNameTitle = [V3_FILENAME, V2_FILENAME][not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]]
+    fileNameTitle = V2_FILENAME if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else V3_FILENAME
     titles, csvRows = initializeTitlesCSVfile([u'User', fileNameTitle, u'id'])
   body.setdefault(VX_FILENAME, u'Untitled')
   Act.Set(Act.CREATE)
@@ -32638,7 +32635,7 @@ def _createDriveFilePermissions(users, useDomainAdminAccess):
     body = {}
     try:
       scope, role = permission.split(u';', 1)
-      if scope == u'anyone' or scope == u'anyonewithlink':
+      if scope in (u'anyone', u'anyonewithlink'):
         body[u'type'] = u'anyone'
         body[u'allowFileDiscovery'] = scope != u'anyonewithlink'
       else:
@@ -33010,7 +33007,7 @@ def _printShowDriveFileACLs(users, useDomainAdminAccess):
   oneItemPerRow = showTitles = False
   FJQC = FormatJSONQuoteChar()
   orderBy = initOrderBy()
-  fileNameTitle = [V3_FILENAME, V2_FILENAME][not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]]
+  fileNameTitle = V2_FILENAME if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else V3_FILENAME
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvFormat and myarg == u'todrive':
@@ -33129,7 +33126,7 @@ def doPrintShowOwnership():
   customerId = GC.Values[GC.CUSTOMER_ID]
   if customerId == GC.MY_CUSTOMER:
     customerId = None
-  fileNameTitle = [V3_FILENAME, V2_FILENAME][not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]]
+  fileNameTitle = V2_FILENAME if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else V3_FILENAME
   csvFormat = Act.csvFormat()
   if csvFormat:
     todrive = {}
@@ -34987,7 +34984,7 @@ def _getUserGmailLabels(gmail, user, i, count, **kwargs):
 
 def _getLabelId(labels, labelName):
   for label in labels[u'labels']:
-    if label[u'id'] == labelName or label[u'name'] == labelName:
+    if labelName in (label[u'id'], label[u'name']):
       return label[u'id']
   return None
 
@@ -35425,7 +35422,7 @@ def printShowLabels(users):
       showNested = getBoolean()
     elif not csvFormat and myarg == u'display':
       fields = getChoice(SHOW_LABELS_DISPLAY_CHOICES)
-      nameField = [u'base', u'name'][fields != u'basename']
+      nameField = u'name' if fields != u'basename' else u'base'
       displayAllFields = fields == u'allfields'
     else:
       unknownArgumentExit()
@@ -35536,7 +35533,7 @@ MESSAGES_MAX_TO_KEYWORDS = {
   }
 
 def _initMessageThreadParameters(entityType, doIt, maxToProcess):
-  listType = [u'threads', u'messages'][entityType == Ent.MESSAGE]
+  listType = u'messages' if entityType == Ent.MESSAGE else u'threads'
   return {u'currLabelOp': u'and', u'prevLabelOp': u'and', u'labelGroupOpen':  False, u'query': u'',
           u'entityType': entityType, u'messageEntity': None, u'doIt': doIt, u'quick': True,
           u'maxToProcess': maxToProcess, u'maxItems': 0,
@@ -35582,7 +35579,7 @@ def _finalizeMessageSelectParameters(parameters, queryOrIdsRequired):
     missingArgumentExit(u'query|matchlabel|ids')
   else:
     parameters[u'query'] = None
-  parameters[u'maxItems'] = [0, parameters[u'maxToProcess']][parameters[u'quick']]
+  parameters[u'maxItems'] = parameters[u'maxToProcess'] if parameters[u'quick'] else 0
 
 # gam <UserTypeEntity> archive messages <GroupItem> (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_archive <Number>])|(ids <MessageIDEntity>)
 def archiveMessages(users):
@@ -35749,7 +35746,7 @@ def _processMessagesThreads(users, entityType):
     user, gmail, messageIds = _validateUserGetMessageIds(user, i, count, parameters[u'messageEntity'])
     if not gmail:
       continue
-    service = [gmail.users().threads(), gmail.users().messages()][entityType == Ent.MESSAGE]
+    service = gmail.users().messages() if entityType == Ent.MESSAGE else gmail.users().threads()
     try:
       if addLabelNames or removeLabelNames:
         userGmailLabels = _getUserGmailLabels(gmail, user, i, count, fields=u'labels(id,name,type)')
@@ -36419,7 +36416,7 @@ def printShowMessagesThreads(users, entityType):
     user, gmail, messageIds = _validateUserGetMessageIds(user, i, count, parameters[u'messageEntity'])
     if not gmail:
       continue
-    service = [gmail.users().threads(), gmail.users().messages()][entityType == Ent.MESSAGE]
+    service = gmail.users().messages() if entityType == Ent.MESSAGE else gmail.users().threads()
     try:
       if show_labels:
         labels = _getUserGmailLabels(gmail, user, i, count, fields=u'labels(id,name)')
