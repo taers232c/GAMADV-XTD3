@@ -1582,7 +1582,7 @@ gam delete group|groups <GroupEntity>
         favoriterepliesontop|
         id|
         includecustomfooter|
-        includeinglobaladdresslist|
+        includeinglobaladdresslist|gal|
         isarchived|
         maxmessagebytes|
         memberscanpostasthegroup|

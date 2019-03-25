@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.80'
+__version__ = u'4.65.81'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -13717,7 +13717,7 @@ GROUP_ATTRIBUTES = {
                                                                    u'allmanagerscanview': u'ALL_MANAGERS_CAN_VIEW',}}],
   }
 GROUP_ALIAS_ATTRIBUTES = {
-  u'collaborative': [u'enableCollaborativeInBox', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
+  u'collaborative': [u'enableCollaborativeInbox', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   u'gal': [u'includeInGlobalAddressList', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   }
 GROUP_MERGED_ATTRIBUTES = {
