@@ -6861,7 +6861,7 @@ def doReport():
           invalidChoiceExit(fullDataServices, True)
     elif customerReports and myarg == u'noauthorizedapps':
       noAuthorizedApps = True
-    elif customerReports and myarg == u'maxactivities':
+    elif activityReports and myarg == u'maxactivities':
       maxActivities = getInteger(minVal=0)
     elif activityReports and myarg in [u'start', u'starttime', u'end', u'endtime', u'yesterday']:
       startEndTime.Get(myarg)

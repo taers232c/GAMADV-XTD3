@@ -1,10 +1,14 @@
+4.65.83
+
+Fixed bug in `gam report` where `maxactivities` argument was flagged as Invalid Argument.
+
 4.65.82
 
 Code and documentation cleanup.
 
 4.65.81
 
-Skipped.
+Fixed bug in `gam check service account` where extra scope was being authorized.
 
 4.65.80
 
