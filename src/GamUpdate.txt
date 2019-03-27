@@ -1,3 +1,7 @@
+4.65.84
+
+Fixed bug in `gam sendmail` where `from` argument was ignored when `newuser` argument was used.
+
 4.65.83
 
 Fixed bug in `gam report` where `maxactivities` argument was flagged as Invalid Argument.

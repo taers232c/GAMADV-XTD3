@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.82'
+__version__ = u'4.65.84'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4615,10 +4615,10 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, msgFrom=None, msgReplyT
   Act.Set(Act.SENDEMAIL)
   try:
     callGAPI(gmail.users().messages(), u'send',
-             throw_reasons=[GAPI.INVALID_ARGUMENT],
+             throw_reasons=[GAPI.INVALID_ARGUMENT, GAPI.FORBIDDEN],
              userId=userId, body={u'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()}, fields=u'')
     entityActionPerformed([Ent.RECIPIENT, msgTo, Ent.MESSAGE, msgSubject], i, count)
-  except GAPI.invalidArgument as e:
+  except (GAPI.invalidArgument, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.RECIPIENT, msgTo, Ent.MESSAGE, msgSubject], str(e), i, count)
   Act.Set(action)
 
@@ -7477,7 +7477,7 @@ def _processTagReplacements(tagReplacements, message):
       message = re.sub(match.group(0), tagSubs[tag], message)
   return message
 
-def sendCreateUpdateUserNotification(notify, body, i=0, count=0, createMessage=True):
+def sendCreateUpdateUserNotification(notify, body, i=0, count=0, msgFrom=None, createMessage=True):
   def _makeSubstitutions(field):
     notify[field] = _substituteForUser(notify[field], body[u'primaryEmail'], userName)
     notify[field] = notify[field].replace(u'#domain#', domain)
@@ -7492,7 +7492,7 @@ def sendCreateUpdateUserNotification(notify, body, i=0, count=0, createMessage=T
   if not notify[u'message']:
     notify[u'message'] = Msg.CREATE_USER_NOTIFY_MESSAGE if createMessage else Msg.UPDATE_USER_PASSWORD_CHANGE_NOTIFY_MESSAGE
   _makeSubstitutions(u'message')
-  send_email(notify[u'subject'], notify[u'message'], notify[u'emailAddress'], i, count, html=notify[u'html'], charset=notify[u'charset'])
+  send_email(notify[u'subject'], notify[u'message'], notify[u'emailAddress'], i, count, msgFrom=msgFrom, html=notify[u'html'], charset=notify[u'charset'])
 
 # gam sendemail <EmailAddressEntity> [from <UserItem>] [replyto <EmailAddress>]
 #	[cc <EmailAddressEntity>] [bcc <EmailAddressEntity>] [singlemessage [<Boolean>]]
@@ -7552,7 +7552,7 @@ def doSendEmail():
   if body.get(u'primaryEmail'):
     if (count == 1) and (u'password' in body) and (u'name' in body) and (u'givenName' in body[u'name']) and (u'familyName' in body[u'name']):
       notify[u'emailAddress'] = recipients[0]
-      sendCreateUpdateUserNotification(notify, body)
+      sendCreateUpdateUserNotification(notify, body, msgFrom=msgFrom)
     else:
       usageErrorExit(Msg.NEWUSER_REQUIREMENTS, True)
     return
@@ -20858,7 +20858,7 @@ def updateUsers(entityList):
                             userKey=userKey, body=body, fields=u'primaryEmail,name')
           entityActionPerformed([Ent.USER, user], i, count)
           if notify.get(u'emailAddress') and notify.get(u'password'):
-            sendCreateUpdateUserNotification(notify, result, i, count, False)
+            sendCreateUpdateUserNotification(notify, result, i, count, createMessage=False)
         except GAPI.userNotFound:
           if createIfNotFound and (count == 1) and not vfe and (u'password' in body) and (u'name' in body) and (u'givenName' in body[u'name']) and (u'familyName' in body[u'name']):
             if u'primaryEmail' not in body:
