@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.84'
+__version__ = u'4.65.85'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -119,6 +119,9 @@ text_type = str
 
 def iteritems(d, **kw):
   return iter(d.items(**kw))
+
+def itervalues(d, **kw):
+  return iter(d.values(**kw))
 
 def ISOformatTimeStamp(timestamp):
   return timestamp.isoformat('T', 'seconds')
@@ -13670,7 +13673,11 @@ GROUP_MODERATE_MEMBERS_ATTRIBUTES = {
                                       u'choices': {u'allmanagerscaninvite': u'ALL_MANAGERS_CAN_INVITE', u'allmemberscaninvite': u'ALL_MEMBERS_CAN_INVITE', u'nonecaninvite': u'NONE_CAN_INVITE',}}],
   u'whocanmodifymembers': [u'whoCanModifyMembers', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_MODERATE_MEMBERS_CHOICES}],
   }
-GROUP_ATTRIBUTES = {
+GROUP_BASIC_ATTRIBUTES = {
+  u'description': [u'description', {GC.VAR_TYPE: GC.TYPE_STRING}],
+  u'name': [u'name', {GC.VAR_TYPE: GC.TYPE_STRING}],
+  }
+GROUP_SETTINGS_ATTRIBUTES = {
   u'allowexternalmembers': [u'allowExternalMembers', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   u'allowwebposting': [u'allowWebPosting', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   u'archiveonly': [u'archiveOnly', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
@@ -13678,7 +13685,6 @@ GROUP_ATTRIBUTES = {
   u'customreplyto': [u'customReplyTo', {GC.VAR_TYPE: GC.TYPE_EMAIL_OPTIONAL}],
   u'customrolesenabledforsettingstobemerged': [u'customRolesEnabledForSettingsToBeMerged', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   u'defaultmessagedenynotificationtext': [u'defaultMessageDenyNotificationText', {GC.VAR_TYPE: GC.TYPE_STRING}],
-  u'description': [u'description', {GC.VAR_TYPE: GC.TYPE_STRING}],
   u'enablecollaborativeinbox': [u'enableCollaborativeInbox', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   u'includecustomfooter': [u'includeCustomFooter', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   u'includeinglobaladdresslist': [u'includeInGlobalAddressList', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
@@ -13687,7 +13693,6 @@ GROUP_ATTRIBUTES = {
   u'messagemoderationlevel': [u'messageModerationLevel', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                                           u'choices': {u'moderateallmessages': u'MODERATE_ALL_MESSAGES', u'moderatenonmembers': u'MODERATE_NON_MEMBERS',
                                                                        u'moderatenewmembers': u'MODERATE_NEW_MEMBERS', u'moderatenone': u'MODERATE_NONE',}}],
-  u'name': [u'name', {GC.VAR_TYPE: GC.TYPE_STRING}],
   u'primarylanguage': [u'primaryLanguage', {GC.VAR_TYPE: GC.TYPE_LANGUAGE}],
   u'replyto': [u'replyTo', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                             u'choices': {u'replytocustom': u'REPLY_TO_CUSTOM', u'replytosender': u'REPLY_TO_SENDER', u'replytolist': u'REPLY_TO_LIST',
@@ -13730,13 +13735,16 @@ GROUP_MERGED_TO_COMPONENT_MAP = {
   u'whoCanModerateContent': GROUP_MODERATE_CONTENT_ATTRIBUTES,
   u'whoCanModerateMembers': GROUP_MODERATE_MEMBERS_ATTRIBUTES,
   }
-GROUP_ATTRIBUTES_SET = set(list(GROUP_ATTRIBUTES)+list(GROUP_ALIAS_ATTRIBUTES)+
+GROUP_ATTRIBUTES_SET = set(list(GROUP_BASIC_ATTRIBUTES)+list(GROUP_SETTINGS_ATTRIBUTES)+list(GROUP_ALIAS_ATTRIBUTES)+
                            list(GROUP_ASSIST_CONTENT_ATTRIBUTES)+list(GROUP_MODERATE_CONTENT_ATTRIBUTES)+list(GROUP_MODERATE_MEMBERS_ATTRIBUTES)+
                            list(GROUP_MERGED_ATTRIBUTES)+list(GROUP_DEPRECATED_ATTRIBUTES))
-GROUP_FIELDS_WITH_CRS_NLS = [u'customFooterText', u'defaultMessageDenyNotificationText', u'description', u'groupDescription']
+GROUP_FIELDS_WITH_CRS_NLS = [u'customFooterText', u'defaultMessageDenyNotificationText', u'description']
 
 def getGroupAttrProperties(myarg):
-  attrProperties = GROUP_ATTRIBUTES.get(myarg)
+  attrProperties = GROUP_BASIC_ATTRIBUTES.get(myarg)
+  if attrProperties is not None:
+    return attrProperties
+  attrProperties = GROUP_SETTINGS_ATTRIBUTES.get(myarg)
   if attrProperties is not None:
     return attrProperties
   attrProperties = GROUP_ALIAS_ATTRIBUTES.get(myarg)
@@ -13832,26 +13840,33 @@ def checkReplyToCustom(group, settings, i=0, count=0):
 # gam create group <EmailAddress> [copyfrom <GroupItem>] <GroupAttributes>
 def doCreateGroup():
   cd = buildGAPIObject(API.DIRECTORY)
+  getFirst = False
   body = {u'email': getEmailAddress(noUid=True)}
   gs_body = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    getGroupAttrValue(myarg, gs_body)
+    if myarg == u'getfirst':
+      getFirst = True
+    else:
+      getGroupAttrValue(myarg, gs_body)
   gs_body.setdefault(u'name', body[u'email'])
   if gs_body:
     gs = buildGAPIObject(API.GROUPSSETTINGS)
     gs_body = getSettingsFromGroup(cd, gs, gs_body)
     if not gs_body or not checkReplyToCustom(body[u'email'], gs_body):
       return
+    if not getFirst:
+      settings = gs_body
   try:
     callGAPI(cd.groups(), u'insert',
              throw_reasons=GAPI.GROUP_CREATE_THROW_REASONS,
              body=body, fields=u'')
     if gs_body and not GroupIsAbuseOrPostmaster(body[u'email']):
-      settings = callGAPI(gs.groups(), u'get',
-                          throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
-                          groupUniqueId=body[u'email'], fields=u'*')
-      settings.update(gs_body)
+      if getFirst:
+        settings = callGAPI(gs.groups(), u'get',
+                            throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
+                            groupUniqueId=body[u'email'], fields=u'*')
+        settings.update(gs_body)
       callGAPI(gs.groups(), u'update',
                throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
                groupUniqueId=body[u'email'], body=settings, fields=u'')
@@ -13927,7 +13942,7 @@ def doUpdateGroups():
     j = 0
     for member in members:
       j += 1
-      entityActionPerformed([Ent.GROUP, group, role, normalizeEmailAddressOrUID(member, checkForCustomerId=True)], j, jcount)
+      entityActionPerformed([Ent.GROUP, group, role, member], j, jcount)
     Ind.Decrement()
 
   def _showAction(group, role, delivery_settings, member, j, jcount):
@@ -14020,7 +14035,7 @@ def doUpdateGroups():
       j = 0
       for member in addMembers:
         j += 1
-        _addMember(group, i, count, role, delivery_settings, normalizeEmailAddressOrUID(member, checkForCustomerId=True), j, jcount)
+        _addMember(group, i, count, role, delivery_settings, member, j, jcount)
       Ind.Decrement()
       return
     body = {u'role': role}
@@ -14035,7 +14050,6 @@ def doUpdateGroups():
     for member in addMembers:
       j += 1
       svcparms = svcargs.copy()
-      member = normalizeEmailAddressOrUID(member, checkForCustomerId=True)
       if member.find(u'@') != -1:
         svcparms[u'body'][u'email'] = member
         svcparms[u'body'].pop(u'id', None)
@@ -14102,7 +14116,7 @@ def doUpdateGroups():
       j = 0
       for member in removeMembers:
         j += 1
-        _removeMember(group, i, count, role, normalizeEmailAddressOrUID(member, checkForCustomerId=True), j, jcount)
+        _removeMember(group, i, count, role, member, j, jcount)
       Ind.Decrement()
       return
     svcargs = dict([(u'groupKey', group), (u'memberKey', None)]+GM.Globals[GM.EXTRA_ARGS_LIST])
@@ -14114,7 +14128,7 @@ def doUpdateGroups():
     for member in removeMembers:
       j += 1
       svcparms = svcargs.copy()
-      svcparms[u'memberKey'] = normalizeEmailAddressOrUID(member, checkForCustomerId=True)
+      svcparms[u'memberKey'] = member
       dbatch.add(method(**svcparms), request_id=batchRequestID(group, i, count, j, jcount, svcparms[u'memberKey'], role))
       bcount += 1
       if bcount >= remBatchParms[u'size']:
@@ -14192,7 +14206,7 @@ def doUpdateGroups():
       j = 0
       for member in updateMembers:
         j += 1
-        _updateMember(group, i, count, role, delivery_settings, normalizeEmailAddressOrUID(member, checkForCustomerId=True), j, jcount)
+        _updateMember(group, i, count, role, delivery_settings, member, j, jcount)
       Ind.Decrement()
       return
     body, role = _getUpdateBody(role, delivery_settings)
@@ -14205,7 +14219,7 @@ def doUpdateGroups():
     for member in updateMembers:
       j += 1
       svcparms = svcargs.copy()
-      svcparms[u'memberKey'] = normalizeEmailAddressOrUID(member, checkForCustomerId=True)
+      svcparms[u'memberKey'] = member
       dbatch.add(method(**svcparms), request_id=batchRequestID(group, i, count, j, jcount, svcparms[u'memberKey'], role, delivery_settings))
       bcount += 1
       if bcount >= updBatchParms[u'size']:
@@ -14218,7 +14232,7 @@ def doUpdateGroups():
     Ind.Decrement()
 
   cd = buildGAPIObject(API.DIRECTORY)
-  preview = False
+  getFirst = preview = False
   entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
   CL_subCommand = getChoice(UPDATE_GROUP_SUBCMDS, defaultChoice=None)
   addBatchParms = {u'size': GC.Values[GC.BATCH_SIZE], u'wait': GC.Values[GC.INTER_BATCH_WAIT], u'adjust': True}
@@ -14233,6 +14247,8 @@ def doUpdateGroups():
         body[u'email'] = getEmailAddress(noUid=True)
       elif myarg == u'admincreated':
         body[u'adminCreated'] = getBoolean()
+      elif myarg == u'getfirst':
+        getFirst = True
       else:
         getGroupAttrValue(myarg, gs_body)
     if gs_body:
@@ -14240,6 +14256,8 @@ def doUpdateGroups():
       gs_body = getSettingsFromGroup(cd, gs, gs_body)
       if not gs_body:
         return
+      if not getFirst:
+        settings = gs_body
     elif not body:
       return
     Act.Set(Act.UPDATE)
@@ -14254,10 +14272,11 @@ def doUpdateGroups():
             group = callGAPI(cd.groups(), u'get',
                              throw_reasons=GAPI.GROUP_GET_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
                              groupKey=group, fields=u'email')[u'email']
-          settings = callGAPI(gs.groups(), u'get',
-                              throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
-                              groupUniqueId=group, fields=u'*')
-          settings.update(gs_body)
+          if getFirst:
+            settings = callGAPI(gs.groups(), u'get',
+                                throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
+                                groupUniqueId=group, fields=u'*')
+            settings.update(gs_body)
           if not checkReplyToCustom(group, settings, i, count):
             continue
         except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
@@ -14443,8 +14462,7 @@ GROUP_FIELDS_CHOICE_MAP = {
   u'id': u'id',
   u'name': u'name',
   }
-GROUP_BASIC_FIELD_TO_GROUP_FIELD_MAP = {u'description': u'groupDescription', u'name': u'groupName'}
-GROUP_BASIC_INFO_PRINT_ORDER = [u'id', u'name', u'groupName', u'description', u'groupDescription', u'directMembersCount', u'adminCreated']
+GROUP_BASIC_INFO_PRINT_ORDER = [u'id', u'name', u'description', u'directMembersCount', u'adminCreated']
 INFO_GROUP_OPTIONS = [u'nousers', u'groups',]
 
 def infoGroups(entityList):
@@ -14490,8 +14508,6 @@ def infoGroups(entityList):
     elif myarg in GROUP_FIELDS_CHOICE_MAP:
       initGroupFieldsLists()
       addFieldToFieldsList(myarg, GROUP_FIELDS_CHOICE_MAP, groupFieldsLists[u'cd'])
-      if myarg in [u'name', u'description']:
-        groupFieldsLists[u'gs'].append(myarg)
     elif myarg in GROUP_ATTRIBUTES_SET:
       initGroupFieldsLists()
       attrProperties = getGroupAttrProperties(myarg)
@@ -14501,8 +14517,6 @@ def infoGroups(entityList):
       for field in _getFieldsList():
         if field in GROUP_FIELDS_CHOICE_MAP:
           addFieldToFieldsList(field, GROUP_FIELDS_CHOICE_MAP, groupFieldsLists[u'cd'])
-          if field in [u'name', u'description']:
-            groupFieldsLists[u'gs'].append(field)
         else:
           attrProperties = getGroupAttrProperties(field)
           if attrProperties is None:
@@ -14541,11 +14555,6 @@ def infoGroups(entityList):
         settings = callGAPI(gs.groups(), u'get',
                             throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
                             groupUniqueId=group, fields=gsfields) # Use email address retrieved from cd since GS API doesn't support uid
-        for key in GROUP_BASIC_FIELD_TO_GROUP_FIELD_MAP:
-          if key in settings and ((key not in basic_info) or (basic_info[key] != settings[key])):
-            if key in basic_info:
-              basic_info[GROUP_BASIC_FIELD_TO_GROUP_FIELD_MAP[key]] = basic_info.pop(key)
-            basic_info[key] = settings.pop(key)
       if getGroups:
         groups = callGAPIpages(cd.groups(), u'list', u'groups',
                                userKey=group, orderBy=u'email', fields=u'nextPageToken,groups(name,email)')
@@ -14585,9 +14594,9 @@ def infoGroups(entityList):
         else:
           printKeyValueWithCRsNLs(key, value)
       if settings:
-        for key, attr in sorted(iteritems(GROUP_ATTRIBUTES)):
+        for key, attr in sorted(iteritems(GROUP_SETTINGS_ATTRIBUTES)):
           key = attr[0]
-          if key in settings and key not in set([u'name', u'description']):
+          if key in settings:
             if key not in GROUP_FIELDS_WITH_CRS_NLS:
               printKeyValueList([key, settings[key]])
             else:
@@ -14940,11 +14949,11 @@ def doPrintGroups():
     elif myarg == u'maxresults':
       maxResults = getInteger(minVal=1)
     elif myarg == u'nodeprecated':
-      deprecatedAttributesSet.update([attr[0] for attr in GROUP_DISCOVER_ATTRIBUTES.values()])
-      deprecatedAttributesSet.update([attr[0] for attr in GROUP_ASSIST_CONTENT_ATTRIBUTES.values()])
-      deprecatedAttributesSet.update([attr[0] for attr in GROUP_MODERATE_CONTENT_ATTRIBUTES.values()])
-      deprecatedAttributesSet.update([attr[0] for attr in GROUP_MODERATE_MEMBERS_ATTRIBUTES.values()])
-      deprecatedAttributesSet.update([attr[0] for attr in GROUP_DEPRECATED_ATTRIBUTES.values()])
+      deprecatedAttributesSet.update([attr[0] for attr in itervalues(GROUP_DISCOVER_ATTRIBUTES)])
+      deprecatedAttributesSet.update([attr[0] for attr in itervalues(GROUP_ASSIST_CONTENT_ATTRIBUTES)])
+      deprecatedAttributesSet.update([attr[0] for attr in itervalues(GROUP_MODERATE_CONTENT_ATTRIBUTES)])
+      deprecatedAttributesSet.update([attr[0] for attr in itervalues(GROUP_MODERATE_MEMBERS_ATTRIBUTES)])
+      deprecatedAttributesSet.update([attr[0] for attr in itervalues(GROUP_DEPRECATED_ATTRIBUTES)])
     elif myarg in [u'convertcrnl', u'converttextnl', u'convertfooternl']:
       convertCRNL = True
     elif myarg == u'delimiter':
@@ -15141,13 +15150,13 @@ def doPrintGroups():
   if sortHeaders:
     sortTitles = [u'email',]+GROUP_BASIC_INFO_PRINT_ORDER+[u'aliases', u'nonEditableAliases']
     if getSettings:
-      sortTitles += sorted([attr[0] for attr in GROUP_ATTRIBUTES.values() if attr[0] not in set([u'name', u'description'])])
+      sortTitles += sorted([attr[0] for attr in itervalues(GROUP_SETTINGS_ATTRIBUTES)])
       for key in GROUP_MERGED_ATTRIBUTES_PRINT_ORDER:
         sortTitles.append(key)
         if not deprecatedAttributesSet:
-          sortTitles += sorted([attr[0] for attr in GROUP_MERGED_TO_COMPONENT_MAP[key].values()])
+          sortTitles += sorted([attr[0] for attr in itervalues(GROUP_MERGED_TO_COMPONENT_MAP[key])])
       if not deprecatedAttributesSet:
-        sortTitles += sorted([attr[0] for attr in GROUP_DEPRECATED_ATTRIBUTES.values()])
+        sortTitles += sorted([attr[0] for attr in itervalues(GROUP_DEPRECATED_ATTRIBUTES)])
     if memberRoles:
       if members:
         sortTitles.append(u'MembersCount')
