@@ -15307,7 +15307,7 @@ GROUPMEMBERS_FIELDS_CHOICE_MAP = {
   u'useremail': u'email',
   }
 
-GROUPMEMBERS_DEFAULT_FIELDS = [u'id', u'role', u'group', u'email', u'type', u'status']
+GROUPMEMBERS_DEFAULT_FIELDS = [u'group', u'type', u'role', u'id', u'status', u'email']
 
 # gam print group-members|groups-members [todrive <ToDriveAttributes>*]
 #	([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns|group_susp <GroupItem>]|[select <GroupEntity>] [notsuspended|suspended]
