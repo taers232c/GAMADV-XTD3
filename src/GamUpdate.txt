@@ -1,7 +1,16 @@
+4.65.86
+
+Additional code cleanup in `gam create/update/info group`.
+
 4.65.85
 
 Code cleanup in `gam create/update/info group` due to corrections in Google APIs.
+
 Fixed bug in `gam update group create/delete/sync/update/clear` where members of the form `uid:<string>` were not properly processed.
+
+Changed the column order in `gam print group-members` to match basic GAM:
+* old: id, role, group, email, type, status
+* new: group, type, role, id, status, email
 
 4.65.84
 

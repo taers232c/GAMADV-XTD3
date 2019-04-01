@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.85'
+__version__ = u'4.65.86'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -13603,29 +13603,21 @@ GROUP_DISCOVER_CHOICES = {
   }
 GROUP_ASSIST_CONTENT_CHOICES = {
   u'allmembers': u'ALL_MEMBERS',
-  u'members': u'ALL_MEMBERS',
   u'ownersandmanagers': u'OWNERS_AND_MANAGERS',
   u'managersonly': u'MANAGERS_ONLY',
-  u'managers': u'OWNERS_AND_MANAGERS',
   u'ownersonly': u'OWNERS_ONLY',
-  u'owners': u'OWNERS_ONLY',
   u'none': u'NONE',
   }
 GROUP_MODERATE_CONTENT_CHOICES = {
   u'allmembers': u'ALL_MEMBERS',
-  u'members': u'ALL_MEMBERS',
   u'ownersandmanagers': u'OWNERS_AND_MANAGERS',
   u'ownersonly': u'OWNERS_ONLY',
-  u'owners': u'OWNERS_ONLY',
   u'none': u'NONE',
   }
 GROUP_MODERATE_MEMBERS_CHOICES = {
   u'allmembers': u'ALL_MEMBERS',
-  u'managers': u'OWNERS_AND_MANAGERS',
-  u'members': u'ALL_MEMBERS',
   u'ownersandmanagers': u'OWNERS_AND_MANAGERS',
   u'ownersonly': u'OWNERS_ONLY',
-  u'owners': u'OWNERS_ONLY',
   u'none': u'NONE',
   }
 GROUP_DEPRECATED_ATTRIBUTES = {
@@ -13664,13 +13656,15 @@ GROUP_MODERATE_CONTENT_ATTRIBUTES = {
   }
 GROUP_MODERATE_MEMBERS_ATTRIBUTES = {
   u'whocanadd': [u'whoCanAdd', {GC.VAR_TYPE: GC.TYPE_CHOICE,
-                                u'choices': {u'allmanagerscanadd': u'ALL_MANAGERS_CAN_ADD', u'allmemberscanadd': u'ALL_MEMBERS_CAN_ADD', u'nonecanadd': u'NONE_CAN_ADD',}}],
+                                u'choices': {u'allmanagerscanadd': u'ALL_MANAGERS_CAN_ADD', u'allownerscanadd': u'ALL_OWNERS_CAN_ADD',
+                                             u'allmemberscanadd': u'ALL_MEMBERS_CAN_ADD', u'nonecanadd': u'NONE_CAN_ADD',}}],
   u'whocanapprovemembers': [u'whoCanApproveMembers', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                                       u'choices': {u'allownerscanapprove': u'ALL_OWNERS_CAN_APPROVE', u'allmanagerscanapprove': u'ALL_MANAGERS_CAN_APPROVE',
                                                                    u'allmemberscanapprove': u'ALL_MEMBERS_CAN_APPROVE', u'nonecanapprove': u'NONE_CAN_APPROVE',}}],
   u'whocanbanusers': [u'whoCanBanUsers', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_MODERATE_MEMBERS_CHOICES}],
   u'whocaninvite': [u'whoCanInvite', {GC.VAR_TYPE: GC.TYPE_CHOICE,
-                                      u'choices': {u'allmanagerscaninvite': u'ALL_MANAGERS_CAN_INVITE', u'allmemberscaninvite': u'ALL_MEMBERS_CAN_INVITE', u'nonecaninvite': u'NONE_CAN_INVITE',}}],
+                                      u'choices': {u'allmemberscaninvite': u'ALL_MEMBERS_CAN_INVITE', u'allmanagerscaninvite': u'ALL_MANAGERS_CAN_INVITE',
+                                                   u'allownerscaninvite': u'ALL_OWNERS_CAN_INVITE', u'nonecaninvite': u'NONE_CAN_INVITE',}}],
   u'whocanmodifymembers': [u'whoCanModifyMembers', {GC.VAR_TYPE: GC.TYPE_CHOICE, u'choices': GROUP_MODERATE_MEMBERS_CHOICES}],
   }
 GROUP_BASIC_ATTRIBUTES = {
@@ -13707,16 +13701,19 @@ GROUP_SETTINGS_ATTRIBUTES = {
                                   u'choices': {u'anyonecanjoin': u'ANYONE_CAN_JOIN', u'allindomaincanjoin': u'ALL_IN_DOMAIN_CAN_JOIN',
                                                u'invitedcanjoin': u'INVITED_CAN_JOIN', u'canrequesttojoin': u'CAN_REQUEST_TO_JOIN',}}],
   u'whocanleavegroup': [u'whoCanLeaveGroup', {GC.VAR_TYPE: GC.TYPE_CHOICE,
-                                              u'choices': {u'allmanagerscanleave': u'ALL_MANAGERS_CAN_LEAVE', u'allmemberscanleave': u'ALL_MEMBERS_CAN_LEAVE', u'nonecanleave': u'NONE_CAN_LEAVE',}}],
+                                              u'choices': {u'allmanagerscanleave': u'ALL_MANAGERS_CAN_LEAVE', u'allownerscanleave': u'ALL_OWNERS_CAN_LEAVE',
+                                                           u'allmemberscanleave': u'ALL_MEMBERS_CAN_LEAVE', u'nonecanleave': u'NONE_CAN_LEAVE',}}],
   u'whocanpostmessage': [u'whoCanPostMessage', {GC.VAR_TYPE: GC.TYPE_CHOICE,
-                                                u'choices': {u'nonecanpost': u'NONE_CAN_POST', u'allmanagerscanpost': u'ALL_MANAGERS_CAN_POST', u'allmemberscanpost': u'ALL_MEMBERS_CAN_POST',
+                                                u'choices': {u'nonecanpost': u'NONE_CAN_POST', u'allmanagerscanpost': u'ALL_MANAGERS_CAN_POST',
+                                                             u'allmemberscanpost': u'ALL_MEMBERS_CAN_POST', u'allownerscanpost': u'ALL_OWNERS_CAN_POST',
                                                              u'allindomaincanpost': u'ALL_IN_DOMAIN_CAN_POST', u'anyonecanpost': u'ANYONE_CAN_POST',}}],
   u'whocanviewgroup': [u'whoCanViewGroup', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                             u'choices': {u'anyonecanview': u'ANYONE_CAN_VIEW', u'allindomaincanview': u'ALL_IN_DOMAIN_CAN_VIEW',
-                                                         u'allmemberscanview': u'ALL_MEMBERS_CAN_VIEW', u'allmanagerscanview': u'ALL_MANAGERS_CAN_VIEW',}}],
+                                                         u'allmemberscanview': u'ALL_MEMBERS_CAN_VIEW', u'allmanagerscanview': u'ALL_MANAGERS_CAN_VIEW',
+                                                         u'allownerscanview': u'ALL_OWNERS_CAN_VIEW',}}],
   u'whocanviewmembership': [u'whoCanViewMembership', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                                       u'choices': {u'allindomaincanview': u'ALL_IN_DOMAIN_CAN_VIEW', u'allmemberscanview': u'ALL_MEMBERS_CAN_VIEW',
-                                                                   u'allmanagerscanview': u'ALL_MANAGERS_CAN_VIEW',}}],
+                                                                   u'allmanagerscanview': u'ALL_MANAGERS_CAN_VIEW', u'allownerscanview': u'ALL_OWNERS_CAN_VIEW',}}],
   }
 GROUP_ALIAS_ATTRIBUTES = {
   u'collaborative': [u'enableCollaborativeInbox', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
@@ -13840,13 +13837,13 @@ def checkReplyToCustom(group, settings, i=0, count=0):
 # gam create group <EmailAddress> [copyfrom <GroupItem>] <GroupAttributes>
 def doCreateGroup():
   cd = buildGAPIObject(API.DIRECTORY)
-  getFirst = False
+  getBeforeUpdate = False
   body = {u'email': getEmailAddress(noUid=True)}
   gs_body = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == u'getfirst':
-      getFirst = True
+    if myarg == u'getbeforeupdate':
+      getBeforeUpdate = True
     else:
       getGroupAttrValue(myarg, gs_body)
   gs_body.setdefault(u'name', body[u'email'])
@@ -13855,14 +13852,14 @@ def doCreateGroup():
     gs_body = getSettingsFromGroup(cd, gs, gs_body)
     if not gs_body or not checkReplyToCustom(body[u'email'], gs_body):
       return
-    if not getFirst:
+    if not getBeforeUpdate:
       settings = gs_body
   try:
     callGAPI(cd.groups(), u'insert',
              throw_reasons=GAPI.GROUP_CREATE_THROW_REASONS,
              body=body, fields=u'')
     if gs_body and not GroupIsAbuseOrPostmaster(body[u'email']):
-      if getFirst:
+      if getBeforeUpdate:
         settings = callGAPI(gs.groups(), u'get',
                             throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
                             groupUniqueId=body[u'email'], fields=u'*')
@@ -14232,7 +14229,7 @@ def doUpdateGroups():
     Ind.Decrement()
 
   cd = buildGAPIObject(API.DIRECTORY)
-  getFirst = preview = False
+  getBeforeUpdate = preview = False
   entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
   CL_subCommand = getChoice(UPDATE_GROUP_SUBCMDS, defaultChoice=None)
   addBatchParms = {u'size': GC.Values[GC.BATCH_SIZE], u'wait': GC.Values[GC.INTER_BATCH_WAIT], u'adjust': True}
@@ -14247,8 +14244,8 @@ def doUpdateGroups():
         body[u'email'] = getEmailAddress(noUid=True)
       elif myarg == u'admincreated':
         body[u'adminCreated'] = getBoolean()
-      elif myarg == u'getfirst':
-        getFirst = True
+      elif myarg == u'getbeforeupdate':
+        getBeforeUpdate = True
       else:
         getGroupAttrValue(myarg, gs_body)
     if gs_body:
@@ -14256,7 +14253,7 @@ def doUpdateGroups():
       gs_body = getSettingsFromGroup(cd, gs, gs_body)
       if not gs_body:
         return
-      if not getFirst:
+      if not getBeforeUpdate:
         settings = gs_body
     elif not body:
       return
@@ -14272,7 +14269,7 @@ def doUpdateGroups():
             group = callGAPI(cd.groups(), u'get',
                              throw_reasons=GAPI.GROUP_GET_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
                              groupKey=group, fields=u'email')[u'email']
-          if getFirst:
+          if getBeforeUpdate:
             settings = callGAPI(gs.groups(), u'get',
                                 throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
                                 groupUniqueId=group, fields=u'*')
