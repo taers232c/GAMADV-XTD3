@@ -1509,41 +1509,41 @@ gam show domainaliases|aliasdomains [formatjson]
         (whocandiscovergroup allmemberscandiscover|allindomaincandiscover|anyonecandiscover)|
         (showingroupdirectory <Boolean>)
 <GroupWhoCanAssistContentAttribute> ::=
-        (whocanassistcontent (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
-        (whocanassigntopics (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
-        (whocanenterfreeformtags (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
-        (whocanhideabuse (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
-        (whocanmaketopicssticky (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
-        (whocanmarkduplicate (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
-        (whocanmarkfavoritereplyonanytopic (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
-        (whocanmarknoresponseneeded (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
-        (whocanmodifytagsandcategories (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
-        (whocantaketopics (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
-        (whocanunassigntopic (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
-        (whocanunmarkfavoritereplyonanytopic (members|all_members)|owners_and_managers|managers_only|owners_only|none)
+        (whocanassistcontent all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocanassigntopics all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocanenterfreeformtags all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocanhideabuse all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocanmaketopicssticky all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocanmarkduplicate all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocanmarkfavoritereplyonanytopic all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocanmarknoresponseneeded all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocanmodifytagsandcategories all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocantaketopics all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocanunassigntopic all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocanunmarkfavoritereplyonanytopic all_members|owners_and_managers|managers_only|owners_only|none)
 <GroupWhoCanModerateContentAttribute> ::=
-        (whocanmoderatecontent (members|all_members)|owners_and_managers|owners_only|none)|
-        (whocanapprovemessages (members|all_members)|owners_and_managers|owners_only|none)|
-        (whocandeleteanypost (members|all_members)|owners_and_managers|owners_only|none)|
-        (whocandeletetopics (members|all_members)|owners_and_managers|owners_only|none)|
-        (whocanlocktopics (members|all_members)|owners_and_managers|owners_only|none)|
-        (whocanmovetopicsin (members|all_members)|owners_and_managers|owners_only|none)|
-        (whocanmovetopicsout (members|all_members)|owners_and_managers|owners_only|none)|
-        (whocanpostannouncements (members|all_members)|owners_and_managers|owners_only|none)
+        (whocanmoderatecontent all_members|owners_and_managers|owners_only|none)|
+        (whocanapprovemessages all_members|owners_and_managers|owners_only|none)|
+        (whocandeleteanypost all_members|owners_and_managers|owners_only|none)|
+        (whocandeletetopics all_members|owners_and_managers|owners_only|none)|
+        (whocanlocktopics all_members|owners_and_managers|owners_only|none)|
+        (whocanmovetopicsin all_members|owners_and_managers|owners_only|none)|
+        (whocanmovetopicsout all_members|owners_and_managers|owners_only|none)|
+        (whocanpostannouncements all_members|owners_and_managers|owners_only|none)
 <GroupWhoCanModerateMembersAttribute> ::=
-        (whocanmoderatemembers (members|all_members)|owners_and_managers|owners_only|none)|
+        (whocanmoderatemembers all_members|owners_and_managers|owners_only|none)|
         (whocanadd all_members_can_add|all_managers_can_add|none_can_add)|
         (whocanapprovemembers all_members_can_approve|all_managers_can_approve|all_owners_can_approve|none_can_approve)|
-        (whocanbanusers (members|all_members)|owners_and_managers|owners_only|none)|
+        (whocanbanusers all_members|owners_and_managers|owners_only|none)|
         (whocaninvite all_members_can_invite|all_managers_can_invite|all_owners_can_invite|none_can_invite)|
-        (whocanmodifymembers (members|all_members)|owners_and_managers|owners_only|none)
+        (whocanmodifymembers all_members|owners_and_managers|owners_only|none)
 <GroupDeprecatedAttribute> ::=
         (allowgooglecommunication <Boolean>)|
         (favoriterepliesontop <Boolean>)|
         (maxmessagebytes <ByteCount>)|
         (messagedisplayfont default_font|fixed_width_font)|
-        (whocanaddreferences (members|all_members)|owners_and_managers|managers_only|owners_only|none)|
-        (whocanmarkfavoritereplyonowntopic (members|all_members)|owners_and_managers|managers_only|owners_only|none)
+        (whocanaddreferences all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocanmarkfavoritereplyonowntopic all_members|owners_and_managers|managers_only|owners_only|none)
 <GroupAttribute> ::=
         <GroupSettingsAttribute>|
         <GroupWhoCanDiscoverGroupAttribute>|

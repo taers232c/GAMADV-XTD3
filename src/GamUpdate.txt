@@ -1,6 +1,9 @@
 4.65.86
 
-Additional code cleanup in `gam create/update/info group`.
+In `gam create/update group`, all permission role abbreviations were eliminated as they were not consistent.
+* `members` - Use `all_members`
+* `managers` - Use `owners_and_managers` or `managers_only` as required
+* `owners` - Use `owners_and_managers` or `owners_only` as required
 
 4.65.85
 
