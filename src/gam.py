@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.86'
+__version__ = u'4.65.87'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -37040,7 +37040,7 @@ def setForward(users):
         body[u'disposition'] = EMAILSETTINGS_FORWARD_POP_ACTION_CHOICE_MAP[myarg]
       elif myarg == u'confirm':
         pass
-      elif myarg.find(u'@') != -1:
+      elif myarg.find(u'@') != -1 or not Cmd.ArgumentsRemaining():
         body[u'emailAddress'] = normalizeEmailAddressOrUID(Cmd.Previous())
       else:
         unknownArgumentExit()

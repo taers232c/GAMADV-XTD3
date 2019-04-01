@@ -1,3 +1,8 @@
+4.65.87
+
+Updated `gam forward` to not require a domain in `<EmailAddress>`; the value of `domain` in `gam.cfg` will be used if required.
+gam <UserTypeEntity> forward <TrueValues> keep|leaveininbox|archive|delete|trash|markread <EmailAddress>
+
 4.65.86
 
 In `gam create/update group`, all permission role abbreviations were eliminated as they were not consistent.
