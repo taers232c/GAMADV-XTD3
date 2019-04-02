@@ -1,3 +1,10 @@
+4.65.88
+
+Added `json [charset <Charset>] <JSONData>` and `json file <FileName> [charset <Charset>]` arguments
+to `gam create/update group` and `gam create/update user` to allow JSON data to be used to set group and user attributes.
+
+Code and documentation cleanup.
+
 4.65.87
 
 Updated `gam forward` to not require a domain in `<EmailAddress>`; the value of `domain` in `gam.cfg` will be used if required.

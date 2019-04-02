@@ -58,6 +58,7 @@ OAUTH2_TOKEN_ERRORS = [
   u'access_denied',
   u'access_denied: Requested client not authorized',
   u'internal_failure: Backend Error',
+  u'internal_failure: None',
   u'invalid_grant',
   u'invalid_grant: Bad Request',
   u'invalid_grant: Invalid email or User ID',

@@ -1063,7 +1063,7 @@ gam <CrOSTypeEntity> get devicefile [select <DeviceFileEntity>] [targetfolder <F
         (im clear|(work|home|other|<String> aim|gtalk|icq|jabber|msn|net_meeting|qq|skype|yahoo <String> notprimary|primary))|
         (initials <String>)|
         (jot clear|(work|home|other|keywords|user> <String>))|
-        (json [charset <Charset>] <JSONData>)|
+        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])|
         (language <Language>)|
         (location <String>)|
         (maidenname <String>)|
@@ -1545,6 +1545,7 @@ gam show domainaliases|aliasdomains [formatjson]
         (whocanaddreferences all_members|owners_and_managers|managers_only|owners_only|none)|
         (whocanmarkfavoritereplyonowntopic all_members|owners_and_managers|managers_only|owners_only|none)
 <GroupAttribute> ::=
+        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])|
         <GroupSettingsAttribute>|
         <GroupWhoCanDiscoverGroupAttribute>|
         <GroupWhoCanAssistContentAttribute>|
@@ -2357,38 +2358,39 @@ gam print vaultmatters|matters [todrive <ToDriveAttribute>*] [basic|full]
         familyname|lastname|givenname|firstname|email
 
 <UserAttribute> ::=
-        (address clear|(type work|home|other|(custom <String>) [unstructured|formatted <String>] [pobox <String>] [extendedaddress <String>] [streetaddress <String>]
+        (address clear|(type home|other|work|(custom <String>) [unstructured|formatted <String>] [pobox <String>] [extendedaddress <String>] [streetaddress <String>]
                 [locality <String>] [region <String>] [postalcode <String>] [country <String>] [countrycode <String>] notprimary|primary))|
         (agreed2terms|agreedtoterms <Boolean>)|
         (changepassword|changepasswordatnextlogin <Boolean>)|
         (crypt|sha|sha1|sha-1|md5|nohash)|
         (customerid <String>)|
         (email|primaryemail|username <EmailAddress>)|
-        (otheremail clear|(work|home|other|<String> <String>))|
+        (otheremail clear|(home|other|work|<String> <String>))|
         (externalid clear|(account|customer|login_id|network|organization|<String> <String>))|
         (firstname|givenname <String>)|
         (gal|includeinglobaladdresslist <Boolean>)|
         (gender clear|(female|male|unknown|(other <String>) [addressmeas <String>]))|
-        (im clear|(type work|home|other|(custom <String>) protocol aim|gtalk|icq|jabber|msn|net_meeting|qq|skype|yahoo|(custom_protocol <String>) <String> [notprimary|primary]))|
+        (im clear|(type home|other|work|(custom <String>) protocol aim|gtalk|icq|jabber|msn|net_meeting|qq|skype|yahoo|(custom_protocol <String>) <String> [notprimary|primary]))|
         (ipwhitelisted <Boolean>)|
-        (keyword clear|(occupation|outlook|(custom <string>) <String>))|
+        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])|
+        (keyword clear|(mission|occupation|outlook|(custom <string>) <String>))|
         (language clear|<LanguageList>)|
         (lastname|familyname <String>)|
         (location clear|(type default|desk|<String> area <String> [building|buildingid <String>] [floor|floorname <String>] [section|floorsection <String>] [desk|deskcode <String>] endlocation))|
-        (note clear|([text_plain|text_html] <String>|(file <FileName> [charset <Charset>])))|
+        (note clear|([text_html|text_plain] <String>|(file <FileName> [charset <Charset>])))|
         (organization clear|([type domain_only|school|unknown|work] [customtype <String>] [name <String>] [title <String>] [department <String>] [symbol <String>]
                 [costcenter <String>]  [location <String>] [description <String>] [domain <String>] [fulltimeequivalent <Integer>] notprimary|primary))|
         (org|ou|orgunitpath <OrgUnitPath>)
         (password random|<Password>)|
-        (phone clear|([type work|home|other|work_fax|home_fax|other_fax|main|company_main|assistant|mobile|work_mobile|pager|work_pager|car|radio|callback|isdn|telex|tty_tdd|grand_central|(custom <String>)]
+        (phone clear|([type assistant|callback|car|company_main|grand_central|home|home_fax|isdn|main|mobile|other|other_fax|pager|radio|telex|tty_tdd|work|work_fax|work_mobile|work_pager|(custom <String>)]
                 [value <String>] notprimary|primary))|
         (posix clear|(username <String> uid <Integer> gid <Integer> [system|systemid <String>] [home|homedirectory <String>] [shell <String>]
                 [gecos <String>] [os|operatingSystemType linux|unspecified|windows] [primary <Boolean>] endposix))|
-        (relation clear|(spouse|child|mother|father|parent|brother|sister|friend|relative|domestic_partner|manager|dotted-line_manager|assistant|admin_assistant|exec_assistant|referred_by|partner|<String> <String>))|
+        (relation clear|(admin_assistant|assistant|brother|child|domestic_partner|dotted-line_manager|exec_assistant|father|friend|manager|mother|parent|partner|referred_by|relative|sister|spouse|<String> <String>))|
         (sshkeys clear|(key <String> [expires <Integer>] endssh))|
         (suspended <Boolean>)|
-        (website clear|(home_page|blog|profile|work|home|other|ftp|reservations|app_install_page|<String> <URL> [notprimary|primary]))|
-        (<SchemaName>.<FieldName> [multivalued|multivalue|value|multinonempty [type work|home|other|(custom <String>)]] <String>)
+        (website clear|(app_install_page|blog|ftp|home|home_page|other|profile|reservations|resume|work|<String> <URL> [notprimary|primary]))|
+        (<SchemaName>.<FieldName> [multivalued|multivalue|value|multinonempty [type home|other|work|(custom <String>)]] <String>)
 
 gam create|add user <EmailAddress> <UserAttribute>*
         [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]

@@ -197,7 +197,7 @@ PROPERTIES = {
      TYPE_KEYWORDS:
        {PTKW_CL_TYPE_KEYWORD: u'type', PTKW_CL_CUSTOM_KEYWORD: u'custom',
         PTKW_ATTR_TYPE_KEYWORD: u'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: u'custom', PTKW_ATTR_CUSTOMTYPE_KEYWORD: u'customType',
-        PTKW_KEYWORD_LIST: [u'custom', u'occupation', u'outlook'],},},
+        PTKW_KEYWORD_LIST: [u'custom', u'mission', u'occupation', u'outlook'],},},
   u'locations':
     {CLASS: PC_LOCATIONS, TITLE: u'Locations',
      TYPE_KEYWORDS:
@@ -252,7 +252,7 @@ PROPERTIES = {
         PTKW_KEYWORD_LIST: [u'custom', u'home', u'work',
                             u'home_page', u'ftp', u'blog',
                             u'profile', u'other', u'reservations',
-                            u'app_install_page'],},},
+                            u'app_install_page', u'resume'],},},
   u'customSchemas':
     {CLASS: PC_SCHEMAS, TITLE: u'Custom Schemas',
      TYPE_KEYWORDS:
