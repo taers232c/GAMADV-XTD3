@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.88'
+__version__ = u'4.65.89'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -20379,6 +20379,10 @@ ORGANIZATION_ARGUMENT_TO_FIELD_MAP = {
   u'title': u'title',
   }
 
+USER_JSON_SKIP_FIELDS = [u'agreedToTerms', u'aliases', u'creationTime', u'customerId', u'deletionTime', u'groups', u'id', 
+                         u'isAdmin', u'isDelegatedAdmin', u'isEnforcedIn2Sv', u'isEnrolledIn2Sv', u'isMailboxSetup',
+                         u'lastLoginTime', u'licenses', u'primaryEmail', u'thumbnailPhotoEtag', u'thumbnailPhotoUrl']
+
 def getUserAttributes(cd, updateCmd, noUid=False):
   def getKeywordAttribute(keywords, attrdict, **opts):
     if Cmd.ArgumentsRemaining():
@@ -20514,7 +20518,11 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       updatePrimaryEmail[u'pattern'] = pattern
       updatePrimaryEmail[u'replace'] = replace
     elif myarg == u'json':
-      body.update(getJSON([u'primaryEmail']))
+      body.update(getJSON(USER_JSON_SKIP_FIELDS))
+      if u'name' in body and u'fullName' in body[u'name']:
+        body[u'name'].pop(u'fullName')
+      if u'sshPublicKeys' in body and u'fingerprint' in body[u'sshPublicKeys']:
+        body[u'sshPublicKeys'].pop(u'fingerprint')
     elif myarg in UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP:
       up = UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP[myarg]
       userProperty = UProp.PROPERTIES[up]
