@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.89'
+__version__ = u'4.65.90'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -20379,7 +20379,7 @@ ORGANIZATION_ARGUMENT_TO_FIELD_MAP = {
   u'title': u'title',
   }
 
-USER_JSON_SKIP_FIELDS = [u'agreedToTerms', u'aliases', u'creationTime', u'customerId', u'deletionTime', u'groups', u'id', 
+USER_JSON_SKIP_FIELDS = [u'agreedToTerms', u'aliases', u'creationTime', u'customerId', u'deletionTime', u'groups', u'id',
                          u'isAdmin', u'isDelegatedAdmin', u'isEnforcedIn2Sv', u'isEnrolledIn2Sv', u'isMailboxSetup',
                          u'lastLoginTime', u'licenses', u'primaryEmail', u'thumbnailPhotoEtag', u'thumbnailPhotoUrl']
 
@@ -30870,10 +30870,17 @@ DOCUMENT_FORMATS_MAP = {
                   {u'mime': u'application/vnd.oasis.opendocument.text', u'ext': u'.odt'}],
   }
 
+HTTP_ERROR_PATTERN = re.compile(r'^.*returned "(.*)">$')
+
 # gam <UserTypeEntity> get drivefile <DriveFileEntity> [revision <DriveFileRevisionID>]
 #	[(format <FileFormatList>)|(gsheet|csvsheet <String>)] [exportsheetaspdf <String>]
 #	[targetfolder <FilePath>] [targetname -|<FileName>] [overwrite [<Boolean>]] [showprogress [<Boolean>]]
 def getDriveFile(users):
+  def closeRemoveTargetFile():
+    if fh and not targetStdout:
+      closeFile(fh)
+      os.remove(filename)
+
   fileIdEntity = getDriveFileEntity()
   csvSheetTitle = exportSheetAsPDF = revisionId = u''
   exportFormatName = u'openoffice'
@@ -31045,13 +31052,18 @@ def getDriveFile(users):
           except (IOError, httplib2.HttpLib2Error) as e:
             entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, filename, str(e), j, jcount)
             fileDownloadFailed = True
+            closeRemoveTargetFile()
             break
           except googleapiclient.http.HttpError as e:
-            entityActionNotPerformedWarning(entityValueList, str(e), j, jcount)
+            mg = HTTP_ERROR_PATTERN.match(str(e))
+            if mg:
+              entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, filename, mg.group(1), j, jcount)
+            else:
+              entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, filename, str(e), j, jcount)
             fileDownloadFailed = True
-          if fh and not targetStdout:
-            closeFile(fh)
-            os.remove(filename)
+            closeRemoveTargetFile()
+            break
+          closeRemoveTargetFile()
         if not fileDownloaded and not fileDownloadFailed and not csvSheetNotFound:
           entityActionNotPerformedWarning(entityValueList, Msg.FORMAT_NOT_AVAILABLE.format(u','.join(exportFormatChoices)), j, jcount)
       except GAPI.fileNotFound:
