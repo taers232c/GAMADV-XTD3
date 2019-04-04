@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.90'
+__version__ = u'4.65.91'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4643,7 +4643,7 @@ def addFieldToFieldsList(fieldName, fieldsChoiceMap, fieldsList):
     fieldsList.append(fields)
 
 def _getFieldsList():
-  return getString(Cmd.OB_FIELD_NAME_LIST).lower().replace(u',', u' ').split()
+  return getString(Cmd.OB_FIELD_NAME_LIST).lower().replace(u'_', u'').replace(u',', u' ').split()
 
 def _addInitialField(fieldsList, initialField):
   if isinstance(initialField, list):
