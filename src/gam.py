@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.65.91'
+__version__ = u'4.70.00'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2157,7 +2157,7 @@ def getGSheetData():
     getGDocSheetDataFailedExit([Ent.USER, user], Msg.NO_ENTITIES_FOUND.format(Ent.Singular(Ent.DRIVE_FILE)))
   if jcount > 1:
     getGDocSheetDataFailedExit([Ent.USER, user], Msg.MULTIPLE_ENTITIES_FOUND.format(Ent.Plural(Ent.DRIVE_FILE), jcount, u','.join(fileIdEntity[u'list'])))
-  _, sheet = buildGAPIServiceObject(API.SHEETS, user, 0, 0)
+  _, sheet = buildGAPIServiceObject(API.SHEETS, user)
   if not sheet:
     sys.exit(GM.Globals[GM.SYSEXITRC])
   fileId = fileIdEntity[u'list'][0]
@@ -3459,7 +3459,7 @@ def _request_with_user_agent(request_method):
 google_auth_httplib2.Request.__call__ = _request_with_user_agent(google_auth_httplib2.Request.__call__)
 google_auth_httplib2.AuthorizedHttp.request = _request_with_user_agent(google_auth_httplib2.AuthorizedHttp.request)
 
-def buildGAPIServiceObject(api, user, i, count, displayError=True):
+def buildGAPIServiceObject(api, user, i=0, count=0, displayError=True):
   userEmail = convertUIDtoEmailAddress(user)
   _, httpObj, service, _ = getAPIversionHttpService(api)
   GM.Globals[GM.CURRENT_SVCACCT_API] = api
@@ -4526,7 +4526,7 @@ def getTodriveParameters():
   else:
     todrive[u'user'] = normalizeEmailAddressOrUID(todrive[u'user'])
   if todrive[u'fileId']:
-    _, drive = buildGAPIServiceObject(API.DRIVE3, todrive[u'user'], 0, 0)
+    _, drive = buildGAPIServiceObject(API.DRIVE3, todrive[u'user'])
     if not drive:
       invalidTodriveUserExit(Ent.USER, Msg.NOT_FOUND)
     try:
@@ -4542,7 +4542,7 @@ def getTodriveParameters():
   elif not todrive[u'parent'] or todrive[u'parent'] == u'root':
     todrive[u'parentId'] = u'root'
   else:
-    _, drive = buildGAPIServiceObject(API.DRIVE3, todrive[u'user'], 0, 0)
+    _, drive = buildGAPIServiceObject(API.DRIVE3, todrive[u'user'])
     if not drive:
       invalidTodriveUserExit(Ent.USER, Msg.NOT_FOUND)
     if todrive[u'parent'].startswith(u'id:'):
@@ -4605,7 +4605,7 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, msgFrom=None, msgReplyT
                html=False, charset=u'utf-8', attachments=None, ccRecipients=None, bccRecipients=None):
   if msgFrom is None:
     msgFrom = _getValueFromOAuth(u'email')
-  userId, gmail = buildGAPIServiceObject(API.GMAIL, msgFrom, 0, 0)
+  userId, gmail = buildGAPIServiceObject(API.GMAIL, msgFrom)
   if not gmail:
     return
   if not attachments:
@@ -4792,7 +4792,7 @@ def writeCSVfile(csvRows, titles, list_type, todrive, sortTitles=None, quotechar
       title = todrive[u'title'] or u'{0} - {1}'.format(GC.Values[GC.DOMAIN], list_type)
       if todrive[u'timestamp']:
         title += u' - '+ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])+datetime.timedelta(days=-todrive[u'daysoffset'], hours=-todrive[u'hoursoffset']))
-      user, drive = buildGAPIServiceObject(API.DRIVE3, todrive[u'user'], 0, 0)
+      user, drive = buildGAPIServiceObject(API.DRIVE3, todrive[u'user'])
       if drive is None:
         closeFile(csvFile)
         return
@@ -4826,7 +4826,7 @@ def writeCSVfile(csvRows, titles, list_type, todrive, sortTitles=None, quotechar
                             fields=fields, supportsTeamDrives=True)
         if todrive[u'sheet'] is not None and result[u'mimeType'] == MIMETYPE_GA_SPREADSHEET:
           action = Act.Get()
-          _, sheet = buildGAPIServiceObject(API.SHEETS, user, 0, 0)
+          _, sheet = buildGAPIServiceObject(API.SHEETS, user)
           spreadsheetId = result[u'id']
           try:
             sheets = callGAPI(sheet.spreadsheets(), u'get',
@@ -12243,8 +12243,8 @@ def printShowUserContactGroups(users):
                               throw_errors=[GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
                               retry_errors=[GDATA.INTERNAL_SERVER_ERROR],
                               uri=uri, url_params=url_params)
-      jcount = len(groups)
       if not csvFormat:
+        jcount = len(groups)
         if not FJQC.formatJSON:
           entityPerformActionNumItems([Ent.USER, user], jcount, Ent.CONTACT_GROUP, i, count)
         Ind.Increment()
@@ -15410,7 +15410,7 @@ def doPrintGroupMembers():
     elif myarg == u'peoplelookup':
       people = buildGAPIObject(API.PEOPLE)
     elif myarg == u'peoplelookupuser':
-      _, people = buildGAPIServiceObject(API.PEOPLE, getEmailAddress(), 0, 0)
+      _, people = buildGAPIServiceObject(API.PEOPLE, getEmailAddress())
       if not people:
         return
     else:
@@ -15875,6 +15875,243 @@ def doInfoNotifications():
     printBlankLine()
     printKeyValueList([u'--------------'])
     printBlankLine()
+
+# gam delete alert <AlertID>
+# gam undelete alert <AlertID>
+def doDeleteOrUndeleteAlert():
+  alertId = getString(Cmd.OB_ALERT_ID)
+  if Act.Get() == Act.DELETE:
+    action = u'delete'
+    kwargs = {}
+  else:
+    action = u'undelete'
+    kwargs = {u'body': {}}
+  user, ac = buildGAPIServiceObject(API.ALERTCENTER, _getValueFromOAuth(u'email'))
+  if not ac:
+    return
+  try:
+    callGAPI(ac.alerts(), action,
+             throw_reasons=GAPI.ALERT_THROW_REASONS+[GAPI.NOT_FOUND],
+             alertId=alertId, **kwargs)
+    entityActionPerformed([Ent.ALERT, alertId])
+  except GAPI.notFound as e:
+    entityActionFailedWarning([Ent.ALERT_ID, alertId], str(e))
+  except (GAPI.serviceNotAvailable, GAPI.authError):
+    entityServiceNotApplicableWarning(Ent.USER, user)
+
+ALERT_TIME_OBJECTS = set([u'createTime', u'startTime', u'endTime'])
+
+def _showAlert(alert, FJQC, i=0, count=0):
+  if FJQC.formatJSON:
+    printLine(json.dumps(cleanJSON(alert, timeObjects=ALERT_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+    return
+  printEntity([Ent.ALERT_ID, alert[u'alertId']], i, count)
+  Ind.Increment()
+  for field in [u'createTime', u'startTime', u'endTime']:
+    if field in alert:
+      printKeyValueList([field, formatLocalTime(alert[field])])
+  for field in [u'customerId', u'type', u'source', u'deleted', u'securityInvestigationToolLink']:
+    if field in alert:
+      printKeyValueList([field, alert[field]])
+  if u'data' in alert:
+    showJSON(u'data', alert[u'data'])
+  Ind.Decrement()
+
+# gam info alert <AlertID> [formatjson]
+def doInfoAlert():
+  alertId = getString(Cmd.OB_ALERT_ID)
+  FJQC = FormatJSONQuoteChar()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    FJQC.getFormatJSONQuoteChar(myarg, None)
+  user, ac = buildGAPIServiceObject(API.ALERTCENTER, _getValueFromOAuth(u'email'))
+  if not ac:
+    return
+  try:
+    alert = callGAPI(ac.alerts(), u'get',
+                     throw_reasons=GAPI.ALERT_THROW_REASONS+[GAPI.NOT_FOUND],
+                     alertId=alertId)
+    _showAlert(alert, FJQC)
+  except GAPI.notFound as e:
+    entityActionFailedWarning([Ent.ALERT_ID, alertId], str(e))
+  except (GAPI.serviceNotAvailable, GAPI.authError):
+    entityServiceNotApplicableWarning(Ent.USER, user)
+
+ALERT_ORDERBY_CHOICE_MAP = {
+  u'createdate': u'create_time',
+  u'createtime': u'create_time',
+  }
+
+# gam show alerts [filter <String>] [orderby createtime [ascending|descending]]
+#	[formatjson]
+# gam print alerts [todrive <ToDriveAttributes>*] [filter <String>] [orderby createtime [ascending|descending]]
+#	[formatjson] [quotechar <Character>]
+def doPrintShowAlerts():
+  csvFormat = Act.csvFormat()
+  if csvFormat:
+    todrive = {}
+    titles, csvRows = initializeTitlesCSVfile([u'alertId', u'createTime'])
+  FJQC = FormatJSONQuoteChar()
+  kwargs = {}
+  orderBy = initOrderBy()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvFormat and myarg == u'todrive':
+      todrive = getTodriveParameters()
+    elif myarg == u'filter':
+      kwargs[u'filter'] = getString(Cmd.OB_STRING).replace(u"'", u'"')
+    elif myarg == u'orderby':
+      getOrderBy(ALERT_ORDERBY_CHOICE_MAP, orderBy)
+    else:
+      FJQC.getFormatJSONQuoteChar(myarg, titles if csvFormat else None)
+  if not FJQC.formatJSON:
+    sortTitles = [u'alertId', u'createTime', u'startTime', u'endTime', u'customerId', u'type', u'source', u'deleted']
+  else:
+    sortTitles = None
+  user, ac = buildGAPIServiceObject(API.ALERTCENTER, _getValueFromOAuth(u'email'))
+  if not ac:
+    return
+  try:
+    alerts = callGAPIpages(ac.alerts(), u'list', u'alerts',
+                           throw_reasons=GAPI.ALERT_THROW_REASONS+[GAPI.BAD_REQUEST],
+                           orderBy=orderBy[u'list'], **kwargs)
+  except GAPI.badRequest as e:
+    entityActionFailedWarning([Ent.ALERT, None], str(e))
+    return
+  except (GAPI.serviceNotAvailable, GAPI.authError):
+    entityServiceNotApplicableWarning(Ent.USER, user)
+    return
+  if not csvFormat:
+    jcount = len(alerts)
+    if not FJQC.formatJSON:
+      performActionNumItems(jcount, Ent.ALERT)
+    Ind.Increment()
+    j = 0
+    for alert in alerts:
+      j += 1
+      _showAlert(alert, FJQC, j, jcount)
+    Ind.Decrement()
+  else:
+    for alert in alerts:
+      if not FJQC.formatJSON:
+        addRowTitlesToCSVfile(flattenJSON(alert), csvRows, titles)
+      else:
+        csvRows.append({u'alertId': alert[u'alertId'],
+                        u'createTime': formatLocalTime(alert[u'createTime']),
+                        u'JSON': json.dumps(cleanJSON(alert, timeObjects=ALERT_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'Alerts', todrive, sortTitles, quotechar=FJQC.quoteChar)
+
+ALERT_TYPE_MAP = {
+  u'notuseful': u'NOT_USEFUL',
+  u'somewhatuseful': u'SOMEWHAT_USEFUL',
+  u'veryuseful': u'VERY_USEFUL',
+  }
+
+# gam create alertfeedback <AlertID> not_useful|somewhat_useful|very_useful
+def doCreateAlertFeedback():
+  user, ac = buildGAPIServiceObject(API.ALERTCENTER, _getValueFromOAuth(u'email'))
+  if not ac:
+    return
+  alertId = getString(Cmd.OB_ALERT_ID)
+  body = {u'type': getChoice(ALERT_TYPE_MAP, mapChoice=True)}
+  try:
+    result = callGAPI(ac.alerts().feedback(), u'create',
+                      throw_reasons=GAPI.ALERT_THROW_REASONS+[GAPI.NOT_FOUND],
+                      alertId=alertId, body=body)
+    entityActionPerformed([Ent.ALERT, alertId, Ent.ALERT_FEEDBACK_ID, result[u'feedbackId']])
+  except GAPI.notFound as e:
+    entityActionFailedWarning([Ent.ALERT_ID, alertId], str(e))
+  except (GAPI.serviceNotAvailable, GAPI.authError):
+    entityServiceNotApplicableWarning(Ent.USER, user)
+
+def _showAlertFeedback(feedback, FJQC, i=0, count=0):
+  if FJQC.formatJSON:
+    printLine(json.dumps(cleanJSON(feedback, timeObjects=ALERT_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+    return
+  printEntity([Ent.ALERT_FEEDBACK_ID, feedback[u'feedbackId']], i, count)
+  Ind.Increment()
+  for field in [u'createTime']:
+    if field in feedback:
+      printKeyValueList([field, formatLocalTime(feedback[field])])
+  for field in [u'alertId', u'customerId', u'type', u'email']:
+    if field in feedback:
+      printKeyValueList([field, feedback[field]])
+  Ind.Decrement()
+
+ALERT_FEEDBACK_ORDERBY_CHOICE_MAP = {
+  u'createdate': u'createTime',
+  u'createtime': u'createTime',
+  }
+
+# gam show alertfeedback [alert <AlertID>] [filter <String>] [orderby createtime [ascending|descending]]
+#	[formatjson]
+# gam print alertfeedback [todrive <ToDriveAttributes>*] [alert <AlertID>] [filter <String>] [orderby createtime [ascending|descending]]
+#	[formatjson] [quotechar <Character>]
+def doPrintShowAlertFeedback():
+  csvFormat = Act.csvFormat()
+  if csvFormat:
+    todrive = {}
+    titles, csvRows = initializeTitlesCSVfile([u'feedbackId', u'createTime'])
+  FJQC = FormatJSONQuoteChar()
+  kwargs = {}
+  alertId = u'-'
+  orderBy = initOrderBy()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvFormat and myarg == u'todrive':
+      todrive = getTodriveParameters()
+    elif myarg == u'alertid':
+      alertId = getString(Cmd.OB_ALERT_ID)
+    elif myarg == u'filter':
+      kwargs[u'filter'] = getString(Cmd.OB_STRING).replace(u"'", u'"')
+    elif myarg == u'orderby':
+      getOrderBy(ALERT_FEEDBACK_ORDERBY_CHOICE_MAP, orderBy)
+    else:
+      FJQC.getFormatJSONQuoteChar(myarg, titles if csvFormat else None)
+  if not FJQC.formatJSON:
+    sortTitles = [u'feedbackId', u'createTime', u'alertId', u'customerId', u'type', u'email']
+  else:
+    sortTitles = None
+  user, ac = buildGAPIServiceObject(API.ALERTCENTER, _getValueFromOAuth(u'email'))
+  if not ac:
+    return
+  try:
+    feedbacks = callGAPIpages(ac.alerts().feedback(), u'list', u'feedback',
+                              throw_reasons=GAPI.ALERT_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.BAD_REQUEST],
+                              alertId=alertId, **kwargs)
+  except (GAPI.notFound, GAPI.badRequest) as e:
+    entityActionFailedWarning([Ent.ALERT_ID, alertId], str(e))
+    return
+  except (GAPI.serviceNotAvailable, GAPI.authError):
+    entityServiceNotApplicableWarning(Ent.USER, user)
+    return
+  for sk in orderBy[u'items']:
+    if sk.endswith(u' desc'):
+      field, _ = sk.split(u' ')
+    else:
+      field = sk
+    feedbacks = sorted(feedbacks, key=lambda k: k[field], reverse=sk.endswith(u' desc'))
+  if not csvFormat:
+    jcount = len(feedbacks)
+    if not FJQC.formatJSON:
+      performActionNumItems(jcount, Ent.ALERT_FEEDBACK)
+    Ind.Increment()
+    j = 0
+    for feedback in feedbacks:
+      j += 1
+      _showAlertFeedback(feedback, FJQC, j, jcount)
+    Ind.Decrement()
+  else:
+    for feedback in feedbacks:
+      if not FJQC.formatJSON:
+        addRowTitlesToCSVfile(flattenJSON(feedback), csvRows, titles)
+      else:
+        csvRows.append({u'feedbackId': feedback[u'feedbackId'],
+                        u'createTime': formatLocalTime(feedback[u'createTime']),
+                        u'JSON': json.dumps(cleanJSON(feedback, timeObjects=ALERT_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'Alert Feedbacks', todrive, sortTitles, quotechar=FJQC.quoteChar)
 
 def ACLRuleDict(rule):
   if rule[u'scope'][u'type'] != u'default':
@@ -22125,7 +22362,7 @@ def copyCourseAttributes(croom, newCourseId, ownerId, courseAttributesFrom, i, c
     addParticipants = [teacher[u'profile'][u'emailAddress'] for teacher in teachers if teacher[u'profile'][u'id'] != ownerId]
     _batchAddParticipantsToCourse(croom, newCourseId, i, count, addParticipants, Ent.TEACHER)
   if courseAnnouncements or courseWorks:
-    _, tcroom = buildGAPIServiceObject(API.CLASSROOM, u'uid:{0}'.format(ownerId), 0, 0)
+    _, tcroom = buildGAPIServiceObject(API.CLASSROOM, u'uid:{0}'.format(ownerId))
     if tcroom is None:
       return
     if courseAnnouncements:
@@ -24085,7 +24322,7 @@ def _getCoursesOwnerInfo(croom, courseIds, coursesInfo, useAdminAccess):
                         throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                         id=courseId, fields=u'name,ownerId')
         if not useAdminAccess:
-          _, ocroom = buildGAPIServiceObject(API.CLASSROOM, u'uid:{0}'.format(info[u'ownerId']), 0, 0)
+          _, ocroom = buildGAPIServiceObject(API.CLASSROOM, u'uid:{0}'.format(info[u'ownerId']))
         else:
           ocroom = croom
         if ocroom is not None:
@@ -31208,7 +31445,7 @@ def transferDrive(users):
       return (u'Unknown', None)
     ownerUser = childEntryInfo[u'owners'][0][u'emailAddress']
     if ownerUser not in thirdPartyOwners:
-      _, ownerDrive = buildGAPIServiceObject(API.DRIVE3, ownerUser, 0, 0, displayError=False)
+      _, ownerDrive = buildGAPIServiceObject(API.DRIVE3, ownerUser, displayError=False)
       thirdPartyOwners[ownerUser] = ownerDrive
     else:
       ownerDrive = thirdPartyOwners[ownerUser]
@@ -31659,7 +31896,7 @@ def transferDrive(users):
     nonOwnerRetainRoleBody = ownerRetainRoleBody
   if not orderBy[u'list']:
     orderBy[u'list'] = u'folder,{0}'.format(VX_CREATED_TIME)
-  targetUser, targetDrive = buildGAPIServiceObject(API.DRIVE3, targetUser, 0, 0)
+  targetUser, targetDrive = buildGAPIServiceObject(API.DRIVE3, targetUser)
   if not targetDrive:
     return
   try:
@@ -38208,6 +38445,7 @@ MAIN_COMMANDS = {
 # Main commands with objects
 MAIN_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_ADMIN:	doCreateAdmin,
+  Cmd.ARG_ALERTFEEDBACK:	doCreateAlertFeedback,
   Cmd.ARG_ALIAS:	doCreateAliases,
   Cmd.ARG_BUILDING:	doCreateBuilding,
   Cmd.ARG_CONTACT:	doCreateDomainContact,
@@ -38246,6 +38484,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
     (Act.DELETE,
      {Cmd.ARG_ADMIN:		doDeleteAdmin,
       Cmd.ARG_ALIAS:		doDeleteAliases,
+      Cmd.ARG_ALERT:		doDeleteOrUndeleteAlert,
       Cmd.ARG_BUILDING:		doDeleteBuilding,
       Cmd.ARG_CONTACT:		doDeleteDomainContacts,
       Cmd.ARG_CONTACTPHOTO:	doDeleteDomainContactPhoto,
@@ -38280,7 +38519,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
   u'get': (Act.DOWNLOAD, {Cmd.ARG_CONTACTPHOTO: doGetDomainContactPhoto, Cmd.ARG_DEVICEFILE: doGetCrOSDeviceFiles}),
   u'info':
     (Act.INFO,
-     {Cmd.ARG_ALIAS:		doInfoAliases,
+     {Cmd.ARG_ALERT:		doInfoAlert,
+      Cmd.ARG_ALIAS:		doInfoAliases,
       Cmd.ARG_BUILDING:		doInfoBuilding,
       Cmd.ARG_CONTACT:		doInfoDomainContacts,
       Cmd.ARG_COURSE:		doInfoCourse,
@@ -38320,6 +38560,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
     (Act.PRINT,
      {Cmd.ARG_ADMINROLES:	doPrintShowAdminRoles,
       Cmd.ARG_ADMIN:		doPrintShowAdmins,
+      Cmd.ARG_ALERT:		doPrintShowAlerts,
+      Cmd.ARG_ALERTFEEDBACK:	doPrintShowAlertFeedback,
       Cmd.ARG_ALIAS:		doPrintAliases,
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
       Cmd.ARG_CLASSROOMINVITATION:	doPrintShowClassroomInvitations,
@@ -38373,6 +38615,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
     (Act.SHOW,
      {Cmd.ARG_ADMINROLES:	doPrintShowAdminRoles,
       Cmd.ARG_ADMIN:		doPrintShowAdmins,
+      Cmd.ARG_ALERT:		doPrintShowAlerts,
+      Cmd.ARG_ALERTFEEDBACK:	doPrintShowAlertFeedback,
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
       Cmd.ARG_CLASSROOMINVITATION:	doPrintShowClassroomInvitations,
       Cmd.ARG_CONTACT:		doPrintShowDomainContacts,
@@ -38441,13 +38685,23 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_VERIFY:		doUpdateSiteVerification,
      }
     ),
-  u'undelete': (Act.UNDELETE, {Cmd.ARG_USER: doUndeleteUser, Cmd.ARG_USERS: doUndeleteUsers, Cmd.ARG_VAULTMATTER: doUndeleteVaultMatter}),
+  u'undelete':
+    (Act.UNDELETE,
+     {Cmd.ARG_ALERT: doDeleteOrUndeleteAlert,
+      Cmd.ARG_USER: doUndeleteUser,
+      Cmd.ARG_USERS: doUndeleteUsers,
+      Cmd.ARG_VAULTMATTER: doUndeleteVaultMatter,
+     }
+    ),
   u'unsuspend': (Act.UNSUSPEND, {Cmd.ARG_USER: doUnsuspendUser, Cmd.ARG_USERS: doUnsuspendUsers}),
   u'use': (Act.USE, {Cmd.ARG_PROJECT: doUseProject}),
   }
 
 MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_ADMINS:	Cmd.ARG_ADMIN,
+  Cmd.ARG_ALERTFEEDBACKS:	Cmd.ARG_ALERTFEEDBACK,
+  Cmd.ARG_ALERTS:	Cmd.ARG_ALERT,
+  Cmd.ARG_ALERTSFEEDBACK:	Cmd.ARG_ALERTFEEDBACK,
   Cmd.ARG_ALIASDOMAIN:	Cmd.ARG_DOMAINALIAS,
   Cmd.ARG_ALIASDOMAINS:	Cmd.ARG_DOMAINALIAS,
   Cmd.ARG_ALIASES:	Cmd.ARG_ALIAS,

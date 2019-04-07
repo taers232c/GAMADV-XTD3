@@ -21,6 +21,7 @@
 """
 # APIs
 ADMIN = u'admin'
+ALERTCENTER = u'alertcenter'
 APPSACTIVITY = u'appsactivity'
 CALENDAR = u'calendar'
 CHAT = u'chat'
@@ -72,6 +73,7 @@ OAUTH2_TOKEN_ERRORS = [
 
 PROJECT_APIS = [
   u'admin.googleapis.com',
+  u'alertcenter.googleapis.com',
   u'appsactivity.googleapis.com',
   u'audit.googleapis.com',
   u'calendar-json.googleapis.com',
@@ -96,6 +98,7 @@ PROJECT_APIS = [
 _INFO = {
   APPSACTIVITY: {u'version': u'v1', u'credfam': FAM1_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/activity',
                                                                                 u'https://www.googleapis.com/auth/drive',]},
+  ALERTCENTER: {u'version': u'v1beta1', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/apps.alerts',]},
   CALENDAR: {u'version': u'v3', u'credfam': FAM1_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/calendar',]},
 #  CHAT: {u'version': u'v1', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/chat.bot',]},
   CLASSROOM: {u'version': u'v1', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/classroom.rosters',

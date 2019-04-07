@@ -25,114 +25,114 @@ import os
 # The following GM_XXX constants are arbitrary but must be unique
 # Most errors print a message and bail out with a return code
 # Some commands want to set a non-zero return code but not bail
-SYSEXITRC = u'sxrc'
+SYSEXITRC = 'sxrc'
 # Process ID
-PID = u'pid '
+PID = 'pid '
 # Path to gam
-GAM_PATH = u'gpth'
+GAM_PATH = 'gpth'
 # Are we on Windows?
-WINDOWS = u'wndo'
+WINDOWS = 'wndo'
 # Encodings
-SYS_ENCODING = u'syen'
+SYS_ENCODING = 'syen'
 # Extra arguments to pass to GAPI functions
-EXTRA_ARGS_LIST = u'exad'
+EXTRA_ARGS_LIST = 'exad'
 # GAM admin user
-ADMIN = u'admin'
+ADMIN = 'admin'
 # Current API services
-CURRENT_API_SERVICES = u'caps'
+CURRENT_API_SERVICES = 'caps'
 # Current Client API
-CURRENT_CLIENT_API = u'ccap'
+CURRENT_CLIENT_API = 'ccap'
 # Current Client API scopes
-CURRENT_CLIENT_API_SCOPES = u'ccas'
+CURRENT_CLIENT_API_SCOPES = 'ccas'
 # Current Service Account API
-CURRENT_SVCACCT_API = u'csap'
+CURRENT_SVCACCT_API = 'csap'
 # Current Service Account API scopes
-CURRENT_SVCACCT_API_SCOPES = u'csas'
+CURRENT_SVCACCT_API_SCOPES = 'csas'
 # Current Service Account user
-CURRENT_SVCACCT_USER = u'csau'
+CURRENT_SVCACCT_USER = 'csa'
 # Values retrieved from oauth2.txt
-OAUTH2_CLIENT_ID = u'oaci'
+OAUTH2_CLIENT_ID = 'oaci'
 # Values retrieved from oauth2service.json
-OAUTH2SERVICE_JSON_DATA = u'osjd'
-OAUTH2SERVICE_CLIENT_ID = u'osci'
+OAUTH2SERVICE_JSON_DATA = 'osjd'
+OAUTH2SERVICE_CLIENT_ID = 'osci'
 # gam.cfg parser
-PARSER = u'pars'
+PARSER = 'pars'
 # gam.cfg file
-GAM_CFG_PATH = u'gcpa'
-GAM_CFG_FILE = u'gcfi'
+GAM_CFG_PATH = 'gcpa'
+GAM_CFG_FILE = 'gcfi'
 # redirected file: name, mode, encoding, delimiter, quotechar, write header, multiproces, queue
-STDOUT = u'stdo'
-STDERR = u'stde'
-CSVFILE = u'csvf'
-SAVED_STDOUT = u'svso'
-REDIRECT_NAME = u'rdfn'
-REDIRECT_MODE = u'rdmo'
-REDIRECT_FD = u'rdfd'
-REDIRECT_MULTI_FD = u'rdmf'
-REDIRECT_STD = u'rdst'
-REDIRECT_ENCODING = u'rden'
-REDIRECT_COLUMN_DELIMITER = u'rddl'
-REDIRECT_QUOTE_CHAR = u'rdqc'
-REDIRECT_WRITE_HEADER = u'rdwh'
-REDIRECT_MULTIPROCESS = u'rdmp'
-REDIRECT_QUEUE = u'rdqu'
-REDIRECT_QUEUE_NAME = u'name'
-REDIRECT_QUEUE_TODRIVE = u'todrive'
-REDIRECT_QUEUE_TITLES = u'titles'
-REDIRECT_QUEUE_SORTTITLES = u'sorttitles'
-REDIRECT_QUEUE_QUOTECHAR = u'quotechar'
-REDIRECT_QUEUE_FIXPATHS = u'fixpaths'
-REDIRECT_QUEUE_DATA = u'rows'
-REDIRECT_QUEUE_ARGS = u'args'
-REDIRECT_QUEUE_GLOBALS = u'globals'
-REDIRECT_QUEUE_VALUES = u'values'
-REDIRECT_QUEUE_START = u'start'
-REDIRECT_QUEUE_END = u'end'
-REDIRECT_QUEUE_EOF = u'eof'
+STDOUT = 'stdo'
+STDERR = 'stde'
+CSVFILE = 'csvf'
+SAVED_STDOUT = 'svso'
+REDIRECT_NAME = 'rdfn'
+REDIRECT_MODE = 'rdmo'
+REDIRECT_FD = 'rdfd'
+REDIRECT_MULTI_FD = 'rdmf'
+REDIRECT_STD = 'rdst'
+REDIRECT_ENCODING = 'rden'
+REDIRECT_COLUMN_DELIMITER = 'rddl'
+REDIRECT_QUOTE_CHAR = 'rdqc'
+REDIRECT_WRITE_HEADER = 'rdwh'
+REDIRECT_MULTIPROCESS = 'rdmp'
+REDIRECT_QUEUE = 'rdq'
+REDIRECT_QUEUE_NAME = 'name'
+REDIRECT_QUEUE_TODRIVE = 'todrive'
+REDIRECT_QUEUE_TITLES = 'titles'
+REDIRECT_QUEUE_SORTTITLES = 'sorttitles'
+REDIRECT_QUEUE_QUOTECHAR = 'quotechar'
+REDIRECT_QUEUE_FIXPATHS = 'fixpaths'
+REDIRECT_QUEUE_DATA = 'rows'
+REDIRECT_QUEUE_ARGS = 'args'
+REDIRECT_QUEUE_GLOBALS = 'globals'
+REDIRECT_QUEUE_VALUES = 'values'
+REDIRECT_QUEUE_START = 'start'
+REDIRECT_QUEUE_END = 'end'
+REDIRECT_QUEUE_EOF = 'eof'
 # File containing time of last GAM update check
-LAST_UPDATE_CHECK_TXT = u'lupc'
+LAST_UPDATE_CHECK_TXT = 'lupc'
 # Index of start of <UserTypeEntity> in command line
-ENTITY_CL_START = u'ecls'
-ENTITY_CL_DELAY_START = u'eclD'
+ENTITY_CL_START = 'ecls'
+ENTITY_CL_DELAY_START = 'eclD'
 # csvfile keyfield <FieldName> [delimiter <Character>] (matchfield <FieldName> <MatchPattern>)* [datafield <FieldName>(:<FieldName>*) [delimiter <String>]]
 # { key: [datafieldvalues]}
-CSV_DATA_DICT = u'csdd'
-CSV_KEY_FIELD = u'cskf'
-CSV_SUBKEY_FIELD = u'cssk'
-CSV_DATA_FIELD = u'csdf'
+CSV_DATA_DICT = 'csdd'
+CSV_KEY_FIELD = 'cskf'
+CSV_SUBKEY_FIELD = 'cssk'
+CSV_DATA_FIELD = 'csdf'
 # Dictionary mapping OrgUnit ID to Name
-MAP_ORGUNIT_ID_TO_NAME = u'oi2n'
+MAP_ORGUNIT_ID_TO_NAME = 'oi2n'
 # Make Role ID/Name map
 MAKE_ROLE_ID_NAME_MAP = 'mkrm'
 # Dictionary mapping Role ID to Name
-MAP_ROLE_ID_TO_NAME = u'ri2n'
+MAP_ROLE_ID_TO_NAME = 'ri2n'
 # Dictionary mapping Role Name to ID
-MAP_ROLE_NAME_TO_ID = u'rn2i'
+MAP_ROLE_NAME_TO_ID = 'rn2i'
 # Dictionary mapping User ID to Name
-MAP_USER_ID_TO_NAME = u'ui2n'
+MAP_USER_ID_TO_NAME = 'ui2n'
 # oauth2.txt.lock lockfile
-OAUTH2_TXT_LOCK = u'oalk'
+OAUTH2_TXT_LOCK = 'oalk'
 # GAM cache directory. If no_cache is True, this variable will be set to None
-CACHE_DIR = u'gacd'
+CACHE_DIR = 'gacd'
 # Reset GAM cache directory after discovery
-CACHE_DISCOVERY_ONLY = u'gcdo'
+CACHE_DISCOVERY_ONLY = 'gcdo'
 # Make Building ID/Name map
 MAKE_BUILDING_ID_NAME_MAP = 'mkbm'
 # Dictionary mapping Building ID to Name
-MAP_BUILDING_ID_TO_NAME = u'bi2n'
+MAP_BUILDING_ID_TO_NAME = 'bi2n'
 # Dictionary mapping Building Name to ID
-MAP_BUILDING_NAME_TO_ID = u'bn2i'
+MAP_BUILDING_NAME_TO_ID = 'bn2i'
 # Shared by threadBatchWorker and threadBatchGAMCommands
-TBATCH_QUEUE = u'batq'
+TBATCH_QUEUE = 'batq'
 # datetime.datetime.now
-DATETIME_NOW = u'dtno'
+DATETIME_NOW = 'dtno'
 # Convert to local time
-CONVERT_TO_LOCAL_TIME = u'ctlt'
+CONVERT_TO_LOCAL_TIME = 'ctlt'
 # Check API calls rate
-RATE_CHECK_COUNT = u'rccn'
-RATE_CHECK_START = u'rcst'
+RATE_CHECK_COUNT = 'rccn'
+RATE_CHECK_START = 'rcst'
 # Number/length of API call retries
-API_CALLS_RETRY_DATA = u'rtry'
+API_CALLS_RETRY_DATA = 'rtry'
 #
 Globals = {
   SYSEXITRC: 0,

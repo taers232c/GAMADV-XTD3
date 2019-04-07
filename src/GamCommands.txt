@@ -147,6 +147,7 @@ If an item contains spaces, it should be surrounded by ".
 
 <AccessToken> ::= <String>
 <ASPID> ::= <String>
+<AlertID> ::= <String>
 <CalendarACLScope> ::= <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>)|domain|default
 <BuildingID> ::= <String>|id:<String>
 <CalendarColorIndex> ::= <Number in range 1-24>
@@ -234,6 +235,7 @@ If an item contains spaces, it should be surrounded by ".
 <PrintJobStatus> ::= done|error|held|in_progress|queued|submitted
 <PropertyKey> ::= <String>
 <PropertyValue> ::= <String>
+<QueryAlert> ::= <String> See: https://developers.google.com/admin-sdk/alertcenter/guides/query-filters
 <QueryCalendar> ::= <String>
 <QueryContact> ::= <String> See: https://developers.google.com/google-apps/contacts/v3/reference#contacts-query-parameters-reference
 <QueryCrOS> ::= <String> See: https://support.google.com/chrome/a/answer/1698333?hl=en
@@ -652,6 +654,22 @@ gam delete admin <RoleAssignmentId>
 gam print admins [todrive <ToDriveAttribute>*] [user <UserItem>] [role <RoleItem>]
 gam show admins [user <UserItem>] [role <RoleItem>]
 
+# Alert Center
+
+gam delete alert <AlertID>
+gam undelete alert <AlertID>
+gam info alert <AlertID> [formatjson]
+gam show alerts [filter <QueryAlert>] [orderby createtime [ascending|descending]]
+        [formatjson]
+gam print alerts [todrive <ToDriveAttributes>*] [filter <QueryAlert>] [orderby createtime [ascending|descending]]
+        [formatjson] [quotechar <Character>]
+
+gam create alertfeedback <AlertID> not_useful|somewhat_useful|very_useful
+gam show alertfeedback [alert <AlertID>] [filter <QueryAlert>] [orderby createtime [ascending|descending]]
+        [formatjson]
+gam print alertfeedback [todrive <ToDriveAttributes>*] [alert <AlertID>] [filter <QueryAlert>] [orderby createtime [ascending|descending]]
+        [formatjson] [quotechar <Character>]
+
 # Aliases
 
 gam create|add alias|aliases <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
@@ -898,6 +916,8 @@ gam calendar|calendars <CalendarEntity> wipe
         (summary <String>)|
         (timezone <TimeZone>)
 
+gam calendar|calendars <CalendarEntity> show settings [formatjson]
+gam calendar|calendars <CalendarEntity> print settings [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
 gam calendar|calendars <CalendarEntity> modify <CalendarSettings>+
 
 # ChromeOS Devices
