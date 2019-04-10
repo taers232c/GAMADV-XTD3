@@ -2072,7 +2072,8 @@ def readFile(filename, mode=u'r', continueOnError=False, displayError=True, enco
 # Write a file
 def writeFile(filename, data, mode=DEFAULT_FILE_WRITE_MODE, continueOnError=False, displayError=True):
   try:
-    with open(os.path.expanduser(filename), mode, encoding=GM.Globals[GM.SYS_ENCODING]) as f:
+    kwargs = {'encoding': GM.Globals[GM.SYS_ENCODING]} if u'b' not in mode else {}
+    with open(os.path.expanduser(filename), mode, **kwargs) as f:
       f.write(data)
     return True
   except IOError as e:
@@ -2086,7 +2087,8 @@ def writeFile(filename, data, mode=DEFAULT_FILE_WRITE_MODE, continueOnError=Fals
 # Write a file, return error
 def writeFileReturnError(filename, data, mode=DEFAULT_FILE_WRITE_MODE):
   try:
-    with open(os.path.expanduser(filename), mode, encoding=GM.Globals[GM.SYS_ENCODING]) as f:
+    kwargs = {'encoding': GM.Globals[GM.SYS_ENCODING]} if u'b' not in mode else {}
+    with open(os.path.expanduser(filename), mode, **kwargs) as f:
       f.write(data)
     return (True, None)
   except IOError as e:
@@ -34304,7 +34306,7 @@ def getPhoto(users):
       photo_data = str(photo[u'photoData'])
       if showPhotoData:
         writeStdout(photo_data+'\n')
-      status, e = writeFileReturnError(filename, base64.urlsafe_b64decode(photo_data))
+      status, e = writeFileReturnError(filename, base64.urlsafe_b64decode(photo_data), mode=u'wb')
       if status:
         entityActionPerformed([Ent.USER, user, Ent.PHOTO, filename], i, count)
       else:
