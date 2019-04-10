@@ -123,7 +123,6 @@ class GamEntity(object):
   FORWARD_ENABLED = 'fwde'
   FORWARDING_ADDRESS = 'fwda'
   GMAIL_PROFILE = 'gmpr'
-  GPLUS_PROFILE = 'gppr'
   GROUP = 'gro'
   GROUP_ALIAS = 'gali'
   GROUP_EMAIL = 'gale'
@@ -148,7 +147,6 @@ class GamEntity(object):
   MOBILE_DEVICE = 'mobi'
   NAME = 'name'
   NONEDITABLE_ALIAS = 'neal'
-  NOTIFICATION = 'noti'
   OAUTH2_TXT_FILE = 'oaut'
   OAUTH2SERVICE_JSON_FILE = 'oau2'
   ORGANIZATIONAL_UNIT = 'org'
@@ -322,7 +320,6 @@ class GamEntity(object):
     FORWARD_ENABLED: [u'Forward Enabled', u'Forward Enabled'],
     FORWARDING_ADDRESS: [u'Forwarding Addresses', u'Forwarding Address'],
     GMAIL_PROFILE: [u'Gmail profile', u'Gmail profile'],
-    GPLUS_PROFILE: [u'Gplus profile', u'Gplus profile'],
     GROUP: [u'Groups', u'Group'],
     GROUP_ALIAS: [u'Group Aliases', u'Group Alias'],
     GROUP_EMAIL: [u'Group Emails', u'Group Email'],
@@ -347,7 +344,6 @@ class GamEntity(object):
     MOBILE_DEVICE: [u'Mobile Devices', u'Mobile Device'],
     NAME: [u'Names', u'Name'],
     NONEDITABLE_ALIAS: [u'Non-Editable Aliases', u'Non-Editable Alias'],
-    NOTIFICATION: [u'Notifications', u'Notification'],
     OAUTH2_TXT_FILE: [u'Client OAuth2 File', u'Client OAuth2 File'],
     OAUTH2SERVICE_JSON_FILE: [u'Service Account OAuth2 File', u'Service Account OAuth2 File'],
     ORGANIZATIONAL_UNIT: [u'Organizational Units', u'Organizational Unit'],

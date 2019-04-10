@@ -36,7 +36,6 @@ DRIVEACTIVITY = u'driveactivity'
 EMAIL_AUDIT = u'email-audit'
 EMAIL_SETTINGS = u'email-settings'
 GMAIL = u'gmail'
-GPLUS = u'plus'
 GROUPSMIGRATION = u'groupsmigration'
 GROUPSSETTINGS = u'groupssettings'
 LICENSING = u'licensing'
@@ -118,11 +117,6 @@ _INFO = {
                                                                          u'https://www.googleapis.com/auth/gmail.modify',
                                                                          u'https://www.googleapis.com/auth/gmail.settings.basic',
                                                                          u'https://www.googleapis.com/auth/gmail.settings.sharing',]},
-  GPLUS: {u'version': u'v1', u'credfam': FAM1_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/plus.me',
-                                                                         u'https://www.googleapis.com/auth/plus.profile.agerange.read',
-                                                                         u'https://www.googleapis.com/auth/plus.profile.language.read', 
-                                                                         u'https://www.googleapis.com/auth/userinfo.email',
-                                                                         u'https://www.googleapis.com/auth/userinfo.profile',]},
   GROUPSMIGRATION: {u'version': u'v1', u'credfam': FAM2_SCOPES, u'svcacctscopes': [u'https://www.googleapis.com/auth/apps.groups.migration',]},
   GROUPSSETTINGS: {u'version': u'v1', u'credfam': FAM2_SCOPES},
   LICENSING: {u'version': u'v1', u'credfam': FAM1_SCOPES},
@@ -228,11 +222,6 @@ OAUTH2_SCOPES = [
    u'credfam': FAM1_SCOPES,
    u'subscopes': [u'readonly', u'action'],
    u'scope': u'https://www.googleapis.com/auth/admin.directory.device.mobile'},
-  {u'name': u'Directory API - Notifications',
-   u'api': DIRECTORY,
-   u'credfam': FAM1_SCOPES,
-   u'subscopes': [],
-   u'scope': u'https://www.googleapis.com/auth/admin.directory.notifications'},
   {u'name': u'Directory API - Organizational Units',
    u'api': DIRECTORY,
    u'credfam': FAM1_SCOPES,

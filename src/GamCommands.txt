@@ -220,7 +220,6 @@ If an item contains spaces, it should be surrounded by ".
 <MessageID> ::= <String>
 <MobileID> ::= <String>
 <MobileItem> ::= <MobileID>|(query:<QueryMobile>)|(query <QueryMobile>)
-<NotificationID> ::= <String>
 <NumberOfSeats> ::= <Number>
 <OrgUnitID> ::= id:<String>
 <OrgUnitPath> ::= /|(/<String)+
@@ -1463,8 +1462,7 @@ gam print|show transferapps
 
 <DataTransferService> ::=
         calendar|
-        googledrive|gdrive|drive|"drive and docs"|
-        gplus|googleplus|google+
+        googledrive|gdrive|drive|"drive and docs"
 <DataTransferServiceList> ::= "<DataTransferService>(,<DataTransferService>)*"
 
 <OldOwnerID> ::= <UserItem>
@@ -1751,12 +1749,6 @@ gam print mobile [todrive <ToDriveAttribute>*]
         [basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>]
         [delimiter <Character>] [appslimit <Number>] [listlimit <Number>] [formatjson] [quotechar <Character>]
 
-# Notifications
-
-gam update notification|notifications [(id all)|(id <NotificationID>)*] unread|read|unreadonly
-gam delete notification|notifications [(id all)|(id <NotificationID>)*] [unreadonly|unread|read]
-gam info notification|notifications [unread|read|unreadonly]
-
 # Organizational Units
 
 <OrgUnitFieldName> ::=
@@ -1874,7 +1866,6 @@ gam print printjob|printjobs [todrive <ToDriveAttribute>*] [printer|printerid <P
         calendar|calendars|
         doc|docs|
         drive|
-        gplus|
         group|groups|
         login|logins|
         mobile|
@@ -1902,7 +1893,6 @@ gam report <ActivityApplicationName> [todrive <ToDriveAttributes>*]
       docs|
       drive|
       gmail|
-      gplus|
       meet|
       mobile|
       sites
@@ -1917,8 +1907,7 @@ gam report <customers|customer|domain> [todrive <ToDriveAttributes>*]
       classroom|
       docs|
       drive|
-      gmail|
-      gplus
+      gmail
 <UserServiceNameList> ::= "<UserServiceName>(,<UserServiceName>)*"
 
 gam report <users|user> [todrive <ToDriveAttributes>*]
@@ -3394,11 +3383,6 @@ gam <UserTypeEntity> shortcuts <Boolean>
 gam <UserTypeEntity> snippets <Boolean>
 gam <UserTypeEntity> utf|utf8|utf-8|unicode <Boolean>
 gam <UserTypeEntity> webclips <Boolean>
-
-# Users - Google+ - Profile
-
-gam <UserTypeEntity> show gplusprofile
-gam <UserTypeEntity> print gplusprofile [todrive <ToDriveAttribute>*]
 
 # Users - Groups
 

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.70.00'
+__version__ = u'4.70.01'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4749,7 +4749,20 @@ def sortCSVTitles(sortTitles, titles):
   for title in restoreTitles[::-1]:
     titles[u'list'].insert(0, title)
 
-def writeCSVfile(csvRows, titles, list_type, todrive, sortTitles=None, quotechar=None, fixPaths=False):
+def sortCSVIndexedTitles(titles, indexedFields):
+  for field in indexedFields:
+    fieldDotN = re.compile(r'({0})\.(\d+)(.*)'.format(field))
+    indexes = []
+    subtitles = []
+    for i, v in enumerate(titles):
+      mg = fieldDotN.match(v)
+      if mg:
+        indexes.append(i)
+        subtitles.append(mg.groups(''))
+    for i, ii in enumerate(indexes):
+      titles[ii] = [u'{0}.{1}{2}'.format(subtitle[0], subtitle[1], subtitle[2]) for subtitle in sorted(subtitles, key=lambda k: (int(k[1]), k[2]))][i]
+
+def writeCSVfile(csvRows, titles, list_type, todrive, sortTitles=None, quotechar=None, fixPaths=False, indexedFields=None):
 
   def writeCSVData(writer):
     try:
@@ -4869,6 +4882,8 @@ def writeCSVfile(csvRows, titles, list_type, todrive, sortTitles=None, quotechar
     return
   if sortTitles is not None:
     sortCSVTitles(sortTitles, titles)
+  if indexedFields is not None:
+    sortCSVIndexedTitles(titles[u'list'], indexedFields)
 # Put paths before path.0
   if fixPaths:
     try:
@@ -6562,7 +6577,6 @@ REPORT_CHOICE_MAP = {
   u'docs': u'drive',
   u'domain': u'customer',
   u'drive': u'drive',
-  u'gplus': u'gplus',
   u'group': u'groups',
   u'groups': u'groups',
   u'login': u'login',
@@ -6589,7 +6603,6 @@ CUSTOMER_REPORT_SERVICES = [
   u'docs',
   u'drive',
   u'gmail',
-  u'gplus',
   u'meet',
   u'mobile',
   u'sites',
@@ -6601,7 +6614,6 @@ USER_REPORT_SERVICES = [
   u'docs',
   u'drive',
   u'gmail',
-  u'gplus',
   ]
 
 REPORT_ACTIVITIES_TIME_OBJECTS = set([u'time'])
@@ -8569,9 +8581,6 @@ SERVICE_NAME_CHOICE_MAP = {
   u'drive and docs': DRIVE_AND_DOCS_APP_NAME,
   u'googledrive': DRIVE_AND_DOCS_APP_NAME,
   u'gdrive': DRIVE_AND_DOCS_APP_NAME,
-  u'gplus': GOOGLE_PLUS_APP_NAME,
-  u'google+': GOOGLE_PLUS_APP_NAME,
-  u'googleplus': GOOGLE_PLUS_APP_NAME,
   }
 
 def _validateTransferAppName(apps, appName):
@@ -11807,7 +11816,8 @@ def _printShowContacts(users, entityType, contactFeed=True):
     elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT] and entityType == Ent.USER:
       csvRows.append({Ent.Singular(entityType): user})
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'Contacts', todrive, [Ent.Singular(entityType), CONTACT_ID, CONTACT_NAME], quotechar=FJQC.quoteChar)
+    writeCSVfile(csvRows, titles, u'Contacts', todrive, [Ent.Singular(entityType), CONTACT_ID, CONTACT_NAME],
+                 quotechar=FJQC.quoteChar, indexedFields=contactsManager.CONTACT_ARRAY_PROPERTY_PRINT_ORDER)
 
 # gam <UserTypeEntity> print contacts [todrive <ToDriveAttribute>*] <UserContactSelection>
 #	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
@@ -12866,6 +12876,9 @@ CROS_ORDERBY_CHOICE_MAP = {
   u'user': u'annotatedUser',
   }
 
+CROS_INDEXED_FIELDS = [u'activeTimeRanges', u'recentUsers', u'deviceFiles',
+                       u'cpuStatusReports', u'diskVolumeReports', u'systemRamFreeReports']
+
 # gam print cros [todrive <ToDriveAttributes>*]
 #	[(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
 #	[querytime.* <Time>]
@@ -13114,7 +13127,8 @@ def doPrintCrOSDevices(entityList=None):
         _printCrOS({u'deviceId': cros})
   if sortRows and orderBy and orderBy in titles[u'set']:
     csvRows.sort(key=lambda k: k[orderBy], reverse=sortOrder == u'DESCENDING')
-  writeCSVfile(csvRows, titles, u'CrOS', todrive, [u'deviceId'] if sortHeaders else None, FJQC.quoteChar)
+  writeCSVfile(csvRows, titles, u'CrOS', todrive, [u'deviceId'] if sortHeaders else None,
+               FJQC.quoteChar, indexedFields=CROS_INDEXED_FIELDS)
 
 CROS_ACTIVITY_TIME_OBJECTS = set([u'createTime'])
 
@@ -15757,124 +15771,6 @@ def doShowLicenses():
   licenseCounts = doPrintLicenses(countsOnly=True, returnCounts=True)
   for u_license in licenseCounts:
     printEntityKVList(u_license[:-2], [Ent.Plural(u_license[-2]), u_license[-1]])
-
-# Notification commands utilities
-READ_UNREAD_CHOICES = [u'read', u'unread']
-
-def getNotificationParameters(function):
-  cd = buildGAPIObject(API.DIRECTORY)
-  selected = False
-  isUnread = None
-  ids = []
-  get_all = True
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg in [u'unreadonly', u'unread']:
-      isUnread = True
-      selected = True
-    elif myarg == u'read':
-      isUnread = False
-      selected = True
-    elif myarg == u'id':
-      notificationId = getString(Cmd.OB_NOTIFICATION_ID)
-      if notificationId.lower() == u'all':
-        get_all = True
-        isUnread = None
-        selected = False
-        ids = []
-      else:
-        get_all = False
-        ids.append(notificationId)
-    else:
-      unknownArgumentExit()
-  if not selected:
-    if function == u'update':
-      missingChoiceExit(READ_UNREAD_CHOICES)
-  if get_all:
-    fields = u'nextPageToken,items(notificationId,isUnread)' if function != u'info' else None
-    try:
-      notifications = callGAPIpages(cd.notifications(), u'list', u'items',
-                                    throw_reasons=[GAPI.DOMAIN_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
-                                    customer=GC.Values[GC.CUSTOMER_ID], fields=fields)
-    except (GAPI.domainNotFound, GAPI.badRequest, GAPI.forbidden):
-      accessErrorExit(cd)
-    for notification in notifications:
-      if function == u'update':
-        if notification[u'isUnread'] != isUnread:
-          ids.append(notification[u'notificationId'])
-      elif (not selected) or (notification[u'isUnread'] == isUnread):
-        ids.append(notification[u'notificationId'])
-  else:
-    notifications = None
-  return (cd, isUnread, ids, notifications)
-
-# gam update notification|notifications (id all)|(id <NotificationID>)* unreadonly|unread|read
-def doUpdateNotification():
-  cd, isUnread, notificationIds, _ = getNotificationParameters(u'update')
-  printKeyValueList([u'Marking', len(notificationIds), u'Notification(s) as', u'UNREAD' if isUnread else u'READ'])
-  body = {u'isUnread': isUnread}
-  i = 0
-  count = len(notificationIds)
-  for notificationId in notificationIds:
-    i += 1
-    try:
-      result = callGAPI(cd.notifications(), u'update',
-                        throw_reasons=[GAPI.DOMAIN_NOT_FOUND, GAPI.INTERNAL_ERROR, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
-                        customer=GC.Values[GC.CUSTOMER_ID], notificationId=notificationId,
-                        body=body, fields=u'notificationId,isUnread')
-      printEntityKVList([Ent.NOTIFICATION, result[u'notificationId']],
-                        [Msg.MARKED_AS, [u'read', u'unread'][result[u'isUnread']]],
-                        i, count)
-    except (GAPI.domainNotFound, GAPI.internalError, GAPI.badRequest, GAPI.forbidden):
-      checkEntityAFDNEorAccessErrorExit(cd, Ent.NOTIFICATION, notificationId, i, count)
-
-# gam delete notification|notifications (id all)|(id <NotificationID>)* [unreadonly|unread|read]
-def doDeleteNotification():
-  cd, _, notificationIds, _ = getNotificationParameters(u'delete')
-  printKeyValueList([u'Deleting', len(notificationIds), u'Notification(s)'])
-  i = 0
-  count = len(notificationIds)
-  for notificationId in notificationIds:
-    i += 1
-    try:
-      callGAPI(cd.notifications(), u'delete',
-               throw_reasons=[GAPI.DOMAIN_NOT_FOUND, GAPI.INTERNAL_ERROR, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
-               customer=GC.Values[GC.CUSTOMER_ID], notificationId=notificationId)
-      entityActionPerformed([Ent.NOTIFICATION, notificationId], i, count)
-    except (GAPI.domainNotFound, GAPI.internalError, GAPI.badRequest, GAPI.forbidden):
-      checkEntityAFDNEorAccessErrorExit(cd, Ent.NOTIFICATION, notificationId, i, count)
-
-# gam info notification|notifications (id all)|(id <NotificationID>)* [unreadonly|unread|read]
-def doInfoNotifications():
-  cd, _, notificationIds, notifications = getNotificationParameters(u'info')
-  i = 0
-  count = len(notificationIds)
-  for notificationId in notificationIds:
-    i += 1
-    if not notifications:
-      try:
-        notification = callGAPI(cd.notifications(), u'get',
-                                throw_reasons=[GAPI.DOMAIN_NOT_FOUND, GAPI.INTERNAL_ERROR, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
-                                customer=GC.Values[GC.CUSTOMER_ID], notificationId=notificationId)
-      except (GAPI.domainNotFound, GAPI.internalError, GAPI.badRequest, GAPI.forbidden):
-        checkEntityAFDNEorAccessErrorExit(cd, Ent.NOTIFICATION, notificationId, i, count)
-        continue
-    else:
-      for notification in notifications:
-        if notification[u'notificationId'] == notificationId:
-          break
-    printEntity([Ent.NOTIFICATION, notification[u'notificationId']], i, count)
-    Ind.Increment()
-    printKeyValueList([u'From', notification[u'fromAddress']])
-    printKeyValueList([u'Subject', notification[u'subject']])
-    printKeyValueList([u'Date', formatLocalTime(notification[u'sendTime'])])
-    printKeyValueList([u'Read Status', [u'READ', u'UNREAD'][notification[u'isUnread']]])
-    Ind.Decrement()
-    printBlankLine()
-    printKeyValueList([dehtml(notification[u'body'])])
-    printBlankLine()
-    printKeyValueList([u'--------------'])
-    printBlankLine()
 
 # gam delete alert <AlertID>
 # gam undelete alert <AlertID>
@@ -18546,6 +18442,8 @@ def doInfoUserSchemas():
     except (GAPI.invalid, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.USER_SCHEMA, schemaKey, i, count)
 
+SCHEMAS_INDEXED_FIELDS = [u'fields']
+
 # gam print schema|schemas [todrive <ToDriveAttributes>*]
 # gam show schema|schemas
 def doPrintShowUserSchemas():
@@ -18583,7 +18481,8 @@ def doPrintShowUserSchemas():
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
     accessErrorExit(cd)
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'User Schemas', todrive, [u'schemaId', u'schemaName', u'fields.Count'])
+    writeCSVfile(csvRows, titles, u'User Schemas', todrive, [u'schemaId', u'schemaName', u'fields.Count'],
+                 indexedFields=SCHEMAS_INDEXED_FIELDS)
 
 def formatVaultNameId(vaultName, vaultId):
   return u'{0}({1})'.format(vaultName, vaultId)
@@ -21837,6 +21736,10 @@ USERS_ORDERBY_CHOICE_MAP = {
   u'firstname': u'givenName',
   u'email': u'email',
   }
+USERS_INDEXED_FIELDS = [u'addresses', u'aliases', u'nonEditableAliases', u'emails', u'externalIds',
+                        u'ims', u'keywords', u'locations', u'organizations',
+                        u'phones', u'posixAccounts', u'relations', u'sshPublicKeys', u'websites']
+
 
 # gam print users [todrive <ToDriveAttributes>*]
 #	([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])|[select <UserTypeEntity>]
@@ -22097,7 +22000,8 @@ def doPrintUsers(entityList=None):
       csvRows.append({u'domain': domain, u'count': count})
   else:
     csvRows.append({u'JSON': json.dumps(cleanJSON(domainCounts), ensure_ascii=False, sort_keys=True)})
-  writeCSVfile(csvRows, titles, [u'Users', u'User Domain Counts'][countOnly], todrive, quotechar=FJQC.quoteChar)
+  writeCSVfile(csvRows, titles, u'Users' if not countOnly else u'User Domain Counts', todrive,
+               quotechar=FJQC.quoteChar, indexedFields=USERS_INDEXED_FIELDS if not countOnly else None)
 
 # gam <UserTypeEntity> print users
 def doPrintUserEntity(entityList):
@@ -23046,13 +22950,12 @@ COURSE_ANNOUNCEMENTS_FIELDS_CHOICE_MAP = {
   u'text': u'text',
   u'updatetime': u'updateTime',
   }
-
 COURSE_ANNOUNCEMENTS_ORDERBY_CHOICE_MAP = {
   u'updatetime': u'updateTime',
   u'updatedate': u'updateTime',
   }
-
 COURSE_ANNOUNCEMENTS_TIME_OBJECTS = set([u'creationTime', u'scheduledTime', u'updateTime'])
+COURSE_ANNOUNCEMENTS_INDEXED_FIELDS = [u'materials']
 
 # gam print course-announcements [todrive <ToDriveAttributes>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
 #	(announcementids <CourseAnnouncementIDEntity>)|((announcementstates <CourseAnnouncementStateList>)* (orderby <CourseAnnouncementOrderByFieldName> [ascending|descending])*)
@@ -23150,7 +23053,8 @@ def doPrintCourseAnnouncements():
           entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course[u'name'], Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], j, jcount)
         except GAPI.forbidden:
           APIAccessDeniedExit()
-  writeCSVfile(csvRows, titles, u'Course Announcements', todrive, [u'courseId', u'courseName', u'id', u'text', u'state'], FJQC.quoteChar)
+  writeCSVfile(csvRows, titles, u'Course Announcements', todrive, [u'courseId', u'courseName', u'id', u'text', u'state'],
+               FJQC.quoteChar, indexedFields=COURSE_ANNOUNCEMENTS_INDEXED_FIELDS)
 
 COURSE_WORK_FIELDS_CHOICE_MAP = {
   u'alternatelink': u'alternateLink',
@@ -23174,14 +23078,13 @@ COURSE_WORK_FIELDS_CHOICE_MAP = {
   u'workid': u'id',
   u'worktype': u'workType',
   }
-
 COURSE_WORK_ORDERBY_CHOICE_MAP = {
   u'duedate': u'dueDate',
   u'updatetime': u'updateTime',
   u'updatedate': u'updateTime',
   }
-
 COURSE_WORK_TIME_OBJECTS = set([u'creationTime', u'scheduledTime', u'updateTime'])
+COURSE_WORK_INDEXED_FIELDS = [u'materials']
 
 def _initCourseWorkSelectionParameters():
   return {u'courseWorkIds': [], u'courseWorkStates': []}
@@ -23297,7 +23200,8 @@ def doPrintCourseWork():
           entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course[u'name'], Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
         except GAPI.forbidden:
           APIAccessDeniedExit()
-  writeCSVfile(csvRows, titles, u'Course Work', todrive, [u'courseId', u'courseName', u'id', u'title', u'description', u'state'], FJQC.quoteChar)
+  writeCSVfile(csvRows, titles, u'Course Work', todrive, [u'courseId', u'courseName', u'id', u'title', u'description', u'state'],
+               FJQC.quoteChar, indexedFields=COURSE_WORK_INDEXED_FIELDS)
 
 COURSE_SUBMISSION_FIELDS_CHOICE_MAP = {
   u'alternatelink': u'alternateLink',
@@ -23318,8 +23222,8 @@ COURSE_SUBMISSION_FIELDS_CHOICE_MAP = {
   u'workid': u'courseWorkId',
   u'worktype': u'courseWorkType',
   }
-
 COURSE_SUBMISSION_TIME_OBJECTS = set([u'creationTime', u'updateTime', u'gradeTimestamp', u'stateTimestamp'])
+COURSE_SUBISSION_INDEXED_FIELDS = [u'submissionHistory']
 
 def _gettingCourseSubmissionQuery(courseSubmissionStates, late, userId):
   query = u''
@@ -23477,9 +23381,11 @@ def doPrintCourseSubmissions():
             entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course[u'name'], Ent.COURSE_WORK_ID, courseWorkId, Ent.COURSE_SUBMISSION_ID, courseSubmissionId], k, kcount)
           except GAPI.forbidden:
             APIAccessDeniedExit()
-  writeCSVfile(csvRows, titles, u'Course Submissions', todrive, [u'courseId', u'courseName', u'courseWorkId', u'id', u'userId',
-                                                                 u'profile.emailAddress', u'profile.name.givenName', u'profile.name.familyName', u'profile.name.fullName',
-                                                                 u'state'], FJQC.quoteChar)
+  writeCSVfile(csvRows, titles, u'Course Submissions', todrive,
+               [u'courseId', u'courseName', u'courseWorkId', u'id', u'userId',
+                u'profile.emailAddress', u'profile.name.givenName', u'profile.name.familyName', u'profile.name.fullName',
+                u'state'],
+               FJQC.quoteChar, indexedFields=COURSE_SUBISSION_INDEXED_FIELDS)
 
 # gam print course-participants [todrive <ToDriveAttributes>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
 #	[show all|students|teachers] [formatjson] [quotechar <Character>]
@@ -28642,6 +28548,8 @@ def _showRevision(revision, timeObjects, i=0, count=0):
   showJSON(None, revision, [u'id'], timeObjects)
   Ind.Decrement()
 
+DRIVE_REVISIONS_INDEXED_FIELDS = [u'revisions']
+
 # gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive <ToDriveAttributes>*] [oneitemperrow] [select <DriveFileRevisionIDEntity>] [previewdelete]
 #	[showtitles] [<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 # gam <UserTypeEntity> show filerevisions <DriveFileEntity> [select <DriveFileRevisionIDEntity>] [previewdelete]
@@ -28740,7 +28648,9 @@ def printShowFileRevisions(users):
             addRowTitlesToCSVfile(flattenJSON({u'revisions': results}, flattened={u'Owner': user, u'id': fileId}, timeObjects=timeObjects), csvRows, titles)
     Ind.Decrement()
   if csvFormat:
-    writeCSVfile(csvRows, titles, u'Drive File Revisions', todrive, [u'Owner', u'id', fileNameTitle]+([u'revision.id'] if oneItemPerRow else []))
+    writeCSVfile(csvRows, titles, u'Drive File Revisions', todrive,
+                 [u'Owner', u'id', fileNameTitle]+([u'revision.id'] if oneItemPerRow else []),
+                 indexedFields=DRIVE_REVISIONS_INDEXED_FIELDS if not oneItemPerRow else None)
 
 def _stripMeInOwners(query):
   if not query:
@@ -29053,6 +28963,7 @@ class DriveListParameters():
     return not self.permissionMatchKeep
 
 FILELIST_FIELDS_TITLES = [u'id', u'mimeType', u'parents']
+DRIVE_INDEXED_FIELDS = [u'parents', u'path', u'permissions']
 
 # gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttributes>*] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
 #	[((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) |
@@ -29409,7 +29320,8 @@ def printFileList(users):
   writeCSVfile(csvRows, titles,
                u'{0} {1} Drive Files'.format(Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]),
                                              Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)),
-               todrive, [u'Owner', u'id', fileNameTitle], FJQC.quoteChar, filepath)
+               todrive, [u'Owner', u'id', fileNameTitle], FJQC.quoteChar, filepath,
+               indexedFields=DRIVE_INDEXED_FIELDS)
 
 # gam <UserTypeEntity> print filepaths <DriveFileEntity> [todrive <ToDriveAttributes>*] [oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 # gam <UserTypeEntity> show filepaths <DriveFileEntity> (orderby <DriveFileOrderByFieldName> [ascending|descending])*
@@ -35140,126 +35052,6 @@ def printShowGmailProfile(users):
   if csvFormat:
     writeCSVfile(csvRows, titles, u'Gmail Profiles', todrive, [u'emailAddress'])
 
-PROFILE_PROPERTY_PRINT_ORDER = [
-  u'objectType',
-  u'displayName',
-  u'name',
-  u'nickname',
-  u'domain',
-  u'birthday',
-  u'ageRange',
-  u'gender',
-  u'relationshipStatus',
-  u'placesLived',
-  u'language',
-  u'occupation',
-  u'aboutMe',
-  u'braggingRights',
-  u'skills',
-  u'tagline',
-  u'circledByCount',
-  u'plusOneCount',
-  u'verified',
-  u'emails',
-  u'organizations',
-  u'urls',
-  u'cover',
-  ]
-
-PROFILE_ARRAY_PROPERTY_PRINT_ORDER = {
-  u'ageRange': [u'min', u'max'],
-  u'cover': [u'layout', u'coverPhoto', u'coverInfo'],
-  u'coverInfo': [u'topImageOffset', u'leftImageOffset'],
-  u'coverPhoto': [u'url', u'height', u'width'],
-  u'emails': [u'type', u'value'],
-  u'image': [u'url'],
-  u'name': [u'formatted', u'honorificPrefix', u'givenName', u'middleName', u'familyName', u'honorificSuffix'],
-  u'organizations': [u'type', u'name', u'title', u'department', u'location', u'description', u'startDate', u'endDate', u'primary'],
-  u'placesLived': [u'value', u'primary'],
-  u'urls': [u'label', u'type', u'value'],
-  }
-
-def _showGplusProfile(user, i, count, result):
-  def _showProfileObject(object_name, object_value, object_order=None, level=0):
-    if object_name is not None:
-      printJSONKey(object_name)
-    if isinstance(object_value, list):
-      if object_name is not None:
-        printBlankLine()
-        Ind.Increment()
-      for sub_value in object_value:
-        if isinstance(sub_value, non_compound_types):
-          printKeyValueList([sub_value])
-        else:
-          _showProfileObject(None, sub_value, object_order=PROFILE_ARRAY_PROPERTY_PRINT_ORDER[object_name], level=level+1)
-      if object_name is not None:
-        Ind.Decrement()
-    elif isinstance(object_value, dict):
-      indentAfterFirst = unindentAfterLast = False
-      if object_name is not None:
-        printBlankLine()
-        Ind.Increment()
-      elif level > 0:
-        indentAfterFirst = unindentAfterLast = True
-      for sub_object in object_order or PROFILE_ARRAY_PROPERTY_PRINT_ORDER[object_name]:
-        value = object_value.get(sub_object)
-        if value is not None:
-          _showProfileObject(sub_object, value, level=level+1)
-          if indentAfterFirst:
-            Ind.Increment()
-            indentAfterFirst = False
-      if object_name is not None or unindentAfterLast:
-        Ind.Decrement()
-    else:
-      if object_name in [u'aboutMe']:
-        printJSONValue(dehtml(object_value))
-      else:
-        printJSONValue(object_value)
-
-  enabled = result.get(u'isPlusUser', False)
-  printEntity([Ent.USER, user, Ent.GPLUS_PROFILE, result[u'id']], i, count)
-  Ind.Increment()
-  printKeyValueList([u'isPlusUser', enabled])
-  for item in PROFILE_PROPERTY_PRINT_ORDER:
-    value = result.get(item)
-    if value is not None:
-      _showProfileObject(item, value)
-  Ind.Decrement()
-
-# gam <UserTypeEntity> print gplusprofile [todrive <ToDriveAttributes>*]
-# gam <UserTypeEntity> show gplusprofile
-def printShowGplusProfile(users):
-  csvFormat = Act.csvFormat()
-  if csvFormat:
-    todrive = {}
-    titles, csvRows = initializeTitlesCSVfile(None)
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvFormat and myarg == u'todrive':
-      todrive = getTodriveParameters()
-    else:
-      unknownArgumentExit()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, gplus = buildGAPIServiceObject(API.GPLUS, user, i, count)
-    if not gplus:
-      continue
-    if csvFormat:
-      printGettingEntityItemForWhom(Ent.GPLUS_PROFILE, user, i, count)
-    try:
-      result = callGAPI(gplus.people(), u'get',
-                        throw_reasons=GAPI.GPLUS_THROW_REASONS, retry_reasons=[GAPI.UNKNOWN_ERROR],
-                        userId=u'me')
-      if not csvFormat:
-        _showGplusProfile(user, i, count, result)
-      else:
-        addRowTitlesToCSVfile(flattenJSON(result, flattened={u'emailAddress': user}), csvRows, titles)
-    except (GAPI.serviceNotAvailable, GAPI.unknownError):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
-  if csvFormat:
-    writeCSVfile(csvRows, titles, u'Gplus Profiles', todrive, [u'emailAddress', u'id', u'displayName', u'domain'])
-
 def _getUserGmailLabels(gmail, user, i, count, **kwargs):
   try:
     labels = callGAPI(gmail.users().labels(), u'list',
@@ -38497,7 +38289,6 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_GROUP:		doDeleteGroups,
       Cmd.ARG_GUARDIAN: 	doDeleteGuardian,
       Cmd.ARG_MOBILE:		doDeleteMobileDevices,
-      Cmd.ARG_NOTIFICATION:	doDeleteNotification,
       Cmd.ARG_ORG:		doDeleteOrg,
       Cmd.ARG_ORGS:		doDeleteOrgs,
       Cmd.ARG_PERMISSIONS:	doDeletePermissions,
@@ -38536,7 +38327,6 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_GROUP:		doInfoGroups,
       Cmd.ARG_GROUPMEMBERS:	doInfoGroupMembers,
       Cmd.ARG_MOBILE:		doInfoMobileDevices,
-      Cmd.ARG_NOTIFICATION:	doInfoNotifications,
       Cmd.ARG_ORG:		doInfoOrg,
       Cmd.ARG_ORGS:		doInfoOrgs,
       Cmd.ARG_PRINTER:		doInfoPrinters,
@@ -38665,7 +38455,6 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_FEATURE:		doUpdateFeature,
       Cmd.ARG_GROUP:		doUpdateGroups,
       Cmd.ARG_MOBILE:		doUpdateMobileDevices,
-      Cmd.ARG_NOTIFICATION:	doUpdateNotification,
       Cmd.ARG_ORG:		doUpdateOrg,
       Cmd.ARG_ORGS:		doUpdateOrgs,
       Cmd.ARG_PRINTER:		doUpdatePrinters,
@@ -39172,7 +38961,6 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_FORWARD:		printShowForward,
       Cmd.ARG_FORWARDINGADDRESS:	printShowForwardingAddresses,
       Cmd.ARG_GMAILPROFILE:	printShowGmailProfile,
-      Cmd.ARG_GPLUSPROFILE:	printShowGplusProfile,
       Cmd.ARG_GUARDIAN: 	printShowGuardians,
       Cmd.ARG_LABEL:		printShowLabels,
       Cmd.ARG_MESSAGE:		printShowMessages,
@@ -39217,7 +39005,6 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_FORWARD:		printShowForward,
       Cmd.ARG_FORWARDINGADDRESS:	printShowForwardingAddresses,
       Cmd.ARG_GMAILPROFILE:	printShowGmailProfile,
-      Cmd.ARG_GPLUSPROFILE:	printShowGplusProfile,
       Cmd.ARG_GUARDIAN: 	printShowGuardians,
       Cmd.ARG_IMAP:		showImap,
       Cmd.ARG_LABEL:		printShowLabels,

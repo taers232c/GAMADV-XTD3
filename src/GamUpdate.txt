@@ -1,3 +1,16 @@
+4.70.01
+
+The followig commands have been deleted as their respective APIs have been deprecated:
+gam <UserTypeEntity> show gplusprofile
+gam <UserTypeEntity> print gplusprofile [todrive <ToDriveAttribute>*]
+gam update notification|notifications [(id all)|(id <NotificationID>)*] unread|read|unreadonly
+gam delete notification|notifications [(id all)|(id <NotificationID>)*] [unreadonly|unread|read]
+gam info notification|notifications [unread|read|unreadonly]
+
+Improved column title sorting in `gam print` commands where there are more than 10 fields of the form: `field.N.subfield`.
+N will be sorted as a number, not as text, so fields will appear in the proper order. This only applies to fields
+at the top level.
+
 4.70.00
 
 Starting from initial code by Jay Lee, added support for the Alert Center API.
