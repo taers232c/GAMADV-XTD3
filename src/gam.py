@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.70.02'
+__version__ = u'4.70.03'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -15659,8 +15659,9 @@ def doShowGroupMembers():
     if checkGroupMatchPatterns(groupEmail, group, matchPatterns):
       _showGroup(groupEmail, 0)
 
+# gam print grouptree <GroupEntity> [todrive <ToDriveAttributes>*]
 # gam show grouptree <GroupEntity>
-def doShowGroupTree():
+def doPrintShowGroupTree():
   def getGroupParents(groupEmail, groupName):
     groupParents[groupEmail] = {u'name': groupName, u'parents': []}
     try:
@@ -15684,13 +15685,33 @@ def doShowGroupTree():
       showGroupParents(parentEmail, 0, 0)
     Ind.Decrement()
 
+  def printGroupParents(groupEmail, row):
+    if groupParents[groupEmail][u'parents']:
+      for parentEmail in groupParents[groupEmail][u'parents']:
+        row[u'parents'].append({u'email': parentEmail, u'name': groupParents[parentEmail][u'name']})
+        printGroupParents(parentEmail, row)
+        del row[u'parents'][-1]
+    else:
+      addRowTitlesToCSVfile(flattenJSON(row), csvRows, titles)
+
   cd = buildGAPIObject(API.DIRECTORY)
+  csvFormat = Act.csvFormat()
+  if csvFormat:
+    sortTitles = [u'email', u'name']
+    todrive = {}
+    titles, csvRows = initializeTitlesCSVfile(sortTitles)
   entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
-  checkForExtraneousArguments()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvFormat and myarg == u'todrive':
+      todrive = getTodriveParameters()
+    else:
+      unknownArgumentExit()
   groupParents = {}
   i = 0
   count = len(entityList)
-  performActionNumItems(count, Ent.GROUP_TREE)
+  if not csvFormat:
+    performActionNumItems(count, Ent.GROUP_TREE)
   for group in entityList:
     i += 1
     group = normalizeEmailAddressOrUID(group)
@@ -15704,7 +15725,13 @@ def doShowGroupTree():
       entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
       continue
     getGroupParents(group, basicInfo[u'name'])
-    showGroupParents(group, i, count)
+    if not csvFormat:
+      showGroupParents(group, i, count)
+    else:
+      row = {u'email': group, u'name': groupParents[group][u'name'], u'parents': []}
+      printGroupParents(group, row)
+  if csvFormat:
+    writeCSVfile(csvRows, titles, u'Group Tree', todrive, sortTitles, indexedFields=[u'parents'])
 
 # gam print licenses [todrive <ToDriveAttributes>*] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite] [countsonly]
 def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts=False):
@@ -38421,8 +38448,9 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DRIVEFILEACL:	doPrintShowDriveFileACLs,
       Cmd.ARG_FEATURE:		doPrintShowFeatures,
       Cmd.ARG_GAL:		doPrintShowGAL,
-      Cmd.ARG_GROUPMEMBERS:	doPrintGroupMembers,
       Cmd.ARG_GROUP:		doPrintGroups,
+      Cmd.ARG_GROUPMEMBERS:	doPrintGroupMembers,
+      Cmd.ARG_GROUPTREE:	doPrintShowGroupTree,
       Cmd.ARG_GUARDIAN: 	doPrintShowGuardians,
       Cmd.ARG_LICENSE:		doPrintLicenses,
       Cmd.ARG_MOBILE:		doPrintMobileDevices,
@@ -38468,7 +38496,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_FEATURE:		doPrintShowFeatures,
       Cmd.ARG_GAL:		doPrintShowGAL,
       Cmd.ARG_GROUPMEMBERS:	doShowGroupMembers,
-      Cmd.ARG_GROUPTREE:	doShowGroupTree,
+      Cmd.ARG_GROUPTREE:	doPrintShowGroupTree,
       Cmd.ARG_GUARDIAN: 	doPrintShowGuardians,
       Cmd.ARG_LICENSE:		doShowLicenses,
       Cmd.ARG_ORGTREE:		doShowOrgTree,

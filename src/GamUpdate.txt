@@ -1,3 +1,8 @@
+4.70.03
+
+Added command to show a group and its parent groups in CSV format.
+gam print grouptree <GroupEntity> [todrive <ToDriveAttribute>*]
+
 4.70.02
 
 Added command to show an indented list of a group and its parent groups.
