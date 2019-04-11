@@ -1,3 +1,8 @@
+4.70.02
+
+Added command to show an indented list of a group and its parent groups.
+gam show grouptree <GroupEntity>
+
 4.70.01
 
 The followig commands have been deleted as their respective APIs have been deprecated:

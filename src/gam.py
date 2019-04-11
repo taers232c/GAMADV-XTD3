@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.70.01'
+__version__ = u'4.70.02'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -15658,6 +15658,53 @@ def doShowGroupMembers():
     groupEmail = group[u'email']
     if checkGroupMatchPatterns(groupEmail, group, matchPatterns):
       _showGroup(groupEmail, 0)
+
+# gam show grouptree <GroupEntity>
+def doShowGroupTree():
+  def getGroupParents(groupEmail, groupName):
+    groupParents[groupEmail] = {u'name': groupName, u'parents': []}
+    try:
+      entityList = callGAPIpages(cd.groups(), u'list', u'groups',
+                                 throw_reasons=[GAPI.INVALID_MEMBER, GAPI.RESOURCE_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND,
+                                                GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_INPUT],
+                                 userKey=groupEmail, orderBy=u'email', fields=u'nextPageToken,groups(email,name)')
+      for parentGroup in entityList:
+        groupParents[groupEmail][u'parents'].append(parentGroup[u'email'])
+        if parentGroup[u'email'] not in groupParents:
+          getGroupParents(parentGroup[u'email'], parentGroup[u'name'])
+    except GAPI.invalidMember:
+      badRequestWarning(Ent.GROUP, Ent.MEMBER, groupEmail)
+    except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest):
+      accessErrorExit(cd)
+
+  def showGroupParents(groupEmail, i, count):
+    printKeyValueListWithCount([u'{0}: {1}'.format(groupEmail, groupParents[groupEmail][u'name'])], i, count)
+    Ind.Increment()
+    for parentEmail in groupParents[groupEmail][u'parents']:
+      showGroupParents(parentEmail, 0, 0)
+    Ind.Decrement()
+
+  cd = buildGAPIObject(API.DIRECTORY)
+  entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
+  checkForExtraneousArguments()
+  groupParents = {}
+  i = 0
+  count = len(entityList)
+  performActionNumItems(count, Ent.GROUP_TREE)
+  for group in entityList:
+    i += 1
+    group = normalizeEmailAddressOrUID(group)
+    try:
+      basicInfo = callGAPI(cd.groups(), u'get',
+                           throw_reasons=GAPI.GROUP_GET_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
+                           groupKey=group, fields=u'email,name')
+      group = basicInfo[u'email']
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest,
+            GAPI.invalid, GAPI.systemError) as e:
+      entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
+      continue
+    getGroupParents(group, basicInfo[u'name'])
+    showGroupParents(group, i, count)
 
 # gam print licenses [todrive <ToDriveAttributes>*] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite] [countsonly]
 def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts=False):
@@ -38421,6 +38468,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_FEATURE:		doPrintShowFeatures,
       Cmd.ARG_GAL:		doPrintShowGAL,
       Cmd.ARG_GROUPMEMBERS:	doShowGroupMembers,
+      Cmd.ARG_GROUPTREE:	doShowGroupTree,
       Cmd.ARG_GUARDIAN: 	doPrintShowGuardians,
       Cmd.ARG_LICENSE:		doShowLicenses,
       Cmd.ARG_ORGTREE:		doShowOrgTree,

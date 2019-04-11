@@ -1654,6 +1654,8 @@ gam print groups [todrive <ToDriveAttribute>*] ([domain <DomainName>] ([member <
         [members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
         [convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
 
+gam show grouptree <GroupEntity>
+
 <MembersFieldName> ::=
         email|useremail|
         group|groupemail|

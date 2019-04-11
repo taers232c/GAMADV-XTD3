@@ -358,6 +358,7 @@ class GamCLArgs(object):
   ARG_GROUPS = u'groups'
   ARG_GROUPMEMBERS = u'groupmembers'
   ARG_GROUPSMEMBERS = u'groupsmembers'
+  ARG_GROUPTREE = u'grouptree'
   ARG_GUARDIAN = u'guardian'
   ARG_GUARDIANS = u'guardians'
   ARG_GUARDIANINVITE = u'guardianinvite'

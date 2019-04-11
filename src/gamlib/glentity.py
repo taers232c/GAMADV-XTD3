@@ -128,6 +128,7 @@ class GamEntity(object):
   GROUP_EMAIL = 'gale'
   GROUP_MEMBERSHIP = 'gmem'
   GROUP_SETTINGS = 'gset'
+  GROUP_TREE = 'gtre'
   GUARDIAN = 'guar'
   GUARDIAN_INVITATION = 'gari'
   GUARDIAN_AND_INVITATION = 'gani'
@@ -325,6 +326,7 @@ class GamEntity(object):
     GROUP_EMAIL: [u'Group Emails', u'Group Email'],
     GROUP_MEMBERSHIP: [u'Group Memberships', u'Group Membership'],
     GROUP_SETTINGS: [u'Group Settings', u'Group Settings'],
+    GROUP_TREE: [u'Group Trees', u'Group Tree'],
     GUARDIAN: [u'Guardians', u'Guardian'],
     GUARDIAN_INVITATION: [u'Guardian Invitations', u'Guardian Invitation'],
     GUARDIAN_AND_INVITATION: [u'Guardians and Invitations', u'Guardian and Invitation'],
