@@ -1,3 +1,30 @@
+4.70.04
+
+Added `noprimary`, `nogroups`, `noresources`, `nosystem` and `otherusers` options to `gam print/show calendars`.
+* `noprimary` - Do not display the users's primary calendar
+* `nogroups` - Do not display group calendars, email address ends in "@group.calendar.google.com"
+* `noresources` - Do not display resource calendars, email address ends in "@resource.calendar.google.com"
+* `nosystem` - Do not display system calendars, email address ends in "@group.v.calendar.google.com"
+* `otherusers` - Limits the selection to other user's calendars, equivalent to: `noprimary nogroups noresources nosystem`
+
+For example, to list the calendars shared to a user by other users:
+gam user user@domain.com show calendars otherusers
+
+Added `querytime.* <Time>` option to `gam print filelist/filecounts` to allow times, usually relative,
+to be substituted into the `query <QueryDriveFile>` option.
+The `querytime.* <Time>` value replaces the string `#querytime.*#` in any queries.
+The characters following `querytime` can be any combination of lowercase letters and numbers. This is most useful in scripts
+where you can specify a relative date without having to change the script.
+
+For example, to list all files/folders that have been modified in the last year:
+gam user user@domain.com print filelist query "modifiedTime >= '#querytimelastyear#'" querytimelastyear -1y
+
+Added `maxfiles <Integer>` option to `gam print filelist` to limit the number of files listed.
+This would typically be used with `orderby` to get the oldest/newest files.
+
+For example, to list the file with the most recent modification date:
+gam user user@domain.com print filelist orderby modifiedtime descending maxfile 1
+
 4.70.03
 
 Added command to show a group and its parent groups in CSV format.
@@ -6,11 +33,11 @@ gam print grouptree <GroupEntity> [todrive <ToDriveAttribute>*]
 4.70.02
 
 Added command to show an indented list of a group and its parent groups.
-gam show grouptree <GroupEntity>
+gam show grouptree <GroupEntity>` 
 
 4.70.01
 
-The followig commands have been deleted as their respective APIs have been deprecated:
+The following commands have been deleted as their respective APIs have been deprecated:
 gam <UserTypeEntity> show gplusprofile
 gam <UserTypeEntity> print gplusprofile [todrive <ToDriveAttribute>*]
 gam update notification|notifications [(id all)|(id <NotificationID>)*] unread|read|unreadonly
