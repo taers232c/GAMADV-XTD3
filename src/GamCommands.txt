@@ -2573,10 +2573,10 @@ gam <UserTypeEntity> delete calendars <UserCalendarEntity>
 
 gam <UserTypeEntity> info calendars <UserCalendarEntity> [formatjson]
 gam <UserTypeEntity> show calendars <UserCalendarEntity> [permissions]
-         [primary] <CalendarSelectProperty>* [noprimary] [nogroups] [noresources] [nosystem] [otherusers]
+         [primary] <CalendarSelectProperty>* [noprimary] [nogroups] [noresources] [nosystem] [nousers]
          [formatjson]
 gam <UserTypeEntity> print calendars <UserCalendarEntity> [todrive <ToDriveAttribute>*] [permissions]
-         [primary] <CalendarSelectProperty>* [noprimary] [nogroups] [noresources] [nosystem] [otherusers]
+         [primary] <CalendarSelectProperty>* [noprimary] [nogroups] [noresources] [nosystem] [nousers]
          [formatjson] [delimiter <Character>] [quotechar <Character>]
 
 gam <UserTypeEntity> show calsettings [formatjson]

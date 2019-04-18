@@ -1,3 +1,12 @@
+4.70.05
+
+For consistency, replaced `otherusers` option with `nousers` option in `gam print/show calendars`.
+* `noprimary` - Do not display the users's primary calendar
+* `nogroups` - Do not display group calendars, email address ends in "@group.calendar.google.com"
+* `noresources` - Do not display resource calendars, email address ends in "@resource.calendar.google.com"
+* `nosystem` - Do not display system calendars, email address ends in "@group.v.calendar.google.com"
+* `nousers` - Do not display users calendars, email address ends in `domain` value from `gam.cfg`.
+
 4.70.04
 
 Added `noprimary`, `nogroups`, `noresources`, `nosystem` and `otherusers` options to `gam print/show calendars`.
