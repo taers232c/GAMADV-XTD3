@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = u'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = u'4.70.05'
+__version__ = u'4.70.06'
 __license__ = u'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -14740,10 +14740,13 @@ def getGroupMatchPatterns(myarg, matchPatterns):
     return False
   return True
 
-def updateFieldsForGroupMatchPatterns(matchPatterns, fieldsList):
+def updateFieldsForGroupMatchPatterns(matchPatterns, fieldsList, titles=None):
   for field in [u'name', u'description']:
     if matchPatterns.get(field):
-      fieldsList.append(field)
+      if titles is not None:
+        addFieldToCSVfile(field, GROUP_FIELDS_CHOICE_MAP, fieldsList, titles)
+      else:
+        fieldsList.append(field)
 
 def clearUnneededGroupMatchPatterns(matchPatterns):
   for field in [u'name', u'description']:
@@ -15045,7 +15048,7 @@ def doPrintGroups():
       membersCountOnly = managersCountOnly = ownersCountOnly = True
     else:
       FJQC.getFormatJSONQuoteChar(myarg, None)
-  updateFieldsForGroupMatchPatterns(matchPatterns, groupFieldsLists[u'cd'])
+  updateFieldsForGroupMatchPatterns(matchPatterns, groupFieldsLists[u'cd'], titles)
   if groupFieldsLists[u'cd']:
     cdfields = u','.join(set(groupFieldsLists[u'cd']))
     cdfieldsnp = u'nextPageToken,groups({0})'.format(cdfields)

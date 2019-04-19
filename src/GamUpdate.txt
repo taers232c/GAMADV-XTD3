@@ -1,3 +1,7 @@
+4.70.06
+
+Fixed bug in `gam print groups` where use of `namematchpattern` or `descriptionmatchpattern` caused a trap.
+
 4.70.05
 
 For consistency, replaced `otherusers` option with `nousers` option in `gam print/show calendars`.
