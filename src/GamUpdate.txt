@@ -1,3 +1,24 @@
+4.82.00
+
+Added `domains|domains_ns|domains_susp <DomainNameListList>` to `<UserTypeEntity>`. For users with multiple
+domains under one Customer ID, this allows selection of users from specific domains.
+* `domains <DomainNameListList>` - All users
+* `domains_ns <DomainNameListList>` - Non-suspended users
+* `domains_susp <DomainNameListList>` - Suspended users
+
+Added `attendeestatus [optional] [accepted|declined|needsaction|tentative] <EmailAddress>`
+to `gam calendar create/update event` to allow adding an attendee with the specified status.
+
+Added `jsonattendees [charset <Charset>] <JSONData>` and `jsonattendees file <FileName> [charset <Charset>]` arguments
+to `gam calendar create/update event` to allow JSON data to be used to set event attendees.
+
+Fixed bug in `gam report <ActivityApplictionName>` where using `start <Time>` but not `end <Time>`
+caused an error: `ERROR: end None must be greater than/equal to start YYYY-MM-DDTHH:MM:SS`
+
+Fixed bug in `gam report admin|mobile` where event names were not properly passed to the API.
+
+Made significant code changes related to Unicode strings, there should be no visible effects.
+
 4.70.06
 
 Fixed bug in `gam print groups` where use of `namematchpattern` or `descriptionmatchpattern` caused a trap.

@@ -20,12 +20,12 @@
 
 """
 #
-CANT_MODIFY_FINISHED_JOB = u'Can\'t modify the finished job.'
-FAILED_TO_SHARE_THE_PRINTER = u'Failed to share the printer.'
-NO_PRINT_JOBS = u'No print job available on specified printer.'
-UNKNOWN_JOB_ID = u'Unknown job id.'
-UNKNOWN_PRINTER = u'Unknown printer.'
-USER_IS_NOT_AUTHORIZED = u'User is not authorized.'
+CANT_MODIFY_FINISHED_JOB = 'Can\'t modify the finished job.'
+FAILED_TO_SHARE_THE_PRINTER = 'Failed to share the printer.'
+NO_PRINT_JOBS = 'No print job available on specified printer.'
+UNKNOWN_JOB_ID = 'Unknown job id.'
+UNKNOWN_PRINTER = 'Unknown printer.'
+USER_IS_NOT_AUTHORIZED = 'User is not authorized.'
 class cantModifyFinishedJob(Exception):
   pass
 class failedToShareThePrinter(Exception):

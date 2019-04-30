@@ -400,6 +400,7 @@ Specify a collection of Users by directly specifying them or by specifiying item
         (all users)|
         (user <UserItem>)|
         (users <UserList>)|
+        (domains|domains_ns|domains_susp <DomainNameListList>)|
         (group|group_ns|group_susp <GroupItem>)|
         (groups|groups_ns|groups_susp <GroupList>)|
         (group_users|group_users_ns|group_users_susp <GroupList> [members] [managers] [owners] [primarydomain] [domains <DomainNameList>] [recursive] end)|
@@ -755,17 +756,21 @@ gam calendar|calendars <CalendarEntity> showacl [formatjson]
         (anyonecanaddself [<Boolean>])|
         (attachment <String> <URL>)|
         (attendee <EmailAddress>)|
+        (attendeestatus [optional] [accepted|declined|needsaction|tentative] <EmailAddress>)|
         available|
         (colorindex|colorid <EventColorIndex>))|
         (description <String>)|
         (end (allday <Date>)|<Time>)|
         (guestscaninviteothers <Boolean>)|
         guestscantinviteothers|
+        (guestscanmodify <Boolean>)|
         (guestscanseeotherguests <Boolean>)|
         guestscantseeotherguests|
+        (jsonattendees [charset <Charset>] <JSONData>)|(jsonattendees file <FileName> [charset <Charset>])|
         (location <String>)|
         (noreminders|(reminder email|popup|sms <Number>))|
         (optionalattendee <EmailAddress>)|
+        (originalstart (allday <Date>)|<Time>)|
         (privateproperty <PropertyKey> <PropertyValue>)|
         (recurrence <RRULE, EXRULE, RDATE and EXDATE line>)|
         (reminder <Number> email|popup|sms))|
@@ -779,9 +784,23 @@ gam calendar|calendars <CalendarEntity> showacl [formatjson]
         (transparency opaque|transparent)|
         (visibility default|public|private)
 
+The following attributes are equivalent:
+        available - transparency transparent
+        guestscantinviteothers - guestscaninviteothers False
+        guestscantseeothers - guestscanseeotherguests False
+        tentative - status tentative
+
+<EventNotificationAttribute> ::=
+        notifyattendees|(sendnotifications <Boolean>)|(sendupdates all|enternalonly|none)
+
+The following attributes are equivalent:
+        notifyattendees - sendupdates all
+        sendnotifications false - sendupdates none
+        sendnotifications true - sendupdates all
+
 <EventCreateAttribute> ::=
         <EventAttribute>|
-        notifyattendees|(sendnotifications <Boolean>)
+        <EventNotificationAttribute>
 
 <EventImportAttribute> ::=
         <EventAttribute>|
@@ -790,24 +809,18 @@ gam calendar|calendars <CalendarEntity> showacl [formatjson]
 
 <EventUpdateAttribute> ::=
         <EventAttribute>|
-        notifyattendees|(sendnotifications <Boolean>)|
+        <EventNotificationAttribute>
         clearattachments|
         (clearprivateproperty <PropertyKey>)|
         (clearsharedproperty <PropertyKey>)
 
-The following attributes are equivalent:
-        available = transparency transparent
-        guestscantinviteothers = guestscaninviteothers False
-        guestscantseeothers = guestscanseeotherguests False
-        tentative = status tentative
-
 gam calendar|calendars <CalendarEntity> create|add event [id <String>] <EventCreateAttribute>+
 gam calendar|calendars <CalendarEntity> import event icaluid <iCalUID> <EventImportAttribute>+
 gam calendar|calendars <CalendarEntity> update events <EventEntity> <EventUpdateAttribute>+
-gam calendar|calendars <CalendarEntity> delete events <EventEntity> [doit] [notifyattendees]
-gam calendar|calendars <CalendarEntity> purge events <EventEntity> [doit] [notifyattendees]
+gam calendar|calendars <CalendarEntity> delete events <EventEntity> [doit] [<EventNotificationAttribute>]
+gam calendar|calendars <CalendarEntity> purge events <EventEntity> [doit] [<EventNotificationAttribute>]
 gam calendar|calendars <CalendarEntity> wipe events
-gam calendar|calendars <CalendarEntity> move events <EventEntity> to <CalendarItem> [notifyattendees]
+gam calendar|calendars <CalendarEntity> move events <EventEntity> to <CalendarItem> [<EventNotificationAttribute>]
 gam calendar|calendars <CalendarEntity> empty calendartrash
 
 <EventAttachmentsSubfieldName> ::=
@@ -906,7 +919,7 @@ gam calendar|calendars <CalendarEntity> print events <EventSelectProperty>* <Eve
          [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
 
 gam calendar|calendars <CalendarEntity> addevent <EventCreateAttribute>+
-gam calendar|calendars <CalendarEntity> deleteevent <EventEntity> [doit] [notifyattendees]
+gam calendar|calendars <CalendarEntity> deleteevent <EventEntity> [doit] [<EventNotificationAttribute>]
 gam calendar|calendars <CalendarEntity> wipe
 
 <CalendarSettings> ::=
@@ -2689,10 +2702,10 @@ Add update and delete events in any calendar for which a user has access
 gam <UserTypeEntity> create|add event <UserCalendarEntity> [id <String>] <EventCreateAttribute>+
 gam <UserTypeEntity> import event <UserCalendarEntity> icaluid <iCalUID> <EventImportAttribute>+
 gam <UserTypeEntity> update events <UserCalendarEntity> <EventEntity> <EventUpdateAttribute>+
-gam <UserTypeEntity> delete events <UserCalendarEntity> <EventEntity> [doit] [notifyattendees]
-gam <UserTypeEntity> purge events <UserCalendarEntity> <EventEntity> [doit] [notifyattendees]
+gam <UserTypeEntity> delete events <UserCalendarEntity> <EventEntity> [doit] [<EventNotificationAttribute>]
+gam <UserTypeEntity> purge events <UserCalendarEntity> <EventEntity> [doit] [<EventNotificationAttribute>]
 gam <UserTypeEntity> wipe events <UserCalendarEntity>
-gam <UserTypeEntity> move events <UserCalendarEntity> <EventEntity> to <CalendarItem> [notifyattendees]
+gam <UserTypeEntity> move events <UserCalendarEntity> <EventEntity> to <CalendarItem> [<EventNotificationAttribute>]
 gam <UserTypeEntity> empty calendartrash <UserCalendarEntity>
 
 <EventDisplayProperty> ::=
@@ -3387,6 +3400,7 @@ gam <UserTypeEntity> pop|pop3 <Boolean> [for allmail|newmail|mailfromnowon|fromn
 gam <UserTypeEntity> show pop|pop3
 
 gam <UserTypeEntity> language <Language>
+gam <UserTypeEntity> show language
 
 # These commands will be deprecated on October 16, 2019.
 gam <UserTypeEntity> arrows <Boolean>

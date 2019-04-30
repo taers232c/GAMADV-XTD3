@@ -20,120 +20,120 @@
 
 """
 # callGAPI throw reasons
-ABORTED = u'aborted'
-ACCESS_NOT_CONFIGURED = u'accessNotConfigured'
-ALREADY_EXISTS = u'alreadyExists'
-AUTH_ERROR = u'authError'
-BACKEND_ERROR = u'backendError'
-BAD_GATEWAY = u'badGateway'
-BAD_REQUEST = u'badRequest'
-CANNOT_CHANGE_ORGANIZER = u'cannotChangeOrganizer'
-CANNOT_CHANGE_ORGANIZER_OF_INSTANCE = u'cannotChangeOrganizerOfInstance'
-CANNOT_CHANGE_OWN_ACL = u'cannotChangeOwnAcl'
-CANNOT_CHANGE_OWNER_ACL = u'cannotChangeOwnerAcl'
-CANNOT_COPY_FILE = u'cannotCopyFile'
-CANNOT_DELETE_ONLY_REVISION = u'cannotDeleteOnlyRevision'
-CANNOT_DELETE_PRIMARY_CALENDAR = u'cannotDeletePrimaryCalendar'
-CANNOT_DELETE_PRIMARY_SENDAS = u'cannotDeletePrimarySendAs'
-CANNOT_DELETE_RESOURCE_WITH_CHILDREN = u'cannotDeleteResourceWithChildren'
-CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION = u'cannotModifyInheritedTeamDrivePermission'
-CANNOT_MODIFY_RESTRICTED_LABEL = u'cannotModifyRestrictedLabel'
-CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT = u'cannotModifyViewersCanCopyContent'
-CANNOT_MOVE_TRASHED_ITEM_INTO_TEAMDRIVE = u'cannotMoveTrashedItemIntoTeamDrive'
-CANNOT_MOVE_TRASHED_ITEM_OUT_OF_TEAMDRIVE = u'cannotMoveTrashedItemOutOfTeamDrive'
-CANNOT_REMOVE_OWNER = u'cannotRemoveOwner'
-CANNOT_SHARE_GROUPS_WITHLINK = u'cannotShareGroupsWithLink'
-CANNOT_SHARE_USERS_WITHLINK = u'cannotShareUsersWithLink'
-CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS = u'cannotShareTeamDriveTopFolderWithAnyoneOrDomains'
-CONDITION_NOT_MET = u'conditionNotMet'
-CUSTOMER_NOT_FOUND = u'customerNotFound'
-CYCLIC_MEMBERSHIPS_NOT_ALLOWED = u'cyclicMembershipsNotAllowed'
-DAILY_LIMIT_EXCEEDED = u'dailyLimitExceeded'
-DELETED = u'deleted'
-DELETED_USER_NOT_FOUND = u'deletedUserNotFound'
-DOMAIN_ALIAS_NOT_FOUND = u'domainAliasNotFound'
-DOMAIN_CANNOT_USE_APIS = u'domainCannotUseApis'
-DOMAIN_NOT_FOUND = u'domainNotFound'
-DOMAIN_NOT_VERIFIED_SECONDARY = u'domainNotVerifiedSecondary'
-DOMAIN_POLICY = u'domainPolicy'
-DUPLICATE = u'duplicate'
-FAILED_PRECONDITION = u'failedPrecondition'
-FIELD_NOT_WRITABLE = u'fieldNotWritable'
-FILE_NEVER_WRITABLE = u'fileNeverWritable'
-FILE_NOT_FOUND = u'fileNotFound'
-FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE = u'fileOrganizerNotYetEnabledForThisTeamDrive'
-FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED = u'fileOrganizerOnNonTeamDriveNotSupported'
-FILE_OWNER_NOT_MEMBER_OF_TEAMDRIVE = u'fileOwnerNotMemberOfTeamDrive'
-FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN = u'fileOwnerNotMemberOfWriterDomain'
-FORBIDDEN = u'forbidden'
-GATEWAY_TIMEOUT = u'gatewayTimeout'
-GROUP_NOT_FOUND = u'groupNotFound'
-ILLEGAL_ACCESS_ROLE_FOR_DEFAULT = u'illegalAccessRoleForDefault'
-INSUFFICIENT_ADMINISTRATOR_PRIVILEGES = u'insufficientAdministratorPrivileges'
-INSUFFICIENT_FILE_PERMISSIONS = u'insufficientFilePermissions'
-INSUFFICIENT_PERMISSIONS = u'insufficientPermissions'
-INTERNAL_ERROR = u'internalError'
-INVALID = u'invalid'
-INVALID_ARGUMENT = u'invalidArgument'
-INVALID_ATTRIBUTE_VALUE = u'invalidAttributeValue'
-INVALID_CUSTOMER_ID = u'invalidCustomerId'
-INVALID_INPUT = u'invalidInput'
-INVALID_MEMBER = u'invalidMember'
-INVALID_MESSAGE_ID = u'invalidMessageId'
-INVALID_ORGUNIT = u'invalidOrgunit'
-INVALID_ORGUNIT_NAME = u'invalidOrgunitName'
-INVALID_OWNERSHIP_TRANSFER = u'invalidOwnershipTransfer'
-INVALID_PARAMETER = u'invalidParameter'
-INVALID_PARENT_ORGUNIT = u'invalidParentOrgunit'
-INVALID_QUERY = u'invalidQuery'
-INVALID_RESOURCE = u'invalidResource'
-INVALID_SCHEMA_VALUE = u'invalidSchemaValue'
-INVALID_SCOPE_VALUE = u'invalidScopeValue'
-INVALID_SHARING_REQUEST = u'invalidSharingRequest'
-LOGIN_REQUIRED = u'loginRequired'
-MEMBER_NOT_FOUND = u'memberNotFound'
-NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE = u'noListTeamDrivesAdministratorPrivilege'
-NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE = u'noManageTeamDriveAdministratorPrivilege'
-NOT_A_CALENDAR_USER = u'notACalendarUser'
-NOT_FOUND = u'notFound'
-NOT_IMPLEMENTED = u'notImplemented'
-OPERATION_NOT_SUPPORTED = u'operationNotSupported'
-ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED = u'organizerOnNonTeamDriveItemNotSupported'
-ORGUNIT_NOT_FOUND = u'orgunitNotFound'
-OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED = u'ownerOnTeamDriveItemNotSupported'
-OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED = u'ownershipChangeAcrossDomainNotPermitted'
-PERMISSION_DENIED = u'permissionDenied'
-PERMISSION_NOT_FOUND = u'permissionNotFound'
-PHOTO_NOT_FOUND = u'photoNotFound'
-QUERY_REQUIRES_ADMIN_CREDENTIALS = u'queryRequiresAdminCredentials'
-QUOTA_EXCEEDED = u'quotaExceeded'
-RATE_LIMIT_EXCEEDED = u'rateLimitExceeded'
-REQUIRED = u'required'
-REQUIRED_ACCESS_LEVEL = u'requiredAccessLevel'
-RESOURCE_EXHAUSTED = u'resourceExhausted'
-RESOURCE_ID_NOT_FOUND = u'resourceIdNotFound'
-RESOURCE_NOT_FOUND = u'resourceNotFound'
-RESPONSE_PREPARATION_FAILURE = u'responsePreparationFailure'
-REVISION_DELETION_NOT_SUPPORTED = u'revisionDeletionNotSupported'
-REVISION_NOT_FOUND = u'revisionNotFound'
-REVISIONS_NOT_SUPPORTED = u'revisionsNotSupported'
-SERVICE_LIMIT = u'serviceLimit'
-SERVICE_NOT_AVAILABLE = u'serviceNotAvailable'
-SYSTEM_ERROR = u'systemError'
-TEAMDRIVE_ALREADY_EXISTS = u'teamDriveAlreadyExists'
-TEAMDRIVE_DOMAIN_USERS_ONLY_RESTRICTION = u'teamDriveDomainUsersOnlyRestriction'
-TEAMDRIVE_MEMBERSHIP_REQUIRED = u'teamDriveMembershipRequired'
-TEAMDRIVE_NOT_FOUND = u'teamDriveNotFound'
-TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED = u'teamDrivesFolderMoveInNotSupported'
-TEAMDRIVES_FOLDER_SHARING_NOT_SUPPORTED = u'teamDrivesFolderSharingNotSupported'
-TEAMDRIVES_PARENT_LIMIT = u'teamDrivesParentLimit'
-TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED = u'teamDrivesSharingRestrictionNotAllowed'
-TIME_RANGE_EMPTY = u'timeRangeEmpty'
-TRANSIENT_ERROR = u'transientError'
-UNKNOWN_ERROR = u'unknownError'
-USER_ACCESS = u'userAccess'
-USER_NOT_FOUND = u'userNotFound'
-USER_RATE_LIMIT_EXCEEDED = u'userRateLimitExceeded'
+ABORTED = 'aborted'
+ACCESS_NOT_CONFIGURED = 'accessNotConfigured'
+ALREADY_EXISTS = 'alreadyExists'
+AUTH_ERROR = 'authError'
+BACKEND_ERROR = 'backendError'
+BAD_GATEWAY = 'badGateway'
+BAD_REQUEST = 'badRequest'
+CANNOT_CHANGE_ORGANIZER = 'cannotChangeOrganizer'
+CANNOT_CHANGE_ORGANIZER_OF_INSTANCE = 'cannotChangeOrganizerOfInstance'
+CANNOT_CHANGE_OWN_ACL = 'cannotChangeOwnAcl'
+CANNOT_CHANGE_OWNER_ACL = 'cannotChangeOwnerAcl'
+CANNOT_COPY_FILE = 'cannotCopyFile'
+CANNOT_DELETE_ONLY_REVISION = 'cannotDeleteOnlyRevision'
+CANNOT_DELETE_PRIMARY_CALENDAR = 'cannotDeletePrimaryCalendar'
+CANNOT_DELETE_PRIMARY_SENDAS = 'cannotDeletePrimarySendAs'
+CANNOT_DELETE_RESOURCE_WITH_CHILDREN = 'cannotDeleteResourceWithChildren'
+CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION = 'cannotModifyInheritedTeamDrivePermission'
+CANNOT_MODIFY_RESTRICTED_LABEL = 'cannotModifyRestrictedLabel'
+CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT = 'cannotModifyViewersCanCopyContent'
+CANNOT_MOVE_TRASHED_ITEM_INTO_TEAMDRIVE = 'cannotMoveTrashedItemIntoTeamDrive'
+CANNOT_MOVE_TRASHED_ITEM_OUT_OF_TEAMDRIVE = 'cannotMoveTrashedItemOutOfTeamDrive'
+CANNOT_REMOVE_OWNER = 'cannotRemoveOwner'
+CANNOT_SHARE_GROUPS_WITHLINK = 'cannotShareGroupsWithLink'
+CANNOT_SHARE_USERS_WITHLINK = 'cannotShareUsersWithLink'
+CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS = 'cannotShareTeamDriveTopFolderWithAnyoneOrDomains'
+CONDITION_NOT_MET = 'conditionNotMet'
+CUSTOMER_NOT_FOUND = 'customerNotFound'
+CYCLIC_MEMBERSHIPS_NOT_ALLOWED = 'cyclicMembershipsNotAllowed'
+DAILY_LIMIT_EXCEEDED = 'dailyLimitExceeded'
+DELETED = 'deleted'
+DELETED_USER_NOT_FOUND = 'deletedUserNotFound'
+DOMAIN_ALIAS_NOT_FOUND = 'domainAliasNotFound'
+DOMAIN_CANNOT_USE_APIS = 'domainCannotUseApis'
+DOMAIN_NOT_FOUND = 'domainNotFound'
+DOMAIN_NOT_VERIFIED_SECONDARY = 'domainNotVerifiedSecondary'
+DOMAIN_POLICY = 'domainPolicy'
+DUPLICATE = 'duplicate'
+FAILED_PRECONDITION = 'failedPrecondition'
+FIELD_NOT_WRITABLE = 'fieldNotWritable'
+FILE_NEVER_WRITABLE = 'fileNeverWritable'
+FILE_NOT_FOUND = 'fileNotFound'
+FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE = 'fileOrganizerNotYetEnabledForThisTeamDrive'
+FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED = 'fileOrganizerOnNonTeamDriveNotSupported'
+FILE_OWNER_NOT_MEMBER_OF_TEAMDRIVE = 'fileOwnerNotMemberOfTeamDrive'
+FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN = 'fileOwnerNotMemberOfWriterDomain'
+FORBIDDEN = 'forbidden'
+GATEWAY_TIMEOUT = 'gatewayTimeout'
+GROUP_NOT_FOUND = 'groupNotFound'
+ILLEGAL_ACCESS_ROLE_FOR_DEFAULT = 'illegalAccessRoleForDefault'
+INSUFFICIENT_ADMINISTRATOR_PRIVILEGES = 'insufficientAdministratorPrivileges'
+INSUFFICIENT_FILE_PERMISSIONS = 'insufficientFilePermissions'
+INSUFFICIENT_PERMISSIONS = 'insufficientPermissions'
+INTERNAL_ERROR = 'internalError'
+INVALID = 'invalid'
+INVALID_ARGUMENT = 'invalidArgument'
+INVALID_ATTRIBUTE_VALUE = 'invalidAttributeValue'
+INVALID_CUSTOMER_ID = 'invalidCustomerId'
+INVALID_INPUT = 'invalidInput'
+INVALID_MEMBER = 'invalidMember'
+INVALID_MESSAGE_ID = 'invalidMessageId'
+INVALID_ORGUNIT = 'invalidOrgunit'
+INVALID_ORGUNIT_NAME = 'invalidOrgunitName'
+INVALID_OWNERSHIP_TRANSFER = 'invalidOwnershipTransfer'
+INVALID_PARAMETER = 'invalidParameter'
+INVALID_PARENT_ORGUNIT = 'invalidParentOrgunit'
+INVALID_QUERY = 'invalidQuery'
+INVALID_RESOURCE = 'invalidResource'
+INVALID_SCHEMA_VALUE = 'invalidSchemaValue'
+INVALID_SCOPE_VALUE = 'invalidScopeValue'
+INVALID_SHARING_REQUEST = 'invalidSharingRequest'
+LOGIN_REQUIRED = 'loginRequired'
+MEMBER_NOT_FOUND = 'memberNotFound'
+NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE = 'noListTeamDrivesAdministratorPrivilege'
+NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE = 'noManageTeamDriveAdministratorPrivilege'
+NOT_A_CALENDAR_USER = 'notACalendarUser'
+NOT_FOUND = 'notFound'
+NOT_IMPLEMENTED = 'notImplemented'
+OPERATION_NOT_SUPPORTED = 'operationNotSupported'
+ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED = 'organizerOnNonTeamDriveItemNotSupported'
+ORGUNIT_NOT_FOUND = 'orgunitNotFound'
+OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED = 'ownerOnTeamDriveItemNotSupported'
+OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED = 'ownershipChangeAcrossDomainNotPermitted'
+PERMISSION_DENIED = 'permissionDenied'
+PERMISSION_NOT_FOUND = 'permissionNotFound'
+PHOTO_NOT_FOUND = 'photoNotFound'
+QUERY_REQUIRES_ADMIN_CREDENTIALS = 'queryRequiresAdminCredentials'
+QUOTA_EXCEEDED = 'quotaExceeded'
+RATE_LIMIT_EXCEEDED = 'rateLimitExceeded'
+REQUIRED = 'required'
+REQUIRED_ACCESS_LEVEL = 'requiredAccessLevel'
+RESOURCE_EXHAUSTED = 'resourceExhausted'
+RESOURCE_ID_NOT_FOUND = 'resourceIdNotFound'
+RESOURCE_NOT_FOUND = 'resourceNotFound'
+RESPONSE_PREPARATION_FAILURE = 'responsePreparationFailure'
+REVISION_DELETION_NOT_SUPPORTED = 'revisionDeletionNotSupported'
+REVISION_NOT_FOUND = 'revisionNotFound'
+REVISIONS_NOT_SUPPORTED = 'revisionsNotSupported'
+SERVICE_LIMIT = 'serviceLimit'
+SERVICE_NOT_AVAILABLE = 'serviceNotAvailable'
+SYSTEM_ERROR = 'systemError'
+TEAMDRIVE_ALREADY_EXISTS = 'teamDriveAlreadyExists'
+TEAMDRIVE_DOMAIN_USERS_ONLY_RESTRICTION = 'teamDriveDomainUsersOnlyRestriction'
+TEAMDRIVE_MEMBERSHIP_REQUIRED = 'teamDriveMembershipRequired'
+TEAMDRIVE_NOT_FOUND = 'teamDriveNotFound'
+TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED = 'teamDrivesFolderMoveInNotSupported'
+TEAMDRIVES_FOLDER_SHARING_NOT_SUPPORTED = 'teamDrivesFolderSharingNotSupported'
+TEAMDRIVES_PARENT_LIMIT = 'teamDrivesParentLimit'
+TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED = 'teamDrivesSharingRestrictionNotAllowed'
+TIME_RANGE_EMPTY = 'timeRangeEmpty'
+TRANSIENT_ERROR = 'transientError'
+UNKNOWN_ERROR = 'unknownError'
+USER_ACCESS = 'userAccess'
+USER_NOT_FOUND = 'userNotFound'
+USER_RATE_LIMIT_EXCEEDED = 'userRateLimitExceeded'
 #
 DEFAULT_RETRY_REASONS = [QUOTA_EXCEEDED, RATE_LIMIT_EXCEEDED, USER_RATE_LIMIT_EXCEEDED, BACKEND_ERROR, BAD_GATEWAY, GATEWAY_TIMEOUT, INTERNAL_ERROR, TRANSIENT_ERROR]
 ACTIVITY_THROW_REASONS = [SERVICE_NOT_AVAILABLE, BAD_REQUEST]
@@ -183,67 +183,67 @@ USER_GET_THROW_REASONS = [USER_NOT_FOUND, DOMAIN_NOT_FOUND, DOMAIN_CANNOT_USE_AP
 
 REASON_MESSAGE_MAP = {
   ABORTED: [
-    (u'Label name exists or conflicts', DUPLICATE),
+    ('Label name exists or conflicts', DUPLICATE),
     ],
   CONDITION_NOT_MET: [
-    (u'Cyclic memberships not allowed', CYCLIC_MEMBERSHIPS_NOT_ALLOWED),
-    (u'undelete', DELETED_USER_NOT_FOUND),
+    ('Cyclic memberships not allowed', CYCLIC_MEMBERSHIPS_NOT_ALLOWED),
+    ('undelete', DELETED_USER_NOT_FOUND),
     ],
   FAILED_PRECONDITION: [
-    (u'Bad Request', BAD_REQUEST),
-    (u'Mail service not enabled', SERVICE_NOT_AVAILABLE),
+    ('Bad Request', BAD_REQUEST),
+    ('Mail service not enabled', SERVICE_NOT_AVAILABLE),
     ],
   INVALID: [
-    (u'userId', USER_NOT_FOUND),
-    (u'memberKey', INVALID_MEMBER),
-    (u'A system error has occurred', SYSTEM_ERROR),
-    (u'Invalid attribute value', INVALID_ATTRIBUTE_VALUE),
-    (u'Invalid Customer Id', INVALID_CUSTOMER_ID),
-    (u'Invalid Input: INVALID_OU_ID', INVALID_ORGUNIT),
-    (u'Invalid Input: custom_schema', INVALID_SCHEMA_VALUE),
-    (u'Invalid Input: resource', INVALID_RESOURCE),
-    (u'Invalid Input:', INVALID_INPUT),
-    (u'Invalid Input', INVALID_INPUT),
-    (u'Invalid Org Unit', INVALID_ORGUNIT),
-    (u'Invalid Ou Id', INVALID_ORGUNIT),
-    (u'Invalid Ou Name', INVALID_ORGUNIT_NAME),
-    (u'Invalid Parent Orgunit Id', INVALID_PARENT_ORGUNIT),
-    (u'Invalid query', INVALID_QUERY),
-    (u'Invalid scope value', INVALID_SCOPE_VALUE),
-    (u'Invalid value', INVALID_INPUT),
-    (u'New domain name is not a verified secondary domain', DOMAIN_NOT_VERIFIED_SECONDARY),
-    (u'PermissionDenied', PERMISSION_DENIED),
+    ('userId', USER_NOT_FOUND),
+    ('memberKey', INVALID_MEMBER),
+    ('A system error has occurred', SYSTEM_ERROR),
+    ('Invalid attribute value', INVALID_ATTRIBUTE_VALUE),
+    ('Invalid Customer Id', INVALID_CUSTOMER_ID),
+    ('Invalid Input: INVALID_OU_ID', INVALID_ORGUNIT),
+    ('Invalid Input: custom_schema', INVALID_SCHEMA_VALUE),
+    ('Invalid Input: resource', INVALID_RESOURCE),
+    ('Invalid Input:', INVALID_INPUT),
+    ('Invalid Input', INVALID_INPUT),
+    ('Invalid Org Unit', INVALID_ORGUNIT),
+    ('Invalid Ou Id', INVALID_ORGUNIT),
+    ('Invalid Ou Name', INVALID_ORGUNIT_NAME),
+    ('Invalid Parent Orgunit Id', INVALID_PARENT_ORGUNIT),
+    ('Invalid query', INVALID_QUERY),
+    ('Invalid scope value', INVALID_SCOPE_VALUE),
+    ('Invalid value', INVALID_INPUT),
+    ('New domain name is not a verified secondary domain', DOMAIN_NOT_VERIFIED_SECONDARY),
+    ('PermissionDenied', PERMISSION_DENIED),
     ],
   INVALID_ARGUMENT: [
-    (u'Cannot delete primary send-as', CANNOT_DELETE_PRIMARY_SENDAS),
-    (u'Invalid id value', INVALID_MESSAGE_ID),
-    (u'Invalid ids value', INVALID_MESSAGE_ID),
+    ('Cannot delete primary send-as', CANNOT_DELETE_PRIMARY_SENDAS),
+    ('Invalid id value', INVALID_MESSAGE_ID),
+    ('Invalid ids value', INVALID_MESSAGE_ID),
     ],
   NOT_FOUND: [
-    (u'userKey', USER_NOT_FOUND),
-    (u'groupKey', GROUP_NOT_FOUND),
-    (u'memberKey', MEMBER_NOT_FOUND),
-    (u'photo', PHOTO_NOT_FOUND),
-    (u'resource_id', RESOURCE_ID_NOT_FOUND),
-    (u'resourceId', RESOURCE_ID_NOT_FOUND),
-    (u'Customer doesn\'t exist', CUSTOMER_NOT_FOUND),
-    (u'Domain alias does not exist', DOMAIN_ALIAS_NOT_FOUND),
-    (u'Domain not found', DOMAIN_NOT_FOUND),
-    (u'domain', DOMAIN_NOT_FOUND),
-    (u'File not found', FILE_NOT_FOUND),
-    (u'Org unit not found', ORGUNIT_NOT_FOUND),
-    (u'Permission not found', PERMISSION_NOT_FOUND),
-    (u'Resource Not Found', RESOURCE_NOT_FOUND),
-    (u'Revision not found', REVISION_NOT_FOUND),
-    (u'Team Drive not found', TEAMDRIVE_NOT_FOUND),
-    (u'Not Found', NOT_FOUND),
+    ('userKey', USER_NOT_FOUND),
+    ('groupKey', GROUP_NOT_FOUND),
+    ('memberKey', MEMBER_NOT_FOUND),
+    ('photo', PHOTO_NOT_FOUND),
+    ('resource_id', RESOURCE_ID_NOT_FOUND),
+    ('resourceId', RESOURCE_ID_NOT_FOUND),
+    ('Customer doesn\'t exist', CUSTOMER_NOT_FOUND),
+    ('Domain alias does not exist', DOMAIN_ALIAS_NOT_FOUND),
+    ('Domain not found', DOMAIN_NOT_FOUND),
+    ('domain', DOMAIN_NOT_FOUND),
+    ('File not found', FILE_NOT_FOUND),
+    ('Org unit not found', ORGUNIT_NOT_FOUND),
+    ('Permission not found', PERMISSION_NOT_FOUND),
+    ('Resource Not Found', RESOURCE_NOT_FOUND),
+    ('Revision not found', REVISION_NOT_FOUND),
+    ('Team Drive not found', TEAMDRIVE_NOT_FOUND),
+    ('Not Found', NOT_FOUND),
     ],
   REQUIRED: [
-    (u'Login Required', LOGIN_REQUIRED),
-    (u'memberKey', MEMBER_NOT_FOUND),
+    ('Login Required', LOGIN_REQUIRED),
+    ('memberKey', MEMBER_NOT_FOUND),
     ],
   RESOURCE_NOT_FOUND: [
-    (u'resourceId', RESOURCE_ID_NOT_FOUND),
+    ('resourceId', RESOURCE_ID_NOT_FOUND),
     ],
   }
 
