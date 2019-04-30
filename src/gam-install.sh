@@ -194,7 +194,7 @@ if (( $rc != 0 )); then
   echo_red "ERROR: extracting the GAM archive with tar failed with error $rc. Exiting."
   exit
 else
-  echo_green "Finished `extracting GAM archive."
+  echo_green "Finished extracting GAM archive."
 fi
 
 if [ "$upgrade_only" = true ]; then
