@@ -160,7 +160,7 @@ If an item contains spaces, it should be surrounded by ".
 <ContactGroupID> ::= id:<String>
 <ContactGroupName> ::= <String>
 <ContactGroupItem> ::= <ContactGroupID>|<ContactGroupName>
-<CorporaAttribute> ::= allteamdrives|domain|onlyteamdrives|user
+<CorporaAttribute> ::= alldrives|allteamdrives|domain|onlyteamdrives|user
 <CourseAlias> ::= <String>
 <CourseAnnouncementID> ::= <Number>
 <CourseAnnouncementState> ::= draft|published|deleted
@@ -752,11 +752,14 @@ gam calendar|calendars <CalendarEntity> showacl [formatjson]
         (id|eventid <EventId>)|(event|events <EventIdList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|
         (<EventSelectProperty>+ <EventMatchProperty>*)
 
+<AttendeeAttendance> ::= optional|required
+<AttendeeStatus> ::= accepted|declined|needsaction|tentative
+
 <EventAttribute> ::=
         (anyonecanaddself [<Boolean>])|
         (attachment <String> <URL>)|
         (attendee <EmailAddress>)|
-        (attendeestatus [optional] [accepted|declined|needsaction|tentative] <EmailAddress>)|
+        (attendeestatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddress>)|
         available|
         (colorindex|colorid <EventColorIndex>))|
         (description <String>)|
@@ -774,6 +777,7 @@ gam calendar|calendars <CalendarEntity> showacl [formatjson]
         (privateproperty <PropertyKey> <PropertyValue>)|
         (recurrence <RRULE, EXRULE, RDATE and EXDATE line>)|
         (reminder <Number> email|popup|sms))|
+        (sequence <Integer>)|
         (sharedproperty <PropertyKey> <PropertyValue>)|
         (source <String> <URL>)|
         (start (allday <Date>)|<Time>)|
@@ -809,7 +813,7 @@ The following attributes are equivalent:
 
 <EventUpdateAttribute> ::=
         <EventAttribute>|
-        <EventNotificationAttribute>
+        <EventNotificationAttribute>|
         clearattachments|
         (clearprivateproperty <PropertyKey>)|
         (clearsharedproperty <PropertyKey>)
@@ -2553,6 +2557,7 @@ gam <UserTypeEntity> show backupcodes|verificationcodes
         (courses <CourseIDList>)|
         ((courses_with_teacher <UserItem>)|my_courses_as_teacher [coursestates <CourseStateList>])|
         ((courses_with_student <UserItem>)|my_courses_as_student [coursestates <CourseStateList>])|
+        (coursestates <CourseStateList>)|
         (resource <ResourceID>)|
         (resources <ResourceIDList>)|
         ((calendars <CalendarList>) | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>)|
@@ -2585,10 +2590,10 @@ gam <UserTypeEntity> update calendars <UserCalendarEntity> <CalendarAttribute>+
 gam <UserTypeEntity> delete calendars <UserCalendarEntity>
 
 gam <UserTypeEntity> info calendars <UserCalendarEntity> [formatjson]
-gam <UserTypeEntity> show calendars <UserCalendarEntity> [permissions]
+gam <UserTypeEntity> show calendars [permissions]
          [primary] <CalendarSelectProperty>* [noprimary] [nogroups] [noresources] [nosystem] [nousers]
          [formatjson]
-gam <UserTypeEntity> print calendars <UserCalendarEntity> [todrive <ToDriveAttribute>*] [permissions]
+gam <UserTypeEntity> print calendars [todrive <ToDriveAttribute>*] [permissions]
          [primary] <CalendarSelectProperty>* [noprimary] [nogroups] [noresources] [nosystem] [nousers]
          [formatjson] [delimiter <Character>] [quotechar <Character>]
 
@@ -2644,10 +2649,14 @@ gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <
         (id|eventid <EventId>)|(event|events <EventIdList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|
         (<EventSelectProperty>+ <EventMatchProperty>*)
 
+<AttendeeAttendance> ::= optional|required
+<AttendeeStatus> ::= accepted|declined|needsaction|tentative
+
 <EventAttribute> ::=
         (anyonecanaddself [<Boolean>])|
         (attachment <String> <URL>)|
         (attendee <EmailAddress>)|
+        (attendeestatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddress>)|
         available|
         (colorindex|colorid <EventColorIndex>))|
         (description <String>)|
@@ -2657,6 +2666,7 @@ gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <
         (guestscanmodify <Boolean>)|
         (guestscanseeotherguests <Boolean>)|
         guestscantseeotherguests|
+        (jsonattendees [charset <Charset>] <JSONData>)|(jsonattendees file <FileName> [charset <Charset>])|
         (location <String>)|
         (noreminders|(reminder email|popup|sms <Number>))|
         (optionalattendee <EmailAddress>)|
@@ -2675,9 +2685,23 @@ gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <
         (transparency opaque|transparent)|
         (visibility default|public|private)
 
+The following attributes are equivalent:
+        available - transparency transparent
+        guestscantinviteothers - guestscaninviteothers False
+        guestscantseeothers - guestscanseeotherguests False
+        tentative - status tentative
+
+<EventNotificationAttribute> ::=
+        notifyattendees|(sendnotifications <Boolean>)|(sendupdates all|enternalonly|none)
+
+The following attributes are equivalent:
+        notifyattendees - sendupdates all
+        sendnotifications false - sendupdates none
+        sendnotifications true - sendupdates all
+
 <EventCreateAttribute> ::=
         <EventAttribute>|
-        notifyattendees|(sendnotifications <Boolean>)
+        <EventNotificationAttribute>
 
 <EventImportAttribute> ::=
         <EventAttribute>|
@@ -2686,16 +2710,10 @@ gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <
 
 <EventUpdateAttribute> ::=
         <EventAttribute>|
-        notifyattendees|(sendnotifications <Boolean>)|
+        <EventNotificationAttribute>|
         clearattachments|
         (clearprivateproperty <PropertyKey>)|
         (clearsharedproperty <PropertyKey>)
-
-The following attributes are equivalent:
-        available = transparency transparent
-        guestscantinviteothers = guestscaninviteothers False
-        guestscantseeothers = guestscanseeotherguests False
-        tentative = status tentative
 
 Add update and delete events in any calendar for which a user has access
 
@@ -2720,8 +2738,12 @@ gam <UserTypeEntity> show events <UserCalendarEntity> <EventSelectProperty>* <Ev
 gam <UserTypeEntity> print events <UserCalendarEntity> <EventSelectProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>]
          [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
 
-gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer]
-        (csv <FileName>|(gsheet <UserGoogleSheet>))* (add <EmailAddress>)* (delete <EmailAddress>)* (replace <EmailAddress> <EmailAddress>)* [doit]
+gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer] [<EventNotificationAttribute>] [doit]
+        (csv <FileName>|(gsheet <UserGoogleSheet>))*
+        (add <EmailAddress>)* (delete <EmailAddress>)* (replace <EmailAddress> <EmailAddress>)*
+        (addstatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddress>)*
+        (replacestatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddress> <EmailAddress>)*
+        (updatestatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddress>)*
 
 # Users - Drive
 
@@ -3449,6 +3471,9 @@ gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [adminaccess|asadmin] [n
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         [<TeamDriveRestrictionsSubfieldName> <Boolean>]
 gam <UserTypeEntity> delete teamdrive <TeamDriveEntity>
+gam <UserTypeEntity> hide teamdrive <TeamDriveEntity>
+gam <UserTypeEntity> unhide teamdrive <TeamDriveEntity>
+gam <UserTypeEntity> info teamdrive <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
 gam <UserTypeEntity> info teamdrive <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
 gam <UserTypeEntity> show teamdriveinfo <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
 gam <UserTypeEntity> print teamdrives [matchname <RegularExpression>] (role <TeamDriveACLRole>)* [todrive <ToDriveAttribute>*]

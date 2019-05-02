@@ -49,6 +49,7 @@ class GamAction(object):
   EXTRACT = 'extr'
   FETCH = 'fetc'
   FORWARD = 'forw'
+  HIDE = 'hide'
   IMPORT = 'impo'
   INFO = 'info'
   INITIALIZE = 'init'
@@ -79,6 +80,7 @@ class GamAction(object):
   SENDEMAIL = 'send'
   SET = 'set '
   SHOW = 'show'
+  SKIP = u'skip'
   SPAM = 'spam'
   SUBMIT = 'subm'
   SUSPEND = 'susp'
@@ -87,7 +89,8 @@ class GamAction(object):
   TRANSFER_OWNERSHIP = 'trow'
   TRASH = 'tras'
   UNDELETE = 'unde'
-  UNSUSPEND = 'uns'
+  UNHIDE = 'unhi'
+  UNSUSPEND = 'unsu'
   UNTRASH = 'untr'
   UPDATE = 'upda'
   UPDATE_PREVIEW = 'updp'
@@ -127,6 +130,7 @@ class GamAction(object):
     EXPORT: ['Exported', 'Export'],
     EXTRACT: ['Extracted', 'Extract'],
     FORWARD: ['Forwarded', 'Forward'],
+    HIDE: ['Hidden', 'Hide'],
     IMPORT: ['Imported', 'Import'],
     INFO: ['Shown', 'Show Info'],
     INITIALIZE: ['Initialized', 'Initialize'],
@@ -157,6 +161,7 @@ class GamAction(object):
     SENDEMAIL: ['Email Sent', 'Send Email'],
     SET: ['Set', 'Set'],
     SHOW: ['Shown', 'Show'],
+    SKIP: ['Skipped', 'Skip'],
     SPAM: ['Marked as Spam', 'Mark as Spam'],
     SUBMIT: ['Submitted', 'Submit'],
     SUSPEND: ['Suspended', 'Suspend'],
@@ -165,6 +170,7 @@ class GamAction(object):
     TRANSFER_OWNERSHIP: ['Ownership Transferred', 'Transfer Ownership'],
     TRASH: ['Trashed', 'Trash'],
     UNDELETE: ['Undeleted', 'Undelete'],
+    UNHIDE: ['Unhidden', 'Unhide'],
     UNSUSPEND: ['Unsuspended', 'Unsuspend'],
     UNTRASH: ['Untrashed', 'Untrash'],
     UNZIP: ['Unzipped', 'Unzip'],

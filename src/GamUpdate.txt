@@ -1,3 +1,12 @@
+4.82.01
+
+Enhanced `gam <UserTypeEntity> update calattendees` to provide more options.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Calendars-Events#update-calendar-event-attendees
+
+Added commands to hide and unhide Team Drives.
+gam <UserTypeEntity> hide teamdrive <TeamDriveEntity>
+gam <UserTypeEntity> unhide teamdrive <TeamDriveEntity>
+
 4.82.00
 
 Added `domains|domains_ns|domains_susp <DomainNameListList>` to `<UserTypeEntity>`. For users with multiple
