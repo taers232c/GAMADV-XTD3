@@ -7,6 +7,9 @@ Added commands to hide and unhide Team Drives.
 gam <UserTypeEntity> hide teamdrive <TeamDriveEntity>
 gam <UserTypeEntity> unhide teamdrive <TeamDriveEntity>
 
+Fixed code in `gam create user` to avoid this error:
+`DeprecationWarning: the method passlib.handlers.sha2_crypt.sha512_ crypt.encrypt() is deprecated as of Passlib 1.7, and will be removed in Passlib 2.0, use .hash() instead.`
+
 4.82.00
 
 Added `domains|domains_ns|domains_susp <DomainNameListList>` to `<UserTypeEntity>`. For users with multiple
