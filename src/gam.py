@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.82.01'
+__version__ = '4.82.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -13751,6 +13751,8 @@ def doInfoMobileDevices():
         printLine(json.dumps(cleanJSON(mobile, timeObjects=MOBILE_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
       else:
         printEntity([Ent.MOBILE_DEVICE, resourceId], i, count)
+        if 'deviceId' in mobile:
+          mobile['deviceId'] = mobile['deviceId'].encode('unicode-escape').decode(UTF8)
         Ind.Increment()
         showJSON(None, mobile, timeObjects=MOBILE_TIME_OBJECTS)
         Ind.Decrement()
@@ -13810,8 +13812,8 @@ def doPrintMobileDevices():
               appDetails.append('<None>')
             applications.append('-'.join(appDetails))
           row[attrib] = delimiter.join(applications)
-      elif attrib == 'deviceId' and GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]:
-        row[attrib] = escapeCRsNLs(mobile[attrib])
+      elif attrib == 'deviceId':
+        row[attrib] = mobile[attrib].encode('unicode-escape').decode(UTF8)
       elif attrib not in MOBILE_TIME_OBJECTS:
         row[attrib] = mobile[attrib]
       else:
@@ -34187,7 +34189,8 @@ def _showTeamDrive(user, teamdrive, j, jcount, FJQC):
   Ind.Increment()
   printEntity([Ent.TEAMDRIVE_ID, teamdrive['id']])
   printEntity([Ent.TEAMDRIVE_NAME, teamdrive['name']])
-  printKeyValueList(['hidden', teamdrive['hidden']])
+  if 'hidden' in teamdrive:
+    printKeyValueList(['hidden', teamdrive['hidden']])
   if 'createdTime' in teamdrive:
     printKeyValueList(['createdTime', formatLocalTime(teamdrive['createdTime'])])
   for setting in ['backgroundImageLink', 'colorRgb', 'themeId']:

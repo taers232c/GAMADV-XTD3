@@ -1,3 +1,9 @@
+4.82.02
+
+Mobile devices may have embedded newlines, encode them to avoid problems on output.
+
+Fixed bug in `gam info teamdrive` where trap was thrown if the `hidden` field was not present.
+
 4.82.01
 
 Enhanced `gam <UserTypeEntity> update calattendees` to provide more options.
