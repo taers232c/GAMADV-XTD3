@@ -146,9 +146,9 @@ SHOW_GETTINGS_GOT_NL = 'show_gettings_got_nl'
 # Enable/disable showing multiprocess info in redirected stdout/stderr
 SHOW_MULTIPROCESS_INFO = 'show_multiprocess_info'
 ## Minimum TLS Version required for HTTPS connections
-#TLS_MIN_VERSION = 'tls_min_ver'
+TLS_MIN_VERSION = 'tls_min_version'
 ## Maximum TLS Version used for HTTPS connections
-#TLS_MAX_VERSION = 'tls_max_ver'
+TLS_MAX_VERSION = 'tls_max_version'
 # Time Zone
 TIMEZONE = 'timezone'
 # Enable conversion to Google Sheets when uploading todrive files
@@ -224,8 +224,8 @@ Defaults = {
   SHOW_GETTINGS: TRUE,
   SHOW_GETTINGS_GOT_NL: FALSE,
   SHOW_MULTIPROCESS_INFO: FALSE,
-  #TLS_MIN_VERSION: 'TLSv1_2',
-  #TLS_MAX_VERSION: '',
+  TLS_MIN_VERSION: 'TLSv1_2',
+  TLS_MAX_VERSION: '',
   TIMEZONE: 'utc',
   TODRIVE_CONVERSION: TRUE,
   TODRIVE_NOBROWSER: '',
@@ -318,8 +318,8 @@ VAR_INFO = {
   SHOW_GETTINGS: {VAR_TYPE: TYPE_BOOLEAN},
   SHOW_GETTINGS_GOT_NL: {VAR_TYPE: TYPE_BOOLEAN},
   SHOW_MULTIPROCESS_INFO: {VAR_TYPE: TYPE_BOOLEAN},
-  #TLS_MIN_VERSION: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
-  #TLS_MAX_VERSION: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
+  TLS_MIN_VERSION: {VAR_TYPE: TYPE_STRING, VAR_ENVVAR: 'GAM_TLS_MIN_VERSION', VAR_LIMITS: (0, None)},
+  TLS_MAX_VERSION: {VAR_TYPE: TYPE_STRING, VAR_ENVVAR: 'GAM_TLS_MAX_VERSION', VAR_LIMITS: (0, None)},
   TIMEZONE: {VAR_TYPE: TYPE_TIMEZONE},
   TODRIVE_CONVERSION: {VAR_TYPE: TYPE_BOOLEAN},
   TODRIVE_NOBROWSER: {VAR_TYPE: TYPE_BOOLEAN, VAR_SIGFILE: 'nobrowser.txt', VAR_SFFT: (FALSE, TRUE)},

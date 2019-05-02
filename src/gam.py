@@ -108,7 +108,7 @@ import oauth2client.file
 import oauth2client.tools
 from oauth2client.contrib.dictionary_storage import DictionaryStorage
 from oauth2client.contrib.multiprocess_file_storage import MultiprocessFileStorage
-from passlib.handlers.sha2_crypt import sha512_crypt
+from passlib.hash import sha512_crypt
 
 # Python 3
 string_types = (str,)
@@ -2813,7 +2813,7 @@ def SetGlobalVariables():
     GM.Globals[GM.OAUTH2_TXT_LOCK] = fileName
 # Override httplib2 settings
   httplib2.debuglevel = GC.Values[GC.DEBUG_LEVEL]
-#  httplib2._build_ssl_context = _build_ssl_context
+  httplib2._build_ssl_context = _build_ssl_context
 # Reset global variables if required
   if prevExtraArgsTxt != GC.Values[GC.EXTRA_ARGS]:
     GM.Globals[GM.EXTRA_ARGS_LIST] = []
@@ -3582,20 +3582,20 @@ def buildGAPIObject(api):
   GM.Globals[GM.OAUTH2_CLIENT_ID] = credentials.client_id
   return service
 
-## override httplib2._build_ssl_context so we can force min/max TLS values
-## actual function replacement happens in SetGlobalVariables so we have config options set
-#def _build_ssl_context(disable_ssl_certificate_validation, ca_certs, cert_file=None, key_file=None):
-#  context = ssl.SSLContext(httplib2.DEFAULT_TLS_VERSION)
-#  context.verify_mode = ssl.CERT_REQUIRED
-#  context.check_hostname = True
-#  context.load_verify_locations(ca_certs)
-#  if cert_file:
-#    context.load_cert_chain(cert_file, key_file)
-#  if hasattr(context, 'minimum_version') and GC.Values[GC.TLS_MIN_VERSION]:
-#    context.minimum_version = getattr(ssl.TLSVersion, GC.Values[GC.TLS_MIN_VERSION])
-#  if hasattr(context, 'maximum_version') and GC.Values[GC.TLS_MAX_VERSION]:
-#    context.maximum_version = getattr(ssl.TLSVersion, GC.Values[GC.TLS_MAX_VERSION])
-#  return context
+# override httplib2._build_ssl_context so we can force min/max TLS values
+# actual function replacement happens in SetGlobalVariables so we have config options set
+def _build_ssl_context(disable_ssl_certificate_validation, ca_certs, cert_file=None, key_file=None):
+  context = ssl.SSLContext(httplib2.DEFAULT_TLS_VERSION)
+  context.verify_mode = ssl.CERT_NONE if disable_ssl_certificate_validation else ssl.CERT_REQUIRED
+  context.check_hostname = True
+  context.load_verify_locations(ca_certs)
+  if cert_file:
+    context.load_cert_chain(cert_file, key_file)
+  if GC.Values[GC.TLS_MIN_VERSION]:
+    context.minimum_version = getattr(ssl.TLSVersion, GC.Values[GC.TLS_MIN_VERSION])
+  if GC.Values[GC.TLS_MAX_VERSION]:
+    context.maximum_version = getattr(ssl.TLSVersion, GC.Values[GC.TLS_MAX_VERSION])
+  return context
 
 # Override and wrap google_auth_httplib2 request methods so that the GAM
 # user-agent string is inserted into HTTP request headers.
@@ -20972,7 +20972,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       body[itemName].append(itemValue)
 
   def gen_sha512_hash(password):
-    return sha512_crypt.encrypt(password, rounds=5000)
+    return sha512_crypt.hash(password, rounds=5000)
 
   def _splitSchemaNameDotFieldName(sn_fn, fnRequired=True):
     if sn_fn.find('.') != -1:
