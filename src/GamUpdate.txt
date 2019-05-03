@@ -1,6 +1,10 @@
+4.82.04
+
+Fixed bug where `gam printjob` commands caused a trap.
+
 4.82.03
 
-Fix bug where `gam update photo` generated the following error:
+Fixed bug where `gam update photo` generated the following error:
 ERROR: Object of type 'bytes' is not JSON serializable
 
 4.82.02

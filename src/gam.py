@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.82.03'
+__version__ = '4.82.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3465,6 +3465,8 @@ def callGAPIitems(service, function, items,
   return []
 
 def checkCloudPrintResult(result, throw_messages=None):
+  if isinstance(result, bytes):
+    result = result.decode(UTF8)
   if throw_messages is None:
     throw_messages = []
   if isinstance(result, string_types):
