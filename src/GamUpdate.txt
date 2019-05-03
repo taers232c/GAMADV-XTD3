@@ -1,3 +1,8 @@
+4.82.03
+
+Fix bug where `gam update photo` generated the following error:
+ERROR: Object of type 'bytes' is not JSON serializable
+
 4.82.02
 
 Mobile devices may have embedded newlines, encode them to avoid problems on output.

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.82.02'
+__version__ = '4.82.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2429,7 +2429,7 @@ def SetGlobalVariables():
     return 0
 
   def _getCfgHeaderFilter(sectionName, itemName):
-    value = _stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName))
+    value = GM.Globals[GM.PARSER].get(sectionName, itemName)
     headerFilters = []
     if not value:
       return headerFilters
@@ -34769,7 +34769,7 @@ def updatePhoto(users):
       except (OSError, IOError) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], str(e), i, count)
         continue
-    body = {'photoData': base64.urlsafe_b64encode(image_data)}
+    body = {'photoData': base64.urlsafe_b64encode(image_data).decode(UTF8)}
     try:
       callGAPI(cd.users().photos(), 'update',
                throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID_INPUT],
@@ -38252,7 +38252,8 @@ def createSmime(users):
     myarg = getArgument()
     if myarg == 'file':
       smimefile = getString(Cmd.OB_FILE_NAME)
-      body['pkcs12'] = base64.urlsafe_b64encode(readFile(smimefile, mode='rb'))
+      smimeData = readFile(smimefile, mode='rb')
+      body['pkcs12'] = base64.urlsafe_b64encode(smimeData).decode(UTF8)
     elif myarg == 'password':
       body['encryptedKeyPassword'] = getString(Cmd.OB_PASSWORD)
     elif myarg == 'default':
