@@ -1,3 +1,7 @@
+4.82.06
+
+Fixed bug where `gam create project` command caused a trap.
+
 4.82.05
 
 Fixed bug where `gam get contactphoto` command caused a trap.

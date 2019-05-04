@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.82.05'
+__version__ = '4.82.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3593,10 +3593,11 @@ def _build_ssl_context(disable_ssl_certificate_validation, ca_certs, cert_file=N
   context.load_verify_locations(ca_certs)
   if cert_file:
     context.load_cert_chain(cert_file, key_file)
-  if GC.Values[GC.TLS_MIN_VERSION]:
-    context.minimum_version = getattr(ssl.TLSVersion, GC.Values[GC.TLS_MIN_VERSION])
-  if GC.Values[GC.TLS_MAX_VERSION]:
-    context.maximum_version = getattr(ssl.TLSVersion, GC.Values[GC.TLS_MAX_VERSION])
+  if hasattr(context, 'minimum_version'):
+    if GC.Values[GC.TLS_MIN_VERSION]:
+      context.minimum_version = getattr(ssl.TLSVersion, GC.Values[GC.TLS_MIN_VERSION])
+    if GC.Values[GC.TLS_MAX_VERSION]:
+      context.maximum_version = getattr(ssl.TLSVersion, GC.Values[GC.TLS_MAX_VERSION])
   return context
 
 # Override and wrap google_auth_httplib2 request methods so that the GAM
@@ -3839,7 +3840,20 @@ def shlexSplitList(entity, dataDelimiter=' ,'):
   lexer = shlex.shlex(entity, posix=True)
   lexer.whitespace = dataDelimiter
   lexer.whitespace_split = True
-  return list(lexer)
+  try:
+    return list(lexer)
+  except ValueError as e:
+    Cmd.Backup()
+    usageErrorExit(str(e))
+
+def shlexSplitListStatus(entity, dataDelimiter=' ,'):
+  lexer = shlex.shlex(entity, posix=True)
+  lexer.whitespace = dataDelimiter
+  lexer.whitespace_split = True
+  try:
+    return (True, list(lexer))
+  except ValueError as e:
+    return (False, str(e))
 
 def getQueries(myarg):
   if myarg == 'query':
@@ -6453,7 +6467,7 @@ def _createClientSecretsOauth2service(httpObj, projectId):
                              body={'accountId': projectId, 'serviceAccount': {'displayName': 'GAM Project'}})
   key = callGAPI(iam.projects().serviceAccounts().keys(), 'create',
                  name=service_account['name'], body={'privateKeyType': 'TYPE_GOOGLE_CREDENTIALS_FILE', 'keyAlgorithm': 'KEY_ALG_RSA_2048'})
-  oauth2service_data = base64.b64decode(key['privateKeyData'])
+  oauth2service_data = base64.b64decode(key['privateKeyData']).decode(UTF8)
   writeFile(GC.Values[GC.OAUTH2SERVICE_JSON], oauth2service_data, continueOnError=False)
   console_credentials_url = 'https://console.developers.google.com/apis/credentials?project={0}'.format(projectId)
   csHttpObj = getHttpObj()
