@@ -1,6 +1,10 @@
+4.82.05
+
+Fixed bug where `gam get contactphoto` command caused a trap.
+
 4.82.04
 
-Fixed bug where `gam printjob` commands caused a trap.
+Fixed bug where `gam printjob` command caused a trap.
 
 4.82.03
 

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.82.04'
+__version__ = '4.82.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -12221,7 +12221,7 @@ def _processContactPhotos(users, entityType, function):
                                  retry_errors=[GDATA.INTERNAL_SERVER_ERROR],
                                  contact_entry_or_url=contact)
           if photo_data:
-            status, e = writeFileReturnError(filename, photo_data, mode='wb')
+            status, e = writeFileReturnError(filename, eval(photo_data), mode='wb')
             if status:
               entityActionPerformed([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, filename], i, count)
             else:
