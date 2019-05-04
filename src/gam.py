@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.82.06'
+__version__ = '4.82.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6533,6 +6533,11 @@ PROJECTID_FORMAT_REQUIRED = '[a-z][a-z0-9-]{4,28}[a-z0-9]'
 
 def _getLoginHintProjectId(createCmd):
   login_hint = getEmailAddress(noUid=True, optional=True)
+  if login_hint:
+    user, _ = splitEmailAddress(login_hint)
+    if PROJECTID_PATTERN.match(user):
+      Cmd.Backup()
+      login_hint = None
   projectId = getString(Cmd.OB_STRING, optional=True, minLen=6, maxLen=30).strip()
   checkForExtraneousArguments()
   if projectId:
@@ -6565,6 +6570,11 @@ PROJECTID_FILTER_REQUIRED = 'gam|<ProjectID>|(filter <String>)'
 
 def _getLoginHintProjects(printShowCmd):
   login_hint = getEmailAddress(noUid=True, optional=True)
+  if login_hint:
+    user, _ = splitEmailAddress(login_hint)
+    if user in ['all', 'gam', 'filter'] or PROJECTID_PATTERN.match(user):
+      Cmd.Backup()
+      login_hint = None
   pfilter = getString(Cmd.OB_STRING, optional=True)
   if not pfilter:
     pfilter = 'current' if not printShowCmd else 'id:gam-project-*'

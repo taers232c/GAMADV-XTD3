@@ -1,3 +1,7 @@
+4.82.07
+
+Fixed bug in `gam create/use/update/delete/show/print projects` when `<EmailAddress>` was not specified.
+
 4.82.06
 
 Fixed bug where `gam create project` command caused a trap.
