@@ -14349,14 +14349,15 @@ def doUpdateGroups():
     try:
       callGAPI(cd.members(), 'insert',
                throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.DUPLICATE, GAPI.MEMBER_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND,
-                                                         GAPI.INVALID_MEMBER, GAPI.CYCLIC_MEMBERSHIPS_NOT_ALLOWED, GAPI.CONDITION_NOT_MET],
+                                                         GAPI.INVALID_MEMBER, GAPI.CYCLIC_MEMBERSHIPS_NOT_ALLOWED,
+                                                         GAPI.CONDITION_NOT_MET, GAPI.CONFLICT],
                retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                groupKey=group, body=body, fields='')
       _showAction(group, role, delivery_settings, member, j, jcount)
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
       entityUnknownWarning(Ent.GROUP, group, i, count)
     except (GAPI.duplicate, GAPI.memberNotFound, GAPI.resourceNotFound,
-            GAPI.invalidMember, GAPI.cyclicMembershipsNotAllowed, GAPI.conditionNotMet) as e:
+            GAPI.invalidMember, GAPI.cyclicMembershipsNotAllowed, GAPI.conditionNotMet, GAPI.conflict) as e:
       entityActionFailedWarning([Ent.GROUP, group, Ent.MEMBER, member], str(e), j, jcount)
 
   def _handleDuplicateAdd(group, i, count, role, delivery_settings, member, j, jcount):
@@ -14383,6 +14384,7 @@ def doUpdateGroups():
                                        GAPI.MEMBER_NOT_FOUND: Msg.DOES_NOT_EXIST,
                                        GAPI.RESOURCE_NOT_FOUND: Msg.DOES_NOT_EXIST,
                                        GAPI.INVALID_MEMBER: Msg.INVALID_MEMBER,
+                                       GAPI.CONFLICT: Msg.CONFLICTING_REQUESTS,
                                        GAPI.CYCLIC_MEMBERSHIPS_NOT_ALLOWED: Msg.WOULD_MAKE_MEMBERSHIP_CYCLE}
 
   def _callbackAddGroupMembers(request_id, response, exception):
@@ -14455,18 +14457,20 @@ def doUpdateGroups():
   def _removeMember(group, i, count, role, member, j, jcount):
     try:
       callGAPI(cd.members(), 'delete',
-               throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER, GAPI.CONDITION_NOT_MET],
+               throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER,
+                                                         GAPI.CONDITION_NOT_MET, GAPI.CONFLICT],
                retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                groupKey=group, memberKey=member)
       _showAction(group, role, DELIVERY_SETTINGS_UNDEFINED, member, j, jcount)
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
       entityUnknownWarning(Ent.GROUP, group, i, count)
-    except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet) as e:
+    except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet, GAPI.conflict) as e:
       entityActionFailedWarning([Ent.GROUP, group, Ent.MEMBER, member], str(e), j, jcount)
 
   _REMOVE_MEMBER_REASON_TO_MESSAGE_MAP = {GAPI.MEMBER_NOT_FOUND: '{0} {1}'.format(Msg.NOT_A, Ent.Singular(Ent.MEMBER)),
                                           GAPI.CONDITION_NOT_MET: '{0} {1}'.format(Msg.NOT_A, Ent.Singular(Ent.MEMBER)),
-                                          GAPI.INVALID_MEMBER: Msg.DOES_NOT_EXIST}
+                                          GAPI.INVALID_MEMBER: Msg.DOES_NOT_EXIST,
+                                          GAPI.CONFLICT: Msg.CONFLICTING_REQUESTS}
 
   def _callbackRemoveGroupMembers(request_id, response, exception):
     ri = request_id.splitlines()
