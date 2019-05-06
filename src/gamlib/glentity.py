@@ -177,6 +177,7 @@ class GamEntity(object):
   RESOURCE_ID = 'resi'
   ROLE = 'role'
   ROLE_ASSIGNMENT_ID = 'raid'
+  ROW = 'row '
   SCOPE = 'scop'
   SECTION = 'sect'
   SENDAS_ADDRESS = 'sasa'
@@ -375,6 +376,7 @@ class GamEntity(object):
     RESOURCE_ID: ['Resource IDs', 'Resource ID'],
     ROLE: ['Roles', 'Role'],
     ROLE_ASSIGNMENT_ID: ['Role Assignment IDs', 'Role Assignment ID'],
+    ROW: ['Rows', 'Row'],
     SCOPE: ['Scopes', 'Scope'],
     SECTION: ['Sections', 'Section'],
     SENDAS_ADDRESS: ['SendAs Addresses', 'SendAs Address'],

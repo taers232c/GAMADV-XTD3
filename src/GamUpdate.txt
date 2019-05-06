@@ -1,3 +1,34 @@
+4.82.08
+
+Handle `insufficientFilePermissions - The user does not have sufficient permissions for this file.` error
+in `gam delete teamdrive`.
+
+Handle `conflict - Conflicting requests.` error when adding/removing members to/from a group.
+
+Added option `checkrc` to `gam version`; this will print the current and latest versions of Gam and:
+* set the return code to 0 if the current version is the latest version
+* set the retrun code to 1 if the current version is not the latest
+
+Added additional option to `<CrOSTypeEntity>` that allows reading a CSV file to obtain
+items that will generate deviceIds or device serial numbers.
+csvdatafile cros|cros_sn|cros_ous|cros_ous_and_children
+        ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)
+                [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>])
+        [fields <FieldNameList>]
+        (matchfield|skipfield <FieldName> <RegularExpression>)*
+        [delimiter <Character>]
+
+Added additional option to `<UserTypeEntity>` that allows reading a CSV file to obtain
+items that will generate user email addresses.
+csvdatafile users|groups|groups_ns|groups_susp|ous|ous_ns|ous_susp|
+        ous_and_children|ous_and_children_ns|ous_and_children_susp|
+        courseparticipants|students|teachers
+        ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)
+                [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>])
+        [fields <FieldNameList>]
+        (matchfield|skipfield <FieldName> <RegularExpression>)*
+        [delimiter <Character>]
+
 4.82.07
 
 Fixed bug in `gam create/use/update/delete/show/print projects` when `<EmailAddress>` was not specified.

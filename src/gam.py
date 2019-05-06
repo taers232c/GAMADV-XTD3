@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.82.07'
+__version__ = '4.82.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -368,6 +368,7 @@ MEMORY_ERROR_RC = 7
 KEYBOARD_INTERRUPT_RC = 8
 HTTP_ERROR_RC = 9
 SCOPES_NOT_AUTHORIZED = 10
+DATA_ERROR_RC = 11
 API_ACCESS_DENIED_RC = 12
 CONFIG_ERROR_RC = 13
 NO_SCOPES_FOR_API_RC = 15
@@ -2434,13 +2435,17 @@ def SetGlobalVariables():
     if not value:
       return headerFilters
     errors = 0
-    filters = shlexSplitList(value)
-    for filterStr in filters:
-      try:
-        headerFilters.append(re.compile(filterStr, re.IGNORECASE))
-      except re.error as e:
-        _printValueError(sectionName, itemName, '"{0}"'.format(filterStr), '{0}: {1}'.format(Msg.INVALID_RE, e))
-        errors += 1
+    splitStatus, filters = shlexSplitListStatus(value)
+    if splitStatus:
+      for filterStr in filters:
+        try:
+          headerFilters.append(re.compile(filterStr, re.IGNORECASE))
+        except re.error as e:
+          _printValueError(sectionName, itemName, '"{0}"'.format(filterStr), '{0}: {1}'.format(Msg.INVALID_RE, e))
+          errors += 1
+    else:
+      _printValueError(sectionName, itemName, '"{0}"'.format(value), '{0}: {1}'.format(Msg.INVALID_LIST, filters))
+      errors += 1
     if errors:
       status['errors'] = True
     return headerFilters
@@ -2876,7 +2881,7 @@ def SetGlobalVariables():
   if not GM.Globals[GM.CSVFILE]:
     _setCSVFile('-', GM.Globals[GM.STDOUT].get(GM.REDIRECT_MODE, DEFAULT_FILE_WRITE_MODE), GC.Values[GC.CHARSET], True, False)
   if not GC.Values[GC.NO_UPDATE_CHECK]:
-    doGAMCheckForUpdates()
+    doGAMCheckForUpdates(0)
   initAPICallsRateCheck()
 # If no select/options commands were executed or some were and there are more arguments on the command line,
 # warn if the json files are missing and return True
@@ -2905,7 +2910,7 @@ def getHttpObj(cache=None):
                        ca_certs=GC.Values[GC.CACERTS_PEM],
                        disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL])
 
-def doGAMCheckForUpdates(forceCheck=False):
+def doGAMCheckForUpdates(forceCheck):
   def _gamLatestVersionNotAvailable():
     if forceCheck:
       systemErrorExit(NETWORK_ERROR_RC, Msg.GAM_LATEST_VERSION_NOT_AVAILABLE)
@@ -2938,6 +2943,9 @@ def doGAMCheckForUpdates(forceCheck=False):
       Ind.Decrement()
     if latest_version <= current_version:
       writeFile(GM.Globals[GM.LAST_UPDATE_CHECK_TXT], str(now_time), continueOnError=True, displayError=forceCheck)
+      return
+    if forceCheck < 0:
+      setSysExitRC(1)
       return
     announcement = release_data.get('body_text', 'No details about this release')
     writeStderr('\n{0} {1} release notes:\n\n'.format(GAM, latest_version))
@@ -4272,14 +4280,38 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, inc
     badEntitiesExit(entityError, 'invalid')
   return entityList
 
-def splitEntityList(entity, dataDelimiter, shlexSplit):
+def splitEntityList(entity, dataDelimiter):
   if not entity:
     return []
   if not dataDelimiter:
     return [entity]
-  if not shlexSplit:
-    return entity.split(dataDelimiter)
-  return shlexSplitList(entity, dataDelimiter)
+  return entity.split(dataDelimiter)
+
+def splitEntityListShlex(entity, dataDelimiter):
+  if not entity:
+    return (True, [])
+  if not dataDelimiter:
+    return (True, [entity])
+  return shlexSplitListStatus(entity, dataDelimiter)
+
+def fileDataErrorExit(filename, row, itemName, value, errMessage):
+  if itemName:
+    systemErrorExit(DATA_ERROR_RC,
+                    formatKeyValueList('',
+                                       [Ent.Singular(Ent.FILE), filename,
+                                        Ent.Singular(Ent.ROW), row,
+                                        Ent.Singular(Ent.ITEM), itemName,
+                                        Ent.Singular(Ent.VALUE), value,
+                                        errMessage],
+                                       ''))
+  else:
+    systemErrorExit(DATA_ERROR_RC,
+                    formatKeyValueList('',
+                                       [Ent.Singular(Ent.FILE), filename,
+                                        Ent.Singular(Ent.ROW), row,
+                                        Ent.Singular(Ent.VALUE), value,
+                                        errMessage],
+                                       ''))
 
 # <FileName> [charset <String>] [delimiter <Character>]
 def getEntitiesFromFile(shlexSplit):
@@ -4293,8 +4325,16 @@ def getEntitiesFromFile(shlexSplit):
   dataDelimiter = getDelimiter()
   entitySet = set()
   entityList = []
+  i = 0
   for row in f:
-    for item in splitEntityList(row.strip(), dataDelimiter, shlexSplit):
+    i += 1
+    if shlexSplit:
+      splitStatus, itemList = splitEntityListShlex(row.strip(), dataDelimiter)
+      if not splitStatus:
+        fileDataErrorExit(filename, i, None, row.strip(), '{0}: {1}'.format(Msg.INVALID_LIST, itemList))
+    else:
+      itemList = splitEntityList(row.strip(), dataDelimiter)
+    for item in itemList:
       item = item.strip()
       if item and (item not in entitySet):
         entitySet.add(item)
@@ -4309,7 +4349,8 @@ def getEntitiesFromCSVFile(shlexSplit):
     Cmd.Backup()
     invalidArgumentExit(Cmd.OB_FILE_NAME_FIELD_NAME)
   fileFieldNameList = fileFieldName.split(':')
-  f, csvFile = openCSVFileReader(drive+fileFieldNameList[0])
+  filename = drive+fileFieldNameList[0]
+  f, csvFile = openCSVFileReader(filename)
   for fieldName in fileFieldNameList[1:]:
     if fieldName not in csvFile.fieldnames:
       csvFieldErrorExit(fieldName, csvFile.fieldnames, backupArg=True, checkForCharset=True)
@@ -4317,10 +4358,18 @@ def getEntitiesFromCSVFile(shlexSplit):
   dataDelimiter = getDelimiter()
   entitySet = set()
   entityList = []
+  i = 1
   for row in csvFile:
+    i += 1
     if checkMatchSkipFields(row, matchFields, skipFields):
       for fieldName in fileFieldNameList[1:]:
-        for item in splitEntityList(row[fieldName].strip(), dataDelimiter, shlexSplit):
+        if shlexSplit:
+          splitStatus, itemList = splitEntityListShlex(row[fieldName].strip(), dataDelimiter)
+          if not splitStatus:
+            fileDataErrorExit(filename, i, fieldName, row[fieldName].strip(), '{0}: {1}'.format(Msg.INVALID_LIST, itemList))
+        else:
+          itemList = splitEntityList(row[fieldName].strip(), dataDelimiter)
+        for item in itemList:
           item = item.strip()
           if item and (item not in entitySet):
             entitySet.add(item)
@@ -4360,9 +4409,9 @@ def getEntitiesFromCSVbyField():
     if not checkMatchSkipFields(row, matchFields, skipFields):
       return []
     if keyPattern:
-      keyList = [keyPattern.sub(keyValue, keyItem.strip()) for keyItem in splitEntityList(item, keyDelimiter, False)]
+      keyList = [keyPattern.sub(keyValue, keyItem.strip()) for keyItem in splitEntityList(item, keyDelimiter)]
     else:
-      keyList = [re.sub(keyField, keyItem.strip(), keyValue) for keyItem in splitEntityList(item, keyDelimiter, False)]
+      keyList = [re.sub(keyField, keyItem.strip(), keyValue) for keyItem in splitEntityList(item, keyDelimiter)]
     return [key for key in keyList if key]
 
   filename = getString(Cmd.OB_FILE_NAME)
@@ -4401,7 +4450,7 @@ def getEntitiesFromCSVbyField():
             GM.Globals[GM.CSV_DATA_DICT][mainKey] = []
       for dataField in dataFields:
         if dataField in row:
-          dataList = splitEntityList(row[dataField].strip(), dataDelimiter, False)
+          dataList = splitEntityList(row[dataField].strip(), dataDelimiter)
           for dataValue in dataList:
             dataValue = dataValue.strip()
             if not dataValue:
@@ -4435,7 +4484,7 @@ def getEntitiesFromCSVbyField():
               GM.Globals[GM.CSV_DATA_DICT][mainKey][subKey] = []
       for dataField in dataFields:
         if dataField in row:
-          dataList = splitEntityList(row[dataField].strip(), dataDelimiter, False)
+          dataList = splitEntityList(row[dataField].strip(), dataDelimiter)
           for dataValue in dataList:
             dataValue = dataValue.strip()
             if not dataValue:
@@ -4522,6 +4571,17 @@ def getEntityToModify(defaultEntityType=None, crosAllowed=False, userAllowed=Tru
                                                                                          Cmd.ENTITY_OUS_NS, Cmd.ENTITY_OUS_AND_CHILDREN_NS,
                                                                                          Cmd.ENTITY_OUS_SUSP, Cmd.ENTITY_OUS_AND_CHILDREN_SUSP,
                                                                                          Cmd.ENTITY_CROS_OUS, Cmd.ENTITY_CROS_OUS_AND_CHILDREN])))
+    if entitySelector == Cmd.ENTITY_SELECTOR_CSVDATAFILE:
+      if userAllowed:
+        choices += Cmd.USER_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY] else [Cmd.ENTITY_USERS]
+      if crosAllowed:
+        choices += Cmd.CROS_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES
+      entityType = mapEntityType(getChoice(choices), typeMap)
+      return ([Cmd.ENTITY_CROS, Cmd.ENTITY_USERS][entityType not in Cmd.CROS_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES],
+              getUsersToModify(entityType, getEntitiesFromCSVFile(shlexSplit=entityType in [Cmd.ENTITY_OUS, Cmd.ENTITY_OUS_AND_CHILDREN,
+                                                                                            Cmd.ENTITY_OUS_NS, Cmd.ENTITY_OUS_AND_CHILDREN_NS,
+                                                                                            Cmd.ENTITY_OUS_SUSP, Cmd.ENTITY_OUS_AND_CHILDREN_SUSP,
+                                                                                            Cmd.ENTITY_CROS_OUS, Cmd.ENTITY_CROS_OUS_AND_CHILDREN])))
     if entitySelector == Cmd.ENTITY_SELECTOR_CSVKMD:
       if userAllowed:
         choices += Cmd.USER_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY] else [Cmd.ENTITY_USERS]
@@ -5372,14 +5432,17 @@ def batchRequestID(entityName, i, count, j, jcount, item, role=None, option=None
     return '{0}\n{1}\n{2}\n{3}\n{4}\n{5}'.format(entityName, i, count, j, jcount, item)
   return '{0}\n{1}\n{2}\n{3}\n{4}\n{5}\n{6}\n{7}'.format(entityName, i, count, j, jcount, item, role, option)
 
-# gam version [check] [simple|extended]
+# gam version [check|checkrc|simple|extended]
 def doVersion(checkForArgs=True):
-  forceCheck = simple = extended = False
+  forceCheck = 0
+  extended = simple = False
   if checkForArgs:
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if myarg == 'check':
-        forceCheck = True
+        forceCheck = 1
+      elif myarg == 'checkrc':
+        forceCheck = -1
       elif myarg == 'simple':
         simple = True
       elif myarg == 'extended':
@@ -5395,7 +5458,7 @@ def doVersion(checkForArgs=True):
                                   sys.version_info[3], googleapiclient.__version__, httplib2.__version__, oauth2client.__version__,
                                   platform.platform(), platform.machine(), GM.Globals[GM.GAM_PATH]))
   if forceCheck:
-    doGAMCheckForUpdates(forceCheck=True)
+    doGAMCheckForUpdates(forceCheck)
   if extended:
     printKeyValueList([ssl.OPENSSL_VERSION])
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -13777,9 +13840,9 @@ def doInfoMobileDevices():
         printLine(json.dumps(cleanJSON(mobile, timeObjects=MOBILE_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
       else:
         printEntity([Ent.MOBILE_DEVICE, resourceId], i, count)
+        Ind.Increment()
         if 'deviceId' in mobile:
           mobile['deviceId'] = mobile['deviceId'].encode('unicode-escape').decode(UTF8)
-        Ind.Increment()
         showJSON(None, mobile, timeObjects=MOBILE_TIME_OBJECTS)
         Ind.Decrement()
     except GAPI.internalError:
@@ -34155,10 +34218,12 @@ def deleteTeamDrive(users):
     try:
       teamDriveId = fileIdEntity['teamdrive']['driveId']
       callGAPI(drive.drives(), 'delete',
-               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.CANNOT_DELETE_RESOURCE_WITH_CHILDREN],
+               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.FORBIDDEN,
+                                                            GAPI.CANNOT_DELETE_RESOURCE_WITH_CHILDREN, GAPI.INSUFFICIENT_FILE_PERMISSIONS],
                driveId=teamDriveId)
       entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
-    except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.forbidden, GAPI.cannotDeleteResourceWithChildren) as e:
+    except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.forbidden,
+            GAPI.cannotDeleteResourceWithChildren, GAPI.insufficientFilePermissions) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)

@@ -377,19 +377,33 @@ Specify a collection of ChromeOS devices by directly specifying them or by speci
         (cros_ou_and_children|cros_org_and_children <OrgUnitItem>)|
         (cros_ous|cros_orgs <OrgUnitList>)|
         (cros_ous_and_children|cros_orgs_and_children <OrgUnitList>)|
-        (crosfile|crosfile_sn <FileName>|(gdoc <UserGoogleDoc>) [charset <Charset>] [delimiter <Character>])|
-        (datafile cros|cros_sn|cros_ous|cros_ous_and_children
-                <FileName>|(gdoc <UserGoogleDoc>) [charset <Charset>] [delimiter <Character>])|
         (crosquery <QueryCrOS>)|
         (crosqueries <QueryCrOSList>)|
-        (croscsvfile|croscsvfile_sn (<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>]
-                [fields <FieldNameList>] (matchfield|skipfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
-        (csvkmd cros|cros_sn|cros_ous|cros_ous_and_children
-                <FileName>|(gsheet <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
-                keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
-                subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+        (crosfile|crosfile_sn
+                (<FileName>|(gdoc <UserGoogleDoc>)
+                        [charset <Charset>] [delimiter <Character>]))|
+        (croscsvfile|croscsvfile_sn
+                ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)
+                        [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>])
+                [fields <FieldNameList>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
-                [datafield <FieldName>(:<FieldName)* [delimiter <Character>]])|
+                [delimiter <Character>])|
+        (datafile cros|cros_sn|cros_ous|cros_ous_and_children
+                (<FileName>|(gdoc <UserGoogleDoc>) [charset <Charset>] [delimiter <Character>]))|
+        (csvdatafile cros|cros_sn|cros_ous|cros_ous_and_children
+                ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)
+                        [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>])
+                [fields <FieldNameList>]
+                (matchfield|skipfield <FieldName> <RegularExpression>)*
+                [delimiter <Character>])|
+        (csvkmd cros|cros_sn|cros_ous|cros_ous_and_children
+                (<FileName>|(gsheet <UserGoogleSheet>) 
+                        [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>])
+                 [fields <FieldNameList>]
+                (keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>])+
+                (subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>])
+                (matchfield|skipfield <FieldName> <RegularExpression>)*
+                (datafield <FieldName>(:<FieldName)* [delimiter <Character>])*)|
         (croscsvdata <FieldName>(:<FieldName>*))
 
 ## Collections of Users
@@ -403,7 +417,9 @@ Specify a collection of Users by directly specifying them or by specifiying item
         (domains|domains_ns|domains_susp <DomainNameListList>)|
         (group|group_ns|group_susp <GroupItem>)|
         (groups|groups_ns|groups_susp <GroupList>)|
-        (group_users|group_users_ns|group_users_susp <GroupList> [members] [managers] [owners] [primarydomain] [domains <DomainNameList>] [recursive] end)|
+        (group_users|group_users_ns|group_users_susp <GroupList>
+                [members] [managers] [owners]
+                [primarydomain] [domains <DomainNameList>] [recursive] end)|
         (ou|ou_ns|ou_susp <OrgUnitItem>)|
         (ou_and_children|ou_and_children_ns|ou_and_children_susp <OrgUnitItem>)|
         (ous|ous_ns|ous_susp <OrgUnitList>)|
@@ -412,19 +428,41 @@ Specify a collection of Users by directly specifying them or by specifiying item
         (students <CourseIDList>)|
         (teachers <CourseIDList>)|
         (license|licenses|licence|licences <SKUIDList>)|
-        (file <FileName>|(gdoc <UserGoogleDoc>) [charset <Charset>] [delimiter <Character>])|
-        (datafile users|groups|groups_ns|groups_susp|ous|ous_ns|ous_susp|ous_and_children|ous_and_children_ns|ous_and_children_susp|courseparticipants|students|teachers
-                <FileName>|(gdoc <UserGoogleDoc>) [charset <Charset>] [delimiter <Character>])|
         (query <QueryUser>)|
         (queries <QueryUserList>)|
-        (csvfile (<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
-                (matchfield|skipfield <FieldName> <RegularExpression>)* [delimiter <Character>])|
-        (csvkmd users|groups|groups_ns_|groups_susp|ous|ous_ns|ous_susp|ous_and_children|ous_and_children_ns|ous_and_children_susp|courseparticipants|students|teachers
-                <FileName>|(gsheet <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
-                keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
-                subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+        (file
+                (<FileName>|(gdoc <UserGoogleDoc>)
+                        [charset <Charset>] [delimiter <Character>]))|
+        (csvfile
+                ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)
+                        [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>])
+                [fields <FieldNameList>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
-                [datafield <FieldName>(:<FieldName)* [delimiter <Character>]])|
+                [delimiter <Character>])|
+        (datafile users|groups|groups_ns|groups_susp|ous|ous_ns|ous_susp|
+                ous_and_children|ous_and_children_ns|ous_and_children_susp|
+                courseparticipants|students|teachers
+                (<FileName>|(gdoc <UserGoogleDoc>) [charset <Charset>] [delimiter <Character>]))|
+        (csvdatafile users|groups|groups_ns|groups_susp|ous|ous_ns|ous_susp|
+                ous_and_children|ous_and_children_ns|ous_and_children_susp|
+                courseparticipants|students|teachers
+                ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)
+                        [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>])
+                [fields <FieldNameList>]
+                (matchfield|skipfield <FieldName> <RegularExpression>)*
+                [delimiter <Character>])|
+        (csvkmd users|groups|groups_ns_|groups_susp|ous|ous_ns|ous_susp|
+                ous_and_children|ous_and_children_ns|ous_and_children_susp|
+                courseparticipants|students|teachers
+                (<FileName>|(gsheet <UserGoogleSheet>)
+                        [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>])
+                [fields <FieldNameList>]
+                (keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>]
+                        [delimiter <Character>])+
+                (subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>]
+                        [delimiter <Character>])*
+                (matchfield|skipfield <FieldName> <RegularExpression>)*
+                (datafield <FieldName>(:<FieldName)* [delimiter <Character>])*)|
         (csvdata <FieldName>(:<FieldName>*))
 
 ## Collections of Items
@@ -596,7 +634,7 @@ gam [<Select>] [<Config>] [<Redirect>] ...
 
 # Version and Help
 
-gam version [check] [simple]
+gam version [check|checkrc|simple|extended]
 gam help
 
 # Bulk Processing
