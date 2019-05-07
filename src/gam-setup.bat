@@ -1,6 +1,6 @@
 :neworupgrade
 @echo.
-@set /p nu= "Is this a new install or an upgrade? [n or u] "
+@set /p nu= "If you have installed any version of GAM on any computer for your domain, enter u to upgrade, otherwise enter n? [u or n] "
 @if /I "%nu%"=="u" (
 @  echo GAM installation and setup complete!
 @  goto alldone
