@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.82.08'
+__version__ = '4.82.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2378,6 +2378,7 @@ def SetGlobalVariables():
       printKeyValueList([Act.PerformedName(Act.COPY), srcFile, Msg.TO, dstFile])
 
   def _printValueError(sectionName, itemName, value, errMessage):
+    status['errors'] = True
     printErrorMessage(CONFIG_ERROR_RC,
                       formatKeyValueList('',
                                          [Ent.Singular(Ent.CONFIG_FILE), GM.Globals[GM.GAM_CFG_FILE],
@@ -2394,7 +2395,6 @@ def SetGlobalVariables():
     if value in FALSE_VALUES:
       return False
     _printValueError(sectionName, itemName, value, '{0}: {1}'.format(Msg.EXPECTED, formatChoiceList(TRUE_FALSE)))
-    status['errors'] = True
     return False
 
   def _getCfgCharacter(sectionName, itemName):
@@ -2404,7 +2404,6 @@ def SetGlobalVariables():
     if len(value) == 1:
       return value
     _printValueError(sectionName, itemName, '"{0}"'.format(value), '{0}: {1}'.format(Msg.EXPECTED, integerLimits(1, 1, Msg.STRING_LENGTH)))
-    status['errors'] = True
     return ''
 
   def _getCfgChoice(sectionName, itemName):
@@ -2413,7 +2412,6 @@ def SetGlobalVariables():
     if value in choices:
       return choices[value]
     _printValueError(sectionName, itemName, '"{0}"'.format(value), '{0}: {1}'.format(Msg.EXPECTED, ','.join(choices)))
-    status['errors'] = True
     return ''
 
   def _getCfgNumber(sectionName, itemName):
@@ -2426,7 +2424,6 @@ def SetGlobalVariables():
     except ValueError:
       pass
     _printValueError(sectionName, itemName, value, '{0}: {1}'.format(Msg.EXPECTED, integerLimits(minVal, maxVal)))
-    status['errors'] = True
     return 0
 
   def _getCfgHeaderFilter(sectionName, itemName):
@@ -2434,7 +2431,6 @@ def SetGlobalVariables():
     headerFilters = []
     if not value:
       return headerFilters
-    errors = 0
     splitStatus, filters = shlexSplitListStatus(value)
     if splitStatus:
       for filterStr in filters:
@@ -2442,12 +2438,8 @@ def SetGlobalVariables():
           headerFilters.append(re.compile(filterStr, re.IGNORECASE))
         except re.error as e:
           _printValueError(sectionName, itemName, '"{0}"'.format(filterStr), '{0}: {1}'.format(Msg.INVALID_RE, e))
-          errors += 1
     else:
       _printValueError(sectionName, itemName, '"{0}"'.format(value), '{0}: {1}'.format(Msg.INVALID_LIST, filters))
-      errors += 1
-    if errors:
-      status['errors'] = True
     return headerFilters
 
   ROW_FILTER_COMP_PATTERN = re.compile(r'^(date|time|count)\s*([<>]=?|=|!=)\s*(.+)$', re.IGNORECASE)
@@ -2459,9 +2451,8 @@ def SetGlobalVariables():
     rowFilters = {}
     if not value:
       return rowFilters
-    errors = 0
     try:
-      for column, filterStr in iteritems(json.loads(value)):
+      for column, filterStr in iteritems(json.loads(value.encode('unicode-escape').decode(UTF8))):
         mg = ROW_FILTER_COMP_PATTERN.match(filterStr)
         if mg:
           if mg.group(1) in ['date', 'time']:
@@ -2473,13 +2464,11 @@ def SetGlobalVariables():
               rowFilters[column] = (mg.group(1), mg.group(2), filterValue)
             else:
               _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: {1}'.format(Msg.EXPECTED, filterValue))
-              errors += 1
           else: #count
             if mg.group(3).isdigit():
               rowFilters[column] = (mg.group(1), mg.group(2), int(mg.group(3)))
             else:
               _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: <Number>'.format(Msg.EXPECTED))
-              errors += 1
           continue
         mg = ROW_FILTER_BOOL_PATTERN.match(filterStr)
         if mg:
@@ -2490,7 +2479,6 @@ def SetGlobalVariables():
             rowFilters[column] = (mg.group(1), False)
           else:
             _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: <Boolean>'.format(Msg.EXPECTED))
-            errors += 1
           continue
         mg = ROW_FILTER_RE_PATTERN.match(filterStr)
         if mg:
@@ -2498,14 +2486,10 @@ def SetGlobalVariables():
             rowFilters[column] = (mg.group(1), re.compile(mg.group(2)))
           except re.error as e:
             _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: {1}'.format(Msg.INVALID_RE, e))
-            errors += 1
           continue
         _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: {1}'.format(Msg.EXPECTED, 'date|time|count<Operator><Value> or boolean:<Boolean> or regex:<RegularExpression>'))
     except (TypeError, ValueError) as e:
       _printValueError(sectionName, itemName, '"{0}"'.format(value), '{0}: {1}'.format(Msg.FAILED_TO_PARSE_AS_JSON, str(e)))
-      errors += 1
-    if errors:
-      status['errors'] = True
     return rowFilters
 
   def _getCfgSection(sectionName, itemName):
@@ -2515,7 +2499,6 @@ def SetGlobalVariables():
     if GM.Globals[GM.PARSER].has_section(value):
       return value
     _printValueError(sectionName, itemName, value, Msg.NOT_FOUND)
-    status['errors'] = True
     return configparser.DEFAULTSECT
 
   def _getCfgString(sectionName, itemName):
@@ -2524,7 +2507,6 @@ def SetGlobalVariables():
     if ((minLen is None) or (len(value) >= minLen)) and ((maxLen is None) or (len(value) <= maxLen)):
       return value
     _printValueError(sectionName, itemName, '"{0}"'.format(value), '{0}: {1}'.format(Msg.EXPECTED, integerLimits(minLen, maxLen, Msg.STRING_LENGTH)))
-    status['errors'] = True
     return ''
 
   def _getCfgTimezone(sectionName, itemName):
@@ -2540,7 +2522,6 @@ def SetGlobalVariables():
     except (iso8601.ParseError, OverflowError):
       pass
     _printValueError(sectionName, itemName, value, '{0}: {1}'.format(Msg.EXPECTED, TIMEZONE_FORMAT_REQUIRED))
-    status['errors'] = True
     return ''
 
   def _getCfgDirectory(sectionName, itemName):
@@ -2821,7 +2802,7 @@ def SetGlobalVariables():
   httplib2._build_ssl_context = _build_ssl_context
 # Reset global variables if required
   if prevExtraArgsTxt != GC.Values[GC.EXTRA_ARGS]:
-    GM.Globals[GM.EXTRA_ARGS_LIST] = []
+    GM.Globals[GM.EXTRA_ARGS_LIST] = [('prettyPrint', GC.Values[GC.DEBUG_LEVEL] > 0)]
     if GC.Values[GC.EXTRA_ARGS]:
       ea_config = configparser.ConfigParser()
       ea_config.optionxform = str
@@ -3242,7 +3223,7 @@ def callGDataPages(service, function,
 
 def checkGAPIError(e, soft_errors=False, retryOnHttpError=False, service=None):
   try:
-    error = json.loads(e.content)
+    error = json.loads(e.content.decode(UTF8))
   except ValueError:
     eContent = e.content.decode(UTF8) if isinstance(e.content, bytes) else e.content
     if (e.resp['status'] == '503') and (eContent.startswith('Quota exceeded for the current request')):
@@ -5182,7 +5163,7 @@ def writeCSVfile(csvRows, titles, list_type, todrive, sortTitles=None, quotechar
       if column not in titles['set']:
         stderrWarningMsg('{0} column "{1}" is not in output columns'.format(GC.CSV_OUTPUT_ROW_FILTER, column))
         continue
-      if filterVal[0] == 'reex':
+      if filterVal[0] == 'regex':
         csvRows = [row for row in csvRows if filterVal[1].search(row.get(column, ''))]
       elif filterVal[0] in ['date', 'time']:
         csvRows = [row for row in csvRows if rowDateTimeFilterMatch(filterVal[0] == 'date', row.get(column, ''), filterVal[1], filterVal[2])]
@@ -30098,12 +30079,12 @@ def printShowFileCounts(users):
       if getPermissionsForTeamDrives and f_file.get('driveId') and 'permissions' not in f_file:
         try:
           f_file['permissions'] = callGAPIpages(drive.permissions(), 'list', VX_PAGES_PERMISSIONS,
-                                                throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                                                throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST],
                                                 fileId=f_file['id'], fields=permissionsFields, supportsAllDrives=True)
           if not DLP.CheckPermissonMatches(f_file):
             continue
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.internalError,
-                GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
+                GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy, GAPI.badRequest):
           continue
       total += 1
       mimeTypeCounts.setdefault(f_file['mimeType'], 0)

@@ -1,3 +1,9 @@
+4.82.09
+
+Code cleanup.
+
+Fixed bugs in encoding and processing csv_output_row_filter.
+
 4.82.08
 
 Handle `insufficientFilePermissions - The user does not have sufficient permissions for this file.` error
