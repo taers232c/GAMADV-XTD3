@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.82.09'
+__version__ = '4.82.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -27004,11 +27004,13 @@ def updateCalendarAttendees(users):
       k = 0
       for event in events:
         k += 1
+        eventSummary = event.get('summary', event['id'])
         if event['status'] == 'cancelled':
+          entityActionNotPerformedWarning([Ent.EVENT, eventSummary], Msg.EVENT_IS_CANCELED, k, kcount)
           continue
         if not anyOrganizer and not event.get('organizer', {}).get('self'):
+          entityActionNotPerformedWarning([Ent.EVENT, eventSummary], Msg.USER_IS_NOT_ORGANIZER, k, kcount)
           continue
-        eventSummary = event.get('summary', event['id'])
         needsUpdate = False
         for _, v in sorted(iteritems(attendeeMap)):
           v['done'] = False
@@ -27073,7 +27075,7 @@ def updateCalendarAttendees(users):
             if v['status'] is not None:
               attendee['responseStatus'] = v['status']
             if v['optional'] is not None:
-              attendee['optional'] = True
+              attendee['optional'] = v['optional']
             Act.Set(Act.ADD)
             entityPerformAction([Ent.EVENT, eventSummary, Ent.ATTENDEE, newAddr], u, ucount)
             updatedAttendees.append(attendee)

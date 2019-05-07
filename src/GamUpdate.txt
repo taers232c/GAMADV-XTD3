@@ -1,3 +1,7 @@
+4.82.10
+
+Fixed bug in `gam update calattendees` where an attendee's optional status was not properly set.
+
 4.82.09
 
 Code cleanup.
