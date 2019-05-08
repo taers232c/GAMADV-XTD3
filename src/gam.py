@@ -26111,7 +26111,7 @@ def getUserCalendarEntity(default='primary', noSelectionKwargs=None):
       calendarEntity['resourceIds'].extend(convertEntityToList(getString(Cmd.OB_RESOURCE_ID, minLen=0), shlexSplit=True))
     elif _getCourseCalendarSelectionParameters(myarg):
       courseCalendarSelected = True
-    elif _noSelectionMade() and myarg.find('@') != -1 or myarg.find('id:') != -1:
+    elif _noSelectionMade() and (myarg.find('@') != -1 or myarg.find('id:') != -1):
       calendarEntity['list'].extend(convertEntityToList(Cmd.Previous(), shlexSplit=True))
     else:
       Cmd.Backup()
