@@ -1,3 +1,13 @@
+4.82.11
+
+`<UniqueID>` has been added to `<UserCalendarAddEntity>` and `<UserCalendarEntity>` to allow
+specification of user calendars by their user, group or resource ID.
+
+Previously (changeover date uncertain), when the Drive API was used to access a Team Drive,
+it returned "Team Drive" as the name of all Team Drives; Gam would make an additional API call to get
+the actual name. Now, the Drive API returns the name "Drive" for all Team Drives; Gam now
+recognizes the new name and makes the additional API call to get the actual name.
+
 4.82.10
 
 Fixed bug in `gam update calattendees` where an attendee's optional status was not properly set.

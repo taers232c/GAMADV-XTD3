@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.82.10'
+__version__ = '4.82.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -195,7 +195,7 @@ FN_GAM_CFG = 'gam.cfg'
 FN_LAST_UPDATE_CHECK_TXT = 'lastupdatecheck.txt'
 FN_GAMCOMMANDS_TXT = 'GamCommands.txt'
 MY_DRIVE = 'My Drive'
-TEAM_DRIVE = 'Team Drive'
+TEAM_DRIVE = 'Drive'
 
 # Python 3.7 values
 DEFAULT_CSV_READ_MODE = 'r'
@@ -2448,11 +2448,16 @@ def SetGlobalVariables():
 
   def _getCfgRowFilter(sectionName, itemName):
     value = _stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName))
-    rowFilters = {}
+    rowFilters = []
     if not value:
       return rowFilters
     try:
       for column, filterStr in iteritems(json.loads(value.encode('unicode-escape').decode(UTF8))):
+        try:
+          columnPat = re.compile(column, re.IGNORECASE)
+        except re.error as e:
+          _printValueError(sectionName, itemName, '"{0}"'.format(column), '{0}: {1}'.format(Msg.INVALID_RE, e))
+          continue
         mg = ROW_FILTER_COMP_PATTERN.match(filterStr)
         if mg:
           if mg.group(1) in ['date', 'time']:
@@ -2461,12 +2466,12 @@ def SetGlobalVariables():
             else:
               valid, filterValue = getRowFilterTimeOrDeltaFromNow(mg.group(3))
             if valid:
-              rowFilters[column] = (mg.group(1), mg.group(2), filterValue)
+              rowFilters.append((columnPat, mg.group(1), mg.group(2), filterValue))
             else:
               _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: {1}'.format(Msg.EXPECTED, filterValue))
           else: #count
             if mg.group(3).isdigit():
-              rowFilters[column] = (mg.group(1), mg.group(2), int(mg.group(3)))
+              rowFilters.append((columnPat, mg.group(1), mg.group(2), int(mg.group(3))))
             else:
               _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: <Number>'.format(Msg.EXPECTED))
           continue
@@ -2474,16 +2479,16 @@ def SetGlobalVariables():
         if mg:
           filterValue = mg.group(2).lower()
           if filterValue in TRUE_VALUES:
-            rowFilters[column] = (mg.group(1), True)
+            rowFilters.append((columnPat, mg.group(1), True))
           elif filterValue in FALSE_VALUES:
-            rowFilters[column] = (mg.group(1), False)
+            rowFilters.append((columnPat, mg.group(1), False))
           else:
             _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: <Boolean>'.format(Msg.EXPECTED))
           continue
         mg = ROW_FILTER_RE_PATTERN.match(filterStr)
         if mg:
           try:
-            rowFilters[column] = (mg.group(1), re.compile(mg.group(2)))
+            rowFilters.append((columnPat, mg.group(1), re.compile(mg.group(2))))
           except re.error as e:
             _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: {1}'.format(Msg.INVALID_RE, e))
           continue
@@ -3721,7 +3726,11 @@ def getSitesObject(entityType=Ent.DOMAIN, entityName=None, i=0, count=0):
   return (userEmail, sitesObject)
 
 # Convert UID to email address
-def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, emailType='user', checkForCustomerId=False):
+def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, emailTypes=None, checkForCustomerId=False):
+  if emailTypes is None:
+    emailTypes = ['user']
+  elif not isinstance(emailTypes, list):
+    emailTypes = [emailTypes] if emailTypes != 'any' else ['user', 'group']
   if checkForCustomerId and (emailAddressOrUID == GC.Values[GC.CUSTOMER_ID]):
     return emailAddressOrUID
   normalizedEmailAddressOrUID = normalizeEmailAddressOrUID(emailAddressOrUID)
@@ -3729,7 +3738,7 @@ def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, emailType='user', check
     return normalizedEmailAddressOrUID
   if cd is None:
     cd = buildGAPIObject(API.DIRECTORY)
-  if emailType != 'group':
+  if 'user' in emailTypes:
     try:
       result = callGAPI(cd.users(), 'get',
                         throw_reasons=GAPI.USER_GET_THROW_REASONS,
@@ -3738,7 +3747,7 @@ def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, emailType='user', check
         return result['primaryEmail'].lower()
     except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
       pass
-  if emailType != 'user':
+  if 'group' in emailTypes:
     try:
       result = callGAPI(cd.groups(), 'get',
                         throw_reasons=GAPI.GROUP_GET_THROW_REASONS,
@@ -3746,6 +3755,16 @@ def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, emailType='user', check
       if 'email' in result:
         return result['email'].lower()
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest):
+      pass
+  if 'resource' in emailTypes:
+    try:
+      result = callGAPI(cd.resources().calendars(), 'get',
+                        throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                        calendarResourceId=normalizedEmailAddressOrUID,
+                        customer=GC.Values[GC.CUSTOMER_ID], fields='resourceEmail')
+      if 'resourceEmail' in result:
+        return result['resourceEmail'].lower()
+    except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       pass
   return normalizedEmailAddressOrUID
 
@@ -5112,45 +5131,66 @@ def writeCSVfile(csvRows, titles, list_type, todrive, sortTitles=None, quotechar
           entityActionFailedWarning([Ent.DRIVE_FILE, todrive['fileId']], str(e))
     closeFile(csvBytes)
 
-  def rowDateTimeFilterMatch(dateMode, rowDate, op, filterDate):
-    if not rowDate:
-      return False
-    if rowDate == GC.Values[GC.NEVER_TIME]:
-      rowDate = NEVER_TIME
-    if dateMode:
-      rowTime, tz = iso8601.parse_date(rowDate)
-      rowDate = ISOformatTimeStamp(datetime.datetime(rowTime.year, rowTime.month, rowTime.day, tzinfo=tz))
-    if op == '<':
-      return rowDate < filterDate
-    if op == '<=':
-      return rowDate <= filterDate
-    if op == '>':
-      return rowDate > filterDate
-    if op == '>=':
-      return rowDate >= filterDate
-    if op == '!=':
-      return rowDate != filterDate
-    return rowDate == filterDate
+  def rowRegexFilterMatch(row, columns, filterPattern):
+    for column in columns:
+      if filterPattern.search(row.get(column, '')):
+        return True
+    return False
 
-  def rowCountFilterMatch(rowCount, op, filterCount):
-    if not isinstance(rowCount, int):
-      return False
-    if op == '<':
-      return rowCount < filterCount
-    if op == '<=':
-      return rowCount <= filterCount
-    if op == '>':
-      return rowCount > filterCount
-    if op == '>=':
-      return rowCount >= filterCount
-    if op == '!=':
-      return rowCount != filterCount
-    return rowCount == filterCount
+  def rowDateTimeFilterMatch(dateMode, row, columns, op, filterDate):
+    def checkMatch(rowDate):
+      if not rowDate:
+        return False
+      if rowDate == GC.Values[GC.NEVER_TIME]:
+        rowDate = NEVER_TIME
+      if dateMode:
+        rowTime, tz = iso8601.parse_date(rowDate)
+        rowDate = ISOformatTimeStamp(datetime.datetime(rowTime.year, rowTime.month, rowTime.day, tzinfo=tz))
+      if op == '<':
+        return rowDate < filterDate
+      if op == '<=':
+        return rowDate <= filterDate
+      if op == '>':
+        return rowDate > filterDate
+      if op == '>=':
+        return rowDate >= filterDate
+      if op == '!=':
+        return rowDate != filterDate
+      return rowDate == filterDate
+    for column in columns:
+      if checkMatch(row.get(column, '')):
+        return True
+    return False
 
-  def rowBooleanFilterMatch(rowBoolean, filterBoolean):
-    if not isinstance(rowBoolean, bool):
-      return False
-    return rowBoolean == filterBoolean
+  def rowCountFilterMatch(row, columns, op, filterCount):
+    def checkMatch(rowCount):
+      if not isinstance(rowCount, int):
+        return False
+      if op == '<':
+        return rowCount < filterCount
+      if op == '<=':
+        return rowCount <= filterCount
+      if op == '>':
+        return rowCount > filterCount
+      if op == '>=':
+        return rowCount >= filterCount
+      if op == '!=':
+        return rowCount != filterCount
+      return rowCount == filterCount
+    for column in columns:
+      if checkMatch(row.get(column, '')):
+        return True
+    return False
+
+  def rowBooleanFilterMatch(row, columns, filterBoolean):
+    def checkMatch(rowBoolean):
+      if not isinstance(rowBoolean, bool):
+        return False
+      return rowBoolean == filterBoolean
+    for column in columns:
+      if checkMatch(row.get(column, False)):
+        return True
+    return False
 
   def headerFilterMatch(title):
     for filterStr in GC.Values[GC.CSV_OUTPUT_HEADER_FILTER]:
@@ -5159,18 +5199,19 @@ def writeCSVfile(csvRows, titles, list_type, todrive, sortTitles=None, quotechar
     return False
 
   if GC.Values[GC.CSV_OUTPUT_ROW_FILTER]:
-    for column, filterVal in iteritems(GC.Values[GC.CSV_OUTPUT_ROW_FILTER]):
-      if column not in titles['set']:
-        stderrWarningMsg('{0} column "{1}" is not in output columns'.format(GC.CSV_OUTPUT_ROW_FILTER, column))
+    for filterVal in GC.Values[GC.CSV_OUTPUT_ROW_FILTER]:
+      columns = [t for t in titles['list'] if filterVal[0].match(t)]
+      if not columns:
+        stderrWarningMsg(Msg.COLUMN_DOES_NOT_MATCH_ANY_OUTPUT_COLUMNS.format(GC.CSV_OUTPUT_ROW_FILTER, filterVal[0].pattern))
         continue
-      if filterVal[0] == 'regex':
-        csvRows = [row for row in csvRows if filterVal[1].search(row.get(column, ''))]
-      elif filterVal[0] in ['date', 'time']:
-        csvRows = [row for row in csvRows if rowDateTimeFilterMatch(filterVal[0] == 'date', row.get(column, ''), filterVal[1], filterVal[2])]
-      elif filterVal[0] == 'count':
-        csvRows = [row for row in csvRows if rowCountFilterMatch(row.get(column, ''), filterVal[1], filterVal[2])]
+      if filterVal[1] == 'regex':
+        csvRows = [row for row in csvRows if rowRegexFilterMatch(row, columns, filterVal[2])]
+      elif filterVal[1] in ['date', 'time']:
+        csvRows = [row for row in csvRows if rowDateTimeFilterMatch(filterVal[1] == 'date', row, columns, filterVal[2], filterVal[3])]
+      elif filterVal[1] == 'count':
+        csvRows = [row for row in csvRows if rowCountFilterMatch(row, columns, filterVal[2], filterVal[3])]
       else: #boolean
-        csvRows = [row for row in csvRows if rowBooleanFilterMatch(row.get(column, False), filterVal[1])]
+        csvRows = [row for row in csvRows if rowBooleanFilterMatch(row, columns, filterVal[2])]
   if GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] is not None:
     GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_NAME, list_type))
     GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_TODRIVE, todrive))
@@ -14694,7 +14735,7 @@ def doUpdateGroups():
         addMembers = groupMemberLists[group]
       group = checkGroupExists(cd, group, i, count)
       if group:
-        _batchAddGroupMembers(group, i, count, [convertUIDtoEmailAddress(member, cd=cd, emailType='any', checkForCustomerId=True) for member in addMembers],
+        _batchAddGroupMembers(group, i, count, [convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True) for member in addMembers],
                               role, delivery_settings)
   elif CL_subCommand in ['delete', 'remove']:
     role, groupMemberType = _getRoleGroupMemberType()
@@ -14711,7 +14752,7 @@ def doUpdateGroups():
         removeMembers = groupMemberLists[group]
       group = checkGroupExists(cd, group, i, count)
       if group:
-        _batchRemoveGroupMembers(group, i, count, [convertUIDtoEmailAddress(member, cd=cd, emailType='any', checkForCustomerId=True) for member in removeMembers], role)
+        _batchRemoveGroupMembers(group, i, count, [convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True) for member in removeMembers], role)
   elif CL_subCommand == 'sync':
     role, groupMemberType = _getRoleGroupMemberType()
     syncOperation = getChoice(['addonly', 'removeonly'], defaultChoice='addremove')
@@ -14724,7 +14765,7 @@ def doUpdateGroups():
       syncMembersSet = set()
       syncMembersMap = {}
       for member in syncMembers:
-        syncMembersSet.add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailType='any', checkForCustomerId=True), syncMembersMap))
+        syncMembersSet.add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True), syncMembersMap))
     checkForExtraneousArguments()
     i = 0
     count = len(entityList)
@@ -14734,7 +14775,7 @@ def doUpdateGroups():
         syncMembersSet = set()
         syncMembersMap = {}
         for member in groupMemberLists[group]:
-          syncMembersSet.add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailType='any', checkForCustomerId=True), syncMembersMap))
+          syncMembersSet.add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True), syncMembersMap))
       group = checkGroupExists(cd, group, i, count)
       if group:
         currentMembersSet = set()
@@ -14766,7 +14807,7 @@ def doUpdateGroups():
         updateMembers = groupMemberLists[group]
       group = checkGroupExists(cd, group, i, count)
       if group:
-        _batchUpdateGroupMembers(group, i, count, [convertUIDtoEmailAddress(member, cd=cd, emailType='any', checkForCustomerId=True) for member in updateMembers],
+        _batchUpdateGroupMembers(group, i, count, [convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True) for member in updateMembers],
                                  role, delivery_settings)
   else: #clear
     isSuspended = None
@@ -17173,7 +17214,7 @@ def doPrintShowResourceCalendars():
 # Calendar commands utilities
 def normalizeCalendarId(calId, user):
   if not user or calId.lower() != 'primary':
-    return normalizeEmailAddressOrUID(calId)
+    return convertUIDtoEmailAddress(calId, emailTypes=['user', 'resource'])
   return user
 
 def checkCalendarExists(cal, calId, showMessage=False):
@@ -26070,8 +26111,8 @@ def getUserCalendarEntity(default='primary', noSelectionKwargs=None):
       calendarEntity['resourceIds'].extend(convertEntityToList(getString(Cmd.OB_RESOURCE_ID, minLen=0), shlexSplit=True))
     elif _getCourseCalendarSelectionParameters(myarg):
       courseCalendarSelected = True
-    elif _noSelectionMade() and myarg.find('@') != -1:
-      calendarEntity['list'].extend(convertEntityToList(Cmd.Previous().lower()))
+    elif _noSelectionMade() and myarg.find('@') != -1 or myarg.find('id:') != -1:
+      calendarEntity['list'].extend(convertEntityToList(Cmd.Previous(), shlexSplit=True))
     else:
       Cmd.Backup()
       break

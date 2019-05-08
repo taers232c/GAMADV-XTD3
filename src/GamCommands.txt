@@ -2581,6 +2581,7 @@ gam <UserTypeEntity> show backupcodes|verificationcodes
 
 <UserCalendarAddEntity> ::=
         <EmailAddress>|
+        <UniqueID>|
         (courses <CourseIDList>)|
         ((courses_with_teacher <UserItem>)|my_courses_as_teacher [coursestates <CourseStateList>])|
         ((courses_with_student <UserItem>)|my_courses_as_student [coursestates <CourseStateList>])|
@@ -2592,6 +2593,7 @@ gam <UserTypeEntity> show backupcodes|verificationcodes
         allcalendars|
         primary|
         <EmailAddress>|
+        <UniqueID>|
         (courses <CourseIDList>)|
         ((courses_with_teacher <UserItem>)|my_courses_as_teacher [coursestates <CourseStateList>])|
         ((courses_with_student <UserItem>)|my_courses_as_student [coursestates <CourseStateList>])|
