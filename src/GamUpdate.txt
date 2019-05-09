@@ -1,3 +1,11 @@
+4.82.12
+
+Modified the behavior of the `from` and `to` options in `gam create filter`. Previously,
+if you entered `gam user user@domain.com create filter from foo.com ...`, Gam would
+treat `foo.com` as an email address and, as there is no `@`, it would add `domain.com`
+from `gam.cfg` yielding `foo.com@domain.com`. This prevents you from creating correct filters.
+Now, Gam just passes whatever comes after `from` and `to` directly to the API unchanged.
+
 4.82.11
 
 `<UniqueID>` has been added to `<UserCalendarAddEntity>` and `<UserCalendarEntity>` to allow

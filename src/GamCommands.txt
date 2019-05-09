@@ -3255,13 +3255,13 @@ gam <UserTypeEntity> print delegates|delegate [todrive <ToDriveAttribute>*] [sho
 
 <FilterCriteria> ::=
         excludechats|
-        (from <EmailAddress>)|
+        (from <String>)|
         (haswords|query <List>)|
         (musthaveattachment|hasattachment)|
         (nowords|negatedquery <List>)|
         (size larger|smaller <ByteCount>)|
         (subject <String>)|
-        (to <EmailAddress>)
+        (to <String>)
 
 <FilterAction> ::=
         archive|

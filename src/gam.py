@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.82.11'
+__version__ = '4.82.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5164,7 +5164,11 @@ def writeCSVfile(csvRows, titles, list_type, todrive, sortTitles=None, quotechar
 
   def rowCountFilterMatch(row, columns, op, filterCount):
     def checkMatch(rowCount):
-      if not isinstance(rowCount, int):
+      if isinstance(rowCount, string_types):
+        if not rowCount.isdigit():
+          return False
+        rowCount = int(rowCount)
+      elif not isinstance(rowCount, int):
         return False
       if op == '<':
         return rowCount < filterCount
@@ -5178,7 +5182,7 @@ def writeCSVfile(csvRows, titles, list_type, todrive, sortTitles=None, quotechar
         return rowCount != filterCount
       return rowCount == filterCount
     for column in columns:
-      if checkMatch(row.get(column, '')):
+      if checkMatch(row.get(column, 0)):
         return True
     return False
 
@@ -37546,9 +37550,7 @@ def createFilter(users):
     if myarg in FILTER_CRITERIA_CHOICE_MAP:
       myarg = FILTER_CRITERIA_CHOICE_MAP[myarg]
       body.setdefault('criteria', {})
-      if myarg in ['from', 'to']:
-        body['criteria'][myarg] = getEmailAddress(noUid=True)
-      elif myarg in ['subject', 'query', 'negatedQuery']:
+      if myarg in ['from', 'to', 'subject', 'query', 'negatedQuery']:
         body['criteria'][myarg] = getString(Cmd.OB_STRING)
       elif myarg in ['hasAttachment', 'excludeChats']:
         body['criteria'][myarg] = True
