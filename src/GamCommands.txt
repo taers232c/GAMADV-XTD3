@@ -2078,8 +2078,10 @@ gam delete resources <ResourceEntity>
 gam info resources <ResourceEntity> [acls] [calendar] [formatjson]
 
 gam show resources [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)]
+        [query <String>]
         [acls] [calendar] [convertcrnl] [formatjson]
 gam print resources [todrive <ToDriveAttribute>*] [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)]
+        [query <String>]
         [acls] [calendar] [convertcrnl] [formatjson] [quotechar <Character>]
 
 <CalendarACLRole> ::= editor|freebusy|freebusyreader|owner|reader|writer|none

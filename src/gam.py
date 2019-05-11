@@ -18,11 +18,11 @@
 # limitations under the License.
 """GAMADV-XTD3 is a command line tool which allows Administrators to control their G Suite domain and accounts.
 
-For more information, see https://github.com/taers232c/GAMADV-XTD
+For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.82.12'
+__version__ = '4.83.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -189,6 +189,7 @@ SECONDS_PER_MINUTE = 60
 SECONDS_PER_HOUR = 3600
 SECONDS_PER_DAY = 86400
 SECONDS_PER_WEEK = 604800
+MAX_GOOGLE_SHEET_CELLS = 5000000 # See https://support.google.com/drive/answer/37603
 UTF8 = 'utf-8'
 UTF8_SIG = 'utf-8-sig'
 FN_GAM_CFG = 'gam.cfg'
@@ -2659,7 +2660,8 @@ def SetGlobalVariables():
       GM.Globals[stdtype][GM.REDIRECT_FD] = open(os.devnull, mode)
     elif filename == '-':
       GM.Globals[stdtype][GM.REDIRECT_STD] = True
-      GM.Globals[stdtype][GM.REDIRECT_FD] = os.fdopen(os.dup([sys.stderr.fileno(), sys.stdout.fileno()][stdtype == GM.STDOUT]), mode, encoding=GM.Globals[GM.SYS_ENCODING])
+      GM.Globals[stdtype][GM.REDIRECT_FD] = os.fdopen(os.dup([sys.stderr.fileno(), sys.stdout.fileno()][stdtype == GM.STDOUT]),
+                                                      mode, encoding=GM.Globals[GM.SYS_ENCODING])
     else:
       if filename.startswith('./') or filename.startswith('.\\'):
         filename = os.path.join(os.getcwd(), filename[2:])
@@ -5075,7 +5077,7 @@ def writeCSVfile(csvRows, titles, list_type, todrive, sortTitles=None, quotechar
       try:
         if GC.Values[GC.TODRIVE_CONVERSION]:
           result = callGAPI(drive.about(), 'get', fields='maxImportSizes')
-          if len(csvRows)*len(titles['list']) > 5000000 or importSize > int(result['maxImportSizes'][MIMETYPE_GA_SPREADSHEET]):
+          if len(csvRows)*len(titles['list']) > MAX_GOOGLE_SHEET_CELLS or importSize > int(result['maxImportSizes'][MIMETYPE_GA_SPREADSHEET]):
             printKeyValueList([WARNING, Msg.RESULTS_TOO_LARGE_FOR_GOOGLE_SPREADSHEET])
             mimeType = 'text/csv'
           else:
@@ -5526,8 +5528,24 @@ def restoreNonPickleableValues(savedValues):
   GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD] = savedValues[GM.STDOUT][GM.REDIRECT_MULTI_FD]
   GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = savedValues[GM.STDERR][GM.REDIRECT_MULTI_FD]
 
-def CSVFileQueueHandler(mpQueue, mpQueueStderr):
+def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr):
   global Cmd
+
+  def reopenSTDFile(stdtype):
+    if GM.Globals[stdtype][GM.REDIRECT_NAME] == 'null':
+      GM.Globals[stdtype][GM.REDIRECT_FD] = open(os.devnull, GM.Globals[stdtype][GM.REDIRECT_MODE])
+    elif GM.Globals[stdtype][GM.REDIRECT_NAME] == '-':
+      GM.Globals[stdtype][GM.REDIRECT_FD] = os.fdopen(os.dup([sys.stderr.fileno(), sys.stdout.fileno()][stdtype == GM.STDOUT]),
+                                                      GM.Globals[stdtype][GM.REDIRECT_MODE], encoding=GM.Globals[GM.SYS_ENCODING])
+    elif stdtype == GM.STDERR and GM.Globals[stdtype][GM.REDIRECT_NAME] == 'stdout':
+      GM.Globals[stdtype][GM.REDIRECT_FD] = GM.Globals[GM.STDOUT][GM.REDIRECT_FD]
+    else:
+      GM.Globals[stdtype][GM.REDIRECT_FD] = openFile(GM.Globals[stdtype][GM.REDIRECT_NAME], GM.Globals[stdtype][GM.REDIRECT_MODE])
+    if stdtype == GM.STDERR and GM.Globals[stdtype][GM.REDIRECT_NAME] == 'stdout':
+      GM.Globals[stdtype][GM.REDIRECT_MULTI_FD] = GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD]
+    else:
+      GM.Globals[stdtype][GM.REDIRECT_MULTI_FD] = GM.Globals[stdtype][GM.REDIRECT_FD] if not GM.Globals[stdtype][GM.REDIRECT_MULTIPROCESS] else StringIOobject()
+
   if sys.platform.startswith('win'):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
   if GM.Globals[GM.WINDOWS]:
@@ -5558,23 +5576,25 @@ def CSVFileQueueHandler(mpQueue, mpQueueStderr):
     elif dataType == GM.REDIRECT_QUEUE_GLOBALS:
       GM.Globals = dataItem
       if GM.Globals[GM.WINDOWS]:
-        if GM.Globals[GM.STDOUT][GM.REDIRECT_NAME] == '-' and not GM.Globals[GM.STDOUT][GM.REDIRECT_MULTIPROCESS]:
-          GM.Globals[GM.STDOUT][GM.REDIRECT_FD] = GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD] = sys.stdout
-        if GM.Globals[GM.STDERR][GM.REDIRECT_NAME] == '-' and not GM.Globals[GM.STDERR][GM.REDIRECT_MULTIPROCESS]:
-          GM.Globals[GM.STDERR][GM.REDIRECT_FD] = GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = sys.stderr
-        elif GM.Globals[GM.STDERR][GM.REDIRECT_NAME] == 'stdout' and not GM.Globals[GM.STDERR][GM.REDIRECT_MULTIPROCESS]:
-          GM.Globals[GM.STDERR][GM.REDIRECT_FD] = GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = sys.stdout
+        reopenSTDFile(GM.STDOUT)
+        reopenSTDFile(GM.STDERR)
     elif dataType == GM.REDIRECT_QUEUE_VALUES:
       GC.Values = dataItem
     else:
       break
   writeCSVfile(csvRows, titles, list_type, todrive, sortTitles, quotechar, fixPaths)
-  if mpQueueStderr is not None:
+  if mpQueueStdout:
+    mpQueueStdout.put((0, GM.REDIRECT_QUEUE_DATA, GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD].getvalue()))
+  else:
+    flushStdout()
+  if mpQueueStderr and mpQueueStderr is not mpQueueStdout:
     mpQueueStderr.put((0, GM.REDIRECT_QUEUE_DATA, GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD].getvalue()))
+  else:
+    flushStderr()
 
-def initializeCSVFileQueueHandler(mpQueueStderr):
+def initializeCSVFileQueueHandler(mpQueueStdout, mpQueueStderr):
   mpQueue = multiprocessing.Manager().Queue()
-  mpQueueHandler = multiprocessing.Process(target=CSVFileQueueHandler, args=(mpQueue, mpQueueStderr))
+  mpQueueHandler = multiprocessing.Process(target=CSVFileQueueHandler, args=(mpQueue, mpQueueStdout, mpQueueStderr))
   mpQueueHandler.start()
   return (mpQueue, mpQueueHandler)
 
@@ -5624,7 +5644,7 @@ def StdQueueHandler(mpQueue, stdtype, gmGlobals, gcValues):
     elif GM.Globals[stdtype][GM.REDIRECT_NAME] == '-':
       fd = os.fdopen(os.dup([sys.stderr.fileno(), sys.stdout.fileno()][GM.Globals[stdtype][GM.REDIRECT_QUEUE] == 'stdout']),
                      GM.Globals[stdtype][GM.REDIRECT_MODE], encoding=GM.Globals[GM.SYS_ENCODING])
-    elif GM.Globals[stdtype][GM.REDIRECT_NAME] == 'stdout'and GM.Globals[stdtype][GM.REDIRECT_QUEUE] == 'stderr':
+    elif GM.Globals[stdtype][GM.REDIRECT_NAME] == 'stdout' and GM.Globals[stdtype][GM.REDIRECT_QUEUE] == 'stderr':
       fd = os.fdopen(os.dup(sys.stdout.fileno()), GM.Globals[stdtype][GM.REDIRECT_MODE], encoding=GM.Globals[GM.SYS_ENCODING])
     else:
       fd = openFile(GM.Globals[stdtype][GM.REDIRECT_NAME], GM.Globals[stdtype][GM.REDIRECT_MODE])
@@ -5751,7 +5771,7 @@ def MultiprocessGAMCommands(items, logCmds):
   if GM.Globals[GM.WINDOWS]:
     restoreNonPickleableValues(savedValues)
   if GM.Globals[GM.CSVFILE][GM.REDIRECT_MULTIPROCESS]:
-    mpQueueCSVFile, mpQueueHandlerCSVFile = initializeCSVFileQueueHandler(mpQueueStderr)
+    mpQueueCSVFile, mpQueueHandlerCSVFile = initializeCSVFileQueueHandler(mpQueueStdout, mpQueueStderr)
   else:
     mpQueueCSVFile = None
   signal.signal(signal.SIGINT, origSigintHandler)
@@ -17104,14 +17124,16 @@ RESOURCE_FIELDS_CHOICE_MAP = {
   }
 
 # gam show resources [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)]
+#	[query <String>]
 #	[acls] [calendar] [convertcrnl] [formatjson]
 # gam print resources [todrive <ToDriveAttributes>*] [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)]
+#	[query <String>]
 #	[acls] [calendar] [convertcrnl] [formatjson] [quotechar <Character>]
 def doPrintShowResourceCalendars():
   cd = buildGAPIObject(API.DIRECTORY)
   convertCRNL = GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]
   getCalSettings = getCalPermissions = False
-  acls = None
+  acls = query = None
   fieldsList = []
   csvFormat = Act.csvFormat()
   if csvFormat:
@@ -17122,6 +17144,8 @@ def doPrintShowResourceCalendars():
     myarg = getArgument()
     if csvFormat and myarg == 'todrive':
       todrive = getTodriveParameters()
+    elif myarg == 'query':
+      query = getString(Cmd.OB_QUERY)
     elif myarg == 'allfields':
       fieldsList = RESOURCE_ALL_FIELDS[:]
     elif myarg in [Cmd.ARG_ACLS, Cmd.ARG_CALENDARACLS, Cmd.ARG_PERMISSIONS]:
@@ -17171,10 +17195,13 @@ def doPrintShowResourceCalendars():
   try:
     resources = callGAPIpages(cd.resources().calendars(), 'list', 'items',
                               page_message=getPageMessage(showFirstLastItems=True), message_attribute='resourceName',
-                              throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                              customer=GC.Values[GC.CUSTOMER_ID], fields=fields)
+                              throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID_INPUT],
+                              query=query, customer=GC.Values[GC.CUSTOMER_ID], fields=fields)
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
     accessErrorExit(cd)
+  except GAPI.invalidInput as e:
+    entityActionFailedWarning([Ent.RESOURCE_CALENDAR, ''], str(e))
+    return
   i = 0
   count = len(resources)
   for resource in resources:
@@ -17822,7 +17849,7 @@ def _eventMatches(event, match):
       if not eventAttr:
         break
     return match[1].search(eventAttr) is not None
-  attendees = [attendee['email'] for attendee in event.get('attendees', [])]
+  attendees = [attendee['email'] for attendee in event.get('attendees', []) if 'email' in attendee]
   if not attendees:
     return False
   if match[0][1] == 'email':
@@ -39851,6 +39878,7 @@ def closeSTDFilesIfNotMultiprocessing():
     rdFd = GM.Globals[stdtype].get(GM.REDIRECT_FD)
     rdMultiFd = GM.Globals[stdtype].get(GM.REDIRECT_MULTI_FD)
     if rdFd and rdMultiFd and (rdFd == rdMultiFd) and (rdFd != stdfile):
+      rdFd.flush()
       rdFd.close()
 
   closeSTDFile(GM.STDOUT, sys.stdout)
@@ -39986,7 +40014,7 @@ def doLoop():
   GAM_argv, subFields = getSubFields([Cmd.GAM_CMD], csvFile.fieldnames)
   multi = GM.Globals[GM.CSVFILE][GM.REDIRECT_MULTIPROCESS]
   if multi:
-    mpQueue, mpQueueHandler = initializeCSVFileQueueHandler(None)
+    mpQueue, mpQueueHandler = initializeCSVFileQueueHandler(None, None)
   else:
     mpQueue = None
   GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = mpQueue

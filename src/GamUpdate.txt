@@ -1,3 +1,15 @@
+4.83.00
+
+Added `query <String>` option to `gam print/show resources`.
+
+Fixed bug in `redirect stderr` that would cause a trap in Windows.
+
+Fixed bug in `redirect stdout` when used with `redirect csv` that caused messages
+about `todrive` results to be deleted.
+
+Fixed bug where `matchfield attendees` or `matchfield attendeespattern` was used to select
+events and a trap was thrown when an attendee had no email address.
+
 4.82.12
 
 Modified the behavior of the `from` and `to` options in `gam create filter`. Previously,
