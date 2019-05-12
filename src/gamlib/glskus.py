@@ -24,14 +24,16 @@ import re
 
 # Products/SKUs
 _PRODUCTS = {
-  '101001': 'Cloud Identity',
+  '101001': 'Cloud Identity Free',
   '101005': 'Cloud Identity Premium',
+  '101006': 'Drive Enterprise',
   '101031': 'G Suite Enterprise for Education',
   '101033': 'Google Voice',
+  '101034': 'G Suite Archived',
   'Google-Apps': 'G Suite',
   'Google-Chrome-Device-Management': 'Google Chrome Device Management',
   'Google-Coordinate': 'Google Coordinate',
-  'Google-Drive-storage': 'Google Drive storage',
+  'Google-Drive-storage': 'Google Drive Storage',
   'Google-Vault': 'Google Vault',
   }
 _SKUS = {
@@ -58,11 +60,15 @@ _SKUS = {
   'Google-Apps-For-Postini': {
     'product': 'Google-Apps', 'aliases': ['gams', 'postini', 'gsuitegams', 'gsuitepostini', 'gsuitemessagesecurity'], 'displayName': 'G Suite Message Security'},
   'Google-Apps-Lite': {
-    'product': 'Google-Apps', 'aliases': ['gal', 'lite', 'gsuitelite'], 'displayName': 'G Suite Lite'},
+    'product': 'Google-Apps', 'aliases': ['gal', 'gsl', 'lite', 'gsuitelite'], 'displayName': 'G Suite Lite'},
   'Google-Apps-Unlimited': {
-    'product': 'Google-Apps', 'aliases': ['ga', 'unlimited', 'gsuitebusiness'], 'displayName': 'G Suite Business'},
+    'product': 'Google-Apps', 'aliases': ['gau', 'gsb', 'unlimited', 'gsuitebusiness'], 'displayName': 'G Suite Business'},
   '1010020020': {
-    'product': 'Google-Apps', 'aliases': ['gae', 'enterprise', 'gsuiteenterprise'], 'displayName': 'G Suite Enterprise'},
+    'product': 'Google-Apps', 'aliases': ['gae', 'gse', 'enterprise', 'gsuiteenterprise'], 'displayName': 'G Suite Enterprise'},
+  '1010340002': {
+    'product': '101034', 'aliases': ['gsbau', 'businessarchived', 'gsuitebusinessarchived'], 'displayName': 'G Suite Business Archived'},
+  '1010340001': {
+    'product': '101034', 'aliases': ['gseau', 'enterprisearchived', 'gsuiteenterprisearchived'], 'displayName': 'G Suite Enterprise Archived'},
   '1010060001': {
     'product': 'Google-Apps', 'aliases': ['d4e', 'driveenterprise', 'drive4enterprise'], 'displayName': 'Drive Enterprise'},
   'Google-Drive-storage-20GB': {
@@ -124,7 +130,7 @@ def normalizeProductId(product):
   return product
 
 def getSortedProductList():
-  return sorted(_PRODUCTS.keys())
+  return sorted(_PRODUCTS)
 
 def skuIdToDisplayName(skuId):
   return _SKUS[skuId]['displayName'] if skuId in _SKUS else skuId
@@ -136,7 +142,7 @@ def formatSKUIdDisplayName(skuId):
   return '{0} ({1})'.format(skuId, skuIdDisplay)
 
 def getSortedSKUList():
-  return sorted(_SKUS.keys())
+  return sorted(_SKUS)
 
 def convertProductListToSKUList(productList):
   skuList = []

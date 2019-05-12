@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.83.00'
+__version__ = '4.83.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -16534,6 +16534,22 @@ def makeRoleRuleIdBody(role, ruleId):
     return {'role': role, 'scope': {'type': 'user', 'value': ruleIdParts[0]}}
   return {'role': role, 'scope': {'type': ruleIdParts[0], 'value': ruleIdParts[1]}}
 
+BUILDING_ADDRESS_FIELD_MAP = {
+  'address': 'addressLines',
+  'addresslines': 'addressLines',
+  'administrativearea': 'administrativeArea',
+  'city': 'locality',
+  'country': 'regionCode',
+  'language': 'languageCode',
+  'languagecode': 'languageCode',
+  'locality': 'locality',
+  'postalcode': 'postalCode',
+  'regioncode': 'regionCode',
+  'state': 'administrativeArea',
+  'sublocality': 'sublocality',
+  'zipcode': 'postalCode',
+  }
+
 def _getBuildingAttributes(body):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -16551,6 +16567,15 @@ def _getBuildingAttributes(body):
       body['description'] = getString(Cmd.OB_STRING)
     elif myarg == 'floors':
       body['floorNames'] = getString(Cmd.OB_STRING).split(',')
+    elif myarg in BUILDING_ADDRESS_FIELD_MAP:
+      myarg = BUILDING_ADDRESS_FIELD_MAP[myarg]
+      body.setdefault('address', {})
+      if myarg == 'addressLines':
+        body['address'][myarg] = getStringWithCRsNLs().split('\n')
+      elif myarg == 'languageCode':
+        body['address'][myarg] = getChoice(LANGUAGE_CODES_MAP, mapChoice=True)
+      else:
+        body['address'][myarg] = getString(Cmd.OB_STRING, minLen=0)
     else:
       unknownArgumentExit()
   return body
@@ -16669,6 +16694,8 @@ def doDeleteBuilding():
   except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
     accessErrorExit(cd)
 
+BUILDING_ADDRESS_PRINT_ORDER = ['addressLines', 'sublocality', 'locality', 'administrativeArea', 'postalCode', 'regionCode', 'languageCode']
+
 def _showBuilding(building, delimiter=',', i=0, count=0):
   if 'buildingName' in building:
     printEntity([Ent.BUILDING, building['buildingName']], i, count)
@@ -16686,6 +16713,20 @@ def _showBuilding(building, delimiter=',', i=0, count=0):
     Ind.Increment()
     printKeyValueList(['latitude', building['coordinates'].get('latitude', 0)])
     printKeyValueList(['longitude', building['coordinates'].get('longitude', 0)])
+    Ind.Decrement()
+  if 'address' in building:
+    printKeyValueList(['address', None])
+    Ind.Increment()
+    for field in BUILDING_ADDRESS_PRINT_ORDER:
+      if field in building['address']:
+        if field != 'addressLines':
+          printKeyValueList([field, building['address'][field]])
+        else:
+          printKeyValueList([field, None])
+          Ind.Increment()
+          for line in building['address'][field]:
+            printKeyValueList([line])
+          Ind.Decrement()
     Ind.Decrement()
   Ind.Decrement()
 
@@ -16705,6 +16746,7 @@ def doInfoBuilding():
     accessErrorExit(cd)
 
 BUILDINGS_FIELDS_CHOICE_MAP = {
+  'address': 'address',
   'buildingid': 'buildingId',
   'buildingname': 'buildingName',
   'coordinates': 'coordinates',
@@ -16715,8 +16757,9 @@ BUILDINGS_FIELDS_CHOICE_MAP = {
   'name': 'buildingName',
   }
 
-# gam print buildings [todrive <ToDriveAttributes>*]
-# gam show buildings
+# gam print buildings [todrive <ToDriveAttributes>*] [allfields|<BuildingFildName>*|(fields <BuildingFieldNameList>)]
+#	[delimiter <Character>]
+# gam show buildings [allfields|<BuildingFildName>*|(fields <BuildingFieldNameList>)]
 def doPrintShowBuildings():
   cd = buildGAPIObject(API.DIRECTORY)
   csvFormat = Act.csvFormat()
@@ -16761,6 +16804,8 @@ def doPrintShowBuildings():
         building['buildingId'] = 'id:{0}'.format(building['buildingId'])
       if 'floorNames' in building:
         building['floorNames'] = delimiter.join(building['floorNames'])
+      if 'address' in building and 'addressLines' in building['address']:
+        building['address']['addressLines'] = '\n'.join(building['address']['addressLines'])
       addRowTitlesToCSVfile(flattenJSON(building), csvRows, titles)
   if csvFormat:
     writeCSVfile(csvRows, titles, 'Buildings', todrive, ['buildingId'])
@@ -21760,6 +21805,7 @@ USER_SCALAR_PROPERTY_PRINT_ORDER = [
   'ipWhitelisted',
   'suspended',
   'suspensionReason',
+  'archived',
   'changePasswordAtNextLogin',
   'id',
   'customerId',

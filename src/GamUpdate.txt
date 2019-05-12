@@ -1,3 +1,21 @@
+4.83.01
+
+Added address fields to `<BuildingAttribute>`.
+<BuildingAttribute> ::=
+        (address|addresslines <String>)|
+        (city|locality <String>)|
+        (country|regioncode <String>)|
+        (description <String>)|
+        (floors <FloorNameList>)|
+        (id <String>)|
+        (language|languageCode <Language>)|
+        (latitude <Float>)|
+        (longitude <Float>)|
+        (name <String>)
+        (state|administrativearea <String>)|
+        (sublocality <String>)|
+        (zipcode|postalcode <String>)
+
 4.83.00
 
 Added `query <String>` option to `gam print/show resources`.

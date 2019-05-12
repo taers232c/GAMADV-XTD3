@@ -137,7 +137,7 @@ PROPERTIES = {
   'ipWhitelisted':
     {CLASS: PC_BOOLEAN, TITLE: 'IP Whitelisted',},
   'archived':
-    {CLASS: PC_BOOLEAN, TITLE: 'Account Archived',},
+    {CLASS: PC_BOOLEAN, TITLE: 'Is Archived',},
   'suspended':
     {CLASS: PC_BOOLEAN, TITLE: 'Account Suspended',},
   'suspensionReason':
