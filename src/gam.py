@@ -5622,6 +5622,8 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr):
       csvPF.AddTitles(dataItem)
     elif dataType == GM.REDIRECT_QUEUE_SORTTITLES:
       csvPF.SetSortTitles(dataItem)
+    elif dataType == GM.REDIRECT_QUEUE_INDEXEDTITLES:
+      csvPF.SetIndexedTitles(dataItem)
     elif dataType == GM.REDIRECT_QUEUE_QUOTECHAR:
       csvPF.SetQuoteChar(dataItem)
     elif dataType == GM.REDIRECT_QUEUE_DATA:
