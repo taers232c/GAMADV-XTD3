@@ -958,8 +958,8 @@ gam calendar|calendars <CalendarEntity> empty calendartrash
         (timezone <TimeZone>)
 
 gam calendar|calendars <CalendarEntity> info events <EventEntity> [maxinstances <Number>] [fields <EventFieldNameList>] [formatjson]
-gam calendar|calendars <CalendarEntity> show events <EventSelectProperty>* <EventMatchProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>] [formatjson]
-gam calendar|calendars <CalendarEntity> print events <EventSelectProperty>* <EventMatchProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>]
+gam calendar|calendars <CalendarEntity> show events <EventSelectProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>] [formatjson]
+gam calendar|calendars <CalendarEntity> print events <EventSelectProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>]
          [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
 
 gam calendar|calendars <CalendarEntity> addevent <EventCreateAttribute>+
@@ -1038,9 +1038,9 @@ gam <CrOSTypeEntity> update (<CrOSAttribute>+ [quickcrosmove [<Boolean>]])|(acti
 <CrOSOrderByFieldName> ::=
         lastsync|location|notes|serialnumber|status|supportenddate|user
 
-gam info cros <CrOSEntity> [guessaue] [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
+gam info cros <CrOSEntity> [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
-gam <CrOSTypeEntity> info [guessaue] [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
+gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
 
 Print fields for selected CrOS devices; use these options to select CrOS devices:
@@ -1050,17 +1050,17 @@ If none of these options are chosen, all CrOS devices are selected.
 gam print cros [todrive <ToDriveAttribute>*]
         [(query <QueryCrOS>)|(queries <QueryCrOSList>)] [limittoou <OrgUnitItem>]
         (querytime.* <Time>)*
-        [orderby <CrOSOrderByFieldName> [ascending|descending]] [guessaue] [nolists|<CrOSListFieldName>*] [listlimit <Number>] [start <Date>] [end <Date>]
+        [orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|<CrOSListFieldName>*] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
 
 Print fields for specified CrOS devices.
 
 gam print cros [todrive <ToDriveAttribute>*] select <CrOSTypeEntity>
-        [orderby <CrOSOrderByFieldName> [ascending|descending]] [guessaue] [nolists|<CrOSListFieldName>*] [listlimit <Number>] [start <Date>] [end <Date>]
+        [orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|<CrOSListFieldName>*] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
 
 gam <CrOSTypeEntity> print cros [todrive <ToDriveAttribute>*]
-        [orderby <CrOSOrderByFieldName> [ascending|descending]] [guessaue] [nolists|<CrOSListFieldName>*] [listlimit <Number>] [start <Date>] [end <Date>]
+        [orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|<CrOSListFieldName>*] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
 
 The first column will always be deviceId; the remaining field names will be sorted if allfields, basic, full or sortheaders is specified;
@@ -2798,8 +2798,8 @@ gam <UserTypeEntity> empty calendartrash <UserCalendarEntity>
         (timezone <TimeZone>)
 
 gam <UserTypeEntity> info events <UserCalendarEntity> <EventEntity> [maxinstances <Number>] [fields <EventFieldNameList>] [formatjson]
-gam <UserTypeEntity> show events <UserCalendarEntity> <EventSelectProperty>* <EventMatchProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>] [formatjson]
-gam <UserTypeEntity> print events <UserCalendarEntity> <EventSelectProperty>* <EventMatchProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>]
+gam <UserTypeEntity> show events <UserCalendarEntity> <EventSelectProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>] [formatjson]
+gam <UserTypeEntity> print events <UserCalendarEntity> <EventSelectProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>]
          [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer] [<EventNotificationAttribute>] [doit]
@@ -3190,7 +3190,7 @@ gam <UserTypeEntity> print filecounts [todrive <ToDriveAttribute>*] [corpora <Co
 gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*] [anyowner|(showownedby any|me|others)]
         [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) |
           (select <DriveFileEntityListTree> [selectsubquery <QueryDriveFile>] [depth <Number>] [showparent])]
-        (querytime.* <Time>)* [maxfiles <Integer>] [countsonly]
+        (querytime.* <Time>)* [maxfiles <Integer>]
         [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
         (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
         [filepath|fullpath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [quotechar <Character>]
