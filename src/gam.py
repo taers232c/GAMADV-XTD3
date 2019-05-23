@@ -4812,7 +4812,7 @@ class CSVPrintFile():
     self.rows = []
     self.todrive = {}
     self.SetTitles(titles if titles is not None else [])
-    self.SetQuoteChar(GC.Values.get(GC.CSV_OUTPUT_QUOTE_CHAR, GC.Defaults[GC.CSV_OUTPUT_QUOTE_CHAR]))
+    self.SetQuoteChar(GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR])
     if sortTitles is not None:
       if not isinstance(sortTitles, string_types) or sortTitles != 'sortall':
         self.SetSortTitles(sortTitles)
