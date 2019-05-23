@@ -29980,6 +29980,10 @@ def printFileList(users):
     if countsOnly:
       writeMimeTypeCountsRow(user, mimeTypeCounts)
   if not csvPF.rows:
+    if not countsOnly:
+      csvPF.SetTitles(['Owner', 'id', fileNameTitle])
+    else:
+      csvPF.SetTitles(['Owner', 'Total'])
     setSysExitRC(NO_ENTITIES_FOUND)
   if not countsOnly:
     csvPF.SetSortTitles(['Owner', 'id', fileNameTitle])
