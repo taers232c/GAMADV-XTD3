@@ -1,3 +1,7 @@
+4.83.02
+
+Fixed bug in `gam print courses` that caused Aliases column to be included twice.
+
 4.83.01
 
 Added address fields to `<BuildingAttribute>`.

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.83.01'
+__version__ = '4.83.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -11541,7 +11541,7 @@ def _initContactQueryAttributes():
   return {'query': None, 'projection': 'full', 'url_params': {'max-results': str(GC.Values[GC.CONTACT_MAX_RESULTS])},
           'contactGroup': None, 'group': None, 'otherContacts': False, 'emailMatchPattern': None, 'emailMatchType': None}
 
-def _getContactQueryAttributes(contactQuery, myarg, entityType, errorOnUnknown, allowOutputAttributes):
+def _getContactQueryAttributes(contactQuery, myarg, entityType, unknownAction, allowOutputAttributes):
   if myarg == 'query':
     contactQuery['query'] = getString(Cmd.OB_QUERY)
   elif myarg in ['contactgroup', 'selectcontactgroup']:
@@ -11565,9 +11565,10 @@ def _getContactQueryAttributes(contactQuery, myarg, entityType, errorOnUnknown, 
   elif myarg == 'endquery':
     return False
   elif not allowOutputAttributes:
-    if errorOnUnknown:
+    if unknownAction < 0:
       unknownArgumentExit()
-    Cmd.Backup()
+    if unknownAction > 0:
+      Cmd.Backup()
     return False
   elif myarg == 'orderby':
     contactQuery['url_params']['orderby'], contactQuery['url_params']['sortorder'] = getOrderBySortOrder(CONTACTS_ORDERBY_CHOICE_MAP, 'ascending', False)
@@ -11576,28 +11577,29 @@ def _getContactQueryAttributes(contactQuery, myarg, entityType, errorOnUnknown, 
   elif myarg == 'showdeleted':
     contactQuery['url_params']['showdeleted'] = 'true'
   else:
-    if errorOnUnknown:
+    if unknownAction < 0:
       unknownArgumentExit()
-    Cmd.Backup()
+    if unknownAction > 0:
+      Cmd.Backup()
     return False
   return True
 
 CONTACT_SELECT_ARGUMENTS = set(['query', 'contactgroup', 'selectcontactgroup', 'othercontacts', 'selectothercontacts',
                                 'emailmatchpattern', 'emailmatchtype', 'updatedmin'])
 
-def _getContactEntityList(entityType, errorOnUnknown, allowOutputAttributes):
+def _getContactEntityList(entityType, unknownAction, allowOutputAttributes):
   contactQuery = _initContactQueryAttributes()
   if Cmd.PeekArgumentPresent(CONTACT_SELECT_ARGUMENTS):
     entityList = None
     queriedContacts = True
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
-      if not _getContactQueryAttributes(contactQuery, myarg, entityType, errorOnUnknown, allowOutputAttributes):
+      if not _getContactQueryAttributes(contactQuery, myarg, entityType, unknownAction, allowOutputAttributes):
         break
   else:
     entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
     queriedContacts = False
-    if errorOnUnknown:
+    if unknownAction < 0:
       checkForExtraneousArguments()
   return (entityList, entityList if isinstance(entityList, dict) else None, contactQuery, queriedContacts)
 
@@ -11745,7 +11747,7 @@ def doCreateDomainContact():
 
 def _clearUpdateContacts(users, entityType, updateContacts):
   contactsManager = ContactsManager()
-  entityList, contactIdLists, contactQuery, queriedContacts = _getContactEntityList(entityType, False, False)
+  entityList, contactIdLists, contactQuery, queriedContacts = _getContactEntityList(entityType, 1, False)
   if updateContacts:
     update_fields = contactsManager.GetContactFields(entityType)
   else:
@@ -11871,7 +11873,7 @@ def doClearDomainContacts(users):
 
 def _deleteContacts(users, entityType):
   contactsManager = ContactsManager()
-  entityList, contactIdLists, contactQuery, queriedContacts = _getContactEntityList(entityType, True, False)
+  entityList, contactIdLists, contactQuery, queriedContacts = _getContactEntityList(entityType, -1, False)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -12109,7 +12111,7 @@ def _printShowContacts(users, entityType, contactFeed=True):
       _getContactFieldsList(contactsManager, displayFieldsList)
       if contactFeed and CONTACT_GROUPS in displayFieldsList:
         showContactGroups = True
-    elif _getContactQueryAttributes(contactQuery, myarg, entityType, False, True):
+    elif _getContactQueryAttributes(contactQuery, myarg, entityType, 0, True):
       pass
     else:
       FJQC.getFormatJSONQuoteChar(myarg, titles if csvFormat else None)
@@ -23495,7 +23497,7 @@ def doPrintCourses():
       addRowTitlesToCSVfile(flattenJSON(course, timeObjects=COURSE_TIME_OBJECTS, noLenObjects=COURSE_NOLEN_OBJECTS), csvRows, titles)
   if not FJQC.formatJSON:
     if courseShowProperties['aliases']:
-      addTitleToCSVfile('Aliases', titles)
+      addTitlesToCSVfile(['Aliases'], titles)
     sortCSVTitles(COURSE_PROPERTY_PRINT_ORDER, titles)
     if courseShowProperties['members'] != 'none':
       ttitles['list'].sort()
