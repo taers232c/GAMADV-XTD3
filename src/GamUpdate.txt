@@ -1,3 +1,8 @@
+4.83.07
+
+Fixed code that generated unusable random passwords when `random password` option was used
+with `gam create/update user`.
+
 4.83.06
 
 Handle errors when `todrive_user` doesn't have access to Google Drive or Gmail.
