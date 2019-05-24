@@ -3,6 +3,11 @@
 Added `norecursion` option to `gam print filelist`; this is used with the `select <DriveFileEntityListTree>`
 to prevent resursion into folders; only information about the selected folder is displayed.
 
+Added `matchfield attendeesstatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddressEntity>` option to
+`<EventMatchProperty>`. All of the attendees in `<EmailAddressEntity>` must be present and must have the specified values.
+    * `<AttendeeAttendance>` - Default is `required`
+    * `<AttendanceStatus>` - Default is `needsaction`
+
 4.83.04
 
 Improve handling of Authentication Token Errors.

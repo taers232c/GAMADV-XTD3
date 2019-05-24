@@ -768,6 +768,9 @@ gam calendar|calendars <CalendarEntity> update <CalendarACLRole> ([user] <EmailA
 gam calendar|calendars <CalendarEntity> delete [<CalendarACLRole>] ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default
 gam calendar|calendars <CalendarEntity> showacl [formatjson]
 
+<AttendeeAttendance> ::= optional|required
+<AttendeeStatus> ::= accepted|declined|needsaction|tentative
+
 <EventSelectProperty:> ::=
         (endtime|timemax <Time>)|
         (query <QueryCalendar>)|
@@ -782,6 +785,7 @@ gam calendar|calendars <CalendarEntity> showacl [formatjson]
 <EventMatchProperty:> ::=
         (matchfield attendees <EmailAddressEntity>)|
         (matchfield attendeespattern <RegularExpression>)|
+        (matchfield attendeesstatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddressEntity>)|
         (matchfield creatoremail <RegularExpression>)|
         (matchfield creatorname <RegularExpression>)|
         (matchfield description <RegularExpression>)|
@@ -796,9 +800,6 @@ gam calendar|calendars <CalendarEntity> showacl [formatjson]
 <EventEntity> ::=
         (id|eventid <EventId>)|(event|events <EventIdList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|
         (<EventSelectProperty>+ <EventMatchProperty>*)
-
-<AttendeeAttendance> ::= optional|required
-<AttendeeStatus> ::= accepted|declined|needsaction|tentative
 
 <EventAttribute> ::=
         (anyonecanaddself [<Boolean>])|
@@ -1940,7 +1941,7 @@ gam print printjob|printjobs [todrive <ToDriveAttribute>*] [printer|printerid <P
         useraccounts
 
 gam report <ActivityApplicationName> [todrive <ToDriveAttributes>*]
-        [user all|<UserItem>] [select <UserTypeEntity>]
+        [(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
         [([start <Time>] [end <Time>])|(range <Time> <Time>)|yesterday]
         [filtertime.* <Time>] [filter|filters <String>]
         [event|events <EventNameList>] [ip <String>]
@@ -2692,6 +2693,9 @@ gam <UserTypeEntity> transfer calendars <UserItem> <UserCalendarEntity>
         <CalendarSettings>] [append description|location|summary] [noupdatemessages]
 gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <Boolean>]
 
+<AttendeeAttendance> ::= optional|required
+<AttendeeStatus> ::= accepted|declined|needsaction|tentative
+
 <EventSelectProperty:> ::=
         (endtime|timemax <Time>)|
         (query <QueryCalendar>)|
@@ -2706,6 +2710,7 @@ gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <
 <EventMatchProperty:> ::=
         (matchfield attendees <EmailAddressEntity>)|
         (matchfield attendeespattern <RegularExpression>)|
+        (matchfield attendeesstatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddressEntity>)|
         (matchfield creatoremail <RegularExpression>)|
         (matchfield creatorname <RegularExpression>)|
         (matchfield description <RegularExpression>)|
@@ -2717,9 +2722,6 @@ gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <
 <EventEntity> ::=
         (id|eventid <EventId>)|(event|events <EventIdList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|
         (<EventSelectProperty>+ <EventMatchProperty>*)
-
-<AttendeeAttendance> ::= optional|required
-<AttendeeStatus> ::= accepted|declined|needsaction|tentative
 
 <EventAttribute> ::=
         (anyonecanaddself [<Boolean>])|
