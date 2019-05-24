@@ -1,3 +1,7 @@
+4.83.06
+
+Handle errors when `todrive_user` doesn't have access to Google Drive or Gmail.
+
 4.83.05
 
 Added `norecursion` option to `gam print filelist`; this is used with the `select <DriveFileEntityListTree>`
