@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.83.04'
+__version__ = '4.83.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2448,54 +2448,72 @@ def SetGlobalVariables():
   ROW_FILTER_RE_PATTERN = re.compile(r'^(regex):(.*)$', re.IGNORECASE)
 
   def _getCfgRowFilter(sectionName, itemName):
-    value = _stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName))
+    value = GM.Globals[GM.PARSER].get(sectionName, itemName)
     rowFilters = []
     if not value:
       return rowFilters
-    try:
-      for column, filterStr in iteritems(json.loads(value.encode('unicode-escape').decode(UTF8))):
+    if value.startswith('{'):
+      try:
+        filterDict = json.loads(value.encode('unicode-escape').decode(UTF8))
+      except (TypeError, ValueError) as e:
+        _printValueError(sectionName, itemName, '"{0}"'.format(value), '{0}: {1}'.format(Msg.FAILED_TO_PARSE_AS_JSON, str(e)))
+        return rowFilters
+    else:
+      filterDict = {}
+      status, filterList = shlexSplitListStatus(value)
+      if not status:
+        _printValueError(sectionName, itemName, '"{0}"'.format(value), '{0}: {1}'.format(Msg.FAILED_TO_PARSE_AS_LIST, str(filterList)))
+        return rowFilters
+      for filterVal in filterList:
+        if not filterVal:
+          continue
         try:
-          columnPat = re.compile(column, re.IGNORECASE)
-        except re.error as e:
-          _printValueError(sectionName, itemName, '"{0}"'.format(column), '{0}: {1}'.format(Msg.INVALID_RE, e))
+          column, filterStr = filterVal.split(':', 1)
+        except ValueError:
+          _printValueError(sectionName, itemName, '"{0}"'.format(filterVal), '{0}: {1}'.format(Msg.EXPECTED, 'column:filter'))
           continue
-        mg = ROW_FILTER_COMP_PATTERN.match(filterStr)
-        if mg:
-          if mg.group(1) in ['date', 'time']:
-            if mg.group(1) == 'date':
-              valid, filterValue = getRowFilterDateOrDeltaFromNow(mg.group(3))
-            else:
-              valid, filterValue = getRowFilterTimeOrDeltaFromNow(mg.group(3))
-            if valid:
-              rowFilters.append((columnPat, mg.group(1), mg.group(2), filterValue))
-            else:
-              _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: {1}'.format(Msg.EXPECTED, filterValue))
-          else: #count
-            if mg.group(3).isdigit():
-              rowFilters.append((columnPat, mg.group(1), mg.group(2), int(mg.group(3))))
-            else:
-              _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: <Number>'.format(Msg.EXPECTED))
-          continue
-        mg = ROW_FILTER_BOOL_PATTERN.match(filterStr)
-        if mg:
-          filterValue = mg.group(2).lower()
-          if filterValue in TRUE_VALUES:
-            rowFilters.append((columnPat, mg.group(1), True))
-          elif filterValue in FALSE_VALUES:
-            rowFilters.append((columnPat, mg.group(1), False))
+        filterDict[column] = filterStr
+    for column, filterStr in iteritems(filterDict):
+      try:
+        columnPat = re.compile(column, re.IGNORECASE)
+      except re.error as e:
+        _printValueError(sectionName, itemName, '"{0}"'.format(column), '{0}: {1}'.format(Msg.INVALID_RE, e))
+        continue
+      mg = ROW_FILTER_COMP_PATTERN.match(filterStr)
+      if mg:
+        if mg.group(1) in ['date', 'time']:
+          if mg.group(1) == 'date':
+            valid, filterValue = getRowFilterDateOrDeltaFromNow(mg.group(3))
           else:
-            _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: <Boolean>'.format(Msg.EXPECTED))
-          continue
-        mg = ROW_FILTER_RE_PATTERN.match(filterStr)
-        if mg:
-          try:
-            rowFilters.append((columnPat, mg.group(1), re.compile(mg.group(2))))
-          except re.error as e:
-            _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: {1}'.format(Msg.INVALID_RE, e))
-          continue
-        _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: {1}'.format(Msg.EXPECTED, 'date|time|count<Operator><Value> or boolean:<Boolean> or regex:<RegularExpression>'))
-    except (TypeError, ValueError) as e:
-      _printValueError(sectionName, itemName, '"{0}"'.format(value), '{0}: {1}'.format(Msg.FAILED_TO_PARSE_AS_JSON, str(e)))
+            valid, filterValue = getRowFilterTimeOrDeltaFromNow(mg.group(3))
+          if valid:
+            rowFilters.append((columnPat, mg.group(1), mg.group(2), filterValue))
+          else:
+            _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: {1}'.format(Msg.EXPECTED, filterValue))
+        else: #count
+          if mg.group(3).isdigit():
+            rowFilters.append((columnPat, mg.group(1), mg.group(2), int(mg.group(3))))
+          else:
+            _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: <Number>'.format(Msg.EXPECTED))
+        continue
+      mg = ROW_FILTER_BOOL_PATTERN.match(filterStr)
+      if mg:
+        filterValue = mg.group(2).lower()
+        if filterValue in TRUE_VALUES:
+          rowFilters.append((columnPat, mg.group(1), True))
+        elif filterValue in FALSE_VALUES:
+          rowFilters.append((columnPat, mg.group(1), False))
+        else:
+          _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: <Boolean>'.format(Msg.EXPECTED))
+        continue
+      mg = ROW_FILTER_RE_PATTERN.match(filterStr)
+      if mg:
+        try:
+          rowFilters.append((columnPat, mg.group(1), re.compile(mg.group(2))))
+        except re.error as e:
+          _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: {1}'.format(Msg.INVALID_RE, e))
+        continue
+      _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: {1}'.format(Msg.EXPECTED, 'date|time|count<Operator><Value> or boolean:<Boolean> or regex:<RegularExpression>'))
     return rowFilters
 
   def _getCfgSection(sectionName, itemName):
@@ -3647,7 +3665,7 @@ def buildGAPIServiceObject(api, user, i=0, count=0, displayError=True):
       e = e.args[0]
     handleOAuthTokenError(e, True)
     if displayError:
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      entityServiceNotApplicableWarning(Ent.USER, userEmail, i, count)
     return (userEmail, None)
   return (userEmail, service)
 
@@ -8528,8 +8546,6 @@ def _showCustomerLicenseInfo(customerInfo, FJQC):
   else:
     printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_USER_COUNTS_DATA_AVAILABLE)
 
-CUSTOMER_TIME_OBJECTS = set(['customerCreationTime'])
-
 # gam info customer [formatjson]
 def doInfoCustomer(returnCustomerInfo=None, FJQC=None):
   cd = buildGAPIObject(API.DIRECTORY)
@@ -8540,23 +8556,36 @@ def doInfoCustomer(returnCustomerInfo=None, FJQC=None):
                             throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                             customerKey=GC.Values[GC.CUSTOMER_ID])
     customerInfo['verified'] = callGAPI(cd.domains(), 'get',
+                                        throw_reasons=[GAPI.DOMAIN_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                                         customer=customerInfo['id'], domainName=customerInfo['customerDomain'], fields='verified')['verified']
+    # From Jay Lee
+    # If customer has changed primary domain, customerCreationTime is date of current primary being added, not customer create date.
+    # We should get all domains and use oldest date
+    customerCreationTime = formatLocalTime(customerInfo['customerCreationTime'])
+    domains = callGAPIitems(cd.domains(), 'list', 'domains',
+                            throw_reasons=[GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                            customer=GC.Values[GC.CUSTOMER_ID], fields='domains(creationTime)')
+    for domain in domains:
+      domainCreationTime = formatLocalTimestamp(domain['creationTime'])
+      if domainCreationTime < customerCreationTime:
+        customerCreationTime = domainCreationTime
+    customerInfo['customerCreationTime'] = customerCreationTime
     if FJQC.formatJSON:
       _showCustomerLicenseInfo(customerInfo, FJQC)
       if returnCustomerInfo is not None:
         returnCustomerInfo.update(customerInfo)
         return
-      printLine(json.dumps(cleanJSON(customerInfo, timeObjects=CUSTOMER_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+      printLine(json.dumps(cleanJSON(customerInfo), ensure_ascii=False, sort_keys=True))
       return
     printKeyValueList(['Customer ID', customerInfo['id']])
     printKeyValueList(['Primary Domain', customerInfo['customerDomain']])
-    printKeyValueList(['Customer Creation Time', formatLocalTime(customerInfo['customerCreationTime'])])
+    printKeyValueList(['Customer Creation Time', customerInfo['customerCreationTime']])
     printKeyValueList(['Primary Domain Verified', customerInfo['verified']])
     printKeyValueList(['Default Language', customerInfo.get('language', 'Unset (defaults to en)')])
     _showCustomerAddressPhoneNumber(customerInfo)
     printKeyValueList(['Admin Secondary Email', customerInfo['alternateEmail']])
     _showCustomerLicenseInfo(customerInfo, FJQC)
-  except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+  except (GAPI.badRequest, GAPI.domainNotFound, GAPI.notFound, GAPI.resourceNotFound, GAPI.forbidden):
     accessErrorExit(cd)
 
 # gam update customer [primary <DomainName>] [adminsecondaryemail|alternateemail <EmailAddress>] [language <LanguageCode] [phone|phonenumber <String>]
@@ -8600,7 +8629,7 @@ def doInfoInstance():
   customerInfo = None if not FJQC.formatJSON else {}
   doInfoCustomer(customerInfo, FJQC)
   if FJQC.formatJSON:
-    printLine(json.dumps(cleanJSON(customerInfo, timeObjects=CUSTOMER_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+    printLine(json.dumps(cleanJSON(customerInfo), ensure_ascii=False, sort_keys=True))
 
 DOMAIN_PRINT_ORDER = ['customerDomain', 'creationTime', 'isPrimary', 'verified']
 DOMAIN_SKIP_OBJECTS = set(['domainName', 'domainAliases'])
@@ -29692,7 +29721,7 @@ DRIVE_INDEXED_FIELDS = ['parents', 'path', 'permissions']
 
 # gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttributes>*] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
 #	[((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) |
-#	  (select <DriveFileEntityListTree> [selectsubquery <QueryDriveFile>] [depth <Number>] [showparent])]
+#	  (select <DriveFileEntityListTree> [selectsubquery <QueryDriveFile>] [norecursion|(depth <Number>)] [showparent])]
 #	[querytime.* <Time>] [maxfiles <Integer>]
 #	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
 #	(<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
@@ -29796,7 +29825,7 @@ def printFileList(users):
 
   todrive = {}
   titles, csvRows = initializeTitlesCSVfile('Owner')
-  allfields = buildTree = filepath = fullpath = getTeamDriveNames = onlyTeamDrives = showParent = False
+  allfields = buildTree = filepath = fullpath = getTeamDriveNames = noRecursion = onlyTeamDrives = showParent = False
   maxdepth = -1
   fieldsList = []
   orderBy = initOrderBy()
@@ -29819,6 +29848,8 @@ def printFileList(users):
       DLP.query = ''
     elif myarg == 'selectsubquery':
       selectSubQuery = getString(Cmd.OB_QUERY, minLen=0)
+    elif myarg == 'norecursion':
+      noRecursion = getBoolean()
     elif myarg == 'depth':
       maxdepth = getInteger(minVal=-1)
     elif myarg == 'allfields':
@@ -30039,11 +30070,11 @@ def printFileList(users):
           break
       if fullpath:
         getFilePaths(drive, fileTree, fileEntryInfo, filePathInfo, True)
-      if (showParent and fileEntryInfo['id'] != 'Orphans') or fileEntryInfo['mimeType'] != MIMETYPE_GA_FOLDER:
+      if (showParent and fileEntryInfo['id'] != 'Orphans') or fileEntryInfo['mimeType'] != MIMETYPE_GA_FOLDER or noRecursion:
         if fileId not in filesPrinted:
           filesPrinted.add(fileId)
           _printFileInfo(drive, user, fileEntryInfo.copy())
-      if fileEntryInfo['mimeType'] == MIMETYPE_GA_FOLDER:
+      if fileEntryInfo['mimeType'] == MIMETYPE_GA_FOLDER and not noRecursion:
         _printChildDriveFolderContents(drive, fileEntryInfo, user, i, count, 0)
   if not csvRows:
     addTitlesToCSVfile(['Owner', 'id', fileNameTitle], titles)

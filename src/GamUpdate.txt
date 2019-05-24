@@ -1,3 +1,8 @@
+4.83.05
+
+Added `norecursion` option to `gam print filelist`; this is used with the `select <DriveFileEntityListTree>`
+to prevent resursion into folders; only information about the selected folder is displayed.
+
 4.83.04
 
 Improve handling of Authentication Token Errors.
