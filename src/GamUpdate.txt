@@ -1,3 +1,8 @@
+4.83.08
+
+Handle Google API change where `teamMembersOnly` was renamed to `driveMembersOnly`.
+Gam will accept either keyword and map to `driveMembersOnly`.
+
 4.83.07
 
 Fixed code that generated unusable random passwords when `random password` option was used

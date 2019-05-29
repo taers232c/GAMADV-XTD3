@@ -2211,7 +2211,7 @@ In these commands, the Google administrator named in oauth2.txt is used.
         adminmanagedrestrictions|
         copyrequireswriterpermission|
         domainusersonly|
-        teammembersonly
+        drivemembersonly|teammembersonly
 
 gam show teamdrivethemes
 gam update teamdrive <TeamDriveEntity> [name <Name>]
