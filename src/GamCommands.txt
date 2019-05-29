@@ -2155,7 +2155,7 @@ gam print schema|schemas [todrive <ToDriveAttribute>*]
 gam sendemail <EmailAddressEntity> [from <UserItem>] [replyto <EmailAddress>]
         [cc <EmailAddressEntity>] [bcc <EmailAddressEntity>] [singlemessage [<Boolean>]]
         [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
-        (replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName>)*
+        (replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
         [newuser <UserItem> firstname|givenname <String> lastname|familyname <string> password <Password>]
 
 # Sites
@@ -3431,11 +3431,11 @@ gam <UserTypeEntity> print labels|label [onlyuser [<Boolean>]] [showcounts [<Boo
 
 gam <UserTypeEntity> import message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)* (addlabel <LabelName>)*
         (textmessage <String>)|(textfile <FileName> [charset <CharSet>]) (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
-        (replace <Tag> <UserReplacement>)* (attach <FileName>)*
+        (replace <Tag> <UserReplacement>)* (attach <FileName> [charset <CharSet>])*
         [deleted [<Boolean>]] [nevermarkspam [<Boolean>]] [processforcalendar [<Boolean>]]
 gam <UserTypeEntity> insert message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)* (addlabel <LabelName>)*
         (textmessage <String>)|(textfile <FileName> [charset <CharSet>]) (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
-        (replace <Tag> <UserReplacement>)* (attach <FileName>)*
+        (replace <Tag> <UserReplacement>)* (attach <FileName> [charset <CharSet>])*
         [deleted [<Boolean>]]
 
 gam <UserTypeEntity> archive messages <GroupItem> (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_archive|max_to_process <Number>])|(ids <MessageIDEntity>)

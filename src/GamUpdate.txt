@@ -1,3 +1,9 @@
+4.83.09
+
+The `gam sendemail`, `gam import message` and `gam insert message` commands all allow specifying attachments.
+You can now optionally specify the character set for text attachments: `attach <FileName> [charset <CharSet>]`.
+For example, on a PC you might say: `attach C:\Data\Attachment.txt charset latin1`.
+
 4.83.08
 
 Handle Google API change where `teamMembersOnly` was renamed to `driveMembersOnly`.

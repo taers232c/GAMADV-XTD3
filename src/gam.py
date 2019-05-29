@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.83.08'
+__version__ = '4.83.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2083,7 +2083,10 @@ def openFile(filename, mode=DEFAULT_FILE_READ_MODE, encoding=None, newline=None,
       kwargs = setEncoding(mode, encoding)
       f = open(os.path.expanduser(filename), mode, newline=newline, **kwargs)
       if stripUTFBOM:
-        if 'b' in mode or not kwargs['encoding'].lower().startswith('utf'):
+        if 'b' in mode:
+          if f.read(3) != b'\xef\xbb\xbf':
+            f.seek(0)
+        elif not kwargs['encoding'].lower().startswith('utf'):
           if f.read(3).encode('iso-8859-1', 'replace') != codecs.BOM_UTF8:
             f.seek(0)
         else:
@@ -4873,26 +4876,25 @@ def getTodriveParameters():
 
 # Add attachements to an email message
 def _addAttachmentsToMessage(message, attachments):
-  for attachFilename in attachments:
+  for attachment in attachments:
     try:
-      attachFd = openFile(attachFilename, 'rb', stripUTFBOM=True)
+      attachFilename = attachment[0]
       attachContentType, attachEncoding = mimetypes.guess_type(attachFilename)
       if attachContentType is None or attachEncoding is not None:
         attachContentType = 'application/octet-stream'
       main_type, sub_type = attachContentType.split('/', 1)
       if main_type == 'text':
-        msg = MIMEText(attachFd.read(), _subtype=sub_type)
+        msg = MIMEText(readFile(attachFilename, 'r', attachment[1]), _subtype=sub_type, _charset=UTF8)
       elif main_type == 'image':
-        msg = MIMEImage(attachFd.read(), _subtype=sub_type)
+        msg = MIMEImage(readFile(attachFilename, 'rb'), _subtype=sub_type)
       elif main_type == 'audio':
-        msg = MIMEAudio(attachFd.read(), _subtype=sub_type)
+        msg = MIMEAudio(readFile(attachFilename, 'rb'), _subtype=sub_type)
       else:
         msg = MIMEBase(main_type, sub_type)
-        msg.set_payload(attachFd.read())
-      attachFd.close()
+        msg.set_payload(readFile(attachFilename, 'rb'))
       msg.add_header('Content-Disposition', 'attachment', filename=os.path.basename(attachFilename))
       message.attach(msg)
-    except IOError as e:
+    except (IOError, UnicodeDecodeError) as e:
       usageErrorExit('{0}: {1}'.format(attachFilename, str(e)))
 
 # Send an email
@@ -7968,7 +7970,7 @@ def sendCreateUpdateUserNotification(notify, body, i=0, count=0, msgFrom=None, c
 # gam sendemail <EmailAddressEntity> [from <UserItem>] [replyto <EmailAddress>]
 #	[cc <EmailAddressEntity>] [bcc <EmailAddressEntity>] [singlemessage [<Boolean>]]
 #	[subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
-#	(replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName>)*
+#	(replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
 #	[newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
 def doSendEmail():
   body = {}
@@ -8011,7 +8013,7 @@ def doSendEmail():
     elif myarg == 'replace':
       _getTagReplacement(tagReplacements, False)
     elif myarg == 'attach':
-      attachments.append(getFilename())
+      attachments.append((getFilename(), getCharSet()))
     else:
       unknownArgumentExit()
   notify['message'] = notify['message'].replace('\r', '').replace('\\n', '\n')
@@ -36880,7 +36882,7 @@ def _importInsertMessage(users, importMsg):
     elif myarg == 'addlabel':
       addLabelNames.append(getString(Cmd.OB_LABEL_NAME, minLen=1))
     elif myarg == 'attach':
-      attachments.append(getFilename())
+      attachments.append((getFilename(), getCharSet()))
     elif myarg == 'deleted':
       deleted = getBoolean()
     elif importMsg and myarg == 'nevermarkspam':
@@ -36984,14 +36986,14 @@ def _importInsertMessage(users, importMsg):
 
 # gam <UserTypeEntity> import message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)* (addlabel <LabelName>)*
 #	(textmessage <String>)|(textfile <FileName> [charset <CharSet>]) (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
-#	(replace <Tag> <String>)* (attach <FileName>)*
+#	(replace <Tag> <String>)* (attach <FileName> [charset <CharSet>])*
 #	[deleted [<Boolean>]] [nevermarkspam [<Boolean>]] [processforcalendar [<Boolean>]]
 def importMessage(users):
   _importInsertMessage(users, True)
 
 # gam <UserTypeEntity> insert message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)* (addlabel <LabelName>)*
 #	(textmessage <String>)|(textfile <FileName> [charset <CharSet>]) (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
-#	(replace <Tag> <String>)* (attach <FileName>)*
+#	(replace <Tag> <String>)* (attach <FileName> [charset <CharSet>])*
 #	[deleted [<Boolean>]]
 def insertMessage(users):
   _importInsertMessage(users, False)
