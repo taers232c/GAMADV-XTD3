@@ -37071,7 +37071,7 @@ def printShowMessagesThreads(users, entityType):
                   if 'data' in result:
                     printKeyValueList(['Attachment', attachmentName])
                     Ind.Increment()
-                    printKeyValueList([Ind.MultiLineText(base64.urlsafe_b64decode(str(result['data'])).decode(UTF8)+'\n')])
+                    printKeyValueList([Ind.MultiLineText(base64.urlsafe_b64decode(str(result['data']))+'\n')])
                     Ind.Decrement()
                 except (GAPI.serviceNotAvailable, GAPI.badRequest, GAPI.notFound):
                   pass
