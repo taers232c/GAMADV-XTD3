@@ -1,3 +1,7 @@
+4.83.11
+
+Added `targetname <FileName>` to `gam download vaultexport|export` so that downloaded Zip file has a predictable name.
+
 4.83.10
 
 Removed check in `gam update license` that required old and new SKUs to have the same product number.
