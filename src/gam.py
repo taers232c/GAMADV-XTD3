@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.83.12'
+__version__ = '4.83.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2095,7 +2095,9 @@ def openFile(filename, mode=DEFAULT_FILE_READ_MODE, encoding=None, newline=None,
       return f
     if 'r' in mode:
       return StringIOobject(text_type(sys.stdin.read()))
-    return sys.stdout
+    if 'b' not in mode:
+      return sys.stdout
+    return os.fdopen(os.dup(sys.stdout.fileno()), 'wb')
   except (IOError, LookupError, UnicodeError) as e:
     if continueOnError:
       if displayError:
@@ -31976,7 +31978,10 @@ def getDriveFile(users):
                 request = drive.files().get_media(fileId=fileId)
             fh = None
             if not spreadsheetUrl:
-              fh = open(filename, 'wb') if not targetStdout else sys.stdout
+              if not targetStdout:
+                fh = open(filename, 'wb')
+              else:
+                fh = os.fdopen(os.dup(sys.stdout.fileno()), 'wb')
               downloader = googleapiclient.http.MediaIoBaseDownload(fh, request)
               done = False
               while not done:

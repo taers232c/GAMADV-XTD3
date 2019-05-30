@@ -1,3 +1,8 @@
+4.83.13
+
+Fixed Python 3 issue that caused a trap when `ziptostdout` was used with `gam download vaultexport|export`
+or `targetname -` was used with `gam get drivefile`.
+
 4.83.12
 
 Fixed bug that caused a trap in `gam show messages` when `showattachements` was used.
