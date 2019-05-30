@@ -1,3 +1,7 @@
+4.83.12
+
+Fixed bug that caused a trap in `gam show messages` when `showattachements` was used.
+
 4.83.11
 
 Added `targetname <FileName>` to `gam download vaultexport|export` so that downloaded Zip file has a predictable name.

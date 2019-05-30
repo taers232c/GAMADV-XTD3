@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.83.11'
+__version__ = '4.83.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -37058,10 +37058,11 @@ def printShowMessagesThreads(users, entityType):
       if part['mimeType'] == 'text/plain':
         if 'attachmentId' in part['body']:
           for header in part['headers']:
-            if header['name'] == 'Content-Type':
+            if header['name'] in ['Content-Type', 'Content-Disposition']:
               mg = ATTACHMENT_NAME_PATTERN.match(header['value'])
-              if mg:
-                attachmentName = mg.group(1)
+              if not mg:
+                continue
+              attachmentName = mg.group(1)
               if (not attachmentNamePattern) or attachmentNamePattern.match(attachmentName):
                 try:
                   result = callGAPI(gmail.users().messages().attachments(), 'get',
