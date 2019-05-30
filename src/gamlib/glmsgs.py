@@ -199,7 +199,6 @@ SCOPE_AUTHORIZATION_PASSED = 'All scopes passed!\nService Account Client name: {
 SELECTED = 'Selected'
 SERVICE_NOT_APPLICABLE_THIS_ADDRESS = 'Service not applicable for this address: {0}'
 SERVICE_NOT_APPLICABLE = 'Service not applicable/Does not exist'
-SKU_PRODUCT_MISMATCH = 'Product {0} of old SKU does not match product {1} of new SK'
 STARTING_THREAD = 'Starting thread'
 STATISTICS_COPY_FOLDER = 'Total: {0}, Copied: {1}, Duplicate: {2}, Merged: {3}, Copy Failed: {4}, Not writable: {5}, Permissions Failed: {6}'
 STATISTICS_COPY_FILE = 'Total: {0}, Copied: {1}, Duplicate: {2}, Copy Failed: {3}, Not copyable: {4}, Permissions Failed: {5}'

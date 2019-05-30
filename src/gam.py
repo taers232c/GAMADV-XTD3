@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.83.09'
+__version__ = '4.83.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -34946,9 +34946,6 @@ def getLicenseParameters(operation):
   if operation == 'patch':
     checkArgumentPresent('from')
     oldProductId, parameters[LICENSE_OLDSKUID] = getGoogleSKU()
-    if parameters[LICENSE_PRODUCTID] != oldProductId:
-      Cmd.Backup()
-      usageErrorExit(Msg.SKU_PRODUCT_MISMATCH).format(oldProductId, parameters[LICENSE_PRODUCTID])
   checkForExtraneousArguments()
   return (lic, parameters)
 

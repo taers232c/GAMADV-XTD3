@@ -1,3 +1,7 @@
+4.83.10
+
+Removed check in `gam update license` that required old and new SKUs to have the same product number.
+
 4.83.09
 
 The `gam sendemail`, `gam import message` and `gam insert message` commands all allow specifying attachments.
