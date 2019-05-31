@@ -16859,6 +16859,9 @@ def doPrintShowBuildings():
         building['floorNames'] = delimiter.join(building['floorNames'])
       if 'address' in building and 'addressLines' in building['address']:
         building['address']['addressLines'] = '\n'.join(building['address']['addressLines'])
+      if 'coordinates' in building:
+        building['coordinates']['latitude'] = '{0:4.7f}'.format(building['coordinates'].get('latitude', 0))
+        building['coordinates']['longitude'] = '{0:4.7f}'.format(building['coordinates'].get('longitude', 0))
       addRowTitlesToCSVfile(flattenJSON(building), csvRows, titles)
   if csvFormat:
     writeCSVfile(csvRows, titles, 'Buildings', todrive, ['buildingId'])
