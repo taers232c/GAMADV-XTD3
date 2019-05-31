@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.83.13'
+__version__ = '4.83.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6659,15 +6659,8 @@ def _createClientSecretsOauth2service(httpObj, projectId):
         "token_uri": "https://accounts.google.com/o/oauth2/token"
     }
 }''' % (client_id, client_secret, projectId)
-  writeFile(GC.Values[GC.CLIENT_SECRETS_JSON], cs_data, continueOnError=False)
-  sys.stdout.write('''Almost there! Now please switch back to your browser and:
-
-1. Click OK to close "OAuth client" popup if it's still open.
-2. Click "Manage service accounts" on the right of the screen.
-3. Click the 3 dots to the right of your service account.
-4. Choose Edit.
-5. Click "Show Domain-Wide Delegation". Check "Enable G Suite Domain-wide Delegation". Click Save.
-\n''')
+  sys.stdout.write('''Almost there! Now please switch back to your browser and:\n
+Click OK to close "OAuth client" popup if it's still open.\n''')
   readStdin('Press Enter when done...')
   sys.stdout.write('That\'s it! Your GAM Project is created and ready to use.\n')
 
@@ -16771,8 +16764,8 @@ def _showBuilding(building, delimiter=',', i=0, count=0):
   if 'coordinates' in building:
     printKeyValueList(['coordinates', None])
     Ind.Increment()
-    printKeyValueList(['latitude', building['coordinates'].get('latitude', 0)])
-    printKeyValueList(['longitude', building['coordinates'].get('longitude', 0)])
+    printKeyValueList(['latitude', '{0:4.7f}'.format(building['coordinates'].get('latitude', 0))])
+    printKeyValueList(['longitude', '{0:4.7f}'.format(building['coordinates'].get('longitude', 0))])
     Ind.Decrement()
   if 'address' in building:
     printKeyValueList(['address', None])
@@ -21937,6 +21930,19 @@ USER_LOCATIONS_PROPERTY_PRINT_ORDER = [
   'deskCode',
   ]
 
+USER_ORGANIZATIONS_PROPERTY_PRINT_ORDER = [
+  'name',
+  'description',
+  'domain',
+  'symbol',
+  'location',
+  'costCenter',
+  'department',
+  'title',
+  'fullTimeEquivalent',
+  'primary',
+  ]
+
 USER_POSIX_PROPERTY_PRINT_ORDER = [
   'accountId',
   'uid',
@@ -22279,6 +22285,18 @@ def infoUsers(entityList):
                 Ind.Decrement()
             else:
               printKeyValueList([Ind.MultiLineText(propertyValue)])
+            Ind.Decrement()
+        elif propertyClass == UProp.PC_ORGANIZATIONS:
+          if propertyValue:
+            printKeyValueList([propertyTitle, None])
+            Ind.Increment()
+            for row in propertyValue:
+              _showType(row, typeKey, typeCustomValue, customTypeKey)
+              Ind.Increment()
+              for key in USER_ORGANIZATIONS_PROPERTY_PRINT_ORDER:
+                if key in row:
+                  printKeyValueList([key, row[key]])
+              Ind.Decrement()
             Ind.Decrement()
         elif propertyClass == UProp.PC_POSIX:
           if propertyValue:

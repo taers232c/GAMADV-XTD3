@@ -1,3 +1,8 @@
+4.83.14
+
+Due to a recent change to the Google Cloud console, it's no longer necessary to enable Domain-wide delegation
+for service accounts when creating a project; those steps have been removed from `gam create project`.
+
 4.83.13
 
 Fixed Python 3 issue that caused a trap when `ziptostdout` was used with `gam download vaultexport|export`

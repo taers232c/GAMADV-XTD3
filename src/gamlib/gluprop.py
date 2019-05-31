@@ -97,6 +97,7 @@ PC_LANGUAGES = 'lang'
 PC_LOCATIONS = 'loca'
 PC_NAME = 'name'
 PC_NOTES = 'note'
+PC_ORGANIZATIONS = 'orga'
 PC_POSIX = 'posi'
 PC_SCHEMAS = 'schm'
 PC_SSH = 'ssh '
@@ -211,7 +212,7 @@ PROPERTIES = {
         PTKW_ATTR_TYPE_KEYWORD: 'contentType', PTKW_ATTR_TYPE_CUSTOM_VALUE: None, PTKW_ATTR_CUSTOMTYPE_KEYWORD: None,
         PTKW_KEYWORD_LIST: ['text_plain', 'text_html'],},},
   'organizations':
-    {CLASS: PC_ARRAY, TITLE: 'Organizations',
+    {CLASS: PC_ORGANIZATIONS, TITLE: 'Organizations',
      TYPE_KEYWORDS:
        {PTKW_CL_TYPE_KEYWORD: 'type', PTKW_CL_CUSTOM_KEYWORD: 'custom', PTKW_CL_CUSTOMTYPE_KEYWORD: 'customtype',
         PTKW_ATTR_TYPE_KEYWORD: 'type', PTKW_ATTR_TYPE_CUSTOM_VALUE: None, PTKW_ATTR_CUSTOMTYPE_KEYWORD: 'customType',
