@@ -365,6 +365,7 @@ class GamCLArgs(object):
   ARG_FORWARDINGADDRESS = 'forwardingaddress'
   ARG_FORWARDINGADDRESSES = 'forwardingaddresses'
   ARG_GAL = 'gal'
+  ARG_GMAIL = 'gmail'
   ARG_GMAILPROFILE = 'gmailprofile'
   ARG_GROUP = 'group'
   ARG_GROUPS = 'groups'

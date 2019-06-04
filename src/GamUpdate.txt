@@ -1,3 +1,7 @@
+4.85.01
+
+Fixed bug where use of `csvkmd` inside of a `gam csv` command threw a spurious error: "ERROR: CSV data already saved".
+
 4.85.00
 
 Due to an earlier Google limitation, GAM had to authorize Client access in two steps. That limitation has been eliminated and now GAM can authorize

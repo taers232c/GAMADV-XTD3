@@ -140,7 +140,7 @@ If an item contains spaces, it should be surrounded by ".
         (+|-)<Number>(m|h|d|w|y) |
         never|
         now|today
-<RegularExpression> ::= <Python Regular Expression, see: https://docs.python.org/3.6/library/re.html>
+<RegularExpression> ::= <Python Regular Expression, see: https://docs.python.org/3.7/library/re.html>
 <ProjectID> ::= <String> # Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
 <SiteName> ::= [a-z,0-9,-]+
 <UniqueID> ::= uid:<String>
@@ -3203,13 +3203,14 @@ gam <UserTypeEntity> print filecounts [todrive <ToDriveAttribute>*] [corpora <Co
         [select <TeamDriveEntity>] [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
         (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
 
-gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*] [anyowner|(showownedby any|me|others)]
+gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
         [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) |
-          (select <DriveFileEntityListTree> [selectsubquery <QueryDriveFile>] [depth <Number>] [showparent])]
-        (querytime.* <Time>)* [maxfiles <Integer>]
+          (select <DriveFileEntityListTree> [selectsubquery <QueryDriveFile>] [norecursion|(depth <Number>)] [showparent])]
+        (querytime.* <Time>)* [maxfiles <Integer>] [countsonly]
         [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
         (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
-        [filepath|fullpath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [quotechar <Character>]
+        [filepath|fullpath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
+        (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [quotechar <Character>]
 
 <FileTreeFieldName> ::=
         filesize|
