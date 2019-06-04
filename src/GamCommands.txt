@@ -203,6 +203,7 @@ If an item contains spaces, it should be surrounded by ".
 <EventColorIndex> ::= <Number in range 1-11>
 <EventID> ::= <String>
 <EventName> ::= <String>
+<ExportItem> ::= <UniqueID>|<String>
 <FeatureName> ::= <String>
 <FieldName> ::= <String>
 <FileName> ::= <String>
@@ -676,7 +677,9 @@ gam print projects [<EmailAddress>] [all|gam|<ProjectID>|(filter <String>)] [tod
 
 gam oauth|oauth2 create|request [<EmailAddress>]
 gam oauth|oauth2 delete|revoke
-gam oauth|oauth2 info|verify [<AccessToken>]
+gam oauth|oauth2 refresh
+gam oauth|oauth2 update
+gam oauth|oauth2 info|verify [showsecret] [accesstoken <AccessToken> idtoken <IDToken>] [showdetails]
 gam oauth|oauth2 export [<FileName>]
 gam oauth|oauth2 import <FileName>
 
@@ -771,7 +774,7 @@ gam calendar|calendars <CalendarEntity> showacl [formatjson]
 <AttendeeAttendance> ::= optional|required
 <AttendeeStatus> ::= accepted|declined|needsaction|tentative
 
-<EventSelectProperty:> ::=
+<EventSelectProperty> ::=
         (endtime|timemax <Time>)|
         (query <QueryCalendar>)|
         (privateextendedproperty <String>)|
@@ -782,7 +785,7 @@ gam calendar|calendars <CalendarEntity> showacl [formatjson]
         (starttime|timemin <Time>)|
         (updatedmin <Time>)
 
-<EventMatchProperty:> ::=
+<EventMatchProperty> ::=
         (matchfield attendees <EmailAddressEntity>)|
         (matchfield attendeespattern <RegularExpression>)|
         (matchfield attendeesstatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddressEntity>)|
@@ -968,9 +971,12 @@ gam calendar|calendars <CalendarEntity> show events <EventSelectProperty>* <Even
 gam calendar|calendars <CalendarEntity> print events <EventSelectProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>]
          [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
 
-gam calendar|calendars <CalendarEntity> addevent <EventCreateAttribute>+
-gam calendar|calendars <CalendarEntity> deleteevent <EventEntity> [doit] [<EventNotificationAttribute>]
-gam calendar|calendars <CalendarEntity> wipe
+gam calendar <CalendarEntity> addevent <EventCreateAttribute>+
+gam calendar <CalendarEntity> deleteevent (id|eventid <EventID>)+ [doit] [notifyattendees|(sendnotifications <Boolean>)|(sendupdates all|externalonly|none)]
+gam calendar <CalendarEntity> moveevent (id|eventid <EventID>)+ destination <CalendarItem> [notifyattendees|(sendnotifications <Boolean>)|(sendupdates all|externalonly|none)]
+gam calendar <CalendarEntity> wipe
+gam calendar <CalendarEntity> printevents <EventSelectProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>]
+         [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
 
 <CalendarSettings> ::=
         (description <String>)|
@@ -1941,7 +1947,7 @@ gam print printjob|printjobs [todrive <ToDriveAttribute>*] [printer|printerid <P
         useraccounts
 
 gam report <ActivityApplicationName> [todrive <ToDriveAttributes>*]
-        [(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
+        [user all|<UserItem>] [select <UserTypeEntity>]
         [([start <Time>] [end <Time>])|(range <Time> <Time>)|yesterday]
         [filtertime.* <Time>] [filter|filters <String>]
         [event|events <EventNameList>] [ip <String>]
@@ -2696,7 +2702,7 @@ gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <
 <AttendeeAttendance> ::= optional|required
 <AttendeeStatus> ::= accepted|declined|needsaction|tentative
 
-<EventSelectProperty:> ::=
+<EventSelectProperty> ::=
         (endtime|timemax <Time>)|
         (query <QueryCalendar>)|
         (privateextendedproperty <String>)|
@@ -2707,7 +2713,7 @@ gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <
         (starttime|timemin <Time>)|
         (updatedmin <Time>)
 
-<EventMatchProperty:> ::=
+<EventMatchProperty> ::=
         (matchfield attendees <EmailAddressEntity>)|
         (matchfield attendeespattern <RegularExpression>)|
         (matchfield attendeesstatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddressEntity>)|
@@ -2722,6 +2728,9 @@ gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <
 <EventEntity> ::=
         (id|eventid <EventId>)|(event|events <EventIdList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|
         (<EventSelectProperty>+ <EventMatchProperty>*)
+
+<AttendeeAttendance> ::= optional|required
+<AttendeeStatus> ::= accepted|declined|needsaction|tentative
 
 <EventAttribute> ::=
         (anyonecanaddself [<Boolean>])|
@@ -3049,6 +3058,7 @@ gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (ord
         permissions.additionalroles|
         permissions.allowfilediscovery|
         permissions.deleted|
+        permissions.permissiondetails|
         permissions.displayname|
         permissions.domain|
         permissions.emailaddress|
@@ -3058,7 +3068,6 @@ gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (ord
         permissions.name|
         permissions.photolink|
         permissions.role|
-        permissions.teamdrivepermissiondetails|
         permissions.type|
         permissions.withlink
 
@@ -3196,7 +3205,7 @@ gam <UserTypeEntity> print filecounts [todrive <ToDriveAttribute>*] [corpora <Co
 
 gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*] [anyowner|(showownedby any|me|others)]
         [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) |
-          (select <DriveFileEntityListTree> [selectsubquery <QueryDriveFile>] [norecursion|(depth <Number>)] [showparent])]
+          (select <DriveFileEntityListTree> [selectsubquery <QueryDriveFile>] [depth <Number>] [showparent])]
         (querytime.* <Time>)* [maxfiles <Integer>]
         [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
         (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
@@ -3247,6 +3256,7 @@ gam <UserTypeEntity> print|show driveactivity [v2] [todrive <ToDriveAttributes>*
 
 <DriveSettingsFieldName> ::=
         appinstalled|
+        drivethemes|
         exportformats|
         foldercolorpalette|
         importformats|
@@ -3257,7 +3267,6 @@ gam <UserTypeEntity> print|show driveactivity [v2] [todrive <ToDriveAttributes>*
         name|
         permissionid|
         rootfolderid|
-        teamdrivethemes|
         usage|
         usageindrive|
         usageindrivetrash

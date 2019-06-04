@@ -64,7 +64,7 @@ ENTITY_NAME_NOT_VALID = 'Entity Name Not Valid'
 ERROR = 'error'
 ERRORS = 'errors'
 EVENT_IS_CANCELED = 'Event is canceled'
-EXECUTE_GAM_OAUTH_CREATE = '\nPlease execute "gam oauth create"\n'
+EXECUTE_GAM_OAUTH_CREATE = '\nPlease run\n\ngam oauth delete\ngam oauth create\n\n'
 EXISTS = 'Exists'
 EXPECTED = 'Expected'
 EXPORT_NOT_COMPLETE = 'Export needs to be complete before downloading, current status is: {0}'
@@ -177,6 +177,27 @@ NO_REPORT_AVAILABLE = 'No {0} report available.'
 NO_SCOPES_FOR_API = 'There are no scopes authorized for the {0}'
 NO_TRANSFER_LACK_OF_DISK_SPACE = 'Transfer not performed due to lack of target drive space.'
 NO_USER_COUNTS_DATA_AVAILABLE = 'No User counts data available.'
+OAUTH2_FAILED_START_MESSAGE = """
+Failed to start a local webserver listening on either port 8080
+or port 9090. Please check your firewall settings and locally
+running programs that may be blocking or using those ports.
+
+Falling back to no_browser = true  and continuing with
+authorization.
+"""
+OAUTH2_BROWSER_OPENED_MESSAGE = """
+Your browser has been opened to visit:
+
+    {address}
+
+If your browser is on a different machine then press CTRL+C,
+set no_browser = true in gam.cfg and re-run this command.
+"""
+OAUTH2_GO_TO_LINK_MESSAGE = """
+Go to the following link in your browser:
+
+    {address}
+"""
 ONLY_ONE_JSON_RANGE_ALLOWED = 'Only one range/json allowed'
 ONLY_ONE_OWNER_ALLOWED = 'Only one owner allowed'
 OR = 'or'
@@ -220,6 +241,7 @@ UPDATE_ATTENDEE_CHANGES = 'Update attendee changes'
 UPDATE_USER_PASSWORD_CHANGE_NOTIFY_MESSAGE = 'The account password for #givenname# #familyname#, #user# has been changed to: #password#\n'
 UPDATE_USER_PASSWORD_CHANGE_NOTIFY_SUBJECT = 'Account #user# password has been changed'
 USER_BELONGS_TO_N_GROUPS_THAT_MAP_TO_ORGUNITS = 'User belongs to {0} groups ({1}) that map to OUs'
+USER_CANCELLED = 'User cancelled'
 USER_IN_OTHER_DOMAIN = '{0}: {1} in other domain.'
 USER_SUBS_NOT_ALLOWED_TAG_REPLACEMENT = 'user substitutions not allowed in replace <Tag> <String>'
 USE_DOIT_ARGUMENT_TO_PERFORM_ACTION = 'Use the "doit" argument to perform action'

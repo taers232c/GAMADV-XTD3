@@ -1,3 +1,33 @@
+4.85.00
+
+Due to an earlier Google limitation, GAM had to authorize Client access in two steps. That limitation has been eliminated and now GAM can authorize
+Client access in one step. This change requires a one-time update of the client access file oauth2.txt. If you are running any Advanced GAM version before
+`4.85.00`, perform the following command:
+```
+gam oauth update
+```
+If you have multiple sections in `gam.cfg` that reference different oauth2.txt files, perform an update on each section:
+```
+gam select aaa oauth update
+gam select bbb oauth update
+...
+```
+If you do not perform `gam oauth update`, it will be executed automatically on the first command entered.
+
+Added `countsonly` option to `gam print filelist`. This produces the same output columns as
+`gam print filecounts` but can be combined with the greater file selection options of `gam print filelist`.
+
+Added `norecursion` option to `gam print filelist`; this is used with the `select <DriveFileEntityListTree>`
+to prevent resursion into folders; only information about the selected folder is displayed.
+
+Code cleanup of all `gam print commands`.
+
+Courtesy of Jay, added the `guessaue` option to `gam info/print cros`. This option causes Gam to look up
+the Auto Update Expiration date for ChromeOS devices. Two additional fields are output: `guessedAUEDate`
+and `guessedAUEModel`. You should compare `model` and `guessedAUEModel` to verify that the proper date has been
+determined.
+See: https://support.google.com/chrome/a/answer/6220366
+
 4.83.14
 
 Due to a recent change to the Google Cloud console, it's no longer necessary to enable Domain-wide delegation
@@ -14,7 +44,7 @@ Fixed bug that caused a trap in `gam show messages` when `showattachements` was 
 
 4.83.11
 
-Added `targetname <FileName>` to `gam download vaultexport|export` so that downloaded Zip file has a predictable name.
+Added `targetname <FileName>` to `gam download vaultexport|export` so that downloaded zip file has a predictable name.
 
 4.83.10
 
@@ -459,8 +489,7 @@ Added `minimumfilesize <Integer>` to `gam print filelist` to allow selection of 
 4.65.66
 
 Improvements to gam report commands that allow greater ability to select reports and specify dates.
-See:
-* https://github.com/taers232c/GAMADV-XTD3/wiki/Reports
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Reports
 
 4.65.65
 
@@ -479,8 +508,7 @@ Added `sendnotifications <Boolean>` option to `gam transfer calendars|seccals` f
 4.65.62
 
 Enhanced <Tag> <Replace> processing to allow selection of user field keyword.
-See: 
-* https://github.com/taers232c/GAMADV-X/wiki/Tag-Replace
+See: https://github.com/taers232c/GAMADV-X/wiki/Tag-Replace
 
 4.65.61
 

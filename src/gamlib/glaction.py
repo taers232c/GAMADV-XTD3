@@ -64,6 +64,7 @@ class GamAction(object):
   PROCESS = 'proc'
   PURGE = 'purg'
   REENABLE = 'reen'
+  REFRESH = 'refr'
   REGISTER = 'regi'
   RELABEL = 'rela'
   REMOVE = 'remo'
@@ -145,6 +146,7 @@ class GamAction(object):
     PROCESS: ['Processed', 'Process'],
     PURGE: ['Purged', 'Purge'],
     REENABLE: ['Reenabled', 'Reenable'],
+    REFRESH: ['Refreshed', 'Refresh'],
     REGISTER: ['Registered', 'Register'],
     RELABEL: ['Relabeled', 'Relabel'],
     REMOVE: ['Removed', 'Remove'],

@@ -563,6 +563,7 @@ class GamCLArgs(object):
   OB_HOLD_ITEM = 'HoldItem'
   OB_HOST_NAME = 'HostName'
   OB_ICALUID = 'iCalUID'
+  OB_ID_TOKEN = 'IDToken'
   OB_JOB_ID = 'JobID'
   OB_JOB_OR_PRINTER_ID = 'JobID|PrinterID'
   OB_JSON_DATA = 'JSONData'
