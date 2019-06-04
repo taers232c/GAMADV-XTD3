@@ -140,7 +140,7 @@ If an item contains spaces, it should be surrounded by ".
         (+|-)<Number>(m|h|d|w|y) |
         never|
         now|today
-<RegularExpression> ::= <Python Regular Expression, see: https://docs.python.org/2/library/re.html>
+<RegularExpression> ::= <Python Regular Expression, see: https://docs.python.org/3.6/library/re.html>
 <ProjectID> ::= <String> # Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
 <SiteName> ::= [a-z,0-9,-]+
 <UniqueID> ::= uid:<String>
