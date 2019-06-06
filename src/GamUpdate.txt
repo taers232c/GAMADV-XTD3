@@ -1,3 +1,13 @@
+4.85.02
+
+Fixed bug in `gam report customer` where a trap was thrown if `date` was not specified.
+
+Enhanced `gam update group` to support more powerful membership update capabilities.
+Suppose you have a CSV file (GroupMembers.csv)  with headers: group,role,email
+Each row contains a group email address, member role (owner, member, manager) and a member email address.
+The following command will synchronize the group membership for all groups and roles.
+gam update group csvkmd GroupMembers.csv keyfield group subkeyfield role datafield email sync csvdata email
+
 4.85.01
 
 Fixed bug where use of `csvkmd` inside of a `gam csv` command threw a spurious error: "ERROR: CSV data already saved".

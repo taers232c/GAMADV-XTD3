@@ -117,6 +117,7 @@ INVALID_PERMISSION_ATTRIBUTE_TYPE = 'permission attribute {0} not allowed with t
 INVALID_QUERY = 'Invalid Query'
 INVALID_RE = 'Invalid RE'
 INVALID_REQUEST = 'Invalid Request'
+INVALID_ROLE = 'Invalid subkeyfield Role, must be one of: {0}'
 INVALID_SCHEMA_VALUE = 'Invalid Schema Value'
 INVALID_SCOPE = 'Invalid Scope'
 INVALID_SITE = 'Invalid Site ({0}), must match pattern ({1})'

@@ -1934,16 +1934,19 @@ gam print printjob|printjobs [todrive <ToDriveAttribute>*] [printer|printerid <P
 # Reports
 
 <ActivityApplicationName> ::=
+        access|accesstransparency|
         admin|
         calendar|calendars|
-        doc|docs|
-        drive|
+        drive|doc|docs|
+        enterprisegroups|groupsenterprise|
+        google+|gplus|
         group|groups|
+        hangoutsmeet|meet|
         login|logins|
         mobile|
+        oauthtoken|token|tokens|
         rules|
         saml|
-        token|tokens|
         useraccounts
 
 gam report <ActivityApplicationName> [todrive <ToDriveAttributes>*]

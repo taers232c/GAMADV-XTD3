@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.85.01'
+__version__ = '4.85.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7239,6 +7239,8 @@ NL_SPACES_PATTERN = re.compile(r'\n +')
 REPORTS_PARAMETERS_SIMPLE_TYPES = ['intValue', 'boolValue', 'datetimeValue', 'stringValue']
 
 REPORT_CHOICE_MAP = {
+  'access': 'access_transparency',
+  'accesstransparency': 'access_transparency',
   'admin': 'admin',
   'calendar': 'calendar',
   'calendars': 'calendar',
@@ -7248,12 +7250,18 @@ REPORT_CHOICE_MAP = {
   'docs': 'drive',
   'domain': 'customer',
   'drive': 'drive',
+  'enterprisegroups': 'groups_enterprise',
+  'gplus': 'gplus',
+  'google+': 'gplus',
   'group': 'groups',
   'groups': 'groups',
+  'groupsenterprise': 'groups_enterprise',
+  'hangoutsmeet': 'meet',
   'login': 'login',
   'logins': 'login',
   'meet': 'meet',
   'mobile': 'mobile',
+  'oauthtoken': 'token',
   'rules': 'rules',
   'saml': 'saml',
   'token': 'token',
@@ -7677,6 +7685,8 @@ def doReport():
       csvPF.SortRows('date', False)
       csvPF.writeCSVfile('User Reports Aggregate - {0}'.format(tryDate))
   elif customerReports:
+    if startEndTime.startDateTime is None:
+      startEndTime.startDateTime = startEndTime.endDateTime = todaysDate()
     csvPF.SetTitles('date')
     if not userCustomerRange:
       csvPF.AddTitles(['name', 'value'])
@@ -14598,6 +14608,13 @@ GROUP_DELIVERY_SETTINGS_MAP = {
 # gam update groups <GroupEntity> clear [member] [manager] [owner] [notsuspended|suspended] [preview]
 def doUpdateGroups():
 
+  def _validateSubkeyRoleGetMembers(group, role, origGroup, groupMemberLists, i, count):
+    roleLower = role.lower()
+    if roleLower in GROUP_ROLES_MAP:
+      return (GROUP_ROLES_MAP[roleLower], groupMemberLists[origGroup][role])
+    entityActionNotPerformedWarning([Ent.GROUP, group, Ent.ROLE, role], Msg.INVALID_ROLE.format(','.join(sorted(GROUP_ROLES_MAP))), i, count)
+    return (None, None)
+
   def _getRoleGroupMemberType(defaultRole=Ent.ROLE_MEMBER):
     role = getChoice(GROUP_ROLES_MAP, defaultChoice=defaultRole, mapChoice=True)
     groupMemberType = getChoice({'usersonly': 'USER', 'groupsonly': 'GROUP'}, defaultChoice='ALL', mapChoice=True)
@@ -15000,47 +15017,73 @@ def doUpdateGroups():
           continue
       entityActionPerformed([Ent.GROUP, group], i, count)
   elif CL_subCommand in ['create', 'add']:
-    role, groupMemberType = _getRoleGroupMemberType()
+    baseRole, groupMemberType = _getRoleGroupMemberType()
     isSuspended = _getOptionalIsSuspended()
     delivery_settings = getDeliverySettings()
     preview = checkArgumentPresent('preview')
     _, addMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
     groupMemberLists = addMembers if isinstance(addMembers, dict) else None
+    subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
     checkForExtraneousArguments()
     i = 0
     count = len(entityList)
     for group in entityList:
       i += 1
+      roleList = [baseRole]
       if groupMemberLists:
-        addMembers = groupMemberLists[group]
+        if not subkeyRoleField:
+          addMembers = groupMemberLists[group]
+        else:
+          roleList = groupMemberLists[group]
+      origGroup = group
       group = checkGroupExists(cd, group, i, count)
       if group:
-        _batchAddGroupMembers(group, i, count, [convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True) for member in addMembers],
-                              role, delivery_settings)
+        for role in roleList:
+          if groupMemberLists and subkeyRoleField:
+            role, addMembers = _validateSubkeyRoleGetMembers(group, role, origGroup, groupMemberLists, i, count)
+            if role is None:
+              continue
+          _batchAddGroupMembers(group, i, count,
+                                [convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True) for member in addMembers],
+                                role, delivery_settings)
   elif CL_subCommand in ['delete', 'remove']:
-    role, groupMemberType = _getRoleGroupMemberType()
+    baseRole, groupMemberType = _getRoleGroupMemberType()
     isSuspended = _getOptionalIsSuspended()
     preview = checkArgumentPresent('preview')
     _, removeMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
     groupMemberLists = removeMembers if isinstance(removeMembers, dict) else None
+    subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
     checkForExtraneousArguments()
     i = 0
     count = len(entityList)
     for group in entityList:
       i += 1
+      roleList = [baseRole]
       if groupMemberLists:
-        removeMembers = groupMemberLists[group]
+        if not subkeyRoleField:
+          removeMembers = groupMemberLists[group]
+        else:
+          roleList = groupMemberLists[group]
+      origGroup = group
       group = checkGroupExists(cd, group, i, count)
       if group:
-        _batchRemoveGroupMembers(group, i, count, [convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True) for member in removeMembers], role)
+        for role in roleList:
+          if groupMemberLists and subkeyRoleField:
+            role, removeMembers = _validateSubkeyRoleGetMembers(group, role, origGroup, groupMemberLists, i, count)
+            if role is None:
+              continue
+          _batchRemoveGroupMembers(group, i, count,
+                                   [convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True) for member in removeMembers],
+                                   role)
   elif CL_subCommand == 'sync':
-    role, groupMemberType = _getRoleGroupMemberType()
+    baseRole, groupMemberType = _getRoleGroupMemberType()
     syncOperation = getChoice(['addonly', 'removeonly'], defaultChoice='addremove')
     isSuspended = _getOptionalIsSuspended()
     delivery_settings = getDeliverySettings()
     preview = checkArgumentPresent('preview')
     _, syncMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
     groupMemberLists = syncMembers if isinstance(syncMembers, dict) else None
+    subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
     if groupMemberLists is None:
       syncMembersSet = set()
       syncMembersMap = {}
@@ -15051,44 +15094,70 @@ def doUpdateGroups():
     count = len(entityList)
     for group in entityList:
       i += 1
+      roleList = [baseRole]
       if groupMemberLists:
-        syncMembersSet = set()
-        syncMembersMap = {}
-        for member in groupMemberLists[group]:
-          syncMembersSet.add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True), syncMembersMap))
+        if not subkeyRoleField:
+          syncMembersSet = set()
+          syncMembersMap = {}
+          for member in groupMemberLists[group]:
+            syncMembersSet.add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True), syncMembersMap))
+        else:
+          roleList = groupMemberLists[group]
+      origGroup = group
       group = checkGroupExists(cd, group, i, count)
       if group:
-        currentMembersSet = set()
-        currentMembersMap = {}
-        for member in getUsersToModify(Cmd.ENTITY_GROUP, group, memberRoles=role, groupMemberType=groupMemberType):
-          currentMembersSet.add(_cleanConsumerAddress(member, currentMembersMap))
-        if syncOperation != 'addonly':
-          _batchRemoveGroupMembers(group, i, count,
-                                   [currentMembersMap.get(emailAddress, emailAddress) for emailAddress in currentMembersSet-syncMembersSet],
-                                   role)
-        if syncOperation != 'removeonly':
-          _batchAddGroupMembers(group, i, count,
-                                [syncMembersMap.get(emailAddress, emailAddress) for emailAddress in syncMembersSet-currentMembersSet],
-                                role, delivery_settings)
+        for role in roleList:
+          if groupMemberLists and subkeyRoleField:
+            role, syncMembers = _validateSubkeyRoleGetMembers(group, role, origGroup, groupMemberLists, i, count)
+            if role is None:
+              continue
+            syncMembersSet = set()
+            syncMembersMap = {}
+            for member in syncMembers:
+              syncMembersSet.add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True), syncMembersMap))
+          currentMembersSet = set()
+          currentMembersMap = {}
+          for member in getUsersToModify(Cmd.ENTITY_GROUP, group, memberRoles=role, groupMemberType=groupMemberType):
+            currentMembersSet.add(_cleanConsumerAddress(member, currentMembersMap))
+          if syncOperation != 'addonly':
+            _batchRemoveGroupMembers(group, i, count,
+                                     [currentMembersMap.get(emailAddress, emailAddress) for emailAddress in currentMembersSet-syncMembersSet],
+                                     role)
+          if syncOperation != 'removeonly':
+            _batchAddGroupMembers(group, i, count,
+                                  [syncMembersMap.get(emailAddress, emailAddress) for emailAddress in syncMembersSet-currentMembersSet],
+                                  role, delivery_settings)
   elif CL_subCommand == 'update':
-    role, groupMemberType = _getRoleGroupMemberType(defaultRole=None)
+    baseRole, groupMemberType = _getRoleGroupMemberType(defaultRole=None)
     isSuspended = _getOptionalIsSuspended()
     delivery_settings = getDeliverySettings()
     preview = checkArgumentPresent('preview')
     createIfNotFound = checkArgumentPresent('createifnotfound')
     _, updateMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
     groupMemberLists = updateMembers if isinstance(updateMembers, dict) else None
+    subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
     checkForExtraneousArguments()
     i = 0
     count = len(entityList)
     for group in entityList:
       i += 1
+      roleList = [baseRole]
       if groupMemberLists:
-        updateMembers = groupMemberLists[group]
+        if not subkeyRoleField:
+          updateMembers = groupMemberLists[group]
+        else:
+          roleList = groupMemberLists[group]
+      origGroup = group
       group = checkGroupExists(cd, group, i, count)
       if group:
-        _batchUpdateGroupMembers(group, i, count, [convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True) for member in updateMembers],
-                                 role, delivery_settings)
+        for role in roleList:
+          if groupMemberLists and subkeyRoleField:
+            role, updateMembers = _validateSubkeyRoleGetMembers(group, role, origGroup, groupMemberLists, i, count)
+            if role is None:
+              continue
+          _batchUpdateGroupMembers(group, i, count,
+                                   [convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True) for member in updateMembers],
+                                   role, delivery_settings)
   else: #clear
     isSuspended = None
     qualifier = ''
@@ -36049,7 +36118,7 @@ def watchGmail(users):
              userId='me', body={'topicName': topic})
     gmails[user]['seen_historyId'] = callGAPI(gmails[user]['g'].users(), 'getProfile',
                                               userId='me', fields='historyId')['historyId']
-  print('Watching for events...')
+  entityPerformActionNumItems([Ent.EVENT, u'gmail'], count, Ent.USER)
   while True:
     results = callGAPI(pubsub.projects().subscriptions(), 'pull',
                        subscription=subscription, body={'maxMessages': maxMessages})
@@ -36075,19 +36144,25 @@ def watchGmail(users):
               if list(history) == ['messages', 'id']:
                 continue
               if 'labelsAdded' in history:
+                Act.Set(Act.ADD)
                 for labelling in history['labelsAdded']:
-                  print('%s labels %s added to %s' % (a_user, ', '.join(labelling['labelIds']), labelling['message']['id']))
+                  entityActionPerformed([Ent.USER, a_user, Ent.MESSAGE, labelling['message']['id'],
+                                         Ent.LABEL, ', '.join(labelling['labelIds'])])
               if 'labelsRemoved' in history:
+                Act.Set(Act.REMOVE)
                 for labelling in history['labelsRemoved']:
-                  print('%s labels %s removed from %s' % (a_user, ', '.join(labelling['labelIds']), labelling['message']['id']))
-              if 'messagesDeleted' in history:
-                for deleting in history['messagesDeleted']:
-                  print('%s permanently deleted message %s' % (a_user, deleting['message']['id']))
+                  entityActionPerformed([Ent.USER, a_user, Ent.MESSAGE, labelling['message']['id'],
+                                         Ent.LABEL, ', '.join(labelling['labelIds'])])
               if 'messagesAdded' in history:
+                Act.Set(Act.CREATE)
                 for adding in history['messagesAdded']:
-                  print('%s created message %s with labels %s' % (a_user, adding['message']['id'], ', '.join(adding['message']['labelIds'])))
+                  entityActionPerformed([Ent.USER, a_user, Ent.MESSAGE, adding['message']['id'],
+                                         Ent.LABEL, ', '.join(adding['message']['labelIds'])])
+              if 'messagesDeleted' in history:
+                Act.Set(Act.DELETE)
+                for deleting in history['messagesDeleted']:
+                  entityActionPerformed([Ent.USER, a_user, Ent.MESSAGE, deleting['message']['id']])
           gmails[a_user]['seen_historyId'] = results['historyId']
-
 
 # gam <UserTypeEntity> print gmailprofile [todrive <ToDriveAttributes>*]
 # gam <UserTypeEntity> show gmailprofile
