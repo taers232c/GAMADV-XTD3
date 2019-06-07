@@ -7782,6 +7782,8 @@ def doReport():
                         item.pop('intValue')
                   else:
                     event[item['name']] = item['intValue']
+                elif set(item) == set(['boolValue', 'name']):
+                  event[item['name']] = item['boolValue']
                 elif set(item) == set(['multiValue', 'name']):
                   event[item['name']] = ' '.join(item['multiValue'])
                 elif item['name'] == 'scope_data':
