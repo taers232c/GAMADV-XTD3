@@ -7778,8 +7778,9 @@ def doReport():
                     if val is not None:
                       val = int(val)
                       if val >= 62135683200:
-                        item['dateTimeValue'] = ISOformatTimeStamp(datetime.datetime.fromtimestamp(val-62135683200, GC.Values[GC.TIMEZONE]))
-                        item.pop('intValue')
+                        event[item['name']] = ISOformatTimeStamp(datetime.datetime.fromtimestamp(val-62135683200, GC.Values[GC.TIMEZONE]))
+                      else:
+                        event[item['name']] = val
                   else:
                     event[item['name']] = item['intValue']
                 elif set(item) == set(['boolValue', 'name']):
