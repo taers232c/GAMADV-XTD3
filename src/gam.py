@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.86.01'
+__version__ = '4.86.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -71,7 +71,7 @@ from tempfile import TemporaryFile
 import threading
 import time
 from traceback import print_exc
-from urllib.parse import unquote, urlencode
+from urllib.parse import unquote, urlencode, urlparse
 import uuid
 import webbrowser
 import zipfile
@@ -2968,6 +2968,13 @@ def doGAMCheckForUpdates(forceCheck):
     if forceCheck:
       systemErrorExit(NETWORK_ERROR_RC, str(e))
 
+def handleRuntimeError(e):
+  if 'setting tls' not in e:
+    systemErrorExit(NETWORK_ERROR_RC, e)
+  stderrErrorMsg(e)
+  writeStderr(Msg.DISABLE_TLS_MIN_MAX)
+  systemErrorExit(NETWORK_ERROR_RC, None)
+
 def handleOAuthTokenError(e, soft_errors):
   errMsg = str(e)
   if errMsg.replace('.', '') in API.OAUTH2_TOKEN_ERRORS or errMsg.startswith('Invalid response'):
@@ -3594,6 +3601,8 @@ def getAPIversionHttpService(api):
         systemErrorExit(SOCKET_ERROR_RC, errMsg)
       except (httplib2.ServerNotFoundError, google.auth.exceptions.TransportError) as e:
         systemErrorExit(NETWORK_ERROR_RC, str(e))
+      except RuntimeError as e:
+        handleRuntimeError(str(e))
       except IOError as e:
         systemErrorExit(FILE_ERROR_RC, str(e))
   disc_file, discovery = readDiscoveryFile(api_version)
@@ -5676,10 +5685,25 @@ def batchRequestID(entityName, i, count, j, jcount, item, role=None, option=None
     return '{0}\n{1}\n{2}\n{3}\n{4}\n{5}'.format(entityName, i, count, j, jcount, item)
   return '{0}\n{1}\n{2}\n{3}\n{4}\n{5}\n{6}\n{7}'.format(entityName, i, count, j, jcount, item, role, option)
 
-# gam version [check|checkrc|simple|extended]
+def _getServerTLSUsed(location):
+  url = 'https://'+location
+  _, netloc, _, _, _, _ = urlparse(url)
+  conn = 'https:'+netloc
+  httpObj = getHttpObj()
+  try:
+    httpObj.request(url)
+  except httplib2.ServerNotFoundError as e:
+    systemErrorExit(NETWORK_ERROR_RC, str(e))
+  except RuntimeError as e:
+    handleRuntimeError(str(e))
+  cipher_name, tls_ver, _ = httpObj.connections[conn].sock.cipher()
+  return tls_ver, cipher_name
+
+# gam version [check|checkrc|simple|extended] [location <HostName>]
 def doVersion(checkForArgs=True):
   forceCheck = 0
   extended = simple = False
+  testLocation = 'www.googleapis.com'
   if checkForArgs:
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
@@ -5691,6 +5715,8 @@ def doVersion(checkForArgs=True):
         simple = True
       elif myarg == 'extended':
         extended = True
+      elif myarg == 'location':
+        testLocation = getString(Cmd.OB_HOST_NAME)
       else:
         unknownArgumentExit()
   if simple:
@@ -5705,11 +5731,8 @@ def doVersion(checkForArgs=True):
     doGAMCheckForUpdates(forceCheck)
   if extended:
     printKeyValueList([ssl.OPENSSL_VERSION])
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    ssl_sock = ssl.wrap_socket(s, cert_reqs=ssl.CERT_NONE, ca_certs=GC.Values[GC.CACERTS_PEM])
-    ssl_sock.connect(('www.googleapis.com', 443))
-    cipher_name, tls_ver, _ = ssl_sock.cipher()
-    printKeyValueList(['www.googleapis.com connects using {0} {1}'.format(tls_ver, cipher_name)])
+    tls_ver, cipher_name = _getServerTLSUsed(testLocation)
+    printKeyValueList(['{0} connects using {1} {2}'.format(testLocation, tls_ver, cipher_name)])
 
 # gam help
 def doUsage():

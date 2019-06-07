@@ -1,3 +1,9 @@
+4.86.02
+
+Added code to handle the following error: `setting tls_maximum_version requires Python 3.7 and OpenSSL 1.1 or newer`
+If you get this error, you will be instructed to execute the following command:
+gam config tls_max_version "" tls_min_version "" save
+
 4.86.01
 
 Fixed bug in `gam report <ActivityApplicationName>` that caused a trap.
