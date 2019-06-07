@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.85.02'
+__version__ = '4.86.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2814,7 +2814,6 @@ def SetGlobalVariables():
     GM.Globals[GM.OAUTH2_TXT_LOCK] = fileName
 # Override httplib2 settings
   httplib2.debuglevel = GC.Values[GC.DEBUG_LEVEL]
-  httplib2._build_ssl_context = _build_ssl_context
 # Reset global variables if required
   if prevExtraArgsTxt != GC.Values[GC.EXTRA_ARGS]:
     GM.Globals[GM.EXTRA_ARGS_LIST] = [('prettyPrint', GC.Values[GC.DEBUG_LEVEL] > 0)]
@@ -2907,10 +2906,14 @@ def SetGlobalVariables():
 # We're done, nothing else to do
   return False
 
-def getHttpObj(cache=None):
+def getHttpObj(cache=None, override_min_tls=None, override_max_tls=None):
+  tls_minimum_version = override_min_tls if override_min_tls else GC.Values[GC.TLS_MIN_VERSION] if GC.Values[GC.TLS_MIN_VERSION] else None
+  tls_maximum_version = override_max_tls if override_max_tls else GC.Values[GC.TLS_MAX_VERSION] if GC.Values[GC.TLS_MAX_VERSION] else None
   return httplib2.Http(cache=cache,
                        ca_certs=GC.Values[GC.CACERTS_PEM],
-                       disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL])
+                       disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL],
+                       tls_maximum_version=tls_maximum_version,
+                       tls_minimum_version=tls_minimum_version)
 
 def doGAMCheckForUpdates(forceCheck):
   def _gamLatestVersionNotAvailable():
@@ -3632,22 +3635,6 @@ def buildGAPIObject(api):
   GM.Globals[GM.ADMIN] = credentials.id_token.get('email', 'UNKNOWN').lower()
   GM.Globals[GM.OAUTH2_CLIENT_ID] = credentials.client_id
   return service
-
-# override httplib2._build_ssl_context so we can force min/max TLS values
-# actual function replacement happens in SetGlobalVariables so we have config options set
-def _build_ssl_context(disable_ssl_certificate_validation, ca_certs, cert_file=None, key_file=None):
-  context = ssl.SSLContext(httplib2.DEFAULT_TLS_VERSION)
-  context.verify_mode = ssl.CERT_NONE if disable_ssl_certificate_validation else ssl.CERT_REQUIRED
-  context.check_hostname = True
-  context.load_verify_locations(ca_certs)
-  if cert_file:
-    context.load_cert_chain(cert_file, key_file)
-  if hasattr(context, 'minimum_version'):
-    if GC.Values[GC.TLS_MIN_VERSION]:
-      context.minimum_version = getattr(ssl.TLSVersion, GC.Values[GC.TLS_MIN_VERSION])
-    if GC.Values[GC.TLS_MAX_VERSION]:
-      context.maximum_version = getattr(ssl.TLSVersion, GC.Values[GC.TLS_MAX_VERSION])
-  return context
 
 # Override and wrap google_auth_httplib2 request methods so that the GAM
 # user-agent string is inserted into HTTP request headers.
@@ -7780,17 +7767,37 @@ def doReport():
           events = activity.pop('events')
           if not countsOnly:
             activity_row = flattenJSON(activity, flattened={}, timeObjects=REPORT_ACTIVITIES_TIME_OBJECTS)
+            purge_parameters = True
             for event in events:
               for item in event.get('parameters', []):
-                if item['name'] in ['start_time', 'end_time']:
-                  val = item.get('intValue')
-                  if val is not None:
-                    val = int(val)
-                    if val >= 62135683200:
-                      item['dateTimeValue'] = ISOformatTimeStamp(datetime.datetime.fromtimestamp(val-62135683200, GC.Values[GC.TIMEZONE]))
-                      item.pop('intValue')
-                if 'value' in item:
-                  item['value'] = NL_SPACES_PATTERN.sub('', item['value'])
+                if set(item) == set(['value', 'name']):
+                  event[item['name']] = NL_SPACES_PATTERN.sub('', item['value'])
+                elif set(item) == set(['intValue', 'name']):
+                  if item['name'] in ['start_time', 'end_time']:
+                    val = item.get('intValue')
+                    if val is not None:
+                      val = int(val)
+                      if val >= 62135683200:
+                        item['dateTimeValue'] = ISOformatTimeStamp(datetime.datetime.fromtimestamp(val-62135683200, GC.Values[GC.TIMEZONE]))
+                        item.pop('intValue')
+                  else:
+                    event[item['name']] = item['intValue']
+                elif set(item) == set(['multiValue', 'name']):
+                  event[item['name']] = ' '.join(item['multiValue'])
+                elif item['name'] == 'scope_data':
+                  parts = {}
+                  for message in item['multiMessageValue']:
+                    for mess in message['parameter']:
+                      value = mess.get('value', ' '.join(mess.get('multiValue', [])))
+                      parts[mess['name']] = parts.get(mess['name'], [])+[value]
+                  for part, v in parts.items():
+                    if part == 'scope_name':
+                      part = 'scope'
+                    event[part] = ' '.join(v)
+                else:
+                  purge_parameters = False
+              if purge_parameters:
+                event.pop('parameters')
               row = flattenJSON(event, flattened={})
               row.update(activity_row)
               csvPF.WriteRowTitles(row)

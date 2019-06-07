@@ -1,3 +1,7 @@
+4.86.00
+
+Following Jay's lead, reformatted output of `gam report <ActivityApplicationName>` to make it more usable.
+
 4.85.02
 
 Fixed bug in `gam report customer` where a trap was thrown if `date` was not specified.

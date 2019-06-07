@@ -96,7 +96,7 @@ If an item contains spaces, it should be surrounded by ".
         gsefe|e4e|gsuiteenterpriseeducation|1010310002|
         gsefes|e4es|gsuiteenterpriseeducationstudent|1010310003|
         gsbau|businessarchived|gsuitebusinessarchived|
-	gseau|enterprisearchived|gsuiteenterprisearchived|
+        gseau|enterprisearchived|gsuiteenterprisearchived|
         chrome|cdm|googlechromedevicemanagement|Google-Chrome-Device-Management|
         coordinate|googlecoordinate|Google-Coordinate|
         d4e|driveenterprise|drive4enterprise|
