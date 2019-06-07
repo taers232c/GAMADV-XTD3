@@ -15,7 +15,7 @@ __contributors__ = [
     "Alex Yu",
 ]
 __license__ = "MIT"
-__version__ = '0.12.1'
+__version__ = '0.13.0'
 
 import base64
 import calendar
@@ -173,9 +173,9 @@ DEFAULT_TLS_VERSION = getattr(ssl, "PROTOCOL_TLS", None) or getattr(
     ssl, "PROTOCOL_SSLv23"
 )
 
-
 def _build_ssl_context(
-    disable_ssl_certificate_validation, ca_certs, cert_file=None, key_file=None
+    disable_ssl_certificate_validation, ca_certs, cert_file=None, key_file=None,
+    maximum_version=None, minimum_version=None,
 ):
     if not hasattr(ssl, "SSLContext"):
         raise RuntimeError("httplib2 requires Python 3.2+ for ssl.SSLContext")
@@ -184,6 +184,19 @@ def _build_ssl_context(
     context.verify_mode = (
         ssl.CERT_NONE if disable_ssl_certificate_validation else ssl.CERT_REQUIRED
     )
+
+    # SSLContext.maximum_version and SSLContext.minimum_version are python 3.7+.
+    # source: https://docs.python.org/3/library/ssl.html#ssl.SSLContext.maximum_version
+    if maximum_version is not None:
+        if hasattr(context, "maximum_version"):
+            context.maximum_version = getattr(ssl.TLSVersion, maximum_version)
+        else:
+            raise RuntimeError("setting tls_maximum_version requires Python 3.7 and OpenSSL 1.1 or newer")
+    if minimum_version is not None:
+        if hasattr(context, "minimum_version"):
+            context.minimum_version = getattr(ssl.TLSVersion, minimum_version)
+        else:
+            raise RuntimeError("setting tls_minimum_version requires Python 3.7 and OpenSSL 1.1 or newer")
 
     # check_hostname requires python 3.4+
     # we will perform the equivalent in HTTPSConnectionWithTimeout.connect() by calling ssl.match_hostname
@@ -1226,6 +1239,8 @@ class HTTPSConnectionWithTimeout(http.client.HTTPSConnection):
         proxy_info=None,
         ca_certs=None,
         disable_ssl_certificate_validation=False,
+        tls_maximum_version=None,
+        tls_minimum_version=None,
     ):
 
         self.disable_ssl_certificate_validation = disable_ssl_certificate_validation
@@ -1236,7 +1251,8 @@ class HTTPSConnectionWithTimeout(http.client.HTTPSConnection):
             self.proxy_info = proxy_info("https")
 
         context = _build_ssl_context(
-            self.disable_ssl_certificate_validation, self.ca_certs, cert_file, key_file
+            self.disable_ssl_certificate_validation, self.ca_certs, cert_file, key_file,
+            maximum_version=tls_maximum_version, minimum_version=tls_minimum_version,
         )
         super(HTTPSConnectionWithTimeout, self).__init__(
             host,
@@ -1384,6 +1400,8 @@ class Http(object):
         proxy_info=proxy_info_from_environment,
         ca_certs=None,
         disable_ssl_certificate_validation=False,
+        tls_maximum_version=None,
+        tls_minimum_version=None,
     ):
         """If 'cache' is a string then it is used as a directory name for
         a disk cache. Otherwise it must be an object that supports the
@@ -1407,10 +1425,15 @@ class Http(object):
 
         If disable_ssl_certificate_validation is true, SSL cert validation will
         not be performed.
+
+        tls_maximum_version / tls_minimum_version require Python 3.7+ /
+        OpenSSL 1.1.0g+. A value of "TLSv1_3" requires OpenSSL 1.1.1+.
 """
         self.proxy_info = proxy_info
         self.ca_certs = ca_certs
         self.disable_ssl_certificate_validation = disable_ssl_certificate_validation
+        self.tls_maximum_version = tls_maximum_version
+        self.tls_minimum_version = tls_minimum_version
         # Map domain name to an httplib connection
         self.connections = {}
         # The location of the cache, for now a directory
@@ -1753,6 +1776,8 @@ a string that contains the response entity body.
                             proxy_info=self.proxy_info,
                             ca_certs=self.ca_certs,
                             disable_ssl_certificate_validation=self.disable_ssl_certificate_validation,
+                            tls_maximum_version=self.tls_maximum_version,
+                            tls_minimum_version=self.tls_minimum_version,
                         )
                     else:
                         conn = self.connections[conn_key] = connection_type(
@@ -1761,6 +1786,8 @@ a string that contains the response entity body.
                             proxy_info=self.proxy_info,
                             ca_certs=self.ca_certs,
                             disable_ssl_certificate_validation=self.disable_ssl_certificate_validation,
+                            tls_maximum_version=self.tls_maximum_version,
+                            tls_minimum_version=self.tls_minimum_version,
                         )
                 else:
                     conn = self.connections[conn_key] = connection_type(
