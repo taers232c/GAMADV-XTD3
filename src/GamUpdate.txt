@@ -1,3 +1,8 @@
+4.86.03
+
+Code cleanup for `oauth2client` library calls; following Jay's suggestion, enabled OAuth 2.0 PKCE (https://www.oauth.com/oauth2-servers/pkce)
+to protect tokens during authentication.
+
 4.86.02
 
 Added code to handle the following error: `setting tls_maximum_version requires Python 3.7 and OpenSSL 1.1 or newer`
