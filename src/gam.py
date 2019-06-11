@@ -5166,13 +5166,13 @@ class CSVPrintFile():
   def RowFilterMatch(self, row):
     def rowRegexFilterMatch(filterPattern):
       for column in columns:
-        if filterPattern.search(row.get(column, '')):
+        if filterPattern.search(str(row.get(column, ''))):
           return True
       return False
 
     def rowDateTimeFilterMatch(dateMode, op, filterDate):
       def checkMatch(rowDate):
-        if not rowDate:
+        if not rowDate or not isinstance(rowDate, string_types):
           return False
         if rowDate == GC.Values[GC.NEVER_TIME]:
           rowDate = NEVER_TIME
@@ -19000,9 +19000,9 @@ def _getCalendarPrintShowEventOptions(calendarEventEntity, entityType):
   _addEventEntitySelectFields(calendarEventEntity, fieldsList)
   return (csvPF, FJQC, fieldsList)
 
-# gam calendars <CalendarEntity> print events <EventSelectProperties>* <EventDisplayProperties>* [fields <EventFieldNameList>]
+# gam calendars <CalendarEntity> print events <EventEntity> <EventDisplayProperties>* [fields <EventFieldNameList>]
 #	[formatjson] [quotechar <Character>] [todrive <ToDriveAttributes>*]
-# gam calendars <CalendarEntity> show events <EventSelectProperties>* <EventDisplayProperties>* [fields <EventFieldNameList>] [formatjson]
+# gam calendars <CalendarEntity> show events <EventEntity> <EventDisplayProperties>* [fields <EventFieldNameList>] [formatjson]
 def doCalendarsPrintShowEvents(cal, calIds):
   calendarEventEntity = getCalendarEventEntity(noIds=True)
   csvPF, FJQC, fieldsList = _getCalendarPrintShowEventOptions(calendarEventEntity, Ent.CALENDAR)
@@ -27584,9 +27584,9 @@ def infoCalendarEvents(users):
     _infoCalendarEvents(origUser, user, cal, calIds, jcount, calendarEventEntity, FJQC, fieldsList)
     Ind.Decrement()
 
-# gam <UserTypeEntity> print events <UserCalendarEntity> <EventSelectProperties>* <EventDisplayProperties>* [fields <EventFieldNameList>]
+# gam <UserTypeEntity> print events <UserCalendarEntity> <EventEntity> <EventDisplayProperties>* [fields <EventFieldNameList>]
 #	[formatjson] [quotechar <Character>] [todrive <ToDriveAttributes>*]
-# gam <UserTypeEntity> show events <UserCalendarEntity> <EventSelectProperties>* <EventDisplayProperties>* [fields <EventFieldNameList>] [formatjson]
+# gam <UserTypeEntity> show events <UserCalendarEntity> <EventEntity> <EventDisplayProperties>* [fields <EventFieldNameList>] [formatjson]
 def printShowCalendarEvents(users):
   calendarEntity = getUserCalendarEntity()
   calendarEventEntity = getCalendarEventEntity(noIds=True)

@@ -95,11 +95,14 @@ If an item contains spaces, it should be surrounded by ".
         gae|gse|enterprise|gsuiteenterprise|1010020020|
         gsefe|e4e|gsuiteenterpriseeducation|1010310002|
         gsefes|e4es|gsuiteenterpriseeducationstudent|1010310003|
-        gsbau|businessarchived|gsuitebusinessarchived|
-        gseau|enterprisearchived|gsuiteenterprisearchived|
+        gsbau|businessarchived|gsuitebusinessarchived|1010340002|
+        gseau|enterprisearchived|gsuiteenterprisearchived|1010340001|
+        gvstarter|voicestarter|googlevoicestarter|1010330003|
+        gvstandard|voicestandard|googlevoicestandard|1010330004|
+        gvpremier|voicepremier|googlevoicepremier|1010330002|
         chrome|cdm|googlechromedevicemanagement|Google-Chrome-Device-Management|
         coordinate|googlecoordinate|Google-Coordinate|
-        d4e|driveenterprise|drive4enterprise|
+        d4e|driveenterprise|drive4enterprise|1010060001|
         drive20gb|20gb|googledrivestorage20gb|Google-Drive-storage-20GB|
         drive50gb|50gb|googledrivestorage50gb|Google-Drive-storage-50GB|
         drive200gb|200gb|googledrivestorage200gb|Google-Drive-storage-200GB|
@@ -110,7 +113,7 @@ If an item contains spaces, it should be surrounded by ".
         drive8tb|8tb|googledrivestorage8tb|Google-Drive-storage-8TB|
         drive16tb|16tb|googledrivestorage16tb|Google-Drive-storage-16TB|
         vault|googlevault|Google-Vault|
-        vfe|googlevaultformeremployee|Google-Vault-Former-Employee
+        vfe|googlevaultformeremployee|Google-Vault-Former-Employee|
 
 ## Items built from primitives
 
@@ -967,8 +970,8 @@ gam calendar|calendars <CalendarEntity> empty calendartrash
         (timezone <TimeZone>)
 
 gam calendar|calendars <CalendarEntity> info events <EventEntity> [maxinstances <Number>] [fields <EventFieldNameList>] [formatjson]
-gam calendar|calendars <CalendarEntity> show events <EventSelectProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>] [formatjson]
-gam calendar|calendars <CalendarEntity> print events <EventSelectProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>]
+gam calendar|calendars <CalendarEntity> show events <EventEntity> <EventDisplayProperty>* [fields <EventFieldNameList>] [formatjson]
+gam calendar|calendars <CalendarEntity> print events <EventEntity> <EventDisplayProperty>* [fields <EventFieldNameList>]
          [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
 
 gam calendar <CalendarEntity> addevent <EventCreateAttribute>+
@@ -1592,11 +1595,9 @@ gam show domainaliases|aliasdomains [formatjson]
         (whocanpostmessage none_can_post|all_managers_can_post|all_members_can_post|all_owners_can_post|all_in_domain_can_post|anyone_can_post)|
         (whocanviewgroup anyone_can_view|all_in_domain_can_view|all_members_can_view|all_managers_can_view|all_owners_can_view)|
         (whocanviewmembership all_in_domain_can_view|all_members_can_view|all_managers_can_view|all_owners_can_view)
-<GroupWhoCanDiscoverGroupAttribute> ::=
-        (whocandiscovergroup allmemberscandiscover|allindomaincandiscover|anyonecandiscover)|
+<GroupWhoCanDiscoverGroupDeprecatedAttribute> ::=
         (showingroupdirectory <Boolean>)
-<GroupWhoCanAssistContentAttribute> ::=
-        (whocanassistcontent all_members|owners_and_managers|managers_only|owners_only|none)|
+<GroupWhoCanAssistContentDeprecatedAttribute> ::=
         (whocanassigntopics all_members|owners_and_managers|managers_only|owners_only|none)|
         (whocanenterfreeformtags all_members|owners_and_managers|managers_only|owners_only|none)|
         (whocanhideabuse all_members|owners_and_managers|managers_only|owners_only|none)|
@@ -1608,8 +1609,7 @@ gam show domainaliases|aliasdomains [formatjson]
         (whocantaketopics all_members|owners_and_managers|managers_only|owners_only|none)|
         (whocanunassigntopic all_members|owners_and_managers|managers_only|owners_only|none)|
         (whocanunmarkfavoritereplyonanytopic all_members|owners_and_managers|managers_only|owners_only|none)
-<GroupWhoCanModerateContentAttribute> ::=
-        (whocanmoderatecontent all_members|owners_and_managers|owners_only|none)|
+<GroupWhoCanModerateContentDeprecatedAttribute> ::=
         (whocanapprovemessages all_members|owners_and_managers|owners_only|none)|
         (whocandeleteanypost all_members|owners_and_managers|owners_only|none)|
         (whocandeletetopics all_members|owners_and_managers|owners_only|none)|
@@ -1617,8 +1617,7 @@ gam show domainaliases|aliasdomains [formatjson]
         (whocanmovetopicsin all_members|owners_and_managers|owners_only|none)|
         (whocanmovetopicsout all_members|owners_and_managers|owners_only|none)|
         (whocanpostannouncements all_members|owners_and_managers|owners_only|none)
-<GroupWhoCanModerateMembersAttribute> ::=
-        (whocanmoderatemembers all_members|owners_and_managers|owners_only|none)|
+<GroupWhoCanModerateMembersDeprecatedAttribute> ::=
         (whocanadd all_members_can_add|all_managers_can_add|none_can_add)|
         (whocanapprovemembers all_members_can_approve|all_managers_can_approve|all_owners_can_approve|none_can_approve)|
         (whocanbanusers all_members|owners_and_managers|owners_only|none)|
@@ -1634,10 +1633,14 @@ gam show domainaliases|aliasdomains [formatjson]
 <GroupAttribute> ::=
         (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])|
         <GroupSettingsAttribute>|
-        <GroupWhoCanDiscoverGroupAttribute>|
-        <GroupWhoCanAssistContentAttribute>|
-        <GroupWhoCanModerateContentAttribute>|
-        <GroupWhoCanModerateMembersAttribute>|
+        (whocandiscovergroup allmemberscandiscover|allindomaincandiscover|anyonecandiscover)|
+        (whocanassistcontent all_members|owners_and_managers|managers_only|owners_only|none)|
+        (whocanmoderatecontent all_members|owners_and_managers|owners_only|none)|
+        (whocanmoderatemembers all_members|owners_and_managers|owners_only|none)|
+        <GroupWhoCanDiscoverGroupDeprecatedAttribute>|
+        <GroupWhoCanAssistContentDeprecatedAttribute>|
+        <GroupWhoCanModerateContentDeprecatedAttribute>|
+        <GroupWhoCanModerateMembersDeprecatedAttribute>|
         <GroupDeprecatedAttribute>
 
 gam create|add group <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>*
@@ -2817,8 +2820,8 @@ gam <UserTypeEntity> empty calendartrash <UserCalendarEntity>
         (timezone <TimeZone>)
 
 gam <UserTypeEntity> info events <UserCalendarEntity> <EventEntity> [maxinstances <Number>] [fields <EventFieldNameList>] [formatjson]
-gam <UserTypeEntity> show events <UserCalendarEntity> <EventSelectProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>] [formatjson]
-gam <UserTypeEntity> print events <UserCalendarEntity> <EventSelectProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>]
+gam <UserTypeEntity> show events <UserCalendarEntity> <EventEntity> <EventDisplayProperty>* [fields <EventFieldNameList>] [formatjson]
+gam <UserTypeEntity> print events <UserCalendarEntity> <EventEntity> <EventDisplayProperty>* [fields <EventFieldNameList>]
          [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer] [<EventNotificationAttribute>] [doit]

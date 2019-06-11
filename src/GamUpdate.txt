@@ -1,3 +1,7 @@
+4.86.04
+
+Fixed bug that caused a trap when `csv_output_row_filter` was used.
+
 4.86.03
 
 Code cleanup for `oauth2client` library calls; following Jay's suggestion, enabled OAuth 2.0 PKCE (https://www.oauth.com/oauth2-servers/pkce)

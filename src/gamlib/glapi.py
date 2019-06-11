@@ -24,7 +24,7 @@ ADMIN = 'admin'
 ALERTCENTER = 'alertcenter'
 APPSACTIVITY = 'appsactivity'
 CALENDAR = 'calendar'
-CHAT = 'chat'
+#CHAT = 'chat'
 CLASSROOM = 'classroom'
 CLOUDPRINT = 'cloudprint'
 CONTACTS = 'contacts'
@@ -79,7 +79,7 @@ PROJECT_APIS = [
   'appsactivity.googleapis.com',
   'audit.googleapis.com',
   'calendar-json.googleapis.com',
-  # 'chat.googleapis.com',
+  #'chat.googleapis.com',
   'classroom.googleapis.com',
   'contacts.googleapis.com',
   'drive.googleapis.com',
@@ -105,8 +105,8 @@ _INFO = {
                 'svcacctscopes': ['https://www.googleapis.com/auth/apps.alerts',]},
   CALENDAR: {'version': 'v3', 'v2discovery': False,
              'svcacctscopes': ['https://www.googleapis.com/auth/calendar',]},
-  # CHAT: {'version': 'v1', 'v2discovery': False,
-  #        'svcacctscopes': ['https://www.googleapis.com/auth/chat.bot',]},
+  #CHAT: {'version': 'v1', 'v2discovery': False,
+  #       'svcacctscopes': ['https://www.googleapis.com/auth/chat.bot',]},
   CLASSROOM: {'version': 'v1', 'v2discovery': True,
               'svcacctscopes': ['https://www.googleapis.com/auth/classroom.rosters',
                                 'https://www.googleapis.com/auth/classroom.announcements',
