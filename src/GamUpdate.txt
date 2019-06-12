@@ -1,3 +1,7 @@
+4.86.05
+
+Courtesy of Jay, updated the Auto Update Expiration date table for ChromeOS devices.
+
 4.86.04
 
 Fixed bug that caused a trap when `csv_output_row_filter` was used.
