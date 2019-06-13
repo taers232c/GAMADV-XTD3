@@ -1,10 +1,8 @@
-4.86.06
+4.86.05
 
 Added `showownedby <UserItem>` option to `gam print groups` and `gam print/show group-members` to limit
 display to those groups owned by `<UserItem>`. For example:
 gam print groups showownedby support@domain.com
-
-4.86.05
 
 Courtesy of Jay, updated the Auto Update Expiration date table for ChromeOS devices.
 
