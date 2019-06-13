@@ -153,8 +153,8 @@ If an item contains spaces, it should be surrounded by ".
 <AccessToken> ::= <String>
 <ASPID> ::= <String>
 <AlertID> ::= <String>
-<CalendarACLScope> ::= <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>)|domain|default
 <BuildingID> ::= <String>|id:<String>
+<CalendarACLScope> ::= <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>)|domain|default
 <CalendarColorIndex> ::= <Number in range 1-24>
 <CalendarItem> ::= <EmailAddress>|<String>
 <ChatRoom> ::= <String>
@@ -773,6 +773,7 @@ gam calendar|calendars <CalendarEntity> create|add <CalendarACLRole> ([user] <Em
 gam calendar|calendars <CalendarEntity> update <CalendarACLRole> ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default [sendnotifications <Boolean>]
 gam calendar|calendars <CalendarEntity> delete [<CalendarACLRole>] ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default
 gam calendar|calendars <CalendarEntity> showacl [formatjson]
+gam calendar|calendars <CalendarEntity> printacl [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
 
 <AttendeeAttendance> ::= optional|required
 <AttendeeStatus> ::= accepted|declined|needsaction|tentative
@@ -1722,6 +1723,7 @@ gam info group|groups <GroupEntity> [members] [managers] [owners] [nousers|notsu
         [noaliases] [groups] [basic] <GroupFieldName>* [fields <GroupFieldNameList>] [nodeprecated] [formatjson]
 gam print groups [todrive <ToDriveAttribute>*] ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[select <GroupEntity>] [notsuspended|suspended]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>] (matchsetting [not] <GroupAttribute>)*
+        [showownedby <UserItem>]
         [maxresults <Number>] [allfields|([basic] [settings] <GroupFieldName>* [fields <GroupFieldNameList>])] [nodeprecated]
         [members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
         [convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
@@ -1744,12 +1746,14 @@ gam info member|group-members <UserTypeEntity> <GroupEntity>
 gam print group-members [todrive <ToDriveAttribute>*]
         [domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns|group_susp <GroupItem>]|[select <GroupEntity>] [notsuspended|suspended]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
+        [showownedby <UserItem>]
         [roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
         [userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
         [peoplelookup|(peoplelookupuser <EmailAddress>)]
 gam show group-members
         ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns|group_susp <GroupItem>]|[select <GroupEntity>] [notsuspended|suspended]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
+        [showownedby <UserItem>]
         [roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
 
 # Licenses

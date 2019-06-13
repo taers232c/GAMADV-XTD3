@@ -15481,7 +15481,7 @@ def getGroupFilters(myarg, kwargs):
   if myarg == 'domain':
     kwargs['domain'] = getString(Cmd.OB_DOMAIN_NAME).lower()
     kwargs.pop('customer', None)
-  elif myarg == 'member':
+  elif myarg in ['member', 'showownedby']:
     kwargs['userKey'] = getEmailAddress()
     kwargs.pop('customer', None)
   elif myarg == 'query':
@@ -15491,6 +15491,15 @@ def getGroupFilters(myarg, kwargs):
   if kwargs.get('userKey') and kwargs.get('query'):
     usageErrorExit(Msg.ARE_MUTUALLY_EXCLUSIVE.format('member', 'query'))
   return True
+
+def setGroupShowOwnedBy(kwargs):
+  return ('email' if kwargs['userKey'].find('@') != -1 else 'id', kwargs['userKey'])
+
+def checkGroupShowOwnedBy(showOwnedBy, members):
+  for member in members:
+    if (member.get('role', Ent.ROLE_MEMBER) == Ent.ROLE_OWNER) and (member.get(showOwnedBy[0], '').lower() == showOwnedBy[1]):
+      return True
+  return False
 
 def getGroupMatchPatterns(myarg, matchPatterns):
   if myarg == 'emailmatchpattern':
@@ -15528,6 +15537,7 @@ PRINT_GROUPS_JSON_TITLES = ['email', 'JSON']
 
 # gam print groups [todrive <ToDriveAttributes>*] ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[select <GroupEntity>] [notsuspended|suspended]
 #	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>] (matchsetting [not] <GroupAttributes>)*
+#	[showownedby <UserItem>]
 #	[maxresults <Number>] [allfields|([basic] [settings] <GroupFieldName>* [fields <GroupFieldNameList>])] [nodeprecated]
 #	[members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
 #	[convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
@@ -15544,6 +15554,8 @@ def doPrintGroups():
           return
         if match['values'] and gvalue not in match['values']:
           return
+    if showOwnedBy and not checkGroupShowOwnedBy(showOwnedBy, groupMembers):
+      return
     if deprecatedAttributesSet and isinstance(groupSettings, dict):
       deprecatedKeys = []
       for key in groupSettings:
@@ -15728,7 +15740,7 @@ def doPrintGroups():
   csvPF = CSVPrintFile(groupFieldsLists['cd'])
   FJQC = FormatJSONQuoteChar(csvPF)
   rolesSet = set()
-  entitySelection = isSuspended = None
+  entitySelection = isSuspended = showOwnedBy = None
   matchPatterns = {}
   matchSettings = {}
   deprecatedAttributesSet = set()
@@ -15737,7 +15749,9 @@ def doPrintGroups():
     if myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif getGroupFilters(myarg, kwargs):
-      pass
+      if myarg == 'showownedby':
+        showOwnedBy = setGroupShowOwnedBy(kwargs)
+        rolesSet.add(Ent.ROLE_OWNER)
     elif getGroupMatchPatterns(myarg, matchPatterns):
       pass
     elif myarg == 'select':
@@ -16109,6 +16123,7 @@ GROUPMEMBERS_DEFAULT_FIELDS = ['group', 'type', 'role', 'id', 'status', 'email']
 # gam print group-members|groups-members [todrive <ToDriveAttributes>*]
 #	([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns|group_susp <GroupItem>]|[select <GroupEntity>] [notsuspended|suspended]
 #	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
+#	[showownedby <UserItem>]
 #	[roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
 #	[userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
 #	[peoplelookup|(peoplelookupuser <EmailAddress>)]
@@ -16136,7 +16151,7 @@ def doPrintGroupMembers():
   subTitle = '{0} {1}'.format(Msg.ALL, Ent.Plural(Ent.GROUP))
   fieldsList = []
   csvPF = CSVPrintFile('group')
-  entityList = None
+  entityList = showOwnedBy = None
   cdfieldsList = ['email']
   userFieldsList = []
   rolesSet = set()
@@ -16146,7 +16161,9 @@ def doPrintGroupMembers():
     if myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif getGroupFilters(myarg, kwargs):
-      pass
+      if myarg == 'showownedby':
+        showOwnedBy = setGroupShowOwnedBy(kwargs)
+        rolesSet.add(Ent.ROLE_OWNER)
     elif getGroupMatchPatterns(myarg, matchPatterns):
       pass
     elif myarg in ['group', 'groupns', 'groususp']:
@@ -16254,6 +16271,8 @@ def doPrintGroupMembers():
       continue
     membersList = []
     getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, count, memberOptions, level)
+    if showOwnedBy and not checkGroupShowOwnedBy(showOwnedBy, membersList):
+      continue
     for member in membersList:
       memberId = member['id']
       row = {}
@@ -16317,6 +16336,7 @@ def doPrintGroupMembers():
 # gam show group-members
 #	([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns|group_susp <GroupItem>]|[select <GroupEntity>] [notsuspended|suspended]
 #	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
+#	[showownedby <UserItem>]
 #	[roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
 def doShowGroupMembers():
   def _roleOrder(key):
@@ -16333,6 +16353,8 @@ def doShowGroupMembers():
       membersList = callGAPIpages(cd.members(), 'list', 'members',
                                   throw_reasons=GAPI.MEMBERS_THROW_REASONS, retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                                   groupKey=groupEmail, fields='nextPageToken,members(email,id,role,status,type)', maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
+      if showOwnedBy and not checkGroupShowOwnedBy(showOwnedBy, membersList):
+        return
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       if depth == 0:
         entityUnknownWarning(Ent.GROUP, groupEmail, i, count)
@@ -16351,7 +16373,7 @@ def doShowGroupMembers():
   cd = buildGAPIObject(API.DIRECTORY)
   customerKey = GC.Values[GC.CUSTOMER_ID]
   kwargs = {'customer': customerKey}
-  entityList = None
+  entityList = showOwnedBy = None
   cdfieldsList = ['email']
   rolesSet = set()
   memberOptions = _initMemberOptions()
@@ -16360,7 +16382,9 @@ def doShowGroupMembers():
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if getGroupFilters(myarg, kwargs):
-      pass
+      if myarg == 'showownedby':
+        showOwnedBy = setGroupShowOwnedBy(kwargs)
+        rolesSet.add(Ent.ROLE_OWNER)
     elif getGroupMatchPatterns(myarg, matchPatterns):
       pass
     elif myarg in ['group', 'groupns', 'groupsusp']:
@@ -16860,7 +16884,7 @@ def formatACLScopeRole(scope, role):
   return formatKeyValueList('(', ['Scope', scope], ')')
 
 def normalizeRuleId(ruleId):
-  ruleIdParts = ruleId.split(':')
+  ruleIdParts = ruleId.split(':', 1)
   if (len(ruleIdParts) == 1) or not ruleIdParts[1]:
     if ruleIdParts[0] == 'default':
       return ruleId
@@ -16872,7 +16896,7 @@ def normalizeRuleId(ruleId):
   return ruleId
 
 def makeRoleRuleIdBody(role, ruleId):
-  ruleIdParts = ruleId.split(':')
+  ruleIdParts = ruleId.split(':', 1)
   if len(ruleIdParts) == 1:
     if ruleIdParts[0] == 'default':
       return {'role': role, 'scope': {'type': ruleIdParts[0]}}
@@ -17717,7 +17741,9 @@ def getCalendarCreateUpdateACLsOptions(getScopeEntity):
   return (role, ACLScopeEntity, sendNotifications)
 
 def getCalendarDeleteACLsOptions(getScopeEntity):
-  role = getChoice(CALENDAR_ACL_ROLES_MAP, defaultChoice=None, mapChoice=True)
+  rolesMap = CALENDAR_ACL_ROLES_MAP.copy()
+  rolesMap['id'] = 'id'
+  role = getChoice(rolesMap, defaultChoice=None, mapChoice=True)
   ACLScopeEntity = getCalendarSiteACLScopeEntity() if getScopeEntity else getCalendarACLScope()
   checkForExtraneousArguments()
   return (role, ACLScopeEntity)
@@ -39796,6 +39822,7 @@ def processAuditCommands():
 # Calendar command sub-commands
 CALENDAR_SUBCOMMANDS = {
   'showacl': (Act.SHOW, doCalendarsPrintShowACLs),
+  'printacl': (Act.PRINT, doCalendarsPrintShowACLs),
   'addevent': (Act.ADD, doCalendarsCreateEvent),
   'deleteevent': (Act.DELETE, doCalendarsDeleteEventsOld),
   'moveevent': (Act.MOVE, doCalendarsMoveEventsOld),
