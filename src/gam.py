@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.86.05'
+__version__ = '4.86.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -15076,7 +15076,8 @@ def doUpdateGroups():
             if role is None:
               continue
           _batchAddGroupMembers(group, i, count,
-                                [convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True) for member in addMembers],
+                                [convertUIDtoEmailAddress(member, cd=cd, emailTypes='any',
+                                                          checkForCustomerId=True) for member in addMembers],
                                 role, delivery_settings)
   elif CL_subCommand in ['delete', 'remove']:
     baseRole, groupMemberType = _getRoleGroupMemberType()
@@ -15105,7 +15106,8 @@ def doUpdateGroups():
             if role is None:
               continue
           _batchRemoveGroupMembers(group, i, count,
-                                   [convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True) for member in removeMembers],
+                                   [convertUIDtoEmailAddress(member, cd=cd, emailTypes='any',
+                                                             checkForCustomerId=True) for member in removeMembers],
                                    role)
   elif CL_subCommand == 'sync':
     baseRole, groupMemberType = _getRoleGroupMemberType()
@@ -15116,49 +15118,58 @@ def doUpdateGroups():
     _, syncMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
     groupMemberLists = syncMembers if isinstance(syncMembers, dict) else None
     subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
+    syncMembersSets = {}
+    syncMembersMaps = {}
+    currentMembersSets = {}
+    currentMembersMaps = {}
     if groupMemberLists is None:
-      syncMembersSet = set()
-      syncMembersMap = {}
+      syncMembersSets[baseRole] = set()
+      syncMembersMaps[baseRole] = {}
       for member in syncMembers:
-        syncMembersSet.add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True), syncMembersMap))
+        syncMembersSets[baseRole].add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailTypes='any',
+                                                                                     checkForCustomerId=True), syncMembersMaps[baseRole]))
     checkForExtraneousArguments()
     i = 0
     count = len(entityList)
     for group in entityList:
       i += 1
-      roleList = [baseRole]
-      if groupMemberLists:
-        if not subkeyRoleField:
-          syncMembersSet = set()
-          syncMembersMap = {}
-          for member in groupMemberLists[group]:
-            syncMembersSet.add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True), syncMembersMap))
-        else:
-          roleList = groupMemberLists[group]
       origGroup = group
       group = checkGroupExists(cd, group, i, count)
       if group:
+        roleList = [baseRole] if groupMemberLists is None or not subkeyRoleField else groupMemberLists[origGroup]
+        validRoleList = []
         for role in roleList:
-          if groupMemberLists and subkeyRoleField:
-            role, syncMembers = _validateSubkeyRoleGetMembers(group, role, origGroup, groupMemberLists, i, count)
-            if role is None:
-              continue
-            syncMembersSet = set()
-            syncMembersMap = {}
+          if groupMemberLists is None:
+            validRoleList.append(role)
+          else:
+            if not subkeyRoleField:
+              validRoleList.append(role)
+              syncMembers = groupMemberLists[origGroup]
+            else:
+              role, syncMembers = _validateSubkeyRoleGetMembers(group, role, origGroup, groupMemberLists, i, count)
+              if role is None:
+                continue
+              validRoleList.append(role)
+            syncMembersSets[role] = set()
+            syncMembersMaps[role] = {}
             for member in syncMembers:
-              syncMembersSet.add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True), syncMembersMap))
-          currentMembersSet = set()
-          currentMembersMap = {}
+              syncMembersSets[role].add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailTypes='any',
+                                                                                       checkForCustomerId=True), syncMembersMaps[role]))
+          currentMembersSets[role] = set()
+          currentMembersMaps[role] = {}
           for member in getUsersToModify(Cmd.ENTITY_GROUP, group, memberRoles=role, groupMemberType=groupMemberType):
-            currentMembersSet.add(_cleanConsumerAddress(member, currentMembersMap))
-          if syncOperation != 'addonly':
+            currentMembersSets[role].add(_cleanConsumerAddress(member, currentMembersMaps[role]))
+        if syncOperation != 'addonly':
+          for role in validRoleList:
             _batchRemoveGroupMembers(group, i, count,
-                                     [currentMembersMap.get(emailAddress, emailAddress) for emailAddress in currentMembersSet-syncMembersSet],
+                                     [currentMembersMaps[role].get(emailAddress, emailAddress) for emailAddress in currentMembersSets[role]-syncMembersSets[role]],
                                      role)
-          if syncOperation != 'removeonly':
-            _batchAddGroupMembers(group, i, count,
-                                  [syncMembersMap.get(emailAddress, emailAddress) for emailAddress in syncMembersSet-currentMembersSet],
-                                  role, delivery_settings)
+        if syncOperation != 'removeonly':
+          for role in [Ent.ROLE_OWNER, Ent.ROLE_MANAGER, Ent.ROLE_MEMBER]:
+            if role in validRoleList:
+              _batchAddGroupMembers(group, i, count,
+                                    [syncMembersMaps[role].get(emailAddress, emailAddress) for emailAddress in syncMembersSets[role]-currentMembersSets[role]],
+                                    role, delivery_settings)
   elif CL_subCommand == 'update':
     baseRole, groupMemberType = _getRoleGroupMemberType(defaultRole=None)
     isSuspended = _getOptionalIsSuspended()

@@ -21,6 +21,7 @@
 """
 
 import os
+import ssl
 
 TRUE = 'true'
 FALSE = 'false'
@@ -224,7 +225,7 @@ Defaults = {
   SHOW_GETTINGS: TRUE,
   SHOW_GETTINGS_GOT_NL: FALSE,
   SHOW_MULTIPROCESS_INFO: FALSE,
-  TLS_MIN_VERSION: '',
+  TLS_MIN_VERSION: 'TLSv1_2' if hasattr(ssl.SSLContext(), "minimum_version") else '',
   TLS_MAX_VERSION: '',
   TIMEZONE: 'utc',
   TODRIVE_CONVERSION: TRUE,

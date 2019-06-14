@@ -222,6 +222,9 @@ else
   echo_yellow "skipping profile update."
 fi
 
+# Set config command
+config_cmd=""
+
 while true; do
   read -p "Can you run a full browser on this machine? (usually Y for MacOS, N for Linux if you SSH into this machine) " yn
   case $yn in
@@ -229,7 +232,7 @@ while true; do
       break
       ;;
     [Nn]*)
-      touch "$target_dir/gam/nobrowser.txt" > /dev/null 2>&1
+      config_cmd="config no_browser true"
       break
       ;;
     *)
@@ -247,7 +250,7 @@ while true; do
       if [ "$adminuser" == "" ]; then
         read -p "Please enter your G Suite admin email address: " adminuser
       fi
-      "$target_dir/$target_gam" create project $adminuser
+      "$target_dir/$target_gam" $config_cmd create project $adminuser
       rc=$?
       if (( $rc == 0 )); then
         echo_green "Project creation complete."
@@ -272,7 +275,7 @@ while $project_created; do
   read -p "Are you ready to authorize GAM to perform G Suite management operations as your admin account? (yes or no) " yn
   case $yn in
     [Yy]*)
-      "$target_dir/$target_gam" oauth create $adminuser
+      "$target_dir/$target_gam" $config_cmd oauth create $adminuser
       rc=$?
       if (( $rc == 0 )); then
         echo_green "Admin authorization complete."
@@ -301,7 +304,7 @@ while $project_created; do
         read -p "Please enter the email address of a regular G Suite user: " regularuser
       fi
       echo_yellow "Great! Checking service account scopes.This will fail the first time. Follow the steps to authorize and retry. It can take a few minutes for scopes to PASS after they've been authorized in the admin console."
-      "$target_dir/$target_gam" user $adminuser check serviceaccount
+      "$target_dir/$target_gam" $config_cmd user $adminuser check serviceaccount
       rc=$?
       if (( $rc == 0 )); then
         echo_green "Service account authorization complete."
@@ -322,7 +325,7 @@ while $project_created; do
 done
 
 echo_green "Here's information about your new GAM installation:"
-"$target_dir/$target_gam" version
+"$target_dir/$target_gam" $config_cmd save version
 rc=$?
 if (( $rc != 0 )); then
   echo_red "ERROR: Failed running GAM for the first time with $rc. Please report this error to GAM mailing list. Exiting."
