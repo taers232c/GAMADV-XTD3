@@ -223,7 +223,7 @@ else
 fi
 
 # Set config command
-config_cmd=""
+config_cmd="config no_browser false"
 
 while true; do
   read -p "Can you run a full browser on this machine? (usually Y for MacOS, N for Linux if you SSH into this machine) " yn
