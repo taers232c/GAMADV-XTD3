@@ -91,6 +91,7 @@ INVALID_RESOURCE = 'invalidResource'
 INVALID_SCHEMA_VALUE = 'invalidSchemaValue'
 INVALID_SCOPE_VALUE = 'invalidScopeValue'
 INVALID_SHARING_REQUEST = 'invalidSharingRequest'
+LIMIT_EXCEEDED = 'limitExceeded'
 LOGIN_REQUIRED = 'loginRequired'
 MEMBER_NOT_FOUND = 'memberNotFound'
 NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE = 'noListTeamDrivesAdministratorPrivilege'
@@ -384,6 +385,8 @@ class invalidScopeValue(Exception):
   pass
 class invalidSharingRequest(Exception):
   pass
+class limitExceeded(Exception):
+  pass
 class loginRequired(Exception):
   pass
 class memberNotFound(Exception):
@@ -540,6 +543,7 @@ REASON_EXCEPTION_MAP = {
   INVALID_SCHEMA_VALUE: invalidSchemaValue,
   INVALID_SCOPE_VALUE: invalidScopeValue,
   INVALID_SHARING_REQUEST: invalidSharingRequest,
+  LIMIT_EXCEEDED: limitExceeded,
   LOGIN_REQUIRED: loginRequired,
   MEMBER_NOT_FOUND: memberNotFound,
   NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE: noListTeamDrivesAdministratorPrivilege,
