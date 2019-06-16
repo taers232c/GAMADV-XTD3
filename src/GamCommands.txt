@@ -171,7 +171,7 @@ If an item contains spaces, it should be surrounded by ".
 <CourseAnnouncementState> ::= draft|published|deleted
 <CourseID> ::= <Number>|d:<CourseAlias>
 <CourseParticipantType> ::= teacher|teachers|student|students
-<CourseState> ::= active|archived|provisioned|declined
+<CourseState> ::= active|archived|provisioned|declined|suspended
 <CourseSubmissionID> ::= <Number>
 <CourseSubmissionState> ::= new|created|turned_in|returned|reclaimed_by_student
 <CourseWorkID> ::= <Number>

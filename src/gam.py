@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.86.06'
+__version__ = '4.86.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -23109,6 +23109,7 @@ COURSE_STATE_MAPS = {
     'archived': 'ARCHIVED',
     'provisioned': 'PROVISIONED',
     'declined': 'DECLINED',
+    'suspended': 'SUSPENDED',
     },
   Cmd.OB_COURSE_ANNOUNCEMENT_STATE_LIST: {
     'draft': 'DRAFT',
@@ -23532,9 +23533,9 @@ def _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFiel
     try:
       aliases = callGAPIpages(croom.courses().aliases(), 'list', 'aliases',
                               page_message=page_message,
-                              throw_reasons=[GAPI.NOT_IMPLEMENTED],
+                              throw_reasons=[GAPI.NOT_FOUND, GAPI.NOT_IMPLEMENTED, GAPI.FORBIDDEN],
                               courseId=courseId, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
-    except GAPI.notImplemented:
+    except (GAPI.notFound, GAPI.notImplemented):
       pass
     except GAPI.forbidden:
       APIAccessDeniedExit()
@@ -32608,6 +32609,7 @@ def transferDrive(users):
         userSvcNotApplicableOrDriveDisabled(actionUser, str(e), i, count)
     else:
       Act.Set(Act.PROCESS)
+      childEntryInfo['sourcePermission'] = nonOwnerRetainRoleBody
       ownerUser, ownerDrive = _getOwnerUser(childEntryInfo)
       if not ownerDrive:
         entityActionNotPerformedWarning([Ent.USER, sourceUser, childFileType, childFileName],
@@ -32627,8 +32629,6 @@ def transferDrive(users):
         if sourcePermissionId == permission['id']:
           childEntryInfo['sourcePermission'] = _setUpdateRole(permission)
           break
-      else:
-        childEntryInfo['sourcePermission'] = nonOwnerRetainRoleBody
       for permission in permissions:
         if targetPermissionId == permission['id']:
           childEntryInfo['targetPermission'] = _setUpdateRole(permission)
@@ -32760,7 +32760,7 @@ def transferDrive(users):
       if resetTargetRole and targetUser != ownerUser:
         try:
           if nonOwnerTargetRoleBody['role'] != 'none':
-            if nonOwnerTargetRoleBody['role'] != 'current' and targetInsertBody['role'] != 'none':
+            if nonOwnerTargetRoleBody['role'] != 'current' and targetInsertBody['role'] not in ['current', 'none']:
               callGAPI(ownerDrive.permissions(), 'create',
                        throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST],
                        fileId=childFileId, sendNotificationEmail=False, body=targetInsertBody, fields='')
