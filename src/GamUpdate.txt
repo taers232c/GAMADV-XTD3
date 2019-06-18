@@ -1,3 +1,9 @@
+4.86.09
+
+Fixed bug in `gam report meet` that caused a trap.
+
+Display `mobile.securityPatchLevel` as a date/time.
+
 4.86.08
 
 Added code to handle `limitExceeded` error when creating aliases.
