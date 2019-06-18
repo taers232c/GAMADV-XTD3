@@ -83,6 +83,7 @@ class GamEntity(object):
   CREATOR_ID = 'crid'
   CREDENTIALS = 'cred'
   CRITERIA = 'crit'
+  CROS_AUE_DATES_JSON_FILE = 'caue'
   CROS_DEVICE = 'cros'
   CUSTOMER_DOMAIN = 'cudo'
   CUSTOMER_ID = 'cuid'
@@ -282,6 +283,7 @@ class GamEntity(object):
     CREATOR_ID: ['Creator IDs', 'Creator ID'],
     CREDENTIALS: ['Credentials', 'Credentials'],
     CRITERIA: ['Criteria', 'Criteria'],
+    CROS_AUE_DATES_JSON_FILE: ['ChromeOS AUE Dates File', 'ChromeOS AUE Dates File'],
     CROS_DEVICE: ['CrOS Devices', 'CrOS Device'],
     CUSTOMER_DOMAIN: ['Customer Domains', 'Customer Domain'],
     CUSTOMER_ID: ['Customer IDs', 'Customer ID'],

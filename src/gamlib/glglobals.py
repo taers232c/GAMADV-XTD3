@@ -35,6 +35,8 @@ CACHE_DIR = 'gacd'
 CACHE_DISCOVERY_ONLY = 'gcdo'
 # Convert to local time
 CONVERT_TO_LOCAL_TIME = 'ctlt'
+# ChromeOS Auto Update Expiration dates
+CROS_AUE_DATES = 'caue'
 # csvfile keyfield <FieldName> [delimiter <Character>] (matchfield <FieldName> <MatchPattern>)* [datafield <FieldName>(:<FieldName>*) [delimiter <String>]]
 # { key: [datafieldvalues]}
 CSV_DATA_DICT = 'csdd'
@@ -146,6 +148,7 @@ Globals = {
   CACHE_DIR: None,
   CACHE_DISCOVERY_ONLY: True,
   CONVERT_TO_LOCAL_TIME: False,
+  CROS_AUE_DATES: {},
   CSV_DATA_DICT: {},
   CSV_KEY_FIELD: None,
   CSV_SUBKEY_FIELD: None,

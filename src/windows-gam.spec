@@ -1,6 +1,7 @@
 # -*- mode: python -*-
 ssl_json_files = [
     ('cacerts.pem', '.'),
+    ('cros-aue-dates.json', '.'),
     ('cloudprint-v2.json', '.'),
     ('contacts-v3.json', '.'),
     ('email-audit-v1.json', '.'),

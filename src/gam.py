@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.86.09'
+__version__ = '4.86.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -31,6 +31,7 @@ import collections
 import configparser
 import csv
 import datetime
+import difflib
 from email.charset import add_charset, QP
 from email.generator import Generator
 from email.header import decode_header, Header
@@ -82,7 +83,6 @@ from gamlib import glaction
 from gamlib import glapi as API
 from gamlib import glcfg as GC
 from gamlib import glclargs
-from gamlib import glcros
 from gamlib import glentity
 from gamlib import glgapi as GAPI
 from gamlib import glgcp as GCP
@@ -13125,6 +13125,52 @@ def updateCrOSDevices(entityList):
 def doUpdateCrOSDevices():
   updateCrOSDevices(getCrOSDeviceEntity())
 
+# From https://www.chromium.org/chromium-os/tpm_firmware_update
+_CROS_TPM_VULN_VERSIONS = ['41f', '420', '628', '8520']
+_CROS_TPM_FIXED_VERSIONS = ['422', '62b', '8521']
+
+def checkTPMVulnerability(cros):
+  if 'tpmVersionInfo' in cros and 'firmwareVersion' in cros['tpmVersionInfo']:
+    if cros['tpmVersionInfo']['firmwareVersion'] in _CROS_TPM_VULN_VERSIONS:
+      cros['tpmVersionInfo']['tpmVulnerability'] = 'VULNERABLE'
+    elif cros['tpmVersionInfo']['firmwareVersion'] in _CROS_TPM_FIXED_VERSIONS:
+      cros['tpmVersionInfo']['tpmVulnerability'] = 'UPDATED'
+    else:
+      cros['tpmVersionInfo']['tpmVulnerability'] = 'NOT IMPACTED'
+
+FN_CROS_AUE_DATES_JSON = 'cros-aue-dates.json'
+
+def readCrOSAUEDates():
+  disc_filename = FN_CROS_AUE_DATES_JSON
+  disc_file = os.path.join(GM.Globals[GM.GAM_PATH], disc_filename)
+  if hasattr(sys, '_MEIPASS'):
+    json_string = readFile(os.path.join(sys._MEIPASS, disc_filename), continueOnError=True, displayError=True)
+  elif os.path.isfile(disc_file):
+    json_string = readFile(disc_file, continueOnError=True, displayError=True)
+  else:
+    json_string = None
+  if json_string:
+    try:
+      GM.Globals[GM.CROS_AUE_DATES] = json.loads(json_string)
+      return True
+    except ValueError:
+      pass
+  stderrErrorMsg(Msg.DOES_NOT_EXIST_OR_HAS_INVALID_FORMAT.format(Ent.Singular(Ent.CROS_AUE_DATES_JSON_FILE), disc_filename))
+  return False
+
+def guessCrosAUEDate(cros, guessedAUEs):
+  crosModel = cros.get('model')
+  if crosModel:
+    if crosModel not in guessedAUEs:
+      closest_match = difflib.get_close_matches(crosModel, GM.Globals[GM.CROS_AUE_DATES], n=1)
+      if closest_match:
+        guessedAUEs[crosModel] = {'guessedAUEDate': GM.Globals[GM.CROS_AUE_DATES][closest_match[0]],
+                                  'guessedAUEModel': closest_match[0]}
+      else:
+        guessedAUEs[crosModel] = {'guessedAUEDate': u'',
+                                  'guessedAUEModel': u''}
+    cros.update(guessedAUEs[crosModel])
+
 def _filterTimeRanges(activeTimeRanges, startDate, endDate):
   if startDate is None and endDate is None:
     return activeTimeRanges
@@ -13251,7 +13297,7 @@ def infoCrOSDevices(entityList):
     elif myarg == 'listlimit':
       listLimit = getInteger(minVal=0)
     elif myarg == 'guessaue':
-      guessAUE = True
+      guessAUE = readCrOSAUEDates()
     elif myarg in CROS_START_ARGUMENTS:
       startDate, startTime = _getFilterDateTime()
     elif myarg in CROS_END_ARGUMENTS:
@@ -13304,9 +13350,9 @@ def infoCrOSDevices(entityList):
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.CROS_DEVICE, deviceId, i, count)
       continue
-    glcros.checkTPMVulnerability(cros)
+    checkTPMVulnerability(cros)
     if guessAUE:
-      glcros.guessAUE(cros, guessedAUEs)
+      guessCrosAUEDate(cros, guessedAUEs)
     if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(cros, timeObjects=CROS_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
       continue
@@ -13608,9 +13654,9 @@ def doPrintCrOSDevices(entityList=None):
       selectedLists['systemRamFreeReports'] = True
 
   def _printCrOS(cros):
-    glcros.checkTPMVulnerability(cros)
+    checkTPMVulnerability(cros)
     if guessAUE:
-      glcros.guessAUE(cros, guessedAUEs)
+      guessCrosAUEDate(cros, guessedAUEs)
     if FJQC.formatJSON:
       if not csvPF.rowFilter or csvPF.CheckRowTitles(flattenJSON(cros, listLimit=listLimit, timeObjects=CROS_TIME_OBJECTS)):
         csvPF.WriteRowNoFilter({'deviceId': cros['deviceId'],
@@ -13729,7 +13775,7 @@ def doPrintCrOSDevices(entityList=None):
     elif myarg == 'listlimit':
       listLimit = getInteger(minVal=0)
     elif myarg == 'guessaue':
-      guessAUE = True
+      guessAUE = readCrOSAUEDates()
     elif myarg in CROS_START_ARGUMENTS:
       startDate, startTime = _getFilterDateTime()
     elif myarg in CROS_END_ARGUMENTS:

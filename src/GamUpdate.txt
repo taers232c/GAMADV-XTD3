@@ -1,3 +1,8 @@
+4.86.10
+
+Following Jay's lead, moved the ChromeOS device Auto Update Expiration date table out of the
+code and into a file: cros-aue-dates.json.
+
 4.86.09
 
 Fixed bug in `gam report meet` that caused a trap.
