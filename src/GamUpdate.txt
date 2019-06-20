@@ -1,3 +1,15 @@
+4.86.11
+
+Added additional network error handling.
+
+Added user oriented variant of `gam sendemail` command. In this variant, the message is
+sent from each user in <UserTypeEntity>.
+gam <UserTypeEntity> sendemail [recipient <EmailAddressEntity>] [replyto <EmailAddress>]
+        [cc <EmailAddressEntity>] [bcc <EmailAddressEntity>] [singlemessage [<Boolean>]]
+        [subject <String>] [message|body <String>|(file <FileName> [charset <CharSet>])]
+        (replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
+        [newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
+
 4.86.10
 
 Following Jay's lead, moved the ChromeOS device Auto Update Expiration date table out of the
