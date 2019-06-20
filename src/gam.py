@@ -3042,6 +3042,7 @@ def getClientCredentials(forceRefresh=False):
     for n in range(1, retries+1):
       try:
         credentials.refresh(getHttpObj())
+        break
       except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
         if n != retries:
           waitOnFailure(n, retries, NETWORK_ERROR_RC, str(e))
@@ -3647,6 +3648,13 @@ def buildGAPIObject(api):
   for n in range(1, retries+1):
     try:
       service._http = credentials.authorize(httpObj)
+      if not GC.Values[GC.DOMAIN]:
+        GC.Values[GC.DOMAIN] = credentials.id_token.get('hd', 'UNKNOWN').lower()
+      if not GC.Values[GC.CUSTOMER_ID]:
+        GC.Values[GC.CUSTOMER_ID] = GC.MY_CUSTOMER
+      GM.Globals[GM.ADMIN] = credentials.id_token.get('email', 'UNKNOWN').lower()
+      GM.Globals[GM.OAUTH2_CLIENT_ID] = credentials.client_id
+      return service
     except (oauth2client.client.AccessTokenRefreshError, google.auth.exceptions.RefreshError) as e:
       if isinstance(e.args, tuple):
         e = e.args[0]
@@ -3657,13 +3665,6 @@ def buildGAPIObject(api):
         waitOnFailure(n, retries, NETWORK_ERROR_RC, str(e))
         continue
       handleServerError(e)
-    if not GC.Values[GC.DOMAIN]:
-      GC.Values[GC.DOMAIN] = credentials.id_token.get('hd', 'UNKNOWN').lower()
-    if not GC.Values[GC.CUSTOMER_ID]:
-      GC.Values[GC.CUSTOMER_ID] = GC.MY_CUSTOMER
-    GM.Globals[GM.ADMIN] = credentials.id_token.get('email', 'UNKNOWN').lower()
-    GM.Globals[GM.OAUTH2_CLIENT_ID] = credentials.client_id
-    return service
 
 # Override and wrap google_auth_httplib2 request methods so that the GAM
 # user-agent string is inserted into HTTP request headers.
@@ -3701,6 +3702,7 @@ def buildGAPIServiceObject(api, user, i=0, count=0, displayError=True):
     try:
       credentials.refresh(request)
       service._http = google_auth_httplib2.AuthorizedHttp(credentials, http=httpObj)
+      return (userEmail, service)
     except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
       if n != retries:
         httpObj.connections = {}
@@ -3714,7 +3716,6 @@ def buildGAPIServiceObject(api, user, i=0, count=0, displayError=True):
       if displayError:
         entityServiceNotApplicableWarning(Ent.USER, userEmail, i, count)
       return (userEmail, None)
-    return (userEmail, service)
 
 def initGDataObject(gdataObj, api):
   _, _, api_version, _ = API.getVersion(api)
@@ -5727,12 +5728,18 @@ def _getServerTLSUsed(location):
   _, netloc, _, _, _, _ = urlparse(url)
   conn = 'https:'+netloc
   httpObj = getHttpObj()
-  try:
-    httpObj.request(url, headers={'user-agent': GAM_INFO})
-  except (httplib2.HttpLib2Error, RuntimeError) as e:
-    handleServerError(e)
-  cipher_name, tls_ver, _ = httpObj.connections[conn].sock.cipher()
-  return tls_ver, cipher_name
+  retries = 5
+  for n in range(1, retries+1):
+    try:
+      httpObj.request(url, headers={'user-agent': GAM_INFO})
+      cipher_name, tls_ver, _ = httpObj.connections[conn].sock.cipher()
+      return tls_ver, cipher_name
+    except (httplib2.HttpLib2Error, RuntimeError) as e:
+      if n != retries:
+        httpObj.connections = {}
+        waitOnFailure(n, retries, NETWORK_ERROR_RC, str(e))
+        continue
+      handleServerError(e)
 
 # gam version [check|checkrc|simple|extended] [location <HostName>]
 def doVersion(checkForArgs=True):
