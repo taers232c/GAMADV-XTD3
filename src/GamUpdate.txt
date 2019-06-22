@@ -1,3 +1,19 @@
+4.86.12
+
+Added commands to delete duplicate email addresses within a contact.
+If the same email address appears multiple times within a contact, all but the first will be deleted.
+By default, the email type (work|home|other|<String>) is ignored, all duplicates, regardless of type,
+will be deleted. If `matchtype` is true, only duplicate email addresses with the same type will be deleted.
+gam dedup contacts <ContactEntity>|<ContactSelection> [matchType [<Boolean>]]
+gam <UserTypeEntity> dedup contacts <ContactEntity>|<UserContactSelection> [matchType [<Boolean>]]
+
+Added command to add a draft message to a user's mailbox.
+gam <UserTypeEntity> draft message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)*
+        (header <String> <String>)*
+        (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])
+        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
+        (replace <Tag> <UserReplacement>)* (attach <FileName> [charset <CharSet>])*
+
 4.86.11
 
 Added additional network error handling.

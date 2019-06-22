@@ -38,11 +38,13 @@ class GamAction(object):
   COLLECT = 'collect'
   COPY = 'copy'
   CREATE = 'crea'
+  DEDUP = 'dedu'
   DELETE = 'dele'
   DELETE_EMPTY = 'delm'
   DEPROVISION = 'depr'
   DISABLE = 'disa'
   DOWNLOAD = 'down'
+  DRAFT = 'draf'
   EMPTY = 'empt'
   ENABLE = 'enbl'
   EXPORT = 'expo'
@@ -121,11 +123,13 @@ class GamAction(object):
     COLLECT: ['Collected', 'Collect'],
     COPY: ['Copied', 'Copy'],
     CREATE: ['Created', 'Create'],
+    DEDUP: ['Duplicates Deleted', 'Delete Duplicates'],
     DELETE: ['Deleted', 'Delete'],
     DELETE_EMPTY: ['Deleted', 'Delete Empty'],
     DEPROVISION: ['Deprovisioned', 'Deprovision'],
     DISABLE: ['Disabled', 'Disable'],
     DOWNLOAD: ['Downloaded', 'Download'],
+    DRAFT: ['Drafted', 'Draft'],
     EMPTY: ['Emptied', 'Empty'],
     ENABLE: ['Enabled', 'Enable'],
     EXPORT: ['Exported', 'Export'],

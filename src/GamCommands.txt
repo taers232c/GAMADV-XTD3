@@ -1202,6 +1202,7 @@ gam update contacts <ContactEntity>|<ContactSelection> <ContactAttribute>+
 gam clear contacts <ContactEntity>|<ContactSelection>
         [emailclearpattern <RegularExpression>] [emailcleartype work|home|other|<String>]
         [delete_cleared_contacts_with_no_emails]
+gam dedup contacts <ContactEntity>|<ContactSelection> [matchType [<Boolean>]]
 gam delete contacts <ContactEntity>|<ContactSelection>
 
 gam update contactphotos <ContactEntity>|<ContactSelection>
@@ -1272,6 +1273,7 @@ gam <UserTypeEntity> update contacts <UserContactSelection> endquery <ContactAtt
 gam <UserTypeEntity> clear contacts <ContactEntity>|<UserContactSelection>
         [emailclearpattern <RegularExpression>] [emailcleartype work|home|other|<String>]
         [delete_cleared_contacts_with_no_emails]
+gam <UserTypeEntity> dedup contacts <ContactEntity>|<UserContactSelection> [matchType [<Boolean>]]
 gam <UserTypeEntity> delete contacts <ContactEntity>|<UserContactSelection>
 
 gam <UserTypeEntity> info contacts <ContactEntity>
@@ -2185,12 +2187,16 @@ gam print schema|schemas [todrive <ToDriveAttribute>*]
 
 gam sendemail <EmailAddressEntity> [from <UserItem>] [replyto <EmailAddress>]
         [cc <EmailAddressEntity>] [bcc <EmailAddressEntity>] [singlemessage [<Boolean>]]
-        [subject <String>] [message|body <String>|(file <FileName> [charset <CharSet>])]
+        [subject <String>]
+        (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])
+        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
         (replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
         [newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
-gam <UserTypeEntity> sendemail [recipient <EmailAddressEntity>] [replyto <EmailAddress>]
+gam <UserTypeEntity> sendemail [recipient|to <EmailAddressEntity>] [replyto <EmailAddress>]
         [cc <EmailAddressEntity>] [bcc <EmailAddressEntity>] [singlemessage [<Boolean>]]
-        [subject <String>] [message|body <String>|(file <FileName> [charset <CharSet>])]
+        [subject <String>]
+        (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])
+        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
         (replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
         [newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
 
@@ -3469,12 +3475,21 @@ gam <UserTypeEntity> print labels|label [onlyuser [<Boolean>]] [showcounts [<Boo
         x400-trace
 <SMTPHeaderList> ::= "<SMTPDateHeader|SMTPHeader>(,<SMTPDateHeader|SMTPHeader>)*"
 
-gam <UserTypeEntity> import message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)* (addlabel <LabelName>)*
-        (textmessage <String>)|(textfile <FileName> [charset <CharSet>]) (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
+gam <UserTypeEntity> draft message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)*
+        (header <String> <String>)*
+        (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])
+        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
+        (replace <Tag> <UserReplacement>)* (attach <FileName> [charset <CharSet>])*
+gam <UserTypeEntity> import message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)*
+        (header <String> <String>)* (addlabel <LabelName>)*
+        (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])
+        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
         (replace <Tag> <UserReplacement>)* (attach <FileName> [charset <CharSet>])*
         [deleted [<Boolean>]] [nevermarkspam [<Boolean>]] [processforcalendar [<Boolean>]]
-gam <UserTypeEntity> insert message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)* (addlabel <LabelName>)*
-        (textmessage <String>)|(textfile <FileName> [charset <CharSet>]) (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
+gam <UserTypeEntity> insert message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)*
+        (header <String> <String>)* (addlabel <LabelName>)*
+        (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])
+        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
         (replace <Tag> <UserReplacement>)* (attach <FileName> [charset <CharSet>])*
         [deleted [<Boolean>]]
 
