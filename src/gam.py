@@ -37536,12 +37536,12 @@ def _draftImportInsertMessage(users, operation):
   if not tagReplacements['tags']:
     tmpText = msgText
     tmpHTML = msgHTML
-  if 'To' not in msgHeaders:
-    msgHeaders['To'] = '#user#'
-    substituteForUserInHeaders = True
-  if 'From' not in msgHeaders:
-    msgHeaders['From'] = _getValueFromOAuth('email')
   if operation != 'draft':
+    if 'To' not in msgHeaders:
+      msgHeaders['To'] = '#user#'
+      substituteForUserInHeaders = True
+    if 'From' not in msgHeaders:
+      msgHeaders['From'] = _getValueFromOAuth('email')
     kwargs = {'internalDateSource': internalDateSource, 'deleted': deleted}
     if operation == 'import':
       function = 'import_'
