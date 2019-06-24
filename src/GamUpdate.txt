@@ -1,3 +1,8 @@
+4.88.00
+
+When deleting duplicate email addresses within a contact, if any of the deleted duplicate
+email addresses was marked `primary`, then the single saved email address will be marked `primary`.
+
 4.86.12
 
 Added commands to delete duplicate email addresses within a contact.

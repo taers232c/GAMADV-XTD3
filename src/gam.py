@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.86.12'
+__version__ = '4.88.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3616,7 +3616,7 @@ def getAPIversionHttpService(api):
         systemErrorExit(SOCKET_ERROR_RC, errMsg)
       except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
         if n != retries:
-          service._http.connections = {}
+          httpObj.connections = {}
           waitOnFailure(n, retries, NETWORK_ERROR_RC, str(e))
           continue
         handleServerError(e)
@@ -12029,6 +12029,7 @@ def clearEmailAddressMatches(contactsManager, contactClear, fields):
   return updateRequired
 
 def dedupEmailAddressMatches(contactsManager, emailMatchType, fields):
+  sai = -1
   savedAddresses = []
   matches = {}
   updateRequired = False
@@ -12037,12 +12038,15 @@ def dedupEmailAddressMatches(contactsManager, emailMatchType, fields):
     emailType = item.get('label')
     if emailType is None:
       emailType = contactsManager.CONTACT_ARRAY_PROPERTIES[CONTACT_EMAILS]['relMap'].get(item['rel'], 'custom')
-    if (emailAddr in matches) and (not emailMatchType or emailType in matches[emailAddr]):
+    if (emailAddr in matches) and (not emailMatchType or emailType in matches[emailAddr]['types']):
+      if item['primary'] == 'true':
+        savedAddresses[matches[emailAddr]['sai']]['primary'] = 'true'
       updateRequired = True
     else:
       savedAddresses.append(item)
-      matches.setdefault(emailAddr, set())
-      matches[emailAddr].add(emailType)
+      sai += 1
+      matches.setdefault(emailAddr, {'types': set(), 'sai': sai})
+      matches[emailAddr]['types'].add(emailType)
   if updateRequired:
     fields[CONTACT_EMAILS] = savedAddresses
   return updateRequired
