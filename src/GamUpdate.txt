@@ -1,3 +1,9 @@
+4.88.01
+
+When `todrive` is used, the command used to generate the CSV file is written to the file description.
+Any arguments in the command that included spaces are now enclosed in quotes so that the description
+can be used to reexecute the command.
+
 4.88.00
 
 When deleting duplicate email addresses within a contact, if any of the deleted duplicate

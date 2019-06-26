@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.88.00'
+__version__ = '4.88.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5416,7 +5416,7 @@ class CSVPrintFile():
           fields = ','.join(['id', 'mimeType', V3_WEB_VIEW_LINK])
           body = {V3_FILENAME: title, 'description': self.todrive['description'], 'mimeType': mimeType}
           if body['description'] is None:
-            body['description'] = ' '.join(Cmd.AllArguments())
+            body['description'] = Cmd.QuotedArgumentList(Cmd.AllArguments())
           if not self.todrive['fileId']:
             body['parents'] = [self.todrive['parentId']]
             result = callGAPI(drive.files(), 'create',
