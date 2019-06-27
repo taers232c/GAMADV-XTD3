@@ -1001,6 +1001,9 @@ gam calendar|calendars <CalendarEntity> modify <CalendarSettings>+
         (org|ou <OrgUnitPath>)|
         (user <String>)
 
+gam update cros <CrOSEntity> <CrOSAttribute>+ [quickcrosmove [<Boolean>]]
+gam <CrOSTypeEntity> update <CrOSAttribute>+ [quickcrosmove [<Boolean>]]
+
 <CrOSAction> ::=
         deprovision_same_model_replace|
         deprovision_different_model_replace|
@@ -1008,8 +1011,8 @@ gam calendar|calendars <CalendarEntity> modify <CalendarSettings>+
         disable|
         reenable
 
-gam update cros <CrOSEntity> (<CrOSAttribute>+ [quickcrosmove [<Boolean>]])|(action <CrOSAction> [acknowledge_device_touch_requirement])
-gam <CrOSTypeEntity> update (<CrOSAttribute>+ [quickcrosmove [<Boolean>]])|(action <CrOSAction> [acknowledge_device_touch_requirement])
+gam update cros <CrOSEntity> action <CrOSAction> [acknowledge_device_touch_requirement]
+gam <CrOSTypeEntity> update action <CrOSAction> [acknowledge_device_touch_requirement]
 
 <CrOSFieldName> ::=
         activetimeranges|timeranges|
@@ -1360,13 +1363,22 @@ gam print gal [todrive <ToDriveAttribute>*] <ContactSelection>
 <CourseFieldNameList> ::= "<CourseFieldName>(,<CourseFieldName>)*"
 
 gam create|add course [id|alias <CourseAlias>] <CourseAttribute>*
-        [copyfrom <CourseID> [announcementstates <CourseAnnouncementStateList>] [workstates <CourseWorkStateList>] [members none|all|students|teachers]]
+        [copyfrom <CourseID>
+            [announcementstates <CourseAnnouncementStateList>]
+            [workstates <CourseWorkStateList>] [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+            [members none|all|students|teachers]]
 gam update course <CourseID> <CourseAttribute>+
-        [copyfrom <CourseID> [announcementstates <CourseAnnouncementStateList>] [workstates <CourseWorkStateList>] [members none|all|students|teachers]]
+        [copyfrom <CourseID>
+            [announcementstates <CourseAnnouncementStateList>]
+            [workstates <CourseWorkStateList>] [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+            [members none|all|students|teachers]]
 gam delete course <CourseID> [archive|archived]
 
 gam update courses <CourseEntity> <CourseAttribute>+
-        [copyfrom <CourseID> [announcementstates <CourseAnnouncementStateList>] [workstates <CourseWorkStateList>] [members none|all|students|teachers]]
+        [copyfrom <CourseID>
+            [announcementstates <CourseAnnouncementStateList>]
+            [workstates <CourseWorkStateList>] [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+            [members none|all|students|teachers]]
 gam delete courses <CourseEntity> [archive|archived]
 
 gam course <CourseID> create|add alias <CourseAlias>
@@ -2538,12 +2550,15 @@ gam print vaultmatters|matters [todrive <ToDriveAttribute>*] [basic|full]
 
 gam create|add user <EmailAddress> <UserAttribute>*
         [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
+        (replace <Tag> <UserReplacement>)*
 gam update user <UserItem> <UserAttribute>*
         [updateprimaryemail <RegularExpression> <EmailReplacement>]
         [updateoufromgroup <FileName> [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
             [keyfield <FieldName>] [datafield <FieldName>]]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
-        [createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
+        [createifnotfound]
+        [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
+        (replace <Tag> <UserReplacement>)*
 gam delete user <UserItem>
 gam undelete user <UserItem> [org|ou <OrgUnitPath>]
 gam suspend user <UserItem>
@@ -2554,7 +2569,9 @@ gam info user [<UserItem>] [quick] [noaliases] [nogroups] [nolicenses|nolicences
 
 gam update users <UserTypeEntity> <UserAttribute>* [updateprimaryemail <RegularExpression> <EmailReplacement>]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
-        [createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
+        [createifnotfound]
+        [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
+        (replace <Tag> <UserReplacement>)*
 gam delete users <UserTypeEntity>
 gam undelete users <UserEntity> [org|ou <OrgUnitPath>]
 gam suspend users <UserTypeEntity>
@@ -2565,7 +2582,9 @@ gam info users <UserTypeEntity> [quick] [noaliases] [nogroups] [nolicenses|nolic
 
 gam <UserTypeEntity> update users <UserAttribute>* [updateprimaryemail <RegularExpression> <EmailReplacement>]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
-        [createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
+        [createifnotfound]
+        [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
+        (replace <Tag> <UserReplacement>)*
 gam <UserTypeEntity> delete users
 gam <UserEntity> undelete users [org|ou <OrgUnitPath>]
 gam <UserTypeEntity> suspend users
@@ -3481,13 +3500,13 @@ gam <UserTypeEntity> draft message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <Str
         (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
         (replace <Tag> <UserReplacement>)* (attach <FileName> [charset <CharSet>])*
 gam <UserTypeEntity> import message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)*
-        (header <String> <String>)* (addlabel <LabelName>)*
+        (header <String> <String>)* (addlabel <LabelName>)* [labels <LabelNameList>]
         (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])
         (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
         (replace <Tag> <UserReplacement>)* (attach <FileName> [charset <CharSet>])*
-        [deleted [<Boolean>]] [nevermarkspam [<Boolean>]] [processforcalendar [<Boolean>]]
+        [deleted [<Boolean>]] [checkspam [<Boolean>]] [processforcalendar [<Boolean>]]
 gam <UserTypeEntity> insert message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)*
-        (header <String> <String>)* (addlabel <LabelName>)*
+        (header <String> <String>)* (addlabel <LabelName>)* [labels <LabelNameList>]
         (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])
         (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
         (replace <Tag> <UserReplacement>)* (attach <FileName> [charset <CharSet>])*

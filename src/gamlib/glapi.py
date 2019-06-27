@@ -278,6 +278,7 @@ OAUTH2_SCOPES = [
    'subscopes': READONLY,
    'scope': 'https://www.googleapis.com/auth/contacts'},
   {'name': 'Pub / Sub API',
+   'api': PUBSUB,
    'subscopes': [],
    'offByDefault': True,
    'scope': 'https://www.googleapis.com/auth/pubsub'},

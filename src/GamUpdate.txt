@@ -1,3 +1,20 @@
+4.88.02
+
+Added `replace <Tag> <UserReplacement>` to 'gam create\update user` to allow additional data to be
+substituted into the subject and message if `notify <EmailAddress>` is specified.
+
+Previously, the `gam import message` command instructed the API to check the message for spam;
+the `nevercheckspam` option disabled this check. Checking the message for spam seems unnecessary,
+so now the default is to disable the check; use the `checkspam` option to enable the check.
+
+Added options to the `copyfrom` option used with `gam create/update course` that modify how
+coursework is copied.
+* `markpublishedasdraft` - Mark all published coursework as draft
+* `removeduedate` - Remove due dates from coursework.
+Improved handling of coursework fields that can't be copied; in particular, forms can't be copied.
+
+Fixed bug in `gam show filecounts` that caused a trap.
+
 4.88.01
 
 When `todrive` is used, the command used to generate the CSV file is written to the file description.
