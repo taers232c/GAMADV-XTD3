@@ -320,6 +320,7 @@ class GamCLArgs(object):
   ARG_COURSEANNOUNCEMENTS = 'courseannouncements'
   ARG_COURSEPARTICIPANTS = 'courseparticipants'
   ARG_COURSESUBMISSIONS = 'coursesubmissions'
+  ARG_COURSETOPICS = 'coursetopics'
   ARG_COURSEWORK = 'coursework'
   ARG_CROS = 'cros'
   ARG_CROSES = 'croses'
@@ -513,6 +514,7 @@ class GamCLArgs(object):
   OB_COURSE_STATE_LIST = "CourseStateList"
   OB_COURSE_SUBMISSION_ID_ENTITY = "CourseSubmissionIDEntity"
   OB_COURSE_SUBMISSION_STATE_LIST = "CourseSubmissionStateList"
+  OB_COURSE_TOPIC_ID_ENTITY = "CourseTopicIDEntity"
   OB_COURSE_WORK_ID_ENTITY = 'CourseWorkIDEntity'
   OB_COURSE_WORK_STATE_LIST = "CourseWorkStateList"
   OB_CROS_DEVICE_ENTITY = 'CrOSDeviceEntity'

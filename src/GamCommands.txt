@@ -174,6 +174,7 @@ If an item contains spaces, it should be surrounded by ".
 <CourseState> ::= active|archived|provisioned|declined|suspended
 <CourseSubmissionID> ::= <Number>
 <CourseSubmissionState> ::= new|created|turned_in|returned|reclaimed_by_student
+<CourseTopicID> ::= <Number>
 <CourseWorkID> ::= <Number>
 <CourseWorkState> ::= draft|published|deleted
 <CrOSID> ::= <String>
@@ -308,6 +309,7 @@ If an item contains spaces, it should be surrounded by ".
 <CourseStateList> ::= all|"<CourseState>(,<CourseState>)*"
 <CourseSubmissionIDList> ::= "<CourseSubmissionID>(,<CourseSubmissionID>)*"
 <CourseSubmissionStateList> ::= all|"<CourseSubmissionState>(,<CourseSubmissionState>)*"
+<CourseTopicIDList> ::= "<CourseTopicID>(,<CourseTopicID>)*"
 <CourseWorkIDList> ::= "<CourseWorkID>(,<CourseWorkID>)*"
 <CourseWorkStateList> ::= all|"<CourseWorkState>(,<CourseWorkState>)*"
 <CrOSIDList> ::= "<CrOSID>(,<CrOSID>)*"
@@ -505,6 +507,7 @@ Specify a collection of items by directly specifying them; the item type is dete
 <CourseEntity> ::= <CourseIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
 <CourseAnnouncementIDEntity> ::= <CourseAnnouncementIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>
 <CourseSubmissionIDEntity> ::= <CourseSubmissionIDList> | <FileSelector> | <CSVFileSelector> | <CSVDataSelector>
+<CourseTopicIDEntity> ::= <CourseTopicIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>
 <CourseWorkIDEntity> ::= <CourseWorkIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>
 <CrOSEntity> ::=
         <CrOSIDList> | (cros_sn <SerialNumberList>) |
@@ -1366,10 +1369,12 @@ gam create|add course [id|alias <CourseAlias>] <CourseAttribute>*
         [copyfrom <CourseID>
             [announcementstates <CourseAnnouncementStateList>]
             [workstates <CourseWorkStateList>] [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+            [copytopics [<Boolean>]]
             [members none|all|students|teachers]]
 gam update course <CourseID> <CourseAttribute>+
         [copyfrom <CourseID>
             [announcementstates <CourseAnnouncementStateList>]
+            [copytopics [<Boolean>]]
             [workstates <CourseWorkStateList>] [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
             [members none|all|students|teachers]]
 gam delete course <CourseID> [archive|archived]
@@ -1401,11 +1406,13 @@ gam info course <CourseID> [owneremail] [alias|aliases] [show all|students|teach
         [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson]
 gam info courses <CourseEntity> [owneremail] [alias|aliases] [show all|students|teachers] [countsonly]
         [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson]
-gam print courses [todrive <ToDriveAttribute>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
+gam print courses [todrive <ToDriveAttribute>*]
+        (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
         [owneremail] [owneremailmatchpattern <RegularExpression>] [alias|aliases] [delimiter <Character>] [show all|students|teachers] [countsonly]
         [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson] [quotechar <Character>]
         [timefilter creationtime|updatetime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
-gam print course-participants [todrive <ToDriveAttribute>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
+gam print course-participants [todrive <ToDriveAttribute>*]
+        (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
         [show all|students|teachers] [formatjson] [quotechar <Character>]
 
 <CourseAnnouncementFieldName> ::=
@@ -1470,16 +1477,27 @@ gam print course-participants [todrive <ToDriveAttribute>*] (course|class <Cours
         worktype
 <CourseSubmissionFieldNameList> ::= "<CourseSubmissionFieldName>(,<CourseSubmissionFieldName>)*"
 
-gam print course-announcements [todrive <ToDriveAttribute>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
-        (announcementids <CourseAnnouncementIDEntity>)|((announcementstates <CourseAnnouncementStateList>)* (orderby <CourseAnnouncementOrderByFieldName> [ascending|descending])*)
+gam print course-announcements [todrive <ToDriveAttribute>*]
+        (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+        (announcementids <CourseAnnouncementIDEntity>)|((announcementstates <CourseAnnouncementStateList>)*
+        (orderby <CourseAnnouncementOrderByFieldName> [ascending|descending])*)
         [showcreatoremails] [fields <CourseAnnouncementFieldNameList>] [formatjson] [quotechar <Character>]
         [timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
-gam print course-work [todrive <ToDriveAttribute>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
-        (workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)* (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
+gam print course-topics [todrive <ToDriveAttributes>*]
+        (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+        [topicids <CourseTopicIDEntity>]
+        [formatjson] [quotechar <Character>]
+        [timefilter updatetime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
+gam print course-work [todrive <ToDriveAttribute>*]
+        (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+        (workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)*
+        (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
         [showcreatoremails] [fields <CourseWorkFieldNameList>] [formatjson] [quotechar <Character>]
         [timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
-gam print course-submissions [todrive <ToDriveAttribute>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
-        (workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)* (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
+gam print course-submissions [todrive <ToDriveAttribute>*]
+        (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+        (workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)*
+        (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
         (submissionids <CourseSubmissionIDEntity>)|((submissionstates <CourseSubmissionStateList>)*) [late|notlate]
         [fields <CourseSubmissionFieldNameList>] [formatjson] [quotechar <Character>] [showuserprofile]
         [timefilter creationtime|updatetime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]

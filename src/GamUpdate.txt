@@ -1,3 +1,26 @@
+4.88.03
+
+Fixed bug that caused trap in `gam print filelist countsonly'.
+
+Added option to the `copyfrom` option used with `gam create/update course` that modifies how
+coursework is copied.
+* `copytopics` - Copy course topics
+If topics are not copied, references to them will be deleted from class work that is copied.
+
+To use this option you must update your Client and Service Account authentication:
+* `gam oauth create` - Enable the scope `Classroom API - Course Topics`
+* `gam user user@domain.com check serviceaccount`
+
+Added command to print course topics.
+gam print course-topics [todrive <ToDriveAttributes>*]
+        (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+        [topicids <CourseTopicIDEntity>]
+        [formatjson] [quotechar <Character>]
+        [timefilter updatetime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
+
+To use this command you must update your Client authentication:
+* `gam oauth create` - Enable the scope `Classroom API - Course Topics`.
+
 4.88.02
 
 Added `replace <Tag> <UserReplacement>` to 'gam create\update user` to allow additional data to be

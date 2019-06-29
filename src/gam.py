@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.88.02'
+__version__ = '4.88.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -574,18 +574,27 @@ def accessErrorMessage(cd):
 def accessErrorExit(cd):
   systemErrorExit(INVALID_DOMAIN_RC, accessErrorMessage(cd or buildGAPIObject(API.DIRECTORY)))
 
-def APIAccessDeniedExit():
+def ClientAPIAccessDeniedExit():
   stderrErrorMsg(Msg.API_ACCESS_DENIED)
-  if GM.Globals[GM.CURRENT_CLIENT_API]:
-    missingScopes = API.getClientScopesSet(GM.Globals[GM.CURRENT_CLIENT_API])-GM.Globals[GM.CURRENT_CLIENT_API_SCOPES]
-    if missingScopes:
-      writeStderr(Msg.API_CHECK_CLIENT_AUTHORIZATION.format(GM.Globals[GM.OAUTH2_CLIENT_ID],
-                                                            ','.join(sorted(missingScopes))))
-  if GM.Globals[GM.CURRENT_SVCACCT_API]:
-    writeStderr(Msg.API_CHECK_SVCACCT_AUTHORIZATION.format(GM.Globals[GM.OAUTH2SERVICE_CLIENT_ID],
-                                                           ','.join(sorted(API.getSvcAcctScopesSet(GM.Globals[GM.CURRENT_SVCACCT_API]))),
-                                                           GM.Globals[GM.CURRENT_SVCACCT_USER]))
+  missingScopes = API.getClientScopesSet(GM.Globals[GM.CURRENT_CLIENT_API])-GM.Globals[GM.CURRENT_CLIENT_API_SCOPES]
+  if missingScopes:
+    writeStderr(Msg.API_CHECK_CLIENT_AUTHORIZATION.format(GM.Globals[GM.OAUTH2_CLIENT_ID],
+                                                          ','.join(sorted(missingScopes))))
   systemErrorExit(API_ACCESS_DENIED_RC, None)
+
+def SvcAcctAPIAccessDeniedExit():
+  stderrErrorMsg(Msg.API_ACCESS_DENIED)
+  writeStderr(Msg.API_CHECK_SVCACCT_AUTHORIZATION.format(GM.Globals[GM.OAUTH2SERVICE_CLIENT_ID],
+                                                         ','.join(sorted(API.getSvcAcctScopesSet(GM.Globals[GM.CURRENT_SVCACCT_API]))),
+                                                         GM.Globals[GM.CURRENT_SVCACCT_USER]))
+  systemErrorExit(API_ACCESS_DENIED_RC, None)
+
+def APIAccessDeniedExit():
+  if GM.Globals[GM.CURRENT_CLIENT_API]:
+    ClientAPIAccessDeniedExit()
+  if GM.Globals[GM.CURRENT_SVCACCT_API]:
+    SvcAcctAPIAccessDeniedExit()
+  systemErrorExit(API_ACCESS_DENIED_RC, Msg.API_ACCESS_DENIED)
 
 def checkEntityDNEorAccessErrorExit(cd, entityType, entityName, i=0, count=0):
   message = accessErrorMessage(cd)
@@ -2983,7 +2992,7 @@ def handleOAuthTokenError(e, soft_errors):
     if soft_errors:
       return None
     if not GM.Globals[GM.CURRENT_SVCACCT_USER]:
-      APIAccessDeniedExit()
+      ClientAPIAccessDeniedExit()
     systemErrorExit(SERVICE_NOT_APPLICABLE_RC, Msg.SERVICE_NOT_APPLICABLE_THIS_ADDRESS.format(GM.Globals[GM.CURRENT_SVCACCT_USER]))
   stderrErrorMsg('Authentication Token Error - {0}'.format(errMsg))
   APIAccessDeniedExit()
@@ -3412,7 +3421,7 @@ def callGAPI(service, function,
       if http_status == 0:
         return None
       if (n != retries) and (reason in all_retry_reasons):
-        if reason == GAPI.INTERNAL_ERROR and bailOnInternalError and n == 2:
+        if reason in [GAPI.INTERNAL_ERROR, GAPI.BACKEND_ERROR] and bailOnInternalError and n == 2:
           raise GAPI.REASON_EXCEPTION_MAP[reason](message)
         waitOnFailure(n, retries, reason, message)
         if reason == GAPI.TRANSIENT_ERROR and bailOnTransientError:
@@ -3692,7 +3701,11 @@ google_auth_httplib2.Request.__call__ = _request_with_user_agent(google_auth_htt
 google_auth_httplib2.AuthorizedHttp.request = _request_with_user_agent(google_auth_httplib2.AuthorizedHttp.request)
 
 def buildGAPIServiceObject(api, user, i=0, count=0, displayError=True):
+  currentClientAPI = GM.Globals[GM.CURRENT_CLIENT_API]
+  currentClientAPIScopes = GM.Globals[GM.CURRENT_CLIENT_API_SCOPES]
   userEmail = convertUIDtoEmailAddress(user)
+  GM.Globals[GM.CURRENT_CLIENT_API] = currentClientAPI
+  GM.Globals[GM.CURRENT_CLIENT_API_SCOPES] = currentClientAPIScopes
   _, httpObj, service = getAPIversionHttpService(api)
   GM.Globals[GM.CURRENT_SVCACCT_API] = api
   GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = API.getSvcAcctScopesSet(api)
@@ -4244,7 +4257,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, inc
         entityDoesNotExistWarning(Ent.COURSE, removeCourseIdScope(courseId))
         _incrEntityDoesNotExist(Ent.COURSE)
       except (GAPI.forbidden, GAPI.badRequest):
-        APIAccessDeniedExit()
+        ClientAPIAccessDeniedExit()
   elif entityType == Cmd.ENTITY_CROS:
     buildGAPIObject(API.DIRECTORY)
     result = convertEntityToList(entity)
@@ -19689,14 +19702,14 @@ def convertExportNameToID(v, nameOrId, matterId, matterNameId):
     except (GAPI.notFound, GAPI.badRequest):
       entityDoesNotHaveItemExit([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, nameOrId])
     except GAPI.forbidden:
-      APIAccessDeniedExit()
+      ClientAPIAccessDeniedExit()
   nameOrIdlower = nameOrId.lower()
   try:
     exports = callGAPIpages(v.matters().exports(), 'list', 'exports',
                             throw_reasons=[GAPI.FORBIDDEN],
                             matterId=matterId, fields='exports(id,name),nextPageToken')
   except GAPI.forbidden:
-    APIAccessDeniedExit()
+    ClientAPIAccessDeniedExit()
   for export in exports:
     if export['name'].lower() == nameOrIdlower:
       return (export['id'], export['name'], formatVaultNameId(export['id'], export['name']))
@@ -19713,14 +19726,14 @@ def convertHoldNameToID(v, nameOrId, matterId, matterNameId):
     except (GAPI.notFound, GAPI.badRequest):
       entityDoesNotHaveItemExit([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, nameOrId])
     except GAPI.forbidden:
-      APIAccessDeniedExit()
+      ClientAPIAccessDeniedExit()
   nameOrIdlower = nameOrId.lower()
   try:
     holds = callGAPIpages(v.matters().holds(), 'list', 'holds',
                           throw_reasons=[GAPI.FORBIDDEN],
                           matterId=matterId, fields='holds(holdId,name),nextPageToken')
   except GAPI.forbidden:
-    APIAccessDeniedExit()
+    ClientAPIAccessDeniedExit()
   for hold in holds:
     if hold['name'].lower() == nameOrIdlower:
       return (hold['holdId'], hold['name'], formatVaultNameId(hold['holdId'], hold['name']))
@@ -19741,7 +19754,7 @@ def convertMatterNameToID(v, nameOrId):
                             throw_reasons=[GAPI.FORBIDDEN],
                             view='BASIC', fields='matters(matterId,name,state),nextPageToken')
   except GAPI.forbidden:
-    APIAccessDeniedExit()
+    ClientAPIAccessDeniedExit()
   nameOrIdlower = nameOrId.lower()
   ids = []
   states = []
@@ -23392,8 +23405,9 @@ def _getCourseStates(item, states):
       invalidChoiceExit(stateMap, True)
 
 def _initCourseAttributesFrom():
-  return {'courseId': None, 'members': 'none', 'markPublishedAsDraft': False, 'removeDueDate': False,
-          'announcementStates': [], 'workStates': []}
+  return {'courseId': None, 'members': 'none',
+          'markPublishedAsDraft': False, 'removeDueDate': False, 'copyTopics': False,
+          'announcementStates': [], 'workStates': [], 'oldTopicsById': None}
 
 def _getCourseAttribute(myarg, body, courseAttributesFrom):
   if myarg == 'name':
@@ -23422,6 +23436,8 @@ def _getCourseAttribute(myarg, body, courseAttributesFrom):
     courseAttributesFrom['markPublishedAsDraft'] = getBoolean()
   elif myarg == 'removeduedate':
     courseAttributesFrom['removeDueDate'] = getBoolean()
+  elif myarg == 'copytopics':
+    courseAttributesFrom['copyTopics'] = getBoolean()
   else:
     unknownArgumentExit()
 
@@ -23461,16 +23477,16 @@ COURSE_COURSEWORK_READONLY_FIELDS = [
   'updateTime',
   ]
 
-def stripMaterialsReadOnlyFields(body):
+def _cleanMaterials(body):
   if 'materials' not in body:
     return
   materials = body.pop('materials')
   body['materials'] = []
   for material in materials:
     if 'driveFile' in material:
-      material['driveFile'].pop('title', None)
-      material['driveFile'].pop('alternateLink', None)
-      material['driveFile'].pop('thumbnailUrl', None)
+      material['driveFile']['driveFile'].pop('title', None)
+      material['driveFile']['driveFile'].pop('alternateLink', None)
+      material['driveFile']['driveFile'].pop('thumbnailUrl', None)
       body['materials'].append(material)
     elif 'youtubeVideo' in material:
       material['youtubeVideo'].pop('title', None)
@@ -23484,13 +23500,17 @@ def stripMaterialsReadOnlyFields(body):
     elif 'form' in material:
       pass #not supported
 
-def stripAssingmentReadOnlyFields(body):
+def _cleanAssignments(body):
   if 'assignment' in body and 'studentWorkFolder' in body['assignment']:
     body['assignment']['studentWorkFolder'].pop('title', None)
     body['assignment']['studentWorkFolder'].pop('alternateLink', None)
 
 def copyCourseAttributes(croom, newCourseId, ownerId, courseAttributesFrom, i, count):
   courseId = courseAttributesFrom['courseId']
+  if courseAttributesFrom['announcementStates'] or courseAttributesFrom['workStates']:
+    _, tcroom = buildGAPIServiceObject(API.CLASSROOM, 'uid:{0}'.format(ownerId))
+    if tcroom is None:
+      return
   _, teachers, students = _getCourseAliasesMembers(croom, courseId, courseAttributesFrom,
                                                    'nextPageToken,teachers(profile(emailAddress,id))',
                                                    'nextPageToken,students(profile(emailAddress))')
@@ -23503,8 +23523,11 @@ def copyCourseAttributes(croom, newCourseId, ownerId, courseAttributesFrom, i, c
                                           throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                                           courseId=courseId, announcementStates=courseAttributesFrom['announcementStates'],
                                           pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
+    except GAPI.notFound as e:
+      entityActionFailedWarning([Ent.COURSE, courseId], str(e), i, count)
+      return
     except GAPI.forbidden:
-      APIAccessDeniedExit()
+      ClientAPIAccessDeniedExit()
   else:
     courseAnnouncements = []
   if courseAttributesFrom['workStates']:
@@ -23516,67 +23539,122 @@ def copyCourseAttributes(croom, newCourseId, ownerId, courseAttributesFrom, i, c
                                   throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                                   courseId=courseId, courseWorkStates=courseAttributesFrom['workStates'],
                                   pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
+    except GAPI.notFound as e:
+      entityActionFailedWarning([Ent.COURSE, courseId], str(e), i, count)
+      return
     except GAPI.forbidden:
-      APIAccessDeniedExit()
+      ClientAPIAccessDeniedExit()
   else:
     courseWorks = []
+  if courseAttributesFrom['copyTopics']:
+    if courseAttributesFrom['oldTopicsById'] is None:
+      courseAttributesFrom['oldTopicsById'] = {}
+      printGettingAllEntityItemsForWhom(Ent.COURSE_TOPIC, Ent.TypeName(Ent.COURSE, courseId), i, count)
+      try:
+        courseTopics = callGAPIpages(croom.courses().topics(), 'list', 'topic',
+                                     page_message=getPageMessage(),
+                                     throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                     courseId=courseId, fields='nextPageToken,topic(topicId,name)',
+                                     pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
+      except GAPI.notFound as e:
+        entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
+        return
+      except GAPI.forbidden:
+        ClientAPIAccessDeniedExit()
+    printGettingAllEntityItemsForWhom(Ent.COURSE_TOPIC, Ent.TypeName(Ent.COURSE, newCourseId), i, count)
+    try:
+      newCourseTopics = callGAPIpages(croom.courses().topics(), 'list', 'topic',
+                                      page_message=getPageMessage(),
+                                      throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                      courseId=newCourseId, fields='nextPageToken,topic(topicId,name)',
+                                      pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
+    except GAPI.notFound as e:
+      entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
+      return
+    except GAPI.forbidden:
+      ClientAPIAccessDeniedExit()
+    for topic in courseTopics:
+      courseAttributesFrom['oldTopicsById'][topic['topicId']] = topic['name']
+    newTopicsByName = {}
+    for topic in newCourseTopics:
+      newTopicsByName[topic['name']] = topic['topicId']
+    for topicId, topicName in courseAttributesFrom['oldTopicsById'].items():
+      if topicName not in newTopicsByName:
+        try:
+          result = callGAPI(tcroom.courses().topics(), 'create',
+                            throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                            courseId=newCourseId, body={'name': topicName}, fields='topicId')
+          newTopicsByName[topicName] = result['topicId']
+        except GAPI.notFound as e:
+          entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
+          return
+        except GAPI.forbidden:
+          SvcAcctAPIAccessDeniedExit()
   if courseAttributesFrom['members'] in ['all', 'students']:
     addParticipants = [student['profile']['emailAddress'] for student in students]
     _batchAddParticipantsToCourse(croom, newCourseId, i, count, addParticipants, Ent.STUDENT)
   if courseAttributesFrom['members'] in ['all', 'teachers']:
     addParticipants = [teacher['profile']['emailAddress'] for teacher in teachers if teacher['profile']['id'] != ownerId]
     _batchAddParticipantsToCourse(croom, newCourseId, i, count, addParticipants, Ent.TEACHER)
-  if courseAnnouncements or courseWorks:
-    _, tcroom = buildGAPIServiceObject(API.CLASSROOM, 'uid:{0}'.format(ownerId))
-    if tcroom is None:
-      return
-    if courseAnnouncements:
-      jcount = len(courseAnnouncements)
-      j = 0
-      for body in courseAnnouncements:
-        j += 1
-        courseAnnouncementId = body['id']
-        for field in COURSE_ANNOUNCEMENT_READONLY_FIELDS:
-          body.pop(field, None)
-        stripMaterialsReadOnlyFields(body)
-        try:
-          callGAPI(tcroom.courses().announcements(), 'create',
-                   throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN],
-                   courseId=newCourseId, body=body)
-          entityActionPerformed([Ent.COURSE, newCourseId, Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], j, jcount)
-        except GAPI.notFound as e:
-          entityActionFailedWarning([Ent.COURSE, newCourseId, Ent.COURSE_WORK_ID, courseAnnouncementId], str(e), j, jcount)
-        except (GAPI.permissionDenied, GAPI.forbidden):
-          APIAccessDeniedExit()
-    if courseWorks:
-      jcount = len(courseWorks)
-      j = 0
-      for body in courseWorks:
-        j += 1
-        courseWorkId = body['id']
-        for field in COURSE_COURSEWORK_READONLY_FIELDS:
-          body.pop(field, None)
-        stripMaterialsReadOnlyFields(body)
-        stripAssingmentReadOnlyFields(body)
-        if courseAttributesFrom['markPublishedAsDraft'] and body['state'] == 'PUBLISHED':
-          body['state'] = 'DRAFT'
-        if courseAttributesFrom['removeDueDate']:
-          body.pop('dueDate', None)
-          body.pop('dueTime', None)
-        try:
-          callGAPI(tcroom.courses().courseWork(), 'create',
-                   throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
-                   courseId=newCourseId, body=body)
-          entityActionPerformed([Ent.COURSE, newCourseId, Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
-        except (GAPI.notFound, GAPI.badRequest) as e:
-          entityActionFailedWarning([Ent.COURSE, newCourseId, Ent.COURSE_WORK_ID, courseWorkId], str(e), j, jcount)
-        except (GAPI.permissionDenied, GAPI.forbidden):
-          APIAccessDeniedExit()
+  if courseAnnouncements:
+    jcount = len(courseAnnouncements)
+    j = 0
+    for body in courseAnnouncements:
+      j += 1
+      courseAnnouncementId = body['id']
+      for field in COURSE_ANNOUNCEMENT_READONLY_FIELDS:
+        body.pop(field, None)
+      _cleanMaterials(body)
+      try:
+        callGAPI(tcroom.courses().announcements(), 'create',
+                 throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN],
+                 courseId=newCourseId, body=body)
+        entityActionPerformed([Ent.COURSE, newCourseId, Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], j, jcount)
+      except GAPI.notFound as e:
+        entityActionFailedWarning([Ent.COURSE, newCourseId, Ent.COURSE_WORK_ID, courseAnnouncementId], str(e), j, jcount)
+      except (GAPI.permissionDenied, GAPI.forbidden):
+        SvcAcctAPIAccessDeniedExit()
+  if courseWorks:
+    jcount = len(courseWorks)
+    j = 0
+    for body in courseWorks:
+      j += 1
+      courseWorkId = body['id']
+      for field in COURSE_COURSEWORK_READONLY_FIELDS:
+        body.pop(field, None)
+      _cleanMaterials(body)
+      _cleanAssignments(body)
+      if courseAttributesFrom['markPublishedAsDraft'] and body['state'] == 'PUBLISHED':
+        body['state'] = 'DRAFT'
+      if courseAttributesFrom['removeDueDate']:
+        body.pop('dueDate', None)
+        body.pop('dueTime', None)
+      topicId = body.pop('topicId', None)
+      if courseAttributesFrom['copyTopics']:
+        if topicId:
+          topicName = courseAttributesFrom['oldTopicsById'].get(topicId)
+          if topicName:
+            newTopicId = newTopicsByName.get(topicName)
+            if newTopicId:
+              body['topicId'] = newTopicId
+      try:
+        callGAPI(tcroom.courses().courseWork(), 'create',
+                 bailOnInternalError=True,
+                 throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN,
+                                GAPI.BAD_REQUEST, GAPI.FAILED_PRECONDITION, GAPI.BACKEND_ERROR],
+                 courseId=newCourseId, body=body)
+        entityActionPerformed([Ent.COURSE, newCourseId, Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
+      except (GAPI.notFound, GAPI.badRequest, GAPI.failedPrecondition, GAPI.backendError) as e:
+        entityActionFailedWarning([Ent.COURSE, newCourseId, Ent.COURSE_WORK_ID, courseWorkId], str(e), j, jcount)
+      except (GAPI.permissionDenied, GAPI.forbidden):
+        SvcAcctAPIAccessDeniedExit()
 
 # gam create course [id|alias <CourseAlias>] <CourseAttributes>*
 #	 [copyfrom <CourseID>
 #	    [announcementstates <CourseAnnouncementStateList>]
-#	    [workstates <CourseWorkStateList>] [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+#	    [workstates <CourseWorkStateList>]
+#	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+#	    [copytopics [<Boolean>]]
 #	    [members none|all|students|teachers]]
 def doCreateCourse():
   croom = buildGAPIObject(API.CLASSROOM)
@@ -23639,7 +23717,9 @@ def _doUpdateCourses(entityList):
 # gam update courses <CourseEntity> <CourseAttributes>+
 #	 [copyfrom <CourseID>
 #	    [announcementstates <CourseAnnouncementStateList>]
-#	    [workstates <CourseWorkStateList>] [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+#	    [workstates <CourseWorkStateList>]
+#	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+#	    [copytopics [<Boolean>]]
 #	    [members none|all|students|teachers]]
 def doUpdateCourses():
   _doUpdateCourses(getEntityList(Cmd.OB_COURSE_ENTITY))
@@ -23647,7 +23727,9 @@ def doUpdateCourses():
 # gam update course <CourseID> <CourseAttributes>+
 #	 [copyfrom <CourseID>
 #	    [announcementstates <CourseAnnouncementStateList>]
-#	    [workstates <CourseWorkStateList>] [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+#	    [workstates <CourseWorkStateList>]
+#	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+#	    [copytopics [<Boolean>]]
 #	    [members none|all|students|teachers]]
 def doUpdateCourse():
   _doUpdateCourses(getStringReturnInList(Cmd.OB_COURSE_ID))
@@ -23841,7 +23923,7 @@ def _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFiel
     except (GAPI.notFound, GAPI.notImplemented):
       pass
     except GAPI.forbidden:
-      APIAccessDeniedExit()
+      ClientAPIAccessDeniedExit()
   if courseShowProperties['members'] != 'none':
     if courseShowProperties['members'] != 'students':
       if showGettings:
@@ -23854,7 +23936,7 @@ def _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFiel
       except GAPI.notFound:
         pass
       except GAPI.forbidden:
-        APIAccessDeniedExit()
+        ClientAPIAccessDeniedExit()
     if courseShowProperties['members'] != 'teachers':
       if showGettings:
         Ent.SetGetting(Ent.STUDENT)
@@ -23866,7 +23948,7 @@ def _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFiel
       except GAPI.notFound:
         pass
       except GAPI.forbidden:
-        APIAccessDeniedExit()
+        ClientAPIAccessDeniedExit()
   return (aliases, teachers, students)
 
 def _doInfoCourses(entityList):
@@ -23960,7 +24042,7 @@ def _doInfoCourses(entityList):
     except GAPI.notFound:
       entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], Msg.DOES_NOT_EXIST, i, count)
     except GAPI.forbidden:
-      APIAccessDeniedExit()
+      ClientAPIAccessDeniedExit()
 
 # gam info courses <CourseEntity> [owneremail] [alias|aliases] [show none|all|students|teachers] [countsonly]
 #	[fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson]
@@ -23990,6 +24072,7 @@ def _getCourseSelectionParameters(myarg, courseSelectionParameters):
 
 COURSE_CU_FILTER_FIELDS_MAP = {'creationtime': 'creationTime', 'updatetime': 'updateTime'}
 COURSE_CUS_FILTER_FIELDS_MAP = {'creationtime': 'creationTime', 'updatetime': 'updateTime', 'scheduledtime': 'scheduledTime'}
+COURSE_U_FILTER_FIELDS_MAP = {'updatetime': 'updateTime'}
 COURSE_START_ARGUMENTS = ['start', 'startdate', 'oldestdate']
 COURSE_END_ARGUMENTS = ['end', 'enddate']
 
@@ -24057,7 +24140,7 @@ def _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties):
     except GAPI.badRequest as e:
       entityActionFailedWarning([Ent.COURSE, None], str(e))
     except GAPI.forbidden:
-      APIAccessDeniedExit()
+      ClientAPIAccessDeniedExit()
     return None
   fields = _setCourseFields(courseShowProperties, False)
   coursesInfo = []
@@ -24071,7 +24154,7 @@ def _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties):
     except GAPI.notFound:
       entityDoesNotExistWarning(Ent.COURSE, courseId)
     except GAPI.forbidden:
-      APIAccessDeniedExit()
+      ClientAPIAccessDeniedExit()
   return coursesInfo
 
 # gam print courses [todrive <ToDriveAttributes>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
@@ -24237,8 +24320,10 @@ COURSE_ANNOUNCEMENTS_TIME_OBJECTS = set(['creationTime', 'scheduledTime', 'updat
 COURSE_ANNOUNCEMENTS_SORT_TITLES = ['courseId', 'courseName', 'id', 'text', 'state']
 COURSE_ANNOUNCEMENTS_INDEXED_TITLES = ['materials']
 
-# gam print course-announcements [todrive <ToDriveAttributes>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
-#	(announcementids <CourseAnnouncementIDEntity>)|((announcementstates <CourseAnnouncementStateList>)* (orderby <CourseAnnouncementOrderByFieldName> [ascending|descending])*)
+# gam print course-announcements [todrive <ToDriveAttributes>*]
+#	(course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+#	(announcementids <CourseAnnouncementIDEntity>)|((announcementstates <CourseAnnouncementStateList>)*
+#	(orderby <CourseAnnouncementOrderByFieldName> [ascending|descending])*)
 #	[showcreatoremails] [fields <CourseAnnouncementFieldNameList>] [formatjson] [quotechar <Character>]
 #	[timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 def doPrintCourseAnnouncements():
@@ -24313,7 +24398,7 @@ def doPrintCourseAnnouncements():
                                 courseId=courseId, announcementStates=courseAnnouncementStates, orderBy=orderBy['list'],
                                 fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
       except GAPI.forbidden:
-        APIAccessDeniedExit()
+        ClientAPIAccessDeniedExit()
       for courseAnnouncement in results:
         _printCourseAnnouncement(course, courseAnnouncement, i, count)
     else:
@@ -24332,8 +24417,92 @@ def doPrintCourseAnnouncements():
         except GAPI.notFound:
           entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], j, jcount)
         except GAPI.forbidden:
-          APIAccessDeniedExit()
+          ClientAPIAccessDeniedExit()
   csvPF.writeCSVfile('Course Announcements')
+
+COURSE_TOPICS_TIME_OBJECTS = set(['updateTime'])
+COURSE_TOPICS_SORT_TITLES = ['courseId', 'courseName', 'topicId', 'name', 'updateTime']
+
+# gam print course-topics [todrive <ToDriveAttributes>*]
+#	(course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+#	[topicids <CourseTopicIDEntity>]
+#	[formatjson] [quotechar <Character>]
+#	[timefilter updatetime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
+def doPrintCourseTopics():
+  def _printCourseTopic(course, courseTopic):
+    if applyCourseItemFilter and not _courseItemPassesFilter(courseTopic, courseItemFilter):
+      return
+    row = flattenJSON(courseTopic, flattened={'courseId': course['id'], 'courseName': course['name']}, timeObjects=COURSE_TOPICS_TIME_OBJECTS)
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(row)
+    elif csvPF.CheckRowTitles(row):
+      csvPF.WriteRowNoFilter({'courseId': course['id'], 'courseName': course['name'],
+                              'JSON': json.dumps(cleanJSON(courseTopic, timeObjects=COURSE_TOPICS_TIME_OBJECTS),
+                                                 ensure_ascii=False, sort_keys=True)})
+
+  croom = buildGAPIObject(API.CLASSROOM)
+  csvPF = CSVPrintFile(['courseId', 'courseName'], COURSE_TOPICS_SORT_TITLES)
+  FJQC = FormatJSONQuoteChar(csvPF)
+  fieldsList = ['topicId', 'name', 'updateTime']
+  courseSelectionParameters = _initCourseSelectionParameters()
+  courseItemFilter = _initCourseItemFilter()
+  courseShowProperties = _initCourseShowProperties(['name'])
+  courseTopicIds = []
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif _getCourseSelectionParameters(myarg, courseSelectionParameters):
+      pass
+    elif _getCourseItemFilter(myarg, courseItemFilter, COURSE_U_FILTER_FIELDS_MAP):
+      pass
+    elif myarg in ['topicid', 'topicids']:
+      courseTopicIds = getEntityList(Cmd.OB_COURSE_TOPIC_ID_ENTITY)
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  coursesInfo = _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties)
+  if coursesInfo is None:
+    return
+  applyCourseItemFilter = _setApplyCourseItemFilter(courseItemFilter, fieldsList)
+  courseTopicIdsLists = courseTopicIds if isinstance(courseTopicIds, dict) else None
+  i = 0
+  count = len(coursesInfo)
+  for course in coursesInfo:
+    i += 1
+    courseId = course['id']
+    if courseTopicIdsLists:
+      courseTopicIds = courseTopicIdsLists[courseId]
+    if not courseTopicIds:
+      fields = 'nextPageToken,topic({0})'.format(','.join(set(fieldsList)))
+      printGettingAllEntityItemsForWhom(Ent.COURSE_TOPIC, Ent.TypeName(Ent.COURSE, courseId), i, count)
+      try:
+        results = callGAPIpages(croom.courses().topics(), 'list', 'topic',
+                                page_message=getPageMessage(),
+                                throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                courseId=courseId,
+                                fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
+      except GAPI.forbidden:
+        ClientAPIAccessDeniedExit()
+      for courseTopic in results:
+        _printCourseTopic(course, courseTopic)
+    else:
+      jcount = len(courseTopicIds)
+      if jcount == 0:
+        continue
+      fields = '{0}'.format(','.join(set(fieldsList)))
+      j = 0
+      for courseTopicId in courseTopicIds:
+        j += 1
+        try:
+          courseTopic = callGAPI(croom.courses().topics(), 'get',
+                                 throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                 courseId=courseId, id=courseTopicId, fields=fields)
+          _printCourseTopic(course, courseTopic)
+        except GAPI.notFound:
+          entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_TOPIC_ID, courseTopicId], j, jcount)
+        except GAPI.forbidden:
+          ClientAPIAccessDeniedExit()
+  csvPF.writeCSVfile('Course Topics')
 
 COURSE_WORK_FIELDS_CHOICE_MAP = {
   'alternatelink': 'alternateLink',
@@ -24386,8 +24555,10 @@ def _gettingCourseWorkQuery(courseWorkStates):
     query = query[:-2]
   return query
 
-# gam print course-work [todrive <ToDriveAttributes>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
-#	(workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)*  (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
+# gam print course-work [todrive <ToDriveAttributes>*]
+#	(course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+#	(workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)*
+#	(orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
 #	[showcreatoremails] [fields <CourseWorkFieldNameList>] [formatjson] [quotechar <Character>]
 #	[timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 def doPrintCourseWork():
@@ -24460,7 +24631,7 @@ def doPrintCourseWork():
                                 courseId=courseId, courseWorkStates=courseWorkSelectionParameters['courseWorkStates'], orderBy=orderBy['list'],
                                 fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
       except GAPI.forbidden:
-        APIAccessDeniedExit()
+        ClientAPIAccessDeniedExit()
       for courseWork in results:
         _printCourseWork(course, courseWork, i, count)
     else:
@@ -24479,7 +24650,7 @@ def doPrintCourseWork():
         except GAPI.notFound:
           entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
         except GAPI.forbidden:
-          APIAccessDeniedExit()
+          ClientAPIAccessDeniedExit()
   csvPF.writeCSVfile('Course Work')
 
 COURSE_SUBMISSION_FIELDS_CHOICE_MAP = {
@@ -24518,8 +24689,10 @@ def _gettingCourseSubmissionQuery(courseSubmissionStates, late, userId):
     query = query[:-2]
   return query
 
-# gam print course-submissions [todrive <ToDriveAttributes>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
-#	(workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)*  (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
+# gam print course-submissions [todrive <ToDriveAttributes>*]
+#	(course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+#	(workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)*
+#	(orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
 #	(submissionids <CourseSubmissionIDEntity>)|((submissionstates <CourseSubmissionStateList>)*) [late|notlate]
 #	[fields <CourseSubmissionFieldNameList>] [formatjson] [quotechar <Character>] [showuserprofile]
 #	[timefilter creationtime|updatetime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
@@ -24612,7 +24785,7 @@ def doPrintCourseSubmissions():
       except GAPI.notFound:
         continue
       except GAPI.forbidden:
-        APIAccessDeniedExit()
+        ClientAPIAccessDeniedExit()
       courseWorkIdsForCourse = [courseWork['id'] for courseWork in results]
     else:
       courseWorkIdsForCourse = courseWorkIds
@@ -24636,7 +24809,7 @@ def doPrintCourseSubmissions():
           entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
           continue
         except GAPI.forbidden:
-          APIAccessDeniedExit()
+          ClientAPIAccessDeniedExit()
         for submission in results:
           _printCourseSubmission(course, submission)
       else:
@@ -24661,12 +24834,13 @@ def doPrintCourseSubmissions():
           except GAPI.notFound:
             entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_WORK_ID, courseWorkId, Ent.COURSE_SUBMISSION_ID, courseSubmissionId], k, kcount)
           except GAPI.forbidden:
-            APIAccessDeniedExit()
+            ClientAPIAccessDeniedExit()
   csvPF.writeCSVfile('Course Submissions')
 
 COURSE_PARTICIPANTS_SORT_TITLES = ['courseId', 'courseName', 'userRole', 'userId']
 
-# gam print course-participants [todrive <ToDriveAttributes>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
+# gam print course-participants [todrive <ToDriveAttributes>*]
+#	(course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
 #	[show all|students|teachers] [formatjson] [quotechar <Character>]
 def doPrintCourseParticipants():
   croom = buildGAPIObject(API.CLASSROOM)
@@ -25509,7 +25683,7 @@ def _getCoursesOwnerInfo(croom, courseIds, coursesInfo, useAdminAccess):
       except GAPI.notFound:
         entityDoesNotExistWarning(Ent.COURSE, courseId)
       except GAPI.forbidden:
-        APIAccessDeniedExit()
+        ClientAPIAccessDeniedExit()
 
 def _getClassroomInvitations(croom, userId, courseId, role, i, count, j=0, jcount=0):
   try:
@@ -27998,7 +28172,7 @@ def doDriveSearch(drive, user, i, count, query=None, parentQuery=False, emptyQue
   try:
     files = callGAPIpages(drive.files(), 'list', VX_PAGES_FILES,
                           page_message=getPageMessageForWhom(),
-                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND, GAPI.TEAMDRIVE_NOT_FOUND],
+                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND, GAPI.NOT_FOUND],
                           q=query, orderBy=orderBy, fields='nextPageToken,files(id,driveId)', pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **kwargs)
     if files or not parentQuery:
       return [f_file['id'] for f_file in files if not teamDriveOnly or f_file.get('driveId')]
@@ -28012,7 +28186,7 @@ def doDriveSearch(drive, user, i, count, query=None, parentQuery=False, emptyQue
     printGotEntityItemsForWhom(0)
     if emptyQueryOK:
       return []
-  except GAPI.teamDriveNotFound as e:
+  except GAPI.notFound as e:
     entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, kwargs['driveId']], str(e), i, count)
   except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
     userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -28255,9 +28429,9 @@ def _convertTeamDriveNameToId(drive, user, i, count, fileIdEntity, useDomainAdmi
 def _getTeamDriveNameFromId(drive, teamDriveId):
   try:
     return callGAPI(drive.drives(), 'get',
-                    throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND],
+                    throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
                     driveId=teamDriveId, fields='name')['name']
-  except (GAPI.teamDriveNotFound, GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
+  except (GAPI.notFound, GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
     return TEAM_DRIVE
 
 def _getDriveFileNameFromId(drive, fileId, combineTitleId=True):
@@ -28380,13 +28554,13 @@ def _getDriveFileParentInfo(drive, user, i, count, body, parameters, emptyQueryO
                                       'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
       else:
         result = callGAPI(drive.drives(), 'get',
-                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND],
+                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
                           driveId=parameters[DFA_TEAMDRIVE_PARENTID], fields='id')
         parameters[DFA_KWARGS]['corpora'] = 'drive'
         parameters[DFA_KWARGS]['driveId'] = result['id']
         parameters[DFA_SEARCHARGS] = {'driveId': result['id'], 'corpora': 'drive',
                                       'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
-    except (GAPI.fileNotFound, GAPI.teamDriveNotFound) as e:
+    except (GAPI.fileNotFound, GAPI.notFound) as e:
       entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
                                       'teamdriveparentid: {0}, {1}'.format(parameters[DFA_TEAMDRIVE_PARENTID], str(e)), i, count)
       return False
@@ -30093,7 +30267,7 @@ def initFileTree(drive, teamdrive, getTeamDriveNames):
                         fileId=teamdrive['driveId'], supportsAllDrives=True, fields=','.join(VX_FILEPATH_FIELDS_TITLES+OWNED_BY_ME_FIELDS_TITLES))
       fileTree[f_file['id']] = {'info': f_file, 'children': []}
       fileTree[f_file['id']]['info'][VX_FILENAME] = 'TeamDrive({0})'.format(callGAPI(drive.drives(), 'get',
-                                                                                     throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND],
+                                                                                     throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
                                                                                      driveId=teamdrive['driveId'], fields='name')['name'])
     if getTeamDriveNames:
       tdrives = callGAPIpages(drive.drives(), 'list', 'drives',
@@ -30102,7 +30276,7 @@ def initFileTree(drive, teamdrive, getTeamDriveNames):
       for tdrive in tdrives:
         if tdrive['id'] not in fileTree:
           fileTree[tdrive['id']] = {'info': {'id': tdrive['id'], VX_FILENAME: 'TeamDrive({0})'.format(tdrive['name']), 'mimeType': MIMETYPE_GA_FOLDER}, 'children': []}
-  except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.notFound, GAPI.teamDriveNotFound):
+  except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.notFound, GAPI.notFound):
     pass
   return fileTree
 
@@ -30376,9 +30550,9 @@ def printFileList(users):
         skipObjects.add('mimeType')
         fieldsList.append('mimeType')
     if countsOnly:
+      skipObjects.discard('mimeType')
       if 'mimeType' not in fieldsList:
         fieldsList.append('mimeType')
-        skipObjects.discard('mimeType')
     if DLP.minimumFileSize is not None:
       if VX_SIZE not in fieldsList:
         skipObjects.add(VX_SIZE)
@@ -30894,7 +31068,7 @@ def printShowFileCounts(users):
       feed = callGAPIpages(drive.files(), 'list', VX_PAGES_FILES,
                            page_message=getPageMessageForWhom(),
                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND,
-                                                                        GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                                                                        GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                            q=DLP.query, fields=pagesfields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **fileIdEntity['teamdrive'])
     except (GAPI.invalidQuery, GAPI.invalid):
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, None], invalidQuery(DLP.query), i, count)
@@ -30902,7 +31076,7 @@ def printShowFileCounts(users):
     except GAPI.fileNotFound:
       printGotEntityItemsForWhom(0)
       continue
-    except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
+    except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
       continue
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -34179,7 +34353,7 @@ def _createDriveFileACL(users, useDomainAdminAccess):
               GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
               GAPI.teamDrivesFolderSharingNotSupported) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
-      except GAPI.teamDriveNotFound as e:
+      except GAPI.notFound as e:
         entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE, fileName], str(e), j, jcount)
       except (GAPI.invalid, GAPI.invalidSharingRequest) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], Ent.TypeNameMessage(Ent.PERMISSION_ID, permissionId, str(e)), j, jcount)
@@ -34264,7 +34438,7 @@ def _updateDriveFileACLs(users, useDomainAdminAccess):
               GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
               GAPI.cannotModifyInheritedTeamDrivePermission, GAPI.fieldNotWritable) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
-      except GAPI.teamDriveNotFound as e:
+      except GAPI.notFound as e:
         entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE, fileName], str(e), j, jcount)
       except GAPI.permissionNotFound:
         entityDoesNotHaveItemWarning([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
@@ -34346,7 +34520,7 @@ def _createDriveFilePermissions(users, useDomainAdminAccess):
               GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.teamDrivesFolderSharingNotSupported,
               GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
-      except GAPI.teamDriveNotFound as e:
+      except GAPI.notFound as e:
         entityActionFailedWarning([Ent.TEAMDRIVE, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
     if int(ri[RI_J]) == int(ri[RI_JCOUNT]):
       Ind.Decrement()
@@ -34470,7 +34644,7 @@ def _deleteDriveFileACLs(users, useDomainAdminAccess):
               GAPI.badRequest, GAPI.cannotRemoveOwner, GAPI.cannotModifyInheritedTeamDrivePermission,
               GAPI.insufficientAdministratorPrivileges) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
-      except GAPI.teamDriveNotFound as e:
+      except GAPI.notFound as e:
         entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE, fileName], str(e), j, jcount)
       except GAPI.permissionNotFound:
         entityDoesNotHaveItemWarning([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
@@ -34694,14 +34868,14 @@ def _printShowDriveFileACLs(users, useDomainAdminAccess):
         fileName, entityType = _getDriveFileNameFromId(drive, fileId, not (csvPF or FJQC.formatJSON))
       try:
         results = callGAPIpages(drive.permissions(), 'list', VX_PAGES_PERMISSIONS,
-                                throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND, GAPI.INSUFFICIENT_ADMINISTRATOR_PRIVILEGES],
+                                throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INSUFFICIENT_ADMINISTRATOR_PRIVILEGES],
                                 useDomainAdminAccess=useDomainAdminAccess,
                                 fileId=fileId, fields=VX_NPT_PERMISSIONS, supportsAllDrives=True)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
               GAPI.unknownError, GAPI.insufficientAdministratorPrivileges) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
         continue
-      except GAPI.teamDriveNotFound as e:
+      except GAPI.notFound as e:
         entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE, fileName], str(e), j, jcount)
         continue
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -34985,10 +35159,10 @@ def createTeamDrive(users):
       Act.Set(Act.UPDATE)
       try:
         callGAPI(drive.drives(), 'update',
-                 throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                 throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
                  driveId=teamDriveId, body=updateBody)
         entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
-      except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.forbidden, GAPI.badRequest) as e:
+      except (GAPI.notFound, GAPI.forbidden, GAPI.badRequest) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -35017,11 +35191,11 @@ def _updateTeamDrive(users, useDomainAdminAccess):
     try:
       teamDriveId = fileIdEntity['teamdrive']['driveId']
       callGAPI(drive.drives(), 'update',
-               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST,
+               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST,
                                                             GAPI.NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE],
                useDomainAdminAccess=useDomainAdminAccess, driveId=teamDriveId, body=body)
       entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
-    except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.forbidden, GAPI.badRequest, GAPI.noManageTeamDriveAdministratorPrivilege) as e:
+    except (GAPI.notFound, GAPI.forbidden, GAPI.badRequest, GAPI.noManageTeamDriveAdministratorPrivilege) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -35051,11 +35225,11 @@ def deleteTeamDrive(users):
     try:
       teamDriveId = fileIdEntity['teamdrive']['driveId']
       callGAPI(drive.drives(), 'delete',
-               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.FORBIDDEN,
+               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN,
                                                             GAPI.CANNOT_DELETE_RESOURCE_WITH_CHILDREN, GAPI.INSUFFICIENT_FILE_PERMISSIONS],
                driveId=teamDriveId)
       entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
-    except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.forbidden,
+    except (GAPI.notFound, GAPI.forbidden,
             GAPI.cannotDeleteResourceWithChildren, GAPI.insufficientFilePermissions) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -35075,10 +35249,10 @@ def hideUnhideTeamDrive(users):
     try:
       teamDriveId = fileIdEntity['teamdrive']['driveId']
       callGAPI(drive.drives(), function,
-               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                driveId=teamDriveId)
       entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
-    except (GAPI.teamDriveNotFound, GAPI.notFound, GAPI.forbidden) as e:
+    except (GAPI.notFound, GAPI.forbidden) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -35149,11 +35323,11 @@ def _infoTeamDrive(users, useDomainAdminAccess):
     try:
       teamDriveId = fileIdEntity['teamdrive']['driveId']
       teamdrive = callGAPI(drive.drives(), 'get',
-                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TEAMDRIVE_NOT_FOUND],
+                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
                            useDomainAdminAccess=useDomainAdminAccess,
                            driveId=teamDriveId, fields=fields)
       _showTeamDrive(user, teamdrive, i, count, FJQC)
-    except GAPI.teamDriveNotFound as e:
+    except GAPI.notFound as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -39920,6 +40094,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_COURSEANNOUNCEMENTS:	doPrintCourseAnnouncements,
       Cmd.ARG_COURSEPARTICIPANTS:	doPrintCourseParticipants,
       Cmd.ARG_COURSESUBMISSIONS:	doPrintCourseSubmissions,
+      Cmd.ARG_COURSETOPICS:	doPrintCourseTopics,
       Cmd.ARG_COURSEWORK:	doPrintCourseWork,
       Cmd.ARG_CROS:		doPrintCrOSDevices,
       Cmd.ARG_CROSACTIVITY:	doPrintCrOSActivity,

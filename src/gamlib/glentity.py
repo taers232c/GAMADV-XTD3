@@ -78,6 +78,8 @@ class GamEntity(object):
   COURSE_STATE = 'cost'
   COURSE_SUBMISSION_ID = 'csid'
   COURSE_SUBMISSION_STATE = 'csst'
+  COURSE_TOPIC = 'ctop'
+  COURSE_TOPIC_ID = 'ctoi'
   COURSE_WORK_ID = 'cwid'
   COURSE_WORK_STATE = 'cwst'
   CREATOR_ID = 'crid'
@@ -278,6 +280,8 @@ class GamEntity(object):
     COURSE_STATE: ['Course States', 'Course State'],
     COURSE_SUBMISSION_ID: ['Course Submission IDs', 'Course Submission ID'],
     COURSE_SUBMISSION_STATE: ['Course Submission States', 'Course Submission State'],
+    COURSE_TOPIC: ['Course Topics', 'Course Topic'],
+    COURSE_TOPIC_ID: ['Course Topic IDs', 'Course Topic ID'],
     COURSE_WORK_ID: ['Course Work IDs', 'Course Work ID'],
     COURSE_WORK_STATE: ['Course Work States', 'Course Work State'],
     CREATOR_ID: ['Creator IDs', 'Creator ID'],
@@ -399,12 +403,12 @@ class GamEntity(object):
     STUDENT: ['Students', 'Student'],
     TARGET_USER: ['Target Users', 'Target User'],
     TEACHER: ['Teachers', 'Teacher'],
-    TEAMDRIVE: ['TeamDrives', 'TeamDrive'],
-    TEAMDRIVE_ACL: ['TeamDrive ACLs', 'TeamDrive ACL'],
-    TEAMDRIVE_FOLDER: ['TeamDrive Folders', 'TeamDrive Folder'],
-    TEAMDRIVE_ID: ['TeamDrive IDs', 'TeamDrive ID'],
-    TEAMDRIVE_NAME: ['TeamDrive Names', 'TeamDrive Name'],
-    TEAMDRIVE_THEME: ['TeamDrive Themes', 'TeamDrive Theme'],
+    TEAMDRIVE: ['Shared Drives', 'Shared Drive'],
+    TEAMDRIVE_ACL: ['Shared Drive ACLs', 'Shared Drive ACL'],
+    TEAMDRIVE_FOLDER: ['Shared Drive Folders', 'Shared Drive Folder'],
+    TEAMDRIVE_ID: ['Shared Drive IDs', 'Shared Drive ID'],
+    TEAMDRIVE_NAME: ['Shared Drive Names', 'Shared Drive Name'],
+    TEAMDRIVE_THEME: ['Shared Drive Themes', 'Shared Drive Theme'],
     THREAD: ['Threads', 'Thread'],
     TOKEN: ['Tokens', 'Token'],
     TRANSFER_APPLICATION: ['Transfer Applications', 'Transfer Application'],
