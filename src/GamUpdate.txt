@@ -1,6 +1,6 @@
 4.88.04
 
-Fixed bug in gdata library that caused `gam update contactphoto` to hang in infinite loop.
+Fixed bug in atom library that caused `gam update contactphoto` to hang in infinite loop.
 
 4.88.03
 

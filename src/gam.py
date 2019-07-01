@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.88.04'
+__version__ = '4.88.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -22155,7 +22155,7 @@ def doCreateUser():
   cd = buildGAPIObject(API.DIRECTORY)
   body, notify, tagReplacements, _, _, _ = getUserAttributes(cd, False, noUid=True)
   user = body['primaryEmail']
-  fields = '*' if tagReplacements['subs'] else ''
+  fields = '*' if tagReplacements['subs'] else 'primaryEmail,name'
   try:
     result = callGAPI(cd.users(), 'insert',
                       throw_reasons=[GAPI.DUPLICATE, GAPI.DOMAIN_NOT_FOUND, GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN,
@@ -22164,6 +22164,7 @@ def doCreateUser():
                       body=body, fields=fields)
     entityActionPerformed([Ent.USER, user])
     if notify.get('emailAddress'):
+      result['password'] = body['password']
       sendCreateUpdateUserNotification(result, notify, tagReplacements)
   except GAPI.duplicate:
     entityDuplicateWarning([Ent.USER, user])
@@ -22235,6 +22236,7 @@ def updateUsers(entityList):
                             userKey=userKey, body=body, fields=fields)
           entityActionPerformed([Ent.USER, user], i, count)
           if notify.get('emailAddress') and notify.get('password'):
+            result['password'] = body.get('password', u'')
             sendCreateUpdateUserNotification(result, notify, tagReplacements, i, count, createMessage=False)
         except GAPI.userNotFound:
           if createIfNotFound and (count == 1) and not vfe and ('password' in body) and ('name' in body) and ('givenName' in body['name']) and ('familyName' in body['name']):
@@ -22249,6 +22251,7 @@ def updateUsers(entityList):
               Act.Set(Act.CREATE)
               entityActionPerformed([Ent.USER, user], i, count)
               if notify.get('emailAddress'):
+                result['password'] = body['password']
                 sendCreateUpdateUserNotification(result, notify, tagReplacements, i, count)
             except GAPI.duplicate:
               entityDuplicateWarning([Ent.USER, user], i, count)
