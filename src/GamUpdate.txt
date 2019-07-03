@@ -1,3 +1,11 @@
+4.88.06
+
+Handle `sharingRateLimitExceeded` error when manipulating Drive File ACLs.
+
+4.88.05
+
+Fixed bug in `gam create/update user` that caused a trap when the `notify` option was used.
+
 4.88.04
 
 Fixed bug in atom library that caused `gam update contactphoto` to hang in infinite loop.
