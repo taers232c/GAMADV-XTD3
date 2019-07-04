@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.88.06'
+__version__ = '4.88.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -76,8 +76,6 @@ from urllib.parse import unquote, urlencode, urlparse
 import uuid
 import webbrowser
 import zipfile
-
-import dns.resolver
 
 from gamlib import glaction
 from gamlib import glapi as API
@@ -23255,6 +23253,8 @@ def doPrintUserEntity(entityList):
 
 SITEVERIFICATION_METHOD_CHOICE_MAP = {
   'cname': 'DNS_CNAME',
+  'dnscname': 'DNS_CNAME',
+  'dnstxt': 'DNS_TXT',
   'txt': 'DNS_TXT',
   'text': 'DNS_TXT',
   'file': 'FILE',
@@ -23310,17 +23310,67 @@ def _showSiteVerificationInfo(site):
     Ind.Decrement()
   Ind.Decrement()
 
-# gam update verify|verification <DomainName> cname|txt|text|file|site
+DNS_ERROR_CODES_MAP = {
+  1: 'DNS Query Format Error',
+  2: 'Server failed to complete the DNS request',
+  3: 'Domain name does not exist',
+  4: 'Function not implemented',
+  5: 'The server refused to answer for the query',
+  6: 'Name that should not exist, does exist',
+  7: 'RRset that should not exist, does exist',
+  8: 'Server not authoritative for the zone',
+  9: 'Name not in zone'
+  }
+
+# gam update verify|verification <DomainName> cname|txt|text|file|site [showdns]
 def doUpdateSiteVerification():
+  def showDNSrecords():
+    verify_data = callGAPI(verif.webResource(), 'getToken',
+                           body=body)
+    printKeyValueList(['Method', verify_data['method']])
+    if verify_data['method'] in ['DNS_CNAME', 'DNS_TXT']:
+      if verify_data['method'] == 'DNS_CNAME':
+        cname_subdomain, cname_target = verify_data['token'].split(' ')
+        query_params = {'name': '{0}.{1}'.format(cname_subdomain, a_domain), 'type': 'cname'}
+        printKeyValueList(['Expected Record',
+                           '{0} IN CNAME {1}'.format(query_params['name'], cname_target)])
+      else:
+        query_params = {'name': '{0}'.format(a_domain), 'type': 'txt'}
+        printKeyValueList(['Expected Record',
+                           '{0} IN TXT {1}'.format(query_params['name'], verify_data['token'])])
+      _, content = getHttpObj().request('https://dns.google/resolve?' + urlencode(query_params), 'GET')
+      result = json.loads(content.decode(UTF8))
+      status = result['Status']
+      if status == 0 and 'Answer' in result:
+        if verify_data['method'] == 'DNS_CNAME':
+          printKeyValueList(['DNS      Record',
+                             '{0} IN CNAME {1}'.format(result['Answer'][0]['name'].rstrip('.'), result['Answer'][0]['data'])])
+        else:
+          found = False
+          for answer in result['Answer']:
+            answer['data'] = answer['data'].strip('"')
+            if answer['data'].startswith('google-site-verification'):
+              found = True
+              printKeyValueList(['DNS      Record',
+                                 '{0} IN TXT {1}'.format(answer['name'].rstrip('.'), answer['data'])])
+          if not found:
+            printKeyValueList(['DNS      Record', 'No matching record found'])
+      elif status == 0:
+        systemErrorExit(NETWORK_ERROR_RC, Msg.DOMAIN_NOT_FOUND_IN_DNS)
+      else:
+        systemErrorExit(NETWORK_ERROR_RC, DNS_ERROR_CODES_MAP.get(status, 'Unknown error %s' % status))
+
   verif = buildGAPIObject(API.SITEVERIFICATION)
   a_domain = getString(Cmd.OB_DOMAIN_NAME)
   verificationMethod = getChoice(SITEVERIFICATION_METHOD_CHOICE_MAP, mapChoice=True)
   if verificationMethod in ['DNS_TXT', 'DNS_CNAME']:
     verify_type = 'INET_DOMAIN'
     identifier = a_domain
+    showDNS = True
   else:
     verify_type = 'SITE'
     identifier = 'http://{0}/'.format(a_domain)
+    showDNS = False
   checkForExtraneousArguments()
   body = {'site': {'type': verify_type, 'identifier': identifier},
           'verificationMethod': verificationMethod}
@@ -23330,34 +23380,14 @@ def doUpdateSiteVerification():
                              verificationMethod=verificationMethod, body=body)
   except GAPI.badRequest as e:
     printKeyValueList([ERROR, str(e)])
-    verify_data = callGAPI(verif.webResource(), 'getToken',
-                           body=body)
-    printKeyValueList(['Method', verify_data['method']])
-    printKeyValueList(['Token', verify_data['token']])
-    if verify_data['method'] in ['DNS_CNAME', 'DNS_TXT']:
-      resolver = dns.resolver.Resolver()
-      resolver.nameservers = ['8.8.8.8', '8.8.4.4']
-      if verify_data['method'] == 'DNS_CNAME':
-        cname_token = verify_data['token']
-        cname_list = cname_token.split(' ')
-        cname_subdomain = cname_list[0]
-        try:
-          answers = resolver.query('{0}.{1}'.format(cname_subdomain, a_domain), 'A')
-          for answer in answers:
-            printKeyValueList(['DNS Record', str(answer)])
-        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
-          systemErrorExit(NETWORK_ERROR_RC, Msg.DOMAIN_NOT_FOUND_IN_DNS)
-      elif verify_data['method'] == 'DNS_TXT':
-        try:
-          answers = resolver.query(a_domain, 'TXT')
-          for answer in answers:
-            printKeyValueList(['DNS Record', str(answer).replace('"', '')])
-        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
-          systemErrorExit(NETWORK_ERROR_RC, Msg.DOMAIN_NOT_FOUND_IN_DNS)
+    if showDNS:
+      showDNSrecords()
     return
   printKeyValueList(['Verified!'])
+  if showDNS:
+    showDNSrecords()
   _showSiteVerificationInfo(verify_result)
-  printKeyValueList(['You can now add', a_domain, 'or it\'s subdomains as secondary or domain aliases of the G Suite Account', GC.Values[GC.DOMAIN]])
+  printKeyValueList([Msg.YOU_CAN_ADD_DOMAIN_TO_ACCOUNT.format(a_domain, GC.Values[GC.DOMAIN])])
 
 # gam info verify|verification
 def doInfoSiteVerification():

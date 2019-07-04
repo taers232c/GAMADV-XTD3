@@ -1,3 +1,7 @@
+4.88.07
+
+Following Jay's lead, simplify DNS handling in `gam update verification`.
+
 4.88.06
 
 Handle `sharingRateLimitExceeded` error when manipulating Drive File ACLs.
