@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.88.07'
+__version__ = '4.88.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4818,12 +4818,20 @@ def _addAttachmentsToMessage(message, attachments):
     except (IOError, UnicodeDecodeError) as e:
       usageErrorExit('{0}: {1}'.format(attachFilename, str(e)))
 
+NAME_EMAIL_ADDRESS_PATTERN = re.compile(r'^.*<(.+)>$')
+
 # Send an email
 def send_email(msgSubject, msgBody, msgTo, i=0, count=0, msgFrom=None, msgReplyTo=None,
                html=False, charset=UTF8, attachments=None, ccRecipients=None, bccRecipients=None):
   if msgFrom is None:
-    msgFrom = _getValueFromOAuth('email')
-  userId, gmail = buildGAPIServiceObject(API.GMAIL, msgFrom)
+    msgFrom = msgFromAddr = _getValueFromOAuth('email')
+  else:
+    match = NAME_EMAIL_ADDRESS_PATTERN.match(msgFrom)
+    if match:
+      msgFromAddr = match.group(1)
+    else:
+      msgFromAddr = msgFrom
+  userId, gmail = buildGAPIServiceObject(API.GMAIL, msgFromAddr)
   if not gmail:
     return
   if not msgTo:

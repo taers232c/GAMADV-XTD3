@@ -1,3 +1,8 @@
+4.88.08
+
+Updated `gam sendemail` to allow from addresses with display names.
+gam sendemail user@domain.com from "Google Admin<admin@domain.com>" subject test message test
+
 4.88.07
 
 Following Jay's lead, simplify DNS handling in `gam update verification`.
