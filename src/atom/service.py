@@ -716,7 +716,7 @@ def CalculateDataLength(data):
         # If this is a file-like object, don't try to guess the length.
         return None
     else:
-        return len(str(data))
+        return len(str(data).encode('utf-8'))
 
 
 def deprecation(message):

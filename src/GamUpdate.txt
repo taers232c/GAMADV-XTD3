@@ -1,3 +1,8 @@
+4.88.09
+
+Fixed bug in atom library that caused `gam create\update contact` to generate an error when Unicode characters
+were present in the data.
+
 4.88.08
 
 Updated `gam sendemail` to allow from addresses with display names.
