@@ -1,3 +1,9 @@
+4.88.10
+
+Added `countsonly` option to `gam calendar <CalendarEntity> print/show events` and
+`gam <UserTypeEntity> print/show events <UserCalendarEntity>`.
+This will cause Gam to print the number of events selected but no event details.
+
 4.88.09
 
 Fixed bug in atom library that caused `gam create\update contact` to generate an error when Unicode characters

@@ -973,17 +973,19 @@ gam calendar|calendars <CalendarEntity> empty calendartrash
         (orderby starttime|updated)|
         (timezone <TimeZone>)
 
-gam calendar|calendars <CalendarEntity> info events <EventEntity> [maxinstances <Number>] [fields <EventFieldNameList>] [formatjson]
-gam calendar|calendars <CalendarEntity> show events <EventEntity> <EventDisplayProperty>* [fields <EventFieldNameList>] [formatjson]
+gam calendar|calendars <CalendarEntity> info events <EventEntity> [maxinstances <Number>] [fields <EventFieldNameList>]
+        [formatjson]
+gam calendar|calendars <CalendarEntity> show events <EventEntity> <EventDisplayProperty>* [fields <EventFieldNameList>]
+        [countsonly] [formatjson]
 gam calendar|calendars <CalendarEntity> print events <EventEntity> <EventDisplayProperty>* [fields <EventFieldNameList>]
-         [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
+        [countsonly] [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
 
 gam calendar <CalendarEntity> addevent <EventCreateAttribute>+
 gam calendar <CalendarEntity> deleteevent (id|eventid <EventID>)+ [doit] [notifyattendees|(sendnotifications <Boolean>)|(sendupdates all|externalonly|none)]
 gam calendar <CalendarEntity> moveevent (id|eventid <EventID>)+ destination <CalendarItem> [notifyattendees|(sendnotifications <Boolean>)|(sendupdates all|externalonly|none)]
 gam calendar <CalendarEntity> wipe
 gam calendar <CalendarEntity> printevents <EventSelectProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>]
-         [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
+         [countsonly] [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
 
 <CalendarSettings> ::=
         (description <String>)|
@@ -2886,10 +2888,12 @@ gam <UserTypeEntity> empty calendartrash <UserCalendarEntity>
         (orderby starttime|updated)|
         (timezone <TimeZone>)
 
-gam <UserTypeEntity> info events <UserCalendarEntity> <EventEntity> [maxinstances <Number>] [fields <EventFieldNameList>] [formatjson]
-gam <UserTypeEntity> show events <UserCalendarEntity> <EventEntity> <EventDisplayProperty>* [fields <EventFieldNameList>] [formatjson]
+gam <UserTypeEntity> info events <UserCalendarEntity> <EventEntity> [maxinstances <Number>] [fields <EventFieldNameList>]
+        [formatjson]
+gam <UserTypeEntity> show events <UserCalendarEntity> <EventEntity> <EventDisplayProperty>* [fields <EventFieldNameList>]
+        [countsonly] [formatjson]
 gam <UserTypeEntity> print events <UserCalendarEntity> <EventEntity> <EventDisplayProperty>* [fields <EventFieldNameList>]
-         [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
+        [countsonly] [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer] [<EventNotificationAttribute>] [doit]
         (csv <FileName>|(gsheet <UserGoogleSheet>))*
