@@ -1,3 +1,12 @@
+4.88.13
+
+Update code to match changes in Vault API concerning change from Team Drive to Shared Drive.
+
+4.88.12
+
+Added options `region any|europe|us` and `showconfidentialmodecontent <Boolean>` to `gam create vaultexport|export matter`.
+The `region any|europe|us` option requires G Suite Enterprise or G Suite Business licenses.
+
 4.88.11
 
 Recoded `gam create/update course`.

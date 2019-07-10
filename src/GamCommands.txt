@@ -2434,14 +2434,13 @@ gam <UserTypeEntity> show teamdriveacls [teamdriveadminquery|query <QueryTeamDri
 # Vault
 
 gam create vaultexport|export matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
-        (accounts <EmailAddressEntity>) | (orgunit|org|ou <OrgUnitPath>) | (teamdrives <TeamDriveIDList>) | (rooms <RoomList>) | everyone
+        (accounts <EmailAddressEntity>) | (orgunit|org|ou <OrgUnitPath>) | (shareddrives|teamdrives <TeamDriveIDList>) | (rooms <RoomList>) | everyone
         [scope <all_data|held_data|unprocessed_data>]
         [terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [timezone <TimeZone>]
-        [excludedrafts <Boolean>] [format mbox|pst]
+        [excludedrafts <Boolean>] [format mbox|pst] [showconfidentialmodecontent <Boolean>]
         [includerooms <Boolean>]
-        [includeteamdrives <Boolean>] [driveversiondate <Date>|<Time>]
-        [includeaccessinfo <Boolean>]
-        [showdetails]
+        [includeshareddrives|includeteamdrives <Boolean>] [driveversiondate <Date>|<Time>] [includeaccessinfo <Boolean>]
+        [region any|europe|us] [showdetails]
 gam delete vaultexport|export <ExportItem> matter <MatterItem>
 gam delete vaultexport|export <MatterItem> <ExportItem>
 gam download vaultexport|export <ExportItem> matter <MatterItem> [targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
@@ -2456,14 +2455,14 @@ gam create vaulthold|hold matter <MatterItem> [name <String>] corpus drive|mail|
         [query <QueryVaultCorpus>]
         [terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
         [includerooms <Boolean>]
-        [includeteamdrives <Boolean>]
+        [includeshareddrives|includeteamdrives <Boolean>]
         [showdetails]
 gam update vaulthold|hold <HoldItem> matter <MatterItem>
         [([addaccounts|addgroups|addusers <EmailItemList>] [removeaccounts|removegroups|removeusers <EmailItemList>]) | (orgunit|org|ou <OrgUnit>)]
         [query <QueryVaultCorpus>]
         [terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
         [includerooms <Boolean>]
-        [includeteamdrives <Boolean>]
+        [includeshareddrives|includeteamdrives <Boolean>]
         [showdetails]
 gam delete vaulthold|hold <HoldItem> matter <MatterItem>
 gam delete vaulthold|hold <MatterItem> <HoldItem>

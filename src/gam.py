@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.88.12'
+__version__ = '4.88.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -19850,8 +19850,10 @@ VAULT_SEARCH_METHODS_MAP = {
   'ou': 'ORG_UNIT',
   'room': 'ROOM',
   'rooms': 'ROOM',
-  'teamdrive': 'TEAM_DRIVE',
-  'teamdrives': 'TEAM_DRIVE',
+  'shareddrive': 'SHARED_DRIVE',
+  'shareddrives': 'SHARED_DRIVE',
+  'teamdrive': 'SHARED_DRIVE',
+  'teamdrives': 'SHARED_DRIVE',
   }
 VAULT_CORPUS_ARGUMENT_MAP = {
   'drive': 'DRIVE',
@@ -19887,12 +19889,12 @@ VAULT_CORPUS_QUERY_MAP = {
   }
 
 # gam create vaultexport|export matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
-#	(accounts <EmailAddressEntity>) | (orgunit|org|ou <OrgUnitPath>) | (teamdrives <TeamDriveIDList>) | (rooms <RoomList>) | everyone
+#	(accounts <EmailAddressEntity>) | (orgunit|org|ou <OrgUnitPath>) | (shareddrives|teamdrives <TeamDriveIDList>) | (rooms <RoomList>) | everyone
 #	[scope <all_data|held_data|unprocessed_data>]
 #	[terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [timezone <TimeZone>]
 #	[excludedrafts <Boolean>] [format mbox|pst] [showconfidentialmodecontent <Boolean>]
 #	[includerooms <Boolean>]
-#	[includeteamdrives <Boolean>] [driveversiondate <Date>|<Time>] [includeaccessinfo <Boolean>]
+#	[includeshareddrives|includeteamdrives <Boolean>] [driveversiondate <Date>|<Time>] [includeaccessinfo <Boolean>]
 #	[region any|europe|us] [showdetails]
 def doCreateVaultExport():
   v = buildGAPIObject(API.VAULT)
@@ -19920,7 +19922,7 @@ def doCreateVaultExport():
         body['query']['accountInfo'] = {'emails': getNormalizedEmailAddressEntity()}
       elif searchMethod == 'ORG_UNIT':
         body['query']['orgUnitInfo'] = {'orgUnitId': getOrgUnitId()[1]}
-      elif searchMethod == 'TEAM_DRIVE':
+      elif searchMethod == 'SHARED_DRIVE':
         body['query']['teamDriveInfo'] = {'teamDriveIds': getString(Cmd.OB_TEAMDRIVE_ID_LIST).replace(',', ' ').split()}
       elif searchMethod == 'ROOM':
         body['query']['hangoutsChatInfo'] = {'roomId': getString(Cmd.OB_ROOM_LIST).replace(',', ' ').split()}
@@ -19946,8 +19948,8 @@ def doCreateVaultExport():
       showConfidentialModeContent = getBoolean()
     elif myarg == 'driveversiondate':
       body['query'].setdefault('driveOptions', {})['versionDate'] = getTimeOrDeltaFromNow()
-    elif myarg == 'includeteamdrives':
-      body['query'].setdefault('driveOptions', {})['includeTeamDrives'] = getBoolean()
+    elif myarg in ['includeshareddrives', 'includeteamdrives']:
+      body['query'].setdefault('driveOptions', {})['includeSharedDrives'] = getBoolean()
     elif myarg == 'includeaccessinfo':
       body['exportOptions'].setdefault('driveOptions', {})['includeAccessInfo'] = getBoolean()
     elif myarg == 'showdetails':
@@ -20264,8 +20266,8 @@ def _getHoldQueryParameters(myarg, queryParameters):
     queryParameters['endTime'] = getTimeOrDeltaFromNow()
   elif myarg in ['includerooms']:
     queryParameters['includeRooms'] = getBoolean()
-  elif myarg in ['includeteamdrives']:
-    queryParameters['includeTeamDriveFiles'] = getBoolean()
+  elif myarg in ['includeshareddrives', 'includeteamdrives']:
+    queryParameters['includeSharedDriveFiles'] = getBoolean()
   else:
     return False
   return True
@@ -20280,8 +20282,8 @@ def _setHoldQuery(body, queryParameters):
       except ValueError as e:
         Cmd.SetLocation(queryParameters['queryLocation'])
         usageErrorExit(str(e))
-    elif queryParameters.get('includeTeamDriveFiles'):
-      body['query'][queryType]['includeTeamDriveFiles'] = queryParameters['includeTeamDriveFiles']
+    elif queryParameters.get('includeSharedDriveFiles'):
+      body['query'][queryType]['includeSharedDriveFiles'] = queryParameters['includeSharedDriveFiles']
   elif body['corpus'] in ['GROUPS', 'MAIL']:
     if queryParameters.get('query'):
       body['query'][queryType]['terms'] = queryParameters['query']
@@ -20300,7 +20302,7 @@ def _setHoldQuery(body, queryParameters):
 #	[query <QueryVaultCorpus>]
 #	[terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 #	[includerooms <Boolean>]
-#	[includeteamdrives <Boolean>]
+#	[includeshareddrives|includeteamdrives <Boolean>]
 #	[showdetails]
 def doCreateVaultHold():
   v = buildGAPIObject(API.VAULT)
@@ -20356,7 +20358,7 @@ def doCreateVaultHold():
 #	[query <QueryVaultCorpus>]
 #	[terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 #	[includerooms <Boolean>]
-#	[includeteamdrives <Boolean>]
+#	[includeshareddrives|includeteamdrives <Boolean>]
 #	[showdetails]
 def doUpdateVaultHold():
   v = buildGAPIObject(API.VAULT)
