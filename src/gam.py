@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.88.11'
+__version__ = '4.88.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -19868,6 +19868,11 @@ VAULT_EXPORT_FORMAT_MAP = {
   'mbox': 'MBOX',
   'pst': 'PST',
   }
+VAULT_EXPORT_REGION_MAP = {
+  'any': 'ANY',
+  'europe': 'EUROPE',
+  'us': 'US',
+  }
 VAULT_CORPUS_OPTIONS_MAP = {
   'DRIVE': 'driveOptions',
   'MAIL': 'mailOptions',
@@ -19885,16 +19890,16 @@ VAULT_CORPUS_QUERY_MAP = {
 #	(accounts <EmailAddressEntity>) | (orgunit|org|ou <OrgUnitPath>) | (teamdrives <TeamDriveIDList>) | (rooms <RoomList>) | everyone
 #	[scope <all_data|held_data|unprocessed_data>]
 #	[terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [timezone <TimeZone>]
-#	[excludedrafts <Boolean>] [format mbox|pst]
+#	[excludedrafts <Boolean>] [format mbox|pst] [showconfidentialmodecontent <Boolean>]
 #	[includerooms <Boolean>]
-#	[includeteamdrives <Boolean>] [driveversiondate <Date>|<Time>]
-#	[includeaccessinfo <Boolean>]
-#	[showdetails]
+#	[includeteamdrives <Boolean>] [driveversiondate <Date>|<Time>] [includeaccessinfo <Boolean>]
+#	[region any|europe|us] [showdetails]
 def doCreateVaultExport():
   v = buildGAPIObject(API.VAULT)
   matterId = None
   body = {'query': {'dataScope': 'ALL_DATA'}, 'exportOptions': {}}
   export_format = 'MBOX'
+  showConfidentialModeContent = None
   showDetails = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -19921,25 +19926,29 @@ def doCreateVaultExport():
         body['query']['hangoutsChatInfo'] = {'roomId': getString(Cmd.OB_ROOM_LIST).replace(',', ' ').split()}
     elif myarg == 'scope':
       body['query']['dataScope'] = getChoice(VAULT_EXPORT_DATASCOPE_MAP, mapChoice=True)
-    elif myarg in ['terms']:
+    elif myarg == 'terms':
       body['query']['terms'] = getString(Cmd.OB_STRING)
     elif myarg in ['start', 'starttime']:
       body['query']['startTime'] = getTimeOrDeltaFromNow()
     elif myarg in ['end', 'endtime']:
       body['query']['endTime'] = getTimeOrDeltaFromNow()
-    elif myarg in ['timezone']:
+    elif myarg == 'timezone':
       body['query']['timeZone'] = getString(Cmd.OB_STRING)
-    elif myarg in ['includerooms']:
+    elif myarg == 'includerooms':
       body['query']['hangoutsChatOptions'] = {'includeRooms': getBoolean()}
-    elif myarg in ['excludedrafts']:
+    elif myarg == 'excludedrafts':
       body['query']['mailOptions'] = {'excludeDrafts': getBoolean()}
-    elif myarg in ['format']:
+    elif myarg == 'format':
       export_format = getChoice(VAULT_EXPORT_FORMAT_MAP, mapChoice=True)
-    elif myarg in ['driveversiondate']:
+    elif myarg == 'region':
+      body['exportOptions']['region'] = getChoice(VAULT_EXPORT_REGION_MAP, mapChoice=True)
+    elif myarg == 'showconfidentialmodecontent':
+      showConfidentialModeContent = getBoolean()
+    elif myarg == 'driveversiondate':
       body['query'].setdefault('driveOptions', {})['versionDate'] = getTimeOrDeltaFromNow()
-    elif myarg in ['includeteamdrives']:
+    elif myarg == 'includeteamdrives':
       body['query'].setdefault('driveOptions', {})['includeTeamDrives'] = getBoolean()
-    elif myarg in ['includeaccessinfo']:
+    elif myarg == 'includeaccessinfo':
       body['exportOptions'].setdefault('driveOptions', {})['includeAccessInfo'] = getBoolean()
     elif myarg == 'showdetails':
       showDetails = True
@@ -19956,6 +19965,8 @@ def doCreateVaultExport():
   if body['query']['corpus'] != 'DRIVE':
     body['exportOptions'].pop('driveOptions', None)
     body['exportOptions'][VAULT_CORPUS_OPTIONS_MAP[body['query']['corpus']]] = {'exportFormat': export_format}
+    if body['query']['corpus'] == 'MAIL' and showConfidentialModeContent is not None:
+      body['exportOptions'][VAULT_CORPUS_OPTIONS_MAP['MAIL']]['showConfidentialModeContent'] = showConfidentialModeContent
   try:
     export = callGAPI(v.matters().exports(), 'create',
                       throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.BAD_REQUEST, GAPI.BACKEND_ERROR, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
