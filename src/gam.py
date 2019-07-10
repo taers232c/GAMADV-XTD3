@@ -19923,7 +19923,7 @@ def doCreateVaultExport():
       elif searchMethod == 'ORG_UNIT':
         body['query']['orgUnitInfo'] = {'orgUnitId': getOrgUnitId()[1]}
       elif searchMethod == 'SHARED_DRIVE':
-        body['query']['teamDriveInfo'] = {'teamDriveIds': getString(Cmd.OB_TEAMDRIVE_ID_LIST).replace(',', ' ').split()}
+        body['query']['sharedDriveInfo'] = {'sharedDriveIds': getString(Cmd.OB_TEAMDRIVE_ID_LIST).replace(',', ' ').split()}
       elif searchMethod == 'ROOM':
         body['query']['hangoutsChatInfo'] = {'roomId': getString(Cmd.OB_ROOM_LIST).replace(',', ' ').split()}
     elif myarg == 'scope':
