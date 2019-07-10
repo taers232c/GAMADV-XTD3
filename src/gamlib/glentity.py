@@ -70,10 +70,12 @@ class GamEntity(object):
   CONTACT = 'cont'
   CONTACT_GROUP = 'cogr'
   CONTACT_GROUP_NAME = 'cogn'
+  COPYFROM_COURSE = 'cfco'
   COURSE = 'cour'
   COURSE_ALIAS = 'coal'
   COURSE_ANNOUNCEMENT_ID = 'caid'
   COURSE_ANNOUNCEMENT_STATE = 'cast'
+  COURSE_MATERIAL_FORM = 'comf'
   COURSE_NAME = 'cona'
   COURSE_STATE = 'cost'
   COURSE_SUBMISSION_ID = 'csid'
@@ -272,10 +274,12 @@ class GamEntity(object):
     CONTACT: ['Contacts', 'Contact'],
     CONTACT_GROUP: ['Contact Groups', 'Contact Group'],
     CONTACT_GROUP_NAME: ['Contact Group Names', 'Contact Group Name'],
+    COPYFROM_COURSE: ['Copy From Courses', 'CopyFrom Course'],
     COURSE: ['Courses', 'Course'],
     COURSE_ALIAS: ['Course Aliases', 'Course Alias'],
     COURSE_ANNOUNCEMENT_ID: ['Course Announcement IDs', 'Course Announcement ID'],
     COURSE_ANNOUNCEMENT_STATE: ['Course Announcement States', 'Course Announcement State'],
+    COURSE_MATERIAL_FORM: ['Course Material Forms', 'Course Material Form'],
     COURSE_NAME: ['Course Names', 'Course Name'],
     COURSE_STATE: ['Course States', 'Course State'],
     COURSE_SUBMISSION_ID: ['Course Submission IDs', 'Course Submission ID'],

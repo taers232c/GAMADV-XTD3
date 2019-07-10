@@ -1,3 +1,7 @@
+4.88.11
+
+Recoded `gam create/update course`.
+
 4.88.10
 
 Added `countsonly` option to `gam calendar <CalendarEntity> print/show events` and
