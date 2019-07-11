@@ -1,3 +1,7 @@
+4.89.00
+
+Fixed bug `gam print sheetrange` that caused a trap.
+
 4.88.13
 
 Update code to match changes in Vault API concerning change from Team Drive to Shared Drive.

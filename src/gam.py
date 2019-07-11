@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.88.13'
+__version__ = '4.89.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -36496,7 +36496,7 @@ def clearSheetRanges(users):
 #	[rows|columns] [serialnumber|formattedstring] [formula|formattedvalue|unformattedvalue]
 #	[formatjson]
 def printShowSheetRanges(users):
-  csvPF = CSVPrintFile(['User', 'spreadsheetId']) if Act.csvFormat() else None
+  csvPF = CSVPrintFile(['User', 'spreadsheetId'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   spreadsheetIdEntity = getDriveFileEntity()
   spreadsheetRanges = []
@@ -36519,9 +36519,6 @@ def printShowSheetRanges(users):
       kwargs['dateTimeRenderOption'] = SHEET_DATETIME_RENDER_OPTIONS_MAP[myarg]
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
-  if csvPF and not FJQC.formatJSON:
-    csvPF.AddTitles(['range', 'majorDimension', 'values'])
-    csvPF.SetSortAllTitles()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -36533,10 +36530,11 @@ def printShowSheetRanges(users):
     for spreadsheetId in spreadsheetIdEntity['list']:
       j += 1
       try:
-        result = callGAPIitems(sheet.spreadsheets().values(), 'batchGet', 'valueRanges',
-                               throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
-                               spreadsheetId=spreadsheetId, ranges=spreadsheetRanges, **kwargs)
-        kcount = len(result)
+        result = callGAPI(sheet.spreadsheets().values(), 'batchGet',
+                          throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
+                          spreadsheetId=spreadsheetId, ranges=spreadsheetRanges, fields='valueRanges', **kwargs)
+        valueRanges = result.get('valueRanges', [])
+        kcount = len(valueRanges)
         if not csvPF:
           if FJQC.formatJSON:
             printLine('{{"User": "{0}", "spreadsheetId": "{1}", "JSON": {2}}}'.format(user, spreadsheetId, json.dumps(result, ensure_ascii=False, sort_keys=False)))
@@ -36544,13 +36542,13 @@ def printShowSheetRanges(users):
           entityPerformActionNumItems([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], kcount, Ent.SPREADSHEET_RANGE, j, jcount)
           Ind.Increment()
           k = 0
-          for valueRange in result:
+          for valueRange in valueRanges:
             k += 1
             printKeyValueListWithCount(['range', valueRange['range']], k, kcount)
             _showValueRange(valueRange)
           Ind.Decrement()
         else:
-          if result:
+          if kcount:
             row = flattenJSON(result, flattened={'User': user, 'spreadsheetId': spreadsheetId})
             if not FJQC.formatJSON:
               csvPF.WriteRowTitles(row)
