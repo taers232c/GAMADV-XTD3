@@ -1,3 +1,7 @@
+4.89.01
+
+Added the ability to select fields in `gam print/show drivefileacls` and `gam print/show teamdriveacls`.
+
 4.89.00
 
 Fixed bug `gam print sheetrange` that caused a trap.
@@ -968,13 +972,13 @@ gam oauth create - Enable the People API
 4.65.37
 
 Simplified specifying Team Drive restrictions.
-<TeamDriveRestrictionsSubfieldName> ::=
+<TeamDriveRestrictionsFieldName> ::=
         adminmanagedrestrictions|
         copyrequireswriterpermission|
         domainusersonly|
         teammembersonly
-* Previously, you had to enter: restrictions.<TeamDriveRestrictionsSubfieldName>
-* That is still supported but now you can just enter: <TeamDriveRestrictionsSubfieldName>
+* Previously, you had to enter: restrictions.<TeamDriveRestrictionsFieldName>
+* That is still supported but now you can just enter: <TeamDriveRestrictionsFieldName>
 * The following are equivalent:
 
 gam user user@domain.com update teamdrive <TeamDriveID> restrictions.domainusersonly false
@@ -987,10 +991,10 @@ Fixed bug in gam print group-members where member name was not being printed whe
 Added domain administrator access for updating basic Team Drive settings.
 gam update teamdrive <TeamDriveEntity> [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
-        [<TeamDriveRestrictionsSubfieldName> <Boolean>]
+        [<TeamDriveRestrictionsFieldName> <Boolean>]
 gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [adminaccess|asadmin] [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
-        [<TeamDriveRestrictionsSubfieldName> <Boolean>]
+        [<TeamDriveRestrictionsFieldName> <Boolean>]
 
 4.65.35
 

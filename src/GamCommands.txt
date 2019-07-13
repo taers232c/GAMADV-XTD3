@@ -66,14 +66,15 @@ If an item contains spaces, it should be surrounded by ".
 <MimeTypeShortcut> ::=
         gdoc|gdocument|
         gdrawing|
+        gfile|
         gfolder|gdirectory|
         gform|
         gfusion|
         gmap|
         gpresentation|
         gscript|
-        gsite|
-        gsheet|gspreadsheet
+        gsheet|gspreadsheet|
+        gsite
 <MimeTypeName> ::= application|audio|font|image|message|model|multipart|text|video
 <MimeType> ::= <MimeTypeShortcut>|(<MimeTypeName>/<String>)
 <ProductID> ::=
@@ -810,6 +811,9 @@ gam calendar|calendars <CalendarEntity> printacl [todrive <ToDriveAttribute>*] [
 <EventEntity> ::=
         (id|eventid <EventId>)|(event|events <EventIdList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|
         (<EventSelectProperty>+ <EventMatchProperty>*)
+
+<AttendeeAttendance> ::= optional|required
+<AttendeeStatus> ::= accepted|declined|needsaction|tentative
 
 <EventAttribute> ::=
         (anyonecanaddself [<Boolean>])|
@@ -2279,18 +2283,18 @@ gam [<UserTypeEntity>] print siteacls <SiteEntity> [todrive <ToDriveAttribute>*]
         themeid
 <TeamDriveFieldNameList> ::= "<TeamDriveFieldName>(,<TeamDriveFieldName>)*"
 
-In these commands, the Google administrator named in oauth2.txt is used.
-
-<TeamDriveRestrictionsSubfieldName> ::=
+<TeamDriveRestrictionsFieldName> ::=
         adminmanagedrestrictions|
         copyrequireswriterpermission|
         domainusersonly|
         drivemembersonly|teammembersonly
 
+In these commands, the Google administrator named in oauth2.txt is used.
+
 gam show teamdrivethemes
 gam update teamdrive <TeamDriveEntity> [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
-        (<TeamDriveRestrictionsSubfieldName> <Boolean>)*
+        (<TeamDriveRestrictionsFieldName> <Boolean>)*
 gam info teamdrive <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
 gam show teamdriveinfo <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
 gam print teamdrives [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [todrive <ToDriveAttribute>*]
@@ -2310,6 +2314,24 @@ gam <UserTypeEntity> show teamdrives [adminaccess|asadmin [teamdriveadminquery|q
 
 These commands are used to manage the ACLs on the Team Drives themselves, not the files/folders on the Team Drives.
 
+<DrivePermissionsFieldName> ::=
+        additionalroles|
+        allowfilediscovery|
+        deleted|
+        permissiondetails|
+        displayname|
+        domain|
+        emailaddress|
+        expirationdate|
+        expirationtime|
+        id|
+        name|
+        photolink|
+        role|
+        type|
+        withlink
+<DrivePermissionsFieldNameList> ::= "<DrivePermissionsFieldName>(,<DrivePermissionsFieldName>)*"
+
 In these commands, the Google administrator named in oauth2.txt is used.
 
 gam create|add drivefileacl <TeamDriveEntityAdmin> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
@@ -2318,10 +2340,14 @@ gam update drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail>
         (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails]
 gam delete drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles]
 gam info drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles] [formatjson]
-gam show drivefileacl <TeamDriveEntityAdmin> [oneitemperrow] [showtitles] [formatjson]
+gam show drivefileacls <TeamDriveEntityAdmin>
+        [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-gam print drivefileacls <TeamDriveEntityAdmin> [todrive <ToDriveAttribute>*] [oneitemperrow] [showtitles] [formatjson] [quotechar <Character>]
+        [formatjson]
+gam print drivefileacls <TeamDriveEntityAdmin> [todrive <ToDriveAttributes>*]
+        [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+        [formatjson] [quotechar <Character>]
 gam create|add permissions <TeamDriveEntityAdmin> <DriveFilePermissionEntity> [expires|expiration <Time>] [sendemail] [emailmessage <String>]
 gam delete permissions <TeamDriveEntityAdmin> <DriveFilePermissionIDEntity>
 
@@ -2333,22 +2359,40 @@ gam <UserTypeEntity> update drivefileacl <TeamDriveEntityAdmin> <DriveFilePermis
         (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails] adminaccess
 gam <UserTypeEntity> delete drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles] adminaccess
 gam <UserTypeEntity> info drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles] [formatjson] adminaccess
-gam <UserTypeEntity> show drivefileacl <TeamDriveEntityAdmin> [oneitemperrow] [showtitles] [formatjson]
-        (orderby <DriveFileOrderByFieldName> [ascending|descending])* adminaccess
-gam <UserTypeEntity> print drivefileacls <TeamDriveEntityAdmin> [todrive <ToDriveAttribute>*] [oneitemperrow] [showtitles] [formatjson] [quotechar <Character>]
-        (orderby <DriveFileOrderByFieldName> [ascending|descending])* adminaccess
+gam <UserTypeEntity> show drivefileacls <TeamDriveEntityAdmin>
+        [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+        [formatjson] adminaccess
+gam <UserTypeEntity> print drivefileacls <TeamDriveEntityAdmin> [todrive <ToDriveAttributes>*]
+        [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+        [formatjson] [quotechar <Character>] adminaccess
 gam <UserTypeEntity> create|add permissions <TeamDriveEntityAdmin> <DriveFilePermissionEntity> [expires|expiration <Time>] [sendemail] [emailmessage <String>] adminaccess
 gam <UserTypeEntity> delete permissions <TeamDriveEntityAdmin> <DriveFilePermissionIDEntity> adminaccess
 
 In these commands, the Google administrator named in oauth2.txt is used.
 
-gam print teamdriveacls [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)* [oneitemperrow] [todrive <ToDriveAttribute>*]
-gam show teamdriveacls [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
+gam print teamdriveacls [todrive <ToDriveAttribute>*]
+        [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
+        [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
+        [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+gam show teamdriveacls
+        [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
+        [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
+        [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 
 In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
 
-gam <UserTypeEntity> print teamdriveacls [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)* [oneitemperrow] [todrive <ToDriveAttribute>*] adminaccess
-gam <UserTypeEntity> show teamdriveacls [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)* adminaccess
+gam print teamdriveacls [todrive <ToDriveAttribute>*]
+        [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
+        [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
+        [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        asadmin
+gam show teamdriveacls
+        [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
+        [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
+        [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        asadmin
 
 # Tag Replace
 <AddressSubfieldName> ::=
@@ -3047,16 +3091,38 @@ gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
 <DriveFilePermissionList> ::= "<DriveFilePermission>(,<DriveFilePermission)*"
 <DriveFilePermissionIDList> ::= "<DriveFilePermissionID>(,<DriveFilePermissionID>)*"
 
+<DrivePermissionsFieldName> ::=
+        additionalroles|
+        allowfilediscovery|
+        deleted|
+        permissiondetails|
+        displayname|
+        domain|
+        emailaddress|
+        expirationdate|
+        expirationtime|
+        id|
+        name|
+        photolink|
+        role|
+        type|
+        withlink
+<DrivePermissionsFieldNameList> ::= "<DrivePermissionsFieldName>(,<DrivePermissionsFieldName>)*"
+
 gam <UserTypeEntity> create|add drivefileacl <DriveFileEntity> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
         (role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [sendemail] [emailmessage <String>] [showtitles] [nodetails]
 gam <UserTypeEntity> update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail>
         (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails]
 gam <UserTypeEntity> delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles]
 gam <UserTypeEntity> info drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles] [formatjson]
-gam <UserTypeEntity> show drivefileacl <DriveFileEntity> [oneitemperrow] [showtitles] [formatjson]
+gam <UserTypeEntity> show drivefileacls <DriveFileEntity>
+        [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive <ToDriveAttribute>*] [oneitemperrow] [showtitles] [formatjson] [quotechar <Character>]
+        [formatjson]
+gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive <ToDriveAttributes>*]
+        [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+        [formatjson] [quotechar <Character>]
 gam <UserTypeEntity> create|add permissions <DriveFileEntity> <DriveFilePermissionEntity> [expires|expiration <Time>] [sendemail] [emailmessage <String>]
 gam <UserTypeEntity> delete permissions <DriveFileEntity> <DriveFilePermissionIDEntity>
 

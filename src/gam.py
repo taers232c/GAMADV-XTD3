@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.89.00'
+__version__ = '4.89.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -192,12 +192,14 @@ DEFAULT_FILE_WRITE_MODE = 'w'
 APPLICATION_VND_GOOGLE_APPS = 'application/vnd.google-apps.'
 MIMETYPE_GA_DOCUMENT = APPLICATION_VND_GOOGLE_APPS+'document'
 MIMETYPE_GA_DRAWING = APPLICATION_VND_GOOGLE_APPS+'drawing'
+MIMETYPE_GA_FILE = APPLICATION_VND_GOOGLE_APPS+'file'
 MIMETYPE_GA_FOLDER = APPLICATION_VND_GOOGLE_APPS+'folder'
 MIMETYPE_GA_FORM = APPLICATION_VND_GOOGLE_APPS+'form'
 MIMETYPE_GA_FUSIONTABLE = APPLICATION_VND_GOOGLE_APPS+'fusiontable'
 MIMETYPE_GA_MAP = APPLICATION_VND_GOOGLE_APPS+'map'
 MIMETYPE_GA_PRESENTATION = APPLICATION_VND_GOOGLE_APPS+'presentation'
 MIMETYPE_GA_SCRIPT = APPLICATION_VND_GOOGLE_APPS+'script'
+MIMETYPE_GA_SHORTCUT = APPLICATION_VND_GOOGLE_APPS+'drive-sdk'
 MIMETYPE_GA_SITE = APPLICATION_VND_GOOGLE_APPS+'site'
 MIMETYPE_GA_SPREADSHEET = APPLICATION_VND_GOOGLE_APPS+'spreadsheet'
 
@@ -5870,9 +5872,11 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr):
 
   if sys.platform.startswith('win'):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
+  csvPF = CSVPrintFile(checkFilters=False)
   if GM.Globals[GM.WINDOWS]:
     Cmd = glclargs.GamCLArgs()
-  csvPF = CSVPrintFile(checkFilters=False)
+  else:
+    csvPF.SetHeaderFilter(GC.Values[GC.CSV_OUTPUT_HEADER_FILTER])
   list_type = 'CSV'
   while True:
     dataType, dataItem = mpQueue.get()
@@ -28797,6 +28801,7 @@ MIMETYPE_CHOICE_MAP = {
   'gdoc': MIMETYPE_GA_DOCUMENT,
   'gdocument': MIMETYPE_GA_DOCUMENT,
   'gdrawing': MIMETYPE_GA_DRAWING,
+  'gfile': MIMETYPE_GA_FILE,
   'gfolder': MIMETYPE_GA_FOLDER,
   'gdirectory': MIMETYPE_GA_FOLDER,
   'gform': MIMETYPE_GA_FORM,
@@ -28804,6 +28809,7 @@ MIMETYPE_CHOICE_MAP = {
   'gmap': MIMETYPE_GA_MAP,
   'gpresentation': MIMETYPE_GA_PRESENTATION,
   'gscript': MIMETYPE_GA_SCRIPT,
+  'gshortcut': MIMETYPE_GA_SHORTCUT,
   'gsite': MIMETYPE_GA_SITE,
   'gsheet': MIMETYPE_GA_SPREADSHEET,
   'gspreadsheet': MIMETYPE_GA_SPREADSHEET,
@@ -29733,8 +29739,8 @@ DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP = {
   'photolink': 'photoLink',
   'expirationdate': 'expirationTime',
   'expirationtime': 'expirationTime',
-  'teamdrivepermissiondetails': 'permissionDetails',
   'permissiondetails': 'permissionDetails',
+  'teamdrivepermissiondetails': 'teamDrivePermissionDetails',
   'deleted': 'deleted',
   }
 
@@ -34962,11 +34968,25 @@ def infoDriveFileACLs(users):
 def doInfoDriveFileACLs():
   _infoDriveFileACLs([_getValueFromOAuth('email')], True)
 
+def _getPermissionsFields(myarg, fieldsList):
+  if myarg in DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP:
+    addFieldToFieldsList(myarg, DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP, fieldsList)
+  elif myarg == 'fields':
+    for field in _getFieldsList():
+      if field in DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP:
+        addFieldToFieldsList(field, DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP, fieldsList)
+      else:
+        invalidChoiceExit(list(DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP), True)
+  else:
+    return False
+  return True
+
 def _printShowDriveFileACLs(users, useDomainAdminAccess):
   csvPF = CSVPrintFile(['Owner', 'id'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   fileIdEntity = getDriveFileEntity()
   oneItemPerRow = showTitles = False
+  fieldsList = []
   orderBy = initOrderBy()
   fileNameTitle = V2_FILENAME if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else V3_FILENAME
   while Cmd.ArgumentsRemaining():
@@ -34982,10 +35002,16 @@ def _printShowDriveFileACLs(users, useDomainAdminAccess):
       if csvPF:
         csvPF.AddTitles(fileNameTitle)
         csvPF.SetSortAllTitles()
+    elif _getPermissionsFields(myarg, fieldsList):
+      pass
     elif myarg in ['adminaccess', 'asadmin']:
       useDomainAdminAccess = True
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if fieldsList:
+    fields = VX_NPT_PERMISSIONS_FIELDLIST.format(','.join(set(fieldsList)))
+  else:
+    fields = VX_NPT_PERMISSIONS
   printKeys, timeObjects = _getDriveFileACLPrintKeysTimeObjects()
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -35007,7 +35033,7 @@ def _printShowDriveFileACLs(users, useDomainAdminAccess):
         results = callGAPIpages(drive.permissions(), 'list', VX_PAGES_PERMISSIONS,
                                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INSUFFICIENT_ADMINISTRATOR_PRIVILEGES],
                                 useDomainAdminAccess=useDomainAdminAccess,
-                                fileId=fileId, fields=VX_NPT_PERMISSIONS, supportsAllDrives=True)
+                                fileId=fileId, fields=fields, supportsAllDrives=True)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
               GAPI.unknownError, GAPI.insufficientAdministratorPrivileges) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
@@ -35071,17 +35097,25 @@ def _printShowDriveFileACLs(users, useDomainAdminAccess):
   if csvPF:
     csvPF.writeCSVfile('Drive File ACLs')
 
-# gam <UserTypeEntity> print drivefileacl <DriveFileEntity> [todrive <ToDriveAttributes>*] [oneitemperrow] [showtitles] [formatjson] [quotechar <Character>]
+# gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive <ToDriveAttributes>*]
+#	[oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [adminaccess|asadmin]
-# gam <UserTypeEntity> show drivefileacl <DriveFileEntity> [oneitemperrow] [showtitles] [formatjson]
+#	[formatjson] [quotechar <Character>]
+# gam <UserTypeEntity> show drivefileacla <DriveFileEntity>
+#	[oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [adminaccess|asadmin]
+#	[formatjson]
 def printShowDriveFileACLs(users):
   _printShowDriveFileACLs(users, False)
 
-# gam print drivefileacl <DriveFileEntity> [todrive <ToDriveAttributes>*] [oneitemperrow] [showtitles] [formatjson] [quotechar <Character>]
+# gam print drivefileacls <TeamDriveEntityAdmin> [todrive <ToDriveAttributes>*]
+#	[oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
-# gam show drivefileacl <DriveFileEntity> [oneitemperrow] [showtitles] [formatjson]
+#	[formatjson] [quotechar <Character>]
+# gam show drivefileacls <TeamDriveEntityAdmin>
+#	[oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
+#	[formatjson]
 def doPrintShowDriveFileACLs():
   _printShowDriveFileACLs([_getValueFromOAuth('email')], True)
 
@@ -35339,13 +35373,13 @@ def _updateTeamDrive(users, useDomainAdminAccess):
 
 # gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [adminaccess|asadmin] [name <Name>]
 #	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
-#	(<TeamDriveRestrictionsSubfieldName> <Boolean>)*
+#	(<TeamDriveRestrictionsFieldName> <Boolean>)*
 def updateTeamDrive(users):
   _updateTeamDrive(users, False)
 
 # gam update teamdrive <TeamDriveEntity> [name <Name>]
 #	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
-#	(<TeamDriveRestrictionsSubfieldName> <Boolean>)*
+#	(<TeamDriveRestrictionsFieldName> <Boolean>)*
 def doUpdateTeamDrive():
   _updateTeamDrive([_getValueFromOAuth('email')], True)
 
@@ -35447,10 +35481,7 @@ def _infoTeamDrive(users, useDomainAdminAccess):
       pass
     else:
       FJQC.GetFormatJSON(myarg)
-  if fieldsList:
-    fields = ','.join(set(fieldsList)).replace('.', '/')
-  else:
-    fields = '*'
+  fields = ','.join(set(fieldsList)) if fieldsList else '*'
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -35635,6 +35666,7 @@ def _printShowTeamDriveACLs(users, useDomainAdminAccess):
   csvPF = CSVPrintFile(['User', 'id', 'name'], 'sortall', TEAMDRIVE_INDEXED_TITLES) if Act.csvFormat() else None
   roles = set()
   checkGroups = oneItemPerRow = False
+  fieldsList = []
   query = matchPattern = permtype = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -35653,10 +35685,20 @@ def _printShowTeamDriveACLs(users, useDomainAdminAccess):
       checkGroups = True
     elif csvPF and myarg == 'oneitemperrow':
       oneItemPerRow = True
+    elif _getPermissionsFields(myarg, fieldsList):
+      pass
     elif myarg in ['adminaccess', 'asadmin']:
       useDomainAdminAccess = True
     else:
       unknownArgumentExit()
+  if fieldsList:
+    if permtype is not None:
+      fieldsList.extend(['type', 'emailAddress'])
+    if roles:
+      fieldsList.append('role')
+    fields = VX_NPT_PERMISSIONS_FIELDLIST.format(','.join(set(fieldsList)))
+  else:
+    fields = VX_NPT_PERMISSIONS
   printKeys, timeObjects = _getDriveFileACLPrintKeysTimeObjects()
   if checkGroups:
     cd = buildGAPIObject(API.DIRECTORY)
@@ -35701,15 +35743,15 @@ def _printShowTeamDriveACLs(users, useDomainAdminAccess):
     j = 0
     for teamdrive in feed:
       j += 1
-      printGettingAllEntityItemsForWhom(Ent.PERMISSION, teamdrive['name'], j, jcount)
       if matchPattern is not None and matchPattern.match(teamdrive['name']) is None:
         continue
+      printGettingAllEntityItemsForWhom(Ent.PERMISSION, teamdrive['name'], j, jcount)
       teamdrive['permissions'] = []
       try:
         results = callGAPIpages(drive.permissions(), 'list', VX_PAGES_PERMISSIONS,
                                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
                                 useDomainAdminAccess=useDomainAdminAccess,
-                                fileId=teamdrive['id'], fields=VX_NPT_PERMISSIONS, supportsAllDrives=True)
+                                fileId=teamdrive['id'], fields=fields, supportsAllDrives=True)
         for permission in results:
           if roles and permission['role'] not in roles:
             continue
@@ -35756,13 +35798,27 @@ def _printShowTeamDriveACLs(users, useDomainAdminAccess):
   if csvPF:
     csvPF.writeCSVfile('TeamDrive ACLs')
 
-# gam print teamdriveacls [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [(user <UserItem>)|(group <GroupItem>) [checkgroups]] (role <TeamDriveACLRole>)* [oneitemperrow] [todrive <ToDriveAttributes>*]
-# gam show teamdriveacls [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [(user <UserItem>)|(group <GroupItem>) [checkgroups]] (role <TeamDriveACLRole>)* [oneitemperrow]
+# gam print teamdriveacls [todrive <ToDriveAttribute>*]
+#	[teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
+#	[user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
+#	[oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+# gam show teamdriveacls
+#	[teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
+#	[user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
+#	[<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 def doPrintShowTeamDriveACLs():
   _printShowTeamDriveACLs([_getValueFromOAuth('email')], True)
 
-# gam <UserTypeEntity> print teamdriveacls [adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]] [matchname <RegularExpression>] [(user <UserItem>)|(group <GroupItem>) [checkgroups]] (role <TeamDriveACLRole>)* [oneitemperrow] [todrive <ToDriveAttributes>*]
-# gam <UserTypeEntity> show teamdriveacls [adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]] [matchname <RegularExpression>] [(user <UserItem>)|(group <GroupItem>) [checkgroups]] (role <TeamDriveACLRole>)* [oneitemperrow]
+# gam print teamdriveacls [todrive <ToDriveAttribute>*]
+#	[teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
+#	[user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
+#	[oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+#	asadmin
+# gam show teamdriveacls
+#	[teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
+#	[user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
+#	[<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+#	asadmin
 def printShowTeamDriveACLs(users):
   _printShowTeamDriveACLs(users, False)
 
