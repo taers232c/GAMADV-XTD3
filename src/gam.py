@@ -34370,6 +34370,8 @@ def _showDriveFilePermission(permission, printKeys, timeObjects, i=0, count=0):
       name = 'Anyone with Link'
     else:
       name = permission['id']
+  else:
+    name = 'Permission'
   _mapDrivePermissionNames(permission)
   printKeyValueListWithCount([name], i, count)
   Ind.Increment()
