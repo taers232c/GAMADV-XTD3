@@ -173,6 +173,7 @@ class GamEntity(object):
   PRODUCT = 'prod'
   PROFILE_SHARING_ENABLED = 'prof'
   PROJECT = 'proj'
+  PROJECT_FOLDER = 'prjf'
   PUBLIC_KEY = 'pubk'
   QUERY = 'quer'
   RECIPIENT = 'recp'
@@ -377,6 +378,7 @@ class GamEntity(object):
     PRODUCT: ['Products', 'Product'],
     PROFILE_SHARING_ENABLED: ['Profile Sharing Enabled', 'Profile Sharing Enabled'],
     PROJECT: ['Projects', 'Project'],
+    PROJECT_FOLDER: ['Project Folders', 'Project Folder'],
     PUBLIC_KEY: ['Public Key', 'Public Key'],
     QUERY: ['Queries', 'Query'],
     RECIPIENT: ['Recipients', 'Recipient'],

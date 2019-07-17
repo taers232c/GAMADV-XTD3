@@ -1,3 +1,11 @@
+4.89.02
+
+Added options to `gam update calattendees` to allow easier specification of multiple attendees.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Calendars-Events#update-calendar-event-attendees
+
+Fixed bug that caused `gam purge evant` and `gam empty calendartrash` to fail
+with error `ERROR: Parameter "sendUpdates" value "False" is not an allowed value in "[u'all', u'externalOnly', u'none']"`.
+
 4.89.01
 
 Added the ability to select fields in `gam print/show drivefileacls` and `gam print/show teamdriveacls`.

@@ -676,7 +676,9 @@ gam <CrOSTypeEntity>|<UserTypeEntity> list [todrive <ToDriveAttribute>*] [data <
 # Authorization
 
 gam create|add project [<EmailAddress>] [<ProjectID>]
+gam create project [admin <EmailAddress>] [project <ProjectID>] [parent <String>]
 gam use project [<EmailAddress>] [<ProjectID>]
+gam use project [admin <EmailAddress>] [project <ProjectID>]
 gam update project [<EmailAddress>] [gam|<ProjectID>|(filter <String>)]
 gam delete project [<EmailAddress>] [gam|<ProjectID>|(filter <String>)]
 gam show projects [<EmailAddress>] [all|gam|<ProjectID>|(filter <String>)]
@@ -2940,10 +2942,16 @@ gam <UserTypeEntity> print events <UserCalendarEntity> <EventEntity> <EventDispl
 
 gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer] [<EventNotificationAttribute>] [doit]
         (csv <FileName>|(gsheet <UserGoogleSheet>))*
-        (add <EmailAddress>)* (delete <EmailAddress>)* (replace <EmailAddress> <EmailAddress>)*
+        (delete <EmailAddress>)*
+        (deleteentity <EmailAddressEntity>)*
+        (add <EmailAddress>)*
+        (addentity <EmailAddressEntity>)*
         (addstatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddress>)*
+        (addentitystatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddressEntity>)*
+        (replace <EmailAddress> <EmailAddress>)*
         (replacestatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddress> <EmailAddress>)*
         (updatestatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddress>)*
+        (updateentitystatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddressEntity>)*
 
 # Users - Drive
 

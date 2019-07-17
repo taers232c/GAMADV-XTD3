@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.89.01'
+__version__ = '4.89.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -389,6 +389,7 @@ INVALID_DOMAIN_VALUE_RC = 62
 INVALID_TOKEN_RC = 63
 JSON_LOADS_ERROR_RC = 64
 MULTIPLE_DELETED_USERS_FOUND_RC = 65
+MULTIPLE_PROJECT_FOLDERS_FOUND_RC = 65
 INSUFFICIENT_PERMISSIONS_RC = 67
 REQUEST_COMPLETED_NO_RESULTS_RC = 71
 REQUEST_NOT_COMPLETED_RC = 72
@@ -6854,6 +6855,12 @@ def getCRMService(login_hint):
                                           discoveryServiceUrl=googleapiclient.discovery.V2_DISCOVERY_URI),
           httpObj)
 
+# Ugh, v2 doesn't contain all the operations of v1 so we need to use both here.
+def getCRM2Service(httpObj):
+  return googleapiclient.discovery.build('cloudresourcemanager', 'v2',
+                                         http=httpObj, cache_discovery=False,
+                                         discoveryServiceUrl=googleapiclient.discovery.V2_DISCOVERY_URI)
+
 def enableGAMProjectAPIs(httpObj, projectId, checkEnabled, i=0, count=0):
   apis = API.PROJECT_APIS[:]
   projectName = 'project:{0}'.format(projectId)
@@ -6999,33 +7006,82 @@ def _getProjects(crm, pfilter):
   except GAPI.badRequest as e:
     entityActionFailedExit([Ent.PROJECT, pfilter], str(e))
 
+def convertGCPFolderNameToID(parent, crm2):
+  # crm2.folders() is broken requiring pageToken, etc in body, not URL.
+  # for now just use callGAPI and if user has that many folders they'll
+  # just need to be specific.
+  folders = callGAPIitems(crm2.folders(), 'search', items='folders',
+                          body={'pageSize': 1000, 'query': 'displayName="{0}"'.format(parent)})
+  if not folders:
+    entityActionFailedExit([Ent.PROJECT_FOLDER, parent], Msg.NOT_FOUND)
+  jcount = len(folders)
+  if jcount > 1:
+    entityActionNotPerformedWarning([Ent.PROJECT_FOLDER, parent],
+                                    Msg.PLEASE_SELECT_ENTITY_TO_PROCESS.format(jcount, Ent.Plural(Ent.PROJECT_FOLDER), 'use in create', 'parent <String>'))
+    Ind.Increment()
+    j = 0
+    for folder in folders:
+      printKeyValueListWithCount(['Name', folder['name'], 'ID', folder['displayName']], j, jcount)
+    Ind.Decrement()
+    systemErrorExit(MULTIPLE_PROJECT_FOLDERS_FOUND_RC, None)
+  return folders['folders'][0]['name']
+
 PROJECTID_PATTERN = re.compile(r'^[a-z][a-z0-9-]{4,28}[a-z0-9]$')
 PROJECTID_FORMAT_REQUIRED = '[a-z][a-z0-9-]{4,28}[a-z0-9]'
 
 def _getLoginHintProjectId(createCmd):
-  login_hint = getEmailAddress(noUid=True, optional=True)
-  if login_hint:
-    user, _ = splitEmailAddress(login_hint)
-    if PROJECTID_PATTERN.match(user):
-      Cmd.Backup()
-      login_hint = None
-  projectId = getString(Cmd.OB_STRING, optional=True, minLen=6, maxLen=30).strip()
-  checkForExtraneousArguments()
-  if projectId:
+  def _checkProjectId():
     if not PROJECTID_PATTERN.match(projectId):
       Cmd.Backup()
       invalidArgumentExit(PROJECTID_FORMAT_REQUIRED)
-  elif createCmd:
-    projectId = 'gam-project'
-    for _ in range(3):
-      projectId += '-{0}'.format(''.join(random.choice(LOWERNUMERIC_CHARS) for _ in range(3)))
+
+  login_hint = None
+  projectId = None
+  parent = None
+  if not Cmd.PeekArgumentPresent(['admin', 'project', 'parent']):
+    login_hint = getEmailAddress(noUid=True, optional=True)
+    if login_hint:
+      user, _ = splitEmailAddress(login_hint)
+      if PROJECTID_PATTERN.match(user):
+        Cmd.Backup()
+        login_hint = None
+    projectId = getString(Cmd.OB_STRING, optional=True, minLen=6, maxLen=30).strip()
+    if projectId:
+      _checkProjectId()
+    checkForExtraneousArguments()
   else:
-    projectId = readStdin('\nWhat is your API project ID? ').strip()
-    if not PROJECTID_PATTERN.match(projectId):
-      systemErrorExit(USAGE_ERROR_RC, '{0} {1}: {2} <{3}>'.format(Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1], Cmd.OB_PROJECT_ID,
-                                                                  Msg.EXPECTED, PROJECTID_FORMAT_REQUIRED))
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if myarg == 'admin':
+        login_hint = getEmailAddress(noUid=True)
+      elif myarg == 'project':
+        projectId = getString(Cmd.OB_STRING, minLen=6, maxLen=30)
+        _checkProjectId()
+      elif createCmd and myarg == 'parent':
+        parent = getString(Cmd.OB_STRING)
+      else:
+        unknownArgumentExit()
+
+  if projectId is None:
+    if createCmd:
+      projectId = 'gam-project'
+      for _ in range(3):
+        projectId += '-{0}'.format(''.join(random.choice(LOWERNUMERIC_CHARS) for _ in range(3)))
+    else:
+      projectId = readStdin('\nWhat is your API project ID? ').strip()
+      if not PROJECTID_PATTERN.match(projectId):
+        systemErrorExit(USAGE_ERROR_RC, '{0} {1}: {2} <{3}>'.format(Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1], Cmd.OB_PROJECT_ID,
+                                                                    Msg.EXPECTED, PROJECTID_FORMAT_REQUIRED))
   login_hint = _getValidateLoginHint(login_hint)
   crm, httpObj = getCRMService(login_hint)
+  if parent and not parent.startswith('organizations/') and not parent.startswith('folders/'):
+    crm2 = getCRM2Service(httpObj)
+    parent = convertGCPFolderNameToID(parent, crm2)
+  if parent:
+    parent_type, parent_id = parent.split('/')
+    if parent_type[-1] == 's':
+      parent_type = parent_type[:-1] # folders > folder, organizations > organization
+    parent = {'type': parent_type, 'id': parent_id}
   projects = _getProjects(crm, 'id:{0}'.format(projectId))
   if not createCmd:
     if not projects:
@@ -7035,7 +7091,7 @@ def _getLoginHintProjectId(createCmd):
   else:
     if projects:
       entityActionFailedExit([Ent.USER, login_hint, Ent.PROJECT, projectId], Msg.DUPLICATE)
-  return (crm, httpObj, login_hint, projectId)
+  return (crm, httpObj, login_hint, projectId, parent)
 
 def _getCurrentProjectID():
   cs_data = readFile(GC.Values[GC.CLIENT_SECRETS_JSON], continueOnError=True, displayError=True)
@@ -7094,11 +7150,14 @@ def _checkForExistingProjectFiles():
       systemErrorExit(JSON_ALREADY_EXISTS_RC, Msg.AUTHORIZATION_FILE_ALREADY_EXISTS.format(a_file, Act.ToPerform()))
 
 # gam create project [<EmailAddress>] [<ProjectID>]
+# gam create project [admin <EmailAddress>] [project <ProjectID>] [parent <String>]
 def doCreateProject():
   _checkForExistingProjectFiles()
-  crm, httpObj, login_hint, projectId = _getLoginHintProjectId(True)
+  crm, httpObj, login_hint, projectId, parent = _getLoginHintProjectId(True)
   login_domain = getEmailAddressDomain(login_hint)
   body = {'projectId': projectId, 'name': 'GAM Project'}
+  if parent:
+    body['parent'] = parent
   while True:
     create_again = False
     sys.stdout.write('Creating project "{0}"...\n'.format(body['name']))
@@ -7172,9 +7231,10 @@ and accept the Terms of Service (ToS). As soon as you've accepted the ToS popup,
   _createClientSecretsOauth2service(httpObj, projectId)
 
 # gam use project [<EmailAddress>] [<ProjectID>]
+# gam use project [admin <EmailAddress>] [project <ProjectID>]
 def doUseProject():
   _checkForExistingProjectFiles()
-  _, httpObj, _, projectId = _getLoginHintProjectId(False)
+  _, httpObj, _, projectId, _ = _getLoginHintProjectId(False)
   _createClientSecretsOauth2service(httpObj, projectId)
 
 # gam update project [<EmailAddress>] [gam|<ProjectID>|(filter <String>)]
@@ -18543,6 +18603,15 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
     return False
   return True
 
+def _getEventMatchFields(calendarEventEntity, fieldsList):
+  for match in calendarEventEntity['matches']:
+    if match[0][0] != 'attendees':
+      fieldsList.append(match[0][0])
+    else:
+      fieldsList.append('attendees/email')
+      if match[0][1] == 'status':
+        fieldsList.extend('attendees/optional', 'attendees/responseStatus')
+
 def _eventMatches(event, match):
   if match[0][0] != 'attendees':
     eventAttr = event
@@ -18588,10 +18657,9 @@ def _validateCalendarGetEventIDs(origUser, user, cal, calId, j, jcount, calendar
     calEventIds = calendarEventEntity['list']
   calId = normalizeCalendarId(calId, user)
   if not calEventIds:
-    fieldList = ['id']
-    for match in calendarEventEntity['matches']:
-      fieldList.append(match[0][0])
-    fields = ','.join(fieldList)
+    fieldsList = ['id']
+    _getEventMatchFields(calendarEventEntity, fieldsList)
+    fields = ','.join(fieldsList)
     try:
       eventIdsSet = set()
       calEventIds = []
@@ -19082,7 +19150,7 @@ def _purgeCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntity
       _updateDeleteCalendarEvents(origUser, user, cal, calIds, count, 'delete', calendarEventEntity, doIt,
                                   False, {}, parameters)
     Act.Set(Act.MOVE)
-    _moveCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntity, purgeCalId, False)
+    _moveCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntity, purgeCalId, parameters['sendUpdates'])
     Ind.Decrement()
     callGAPI(cal.calendars(), 'delete',
              throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
@@ -19138,7 +19206,7 @@ def _emptyCalendarTrash(user, cal, calIds, count):
       entityPerformActionNumItems([Ent.CALENDAR, calId], jcount, Ent.TRASHED_EVENT, i, count)
       Ind.Increment()
     if jcount > 0:
-      _purgeCalendarEvents(user, user, cal, [calId], 1, calendarEventEntity, True, False, True)
+      _purgeCalendarEvents(user, user, cal, [calId], 1, calendarEventEntity, True, {'sendUpdates': 'none'}, True)
     if not user:
       Ind.Decrement()
 
@@ -19293,7 +19361,7 @@ def _getEventFields(fieldsList):
 
 def _addEventEntitySelectFields(calendarEventEntity, fieldsList):
   if fieldsList:
-    fieldsList.extend([match[0][0] for match in calendarEventEntity['matches']])
+    _getEventMatchFields(calendarEventEntity, fieldsList)
     if calendarEventEntity['maxinstances'] != -1:
       fieldsList.append('recurrence')
 
@@ -19315,8 +19383,10 @@ def doCalendarsInfoEvents(cal, calIds):
   FJQC, fieldsList = _getCalendarInfoEventOptions(calendarEventEntity)
   _infoCalendarEvents(None, None, cal, calIds, len(calIds), calendarEventEntity, FJQC, fieldsList)
 
+EVENT_INDEXED_TITLES = ['attendees', 'attachments', 'recurrence']
+
 def _getCalendarPrintShowEventOptions(calendarEventEntity, entityType):
-  csvPF = CSVPrintFile(['primaryEmail', 'calendarId'] if entityType == Ent.USER else ['calendarId'], 'sortall') if Act.csvFormat() else None
+  csvPF = CSVPrintFile(['primaryEmail', 'calendarId'] if entityType == Ent.USER else ['calendarId'], 'sortall', indexedTitles=EVENT_INDEXED_TITLES) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   fieldsList = []
   while Cmd.ArgumentsRemaining():
@@ -28014,10 +28084,16 @@ def emptyCalendarTrash(users):
 
 # gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer] [<EventNotificationAttribute>] [doit]
 #	(csv <FileName>|(gsheet <UserGoogleSheet>))*
-#	(add <EmailAddress>)* (delete <EmailAddress>)* (replace <EmailAddress> <EmailAddress>)*
+#	(delete <EmailAddress>)*
+#	(deleteentity <EmailAddressEntity>)*
+#	(add <EmailAddress>)*
+#	(addentity <EmailAddressEntity>)*
 #	(addstatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddress>)*
+#	(addentitystatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddressEntity>)*
+#	(replace <EmailAddress> <EmailAddress>)*
 #	(replacestatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddress> <EmailAddress>)*
 #	(updatestatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddress>)*
+#	(updateentitystatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddressEntity>)*
 def updateCalendarAttendees(users):
   def getStatus(option):
     if option.endswith('status'):
@@ -28065,14 +28141,25 @@ def updateCalendarAttendees(users):
     elif myarg == 'delete':
       updAddr = getEmailAddress(noUid=True)
       attendeeMap[updAddr] = {'op': 'delete'}
+    elif myarg == 'deleteentity':
+      for updAddr in getNormalizedEmailAddressEntity(noUid=True):
+        attendeeMap[updAddr] = {'op': 'delete'}
     elif myarg in ['add', 'addstatus']:
       updOptional, updStatus = getStatus(myarg)
       updAddr = getEmailAddress(noUid=True)
       attendeeMap[updAddr] = {'op': 'add', 'status': updStatus, 'optional': updOptional, 'done': False}
+    elif myarg in ['addentity', 'addentitystatus']:
+      updOptional, updStatus = getStatus(myarg)
+      for updAddr in getNormalizedEmailAddressEntity(noUid=True):
+        attendeeMap[updAddr] = {'op': 'add', 'status': updStatus, 'optional': updOptional, 'done': False}
     elif myarg in ['update', 'updatestatus']:
       updOptional, updStatus = getStatus(myarg)
       updAddr = getEmailAddress(noUid=True)
       attendeeMap[updAddr] = {'op': 'update', 'status': updStatus, 'optional': updOptional, 'done': False}
+    elif myarg in ['updateentity', 'updateentitystatus']:
+      updOptional, updStatus = getStatus(myarg)
+      for updAddr in getNormalizedEmailAddressEntity(noUid=True):
+        attendeeMap[updAddr] = {'op': 'update', 'status': updStatus, 'optional': updOptional, 'done': False}
     elif myarg in ['replace', 'replacestatus']:
       updOptional, updStatus = getStatus(myarg)
       updAddr = getEmailAddress(noUid=True)
@@ -33200,11 +33287,11 @@ def transferDrive(users):
         actionUser = sourceUser
         if not updateTargetPermission:
           callGAPI(sourceDrive.permissions(), 'create',
-                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST],
+                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST, GAPI.SHARING_RATE_LIMIT_EXCEEDED],
                    fileId=childFileId, sendNotificationEmail=False, body=targetWriterPermissionsBody, fields='')
         callGAPI(sourceDrive.permissions(), 'update',
                  throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID_OWNERSHIP_TRANSFER,
-                                                                GAPI.PERMISSION_NOT_FOUND],
+                                                                GAPI.PERMISSION_NOT_FOUND, GAPI.SHARING_RATE_LIMIT_EXCEEDED],
                  fileId=childFileId, permissionId=targetPermissionId,
                  transferOwnership=True, body={'role': 'owner'}, fields='')
         if removeSourceParents:
@@ -33218,7 +33305,7 @@ def transferDrive(users):
                    fileId=childFileId, addParents=','.join(addTargetParents), removeParents=','.join(removeTargetParents), fields='')
         entityModifierNewValueItemValueListActionPerformed([Ent.USER, sourceUser, childFileType, childFileName], Act.MODIFIER_TO, None, [Ent.USER, targetUser], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.badRequest) as e:
+              GAPI.badRequest, GAPI.sharingRateLimitExceeded) as e:
         entityActionFailedWarning([Ent.USER, actionUser, childFileType, childFileName], str(e), j, jcount)
       except GAPI.permissionNotFound:
         entityDoesNotHaveItemWarning([Ent.USER, actionUser, childFileType, childFileName, Ent.PERMISSION_ID, targetPermissionId], j, jcount)
@@ -33289,9 +33376,10 @@ def transferDrive(users):
         if childEntryInfo['targetPermission']['role'] in ['none', 'reader']:
           try:
             callGAPI(ownerDrive.permissions(), 'create',
-                     throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST],
+                     throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST, GAPI.SHARING_RATE_LIMIT_EXCEEDED],
                      fileId=childFileId, sendNotificationEmail=False, body=targetWriterPermissionsBody, fields='')
-          except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
+          except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+                  GAPI.badRequest, GAPI.sharingRateLimitExceeded) as e:
             entityActionFailedWarning([Ent.USER, ownerUser, childFileType, childFileName], str(e), j, jcount)
             return
           except GAPI.invalidSharingRequest as e:
@@ -33332,16 +33420,16 @@ def transferDrive(users):
         if ownerRetainRoleBody['role'] != 'none':
           if ownerRetainRoleBody['role'] != 'writer':
             callGAPI(targetDrive.permissions(), 'update',
-                     throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
+                     throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.SHARING_RATE_LIMIT_EXCEEDED],
                      fileId=childFileId, permissionId=sourcePermissionId, body=ownerRetainRoleBody, fields='')
         else:
           callGAPI(targetDrive.permissions(), 'delete',
-                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.CANNOT_REMOVE_OWNER],
+                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.SHARING_RATE_LIMIT_EXCEEDED, GAPI.CANNOT_REMOVE_OWNER],
                    fileId=childFileId, permissionId=sourcePermissionId)
         if showRetentionMessages:
           entityActionPerformed([Ent.USER, sourceUser, childFileType, childFileName, Ent.ROLE, ownerRetainRoleBody['role']], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.badRequest, GAPI.cannotRemoveOwner) as e:
+              GAPI.badRequest, GAPI.sharingRateLimitExceeded, GAPI.cannotRemoveOwner) as e:
         entityActionFailedWarning([Ent.USER, sourceUser, childFileType, childFileName], str(e), j, jcount)
       except GAPI.permissionNotFound:
         entityDoesNotHaveItemWarning([Ent.USER, sourceUser, childFileType, childFileName, Ent.PERMISSION_ID, sourcePermissionId], j, jcount)
@@ -33378,19 +33466,19 @@ def transferDrive(users):
         if nonOwnerRetainRoleBody['role'] != 'none':
           if nonOwnerRetainRoleBody['role'] != 'current':
             callGAPI(ownerDrive.permissions(), 'update',
-                     throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
+                     throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.SHARING_RATE_LIMIT_EXCEEDED],
                      fileId=childFileId, permissionId=sourcePermissionId, body=sourceUpdateRole, fields='')
         else:
           try:
             callGAPI(ownerDrive.permissions(), 'delete',
-                     throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.CANNOT_REMOVE_OWNER],
+                     throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.SHARING_RATE_LIMIT_EXCEEDED, GAPI.CANNOT_REMOVE_OWNER],
                      fileId=childFileId, permissionId=sourcePermissionId)
           except GAPI.permissionNotFound:
             pass
         if showRetentionMessages:
           entityActionPerformed([Ent.USER, sourceUser, childFileType, childFileName, Ent.ROLE, sourceUpdateRole['role']], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.badRequest, GAPI.cannotRemoveOwner) as e:
+              GAPI.badRequest, GAPI.sharingRateLimitExceeded, GAPI.cannotRemoveOwner) as e:
         entityActionFailedWarning([Ent.USER, ownerUser, childFileType, childFileName], str(e), j, jcount)
       except GAPI.permissionNotFound:
         entityDoesNotHaveItemWarning([Ent.USER, ownerUser, childFileType, childFileName, Ent.PERMISSION_ID, sourcePermissionId], j, jcount)
@@ -33401,18 +33489,19 @@ def transferDrive(users):
           if nonOwnerTargetRoleBody['role'] != 'none':
             if nonOwnerTargetRoleBody['role'] != 'current' and targetInsertBody['role'] not in ['current', 'none']:
               callGAPI(ownerDrive.permissions(), 'create',
-                       throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST],
+                       throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST, GAPI.SHARING_RATE_LIMIT_EXCEEDED],
                        fileId=childFileId, sendNotificationEmail=False, body=targetInsertBody, fields='')
           else:
             try:
               callGAPI(ownerDrive.permissions(), 'delete',
-                       throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST],
+                       throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.SHARING_RATE_LIMIT_EXCEEDED],
                        fileId=childFileId, permissionId=targetPermissionId)
             except GAPI.permissionNotFound:
               pass
           if showRetentionMessages:
             entityActionPerformed([Ent.USER, targetUser, childFileType, childFileName, Ent.ROLE, targetInsertBody['role']], j, jcount)
-        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
+        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+                GAPI.badRequest, GAPI.sharingRateLimitExceeded) as e:
           entityActionFailedWarning([Ent.USER, ownerUser, childFileType, childFileName], str(e), j, jcount)
         except GAPI.invalidSharingRequest as e:
           entityActionFailedWarning([Ent.USER, ownerUser, childFileType, childFileName], Ent.TypeNameMessage(Ent.PERMISSION_ID, targetPermissionId, str(e)), j, jcount)
