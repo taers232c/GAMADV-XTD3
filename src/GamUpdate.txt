@@ -1,3 +1,11 @@
+4.89.03
+
+Added options to `<UserTypeEntity>` to allow a greater selection of users based on suspension status:
+* `all users` - All non-suspended Users, this is the existing option
+* `all users_ns` - All non-suspended Users, a synonym for `all users`
+* `all users_susp` - All suspended Users
+* `all users_ns_susp` - All non-suspended and suspended Users
+
 4.89.02
 
 Added options to `gam update calattendees` to allow easier specification of multiple attendees.

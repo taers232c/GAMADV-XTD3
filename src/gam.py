@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.89.02'
+__version__ = '4.89.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4017,7 +4017,7 @@ def _checkMemberRoleIsSuspended(member, validRoles, isSuspended):
           (isSuspended is None or (not isSuspended and memberStatus != 'SUSPENDED') or (isSuspended and memberStatus == 'SUSPENDED')))
 
 # Turn the entity into a list of Users/CrOS devices
-def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, includeSuspendedInAll=False, groupMemberType='USER'):
+def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, groupMemberType='USER'):
   def _incrEntityDoesNotExist(entityType):
     entityError['entityType'] = entityType
     entityError['doesNotExist'] += 1
@@ -4070,9 +4070,9 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, inc
         _showInvalidEntity(Ent.USER, user)
     if GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
       return entityList
-  elif entityType == Cmd.ENTITY_ALL_USERS:
+  elif entityType in [Cmd.ENTITY_ALL_USERS, Cmd.ENTITY_ALL_USERS_NS, Cmd.ENTITY_ALL_USERS_NS_SUSP, Cmd.ENTITY_ALL_USERS_SUSP]:
     cd = buildGAPIObject(API.DIRECTORY)
-    query = None if includeSuspendedInAll else 'isSuspended=False'
+    query = Cmd.ALL_USERS_QUERY_MAP[entityType]
     printGettingAllAccountEntities(Ent.USER)
     try:
       result = callGAPIpages(cd.users(), 'list', 'users',
@@ -4648,11 +4648,11 @@ def getEntityToModify(defaultEntityType=None, crosAllowed=False, userAllowed=Tru
         choices += Cmd.CROS_ENTITY_SELECTOR_ALL_SUBTYPES
       entityType = Cmd.ENTITY_SELECTOR_ALL_SUBTYPES_MAP[getChoice(choices)]
       if not delayGet:
-        return ([Cmd.ENTITY_CROS, Cmd.ENTITY_USERS][entityType == Cmd.ENTITY_ALL_USERS],
+        return (Cmd.ENTITY_USERS if entityType != Cmd.ENTITY_ALL_CROS else Cmd.ENTITY_CROS,
                 getUsersToModify(entityType, None))
       GM.Globals[GM.ENTITY_CL_DELAY_START] = Cmd.Location()
       buildGAPIObject(API.DIRECTORY)
-      return ([Cmd.ENTITY_CROS, Cmd.ENTITY_USERS][entityType == Cmd.ENTITY_ALL_USERS],
+      return (Cmd.ENTITY_USERS if entityType != Cmd.ENTITY_ALL_CROS else Cmd.ENTITY_CROS,
               {'entityType': entityType, 'entity': None})
     if userAllowed:
       if entitySelector == Cmd.ENTITY_SELECTOR_FILE:
@@ -4680,7 +4680,7 @@ def getEntityToModify(defaultEntityType=None, crosAllowed=False, userAllowed=Tru
       if crosAllowed:
         choices += Cmd.CROS_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES
       entityType = mapEntityType(getChoice(choices), typeMap)
-      return ([Cmd.ENTITY_CROS, Cmd.ENTITY_USERS][entityType not in Cmd.CROS_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES],
+      return (Cmd.ENTITY_USERS if entityType not in Cmd.CROS_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES else Cmd.ENTITY_CROS,
               getUsersToModify(entityType, getEntitiesFromFile(shlexSplit=entityType in [Cmd.ENTITY_OUS, Cmd.ENTITY_OUS_AND_CHILDREN,
                                                                                          Cmd.ENTITY_OUS_NS, Cmd.ENTITY_OUS_AND_CHILDREN_NS,
                                                                                          Cmd.ENTITY_OUS_SUSP, Cmd.ENTITY_OUS_AND_CHILDREN_SUSP,
@@ -4691,7 +4691,7 @@ def getEntityToModify(defaultEntityType=None, crosAllowed=False, userAllowed=Tru
       if crosAllowed:
         choices += Cmd.CROS_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES
       entityType = mapEntityType(getChoice(choices), typeMap)
-      return ([Cmd.ENTITY_CROS, Cmd.ENTITY_USERS][entityType not in Cmd.CROS_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES],
+      return (Cmd.ENTITY_USERS if entityType not in Cmd.CROS_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES else Cmd.ENTITY_CROS,
               getUsersToModify(entityType, getEntitiesFromCSVFile(shlexSplit=entityType in [Cmd.ENTITY_OUS, Cmd.ENTITY_OUS_AND_CHILDREN,
                                                                                             Cmd.ENTITY_OUS_NS, Cmd.ENTITY_OUS_AND_CHILDREN_NS,
                                                                                             Cmd.ENTITY_OUS_SUSP, Cmd.ENTITY_OUS_AND_CHILDREN_SUSP,
@@ -4702,11 +4702,11 @@ def getEntityToModify(defaultEntityType=None, crosAllowed=False, userAllowed=Tru
       if crosAllowed:
         choices += Cmd.CROS_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES
       entityType = mapEntityType(getChoice(choices, choiceAliases=Cmd.ENTITY_ALIAS_MAP), typeMap)
-      return ([Cmd.ENTITY_CROS, Cmd.ENTITY_USERS][entityType not in Cmd.CROS_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES],
+      return (Cmd.ENTITY_USERS if entityType not in Cmd.CROS_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES else Cmd.ENTITY_CROS,
               getUsersToModify(entityType, getEntitiesFromCSVbyField()))
     if entitySelector in [Cmd.ENTITY_SELECTOR_CSVDATA, Cmd.ENTITY_SELECTOR_CROSCSVDATA]:
       checkDataField()
-      return ([Cmd.ENTITY_CROS, Cmd.ENTITY_USERS][entitySelector == Cmd.ENTITY_SELECTOR_CSVDATA],
+      return (Cmd.ENTITY_USERS if entitySelector == Cmd.ENTITY_SELECTOR_CSVDATA else Cmd.ENTITY_CROS,
               GM.Globals[GM.CSV_DATA_DICT])
   entityChoices = []
   if userAllowed:
@@ -22816,8 +22816,9 @@ def infoUsers(entityList):
   fields = ','.join(set(fieldsList)).replace('.', '/') if fieldsList else None
   if getLicenses:
     lic = buildGAPIObject(API.LICENSING)
-  if isinstance(entityList, dict):
-    entityList['includeSuspendedInAll'] = True
+# Special case; for info users, 'all users' means 'all users_ns_susp'
+  if isinstance(entityList, dict) and entityList.get('entityType') == Cmd.ENTITY_ALL_USERS:
+    entityList['entityType'] = Cmd.ENTITY_ALL_USERS_NS_SUSP
   i, count, entityList = getEntityArgument(entityList)
   for userEmail in entityList:
     i += 1
@@ -36784,7 +36785,7 @@ def _printShowTokens(entityType, users):
     else:
       unknownArgumentExit()
   if not entityType:
-    users = getUsersToModify(Cmd.ENTITY_ALL_USERS, None)
+    users = getUsersToModify(Cmd.ENTITY_ALL_USERS_NS, None)
   fields = ','.join(TOKENS_FIELDS_TITLES)
   i, count, users = getEntityArgument(users)
   for user in users:
