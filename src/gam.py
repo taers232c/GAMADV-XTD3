@@ -3004,7 +3004,7 @@ def doGAMCheckForUpdates(forceCheck):
       printLine(Msg.GAM_EXITING_FOR_UPDATE)
       sys.exit(0)
     writeFile(GM.Globals[GM.LAST_UPDATE_CHECK_TXT], str(now_time), continueOnError=True, displayError=forceCheck)
-  except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
+  except (httplib2.HttpLib2Error, socket.error, google.auth.exceptions.TransportError, RuntimeError) as e:
     if forceCheck:
       handleServerError(e)
 
