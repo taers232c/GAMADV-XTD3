@@ -2,7 +2,11 @@
 
 Executable versions of GAMADV-XTD3 now use Python 3.7.4 and are built with PyInstaller 3.5.
 
-Clean up windows-build.bat.
+Clean up windows-build.bat; rename Windows installation files:
+* gamadv-xtd3-4.xx.yy-windows-x86.msi - 32 bit Windows Installer
+* gamadv-xtd3-4.xx.yy-windows-x86.zip - 32 bit Windows ZIP file
+* gamadv-xtd3-4.xx.yy-windows-x86-64.msi - 64 bit Windows Installer
+* gamadv-xtd3-4.xx.yy-windows-x86-64.msi - 64 bit Windows ZIP file
 
 4.89.03
 

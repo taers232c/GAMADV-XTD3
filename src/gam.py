@@ -2946,7 +2946,7 @@ def handleServerError(e):
   writeStderr(Msg.DISABLE_TLS_MIN_MAX)
   systemErrorExit(NETWORK_ERROR_RC, None)
 
-def getHttpObj(cache=None, timeout==None, override_min_tls=None, override_max_tls=None):
+def getHttpObj(cache=None, timeout=None, override_min_tls=None, override_max_tls=None):
   tls_minimum_version = override_min_tls if override_min_tls else GC.Values[GC.TLS_MIN_VERSION] if GC.Values[GC.TLS_MIN_VERSION] else None
   tls_maximum_version = override_max_tls if override_max_tls else GC.Values[GC.TLS_MAX_VERSION] if GC.Values[GC.TLS_MAX_VERSION] else None
   return httplib2.Http(cache=cache,
