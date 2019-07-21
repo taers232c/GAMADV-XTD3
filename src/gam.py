@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.89.03'
+__version__ = '4.89.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2946,10 +2946,11 @@ def handleServerError(e):
   writeStderr(Msg.DISABLE_TLS_MIN_MAX)
   systemErrorExit(NETWORK_ERROR_RC, None)
 
-def getHttpObj(cache=None, override_min_tls=None, override_max_tls=None):
+def getHttpObj(cache=None, timeout==None, override_min_tls=None, override_max_tls=None):
   tls_minimum_version = override_min_tls if override_min_tls else GC.Values[GC.TLS_MIN_VERSION] if GC.Values[GC.TLS_MIN_VERSION] else None
   tls_maximum_version = override_max_tls if override_max_tls else GC.Values[GC.TLS_MAX_VERSION] if GC.Values[GC.TLS_MAX_VERSION] else None
   return httplib2.Http(cache=cache,
+                       timeout=timeout,
                        ca_certs=GC.Values[GC.CACERTS_PEM],
                        disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL],
                        tls_maximum_version=tls_maximum_version,
@@ -2968,7 +2969,7 @@ def doGAMCheckForUpdates(forceCheck):
     if last_check_time > now_time-604800:
       return
   try:
-    _, c = getHttpObj().request(GAM_LATEST_RELEASE, 'GET', headers={'Accept': 'application/vnd.github.v3.text+json'})
+    _, c = getHttpObj(timeout=10).request(GAM_LATEST_RELEASE, 'GET', headers={'Accept': 'application/vnd.github.v3.text+json'})
     try:
       release_data = json.loads(c)
     except ValueError:
@@ -20187,6 +20188,17 @@ def doPrintShowVaultExports():
   if csvPF:
     csvPF.writeCSVfile('Vault Exports')
 
+def md5MatchesFile(filename, expected_md5):
+  try:
+    f = openFile(filename, 'rb')
+    hash_md5 = hashlib.md5()
+    for chunk in iter(lambda: f.read(4096), b""):
+      hash_md5.update(chunk)
+    closeFile(f)
+    return hash_md5.hexdigest() == expected_md5
+  except IOError as e:
+    systemErrorExit(FILE_ERROR_RC, e)
+
 ZIP_EXTENSION_PATTERN = re.compile(r'^.*\.zip$', re.IGNORECASE)
 
 # gam download vaultexport|export <ExportItem> matter <MatterItem> [targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
@@ -20290,23 +20302,18 @@ def doDownloadVaultExport():
       if not zipToStdout:
         closeFile(f)
       if verifyFiles:
-        f = openFile(filename, 'rb')
         Act.Set(Act.VERIFY)
-        hash_md5 = hashlib.md5()
-        for chunk in iter(lambda: f.read(4096), b""):
-          hash_md5.update(chunk)
-        actual_hash = hash_md5.hexdigest()
-        closeFile(f)
-        if actual_hash == s_file['md5Hash']:
+        if md5MatchesFile(filename, s_file['md5Hash']):
           entityActionPerformed([Ent.CLOUD_STORAGE_FILE, s_object, Ent.MD5HASH, s_file['md5Hash']], j, jcount)
         else:
           entityActionFailedWarning([Ent.CLOUD_STORAGE_FILE, s_object, Ent.MD5HASH, s_file['md5Hash']], '', j, jcount)
+          Ind.Decrement()
           break
       if extractFiles and ZIP_EXTENSION_PATTERN.match(filename):
         Act.Set(Act.EXTRACT)
         extract_nested_zip(filename)
         Act.Set(Act.DOWNLOAD)
-    except (IOError, httplib2.HttpLib2Error) as e:
+    except httplib2.HttpLib2Error as e:
       entityModifierNewValueActionFailedWarning([Ent.CLOUD_STORAGE_FILE, s_object], Act.MODIFIER_TO, filename, str(e), j, jcount)
     Ind.Decrement()
   Ind.Decrement()
