@@ -16,11 +16,11 @@ xcopy license.rtf %GAMPLATFORM%\
 xcopy gam-setup.bat %GAMPLATFORM%\
 xcopy Gam*.txt %GAMPLATFORM%\
 xcopy cacerts.pem %GAMPLATFORM%\
-"%ProgramFiles%\7-Zip\7z.exe" a -tzip %GAMPLATFORM%-%GAMVERSION%-windows.zip %GAMPLATFORM%\ -xr!.svn
+"%ProgramFiles%\7-Zip\7z.exe" a -tzip %GAMPLATFORM%-%GAMVERSION%-windows-x86.zip %GAMPLATFORM%\ -xr!.svn
 del /q /f *.wixobj
 del /q /f *.wixpdb
 "%ProgramFiles(x86)%\WiX Toolset v%WIXVERSION%\bin\candle.exe" -arch x86 gam.wxs
-"%ProgramFiles(x86)%\WiX Toolset v%WIXVERSION%\bin\light.exe" -ext "%ProgramFiles(x86)%\WiX Toolset v%WIXVERSION%\bin\WixUIExtension.dll" gam.wixobj -o %GAMPLATFORM%-%GAMVERSION%-windows.msi
+"%ProgramFiles(x86)%\WiX Toolset v%WIXVERSION%\bin\light.exe" -ext "%ProgramFiles(x86)%\WiX Toolset v%WIXVERSION%\bin\WixUIExtension.dll" gam.wixobj -o %GAMPLATFORM%-%GAMVERSION%-windows-x86.msi
 del /q /f *.wixpdb
 
 rmdir /q /s %GAMPLATFORM%
@@ -30,9 +30,9 @@ xcopy license.rtf %GAMPLATFORM%\
 xcopy gam-setup.bat %GAMPLATFORM%\
 xcopy Gam*.txt %GAMPLATFORM%\
 xcopy cacerts.pem %GAMPLATFORM%\
-"%ProgramFiles%\7-Zip\7z.exe" a -tzip %GAMPLATFORM%-%GAMVERSION%-windows-x64.zip %GAMPLATFORM%\ -xr!.svn
+"%ProgramFiles%\7-Zip\7z.exe" a -tzip %GAMPLATFORM%-%GAMVERSION%-windows-x86-64.zip %GAMPLATFORM%\ -xr!.svn
 del /q /f *.wixobj
 del /q /f *.wixpdb
 "%ProgramFiles(x86)%\WiX Toolset v%WIXVERSION%\bin\candle.exe" -arch x64 gam.wxs
-"%ProgramFiles(x86)%\WiX Toolset v%WIXVERSION%\bin\light.exe" -ext "%ProgramFiles(x86)%\WiX Toolset v%WIXVERSION%\bin\WixUIExtension.dll" gam.wixobj -o %GAMPLATFORM%-%GAMVERSION%-windows-x64.msi
+"%ProgramFiles(x86)%\WiX Toolset v%WIXVERSION%\bin\light.exe" -ext "%ProgramFiles(x86)%\WiX Toolset v%WIXVERSION%\bin\WixUIExtension.dll" gam.wixobj -o %GAMPLATFORM%-%GAMVERSION%-windows-x86-64.msi
 del /q /f *.wixpdb

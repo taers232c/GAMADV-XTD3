@@ -2,6 +2,8 @@
 
 Executable versions of GAMADV-XTD3 now use Python 3.7.4 and are built with PyInstaller 3.5.
 
+Clean up windows-build.bat.
+
 4.89.03
 
 Added options to `<UserTypeEntity>` to allow a greater selection of users based on suspension status:
