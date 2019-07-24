@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.89.04'
+__version__ = '4.89.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7063,7 +7063,7 @@ def _getLoginHintProjectId(createCmd):
       else:
         unknownArgumentExit()
 
-  if projectId is None:
+  if not projectId:
     if createCmd:
       projectId = 'gam-project'
       for _ in range(3):
@@ -23222,7 +23222,7 @@ def doPrintUsers(entityList=None):
       orderBy, sortOrder = getOrderBySortOrder(USERS_ORDERBY_CHOICE_MAP)
     elif myarg == 'userview':
       viewType = 'domain_public'
-    elif myarg in ['custom', 'schemas']:
+    elif myarg in ['custom', 'schemas', 'customschemas']:
       if not fieldsList:
         fieldsList = ['primaryEmail']
       fieldsList.append('customSchemas')
