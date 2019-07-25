@@ -7,7 +7,7 @@ else
   export gam="gamadv-xtd3/gam"
 #  export gampath=$(readlink -e gamadv-xtd3)
   export gampath=gamadv-xtd3
-  export GAMVERSION=`$gam version simple`
+  export GAMVERSION=`$gam version simple 2>/dev/null`
   cp LICENSE $gampath/
   cp license.rtf $gampath/
   cp Gam*.txt $gampath/
