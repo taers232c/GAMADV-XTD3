@@ -30,14 +30,6 @@ matrix:
         - GAMOS=linux
         - PLATFORM=x86_64
         - VMTYPE=build
-    - os: linux
-      name: "Linux 64-bit Precise"
-      dist: precise
-      language: bash
-      env:
-        - GAMOS=linux
-        - PLATFORM=x86_64
-        - VMTYPE=build
 
 before_install:
 - source src/travis/$TRAVIS_OS_NAME-$PLATFORM-before-install.sh
