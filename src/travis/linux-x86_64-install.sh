@@ -14,8 +14,12 @@ else
   cp cacerts.pem $gampath/
   ls -l $gampath
   this_glibc_ver=$(ldd --version | awk '/ldd/{print $NF}')
+  echo "GAM Version:" $GAMVERSION
+  echo "GAM OS:" $GAMOS
+  echo "GAM Platform:" $PLATFORM
+  echo "glibc:"  glibc$this_glibc_ver
   GAM_ARCHIVE=gam-$GAMVERSION-$GAMOS-$PLATFORM-glibc$this_glibc_ver.tar.xz
-  echo $GAM_ARCHIVE
+  echo "GAM Archive;" $GAM_ARCHIVE
   tar cfJ $GAM_ARCHIVE $gampath/
   echo "PyInstaller GAM info:"
   du -h $gampath/gam
