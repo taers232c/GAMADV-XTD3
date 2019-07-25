@@ -41356,7 +41356,8 @@ def doLoop():
 
 # Run from command line
 if __name__ == "__main__":
-  multiprocessing.freeze_support()
+  if sys.platform.startswith('win'):
+    multiprocessing.freeze_support()
   initializeLogging()
   rc = ProcessGAMCommand(sys.argv)
   try:
