@@ -5,9 +5,8 @@ if [ "$VMTYPE" == "test" ]; then
 else
   $python -OO -m PyInstaller --clean --noupx --strip -F --distpath=gamadv-xtd3 $GAMOS-gam.spec
   export gam="gamadv-xtd3/gam"
-#  export gampath=$(readlink -e gamadv-xtd3)
   export gampath=gamadv-xtd3
-  export GAMVERSION=`$gam version simple 2>/dev/null`
+  export GAMVERSION=`$gam version simple | cut -c1-7`
   cp LICENSE $gampath/
   cp license.rtf $gampath/
   cp Gam*.txt $gampath/
