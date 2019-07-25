@@ -8,7 +8,7 @@ GAM installation script.
 OPTIONS:
    -h      show help.
    -d      Directory where gam folder will be installed. Default is \$HOME/bin/
-   -a      Architecture to install (i386, x86_64, arm). Default is to detect your arch with "uname -m".
+   -a      Architecture to install (i386, x86_64, x86_64_legacy, arm, arm64). Default is to detect your arch with "uname -m".
    -o      OS we are running (linux, macos). Default is to detect your OS with "uname -s".
    -l      Just upgrade GAM to latest version. Skips project creation and auth.
    -p      Profile update (true, false). Should script add gam command to environment. Default is true.
@@ -22,12 +22,13 @@ target_dir="$HOME/bin"
 target_gam="gamadv-xtd3/gam"
 gamarch=$(uname -m)
 gamos=$(uname -s)
-kernel=$(uname -v)
 update_profile=true
 upgrade_only=false
 gamversion="latest"
 adminuser=""
 regularuser=""
+gam_glibc_vers="2.23 2.19 2.15"
+
 while getopts "hd:a:o:lp:u:r:v:" OPTION
 do
      case $OPTION in
@@ -48,15 +49,15 @@ done
 target_dir=${target_dir%/}
 
 update_profile() {
-        [ -f "$1" ] || return 1
+	[ -f "$1" ] || return 1
 
-        grep -F "$alias_line" "$1" > /dev/null 2>&1
-        if [ $? -ne 0 ]; then
-                echo_yellow "Adding gam alias to profile file $1."
-                echo -e "\n$alias_line" >> "$1"
-        else
-          echo_yellow "gam alias already exists in profile file $1. Skipping add."
-        fi
+	grep -F "$alias_line" "$1" > /dev/null 2>&1
+	if [ $? -ne 0 ]; then
+		echo_yellow "Adding gam alias to profile file $1."
+		echo -e "\n$alias_line" >> "$1"
+	else
+	  echo_yellow "gam alias already exists in profile file $1. Skipping add."
+	fi
 }
 
 echo_red()
@@ -77,23 +78,29 @@ echo -e "\x1B[1;33m$1"
 echo -e '\x1B[0m'
 }
 
+version_gt()
+{
+test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"
+}
+
 case $gamos in
   [lL]inux)
     gamos="linux"
+    this_glibc_ver=$(ldd --version | awk '/ldd/{print $NF}')
+    echo "This Linux distribution uses glibc $this_glibc_ver"
+    useglibc="legacy"
+    for gam_glibc_ver in $gam_glibc_vers; do
+      if version_gt $this_glibc_ver $gam_glibc_ver; then
+	useglibc="glibc$gam_glibc_ver"
+	echo_green "Using GAM compiled against $useglibc"
+	break
+      fi
+    done
     case $gamarch in
-      x86_64)
-        case $kernel in
-          *Debian*)  gamfile="debian-x86_64.tar.xz";;
-          *)  gamfile="linux-x86_64.tar.xz";;
-        esac
-        ;;
-#      i?86) gamfile="linux-i686.tar.xz";;
-#      arm*) gamfile="linux-armv7l.tar.xz";;
+      x86_64) gamfile="linux-x86_64-$useglibc.tar.xz";;
       *)
-#        echo_red "ERROR: this installer currently only supports i386, x86_64 and arm Linux. Looks like you're running on $gamarch. Exiting."
-        echo_red "ERROR: this installer currently only supports x86_64 Linux. Looks like you're running on $gamarch. Exiting."
-        exit
-        ;;
+	echo_red "ERROR: this installer currently only supports x86_64 Linux. Looks like you're running on $gamarch. Exiting."
+	exit
     esac
     ;;
   [Mm]ac[Oo][sS]|[Dd]arwin)
@@ -248,16 +255,16 @@ while true; do
   case $yn in
     [Yy]*)
       if [ "$adminuser" == "" ]; then
-        read -p "Please enter your G Suite admin email address: " adminuser
+	read -p "Please enter your G Suite admin email address: " adminuser
       fi
       "$target_dir/$target_gam" $config_cmd create project $adminuser
       rc=$?
       if (( $rc == 0 )); then
-        echo_green "Project creation complete."
-        project_created=true
-        break
+	echo_green "Project creation complete."
+	project_created=true
+	break
       else
-        echo_red "Project creation failed. Trying again. Say N to skip project creation."
+	echo_red "Project creation failed. Trying again. Say N to skip project creation."
       fi
       ;;
     [Nn]*)
@@ -278,11 +285,11 @@ while $project_created; do
       "$target_dir/$target_gam" $config_cmd oauth create $adminuser
       rc=$?
       if (( $rc == 0 )); then
-        echo_green "Admin authorization complete."
-        admin_authorized=true
-        break
+	echo_green "Admin authorization complete."
+	admin_authorized=true
+	break
       else
-        echo_red "Admin authorization failed. Trying again. Say N to skip admin authorization."
+	echo_red "Admin authorization failed. Trying again. Say N to skip admin authorization."
       fi
       ;;
      [Nn]*)
@@ -301,17 +308,17 @@ while $project_created; do
   case $yn in
     [Yy]*)
       if [ "$regularuser" == "" ]; then
-        read -p "Please enter the email address of a regular G Suite user: " regularuser
+	read -p "Please enter the email address of a regular G Suite user: " regularuser
       fi
       echo_yellow "Great! Checking service account scopes.This will fail the first time. Follow the steps to authorize and retry. It can take a few minutes for scopes to PASS after they've been authorized in the admin console."
       "$target_dir/$target_gam" $config_cmd user $adminuser check serviceaccount
       rc=$?
       if (( $rc == 0 )); then
-        echo_green "Service account authorization complete."
-        service_account_authorized=true
-        break
+	echo_green "Service account authorization complete."
+	service_account_authorized=true
+	break
       else
-        echo_red "Service account authorization failed. Confirm you entered the scopes correctly in the admin console. It can take a few minutes for scopes to PASS after they are entered in the admin console so if you're sure you entered them correctly, go grab a coffee and then hit Y to try again. Say N to skip admin authorization."
+	echo_red "Service account authorization failed. Confirm you entered the scopes correctly in the admin console. It can take a few minutes for scopes to PASS after they are entered in the admin console so if you're sure you entered them correctly, go grab a coffee and then hit Y to try again. Say N to skip admin authorization."
       fi
       ;;
      [Nn]*)
