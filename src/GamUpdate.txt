@@ -1,3 +1,8 @@
+4.89.06
+
+Add code to handle a rare API error when creating a group.
+Fix segmentaion fault error in Linux executables.
+
 4.89.05
 
 Fixed bug in `gam create project` that generated the error:

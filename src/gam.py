@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.89.05'
+__version__ = '4.89.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -14937,11 +14937,13 @@ def doCreateGroup():
     if gs_body and not GroupIsAbuseOrPostmaster(body['email']):
       if getBeforeUpdate:
         settings = callGAPI(gs.groups(), 'get',
-                            throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
+                            throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS,
+                            retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS+[GAPI.NOT_FOUND],
                             groupUniqueId=body['email'], fields='*')
         settings.update(gs_body)
       callGAPI(gs.groups(), 'update',
-               throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
+               throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS,
+               retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS+[GAPI.NOT_FOUND],
                groupUniqueId=body['email'], body=settings, fields='')
     entityActionPerformed([Ent.GROUP, body['email']])
   except GAPI.duplicate:
