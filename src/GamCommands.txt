@@ -1827,7 +1827,9 @@ gam show licenses [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|all
         cancel_remote_wipe_then_block
 
 gam update mobile <MobileEntity> action <MobileAction>
+        [doit] [matchusers <UserTypeEntity>]
 gam delete mobile <MobileEntity>
+        [doit] [matchusers <UserTypeEntity>]
 
 <MobileFieldName> ::=
         adbstatus|

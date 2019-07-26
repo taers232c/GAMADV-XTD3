@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.89.06'
+__version__ = '4.89.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7041,11 +7041,9 @@ def _getLoginHintProjectId(createCmd):
   parent = None
   if not Cmd.PeekArgumentPresent(['admin', 'project', 'parent']):
     login_hint = getEmailAddress(noUid=True, optional=True)
-    if login_hint:
-      user, _ = splitEmailAddress(login_hint)
-      if PROJECTID_PATTERN.match(user):
-        Cmd.Backup()
-        login_hint = None
+    if login_hint and login_hint.find('@') == -1:
+      Cmd.Backup()
+      login_hint = None
     projectId = getString(Cmd.OB_STRING, optional=True, minLen=6, maxLen=30).strip()
     if projectId:
       _checkProjectId()
@@ -7062,7 +7060,6 @@ def _getLoginHintProjectId(createCmd):
         parent = getString(Cmd.OB_STRING)
       else:
         unknownArgumentExit()
-
   if not projectId:
     if createCmd:
       projectId = 'gam-project'
@@ -7109,11 +7106,9 @@ PROJECTS_PRINTSHOW_OPTIONS = ['todrive', 'formatjson', 'quotechar']
 
 def _getLoginHintProjects(printShowCmd):
   login_hint = getEmailAddress(noUid=True, optional=True)
-  if login_hint:
-    user, _ = splitEmailAddress(login_hint)
-    if user in PROJECTS_FILTER_OPTIONS or user in PROJECTS_PRINTSHOW_OPTIONS or PROJECTID_PATTERN.match(user):
-      Cmd.Backup()
-      login_hint = None
+  if login_hint and login_hint.find('@') == -1:
+    Cmd.Backup()
+    login_hint = None
   pfilter = getString(Cmd.OB_STRING, optional=True)
   if not pfilter:
     pfilter = 'current' if not printShowCmd else 'id:gam-project-*'
@@ -14384,63 +14379,109 @@ def getMobileDeviceEntity():
       Cmd.Backup()
       query = None
   if not query:
-    return (getEntityList(Cmd.OB_MOBILE_ENTITY), cd)
+    return ([{'resourceId': device, 'email': []} for device in getEntityList(Cmd.OB_MOBILE_ENTITY)], cd)
   try:
     devices = callGAPIpages(cd.mobiledevices(), 'list', 'mobiledevices',
                             throw_reasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                             customerId=GC.Values[GC.CUSTOMER_ID], query=query,
-                            fields='nextPageToken,mobiledevices(resourceId)')
+                            fields='nextPageToken,mobiledevices(resourceId,email)')
   except GAPI.invalidInput:
     Cmd.Backup()
     usageErrorExit(Msg.INVALID_QUERY)
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
     accessErrorExit(cd)
-  return ([mobile['resourceId'] for mobile in devices], cd)
+  return ([{'resourceId': device['resourceId'], 'email': device.get('email', [])} for device in devices], cd)
+
+def _getUpdateDeleteMobileOptions(myarg, options):
+  if myarg in ['matchusers', 'ifusers']:
+    _, matchUsers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
+    options['matchUsers'] = {normalizeEmailAddressOrUID(user) for user in matchUsers}
+  elif myarg == 'doit':
+    options['doit'] = True
+  else:
+    unknownArgumentExit()
+
+def _getMobileDeviceUser(mobileDevice, options):
+  if options['matchUsers']:
+    if mobileDevice['email']:
+      for deviceUser in mobileDevice['email']:
+        if deviceUser.lower() in options['matchUsers']:
+          return (deviceUser, True)
+      return (mobileDevice['email'][0], False)
+    return ('Unknown', False)
+  if mobileDevice['email']:
+    return (mobileDevice['email'][0], True)
+  return ('Unknown', True)
 
 # gam update mobile|mobiles <MobileDeviceEntity> action <MobileAction>
+#	[doit] [matchusers <UserTypeEntity>]
 def doUpdateMobileDevices():
   entityList, cd = getMobileDeviceEntity()
   body = {}
+  options = {'doit': False, 'matchUsers': set()}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'action':
       body['action'] = getChoice(MOBILE_ACTION_CHOICE_MAP, mapChoice=True)
     else:
-      unknownArgumentExit()
+      _getUpdateDeleteMobileOptions(myarg, options)
+  if not body:
+    entityActionNotPerformedWarning([Ent.MOBILE_DEVICE, None], Msg.NO_ACTION_SPECIFIED)
+    return
   i = 0
   count = len(entityList)
-  for resourceId in entityList:
+  if count == 1:
+    options['doit'] = True
+  for device in entityList:
     i += 1
-    try:
-      if body:
+    resourceId = device['resourceId']
+    deviceUser, status = _getMobileDeviceUser(device, options)
+    if not status:
+      entityActionNotPerformedWarning([Ent.MOBILE_DEVICE, resourceId, Ent.USER, deviceUser], Msg.USER_NOT_IN_MATCHUSERS, i, count)
+    elif not options['doit']:
+      entityActionNotPerformedWarning([Ent.MOBILE_DEVICE, resourceId, Ent.USER, deviceUser], Msg.USE_DOIT_ARGUMENT_TO_PERFORM_ACTION, i, count)
+    else:
+      try:
         callGAPI(cd.mobiledevices(), 'action',
                  bailOnInternalError=True, throw_reasons=[GAPI.INTERNAL_ERROR, GAPI.RESOURCE_ID_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                  customerId=GC.Values[GC.CUSTOMER_ID], resourceId=resourceId, body=body)
-        printEntityKVList([Ent.MOBILE_DEVICE, resourceId],
-                          [Msg.ACTION_APPLIED, body['action']],
-                          i, count)
-    except GAPI.internalError:
-      entityActionFailedWarning([Ent.MOBILE_DEVICE, resourceId], Msg.DOES_NOT_EXIST, i, count)
-    except (GAPI.resourceIdNotFound, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
-      entityActionFailedWarning([Ent.MOBILE_DEVICE, resourceId], str(e), i, count)
+        printEntityKVList([Ent.MOBILE_DEVICE, resourceId, Ent.USER, deviceUser],
+                          [Msg.ACTION_APPLIED, body['action']], i, count)
+      except GAPI.internalError:
+        entityActionFailedWarning([Ent.MOBILE_DEVICE, resourceId], Msg.DOES_NOT_EXIST, i, count)
+      except (GAPI.resourceIdNotFound, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
+        entityActionFailedWarning([Ent.MOBILE_DEVICE, resourceId], str(e), i, count)
 
 # gam delete mobile|mobiles <MobileDeviceEntity>
+#	[doit] [matchusers <UserTypeEntity>]
 def doDeleteMobileDevices():
   entityList, cd = getMobileDeviceEntity()
-  checkForExtraneousArguments()
+  options = {'doit': False, 'matchUsers': set()}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    _getUpdateDeleteMobileOptions(myarg, options)
   i = 0
   count = len(entityList)
-  for resourceId in entityList:
+  if count == 1:
+    options['doit'] = True
+  for device in entityList:
     i += 1
-    try:
-      callGAPI(cd.mobiledevices(), 'delete',
-               bailOnInternalError=True, throw_reasons=[GAPI.INTERNAL_ERROR, GAPI.RESOURCE_ID_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-               customerId=GC.Values[GC.CUSTOMER_ID], resourceId=resourceId)
-      entityActionPerformed([Ent.MOBILE_DEVICE, resourceId], i, count)
-    except GAPI.internalError:
-      entityActionFailedWarning([Ent.MOBILE_DEVICE, resourceId], Msg.DOES_NOT_EXIST, i, count)
-    except (GAPI.resourceIdNotFound, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
-      entityActionFailedWarning([Ent.MOBILE_DEVICE, resourceId], str(e), i, count)
+    resourceId = device['resourceId']
+    deviceUser, status = _getMobileDeviceUser(device, options)
+    if not status:
+      entityActionNotPerformedWarning([Ent.MOBILE_DEVICE, resourceId, Ent.USER, deviceUser], Msg.USER_NOT_IN_MATCHUSERS, i, count)
+    elif not options['doit']:
+      entityActionNotPerformedWarning([Ent.MOBILE_DEVICE, resourceId, Ent.USER, deviceUser], Msg.USE_DOIT_ARGUMENT_TO_PERFORM_ACTION, i, count)
+    else:
+      try:
+        callGAPI(cd.mobiledevices(), 'delete',
+                 bailOnInternalError=True, throw_reasons=[GAPI.INTERNAL_ERROR, GAPI.RESOURCE_ID_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                 customerId=GC.Values[GC.CUSTOMER_ID], resourceId=resourceId)
+        entityActionPerformed([Ent.MOBILE_DEVICE, resourceId, Ent.USER, deviceUser], i, count)
+      except GAPI.internalError:
+        entityActionFailedWarning([Ent.MOBILE_DEVICE, resourceId], Msg.DOES_NOT_EXIST, i, count)
+      except (GAPI.resourceIdNotFound, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
+        entityActionFailedWarning([Ent.MOBILE_DEVICE, resourceId], str(e), i, count)
 
 MOBILE_FIELDS_CHOICE_MAP = {
   'adbstatus': 'adbStatus',
@@ -14516,8 +14557,9 @@ def doInfoMobileDevices():
   fields = ','.join(set(parameters['fieldsList'])) if parameters['fieldsList'] else None
   i = 0
   count = len(entityList)
-  for resourceId in entityList:
+  for device in entityList:
     i += 1
+    resourceId = device['resourceId']
     try:
       mobile = callGAPI(cd.mobiledevices(), 'get',
                         bailOnInternalError=True, throw_reasons=[GAPI.INTERNAL_ERROR, GAPI.RESOURCE_ID_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],

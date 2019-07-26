@@ -1,7 +1,22 @@
+4.89.07
+
+Added new forms of `gam create\use project` to allow unambiguous entry of options.
+gam create project [admin <EmailAddress>] [project <ProjectID>] [parent <String>]
+gam use project [admin <EmailAddress>] [project <ProjectID>]
+
+Following Jay's suggestion, added options to `gam update\delete mobile` to allow qualifying
+devices by user email address. This would typically be used when a query is performed to select devices.
+Additionally, if more that one device is selected, the `doit` option must be specified.
+
+gam update mobile <MobileEntity> action <MobileAction>
+        [doit] [matchusers <UserTypeEntity>]
+gam delete mobile <MobileEntity>
+        [doit] [matchusers <UserTypeEntity>]
+
 4.89.06
 
 Add code to handle a rare API error when creating a group.
-Fix segmentaion fault error in Linux executables.
+Fix segmentation fault error in Linux executables.
 
 4.89.05
 
