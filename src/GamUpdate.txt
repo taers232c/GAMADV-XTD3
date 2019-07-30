@@ -1,3 +1,9 @@
+4.89.08
+
+Make GAM family (GAMADV-X, GAMADV-XTD, GAMADV-XTD3) explicit in `gam version`.
+
+Handle an additional API error in `gam create resource`.
+
 4.89.07
 
 Added new forms of `gam create\use project` to allow unambiguous entry of options.

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.89.07'
+__version__ = '4.89.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -140,7 +140,7 @@ GM.Globals[GM.GAM_PATH] = os.path.dirname(os.path.realpath(__file__)) if not get
 GIT_USER = 'taers232c'
 GAM = 'GAMADV-XTD3'
 GAM_URL = 'https://github.com/{0}/{1}'.format(GIT_USER, GAM)
-GAM_INFO = 'GAM {0} - {1} / {2} / Python {3}.{4}.{5} {6} / {7} {8} /'.format(__version__, GAM_URL,
+GAM_INFO = '{0} {1} - {2} / {3} / Python {4}.{5}.{6} {7} / {8} {9} /'.format(GAM, __version__, GAM_URL,
                                                                              __author__,
                                                                              sys.version_info[0], sys.version_info[1], sys.version_info[2],
                                                                              sys.version_info[3],
@@ -5809,8 +5809,8 @@ def doVersion(checkForArgs=True):
   if simple:
     writeStdout(__version__)
     return
-  version_data = 'GAM {0} - {1}\n{2}\nPython {3}.{4}.{5} {6}-bit {7}\ngoogle-api-python-client {8}\nhttplib2 {9}\noauth2client {10}\n{11} {12}\nPath: {13}\n'
-  writeStdout(version_data.format(__version__, GAM_URL, __author__, sys.version_info[0],
+  version_data = '{0} {1} - {2}\n{3}\nPython {4}.{5}.{6} {7}-bit {8}\ngoogle-api-python-client {9}\nhttplib2 {10}\noauth2client {11}\n{12} {13}\nPath: {14}\n'
+  writeStdout(version_data.format(GAM, __version__, GAM_URL, __author__, sys.version_info[0],
                                   sys.version_info[1], sys.version_info[2], struct.calcsize('P')*8,
                                   sys.version_info[3], googleapiclient.__version__, httplib2.__version__, oauth2client.__version__,
                                   platform.platform(), platform.machine(), GM.Globals[GM.GAM_PATH]))
@@ -17731,10 +17731,10 @@ def doCreateResourceCalendar():
   body = _getResourceCalendarAttributes(cd, {'resourceId': getString(Cmd.OB_RESOURCE_ID), 'resourceName': getString(Cmd.OB_NAME)})
   try:
     callGAPI(cd.resources().calendars(), 'insert',
-             throw_reasons=[GAPI.INVALID, GAPI.REQUIRED, GAPI.DUPLICATE, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+             throw_reasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.REQUIRED, GAPI.DUPLICATE, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
              customer=GC.Values[GC.CUSTOMER_ID], body=body, fields='')
     entityActionPerformed([Ent.RESOURCE_CALENDAR, body['resourceId']])
-  except (GAPI.invalid, GAPI.required) as e:
+  except (GAPI.invalid, GAPI.invalidInput, GAPI.required) as e:
     entityActionFailedWarning([Ent.RESOURCE_CALENDAR, body['resourceId']], str(e))
   except GAPI.duplicate:
     entityDuplicateWarning([Ent.RESOURCE_CALENDAR, body['resourceId']])
@@ -31701,7 +31701,7 @@ def createDriveFile(users):
       else:
         csvPF.WriteRow({'User': user, fileNameTitle: result[VX_FILENAME], 'id': result['id']})
     except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
-            GAPI.notFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed) as e:
+            GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, body[VX_FILENAME]], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
