@@ -1,3 +1,7 @@
+4.89.09
+
+Handle inappropriate error when Gam has to update oauth2.txt after an upgrade.
+
 4.89.08
 
 Make GAM family (GAMADV-X, GAMADV-XTD, GAMADV-XTD3) explicit in `gam version`.

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.89.08'
+__version__ = '4.89.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3048,7 +3048,7 @@ def getOauth2TxtCredentials(storageOnly=False, updateOnError=True):
       action = Act.Get()
       Act.Set(Act.UPDATE)
       entityPerformAction([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]])
-      doOAuthUpdate()
+      doOAuthUpdate(noArgumentCheck=True)
       Act.Set(action)
       continue
     except (KeyError, ValueError):
@@ -6700,8 +6700,9 @@ def doOAuthInfo():
   printBlankLine()
 
 # gam oauth|oauth2 update
-def doOAuthUpdate():
-  checkForExtraneousArguments()
+def doOAuthUpdate(noArgumentCheck=False):
+  if not noArgumentCheck:
+    checkForExtraneousArguments()
   exitIfNoOauth2Txt()
   jsonData = readFile(GC.Values[GC.OAUTH2_TXT], continueOnError=True, displayError=False)
   if not jsonData:
