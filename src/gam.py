@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.89.09'
+__version__ = '4.90.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2300,7 +2300,7 @@ def openCSVFileReader(filename, fieldnames=None):
   if checkArgumentPresent('fields'):
     fieldnames = shlexSplitList(getString(Cmd.OB_FIELD_NAME_LIST))
   csvFile = csv.DictReader(f, fieldnames=fieldnames, delimiter=delimiter, quotechar=quotechar)
-  return (f, csvFile)
+  return (f, csvFile, csvFile.fieldnames if csvFile.fieldnames is not None else [])
 
 def incrAPICallsRetryData(errMsg, delta):
   GM.Globals[GM.API_CALLS_RETRY_DATA].setdefault(errMsg, [0, 0.0])
@@ -2756,6 +2756,7 @@ def SetGlobalVariables():
     GM.Globals[GM.LAST_UPDATE_CHECK_TXT] = os.path.join(_getCfgDirectory(configparser.DEFAULTSECT, GC.CONFIG_DIR), FN_LAST_UPDATE_CHECK_TXT)
   status = {'errors': False}
   sectionName = _getCfgSection(configparser.DEFAULTSECT, GC.SECTION)
+  filterSectionName = None
 # select <SectionName> [save] [verify]
   if checkArgumentPresent(Cmd.SELECT_CMD):
     sectionName = _selectSection()
@@ -2767,6 +2768,9 @@ def SetGlobalVariables():
         _verifyValues(sectionName)
       else:
         break
+# selectfilter <SectionName>
+  if checkArgumentPresent(Cmd.SELECTFILTER_CMD):
+    filterSectionName = _selectSection()
 # Handle todrive_nobrowser and todrive_noemail if not present
   value = GM.Globals[GM.PARSER].get(configparser.DEFAULTSECT, GC.TODRIVE_NOBROWSER)
   if value == '':
@@ -2834,6 +2838,10 @@ def SetGlobalVariables():
       GC.Values[itemName] = _getCfgString(sectionName, itemName)
     elif varType == GC.TYPE_FILE:
       GC.Values[itemName] = _getCfgFile(sectionName, itemName)
+# Process selectfilter
+  if filterSectionName:
+    GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] = _getCfgHeaderFilter(filterSectionName, GC.CSV_OUTPUT_HEADER_FILTER)
+    GC.Values[GC.CSV_OUTPUT_ROW_FILTER] = _getCfgRowFilter(filterSectionName, GC.CSV_OUTPUT_ROW_FILTER)
   if status['errors']:
     sys.exit(CONFIG_ERROR_RC)
   GC.Values[GC.DOMAIN] = GC.Values[GC.DOMAIN].lower()
@@ -4465,11 +4473,11 @@ def getEntitiesFromCSVFile(shlexSplit):
     invalidArgumentExit(Cmd.OB_FILE_NAME_FIELD_NAME)
   fileFieldNameList = fileFieldName.split(':')
   filename = drive+fileFieldNameList[0]
-  f, csvFile = openCSVFileReader(filename)
+  f, csvFile, fieldnames = openCSVFileReader(filename)
   for fieldName in fileFieldNameList[1:]:
-    if fieldName not in csvFile.fieldnames:
-      csvFieldErrorExit(fieldName, csvFile.fieldnames, backupArg=True, checkForCharset=True)
-  matchFields, skipFields = getMatchSkipFields(csvFile.fieldnames)
+    if fieldName not in fieldnames:
+      csvFieldErrorExit(fieldName, fieldnames, backupArg=True, checkForCharset=True)
+  matchFields, skipFields = getMatchSkipFields(fieldnames)
   dataDelimiter = getDelimiter()
   entitySet = set()
   entityList = []
@@ -4504,8 +4512,8 @@ def getEntitiesFromCSVbyField():
       GM.Globals[globalKeyField] = None
       return (None, None, None, None)
     keyField = GM.Globals[globalKeyField] = getString(Cmd.OB_FIELD_NAME)
-    if keyField not in csvFile.fieldnames:
-      csvFieldErrorExit(keyField, csvFile.fieldnames, backupArg=True)
+    if keyField not in fieldnames:
+      csvFieldErrorExit(keyField, fieldnames, backupArg=True)
     if checkArgumentPresent('keypattern'):
       keyPattern = getREPattern()
     else:
@@ -4530,18 +4538,18 @@ def getEntitiesFromCSVbyField():
     return [key for key in keyList if key]
 
   filename = getString(Cmd.OB_FILE_NAME)
-  f, csvFile = openCSVFileReader(filename)
+  f, csvFile, fieldnames = openCSVFileReader(filename)
   mainKeyField, mainKeyPattern, mainKeyValue, mainKeyDelimiter = getKeyFieldInfo('keyfield', True, GM.CSV_KEY_FIELD)
   subKeyField, subKeyPattern, subKeyValue, subKeyDelimiter = getKeyFieldInfo('subkeyfield', False, GM.CSV_SUBKEY_FIELD)
-  matchFields, skipFields = getMatchSkipFields(csvFile.fieldnames)
+  matchFields, skipFields = getMatchSkipFields(fieldnames)
   if checkArgumentPresent('datafield'):
     if GM.Globals[GM.CSV_DATA_DICT]:
       csvDataAlreadySavedErrorExit()
     GM.Globals[GM.CSV_DATA_FIELD] = getString(Cmd.OB_FIELD_NAME, checkBlank=True)
     dataFields = GM.Globals[GM.CSV_DATA_FIELD].split(':')
     for dataField in dataFields:
-      if dataField not in csvFile.fieldnames:
-        csvFieldErrorExit(dataField, csvFile.fieldnames, backupArg=True)
+      if dataField not in fieldnames:
+        csvFieldErrorExit(dataField, fieldnames, backupArg=True)
     dataDelimiter = getDelimiter()
   else:
     GM.Globals[GM.CSV_DATA_FIELD] = None
@@ -6366,12 +6374,12 @@ def doCSV():
   if (filename == '-') and (GC.Values[GC.DEBUG_LEVEL] > 0):
     Cmd.Backup()
     usageErrorExit(Msg.BATCH_CSV_LOOP_DASH_DEBUG_INCOMPATIBLE.format(Cmd.CSV_CMD))
-  f, csvFile = openCSVFileReader(filename)
-  matchFields, skipFields = getMatchSkipFields(csvFile.fieldnames)
+  f, csvFile, fieldnames = openCSVFileReader(filename)
+  matchFields, skipFields = getMatchSkipFields(fieldnames)
   checkArgumentPresent(Cmd.GAM_CMD, required=True)
   if not Cmd.ArgumentsRemaining():
     missingArgumentExit(Cmd.OB_GAM_ARGUMENT_LIST)
-  GAM_argv, subFields = getSubFields([Cmd.GAM_CMD], csvFile.fieldnames)
+  GAM_argv, subFields = getSubFields([Cmd.GAM_CMD], fieldnames)
   items = []
   for row in csvFile:
     if checkMatchSkipFields(row, matchFields, skipFields):
@@ -7181,7 +7189,7 @@ def doCreateProject():
           except (KeyError, IndexError):
             systemErrorExit(3, 'You have no rights to create projects for your organization and you don\'t seem to be a super admin! Sorry, there\'s nothing more I can do.')
           org_policy = callGAPI(crm.organizations(), 'getIamPolicy',
-                                resource=organization, body={})
+                                resource=organization)
           if 'bindings' not in org_policy:
             org_policy['bindings'] = []
             sys.stdout.write('Looks like no one has rights to your Google Cloud Organization. Attempting to give you create rights...\n')
@@ -14380,9 +14388,11 @@ def getMobileDeviceEntity():
       Cmd.Backup()
       query = None
   if not query:
-    return ([{'resourceId': device, 'email': []} for device in getEntityList(Cmd.OB_MOBILE_ENTITY)], cd)
+    return ([{'resourceId': device, 'email': []} for device in getEntityList(Cmd.OB_MOBILE_ENTITY)], cd, True)
   try:
+    printGettingAllAccountEntities(Ent.MOBILE_DEVICE, query)
     devices = callGAPIpages(cd.mobiledevices(), 'list', 'mobiledevices',
+                            page_message=getPageMessage(),
                             throw_reasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                             customerId=GC.Values[GC.CUSTOMER_ID], query=query,
                             fields='nextPageToken,mobiledevices(resourceId,email)')
@@ -14391,7 +14401,7 @@ def getMobileDeviceEntity():
     usageErrorExit(Msg.INVALID_QUERY)
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
     accessErrorExit(cd)
-  return ([{'resourceId': device['resourceId'], 'email': device.get('email', [])} for device in devices], cd)
+  return ([{'resourceId': device['resourceId'], 'email': device.get('email', [])} for device in devices], cd, False)
 
 def _getUpdateDeleteMobileOptions(myarg, options):
   if myarg in ['matchusers', 'ifusers']:
@@ -14417,9 +14427,9 @@ def _getMobileDeviceUser(mobileDevice, options):
 # gam update mobile|mobiles <MobileDeviceEntity> action <MobileAction>
 #	[doit] [matchusers <UserTypeEntity>]
 def doUpdateMobileDevices():
-  entityList, cd = getMobileDeviceEntity()
+  entityList, cd, doit = getMobileDeviceEntity()
   body = {}
-  options = {'doit': False, 'matchUsers': set()}
+  options = {'doit': doit, 'matchUsers': set()}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'action':
@@ -14431,8 +14441,6 @@ def doUpdateMobileDevices():
     return
   i = 0
   count = len(entityList)
-  if count == 1:
-    options['doit'] = True
   for device in entityList:
     i += 1
     resourceId = device['resourceId']
@@ -14456,15 +14464,13 @@ def doUpdateMobileDevices():
 # gam delete mobile|mobiles <MobileDeviceEntity>
 #	[doit] [matchusers <UserTypeEntity>]
 def doDeleteMobileDevices():
-  entityList, cd = getMobileDeviceEntity()
-  options = {'doit': False, 'matchUsers': set()}
+  entityList, cd, doit = getMobileDeviceEntity()
+  options = {'doit': doit, 'matchUsers': set()}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     _getUpdateDeleteMobileOptions(myarg, options)
   i = 0
   count = len(entityList)
-  if count == 1:
-    options['doit'] = True
   for device in entityList:
     i += 1
     resourceId = device['resourceId']
@@ -21779,12 +21785,12 @@ def _getGroupOrgUnitMap():
       field = defaultField
     else:
       field = getString(Cmd.OB_FIELD_NAME)
-    if field not in csvFile.fieldnames:
-      csvFieldErrorExit(field, csvFile.fieldnames, backupArg=True)
+    if field not in fieldnames:
+      csvFieldErrorExit(field, fieldnames, backupArg=True)
     return field
 
   filename = getString(Cmd.OB_FILE_NAME)
-  f, csvFile = openCSVFileReader(filename)
+  f, csvFile, fieldnames = openCSVFileReader(filename)
   keyField = getKeyFieldInfo('keyfield', 'Group')
   dataField = getKeyFieldInfo('datafield', 'OrgUnit')
   groupOrgUnitMap = {}
@@ -28164,7 +28170,7 @@ def updateCalendarAttendees(users):
     myarg = getArgument()
     if myarg == 'csv':
       errors = 0
-      f, csvFile = openCSVFileReader(getString(Cmd.OB_FILE_NAME), fieldnames=['addr', 'op', 'optional', 'status'])
+      f, csvFile, _ = openCSVFileReader(getString(Cmd.OB_FILE_NAME), fieldnames=['addr', 'op', 'optional', 'status'])
       for row in csvFile:
         updAddr = row['addr']
         updOp = row['op'].lower()
@@ -36993,7 +36999,7 @@ def watchGmail(users):
   else:
     topic = gamTopics+str(uuid.uuid4())
     callGAPI(pubsub.projects().topics(), 'create',
-             name=topic, body={})
+             name=topic)
     body = {'policy': {'bindings': [{'members': ['serviceAccount:gmail-api-push@system.gserviceaccount.com'], 'role': 'roles/pubsub.editor'}]}}
     callGAPI(pubsub.projects().topics(), 'setIamPolicy',
              resource=topic, body=body)
@@ -41370,8 +41376,8 @@ def doLoop():
   if (filename == '-') and (GC.Values[GC.DEBUG_LEVEL] > 0):
     Cmd.Backup()
     usageErrorExit(Msg.BATCH_CSV_LOOP_DASH_DEBUG_INCOMPATIBLE.format(Cmd.LOOP_CMD))
-  f, csvFile = openCSVFileReader(filename)
-  matchFields, skipFields = getMatchSkipFields(csvFile.fieldnames)
+  f, csvFile, fieldnames = openCSVFileReader(filename)
+  matchFields, skipFields = getMatchSkipFields(fieldnames)
   checkArgumentPresent(Cmd.GAM_CMD, required=True)
   if not Cmd.ArgumentsRemaining():
     missingArgumentExit(Cmd.OB_GAM_ARGUMENT_LIST)
@@ -41383,7 +41389,7 @@ def doLoop():
 # gam loop ... gam !redirect|select|config ... no further processing of gam.cfg
 # gam redirect|select|config ... loop ... gam !redirect|select|config ... no further processing of gam.cfg
   processGamCfg = choice in Cmd.GAM_META_COMMANDS
-  GAM_argv, subFields = getSubFields([Cmd.GAM_CMD], csvFile.fieldnames)
+  GAM_argv, subFields = getSubFields([Cmd.GAM_CMD], fieldnames)
   multi = GM.Globals[GM.CSVFILE][GM.REDIRECT_MULTIPROCESS]
   if multi:
     mpQueue, mpQueueHandler = initializeCSVFileQueueHandler(None, None)

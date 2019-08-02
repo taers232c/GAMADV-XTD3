@@ -285,11 +285,12 @@ class GamCLArgs(object):
   CSV_CMD = 'csv'
   LOOP_CMD = 'loop'
   TBATCH_CMD = 'tbatch'
-# Command line select/config/redirect arguments
+# Command line select/selectfilter/config/redirect arguments
   SELECT_CMD = 'select'
+  SELECTFILTER_CMD = 'selectfilter'
   CONFIG_CMD = 'config'
   REDIRECT_CMD = 'redirect'
-  GAM_META_COMMANDS = [SELECT_CMD, CONFIG_CMD, REDIRECT_CMD,]
+  GAM_META_COMMANDS = [SELECT_CMD, SELECTFILTER_CMD, CONFIG_CMD, REDIRECT_CMD,]
 # Command line arguments
   ARG_3LO = '3lo'
   ARG_ACL = 'acl'

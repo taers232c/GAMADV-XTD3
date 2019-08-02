@@ -615,6 +615,11 @@ verify
     Print the variable values for the selected section
     Values are determined in this order: Selected section, DEFAULT section, Program default
 
+## Select a filter section from gam.cfg and process a GAM command using values from that section
+The only <VariableName>s recognized in this <Section> are: csv_output_header_filter and csv_output_row_filter.
+<SelectFilter> ::=
+        selectfilter <Section>
+
 ## Set variables in gam.cfg.
 
 <Config> ::=
@@ -641,11 +646,11 @@ For redirect csv, the optional arguments must appear in the order shown.
         redirect stderr null [multiprocess] |
         redirect stderr stdout [multiprocess]
 
-<Select> <Config> <Redirect> must come before all other arguments and in this order,  ... indicates that additional GAM arguments may appear.
+<Select> <SelectFilter> <Config> <Redirect> must come before all other arguments and in this order,  ... indicates that additional GAM arguments may appear.
 
-gam [<Select>] [<Config>] [<Redirect>] ...
+gam [<Select>] [<SelectFilter>] [<Config>] [<Redirect>] ...
 
-<Select> <Config> <Redirect>] will not be shown in the following command descriptions but can be used with any Gam command.
+<Select> <SelectFilter> <Config> <Redirect>] will not be shown in the following command descriptions but can be used with any Gam command.
 
 # Version and Help
 

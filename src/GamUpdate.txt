@@ -1,3 +1,12 @@
+4.90.00
+
+Added the `selectfilter <Section>` meta command to allow selection pf predefined CSV output filters.
+The only `<VariableName>`s recognized in this `<Section>` are: `csv_output_header_filter` and `csv_output_row_filter`.
+You can use this meta command by itself:
+gam selectfilter LastLoginTimeFilter print users fields primaryemail,lastlogintime
+You can combine the `select` and `selectfilter` meta commands:
+gam select Domain1 selectfilter LastLoginTimeFilter print users fields primaryemail,lastlogintime
+
 4.89.09
 
 Handle inappropriate error when Gam has to update oauth2.txt after an upgrade.
