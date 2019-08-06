@@ -5,6 +5,7 @@ env:
   - BUILD_OPENSSL_VERSION=1.1.1c
   - PATCHELF_VERSION=0.9
   - MUSL_VERSION=1.1.22
+  - PYINSTALLER_VERSION=3.5
 cache:
   directories:
     - $HOME/.cache/pip

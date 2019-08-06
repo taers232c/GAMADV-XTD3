@@ -12,6 +12,7 @@ this_glibc_ver=$(ldd --version | awk '/ldd/{print $NF}')
 echo "GAM Version:" $GAMVERSION
 echo "GAM OS:" $GAMOS
 echo "GAM Platform:" $PLATFORM
+echo "dist:"   $dist
 echo "glibc:"  glibc$this_glibc_ver
 GAM_ARCHIVE=$gampath-$GAMVERSION-$GAMOS-$PLATFORM-glibc$this_glibc_ver.tar.xz
 echo "GAM Archive;" $GAM_ARCHIVE
