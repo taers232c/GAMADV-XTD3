@@ -12,7 +12,6 @@ this_glibc_ver=$(ldd --version | awk '/ldd/{print $NF}')
 echo "GAM Version:" $GAMVERSION
 echo "GAM OS:" $GAMOS
 echo "GAM Platform:" $PLATFORM
-echo "dist:"   $dist
 echo "glibc:"  glibc$this_glibc_ver
 GAM_ARCHIVE=$gampath-$GAMVERSION-$GAMOS-$PLATFORM-glibc$this_glibc_ver.tar.xz
 echo "GAM Archive:" $GAM_ARCHIVE
@@ -24,17 +23,10 @@ time $gam version extended
 if [[ "$dist" == "precise" ]]; then
   GAM_LEGACY_ARCHIVE=$gampath-$GAMVERSION-$GAMOS-$PLATFORM-legacy.tar.xz
   echo "GAM Archive:" $GAM_LEGACY_ARCHIVE
-  pwd
-  echo "Pre-Python"
-  ls -l $gampath
   $python -OO -m staticx $gampath/gam $gampath/gam-staticx
-  echo "Post-Python"
-  ls -l $gampath
   strip $gampath/gam-staticx
   rm $gampath/gam
   mv $gampath/gam-staticx $gampath/gam
-  echo "Post-Strip"
-  ls -l $gampath
   tar cfJ $GAM_LEGACY_ARCHIVE $gampath/
   echo "Legacy StaticX GAM info:"
   du -h $gampath/gam
