@@ -26,15 +26,15 @@ if [[ "$dist" == "precise" ]]; then
   echo "GAM Archive:" $GAM_LEGACY_ARCHIVE
   pwd
   echo "Pre-Python"
-  ls -l $pampath
+  ls -l $gampath
   $python -OO -m staticx $gampath/gam $gampath/gam-staticx
   echo "Post-Python"
-  ls -l $pampath
+  ls -l $gampath
   strip $gampath/gam-staticx
   rm $gampath/gam
   mv $gampath/gam-staticx $gampath/gam
   echo "Post-Strip"
-  ls -l $pampath
+  ls -l $gampath
   tar cfJ $GAM_LEGACY_ARCHIVE $gampath/
   echo "Legacy StaticX GAM info:"
   du -h $gampath/gam
