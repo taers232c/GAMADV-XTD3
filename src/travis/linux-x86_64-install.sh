@@ -19,3 +19,15 @@ tar cfJ $GAM_ARCHIVE $gampath/
 echo "PyInstaller GAM info:"
 du -h $gampath/gam
 time $gam version extended
+
+if [[ "$dist" == "precise" ]]; then
+  GAM_LEGACY_ARCHIVE=gam-$GAMVERSION-$GAMOS-$PLATFORM-legacy.tar.xz
+  $python -OO -m staticx gam/gam gam/gam-staticx
+  strip gam/gam-staticx
+  rm gam/gam
+  mv gam/gam-staticx gam/gam
+  tar cfJ $GAM_LEGACY_ARCHIVE gam/
+  echo "Legacy StaticX GAM info:"
+  du -h gam/gam
+  time $gam version extended
+fi

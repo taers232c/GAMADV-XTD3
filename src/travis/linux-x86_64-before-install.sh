@@ -10,7 +10,7 @@ else
   echo "RUNNING: apt update..."
   sudo apt-get -qq --yes update > /dev/null
   echo "RUNNING: apt dist-upgrade..."
-  sudo apt-get -qq --yes dist-upgrade > /dev/null
+#  sudo apt-get -qq --yes dist-upgrade > /dev/null
   echo "Installing build tools..."
   sudo apt-get -qq --yes install build-essential
 
@@ -47,29 +47,39 @@ else
   cd ~/pybuild
   # Compile latest Python
   if [ ! -d Python-$BUILD_PYTHON_VERSION ]; then
-    wget --quiet https://www.python.org/ftp/python/$BUILD_PYTHON_VERSION/Python-$BUILD_PYTHON_VERSION.tar.xz
+    echo "Downloading Python $BUILD_PYTHON_VERSION..."
+    curl -O https://www.python.org/ftp/python/$BUILD_PYTHON_VERSION/Python-$BUILD_PYTHON_VERSION.tar.xz
+#    wget --quiet https://www.python.org/ftp/python/$BUILD_PYTHON_VERSION/Python-$BUILD_PYTHON_VERSION.tar.xz
     echo "Extracting Python..."
     tar xf Python-$BUILD_PYTHON_VERSION.tar.xz
   fi
   cd Python-$BUILD_PYTHON_VERSION
+  #if [[ "$dist" == "bionic" ]]; then
+  #  echo "running bionic make clean"
+  #  make clean
+  #  rm Makefile
+  #fi
   echo "Compiling Python $BUILD_PYTHON_VERSION..."
   safe_flags="--with-openssl=$mypath/ssl --enable-shared --prefix=$mypath/python --with-ensurepip=upgrade"
   unsafe_flags="--enable-optimizations --with-lto"
+
   if [ ! -e Makefile ]; then
-#    ./configure $safe_flags $unsafe_flags > /dev/null
-    ./configure $safe_flags > /dev/null
+    echo "running configure with safe and unsafe"
+    ./configure $safe_flags $unsafe_flags > /dev/null
   fi
-  make -j$cpucount -s
+  timeout 1800 make -j$cpucount -s
   RESULT=$?
   echo "First make exited with $RESULT"
   if [ $RESULT != 0 ]; then
-    echo "Trying Python compile again without unsafe flags..."
-    make clean
-    ./configure $safe_flags > /dev/null
-    make -j$cpucount -s
+    #echo "Trying Python compile again without unsafe flags..."
+    #make clean
+    #./configure $safe_flags > /dev/null
+    #make -j$cpucount -s
+    echo "Sticking with safe Python for now..."
+  else
+    echo "Installing optimized Python..."
+    make install > /dev/null
   fi
-  echo "Installing Python..."
-  make install > /dev/null
   cd ~
 
   export LD_LIBRARY_PATH=~/ssl/lib:~/python/lib
@@ -101,7 +111,6 @@ else
     fi
     $pip install git+https://github.com/JonathonReinhart/staticx.git@master
   fi
-  $pip install --upgrade pyinstaller
   cd $whereibelong
 fi
 
@@ -109,3 +118,4 @@ echo "Upgrading pip packages..."
 $pip freeze > upgrades.txt
 $pip install --upgrade -r upgrades.txt
 $pip install --upgrade -r src/requirements.txt
+$pip install --upgrade pyinstaller
