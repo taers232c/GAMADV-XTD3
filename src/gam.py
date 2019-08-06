@@ -138,13 +138,13 @@ Ind = glindent.GamIndent()
 # Finding path method varies between Python source, PyInstaller and StaticX
 if os.environ.get('STATICX_PROG_PATH', False):
   # StaticX static executable
-  GM_Globals[GM_GAM_PATH] = os.path.dirname(os.environ['STATICX_PROG_PATH'])
+  GM.Globals[GM.GAM_PATH] = os.path.dirname(os.environ['STATICX_PROG_PATH'])
   # Pyinstaller executable
 elif getattr(sys, 'frozen', False):
-  GM_Globals[GM_GAM_PATH] = os.path.dirname(sys.executable)
+  GM.Globals[GM.GAM_PATH] = os.path.dirname(sys.executable)
 else:
   # Source code
-  GM_Globals[GM_GAM_PATH] = os.path.dirname(os.path.realpath(__file__))
+  GM.Globals[GM.GAM_PATH] = os.path.dirname(os.path.realpath(__file__))
 
 GIT_USER = 'taers232c'
 GAM = 'GAMADV-XTD3'
