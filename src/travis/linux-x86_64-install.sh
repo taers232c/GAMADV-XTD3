@@ -21,13 +21,13 @@ du -h $gampath/gam
 time $gam version extended
 
 if [[ "$dist" == "precise" ]]; then
-  GAM_LEGACY_ARCHIVE=gam-$GAMVERSION-$GAMOS-$PLATFORM-legacy.tar.xz
-  $python -OO -m staticx gam/gam gam/gam-staticx
-  strip gam/gam-staticx
-  rm gam/gam
-  mv gam/gam-staticx gam/gam
-  tar cfJ $GAM_LEGACY_ARCHIVE gam/
+  GAM_LEGACY_ARCHIVE=$gampath-$GAMVERSION-$GAMOS-$PLATFORM-legacy.tar.xz
+  $python -OO -m staticx $gampath/gam $gampath/gam-staticx
+  strip $gampath/gam-staticx
+  rm $gampath/gam
+  mv $gampath/gam-staticx $gampath/gam
+  tar cfJ $GAM_LEGACY_ARCHIVE $gampath/
   echo "Legacy StaticX GAM info:"
-  du -h gam/gam
+  du -h $gampath/gam
   time $gam version extended
 fi
