@@ -1,3 +1,12 @@
+4.90.01
+
+Added commands to show group membership for a user. By default, all groups to which a member belongs are displayed;
+you can restrict the display to those groups for which the user has a specific role. You can also restrict
+the display to groups within a specific domain.
+gam <UserTypeEntity> print groups [roles <GroupRoleList>] [domain <DomainName>] [todrive <ToDriveAttributes>*]
+gam <UserTypeEntity> show groups [roles <GroupRoleList>] [domain <DomainName>]
+For example: gam user user@domain.com show groups roles owner,manager
+
 4.90.00
 
 Added the `selectfilter <Section>` meta command to allow selection pf predefined CSV output filters.

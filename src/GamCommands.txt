@@ -3683,6 +3683,8 @@ gam <UserTypeEntity> webclips <Boolean>
 
 gam <UserTypeEntity> add groups [owner|manager|member] <GroupEntity>
 gam <UserTypeEntity> delete groups [<GroupEntity>]
+gam <UserTypeEntity> print groups [roles <GroupRoleList>] [domain <DomainName>] [todrive <ToDriveAttributes>*]
+gam <UserTypeEntity> show groups [roles <GroupRoleList>] [domain <DomainName>]
 
 # Users - Licenses
 
