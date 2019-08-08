@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.90.01'
+__version__ = '4.90.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -36155,11 +36155,12 @@ def printShowUserGroups(users):
                           throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER, GAPI.CONDITION_NOT_MET],
                           retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                           groupKey=groupEmail, memberKey=user, fields='role')
-        if result['role'] in rolesSet:
+        role = result.get('role', Ent.MEMBER)
+        if role in rolesSet:
           if not csvPF:
-            printEntity([Ent.GROUP, groupEmail, Ent.ROLE, result['role']], j, jcount)
+            printEntity([Ent.GROUP, groupEmail, Ent.ROLE, role], j, jcount)
           else:
-            csvPF.WriteRow({'User': user, 'Group': groupEmail, 'Role': result['role']})
+            csvPF.WriteRow({'User': user, 'Group': groupEmail, 'Role': role})
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
         entityUnknownWarning(Ent.GROUP, groupEmail, j, jcount)
       except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet) as e:

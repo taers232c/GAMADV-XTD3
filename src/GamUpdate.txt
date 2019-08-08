@@ -1,3 +1,7 @@
+4.90.02
+
+Update `gam <UserTypeEntity> print/show groups` to handle case where a user in a group has no role.
+
 4.90.01
 
 Added commands to show group membership for a user. By default, all groups to which a member belongs are displayed;
