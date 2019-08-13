@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.90.02'
+__version__ = '4.90.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2411,16 +2411,19 @@ def SetGlobalVariables():
     if (data is not None) and writeFile(dstFile, data, continueOnError=True):
       printKeyValueList([Act.PerformedName(Act.COPY), srcFile, Msg.TO, dstFile])
 
-  def _printValueError(sectionName, itemName, value, errMessage):
-    status['errors'] = True
-    printErrorMessage(CONFIG_ERROR_RC,
-                      formatKeyValueList('',
-                                         [Ent.Singular(Ent.CONFIG_FILE), GM.Globals[GM.GAM_CFG_FILE],
-                                          Ent.Singular(Ent.SECTION), sectionName,
-                                          Ent.Singular(Ent.ITEM), itemName,
-                                          Ent.Singular(Ent.VALUE), value,
-                                          errMessage],
-                                         ''))
+  def _printValueError(sectionName, itemName, value, errMessage, sysRC=CONFIG_ERROR_RC):
+    kvlMsg = formatKeyValueList('',
+                                [Ent.Singular(Ent.CONFIG_FILE), GM.Globals[GM.GAM_CFG_FILE],
+                                 Ent.Singular(Ent.SECTION), sectionName,
+                                 Ent.Singular(Ent.ITEM), itemName,
+                                 Ent.Singular(Ent.VALUE), value,
+                                 errMessage],
+                                '')
+    if sysRC != 0:
+      status['errors'] = True
+      printErrorMessage(sysRC, kvlMsg)
+    else:
+      writeStderr(formatKeyValueList(Ind.Spaces(), [WARNING, kvlMsg], '\n'))
 
   def _getCfgBoolean(sectionName, itemName):
     value = GM.Globals[GM.PARSER].get(sectionName, itemName).lower()
@@ -2455,6 +2458,13 @@ def SetGlobalVariables():
       number = int(value) if GC.VAR_INFO[itemName][GC.VAR_TYPE] == GC.TYPE_INTEGER else float(value)
       if ((minVal is None) or (number >= minVal)) and ((maxVal is None) or (number <= maxVal)):
         return number
+      if (minVal is not None) and (number < minVal):
+        number = minVal
+      else:
+        number = maxVal
+      _printValueError(sectionName, itemName, value, '{0}: {1}, {2}: {3}'.format(Msg.EXPECTED, integerLimits(minVal, maxVal),
+                                                                                 Msg.USED, number), sysRC=0)
+      return number
     except ValueError:
       pass
     _printValueError(sectionName, itemName, value, '{0}: {1}'.format(Msg.EXPECTED, integerLimits(minVal, maxVal)))
@@ -14709,7 +14719,7 @@ def doPrintMobileDevices():
                         throw_reasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                         pageToken=pageToken,
                         customerId=GC.Values[GC.CUSTOMER_ID], query=query, projection=parameters['projection'],
-                        orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
+                        orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.MOBILE_MAX_RESULTS])
       except GAPI.invalidInput:
         entityActionFailedWarning([Ent.MOBILE_DEVICE, None], invalidQuery(query))
         return

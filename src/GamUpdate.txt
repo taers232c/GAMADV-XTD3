@@ -1,3 +1,8 @@
+4.90.03
+
+Added `mobile_max_results` to `gam.cfg`; when retrieving lists of mobile devices from the API,
+how many should be retrieved in each chunk. The default and maximum is 100.
+
 4.90.02
 
 Update `gam <UserTypeEntity> print/show groups` to handle case where a user in a group has no role.
