@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.90.03'
+__version__ = '4.90.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -19531,10 +19531,10 @@ def doCalendarsModifySettings(cal, calIds):
     calId = convertUIDtoEmailAddress(calId)
     try:
       callGAPI(cal.calendars(), 'patch',
-               throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+               throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID],
                calendarId=calId, body=body)
       entityActionPerformed([Ent.CALENDAR, calId], i, count)
-    except (GAPI.notACalendarUser, GAPI.notFound, GAPI.forbidden) as e:
+    except (GAPI.notACalendarUser, GAPI.notFound, GAPI.forbidden, GAPI.invalid) as e:
       entityActionFailedWarning([Ent.CALENDAR, calId], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError):
       entityServiceNotApplicableWarning(Ent.CALENDAR, calId, i, count)
@@ -27630,10 +27630,11 @@ def _modifyRemoveCalendars(users, calendarEntity, function, **kwargs):
       calId = normalizeCalendarId(calId, user)
       try:
         callGAPI(cal.calendars(), function,
-                 throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.CANNOT_DELETE_PRIMARY_CALENDAR, GAPI.FORBIDDEN],
+                 throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.CANNOT_DELETE_PRIMARY_CALENDAR,
+                                                            GAPI.FORBIDDEN, GAPI.INVALID],
                  calendarId=calId, **kwargs)
         entityActionPerformed([Ent.USER, user, Ent.CALENDAR, calId], j, jcount)
-      except (GAPI.notFound, GAPI.cannotDeletePrimaryCalendar, GAPI.forbidden) as e:
+      except (GAPI.notFound, GAPI.cannotDeletePrimaryCalendar, GAPI.forbidden, GAPI.invalid) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.CALENDAR, calId], str(e), j, jcount)
       except GAPI.notACalendarUser as e:
         entityActionFailedWarning([Ent.USER, user], str(e), i, count)

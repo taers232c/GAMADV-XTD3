@@ -1,3 +1,7 @@
+4.90.04
+
+Handle additional errors in `gam calendars <CalendarEntity> modify` and `gam <UserTypeEntity> modify calendars`.
+
 4.90.03
 
 Added `mobile_max_results` to `gam.cfg`; when retrieving lists of mobile devices from the API,
