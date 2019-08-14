@@ -6,7 +6,7 @@ $gam version extended
 export GAMVERSION=`$gam version simple | head -n 1 | cut -c1-7`
 cp LICENSE $gampath/
 cp license.rtf $gampath/
-cp gam-setup.bat $gampath
+cp gam-setup.bat $gampath/
 cp Gam*.txt $gampath/
 cp cacerts.pem $gampath/
 GAM_ARCHIVE=$gampath-$GAMVERSION-$GAMOS-$PLATFORM.zip
