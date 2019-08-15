@@ -1,3 +1,9 @@
+4.90.06
+
+Added additional attributes to `<UserBasicAttribute>`: `recoveryemail <EmailAddress>` and `recoveryphone <string>`.
+* `recoveryphone <string>` must contain a country code.
+Added additional fields to `<UserFieldName>`: `recoveryemail` and `recoveryphone`.
+
 4.90.05
 
 Added additional fields to `<CrOSFieldName>`: `autoupdateexpiration, dockmacaddress, ethernetmacaddress0`, manufacturedate`.

@@ -145,6 +145,10 @@ PROPERTIES = {
     {CLASS: PC_STRING, TITLE: 'Suspension Reason',},
   'changePasswordAtNextLogin':
     {CLASS: PC_BOOLEAN, TITLE: 'Must Change Password',},
+  'recoveryEmail':
+    {CLASS: PC_STRING, TITLE: 'Recovery Email',},
+  'recoveryPhone':
+    {CLASS: PC_STRING, TITLE: 'Recovery Phone',},
   'id':
     {CLASS: PC_STRING, TITLE: 'Google Unique ID',},
   'customerId':

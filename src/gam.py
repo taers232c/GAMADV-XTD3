@@ -21886,6 +21886,8 @@ UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP = {
   'posix': 'posixAccounts',
   'posixaccounts': 'posixAccounts',
   'primaryemail': 'primaryEmail',
+  'recoveryemail': 'recoveryEmail',
+  'recoveryphone': 'recoveryPhone',
   'relation': 'relations',
   'relations': 'relations',
   'sha': 'hashFunction',
@@ -22103,6 +22105,12 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         need_to_hash_password = False
       elif up == 'primaryEmail' and updateCmd:
         body[up] = getEmailAddress(noUid=True)
+      elif up == 'recoveryEmail':
+        body[up] = getEmailAddress(noUid=True)
+      elif up == 'recoveryPhone':
+        body[up] = getString(Cmd.OB_STRING)
+        if body[up][0] != '+':
+          body[up] = '+' + body[up]
       elif up == 'customerId' and updateCmd:
         body[up] = getString(Cmd.OB_STRING)
       elif up == 'orgUnitPath':
@@ -22680,6 +22688,8 @@ USER_SCALAR_PROPERTY_PRINT_ORDER = [
   'lastLoginTime',
   'deletionTime',
   'orgUnitPath',
+  'recoveryEmail',
+  'recoveryPhone',
   'thumbnailPhotoUrl',
   ]
 USER_ARRAY_PROPERTY_PRINT_ORDER = [
@@ -22814,6 +22824,8 @@ USER_FIELDS_CHOICE_MAP = {
   'posix': 'posixAccounts',
   'posixaccounts': 'posixAccounts',
   'primaryemail': 'primaryEmail',
+  'recoveryemail': 'recoveryEmail',
+  'recoveryphone': 'recoveryPhone',
   'relation': 'relations',
   'relations': 'relations',
   'ssh': 'sshPublicKeys',
