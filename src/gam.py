@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.90.04'
+__version__ = '4.90.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -13508,17 +13508,21 @@ CROS_FIELDS_CHOICE_MAP = {
   'annotateduser': 'annotatedUser',
   'asset': 'annotatedAssetId',
   'assetid': 'annotatedAssetId',
+  'autoupdateexpiration': 'autoUpdateExpiration',
   'bootmode': 'bootMode',
   'cpustatusreports': 'cpuStatusReports',
   'devicefiles': ['deviceFiles.type', 'deviceFiles.createTime'],
   'deviceid': 'deviceId',
   'diskvolumereports': 'diskVolumeReports',
+  'dockmacaddress': 'dockMacAddress',
   'ethernetmacaddress': 'ethernetMacAddress',
+  'ethernetmacaddress0': 'ethernetMacAddress0',
   'firmwareversion': 'firmwareVersion',
   'lastenrollmenttime': 'lastEnrollmentTime',
   'lastsync': 'lastSync',
   'location': 'annotatedLocation',
   'macaddress': 'macAddress',
+  'manufacturedate': 'manufactureDate',
   'meid': 'meid',
   'model': 'model',
   'notes': 'notes',
@@ -13559,18 +13563,23 @@ CROS_SCALAR_PROPERTY_PRINT_ORDER = [
   'osVersion',
   'bootMode',
   'meid',
+  'dockMacAddress',
   'ethernetMacAddress',
+  'ethernetMacAddress0',
   'macAddress',
   'systemRamTotal',
   'lastEnrollmentTime',
   'orderNumber',
+  'manufactureDate',
   'supportEndDate',
+  'autoUpdateExpiration',
   'guessedAUEDate',
   'guessedAUEModel',
   'willAutoRenew',
   ]
 
-CROS_TIME_OBJECTS = set(['lastSync', 'lastEnrollmentTime', 'supportEndDate', 'reportTime'])
+CROS_TIME_OBJECTS = set(['autoUpdateExpiration', 'lastSync', 'lastEnrollmentTime', 'supportEndDate', 'reportTime'])
+CROS_TIMESTAMP_OBJECTS = set(['autoUpdateExpiration'])
 CROS_FIELDS_WITH_CRS_NLS = ['notes']
 CROS_ACTIVE_TIME_RANGES_ARGUMENTS = ['timeranges', 'activetimeranges', 'times']
 CROS_RECENT_USERS_ARGUMENTS = ['recentusers', 'users']
@@ -13671,8 +13680,10 @@ def infoCrOSDevices(entityList):
             printKeyValueList([up, cros[up]])
           else:
             printKeyValueWithCRsNLs(up, cros[up])
-        else:
+        elif up not in CROS_TIMESTAMP_OBJECTS:
           printKeyValueList([up, formatLocalTime(cros[up])])
+        else:
+          printKeyValueList([up, formatLocalTimestamp(cros[up])])
     up = 'tpmVersionInfo'
     if up in cros:
       printKeyValueList([up, ''])
@@ -13983,8 +13994,10 @@ def doPrintCrOSDevices(entityList=None):
                             'deviceFiles', 'cpuStatusReports', 'diskVolumeReports', 'systemRamFreeReports']):
         if attrib not in CROS_TIME_OBJECTS:
           row[attrib] = cros[attrib]
-        else:
+        elif attrib not in CROS_TIMESTAMP_OBJECTS:
           row[attrib] = formatLocalTime(cros[attrib])
+        else:
+          row[attrib] = formatLocalTimestamp(cros[attrib])
     attrib = 'tpmVersionInfo'
     if attrib in cros:
       for key, value in sorted(iteritems(cros[attrib])):

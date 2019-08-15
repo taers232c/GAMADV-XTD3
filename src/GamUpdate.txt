@@ -1,3 +1,8 @@
+4.90.05
+
+Added additional fields to `<CrOSFieldName>`: `autoupdateexpiration, dockmacaddress, ethernetmacaddress0`, manufacturedate`.
+`autoupdateexpiration` will be most useful with `gam print cros` as it should eliminate the need for the `guessaue` option.
+
 4.90.04
 
 Handle additional errors in `gam calendars <CalendarEntity> modify` and `gam <UserTypeEntity> modify calendars`.

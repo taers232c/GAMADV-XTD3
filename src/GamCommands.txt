@@ -1035,16 +1035,20 @@ gam <CrOSTypeEntity> update action <CrOSAction> [acknowledge_device_touch_requir
         annotatedassetid|assetid|asset|
         annotatedlocation|location|
         annotateduser|user|
+        autoupdateexpiration|
         bootmode|
         cpustatusreports|
         devicefiles|
         deviceid|
         diskvolumereports|
+        dockmacaddress|
         ethernetmacaddress|
+        ethernetmacaddress0|
         firmwareversion|
         lastenrollmenttime|
         lastsync|
         macaddress|
+        manufacturedate|
         meid|
         model|
         notes|
