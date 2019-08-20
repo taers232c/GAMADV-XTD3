@@ -1,3 +1,17 @@
+4.90.07
+
+Added code to help Windows users address `gam oauth create` issues. When you do `gam ouath create`,
+the URL generated to authenticate the scopes is over 2500 characters long; Internet Explorer and Edge
+can not take a URL that long on the command line and cause an error. The quick fix is to do
+`gam config no_browser true oauth create` and copy/paste the long URL into the browser of your choice.
+Unfortunately, older versions of Command Prompt and PowerShell don't properly copy/paste multi line strings so you're still stuck.
+Now, GAM writes the long URL into the file `gamoauthurl.txt` in the folder with the GAM executable.
+You can open the file with Notepad/Wordpad, do a control-A to select the text, control-C to copy the text,
+start a browser and paste the URL (control-V) into the address bar. Authenticate and copy the Verification code
+back to your Command Prompt/PowerShell window.
+
+Handle traps like `TypeError: expected bytes-like object, not str` when accessing contacts and you have a proxy defined.
+
 4.90.06
 
 Added additional attributes to `<UserBasicAttribute>`: `recoveryemail <EmailAddress>` and `recoveryphone <string>`.

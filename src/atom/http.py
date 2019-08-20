@@ -231,12 +231,14 @@ class ProxiedHttpClient(HttpClient):
                 # Connect to the proxy server, very simple recv and error checking
                 p_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 p_sock.connect((proxy_url.host, int(proxy_url.port)))
-                p_sock.sendall(proxy_pieces)
+#                p_sock.sendall(proxy_pieces)
+                p_sock.sendall(proxy_pieces.encode('utf-8'))
                 response = ''
 
                 # Wait for the full response.
                 while response.find("\r\n\r\n") == -1:
-                    response += p_sock.recv(8192)
+#                    response += p_sock.recv(8192)
+                    response += p_sock.recv(8192).decode('utf-8')
 
                 p_status = response.split()[1]
                 if p_status != str(200):
@@ -306,8 +308,10 @@ def _get_proxy_auth(proxy_settings):
                 proxy_username = protocol_and_proxy_auth[0]
                 proxy_password = protocol_and_proxy_auth[1]
     if proxy_username:
-        user_auth = base64.encodestring('%s:%s' % (proxy_username,
-                                                   proxy_password))
+#        user_auth = base64.encodestring('%s:%s' % (proxy_username,
+#                                                   proxy_password))
+        user_auth = base64.encodebytes('%s:%s' % (proxy_username,
+                                                  proxy_password).encode('utf-8'))
         return 'Basic %s\r\n' % (user_auth.strip())
     else:
         return ''

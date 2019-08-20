@@ -71,6 +71,8 @@ EXTRA_ARGS_LIST = 'exad'
 # gam.cfg file
 GAM_CFG_PATH = 'gcpa'
 GAM_CFG_FILE = 'gcfi'
+# On Windows, file containing oauth create URL
+GAM_OAUTH_URL_TXT = 'gout'
 # Path to gam
 GAM_PATH = 'gpth'
 # File containing time of last GAM update check
@@ -168,6 +170,7 @@ Globals = {
   EXTRA_ARGS_LIST: [],
   GAM_CFG_PATH: '',
   GAM_CFG_FILE: '',
+  GAM_OAUTH_URL_TXT: None,
   GAM_PATH: '.',
   LAST_UPDATE_CHECK_TXT: '',
   MAKE_BUILDING_ID_NAME_MAP: True,

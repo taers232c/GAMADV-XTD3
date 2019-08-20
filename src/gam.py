@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.90.06'
+__version__ = '4.90.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -183,6 +183,7 @@ UTF8_SIG = 'utf-8-sig'
 FN_GAM_CFG = 'gam.cfg'
 FN_LAST_UPDATE_CHECK_TXT = 'lastupdatecheck.txt'
 FN_GAMCOMMANDS_TXT = 'GamCommands.txt'
+FN_GAM_OAUTH_URL_TXT = 'gamoauthurl.txt'
 MY_DRIVE = 'My Drive'
 TEAM_DRIVE = 'Drive'
 LOWERNUMERIC_CHARS = string.ascii_lowercase+string.digits
@@ -6615,19 +6616,46 @@ class cmd_flags():
     self.auth_host_name = 'localhost'
     self.auth_host_port = [8080, 9090]
 
+def setGAMOauthURLfile(access_type):
+  if GM.Globals[GM.WINDOWS] and access_type == 'offline' and GC.Values[GC.NO_BROWSER]:
+    GM.Globals[GM.GAM_OAUTH_URL_TXT] = os.path.join(GM.Globals[GM.GAM_PATH], FN_GAM_OAUTH_URL_TXT)
+  else:
+    GM.Globals[GM.GAM_OAUTH_URL_TXT] = None
+
+def writeGAMOauthURLfile(oauthURL):
+  if GM.Globals[GM.GAM_OAUTH_URL_TXT]:
+    writeFile(GM.Globals[GM.GAM_OAUTH_URL_TXT], oauthURL,
+              mode='w', continueOnError=True, displayError=True)
+
+def deleteGAMOauthURLfile():
+  if GM.Globals[GM.GAM_OAUTH_URL_TXT]:
+    deleteFile(GM.Globals[GM.GAM_OAUTH_URL_TXT], continueOnError=True, displayError=True)
+    GM.Globals[GM.GAM_OAUTH_URL_TXT] = None
+
+class SaveURLOAuth2WebServerFlow(oauth2client.client.OAuth2WebServerFlow):
+  def step1_get_authorize_url(self, redirect_uri=None, state=None):
+    oauthURL = super(SaveURLOAuth2WebServerFlow, self).step1_get_authorize_url()
+    writeGAMOauthURLfile(oauthURL)
+    return oauthURL
+
 def _run_oauth_flow(client_id, client_secret, scopes, login_hint, access_type, storage):
 # Override some oauth2client.tools strings saving us a few GAM-specific mods to oauth2client
   oauth2client.tools._FAILED_START_MESSAGE = Msg.OAUTH2_FAILED_START_MESSAGE
   oauth2client.tools._BROWSER_OPENED_MESSAGE = Msg.OAUTH2_BROWSER_OPENED_MESSAGE
   oauth2client.tools._GO_TO_LINK_MESSAGE = Msg.OAUTH2_GO_TO_LINK_MESSAGE
-  flow = oauth2client.client.OAuth2WebServerFlow(client_id=client_id, client_secret=client_secret, scope=scopes,
-                                                 redirect_uri=oauth2client.client.OOB_CALLBACK_URN,
-                                                 login_hint=login_hint, pkce=True,
-                                                 user_agent=GAM_INFO, access_type=access_type, response_type='code')
+  setGAMOauthURLfile(access_type)
+  flow = SaveURLOAuth2WebServerFlow(client_id=client_id, client_secret=client_secret, scope=scopes,
+                                    redirect_uri=oauth2client.client.OOB_CALLBACK_URN,
+                                    login_hint=login_hint, pkce=True,
+                                    user_agent=GAM_INFO, access_type=access_type, response_type='code')
   try:
-    return oauth2client.tools.run_flow(flow=flow, storage=storage,
-                                       flags=cmd_flags(noLocalWebserver=GC.Values[GC.NO_BROWSER]), http=getHttpObj())
+    credentials = oauth2client.tools.run_flow(flow=flow, storage=storage,
+                                              flags=cmd_flags(noLocalWebserver=GC.Values[GC.NO_BROWSER]),
+                                              http=getHttpObj())
+    deleteGAMOauthURLfile()
+    return credentials
   except (httplib2.HttpLib2Error, RuntimeError) as e:
+    deleteGAMOauthURLfile()
     handleServerError(e)
 
 # gam oauth|oauth2 create|request [<EmailAddress>]
