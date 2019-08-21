@@ -22137,8 +22137,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         rcvryEmail = getEmailAddress(noUid=True, optional=True)
         body[up] = rcvryEmail if rcvryEmail is not None else ""
       elif up == 'recoveryPhone':
-        body[up] = getString(Cmd.OB_STRING)
-        if body[up][0] != '+':
+        body[up] = getString(Cmd.OB_STRING, minLen=0)
+        if body[up] and body[up][0] != '+':
           body[up] = '+' + body[up]
       elif up == 'customerId' and updateCmd:
         body[up] = getString(Cmd.OB_STRING)

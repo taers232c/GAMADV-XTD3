@@ -1,6 +1,6 @@
 4.90.08
 
-Allow for empty `recoveryemail`.
+Allow for empty `recoveryemail` and `recoveryphone`.
 
 4.90.07
 
