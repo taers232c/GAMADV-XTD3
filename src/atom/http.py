@@ -207,7 +207,7 @@ class ProxiedHttpClient(HttpClient):
             if url.protocol == 'https':
                 # Set any proxy auth headers
                 if proxy_auth:
-                    proxy_auth = 'Proxy-authorization: %s' % proxy_auth
+                    proxy_auth = 'Proxy-Authorization: %s' % proxy_auth
 
                 # Construct the proxy connect command.
                 port = url.port
@@ -231,13 +231,13 @@ class ProxiedHttpClient(HttpClient):
                 # Connect to the proxy server, very simple recv and error checking
                 p_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 p_sock.connect((proxy_url.host, int(proxy_url.port)))
-#                p_sock.sendall(proxy_pieces)
+                #p_sock.sendall(proxy_pieces)
                 p_sock.sendall(proxy_pieces.encode('utf-8'))
                 response = ''
 
                 # Wait for the full response.
                 while response.find("\r\n\r\n") == -1:
-#                    response += p_sock.recv(8192)
+                    #response += p_sock.recv(8192)
                     response += p_sock.recv(8192).decode('utf-8')
 
                 p_status = response.split()[1]
@@ -347,6 +347,6 @@ def _send_data_part(data, connection):
     else:
         # The data object was not a file.
         # Try to convert to a string and send the data.
-#        connection.send(str(data))
+        #connection.send(str(data))
         connection.send(str(data).encode('utf-8'))
         return
