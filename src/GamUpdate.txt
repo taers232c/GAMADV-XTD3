@@ -1,3 +1,7 @@
+4.90.08
+
+Allow for empty `recoveryemail`.
+
 4.90.07
 
 Added code to help Windows users address `gam oauth create` issues. When you do `gam ouath create`,

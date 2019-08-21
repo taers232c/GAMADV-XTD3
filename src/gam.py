@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.90.07'
+__version__ = '4.90.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -22134,7 +22134,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       elif up == 'primaryEmail' and updateCmd:
         body[up] = getEmailAddress(noUid=True)
       elif up == 'recoveryEmail':
-        body[up] = getEmailAddress(noUid=True)
+        rcvryEmail = getEmailAddress(noUid=True, optional=True)
+        body[up] = rcvryEmail if rcvryEmail is not None else ""
       elif up == 'recoveryPhone':
         body[up] = getString(Cmd.OB_STRING)
         if body[up][0] != '+':

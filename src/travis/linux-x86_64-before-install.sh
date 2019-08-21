@@ -49,7 +49,6 @@ else
   if [ ! -d Python-$BUILD_PYTHON_VERSION ]; then
     echo "Downloading Python $BUILD_PYTHON_VERSION..."
     curl -O https://www.python.org/ftp/python/$BUILD_PYTHON_VERSION/Python-$BUILD_PYTHON_VERSION.tar.xz
-#    wget --quiet https://www.python.org/ftp/python/$BUILD_PYTHON_VERSION/Python-$BUILD_PYTHON_VERSION.tar.xz
     echo "Extracting Python..."
     tar xf Python-$BUILD_PYTHON_VERSION.tar.xz
   fi
@@ -115,7 +114,6 @@ else
 fi
 
 echo "Upgrading pip packages..."
-$pip freeze > upgrades.txt
-$pip install --upgrade -r upgrades.txt
+$pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U
 $pip install --upgrade -r src/requirements.txt
 $pip install --upgrade pyinstaller
