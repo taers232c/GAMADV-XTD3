@@ -26,7 +26,6 @@ import io
 import os
 import urllib.error
 import urllib.parse
-import urllib.parse
 import urllib.request
 
 ssl = None
@@ -590,8 +589,7 @@ def _get_proxy_auth():
     if not proxy_password:
         proxy_password = os.environ.get('proxy_password')
     if proxy_username:
-        user_auth = base64.b64encode('%s:%s' % (proxy_username,
-                                                proxy_password))
-        return 'Basic %s\r\n' % (user_auth.strip())
+        user_auth = base64.b64encode(('%s:%s' % (proxy_username, proxy_password)).encode('utf-8'))
+        return 'Basic %s\r\n' % (user_auth.strip().decode('utf-8'))
     else:
         return ''

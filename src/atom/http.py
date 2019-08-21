@@ -308,11 +308,8 @@ def _get_proxy_auth(proxy_settings):
                 proxy_username = protocol_and_proxy_auth[0]
                 proxy_password = protocol_and_proxy_auth[1]
     if proxy_username:
-#        user_auth = base64.encodestring('%s:%s' % (proxy_username,
-#                                                   proxy_password))
-        proxy_user_pw = '%s:%s' % (proxy_username, proxy_password)
-        user_auth = base64.encodestring(proxy_user_pw.encode('utf-8')).decode('utf-8')
-        return 'Basic %s\r\n' % (user_auth.strip())
+        user_auth = base64.b64encode(('%s:%s' % (proxy_username, proxy_password)).encode('utf-8'))
+        return 'Basic %s\r\n' % (user_auth.strip().decode('utf-8'))
     else:
         return ''
 
