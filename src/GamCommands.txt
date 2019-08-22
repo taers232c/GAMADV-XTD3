@@ -1181,7 +1181,6 @@ gam <CrOSTypeEntity> get devicefile [select <DeviceFileEntity>] [targetfolder <F
         (billinginfo <String>)|
         (birthday <Date>)|
         (calendar clear|(work|home|free-busy|<String> <URL> notprimary|primary))|
-        (contactgroup clear|<ContactGroupItem>)|
         (directoryserver <String>)|
         (email clear|(work|home|other|<String> <EmailAddress> notprimary|primary))|
         (event clear|(anniversary|other|<String> <Date>))|
@@ -1291,8 +1290,9 @@ gam print contacts [todrive <ToDriveAttribute>*] <ContactSelection>
         [query <QueryContact>] [(selectcontactgroup <ContactGroupItem>)|selectothercontacts] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
 
 gam <UserTypeEntity> create contact <ContactAttribute>+
-gam <UserTypeEntity> update contacts <ContactEntity> <ContactAttribute>+
-gam <UserTypeEntity> update contacts <UserContactSelection> endquery <ContactAttribute>+
+        (contactgroup <ContactGroupItem>)*
+gam <UserTypeEntity> update contacts <ContactEntity>|(<UserContactSelection> endquery) <ContactAttribute>+
+        (contactgroup <ContactGroupItem>)*|((addcontactgroup <ContactGroupItem>)* (removecontactgroup <ContactGroupItem>)*)
 gam <UserTypeEntity> clear contacts <ContactEntity>|<UserContactSelection>
         [emailclearpattern <RegularExpression>] [emailcleartype work|home|other|<String>]
         [delete_cleared_contacts_with_no_emails]

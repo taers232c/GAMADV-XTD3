@@ -1,3 +1,12 @@
+4.90.09
+
+The CrOS device field `autoUpdateExpiration` will now be displayed as a date: `YYYY-MM-DD`.
+
+Added options `addcontactgroup <ContactGroupItem>` and `removecontactgroup <ContactGroupItem>` to
+`gam <UserTypeEntity> update contacts`. This allows you add and remove contact groups from a contact
+without having to specify the entire contact group list. You can add and/or remove multiple contact
+groups in a single command.
+
 4.90.08
 
 Allow for empty `recoveryemail` and `recoveryphone`.
