@@ -1,3 +1,19 @@
+4.93.00
+
+Added option `matterstate <MatterStateList>` to `gam print/show vaultnatters` to allow
+display of Vault matters filtered by state.
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Vault#display-vault-matters
+
+Added option `exportstatus <ExportStatusList>` to `gam print/show vaultexports` to allow
+display of Vault exports filtered by status.
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Vault#display-vault-exports
+
+Added `removedomainnostatusmembers` to `gam update group sync/clear`. This option
+is used to remove members from the group that are in your domain but have no status.
+These members were added to the group before the user or group that they represent was created.
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Group-Membership#synchronize-members-in-a-group
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Group-Membership#delete-members-from-a-group-by-role
+
 4.90.09
 
 The CrOS device field `autoUpdateExpiration` will now be displayed as a date: `YYYY-MM-DD`.

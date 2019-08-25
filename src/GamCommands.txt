@@ -24,24 +24,31 @@ If an item contains spaces, it should be surrounded by ".
 
 <Charset> ::= ascii|latin1|mbcs|utf-8|utf-8-sig|utf-16|<String>
 <ColorNameGoogle> ::=
-        asparagus|bluevelvet|bubblegum|cardinal|chocolateicecream|denim|desertsand|earthworm|
-        macaroni|marsorange|mountaingray|mountaingrey|mouse|oldbrickred|pool|purpledino|purplerain|
-        rainysky|seafoam|slimegreen|spearmint|toyeggplant|vernfern|wildstrawberries|yellowcab
+        asparagus|bluevelvet|bubblegum|cardinal|chocolateicecream|denim|desertsand|
+        earthworm| macaroni|marsorange|mountaingray|mountaingrey|mouse|oldbrickred|
+        pool|purpledino|purplerain| rainysky|seafoam|slimegreen|spearmint|
+        toyeggplant|vernfern|wildstrawberries|yellowcab
 <ColorNameWeb> ::=
-        aliceblue|antiquewhite|aqua|aquamarine|azure|beige|bisque|black|blanchedalmond|blue|blueviolet|brown|burlywood|
-        cadetblue|chartreuse|chocolate|coral|cornflowerblue|cornsilk|crimson|cyan|
-        darkblue|darkcyan|darkgoldenrod|darkgray|darkgrey|darkgreen|darkkhaki|darkmagenta|darkolivegreen|darkorange|darkorchid|darkred|
-        darksalmon|darkseagreen|darkslateblue|darkslategray|darkslategrey|darkturquoise|darkviolet|deeppink|deepskyblue|dimgray|dimgrey|dodgerblue|
-        firebrick|floralwhite|forestgreen|fuchsia|gainsboro|ghostwhite|gold|goldenrod|gray|grey|green|greenyellow|
-        honeydew|hotpink|indianred|indigo|ivory|khaki|
-        lavender|lavenderblush|lawngreen|lemonchiffon|lightblue|lightcoral|lightcyan|lightgoldenrodyellow|lightgray|lightgrey|lightgreen|lightpink|
-        lightsalmon|lightseagreen|lightskyblue|lightslategray|lightslategrey|lightsteelblue|lightyellow|lime|limegreen|linen|
-        magenta|maroon|mediumaquamarine|mediumblue|mediumorchid|mediumpurple|mediumseagreen|mediumslateblue|
-        mediumspringgreen|mediumturquoise|mediumvioletred|midnightblue|mintcream|mistyrose|moccasin|navajowhite|navy|
-        oldlace|olive|olivedrab|orange|orangered|orchid|palegoldenrod|palegreen|paleturquoise|palevioletred|
-        papayawhip|peachpuff|peru|pink|plum|powderblue|purple|red|rosybrown|royalblue|
-        saddlebrown|salmon|sandybrown|seagreen|seashell|sienna|silver|skyblue|slateblue|slategray|slategrey|snow|springgreen|steelblue|
-        tan|teal|thistle|tomato|turquoise|violet|wheat|white|whitesmoke|yellow|yellowgreen
+        aliceblue|antiquewhite|aqua|aquamarine|azure|beige|bisque|black|blanchedalmond|
+        blue|blueviolet|brown|burlywood| cadetblue|chartreuse|chocolate|coral|
+        cornflowerblue|cornsilk|crimson|cyan| darkblue|darkcyan|darkgoldenrod|darkgray|
+        darkgrey|darkgreen|darkkhaki|darkmagenta|darkolivegreen|darkorange|darkorchid|
+        darkred| darksalmon|darkseagreen|darkslateblue|darkslategray|darkslategrey|
+        darkturquoise|darkviolet|deeppink|deepskyblue|dimgray|dimgrey|dodgerblue|
+        firebrick|floralwhite|forestgreen|fuchsia|gainsboro|ghostwhite|gold|goldenrod|
+        gray|grey|green|greenyellow| honeydew|hotpink|indianred|indigo|ivory|khaki|
+        lavender|lavenderblush|lawngreen|lemonchiffon|lightblue|lightcoral|lightcyan|
+        lightgoldenrodyellow|lightgray|lightgrey|lightgreen|lightpink|lightsalmon|
+        lightseagreen|lightskyblue|lightslategray|lightslategrey|lightsteelblue|
+        lightyellow|lime|limegreen|linen| magenta|maroon|mediumaquamarine|mediumblue|
+        mediumorchid|mediumpurple|mediumseagreen|mediumslateblue| mediumspringgreen|
+        mediumturquoise|mediumvioletred|midnightblue|mintcream|mistyrose|moccasin|
+        navajowhite|navy| oldlace|olive|olivedrab|orange|orangered|orchid|
+        palegoldenrod|palegreen|paleturquoise|palevioletred| papayawhip|peachpuff|
+        peru|pink|plum|powderblue|purple|red|rosybrown|royalblue| saddlebrown|salmon|
+        sandybrown|seagreen|seashell|sienna|silver|skyblue|slateblue|slategray|
+        slategrey|snow|springgreen|steelblue| tan|teal|thistle|tomato|turquoise|violet|
+        wheat|white|whitesmoke|yellow|yellowgreen
 <ColorName> ::= <ColorNameGoogle>|<ColorNameWeb>
 <FileFormat> ::=
         csv|doc|dot|docx|dotx|epub|html|jpeg|jpg|mht|odp|ods|odt|
@@ -57,11 +64,14 @@ If an item contains spaces, it should be surrounded by ".
         #f3f3f3|#f691b3|#f6c5be|#f7a7c0|#fad165|#fb4c2f|#fbc8d9|#fcda83|
         #fcdee8|#fce8b3|#fef1d1|#ffad47|#ffbc6b|#ffd6a2|#ffe6c7|#ffffff
 <Language> ::=
-        ach|af|ag|ak|am|ar|az|be|bem|bg|bn|br|bs|ca|chr|ckb|co|crs|cs|cy|da|de|ee|el|en|en-gb|en-us|eo|es|es-419|et|eu|
-        fa|fi|fo|fr|fr-ca|fy|ga|gaa|gd|gl|gn|gu|ha|haw|he|hi|hr|ht|hu|hy|ia|id|ig|in|is|it|iw|ja|jw|
-        ka|kg|kk|km|kn|ko|kri|ku|ky|la|lg|ln|lo|loz|lt|lua|lv|mfe|mg|mi|mk|ml|mn|mo|mr|ms|mt|my|
-        ne|nl|nn|no|nso|ny|nyn|oc|om|or|pa|pcm|pl|ps|pt-br|pt-pt|qu|rm|rn|ro|ru|rw|
-        sd|sh|si|sk|sl|sn|so|sq|sr|sr-me|st|su|sv|sw|ta|te|tg|th|ti|tk|tl|tn|to|tr|tt|tum|tw|
+        ach|af|ag|ak|am|ar|az|be|bem|bg|bn|br|bs|ca|chr|ckb|co|crs|cs|cy|da|de|
+        ee|el|en|en-gb|en-us|eo|es|es-419|et|eu|fa|fi|fo|fr|fr-ca|fy|
+        ga|gaa|gd|gl|gn|gu|ha|haw|he|hi|hr|ht|hu|hy|ia|id|ig|in|is|it|iw|ja|jw|
+        ka|kg|kk|km|kn|ko|kri|ku|ky|la|lg|ln|lo|loz|lt|lua|lv|
+        mfe|mg|mi|mk|ml|mn|mo|mr|ms|mt|my|ne|nl|nn|no|nso|ny|nyn|oc|om|or|
+        pa|pcm|pl|ps|pt-br|pt-pt|qu|rm|rn|ro|ru|rw|
+        sd|sh|si|sk|sl|sn|so|sq|sr|sr-me|st|su|sv|sw|
+        ta|te|tg|th|ti|tk|tl|tn|to|tr|tt|tum|tw|
         ug|uk|ur|uz|vi|wo|xh|yi|yo|zh-cn|zh-hk|zh-tw|zu
 <MimeTypeShortcut> ::=
         gdoc|gdocument|
@@ -114,7 +124,7 @@ If an item contains spaces, it should be surrounded by ".
         drive8tb|8tb|googledrivestorage8tb|Google-Drive-storage-8TB|
         drive16tb|16tb|googledrivestorage16tb|Google-Drive-storage-16TB|
         vault|googlevault|Google-Vault|
-        vfe|googlevaultformeremployee|Google-Vault-Former-Employee|
+        vfe|googlevaultformeremployee|Google-Vault-Former-Employee
 
 ## Items built from primitives
 
@@ -144,18 +154,22 @@ If an item contains spaces, it should be surrounded by ".
         (+|-)<Number>(m|h|d|w|y) |
         never|
         now|today
-<RegularExpression> ::= <Python Regular Expression, see: https://docs.python.org/3.7/library/re.html>
-<ProjectID> ::= <String> # Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
+<RegularExpression> ::= <String>
+        See: https://docs.python.org/3.7/library/re.html
+<ProjectID> ::= <String>
+        Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
 <SiteName> ::= [a-z,0-9,-]+
 <UniqueID> ::= uid:<String>
 
 ## Named items
 
 <AccessToken> ::= <String>
-<ASPID> ::= <String>
 <AlertID> ::= <String>
+<ASPID> ::= <String>
 <BuildingID> ::= <String>|id:<String>
-<CalendarACLScope> ::= <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>)|domain|default
+<CalendarACLScope> ::=
+        <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|
+        domain:<DomainName>)|domain|default
 <CalendarColorIndex> ::= <Number in range 1-24>
 <CalendarItem> ::= <EmailAddress>|<String>
 <ChatRoom> ::= <String>
@@ -198,7 +212,9 @@ If an item contains spaces, it should be surrounded by ".
 <DriveFileName> ::= <String>
 <DriveFolderID> ::= <String>
 <DriveFolderName> ::= <String>
-<DriveFilePermission> ::= anyone|anyonewithlink|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>|domainwithlink:<DomainName>;<DriveFileACLRole>
+<DriveFilePermission> ::=
+        anyone|anyonewithlink|user:<EmailAddress>|group:<EmailAddress>|
+        domain:<DomainName>|domainwithlink:<DomainName>;<DriveFileACLRole>
 <DriveFilePermissionID> ::= anyone|anyonewithlink|id:<String>
 <DriveFilePermissionIDorEmail> ::= <DriveFilePermissionID>|<EmailAddress>
 <DriveFileRevisionID> ::= <String>
@@ -209,6 +225,7 @@ If an item contains spaces, it should be surrounded by ".
 <EventID> ::= <String>
 <EventName> ::= <String>
 <ExportItem> ::= <UniqueID>|<String>
+<ExportStatus> ::= completed|failed|inprogrsss
 <FeatureName> ::= <String>
 <FieldName> ::= <String>
 <FileName> ::= <String>
@@ -229,6 +246,7 @@ If an item contains spaces, it should be surrounded by ".
 <LabelReplacement> ::= <String>
 <Marker> ::= <String>
 <MatterItem> ::= <UniqueID>|<String>
+<MatterState> ::= open|closed|deleted
 <MaximumNumberOfSeats> ::= <Number>
 <MessageID> ::= <String>
 <MobileID> ::= <String>
@@ -240,43 +258,60 @@ If an item contains spaces, it should be surrounded by ".
 <ParameterKey> ::= <String>
 <ParameterValue> ::= <String>
 <Password> ::= <String>
-<PrinterACLScope> ::= <UserTypeEntity>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>)|domain|public
+<PrinterACLScope> ::=
+        <UserTypeEntity>|user:<EmailAdress>|group:<EmailAddress>|
+        domain:<DomainName>)|domain|public
 <PrinterID> ::= <String>
 <PrintJobAge> ::= <Number>(m|h|d|w)
 <PrintJobID> ::= <String>
 <PrintJobStatus> ::= done|error|held|in_progress|queued|submitted
 <PropertyKey> ::= <String>
 <PropertyValue> ::= <String>
-<QueryAlert> ::= <String> See: https://developers.google.com/admin-sdk/alertcenter/guides/query-filters
+<QueryAlert> ::= <String>
+        See: https://developers.google.com/admin-sdk/alertcenter/guides/query-filters
 <QueryCalendar> ::= <String>
-<QueryContact> ::= <String> See: https://developers.google.com/google-apps/contacts/v3/reference#contacts-query-parameters-reference
-<QueryCrOS> ::= <String> See: https://support.google.com/chrome/a/answer/1698333?hl=en
-<QueryDriveFile> ::= <String> See: https://developers.google.com/drive/api/v3/search-files
-<QueryGmail> ::= <String> See: https://support.google.com/mail/answer/7190
-<QueryGroup> ::= <String> See: https://developers.google.com/admin-sdk/directory/v1/guides/search-groups
-<QueryMobile> ::= <String> See: https://support.google.com/a/answer/7549103
-<QueryPrinter> ::= <String> See: https://developers.google.com/cloud-print/docs/appInterfaces#search
-<QueryPrintJob> ::= <String> See: https://developers.google.com/cloud-print/docs/appInterfaces#parameters_3
-<QueryTeamDrive> ::= <String> See: https://developers.google.com/drive/api/v3/search-parameters
-<QueryUser> ::= <String> See: https://developers.google.com/admin-sdk/directory/v1/guides/search-users
-<QueryVaultCorpus> ::= <String> See: https://developers.google.com/vault/reference/rest/v1/matters.holds#CorpusQuery
+<QueryContact> ::= <String>
+        See: https://developers.google.com/google-apps/contacts/v3/reference#contacts-query-parameters-reference
+<QueryCrOS> ::= <String>
+        See: https://support.google.com/chrome/a/answer/1698333
+<QueryDriveFile> ::= <String>
+        See: https://developers.google.com/drive/api/v3/search-files
+<QueryGmail> ::= <String>
+        See: https://support.google.com/mail/answer/7190
+<QueryGroup> ::= <String>
+        See: https://developers.google.com/admin-sdk/directory/v1/guides/search-groups
+<QueryMobile> ::= <String>
+        See: https://support.google.com/a/answer/7549103
+<QueryPrinter> ::= <String>
+        See: https://developers.google.com/cloud-print/docs/appInterfaces#search
+<QueryPrintJob> ::= <String>
+        See: https://developers.google.com/cloud-print/docs/appInterfaces#parameters_3
+<QueryTeamDrive> ::= <String>
+        See: https://developers.google.com/drive/api/v3/search-parameters
+<QueryUser> ::= <String>
+        See: https://developers.google.com/admin-sdk/directory/v1/guides/search-users
+<QueryVaultCorpus> ::= <String>
+        See: https://developers.google.com/vault/reference/rest/v1/matters.holds#CorpusQuery
 <RequestID> ::= <String>
 <ResourceID> ::= <String>
 <SchemaName> ::= <String>
 <Section> ::= <String>
 <SerialNumber> ::= <String>
 <SheetName> ::= <String>
-<SiteACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|default
+<SiteACLScope> ::=
+        <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|
+        domain:<DomainName>|domain|default
 <SiteItem> ::= [<DomainName>/]<SiteName>
 <S/MIMEID> ::= <String>
 <SMTPHostName> ::= <String>
 <StudentItem> ::= <EmailAddress>|<UniqueID>|<String>
 <Tag> ::= <String>
-<TeamDriveACLRole> ::= commenter|fileorganizer|organizer|reader|writer
+<TeamDriveACLRole> ::= commenter|contentmanager|fileorganizer|organizer|reader|writer
 <TeamDriveID> ::= <String>
 <TeamDriveName> ::= <String>
 <ThreadID> ::= <String>
 <TimeZone> ::= <String>
+        See: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 <Title> ::= <String>
 <ToDriveAttribute> ::=
         (tduser <EmailAddress>)|
@@ -324,6 +359,7 @@ If an item contains spaces, it should be surrounded by ".
 <EmailItemList> ::= "<EmailItem>(,<EmailItem>)*"
 <EventIDList> ::= "<EventID>(,<EventID>)*"
 <EventNameList> ::= "<EventName>(,<EventName>)*"
+<ExportStatusList> ::= "<ExportStatus>(,<ExportStatus>)*"
 <FeatureNameList> ::= "<FeatureName>(,<FeatureName>)*"
 <FieldNameList> ::= "<FieldName>(,<FieldName>)*"
 <FileFormatList> ::= "<FileFormat>(,<FileFormat)*"
@@ -335,6 +371,7 @@ If an item contains spaces, it should be surrounded by ".
 <LabelNameList> ::= "<LabelName>(,<LabelName)*"
 <LanguageList> ::= "<Language>(,<Language)*"
 <MatterItemList> ::= "<MatterItem>(,<MatterItem>)*"
+<MatterStateList> ::= "<MatterState>(,<MatterState>)*"
 <MessageIDList> ::= "<MessageID>(,<MessageID>)*"
 <MimeTypeList> ::= "<MimeType>(,<MimeType>)*"
 <MobileList> ::= "<MobileID>(,<MobileID>)*"
@@ -354,6 +391,7 @@ If an item contains spaces, it should be surrounded by ".
 <SiteACLScopeList> ::= "<SiteACLScope>(,<SiteACLScope>)*"
 <SiteList> ::= "<SiteItem>(,<SiteItem>)*"
 <SKUIDList> ="<SKUID>(,<SKUID>)*"
+<SMTPHeaderList> ::= "<SMTPDateHeader|SMTPHeader>(,<SMTPDateHeader|SMTPHeader>)*"
 <TeamDriveIDList> ::= "<TeamDriveID>(,<TeamDriveID>)*"
 <ThreadIDList> ::= "<ThreadID>(,<ThreadID>)*"
 <TimeList> ::= "<Time>(,<Time>)*"
@@ -1710,14 +1748,31 @@ gam show domainaliases|aliasdomains [formatjson]
 
 gam create|add group <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>*
 gam update group|groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] [copyfrom <GroupItem>] <GroupAttribute>*
-gam update group|groups <GroupEntity> create|add [owner|manager|member] [usersonly|groupsonly] [notsuspended|suspended]
-        [[delivery] allmail|abridged|daily|digest|none|nomail|disabled] [preview] <UserTypeEntity>
-gam update group|groups <GroupEntity> delete|remove [owner|manager|member] [usersonly|groupsonly] [notsuspended|suspended] [preview] <UserTypeEntity>
-gam update group|groups <GroupEntity> sync [owner|manager|member] [usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended]
-        [[delivery] allmail|abridged|daily|digest|none|nomail|disabled] [preview] <UserTypeEntity>
-gam update group|groups <GroupEntity> update [owner|manager|member] [usersonly|groupsonly] [notsuspended|suspended]
-        [[delivery] allmail|abridged|daily|digest|none|nomail|disabled] [preview] [createifnotfound] <UserTypeEntity>
-gam update group|groups <GroupEntity> clear [member] [manager] [owner] [notsuspended|suspended] [preview]
+gam update group|groups <GroupEntity> create|add [owner|manager|member]
+        [usersonly|groupsonly] [notsuspended|suspended]
+        [[delivery] allmail|abridged|daily|digest|none|nomail|disabled]
+        [preview]
+        <UserTypeEntity>
+gam update group|groups <GroupEntity> delete|remove [owner|manager|member]
+        [usersonly|groupsonly] [notsuspended|suspended]
+        [preview]
+        <UserTypeEntity>
+gam update group|groups <GroupEntity> sync [owner|manager|member]
+        [usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended]
+        [removedomainnostatusmembers]
+        [[delivery] allmail|abridged|daily|digest|none|nomail|disabled]
+        [preview]
+        <UserTypeEntity>
+gam update group|groups <GroupEntity> update [owner|manager|member]
+        [usersonly|groupsonly] [notsuspended|suspended]
+        [[delivery] allmail|abridged|daily|digest|none|nomail|disabled]
+        [createifnotfound]
+        [preview]
+        <UserTypeEntity>
+gam update group|groups <GroupEntity> clear [member] [manager] [owner]
+        [notsuspended|suspended]
+        [removedomainnostatusmembers]
+        [preview]
 gam delete group|groups <GroupEntity>
 
 <GroupFieldName> ::=
@@ -2504,8 +2559,10 @@ gam download vaultexport|export <ExportItem> matter <MatterItem> [targetfolder <
 gam download vaultexport|export <MatterItem> <ExportItem> [targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
 gam info vaultexport|export <ExportItem> matter <MatterItem>
 gam info vaultexport|export <MatterItem> <ExportItem>
-gam show vaultexports|exports [matter|matters <MatterItemList>] [shownames]
-gam print vaultexports|exports [todrive <ToDriveAttribute>*] [matter|matters <MatterItemList>] [shownames]
+gam print vaultexports|exports [todrive <ToDriveAttributes>*]
+        [matters <MatterItemList>] [exportstatus <ExportStatusList>] [shownames]
+gam show vaultexports|exports
+        [matters <MatterItemList>] [exportstatus <ExportStatusList>] [shownames]
 
 gam create vaulthold|hold matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
         [(accounts|groups|users <EmailItemList>) | (orgunit|org|ou <OrgUnit>)]
@@ -2525,8 +2582,8 @@ gam delete vaulthold|hold <HoldItem> matter <MatterItem>
 gam delete vaulthold|hold <MatterItem> <HoldItem>
 gam info vaulthold|hold <HoldItem> matter <MatterItem> [shownames]
 gam info vaulthold|hold <MatterItem> <HoldItem> [shownames]
-gam show vaultholds|holds [matter|matters <MatterItemList>] [shownames]
-gam print vaultholds|holds [todrive <ToDriveAttribute>*] [matter|matters <MatterItemList>] [shownames]
+gam print vaultholds|holds [todrive <ToDriveAttributes>*] [matters <MatterItemList>] [shownames]
+gam show vaultholds|holds [matters <MatterItemList>] [shownames]
 
 gam create|add vaultmatter|matter [name <String>] [description <string>]
         [collaborator|collaborators <EmailItemList>] [sendemails <Boolean>] [ccme <Boolean>]
@@ -2539,8 +2596,8 @@ gam reopen vaultmatter|matter <MatterItem>
 gam delete vaultmatter|matter <MatterItem>
 gam undelete vaultmatter|matter <MatterItem>
 gam info vaultmatter|matter <MatterItem>
-gam show vaultmatters|matters [basic|full]
-gam print vaultmatters|matters [todrive <ToDriveAttribute>*] [basic|full]
+gam print vaultmatters|matters [todrive <ToDriveAttributes>*] [basic|full] [matterstate <MatterStateList>]
+gam show vaultmatters|matters [basic|full] [matterstate <MatterStateList>]
 
 # Users
 

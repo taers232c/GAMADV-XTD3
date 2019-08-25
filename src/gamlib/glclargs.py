@@ -646,6 +646,7 @@ class GamCLArgs(object):
   OB_SPREADSHEET_JSON_UPDATEREQUEST = 'SpreadsheetJSONUpdateRequest'
   OB_SPREADSHEET_JSON_VALUES = 'SpreadsheetJSONValues'
   OB_SPREADSHEET_RANGE = 'SpreadsheetRange'
+  OB_STATE_NAME_LIST = "StateNameList"
   OB_STRING = 'String'
   OB_STUDENT_ITEM = 'StudentItem'
   OB_TAG = 'Tag'

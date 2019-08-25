@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.90.09'
+__version__ = '4.93.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -974,9 +974,9 @@ def normalizeEmailAddressOrUID(emailAddressOrUID, noUid=False, checkForCustomerI
     return emailAddressOrUID[1:].lower() if not noLower else emailAddressOrUID[1:]
   if (atLoc == -1) or (atLoc == len(emailAddressOrUID)-1) and GC.Values[GC.DOMAIN]:
     if atLoc == -1:
-      emailAddressOrUID = '{0}@{1}'.format(emailAddressOrUID, GC.Values[GC.DOMAIN].lower())
+      emailAddressOrUID = '{0}@{1}'.format(emailAddressOrUID, GC.Values[GC.DOMAIN])
     else:
-      emailAddressOrUID = '{0}{1}'.format(emailAddressOrUID, GC.Values[GC.DOMAIN].lower())
+      emailAddressOrUID = '{0}{1}'.format(emailAddressOrUID, GC.Values[GC.DOMAIN])
   return emailAddressOrUID.lower() if not noLower else emailAddressOrUID
 
 # Normalize student/guardian email address/uid
@@ -1004,12 +1004,12 @@ def getEmailAddress(noUid=False, minLen=1, optional=False):
         atLoc = emailAddress.find('@')
         if atLoc == -1:
           if GC.Values[GC.DOMAIN]:
-            emailAddress = '{0}@{1}'.format(emailAddress, GC.Values[GC.DOMAIN].lower())
+            emailAddress = '{0}@{1}'.format(emailAddress, GC.Values[GC.DOMAIN])
           Cmd.Advance()
           return emailAddress
         if atLoc != 0:
           if (atLoc == len(emailAddress)-1) and GC.Values[GC.DOMAIN]:
-            emailAddress = '{0}{1}'.format(emailAddress, GC.Values[GC.DOMAIN].lower())
+            emailAddress = '{0}{1}'.format(emailAddress, GC.Values[GC.DOMAIN])
           Cmd.Advance()
           return emailAddress
         invalidArgumentExit('name@domain')
@@ -1047,12 +1047,12 @@ def getPermissionId():
           Cmd.Advance()
           return (False, 'anyoneWithLink')
         if GC.Values[GC.DOMAIN]:
-          emailAddress = '{0}@{1}'.format(emailAddress, GC.Values[GC.DOMAIN].lower())
+          emailAddress = '{0}@{1}'.format(emailAddress, GC.Values[GC.DOMAIN])
         Cmd.Advance()
         return (True, emailAddress)
       if atLoc != 0:
         if (atLoc == len(emailAddress)-1) and GC.Values[GC.DOMAIN]:
-          emailAddress = '{0}{1}'.format(emailAddress, GC.Values[GC.DOMAIN].lower())
+          emailAddress = '{0}{1}'.format(emailAddress, GC.Values[GC.DOMAIN])
         Cmd.Advance()
         return (True, emailAddress)
       invalidArgumentExit('name@domain')
@@ -1669,7 +1669,7 @@ def getMaxMessageBytes(oneKiloBytes, oneMegaBytes):
 def getEmailAddressDomain(emailAddress):
   atLoc = emailAddress.find('@')
   if atLoc == -1:
-    return GC.Values[GC.DOMAIN].lower()
+    return GC.Values[GC.DOMAIN]
   return emailAddress[atLoc+1:].lower()
 
 # Get user name from email address
@@ -1683,7 +1683,7 @@ def getEmailAddressUsername(emailAddress):
 def splitEmailAddress(emailAddress):
   atLoc = emailAddress.find('@')
   if atLoc == -1:
-    return (emailAddress.lower(), GC.Values[GC.DOMAIN].lower())
+    return (emailAddress.lower(), GC.Values[GC.DOMAIN])
   return (emailAddress[:atLoc].lower(), emailAddress[atLoc+1:].lower())
 
 def formatFileSize(fileSize):
@@ -1858,13 +1858,16 @@ def userSvcNotApplicableOrDriveDisabled(user, errMessage, i=0, count=0):
     entityActionNotPerformedWarning([Ent.USER, user], errMessage, i, count)
 
 # Getting ... utilities
-def printGettingAllAccountEntities(entityType, query=''):
+def printGettingAllAccountEntities(entityType, query='', qualifier=''):
   if GC.Values[GC.SHOW_GETTINGS]:
     if query:
       Ent.SetGettingQuery(entityType, query)
+    elif qualifier:
+      Ent.SetGettingQualifier(entityType, qualifier)
     else:
       Ent.SetGetting(entityType)
-    writeStderr(convertUTF8toSys('{0} {1}{2}{3}\n'.format(Msg.GETTING_ALL, Ent.PluralGetting(), Ent.GettingPreQualifier(), Ent.MayTakeTime(Ent.ACCOUNT))))
+    writeStderr(convertUTF8toSys('{0} {1}{2}{3}\n'.format(Msg.GETTING_ALL, Ent.PluralGetting(),
+                                                          Ent.GettingPreQualifier(), Ent.MayTakeTime(Ent.ACCOUNT))))
 
 def printGotAccountEntities(count):
   if GC.Values[GC.SHOW_GETTINGS]:
@@ -1879,11 +1882,14 @@ def printGettingAllEntityItemsForWhom(entityItem, forWhom, i=0, count=0, query='
     else:
       Ent.SetGetting(entityItem)
     Ent.SetGettingForWhom(forWhom)
-    writeStderr(convertUTF8toSys('{0} {1}{2} {3} {4}{5}{6}'.format(Msg.GETTING_ALL, Ent.PluralGetting(), Ent.GettingPreQualifier(), Msg.FOR, forWhom, Ent.MayTakeTime(entityType), currentCountNL(i, count))))
+    writeStderr(convertUTF8toSys('{0} {1}{2} {3} {4}{5}{6}'.format(Msg.GETTING_ALL, Ent.PluralGetting(),
+                                                                   Ent.GettingPreQualifier(), Msg.FOR, forWhom, Ent.MayTakeTime(entityType),
+                                                                   currentCountNL(i, count))))
 
 def printGotEntityItemsForWhom(count):
   if GC.Values[GC.SHOW_GETTINGS]:
-    writeStderr(convertUTF8toSys('{0} {1} {2}{3} {4} {5}\n'.format(Msg.GOT, count, Ent.ChooseGetting(count), Ent.GettingPostQualifier(), Msg.FOR, Ent.GettingForWhom())))
+    writeStderr(convertUTF8toSys('{0} {1} {2}{3} {4} {5}\n'.format(Msg.GOT, count, Ent.ChooseGetting(count),
+                                                                   Ent.GettingPostQualifier(), Msg.FOR, Ent.GettingForWhom())))
 
 def printGettingEntityItem(entityType, entityItem, i=0, count=0):
   if GC.Values[GC.SHOW_GETTINGS]:
@@ -1919,7 +1925,8 @@ def getPageMessageForWhom(forWhom=None, showTotal=True, showFirstLastItems=False
   Ent.SetGettingShowTotal(showTotal)
   if forWhom:
     Ent.SetGettingForWhom(forWhom)
-  pageMessage = '{0} {1} {{0}} {2} {3}'.format(Msg.GOT, [NUM_ITEMS_MARKER, TOTAL_ITEMS_MARKER][showTotal], Msg.FOR, Ent.GettingForWhom())
+  pageMessage = '{0} {1} {{0}}{2} {3} {4}'.format(Msg.GOT, [NUM_ITEMS_MARKER, TOTAL_ITEMS_MARKER][showTotal],
+                                                  Ent.GettingPostQualifier(), Msg.FOR, Ent.GettingForWhom())
   if showFirstLastItems:
     pageMessage += ': {0} - {1}'.format(FIRST_ITEM_MARKER, LAST_ITEM_MARKER)
   else:
@@ -6493,7 +6500,7 @@ def _getValidateLoginHint(login_hint):
     if not login_hint:
       login_hint = readStdin('\nWhat is your G Suite admin email address? ').strip()
     if login_hint.find('@') == -1 and GC.Values[GC.DOMAIN]:
-      login_hint = '{0}@{1}'.format(login_hint, GC.Values[GC.DOMAIN].lower())
+      login_hint = '{0}@{1}'.format(login_hint, GC.Values[GC.DOMAIN])
     if VALIDEMAIL_PATTERN.match(login_hint):
       return login_hint
     sys.stdout.write('{0}Invalid email address: {1}\n'.format(ERROR_PREFIX, login_hint))
@@ -6617,7 +6624,7 @@ class cmd_flags():
     self.auth_host_port = [8080, 9090]
 
 def setGAMOauthURLfile(access_type):
-  if GM.Globals[GM.WINDOWS] and access_type == 'offline' and GC.Values[GC.NO_BROWSER]:
+  if access_type == 'offline' and GC.Values[GC.NO_BROWSER]:
     GM.Globals[GM.GAM_OAUTH_URL_TXT] = os.path.join(GM.Globals[GM.GAM_PATH], FN_GAM_OAUTH_URL_TXT)
   else:
     GM.Globals[GM.GAM_OAUTH_URL_TXT] = None
@@ -7021,10 +7028,12 @@ def _createClientSecretsOauth2service(httpObj, projectId):
 {0}
 
 1. Click the blue "Create credentials" button. Choose "OAuth client ID".
-2. Click the blue "Configure consent screen" button. Enter "GAM" for "Application name".
-3. Leave other fields blank. Click "Save" button.
-3. Choose "Other". Enter a desired value for "Name". Click the blue "Create" button.
-4. Copy your "client ID" value.
+2. Click the blue "Configure consent screen" button.
+3. Select  "Internal" under "Application type".
+4. Enter "GAM" for "Application name".
+5. Leave other fields blank. Click "Save" button.
+6. Choose "Other". Enter "GAM" for "Name". Click the blue "Create" button.
+7. Copy your "client ID" value.
 
 \n'''.format(console_credentials_url))
     client_id = readStdin('Enter your Client ID: ').strip()
@@ -15134,14 +15143,25 @@ GROUP_DELIVERY_SETTINGS_MAP = {
   }
 
 # gam update groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] [copyfrom <GroupItem>] <GroupAttributes>
-# gam update groups <GroupEntity> create|add [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended]
-#	[delivery allmail|daily|digest|none|disabled] [preview] <UserTypeEntity>
-# gam update groups <GroupEntity> delete|remove [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended] [preview] <UserTypeEntity>
-# gam update groups <GroupEntity> sync [member|manager|owner] [usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended]
-#	[delivery allmail|daily|digest|none|disabled] [preview] <UserTypeEntity>
-# gam update groups <GroupEntity> update [member|manager|owner] [usersonly|groupsonly] [notsuspended|suspended]
-#	[delivery allmail|daily|digest|none|disabled] [preview] [createifnotfound] <UserTypeEntity>
-# gam update groups <GroupEntity> clear [member] [manager] [owner] [notsuspended|suspended] [preview]
+# gam update groups <GroupEntity> create|add [member|manager|owner]
+#	[usersonly|groupsonly] [notsuspended|suspended]
+#	[delivery allmail|daily|digest|none|disabled] [preview]
+#	<UserTypeEntity>
+# gam update groups <GroupEntity> delete|remove [member|manager|owner]
+#	[usersonly|groupsonly] [notsuspended|suspended] [preview]
+#	<UserTypeEntity>
+# gam update groups <GroupEntity> sync [member|manager|owner]
+#	[usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended]
+#	[removedomainnostatusmembers]
+#	[delivery allmail|daily|digest|none|disabled] [preview]
+#	<UserTypeEntity>
+# gam update groups <GroupEntity> update [member|manager|owner]
+#	[usersonly|groupsonly] [notsuspended|suspended]
+#	[delivery allmail|daily|digest|none|disabled] [preview] [createifnotfound]
+#	<UserTypeEntity>
+# gam update groups <GroupEntity> clear [member] [manager] [owner]
+#	[usersonly|groupsonly] [notsuspended|suspended]
+#	[removedomainnostatusmembers] [preview]
 def doUpdateGroups():
 
   def _validateSubkeyRoleGetMembers(group, role, origGroup, groupMemberLists, i, count):
@@ -15160,6 +15180,17 @@ def doUpdateGroups():
     if checkArgumentPresent(['delivery', 'deliverysettings']):
       return getChoice(GROUP_DELIVERY_SETTINGS_MAP, mapChoice=True)
     return getChoice(GROUP_DELIVERY_SETTINGS_MAP, defaultChoice=DELIVERY_SETTINGS_UNDEFINED, mapChoice=True)
+
+  def _getMemberEmailStatus(member):
+    if member['type'] == 'CUSTOMER':
+      return (member['id'], member.get('status', 'UNKNOWN'))
+    email = member['email'].lower()
+    if not removeDomainNoStatusMembers or 'status' in member:
+      return (email, member.get('status', 'UNKNOWN'))
+    _, domain = splitEmailAddress(email)
+    if domain != GC.Values[GC.DOMAIN]:
+      return (email, 'UNKNOWN')
+    return (email, 'NONE')
 
   def _executeBatch(dbatch, batchParms):
     dbatch.execute()
@@ -15617,6 +15648,7 @@ def doUpdateGroups():
     baseRole, groupMemberType = _getRoleGroupMemberType()
     syncOperation = getChoice(['addonly', 'removeonly'], defaultChoice='addremove')
     isSuspended = _getOptionalIsSuspended()
+    removeDomainNoStatusMembers = checkArgumentPresent('removedomainnostatusmembers')
     delivery_settings = getDeliverySettings()
     preview = checkArgumentPresent('preview')
     _, syncMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
@@ -15626,6 +15658,7 @@ def doUpdateGroups():
     syncMembersMaps = {}
     currentMembersSets = {}
     currentMembersMaps = {}
+    domainNoStatusMembersSets = {}
     if groupMemberLists is None:
       syncMembersSets[baseRole] = set()
       syncMembersMaps[baseRole] = {}
@@ -15640,37 +15673,71 @@ def doUpdateGroups():
       origGroup = group
       group = checkGroupExists(cd, group, i, count)
       if group:
-        roleList = [baseRole] if groupMemberLists is None or not subkeyRoleField else groupMemberLists[origGroup]
-        validRoleList = []
-        for role in roleList:
-          if groupMemberLists is None:
-            validRoleList.append(role)
-          else:
-            if not subkeyRoleField:
-              validRoleList.append(role)
-              syncMembers = groupMemberLists[origGroup]
-            else:
-              role, syncMembers = _validateSubkeyRoleGetMembers(group, role, origGroup, groupMemberLists, i, count)
-              if role is None:
-                continue
-              validRoleList.append(role)
+        if groupMemberLists is None or not subkeyRoleField:
+          roleList = [baseRole]
+        else:
+          roleList = groupMemberLists[origGroup]
+          for role in roleList:
+            role = role.upper()
             syncMembersSets[role] = set()
             syncMembersMaps[role] = {}
+        rolesSet = set()
+        for role in roleList:
+          origRole = role
+          role = role.upper()
+          if groupMemberLists is None:
+            rolesSet.add(role)
+          else:
+            if not subkeyRoleField:
+              rolesSet.add(role)
+              syncMembers = groupMemberLists[origGroup]
+            else:
+              role, syncMembers = _validateSubkeyRoleGetMembers(group, origRole, origGroup, groupMemberLists, i, count)
+              if role is None:
+                continue
+              rolesSet.add(role)
             for member in syncMembers:
               syncMembersSets[role].add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailTypes='any',
                                                                                        checkForCustomerId=True), syncMembersMaps[role]))
+        if not rolesSet:
+          continue
+        memberRoles = ','.join(sorted(rolesSet))
+        printGettingAllEntityItemsForWhom(memberRoles, group, entityType=Ent.GROUP)
+        try:
+          result = callGAPIpages(cd.members(), 'list', 'members',
+                                 page_message=getPageMessageForWhom(),
+                                 throw_reasons=GAPI.MEMBERS_THROW_REASONS,
+                                 groupKey=group, roles=None if Ent.ROLE_MEMBER in rolesSet else memberRoles,
+                                 fields='nextPageToken,members(email,id,type,status,role)',
+                                 maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
+        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+          entityUnknownWarning(Ent.GROUP, group, i, count)
+          continue
+        for role in rolesSet:
           currentMembersSets[role] = set()
           currentMembersMaps[role] = {}
-          for member in getUsersToModify(Cmd.ENTITY_GROUP, group, memberRoles=role, groupMemberType=groupMemberType):
-            currentMembersSets[role].add(_cleanConsumerAddress(member, currentMembersMaps[role]))
+          domainNoStatusMembersSets[role] = set()
+        for member in result:
+          role = member.get('role', Ent.ROLE_MEMBER)
+          email, memberStatus = _getMemberEmailStatus(member)
+          if groupMemberType in ('ALL', member['type']) and role in rolesSet:
+            if not removeDomainNoStatusMembers or memberStatus != 'NONE':
+              if isSuspended is None or (not isSuspended and memberStatus != 'SUSPENDED') or (isSuspended and memberStatus == 'SUSPENDED'):
+                currentMembersSets[role].add(_cleanConsumerAddress(email, currentMembersMaps[role]))
+            else:
+              domainNoStatusMembersSets[role].add(member['id'])
         if syncOperation != 'addonly':
-          for role in validRoleList:
+          for role in rolesSet:
+            if domainNoStatusMembersSets[role]:
+              _batchRemoveGroupMembers(group, i, count,
+                                       domainNoStatusMembersSets[role],
+                                       role)
             _batchRemoveGroupMembers(group, i, count,
                                      [currentMembersMaps[role].get(emailAddress, emailAddress) for emailAddress in currentMembersSets[role]-syncMembersSets[role]],
                                      role)
         if syncOperation != 'removeonly':
           for role in [Ent.ROLE_OWNER, Ent.ROLE_MANAGER, Ent.ROLE_MEMBER]:
-            if role in validRoleList:
+            if role in rolesSet:
               _batchAddGroupMembers(group, i, count,
                                     [syncMembersMaps[role].get(emailAddress, emailAddress) for emailAddress in syncMembersSets[role]-currentMembersSets[role]],
                                     role, delivery_settings)
@@ -15706,45 +15773,61 @@ def doUpdateGroups():
                                    [convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True) for member in updateMembers],
                                    role, delivery_settings)
   else: #clear
-    isSuspended = None
-    qualifier = ''
-    fieldsList = ['email', 'id']
     rolesSet = set()
+    groupMemberType = 'ALL'
+    isSuspended = None
+    removeDomainNoStatusMembers = False
+    qualifier = ''
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if myarg in GROUP_ROLES_MAP:
         rolesSet.add(GROUP_ROLES_MAP[myarg])
+      elif myarg == 'usersonly':
+        groupMemberType = 'USER'
+      elif myarg == 'groupsonly':
+        groupMemberType = 'GROUP'
       elif myarg in SUSPENDED_ARGUMENTS:
         isSuspended = _getIsSuspended(myarg)
+      elif myarg == 'removedomainnostatusmembers':
+        removeDomainNoStatusMembers = True
       elif myarg == 'preview':
         preview = True
       else:
         unknownArgumentExit()
     if isSuspended is not None:
-      qualifier = ' (Suspended)' if isSuspended else ' (Non-suspended)'
-      fieldsList.append('status')
+      qualifier += ' (Suspended)' if isSuspended else ' (Non-suspended)'
+    if removeDomainNoStatusMembers:
+      qualifier += ' (Domain members with no status)'
     Act.Set(Act.REMOVE)
-    memberRoles = ','.join(sorted(rolesSet)) if rolesSet else Ent.ROLE_MEMBER
-    fields = 'nextPageToken,members({0})'.format(','.join(set(fieldsList)))
+    if not rolesSet:
+      rolesSet.add(Ent.ROLE_MEMBER)
+    memberRoles = ','.join(sorted(rolesSet))
     i = 0
     count = len(entityList)
     for group in entityList:
       i += 1
       group = normalizeEmailAddressOrUID(group)
       printGettingAllEntityItemsForWhom(memberRoles, group, qualifier=qualifier, entityType=Ent.GROUP)
-      validRoles, listRoles, listFields = _getRoleVerification(memberRoles, fields)
       try:
         result = callGAPIpages(cd.members(), 'list', 'members',
                                page_message=getPageMessageForWhom(),
                                throw_reasons=GAPI.MEMBERS_THROW_REASONS,
-                               groupKey=group, roles=listRoles, fields=listFields, maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
+                               groupKey=group, roles=None if Ent.ROLE_MEMBER in rolesSet else memberRoles,
+                               fields='nextPageToken,members(email,id,type,status,role)',
+                               maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
         entityUnknownWarning(Ent.GROUP, group, i, count)
         continue
       removeMembers = []
       for member in result:
-        if _checkMemberRoleIsSuspended(member, validRoles, isSuspended):
-          removeMembers.append(member.get('email', member['id']))
+        role = member.get('role', Ent.ROLE_MEMBER)
+        email, memberStatus = _getMemberEmailStatus(member)
+        if groupMemberType in ('ALL', member['type']) and role in rolesSet:
+          if not removeDomainNoStatusMembers:
+            if isSuspended is None or (not isSuspended and memberStatus != 'SUSPENDED') or (isSuspended and memberStatus == 'SUSPENDED'):
+              removeMembers.append(email if memberStatus != 'UNKNOWN' else member['id'])
+          elif memberStatus == 'NONE':
+            removeMembers.append(member['id'])
       _batchRemoveGroupMembers(group, i, count, removeMembers, Ent.ROLE_MEMBER)
 
 # gam delete groups <GroupEntity>
@@ -20264,14 +20347,18 @@ def doInfoVaultExport():
   except (GAPI.notFound, GAPI.badRequest, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], str(e))
 
+VAULT_EXPORT_STATUS_MAP = {'completed': 'COMPLETED', 'failed': 'FAILED', 'inprogress': 'IN_PROGRESS'}
 PRINT_VAULT_EXPORTS_TITLES = ['matterId', 'matterName', 'id', 'name', 'createTime', 'status']
 
-# gam print vaultexports|exports [todrive <ToDriveAttributes>*] [matters <MatterItemList>] [shownames]
-# gam show vaultexports|exports [matters <MatterItemList>] [shownames]
+# gam print vaultexports|exports [todrive <ToDriveAttributes>*]
+#	[matters <MatterItemList>] [exportstatus <ExportStatusList>] [shownames]
+# gam show vaultexports|exports
+#	[matters <MatterItemList>] [exportstatus <ExportStatusList>] [shownames]
 def doPrintShowVaultExports():
   v = buildGAPIObject(API.VAULT)
   csvPF = CSVPrintFile(PRINT_VAULT_EXPORTS_TITLES, 'sortall') if Act.csvFormat() else None
   matters = []
+  exportStatusList = []
   cd = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -20279,17 +20366,25 @@ def doPrintShowVaultExports():
       csvPF.GetTodriveParameters()
     elif myarg in ['matter', 'matters']:
       matters = shlexSplitList(getString(Cmd.OB_MATTER_ITEM_LIST))
+    elif myarg == 'exportstatus':
+      for state in getString(Cmd.OB_STATE_NAME_LIST).lower().replace('_', '').replace(',', ' ').split():
+        if state in VAULT_EXPORT_STATUS_MAP:
+          exportStatusList.append(VAULT_EXPORT_STATUS_MAP[state])
+        else:
+          invalidChoiceExit(list(VAULT_EXPORT_STATUS_MAP), True)
     elif myarg == 'shownames':
       cd = buildGAPIObject(API.DIRECTORY)
     else:
       unknownArgumentExit()
+  exportStatuses = set(exportStatusList)
+  exportQualifier = ' ({0})'.format(','.join(exportStatusList)) if exportStatusList else ''
   if not matters:
-    printGettingAllAccountEntities(Ent.VAULT_MATTER)
+    printGettingAllAccountEntities(Ent.VAULT_MATTER, qualifier=' (OPEN)')
     try:
       results = callGAPIpages(v.matters(), 'list', 'matters',
                               page_message=getPageMessage(),
                               throw_reasons=[GAPI.FORBIDDEN],
-                              view='BASIC', fields='matters(matterId,name,state),nextPageToken')
+                              view='BASIC', state='OPEN', fields='matters(matterId,name,state),nextPageToken')
     except GAPI.forbidden as e:
       entityActionFailedWarning([Ent.VAULT_EXPORT, None], str(e))
       return
@@ -20309,7 +20404,8 @@ def doPrintShowVaultExports():
     matterName = matter['name']
     matterNameId = formatVaultNameId(matterName, matterId)
     if csvPF:
-      printGettingAllEntityItemsForWhom(Ent.VAULT_EXPORT, '{0}: {1}'.format(Ent.Singular(Ent.VAULT_MATTER), matterNameId), j, jcount)
+      printGettingAllEntityItemsForWhom(Ent.VAULT_EXPORT, '{0}: {1}'.format(Ent.Singular(Ent.VAULT_MATTER), matterNameId),
+                                        j, jcount, qualifier=exportQualifier)
       page_message = getPageMessageForWhom()
     else:
       page_message = None
@@ -20335,14 +20431,16 @@ def doPrintShowVaultExports():
       k = 0
       for export in exports:
         k += 1
-        printEntity([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, formatVaultNameId(export['name'], export['id'])], k, kcount)
-        _showVaultExport(export, cd)
+        if not exportStatuses or export['status'] in exportStatuses:
+          printEntity([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, formatVaultNameId(export['name'], export['id'])], k, kcount)
+          _showVaultExport(export, cd)
       Ind.Decrement()
     else:
       for export in exports:
-        if cd is not None:
-          _getExportOrgUnitName(export, cd)
-        csvPF.WriteRowTitles(flattenJSON(export, flattened={'matterId': matterId, 'matterName': matterName}, timeObjects=VAULT_EXPORT_TIME_OBJECTS))
+        if not exportStatuses or export['status'] in exportStatuses:
+          if cd is not None:
+            _getExportOrgUnitName(export, cd)
+          csvPF.WriteRowTitles(flattenJSON(export, flattened={'matterId': matterId, 'matterName': matterName}, timeObjects=VAULT_EXPORT_TIME_OBJECTS))
   if csvPF:
     csvPF.writeCSVfile('Vault Exports')
 
@@ -20782,12 +20880,12 @@ def doPrintShowVaultHolds():
     else:
       unknownArgumentExit()
   if not matters:
-    printGettingAllAccountEntities(Ent.VAULT_MATTER)
+    printGettingAllAccountEntities(Ent.VAULT_MATTER, qualifier=' (OPEN)')
     try:
       results = callGAPIpages(v.matters(), 'list', 'matters',
                               page_message=getPageMessage(),
                               throw_reasons=[GAPI.FORBIDDEN],
-                              view='BASIC', fields='matters(matterId,name,state),nextPageToken')
+                              view='BASIC', state='OPEN', fields='matters(matterId,name,state),nextPageToken')
     except GAPI.forbidden as e:
       entityActionFailedWarning([Ent.VAULT_HOLD, None], str(e))
       return
@@ -21053,28 +21151,47 @@ def doInfoVaultMatter():
   except (GAPI.notFound, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId], str(e))
 
+VAULT_MATTER_STATE_MAP = {'open': 'OPEN', 'closed': 'CLOSED', 'deleted': 'DELETED'}
 PRINT_VAULT_MATTERS_TITLES = ['matterId', 'name', 'description', 'state']
 
-# gam print vaultmatters|matters [todrive <ToDriveAttributes>*] [basic|full]
-# gam show vaultmatters|matters [basic|full]
+# gam print vaultmatters|matters [todrive <ToDriveAttributes>*] [basic|full] [matterstate <MatterStateList>]
+# gam show vaultmatters|matters [basic|full] [matterstate <MatterStateList>]
 def doPrintShowVaultMatters():
   v = buildGAPIObject(API.VAULT)
   csvPF = CSVPrintFile(PRINT_VAULT_MATTERS_TITLES, 'sortall') if Act.csvFormat() else None
   view = 'FULL'
+  matterStatesList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg in PROJECTION_CHOICE_MAP:
       view = PROJECTION_CHOICE_MAP[myarg]
+    elif myarg == 'matterstate':
+      for state in getString(Cmd.OB_STATE_NAME_LIST).lower().replace('_', '').replace(',', ' ').split():
+        if state in VAULT_MATTER_STATE_MAP:
+          matterStatesList.append(VAULT_MATTER_STATE_MAP[state])
+        else:
+          invalidChoiceExit(list(VAULT_MATTER_STATE_MAP), True)
     else:
       unknownArgumentExit()
-  printGettingAllAccountEntities(Ent.VAULT_MATTER)
+  # If no states are set, there is no filtering; if 1 state is set, the API can filter; else GAM filters
+  matterStates = set()
+  stateParm = None
+  if matterStatesList:
+    if len(matterStatesList) == 1:
+      stateParm = matterStatesList[0]
+    else:
+      matterStates = set(matterStatesList)
+    qualifier = ' ({0})'.format(','.join(matterStatesList))
+  else:
+    qualifier = ''
+  printGettingAllAccountEntities(Ent.VAULT_MATTER, qualifier=qualifier)
   try:
     matters = callGAPIpages(v.matters(), 'list', 'matters',
                             page_message=getPageMessage(),
                             throw_reasons=[GAPI.FORBIDDEN],
-                            view=view)
+                            view=view, state=stateParm)
   except GAPI.forbidden as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, None], str(e))
     return
@@ -21089,12 +21206,14 @@ def doPrintShowVaultMatters():
     j = 0
     for matter in matters:
       j += 1
-      printEntity([Ent.VAULT_MATTER, formatVaultNameId(matter['name'], matter['matterId'])], j, jcount)
-      _showVaultMatter(matter, cd)
+      if not matterStates or matter['state'] in matterStates:
+        printEntity([Ent.VAULT_MATTER, formatVaultNameId(matter['name'], matter['matterId'])], j, jcount)
+        _showVaultMatter(matter, cd)
     Ind.Decrement()
   else:
     for matter in matters:
-      csvPF.WriteRowTitles(flattenJSON(matter))
+      if not matterStates or matter['state'] in matterStates:
+        csvPF.WriteRowTitles(flattenJSON(matter))
   if csvPF:
     csvPF.writeCSVfile('Vault Matters')
 
