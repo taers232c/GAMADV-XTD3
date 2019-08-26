@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.93.00'
+__version__ = '4.93.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2112,12 +2112,12 @@ def setEncoding(mode, encoding):
   return {'encoding': encoding}
 
 # Open a file
-def openFile(filename, mode=DEFAULT_FILE_READ_MODE, encoding=None, newline=None,
+def openFile(filename, mode=DEFAULT_FILE_READ_MODE, encoding=None, errors=None, newline=None,
              continueOnError=False, displayError=True, stripUTFBOM=False):
   try:
     if filename != '-':
       kwargs = setEncoding(mode, encoding)
-      f = open(os.path.expanduser(filename), mode, newline=newline, **kwargs)
+      f = open(os.path.expanduser(filename), mode, errors=errors, newline=newline, **kwargs)
       if stripUTFBOM:
         if 'b' in mode:
           if f.read(3) != b'\xef\xbb\xbf':
@@ -5455,6 +5455,7 @@ class CSVPrintFile():
 
     def writeCSVToFile():
       csvFile = openFile(GM.Globals[GM.CSVFILE][GM.REDIRECT_NAME], GM.Globals[GM.CSVFILE][GM.REDIRECT_MODE], newline='',
+                         encoding=GM.Globals[GM.CSVFILE][GM.REDIRECT_ENCODING], errors='backslashreplace',
                          continueOnError=True)
       if csvFile:
         writer = csv.DictWriter(csvFile, titlesList,

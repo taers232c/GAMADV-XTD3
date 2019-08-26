@@ -1,3 +1,9 @@
+4.93.01
+
+Fixed bug where `charset <Charset>` option was being ignored in `redirect csv <FileName>`.
+The `charset` value from `gam.cfg` was being used instead of the value set in `redirect`.
+It's not typical that you would want to override the `charset` value from `gam.cfg` but it now works.
+
 4.93.00
 
 Added option `matterstate <MatterStateList>` to `gam print/show vaultnatters` to allow
