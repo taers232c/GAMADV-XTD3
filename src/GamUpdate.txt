@@ -1,3 +1,11 @@
+4.93.02
+
+Added option `timeoffset` to `gam version`; this causes GAM to display the difference between
+the local system time (in UTC) and Google's time (in UTC). If the difference is more than 30 seconds,
+you should correct the local system time; otherwise you might Google API errors due to the time difference.
+
+Following Jay's lead, added additional validation code to `gam check serviceaccount`.
+
 4.93.01
 
 Fixed bug where `charset <Charset>` option was being ignored in `redirect csv <FileName>`.

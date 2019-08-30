@@ -33,6 +33,7 @@ DIRECTORY = 'directory'
 DRIVE = 'drive'
 DRIVE3 = 'drive3'
 DRIVEACTIVITY = 'driveactivity'
+#EMAIL = 'email'
 EMAIL_AUDIT = 'email-audit'
 EMAIL_SETTINGS = 'email-settings'
 GMAIL = 'gmail'
@@ -54,8 +55,6 @@ GAM_SCOPES = 'gam'
 FAM1_SCOPES = 'fam1'
 FAM2_SCOPES = 'fam2'
 FAM_LIST = [FAM1_SCOPES, FAM2_SCOPES]
-REQUIRED_SCOPES = ['email', 'profile']
-#REQUIRED_SCOPES = ['email', 'openid', 'profile']
 #
 OAUTH2_TOKEN_ERRORS = [
   'access_denied',
@@ -97,6 +96,11 @@ PROJECT_APIS = [
   'vault.googleapis.com',
   ]
 
+USERINFO_EMAIL_SCOPE = 'https://www.googleapis.com/auth/userinfo.email' # email
+USERINFO_PROFILE_SCOPE = 'https://www.googleapis.com/auth/userinfo.profile' # profile
+VAULT_SCOPES = ['https://www.googleapis.com/auth/ediscovery', 'https://www.googleapis.com/auth/ediscovery.readonly']
+REQUIRED_SCOPES = ['email', 'profile']
+
 _INFO = {
   APPSACTIVITY: {'version': 'v1', 'v2discovery': False,
                  'svcacctscopes': ['https://www.googleapis.com/auth/activity',
@@ -126,6 +130,8 @@ _INFO = {
   DRIVEACTIVITY: {'version': 'v2', 'v2discovery': True,
                   'svcacctscopes': ['https://www.googleapis.com/auth/drive.activity',
                                     'https://www.googleapis.com/auth/drive',]},
+  #EMAIL: {'version': 'v1', 'v2discovery': False,
+  #        'svcacctscopes': [USERINFO_EMAIL_SCOPE,]},
   EMAIL_AUDIT: {'version': 'v1', 'v2discovery': False,
                 'localjson': True},
   EMAIL_SETTINGS: {'version': 'v2', 'v2discovery': False,
@@ -154,10 +160,6 @@ _INFO = {
   STORAGE: {'version': 'v1', 'v2discovery': False},
   VAULT: {'version': 'v1', 'v2discovery': True},
   }
-
-EMAIL_SCOPE = 'email'
-PROFILE_SCOPE = 'profile'
-VAULT_SCOPES = ['https://www.googleapis.com/auth/ediscovery', 'https://www.googleapis.com/auth/ediscovery.readonly']
 
 READONLY = ['readonly',]
 

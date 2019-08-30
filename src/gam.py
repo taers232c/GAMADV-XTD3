@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.93.01'
+__version__ = '4.93.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -178,6 +178,7 @@ SECONDS_PER_HOUR = 3600
 SECONDS_PER_DAY = 86400
 SECONDS_PER_WEEK = 604800
 MAX_GOOGLE_SHEET_CELLS = 5000000 # See https://support.google.com/drive/answer/37603
+MAX_LOCAL_GOOGLE_TIME_OFFSET = 30
 UTF8 = 'utf-8'
 UTF8_SIG = 'utf-8-sig'
 FN_GAM_CFG = 'gam.cfg'
@@ -5804,6 +5805,14 @@ def batchRequestID(entityName, i, count, j, jcount, item, role=None, option=None
     return '{0}\n{1}\n{2}\n{3}\n{4}\n{5}'.format(entityName, i, count, j, jcount, item)
   return '{0}\n{1}\n{2}\n{3}\n{4}\n{5}\n{6}\n{7}'.format(entityName, i, count, j, jcount, item, role, option)
 
+def getLocalGoogleTimeOffset(testLocation='www.googleapis.com'):
+  localUTC = datetime.datetime.now(iso8601.UTC)
+  try:
+    googleUTC = datetime.datetime.strptime(getHttpObj().request('https://'+testLocation, 'HEAD')[0]['date'], '%a, %d %b %Y %H:%M:%S %Z').replace(tzinfo=iso8601.UTC)
+    return (localUTC-googleUTC).total_seconds()
+  except (httplib2.HttpLib2Error, RuntimeError, ValueError) as e:
+    handleServerError(e)
+
 def _getServerTLSUsed(location):
   url = 'https://'+location
   _, netloc, _, _, _, _ = urlparse(url)
@@ -5822,10 +5831,10 @@ def _getServerTLSUsed(location):
         continue
       handleServerError(e)
 
-# gam version [check|checkrc|simple|extended] [location <HostName>]
+# gam version [check|checkrc|simple|extended] [timeoffset] [location <HostName>]
 def doVersion(checkForArgs=True):
   forceCheck = 0
-  extended = simple = False
+  extended = timeOffset = simple = False
   testLocation = 'www.googleapis.com'
   if checkForArgs:
     while Cmd.ArgumentsRemaining():
@@ -5838,6 +5847,8 @@ def doVersion(checkForArgs=True):
         simple = True
       elif myarg == 'extended':
         extended = True
+      elif myarg == 'timeoffset':
+        timeOffset = True
       elif myarg == 'location':
         testLocation = getString(Cmd.OB_HOST_NAME)
       else:
@@ -5850,6 +5861,8 @@ def doVersion(checkForArgs=True):
                                   sys.version_info[1], sys.version_info[2], struct.calcsize('P')*8,
                                   sys.version_info[3], googleapiclient.__version__, httplib2.__version__, oauth2client.__version__,
                                   platform.platform(), platform.machine(), GM.Globals[GM.GAM_PATH]))
+  if timeOffset:
+    printKeyValueList([Msg.TIME_OFFSET_FROM_GOOGLE.format(MAX_LOCAL_GOOGLE_TIME_OFFSET), getLocalGoogleTimeOffset(testLocation)])
   if forceCheck:
     doGAMCheckForUpdates(forceCheck)
   if extended:
@@ -6880,20 +6893,32 @@ def checkServiceAccount(users):
   for user in users:
     i += 1
     all_scopes_pass = True
+    oa2 = googleapiclient.discovery.build(API.OAUTH2, 'v1', getHttpObj())
     user = convertUIDtoEmailAddress(user)
     entityPerformActionNumItems([Ent.USER, user], jcount, Ent.SCOPE, i, count)
     Ind.Increment()
     j = 0
     for scope in all_scopes:
       j += 1
-      credentials = getSvcAcctCredentials([scope], user)
-      request = google_auth_httplib2.Request(getHttpObj())
-      try:
-        credentials.refresh(request)
-        result = 'PASS'
-      except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
-        handleServerError(e)
-      except google.auth.exceptions.RefreshError:
+      # try with and without email scope
+      for scopes in [[scope, API.USERINFO_EMAIL_SCOPE], [scope]]:
+        try:
+          credentials = getSvcAcctCredentials(scopes, user)
+          request = google_auth_httplib2.Request(getHttpObj())
+          credentials.refresh(request)
+          break
+        except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
+          handleServerError(e)
+        except google.auth.exceptions.RefreshError:
+          continue
+      if credentials.token:
+        token_info = callGAPI(oa2, 'tokeninfo', access_token=credentials.token)
+        if scope in token_info.get('scope', '').split(' ') and user == token_info.get('email', user):
+          result = 'PASS'
+        else:
+          result = 'FAIL'
+          all_scopes_pass = False
+      else:
         result = 'FAIL'
         all_scopes_pass = False
       entityActionPerformedMessage([Ent.SCOPE, '{0:62}'.format(scope)], result, j, jcount)
