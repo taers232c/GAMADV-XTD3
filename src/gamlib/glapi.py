@@ -33,7 +33,6 @@ DIRECTORY = 'directory'
 DRIVE = 'drive'
 DRIVE3 = 'drive3'
 DRIVEACTIVITY = 'driveactivity'
-#EMAIL = 'email'
 EMAIL_AUDIT = 'email-audit'
 EMAIL_SETTINGS = 'email-settings'
 GMAIL = 'gmail'
@@ -96,8 +95,8 @@ PROJECT_APIS = [
   'vault.googleapis.com',
   ]
 
+APPS_GROUPS_MIGRATION_SCOPE = 'https://www.googleapis.com/auth/apps.groups.migration'
 USERINFO_EMAIL_SCOPE = 'https://www.googleapis.com/auth/userinfo.email' # email
-USERINFO_PROFILE_SCOPE = 'https://www.googleapis.com/auth/userinfo.profile' # profile
 VAULT_SCOPES = ['https://www.googleapis.com/auth/ediscovery', 'https://www.googleapis.com/auth/ediscovery.readonly']
 REQUIRED_SCOPES = ['email', 'profile']
 
@@ -130,8 +129,6 @@ _INFO = {
   DRIVEACTIVITY: {'version': 'v2', 'v2discovery': True,
                   'svcacctscopes': ['https://www.googleapis.com/auth/drive.activity',
                                     'https://www.googleapis.com/auth/drive',]},
-  #EMAIL: {'version': 'v1', 'v2discovery': False,
-  #        'svcacctscopes': [USERINFO_EMAIL_SCOPE,]},
   EMAIL_AUDIT: {'version': 'v1', 'v2discovery': False,
                 'localjson': True},
   EMAIL_SETTINGS: {'version': 'v2', 'v2discovery': False,
@@ -142,7 +139,7 @@ _INFO = {
                             'https://www.googleapis.com/auth/gmail.settings.basic',
                             'https://www.googleapis.com/auth/gmail.settings.sharing',]},
   GROUPSMIGRATION: {'version': 'v1', 'v2discovery': False,
-                    'svcacctscopes': ['https://www.googleapis.com/auth/apps.groups.migration',]},
+                    'svcacctscopes': [APPS_GROUPS_MIGRATION_SCOPE,]},
   GROUPSSETTINGS: {'version': 'v1', 'v2discovery': False},
   LICENSING: {'version': 'v1', 'v2discovery': False},
   OAUTH2: {'version': 'v2', 'v2discovery': False},
@@ -271,7 +268,7 @@ OAUTH2_SCOPES = [
   {'name': 'Groups Migration API',
    'api': GROUPSMIGRATION,
    'subscopes': [],
-   'scope': 'https://www.googleapis.com/auth/apps.groups.migration'},
+   'scope': APPS_GROUPS_MIGRATION_SCOPE},
   {'name': 'Groups Settings API',
    'api': GROUPSSETTINGS,
    'subscopes': [],

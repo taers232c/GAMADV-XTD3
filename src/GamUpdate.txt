@@ -1,3 +1,7 @@
+4.94.00
+
+Following Jay's lead, added additional validation code to `gam check serviceaccount`.
+
 4.93.02
 
 Added option `timeoffset` to `gam version`; this causes GAM to display the difference between

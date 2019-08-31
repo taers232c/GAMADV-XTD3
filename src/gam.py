@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.93.02'
+__version__ = '4.94.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1680,7 +1680,7 @@ def getEmailAddressUsername(emailAddress):
     return emailAddress.lower()
   return emailAddress[:atLoc].lower()
 
-# Split email address unto user and domain
+# Split email address into user and domain
 def splitEmailAddress(emailAddress):
   atLoc = emailAddress.find('@')
   if atLoc == -1:
@@ -3138,7 +3138,8 @@ def getSvcAcctCredentials(scopes, act_as):
       GM.Globals[GM.OAUTH2SERVICE_JSON_DATA] = json.loads(json_string)
     credentials = google.oauth2.service_account.Credentials.from_service_account_info(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
     credentials = credentials.with_scopes(scopes)
-    credentials = credentials.with_subject(act_as)
+    if act_as:
+      credentials = credentials.with_subject(act_as)
     GM.Globals[GM.ADMIN] = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']
     GM.Globals[GM.OAUTH2SERVICE_CLIENT_ID] = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
     return credentials
@@ -5805,13 +5806,28 @@ def batchRequestID(entityName, i, count, j, jcount, item, role=None, option=None
     return '{0}\n{1}\n{2}\n{3}\n{4}\n{5}'.format(entityName, i, count, j, jcount, item)
   return '{0}\n{1}\n{2}\n{3}\n{4}\n{5}\n{6}\n{7}'.format(entityName, i, count, j, jcount, item, role, option)
 
+TIME_OFFSET_UNITS = [('day', SECONDS_PER_DAY), ('hour', SECONDS_PER_HOUR), ('minute', SECONDS_PER_MINUTE), ('second', 1)]
+
 def getLocalGoogleTimeOffset(testLocation='www.googleapis.com'):
-  localUTC = datetime.datetime.now(iso8601.UTC)
+  # we disable SSL verify so we can still get time even if clock
+  # is way off. This could be spoofed / MitM but we'll fail for those
+  # situations everywhere else but here.
+  httpObj = getHttpObj()
+  httpObj.disable_ssl_certificate_validation = True
   try:
-    googleUTC = datetime.datetime.strptime(getHttpObj().request('https://'+testLocation, 'HEAD')[0]['date'], '%a, %d %b %Y %H:%M:%S %Z').replace(tzinfo=iso8601.UTC)
-    return (localUTC-googleUTC).total_seconds()
+    googleUTC = datetime.datetime.strptime(httpObj.request('https://'+testLocation, 'HEAD')[0]['date'], '%a, %d %b %Y %H:%M:%S %Z').replace(tzinfo=iso8601.UTC)
   except (httplib2.HttpLib2Error, RuntimeError, ValueError) as e:
     handleServerError(e)
+  offset = remainder = int(abs((datetime.datetime.now(iso8601.UTC)-googleUTC).total_seconds()))
+  timeoff = []
+  for tou in TIME_OFFSET_UNITS:
+    uval, remainder = divmod(remainder, tou[1])
+    if uval:
+      timeoff.append('{0} {1}{2}'.format(uval, tou[0], 's' if uval != 1 else ''))
+  if not timeoff:
+    timeoff.append(Msg.LESS_THAN_1_SECOND)
+  nicetime = ', '.join(timeoff)
+  return (offset, nicetime)
 
 def _getServerTLSUsed(location):
   url = 'https://'+location
@@ -5846,7 +5862,7 @@ def doVersion(checkForArgs=True):
       elif myarg == 'simple':
         simple = True
       elif myarg == 'extended':
-        extended = True
+        extended = timeOffset = True
       elif myarg == 'timeoffset':
         timeOffset = True
       elif myarg == 'location':
@@ -5862,7 +5878,10 @@ def doVersion(checkForArgs=True):
                                   sys.version_info[3], googleapiclient.__version__, httplib2.__version__, oauth2client.__version__,
                                   platform.platform(), platform.machine(), GM.Globals[GM.GAM_PATH]))
   if timeOffset:
-    printKeyValueList([Msg.TIME_OFFSET_FROM_GOOGLE.format(MAX_LOCAL_GOOGLE_TIME_OFFSET), getLocalGoogleTimeOffset(testLocation)])
+    offsetSeconds, offsetFormatted = getLocalGoogleTimeOffset(testLocation)
+    printKeyValueList([Msg.YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE.format(offsetFormatted)])
+    if offsetSeconds > MAX_LOCAL_GOOGLE_TIME_OFFSET:
+      systemErrorExit(NETWORK_ERROR_RC, Msg.PLEASE_CORRECT_YOUR_SYSTEM_TIME)
   if forceCheck:
     doGAMCheckForUpdates(forceCheck)
   if extended:
@@ -6884,27 +6903,64 @@ def doOAuthImport():
 
 # gam <UserTypeEntity> check serviceaccount
 def checkServiceAccount(users):
+  def printPassFail(description, result):
+    writeStdout(Ind.Spaces()+'{0:73} {1}'.format(description, result)+'\n')
+
   checkForExtraneousArguments()
-  all_scopes, jcount = API.getSortedSvcAcctScopesList()
+  printKeyValueList([Msg.SYSTEM_TIME_STATUS, None])
+  offsetSeconds, offsetFormatted = getLocalGoogleTimeOffset()
+  if offsetSeconds <= MAX_LOCAL_GOOGLE_TIME_OFFSET:
+    timeStatus = 'PASS'
+  else:
+    timeStatus = 'FAIL'
+  Ind.Increment()
+  printPassFail(Msg.YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE.format(offsetFormatted), timeStatus)
+  Ind.Decrement()
+  oa2 = googleapiclient.discovery.build(API.OAUTH2, 'v1', getHttpObj())
+  printKeyValueList([Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AUTHENTICATION, None])
+  # We are explicitly not doing DwD here, just confirming service account can auth
+  auth_error = ''
+  try:
+    credentials = getSvcAcctCredentials([API.USERINFO_EMAIL_SCOPE], None)
+    request = google_auth_httplib2.Request(getHttpObj())
+    credentials.refresh(request)
+    sa_token_info = callGAPI(oa2, 'tokeninfo', access_token=credentials.token)
+    if sa_token_info:
+      saTokenStatus = 'PASS'
+    else:
+      saTokenStatus = 'FAIL'
+  except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
+    handleServerError(e)
+  except google.auth.exceptions.RefreshError as e:
+    saTokenStatus = 'FAIL'
+    if isinstance(e.args, tuple):
+      e = e.args[0]
+    auth_error = ' - '+str(e)
+  Ind.Increment()
+  printPassFail('Authentication{0}'.format(auth_error), saTokenStatus)
+  Ind.Decrement()
+  allScopes, jcount = API.getSortedSvcAcctScopesList()
   if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
-    all_scopes.remove('https://www.googleapis.com/auth/apps.groups.migration')
+    allScopes.remove(API.APPS_GROUPS_MIGRATION_SCOPE)
     jcount -= 1
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    all_scopes_pass = True
+    allScopesPass = True
     oa2 = googleapiclient.discovery.build(API.OAUTH2, 'v1', getHttpObj())
     user = convertUIDtoEmailAddress(user)
-    entityPerformActionNumItems([Ent.USER, user], jcount, Ent.SCOPE, i, count)
+    printKeyValueListWithCount([Msg.DOMAIN_WIDE_DELEGATION_AUTHENTICATION, '',
+                                Ent.Singular(Ent.USER), user,
+                                Ent.Choose(Ent.SCOPE, jcount), jcount],
+                               i, count)
     Ind.Increment()
     j = 0
-    for scope in all_scopes:
+    for scope in allScopes:
       j += 1
       # try with and without email scope
       for scopes in [[scope, API.USERINFO_EMAIL_SCOPE], [scope]]:
         try:
           credentials = getSvcAcctCredentials(scopes, user)
-          request = google_auth_httplib2.Request(getHttpObj())
           credentials.refresh(request)
           break
         except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
@@ -6913,22 +6969,24 @@ def checkServiceAccount(users):
           continue
       if credentials.token:
         token_info = callGAPI(oa2, 'tokeninfo', access_token=credentials.token)
-        if scope in token_info.get('scope', '').split(' ') and user == token_info.get('email', user):
-          result = 'PASS'
+        if scope in token_info.get('scope', '').split(' ') and user == token_info.get('email', user).lower():
+          scopeStatus = 'PASS'
         else:
-          result = 'FAIL'
-          all_scopes_pass = False
+          scopeStatus = 'FAIL'
+          allScopesPass = False
       else:
-        result = 'FAIL'
-        all_scopes_pass = False
-      entityActionPerformedMessage([Ent.SCOPE, '{0:62}'.format(scope)], result, j, jcount)
+        scopeStatus = 'FAIL'
+        allScopesPass = False
+      printPassFail(scope, '{0}{1}'.format(scopeStatus, currentCount(j, jcount)))
     Ind.Decrement()
     service_account = GM.Globals[GM.OAUTH2SERVICE_CLIENT_ID]
-    _, _, user_domain = splitEmailAddressOrUID(user)
-    if all_scopes_pass:
+    if allScopesPass:
       printLine(Msg.SCOPE_AUTHORIZATION_PASSED.format(service_account))
     else:
-      printErrorMessage(SCOPES_NOT_AUTHORIZED, Msg.SCOPE_AUTHORIZATION_FAILED.format(user_domain, service_account, ',\n'.join(all_scopes)))
+      # Tack on email scope for more accurate checking
+      allScopes.append(API.USERINFO_EMAIL_SCOPE)
+      _, domain = splitEmailAddress(user)
+      printErrorMessage(SCOPES_NOT_AUTHORIZED, Msg.SCOPE_AUTHORIZATION_FAILED.format(domain, service_account, ',\n'.join(allScopes)))
     printBlankLine()
 
 def getCRMService(login_hint):
