@@ -1,3 +1,10 @@
+4.94.01
+
+Fixed bug in `gam info mobile` that caused a trap.
+
+Added `todrive_clientaccess` to `gam.cfg`. This is a special use Boolean option that allows
+the `todrive` option to be used with client access rather than service account access.
+
 4.94.00
 
 Following Jay's lead, added additional validation code to `gam check serviceaccount`.

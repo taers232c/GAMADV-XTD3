@@ -313,6 +313,17 @@ OAUTH2_SCOPES = [
    'scope': 'https://www.googleapis.com/auth/ediscovery'},
   ]
 
+TODRIVE_CLIENTACCESS_OAUTH2_SCOPES = [
+  {'name': 'Drive API - todrive_clientaccess',
+   'api': DRIVE3,
+   'subscopes': [],
+   'scope': 'https://www.googleapis.com/auth/drive'},
+  {'name': 'Sheets API - todrive_clientaccess',
+   'api': SHEETS,
+   'subscopes': [],
+   'scope': 'https://www.googleapis.com/auth/spreadsheets'},
+  ]
+
 DRIVE3_TO_DRIVE2_ABOUT_FIELDS_MAP = {
   'displayName': 'name',
   'limit': 'quotaBytesTotal',

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.00'
+__version__ = '4.94.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5110,6 +5110,15 @@ class CSVPrintFile():
       else:
         usageErrorExit(Msg.INVALID_ENTITY.format(Ent.Singular(entityType), message))
 
+    def getDriveObject():
+      if not GC.Values[GC.TODRIVE_CLIENTACCESS]:
+        _, drive = buildGAPIServiceObject(API.DRIVE3, self.todrive['user'])
+        if not drive:
+          invalidTodriveUserExit(Ent.USER, Msg.NOT_FOUND)
+      else:
+        drive = buildGAPIObject(API.DRIVE3)
+      return drive
+
     localUser = localParent = False
     tduserLocation = tdparentLocation = tdfileidLocation = Cmd.Location()
     self.todrive = {'user': GC.Values[GC.TODRIVE_USER], 'title': None, 'description': None, 'sheet': None,
@@ -5151,9 +5160,9 @@ class CSVPrintFile():
       else:
         Cmd.Backup()
         break
-    if not self.todrive['user']:
+    if not self.todrive['user'] or GC.Values[GC.TODRIVE_CLIENTACCESS]:
       self.todrive['user'] = _getValueFromOAuth('email')
-    if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
+    if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY] and not GC.Values[GC.TODRIVE_CLIENTACCESS]:
       user = checkUserExists(buildGAPIObject(API.DIRECTORY), self.todrive['user'])
       if not user:
         invalidTodriveUserExit(Ent.USER, Msg.NOT_FOUND)
@@ -5161,9 +5170,7 @@ class CSVPrintFile():
     else:
       self.todrive['user'] = normalizeEmailAddressOrUID(self.todrive['user'])
     if self.todrive['fileId']:
-      _, drive = buildGAPIServiceObject(API.DRIVE3, self.todrive['user'])
-      if not drive:
-        invalidTodriveUserExit(Ent.USER, Msg.NOT_FOUND)
+      drive = getDriveObject()
       try:
         result = callGAPI(drive.files(), 'get',
                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND],
@@ -5179,9 +5186,7 @@ class CSVPrintFile():
     elif not self.todrive['parent'] or self.todrive['parent'] == 'root':
       self.todrive['parentId'] = 'root'
     else:
-      _, drive = buildGAPIServiceObject(API.DRIVE3, self.todrive['user'])
-      if not drive:
-        invalidTodriveUserExit(Ent.USER, Msg.NOT_FOUND)
+      drive = getDriveObject()
       if self.todrive['parent'].startswith('id:'):
         try:
           result = callGAPI(drive.files(), 'get',
@@ -5475,10 +5480,13 @@ class CSVPrintFile():
         title = self.todrive['title'] or '{0} - {1}'.format(GC.Values[GC.DOMAIN], list_type)
         if self.todrive['timestamp']:
           title += ' - '+ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])+datetime.timedelta(days=-self.todrive['daysoffset'], hours=-self.todrive['hoursoffset']))
-        user, drive = buildGAPIServiceObject(API.DRIVE3, self.todrive['user'])
-        if drive is None:
-          closeFile(csvFile)
-          return
+        if not GC.Values[GC.TODRIVE_CLIENTACCESS]:
+          user, drive = buildGAPIServiceObject(API.DRIVE3, self.todrive['user'])
+          if drive is None:
+            closeFile(csvFile)
+            return
+        else:
+          drive = buildGAPIObject(API.DRIVE3)
         importSize = csvFile.tell()
         csvBytes = io.BytesIO(csvFile.getvalue().encode())
         closeFile(csvFile)
@@ -5511,7 +5519,13 @@ class CSVPrintFile():
                               fields=fields, supportsAllDrives=True)
           if self.todrive['sheet'] is not None and result['mimeType'] == MIMETYPE_GA_SPREADSHEET:
             action = Act.Get()
-            _, sheet = buildGAPIServiceObject(API.SHEETS, user)
+            if not GC.Values[GC.TODRIVE_CLIENTACCESS]:
+              _, sheet = buildGAPIServiceObject(API.SHEETS, user)
+              if sheet is None:
+                closeFile(csvBytes)
+                return
+            else:
+              sheet = buildGAPIObject(API.SHEETS)
             spreadsheetId = result['id']
             try:
               sheets = callGAPI(sheet.spreadsheets(), 'get',
@@ -5528,8 +5542,9 @@ class CSVPrintFile():
           file_url = result[V3_WEB_VIEW_LINK]
           msg_txt = '{0}:\n{1}'.format(Msg.DATA_UPLOADED_TO_DRIVE_FILE, file_url)
           printKeyValueList([msg_txt])
-          if not self.todrive['noemail']:
-            send_email(title, msg_txt, user)
+          if not GC.Values[GC.TODRIVE_CLIENTACCESS]:
+            if not self.todrive['noemail']:
+              send_email(title, msg_txt, user)
           if not self.todrive['nobrowser']:
             webbrowser.open(file_url)
         except (GAPI.forbidden, GAPI.insufficientPermissions):
@@ -6558,7 +6573,11 @@ Select the authorized scopes by entering a number.
 Append an 'r' to grant read-only access or an 'a' to grant action-only access.
 
 '''
-  for a_scope in API.OAUTH2_SCOPES:
+  scopesList = API.OAUTH2_SCOPES
+  if GC.Values[GC.TODRIVE_CLIENTACCESS]:
+    scopesList.extend(API.TODRIVE_CLIENTACCESS_OAUTH2_SCOPES)
+  numScopes = len(scopesList)
+  for a_scope in scopesList:
     oauth2_menu += '[%%%%s] %%2d)  %s' % (a_scope['name'])
     if a_scope['subscopes']:
       oauth2_menu += ' (supports %s)' % (' and '.join(a_scope['subscopes']))
@@ -6569,9 +6588,8 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
      e)  Exit without changes
      c)  Continue to authorization
 '''
-  num_scopes = len(API.OAUTH2_SCOPES)
-  menu = oauth2_menu % tuple(range(num_scopes))
-  selectedScopes = ['*'] * num_scopes
+  menu = oauth2_menu % tuple(range(numScopes))
+  selectedScopes = ['*'] * numScopes
   if currentScopes is None:
     credentials = getOauth2TxtCredentials(updateOnError=False)
     if credentials and not credentials.invalid:
@@ -6579,7 +6597,7 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
         currentScopes = sorted(credentials.scopes)
   if currentScopes:
     i = 0
-    for a_scope in API.OAUTH2_SCOPES:
+    for a_scope in scopesList:
       selectedScopes[i] = ' '
       possibleScope = a_scope['scope']
       for currentScope in currentScopes:
@@ -6597,10 +6615,10 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
       i += 1
   else:
     i = 0
-    for a_scope in API.OAUTH2_SCOPES:
+    for a_scope in scopesList:
       selectedScopes[i] = ' ' if a_scope.get('offByDefault', False) else '*'
       i += 1
-  prompt = 'Please enter 0-{0}[a|r] or {1}: '.format(num_scopes-1, '|'.join(OAUTH2_CMDS))
+  prompt = 'Please enter 0-{0}[a|r] or {1}: '.format(numScopes-1, '|'.join(OAUTH2_CMDS))
   while True:
     os.system(['clear', 'cls'][GM.Globals[GM.WINDOWS]])
     sys.stdout.write(menu % tuple(selectedScopes))
@@ -6618,13 +6636,13 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
           mode = ' '
         if selection and selection.isdigit():
           selection = int(selection)
-        if isinstance(selection, int) and selection < num_scopes:
+        if isinstance(selection, int) and selection < numScopes:
           if mode == 'R':
-            if 'readonly' not in API.OAUTH2_SCOPES[selection]['subscopes']:
+            if 'readonly' not in scopesList[selection]['subscopes']:
               sys.stdout.write('{0}Scope {1} does not support read-only mode!\n'.format(ERROR_PREFIX, selection))
               continue
           elif mode == 'A':
-            if 'action' not in API.OAUTH2_SCOPES[selection]['subscopes']:
+            if 'action' not in scopesList[selection]['subscopes']:
               sys.stdout.write('{0}Scope {1} does not support action-only mode!\n'.format(ERROR_PREFIX, selection))
               continue
           elif selectedScopes[selection] != '*':
@@ -6635,18 +6653,18 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
           break
         elif isinstance(selection, string_types) and selection in OAUTH2_CMDS:
           if selection == 's':
-            for i in range(num_scopes):
+            for i in range(numScopes):
               selectedScopes[i] = '*'
           elif selection == 'u':
-            for i in range(num_scopes):
+            for i in range(numScopes):
               selectedScopes[i] = ' '
           elif selection == 'e':
-            return None
+            return (scopesList, None)
           break
         sys.stdout.write('{0}Invalid input "{1}"\n'.format(ERROR_PREFIX, choice))
     if selection == 'c':
       break
-  return selectedScopes
+  return (scopesList, selectedScopes)
 
 class cmd_flags():
   def __init__(self, noLocalWebserver):
@@ -6703,14 +6721,14 @@ def doOAuthRequest(currentScopes=None):
   client_id, client_secret = getOAuthClientIDAndSecret()
   login_hint = getEmailAddress(noUid=True, optional=True)
   checkForExtraneousArguments()
-  selectedScopes = getScopesFromUser(currentScopes)
+  scopesList, selectedScopes = getScopesFromUser(currentScopes)
   if selectedScopes is None:
     return False
   login_hint = _getValidateLoginHint(login_hint)
   revokeCredentials()
   scopes = API.REQUIRED_SCOPES[:] # Email Display Scope, always included for client
   i = 0
-  for a_scope in API.OAUTH2_SCOPES:
+  for a_scope in scopesList:
     if selectedScopes[i] == '*':
       scopes.append(a_scope['scope'])
     elif selectedScopes[i] == 'R':
@@ -14752,7 +14770,7 @@ def _getMobileFieldsArguments(myarg, parameters):
 # gam info mobile|mobiles <MobileDeviceEntity>
 #	[basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>] [formatjson]
 def doInfoMobileDevices():
-  entityList, cd = getMobileDeviceEntity()
+  entityList, cd, _ = getMobileDeviceEntity()
   parameters = _initMobileFieldsParameters()
   FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():

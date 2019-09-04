@@ -154,6 +154,8 @@ TLS_MIN_VERSION = 'tls_min_version'
 TLS_MAX_VERSION = 'tls_max_version'
 # Time Zone
 TIMEZONE = 'timezone'
+# Use client access for todrive
+TODRIVE_CLIENTACCESS = 'todrive_clientaccess'
 # Enable conversion to Google Sheets when uploading todrive files
 TODRIVE_CONVERSION = 'todrive_conversion'
 # Suppress opening browser on todrive upload
@@ -231,6 +233,7 @@ Defaults = {
   TLS_MIN_VERSION: 'TLSv1_2' if hasattr(ssl.SSLContext(), "minimum_version") else '',
   TLS_MAX_VERSION: '',
   TIMEZONE: 'utc',
+  TODRIVE_CLIENTACCESS: FALSE,
   TODRIVE_CONVERSION: TRUE,
   TODRIVE_NOBROWSER: '',
   TODRIVE_NOEMAIL: '',
@@ -326,6 +329,7 @@ VAR_INFO = {
   TLS_MIN_VERSION: {VAR_TYPE: TYPE_STRING, VAR_ENVVAR: 'GAM_TLS_MIN_VERSION', VAR_LIMITS: (0, None)},
   TLS_MAX_VERSION: {VAR_TYPE: TYPE_STRING, VAR_ENVVAR: 'GAM_TLS_MAX_VERSION', VAR_LIMITS: (0, None)},
   TIMEZONE: {VAR_TYPE: TYPE_TIMEZONE},
+  TODRIVE_CLIENTACCESS: {VAR_TYPE: TYPE_BOOLEAN},
   TODRIVE_CONVERSION: {VAR_TYPE: TYPE_BOOLEAN},
   TODRIVE_NOBROWSER: {VAR_TYPE: TYPE_BOOLEAN, VAR_SIGFILE: 'nobrowser.txt', VAR_SFFT: (FALSE, TRUE)},
   TODRIVE_NOEMAIL: {VAR_TYPE: TYPE_BOOLEAN},
