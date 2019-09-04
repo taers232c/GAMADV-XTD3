@@ -1,3 +1,9 @@
+4.94.02
+
+When `gam oauth create` is issued and `no_browser = true`, GAM indicates where the `gamoauthurl.txt` file is located
+to simplify copying the long URL from the file rather than the screen. This is most useful with older versions of Command Prompt
+and PowerShell which can't properly copy/paste multi line strings.
+
 4.94.01
 
 Fixed bug in `gam info mobile` that caused a trap.

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.01'
+__version__ = '4.94.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6697,11 +6697,13 @@ class SaveURLOAuth2WebServerFlow(oauth2client.client.OAuth2WebServerFlow):
     return oauthURL
 
 def _run_oauth_flow(client_id, client_secret, scopes, login_hint, access_type, storage):
+  setGAMOauthURLfile(access_type)
 # Override some oauth2client.tools strings saving us a few GAM-specific mods to oauth2client
   oauth2client.tools._FAILED_START_MESSAGE = Msg.OAUTH2_FAILED_START_MESSAGE
-  oauth2client.tools._BROWSER_OPENED_MESSAGE = Msg.OAUTH2_BROWSER_OPENED_MESSAGE
-  oauth2client.tools._GO_TO_LINK_MESSAGE = Msg.OAUTH2_GO_TO_LINK_MESSAGE
-  setGAMOauthURLfile(access_type)
+  if GM.Globals[GM.GAM_OAUTH_URL_TXT]:
+    oauth2client.tools._GO_TO_LINK_MESSAGE = Msg.OAUTH2_GO_TO_LINK_MESSAGE.format(GM.Globals[GM.GAM_OAUTH_URL_TXT])
+  else:
+    oauth2client.tools._BROWSER_OPENED_MESSAGE = Msg.OAUTH2_BROWSER_OPENED_MESSAGE
   flow = SaveURLOAuth2WebServerFlow(client_id=client_id, client_secret=client_secret, scope=scopes,
                                     redirect_uri=oauth2client.client.OOB_CALLBACK_URN,
                                     login_hint=login_hint, pkce=True,

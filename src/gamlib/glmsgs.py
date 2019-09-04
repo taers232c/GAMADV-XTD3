@@ -201,8 +201,9 @@ set no_browser = true in gam.cfg and re-run this command.
 """
 OAUTH2_GO_TO_LINK_MESSAGE = """
 Go to the following link in your browser:
+(The link may be copied from the file {0} rather than the screen.)
 
-    {address}
+    {{address}}
 """
 ONLY_ONE_JSON_RANGE_ALLOWED = 'Only one range/json allowed'
 ONLY_ONE_OWNER_ALLOWED = 'Only one owner allowed'
