@@ -1,3 +1,8 @@
+4.94.03
+
+Added additional client access scopes for `todrive_clientaccess`.
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Todrive#client-access
+
 4.94.02
 
 When `gam oauth create` is issued and `no_browser = true`, GAM indicates where the `gamoauthurl.txt` file is located
@@ -10,6 +15,7 @@ Fixed bug in `gam info mobile` that caused a trap.
 
 Added `todrive_clientaccess` to `gam.cfg`. This is a special use Boolean option that allows
 the `todrive` option to be used with client access rather than service account access.
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Todrive#client-access
 
 4.94.00
 

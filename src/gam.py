@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.02'
+__version__ = '4.94.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4882,7 +4882,7 @@ def _addAttachmentsToMessage(message, attachments):
 NAME_EMAIL_ADDRESS_PATTERN = re.compile(r'^.*<(.+)>$')
 
 # Send an email
-def send_email(msgSubject, msgBody, msgTo, i=0, count=0, msgFrom=None, msgReplyTo=None,
+def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msgFrom=None, msgReplyTo=None,
                html=False, charset=UTF8, attachments=None, ccRecipients=None, bccRecipients=None):
   if msgFrom is None:
     msgFrom = msgFromAddr = _getValueFromOAuth('email')
@@ -4892,9 +4892,13 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, msgFrom=None, msgReplyT
       msgFromAddr = match.group(1)
     else:
       msgFromAddr = msgFrom
-  userId, gmail = buildGAPIServiceObject(API.GMAIL, msgFromAddr)
-  if not gmail:
-    return
+  if not clientAccess:
+    userId, gmail = buildGAPIServiceObject(API.GMAIL, msgFromAddr)
+    if not gmail:
+      return
+  else:
+    userId = msgFromAddr
+    gmail = buildGAPIObject(API.GMAIL)
   if not msgTo:
     msgTo = userId
   if not attachments:
@@ -5486,6 +5490,7 @@ class CSVPrintFile():
             closeFile(csvFile)
             return
         else:
+          user = self.todrive['user']
           drive = buildGAPIObject(API.DRIVE3)
         importSize = csvFile.tell()
         csvBytes = io.BytesIO(csvFile.getvalue().encode())
@@ -5542,9 +5547,8 @@ class CSVPrintFile():
           file_url = result[V3_WEB_VIEW_LINK]
           msg_txt = '{0}:\n{1}'.format(Msg.DATA_UPLOADED_TO_DRIVE_FILE, file_url)
           printKeyValueList([msg_txt])
-          if not GC.Values[GC.TODRIVE_CLIENTACCESS]:
-            if not self.todrive['noemail']:
-              send_email(title, msg_txt, user)
+          if not self.todrive['noemail']:
+            send_email(title, msg_txt, user, clientAccess=GC.Values[GC.TODRIVE_CLIENTACCESS])
           if not self.todrive['nobrowser']:
             webbrowser.open(file_url)
         except (GAPI.forbidden, GAPI.insufficientPermissions):
