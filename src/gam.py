@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.03'
+__version__ = '4.94.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -113,6 +113,9 @@ import oauth2client.tools
 from oauth2client.contrib.dictionary_storage import DictionaryStorage
 from oauth2client.contrib.multiprocess_file_storage import MultiprocessFileStorage
 from passlib.hash import sha512_crypt
+
+if platform.system() == 'Linux':
+  import distro
 
 # Python 3
 string_types = (str,)
@@ -5866,6 +5869,35 @@ def _getServerTLSUsed(location):
         continue
       handleServerError(e)
 
+MACOS_CODENAMES = {
+  6:  'Snow Leopard',
+  7:  'Lion',
+  8:  'Mountain Lion',
+  9:  'Mavericks',
+  10: 'Yosemite',
+  11: 'El Capitan',
+  12: 'Sierra',
+  13: 'High Sierra',
+  14: 'Mojave',
+  15: 'Catalina'
+  }
+
+def getOSPlatform():
+  myos = platform.system()
+  if myos == 'Linux':
+    pltfrm = ' '.join(distro.linux_distribution(full_distribution_name=False)).title()
+  elif myos == 'Windows':
+    pltfrm = ' '.join(platform.win32_ver())
+  elif myos == 'Darwin':
+    myos = 'MacOS'
+    mac_ver = platform.mac_ver()[0]
+    minor_ver = int(mac_ver.split('.')[1]) # macver 10.14.6 == minor_ver 14
+    codename = MACOS_CODENAMES.get(minor_ver, '')
+    pltfrm = ' '.join([codename, mac_ver])
+  else:
+    pltfrm = platform.platform()
+  return '%s %s' % (myos, pltfrm)
+
 # gam version [check|checkrc|simple|extended] [timeoffset] [location <HostName>]
 def doVersion(checkForArgs=True):
   forceCheck = 0
@@ -5895,7 +5927,7 @@ def doVersion(checkForArgs=True):
   writeStdout(version_data.format(GAM, __version__, GAM_URL, __author__, sys.version_info[0],
                                   sys.version_info[1], sys.version_info[2], struct.calcsize('P')*8,
                                   sys.version_info[3], googleapiclient.__version__, httplib2.__version__, oauth2client.__version__,
-                                  platform.platform(), platform.machine(), GM.Globals[GM.GAM_PATH]))
+                                  getOSPlatform(), platform.machine(), GM.Globals[GM.GAM_PATH]))
   if timeOffset:
     offsetSeconds, offsetFormatted = getLocalGoogleTimeOffset(testLocation)
     printKeyValueList([Msg.YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE.format(offsetFormatted)])

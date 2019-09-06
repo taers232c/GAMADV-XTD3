@@ -1,3 +1,7 @@
+4.94.04
+
+Following Jay's lead, added additional platform information to `gam version`.
+
 4.94.03
 
 Added additional client access scopes for `todrive_clientaccess`.
