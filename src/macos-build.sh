@@ -9,4 +9,5 @@ cp license.rtf gamadv-xtd3
 cp Gam*.txt gamadv-xtd3
 cp cacerts.pem gamadv-xtd3
 
-tar -cf gamadv-xtd3-$1-macos.tar gamadv-xtd3/ 
+MACOSVERSION=$(defaults read loginwindow SystemVersionStampAsString | cut -c1-5)
+tar -cf gamadv-xtd3-$1-macos-$MACOSVERSION-x86_64.tar gamadv-xtd3/ 

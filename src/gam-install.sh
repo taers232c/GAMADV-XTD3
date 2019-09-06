@@ -109,13 +109,10 @@ case $gamos in
       echo_red "ERROR: GAM currently requires MacOS 10.9 or newer. You are running MacOS 10.$osver. Please upgrade." 
       exit
     fi
-    echo_green "Good, you're running MacOS 10.$osver..."
+    MACOSVERSION=$(defaults read loginwindow SystemVersionStampAsString | cut -c1-5)
+    echo_green "Good, you're running MacOS $MACOSVERSION..."
     gamos="macos"
-    if (( $osver < 12 )); then
-      gamfile="macos-10.10-11.tar"
-     else
-      gamfile="macos-10.12-13.tar"
-    fi
+    gamfile="macos-$MACOSVERSION-x86_64.tar"
     ;;
   *)
     echo_red "Sorry, this installer currently only supports Linux and MacOS. Looks like you're runnning on $gamos. Exiting."
