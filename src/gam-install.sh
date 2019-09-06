@@ -109,7 +109,7 @@ case $gamos in
       echo_red "ERROR: GAM currently requires MacOS 10.9 or newer. You are running MacOS 10.$osver. Please upgrade." 
       exit
     fi
-    MACOSVERSION=$(defaults read loginwindow SystemVersionStampAsString | cut -c1-5)
+    MACOSVERSION=$(sw_vers -productVersion | cut -c1-5)
     echo_green "Good, you're running MacOS $MACOSVERSION..."
     gamos="macos"
     gamfile="macos-$MACOSVERSION-x86_64.tar"
