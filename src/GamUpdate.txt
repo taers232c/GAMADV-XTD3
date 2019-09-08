@@ -1,3 +1,7 @@
+4.94.05
+
+Fixed bug in `gam sendemail` that caused a trap.
+
 4.94.04
 
 Following Jay's lead, added additional platform information to `gam version`.

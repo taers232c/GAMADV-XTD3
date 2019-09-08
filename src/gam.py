@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.04'
+__version__ = '4.94.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -8584,7 +8584,8 @@ def sendCreateUpdateUserNotification(body, notify, tagReplacements, i=0, count=0
     _getTagReplacementFieldValues(body['primaryEmail'], i, count, tagReplacements, body if createMessage else None)
   notify['subject'] = _processTagReplacements(tagReplacements, notify['subject'])
   notify['message'] = _processTagReplacements(tagReplacements, notify['message'])
-  send_email(notify['subject'], notify['message'], notify['emailAddress'], i, count, msgFrom=msgFrom, html=notify['html'], charset=notify['charset'])
+  send_email(notify['subject'], notify['message'], notify['emailAddress'], i, count,
+             msgFrom=msgFrom, html=notify['html'], charset=notify['charset'])
 
 # gam sendemail <EmailAddressEntity> [from <UserItem>] [replyto <EmailAddress>]
 #	[cc <EmailAddressEntity>] [bcc <EmailAddressEntity>] [singlemessage [<Boolean>]]
@@ -8677,16 +8678,18 @@ def doSendEmail(users=None):
     if singleMessage:
       entityPerformActionModifierNumItems([Ent.USER, msgFrom],
                                           Act.MODIFIER_TO, jcount+len(ccRecipients)+len(bccRecipients), Ent.RECIPIENT, i, count)
-      send_email(notify['subject'], notify['message'], ','.join(recipients), i, count, msgFrom, msgReplyTo,
-                 notify['html'], notify['charset'], attachments, ','.join(ccRecipients), ','.join(bccRecipients))
+      send_email(notify['subject'], notify['message'], ','.join(recipients), i, count,
+                 msgFrom=msgFrom, msgReplyTo=msgReplyTo, html=notify['html'], charset=notify['charset'],
+                 attachments=attachments, ccRecipients=','.join(ccRecipients), bccRecipients=','.join(bccRecipients))
     else:
       entityPerformActionModifierNumItems([Ent.USER, msgFrom], Act.MODIFIER_TO, jcount, Ent.RECIPIENT, i, count)
       Ind.Increment()
       j = 0
       for recipient in recipients:
         j += 1
-        send_email(notify['subject'], notify['message'], recipient, j, jcount, msgFrom, msgReplyTo,
-                   notify['html'], notify['charset'], attachments)
+        send_email(notify['subject'], notify['message'], recipient, j, jcount,
+                   msgFrom=msgFrom, msgReplyTo=msgReplyTo, html=notify['html'], charset=notify['charset'],
+                   attachments=attachments)
       Ind.Decrement()
 
 ADDRESS_FIELDS_PRINT_ORDER = ['contactName', 'organizationName', 'addressLine1', 'addressLine2', 'addressLine3', 'locality', 'region', 'postalCode', 'countryCode']
