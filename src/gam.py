@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.05'
+__version__ = '4.94.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2320,8 +2320,11 @@ def openCSVFileReader(filename, fieldnames=None):
     quotechar = GC.Values[GC.CSV_INPUT_QUOTE_CHAR]
   if checkArgumentPresent('fields'):
     fieldnames = shlexSplitList(getString(Cmd.OB_FIELD_NAME_LIST))
-  csvFile = csv.DictReader(f, fieldnames=fieldnames, delimiter=delimiter, quotechar=quotechar)
-  return (f, csvFile, csvFile.fieldnames if csvFile.fieldnames is not None else [])
+  try:
+    csvFile = csv.DictReader(f, fieldnames=fieldnames, delimiter=delimiter, quotechar=quotechar)
+    return (f, csvFile, csvFile.fieldnames if csvFile.fieldnames is not None else [])
+  except csv.Error as e:
+    systemErrorExit(FILE_ERROR_RC, e)
 
 def incrAPICallsRetryData(errMsg, delta):
   GM.Globals[GM.API_CALLS_RETRY_DATA].setdefault(errMsg, [0, 0.0])

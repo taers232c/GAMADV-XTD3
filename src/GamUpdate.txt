@@ -1,3 +1,7 @@
+4.94.06
+
+Handle trap when a CSV file contains a NULL byte in the header row.
+
 4.94.05
 
 Fixed bug in `gam sendemail` that caused a trap.
