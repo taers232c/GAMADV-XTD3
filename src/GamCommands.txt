@@ -234,6 +234,7 @@ If an item contains spaces, it should be surrounded by ".
 <FloorName> ::= <String>
 <GroupItem> ::= <EmailAddress>|<UniqueID>|<String>
 <GroupRole> :;= owner|manager|member
+<GroupType> :;= customer|group|user
 <GuardianItem> ::= <EmailAddress>|<UniqueID>|<String>
 <GuardianInvitationID> ::= <String>
 <HoldItem> ::= <UniqueID>|<String>
@@ -368,6 +369,7 @@ If an item contains spaces, it should be surrounded by ".
 <GuardianInvitationIDList> ::= "<GuardianInvitationID>(,<GuardianInvitationID>)*"
 <GroupList> ::= "<GroupItem>(,<GroupItem>)*"
 <GroupRoleList> ::= "<GroupRole>(,<GroupRole>)*"
+<GroupTypeList> ::= "<GroupType>(,<GroupType>)*"
 <LabelNameList> ::= "<LabelName>(,<LabelName)*"
 <LanguageList> ::= "<Language>(,<Language)*"
 <MatterItemList> ::= "<MatterItem>(,<MatterItem>)*"
@@ -1865,14 +1867,14 @@ gam info member|group-members <UserTypeEntity> <GroupEntity>
 gam print group-members [todrive <ToDriveAttribute>*]
         [domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns|group_susp <GroupItem>]|[select <GroupEntity>] [notsuspended|suspended]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
-        [showownedby <UserItem>]
+        [showownedby <UserItem>] [types <GroupTypeList>]
         [roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
         [userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
         [peoplelookup|(peoplelookupuser <EmailAddress>)]
 gam show group-members
         ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns|group_susp <GroupItem>]|[select <GroupEntity>] [notsuspended|suspended]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
-        [showownedby <UserItem>]
+        [showownedby <UserItem>] [types <GroupTypeList>]
         [roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
 
 # Licenses

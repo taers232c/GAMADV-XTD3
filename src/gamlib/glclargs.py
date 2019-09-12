@@ -578,6 +578,7 @@ class GamCLArgs(object):
   OB_GROUP_ENTITY = 'GroupEntity'
   OB_GROUP_ITEM = 'GroupItem'
   OB_GROUP_ROLE_LIST = 'GroupRoleList'
+  OB_GROUP_TYPE_LIST = 'GroupTypeList'
   OB_GUARDIAN_INVITATION_ID = 'GuardianInvitationID'
   OB_GUARDIAN_INVITATION_ID_ENTITY = 'GuardianInvitationIDEntity'
   OB_GUARDIAN_ENTITY = 'GuardianEntity'

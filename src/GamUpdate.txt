@@ -1,3 +1,9 @@
+4.94.07
+
+Added `types <GroupTypeList>` to `gam print/show group-members`; only members with type in `<GroupTypeList>`
+will be displayed. By default, members of all types are displayed.
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Group-Membership
+
 4.94.06
 
 Handle trap when a CSV file contains a NULL byte in the header row.

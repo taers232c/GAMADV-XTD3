@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.06'
+__version__ = '4.94.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4045,6 +4045,14 @@ GROUP_ROLES_MAP = {
   'member': Ent.ROLE_MEMBER,
   'members': Ent.ROLE_MEMBER,
   }
+ALL_GROUP_ROLES = set([Ent.ROLE_MANAGER, Ent.ROLE_MEMBER, Ent.ROLE_OWNER])
+
+GROUP_TYPES_MAP = {
+  'customer': Ent.TYPE_CUSTOMER,
+  'group': Ent.TYPE_GROUP,
+  'user': Ent.TYPE_USER,
+  }
+ALL_GROUP_TYPES = set([Ent.TYPE_CUSTOMER, Ent.TYPE_GROUP, Ent.TYPE_USER])
 
 def _getRoleVerification(memberRoles, fields):
   if memberRoles and memberRoles.find(Ent.ROLE_MEMBER) != -1:
@@ -4061,7 +4069,7 @@ def _checkMemberRoleIsSuspended(member, validRoles, isSuspended):
           (isSuspended is None or (not isSuspended and memberStatus != 'SUSPENDED') or (isSuspended and memberStatus == 'SUSPENDED')))
 
 # Turn the entity into a list of Users/CrOS devices
-def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, groupMemberType='USER'):
+def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, groupMemberType=Ent.TYPE_USER):
   def _incrEntityDoesNotExist(entityType):
     entityError['entityType'] = entityType
     entityError['doesNotExist'] += 1
@@ -4084,7 +4092,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
       _incrEntityDoesNotExist(Ent.GROUP)
       return
     for member in result:
-      if member['type'] == 'USER':
+      if member['type'] == Ent.TYPE_USER:
         email = member['email'].lower()
         if email in entitySet:
           continue
@@ -4095,7 +4103,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
               continue
           entitySet.add(email)
           entityList.append(email)
-      elif recursive and member['type'] == 'GROUP':
+      elif recursive and member['type'] == Ent.TYPE_GROUP:
         _addGroupUsersToUsers(member['email'], domains, recursive)
 
   entityError = {'entityType': None, 'doesNotExist': 0, 'invalid': 0}
@@ -4175,7 +4183,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
           _incrEntityDoesNotExist(Ent.GROUP)
           continue
         for member in result:
-          email = member['email'].lower() if member['type'] != 'CUSTOMER' else member['id']
+          email = member['email'].lower() if member['type'] != Ent.TYPE_CUSTOMER else member['id']
           if ((groupMemberType in ('ALL', member['type'])) and
               _checkMemberRoleIsSuspended(member, validRoles, isSuspended) and email not in entitySet):
             entitySet.add(email)
@@ -4672,7 +4680,7 @@ def getEntityArgument(entityList):
   return (0, len(entityList), entityList)
 
 def getEntityToModify(defaultEntityType=None, crosAllowed=False, userAllowed=True,
-                      typeMap=None, isSuspended=None, groupMemberType='USER', delayGet=False):
+                      typeMap=None, isSuspended=None, groupMemberType=Ent.TYPE_USER, delayGet=False):
   if GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
     crosAllowed = False
     selectorChoices = Cmd.SERVICE_ACCOUNT_ONLY_ENTITY_SELECTORS[:]
@@ -15319,7 +15327,7 @@ def doUpdateGroups():
 
   def _getRoleGroupMemberType(defaultRole=Ent.ROLE_MEMBER):
     role = getChoice(GROUP_ROLES_MAP, defaultChoice=defaultRole, mapChoice=True)
-    groupMemberType = getChoice({'usersonly': 'USER', 'groupsonly': 'GROUP'}, defaultChoice='ALL', mapChoice=True)
+    groupMemberType = getChoice({'usersonly': Ent.TYPE_USER, 'groupsonly': Ent.TYPE_GROUP}, defaultChoice='ALL', mapChoice=True)
     return (role, groupMemberType)
 
   def getDeliverySettings():
@@ -15328,7 +15336,7 @@ def doUpdateGroups():
     return getChoice(GROUP_DELIVERY_SETTINGS_MAP, defaultChoice=DELIVERY_SETTINGS_UNDEFINED, mapChoice=True)
 
   def _getMemberEmailStatus(member):
-    if member['type'] == 'CUSTOMER':
+    if member['type'] == Ent.TYPE_CUSTOMER:
       return (member['id'], member.get('status', 'UNKNOWN'))
     email = member['email'].lower()
     if not removeDomainNoStatusMembers or 'status' in member:
@@ -15929,9 +15937,9 @@ def doUpdateGroups():
       if myarg in GROUP_ROLES_MAP:
         rolesSet.add(GROUP_ROLES_MAP[myarg])
       elif myarg == 'usersonly':
-        groupMemberType = 'USER'
+        groupMemberType = Ent.TYPE_USER
       elif myarg == 'groupsonly':
-        groupMemberType = 'GROUP'
+        groupMemberType = Ent.TYPE_GROUP
       elif myarg in SUSPENDED_ARGUMENTS:
         isSuspended = _getIsSuspended(myarg)
       elif myarg == 'removedomainnostatusmembers':
@@ -16780,7 +16788,7 @@ MEMBEROPTION_ISSUSPENDED = 4
 def _initMemberOptions():
   return [False, False, False, False, None]
 
-def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, count, memberOptions, level):
+def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, count, memberOptions, level, typesSet):
   def _getDeliverySettings(member):
     if 'delivery_settings' not in member:
       try:
@@ -16810,43 +16818,75 @@ def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, cou
           if memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS]:
             _getDeliverySettings(member)
           membersSet.add(member['id'])
-          membersList.append(member)
+          if member['type'] in typesSet:
+            membersList.append(member)
     else:
       for member in groupMembers:
         if _checkMemberRoleIsSuspended(member, validRoles, memberOptions[MEMBEROPTION_ISSUSPENDED]):
           if memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS]:
             _getDeliverySettings(member)
-          membersList.append(member)
+          if member['type'] in typesSet:
+            membersList.append(member)
   elif memberOptions[MEMBEROPTION_NODUPLICATES]:
     groupMemberList = []
     for member in groupMembers:
-      if member['type'] == 'USER':
-        if _checkMemberRoleIsSuspended(member, validRoles, memberOptions[MEMBEROPTION_ISSUSPENDED]) and member['id'] not in membersSet:
+      if member['type'] == Ent.TYPE_USER:
+        if (member['type'] in typesSet and
+            _checkMemberRoleIsSuspended(member, validRoles, memberOptions[MEMBEROPTION_ISSUSPENDED]) and
+            member['id'] not in membersSet):
           if memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS]:
             _getDeliverySettings(member)
           membersSet.add(member['id'])
           member['level'] = level
           member['subgroup'] = groupEmail
           membersList.append(member)
-      elif member['type'] == 'GROUP':
+      elif member['type'] == Ent.TYPE_GROUP:
         if member['id'] not in membersSet:
           if memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS]:
             _getDeliverySettings(member)
           membersSet.add(member['id'])
+          if member['type'] in typesSet:
+            member['level'] = level
+            member['subgroup'] = groupEmail
+            membersList.append(member)
           groupMemberList.append(member['email'])
     for member in groupMemberList:
-      getGroupMembers(cd, member, memberRoles, membersList, membersSet, i, count, memberOptions, level+1)
+      getGroupMembers(cd, member, memberRoles, membersList, membersSet, i, count, memberOptions, level+1, typesSet)
   else:
     for member in groupMembers:
-      if member['type'] == 'USER':
-        if _checkMemberRoleIsSuspended(member, validRoles, memberOptions[MEMBEROPTION_ISSUSPENDED]):
+      if member['type'] == Ent.TYPE_USER:
+        if (member['type'] in typesSet and
+            _checkMemberRoleIsSuspended(member, validRoles, memberOptions[MEMBEROPTION_ISSUSPENDED])):
           if memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS]:
             _getDeliverySettings(member)
           member['level'] = level
           member['subgroup'] = groupEmail
           membersList.append(member)
-      elif member['type'] == 'GROUP':
-        getGroupMembers(cd, member['email'], memberRoles, membersList, membersSet, i, count, memberOptions, level+1)
+      elif member['type'] == Ent.TYPE_GROUP:
+        if member['type'] in typesSet:
+          member['level'] = level
+          member['subgroup'] = groupEmail
+          membersList.append(member)
+        getGroupMembers(cd, member['email'], memberRoles, membersList, membersSet, i, count, memberOptions, level+1, typesSet)
+
+def getRolesTypes(myarg, rolesSet, typesSet):
+  if myarg in ['role', 'roles']:
+    for role in getString(Cmd.OB_GROUP_ROLE_LIST).lower().replace(',', ' ').split():
+      if role in GROUP_ROLES_MAP:
+        rolesSet.add(GROUP_ROLES_MAP[role])
+      else:
+        invalidChoiceExit(GROUP_ROLES_MAP, True)
+  elif myarg in GROUP_ROLES_MAP:
+    rolesSet.add(GROUP_ROLES_MAP[myarg])
+  elif myarg in ['type', 'types']:
+    for gtype in getString(Cmd.OB_GROUP_TYPE_LIST).lower().replace(',', ' ').split():
+      if gtype in GROUP_TYPES_MAP:
+        typesSet.add(GROUP_TYPES_MAP[gtype])
+      else:
+        invalidChoiceExit(GROUP_TYPES_MAP, True)
+  else:
+    return False
+  return True
 
 GROUPMEMBERS_FIELDS_CHOICE_MAP = {
   'delivery': 'delivery_settings',
@@ -16867,7 +16907,7 @@ GROUPMEMBERS_DEFAULT_FIELDS = ['group', 'type', 'role', 'id', 'status', 'email']
 # gam print group-members|groups-members [todrive <ToDriveAttributes>*]
 #	([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns|group_susp <GroupItem>]|[select <GroupEntity>] [notsuspended|suspended]
 #	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
-#	[showownedby <UserItem>]
+#	[showownedby <UserItem>] [types <GroupTypeList>]
 #	[roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
 #	[userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
 #	[peoplelookup|(peoplelookupuser <EmailAddress>)]
@@ -16899,6 +16939,7 @@ def doPrintGroupMembers():
   cdfieldsList = ['email']
   userFieldsList = []
   rolesSet = set()
+  typesSet = set()
   matchPatterns = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -16922,14 +16963,8 @@ def doPrintGroupMembers():
       subTitle = '{0} {1}'.format(Msg.SELECTED, Ent.Plural(Ent.GROUP))
     elif myarg in SUSPENDED_ARGUMENTS:
       memberOptions[MEMBEROPTION_ISSUSPENDED] = _getIsSuspended(myarg)
-    elif myarg in ['role', 'roles']:
-      for role in getString(Cmd.OB_GROUP_ROLE_LIST).lower().replace(',', ' ').split():
-        if role in GROUP_ROLES_MAP:
-          rolesSet.add(GROUP_ROLES_MAP[role])
-        else:
-          invalidChoiceExit(GROUP_ROLES_MAP, True)
-    elif myarg in GROUP_ROLES_MAP:
-      rolesSet.add(GROUP_ROLES_MAP[myarg])
+    elif getRolesTypes(myarg, rolesSet, typesSet):
+      pass
     elif csvPF.GetFieldsListTitles(myarg, GROUPMEMBERS_FIELDS_CHOICE_MAP, fieldsList):
       pass
     elif myarg == 'membernames':
@@ -16954,6 +16989,8 @@ def doPrintGroupMembers():
         return
     else:
       unknownArgumentExit()
+  if not typesSet:
+    typesSet = set([Ent.TYPE_USER]) if memberOptions[MEMBEROPTION_RECURSIVE] else ALL_GROUP_TYPES
   if entityList is None:
     updateFieldsForGroupMatchPatterns(matchPatterns, cdfieldsList)
     subTitle = groupFilters(kwargs)
@@ -17014,7 +17051,7 @@ def doPrintGroupMembers():
     if not checkGroupMatchPatterns(groupEmail, group, matchPatterns):
       continue
     membersList = []
-    getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, count, memberOptions, level)
+    getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, count, memberOptions, level, typesSet)
     if showOwnedBy and not checkGroupShowOwnedBy(showOwnedBy, membersList):
       continue
     for member in membersList:
@@ -17029,11 +17066,11 @@ def doPrintGroupMembers():
         row[title] = member.get(title, '')
       if setCustomerMemberEmail and (memberId == customerKey):
         row['email'] = memberId
+      memberType = member.get('type')
       if userFieldsList:
         if memberOptions[MEMBEROPTION_MEMBERNAMES]:
           row['name'] = 'Unknown'
-        memberType = member.get('type')
-        if memberType == 'USER':
+        if memberType == Ent.TYPE_USER:
           try:
             mbinfo = callGAPI(cd.users(), 'get',
                               throw_reasons=GAPI.USER_GET_THROW_REASONS,
@@ -17052,7 +17089,7 @@ def doPrintGroupMembers():
                 row['name'] = peopleNames[memberId]
           except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
             pass
-        elif memberType == 'GROUP':
+        elif memberType == Ent.TYPE_GROUP:
           if memberOptions[MEMBEROPTION_MEMBERNAMES]:
             try:
               row['name'] = callGAPI(cd.groups(), 'get',
@@ -17060,7 +17097,7 @@ def doPrintGroupMembers():
                                      groupKey=memberId, fields='name')['name']
             except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.invalid, GAPI.systemError):
               pass
-        elif memberType == 'CUSTOMER':
+        elif memberType == Ent.TYPE_CUSTOMER:
           if memberOptions[MEMBEROPTION_MEMBERNAMES]:
             try:
               row['name'] = callGAPI(cd.customers(), 'get',
@@ -17080,14 +17117,14 @@ def doPrintGroupMembers():
 # gam show group-members
 #	([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns|group_susp <GroupItem>]|[select <GroupEntity>] [notsuspended|suspended]
 #	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
-#	[showownedby <UserItem>]
+#	[showownedby <UserItem>] [types <GroupTypeList>]
 #	[roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
 def doShowGroupMembers():
   def _roleOrder(key):
     return {Ent.ROLE_OWNER: 0, Ent.ROLE_MANAGER: 1, Ent.ROLE_MEMBER: 2}.get(key, 3)
 
   def _typeOrder(key):
-    return {'CUSTOMER': 0, 'USER': 1, 'GROUP': 2, 'EXTERNAL': 3}.get(key, 4)
+    return {Ent.TYPE_CUSTOMER: 0, Ent.TYPE_USER: 1, Ent.TYPE_GROUP: 2, Ent.TYPE_EXTERNAL: 3}.get(key, 4)
 
   def _statusOrder(key):
     return {'ACTIVE': 0, 'SUSPENDED': 1, 'UNKNOWN': 2}.get(key, 3)
@@ -17105,14 +17142,16 @@ def doShowGroupMembers():
       return
     if depth == 0:
       printEntity([Ent.GROUP, groupEmail], i, count)
-    Ind.Increment()
+    if depth == 0 or Ent.TYPE_GROUP in typesSet:
+      Ind.Increment()
     for member in sorted(membersList, key=lambda k: (_roleOrder(k.get('role', Ent.ROLE_MEMBER)), _typeOrder(k['type']), _statusOrder(k.get('status', '')))):
       if _checkMemberIsSuspended(member, memberOptions[MEMBEROPTION_ISSUSPENDED]):
-        if (member.get('role', Ent.ROLE_MEMBER) in rolesSet) or (member['type'] == 'GROUP'):
+        if member.get('role', Ent.ROLE_MEMBER) in rolesSet and member['type'] in typesSet:
           printKeyValueList(['{0}, {1}, {2}, {3}'.format(member.get('role', Ent.ROLE_MEMBER), member['type'], member.get('email', member['id']), member.get('status', ''))])
-        if (member['type'] == 'GROUP') and (maxdepth == -1 or depth < maxdepth):
+        if (member['type'] == Ent.TYPE_GROUP) and (maxdepth == -1 or depth < maxdepth):
           _showGroup(member['email'], depth+1)
-    Ind.Decrement()
+    if depth == 0 or Ent.TYPE_GROUP in typesSet:
+      Ind.Decrement()
 
   cd = buildGAPIObject(API.DIRECTORY)
   customerKey = GC.Values[GC.CUSTOMER_ID]
@@ -17120,6 +17159,7 @@ def doShowGroupMembers():
   entityList = showOwnedBy = None
   cdfieldsList = ['email']
   rolesSet = set()
+  typesSet = set()
   memberOptions = _initMemberOptions()
   matchPatterns = {}
   maxdepth = -1
@@ -17141,20 +17181,16 @@ def doShowGroupMembers():
       entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
     elif myarg in SUSPENDED_ARGUMENTS:
       memberOptions[MEMBEROPTION_ISSUSPENDED] = _getIsSuspended(myarg)
-    elif myarg in ['role', 'roles']:
-      for role in getString(Cmd.OB_GROUP_ROLE_LIST).lower().replace(',', ' ').split():
-        if role in GROUP_ROLES_MAP:
-          rolesSet.add(GROUP_ROLES_MAP[role])
-        else:
-          invalidChoiceExit(GROUP_ROLES_MAP, True)
-    elif myarg in GROUP_ROLES_MAP:
-      rolesSet.add(GROUP_ROLES_MAP[myarg])
+    elif getRolesTypes(myarg, rolesSet, typesSet):
+      pass
     elif myarg == 'depth':
       maxdepth = getInteger(minVal=-1)
     else:
       unknownArgumentExit()
   if not rolesSet:
-    rolesSet = set([Ent.ROLE_MANAGER, Ent.ROLE_MEMBER, Ent.ROLE_OWNER])
+    rolesSet = ALL_GROUP_ROLES
+  if not typesSet:
+    typesSet = ALL_GROUP_TYPES
   if entityList is None:
     updateFieldsForGroupMatchPatterns(matchPatterns, cdfieldsList)
     printGettingAllAccountEntities(Ent.GROUP, groupFilters(kwargs))
@@ -22443,8 +22479,12 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       elif up == 'hashFunction':
         body[up] = HASH_FUNCTION_MAP[myarg]
         need_to_hash_password = False
-      elif up == 'primaryEmail' and updateCmd:
-        body[up] = getEmailAddress(noUid=True)
+      elif up == 'primaryEmail':
+        if updateCmd:
+          body[up] = getEmailAddress(noUid=True)
+        elif body[up] != getEmailAddress(noUid=True):
+          Cmd.Backup()
+          unknownArgumentExit()
       elif up == 'recoveryEmail':
         rcvryEmail = getEmailAddress(noUid=True, optional=True)
         body[up] = rcvryEmail if rcvryEmail is not None else ""
@@ -22452,7 +22492,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         body[up] = getString(Cmd.OB_STRING, minLen=0)
         if body[up] and body[up][0] != '+':
           body[up] = '+' + body[up]
-      elif up == 'customerId' and updateCmd:
+      elif up == 'customerId':
         body[up] = getString(Cmd.OB_STRING)
       elif up == 'orgUnitPath':
         body[up] = getOrgUnitItem(pathOnly=True)
@@ -26943,7 +26983,7 @@ def normalizePrinterScopeList(rawScopeList):
   return scopeList
 
 def getPrinterACLScopeEntity():
-  groupMemberType = getChoice({'usersonly': 'USER', 'groupsonly': 'GROUP'}, defaultChoice='ALL', mapChoice=True)
+  groupMemberType = getChoice({'usersonly': Ent.TYPE_USER, 'groupsonly': Ent.TYPE_GROUP}, defaultChoice='ALL', mapChoice=True)
   _, scopeList = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, groupMemberType=groupMemberType)
   printerScopeLists = scopeList if isinstance(scopeList, dict) else None
   if printerScopeLists is None:
@@ -36499,7 +36539,7 @@ def printShowUserGroups(users):
     else:
       unknownArgumentExit()
   if not rolesSet:
-    rolesSet = set([Ent.ROLE_MANAGER, Ent.ROLE_MEMBER, Ent.ROLE_OWNER])
+    rolesSet = ALL_GROUP_ROLES
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
