@@ -1,3 +1,8 @@
+4.94.08
+
+Added `[aliasmatchpattern <RegularExpression>]` to `gam print aliases` to allow filtering
+of aliases.
+
 4.94.07
 
 Added `types <GroupTypeList>` to `gam print/show group-members`; only members with type in `<GroupTypeList>`

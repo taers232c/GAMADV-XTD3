@@ -781,6 +781,7 @@ gam info alias|aliases <EmailAddressEntity>
 
 gam print alias|aliases [todrive <ToDriveAttribute>*]
         [(query <QueryUser>)|(queries <QueryUserList>)]
+        [aliasmatchpattern <RegularExpression>]
         [shownoneditable] [nogroups] [nousers]
 
 gam whatis <EmailItem> [noinfo]
