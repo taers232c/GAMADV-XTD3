@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.07'
+__version__ = '4.94.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -10878,7 +10878,10 @@ def infoAliases(entityList):
 def doInfoAliases():
   infoAliases(getEntityList(Cmd.OB_EMAIL_ADDRESS_ENTITY))
 
-# gam print aliases|nicknames [todrive <ToDriveAttributes>*] [(query <QueryUser>)|(queries <QueryUserList>)] [shownoneditable] [nogroups] [nousers]
+# gam print aliases|nicknames [todrive <ToDriveAttributes>*]
+#	[(query <QueryUser>)|(queries <QueryUserList>)]
+#	[aliasmatchpattern <RegularExpression>]
+#	[shownoneditable] [nogroups] [nousers]
 def doPrintAliases():
   cd = buildGAPIObject(API.DIRECTORY)
   csvPF = CSVPrintFile()
@@ -10887,6 +10890,7 @@ def doPrintAliases():
   groupFields = ['email', 'aliases']
   getGroups = getUsers = True
   queries = [None]
+  aliasmatchPattern = re.compile(r'^.*$')
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'todrive':
@@ -10903,6 +10907,8 @@ def doPrintAliases():
       queries = getQueries(myarg)
       getGroups = False
       getUsers = True
+    elif myarg == 'aliasmatchpattern':
+      aliasmatchPattern = getREPattern(re.IGNORECASE)
     else:
       unknownArgumentExit()
   csvPF.SetTitles(titlesList)
@@ -10924,9 +10930,11 @@ def doPrintAliases():
         accessErrorExit(cd)
       for user in entityList:
         for alias in user.get('aliases', []):
-          csvPF.WriteRow({'Alias': alias, 'Target': user['primaryEmail'], 'TargetType': 'User'})
+          if aliasmatchPattern.match(alias):
+            csvPF.WriteRow({'Alias': alias, 'Target': user['primaryEmail'], 'TargetType': 'User'})
         for alias in user.get('nonEditableAliases', []):
-          csvPF.WriteRow({'NonEditableAlias': alias, 'Target': user['primaryEmail'], 'TargetType': 'User'})
+          if aliasmatchPattern.match(alias):
+            csvPF.WriteRow({'NonEditableAlias': alias, 'Target': user['primaryEmail'], 'TargetType': 'User'})
   if getGroups:
     printGettingAllAccountEntities(Ent.GROUP)
     try:
@@ -10939,9 +10947,11 @@ def doPrintAliases():
       accessErrorExit(cd)
     for group in entityList:
       for alias in group.get('aliases', []):
-        csvPF.WriteRow({'Alias': alias, 'Target': group['email'], 'TargetType': 'Group'})
+        if aliasmatchPattern.match(alias):
+          csvPF.WriteRow({'Alias': alias, 'Target': group['email'], 'TargetType': 'Group'})
       for alias in group.get('nonEditableAliases', []):
-        csvPF.WriteRow({'NonEditableAlias': alias, 'Target': group['email'], 'TargetType': 'Group'})
+        if aliasmatchPattern.match(alias):
+          csvPF.WriteRow({'NonEditableAlias': alias, 'Target': group['email'], 'TargetType': 'Group'})
   csvPF.writeCSVfile('Aliases')
 
 # gam audit uploadkey [<FileName>]
