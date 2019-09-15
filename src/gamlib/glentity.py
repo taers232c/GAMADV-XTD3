@@ -458,7 +458,6 @@ class GamEntity(object):
     self.forWhom = None
     self.preQualifier = ''
     self.postQualifier = ''
-    self.showTotal = False
 
   def SetGetting(self, entityType):
     self.entityType = entityType
@@ -487,12 +486,6 @@ class GamEntity(object):
 
   def GettingForWhom(self):
     return self.forWhom
-
-  def SetGettingShowTotal(self, showTotal):
-    self.showTotal = showTotal
-
-  def GettingShowTotal(self):
-    return self.showTotal
 
   def Choose(self, entityType, count):
     return self._NAMES[entityType][[0, 1][count == 1]]

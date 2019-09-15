@@ -1,3 +1,7 @@
+4.94.09
+
+Changed `gam report` to show running total in `Got N Activities\Reports ...`.
+
 4.94.08
 
 Added `[aliasmatchpattern <RegularExpression>]` to `gam print aliases` to allow filtering

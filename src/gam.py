@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.08'
+__version__ = '4.94.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1907,14 +1907,12 @@ def printGettingEntityItemForWhom(entityItem, forWhom, i=0, count=0):
 
 FIRST_ITEM_MARKER = '%%first_item%%'
 LAST_ITEM_MARKER = '%%last_item%%'
-NUM_ITEMS_MARKER = '%%num_items%%'
 TOTAL_ITEMS_MARKER = '%%total_items%%'
 
-def getPageMessage(showTotal=True, showFirstLastItems=False):
+def getPageMessage(showFirstLastItems=False):
   if not GC.Values[GC.SHOW_GETTINGS]:
     return None
-  Ent.SetGettingShowTotal(showTotal)
-  pageMessage = '{0} {1} {{0}}'.format(Msg.GOT, [NUM_ITEMS_MARKER, TOTAL_ITEMS_MARKER][showTotal])
+  pageMessage = '{0} {1} {{0}}'.format(Msg.GOT, TOTAL_ITEMS_MARKER)
   if showFirstLastItems:
     pageMessage += ': {0} - {1}'.format(FIRST_ITEM_MARKER, LAST_ITEM_MARKER)
   else:
@@ -1923,13 +1921,12 @@ def getPageMessage(showTotal=True, showFirstLastItems=False):
     pageMessage += '\n'
   return pageMessage
 
-def getPageMessageForWhom(forWhom=None, showTotal=True, showFirstLastItems=False):
+def getPageMessageForWhom(forWhom=None, showFirstLastItems=False):
   if not GC.Values[GC.SHOW_GETTINGS]:
     return None
-  Ent.SetGettingShowTotal(showTotal)
   if forWhom:
     Ent.SetGettingForWhom(forWhom)
-  pageMessage = '{0} {1} {{0}}{2} {3} {4}'.format(Msg.GOT, [NUM_ITEMS_MARKER, TOTAL_ITEMS_MARKER][showTotal],
+  pageMessage = '{0} {1} {{0}}{2} {3} {4}'.format(Msg.GOT, TOTAL_ITEMS_MARKER,
                                                   Ent.GettingPostQualifier(), Msg.FOR, Ent.GettingForWhom())
   if showFirstLastItems:
     pageMessage += ': {0} - {1}'.format(FIRST_ITEM_MARKER, LAST_ITEM_MARKER)
@@ -3354,15 +3351,10 @@ def callGDataPages(service, function,
       nextLink = None
       pageItems = 0
     if page_message:
-      if Ent.GettingShowTotal():
-        show_message = page_message.replace(TOTAL_ITEMS_MARKER, str(totalItems))
-        count = totalItems
-      else:
-        show_message = page_message.replace(NUM_ITEMS_MARKER, str(pageItems))
-        count = pageItems if nextLink else totalItems
+      show_message = page_message.replace(TOTAL_ITEMS_MARKER, str(totalItems))
       writeStderr('\r')
       flushStderr()
-      writeStderr(show_message.format(Ent.ChooseGetting(count)))
+      writeStderr(show_message.format(Ent.ChooseGetting(totalItems)))
     if nextLink is None:
       if page_message and (page_message[-1] != '\n'):
         writeStderr('\r\n')
@@ -3548,12 +3540,7 @@ def _processGAPIpagesResult(results, items, allResults, totalItems, page_message
     results = {items: []}
     pageItems = 0
   if page_message:
-    if Ent.GettingShowTotal():
-      show_message = page_message.replace(TOTAL_ITEMS_MARKER, str(totalItems))
-      count = totalItems
-    else:
-      show_message = page_message.replace(NUM_ITEMS_MARKER, str(pageItems))
-      count = pageItems if pageToken else totalItems
+    show_message = page_message.replace(TOTAL_ITEMS_MARKER, str(totalItems))
     if message_attribute:
       try:
         show_message = show_message.replace(FIRST_ITEM_MARKER, str(results[items][0][message_attribute]))
@@ -3563,7 +3550,7 @@ def _processGAPIpagesResult(results, items, allResults, totalItems, page_message
         show_message = show_message.replace(LAST_ITEM_MARKER, '')
     writeStderr('\r')
     flushStderr()
-    writeStderr(show_message.format(Ent.Choose(entityType, count)))
+    writeStderr(show_message.format(Ent.Choose(entityType, totalItems)))
   return (pageToken, totalItems)
 
 def _finalizeGAPIpagesResult(page_message):
@@ -7974,11 +7961,11 @@ def doReport():
       orgUnitId = None
     elif userKey == 'all':
       printGettingEntityItemForWhom(Ent.REPORT, 'users in orgUnit {0}'.format(orgUnit) if orgUnit else 'all users')
-      page_message = getPageMessage(showTotal=False)
+      page_message = getPageMessage()
       users = ['all']
     else:
       Ent.SetGetting(Ent.USER)
-      page_message = getPageMessage(showTotal=False)
+      page_message = getPageMessage()
       users = [normalizeEmailAddressOrUID(userKey)]
       orgUnitId = None
     csvPF.SetTitles(['email', 'date'] if not aggregateUserUsage else ['date'])
@@ -8112,11 +8099,11 @@ def doReport():
       orgUnitId = None
     elif userKey == 'all':
       printGettingEntityItemForWhom(Ent.ACTIVITY, 'users in orgUnit {0}'.format(orgUnit) if orgUnit else 'all users')
-      page_message = getPageMessage(showTotal=False)
+      page_message = getPageMessage()
       users = ['all']
     else:
       Ent.SetGetting(Ent.ACTIVITY)
-      page_message = getPageMessage(showTotal=False)
+      page_message = getPageMessage()
       users = [normalizeEmailAddressOrUID(userKey)]
       orgUnitId = None
     if not eventNames:
@@ -16430,7 +16417,7 @@ def doPrintGroups():
     i = int(ri[RI_I])
     totalItems = 0
     items = 'members'
-    page_message = getPageMessageForWhom(forWhom=ri[RI_ENTITY], showTotal=False, showFirstLastItems=True)
+    page_message = getPageMessageForWhom(forWhom=ri[RI_ENTITY], showFirstLastItems=True)
     if exception is not None:
       http_status, reason, message = checkGAPIError(exception)
       if reason not in GAPI.DEFAULT_RETRY_REASONS+GAPI.MEMBERS_RETRY_REASONS:
