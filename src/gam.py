@@ -38795,7 +38795,7 @@ def printShowMessagesThreads(users, entityType):
     return headers+data
 
   def _getMessageBody(payload):
-    if 'attachmentId' not in payload['body'] and 'data' in payload['body']:
+    if 'attachmentId' not in payload.get('body', '') and 'data' in payload.get('body',''):
       return base64.urlsafe_b64decode(str(payload['body']['data'])).decode(UTF8)
     data = _getBodyData(payload, False)
     if data:
