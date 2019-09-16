@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.09'
+__version__ = '4.94.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1919,6 +1919,8 @@ def getPageMessage(showFirstLastItems=False):
     pageMessage += '...'
   if GC.Values[GC.SHOW_GETTINGS_GOT_NL]:
     pageMessage += '\n'
+  else:
+    GM.Globals[GM.LAST_GOT_MSG_LEN] = 0
   return pageMessage
 
 def getPageMessageForWhom(forWhom=None, showFirstLastItems=False):
@@ -1934,6 +1936,8 @@ def getPageMessageForWhom(forWhom=None, showFirstLastItems=False):
     pageMessage += '...'
   if GC.Values[GC.SHOW_GETTINGS_GOT_NL]:
     pageMessage += '\n'
+  else:
+    GM.Globals[GM.LAST_GOT_MSG_LEN] = 0
   return pageMessage
 
 def printLine(message):
@@ -3323,6 +3327,19 @@ def callGData(service, function,
     except IOError as e:
       systemErrorExit(FILE_ERROR_RC, str(e))
 
+def writeGotMessage(msg):
+  writeStderr('\r')
+  flushStderr()
+  if GC.Values[GC.SHOW_GETTINGS_GOT_NL]:
+    writeStderr(msg)
+  else:
+    msgLen = len(msg)
+    if msgLen < GM.Globals[GM.LAST_GOT_MSG_LEN]:
+      writeStderr(msg+' '*(GM.Globals[GM.LAST_GOT_MSG_LEN]-msgLen))
+    else:
+      writeStderr(msg)
+    GM.Globals[GM.LAST_GOT_MSG_LEN] = msgLen
+
 def callGDataPages(service, function,
                    page_message=None,
                    soft_errors=False, throw_errors=None, retry_errors=None,
@@ -3352,9 +3369,7 @@ def callGDataPages(service, function,
       pageItems = 0
     if page_message:
       show_message = page_message.replace(TOTAL_ITEMS_MARKER, str(totalItems))
-      writeStderr('\r')
-      flushStderr()
-      writeStderr(show_message.format(Ent.ChooseGetting(totalItems)))
+      writeGotMessage(show_message.format(Ent.ChooseGetting(totalItems)))
     if nextLink is None:
       if page_message and (page_message[-1] != '\n'):
         writeStderr('\r\n')
@@ -3548,9 +3563,7 @@ def _processGAPIpagesResult(results, items, allResults, totalItems, page_message
       except (IndexError, KeyError):
         show_message = show_message.replace(FIRST_ITEM_MARKER, '')
         show_message = show_message.replace(LAST_ITEM_MARKER, '')
-    writeStderr('\r')
-    flushStderr()
-    writeStderr(show_message.format(Ent.Choose(entityType, totalItems)))
+    writeGotMessage(show_message.format(Ent.Choose(entityType, totalItems)))
   return (pageToken, totalItems)
 
 def _finalizeGAPIpagesResult(page_message):
