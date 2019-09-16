@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.10'
+__version__ = '4.94.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -38795,7 +38795,7 @@ def printShowMessagesThreads(users, entityType):
     return headers+data
 
   def _getMessageBody(payload):
-    if 'attachmentId' not in payload['body'] and 'data' in payload['body']:
+    if 'attachmentId' not in payload.get('body', {}) and 'data' in payload.get('body', {}):
       return base64.urlsafe_b64decode(str(payload['body']['data'])).decode(UTF8)
     data = _getBodyData(payload, False)
     if data:

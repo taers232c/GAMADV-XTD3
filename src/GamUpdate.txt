@@ -1,3 +1,7 @@
+4.94.11
+
+Fix bug that caused trap  in `gam print messages showbody` when a message has no body.
+
 4.94.10
 
 When `show_gettings_got_nl = false` in `gam.cfg`, short `Got NN ...` lines were not completely
