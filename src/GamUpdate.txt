@@ -1,6 +1,14 @@
+4.94.12
+
+Added `summary none|only|plus` option to `gam print filecounts` that specifies display of a summarization of file counts
+across all users specified in the command.
+* `none` - No summary is displayed; this is the default
+* `only` - Only the summary is displayed, no individual user file counts are displayed
+* `plus` - The summary is displayed in addition to the individual user file counts
+
 4.94.11
 
-Fix bug that caused trap  in `gam print messages showbody` when a message has no body.
+Fixed bug that caused trap  in `gam print messages showbody` when a message has no body.
 
 4.94.10
 

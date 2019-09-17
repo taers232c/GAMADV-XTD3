@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.11'
+__version__ = '4.94.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -30274,14 +30274,14 @@ DRIVE_FIELDS_CHOICE_MAP = {
   'sharinguser': 'sharingUser',
   'size': VX_SIZE,
   'spaces': 'spaces',
-  'teamdriveid': 'teamDriveId',
+  'teamdriveid': 'driveId',
   'thumbnaillink': 'thumbnailLink',
   'thumbnailversion': 'thumbnailVersion',
   'title': VX_FILENAME,
   'trasheddate': 'trashedTime',
   'trashedtime': 'trashedTime',
   'trashinguser': 'trashingUser',
-  'userpermission': ['ownedByMe,capabilities.canEdit,capabilities.canComment'],
+  'userpermission': 'ownedByMe,capabilities.canEdit,capabilities.canComment',
   'version': 'version',
   'videomediametadata': 'videoMediaMetadata',
   'viewedbymedate': VX_VIEWED_BY_ME_TIME,
@@ -30290,6 +30290,38 @@ DRIVE_FIELDS_CHOICE_MAP = {
   'webcontentlink': 'webContentLink',
   'webviewlink': VX_WEB_VIEW_LINK,
   'writerscanshare': 'writersCanShare',
+  }
+
+DRIVE_CAPABILITIES_SUBFIELDS_CHOICE_MAP = {
+  'canaddchildren': 'canAddChildren',
+  'canchangecopyrequireswriterpermission': 'canChangeCopyRequiresWriterPermission',
+  'canchangeviewerscancopycontent': 'canChangeViewersCanCopyContent',
+  'cancomment': 'canComment',
+  'cancopy': 'canCopy',
+  'candelete': 'canDelete',
+  'candownload': 'canDownload',
+  'canedit': 'canEdit',
+  'canlistchildren': 'canListChildren',
+  'canmodifycontent': 'canModifyContent',
+  'canmovechildrenoutofdrive': 'canMoveChildrenOutOfDrive',
+  'canmovechildrenoutofteamdrive': 'canMoveChildrenOutOfDrive',
+  'canmovechildrenwithindrive': 'canMoveChildrenWithinDrive',
+  'canmovechildrenwithinteamdrive': 'canMoveChildrenWithinDrive',
+  'canmoveitemintoteamdrive': 'canMoveItemOutOfDrive',
+  'canmoveitemoutofdrive': 'canMoveItemOutOfDrive',
+  'canmoveitemoutofteamdrive': 'canMoveItemOutOfDrive',
+  'canmoveitemwithindrive': 'canMoveItemWithinDrive',
+  'canmoveitemwithinteamdrive': 'canMoveItemWithinDrive',
+  'canmoveteamdriveitem': ['canMoveItemOutOfDrive', 'canMoveItemWithinDrive'],
+  'canreaddrive': 'canReadDrive',
+  'canreadrevisions': 'canReadRevisions',
+  'canreadteamdrive': 'canReadDrive',
+  'canremovechildren': 'canRemoveChildren',
+  'canrename': 'canRename',
+  'canshare': 'canShare',
+  'cantrash': 'canTrash',
+  'cantrashchildren': 'canTrashChildren',
+  'canuntrash': 'canUntrash',
   }
 
 DRIVE_OWNERS_SUBFIELDS_CHOICE_MAP = {
@@ -30338,6 +30370,7 @@ DRIVE_SHARINGUSER_SUBFIELDS_CHOICE_MAP = {
   }
 
 DRIVE_SUBFIELDS_CHOICE_MAP = {
+  'capabilities': DRIVE_CAPABILITIES_SUBFIELDS_CHOICE_MAP,
   'labels': DRIVE_LABEL_CHOICE_MAP,
   'lastmodifyinguser': DRIVE_SHARINGUSER_SUBFIELDS_CHOICE_MAP,
   'owners': DRIVE_OWNERS_SUBFIELDS_CHOICE_MAP,
@@ -30364,7 +30397,11 @@ def _getDriveFieldSubField(field, fieldsList, parentsSubFields):
       parentsSubFields[DRIVE_SUBFIELDS_CHOICE_MAP[field][subField]] = True
     elif subField in DRIVE_SUBFIELDS_CHOICE_MAP[field]:
       if field != 'labels':
-        fieldsList.append('{0}.{1}'.format(DRIVE_FIELDS_CHOICE_MAP[field], DRIVE_SUBFIELDS_CHOICE_MAP[field][subField]))
+        if not isinstance(DRIVE_SUBFIELDS_CHOICE_MAP[field][subField], list):
+          fieldsList.append('{0}.{1}'.format(DRIVE_FIELDS_CHOICE_MAP[field], DRIVE_SUBFIELDS_CHOICE_MAP[field][subField]))
+        else:
+          for subSubField in DRIVE_SUBFIELDS_CHOICE_MAP[field][subField]:
+            fieldsList.append('{0}.{1}'.format(DRIVE_FIELDS_CHOICE_MAP[field], subSubField))
       else:
         fieldsList.append(DRIVE_SUBFIELDS_CHOICE_MAP[field][subField])
     else:
@@ -31710,29 +31747,58 @@ def printShowFilePaths(users):
   if csvPF:
     csvPF.writeCSVfile('Drive File Paths')
 
+FILECOUNT_SUMMARY_NONE = 0
+FILECOUNT_SUMMARY_ONLY = -1
+FILECOUNT_SUMMARY_PLUS = 1
+FILECOUNT_SUMMARY_CHOICE_MAP = {
+  'none': FILECOUNT_SUMMARY_NONE,
+  'only': FILECOUNT_SUMMARY_ONLY,
+  'plus': FILECOUNT_SUMMARY_PLUS
+  }
+FILECOUNT_SUMMARY_USER = 'Summary'
+
 # gam <UserTypeEntity> print filecounts [todrive <ToDriveAttributes>*] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
 #	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
 #	[querytime.* <Time>]
 #	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
 #	(<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	[select <TeamDriveEntity>]
+#	[summary none|only|plus]
 # gam <UserTypeEntity> show filecounts [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
 #	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
 #	[querytime.* <Time>]
 #	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
 #	(<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	[select <TeamDriveEntity>]
+#	[summary none|only|plus]
 def printShowFileCounts(users):
-  def writeMimeTypeCountsRow(user, mimeTypeCounts, teamDriveId, teamDriveName):
+  def showMimeTypeCounts(user, mimeTypeCounts, teamDriveId, teamDriveName, i, count):
     total = 0
     for mimeTypeCount in itervalues(mimeTypeCounts):
       total += mimeTypeCount
-    if teamDriveId:
-      row = {'User': user, 'id': teamDriveId, 'name': teamDriveName, 'Total': total}
+    if summary != FILECOUNT_SUMMARY_NONE:
+      if user != FILECOUNT_SUMMARY_USER:
+        for mimeType, mtcount in iteritems(mimeTypeCounts):
+          summaryMimeTypeCounts.setdefault(mimeType, 0)
+          summaryMimeTypeCounts[mimeType] += mtcount
+        if summary == FILECOUNT_SUMMARY_ONLY:
+          return
+    if not csvPF:
+      if teamDriveId:
+        printEntityKVList([Ent.USER, user, Ent.TEAMDRIVE, '{0} ({1})'.format(teamDriveName, teamDriveId)], [Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, total), total], i, count)
+      else:
+        printEntityKVList([Ent.USER, user], [Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, total), total], i, count)
+      Ind.Increment()
+      for mimeType, mimeTypeCount in sorted(iteritems(mimeTypeCounts)):
+        printKeyValueList([mimeType, mimeTypeCount])
+      Ind.Decrement()
     else:
-      row = {'User': user, 'Total': total}
-    row.update(mimeTypeCounts)
-    csvPF.WriteRowTitles(row)
+      if teamDriveId:
+        row = {'User': user, 'id': teamDriveId, 'name': teamDriveName, 'Total': total}
+      else:
+        row = {'User': user, 'Total': total}
+      row.update(mimeTypeCounts)
+      csvPF.WriteRowTitles(row)
 
   csvPF = CSVPrintFile() if Act.csvFormat() else None
   if csvPF:
@@ -31740,6 +31806,7 @@ def printShowFileCounts(users):
   fieldsList = ['mimeType']
   DLP = DriveListParameters(mimeTypeInQuery=True)
   onlyTeamDrives = False
+  summary = FILECOUNT_SUMMARY_NONE
   fileIdEntity = initDriveFileEntity()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -31753,6 +31820,8 @@ def printShowFileCounts(users):
         fieldsList.append('driveId')
     elif myarg == 'select':
       fileIdEntity = getTeamDriveEntity()
+    elif myarg == 'summary':
+      summary = getChoice(FILECOUNT_SUMMARY_CHOICE_MAP, mapChoice=True)
     else:
       unknownArgumentExit()
   if fileIdEntity.get('teamdrive'):
@@ -31773,6 +31842,7 @@ def printShowFileCounts(users):
     csvPF.SetSortAllTitles()
   DLP.MapDrive2QueryToDrive3()
   DLP.UpdateQueryTimes()
+  summaryMimeTypeCounts = {}
   pagesfields = VX_NPT_FILES_FIELDLIST.format(','.join(set(fieldsList))).replace('.', '/')
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -31823,20 +31893,9 @@ def printShowFileCounts(users):
           continue
       mimeTypeCounts.setdefault(f_file['mimeType'], 0)
       mimeTypeCounts[f_file['mimeType']] += 1
-    if not csvPF:
-      total = 0
-      for mimeTypeCount in itervalues(mimeTypeCounts):
-        total += mimeTypeCount
-      if teamDriveId:
-        printEntityKVList([Ent.USER, user, Ent.TEAMDRIVE, '{0} ({1})'.format(teamDriveName, teamDriveId)], [Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, total), total], i, count)
-      else:
-        printEntityKVList([Ent.USER, user], [Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, total), total], i, count)
-      Ind.Increment()
-      for mimeType, mimeTypeCount in sorted(iteritems(mimeTypeCounts)):
-        printKeyValueList([mimeType, mimeTypeCount])
-      Ind.Decrement()
-    else:
-      writeMimeTypeCountsRow(user, mimeTypeCounts, teamDriveId, teamDriveName)
+    showMimeTypeCounts(user, mimeTypeCounts, teamDriveId, teamDriveName, i, count)
+  if summary != FILECOUNT_SUMMARY_NONE:
+    showMimeTypeCounts(FILECOUNT_SUMMARY_USER, summaryMimeTypeCounts, teamDriveId, teamDriveName, 0, 0)
   if csvPF:
     csvPF.writeCSVfile('Drive File Counts')
 
