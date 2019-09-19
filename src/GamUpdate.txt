@@ -1,3 +1,7 @@
+4.94.13
+
+Updated `gam print/show matters` to display the email address matching the permission accountId.
+
 4.94.12
 
 Added `summary none|only|plus` option to `gam print filecounts` that specifies display of a summarization of file counts

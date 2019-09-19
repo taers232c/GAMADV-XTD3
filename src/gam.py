@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.12'
+__version__ = '4.94.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -21349,10 +21349,25 @@ PRINT_VAULT_MATTERS_TITLES = ['matterId', 'name', 'description', 'state']
 # gam print vaultmatters|matters [todrive <ToDriveAttributes>*] [basic|full] [matterstate <MatterStateList>]
 # gam show vaultmatters|matters [basic|full] [matterstate <MatterStateList>]
 def doPrintShowVaultMatters():
+  def getPermissionEmails(matter):
+    for matterPermission in matter.get('matterPermissions', []):
+      userId = matterPermission['accountId']
+      userEmail = emails.get(userId)
+      if userEmail is None:
+        try:
+          userEmail = callGAPI(cd.users(), 'get',
+                               throw_reasons=GAPI.USER_GET_THROW_REASONS,
+                               userKey=userId, fields='primaryEmail').get('primaryEmail')
+        except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+          userEmail = 'Unknown user'
+        emails[userId] = userEmail
+      matterPermission['email'] = emails[userId]
+
   v = buildGAPIObject(API.VAULT)
   csvPF = CSVPrintFile(PRINT_VAULT_MATTERS_TITLES, 'sortall') if Act.csvFormat() else None
   view = 'FULL'
   matterStatesList = []
+  emails = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -21388,19 +21403,24 @@ def doPrintShowVaultMatters():
     entityActionFailedWarning([Ent.VAULT_MATTER, None], str(e))
     return
   jcount = len(matters)
+  if view == 'FULL':
+    cd = buildGAPIObject(API.DIRECTORY)
+    for matter in matters:
+      getPermissionEmails(matter)
   if not csvPF:
     performActionNumItems(jcount, Ent.VAULT_MATTER)
     if jcount == 0:
       setSysExitRC(NO_ENTITIES_FOUND)
       return
-    cd = buildGAPIObject(API.DIRECTORY) if view == 'FULL' else None
     Ind.Increment()
     j = 0
     for matter in matters:
       j += 1
       if not matterStates or matter['state'] in matterStates:
         printEntity([Ent.VAULT_MATTER, formatVaultNameId(matter['name'], matter['matterId'])], j, jcount)
-        _showVaultMatter(matter, cd)
+        Ind.Increment()
+        showJSON(None, matter)
+        Ind.Decrement()
     Ind.Decrement()
   else:
     for matter in matters:
@@ -24174,6 +24194,8 @@ class CourseAttributes():
         self.body['ownerId'] = getEmailAddress()
       elif myarg in ['state', 'status', 'coursestate']:
         self.body['courseState'] = getChoice(COURSE_STATE_MAPS[Cmd.OB_COURSE_STATE_LIST], mapChoice=True)
+      elif myarg == 'guardiansenabled':
+        self.body['guardiansEnabled'] = getBoolean()
       elif myarg == 'copyfrom':
         self.courseId = getString(Cmd.OB_COURSE_ID)
       elif myarg in ['announcementstate', 'announcementstates']:
