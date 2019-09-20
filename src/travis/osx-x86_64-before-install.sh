@@ -3,6 +3,8 @@ whereibelong=$(pwd)
 #echo "Brew installing xz..."
 #brew install xz > /dev/null
 
+brew upgrade
+
 cd ~/pybuild
 
 if [ ! -f python-$BUILD_PYTHON_VERSION-macosx10.9.pkg ]; then
@@ -11,6 +13,15 @@ fi
 sudo installer -pkg python-$BUILD_PYTHON_VERSION-macosx10.9.pkg -target /
 export python=python3
 export pip=pip3
+
+echo "PYthon location:"
+which $python
+brew install openssl@1.1 > /dev/null
+brew info openssl@1.1
+echo "OpenSSL Lib"
+ls -al /usr/local/opt/openssl@1.1/lib
+echo "Local Lib"
+ls -al /usr/local/lib
 
 # Compile latest OpenSSL
 #if [ ! -d openssl-$BUILD_OPENSSL_VERSION ]; then
@@ -57,7 +68,6 @@ export pip=pip3
 #export LD_LIBRARY_PATH=~/ssl/lib:~/python/lib
 #python=~/python/bin/python3
 #pip=~/python/bin/pip3
-
 
 $python -V
 

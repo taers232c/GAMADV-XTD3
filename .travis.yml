@@ -2,7 +2,7 @@ if: tag IS blank
 env:
   global:
   - BUILD_PYTHON_VERSION=3.7.4
-  - BUILD_OPENSSL_VERSION=1.1.1c
+  - BUILD_OPENSSL_VERSION=1.1.1d
   - PATCHELF_VERSION=0.9
   - MUSL_VERSION=1.1.23
   - PYINSTALLER_VERSION=3.5
@@ -34,6 +34,14 @@ matrix:
     - os: linux
       name: "Linux 64-bit Trusty"
       dist: trusty
+      language: bash
+      env:
+        - GAMOS=linux
+        - PLATFORM=x86_64
+        - VMTYPE=build
+    - os: linux
+      name: "Linux 64-bit Precise"
+      dist: precise
       language: bash
       env:
         - GAMOS=linux
@@ -79,14 +87,6 @@ matrix:
         - GAMOS=macos
         - PLATFORM=x86_64
         - VMTYPE=build
-    - os: linux
-      name: "Linux 64-bit Precise"
-      dist: precise
-      language: bash
-      env:
-        - GAMOS=linux
-        - PLATFORM=x86_64
-        - VMTYPE=build
     - os: windows
       name: "Windows 64-bit"
       language: shell
@@ -114,11 +114,11 @@ script:
 - $gam version extended
 - $gam version | grep travis # travis should be part of the path (not /tmp or such)
 # determine which Python version GAM is built with and ensure it's at least build version from above.
-- if [ "VMTYPE" == "build" ]; then vline=$(gam version | grep "Python "); python_line=($vline); this_python=${python_line[1]}; tools/a_atleast_b.py $this_python $BUILD_PYTHON_VERSION; fi
+- if [ "$VMTYPE" == "build" ]; then vline=$($gam version | grep "Python "); python_line=($vline); this_python=${python_line[1]}; $python tools/a_atleast_b.py $this_python $BUILD_PYTHON_VERSION; fi
 # determine which OpenSSL version GAM is built with and ensure it's at least build version from above.
-- if [ "VMTYPE" == "build" ]; then vline=$(gam version extended | grep "OpenSSL "); openssl_line=($vline); this_openssl=${openssl_line[1]}; tools/a_atleast_b.py $this_openssl $BUILD_OPENSSL_VERSION; fi
+- if [ "$VMTYPE" == "build" ]; then vline=$($gam version extended | grep "OpenSSL "); openssl_line=($vline); this_openssl=${openssl_line[1]}; $python tools/a_atleast_b.py $this_openssl $BUILD_OPENSSL_VERSION; fi
 - if [ "$VMTYPE" == "build" ]; then $gam version extended | grep TLSv1\.[23]; fi # Builds should default TLS 1.2 or 1.3 to Google
-- if [ "$VMTYPE" == "build" ]; then $gam config tls_min_version TLSv1_2  version extended location tls-v1-0.badssl.com:1010; [[ $? == 3 ]]; fi # expect fail since server doesn't support our TLS version
+- if [ "$VMTYPE" == "build" ]; then $gam config tls_min_version TLSv1_2 version extended location tls-v1-0.badssl.com:1010; [[ $? == 3 ]]; fi # expect fail since server doesn't support our TLS version
 
 before_deploy:
 - export TRAVIS_TAG="preview"
