@@ -1,3 +1,8 @@
+4.94.14
+
+Added `execute <Command> <ArgumentList>` to `gam tbatch` commands. This allows you to execute
+non-GAM commands in the batch.
+
 4.94.13
 
 Updated `gam print/show matters` to display the email address matching the permission accountId.

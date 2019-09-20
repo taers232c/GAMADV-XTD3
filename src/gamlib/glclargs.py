@@ -277,6 +277,7 @@ class GamCLArgs(object):
     ENTITY_TEACHERS,
     ]
 # Batch file commands
+  EXECUTE_CMD = 'execute'
   GAM_CMD = 'gam'
   COMMIT_BATCH_CMD = 'commit-batch'
   PRINT_CMD = 'print'

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.13'
+__version__ = '4.94.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6305,7 +6305,10 @@ def MultiprocessGAMCommands(items, logCmds):
 def threadBatchWorker():
   while True:
     item = GM.Globals[GM.TBATCH_QUEUE].get()
-    subprocess.call(item, stdout=GM.Globals[GM.STDOUT].get(GM.REDIRECT_MULTI_FD, sys.stdout), stderr=GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, sys.stderr))
+    try:
+      subprocess.call(item, stdout=GM.Globals[GM.STDOUT].get(GM.REDIRECT_MULTI_FD, sys.stdout), stderr=GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, sys.stderr))
+    except Exception as e:
+      batchWriteStderr(str(e))
     GM.Globals[GM.TBATCH_QUEUE].task_done()
 
 def ThreadBatchGAMCommands(items, logCmds):
@@ -6338,7 +6341,10 @@ def ThreadBatchGAMCommands(items, logCmds):
       batchWriteStderr(Msg.PROCESSING_ITEM_N.format(pid))
     if logCmds:
       batchWriteStderr(Cmd.QuotedArgumentList(item)+'\n')
-    GM.Globals[GM.TBATCH_QUEUE].put(pythonCmd+item[1:])
+    if item[0] == Cmd.GAM_CMD:
+      GM.Globals[GM.TBATCH_QUEUE].put(pythonCmd+item[1:])
+    else:
+      GM.Globals[GM.TBATCH_QUEUE].put(item[1:])
     numThreadsInUse += 1
   GM.Globals[GM.TBATCH_QUEUE].join()
 
@@ -6380,6 +6386,8 @@ def doBatch(threadBatch=False):
           items.append(argv)
         elif cmd == Cmd.COMMIT_BATCH_CMD:
           items.append([cmd])
+        elif cmd == Cmd.EXECUTE_CMD:
+          items.append(argv)
         elif cmd == Cmd.PRINT_CMD:
           items.append(argv)
         else:
@@ -28021,7 +28029,7 @@ def infoCalendars(users):
       calId = normalizeCalendarId(calId, user)
       try:
         result = callGAPI(cal.calendarList(), 'get',
-                          throw_reasons=[GAPI.NOT_FOUND, GAPI.DUPLICATE, GAPI.CANNOT_CHANGE_OWN_ACL],
+                          throw_reasons=[GAPI.NOT_FOUND],
                           calendarId=calId)
         _showCalendar(result, j, jcount, FJQC)
       except GAPI.notFound as e:
