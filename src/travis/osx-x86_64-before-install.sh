@@ -3,7 +3,7 @@ whereibelong=$(pwd)
 #echo "Brew installing xz..."
 #brew install xz > /dev/null
 
-brew upgrade
+#brew upgrade
 
 cd ~/pybuild
 
