@@ -2,6 +2,7 @@
 
 Added `execute <Command> <ArgumentList>` to `gam tbatch` commands. This allows you to execute
 non-GAM commands in the batch.
+See https://github.com/taers232c/GAMADV-XTD3/wiki/Bulk-Processing#batch-files
 
 4.94.13
 
