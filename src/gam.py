@@ -6308,7 +6308,7 @@ def threadBatchWorker():
     try:
       subprocess.call(item, stdout=GM.Globals[GM.STDOUT].get(GM.REDIRECT_MULTI_FD, sys.stdout), stderr=GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, sys.stderr))
     except Exception as e:
-      batchWriteStderr(str(e))
+      batchWriteStderr(str(e)+'\n')
     GM.Globals[GM.TBATCH_QUEUE].task_done()
 
 def ThreadBatchGAMCommands(items, logCmds):
