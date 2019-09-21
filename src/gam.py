@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.14'
+__version__ = '4.94.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5221,8 +5221,9 @@ class CSVPrintFile():
         self.todrive['parentId'] = result['id']
       else:
         try:
-          results = callGAPIpages(drive.files(), 'list', 'files',
+          results = callGAPIpages(drive.files(), 'list', VX_PAGES_FILES,
                                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY],
+                                  retry_reasons=[GAPI.UNKNOWN_ERROR],
                                   q="name = '{0}'".format(self.todrive['parent']),
                                   fields='nextPageToken,files(id,mimeType,capabilities(canEdit))',
                                   pageSize=1, supportsAllDrives=True)
@@ -28924,6 +28925,7 @@ def doDriveSearch(drive, user, i, count, query=None, parentQuery=False, emptyQue
     files = callGAPIpages(drive.files(), 'list', VX_PAGES_FILES,
                           page_message=getPageMessageForWhom(),
                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND, GAPI.NOT_FOUND],
+                          retry_reasons=[GAPI.UNKNOWN_ERROR],
                           q=query, orderBy=orderBy, fields='nextPageToken,files(id,driveId)', pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **kwargs)
     if files or not parentQuery:
       return [f_file['id'] for f_file in files if not teamDriveOnly or f_file.get('driveId')]
@@ -29715,6 +29717,7 @@ def printDriveActivity(users):
         fileList.extend(callGAPIpages(drive.files(), 'list', VX_PAGES_FILES,
                                       page_message=getPageMessageForWhom(),
                                       throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND],
+                                      retry_reasons=[GAPI.UNKNOWN_ERROR],
                                       q=query, fields=VX_NPT_FILES_ID_MIMETYPE, maxResults=GC.Values[GC.DRIVE_MAX_RESULTS]))
         if not fileList:
           entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], emptyQuery(query, Ent.DRIVE_FILE_OR_FOLDER), i, count)
@@ -31412,6 +31415,7 @@ def printFileList(users):
     try:
       children = callGAPIpages(drive.files(), 'list', VX_PAGES_FILES,
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID],
+                               retry_reasons=[GAPI.UNKNOWN_ERROR],
                                q=q, orderBy=orderBy['list'], fields=pagesfields,
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], includeItemsFromAllDrives=True, supportsAllDrives=True)
     except (GAPI.invalidQuery, GAPI.invalid):
@@ -31608,6 +31612,7 @@ def printFileList(users):
           feed = callGAPI(drive.files(), 'list',
                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND,
                                                                        GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                          retry_reasons=[GAPI.UNKNOWN_ERROR],
                           pageToken=pageToken,
                           q=DLP.query, orderBy=orderBy['list'], fields=pagesfields, pageSize=maxResults, **btkwargs)
         except (GAPI.invalidQuery, GAPI.invalid):
@@ -31644,6 +31649,7 @@ def printFileList(users):
                              page_message=getPageMessageForWhom(), maxItems=DLP.maxItems,
                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND,
                                                                           GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                             retry_reasons=[GAPI.UNKNOWN_ERROR],
                              q=DLP.query, orderBy=orderBy['list'], fields=pagesfields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
       except (GAPI.invalidQuery, GAPI.invalid):
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(DLP.query), i, count)
@@ -31892,6 +31898,7 @@ def printShowFileCounts(users):
                            page_message=getPageMessageForWhom(),
                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND,
                                                                         GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                           retry_reasons=[GAPI.UNKNOWN_ERROR],
                            q=DLP.query, fields=pagesfields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **fileIdEntity['teamdrive'])
     except (GAPI.invalidQuery, GAPI.invalid):
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, None], invalidQuery(DLP.query), i, count)
@@ -32009,6 +32016,7 @@ def printShowFileTree(users):
     try:
       children = callGAPIpages(drive.files(), 'list', VX_PAGES_FILES,
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID],
+                               retry_reasons=[GAPI.UNKNOWN_ERROR],
                                q=q, orderBy=orderBy['list'], fields=pagesFields,
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], supportsAllDrives=True, includeItemsFromAllDrives=True)
     except (GAPI.invalidQuery, GAPI.invalid):
@@ -32111,6 +32119,7 @@ def printShowFileTree(users):
         try:
           feed = callGAPI(drive.files(), 'list',
                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                          retry_reasons=[GAPI.UNKNOWN_ERROR],
                           pageToken=pageToken,
                           orderBy=orderBy['list'], fields=pagesFields,
                           pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
@@ -32648,6 +32657,7 @@ def _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destFilenam
   try:
     return callGAPIpages(drive.files(), 'list', VX_PAGES_FILES,
                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                         retry_reasons=[GAPI.UNKNOWN_ERROR],
                          q=VX_ANY_NON_TRASHED_MIMETYPE_NAME_PREFIX_WITH_PARENTS.format(source['mimeType'],
                                                                                        escapeDriveFileName(_getFilenamePrefix(destFilename)),
                                                                                        newParentId),
@@ -32770,6 +32780,7 @@ def copyDriveFile(users):
     copiedFiles[newFolderId] = 1
     sourceChildren = callGAPIpages(drive.files(), 'list', VX_PAGES_FILES,
                                    throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                   retry_reasons=[GAPI.UNKNOWN_ERROR],
                                    q=WITH_PARENTS.format(folderId), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_COPY_FIELDS,
                                    orderBy=VX_ORDERBY_FOLDER_DESC_NAME_MODIFIED_TIME,
                                    pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **sourceSearchArgs)
@@ -32778,6 +32789,7 @@ def copyDriveFile(users):
       if existingTargetFolder:
         subTargetChildren = callGAPIpages(drive.files(), 'list', VX_PAGES_FILES,
                                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                          retry_reasons=[GAPI.UNKNOWN_ERROR],
                                           q=VX_ANY_NON_TRASHED_WITH_PARENTS.format(newFolderId),
                                           orderBy=VX_ORDERBY_FOLDER_DESC_NAME_MODIFIED_TIME,
                                           fields=VX_NPT_FILES_ID_FILENAME_CAPABILITIES_MIMETYPE_MODIFIEDTIME, **parentParms[DFA_SEARCHARGS])
@@ -33104,6 +33116,7 @@ def moveDriveFile(users):
     movedFiles[newFolderId] = 1
     sourceChildren = callGAPIpages(drive.files(), 'list', VX_PAGES_FILES,
                                    throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                   retry_reasons=[GAPI.UNKNOWN_ERROR],
                                    q=WITH_PARENTS.format(folderId), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_COPY_FIELDS,
                                    orderBy=VX_ORDERBY_FOLDER_DESC_NAME_MODIFIED_TIME,
                                    pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **sourceSearchArgs)
@@ -33112,6 +33125,7 @@ def moveDriveFile(users):
       if existingTargetFolder:
         subTargetChildren = callGAPIpages(drive.files(), 'list', VX_PAGES_FILES,
                                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                          retry_reasons=[GAPI.UNKNOWN_ERROR],
                                           q=VX_ANY_NON_TRASHED_WITH_PARENTS.format(newFolderId),
                                           orderBy=VX_ORDERBY_FOLDER_DESC_NAME_MODIFIED_TIME,
                                           fields=VX_NPT_FILES_ID_FILENAME_CAPABILITIES_MIMETYPE_MODIFIEDTIME, **parentParms[DFA_SEARCHARGS])
@@ -33689,6 +33703,7 @@ def collectOrphans(users):
       feed = callGAPIpages(drive.files(), 'list', VX_PAGES_FILES,
                            page_message=getPageMessageForWhom(),
                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                           retry_reasons=[GAPI.UNKNOWN_ERROR],
                            q=query, orderBy=orderBy['list'], fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE,
                            pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
       if targetUserFolderPattern:
@@ -33793,6 +33808,7 @@ def transferDrive(users):
     try:
       result = callGAPIpages(targetDrive.files(), 'list', VX_PAGES_FILES,
                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                             retry_reasons=[GAPI.UNKNOWN_ERROR],
                              orderBy=orderBy['list'], q=VX_MY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS.format(escapeDriveFileName(folderName), folderParentId),
                              fields=VX_NPT_FILES_ID)
       if result:
@@ -34141,6 +34157,7 @@ def transferDrive(users):
     try:
       children = callGAPIpages(sourceDrive.files(), 'list', VX_PAGES_FILES,
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                               retry_reasons=[GAPI.UNKNOWN_ERROR],
                                orderBy=orderBy['list'], q=WITH_PARENTS.format(fileId), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS_PERMISSIONS,
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -34293,6 +34310,7 @@ def transferDrive(users):
       elif targetFolderName:
         result = callGAPIpages(targetDrive.files(), 'list', VX_PAGES_FILES,
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                               retry_reasons=[GAPI.UNKNOWN_ERROR],
                                q=VX_MY_NON_TRASHED_FOLDER_NAME.format(escapeDriveFileName(targetFolderName)),
                                fields=VX_NPT_FILES_ID)
         if not result:
@@ -34358,6 +34376,7 @@ def transferDrive(users):
         sourceDriveFiles = callGAPIpages(sourceDrive.files(), 'list', VX_PAGES_FILES,
                                          page_message=getPageMessageForWhom(),
                                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                         retry_reasons=[GAPI.UNKNOWN_ERROR],
                                          orderBy=orderBy['list'], q=NON_TRASHED,
                                          fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_OWNERS_PERMISSIONS,
                                          pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
@@ -34455,6 +34474,7 @@ def transferOwnership(users):
     try:
       children = callGAPIpages(drive.files(), 'list', VX_PAGES_FILES,
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                               retry_reasons=[GAPI.UNKNOWN_ERROR],
                                orderBy=orderBy['list'], q=WITH_PARENTS.format(fileEntry['id']), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED,
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -34522,6 +34542,7 @@ def transferOwnership(users):
         feed = callGAPIpages(drive.files(), 'list', VX_PAGES_FILES,
                              page_message=getPageMessageForWhom(),
                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                             retry_reasons=[GAPI.UNKNOWN_ERROR],
                              orderBy=orderBy['list'], fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED,
                              pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -34645,6 +34666,7 @@ def claimOwnership(users):
     try:
       children = callGAPIpages(drive.files(), 'list', VX_PAGES_FILES,
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                               retry_reasons=[GAPI.UNKNOWN_ERROR],
                                orderBy=orderBy['list'], q=WITH_PARENTS.format(fileEntry['id']), fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS,
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -34765,6 +34787,7 @@ def claimOwnership(users):
         feed = callGAPIpages(drive.files(), 'list', VX_PAGES_FILES,
                              page_message=getPageMessageForWhom(),
                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                             retry_reasons=[GAPI.UNKNOWN_ERROR],
                              orderBy=orderBy['list'], fields=VX_NPT_FILES_ID_FILENAME_PARENTS_MIMETYPE_OWNEDBYME_TRASHED_OWNERS,
                              pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -34923,12 +34946,14 @@ def deleteEmptyDriveFolders(users):
           feed = callGAPIpages(drive.files(), 'list', VX_PAGES_FILES,
                                page_message=getPageMessageForWhom(),
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                               retry_reasons=[GAPI.UNKNOWN_ERROR],
                                q=query, fields=VX_NPT_FILES_ID_FILENAME_OWNEDBYME,
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
         else:
           feed = callGAPIpages(drive.files(), 'list', VX_PAGES_FILES,
                                page_message=getPageMessageForWhom(),
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                               retry_reasons=[GAPI.UNKNOWN_ERROR],
                                q=query, fields=VX_NPT_FILES_ID_FILENAME,
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **fileIdEntity['teamdrive'])
         jcount = len(feed)
@@ -34941,11 +34966,13 @@ def deleteEmptyDriveFolders(users):
             if not fileIdEntity.get('teamdrive'):
               children = callGAPIitems(drive.files(), 'list', VX_PAGES_FILES,
                                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                       retry_reasons=[GAPI.UNKNOWN_ERROR],
                                        q=WITH_PARENTS.format(folder['id']), fields=VX_FILES_ID_FILENAME,
                                        pageSize=1)
             else:
               children = callGAPIitems(drive.files(), 'list', VX_PAGES_FILES,
                                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                                       retry_reasons=[GAPI.UNKNOWN_ERROR],
                                        q=WITH_PARENTS.format(folder['id']), fields=VX_FILES_ID_FILENAME,
                                        pageSize=1, **fileIdEntity['teamdrive'])
             if not children:

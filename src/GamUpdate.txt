@@ -1,3 +1,7 @@
+4.94.15
+
+Make `unknownError - Unknown` a retryable error when making API calls to list files.
+
 4.94.14
 
 Added `execute <Command> <ArgumentList>` to `gam tbatch` commands. This allows you to execute
