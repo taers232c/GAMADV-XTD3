@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.15'
+__version__ = '4.94.16'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -14204,14 +14204,18 @@ CROS_INDEXED_TITLES = ['activeTimeRanges', 'recentUsers', 'deviceFiles',
 
 # gam print cros [todrive <ToDriveAttributes>*]
 #	[(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
-#	[querytime.* <Time>] [guessaue]
-#	[orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|<DrOSListFieldName>*] [listlimit <Number>] [start <Date>] [end <Date>]
-#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
+#	[querytime.* <Time>] [guessaue] [start <Date>] [end <Date>]
+#	[orderby <CrOSOrderByFieldName> [ascending|descending]]
+#	[nolists|(<DrOSListFieldName>* [onerow])] [listlimit <Number>]
+#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+#	[sortheaders] [formatjson] [quotechar <Character>]
 #
 # gam <CrOSTypeEntity> print cros [todrive <ToDriveAttributes>*]
-#	[guessaue]
-#	[orderby <CrOSOrderByFieldName> [ascending|descending]] [nolists|<DrOSListFieldName>*] [listlimit <Number>] [start <Date>] [end <Date>]
-#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [sortheaders] [formatjson] [quotechar <Character>]
+#	[guessaue] [start <Date>] [end <Date>]
+#	[orderby <CrOSOrderByFieldName> [ascending|descending]]
+#	[nolists|(<DrOSListFieldName>* [onerow])] [listlimit <Number>]
+#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+#	[sortheaders] [formatjson] [quotechar <Character>]
 def doPrintCrOSDevices(entityList=None):
   def _getSelectedLists(myarg):
     if myarg in CROS_ACTIVE_TIME_RANGES_ARGUMENTS:
@@ -14241,7 +14245,7 @@ def doPrintCrOSDevices(entityList=None):
       return
     if 'notes' in cros:
       cros['notes'] = escapeCRsNLs(cros['notes'])
-    if not noLists and not selectedLists:
+    if oneRow or (not noLists and not selectedLists):
       for cpuStatusReport in cros.get('cpuStatusReports', []):
         for tempInfo in cpuStatusReport.get('cpuTemperatureInfo', []):
           tempInfo['label'] = tempInfo['label'].strip()
@@ -14329,7 +14333,7 @@ def doPrintCrOSDevices(entityList=None):
   startDate = endDate = startTime = endTime = None
   selectedLists = {}
   queryTimes = {}
-  guessAUE = noLists = sortHeaders = False
+  guessAUE = noLists = oneRow = sortHeaders = False
   guessedAUEs = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -14345,6 +14349,8 @@ def doPrintCrOSDevices(entityList=None):
       _, entityList = getEntityToModify(defaultEntityType=Cmd.ENTITY_CROS, crosAllowed=True, userAllowed=False)
     elif myarg == 'orderby':
       orderBy, sortOrder = getOrderBySortOrder(CROS_ORDERBY_CHOICE_MAP)
+    elif myarg == 'onerow':
+      oneRow = True
     elif myarg == 'nolists':
       noLists = True
       selectedLists = {}

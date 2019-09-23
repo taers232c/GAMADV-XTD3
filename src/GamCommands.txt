@@ -1131,23 +1131,25 @@ If none of these options are chosen, all CrOS devices are selected.
 
 gam print cros [todrive <ToDriveAttribute>*]
         [(query <QueryCrOS>)|(queries <QueryCrOSList>)] [limittoou <OrgUnitItem>]
-        (querytime.* <Time>)*
-        [orderby <CrOSOrderByFieldName> [ascending|descending]] [guessaue] [nolists|<CrOSListFieldName>*]
-        [listlimit <Number>] [start <Date>] [end <Date>]
+        (querytime.* <Time>)* [guessaue]
+        [orderby <CrOSOrderByFieldName> [ascending|descending]]
+        [nolists|(<CrOSListFieldName>* [onerow]) [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
         [sortheaders] [formatjson] [quotechar <Character>]
 
 Print fields for specified CrOS devices.
 
 gam print cros [todrive <ToDriveAttribute>*] select <CrOSTypeEntity>
-        [orderby <CrOSOrderByFieldName> [ascending|descending]] [guessaue] [nolists|<CrOSListFieldName>*]
-        [listlimit <Number>] [start <Date>] [end <Date>]
+        [guessaue]
+        [orderby <CrOSOrderByFieldName> [ascending|descending]]
+        [nolists|(<CrOSListFieldName>* [onerow]) [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
         [sortheaders] [formatjson] [quotechar <Character>]
 
 gam <CrOSTypeEntity> print cros [todrive <ToDriveAttribute>*]
-        [orderby <CrOSOrderByFieldName> [ascending|descending]] [guessaue] [nolists|<CrOSListFieldName>*]
-        [listlimit <Number>] [start <Date>] [end <Date>]
+        [guessaue]
+        [orderby <CrOSOrderByFieldName> [ascending|descending]]
+        [nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
         [sortheaders] [formatjson] [quotechar <Character>]
 

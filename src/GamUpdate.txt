@@ -1,3 +1,10 @@
+4.94.16
+
+Added `onerow` option to `gam print cros`. By default, when you specify a list field:
+activeTimeRanges, recentUsers, deviceFiles, cpuStatusReports, diskVolumeReports, systemRamFreeReports;
+there is one value of each each type per row, this allows for trivial sorting by those columns. The `onerow`
+option puts all of the list field values on one row.
+
 4.94.15
 
 Make `unknownError - Unknown` a retryable error when making API calls to list files.
