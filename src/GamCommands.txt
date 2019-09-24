@@ -699,10 +699,10 @@ gam help
 
 # Bulk Processing
 
-gam batch <FileName>|- [charset <Charset>] [showcmds]
+gam batch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds]
 gam csv <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
         (matchfield|skipfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
-gam tbatch <FileName>|- [charset <Charset>] [showcmds]
+gam tbatch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds]
 
 gam loop <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
         (matchfield|skipfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
@@ -795,7 +795,7 @@ gam audit uploadkey [<FileName>]
 gam audit export request <EmailAddress> [begin <DateTime>] [end <DateTime>]
         [search <QueryGmail>] [headersonly] [includedeleted]
 gam audit export delete <EmailAddress> <RequestID>
-gam audit export download <EmailAddress> <RequestID>
+gam audit export download <EmailAddress> <RequestID> [targetfolder <FilePath>]
 gam audit export status [<EmailAddress> <RequestID>]
 gam audit export watch <EmailAddress> <RequestID>
 
@@ -1843,14 +1843,22 @@ gam delete group|groups <GroupEntity>
         whocanviewmembership
 <GroupFieldNameList> ::= "<GroupFieldName>(,<GroupFieldName>)*"
 
-gam info group|groups <GroupEntity> [members] [managers] [owners] [nousers|notsuspended|suspended] [quick]
-        [noaliases] [groups] [basic] <GroupFieldName>* [fields <GroupFieldNameList>] [nodeprecated] [formatjson]
-gam print groups [todrive <ToDriveAttribute>*] ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[select <GroupEntity>] [notsuspended|suspended]
-        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>] (matchsetting [not] <GroupAttribute>)*
+gam info group|groups <GroupEntity> [members] [managers] [owners]
+        [nousers|notsuspended|suspended] [quick] [noaliases] [groups]
+        [basic] <GroupFieldName>* [fields <GroupFieldNameList>] [nodeprecated]
+        [formatjson]
+gam print groups [todrive <ToDriveAttribute>*]
+        [([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
+         (select <GroupEntity>)] [notsuspended|suspended]
         [showownedby <UserItem>]
-        [maxresults <Number>] [allfields|([basic] [settings] <GroupFieldName>* [fields <GroupFieldNameList>])] [nodeprecated]
+        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
+        [descriptionmatchpattern <RegularExpression>] (matchsetting [not] <GroupAttribute>)*
+        [maxresults <Number>]
+        [allfields|([basic] [settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
+        [nodeprecated]
         [members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
-        [convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
+        [convertcrnl] [delimiter <Character>] [sortheaders]
+        [formatjson] [quotechar <Character>]
 
 gam print grouptree <GroupEntity> [todrive <ToDriveAttribute>*]
 gam show grouptree <GroupEntity>
@@ -1868,17 +1876,26 @@ gam show grouptree <GroupEntity>
 gam <UserTypeEntity> info member|group-members <GroupEntity>
 gam info member|group-members <UserTypeEntity> <GroupEntity>
 gam print group-members [todrive <ToDriveAttribute>*]
-        [domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns|group_susp <GroupItem>]|[select <GroupEntity>] [notsuspended|suspended]
-        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
+        [([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
+         (group|group_ns|group_susp <GroupItem>)|
+         (select <GroupEntity>)] [notsuspended|suspended]
         [showownedby <UserItem>] [types <GroupTypeList>]
-        [roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
-        [userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
+        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
+        [descriptionmatchpattern <RegularExpression>]
+        [roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>*
+        [fields <MembersFieldNameList>] [userfields <UserFieldNameList>]
+        [recursive [noduplicates]] [nogroupemail]
         [peoplelookup|(peoplelookupuser <EmailAddress>)]
+        [includederivedmembership]
 gam show group-members
-        ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns|group_susp <GroupItem>]|[select <GroupEntity>] [notsuspended|suspended]
-        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
+        [([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
+         (group|group_ns|group_susp <GroupItem>)|
+         (select <GroupEntity>)] [notsuspended|suspended]
         [showownedby <UserItem>] [types <GroupTypeList>]
+        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
+        [descriptionmatchpattern <RegularExpression>]
         [roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
+        [includederivedmembership]
 
 # Licenses
 

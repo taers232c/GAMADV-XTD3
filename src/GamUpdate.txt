@@ -5,6 +5,10 @@ activeTimeRanges, recentUsers, deviceFiles, cpuStatusReports, diskVolumeReports,
 there is one value of each each type per row, this allows for trivial sorting by those columns. The `onerow`
 option puts all of the list field values on one row.
 
+Added option `includederivedmembership` to `gam print/show group-members`.
+This option causes the API to list indirect members of groups.
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Group-Membership
+
 4.94.15
 
 Make `unknownError - Unknown` a retryable error when making API calls to list files.

@@ -10982,7 +10982,7 @@ def checkDownloadResults(results):
   if results['status'] != 'COMPLETED':
     printWarningMessage(REQUEST_NOT_COMPLETED_RC, Msg.REQUEST_NOT_COMPLETE.format(results['status']))
     return False
-  if int(results.get('numberOfFiles', '0') >= 1):
+  if int(results.get('numberOfFiles', '0')) >= 1:
     return True
   printWarningMessage(REQUEST_COMPLETED_NO_RESULTS_RC, Msg.REQUEST_COMPLETED_NO_FILES)
   return False
@@ -11080,10 +11080,18 @@ def doDeleteExportRequest():
   except GDATA.invalidValue:
     entityActionFailedWarning([Ent.USER, parameters['auditUser'], Ent.AUDIT_EXPORT_REQUEST, parameters['requestId']], Msg.INVALID_REQUEST)
 
-# gam audit export download <EmailAddress> <RequestID>
+# gam audit export download <EmailAddress> <RequestID> [targetfolder <FilePath>]
 def doDownloadExportRequest():
   auditObject, parameters = getAuditParameters(emailAddressRequired=True, requestIdRequired=True, destUserRequired=False)
-  checkForExtraneousArguments()
+  targetFolder = GC.Values[GC.DRIVE_DIR]
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'targetfolder':
+      targetFolder = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
+      if not os.path.isdir(targetFolder):
+        os.makedirs(targetFolder)
+    else:
+      unknownArgumentExit()
   try:
     results = callGData(auditObject, 'getMailboxExportRequestStatus',
                         throw_errors=[GDATA.INVALID_DOMAIN, GDATA.DOES_NOT_EXIST, GDATA.INVALID_VALUE],
@@ -11092,13 +11100,16 @@ def doDownloadExportRequest():
       return
     count = int(results['numberOfFiles'])
     for i in range(count):
-      filename = 'export-{0}-{1}-{2}.mbox.gpg'.format(parameters['auditUserName'], parameters['requestId'], i)
+      filename = os.path.join(targetFolder, 'export-{0}-{1}-{2}.mbox.gpg'.format(parameters['auditUserName'], parameters['requestId'], i))
       #don't download existing files. This does not check validity of existing local
       #file so partial/corrupt downloads will need to be deleted manually.
       if not os.path.isfile(filename):
         entityPerformActionInfo([Ent.USER, parameters['auditUser'], Ent.AUDIT_EXPORT_REQUEST, parameters['requestId']], filename, i+1, count)
         _, data = getHttpObj().request(results['fileUrl'+str(i)], 'GET')
-        writeFile(filename, data)
+        writeFile(filename, data, mode='wb')
+      else:
+        entityActionNotPerformedWarning([Ent.USER, parameters['auditUser'], Ent.AUDIT_EXPORT_REQUEST, parameters['requestId']],
+                                        '{0} {1}'.format(filename, Msg.EXISTS), i+1, count)
   except (GDATA.invalidDomain, GDATA.doesNotExist):
     entityUnknownWarning(Ent.USER, parameters['auditUser'])
   except GDATA.invalidValue:
@@ -13735,25 +13746,110 @@ def guessCrosAUEDate(cros, guessedAUEs):
                                   'guessedAUEModel': u''}
     cros.update(guessedAUEs[crosModel])
 
-def _filterTimeRanges(activeTimeRanges, startDate, endDate):
-  if startDate is None and endDate is None:
-    return activeTimeRanges
-  filteredTimeRanges = []
-  for timeRange in activeTimeRanges:
-    activityDate = datetime.datetime.strptime(timeRange['date'], YYYYMMDD_FORMAT)
-    if ((startDate is None) or (activityDate >= startDate)) and ((endDate is None) or (activityDate <= endDate)):
-      filteredTimeRanges.append(timeRange)
-  return filteredTimeRanges
-
-def _filterCreateReportTime(items, timeField, startTime, endTime):
-  if startTime is None and endTime is None:
-    return items
+def _filterActiveTimeRanges(cros, selected, listLimit, startDate, endDate):
+  if not selected:
+    cros.pop('activeTimeRanges', None)
+    return []
   filteredItems = []
-  for item in items:
-    timeValue, _ = iso8601.parse_date(item[timeField])
-    if ((startTime is None) or (timeValue >= startTime)) and ((endTime is None) or (timeValue <= endTime)):
+  i = 0
+  for item in cros.get('activeTimeRanges', []):
+    activityDate = datetime.datetime.strptime(item['date'], YYYYMMDD_FORMAT)
+    if ((startDate is None) or (activityDate >= startDate)) and ((endDate is None) or (activityDate <= endDate)):
+      item['duration'] = formatMilliSeconds(item['activeTime'])
+      item['minutes'] = item['activeTime']//60000
+      item['activeTime'] = str(item['activeTime'])
       filteredItems.append(item)
-  return filteredItems
+      i += 1
+      if listLimit and i == listLimit:
+        break
+  cros['activeTimeRanges'] = filteredItems
+  return cros['activeTimeRanges']
+
+def _filterDeviceFiles(cros, selected, listLimit, startTime, endTime):
+  if not selected:
+    cros.pop('deviceFiles', None)
+    return []
+  filteredItems = []
+  i = 0
+  for item in cros.get('deviceFiles', []):
+    timeValue, _ = iso8601.parse_date(item['createTime'])
+    if ((startTime is None) or (timeValue >= startTime)) and ((endTime is None) or (timeValue <= endTime)):
+      item['createTime'] = formatLocalTime(item['createTime'])
+      filteredItems.append(item)
+      i += 1
+      if listLimit and i == listLimit:
+        break
+  cros['deviceFiles'] = filteredItems
+  return cros['deviceFiles']
+
+def _filterCPUStatusReports(cros, selected, listLimit, startTime, endTime):
+  if not selected:
+    cros.pop('cpuStatusReports', None)
+    return []
+  filteredItems = []
+  i = 0
+  for item in cros.get('cpuStatusReports', []):
+    timeValue, _ = iso8601.parse_date(item['reportTime'])
+    if ((startTime is None) or (timeValue >= startTime)) and ((endTime is None) or (timeValue <= endTime)):
+      item['reportTime'] = formatLocalTime(item['reportTime'])
+      for tempInfo in item.get('cpuTemperatureInfo', []):
+        tempInfo['label'] = tempInfo['label'].strip()
+      item['cpuUtilizationPercentageInfo'] = ','.join([str(x) for x in item['cpuUtilizationPercentageInfo']])
+      filteredItems.append(item)
+      i += 1
+      if listLimit and i == listLimit:
+        break
+  cros['cpuStatusReports'] = filteredItems
+  return cros['cpuStatusReports']
+
+def _filterSystemRamFreeReports(cros, selected, listLimit, startTime, endTime):
+  if not selected:
+    cros.pop('systemRamFreeReports', None)
+    return []
+  filteredItems = []
+  i = 0
+  for item in cros.get('systemRamFreeReports', []):
+    timeValue, _ = iso8601.parse_date(item['reportTime'])
+    if ((startTime is None) or (timeValue >= startTime)) and ((endTime is None) or (timeValue <= endTime)):
+      item['reportTime'] = formatLocalTime(item['reportTime'])
+      item['systemRamFreeInfo'] = ','.join([str(x) for x in item['systemRamFreeInfo']])
+      filteredItems.append(item)
+      i += 1
+      if listLimit and i == listLimit:
+        break
+  cros['systemRamFreeReports'] = filteredItems
+  return cros['systemRamFreeReports']
+
+def _filterRecentUsers(cros, selected, listLimit):
+  if not selected:
+    cros.pop('recentUsers', None)
+    return []
+  filteredItems = []
+  i = 0
+  for item in cros.get('recentUsers', []):
+    item['email'] = item.get('email', ['Unknown', 'UnmanagedUser'][item['type'] == 'USER_TYPE_UNMANAGED'])
+    filteredItems.append(item)
+    i += 1
+    if listLimit and i == listLimit:
+      break
+  cros['recentUsers'] = filteredItems
+  return cros['recentUsers']
+
+def _filterDiskVolumeReports(cros, selected, listLimit):
+  if not selected:
+    cros.pop('diskVolumeReports', None)
+    return []
+  if listLimit:
+    filteredItems = []
+    i = 0
+    for item in cros.get('diskVolumeReports', []):
+      filteredItems.append(item)
+      i += 1
+      if listLimit and i == listLimit:
+        break
+    cros['diskVolumeReports'] = filteredItems
+    return cros['diskVolumeReports']
+  return cros.get('diskVolumeReports', [])
 
 def _getFilterDateTime():
   filterDate = getYYYYMMDD(returnDateTime=True)
@@ -13836,7 +13932,7 @@ CROS_SCALAR_PROPERTY_PRINT_ORDER = [
   'willAutoRenew',
   ]
 
-CROS_TIME_OBJECTS = set(['lastSync', 'lastEnrollmentTime', 'supportEndDate', 'reportTime'])
+CROS_TIME_OBJECTS = set(['lastSync', 'lastEnrollmentTime', 'supportEndDate', 'createTime', 'reportTime'])
 CROS_FIELDS_WITH_CRS_NLS = ['notes']
 CROS_ACTIVE_TIME_RANGES_ARGUMENTS = ['timeranges', 'activetimeranges', 'times']
 CROS_RECENT_USERS_ARGUMENTS = ['recentusers', 'users']
@@ -13949,37 +14045,32 @@ def infoCrOSDevices(entityList):
         printKeyValueList([key, value])
       Ind.Decrement()
     if not noLists:
-      activeTimeRanges = _filterTimeRanges(cros.get('activeTimeRanges', []), startDate, endDate)
-      lenATR = len(activeTimeRanges)
-      if lenATR:
+      activeTimeRanges = _filterActiveTimeRanges(cros, True, listLimit, startDate, endDate)
+      if activeTimeRanges:
         printKeyValueList(['activeTimeRanges'])
         Ind.Increment()
-        for activeTimeRange in activeTimeRanges[:min(lenATR, listLimit or lenATR)]:
+        for activeTimeRange in activeTimeRanges:
           printKeyValueList(['date', activeTimeRange['date']])
           Ind.Increment()
-          printKeyValueList(['activeTime', str(activeTimeRange['activeTime'])])
-          printKeyValueList(['duration', formatMilliSeconds(activeTimeRange['activeTime'])])
-          printKeyValueList(['minutes', activeTimeRange['activeTime']//60000])
+          for key in ['activeTime', 'duration', 'minutes']:
+            printKeyValueList([key, activeTimeRange[key]])
           Ind.Decrement()
         Ind.Decrement()
-      recentUsers = cros.get('recentUsers', [])
-      lenRU = len(recentUsers)
-      if lenRU:
+      recentUsers = _filterRecentUsers(cros, True, listLimit)
+      if recentUsers:
         printKeyValueList(['recentUsers'])
         Ind.Increment()
-        for recentUser in recentUsers[:min(lenRU, listLimit or lenRU)]:
+        for recentUser in recentUsers:
           printKeyValueList(['type', recentUser['type']])
           Ind.Increment()
-          printKeyValueList(['email', recentUser.get('email', ['Unknown', 'UnmanagedUser'][recentUser['type'] == 'USER_TYPE_UNMANAGED'])])
+          printKeyValueList(['email', recentUser['email']])
           Ind.Decrement()
         Ind.Decrement()
-      deviceFiles = _filterCreateReportTime(cros.get('deviceFiles', []), 'createTime', startTime, endTime)
-      lenDF = len(deviceFiles)
-      if lenDF:
+      deviceFiles = _filterDeviceFiles(cros, True, listLimit, startTime, endTime)
+      if deviceFiles:
         printKeyValueList(['deviceFiles'])
         Ind.Increment()
-        for deviceFile in deviceFiles[:min(lenDF, listLimit or lenDF)]:
-          deviceFile['createTime'] = formatLocalTime(deviceFile['createTime'])
+        for deviceFile in deviceFiles:
           printKeyValueList([deviceFile['type'], deviceFile['createTime']])
         Ind.Decrement()
         if downloadfile:
@@ -13994,7 +14085,7 @@ def infoCrOSDevices(entityList):
           if deviceFile:
             downloadfilename = os.path.join(targetFolder, 'cros-logs-{0}-{1}.zip'.format(deviceId, deviceFile['createTime']))
             _, content = cd._http.request(deviceFile['downloadUrl'])
-            writeFile(downloadfilename, content, continueOnError=True)
+            writeFile(downloadfilename, content, mode='wb', continueOnError=True)
             printKeyValueList(['Downloaded', downloadfilename])
           else:
             Act.Set(Act.DOWNLOAD)
@@ -14006,29 +14097,27 @@ def infoCrOSDevices(entityList):
         entityActionNotPerformedWarning([Ent.CROS_DEVICE, deviceId, Ent.DEVICE_FILE, downloadfile],
                                         Msg.NO_ENTITIES_FOUND.format(Ent.Plural(Ent.DEVICE_FILE)), i, count)
         Act.Set(Act.INFO)
-      cpuStatusReports = _filterCreateReportTime(cros.get('cpuStatusReports', []), 'reportTime', startTime, endTime)
-      lenCSR = len(cpuStatusReports)
-      if lenCSR:
+      cpuStatusReports = _filterCPUStatusReports(cros, True, listLimit, startTime, endTime)
+      if cpuStatusReports:
         printKeyValueList(['cpuStatusReports'])
         Ind.Increment()
-        for cpuStatusReport in cpuStatusReports[:min(lenCSR, listLimit or lenCSR)]:
+        for cpuStatusReport in cpuStatusReports:
           printKeyValueList(['reportTime', formatLocalTime(cpuStatusReport['reportTime'])])
           Ind.Increment()
           printKeyValueList(['cpuTemperatureInfo'])
           Ind.Increment()
           for tempInfo in cpuStatusReport.get('cpuTemperatureInfo', []):
-            printKeyValueList([tempInfo['label'].strip(), tempInfo['temperature']])
+            printKeyValueList([tempInfo['label'], tempInfo['temperature']])
           Ind.Decrement()
-          printKeyValueList(['cpuUtilizationPercentageInfo', ','.join([str(x) for x in cpuStatusReport['cpuUtilizationPercentageInfo']])])
+          printKeyValueList(['cpuUtilizationPercentageInfo', cpuStatusReport['cpuUtilizationPercentageInfo']])
           Ind.Decrement()
         Ind.Decrement()
-      diskVolumeReports = cros.get('diskVolumeReports', [])
-      lenDVR = len(diskVolumeReports)
-      if lenDVR:
+      diskVolumeReports = _filterDiskVolumeReports(cros, True, listLimit)
+      if diskVolumeReports:
         printKeyValueList(['diskVolumeReports'])
         Ind.Increment()
         printKeyValueList(['volumeInfo'])
-        for diskVolumeReport in diskVolumeReports[:min(lenDVR, listLimit or lenDVR)]:
+        for diskVolumeReport in diskVolumeReports:
           volumeInfo = diskVolumeReport['volumeInfo']
           Ind.Increment()
           for volume in volumeInfo:
@@ -14039,15 +14128,14 @@ def infoCrOSDevices(entityList):
             Ind.Decrement()
           Ind.Decrement()
         Ind.Decrement()
-      systemRamFreeReports = _filterCreateReportTime(cros.get('systemRamFreeReports', []), 'reportTime', startTime, endTime)
-      lenSRFR = len(systemRamFreeReports)
-      if lenSRFR:
+      systemRamFreeReports = _filterSystemRamFreeReports(cros, True, listLimit, startTime, endTime)
+      if systemRamFreeReports:
         printKeyValueList(['systemRamFreeReports'])
         Ind.Increment()
-        for systemRamFreeReport in systemRamFreeReports[:min(lenSRFR, listLimit or lenSRFR)]:
-          printKeyValueList(['reportTime', formatLocalTime(systemRamFreeReport['reportTime'])])
+        for systemRamFreeReport in systemRamFreeReports:
+          printKeyValueList(['reportTime', systemRamFreeReport['reportTime']])
           Ind.Increment()
-          printKeyValueList(['systemRamFreeInfo', ','.join(systemRamFreeReport['systemRamFreeInfo'])])
+          printKeyValueList(['systemRamFreeInfo', systemRamFreeReport['systemRamFreeInfo']])
           Ind.Decrement()
         Ind.Decrement()
     Ind.Decrement()
@@ -14179,7 +14267,7 @@ def getCrOSDeviceFiles(entityList):
         j += 1
         downloadfilename = os.path.join(targetFolder, 'cros-logs-{0}-{1}.zip'.format(deviceId, deviceFile['createTime']))
         _, content = cd._http.request(deviceFile['downloadUrl'])
-        writeFile(downloadfilename, content, continueOnError=True)
+        writeFile(downloadfilename, content, mode='wb', continueOnError=True)
         entityActionPerformed([Ent.DEVICE_FILE, downloadfilename], j, jcount)
       Ind.Decrement()
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
@@ -14245,10 +14333,25 @@ def doPrintCrOSDevices(entityList=None):
       return
     if 'notes' in cros:
       cros['notes'] = escapeCRsNLs(cros['notes'])
-    if oneRow or (not noLists and not selectedLists):
-      for cpuStatusReport in cros.get('cpuStatusReports', []):
-        for tempInfo in cpuStatusReport.get('cpuTemperatureInfo', []):
-          tempInfo['label'] = tempInfo['label'].strip()
+    for cpuStatusReport in cros.get('cpuStatusReports', []):
+      for tempInfo in cpuStatusReport.get('cpuTemperatureInfo', []):
+        tempInfo['label'] = tempInfo['label'].strip()
+    if not noLists and not selectedLists:
+      csvPF.WriteRowTitles(flattenJSON(cros, listLimit=listLimit, timeObjects=CROS_TIME_OBJECTS))
+      return
+    attrib = 'tpmVersionInfo'
+    if attrib in cros:
+      for key, value in sorted(iteritems(cros[attrib])):
+        attribKey = '{0}.{1}'.format(attrib, key)
+        cros[attribKey] = value
+      cros.pop(attrib)
+    activeTimeRanges = _filterActiveTimeRanges(cros, selectedLists.get('activeTimeRanges', False), listLimit, startDate, endDate)
+    recentUsers = _filterRecentUsers(cros, selectedLists.get('recentUsers', False), listLimit)
+    deviceFiles = _filterDeviceFiles(cros, selectedLists.get('deviceFiles', False), listLimit, startTime, endTime)
+    cpuStatusReports = _filterCPUStatusReports(cros, selectedLists.get('cpuStatusReports', False), listLimit, startTime, endTime)
+    diskVolumeReports = _filterDiskVolumeReports(cros, selectedLists.get('diskVolumeReports', False), listLimit)
+    systemRamFreeReports = _filterSystemRamFreeReports(cros, selectedLists.get('systemRamFreeReports', False), listLimit, startTime, endTime)
+    if oneRow:
       csvPF.WriteRowTitles(flattenJSON(cros, listLimit=listLimit, timeObjects=CROS_TIME_OBJECTS))
       return
     row = {}
@@ -14259,17 +14362,6 @@ def doPrintCrOSDevices(entityList=None):
           row[attrib] = cros[attrib]
         else:
           row[attrib] = formatLocalTime(cros[attrib])
-    attrib = 'tpmVersionInfo'
-    if attrib in cros:
-      for key, value in sorted(iteritems(cros[attrib])):
-        attribKey = '{0}.{1}'.format(attrib, key)
-        row[attribKey] = value
-    activeTimeRanges = _filterTimeRanges(cros.get('activeTimeRanges', []) if selectedLists.get('activeTimeRanges') else [], startDate, endDate)
-    recentUsers = cros.get('recentUsers', []) if selectedLists.get('recentUsers') else []
-    deviceFiles = _filterCreateReportTime(cros.get('deviceFiles', []) if selectedLists.get('deviceFiles') else [], 'createTime', startTime, endTime)
-    cpuStatusReports = _filterCreateReportTime(cros.get('cpuStatusReports', []) if selectedLists.get('cpuStatusReports') else [], 'reportTime', startTime, endTime)
-    diskVolumeReports = cros.get('diskVolumeReports', []) if selectedLists.get('diskVolumeReports') else []
-    systemRamFreeReports = _filterCreateReportTime(cros.get('systemRamFreeReports', []) if selectedLists.get('systemRamFreeReports') else [], 'reportTime', startTime, endTime)
     if noLists or (not activeTimeRanges and not recentUsers and not deviceFiles and
                    not cpuStatusReports and not diskVolumeReports and not systemRamFreeReports):
       csvPF.WriteRowTitles(row)
@@ -14280,35 +14372,33 @@ def doPrintCrOSDevices(entityList=None):
     lenCSR = len(cpuStatusReports)
     lenDVR = len(diskVolumeReports)
     lenSRFR = len(systemRamFreeReports)
+    new_row = row
     for i in range(min(max(lenATR, lenRU, lenDF, lenCSR, lenDVR, lenSRFR), listLimit or max(lenATR, lenRU, lenDF, lenCSR, lenDVR, lenSRFR))):
       new_row = row.copy()
       if i < lenATR:
-        new_row['activeTimeRanges.date'] = activeTimeRanges[i]['date']
-        new_row['activeTimeRanges.activeTime'] = str(activeTimeRanges[i]['activeTime'])
-        new_row['activeTimeRanges.duration'] = formatMilliSeconds(activeTimeRanges[i]['activeTime'])
-        new_row['activeTimeRanges.minutes'] = activeTimeRanges[i]['activeTime']//60000
+        for key in ['date', 'activeTime', 'duration', 'minutes']:
+          new_row['activeTimeRanges.{0}'.format(key)] = activeTimeRanges[i][key]
       if i < lenRU:
-        new_row['recentUsers.email'] = recentUsers[i].get('email', ['Unknown', 'UnmanagedUser'][recentUsers[i]['type'] == 'USER_TYPE_UNMANAGED'])
-        new_row['recentUsers.type'] = recentUsers[i]['type']
+        for key in ['email', 'type']:
+          new_row['recentUsers.{0}'.format(key)] = recentUsers[i][key]
       if i < lenDF:
-        new_row['deviceFiles.type'] = deviceFiles[i]['type']
-        new_row['deviceFiles.createTime'] = formatLocalTime(deviceFiles[i]['createTime'])
+        for key in ['type', 'createTime']:
+          new_row['deviceFiles.{0}'.format(key)] = deviceFiles[i][key]
       if i < lenCSR:
-        new_row['cpuStatusReports.reportTime'] = formatLocalTime(cpuStatusReports[i]['reportTime'])
+        new_row['cpuStatusReports.reportTime'] = cpuStatusReports[i]['reportTime']
         for tempInfo in cpuStatusReports[i].get('cpuTemperatureInfo', []):
-          new_row['cpuStatusReports.cpuTemperatureInfo.{0}'.format(tempInfo['label'].strip())] = tempInfo['temperature']
-        new_row['cpuStatusReports.cpuUtilizationPercentageInfo'] = ','.join([str(x) for x in cpuStatusReports[i]['cpuUtilizationPercentageInfo']])
+          new_row['cpuStatusReports.cpuTemperatureInfo.{0}'.format(tempInfo['label'])] = tempInfo['temperature']
+        new_row['cpuStatusReports.cpuUtilizationPercentageInfo'] = cpuStatusReports[i]['cpuUtilizationPercentageInfo']
       if i < lenDVR:
-        volumeInfo = diskVolumeReports[i]['volumeInfo']
         j = 0
-        for volume in volumeInfo:
+        for volume in diskVolumeReports[i]['volumeInfo']:
           new_row['diskVolumeReports.volumeInfo.{0}.volumeId'.format(j)] = volume['volumeId']
           new_row['diskVolumeReports.volumeInfo.{0}.storageFree'.format(j)] = volume['storageFree']
           new_row['diskVolumeReports.volumeInfo.{0}.storageTotal'.format(j)] = volume['storageTotal']
           j += 1
       if i < lenSRFR:
-        new_row['systemRamFreeReports.reportTime'] = formatLocalTime(systemRamFreeReports[i]['reportTime'])
-        new_row['systenRamFreeReports.systemRamFreeInfo'] = ','.join([str(x) for x in systemRamFreeReports[i]['systemRamFreeInfo']])
+        for key in ['reportTime', 'systemRamFreeInfo']:
+          new_row['systemRamFreeReports.{0}'.format(key)] = systemRamFreeReports[i][key]
       csvPF.WriteRowTitles(new_row)
 
   def _callbackPrintCrOS(request_id, response, exception):
@@ -14333,7 +14423,7 @@ def doPrintCrOSDevices(entityList=None):
   startDate = endDate = startTime = endTime = None
   selectedLists = {}
   queryTimes = {}
-  guessAUE = noLists = oneRow = sortHeaders = False
+  allFields = guessAUE = noLists = oneRow = sortHeaders = False
   guessedAUEs = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -14371,7 +14461,7 @@ def doPrintCrOSDevices(entityList=None):
         fieldsList = CROS_BASIC_FIELDS_LIST[:]
     elif myarg == 'allfields':
       projection = 'FULL'
-      sortHeaders = True
+      allFields = sortHeaders = True
       fieldsList = []
     elif myarg == 'sortheaders':
       sortHeaders = getBoolean()
@@ -14440,9 +14530,9 @@ def doPrintCrOSDevices(entityList=None):
           break
   else:
     sortRows = True
-    if len(fieldsList) > 1:
+    if allFields or len(fieldsList) > 1:
       jcount = len(entityList)
-      fields = ','.join(set(fieldsList)).replace('.', '/')
+      fields = ','.join(set(fieldsList)).replace('.', '/') if fieldsList else None
       svcargs = dict([('customerId', GC.Values[GC.CUSTOMER_ID]), ('deviceId', None), ('projection', projection), ('fields', fields)]+GM.Globals[GM.EXTRA_ARGS_LIST])
       method = getattr(cd.chromeosdevices(), 'get')
       dbatch = cd.new_batch_http_request(callback=_callbackPrintCrOS)
@@ -14493,28 +14583,21 @@ def doPrintCrOSActivity(entityList=None):
     for attrib in cros:
       if attrib not in ['recentUsers', 'activeTimeRanges', 'deviceFiles']:
         row[attrib] = cros[attrib]
-    if selectActiveTimeRanges:
-      activeTimeRanges = _filterTimeRanges(cros.get('activeTimeRanges', []), startDate, endDate)
-      lenATR = len(activeTimeRanges)
-      for activeTimeRange in activeTimeRanges[:min(lenATR, listLimit or lenATR)]:
-        new_row = row.copy()
-        new_row['activeTimeRanges.date'] = activeTimeRange['date']
-        new_row['activeTimeRanges.duration'] = formatMilliSeconds(activeTimeRange['activeTime'])
-        new_row['activeTimeRanges.minutes'] = activeTimeRange['activeTime']//60000
-        csvPF.WriteRow(new_row)
-    if selectRecentUsers:
-      recentUsers = cros.get('recentUsers', [])
-      lenRU = len(recentUsers)
-      row['recentUsers.email'] = delimiter.join([recent_user.get('email', ['Unknown', 'UnmanagedUser'][recent_user['type'] == 'USER_TYPE_UNMANAGED']) for recent_user in recentUsers[:min(lenRU, listLimit or lenRU)]])
-      csvPF.WriteRow(row)
-    if selectDeviceFiles:
-      deviceFiles = _filterCreateReportTime(cros.get('deviceFiles', []), 'createTime', startTime, endTime)
-      lenDF = len(deviceFiles)
-      for deviceFile in deviceFiles[:min(lenDF, listLimit or lenDF)]:
-        new_row = row.copy()
-        new_row['deviceFiles.type'] = deviceFile['type']
-        new_row['deviceFiles.createTime'] = formatLocalTime(deviceFile['createTime'])
-        csvPF.WriteRow(new_row)
+    for activeTimeRange in _filterActiveTimeRanges(cros, selectActiveTimeRanges, listLimit, startDate, endDate):
+      new_row = row.copy()
+      for key in ['date', 'duration', 'minutes']:
+        new_row['activeTimeRanges.{0}'.format(key)] = activeTimeRange[key]
+      csvPF.WriteRow(new_row)
+    recentUsers = _filterRecentUsers(cros, selectRecentUsers, listLimit)
+    if recentUsers:
+      new_row = row.copy()
+      new_row['recentUsers.email'] = delimiter.join([recentUser['email'] for recentUser in recentUsers])
+      csvPF.WriteRow(new_row)
+    for deviceFile in _filterDeviceFiles(cros, selectDeviceFiles, listLimit, startTime, endTime):
+      new_row = row.copy()
+      for key in ['type', 'createTime']:
+        new_row['deviceFiles.{0}'.format(key)] = deviceFile[key]
+      csvPF.WriteRow(new_row)
 
   def _callbackPrintCrOS(request_id, response, exception):
     ri = request_id.splitlines()
@@ -16237,8 +16320,10 @@ def infoGroups(entityList):
             GAPI.systemError, GAPI.serviceLimit) as e:
       entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
 
-# gam info groups <GroupEntity> [members] [managers] [owners] [nousers|notsuspended|suspended] [quick] [noaliases] [groups]
-#	[basic] <GroupFieldName>* [fields <GroupFieldNameList>] [nodeprecated] [formatjson]
+# gam info groups <GroupEntity> [members] [managers] [owners]
+#	[nousers|notsuspended|suspended] [quick] [noaliases] [groups]
+#	[basic] <GroupFieldName>* [fields <GroupFieldNameList>] [nodeprecated]
+#	[formatjson]
 def doInfoGroups():
   infoGroups(getEntityList(Cmd.OB_GROUP_ENTITY))
 
@@ -16312,12 +16397,18 @@ def checkGroupMatchPatterns(groupEmail, group, matchPatterns):
 
 PRINT_GROUPS_JSON_TITLES = ['email', 'JSON']
 
-# gam print groups [todrive <ToDriveAttributes>*] ([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[select <GroupEntity>] [notsuspended|suspended]
-#	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>] (matchsetting [not] <GroupAttributes>)*
+# gam print groups [todrive <ToDriveAttributes>*]
+#	[([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
+#	 (select <GroupEntity>)] [notsuspended|suspended]
 #	[showownedby <UserItem>]
-#	[maxresults <Number>] [allfields|([basic] [settings] <GroupFieldName>* [fields <GroupFieldNameList>])] [nodeprecated]
+#	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
+#	[descriptionmatchpattern <RegularExpression>] (matchsetting [not] <GroupAttributes>)*
+#	[maxresults <Number>]
+#	[allfields|([basic] [settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
+#	[nodeprecated]
 #	[members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
-#	[convertcrnl] [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
+#	[convertcrnl] [delimiter <Character>] [sortheaders]
+#	[formatjson] [quotechar <Character>]
 def doPrintGroups():
 
   def _printGroupRow(groupEntity, groupMembers, groupSettings):
@@ -16536,7 +16627,7 @@ def doPrintGroups():
     elif myarg in SUSPENDED_ARGUMENTS:
       isSuspended = _getIsSuspended(myarg)
     elif myarg == 'maxresults':
-      maxResults = getInteger(minVal=1)
+      maxResults = getInteger(minVal=1, maxVal=200)
     elif myarg == 'nodeprecated':
       deprecatedAttributesSet.update([attr[0] for attr in itervalues(GROUP_DISCOVER_ATTRIBUTES)])
       deprecatedAttributesSet.update([attr[0] for attr in itervalues(GROUP_ASSIST_CONTENT_ATTRIBUTES)])
@@ -16809,9 +16900,10 @@ MEMBEROPTION_NODUPLICATES = 1
 MEMBEROPTION_RECURSIVE = 2
 MEMBEROPTION_GETDELIVERYSETTINGS = 3
 MEMBEROPTION_ISSUSPENDED = 4
+MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP = 5
 
 def _initMemberOptions():
-  return [False, False, False, False, None]
+  return [False, False, False, False, None, False]
 
 def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, count, memberOptions, level, typesSet):
   def _getDeliverySettings(member):
@@ -16832,6 +16924,7 @@ def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, cou
   try:
     groupMembers = callGAPIpages(cd.members(), 'list', 'members',
                                  throw_reasons=GAPI.MEMBERS_THROW_REASONS, retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
+                                 includeDerivedMembership=memberOptions[MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP],
                                  groupKey=groupEmail, roles=listRoles, fields=listFields, maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
   except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
     entityUnknownWarning(Ent.GROUP, groupEmail, i, count)
@@ -16929,13 +17022,14 @@ GROUPMEMBERS_FIELDS_CHOICE_MAP = {
 
 GROUPMEMBERS_DEFAULT_FIELDS = ['group', 'type', 'role', 'id', 'status', 'email']
 
-# gam print group-members|groups-members [todrive <ToDriveAttributes>*]
+# gam print group-members [todrive <ToDriveAttribute>*]
 #	([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns|group_susp <GroupItem>]|[select <GroupEntity>] [notsuspended|suspended]
 #	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
 #	[showownedby <UserItem>] [types <GroupTypeList>]
 #	[roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
 #	[userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
 #	[peoplelookup|(peoplelookupuser <EmailAddress>)]
+#	[includederivedmembership]
 def doPrintGroupMembers():
   def getNameFromPeople(memberId):
     try:
@@ -17012,6 +17106,8 @@ def doPrintGroupMembers():
       _, people = buildGAPIServiceObject(API.PEOPLE, getEmailAddress())
       if not people:
         return
+    elif myarg == 'includederivedmembership':
+      memberOptions[MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP] = True
     else:
       unknownArgumentExit()
   if not typesSet:
@@ -17139,11 +17235,15 @@ def doPrintGroupMembers():
     csvPF.AddTitles(['level', 'subgroup'])
   csvPF.writeCSVfile('Group Members ({0})'.format(subTitle))
 
-# gam show group-members
-#	([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns|group_susp <GroupItem>]|[select <GroupEntity>] [notsuspended|suspended]
-#	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
+# gam show group-mebers
+#	[([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
+#	 (group|group_ns|group_susp <GroupItem>)|
+#	 (select <GroupEntity>)] [notsuspended|suspended]
 #	[showownedby <UserItem>] [types <GroupTypeList>]
+#	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
+#	[descriptionmatchpattern <RegularExpression>]
 #	[roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
+#	[includederivedmembership]
 def doShowGroupMembers():
   def _roleOrder(key):
     return {Ent.ROLE_OWNER: 0, Ent.ROLE_MANAGER: 1, Ent.ROLE_MEMBER: 2}.get(key, 3)
@@ -17158,6 +17258,7 @@ def doShowGroupMembers():
     try:
       membersList = callGAPIpages(cd.members(), 'list', 'members',
                                   throw_reasons=GAPI.MEMBERS_THROW_REASONS, retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
+                                  includeDerivedMembership=includeDerivedMembership,
                                   groupKey=groupEmail, fields='nextPageToken,members(email,id,role,status,type)', maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
       if showOwnedBy and not checkGroupShowOwnedBy(showOwnedBy, membersList):
         return
@@ -17173,7 +17274,7 @@ def doShowGroupMembers():
       if _checkMemberIsSuspended(member, memberOptions[MEMBEROPTION_ISSUSPENDED]):
         if member.get('role', Ent.ROLE_MEMBER) in rolesSet and member['type'] in typesSet:
           printKeyValueList(['{0}, {1}, {2}, {3}'.format(member.get('role', Ent.ROLE_MEMBER), member['type'], member.get('email', member['id']), member.get('status', ''))])
-        if (member['type'] == Ent.TYPE_GROUP) and (maxdepth == -1 or depth < maxdepth):
+        if not includeDerivedMembership and (member['type'] == Ent.TYPE_GROUP) and (maxdepth == -1 or depth < maxdepth):
           _showGroup(member['email'], depth+1)
     if depth == 0 or Ent.TYPE_GROUP in typesSet:
       Ind.Decrement()
@@ -17188,6 +17289,7 @@ def doShowGroupMembers():
   memberOptions = _initMemberOptions()
   matchPatterns = {}
   maxdepth = -1
+  includeDerivedMembership = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if getGroupFilters(myarg, kwargs):
@@ -17210,6 +17312,8 @@ def doShowGroupMembers():
       pass
     elif myarg == 'depth':
       maxdepth = getInteger(minVal=-1)
+    elif myarg == 'includederivedmembership':
+      includeDerivedMembership = True
     else:
       unknownArgumentExit()
   if not rolesSet:
