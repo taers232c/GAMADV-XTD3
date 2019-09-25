@@ -1853,6 +1853,7 @@ gam print groups [todrive <ToDriveAttribute>*]
         [showownedby <UserItem>]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
         [descriptionmatchpattern <RegularExpression>] (matchsetting [not] <GroupAttribute>)*
+        [admincreatedmatch <Boolean>]
         [maxresults <Number>]
         [allfields|([basic] [settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
         [nodeprecated]

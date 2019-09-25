@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.16'
+__version__ = '4.94.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -16370,26 +16370,31 @@ def getGroupMatchPatterns(myarg, matchPatterns):
     matchPatterns['name'] = getREPattern(re.IGNORECASE|re.UNICODE)
   elif myarg == 'descriptionmatchpattern':
     matchPatterns['description'] = getREPattern(re.IGNORECASE|re.UNICODE)
+  elif myarg == 'admincreatedmatch':
+    matchPatterns['adminCreated'] = getBoolean(None)
   else:
     return False
   return True
 
 def updateFieldsForGroupMatchPatterns(matchPatterns, fieldsList, csvPF=None):
-  for field in ['name', 'description']:
-    if matchPatterns.get(field):
+  for field in ['name', 'description', 'adminCreated']:
+    if field in matchPatterns:
       if csvPF is not None:
         csvPF.AddField(field, GROUP_FIELDS_CHOICE_MAP, fieldsList)
       else:
         fieldsList.append(field)
 
 def clearUnneededGroupMatchPatterns(matchPatterns):
-  for field in ['name', 'description']:
+  for field in ['name', 'description', 'adminCreated']:
     matchPatterns.pop(field, None)
 
 def checkGroupMatchPatterns(groupEmail, group, matchPatterns):
   for field, pattern in iteritems(matchPatterns):
     if field == 'email':
       if not pattern.match(groupEmail):
+        return False
+    elif field == 'adminCreated':
+      if pattern != group[field]:
         return False
     elif not pattern.match(group[field]):
       return False
@@ -16403,6 +16408,7 @@ PRINT_GROUPS_JSON_TITLES = ['email', 'JSON']
 #	[showownedby <UserItem>]
 #	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
 #	[descriptionmatchpattern <RegularExpression>] (matchsetting [not] <GroupAttributes>)*
+#	[admincreatedmatch <Boolean>]
 #	[maxresults <Number>]
 #	[allfields|([basic] [settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
 #	[nodeprecated]
@@ -17023,8 +17029,11 @@ GROUPMEMBERS_FIELDS_CHOICE_MAP = {
 GROUPMEMBERS_DEFAULT_FIELDS = ['group', 'type', 'role', 'id', 'status', 'email']
 
 # gam print group-members [todrive <ToDriveAttribute>*]
-#	([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|[group|group_ns|group_susp <GroupItem>]|[select <GroupEntity>] [notsuspended|suspended]
-#	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>] [descriptionmatchpattern <RegularExpression>]
+#	[([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
+#	 (group|group_ns|group_susp <GroupItem>)|
+#	 (select <GroupEntity>)] [notsuspended|suspended]
+#	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
+#	[descriptionmatchpattern <RegularExpression>]
 #	[showownedby <UserItem>] [types <GroupTypeList>]
 #	[roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
 #	[userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]

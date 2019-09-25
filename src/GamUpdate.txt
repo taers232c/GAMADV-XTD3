@@ -1,3 +1,8 @@
+4.94.17
+
+Added option `[admincreatedmatch <Boolean>]` to `gam print groups` to allow filtering of groups based on
+whether they were created by an administrator or a user.
+
 4.94.16
 
 Added `onerow` option to `gam print cros`. By default, when you specify a list field:
