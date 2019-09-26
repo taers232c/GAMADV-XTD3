@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.19'
+__version__ = '4.94.20'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7265,7 +7265,7 @@ def _getLoginHintProjectId(createCmd):
   projectId = None
   parent = None
   if not Cmd.PeekArgumentPresent(['admin', 'project', 'parent']):
-    login_hint = getEmailAddress(noUid=True, optional=True)
+    login_hint = getString(Cmd.OB_EMAIL_ADDRESS, optional=True)
     if login_hint and login_hint.find('@') == -1:
       Cmd.Backup()
       login_hint = None
@@ -7330,7 +7330,7 @@ PROJECTS_FILTER_OPTIONS = ['all', 'gam', 'filter']
 PROJECTS_PRINTSHOW_OPTIONS = ['todrive', 'formatjson', 'quotechar']
 
 def _getLoginHintProjects(printShowCmd):
-  login_hint = getEmailAddress(noUid=True, optional=True)
+  login_hint = getString(Cmd.OB_EMAIL_ADDRESS, optional=True)
   if login_hint and login_hint.find('@') == -1:
     Cmd.Backup()
     login_hint = None
