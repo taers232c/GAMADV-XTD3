@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.17'
+__version__ = '4.94.18'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -26889,6 +26889,46 @@ def doPrintShowClassroomInvitations():
   if csvPF:
     csvPF.writeCSVfile('ClassroomInvitations')
 
+# gam <UserTypeEntity> print classroomprofile [todrive <ToDriveAttributes>*]
+# gam <UserTypeEntity> show classroomprofile
+def printShowClassroomProfile(users):
+  croom = buildGAPIObject(API.CLASSROOM)
+  csvPF = CSVPrintFile(['emailAddress', 'id', 'name.givenName', 'name.familyName', 'name.fullName'], indexedTitles=['permissions']) if Act.csvFormat() else None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    else:
+      unknownArgumentExit()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    userId = normalizeEmailAddressOrUID(user)
+    if csvPF:
+      printGettingEntityItemForWhom(Ent.CLASSROOM_USER_PROFILE, user, i, count)
+    try:
+      result = callGAPI(croom.userProfiles(), 'get',
+                        throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                        userId=userId, fields='id,emailAddress,name,permissions,verifiedTeacher')
+      result.setdefault('verifiedTeacher', False)
+      if not csvPF:
+        printEntity([Ent.USER, userId], i, count)
+        Ind.Increment()
+        printKeyValueList(['email', result['emailAddress']])
+        printKeyValueList(['Google Unique ID', result['id']])
+        for up in USER_NAME_PROPERTY_PRINT_ORDER:
+          if up in result['name']:
+            printKeyValueList([UProp.PROPERTIES[up][UProp.TITLE], result['name'][up]])
+        printKeyValueList(['Permissions', ','.join([permission['permission'] for permission in result.get('permissions', [])])])
+        printKeyValueList(['Verified Teacher', result['verifiedTeacher']])
+        Ind.Decrement()
+      else:
+        csvPF.WriteRowTitles(flattenJSON(result))
+    except (GAPI.notFound, GAPI.permissionDenied, GAPI.badRequest, GAPI.forbidden) as e:
+      entityActionFailedWarning([Ent.USER, userId], str(e))
+  if csvPF:
+    csvPF.writeCSVfile('Classroom User Profiles')
+
 def encode_multipart(fields, files, boundary=None):
   def escape_quote(s):
     return s.replace('"', '\\"')
@@ -41772,6 +41812,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CALENDARACL:	printShowCalendarACLs,
       Cmd.ARG_CALSETTINGS:	printShowCalSettings,
       Cmd.ARG_CLASSROOMINVITATION:	printShowClassroomInvitations,
+      Cmd.ARG_CLASSROOMPROFILE:	printShowClassroomProfile,
       Cmd.ARG_CONTACT:		printShowUserContacts,
       Cmd.ARG_CONTACTGROUP:	printShowUserContactGroups,
       Cmd.ARG_DELEGATE:		printShowDelegates,
@@ -41817,6 +41858,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CALENDARACL:	printShowCalendarACLs,
       Cmd.ARG_CALSETTINGS:	printShowCalSettings,
       Cmd.ARG_CLASSROOMINVITATION:	printShowClassroomInvitations,
+      Cmd.ARG_CLASSROOMPROFILE:	printShowClassroomProfile,
       Cmd.ARG_CONTACT:		printShowUserContacts,
       Cmd.ARG_CONTACTGROUP:	printShowUserContactGroups,
       Cmd.ARG_DELEGATE:		printShowDelegates,

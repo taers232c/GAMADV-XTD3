@@ -1613,6 +1613,11 @@ gam print guardian|guardians [todrive <ToDriveAttribute>*] [accepted|invitations
 gam print guardian|guardians [todrive <ToDriveAttribute>*] [accepted|invitations|all] [states <GuardianInvitationStateList>] [invitedguardian <EmailAddress>]
         [showstudentemails] [formatjson] [quotechar <Character>]
 
+# Classroom User Profiles
+
+gam <UserTypeEntity> print classroomprofile [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> show classroomprofile
+
 # Customer
 
 <CustomerAttribute> ::=
@@ -1883,6 +1888,7 @@ gam print group-members [todrive <ToDriveAttribute>*]
         [showownedby <UserItem>] [types <GroupTypeList>]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
         [descriptionmatchpattern <RegularExpression>]
+        [admincreatedmatch <Boolean>]
         [roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>*
         [fields <MembersFieldNameList>] [userfields <UserFieldNameList>]
         [recursive [noduplicates]] [nogroupemail]
@@ -1895,6 +1901,7 @@ gam show group-members
         [showownedby <UserItem>] [types <GroupTypeList>]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
         [descriptionmatchpattern <RegularExpression>]
+        [admincreatedmatch <Boolean>]
         [roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
         [includederivedmembership]
 

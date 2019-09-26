@@ -1,7 +1,13 @@
+4.94.18
+
+Added commands to display classroom user profiles.
+gam <UserTypeEntity> print classroomprofile [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> show classroomprofile
+
 4.94.17
 
-Added option `[admincreatedmatch <Boolean>]` to `gam print groups` to allow filtering of groups based on
-whether they were created by an administrator or a user.
+Added option `[admincreatedmatch <Boolean>]` to `gam print groups` and `gam print/show group-members`
+to allow filtering of groups based on whether they were created by an administrator or a user.
 
 4.94.16
 

@@ -330,6 +330,7 @@ class GamCLArgs(object):
   ARG_CLASSROOMINVITATION = 'classroominvitation'
   ARG_CLASSROOMINVITATIONS = 'classroominvitations'
   ARG_CLASSROOMOAUTH2 = 'classroomoauth2'
+  ARG_CLASSROOMPROFILE = 'classroomprofile'
   ARG_CONTACT = 'contact'
   ARG_CONTACTS = 'contacts'
   ARG_CONTACTGROUP = 'contactgroup'

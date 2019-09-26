@@ -68,6 +68,7 @@ class GamEntity(object):
   CLASSROOM_INVITATION_STUDENT = 'clis'
   CLASSROOM_INVITATION_TEACHER = 'clit'
   CLASSROOM_OAUTH2_TXT_FILE = 'coa'
+  CLASSROOM_USER_PROFILE = 'clup'
   CLIENT_SECRETS_JSON_FILE = 'csjf'
   CLOUD_STORAGE_FILE = 'clsf'
   COLLABORATOR = 'cola'
@@ -273,6 +274,7 @@ class GamEntity(object):
     CLASSROOM_INVITATION_STUDENT: ['Classroom Student Invitations', 'Classroom Student Invitation'],
     CLASSROOM_INVITATION_TEACHER: ['Classroom Teacher Invitations', 'Classroom Teacher Invitation'],
     CLASSROOM_OAUTH2_TXT_FILE: ['Classroom OAuth2 File', 'Classroom OAuth2 File'],
+    CLASSROOM_USER_PROFILE: ['Classroom User Profiles', 'Classroom User Profile'],
     CLIENT_SECRETS_JSON_FILE: ['Client Secrets File', 'Client Secrets File'],
     CLOUD_STORAGE_FILE: ['Cloud Storage Files', 'Cloud Storage File'],
     COLLABORATOR: ['Collaborators', 'Collaborator'],
