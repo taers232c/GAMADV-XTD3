@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.18'
+__version__ = '4.94.19'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -26893,7 +26893,7 @@ def doPrintShowClassroomInvitations():
 # gam <UserTypeEntity> show classroomprofile
 def printShowClassroomProfile(users):
   croom = buildGAPIObject(API.CLASSROOM)
-  csvPF = CSVPrintFile(['emailAddress', 'id', 'name.givenName', 'name.familyName', 'name.fullName'], indexedTitles=['permissions']) if Act.csvFormat() else None
+  csvPF = CSVPrintFile(['emailAddress', 'id', 'name.givenName', 'name.familyName', 'name.fullName', 'photoUrl'], indexedTitles=['permissions']) if Act.csvFormat() else None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -26909,16 +26909,17 @@ def printShowClassroomProfile(users):
     try:
       result = callGAPI(croom.userProfiles(), 'get',
                         throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
-                        userId=userId, fields='id,emailAddress,name,permissions,verifiedTeacher')
+                        userId=userId, fields='*')
       result.setdefault('verifiedTeacher', False)
       if not csvPF:
         printEntity([Ent.USER, userId], i, count)
         Ind.Increment()
         printKeyValueList(['email', result['emailAddress']])
-        printKeyValueList(['Google Unique ID', result['id']])
+        printKeyValueList([UProp.PROPERTIES['id'][UProp.TITLE], result['id']])
         for up in USER_NAME_PROPERTY_PRINT_ORDER:
           if up in result['name']:
             printKeyValueList([UProp.PROPERTIES[up][UProp.TITLE], result['name'][up]])
+        printKeyValueList([UProp.PROPERTIES['thumbnailPhotoUrl'][UProp.TITLE], result['photoUrl']])
         printKeyValueList(['Permissions', ','.join([permission['permission'] for permission in result.get('permissions', [])])])
         printKeyValueList(['Verified Teacher', result['verifiedTeacher']])
         Ind.Decrement()

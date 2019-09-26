@@ -1,3 +1,7 @@
+4.94.19
+
+Included `photoUrl` in `gam print/show classroomprofile`.
+
 4.94.18
 
 Added commands to display classroom user profiles.
