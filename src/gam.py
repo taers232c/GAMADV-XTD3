@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.20'
+__version__ = '4.94.21'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7663,6 +7663,7 @@ CUSTOMER_REPORT_SERVICES = [
   'docs',
   'drive',
   'gmail',
+  'gplus',
   'meet',
   'mobile',
   'sites',

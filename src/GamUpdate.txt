@@ -1,3 +1,7 @@
+4.94.21
+
+Added `gplus` to `<CustomerServiceName>` which is used in `gam report domain`.
+
 4.94.20
 
 Fixed bug in `gam project` commands that used the current ProjectID rather than the specified ProjectID

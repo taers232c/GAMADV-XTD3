@@ -2116,19 +2116,20 @@ gam report <ActivityApplicationName> [todrive <ToDriveAttributes>*]
         [countsonly] [summary]
 
 <CustomerServiceName> ::=
-      accounts|
-      app_maker|
-      apps_scripts|
-      calendar|
-      classroom|
-      cros|
-      device_management|
-      docs|
-      drive|
-      gmail|
-      meet|
-      mobile|
-      sites
+        accounts|
+        app_maker|
+        apps_scripts|
+        calendar|
+        classroom|
+        cros|
+        device_management|
+        docs|
+        drive|
+        gmail|
+        gplus|
+        meet|
+        mobile|
+        sites
 <CustomerServiceNameList> ::= "<CustomerServiceName>(,<CustomerServiceName>)*"
 
 gam report <customers|customer|domain> [todrive <ToDriveAttributes>*]
@@ -2136,11 +2137,11 @@ gam report <customers|customer|domain> [todrive <ToDriveAttributes>*]
         [(fields|parameters <String>)|(services <CustomerServiceNameList>)] [noauthorizedapps]
 
 <UserServiceName> ::=
-      accounts|
-      classroom|
-      docs|
-      drive|
-      gmail
+        accounts|
+        classroom|
+        docs|
+        drive|
+        gmail
 <UserServiceNameList> ::= "<UserServiceName>(,<UserServiceName>)*"
 
 gam report <users|user> [todrive <ToDriveAttributes>*]
