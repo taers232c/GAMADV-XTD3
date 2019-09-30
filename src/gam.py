@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.21'
+__version__ = '4.94.22'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -319,7 +319,7 @@ LANGUAGE_CODES_MAP = {
   'chr': 'chr', 'ckb': 'ckb', 'co': 'co', 'crs': 'crs', 'cs': 'cs', 'cy': 'cy', 'da': 'da', #Cherokee, Kurdish (Sorani), Corsican, Seychellois Creole, Czech, Welsh, Danish
   'de': 'de', 'ee': 'ee', 'el': 'el', 'en': 'en', 'en-gb': 'en-GB', 'en-us': 'en-US', 'eo': 'eo', #German, Ewe, Greek, English, English (UK), English (US), Esperanto
   'es': 'es', 'es-419': 'es-419', 'et': 'et', 'e': 'e', 'fa': 'fa', 'fi': 'fi', 'fo': 'fo', #Spanish, Spanish (Latin American), Estonian, Basque, Persian, Finnish, Faroese
-  'fr': 'fr', 'fr-ca': 'fr-ca', 'fy': 'fy', 'ga': 'ga', 'gaa': 'gaa', 'gd': 'gd', 'gl': 'gl', #French, French (Canada), Frisian, Irish, Ga, Scots Gaelic, Galician
+  'fr': 'fr', 'fr-ca': 'fr-CA', 'fy': 'fy', 'ga': 'ga', 'gaa': 'gaa', 'gd': 'gd', 'gl': 'gl', #French, French (Canada), Frisian, Irish, Ga, Scots Gaelic, Galician
   'gn': 'gn', 'g': 'g', 'ha': 'ha', 'haw': 'haw', 'he': 'he', 'hi': 'hi', 'hr': 'hr', #Guarani, Gujarati, Hausa, Hawaiian, Hebrew, Hindi, Croatian
   'ht': 'ht', 'h': 'h', 'hy': 'hy', 'ia': 'ia', 'id': 'id', 'ig': 'ig', 'in': 'in', #Haitian Creole, Hungarian, Armenian, Interlingua, Indonesian, Igbo, in
   'is': 'is', 'it': 'it', 'iw': 'iw', 'ja': 'ja', 'jw': 'jw', 'ka': 'ka', 'kg': 'kg', #Icelandic, Italian, Hebrew, Japanese, Javanese, Georgian, Kongo
@@ -2293,7 +2293,8 @@ def getGSheetData():
     return f
   except GAPI.fileNotFound:
     getGDocSheetDataFailedExit([Ent.USER, user, Ent.SPREADSHEET, fileId], Msg.DOES_NOT_EXIST)
-  except (GAPI.notFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
+  except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
+          GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
     getGDocSheetDataFailedExit([Ent.USER, user, Ent.SPREADSHEET, fileId], str(e))
   except (IOError, httplib2.HttpLib2Error) as e:
     if f:
@@ -2603,9 +2604,9 @@ def SetGlobalVariables():
     try:
       return iso8601.parse_timezone_str(value)
     except (iso8601.ParseError, OverflowError):
-      pass
-    _printValueError(sectionName, itemName, value, '{0}: {1}'.format(Msg.EXPECTED, TIMEZONE_FORMAT_REQUIRED))
-    return ''
+      _printValueError(sectionName, itemName, value, '{0}: {1}'.format(Msg.EXPECTED, TIMEZONE_FORMAT_REQUIRED))
+      GM.Globals[GM.CONVERT_TO_LOCAL_TIME] = False
+      return iso8601.UTC
 
   def _getCfgDirectory(sectionName, itemName):
     dirPath = os.path.expanduser(_stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName)))
@@ -5139,7 +5140,8 @@ class CSVPrintFile():
 
     localUser = localParent = False
     tduserLocation = tdparentLocation = tdfileidLocation = Cmd.Location()
-    self.todrive = {'user': GC.Values[GC.TODRIVE_USER], 'title': None, 'description': None, 'sheet': None,
+    self.todrive = {'user': GC.Values[GC.TODRIVE_USER], 'title': None, 'description': None,
+                    'sheet': '', 'locale': GC.Values[GC.TODRIVE_LOCALE], 'timeZone': GC.Values[GC.TODRIVE_TIMEZONE],
                     'timestamp': GC.Values[GC.TODRIVE_TIMESTAMP], 'daysoffset': 0, 'hoursoffset': 0,
                     'fileId': None, 'parentId': None, 'parent': GC.Values[GC.TODRIVE_PARENT],
                     'localcopy': GC.Values[GC.TODRIVE_LOCALCOPY], 'nobrowser': GC.Values[GC.TODRIVE_NOBROWSER],
@@ -5156,6 +5158,10 @@ class CSVPrintFile():
         self.todrive['description'] = getString(Cmd.OB_STRING)
       elif myarg == 'tdsheet':
         self.todrive['sheet'] = getString(Cmd.OB_STRING, minLen=1)
+      elif myarg == 'tdlocale':
+        self.todrive['locale'] = getChoice(LANGUAGE_CODES_MAP, mapChoice=True).replace('-', '_')
+      elif myarg == 'tdtimezone':
+        self.todrive['timeZone'] = getString(Cmd.OB_STRING, minLen=0)
       elif myarg == 'tdtimestamp':
         self.todrive['timestamp'] = getBoolean()
       elif myarg == 'tddaysoffset':
@@ -5537,7 +5543,8 @@ class CSVPrintFile():
                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INSUFFICIENT_PERMISSIONS, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR],
                               fileId=self.todrive['fileId'], body=body, media_body=googleapiclient.http.MediaIoBaseUpload(csvBytes, mimetype='text/csv', resumable=True),
                               fields=fields, supportsAllDrives=True)
-          if self.todrive['sheet'] is not None and result['mimeType'] == MIMETYPE_GA_SPREADSHEET:
+          if ((result['mimeType'] == MIMETYPE_GA_SPREADSHEET) and
+              (self.todrive['sheet'] or self.todrive['locale'] or self.todrive['timeZone'])):
             action = Act.Get()
             if not GC.Values[GC.TODRIVE_CLIENTACCESS]:
               _, sheet = buildGAPIServiceObject(API.SHEETS, user)
@@ -5548,15 +5555,25 @@ class CSVPrintFile():
               sheet = buildGAPIObject(API.SHEETS)
             spreadsheetId = result['id']
             try:
-              sheets = callGAPI(sheet.spreadsheets(), 'get',
-                                throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
-                                spreadsheetId=spreadsheetId, fields='sheets/properties')
-              sheets['sheets'][0]['properties']['title'] = self.todrive['sheet']
+              body = {'requests': []}
+              if self.todrive['sheet']:
+                sheets = callGAPI(sheet.spreadsheets(), 'get',
+                                  throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
+                                  spreadsheetId=spreadsheetId, fields='sheets/properties')
+                sheets['sheets'][0]['properties']['title'] = self.todrive['sheet']
+                body['requests'].append({'updateSheetProperties':
+                                           {'properties': sheets['sheets'][0]['properties'], 'fields': 'title'}})
+              if self.todrive['locale']:
+                body['requests'].append({'updateSpreadsheetProperties':
+                                           {'properties': {'locale': self.todrive['locale']}, 'fields': 'locale'}})
+              if self.todrive['timeZone']:
+                body['requests'].append({'updateSpreadsheetProperties':
+                                           {'properties': {'timeZone': self.todrive['timeZone']}, 'fields': 'timeZone'}})
               callGAPI(sheet.spreadsheets(), 'batchUpdate',
                        throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
-                       spreadsheetId=spreadsheetId,
-                       body={'requests': [{'updateSheetProperties': {'properties': sheets['sheets'][0]['properties'], 'fields': 'title'}}]})
-            except (GAPI.notFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.internalError) as e:
+                       spreadsheetId=spreadsheetId, body=body)
+            except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
+                    GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
               entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, title], str(e), 0, 0)
             Act.Set(action)
           file_url = result[V3_WEB_VIEW_LINK]
@@ -33815,7 +33832,8 @@ def getDriveFile(users):
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], Msg.DOES_NOT_EXIST, j, jcount)
       except GAPI.revisionNotFound:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId, Ent.DRIVE_FILE_REVISION, revisionId], Msg.DOES_NOT_EXIST, j, jcount)
-      except (GAPI.notFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
+      except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
+              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, fileId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -37148,7 +37166,8 @@ def createSheet(users):
                    throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
                    fileId=result['spreadsheetId'], addParents=addParents, removeParents=removeParents, fields='', supportsAllDrives=True)
           parentId = addParents
-        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions) as e:
+        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.permissionDenied,
+                GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
           parentMsg = '{0}{1}: {2}'.format(ERROR_PREFIX, addParents, str(e))
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           parentMsg = '{0}{1}: {2}'.format(ERROR_PREFIX, addParents, str(e))
@@ -37164,7 +37183,8 @@ def createSheet(users):
         if field in result:
           showJSON(field, result[field])
       Ind.Decrement()
-    except (GAPI.notFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest, GAPI.invalid) as e:
+    except (GAPI.notFound, GAPI.forbidden, GAPI.internalError,
+            GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest, GAPI.invalid) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, ''], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -37217,7 +37237,8 @@ def updateSheets(users):
           if field in result:
             showJSON(field, result[field])
         Ind.Decrement()
-      except (GAPI.notFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
+      except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
+              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -37262,7 +37283,8 @@ def infoSheets(users):
           if field in result:
             showJSON(field, result[field])
         Ind.Decrement()
-      except (GAPI.notFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
+      except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
+              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -37383,7 +37405,8 @@ def appendSheetRanges(users):
         for field in ['tableRange']:
           printKeyValueList([field, result[field]])
         _showUpdateValuesResponse(result['updates'], k, kcount)
-      except (GAPI.notFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
+      except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
+              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -37425,7 +37448,8 @@ def updateSheetRanges(users):
         for response in result.get('responses', []):
           k += 1
           _showUpdateValuesResponse(response, k, kcount)
-      except (GAPI.notFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
+      except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
+              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -37469,7 +37493,8 @@ def clearSheetRanges(users):
         for clearedRange in result:
           k += 1
           printKeyValueListWithCount(['range', clearedRange], k, kcount)
-      except (GAPI.notFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
+      except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
+              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -37545,7 +37570,8 @@ def printShowSheetRanges(users):
                                       'JSON': json.dumps(result, ensure_ascii=False, sort_keys=False)})
           elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
             csvPF.WriteRowNoFilter({'User': user})
-      except (GAPI.notFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
+      except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
+              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)

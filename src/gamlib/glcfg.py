@@ -158,16 +158,20 @@ TIMEZONE = 'timezone'
 TODRIVE_CLIENTACCESS = 'todrive_clientaccess'
 # Enable conversion to Google Sheets when uploading todrive files
 TODRIVE_CONVERSION = 'todrive_conversion'
+# Save local copy of CSV file
+TODRIVE_LOCALCOPY = 'todrive_localcopy'
+# Specify locale for Google Sheets
+TODRIVE_LOCALE = 'todrive_locale'
 # Suppress opening browser on todrive upload
 TODRIVE_NOBROWSER = 'todrive_nobrowser'
 # Suppress sending email on todrive upload
 TODRIVE_NOEMAIL = 'todrive_noemail'
-# Save local copy of CSV file
-TODRIVE_LOCALCOPY = 'todrive_localcopy'
 # ID/Name of parent folder for todrive files
 TODRIVE_PARENT = 'todrive_parent'
 # Append timestamp to todrive file name
 TODRIVE_TIMESTAMP = 'todrive_timestamp'
+# Specify timezone for Google Sheets
+TODRIVE_TIMEZONE = 'todrive_timezone'
 # User for todrive files
 TODRIVE_USER = 'todrive_user'
 # When retrieving lists of Users from API, how many should be retrieved in each chunk
@@ -235,11 +239,13 @@ Defaults = {
   TIMEZONE: 'utc',
   TODRIVE_CLIENTACCESS: FALSE,
   TODRIVE_CONVERSION: TRUE,
+  TODRIVE_LOCALCOPY: FALSE,
+  TODRIVE_LOCALE: '',
   TODRIVE_NOBROWSER: '',
   TODRIVE_NOEMAIL: '',
-  TODRIVE_LOCALCOPY: FALSE,
   TODRIVE_PARENT: 'root',
   TODRIVE_TIMESTAMP: FALSE,
+  TODRIVE_TIMEZONE: '',
   TODRIVE_USER: '',
   USER_MAX_RESULTS: '500',
   USER_SERVICE_ACCOUNT_ACCESS_ONLY: FALSE,
@@ -331,11 +337,13 @@ VAR_INFO = {
   TIMEZONE: {VAR_TYPE: TYPE_TIMEZONE},
   TODRIVE_CLIENTACCESS: {VAR_TYPE: TYPE_BOOLEAN},
   TODRIVE_CONVERSION: {VAR_TYPE: TYPE_BOOLEAN},
+  TODRIVE_LOCALCOPY: {VAR_TYPE: TYPE_BOOLEAN},
+  TODRIVE_LOCALE: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   TODRIVE_NOBROWSER: {VAR_TYPE: TYPE_BOOLEAN, VAR_SIGFILE: 'nobrowser.txt', VAR_SFFT: (FALSE, TRUE)},
   TODRIVE_NOEMAIL: {VAR_TYPE: TYPE_BOOLEAN},
-  TODRIVE_LOCALCOPY: {VAR_TYPE: TYPE_BOOLEAN},
   TODRIVE_PARENT: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   TODRIVE_TIMESTAMP: {VAR_TYPE: TYPE_BOOLEAN},
+  TODRIVE_TIMEZONE: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   TODRIVE_USER: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   USER_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_ENVVAR: 'GAM_USER_MAX_RESULTS', VAR_LIMITS: (1, 500)},
   USER_SERVICE_ACCOUNT_ACCESS_ONLY: {VAR_TYPE: TYPE_BOOLEAN},

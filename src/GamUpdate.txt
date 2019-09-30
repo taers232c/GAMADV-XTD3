@@ -1,3 +1,12 @@
+4.94.22
+
+Fixed bug that caused trap when `gam config timezone` specified an invalid value.
+
+Added `tdlocale <Language>` and `tdtimezone <TimeZone>` to `<ToDriveAttribute>`.
+Added `todrive_locale` and `todrive_timezone` to `gam.cfg`.
+These settings are used to set Spreadsheet settings for files uploaded with `todrive`.
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Todrive
+
 4.94.21
 
 Added `gplus` to `<CustomerServiceName>` which is used in `gam report domain`.
@@ -57,7 +66,7 @@ across all users specified in the command.
 
 4.94.11
 
-Fixed bug that caused trap  in `gam print messages showbody` when a message has no body.
+Fixed bug that caused trap in `gam print messages showbody` when a message has no body.
 
 4.94.10
 

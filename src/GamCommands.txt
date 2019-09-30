@@ -315,15 +315,17 @@ If an item contains spaces, it should be surrounded by ".
         See: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 <Title> ::= <String>
 <ToDriveAttribute> ::=
-        (tduser <EmailAddress>)|
-        (tdtitle <String>)|
         (tddescription <String>)|
-        (tdsheet <String>)|
-        (tdparent id:<DriveFolderID>|<DriveFolderName>)|(tdfileid <DriveFileID>)
-        (tdtimestamp [<Boolean>] [tddaysoffset <Number>] [tdhoursoffset <Number])|
         (tdlocalcopy [<Boolean>])|
+        (tdlocale <Language>)|
         (tdnobrowser [<Boolean>])|
-        (tdnoemail [<Boolean>])
+        (tdnoemail [<Boolean>])|
+        (tdparent id:<DriveFolderID>|<DriveFolderName>)|(tdfileid <DriveFileID>)
+        (tdsheet <String>)|
+        (tdtimestamp [<Boolean>] [tddaysoffset <Number>] [tdhoursoffset <Number])|
+        (tdtimezone <TimeZone>)|
+        (tdtitle <String>)|
+        (tduser <EmailAddress>)
 <TransferID> ::= <String>
 <URI> ::= <String>
 <URL> ::= <String>
