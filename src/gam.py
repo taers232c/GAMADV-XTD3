@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.23'
+__version__ = '4.94.24'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -16204,17 +16204,20 @@ def doUpdateGroups():
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
         entityUnknownWarning(Ent.GROUP, group, i, count)
         continue
-      removeMembers = []
+      removeMembers = {}
+      for role in rolesSet:
+        removeMembers[role] = set()
       for member in result:
         role = member.get('role', Ent.ROLE_MEMBER)
         email, memberStatus = _getMemberEmailStatus(member)
         if groupMemberType in ('ALL', member['type']) and role in rolesSet:
           if not removeDomainNoStatusMembers:
             if isSuspended is None or (not isSuspended and memberStatus != 'SUSPENDED') or (isSuspended and memberStatus == 'SUSPENDED'):
-              removeMembers.append(email if memberStatus != 'UNKNOWN' else member['id'])
+              removeMembers[role].add(email if memberStatus != 'UNKNOWN' else member['id'])
           elif memberStatus == 'NONE':
-            removeMembers.append(member['id'])
-      _batchRemoveGroupMembers(group, i, count, removeMembers, Ent.ROLE_MEMBER)
+            removeMembers[role].add(member['id'])
+      for role in rolesSet:
+        _batchRemoveGroupMembers(group, i, count, removeMembers[role], role)
 
 # gam delete groups <GroupEntity>
 def doDeleteGroups():

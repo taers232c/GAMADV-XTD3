@@ -1,3 +1,8 @@
+4.94.24
+
+Fixed `gam update groups <GroupEntity> clear` to show actual role of cleared members; previuosly, all
+cleared members were displayed as MEMBER regardless of their actual role.
+
 4.94.23
 
 Define `<Locale>` values.
