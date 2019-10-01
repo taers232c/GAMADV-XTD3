@@ -73,6 +73,80 @@ If an item contains spaces, it should be surrounded by ".
         sd|sh|si|sk|sl|sn|so|sq|sr|sr-me|st|su|sv|sw|
         ta|te|tg|th|ti|tk|tl|tn|to|tr|tt|tum|tw|
         ug|uk|ur|uz|vi|wo|xh|yi|yo|zh-cn|zh-hk|zh-tw|zu
+<Locale> ::=
+        ''|    #Not defined
+        ar_eg| #Arabic, Egypt
+        az_az| #Azerbaijani, Azerbaijan
+        be_by| #Belarusian, Belarus
+        bg_bg| #Bulgarian, Bulgaria
+        bn_in| #Bengali, India
+        ca_es| #Catalan, Spain
+        cs_cz| #Czech, Czech Republic
+        cy_gb| #Welsh, United Kingdom
+        da_dk| #Danish, Denmark
+        de_ch| #German, Switzerland
+        de_de| #German, Germany
+        el_gr| #Greek, Greece
+        en_au| #English, Australia
+        en_ca| #English, Canada
+        en_gb| #English, United Kingdom
+        en_ie| #English, Ireland
+        en_us| #English, U.S.A.
+        es_ar| #Spanish, Argentina
+        es_bo| #Spanish, Bolivia
+        es_cl| #Spanish, Chile
+        es_co| #Spanish, Colombia
+        es_ec| #Spanish, Ecuador
+        es_es| #Spanish, Spain
+        es_mx| #Spanish, Mexico
+        es_py| #Spanish, Paraguay
+        es_uy| #Spanish, Uruguay
+        es_ve| #Spanish, Venezuela
+        fi_fi| #Finnish, Finland
+        fil_ph| #Filipino, Philippines
+        fr_ca| #French, Canada
+        fr_fr| #French, France
+        gu_in| #Gujarati, India
+        hi_in| #Hindi, India
+        hr_hr| #Croatian, Croatia
+        hu_hu| #Hungarian, Hungary
+        hy_am| #Armenian, Armenia
+        in_id| #Indonesian, Indonesia
+        it_it| #Italian, Italy
+        iw_il| #Hebrew, Israel
+        ja_jp| #Japanese, Japan
+        ka_ge| #Georgian, Georgia
+        kk_kz| #Kazakh, Kazakhstan
+        kn_in| #Kannada, India
+        ko_kr| #Korean, Korea
+        lt_lt| #Lithuanian, Lithuania
+        lv_lv| #Latvian, Latvia
+        ml_in| #Malayalam, India
+        mn_mn| #Mongolian, Mongolia
+        mr_in| #Marathi, India
+        my_mn| #Burmese, Myanmar
+        nl_nl| #Dutch, Netherlands
+        nn_no| #Nynorsk, Norway
+        no_no| #Bokmal, Norway
+        pa_in| #Punjabi, India
+        pl_pl| #Polish, Poland
+        pt_br| #Portuguese, Brazil
+        pt_pt| #Portuguese, Portugal
+        ro_ro| #Romanian, Romania
+        ru_ru| #Russian, Russia
+        sk_sk| #Slovak, Slovakia
+        sl_si| #Slovenian, Slovenia
+        sr_rs| #Serbian, Serbia
+        sv_se| #Swedish, Sweden
+        ta_in| #Tamil, India
+        te_in| #Telugu, India
+        th_th| #Thai, Thailand
+        tr_tr| #Turkish, Turkey
+        uk_ua| #Ukrainian, Ukraine
+        vi_vn| #Vietnamese, Vietnam
+        zh_cn| #Simplified Chinese, China
+        zh_hk| #Traditional Chinese, Hong Kong SAR China
+        zh_tw  #Traditional Chinese, Taiwan
 <MimeTypeShortcut> ::=
         gdoc|gdocument|
         gdrawing|
@@ -317,7 +391,7 @@ If an item contains spaces, it should be surrounded by ".
 <ToDriveAttribute> ::=
         (tddescription <String>)|
         (tdlocalcopy [<Boolean>])|
-        (tdlocale <Language>)|
+        (tdlocale <Locale>)|
         (tdnobrowser [<Boolean>])|
         (tdnoemail [<Boolean>])|
         (tdparent id:<DriveFolderID>|<DriveFolderName>)|(tdfileid <DriveFileID>)
