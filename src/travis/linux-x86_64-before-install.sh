@@ -56,22 +56,24 @@ else
   echo "Compiling Python $BUILD_PYTHON_VERSION..."
   safe_flags="--with-openssl=$mypath/ssl --enable-shared --prefix=$mypath/python --with-ensurepip=upgrade"
   unsafe_flags="--enable-optimizations --with-lto"
+
   if [ ! -e Makefile ]; then
     echo "running configure with safe and unsafe"
     ./configure $safe_flags $unsafe_flags > /dev/null
   fi
-  make -j$cpucount PROFILE_TASK="-m test.regrtest --pgo -j$(( $cpucount * 2 ))" -s
+  timeout 1800 make -j$cpucount -s
   RESULT=$?
   echo "First make exited with $RESULT"
   if [ $RESULT != 0 ]; then
-    echo "Trying Python compile again without unsafe flags..."
-    make clean
-    ./configure $safe_flags > /dev/null
-    make -j$cpucount -s
+    #echo "Trying Python compile again without unsafe flags..."
+    #make clean
+    #./configure $safe_flags > /dev/null
+    #make -j$cpucount -s
     echo "Sticking with safe Python for now..."
+  else
+    echo "Installing optimized Python..."
+    make install > /dev/null
   fi
-  echo "Installing Python..."
-  make install > /dev/null
   cd ~
 
   export LD_LIBRARY_PATH=~/ssl/lib:~/python/lib
@@ -88,6 +90,15 @@ else
       wget https://nixos.org/releases/patchelf/patchelf-$PATCHELF_VERSION/patchelf-$PATCHELF_VERSION.tar.bz2
       tar xf patchelf-$PATCHELF_VERSION.tar.bz2
       cd patchelf-$PATCHELF_VERSION
+      ./configure
+      make
+      sudo make install
+    fi
+    if [ ! -d musl=$MUSL_VERSION ]; then
+      echo "Downloading MUSL $MUSL_VERSION"
+      wget https://www.musl-libc.org/releases/musl-$MUSL_VERSION.tar.gz
+      tar xf musl-$MUSL_VERSION.tar.gz
+      cd musl-$MUSL_VERSION
       ./configure
       make
       sudo make install
