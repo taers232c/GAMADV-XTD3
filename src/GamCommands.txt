@@ -1856,7 +1856,8 @@ gam update group|groups <GroupEntity> update [owner|manager|member]
         [preview]
         <UserTypeEntity>
 gam update group|groups <GroupEntity> clear [member] [manager] [owner]
-        [notsuspended|suspended]
+        [usersonly|groupsonly] [notsuspended|suspended]
+        [emailclearpattern|emailretainpattern <RegularExpression>]
         [removedomainnostatusmembers]
         [preview]
 gam delete group|groups <GroupEntity>

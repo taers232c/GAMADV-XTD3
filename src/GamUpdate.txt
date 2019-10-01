@@ -1,3 +1,10 @@
+4.95.00
+
+Added options `emailclearpattern|emailretainpattern <RegularExpression>` to `gam update groups <GroupEntity> clear`
+to allow clearing members based on their email address.
+* `emailclearpattern <RegularExpression>` - Members with email addresses that match `<RegularExpression>` will be cleared; others will be retained
+* `emailretainpattern <RegularExpression>` - Members with email addresses that match `<RegularExpression>` will be retained; others will be cleared
+
 4.94.24
 
 Fixed `gam update groups <GroupEntity> clear` to show actual role of cleared members; previuosly, all

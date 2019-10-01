@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.94.24'
+__version__ = '4.95.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -11023,7 +11023,7 @@ def doPrintAliases():
   groupFields = ['email', 'aliases']
   getGroups = getUsers = True
   queries = [None]
-  aliasmatchPattern = re.compile(r'^.*$')
+  aliasMatchPattern = re.compile(r'^.*$')
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'todrive':
@@ -11041,7 +11041,7 @@ def doPrintAliases():
       getGroups = False
       getUsers = True
     elif myarg == 'aliasmatchpattern':
-      aliasmatchPattern = getREPattern(re.IGNORECASE)
+      aliasMatchPattern = getREPattern(re.IGNORECASE)
     else:
       unknownArgumentExit()
   csvPF.SetTitles(titlesList)
@@ -11063,10 +11063,10 @@ def doPrintAliases():
         accessErrorExit(cd)
       for user in entityList:
         for alias in user.get('aliases', []):
-          if aliasmatchPattern.match(alias):
+          if aliasMatchPattern.match(alias):
             csvPF.WriteRow({'Alias': alias, 'Target': user['primaryEmail'], 'TargetType': 'User'})
         for alias in user.get('nonEditableAliases', []):
-          if aliasmatchPattern.match(alias):
+          if aliasMatchPattern.match(alias):
             csvPF.WriteRow({'NonEditableAlias': alias, 'Target': user['primaryEmail'], 'TargetType': 'User'})
   if getGroups:
     printGettingAllAccountEntities(Ent.GROUP)
@@ -11080,10 +11080,10 @@ def doPrintAliases():
       accessErrorExit(cd)
     for group in entityList:
       for alias in group.get('aliases', []):
-        if aliasmatchPattern.match(alias):
+        if aliasMatchPattern.match(alias):
           csvPF.WriteRow({'Alias': alias, 'Target': group['email'], 'TargetType': 'Group'})
       for alias in group.get('nonEditableAliases', []):
-        if aliasmatchPattern.match(alias):
+        if aliasMatchPattern.match(alias):
           csvPF.WriteRow({'NonEditableAlias': alias, 'Target': group['email'], 'TargetType': 'Group'})
   csvPF.writeCSVfile('Aliases')
 
@@ -15547,6 +15547,7 @@ GROUP_DELIVERY_SETTINGS_MAP = {
 #	<UserTypeEntity>
 # gam update groups <GroupEntity> clear [member] [manager] [owner]
 #	[usersonly|groupsonly] [notsuspended|suspended]
+#	[emailclearpattern|emailretainpattern <RegularExpression>]
 #	[removedomainnostatusmembers] [preview]
 def doUpdateGroups():
 
@@ -16163,6 +16164,8 @@ def doUpdateGroups():
     groupMemberType = 'ALL'
     isSuspended = None
     removeDomainNoStatusMembers = False
+    emailMatchPattern = None
+    clearMatch = True
     qualifier = ''
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
@@ -16176,6 +16179,9 @@ def doUpdateGroups():
         isSuspended = _getIsSuspended(myarg)
       elif myarg == 'removedomainnostatusmembers':
         removeDomainNoStatusMembers = True
+      elif myarg in ['emailclearpattern', 'emailretainpattern']:
+        emailMatchPattern = getREPattern(re.IGNORECASE)
+        clearMatch = myarg == 'emailclearpattern'
       elif myarg == 'preview':
         preview = True
       else:
@@ -16213,7 +16219,16 @@ def doUpdateGroups():
         if groupMemberType in ('ALL', member['type']) and role in rolesSet:
           if not removeDomainNoStatusMembers:
             if isSuspended is None or (not isSuspended and memberStatus != 'SUSPENDED') or (isSuspended and memberStatus == 'SUSPENDED'):
-              removeMembers[role].add(email if memberStatus != 'UNKNOWN' else member['id'])
+              if emailMatchPattern is None:
+                removeMembers[role].add(email if memberStatus != 'UNKNOWN' else member['id'])
+              elif member['type'] == Ent.TYPE_CUSTOMER:
+                pass
+              elif emailMatchPattern.match(email):
+                if clearMatch:
+                  removeMembers[role].add(email if memberStatus != 'UNKNOWN' else member['id'])
+              else:
+                if not clearMatch:
+                  removeMembers[role].add(email if memberStatus != 'UNKNOWN' else member['id'])
           elif memberStatus == 'NONE':
             removeMembers[role].add(member['id'])
       for role in rolesSet:

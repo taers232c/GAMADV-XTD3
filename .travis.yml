@@ -1,10 +1,10 @@
 if: tag IS blank
+
 env:
   global:
   - BUILD_PYTHON_VERSION=3.7.4
   - BUILD_OPENSSL_VERSION=1.1.1c
   - PATCHELF_VERSION=0.9
-  - MUSL_VERSION=1.1.23
   - PYINSTALLER_VERSION=3.5
 cache:
   directories:
@@ -15,14 +15,14 @@ cache:
 
 matrix:
   include:
-#    - os: linux
-#      name: "Linux 64-bit Bionic"
-#      dist: bionic
-#      language: bash
-#      env:
-#        - GAMOS=linux
-#        - PLATFORM=x86_64
-#        - VMTYPE=build
+    - os: linux
+      name: "Linux 64-bit Bionic"
+      dist: bionic
+      language: bash
+      env:
+        - GAMOS=linux
+        - PLATFORM=x86_64
+        - VMTYPE=build
     - os: linux
       name: "Linux 64-bit Xenial"
       dist: xenial
@@ -122,6 +122,7 @@ script:
 
 before_deploy:
 - export TRAVIS_TAG="preview"
+- unset LD_LIBRARY_PATH
 
 deploy:
   provider: releases
