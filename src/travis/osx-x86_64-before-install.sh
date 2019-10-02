@@ -15,6 +15,8 @@ cd ~/pybuild
 brew install openssl@1.1
 brew upgrade python
 
+python -V
+
 export python=python3
 export pip=pip3
 
