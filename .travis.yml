@@ -55,7 +55,7 @@ matrix:
         - GAMOS=macos
         - PLATFORM=x86_64
         - VMTYPE=build
-	- BUILD_OPENSSL_VERSION=1.1.1c
+        - BUILD_OPENSSL_VERSION=1.1.1c
     - os: osx
       name: "MacOS 10.11"
       language: generic
@@ -64,7 +64,7 @@ matrix:
         - GAMOS=macos
         - PLATFORM=x86_64
         - VMTYPE=build
-	- BUILD_OPENSSL_VERSION=1.1.1c
+        - BUILD_OPENSSL_VERSION=1.1.1c
     - os: osx
       name: "MacOS 10.12"
       language: generic
@@ -73,7 +73,7 @@ matrix:
         - GAMOS=macos
         - PLATFORM=x86_64
         - VMTYPE=build
-	- BUILD_OPENSSL_VERSION=1.1.1c
+        - BUILD_OPENSSL_VERSION=1.1.1c
     - os: osx
       name: "MacOS 10.13"
       language: generic
@@ -82,7 +82,7 @@ matrix:
         - GAMOS=macos
         - PLATFORM=x86_64
         - VMTYPE=build
-	- BUILD_OPENSSL_VERSION=1.1.1c
+        - BUILD_OPENSSL_VERSION=1.1.1c
     - os: osx
       name: "MacOS 10.14"
       language: generic
@@ -91,7 +91,7 @@ matrix:
         - GAMOS=macos
         - PLATFORM=x86_64
         - VMTYPE=build
-	- BUILD_OPENSSL_VERSION=1.1.1c
+        - BUILD_OPENSSL_VERSION=1.1.1c
     - os: windows
       name: "Windows 64-bit"
       language: shell
