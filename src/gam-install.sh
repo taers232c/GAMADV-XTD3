@@ -80,6 +80,9 @@ echo -e '\x1B[0m'
 
 version_gt()
 {
+if [ "$1" == "$2" ]; then
+    return 0
+fi
 test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"
 }
 
