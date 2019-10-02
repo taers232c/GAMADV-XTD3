@@ -8,8 +8,9 @@ GAM installation script.
 OPTIONS:
    -h      show help.
    -d      Directory where gam folder will be installed. Default is \$HOME/bin/
-   -a      Architecture to install (i386, x86_64, x86_64_legacy, arm, arm64). Default is to detect your arch with "uname -m".
+   -a      Architecture to install (x86_64). Default is to detect your arch with "uname -m".
    -o      OS we are running (linux, macos). Default is to detect your OS with "uname -s".
+   -b      OS version. Default is to detect on MacOS and Linux.
    -l      Just upgrade GAM to latest version. Skips project creation and auth.
    -p      Profile update (true, false). Should script add gam command to environment. Default is true.
    -u      Admin user email address to use with GAM. Default is to prompt.
@@ -22,20 +23,23 @@ target_dir="$HOME/bin"
 target_gam="gamadv-xtd3/gam"
 gamarch=$(uname -m)
 gamos=$(uname -s)
+osversion=""
 update_profile=true
 upgrade_only=false
 gamversion="latest"
 adminuser=""
 regularuser=""
 gam_glibc_vers="2.27 2.23 2.19 2.15"
+gam_macos_vers="10.14 10.13 10.12 10.11 10.10"
 
-while getopts "hd:a:o:lp:u:r:v:" OPTION
+while getopts "hd:a:o:b:lp:u:r:v:" OPTION
 do
      case $OPTION in
          h) usage; exit;;
          d) target_dir="$OPTARG";;
          a) gamarch="$OPTARG";;
          o) gamos="$OPTARG";;
+         b) osversion="$OPTARG";;
          l) upgrade_only=true;;
          p) update_profile="$OPTARG";;
          u) adminuser="$OPTARG";;
@@ -53,10 +57,10 @@ update_profile() {
 
 	grep -F "$alias_line" "$1" > /dev/null 2>&1
 	if [ $? -ne 0 ]; then
-		echo_yellow "Adding gam alias to profile file $1."
+                echo_yellow "Adding gam alias to profile file $1."
 		echo -e "\n$alias_line" >> "$1"
-	else
-	  echo_yellow "gam alias already exists in profile file $1. Skipping add."
+        else
+          echo_yellow "gam alias already exists in profile file $1. Skipping add."
 	fi
 }
 
@@ -78,44 +82,69 @@ echo -e "\x1B[1;33m$1"
 echo -e '\x1B[0m'
 }
 
-version_gt()
+linux_version_gt()
 {
-if [ "$1" == "$2" ]; then
-    return 0
+if [ "${1}" = "${2}" ]; then
+  true
+else
+  test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"
 fi
-test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"
+}
+
+macos_version_gt()
+{
+if [ "${1}" = "${2}" ]; then
+  true
+else
+  test "$(printf '%s\n' "$@" | sort -n | head -n 1)" != "$1"
+fi
 }
 
 case $gamos in
   [lL]inux)
     gamos="linux"
-    this_glibc_ver=$(ldd --version | awk '/ldd/{print $NF}')
+    if [ "$osversion" == "" ]; then
+      this_glibc_ver=$(ldd --version | awk '/ldd/{print $NF}')
+    else
+      this_glibc_ver=$osversion
+    fi
     echo "This Linux distribution uses glibc $this_glibc_ver"
     useglibc="legacy"
     for gam_glibc_ver in $gam_glibc_vers; do
-      if version_gt $this_glibc_ver $gam_glibc_ver; then
-	useglibc="glibc$gam_glibc_ver"
-	echo_green "Using GAM compiled against $useglibc"
-	break
+      if linux_version_gt $this_glibc_ver $gam_glibc_ver; then
+        useglibc="glibc$gam_glibc_ver"
+        echo_green "Using GAM compiled against $useglibc"
+        break
       fi
     done
     case $gamarch in
       x86_64) gamfile="linux-x86_64-$useglibc.tar.xz";;
       *)
-	echo_red "ERROR: this installer currently only supports x86_64 Linux. Looks like you're running on $gamarch. Exiting."
-	exit
+        echo_red "ERROR: this installer currently only supports x86_64 Linux. Looks like you're running on $gamarch. Exiting."
+        exit
     esac
     ;;
   [Mm]ac[Oo][sS]|[Dd]arwin)
-    osver=$(sw_vers -productVersion | awk -F'.' '{print $2}')
-    if (( $osver < 9 )); then
-      echo_red "ERROR: GAM currently requires MacOS 10.9 or newer. You are running MacOS 10.$osver. Please upgrade." 
+    gamos="macos"
+    if [ "$osversion" == "" ]; then
+      this_macos_ver=$(sw_vers -productVersion | cut -c1-5)
+    else
+      this_macos_ver=$osversion
+    fi
+    echo "You are running MacOS $this_macos_ver"
+    use_macos_ver=""
+    for gam_macos_ver in $gam_macos_vers; do
+      if macos_version_gt $this_macos_ver $gam_macos_ver; then
+        use_macos_ver="$gam_macos_ver"
+        echo_green "Using GAM compiled on $use_macos_ver"
+        break
+      fi
+    done
+    if [ "$use_macos_ver" == "" ]; then
+      echo_red "Sorry, you need to be running at least MacOS $gam_macos_ver to run GAM"
       exit
     fi
-    MACOSVERSION=$(sw_vers -productVersion | cut -c1-5)
-    echo_green "Good, you're running MacOS $MACOSVERSION..."
-    gamos="macos"
-    gamfile="macos-$MACOSVERSION-x86_64.tar"
+    gamfile="macos-$use_macos_ver-x86_64.tar"
     ;;
   *)
     echo_red "Sorry, this installer currently only supports Linux and MacOS. Looks like you're runnning on $gamos. Exiting."
@@ -206,7 +235,7 @@ fi
 
 if [ "$upgrade_only" = true ]; then
   echo_green "Here's information about your GAM upgrade:"
-  "$target_dir/$target_gam" version
+  "$target_dir/$target_gam" version extended
   rc=$?
   if (( $rc != 0 )); then
     echo_red "ERROR: Failed running GAM for the first time with $rc. Please report this error to GAM mailing list. Exiting."
@@ -255,16 +284,16 @@ while true; do
   case $yn in
     [Yy]*)
       if [ "$adminuser" == "" ]; then
-	read -p "Please enter your G Suite admin email address: " adminuser
+        read -p "Please enter your G Suite admin email address: " adminuser
       fi
       "$target_dir/$target_gam" $config_cmd create project $adminuser
       rc=$?
       if (( $rc == 0 )); then
-	echo_green "Project creation complete."
-	project_created=true
-	break
+        echo_green "Project creation complete."
+        project_created=true
+        break
       else
-	echo_red "Project creation failed. Trying again. Say N to skip project creation."
+        echo_red "Project creation failed. Trying again. Say N to skip project creation."
       fi
       ;;
     [Nn]*)
@@ -285,11 +314,11 @@ while $project_created; do
       "$target_dir/$target_gam" $config_cmd oauth create $adminuser
       rc=$?
       if (( $rc == 0 )); then
-	echo_green "Admin authorization complete."
-	admin_authorized=true
-	break
+        echo_green "Admin authorization complete."
+        admin_authorized=true
+        break
       else
-	echo_red "Admin authorization failed. Trying again. Say N to skip admin authorization."
+        echo_red "Admin authorization failed. Trying again. Say N to skip admin authorization."
       fi
       ;;
      [Nn]*)
@@ -308,17 +337,17 @@ while $project_created; do
   case $yn in
     [Yy]*)
       if [ "$regularuser" == "" ]; then
-	read -p "Please enter the email address of a regular G Suite user: " regularuser
+        read -p "Please enter the email address of a regular G Suite user: " regularuser
       fi
       echo_yellow "Great! Checking service account scopes.This will fail the first time. Follow the steps to authorize and retry. It can take a few minutes for scopes to PASS after they've been authorized in the admin console."
       "$target_dir/$target_gam" $config_cmd user $adminuser check serviceaccount
       rc=$?
       if (( $rc == 0 )); then
-	echo_green "Service account authorization complete."
-	service_account_authorized=true
-	break
+        echo_green "Service account authorization complete."
+        service_account_authorized=true
+        break
       else
-	echo_red "Service account authorization failed. Confirm you entered the scopes correctly in the admin console. It can take a few minutes for scopes to PASS after they are entered in the admin console so if you're sure you entered them correctly, go grab a coffee and then hit Y to try again. Say N to skip admin authorization."
+        echo_red "Service account authorization failed. Confirm you entered the scopes correctly in the admin console. It can take a few minutes for scopes to PASS after they are entered in the admin console so if you're sure you entered them correctly, go grab a coffee and then hit Y to try again. Say N to skip admin authorization."
       fi
       ;;
      [Nn]*)
