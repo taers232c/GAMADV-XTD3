@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.95.00'
+__version__ = '4.95.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -24725,7 +24725,7 @@ def _doUpdateCourses(entityList):
 #	    [copytopics [<Boolean>]]
 #	    [members none|all|students|teachers]]
 def doUpdateCourses():
-  _doUpdateCourses(getEntityList(Cmd.OB_COURSE_ENTITY))
+  _doUpdateCourses(getEntityList(Cmd.OB_COURSE_ENTITY, shlexSplit=True))
 
 # gam update course <CourseID> <CourseAttributes>+
 #	 [copyfrom <CourseID>
@@ -24766,7 +24766,7 @@ def _doDeleteCourses(entityList):
 
 # gam delete courses <CourseEntity> [archive|archived]
 def doDeleteCourses():
-  _doDeleteCourses(getEntityList(Cmd.OB_COURSE_ENTITY))
+  _doDeleteCourses(getEntityList(Cmd.OB_COURSE_ENTITY, shlexSplit=True))
 
 # gam delete course <CourseID> [archive|archived]
 def doDeleteCourse():
@@ -25049,7 +25049,7 @@ def _doInfoCourses(entityList):
 # gam info courses <CourseEntity> [owneremail] [alias|aliases] [show none|all|students|teachers] [countsonly]
 #	[fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson]
 def doInfoCourses():
-  _doInfoCourses(getEntityList(Cmd.OB_COURSE_ENTITY))
+  _doInfoCourses(getEntityList(Cmd.OB_COURSE_ENTITY, shlexSplit=True))
 
 # gam info course <CourseID> [owneremail] [alias|aliases] [show none|all|students|teachers] [countsonly]
 #	[fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson]
@@ -25061,7 +25061,7 @@ def _initCourseSelectionParameters():
 
 def _getCourseSelectionParameters(myarg, courseSelectionParameters):
   if myarg in ['course', 'courses', 'class', 'classes']:
-    courseSelectionParameters['courseIds'].extend(getEntityList(Cmd.OB_COURSE_ENTITY))
+    courseSelectionParameters['courseIds'].extend(getEntityList(Cmd.OB_COURSE_ENTITY, shlexSplit=True))
   elif myarg == 'teacher':
     courseSelectionParameters['teacherId'] = getEmailAddress()
   elif myarg == 'student':
@@ -26754,7 +26754,7 @@ def createClassroomInvitations(users):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in ['course', 'courses', 'class', 'classes']:
-      courseIds = getEntityList(Cmd.OB_COURSE_ENTITY)
+      courseIds = getEntityList(Cmd.OB_COURSE_ENTITY, shlexSplit=True)
     elif myarg == 'role':
       role = getChoice(CLASSROOM_CREATE_ROLE_MAP, mapChoice=True)
     elif myarg == 'csvformat':
@@ -26841,7 +26841,7 @@ def acceptDeleteClassroomInvitations(users, function):
       invitationIds = getEntityList(Cmd.OB_CLASSROOM_INVITATION_ID_ENTITY)
       courseIds = None
     elif myarg in ['course', 'courses', 'class', 'classes']:
-      courseIds = getEntityList(Cmd.OB_COURSE_ENTITY)
+      courseIds = getEntityList(Cmd.OB_COURSE_ENTITY, shlexSplit=True)
       invitationIds = None
     elif myarg == 'role':
       role = getChoice(CLASSROOM_ROLE_MAP, mapChoice=True)
@@ -28041,7 +28041,7 @@ def getUserCalendarEntity(default='primary', noSelectionKwargs=None):
 
   def _getCourseCalendarSelectionParameters(myarg):
     if myarg in ['course', 'courses', 'class', 'classes']:
-      courseSelectionParameters['courseIds'].extend(getEntityList(Cmd.OB_COURSE_ENTITY))
+      courseSelectionParameters['courseIds'].extend(getEntityList(Cmd.OB_COURSE_ENTITY, shlexSplit=True))
     elif myarg == 'courseswithteacher':
       courseSelectionParameters['teacherId'] = getEmailAddress()
       courseSelectionParameters['myCoursesAsTeacher'] = False
@@ -38394,8 +38394,8 @@ LABEL_DISPLAY_FIELDS_LIST = ['type', 'id', 'labelListVisibility', 'messageListVi
 LABEL_COUNTS_FIELDS_LIST = ['messagesTotal', 'messagesUnread', 'threadsTotal', 'threadsUnread']
 LABEL_COUNTS_FIELDS = ','.join(LABEL_COUNTS_FIELDS_LIST)
 
-# gam <UserTypeEntity> print labels|label [onlyuser [<Boolean>]] [showcounts [<Boolean>]] [todrive <ToDriveAttributes>*]
-# gam <UserTypeEntity> show labels|label [onlyuser [<Boolean>]] [showcounts [<Boolean>]] [nested [<Boolean>]] [display allfields|basename|fullname]
+# gam <UserTypeEntity> print labels|label [onlyuser|useronly [<Boolean>]] [showcounts [<Boolean>]] [todrive <ToDriveAttributes>*]
+# gam <UserTypeEntity> show labels|label [onlyuser|useronly [<Boolean>]] [showcounts [<Boolean>]] [nested [<Boolean>]] [display allfields|basename|fullname]
 def printShowLabels(users):
   def _buildLabelTree(labels):
     def _checkChildLabel(label):
@@ -38478,7 +38478,7 @@ def printShowLabels(users):
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg == 'onlyuser':
+    elif myarg in ['onlyuser', 'useronly']:
       onlyUser = getBoolean()
     elif myarg == 'showcounts':
       showCounts = getBoolean()
@@ -41710,7 +41710,7 @@ def processCourseCommands():
   executeCourseCommands(getStringReturnInList(Cmd.OB_COURSE_ID), False)
 
 def processCoursesCommands():
-  executeCourseCommands(getEntityList(Cmd.OB_COURSE_ENTITY), True)
+  executeCourseCommands(getEntityList(Cmd.OB_COURSE_ENTITY, shlexSplit=True), True)
 
 # Printer command sub-commands
 PRINTER_SUBCOMMANDS = {

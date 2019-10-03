@@ -1,3 +1,7 @@
+4.95.01
+
+Fixed bug where lists of course aliases containing spaces were not properly parsed.
+
 4.95.00
 
 Added options `emailclearpattern|emailretainpattern <RegularExpression>` to `gam update groups <GroupEntity> clear`
