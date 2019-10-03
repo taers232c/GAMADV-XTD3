@@ -82,16 +82,7 @@ echo -e "\x1B[1;33m$1"
 echo -e '\x1B[0m'
 }
 
-linux_version_gt()
-{
-if [ "${1}" = "${2}" ]; then
-  true
-else
-  test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"
-fi
-}
-
-macos_version_gt()
+version_gt()
 {
 if [ "${1}" = "${2}" ]; then
   true
@@ -111,7 +102,7 @@ case $gamos in
     echo "This Linux distribution uses glibc $this_glibc_ver"
     useglibc="legacy"
     for gam_glibc_ver in $gam_glibc_vers; do
-      if linux_version_gt $this_glibc_ver $gam_glibc_ver; then
+      if version_gt $this_glibc_ver $gam_glibc_ver; then
         useglibc="glibc$gam_glibc_ver"
         echo_green "Using GAM compiled against $useglibc"
         break
@@ -134,7 +125,7 @@ case $gamos in
     echo "You are running MacOS $this_macos_ver"
     use_macos_ver=""
     for gam_macos_ver in $gam_macos_vers; do
-      if macos_version_gt $this_macos_ver $gam_macos_ver; then
+      if version_gt $this_macos_ver $gam_macos_ver; then
         use_macos_ver="$gam_macos_ver"
         echo_green "Using GAM compiled on $use_macos_ver"
         break
