@@ -1969,6 +1969,7 @@ gam print group-members [todrive <ToDriveAttribute>*]
         [descriptionmatchpattern <RegularExpression>]
         [admincreatedmatch <Boolean>]
         [roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>*
+        [memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
         [fields <MembersFieldNameList>] [userfields <UserFieldNameList>]
         [recursive [noduplicates]] [nogroupemail]
         [peoplelookup|(peoplelookupuser <EmailAddress>)]
@@ -1982,6 +1983,7 @@ gam show group-members
         [descriptionmatchpattern <RegularExpression>]
         [admincreatedmatch <Boolean>]
         [roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
+        [memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
         [includederivedmembership]
 
 # Licenses

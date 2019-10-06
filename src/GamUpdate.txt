@@ -1,7 +1,17 @@
+4.95.03
+
+Added options `memberemaildisplaypattern|memberemailskippattern <RegularExpression>` to `gam print/show group-members`
+to allow displaying members based on their email address.
+* `memberemaildisplaypattern <RegularExpression>` - Members with email addresses that match `<RegularExpression>` will be displayed; others will not be displayed
+* `memberemailskippattern <RegularExpression>` - Members with email addresses that match `<RegularExpression>` will not be displayed; others will be displayed
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Group-Membership#display-group-membership-in-csv-format
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Group-Membership#display-group-membership-in-hierarchical-format
+
 4.95.02
 
 Following Jay's lead, added `scope|scopes <APIScopeURLList>` option to `gam check serviceaccount`.
-This allows you to check that service account access is enabled for specific scopes.
+This allows you to enable service account access for a set of specific scopes rather than the full
+set of scopes that GAM is capable of using.
 See: https://github.com/taers232c/GAMADV-XTD3/wiki/Authorization#manage-gam-service-account-access
 
 When `no_update_check = false` in `gam.cfg` and a GAM update is available, execution will not be interrupted;
@@ -17,6 +27,7 @@ Added options `emailclearpattern|emailretainpattern <RegularExpression>` to `gam
 to allow clearing members based on their email address.
 * `emailclearpattern <RegularExpression>` - Members with email addresses that match `<RegularExpression>` will be cleared; others will be retained
 * `emailretainpattern <RegularExpression>` - Members with email addresses that match `<RegularExpression>` will be retained; others will be cleared
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Group-Membership#delete-members-from-a-group-by-role
 
 4.94.24
 

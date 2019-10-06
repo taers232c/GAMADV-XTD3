@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.95.02'
+__version__ = '4.95.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7098,13 +7098,26 @@ def checkServiceAccount(users):
   def printPassFail(description, result):
     writeStdout(Ind.Spaces()+'{0:73} {1}'.format(description, result)+'\n')
 
+  allScopes, jcount = API.getSortedSvcAcctScopesList()
+  if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
+    allScopes.remove(API.APPS_GROUPS_MIGRATION_SCOPE)
+    jcount -= 1
   checkScopes = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in ['scope', 'scopes']:
-      checkScopes.extend(getString(Cmd.OB_API_SCOPE_URL_LIST).replace(',', ' ').split())
+      for scope in getString(Cmd.OB_API_SCOPE_URL_LIST).lower().replace(',', ' ').split():
+        if scope in allScopes:
+          checkScopes.append(scope)
+        else:
+          invalidChoiceExit(allScopes, True)
     else:
       unknownArgumentExit()
+  if not checkScopes:
+    checkScopes = allScopes
+  else:
+    checkScopes.sort()
+    jcount = len(checkScopes)
   printKeyValueList([Msg.SYSTEM_TIME_STATUS, None])
   offsetSeconds, offsetFormatted = getLocalGoogleTimeOffset()
   if offsetSeconds <= MAX_LOCAL_GOOGLE_TIME_OFFSET:
@@ -7137,14 +7150,6 @@ def checkServiceAccount(users):
   Ind.Increment()
   printPassFail('Authentication{0}'.format(auth_error), saTokenStatus)
   Ind.Decrement()
-  if not checkScopes:
-    checkScopes, jcount = API.getSortedSvcAcctScopesList()
-    if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
-      checkScopes.remove(API.APPS_GROUPS_MIGRATION_SCOPE)
-      jcount -= 1
-  else:
-    checkScopes.sort()
-    jcount = len(checkScopes)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -17052,9 +17057,11 @@ MEMBEROPTION_RECURSIVE = 2
 MEMBEROPTION_GETDELIVERYSETTINGS = 3
 MEMBEROPTION_ISSUSPENDED = 4
 MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP = 5
+MEMBEROPTION_MATCHPATTERN = 6
+MEMBEROPTION_DISPLAYMATCH = 7
 
 def _initMemberOptions():
-  return [False, False, False, False, None, False]
+  return [False, False, False, False, None, False, None, True]
 
 def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, count, memberOptions, level, typesSet):
   def _getDeliverySettings(member):
@@ -17069,6 +17076,15 @@ def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, cou
         pass
     else:
       memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS] = False
+
+  def _checkMatch(member):
+    if not memberOptions[MEMBEROPTION_MATCHPATTERN]:
+      return True
+    if member['type'] == Ent.TYPE_CUSTOMER:
+      return False
+    if memberOptions[MEMBEROPTION_MATCHPATTERN].match(member['email']):
+      return memberOptions[MEMBEROPTION_DISPLAYMATCH]
+    return not memberOptions[MEMBEROPTION_DISPLAYMATCH]
 
   printGettingAllEntityItemsForWhom(memberRoles if memberRoles else Ent.ROLE_MANAGER_MEMBER_OWNER, groupEmail, i, count)
   validRoles, listRoles, listFields = _getRoleVerification(memberRoles, 'nextPageToken,members(email,id,role,status,type,delivery_settings)')
@@ -17087,20 +17103,20 @@ def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, cou
           if memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS]:
             _getDeliverySettings(member)
           membersSet.add(member['id'])
-          if member['type'] in typesSet:
+          if member['type'] in typesSet and _checkMatch(member):
             membersList.append(member)
     else:
       for member in groupMembers:
         if _checkMemberRoleIsSuspended(member, validRoles, memberOptions[MEMBEROPTION_ISSUSPENDED]):
           if memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS]:
             _getDeliverySettings(member)
-          if member['type'] in typesSet:
+          if member['type'] in typesSet and _checkMatch(member):
             membersList.append(member)
   elif memberOptions[MEMBEROPTION_NODUPLICATES]:
     groupMemberList = []
     for member in groupMembers:
       if member['type'] == Ent.TYPE_USER:
-        if (member['type'] in typesSet and
+        if (member['type'] in typesSet and _checkMatch(member) and
             _checkMemberRoleIsSuspended(member, validRoles, memberOptions[MEMBEROPTION_ISSUSPENDED]) and
             member['id'] not in membersSet):
           if memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS]:
@@ -17114,7 +17130,7 @@ def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, cou
           if memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS]:
             _getDeliverySettings(member)
           membersSet.add(member['id'])
-          if member['type'] in typesSet:
+          if member['type'] in typesSet and _checkMatch(member):
             member['level'] = level
             member['subgroup'] = groupEmail
             membersList.append(member)
@@ -17124,7 +17140,7 @@ def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, cou
   else:
     for member in groupMembers:
       if member['type'] == Ent.TYPE_USER:
-        if (member['type'] in typesSet and
+        if (member['type'] in typesSet and _checkMatch(member) and
             _checkMemberRoleIsSuspended(member, validRoles, memberOptions[MEMBEROPTION_ISSUSPENDED])):
           if memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS]:
             _getDeliverySettings(member)
@@ -17132,7 +17148,7 @@ def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, cou
           member['subgroup'] = groupEmail
           membersList.append(member)
       elif member['type'] == Ent.TYPE_GROUP:
-        if member['type'] in typesSet:
+        if member['type'] in typesSet and _checkMatch(member):
           member['level'] = level
           member['subgroup'] = groupEmail
           membersList.append(member)
@@ -17181,6 +17197,7 @@ GROUPMEMBERS_DEFAULT_FIELDS = ['group', 'type', 'role', 'id', 'status', 'email']
 #	[descriptionmatchpattern <RegularExpression>]
 #	[showownedby <UserItem>] [types <GroupTypeList>]
 #	[roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
+#	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
 #	[userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
 #	[peoplelookup|(peoplelookupuser <EmailAddress>)]
 #	[includederivedmembership]
@@ -17242,6 +17259,9 @@ def doPrintGroupMembers():
       pass
     elif myarg == 'membernames':
       memberOptions[MEMBEROPTION_MEMBERNAMES] = True
+    elif myarg in ['memberemaildisplaypattern', 'memberemailskippattern']:
+      memberOptions[MEMBEROPTION_MATCHPATTERN] = getREPattern(re.IGNORECASE)
+      memberOptions[MEMBEROPTION_DISPLAYMATCH] = myarg == 'memberemaildisplaypattern'
     elif myarg == 'userfields':
       for field in _getFieldsList():
         if field in USER_FIELDS_CHOICE_MAP:
@@ -17397,6 +17417,7 @@ def doPrintGroupMembers():
 #	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
 #	[descriptionmatchpattern <RegularExpression>]
 #	[roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
+#	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
 #	[includederivedmembership]
 def doShowGroupMembers():
   def _roleOrder(key):
@@ -17407,6 +17428,15 @@ def doShowGroupMembers():
 
   def _statusOrder(key):
     return {'ACTIVE': 0, 'SUSPENDED': 1, 'UNKNOWN': 2}.get(key, 3)
+
+  def _checkMatch(member):
+    if not memberOptions[MEMBEROPTION_MATCHPATTERN]:
+      return True
+    if member['type'] == Ent.TYPE_CUSTOMER:
+      return False
+    if memberOptions[MEMBEROPTION_MATCHPATTERN].match(member['email']):
+      return memberOptions[MEMBEROPTION_DISPLAYMATCH]
+    return not memberOptions[MEMBEROPTION_DISPLAYMATCH]
 
   def _showGroup(groupEmail, depth):
     try:
@@ -17426,7 +17456,7 @@ def doShowGroupMembers():
       Ind.Increment()
     for member in sorted(membersList, key=lambda k: (_roleOrder(k.get('role', Ent.ROLE_MEMBER)), _typeOrder(k['type']), _statusOrder(k.get('status', '')))):
       if _checkMemberIsSuspended(member, memberOptions[MEMBEROPTION_ISSUSPENDED]):
-        if member.get('role', Ent.ROLE_MEMBER) in rolesSet and member['type'] in typesSet:
+        if member.get('role', Ent.ROLE_MEMBER) in rolesSet and member['type'] in typesSet and _checkMatch(member):
           printKeyValueList(['{0}, {1}, {2}, {3}'.format(member.get('role', Ent.ROLE_MEMBER), member['type'], member.get('email', member['id']), member.get('status', ''))])
         if not includeDerivedMembership and (member['type'] == Ent.TYPE_GROUP) and (maxdepth == -1 or depth < maxdepth):
           _showGroup(member['email'], depth+1)
@@ -17464,6 +17494,9 @@ def doShowGroupMembers():
       memberOptions[MEMBEROPTION_ISSUSPENDED] = _getIsSuspended(myarg)
     elif getRolesTypes(myarg, rolesSet, typesSet):
       pass
+    elif myarg in ['memberemaildisplaypattern', 'memberemailskippattern']:
+      memberOptions[MEMBEROPTION_MATCHPATTERN] = getREPattern(re.IGNORECASE)
+      memberOptions[MEMBEROPTION_DISPLAYMATCH] = myarg == 'memberemaildisplaypattern'
     elif myarg == 'depth':
       maxdepth = getInteger(minVal=-1)
     elif myarg == 'includederivedmembership':
