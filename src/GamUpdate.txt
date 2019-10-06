@@ -1,6 +1,19 @@
+4.95.04
+
+Added option `types <GroupTypeList>` to `gam info group` and `gam print groups`;
+only members with type in `<GroupTypeList>`will be displayed. By default, members of all types are displayed.
+
+Added option `memberemaildisplaypattern|memberemailskippattern <RegularExpression>` to `gam info group` and `gam print groups`
+to allow displaying members based on their email address.
+* `memberemaildisplaypattern <RegularExpression>` - Members with email addresses that match `<RegularExpression>` will be displayed; others will not be displayed
+* `memberemailskippattern <RegularExpression>` - Members with email addresses that match `<RegularExpression>` will not be displayed; others will be displayed
+
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Groups-Manage#display-information-about-individual-groups
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Groups-Manage#display-information-about-multiple-groups
+
 4.95.03
 
-Added options `memberemaildisplaypattern|memberemailskippattern <RegularExpression>` to `gam print/show group-members`
+Added option `memberemaildisplaypattern|memberemailskippattern <RegularExpression>` to `gam print/show group-members`
 to allow displaying members based on their email address.
 * `memberemaildisplaypattern <RegularExpression>` - Members with email addresses that match `<RegularExpression>` will be displayed; others will not be displayed
 * `memberemailskippattern <RegularExpression>` - Members with email addresses that match `<RegularExpression>` will not be displayed; others will be displayed

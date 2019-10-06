@@ -16260,6 +16260,30 @@ def doDeleteGroups():
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.invalid):
       entityUnknownWarning(Ent.GROUP, group, i, count)
 
+def getGroupRoles(myarg, rolesSet):
+  if myarg in ['role', 'roles']:
+    for role in getString(Cmd.OB_GROUP_ROLE_LIST).lower().replace(',', ' ').split():
+      if role in GROUP_ROLES_MAP:
+        rolesSet.add(GROUP_ROLES_MAP[role])
+      else:
+        invalidChoiceExit(GROUP_ROLES_MAP, True)
+  elif myarg in GROUP_ROLES_MAP:
+    rolesSet.add(GROUP_ROLES_MAP[myarg])
+  else:
+    return False
+  return True
+
+def getGroupTypes(myarg, typesSet):
+  if myarg in ['type', 'types']:
+    for gtype in getString(Cmd.OB_GROUP_TYPE_LIST).lower().replace(',', ' ').split():
+      if gtype in GROUP_TYPES_MAP:
+        typesSet.add(GROUP_TYPES_MAP[gtype])
+      else:
+        invalidChoiceExit(GROUP_TYPES_MAP, True)
+  else:
+    return False
+  return True
+
 GROUP_FIELDS_CHOICE_MAP = {
   'admincreated': 'adminCreated',
   'aliases': ['aliases', 'nonEditableAliases'],
@@ -16273,6 +16297,15 @@ GROUP_BASIC_INFO_PRINT_ORDER = ['id', 'name', 'description', 'directMembersCount
 INFO_GROUP_OPTIONS = ['nousers', 'groups']
 
 def infoGroups(entityList):
+  def _checkMatch(member):
+    if not memberMatchPattern:
+      return True
+    if member['type'] == Ent.TYPE_CUSTOMER:
+      return False
+    if memberMatchPattern.match(member['email']):
+      return displayMatch
+    return not displayMatch
+
   def initGroupFieldsLists():
     if not groupFieldsLists['cd']:
       groupFieldsLists['cd'] = ['email']
@@ -16290,6 +16323,9 @@ def infoGroups(entityList):
   isSuspended = None
   entityType = Ent.MEMBER
   rolesSet = set()
+  typesSet = set()
+  memberMatchPattern = None
+  displayMatch = True
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'quick':
@@ -16303,11 +16339,15 @@ def infoGroups(entityList):
       entityType = Ent.MEMBER_SUSPENDED if isSuspended else Ent.MEMBER_NOT_SUSPENDED
     elif myarg == 'noaliases':
       getAliases = False
-    elif myarg in GROUP_ROLES_MAP:
-      rolesSet.add(GROUP_ROLES_MAP[myarg])
-      getUsers = True
     elif myarg == 'groups':
       getGroups = True
+    elif getGroupRoles(myarg, rolesSet):
+      getUsers = True
+    elif getGroupTypes(myarg, typesSet):
+      pass
+    elif myarg in ['memberemaildisplaypattern', 'memberemailskippattern']:
+      memberMatchPattern = getREPattern(re.IGNORECASE)
+      displayMatch = myarg == 'memberemaildisplaypattern'
     elif myarg == 'basic':
       initGroupFieldsLists()
       for field in GROUP_FIELDS_CHOICE_MAP:
@@ -16335,6 +16375,8 @@ def infoGroups(entityList):
         getString(Cmd.OB_SCHEMA_NAME_LIST)
     else:
       FJQC.GetFormatJSON(myarg)
+  if not typesSet:
+    typesSet = ALL_GROUP_TYPES
   cdfields = ','.join(set(groupFieldsLists['cd'])) if groupFieldsLists['cd'] else None
   memberRoles = ','.join(sorted(rolesSet)) if rolesSet else None
   if groupFieldsLists['gs'] is None:
@@ -16372,7 +16414,7 @@ def infoGroups(entityList):
                                groupKey=group, roles=listRoles, fields=listFields, maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
         members = []
         for member in result:
-          if _checkMemberRoleIsSuspended(member, validRoles, isSuspended):
+          if member['type'] in typesSet and _checkMemberRoleIsSuspended(member, validRoles, isSuspended) and _checkMatch(member):
             members.append(member)
       if FJQC.formatJSON:
         basic_info.update(settings)
@@ -16470,9 +16512,13 @@ def infoGroups(entityList):
             GAPI.systemError, GAPI.serviceLimit) as e:
       entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
 
-# gam info groups <GroupEntity> [members] [managers] [owners]
-#	[nousers|notsuspended|suspended] [quick] [noaliases] [groups]
+# gam info groups <GroupEntity>
+#	[nousers] [quick] [noaliases] [groups]
 #	[basic] <GroupFieldName>* [fields <GroupFieldNameList>] [nodeprecated]
+#	[roles <GroupRoleList>] [members] [managers] [owners]
+#	[notsuspended|suspended]
+#	[types <GroupTypeList>]
+#	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
 #	[formatjson]
 def doInfoGroups():
   infoGroups(getEntityList(Cmd.OB_GROUP_ENTITY))
@@ -16554,7 +16600,7 @@ PRINT_GROUPS_JSON_TITLES = ['email', 'JSON']
 
 # gam print groups [todrive <ToDriveAttributes>*]
 #	[([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
-#	 (select <GroupEntity>)] [notsuspended|suspended]
+#	 (select <GroupEntity>)]
 #	[showownedby <UserItem>]
 #	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
 #	[descriptionmatchpattern <RegularExpression>] (matchsetting [not] <GroupAttributes>)*
@@ -16562,10 +16608,22 @@ PRINT_GROUPS_JSON_TITLES = ['email', 'JSON']
 #	[maxresults <Number>]
 #	[allfields|([basic] [settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
 #	[nodeprecated]
-#	[members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
+#	[roles <GroupRoleList>] [members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
+#	[notsuspended|suspended]
+#	[types <GroupTypeList>]
+#	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
 #	[convertcrnl] [delimiter <Character>] [sortheaders]
 #	[formatjson] [quotechar <Character>]
 def doPrintGroups():
+
+  def _checkMatch(member):
+    if not memberMatchPattern:
+      return True
+    if member['type'] == Ent.TYPE_CUSTOMER:
+      return False
+    if memberMatchPattern.match(member['email']):
+      return displayMatch
+    return not displayMatch
 
   def _printGroupRow(groupEntity, groupMembers, groupSettings):
     row = {}
@@ -16619,7 +16677,7 @@ def doPrintGroups():
         if not member_email:
           writeStderr(' Not sure what to do with: {0}\n'.format(member))
           continue
-        if _checkMemberIsSuspended(member, isSuspended):
+        if member['type'] in typesSet and _checkMemberIsSuspended(member, isSuspended) and _checkMatch(member):
           role = member.get('role', Ent.ROLE_MEMBER)
           if role == Ent.ROLE_MEMBER:
             if members:
@@ -16704,7 +16762,7 @@ def doPrintGroups():
       try:
         response = callGAPI(cd.members(), 'list',
                             throw_reasons=GAPI.MEMBERS_THROW_REASONS, retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
-                            groupKey=ri[RI_ENTITY], roles=ri[RI_ROLE], fields='nextPageToken,members(email,id,role,status)',
+                            groupKey=ri[RI_ENTITY], roles=ri[RI_ROLE], fields='nextPageToken,members(email,id,role,type,status)',
                             maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden) as e:
         entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], None], str(e), i, int(ri[RI_COUNT]))
@@ -16718,7 +16776,7 @@ def doPrintGroups():
         response = callGAPI(cd.members(), 'list',
                             throw_reasons=GAPI.MEMBERS_THROW_REASONS, retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                             pageToken=pageToken,
-                            groupKey=ri[RI_ENTITY], roles=ri[RI_ROLE], fields='nextPageToken,members(email,id,role,status)',
+                            groupKey=ri[RI_ENTITY], roles=ri[RI_ROLE], fields='nextPageToken,members(email,id,role,type,status)',
                             maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden) as e:
         entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], None], str(e), i, int(ri[RI_COUNT]))
@@ -16764,6 +16822,9 @@ def doPrintGroups():
   csvPF = CSVPrintFile(groupFieldsLists['cd'])
   FJQC = FormatJSONQuoteChar(csvPF)
   rolesSet = set()
+  typesSet = set()
+  memberMatchPattern = None
+  displayMatch = True
   entitySelection = isSuspended = showOwnedBy = None
   matchPatterns = {}
   matchSettings = {}
@@ -16843,10 +16904,17 @@ def doPrintGroups():
       owners = True
       if myarg == 'ownerscount':
         ownersCountOnly = True
+    elif getGroupTypes(myarg, typesSet):
+      pass
+    elif myarg in ['memberemaildisplaypattern', 'memberemailskippattern']:
+      memberMatchPattern = getREPattern(re.IGNORECASE)
+      displayMatch = myarg == 'memberemaildisplaypattern'
     elif myarg == 'countsonly':
       membersCountOnly = managersCountOnly = ownersCountOnly = True
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, False)
+  if not typesSet:
+    typesSet = ALL_GROUP_TYPES
   updateFieldsForGroupMatchPatterns(matchPatterns, groupFieldsLists['cd'], csvPF)
   if groupFieldsLists['cd']:
     cdfields = ','.join(set(groupFieldsLists['cd']))
@@ -16928,7 +16996,7 @@ def doPrintGroups():
   required = 0
   if memberRoles:
     required += 1
-    svcargs = dict([('groupKey', None), ('roles', memberRoles), ('fields', 'nextPageToken,members(email,id,role,status)'),
+    svcargs = dict([('groupKey', None), ('roles', memberRoles), ('fields', 'nextPageToken,members(email,id,role,type,status)'),
                     ('maxResults', GC.Values[GC.MEMBER_MAX_RESULTS])]+GM.Globals[GM.EXTRA_ARGS_LIST])
   if getSettings:
     required += 1
@@ -17154,25 +17222,6 @@ def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, cou
           membersList.append(member)
         getGroupMembers(cd, member['email'], memberRoles, membersList, membersSet, i, count, memberOptions, level+1, typesSet)
 
-def getRolesTypes(myarg, rolesSet, typesSet):
-  if myarg in ['role', 'roles']:
-    for role in getString(Cmd.OB_GROUP_ROLE_LIST).lower().replace(',', ' ').split():
-      if role in GROUP_ROLES_MAP:
-        rolesSet.add(GROUP_ROLES_MAP[role])
-      else:
-        invalidChoiceExit(GROUP_ROLES_MAP, True)
-  elif myarg in GROUP_ROLES_MAP:
-    rolesSet.add(GROUP_ROLES_MAP[myarg])
-  elif myarg in ['type', 'types']:
-    for gtype in getString(Cmd.OB_GROUP_TYPE_LIST).lower().replace(',', ' ').split():
-      if gtype in GROUP_TYPES_MAP:
-        typesSet.add(GROUP_TYPES_MAP[gtype])
-      else:
-        invalidChoiceExit(GROUP_TYPES_MAP, True)
-  else:
-    return False
-  return True
-
 GROUPMEMBERS_FIELDS_CHOICE_MAP = {
   'delivery': 'delivery_settings',
   'deliverysettings': 'delivery_settings',
@@ -17195,8 +17244,9 @@ GROUPMEMBERS_DEFAULT_FIELDS = ['group', 'type', 'role', 'id', 'status', 'email']
 #	 (select <GroupEntity>)] [notsuspended|suspended]
 #	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
 #	[descriptionmatchpattern <RegularExpression>]
-#	[showownedby <UserItem>] [types <GroupTypeList>]
+#	[showownedby <UserItem>]
 #	[roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
+#	[types <GroupTypeList>]
 #	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
 #	[userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
 #	[peoplelookup|(peoplelookupuser <EmailAddress>)]
@@ -17253,7 +17303,9 @@ def doPrintGroupMembers():
       subTitle = '{0} {1}'.format(Msg.SELECTED, Ent.Plural(Ent.GROUP))
     elif myarg in SUSPENDED_ARGUMENTS:
       memberOptions[MEMBEROPTION_ISSUSPENDED] = _getIsSuspended(myarg)
-    elif getRolesTypes(myarg, rolesSet, typesSet):
+    elif getGroupRoles(myarg, rolesSet):
+      pass
+    elif getGroupTypes(myarg, typesSet):
       pass
     elif csvPF.GetFieldsListTitles(myarg, GROUPMEMBERS_FIELDS_CHOICE_MAP, fieldsList):
       pass
@@ -17413,10 +17465,11 @@ def doPrintGroupMembers():
 #	[([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
 #	 (group|group_ns|group_susp <GroupItem>)|
 #	 (select <GroupEntity>)] [notsuspended|suspended]
-#	[showownedby <UserItem>] [types <GroupTypeList>]
+#	[showownedby <UserItem>]
 #	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
 #	[descriptionmatchpattern <RegularExpression>]
 #	[roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
+#	[types <GroupTypeList>]
 #	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
 #	[includederivedmembership]
 def doShowGroupMembers():
@@ -17492,7 +17545,9 @@ def doShowGroupMembers():
       entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
     elif myarg in SUSPENDED_ARGUMENTS:
       memberOptions[MEMBEROPTION_ISSUSPENDED] = _getIsSuspended(myarg)
-    elif getRolesTypes(myarg, rolesSet, typesSet):
+    elif getGroupRoles(myarg, rolesSet):
+      pass
+    elif getGroupTypes(myarg, typesSet):
       pass
     elif myarg in ['memberemaildisplaypattern', 'memberemailskippattern']:
       memberOptions[MEMBEROPTION_MATCHPATTERN] = getREPattern(re.IGNORECASE)

@@ -1927,13 +1927,17 @@ gam delete group|groups <GroupEntity>
         whocanviewmembership
 <GroupFieldNameList> ::= "<GroupFieldName>(,<GroupFieldName>)*"
 
-gam info group|groups <GroupEntity> [members] [managers] [owners]
-        [nousers|notsuspended|suspended] [quick] [noaliases] [groups]
+gam info group|groups <GroupEntity>
+        [nousers] [quick] [noaliases] [groups]
         [basic] <GroupFieldName>* [fields <GroupFieldNameList>] [nodeprecated]
+        [members] [managers] [owners]
+        [notsuspended|suspended]
+        [types <GroupTypeList>]
+        [memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
         [formatjson]
 gam print groups [todrive <ToDriveAttribute>*]
         [([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
-         (select <GroupEntity>)] [notsuspended|suspended]
+         (select <GroupEntity>)]
         [showownedby <UserItem>]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
         [descriptionmatchpattern <RegularExpression>] (matchsetting [not] <GroupAttribute>)*
@@ -1942,6 +1946,9 @@ gam print groups [todrive <ToDriveAttribute>*]
         [allfields|([basic] [settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
         [nodeprecated]
         [members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
+        [notsuspended|suspended]
+        [types <GroupTypeList>]
+        [memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
         [convertcrnl] [delimiter <Character>] [sortheaders]
         [formatjson] [quotechar <Character>]
 
@@ -1964,11 +1971,12 @@ gam print group-members [todrive <ToDriveAttribute>*]
         [([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
          (group|group_ns|group_susp <GroupItem>)|
          (select <GroupEntity>)] [notsuspended|suspended]
-        [showownedby <UserItem>] [types <GroupTypeList>]
+        [showownedby <UserItem>]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
         [descriptionmatchpattern <RegularExpression>]
         [admincreatedmatch <Boolean>]
         [roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>*
+        [types <GroupTypeList>]
         [memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
         [fields <MembersFieldNameList>] [userfields <UserFieldNameList>]
         [recursive [noduplicates]] [nogroupemail]
@@ -1978,11 +1986,12 @@ gam show group-members
         [([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
          (group|group_ns|group_susp <GroupItem>)|
          (select <GroupEntity>)] [notsuspended|suspended]
-        [showownedby <UserItem>] [types <GroupTypeList>]
+        [showownedby <UserItem>]
         [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
         [descriptionmatchpattern <RegularExpression>]
         [admincreatedmatch <Boolean>]
         [roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
+        [types <GroupTypeList>]
         [memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
         [includederivedmembership]
 
