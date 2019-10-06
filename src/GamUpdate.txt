@@ -1,3 +1,12 @@
+4.95.02
+
+Following Jay's lead, added `scope|scopes <APIScopeURLList>` option to `gam check serviceaccount`.
+This allows you to check that service account access is enabled for specific scopes.
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Authorization#manage-gam-service-account-access
+
+When `no_update_check = false` in `gam.cfg` and a GAM update is available, execution will not be interrupted;
+you will get a warning message on stderr: `WARNING: Version update available, Current: 4.95.01, Latest: 4.95.02`.
+
 4.95.01
 
 Fixed bug where lists of course aliases containing spaces were not properly parsed.

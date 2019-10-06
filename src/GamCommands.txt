@@ -239,6 +239,7 @@ If an item contains spaces, it should be surrounded by ".
 
 <AccessToken> ::= <String>
 <AlertID> ::= <String>
+<APIScopeURL> ::= <String>
 <ASPID> ::= <String>
 <BuildingID> ::= <String>|id:<String>
 <CalendarACLScope> ::=
@@ -408,6 +409,7 @@ If an item contains spaces, it should be surrounded by ".
 
 ## Lists of basic items
 
+<APIScopeURLList> ::= "<APIScopeURL>(,<APIScopeURL>)*"
 <ASPIDList> ::= "<ASPID>(,<ASPID>)*"
 <CalendarACLScopeList> ::= "<CalendarACLScope>(,<CalendarACLScope>)*"
 <CalendarList> ::= "<CalendarItem>(,<CalendarItem>)*"
@@ -813,7 +815,7 @@ gam oauth|oauth2 info|verify [showsecret] [accesstoken <AccessToken> idtoken <ID
 gam oauth|oauth2 export [<FileName>]
 gam oauth|oauth2 import <FileName>
 
-gam <UserTypeEntity> check serviceaccount
+gam <UserTypeEntity> check serviceaccount (scope|scopes <APIScopeURLList>)*
 
 # Administrators
 
@@ -1004,11 +1006,11 @@ The following attributes are equivalent:
 
 gam calendar|calendars <CalendarEntity> create|add event [id <String>] <EventCreateAttribute>+
 gam calendar|calendars <CalendarEntity> import event icaluid <iCalUID> <EventImportAttribute>+
-gam calendar|calendars <CalendarEntity> update events <EventEntity> <EventUpdateAttribute>+
-gam calendar|calendars <CalendarEntity> delete events <EventEntity> [doit] [<EventNotificationAttribute>]
-gam calendar|calendars <CalendarEntity> purge events <EventEntity> [doit] [<EventNotificationAttribute>]
+gam calendar|calendars <CalendarEntity> update events [<EventEntity>] <EventUpdateAttribute>+
+gam calendar|calendars <CalendarEntity> delete events [<EventEntity>] [doit] [<EventNotificationAttribute>]
+gam calendar|calendars <CalendarEntity> purge events [<EventEntity>] [doit] [<EventNotificationAttribute>]
 gam calendar|calendars <CalendarEntity> wipe events
-gam calendar|calendars <CalendarEntity> move events <EventEntity> to <CalendarItem> [<EventNotificationAttribute>]
+gam calendar|calendars <CalendarEntity> move events [<EventEntity>] to <CalendarItem> [<EventNotificationAttribute>]
 gam calendar|calendars <CalendarEntity> empty calendartrash
 
 <EventAttachmentsSubfieldName> ::=
@@ -1101,11 +1103,11 @@ gam calendar|calendars <CalendarEntity> empty calendartrash
         (orderby starttime|updated)|
         (timezone <TimeZone>)
 
-gam calendar|calendars <CalendarEntity> info events <EventEntity> [maxinstances <Number>] [fields <EventFieldNameList>]
+gam calendar|calendars <CalendarEntity> info events [<EventEntity>] [maxinstances <Number>] [fields <EventFieldNameList>]
         [formatjson]
-gam calendar|calendars <CalendarEntity> show events <EventEntity> <EventDisplayProperty>* [fields <EventFieldNameList>]
+gam calendar|calendars <CalendarEntity> show events [<EventEntity>] <EventDisplayProperty>* [fields <EventFieldNameList>]
         [countsonly] [formatjson]
-gam calendar|calendars <CalendarEntity> print events <EventEntity> <EventDisplayProperty>* [fields <EventFieldNameList>]
+gam calendar|calendars <CalendarEntity> print events [<EventEntity>] <EventDisplayProperty>* [fields <EventFieldNameList>]
         [countsonly] [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
 
 gam calendar <CalendarEntity> addevent <EventCreateAttribute>+
@@ -3099,11 +3101,11 @@ Add update and delete events in any calendar for which a user has access
 
 gam <UserTypeEntity> create|add event <UserCalendarEntity> [id <String>] <EventCreateAttribute>+
 gam <UserTypeEntity> import event <UserCalendarEntity> icaluid <iCalUID> <EventImportAttribute>+
-gam <UserTypeEntity> update events <UserCalendarEntity> <EventEntity> <EventUpdateAttribute>+
-gam <UserTypeEntity> delete events <UserCalendarEntity> <EventEntity> [doit] [<EventNotificationAttribute>]
-gam <UserTypeEntity> purge events <UserCalendarEntity> <EventEntity> [doit] [<EventNotificationAttribute>]
+gam <UserTypeEntity> update events <UserCalendarEntity> [<EventEntity>] <EventUpdateAttribute>+
+gam <UserTypeEntity> delete events <UserCalendarEntity> [<EventEntity>] [doit] [<EventNotificationAttribute>]
+gam <UserTypeEntity> purge events <UserCalendarEntity> [<EventEntity>] [doit] [<EventNotificationAttribute>]
 gam <UserTypeEntity> wipe events <UserCalendarEntity>
-gam <UserTypeEntity> move events <UserCalendarEntity> <EventEntity> to <CalendarItem> [<EventNotificationAttribute>]
+gam <UserTypeEntity> move events <UserCalendarEntity> [<EventEntity>] to <CalendarItem> [<EventNotificationAttribute>]
 gam <UserTypeEntity> empty calendartrash <UserCalendarEntity>
 
 <EventDisplayProperty> ::=
@@ -3113,14 +3115,14 @@ gam <UserTypeEntity> empty calendartrash <UserCalendarEntity>
         (orderby starttime|updated)|
         (timezone <TimeZone>)
 
-gam <UserTypeEntity> info events <UserCalendarEntity> <EventEntity> [maxinstances <Number>] [fields <EventFieldNameList>]
+gam <UserTypeEntity> info events <UserCalendarEntity> [<EventEntity>] [maxinstances <Number>] [fields <EventFieldNameList>]
         [formatjson]
-gam <UserTypeEntity> show events <UserCalendarEntity> <EventEntity> <EventDisplayProperty>* [fields <EventFieldNameList>]
+gam <UserTypeEntity> show events <UserCalendarEntity> [<EventEntity>] <EventDisplayProperty>* [fields <EventFieldNameList>]
         [countsonly] [formatjson]
-gam <UserTypeEntity> print events <UserCalendarEntity> <EventEntity> <EventDisplayProperty>* [fields <EventFieldNameList>]
+gam <UserTypeEntity> print events <UserCalendarEntity> [<EventEntity>] <EventDisplayProperty>* [fields <EventFieldNameList>]
         [countsonly] [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
 
-gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer] [<EventNotificationAttribute>] [doit]
+gam <UserTypeEntity> update calattendees <UserCalendarEntity> [<EventEntity>] [anyorganizer] [<EventNotificationAttribute>] [doit]
         (csv <FileName>|(gsheet <UserGoogleSheet>))*
         (delete <EmailAddress>)*
         (deleteentity <EmailAddressEntity>)*

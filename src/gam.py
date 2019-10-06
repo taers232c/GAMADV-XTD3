@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.95.01'
+__version__ = '4.95.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3132,27 +3132,20 @@ def doGAMCheckForUpdates(forceCheck):
     if latest_version[0].lower() == 'v':
       latest_version = latest_version[1:]
     if forceCheck or (latest_version > current_version):
-      printKeyValueList(['Version Check', None])
-      Ind.Increment()
-      printKeyValueList(['Current', current_version])
-      printKeyValueList([' Latest', latest_version])
-      Ind.Decrement()
+      if forceCheck:
+        printKeyValueList(['Version Check', None])
+        Ind.Increment()
+        printKeyValueList(['Current', current_version])
+        printKeyValueList([' Latest', latest_version])
+        Ind.Decrement()
+      else:
+        writeStderr(formatKeyValueList(Ind.Spaces(), [WARNING, Msg.VERSION_UPDATE_AVAILABLE, 'Current', current_version, 'Latest', latest_version], '\n'))
     if latest_version <= current_version:
       writeFile(GM.Globals[GM.LAST_UPDATE_CHECK_TXT], str(now_time), continueOnError=True, displayError=forceCheck)
       return
     if forceCheck < 0:
       setSysExitRC(1)
       return
-    announcement = release_data.get('body_text', 'No details about this release')
-    writeStderr('\n{0} {1} release notes:\n\n'.format(GAM, latest_version))
-    writeStderr(announcement)
-    try:
-      printLine(Msg.HIT_CONTROL_C_TO_UPDATE)
-      time.sleep(15)
-    except KeyboardInterrupt:
-      webbrowser.open(release_data['html_url'])
-      printLine(Msg.GAM_EXITING_FOR_UPDATE)
-      sys.exit(0)
     writeFile(GM.Globals[GM.LAST_UPDATE_CHECK_TXT], str(now_time), continueOnError=True, displayError=forceCheck)
   except (httplib2.HttpLib2Error, socket.error, google.auth.exceptions.TransportError, RuntimeError) as e:
     if forceCheck:
@@ -7100,12 +7093,18 @@ def doOAuthImport():
     invalidOauth2TxtImportExit(filename)
   entityModifierNewValueActionPerformed([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]], Act.MODIFIER_FROM, filename)
 
-# gam <UserTypeEntity> check serviceaccount
+# gam <UserTypeEntity> check serviceaccount (scope|scopes <APIScopeURLList>)*
 def checkServiceAccount(users):
   def printPassFail(description, result):
     writeStdout(Ind.Spaces()+'{0:73} {1}'.format(description, result)+'\n')
 
-  checkForExtraneousArguments()
+  checkScopes = []
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg in ['scope', 'scopes']:
+      checkScopes.extend(getString(Cmd.OB_API_SCOPE_URL_LIST).replace(',', ' ').split())
+    else:
+      unknownArgumentExit()
   printKeyValueList([Msg.SYSTEM_TIME_STATUS, None])
   offsetSeconds, offsetFormatted = getLocalGoogleTimeOffset()
   if offsetSeconds <= MAX_LOCAL_GOOGLE_TIME_OFFSET:
@@ -7138,10 +7137,14 @@ def checkServiceAccount(users):
   Ind.Increment()
   printPassFail('Authentication{0}'.format(auth_error), saTokenStatus)
   Ind.Decrement()
-  allScopes, jcount = API.getSortedSvcAcctScopesList()
-  if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
-    allScopes.remove(API.APPS_GROUPS_MIGRATION_SCOPE)
-    jcount -= 1
+  if not checkScopes:
+    checkScopes, jcount = API.getSortedSvcAcctScopesList()
+    if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
+      checkScopes.remove(API.APPS_GROUPS_MIGRATION_SCOPE)
+      jcount -= 1
+  else:
+    checkScopes.sort()
+    jcount = len(checkScopes)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -7154,7 +7157,7 @@ def checkServiceAccount(users):
                                i, count)
     Ind.Increment()
     j = 0
-    for scope in allScopes:
+    for scope in checkScopes:
       j += 1
       # try with and without email scope
       for scopes in [[scope, API.USERINFO_EMAIL_SCOPE], [scope]]:
@@ -7183,9 +7186,9 @@ def checkServiceAccount(users):
       printLine(Msg.SCOPE_AUTHORIZATION_PASSED.format(service_account))
     else:
       # Tack on email scope for more accurate checking
-      allScopes.append(API.USERINFO_EMAIL_SCOPE)
+      checkScopes.append(API.USERINFO_EMAIL_SCOPE)
       _, domain = splitEmailAddress(user)
-      printErrorMessage(SCOPES_NOT_AUTHORIZED, Msg.SCOPE_AUTHORIZATION_FAILED.format(domain, service_account, ',\n'.join(allScopes)))
+      printErrorMessage(SCOPES_NOT_AUTHORIZED, Msg.SCOPE_AUTHORIZATION_FAILED.format(domain, service_account, ',\n'.join(checkScopes)))
     printBlankLine()
 
 def getCRMService(login_hint):
