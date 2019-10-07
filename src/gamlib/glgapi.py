@@ -66,6 +66,7 @@ FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE = 'fileOrganizerNotYetEnabledF
 FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED = 'fileOrganizerOnNonTeamDriveNotSupported'
 FILE_OWNER_NOT_MEMBER_OF_TEAMDRIVE = 'fileOwnerNotMemberOfTeamDrive'
 FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN = 'fileOwnerNotMemberOfWriterDomain'
+FILE_WRITER_TEAMDRIVE_MOVE_IN_DISABLED = 'fileWriterTeamDriveMoveInDisabled'
 FORBIDDEN = 'forbidden'
 GATEWAY_TIMEOUT = 'gatewayTimeout'
 GROUP_NOT_FOUND = 'groupNotFound'
@@ -338,6 +339,8 @@ class fileOwnerNotMemberOfTeamDrive(Exception):
   pass
 class fileOwnerNotMemberOfWriterDomain(Exception):
   pass
+class fileWriterTeamDriveMoveInDisabled(Exception):
+  pass
 class forbidden(Exception):
   pass
 class groupNotFound(Exception):
@@ -520,6 +523,7 @@ REASON_EXCEPTION_MAP = {
   FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED: fileOrganizerOnNonTeamDriveNotSupported,
   FILE_OWNER_NOT_MEMBER_OF_TEAMDRIVE: fileOwnerNotMemberOfTeamDrive,
   FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN: fileOwnerNotMemberOfWriterDomain,
+  FILE_WRITER_TEAMDRIVE_MOVE_IN_DISABLED: fileWriterTeamDriveMoveInDisabled,
   FORBIDDEN: forbidden,
   GROUP_NOT_FOUND: groupNotFound,
   ILLEGAL_ACCESS_ROLE_FOR_DEFAULT: illegalAccessRoleForDefault,

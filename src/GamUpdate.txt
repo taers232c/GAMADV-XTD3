@@ -1,3 +1,7 @@
+4.95.05
+
+Handle `fileWriterTeamDriveMoveInDisabled` error in `gam moce drivefile`.
+
 4.95.04
 
 Added option `types <GroupTypeList>` to `gam info group` and `gam print groups`;
