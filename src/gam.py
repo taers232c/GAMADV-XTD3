@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.95.05'
+__version__ = '4.95.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -15112,10 +15112,23 @@ MOBILE_ORDERBY_CHOICE_MAP = {
 
 # gam print mobile [todrive <ToDriveAttributes>*] [(query <QueryMobile>)|(queries <QueryMobileList>)]
 #	[querytime.* <Time>]
-#	[orderby <MobileOrderByFieldName> [ascending|descending]] [noapps]
+#	[orderby <MobileOrderByFieldName> [ascending|descending]]
 #	[basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>]
-#	[delimiter <Character>] [appslimit <Number>] [listlimit <Number>] [formatjson] [quotechar <Character>]
+#	[delimiter <Character>] [appslimit <Number>] [oneappperrow] [listlimit <Number>]
+#	[formatjson] [quotechar <Character>]
 def doPrintMobileDevices():
+  def _appDetails(app):
+    appDetails = []
+    for field in ['displayName', 'packageName', 'versionName']:
+      appDetails.append(app.get(field, '<None>'))
+    appDetails.append(text_type(app.get('versionCode', '<None>')))
+    permissions = app.get('permission', [])
+    if permissions:
+      appDetails.append('/'.join(permissions))
+    else:
+      appDetails.append('<None>')
+    return '-'.join(appDetails)
+
   def _printMobile(mobile):
     if FJQC.formatJSON:
       if not csvPF.rowFilter or csvPF.CheckRowTitles(flattenJSON(mobile, listLimit=listLimit, skipObjects=DEFAULT_SKIP_OBJECTS, timeObjects=MOBILE_TIME_OBJECTS)):
@@ -15132,40 +15145,42 @@ def doPrintMobileDevices():
           row[attrib] = delimiter.join(mobile[attrib][0:listLimit])
         elif listLimit == 0:
           row[attrib] = delimiter.join(mobile[attrib])
-      elif attrib == 'applications':
-        if appsLimit >= 0:
-          applications = []
-          j = 0
-          for app in mobile[attrib]:
-            j += 1
-            if appsLimit and (j > appsLimit):
-              break
-            appDetails = []
-            for field in ['displayName', 'packageName', 'versionName']:
-              appDetails.append(app.get(field, '<None>'))
-            appDetails.append(text_type(app.get('versionCode', '<None>')))
-            permissions = app.get('permission', [])
-            if permissions:
-              appDetails.append('/'.join(permissions))
-            else:
-              appDetails.append('<None>')
-            applications.append('-'.join(appDetails))
-          row[attrib] = delimiter.join(applications)
       elif attrib == 'deviceId':
         row[attrib] = mobile[attrib].encode('unicode-escape').decode(UTF8)
       elif attrib in MOBILE_TIME_OBJECTS:
         row[attrib] = formatLocalTime(mobile[attrib])
       elif attrib == 'securityPatchLevel' and int(mobile[attrib]):
         row[attrib] = formatLocalTimestamp(mobile[attrib])
-      else:
+      elif attrib != 'applications':
         row[attrib] = mobile[attrib]
-    csvPF.WriteRowTitles(row)
+    attrib = 'applications'
+    if not oneAppPerRow or attrib not in mobile or appsLimit < 0:
+      if attrib in mobile and appsLimit >= 0:
+        applications = []
+        j = 0
+        for app in mobile[attrib]:
+          j += 1
+          if appsLimit and (j > appsLimit):
+            break
+          applications.append(_appDetails(app))
+        row[attrib] = delimiter.join(applications)
+      csvPF.WriteRowTitles(row)
+    else:
+      j = 0
+      for app in mobile[attrib]:
+        j += 1
+        if appsLimit and (j > appsLimit):
+          break
+        appRow = row.copy()
+        appRow[attrib] = _appDetails(app)
+        csvPF.WriteRowTitles(appRow)
 
   cd = buildGAPIObject(API.DIRECTORY)
   parameters = _initMobileFieldsParameters()
   csvPF = CSVPrintFile('resourceId')
   FJQC = FormatJSONQuoteChar(csvPF)
   orderBy = sortOrder = None
+  oneAppPerRow = False
   queryTimes = {}
   queries = [None]
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
@@ -15187,6 +15202,8 @@ def doPrintMobileDevices():
       listLimit = getInteger(minVal=-1)
     elif myarg == 'appslimit':
       appsLimit = getInteger(minVal=-1)
+    elif myarg == 'oneappperrow':
+      oneAppPerRow = True
     elif _getMobileFieldsArguments(myarg, parameters):
       pass
     else:

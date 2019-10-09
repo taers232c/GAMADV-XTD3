@@ -1,3 +1,9 @@
+4.95.06
+
+Added option `oneappperrow` to `gam print mobile`; this causes each mobile device application
+to be displayed on a separate row with all of the other mobile device fields. By default,
+all applications are displayed on one row which can make an excessively long field.
+
 4.95.05
 
 Handle `fileWriterTeamDriveMoveInDisabled` error in `gam moce drivefile`.
