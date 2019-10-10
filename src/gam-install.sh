@@ -182,11 +182,16 @@ try:
 except KeyError:
   print('ERROR: assets value not found in JSON value of:\n\n%s' % release)"
 
-pycmd="python"
+pycmd="python3"
 $pycmd -V >/dev/null 2>&1
 rc=$?
 if (( $rc != 0 )); then
-  pycmd="python3"
+  pycmd="python"
+fi
+$pycmd -V >/dev/null 2>&1
+rc=$?
+if (( $rc != 0 )); then
+  pycmd="python2"
 fi
 $pycmd -V >/dev/null 2>&1
 rc=$?
