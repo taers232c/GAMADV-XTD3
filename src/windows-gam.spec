@@ -5,7 +5,6 @@ ssl_json_files = [
     ('cloudprint-v2.json', '.'),
     ('contacts-v3.json', '.'),
     ('email-audit-v1.json', '.'),
-    ('email-settings-v2.json', '.'),
     ('sites-v1.json', '.')
     ]
 a = Analysis(['gam.py'],
