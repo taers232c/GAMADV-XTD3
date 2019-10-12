@@ -1,3 +1,13 @@
+4.95.07
+These commands have been deleted as the API is being deprecated.
+```
+gam <UserTypeEntity> arrows <Boolean>
+gam <UserTypeEntity> pagesize 25|50|100
+gam <UserTypeEntity> shortcuts <Boolean>
+gam <UserTypeEntity> snippets <Boolean>
+gam <UserTypeEntity> utf|utf8|utf-8|unicode <Boolean>
+gam <UserTypeEntity> webclips <Boolean>
+```
 4.95.06
 
 Added option `oneappperrow` to `gam print mobile`; this causes each mobile device application

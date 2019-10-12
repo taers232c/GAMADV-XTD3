@@ -3860,14 +3860,6 @@ gam <UserTypeEntity> show pop|pop3
 gam <UserTypeEntity> language <Language>
 gam <UserTypeEntity> show language
 
-# These commands will be deprecated on October 16, 2019.
-gam <UserTypeEntity> arrows <Boolean>
-gam <UserTypeEntity> pagesize 25|50|100
-gam <UserTypeEntity> shortcuts <Boolean>
-gam <UserTypeEntity> snippets <Boolean>
-gam <UserTypeEntity> utf|utf8|utf-8|unicode <Boolean>
-gam <UserTypeEntity> webclips <Boolean>
-
 # Users - Groups
 
 gam <UserTypeEntity> add groups [owner|manager|member] <GroupEntity>

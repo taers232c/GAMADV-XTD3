@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.95.06'
+__version__ = '4.95.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -96,7 +96,6 @@ import gdata.apps.audit.service
 import gdata.apps.service
 import gdata.apps.contacts
 import gdata.apps.contacts.service
-import gdata.apps.emailsettings.service
 import gdata.apps.sites
 import gdata.apps.sites.service
 import googleapiclient
@@ -3964,9 +3963,6 @@ def getContactsQuery(**kwargs):
 
 def getEmailAuditObject():
   return initGDataObject(gdata.apps.audit.service.AuditService(), API.EMAIL_AUDIT)
-
-def getEmailSettingsObject():
-  return initGDataObject(gdata.apps.emailsettings.service.EmailSettingsService(), API.EMAIL_SETTINGS)
 
 def getSitesObject(entityType=Ent.DOMAIN, entityName=None, i=0, count=0):
   if entityType == Ent.DOMAIN:
@@ -41282,57 +41278,6 @@ def printShowVacation(users):
   if csvPF:
     csvPF.writeCSVfile('Vacation')
 
-# Process Email Settings
-def _processEmailSettings(users, function, entityType, entityValue, **kwargs):
-  emailSettings = getEmailSettingsObject()
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, userName, emailSettings.domain = splitEmailAddressOrUID(user)
-    try:
-      result = callGData(emailSettings, function,
-                         throw_errors=GDATA.EMAILSETTINGS_THROW_LIST,
-                         username=userName, **kwargs)
-      if result:
-        printEntity([Ent.USER, user, entityType, result[entityValue]], i, count)
-    except GDATA.doesNotExist:
-      entityActionFailedWarning([Ent.USER, user], Msg.DOES_NOT_EXIST, i, count)
-    except (GDATA.serviceNotApplicable, GDATA.invalidDomain):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
-    except (GDATA.badRequest, GDATA.internalServerError, GDATA.nameNotValid, GDATA.invalidValue) as e:
-      entityBadRequestWarning([Ent.USER, user, Ent.EMAIL_SETTINGS, None], str(e), i, count)
-
-# gam <UserTypeEntity> arrows <Boolean>
-def setArrows(users):
-  enable = getBoolean(None)
-  _processEmailSettings(users, 'UpdateGeneral', Ent.ARROWS_ENABLED, 'arrows', arrows=enable)
-
-# gam <UserTypeEntity> pagesize 25|50|100
-def setPageSize(users):
-  page_size = getChoice(['25', '50', '100'])
-  _processEmailSettings(users, 'UpdateGeneral', Ent.PAGE_SIZE, 'pageSize', page_size=page_size)
-
-# gam <UserTypeEntity> shortcuts <Boolean>
-def setShortCuts(users):
-  enable = getBoolean(None)
-  _processEmailSettings(users, 'UpdateGeneral', Ent.KEYBOARD_SHORTCUTS_ENABLED, 'shortcuts', shortcuts=enable)
-
-# gam <UserTypeEntity> snippets <Boolean>
-def setSnippets(users):
-  enable = getBoolean(None)
-  _processEmailSettings(users, 'UpdateGeneral', Ent.SNIPPETS_ENABLED, 'snippets', snippets=enable)
-
-# gam <UserTypeEntity> utf|utf8|utf-8|unicode <Boolean>
-def setUnicode(users):
-  enable = getBoolean(None)
-  _processEmailSettings(users, 'UpdateGeneral', Ent.UNICODE_ENCODING_ENABLED, 'unicode', unicode=enable)
-
-# gam <UserTypeEntity> webclips <Boolean>
-def setWebClips(users):
-  enable = getBoolean(None)
-  _processEmailSettings(users, 'UpdateWebClipSettings', Ent.WEBCLIPS_ENABLED, 'enable', enable=enable)
-
 # Command line processing
 
 CMD_ACTION = 0
@@ -41943,7 +41888,6 @@ CROS_COMMANDS_OBJ_ALIASES = {
 
 # <UserTypeEntity> commands
 USER_COMMANDS = {
-  'arrows': (Act.SET, setArrows),
   'delegate': (Act.ADD, delegateTo),
   'deprovision':(Act.DEPROVISION, deprovisionUser),
   'draftemail': (Act.DRAFT, draftMessage),
@@ -41955,17 +41899,12 @@ USER_COMMANDS = {
   'label': (Act.ADD, createLabel),
   'list': (Act.LIST, doListUser),
   'language': (Act.SET, setLanguage),
-  'pagesize': (Act.SET, setPageSize),
   'pop': (Act.SET, setPop),
   'profile': (Act.SET, setProfile),
   'sendas': (Act.ADD, createSendAs),
   'sendemail': (Act.SENDEMAIL, doSendEmail),
-  'shortcuts': (Act.SET, setShortCuts),
   'signature': (Act.SET, setSignature),
-  'snippets': (Act.SET, setSnippets),
-  'unicode': (Act.SET, setUnicode),
   'vacation': (Act.SET, setVacation),
-  'webclips': (Act.SET, setWebClips),
   }
 
 # User commands with objects

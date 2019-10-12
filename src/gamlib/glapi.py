@@ -34,7 +34,6 @@ DRIVE = 'drive'
 DRIVE3 = 'drive3'
 DRIVEACTIVITY = 'driveactivity'
 EMAIL_AUDIT = 'email-audit'
-EMAIL_SETTINGS = 'email-settings'
 GMAIL = 'gmail'
 GROUPSMIGRATION = 'groupsmigration'
 GROUPSSETTINGS = 'groupssettings'
@@ -131,8 +130,6 @@ _INFO = {
                                     'https://www.googleapis.com/auth/drive',]},
   EMAIL_AUDIT: {'version': 'v1', 'v2discovery': False,
                 'localjson': True},
-  EMAIL_SETTINGS: {'version': 'v2', 'v2discovery': False,
-                   'localjson': True},
   GMAIL: {'version': 'v1', 'v2discovery': False,
           'svcacctscopes': ['https://mail.google.com/',
                             'https://www.googleapis.com/auth/gmail.modify',
@@ -261,10 +258,6 @@ OAUTH2_SCOPES = [
    'api': EMAIL_AUDIT,
    'subscopes': [],
    'scope': 'https://apps-apis.google.com/a/feeds/compliance/audit/'},
-  {'name': 'Email Settings API - Users',
-   'api': EMAIL_SETTINGS,
-   'subscopes': [],
-   'scope': 'https://apps-apis.google.com/a/feeds/emailsettings/2.0/'},
   {'name': 'Groups Migration API',
    'api': GROUPSMIGRATION,
    'subscopes': [],
