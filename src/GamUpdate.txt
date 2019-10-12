@@ -1,3 +1,7 @@
+4.95.08
+
+Handle `permissionDenied` error in `gam update project`.
+
 4.95.07
 These commands have been deleted as the API is being deprecated.
 ```
@@ -16,7 +20,7 @@ all applications are displayed on one row which can make an excessively long fie
 
 4.95.05
 
-Handle `fileWriterTeamDriveMoveInDisabled` error in `gam moce drivefile`.
+Handle `fileWriterTeamDriveMoveInDisabled` error in `gam move drivefile`.
 
 4.95.04
 

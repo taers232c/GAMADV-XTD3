@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.95.07'
+__version__ = '4.95.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7222,7 +7222,7 @@ def enableGAMProjectAPIs(httpObj, projectId, checkEnabled, i=0, count=0):
   if checkEnabled:
     try:
       services = callGAPIpages(serveman.services(), 'list', 'services',
-                               throw_reasons=[GAPI.NOT_FOUND],
+                               throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
                                consumerId=projectName, fields='nextPageToken,services(serviceName)')
       Act.Set(Act.CHECK)
       jcount = len(services)
@@ -7238,7 +7238,7 @@ def enableGAMProjectAPIs(httpObj, projectId, checkEnabled, i=0, count=0):
           else:
             printEntityKVList([Ent.API, service['serviceName']], ['Already enabled (non-GAM which is fine)'], j, jcount)
       Ind.Decrement()
-    except GAPI.notFound as e:
+    except (GAPI.notFound, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.PROJECT, projectId], str(e), i, count)
       status = False
   jcount = len(apis)
