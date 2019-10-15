@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.95.08'
+__version__ = '4.95.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -9312,12 +9312,15 @@ def doDeleteDomain():
 
 CUSTOMER_LICENSE_MAP = {
   'accounts:num_users': 'Total Users',
+  'accounts:apps_total_licenses': 'G Suite Basic(apps) Licenses',
+  'accounts:apps_used_licenses': 'G Suite Basic(apps) Users',
   'accounts:gsuite_basic_total_licenses': 'G Suite Basic Licenses',
   'accounts:gsuite_basic_used_licenses': 'G Suite Basic Users',
   'accounts:gsuite_enterprise_total_licenses': 'G Suite Enterprise Licenses',
   'accounts:gsuite_enterprise_used_licenses': 'G Suite Enterprise Users',
   'accounts:gsuite_unlimited_total_licenses': 'G Suite Business Licenses',
-  'accounts:gsuite_unlimited_used_licenses': 'G Suite Business Users'
+  'accounts:gsuite_unlimited_used_licenses': 'G Suite Business Users',
+  'accounts:vault_total_licenses': 'Google Vault Licenses',
   }
 
 def _showCustomerLicenseInfo(customerInfo, FJQC):

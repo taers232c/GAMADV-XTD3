@@ -1,3 +1,17 @@
+4.95.09
+
+Output additional license info with `gam info domain`. These values are displayed:
+```
+accounts:apps_total_licenses
+accounts:apps_used_licenses
+accounts:gsuite_basic_total_licenses
+accounts:gsuite_basic_used_licenses
+accounts:gsuite_enterprise_total_licenses
+accounts:gsuite_enterprise_used_licenses
+accounts:gsuite_unlimited_total_licenses
+accounts:gsuite_unlimited_used_licenses
+accounts:vault_total_licenses
+```
 4.95.08
 
 Handle `permissionDenied` error in `gam update project`.
