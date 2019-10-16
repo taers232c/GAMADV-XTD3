@@ -2,18 +2,20 @@ if: tag IS blank
 
 env:
   global:
-  - BUILD_PYTHON_VERSION=3.7.4
-  - BUILD_OPENSSL_VERSION=1.1.1d
-  - PATCHELF_VERSION=0.9
-  - PYINSTALLER_VERSION=3.5
+    - BUILD_PYTHON_VERSION=3.8.0
+    - BUILD_OPENSSL_VERSION=1.1.1d
+    - PATCHELF_VERSION=0.9
+    - PYINSTALLER_VERSION=3.5
 cache:
   directories:
     - $HOME/.cache/pip
     - $HOME/python
     - $HOME/ssl
-    - $HOME/pybuild
 
 matrix:
+  fast_finish: true
+  allow_failures:
+    - arch: arm64
   include:
     - os: linux
       name: "Linux 64-bit Bionic"
@@ -82,7 +84,7 @@ matrix:
         - GAMOS=macos
         - PLATFORM=x86_64
         - VMTYPE=build
-        - BUILD_OPENSSL_VERSION=1.1.1c
+        - BUILD_OPENSSL_VERSION=1.1.1d
     - os: osx
       name: "MacOS 10.14"
       language: generic
@@ -91,7 +93,7 @@ matrix:
         - GAMOS=macos
         - PLATFORM=x86_64
         - VMTYPE=build
-        - BUILD_OPENSSL_VERSION=1.1.1c
+        - BUILD_OPENSSL_VERSION=1.1.1d
     - os: windows
       name: "Windows 64-bit"
       language: shell
@@ -108,6 +110,9 @@ matrix:
         - GAMOS=windows
         - PLATFORM=x86
         - VMTYPE=build
+
+before_cache:
+- echo "this is before cache"
 
 before_install:
 - source src/travis/$TRAVIS_OS_NAME-$PLATFORM-before-install.sh
