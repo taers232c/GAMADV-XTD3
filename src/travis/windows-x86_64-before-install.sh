@@ -18,8 +18,11 @@ cd $mypath
 export python=/c/Python38/python.exe
 export pip=/c/Python38/scripts/pip.exe
 
+echo "********** Upgrade pip **********"
 $pip install --upgrade pip
+echo "********** Upgrade outdated **********"
 $pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U
+echo "********** Upgrade requirements.txt **********"
 $pip install --upgrade -r src/requirements.txt
 #$pip install --upgrade pyinstaller
 # Install PyInstaller from source and build bootloader
