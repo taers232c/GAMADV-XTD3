@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.95.09'
+__version__ = '4.95.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -111,7 +111,12 @@ import oauth2client.file
 import oauth2client.tools
 from oauth2client.contrib.dictionary_storage import DictionaryStorage
 from oauth2client.contrib.multiprocess_file_storage import MultiprocessFileStorage
+# workaround https://bitbucket.org/ecollins/passlib/issues/107/timeclock-has-gone
+# can be removed with passlib > 1.7.1
+if sys.platform == 'win32' and sys.version_info[1] >= 8:
+  time.clock = time.time
 from passlib.hash import sha512_crypt
+time.__dict__.pop('clock', None)
 
 if platform.system() == 'Linux':
   import distro
@@ -9312,8 +9317,6 @@ def doDeleteDomain():
 
 CUSTOMER_LICENSE_MAP = {
   'accounts:num_users': 'Total Users',
-  'accounts:apps_total_licenses': 'G Suite Basic(apps) Licenses',
-  'accounts:apps_used_licenses': 'G Suite Basic(apps) Users',
   'accounts:gsuite_basic_total_licenses': 'G Suite Basic Licenses',
   'accounts:gsuite_basic_used_licenses': 'G Suite Basic Users',
   'accounts:gsuite_enterprise_total_licenses': 'G Suite Enterprise Licenses',
@@ -18121,7 +18124,7 @@ def _getBuildingAttributes(body):
 # gam create|add building <Name> <BuildingAttributes>*
 def doCreateBuilding():
   cd = buildGAPIObject(API.DIRECTORY)
-  body = _getBuildingAttributes({'buildingId': uuid.uuid4(),
+  body = _getBuildingAttributes({'buildingId': text_type(uuid.uuid4()),
                                  'buildingName': getString(Cmd.OB_NAME, maxLen=100),
                                  'floorNames': ['1']})
   try:
@@ -38042,7 +38045,7 @@ def watchGmail(users):
       topic = atopic['name']
       break
   else:
-    topic = gamTopics+str(uuid.uuid4())
+    topic = gamTopics+text_type(uuid.uuid4())
     callGAPI(pubsub.projects().topics(), 'create',
              name=topic)
     body = {'policy': {'bindings': [{'members': ['serviceAccount:gmail-api-push@system.gserviceaccount.com'], 'role': 'roles/pubsub.editor'}]}}
@@ -38055,7 +38058,7 @@ def watchGmail(users):
       subscription = asubscription
       break
   else:
-    subscription = gamSubscriptions+str(uuid.uuid4())
+    subscription = gamSubscriptions+text_type(uuid.uuid4())
     callGAPI(pubsub.projects().subscriptions(), 'create',
              name=subscription, body={'topic': topic})
   gmails = {}
@@ -42401,6 +42404,11 @@ def doLoop():
 if __name__ == "__main__":
   if sys.platform.startswith('win'):
     multiprocessing.freeze_support()
+  if sys.platform == 'darwin':
+    # https://bugs.python.org/issue33725 in Python 3.8.0 seems
+    # to break parallel operations with errors about extra -b
+    # command line arguments
+    multiprocessing.set_start_method('fork')
   initializeLogging()
   rc = ProcessGAMCommand(sys.argv)
   try:

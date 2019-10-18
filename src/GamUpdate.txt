@@ -1,9 +1,11 @@
+4.95.10
+
+Fixed `ERROR: Object of type UUID is not JSON serializable` error in `gam create building`.
+
 4.95.09
 
 Output additional license info with `gam info domain`. These values are displayed:
 ```
-accounts:apps_total_licenses
-accounts:apps_used_licenses
 accounts:gsuite_basic_total_licenses
 accounts:gsuite_basic_used_licenses
 accounts:gsuite_enterprise_total_licenses
