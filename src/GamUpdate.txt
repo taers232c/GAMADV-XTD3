@@ -1,3 +1,7 @@
+4.95.11
+
+Fixed a trap that occurred when a `gam print filelist` command had a query containing {}.
+
 4.95.10
 
 Fixed `ERROR: Object of type UUID is not JSON serializable` error in `gam create building`.

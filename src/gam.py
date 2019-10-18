@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.95.10'
+__version__ = '4.95.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3667,7 +3667,7 @@ def _processGAPIpagesResult(results, items, allResults, totalItems, page_message
       except (IndexError, KeyError):
         show_message = show_message.replace(FIRST_ITEM_MARKER, '')
         show_message = show_message.replace(LAST_ITEM_MARKER, '')
-    writeGotMessage(show_message.format(Ent.Choose(entityType, totalItems)))
+    writeGotMessage(show_message.replace('{0}', str(Ent.Choose(entityType, totalItems))))
   return (pageToken, totalItems)
 
 def _finalizeGAPIpagesResult(page_message):
