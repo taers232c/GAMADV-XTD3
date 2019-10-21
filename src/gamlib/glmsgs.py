@@ -259,6 +259,7 @@ USE_DOIT_ARGUMENT_TO_PERFORM_ACTION = 'Use the "doit" argument to perform action
 USING_N_PROCESSES = 'Using {0} {1}...\n'
 WITH = 'with'
 WOULD_MAKE_MEMBERSHIP_CYCLE = 'Would make membership cycle'
+UPDATE_GAM_TO_64BIT = "You're running a 32-bit version of GAM on a 64-bit version of Windows, upgrade to a windows-x86_64 version of GAM"
 USER_IS_NOT_ORGANIZER = 'User is not organizer, use anyorganizer option to override'
 VERSION_UPDATE_AVAILABLE = 'Version update available'
 YOU_CAN_ADD_DOMAIN_TO_ACCOUNT = 'You can now add: {0} or it\'s subdomains as secondary or domain aliases of the G Suite Account: {1}'

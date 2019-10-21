@@ -11,7 +11,6 @@ cache:
     - $HOME/.cache/pip
     - $HOME/python
     - $HOME/ssl
-    - $HOME/pybuild
 
 matrix:
   include:
@@ -86,7 +85,7 @@ matrix:
     - os: osx
       name: "MacOS 10.14"
       language: generic
-      osx_image: xcode11
+      osx_image: xcode11.1
       env:
         - GAMOS=macos
         - PLATFORM=x86_64

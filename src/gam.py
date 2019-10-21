@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.95.11'
+__version__ = '4.95.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6057,6 +6057,8 @@ def doVersion(checkForArgs=True):
                                   sys.version_info[1], sys.version_info[2], struct.calcsize('P')*8,
                                   sys.version_info[3], googleapiclient.__version__, httplib2.__version__, oauth2client.__version__,
                                   getOSPlatform(), platform.machine(), GM.Globals[GM.GAM_PATH]))
+  if sys.platform.startswith('win') and str(struct.calcsize('P')*8).find('32') != -1 and platform.machine().find('64') != -1:
+    printKeyValueList([Msg.UPDATE_GAM_TO_64BIT])
   if timeOffset:
     offsetSeconds, offsetFormatted = getLocalGoogleTimeOffset(testLocation)
     printKeyValueList([Msg.YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE.format(offsetFormatted)])

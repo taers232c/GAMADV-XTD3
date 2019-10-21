@@ -1,3 +1,7 @@
+4.95.12
+
+Added check in `gam version` to detect when a 32-bit version of GAM is running on a 64-bit version of Windows.
+
 4.95.11
 
 Fixed a trap that occurred when a `gam print filelist` command had a query containing {}.
