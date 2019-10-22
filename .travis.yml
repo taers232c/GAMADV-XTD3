@@ -2,7 +2,7 @@ if: tag IS blank
 
 env:
   global:
-    - BUILD_PYTHON_VERSION=3.7.4
+    - BUILD_PYTHON_VERSION=3.8.0
     - BUILD_OPENSSL_VERSION=1.1.1d
     - PATCHELF_VERSION=0.9
     - PYINSTALLER_VERSION=3.5
@@ -71,6 +71,7 @@ matrix:
         - GAMOS=macos
         - PLATFORM=x86_64
         - VMTYPE=build
+        - BUILD_PYTHON_VERSION=3.7.4
         - BUILD_OPENSSL_VERSION=1.1.1c
     - os: osx
       name: "MacOS 10.11"
@@ -80,6 +81,7 @@ matrix:
         - GAMOS=macos
         - PLATFORM=x86_64
         - VMTYPE=build
+        - BUILD_PYTHON_VERSION=3.7.4
         - BUILD_OPENSSL_VERSION=1.1.1c
     - os: osx
       name: "MacOS 10.12"
@@ -89,6 +91,7 @@ matrix:
         - GAMOS=macos
         - PLATFORM=x86_64
         - VMTYPE=build
+        - BUILD_PYTHON_VERSION=3.7.4
         - BUILD_OPENSSL_VERSION=1.1.1c
     - os: osx
       name: "MacOS 10.13"
@@ -98,7 +101,8 @@ matrix:
         - GAMOS=macos
         - PLATFORM=x86_64
         - VMTYPE=build
-        - BUILD_OPENSSL_VERSION=1.1.1d
+        - BUILD_PYTHON_VERSION=3.7.4
+        - BUILD_OPENSSL_VERSION=1.1.1c
     - os: osx
       name: "MacOS 10.14"
       language: generic
@@ -107,7 +111,8 @@ matrix:
         - GAMOS=macos
         - PLATFORM=x86_64
         - VMTYPE=build
-        - BUILD_OPENSSL_VERSION=1.1.1d
+        - BUILD_PYTHON_VERSION=3.7.4
+        - BUILD_OPENSSL_VERSION=1.1.1c
 #    - os: windows
 #      name: "Windows 64-bit"
 #      language: shell
