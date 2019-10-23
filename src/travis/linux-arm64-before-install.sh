@@ -10,6 +10,8 @@ SSLVER=$(~/ssl/bin/openssl version)
 SSLRESULT=$?
 PYVER=$(~/python/bin/python3 -V)
 PYRESULT=$?
+sudo apt-get -qq --yes install libxml2-dev > /dev/null
+sudo apt-get -qq --yes install libxslt-dev > /dev/null
 if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $BUILD_OPENSSL_VERSION "* ]] || [ $PYRESULT -ne 0 ] || [[ "$PYVER" != "Python $BUILD_PYTHON_VERSION"* ]]; then
   echo "RUNNING: apt dist-upgrade..."
   sudo apt-get -qq --yes dist-upgrade > /dev/null
@@ -25,8 +27,6 @@ if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $BUILD_OPENSSL_VERSION "* ]]
   sudo apt-get -qq --yes build-dep python3 > /dev/null
   sudo apt-get -qq --yes install zlib1g-dev > /dev/null
   sudo apt-get -qq --yes install libffi-dev > /dev/null
-  sudo apt-get -qq --yes install libxml2-dev > /dev/null
-  sudo apt-get -qq --yes install libxslt-dev > /dev/null
 
   # Compile latest OpenSSL
   echo "Downloading OpenSSL..."
