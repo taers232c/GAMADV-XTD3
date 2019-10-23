@@ -18,11 +18,10 @@ cd $mypath
 export python=/c/Python38/python.exe
 export pip=/c/Python38/scripts/pip.exe
 
-echo "********** Upgrade pip **********"
 $pip install --upgrade pip
-echo "********** Upgrade outdated **********"
 $pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U
-echo "********** Upgrade requirements.txt **********"
+wget https://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml/lxml-4.4.1-cp38-cp38-win_amd64.whl
+$pip install lxml-4.4.1-cp38-cp38-win_amd64.whl
 $pip install --upgrade -r src/requirements.txt
 #$pip install --upgrade pyinstaller
 # Install PyInstaller from source and build bootloader

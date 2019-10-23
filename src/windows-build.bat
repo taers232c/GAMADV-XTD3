@@ -10,7 +10,7 @@ del /q /f %GAMPLATFORM%-%GAMVERSION%-windows-x86_64.zip
 del /q /f %GAMPLATFORM%-%GAMVERSION%-windows-x86_64.msi
 
 rmdir /q /s %GAMPLATFORM%
-c:\python37-32\scripts\pyinstaller --clean --noupx -F --distpath=%GAMPLATFORM% windows-gam.spec
+c:\python38-32\scripts\pyinstaller --clean --noupx -F --distpath=%GAMPLATFORM% windows-gam.spec
 xcopy LICENSE %GAMPLATFORM%\
 xcopy license.rtf %GAMPLATFORM%\
 xcopy gam-setup.bat %GAMPLATFORM%\
@@ -24,7 +24,7 @@ del /q /f *.wixpdb
 del /q /f *.wixpdb
 
 rmdir /q /s %GAMPLATFORM%
-c:\python37-64\scripts\pyinstaller --clean --noupx -F --distpath=%GAMPLATFORM% windows-gam.spec
+c:\python38-64\scripts\pyinstaller --clean --noupx -F --distpath=%GAMPLATFORM% windows-gam.spec
 xcopy LICENSE %GAMPLATFORM%\
 xcopy license.rtf %GAMPLATFORM%\
 xcopy gam-setup.bat %GAMPLATFORM%\
