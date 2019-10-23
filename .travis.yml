@@ -71,8 +71,6 @@ matrix:
         - GAMOS=macos
         - PLATFORM=x86_64
         - VMTYPE=build
-        - BUILD_PYTHON_VERSION=3.7.4
-        - BUILD_OPENSSL_VERSION=1.1.1c
     - os: osx
       name: "MacOS 10.11"
       language: generic
@@ -81,8 +79,6 @@ matrix:
         - GAMOS=macos
         - PLATFORM=x86_64
         - VMTYPE=build
-        - BUILD_PYTHON_VERSION=3.7.4
-        - BUILD_OPENSSL_VERSION=1.1.1c
     - os: osx
       name: "MacOS 10.12"
       language: generic
@@ -91,8 +87,6 @@ matrix:
         - GAMOS=macos
         - PLATFORM=x86_64
         - VMTYPE=build
-        - BUILD_PYTHON_VERSION=3.7.4
-        - BUILD_OPENSSL_VERSION=1.1.1c
     - os: osx
       name: "MacOS 10.13"
       language: generic
@@ -101,8 +95,6 @@ matrix:
         - GAMOS=macos
         - PLATFORM=x86_64
         - VMTYPE=build
-        - BUILD_PYTHON_VERSION=3.7.4
-        - BUILD_OPENSSL_VERSION=1.1.1c
     - os: osx
       name: "MacOS 10.14"
       language: generic
@@ -111,26 +103,22 @@ matrix:
         - GAMOS=macos
         - PLATFORM=x86_64
         - VMTYPE=build
-        - BUILD_PYTHON_VERSION=3.7.4
-        - BUILD_OPENSSL_VERSION=1.1.1c
-#    - os: windows
-#      name: "Windows 64-bit"
-#      language: shell
-#      filter_secrets: false
-#      env:
-#        - BUILD_PYTHON_VERSION=3.8.0
-#        - GAMOS=windows
-#        - PLATFORM=x86_64
-#        - VMTYPE=build
-#    - os: windows
-#      name: "Windows 32-bit"
-#      language: shell
-#      filter_secrets: false
-#      env:
-#        - BUILD_PYTHON_VERSION=3.8.0
-#        - GAMOS=windows
-#        - PLATFORM=x86
-#        - VMTYPE=build
+    - os: windows
+      name: "Windows 64-bit"
+      language: shell
+      filter_secrets: false
+      env:
+        - GAMOS=windows
+        - PLATFORM=x86_64
+        - VMTYPE=build
+    - os: windows
+      name: "Windows 32-bit"
+      language: shell
+      filter_secrets: false
+      env:
+        - GAMOS=windows
+        - PLATFORM=x86
+        - VMTYPE=build
 
 before_cache:
 - echo "this is before cache"
