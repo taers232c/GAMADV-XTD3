@@ -12,10 +12,8 @@ export pip=/c/Python38/scripts/pip.exe
 $pip install --upgrade pip
 $pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U
 #wget https://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml/lxml-4.4.1-cp38-cp38-win32.whl
-#$pip install lxml-4.4.1-cp38-cp38-win32.whl
-wget https://files.pythonhosted.org/packages/20/8e/f9c5042b5526b732d9e6c9402d87659584448d020b16a889a07f7f0eb0a8/lxml-4.4.1-cp37-cp37m-win32.whl
-$pip install lxml-4.4.1-cp37-cp37m-win32.whl
-$pip install --upgrade -r src/requirements.txt
+$pip install src/lxml-4.4.1-cp38-cp38-win32.whl
+#$pip install --upgrade -r src/requirements.txt
 
 #$pip install --upgrade pyinstaller
 # Install PyInstaller from source and build bootloader
