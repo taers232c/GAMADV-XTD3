@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.96.00'
+__version__ = '4.96.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1386,10 +1386,11 @@ def getStringReturnInList(item):
     return [argstr]
   return []
 
+SIG_ARGUMENTS = ['signature', 'sig']
 FILE_ARGUMENTS = ['file', 'textfile', 'htmlfile']
 
 def getStringOrFile(myarg, minLen=0):
-  if myarg in FILE_ARGUMENTS or (not myarg and checkArgumentPresent(FILE_ARGUMENTS)):
+  if (myarg in SIG_ARGUMENTS and checkArgumentPresent(FILE_ARGUMENTS)) or myarg in FILE_ARGUMENTS:
     filename = getString(Cmd.OB_FILE_NAME)
     encoding = getCharSet()
     return (readFile(filename, encoding=encoding), encoding)
@@ -12525,7 +12526,9 @@ def localContactSelects(contactsManager, contactQuery, fields):
     emailMatchType = contactQuery['emailMatchType']
     for item in fields.get(CONTACT_EMAILS, []):
       if contactQuery['emailMatchPattern'].match(item['value']):
-        if not emailMatchType or emailMatchType == item.get('label') or emailMatchType == contactsManager.CONTACT_ARRAY_PROPERTIES[CONTACT_EMAILS]['relMap'].get(item['rel'], 'custom'):
+        if (not emailMatchType or
+            emailMatchType == item.get('label') or
+            emailMatchType == contactsManager.CONTACT_ARRAY_PROPERTIES[CONTACT_EMAILS]['relMap'].get(item['rel'], 'custom')):
           break
     else:
       return False
@@ -41037,7 +41040,7 @@ def printShowSmimes(users):
 #	[html [<Boolean>]] [name <String>] [replyto <EmailAddress>] [default] [primary] [treatasalias <Boolean>]
 def setSignature(users):
   tagReplacements = _initTagReplacements()
-  signature, _ = getStringOrFile('')
+  signature, _ = getStringOrFile('sig')
   body = {}
   html = primary = False
   while Cmd.ArgumentsRemaining():

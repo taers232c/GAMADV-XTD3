@@ -1338,7 +1338,9 @@ gam <CrOSTypeEntity> get devicefile [select <DeviceFileEntity>] [targetfolder <F
         (name <String>)
 
 <ContactSelection> ::=
-        [query <QueryContact>] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+        [query <QueryContact>]
+        [emailmatchpattern <RegularExpression> [emailmatchtype work|home|other|<String>]]
+        [updated_min <Date>]
 
 gam create contact <ContactAttribute>+
 gam update contacts <ContactEntity>|<ContactSelection> <ContactAttribute>+
@@ -1408,7 +1410,10 @@ gam print contacts [todrive <ToDriveAttribute>*] <ContactSelection>
         [fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
 
 <UserContactSelection> ::=
-        [query <QueryContact>] [(selectcontactgroup <ContactGroupItem>)|selectothercontacts] [emailmatchpattern <RegularExpression>] [emailmatchtype work|home|other|<String>] [updated_min <Date>]
+        [query <QueryContact>]
+        [(selectcontactgroup <ContactGroupItem>)|selectothercontacts]
+        [emailmatchpattern <RegularExpression> [emailmatchtype work|home|other|<String>]]
+        [updated_min <Date>]
 
 gam <UserTypeEntity> create contact <ContactAttribute>+
         (contactgroup <ContactGroupItem>)*
