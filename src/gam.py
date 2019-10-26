@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.96.01'
+__version__ = '4.96.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2206,6 +2206,12 @@ def cleanFilename(filename):
     filename = filename.replace(ch, '_')
   return filename
 
+def fileErrorMessage(filename, e):
+  return '{0}: {1}, {2}'.format(Ent.Singular(Ent.FILE), filename, str(e))
+
+def fdErrorMessage(f, defaultFilename, e):
+  return fileErrorMessage(getattr(f, 'name') if hasattr(f, 'name') else defaultFilename, e)
+
 # Set file encoding to handle UTF8 BOM
 def setEncoding(mode, encoding):
   if 'b' in mode:
@@ -2242,10 +2248,10 @@ def openFile(filename, mode=DEFAULT_FILE_READ_MODE, encoding=None, errors=None, 
   except (IOError, LookupError, UnicodeError) as e:
     if continueOnError:
       if displayError:
-        stderrWarningMsg(e)
+        stderrWarningMsg(fileErrorMessage(filename, e))
         setSysExitRC(FILE_ERROR_RC)
       return None
-    systemErrorExit(FILE_ERROR_RC, e)
+    systemErrorExit(FILE_ERROR_RC, fileErrorMessage(filename, e))
 
 # Close a file
 def closeFile(f):
@@ -2253,7 +2259,7 @@ def closeFile(f):
     f.close()
     return True
   except IOError as e:
-    stderrErrorMsg(e)
+    stderrErrorMsg(fdErrorMessage(f, 'Unknown', e))
     setSysExitRC(FILE_ERROR_RC)
     return False
 
@@ -2269,10 +2275,10 @@ def readFile(filename, mode=DEFAULT_FILE_READ_MODE, encoding=None, newline=None,
   except (IOError, LookupError, UnicodeDecodeError, UnicodeError) as e:
     if continueOnError:
       if displayError:
-        stderrWarningMsg(e)
+        stderrWarningMsg(fileErrorMessage(filename, e))
         setSysExitRC(FILE_ERROR_RC)
       return None
-    systemErrorExit(FILE_ERROR_RC, e)
+    systemErrorExit(FILE_ERROR_RC, fileErrorMessage(filename, e))
 
 # Write a file
 def writeFile(filename, data, mode=DEFAULT_FILE_WRITE_MODE,
@@ -2285,10 +2291,10 @@ def writeFile(filename, data, mode=DEFAULT_FILE_WRITE_MODE,
   except (IOError, LookupError, UnicodeError) as e:
     if continueOnError:
       if displayError:
-        stderrErrorMsg(e)
+        stderrErrorMsg(fileErrorMessage(filename, e))
       setSysExitRC(FILE_ERROR_RC)
       return False
-    systemErrorExit(FILE_ERROR_RC, e)
+    systemErrorExit(FILE_ERROR_RC, fileErrorMessage(filename, e))
 
 # Write a file, return error
 def writeFileReturnError(filename, data, mode=DEFAULT_FILE_WRITE_MODE):
@@ -2308,9 +2314,9 @@ def deleteFile(filename, continueOnError=False, displayError=True):
     except OSError as e:
       if continueOnError:
         if displayError:
-          stderrWarningMsg(e)
+          stderrWarningMsg(fileErrorMessage(filename, e))
         return
-      systemErrorExit(FILE_ERROR_RC, e)
+      systemErrorExit(FILE_ERROR_RC, fileErrorMessage(filename, e))
 
 def getGDocSheetDataFailedExit(entityValueList, errMsg, i=0, count=0):
   Act.Set(Act.RETRIEVE_DATA)
@@ -2745,7 +2751,7 @@ def SetGlobalVariables():
                                                            Msg.INVALID, str(e)],
                                                           ''))
     except IOError as e:
-      systemErrorExit(FILE_ERROR_RC, e)
+      systemErrorExit(FILE_ERROR_RC, fileErrorMessage(filename, e))
 
   def _writeGamCfgFile(config, fileName, action):
     try:
@@ -2753,7 +2759,7 @@ def SetGlobalVariables():
         config.write(f)
       printKeyValueList([Ent.Singular(Ent.CONFIG_FILE), fileName, Act.PerformedName(action)])
     except IOError as e:
-      stderrErrorMsg(e)
+      stderrErrorMsg(fileErrorMessage(filename, e))
 
   def _verifyValues(sectionName):
     printKeyValueList([Ent.Singular(Ent.SECTION), sectionName]) # Do not use printEntity
@@ -3174,7 +3180,7 @@ def getOldOauth2TxtCredentials(credFamily):
   except (KeyError, ValueError):
     return (None, None)
   except IOError as e:
-    systemErrorExit(FILE_ERROR_RC, e)
+    systemErrorExit(FILE_ERROR_RC, fileErrorMessage(GC.Values[GC.OAUTH2_TXT], e))
 
 def getOauth2TxtCredentials(storageOnly=False, updateOnError=True):
   while True:
@@ -3188,7 +3194,7 @@ def getOauth2TxtCredentials(storageOnly=False, updateOnError=True):
     except (KeyError, ValueError):
       pass
     except IOError as e:
-      systemErrorExit(FILE_ERROR_RC, e)
+      systemErrorExit(FILE_ERROR_RC, fileErrorMessage(GC.Values[GC.OAUTH2_TXT], e))
     if not updateOnError:
       return None
     try:
@@ -3203,7 +3209,7 @@ def getOauth2TxtCredentials(storageOnly=False, updateOnError=True):
       if not updateOnError:
         return None
     except IOError as e:
-      systemErrorExit(FILE_ERROR_RC, e)
+      systemErrorExit(FILE_ERROR_RC, fileErrorMessage(GC.Values[GC.OAUTH2_TXT], e))
 
 def waitOnFailure(n, retries, error_code, error_message):
   delta = min(2 ** n, 60)+float(random.randint(1, 1000))/1000
@@ -5582,7 +5588,7 @@ class CSVPrintFile():
         try:
           GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD].write(csvFile.getvalue())
         except IOError as e:
-          stderrErrorMsg(e)
+          stderrErrorMsg(fdErrorMessage(GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD], 'stdout', e))
           setSysExitRC(FILE_ERROR_RC)
       closeFile(csvFile)
 
@@ -6209,7 +6215,7 @@ def StdQueueHandler(mpQueue, stdtype, gmGlobals, gcValues):
         _writeData(PROCESS_MSG.format(pidData[pid]['queue'], pid, 'End', ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])), data[0], pidData[pid]['cmd']))
       fd.flush()
     except IOError as e:
-      systemErrorExit(FILE_ERROR_RC, e)
+      systemErrorExit(FILE_ERROR_RC, fdErrorMessage(fd, GM.Globals[stdtype][GM.REDIRECT_NAME], e))
 
   if sys.platform.startswith('win'):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
@@ -6316,12 +6322,12 @@ def batchWriteStderr(data):
       sys.stderr.write(data)
       sys.stderr.flush()
     except IOError as e:
-      systemErrorExit(FILE_ERROR_RC, e)
+      systemErrorExit(FILE_ERROR_RC, fileErrorMessage('stderr', e))
   try:
     fd.write(data)
     fd.flush()
   except IOError as e:
-    systemErrorExit(FILE_ERROR_RC, e)
+    systemErrorExit(FILE_ERROR_RC, fdErrorMessage(fd, 'stderr', e))
 
 ERROR_PLURAL_SINGULAR = [Msg.ERRORS, Msg.ERROR]
 PROCESS_PLURAL_SINGULAR = [Msg.PROCESSES, Msg.PROCESS]
@@ -6517,7 +6523,7 @@ def doBatch(threadBatch=False):
                                                    Msg.EXPECTED, formatChoiceList([Cmd.GAM_CMD, Cmd.COMMIT_BATCH_CMD, Cmd.PRINT_CMD])))
           errors += 1
   except IOError as e:
-    systemErrorExit(FILE_ERROR_RC, e)
+    systemErrorExit(FILE_ERROR_RC, fileErrorMessage(filename, e))
   closeFile(f)
   if errors == 0:
     if not threadBatch:
@@ -21030,7 +21036,7 @@ def md5MatchesFile(filename, expected_md5):
     closeFile(f)
     return hash_md5.hexdigest() == expected_md5
   except IOError as e:
-    systemErrorExit(FILE_ERROR_RC, e)
+    systemErrorExit(FILE_ERROR_RC, fileErrorMessage(filename, e))
 
 ZIP_EXTENSION_PATTERN = re.compile(r'^.*\.zip$', re.IGNORECASE)
 
@@ -32639,7 +32645,7 @@ def createDriveFile(users):
         if media_body.size() == 0:
           media_body = None
       except IOError as e:
-        systemErrorExit(FILE_ERROR_RC, e)
+        systemErrorExit(FILE_ERROR_RC, fileErrorMessage(parameters[DFA_LOCALFILEPATH], e))
     try:
       result = callGAPI(drive.files(), 'create',
                         throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
@@ -32704,7 +32710,7 @@ def updateDriveFile(users):
           if media_body.size() == 0:
             media_body = None
         except IOError as e:
-          systemErrorExit(FILE_ERROR_RC, e)
+          systemErrorExit(FILE_ERROR_RC, fileErrorMessage(parameters[DFA_LOCALFILEPATH], e))
       status, addParents, removeParents = _getDriveFileAddRemoveParentInfo(user, i, count, parameters, drive)
       if not status:
         continue
