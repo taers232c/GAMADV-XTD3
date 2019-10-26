@@ -1,3 +1,7 @@
+4.96.01
+
+For backwards compatibility with Basic Gam, in `gam create/update sendas`, allow a signature file to be specified as `signature|sig file <FileName> [charset <CharSet>]`.
+
 4.96.00
 
 Build with Python 3.8.0.
