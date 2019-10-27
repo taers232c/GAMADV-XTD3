@@ -1,3 +1,7 @@
+4.96.03
+
+Code cleanup.
+
 4.96.02
 
 Include filename in error messages concerning file I/O errors.
