@@ -1,3 +1,13 @@
+4.96.04
+
+Enhanced member matching in `gam info/print groups` and `gam print/show group-members` by allowing
+matching customer IDs as well as email addresses. The API directly supports listing groups which have a specific user or group member,
+but not groups that have a member of type CUSTOMER (all users in a domain). This coommand prints all groups with customer ID "C0123456"
+as a member; GAM has to call the API for every group to check for the customer ID member.
+```
+gam config csv_output_row_filter "MembersCount:count>0" print groups memberemaildisplaypattern "C0123456" members
+```
+
 4.96.03
 
 Code cleanup.
