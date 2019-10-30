@@ -1,3 +1,8 @@
+4.96.05
+
+Fixed `gam <CrOSTypeEntity> print cros deviceid` and `gam <UserTypeEntity> print users primaryEmail`
+to not make additional/unnecessary API calls; this imprroves their performance.
+
 4.96.04
 
 Enhanced member matching in `gam info/print groups` and `gam print/show group-members` by allowing

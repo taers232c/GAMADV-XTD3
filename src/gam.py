@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.96.04'
+__version__ = '4.96.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -14596,7 +14596,7 @@ def doPrintCrOSDevices(entityList=None):
           break
   else:
     sortRows = True
-    if allFields or len(fieldsList) > 1:
+    if allFields or len(set(fieldsList)) > 1:
       jcount = len(entityList)
       fields = ','.join(set(fieldsList)).replace('.', '/') if fieldsList else None
       svcargs = dict([('customerId', GC.Values[GC.CUSTOMER_ID]), ('deviceId', None), ('projection', projection), ('fields', fields)]+GM.Globals[GM.EXTRA_ARGS_LIST])
@@ -24111,7 +24111,7 @@ def doPrintUsers(entityList=None):
   else:
     sortRows = True
 # If no individual fields were specified (allfields, basic, full) or individual fields other than primaryEmail were specified, look up each user
-    if len(fieldsList) > 1 or projectionSet:
+    if projectionSet or len(set(fieldsList)) > 1:
       jcount = len(entityList)
       if isSuspended is not None:
         fieldsList.append('suspended')
