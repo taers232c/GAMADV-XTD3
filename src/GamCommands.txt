@@ -472,6 +472,7 @@ If an item contains spaces, it should be surrounded by ".
 <SiteList> ::= "<SiteItem>(,<SiteItem>)*"
 <SKUIDList> ="<SKUID>(,<SKUID>)*"
 <SMTPHeaderList> ::= "<SMTPDateHeader|SMTPHeader>(,<SMTPDateHeader|SMTPHeader>)*"
+<TeamDriveACLRoleList> ::= "<TeamDriveACLRole>(,<TeamDriveACLRole>)*"
 <TeamDriveIDList> ::= "<TeamDriveID>(,<TeamDriveID>)*"
 <ThreadIDList> ::= "<ThreadID>(,<ThreadID>)*"
 <TimeList> ::= "<Time>(,<Time>)*"
@@ -516,7 +517,7 @@ Specify a collection of ChromeOS devices by directly specifying them or by speci
                         [charset <Charset>] [delimiter <Character>]))|
         (croscsvfile|croscsvfile_sn
                 ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)
-                        [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>])
+                        [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
                 [fields <FieldNameList>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
                 [delimiter <Character>])|
@@ -524,13 +525,13 @@ Specify a collection of ChromeOS devices by directly specifying them or by speci
                 (<FileName>|(gdoc <UserGoogleDoc>) [charset <Charset>] [delimiter <Character>]))|
         (csvdatafile cros|cros_sn|cros_ous|cros_ous_and_children
                 ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)
-                        [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>])
+                        [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
                 [fields <FieldNameList>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
                 [delimiter <Character>])|
         (csvkmd cros|cros_sn|cros_ous|cros_ous_and_children
                 (<FileName>|(gsheet <UserGoogleSheet>) 
-                        [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>])
+                        [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
                  [fields <FieldNameList>]
                 (keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>])+
                 (subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>])
@@ -567,7 +568,7 @@ Specify a collection of Users by directly specifying them or by specifiying item
                         [charset <Charset>] [delimiter <Character>]))|
         (csvfile
                 ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)
-                        [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>])
+                        [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
                 [fields <FieldNameList>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
                 [delimiter <Character>])|
@@ -579,7 +580,7 @@ Specify a collection of Users by directly specifying them or by specifiying item
                 ous_and_children|ous_and_children_ns|ous_and_children_susp|
                 courseparticipants|students|teachers
                 ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)
-                        [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>])
+                        [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
                 [fields <FieldNameList>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
                 [delimiter <Character>])|
@@ -587,7 +588,7 @@ Specify a collection of Users by directly specifying them or by specifiying item
                 ous_and_children|ous_and_children_ns|ous_and_children_susp|
                 courseparticipants|students|teachers
                 (<FileName>|(gsheet <UserGoogleSheet>)
-                        [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>])
+                        [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
                 [fields <FieldNameList>]
                 (keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>]
                         [delimiter <Character>])+
@@ -604,7 +605,8 @@ Specify a collection of items by directly specifying them; the item type is dete
 <FileSelector> ::=
         file <FileName>|(gdoc <UserGoogleDoc>) [charset <Charset>] [delimiter <Character>]
 <CSVFileSelector> ::=
-        csvfile (<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+        csvfile (<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>) [charset <Charset>] [warnifnodata]
+                [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)* [delimiter <Character>]
 <CSVkmdSelector> ::=
         csvkmd <FileName>|(gsheet <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
@@ -778,11 +780,13 @@ gam help
 # Bulk Processing
 
 gam batch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds]
-gam csv <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+gam csv <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [warnifnodata]
+         [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
         (matchfield|skipfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
 gam tbatch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds]
 
-gam loop <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+gam loop <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [warnifnodata]
+         [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
         (matchfield|skipfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
 
 You can make substitutions in <GAMArgumentList> with values from the CSV file.
@@ -2492,9 +2496,11 @@ gam update teamdrive <TeamDriveEntity> [name <Name>]
         (<TeamDriveRestrictionsFieldName> <Boolean>)*
 gam info teamdrive <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
 gam show teamdriveinfo <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
-gam print teamdrives [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [todrive <ToDriveAttribute>*]
+gam print teamdrives [todrive <ToDriveAttribute>*]
+        [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
         [fields <TeamDriveFieldNameList>] [formatjson] [quotechar <Character>]
-gam show teamdrives [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
+gam show teamdrives
+        [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
         [fields <TeamDriveFieldNameList>] [formatjson]
 
 In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
@@ -2502,9 +2508,13 @@ In these commands, you specify an administrator and then indicate that you want 
 gam <UserTypeEntity> show teamdrivethemes
 gam <UserTypeEntity> info teamdrive <TeamDriveEntity> adminaccess [fields <TeamDriveFieldNameList>] [formatjson]
 gam <UserTypeEntity> show teamdriveinfo <TeamDriveEntity> adminaccess [fields <TeamDriveFieldNameList>] [formatjson]
-gam <UserTypeEntity> print teamdrives [adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]] [matchname <RegularExpression>] (role <TeamDriveACLRole>)* [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> print teamdrives [todrive <ToDriveAttribute>*]
+        [adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]]
+        [matchname <RegularExpression>] (role|roles <TeamDriveACLRoleList>)*
         [fields <TeamDriveFieldNameList>] [formatjson] [quotechar <Character>]
-gam <UserTypeEntity> show teamdrives [adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]] [matchname <RegularExpression>] (role <TeamDriveACLRole>)*
+gam <UserTypeEntity> show teamdrives
+        [adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]]
+        [matchname <RegularExpression>] (role|roles <TeamDriveACLRoleList>)*
         [fields <TeamDriveFieldNameList>] [formatjson]
 
 These commands are used to manage the ACLs on the Team Drives themselves, not the files/folders on the Team Drives.
@@ -2569,23 +2579,23 @@ In these commands, the Google administrator named in oauth2.txt is used.
 
 gam print teamdriveacls [todrive <ToDriveAttribute>*]
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-        [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
+        [user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 gam show teamdriveacls
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-        [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
+        [user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
         [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 
 In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
 
-gam print teamdriveacls [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> print teamdriveacls [todrive <ToDriveAttribute>*]
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-        [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
+        [user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         asadmin
-gam show teamdriveacls
+gam <UserTypeEntity> show teamdriveacls
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-        [user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
+        [user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
         [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         asadmin
 
@@ -3462,6 +3472,8 @@ gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (ord
         copyrequireswriterpermission|
         createddate|createdtime|
         description|
+        driveid|
+	drivename|
         editable|
         explicitlytrashed|
         fileextension|
@@ -3508,6 +3520,7 @@ gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (ord
         spaces|
         starred|
         teamdriveid|
+        teamdrivename|
         thumbnaillink|
         thumbnailversion|
         title|
@@ -3538,9 +3551,13 @@ gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (ord
 <PermissionMatchAction> ::=
         permissionmatchaction|pma process|skip
 
-gam <UserTypeEntity> show fileinfo <DriveFileEntity> [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-gam <UserTypeEntity> show filepath <DriveFileEntity> (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-gam <UserTypeEntity> print filepath <DriveFileEntity> [todrive <ToDriveAttribute>*] [oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+gam <UserTypeEntity> show fileinfo <DriveFileEntity>
+         [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [showdrivename]
+         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+gam <UserTypeEntity> show filepath <DriveFileEntity>
+         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+gam <UserTypeEntity> print filepath <DriveFileEntity> [todrive <ToDriveAttribute>*]
+         [oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> show filecounts [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
         [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
         (querytime.* <Time>)*
@@ -3557,10 +3574,10 @@ gam <UserTypeEntity> print filecounts [todrive <ToDriveAttribute>*] [corpora <Co
 gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
         [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) |
           (select <DriveFileEntityListTree> [selectsubquery <QueryDriveFile>] [norecursion|(depth <Number>)] [showparent])]
-        (querytime.* <Time>)* [maxfiles <Integer>] [countsonly]
+        (querytime.* <Time>)* [maxfiles <Integer>] [countsonly] [nodataheaders <String>]
         [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
         (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
-        [filepath|fullpath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
+        [filepath|fullpath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [showdrivename]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [quotechar <Character>]
 
 <FileTreeFieldName> ::=
@@ -3911,9 +3928,11 @@ gam <UserTypeEntity> unhide teamdrive <TeamDriveEntity>
 gam <UserTypeEntity> info teamdrive <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
 gam <UserTypeEntity> info teamdrive <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
 gam <UserTypeEntity> show teamdriveinfo <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
-gam <UserTypeEntity> print teamdrives [matchname <RegularExpression>] (role <TeamDriveACLRole>)* [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> print teamdrives [todrive <ToDriveAttribute>*]
+        [matchname <RegularExpression>] (role|roles <TeamDriveACLRoleList>)*
         [fields <TeamDriveFieldNameList>] [formatjson] [quotechar <Character>]
-gam <UserTypeEntity> show teamdrives [matchname <RegularExpression>] (role <TeamDriveACLRole>)*
+gam <UserTypeEntity> show teamdrives
+        [matchname <RegularExpression>] (role|roles <TeamDriveACLRoleList>)*
         [fields <TeamDriveFieldNameList>] [formatjson]
 
 # Users - Spreadsheets

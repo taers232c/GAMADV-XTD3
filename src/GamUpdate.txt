@@ -1,3 +1,58 @@
+4.96.06
+
+Added `drivename` to `<DriveFieldName>`; this allows you to display Shared(Team) Drive names in `gam print filelist`
+and `gam show fileinfo`. If you use `allfields` instead of a field list, use `showdrivename` to display Shared(Team) Drive names.
+An additional API call is required to get each Shared(Team) Drive name; the names are cached so there is only one additional
+API call per Shared(Team) Drive.
+
+For example:
+gam user user@domain.com show fileinfo name "Test File" fields id,name,driveid,drivename
+gam user user@domain.com show fileinfo name "Test File" allfields showdrivename
+gam user user@domain.com show fileinfo name "Test File" showdrivename
+gam user user@domain.com print filelist corpora onlyteamdrives fields id,name,driveid,drivename
+gam user user@domain.com print filelist corpora onlyteamdrives allfields showdrivename
+
+When you execute a `gam print filelist` command with a query or permission match, there may be no files output;
+in this case, there is only a header row: `Owner'. Subsequent gam commands to process the file will fail.
+
+$ gam redirect csv ./Files.csv user user@domain.com print filelist query "name contains 'abcd'" fields id,name 
+Getting all Drive Files/Folders that match query ('me' in owners and name contains 'abcd') for user@domain.com
+Got 0 Drive Files/Folders that matched query ('me' in owners and name contains 'abcd') for user@domain.com...
+$ more Files.csv
+Owner
+$ gam csv Files.csv gam user ~Owner show fileinfo ~id permissions
+Command: /Users/admin/bin/gam csv Files.csv gam user ~Owner show fileinfo >>>~id<<< permissions
+
+ERROR: Header "id" not found in CSV headers of "Owner".
+Help: Syntax in file /Users/admin/bin/gam/GamCommands.txt
+Help: Documentation is at https://github.com/taers232c/GAMADV-XTD3/wiki
+
+Now, the fields you select will be output on the header row and the subsequent command will not fail.
+
+$ gam redirect csv ./Files.csv user user@domain.com print filelist query "name contains 'abcd'" fields id,name
+Getting all Drive Files/Folders that match query ('me' in owners and name contains 'abcd') for user@domain.com
+Got 0 Drive Files/Folders that matched query ('me' in owners and name contains 'abcd') for user@domain.com...
+$ more Files.csv
+Owner,id,name
+$ gam csv Files.csv gam user ~Owner show fileinfo ~id permissions
+$
+
+If you specify `allfields`, a predefined set of headers are output.
+
+$ gam redirect csv ./Files.csv user user@domain.com print filelist query "name contains 'abcd'" allfields
+Getting all Drive Files/Folders that match query ('me' in owners and name contains 'abcd') for user@domain.com
+Got 0 Drive Files/Folders that matched query ('me' in owners and name contains 'abcd') for user@domain.com...
+$ more Files.csv
+Owner,id,name,owners.0.emailAddress,permissions,permissions.0.allowFileDiscovery,permissions.0.deleted,permissions.0.displayName,permissions.0.domain,permissions.0.emailAddress,permissions.0.expirationTime,permissions.0.id,permissions.0.permissionDetails,permissions.0.photoLink,permissions.0.role,permissions.0.teamDrivePermissionDetails,permissions.0.type
+
+You can also specify the headers you want in the case that there are no files selected; your script could test for this value.
+
+$ gam redirect csv ./Files.csv user user@domain.com print filelist query "name contains 'abcd'" allfields nodataheaders "BadNews-NoData"
+Getting all Drive Files/Folders that match query ('me' in owners and name contains 'abcd') for user@domain.com
+Got 0 Drive Files/Folders that matched query ('me' in owners and name contains 'abcd') for user@domain.com...
+$ more Files.csv
+BadNews-NoData
+
 4.96.05
 
 Fixed `gam <CrOSTypeEntity> print cros deviceid` and `gam <UserTypeEntity> print users primaryEmail`
@@ -9,9 +64,9 @@ Enhanced member matching in `gam info/print groups` and `gam print/show group-me
 matching customer IDs as well as email addresses. The API directly supports listing groups which have a specific user or group member,
 but not groups that have a member of type CUSTOMER (all users in a domain). This coommand prints all groups with customer ID "C0123456"
 as a member; GAM has to call the API for every group to check for the customer ID member.
-```
+
 gam config csv_output_row_filter "MembersCount:count>0" print groups memberemaildisplaypattern "C0123456" members
-```
+
 
 4.96.03
 
@@ -44,7 +99,7 @@ Fixed `ERROR: Object of type UUID is not JSON serializable` error in `gam create
 4.95.09
 
 Output additional license info with `gam info domain`. These values are displayed:
-```
+
 accounts:gsuite_basic_total_licenses
 accounts:gsuite_basic_used_licenses
 accounts:gsuite_enterprise_total_licenses
@@ -52,21 +107,21 @@ accounts:gsuite_enterprise_used_licenses
 accounts:gsuite_unlimited_total_licenses
 accounts:gsuite_unlimited_used_licenses
 accounts:vault_total_licenses
-```
+
 4.95.08
 
 Handle `permissionDenied` error in `gam update project`.
 
 4.95.07
 These commands have been deleted as the API is being deprecated.
-```
+
 gam <UserTypeEntity> arrows <Boolean>
 gam <UserTypeEntity> pagesize 25|50|100
 gam <UserTypeEntity> shortcuts <Boolean>
 gam <UserTypeEntity> snippets <Boolean>
 gam <UserTypeEntity> utf|utf8|utf-8|unicode <Boolean>
 gam <UserTypeEntity> webclips <Boolean>
-```
+
 4.95.06
 
 Added option `oneappperrow` to `gam print mobile`; this causes each mobile device application
@@ -630,15 +685,15 @@ Fixed bug where use of `csvkmd` inside of a `gam csv` command threw a spurious e
 Due to an earlier Google limitation, GAM had to authorize Client access in two steps. That limitation has been eliminated and now GAM can authorize
 Client access in one step. This change requires a one-time update of the client access file oauth2.txt. If you are running any Advanced GAM version before
 `4.85.00`, perform the following command:
-```
+
 gam oauth update
-```
+
 If you have multiple sections in `gam.cfg` that reference different oauth2.txt files, perform an update on each section:
-```
+
 gam select aaa oauth update
 gam select bbb oauth update
 ...
-```
+
 If you do not perform `gam oauth update`, it will be executed automatically on the first command entered.
 
 Added `countsonly` option to `gam print filelist`. This produces the same output columns as

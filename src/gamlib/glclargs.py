@@ -673,6 +673,7 @@ class GamCLArgs(object):
   ARGUMENT_EMPTY = 'empt'
   ARGUMENT_EXTRANEOUS = 'extr'
   ARGUMENT_INVALID = 'inva'
+  ARGUMENT_INVALID_CHOICE = 'invc'
   ARGUMENT_MISSING = 'miss'
 # ARGUMENT_ERROR_NAMES[0] is plural,ARGUMENT_ERROR_NAMES[1] is singular
 # These values can be translated into other languages
@@ -682,6 +683,7 @@ class GamCLArgs(object):
     ARGUMENT_EMPTY: ['Empty arguments', 'Empty argument'],
     ARGUMENT_EXTRANEOUS: ['Extra arguments', 'Extra argument'],
     ARGUMENT_INVALID: ['Invalid arguments', 'Invalid argument'],
+    ARGUMENT_INVALID_CHOICE: ['Invalid choices', 'Invalid choice ({0})'],
     ARGUMENT_MISSING: ['Missing arguments', 'Missing argument'],
     }
 

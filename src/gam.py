@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.96.05'
+__version__ = '4.96.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -643,10 +643,10 @@ def formatChoiceList(choices):
     return '|'.join(choiceList)
   return '|'.join(sorted(choiceList))
 
-def invalidChoiceExit(choices, backupArg):
+def invalidChoiceExit(choice, choices, backupArg):
   if backupArg:
     Cmd.Backup()
-  expectedArgumentExit(Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1], formatChoiceList(choices))
+  expectedArgumentExit(Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID_CHOICE][1].format(choice), formatChoiceList(choices))
 
 def missingChoiceExit(choices):
   expectedArgumentExit(Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_MISSING][1], formatChoiceList(choices))
@@ -662,7 +662,7 @@ def checkArgumentPresent(choices, required=False):
         return True
     if not required:
       return False
-    invalidChoiceExit(choiceList, False)
+    invalidChoiceExit(choice, choiceList, False)
   elif not required:
     return False
   missingChoiceExit(choiceList)
@@ -692,7 +692,7 @@ def getBoolean(defaultValue=True):
       return False
     if defaultValue is not None:
       return defaultValue
-    invalidChoiceExit(TRUE_FALSE, False)
+    invalidChoiceExit(boolean, TRUE_FALSE, False)
   if defaultValue is not None:
     return defaultValue
   missingChoiceExit(TRUE_FALSE)
@@ -722,7 +722,7 @@ def getChoice(choices, **opts):
         return choice if not opts.get(MAP_CHOICE, False) else choices[choice]
     if opts.get(DEFAULT_CHOICE, NO_DEFAULT) != NO_DEFAULT:
       return opts[DEFAULT_CHOICE]
-    invalidChoiceExit(choices, False)
+    invalidChoiceExit(choice, choices, False)
   elif opts.get(DEFAULT_CHOICE, NO_DEFAULT) != NO_DEFAULT:
     return opts[DEFAULT_CHOICE]
   missingChoiceExit(choices)
@@ -738,7 +738,7 @@ def getChoiceAndValue(item, choices, delimiter):
       Cmd.Advance()
       return (choice, value)
     missingArgumentExit(item)
-  invalidChoiceExit(choices, False)
+  invalidChoiceExit(choice, choices, False)
 
 GOOGLE_COLOR_MAP = {
   'asparagus': '#7bd148', 'bluevelvet': '#9a9cff', 'bubblegum': '#f691b2', 'cardinal': '#f83a22',
@@ -864,7 +864,7 @@ def getLanguageCode():
     if choice in LANGUAGE_CODES_MAP:
       Cmd.Advance()
       return LANGUAGE_CODES_MAP[choice]
-    invalidChoiceExit(LANGUAGE_CODES_MAP, False)
+    invalidChoiceExit(choice, LANGUAGE_CODES_MAP, False)
   missingChoiceExit(LANGUAGE_CODES_MAP)
 
 LOCALE_CODES_MAP = {
@@ -949,7 +949,7 @@ def getLocaleCode():
     if choice in LOCALE_CODES_MAP:
       Cmd.Advance()
       return LOCALE_CODES_MAP[choice]
-    invalidChoiceExit(LOCALE_CODES_MAP, False)
+    invalidChoiceExit(choice, LOCALE_CODES_MAP, False)
   missingChoiceExit(LOCALE_CODES_MAP)
 
 def removeCourseIdScope(courseId):
@@ -1164,21 +1164,28 @@ def getInteger(minVal=None, maxVal=None):
 
 SORTORDER_CHOICE_MAP = {'ascending': 'ASCENDING', 'descending': 'DESCENDING'}
 
-def initOrderBy():
-  return {'items': [], 'list': None}
+class OrderBy():
+  def __init__(self, choiceMap):
+    self.choiceMap = choiceMap
+    self.items = []
 
-def getOrderBy(choiceMap, orderBy):
-  fieldName = getChoice(choiceMap, mapChoice=True)
-  if fieldName in orderBy['items']:
-    orderBy['items'].remove(fieldName)
-  fieldNameDesc = '{0} desc'.format(fieldName)
-  if fieldNameDesc in orderBy['items']:
-    orderBy['items'].remove(fieldNameDesc)
-  if getChoice(SORTORDER_CHOICE_MAP, defaultChoice=None, mapChoice=True) != 'DESCENDING':
-    orderBy['items'].append(fieldName)
-  else:
-    orderBy['items'].append(fieldNameDesc)
-  orderBy['list'] = ','.join(orderBy['items'])
+  def GetChoice(self):
+    fieldName = getChoice(self.choiceMap, mapChoice=True)
+    if fieldName in self.items:
+      self.items.remove(fieldName)
+    fieldNameDesc = '{0} desc'.format(fieldName)
+    if fieldNameDesc in self.items:
+      self.items.remove(fieldNameDesc)
+    if getChoice(SORTORDER_CHOICE_MAP, defaultChoice=None, mapChoice=True) != 'DESCENDING':
+      self.items.append(fieldName)
+    else:
+      self.items.append(fieldNameDesc)
+
+  def SetItems(self, itemList):
+    self.items = itemList.split(',')
+
+  def orderBy(self):
+    return ','.join(self.items)
 
 def getOrderBySortOrder(choiceMap, defaultChoice='ASCENDING', mapSortOrderChoice=True):
   return (getChoice(choiceMap, mapChoice=True),
@@ -1446,7 +1453,10 @@ def getTimeOrDeltaFromNow(returnDateTime=False):
           dateTime = datetime.datetime.strptime(argstr, YYYYMMDD_FORMAT)
         except ValueError:
           invalidArgumentExit(YYYYMMDD_FORMAT_REQUIRED)
-        argstr = ISOformatTimeStamp(dateTime.replace(tzinfo=GC.Values[GC.TIMEZONE]))
+        try:
+          argstr = ISOformatTimeStamp(dateTime.replace(tzinfo=GC.Values[GC.TIMEZONE]))
+        except OverflowError:
+          pass
       try:
         fullDateTime, tz = iso8601.parse_date(argstr)
         Cmd.Advance()
@@ -1503,7 +1513,6 @@ def getRowFilterTimeOrDeltaFromNow(argstr):
     return (False, YYYYMMDDTHHMMSS_FORMAT_REQUIRED)
 
 class StartEndTime():
-
   def __init__(self, startkw='starttime', endkw='endtime'):
     self.startTime = self.endTime = self.startDateTime = self.endDateTime = None
     self._startkw = startkw
@@ -2332,7 +2341,7 @@ def getGSheetData():
     userSvcNotApplicableOrDriveDisabled(user, str(e))
     sys.exit(GM.Globals[GM.SYSEXITRC])
 
-# Open a CSV file, get optional arguments [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+# Open a CSV file, get optional arguments [charset <String>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
 def openCSVFileReader(filename, fieldnames=None):
   if filename.lower() != 'gsheet':
     encoding = getCharSet()
@@ -2340,6 +2349,15 @@ def openCSVFileReader(filename, fieldnames=None):
   else:
     f = getGSheetData()
     getCharSet()
+  if checkArgumentPresent('warnifnodata'):
+    loc = f.tell()
+    try:
+      if not f.readline() or not f.readline():
+        stderrWarningMsg(fileErrorMessage(filename, Msg.NO_CSV_FILE_DATA_FOUND))
+        sys.exit(NO_ENTITIES_FOUND)
+      f.seek(loc)
+    except IOError as e:
+      systemErrorExit(FILE_ERROR_RC, fileErrorMessage(filename, e))
   if checkArgumentPresent('columndelimiter'):
     delimiter = getCharacter()
   else:
@@ -4538,7 +4556,8 @@ def getEntitiesFromFile(shlexSplit):
   closeFile(f)
   return entityList
 
-# <FileName>(:<FieldName>)+ [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield|skipfield <FieldName> <RegularExpression>)* [delimiter <Character>]
+# <FileName>(:<FieldName>)+ [charset <String>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>]
+#	[fields <FieldNameList>] (matchfield|skipfield <FieldName> <RegularExpression>)* [delimiter <Character>]
 def getEntitiesFromCSVFile(shlexSplit):
   drive, fileFieldName = os.path.splitdrive(getString(Cmd.OB_FILE_NAME_FIELD_NAME))
   if fileFieldName.find(':') == -1:
@@ -4573,7 +4592,7 @@ def getEntitiesFromCSVFile(shlexSplit):
   closeFile(f)
   return entityList
 
-# <FileName> [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+# <FileName> [charset <String>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
 #	keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
 #	subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
 #	(matchfield|skipfield <FieldName> <RegularExpression>)*
@@ -4828,7 +4847,7 @@ def getEntityToModify(defaultEntityType=None, crosAllowed=False, userAllowed=Tru
               {'entityType': entityType, 'entity': entityItem, 'isSuspended': isSuspended, 'groupMemberType': groupMemberType})
     return (entityClass,
             {'entityType': entityType, 'entity': entityItem})
-  invalidChoiceExit(selectorChoices+entityChoices, False)
+  invalidChoiceExit(entityType, selectorChoices+entityChoices, False)
 
 def getEntitySelector():
   return getChoice(Cmd.ENTITY_LIST_SELECTORS, defaultChoice=None)
@@ -5009,7 +5028,7 @@ def getFieldsList(fieldName, fieldsChoiceMap, fieldsList, initialField=None):
       if field in fieldsChoiceMap:
         fieldsList.append(fieldsChoiceMap[field])
       else:
-        invalidChoiceExit(fieldsChoiceMap, True)
+        invalidChoiceExit(field, fieldsChoiceMap, True)
   else:
     return False
   return True
@@ -5122,7 +5141,7 @@ class CSVPrintFile():
         if field in fieldsChoiceMap:
           self.AddField(field, fieldsChoiceMap, fieldsList)
         else:
-          invalidChoiceExit(fieldsChoiceMap, True)
+          invalidChoiceExit(field, fieldsChoiceMap, True)
     else:
       return False
     return True
@@ -6547,7 +6566,9 @@ def processSubFields(GAM_argv, row, subFields):
     argv[GAM_argvI] += oargv[pos:]
   return argv
 
-# gam csv <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield|skipfield <FieldName> <RegularExpression>)* gam <GAM argument list>
+# gam csv <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [warnifnodata]
+#	[columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+#	(matchfield|skipfield <FieldName> <RegularExpression>)* gam <GAM argument list>
 def doCSV():
   filename = getString(Cmd.OB_FILE_NAME)
   if (filename == '-') and (GC.Values[GC.DEBUG_LEVEL] > 0):
@@ -7042,7 +7063,7 @@ def checkServiceAccount(users):
         if scope in allScopes:
           checkScopes.append(scope)
         else:
-          invalidChoiceExit(allScopes, True)
+          invalidChoiceExit(scope, allScopes, True)
     else:
       unknownArgumentExit()
   if not checkScopes:
@@ -7994,13 +8015,13 @@ def doReport():
           if field in fullDataServices:
             dataRequiredServices.add(field)
           else:
-            invalidChoiceExit(fullDataServices, True)
+            invalidChoiceExit(field, fullDataServices, True)
     elif usageReports and myarg in ['service', 'services']:
       for field in getString(Cmd.OB_SERVICE_NAME_LIST).lower().replace(',', ' ').split():
         if field in fullDataServices:
           includeServices.add(field)
         else:
-          invalidChoiceExit(fullDataServices, True)
+          invalidChoiceExit(field, fullDataServices, True)
     elif customerReports and myarg == 'noauthorizedapps':
       noAuthorizedApps = True
     elif activityReports and myarg == 'maxactivities':
@@ -8414,21 +8435,21 @@ def _getTagReplacement(tagReplacements, allowSubs):
           elif matchvalue == FALSE:
             matchvalue = ''
           else:
-            invalidChoiceExit(TRUE_FALSE, True)
+            invalidChoiceExit(matchvalue, TRUE_FALSE, True)
       else:
         Cmd.Backup()
         usageErrorExit(Msg.INVALID_TAG_SPECIFICATION)
     else:
       field = ''
     if not field or field not in TAG_FIELD_SUBFIELD_CHOICE_MAP:
-      invalidChoiceExit(TAG_FIELD_SUBFIELD_CHOICE_MAP, True)
+      invalidChoiceExit(field, TAG_FIELD_SUBFIELD_CHOICE_MAP, True)
     field, subfieldsChoiceMap = TAG_FIELD_SUBFIELD_CHOICE_MAP[field]
     if subfield not in subfieldsChoiceMap:
-      invalidChoiceExit(subfieldsChoiceMap, True)
+      invalidChoiceExit(subfield, subfieldsChoiceMap, True)
     subfield = subfieldsChoiceMap[subfield]
     if matchfield:
       if matchfield not in subfieldsChoiceMap:
-        invalidChoiceExit(subfieldsChoiceMap, True)
+        invalidChoiceExit(matchfield, subfieldsChoiceMap, True)
       matchfield = subfieldsChoiceMap[matchfield]
     tagReplacements['fieldsSet'].add(field)
     tagReplacements['fields'] = ','.join(tagReplacements['fieldsSet'])
@@ -9608,7 +9629,7 @@ def getRoleId():
   else:
     roleId = roleid_from_role(role)
     if not roleId:
-      invalidChoiceExit(GM.Globals[GM.MAP_ROLE_NAME_TO_ID], True)
+      invalidChoiceExit(roleId, GM.Globals[GM.MAP_ROLE_NAME_TO_ID], True)
   return (role, roleId)
 
 def getOrgUnitId(cd=None):
@@ -9767,7 +9788,7 @@ def _validateTransferAppName(apps, appName):
     if appName == app['name'].lower():
       return (app['name'], app['id'])
     appNameList.append(app['name'].lower())
-  invalidChoiceExit(appNameList, True)
+  invalidChoiceExit(appName, appNameList, True)
 
 PRIVACY_LEVEL_CHOICE_MAP = {
   'private': ['PRIVATE'],
@@ -10604,7 +10625,7 @@ def doPrintOrgs():
         if field in ORG_ARGUMENT_TO_FIELD_MAP:
           csvPF.AddField(field, ORG_ARGUMENT_TO_FIELD_MAP, fieldsList)
         else:
-          invalidChoiceExit(list(ORG_ARGUMENT_TO_FIELD_MAP), True)
+          invalidChoiceExit(field, list(ORG_ARGUMENT_TO_FIELD_MAP), True)
     elif myarg in ['convertcrnl', 'converttextnl']:
       convertCRNL = True
     else:
@@ -12956,7 +12977,7 @@ def _getContactFieldsList(contactsManager, displayFieldsList):
     if field in contactsManager.CONTACT_ARGUMENT_TO_PROPERTY_MAP:
       displayFieldsList.append(contactsManager.CONTACT_ARGUMENT_TO_PROPERTY_MAP[field])
     else:
-      invalidChoiceExit(contactsManager.CONTACT_ARGUMENT_TO_PROPERTY_MAP, True)
+      invalidChoiceExit(field, contactsManager.CONTACT_ARGUMENT_TO_PROPERTY_MAP, True)
 
 def _infoContacts(users, entityType, contactFeed=True):
   contactsManager = ContactsManager()
@@ -14055,7 +14076,7 @@ def infoCrOSDevices(entityList):
             projection = 'FULL'
             noLists = False
         else:
-          invalidChoiceExit(CROS_FIELDS_CHOICE_MAP, True)
+          invalidChoiceExit(field, CROS_FIELDS_CHOICE_MAP, True)
     elif myarg == 'downloadfile':
       downloadfile = getString(Cmd.OB_STRING).lower()
       if downloadfile != 'latest':
@@ -14543,7 +14564,7 @@ def doPrintCrOSDevices(entityList=None):
           else:
             addFieldToFieldsList(field, CROS_FIELDS_CHOICE_MAP, fieldsList)
         else:
-          invalidChoiceExit(CROS_FIELDS_CHOICE_MAP, True)
+          invalidChoiceExit(field, CROS_FIELDS_CHOICE_MAP, True)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, False)
   if selectedLists:
@@ -16217,7 +16238,7 @@ def getGroupRoles(myarg, rolesSet):
       if role in GROUP_ROLES_MAP:
         rolesSet.add(GROUP_ROLES_MAP[role])
       else:
-        invalidChoiceExit(GROUP_ROLES_MAP, True)
+        invalidChoiceExit(role, GROUP_ROLES_MAP, True)
   elif myarg in GROUP_ROLES_MAP:
     rolesSet.add(GROUP_ROLES_MAP[myarg])
   else:
@@ -16230,7 +16251,7 @@ def getGroupTypes(myarg, typesSet):
       if gtype in GROUP_TYPES_MAP:
         typesSet.add(GROUP_TYPES_MAP[gtype])
       else:
-        invalidChoiceExit(GROUP_TYPES_MAP, True)
+        invalidChoiceExit(gtype, GROUP_TYPES_MAP, True)
   else:
     return False
   return True
@@ -16338,7 +16359,7 @@ def infoGroups(entityList):
         else:
           attrProperties = getGroupAttrProperties(field)
           if attrProperties is None:
-            invalidChoiceExit(list(GROUP_FIELDS_CHOICE_MAP)+list(GROUP_ATTRIBUTES_SET), True)
+            invalidChoiceExit(field, list(GROUP_FIELDS_CHOICE_MAP)+list(GROUP_ATTRIBUTES_SET), True)
           groupFieldsLists['gs'].extend([attrProperties[0]])
 # Ignore info user arguments that may have come from whatis
     elif myarg in INFO_USER_OPTIONS:
@@ -16840,7 +16861,7 @@ def doPrintGroups():
         else:
           attrProperties = getGroupAttrProperties(field)
           if attrProperties is None:
-            invalidChoiceExit(list(GROUP_FIELDS_CHOICE_MAP)+list(GROUP_ATTRIBUTES_SET), True)
+            invalidChoiceExit(field, list(GROUP_FIELDS_CHOICE_MAP)+list(GROUP_ATTRIBUTES_SET), True)
           csvPF.AddField(field, {field: attrProperties[0]}, groupFieldsLists['gs'])
     elif myarg == 'matchsetting':
       valueList = getChoice({'not': 'notvalues'}, mapChoice=True, defaultChoice='values')
@@ -17256,7 +17277,7 @@ def doPrintGroupMembers():
         if field in USER_FIELDS_CHOICE_MAP:
           csvPF.AddField(field, USER_FIELDS_CHOICE_MAP, userFieldsList)
         else:
-          invalidChoiceExit(USER_FIELDS_CHOICE_MAP, True)
+          invalidChoiceExit(field, USER_FIELDS_CHOICE_MAP, True)
     elif myarg == 'noduplicates':
       memberOptions[MEMBEROPTION_NODUPLICATES] = True
     elif myarg == 'recursive':
@@ -17787,7 +17808,7 @@ def doPrintShowAlerts():
   csvPF = CSVPrintFile(['alertId', 'createTime']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   kwargs = {}
-  orderBy = initOrderBy()
+  OBY = OrderBy(ALERT_ORDERBY_CHOICE_MAP)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -17795,7 +17816,7 @@ def doPrintShowAlerts():
     elif myarg == 'filter':
       kwargs['filter'] = getString(Cmd.OB_STRING).replace("'", '"')
     elif myarg == 'orderby':
-      getOrderBy(ALERT_ORDERBY_CHOICE_MAP, orderBy)
+      OBY.GetChoice()
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if csvPF and not FJQC.formatJSON:
@@ -17806,7 +17827,7 @@ def doPrintShowAlerts():
   try:
     alerts = callGAPIpages(ac.alerts(), 'list', 'alerts',
                            throw_reasons=GAPI.ALERT_THROW_REASONS+[GAPI.BAD_REQUEST],
-                           orderBy=orderBy['list'], **kwargs)
+                           orderBy=OBY.orderBy(), **kwargs)
   except GAPI.badRequest as e:
     entityActionFailedWarning([Ent.ALERT, None], str(e))
     return
@@ -17886,7 +17907,7 @@ def doPrintShowAlertFeedback():
   FJQC = FormatJSONQuoteChar(csvPF)
   kwargs = {}
   alertId = '-'
-  orderBy = initOrderBy()
+  OBY = OrderBy(ALERT_FEEDBACK_ORDERBY_CHOICE_MAP)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -17896,7 +17917,7 @@ def doPrintShowAlertFeedback():
     elif myarg == 'filter':
       kwargs['filter'] = getString(Cmd.OB_STRING).replace("'", '"')
     elif myarg == 'orderby':
-      getOrderBy(ALERT_FEEDBACK_ORDERBY_CHOICE_MAP, orderBy)
+      OBY.GetChoice()
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if csvPF and not FJQC.formatJSON:
@@ -17914,7 +17935,7 @@ def doPrintShowAlertFeedback():
   except (GAPI.serviceNotAvailable, GAPI.authError):
     entityServiceNotApplicableWarning(Ent.USER, user)
     return
-  for sk in orderBy['items']:
+  for sk in OBY.items:
     if sk.endswith(' desc'):
       field, _ = sk.split(' ')
     else:
@@ -18654,7 +18675,7 @@ def doPrintShowResourceCalendars():
         elif field in RESOURCE_FIELDS_CHOICE_MAP:
           fieldsList.append(RESOURCE_FIELDS_CHOICE_MAP[field])
         else:
-          invalidChoiceExit(RESOURCE_FIELDS_CHOICE_MAP, True)
+          invalidChoiceExit(field, RESOURCE_FIELDS_CHOICE_MAP, True)
     elif myarg in ['convertcrnl', 'converttextnl']:
       convertCRNL = True
     else:
@@ -20066,16 +20087,16 @@ def _getEventFields(fieldsList):
       if field in EVENT_FIELDS_CHOICE_MAP:
         addFieldToFieldsList(field, EVENT_FIELDS_CHOICE_MAP, fieldsList)
       else:
-        invalidChoiceExit(EVENT_FIELDS_CHOICE_MAP, True)
+        invalidChoiceExit(field, EVENT_FIELDS_CHOICE_MAP, True)
     else:
       field, subField = field.split('.', 1)
       if field in EVENT_SUBFIELDS_CHOICE_MAP:
         if subField in EVENT_SUBFIELDS_CHOICE_MAP[field]:
           fieldsList.append('{0}.{1}'.format(EVENT_FIELDS_CHOICE_MAP[field], EVENT_SUBFIELDS_CHOICE_MAP[field][subField]))
         else:
-          invalidChoiceExit(list(EVENT_SUBFIELDS_CHOICE_MAP[field]), True)
+          invalidChoiceExit(subField, list(EVENT_SUBFIELDS_CHOICE_MAP[field]), True)
       else:
-        invalidChoiceExit(list(EVENT_SUBFIELDS_CHOICE_MAP), True)
+        invalidChoiceExit(field, list(EVENT_SUBFIELDS_CHOICE_MAP), True)
 
 def _addEventEntitySelectFields(calendarEventEntity, fieldsList):
   if fieldsList:
@@ -20847,7 +20868,7 @@ def doPrintShowVaultExports():
         if state in VAULT_EXPORT_STATUS_MAP:
           exportStatusList.append(VAULT_EXPORT_STATUS_MAP[state])
         else:
-          invalidChoiceExit(list(VAULT_EXPORT_STATUS_MAP), True)
+          invalidChoiceExit(state, list(VAULT_EXPORT_STATUS_MAP), True)
     elif myarg == 'shownames':
       cd = buildGAPIObject(API.DIRECTORY)
     else:
@@ -21663,7 +21684,7 @@ def doPrintShowVaultMatters():
         if state in VAULT_MATTER_STATE_MAP:
           matterStatesList.append(VAULT_MATTER_STATE_MAP[state])
         else:
-          invalidChoiceExit(list(VAULT_MATTER_STATE_MAP), True)
+          invalidChoiceExit(state, list(VAULT_MATTER_STATE_MAP), True)
     else:
       unknownArgumentExit()
   # If no states are set, there is no filtering; if 1 state is set, the API can filter; else GAM filters
@@ -22078,13 +22099,13 @@ def getACLRoles(aclRolesMap):
     elif role in aclRolesMap:
       roles.append(aclRolesMap[role])
     else:
-      invalidChoiceExit(aclRolesMap, True)
-  return list(set(roles))
+      invalidChoiceExit(role, aclRolesMap, True)
+  return set(roles)
 
 def _infoSites(users, entityType):
   siteEntity = getSiteEntity()
   url_params = {}
-  roles = None
+  roles = set()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'withmappings':
@@ -22190,7 +22211,7 @@ def printShowSites(entityList, entityType):
   domainLists = []
   url_params = {}
   includeAllSites = 'true' if entityType == Ent.DOMAIN else 'false'
-  roles = None
+  roles = set()
   convertCRNL = GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   csvPF = CSVPrintFile([Ent.Singular(entityType), SITE_SITE, SITE_NAME, SITE_SUMMARY], 'sortall') if Act.csvFormat() else None
@@ -22491,14 +22512,15 @@ def _printSiteActivity(users, entityType):
         entityActionFailedWarning([Ent.SITE, domainSite], str(e), j, jcount)
   csvPF.writeCSVfile('Site Activities')
 
-# gam [<UserTypeEntity>] print siteactivity <SiteEntity> [todrive <ToDriveAttributes>*] [startindex <Number>] [maxresults <Number>] [updated_min <Date>] [updated_max <Date>]
+# gam [<UserTypeEntity>] print siteactivity <SiteEntity> [todrive <ToDriveAttributes>*]
+#	[startindex <Number>] [maxresults <Number>] [updated_min <Date>] [updated_max <Date>]
 def printUserSiteActivity(users):
   _printSiteActivity(users, Ent.USER)
 
 def doPrintDomainSiteActivity():
   _printSiteActivity([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
-# <FileName> [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+# <FileName> [charset <String>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
 #	[keyfield <FieldName>] [datafield <FieldName>]
 def _getGroupOrgUnitMap():
 
@@ -22659,7 +22681,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         attrdict[keywords[UProp.PTKW_ATTR_CUSTOMTYPE_KEYWORD]] = Cmd.Current()
         Cmd.Advance()
         return
-      invalidChoiceExit(keywords[UProp.PTKW_KEYWORD_LIST], False)
+      invalidChoiceExit(keyword, keywords[UProp.PTKW_KEYWORD_LIST], False)
     elif DEFAULT_CHOICE in opts:
       attrdict[keywords[UProp.PTKW_ATTR_TYPE_KEYWORD]] = opts[DEFAULT_CHOICE]
       return
@@ -23602,7 +23624,7 @@ def infoUsers(entityList):
         if field in USER_FIELDS_CHOICE_MAP:
           addFieldToFieldsList(field, USER_FIELDS_CHOICE_MAP, fieldsList)
         else:
-          invalidChoiceExit(USER_FIELDS_CHOICE_MAP, True)
+          invalidChoiceExit(field, USER_FIELDS_CHOICE_MAP, True)
 # Ignore info group arguments that may have come from whatis
     elif myarg in INFO_GROUP_OPTIONS:
       pass
@@ -24379,7 +24401,7 @@ def _getCourseStates(item, states):
     elif state in stateMap:
       states.append(stateMap[state])
     else:
-      invalidChoiceExit(stateMap, True)
+      invalidChoiceExit(state, stateMap, True)
 
 def _gettingCourseAnnouncementQuery(courseAnnouncementStates):
   query = ''
@@ -24869,7 +24891,7 @@ def _getCourseShowProperties(myarg, courseShowProperties):
       elif field in COURSE_FIELDS_CHOICE_MAP:
         courseShowProperties['fields'].append(COURSE_FIELDS_CHOICE_MAP[field])
       else:
-        invalidChoiceExit(COURSE_FIELDS_CHOICE_MAP, True)
+        invalidChoiceExit(field, COURSE_FIELDS_CHOICE_MAP, True)
   elif myarg == 'skipfields':
     for field in _getFieldsList():
       if field in ['alias', 'aliases']:
@@ -24888,7 +24910,7 @@ def _getCourseShowProperties(myarg, courseShowProperties):
         if field != 'id':
           courseShowProperties['skips'].append(COURSE_FIELDS_CHOICE_MAP[field])
       else:
-        invalidChoiceExit(COURSE_FIELDS_CHOICE_MAP, True)
+        invalidChoiceExit(field, COURSE_FIELDS_CHOICE_MAP, True)
   else:
     return False
   return True
@@ -25367,7 +25389,7 @@ def doPrintCourseAnnouncements():
   courseShowProperties = _initCourseShowProperties(['name'])
   courseAnnouncementIds = []
   courseAnnouncementStates = []
-  orderBy = initOrderBy()
+  OBY = OrderBy(COURSE_ANNOUNCEMENTS_ORDERBY_CHOICE_MAP)
   creatorEmails = {}
   showCreatorEmail = False
   while Cmd.ArgumentsRemaining():
@@ -25383,7 +25405,7 @@ def doPrintCourseAnnouncements():
     elif myarg in ['announcementstate', 'announcementstates']:
       _getCourseStates(Cmd.OB_COURSE_ANNOUNCEMENT_STATE_LIST, courseAnnouncementStates)
     elif myarg == 'orderby':
-      getOrderBy(COURSE_ANNOUNCEMENTS_ORDERBY_CHOICE_MAP, orderBy)
+      OBY.GetChoice()
     elif myarg in ['showcreatoremails', 'creatoremail']:
       showCreatorEmail = True
     elif getFieldsList(myarg, COURSE_ANNOUNCEMENTS_FIELDS_CHOICE_MAP, fieldsList, 'id'):
@@ -25412,7 +25434,7 @@ def doPrintCourseAnnouncements():
         results = callGAPIpages(croom.courses().announcements(), 'list', 'announcements',
                                 page_message=getPageMessage(),
                                 throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                                courseId=courseId, announcementStates=courseAnnouncementStates, orderBy=orderBy['list'],
+                                courseId=courseId, announcementStates=courseAnnouncementStates, orderBy=OBY.orderBy(),
                                 fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
       except GAPI.forbidden:
         ClientAPIAccessDeniedExit()
@@ -25602,7 +25624,7 @@ def doPrintCourseWork():
   courseWorkSelectionParameters = _initCourseWorkSelectionParameters()
   courseItemFilter = _initCourseItemFilter()
   courseShowProperties = _initCourseShowProperties(['name'])
-  orderBy = initOrderBy()
+  OBY = OrderBy(COURSE_WORK_ORDERBY_CHOICE_MAP)
   creatorEmails = {}
   showCreatorEmail = False
   while Cmd.ArgumentsRemaining():
@@ -25616,7 +25638,7 @@ def doPrintCourseWork():
     elif _getCourseItemFilter(myarg, courseItemFilter, COURSE_CUS_FILTER_FIELDS_MAP):
       pass
     elif myarg == 'orderby':
-      getOrderBy(COURSE_WORK_ORDERBY_CHOICE_MAP, orderBy)
+      OBY.GetChoice()
     elif myarg in ['showcreatoremails', 'creatoremail']:
       showCreatorEmail = True
     elif getFieldsList(myarg, COURSE_WORK_FIELDS_CHOICE_MAP, fieldsList, 'id'):
@@ -25645,7 +25667,7 @@ def doPrintCourseWork():
         results = callGAPIpages(croom.courses().courseWork(), 'list', 'courseWork',
                                 page_message=getPageMessage(),
                                 throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                                courseId=courseId, courseWorkStates=courseWorkSelectionParameters['courseWorkStates'], orderBy=orderBy['list'],
+                                courseId=courseId, courseWorkStates=courseWorkSelectionParameters['courseWorkStates'], orderBy=OBY.orderBy(),
                                 fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
       except GAPI.forbidden:
         ClientAPIAccessDeniedExit()
@@ -25747,7 +25769,7 @@ def doPrintCourseSubmissions():
   courseShowProperties = _initCourseShowProperties(['name'])
   courseSubmissionStates = []
   courseSubmissionIds = []
-  orderBy = initOrderBy()
+  OBY = OrderBy(COURSE_WORK_ORDERBY_CHOICE_MAP)
   late = None
   userProfiles = {}
   showUserProfile = False
@@ -25762,7 +25784,7 @@ def doPrintCourseSubmissions():
     elif _getCourseItemFilter(myarg, courseItemFilter, COURSE_CU_FILTER_FIELDS_MAP):
       pass
     elif myarg == 'orderby':
-      getOrderBy(COURSE_WORK_ORDERBY_CHOICE_MAP, orderBy)
+      OBY.GetChoice()
     elif myarg in ['submissionid', 'submissionids', 'coursesubmissionid', 'coursesubmissionids']:
       courseSubmissionIds = getEntityList(Cmd.OB_COURSE_SUBMISSION_ID_ENTITY)
     elif myarg in ['submissionstate', 'submissionstates', 'coursesubmissionstate', 'coursesubmissionstates']:
@@ -25797,7 +25819,7 @@ def doPrintCourseSubmissions():
         results = callGAPIpages(croom.courses().courseWork(), 'list', 'courseWork',
                                 page_message=getPageMessage(),
                                 throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                                courseId=courseId, courseWorkStates=courseWorkSelectionParameters['courseWorkStates'], orderBy=orderBy['list'],
+                                courseId=courseId, courseWorkStates=courseWorkSelectionParameters['courseWorkStates'], orderBy=OBY.orderBy(),
                                 fields='nextPageToken,courseWork(id)', pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
       except GAPI.notFound:
         continue
@@ -26545,7 +26567,7 @@ def _printShowGuardians(entityList=None):
         if state in GUARDIAN_STATES:
           states.append(state.upper())
         else:
-          invalidChoiceExit(GUARDIAN_STATES, True)
+          invalidChoiceExit(state, GUARDIAN_STATES, True)
     elif myarg == 'showstudentemails':
       showStudentEmails = True
     elif entityList is None and myarg == 'student':
@@ -27242,7 +27264,7 @@ def _getPrinterExtraFields():
     if field in PRINTER_EXTRA_FIELDS_CHOICE_MAP:
       addFieldToFieldsList(field, PRINTER_EXTRA_FIELDS_CHOICE_MAP, extra_fields)
     else:
-      invalidChoiceExit(PRINTER_EXTRA_FIELDS_CHOICE_MAP, True)
+      invalidChoiceExit(field, PRINTER_EXTRA_FIELDS_CHOICE_MAP, True)
   return ','.join(extra_fields)
 
 # gam info printers <PrinterIDEntity> [everything] [extrafields <PrinterExtraFieldsList>]
@@ -28698,7 +28720,7 @@ def transferCalendars(users):
         if field in TRANSFER_CALENDAR_APPEND_FIELDS:
           appendFieldsList.append(field)
         else:
-          invalidChoiceExit(TRANSFER_CALENDAR_APPEND_FIELDS, True)
+          invalidChoiceExit(field, TRANSFER_CALENDAR_APPEND_FIELDS, True)
     elif myarg == 'noupdatemessages':
       showUpdateMessages = False
     else:
@@ -29755,7 +29777,7 @@ def validateMimeType(mimeType):
     mediaType, subType = mimeType.split('/', 1)
     if mediaType in MIMETYPE_TYPES and subType:
       return mimeType
-  invalidChoiceExit(list(MIMETYPE_CHOICE_MAP)+['({0})/mediatype'.format(formatChoiceList(MIMETYPE_TYPES))], True)
+  invalidChoiceExit(mimeType, list(MIMETYPE_CHOICE_MAP)+['({0})/mediatype'.format(formatChoiceList(MIMETYPE_TYPES))], True)
 
 def getMimeType():
   return validateMimeType(getString(Cmd.OB_MIMETYPE).lower())
@@ -29997,7 +30019,7 @@ def printDriveActivity(users):
           if mappedAction:
             actions.add(mappedAction)
         else:
-          invalidChoiceExit(DRIVE_ACTIVITY_ACTION_MAP, True)
+          invalidChoiceExit(action, DRIVE_ACTIVITY_ACTION_MAP, True)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if not baseFileList and not query:
@@ -30093,7 +30115,7 @@ def printDriveActivity(users):
         kwargs['pageToken'] = pageToken
         if feed:
           if v2:
-            for activityEvent in feed.get('activities'):
+            for activityEvent in feed.get('activities', []):
               eventRow = {}
               actors = activityEvent.get('actors', [])
               if actors:
@@ -30132,7 +30154,7 @@ def printDriveActivity(users):
                   eventRow['JSON'] = json.dumps(cleanJSON(activityEvent), ensure_ascii=False, sort_keys=True)
                   csvPF.WriteRowNoFilter(eventRow)
           else:
-            for activityEvent in feed.get('activities'):
+            for activityEvent in feed.get('activities', []):
               event = activityEvent['combinedEvent']
               event['eventTime'] = formatLocalTimestamp(event['eventTimeMillis'])
               if filterTime:
@@ -30484,12 +30506,6 @@ def _mapDrivePermissionNames(permission):
   if emailAddress:
     _, permission['domain'] = splitEmailAddress(emailAddress)
 
-def _initParentsSubFields():
-  return {'id': False, 'isRoot': False, 'rootFolderId': None}
-
-def _setAllParentsSubFields(parentsSubFields):
-  parentsSubFields['id'] = parentsSubFields['isRoot'] = True
-
 def _mapDriveParents(f_file, parentsSubFields):
   if 'parents' in f_file:
     parents = f_file['parents'][:]
@@ -30574,6 +30590,7 @@ DRIVE_FIELDS_CHOICE_MAP = {
   'createdtime': 'createdTime',
   'description': 'description',
   'driveid': 'driveId',
+  'drivename': 'driveId',
   'editable': 'capabilities.canEdit',
   'explicitlytrashed': 'explicitlyTrashed',
   'fileextension': 'fileExtension',
@@ -30623,6 +30640,7 @@ DRIVE_FIELDS_CHOICE_MAP = {
   'size': 'size',
   'spaces': 'spaces',
   'teamdriveid': 'driveId',
+  'teamdrivename': 'driveId',
   'thumbnaillink': 'thumbnailLink',
   'thumbnailversion': 'thumbnailVersion',
   'title': 'name',
@@ -30753,9 +30771,69 @@ def _getDriveFieldSubField(field, fieldsList, parentsSubFields):
       else:
         fieldsList.append(DRIVE_SUBFIELDS_CHOICE_MAP[field][subField])
     else:
-      invalidChoiceExit(list(DRIVE_SUBFIELDS_CHOICE_MAP[field]), True)
+      invalidChoiceExit(subField, list(DRIVE_SUBFIELDS_CHOICE_MAP[field]), True)
   else:
-    invalidChoiceExit(list(DRIVE_SUBFIELDS_CHOICE_MAP), True)
+    invalidChoiceExit(field, list(DRIVE_SUBFIELDS_CHOICE_MAP), True)
+
+class DriveFileFields():
+  def __init__(self):
+    self.showTeamDriveNames = False
+    self.allFields = False
+    self.OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
+    self.fieldsList = []
+    self.parentsSubFields = {'id': False, 'isRoot': False, 'rootFolderId': None}
+    self.teamDriveNames = {}
+
+  def SetAllParentsSubFields(self):
+    self.parentsSubFields['id'] = self.parentsSubFields['isRoot'] = True
+
+  def ProcessArgument(self, myarg):
+    if myarg == 'allfields':
+      self.fieldsList = []
+      self.allFields = True
+    elif myarg in DRIVE_LABEL_CHOICE_MAP:
+      addFieldToFieldsList(myarg, DRIVE_LABEL_CHOICE_MAP, self.fieldsList)
+    elif myarg in DRIVE_FIELDS_CHOICE_MAP:
+      addFieldToFieldsList(myarg, DRIVE_FIELDS_CHOICE_MAP, self.fieldsList)
+      if myarg == 'parents':
+        self.SetAllParentsSubFields()
+      elif myarg in ['drivename', 'teamdrivename']:
+        self.showTeamDriveNames = True
+    elif myarg == 'fields':
+      for field in _getFieldsList():
+        if field in DRIVE_LABEL_CHOICE_MAP:
+          addFieldToFieldsList(field, DRIVE_LABEL_CHOICE_MAP, self.fieldsList)
+        elif field.find('.') == -1:
+          if field in DRIVE_FIELDS_CHOICE_MAP:
+            addFieldToFieldsList(field, DRIVE_FIELDS_CHOICE_MAP, self.fieldsList)
+            if field == 'parents':
+              self.SetAllParentsSubFields()
+            elif field in ['drivename', 'teamdrivename']:
+              self.showTeamDriveNames = True
+          else:
+            invalidChoiceExit(field, list(DRIVE_FIELDS_CHOICE_MAP)+list(DRIVE_LABEL_CHOICE_MAP), True)
+        else:
+          _getDriveFieldSubField(field, self.fieldsList, self.parentsSubFields)
+    elif myarg.find('.') != -1:
+      _getDriveFieldSubField(myarg, self.fieldsList, self.parentsSubFields)
+    elif myarg == 'orderby':
+      self.OBY.GetChoice()
+    elif myarg in ['showdrivename', 'showteamdrivename']:
+      self.showTeamDriveNames = True
+    else:
+      return False
+    return True
+
+  def fields(self):
+    return ','.join(set(self.fieldsList)).replace('.', '/')
+
+  def orderBy(self):
+    return self.OBY.orderBy()
+
+  def GetTeamDriveName(self, drive, driveId):
+    if driveId not in self.teamDriveNames:
+      self.teamDriveNames[driveId] = _getTeamDriveNameFromId(drive, driveId)
+    return self.teamDriveNames[driveId]
 
 def _setSkipObjects(skipObjects, skipTitles, fieldsList):
   for field in skipTitles:
@@ -30788,74 +30866,55 @@ def _setGetPermissionsForTeamDrives(fieldsList):
 # gam <UserTypeEntity> show fileinfo <DriveFileEntity> [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 def showFileInfo(users):
   def _setSelectionFields():
-    _setSkipObjects(skipObjects, FILEINFO_FIELDS_TITLES, fieldsList)
+    _setSkipObjects(skipObjects, FILEINFO_FIELDS_TITLES, DFF.fieldsList)
     if filepath:
-      _setSkipObjects(skipObjects, FILEPATH_FIELDS_TITLES, fieldsList)
+      _setSkipObjects(skipObjects, FILEPATH_FIELDS_TITLES, DFF.fieldsList)
     if getPermissionsForTeamDrives:
-      if 'driveId' not in fieldsList:
+      if 'driveId' not in DFF.fieldsList:
         skipObjects.add('driveId')
-        fieldsList.append('driveId')
+        DFF.fieldsList.append('driveId')
+    if DFF.showTeamDriveNames:
+      if 'driveId' not in DFF.fieldsList:
+        skipObjects.add('driveId')
+        DFF.fieldsList.append('driveId')
 
   filepath = showNoParents = False
-  fieldsList = []
-  orderBy = initOrderBy()
   skipObjects = set()
   fileIdEntity = getDriveFileEntity()
-  parentsSubFields = _initParentsSubFields()
+  DFF = DriveFileFields()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'filepath':
       filepath = True
-    elif myarg == 'orderby':
-      getOrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP, orderBy)
-    elif myarg == 'allfields':
-      fieldsList = []
-    elif myarg in DRIVE_LABEL_CHOICE_MAP:
-      addFieldToFieldsList(myarg, DRIVE_LABEL_CHOICE_MAP, fieldsList)
-    elif myarg in DRIVE_FIELDS_CHOICE_MAP:
-      addFieldToFieldsList(myarg, DRIVE_FIELDS_CHOICE_MAP, fieldsList)
-      if myarg == 'parents':
-        _setAllParentsSubFields(parentsSubFields)
-    elif myarg == 'fields':
-      for field in _getFieldsList():
-        if field in DRIVE_LABEL_CHOICE_MAP:
-          addFieldToFieldsList(field, DRIVE_LABEL_CHOICE_MAP, fieldsList)
-        elif field.find('.') == -1:
-          if field in DRIVE_FIELDS_CHOICE_MAP:
-            addFieldToFieldsList(field, DRIVE_FIELDS_CHOICE_MAP, fieldsList)
-            if field == 'parents':
-              _setAllParentsSubFields(parentsSubFields)
-          else:
-            invalidChoiceExit(list(DRIVE_FIELDS_CHOICE_MAP)+list(DRIVE_LABEL_CHOICE_MAP), True)
-        else:
-          _getDriveFieldSubField(field, fieldsList, parentsSubFields)
-    elif myarg.find('.') != -1:
-      _getDriveFieldSubField(myarg, fieldsList, parentsSubFields)
+    elif DFF.ProcessArgument(myarg):
+      pass
     else:
       unknownArgumentExit()
   getPermissionsForTeamDrives = False
-  if fieldsList:
-    getPermissionsForTeamDrives, permissionsFields = _setGetPermissionsForTeamDrives(fieldsList)
+  if DFF.fieldsList:
+    getPermissionsForTeamDrives, permissionsFields = _setGetPermissionsForTeamDrives(DFF.fieldsList)
     _setSelectionFields()
-    fields = ','.join(set(fieldsList)).replace('.', '/')
-    showNoParents = 'parents' in fieldsList
+    fields = DFF.fields()
+    showNoParents = 'parents' in DFF.fieldsList
   else:
     fields = '*'
-    _setAllParentsSubFields(parentsSubFields)
+    DFF.SetAllParentsSubFields()
     skipObjects = skipObjects.union(DEFAULT_SKIP_OBJECTS)
     showNoParents = True
   timeObjects = _getDriveTimeObjects()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER, orderBy=orderBy['list'])
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity,
+                                                  entityType=Ent.DRIVE_FILE_OR_FOLDER,
+                                                  orderBy=DFF.orderBy())
     if jcount == 0:
       continue
-    if parentsSubFields['isRoot']:
+    if DFF.parentsSubFields['isRoot']:
       try:
-        parentsSubFields['rootFolderId'] = callGAPI(drive.files(), 'get',
-                                                    throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                                    fileId='root', fields='id')['id']
+        DFF.parentsSubFields['rootFolderId'] = callGAPI(drive.files(), 'get',
+                                                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                                        fileId='root', fields='id')['id']
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         continue
@@ -30869,11 +30928,15 @@ def showFileInfo(users):
         result = callGAPI(drive.files(), 'get',
                           throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
                           fileId=fileId, fields=fields, supportsAllDrives=True)
-        if (result['mimeType'] == MIMETYPE_GA_FOLDER) and (result['name'] == TEAM_DRIVE) and result.get('driveId'):
-          result['name'] = _getTeamDriveNameFromId(drive, result['driveId'])
+        driveId = result.get('driveId')
+        if driveId:
+          if result['mimeType'] == MIMETYPE_GA_FOLDER and result['name'] == TEAM_DRIVE:
+            result['name'] = DFF.GetTeamDriveName(drive, driveId)
+          if DFF.showTeamDriveNames:
+            result['driveName'] = DFF.GetTeamDriveName(drive, driveId)
         if showNoParents:
           result.setdefault('parents', [])
-        if getPermissionsForTeamDrives and result.get('driveId') and 'permissions' not in result:
+        if getPermissionsForTeamDrives and driveId and 'permissions' not in result:
           try:
             result['permissions'] = callGAPIpages(drive.permissions(), 'list', 'permissions',
                                                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
@@ -30893,9 +30956,9 @@ def showFileInfo(users):
             printKeyValueList(['path', path])
           Ind.Decrement()
         if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
-          _mapDriveFieldNames(result, user, parentsSubFields, True)
+          _mapDriveFieldNames(result, user, DFF.parentsSubFields, True)
         else:
-          _mapDriveParents(result, parentsSubFields)
+          _mapDriveParents(result, DFF.parentsSubFields)
           _mapDriveProperties(result)
         showJSON(None, result, skipObjects, timeObjects, {'owners': 'displayName', 'parents': 'id', 'permissions': ['name', 'displayName'][GC.Values[GC.DRIVE_V3_NATIVE_NAMES]]})
         Ind.Decrement()
@@ -31223,7 +31286,7 @@ def printShowFileRevisions(users):
   fileIdEntity = getDriveFileEntity()
   revisionsEntity = None
   oneItemPerRow = previewDelete = showTitles = False
-  orderBy = initOrderBy()
+  OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
   fileNameTitle = 'title' if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else 'name'
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -31236,7 +31299,7 @@ def printShowFileRevisions(users):
       if csvPF:
         csvPF.AddTitles('revision.id')
     elif myarg == 'orderby':
-      getOrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP, orderBy)
+      OBY.GetChoice()
     elif myarg == 'previewdelete':
       previewDelete = True
     elif myarg == 'showtitles':
@@ -31257,7 +31320,8 @@ def printShowFileRevisions(users):
     i += 1
     origUser = user
     user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity,
-                                                  entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][csvPF is not None], orderBy=orderBy['list'])
+                                                  entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][csvPF is not None],
+                                                  orderBy=OBY.orderBy())
     if jcount == 0:
       continue
     Ind.Increment()
@@ -31641,7 +31705,7 @@ DRIVE_INDEXED_TITLES = ['parents', 'paths', 'permissions']
 # gam <UserTypeEntity> print filelist [todrive <ToDriveAttributes>*] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
 #	[((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) |
 #	  (select <DriveFileEntityListTree> [selectsubquery <QueryDriveFile>] [norecursion|(depth <Number>)] [showparent])]
-#	[querytime.* <Time>] [maxfiles <Integer>] [countsonly]
+#	[querytime.* <Time>] [maxfiles <Integer>] [countsonly] [nodataheaders <String>]
 #	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
 #	(<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	[filepath|fullpath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
@@ -31649,43 +31713,48 @@ DRIVE_INDEXED_TITLES = ['parents', 'paths', 'permissions']
 def printFileList(users):
   def _setSelectionFields():
     if fileIdEntity:
-      _setSkipObjects(skipObjects, FILELIST_FIELDS_TITLES, fieldsList)
+      _setSkipObjects(skipObjects, FILELIST_FIELDS_TITLES, DFF.fieldsList)
     if filepath:
-      _setSkipObjects(skipObjects, FILEPATH_FIELDS_TITLES, fieldsList)
+      _setSkipObjects(skipObjects, FILEPATH_FIELDS_TITLES, DFF.fieldsList)
     if DLP.showOwnedBy is not None:
-      _setSkipObjects(skipObjects, OWNED_BY_ME_FIELDS_TITLES, fieldsList)
+      _setSkipObjects(skipObjects, OWNED_BY_ME_FIELDS_TITLES, DFF.fieldsList)
     if DLP.mimeTypeCheck.mimeTypes:
-      if 'mimeType' not in fieldsList:
+      if 'mimeType' not in DFF.fieldsList:
         skipObjects.add('mimeType')
-        fieldsList.append('mimeType')
+        DFF.fieldsList.append('mimeType')
     if countsOnly:
       skipObjects.discard('mimeType')
-      if 'mimeType' not in fieldsList:
-        fieldsList.append('mimeType')
+      if 'mimeType' not in DFF.fieldsList:
+        DFF.fieldsList.append('mimeType')
     if DLP.minimumFileSize is not None:
-      if 'size' not in fieldsList:
+      if 'size' not in DFF.fieldsList:
         skipObjects.add('size')
-        fieldsList.append('size')
+        DFF.fieldsList.append('size')
     if DLP.filenameMatchPattern:
-      if 'name' not in fieldsList:
+      if 'name' not in DFF.fieldsList:
         skipObjects.add('name')
-        fieldsList.append('name')
-    if DLP.permissionMatches and 'permissions' not in fieldsList:
-      fieldsList.append('permissions({0})'.format(','.join(DLP.permissionFields)))
+        DFF.fieldsList.append('name')
+    if DLP.permissionMatches and 'permissions' not in DFF.fieldsList:
+      DFF.fieldsList.append('permissions({0})'.format(','.join(DLP.permissionFields)))
     if onlyTeamDrives or getPermissionsForTeamDrives:
-      if 'driveId' not in fieldsList:
+      if 'driveId' not in DFF.fieldsList:
         skipObjects.add('driveId')
-        fieldsList.append('driveId')
+        DFF.fieldsList.append('driveId')
+    if DFF.showTeamDriveNames:
+      if 'driveId' not in DFF.fieldsList:
+        skipObjects.add('driveId')
+        DFF.fieldsList.append('driveId')
 
   def _printFileInfo(drive, user, f_file):
+    driveId = f_file.get('driveId')
     if (not DLP.CheckShowOwnedBy(f_file) or
         not DLP.CheckMimeType(f_file) or
         not DLP.CheckMinimumFileSize(f_file) or
         not DLP.CheckFilenameMatch(f_file) or
         ('permissions' in f_file and not DLP.CheckPermissonMatches(f_file)) or
-        (onlyTeamDrives and not f_file.get('driveId'))):
+        (onlyTeamDrives and not driveId)):
       return
-    if getPermissionsForTeamDrives and f_file.get('driveId') and 'permissions' not in f_file:
+    if getPermissionsForTeamDrives and driveId and 'permissions' not in f_file:
       try:
         f_file['permissions'] = callGAPIpages(drive.permissions(), 'list', 'permissions',
                                               throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
@@ -31697,12 +31766,14 @@ def printFileList(users):
         pass
     row = {'Owner': user}
     fileInfo = f_file.copy()
+    if DFF.showTeamDriveNames and driveId:
+      fileInfo['driveName'] = DFF.GetTeamDriveName(drive, driveId)
     if filepath:
       addFilePathsToRow(drive, fileTree, fileInfo, filePathInfo, csvPF, row)
     if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
-      _mapDriveFieldNames(fileInfo, user, parentsSubFields, False)
+      _mapDriveFieldNames(fileInfo, user, DFF.parentsSubFields, False)
     else:
-      _mapDriveParents(fileInfo, parentsSubFields)
+      _mapDriveParents(fileInfo, DFF.parentsSubFields)
       _mapDriveProperties(fileInfo)
       for permission in fileInfo.get('permissions', []):
         _mapDrivePermissionNames(permission)
@@ -31732,7 +31803,7 @@ def printFileList(users):
       children = callGAPIpages(drive.files(), 'list', 'files',
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID],
                                retry_reasons=[GAPI.UNKNOWN_ERROR],
-                               q=q, orderBy=orderBy['list'], fields=pagesfields,
+                               q=q, orderBy=DFF.orderBy(), fields=pagesfields,
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], includeItemsFromAllDrives=True, supportsAllDrives=True)
     except (GAPI.invalidQuery, GAPI.invalid):
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(selectSubQuery), i, count)
@@ -31760,16 +31831,15 @@ def printFileList(users):
 
   csvPF = CSVPrintFile('Owner', indexedTitles=DRIVE_INDEXED_TITLES)
   FJQC = FormatJSONQuoteChar(csvPF)
-  allfields = buildTree = countsOnly = filepath = fullpath = getTeamDriveNames = noRecursion = onlyTeamDrives = showParent = False
+  buildTree = countsOnly = filepath = fullpath = getTeamDriveNames = noRecursion = onlyTeamDrives = showParent = False
   maxdepth = -1
-  fieldsList = []
-  orderBy = initOrderBy()
+  nodataFields = []
   skipObjects = set()
   selectSubQuery = ''
   fileIdEntity = {}
-  parentsSubFields = _initParentsSubFields()
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   DLP = DriveListParameters()
+  DFF = DriveFileFields()
   kwargs = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -31788,30 +31858,10 @@ def printFileList(users):
       maxdepth = getInteger(minVal=-1)
     elif myarg == 'showparent':
       showParent = getBoolean()
-    elif myarg == 'allfields':
-      fieldsList = []
-      allfields = True
-    elif myarg in DRIVE_LABEL_CHOICE_MAP:
-      addFieldToFieldsList(myarg, DRIVE_LABEL_CHOICE_MAP, fieldsList)
-    elif myarg in DRIVE_FIELDS_CHOICE_MAP:
-      addFieldToFieldsList(myarg, DRIVE_FIELDS_CHOICE_MAP, fieldsList)
-      if myarg == 'parents':
-        _setAllParentsSubFields(parentsSubFields)
-    elif myarg == 'fields':
-      for field in _getFieldsList():
-        if field in DRIVE_LABEL_CHOICE_MAP:
-          addFieldToFieldsList(field, DRIVE_LABEL_CHOICE_MAP, fieldsList)
-        elif field.find('.') == -1:
-          if field in DRIVE_FIELDS_CHOICE_MAP:
-            addFieldToFieldsList(field, DRIVE_FIELDS_CHOICE_MAP, fieldsList)
-            if field == 'parents':
-              _setAllParentsSubFields(parentsSubFields)
-          else:
-            invalidChoiceExit(list(DRIVE_FIELDS_CHOICE_MAP)+list(DRIVE_LABEL_CHOICE_MAP), True)
-        else:
-          _getDriveFieldSubField(field, fieldsList, parentsSubFields)
-    elif myarg.find('.') != -1:
-      _getDriveFieldSubField(myarg, fieldsList, parentsSubFields)
+    elif DFF.ProcessArgument(myarg):
+      pass
+    elif myarg == 'nodataheaders':
+      nodataFields = getString(Cmd.OB_FIELD_NAME_LIST).replace('_', '').replace(',', ' ').split()
     elif myarg == 'filepath':
       filepath = True
     elif myarg == 'fullpath':
@@ -31822,8 +31872,6 @@ def printFileList(users):
       countsOnly = True
       csvPFco = CSVPrintFile(['Owner', 'Total'], 'sortall', checkFilters=False)
       csvPFco.SetZeroBlankMimeTypeCounts(True)
-    elif myarg == 'orderby':
-      getOrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP, orderBy)
     elif myarg == 'delimiter':
       delimiter = getCharacter()
     elif myarg == 'corpora':
@@ -31853,24 +31901,24 @@ def printFileList(users):
   if DLP.permissionMatches:
     getPermissionsForTeamDrives = True
     permissionsFields = 'nextPageToken,permissions'
-  elif fieldsList:
-    getPermissionsForTeamDrives, permissionsFields = _setGetPermissionsForTeamDrives(fieldsList)
+  elif DFF.fieldsList:
+    getPermissionsForTeamDrives, permissionsFields = _setGetPermissionsForTeamDrives(DFF.fieldsList)
   else:
     getPermissionsForTeamDrives = False
-  if fieldsList:
+  if DFF.fieldsList:
     _setSelectionFields()
-    fields = ','.join(set(fieldsList)).replace('.', '/')
+    fields = DFF.fields()
     pagesfields = 'nextPageToken,files({0})'.format(fields)
-  elif not allfields:
+  elif not DFF.allFields:
     if not countsOnly:
       for field in ['name', 'webviewlink']:
-        csvPF.AddField(field, DRIVE_FIELDS_CHOICE_MAP, fieldsList)
+        csvPF.AddField(field, DRIVE_FIELDS_CHOICE_MAP, DFF.fieldsList)
     _setSelectionFields()
-    fields = ','.join(set(fieldsList)).replace('.', '/')
+    fields = DFF.fields()
     pagesfields = 'nextPageToken,files({0})'.format(fields)
   else:
     fields = pagesfields = '*'
-    _setAllParentsSubFields(parentsSubFields)
+    DFF.SetAllParentsSubFields()
     skipObjects = skipObjects.union(DEFAULT_SKIP_OBJECTS)
   if filepath and not countsOnly:
     csvPF.AddTitles('paths')
@@ -31901,11 +31949,11 @@ def printFileList(users):
     user, drive = _validateUserTeamDrive(user, i, count, fileIdEntity)
     if not drive:
       continue
-    if parentsSubFields['isRoot']:
+    if DFF.parentsSubFields['isRoot']:
       try:
-        parentsSubFields['rootFolderId'] = callGAPI(drive.files(), 'get',
-                                                    throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                                    fileId='root', fields='id')['id']
+        DFF.parentsSubFields['rootFolderId'] = callGAPI(drive.files(), 'get',
+                                                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                                        fileId='root', fields='id')['id']
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         continue
@@ -31930,7 +31978,7 @@ def printFileList(users):
                                                                        GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                           retry_reasons=[GAPI.UNKNOWN_ERROR],
                           pageToken=pageToken,
-                          q=DLP.query, orderBy=orderBy['list'], fields=pagesfields, pageSize=maxResults, **btkwargs)
+                          q=DLP.query, orderBy=DFF.orderBy(), fields=pagesfields, pageSize=maxResults, **btkwargs)
         except (GAPI.invalidQuery, GAPI.invalid):
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(DLP.query), i, count)
           queryError = True
@@ -31966,7 +32014,7 @@ def printFileList(users):
                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND,
                                                                           GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                              retry_reasons=[GAPI.UNKNOWN_ERROR],
-                             q=DLP.query, orderBy=orderBy['list'], fields=pagesfields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
+                             q=DLP.query, orderBy=DFF.orderBy(), fields=pagesfields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
       except (GAPI.invalidQuery, GAPI.invalid):
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(DLP.query), i, count)
         break
@@ -32026,6 +32074,38 @@ def printFileList(users):
   if not csvPF.rows:
     setSysExitRC(NO_ENTITIES_FOUND)
   if not countsOnly:
+    if not csvPF.rows:
+      if not nodataFields:
+        if DFF.fieldsList:
+          nodataFields = ['Owner']+list(set(DFF.fieldsList)-skipObjects)
+        else:
+          nodataFields = ['Owner', 'id', fileNameTitle, 'owners.emailAddress', 'permissions']
+        if filepath:
+          nodataFields.append('paths')
+        titles = []
+        for field in nodataFields:
+          if field.find('(') != -1:
+            field, subFields = field.split('(', 1)
+            titles.append(field)
+            titles.extend(['{0}.0.{1}'.format(field, subField) for subField in subFields[:-1].split(',')])
+          elif field.find('.') != -1:
+            titles.append(field.replace('.', '.0.'))
+          elif field.lower() in DRIVE_SUBFIELDS_CHOICE_MAP:
+            titles.append(field)
+            for subField in iter(DRIVE_SUBFIELDS_CHOICE_MAP[field.lower()].values()):
+              if not isinstance(subField, list):
+                titles.append('{0}.0.{1}'.format(field, subField))
+              else:
+                titles.extend(['{0}.0.{1}'.format(field, subSubField) for subSubField in subField])
+          else:
+            titles.append(field)
+        csvPF.SetTitles(titles)
+      else:
+        csvPF.SetTitles(nodataFields)
+      if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
+        _mapDrive3TitlesToDrive2(csvPF.titlesList, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
+        _mapDrive3TitlesToDrive2(csvPF.titlesList, API.DRIVE3_TO_DRIVE2_CAPABILITIES_TITLES_MAP)
+        csvPF.UpdateMappedTitles()
     csvPF.SetSortTitles(['Owner', 'id', fileNameTitle])
     csvPF.writeCSVfile('{0} {1} Drive Files'.format(Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]),
                                                     Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)))
@@ -32040,7 +32120,7 @@ def printShowFilePaths(users):
   csvPF = CSVPrintFile(['Owner', 'id', fileNameTitle, 'paths'], 'sortall', ['paths']) if Act.csvFormat() else None
   fileIdEntity = getDriveFileEntity()
   oneItemPerRow = False
-  orderBy = initOrderBy()
+  OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -32052,14 +32132,14 @@ def printShowFilePaths(users):
       csvPF.SetSortAllTitles()
       csvPF.SetIndexedTitles([])
     elif myarg == 'orderby':
-      getOrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP, orderBy)
+      OBY.GetChoice()
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity,
-                                                  entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][csvPF is not None], orderBy=orderBy['list'])
+                                                  entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][csvPF is not None], orderBy=OBY.orderBy())
     if jcount == 0:
       continue
     filePathInfo = initFilePathInfo()
@@ -32333,7 +32413,7 @@ def printShowFileTree(users):
       children = callGAPIpages(drive.files(), 'list', 'files',
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID],
                                retry_reasons=[GAPI.UNKNOWN_ERROR],
-                               q=q, orderBy=orderBy['list'], fields=pagesFields,
+                               q=q, orderBy=OBY.orderBy(), fields=pagesFields,
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], supportsAllDrives=True, includeItemsFromAllDrives=True)
     except (GAPI.invalidQuery, GAPI.invalid):
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(selectSubQuery), i, count)
@@ -32361,7 +32441,7 @@ def printShowFileTree(users):
   for field in FILETREE_FIELDS_CHOICE_MAP:
     showFields[FILETREE_FIELDS_CHOICE_MAP[field]] = False
   buildTree = noindent = getTeamDriveNames = False
-  orderBy = initOrderBy()
+  OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
   DLP = DriveListParameters(allowQuery=False)
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   while Cmd.ArgumentsRemaining():
@@ -32375,7 +32455,7 @@ def printShowFileTree(users):
     elif myarg == 'selectsubquery':
       selectSubQuery = getString(Cmd.OB_QUERY, minLen=0)
     elif myarg == 'orderby':
-      getOrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP, orderBy)
+      OBY.GetChoice()
     elif myarg == 'depth':
       maxdepth = getInteger(minVal=-1)
     elif myarg == 'fields':
@@ -32385,7 +32465,7 @@ def printShowFileTree(users):
           if csvPF:
             csvPF.AddTitle(FILETREE_FIELDS_CHOICE_MAP[field])
         else:
-          invalidChoiceExit(FILETREE_FIELDS_CHOICE_MAP, True)
+          invalidChoiceExit(field, FILETREE_FIELDS_CHOICE_MAP, True)
     elif myarg == 'delimiter':
       delimiter = getCharacter()
     elif csvPF and myarg == 'noindent':
@@ -32437,7 +32517,7 @@ def printShowFileTree(users):
                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                           retry_reasons=[GAPI.UNKNOWN_ERROR],
                           pageToken=pageToken,
-                          orderBy=orderBy['list'], fields=pagesFields,
+                          orderBy=OBY.orderBy(), fields=pagesFields,
                           pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
         except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, fileIdEntity['teamdrive']['driveId']], str(e), i, count)
@@ -33811,7 +33891,7 @@ def getDriveFile(users):
         if exportFormat in DOCUMENT_FORMATS_MAP:
           exportFormats.extend(DOCUMENT_FORMATS_MAP[exportFormat])
         else:
-          invalidChoiceExit(DOCUMENT_FORMATS_MAP, True)
+          invalidChoiceExit(exportFormat, DOCUMENT_FORMATS_MAP, True)
     elif myarg == 'targetfolder':
       targetFolderPattern = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
     elif myarg == 'targetname':
@@ -33997,7 +34077,7 @@ def getDriveFile(users):
 # gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[(targetuserfoldername <DriveFolderName>)(targetuserfolderid <DriveFolderID>)] [preview] [todrive <ToDriveAttributes>*]
 def collectOrphans(users):
-  orderBy = initOrderBy()
+  OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
   csvPF = None
   targetParms = initDriveFileAttributes()
   targetUserFolderId = None
@@ -34007,7 +34087,7 @@ def collectOrphans(users):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'orderby':
-      getOrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP, orderBy)
+      OBY.GetChoice()
     elif myarg == 'targetuserfoldername':
       targetUserFolderPattern = getString(Cmd.OB_DRIVE_FOLDER_NAME)
       targetUserFolderId = None
@@ -34037,7 +34117,7 @@ def collectOrphans(users):
                            page_message=getPageMessageForWhom(),
                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                            retry_reasons=[GAPI.UNKNOWN_ERROR],
-                           q=query, orderBy=orderBy['list'], fields='nextPageToken,files(id,name,parents,mimeType)',
+                           q=query, orderBy=OBY.orderBy(), fields='nextPageToken,files(id,name,parents,mimeType)',
                            pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
       if targetUserFolderPattern:
         trgtUserFolderName = _substituteForUser(targetUserFolderPattern, user, userName)
@@ -34142,7 +34222,7 @@ def transferDrive(users):
       result = callGAPIpages(targetDrive.files(), 'list', 'files',
                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                              retry_reasons=[GAPI.UNKNOWN_ERROR],
-                             orderBy=orderBy['list'],
+                             orderBy=OBY.orderBy(),
                              q=MY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS.format(escapeDriveFileName(folderName), folderParentId),
                              fields='nextPageToken,files(id)')
       if result:
@@ -34492,7 +34572,7 @@ def transferDrive(users):
       children = callGAPIpages(sourceDrive.files(), 'list', 'files',
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                                retry_reasons=[GAPI.UNKNOWN_ERROR],
-                               orderBy=orderBy['list'], q=WITH_PARENTS.format(fileId),
+                               orderBy=OBY.orderBy(), q=WITH_PARENTS.format(fileId),
                                fields='nextPageToken,files(id,name,parents,mimeType,ownedByMe,trashed,owners(emailAddress,permissionId),permissions(id,role))',
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -34549,7 +34629,7 @@ def transferDrive(users):
   targetUser = getEmailAddress()
   buildTree = True
   csvPF = None
-  orderBy = initOrderBy()
+  OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
   ownerRetainRoleBody = {'role': 'none'}
   nonOwnerRetainRoleBody = {}
   nonOwnerTargetRoleBody = {'role': 'source'}
@@ -34577,7 +34657,7 @@ def transferDrive(users):
     elif myarg == 'noretentionmessages':
       showRetentionMessages = False
     elif myarg == 'orderby':
-      getOrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP, orderBy)
+      OBY.GetChoice()
     elif myarg == 'targetfolderid':
       targetFolderIdLocation = Cmd.Location()
       targetFolderId = getString(Cmd.OB_DRIVE_FILE_ID, minLen=0)
@@ -34601,8 +34681,8 @@ def transferDrive(users):
       unknownArgumentExit()
   if not nonOwnerRetainRoleBody:
     nonOwnerRetainRoleBody = ownerRetainRoleBody
-  if not orderBy['list']:
-    orderBy['list'] = 'folder,createdTime'
+  if not OBY.orderBy():
+    OBY.SetItems('folder,createdTime')
   targetUser, targetDrive = buildGAPIServiceObject(API.DRIVE3, targetUser)
   if not targetDrive:
     return
@@ -34712,7 +34792,7 @@ def transferDrive(users):
                                          page_message=getPageMessageForWhom(),
                                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                                          retry_reasons=[GAPI.UNKNOWN_ERROR],
-                                         orderBy=orderBy['list'], q=NON_TRASHED,
+                                         orderBy=OBY.orderBy(), q=NON_TRASHED,
                                          fields='nextPageToken,files(id,name,parents,mimeType,ownedByMe,owners(emailAddress,permissionId),permissions(id,role))',
                                          pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
         fileTree = buildFileTree(sourceDriveFiles, sourceDrive)
@@ -34811,7 +34891,7 @@ def transferOwnership(users):
       children = callGAPIpages(drive.files(), 'list', 'files',
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                                retry_reasons=[GAPI.UNKNOWN_ERROR],
-                               orderBy=orderBy['list'], q=WITH_PARENTS.format(fileEntry['id']),
+                               orderBy=OBY.orderBy(), q=WITH_PARENTS.format(fileEntry['id']),
                                fields='nextPageToken,files(id,name,parents,mimeType,ownedByMe,trashed)',
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -34833,7 +34913,7 @@ def transferOwnership(users):
   fileIdEntity = getDriveFileEntity()
   body = {}
   newOwner = getEmailAddress()
-  orderBy = initOrderBy()
+  OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
   filepath = trashed = False
   csvPF = fileTree = None
   buildTree = False
@@ -34842,7 +34922,7 @@ def transferOwnership(users):
     if myarg == 'includetrashed':
       trashed = True
     elif myarg == 'orderby':
-      getOrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP, orderBy)
+      OBY.GetChoice()
     elif myarg == 'filepath':
       filepath = True
     elif myarg == 'buildtree':
@@ -34880,7 +34960,7 @@ def transferOwnership(users):
                              page_message=getPageMessageForWhom(),
                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                              retry_reasons=[GAPI.UNKNOWN_ERROR],
-                             orderBy=orderBy['list'],
+                             orderBy=OBY.orderBy(),
                              fields='nextPageToken,files(id,name,parents,mimeType,ownedByMe,trashed)',
                              pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -35005,7 +35085,7 @@ def claimOwnership(users):
       children = callGAPIpages(drive.files(), 'list', 'files',
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                                retry_reasons=[GAPI.UNKNOWN_ERROR],
-                               orderBy=orderBy['list'], q=WITH_PARENTS.format(fileEntry['id']),
+                               orderBy=OBY.orderBy(), q=WITH_PARENTS.format(fileEntry['id']),
                                fields='nextPageToken,files(id,name,parents,mimeType,ownedByMe,trashed,owners(emailAddress,permissionId))',
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -35050,7 +35130,7 @@ def claimOwnership(users):
 
   fileIdEntity = getDriveFileEntity()
   skipFileIdEntity = initDriveFileEntity()
-  orderBy = initOrderBy()
+  OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
   body = {}
   skipusers = []
   subdomains = []
@@ -35078,7 +35158,7 @@ def claimOwnership(users):
     elif myarg == 'includetrashed':
       trashed = True
     elif myarg == 'orderby':
-      getOrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP, orderBy)
+      OBY.GetChoice()
     elif myarg == 'restricted':
       bodyShare['copyRequiresWriterPermission'] = getBoolean()
     elif myarg == 'writerscanshare':
@@ -35127,7 +35207,7 @@ def claimOwnership(users):
                              page_message=getPageMessageForWhom(),
                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                              retry_reasons=[GAPI.UNKNOWN_ERROR],
-                             orderBy=orderBy['list'],
+                             orderBy=OBY.orderBy(),
                              fields='nextPageToken,files(id,name,parents,mimeType,ownedByMe,trashed,owners(emailAddress,permissionId))',
                              pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -36019,7 +36099,7 @@ def _getPermissionsFields(myarg, fieldsList):
       if field in DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP:
         addFieldToFieldsList(field, DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP, fieldsList)
       else:
-        invalidChoiceExit(list(DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP), True)
+        invalidChoiceExit(field, list(DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP), True)
   else:
     return False
   return True
@@ -36030,7 +36110,7 @@ def _printShowDriveFileACLs(users, useDomainAdminAccess):
   fileIdEntity = getDriveFileEntity()
   oneItemPerRow = showTitles = False
   fieldsList = []
-  orderBy = initOrderBy()
+  OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
   fileNameTitle = 'title' if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else 'name'
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -36039,7 +36119,7 @@ def _printShowDriveFileACLs(users, useDomainAdminAccess):
     elif myarg == 'oneitemperrow':
       oneItemPerRow = True
     elif myarg == 'orderby':
-      getOrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP, orderBy)
+      OBY.GetChoice()
     elif myarg == 'showtitles':
       showTitles = True
       if csvPF:
@@ -36060,7 +36140,7 @@ def _printShowDriveFileACLs(users, useDomainAdminAccess):
   for user in users:
     i += 1
     user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity,
-                                                  entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][csvPF is not None or FJQC.formatJSON], orderBy=orderBy['list'],
+                                                  entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][csvPF is not None or FJQC.formatJSON], orderBy=OBY.orderBy(),
                                                   useDomainAdminAccess=useDomainAdminAccess)
     if jcount == 0:
       continue
@@ -36313,7 +36393,7 @@ def _getTeamDriveRestrictions(myarg, body):
     if subField in TEAMDRIVE_RESTRICTIONS_MAP:
       _setRestriction(subField)
       return True
-    invalidChoiceExit(TEAMDRIVE_RESTRICTIONS_MAP, True)
+    invalidChoiceExit(subField, TEAMDRIVE_RESTRICTIONS_MAP, True)
   if myarg in TEAMDRIVE_RESTRICTIONS_MAP:
     _setRestriction(myarg)
     return True
@@ -36598,8 +36678,8 @@ def _printShowTeamDrives(users, useDomainAdminAccess):
       query = getString(Cmd.OB_QUERY, minLen=0) or None
     elif myarg == 'matchname':
       matchPattern = getREPattern(re.IGNORECASE)
-    elif myarg == 'role':
-      roles.add(getChoice(TEAMDRIVE_ACL_ROLES_MAP, mapChoice=True))
+    elif myarg in ['role', 'roles']:
+      roles |= getACLRoles(TEAMDRIVE_ACL_ROLES_MAP)
     elif myarg == 'checkgroups':
       pass
     elif myarg in ['adminaccess', 'asadmin']:
@@ -36689,16 +36769,22 @@ def _printShowTeamDrives(users, useDomainAdminAccess):
   if csvPF:
     csvPF.writeCSVfile('TeamDrives')
 
-# gam print teamdrives [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>] [todrive <ToDriveAttributes>*]
+# gam print teamdrives [todrive <ToDriveAttributes>*]
+#	[teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
 #	[fields <TeamDriveFieldNameList>] [formatjson] [quotechar <Character>]
-# gam show teamdrives [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
+# gam show teamdrives
+#	[teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
 #	[fields <TeamDriveFieldNameList>] [formatjson] [quotechar <Character>]
 def doPrintShowTeamDrives():
   _printShowTeamDrives([_getValueFromOAuth('email')], True)
 
-# gam <UserTypeEntity> print teamdrives [adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]] [matchname <RegularExpression>] (role <TeamDriveACLRole>)* [todrive <ToDriveAttributes>*]
+# gam <UserTypeEntity> print teamdrives [todrive <ToDriveAttributes>*]
+#	[adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]]
+#	[matchname <RegularExpression>] (role|roles <TeamDriveACLRoleList>)*
 #	[fields <TeamDriveFieldNameList>] [formatjson] [quotechar <Character>]
-# gam <UserTypeEntity> show teamdrives [adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]] [matchname <RegularExpression>] (role <TeamDriveACLRole>)*
+# gam <UserTypeEntity> show teamdrives
+#	[adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]]
+#	[matchname <RegularExpression>] (role|roles <TeamDriveACLRoleLIst>)*
 #	[fields <TeamDriveFieldNameList>] [formatjson] [quotechar <Character>]
 def printShowTeamDrives(users):
   _printShowTeamDrives(users, False)
@@ -36722,8 +36808,8 @@ def _printShowTeamDriveACLs(users, useDomainAdminAccess):
     elif myarg in ['user', 'group']:
       permtype = myarg
       emailAddress = getEmailAddress(noUid=True)
-    elif myarg == 'role':
-      roles.add(getChoice(TEAMDRIVE_ACL_ROLES_MAP, mapChoice=True))
+    elif myarg in ['role', 'roles']:
+      roles |= getACLRoles(TEAMDRIVE_ACL_ROLES_MAP)
     elif myarg == 'checkgroups':
       checkGroups = True
     elif csvPF and myarg == 'oneitemperrow':
@@ -36843,23 +36929,23 @@ def _printShowTeamDriveACLs(users, useDomainAdminAccess):
 
 # gam print teamdriveacls [todrive <ToDriveAttribute>*]
 #	[teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-#	[user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
+#	[user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
 #	[oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 # gam show teamdriveacls
 #	[teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-#	[user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
+#	[user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
 #	[<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 def doPrintShowTeamDriveACLs():
   _printShowTeamDriveACLs([_getValueFromOAuth('email')], True)
 
-# gam print teamdriveacls [todrive <ToDriveAttribute>*]
+# gam <UserTypeEntity> print teamdriveacls [todrive <ToDriveAttribute>*]
 #	[teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-#	[user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
+#	[user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
 #	[oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 #	asadmin
-# gam show teamdriveacls
+# gam <UserTypeEntity> show teamdriveacls
 #	[teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-#	[user|group <EmailAddress> [checkgroups]] (role <TeamDriveACLRole>)*
+#	[user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
 #	[<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 #	asadmin
 def printShowTeamDriveACLs(users):
@@ -37002,7 +37088,7 @@ def printShowUserGroups(users):
         if role in GROUP_ROLES_MAP:
           rolesSet.add(GROUP_ROLES_MAP[role])
         else:
-          invalidChoiceExit(GROUP_ROLES_MAP, True)
+          invalidChoiceExit(role, GROUP_ROLES_MAP, True)
     else:
       unknownArgumentExit()
   if not rolesSet:
@@ -42287,7 +42373,9 @@ def ProcessGAMCommand(args, processGamCfg=True):
     closeSTDFilesIfNotMultiprocessing()
   return GM.Globals[GM.SYSEXITRC]
 
-# gam loop <FileName>|-|(gsheet <UserGoogleSheet>) [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>] (matchfield|skipfield <FieldName> <RegularExpression>)* gam <GAM argument list>
+# gam loop <FileName>|-|(gsheet <UserGoogleSheet>) [charset <String>] [warnifnodata]
+#	[columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+#	(matchfield|skipfield <FieldName> <RegularExpression>)* gam <GAM argument list>
 def doLoop():
   filename = getString(Cmd.OB_FILE_NAME)
   if (filename == '-') and (GC.Values[GC.DEBUG_LEVEL] > 0):
