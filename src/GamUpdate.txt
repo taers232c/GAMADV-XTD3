@@ -1,3 +1,8 @@
+4.96.07
+
+Use administrator access to get Shared(Team) Drive names in `gam print filelist` and `gam show fileinfo`.
+This handles an exceptional case where a user has access to a file on a Shared Drive but no access to the Shared Drive itself.
+
 4.96.06
 
 Added `drivename` to `<DriveFieldName>`; this allows you to display Shared(Team) Drive names in `gam print filelist`

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.96.06'
+__version__ = '4.96.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -30783,6 +30783,7 @@ class DriveFileFields():
     self.fieldsList = []
     self.parentsSubFields = {'id': False, 'isRoot': False, 'rootFolderId': None}
     self.teamDriveNames = {}
+    self.drive = None
 
   def SetAllParentsSubFields(self):
     self.parentsSubFields['id'] = self.parentsSubFields['isRoot'] = True
@@ -30830,9 +30831,19 @@ class DriveFileFields():
   def orderBy(self):
     return self.OBY.orderBy()
 
-  def GetTeamDriveName(self, drive, driveId):
+  def GetTeamDriveName(self, driveId):
     if driveId not in self.teamDriveNames:
-      self.teamDriveNames[driveId] = _getTeamDriveNameFromId(drive, driveId)
+      if not self.drive:
+        _, self.drive = buildGAPIServiceObject(API.DRIVE3, _getValueFromOAuth('email'))
+        if not self.drive:
+          self.teamDriveNames[driveId] = TEAM_DRIVE
+          return TEAM_DRIVE
+      try:
+        self.teamDriveNames[driveId] = callGAPI(self.drive.drives(), 'get',
+                                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
+                                                useDomainAdminAccess=True, driveId=driveId, fields='name')['name']
+      except (GAPI.notFound, GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
+        self.teamDriveNames[driveId] = TEAM_DRIVE
     return self.teamDriveNames[driveId]
 
 def _setSkipObjects(skipObjects, skipTitles, fieldsList):
@@ -30931,9 +30942,9 @@ def showFileInfo(users):
         driveId = result.get('driveId')
         if driveId:
           if result['mimeType'] == MIMETYPE_GA_FOLDER and result['name'] == TEAM_DRIVE:
-            result['name'] = DFF.GetTeamDriveName(drive, driveId)
+            result['name'] = DFF.GetTeamDriveName(driveId)
           if DFF.showTeamDriveNames:
-            result['driveName'] = DFF.GetTeamDriveName(drive, driveId)
+            result['driveName'] = DFF.GetTeamDriveName(driveId)
         if showNoParents:
           result.setdefault('parents', [])
         if getPermissionsForTeamDrives and driveId and 'permissions' not in result:
@@ -31767,7 +31778,7 @@ def printFileList(users):
     row = {'Owner': user}
     fileInfo = f_file.copy()
     if DFF.showTeamDriveNames and driveId:
-      fileInfo['driveName'] = DFF.GetTeamDriveName(drive, driveId)
+      fileInfo['driveName'] = DFF.GetTeamDriveName(driveId)
     if filepath:
       addFilePathsToRow(drive, fileTree, fileInfo, filePathInfo, csvPF, row)
     if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
