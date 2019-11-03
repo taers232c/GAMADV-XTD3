@@ -1,3 +1,20 @@
+4.96.08
+
+Any command line argument that starts with `teamdrive` may also be given as `shareddrive`.
+shareddrive
+shareddrives
+shareddriveacls
+shareddriveadminquery
+shareddrivefilename
+shareddriveid
+shareddriveinfo
+shareddrivename
+shareddriveparent
+shareddriveparentid
+shareddriveparentname
+shareddrivequery
+shareddrivethemes
+
 4.96.07
 
 Use administrator access to get Shared(Team) Drive names in `gam print filelist` and `gam show fileinfo`.

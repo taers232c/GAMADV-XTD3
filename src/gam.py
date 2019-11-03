@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.96.07'
+__version__ = '4.96.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -29393,15 +29393,15 @@ def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
   def _getTDKeywordColonValue(kwColonValue):
     kw, value = kwColonValue.split(':', 1)
     kw = kw.lower().replace('_', '').replace('-', '')
-    if kw == 'teamdriveid':
+    if kw in ['teamdriveid', 'shareddriveid']:
       fileIdEntity['teamdrive']['driveId'] = value
-    elif kw == 'teamdrive':
+    elif kw in ['teamdrive', 'shareddrive']:
       fileIdEntity['teamdrivename'] = value
-    elif kw == 'teamdriveadminquery':
+    elif kw in ['teamdriveadminquery', 'shareddriveadminquery']:
       fileIdEntity['teamdriveadminquery'] = value
-    elif kw == 'teamdrivefilename':
+    elif kw in ['teamdrivefilename', 'shareddrivefilename']:
       fileIdEntity['teamdrivefilequery'] = WITH_ANY_FILE_NAME.format(escapeDriveFileName(value))
-    elif kw == 'teamdrivequery':
+    elif kw in ['teamdrivequery', 'shareddrivequery']:
       fileIdEntity['teamdrivefilequery'] = _mapDrive2QueryToDrive3(value)
     else:
       return False
@@ -29434,19 +29434,19 @@ def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
       cleanFileIDsList(fileIdEntity, ['root'])
     elif orphansOK and mycmd == 'orphans':
       cleanFileIDsList(fileIdEntity, ['Orphans'])
-    elif mycmd.startswith('teamdrive'):
+    elif mycmd.startswith('teamdrive') or mycmd.startswith('shareddrive'):
       fileIdEntity['teamdrive'] = {'driveId': None,
                                    'corpora': 'drive', 'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
       while True:
-        if mycmd == 'teamdriveid':
+        if mycmd in ['teamdriveid', 'shareddriveid']:
           fileIdEntity['teamdrive']['driveId'] = getString(Cmd.OB_TEAMDRIVE_ID)
-        elif mycmd == 'teamdrive':
+        elif mycmd in ['teamdrive', 'shareddrive']:
           fileIdEntity['teamdrivename'] = getString(Cmd.OB_TEAMDRIVE_NAME)
-        elif mycmd == 'teamdriveadminquery':
+        elif mycmd in ['teamdriveadminquery', 'shareddriveadminquery']:
           fileIdEntity['teamdriveadminquery'] = getString(Cmd.OB_QUERY)
-        elif mycmd == 'teamdrivefilename':
+        elif mycmd in ['teamdrivefilename', 'shareddrivefilename']:
           fileIdEntity['teamdrivefilequery'] = WITH_ANY_FILE_NAME.format(getEscapedDriveFileName())
-        elif mycmd == 'teamdrivequery':
+        elif mycmd in ['teamdrivequery', 'shareddrivequery']:
           fileIdEntity['teamdrivefilequery'] = _mapDrive2QueryToDrive3(getString(Cmd.OB_QUERY))
         elif queryShortcutsOK and mycmd in TEAMDRIVE_QUERY_SHORTCUTS_MAP:
           fileIdEntity['teamdrivefilequery'] = TEAMDRIVE_QUERY_SHORTCUTS_MAP[mycmd]
@@ -29457,8 +29457,9 @@ def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
         if Cmd.ArgumentsRemaining():
           myarg = getString(Cmd.OB_STRING)
           mycmd = myarg.lower().replace('_', '').replace('-', '')
-          if (mycmd.startswith('teamdriveparent') or
-              (not mycmd.startswith('teamdrive')) and (not (queryShortcutsOK and mycmd in TEAMDRIVE_QUERY_SHORTCUTS_MAP))):
+          if (mycmd.startswith('teamdriveparent') or mycmd.startswith('shareddriveparent') or
+              ((not (mycmd.startswith('teamdrive') or mycmd.startswith('shareddrive'))) and
+               (not (queryShortcutsOK and mycmd in TEAMDRIVE_QUERY_SHORTCUTS_MAP)))):
             Cmd.Backup()
             break
         else:
@@ -29475,9 +29476,9 @@ def getTeamDriveEntity():
   def _getTDKeywordColonValue(kwColonValue):
     kw, value = kwColonValue.split(':', 1)
     kw = kw.lower().replace('_', '').replace('-', '')
-    if kw == 'teamdriveid':
+    if kw in ['teamdriveid', 'shareddriveid']:
       fileIdEntity['teamdrive']['driveId'] = value
-    elif kw == 'teamdrive':
+    elif kw in ['teamdrive', 'shareddrive']:
       fileIdEntity['teamdrivename'] = value
     else:
       return False
@@ -29488,9 +29489,9 @@ def getTeamDriveEntity():
   mycmd = myarg.lower().replace('_', '').replace('-', '')
   fileIdEntity['teamdrive'] = {'driveId': None,
                                'corpora': 'drive', 'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
-  if mycmd == 'teamdriveid':
+  if mycmd in ['teamdriveid', 'shareddriveid']:
     fileIdEntity['teamdrive']['driveId'] = getString(Cmd.OB_TEAMDRIVE_ID)
-  elif mycmd == 'teamdrive':
+  elif mycmd in ['teamdrive', 'shareddrive']:
     fileIdEntity['teamdrivename'] = getString(Cmd.OB_TEAMDRIVE_NAME)
   elif (mycmd.find(':') > 0) and _getTDKeywordColonValue(myarg):
     pass
@@ -29831,11 +29832,11 @@ def getDriveFileParentAttribute(myarg, parameters):
     parameters[DFA_PARENTQUERY] = MY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName())
   elif myarg in ['anyownerparentname', 'sharedparentname']:
     parameters[DFA_PARENTQUERY] = ANY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName())
-  elif myarg == 'teamdriveparent':
+  elif myarg in ['teamdriveparent', 'shareddriveparent']:
     parameters[DFA_TEAMDRIVE_PARENT] = getString(Cmd.OB_TEAMDRIVE_NAME)
-  elif myarg == 'teamdriveparentid':
+  elif myarg in ['teamdriveparentid', 'shareddriveparentid']:
     parameters[DFA_TEAMDRIVE_PARENTID] = getString(Cmd.OB_DRIVE_FOLDER_ID)
-  elif myarg == 'teamdriveparentname':
+  elif myarg in ['teamdriveparentname', 'shareddriveparentname']:
     parameters[DFA_TEAMDRIVE_PARENTQUERY] = ANY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName())
     parameters[DFA_KWARGS]['corpora'] = TEAM_DRIVE_CORPORA
     parameters[DFA_KWARGS]['includeItemsFromAllDrives'] = True
@@ -30392,7 +30393,7 @@ def getFilePaths(drive, fileTree, initialResult, filePathInfo, addParentsToTree=
     if (result['mimeType'] == MIMETYPE_GA_FOLDER) and (result['name'] == TEAM_DRIVE) and result.get('driveId'):
       parentName = _getTeamDriveNameFromId(drive, result['driveId'])
       if parentName != TEAM_DRIVE:
-        return 'TeamDrive({0})'.format(parentName)
+        return 'SharedDrive({0})'.format(parentName)
     return result['name']
 
   def _followParent(paths, parentId):
@@ -30634,6 +30635,8 @@ DRIVE_FIELDS_CHOICE_MAP = {
   'quotaused': 'quotaBytesUsed',
   'shareable': 'capabilities.canShare',
   'shared': 'shared',
+  'shareddriveid': 'driveId',
+  'shareddrivename': 'driveId',
   'sharedwithmedate': 'sharedWithMeTime',
   'sharedwithmetime': 'sharedWithMeTime',
   'sharinguser': 'sharingUser',
@@ -30798,7 +30801,7 @@ class DriveFileFields():
       addFieldToFieldsList(myarg, DRIVE_FIELDS_CHOICE_MAP, self.fieldsList)
       if myarg == 'parents':
         self.SetAllParentsSubFields()
-      elif myarg in ['drivename', 'teamdrivename']:
+      elif myarg in ['drivename', 'shareddrivename', 'teamdrivename']:
         self.showTeamDriveNames = True
     elif myarg == 'fields':
       for field in _getFieldsList():
@@ -30809,7 +30812,7 @@ class DriveFileFields():
             addFieldToFieldsList(field, DRIVE_FIELDS_CHOICE_MAP, self.fieldsList)
             if field == 'parents':
               self.SetAllParentsSubFields()
-            elif field in ['drivename', 'teamdrivename']:
+            elif field in ['drivename', 'shareddrivename', 'teamdrivename']:
               self.showTeamDriveNames = True
           else:
             invalidChoiceExit(field, list(DRIVE_FIELDS_CHOICE_MAP)+list(DRIVE_LABEL_CHOICE_MAP), True)
@@ -30819,7 +30822,7 @@ class DriveFileFields():
       _getDriveFieldSubField(myarg, self.fieldsList, self.parentsSubFields)
     elif myarg == 'orderby':
       self.OBY.GetChoice()
-    elif myarg in ['showdrivename', 'showteamdrivename']:
+    elif myarg in ['showdrivename', 'showshareddrivename', 'showteamdrivename']:
       self.showTeamDriveNames = True
     else:
       return False
@@ -31450,7 +31453,7 @@ def initFileTree(drive, teamdrive, getTeamDriveNames):
                         throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
                         fileId=teamdrive['driveId'], supportsAllDrives=True, fields=','.join(FILEPATH_FIELDS_TITLES+OWNED_BY_ME_FIELDS_TITLES))
       fileTree[f_file['id']] = {'info': f_file, 'children': []}
-      fileTree[f_file['id']]['info']['name'] = 'TeamDrive({0})'.format(callGAPI(drive.drives(), 'get',
+      fileTree[f_file['id']]['info']['name'] = 'SharedDrive({0})'.format(callGAPI(drive.drives(), 'get',
                                                                                 throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
                                                                                 driveId=teamdrive['driveId'], fields='name')['name'])
     if getTeamDriveNames:
@@ -31459,7 +31462,7 @@ def initFileTree(drive, teamdrive, getTeamDriveNames):
                               fields='nextPageToken,drives(id,name)', pageSize=100)
       for tdrive in tdrives:
         if tdrive['id'] not in fileTree:
-          fileTree[tdrive['id']] = {'info': {'id': tdrive['id'], 'name': 'TeamDrive({0})'.format(tdrive['name']), 'mimeType': MIMETYPE_GA_FOLDER}, 'children': []}
+          fileTree[tdrive['id']] = {'info': {'id': tdrive['id'], 'name': 'SharedDrive({0})'.format(tdrive['name']), 'mimeType': MIMETYPE_GA_FOLDER}, 'children': []}
   except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.notFound, GAPI.notFound):
     pass
   return fileTree
@@ -36333,9 +36336,9 @@ def doPrintShowOwnership():
           fileInfo[fileNameTitle] = item['value']
         elif item['name'] == 'doc_type':
           fileInfo['type'] = item['value']
-        elif item['name'] == 'owner_is_team_drive':
-          fileInfo['ownerIsTeamDrive'] = item['boolValue']
-        elif item['name'] == 'team_drive_id':
+        elif item['name'] == 'owner_is_shared_drive':
+          fileInfo['ownerIsSharedDrive'] = item['boolValue']
+        elif item['name'] == 'shared_drive_id':
           fileInfo['driveId'] = item['value']
       else:
         if 'Owner' in fileInfo and 'id' in fileInfo:
@@ -36344,7 +36347,7 @@ def doPrintShowOwnership():
             if not FJQC.formatJSON:
               printEntityKVList([Ent.OWNER, fileInfo['Owner']],
                                 ['id', fileInfo['id'], fileNameTitle, fileInfo.get('title', ''),
-                                 'type', fileInfo.get('type', ''), 'ownerIsTeamDrive', fileInfo.get('ownerIsTeamDrive', False), 'driveId', fileInfo.get('driveId', '')])
+                                 'type', fileInfo.get('type', ''), 'ownerIsSharedDrive', fileInfo.get('ownerIsSharedDrive', False), 'driveId', fileInfo.get('driveId', '')])
             else:
               printLine(json.dumps(cleanJSON(fileInfo), ensure_ascii=False, sort_keys=True))
           else:
@@ -36685,7 +36688,7 @@ def _printShowTeamDrives(users, useDomainAdminAccess):
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg in ['teamdriveadminquery', 'query']:
+    elif myarg in ['teamdriveadminquery', 'shareddriveadminquery', 'query']:
       query = getString(Cmd.OB_QUERY, minLen=0) or None
     elif myarg == 'matchname':
       matchPattern = getREPattern(re.IGNORECASE)
@@ -36778,7 +36781,7 @@ def _printShowTeamDrives(users, useDomainAdminAccess):
           else:
             csvPF.WriteRowTitles(flattenJSON(teamdrive, flattened={'User': user}, timeObjects=TEAMDRIVE_TIME_OBJECTS))
   if csvPF:
-    csvPF.writeCSVfile('TeamDrives')
+    csvPF.writeCSVfile('SharedDrives')
 
 # gam print teamdrives [todrive <ToDriveAttributes>*]
 #	[teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
@@ -36812,7 +36815,7 @@ def _printShowTeamDriveACLs(users, useDomainAdminAccess):
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg in ['teamdriveadminquery', 'query']:
+    elif myarg in ['teamdriveadminquery', 'shareddriveadminquery', 'query']:
       query = getString(Cmd.OB_QUERY, minLen=0) or None
     elif myarg == 'matchname':
       matchPattern = getREPattern(re.IGNORECASE)
@@ -36936,7 +36939,7 @@ def _printShowTeamDriveACLs(users, useDomainAdminAccess):
             _mapDrivePermissionNames(permission)
           csvPF.WriteRowTitles(flattenJSON({'permissions': teamdrive['permissions']}, flattened={'User': user, 'id': teamdrive['id'], 'name': teamdrive['name']}, timeObjects=timeObjects))
   if csvPF:
-    csvPF.writeCSVfile('TeamDrive ACLs')
+    csvPF.writeCSVfile('SharedDrive ACLs')
 
 # gam print teamdriveacls [todrive <ToDriveAttribute>*]
 #	[teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
@@ -41635,6 +41638,11 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_RESOLDSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
   Cmd.ARG_ROLES:	Cmd.ARG_ADMINROLES,
   Cmd.ARG_SCHEMAS:	Cmd.ARG_SCHEMA,
+  Cmd.ARG_SHAREDDRIVE:	Cmd.ARG_TEAMDRIVE,
+  Cmd.ARG_SHAREDDRIVES:	Cmd.ARG_TEAMDRIVE,
+  Cmd.ARG_SHAREDDRIVEACLS:	Cmd.ARG_TEAMDRIVEACLS,
+  Cmd.ARG_SHAREDDRIVEINFO:	Cmd.ARG_TEAMDRIVEINFO,
+  Cmd.ARG_SHAREDDRIVETHEMES:	Cmd.ARG_TEAMDRIVETHEMES,
   Cmd.ARG_SITEACLS:	Cmd.ARG_SITEACL,
   Cmd.ARG_SITES:	Cmd.ARG_SITE,
   Cmd.ARG_TEAMDRIVES:	Cmd.ARG_TEAMDRIVE,
@@ -42221,6 +42229,11 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_PERMISSIONS:	Cmd.ARG_PERMISSION,
   Cmd.ARG_POP3:		Cmd.ARG_POP,
   Cmd.ARG_SECCALS:	Cmd.ARG_CALENDAR,
+  Cmd.ARG_SHAREDDRIVE:	Cmd.ARG_TEAMDRIVE,
+  Cmd.ARG_SHAREDDRIVES:	Cmd.ARG_TEAMDRIVE,
+  Cmd.ARG_SHAREDDRIVEACLS:	Cmd.ARG_TEAMDRIVEACLS,
+  Cmd.ARG_SHAREDDRIVEINFO:	Cmd.ARG_TEAMDRIVEINFO,
+  Cmd.ARG_SHAREDDRIVETHEMES:	Cmd.ARG_TEAMDRIVETHEMES,
   Cmd.ARG_SHEETS:	Cmd.ARG_SHEET,
   Cmd.ARG_SHEETRANGES:	Cmd.ARG_SHEETRANGE,
   Cmd.ARG_SIG:		Cmd.ARG_SIGNATURE,
