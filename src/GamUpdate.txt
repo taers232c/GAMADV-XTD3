@@ -1,3 +1,8 @@
+4.96.09
+
+Added `countsonly` option to `gam print/show contacts`; this causes Gam to display the number of contacts
+but no contact details.
+
 4.96.08
 
 Any command line argument that starts with `teamdrive` may also be given as `shareddrive`.

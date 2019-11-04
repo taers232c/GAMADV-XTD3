@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.96.08'
+__version__ = '4.96.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -13061,7 +13061,7 @@ def _printShowContacts(users, entityType, contactFeed=True):
                        contactsManager.CONTACT_ARRAY_PROPERTY_PRINT_ORDER) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   contactQuery = _initContactQueryAttributes()
-  showContactGroups = False
+  countsOnly = showContactGroups = False
   displayFieldsList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -13073,6 +13073,11 @@ def _printShowContacts(users, entityType, contactFeed=True):
       _getContactFieldsList(contactsManager, displayFieldsList)
       if contactFeed and CONTACT_GROUPS in displayFieldsList:
         showContactGroups = True
+    elif myarg == 'countsonly':
+      countsOnly = True
+      contactQuery['projection'] = CONTACTS_PROJECTION_CHOICE_MAP['basic']
+      if csvPF:
+        csvPF.SetTitles([Ent.Singular(entityType), 'Contacts'])
     elif _getContactQueryAttributes(contactQuery, myarg, entityType, 0, True):
       pass
     else:
@@ -13093,9 +13098,15 @@ def _printShowContacts(users, entityType, contactFeed=True):
         continue
       contactQuery['group'] = contactsObject.GetContactGroupFeedUri(contact_list=user, projection='base', groupId=groupId)
     contacts = queryContacts(contactsObject, contactQuery, entityType, user, i, count)
+    jcount = len(contacts) if contacts is not None else 0
+    if countsOnly:
+      if csvPF:
+        csvPF.WriteRowTitles({Ent.Singular(entityType): user, 'Contacts': jcount})
+      else:
+        printEntityKVList([entityType, user], ['Contacts', jcount], i, count)
+      continue
     if contacts is None:
       continue
-    jcount = len(contacts)
     if not csvPF:
       if not FJQC.formatJSON:
         entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, Ent.CONTACT, i, count)
@@ -13191,7 +13202,7 @@ def _printShowContacts(users, entityType, contactFeed=True):
 #	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
 #	[fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
 # gam <UserTypeEntity> show contacts <UserContactSelection>
-#	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+#	[basic|full|countsonly] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
 #	[fields <ContactFieldNameList>] [formatjson]
 def printShowUserContacts(users):
   _printShowContacts(users, Ent.USER)
@@ -13200,7 +13211,7 @@ def printShowUserContacts(users):
 #	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
 #	[fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
 # gam show contacts <ContactSelection>
-#	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+#	[basic|full|countsonly] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
 #	[fields <ContactFieldNameList>] [formatjson]
 def doPrintShowDomainContacts():
   _printShowContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
@@ -13209,7 +13220,7 @@ def doPrintShowDomainContacts():
 #	[basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]]
 #	[fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
 # gam show gal <ContactSelection>
-#	[basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]]
+#	[basic|full|countsonly] [orderby <ContactOrderByFieldName> [ascending|descending]]
 #	[fields <ContactFieldNameList>] [formatjson]
 def doPrintShowGAL():
   _printShowContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN, False)
