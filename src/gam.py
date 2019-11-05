@@ -38364,7 +38364,7 @@ def updateLabelSettings(users):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 #
 def cleanLabelQuery(labelQuery):
-  for ch in '/ ({':
+  for ch in '/ (){}':
     labelQuery = labelQuery.replace(ch, '-')
   return labelQuery.lower()
 
