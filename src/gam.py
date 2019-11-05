@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.96.09'
+__version__ = '4.96.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1184,6 +1184,7 @@ class OrderBy():
   def SetItems(self, itemList):
     self.items = itemList.split(',')
 
+  @property
   def orderBy(self):
     return ','.join(self.items)
 
@@ -17838,7 +17839,7 @@ def doPrintShowAlerts():
   try:
     alerts = callGAPIpages(ac.alerts(), 'list', 'alerts',
                            throw_reasons=GAPI.ALERT_THROW_REASONS+[GAPI.BAD_REQUEST],
-                           orderBy=OBY.orderBy(), **kwargs)
+                           orderBy=OBY.orderBy, **kwargs)
   except GAPI.badRequest as e:
     entityActionFailedWarning([Ent.ALERT, None], str(e))
     return
@@ -25445,7 +25446,7 @@ def doPrintCourseAnnouncements():
         results = callGAPIpages(croom.courses().announcements(), 'list', 'announcements',
                                 page_message=getPageMessage(),
                                 throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                                courseId=courseId, announcementStates=courseAnnouncementStates, orderBy=OBY.orderBy(),
+                                courseId=courseId, announcementStates=courseAnnouncementStates, orderBy=OBY.orderBy,
                                 fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
       except GAPI.forbidden:
         ClientAPIAccessDeniedExit()
@@ -25678,7 +25679,7 @@ def doPrintCourseWork():
         results = callGAPIpages(croom.courses().courseWork(), 'list', 'courseWork',
                                 page_message=getPageMessage(),
                                 throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                                courseId=courseId, courseWorkStates=courseWorkSelectionParameters['courseWorkStates'], orderBy=OBY.orderBy(),
+                                courseId=courseId, courseWorkStates=courseWorkSelectionParameters['courseWorkStates'], orderBy=OBY.orderBy,
                                 fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
       except GAPI.forbidden:
         ClientAPIAccessDeniedExit()
@@ -25830,7 +25831,7 @@ def doPrintCourseSubmissions():
         results = callGAPIpages(croom.courses().courseWork(), 'list', 'courseWork',
                                 page_message=getPageMessage(),
                                 throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                                courseId=courseId, courseWorkStates=courseWorkSelectionParameters['courseWorkStates'], orderBy=OBY.orderBy(),
+                                courseId=courseId, courseWorkStates=courseWorkSelectionParameters['courseWorkStates'], orderBy=OBY.orderBy,
                                 fields='nextPageToken,courseWork(id)', pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
       except GAPI.notFound:
         continue
@@ -30839,13 +30840,15 @@ class DriveFileFields():
       return False
     return True
 
+  @property
   def fields(self):
     return ','.join(set(self.fieldsList)).replace('.', '/')
 
+  @property
   def orderBy(self):
-    return self.OBY.orderBy()
+    return self.OBY.orderBy
 
-  def GetTeamDriveName(self, driveId):
+  def TeamDriveName(self, driveId):
     if driveId not in self.teamDriveNames:
       if not self.drive:
         _, self.drive = buildGAPIServiceObject(API.DRIVE3, _getValueFromOAuth('email'))
@@ -30919,7 +30922,7 @@ def showFileInfo(users):
   if DFF.fieldsList:
     getPermissionsForTeamDrives, permissionsFields = _setGetPermissionsForTeamDrives(DFF.fieldsList)
     _setSelectionFields()
-    fields = DFF.fields()
+    fields = DFF.fields
     showNoParents = 'parents' in DFF.fieldsList
   else:
     fields = '*'
@@ -30932,7 +30935,7 @@ def showFileInfo(users):
     i += 1
     user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity,
                                                   entityType=Ent.DRIVE_FILE_OR_FOLDER,
-                                                  orderBy=DFF.orderBy())
+                                                  orderBy=DFF.orderBy)
     if jcount == 0:
       continue
     if DFF.parentsSubFields['isRoot']:
@@ -30956,9 +30959,9 @@ def showFileInfo(users):
         driveId = result.get('driveId')
         if driveId:
           if result['mimeType'] == MIMETYPE_GA_FOLDER and result['name'] == TEAM_DRIVE:
-            result['name'] = DFF.GetTeamDriveName(driveId)
+            result['name'] = DFF.TeamDriveName(driveId)
           if DFF.showTeamDriveNames:
-            result['driveName'] = DFF.GetTeamDriveName(driveId)
+            result['driveName'] = DFF.TeamDriveName(driveId)
         if showNoParents:
           result.setdefault('parents', [])
         if getPermissionsForTeamDrives and driveId and 'permissions' not in result:
@@ -31346,7 +31349,7 @@ def printShowFileRevisions(users):
     origUser = user
     user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity,
                                                   entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][csvPF is not None],
-                                                  orderBy=OBY.orderBy())
+                                                  orderBy=OBY.orderBy)
     if jcount == 0:
       continue
     Ind.Increment()
@@ -31792,7 +31795,7 @@ def printFileList(users):
     row = {'Owner': user}
     fileInfo = f_file.copy()
     if DFF.showTeamDriveNames and driveId:
-      fileInfo['driveName'] = DFF.GetTeamDriveName(driveId)
+      fileInfo['driveName'] = DFF.TeamDriveName(driveId)
     if filepath:
       addFilePathsToRow(drive, fileTree, fileInfo, filePathInfo, csvPF, row)
     if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
@@ -31828,7 +31831,7 @@ def printFileList(users):
       children = callGAPIpages(drive.files(), 'list', 'files',
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID],
                                retry_reasons=[GAPI.UNKNOWN_ERROR],
-                               q=q, orderBy=DFF.orderBy(), fields=pagesfields,
+                               q=q, orderBy=DFF.orderBy, fields=pagesfields,
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], includeItemsFromAllDrives=True, supportsAllDrives=True)
     except (GAPI.invalidQuery, GAPI.invalid):
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(selectSubQuery), i, count)
@@ -31932,14 +31935,14 @@ def printFileList(users):
     getPermissionsForTeamDrives = False
   if DFF.fieldsList:
     _setSelectionFields()
-    fields = DFF.fields()
+    fields = DFF.fields
     pagesfields = 'nextPageToken,files({0})'.format(fields)
   elif not DFF.allFields:
     if not countsOnly:
       for field in ['name', 'webviewlink']:
         csvPF.AddField(field, DRIVE_FIELDS_CHOICE_MAP, DFF.fieldsList)
     _setSelectionFields()
-    fields = DFF.fields()
+    fields = DFF.fields
     pagesfields = 'nextPageToken,files({0})'.format(fields)
   else:
     fields = pagesfields = '*'
@@ -32003,7 +32006,7 @@ def printFileList(users):
                                                                        GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                           retry_reasons=[GAPI.UNKNOWN_ERROR],
                           pageToken=pageToken,
-                          q=DLP.query, orderBy=DFF.orderBy(), fields=pagesfields, pageSize=maxResults, **btkwargs)
+                          q=DLP.query, orderBy=DFF.orderBy, fields=pagesfields, pageSize=maxResults, **btkwargs)
         except (GAPI.invalidQuery, GAPI.invalid):
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(DLP.query), i, count)
           queryError = True
@@ -32039,7 +32042,7 @@ def printFileList(users):
                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND,
                                                                           GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                              retry_reasons=[GAPI.UNKNOWN_ERROR],
-                             q=DLP.query, orderBy=DFF.orderBy(), fields=pagesfields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
+                             q=DLP.query, orderBy=DFF.orderBy, fields=pagesfields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
       except (GAPI.invalidQuery, GAPI.invalid):
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(DLP.query), i, count)
         break
@@ -32164,7 +32167,7 @@ def printShowFilePaths(users):
   for user in users:
     i += 1
     user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity,
-                                                  entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][csvPF is not None], orderBy=OBY.orderBy())
+                                                  entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][csvPF is not None], orderBy=OBY.orderBy)
     if jcount == 0:
       continue
     filePathInfo = initFilePathInfo()
@@ -32438,7 +32441,7 @@ def printShowFileTree(users):
       children = callGAPIpages(drive.files(), 'list', 'files',
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID],
                                retry_reasons=[GAPI.UNKNOWN_ERROR],
-                               q=q, orderBy=OBY.orderBy(), fields=pagesFields,
+                               q=q, orderBy=OBY.orderBy, fields=pagesFields,
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], supportsAllDrives=True, includeItemsFromAllDrives=True)
     except (GAPI.invalidQuery, GAPI.invalid):
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(selectSubQuery), i, count)
@@ -32542,7 +32545,7 @@ def printShowFileTree(users):
                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                           retry_reasons=[GAPI.UNKNOWN_ERROR],
                           pageToken=pageToken,
-                          orderBy=OBY.orderBy(), fields=pagesFields,
+                          orderBy=OBY.orderBy, fields=pagesFields,
                           pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
         except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, fileIdEntity['teamdrive']['driveId']], str(e), i, count)
@@ -34142,7 +34145,7 @@ def collectOrphans(users):
                            page_message=getPageMessageForWhom(),
                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                            retry_reasons=[GAPI.UNKNOWN_ERROR],
-                           q=query, orderBy=OBY.orderBy(), fields='nextPageToken,files(id,name,parents,mimeType)',
+                           q=query, orderBy=OBY.orderBy, fields='nextPageToken,files(id,name,parents,mimeType)',
                            pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
       if targetUserFolderPattern:
         trgtUserFolderName = _substituteForUser(targetUserFolderPattern, user, userName)
@@ -34247,7 +34250,7 @@ def transferDrive(users):
       result = callGAPIpages(targetDrive.files(), 'list', 'files',
                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                              retry_reasons=[GAPI.UNKNOWN_ERROR],
-                             orderBy=OBY.orderBy(),
+                             orderBy=OBY.orderBy,
                              q=MY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS.format(escapeDriveFileName(folderName), folderParentId),
                              fields='nextPageToken,files(id)')
       if result:
@@ -34597,7 +34600,7 @@ def transferDrive(users):
       children = callGAPIpages(sourceDrive.files(), 'list', 'files',
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                                retry_reasons=[GAPI.UNKNOWN_ERROR],
-                               orderBy=OBY.orderBy(), q=WITH_PARENTS.format(fileId),
+                               orderBy=OBY.orderBy, q=WITH_PARENTS.format(fileId),
                                fields='nextPageToken,files(id,name,parents,mimeType,ownedByMe,trashed,owners(emailAddress,permissionId),permissions(id,role))',
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -34706,7 +34709,7 @@ def transferDrive(users):
       unknownArgumentExit()
   if not nonOwnerRetainRoleBody:
     nonOwnerRetainRoleBody = ownerRetainRoleBody
-  if not OBY.orderBy():
+  if not OBY.orderBy:
     OBY.SetItems('folder,createdTime')
   targetUser, targetDrive = buildGAPIServiceObject(API.DRIVE3, targetUser)
   if not targetDrive:
@@ -34817,7 +34820,7 @@ def transferDrive(users):
                                          page_message=getPageMessageForWhom(),
                                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                                          retry_reasons=[GAPI.UNKNOWN_ERROR],
-                                         orderBy=OBY.orderBy(), q=NON_TRASHED,
+                                         orderBy=OBY.orderBy, q=NON_TRASHED,
                                          fields='nextPageToken,files(id,name,parents,mimeType,ownedByMe,owners(emailAddress,permissionId),permissions(id,role))',
                                          pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
         fileTree = buildFileTree(sourceDriveFiles, sourceDrive)
@@ -34916,7 +34919,7 @@ def transferOwnership(users):
       children = callGAPIpages(drive.files(), 'list', 'files',
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                                retry_reasons=[GAPI.UNKNOWN_ERROR],
-                               orderBy=OBY.orderBy(), q=WITH_PARENTS.format(fileEntry['id']),
+                               orderBy=OBY.orderBy, q=WITH_PARENTS.format(fileEntry['id']),
                                fields='nextPageToken,files(id,name,parents,mimeType,ownedByMe,trashed)',
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -34985,7 +34988,7 @@ def transferOwnership(users):
                              page_message=getPageMessageForWhom(),
                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                              retry_reasons=[GAPI.UNKNOWN_ERROR],
-                             orderBy=OBY.orderBy(),
+                             orderBy=OBY.orderBy,
                              fields='nextPageToken,files(id,name,parents,mimeType,ownedByMe,trashed)',
                              pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -35110,7 +35113,7 @@ def claimOwnership(users):
       children = callGAPIpages(drive.files(), 'list', 'files',
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                                retry_reasons=[GAPI.UNKNOWN_ERROR],
-                               orderBy=OBY.orderBy(), q=WITH_PARENTS.format(fileEntry['id']),
+                               orderBy=OBY.orderBy, q=WITH_PARENTS.format(fileEntry['id']),
                                fields='nextPageToken,files(id,name,parents,mimeType,ownedByMe,trashed,owners(emailAddress,permissionId))',
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -35232,7 +35235,7 @@ def claimOwnership(users):
                              page_message=getPageMessageForWhom(),
                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                              retry_reasons=[GAPI.UNKNOWN_ERROR],
-                             orderBy=OBY.orderBy(),
+                             orderBy=OBY.orderBy,
                              fields='nextPageToken,files(id,name,parents,mimeType,ownedByMe,trashed,owners(emailAddress,permissionId))',
                              pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -36165,8 +36168,8 @@ def _printShowDriveFileACLs(users, useDomainAdminAccess):
   for user in users:
     i += 1
     user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity,
-                                                  entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][csvPF is not None or FJQC.formatJSON], orderBy=OBY.orderBy(),
-                                                  useDomainAdminAccess=useDomainAdminAccess)
+                                                  entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][csvPF is not None or FJQC.formatJSON],
+                                                  orderBy=OBY.orderBy, useDomainAdminAccess=useDomainAdminAccess)
     if jcount == 0:
       continue
     Ind.Increment()
@@ -38360,6 +38363,11 @@ def updateLabelSettings(users):
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 #
+def cleanLabelQuery(labelQuery):
+  for ch in '/ ({':
+    labelQuery = labelQuery.replace(ch, '-')
+  return labelQuery.lower()
+
 LABEL_TYPE_SYSTEM = 'system'
 LABEL_TYPE_USER = 'user'
 
@@ -38428,7 +38436,7 @@ def updateLabels(users):
               Act.Set(Act.MERGE)
               entityPerformActionModifierNewValue([Ent.USER, user, Ent.LABEL, label['name']], Act.MODIFIER_WITH, newLabelName, i, count)
               messagesToRelabel = callGAPIpages(gmail.users().messages(), 'list', 'messages',
-                                                userId='me', q='label:{0}'.format(label['name'].lower().replace('/', '-').replace(' ', '-')))
+                                                userId='me', q='label:{0}'.format(cleanLabelQuery(label['name'])))
               Act.Set(Act.RELABEL)
               jcount = len(messagesToRelabel)
               Ind.Increment()

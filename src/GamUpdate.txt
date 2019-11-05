@@ -1,3 +1,8 @@
+4.96.10
+
+Fixed `gam update labels merge` to do special encoding of label query when finding messages to re-label.
+Prior to the fix, labels containing `(` and `{` were not found.
+
 4.96.09
 
 Added `countsonly` option to `gam print/show contacts`; this causes Gam to display the number of contacts
