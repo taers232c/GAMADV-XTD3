@@ -31468,8 +31468,8 @@ def initFileTree(drive, teamdrive, getTeamDriveNames):
                         fileId=teamdrive['driveId'], supportsAllDrives=True, fields=','.join(FILEPATH_FIELDS_TITLES+OWNED_BY_ME_FIELDS_TITLES))
       fileTree[f_file['id']] = {'info': f_file, 'children': []}
       fileTree[f_file['id']]['info']['name'] = 'SharedDrive({0})'.format(callGAPI(drive.drives(), 'get',
-                                                                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
-                                                                                driveId=teamdrive['driveId'], fields='name')['name'])
+                                                                                  throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
+                                                                                  driveId=teamdrive['driveId'], fields='name')['name'])
     if getTeamDriveNames:
       tdrives = callGAPIpages(drive.drives(), 'list', 'drives',
                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
