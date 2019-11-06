@@ -45,6 +45,7 @@ CANNOT_REMOVE_OWNER = 'cannotRemoveOwner'
 CANNOT_SHARE_GROUPS_WITHLINK = 'cannotShareGroupsWithLink'
 CANNOT_SHARE_USERS_WITHLINK = 'cannotShareUsersWithLink'
 CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS = 'cannotShareTeamDriveTopFolderWithAnyoneOrDomains'
+CANNOT_UPDATE_PERMISSION = 'cannotUpdatePermission'
 CONDITION_NOT_MET = 'conditionNotMet'
 CONFLICT = 'conflict'
 CUSTOMER_NOT_FOUND = 'customerNotFound'
@@ -165,6 +166,7 @@ DRIVE3_UPDATE_ACL_THROW_REASONS = [BAD_REQUEST, INVALID_OWNERSHIP_TRANSFER, CANN
                                    ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                    FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
                                    FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE,
+                                   CANNOT_UPDATE_PERMISSION,
                                    CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION,
                                    FIELD_NOT_WRITABLE, PERMISSION_NOT_FOUND]
 DRIVE3_DELETE_ACL_THROW_REASONS = [BAD_REQUEST, CANNOT_REMOVE_OWNER,
@@ -298,6 +300,8 @@ class cannotShareGroupsWithLink(Exception):
 class cannotShareUsersWithLink(Exception):
   pass
 class cannotShareTeamDriveTopFolderWithAnyoneOrDomains(Exception):
+  pass
+class cannotUpdatePermission(Exception):
   pass
 class conditionNotMet(Exception):
   pass
@@ -503,6 +507,7 @@ REASON_EXCEPTION_MAP = {
   CANNOT_SHARE_GROUPS_WITHLINK: cannotShareGroupsWithLink,
   CANNOT_SHARE_USERS_WITHLINK: cannotShareUsersWithLink,
   CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS: cannotShareTeamDriveTopFolderWithAnyoneOrDomains,
+  CANNOT_UPDATE_PERMISSION: cannotUpdatePermission,
   CONDITION_NOT_MET: conditionNotMet,
   CONFLICT: conflict,
   CUSTOMER_NOT_FOUND: customerNotFound,

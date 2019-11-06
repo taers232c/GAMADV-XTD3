@@ -1,3 +1,51 @@
+4.96.12
+
+Handle bogus error `ERROR: 403: cannotUpdatePermission - The authenticated user does not have the required access to update the permission.`
+The API generates this error when you update an ACL on a Tean Drive with its current role.
+```
+# Create initial ACL: succeeds
+$ gam add drivefileacls teamdrive "Test TeamDrive" user testuser@domain.com role reader
+User: admin@domain.com, Add 1 Drive File/Folder ACL
+  User: admin@domain.com, Drive File/Folder ID: 00002YhXYo2zyUkZZZZ, Permission ID: testuser@domain.com, Added
+  Test Test User
+    id: 00008704419089109999
+    type: user
+    emailAddress: testuser@domain.com
+    domain: domain.com
+    role: reader
+    permissionDetails:
+      role: reader
+      type: member
+      inherited: False
+    deleted: False
+
+# Update to same role: fails
+$ gam update drivefileacls teamdrive "Test TeamDrive" testuser@domain.com role reader
+User: admin@domain.com, Update 1 Drive File/Folder ACL
+  User: admin@domain.com, Drive File/Folder ID: 00002YhXYo2zyUkZZZZ, Update Failed: The authenticated user does not have the required access to update the permission.
+
+# Update to new role: succeeds
+$ gam update drivefileacls teamdrive "Test TeamDrive" testuser@domain.com role writer
+User: admin@domain.com, Update 1 Drive File/Folder ACL
+  User: admin@domain.com, Drive File/Folder ID: 00002YhXYo2zyUkZZZZ, Permission ID: 00008704419089109999, Updated
+  Test Test User
+    id: 00008704419089109999
+    type: user
+    emailAddress: testuser@domain.com
+    domain: domain.com
+    role: writer
+    permissionDetails:
+      role: writer
+      type: member
+      inherited: False
+    deleted: False
+
+# Update to same role: fails
+$ gam update drivefileacls teamdrive "Test TeamDrive" testuser@domain.com role writer
+User: admin@domain.com, Update 1 Drive File/Folder ACL
+  User: admin@domain.com, Drive File/Folder ID: 00002YhXYo2zyUkZZZZ, Update Failed: The authenticated user does not have the required access to update the permission.
+```
+
 4.96.11
 
 Updated `gam update labels merge` and `gam delete labels` to process labels in reverse hierarchial order to avoid deleting
