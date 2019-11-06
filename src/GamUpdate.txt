@@ -1,3 +1,8 @@
+4.96.11
+
+Updated `gam update labels merge` and `gam delete labels` to process labels in reverse hierarchial order to avoid deleting
+a parent label before all of its child labels are deleted.
+
 4.96.10
 
 Fixed `gam update labels merge` to do special encoding of label query when finding messages to re-label.

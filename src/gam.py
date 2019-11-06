@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.96.10'
+__version__ = '4.96.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -38417,7 +38417,7 @@ def updateLabels(users):
       continue
     try:
       labelMatches = 0
-      for label in labels['labels']:
+      for label in sorted(labels['labels'], key=lambda k: k['name'], reverse=True):
         if label['type'] == LABEL_TYPE_SYSTEM:
           continue
         match_result = pattern.match(label['name'])
@@ -38504,15 +38504,15 @@ def deleteLabel(users):
       del_labels = []
       if label == '--ALL_LABELS--':
         count = len(labels['labels'])
-        for del_label in labels['labels']:
+        for del_label in sorted(labels['labels'], key=lambda k: k['name'], reverse=True):
           if del_label['type'] != LABEL_TYPE_SYSTEM:
             del_labels.append(del_label)
       elif labelPattern:
-        for del_label in labels['labels']:
+        for del_label in sorted(labels['labels'], key=lambda k: k['name'], reverse=True):
           if del_label['type'] != LABEL_TYPE_SYSTEM and labelPattern.match(del_label['name']):
             del_labels.append(del_label)
       else:
-        for del_label in labels['labels']:
+        for del_label in sorted(labels['labels'], key=lambda k: k['name'], reverse=True):
           if label_name_lower == del_label['name'].lower():
             del_labels.append(del_label)
             break
