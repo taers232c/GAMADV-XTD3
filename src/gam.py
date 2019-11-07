@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.96.12'
+__version__ = '4.96.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -28051,10 +28051,20 @@ def deleteBackupCodes(users):
     except (GAPI.invalid, GAPI.invalidInput) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.BACKUP_VERIFICATION_CODES, None], str(e), i, count)
 
+# gam <UserTypeEntity> print backupcodes|verificationcodes [todrive <ToDriveAttributes>*] [delimiter <Character>]
 # gam <UserTypeEntity> show backupcodes|verificationcodes
-def showBackupCodes(users):
+def printShowBackupCodes(users):
   cd = buildGAPIObject(API.DIRECTORY)
-  checkForExtraneousArguments()
+  csvPF = CSVPrintFile(['User', 'verificationCodes']) if Act.csvFormat() else None
+  delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'delimiter':
+      delimiter = getCharacter()
+    else:
+      unknownArgumentExit()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -28063,9 +28073,16 @@ def showBackupCodes(users):
       codes = callGAPIitems(cd.verificationCodes(), 'list', 'items',
                             throw_reasons=[GAPI.USER_NOT_FOUND],
                             userKey=user, fields='items(verificationCode)')
-      _showBackupCodes(user, codes, i, count)
+      if not csvPF:
+        _showBackupCodes(user, codes, i, count)
+      else:
+        printGettingEntityItemForWhom(Ent.BACKUP_VERIFICATION_CODES, user, i, count)
+        csvPF.WriteRow({'User': user,
+                        'verificationCodes': delimiter.join([code['verificationCode'] for code in codes if 'verificationCode' in code])})
     except GAPI.userNotFound:
       entityUnknownWarning(Ent.USER, user, i, count)
+  if csvPF:
+    csvPF.writeCSVfile('Backup Verification Codes')
 
 def _getCalendarSelectProperty(myarg, kwargs):
   if myarg == 'minaccessrole':
@@ -42065,7 +42082,8 @@ USER_COMMANDS_WITH_OBJECTS = {
   'purge': (Act.PURGE, {Cmd.ARG_DRIVEFILE: purgeDriveFile, Cmd.ARG_EVENT: purgeCalendarEvents}),
   'print':
     (Act.PRINT,
-     {Cmd.ARG_CALENDAR:		printShowCalendars,
+     {Cmd.ARG_BACKUPCODE:	printShowBackupCodes,
+      Cmd.ARG_CALENDAR:		printShowCalendars,
       Cmd.ARG_CALENDARACL:	printShowCalendarACLs,
       Cmd.ARG_CALSETTINGS:	printShowCalSettings,
       Cmd.ARG_CLASSROOMINVITATION:	printShowClassroomInvitations,
@@ -42110,7 +42128,7 @@ USER_COMMANDS_WITH_OBJECTS = {
   'show':
     (Act.SHOW,
      {Cmd.ARG_ASP:		showASPs,
-      Cmd.ARG_BACKUPCODE:	showBackupCodes,
+      Cmd.ARG_BACKUPCODE:	printShowBackupCodes,
       Cmd.ARG_CALENDAR:		printShowCalendars,
       Cmd.ARG_CALENDARACL:	printShowCalendarACLs,
       Cmd.ARG_CALSETTINGS:	printShowCalSettings,

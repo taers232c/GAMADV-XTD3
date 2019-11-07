@@ -1,3 +1,10 @@
+4.96.13
+
+Added command to print backup verification codes to a CSV file.
+```
+gam <UserTypeEntity> print backupcodes|verificationcodes [todrive <ToDriveAttributes>*] [delimiter <Character>]
+```
+
 4.96.12
 
 Handle bogus error `ERROR: 403: cannotUpdatePermission - The authenticated user does not have the required access to update the permission.`

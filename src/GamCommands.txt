@@ -2933,6 +2933,7 @@ gam <UserTypeEntity> show asps|applicationspecificpasswords
 gam <UserTypeEntity> update backupcodes|verificationcodes
 gam <UserTypeEntity> delete backupcodes|verificationcodes
 gam <UserTypeEntity> show backupcodes|verificationcodes
+gam <UserTypeEntity> print backupcodes|verificationcodes [todrive <ToDriveAttributes>*] [delimiter <Character>]
 
 # Users - Calendars
 
