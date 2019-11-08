@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.96.13'
+__version__ = '4.96.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -22753,12 +22753,13 @@ def getUserAttributes(cd, updateCmd, noUid=False):
   createIfNotFound = False
   if updateCmd:
     body = {}
-    need_password = False
+    makeRandomPassword = False
   else:
     body = {'name': {'givenName': 'Unknown', 'familyName': 'Unknown'}}
+    makeRandomPassword = True
     body['primaryEmail'] = getEmailAddress(noUid=noUid)
-    need_password = True
-  need_to_hash_password = True
+  notFoundBody = {}
+  hashPassword = True
   notify = {'subject': '', 'message': '', 'html': False, 'charset': UTF8}
   primary = {}
   updatePrimaryEmail = {}
@@ -22782,9 +22783,18 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         Cmd.Backup()
         unknownArgumentExit()
     elif myarg == 'nohash':
-      need_to_hash_password = False
+      hashPassword = False
+    elif updateCmd and myarg == 'createifnotfound':
+      createIfNotFound = True
     elif updateCmd and myarg == 'updateoufromgroup':
       groupOrgUnitMap = _getGroupOrgUnitMap()
+    elif updateCmd and myarg == 'notfoundpassword':
+      up = 'password'
+      notFoundBody[up] = getString(Cmd.OB_PASSWORD, maxLen=100)
+      if notFoundBody[up].lower() == 'random':
+        rnd = SystemRandom()
+        notFoundBody[up] = ''.join(rnd.choice(PASSWORD_SAFE_CHARS) for _ in range(25))
+      notify['notFoundPassword'] = notFoundBody[up]
     elif updateCmd and myarg == 'updateprimaryemail':
       search = getString(Cmd.OB_RE_PATTERN)
       pattern = validateREPattern(search, re.IGNORECASE)
@@ -22818,15 +22828,15 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         body.setdefault('name', {})
         body['name'][up] = getString(Cmd.OB_STRING, minLen=0, maxLen=60)
       elif up == 'password':
-        need_password = False
+        makeRandomPassword = False
         body[up] = getString(Cmd.OB_PASSWORD, maxLen=100)
         if body[up].lower() == 'random':
-          need_password = True
+          makeRandomPassword = True
       elif propertyClass == UProp.PC_BOOLEAN:
         body[up] = getBoolean()
       elif up == 'hashFunction':
         body[up] = HASH_FUNCTION_MAP[myarg]
-        need_to_hash_password = False
+        hashPassword = False
       elif up == 'primaryEmail':
         if updateCmd:
           body[up] = getEmailAddress(noUid=True)
@@ -23094,26 +23104,35 @@ def getUserAttributes(cd, updateCmd, noUid=False):
           body[up][schemaName][fieldName].append(schemaValue)
       else:
         body[up][schemaName][fieldName] = getString(Cmd.OB_STRING, minLen=0)
-    elif myarg == 'createifnotfound' and updateCmd:
-      createIfNotFound = True
     else:
       unknownArgumentExit()
-  if need_password:
+  up = 'password'
+  if makeRandomPassword:
     rnd = SystemRandom()
-    body['password'] = ''.join(rnd.choice(PASSWORD_SAFE_CHARS) for _ in range(25))
-  if notify:
-    notify['password'] = body.get('password')
-  if 'password' in body and need_to_hash_password:
-    body['password'] = gen_sha512_hash(body['password'])
+    body[up] = ''.join(rnd.choice(PASSWORD_SAFE_CHARS) for _ in range(25))
+  notify[up] = body.get(up)
+  if up in body and hashPassword:
+    body[up] = gen_sha512_hash(body[up])
     body['hashFunction'] = 'crypt'
-  return (body, notify, tagReplacements, updatePrimaryEmail, createIfNotFound, groupOrgUnitMap)
+  if createIfNotFound:
+    if not notFoundBody:
+      if up in body:
+        notFoundBody = {up: body[up]}
+        if 'hashfunction' in body:
+          notFoundBody['hashfunction'] = body['hashFunction']
+        notify['notFoundPassword'] = notify[up]
+    else:
+      if hashPassword:
+        notFoundBody[up] = gen_sha512_hash(notFoundBody[up])
+        notFoundBody['hashFunction'] = 'crypt'
+  return (body, notify, tagReplacements, updatePrimaryEmail, createIfNotFound, notFoundBody, groupOrgUnitMap)
 
 # gam create user <EmailAddress> <UserAttributes>
 #	[notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
 #	(replace <Tag> <String>)*
 def doCreateUser():
   cd = buildGAPIObject(API.DIRECTORY)
-  body, notify, tagReplacements, _, _, _ = getUserAttributes(cd, False, noUid=True)
+  body, notify, tagReplacements, _, _, _, _ = getUserAttributes(cd, False, noUid=True)
   user = body['primaryEmail']
   fields = '*' if tagReplacements['subs'] else 'primaryEmail,name'
   try:
@@ -23124,7 +23143,7 @@ def doCreateUser():
                       body=body, fields=fields)
     entityActionPerformed([Ent.USER, user])
     if notify.get('emailAddress'):
-      result['password'] = body['password']
+      result['password'] = notify['password']
       sendCreateUpdateUserNotification(result, notify, tagReplacements)
   except GAPI.duplicate:
     entityDuplicateWarning([Ent.USER, user])
@@ -23143,7 +23162,7 @@ def doCreateUser():
 #	(replace <Tag> <String>)*
 def updateUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
-  body, notify, tagReplacements, updatePrimaryEmail, createIfNotFound, groupOrgUnitMap = getUserAttributes(cd, True)
+  body, notify, tagReplacements, updatePrimaryEmail, createIfNotFound, notFoundBody, groupOrgUnitMap = getUserAttributes(cd, True)
   vfe = 'primaryEmail' in body and body['primaryEmail'][:4].lower() == 'vfe@'
   i, count, entityList = getEntityArgument(entityList)
   fields = '*' if tagReplacements['subs'] else 'primaryEmail,name'
@@ -23195,29 +23214,32 @@ def updateUsers(entityList):
                                            GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
                             userKey=userKey, body=body, fields=fields)
           entityActionPerformed([Ent.USER, user], i, count)
-          if notify.get('emailAddress') and notify.get('password'):
-            result['password'] = body.get('password', u'')
+          if notify.get('emailAddress') and notify['password']:
+            result['password'] = notify['password']
             sendCreateUpdateUserNotification(result, notify, tagReplacements, i, count, createMessage=False)
         except GAPI.userNotFound:
-          if createIfNotFound and (count == 1) and not vfe and ('password' in body) and ('name' in body) and ('givenName' in body['name']) and ('familyName' in body['name']):
-            if 'primaryEmail' not in body:
-              body['primaryEmail'] = user
-            try:
-              result = callGAPI(cd.users(), 'insert',
-                                throw_reasons=[GAPI.DUPLICATE, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN,
-                                               GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.INVALID_PARAMETER,
-                                               GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
-                                body=body, fields=fields)
-              Act.Set(Act.CREATE)
-              entityActionPerformed([Ent.USER, user], i, count)
-              if notify.get('emailAddress'):
-                result['password'] = body['password']
-                sendCreateUpdateUserNotification(result, notify, tagReplacements, i, count)
-            except GAPI.duplicate:
-              entityDuplicateWarning([Ent.USER, user], i, count)
+          if createIfNotFound:
+            if notFoundBody and (count == 1) and not vfe and ('password' in notFoundBody) and ('name' in body) and ('givenName' in body['name']) and ('familyName' in body['name']):
+              if 'primaryEmail' not in body:
+                body['primaryEmail'] = user
+              body.update(notFoundBody)
+              try:
+                result = callGAPI(cd.users(), 'insert',
+                                  throw_reasons=[GAPI.DUPLICATE, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN,
+                                                 GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.INVALID_PARAMETER,
+                                                 GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
+                                  body=body, fields=fields)
+                Act.Set(Act.CREATE)
+                entityActionPerformed([Ent.USER, user], i, count)
+                if notify.get('emailAddress'):
+                  result['password'] = notify['password'] = notify['notFoundPassword']
+                  sendCreateUpdateUserNotification(result, notify, tagReplacements, i, count)
+              except GAPI.duplicate:
+                entityDuplicateWarning([Ent.USER, user], i, count)
+            else:
+              entityActionFailedWarning([Ent.USER, user], Msg.UNABLE_TO_CREATE_NOT_FOUND_USER, i, count)
           else:
             entityUnknownWarning(Ent.USER, user, i, count)
-            continue
     except GAPI.userNotFound:
       entityUnknownWarning(Ent.USER, user, i, count)
     except GAPI.invalidSchemaValue:

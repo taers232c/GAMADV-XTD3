@@ -1,3 +1,9 @@
+4.96.14
+
+Added `notfoundpassword random|<Password>` option to `gam update user` which is used in conjunction with
+the `createifnotfound` option to create a user during an update.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Manage#special-case-processing-for-update-user
+
 4.96.13
 
 Added command to print backup verification codes to a CSV file.
