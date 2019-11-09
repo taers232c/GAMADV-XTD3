@@ -22765,7 +22765,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
   updatePrimaryEmail = {}
   groupOrgUnitMap = None
   tagReplacements = _initTagReplacements()
-  addToGroups = {}
+  updateGroups = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'notify':
@@ -23070,8 +23070,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         appendItemToBodyList(body, up, entry, 'value')
     elif myarg in ['group', 'groups']:
       role = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True)
-      addToGroups.setdefault(role, [])
-      addToGroups[role].extend(convertEntityToList(getString(Cmd.OB_GROUP_ENTITY)))
+      for group in convertEntityToList(getString(Cmd.OB_GROUP_LIST)):
+        updateGroups[normalizeEmailAddressOrUID(group)] = role
     elif myarg == 'clearschema':
       if not updateCmd:
         unknownArgumentExit()
@@ -23130,17 +23130,100 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       if hashPassword:
         notFoundBody[up] = gen_sha512_hash(notFoundBody[up])
         notFoundBody['hashFunction'] = 'crypt'
-  return (body, notify, tagReplacements, addToGroups, updatePrimaryEmail, createIfNotFound, notFoundBody, groupOrgUnitMap)
+  return (body, notify, tagReplacements, updateGroups, updatePrimaryEmail, createIfNotFound, notFoundBody, groupOrgUnitMap)
 
-def _createUpdateUserAddToGroups(cd, user, addToGroups, i, count):
+def _createUpdateUserSetGroups(cd, user, updateGroups, i, count):
+  currGroups = {}
+  try:
+    entityList = callGAPIpages(cd.groups(), 'list', 'groups',
+                               throw_reasons=[GAPI.INVALID_MEMBER, GAPI.RESOURCE_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND,
+                                              GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_INPUT],
+                               userKey=user, orderBy='email', fields='nextPageToken,groups(email)')
+  except GAPI.invalidMember:
+    entityList = []
+  except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest):
+    accessErrorExit(cd)
+  for groupEntity in entityList:
+    groupEmail = groupEntity['email']
+    try:
+      result = callGAPI(cd.members(), 'get',
+                        throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER, GAPI.CONDITION_NOT_MET],
+                        retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
+                        groupKey=groupEmail, memberKey=user, fields='role')
+      role = result.get('role', Ent.MEMBER)
+      currGroups[groupEmail] = role
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
+      entityUnknownWarning(Ent.GROUP, groupEmail, i, count)
+    except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], str(e), i, count)
+  currGroupsSet = set(currGroups)
+  updateGroupsSet = set(updateGroups)
+  removeGroupsSet = currGroupsSet-updateGroupsSet
+  addGroupsSet = updateGroupsSet-currGroupsSet
+  changeGroupsSet = currGroupsSet.intersection(updateGroupsSet)
   action = Act.Get()
-  Act.Set(Act.ADD)
-  for role in [Ent.ROLE_OWNER, Ent.ROLE_MANAGER, Ent.ROLE_MEMBER]:
-    groupKeys = addToGroups[role]
-    if groupKeys:
-      Ind.Increment()
-      _addUserToGroups(cd, user, role, groupKeys, i, count)
-      Ind.Decrement()
+  Ind.Increment()
+  if removeGroupsSet:
+    Act.Set(Act.REMOVE)
+    jcount = len(removeGroupsSet)
+    j = 0
+    for group in removeGroupsSet:
+      j += 1
+      role = currGroups[group]
+      try:
+        callGAPI(cd.members(), 'delete',
+                 throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER, GAPI.CONDITION_NOT_MET],
+                 retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
+                 groupKey=group, memberKey=user)
+        entityActionPerformed([Ent.GROUP, group, role, user], j, jcount)
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
+        entityUnknownWarning(Ent.GROUP, group, j, jcount)
+      except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.GROUP, group], str(e), j, jcount)
+  if addGroupsSet:
+    Act.Set(Act.ADD)
+    jcount = len(addGroupsSet)
+    j = 0
+    for group in addGroupsSet:
+      j += 1
+      role = updateGroups[group]
+      body = {'role': role, 'email': user}
+      try:
+        callGAPI(cd.members(), 'insert',
+                 throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.DUPLICATE, GAPI.CYCLIC_MEMBERSHIPS_NOT_ALLOWED, GAPI.CONDITION_NOT_MET,
+                                                           GAPI.MEMBER_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND, GAPI.INVALID_MEMBER],
+                 retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
+                 groupKey=group, body=body, fields='')
+        entityActionPerformed([Ent.GROUP, group, role, user], j, jcount)
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
+        entityUnknownWarning(Ent.GROUP, group, j, jcount)
+      except (GAPI.duplicate, GAPI.cyclicMembershipsNotAllowed, GAPI.conditionNotMet) as e:
+        entityActionFailedWarning([Ent.GROUP, group, role, user], str(e), j, jcount)
+      except (GAPI.memberNotFound, GAPI.resourceNotFound, GAPI.invalidMember) as e:
+        entityActionFailedWarning([Ent.USER, user], str(e), i, count)
+        break
+  if changeGroupsSet:
+    Act.Set(Act.UPDATE)
+    jcount = len(changeGroupsSet)
+    j = 0
+    for group in changeGroupsSet:
+      j += 1
+      if currGroups[group] == updateGroups[group]:
+        continue
+      role = updateGroups[group]
+      body = {'role': role}
+      try:
+        callGAPI(cd.members(), 'patch',
+                 throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER, GAPI.CONDITION_NOT_MET],
+                 retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
+                 groupKey=group, memberKey=user, body=body, fields='')
+        entityActionPerformed([Ent.GROUP, group, role, user], j, jcount)
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
+        entityUnknownWarning(Ent.GROUP, group, j, jcount)
+      except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.GROUP, group], str(e), j, jcount)
+        break
+  Ind.Decrement()
   Act.Set(action)
 
 # gam create user <EmailAddress> <UserAttributes>
@@ -23148,7 +23231,7 @@ def _createUpdateUserAddToGroups(cd, user, addToGroups, i, count):
 #	(replace <Tag> <String>)*
 def doCreateUser():
   cd = buildGAPIObject(API.DIRECTORY)
-  body, notify, tagReplacements, addToGroups, _, _, _, _ = getUserAttributes(cd, False, noUid=True)
+  body, notify, tagReplacements, updateGroups, _, _, _, _ = getUserAttributes(cd, False, noUid=True)
   user = body['primaryEmail']
   fields = '*' if tagReplacements['subs'] else 'primaryEmail,name'
   try:
@@ -23161,8 +23244,8 @@ def doCreateUser():
     if notify.get('emailAddress'):
       result['password'] = notify['password']
       sendCreateUpdateUserNotification(result, notify, tagReplacements)
-    if addToGroups:
-      _createUpdateUserAddToGroups(cd, result['primaryEmail'], addToGroups, 0, 0)
+    if updateGroups:
+      _createUpdateUserSetGroups(cd, result['primaryEmail'], updateGroups, 0, 0)
   except GAPI.duplicate:
     entityDuplicateWarning([Ent.USER, user])
   except GAPI.invalidSchemaValue:
@@ -23183,7 +23266,7 @@ def doCreateUser():
 #	(replace <Tag> <String>)*
 def updateUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
-  body, notify, tagReplacements, addToGroups, updatePrimaryEmail, createIfNotFound, notFoundBody, groupOrgUnitMap = getUserAttributes(cd, True)
+  body, notify, tagReplacements, updateGroups, updatePrimaryEmail, createIfNotFound, notFoundBody, groupOrgUnitMap = getUserAttributes(cd, True)
   vfe = 'primaryEmail' in body and body['primaryEmail'][:4].lower() == 'vfe@'
   i, count, entityList = getEntityArgument(entityList)
   fields = '*' if tagReplacements['subs'] else 'primaryEmail,name'
@@ -23267,8 +23350,8 @@ def updateUsers(entityList):
       else:
         userGroupKey = user
         printEntity([Ent.USER, user], i, count)
-      if addToGroups and userGroupKey:
-        _createUpdateUserAddToGroups(cd, userGroupKey, addToGroups, i, count)
+      if updateGroups and userGroupKey:
+        _createUpdateUserSetGroups(cd, userGroupKey, updateGroups, i, count)
     except GAPI.userNotFound:
       entityUnknownWarning(Ent.USER, user, i, count)
     except GAPI.invalidSchemaValue:
@@ -37081,34 +37164,6 @@ def deleteUsersAliases(users):
     except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
       entityUnknownWarning(Ent.USER, user, i, count)
 
-def _addUserToGroups(cd, user, role, groupKeys, i, count):
-  body = {'role': role, 'email': user}
-  jcount = len(groupKeys)
-  entityPerformActionModifierNumItemsModifier([Ent.USER, user], Act.MODIFIER_TO, jcount, Ent.GROUP,
-                                              '{0} {1}'.format(Msg.AS, role), i, count)
-  if jcount == 0:
-    return
-  Ind.Increment()
-  j = 0
-  for group in groupKeys:
-    j += 1
-    group = normalizeEmailAddressOrUID(group)
-    try:
-      callGAPI(cd.members(), 'insert',
-               throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.DUPLICATE, GAPI.CYCLIC_MEMBERSHIPS_NOT_ALLOWED, GAPI.CONDITION_NOT_MET,
-                                                         GAPI.MEMBER_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND, GAPI.INVALID_MEMBER],
-               retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
-               groupKey=group, body=body, fields='')
-      entityActionPerformed([Ent.GROUP, group, role, user], j, jcount)
-    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
-      entityUnknownWarning(Ent.GROUP, group, j, jcount)
-    except (GAPI.duplicate, GAPI.cyclicMembershipsNotAllowed, GAPI.conditionNotMet) as e:
-      entityActionFailedWarning([Ent.GROUP, group, role, user], str(e), j, jcount)
-    except (GAPI.memberNotFound, GAPI.resourceNotFound, GAPI.invalidMember) as e:
-      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
-      break
-  Ind.Decrement()
-
 # gam <UserTypeEntity> add group|groups [<GroupRole>] <GroupEntity>
 def addUserToGroups(users):
   cd = buildGAPIObject(API.DIRECTORY)
@@ -37121,7 +37176,33 @@ def addUserToGroups(users):
     i += 1
     if userGroupLists:
       groupKeys = userGroupLists[user]
-    _addUserToGroups(cd, normalizeEmailAddressOrUID(user), role, groupKeys, i, count)
+    user = normalizeEmailAddressOrUID(user)
+    body = {'role': role, 'email': user}
+    jcount = len(groupKeys)
+    entityPerformActionModifierNumItemsModifier([Ent.USER, user], Act.MODIFIER_TO, jcount, Ent.GROUP,
+                                                '{0} {1}'.format(Msg.AS, role), i, count)
+    if jcount == 0:
+      continue
+    Ind.Increment()
+    j = 0
+    for group in groupKeys:
+      j += 1
+      group = normalizeEmailAddressOrUID(group)
+      try:
+        callGAPI(cd.members(), 'insert',
+                 throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.DUPLICATE, GAPI.CYCLIC_MEMBERSHIPS_NOT_ALLOWED, GAPI.CONDITION_NOT_MET,
+                                                           GAPI.MEMBER_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND, GAPI.INVALID_MEMBER],
+                 retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
+                 groupKey=group, body=body, fields='')
+        entityActionPerformed([Ent.GROUP, group, role, user], j, jcount)
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
+        entityUnknownWarning(Ent.GROUP, group, j, jcount)
+      except (GAPI.duplicate, GAPI.cyclicMembershipsNotAllowed, GAPI.conditionNotMet) as e:
+        entityActionFailedWarning([Ent.GROUP, group, role, user], str(e), j, jcount)
+      except (GAPI.memberNotFound, GAPI.resourceNotFound, GAPI.invalidMember) as e:
+        entityActionFailedWarning([Ent.USER, user], str(e), i, count)
+        break
+    Ind.Decrement()
 
 # gam <UserTypeEntity> delete group|groups [<GroupEntity>]
 def deleteUserFromGroups(users):
