@@ -1,3 +1,11 @@
+4.96.15
+
+Added `group [<GroupRole>] <GroupList>` to `<UserAttribute>`; this allows `gam create/update user`
+to add a user to groups when they are created/updated. `<GroupRole>` defaults to `member`.
+```
+gam create user salesmanager@domain.com firstname Sales lastname Manager ou /Staff password MakeQuota groups owner sales@domain.com groups managers@domain.com,staff@domain.com
+```
+
 4.96.14
 
 Added `notfoundpassword random|<Password>` option to `gam update user` which is used in conjunction with
