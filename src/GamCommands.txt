@@ -2819,11 +2819,11 @@ gam show vaultmatters|matters [basic|full] [matterstate <MatterStateList>]
         (website clear|(app_install_page|blog|ftp|home|home_page|other|profile|reservations|resume|work|<String> <URL> [notprimary|primary]))
 <UserAttribute> ::=
         (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])|
-        (groups [<GroupRole>] <GroupList>)|
         <UserBasicAttribute>|
         <UserMultiAttribute>
 
 gam create|add user <EmailAddress> <UserAttribute>*
+        (groups <GroupRole> <GroupList>)*
         [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
         (replace <Tag> <UserReplacement>)*
 gam update user <UserItem> <UserAttribute>*
@@ -2831,7 +2831,7 @@ gam update user <UserItem> <UserAttribute>*
         [updateoufromgroup <FileName> [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
             [keyfield <FieldName>] [datafield <FieldName>]]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
-        [createifnotfound] [notfoundpassword random|<Password>]
+        [createifnotfound] [notfoundpassword random|<Password>] (groups <GroupRole> <GroupList>)*
         [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
         (replace <Tag> <UserReplacement>)*
 gam delete user <UserItem>
@@ -2847,7 +2847,7 @@ gam update users <UserTypeEntity> <UserAttribute>*
         [updateoufromgroup <FileName> [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
             [keyfield <FieldName>] [datafield <FieldName>]]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
-        [createifnotfound] [notfoundpassword random|<Password>]
+        [createifnotfound] [notfoundpassword random|<Password>] (groups <GroupRole> <GroupList>)*
         [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
         (replace <Tag> <UserReplacement>)*
 gam delete users <UserTypeEntity>
@@ -2863,7 +2863,7 @@ gam <UserTypeEntity> update users <UserAttribute>*
         [updateoufromgroup <FileName> [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
             [keyfield <FieldName>] [datafield <FieldName>]]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
-        [createifnotfound] [notfoundpassword random|<Password>]
+        [createifnotfound] [notfoundpassword random|<Password>] (groups <GroupRole> <GroupList>)*
         [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
         (replace <Tag> <UserReplacement>)*
 gam <UserTypeEntity> delete users
@@ -3894,6 +3894,7 @@ gam <UserTypeEntity> show language
 
 gam <UserTypeEntity> add groups [<GroupRole>] <GroupEntity>
 gam <UserTypeEntity> delete groups [<GroupEntity>]
+gam <UserTypeEntity> sync groups [<GroupRole>] <GroupEntity>
 gam <UserTypeEntity> print groups [roles <GroupRoleList>] [domain <DomainName>] [todrive <ToDriveAttributes>*]
 gam <UserTypeEntity> show groups [roles <GroupRoleList>] [domain <DomainName>]
 

@@ -1,10 +1,16 @@
 4.96.15
 
-Added `group [<GroupRole>] <GroupList>` to `<UserAttribute>`; this allows `gam create/update user`
-to add a user to groups when they are created/updated. `<GroupRole>` defaults to `member`.
+Added `group <GroupRole> <GroupList>` option to `gam create/update user` to add a user to groups when they are created.
+For `gam update user` this only applies if `createifnotfound` is specified and the user has to be created.
 ```
-gam create user salesmanager@domain.com firstname Sales lastname Manager ou /Staff password MakeQuota groups owner sales@domain.com groups managers@domain.com,staff@domain.com
+gam create user salesmanager@domain.com firstname Sales lastname Manager ou /Staff password MakeQuota groups owner sales@domain.com groups member managers@domain.com,staff@domain.com
 ```
+
+Added command to synchronize a user's group membership.
+```
+gam <UserTypeEntity> sync groups [<GroupRole>] <GroupEntity>
+```
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Group-Membership
 
 4.96.14
 
