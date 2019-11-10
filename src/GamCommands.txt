@@ -3892,9 +3892,9 @@ gam <UserTypeEntity> show language
 
 # Users - Groups
 
-gam <UserTypeEntity> add groups [<GroupRole>] <GroupEntity>
+gam <UserTypeEntity> add groups ([<GroupRole>] <GroupEntity>)+
 gam <UserTypeEntity> delete groups [<GroupEntity>]
-gam <UserTypeEntity> sync groups [<GroupRole>] <GroupEntity>
+gam <UserTypeEntity> sync groups ([<GroupRole>] <GroupEntity>)+
 gam <UserTypeEntity> print groups [roles <GroupRoleList>] [domain <DomainName>] [todrive <ToDriveAttributes>*]
 gam <UserTypeEntity> show groups [roles <GroupRoleList>] [domain <DomainName>]
 

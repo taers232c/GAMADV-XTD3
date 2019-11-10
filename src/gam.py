@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.96.15'
+__version__ = '4.96.16'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -23070,7 +23070,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         appendItemToBodyList(body, up, entry, 'value')
     elif myarg in ['group', 'groups']:
       role = getChoice(GROUP_ROLES_MAP, mapChoice=True)
-      for group in convertEntityToList(getString(Cmd.OB_GROUP_LIST)):
+      for group in getEntityList(Cmd.OB_GROUP_ENTITY):
         addToGroups[normalizeEmailAddressOrUID(group)] = role
     elif myarg == 'clearschema':
       if not updateCmd:
@@ -37098,56 +37098,66 @@ def _validateSubkeyRoleGetGroups(user, role, origUser, userGroupLists, i, count)
   entityActionNotPerformedWarning([Ent.USER, user, Ent.ROLE, role], Msg.INVALID_ROLE.format(','.join(sorted(GROUP_ROLES_MAP))), i, count)
   return (None, None)
 
+# gam <UserTypeEntity> add group|groups ([<GroupRole>] <GroupEntity>)*
 # gam <UserTypeEntity> add group|groups [<GroupRole>] <GroupEntity>
 def addUserToGroups(users):
   cd = buildGAPIObject(API.DIRECTORY)
   baseRole = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True)
   groupKeys = getEntityList(Cmd.OB_GROUP_ENTITY)
-  userGroupLists = groupKeys if isinstance(groupKeys, dict) else None
   subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
-  checkForExtraneousArguments()
+  if not isinstance(groupKeys, dict):
+    userGroupLists = None
+    addGroups = {}
+    for group in groupKeys:
+      addGroups[normalizeEmailAddressOrUID(group)] = baseRole
+    while Cmd.ArgumentsRemaining():
+      role = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True)
+      for group in getEntityList(Cmd.OB_GROUP_ENTITY):
+        addGroups[normalizeEmailAddressOrUID(group)] = role
+  else:
+    userGroupLists = groupKeys
+    checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    roleList = [baseRole]
-    if userGroupLists:
-      if not subkeyRoleField:
-        groupKeys = userGroupLists[user]
-      else:
-        roleList = userGroupLists[user]
     origUser = user
     user = normalizeEmailAddressOrUID(user)
-    for role in roleList:
-      if userGroupLists and subkeyRoleField:
-        role, groupKeys = _validateSubkeyRoleGetGroups(user, role, origUser, userGroupLists, i, count)
-        if role is None:
-          continue
+    if userGroupLists:
+      roleList = [baseRole]
+      if not subkeyRoleField:
+        groupKeys = userGroupLists[origUser]
+      else:
+        roleList = userGroupLists[origUser]
+      addGroups = {}
+      for role in roleList:
+        if subkeyRoleField:
+          role, groupKeys = _validateSubkeyRoleGetGroups(user, role, origUser, userGroupLists, i, count)
+          if role is None:
+            continue
+        for group in groupKeys:
+          addGroups[normalizeEmailAddressOrUID(group)] = role
+    jcount = len(addGroups)
+    entityPerformActionModifierNumItems([Ent.USER, user], Act.MODIFIER_TO, jcount, Ent.GROUP, i, count)
+    Ind.Increment()
+    j = 0
+    for group, role in sorted(iter(addGroups.items())):
+      j += 1
       body = {'role': role, 'email': user}
-      jcount = len(groupKeys)
-      entityPerformActionModifierNumItemsModifier([Ent.USER, user], Act.MODIFIER_TO, jcount, Ent.GROUP,
-                                                  '{0} {1}'.format(Msg.AS, role), i, count)
-      if jcount == 0:
-        continue
-      Ind.Increment()
-      j = 0
-      for group in groupKeys:
-        j += 1
-        group = normalizeEmailAddressOrUID(group)
-        try:
-          callGAPI(cd.members(), 'insert',
-                   throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.DUPLICATE, GAPI.CYCLIC_MEMBERSHIPS_NOT_ALLOWED, GAPI.CONDITION_NOT_MET,
-                                                             GAPI.MEMBER_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND, GAPI.INVALID_MEMBER],
-                   retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
-                   groupKey=group, body=body, fields='')
-          entityActionPerformed([Ent.GROUP, group, role, user], j, jcount)
-        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
-          entityUnknownWarning(Ent.GROUP, group, j, jcount)
-        except (GAPI.duplicate, GAPI.cyclicMembershipsNotAllowed, GAPI.conditionNotMet) as e:
-          entityActionFailedWarning([Ent.GROUP, group, role, user], str(e), j, jcount)
-        except (GAPI.memberNotFound, GAPI.resourceNotFound, GAPI.invalidMember) as e:
-          entityActionFailedWarning([Ent.USER, user], str(e), i, count)
-          break
-      Ind.Decrement()
+      try:
+        callGAPI(cd.members(), 'insert',
+                 throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.DUPLICATE, GAPI.CYCLIC_MEMBERSHIPS_NOT_ALLOWED, GAPI.CONDITION_NOT_MET,
+                                                           GAPI.MEMBER_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND, GAPI.INVALID_MEMBER],
+                 retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
+                 groupKey=group, body=body, fields='')
+        entityActionPerformed([Ent.GROUP, group, role, user], j, jcount)
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
+        entityUnknownWarning(Ent.GROUP, group, j, jcount)
+      except (GAPI.duplicate, GAPI.cyclicMembershipsNotAllowed, GAPI.conditionNotMet) as e:
+        entityActionFailedWarning([Ent.GROUP, group, role, user], str(e), j, jcount)
+      except (GAPI.memberNotFound, GAPI.resourceNotFound, GAPI.invalidMember) as e:
+        entityActionFailedWarning([Ent.USER, user], str(e), i, count)
+        break
+    Ind.Decrement()
 
 # gam <UserTypeEntity> delete group|groups [<GroupEntity>]
 def deleteUserFromGroups(users):
@@ -37194,33 +37204,44 @@ def deleteUserFromGroups(users):
         entityActionFailedWarning([Ent.USER, user, Ent.GROUP, group], str(e), j, jcount)
     Ind.Decrement()
 
+# gam <UserTypeEntity> sync group|groups ([<GroupRole>] <GroupEntity>)*
 # gam <UserTypeEntity> sync group|groups [<GroupRole>] <GroupEntity>
 def syncUserWithGroups(users):
   cd = buildGAPIObject(API.DIRECTORY)
   baseRole = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True)
   groupKeys = getEntityList(Cmd.OB_GROUP_ENTITY)
-  userGroupLists = groupKeys if isinstance(groupKeys, dict) else None
   subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
-  checkForExtraneousArguments()
+  if not isinstance(groupKeys, dict):
+    userGroupLists = None
+    syncGroups = {}
+    for group in groupKeys:
+      syncGroups[normalizeEmailAddressOrUID(group)] = baseRole
+    while Cmd.ArgumentsRemaining():
+      role = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True)
+      for group in getEntityList(Cmd.OB_GROUP_ENTITY):
+        syncGroups[normalizeEmailAddressOrUID(group)] = role
+  else:
+    userGroupLists = groupKeys
+    checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    roleList = [baseRole]
-    if userGroupLists:
-      if not subkeyRoleField:
-        groupKeys = userGroupLists[user]
-      else:
-        roleList = userGroupLists[user]
     origUser = user
     user = normalizeEmailAddressOrUID(user)
-    syncGroups = {}
-    for role in roleList:
-      if userGroupLists and subkeyRoleField:
-        role, groupKeys = _validateSubkeyRoleGetGroups(user, role, origUser, userGroupLists, i, count)
-        if role is None:
-          continue
-      for group in groupKeys:
-        syncGroups[normalizeEmailAddressOrUID(group)] = role
+    if userGroupLists:
+      roleList = [baseRole]
+      if not subkeyRoleField:
+        groupKeys = userGroupLists[origUser]
+      else:
+        roleList = userGroupLists[origUser]
+      syncGroups = {}
+      for role in roleList:
+        if subkeyRoleField:
+          role, groupKeys = _validateSubkeyRoleGetGroups(user, role, origUser, userGroupLists, i, count)
+          if role is None:
+            continue
+        for group in groupKeys:
+          syncGroups[normalizeEmailAddressOrUID(group)] = role
     currGroups = {}
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',

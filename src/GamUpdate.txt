@@ -1,3 +1,8 @@
+4.96.16
+
+Improved/corrected `gam <UserTypeEntity> add/sync groups`.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Group-Membership
+
 4.96.15
 
 Added `group <GroupRole> <GroupList>` option to `gam create/update user` to add a user to groups when they are created.
