@@ -1,3 +1,16 @@
+4.96.17
+
+Improved/corrected `gam <UserTypeEntity> add/sync groups`.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Group-Membership
+
+Updated `gam <UserTypeEntity> print/show groups` to include status and delivery settings.
+
+Added command to update a user's group roles and delivery settings..
+```
+gam <UserTypeEntity> update groups ([<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)+
+```
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Group-Membership
+
 4.96.16
 
 Improved/corrected `gam <UserTypeEntity> add/sync groups`.
@@ -13,7 +26,7 @@ gam create user salesmanager@domain.com firstname Sales lastname Manager ou /Sta
 
 Added command to synchronize a user's group membership.
 ```
-gam <UserTypeEntity> sync groups [<GroupRole>] <GroupEntity>
+gam <UserTypeEntity> sync groups ([<GroupRole>] <GroupEntity>)+
 ```
 * https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Group-Membership
 

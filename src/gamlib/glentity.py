@@ -206,6 +206,7 @@ class GamEntity(object):
   SOURCE_USER = 'src'
   SPREADSHEET = 'sprd'
   SPREADSHEET_RANGE = 'ssrn'
+  STATUS = 'stat'
   STUDENT = 'stud'
   SUBSCRIPTION = 'subs'
   TARGET_USER = 'tgt'
@@ -413,6 +414,7 @@ class GamEntity(object):
     SPREADSHEET: ['Spreadsheets', 'Spreadsheet'],
     SPREADSHEET_RANGE: ['Spreadsheet Ranges', 'Spreadsheet Range'],
     SUBSCRIPTION: ['Subscriptions', 'Subscription'],
+    STATUS: ['Status', 'Status'],
     STUDENT: ['Students', 'Student'],
     TARGET_USER: ['Target Users', 'Target User'],
     TEACHER: ['Teachers', 'Teacher'],
