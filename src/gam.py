@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.96.18'
+__version__ = '4.96.19'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -8898,7 +8898,6 @@ def doCreateResoldCustomer():
     result = callGAPI(res.customers(), 'insert',
                       throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                       body=body, customerAuthToken=customerAuthToken, fields='customerId')
-    result = json.loads(readFile('custInfo.json'))
     entityActionPerformed([Ent.CUSTOMER_DOMAIN, body['customerDomain'], Ent.CUSTOMER_ID, result['customerId']])
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.CUSTOMER_DOMAIN, body['customerDomain']], str(e))

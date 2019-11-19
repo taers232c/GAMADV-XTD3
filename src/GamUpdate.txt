@@ -1,3 +1,7 @@
+4.96.19
+
+Removed debugging code that caused `gam create resoldcustomer` to throw an exception.
+
 4.96.18
 
 Added the ability to select fields with `gam info/show/print vaultexport/vaulthold`.
