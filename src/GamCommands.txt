@@ -2152,44 +2152,53 @@ gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [<Boolean>]]
         queuedjobscount
 <PrinterExtraFieldsList> ::= "<PrinterExtraFields>(,<PrinterExtraFields>)*"
 
-gam update printer|printers <PrinterIDEntity> <PrinterAttribute>+
-gam delete printer|printers <PrinterIDEntity>
-gam info printer|printers <PrinterIDEntity> [everything] [extrafields <PrinterExtraFieldList>] 
+gam [<UserTypeEntity>] update printer|printers <PrinterIDEntity> <PrinterAttribute>+
+gam [<UserTypeEntity>] delete printer|printers <PrinterIDEntity>
 
-gam print printer|printers [todrive <ToDriveAttribute>*]
-        [(query <QueryPrinter>)|(queries <QueryPrinterList>)] [type <String>] [status <String>]
+gam [<UserTypeEntity>] info printer|printers <PrinterIDEntity>
+        [everything] [extrafields <PrinterExtraFieldList>] 
+gam [<UserTypeEntity>] show printer|printers
+        [(query <QueryPrinter>)|(queries <QueryPrinterList>)]
+        [type <String>] [status <String>]
+        [include_save_to_google_docs [<Boolean>]]
+        [extrafields <PrinterExtraFieldList>]
+gam [<UserTypeEntity>] print printer|printers [todrive <ToDriveAttribute>*]
+        [(query <QueryPrinter>)|(queries <QueryPrinterList>)]
+        [type <String>] [status <String>]
+        [include_save_to_google_docs [<Boolean>]]
         [extrafields <PrinterExtraFieldList>] [delimiter <Character>]
 
 <PrinterACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|public
 <PrinterACLScopeList> ::= "<PrinterACLScope>(,<PrinterACLScope>)*"
 <PrinterACLScopeEntity>::= <PrinterACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
-gam printer|printers <PrinterIDEntity> create|add user|manager|owner [usersonly|groupsonly] <PrinterACLScopeEntity> [notify]
-gam printer|printers <PrinterIDEntity> create|add print public
-gam printer|printers <PrinterIDEntity> delete [usersonly|groupsonly] <PrinterACLScopeEntity>
-gam printer|printers <PrinterIDEntity> delete public
-gam printer|printers <PrinterIDEntity> sync user|manager|owner [usersonly|groupsonly] [addonly|removeonly] <PrinterACLScopeEntity> [notify]
-gam printer|printers <PrinterIDEntity> wipe user|manager|owner
-gam printer|printers <PrinterIDEntity> showacls
-gam printer|printers <PrinterIDEntity> printacls [todrive <ToDriveAttribute>*]
+gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> create|add user|manager|owner [usersonly|groupsonly] <PrinterACLScopeEntity> [notify]
+gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> create|add print public
+gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> delete [usersonly|groupsonly] <PrinterACLScopeEntity>
+gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> delete public
+gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> sync user|manager|owner [usersonly|groupsonly] [addonly|removeonly] <PrinterACLScopeEntity> [notify]
+gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> wipe user|manager|owner
+gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> showacls
+gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> printacls [todrive <ToDriveAttribute>*]
 
 # Printjobs
 
-gam printjob <PrinterID> submit <FileName>|<URL> [name|title <String>] (tag <String>)*
-gam printjob|printjobs <PrintJobEntity> cancel
-gam printjob|printjobs <PrintJobEntity> delete
-gam printjob|printjobs <PrintJobEntity> resubmit <PrinterID>
+gam [<UserTypeEntity>] printjob <PrinterID> submit
+        (<FileName> [charset <String>])|<URL> [name|title <String>] (tag <String>)*
+gam [<UserTypeEntity>] printjob|printjobs <PrintJobEntity> cancel
+gam [<UserTypeEntity>] printjob|printjobs <PrintJobEntity> delete
+gam [<UserTypeEntity>] printjob|printjobs <PrintJobEntity> resubmit <PrinterID>
 
 <PrintJobOrderByFieldName> ::=
         create_time|status|title
 
-gam printjob|printjobs <PrinterID>|any fetch
+gam [<UserTypeEntity>] printjob|printjobs <PrinterID>|any fetch
         [(query <QueryPrintJob>)|(queries <QueryPrintJobList>)] [olderthan|newerthan <PrintJobAge>] [status <PrintJobStatus>]
         [orderby <PrintJobOrderByFieldName> [ascending|descending]]
         [owner|user <EmailAddress>]
         [limit <Number>] [drivedir|(targetfolder <FilePath>)]
 
-gam print printjob|printjobs [todrive <ToDriveAttribute>*] [printer|printerid <PrinterID>]
+gam [<UserTypeEntity>] print printjob|printjobs [todrive <ToDriveAttribute>*] [printer|printerid <PrinterID>]
         [(query <QueryPrintJob>)|(queries <QueryPrintJobList>)] [olderthan|newerthan <PrintJobAge>] [status <PrintJobStatus>]
         [orderby <PrintJobOrderByFieldName> [ascending|descending]]
         [owner|user <EmailAddress>]
@@ -2700,12 +2709,35 @@ gam delete vaultexport|export <ExportItem> matter <MatterItem>
 gam delete vaultexport|export <MatterItem> <ExportItem>
 gam download vaultexport|export <ExportItem> matter <MatterItem> [targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
 gam download vaultexport|export <MatterItem> <ExportItem> [targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
+
+<VaultExportFieldName> ::=
+        cloudstoragesink|
+        createtime|
+        exportoptions|
+        id|
+        matterid|
+        name|
+        query|
+        requester|
+        requester.displayname|
+        requester.email|
+        stats|
+        stats.exportedArtifactCount|
+        stats.sizeinbytes|
+        stats.totalartifactcount|
+        status
+<VaultExportFieldNameList> ::= "<VaultExportFieldName>(,<VaultExportFieldName>)*"
+
 gam info vaultexport|export <ExportItem> matter <MatterItem>
+        [fields <VaultExportFieldNameList>] [shownames]
 gam info vaultexport|export <MatterItem> <ExportItem>
+        [fields <VaultExportFieldNameList>] [shownames]
 gam print vaultexports|exports [todrive <ToDriveAttributes>*]
-        [matters <MatterItemList>] [exportstatus <ExportStatusList>] [shownames]
+        [matters <MatterItemList>] [exportstatus <ExportStatusList>]
+        [fields <VaultExportFieldNameList>] [shownames]
 gam show vaultexports|exports
-        [matters <MatterItemList>] [exportstatus <ExportStatusList>] [shownames]
+        [matters <MatterItemList>] [exportstatus <ExportStatusList>]
+        [fields <VaultExportFieldNameList>] [shownames]
 
 gam create vaulthold|hold matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
         [(accounts|groups|users <EmailItemList>) | (orgunit|org|ou <OrgUnit>)]
@@ -2723,10 +2755,32 @@ gam update vaulthold|hold <HoldItem> matter <MatterItem>
         [showdetails]
 gam delete vaulthold|hold <HoldItem> matter <MatterItem>
 gam delete vaulthold|hold <MatterItem> <HoldItem>
-gam info vaulthold|hold <HoldItem> matter <MatterItem> [shownames]
-gam info vaulthold|hold <MatterItem> <HoldItem> [shownames]
-gam print vaultholds|holds [todrive <ToDriveAttributes>*] [matters <MatterItemList>] [shownames]
-gam show vaultholds|holds [matters <MatterItemList>] [shownames]
+
+<VaultHoldFieldName> ::=
+        accounts|
+        accounts.acountid|
+	accounts.email|
+        accounts.firstname|
+        accounts.holdtime|
+        accounts.lastname|
+        corpus|
+        holdid|
+        name|
+        orgunit|
+        orgunit.holdtime|
+        orgunit.orgunitid|
+        query|
+        updatetime
+<VaultHoldFieldNameList> ::= "<VaultHoldFieldName>(,<VaultHoldFieldName>)*"
+
+gam info vaulthold|hold <HoldItem> matter <MatterItem>
+        [fields <VaultHoldFieldNameList>] [shownames]
+gam info vaulthold|hold <MatterItem> <HoldItem>
+        [fields <VaultHoldFieldNameList>] [shownames]
+gam print vaultholds|holds [todrive <ToDriveAttributes>*] [matters <MatterItemList>]
+        [fields <VaultHoldFieldNameList>] [shownames]
+gam show vaultholds|holds [matters <MatterItemList>]
+        [fields <VaultHoldFieldNameList>] [shownames]
 
 gam create|add vaultmatter|matter [name <String>] [description <string>]
         [collaborator|collaborators <EmailItemList>] [sendemails <Boolean>] [ccme <Boolean>]
@@ -2738,7 +2792,8 @@ gam close vaultmatter|matter <MatterItem>
 gam reopen vaultmatter|matter <MatterItem>
 gam delete vaultmatter|matter <MatterItem>
 gam undelete vaultmatter|matter <MatterItem>
-gam info vaultmatter|matter <MatterItem>
+
+gam info vaultmatter|matter <MatterItem> [basic|full]
 gam print vaultmatters|matters [todrive <ToDriveAttributes>*] [basic|full] [matterstate <MatterStateList>]
 gam show vaultmatters|matters [basic|full] [matterstate <MatterStateList>]
 

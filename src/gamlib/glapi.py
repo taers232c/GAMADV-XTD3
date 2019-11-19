@@ -115,6 +115,7 @@ _INFO = {
                                 'https://www.googleapis.com/auth/classroom.topics',
                                 'https://www.googleapis.com/auth/classroom.coursework.students',]},
   CLOUDPRINT: {'version': 'v2', 'v2discovery': True,
+               'svcacctscopes': ['https://www.googleapis.com/auth/cloudprint'],
                'localjson': True},
   CONTACTS: {'version': 'v3', 'v2discovery': False,
              'svcacctscopes': ['https://www.google.com/m8/feeds',],

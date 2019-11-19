@@ -1,3 +1,16 @@
+4.96.18
+
+Added the ability to select fields with `gam info/show/print vaultexport/vaulthold`.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Vault
+
+Added optional `<UserTypeEntity>` to all `gam printer/printjob` commands to allow selection of a printer owner.
+Previously, all such commands could only access printers owned by the user in `oauth2.txt`.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Printers
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Print-Jobs
+
+To use this option you must update your Service Account authentication:
+* `gam user user@domain.com check serviceaccount`
+
 4.96.17
 
 Improved/corrected `gam <UserTypeEntity> add/sync groups`.

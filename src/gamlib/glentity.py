@@ -30,6 +30,7 @@ class GamEntity(object):
   ROLE_MANAGER_OWNER = ','.join([ROLE_MANAGER, ROLE_OWNER])
   ROLE_MEMBER_OWNER = ','.join([ROLE_MEMBER, ROLE_OWNER])
   ROLE_MANAGER_MEMBER_OWNER = ','.join([ROLE_MANAGER, ROLE_MEMBER, ROLE_OWNER])
+  ROLE_PUBLIC = 'PUBLIC'
 
   TYPE_CUSTOMER = 'CUSTOMER'
   TYPE_EXTERNAL = 'EXTERNAL'
@@ -455,6 +456,7 @@ class GamEntity(object):
     ROLE_MANAGER_OWNER: ['Managers, Owners', 'Manager, Owner'],
     ROLE_MEMBER_OWNER: ['Members, Owners', 'Member, Owner'],
     ROLE_MANAGER_MEMBER_OWNER: ['Members, Managers, Owners', 'Member, Manager, Owner'],
+    ROLE_PUBLIC: ['Public', 'Public'],
     }
 
   def __init__(self):
