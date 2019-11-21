@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.96.19'
+__version__ = '4.96.20'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3261,10 +3261,12 @@ def checkGDataError(e, service):
     return (GDATA.TOKEN_EXPIRED, reason)
   error_code = getattr(e, 'error_code', 600)
   if error_code == 600:
-    if body.startswith('Quota exceeded for the current request'):
+    if (body.startswith('Quota exceeded for the current request') or 
+        body.startswith('Quota exceeded for quota metric') or
+        body.startswith('Request rate higher than configured')):
       return (GDATA.QUOTA_EXCEEDED, body)
-    if body.startswith('Request rate higher than configured'):
-      return (GDATA.QUOTA_EXCEEDED, body)
+    if reason == 'Too Many Requests':
+      return (GDATA.QUOTA_EXCEEDED, reason)
     if reason == 'Bad Gateway':
       return (GDATA.BAD_GATEWAY, reason)
     if reason == 'Gateway Timeout':

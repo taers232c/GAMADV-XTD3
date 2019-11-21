@@ -1,3 +1,7 @@
+4.96.20
+
+Handle `Too Many Requests` error when processing contacts.
+
 4.96.19
 
 Removed debugging code that caused `gam create resoldcustomer` to throw an exception.
