@@ -232,6 +232,8 @@ If an item contains spaces, it should be surrounded by ".
         See: https://docs.python.org/3.7/library/re.html
 <ProjectID> ::= <String>
         Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
+<ServiceAccountName> ::= <String>
+        Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
 <SiteName> ::= [a-z,0-9,-]+
 <UniqueID> ::= uid:<String>
 
@@ -809,13 +811,17 @@ gam <CrOSTypeEntity>|<UserTypeEntity> list [todrive <ToDriveAttribute>*] [data <
 # Authorization
 
 gam create|add project [<EmailAddress>] [<ProjectID>]
-gam create project [admin <EmailAddress>] [project <ProjectID>] [parent <String>]
+gam create project [admin <EmailAddress>] [project <ProjectID>]
+        [parent <String>]
 gam use project [<EmailAddress>] [<ProjectID>]
 gam use project [admin <EmailAddress>] [project <ProjectID>]
+gam addsvcacct project [<EmailAddress>] [gam|<ProjectID>|(filter <String>)]
+        name <ServiceAccountName> [displayname <String>]
 gam update project [<EmailAddress>] [gam|<ProjectID>|(filter <String>)]
 gam delete project [<EmailAddress>] [gam|<ProjectID>|(filter <String>)]
 gam show projects [<EmailAddress>] [all|gam|<ProjectID>|(filter <String>)]
-gam print projects [<EmailAddress>] [all|gam|<ProjectID>|(filter <String>)] [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
+gam print projects [<EmailAddress>] [all|gam|<ProjectID>|(filter <String>)]
+        [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
 
 gam oauth|oauth2 create|request [<EmailAddress>]
 gam oauth|oauth2 delete|revoke
@@ -826,6 +832,7 @@ gam oauth|oauth2 export [<FileName>]
 gam oauth|oauth2 import <FileName>
 
 gam <UserTypeEntity> check serviceaccount (scope|scopes <APIScopeURLList>)*
+gam <UserTypeEntity> update serviceaccount
 
 # Administrators
 
@@ -3686,7 +3693,7 @@ gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
         upload
 <DriveActivityActionList> ::= "<DriveActivityAction>(,<DriveActivityAction>)*"
 
-gam <UserTypeEntity> print|show driveactivity [v2] [todrive <ToDriveAttributes>*]
+gam <UserTypeEntity> print|show driveactivity [todrive <ToDriveAttributes>*]
         [(fileid <DriveFileID>) | (folderid <DriveFolderID>) |
          (drivefilename <DriveFileName>) | (drivefoldername <DriveFolderName>) | (query <QueryDriveFile>)]
         [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [action|actions [not] <DriveActivityActionList>]

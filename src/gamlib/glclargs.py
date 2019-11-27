@@ -20,7 +20,7 @@
 
 """
 
-class GamCLArgs(object):
+class GamCLArgs():
 
 # GAM entity types as specified on the command line
   ENTITY_COURSEPARTICIPANTS = 'courseparticipants'
@@ -773,11 +773,11 @@ class GamCLArgs(object):
   def CommandLineWithBadArgumentMarked(self, extraneous):
     if extraneous:
       return 'Command: {0} >>>{1}<<<\n'.format(self.QuotedArgumentList(self.argv[:self.argvI]),
-                                                self.QuotedArgumentList(self.argv[self.argvI:]))
+                                               self.QuotedArgumentList(self.argv[self.argvI:]))
     if self.ArgumentsRemaining():
       return 'Command: {0} >>>{1}<<< {2}\n'.format(self.QuotedArgumentList(self.argv[:self.argvI]),
-                                                    self.QuotedArgumentList([self.argv[self.argvI]]),
-                                                    self.QuotedArgumentList(self.argv[self.argvI+1:]))
+                                                   self.QuotedArgumentList([self.argv[self.argvI]]),
+                                                   self.QuotedArgumentList(self.argv[self.argvI+1:]))
     return 'Command: {0} >>><<<\n'.format(self.QuotedArgumentList(self.argv))
 
 # Peek to see if next argument is in choices

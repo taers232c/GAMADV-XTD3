@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.96.20'
+__version__ = '4.97.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -186,6 +186,7 @@ ALPHANUMERIC_CHARS = LOWERNUMERIC_CHARS+string.ascii_uppercase
 URL_SAFE_CHARS = ALPHANUMERIC_CHARS+'-._~'
 PASSWORD_SAFE_CHARS = ALPHANUMERIC_CHARS+string.punctuation+' '
 FILENAME_SAFE_CHARS = ALPHANUMERIC_CHARS+'-_.() '
+DEFAULT_SVCACCT_NAME = 'GAM Project'
 
 # Python 3 values
 DEFAULT_CSV_READ_MODE = 'r'
@@ -500,12 +501,12 @@ def ClientAPIAccessDeniedExit():
 def SvcAcctAPIAccessDeniedExit():
   stderrErrorMsg(Msg.API_ACCESS_DENIED)
   writeStderr(Msg.API_CHECK_SVCACCT_AUTHORIZATION.format(GM.Globals[GM.OAUTH2SERVICE_CLIENT_ID],
-                                                         ','.join(sorted(API.getSvcAcctScopesSet(GM.Globals[GM.CURRENT_SVCACCT_API]))),
+                                                         ','.join(sorted(GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES])),
                                                          GM.Globals[GM.CURRENT_SVCACCT_USER]))
   systemErrorExit(API_ACCESS_DENIED_RC, None)
 
 def APIAccessDeniedExit():
-  if GM.Globals[GM.CURRENT_CLIENT_API]:
+  if not GM.Globals[GM.CURRENT_SVCACCT_USER] and GM.Globals[GM.CURRENT_CLIENT_API]:
     ClientAPIAccessDeniedExit()
   if GM.Globals[GM.CURRENT_SVCACCT_API]:
     SvcAcctAPIAccessDeniedExit()
@@ -1639,14 +1640,17 @@ def getJSON(deleteFields):
     argstr = Cmd.Current()
     Cmd.Advance()
     try:
-      jsonData = json.loads(argstr, encoding=encoding)
+      if encoding == UTF8:
+        jsonData = json.loads(argstr)
+      else:
+        jsonData = json.loads(argstr.encode(encoding).decode(UTF8))
     except (TypeError, ValueError) as e:
       usageErrorExit(str(e))
   else:
     filename = getString(Cmd.OB_FILE_NAME)
     encoding = getCharSet()
     try:
-      jsonData = json.loads(readFile(filename), encoding=encoding)
+      jsonData = json.loads(readFile(filename, encoding=encoding))
     except (TypeError, ValueError) as e:
       usageErrorExit(str(e))
   for field in deleteFields:
@@ -3145,34 +3149,21 @@ def getOldOauth2TxtCredentials(credFamily):
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, fileErrorMessage(GC.Values[GC.OAUTH2_TXT], e))
 
-def getOauth2TxtCredentials(storageOnly=False, updateOnError=True):
-  while True:
-    try:
-      storage = MultiprocessFileStorage(GC.Values[GC.OAUTH2_TXT], API.GAM_SCOPES)
-      if storageOnly:
-        return storage
-      credentials = storage.get()
-      if credentials:
-        return credentials
-    except (KeyError, ValueError):
-      pass
-    except IOError as e:
-      systemErrorExit(FILE_ERROR_RC, fileErrorMessage(GC.Values[GC.OAUTH2_TXT], e))
-    if not updateOnError:
-      return None
-    try:
-      MultiprocessFileStorage(GC.Values[GC.OAUTH2_TXT], API.FAM1_SCOPES).get()
-      action = Act.Get()
-      Act.Set(Act.UPDATE)
-      entityPerformAction([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]])
-      doOAuthUpdate(noArgumentCheck=True)
-      Act.Set(action)
-      continue
-    except (KeyError, ValueError):
-      if not updateOnError:
-        return None
-    except IOError as e:
-      systemErrorExit(FILE_ERROR_RC, fileErrorMessage(GC.Values[GC.OAUTH2_TXT], e))
+def getOauth2TxtCredentials(storageOnly=False, exitOnError=True):
+  try:
+    storage = MultiprocessFileStorage(GC.Values[GC.OAUTH2_TXT], API.GAM_SCOPES)
+    if storageOnly:
+      return storage
+    credentials = storage.get()
+    if credentials:
+      return credentials
+  except (ValueError, IndexError, KeyError):
+    pass
+  except IOError as e:
+    systemErrorExit(FILE_ERROR_RC, fileErrorMessage(GC.Values[GC.OAUTH2_TXT], e))
+  if exitOnError:
+    systemErrorExit(OAUTH2_TXT_REQUIRED_RC, Msg.NO_CLIENT_ACCESS_ALLOWED)
+  return None
 
 def waitOnFailure(n, retries, error_code, error_message):
   delta = min(2 ** n, 60)+float(random.randint(1, 1000))/1000
@@ -3210,22 +3201,48 @@ def _getValueFromOAuth(field):
     GM.Globals[GM.DECODED_ID_TOKEN] = getClientCredentials().id_token
   return GM.Globals[GM.DECODED_ID_TOKEN].get(field, 'Unknown')
 
-def getSvcAcctCredentials(scopes, act_as):
-  try:
-    if not GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]:
-      json_string = readFile(GC.Values[GC.OAUTH2SERVICE_JSON], continueOnError=True, displayError=True)
-      if not json_string:
-        invalidOauth2serviceJsonExit()
+def defaultSvcAcctScopes():
+  scopesList = API.getSvcAcctScopesList(GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY], False)
+  saScopes = {}
+  for scope in scopesList:
+    saScopes.setdefault(scope['api'], [])
+    saScopes[scope['api']].append(scope['scope'])
+  saScopes[API.DRIVEACTIVITY].append(API.DRIVE_SCOPE)
+  saScopes[API.DRIVE2] = saScopes[API.DRIVE3]
+  return saScopes
+
+def getSvcAcctCredentials(scopesOrAPI, userEmail):
+  if not GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]:
+    json_string = readFile(GC.Values[GC.OAUTH2SERVICE_JSON], continueOnError=True, displayError=True)
+    if not json_string:
+      invalidOauth2serviceJsonExit()
+    try:
       GM.Globals[GM.OAUTH2SERVICE_JSON_DATA] = json.loads(json_string)
+    except (ValueError, IndexError, KeyError):
+      invalidOauth2serviceJsonExit()
+    if not GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]:
+      systemErrorExit(OAUTH2SERVICE_JSON_REQUIRED_RC, Msg.NO_SVCACCT_ACCESS_ALLOWED)
+    if API.OAUTH2SA_SCOPES not in GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]:
+      GM.Globals[GM.SVCACCT_SCOPES] = defaultSvcAcctScopes()
+    else:
+      GM.Globals[GM.SVCACCT_SCOPES] = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA].pop(API.OAUTH2SA_SCOPES)
+  if isinstance(scopesOrAPI, str):
+    GM.Globals[GM.CURRENT_SVCACCT_API] = scopesOrAPI
+    GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = GM.Globals[GM.SVCACCT_SCOPES].get(scopesOrAPI, [])
+  else:
+    GM.Globals[GM.CURRENT_SVCACCT_API] = ''
+    GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = scopesOrAPI
+  try:
     credentials = google.oauth2.service_account.Credentials.from_service_account_info(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
-    credentials = credentials.with_scopes(scopes)
-    if act_as:
-      credentials = credentials.with_subject(act_as)
-    GM.Globals[GM.ADMIN] = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']
-    GM.Globals[GM.OAUTH2SERVICE_CLIENT_ID] = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
-    return credentials
   except (ValueError, IndexError, KeyError):
     invalidOauth2serviceJsonExit()
+  credentials = credentials.with_scopes(GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES])
+  GM.Globals[GM.CURRENT_SVCACCT_USER] = userEmail
+  if userEmail:
+    credentials = credentials.with_subject(userEmail)
+  GM.Globals[GM.ADMIN] = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']
+  GM.Globals[GM.OAUTH2SERVICE_CLIENT_ID] = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
+  return credentials
 
 def getGDataOAuthToken(gdataObj, credentials=None):
   if not credentials:
@@ -3261,7 +3278,7 @@ def checkGDataError(e, service):
     return (GDATA.TOKEN_EXPIRED, reason)
   error_code = getattr(e, 'error_code', 600)
   if error_code == 600:
-    if (body.startswith('Quota exceeded for the current request') or 
+    if (body.startswith('Quota exceeded for the current request') or
         body.startswith('Quota exceeded for quota metric') or
         body.startswith('Request rate higher than configured')):
       return (GDATA.QUOTA_EXCEEDED, body)
@@ -3746,7 +3763,7 @@ def getAPIversionHttpService(api):
     service = googleapiclient.discovery.build_from_document(GM.Globals[GM.CURRENT_API_SERVICES][api][version], http=httpObj)
     if GM.Globals[GM.CACHE_DISCOVERY_ONLY]:
       httpObj.cache = None
-    return (api_version, httpObj, service)
+    return (httpObj, service)
   if not hasLocalJSON:
     retries = 3
     for n in range(1, retries+1):
@@ -3757,7 +3774,7 @@ def getAPIversionHttpService(api):
         GM.Globals[GM.CURRENT_API_SERVICES][api][version] = service._rootDesc.copy()
         if GM.Globals[GM.CACHE_DISCOVERY_ONLY]:
           httpObj.cache = None
-        return (api_version, httpObj, service)
+        return (httpObj, service)
       except googleapiclient.errors.UnknownApiNameOrVersion as e:
         systemErrorExit(GOOGLE_API_ERROR_RC, Msg.UNKNOWN_API_OR_VERSION.format(str(e), __author__))
       except (googleapiclient.errors.InvalidJsonError, KeyError, ValueError):
@@ -3787,14 +3804,14 @@ def getAPIversionHttpService(api):
     GM.Globals[GM.CURRENT_API_SERVICES][api][version] = service._rootDesc.copy()
     if GM.Globals[GM.CACHE_DISCOVERY_ONLY]:
       httpObj.cache = None
-    return (api_version, httpObj, service)
+    return (httpObj, service)
   except (KeyError, ValueError):
     invalidDiscoveryJsonExit(disc_file)
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, str(e))
 
 def buildGAPIObject(api):
-  _, httpObj, service = getAPIversionHttpService(api)
+  httpObj, service = getAPIversionHttpService(api)
   credentials = getClientCredentials()
   try:
     API_Scopes = set(list(service._rootDesc['auth']['oauth2']['scopes']))
@@ -3803,7 +3820,7 @@ def buildGAPIObject(api):
   GM.Globals[GM.CURRENT_CLIENT_API] = api
   GM.Globals[GM.CURRENT_CLIENT_API_SCOPES] = API_Scopes.intersection(credentials.scopes)
   if api != API.OAUTH2 and not GM.Globals[GM.CURRENT_CLIENT_API_SCOPES]:
-    systemErrorExit(NO_SCOPES_FOR_API_RC, Msg.NO_SCOPES_FOR_API.format(service._rootDesc['title']))
+    systemErrorExit(NO_SCOPES_FOR_API_RC, Msg.NO_SCOPES_FOR_API.format(API.getAPIName(api)))
   retries = 3
   for n in range(1, retries+1):
     try:
@@ -3849,17 +3866,18 @@ def _request_with_user_agent(request_method):
 google_auth_httplib2.Request.__call__ = _request_with_user_agent(google_auth_httplib2.Request.__call__)
 google_auth_httplib2.AuthorizedHttp.request = _request_with_user_agent(google_auth_httplib2.AuthorizedHttp.request)
 
-def buildGAPIServiceObject(api, user, i=0, count=0, displayError=True):
+def getSaUser(user):
   currentClientAPI = GM.Globals[GM.CURRENT_CLIENT_API]
   currentClientAPIScopes = GM.Globals[GM.CURRENT_CLIENT_API_SCOPES]
   userEmail = convertUIDtoEmailAddress(user)
   GM.Globals[GM.CURRENT_CLIENT_API] = currentClientAPI
   GM.Globals[GM.CURRENT_CLIENT_API_SCOPES] = currentClientAPIScopes
-  _, httpObj, service = getAPIversionHttpService(api)
-  GM.Globals[GM.CURRENT_SVCACCT_API] = api
-  GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = API.getSvcAcctScopesSet(api)
-  GM.Globals[GM.CURRENT_SVCACCT_USER] = userEmail
-  credentials = getSvcAcctCredentials(GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES], userEmail)
+  return userEmail
+
+def buildGAPIServiceObject(api, user, i=0, count=0, displayError=True):
+  userEmail = getSaUser(user)
+  httpObj, service = getAPIversionHttpService(api)
+  credentials = getSvcAcctCredentials(api, userEmail)
   request = google_auth_httplib2.Request(httpObj)
   retries = 3
   for n in range(1, retries+1):
@@ -3887,36 +3905,19 @@ def buildGAPICloudprintObject(user, i, count):
   return buildGAPIServiceObject(API.CLOUDPRINT, user, i, count)
 
 def initGDataObject(gdataObj, api):
-  _, _, api_version, _ = API.getVersion(api)
-  disc_file, discovery = readDiscoveryFile(api_version)
   GM.Globals[GM.CURRENT_CLIENT_API] = api
   credentials = getClientCredentials()
-  try:
-    GM.Globals[GM.CURRENT_CLIENT_API_SCOPES] = set(list(discovery['auth']['oauth2']['scopes'])).intersection(credentials.scopes)
-  except KeyError:
-    invalidDiscoveryJsonExit(disc_file)
+  GM.Globals[GM.CURRENT_CLIENT_API_SCOPES] = API.getClientScopesSet(api).intersection(credentials.scopes)
   if not GM.Globals[GM.CURRENT_CLIENT_API_SCOPES]:
-    systemErrorExit(NO_SCOPES_FOR_API_RC, Msg.NO_SCOPES_FOR_API.format(discovery.get('title', api_version)))
+    systemErrorExit(NO_SCOPES_FOR_API_RC, Msg.NO_SCOPES_FOR_API.format(API.getAPIName(api)))
   getGDataOAuthToken(gdataObj, credentials)
   if GC.Values[GC.DEBUG_LEVEL] > 0:
     gdataObj.debug = True
   return gdataObj
 
 def getGDataUserCredentials(api, user, i, count):
-  userEmail = convertUIDtoEmailAddress(user)
-  _, _, api_version, _ = API.getVersion(api)
-  disc_file, discovery = readDiscoveryFile(api_version)
-  GM.Globals[GM.CURRENT_SVCACCT_API] = api
-  GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = set(list(discovery['auth']['oauth2']['scopes']))
-  GM.Globals[GM.CURRENT_SVCACCT_USER] = userEmail
-  credentials = getClientCredentials()
-  try:
-    GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES].intersection(credentials.scopes)
-  except KeyError:
-    invalidDiscoveryJsonExit(disc_file)
-  if not GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES]:
-    systemErrorExit(NO_SCOPES_FOR_API_RC, Msg.NO_SCOPES_FOR_API.format(discovery.get('title', api_version)))
-  credentials = getSvcAcctCredentials(GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES], userEmail)
+  userEmail = getSaUser(user)
+  credentials = getSvcAcctCredentials(api, userEmail)
   request = google_auth_httplib2.Request(getHttpObj())
   try:
     credentials.refresh(request)
@@ -4131,14 +4132,14 @@ GROUP_ROLES_MAP = {
   'member': Ent.ROLE_MEMBER,
   'members': Ent.ROLE_MEMBER,
   }
-ALL_GROUP_ROLES = set([Ent.ROLE_MANAGER, Ent.ROLE_MEMBER, Ent.ROLE_OWNER])
+ALL_GROUP_ROLES = {Ent.ROLE_MANAGER, Ent.ROLE_MEMBER, Ent.ROLE_OWNER}
 
 GROUP_TYPES_MAP = {
   'customer': Ent.TYPE_CUSTOMER,
   'group': Ent.TYPE_GROUP,
   'user': Ent.TYPE_USER,
   }
-ALL_GROUP_TYPES = set([Ent.TYPE_CUSTOMER, Ent.TYPE_GROUP, Ent.TYPE_USER])
+ALL_GROUP_TYPES = {Ent.TYPE_CUSTOMER, Ent.TYPE_GROUP, Ent.TYPE_USER}
 
 def _getRoleVerification(memberRoles, fields):
   if memberRoles and memberRoles.find(Ent.ROLE_MEMBER) != -1:
@@ -5470,9 +5471,11 @@ class CSVPrintFile():
 
     def rowBooleanFilterMatch(filterBoolean):
       def checkMatch(rowBoolean):
-        if not isinstance(rowBoolean, bool):
-          return False
-        return rowBoolean == filterBoolean
+        if isinstance(rowBoolean, bool):
+          return rowBoolean == filterBoolean
+        if isinstance(rowBoolean, str) and rowBoolean.lower() in TRUE_FALSE:
+          return rowBoolean.capitalize() == str(filterBoolean)
+        return False
 
       for column in columns:
         if checkMatch(row.get(column, False)):
@@ -5750,7 +5753,7 @@ def writeEntityNoHeaderCSVFile(entityType, entityList):
   GM.Globals[GM.CSVFILE][GM.REDIRECT_WRITE_HEADER] = False
   csvPF.writeCSVfile(Ent.Plural(entityType))
 
-DEFAULT_SKIP_OBJECTS = set(['kind', 'etag', 'etags'])
+DEFAULT_SKIP_OBJECTS = {'kind', 'etag', 'etags'}
 
 # Clean a JSON object
 def cleanJSON(topStructure, listLimit=None, skipObjects=None, timeObjects=None):
@@ -6735,22 +6738,21 @@ def getOAuthClientIDAndSecret():
     invalidClientSecretsJsonExit()
   try:
     cs_json = json.loads(cs_data)
+    if not cs_json:
+      systemErrorExit(CLIENT_SECRETS_JSON_REQUIRED_RC, Msg.NO_CLIENT_ACCESS_CREATE_UPDATE_ALLOWED)
     # chop off .apps.googleusercontent.com suffix as it's not needed and we need to keep things short for the Auth URL.
     return (re.sub(r'\.apps\.googleusercontent\.com$', '', cs_json['installed']['client_id']),
             cs_json['installed']['client_secret'])
   except (ValueError, IndexError, KeyError):
     invalidClientSecretsJsonExit()
 
-def getScopesFromUser(currentScopes=None):
+def getScopesFromUser(scopesList, clientAccess, currentScopes=None):
   OAUTH2_CMDS = ['s', 'u', 'e', 'c']
   oauth2_menu = '''
 Select the authorized scopes by entering a number.
 Append an 'r' to grant read-only access or an 'a' to grant action-only access.
 
 '''
-  scopesList = API.OAUTH2_SCOPES
-  if GC.Values[GC.TODRIVE_CLIENTACCESS]:
-    scopesList.extend(API.TODRIVE_CLIENTACCESS_OAUTH2_SCOPES)
   numScopes = len(scopesList)
   for a_scope in scopesList:
     oauth2_menu += '[%%%%s] %%2d)  %s' % (a_scope['name'])
@@ -6765,12 +6767,12 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
 '''
   menu = oauth2_menu % tuple(range(numScopes))
   selectedScopes = ['*'] * numScopes
-  if currentScopes is None:
-    credentials = getOauth2TxtCredentials(updateOnError=False)
+  if currentScopes is None and clientAccess:
+    credentials = getOauth2TxtCredentials(exitOnError=False)
     if credentials and not credentials.invalid:
       if credentials.scopes is not None:
         currentScopes = sorted(credentials.scopes)
-  if currentScopes:
+  if currentScopes is not None:
     i = 0
     for a_scope in scopesList:
       selectedScopes[i] = ' '
@@ -6834,12 +6836,12 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
             for i in range(numScopes):
               selectedScopes[i] = ' '
           elif selection == 'e':
-            return (scopesList, None)
+            return None
           break
         sys.stdout.write('{0}Invalid input "{1}"\n'.format(ERROR_PREFIX, choice))
     if selection == 'c':
       break
-  return (scopesList, selectedScopes)
+  return selectedScopes
 
 class cmd_flags():
   def __init__(self, noLocalWebserver):
@@ -6898,20 +6900,21 @@ def doOAuthRequest(currentScopes=None):
   client_id, client_secret = getOAuthClientIDAndSecret()
   login_hint = getEmailAddress(noUid=True, optional=True)
   checkForExtraneousArguments()
-  scopesList, selectedScopes = getScopesFromUser(currentScopes)
+  scopesList = API.getClientScopesList(GC.Values[GC.TODRIVE_CLIENTACCESS])
+  selectedScopes = getScopesFromUser(scopesList, True, currentScopes)
   if selectedScopes is None:
     return False
   login_hint = _getValidateLoginHint(login_hint)
   revokeCredentials()
   scopes = API.REQUIRED_SCOPES[:] # Email Display Scope, always included for client
   i = 0
-  for a_scope in scopesList:
+  for scope in scopesList:
     if selectedScopes[i] == '*':
-      scopes.append(a_scope['scope'])
+      scopes.append(scope['scope'])
     elif selectedScopes[i] == 'R':
-      scopes.append('{0}.readonly'.format(a_scope['scope']))
+      scopes.append('{0}.readonly'.format(scope['scope']))
     elif selectedScopes[i] == 'A':
-      scopes.append('{0}.action'.format(a_scope['scope']))
+      scopes.append('{0}.action'.format(scope['scope']))
     i += 1
   storage = getOauth2TxtCredentials(storageOnly=True)
   _run_oauth_flow(client_id, client_secret, scopes, login_hint, 'offline', storage)
@@ -7097,30 +7100,60 @@ def doOAuthImport():
   entityModifierNewValueActionPerformed([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]], Act.MODIFIER_FROM, filename)
 
 # gam <UserTypeEntity> check serviceaccount (scope|scopes <APIScopeURLList>)*
+# gam <UserTypeEntity> update serviceaccount
 def checkServiceAccount(users):
   def printPassFail(description, result):
     writeStdout(Ind.Spaces()+'{0:73} {1}'.format(description, result)+'\n')
 
-  allScopes, jcount = API.getSortedSvcAcctScopesList()
-  if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
-    allScopes.remove(API.APPS_GROUPS_MIGRATION_SCOPE)
-    jcount -= 1
-  checkScopes = []
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg in ['scope', 'scopes']:
-      for scope in getString(Cmd.OB_API_SCOPE_URL_LIST).lower().replace(',', ' ').split():
-        if scope in allScopes:
-          checkScopes.append(scope)
-        else:
-          invalidChoiceExit(scope, allScopes, True)
-    else:
-      unknownArgumentExit()
-  if not checkScopes:
-    checkScopes = allScopes
+  credentials = getSvcAcctCredentials([API.USERINFO_EMAIL_SCOPE], None)
+  checkScopesSet = set()
+  if Act.Get() == Act.CHECK:
+    allScopes = API.getSvcAcctScopes(GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY], False)
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if myarg in ['scope', 'scopes']:
+        for scope in getString(Cmd.OB_API_SCOPE_URL_LIST).lower().replace(',', ' ').split():
+          api = API.getSvcAcctScopeAPI(scope)
+          if api is not None:
+            checkScopesSet.add(scope)
+          else:
+            invalidChoiceExit(scope, allScopes, True)
+      else:
+        unknownArgumentExit()
+    if not checkScopesSet:
+      for scope in iter(GM.Globals[GM.SVCACCT_SCOPES].values()):
+        checkScopesSet.update(scope)
   else:
-    checkScopes.sort()
-    jcount = len(checkScopes)
+    checkForExtraneousArguments()
+    saScopes = {}
+    scopesList = API.getSvcAcctScopesList(GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY], True)
+    currentScopes = []
+    for scope in iter(GM.Globals[GM.SVCACCT_SCOPES].values()):
+      currentScopes.extend(scope)
+    selectedScopes = getScopesFromUser(scopesList, False, currentScopes)
+    if selectedScopes is None:
+      return False
+    i = 0
+    for scope in scopesList:
+      if selectedScopes[i] == '*':
+        saScopes.setdefault(scope['api'], [])
+        saScopes[scope['api']].append(scope['scope'])
+        checkScopesSet.add(scope['scope'])
+      elif selectedScopes[i] == 'R':
+        saScopes.setdefault(scope['api'], [])
+        saScopes[scope['api']].append('{0}.readonly'.format(scope['scope']))
+        checkScopesSet.add('{0}.readonly'.format(scope['scope']))
+      i += 1
+    if API.DRIVEACTIVITY in saScopes and API.DRIVE_SCOPE in saScopes:
+      saScopes[API.DRIVEACTIVITY].append(API.DRIVE_SCOPE)
+    if API.DRIVE3 in saScopes:
+      saScopes[API.DRIVE2] = saScopes[API.DRIVE3]
+    GM.Globals[GM.OAUTH2SERVICE_JSON_DATA][API.OAUTH2SA_SCOPES] = saScopes
+    writeFile(GC.Values[GC.OAUTH2SERVICE_JSON],
+              json.dumps(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA], ensure_ascii=False, sort_keys=True, indent=2),
+              continueOnError=False)
+  checkScopes = sorted(checkScopesSet)
+  jcount = len(checkScopes)
   printKeyValueList([Msg.SYSTEM_TIME_STATUS, None])
   offsetSeconds, offsetFormatted = getLocalGoogleTimeOffset()
   if offsetSeconds <= MAX_LOCAL_GOOGLE_TIME_OFFSET:
@@ -7130,12 +7163,11 @@ def checkServiceAccount(users):
   Ind.Increment()
   printPassFail(Msg.YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE.format(offsetFormatted), timeStatus)
   Ind.Decrement()
-  oa2 = googleapiclient.discovery.build(API.OAUTH2, 'v1', getHttpObj())
+  oa2 = buildGAPIObject(API.OAUTH2)
   printKeyValueList([Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AUTHENTICATION, None])
   # We are explicitly not doing DwD here, just confirming service account can auth
   auth_error = ''
   try:
-    credentials = getSvcAcctCredentials([API.USERINFO_EMAIL_SCOPE], None)
     request = google_auth_httplib2.Request(getHttpObj())
     credentials.refresh(request)
     sa_token_info = callGAPI(oa2, 'tokeninfo', access_token=credentials.token)
@@ -7157,7 +7189,6 @@ def checkServiceAccount(users):
   for user in users:
     i += 1
     allScopesPass = True
-    oa2 = googleapiclient.discovery.build(API.OAUTH2, 'v1', getHttpObj())
     user = convertUIDtoEmailAddress(user)
     printKeyValueListWithCount([Msg.DOMAIN_WIDE_DELEGATION_AUTHENTICATION, '',
                                 Ent.Singular(Ent.USER), user,
@@ -7190,13 +7221,17 @@ def checkServiceAccount(users):
       printPassFail(scope, '{0}{1}'.format(scopeStatus, currentCount(j, jcount)))
     Ind.Decrement()
     service_account = GM.Globals[GM.OAUTH2SERVICE_CLIENT_ID]
+    _, domain = splitEmailAddress(user)
     if allScopesPass:
-      printLine(Msg.SCOPE_AUTHORIZATION_PASSED.format(service_account))
+      if Act.Get() == Act.CHECK:
+        printLine(Msg.SCOPE_AUTHORIZATION_PASSED.format(service_account))
+      else:
+        printLine(Msg.SCOPE_AUTHORIZATION_UPDATE_PASSED.format(domain, service_account, ',\n'.join(checkScopes)))
     else:
       # Tack on email scope for more accurate checking
       checkScopes.append(API.USERINFO_EMAIL_SCOPE)
-      _, domain = splitEmailAddress(user)
-      printErrorMessage(SCOPES_NOT_AUTHORIZED, Msg.SCOPE_AUTHORIZATION_FAILED.format(domain, service_account, ',\n'.join(checkScopes)))
+      setSysExitRC(SCOPES_NOT_AUTHORIZED)
+      printLine(Msg.SCOPE_AUTHORIZATION_FAILED.format(domain, service_account, ',\n'.join(checkScopes)))
     printBlankLine()
 
 def getCRMService(login_hint):
@@ -7274,6 +7309,26 @@ def enableGAMProjectAPIs(httpObj, projectId, checkEnabled, i=0, count=0):
     Ind.Decrement()
   return status
 
+def _createOauth2serviceJSON(httpObj, projectId, name, displayName):
+  iam = googleapiclient.discovery.build('iam', 'v1',
+                                        http=httpObj, cache_discovery=False,
+                                        discoveryServiceUrl=googleapiclient.discovery.V2_DISCOVERY_URI)
+  entityPerformAction([Ent.SVCACCT, name, Ent.PROJECT, projectId])
+  try:
+    service_account = callGAPI(iam.projects().serviceAccounts(), 'create',
+                               throw_reasons=[GAPI.ALREADY_EXISTS],
+                               name='projects/{0}'.format(projectId),
+                               body={'accountId': name, 'serviceAccount': {'displayName': displayName}})
+    entityActionPerformed([Ent.SVCACCT, name, Ent.PROJECT, projectId])
+  except GAPI.alreadyExists as e:
+    entityActionFailedWarning([Ent.SVCACCT, name, Ent.PROJECT, projectId], str(e))
+    return False
+  key = callGAPI(iam.projects().serviceAccounts().keys(), 'create',
+                 name=service_account['name'], body={'privateKeyType': 'TYPE_GOOGLE_CREDENTIALS_FILE', 'keyAlgorithm': 'KEY_ALG_RSA_2048'})
+  oauth2service_data = base64.b64decode(key['privateKeyData']).decode(UTF8)
+  writeFile(GC.Values[GC.OAUTH2SERVICE_JSON], oauth2service_data, continueOnError=False)
+  return True
+
 def _createClientSecretsOauth2service(httpObj, projectId):
 
   def _checkClientAndSecret(csHttpObj, client_id, client_secret):
@@ -7303,17 +7358,8 @@ def _createClientSecretsOauth2service(httpObj, projectId):
 
   if not enableGAMProjectAPIs(httpObj, projectId, False):
     return
-  iam = googleapiclient.discovery.build('iam', 'v1',
-                                        http=httpObj, cache_discovery=False,
-                                        discoveryServiceUrl=googleapiclient.discovery.V2_DISCOVERY_URI)
-  sys.stdout.write('Creating Service Account\n')
-  service_account = callGAPI(iam.projects().serviceAccounts(), 'create',
-                             name='projects/{0}'.format(projectId),
-                             body={'accountId': projectId, 'serviceAccount': {'displayName': 'GAM Project'}})
-  key = callGAPI(iam.projects().serviceAccounts().keys(), 'create',
-                 name=service_account['name'], body={'privateKeyType': 'TYPE_GOOGLE_CREDENTIALS_FILE', 'keyAlgorithm': 'KEY_ALG_RSA_2048'})
-  oauth2service_data = base64.b64decode(key['privateKeyData']).decode(UTF8)
-  writeFile(GC.Values[GC.OAUTH2SERVICE_JSON], oauth2service_data, continueOnError=False)
+  if not _createOauth2serviceJSON(httpObj, projectId, projectId, DEFAULT_SVCACCT_NAME):
+    return
   console_credentials_url = 'https://console.developers.google.com/apis/credentials?project={0}'.format(projectId)
   csHttpObj = getHttpObj()
   while True:
@@ -7323,7 +7369,7 @@ def _createClientSecretsOauth2service(httpObj, projectId):
 
 1. Click the blue "Create credentials" button. Choose "OAuth client ID".
 2. Click the blue "Configure consent screen" button.
-3. Select  "Internal" under "Application type".
+3. Select "Internal" under "Application type".
 4. Enter "GAM" for "Application name".
 5. Leave other fields blank. Click "Save" button.
 6. Choose "Other". Enter "GAM" for "Name". Click the blue "Create" button.
@@ -7388,13 +7434,12 @@ def convertGCPFolderNameToID(parent, crm2):
 
 PROJECTID_PATTERN = re.compile(r'^[a-z][a-z0-9-]{4,28}[a-z0-9]$')
 PROJECTID_FORMAT_REQUIRED = '[a-z][a-z0-9-]{4,28}[a-z0-9]'
+def _checkProjectId(projectId):
+  if not PROJECTID_PATTERN.match(projectId):
+    Cmd.Backup()
+    invalidArgumentExit(PROJECTID_FORMAT_REQUIRED)
 
 def _getLoginHintProjectId(createCmd):
-  def _checkProjectId():
-    if not PROJECTID_PATTERN.match(projectId):
-      Cmd.Backup()
-      invalidArgumentExit(PROJECTID_FORMAT_REQUIRED)
-
   login_hint = None
   projectId = None
   parent = None
@@ -7405,7 +7450,7 @@ def _getLoginHintProjectId(createCmd):
       login_hint = None
     projectId = getString(Cmd.OB_STRING, optional=True, minLen=6, maxLen=30).strip()
     if projectId:
-      _checkProjectId()
+      _checkProjectId(projectId)
     checkForExtraneousArguments()
   else:
     while Cmd.ArgumentsRemaining():
@@ -7414,7 +7459,7 @@ def _getLoginHintProjectId(createCmd):
         login_hint = getEmailAddress(noUid=True)
       elif myarg == 'project':
         projectId = getString(Cmd.OB_STRING, minLen=6, maxLen=30)
-        _checkProjectId()
+        _checkProjectId(projectId)
       elif createCmd and myarg == 'parent':
         parent = getString(Cmd.OB_STRING)
       else:
@@ -7461,9 +7506,13 @@ def _getCurrentProjectID():
 
 PROJECTID_FILTER_REQUIRED = 'gam|<ProjectID>|(filter <String>)'
 PROJECTS_FILTER_OPTIONS = ['all', 'gam', 'filter']
+PROJECTS_ADDSVCACCT_OPTIONS = ['name', 'displayname']
 PROJECTS_PRINTSHOW_OPTIONS = ['todrive', 'formatjson', 'quotechar']
 
-def _getLoginHintProjects(printShowCmd):
+def _getLoginHintProjects():
+  action = Act.Get()
+  printShowCmd = action in [Act.PRINT, Act.SHOW]
+  addSvcAcctCmd = action == Act.ADD_SVCACCT
   login_hint = getString(Cmd.OB_EMAIL_ADDRESS, optional=True)
   if login_hint and login_hint.find('@') == -1:
     Cmd.Backup()
@@ -7473,6 +7522,9 @@ def _getLoginHintProjects(printShowCmd):
     pfilter = 'current' if not printShowCmd else 'id:gam-project-*'
   elif printShowCmd and pfilter in PROJECTS_PRINTSHOW_OPTIONS:
     pfilter = 'id:gam-project-*'
+    Cmd.Backup()
+  elif addSvcAcctCmd and pfilter in PROJECTS_ADDSVCACCT_OPTIONS:
+    pfilter = 'current'
     Cmd.Backup()
   elif printShowCmd and pfilter.lower() == 'all':
     pfilter = None
@@ -7485,7 +7537,7 @@ def _getLoginHintProjects(printShowCmd):
   else:
     Cmd.Backup()
     invalidArgumentExit(['', 'all|'][printShowCmd]+PROJECTID_FILTER_REQUIRED)
-  if not printShowCmd:
+  if not printShowCmd and not addSvcAcctCmd:
     checkForExtraneousArguments()
   login_hint = _getValidateLoginHint(login_hint)
   crm, httpObj = getCRMService(login_hint)
@@ -7499,15 +7551,15 @@ def _getLoginHintProjects(printShowCmd):
     projects = _getProjects(crm, pfilter)
   return (crm, httpObj, login_hint, projects)
 
-def _checkForExistingProjectFiles():
-  for a_file in [GC.Values[GC.OAUTH2SERVICE_JSON], GC.Values[GC.CLIENT_SECRETS_JSON]]:
+def _checkForExistingProjectFiles(projectFiles):
+  for a_file in projectFiles:
     if os.path.exists(a_file):
       systemErrorExit(JSON_ALREADY_EXISTS_RC, Msg.AUTHORIZATION_FILE_ALREADY_EXISTS.format(a_file, Act.ToPerform()))
 
 # gam create project [<EmailAddress>] [<ProjectID>]
 # gam create project [admin <EmailAddress>] [project <ProjectID>] [parent <String>]
 def doCreateProject():
-  _checkForExistingProjectFiles()
+  _checkForExistingProjectFiles([GC.Values[GC.OAUTH2SERVICE_JSON], GC.Values[GC.CLIENT_SECRETS_JSON]])
   crm, httpObj, login_hint, projectId, parent = _getLoginHintProjectId(True)
   login_domain = getEmailAddressDomain(login_hint)
   body = {'projectId': projectId, 'name': 'GAM Project'}
@@ -7588,13 +7640,42 @@ and accept the Terms of Service (ToS). As soon as you've accepted the ToS popup,
 # gam use project [<EmailAddress>] [<ProjectID>]
 # gam use project [admin <EmailAddress>] [project <ProjectID>]
 def doUseProject():
-  _checkForExistingProjectFiles()
+  _checkForExistingProjectFiles([GC.Values[GC.OAUTH2SERVICE_JSON], GC.Values[GC.CLIENT_SECRETS_JSON]])
   _, httpObj, _, projectId, _ = _getLoginHintProjectId(False)
   _createClientSecretsOauth2service(httpObj, projectId)
 
+# gam addsvcacct project [<EmailAddress>] [gam|<ProjectID>|(filter <String>)]
+#	name <ServiceAccountName> [displayname <String>]
+def doAddSvcAcctProject():
+  _checkForExistingProjectFiles([GC.Values[GC.OAUTH2SERVICE_JSON]])
+  _, httpObj, login_hint, projects = _getLoginHintProjects()
+  name = displayName = ''
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'name':
+      name = getString(Cmd.OB_STRING, minLen=6, maxLen=30).strip()
+      _checkProjectId(name)
+    elif myarg == 'displayname':
+      displayName = getString(Cmd.OB_STRING, maxLen=100)
+    else:
+      unknownArgumentExit()
+  if not name:
+    missingArgumentExit('name')
+  if not displayName:
+    displayName = name
+  count = len(projects)
+  entityPerformActionNumItems([Ent.USER, login_hint], count, Ent.PROJECT)
+  Ind.Increment()
+  i = 0
+  for project in projects:
+    i += 1
+    projectId = project['projectId']
+    _createOauth2serviceJSON(httpObj, projectId, name, displayName)
+  Ind.Decrement()
+
 # gam update project [<EmailAddress>] [gam|<ProjectID>|(filter <String>)]
 def doUpdateProject():
-  _, httpObj, login_hint, projects = _getLoginHintProjects(False)
+  _, httpObj, login_hint, projects = _getLoginHintProjects()
   count = len(projects)
   entityPerformActionNumItems([Ent.USER, login_hint], count, Ent.PROJECT)
   Ind.Increment()
@@ -7608,7 +7689,7 @@ def doUpdateProject():
 
 # gam delete project [<EmailAddress>] [gam|<ProjectID>|(filter <String>)]
 def doDeleteProject():
-  crm, _, login_hint, projects = _getLoginHintProjects(False)
+  crm, _, login_hint, projects = _getLoginHintProjects()
   count = len(projects)
   entityPerformActionNumItems([Ent.USER, login_hint], count, Ent.PROJECT)
   Ind.Increment()
@@ -7618,17 +7699,17 @@ def doDeleteProject():
     projectId = project['projectId']
     try:
       callGAPI(crm.projects(), 'delete',
-               throw_reasons=[GAPI.FORBIDDEN],
+               throw_reasons=[GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
                projectId=projectId)
       entityActionPerformed([Ent.PROJECT, projectId])
-    except GAPI.forbidden as e:
+    except (GAPI.forbidden, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.PROJECT, projectId], str(e))
   Ind.Decrement()
 
 # gam print projects [<EmailAddress>] [all|gam|<ProjectID>|(filter <String>)] [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
 # gam show projects [<EmailAddress>] [all|gam|<ProjectID>|(filter <String>)]
 def doPrintShowProjects():
-  _, _, login_hint, projects = _getLoginHintProjects(True)
+  _, _, login_hint, projects = _getLoginHintProjects()
   csvPF = CSVPrintFile('User') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   if csvPF:
@@ -7811,7 +7892,7 @@ USER_REPORT_SERVICES = [
   'gmail',
   ]
 
-REPORT_ACTIVITIES_TIME_OBJECTS = set(['time'])
+REPORT_ACTIVITIES_TIME_OBJECTS = {'time'}
 
 # gam report <ActivityApplictionName> [todrive <ToDriveAttributes>*]
 #	[(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
@@ -8299,9 +8380,10 @@ def doReport():
             purge_parameters = True
             for event in events:
               for item in event.get('parameters', []):
-                if set(item) == set(['value', 'name']):
+                itemSet = set(item)
+                if not itemSet.difference({'value', 'name'}):
                   event[item['name']] = NL_SPACES_PATTERN.sub('', item['value'])
-                elif set(item) == set(['intValue', 'name']):
+                elif not itemSet.difference({'intValue', 'name'}):
                   if item['name'] in ['start_time', 'end_time']:
                     val = item.get('intValue')
                     if val is not None:
@@ -8312,9 +8394,9 @@ def doReport():
                         event[item['name']] = val
                   else:
                     event[item['name']] = item['intValue']
-                elif set(item) == set(['boolValue', 'name']):
+                elif not itemSet.difference({'boolValue', 'name'}):
                   event[item['name']] = item['boolValue']
-                elif set(item) == set(['multiValue', 'name']):
+                elif not itemSet.difference({'multiValue', 'name'}):
                   event[item['name']] = ' '.join(item['multiValue'])
                 elif item['name'] == 'scope_data':
                   parts = {}
@@ -8601,7 +8683,7 @@ def _getTagReplacementFieldValues(user, i, count, tagReplacements, results=None)
 RTL_PATTERN = re.compile(r'(?s){RTL}.*?{/RTL}')
 RT_PATTERN = re.compile(r'(?s){RT}.*?{/RT}')
 TAG_REPLACE_PATTERN = re.compile(r'{(.+?)}')
-RT_MARKERS = set(['RT', '/RT', 'RTL', '/RTL'])
+RT_MARKERS = {'RT', '/RT', 'RTL', '/RTL'}
 
 def _processTagReplacements(tagReplacements, message):
 # Find all {tag}, note replacement value and starting location
@@ -8987,8 +9069,8 @@ def _getResoldSubscriptionAttr(customerId):
       missingArgumentExit(field.lower())
   return customerAuthToken, body
 
-SUBSCRIPTION_SKIP_OBJECTS = set(['customerId', 'skuId', 'subscriptionId'])
-SUBSCRIPTION_TIME_OBJECTS = set(['creationTime', 'startTime', 'endTime', 'trialEndTime', 'transferabilityExpirationTime'])
+SUBSCRIPTION_SKIP_OBJECTS = {'customerId', 'skuId', 'subscriptionId'}
+SUBSCRIPTION_TIME_OBJECTS = {'creationTime', 'startTime', 'endTime', 'trialEndTime', 'transferabilityExpirationTime'}
 
 def _showSubscription(subscription):
   Ind.Increment()
@@ -9183,9 +9265,9 @@ def doDeleteDomainAlias():
   except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
     accessErrorExit(cd)
 
-DOMAIN_TIME_OBJECTS = set(['creationTime'])
+DOMAIN_TIME_OBJECTS = {'creationTime'}
 DOMAIN_ALIAS_PRINT_ORDER = ['parentDomainName', 'creationTime', 'verified']
-DOMAIN_ALIAS_SKIP_OBJECTS = set(['domainAliasName'])
+DOMAIN_ALIAS_SKIP_OBJECTS = {'domainAliasName'}
 
 def _showDomainAlias(alias, FJQC, aliasSkipObjects, i=0, count=0):
   if FJQC.formatJSON:
@@ -9447,7 +9529,7 @@ def doInfoInstance():
     printLine(json.dumps(cleanJSON(customerInfo), ensure_ascii=False, sort_keys=True))
 
 DOMAIN_PRINT_ORDER = ['customerDomain', 'creationTime', 'isPrimary', 'verified']
-DOMAIN_SKIP_OBJECTS = set(['domainName', 'domainAliases'])
+DOMAIN_SKIP_OBJECTS = {'domainName', 'domainAliases'}
 
 def _showDomain(result, FJQC, i=0, count=0):
   if FJQC.formatJSON:
@@ -10407,7 +10489,7 @@ def getTopLevelOrgId(cd, parentOrgUnitPath):
     checkEntityAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, parentOrgUnitPath)
   return temp_org['parentOrgUnitId']
 
-SUSPENDED_ARGUMENTS = set(['notsuspended', 'suspended', 'issuspended'])
+SUSPENDED_ARGUMENTS = {'notsuspended', 'suspended', 'issuspended'}
 SUSPENDED_CHOICE_MAP = {'notsuspended': False, 'suspended': True}
 def _getIsSuspended(myarg):
   if myarg in SUSPENDED_CHOICE_MAP:
@@ -10423,7 +10505,7 @@ def _getOptionalIsSuspended():
   return None
 
 ORG_FIELD_INFO_ORDER = ['orgUnitId', 'name', 'description', 'parentOrgUnitPath', 'parentOrgUnitId', 'blockInheritance']
-ORG_FIELDS_WITH_CRS_NLS = ['description']
+ORG_FIELDS_WITH_CRS_NLS = {'description'}
 
 def _doInfoOrgs(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
@@ -11953,7 +12035,10 @@ class ContactsManager():
     while Cmd.ArgumentsRemaining():
       fieldName = getChoice(ContactsManager.CONTACT_ARGUMENT_TO_PROPERTY_MAP, mapChoice=True)
       if fieldName == CONTACT_JSON:
-        fields.update(getJSON(['ContactID']))
+        if entityType == Ent.USER:
+          fields.update(getJSON(['ContactID']))
+        else:
+          fields.update(getJSON(['ContactID', 'ContactGroups']))
       elif fieldName == CONTACT_BIRTHDAY:
         fields[fieldName] = getYYYYMMDD(minLen=0)
       elif fieldName == CONTACT_GENDER:
@@ -12474,8 +12559,8 @@ def _getContactQueryAttributes(contactQuery, myarg, entityType, unknownAction, a
     return False
   return True
 
-CONTACT_SELECT_ARGUMENTS = set(['query', 'contactgroup', 'selectcontactgroup', 'othercontacts', 'selectothercontacts',
-                                'emailmatchpattern', 'emailmatchtype', 'updatedmin'])
+CONTACT_SELECT_ARGUMENTS = {'query', 'contactgroup', 'selectcontactgroup', 'othercontacts', 'selectothercontacts',
+                            'emailmatchpattern', 'emailmatchtype', 'updatedmin'}
 
 def _getContactEntityList(entityType, unknownAction, allowOutputAttributes):
   contactQuery = _initContactQueryAttributes()
@@ -12949,8 +13034,8 @@ def deleteUserContacts(users):
 def doDeleteDomainContacts():
   _deleteContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
-CONTACT_TIME_OBJECTS = set([CONTACT_UPDATED])
-CONTACT_FIELDS_WITH_CRS_NLS = [CONTACT_NOTES, CONTACT_BILLING_INFORMATION]
+CONTACT_TIME_OBJECTS = {CONTACT_UPDATED}
+CONTACT_FIELDS_WITH_CRS_NLS = {CONTACT_NOTES, CONTACT_BILLING_INFORMATION}
 
 def _showContact(contactsManager, fields, displayFieldsList, contactGroupIDs, j, jcount, FJQC):
   if FJQC.formatJSON:
@@ -13577,7 +13662,7 @@ def deleteUserContactGroups(users):
         break
     Ind.Decrement()
 
-CONTACT_GROUP_TIME_OBJECTS = set([CONTACT_GROUP_UPDATED])
+CONTACT_GROUP_TIME_OBJECTS = {CONTACT_GROUP_UPDATED}
 
 def _showContactGroup(contactsManager, group, j, jcount, FJQC):
   fields = contactsManager.ContactGroupToFields(group)
@@ -14079,8 +14164,8 @@ CROS_SCALAR_PROPERTY_PRINT_ORDER = [
   'willAutoRenew',
   ]
 
-CROS_TIME_OBJECTS = set(['lastSync', 'lastEnrollmentTime', 'supportEndDate', 'createTime', 'reportTime'])
-CROS_FIELDS_WITH_CRS_NLS = ['notes']
+CROS_TIME_OBJECTS = {'lastSync', 'lastEnrollmentTime', 'supportEndDate', 'createTime', 'reportTime'}
+CROS_FIELDS_WITH_CRS_NLS = {'notes'}
 CROS_ACTIVE_TIME_RANGES_ARGUMENTS = ['timeranges', 'activetimeranges', 'times']
 CROS_RECENT_USERS_ARGUMENTS = ['recentusers', 'users']
 CROS_DEVICE_FILES_ARGUMENTS = ['devicefiles', 'files']
@@ -14503,8 +14588,8 @@ def doPrintCrOSDevices(entityList=None):
       return
     row = {}
     for attrib in cros:
-      if attrib not in set(['kind', 'etag', 'tpmVersionInfo', 'recentUsers', 'activeTimeRanges',
-                            'deviceFiles', 'cpuStatusReports', 'diskVolumeReports', 'systemRamFreeReports']):
+      if attrib not in {'kind', 'etag', 'tpmVersionInfo', 'recentUsers', 'activeTimeRanges',
+                        'deviceFiles', 'cpuStatusReports', 'diskVolumeReports', 'systemRamFreeReports'}:
         if attrib not in CROS_TIME_OBJECTS:
           row[attrib] = cros[attrib]
         else:
@@ -14707,7 +14792,7 @@ def doPrintCrOSDevices(entityList=None):
     csvPF.SetSortTitles(['deviceId'])
   csvPF.writeCSVfile('CrOS')
 
-CROS_ACTIVITY_TIME_OBJECTS = set(['createTime'])
+CROS_ACTIVITY_TIME_OBJECTS = {'createTime'}
 
 # gam print crosactivity [todrive <ToDriveAttributes>*]
 #	[(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
@@ -15056,7 +15141,7 @@ MOBILE_FIELDS_CHOICE_MAP = {
   'wifimacaddress': 'wifiMacAddress',
   }
 
-MOBILE_TIME_OBJECTS = set(['firstSync', 'lastSync'])
+MOBILE_TIME_OBJECTS = {'firstSync', 'lastSync'}
 
 def _initMobileFieldsParameters():
   return {'fieldsList': [], 'projection': None}
@@ -15398,7 +15483,7 @@ GROUP_MERGED_TO_COMPONENT_MAP = {
 GROUP_ATTRIBUTES_SET = set(list(GROUP_BASIC_ATTRIBUTES)+list(GROUP_SETTINGS_ATTRIBUTES)+list(GROUP_ALIAS_ATTRIBUTES)+
                            list(GROUP_ASSIST_CONTENT_ATTRIBUTES)+list(GROUP_MODERATE_CONTENT_ATTRIBUTES)+list(GROUP_MODERATE_MEMBERS_ATTRIBUTES)+
                            list(GROUP_MERGED_ATTRIBUTES)+list(GROUP_DEPRECATED_ATTRIBUTES))
-GROUP_FIELDS_WITH_CRS_NLS = ['customFooterText', 'defaultMessageDenyNotificationText', 'description']
+GROUP_FIELDS_WITH_CRS_NLS = {'customFooterText', 'defaultMessageDenyNotificationText', 'description'}
 
 def getGroupAttrProperties(myarg):
   attrProperties = GROUP_BASIC_ATTRIBUTES.get(myarg)
@@ -16739,7 +16824,7 @@ def doPrintGroups():
           row['Owners'] = delimiter.join(ownersList)
     if isinstance(groupSettings, dict):
       for key in groupSettings:
-        if key not in set(['kind', 'etag', 'email', 'name', 'description']):
+        if key not in {'kind', 'etag', 'email', 'name', 'description'}:
           setting_value = groupSettings[key]
           if setting_value is None:
             setting_value = ''
@@ -17338,7 +17423,7 @@ def doPrintGroupMembers():
     else:
       unknownArgumentExit()
   if not typesSet:
-    typesSet = set([Ent.TYPE_USER]) if memberOptions[MEMBEROPTION_RECURSIVE] else ALL_GROUP_TYPES
+    typesSet = {Ent.TYPE_USER} if memberOptions[MEMBEROPTION_RECURSIVE] else ALL_GROUP_TYPES
   if entityList is None:
     updateFieldsForGroupMatchPatterns(matchPatterns, cdfieldsList)
     subTitle = groupFilters(kwargs)
@@ -17797,7 +17882,7 @@ def doDeleteOrUndeleteAlert():
   except (GAPI.serviceNotAvailable, GAPI.authError):
     entityServiceNotApplicableWarning(Ent.USER, user)
 
-ALERT_TIME_OBJECTS = set(['createTime', 'startTime', 'endTime'])
+ALERT_TIME_OBJECTS = {'createTime', 'startTime', 'endTime'}
 
 def _showAlert(alert, FJQC, i=0, count=0):
   if FJQC.formatJSON:
@@ -18562,7 +18647,7 @@ RESOURCE_ADDTL_FIELDS = [
   'userVisibleDescription',
   ]
 RESOURCE_ALL_FIELDS = RESOURCE_DFLT_FIELDS+RESOURCE_ADDTL_FIELDS
-RESOURCE_FIELDS_WITH_CRS_NLS = ['resourceDescription']
+RESOURCE_FIELDS_WITH_CRS_NLS = {'resourceDescription'}
 
 def _showResource(cd, resource, i, count, FJQC, acls=None):
 
@@ -19727,7 +19812,7 @@ EVENT_SHOW_ORDER = ['id', 'summary', 'status', 'description', 'location',
 EVENT_PRINT_ORDER = ['id', 'summary', 'status', 'description', 'location',
                      'created', 'updated', 'iCalUID']
 
-EVENT_TIME_OBJECTS = set(['created', 'updated', 'dateTime'])
+EVENT_TIME_OBJECTS = {'created', 'updated', 'dateTime'}
 
 def _showCalendarEvent(primaryEmail, calId, eventEntityType, event, k, kcount, FJQC):
   if FJQC.formatJSON:
@@ -19739,7 +19824,7 @@ def _showCalendarEvent(primaryEmail, calId, eventEntityType, event, k, kcount, F
                                      timeObjects=EVENT_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
     return
   printEntity([eventEntityType, event['id']], k, kcount)
-  skipObjects = set(['id'])
+  skipObjects = {'id'}
   Ind.Increment()
   for field in EVENT_SHOW_ORDER:
     if field in event:
@@ -20398,13 +20483,13 @@ def _showSchema(schema, i=0, count=0):
   printEntity([Ent.USER_SCHEMA, schema['schemaName']], i, count)
   Ind.Increment()
   for a_key in schema:
-    if a_key not in set(['kind', 'etag', 'schemaName', 'fields']):
+    if a_key not in {'kind', 'etag', 'schemaName', 'fields'}:
       printKeyValueList([a_key, schema[a_key]])
   for field in schema['fields']:
     printKeyValueList(['Field', field['fieldName']])
     Ind.Increment()
     for a_key in field:
-      if a_key not in set(['kind', 'etag', 'fieldName']):
+      if a_key not in {'kind', 'etag', 'fieldName'}:
         printKeyValueList([a_key, field[a_key]])
     Ind.Decrement()
   Ind.Decrement()
@@ -20684,7 +20769,7 @@ def _getExportOrgUnitName(export, cd):
     if 'orgUnitInfo' in query:
       query['orgUnitInfo']['orgUnitPath'] = convertOrgUnitIDtoPath(query['orgUnitInfo']['orgUnitId'], cd)
 
-VAULT_EXPORT_TIME_OBJECTS = set(['versionDate', 'createTime', 'startTime', 'endTime'])
+VAULT_EXPORT_TIME_OBJECTS = {'versionDate', 'createTime', 'startTime', 'endTime'}
 
 def _showVaultExport(export, cd):
   if cd is not None:
@@ -21149,7 +21234,7 @@ def _getHoldEmailAddressesOrgUnitName(hold, cd):
   if 'orgUnit' in hold:
     hold['orgUnit']['orgUnitPath'] = convertOrgUnitIDtoPath(hold['orgUnit']['orgUnitId'], cd)
 
-VAULT_HOLD_TIME_OBJECTS = set(['holdTime', 'updateTime', 'startTime', 'endTime'])
+VAULT_HOLD_TIME_OBJECTS = {'holdTime', 'updateTime', 'startTime', 'endTime'}
 
 def _showVaultHold(hold, cd):
   if cd is not None:
@@ -23706,8 +23791,8 @@ USER_FIELDS_CHOICE_MAP = {
   }
 
 INFO_USER_OPTIONS = ['noaliases', 'nobuildingnames', 'nogroups', 'nolicenses', 'nolicences', 'noschemas', 'schemas', 'userview']
-USER_SKIP_OBJECTS = set(['thumbnailPhotoEtag'])
-USER_TIME_OBJECTS = set(['creationTime', 'deletionTime', 'lastLoginTime'])
+USER_SKIP_OBJECTS = {'thumbnailPhotoEtag'}
+USER_TIME_OBJECTS = {'creationTime', 'deletionTime', 'lastLoginTime'}
 
 def infoUsers(entityList):
   def _showType(row, typeKey, typeCustomValue, customTypeKey):
@@ -24973,8 +25058,8 @@ COURSE_FIELDS_CHOICE_MAP = {
   'teachergroupemail': 'teacherGroupEmail',
   'updatetime': 'updateTime',
   }
-COURSE_TIME_OBJECTS = set(['creationTime', 'updateTime'])
-COURSE_NOLEN_OBJECTS = set(['materials'])
+COURSE_TIME_OBJECTS = {'creationTime', 'updateTime'}
+COURSE_NOLEN_OBJECTS = {'materials'}
 COURSE_PROPERTY_PRINT_ORDER = [
   'id',
   'name',
@@ -25498,7 +25583,7 @@ COURSE_ANNOUNCEMENTS_ORDERBY_CHOICE_MAP = {
   'updatetime': 'updateTime',
   'updatedate': 'updateTime',
   }
-COURSE_ANNOUNCEMENTS_TIME_OBJECTS = set(['creationTime', 'scheduledTime', 'updateTime'])
+COURSE_ANNOUNCEMENTS_TIME_OBJECTS = {'creationTime', 'scheduledTime', 'updateTime'}
 COURSE_ANNOUNCEMENTS_SORT_TITLES = ['courseId', 'courseName', 'id', 'text', 'state']
 COURSE_ANNOUNCEMENTS_INDEXED_TITLES = ['materials']
 
@@ -25603,7 +25688,7 @@ def doPrintCourseAnnouncements():
           ClientAPIAccessDeniedExit()
   csvPF.writeCSVfile('Course Announcements')
 
-COURSE_TOPICS_TIME_OBJECTS = set(['updateTime'])
+COURSE_TOPICS_TIME_OBJECTS = {'updateTime'}
 COURSE_TOPICS_SORT_TITLES = ['courseId', 'courseName', 'topicId', 'name', 'updateTime']
 
 # gam print course-topics [todrive <ToDriveAttributes>*]
@@ -25715,7 +25800,7 @@ COURSE_WORK_ORDERBY_CHOICE_MAP = {
   'updatetime': 'updateTime',
   'updatedate': 'updateTime',
   }
-COURSE_WORK_TIME_OBJECTS = set(['creationTime', 'scheduledTime', 'updateTime'])
+COURSE_WORK_TIME_OBJECTS = {'creationTime', 'scheduledTime', 'updateTime'}
 COURSE_WORK_SORT_TITLES = ['courseId', 'courseName', 'id', 'title', 'description', 'state']
 COURSE_WORK_INDEXED_TITLES = ['materials']
 
@@ -25856,7 +25941,7 @@ COURSE_SUBMISSION_FIELDS_CHOICE_MAP = {
   'workid': 'courseWorkId',
   'worktype': 'courseWorkType',
   }
-COURSE_SUBMISSION_TIME_OBJECTS = set(['creationTime', 'updateTime', 'gradeTimestamp', 'stateTimestamp'])
+COURSE_SUBMISSION_TIME_OBJECTS = {'creationTime', 'updateTime', 'gradeTimestamp', 'stateTimestamp'}
 COURSE_SUBMISSION_SORT_TITLES = ['courseId', 'courseName', 'courseWorkId', 'id', 'userId',
                                  'profile.emailAddress', 'profile.name.givenName', 'profile.name.familyName', 'profile.name.fullName', 'state']
 COURSE_SUBISSION_INDEXED_TITLES = ['submissionHistory']
@@ -26673,7 +26758,7 @@ def _getClassroomEmail(croom, classroomEmails, userId, user):
     classroomEmails[userId] = userEmail
   return userEmail
 
-GUARDIAN_TIME_OBJECTS = set(['creationTime'])
+GUARDIAN_TIME_OBJECTS = {'creationTime'}
 GUARDIAN_STATES = ['complete', 'pending']
 
 def _printShowGuardians(entityList=None):
@@ -28772,8 +28857,8 @@ def removeCalendars(users):
   checkForExtraneousArguments()
   _modifyRemoveCalendars(users, calendarEntity, 'delete')
 
-CALENDAR_SIMPLE_LISTS = set(['allowedConferenceSolutionTypes'])
-CALENDAR_EXCLUDE_OPTIONS = set(['noprimary', 'nogroups', 'noresources', 'nosystem', 'nousers'])
+CALENDAR_SIMPLE_LISTS = {'allowedConferenceSolutionTypes'}
+CALENDAR_EXCLUDE_OPTIONS = {'noprimary', 'nogroups', 'noresources', 'nosystem', 'nousers'}
 CALENDAR_EXCLUDE_DOMAINS = {
   'nogroups': 'group.calendar.google.com',
   'noresources': 'resource.calendar.google.com',
@@ -29700,8 +29785,8 @@ def getEscapedDriveFolderName():
 def initDriveFileEntity():
   return {'list': [], 'teamdrivename': None, 'teamdriveadminquery': None, 'query': None, 'teamdrivefilequery': None, 'dict': None, 'root': [], 'teamdrive': {}}
 
-DRIVE_MY_NAME_OPTIONS = set(['name', 'drivefilename'])
-DRIVE_ANY_NAME_OPTIONS = set(['anyname', 'anydrivefilename', 'anyownername', 'anyownerdrivefilename', 'sharedname', 'shareddrivefilename'])
+DRIVE_MY_NAME_OPTIONS = {'name', 'drivefilename'}
+DRIVE_ANY_NAME_OPTIONS = {'anyname', 'anydrivefilename', 'anyownername', 'anyownerdrivefilename', 'sharedname', 'shareddrivefilename'}
 
 def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
   def _getKeywordColonValue(kwColonValue):
@@ -30258,27 +30343,26 @@ def getDriveFileAttribute(myarg, body, parameters, assignLocalName):
   else:
     unknownArgumentExit()
 
-DRIVE_ACTIVITY_V1_TITLES = ['user.name', 'user.permissionId', 'target.id', 'target.name', 'target.mimeType', 'eventTime']
 DRIVE_ACTIVITY_V2_TITLES = ['user.name', 'user.emailAddress', 'target.id', 'target.name', 'target.mimeType', 'eventTime']
 DRIVE_ACTIVITY_ACTION_MAP = {
-  'comment': ('comment', 'COMMENT'),
-  'create': ('create', 'CREATE'),
-  'delete': ('trash', 'DELETE'),
-  'dlpchange': (None, 'DLP_CHANGE'),
-  'edit': ('edit', 'EDIT'),
-  'emptytrash': ('emptyTrash', 'DELETE'),
-  'move': ('move', 'MOVE'),
-  'permissionchange': ('permissionChange', 'PERMISSION_CHANGE'),
-  'reference': (None, 'REFERENCE'),
-  'rename': ('rename', 'RENAME'),
-  'restore': ('untrash', 'RESTORE'),
-  'settingschange': (None, 'SETTINGS_CHANGE'),
-  'trash': ('trash', 'DELETE'),
-  'untrash': ('untrash', 'RESTORE'),
-  'upload': ('upload', 'CREATE'),
+  'comment': 'COMMENT',
+  'create': 'CREATE',
+  'delete': 'DELETE',
+  'dlpchange': 'DLP_CHANGE',
+  'edit': 'EDIT',
+  'emptytrash': 'DELETE',
+  'move': 'MOVE',
+  'permissionchange': 'PERMISSION_CHANGE',
+  'reference': 'REFERENCE',
+  'rename': 'RENAME',
+  'restore': 'RESTORE',
+  'settingschange': 'SETTINGS_CHANGE',
+  'trash': 'DELETE',
+  'untrash': 'RESTORE',
+  'upload': 'CREATE',
   }
 
-# gam <UserTypeEntity> print|show driveactivity [v2] [todrive <ToDriveAttributes>*]
+# gam <UserTypeEntity> print|show driveactivity [todrive <ToDriveAttributes>*]
 #	[(fileid <DriveFileID>) | (folderid <DriveFolderID>) |
 #	 (drivefilename <DriveFileName>) | (drivefoldername <DriveFolderName>) | (query <QueryDriveFile>)]
 #	[start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [action|actions [not] <DriveActivityActionList>]
@@ -30321,9 +30405,8 @@ def printDriveActivity(users):
   activityFilter = ''
   actions = set()
   negativeAction = False
-  filterTime = False
-  v2 = checkArgumentPresent(['v2'])
-  csvPF = CSVPrintFile(DRIVE_ACTIVITY_V2_TITLES if v2 else DRIVE_ACTIVITY_V1_TITLES, 'sortall')
+  checkArgumentPresent(['v2'])
+  csvPF = CSVPrintFile(DRIVE_ACTIVITY_V2_TITLES, 'sortall')
   FJQC = FormatJSONQuoteChar(csvPF)
   userInfo = {}
   while Cmd.ArgumentsRemaining():
@@ -30342,12 +30425,11 @@ def printDriveActivity(users):
       query = getString(Cmd.OB_QUERY)
     elif myarg in ['start', 'starttime', 'end', 'endtime']:
       startEndTime.Get(myarg)
-      filterTime = True
     elif myarg in ['action', 'actions']:
       negativeAction = checkArgumentPresent('not')
       for action in _getFieldsList():
         if action in DRIVE_ACTIVITY_ACTION_MAP:
-          mappedAction = DRIVE_ACTIVITY_ACTION_MAP[action][v2]
+          mappedAction = DRIVE_ACTIVITY_ACTION_MAP[action]
           if mappedAction:
             actions.add(mappedAction)
         else:
@@ -30356,26 +30438,25 @@ def printDriveActivity(users):
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if not baseFileList and not query:
     baseFileList = [{'id': 'root', 'mimeType': MIMETYPE_GA_FOLDER}]
-  if v2:
-    if startEndTime.startTime:
-      if activityFilter:
-        activityFilter += ' AND '
-      activityFilter += 'time >= "{0}"'.format(startEndTime.startTime)
-    if startEndTime.endTime:
-      if activityFilter:
-        activityFilter += ' AND '
-      activityFilter += 'time <= "{0}"'.format(startEndTime.endTime)
-    if actions:
-      if activityFilter:
-        activityFilter += ' AND '
-      activityFilter += '{0}detail.action_detail_case:({1})'.format('-' if negativeAction else '', ' '.join(actions))
+  if startEndTime.startTime:
+    if activityFilter:
+      activityFilter += ' AND '
+    activityFilter += 'time >= "{0}"'.format(startEndTime.startTime)
+  if startEndTime.endTime:
+    if activityFilter:
+      activityFilter += ' AND '
+    activityFilter += 'time <= "{0}"'.format(startEndTime.endTime)
+  if actions:
+    if activityFilter:
+      activityFilter += ' AND '
+    activityFilter += '{0}detail.action_detail_case:({1})'.format('-' if negativeAction else '', ' '.join(actions))
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, activity = buildGAPIServiceObject([API.APPSACTIVITY, API.DRIVEACTIVITY][v2], user, i, count)
+    user, activity = buildGAPIServiceObject(API.DRIVEACTIVITY, user, i, count)
     if not activity:
       continue
-    _, drive = buildGAPIServiceObject(API.DRIVE, user, i, count)
+    _, drive = buildGAPIServiceObject(API.DRIVE3, user, i, count)
     if not drive:
       continue
     fileList = baseFileList[:]
@@ -30404,39 +30485,25 @@ def printDriveActivity(users):
       fileId = f_file['id']
       entityType = Ent.DRIVE_FOLDER_ID if f_file['mimeType'] == MIMETYPE_GA_FOLDER else Ent.DRIVE_FILE_ID
       if entityType == Ent.DRIVE_FILE_ID:
-        drive_key = 'itemName' if v2 else  'drive_fileId'
+        drive_key = 'itemName'
       else:
-        drive_key = 'ancestorName' if v2 else 'drive_ancestorId'
+        drive_key = 'ancestorName'
       qualifier = ' for {0}: {1}'.format(Ent.Singular(entityType), fileId)
       printGettingAllEntityItemsForWhom(Ent.ACTIVITY, user, i, count, qualifier=qualifier)
       page_message = getPageMessageForWhom()
       pageToken = None
       totalItems = 0
-      if v2:
-        kwargs = {
-          'consolidationStrategy': {'none': {}},
-          'pageSize': GC.Values[GC.ACTIVITY_MAX_RESULTS],
-          'pageToken': pageToken,
-          drive_key: 'items/{0}'.format(fileId),
-          'filter': activityFilter}
-      else:
-        kwargs = {
-          'groupingStrategy': 'none',
-          'pageSize': GC.Values[GC.ACTIVITY_MAX_RESULTS],
-          'pageToken': pageToken,
-          drive_key: fileId,
-          'source': 'drive.google.com',
-          'userId': 'me'}
+      kwargs = {
+        'consolidationStrategy': {'none': {}},
+        'pageSize': GC.Values[GC.ACTIVITY_MAX_RESULTS],
+        'pageToken': pageToken,
+        drive_key: 'items/{0}'.format(fileId),
+        'filter': activityFilter}
       while True:
         try:
-          if v2:
-            feed = callGAPI(activity.activity(), 'query',
-                            throw_reasons=GAPI.ACTIVITY_THROW_REASONS,
-                            fields='nextPageToken,activities', body=kwargs)
-          else:
-            feed = callGAPI(activity.activities(), 'list',
-                            throw_reasons=GAPI.ACTIVITY_THROW_REASONS,
-                            fields='nextPageToken,activities(combinedEvent)', **kwargs)
+          feed = callGAPI(activity.activity(), 'query',
+                          throw_reasons=GAPI.ACTIVITY_THROW_REASONS,
+                          fields='nextPageToken,activities', body=kwargs)
         except GAPI.badRequest as e:
           entityActionFailedWarning([Ent.USER, user, entityType, fileId], str(e), i, count)
           break
@@ -30446,74 +30513,43 @@ def printDriveActivity(users):
         pageToken, totalItems = _processGAPIpagesResult(feed, 'activities', None, totalItems, page_message, None, Ent.ACTIVITY)
         kwargs['pageToken'] = pageToken
         if feed:
-          if v2:
-            for activityEvent in feed.get('activities', []):
-              eventRow = {}
-              actors = activityEvent.get('actors', [])
-              if actors:
-                userId = actors[0].get('user', {}).get('knownUser', {}).get('personName', '')
-                if userId:
-                  entry = _getUserInfo(userId)
-                  eventRow['user.name'] = entry[1]
-                  eventRow['user.emailAddress'] = entry[0]
-              targets = activityEvent.get('targets', [])
-              if targets:
-                driveItem = targets[0].get('driveItem')
-                if driveItem:
-                  eventRow['target.id'] = driveItem['name'][6:]
-                  eventRow['target.name'] = driveItem['title']
-                  eventRow['target.mimeType'] = driveItem['mimeType']
-                else:
-                  teamDrive = targets[0].get('teamDrive')
-                  if teamDrive:
-                    eventRow['target.id'] = teamDrive['name'][11:]
-                    eventRow['target.name'] = teamDrive['title']
-              if 'timestamp' in activityEvent:
-                eventRow['eventTime'] = formatLocalTime(activityEvent['timestamp'])
-              elif 'timeRange' in activityEvent:
-                timeRange = activityEvent['timeRange']
-                eventRow['eventTime'] = '{0}-{1}'.format(formatLocalTime(timeRange['startTime']), formatLocalTime(timeRange['endTime']))
-              _updateKnownUsers(activityEvent)
-              if not FJQC.formatJSON:
-                activityEvent.pop('timestamp', None)
-                activityEvent.pop('timeRange', None)
-                flattenJSON(activityEvent, flattened=eventRow)
-                csvPF.WriteRowTitles(eventRow)
+          for activityEvent in feed.get('activities', []):
+            eventRow = {}
+            actors = activityEvent.get('actors', [])
+            if actors:
+              userId = actors[0].get('user', {}).get('knownUser', {}).get('personName', '')
+              if userId:
+                entry = _getUserInfo(userId)
+                eventRow['user.name'] = entry[1]
+                eventRow['user.emailAddress'] = entry[0]
+            targets = activityEvent.get('targets', [])
+            if targets:
+              driveItem = targets[0].get('driveItem')
+              if driveItem:
+                eventRow['target.id'] = driveItem['name'][6:]
+                eventRow['target.name'] = driveItem['title']
+                eventRow['target.mimeType'] = driveItem['mimeType']
               else:
-                checkRow = eventRow.copy()
-                flattenJSON(activityEvent, flattened=checkRow)
-                if csvPF.CheckRowTitles(checkRow):
-                  eventRow['JSON'] = json.dumps(cleanJSON(activityEvent), ensure_ascii=False, sort_keys=True)
-                  csvPF.WriteRowNoFilter(eventRow)
-          else:
-            for activityEvent in feed.get('activities', []):
-              event = activityEvent['combinedEvent']
-              event['eventTime'] = formatLocalTimestamp(event['eventTimeMillis'])
-              if filterTime:
-                timeValue, _ = iso8601.parse_date(event['eventTime'])
-                if not (((startEndTime.startDateTime is None) or (timeValue >= startEndTime.startDateTime)) and
-                        ((startEndTime.endDateTime is None) or (timeValue <= startEndTime.endDateTime))):
-                  continue
-              if actions:
-                if not negativeAction:
-                  if event['primaryEventType'] not in actions:
-                    continue
-                else:
-                  if event['primaryEventType'] in actions:
-                    continue
-              eventRow = flattenJSON(event, flattened={})
-              if not FJQC.formatJSON:
-                csvPF.WriteRowTitles(eventRow)
-              elif csvPF.CheckRowTitles(eventRow):
-                eventRow = {}
-                if 'user' in event:
-                  eventRow['user.name'] = event['user']['name']
-                  eventRow['user.permissionId'] = event['user']['permissionId']
-                eventRow['target.id'] = event['target']['id']
-                eventRow['target.name'] = event['target']['name']
-                eventRow['target.mimeType'] = event['target']['mimeType']
-                eventRow['eventTime'] = event['eventTime']
-                eventRow['JSON'] = json.dumps(cleanJSON(event), ensure_ascii=False, sort_keys=True)
+                teamDrive = targets[0].get('teamDrive')
+                if teamDrive:
+                  eventRow['target.id'] = teamDrive['name'][11:]
+                  eventRow['target.name'] = teamDrive['title']
+            if 'timestamp' in activityEvent:
+              eventRow['eventTime'] = formatLocalTime(activityEvent['timestamp'])
+            elif 'timeRange' in activityEvent:
+              timeRange = activityEvent['timeRange']
+              eventRow['eventTime'] = '{0}-{1}'.format(formatLocalTime(timeRange['startTime']), formatLocalTime(timeRange['endTime']))
+            _updateKnownUsers(activityEvent)
+            if not FJQC.formatJSON:
+              activityEvent.pop('timestamp', None)
+              activityEvent.pop('timeRange', None)
+              flattenJSON(activityEvent, flattened=eventRow)
+              csvPF.WriteRowTitles(eventRow)
+            else:
+              checkRow = eventRow.copy()
+              flattenJSON(activityEvent, flattened=checkRow)
+              if csvPF.CheckRowTitles(checkRow):
+                eventRow['JSON'] = json.dumps(cleanJSON(activityEvent), ensure_ascii=False, sort_keys=True)
                 csvPF.WriteRowNoFilter(eventRow)
           del feed
         if not pageToken:
@@ -32038,7 +32074,7 @@ class DriveListParameters():
     return not self.permissionMatchKeep
 
 FILELIST_FIELDS_TITLES = ['id', 'mimeType', 'parents']
-DRIVE_INDEXED_TITLES = ['parents', 'paths', 'permissions']
+DRIVE_INDEXED_TITLES = ['parents', 'path', 'permissions']
 
 # gam <UserTypeEntity> print filelist [todrive <ToDriveAttributes>*] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
 #	[((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) |
@@ -35201,7 +35237,11 @@ def validateUserGetPermissionId(user, i=0, count=0):
   return None
 
 def getPermissionIdForEmail(user, i, count, email):
-  _, drive = buildGAPIServiceObject(API.DRIVE, user, i, count)
+  currentSvcAcctAPI = GM.Globals[GM.CURRENT_SVCACCT_API]
+  currentSvcAcctAPIScopes = GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES]
+  _, drive = buildGAPIServiceObject(API.DRIVE2, user, i, count)
+  GM.Globals[GM.CURRENT_SVCACCT_API] = currentSvcAcctAPI
+  GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = currentSvcAcctAPIScopes
   if drive:
     try:
       return callGAPI(drive.permissions(), 'getIdForEmail',
@@ -36847,7 +36887,7 @@ TEAMDRIVE_FIELDS_CHOICE_MAP = {
   'restrictions': 'restrictions',
   'themeid': 'themeId',
   }
-TEAMDRIVE_TIME_OBJECTS = set(['createdTime'])
+TEAMDRIVE_TIME_OBJECTS = {'createdTime'}
 
 def _showTeamDrive(user, teamdrive, j, jcount, FJQC):
   def _showCapabilitiesRestrictions(field):
@@ -41823,6 +41863,7 @@ MAIN_ADD_CREATE_FUNCTIONS = {
 
 MAIN_COMMANDS_WITH_OBJECTS = {
   'add': (Act.ADD, MAIN_ADD_CREATE_FUNCTIONS),
+  'addsvcacct': (Act.ADD_SVCACCT, {Cmd.ARG_PROJECT: doAddSvcAcctProject}),
   'cancel': (Act.CANCEL, {Cmd.ARG_GUARDIANINVITATION: doCancelGuardianInvitation}),
   'clear': (Act.CLEAR, {Cmd.ARG_CONTACT: doClearDomainContacts}),
   'close': (Act.CLOSE, {Cmd.ARG_VAULTMATTER: doCloseVaultMatter}),
@@ -42644,6 +42685,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_PHOTO:		updatePhoto,
       Cmd.ARG_PRINTER:		updatePrinters,
       Cmd.ARG_SENDAS:		updateSendAs,
+      Cmd.ARG_SERVICEACCOUNT:	checkServiceAccount,
       Cmd.ARG_SHEET:		updateSheets,
       Cmd.ARG_SHEETRANGE:	updateSheetRanges,
       Cmd.ARG_SMIME:		updateSmime,

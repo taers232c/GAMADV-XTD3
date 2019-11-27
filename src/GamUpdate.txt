@@ -1,3 +1,22 @@
+4.97.00
+
+Support for Drive Activity API v1 in `gam print/show driveactivity` has been dropped.
+
+Updated `csv_output_row_filter "<FieldNameFilter>:boolean:<Boolean>"` to properly select fields
+even if the field is a string rather than a Boolean; in particular, this applies to group settings.
+
+Added command that adds additional service accounts to a project.
+```
+gam addsvcacct project [<EmailAddress>] [gam|<ProjectID>|(filter <String>)]
+        name <ServiceAccountName> [displayname <String>]
+```
+Added command that allows selection of Service Account scopes.
+```
+gam <UserTypeEntity> update serviceaccount
+```
+These new commands allow you to more easily provide limited access to additional GAM users.
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Authorization
+
 4.96.20
 
 Handle `Too Many Requests` error when processing contacts.

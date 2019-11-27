@@ -95,13 +95,15 @@ MAP_ROLE_ID_TO_NAME = 'ri2n'
 MAP_ROLE_NAME_TO_ID = 'rn2i'
 # Dictionary mapping User ID to Name
 MAP_USER_ID_TO_NAME = 'ui2n'
-# Values retrieved from oauth2service.json
-OAUTH2SERVICE_CLIENT_ID = 'osci'
-OAUTH2SERVICE_JSON_DATA = 'osjd'
 # Values retrieved from oauth2.txt
 OAUTH2_CLIENT_ID = 'oaci'
 # oauth2.txt lock file
 OAUTH2_TXT_LOCK = 'oatl'
+# Values retrieved from oauth2service.json
+OAUTH2SERVICE_CLIENT_ID = 'osci'
+OAUTH2SERVICE_JSON_DATA = 'osjd'
+# Values retrieved from oauth2service.json
+SVCACCT_SCOPES = 'sasc'
 # gam.cfg parser
 PARSER = 'pars'
 # Process ID
@@ -184,10 +186,11 @@ Globals = {
   MAP_ROLE_ID_TO_NAME: {},
   MAP_ROLE_NAME_TO_ID: {},
   MAP_USER_ID_TO_NAME: {},
-  OAUTH2SERVICE_CLIENT_ID: None,
-  OAUTH2SERVICE_JSON_DATA: {},
   OAUTH2_CLIENT_ID: None,
   OAUTH2_TXT_LOCK: None,
+  OAUTH2SERVICE_CLIENT_ID: None,
+  OAUTH2SERVICE_JSON_DATA: {},
+  SVCACCT_SCOPES: {},
   PARSER: None,
   PID: 0,
   RATE_CHECK_COUNT: 0,

@@ -20,7 +20,7 @@
 
 """
 
-class GamEntity(object):
+class GamEntity():
 
   ROLE_MANAGER = 'MANAGER'
   ROLE_MEMBER = 'MEMBER'
@@ -210,6 +210,7 @@ class GamEntity(object):
   STATUS = 'stat'
   STUDENT = 'stud'
   SUBSCRIPTION = 'subs'
+  SVCACCT = 'svac'
   TARGET_USER = 'tgt'
   TEACHER = 'teac'
   TEAMDRIVE = 'tdrv'
@@ -414,9 +415,10 @@ class GamEntity(object):
     SOURCE_USER: ['Source Users', 'Source User'],
     SPREADSHEET: ['Spreadsheets', 'Spreadsheet'],
     SPREADSHEET_RANGE: ['Spreadsheet Ranges', 'Spreadsheet Range'],
-    SUBSCRIPTION: ['Subscriptions', 'Subscription'],
     STATUS: ['Status', 'Status'],
     STUDENT: ['Students', 'Student'],
+    SUBSCRIPTION: ['Subscriptions', 'Subscription'],
+    SVCACCT: ['Service Account', 'Service Account'],
     TARGET_USER: ['Target Users', 'Target User'],
     TEACHER: ['Teachers', 'Teacher'],
     TEAMDRIVE: ['Shared Drives', 'Shared Drive'],

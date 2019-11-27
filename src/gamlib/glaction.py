@@ -20,12 +20,13 @@
 
 """
 
-class GamAction(object):
+class GamAction():
 
 # Keys into NAMES; arbitrary values but must be unique
   ACCEPT = 'acpt'
   ADD = 'add '
   ADD_PREVIEW = 'addp'
+  ADD_SVCACCT = 'adsa'
   APPEND = 'apnd'
   ARCHIVE = 'arch'
   BACKUP = 'back'
@@ -111,6 +112,7 @@ class GamAction(object):
     ACCEPT: ['Accepted', 'Accept'],
     ADD: ['Added', 'Add'],
     ADD_PREVIEW: ['Added (Preview)', 'Add (Preview)'],
+    ADD_SVCACCT: ['Service Account Added', 'Add Service Account'],
     APPEND: ['Appended', 'Append'],
     ARCHIVE: ['Archived', 'Archive'],
     BACKUP: ['Backed up', 'Backup'],
