@@ -1,3 +1,10 @@
+4.97.01
+
+Fixed a bug where a command of the following form did not use "~" as the column delimiter for outfile.csv.
+```
+gam redirect csv outfile.csv multiprocess columndelimiter "~" csv infile.csv gam ... print ...
+```
+
 4.97.00
 
 Support for Drive Activity API v1 in `gam print/show driveactivity` has been dropped.

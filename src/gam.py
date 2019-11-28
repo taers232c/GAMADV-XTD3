@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.97.00'
+__version__ = '4.97.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2804,6 +2804,8 @@ def SetGlobalVariables():
     GM.Globals[GM.CSVFILE][GM.REDIRECT_NAME] = filename
     GM.Globals[GM.CSVFILE][GM.REDIRECT_MODE] = mode
     GM.Globals[GM.CSVFILE][GM.REDIRECT_ENCODING] = encoding
+    GM.Globals[GM.CSVFILE][GM.REDIRECT_COLUMN_DELIMITER] = GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER]
+    GM.Globals[GM.CSVFILE][GM.REDIRECT_QUOTE_CHAR] = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
     GM.Globals[GM.CSVFILE][GM.REDIRECT_WRITE_HEADER] = writeHeader
     GM.Globals[GM.CSVFILE][GM.REDIRECT_MULTIPROCESS] = multi
     GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = None
@@ -5091,9 +5093,9 @@ class CSVPrintFile():
     self.todrive = {}
     self.SetTitles(titles if titles is not None else [])
     self.SetJSONTitles(titles if titles is not None else [])
-    self.SetColumnDelimiter(GC.Values.get(GC.CSV_OUTPUT_COLUMN_DELIMITER, '.'))
+    self.SetColumnDelimiter(GM.Globals[GM.CSVFILE].get(GM.REDIRECT_COLUMN_DELIMITER, GC.Values.get(GC.CSV_OUTPUT_COLUMN_DELIMITER, ',')))
     self.SetFormatJSON(False)
-    self.SetQuoteChar(GC.Values.get(GC.CSV_OUTPUT_QUOTE_CHAR, '"'))
+    self.SetQuoteChar(GM.Globals[GM.CSVFILE].get(GM.REDIRECT_QUOTE_CHAR, GC.Values.get(GC.CSV_OUTPUT_QUOTE_CHAR, '"')))
     self.SetFixPaths(False)
     if sortTitles is not None:
       if not isinstance(sortTitles, str) or sortTitles != 'sortall':
@@ -5700,8 +5702,8 @@ class CSVPrintFile():
       GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_TODRIVE, self.todrive))
       GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_CSVPF,
                                                      (self.titlesList, self.sortTitlesList, self.indexedTitles,
-                                                      self.formatJSON, self.quoteChar, self.JSONtitlesList,
-                                                      self.columnDelimiter, self.fixPaths, self.zeroBlankMimeTypeCounts)))
+                                                      self.formatJSON, self.JSONtitlesList,
+                                                      self.fixPaths, self.zeroBlankMimeTypeCounts)))
       GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_DATA, self.rows))
       return
     if self.zeroBlankMimeTypeCounts:
@@ -6129,6 +6131,8 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr):
   if GM.Globals[GM.WINDOWS]:
     Cmd = glclargs.GamCLArgs()
   else:
+    csvPF.SetColumnDelimiter(GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER])
+    csvPF.SetQuoteChar(GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR])
     csvPF.SetHeaderFilter(GC.Values[GC.CSV_OUTPUT_HEADER_FILTER])
   list_type = 'CSV'
   while True:
@@ -6142,11 +6146,9 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr):
       csvPF.SetSortTitles(dataItem[1])
       csvPF.SetIndexedTitles(dataItem[2])
       csvPF.SetFormatJSON(dataItem[3])
-      csvPF.SetQuoteChar(dataItem[4])
-      csvPF.AddJSONTitles(dataItem[5])
-      csvPF.SetColumnDelimiter(dataItem[6])
-      csvPF.SetFixPaths(dataItem[7])
-      csvPF.SetZeroBlankMimeTypeCounts(dataItem[8])
+      csvPF.AddJSONTitles(dataItem[4])
+      csvPF.SetFixPaths(dataItem[5])
+      csvPF.SetZeroBlankMimeTypeCounts(dataItem[6])
     elif dataType == GM.REDIRECT_QUEUE_DATA:
       csvPF.rows.extend(dataItem)
     elif dataType == GM.REDIRECT_QUEUE_ARGS:
@@ -6158,6 +6160,8 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr):
         reopenSTDFile(GM.STDERR)
     elif dataType == GM.REDIRECT_QUEUE_VALUES:
       GC.Values = dataItem
+      csvPF.SetColumnDelimiter(GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER])
+      csvPF.SetQuoteChar(GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR])
       csvPF.SetHeaderFilter(GC.Values[GC.CSV_OUTPUT_HEADER_FILTER])
     else:
       break
