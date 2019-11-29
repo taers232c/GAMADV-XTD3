@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.97.01'
+__version__ = '4.97.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -8804,6 +8804,9 @@ def _processTagReplacements(tagReplacements, message):
     tag = match.group(1)
     if tag not in RT_MARKERS:
       message = re.sub(match.group(0), tagSubs[tag], message)
+    else:
+# Replace invalid RT tags with ERROR(RT)
+      message = re.sub(match.group(0), 'ERROR({0})'.format(tag), message)
   return message
 
 def sendCreateUpdateUserNotification(body, notify, tagReplacements, i=0, count=0, msgFrom=None, createMessage=True):

@@ -1,3 +1,12 @@
+4.97.02
+
+Fixed a bug where an `{RT}` or `{RTL}` with no closing `{/RT}` or `{/RTL}` would cause a loop.
+The following sequence should end with `{/RTL}` not `{RTL}`
+```
+{RTL}{RT}Office: {officephone} {/RT}{RT}Mobile: {mobilephone}{/RT}<br />{RTL}
+```
+The unpaired item will be replaced with `ERROR(RT)` or `ERROR(RTL)` so the error can be detected.
+
 4.97.01
 
 Fixed a bug where a command of the following form did not use "~" as the column delimiter for outfile.csv.
