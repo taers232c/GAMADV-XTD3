@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.97.02'
+__version__ = '4.97.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -499,9 +499,12 @@ def ClientAPIAccessDeniedExit():
   systemErrorExit(API_ACCESS_DENIED_RC, None)
 
 def SvcAcctAPIAccessDeniedExit():
+  if GM.Globals[GM.CURRENT_SVCACCT_API] == API.GMAIL and GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES][0] == API.GMAIL_SEND_SCOPE:
+    systemErrorExit(OAUTH2SERVICE_JSON_REQUIRED_RC, Msg.NO_SVCACCT_ACCESS_ALLOWED)
   stderrErrorMsg(Msg.API_ACCESS_DENIED)
+  apiOrScopes = API.getAPIName(GM.Globals[GM.CURRENT_SVCACCT_API]) if GM.Globals[GM.CURRENT_SVCACCT_API] else ','.join(sorted(GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES]))
   writeStderr(Msg.API_CHECK_SVCACCT_AUTHORIZATION.format(GM.Globals[GM.OAUTH2SERVICE_CLIENT_ID],
-                                                         ','.join(sorted(GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES])),
+                                                         apiOrScopes,
                                                          GM.Globals[GM.CURRENT_SVCACCT_USER]))
   systemErrorExit(API_ACCESS_DENIED_RC, None)
 
@@ -3211,6 +3214,9 @@ def defaultSvcAcctScopes():
     saScopes[scope['api']].append(scope['scope'])
   saScopes[API.DRIVEACTIVITY].append(API.DRIVE_SCOPE)
   saScopes[API.DRIVE2] = saScopes[API.DRIVE3]
+  saScopes[API.DRIVETD] = saScopes[API.DRIVE3]
+  saScopes[API.GMAIL].append(API.GMAIL_SEND_SCOPE)
+  saScopes[API.SHEETSTD] = saScopes[API.SHEETS]
   return saScopes
 
 def getSvcAcctCredentials(scopesOrAPI, userEmail):
@@ -3231,6 +3237,8 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail):
   if isinstance(scopesOrAPI, str):
     GM.Globals[GM.CURRENT_SVCACCT_API] = scopesOrAPI
     GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = GM.Globals[GM.SVCACCT_SCOPES].get(scopesOrAPI, [])
+    if not GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES]:
+      systemErrorExit(OAUTH2SERVICE_JSON_REQUIRED_RC, Msg.NO_SVCACCT_ACCESS_ALLOWED)
   else:
     GM.Globals[GM.CURRENT_SVCACCT_API] = ''
     GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = scopesOrAPI
@@ -5232,7 +5240,7 @@ class CSVPrintFile():
 
     def getDriveObject():
       if not GC.Values[GC.TODRIVE_CLIENTACCESS]:
-        _, drive = buildGAPIServiceObject(API.DRIVE3, self.todrive['user'])
+        _, drive = buildGAPIServiceObject(API.DRIVETD, self.todrive['user'])
         if not drive:
           invalidTodriveUserExit(Ent.USER, Msg.NOT_FOUND)
       else:
@@ -5609,8 +5617,8 @@ class CSVPrintFile():
         if self.todrive['timestamp']:
           title += ' - '+ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])+datetime.timedelta(days=-self.todrive['daysoffset'], hours=-self.todrive['hoursoffset']))
         if not GC.Values[GC.TODRIVE_CLIENTACCESS]:
-          user, drive = buildGAPIServiceObject(API.DRIVE3, self.todrive['user'])
-          if drive is None:
+          user, drive = buildGAPIServiceObject(API.DRIVETD, self.todrive['user'])
+          if not drive:
             closeFile(csvFile)
             return
         else:
@@ -5650,7 +5658,7 @@ class CSVPrintFile():
               (self.todrive['sheet'] or self.todrive['locale'] or self.todrive['timeZone'])):
             action = Act.Get()
             if not GC.Values[GC.TODRIVE_CLIENTACCESS]:
-              _, sheet = buildGAPIServiceObject(API.SHEETS, user)
+              _, sheet = buildGAPIServiceObject(API.SHEETSTD, user)
               if sheet is None:
                 closeFile(csvBytes)
                 return
@@ -6134,6 +6142,7 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr):
     csvPF.SetColumnDelimiter(GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER])
     csvPF.SetQuoteChar(GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR])
     csvPF.SetHeaderFilter(GC.Values[GC.CSV_OUTPUT_HEADER_FILTER])
+    csvPF.SetRowFilter(GC.Values[GC.CSV_OUTPUT_ROW_FILTER])
   list_type = 'CSV'
   while True:
     dataType, dataItem = mpQueue.get()
@@ -6163,6 +6172,7 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr):
       csvPF.SetColumnDelimiter(GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER])
       csvPF.SetQuoteChar(GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR])
       csvPF.SetHeaderFilter(GC.Values[GC.CSV_OUTPUT_HEADER_FILTER])
+      csvPF.SetRowFilter(GC.Values[GC.CSV_OUTPUT_ROW_FILTER])
     else:
       break
   csvPF.writeCSVfile(list_type)
@@ -6777,23 +6787,40 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
       if credentials.scopes is not None:
         currentScopes = sorted(credentials.scopes)
   if currentScopes is not None:
-    i = 0
-    for a_scope in scopesList:
-      selectedScopes[i] = ' '
-      possibleScope = a_scope['scope']
-      for currentScope in currentScopes:
-        if currentScope == possibleScope:
-          selectedScopes[i] = '*'
-          break
-        if 'readonly' in a_scope['subscopes']:
-          if currentScope == possibleScope+'.readonly':
-            selectedScopes[i] = 'R'
+    if clientAccess:
+      i = 0
+      for a_scope in scopesList:
+        selectedScopes[i] = ' '
+        possibleScope = a_scope['scope']
+        for currentScope in currentScopes:
+          if currentScope == possibleScope:
+            selectedScopes[i] = '*'
             break
-        if 'action' in a_scope['subscopes']:
-          if currentScope == possibleScope+'.action':
-            selectedScopes[i] = 'A'
-            break
-      i += 1
+          if 'readonly' in a_scope['subscopes']:
+            if currentScope == possibleScope+'.readonly':
+              selectedScopes[i] = 'R'
+              break
+          if 'action' in a_scope['subscopes']:
+            if currentScope == possibleScope+'.action':
+              selectedScopes[i] = 'A'
+              break
+        i += 1
+    else:
+      i = 0
+      for a_scope in scopesList:
+        selectedScopes[i] = ' '
+        api = a_scope['api']
+        possibleScope = a_scope['scope']
+        if api in currentScopes:
+          for scope in currentScopes[api]:
+            if scope == possibleScope:
+              selectedScopes[i] = '*'
+              break
+            if 'readonly' in a_scope['subscopes']:
+              if scope == possibleScope+'.readonly':
+                selectedScopes[i] = 'R'
+                break
+        i += 1
   else:
     i = 0
     for a_scope in scopesList:
@@ -7131,10 +7158,7 @@ def checkServiceAccount(users):
     checkForExtraneousArguments()
     saScopes = {}
     scopesList = API.getSvcAcctScopesList(GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY], True)
-    currentScopes = []
-    for scope in iter(GM.Globals[GM.SVCACCT_SCOPES].values()):
-      currentScopes.extend(scope)
-    selectedScopes = getScopesFromUser(scopesList, False, currentScopes)
+    selectedScopes = getScopesFromUser(scopesList, False, GM.Globals[GM.SVCACCT_SCOPES])
     if selectedScopes is None:
       return False
     i = 0
@@ -7148,7 +7172,7 @@ def checkServiceAccount(users):
         saScopes[scope['api']].append('{0}.readonly'.format(scope['scope']))
         checkScopesSet.add('{0}.readonly'.format(scope['scope']))
       i += 1
-    if API.DRIVEACTIVITY in saScopes and API.DRIVE_SCOPE in saScopes:
+    if API.DRIVEACTIVITY in saScopes and API.DRIVE3 in saScopes:
       saScopes[API.DRIVEACTIVITY].append(API.DRIVE_SCOPE)
     if API.DRIVE3 in saScopes:
       saScopes[API.DRIVE2] = saScopes[API.DRIVE3]

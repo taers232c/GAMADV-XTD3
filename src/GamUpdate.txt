@@ -1,3 +1,12 @@
+4.97.03
+
+Added additional Service Account scopes to `gam update serviceaccount` so that a user can be given access
+to the Drive and Sheets APIs for use with `todrive` without gaining access to other user's files/sheets.
+```
+'Gmail API - Send Messages - including todrive'
+```
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Authorization
+
 4.97.02
 
 Fixed a bug where an `{RT}` or `{RTL}` with no closing `{/RT}` or `{/RTL}` would cause a loop.
@@ -31,7 +40,7 @@ Added command that allows selection of Service Account scopes.
 gam <UserTypeEntity> update serviceaccount
 ```
 These new commands allow you to more easily provide limited access to additional GAM users.
-See: https://github.com/taers232c/GAMADV-XTD3/wiki/Authorization
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Authorization
 
 4.96.20
 
