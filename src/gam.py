@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.97.03'
+__version__ = '4.97.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -33376,13 +33376,15 @@ def _copyPermissions(drive, user, i, count, j, jcount, entityType, fileId, fileT
       permissions = callGAPIpages(drive.permissions(), 'list', 'permissions',
                                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
                                   fileId=fileId,
-                                  fields='nextPageToken,permissions(allowFileDiscovery,domain,emailAddress,expirationTime,id,role,type)',
+                                  fields='nextPageToken,permissions(allowFileDiscovery,domain,emailAddress,expirationTime,id,role,type,deleted)',
                                   supportsAllDrives=True)
     except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError) as e:
       entityActionFailedWarning([Ent.USER, user, entityType, fileTitle], str(e), j, jcount)
       _incrStatistic(statistics, stat)
       return
     for permission in permissions:
+      if permissions.get('deleted', False):
+        continue
       if ((permission['role'] not in ['owner', 'organizer', 'fileOrganizer']) and
           not (copyMoveOptions['destDriveId'] and permission['id'] == 'anyone')):
         permission.pop('id')
