@@ -33383,7 +33383,7 @@ def _copyPermissions(drive, user, i, count, j, jcount, entityType, fileId, fileT
       _incrStatistic(statistics, stat)
       return
     for permission in permissions:
-      if permissions.get('deleted', False):
+      if permission.get('deleted', False):
         continue
       if ((permission['role'] not in ['owner', 'organizer', 'fileOrganizer']) and
           not (copyMoveOptions['destDriveId'] and permission['id'] == 'anyone')):
