@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.97.05'
+__version__ = '4.97.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3215,7 +3215,6 @@ def defaultSvcAcctScopes():
   saScopes[API.DRIVEACTIVITY].append(API.DRIVE_SCOPE)
   saScopes[API.DRIVE2] = saScopes[API.DRIVE3]
   saScopes[API.DRIVETD] = saScopes[API.DRIVE3]
-  saScopes[API.GMAIL].append(API.GMAIL_SEND_SCOPE)
   saScopes[API.SHEETSTD] = saScopes[API.SHEETS]
   return saScopes
 

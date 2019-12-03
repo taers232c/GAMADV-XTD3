@@ -1,3 +1,7 @@
+4.97.06
+
+Fixed bug where using `todrive` gave a `Service not applicable/Does not exist` error.
+
 4.97.05
 
 Added option `excludetrashed` to `gam copy drivefile`; this prevents files/folders in the trash
