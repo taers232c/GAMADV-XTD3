@@ -3336,7 +3336,8 @@ gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [retainname | (ne
          (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
          (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))
 
-gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [summary [<Boolean>]]
+gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>]
+        [summary [<Boolean>]] [excludetrashed]
         <DriveFileCopyAttribute>* [mergewithparent [<Boolean>]] [recursive [depth <Number>]]
         [duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
         [duplicatefolders merge|duplicatename|uniquename|skip]
@@ -3357,7 +3358,8 @@ gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileNam
          (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
          (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))
 
-gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>] [summary [<Boolean>]]
+gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>]
+        [summary [<Boolean>]]
         <DriveFileMoveAttribute>* [mergewithparent|mergewithparentretain [<Boolean>]]
         [duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
         [duplicatefolders merge|duplicatename|uniquename|skip]

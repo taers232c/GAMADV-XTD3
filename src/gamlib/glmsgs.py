@@ -125,6 +125,7 @@ INVALID_TAG_SPECIFICATION = 'Invalid tag, expected field.subfield or field.subfi
 INVALID_TIME_RANGE = '{0} {1} must be greater than/equal to {2} {3}'
 IN_SKIPIDS = 'In skipids'
 IN_THE = ' in the {0}'
+IN_TRASH_AND_EXCLUDE_TRASHED = 'In Trash and excludeTrashed'
 IS_NOT_UNIQUE = 'Is not unique, {0}: {1}'
 IS_REQD_TO_CHG_PWD_NO_DELEGATION = 'Is required to change password at next login. You must change password or clear changepassword flag for delegation.'
 IS_SUSPENDED_NO_DELEGATION = 'Is suspended. You must unsuspend for delegation.'

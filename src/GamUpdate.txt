@@ -1,6 +1,11 @@
+4.97.05
+
+Added option `excludetrashed` to `gam copy drivefile`; this prevents files/folders in the trash
+from being copied.
+
 4.97.04
 
-In `gam copy drivefile`, do not copy permissions marked `deleted`.
+In `gam copy/move drivefile`, do not copy permissions marked `deleted`.
 
 4.97.03
 

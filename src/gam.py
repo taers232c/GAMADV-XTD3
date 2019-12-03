@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.97.04'
+__version__ = '4.97.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -33279,10 +33279,6 @@ def getCopyMoveOptions(myarg, copyMoveOptions, copyCmd):
     copyMoveOptions['mergeWithParent'] = getBoolean()
     if copyMoveOptions['mergeWithParent']:
       copyMoveOptions['mergeWithParentRetain'] = False
-  elif myarg == 'mergewithparentretain':
-    copyMoveOptions['mergeWithParentRetain'] = getBoolean()
-    if copyMoveOptions['mergeWithParentRetain']:
-      copyMoveOptions['mergeWithParent'] = False
   elif myarg == 'duplicatefiles':
     copyMoveOptions['duplicateFiles'] = getChoice(DUPLICATE_FILE_CHOICES, mapChoice=True)
   elif myarg == 'duplicatefolders':
@@ -33295,6 +33291,10 @@ def getCopyMoveOptions(myarg, copyMoveOptions, copyCmd):
     if not copyCmd:
       if myarg == 'retainsourcefolders':
         copyMoveOptions['retainSourceFolders'] = getBoolean()
+      elif myarg == 'mergewithparentretain':
+        copyMoveOptions['mergeWithParentRetain'] = getBoolean()
+        if copyMoveOptions['mergeWithParentRetain']:
+          copyMoveOptions['mergeWithParent'] = False
       else:
         return False
     else:
@@ -33498,7 +33498,8 @@ DUPLICATE_FOLDER_CHOICES = {
 COPY_TOP_PARENTS_CHOICES = {'all': COPY_ALL_PARENTS, 'none': COPY_NO_PARENTS}
 COPY_SUB_PARENTS_CHOICES = {'all': COPY_ALL_PARENTS, 'none': COPY_NO_PARENTS, 'nonpath': COPY_NONPATH_PARENTS}
 
-# gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>] [summary [<Boolean>]]
+# gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>]
+#	[summary [<Boolean>]] [excludetrashed]
 #	<DriveFileCopyAttribute>* [mergewithparent [<Boolean>]] [recursive [depth <Number>]]
 #	[duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
 #	[duplicatefolders merge|duplicatename|uniquename|skip]
@@ -33616,11 +33617,16 @@ def copyDriveFile(users):
         childTitle = child['name']
         if copiedFiles.get(childId):
           continue
+        trashed = child.pop('trashed', False)
+        if excludeTrashed and trashed:
+          entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(child), childTitle],
+                                          Msg.IN_TRASH_AND_EXCLUDE_TRASHED, k, kcount)
+          _incrStatistic(statistics, STAT_FILE_NOT_COPYABLE_MOVABLE)
+          continue
         if childId == newFolderId:
           entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(child), childTitle], Msg.NOT_COPYABLE, k, kcount)
           _incrStatistic(statistics, STAT_FILE_NOT_COPYABLE_MOVABLE)
           continue
-        child.pop('trashed', None)
         childParents = child.pop('parents', [])
         child['parents'] = [newFolderId]
         if child['mimeType'] == MIMETYPE_GA_FOLDER:
@@ -33667,7 +33673,7 @@ def copyDriveFile(users):
   parentParms = initDriveFileAttributes()
   copyParameters = initDriveFileAttributes()
   copyMoveOptions = initCopyMoveOptions(False)
-  newParentsSpecified = recursive = False
+  excludeTrashed = newParentsSpecified = recursive = False
   maxdepth = -1
   copiedFiles = {}
   statistics = _initStatistics()
@@ -33677,6 +33683,8 @@ def copyDriveFile(users):
       pass
     elif getDriveFileParentAttribute(myarg, parentParms):
       newParentsSpecified = True
+    elif myarg == 'excludetrashed':
+      excludeTrashed = True
     elif myarg == 'recursive':
       recursive = getBoolean()
     elif myarg == 'depth':
@@ -33711,6 +33719,11 @@ def copyDriveFile(users):
                           supportsAllDrives=True)
         sourceFilename = source['name']
         copyMoveOptions['sourceDriveId'] = source.get('driveId')
+        if excludeTrashed and source['trashed']:
+          entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(source), sourceFilename],
+                                          Msg.IN_TRASH_AND_EXCLUDE_TRASHED, j, jcount)
+          _incrStatistic(statistics, STAT_FILE_NOT_COPYABLE_MOVABLE)
+          continue
         if copyMoveOptions['sourceDriveId']:
           sourceSearchArgs = {'driveId': copyMoveOptions['sourceDriveId'], 'corpora': 'drive', 'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
         else:
@@ -33819,8 +33832,9 @@ def copyDriveFile(users):
     if copyMoveOptions['summary']:
       _printStatistics(user, statistics, i, count, True)
 
-# gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>] [summary [<Boolean>]]
-#	<DriveFileMoveAttributes>* [mergewithparent|mergewithparentthendelete [<Boolean>]]
+# gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>]
+#	[summary [<Boolean>]]
+#	<DriveFileMoveAttributes>* [mergewithparent|mergewithparentretain [<Boolean>]]
 #	[duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
 #	[duplicatefolders merge|duplicatename|uniquename|skip]
 #	[copysubfileparents nonpath|none|all] [copysubfolderparents nonpath|none|all]
@@ -35297,7 +35311,7 @@ def transferOwnership(users):
       childEntry = fileTree.get(childFileId)
       if childEntry:
         childEntryInfo = childEntry['info']
-        if trashed or not childEntryInfo['trashed']:
+        if includeTrashed or not childEntryInfo['trashed']:
           if childEntryInfo['ownedByMe']:
             filesToTransfer[childFileId] = {'name': childEntryInfo['name'], 'type': _getEntityMimeType(childEntryInfo)}
           if childEntryInfo['mimeType'] == MIMETYPE_GA_FOLDER:
@@ -35321,7 +35335,7 @@ def transferOwnership(users):
       if childFileId in filesTransferred:
         continue
       filesTransferred.add(childFileId)
-      if trashed or not childEntryInfo['trashed']:
+      if includeTrashed or not childEntryInfo['trashed']:
         if childEntryInfo['ownedByMe']:
           filesToTransfer[childFileId] = {'name': childEntryInfo['name'], 'type': _getEntityMimeType(childEntryInfo)}
         if childEntryInfo['mimeType'] == MIMETYPE_GA_FOLDER:
@@ -35331,13 +35345,13 @@ def transferOwnership(users):
   body = {}
   newOwner = getEmailAddress()
   OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
-  filepath = trashed = False
+  filepath = includeTrashed = False
   csvPF = fileTree = None
   buildTree = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'includetrashed':
-      trashed = True
+      includeTrashed = True
     elif myarg == 'orderby':
       OBY.GetChoice()
     elif myarg == 'filepath':
@@ -35414,7 +35428,7 @@ def transferOwnership(users):
         continue
       filesTransferred.add(fileId)
       filesToTransfer = {}
-      if trashed or not fileEntryInfo['trashed']:
+      if includeTrashed or not fileEntryInfo['trashed']:
         if fileEntryInfo['ownedByMe'] and fileEntryInfo['name'] != MY_DRIVE:
           filesToTransfer[fileId] = {'name': fileEntryInfo['name'], 'type': entityType}
         if fileEntryInfo['mimeType'] == MIMETYPE_GA_FOLDER:
@@ -35487,7 +35501,7 @@ def claimOwnership(users):
       childEntry = fileTree.get(childFileId)
       if childEntry:
         childEntryInfo = childEntry['info']
-        if childFileId not in skipFileIdEntity['list'] and (trashed or not childEntryInfo['trashed']):
+        if childFileId not in skipFileIdEntity['list'] and (includeTrashed or not childEntryInfo['trashed']):
           owner = childEntryInfo['owners'][0]['emailAddress']
           if not childEntryInfo['ownedByMe'] and owner not in skipusers:
             oldOwnerPermissionIds[owner] = childEntryInfo['owners'][0]['permissionId']
@@ -35510,7 +35524,7 @@ def claimOwnership(users):
       return
     for childEntryInfo in children:
       childFileId = childEntryInfo['id']
-      if childFileId not in skipFileIdEntity['list'] and (trashed or not childEntryInfo['trashed']):
+      if childFileId not in skipFileIdEntity['list'] and (includeTrashed or not childEntryInfo['trashed']):
         if filepath:
           fileTree[childFileId] = {'info': childEntryInfo}
         owner = childEntryInfo['owners'][0]['emailAddress']
@@ -35551,7 +35565,7 @@ def claimOwnership(users):
   body = {}
   skipusers = []
   subdomains = []
-  filepath = trashed = False
+  filepath = includeTrashed = False
   sourceRetainRoleBody = {'role': 'writer'}
   showRetentionMessages = True
   oldOwnerPermissionIds = {}
@@ -35573,7 +35587,7 @@ def claimOwnership(users):
     elif myarg == 'subdomains':
       subdomains = getEntityList(Cmd.OB_DOMAIN_NAME_ENTITY)
     elif myarg == 'includetrashed':
-      trashed = True
+      includeTrashed = True
     elif myarg == 'orderby':
       OBY.GetChoice()
     elif myarg == 'restricted':
@@ -35660,7 +35674,7 @@ def claimOwnership(users):
           fileTree[fileId] = {'info': fileEntryInfo}
       entityType = _getEntityMimeType(fileEntryInfo)
       entityPerformActionItemValue([Ent.USER, user], entityType, '{0} ({1})'.format(fileEntryInfo['name'], fileId), j, jcount)
-      if fileId not in skipFileIdEntity['list'] and (trashed or not fileEntryInfo['trashed']):
+      if fileId not in skipFileIdEntity['list'] and (includeTrashed or not fileEntryInfo['trashed']):
         owner = fileEntryInfo['owners'][0]['emailAddress']
         if not fileEntryInfo['ownedByMe'] and owner not in skipusers:
           oldOwnerPermissionIds[owner] = fileEntryInfo['owners'][0]['permissionId']
