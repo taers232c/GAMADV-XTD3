@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.97.06'
+__version__ = '4.97.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -36591,8 +36591,8 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
             if showTitles:
               row[fileNameTitle] = fileName
             _mapDrivePermissionNames(permission)
-            flattenJSON({'permission': permission}, flattened=row, timeObjects=timeObjects)
             if not FJQC.formatJSON:
+              flattenJSON({'permission': permission}, flattened=row, timeObjects=timeObjects)
               csvPF.WriteRowTitles(row)
             elif csvPF.CheckRowTitles(row):
               row['JSON'] = json.dumps(cleanJSON({'permission': permission}, timeObjects=timeObjects),
@@ -36604,8 +36604,8 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
             row[fileNameTitle] = fileName
           for permission in results:
             _mapDrivePermissionNames(permission)
-          flattenJSON({'permissions': results}, flattened=row, timeObjects=timeObjects)
           if not FJQC.formatJSON:
+            flattenJSON({'permissions': results}, flattened=row, timeObjects=timeObjects)
             csvPF.WriteRowTitles(row)
           elif csvPF.CheckRowTitles(row):
             row['JSON'] = json.dumps(cleanJSON({'permissions': results}, timeObjects=timeObjects),

@@ -1,3 +1,7 @@
+4.97.07
+
+Fixed bug in `gam print drivefileacls formatjson` that caused a trap.
+
 4.97.06
 
 Fixed bug where using `todrive` gave a `Service not applicable/Does not exist` error.
