@@ -36585,32 +36585,32 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
             flattened['permissions'] = results
             printLine(json.dumps(cleanJSON(flattened, timeObjects=timeObjects), ensure_ascii=False, sort_keys=True))
       elif results:
+        baserow = {'Owner': user, 'id': fileId}
+        if showTitles:
+          baserow[fileNameTitle] = fileName
         if oneItemPerRow:
           for permission in results:
-            row = {'Owner': user, 'id': fileId}
-            if showTitles:
-              row[fileNameTitle] = fileName
+            row = baserow.copy()
             _mapDrivePermissionNames(permission)
+            flattenJSON({'permission': permission}, flattened=row, timeObjects=timeObjects)
             if not FJQC.formatJSON:
-              flattenJSON({'permission': permission}, flattened=row, timeObjects=timeObjects)
               csvPF.WriteRowTitles(row)
             elif csvPF.CheckRowTitles(row):
+              row = baserow.copy()
               row['JSON'] = json.dumps(cleanJSON({'permission': permission}, timeObjects=timeObjects),
                                        ensure_ascii=False, sort_keys=True)
               csvPF.WriteRowNoFilter(row)
         else:
-          row = {'Owner': user, 'id': fileId}
-          if showTitles:
-            row[fileNameTitle] = fileName
+          row = baserow.copy()
           for permission in results:
             _mapDrivePermissionNames(permission)
+          flattenJSON({'permissions': results}, flattened=row, timeObjects=timeObjects)
           if not FJQC.formatJSON:
-            flattenJSON({'permissions': results}, flattened=row, timeObjects=timeObjects)
             csvPF.WriteRowTitles(row)
           elif csvPF.CheckRowTitles(row):
-            row['JSON'] = json.dumps(cleanJSON({'permissions': results}, timeObjects=timeObjects),
-                                     ensure_ascii=False, sort_keys=True)
-            csvPF.WriteRowNoFilter(row)
+            baserow['JSON'] = json.dumps(cleanJSON({'permissions': results}, timeObjects=timeObjects),
+                                         ensure_ascii=False, sort_keys=True)
+            csvPF.WriteRowNoFilter(baserow)
     Ind.Decrement()
   if csvPF:
     csvPF.writeCSVfile('Drive File ACLs')
