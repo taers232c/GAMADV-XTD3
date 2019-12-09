@@ -31,7 +31,8 @@ DIRECTORY = 'directory'
 DRIVE2 = 'drive2'
 DRIVE3 = 'drive3'
 DRIVETD = 'drivetd'
-DRIVEACTIVITY = 'driveactivity'
+DRIVEACTIVITY_V1 = 'appsactivity'
+DRIVEACTIVITY_V2 = 'driveactivity'
 EMAIL_AUDIT = 'email-audit'
 GMAIL = 'gmail'
 GROUPSMIGRATION = 'groupsmigration'
@@ -79,6 +80,7 @@ OAUTH2_TOKEN_ERRORS = [
 PROJECT_APIS = [
   'admin.googleapis.com',
   'alertcenter.googleapis.com',
+  'appsactivity.googleapis.com',
   'audit.googleapis.com',
   'calendar-json.googleapis.com',
   #'chat.googleapis.com',
@@ -110,7 +112,8 @@ _INFO = {
   DRIVE2: {'name': 'Drive API v2', 'version': 'v2', 'v2discovery': False},
   DRIVE3: {'name': 'Drive API v3', 'version': 'v3', 'v2discovery': False},
   DRIVETD: {'name': 'Drive API v3 - todrive', 'version': 'v3', 'v2discovery': False},
-  DRIVEACTIVITY: {'name': 'Drive Activity API', 'version': 'v2', 'v2discovery': True},
+  DRIVEACTIVITY_V1: {'name': 'Drive Activity API v1', 'version': 'v1', 'v2discovery': False},
+  DRIVEACTIVITY_V2: {'name': 'Drive Activity API v2', 'version': 'v2', 'v2discovery': True},
   EMAIL_AUDIT: {'name': 'Email Audit API', 'version': 'v1', 'v2discovery': False},
   GMAIL: {'name': 'Gmail API', 'version': 'v1', 'v2discovery': False},
   GROUPSMIGRATION: {'name': 'Groups Migration API', 'version': 'v1', 'v2discovery': False},
@@ -334,8 +337,12 @@ _SVCACCT_SCOPES = [
    'api': DRIVE3,
    'subscopes': READONLY,
    'scope': DRIVE_SCOPE},
-  {'name': 'Drive Activity API - must pair with Drive API',
-   'api': DRIVEACTIVITY,
+  {'name': 'Drive Activity API v1 - must pair with Drive API',
+   'api': DRIVEACTIVITY_V1,
+   'subscopes': [],
+   'scope': 'https://www.googleapis.com/auth/activity'},
+  {'name': 'Drive Activity API v2 - must pair with Drive API',
+   'api': DRIVEACTIVITY_V2,
    'subscopes': [],
    'scope': 'https://www.googleapis.com/auth/drive.activity'},
   {'name': 'Gmail API - Full Access',

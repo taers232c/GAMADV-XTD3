@@ -1,3 +1,9 @@
+4.97.08
+
+Restored support for Drive Activity API v1 in `gam print/show driveactivity`.
+
+Setting `recoveryphone ""` in `gam update user` will now clear the user's recovery phone number.
+
 4.97.07
 
 Fixed bug in `gam print drivefileacls formatjson` that caused a trap.

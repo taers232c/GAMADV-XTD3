@@ -3695,7 +3695,7 @@ gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
         upload
 <DriveActivityActionList> ::= "<DriveActivityAction>(,<DriveActivityAction>)*"
 
-gam <UserTypeEntity> print|show driveactivity [todrive <ToDriveAttributes>*]
+gam <UserTypeEntity> print|show driveactivity [v2] [todrive <ToDriveAttributes>*]
         [(fileid <DriveFileID>) | (folderid <DriveFolderID>) |
          (drivefilename <DriveFileName>) | (drivefoldername <DriveFolderName>) | (query <QueryDriveFile>)]
         [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [action|actions [not] <DriveActivityActionList>]
