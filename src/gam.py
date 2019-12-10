@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.97.08'
+__version__ = '4.97.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -8857,22 +8857,28 @@ def sendCreateUpdateUserNotification(body, notify, tagReplacements, i=0, count=0
   send_email(notify['subject'], notify['message'], notify['emailAddress'], i, count,
              msgFrom=msgFrom, html=notify['html'], charset=notify['charset'])
 
-# gam sendemail <EmailAddressEntity> [from <UserItem>] [replyto <EmailAddress>]
-#	[cc <EmailAddressEntity>] [bcc <EmailAddressEntity>] [singlemessage [<Boolean>]]
+# gam sendemail <RecipientEntity> [from <UserItem>] [replyto <EmailAddress>]
+#	[cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage [<Boolean>]]
 #	[subject <String>] [(message <String>)|(file <FileName> [charset <CharSet>])]
 #	(replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
 #	[newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
-# gam <UserTypeEntity> sendemail [recipient <EmailAddressEntity>] [replyto <EmailAddress>]
-#	[cc <EmailAddressEntity>] [bcc <EmailAddressEntity>] [singlemessage [<Boolean>]]
+# gam <UserTypeEntity> sendemail [recipient <RecipientEntity>] [replyto <EmailAddress>]
+#	[cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage [<Boolean>]]
 #	[subject <String>] [(message <String>)|(file <FileName> [charset <CharSet>])]
 #	(replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
 #	[newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
 def doSendEmail(users=None):
+  def getRecipients():
+    if checkArgumentPresent('select'):
+      _, recipients = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
+      return [normalizeEmailAddressOrUID(emailAddress, noUid=True) for emailAddress in recipients]
+    return getNormalizedEmailAddressEntity()
+
   body = {}
   notify = {'subject': '', 'message': '', 'html': False, 'charset': UTF8}
   if users is None:
     msgFroms = [None]
-    recipients = getNormalizedEmailAddressEntity()
+    recipients = getRecipients()
   else:
     msgFroms = users
     recipients = [None]
@@ -8887,7 +8893,7 @@ def doSendEmail(users=None):
     if users is None and myarg == 'from':
       msgFroms = [getString(Cmd.OB_EMAIL_ADDRESS)]
     elif users is not None and myarg in ['recipient', 'recipients', 'to']:
-      recipients = getNormalizedEmailAddressEntity()
+      recipients = getRecipients()
     elif myarg == 'replyto':
       msgReplyTo = getString(Cmd.OB_EMAIL_ADDRESS)
     elif myarg == 'subject':
@@ -8899,9 +8905,9 @@ def doSendEmail(users=None):
       notify['message'], notify['charset'] = getStringOrFile(myarg)
       notify['html'] = True
     elif myarg == 'cc':
-      ccRecipients = getNormalizedEmailAddressEntity()
+      ccRecipients = getRecipients()
     elif myarg == 'bcc':
-      bccRecipients = getNormalizedEmailAddressEntity()
+      bccRecipients = getRecipients()
     elif myarg == 'singlemessage':
       singleMessage = True
     elif myarg == 'html':

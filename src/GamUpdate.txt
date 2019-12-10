@@ -1,3 +1,12 @@
+4.97.09
+
+Added `<RecipientEntity> ::= <EmailAddressEntity> | (select <UserTypeEntity>)` which is used in
+`gam sendemail` to allow more choices in specifying recipients.
+For example:
+```
+gam sendemail select groups sales@domain.com,marketing@domain.com from salesmgr@domain.com subject "Sales Meeting Agenda" textfile MeetingAgenda.txt
+```
+
 4.97.08
 
 Restored support for Drive Activity API v1 in `gam print/show driveactivity`.
