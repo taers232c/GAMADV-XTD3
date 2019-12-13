@@ -196,6 +196,7 @@ class GamEntity():
   SENDAS_ADDRESS = 'sasa'
   SERVICE = 'serv'
   SHEET = 'shet'
+  SHEET_ID = 'shti'
   SIGNATURE = 'sign'
   SITE = 'site'
   SITE_ACL = 'sacl'
@@ -404,6 +405,7 @@ class GamEntity():
     SENDAS_ADDRESS: ['SendAs Addresses', 'SendAs Address'],
     SERVICE: ['Services', 'Service'],
     SHEET: ['Sheets', 'Sheet'],
+    SHEET_ID: ['Sheet IDs', 'Sheet ID'],
     SIGNATURE: ['Signatures', 'Signature'],
     SITE: ['Sites', 'Site'],
     SITE_ACL: ['Site ACLs', 'Site ACL'],

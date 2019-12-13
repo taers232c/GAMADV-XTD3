@@ -65,7 +65,7 @@ If an item contains spaces, it should be surrounded by ".
         #fcdee8|#fce8b3|#fef1d1|#ffad47|#ffbc6b|#ffd6a2|#ffe6c7|#ffffff
 <Language> ::=
         ach|af|ag|ak|am|ar|az|be|bem|bg|bn|br|bs|ca|chr|ckb|co|crs|cs|cy|da|de|
-        ee|el|en|en-gb|en-us|eo|es|es-419|et|eu|fa|fi|fo|fr|fr-ca|fy|
+        ee|el|en|en-gb|en-us|eo|es|es-419|et|eu|fa|fi|fil|fo|fr|fr-ca|fy|
         ga|gaa|gd|gl|gn|gu|ha|haw|he|hi|hr|ht|hu|hy|ia|id|ig|in|is|it|iw|ja|jw|
         ka|kg|kk|km|kn|ko|kri|ku|ky|la|lg|ln|lo|loz|lt|lua|lv|
         mfe|mg|mi|mk|ml|mn|mo|mr|ms|mt|my|ne|nl|nn|no|nso|ny|nyn|oc|om|or|
@@ -285,6 +285,7 @@ If an item contains spaces, it should be surrounded by ".
         contributor|editor|writer|
         manager|organizer|owner|
         reader|viewer
+<DriveFileACLType> ::= anyone|domain|group|user
 <DriveFileID> ::= <String>
 <DriveFileURL> ::=
         https://docs.google.com/a/<DomainName>/document/d/<DriveFileID>/<String>
@@ -296,8 +297,12 @@ If an item contains spaces, it should be surrounded by ".
 <DriveFolderID> ::= <String>
 <DriveFolderName> ::= <String>
 <DriveFilePermission> ::=
-        anyone|anyonewithlink|user:<EmailAddress>|group:<EmailAddress>|
-        domain:<DomainName>|domainwithlink:<DomainName>;<DriveFileACLRole>
+        anyone;<DriveFileACLRole>|
+        anyonewithlink;<DriveFileACLRole>|
+        domain:<DomainName>;<DriveFileACLRole>|
+        domainwithlink:<DomainName>;<DriveFileACLRole>|
+        group:<EmailAddress>;<DriveFileACLRole>|
+        user:<EmailAddress>;<DriveFileACLRole>
 <DriveFilePermissionID> ::= anyone|anyonewithlink|id:<String>
 <DriveFilePermissionIDorEmail> ::= <DriveFilePermissionID>|<EmailAddress>
 <DriveFileRevisionID> ::= <String>
@@ -381,7 +386,7 @@ If an item contains spaces, it should be surrounded by ".
 <SchemaName> ::= <String>
 <Section> ::= <String>
 <SerialNumber> ::= <String>
-<SheetName> ::= <String>
+<SheetEntity> ::= <String>|id:<Number>
 <SiteACLScope> ::=
         <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|
         domain:<DomainName>|domain|default
@@ -404,10 +409,11 @@ If an item contains spaces, it should be surrounded by ".
         (tdnobrowser [<Boolean>])|
         (tdnoemail [<Boolean>])|
         (tdparent id:<DriveFolderID>|<DriveFolderName>)|(tdfileid <DriveFileID>)
-        (tdsheet <String>)|
+        (tdsheet <SheetEntity>)|
         (tdtimestamp [<Boolean>] [tddaysoffset <Number>] [tdhoursoffset <Number])|
         (tdtimezone <TimeZone>)|
         (tdtitle <String>)|
+        (tdupdatesheet [<Boolean>])|
         (tduser <EmailAddress>)
 <TransferID> ::= <String>
 <URI> ::= <String>
@@ -504,7 +510,7 @@ Items, separated by spaces, with spaces, commas or single quotes in the items th
 <UserGoogleDoc> ::=
         <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity>
 <UserGoogleSheet> ::=
-        <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity> <SheetName>
+        <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity> <SheetEntity>
 
 ## Collections of ChromeOS Devices
 
@@ -705,8 +711,20 @@ Specify a collection of items by directly specifying them; the item type is dete
         <TeamDriveFileNameEntity> |
         <TeamDriveFileQueryEntity> |
         <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
-<DriveFilePermissionEntity> ::= <DriveFilePermissionList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<DriveFilePermissionIDEntity> ::= <DriveFilePermissionIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<DriveFilePermissionEntity> ::=
+         <DriveFilePermissionList> |
+         (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>]) |
+         <FileSelector> |
+         <CSVFileSelector> |
+         <CSVkmdSelector> |
+         <CSVDataSelector>
+<DriveFilePermissionIDEntity> ::=
+         <DriveFilePermissionIDList> |
+         (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>]) |
+         <FileSelector> |
+         <CSVFileSelector> |
+         <CSVkmdSelector> |
+         <CSVDataSelector>
 <DriveFileRevisionIDEntity> ::=
         (<DriveFileRevisionID>) | (id <DriveFileRevisionID>) | (id:<DriveFileRevisionID>) | (ids <DriveFileRevisionIDList>) | (ids:<DriveFileRevisionIDList>) |
         (first|last|allexceptfirst|allexceptlast <Number>) |
@@ -768,7 +786,9 @@ verify
 If the pattern {{Section}} appears in <FileName>, it will be replaced with the name of the current section.
 For redirect csv, the optional arguments must appear in the order shown.
 <Redirect> ::=
-        redirect csv <FileName> [multiprocess] [append] [noheader] [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] |
+        redirect csv <FileName> [multiprocess] [append] [noheader] [charset <Charset>]
+                     [columndelimiter <Character>] [quotechar <Character>]
+                     [todrive <ToDriveAttribute>*] |
         redirect stdout <FileName> [multiprocess] [append] |
         redirect stdout null [multiprocess] |
         redirect stderr <FileName> [multiprocess] [append] |
@@ -2192,7 +2212,7 @@ gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> printacls [todrive <To
 # Printjobs
 
 gam [<UserTypeEntity>] printjob <PrinterID> submit
-        (<FileName> [charset <String>])|<URL> [name|title <String>] (tag <String>)*
+        (<FileName> [charset <CharSet>])|<URL> [name|title <String>] (tag <String>)*
 gam [<UserTypeEntity>] printjob|printjobs <PrintJobEntity> cancel
 gam [<UserTypeEntity>] printjob|printjobs <PrintJobEntity> delete
 gam [<UserTypeEntity>] printjob|printjobs <PrintJobEntity> resubmit <PrinterID>
@@ -2562,41 +2582,57 @@ These commands are used to manage the ACLs on the Team Drives themselves, not th
 
 In these commands, the Google administrator named in oauth2.txt is used.
 
-gam create|add drivefileacl <TeamDriveEntityAdmin> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
-        (role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [sendemail] [emailmessage <String>] [showtitles] [nodetails]
+gam create|add drivefileacl <TeamDriveEntityAdmin>
+        anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>) (role <DriveFileACLRole>)
+        [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>]
+        [sendemail] [emailmessage <String>] [showtitles] [nodetails]
 gam update drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail>
         (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails]
 gam delete drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles]
-gam info drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles] [formatjson]
+gam info drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail>
+        [showtitles] [formatjson]
 gam show drivefileacls <TeamDriveEntityAdmin>
-        [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson]
 gam print drivefileacls <TeamDriveEntityAdmin> [todrive <ToDriveAttributes>*]
         [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson] [quotechar <Character>]
-gam create|add permissions <TeamDriveEntityAdmin> <DriveFilePermissionEntity> [expires|expiration <Time>] [sendemail] [emailmessage <String>]
+gam create|add permissions <TeamDriveEntityAdmin> <DriveFilePermissionEntity>
+        [expires|expiration <Time>] [sendemail] [emailmessage <String>]
+        <PermissionMatch>* [<PermissionMatchAction>]
 gam delete permissions <TeamDriveEntityAdmin> <DriveFilePermissionIDEntity>
+        <PermissionMatch>* [<PermissionMatchAction>]
 
 In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
 
-gam <UserTypeEntity> create|add drivefileacl <TeamDriveEntityAdmin> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
-        (role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [sendemail] [emailmessage <String>] [showtitles] [nodetails] adminaccess
+gam <UserTypeEntity> create|add drivefileacl <TeamDriveEntityAdmin>
+         anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>) (role <DriveFileACLRole>)
+         [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>]
+         [sendemail] [emailmessage <String>] [showtitles] [nodetails] adminaccess
 gam <UserTypeEntity> update drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail>
         (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails] adminaccess
 gam <UserTypeEntity> delete drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles] adminaccess
-gam <UserTypeEntity> info drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles] [formatjson] adminaccess
+gam <UserTypeEntity> info drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail>
+        [showtitles] [formatjson] adminaccess
 gam <UserTypeEntity> show drivefileacls <TeamDriveEntityAdmin>
-        [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson] adminaccess
 gam <UserTypeEntity> print drivefileacls <TeamDriveEntityAdmin> [todrive <ToDriveAttributes>*]
         [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson] [quotechar <Character>] adminaccess
-gam <UserTypeEntity> create|add permissions <TeamDriveEntityAdmin> <DriveFilePermissionEntity> [expires|expiration <Time>] [sendemail] [emailmessage <String>] adminaccess
+gam <UserTypeEntity> create|add permissions <TeamDriveEntityAdmin> <DriveFilePermissionEntity>
+        [expires|expiration <Time>] [sendemail] [emailmessage <String>] adminaccess
+        <PermissionMatch>* [<PermissionMatchAction>]
 gam <UserTypeEntity> delete permissions <TeamDriveEntityAdmin> <DriveFilePermissionIDEntity> adminaccess
+        <PermissionMatch>* [<PermissionMatchAction>]
 
 In these commands, the Google administrator named in oauth2.txt is used.
 
@@ -2767,7 +2803,7 @@ gam delete vaulthold|hold <MatterItem> <HoldItem>
 <VaultHoldFieldName> ::=
         accounts|
         accounts.acountid|
-	accounts.email|
+        accounts.email|
         accounts.firstname|
         accounts.holdtime|
         accounts.lastname|
@@ -2897,7 +2933,7 @@ gam create|add user <EmailAddress> <UserAttribute>*
         (replace <Tag> <UserReplacement>)*
 gam update user <UserItem> <UserAttribute>*
         [updateprimaryemail <RegularExpression> <EmailReplacement>]
-        [updateoufromgroup <FileName> [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+        [updateoufromgroup <FileName> [charset <CharSet>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
             [keyfield <FieldName>] [datafield <FieldName>]]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
         [createifnotfound] [notfoundpassword random|<Password>] (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
@@ -2913,7 +2949,7 @@ gam info user [<UserItem>] [quick] [noaliases] [nogroups] [nolicenses|nolicences
 
 gam update users <UserTypeEntity> <UserAttribute>*
         [updateprimaryemail <RegularExpression> <EmailReplacement>]
-        [updateoufromgroup <FileName> [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+        [updateoufromgroup <FileName> [charset <CharSet>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
             [keyfield <FieldName>] [datafield <FieldName>]]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
         [createifnotfound] [notfoundpassword random|<Password>] (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
@@ -2929,7 +2965,7 @@ gam info users <UserTypeEntity> [quick] [noaliases] [nogroups] [nolicenses|nolic
 
 gam <UserTypeEntity> update users <UserAttribute>*
         [updateprimaryemail <RegularExpression> <EmailReplacement>]
-        [updateoufromgroup <FileName> [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+        [updateoufromgroup <FileName> [charset <CharSet>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
             [keyfield <FieldName>] [datafield <FieldName>]]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
         [createifnotfound] [notfoundpassword random|<Password>] (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
@@ -3320,7 +3356,10 @@ gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] <Drive
          (removeparentname <DriveFolderName>)|
          (removeanyownerparentname <DriveFolderName>))
 
-gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [retainname | (newfilename <DriveFileName>)] <DriveFileUpdateAttribute>*
+gam <UserTypeEntity> update drivefile <DriveFileEntity>
+        [copy] [retainname | (newfilename <DriveFileName>)]
+        <DriveFileUpdateAttribute>*
+        [gsheet|csvsheet <SheetEntity>] [charset <CharSet>] [columndelimiter <Character>]
 
 <DriveFileCopyAttribute> ::=
         ignoredefaultvisibility|
@@ -3369,7 +3408,7 @@ gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileNam
         [retainsourcefolders [<Boolean>]]
 
 gam <UserTypeEntity> get drivefile <DriveFileEntity> [revision <DriveFileRevisionID>]
-        [(format <FileFormatList>)|(csvsheet <SheetName>)] [exportsheetaspdf <String>]
+        [(format <FileFormatList>)|(gsheet|csvsheet <SheetEntity>)] [exportsheetaspdf <String>]
         [targetfolder <FilePath>] [targetname -|<FileName>] [overwrite [<Boolean>]] [showprogress [<Boolean>]]
 
 gam <UserTypeEntity> delete drivefile <DriveFileEntity> [purge|untrash|trash]
@@ -3377,15 +3416,27 @@ gam <UserTypeEntity> purge drivefile <DriveFileEntity>
 gam <UserTypeEntity> trash drivefile <DriveFileEntity>
 gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
 
-<DriveFilePermissionEntity> ::= <DriveFilePermissionList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<DriveFilePermissionIDEntity> ::= <DriveFilePermissionIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-
 <DriveFileACLRole> ::= commenter|editor|fileorganizer|organizer|owner|reader|writer
 <DriveFilePermission> ::= anyone|anyonewithlink|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>|domainwithlink:<DomainName>;<DriveFileACLRole>
 <DriveFilePermissionID> ::= anyone|anyonewithlink|id:<String>
 <DriveFilePermissionIDorEmail> ::= <DriveFilePermissionID>|<EmailAddress>
 <DriveFilePermissionList> ::= "<DriveFilePermission>(,<DriveFilePermission)*"
 <DriveFilePermissionIDList> ::= "<DriveFilePermissionID>(,<DriveFilePermissionID>)*"
+
+<DriveFilePermissionEntity> ::=
+         <DriveFilePermissionList> |
+         (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>]) |
+         <FileSelector> |
+         <CSVFileSelector> |
+         <CSVkmdSelector> |
+         <CSVDataSelector>
+<DriveFilePermissionIDEntity> ::=
+         <DriveFilePermissionIDList> |
+         (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>]) |
+         <FileSelector> |
+         <CSVFileSelector> |
+         <CSVkmdSelector> |
+         <CSVDataSelector>
 
 <DrivePermissionsFieldName> ::=
         additionalroles|
@@ -3405,22 +3456,30 @@ gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
         withlink
 <DrivePermissionsFieldNameList> ::= "<DrivePermissionsFieldName>(,<DrivePermissionsFieldName>)*"
 
-gam <UserTypeEntity> create|add drivefileacl <DriveFileEntity> anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
-        (role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>] [sendemail] [emailmessage <String>] [showtitles] [nodetails]
+gam <UserTypeEntity> create|add drivefileacl <DriveFileEntity> [adminaccess|asadmin]
+        anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>) (role <DriveFileACLRole>)
+        [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>]
+        [sendemail] [emailmessage <String>] [showtitles] [nodetails]
 gam <UserTypeEntity> update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail>
         (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails]
 gam <UserTypeEntity> delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles]
-gam <UserTypeEntity> info drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles] [formatjson]
+gam <UserTypeEntity> info drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail>
+        [showtitles] [formatjson]
 gam <UserTypeEntity> show drivefileacls <DriveFileEntity>
-        [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson]
 gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive <ToDriveAttributes>*]
         [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson] [quotechar <Character>]
-gam <UserTypeEntity> create|add permissions <DriveFileEntity> <DriveFilePermissionEntity> [expires|expiration <Time>] [sendemail] [emailmessage <String>]
+gam <UserTypeEntity> create|add permissions <DriveFileEntity> <DriveFilePermissionEntity>
+        [expires|expiration <Time>] [sendemail] [emailmessage <String>]
+        <PermissionMatch>* [<PermissionMatchAction>]
 gam <UserTypeEntity> delete permissions <DriveFileEntity> <DriveFilePermissionIDEntity>
+        <PermissionMatch>* [<PermissionMatchAction>]
 
 gam show ownership <DriveFileID>|(drivefilename <DriveFileName>) [formatjson]
 gam print ownership <DriveFileID>|(drivefilename <DriveFileName>) [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
@@ -3552,7 +3611,7 @@ gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (ord
         createddate|createdtime|
         description|
         driveid|
-	drivename|
+        drivename|
         editable|
         explicitlytrashed|
         fileextension|
@@ -3641,13 +3700,13 @@ gam <UserTypeEntity> show filecounts [corpora <CorporaAttribute>] [anyowner|(sho
         [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
         (querytime.* <Time>)*
         [select <TeamDriveEntity>] [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
-        (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
+        <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
         [summary none|only|plus]
 gam <UserTypeEntity> print filecounts [todrive <ToDriveAttribute>*] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
         [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
         (querytime.* <Time>)*
         [select <TeamDriveEntity>] [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
-        (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
+        <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
         [summary none|only|plus]
 
 gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
@@ -3655,7 +3714,7 @@ gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*] [corpora 
           (select <DriveFileEntityListTree> [selectsubquery <QueryDriveFile>] [norecursion|(depth <Number>)] [showparent])]
         (querytime.* <Time>)* [maxfiles <Integer>] [countsonly] [nodataheaders <String>]
         [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
-        (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
+        <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
         [filepath|fullpath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [showdrivename]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [quotechar <Character>]
 
@@ -3671,13 +3730,13 @@ gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*] [corpora 
 gam <UserTypeEntity> print filetree [todrive <ToDriveAttributes>*] [anyowner|(showownedby any|me|others)]
         [select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [depth <Number>]
         [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
-        (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
+        <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
         [noindent]
 gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
         [select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [depth <Number>]
         [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
-        (<PermissionMatch>)* [<PermissionMatchMode>] [<PermissionMatchAction>]
+        <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
 
 <DriveActivityAction> ::=

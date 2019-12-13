@@ -145,6 +145,8 @@ SYSEXITRC = 'sxrc'
 SYS_ENCODING = 'syen'
 # Shared by threadBatchWorker and threadBatchGAMCommands
 TBATCH_QUEUE = 'batq'
+# CSV todrive options
+CSV_TODRIVE = 'todr'
 # Are we on Windows?
 WINDOWS = 'wndo'
 #
@@ -202,5 +204,6 @@ Globals = {
   SYSEXITRC: 0,
   SYS_ENCODING: 'utf-8',
   TBATCH_QUEUE: None,
+  CSV_TODRIVE: {},
   WINDOWS: os.name == 'nt',
   }

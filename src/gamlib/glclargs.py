@@ -645,6 +645,7 @@ class GamCLArgs():
   OB_SECTION_NAME = 'SectionName'
   OB_SERIAL_NUMBER_LIST = 'SerialNumberList'
   OB_SERVICE_NAME_LIST = 'ServiceNameList'
+  OB_SHEET_ENTITY = 'SheetEntity'
   OB_SITE_ENTITY = 'SiteEntity'
   OB_SKU_ID = 'SKUID'
   OB_SKU_ID_LIST = 'SKUIDList'

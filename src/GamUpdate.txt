@@ -1,3 +1,33 @@
+4.97.10
+
+Added option `todrive <ToDriveAttribute>*` to `redirect csv` to allow setting of `todrive` options as part of the redirect.
+ If you are doing `redirect csv <FileName> multiprocess`, it is more efficient to specify `todrive <ToDriveAttribute>*` as part of
+the redirect as verification of the `todrive` settings, which can invole several API calls, is done once rather than in each of the subprocesses.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Todrive#redirect-csv
+
+Added option `tdupdatesheet [<Boolean>]` to `todrive` options. When used with `tdfileid` and `tdsheet`,
+a specific sheet within a Google spreadsheet can be updated with a `gam print todrive` command.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Todrive#command-line-options
+
+Added options `gsheet|csvsheet <SheetEntity>`, `charset <CharSet>` and `delimiter <Character>` options
+to `gam update drivefile`. This allows updating a specifc sheet within Google spreadsheet.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Files#update-files
+
+Added options `json [charset <Charset>] <JSONData>` and `json file <FileName> [charset <Charset>]` to
+`<DriveFilePermissionEntity>` and `<DriveFilePermissionIDEntity>` that are used by `gam create permissions`
+and `gam delete permissions`. This allows the JSON data written by `gam print drivefileacls formatjson` to
+be used as input to these commands.
+
+Added options `<PermissionMatch>* [<PermissionMatchAction>]` to
+`gam create permissions` and `gam delete permissions`. This allows you to specify which permissions
+in the JSON data to process or skip.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Permission-Matches#permission-selection
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Permissions#manage-file-permissionssharing
+
+Added options `<PermissionMatch>* [<PermissionMatchAction>]` to
+`gam print/show drivefileacls`. This allows you to specify which permissions to display or skip.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Permission-Matches#permission-selection
+
 4.97.09
 
 Added `<RecipientEntity> ::= <EmailAddressEntity> | (select <UserTypeEntity>)` which is used in
@@ -19,7 +49,7 @@ Fixed bug in `gam print drivefileacls formatjson` that caused a trap.
 
 4.97.06
 
-Fixed bug where using `todrive` gave a `Service not applicable/Does not exist` error.
+Fixed bug where using `todrive` gave an inappropriate `Service not applicable/Does not exist` error.
 
 4.97.05
 
