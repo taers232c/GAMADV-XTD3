@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.97.10'
+__version__ = '4.97.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -32408,7 +32408,7 @@ def printFileList(users):
       if 'name' not in DFF.fieldsList:
         skipObjects.add('name')
         DFF.fieldsList.append('name')
-    if DLP.PM:
+    if DLP.PM.permissionMatches:
       for field in DFF.fieldsList:
         if field.startswith('permissions'):
           break
@@ -32578,7 +32578,7 @@ def printFileList(users):
                  and not fileIdEntity['query']
                  and not fileIdEntity['teamdrivefilequery']
                  and _simpleFileIdEntityList(fileIdEntity['list']))
-  if DLP.PM:
+  if DLP.PM.permissionMatches:
     getPermissionsForTeamDrives = True
     permissionsFields = 'nextPageToken,permissions'
   elif DFF.fieldsList:
@@ -32767,7 +32767,7 @@ def printFileList(users):
           if field.find('(') != -1:
             field, subFields = field.split('(', 1)
             titles.append(field)
-            titles.extend(['{0}.0.{1}'.format(field, subField) for subField in subFields[:-1].split(',')])
+            titles.extend(['{0}.0.{1}'.format(field, subField) for subField in subFields[:-1].split(',') if subField])
           elif field.find('.') != -1:
             titles.append(field.replace('.', '.0.'))
           elif field.lower() in DRIVE_SUBFIELDS_CHOICE_MAP:
@@ -32943,7 +32943,7 @@ def printShowFileCounts(users):
     fieldsList.append('size')
   if DLP.filenameMatchPattern:
     fieldsList.append('name')
-  if DLP.PM:
+  if DLP.PM.permissionMatches:
     fieldsList.extend(['id', 'permissions'])
     getPermissionsForTeamDrives = True
     permissionsFields = 'nextPageToken,permissions'
@@ -33173,7 +33173,7 @@ def printShowFileTree(users):
       btkwargs = fileIdEntity['teamdrive']
       defaultSelection = False
       getTeamDriveNames = True
-  if DLP.PM:
+  if DLP.PM.permissionMatches:
     fieldsList.append('permissions')
   fields = getFieldsFromFieldsList(fieldsList)
   pagesFields = getItemFieldsFromFieldsList('files', fieldsList)

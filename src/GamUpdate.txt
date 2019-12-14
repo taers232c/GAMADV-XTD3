@@ -1,3 +1,7 @@
+4.97.11
+
+Corrected code where permissions fields were unnecessarily downloaded in `gam print filecounts/filelist/filepaths/filetree`.
+
 4.97.10
 
 Added option `todrive <ToDriveAttribute>*` to `redirect csv` to allow setting of `todrive` options as part of the redirect.
