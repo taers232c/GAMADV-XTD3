@@ -340,8 +340,14 @@ class django_pbkdf2_sha1(django_pbkdf2_sha256):
 # Argon2
 #=============================================================================
 
-django_argon2 = uh.PrefixWrapper("django_argon2", argon2,
-    prefix=u('argon2'), ident=u('argon2$argon2i$'),
+# NOTE: as of 2019-11-11, Django's Argon2PasswordHasher only supports Type I;
+#       so limiting this to ensure that as well.
+
+django_argon2 = uh.PrefixWrapper(
+    name="django_argon2",
+    wrapped=argon2.using(type="I"),
+    prefix=u('argon2'),
+    ident=u('argon2$argon2i$'),
     # NOTE: this docstring is duplicated in the docs, since sphinx
     # seems to be having trouble reading it via autodata::
     doc="""This class implements Django 1.10's Argon2 wrapper, and follows the :ref:`password-hash-api`.

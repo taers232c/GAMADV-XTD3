@@ -28,9 +28,9 @@ _argon2pure = None  # dynamically imported by _load_backend_argon2pure()
 # pkg
 from passlib import exc
 from passlib.crypto.digest import MAX_UINT32
-from passlib.utils import to_bytes
+from passlib.utils import classproperty, to_bytes, render_bytes
 from passlib.utils.binary import b64s_encode, b64s_decode
-from passlib.utils.compat import u, unicode, bascii_to_str
+from passlib.utils.compat import u, unicode, bascii_to_str, uascii_to_str, PY2
 import passlib.utils.handlers as uh
 # local
 __all__ = [
@@ -38,34 +38,76 @@ __all__ = [
 ]
 
 #=============================================================================
+# helpers
+#=============================================================================
+
+# NOTE: when adding a new argon2 hash type, need to do the following:
+# * add TYPE_XXX constant, and add to ALL_TYPES
+# * make sure "_backend_type_map" constructors handle it correctly for all backends
+# * make sure _hash_regex & _ident_regex (below) support type string.
+# * add reference vectors for testing.
+
+#: argon2 type constants -- subclasses handle mapping these to backend-specific type constants.
+#: (should be lowercase, to match representation in hash string)
+TYPE_I = u("i")
+TYPE_D = u("d")
+TYPE_ID = u("id")  # new 2016-10-29; passlib 1.7.2 requires backends new enough for support
+
+#: list of all known types; first (supported) type will be used as default.
+ALL_TYPES = (TYPE_ID, TYPE_I, TYPE_D)
+ALL_TYPES_SET = set(ALL_TYPES)
+
+#=============================================================================
 # import argon2 package (https://pypi.python.org/pypi/argon2_cffi)
 #=============================================================================
 
-# import package
+# import cffi package
+# NOTE: we try to do this even if caller is going to use argon2pure,
+#       so that we can always use the libargon2 default settings when possible.
+_argon2_cffi_error = None
 try:
     import argon2 as _argon2_cffi
 except ImportError:
     _argon2_cffi = None
+else:
+    if not hasattr(_argon2_cffi, "Type"):
+        # they have incompatible "argon2" package installed, instead of "argon2_cffi" package.
+        _argon2_cffi_error = (
+            "'argon2' module points to unsupported 'argon2' pypi package; "
+            "please install 'argon2-cffi' instead."
+        )
+        _argon2_cffi = None
+    elif not hasattr(_argon2_cffi, "low_level"):
+        # they have pre-v16 argon2_cffi package
+        _argon2_cffi_error = "'argon2-cffi' is too old, please update to argon2_cffi >= 18.2.0"
+        _argon2_cffi = None
 
-# get default settings for hasher
-_PasswordHasher = getattr(_argon2_cffi, "PasswordHasher", None)
-if _PasswordHasher:
-    # we have argon2_cffi >= 16.0, use their default hasher settings
-    _default_settings = _PasswordHasher()
+# init default settings for our hasher class --
+# if we have argon2_cffi >= 16.0, use their default hasher settings, otherwise use static default
+if hasattr(_argon2_cffi, "PasswordHasher"):
+    # use cffi's default settings
+    _default_settings = _argon2_cffi.PasswordHasher()
     _default_version = _argon2_cffi.low_level.ARGON2_VERSION
 else:
-    # use these as our fallback settings (for no backend, or argon2pure)
-    class _default_settings:
+    # use fallback settings (for no backend, or argon2pure)
+    class _DummyCffiHasher:
         """
-        dummy object to use as source of defaults when argon2 mod not present.
-        synced w/ argon2 16.1 as of 2016-6-16
+        dummy object to use as source of defaults when argon2_cffi isn't present.
+        this tries to mimic the attributes of ``argon2.PasswordHasher()`` which the rest of
+        this module reads.
+
+        .. note:: values last synced w/ argon2 19.2 as of 2019-11-09
         """
         time_cost = 2
         memory_cost = 512
         parallelism = 2
         salt_len = 16
         hash_len = 16
-    _default_version = 0x13
+        # NOTE: "type" attribute added in argon2_cffi v18.2; but currently not reading it
+        # type = _argon2_cffi.Type.ID
+
+    _default_settings = _DummyCffiHasher()
+    _default_version = 0x13  # v1.9
 
 #=============================================================================
 # handler
@@ -99,6 +141,7 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
                     "parallelism",
                     "digest_size",
                     "hash_len",  # 'digest_size' alias for compat w/ argon2 package
+                    "type",  # the type of argon2 hash used
                     )
 
     # TODO: could support the optional 'data' parameter,
@@ -109,11 +152,19 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
     #------------------------
     # GenericHandler
     #------------------------
-    ident = u("$argon2i")
+
+    # NOTE: ident -- all argon2 hashes start with "$argon2<type>$"
+    # XXX: could programmaticaly generate "ident_values" string from ALL_TYPES above
+
     checksum_size = _default_settings.hash_len
 
-    # NOTE: from_string() relies on the ordering of these...
-    ident_values = (u("$argon2i$"), u("$argon2d$"))
+    #: force parsing these kwds
+    _always_parse_settings = uh.GenericHandler._always_parse_settings + \
+                             ("type",)
+
+    #: exclude these kwds from parsehash() result (most are aliases for other keys)
+    _unparsed_settings = uh.GenericHandler._unparsed_settings + \
+                         ("salt_len", "time_cost", "hash_len", "digest_size")
 
     #------------------------
     # HasSalt
@@ -159,9 +210,28 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
     #: rather than subprocesses.
     pure_use_threads = False
 
+    #: internal helper used to store mapping of TYPE_XXX constants -> backend-specific type constants;
+    #: this is populated by _load_backend_mixin(); and used to detect which types are supported.
+    #: XXX: could expose keys as class-level .supported_types property?
+    _backend_type_map = {}
+
+    @classproperty
+    def type_values(cls):
+        """
+        return tuple of types supported by this backend
+        
+        .. versionadded:: 1.7.2
+        """
+        cls.get_backend()  # make sure backend is loaded
+        return tuple(cls._backend_type_map)
+
     #===================================================================
     # instance attrs
     #===================================================================
+
+    #: argon2 hash type, one of ALL_TYPES -- class value controls the default
+    #: .. versionadded:: 1.7.2
+    type = TYPE_ID
 
     #: parallelism setting -- class value controls the default
     parallelism = _default_settings.parallelism
@@ -173,8 +243,14 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
     #: memory cost -- class value controls the default
     memory_cost = _default_settings.memory_cost
 
-    #: flag indicating a Type D hash
-    type_d = False
+    @property
+    def type_d(self):
+        """
+        flag indicating a Type D hash
+
+        .. deprecated:: 1.7.2; will be removed in passlib 2.0
+        """
+        return self.type == TYPE_D
 
     #: optional secret data
     data = None
@@ -184,7 +260,7 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
     #===================================================================
 
     @classmethod
-    def using(cls, memory_cost=None, salt_len=None, time_cost=None, digest_size=None,
+    def using(cls, type=None, memory_cost=None, salt_len=None, time_cost=None, digest_size=None,
               checksum_size=None, hash_len=None, max_threads=None, **kwds):
         # support aliases which match argon2 naming convention
         if time_cost is not None:
@@ -209,6 +285,10 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
 
         # create variant
         subcls = super(_Argon2Common, cls).using(**kwds)
+
+        # set type
+        if type is not None:
+            subcls.type = subcls._norm_type(type)
 
         # set checksum size
         relaxed = kwds.get("relaxed")
@@ -254,10 +334,13 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
     # public api
     #===================================================================
 
+    #: shorter version of _hash_regex, used to quickly identify hashes
+    _ident_regex = re.compile(r"^\$argon2[a-z]+\$")
+
     @classmethod
     def identify(cls, hash):
         hash = uh.to_unicode_for_identify(hash)
-        return hash.startswith(cls.ident_values)
+        return cls._ident_regex.match(hash) is not None
 
     # hash(), verify(), genhash() -- implemented by backend subclass
 
@@ -282,7 +365,7 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
     #: regex to parse argon hash
     _hash_regex = re.compile(br"""
         ^
-        \$argon2(?P<type>[id])\$
+        \$argon2(?P<type>[a-z]+)\$
         (?:
             v=(?P<version>\d+)
             \$
@@ -312,6 +395,7 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
     @classmethod
     def from_string(cls, hash):
         # NOTE: assuming hash will be unicode, or use ascii-compatible encoding.
+        # TODO: switch to working w/ str or unicode
         if isinstance(hash, unicode):
             hash = hash.encode("utf-8")
         if not isinstance(hash, bytes):
@@ -322,11 +406,10 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
         type, version, memory_cost, time_cost, parallelism, keyid, data, salt, digest = \
             m.group("type", "version", "memory_cost", "time_cost", "parallelism",
                     "keyid", "data", "salt", "digest")
-        assert type in [b"i", b"d"], "unexpected type code: %r" % (type,)
         if keyid:
             raise NotImplementedError("argon2 'keyid' parameter not supported")
         return cls(
-            type_d=(type == b"d"),
+            type=type.decode("ascii"),
             version=int(version) if version else 0x10,
             memory_cost=int(memory_cost),
             rounds=int(time_cost),
@@ -337,28 +420,41 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
         )
 
     def to_string(self):
-        ident = str(self.ident_values[self.type_d])
         version = self.version
         if version == 0x10:
             vstr = ""
         else:
             vstr = "v=%d$" % version
+
         data = self.data
         if data:
             kdstr = ",data=" + bascii_to_str(b64s_encode(self.data))
         else:
             kdstr = ""
+
         # NOTE: 'keyid' param currently not supported
-        return "%s%sm=%d,t=%d,p=%d%s$%s$%s" % (ident, vstr, self.memory_cost,
-                                               self.rounds, self.parallelism,
-                                               kdstr,
-                                               bascii_to_str(b64s_encode(self.salt)),
-                                               bascii_to_str(b64s_encode(self.checksum)))
+        return "$argon2%s$%sm=%d,t=%d,p=%d%s$%s$%s" % (
+            uascii_to_str(self.type),
+            vstr, 
+            self.memory_cost,
+            self.rounds, 
+            self.parallelism,
+            kdstr,
+            bascii_to_str(b64s_encode(self.salt)),
+            bascii_to_str(b64s_encode(self.checksum)),
+        )
 
     #===================================================================
     # init
     #===================================================================
-    def __init__(self, type_d=False, version=None, memory_cost=None, data=None, **kwds):
+    def __init__(self, type=None, type_d=False, version=None, memory_cost=None, data=None, **kwds):
+
+        # handle deprecated kwds
+        if type_d:
+            warn('argon2 `type_d=True` keyword is deprecated, and will be removed in passlib 2.0; '
+                 'please use ``type="d"`` instead')
+            assert type is None
+            type = TYPE_D
 
         # TODO: factor out variable checksum size support into a mixin.
         # set checksum size to specific value before _norm_checksum() is called
@@ -370,8 +466,10 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
         super(_Argon2Common, self).__init__(**kwds)
 
         # init type
-        # NOTE: we don't support *generating* type I hashes, but do support verifying them.
-        self.type_d = type_d
+        if type is None:
+            assert uh.validate_default_value(self, self.type, self._norm_type, param="type")
+        else:
+            self.type = self._norm_type(type)
 
         # init version
         if version is None:
@@ -398,6 +496,27 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
     #-------------------------------------------------------------------
     # parameter guards
     #-------------------------------------------------------------------
+
+    @classmethod
+    def _norm_type(cls, value):
+        # type check
+        if not isinstance(value, unicode):
+            if PY2 and isinstance(value, bytes):
+                value = value.decode('ascii')
+            else:
+                raise uh.exc.ExpectedTypeError(value, "str", "type")
+
+        # check if type is valid
+        if value in ALL_TYPES_SET:
+            return value
+
+        # translate from uppercase
+        temp = value.lower()
+        if temp in ALL_TYPES_SET:
+            return temp
+
+        # failure!
+        raise ValueError("unknown argon2 hash type: %r" % (value,))
 
     @classmethod
     def _norm_version(cls, version):
@@ -427,14 +546,27 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
 
     # NOTE: _calc_checksum implemented by backend subclass
 
+    @classmethod
+    def _get_backend_type(cls, value):
+        """
+        helper to resolve backend constant from type
+        """
+        try:
+            return cls._backend_type_map[value]
+        except KeyError:
+            pass
+        # XXX: pick better error class?
+        msg = "unsupported argon2 hash (type %r not supported by %s backend)" % \
+              (value, cls.get_backend())
+        raise ValueError(msg)
+
     #===================================================================
     # hash migration
     #===================================================================
 
     def _calc_needs_update(self, **kwds):
         cls = type(self)
-        if self.type_d:
-            # type 'd' hashes shouldn't be used for passwords.
+        if self.type != cls.type:
             return True
         minver = cls.min_desired_version
         if minver is None or minver > cls.max_version:
@@ -461,11 +593,23 @@ class _Argon2Common(uh.SubclassBackendMixin, uh.ParallelismMixin,
         invoked after backend imports have been loaded, and performs
         feature detection & testing common to all backends.
         """
+        # check argon2 version
         max_version = mixin_cls.max_version
         assert isinstance(max_version, int) and max_version >= 0x10
         if max_version < 0x13:
             warn("%r doesn't support argon2 v1.3, and should be upgraded" % name,
                  uh.exc.PasslibSecurityWarning)
+
+        # prefer best available type
+        for type in ALL_TYPES:
+            if type in mixin_cls._backend_type_map:
+                mixin_cls.type = type
+                break
+        else:
+            warn("%r lacks support for all known hash types" % name, uh.exc.PasslibRuntimeWarning)
+            # NOTE: class will just throw "unsupported argon2 hash" error if they try to use it...
+            mixin_cls.type = TYPE_ID
+
         return True
 
     @classmethod
@@ -559,12 +703,30 @@ class _CffiBackend(_Argon2Common):
 
     @classmethod
     def _load_backend_mixin(mixin_cls, name, dryrun):
+        # make sure we write info to base class's __dict__, not that of a subclass
+        assert mixin_cls is _CffiBackend
+
         # we automatically import this at top, so just grab info
         if _argon2_cffi is None:
+            if _argon2_cffi_error:
+                raise exc.PasslibSecurityError(_argon2_cffi_error)
             return False
         max_version = _argon2_cffi.low_level.ARGON2_VERSION
         log.debug("detected 'argon2_cffi' backend, version %r, with support for 0x%x argon2 hashes",
                   _argon2_cffi.__version__, max_version)
+
+        # build type map
+        TypeEnum = _argon2_cffi.Type
+        type_map = {}
+        for type in ALL_TYPES:
+            try:
+                type_map[type] = getattr(TypeEnum, type.upper())
+            except AttributeError:
+                # TYPE_ID support not added until v18.2
+                assert type not in (TYPE_I, TYPE_D), "unexpected missing type: %r" % type
+        mixin_cls._backend_type_map = type_map
+
+        # set version info, and run common setup
         mixin_cls.version = mixin_cls.max_version = max_version
         return mixin_cls._finalize_backend_mixin(name, dryrun)
 
@@ -579,7 +741,7 @@ class _CffiBackend(_Argon2Common):
         # XXX: doesn't seem to be a way to make this honor max_threads
         try:
             return bascii_to_str(_argon2_cffi.low_level.hash_secret(
-                type=_argon2_cffi.low_level.Type.I,
+                type=cls._get_backend_type(cls.type),
                 memory_cost=cls.memory_cost,
                 time_cost=cls.default_rounds,
                 parallelism=cls.parallelism,
@@ -590,19 +752,25 @@ class _CffiBackend(_Argon2Common):
         except _argon2_cffi.exceptions.HashingError as err:
             raise cls._adapt_backend_error(err)
 
+    #: helper for verify() method below -- maps prefixes to type constants
+    _byte_ident_map = dict((render_bytes(b"$argon2%s$", type.encode("ascii")), type)
+                           for type in ALL_TYPES)
+
     @classmethod
     def verify(cls, secret, hash):
         # TODO: add in 'encoding' support once that's finalized in 1.8 / 1.9.
         uh.validate_secret(secret)
         secret = to_bytes(secret, "utf-8")
         hash = to_bytes(hash, "ascii")
-        if hash.startswith(b"$argon2d$"):
-            type = _argon2_cffi.low_level.Type.D
-        else:
-            type = _argon2_cffi.low_level.Type.I
+
+        # read type from start of hash
+        # NOTE: don't care about malformed strings, lowlevel will throw error for us
+        type = cls._byte_ident_map.get(hash[:1+hash.find(b"$", 1)], TYPE_I)
+        type_code = cls._get_backend_type(type)
+
         # XXX: doesn't seem to be a way to make this honor max_threads
         try:
-            result = _argon2_cffi.low_level.verify_secret(hash, secret, type)
+            result = _argon2_cffi.low_level.verify_secret(hash, secret, type_code)
             assert result is True
             return True
         except _argon2_cffi.exceptions.VerifyMismatchError:
@@ -617,14 +785,10 @@ class _CffiBackend(_Argon2Common):
         uh.validate_secret(secret)
         secret = to_bytes(secret, "utf-8")
         self = cls.from_string(config)
-        if self.type_d:
-            type = _argon2_cffi.low_level.Type.D
-        else:
-            type = _argon2_cffi.low_level.Type.I
         # XXX: doesn't seem to be a way to make this honor max_threads
         try:
             result = bascii_to_str(_argon2_cffi.low_level.hash_secret(
-                type=type,
+                type=cls._get_backend_type(self.type),
                 memory_cost=self.memory_cost,
                 time_cost=self.rounds,
                 parallelism=self.parallelism,
@@ -663,6 +827,9 @@ class _PureBackend(_Argon2Common):
 
     @classmethod
     def _load_backend_mixin(mixin_cls, name, dryrun):
+        # make sure we write info to base class's __dict__, not that of a subclass
+        assert mixin_cls is _PureBackend
+
         # import argon2pure
         global _argon2pure
         try:
@@ -686,6 +853,16 @@ class _PureBackend(_Argon2Common):
                  "for adequate security. Installing argon2_cffi (via 'pip install argon2_cffi') "
                  "is strongly recommended", exc.PasslibSecurityWarning)
 
+        # build type map
+        type_map = {}
+        for type in ALL_TYPES:
+            try:
+                type_map[type] = getattr(_argon2pure, "ARGON2" + type.upper())
+            except AttributeError:
+                # TYPE_ID support not added until v1.3
+                assert type not in (TYPE_I, TYPE_D), "unexpected missing type: %r" % type
+        mixin_cls._backend_type_map = type_map
+
         mixin_cls.version = mixin_cls.max_version = max_version
         return mixin_cls._finalize_backend_mixin(name, dryrun)
 
@@ -702,10 +879,6 @@ class _PureBackend(_Argon2Common):
         # TODO: add in 'encoding' support once that's finalized in 1.8 / 1.9.
         uh.validate_secret(secret)
         secret = to_bytes(secret, "utf-8")
-        if self.type_d:
-            type = _argon2pure.ARGON2D
-        else:
-            type = _argon2pure.ARGON2I
         kwds = dict(
             password=secret,
             salt=self.salt,
@@ -713,7 +886,7 @@ class _PureBackend(_Argon2Common):
             memory_cost=self.memory_cost,
             parallelism=self.parallelism,
             tag_length=self.checksum_size,
-            type_code=type,
+            type_code=self._get_backend_type(self.type),
             version=self.version,
         )
         if self.max_threads > 0:
@@ -737,12 +910,18 @@ class _PureBackend(_Argon2Common):
 class argon2(_NoBackend, _Argon2Common):
     """
     This class implements the Argon2 password hash [#argon2-home]_, and follows the :ref:`password-hash-api`.
-    (This class only supports generating "Type I" argon2 hashes).
 
     Argon2 supports a variable-length salt, and variable time & memory cost,
     and a number of other configurable parameters.
 
     The :meth:`~passlib.ifc.PasswordHash.replace` method accepts the following optional keywords:
+
+    :type type: str
+    :param type:
+        Specify the type of argon2 hash to generate.
+        Can be one of "ID", "I", "D".
+
+        This defaults to "ID" if supported by the backend, otherwise "I".
 
     :type salt: str
     :param salt:
@@ -789,6 +968,11 @@ class argon2(_NoBackend, _Argon2Common):
         and the error can be corrected, a :exc:`~passlib.exc.PasslibHashWarning`
         will be issued instead. Correctable errors include ``rounds``
         that are too small or too large, and ``salt`` strings that are too long.
+
+    .. versionchanged:: 1.7.2
+
+        Added the "type" keyword, and support for type "D" and "ID" hashes.
+        (Prior versions could verify type "D" hashes, but not generate them).
 
     .. todo::
 

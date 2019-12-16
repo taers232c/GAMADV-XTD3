@@ -5,7 +5,12 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 # core
 import codecs
-from collections import defaultdict, MutableMapping
+from collections import defaultdict
+try:
+    from collections.abc import MutableMapping
+except ImportError:
+    # py2 compat
+    from collections import MutableMapping
 from math import ceil, log as logf
 import logging; log = logging.getLogger(__name__)
 import pkg_resources

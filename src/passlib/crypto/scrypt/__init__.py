@@ -1,4 +1,8 @@
-"""passlib.utils.scrypt -- scrypt hash frontend and help utilities"""
+"""
+passlib.utils.scrypt -- scrypt hash frontend and help utilities
+
+XXX: add this module to public docs?
+"""
 #==========================================================================
 # imports
 #==========================================================================
@@ -19,6 +23,13 @@ __all__ =[
 #==========================================================================
 # config validation
 #==========================================================================
+
+#: internal global constant for setting stdlib scrypt's maxmem (int bytes).
+#: set to -1 to auto-calculate (see _load_stdlib_backend() below)
+#: set to 0 for openssl default (32mb according to python docs)
+#: TODO: standardize this across backends, and expose support via scrypt hash config;
+#:       currently not very configurable, and only applies to stdlib backend.
+SCRYPT_MAXMEM = -1
 
 #: max output length in bytes
 MAX_KEYLEN = ((1 << 32) - 1) * 32
@@ -53,6 +64,33 @@ def validate(n, r, p):
         raise ValueError("n must be > 1, and a power of 2: n=%r" % n)
 
     return True
+
+
+UINT32_SIZE = 4
+
+
+def estimate_maxmem(n, r, p, fudge=1.05):
+    """
+    calculate memory required for parameter combination.
+    assumes parameters have already been validated.
+
+    .. warning::
+        this is derived from OpenSSL's scrypt maxmem formula;
+        and may not be correct for other implementations
+        (additional buffers, different parallelism tradeoffs, etc).
+    """
+    # XXX: expand to provide upper bound for diff backends, or max across all of them?
+    # NOTE: openssl's scrypt() enforces it's maxmem parameter based on calc located at
+    # <openssl/providers/default/kdfs/scrypt.c>, ending in line containing "Blen + Vlen > maxmem"
+    # using the following formula:
+    #     Blen = p * 128 * r
+    #     Vlen = 32 * r * (N + 2) * sizeof(uint32_t)
+    #     total_bytes = Blen + Vlen
+    maxmem = r * (128 * p + 32 * (n + 2) * UINT32_SIZE)
+    # add fudge factor so we don't have off-by-one mismatch w/ openssl
+    maxmem = int(maxmem * fudge)
+    return maxmem
+
 
 # TODO: configuration picker (may need psutil for full effect)
 
@@ -154,11 +192,44 @@ def _load_cffi_backend():
     return None
 
 
+def _load_stdlib_backend():
+    """
+    Attempt to load stdlib scrypt() implement and return wrapper.
+    Returns None if not found.
+    """
+    try:
+        # new in python 3.6, if compiled with openssl >= 1.1
+        from hashlib import scrypt as stdlib_scrypt
+    except ImportError:
+        return None
+
+    def stdlib_scrypt_wrapper(secret, salt, n, r, p, keylen):
+        # work out appropriate "maxmem" parameter
+        #
+        # TODO: would like to enforce a single "maxmem" policy across all backends;
+        # and maybe expose this via scrypt hasher config.
+        #
+        # for now, since parameters should all be coming from internally-controlled sources
+        # (password hashes), using policy of "whatever memory the parameters needs".
+        # furthermore, since stdlib scrypt is only place that needs this,
+        # currently calculating exactly what maxmem needs to make things work for stdlib call.
+        # as hack, this can be overriden via SCRYPT_MAXMEM above,
+        # would like to formalize all of this.
+        maxmem = SCRYPT_MAXMEM
+        if maxmem < 0:
+            maxmem = estimate_maxmem(n, r, p)
+        return stdlib_scrypt(password=secret, salt=salt, n=n, r=r, p=p, dklen=keylen,
+                             maxmem=maxmem)
+
+    return stdlib_scrypt_wrapper
+
+
 #: list of potential backends
-backend_values = ("scrypt", "builtin")
+backend_values = ("stdlib", "scrypt", "builtin")
 
 #: dict mapping backend name -> loader
 _backend_loaders = dict(
+    stdlib=_load_stdlib_backend,
     scrypt=_load_cffi_backend,  # XXX: rename backend constant to "cffi"?
     builtin=_load_builtin_backend,
 )

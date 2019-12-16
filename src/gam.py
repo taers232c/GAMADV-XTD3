@@ -111,12 +111,7 @@ import oauth2client.file
 import oauth2client.tools
 from oauth2client.contrib.dictionary_storage import DictionaryStorage
 from oauth2client.contrib.multiprocess_file_storage import MultiprocessFileStorage
-# workaround https://bitbucket.org/ecollins/passlib/issues/107/timeclock-has-gone
-# can be removed with passlib > 1.7.1
-if sys.platform == 'win32' and sys.version_info[1] >= 8:
-  time.clock = time.time
 from passlib.hash import sha512_crypt
-time.__dict__.pop('clock', None)
 
 if platform.system() == 'Linux':
   import distro

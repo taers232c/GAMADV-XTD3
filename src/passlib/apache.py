@@ -465,6 +465,7 @@ def _init_default_schemes():
 
     # set latest-apache version aliases
     # XXX: could check for apache install, and pick correct host 22/24 default?
+    #      could reuse _detect_htpasswd() helper in UTs
     defaults.update(
         portable=defaults['portable_apache_24'],
         host=defaults['host_apache_24'],
@@ -507,8 +508,16 @@ def _init_htpasswd_context():
     preferred = schemes[:3] + ["apr_md5_crypt"] + schemes
     schemes = sorted(set(schemes), key=preferred.index)
 
-    # NOTE: default will change to "portable" in passlib 2.0
-    return CryptContext(schemes, default=htpasswd_defaults['portable_apache_22'])
+    # create context object
+    return CryptContext(
+        schemes=schemes,
+
+        # NOTE: default will change to "portable" in passlib 2.0
+        default=htpasswd_defaults['portable_apache_22'],
+
+        # NOTE: bcrypt "2y" is required, "2b" isn't recognized by libapr (issue 95)
+        bcrypt__ident="2y",
+    )
 
 #: CryptContext configured to match htpasswd
 htpasswd_context = _init_htpasswd_context()

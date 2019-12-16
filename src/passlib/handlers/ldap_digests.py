@@ -27,7 +27,7 @@ __all__ = [
     "ldap_des_crypt",
     "ldap_bsdi_crypt",
     "ldap_md5_crypt",
-    "ldap_sha1_crypt"
+    "ldap_sha1_crypt",
     "ldap_bcrypt",
     "ldap_sha256_crypt",
     "ldap_sha512_crypt",
