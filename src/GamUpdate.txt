@@ -1,3 +1,7 @@
+4.97.12
+
+Added option `formatjson` to `gam print filelist`.
+
 4.97.11
 
 Corrected code where permissions fields were unnecessarily downloaded in `gam print filecounts/filelist/filepaths/filetree`.

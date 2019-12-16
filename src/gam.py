@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.97.11'
+__version__ = '4.97.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5141,6 +5141,8 @@ class CSVPrintFile():
     self.todrive = GM.Globals[GM.CSV_TODRIVE]
     self.titlesSet = set()
     self.titlesList = []
+    self.JSONtitlesSet = set()
+    self.JSONtitlesList = []
     if titles is not None:
       self.SetTitles(titles)
       self.SetJSONTitles(titles)
@@ -5173,6 +5175,11 @@ class CSVPrintFile():
     self.titlesSet = set()
     self.titlesList = []
     self.AddTitles(titles)
+
+  def MoveTitlesToEnd(self, titles):
+    for title in titles if isinstance(titles, list) else [titles]:
+      self.titlesList.remove(title)
+      self.titlesList.append(title)
 
   def RemoveTitles(self, titles):
     for title in titles if isinstance(titles, list) else [titles]:
@@ -5209,6 +5216,11 @@ class CSVPrintFile():
     for title in titles if isinstance(titles, list) else [titles]:
       if title not in self.JSONtitlesSet:
         self.AddJSONTitle(title)
+
+  def MoveJSONTitlesToEnd(self, titles):
+    for title in titles if isinstance(titles, list) else [titles]:
+      self.JSONtitlesList.remove(title)
+      self.JSONtitlesList.append(title)
 
   def SetJSONTitles(self, titles):
     self.JSONtitlesSet = set()
@@ -5447,18 +5459,28 @@ class CSVPrintFile():
   def SetIndexedTitles(self, indexedTitles):
     self.indexedTitles = indexedTitles
 
-  def SortIndexedTitles(self):
+  def SortIndexedTitles(self, titlesList):
     for field in self.indexedTitles:
       fieldDotN = re.compile(r'({0})\.(\d+)(.*)'.format(field))
       indexes = []
       subtitles = []
-      for i, v in enumerate(self.titlesList):
+      for i, v in enumerate(titlesList):
         mg = fieldDotN.match(v)
         if mg:
           indexes.append(i)
           subtitles.append(mg.groups(''))
       for i, ii in enumerate(indexes):
-        self.titlesList[ii] = ['{0}.{1}{2}'.format(subtitle[0], subtitle[1], subtitle[2]) for subtitle in sorted(subtitles, key=lambda k: (int(k[1]), k[2]))][i]
+        titlesList[ii] = ['{0}.{1}{2}'.format(subtitle[0], subtitle[1], subtitle[2]) for subtitle in sorted(subtitles, key=lambda k: (int(k[1]), k[2]))][i]
+
+  @staticmethod
+  def FixPathsTitles(titlesList):
+# Put paths before path.0
+    try:
+      index = titlesList.index('path.0')
+      titlesList.remove('paths')
+      titlesList.insert(index, 'paths')
+    except ValueError:
+      pass
 
   def SetColumnDelimiter(self, columnDelimiter):
     self.columnDelimiter = columnDelimiter
@@ -5602,6 +5624,12 @@ class CSVPrintFile():
         self.AddTitle(title)
     if self.RowFilterMatch(row):
       self.rows.append(row)
+
+  def WriteRowTitlesJSONNoFilter(self, row):
+    for title in row:
+      if title not in self.JSONtitlesSet:
+        self.AddJSONTitle(title)
+    self.rows.append(row)
 
   def CheckRowTitles(self, row):
     if not self.rowFilter:
@@ -5872,15 +5900,9 @@ class CSVPrintFile():
       extrasaction = 'raise'
     if not self.formatJSON:
       self.SortTitles()
-      self.SortIndexedTitles()
+      self.SortIndexedTitles(self.titlesList)
       if self.fixPaths:
-# Put paths before path.0
-        try:
-          index = self.titlesList.index('path.0')
-          self.titlesList.remove('paths')
-          self.titlesList.insert(index, 'paths')
-        except ValueError:
-          pass
+        self.FixPathsTitles(self.titlesList)
       titlesList = self.titlesList
     else:
       titlesList = self.JSONtitlesList
@@ -17728,8 +17750,7 @@ def doPrintGroupMembers():
   csvPF.SortTitles()
   csvPF.SetSortTitles([])
   if memberOptions[MEMBEROPTION_RECURSIVE]:
-    csvPF.RemoveTitles(['level', 'subgroup'])
-    csvPF.AddTitles(['level', 'subgroup'])
+    csvPF.MoveTitlesToEnd(['level', 'subgroup'])
   csvPF.writeCSVfile('Group Members ({0})'.format(subTitle))
 
 # gam show group-mebers
@@ -22668,8 +22689,7 @@ def printShowSites(entityList, entityType):
     csvPF.SortTitles()
     csvPF.SetSortTitles([])
     if roles:
-      csvPF.RemoveTitles(['Scope', 'Role'])
-      csvPF.AddTitles(['Scope', 'Role'])
+      csvPF.MoveTitlesToEnd(['Scope', 'Role'])
     csvPF.writeCSVfile('Sites')
 
 # gam print sites [todrive <ToDriveAttributes>*] [domain|domains <DomainNameEntity>] [includeallsites]
@@ -32383,7 +32403,8 @@ DRIVE_INDEXED_TITLES = ['parents', 'path', 'permissions']
 #	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
 #	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	[filepath|fullpath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
-#	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [quotechar <Character>]
+#	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
+#	[formatjson] [quotechar <Character>]
 def printFileList(users):
   def _setSelectionFields():
     if fileIdEntity:
@@ -32458,8 +32479,18 @@ def printFileList(users):
       for permission in fileInfo.get('permissions', []):
         _mapDrivePermissionNames(permission)
     if not countsOnly:
-      csvPF.WriteRowTitles(flattenJSON(fileInfo, flattened=row, skipObjects=skipObjects, timeObjects=timeObjects,
-                                       simpleLists=['permissionIds', 'spaces'], delimiter=delimiter))
+      if not FJQC.formatJSON:
+        csvPF.WriteRowTitles(flattenJSON(fileInfo, flattened=row, skipObjects=skipObjects, timeObjects=timeObjects,
+                                         simpleLists=['permissionIds', 'spaces'], delimiter=delimiter))
+      else:
+        if 'id' in fileInfo:
+          row['id'] = fileInfo['id']
+        if fileNameTitle in fileInfo:
+          row[fileNameTitle] = fileInfo[fileNameTitle]
+        if 'owners' in fileInfo:
+          flattenJSON({'owners': fileInfo['owners']}, flattened=row, skipObjects=skipObjects)
+        row['JSON'] = json.dumps(fileInfo, ensure_ascii=False, sort_keys=False)
+        csvPF.WriteRowTitlesJSONNoFilter(row)
     else:
       csvPF.UpdateMimeTypeCounts(flattenJSON(fileInfo, flattened=row, skipObjects=skipObjects, timeObjects=timeObjects,
                                              simpleLists=['permissionIds', 'spaces'], delimiter=delimiter), mimeTypeCounts)
@@ -32559,7 +32590,7 @@ def printFileList(users):
       getTeamDriveNames = True
       DLP.UpdateAnyOwnerQuery()
     else:
-      FJQC.GetQuoteChar(myarg)
+      FJQC.GetFormatJSONQuoteChar(myarg)
   noSelect = (not fileIdEntity
               or (not fileIdEntity['dict']
                   and not fileIdEntity['query']
@@ -32762,6 +32793,8 @@ def printFileList(users):
           nodataFields = ['Owner', 'id', fileNameTitle, 'owners.emailAddress', 'permissions']
         if filepath:
           nodataFields.append('paths')
+        if FJQC.formatJSON:
+          nodataFields.append('JSON')
         titles = []
         for field in nodataFields:
           if field.find('(') != -1:
@@ -32786,7 +32819,12 @@ def printFileList(users):
         _mapDrive3TitlesToDrive2(csvPF.titlesList, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
         _mapDrive3TitlesToDrive2(csvPF.titlesList, API.DRIVE3_TO_DRIVE2_CAPABILITIES_TITLES_MAP)
         csvPF.UpdateMappedTitles()
-    csvPF.SetSortTitles(['Owner', 'id', fileNameTitle])
+    if not FJQC.formatJSON:
+      csvPF.SetSortTitles(['Owner', 'id', fileNameTitle])
+    else:
+      csvPF.JSONtitlesList.sort()
+      csvPF.FixPathsTitles(csvPF.JSONtitlesList)
+      csvPF.MoveJSONTitlesToEnd(['JSON'])
     csvPF.writeCSVfile('{0} {1} Drive Files'.format(Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]),
                                                     Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)))
   else:
@@ -43057,7 +43095,6 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_GUARDIAN: 	printShowGuardians,
       Cmd.ARG_LABEL:		printShowLabels,
       Cmd.ARG_MESSAGE:		printShowMessages,
-      Cmd.ARG_PERMISSION:	printShowDriveFileACLs,
       Cmd.ARG_PRINTER:		printShowPrinters,
       Cmd.ARG_PRINTJOBS:	printPrintJobs,
       Cmd.ARG_SENDAS:		printShowSendAs,
@@ -43109,7 +43146,6 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_LABEL:		printShowLabels,
       Cmd.ARG_LANGUAGE:		showLanguage,
       Cmd.ARG_MESSAGE:		printShowMessages,
-      Cmd.ARG_PERMISSION:	printShowDriveFileACLs,
       Cmd.ARG_POP:		showPop,
       Cmd.ARG_PRINTER:		printShowPrinters,
       Cmd.ARG_PROFILE:		showProfile,

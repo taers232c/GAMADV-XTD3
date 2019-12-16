@@ -508,9 +508,9 @@ Items, separated by spaces, with spaces, commas or single quotes in the items th
 
 ## Data from a user's Google Sheets file sheet
 <UserGoogleDoc> ::=
-        <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity>
+        <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity>|(<TeamDriveEntity> <TeamDriveFileNameEntity>)
 <UserGoogleSheet> ::=
-        <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity> <SheetEntity>
+        <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity>|(<TeamDriveEntity> <TeamDriveFileNameEntity>) <SheetEntity>
 
 ## Collections of ChromeOS Devices
 
@@ -659,8 +659,10 @@ Specify a collection of items by directly specifying them; the item type is dete
         (id <DriveFileItem>) | (id:<DriveFileItem>) |
         (ids <DriveFileList>) | (ids:<DriveFileList>)
 <DriveFileNameEntity> ::=
-        (name <DriveFileName>) | (name:<DriveFileName>) | (drivefilename <DriveFileName>) | (drivefilename:<DriveFileName>) |
-        (anyname <DriveFileName>) | (anyname:<DriveFileName>) | (anydrivefilename <DriveFileName>) | (anydrivefilename:<DriveFileName>)
+        (name <DriveFileName>) | (name:<DriveFileName>) |
+        (drivefilename <DriveFileName>) | (drivefilename:<DriveFileName>) |
+        (anyname <DriveFileName>) | (anyname:<DriveFileName>) |
+        (anydrivefilename <DriveFileName>) | (anydrivefilename:<DriveFileName>)
 <DriveFileQueryEntity> ::= 
         (query <QueryDriveFile>) | (query:<QueryDriveFile>)
 <DriveFileQueryShortcut> ::=
@@ -3716,7 +3718,8 @@ gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*] [corpora 
         [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
         <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
         [filepath|fullpath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [showdrivename]
-        (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [quotechar <Character>]
+        (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
+        [formatjson] [quotechar <Character>]
 
 <FileTreeFieldName> ::=
         filesize|
