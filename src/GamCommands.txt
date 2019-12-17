@@ -2567,6 +2567,7 @@ These commands are used to manage the ACLs on the Team Drives themselves, not th
 <DrivePermissionsFieldName> ::=
         additionalroles|
         allowfilediscovery|
+        basicpermissions|
         deleted|
         permissiondetails|
         displayname|

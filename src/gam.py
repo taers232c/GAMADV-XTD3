@@ -5100,12 +5100,12 @@ def _addInitialField(fieldsList, initialField):
 #  'foobar': 'fooBar',
 #  }
 # fieldsList is the list of API fields
-def getFieldsList(fieldName, fieldsChoiceMap, fieldsList, initialField=None):
-  if fieldName in fieldsChoiceMap:
+def getFieldsList(myarg, fieldsChoiceMap, fieldsList, initialField=None):
+  if myarg in fieldsChoiceMap:
     if not fieldsList and initialField is not None:
       _addInitialField(fieldsList, initialField)
-    fieldsList.append(fieldsChoiceMap[fieldName])
-  elif fieldName == 'fields':
+    fieldsList.append(fieldsChoiceMap[myarg])
+  elif myarg == 'fields':
     if not fieldsList and initialField is not None:
       _addInitialField(fieldsList, initialField)
     for field in _getFieldsList():
@@ -33430,7 +33430,6 @@ def updateDriveFile(users):
                               fileId=fileId, fields='parents', supportsAllDrives=True)
             addParents.extend(newParents)
             removeParents.extend(result.get('parents', []))
-###
           if sheetEntity:
             entityValueList = [Ent.USER, user, Ent.DRIVE_FILE_ID, fileId]
             try:
@@ -33489,7 +33488,6 @@ def updateDriveFile(users):
             except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
               userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
               break
-###
           elif media_body:
             result = callGAPI(drive.files(), 'update',
                               throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT,
@@ -36966,6 +36964,28 @@ def infoDriveFileACLs(users, useDomainAdminAccess=False):
 def doInfoDriveFileACLs():
   infoDriveFileACLs([_getValueFromOAuth('email')], True)
 
+DRIVEFILE_BASIC_PERMISSION_FIELDS = [
+  'id', 'emailAddress', 'domain', 'role', 'type',
+  'allowFileDiscovery', 'expirationTime', 'deleted'
+  ]
+
+def getDriveFilePermissionsFields(myarg, fieldsList):
+  if myarg in DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP:
+    fieldsList.append(DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP[myarg])
+  elif myarg == 'basicpermissions':
+    fieldsList.extend(DRIVEFILE_BASIC_PERMISSION_FIELDS)
+  elif myarg == 'fields':
+    for field in _getFieldsList():
+      if field in DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP:
+        fieldsList.append(DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP[field])
+      elif field == 'basicpermissions':
+        fieldsList.extend(DRIVEFILE_BASIC_PERMISSION_FIELDS)
+      else:
+        invalidChoiceExit(field, DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP, True)
+  else:
+    return False
+  return True
+
 # gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive <ToDriveAttributes>*]
 #	[oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 #	<PermissionMatch>* [<PermissionMatchAction>]
@@ -36998,7 +37018,7 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
       if csvPF:
         csvPF.AddTitles(fileNameTitle)
         csvPF.SetSortAllTitles()
-    elif getFieldsList(myarg, DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP, fieldsList):
+    elif getDriveFilePermissionsFields(myarg, fieldsList):
       pass
     elif myarg in ADMIN_ACCESS_OPTIONS:
       useDomainAdminAccess = True
@@ -37653,7 +37673,7 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
       checkGroups = True
     elif myarg == 'oneitemperrow':
       oneItemPerRow = True
-    elif getFieldsList(myarg, DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP, fieldsList):
+    elif getDriveFilePermissionsFields(myarg, fieldsList):
       pass
     elif myarg in ADMIN_ACCESS_OPTIONS:
       useDomainAdminAccess = True
