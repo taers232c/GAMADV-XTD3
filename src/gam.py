@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.97.12'
+__version__ = '4.97.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -31197,6 +31197,9 @@ DRIVE_FIELDS_CHOICE_MAP = {
   'alternatelink': 'webViewLink',
   'appdatacontents': 'spaces',
   'appproperties': 'appProperties',
+  'basicpermissions': ['permissions.id', 'permissions.emailAddress', 'permissions.domain',
+                       'permissions.role', 'permissions.type', 'permissions.allowFileDiscovery',
+                       'permissions.expirationTime', 'permissions.deleted'],
   'cancomment': 'capabilities.canComment',
   'canreadrevisions': 'capabilities.canReadRevisions',
   'capabilities': 'capabilities',
@@ -32431,7 +32434,10 @@ def printFileList(users):
       else:
         skipObjects.add('permissions')
       if 'permissions' not in DFF.fieldsList:
-        DFF.fieldsList.append('permissions({0})'.format(','.join(DLP.PM.permissionFields)))
+        for field in DLP.PM.permissionFields:
+          permfield = 'permissions.'+field
+          if permfield not in DFF.fieldsList:
+            DFF.fieldsList.append(permfield)
     if onlyTeamDrives or getPermissionsForTeamDrives:
       if 'driveId' not in DFF.fieldsList:
         skipObjects.add('driveId')
@@ -36279,10 +36285,18 @@ def _getDriveFileACLPrintKeysTimeObjects():
 # DriveFileACL commands utilities
 def _showDriveFilePermissionJSON(user, fileId, fileName, permission, timeObjects):
   _mapDrivePermissionNames(permission)
-  flattened = {'Owner': user, 'id': fileId, 'permission': permission}
+  row = {'Owner': user, 'id': fileId, 'permission': permission}
   if fileId != fileName:
-    flattened['name'] = fileName
-  printLine(json.dumps(cleanJSON(flattened, timeObjects=timeObjects), ensure_ascii=False, sort_keys=True))
+    row['name'] = fileName
+  printLine(json.dumps(cleanJSON(row, timeObjects=timeObjects), ensure_ascii=False, sort_keys=True))
+
+def _showDriveFilePermissionsJSON(user, fileId, fileName, permissions, timeObjects):
+  for permission in permissions:
+    _mapDrivePermissionNames(permission)
+  row = {'Owner': user, 'id': fileId, 'permissions': permissions}
+  if fileId != fileName:
+    row['name'] = fileName
+  printLine(json.dumps(cleanJSON(row, timeObjects=timeObjects), ensure_ascii=False, sort_keys=True))
 
 def _showDriveFilePermission(permission, printKeys, timeObjects, i=0, count=0):
   if permission.get('displayName'):
@@ -36321,6 +36335,16 @@ def _showDriveFilePermission(permission, printKeys, timeObjects, i=0, count=0):
       printKeyValueList([key, value])
     else:
       printKeyValueList([key, formatLocalTime(value)])
+  Ind.Decrement()
+
+def _showDriveFilePermissions(entityType, fileName, permissions, printKeys, timeObjects, j, jcount):
+  kcount = len(permissions)
+  entityPerformActionNumItems([entityType, fileName], kcount, Ent.PERMITTEE, j, jcount)
+  Ind.Increment()
+  k = 0
+  for permission in permissions:
+    k += 1
+    _showDriveFilePermission(permission, printKeys, timeObjects, k, kcount)
   Ind.Decrement()
 
 # gam <UserTypeEntity> create|add drivefileacl <DriveFileEntity> [adminaccess|asadmin]
@@ -36947,8 +36971,8 @@ def doInfoDriveFileACLs():
 #	<PermissionMatch>* [<PermissionMatchAction>]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[formatjson] [quotechar <Character>] [adminaccess|asadmin]
-# gam <UserTypeEntity> show drivefileacla <DriveFileEntity>
-#	[showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+# gam <UserTypeEntity> show drivefileacls <DriveFileEntity>
+#	[oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 #	<PermissionMatch>* [<PermissionMatchAction>]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[formatjson] [adminaccess|asadmin]
@@ -37018,26 +37042,13 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
       permissions = PM.GetMatchingPermissions(results)
       if not csvPF:
         if not FJQC.formatJSON:
-          kcount = len(permissions)
-          entityPerformActionNumItems([entityType, fileName], kcount, Ent.PERMITTEE, j, jcount)
-          Ind.Increment()
-          k = 0
-          for permission in permissions:
-            k += 1
-            _showDriveFilePermission(permission, printKeys, timeObjects, k, kcount)
-          Ind.Decrement()
+          _showDriveFilePermissions(entityType, fileName, permissions, printKeys, timeObjects, j, jcount)
         else:
           if oneItemPerRow:
             for permission in permissions:
               _showDriveFilePermissionJSON(user, fileId, fileName, permission, timeObjects)
           else:
-            flattened = {'Owner': user, 'id': fileId}
-            if showTitles:
-              flattened[fileNameTitle] = fileName
-            for permission in permissions:
-              _mapDrivePermissionNames(permission)
-            flattened['permissions'] = permissions
-            printLine(json.dumps(cleanJSON(flattened, timeObjects=timeObjects), ensure_ascii=False, sort_keys=True))
+            _showDriveFilePermissionsJSON(user, fileId, fileName, permissions, timeObjects)
       elif permissions:
         baserow = {'Owner': user, 'id': fileId}
         if showTitles:
@@ -37503,6 +37514,7 @@ def printShowTeamDrives(users, useDomainAdminAccess=False):
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg in {'teamdriveadminquery', 'shareddriveadminquery', 'query'}:
+      queryLocation = Cmd.Location()
       query = getString(Cmd.OB_QUERY, minLen=0) or None
     elif myarg == 'matchname':
       matchPattern = getREPattern(re.IGNORECASE)
@@ -37516,6 +37528,9 @@ def printShowTeamDrives(users, useDomainAdminAccess=False):
       pass
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if query and not useDomainAdminAccess:
+    Cmd.SetLocation(queryLocation-1)
+    usageErrorExit(Msg.ONLY_ADMINISTRATORS_CAN_PERFORM_SHARED_DRIVE_QUERIES)
   if fieldsList:
     showFields = set(fieldsList)
   if csvPF and not useDomainAdminAccess:
@@ -37606,14 +37621,16 @@ TEAMDRIVE_INDEXED_TITLES = ['permissions']
 #	[teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
 #	[user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
 #	[oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+#	[formatjson] [quotechar <Character>]
 #	asadmin
 # gam <UserTypeEntity> show teamdriveacls
 #	[teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
 #	[user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
-#	[<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+#	[oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 #	asadmin
 def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
   csvPF = CSVPrintFile(['User', 'id', 'name'], 'sortall', TEAMDRIVE_INDEXED_TITLES) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
   roles = set()
   checkGroups = oneItemPerRow = False
   fieldsList = []
@@ -37623,6 +37640,7 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg in {'teamdriveadminquery', 'shareddriveadminquery', 'query'}:
+      queryLocation = Cmd.Location()
       query = getString(Cmd.OB_QUERY, minLen=0) or None
     elif myarg == 'matchname':
       matchPattern = getREPattern(re.IGNORECASE)
@@ -37633,14 +37651,17 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
       roles |= getACLRoles(TEAMDRIVE_ACL_ROLES_MAP)
     elif myarg == 'checkgroups':
       checkGroups = True
-    elif csvPF and myarg == 'oneitemperrow':
+    elif myarg == 'oneitemperrow':
       oneItemPerRow = True
     elif getFieldsList(myarg, DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP, fieldsList):
       pass
     elif myarg in ADMIN_ACCESS_OPTIONS:
       useDomainAdminAccess = True
     else:
-      unknownArgumentExit()
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if query and not useDomainAdminAccess:
+    Cmd.SetLocation(queryLocation-1)
+    usageErrorExit(Msg.ONLY_ADMINISTRATORS_CAN_PERFORM_SHARED_DRIVE_QUERIES)
   if fieldsList:
     if permtype is not None:
       fieldsList.extend(['type', 'emailAddress'])
@@ -37722,27 +37743,44 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
       j = 0
       for teamdrive in matchFeed:
         j += 1
-        kcount = len(teamdrive['permissions'])
-        entityPerformActionNumItems([Ent.TEAMDRIVE, '{0} ({1})'.format(teamdrive['name'], teamdrive['id'])], kcount, Ent.PERMITTEE, j, jcount)
-        Ind.Increment()
-        k = 0
-        for permission in teamdrive['permissions']:
-          k += 1
-          _showDriveFilePermission(permission, printKeys, timeObjects, k, kcount)
-        Ind.Decrement()
+        if not FJQC.formatJSON:
+          _showDriveFilePermissions(Ent.TEAMDRIVE, '{0} ({1})'.format(teamdrive['name'], teamdrive['id']),
+                                    teamdrive['permissions'], printKeys, timeObjects, j, jcount)
+        else:
+          if oneItemPerRow:
+            for permission in teamdrive['permissions']:
+              _showDriveFilePermissionJSON(user, teamdrive['id'], teamdrive['name'], permission, timeObjects)
+          else:
+            _showDriveFilePermissionsJSON(user, teamdrive['id'], teamdrive['name'], teamdrive['permissions'], timeObjects)
       Ind.Decrement()
     elif matchFeed:
       if oneItemPerRow:
         for teamdrive in matchFeed:
+          baserow = {'User': user, 'id': teamdrive['id'], 'name': teamdrive['name']}
           for permission in teamdrive['permissions']:
-            row = {'User': user, 'id': teamdrive['id'], 'name': teamdrive['name']}
+            row = baserow.copy()
             _mapDrivePermissionNames(permission)
-            csvPF.WriteRowTitles(flattenJSON({'permission': permission}, flattened=row, timeObjects=timeObjects))
+            flattenJSON({'permission': permission}, flattened=row, timeObjects=timeObjects)
+            if not FJQC.formatJSON:
+              csvPF.WriteRowTitles(row)
+            elif csvPF.CheckRowTitles(row):
+              row = baserow.copy()
+              row['JSON'] = json.dumps(cleanJSON({'permission': permission}, timeObjects=timeObjects),
+                                       ensure_ascii=False, sort_keys=True)
+              csvPF.WriteRowNoFilter(row)
       else:
         for teamdrive in matchFeed:
+          baserow = {'User': user, 'id': teamdrive['id'], 'name': teamdrive['name']}
+          row = baserow.copy()
           for permission in teamdrive['permissions']:
             _mapDrivePermissionNames(permission)
-          csvPF.WriteRowTitles(flattenJSON({'permissions': teamdrive['permissions']}, flattened={'User': user, 'id': teamdrive['id'], 'name': teamdrive['name']}, timeObjects=timeObjects))
+          flattenJSON({'permissions': teamdrive['permissions']}, flattened=row, timeObjects=timeObjects)
+          if not FJQC.formatJSON:
+            csvPF.WriteRowTitles(row)
+          elif csvPF.CheckRowTitles(row):
+            baserow['JSON'] = json.dumps(cleanJSON({'permissions': teamdrive['permissions']}, timeObjects=timeObjects),
+                                         ensure_ascii=False, sort_keys=True)
+            csvPF.WriteRowNoFilter(baserow)
   if csvPF:
     csvPF.writeCSVfile('SharedDrive ACLs')
 

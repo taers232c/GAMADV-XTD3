@@ -1,3 +1,29 @@
+4.97.13
+
+Added option `formatjson` to `gam print teamdriveacls`.
+
+Added field `basicpermissions` to `<DriveFieldName>` which is equivalent to:
+```
+permissions.allowFileDiscovery,
+permissions.deleted,
+permissions.domain,
+permissions.emailAddress,
+permissions.expirationTime,
+permissions.id,
+permissions.role,
+permissions.type
+```
+In particular, this omits these fields:
+```
+permissions.displayName,
+permissions.permissionDetails,
+permissions.photoLink,
+permissions.teamDrivePermissionDetails
+```
+This allows you to select the essential permission fields without enumerating them. Of course,
+you can specify `permissions` to get all of the fields, enumerate the specific fields you want or
+specify `basicpermissions` and additional permission fields, e.g., `permissions.displayName`.
+
 4.97.12
 
 Added option `formatjson` to `gam print filelist`.

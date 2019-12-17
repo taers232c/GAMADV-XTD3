@@ -210,6 +210,7 @@ Go to the following link in your browser:
 
     {{address}}
 """
+ONLY_ADMINISTRATORS_CAN_PERFORM_SHARED_DRIVE_QUERIES = 'Only administrators can perform Shared Drive queries'
 ONLY_ONE_JSON_RANGE_ALLOWED = 'Only one range/json allowed'
 ONLY_ONE_OWNER_ALLOWED = 'Only one owner allowed'
 OR = 'or'

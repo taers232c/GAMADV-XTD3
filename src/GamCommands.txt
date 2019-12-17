@@ -2594,7 +2594,7 @@ gam delete drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [s
 gam info drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail>
         [showtitles] [formatjson]
 gam show drivefileacls <TeamDriveEntityAdmin>
-        [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson]
@@ -2642,10 +2642,12 @@ gam print teamdriveacls [todrive <ToDriveAttribute>*]
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
         [user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        [formatjson] [quotechar <Character>]
 gam show teamdriveacls
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
         [user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
-        [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        [formatjson] [quotechar <Character>]
 
 In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
 
@@ -2653,12 +2655,12 @@ gam <UserTypeEntity> print teamdriveacls [todrive <ToDriveAttribute>*]
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
         [user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
-        asadmin
+        [formatjson] [quotechar <Character>] asadmin
 gam <UserTypeEntity> show teamdriveacls
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
         [user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
-        [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
-        asadmin
+        [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        [formatjson] [quotechar <Character>] asadmin
 
 # Tag Replace
 <AddressSubfieldName> ::=
@@ -3604,6 +3606,7 @@ gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (ord
         alternatelink|
         appdatacontents|
         appproperties|
+        basicpermissions|
         cancomment|
         canreadrevisions|
         capabilities|
