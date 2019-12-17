@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.97.13'
+__version__ = '4.97.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7564,17 +7564,19 @@ def _createClientSecretsOauth2service(httpObj, projectId):
 
 1. Click the blue "Create credentials" button. Choose "OAuth client ID".
 2. Click the blue "Configure consent screen" button.
-3. Select "Internal" under "Application type".
+3. Select "Internal" under User Type. Click Create.
 4. Enter "GAM" for "Application name".
 5. Leave other fields blank. Click "Save" button.
-6. Choose "Other". Enter "GAM" for "Name". Click the blue "Create" button.
-7. Copy your "client ID" value.
+6. Click Credentials in the left column.
+7. Click the blue "Create credentials" button. Choose "OAuth client ID".
+8. Choose "Other". Enter "GAM" for "Name". Click the blue "Create" button.
+9. Copy your "Client ID" value.
 
 \n'''.format(console_credentials_url))
     client_id = readStdin('Enter your Client ID: ').strip()
     if not client_id:
       client_id = readStdin('').strip()
-    sys.stdout.write('\nNow go back to your browser and copy your client secret.\n')
+    sys.stdout.write('\n10. Go back to your browser and copy your "Client Secret" value.\n')
     client_secret = readStdin('Enter your Client Secret: ').strip()
     if not client_secret:
       client_secret = readStdin('').strip()
