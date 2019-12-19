@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.97.15'
+__version__ = '4.97.16'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7555,28 +7555,23 @@ def _createClientSecretsOauth2service(httpObj, projectId):
     return
   if not _createOauth2serviceJSON(httpObj, projectId, projectId, DEFAULT_SVCACCT_NAME):
     return
-  console_credentials_url = 'https://console.developers.google.com/apis/credentials?project={0}'.format(projectId)
+  console_credentials_url = 'https://console.developers.google.com/apis/credentials/consent/edit?createClient&newAppInternalUser=true&project={0}'.format(projectId)
   csHttpObj = getHttpObj()
   while True:
     sys.stdout.write('''Please go to:
 
 {0}
 
-1. Click the blue "Create credentials" button. Choose "OAuth client ID".
-2. Click the blue "Configure consent screen" button.
-3. Select "Internal" under User Type. Click the blue "Create" button.
-4. Enter "GAM" for "Application name".
-5. Leave other fields blank. Click "Save" button.
-6. Click Credentials in the left column.
-7. Click the blue "Create credentials" button. Choose "OAuth client ID".
-8. Choose "Other". Enter "GAM" for "Name". Click the blue "Create" button.
-9. Copy your "client ID" value.
+1. Enter "GAM" for "Application name".
+2. Leave other fields blank. Click "Save" button.
+3. Choose "Other". Enter "GAM" for "Name". Click the blue "Create" button.
+4. Copy your "client ID" value.
 
 \n'''.format(console_credentials_url))
     client_id = readStdin('Enter your Client ID: ').strip()
     if not client_id:
       client_id = readStdin('').strip()
-    sys.stdout.write('\n10. Go back to your browser and copy your "client secret" value.\n')
+    sys.stdout.write('\n5. Go back to your browser and copy your "client secret" value.\n')
     client_secret = readStdin('Enter your Client Secret: ').strip()
     if not client_secret:
       client_secret = readStdin('').strip()
@@ -7596,7 +7591,7 @@ def _createClientSecretsOauth2service(httpObj, projectId):
     }
 }''' % (client_id, client_secret, projectId)
   writeFile(GC.Values[GC.CLIENT_SECRETS_JSON], cs_data, continueOnError=False)
-  sys.stdout.write('11. Go back to your browser and click OK to close the "OAuth client" popup if it\'s still open.\n')
+  sys.stdout.write('6. Go back to your browser and click OK to close the "OAuth client" popup if it\'s still open.\n')
   sys.stdout.write('That\'s it! Your GAM Project is created and ready to use.\n')
 
 def _getProjects(crm, pfilter):
