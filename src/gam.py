@@ -19940,10 +19940,11 @@ def _createCalendarEvents(user, cal, function, calIds, count,
                          calendarId=calId, sendUpdates=sendUpdates, supportsAttachments=True, body=body, fields='id')
       else:
         event = callGAPI(cal.events(), 'import_',
-                         throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY, GAPI.DUPLICATE, GAPI.FORBIDDEN],
+                         throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY, GAPI.DUPLICATE, GAPI.FORBIDDEN,
+                                                                    GAPI.PARTICIPANT_IS_NEITHER_ORGANIZER_NOR_ATTENDEE],
                          calendarId=calId, supportsAttachments=True, body=body, fields='id')
       entityActionPerformed([Ent.CALENDAR, calId, Ent.EVENT, event['id']], i, count)
-    except (GAPI.invalid, GAPI.required, GAPI.timeRangeEmpty) as e:
+    except (GAPI.invalid, GAPI.required, GAPI.timeRangeEmpty, GAPI.participantIsNeitherOrganizerNorAttendee) as e:
       entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, ''], str(e), i, count)
       return False
     except GAPI.duplicate as e:

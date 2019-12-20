@@ -106,6 +106,7 @@ ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED = 'organizerOnNonTeamDriveItemNotS
 ORGUNIT_NOT_FOUND = 'orgunitNotFound'
 OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED = 'ownerOnTeamDriveItemNotSupported'
 OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED = 'ownershipChangeAcrossDomainNotPermitted'
+PARTICIPANT_IS_NEITHER_ORGANIZER_NOR_ATTENDEE = 'participantIsNeitherOrganizerNorAttendee'
 PERMISSION_DENIED = 'permissionDenied'
 PERMISSION_NOT_FOUND = 'permissionNotFound'
 PHOTO_NOT_FOUND = 'photoNotFound'
@@ -419,6 +420,8 @@ class ownerOnTeamDriveItemNotSupported(Exception):
   pass
 class ownershipChangeAcrossDomainNotPermitted(Exception):
   pass
+class participantIsNeitherOrganizerNorAttendee(Exception):
+  pass
 class permissionDenied(Exception):
   pass
 class permissionNotFound(Exception):
@@ -566,6 +569,7 @@ REASON_EXCEPTION_MAP = {
   ORGUNIT_NOT_FOUND: orgunitNotFound,
   OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED: ownerOnTeamDriveItemNotSupported,
   OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED: ownershipChangeAcrossDomainNotPermitted,
+  PARTICIPANT_IS_NEITHER_ORGANIZER_NOR_ATTENDEE: participantIsNeitherOrganizerNorAttendee,
   PERMISSION_DENIED: permissionDenied,
   PERMISSION_NOT_FOUND: permissionNotFound,
   PHOTO_NOT_FOUND: photoNotFound,
