@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.97.16'
+__version__ = '4.97.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -19556,7 +19556,35 @@ CALENDAR_EVENT_STATUS_CHOICES = ['confirmed', 'tentative', 'cancelled']
 CALENDAR_EVENT_TRANSPARENCY_CHOICES = ['opaque', 'transparent']
 CALENDAR_EVENT_VISIBILITY_CHOICES = ['default', 'public', 'private', 'confedential']
 
+EVENT_JSON_CLEAR_FIELDS = ['created', 'creator', 'endTimeUpspecified', 'hangoutLink', 'htmlLink',
+                           'privateCopy', 'locked', 'recurringEventId', 'updated']
+EVENT_JSON_INSERT_CLEAR_FIELDS = ['iCalUID', 'id', 'organizer']
+EVENT_JSON_UPDATE_CLEAR_FIELDS = ['iCalUID', 'id', 'organizer']
+EVENT_JSON_SUBFIELD_CLEAR_FIELDS = {
+  'attendees': ['id', 'organizer', 'self'],
+  'attachments': ['fileId', 'iconLink', 'mimeType', 'title'],
+  'organizer': ['id', 'self'],
+  }
+EVENT_JSONATTENDEES_SUBFIELD_CLEAR_FIELDS = {
+  'attendees': ['id', 'organizer', 'self'],
+  }
+
 def _getCalendarEventAttribute(myarg, body, parameters, function):
+  def clearJSONfields(body, clearFields):
+    for field in clearFields:
+      body.pop(field, None)
+
+  def clearJSONsubfields(body, clearFields):
+    for field, subfields in iter(clearFields.items()):
+      if field in body:
+        if isinstance(body[field], list):
+          for item in body[field]:
+            for subfield in subfields:
+              item.pop(subfield, None)
+        else:
+          for subfield in subfields:
+            body.pop(subfield, None)
+
   if function == 'insert' and myarg in {'id', 'eventid'}:
     body['id'] = getEventID()
   elif function == 'import' and myarg == 'icaluid':
@@ -19598,6 +19626,17 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
     attendee['responseStatus'] = getChoice(CALENDAR_ATTENDEE_STATUS_CHOICE_MAP, defaultChoice='needsAction', mapChoice=True)
     attendee['email'] = getEmailAddress(noUid=True)
     body['attendees'].append(attendee)
+  elif myarg == 'json':
+    body.update(getJSON(EVENT_JSON_CLEAR_FIELDS))
+    if function == 'insert':
+      clearJSONfields(body, EVENT_JSON_INSERT_CLEAR_FIELDS)
+    elif function == 'update':
+      clearJSONfields(body, EVENT_JSON_UPDATE_CLEAR_FIELDS)
+    clearJSONsubfields(body, EVENT_JSON_SUBFIELD_CLEAR_FIELDS)
+    if ('conferenceData' in body and
+        'createRequest' in body['conferenceData'] and
+        'status' in body['conferenceData']['createRequest']):
+      body['conferenceData']['createRequest']['status'].pop('statusCode', None)
   elif myarg == 'jsonattendees':
     jsonData = getJSON([])
     if 'event' in jsonData and 'attendees' in jsonData['event']:
@@ -19606,6 +19645,7 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
     elif 'attendees' in jsonData:
       body.setdefault('attendees', [])
       body['attendees'].extend(jsonData['attendees'])
+    clearJSONsubfields(body, EVENT_JSONATTENDEES_SUBFIELD_CLEAR_FIELDS)
   elif function != 'import' and _getCalendarSendUpdates(myarg, parameters):
     pass
   elif myarg == 'anyonecanaddself':
@@ -20100,20 +20140,21 @@ def _printShowCalendarEvents(origUser, user, cal, calIds, count, calendarEventEn
       if not calendarEventEntity['countsOnly']:
         if events:
           for event in events:
-            row = {'calendarId': calId}
+            row = {'calendarId': calId, 'id': event['id']}
             if user:
               row['primaryEmail'] = user
             flattenJSON(event, flattened=row, timeObjects=EVENT_TIME_OBJECTS)
             if not FJQC.formatJSON:
               csvPF.WriteRowTitles(row)
             elif csvPF.CheckRowTitles(row):
-              row = {'calendarId': calId, 'JSON': json.dumps(cleanJSON(event, timeObjects=EVENT_TIME_OBJECTS),
-                                                             ensure_ascii=False, sort_keys=False)}
+              row = {'calendarId': calId, 'id': event['id'],
+                     'JSON': json.dumps(cleanJSON(event, timeObjects=EVENT_TIME_OBJECTS),
+                                        ensure_ascii=False, sort_keys=False)}
               if user:
                 row['primaryEmail'] = user
               csvPF.WriteRowNoFilter(row)
         elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT] and user:
-          csvPF.WriteRowNoFilter({'calendarId': calId, 'primaryEmail': user})
+          csvPF.WriteRowNoFilter({'calendarId': calId, 'primaryEmail': user, 'id': ''})
       else:
         row = {'calendarId': calId}
         if user:
@@ -20180,14 +20221,14 @@ def _getCalendarDeleteEventOptions(calendarEventEntity=None):
       unknownArgumentExit()
   return (doIt, parameters)
 
-# gam calendars <CalendarEntity> delete event <EventEntity> [doit] [notifyattendees|(sendnotifications <Boolean>)|(sendupdates all|externalonly|none)]
+# gam calendars <CalendarEntity> delete event <EventEntity> [doit] [<EventNotificationAttribute>]
 def doCalendarsDeleteEvents(cal, calIds):
   calendarEventEntity = getCalendarEventEntity()
   doIt, parameters = _getCalendarDeleteEventOptions()
   _updateDeleteCalendarEvents(None, None, cal, calIds, len(calIds), 'delete', calendarEventEntity, doIt,
                               False, {}, parameters)
 
-# gam calendar <CalendarEntity> deleteevent (id|eventid <EventID>)+ [doit] [notifyattendees|(sendnotifications <Boolean>)|(sendupdates all|externalonly|none)]
+# gam calendar <CalendarEntity> deleteevent (id|eventid <EventID>)+ [doit] [<EventNotificationAttribute>]
 def doCalendarsDeleteEventsOld(cal, calIds):
   calendarEventEntity = initCalendarEventEntity()
   doIt, parameters = _getCalendarDeleteEventOptions(calendarEventEntity)
@@ -20224,7 +20265,7 @@ def _purgeCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntity
   except (GAPI.serviceNotAvailable, GAPI.authError):
     entityServiceNotApplicableWarning(Ent.USER, user)
 
-# gam calendars <CalendarEntity> purge event <EventEntity> [doit] [notifyattendees|(sendnotifications <Boolean>)|(sendupdates all|externalonly|none)]
+# gam calendars <CalendarEntity> purge event <EventEntity> [doit] [<EventNotificationAttribute>]
 def doCalendarsPurgeEvents(cal, calIds):
   calendarEventEntity = getCalendarEventEntity()
   doIt, parameters = _getCalendarDeleteEventOptions()
@@ -20293,7 +20334,7 @@ def _getCalendarMoveEventsOptions(calendarEventEntity=None):
       unknownArgumentExit()
   return (parameters, newCalId)
 
-# gam calendars <CalendarEntity> move events <EventEntity> to|destination <CalendarItem> [notifyattendees|(sendnotifications <Boolean>)|(sendupdates all|externalonly|none)]
+# gam calendars <CalendarEntity> move events <EventEntity> to|destination <CalendarItem> [<EventNotificationAttribute>]
 def doCalendarsMoveEvents(cal, calIds):
   calendarEventEntity = getCalendarEventEntity()
   checkArgumentPresent(['to', 'destination'])
@@ -20303,7 +20344,7 @@ def doCalendarsMoveEvents(cal, calIds):
     return
   _moveCalendarEvents(None, None, cal, calIds, len(calIds), calendarEventEntity, newCalId, parameters['sendUpdates'])
 
-# gam calendars <CalendarEntity> moveevent (id|eventid <EventID>)+ destination <CalendarItem> [notifyattendees|(sendnotifications <Boolean>)|(sendupdates all|externalonly|none)]
+# gam calendars <CalendarEntity> moveevent (id|eventid <EventID>)+ destination <CalendarItem> [<EventNotificationAttribute>]
 def doCalendarsMoveEventsOld(cal, calIds):
   calendarEventEntity = initCalendarEventEntity()
   parameters, newCalId = _getCalendarMoveEventsOptions(calendarEventEntity)
@@ -20448,7 +20489,7 @@ def doCalendarsInfoEvents(cal, calIds):
 EVENT_INDEXED_TITLES = ['attendees', 'attachments', 'recurrence']
 
 def _getCalendarPrintShowEventOptions(calendarEventEntity, entityType):
-  csvPF = CSVPrintFile(['primaryEmail', 'calendarId'] if entityType == Ent.USER else ['calendarId'], 'sortall', indexedTitles=EVENT_INDEXED_TITLES) if Act.csvFormat() else None
+  csvPF = CSVPrintFile(['primaryEmail', 'calendarId', 'id'] if entityType == Ent.USER else ['calendarId', 'id'], 'sortall', indexedTitles=EVENT_INDEXED_TITLES) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   fieldsList = []
   while Cmd.ArgumentsRemaining():
@@ -29480,7 +29521,7 @@ def updateCalendarEvents(users):
     if not status:
       return
 
-# gam <UserTypeEntity> delete events <UserCalendarEntity> <EventEntity> [doit] [notifyattendees|(sendnotifications <Boolean>)|(sendupdates all|externalonly|none)]
+# gam <UserTypeEntity> delete events <UserCalendarEntity> <EventEntity> [doit] [<EventNotificationAttribute>]
 def deleteCalendarEvents(users):
   calendarEntity = getUserCalendarEntity()
   calendarEventEntity = getCalendarEventEntity()
@@ -29497,7 +29538,7 @@ def deleteCalendarEvents(users):
                                 False, {}, {'sendUpdates': parameters['sendUpdates']})
     Ind.Decrement()
 
-# gam <UserTypeEntity> purge events <UserCalendarEntity> <EventEntity> [doit] [notifyattendees|(sendnotifications <Boolean>)|(sendupdates all|externalonly|none)]
+# gam <UserTypeEntity> purge events <UserCalendarEntity> <EventEntity> [doit] [<EventNotificationAttribute>]
 def purgeCalendarEvents(users):
   calendarEntity = getUserCalendarEntity()
   calendarEventEntity = getCalendarEventEntity()
@@ -29527,7 +29568,7 @@ def wipeCalendarEvents(users):
     _wipeCalendarEvents(user, cal, calIds, jcount)
     Ind.Decrement()
 
-# gam <UserTypeEntity> move events <UserCalendarEntity> <EventEntity> to <CalendarItem> [notifyattendees|(sendnotifications <Boolean>)|(sendupdates all|externalonly|none)]
+# gam <UserTypeEntity> move events <UserCalendarEntity> <EventEntity> to <CalendarItem> [<EventNotificationAttribute>]
 def moveCalendarEvents(users):
   calendarEntity = getUserCalendarEntity()
   calendarEventEntity = getCalendarEventEntity()
@@ -37438,6 +37479,8 @@ def _showTeamDrive(user, teamdrive, j, jcount, FJQC):
   for setting in ['backgroundImageLink', 'colorRgb', 'themeId']:
     if setting in teamdrive:
       printKeyValueList([setting, teamdrive[setting]])
+  if 'role' in teamdrive:
+    printKeyValueList(['role', teamdrive['role']])
   _showCapabilitiesRestrictions('capabilities')
   _showCapabilitiesRestrictions('restrictions')
   Ind.Decrement()

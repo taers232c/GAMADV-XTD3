@@ -995,6 +995,7 @@ gam calendar|calendars <CalendarEntity> printacl [todrive <ToDriveAttribute>*] [
         (guestscanmodify <Boolean>)|
         (guestscanseeotherguests <Boolean>)|
         guestscantseeotherguests|
+        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])|
         (jsonattendees [charset <Charset>] <JSONData>)|(jsonattendees file <FileName> [charset <Charset>])|
         (location <String>)|
         (noreminders|(reminder email|popup|sms <Number>))|
@@ -1028,10 +1029,6 @@ The following attributes are equivalent:
         sendnotifications false - sendupdates none
         sendnotifications true - sendupdates all
 
-<EventCreateAttribute> ::=
-        <EventAttribute>|
-        <EventNotificationAttribute>
-
 <EventImportAttribute> ::=
         <EventAttribute>|
         (organizername <String>)|
@@ -1039,18 +1036,17 @@ The following attributes are equivalent:
 
 <EventUpdateAttribute> ::=
         <EventAttribute>|
-        <EventNotificationAttribute>|
         clearattachments|
         (clearprivateproperty <PropertyKey>)|
         (clearsharedproperty <PropertyKey>)
 
-gam calendar|calendars <CalendarEntity> create|add event [id <String>] <EventCreateAttribute>+
+gam calendar|calendars <CalendarEntity> create|add event [id <String>] <EventAttribute>+ [<EventNotificationAttribute>]
 gam calendar|calendars <CalendarEntity> import event icaluid <iCalUID> <EventImportAttribute>+
-gam calendar|calendars <CalendarEntity> update events [<EventEntity>] <EventUpdateAttribute>+
+gam calendar|calendars <CalendarEntity> update events [<EventEntity>] <EventUpdateAttribute>+ [<EventNotificationAttribute>]
 gam calendar|calendars <CalendarEntity> delete events [<EventEntity>] [doit] [<EventNotificationAttribute>]
 gam calendar|calendars <CalendarEntity> purge events [<EventEntity>] [doit] [<EventNotificationAttribute>]
 gam calendar|calendars <CalendarEntity> wipe events
-gam calendar|calendars <CalendarEntity> move events [<EventEntity>] to <CalendarItem> [<EventNotificationAttribute>]
+gam calendar|calendars <CalendarEntity> move events [<EventEntity>] destination|to <CalendarItem> [<EventNotificationAttribute>]
 gam calendar|calendars <CalendarEntity> empty calendartrash
 
 <EventAttachmentsSubfieldName> ::=
@@ -1150,9 +1146,9 @@ gam calendar|calendars <CalendarEntity> show events [<EventEntity>] <EventDispla
 gam calendar|calendars <CalendarEntity> print events [<EventEntity>] <EventDisplayProperty>* [fields <EventFieldNameList>]
         [countsonly] [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
 
-gam calendar <CalendarEntity> addevent <EventCreateAttribute>+
-gam calendar <CalendarEntity> deleteevent (id|eventid <EventID>)+ [doit] [notifyattendees|(sendnotifications <Boolean>)|(sendupdates all|externalonly|none)]
-gam calendar <CalendarEntity> moveevent (id|eventid <EventID>)+ destination <CalendarItem> [notifyattendees|(sendnotifications <Boolean>)|(sendupdates all|externalonly|none)]
+gam calendar <CalendarEntity> addevent <EventAttribute>+ [<EventNotificationAttribute>]
+gam calendar <CalendarEntity> deleteevent (id|eventid <EventID>)+ [doit] [<EventNotificationAttribute>]
+gam calendar <CalendarEntity> moveevent (id|eventid <EventID>)+ destination <CalendarItem> [<EventNotificationAttribute>]
 gam calendar <CalendarEntity> wipe
 gam calendar <CalendarEntity> printevents <EventSelectProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>]
          [countsonly] [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
@@ -3252,7 +3248,7 @@ gam <UserTypeEntity> update events <UserCalendarEntity> [<EventEntity>] <EventUp
 gam <UserTypeEntity> delete events <UserCalendarEntity> [<EventEntity>] [doit] [<EventNotificationAttribute>]
 gam <UserTypeEntity> purge events <UserCalendarEntity> [<EventEntity>] [doit] [<EventNotificationAttribute>]
 gam <UserTypeEntity> wipe events <UserCalendarEntity>
-gam <UserTypeEntity> move events <UserCalendarEntity> [<EventEntity>] to <CalendarItem> [<EventNotificationAttribute>]
+gam <UserTypeEntity> move events <UserCalendarEntity> [<EventEntity>] destination|to <CalendarItem> [<EventNotificationAttribute>]
 gam <UserTypeEntity> empty calendartrash <UserCalendarEntity>
 
 <EventDisplayProperty> ::=

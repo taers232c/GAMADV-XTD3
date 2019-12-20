@@ -1,3 +1,9 @@
+4.97.17
+
+Added options `json [charset <Charset>] <JSONData>` and `json file <FileName> [charset <Charset>]` to
+`<EventAttribute>` that is used by `gam create/import/update event`. This allows the JSON data written by
+`gam print events formatjson` to be used as input to these commands.
+
 4.97.16
 
 Thanks to Jay, the `gam create project` steps are now simpler.
