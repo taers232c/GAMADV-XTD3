@@ -3737,12 +3737,13 @@ gam <UserTypeEntity> print filetree [todrive <ToDriveAttributes>*] [anyowner|(sh
         [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
         <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
-        [noindent]
+        [excludetrashed] [noindent]
 gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
         [select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [depth <Number>]
         [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
         <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
+        [excludetrashed]
 
 <DriveActivityAction> ::=
         comment|

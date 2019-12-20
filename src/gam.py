@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.97.17'
+__version__ = '4.97.18'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -33105,14 +33105,17 @@ FILETREE_FIELDS_PRINT_ORDER = ['id', 'parents', 'owners', 'mimeType', 'size']
 #	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
 #	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
-#	[noindent]
+#	[excludetrashed] [noindent]
 # gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
 #	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [depth <Number>]
 #	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
 #	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
+#	[excludetrashed]
 def printShowFileTree(users):
   def _showFileInfo(fileEntry, depth, j=0, jcount=0):
+    if excludeTrashed and fileEntry.get('trashed', False):
+      return
     if not csvPF:
       fileInfoList = []
       for field in FILETREE_FIELDS_PRINT_ORDER:
@@ -33151,6 +33154,8 @@ def printShowFileTree(users):
     for childId in fileEntry['children']:
       childEntry = fileTree.get(childId)
       if childEntry:
+        if excludeTrashed and childEntry['info'].get('trashed', False):
+          continue
         if (DLP.CheckMimeType(childEntry['info']) and
             DLP.CheckMinimumFileSize(childEntry['info']) and
             DLP.CheckFilenameMatch(childEntry['info']) and
@@ -33162,6 +33167,8 @@ def printShowFileTree(users):
           Ind.Decrement()
 
   def _showChildDriveFolderContents(drive, fileEntry, user, i, count, depth):
+    if excludeTrashed and fileEntry.get('trashed', False):
+      return
     q = WITH_PARENTS.format(fileEntry['id'])
     if selectSubQuery:
       q += ' and '+selectSubQuery
@@ -33178,6 +33185,8 @@ def printShowFileTree(users):
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
       return
     for childEntryInfo in children:
+      if excludeTrashed and childEntryInfo.get('trashed', False):
+        continue
       if (DLP.CheckMimeType(childEntryInfo) and
           DLP.CheckMinimumFileSize(childEntryInfo) and
           DLP.CheckFilenameMatch(childEntryInfo) and
@@ -33196,7 +33205,7 @@ def printShowFileTree(users):
   showFields = {}
   for field in FILETREE_FIELDS_CHOICE_MAP:
     showFields[FILETREE_FIELDS_CHOICE_MAP[field]] = False
-  buildTree = noindent = getTeamDriveNames = False
+  buildTree = excludeTrashed = noindent = getTeamDriveNames = False
   OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
   DLP = DriveListParameters(allowQuery=False)
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
@@ -33226,6 +33235,8 @@ def printShowFileTree(users):
       delimiter = getCharacter()
     elif csvPF and myarg == 'noindent':
       noindent = True
+    elif myarg == 'excludetrashed':
+      excludeTrashed = True
     else:
       unknownArgumentExit()
   if csvPF:
@@ -33251,6 +33262,8 @@ def printShowFileTree(users):
       getTeamDriveNames = True
   if DLP.PM.permissionMatches:
     fieldsList.append('permissions')
+  if excludeTrashed:
+    fieldsList.append('trashed')
   fields = getFieldsFromFieldsList(fieldsList)
   pagesFields = getItemFieldsFromFieldsList('files', fieldsList)
   i, count, users = getEntityArgument(users)

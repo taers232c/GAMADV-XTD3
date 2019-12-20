@@ -1,3 +1,9 @@
+4.97.18
+
+Added option `excludetrashed` to `gam print/show filetree` to suppress display of files in the trash.
+This includes files that have been explicitly trashed and files that have been recursively trashed
+from a prent folder.
+
 4.97.17
 
 Added options `json [charset <Charset>] <JSONData>` and `json file <FileName> [charset <Charset>]` to
