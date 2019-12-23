@@ -1,3 +1,9 @@
+4.97.19
+
+Fixed bug that caused a trap in `gam print group-members group group@example.com recursive`.
+
+Updated `gam create/delete/update events` to not stop when a `forbidden` error occurs.
+
 4.97.18
 
 Added option `excludetrashed` to `gam print/show filetree` to suppress display of files in the trash.

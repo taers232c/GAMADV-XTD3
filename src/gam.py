@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.97.18'
+__version__ = '4.97.19'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5173,7 +5173,8 @@ class CSVPrintFile():
 
   def MoveTitlesToEnd(self, titles):
     for title in titles if isinstance(titles, list) else [titles]:
-      self.titlesList.remove(title)
+      if title in self.titlesSet:
+        self.titlesList.remove(title)
       self.titlesList.append(title)
 
   def RemoveTitles(self, titles):
@@ -19933,29 +19934,31 @@ def _createCalendarEvents(user, cal, function, calIds, count,
     calId = normalizeCalendarId(calId, user)
     if eventRecurrenceTimeZoneRequired and not _setEventRecurrenceTimeZone(cal, calId, body, i, count):
       continue
+    event = {'id': body.get('id', 'Unknown')}
     try:
       if function == 'insert':
         event = callGAPI(cal.events(), 'insert',
-                         throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY, GAPI.DUPLICATE, GAPI.FORBIDDEN],
+                         throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY,
+                                                                    GAPI.REQUIRED_ACCESS_LEVEL, GAPI.DUPLICATE, GAPI.FORBIDDEN],
                          calendarId=calId, sendUpdates=sendUpdates, supportsAttachments=True, body=body, fields='id')
       else:
         event = callGAPI(cal.events(), 'import_',
-                         throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY, GAPI.DUPLICATE, GAPI.FORBIDDEN,
+                         throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY,
+                                                                    GAPI.REQUIRED_ACCESS_LEVEL, GAPI.DUPLICATE, GAPI.FORBIDDEN,
                                                                     GAPI.PARTICIPANT_IS_NEITHER_ORGANIZER_NOR_ATTENDEE],
                          calendarId=calId, supportsAttachments=True, body=body, fields='id')
       entityActionPerformed([Ent.CALENDAR, calId, Ent.EVENT, event['id']], i, count)
-    except (GAPI.invalid, GAPI.required, GAPI.timeRangeEmpty, GAPI.participantIsNeitherOrganizerNorAttendee) as e:
-      entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, ''], str(e), i, count)
-      return False
+    except (GAPI.invalid, GAPI.required, GAPI.timeRangeEmpty,
+            GAPI.requiredAccessLevel, GAPI.participantIsNeitherOrganizerNorAttendee) as e:
+      entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, event['id']], str(e), i, count)
     except GAPI.duplicate as e:
-      entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, ''], str(e), i, count)
+      entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, event['id']], str(e), i, count)
     except (GAPI.forbidden, GAPI.notACalendarUser) as e:
       entityActionFailedWarning([Ent.CALENDAR, calId], str(e), i, count)
       break
     except (GAPI.serviceNotAvailable, GAPI.authError):
       entityServiceNotApplicableWarning(Ent.CALENDAR, calId, i, count)
       break
-  return True
 
 def _updateDeleteCalendarEvents(origUser, user, cal, calIds, count, function, calendarEventEntity, doIt,
                                 eventRecurrenceTimeZoneRequired, body, kwargs):
@@ -19974,7 +19977,8 @@ def _updateDeleteCalendarEvents(origUser, user, cal, calIds, count, function, ca
       try:
         callGAPI(cal.events(), function,
                  throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.DELETED, GAPI.FORBIDDEN,
-                                                            GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY, GAPI.CANNOT_CHANGE_ORGANIZER_OF_INSTANCE],
+                                                            GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY,
+                                                            GAPI.REQUIRED_ACCESS_LEVEL, GAPI.CANNOT_CHANGE_ORGANIZER_OF_INSTANCE],
                  calendarId=calId, eventId=eventId, **kwargs)
         entityActionPerformed([Ent.CALENDAR, calId, Ent.EVENT, eventId], j, jcount)
       except (GAPI.notFound, GAPI.deleted) as e:
@@ -19982,9 +19986,9 @@ def _updateDeleteCalendarEvents(origUser, user, cal, calIds, count, function, ca
           entityUnknownWarning(Ent.CALENDAR, calId, j, jcount)
           break
         entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId], str(e), j, jcount)
-      except (GAPI.forbidden, GAPI.invalid, GAPI.required, GAPI.timeRangeEmpty, GAPI.cannotChangeOrganizerOfInstance) as e:
+      except (GAPI.forbidden, GAPI.invalid, GAPI.required, GAPI.timeRangeEmpty,
+              GAPI.requiredAccessLevel, GAPI.cannotChangeOrganizerOfInstance) as e:
         entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId], str(e), j, jcount)
-        return False
       except GAPI.notACalendarUser as e:
         entityActionFailedWarning([Ent.CALENDAR, calId], str(e), i, count)
         break
@@ -19992,7 +19996,6 @@ def _updateDeleteCalendarEvents(origUser, user, cal, calIds, count, function, ca
         entityServiceNotApplicableWarning(Ent.CALENDAR, calId, i, count)
         break
     Ind.Decrement()
-  return True
 
 def _wipeCalendarEvents(user, cal, calIds, count):
   i = 0
@@ -29488,11 +29491,9 @@ def _createImportCalendarEvent(users, function):
     if jcount == 0:
       continue
     Ind.Increment()
-    status = _createCalendarEvents(user, cal, function, calIds, jcount,
-                                   eventRecurrenceTimeZoneRequired, parameters['sendUpdates'], body)
+    _createCalendarEvents(user, cal, function, calIds, jcount,
+                          eventRecurrenceTimeZoneRequired, parameters['sendUpdates'], body)
     Ind.Decrement()
-    if not status:
-      return
 
 # gam <UserTypeEntity> create|add event <UserCalendarEntity> [id <String>] <EventAddAttributes>+
 def createCalendarEvent(users):
@@ -29515,12 +29516,10 @@ def updateCalendarEvents(users):
     if jcount == 0:
       continue
     Ind.Increment()
-    status = _updateDeleteCalendarEvents(origUser, user, cal, calIds, jcount, 'patch', calendarEventEntity, True,
-                                         _checkIfEventRecurrenceTimeZoneRequired(body, parameters), body,
-                                         {'supportsAttachments': True, 'body': body, 'sendUpdates': parameters['sendUpdates'], 'fields': ''})
+    _updateDeleteCalendarEvents(origUser, user, cal, calIds, jcount, 'patch', calendarEventEntity, True,
+                                _checkIfEventRecurrenceTimeZoneRequired(body, parameters), body,
+                                {'supportsAttachments': True, 'body': body, 'sendUpdates': parameters['sendUpdates'], 'fields': ''})
     Ind.Decrement()
-    if not status:
-      return
 
 # gam <UserTypeEntity> delete events <UserCalendarEntity> <EventEntity> [doit] [<EventNotificationAttribute>]
 def deleteCalendarEvents(users):
