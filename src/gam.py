@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.97.19'
+__version__ = '4.97.20'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -37311,16 +37311,23 @@ def _getTeamDriveRestrictions(myarg, body):
 
 # gam <UserTypeEntity> create|add teamdrive <Name>
 #	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+#	(<TeamDriveRestrictionsFieldName> <Boolean>)*
+#	[hide <Boolean>]
 def createTeamDrive(users):
   requestId = str(uuid.uuid4())
   body = {'name': getString(Cmd.OB_NAME, checkBlank=True)}
+  updateBody = {}
+  hide = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if _getTeamDriveTheme(myarg, body):
       pass
+    elif _getTeamDriveRestrictions(myarg, updateBody):
+      pass
+    elif myarg == 'hide':
+      hide = getBoolean()
     else:
       unknownArgumentExit()
-  updateBody = {}
   for field in ['backgroundImageFile', 'colorRgb']:
     if field in body:
       updateBody[field] = body.pop(field)
@@ -37359,14 +37366,24 @@ def createTeamDrive(users):
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
-    if doUpdate and updateBody:
-      Act.Set(Act.UPDATE)
+    if doUpdate and (updateBody or hide):
       try:
-        callGAPI(drive.drives(), 'update',
-                 throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
-                 driveId=teamDriveId, body=updateBody)
-        entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
-      except (GAPI.notFound, GAPI.forbidden, GAPI.badRequest) as e:
+        if updateBody:
+          Act.Set(Act.UPDATE)
+          try:
+            callGAPI(drive.drives(), 'update',
+                     throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                     driveId=teamDriveId, body=updateBody)
+            entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
+          except GAPI.badRequest as e:
+            entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
+        if hide:
+          Act.Set(Act.HIDE)
+          callGAPI(drive.drives(), 'hide',
+                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                   driveId=teamDriveId)
+          entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
+      except (GAPI.notFound, GAPI.forbidden) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)

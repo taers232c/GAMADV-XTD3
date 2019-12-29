@@ -1,4 +1,8 @@
 # -*- mode: python -*-
+import sys
+
+sys.modules['FixTk'] = None
+
 ssl_json_files = [
     ('cacerts.pem', '.'),
     ('cros-aue-dates.json', '.'),
@@ -12,7 +16,7 @@ a = Analysis(['gam.py'],
              datas=ssl_json_files,
              hiddenimports=[],
              hookspath=None,
-             excludes=['_tkinter'],
+             excludes=['FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter'],
              runtime_hooks=None)
 for d in a.datas:
     if 'pyconfig' in d[0]:

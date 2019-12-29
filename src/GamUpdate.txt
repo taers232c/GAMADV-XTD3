@@ -1,3 +1,19 @@
+4.97.20
+
+Added options `<TeamDriveRestrictionsSubfieldName> <Boolean>` and `hide <Boolean>`
+to `gam create teamdrive` so that a Team Drive can be created and have its restrictions and
+visibility  set in a single Gam command.
+```
+<TeamDriveRestrictionsSubfieldName> ::=
+        restrictions.adminmanagedrestrictions|
+        restrictions.copyrequireswriterpermission|
+        restrictions.domainusersonly|
+        restrictions.teammembersonly
+gam <UserTypeEntity> create|add teamdrive <Name>
+        [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+        [<TeamDriveRestrictionsSubfieldName> <Boolean>]
+        [hide <Boolean>]
+```
 4.97.19
 
 Fixed bug that caused a trap in `gam print group-members group group@example.com recursive`.

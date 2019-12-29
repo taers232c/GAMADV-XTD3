@@ -4065,6 +4065,8 @@ gam <UserTypeEntity> show profile
 gam <UserTypeEntity> show teamdrivethemes
 gam <UserTypeEntity> create|add teamdrive <Name>
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+        [<TeamDriveRestrictionsSubfieldName> <Boolean>]
+        [hide <Boolean>]
 gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [adminaccess|asadmin] [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         [<TeamDriveRestrictionsSubfieldName> <Boolean>]
