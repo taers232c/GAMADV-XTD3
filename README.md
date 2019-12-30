@@ -47,8 +47,8 @@ and all necessary authentications.
 Use these steps if you already use GAMADV-X or GAMADV-XTD or GAMADV-XTD3. The updates may tell you to update your GAM project
 or authentications because new features have been included.
 
-| [Updates]  | [Downloads] | | [UpgradeFromAdvanced] |
-|   :---:    |    :---:    | |         :---:         |
+| [Updates]  | [Downloads] | [UpgradeFromAdvanced] |
+|   :---:    |    :---:  | |         :---:         |
 
 # Multiple Versions
 You can install multiple versions of GAM, GAMADV-X, GAMADV-XTD and GAMADV-XTD3 in different parallel directories.
