@@ -34,21 +34,21 @@ Use these steps if you have never used any version of GAM in your domain. They w
 and all necessary authentications.
 
 | [Downloads] | [Configuration] | [Install] |
-|     :---:   |     :---:       |   :---:   |
+|    :---:    |      :---:      |   :---:   |
 
 # Installation - Upgrading from a GAM version other than a prior version of GAMADV-X or GAMADV-XTD or GAMADV-XTD3
 Use these steps if you have used any version of GAM in your domain. They will update your GAM project
 and all necessary authentications.
 
-| [Downloads] | [Configuration] | [Upgrade] |
-|    :---:    |      :---:      |   :---:   |
+| [Downloads] | [Configuration] | [UpgradeFromBasic] |
+|    :---:    |      :---:      |        :---:       |
 
 # Installation - Upgrading from a prior version of GAMADV-X or GAMADV-XTD or GAMADV-XTD3
 Use these steps if you already use GAMADV-X or GAMADV-XTD or GAMADV-XTD3. The updates may tell you to update your GAM project
 or authentications because new features have been included.
 
-| [Updates]  | [Downloads] |
-|    :---:   |   :---:     |
+| [Updates]  | [Downloads] | | [UpgradeFromAdvanced] |
+|   :---:    |    :---:    | |         :---:         |
 
 # Multiple Versions
 You can install multiple versions of GAM, GAMADV-X, GAMADV-XTD and GAMADV-XTD3 in different parallel directories.
@@ -62,5 +62,6 @@ You can install multiple versions of GAM, GAMADV-X, GAMADV-XTD and GAMADV-XTD3 i
 [Downloads]: https://github.com/taers232c/GAMADV-XTD3/wiki/Downloads
 [Configuration]: https://github.com/taers232c/GAMADV-XTD3/wiki/gam.cfg
 [Install]: https://github.com/taers232c/GAMADV-XTD3/wiki/How-to-Install-Advanced-GAM
-[Upgrade]: https://github.com/taers232c/GAMADV-XTD3/wiki/How-to-Upgrade-from-Standard-GAM
+[UpgradeFromBasic]: https://github.com/taers232c/GAMADV-XTD3/wiki/How-to-Upgrade-from-Standard-GAM
 [Updates]: https://github.com/taers232c/GAMADV-XTD3/wiki/GAM-Updates
+[UpgradeFromAdvanced]: https://github.com/taers232c/GAMADV-XTD3/wiki/How-to-Upgrade-from-GAMADV-X-or-GAMADV-XTD
