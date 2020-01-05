@@ -8046,7 +8046,7 @@ def doDeleteSvcAcct():
       if clientEmail:
         saName = clientEmail
       elif clientName:
-        saName = '{1}@{0}.iam.gserviceaccount.com'.format(projectId, clientName)
+        saName = '{0}@{1}.iam.gserviceaccount.com'.format(clientName, projectId)
       else: #clientId
         saName = clientId
       callGAPI(iam.projects().serviceAccounts(), 'delete',

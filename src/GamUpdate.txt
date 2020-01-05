@@ -5,21 +5,26 @@ to `gam create/use project` to allow specification of Service Account characteri
 ```
 gam create project [admin <EmailAddress>] [project <ProjectID>]
         [projectname <ProjectName>] [parent <String>]
-        [saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>] [sadescription <ServiceAccountDescription>]
+        [saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>]
+        [sadescription <ServiceAccountDescription>]
 gam use project [admin <EmailAddress>] [project <ProjectID>]
-        [saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>] [sadescription <ServiceAccountDescription>]
+        [saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>]
+        [sadescription <ServiceAccountDescription>]
 ```
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Authorization#manage-projects
 
 Added commands to manage Service Accounts.
 ```
 gam create|add svcacct [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
-        [saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>] [sadescription <ServiceAccountDescription>]
+        [saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>]
+        [sadescription <ServiceAccountDescription>]
 gam delete svcacct [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
         (saemail <ServiceAccountEmail>)|(saname <ServiceAccountName>)|(sauniqueid <ServiceAccountUniqueID>)
 gam show svcaccts [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
 gam print svcaccts [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
         [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
 ```
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Authorization#manage-service-accounts
 
 Starting from Jay's initial concept, added commands to manage Service Account keys.
 ```
@@ -29,7 +34,7 @@ gam replace sakeys [(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 
 gam delete sakeys <ServiceAccountKeyList>+ [doit]
 gam show sakeys [all|system|user]
 ```
-See: https://github.com/taers232c/GAMADV-XTD3/wiki/Authorization
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Authorization#manage-service-accounts-keys
 
 To use these commands you must update your gam project and service account authorization.
 ```
