@@ -7667,6 +7667,12 @@ def _getSvcAcctInfo(myarg, svcAcctInfo):
     return False
   return True
 
+def _generateProjectSvcAcctId(prefix):
+  psaId = prefix
+  for _ in range(3):
+    psaId += '-{0}'.format(''.join(random.choice(LOWERNUMERIC_CHARS) for _ in range(3)))
+  return psaId
+
 def _getLoginHintProjectInfo(createCmd):
   login_hint = None
   projectInfo = {'projectId': '', 'parent': '', 'name': ''}
@@ -7699,9 +7705,7 @@ def _getLoginHintProjectInfo(createCmd):
         unknownArgumentExit()
   if not projectInfo['projectId']:
     if createCmd:
-      projectInfo['projectId'] = 'gam-project'
-      for _ in range(3):
-        projectInfo['projectId'] += '-{0}'.format(''.join(random.choice(LOWERNUMERIC_CHARS) for _ in range(3)))
+      projectInfo['projectId'] = _generateProjectSvcAcctId('gam-project')
     else:
       projectInfo['projectId'] = readStdin('\nWhat is your API project ID? ').strip()
       if not PROJECTID_PATTERN.match(projectInfo['projectId']):
@@ -7747,11 +7751,11 @@ def _getCurrentProjectID():
 
 GAM_PROJECT_FILTER = 'id:gam-project-*'
 PROJECTID_FILTER_REQUIRED = 'current|gam|<ProjectID>|(filter <String>)'
-PROJECTS_ADDSVCACCT_OPTIONS = {'name', 'sadisplayname', 'sadescription'}
+PROJECTS_CREATESVCACCT_OPTIONS = {'saname', 'sadisplayname', 'sadescription'}
 PROJECTS_DELETESVCACCT_OPTIONS = {'email', 'name', 'uniqueid'}
 PROJECTS_PRINTSHOW_OPTIONS = {'todrive', 'formatjson', 'quotechar'}
 
-def _getLoginHintProjects(addSvcAcctCmd=False, deleteSvcAcctCmd=False, printShowCmd=False):
+def _getLoginHintProjects(createSvcAcctCmd=False, deleteSvcAcctCmd=False, printShowCmd=False):
   login_hint = getString(Cmd.OB_EMAIL_ADDRESS, optional=True)
   if login_hint and login_hint.find('@') == -1:
     Cmd.Backup()
@@ -7762,7 +7766,7 @@ def _getLoginHintProjects(addSvcAcctCmd=False, deleteSvcAcctCmd=False, printShow
   elif printShowCmd and pfilter in PROJECTS_PRINTSHOW_OPTIONS:
     pfilter = GAM_PROJECT_FILTER
     Cmd.Backup()
-  elif addSvcAcctCmd and pfilter in PROJECTS_ADDSVCACCT_OPTIONS:
+  elif createSvcAcctCmd and pfilter in PROJECTS_CREATESVCACCT_OPTIONS:
     pfilter = 'current'
     Cmd.Backup()
   elif deleteSvcAcctCmd and pfilter in PROJECTS_DELETESVCACCT_OPTIONS:
@@ -7781,7 +7785,7 @@ def _getLoginHintProjects(addSvcAcctCmd=False, deleteSvcAcctCmd=False, printShow
   else:
     Cmd.Backup()
     invalidArgumentExit(['', 'all|'][printShowCmd]+PROJECTID_FILTER_REQUIRED)
-  if not printShowCmd and not addSvcAcctCmd and not deleteSvcAcctCmd:
+  if not printShowCmd and not createSvcAcctCmd and not deleteSvcAcctCmd:
     checkForExtraneousArguments()
   login_hint = _getValidateLoginHint(login_hint)
   httpObj, crm = getCRMService(login_hint)
@@ -7983,10 +7987,10 @@ def doPrintShowProjects():
     csvPF.writeCSVfile('Projects')
 
 # gam create|add svcacct [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
-#	saname <ServiceAccountName> [sadisplayname <ServiceAccountDisplayName>>] [sadescription <ServiceAccountDescription>]
+#	[saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>>] [sadescription <ServiceAccountDescription>]
 def doCreateSvcAcct():
   _checkForExistingProjectFiles([GC.Values[GC.OAUTH2SERVICE_JSON]])
-  _, httpObj, login_hint, projects = _getLoginHintProjects(addSvcAcctCmd=True)
+  _, httpObj, login_hint, projects = _getLoginHintProjects(createSvcAcctCmd=True)
   svcAcctInfo = {'name': '', 'displayName': '', 'description': ''}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -7995,7 +7999,7 @@ def doCreateSvcAcct():
     else:
       unknownArgumentExit()
   if not svcAcctInfo['name']:
-    missingArgumentExit('saname')
+    svcAcctInfo['name'] = _generateProjectSvcAcctId('gam-svcacct')
   if not svcAcctInfo['displayName']:
     svcAcctInfo['displayName'] = svcAcctInfo['name']
   if not svcAcctInfo['description']:
