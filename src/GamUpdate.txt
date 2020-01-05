@@ -15,11 +15,12 @@ Added commands to manage Service Accounts.
 gam create|add svcacct [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
         [saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>] [sadescription <ServiceAccountDescription>]
 gam delete svcacct [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
-        (email <ServiceAccountEmail>)|(saname <ServiceAccountName>)|(uniqueid <ServiceAccountUniqueID>)
+        (saemail <ServiceAccountEmail>)|(saname <ServiceAccountName>)|(sauniqueid <ServiceAccountUniqueID>)
 gam show svcaccts [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
 gam print svcaccts [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
         [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
 ```
+
 Starting from Jay's initial concept, added commands to manage Service Account keys.
 ```
 gam create sakey [(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]

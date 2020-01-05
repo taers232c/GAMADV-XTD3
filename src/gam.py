@@ -7522,7 +7522,6 @@ def _grantSARotateRights(iam, projectId, sa_email):
 
 def _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo):
   iam = getAPIService(API.IAM, httpObj)
-  entityPerformAction([Ent.PROJECT, projectInfo['projectId'], Ent.SVCACCT, svcAcctInfo['name']])
   try:
     service_account = callGAPI(iam.projects().serviceAccounts(), 'create',
                                throw_reasons=[GAPI.NOT_FOUND, GAPI.ALREADY_EXISTS],
@@ -7752,7 +7751,7 @@ def _getCurrentProjectID():
 GAM_PROJECT_FILTER = 'id:gam-project-*'
 PROJECTID_FILTER_REQUIRED = 'current|gam|<ProjectID>|(filter <String>)'
 PROJECTS_CREATESVCACCT_OPTIONS = {'saname', 'sadisplayname', 'sadescription'}
-PROJECTS_DELETESVCACCT_OPTIONS = {'email', 'name', 'uniqueid'}
+PROJECTS_DELETESVCACCT_OPTIONS = {'saemail', 'saname', 'sauniqueid'}
 PROJECTS_PRINTSHOW_OPTIONS = {'todrive', 'formatjson', 'quotechar'}
 
 def _getLoginHintProjects(createSvcAcctCmd=False, deleteSvcAcctCmd=False, printShowCmd=False):
@@ -8015,21 +8014,21 @@ def doCreateSvcAcct():
   Ind.Decrement()
 
 # gam delete svcacct [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
-#	(email <ServiceAccountEmail>)|(saname <ServiceAccountName>)|(uniqueid <ServiceAccountUniqueID>)
+#	(saemail <ServiceAccountEmail>)|(saname <ServiceAccountName>)|(sauniqueid <ServiceAccountUniqueID>)
 def doDeleteSvcAcct():
   _, httpObj, login_hint, projects = _getLoginHintProjects(deleteSvcAcctCmd=True)
   iam = getAPIService(API.IAM, httpObj)
   clientEmail = clientId = clientName = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'email':
+    if myarg == 'saemail':
       clientEmail = getEmailAddress(noUid=True)
       clientName = clientId = None
     elif myarg == 'saname':
       clientName = getString(Cmd.OB_STRING, minLen=6, maxLen=30).strip()
       _checkProjectId(clientName)
       clientEmail = clientId = None
-    elif myarg == 'uniqueid':
+    elif myarg == 'sauniqueid':
       clientId = getInteger(minVal=0)
       clientEmail = clientName = None
     else:
