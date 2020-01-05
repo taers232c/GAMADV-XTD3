@@ -20,8 +20,8 @@ export pip=/c/Python38/scripts/pip.exe
 
 $pip install --upgrade pip
 $pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U
-#wget https://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml/lxml-4.4.1-cp38-cp38-win_amd64.whl
 $pip install src/lxml-4.4.1-cp38-cp38-win_amd64.whl
+$pip install src/cryptography-2.8-cp38-cp38-win_amd64.whl
 #$pip install --upgrade -r src/requirements.txt
 
 #$pip install --upgrade pyinstaller
