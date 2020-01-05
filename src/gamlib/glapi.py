@@ -25,6 +25,8 @@ CALENDAR = 'calendar'
 #CHAT = 'chat'
 CLASSROOM = 'classroom'
 CLOUDPRINT = 'cloudprint'
+CLOUDRESOURCEMANAGER_V1 = 'cloudresourcemanager1'
+CLOUDRESOURCEMANAGER_V2 = 'cloudresourcemanager2'
 CONTACTS = 'contacts'
 DATATRANSFER = 'datatransfer'
 DIRECTORY = 'directory'
@@ -37,12 +39,14 @@ EMAIL_AUDIT = 'email-audit'
 GMAIL = 'gmail'
 GROUPSMIGRATION = 'groupsmigration'
 GROUPSSETTINGS = 'groupssettings'
+IAM = 'iam'
 LICENSING = 'licensing'
 OAUTH2 = 'oauth2'
 PEOPLE = 'people'
 PUBSUB = 'pubsub'
 REPORTS = 'reports'
 RESELLER = 'reseller'
+SERVICEMANAGEMENT = 'servicemanagement'
 SHEETS = 'sheets'
 SHEETSTD = 'sheetstd'
 SITES = 'sites'
@@ -61,6 +65,11 @@ USERINFO_EMAIL_SCOPE = 'https://www.googleapis.com/auth/userinfo.email' # email
 VAULT_SCOPES = ['https://www.googleapis.com/auth/ediscovery', 'https://www.googleapis.com/auth/ediscovery.readonly']
 REQUIRED_SCOPES = ['email', 'profile']
 #
+REFRESH_PERM_ERRORS = [
+  'invalid_grant: reauth related error (rapt_required)', # no way to reauth today
+  'invalid_grant: Token has been expired or revoked.',
+  ]
+
 OAUTH2_TOKEN_ERRORS = [
   'access_denied',
   'access_denied: Requested client not authorized',
@@ -91,6 +100,7 @@ PROJECT_APIS = [
   'gmail.googleapis.com',
   'groupsmigration.googleapis.com',
   'groupssettings.googleapis.com',
+  'iam.googleapis.com',
   'licensing.googleapis.com',
   'people.googleapis.com',
   'pubsub.googleapis.com',
@@ -106,26 +116,30 @@ _INFO = {
   CALENDAR: {'name': 'Calendar API', 'version': 'v3', 'v2discovery': False},
   CLASSROOM: {'name': 'Classroom API', 'version': 'v1', 'v2discovery': True},
   CLOUDPRINT: {'name': 'Cloudprint API', 'version': 'v2', 'v2discovery': True, 'localjson': True},
+  CLOUDRESOURCEMANAGER_V1: {'name': 'Cloud Resource Manager API v1', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudresourcemanager'},
+  CLOUDRESOURCEMANAGER_V2: {'name': 'Cloud Resource Manager API v2', 'version': 'v2', 'v2discovery': True, 'mappedAPI': 'cloudresourcemanager'},
   CONTACTS: {'name': 'Contacts API', 'version': 'v3', 'v2discovery': False},
-  DATATRANSFER: {'name': 'Data Transfer API', 'version': 'datatransfer_v1', 'v2discovery': False},
-  DIRECTORY: {'name': 'Directory API', 'version': 'directory_v1', 'v2discovery': False},
-  DRIVE2: {'name': 'Drive API v2', 'version': 'v2', 'v2discovery': False},
-  DRIVE3: {'name': 'Drive API v3', 'version': 'v3', 'v2discovery': False},
-  DRIVETD: {'name': 'Drive API v3 - todrive', 'version': 'v3', 'v2discovery': False},
+  DATATRANSFER: {'name': 'Data Transfer API', 'version': 'datatransfer_v1', 'v2discovery': False, 'mappedAPI': 'admin'},
+  DIRECTORY: {'name': 'Directory API', 'version': 'directory_v1', 'v2discovery': False, 'mappedAPI': 'admin'},
+  DRIVE2: {'name': 'Drive API v2', 'version': 'v2', 'v2discovery': False, 'mappedAPI': 'drive'},
+  DRIVE3: {'name': 'Drive API v3', 'version': 'v3', 'v2discovery': False, 'mappedAPI': 'drive'},
+  DRIVETD: {'name': 'Drive API v3 - todrive', 'version': 'v3', 'v2discovery': False, 'mappedAPI': 'drive'},
   DRIVEACTIVITY_V1: {'name': 'Drive Activity API v1', 'version': 'v1', 'v2discovery': False},
   DRIVEACTIVITY_V2: {'name': 'Drive Activity API v2', 'version': 'v2', 'v2discovery': True},
   EMAIL_AUDIT: {'name': 'Email Audit API', 'version': 'v1', 'v2discovery': False},
   GMAIL: {'name': 'Gmail API', 'version': 'v1', 'v2discovery': False},
   GROUPSMIGRATION: {'name': 'Groups Migration API', 'version': 'v1', 'v2discovery': False},
   GROUPSSETTINGS: {'name': 'Groups Settings API', 'version': 'v1', 'v2discovery': False},
+  IAM: {'name': 'Identity and Access Management API', 'version': 'v1', 'v2discovery': True},
   LICENSING: {'name': 'License Manager API', 'version': 'v1', 'v2discovery': False},
   OAUTH2: {'name': 'OAuth2 API', 'version': 'v2', 'v2discovery': False},
   PEOPLE: {'name': 'People API', 'version': 'v1', 'v2discovery': True},
   PUBSUB: {'name': 'Pub / Sub API', 'version': 'v1', 'v2discovery': True},
-  REPORTS: {'name': 'Reports API', 'version': 'reports_v1', 'v2discovery': False},
+  REPORTS: {'name': 'Reports API', 'version': 'reports_v1', 'v2discovery': False, 'mappedAPI': 'admin'},
   RESELLER: {'name': 'Reseller API', 'version': 'v1', 'v2discovery': False},
+  SERVICEMANAGEMENT: {'name': 'Service Management API', 'version': 'v1', 'v2discovery': True},
   SHEETS: {'name': 'Sheets API', 'version': 'v4', 'v2discovery': True},
-  SHEETSTD: {'name': 'Sheets API - todrive', 'version': 'v4', 'v2discovery': True},
+  SHEETSTD: {'name': 'Sheets API - todrive', 'version': 'v4', 'v2discovery': True, 'mappedAPI': 'sheets'},
   SITES: {'name': 'Sites API', 'version': 'v1', 'v2discovery': False},
   SITEVERIFICATION: {'name': 'Site Verification API', 'version': 'v1', 'v2discovery': False},
   STORAGE: {'name': 'Cloud Storage API', 'version': 'v1', 'v2discovery': False},
@@ -361,6 +375,10 @@ _SVCACCT_SCOPES = [
    'api': GMAIL,
    'subscopes': [],
    'scope': 'https://www.googleapis.com/auth/gmail.settings.sharing'},
+  {'name': 'Identity and Access Management API',
+   'api': IAM,
+   'subscopes': [],
+   'scope': 'https://www.googleapis.com/auth/iam'},
   {'name': 'People API',
    'api': PEOPLE,
    'subscopes': READONLY,
@@ -464,13 +482,8 @@ def getAPIName(api):
 def getVersion(api):
   version = _INFO[api]['version']
   v2discovery = _INFO[api]['v2discovery']
-  if api in {DIRECTORY, REPORTS, DATATRANSFER}:
-    api = 'admin'
-  elif api in {DRIVE2, DRIVE3, DRIVETD}:
-    api = 'drive'
-  elif api == SHEETSTD:
-    api = SHEETS
-  return (api, version, '{0}-{1}'.format(api, version), v2discovery)
+  api = _INFO[api].get('mappedAPI', api)
+  return (api, version, v2discovery)
 
 def getClientScopesSet(api):
   return {scope['scope'] for scope in _CLIENT_SCOPES if scope['api'] == api}

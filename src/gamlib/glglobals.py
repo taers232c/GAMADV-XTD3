@@ -102,7 +102,9 @@ OAUTH2_TXT_LOCK = 'oatl'
 # Values retrieved from oauth2service.json
 OAUTH2SERVICE_CLIENT_ID = 'osci'
 OAUTH2SERVICE_JSON_DATA = 'osjd'
-# Values retrieved from oauth2service.json
+# Were scopes values retrieved from oauth2service.json
+SVCACCT_SCOPES_DEFINED = 'sasd'
+# Scopes values retrieved from oauth2service.json
 SVCACCT_SCOPES = 'sasc'
 # gam.cfg parser
 PARSER = 'pars'
@@ -192,6 +194,7 @@ Globals = {
   OAUTH2_TXT_LOCK: None,
   OAUTH2SERVICE_CLIENT_ID: None,
   OAUTH2SERVICE_JSON_DATA: {},
+  SVCACCT_SCOPES_DEFINED: False,
   SVCACCT_SCOPES: {},
   PARSER: None,
   PID: 0,

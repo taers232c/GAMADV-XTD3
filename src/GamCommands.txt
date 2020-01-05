@@ -230,10 +230,6 @@ If an item contains spaces, it should be surrounded by ".
         now|today
 <RegularExpression> ::= <String>
         See: https://docs.python.org/3.7/library/re.html
-<ProjectID> ::= <String>
-        Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
-<ServiceAccountName> ::= <String>
-        Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
 <SiteName> ::= [a-z,0-9,-]+
 <UniqueID> ::= uid:<String>
 
@@ -386,6 +382,19 @@ If an item contains spaces, it should be surrounded by ".
 <SchemaName> ::= <String>
 <Section> ::= <String>
 <SerialNumber> ::= <String>
+<ProjectID> ::= <String>
+        Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
+<ProjectName> ::= <String>
+        Must match this Python Regular Expression: [a-zA-Z0-9 '"!-]{4,30}
+<ServiceAccountName> ::= <String>
+        Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
+<ServiceAccountDisplayName> ::= <String>
+        Maximum of 100 characters
+<ServiceAccountDescrition> ::= <String>
+       Maximumof 256 chcracters
+<ServiceAccountEmail> ::= <ServiceAccountName>@<ProjectID>.iam.gserviceaccount.com
+<ServiceAccountUniqueID> ::= <Number>
+<ServiceAccountKey> ::= <String>
 <SheetEntity> ::= <String>|id:<Number>
 <SiteACLScope> ::=
         <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|
@@ -482,6 +491,7 @@ If an item contains spaces, it should be surrounded by ".
 <ResourceIDList> ::= "<ResourceID>(,<ResourceID>)*"
 <SchemaNameList> ::= "<SchemaName>(,<SchemaName>)*"
 <SerialNumberList> ::= "<SerialNumber>(,<SerialNumber>)*"
+<ServiceAccountKeyList> ::= "<ServiceAccountKey>(,<ServiceAccountKey>)*"
 <SiteACLScopeList> ::= "<SiteACLScope>(,<SiteACLScope>)*"
 <SiteList> ::= "<SiteItem>(,<SiteItem>)*"
 <SKUIDList> ="<SKUID>(,<SKUID>)*"
@@ -835,16 +845,36 @@ gam <CrOSTypeEntity>|<UserTypeEntity> list [todrive <ToDriveAttribute>*] [data <
 
 gam create|add project [<EmailAddress>] [<ProjectID>]
 gam create project [admin <EmailAddress>] [project <ProjectID>]
-        [parent <String>]
+        [projectname <ProjectName>] [parent <String>]
+        [saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>] [sadescription <ServiceAccountDescription>]
 gam use project [<EmailAddress>] [<ProjectID>]
 gam use project [admin <EmailAddress>] [project <ProjectID>]
-gam addsvcacct project [<EmailAddress>] [gam|<ProjectID>|(filter <String>)]
-        name <ServiceAccountName> [displayname <String>]
-gam update project [<EmailAddress>] [gam|<ProjectID>|(filter <String>)]
-gam delete project [<EmailAddress>] [gam|<ProjectID>|(filter <String>)]
-gam show projects [<EmailAddress>] [all|gam|<ProjectID>|(filter <String>)]
-gam print projects [<EmailAddress>] [all|gam|<ProjectID>|(filter <String>)]
+        [saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>] [sadescription <ServiceAccountDescription>]
+gam update project [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
+gam delete project [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
+gam show projects [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
+gam print projects [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
         [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
+
+gam create|add svcacct [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
+        [saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>] [sadescription <ServiceAccountDescription>]
+gam delete svcacct [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
+        (email <ServiceAccountEmail>)|(saname <ServiceAccountName>)|(uniqueid <ServiceAccountUniqueID>)
+gam show svcaccts [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
+gam print svcaccts [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
+        [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
+
+gam create sakey [(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
+gam update sakey [(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
+gam replace sakeys [(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
+
+These versions of the above three commands are compatible with Basic GAM.
+gam rotate sakey|sakeys retain_existing [(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
+gam rotate sakey|sakeys replace_current [(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
+gam rotate sakey|sakeys retain_none [(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
+
+gam delete sakeys <ServiceAccountKeyList>+ [doit]
+gam show sakeys [all|system|user]
 
 gam oauth|oauth2 create|request [<EmailAddress>]
 gam oauth|oauth2 delete|revoke
@@ -4065,11 +4095,11 @@ gam <UserTypeEntity> show profile
 gam <UserTypeEntity> show teamdrivethemes
 gam <UserTypeEntity> create|add teamdrive <Name>
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
-        [<TeamDriveRestrictionsSubfieldName> <Boolean>]
+        (<TeamDriveRestrictionsSubfieldName> <Boolean>)*
         [hide <Boolean>]
 gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [adminaccess|asadmin] [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
-        [<TeamDriveRestrictionsSubfieldName> <Boolean>]
+        (<TeamDriveRestrictionsSubfieldName> <Boolean>)*
 gam <UserTypeEntity> delete teamdrive <TeamDriveEntity>
 gam <UserTypeEntity> hide teamdrive <TeamDriveEntity>
 gam <UserTypeEntity> unhide teamdrive <TeamDriveEntity>

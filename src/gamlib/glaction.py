@@ -26,7 +26,6 @@ class GamAction():
   ACCEPT = 'acpt'
   ADD = 'add '
   ADD_PREVIEW = 'addp'
-  ADD_SVCACCT = 'adsa'
   APPEND = 'apnd'
   ARCHIVE = 'arch'
   BACKUP = 'back'
@@ -80,6 +79,7 @@ class GamAction():
   RESUBMIT = 'res'
   RETAIN = 'reta'
   RETRIEVE_DATA = 'retd'
+  REVOKE = 'revo'
   SAVE = 'save'
   SENDEMAIL = 'send'
   SET = 'set '
@@ -112,7 +112,6 @@ class GamAction():
     ACCEPT: ['Accepted', 'Accept'],
     ADD: ['Added', 'Add'],
     ADD_PREVIEW: ['Added (Preview)', 'Add (Preview)'],
-    ADD_SVCACCT: ['Service Account Added', 'Add Service Account'],
     APPEND: ['Appended', 'Append'],
     ARCHIVE: ['Archived', 'Archive'],
     BACKUP: ['Backed up', 'Backup'],
@@ -165,6 +164,7 @@ class GamAction():
     RESUBMIT: ['Resubmitted', 'Resubmit'],
     RETAIN: ['Retained', 'Retain'],
     RETRIEVE_DATA: ['Data Retrieved', 'Retrieve Data'],
+    REVOKE: ['Revoked', 'Revoke'],
     SAVE: ['Saved', 'Save'],
     SENDEMAIL: ['Email Sent', 'Send Email'],
     SET: ['Set', 'Set'],

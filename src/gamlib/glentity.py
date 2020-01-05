@@ -212,6 +212,7 @@ class GamEntity():
   STUDENT = 'stud'
   SUBSCRIPTION = 'subs'
   SVCACCT = 'svac'
+  SVCACCT_KEY = 'svky'
   TARGET_USER = 'tgt'
   TEACHER = 'teac'
   TEAMDRIVE = 'tdrv'
@@ -420,7 +421,8 @@ class GamEntity():
     STATUS: ['Status', 'Status'],
     STUDENT: ['Students', 'Student'],
     SUBSCRIPTION: ['Subscriptions', 'Subscription'],
-    SVCACCT: ['Service Account', 'Service Account'],
+    SVCACCT: ['Service Accounts', 'Service Account'],
+    SVCACCT_KEY: ['Service Account Keys', 'Service Account Key'],
     TARGET_USER: ['Target Users', 'Target User'],
     TEACHER: ['Teachers', 'Teacher'],
     TEAMDRIVE: ['Shared Drives', 'Shared Drive'],

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.97.20'
+__version__ = '4.98.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -72,10 +72,16 @@ from tempfile import TemporaryFile
 import threading
 import time
 from traceback import print_exc
-from urllib.parse import unquote, urlencode, urlparse
+from urllib.parse import quote, unquote, urlencode, urlparse
 import uuid
 import webbrowser
 import zipfile
+
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.x509.oid import NameOID
 
 from gamlib import glaction
 from gamlib import glapi as API
@@ -181,7 +187,6 @@ ALPHANUMERIC_CHARS = LOWERNUMERIC_CHARS+string.ascii_uppercase
 URL_SAFE_CHARS = ALPHANUMERIC_CHARS+'-._~'
 PASSWORD_SAFE_CHARS = ALPHANUMERIC_CHARS+string.punctuation+' '
 FILENAME_SAFE_CHARS = ALPHANUMERIC_CHARS+'-_.() '
-DEFAULT_SVCACCT_NAME = 'GAM Project'
 ADMIN_ACCESS_OPTIONS = {'adminaccess', 'asadmin'}
 # Python 3 values
 DEFAULT_CSV_READ_MODE = 'r'
@@ -308,12 +313,6 @@ TARGET_DRIVE_SPACE_ERROR_RC = 74
 USER_REQUIRED_TO_CHANGE_PASSWORD_ERROR_RC = 75
 USER_SUSPENDED_ERROR_RC = 76
 #
-def convertSysToUTF8(data):
-  return data
-
-def convertUTF8toSys(data):
-  return data
-
 def escapeCRsNLs(value):
   return value.replace('\r', '\\r').replace('\n', '\\n')
 
@@ -453,10 +452,10 @@ def printErrorMessage(sysRC, message):
   writeStderr(formatKeyValueList(Ind.Spaces(), [ERROR, message], '\n'))
 
 def stderrErrorMsg(message):
-  writeStderr(convertUTF8toSys('\n{0}{1}\n'.format(ERROR_PREFIX, message)))
+  writeStderr('\n{0}{1}\n'.format(ERROR_PREFIX, message))
 
 def stderrWarningMsg(message):
-  writeStderr(convertUTF8toSys('\n{0}{1}\n'.format(WARNING_PREFIX, message)))
+  writeStderr('\n{0}{1}\n'.format(WARNING_PREFIX, message))
 
 # Something's wrong with CustomerID
 def accessErrorMessage(cd):
@@ -543,6 +542,11 @@ def invalidOauth2TxtExit():
   writeStderr(Msg.EXECUTE_GAM_OAUTH_CREATE)
   systemErrorExit(OAUTH2_TXT_REQUIRED_RC, None)
 
+def expiredRevokedOauth2TxtExit():
+  stderrErrorMsg(Msg.IS_EXPIRED_OR_REVOKED.format(Ent.Singular(Ent.OAUTH2_TXT_FILE), GC.Values[GC.OAUTH2_TXT]))
+  writeStderr(Msg.EXECUTE_GAM_OAUTH_CREATE)
+  systemErrorExit(OAUTH2_TXT_REQUIRED_RC, None)
+
 def invalidOauth2TxtImportExit(importFile):
   stderrErrorMsg(Msg.HAS_INVALID_FORMAT.format(Ent.Singular(Ent.OAUTH2_TXT_FILE), importFile))
   systemErrorExit(OAUTH2_TXT_REQUIRED_RC, None)
@@ -558,27 +562,27 @@ def entityActionFailedExit(entityValueList, errMsg, i=0, count=0):
 
 def entityDoesNotExistExit(entityType, entityName, i=0, count=0, errMsg=None):
   Cmd.Backup()
-  writeStderr(convertUTF8toSys(Cmd.CommandLineWithBadArgumentMarked(False)))
+  writeStderr(Cmd.CommandLineWithBadArgumentMarked(False))
   systemErrorExit(ENTITY_DOES_NOT_EXIST_RC, formatKeyValueList(Ind.Spaces(),
                                                                [Ent.Singular(entityType), entityName, errMsg or Msg.DOES_NOT_EXIST],
                                                                currentCountNL(i, count)))
 
 def entityDoesNotHaveItemExit(entityValueList, i=0, count=0):
   Cmd.Backup()
-  writeStderr(convertUTF8toSys(Cmd.CommandLineWithBadArgumentMarked(False)))
+  writeStderr(Cmd.CommandLineWithBadArgumentMarked(False))
   systemErrorExit(ENTITY_DOES_NOT_EXIST_RC, formatKeyValueList(Ind.Spaces(),
                                                                Ent.FormatEntityValueList(entityValueList)+[Msg.DOES_NOT_EXIST],
                                                                currentCountNL(i, count)))
 
 def entityIsNotUniqueExit(entityType, entityName, valueType, valueList, i=0, count=0):
   Cmd.Backup()
-  writeStderr(convertUTF8toSys(Cmd.CommandLineWithBadArgumentMarked(False)))
+  writeStderr(Cmd.CommandLineWithBadArgumentMarked(False))
   systemErrorExit(ENTITY_IS_NOT_UNIQUE_RC, formatKeyValueList(Ind.Spaces(),
                                                               [Ent.Singular(entityType), entityName, Msg.IS_NOT_UNIQUE.format(Ent.Plural(valueType), ','.join(valueList))],
                                                               currentCountNL(i, count)))
 
 def usageErrorExit(message, extraneous=False):
-  writeStderr(convertUTF8toSys(Cmd.CommandLineWithBadArgumentMarked(extraneous)))
+  writeStderr(Cmd.CommandLineWithBadArgumentMarked(extraneous))
   stderrErrorMsg(message)
   writeStderr(Msg.HELP_SYNTAX.format(os.path.join(GM.Globals[GM.GAM_PATH], FN_GAMCOMMANDS_TXT)))
   writeStderr(Msg.HELP_WIKI.format(GAM_WIKI))
@@ -586,7 +590,7 @@ def usageErrorExit(message, extraneous=False):
 
 def badEntitiesExit(entityError, errorType):
   Cmd.Backup()
-  writeStderr(convertUTF8toSys(Cmd.CommandLineWithBadArgumentMarked(False)))
+  writeStderr(Cmd.CommandLineWithBadArgumentMarked(False))
   count = entityError[errorType]
   if errorType == 'doesNotExist':
     stderrErrorMsg(Msg.BAD_ENTITIES_IN_SOURCE.format(count, Ent.Choose(entityError['entityType'], count),
@@ -631,7 +635,7 @@ def missingArgumentExit(argument):
 
 def deprecatedArgument(argument):
   Cmd.Backup()
-  writeStderr(convertUTF8toSys(Cmd.CommandLineWithBadArgumentMarked(False)))
+  writeStderr(Cmd.CommandLineWithBadArgumentMarked(False))
   Cmd.Advance()
   stderrWarningMsg('{0}: {1} <{2}>'.format(Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_DEPRECATED][1], Msg.IGNORED, argument))
 
@@ -1063,7 +1067,7 @@ def getEmailAddress(noUid=False, minLen=1, optional=False):
   missingArgumentExit([Cmd.OB_EMAIL_ADDRESS_OR_UID, Cmd.OB_EMAIL_ADDRESS][noUid])
 
 def getFilename():
-  filename = os.path.expanduser(getString(Cmd.OB_FILE_NAME, minLen=1))
+  filename = os.path.expanduser(getString(Cmd.OB_FILE_NAME))
   if os.path.isfile(filename):
     return filename
   entityDoesNotExistExit(Ent.FILE, filename)
@@ -1961,12 +1965,12 @@ def printGettingAllAccountEntities(entityType, query='', qualifier=''):
       Ent.SetGettingQualifier(entityType, qualifier)
     else:
       Ent.SetGetting(entityType)
-    writeStderr(convertUTF8toSys('{0} {1}{2}{3}\n'.format(Msg.GETTING_ALL, Ent.PluralGetting(),
-                                                          Ent.GettingPreQualifier(), Ent.MayTakeTime(Ent.ACCOUNT))))
+    writeStderr('{0} {1}{2}{3}\n'.format(Msg.GETTING_ALL, Ent.PluralGetting(),
+                                         Ent.GettingPreQualifier(), Ent.MayTakeTime(Ent.ACCOUNT)))
 
 def printGotAccountEntities(count):
   if GC.Values[GC.SHOW_GETTINGS]:
-    writeStderr(convertUTF8toSys('{0} {1} {2}{3}\n'.format(Msg.GOT, count, Ent.ChooseGetting(count), Ent.GettingPostQualifier())))
+    writeStderr('{0} {1} {2}{3}\n'.format(Msg.GOT, count, Ent.ChooseGetting(count), Ent.GettingPostQualifier()))
 
 def printGettingAllEntityItemsForWhom(entityItem, forWhom, i=0, count=0, query='', qualifier='', entityType=None):
   if GC.Values[GC.SHOW_GETTINGS]:
@@ -1977,24 +1981,24 @@ def printGettingAllEntityItemsForWhom(entityItem, forWhom, i=0, count=0, query='
     else:
       Ent.SetGetting(entityItem)
     Ent.SetGettingForWhom(forWhom)
-    writeStderr(convertUTF8toSys('{0} {1}{2} {3} {4}{5}{6}'.format(Msg.GETTING_ALL, Ent.PluralGetting(),
-                                                                   Ent.GettingPreQualifier(), Msg.FOR, forWhom, Ent.MayTakeTime(entityType),
-                                                                   currentCountNL(i, count))))
+    writeStderr('{0} {1}{2} {3} {4}{5}{6}'.format(Msg.GETTING_ALL, Ent.PluralGetting(),
+                                                  Ent.GettingPreQualifier(), Msg.FOR, forWhom, Ent.MayTakeTime(entityType),
+                                                  currentCountNL(i, count)))
 
 def printGotEntityItemsForWhom(count):
   if GC.Values[GC.SHOW_GETTINGS]:
-    writeStderr(convertUTF8toSys('{0} {1} {2}{3} {4} {5}\n'.format(Msg.GOT, count, Ent.ChooseGetting(count),
-                                                                   Ent.GettingPostQualifier(), Msg.FOR, Ent.GettingForWhom())))
+    writeStderr('{0} {1} {2}{3} {4} {5}\n'.format(Msg.GOT, count, Ent.ChooseGetting(count),
+                                                  Ent.GettingPostQualifier(), Msg.FOR, Ent.GettingForWhom()))
 
 def printGettingEntityItem(entityType, entityItem, i=0, count=0):
   if GC.Values[GC.SHOW_GETTINGS]:
-    writeStderr(convertUTF8toSys('{0} {1} {2}{3}'.format(Msg.GETTING, Ent.Singular(entityType), entityItem, currentCountNL(i, count))))
+    writeStderr('{0} {1} {2}{3}'.format(Msg.GETTING, Ent.Singular(entityType), entityItem, currentCountNL(i, count)))
 
 def printGettingEntityItemForWhom(entityItem, forWhom, i=0, count=0):
   if GC.Values[GC.SHOW_GETTINGS]:
     Ent.SetGetting(entityItem)
     Ent.SetGettingForWhom(forWhom)
-    writeStderr(convertUTF8toSys('{0} {1} {2} {3}{4}'.format(Msg.GETTING, Ent.PluralGetting(), Msg.FOR, forWhom, currentCountNL(i, count))))
+    writeStderr('{0} {1} {2} {3}{4}'.format(Msg.GETTING, Ent.PluralGetting(), Msg.FOR, forWhom, currentCountNL(i, count)))
 
 FIRST_ITEM_MARKER = '%%first_item%%'
 LAST_ITEM_MARKER = '%%last_item%%'
@@ -2032,7 +2036,7 @@ def getPageMessageForWhom(forWhom=None, showFirstLastItems=False):
   return pageMessage
 
 def printLine(message):
-  writeStdout(convertUTF8toSys(message+'\n'))
+  writeStdout(message+'\n')
 
 def printBlankLine():
   writeStdout('\n')
@@ -2068,6 +2072,11 @@ def printJSONValue(value):
 def printEntity(entityValueList, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
                                  Ent.FormatEntityValueList(entityValueList),
+                                 currentCountNL(i, count)))
+
+def printEntityMessage(entityValueList, message, i=0, count=0):
+  writeStdout(formatKeyValueList(Ind.Spaces(),
+                                 Ent.FormatEntityValueList(entityValueList)+[message],
                                  currentCountNL(i, count)))
 
 def printEntitiesCount(entityType, entityList):
@@ -3171,6 +3180,11 @@ def doGAMCheckForUpdates(forceCheck):
 
 def handleOAuthTokenError(e, soft_errors):
   errMsg = str(e)
+  if errMsg in API.REFRESH_PERM_ERRORS:
+    if soft_errors:
+      return None
+    if not GM.Globals[GM.CURRENT_SVCACCT_USER]:
+      expiredRevokedOauth2TxtExit()
   if errMsg.replace('.', '') in API.OAUTH2_TOKEN_ERRORS or errMsg.startswith('Invalid response'):
     if soft_errors:
       return None
@@ -3254,7 +3268,7 @@ def defaultSvcAcctScopes():
   saScopes[API.SHEETSTD] = saScopes[API.SHEETS]
   return saScopes
 
-def getSvcAcctCredentials(scopesOrAPI, userEmail):
+def _getSvcAcctData():
   if not GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]:
     json_string = readFile(GC.Values[GC.OAUTH2SERVICE_JSON], continueOnError=True, displayError=True)
     if not json_string:
@@ -3266,9 +3280,14 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail):
     if not GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]:
       systemErrorExit(OAUTH2SERVICE_JSON_REQUIRED_RC, Msg.NO_SVCACCT_ACCESS_ALLOWED)
     if API.OAUTH2SA_SCOPES not in GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]:
+      GM.Globals[GM.SVCACCT_SCOPES_DEFINED] = False
       GM.Globals[GM.SVCACCT_SCOPES] = defaultSvcAcctScopes()
     else:
+      GM.Globals[GM.SVCACCT_SCOPES_DEFINED] = True
       GM.Globals[GM.SVCACCT_SCOPES] = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA].pop(API.OAUTH2SA_SCOPES)
+
+def getSvcAcctCredentials(scopesOrAPI, userEmail):
+  _getSvcAcctData()
   if isinstance(scopesOrAPI, str):
     GM.Globals[GM.CURRENT_SVCACCT_API] = scopesOrAPI
     GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = GM.Globals[GM.SVCACCT_SCOPES].get(scopesOrAPI, [])
@@ -3449,12 +3468,12 @@ def callGData(service, function,
       handleOAuthTokenError(e, GDATA.SERVICE_NOT_APPLICABLE in throw_errors)
       raise GDATA.ERROR_CODE_EXCEPTION_MAP[GDATA.SERVICE_NOT_APPLICABLE](str(e))
     except (http_client.ResponseNotReady, socket.error) as e:
-      errMsg = 'Connection error: {0}'.format(convertSysToUTF8(str(e) or repr(e)))
+      errMsg = 'Connection error: {0}'.format(str(e) or repr(e))
       if n != retries:
         waitOnFailure(n, retries, SOCKET_ERROR_RC, errMsg)
         continue
       if soft_errors:
-        writeStderr(convertUTF8toSys('\n{0}{1} - Giving up.\n'.format(ERROR_PREFIX, errMsg)))
+        writeStderr('\n{0}{1} - Giving up.\n'.format(ERROR_PREFIX, errMsg))
         return None
       systemErrorExit(SOCKET_ERROR_RC, errMsg)
     except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
@@ -3653,12 +3672,12 @@ def callGAPI(service, function,
       handleOAuthTokenError(e, GAPI.SERVICE_NOT_AVAILABLE in throw_reasons)
       raise GAPI.REASON_EXCEPTION_MAP[GAPI.SERVICE_NOT_AVAILABLE](str(e))
     except (http_client.ResponseNotReady, socket.error) as e:
-      errMsg = 'Connection error: {0}'.format(convertSysToUTF8(str(e) or repr(e)))
+      errMsg = 'Connection error: {0}'.format(str(e) or repr(e))
       if n != retries:
         waitOnFailure(n, retries, SOCKET_ERROR_RC, errMsg)
         continue
       if soft_errors:
-        writeStderr(convertUTF8toSys('\n{0}{1} - Giving up.\n'.format(ERROR_PREFIX, errMsg)))
+        writeStderr('\n{0}{1} - Giving up.\n'.format(ERROR_PREFIX, errMsg))
         return None
       systemErrorExit(SOCKET_ERROR_RC, errMsg)
     except ValueError as e:
@@ -3800,9 +3819,14 @@ def readDiscoveryFile(api_version):
 
 DISCOVERY_URIS = [googleapiclient.discovery.V1_DISCOVERY_URI, googleapiclient.discovery.V2_DISCOVERY_URI]
 
-def getAPIversionHttpService(api):
+def getAPIService(api, httpObj):
+  api, version, v2discovery = API.getVersion(api)
+  return googleapiclient.discovery.build(api, version, http=httpObj, cache_discovery=False,
+                                         discoveryServiceUrl=DISCOVERY_URIS[v2discovery])
+
+def getHttpAPIService(api):
   hasLocalJSON = API.hasLocalJSON(api)
-  api, version, api_version, v2discovery = API.getVersion(api)
+  api, version, v2discovery = API.getVersion(api)
   httpObj = getHttpObj(cache=GM.Globals[GM.CACHE_DIR])
   if api in GM.Globals[GM.CURRENT_API_SERVICES] and version in GM.Globals[GM.CURRENT_API_SERVICES][api]:
     service = googleapiclient.discovery.build_from_document(GM.Globals[GM.CURRENT_API_SERVICES][api][version], http=httpObj)
@@ -3829,7 +3853,7 @@ def getAPIversionHttpService(api):
           continue
         systemErrorExit(INVALID_JSON_RC, Msg.INVALID_JSON_INFORMATION)
       except (http_client.ResponseNotReady, socket.error) as e:
-        errMsg = 'Connection error: {0}'.format(convertSysToUTF8(str(e) or repr(e)))
+        errMsg = 'Connection error: {0}'.format(str(e) or repr(e))
         if n != retries:
           waitOnFailure(n, retries, SOCKET_ERROR_RC, errMsg)
           continue
@@ -3842,7 +3866,7 @@ def getAPIversionHttpService(api):
         handleServerError(e)
       except IOError as e:
         systemErrorExit(FILE_ERROR_RC, str(e))
-  disc_file, discovery = readDiscoveryFile(api_version)
+  disc_file, discovery = readDiscoveryFile('{0}-{1}'.format(api, version))
   try:
     service = googleapiclient.discovery.build_from_document(discovery, http=httpObj)
     GM.Globals[GM.CURRENT_API_SERVICES].setdefault(api, {})
@@ -3856,7 +3880,7 @@ def getAPIversionHttpService(api):
     systemErrorExit(FILE_ERROR_RC, str(e))
 
 def buildGAPIObject(api):
-  httpObj, service = getAPIversionHttpService(api)
+  httpObj, service = getHttpAPIService(api)
   credentials = getClientCredentials()
   try:
     API_Scopes = set(list(service._rootDesc['auth']['oauth2']['scopes']))
@@ -3914,14 +3938,14 @@ google_auth_httplib2.AuthorizedHttp.request = _request_with_user_agent(google_au
 def getSaUser(user):
   currentClientAPI = GM.Globals[GM.CURRENT_CLIENT_API]
   currentClientAPIScopes = GM.Globals[GM.CURRENT_CLIENT_API_SCOPES]
-  userEmail = convertUIDtoEmailAddress(user)
+  userEmail = convertUIDtoEmailAddress(user) if user else ''
   GM.Globals[GM.CURRENT_CLIENT_API] = currentClientAPI
   GM.Globals[GM.CURRENT_CLIENT_API_SCOPES] = currentClientAPIScopes
   return userEmail
 
 def buildGAPIServiceObject(api, user, i=0, count=0, displayError=True):
   userEmail = getSaUser(user)
-  httpObj, service = getAPIversionHttpService(api)
+  httpObj, service = getHttpAPIService(api)
   credentials = getSvcAcctCredentials(api, userEmail)
   request = google_auth_httplib2.Request(httpObj)
   retries = 3
@@ -5171,17 +5195,15 @@ class CSVPrintFile():
     self.titlesList = []
     self.AddTitles(titles)
 
-  def MoveTitlesToEnd(self, titles):
-    for title in titles if isinstance(titles, list) else [titles]:
-      if title in self.titlesSet:
-        self.titlesList.remove(title)
-      self.titlesList.append(title)
-
   def RemoveTitles(self, titles):
     for title in titles if isinstance(titles, list) else [titles]:
       if title in self.titlesSet:
         self.titlesSet.remove(title)
         self.titlesList.remove(title)
+
+  def MoveTitlesToEnd(self, titles):
+    self.RemoveTitles(titles)
+    self.AddTitles(titles)
 
   def AddSortTitle(self, title):
     self.sortTitlesSet.add(title)
@@ -6372,10 +6394,7 @@ def StdQueueHandler(mpQueue, stdtype, gmGlobals, gcValues):
   PROCESS_MSG = '{0}: {1:6d}, {2:>5s}: {3}, RC: {4:3d}, Cmd: {5}\n'
 
   def _writeData(data):
-    if fd in [sys.stdout, sys.stderr]:
-      fd.write(convertUTF8toSys(data))
-    else:
-      fd.write(data)
+    fd.write(data)
 
   def _writePidData(pid, data):
     try:
@@ -6675,7 +6694,7 @@ def doBatch(threadBatch=False):
       try:
         argv = shlex.split(line)
       except ValueError as e:
-        writeStderr(convertUTF8toSys('Command: >>>{0}<<<\n'.format(line.strip())))
+        writeStderr('Command: >>>{0}<<<\n'.format(line.strip()))
         writeStderr('{0}{1}\n'.format(ERROR_PREFIX, str(e)))
         errors += 1
         continue
@@ -6692,7 +6711,7 @@ def doBatch(threadBatch=False):
         elif cmd == Cmd.PRINT_CMD:
           items.append(argv)
         else:
-          writeStderr(convertUTF8toSys('Command: >>>{0}<<< {1}\n'.format(Cmd.QuotedArgumentList([argv[0]]), Cmd.QuotedArgumentList(argv[1:]))))
+          writeStderr('Command: >>>{0}<<< {1}\n'.format(Cmd.QuotedArgumentList([argv[0]]), Cmd.QuotedArgumentList(argv[1:])))
           writeStderr('{0}{1}: {2} <{3}>\n'.format(ERROR_PREFIX, Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1],
                                                    Msg.EXPECTED, formatChoiceList([Cmd.GAM_CMD, Cmd.COMMIT_BATCH_CMD, Cmd.PRINT_CMD])))
           errors += 1
@@ -7416,7 +7435,7 @@ def checkServiceAccount(users):
         allScopesPass = False
       printPassFail(scope, '{0}{1}'.format(scopeStatus, currentCount(j, jcount)))
     Ind.Decrement()
-    service_account = GM.Globals[GM.OAUTH2SERVICE_CLIENT_ID]
+    service_account = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
     _, domain = splitEmailAddress(user)
     if allScopesPass:
       if Act.Get() == Act.CHECK:
@@ -7439,23 +7458,12 @@ def getCRMService(login_hint):
   credentials = _run_oauth_flow(client_id, client_secret, scopes, login_hint, 'online', storage)
   credentials.user_agent = GAM_INFO
   httpObj = credentials.authorize(getHttpObj())
-  return (googleapiclient.discovery.build('cloudresourcemanager', 'v1',
-                                          http=httpObj, cache_discovery=False,
-                                          discoveryServiceUrl=googleapiclient.discovery.V2_DISCOVERY_URI),
-          httpObj)
-
-# Ugh, v2 doesn't contain all the operations of v1 so we need to use both here.
-def getCRM2Service(httpObj):
-  return googleapiclient.discovery.build('cloudresourcemanager', 'v2',
-                                         http=httpObj, cache_discovery=False,
-                                         discoveryServiceUrl=googleapiclient.discovery.V2_DISCOVERY_URI)
+  return (httpObj, getAPIService(API.CLOUDRESOURCEMANAGER_V1, httpObj))
 
 def enableGAMProjectAPIs(httpObj, projectId, checkEnabled, i=0, count=0):
   apis = API.PROJECT_APIS[:]
   projectName = 'project:{0}'.format(projectId)
-  serveman = googleapiclient.discovery.build('servicemanagement', 'v1',
-                                             http=httpObj, cache_discovery=False,
-                                             discoveryServiceUrl=googleapiclient.discovery.V2_DISCOVERY_URI)
+  serveman = getAPIService(API.SERVICEMANAGEMENT, httpObj)
   status = True
   if checkEnabled:
     try:
@@ -7505,27 +7513,37 @@ def enableGAMProjectAPIs(httpObj, projectId, checkEnabled, i=0, count=0):
     Ind.Decrement()
   return status
 
-def _createOauth2serviceJSON(httpObj, projectId, name, displayName):
-  iam = googleapiclient.discovery.build('iam', 'v1',
-                                        http=httpObj, cache_discovery=False,
-                                        discoveryServiceUrl=googleapiclient.discovery.V2_DISCOVERY_URI)
-  entityPerformAction([Ent.SVCACCT, name, Ent.PROJECT, projectId])
+def _grantSARotateRights(iam, projectId, sa_email):
+  printEntityMessage([Ent.PROJECT, projectId, Ent.SVCACCT, sa_email], Msg.HAS_RIGHTS_TO_ROTATE_OWN_PRIVATE_KEY)
+  body = {'policy': {'bindings': [{'role': 'roles/iam.serviceAccountKeyAdmin',
+                                   'members': ['serviceAccount:{0}'.format(sa_email)]}]}}
+  callGAPI(iam.projects().serviceAccounts(), 'setIamPolicy',
+           resource='projects/-/serviceAccounts/{0}'.format(sa_email), body=body)
+
+def _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo):
+  iam = getAPIService(API.IAM, httpObj)
+  entityPerformAction([Ent.PROJECT, projectInfo['projectId'], Ent.SVCACCT, svcAcctInfo['name']])
   try:
     service_account = callGAPI(iam.projects().serviceAccounts(), 'create',
-                               throw_reasons=[GAPI.ALREADY_EXISTS],
-                               name='projects/{0}'.format(projectId),
-                               body={'accountId': name, 'serviceAccount': {'displayName': displayName}})
-    entityActionPerformed([Ent.SVCACCT, name, Ent.PROJECT, projectId])
-  except GAPI.alreadyExists as e:
-    entityActionFailedWarning([Ent.SVCACCT, name, Ent.PROJECT, projectId], str(e))
+                               throw_reasons=[GAPI.NOT_FOUND, GAPI.ALREADY_EXISTS],
+                               name='projects/{0}'.format(projectInfo['projectId']),
+                               body={'accountId': svcAcctInfo['name'],
+                                     'serviceAccount': {'displayName': svcAcctInfo['displayName'],
+                                                        'description': svcAcctInfo['description']}})
+    entityActionPerformed([Ent.PROJECT, projectInfo['projectId'], Ent.SVCACCT, service_account['name'].rsplit('/', 1)[-1]])
+  except GAPI.notFound as e:
+    entityActionFailedWarning([Ent.PROJECT, projectInfo['projectId']], str(e))
     return False
-  key = callGAPI(iam.projects().serviceAccounts().keys(), 'create',
-                 name=service_account['name'], body={'privateKeyType': 'TYPE_GOOGLE_CREDENTIALS_FILE', 'keyAlgorithm': 'KEY_ALG_RSA_2048'})
-  oauth2service_data = base64.b64decode(key['privateKeyData']).decode(UTF8)
-  writeFile(GC.Values[GC.OAUTH2SERVICE_JSON], oauth2service_data, continueOnError=False)
+  except GAPI.alreadyExists as e:
+    entityActionFailedWarning([Ent.PROJECT, projectInfo['projectId'], Ent.SVCACCT, svcAcctInfo['name']], str(e))
+    return False
+  GM.Globals[GM.SVCACCT_SCOPES_DEFINED] = False
+  doProcessSvcAcctKeys(mode='retainexisting', iam=iam, projectId=service_account['projectId'],
+                       clientEmail=service_account['email'], clientId=service_account['uniqueId'])
+  _grantSARotateRights(iam, projectInfo['projectId'], service_account['name'].rsplit('/', 1)[-1])
   return True
 
-def _createClientSecretsOauth2service(httpObj, projectId):
+def _createClientSecretsOauth2service(httpObj, projectInfo, svcAcctInfo):
 
   def _checkClientAndSecret(csHttpObj, client_id, client_secret):
     post_data = {'client_id': client_id, 'client_secret': client_secret,
@@ -7552,11 +7570,11 @@ def _createClientSecretsOauth2service(httpObj, projectId):
     sys.stderr.write('Unknown error: {0}\n'.format(content))
     return False
 
-  if not enableGAMProjectAPIs(httpObj, projectId, False):
+  if not enableGAMProjectAPIs(httpObj, projectInfo['projectId'], False):
     return
-  if not _createOauth2serviceJSON(httpObj, projectId, projectId, DEFAULT_SVCACCT_NAME):
+  if not _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo):
     return
-  console_credentials_url = 'https://console.developers.google.com/apis/credentials/consent/edit?createClient&newAppInternalUser=true&project={0}'.format(projectId)
+  console_credentials_url = 'https://console.developers.google.com/apis/credentials/consent/edit?createClient&newAppInternalUser=true&project={0}'.format(projectInfo['projectId'])
   csHttpObj = getHttpObj()
   while True:
     sys.stdout.write('''Please go to:
@@ -7590,7 +7608,7 @@ def _createClientSecretsOauth2service(httpObj, projectId):
         "redirect_uris": ["http://localhost", "urn:ietf:wg:oauth:2.0:oob"],
         "token_uri": "https://oauth2.googleapis.com/token"
     }
-}''' % (client_id, client_secret, projectId)
+}''' % (client_id, client_secret, projectInfo['projectId'])
   writeFile(GC.Values[GC.CLIENT_SECRETS_JSON], cs_data, continueOnError=False)
   sys.stdout.write('6. Go back to your browser and click OK to close the "OAuth client" popup if it\'s still open.\n')
   sys.stdout.write('That\'s it! Your GAM Project is created and ready to use.\n')
@@ -7630,18 +7648,37 @@ def _checkProjectId(projectId):
     Cmd.Backup()
     invalidArgumentExit(PROJECTID_FORMAT_REQUIRED)
 
-def _getLoginHintProjectId(createCmd):
+PROJECTNAME_PATTERN = re.compile('^[a-zA-Z0-9 '+"'"+'"!-]{4,30}$')
+PROJECTNAME_FORMAT_REQUIRED = '[a-zA-Z0-9 \'"!-]{4,30}'
+def _checkProjectName(projectName):
+  if not PROJECTNAME_PATTERN.match(projectName):
+    Cmd.Backup()
+    invalidArgumentExit(PROJECTNAME_FORMAT_REQUIRED)
+
+def _getSvcAcctInfo(myarg, svcAcctInfo):
+  if myarg == 'saname':
+    svcAcctInfo['name'] = getString(Cmd.OB_STRING, minLen=6, maxLen=30)
+    _checkProjectId(svcAcctInfo['name'])
+  elif myarg == 'sadisplayname':
+    svcAcctInfo['displayName'] = getString(Cmd.OB_STRING, maxLen=100)
+  elif myarg == 'sadescription':
+    svcAcctInfo['description'] = getString(Cmd.OB_STRING, maxLen=256)
+  else:
+    return False
+  return True
+
+def _getLoginHintProjectInfo(createCmd):
   login_hint = None
-  projectId = None
-  parent = None
-  if not Cmd.PeekArgumentPresent(['admin', 'project', 'parent']):
+  projectInfo = {'projectId': '', 'parent': '', 'name': ''}
+  svcAcctInfo = {'name': '', 'displayName': '', 'description': ''}
+  if not Cmd.PeekArgumentPresent(['admin', 'project', 'parent', 'projectname', 'saname', 'sadisplayname', 'sadescription']):
     login_hint = getString(Cmd.OB_EMAIL_ADDRESS, optional=True)
     if login_hint and login_hint.find('@') == -1:
       Cmd.Backup()
       login_hint = None
-    projectId = getString(Cmd.OB_STRING, optional=True, minLen=6, maxLen=30).strip()
-    if projectId:
-      _checkProjectId(projectId)
+    projectInfo['projectId'] = getString(Cmd.OB_STRING, optional=True, minLen=6, maxLen=30).strip()
+    if projectInfo['projectId']:
+      _checkProjectId(projectInfo['projectId'])
     checkForExtraneousArguments()
   else:
     while Cmd.ArgumentsRemaining():
@@ -7649,42 +7686,55 @@ def _getLoginHintProjectId(createCmd):
       if myarg == 'admin':
         login_hint = getEmailAddress(noUid=True)
       elif myarg == 'project':
-        projectId = getString(Cmd.OB_STRING, minLen=6, maxLen=30)
-        _checkProjectId(projectId)
+        projectInfo['projectId'] = getString(Cmd.OB_STRING, minLen=6, maxLen=30)
+        _checkProjectId(projectInfo['projectId'])
       elif createCmd and myarg == 'parent':
-        parent = getString(Cmd.OB_STRING)
+        projectInfo['parent'] = getString(Cmd.OB_STRING)
+      elif myarg == 'projectname':
+        projectInfo['name'] = getString(Cmd.OB_STRING, minLen=4, maxLen=30)
+        _checkProjectName(projectInfo['name'])
+      elif _getSvcAcctInfo(myarg, svcAcctInfo):
+        pass
       else:
         unknownArgumentExit()
-  if not projectId:
+  if not projectInfo['projectId']:
     if createCmd:
-      projectId = 'gam-project'
+      projectInfo['projectId'] = 'gam-project'
       for _ in range(3):
-        projectId += '-{0}'.format(''.join(random.choice(LOWERNUMERIC_CHARS) for _ in range(3)))
+        projectInfo['projectId'] += '-{0}'.format(''.join(random.choice(LOWERNUMERIC_CHARS) for _ in range(3)))
     else:
-      projectId = readStdin('\nWhat is your API project ID? ').strip()
-      if not PROJECTID_PATTERN.match(projectId):
+      projectInfo['projectId'] = readStdin('\nWhat is your API project ID? ').strip()
+      if not PROJECTID_PATTERN.match(projectInfo['projectId']):
         systemErrorExit(USAGE_ERROR_RC, '{0} {1}: {2} <{3}>'.format(Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1], Cmd.OB_PROJECT_ID,
                                                                     Msg.EXPECTED, PROJECTID_FORMAT_REQUIRED))
+  if not projectInfo['name']:
+    projectInfo['name'] = 'GAM Project'
+  if not svcAcctInfo['name']:
+    svcAcctInfo['name'] = projectInfo['projectId']
+  if not svcAcctInfo['displayName']:
+    svcAcctInfo['displayName'] = projectInfo['name']
+  if not svcAcctInfo['description']:
+    svcAcctInfo['description'] = svcAcctInfo['displayName']
   login_hint = _getValidateLoginHint(login_hint)
-  crm, httpObj = getCRMService(login_hint)
-  if parent and not parent.startswith('organizations/') and not parent.startswith('folders/'):
-    crm2 = getCRM2Service(httpObj)
-    parent = convertGCPFolderNameToID(parent, crm2)
-  if parent:
-    parent_type, parent_id = parent.split('/')
+  httpObj, crm = getCRMService(login_hint)
+  if projectInfo['parent'] and not projectInfo['parent'].startswith('organizations/') and not projectInfo['parent'].startswith('folders/'):
+    crm2 = getAPIService(API.CLOUDRESOURCEMANAGER_V2, httpObj)
+    projectInfo['parent'] = convertGCPFolderNameToID(projectInfo['parent'], crm2)
+  if projectInfo['parent']:
+    parent_type, parent_id = projectInfo['parent'].split('/')
     if parent_type[-1] == 's':
       parent_type = parent_type[:-1] # folders > folder, organizations > organization
-    parent = {'type': parent_type, 'id': parent_id}
-  projects = _getProjects(crm, 'id:{0}'.format(projectId))
+    projectInfo['parent'] = {'type': parent_type, 'id': parent_id}
+  projects = _getProjects(crm, 'id:{0}'.format(projectInfo['projectId']))
   if not createCmd:
     if not projects:
-      entityActionFailedExit([Ent.USER, login_hint, Ent.PROJECT, projectId], Msg.DOES_NOT_EXIST)
+      entityActionFailedExit([Ent.USER, login_hint, Ent.PROJECT, projectInfo['projectId']], Msg.DOES_NOT_EXIST)
     if projects[0]['lifecycleState'] != 'ACTIVE':
-      entityActionFailedExit([Ent.USER, login_hint, Ent.PROJECT, projectId], Msg.NOT_ACTIVE)
+      entityActionFailedExit([Ent.USER, login_hint, Ent.PROJECT, projectInfo['projectId']], Msg.NOT_ACTIVE)
   else:
     if projects:
-      entityActionFailedExit([Ent.USER, login_hint, Ent.PROJECT, projectId], Msg.DUPLICATE)
-  return (crm, httpObj, login_hint, projectId, parent)
+      entityActionFailedExit([Ent.USER, login_hint, Ent.PROJECT, projectInfo['projectId']], Msg.DUPLICATE)
+  return (crm, httpObj, login_hint, projectInfo, svcAcctInfo)
 
 def _getCurrentProjectID():
   cs_data = readFile(GC.Values[GC.CLIENT_SECRETS_JSON], continueOnError=True, displayError=True)
@@ -7695,32 +7745,35 @@ def _getCurrentProjectID():
   except (ValueError, IndexError, KeyError):
     invalidClientSecretsJsonExit()
 
-PROJECTID_FILTER_REQUIRED = 'gam|<ProjectID>|(filter <String>)'
-PROJECTS_FILTER_OPTIONS = {'all', 'gam', 'filter'}
-PROJECTS_ADDSVCACCT_OPTIONS = {'name', 'displayname'}
+GAM_PROJECT_FILTER = 'id:gam-project-*'
+PROJECTID_FILTER_REQUIRED = 'current|gam|<ProjectID>|(filter <String>)'
+PROJECTS_ADDSVCACCT_OPTIONS = {'name', 'sadisplayname', 'sadescription'}
+PROJECTS_DELETESVCACCT_OPTIONS = {'email', 'name', 'uniqueid'}
 PROJECTS_PRINTSHOW_OPTIONS = {'todrive', 'formatjson', 'quotechar'}
 
-def _getLoginHintProjects():
-  action = Act.Get()
-  printShowCmd = action in [Act.PRINT, Act.SHOW]
-  addSvcAcctCmd = action == Act.ADD_SVCACCT
+def _getLoginHintProjects(addSvcAcctCmd=False, deleteSvcAcctCmd=False, printShowCmd=False):
   login_hint = getString(Cmd.OB_EMAIL_ADDRESS, optional=True)
   if login_hint and login_hint.find('@') == -1:
     Cmd.Backup()
     login_hint = None
   pfilter = getString(Cmd.OB_STRING, optional=True)
   if not pfilter:
-    pfilter = 'current' if not printShowCmd else 'id:gam-project-*'
+    pfilter = 'current' if not printShowCmd else GAM_PROJECT_FILTER
   elif printShowCmd and pfilter in PROJECTS_PRINTSHOW_OPTIONS:
-    pfilter = 'id:gam-project-*'
+    pfilter = GAM_PROJECT_FILTER
     Cmd.Backup()
   elif addSvcAcctCmd and pfilter in PROJECTS_ADDSVCACCT_OPTIONS:
     pfilter = 'current'
     Cmd.Backup()
+  elif deleteSvcAcctCmd and pfilter in PROJECTS_DELETESVCACCT_OPTIONS:
+    pfilter = 'current'
+    Cmd.Backup()
   elif printShowCmd and pfilter.lower() == 'all':
     pfilter = None
+  elif pfilter.lower() == 'current':
+    pfilter = 'current'
   elif pfilter.lower() == 'gam':
-    pfilter = 'id:gam-project-*'
+    pfilter = GAM_PROJECT_FILTER
   elif pfilter.lower() == 'filter':
     pfilter = getString(Cmd.OB_STRING)
   elif PROJECTID_PATTERN.match(pfilter):
@@ -7728,10 +7781,10 @@ def _getLoginHintProjects():
   else:
     Cmd.Backup()
     invalidArgumentExit(['', 'all|'][printShowCmd]+PROJECTID_FILTER_REQUIRED)
-  if not printShowCmd and not addSvcAcctCmd:
+  if not printShowCmd and not addSvcAcctCmd and not deleteSvcAcctCmd:
     checkForExtraneousArguments()
   login_hint = _getValidateLoginHint(login_hint)
-  crm, httpObj = getCRMService(login_hint)
+  httpObj, crm = getCRMService(login_hint)
   if pfilter in {'current', 'id:current'}:
     projectID = _getCurrentProjectID()
     if not printShowCmd:
@@ -7748,23 +7801,25 @@ def _checkForExistingProjectFiles(projectFiles):
       systemErrorExit(JSON_ALREADY_EXISTS_RC, Msg.AUTHORIZATION_FILE_ALREADY_EXISTS.format(a_file, Act.ToPerform()))
 
 # gam create project [<EmailAddress>] [<ProjectID>]
-# gam create project [admin <EmailAddress>] [project <ProjectID>] [parent <String>]
+# gam create project [admin <EmailAddress>] [project <ProjectID>]
+#	[projectname <ProjectName>] [parent <String>]
+#	[saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>>] [sadescription <ServiceAccountDescription>]
 def doCreateProject():
   _checkForExistingProjectFiles([GC.Values[GC.OAUTH2SERVICE_JSON], GC.Values[GC.CLIENT_SECRETS_JSON]])
-  crm, httpObj, login_hint, projectId, parent = _getLoginHintProjectId(True)
+  crm, httpObj, login_hint, projectInfo, svcAcctInfo = _getLoginHintProjectInfo(True)
   login_domain = getEmailAddressDomain(login_hint)
-  body = {'projectId': projectId, 'name': 'GAM Project'}
-  if parent:
-    body['parent'] = parent
+  body = {'projectId': projectInfo['projectId'], 'name': projectInfo['name']}
+  if projectInfo['parent']:
+    body['parent'] = projectInfo['parent']
   while True:
     create_again = False
     sys.stdout.write('Creating project "{0}"...\n'.format(body['name']))
     try:
       create_operation = callGAPI(crm.projects(), 'create',
-                                  throw_reasons=[GAPI.BAD_REQUEST],
+                                  throw_reasons=[GAPI.BAD_REQUEST, GAPI.ALREADY_EXISTS],
                                   body=body)
-    except GAPI.badRequest as e:
-      entityActionFailedExit([Ent.USER, login_hint, Ent.PROJECT, projectId], str(e))
+    except (GAPI.badRequest, GAPI.alreadyExists) as e:
+      entityActionFailedExit([Ent.USER, login_hint, Ent.PROJECT, projectInfo['projectId']], str(e))
     operation_name = create_operation['name']
     time.sleep(5) # Google recommends always waiting at least 5 seconds
     for i in range(1, 5):
@@ -7826,45 +7881,17 @@ and accept the Terms of Service (ToS). As soon as you've accepted the ToS popup,
     elif 'error' in status:
       systemErrorExit(2, status['error']+'\n')
     break
-  _createClientSecretsOauth2service(httpObj, projectId)
+  _createClientSecretsOauth2service(httpObj, projectInfo, svcAcctInfo)
 
 # gam use project [<EmailAddress>] [<ProjectID>]
 # gam use project [admin <EmailAddress>] [project <ProjectID>]
+#	[saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>>] [sadescription <ServiceAccountDescription>]
 def doUseProject():
   _checkForExistingProjectFiles([GC.Values[GC.OAUTH2SERVICE_JSON], GC.Values[GC.CLIENT_SECRETS_JSON]])
-  _, httpObj, _, projectId, _ = _getLoginHintProjectId(False)
-  _createClientSecretsOauth2service(httpObj, projectId)
+  _, httpObj, _, projectInfo, svcAcctInfo = _getLoginHintProjectInfo(False)
+  _createClientSecretsOauth2service(httpObj, projectInfo, svcAcctInfo)
 
-# gam addsvcacct project [<EmailAddress>] [gam|<ProjectID>|(filter <String>)]
-#	name <ServiceAccountName> [displayname <String>]
-def doAddSvcAcctProject():
-  _checkForExistingProjectFiles([GC.Values[GC.OAUTH2SERVICE_JSON]])
-  _, httpObj, login_hint, projects = _getLoginHintProjects()
-  name = displayName = ''
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == 'name':
-      name = getString(Cmd.OB_STRING, minLen=6, maxLen=30).strip()
-      _checkProjectId(name)
-    elif myarg == 'displayname':
-      displayName = getString(Cmd.OB_STRING, maxLen=100)
-    else:
-      unknownArgumentExit()
-  if not name:
-    missingArgumentExit('name')
-  if not displayName:
-    displayName = name
-  count = len(projects)
-  entityPerformActionNumItems([Ent.USER, login_hint], count, Ent.PROJECT)
-  Ind.Increment()
-  i = 0
-  for project in projects:
-    i += 1
-    projectId = project['projectId']
-    _createOauth2serviceJSON(httpObj, projectId, name, displayName)
-  Ind.Decrement()
-
-# gam update project [<EmailAddress>] [gam|<ProjectID>|(filter <String>)]
+# gam update project [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
 def doUpdateProject():
   _, httpObj, login_hint, projects = _getLoginHintProjects()
   count = len(projects)
@@ -7876,9 +7903,12 @@ def doUpdateProject():
     projectId = project['projectId']
     Act.Set(Act.UPDATE)
     enableGAMProjectAPIs(httpObj, projectId, True, i, count)
+    iam = getAPIService(API.IAM, httpObj)
+    _getSvcAcctData() # needed to read in GM.OAUTH2SERVICE_JSON_DATA
+    _grantSARotateRights(iam, projectId, GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email'])
   Ind.Decrement()
 
-# gam delete project [<EmailAddress>] [gam|<ProjectID>|(filter <String>)]
+# gam delete project [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
 def doDeleteProject():
   crm, _, login_hint, projects = _getLoginHintProjects()
   count = len(projects)
@@ -7897,10 +7927,10 @@ def doDeleteProject():
       entityActionFailedWarning([Ent.PROJECT, projectId], str(e))
   Ind.Decrement()
 
-# gam print projects [<EmailAddress>] [all|gam|<ProjectID>|(filter <String>)] [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
-# gam show projects [<EmailAddress>] [all|gam|<ProjectID>|(filter <String>)]
+# gam print projects [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)] [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
+# gam show projects [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
 def doPrintShowProjects():
-  _, _, login_hint, projects = _getLoginHintProjects()
+  _, _, login_hint, projects = _getLoginHintProjects(printShowCmd=True)
   csvPF = CSVPrintFile('User') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   if csvPF:
@@ -7910,6 +7940,8 @@ def doPrintShowProjects():
         csvPF.GetTodriveParameters()
       else:
         FJQC.GetFormatJSONQuoteChar(myarg, True)
+  else:
+    checkForExtraneousArguments()
   if not csvPF:
     count = len(projects)
     entityPerformActionNumItems([Ent.USER, login_hint], count, Ent.PROJECT)
@@ -7949,6 +7981,385 @@ def doPrintShowProjects():
         if not csvPF.rowFilter or csvPF.CheckRowTitles(flattenJSON(project, flattened={'User': login_hint}, timeObjects=['createTime'])):
           csvPF.WriteRowNoFilter({'User': login_hint, 'JSON': json.dumps(cleanJSON(project, timeObjects=['createTime']), ensure_ascii=False, sort_keys=True)})
     csvPF.writeCSVfile('Projects')
+
+# gam create|add svcacct [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
+#	saname <ServiceAccountName> [sadisplayname <ServiceAccountDisplayName>>] [sadescription <ServiceAccountDescription>]
+def doCreateSvcAcct():
+  _checkForExistingProjectFiles([GC.Values[GC.OAUTH2SERVICE_JSON]])
+  _, httpObj, login_hint, projects = _getLoginHintProjects(addSvcAcctCmd=True)
+  svcAcctInfo = {'name': '', 'displayName': '', 'description': ''}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if _getSvcAcctInfo(myarg, svcAcctInfo):
+      pass
+    else:
+      unknownArgumentExit()
+  if not svcAcctInfo['name']:
+    missingArgumentExit('saname')
+  if not svcAcctInfo['displayName']:
+    svcAcctInfo['displayName'] = svcAcctInfo['name']
+  if not svcAcctInfo['description']:
+    svcAcctInfo['description'] = svcAcctInfo['displayName']
+  count = len(projects)
+  entityPerformActionSubItemModifierNumItems([Ent.USER, login_hint], Ent.SVCACCT, Act.MODIFIER_TO, count, Ent.PROJECT)
+  Ind.Increment()
+  i = 0
+  for project in projects:
+    i += 1
+    projectInfo = {'projectId': project['projectId']}
+    _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo)
+  Ind.Decrement()
+
+# gam delete svcacct [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
+#	(email <ServiceAccountEmail>)|(saname <ServiceAccountName>)|(uniqueid <ServiceAccountUniqueID>)
+def doDeleteSvcAcct():
+  _, httpObj, login_hint, projects = _getLoginHintProjects(deleteSvcAcctCmd=True)
+  iam = getAPIService(API.IAM, httpObj)
+  clientEmail = clientId = clientName = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'email':
+      clientEmail = getEmailAddress(noUid=True)
+      clientName = clientId = None
+    elif myarg == 'saname':
+      clientName = getString(Cmd.OB_STRING, minLen=6, maxLen=30).strip()
+      _checkProjectId(clientName)
+      clientEmail = clientId = None
+    elif myarg == 'uniqueid':
+      clientId = getInteger(minVal=0)
+      clientEmail = clientName = None
+    else:
+      unknownArgumentExit()
+  if not clientEmail and not clientId and not clientName:
+    missingArgumentExit('email|name|uniqueid')
+  count = len(projects)
+  entityPerformActionSubItemModifierNumItems([Ent.USER, login_hint], Ent.SVCACCT, Act.MODIFIER_FROM, count, Ent.PROJECT)
+  Ind.Increment()
+  i = 0
+  for project in projects:
+    i += 1
+    projectId = project['projectId']
+    try:
+      if clientEmail:
+        saName = clientEmail
+      elif clientName:
+        saName = '{1}@{0}.iam.gserviceaccount.com'.format(projectId, clientName)
+      else: #clientId
+        saName = clientId
+      callGAPI(iam.projects().serviceAccounts(), 'delete',
+               throw_reasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST],
+               name='projects/{0}/serviceAccounts/{1}'.format(projectId, saName))
+      entityActionPerformed([Ent.PROJECT, projectId, Ent.SVCACCT, saName], i, count)
+    except (GAPI.notFound, GAPI.badRequest) as e:
+      entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, saName], str(e), i, count)
+    Ind.Decrement()
+
+SVCACCT_DISPLAY_FIELDS = ['displayName', 'description', 'oauth2ClientId', 'uniqueId', 'disabled']
+
+# gam print svcaccts [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)] [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
+# gam show svcaccts [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
+def doPrintShowSvcAccts():
+  _, httpObj, login_hint, projects = _getLoginHintProjects(printShowCmd=True)
+  csvPF = CSVPrintFile('User') if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  iam = getAPIService(API.IAM, httpObj)
+  if csvPF:
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if csvPF and myarg == 'todrive':
+        csvPF.GetTodriveParameters()
+      else:
+        FJQC.GetFormatJSONQuoteChar(myarg, True)
+  else:
+    checkForExtraneousArguments()
+  count = len(projects)
+  if not csvPF:
+    entityPerformActionSubItemModifierNumItems([Ent.USER, login_hint], Ent.SVCACCT, Act.MODIFIER_FOR, count, Ent.PROJECT)
+  else:
+    csvPF.AddTitles(['projectId']+SVCACCT_DISPLAY_FIELDS)
+    csvPF.SetSortAllTitles()
+  Ind.Increment()
+  i = 0
+  for project in projects:
+    i += 1
+    projectId = project['projectId']
+    if csvPF:
+      printGettingAllEntityItemsForWhom(Ent.SVCACCT, projectId, i, count)
+    try:
+      svcAccts = callGAPIpages(iam.projects().serviceAccounts(), 'list', 'accounts',
+                               throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                               name='projects/{0}'.format(projectId))
+      jcount = len(svcAccts)
+      if not csvPF:
+        entityPerformActionNumItems([Ent.PROJECT, projectId], jcount, Ent.SVCACCT, i, count)
+        Ind.Increment()
+        j = 0
+        for svcAcct in svcAccts:
+          j += 1
+          printKeyValueListWithCount(['email', svcAcct['email']], j, jcount)
+          Ind.Increment()
+          for field in SVCACCT_DISPLAY_FIELDS:
+            if field in svcAcct:
+              printKeyValueList([field, svcAcct[field]])
+          Ind.Decrement()
+        Ind.Decrement()
+      else:
+        if not FJQC.formatJSON:
+          for svcAcct in svcAccts:
+            csvPF.WriteRowTitles(flattenJSON(svcAcct, flattened={'User': login_hint}))
+        else:
+          for svcAcct in svcAccts:
+            if not csvPF.rowFilter or csvPF.CheckRowTitles(flattenJSON(svcAcct, flattened={'User': login_hint})):
+              csvPF.WriteRowNoFilter({'User': login_hint, 'JSON': json.dumps(cleanJSON(svcAcct), ensure_ascii=False, sort_keys=True)})
+    except (GAPI.notFound, GAPI.permissionDenied) as e:
+      entityActionFailedWarning([Ent.PROJECT, projectId], str(e))
+  Ind.Decrement()
+  if csvPF:
+    csvPF.writeCSVfile('Service Accounts')
+
+def _generatePrivateKeyAndPublicCert(projectId, clientEmail, name, key_size):
+  printEntityMessage([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.GENERATING_NEW_PRIVATE_KEY)
+  private_key = rsa.generate_private_key(public_exponent=65537, key_size=key_size, backend=default_backend())
+  private_pem = private_key.private_bytes(encoding=serialization.Encoding.PEM,
+                                          format=serialization.PrivateFormat.PKCS8,
+                                          encryption_algorithm=serialization.NoEncryption()).decode()
+  printEntityMessage([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.EXTRACTING_PUBLIC_CERTIFICATE)
+  public_key = private_key.public_key()
+  builder = x509.CertificateBuilder()
+  builder = builder.subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)]))
+  builder = builder.issuer_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)]))
+  not_valid_before = datetime.datetime.today() - datetime.timedelta(days=1)
+  not_valid_after = datetime.datetime.today() + datetime.timedelta(days=365*10)
+  builder = builder.not_valid_before(not_valid_before)
+  builder = builder.not_valid_after(not_valid_after)
+  builder = builder.serial_number(x509.random_serial_number())
+  builder = builder.public_key(public_key)
+  builder = builder.add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
+  builder = builder.add_extension(x509.KeyUsage(key_cert_sign=False,
+                                                crl_sign=False, digital_signature=True, content_commitment=False,
+                                                key_encipherment=False, data_encipherment=False, key_agreement=False,
+                                                encipher_only=False, decipher_only=False), critical=True)
+  builder = builder.add_extension(x509.ExtendedKeyUsage([x509.oid.ExtendedKeyUsageOID.SERVER_AUTH]), critical=True)
+  certificate = builder.sign(private_key=private_key, algorithm=hashes.SHA256(), backend=default_backend())
+  public_cert_pem = certificate.public_bytes(serialization.Encoding.PEM).decode()
+  publicKeyData = base64.b64encode(public_cert_pem.encode())
+  if isinstance(publicKeyData, bytes):
+    publicKeyData = publicKeyData.decode()
+  printEntityMessage([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.DONE_GENERATING_PRIVATE_KEY_AND_PUBLIC_CERTIFICATE)
+  return (private_pem, publicKeyData)
+
+def _formatOAuth2ServiceData(projectId, clientEmail, clientId, private_key, private_key_id):
+  GM.Globals[GM.OAUTH2SERVICE_JSON_DATA] = {
+    'auth_provider_x509_cert_url': 'https://www.googleapis.com/oauth2/v1/certs',
+    'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
+    'client_email': clientEmail,
+    'client_id': clientId,
+    'client_x509_cert_url': 'https://www.googleapis.com/robot/v1/metadata/x509/{0}'.format(quote(clientEmail)),
+    'private_key': private_key,
+    'private_key_id': private_key_id,
+    'project_id': projectId,
+    'token_uri': 'https://oauth2.googleapis.com/token',
+    'type': 'service_account',
+    }
+  return json.dumps(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA], indent=2, sort_keys=True)
+
+# gam rotate sakey|sakeys [retain_none|retain_existing|replace_current]
+#	[(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
+def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, clientId=None):
+  local_key_size = 2048
+  body = {}
+  if iam is None:
+    _, iam = buildGAPIServiceObject(API.IAM, None)
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if myarg == 'algorithm':
+        body['keyAlgorithm'] = getChoice(["key_alg_rsa_1024", "key_alg_rsa_2048"]).upper()
+        local_key_size = 0
+      elif myarg == 'localkeysize':
+        local_key_size = int(getChoice(['1024', '2048', '4096']))
+      elif mode is None and myarg in ['retainnone', 'retainexisting', 'replacecurrent']:
+        mode = myarg
+      else:
+        unknownArgumentExit()
+    if mode is None:
+      mode = 'retainnone'
+    currentPrivateKeyId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['private_key_id']
+    projectId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id']
+    clientEmail = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']
+    clientId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
+  name = 'projects/-/serviceAccounts/{0}'.format(clientId)
+  if mode != 'retainexisting':
+    try:
+      keys = callGAPIitems(iam.projects().serviceAccounts().keys(), 'list', 'keys',
+                           throw_reasons=[GAPI.BAD_REQUEST],
+                           name=name, keyTypes='USER_MANAGED')
+    except GAPI.badRequest as e:
+      entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
+      return
+  if local_key_size:
+    Act.Set(Act.UPLOAD)
+    private_key, publicKeyData = _generatePrivateKeyAndPublicCert(projectId, clientEmail, name, local_key_size)
+    try:
+      result = callGAPI(iam.projects().serviceAccounts().keys(), 'upload',
+                        throw_reasons=[GAPI.BAD_REQUEST],
+                        name=name, body={'publicKeyData': publicKeyData})
+    except GAPI.badRequest as e:
+      entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
+      return
+    private_key_id = result['name'].rsplit('/', 1)[-1]
+    oauth2service_data = _formatOAuth2ServiceData(projectId, clientEmail, clientId, private_key, private_key_id)
+  else:
+    Act.Set(Act.CREATE)
+    try:
+      result = callGAPI(iam.projects().serviceAccounts().keys(), 'create',
+                        throw_reasons=[GAPI.BAD_REQUEST],
+                        name=name, body=body)
+    except GAPI.badRequest as e:
+      entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
+      return
+    oauth2service_data = base64.b64decode(result['privateKeyData']).decode(UTF8)
+    private_key_id = result['name'].rsplit('/', 1)[-1]
+  entityActionPerformed([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail, Ent.SVCACCT_KEY, private_key_id])
+  if GM.Globals[GM.SVCACCT_SCOPES_DEFINED]:
+    try:
+      GM.Globals[GM.OAUTH2SERVICE_JSON_DATA] = json.loads(oauth2service_data)
+    except (ValueError, IndexError, KeyError):
+      invalidOauth2serviceJsonExit()
+    GM.Globals[GM.OAUTH2SERVICE_JSON_DATA][API.OAUTH2SA_SCOPES] = GM.Globals[GM.SVCACCT_SCOPES]
+    oauth2service_data = json.dumps(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA], ensure_ascii=False, sort_keys=True, indent=2)
+  writeFile(GC.Values[GC.OAUTH2SERVICE_JSON], oauth2service_data, continueOnError=False)
+  Act.Set(Act.UPDATE)
+  entityActionPerformed([Ent.OAUTH2SERVICE_JSON_FILE, GC.Values[GC.OAUTH2SERVICE_JSON],
+                         Ent.SVCACCT_KEY, private_key_id])
+  if mode != 'retainexisting':
+    Act.Set(Act.REVOKE)
+    count = len(keys) if mode == 'retainnone' else 1
+    entityPerformActionNumItems([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], count, Ent.SVCACCT_KEY)
+    Ind.Increment()
+    i = 0
+    for key in keys:
+      keyName = key['name'].rsplit('/', 1)[-1]
+      if mode == 'retainnone' or keyName == currentPrivateKeyId:
+        i += 1
+        try:
+          callGAPI(iam.projects().serviceAccounts().keys(), 'delete',
+                   throw_reasons=[GAPI.BAD_REQUEST],
+                   name=key['name'])
+          entityActionPerformed([Ent.SVCACCT_KEY, keyName], i, count)
+        except GAPI.badRequest as e:
+          entityActionFailedWarning([Ent.SVCACCT_KEY, keyName], str(e), i, count)
+        if mode != 'retainnone':
+          break
+    Ind.Decrement()
+
+# gam create sakey|sakeys [(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
+def doCreateSvcAcctKeys():
+  doProcessSvcAcctKeys(mode='retainexisting')
+
+# gam update sakey|sakeys [(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
+def doUpdateSvcAcctKeys():
+  doProcessSvcAcctKeys(mode='replacecurrent')
+
+# gam replace sakey|sakeys [(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
+def doReplaceSvcAcctKeys():
+  doProcessSvcAcctKeys(mode='retainnone')
+
+# gam delete sakeys <ServiceAccountKeyList>
+def doDeleteSvcAcctKeys():
+  _, iam = buildGAPIServiceObject(API.IAM, None)
+  doit = False
+  keyList = []
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'doit':
+      doit = True
+    else:
+      Cmd.Backup()
+      keyList.extend(getString(Cmd.OB_SERVICE_ACCOUNT_KEY_LIST, minLen=0).strip().replace(',', ' ').split())
+  currentPrivateKeyId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['private_key_id']
+  projectId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id']
+  clientEmail = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']
+  clientId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
+  name = 'projects/-/serviceAccounts/{0}'.format(clientId)
+  try:
+    keys = callGAPIitems(iam.projects().serviceAccounts().keys(), 'list', 'keys',
+                         throw_reasons=[GAPI.BAD_REQUEST],
+                         name=name, keyTypes='USER_MANAGED')
+  except GAPI.badRequest as e:
+    entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
+    return
+  Act.Set(Act.REVOKE)
+  count = len(keyList)
+  entityPerformActionNumItems([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], count, Ent.SVCACCT_KEY)
+  Ind.Increment()
+  i = 0
+  for dkeyName in keyList:
+    i += 1
+    for key in keys:
+      keyName = key['name'].rsplit('/', 1)[-1]
+      if keyName == dkeyName:
+        if keyName == currentPrivateKeyId and not doit:
+          entityActionNotPerformedWarning([Ent.SVCACCT_KEY, keyName],
+                                          Msg.USE_DOIT_ARGUMENT_TO_PERFORM_ACTION+Msg.ON_CURRENT_PRIVATE_KEY, i, count)
+          break
+        try:
+          callGAPI(iam.projects().serviceAccounts().keys(), 'delete',
+                   throw_reasons=[GAPI.BAD_REQUEST],
+                   name=key['name'])
+          entityActionPerformed([Ent.SVCACCT_KEY, keyName], i, count)
+        except GAPI.badRequest as e:
+          entityActionFailedWarning([Ent.SVCACCT_KEY, keyName], str(e), i, count)
+        break
+    else:
+      entityActionNotPerformedWarning([Ent.SVCACCT_KEY, dkeyName], Msg.NOT_FOUND, i, count)
+  Ind.Decrement()
+
+# gam show sakeys [all|system|user]
+def doShowSvcAcctKeys():
+  _, iam = buildGAPIServiceObject(API.IAM, None)
+  keyTypes = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'all':
+      keyTypes = None
+    elif myarg in ['system', 'systemmanaged']:
+      keyTypes = 'SYSTEM_MANAGED'
+    elif myarg in ['user', 'usermanaged']:
+      keyTypes = 'USER_MANAGED'
+    else:
+      unknownArgumentExit()
+  currentPrivateKeyId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['private_key_id']
+  projectId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id']
+  clientEmail = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']
+  clientId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
+  name = 'projects/-/serviceAccounts/{0}'.format(clientId)
+  try:
+    keys = callGAPIitems(iam.projects().serviceAccounts().keys(), 'list', 'keys',
+                         throw_reasons=[GAPI.BAD_REQUEST],
+                         name=name, keyTypes=keyTypes)
+  except GAPI.badRequest as e:
+    entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
+    return
+  count = len(keys)
+  entityPerformActionNumItems([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], count, Ent.SVCACCT_KEY)
+  if count == 0:
+    return
+  Ind.Increment()
+  i = 0
+  for key in keys:
+    i += 1
+    keyName = key.pop('name').rsplit('/', 1)[-1]
+    printKeyValueListWithCount(['name', keyName], i, count)
+    Ind.Increment()
+    for k, v in sorted(iter(key.items())):
+      if k not in ['validAfterTime', 'validBeforeTime']:
+        printKeyValueList([k, v])
+      else:
+        printKeyValueList([k, formatLocalTime(v)])
+    if keyName == currentPrivateKeyId:
+      printKeyValueList(['usedToAuthenticateThisRequest', True])
+    Ind.Decrement()
+  Ind.Decrement()
 
 # gam whatis <EmailItem> [noinfo]
 def doWhatIs():
@@ -19935,6 +20346,9 @@ def _createCalendarEvents(user, cal, function, calIds, count,
     if eventRecurrenceTimeZoneRequired and not _setEventRecurrenceTimeZone(cal, calId, body, i, count):
       continue
     event = {'id': body.get('id', 'Unknown')}
+    if function == 'import' and body.get('status', '') == 'cancelled':
+      entityActionNotPerformedWarning([Ent.CALENDAR, calId, Ent.EVENT, body.get('iCalUID', event['id'])], Msg.EVENT_IS_CANCELED, count)
+      continue
     try:
       if function == 'insert':
         event = callGAPI(cal.events(), 'insert',
@@ -20166,19 +20580,17 @@ def _printShowCalendarEvents(origUser, user, cal, calIds, count, calendarEventEn
         row['events'] = jcount
         csvPF.WriteRow(row)
 
-def _getCalendarCreateImportEventOptions(function):
+def _getCalendarCreateImportUpdateEventOptions(function):
   body = {}
   parameters = {'sendUpdates': 'none'}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if not _getCalendarEventAttribute(myarg, body, parameters, function):
       unknownArgumentExit()
-  if (function == 'import') and ('iCalUID' not in body):
-    missingArgumentExit(Cmd.OB_ICALUID)
   return (body, parameters)
 
 def _doCalendarsCreateImportEvent(cal, calIds, function):
-  body, parameters = _getCalendarCreateImportEventOptions(function)
+  body, parameters = _getCalendarCreateImportUpdateEventOptions(function)
   _createCalendarEvents(None, cal, function, calIds, len(calIds),
                         _checkIfEventRecurrenceTimeZoneRequired(body, parameters), parameters['sendUpdates'], body)
 
@@ -20191,21 +20603,10 @@ def doCalendarsCreateEvent(cal, calIds):
 def doCalendarsImportEvent(cal, calIds):
   _doCalendarsCreateImportEvent(cal, calIds, 'import')
 
-def _getCalendarUpdateEventOptions():
-  body = {}
-  parameters = {'sendUpdates': 'none'}
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if _getCalendarEventAttribute(myarg, body, parameters, 'update'):
-      pass
-    else:
-      unknownArgumentExit()
-  return (body, parameters)
-
 # gam calendars <CalendarEntity> update event <EventEntity> <EventUpdateAttributes>+
 def doCalendarsUpdateEvents(cal, calIds):
   calendarEventEntity = getCalendarEventEntity()
-  body, parameters = _getCalendarUpdateEventOptions()
+  body, parameters = _getCalendarCreateImportUpdateEventOptions('update')
   _updateDeleteCalendarEvents(None, None, cal, calIds, len(calIds), 'patch', calendarEventEntity, True,
                               _checkIfEventRecurrenceTimeZoneRequired(body, parameters), body,
                               {'supportsAttachments': True, 'body': body, 'sendUpdates': parameters['sendUpdates'], 'fields': ''})
@@ -24064,7 +24465,8 @@ def infoUsers(entityList):
   getAliases = getBuildingNames = getGroups = getLicenses = getSchemas = True
   FJQC = FormatJSONQuoteChar()
   projection = 'full'
-  customFieldMask = viewType = None
+  customFieldMask = None
+  viewType = 'admin_view'
   fieldsList = []
   groups = []
   licenses = []
@@ -24118,7 +24520,7 @@ def infoUsers(entityList):
     userEmail = normalizeEmailAddressOrUID(userEmail)
     try:
       user = callGAPI(cd.users(), 'get',
-                      throw_reasons=GAPI.USER_GET_THROW_REASONS+[GAPI.INVALID_INPUT],
+                      throw_reasons=GAPI.USER_GET_THROW_REASONS+[GAPI.INVALID_INPUT, GAPI.RESOURCE_NOT_FOUND],
                       userKey=userEmail, projection=projection, customFieldMask=customFieldMask, viewType=viewType, fields=fields)
       if getGroups:
         groups = callGAPIpages(cd.groups(), 'list', 'groups',
@@ -24374,7 +24776,7 @@ def infoUsers(entityList):
           printKeyValueList([SKU.formatSKUIdDisplayName(u_license)])
         Ind.Decrement()
       Ind.Decrement()
-    except GAPI.userNotFound:
+    except (GAPI.userNotFound, GAPI.resourceNotFound):
       entityUnknownWarning(Ent.USER, userEmail, i, count)
     except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError) as e:
       entityActionFailedWarning([Ent.USER, userEmail], str(e), i, count)
@@ -24487,7 +24889,8 @@ def doPrintUsers(entityList=None):
   projectionSet = False
   customFieldMask = None
   showDeleted = False
-  isSuspended = orderBy = sortOrder = viewType = None
+  isSuspended = orderBy = sortOrder = None
+  viewType = 'admin_view'
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -29482,7 +29885,7 @@ def transferCalendars(users):
 
 def _createImportCalendarEvent(users, function):
   calendarEntity = getUserCalendarEntity()
-  body, parameters = _getCalendarCreateImportEventOptions(function)
+  body, parameters = _getCalendarCreateImportUpdateEventOptions(function)
   eventRecurrenceTimeZoneRequired = _checkIfEventRecurrenceTimeZoneRequired(body, parameters)
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -29507,7 +29910,7 @@ def importCalendarEvent(users):
 def updateCalendarEvents(users):
   calendarEntity = getUserCalendarEntity()
   calendarEventEntity = getCalendarEventEntity()
-  body, parameters = _getCalendarUpdateEventOptions()
+  body, parameters = _getCalendarCreateImportUpdateEventOptions('update')
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -41023,7 +41426,7 @@ def printShowDelegates(users):
             status = delegate['verificationStatus']
             delegateEmail = delegate['delegateEmail']
             if cd:
-              writeStdout(convertUTF8toSys('{0},{1},{2},{3}\n'.format(user, _getDelegateName(delegateEmail), status, delegateEmail)))
+              writeStdout('{0},{1},{2},{3}\n'.format(user, _getDelegateName(delegateEmail), status, delegateEmail))
             else:
               writeStdout('{0},{1},{2}\n'.format(user, status, delegateEmail))
       else:
@@ -42482,8 +42885,10 @@ MAIN_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_RESOLDSUBSCRIPTION:	doCreateResoldSubscription,
   Cmd.ARG_RESOURCE:	doCreateResourceCalendar,
   Cmd.ARG_SCHEMA:	doCreateUserSchema,
+  Cmd.ARG_SAKEY:	doCreateSvcAcctKeys,
   Cmd.ARG_SITE:		doCreateDomainSite,
   Cmd.ARG_SITEACL:	doProcessDomainSiteACLs,
+  Cmd.ARG_SVCACCT:	doCreateSvcAcct,
   Cmd.ARG_USER:		doCreateUser,
   Cmd.ARG_VAULTEXPORT:	doCreateVaultExport,
   Cmd.ARG_VAULTHOLD:	doCreateVaultHold,
@@ -42493,7 +42898,6 @@ MAIN_ADD_CREATE_FUNCTIONS = {
 
 MAIN_COMMANDS_WITH_OBJECTS = {
   'add': (Act.ADD, MAIN_ADD_CREATE_FUNCTIONS),
-  'addsvcacct': (Act.ADD_SVCACCT, {Cmd.ARG_PROJECT: doAddSvcAcctProject}),
   'cancel': (Act.CANCEL, {Cmd.ARG_GUARDIANINVITATION: doCancelGuardianInvitation}),
   'clear': (Act.CLEAR, {Cmd.ARG_CONTACT: doClearDomainContacts}),
   'close': (Act.CLOSE, {Cmd.ARG_VAULTMATTER: doCloseVaultMatter}),
@@ -42524,8 +42928,10 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_RESOLDSUBSCRIPTION:	doDeleteResoldSubscription,
       Cmd.ARG_RESOURCE:		doDeleteResourceCalendar,
       Cmd.ARG_RESOURCES:	doDeleteResourceCalendars,
+      Cmd.ARG_SAKEY:		doDeleteSvcAcctKeys,
       Cmd.ARG_SCHEMA:		doDeleteUserSchemas,
       Cmd.ARG_SITEACL:		doProcessDomainSiteACLs,
+      Cmd.ARG_SVCACCT:		doDeleteSvcAcct,
       Cmd.ARG_USER:		doDeleteUser,
       Cmd.ARG_USERS:		doDeleteUsers,
       Cmd.ARG_VAULTEXPORT:	doDeleteVaultExport,
@@ -42618,6 +43024,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_SITE:		doPrintShowDomainSites,
       Cmd.ARG_SITEACL:		doProcessDomainSiteACLs,
       Cmd.ARG_SITEACTIVITY:	doPrintDomainSiteActivity,
+      Cmd.ARG_SVCACCT:		doPrintShowSvcAccts,
       Cmd.ARG_TEAMDRIVE:	doPrintShowTeamDrives,
       Cmd.ARG_TEAMDRIVEACLS:	doPrintShowTeamDriveACLs,
       Cmd.ARG_TOKEN:		doPrintTokens,
@@ -42631,6 +43038,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
     ),
   'register': (Act.REGISTER, {Cmd.ARG_PRINTER: doRegisterPrinter}),
   'reopen': (Act.REOPEN, {Cmd.ARG_VAULTMATTER: doReopenVaultMatter}),
+  'replace': (Act.UPDATE, {Cmd.ARG_SAKEY: doReplaceSvcAcctKeys}),
+  'rotate': (Act.UPDATE, {Cmd.ARG_SAKEY: doProcessSvcAcctKeys}),
   'show':
     (Act.SHOW,
      {Cmd.ARG_ADMINROLES:	doPrintShowAdminRoles,
@@ -42658,9 +43067,11 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_RESOLDSUBSCRIPTION:	doPrintShowResoldSubscriptions,
       Cmd.ARG_RESOURCE:		doPrintShowResourceCalendars,
       Cmd.ARG_RESOURCES:	doPrintShowResourceCalendars,
+      Cmd.ARG_SAKEY:		doShowSvcAcctKeys,
       Cmd.ARG_SCHEMA:		doPrintShowUserSchemas,
       Cmd.ARG_SITE:		doPrintShowDomainSites,
       Cmd.ARG_SITEACL:		doProcessDomainSiteACLs,
+      Cmd.ARG_SVCACCT:		doPrintShowSvcAccts,
       Cmd.ARG_TEAMDRIVE:	doPrintShowTeamDrives,
       Cmd.ARG_TEAMDRIVEACLS:	doPrintShowTeamDriveACLs,
       Cmd.ARG_TEAMDRIVEINFO:	doInfoTeamDrive,
@@ -42696,6 +43107,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_RESOURCE:		doUpdateResourceCalendar,
       Cmd.ARG_RESOURCES:	doUpdateResourceCalendars,
       Cmd.ARG_SCHEMA:		doUpdateUserSchemas,
+      Cmd.ARG_SAKEY:		doUpdateSvcAcctKeys,
       Cmd.ARG_SITE:		doUpdateDomainSites,
       Cmd.ARG_SITEACL:		doProcessDomainSiteACLs,
       Cmd.ARG_TEAMDRIVE:	doUpdateTeamDrive,
@@ -42774,6 +43186,7 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_RESOLDCUSTOMERS:	Cmd.ARG_RESOLDCUSTOMER,
   Cmd.ARG_RESOLDSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
   Cmd.ARG_ROLES:	Cmd.ARG_ADMINROLES,
+  Cmd.ARG_SAKEYS:	Cmd.ARG_SAKEY,
   Cmd.ARG_SCHEMAS:	Cmd.ARG_SCHEMA,
   Cmd.ARG_SHAREDDRIVE:	Cmd.ARG_TEAMDRIVE,
   Cmd.ARG_SHAREDDRIVES:	Cmd.ARG_TEAMDRIVE,
@@ -42782,6 +43195,7 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_SHAREDDRIVETHEMES:	Cmd.ARG_TEAMDRIVETHEMES,
   Cmd.ARG_SITEACLS:	Cmd.ARG_SITEACL,
   Cmd.ARG_SITES:	Cmd.ARG_SITE,
+  Cmd.ARG_SVCACCTS:	Cmd.ARG_SVCACCT,
   Cmd.ARG_TEAMDRIVES:	Cmd.ARG_TEAMDRIVE,
   Cmd.ARG_TOKENS:	Cmd.ARG_TOKEN,
   Cmd.ARG_TRANSFER:	Cmd.ARG_DATATRANSFER,
@@ -43528,7 +43942,7 @@ def ProcessGAMCommand(args, processGamCfg=True):
     showAPICallsRetryData()
     adjustRedirectedSTDFilesIfNotMultiprocessing()
   except socket.error as e:
-    printErrorMessage(SOCKET_ERROR_RC, convertSysToUTF8(str(e)))
+    printErrorMessage(SOCKET_ERROR_RC, str(e))
     showAPICallsRetryData()
     adjustRedirectedSTDFilesIfNotMultiprocessing()
   except MemoryError:

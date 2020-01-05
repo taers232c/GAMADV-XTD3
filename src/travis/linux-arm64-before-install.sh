@@ -4,6 +4,8 @@ echo "We are running on Ubuntu $dist"
 export LD_LIBRARY_PATH=~/ssl/lib:~/python/lib
 cpucount=$(nproc --all)
 echo "This device has $cpucount CPUs for compiling..."
+echo -e "nameserver 8.8.8.8\nnameserver 8.8.4.4" > /tmp/resolv.conf
+sudo cp /tmp/resolv.conf /etc
 sudo apt-get -qq --yes update > /dev/null
 sudo apt-get -qq --yes install xz-utils > /dev/null
 SSLVER=$(~/ssl/bin/openssl version)
