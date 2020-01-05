@@ -7755,6 +7755,7 @@ PROJECTS_DELETESVCACCT_OPTIONS = {'saemail', 'saname', 'sauniqueid'}
 PROJECTS_PRINTSHOW_OPTIONS = {'todrive', 'formatjson', 'quotechar'}
 
 def _getLoginHintProjects(createSvcAcctCmd=False, deleteSvcAcctCmd=False, printShowCmd=False):
+  checkArgumentPresent(['admin'])
   login_hint = getString(Cmd.OB_EMAIL_ADDRESS, optional=True)
   if login_hint and login_hint.find('@') == -1:
     Cmd.Backup()
