@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.98.00'
+__version__ = '4.98.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7315,140 +7315,6 @@ def doOAuthImport():
     invalidOauth2TxtImportExit(filename)
   entityModifierNewValueActionPerformed([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]], Act.MODIFIER_FROM, filename)
 
-# gam <UserTypeEntity> check serviceaccount (scope|scopes <APIScopeURLList>)*
-# gam <UserTypeEntity> update serviceaccount
-def checkServiceAccount(users):
-  def printPassFail(description, result):
-    writeStdout(Ind.Spaces()+'{0:73} {1}'.format(description, result)+'\n')
-
-  credentials = getSvcAcctCredentials([API.USERINFO_EMAIL_SCOPE], None)
-  checkScopesSet = set()
-  if Act.Get() == Act.CHECK:
-    allScopes = API.getSvcAcctScopes(GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY], False)
-    while Cmd.ArgumentsRemaining():
-      myarg = getArgument()
-      if myarg in {'scope', 'scopes'}:
-        for scope in getString(Cmd.OB_API_SCOPE_URL_LIST).lower().replace(',', ' ').split():
-          api = API.getSvcAcctScopeAPI(scope)
-          if api is not None:
-            checkScopesSet.add(scope)
-          else:
-            invalidChoiceExit(scope, allScopes, True)
-      else:
-        unknownArgumentExit()
-    if not checkScopesSet:
-      for scope in iter(GM.Globals[GM.SVCACCT_SCOPES].values()):
-        checkScopesSet.update(scope)
-  else:
-    checkForExtraneousArguments()
-    saScopes = {}
-    scopesList = API.getSvcAcctScopesList(GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY], True)
-    selectedScopes = getScopesFromUser(scopesList, False, GM.Globals[GM.SVCACCT_SCOPES])
-    if selectedScopes is None:
-      return False
-    i = 0
-    for scope in scopesList:
-      if selectedScopes[i] == '*':
-        saScopes.setdefault(scope['api'], [])
-        saScopes[scope['api']].append(scope['scope'])
-        checkScopesSet.add(scope['scope'])
-      elif selectedScopes[i] == 'R':
-        saScopes.setdefault(scope['api'], [])
-        saScopes[scope['api']].append('{0}.readonly'.format(scope['scope']))
-        checkScopesSet.add('{0}.readonly'.format(scope['scope']))
-      i += 1
-    if API.DRIVEACTIVITY_V1 in saScopes and API.DRIVE3 in saScopes:
-      saScopes[API.DRIVEACTIVITY_V1].append(API.DRIVE_SCOPE)
-    if API.DRIVEACTIVITY_V2 in saScopes and API.DRIVE3 in saScopes:
-      saScopes[API.DRIVEACTIVITY_V2].append(API.DRIVE_SCOPE)
-    if API.DRIVE3 in saScopes:
-      saScopes[API.DRIVE2] = saScopes[API.DRIVE3]
-    GM.Globals[GM.OAUTH2SERVICE_JSON_DATA][API.OAUTH2SA_SCOPES] = saScopes
-    writeFile(GC.Values[GC.OAUTH2SERVICE_JSON],
-              json.dumps(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA], ensure_ascii=False, sort_keys=True, indent=2),
-              continueOnError=False)
-  checkScopes = sorted(checkScopesSet)
-  jcount = len(checkScopes)
-  printKeyValueList([Msg.SYSTEM_TIME_STATUS, None])
-  offsetSeconds, offsetFormatted = getLocalGoogleTimeOffset()
-  if offsetSeconds <= MAX_LOCAL_GOOGLE_TIME_OFFSET:
-    timeStatus = 'PASS'
-  else:
-    timeStatus = 'FAIL'
-  Ind.Increment()
-  printPassFail(Msg.YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE.format(offsetFormatted), timeStatus)
-  Ind.Decrement()
-  oa2 = buildGAPIObject(API.OAUTH2)
-  printKeyValueList([Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AUTHENTICATION, None])
-  # We are explicitly not doing DwD here, just confirming service account can auth
-  auth_error = ''
-  try:
-    request = google_auth_httplib2.Request(getHttpObj())
-    credentials.refresh(request)
-    sa_token_info = callGAPI(oa2, 'tokeninfo', access_token=credentials.token)
-    if sa_token_info:
-      saTokenStatus = 'PASS'
-    else:
-      saTokenStatus = 'FAIL'
-  except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
-    handleServerError(e)
-  except google.auth.exceptions.RefreshError as e:
-    saTokenStatus = 'FAIL'
-    if isinstance(e.args, tuple):
-      e = e.args[0]
-    auth_error = ' - '+str(e)
-  Ind.Increment()
-  printPassFail('Authentication{0}'.format(auth_error), saTokenStatus)
-  Ind.Decrement()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    allScopesPass = True
-    user = convertUIDtoEmailAddress(user)
-    printKeyValueListWithCount([Msg.DOMAIN_WIDE_DELEGATION_AUTHENTICATION, '',
-                                Ent.Singular(Ent.USER), user,
-                                Ent.Choose(Ent.SCOPE, jcount), jcount],
-                               i, count)
-    Ind.Increment()
-    j = 0
-    for scope in checkScopes:
-      j += 1
-      # try with and without email scope
-      for scopes in [[scope, API.USERINFO_EMAIL_SCOPE], [scope]]:
-        try:
-          credentials = getSvcAcctCredentials(scopes, user)
-          credentials.refresh(request)
-          break
-        except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
-          handleServerError(e)
-        except google.auth.exceptions.RefreshError:
-          continue
-      if credentials.token:
-        token_info = callGAPI(oa2, 'tokeninfo', access_token=credentials.token)
-        if scope in token_info.get('scope', '').split(' ') and user == token_info.get('email', user).lower():
-          scopeStatus = 'PASS'
-        else:
-          scopeStatus = 'FAIL'
-          allScopesPass = False
-      else:
-        scopeStatus = 'FAIL'
-        allScopesPass = False
-      printPassFail(scope, '{0}{1}'.format(scopeStatus, currentCount(j, jcount)))
-    Ind.Decrement()
-    service_account = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
-    _, domain = splitEmailAddress(user)
-    if allScopesPass:
-      if Act.Get() == Act.CHECK:
-        printLine(Msg.SCOPE_AUTHORIZATION_PASSED.format(service_account))
-      else:
-        printLine(Msg.SCOPE_AUTHORIZATION_UPDATE_PASSED.format(domain, service_account, ',\n'.join(checkScopes)))
-    else:
-      # Tack on email scope for more accurate checking
-      checkScopes.append(API.USERINFO_EMAIL_SCOPE)
-      setSysExitRC(SCOPES_NOT_AUTHORIZED)
-      printLine(Msg.SCOPE_AUTHORIZATION_FAILED.format(domain, service_account, ',\n'.join(checkScopes)))
-    printBlankLine()
-
 def getCRMService(login_hint):
   scopes = ['https://www.googleapis.com/auth/cloud-platform']
   client_id = '297408095146-fug707qsjv4ikron0hugpevbrjhkmsk7.apps.googleusercontent.com'
@@ -8057,6 +7923,146 @@ def doDeleteSvcAcct():
     except (GAPI.notFound, GAPI.badRequest) as e:
       entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, saName], str(e), i, count)
     Ind.Decrement()
+
+# gam <UserTypeEntity> check serviceaccount (scope|scopes <APIScopeURLList>)*
+# gam <UserTypeEntity> update serviceaccount
+def checkServiceAccount(users):
+  def printPassFail(description, result):
+    writeStdout(Ind.Spaces()+'{0:73} {1}'.format(description, result)+'\n')
+
+  credentials = getSvcAcctCredentials([API.USERINFO_EMAIL_SCOPE], None)
+  checkScopesSet = set()
+  if Act.Get() == Act.CHECK:
+    allScopes = API.getSvcAcctScopes(GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY], False)
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if myarg in {'scope', 'scopes'}:
+        for scope in getString(Cmd.OB_API_SCOPE_URL_LIST).lower().replace(',', ' ').split():
+          api = API.getSvcAcctScopeAPI(scope)
+          if api is not None:
+            checkScopesSet.add(scope)
+          else:
+            invalidChoiceExit(scope, allScopes, True)
+      else:
+        unknownArgumentExit()
+    if not checkScopesSet:
+      for scope in iter(GM.Globals[GM.SVCACCT_SCOPES].values()):
+        checkScopesSet.update(scope)
+  else:
+    checkForExtraneousArguments()
+    saScopes = {}
+    scopesList = API.getSvcAcctScopesList(GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY], True)
+    selectedScopes = getScopesFromUser(scopesList, False, GM.Globals[GM.SVCACCT_SCOPES])
+    if selectedScopes is None:
+      return False
+    i = 0
+    for scope in scopesList:
+      if selectedScopes[i] == '*':
+        saScopes.setdefault(scope['api'], [])
+        saScopes[scope['api']].append(scope['scope'])
+        checkScopesSet.add(scope['scope'])
+      elif selectedScopes[i] == 'R':
+        saScopes.setdefault(scope['api'], [])
+        saScopes[scope['api']].append('{0}.readonly'.format(scope['scope']))
+        checkScopesSet.add('{0}.readonly'.format(scope['scope']))
+      i += 1
+    if API.DRIVEACTIVITY_V1 in saScopes and API.DRIVE3 in saScopes:
+      saScopes[API.DRIVEACTIVITY_V1].append(API.DRIVE_SCOPE)
+    if API.DRIVEACTIVITY_V2 in saScopes and API.DRIVE3 in saScopes:
+      saScopes[API.DRIVEACTIVITY_V2].append(API.DRIVE_SCOPE)
+    if API.DRIVE3 in saScopes:
+      saScopes[API.DRIVE2] = saScopes[API.DRIVE3]
+    GM.Globals[GM.OAUTH2SERVICE_JSON_DATA][API.OAUTH2SA_SCOPES] = saScopes
+    writeFile(GC.Values[GC.OAUTH2SERVICE_JSON],
+              json.dumps(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA], ensure_ascii=False, sort_keys=True, indent=2),
+              continueOnError=False)
+  checkScopes = sorted(checkScopesSet)
+  jcount = len(checkScopes)
+  printKeyValueList([Msg.SYSTEM_TIME_STATUS, None])
+  offsetSeconds, offsetFormatted = getLocalGoogleTimeOffset()
+  if offsetSeconds <= MAX_LOCAL_GOOGLE_TIME_OFFSET:
+    timeStatus = 'PASS'
+  else:
+    timeStatus = 'FAIL'
+  Ind.Increment()
+  printPassFail(Msg.YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE.format(offsetFormatted), timeStatus)
+  Ind.Decrement()
+  oa2 = buildGAPIObject(API.OAUTH2)
+  printKeyValueList([Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AUTHENTICATION, None])
+  # We are explicitly not doing DwD here, just confirming service account can auth
+  auth_error = ''
+  try:
+    request = google_auth_httplib2.Request(getHttpObj())
+    credentials.refresh(request)
+    sa_token_info = callGAPI(oa2, 'tokeninfo', access_token=credentials.token)
+    if sa_token_info:
+      saTokenStatus = 'PASS'
+    else:
+      saTokenStatus = 'FAIL'
+  except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
+    handleServerError(e)
+  except google.auth.exceptions.RefreshError as e:
+    saTokenStatus = 'FAIL'
+    if isinstance(e.args, tuple):
+      e = e.args[0]
+    auth_error = ' - '+str(e)
+  Ind.Increment()
+  printPassFail('Authentication{0}'.format(auth_error), saTokenStatus)
+  Ind.Decrement()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    allScopesPass = True
+    user = convertUIDtoEmailAddress(user)
+    printKeyValueListWithCount([Msg.DOMAIN_WIDE_DELEGATION_AUTHENTICATION, '',
+                                Ent.Singular(Ent.USER), user,
+                                Ent.Choose(Ent.SCOPE, jcount), jcount],
+                               i, count)
+    Ind.Increment()
+    j = 0
+    for scope in checkScopes:
+      j += 1
+      # try with and without email scope
+      for scopes in [[scope, API.USERINFO_EMAIL_SCOPE], [scope]]:
+        try:
+          credentials = getSvcAcctCredentials(scopes, user)
+          credentials.refresh(request)
+          break
+        except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
+          handleServerError(e)
+        except google.auth.exceptions.RefreshError:
+          continue
+      if credentials.token:
+        token_info = callGAPI(oa2, 'tokeninfo', access_token=credentials.token)
+        if scope in token_info.get('scope', '').split(' ') and user == token_info.get('email', user).lower():
+          scopeStatus = 'PASS'
+        else:
+          scopeStatus = 'FAIL'
+          allScopesPass = False
+      else:
+        scopeStatus = 'FAIL'
+        allScopesPass = False
+      printPassFail(scope, '{0}{1}'.format(scopeStatus, currentCount(j, jcount)))
+    Ind.Decrement()
+    service_account = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
+    _, domain = splitEmailAddress(user)
+    if allScopesPass:
+      if Act.Get() == Act.CHECK:
+        printLine(Msg.SCOPE_AUTHORIZATION_PASSED.format(service_account))
+      else:
+        printLine(Msg.SCOPE_AUTHORIZATION_UPDATE_PASSED.format(domain, service_account, ',\n'.join(checkScopes)))
+    else:
+      # Tack on email scope for more accurate checking
+      checkScopes.append(API.USERINFO_EMAIL_SCOPE)
+      setSysExitRC(SCOPES_NOT_AUTHORIZED)
+      printLine(Msg.SCOPE_AUTHORIZATION_FAILED.format(domain, service_account, ',\n'.join(checkScopes)))
+    printBlankLine()
+
+# gam check svcacct <UserTypeEntity> (scope|scopes <APIScopeURLList>)*
+# gam update svcacct <UserTypeEntity>
+def doCheckUpdateSvcAcct():
+  _, entityList = getEntityToModify(defaultEntityType=Cmd.ENTITY_USER)
+  checkServiceAccount(entityList)
 
 SVCACCT_DISPLAY_FIELDS = ['displayName', 'description', 'oauth2ClientId', 'uniqueId', 'disabled']
 
@@ -42903,6 +42909,7 @@ MAIN_ADD_CREATE_FUNCTIONS = {
 MAIN_COMMANDS_WITH_OBJECTS = {
   'add': (Act.ADD, MAIN_ADD_CREATE_FUNCTIONS),
   'cancel': (Act.CANCEL, {Cmd.ARG_GUARDIANINVITATION: doCancelGuardianInvitation}),
+  'check': (Act.CHECK, {Cmd.ARG_SVCACCT: doCheckUpdateSvcAcct}),
   'clear': (Act.CLEAR, {Cmd.ARG_CONTACT: doClearDomainContacts}),
   'close': (Act.CLOSE, {Cmd.ARG_VAULTMATTER: doCloseVaultMatter}),
   'create': (Act.CREATE, MAIN_ADD_CREATE_FUNCTIONS),
@@ -43114,6 +43121,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_SAKEY:		doUpdateSvcAcctKeys,
       Cmd.ARG_SITE:		doUpdateDomainSites,
       Cmd.ARG_SITEACL:		doProcessDomainSiteACLs,
+      Cmd.ARG_SVCACCT:		doCheckUpdateSvcAcct,
       Cmd.ARG_TEAMDRIVE:	doUpdateTeamDrive,
       Cmd.ARG_USER:		doUpdateUser,
       Cmd.ARG_USERS:		doUpdateUsers,

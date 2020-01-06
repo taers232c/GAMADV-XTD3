@@ -1,3 +1,17 @@
+4.98.01
+
+Added new forms of commands to check Service Account scopes that are
+equivalent to the old forms; the old forms are still defined.
+```
+New
+gam check svcacct <UserTypeEntity> (scope|scopes <APIScopeURLList>)*
+gam update svcacct <UserTypeEntity> 
+
+Old
+gam <UserTypeEntity> check serviceaccount (scope|scopes <APIScopeURLList>)*
+gam <UserTypeEntity> update serviceaccount
+```
+
 4.98.00
 
 Added options `saname <ServiceAccountName>`, `sadisplayname <ServiceAccountDisplayName>` and `sadescription <ServiceAccountDescription>`
@@ -23,6 +37,10 @@ gam delete svcacct [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
 gam show svcaccts [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
 gam print svcaccts [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
         [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
+```
+Note: this form of the command to add a Service Account has been replaced by the form show above:
+```
+gam addsvcacct project [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
 ```
 See: https://github.com/taers232c/GAMADV-XTD3/wiki/Authorization#manage-service-accounts
 
