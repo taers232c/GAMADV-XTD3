@@ -2567,6 +2567,13 @@ gam [<UserTypeEntity>] print siteacls <SiteEntity> [todrive <ToDriveAttribute>*]
 In these commands, the Google administrator named in oauth2.txt is used.
 
 gam show teamdrivethemes
+gam create|add teamdrive <Name>
+        [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+        (<TeamDriveRestrictionsSubfieldName> <Boolean>)*
+        [hide <Boolean>]
+gam delete teamdrive <TeamDriveEntity>
+gam hide teamdrive <TeamDriveEntity>
+gam unhide teamdrive <TeamDriveEntity>
 gam update teamdrive <TeamDriveEntity> [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         (<TeamDriveRestrictionsFieldName> <Boolean>)*
@@ -2581,15 +2588,18 @@ gam show teamdrives
 
 In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
 
-gam <UserTypeEntity> show teamdrivethemes
+gam create|add teamdrive <Name> adminaccess
+        [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+        (<TeamDriveRestrictionsSubfieldName> <Boolean>)*
+        [hide <Boolean>]
 gam <UserTypeEntity> info teamdrive <TeamDriveEntity> adminaccess [fields <TeamDriveFieldNameList>] [formatjson]
 gam <UserTypeEntity> show teamdriveinfo <TeamDriveEntity> adminaccess [fields <TeamDriveFieldNameList>] [formatjson]
 gam <UserTypeEntity> print teamdrives [todrive <ToDriveAttribute>*]
-        [adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]]
+        adminaccess [teamdriveadminquery|query <QueryTeamDrive>]
         [matchname <RegularExpression>] (role|roles <TeamDriveACLRoleList>)*
         [fields <TeamDriveFieldNameList>] [formatjson] [quotechar <Character>]
 gam <UserTypeEntity> show teamdrives
-        [adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]]
+        adminaccess [teamdriveadminquery|query <QueryTeamDrive>]
         [matchname <RegularExpression>] (role|roles <TeamDriveACLRoleList>)*
         [fields <TeamDriveFieldNameList>] [formatjson]
 
@@ -4098,7 +4108,7 @@ gam <UserTypeEntity> show profile
         restrictions.teammembersonly
 
 gam <UserTypeEntity> show teamdrivethemes
-gam <UserTypeEntity> create|add teamdrive <Name>
+gam <UserTypeEntity> create|add teamdrive <Name> [adminaccess|asadmin]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         (<TeamDriveRestrictionsSubfieldName> <Boolean>)*
         [hide <Boolean>]

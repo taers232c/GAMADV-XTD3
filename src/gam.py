@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.98.01'
+__version__ = '4.98.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -37722,11 +37722,11 @@ def _getTeamDriveRestrictions(myarg, body):
     return True
   return False
 
-# gam <UserTypeEntity> create|add teamdrive <Name>
+# gam <UserTypeEntity> create|add teamdrive <Name> [adminaccess|asadmin]
 #	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 #	(<TeamDriveRestrictionsFieldName> <Boolean>)*
 #	[hide <Boolean>]
-def createTeamDrive(users):
+def createTeamDrive(users, useDomainAdminAccess=False):
   requestId = str(uuid.uuid4())
   body = {'name': getString(Cmd.OB_NAME, checkBlank=True)}
   updateBody = {}
@@ -37739,6 +37739,8 @@ def createTeamDrive(users):
       pass
     elif myarg == 'hide':
       hide = getBoolean()
+    elif myarg in ADMIN_ACCESS_OPTIONS:
+      useDomainAdminAccess = True
     else:
       unknownArgumentExit()
   for field in ['backgroundImageFile', 'colorRgb']:
@@ -37785,8 +37787,9 @@ def createTeamDrive(users):
           Act.Set(Act.UPDATE)
           try:
             callGAPI(drive.drives(), 'update',
-                     throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
-                     driveId=teamDriveId, body=updateBody)
+                     throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST,
+                                                                  GAPI.NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE],
+                     useDomainAdminAccess=useDomainAdminAccess, driveId=teamDriveId, body=updateBody)
             entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
           except GAPI.badRequest as e:
             entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
@@ -37796,10 +37799,17 @@ def createTeamDrive(users):
                    throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                    driveId=teamDriveId)
           entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
-      except (GAPI.notFound, GAPI.forbidden) as e:
+      except (GAPI.notFound, GAPI.forbidden, GAPI.badRequest, GAPI.noManageTeamDriveAdministratorPrivilege) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+
+# gam create|add teamdrive <Name>
+#	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+#	(<TeamDriveRestrictionsFieldName> <Boolean>)*
+#	[hide <Boolean>]
+def doCreateTeamDrive():
+  createTeamDrive([_getValueFromOAuth('email')], True)
 
 # gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [adminaccess|asadmin] [name <Name>]
 #	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
@@ -37863,6 +37873,10 @@ def deleteTeamDrive(users):
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
 
+# gam delete teamdrive <TeamDriveEntity>
+def doDeleteTeamDrive():
+  deleteTeamDrive([_getValueFromOAuth('email')])
+
 # gam <UserTypeEntity> hide/unhide teamdrive <TeamDriveEntity>
 def hideUnhideTeamDrive(users):
   fileIdEntity = getTeamDriveEntity()
@@ -37884,6 +37898,10 @@ def hideUnhideTeamDrive(users):
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+
+# gam hide/unhide teamdrive <TeamDriveEntity>
+def doHideUnhideTeamDrive():
+  hideUnhideTeamDrive([_getValueFromOAuth('email')])
 
 TEAMDRIVE_FIELDS_CHOICE_MAP = {
   'backgroundimagefile': 'backgroundImageFile',
@@ -42899,6 +42917,7 @@ MAIN_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_SITE:		doCreateDomainSite,
   Cmd.ARG_SITEACL:	doProcessDomainSiteACLs,
   Cmd.ARG_SVCACCT:	doCreateSvcAcct,
+  Cmd.ARG_TEAMDRIVE:	doCreateTeamDrive,
   Cmd.ARG_USER:		doCreateUser,
   Cmd.ARG_VAULTEXPORT:	doCreateVaultExport,
   Cmd.ARG_VAULTHOLD:	doCreateVaultHold,
@@ -42943,6 +42962,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_SCHEMA:		doDeleteUserSchemas,
       Cmd.ARG_SITEACL:		doProcessDomainSiteACLs,
       Cmd.ARG_SVCACCT:		doDeleteSvcAcct,
+      Cmd.ARG_TEAMDRIVE:	doDeleteTeamDrive,
       Cmd.ARG_USER:		doDeleteUser,
       Cmd.ARG_USERS:		doDeleteUsers,
       Cmd.ARG_VAULTEXPORT:	doDeleteVaultExport,
@@ -42952,6 +42972,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
     ),
   'download': (Act.DOWNLOAD, {Cmd.ARG_VAULTEXPORT: doDownloadVaultExport}),
   'get': (Act.DOWNLOAD, {Cmd.ARG_CONTACTPHOTO: doGetDomainContactPhoto, Cmd.ARG_DEVICEFILE: doGetCrOSDeviceFiles}),
+  'hide': (Act.HIDE, {Cmd.ARG_TEAMDRIVE: doHideUnhideTeamDrive}),
   'info':
     (Act.INFO,
      {Cmd.ARG_ALERT:		doInfoAlert,
@@ -43094,6 +43115,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
      }
     ),
   'suspend': (Act.SUSPEND, {Cmd.ARG_USER: doSuspendUser, Cmd.ARG_USERS: doSuspendUsers}),
+  'unhide': (Act.UNHIDE, {Cmd.ARG_TEAMDRIVE: doHideUnhideTeamDrive}),
   'update':
     (Act.UPDATE,
      {Cmd.ARG_ALIAS:		doUpdateAliases,

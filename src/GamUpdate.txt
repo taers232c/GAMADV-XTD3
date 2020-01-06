@@ -1,3 +1,9 @@
+4.98.02
+
+Added `adminaccess|asadmin` option to `gam <UserTypeEntity> create teamdrive` so that when a Team Drive is created with restrictions,
+admin access can be set if desired. Admin access must be used to set `restrictions.adminmanagedrestrictions` and the user
+specified in `<UserTypeEntity>` must be a domain administrator.
+
 4.98.01
 
 Added new forms of commands to check Service Account scopes that are
@@ -64,7 +70,7 @@ gam user user@domain.com check serviceaccount
 
 Added options `<TeamDriveRestrictionsSubfieldName> <Boolean>` and `hide <Boolean>`
 to `gam create teamdrive` so that a Team Drive can be created and have its restrictions and
-visibility  set in a single Gam command.
+visibility set in a single Gam command.
 ```
 <TeamDriveRestrictionsSubfieldName> ::=
         restrictions.adminmanagedrestrictions|
