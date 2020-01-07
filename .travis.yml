@@ -101,6 +101,14 @@ matrix:
         - GAMOS=macos
         - PLATFORM=x86_64
         - VMTYPE=build
+    - os: osx
+      name: "MacOS 10.15"
+      language: generic
+      osx_image: xcode11.3
+      env:
+        - GAMOS=macos
+        - PLATFORM=x86_64
+        - VMTYPE=build
     - os: windows
       name: "Windows 64-bit"
       language: shell
