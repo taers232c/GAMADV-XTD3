@@ -2588,10 +2588,11 @@ gam show teamdrives
 
 In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
 
-gam create|add teamdrive <Name> adminaccess
+gam <UserTypeEntity> create|add teamdrive <Name> adminaccess
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         (<TeamDriveRestrictionsSubfieldName> <Boolean>)*
         [hide <Boolean>]
+gam <UserTypeEntity> delete teamdrive <TeamDriveEntity> adminaccess
 gam <UserTypeEntity> info teamdrive <TeamDriveEntity> adminaccess [fields <TeamDriveFieldNameList>] [formatjson]
 gam <UserTypeEntity> show teamdriveinfo <TeamDriveEntity> adminaccess [fields <TeamDriveFieldNameList>] [formatjson]
 gam <UserTypeEntity> print teamdrives [todrive <ToDriveAttribute>*]
