@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.98.02'
+__version__ = '4.98.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5125,16 +5125,21 @@ def _addInitialField(fieldsList, initialField):
 #  }
 # fieldsList is the list of API fields
 def getFieldsList(myarg, fieldsChoiceMap, fieldsList, initialField=None):
+  def addMappedFields(mappedFields):
+    if isinstance(mappedFields, list):
+      fieldsList.extend(mappedFields)
+    else:
+      fieldsList.append(mappedFields)
   if myarg in fieldsChoiceMap:
     if not fieldsList and initialField is not None:
       _addInitialField(fieldsList, initialField)
-    fieldsList.append(fieldsChoiceMap[myarg])
+    addMappedFields(fieldsChoiceMap[myarg])
   elif myarg == 'fields':
     if not fieldsList and initialField is not None:
       _addInitialField(fieldsList, initialField)
     for field in _getFieldsList():
       if field in fieldsChoiceMap:
-        fieldsList.append(fieldsChoiceMap[field])
+        addMappedFields(fieldsChoiceMap[field])
       else:
         invalidChoiceExit(field, fieldsChoiceMap, True)
   else:
@@ -25077,6 +25082,8 @@ def doPrintUsers(entityList=None):
             user['LicensesCount'] = len(u_licenses)
             user['Licenses'] = delimiter.join(u_licenses)
             user['LicensesDisplay'] = delimiter.join([SKU.skuIdToDisplayName(skuId) for skuId in u_licenses])
+          else:
+            user['LicensesCount'] = 0
   elif not FJQC.formatJSON:
     for domain, count in sorted(iter(domainCounts.items())):
       csvPF.WriteRowNoFilter({'domain': domain, 'count': count})
