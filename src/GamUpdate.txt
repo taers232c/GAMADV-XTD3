@@ -1,3 +1,8 @@
+4.98.04
+
+Handle spurious `rateLimitExceeded` error messages generated when trying to print Gmail
+characteristics for users.
+
 4.98.03
 
 Fixed bug that caused a trap when specifying `fields <FieldsList>`.
