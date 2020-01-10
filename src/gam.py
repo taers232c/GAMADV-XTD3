@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.98.04'
+__version__ = '4.98.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -39725,7 +39725,7 @@ def printShowGmailProfile(users):
       printGettingEntityItemForWhom(Ent.GMAIL_PROFILE, user, i, count)
     try:
       results = callGAPI(gmail.users(), 'getProfile',
-                         throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.RATE_LIMIT_EXCEEDED],
+                         throw_reasons=GAPI.GMAIL_THROW_REASONS,
                          userId='me')
       if not csvPF:
         kvList = []
@@ -39734,8 +39734,6 @@ def printShowGmailProfile(users):
         printEntityKVList([Ent.USER, user], kvList, i, count)
       else:
         csvPF.WriteRowTitles(results)
-    except GAPI.rateLimitExceeded as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.GMAIL_PROFILE, ''], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvPF:
@@ -40132,7 +40130,7 @@ def printShowLabels(users):
         printKeyValueList([label[nameField]])
       else:
         counts = callGAPI(gmail.users().labels(), 'get',
-                          throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.RATE_LIMIT_EXCEEDED],
+                          throw_reasons=GAPI.GMAIL_THROW_REASONS,
                           userId='me', id=label['id'],
                           fields=LABEL_COUNTS_FIELDS)
         kvlist = [label[nameField], 'Counts']
@@ -40242,8 +40240,6 @@ def printShowLabels(users):
               for a_key in LABEL_COUNTS_FIELDS_LIST:
                 label[a_key] = counts[a_key]
             csvPF.WriteRowTitles(flattenJSON(label, flattened={'User': user}))
-    except GAPI.rateLimitExceeded as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.LABEL, ''], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvPF:
@@ -41433,7 +41429,7 @@ def printShowDelegates(users):
       printGettingAllEntityItemsForWhom(Ent.DELEGATE, user, i, count)
     try:
       result = callGAPI(gmail.users().settings().delegates(), 'list',
-                        throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.RATE_LIMIT_EXCEEDED],
+                        throw_reasons=GAPI.GMAIL_THROW_REASONS,
                         userId='me')
       delegates = result.get('delegates', []) if result is not None else []
       jcount = len(delegates)
@@ -41480,8 +41476,6 @@ def printShowDelegates(users):
                               'delegationStatus': delegate['verificationStatus']})
         elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
           csvPF.WriteRowNoFilter({'User': user})
-    except GAPI.rateLimitExceeded as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.DELEGATE, ''], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvPF:
@@ -41753,7 +41747,7 @@ def printShowFilters(users):
       labels = {'labels': []}
     try:
       results = callGAPIitems(gmail.users().settings().filters(), 'list', 'filter',
-                              throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.RATE_LIMIT_EXCEEDED],
+                              throw_reasons=GAPI.GMAIL_THROW_REASONS,
                               userId='me')
       jcount = len(results)
       if not csvPF:
@@ -41771,8 +41765,6 @@ def printShowFilters(users):
             csvPF.WriteRowTitles(_printFilter(user, userFilter, labels))
         elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
           csvPF.WriteRowNoFilter({'User': user})
-    except GAPI.rateLimitExceeded as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.FILTER, ''], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvPF:
@@ -41885,15 +41877,13 @@ def printShowForward(users):
       continue
     try:
       result = callGAPI(gmail.users().settings(), 'getAutoForwarding',
-                        throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.RATE_LIMIT_EXCEEDED],
+                        throw_reasons=GAPI.GMAIL_THROW_REASONS,
                         userId='me')
       if not csvPF:
         _showForward(user, i, count, result)
       else:
         printGettingEntityItemForWhom(Ent.FORWARD_ENABLED, user, i, count)
         _printForward(user, result, showDisabled)
-    except GAPI.rateLimitExceeded as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.FORWARD_ENABLED, ''], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvPF:
@@ -41984,7 +41974,7 @@ def printShowForwardingAddresses(users):
       continue
     try:
       results = callGAPIitems(gmail.users().settings().forwardingAddresses(), 'list', 'forwardingAddresses',
-                              throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.RATE_LIMIT_EXCEEDED],
+                              throw_reasons=GAPI.GMAIL_THROW_REASONS,
                               userId='me')
       jcount = len(results)
       if not csvPF:
@@ -42002,8 +41992,6 @@ def printShowForwardingAddresses(users):
             csvPF.WriteRow({'User': user, 'forwardingEmail': forward['forwardingEmail'], 'verificationStatus': forward['verificationStatus']})
         elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
           csvPF.WriteRowNoFilter({'User': user})
-    except GAPI.rateLimitExceeded as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.FORWARDING_ADDRESS, ''], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvPF:
@@ -42069,11 +42057,9 @@ def showImap(users):
       continue
     try:
       result = callGAPI(gmail.users().settings(), 'getImap',
-                        throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.RATE_LIMIT_EXCEEDED],
+                        throw_reasons=GAPI.GMAIL_THROW_REASONS,
                         userId='me')
       _showImap(user, i, count, result)
-    except GAPI.rateLimitExceeded as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.IMAP_ENABLED, ''], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
@@ -42134,11 +42120,9 @@ def showPop(users):
       continue
     try:
       result = callGAPI(gmail.users().settings(), 'getPop',
-                        throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.RATE_LIMIT_EXCEEDED],
+                        throw_reasons=GAPI.GMAIL_THROW_REASONS,
                         userId='me')
       _showPop(user, i, count, result)
-    except GAPI.rateLimitExceeded as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.POP_ENABLED, ''], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
@@ -42171,11 +42155,9 @@ def showLanguage(users):
       continue
     try:
       result = callGAPI(gmail.users().settings(), 'getLanguage',
-                        throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.RATE_LIMIT_EXCEEDED],
+                        throw_reasons=GAPI.GMAIL_THROW_REASONS,
                         userId='me')
       printEntity([Ent.USER, user, Ent.LANGUAGE, result['displayLanguage']], i, count)
-    except GAPI.rateLimitExceeded as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.LANGUAGE, ''], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
@@ -42389,7 +42371,7 @@ def printShowSendAs(users):
       continue
     try:
       results = callGAPIitems(gmail.users().settings().sendAs(), 'list', 'sendAs',
-                              throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.RATE_LIMIT_EXCEEDED],
+                              throw_reasons=GAPI.GMAIL_THROW_REASONS,
                               userId='me')
       jcount = len(results)
       if not csvPF:
@@ -42415,8 +42397,6 @@ def printShowSendAs(users):
             csvPF.WriteRowTitles(row)
         elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
           csvPF.WriteRowNoFilter({'User': user})
-    except GAPI.rateLimitExceeded as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.SENDAS_ADDRESS, ''], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvPF:
@@ -42593,7 +42573,7 @@ def printShowSmimes(users):
         sendAsEmails = [user]
       else:
         results = callGAPIitems(gmail.users().settings().sendAs(), 'list', 'sendAs',
-                                throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.RATE_LIMIT_EXCEEDED],
+                                throw_reasons=GAPI.GMAIL_THROW_REASONS,
                                 userId='me', fields='sendAs(sendAsEmail)')
         sendAsEmails = [sendAs['sendAsEmail'] for sendAs in results]
       jcount = len(sendAsEmails)
@@ -42639,8 +42619,6 @@ def printShowSmimes(users):
         csvPF.WriteRowNoFilter({'User': user})
     except (GAPI.forbidden, GAPI.invalidArgument) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
-    except GAPI.rateLimitExceeded as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.SMIME_ID, ''], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvPF:
@@ -42708,7 +42686,7 @@ def showSignature(users):
     if primary:
       try:
         result = callGAPI(gmail.users().settings().sendAs(), 'list',
-                          throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.RATE_LIMIT_EXCEEDED],
+                          throw_reasons=GAPI.GMAIL_THROW_REASONS,
                           userId='me')
         printEntity([Ent.USER, user, Ent.SIGNATURE, ''], i, count)
         Ind.Increment()
@@ -42717,8 +42695,6 @@ def showSignature(users):
             _showSendAs(sendas, 0, 0, sigReplyFormat)
             break
         Ind.Decrement()
-      except GAPI.rateLimitExceeded as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.SIGNATURE, ''], str(e), i, count)
       except (GAPI.serviceNotAvailable, GAPI.badRequest):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
     else:
@@ -42889,15 +42865,13 @@ def printShowVacation(users):
       continue
     try:
       result = callGAPI(gmail.users().settings(), 'getVacation',
-                        throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.RATE_LIMIT_EXCEEDED],
+                        throw_reasons=GAPI.GMAIL_THROW_REASONS,
                         userId='me')
       if not csvPF:
         _showVacation(user, i, count, result, showDisabled, sigReplyFormat)
       else:
         printGettingEntityItemForWhom(Ent.VACATION, user, i, count)
         _printVacation(user, result, showDisabled)
-    except GAPI.rateLimitExceeded as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.VACATION, ''], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvPF:
