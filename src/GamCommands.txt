@@ -2496,7 +2496,7 @@ gam print schema|schemas [todrive <ToDriveAttribute>*]
 
 # Send Email
 
-gam sendemail <RecipientEntity> [from <UserItem>] [replyto <EmailAddress>]
+gam sendemail [recipient|to] <RecipientEntity> [from <UserItem>] [replyto <EmailAddress>]
         [cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage [<Boolean>]]
         [subject <String>]
         (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])

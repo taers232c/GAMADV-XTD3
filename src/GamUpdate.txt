@@ -1,3 +1,8 @@
+4.98.04
+
+Added ability to have GAM send email via SMTP.
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Send-Email#use-smtp-to-send-messages
+
 4.98.03
 
 Fixed bug that caused a trap when specifying `fields <FieldsList>`.

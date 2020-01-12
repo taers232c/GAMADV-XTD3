@@ -44,7 +44,7 @@ _SKUS = {
   '1010310002': {
     'product': '101031', 'aliases': ['gsefe', 'e4e', 'gsuiteenterpriseeducation'], 'displayName': 'G Suite Enterprise for Education'},
   '1010310003': {
-    'product': '101031', 'aliases': ['gsefes', 'e4es', 'gsuiteenterpriseeducationstudent'], 'displayName': 'G Suite Enterprise for Education Student'},
+    'product': '101031', 'aliases': ['gsefes', 'e4es', 'gsuiteenterpriseeducationstudent'], 'displayName': 'G Suite Enterprise for Education (Student)'},
   '1010330003': {
     'product': '101033', 'aliases': ['gvstarter', 'voicestarter', 'googlevoicestarter'], 'displayName': 'Google Voice Starter'},
   '1010330004': {

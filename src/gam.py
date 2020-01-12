@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.98.03'
+__version__ = '4.98.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -62,6 +62,7 @@ except ImportError:
 import re
 import shlex
 import signal
+import smtplib
 import socket
 import ssl
 import string
@@ -2704,6 +2705,17 @@ def SetGlobalVariables():
     _printValueError(sectionName, itemName, value, Msg.NOT_FOUND)
     return configparser.DEFAULTSECT
 
+  def _getCfgPassword(sectionName, itemName):
+    value = GM.Globals[GM.PARSER].get(sectionName, itemName)
+    if isinstance(value, bytes):
+      return value
+    value = _stripStringQuotes(value)
+    if value.startswith("b'") and value.endswith("'"):
+      return bytes(value[2:-1], UTF8)
+    if value:
+      return value
+    return ''
+
   def _getCfgString(sectionName, itemName):
     value = _stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName))
     minLen, maxLen = GC.VAR_INFO[itemName].get(GC.VAR_LIMITS, (None, None))
@@ -2778,7 +2790,7 @@ def SetGlobalVariables():
           if cfgValue == value:
             cfgValue = choice
             break
-      elif varType not in [GC.TYPE_BOOLEAN, GC.TYPE_INTEGER, GC.TYPE_FLOAT]:
+      elif varType not in [GC.TYPE_BOOLEAN, GC.TYPE_INTEGER, GC.TYPE_FLOAT, GC.TYPE_PASSWORD]:
         cfgValue = _quoteStringIfLeadingTrailingBlanks(cfgValue)
       if varType == GC.TYPE_FILE:
         expdValue = _getCfgFile(sectionName, itemName)
@@ -2964,6 +2976,11 @@ def SetGlobalVariables():
           value = str(getFloat(minVal=minVal, maxVal=maxVal))
         elif varType == GC.TYPE_LOCALE:
           value = getLocaleCode()
+        elif varType == GC.TYPE_PASSWORD:
+          minLen, maxLen = GC.VAR_INFO[itemName][GC.VAR_LIMITS]
+          value = getString(Cmd.OB_STRING, checkBlank=True, minLen=minLen, maxLen=maxLen)
+          if value and value.startswith("b'") and value.endswith("'"):
+            value = bytes(value[2:-1], UTF8)
         elif varType == GC.TYPE_TIMEZONE:
           value = getString(Cmd.OB_STRING, checkBlank=True)
         else:
@@ -2997,6 +3014,8 @@ def SetGlobalVariables():
       GC.Values[itemName] = _getCfgLocale(sectionName, itemName)
     elif varType == GC.TYPE_ROWFILTER:
       GC.Values[itemName] = _getCfgRowFilter(sectionName, itemName)
+    elif varType == GC.TYPE_PASSWORD:
+      GC.Values[itemName] = _getCfgPassword(sectionName, itemName)
     elif varType == GC.TYPE_STRING:
       GC.Values[itemName] = _getCfgString(sectionName, itemName)
     elif varType == GC.TYPE_FILE:
@@ -3007,7 +3026,10 @@ def SetGlobalVariables():
     GC.Values[GC.CSV_OUTPUT_ROW_FILTER] = _getCfgRowFilter(filterSectionName, GC.CSV_OUTPUT_ROW_FILTER)
   if status['errors']:
     sys.exit(CONFIG_ERROR_RC)
+# Global values cleanup
   GC.Values[GC.DOMAIN] = GC.Values[GC.DOMAIN].lower()
+  if not GC.Values[GC.SMTP_FQDN]:
+    GC.Values[GC.SMTP_FQDN] = None
 # Create/set mode for oauth2.txt.lock
   if not GM.Globals[GM.OAUTH2_TXT_LOCK]:
     fileName = '{0}.lock'.format(GC.Values[GC.OAUTH2_TXT])
@@ -5063,15 +5085,7 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msg
       msgFromAddr = match.group(1)
     else:
       msgFromAddr = msgFrom
-  if not clientAccess:
-    userId, gmail = buildGAPIServiceObject(API.GMAIL, msgFromAddr)
-    if not gmail:
-      return
-  else:
-    userId = msgFromAddr
-    gmail = buildGAPIObject(API.GMAIL)
-  if not msgTo:
-    msgTo = userId
+    msgFromAddr = normalizeEmailAddressOrUID(msgFromAddr, noUid=True)
   if not attachments:
     message = MIMEText(msgBody, ['plain', 'html'][html], charset)
   else:
@@ -5080,8 +5094,7 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msg
     message.attach(msg)
     _addAttachmentsToMessage(message, attachments)
   message['Subject'] = msgSubject
-  message['From'] = msgFrom
-  message['To'] = msgTo
+  message['From'] = msgFromAddr
   if msgReplyTo is not None:
     message['Reply-To'] = msgReplyTo
   if ccRecipients:
@@ -5090,15 +5103,45 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msg
     message['BCC'] = bccRecipients
   action = Act.Get()
   Act.Set(Act.SENDEMAIL)
-  try:
-    callGAPI(gmail.users().messages(), 'send',
-             throw_reasons=[GAPI.SERVICE_NOT_AVAILABLE, GAPI.AUTH_ERROR, GAPI.DOMAIN_POLICY,
-                            GAPI.INVALID_ARGUMENT, GAPI.FORBIDDEN],
-             userId=userId, body={'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()}, fields='')
-    entityActionPerformed([Ent.RECIPIENT, msgTo, Ent.MESSAGE, msgSubject], i, count)
-  except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy,
-          GAPI.invalidArgument, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.RECIPIENT, msgTo, Ent.MESSAGE, msgSubject], str(e), i, count)
+  if not GC.Values[GC.SMTP_HOST]:
+    if not clientAccess:
+      userId, gmail = buildGAPIServiceObject(API.GMAIL, msgFromAddr)
+      if not gmail:
+        return
+    else:
+      userId = msgFromAddr
+      gmail = buildGAPIObject(API.GMAIL)
+    message['To'] = msgTo if msgTo else userId
+    try:
+      callGAPI(gmail.users().messages(), 'send',
+               throw_reasons=[GAPI.SERVICE_NOT_AVAILABLE, GAPI.AUTH_ERROR, GAPI.DOMAIN_POLICY,
+                              GAPI.INVALID_ARGUMENT, GAPI.FORBIDDEN],
+               userId=userId, body={'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()}, fields='')
+      entityActionPerformed([Ent.RECIPIENT, msgTo, Ent.MESSAGE, msgSubject], i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy,
+            GAPI.invalidArgument, GAPI.forbidden) as e:
+      entityActionFailedWarning([Ent.RECIPIENT, msgTo, Ent.MESSAGE, msgSubject], str(e), i, count)
+  else:
+    message['To'] = msgTo if msgTo else msgFromAddr
+    server = None
+    try:
+      server = smtplib.SMTP(GC.Values[GC.SMTP_HOST], 587, GC.Values[GC.SMTP_FQDN])
+      if GC.Values[GC.DEBUG_LEVEL] > 0:
+        server.set_debuglevel(1)
+      server.starttls(context=ssl.create_default_context(cafile=GC.Values[GC.CACERTS_PEM]))
+      if GC.Values[GC.SMTP_USERNAME] and GC.Values[GC.SMTP_PASSWORD]:
+        if isinstance(GC.Values[GC.SMTP_PASSWORD], bytes):
+          server.login(GC.Values[GC.SMTP_USERNAME], base64.b64decode(GC.Values[GC.SMTP_PASSWORD]).decode(UTF8))
+        else:
+          server.login(GC.Values[GC.SMTP_USERNAME], GC.Values[GC.SMTP_PASSWORD])
+      server.send_message(message)
+    except smtplib.SMTPException as e:
+      entityActionFailedWarning([Ent.RECIPIENT, msgTo, Ent.MESSAGE, msgSubject], str(e), i, count)
+    if server:
+      try:
+        server.quit()
+      except Exception:
+        pass
   Act.Set(action)
 
 def addFieldToFieldsList(fieldName, fieldsChoiceMap, fieldsList):
@@ -9465,6 +9508,7 @@ def doSendEmail(users=None):
   notify = {'subject': '', 'message': '', 'html': False, 'charset': UTF8}
   if users is None:
     msgFroms = [None]
+    checkArgumentPresent({'recipient', 'recipients', 'to'})
     recipients = getRecipients()
   else:
     msgFroms = users
