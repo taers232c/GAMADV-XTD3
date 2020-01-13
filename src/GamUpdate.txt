@@ -1,3 +1,7 @@
+4.98.06
+
+Added output confirming that email was sent when using SMTP to send email.
+
 4.98.05
 
 Fixed bug that caused a trap in `gam update group csvkmd ...`.

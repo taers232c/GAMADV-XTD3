@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.98.05'
+__version__ = '4.98.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5135,6 +5135,7 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msg
         else:
           server.login(GC.Values[GC.SMTP_USERNAME], GC.Values[GC.SMTP_PASSWORD])
       server.send_message(message)
+      entityActionPerformed([Ent.RECIPIENT, msgTo, Ent.MESSAGE, msgSubject], i, count)
     except smtplib.SMTPException as e:
       entityActionFailedWarning([Ent.RECIPIENT, msgTo, Ent.MESSAGE, msgSubject], str(e), i, count)
     if server:
