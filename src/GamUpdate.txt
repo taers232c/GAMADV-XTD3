@@ -1,3 +1,7 @@
+4.98.05
+
+Fixed bug that caused a trap in `gam update group csvkmd ...`.
+
 4.98.04
 
 Added ability to have GAM send email via SMTP.

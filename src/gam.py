@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.98.04'
+__version__ = '4.98.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -16840,10 +16840,13 @@ def doUpdateGroups():
       origGroup = group
       group = checkGroupExists(cd, group, i, count)
       if group:
-        if groupMemberLists is None or not subkeyRoleField:
+        if groupMemberLists is None:
           roleList = [baseRole]
         else:
-          roleList = groupMemberLists[origGroup]
+          if not subkeyRoleField:
+            roleList = [baseRole]
+          else:
+            roleList = groupMemberLists[origGroup]
           for role in roleList:
             role = role.upper()
             syncMembersSets[role] = set()
