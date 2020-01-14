@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.98.06'
+__version__ = '4.98.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5077,6 +5077,20 @@ NAME_EMAIL_ADDRESS_PATTERN = re.compile(r'^.*<(.+)>$')
 # Send an email
 def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msgFrom=None, msgReplyTo=None,
                html=False, charset=UTF8, attachments=None, ccRecipients=None, bccRecipients=None):
+  def checkResult(entityType, recipients):
+    if not recipients:
+      return
+    toSent = set(recipients.split(','))
+    toFailed = {}
+    for addr, err in iter(result.items()):
+      if addr in toSent:
+        toSent.remove(addr)
+        toFailed[addr] = '{0}: {1}'.format(err[0], err[1])
+    if toSent:
+      entityActionPerformed([entityType, ','.join(toSent), Ent.MESSAGE, msgSubject], i, count)
+    for addr, errMsg in iter(toFailed.items()):
+      entityActionFailedWarning([entityType, addr, Ent.MESSAGE, msgSubject], errMsg, i, count)
+
   if msgFrom is None:
     msgFrom = msgFromAddr = _getValueFromOAuth('email')
   else:
@@ -5098,9 +5112,9 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msg
   if msgReplyTo is not None:
     message['Reply-To'] = msgReplyTo
   if ccRecipients:
-    message['CC'] = ccRecipients
+    message['CC'] = ccRecipients.lower()
   if bccRecipients:
-    message['BCC'] = bccRecipients
+    message['BCC'] = bccRecipients.lower()
   action = Act.Get()
   Act.Set(Act.SENDEMAIL)
   if not GC.Values[GC.SMTP_HOST]:
@@ -5111,7 +5125,7 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msg
     else:
       userId = msgFromAddr
       gmail = buildGAPIObject(API.GMAIL)
-    message['To'] = msgTo if msgTo else userId
+    message['To'] = (msgTo if msgTo else userId).lower()
     try:
       callGAPI(gmail.users().messages(), 'send',
                throw_reasons=[GAPI.SERVICE_NOT_AVAILABLE, GAPI.AUTH_ERROR, GAPI.DOMAIN_POLICY,
@@ -5122,7 +5136,7 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msg
             GAPI.invalidArgument, GAPI.forbidden) as e:
       entityActionFailedWarning([Ent.RECIPIENT, msgTo, Ent.MESSAGE, msgSubject], str(e), i, count)
   else:
-    message['To'] = msgTo if msgTo else msgFromAddr
+    message['To'] = (msgTo if msgTo else msgFromAddr).lower()
     server = None
     try:
       server = smtplib.SMTP(GC.Values[GC.SMTP_HOST], 587, GC.Values[GC.SMTP_FQDN])
@@ -5134,8 +5148,10 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msg
           server.login(GC.Values[GC.SMTP_USERNAME], base64.b64decode(GC.Values[GC.SMTP_PASSWORD]).decode(UTF8))
         else:
           server.login(GC.Values[GC.SMTP_USERNAME], GC.Values[GC.SMTP_PASSWORD])
-      server.send_message(message)
-      entityActionPerformed([Ent.RECIPIENT, msgTo, Ent.MESSAGE, msgSubject], i, count)
+      result = server.send_message(message)
+      checkResult(Ent.RECIPIENT, message['To'])
+      checkResult(Ent.RECIPIENT_CC, ccRecipients)
+      checkResult(Ent.RECIPIENT_BCC, bccRecipients)
     except smtplib.SMTPException as e:
       entityActionFailedWarning([Ent.RECIPIENT, msgTo, Ent.MESSAGE, msgSubject], str(e), i, count)
     if server:
@@ -9489,12 +9505,12 @@ def sendCreateUpdateUserNotification(body, notify, tagReplacements, i=0, count=0
              msgFrom=msgFrom, html=notify['html'], charset=notify['charset'])
 
 # gam sendemail <RecipientEntity> [from <UserItem>] [replyto <EmailAddress>]
-#	[cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage [<Boolean>]]
+#	[cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
 #	[subject <String>] [(message <String>)|(file <FileName> [charset <CharSet>])]
 #	(replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
 #	[newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
 # gam <UserTypeEntity> sendemail [recipient <RecipientEntity>] [replyto <EmailAddress>]
-#	[cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage [<Boolean>]]
+#	[cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
 #	[subject <String>] [(message <String>)|(file <FileName> [charset <CharSet>])]
 #	(replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
 #	[newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
@@ -9513,7 +9529,7 @@ def doSendEmail(users=None):
     recipients = getRecipients()
   else:
     msgFroms = users
-    recipients = [None]
+    recipients = ['']
   ccRecipients = []
   bccRecipients = []
   msgReplyTo = None
@@ -9567,7 +9583,7 @@ def doSendEmail(users=None):
     notify['subject'] = _processTagReplacements(tagReplacements, notify['subject'])
   jcount = len(recipients)
   if body.get('primaryEmail'):
-    if ((jcount == 1) and (recipients[0] is not None) and
+    if ((jcount == 1) and recipients[0] and
         ('password' in body) and ('name' in body) and ('givenName' in body['name']) and ('familyName' in body['name'])):
       notify['emailAddress'] = recipients[0]
       sendCreateUpdateUserNotification(body, notify, tagReplacements, msgFrom=msgFroms[0])

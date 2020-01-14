@@ -184,6 +184,8 @@ class GamEntity():
   PUBLIC_KEY = 'pubk'
   QUERY = 'quer'
   RECIPIENT = 'recp'
+  RECIPIENT_BCC = 'rebc'
+  RECIPIENT_CC = 'recc'
   REPORT = 'rept'
   REQUEST_ID = 'reqi'
   RESOURCE_CALENDAR = 'resc'
@@ -394,6 +396,8 @@ class GamEntity():
     PUBLIC_KEY: ['Public Key', 'Public Key'],
     QUERY: ['Queries', 'Query'],
     RECIPIENT: ['Recipients', 'Recipient'],
+    RECIPIENT_BCC: ['Recipients (BCC)', 'Recipient (BCC)'],
+    RECIPIENT_CC: ['Recipients (CC)', 'Recipient (CC)'],
     REPORT: ['Reports', 'Report'],
     REQUEST_ID: ['Request IDs', 'Request ID'],
     RESOURCE_CALENDAR: ['Resource Calendars', 'Resource Calendar'],

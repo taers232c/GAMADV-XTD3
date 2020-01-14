@@ -2497,14 +2497,14 @@ gam print schema|schemas [todrive <ToDriveAttribute>*]
 # Send Email
 
 gam sendemail [recipient|to] <RecipientEntity> [from <UserItem>] [replyto <EmailAddress>]
-        [cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage [<Boolean>]]
+        [cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
         [subject <String>]
         (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])
         (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
         (replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
         [newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
 gam <UserTypeEntity> sendemail [recipient|to <RecipientEntity>] [replyto <EmailAddress>]
-        [cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage [<Boolean>]]
+        [cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
         [subject <String>]
         (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])
         (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])

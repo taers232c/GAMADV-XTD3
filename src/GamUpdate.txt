@@ -1,3 +1,9 @@
+4.98.07
+
+Fixed bug that caused a trap in `gam <UserTypeEntity> sendemail`.
+
+Improved error reporting when GAM uses SMTP to send email.
+
 4.98.06
 
 Added output confirming that email was sent when using SMTP to send email.
