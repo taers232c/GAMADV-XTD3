@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.98.07'
+__version__ = '4.98.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -16704,8 +16704,6 @@ def doUpdateGroups():
       myarg = getArgument()
       if myarg == 'email':
         body['email'] = getEmailAddress(noUid=True)
-      elif myarg == 'admincreated':
-        body['adminCreated'] = getBoolean()
       elif myarg == 'getbeforeupdate':
         getBeforeUpdate = True
       elif myarg == 'json':
