@@ -33320,8 +33320,8 @@ def printFileList(users):
         for field in nodataFields:
           if field.find('(') != -1:
             field, subFields = field.split('(', 1)
-            titles.append(field)
             if field in DRIVE_LIST_FIELDS:
+              titles.append(field)
               titles.extend(['{0}.0.{1}'.format(field, subField) for subField in subFields[:-1].split(',') if subField])
             else:
               titles.extend(['{0}.{1}'.format(field, subField) for subField in subFields[:-1].split(',') if subField])
@@ -33332,8 +33332,8 @@ def printFileList(users):
             else:
               titles.append('{0}.{1}'.format(field, subField))
           elif field.lower() in DRIVE_SUBFIELDS_CHOICE_MAP:
-            titles.append(field)
             if field in DRIVE_LIST_FIELDS:
+              titles.append(field)
               for subField in iter(DRIVE_SUBFIELDS_CHOICE_MAP[field.lower()].values()):
                 if not isinstance(subField, list):
                   titles.append('{0}.0.{1}'.format(field, subField))
