@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.98.08'
+__version__ = '4.98.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -31886,6 +31886,8 @@ DRIVE_SUBFIELDS_CHOICE_MAP = {
   'trashinguser': DRIVE_SHARINGUSER_SUBFIELDS_CHOICE_MAP,
 }
 
+DRIVE_LIST_FIELDS = {'owners', 'parents', 'permissions', 'permissionIds', 'spaces'}
+
 FILEINFO_FIELDS_TITLES = ['name', 'mimeType']
 FILEPATH_FIELDS_TITLES = ['name', 'id', 'mimeType', 'parents']
 
@@ -33319,16 +33321,30 @@ def printFileList(users):
           if field.find('(') != -1:
             field, subFields = field.split('(', 1)
             titles.append(field)
-            titles.extend(['{0}.0.{1}'.format(field, subField) for subField in subFields[:-1].split(',') if subField])
+            if field in DRIVE_LIST_FIELDS:
+              titles.extend(['{0}.0.{1}'.format(field, subField) for subField in subFields[:-1].split(',') if subField])
+            else:
+              titles.extend(['{0}.{1}'.format(field, subField) for subField in subFields[:-1].split(',') if subField])
           elif field.find('.') != -1:
-            titles.append(field.replace('.', '.0.'))
+            field, subField = field.split('.', 1)
+            if field in DRIVE_LIST_FIELDS:
+              titles.append('{0}.0.{1}'.format(field, subField))
+            else:
+              titles.append(field)
           elif field.lower() in DRIVE_SUBFIELDS_CHOICE_MAP:
             titles.append(field)
-            for subField in iter(DRIVE_SUBFIELDS_CHOICE_MAP[field.lower()].values()):
-              if not isinstance(subField, list):
-                titles.append('{0}.0.{1}'.format(field, subField))
-              else:
-                titles.extend(['{0}.0.{1}'.format(field, subSubField) for subSubField in subField])
+            if field in DRIVE_LIST_FIELDS:
+              for subField in iter(DRIVE_SUBFIELDS_CHOICE_MAP[field.lower()].values()):
+                if not isinstance(subField, list):
+                  titles.append('{0}.0.{1}'.format(field, subField))
+                else:
+                  titles.extend(['{0}.0.{1}'.format(field, subSubField) for subSubField in subField])
+            else:
+              for subField in iter(DRIVE_SUBFIELDS_CHOICE_MAP[field.lower()].values()):
+                if not isinstance(subField, list):
+                  titles.append('{0}.{1}'.format(field, subField))
+                else:
+                  titles.extend(['{0}.{1}'.format(field, subSubField) for subSubField in subField])
           else:
             titles.append(field)
         csvPF.SetTitles(titles)
