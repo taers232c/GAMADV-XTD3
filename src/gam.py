@@ -33330,7 +33330,7 @@ def printFileList(users):
             if field in DRIVE_LIST_FIELDS:
               titles.append('{0}.0.{1}'.format(field, subField))
             else:
-              titles.append(field)
+              titles.append('{0}.{1}'.format(field, subField))
           elif field.lower() in DRIVE_SUBFIELDS_CHOICE_MAP:
             titles.append(field)
             if field in DRIVE_LIST_FIELDS:
