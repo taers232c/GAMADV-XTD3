@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.98.09'
+__version__ = '4.98.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1683,15 +1683,15 @@ def getJSON(deleteFields):
         jsonData = json.loads(argstr)
       else:
         jsonData = json.loads(argstr.encode(encoding).decode(UTF8))
-    except (TypeError, ValueError) as e:
-      usageErrorExit(str(e))
+    except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
+      usageErrorExit('{0}: {1}'.format(str(e), argstr if encoding == UTF8 else argstr.encode(encoding).decode(UTF8)))
   else:
     filename = getString(Cmd.OB_FILE_NAME)
     encoding = getCharSet()
     try:
       jsonData = json.loads(readFile(filename, encoding=encoding))
-    except (TypeError, ValueError) as e:
-      usageErrorExit(str(e))
+    except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
+      usageErrorExit('{0}: {1}'.format(str(e), filename))
   for field in deleteFields:
     jsonData.pop(field, None)
   return jsonData
@@ -2635,7 +2635,7 @@ def SetGlobalVariables():
     if value.startswith('{'):
       try:
         filterDict = json.loads(value.encode('unicode-escape').decode(UTF8))
-      except (TypeError, ValueError) as e:
+      except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
         _printValueError(sectionName, itemName, '"{0}"'.format(value), '{0}: {1}'.format(Msg.FAILED_TO_PARSE_AS_JSON, str(e)))
         return rowFilters
     else:
@@ -3171,7 +3171,7 @@ def doGAMCheckForUpdates(forceCheck):
     _, c = getHttpObj(timeout=10).request(GAM_LATEST_RELEASE, 'GET', headers={'Accept': 'application/vnd.github.v3.text+json'})
     try:
       release_data = json.loads(c)
-    except ValueError:
+    except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
       _gamLatestVersionNotAvailable()
       return
     if not isinstance(release_data, dict) or 'tag_name' not in release_data:
@@ -3297,7 +3297,7 @@ def _getSvcAcctData():
       invalidOauth2serviceJsonExit()
     try:
       GM.Globals[GM.OAUTH2SERVICE_JSON_DATA] = json.loads(json_string)
-    except (ValueError, IndexError, KeyError):
+    except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
       invalidOauth2serviceJsonExit()
     if not GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]:
       systemErrorExit(OAUTH2SERVICE_JSON_REQUIRED_RC, Msg.NO_SVCACCT_ACCESS_ALLOWED)
@@ -3561,7 +3561,7 @@ def callGDataPages(service, function,
 def checkGAPIError(e, soft_errors=False, retryOnHttpError=False, service=None):
   try:
     error = json.loads(e.content.decode(UTF8))
-  except ValueError:
+  except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
     eContent = e.content.decode(UTF8) if isinstance(e.content, bytes) else e.content
     if (e.resp['status'] == '503') and (eContent.startswith('Quota exceeded for the current request')):
       return (e.resp['status'], GAPI.QUOTA_EXCEEDED, eContent)
@@ -3797,8 +3797,8 @@ def checkCloudPrintResult(result, throw_messages=None):
   if isinstance(result, str):
     try:
       result = json.loads(result)
-    except ValueError:
-      systemErrorExit(JSON_LOADS_ERROR_RC, result)
+    except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
+      systemErrorExit(JSON_LOADS_ERROR_RC, '{0}: {1}'.format(str(e), result))
   if not result['success']:
     message = result['message']
     if message in throw_messages:
@@ -3836,7 +3836,7 @@ def readDiscoveryFile(api_version):
   try:
     discovery = json.loads(json_string)
     return (disc_file, discovery)
-  except ValueError:
+  except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
     invalidDiscoveryJsonExit(disc_file)
 
 DISCOVERY_URIS = [googleapiclient.discovery.V1_DISCOVERY_URI, googleapiclient.discovery.V2_DISCOVERY_URI]
@@ -7007,7 +7007,7 @@ def getOAuthClientIDAndSecret():
     # chop off .apps.googleusercontent.com suffix as it's not needed and we need to keep things short for the Auth URL.
     return (re.sub(r'\.apps\.googleusercontent\.com$', '', cs_json['installed']['client_id']),
             cs_json['installed']['client_secret'])
-  except (ValueError, IndexError, KeyError):
+  except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
     invalidClientSecretsJsonExit()
 
 def getScopesFromUser(scopesList, clientAccess, currentScopes=None):
@@ -7307,7 +7307,7 @@ def doOAuthUpdate(noArgumentCheck=False):
         invalidOauth2TxtExit()
     else:
       currentScopes = []
-  except (ValueError, IndexError, KeyError):
+  except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
     invalidOauth2TxtExit()
   if not doOAuthRequest(currentScopes):
     entityActionNotPerformedWarning([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]], Msg.USER_CANCELLED)
@@ -7376,7 +7376,7 @@ def doOAuthImport():
       getOauth2TxtCredentials(storageOnly=True).put(importCredentials)
     else:
       invalidOauth2TxtImportExit(filename)
-  except (KeyError, ValueError):
+  except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
     invalidOauth2TxtImportExit(filename)
   entityModifierNewValueActionPerformed([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]], Act.MODIFIER_FROM, filename)
 
@@ -7483,8 +7483,8 @@ def _createClientSecretsOauth2service(httpObj, projectInfo, svcAcctInfo):
                                    headers={'Content-type': 'application/x-www-form-urlencoded'})
     try:
       content = json.loads(content)
-    except ValueError:
-      sys.stderr.write('Unknown error: {0}\n'.format(content))
+    except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
+      sys.stderr.write('{0}: {1}'.format(str(e), content))
       return False
     if not 'error' in content or not 'error_description' in content:
       sys.stderr.write('Unknown error: {0}\n'.format(content))
@@ -7676,7 +7676,7 @@ def _getCurrentProjectID():
     invalidClientSecretsJsonExit()
   try:
     return json.loads(cs_data)['installed']['project_id']
-  except (ValueError, IndexError, KeyError):
+  except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
     invalidClientSecretsJsonExit()
 
 GAM_PROJECT_FILTER = 'id:gam-project-*'
@@ -8298,7 +8298,7 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
   if GM.Globals[GM.SVCACCT_SCOPES_DEFINED]:
     try:
       GM.Globals[GM.OAUTH2SERVICE_JSON_DATA] = json.loads(oauth2service_data)
-    except (ValueError, IndexError, KeyError):
+    except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
       invalidOauth2serviceJsonExit()
     GM.Globals[GM.OAUTH2SERVICE_JSON_DATA][API.OAUTH2SA_SCOPES] = GM.Globals[GM.SVCACCT_SCOPES]
     oauth2service_data = json.dumps(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA], ensure_ascii=False, sort_keys=True, indent=2)
@@ -14647,7 +14647,7 @@ def readCrOSAUEDates():
     try:
       GM.Globals[GM.CROS_AUE_DATES] = json.loads(json_string)
       return True
-    except ValueError:
+    except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
       pass
   stderrErrorMsg(Msg.DOES_NOT_EXIST_OR_HAS_INVALID_FORMAT.format(Ent.Singular(Ent.CROS_AUE_DATES_JSON_FILE), disc_filename))
   return False
@@ -21989,9 +21989,9 @@ def _setHoldQuery(body, queryParameters):
     if queryParameters.get('query'):
       try:
         body['query'][queryType] = json.loads(queryParameters['query'])
-      except ValueError as e:
+      except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
         Cmd.SetLocation(queryParameters['queryLocation'])
-        usageErrorExit(str(e))
+        usageErrorExit('{0}: {1}'.format(str(e), queryParameters['query']))
     elif queryParameters.get('includeSharedDriveFiles'):
       body['query'][queryType]['includeSharedDriveFiles'] = queryParameters['includeSharedDriveFiles']
   elif body['corpus'] in {'GROUPS', 'MAIL'}:
@@ -25250,6 +25250,7 @@ def doUpdateSiteVerification():
         printKeyValueList(['Expected Record',
                            '{0} IN TXT {1}'.format(query_params['name'], verify_data['token'])])
       _, content = getHttpObj().request('https://dns.google/resolve?' + urlencode(query_params), 'GET')
+###
       result = json.loads(content.decode(UTF8))
       status = result['Status']
       if status == 0 and 'Answer' in result:
@@ -39028,7 +39029,7 @@ def createSheet(users):
       spreadsheetJSON = getString(Cmd.OB_SPREADSHEET_JSON_CREATEREQUEST)
       try:
         body = json.loads(spreadsheetJSON)
-      except (ValueError, IndexError, KeyError, SyntaxError) as e:
+      except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
         Cmd.Backup()
         usageErrorExit('{0}: {1}'.format(str(e), spreadsheetJSON))
     elif getDriveFileParentAttribute(myarg, parameters):
@@ -39106,7 +39107,7 @@ def updateSheets(users):
       spreadsheetJSON = getString(Cmd.OB_SPREADSHEET_JSON_UPDATEREQUEST)
       try:
         body = json.loads(spreadsheetJSON)
-      except (ValueError, IndexError, KeyError, SyntaxError) as e:
+      except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
         Cmd.Backup()
         usageErrorExit('{0}: {1}'.format(str(e), spreadsheetJSON))
     else:
@@ -39236,7 +39237,7 @@ def _getSpreadsheetRangesValues(append):
         if append and len(spreadsheetRangesValues) > 1:
           Cmd.Backup()
           usageErrorExit(Msg.ONLY_ONE_JSON_RANGE_ALLOWED)
-      except (ValueError, IndexError, KeyError, SyntaxError) as e:
+      except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
         Cmd.Backup()
         usageErrorExit('{0}: {1}'.format(str(e), spreadsheetJSON))
     elif myarg in SHEET_VALUE_INPUT_OPTIONS_MAP:
@@ -39746,6 +39747,7 @@ def watchGmail(users):
       update_history = []
       for message in results['receivedMessages']:
         if 'data' in message['message']:
+###
           decoded_message = json.loads(base64.b64decode(message['message']['data']))
           if 'historyId' in decoded_message:
             update_history.append(decoded_message['emailAddress'])
