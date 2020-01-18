@@ -2574,7 +2574,7 @@ def SetGlobalVariables():
     return ''
 
   def _getCfgChoice(sectionName, itemName):
-    value = _stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName))
+    value = _stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName)).lower()
     choices = GC.VAR_INFO[itemName][GC.VAR_CHOICES]
     if value in choices:
       return choices[value]
