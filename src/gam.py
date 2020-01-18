@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.98.12'
+__version__ = '4.98.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -642,7 +642,7 @@ def deprecatedArgument(argument):
 
 # Choices is the valid set of choices that was expected
 def formatChoiceList(choices):
-  choiceList = list(choices)
+  choiceList = [c if c else "''" for c in choices]
   if len(choiceList) <= 5:
     return '|'.join(choiceList)
   return '|'.join(sorted(choiceList))
@@ -714,7 +714,7 @@ NO_DEFAULT = 'NoDefault'
 def getChoice(choices, **opts):
   if Cmd.ArgumentsRemaining():
     choice = Cmd.Current().strip().lower()
-    if choice:
+    if choice or '' in choices:
       if choice in opts.get(CHOICE_ALIASES, []):
         choice = opts[CHOICE_ALIASES][choice]
       if choice not in choices:
