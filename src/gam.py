@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.98.11'
+__version__ = '4.98.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3703,7 +3703,7 @@ def callGAPI(service, function,
         return None
       systemErrorExit(SOCKET_ERROR_RC, errMsg)
     except ValueError as e:
-      if service._http.cache is not None:
+      if hasattr(service._http, 'cache') and service._http.cache is not None:
         service._http.cache = None
         continue
       systemErrorExit(GOOGLE_API_ERROR_RC, str(e))
@@ -16704,6 +16704,8 @@ def doUpdateGroups():
       myarg = getArgument()
       if myarg == 'email':
         body['email'] = getEmailAddress(noUid=True)
+      elif myarg == 'admincreated':
+        body['adminCreated'] = getBoolean()
       elif myarg == 'getbeforeupdate':
         getBeforeUpdate = True
       elif myarg == 'json':
