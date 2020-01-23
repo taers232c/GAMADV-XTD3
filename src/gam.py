@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.98.13'
+__version__ = '4.98.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -14167,7 +14167,7 @@ def _processContactPhotos(users, entityType, function):
                     retry_errors=[GDATA.INTERNAL_SERVER_ERROR],
                     contact_entry_or_url=contact, extra_headers={'If-Match': '*'})
           entityActionPerformed([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, filename], i, count)
-      except GDATA.notFound as e:
+      except GDATA.notFound:
         entityDoesNotHaveItemWarning([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, ''], i, count)
       except (GDATA.badRequest, OSError, IOError) as e:
         entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, filename], str(e), j, jcount)
@@ -16424,7 +16424,7 @@ def doUpdateGroups():
                retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                groupKey=group, body=body, fields='')
       _showAction(group, role, delivery_settings, member, j, jcount)
-    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(Ent.GROUP, group, i, count)
     except (GAPI.duplicate, GAPI.memberNotFound, GAPI.resourceNotFound,
             GAPI.invalidMember, GAPI.cyclicMembershipsNotAllowed, GAPI.conditionNotMet, GAPI.conflict) as e:
@@ -16532,7 +16532,7 @@ def doUpdateGroups():
                retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                groupKey=group, memberKey=member)
       _showAction(group, role, DELIVERY_SETTINGS_UNDEFINED, member, j, jcount)
-    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(Ent.GROUP, group, i, count)
     except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet, GAPI.conflict) as e:
       entityActionFailedWarning([Ent.GROUP, group, Ent.MEMBER, member], str(e), j, jcount)
@@ -16623,7 +16623,7 @@ def doUpdateGroups():
                retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                groupKey=group, memberKey=member, body=body, fields='')
       _showAction(group, role, delivery_settings, member, j, jcount)
-    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(Ent.GROUP, group, i, count)
     except GAPI.memberNotFound as e:
       if createIfNotFound:
@@ -34030,7 +34030,7 @@ def updateDriveFile(users):
                        spreadsheetId=fileId, body=sbody)
               entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, result['name'], sheetEntity['sheetType'], sheetEntity['sheetValue']],
                                                     Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], j, jcount)
-            except GAPI.fileNotFound:
+            except GAPI.fileNotFound as e:
               entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_ID, fileId], str(e), j, jcount)
             except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
                     GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid) as e:
@@ -38297,7 +38297,7 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
           feed = callGAPIpages(userdrive.drives(), 'list', 'drives',
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                                fields='nextPageToken,drives(id,name)', pageSize=100)
-        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
           pass
     if feed is None:
       try:
@@ -38341,7 +38341,7 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
             teamdrive['permissions'].append(permission)
         if teamdrive['permissions']:
           matchFeed.append(teamdrive)
-      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError) as e:
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError):
         pass
     jcount = len(matchFeed)
     if jcount == 0:
@@ -38455,7 +38455,7 @@ def _addUserToGroups(cd, user, addGroupsSet, addGroups, i, count):
                retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                groupKey=group, body=body, fields='')
       entityActionPerformed([Ent.GROUP, group, role, user], j, jcount)
-    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(Ent.GROUP, group, j, jcount)
     except (GAPI.duplicate, GAPI.cyclicMembershipsNotAllowed, GAPI.conditionNotMet) as e:
       entityActionFailedWarning([Ent.GROUP, group, role, user], str(e), j, jcount)
@@ -38518,7 +38518,7 @@ def _deleteUserFromGroups(cd, user, deleteGroupsSet, deleteGroups, i, count):
                retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                groupKey=group, memberKey=user)
       entityActionPerformed([Ent.GROUP, group, role, user], j, jcount)
-    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(Ent.GROUP, group, j, jcount)
     except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.GROUP, group], str(e), j, jcount)
@@ -38581,7 +38581,7 @@ def _updateUserGroups(cd, user, updateGroupsSet, updateGroups, i, count):
                retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                groupKey=group, memberKey=user, body=body, fields='')
       entityActionPerformed([Ent.GROUP, group, role, user], j, jcount)
-    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(Ent.GROUP, group, j, jcount)
     except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.GROUP, group], str(e), j, jcount)
@@ -38688,7 +38688,7 @@ def syncUserWithGroups(users):
                           groupKey=groupEmail, memberKey=user, fields='role,delivery_settings')
         currGroups[groupEmail] = {'role': result.get('role', Ent.MEMBER),
                                   'delivery_settings': result.get('delivery_settings', DELIVERY_SETTINGS_UNDEFINED)}
-      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
         entityUnknownWarning(Ent.GROUP, groupEmail, i, count)
       except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], str(e), i, count)
@@ -38783,7 +38783,7 @@ def printShowUserGroups(users):
             printEntity([Ent.GROUP, groupEmail, Ent.ROLE, role, Ent.STATUS, status, Ent.DELIVERY, delivery_settings], j, jcount)
           else:
             csvPF.WriteRow({'User': user, 'Group': groupEmail, 'Role': role, 'Status': status, 'Delivery': delivery_settings})
-      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
         entityUnknownWarning(Ent.GROUP, groupEmail, j, jcount)
       except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], str(e), j, jcount)
@@ -40453,7 +40453,7 @@ def archiveMessages(users):
       group = callGAPI(cd.groups(), 'get',
                        throw_reasons=GAPI.GROUP_GET_THROW_REASONS,
                        groupKey=group, fields='email')['email']
-    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest) as e:
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest):
       entityDoesNotExistExit(Ent.GROUP, group)
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -41459,7 +41459,7 @@ def updateDelegates(users):
                    throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION, GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT],
                    userId='me', body={'delegateEmail': delegateEmail, 'verificationStatus': 'accepted'})
           entityActionPerformed([Ent.USER, user, Ent.DELEGATE, delegateEmail], j, jcount)
-        except GAPI.alreadyExists as e:
+        except GAPI.alreadyExists:
           entityActionPerformed([Ent.USER, user, Ent.DELEGATE, delegateEmail], j, jcount)
         except (GAPI.failedPrecondition, GAPI.notFound, GAPI.invalidArgument) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DELEGATE, delegateEmail], str(e), j, jcount)
