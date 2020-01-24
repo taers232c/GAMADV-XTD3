@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.98.14'
+__version__ = '4.98.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -38243,7 +38243,7 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
   roles = set()
   checkGroups = oneItemPerRow = False
   fieldsList = []
-  query = matchPattern = permtype = None
+  emailAddress = query = matchPattern = permtype = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -38279,10 +38279,13 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
   fields = getItemFieldsFromFieldsList('permissions', fieldsList, True)
   printKeys, timeObjects = _getDriveFileACLPrintKeysTimeObjects()
   if checkGroups:
-    cd = buildGAPIObject(API.DIRECTORY)
-    groups = callGAPIpages(cd.groups(), 'list', 'groups',
-                           userKey=emailAddress, orderBy='email', fields='nextPageToken,groups(email)')
-    groupsSet = {group['email'] for group in groups}
+    if emailAddress:
+      cd = buildGAPIObject(API.DIRECTORY)
+      groups = callGAPIpages(cd.groups(), 'list', 'groups',
+                             userKey=emailAddress, orderBy='email', fields='nextPageToken,groups(email)')
+      groupsSet = {group['email'] for group in groups}
+    else:
+      checkGroups = False
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
