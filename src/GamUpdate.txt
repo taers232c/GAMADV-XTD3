@@ -1,3 +1,7 @@
+4.98.16
+
+Added `fields <VaultMatterFieldNameList>` option to `gam info vaultmatter` and `gam print/show vaultmatters`.
+
 4.98.15
 
 Fixed bug that caused a trap in `gam print/show teamdriveacls` when `checkgroups` was used without `user <EmailAddress>`.

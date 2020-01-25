@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.98.15'
+__version__ = '4.98.16'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -21717,7 +21717,7 @@ def doInfoVaultExport():
     entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], str(e))
 
 VAULT_EXPORT_STATUS_MAP = {'completed': 'COMPLETED', 'failed': 'FAILED', 'inprogress': 'IN_PROGRESS'}
-PRINT_VAULT_EXPORTS_TITLES = ['matterId', 'matterName', 'id', 'name', 'createTime', 'status']
+PRINT_VAULT_EXPORTS_TITLES = ['matterId', 'matterName', 'id', 'name']
 
 # gam print vaultexports|exports [todrive <ToDriveAttributes>*]
 #	[matters <MatterItemList>] [exportstatus <ExportStatusList>]
@@ -22258,7 +22258,7 @@ def doInfoVaultHold():
   except (GAPI.notFound, GAPI.badRequest, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, holdNameId], str(e))
 
-PRINT_VAULT_HOLDS_TITLES = ['matterId', 'matterName', 'holdId', 'name', 'corpus', 'updateTime']
+PRINT_VAULT_HOLDS_TITLES = ['matterId', 'matterName', 'holdId', 'name']
 
 # gam print vaultholds|holds [todrive <ToDriveAttributes>*] [matters <MatterItemList>]
 #	[fields <VaultHoldFieldNameList>] [shownames]
@@ -22540,21 +22540,34 @@ def doUpdateVaultMatter():
         break
     Ind.Decrement()
 
-# gam info vaultmatter|matter <MatterItem> [basic|full]
+VAULT_MATTER_FIELDS_CHOICE_MAP = {
+  'matterid': 'matterId',
+  'name': 'name',
+  'description': 'description',
+  'state': 'state',
+  'matterpermissions': 'matterPermissions',
+  }
+
+# gam info vaultmatter|matter <MatterItem>
+#	[basic|full|(fields <VaultMatterFieldNameList>)]
 def doInfoVaultMatter():
   v = buildGAPIObject(API.VAULT)
   matterId, matterNameId = getMatterItem(v)
+  fieldsList = []
   view = 'FULL'
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in PROJECTION_CHOICE_MAP:
       view = PROJECTION_CHOICE_MAP[myarg]
+    elif getFieldsList(myarg, VAULT_MATTER_FIELDS_CHOICE_MAP, fieldsList, ['matterId', 'name']):
+      pass
     else:
       unknownArgumentExit()
+  fields = getFieldsFromFieldsList(fieldsList)
   try:
     matter = callGAPI(v.matters(), 'get',
                       throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                      matterId=matterId, view=view)
+                      matterId=matterId, view=view, fields=fields)
     cd = buildGAPIObject(API.DIRECTORY) if 'matterPermissions' in matter else None
     entityActionPerformed([Ent.VAULT_MATTER, matterNameId])
     _showVaultMatter(matter, cd)
@@ -22562,10 +22575,12 @@ def doInfoVaultMatter():
     entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId], str(e))
 
 VAULT_MATTER_STATE_MAP = {'open': 'OPEN', 'closed': 'CLOSED', 'deleted': 'DELETED'}
-PRINT_VAULT_MATTERS_TITLES = ['matterId', 'name', 'description', 'state']
+PRINT_VAULT_MATTERS_TITLES = ['matterId', 'name']
 
-# gam print vaultmatters|matters [todrive <ToDriveAttributes>*] [basic|full] [matterstate <MatterStateList>]
-# gam show vaultmatters|matters [basic|full] [matterstate <MatterStateList>]
+# gam print vaultmatters|matters [todrive <ToDriveAttributes>*] [matterstate <MatterStateList>]
+#	[basic|full|(fields <VaultMatterFieldNameList>)]
+# gam show vaultmatters|matters [matterstate <MatterStateList>]
+#	[basic|full|(fields <VaultMatterFieldNameList>)]
 def doPrintShowVaultMatters():
   def getPermissionEmails(matter):
     for matterPermission in matter.get('matterPermissions', []):
@@ -22583,6 +22598,7 @@ def doPrintShowVaultMatters():
 
   v = buildGAPIObject(API.VAULT)
   csvPF = CSVPrintFile(PRINT_VAULT_MATTERS_TITLES, 'sortall') if Act.csvFormat() else None
+  fieldsList = []
   view = 'FULL'
   matterStatesList = []
   emails = {}
@@ -22590,16 +22606,20 @@ def doPrintShowVaultMatters():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg in PROJECTION_CHOICE_MAP:
-      view = PROJECTION_CHOICE_MAP[myarg]
     elif myarg == 'matterstate':
+      fieldsList.append('state')
       for state in getString(Cmd.OB_STATE_NAME_LIST).lower().replace('_', '').replace(',', ' ').split():
         if state in VAULT_MATTER_STATE_MAP:
           matterStatesList.append(VAULT_MATTER_STATE_MAP[state])
         else:
           invalidChoiceExit(state, list(VAULT_MATTER_STATE_MAP), True)
+    elif myarg in PROJECTION_CHOICE_MAP:
+      view = PROJECTION_CHOICE_MAP[myarg]
+    elif getFieldsList(myarg, VAULT_MATTER_FIELDS_CHOICE_MAP, fieldsList, ['matterId', 'name']):
+      pass
     else:
       unknownArgumentExit()
+  fields = 'nextPageToken,matters({0})'.format(getFieldsFromFieldsList(fieldsList))
   # If no states are set, there is no filtering; if 1 state is set, the API can filter; else GAM filters
   matterStates = set()
   stateParm = None
@@ -22616,7 +22636,7 @@ def doPrintShowVaultMatters():
     matters = callGAPIpages(v.matters(), 'list', 'matters',
                             page_message=getPageMessage(),
                             throw_reasons=[GAPI.FORBIDDEN],
-                            view=view, state=stateParm)
+                            view=view, state=stateParm, fields=fields)
   except GAPI.forbidden as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, None], str(e))
     return

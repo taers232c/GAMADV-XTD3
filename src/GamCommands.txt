@@ -2884,9 +2884,20 @@ gam reopen vaultmatter|matter <MatterItem>
 gam delete vaultmatter|matter <MatterItem>
 gam undelete vaultmatter|matter <MatterItem>
 
+<ValutMatterFieldName> ::=
+        description|
+        matterid|
+        matterpermissions|
+        name|
+        state
+<VaultMatterFieldNameList> ::= "<VaultMatterFieldName>(,<VaultMatterFieldName>)*"
+
 gam info vaultmatter|matter <MatterItem> [basic|full]
-gam print vaultmatters|matters [todrive <ToDriveAttributes>*] [basic|full] [matterstate <MatterStateList>]
-gam show vaultmatters|matters [basic|full] [matterstate <MatterStateList>]
+        [basic|full|(fields <VaultMatterFieldNameList>)]
+gam print vaultmatters|matters [todrive <ToDriveAttributes>*] [matterstate <MatterStateList>]
+        [basic|full|(fields <VaultMatterFieldNameList>)]
+gam show vaultmatters|matters [matterstate <MatterStateList>]
+        [basic|full|(fields <VaultMatterFieldNameList>)]
 
 # Users
 
