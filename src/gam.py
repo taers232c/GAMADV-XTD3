@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.98.16'
+__version__ = '4.98.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -22619,7 +22619,7 @@ def doPrintShowVaultMatters():
       pass
     else:
       unknownArgumentExit()
-  fields = 'nextPageToken,matters({0})'.format(getFieldsFromFieldsList(fieldsList))
+  fields = 'nextPageToken,matters({0})'.format(getFieldsFromFieldsList(fieldsList)) if fieldsList else None
   # If no states are set, there is no filtering; if 1 state is set, the API can filter; else GAM filters
   matterStates = set()
   stateParm = None

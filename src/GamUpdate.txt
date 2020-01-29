@@ -1,3 +1,7 @@
+4.98.17
+
+Fixed bug in `gam print/show matters` that caused a trap.
+
 4.98.16
 
 Added `fields <VaultMatterFieldNameList>` option to `gam info vaultmatter` and `gam print/show vaultmatters`.
