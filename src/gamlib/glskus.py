@@ -117,7 +117,7 @@ def formatProductIdDisplayName(productId):
   productIdDisplay = productIdToDisplayName(productId)
   if productId == productIdDisplay:
     return productId
-  return '{0} ({1})'.format(productId, productIdDisplay)
+  return f'{productId} ({productIdDisplay})'
 
 def normalizeProductId(product):
   l_product = product.lower().replace('-', '').replace(' ', '')
@@ -139,7 +139,7 @@ def formatSKUIdDisplayName(skuId):
   skuIdDisplay = skuIdToDisplayName(skuId)
   if skuId == skuIdDisplay:
     return skuId
-  return '{0} ({1})'.format(skuId, skuIdDisplay)
+  return f'{skuId} ({skuIdDisplay})'
 
 def getSortedSKUList():
   return sorted(_SKUS)

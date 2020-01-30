@@ -1,3 +1,15 @@
+4.99.00
+
+Reworked code to use Python 'f' strings for most formatting; this feature was added in Python 3.6.
+If you are using the source version of GAM and have Python 3.5 or lower, you cannot use this version.
+There is no impact if you are using the executable version of GAM as it includes Python 3.8.1.
+
+Added options to `gam show messages|threads` to allow downloading attachments.
+```
+[saveattachments [attachmentnamepattern <RegularExpression>]] [targetfolder <FilePath>] [overwrite [<Boolean>]]
+```
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Gmail-Messages-Threads#display-messagesthreads
+
 4.98.17
 
 Fixed bug in `gam print/show matters` that caused a trap.

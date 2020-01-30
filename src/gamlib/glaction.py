@@ -218,13 +218,13 @@ class GamAction():
     return self._NAMES[self.action][0]
 
   def Failed(self):
-    return '{0} {1}'.format(self._NAMES[self.action][1], self.SUFFIX_FAILED)
+    return f'{self._NAMES[self.action][1]} {self.SUFFIX_FAILED}'
 
   def NotPerformed(self):
     actionWords = self._NAMES[self.action][0].split(' ')
     if len(actionWords) != 2:
-      return '{0} {1}'.format(self.PREFIX_NOT, self._NAMES[self.action][0])
-    return '{0} {1} {2}'.format(actionWords[0], self.PREFIX_NOT, actionWords[1])
+      return f'{self.PREFIX_NOT} {self._NAMES[self.action][0]}'
+    return f'{actionWords[0]} {self.PREFIX_NOT} {actionWords[1]}'
 
   def PerformedName(self, action):
     return self._NAMES[action][0]

@@ -54,6 +54,7 @@ class GamEntity():
   APP_ACCESS_SETTINGS = 'apps'
   APPLICATION_SPECIFIC_PASSWORD = 'aspa'
   ARROWS_ENABLED = 'arro'
+  ATTACHMENT = 'atta'
   ATTENDEE = 'atnd'
   AUDIT_ACTIVITY_REQUEST = 'auda'
   AUDIT_EXPORT_REQUEST = 'audx'
@@ -266,6 +267,7 @@ class GamEntity():
     APP_ACCESS_SETTINGS: ['Application Access Settings', 'Application Access Settings'],
     APPLICATION_SPECIFIC_PASSWORD: ['Application Specific Password IDs', 'Application Specific Password ID'],
     ARROWS_ENABLED: ['Personal Indicator Arrows Enabled', 'Personal Indicator Arrows Enabled'],
+    ATTACHMENT: ['Attachments', 'Attachment'],
     ATTENDEE: ['Attendees', 'Attendee'],
     AUDIT_ACTIVITY_REQUEST: ['Audit Activity Requests', 'Audit Activity Request'],
     AUDIT_EXPORT_REQUEST: ['Audit Export Requests', 'Audit Export Request'],
@@ -481,8 +483,8 @@ class GamEntity():
 
   def SetGettingQuery(self, entityType, query):
     self.entityType = entityType
-    self.preQualifier = ' that match query ({0})'.format(query)
-    self.postQualifier = ' that matched query ({0})'.format(query)
+    self.preQualifier = f' that match query ({query})'
+    self.postQualifier = f' that matched query ({query})'
 
   def SetGettingQualifier(self, entityType, qualifier):
     self.entityType = entityType
@@ -523,7 +525,7 @@ class GamEntity():
 
   def MayTakeTime(self, entityType):
     if entityType:
-      return ', may take some time on a large {0}...'.format(self.Singular(entityType))
+      return f', may take some time on a large {self.Singular(entityType)}...'
     return ''
 
   def FormatEntityValueList(self, entityValueList):
@@ -534,10 +536,10 @@ class GamEntity():
     return evList
 
   def TypeMessage(self, entityType, message):
-    return '{0}: {1}'.format(self.Singular(entityType), message)
+    return f'{self.Singular(entityType)}: {message}'
 
   def TypeName(self, entityType, entityName):
-    return '{0}: {1}'.format(self.Singular(entityType), entityName)
+    return f'{self.Singular(entityType)}: {entityName}'
 
   def TypeNameMessage(self, entityType, entityName, message):
-    return '{0}: {1} {2}'.format(self.Singular(entityType), entityName, message)
+    return f'{self.Singular(entityType)}: {entityName} {message}'

@@ -772,19 +772,17 @@ class GamCLArgs():
     self.encoding = encoding
 
 # Concatenate list members, any item containing spaces is enclosed in ""
-  def QuotedArgumentList(self, items):
+  @staticmethod
+  def QuotedArgumentList(items):
     return ' '.join([item if item and (item.find(' ') == -1) and (item.find(',') == -1) else '"'+item+'"' for item in items])
 
 # Mark bad argument in command line
   def CommandLineWithBadArgumentMarked(self, extraneous):
     if extraneous:
-      return 'Command: {0} >>>{1}<<<\n'.format(self.QuotedArgumentList(self.argv[:self.argvI]),
-                                               self.QuotedArgumentList(self.argv[self.argvI:]))
+      return f'Command: {self.QuotedArgumentList(self.argv[:self.argvI])} >>>{self.QuotedArgumentList(self.argv[self.argvI:])}<<<\n'
     if self.ArgumentsRemaining():
-      return 'Command: {0} >>>{1}<<< {2}\n'.format(self.QuotedArgumentList(self.argv[:self.argvI]),
-                                                   self.QuotedArgumentList([self.argv[self.argvI]]),
-                                                   self.QuotedArgumentList(self.argv[self.argvI+1:]))
-    return 'Command: {0} >>><<<\n'.format(self.QuotedArgumentList(self.argv))
+      return f'Command: {self.QuotedArgumentList(self.argv[:self.argvI])} >>>{self.QuotedArgumentList([self.argv[self.argvI]])}<<< {self.QuotedArgumentList(self.argv[self.argvI+1:])}\n'
+    return f'Command: {self.QuotedArgumentList(self.argv)} >>><<<\n'
 
 # Peek to see if next argument is in choices
   def PeekArgumentPresent(self, choices):

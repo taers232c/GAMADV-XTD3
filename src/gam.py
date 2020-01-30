@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.98.17'
+__version__ = '4.99.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -53,13 +53,9 @@ import multiprocessing
 import os
 import platform
 import queue
-try:
-  from secrets import SystemRandom
-  import random
-except ImportError:
-  import random
-  from random import SystemRandom
+import random
 import re
+from secrets import SystemRandom
 import shlex
 import signal
 import smtplib
@@ -144,15 +140,15 @@ else:
 
 GIT_USER = 'taers232c'
 GAM = 'GAMADV-XTD3'
-GAM_URL = 'https://github.com/{0}/{1}'.format(GIT_USER, GAM)
-GAM_INFO = '{0} {1} - {2} / {3} / Python {4}.{5}.{6} {7} / {8} {9} /'.format(GAM, __version__, GAM_URL,
-                                                                             __author__,
-                                                                             sys.version_info[0], sys.version_info[1], sys.version_info[2],
-                                                                             sys.version_info[3],
-                                                                             platform.platform(), platform.machine())
-GAM_RELEASES = 'https://github.com/{0}/{1}/releases'.format(GIT_USER, GAM)
-GAM_WIKI = 'https://github.com/{0}/{1}/wiki'.format(GIT_USER, GAM)
-GAM_LATEST_RELEASE = 'https://api.github.com/repos/{0}/{1}/releases/latest'.format(GIT_USER, GAM)
+GAM_URL = f'https://github.com/{GIT_USER}/{GAM}'
+GAM_INFO = (f'{GAM} {__version__} - {GAM_URL} / '
+            f'{__author__} / '
+            f'Python {sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]} {sys.version_info[3]} / '
+            f'{platform.platform()} {platform.machine()} /'
+            )
+GAM_RELEASES = f'https://github.com/{GIT_USER}/{GAM}/releases'
+GAM_WIKI = f'https://github.com/{GIT_USER}/{GAM}/wiki'
+GAM_LATEST_RELEASE = f'https://api.github.com/repos/{GIT_USER}/{GAM}/releases/latest'
 
 TRUE = 'true'
 FALSE = 'false'
@@ -389,13 +385,13 @@ class _DeHTMLParser(HTMLParser):
     elif tag == 'a':
       for attr in attrs:
         if attr[0] == 'href':
-          self.__text.append('({0}) '.format(attr[1]))
+          self.__text.append(f'({attr[1]}) ')
           break
     elif tag == 'div':
       if not attrs:
         self.__text.append('\n')
     elif tag in {'http:', 'https'}:
-      self.__text.append(' ({0}//{1}) '.format(tag, attrs[0][0]))
+      self.__text.append(f' ({tag}//{attrs[0][0]}) ')
 
   def handle_startendtag(self, tag, attrs):
     if tag == 'br':
@@ -453,10 +449,10 @@ def printErrorMessage(sysRC, message):
   writeStderr(formatKeyValueList(Ind.Spaces(), [ERROR, message], '\n'))
 
 def stderrErrorMsg(message):
-  writeStderr('\n{0}{1}\n'.format(ERROR_PREFIX, message))
+  writeStderr(f'\n{ERROR_PREFIX}{message}\n')
 
 def stderrWarningMsg(message):
-  writeStderr('\n{0}{1}\n'.format(WARNING_PREFIX, message))
+  writeStderr(f'\n{WARNING_PREFIX}{message}\n')
 
 # Something's wrong with CustomerID
 def accessErrorMessage(cd):
@@ -620,13 +616,13 @@ def unknownArgumentExit():
 
 # Argument describes what's expected
 def expectedArgumentExit(problem, argument):
-  usageErrorExit('{0}: {1} <{2}>'.format(problem, Msg.EXPECTED, argument))
+  usageErrorExit(f'{problem}: {Msg.EXPECTED} <{argument}>')
 
 def blankArgumentExit(argument):
-  expectedArgumentExit(Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_BLANK][1], '{0} {1}'.format(Msg.NON_BLANK, argument))
+  expectedArgumentExit(Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_BLANK][1], f'{Msg.NON_BLANK} {argument}')
 
 def emptyArgumentExit(argument):
-  expectedArgumentExit(Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_EMPTY][1], '{0} {1}'.format(Msg.NON_EMPTY, argument))
+  expectedArgumentExit(Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_EMPTY][1], f'{Msg.NON_EMPTY} {argument}')
 
 def invalidArgumentExit(argument):
   expectedArgumentExit(Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1], argument)
@@ -638,7 +634,7 @@ def deprecatedArgument(argument):
   Cmd.Backup()
   writeStderr(Cmd.CommandLineWithBadArgumentMarked(False))
   Cmd.Advance()
-  stderrWarningMsg('{0}: {1} <{2}>'.format(Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_DEPRECATED][1], Msg.IGNORED, argument))
+  stderrWarningMsg(f'{Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_DEPRECATED][1]}: {Msg.IGNORED} <{argument}>')
 
 # Choices is the valid set of choices that was expected
 def formatChoiceList(choices):
@@ -963,7 +959,7 @@ def removeCourseIdScope(courseId):
 
 def addCourseIdScope(courseId):
   if not courseId.isdigit() and courseId[:2] != 'd:':
-    return 'd:{0}'.format(courseId)
+    return f'd:{courseId}'
   return courseId
 
 def getCourseAlias():
@@ -972,7 +968,7 @@ def getCourseAlias():
     if courseAlias:
       Cmd.Advance()
       if courseAlias[:2] != 'd:':
-        return 'd:{0}'.format(courseAlias)
+        return f'd:{courseAlias}'
       return courseAlias
   missingArgumentExit(Cmd.OB_COURSE_ALIAS)
 
@@ -1018,9 +1014,9 @@ def normalizeEmailAddressOrUID(emailAddressOrUID, noUid=False, checkForCustomerI
     return emailAddressOrUID[1:].lower() if not noLower else emailAddressOrUID[1:]
   if (atLoc == -1) or (atLoc == len(emailAddressOrUID)-1) and GC.Values[GC.DOMAIN]:
     if atLoc == -1:
-      emailAddressOrUID = '{0}@{1}'.format(emailAddressOrUID, GC.Values[GC.DOMAIN])
+      emailAddressOrUID = f'{emailAddressOrUID}@{GC.Values[GC.DOMAIN]}'
     else:
-      emailAddressOrUID = '{0}{1}'.format(emailAddressOrUID, GC.Values[GC.DOMAIN])
+      emailAddressOrUID = f'{emailAddressOrUID}{GC.Values[GC.DOMAIN]}'
   return emailAddressOrUID.lower() if not noLower else emailAddressOrUID
 
 # Normalize student/guardian email address/uid
@@ -1048,12 +1044,12 @@ def getEmailAddress(noUid=False, minLen=1, optional=False):
         atLoc = emailAddress.find('@')
         if atLoc == -1:
           if GC.Values[GC.DOMAIN]:
-            emailAddress = '{0}@{1}'.format(emailAddress, GC.Values[GC.DOMAIN])
+            emailAddress = f'{emailAddress}@{GC.Values[GC.DOMAIN]}'
           Cmd.Advance()
           return emailAddress
         if atLoc != 0:
           if (atLoc == len(emailAddress)-1) and GC.Values[GC.DOMAIN]:
-            emailAddress = '{0}{1}'.format(emailAddress, GC.Values[GC.DOMAIN])
+            emailAddress = f'{emailAddress}{GC.Values[GC.DOMAIN]}'
           Cmd.Advance()
           return emailAddress
         invalidArgumentExit('name@domain')
@@ -1091,12 +1087,12 @@ def getPermissionId():
           Cmd.Advance()
           return (False, 'anyoneWithLink')
         if GC.Values[GC.DOMAIN]:
-          emailAddress = '{0}@{1}'.format(emailAddress, GC.Values[GC.DOMAIN])
+          emailAddress = f'{emailAddress}@{GC.Values[GC.DOMAIN]}'
         Cmd.Advance()
         return (True, emailAddress)
       if atLoc != 0:
         if (atLoc == len(emailAddress)-1) and GC.Values[GC.DOMAIN]:
-          emailAddress = '{0}{1}'.format(emailAddress, GC.Values[GC.DOMAIN])
+          emailAddress = f'{emailAddress}{GC.Values[GC.DOMAIN]}'
         Cmd.Advance()
         return (True, emailAddress)
       invalidArgumentExit('name@domain')
@@ -1142,12 +1138,12 @@ def getGoogleSKUList():
 
 def floatLimits(minVal, maxVal, item='float'):
   if (minVal is not None) and (maxVal is not None):
-    return '{0} {1:.3f}<=x<={2:.3f}'.format(item, minVal, maxVal)
+    return f'{item} {minVal:.3f}<=x<={maxVal:.3f}'
   if minVal is not None:
-    return '{0} x>={1:.3f}'.format(item, minVal)
+    return f'{item} x>={minVal:.3f}'
   if maxVal is not None:
-    return '{0} x<={1:.3f}'.format(item, maxVal)
-  return '{0} x'.format(item)
+    return f'{item} x<={maxVal:.3f}'
+  return f'{item} x'
 
 def getFloat(minVal=None, maxVal=None):
   if Cmd.ArgumentsRemaining():
@@ -1163,12 +1159,12 @@ def getFloat(minVal=None, maxVal=None):
 
 def integerLimits(minVal, maxVal, item='integer'):
   if (minVal is not None) and (maxVal is not None):
-    return '{0} {1}<=x<={2}'.format(item, minVal, maxVal)
+    return f'{item} {minVal}<=x<={maxVal}'
   if minVal is not None:
-    return '{0} x>={1}'.format(item, minVal)
+    return f'{item} x>={minVal}'
   if maxVal is not None:
-    return '{0} x<={1}'.format(item, maxVal)
-  return '{0} x'.format(item)
+    return f'{item} x<={maxVal}'
+  return f'{item} x'
 
 def getInteger(minVal=None, maxVal=None):
   if Cmd.ArgumentsRemaining():
@@ -1193,7 +1189,7 @@ class OrderBy():
     fieldName = getChoice(self.choiceMap, mapChoice=True)
     if fieldName in self.items:
       self.items.remove(fieldName)
-    fieldNameDesc = '{0} desc'.format(fieldName)
+    fieldNameDesc = f'{fieldName} desc'
     if fieldNameDesc in self.items:
       self.items.remove(fieldNameDesc)
     if getChoice(SORTORDER_CHOICE_MAP, defaultChoice=None, mapChoice=True) != 'DESCENDING':
@@ -1215,7 +1211,7 @@ def getOrderBySortOrder(choiceMap, defaultChoice='ASCENDING', mapSortOrderChoice
 def orgUnitPathQuery(path, isSuspended):
   query = "orgUnitPath='{0}'".format(path.replace("'", "\\'")) if path != '/' else ''
   if isSuspended is not None:
-    query += ' isSuspended={0}'.format(isSuspended)
+    query += f' isSuspended={isSuspended}'
   return query
 
 def makeOrgUnitPathAbsolute(path):
@@ -1270,7 +1266,7 @@ def validateREPattern(patstr, flags=0):
     return re.compile(patstr, flags)
   except re.error as e:
     Cmd.Backup()
-    usageErrorExit('{0} {1}: {2}'.format(Cmd.OB_RE_PATTERN, Msg.ERROR, e))
+    usageErrorExit(f'{Cmd.OB_RE_PATTERN} {Msg.ERROR}: {e}')
 
 def getREPattern(flags=0):
   if Cmd.ArgumentsRemaining():
@@ -1328,7 +1324,7 @@ def validateSplitSiteName(fullSite):
     domain = siteParts[0]
     site = siteParts[1]
   if SITENAME_PATTERN.match(site):
-    return (domain, site, '{0}/{1}'.format(domain, site))
+    return (domain, site, f'{domain}/{site}')
   return (domain, site, None)
 
 def getSiteName():
@@ -1350,7 +1346,7 @@ def getString(item, checkBlank=False, optional=False, minLen=1, maxLen=None):
       if (len(argstr) >= minLen) and ((maxLen is None) or (len(argstr) <= maxLen)):
         Cmd.Advance()
         return argstr
-      invalidArgumentExit('{0} for {1}'.format(integerLimits(minLen, maxLen, Msg.STRING_LENGTH), item))
+      invalidArgumentExit(f'{integerLimits(minLen, maxLen, Msg.STRING_LENGTH)} for {item}')
     if optional or (minLen == 0):
       Cmd.Advance()
       return ''
@@ -1662,7 +1658,7 @@ def getCharacter():
       if len(argstr) == 1:
         Cmd.Advance()
         return argstr
-      invalidArgumentExit('{0} for {1}'.format(integerLimits(1, 1, Msg.STRING_LENGTH), Cmd.OB_CHARACTER))
+      invalidArgumentExit(f'{integerLimits(1, 1, Msg.STRING_LENGTH)} for {Cmd.OB_CHARACTER}')
     emptyArgumentExit(Cmd.OB_CHARACTER)
   missingArgumentExit(Cmd.OB_CHARACTER)
 
@@ -1684,14 +1680,14 @@ def getJSON(deleteFields):
       else:
         jsonData = json.loads(argstr.encode(encoding).decode(UTF8))
     except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
-      usageErrorExit('{0}: {1}'.format(str(e), argstr if encoding == UTF8 else argstr.encode(encoding).decode(UTF8)))
+      usageErrorExit(f'{str(e)}: {argstr if encoding == UTF8 else argstr.encode(encoding).decode(UTF8)}')
   else:
     filename = getString(Cmd.OB_FILE_NAME)
     encoding = getCharSet()
     try:
       jsonData = json.loads(readFile(filename, encoding=encoding))
     except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
-      usageErrorExit('{0}: {1}'.format(str(e), filename))
+      usageErrorExit(f'{str(e)}: {filename}')
   for field in deleteFields:
     jsonData.pop(field, None)
   return jsonData
@@ -1786,10 +1782,10 @@ def formatFileSize(fileSize):
   if fileSize < ONE_KILO_10_BYTES:
     return '1kb'
   if fileSize < ONE_MEGA_10_BYTES:
-    return '{0}kb'.format(fileSize//ONE_KILO_10_BYTES)
+    return f'{fileSize//ONE_KILO_10_BYTES}kb'
   if fileSize < ONE_GIGA_10_BYTES:
-    return '{0}mb'.format(fileSize//ONE_MEGA_10_BYTES)
-  return '{0}gb'.format(fileSize//ONE_GIGA_10_BYTES)
+    return f'{fileSize//ONE_MEGA_10_BYTES}mb'
+  return f'{fileSize//ONE_GIGA_10_BYTES}gb'
 
 def formatLocalTime(dateTimeStr):
   if dateTimeStr == NEVER_TIME:
@@ -1812,8 +1808,8 @@ def formatMaxMessageBytes(maxMessageBytes, oneKiloBytes, oneMegaBytes):
   if maxMessageBytes < oneKiloBytes:
     return maxMessageBytes
   if maxMessageBytes < oneMegaBytes:
-    return '{0}K'.format(maxMessageBytes//oneKiloBytes)
-  return '{0}M'.format(maxMessageBytes//oneMegaBytes)
+    return f'{maxMessageBytes//oneKiloBytes}K'
+  return f'{maxMessageBytes//oneMegaBytes}M'
 
 def formatMilliSeconds(millis):
   seconds, millis = divmod(millis, 1000)
@@ -1822,16 +1818,16 @@ def formatMilliSeconds(millis):
   return '%02d:%02d:%02d' % (hours, minutes, seconds)
 
 def currentCount(i, count):
-  return ' ({0}/{1})'.format(i, count) if (count > GC.Values[GC.SHOW_COUNTS_MIN]) else ''
+  return f' ({i}/{count})' if (count > GC.Values[GC.SHOW_COUNTS_MIN]) else ''
 
 def currentCountNL(i, count):
-  return ' ({0}/{1})\n'.format(i, count) if (count > GC.Values[GC.SHOW_COUNTS_MIN]) else '\n'
+  return f' ({i}/{count})\n' if (count > GC.Values[GC.SHOW_COUNTS_MIN]) else '\n'
 
 def getPhraseDNEorSNA(email):
   return Msg.DOES_NOT_EXIST if getEmailAddressDomain(email) == GC.Values[GC.DOMAIN] else Msg.SERVICE_NOT_APPLICABLE
 
 def formatHTTPError(http_status, reason, message):
-  return '{0}: {1} - {2}'.format(http_status, reason, message)
+  return f'{http_status}: {reason} - {message}'
 
 def getHTTPError(responses, http_status, reason, message):
   if reason in responses:
@@ -1844,15 +1840,14 @@ def printWarningMessage(sysRC, errMessage):
   writeStderr(formatKeyValueList(Ind.Spaces(), [WARNING, errMessage], '\n'))
 
 def badRequestWarning(entityType, itemType, itemValue):
-  printWarningMessage(BAD_REQUEST_RC, '{0} 0 {1}: {2} {3} - {4}'.format(Msg.GOT, Ent.Plural(entityType),
-                                                                        Msg.INVALID, Ent.Singular(itemType),
-                                                                        itemValue))
+  printWarningMessage(BAD_REQUEST_RC,
+                      f'{Msg.GOT} 0 {Ent.Plural(entityType)}: {Msg.INVALID} {Ent.Singular(itemType)} - {itemValue}')
 
 def emptyQuery(query, entityType):
-  return '{0} ({1}) {2}'.format(Ent.Singular(Ent.QUERY), query, Msg.NO_ENTITIES_FOUND.format(Ent.Plural(entityType)))
+  return f'{Ent.Singular(Ent.QUERY)} ({query}) {Msg.NO_ENTITIES_FOUND.format(Ent.Plural(entityType))}'
 
 def invalidQuery(query):
-  return '{0} ({1}) {2}'.format(Ent.Singular(Ent.QUERY), query, Msg.INVALID)
+  return f'{Ent.Singular(Ent.QUERY)} ({query}) {Msg.INVALID}'
 
 def invalidMember(kwargs):
   if 'userKey' in kwargs:
@@ -1862,8 +1857,8 @@ def invalidMember(kwargs):
 
 def invalidUserSchema(schema):
   if isinstance(schema, list):
-    return '{0} ({1}) {2}'.format(Ent.Singular(Ent.USER_SCHEMA), ','.join(schema), Msg.INVALID)
-  return '{0} ({1}) {2}'.format(Ent.Singular(Ent.USER_SCHEMA), schema, Msg.INVALID)
+    return f'{Ent.Singular(Ent.USER_SCHEMA)} ({",".join(schema)}) {Msg.INVALID}'
+  return f'{Ent.Singular(Ent.USER_SCHEMA)} {schema}) {Msg.INVALID}'
 
 def entityServiceNotApplicableWarning(entityType, entityName, i=0, count=0):
   setSysExitRC(SERVICE_NOT_APPLICABLE_RC)
@@ -1887,8 +1882,8 @@ def entityUnknownWarning(entityType, entityName, i=0, count=0):
 def entityOrEntityUnknownWarning(entity1Type, entity1Name, entity2Type, entity2Name, i=0, count=0):
   setSysExitRC(ENTITY_DOES_NOT_EXIST_RC)
   writeStderr(formatKeyValueList(Ind.Spaces(),
-                                 ['{0} {1}'.format(Msg.EITHER, Ent.Singular(entity1Type)), entity1Name, getPhraseDNEorSNA(entity1Name), None,
-                                  '{0} {1}'.format(Msg.OR, Ent.Singular(entity2Type)), entity2Name, getPhraseDNEorSNA(entity2Name)],
+                                 [f'{Msg.EITHER} {Ent.Singular(entity1Type)}', entity1Name, getPhraseDNEorSNA(entity1Name), None,
+                                  f'{Msg.OR} {Ent.Singular(entity2Type)}', entity2Name, getPhraseDNEorSNA(entity2Name)],
                                  currentCountNL(i, count)))
 
 def entityDoesNotHaveItemWarning(entityValueList, i=0, count=0):
@@ -1911,13 +1906,13 @@ def entityActionFailedWarning(entityValueList, errMessage, i=0, count=0):
 
 def entityModifierItemValueListActionFailedWarning(entityValueList, modifier, infoTypeValueList, errMessage, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+['{0} {1}'.format(Act.ToPerform(), modifier), None]+Ent.FormatEntityValueList(infoTypeValueList)+[Act.Failed(), errMessage],
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.ToPerform()} {modifier}', None]+Ent.FormatEntityValueList(infoTypeValueList)+[Act.Failed(), errMessage],
                                  currentCountNL(i, count)))
 
 def entityModifierNewValueActionFailedWarning(entityValueList, modifier, newValue, errMessage, i=0, count=0):
   setSysExitRC(ACTION_FAILED_RC)
   writeStderr(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+['{0} {1}'.format(Act.ToPerform(), modifier), newValue, Act.Failed(), errMessage],
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.ToPerform()} {modifier}', newValue, Act.Failed(), errMessage],
                                  currentCountNL(i, count)))
 
 def entityNumEntitiesActionFailedWarning(entityType, entityName, itemType, itemCount, errMessage, i=0, count=0):
@@ -1936,7 +1931,7 @@ def entityActionNotPerformedWarning(entityValueList, errMessage, i=0, count=0):
 
 def entityModifierItemValueListActionNotPerformedWarning(entityValueList, modifier, infoTypeValueList, errMessage, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+['{0} {1}'.format(Act.NotPerformed(), modifier), None]+Ent.FormatEntityValueList(infoTypeValueList)+[errMessage],
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.NotPerformed()} {modifier}', None]+Ent.FormatEntityValueList(infoTypeValueList)+[errMessage],
                                  currentCountNL(i, count)))
 
 def entityNumEntitiesActionNotPerformedWarning(entityValueList, itemType, itemCount, errMessage, i=0, count=0):
@@ -1966,12 +1961,11 @@ def printGettingAllAccountEntities(entityType, query='', qualifier=''):
       Ent.SetGettingQualifier(entityType, qualifier)
     else:
       Ent.SetGetting(entityType)
-    writeStderr('{0} {1}{2}{3}\n'.format(Msg.GETTING_ALL, Ent.PluralGetting(),
-                                         Ent.GettingPreQualifier(), Ent.MayTakeTime(Ent.ACCOUNT)))
+    writeStderr(f'{Msg.GETTING_ALL} {Ent.PluralGetting()}{Ent.GettingPreQualifier()}{Ent.MayTakeTime(Ent.ACCOUNT)}\n')
 
 def printGotAccountEntities(count):
   if GC.Values[GC.SHOW_GETTINGS]:
-    writeStderr('{0} {1} {2}{3}\n'.format(Msg.GOT, count, Ent.ChooseGetting(count), Ent.GettingPostQualifier()))
+    writeStderr(f'{Msg.GOT} {count} {Ent.ChooseGetting(count)}{Ent.GettingPostQualifier()}\n')
 
 def printGettingAllEntityItemsForWhom(entityItem, forWhom, i=0, count=0, query='', qualifier='', entityType=None):
   if GC.Values[GC.SHOW_GETTINGS]:
@@ -1982,24 +1976,21 @@ def printGettingAllEntityItemsForWhom(entityItem, forWhom, i=0, count=0, query='
     else:
       Ent.SetGetting(entityItem)
     Ent.SetGettingForWhom(forWhom)
-    writeStderr('{0} {1}{2} {3} {4}{5}{6}'.format(Msg.GETTING_ALL, Ent.PluralGetting(),
-                                                  Ent.GettingPreQualifier(), Msg.FOR, forWhom, Ent.MayTakeTime(entityType),
-                                                  currentCountNL(i, count)))
+    writeStderr(f'{Msg.GETTING_ALL} {Ent.PluralGetting()}{Ent.GettingPreQualifier()} {Msg.FOR} {forWhom}{Ent.MayTakeTime(entityType)}{currentCountNL(i, count)}')
 
 def printGotEntityItemsForWhom(count):
   if GC.Values[GC.SHOW_GETTINGS]:
-    writeStderr('{0} {1} {2}{3} {4} {5}\n'.format(Msg.GOT, count, Ent.ChooseGetting(count),
-                                                  Ent.GettingPostQualifier(), Msg.FOR, Ent.GettingForWhom()))
+    writeStderr(f'{Msg.GOT} {count} {Ent.ChooseGetting(count)}{Ent.GettingPostQualifier()} {Msg.FOR} {Ent.GettingForWhom()}\n')
 
 def printGettingEntityItem(entityType, entityItem, i=0, count=0):
   if GC.Values[GC.SHOW_GETTINGS]:
-    writeStderr('{0} {1} {2}{3}'.format(Msg.GETTING, Ent.Singular(entityType), entityItem, currentCountNL(i, count)))
+    writeStderr(f'{Msg.GETTING} {Ent.Singular(entityType)} {entityItem}{currentCountNL(i, count)}')
 
 def printGettingEntityItemForWhom(entityItem, forWhom, i=0, count=0):
   if GC.Values[GC.SHOW_GETTINGS]:
     Ent.SetGetting(entityItem)
     Ent.SetGettingForWhom(forWhom)
-    writeStderr('{0} {1} {2} {3}{4}'.format(Msg.GETTING, Ent.PluralGetting(), Msg.FOR, forWhom, currentCountNL(i, count)))
+    writeStderr(f'{Msg.GETTING} {Ent.PluralGetting()} {Msg.FOR} {forWhom}{currentCountNL(i, count)}')
 
 FIRST_ITEM_MARKER = '%%first_item%%'
 LAST_ITEM_MARKER = '%%last_item%%'
@@ -2008,9 +1999,9 @@ TOTAL_ITEMS_MARKER = '%%total_items%%'
 def getPageMessage(showFirstLastItems=False):
   if not GC.Values[GC.SHOW_GETTINGS]:
     return None
-  pageMessage = '{0} {1} {{0}}'.format(Msg.GOT, TOTAL_ITEMS_MARKER)
+  pageMessage = f'{Msg.GOT} {TOTAL_ITEMS_MARKER} {{0}}'
   if showFirstLastItems:
-    pageMessage += ': {0} - {1}'.format(FIRST_ITEM_MARKER, LAST_ITEM_MARKER)
+    pageMessage += f': {FIRST_ITEM_MARKER} - {LAST_ITEM_MARKER}'
   else:
     pageMessage += '...'
   if GC.Values[GC.SHOW_GETTINGS_GOT_NL]:
@@ -2024,10 +2015,9 @@ def getPageMessageForWhom(forWhom=None, showFirstLastItems=False):
     return None
   if forWhom:
     Ent.SetGettingForWhom(forWhom)
-  pageMessage = '{0} {1} {{0}}{2} {3} {4}'.format(Msg.GOT, TOTAL_ITEMS_MARKER,
-                                                  Ent.GettingPostQualifier(), Msg.FOR, Ent.GettingForWhom())
+  pageMessage = f'{Msg.GOT} {TOTAL_ITEMS_MARKER} {{0}}{Ent.GettingPostQualifier()} {Msg.FOR} {Ent.GettingForWhom()}'
   if showFirstLastItems:
-    pageMessage += ': {0} - {1}'.format(FIRST_ITEM_MARKER, LAST_ITEM_MARKER)
+    pageMessage += f': {FIRST_ITEM_MARKER} - {LAST_ITEM_MARKER}'
   else:
     pageMessage += '...'
   if GC.Values[GC.SHOW_GETTINGS_GOT_NL]:
@@ -2082,7 +2072,7 @@ def printEntityMessage(entityValueList, message, i=0, count=0):
 
 def printEntitiesCount(entityType, entityList):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 [Ent.Plural(entityType), None if entityList is None else '({0})'.format(len(entityList))],
+                                 [Ent.Plural(entityType), None if entityList is None else f'({len(entityList)})'],
                                  '\n'))
 
 def printEntityKVList(entityValueList, infoKVList, i=0, count=0):
@@ -2092,69 +2082,67 @@ def printEntityKVList(entityValueList, infoKVList, i=0, count=0):
 
 def performAction(entityType, entityValue, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 ['{0} {1} {2}'.format(Act.ToPerform(), Ent.Singular(entityType), entityValue)],
+                                 [f'{Act.ToPerform()} {Ent.Singular(entityType)} {entityValue}'],
                                  currentCountNL(i, count)))
 
 def performActionNumItems(itemCount, itemType, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 ['{0} {1} {2}'.format(Act.ToPerform(), itemCount, Ent.Choose(itemType, itemCount))],
+                                 [f'{Act.ToPerform()} {itemCount} {Ent.Choose(itemType, itemCount)}'],
                                  currentCountNL(i, count)))
 
 def performActionModifierNumItems(modifier, itemCount, itemType, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 ['{0} {1} {2} {3}'.format(Act.ToPerform(), modifier, itemCount, Ent.Choose(itemType, itemCount))],
+                                 [f'{Act.ToPerform()} {modifier} {itemCount} {Ent.Choose(itemType, itemCount)}'],
                                  currentCountNL(i, count)))
 
 def entityPerformAction(entityValueList, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+['{0}'.format(Act.ToPerform())],
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.ToPerform()}'],
                                  currentCountNL(i, count)))
 
 def entityPerformActionNumItems(entityValueList, itemCount, itemType, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+['{0} {1} {2}'.format(Act.ToPerform(), itemCount, Ent.Choose(itemType, itemCount))],
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.ToPerform()} {itemCount} {Ent.Choose(itemType, itemCount)}'],
                                  currentCountNL(i, count)))
 
 def entityPerformActionModifierNumItems(entityValueList, modifier, itemCount, itemType, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+['{0} {1} {2} {3}'.format(Act.ToPerform(), modifier, itemCount, Ent.Choose(itemType, itemCount))],
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.ToPerform()} {modifier} {itemCount} {Ent.Choose(itemType, itemCount)}'],
                                  currentCountNL(i, count)))
 
 def entityPerformActionNumItemsModifier(entityValueList, itemCount, itemType, modifier, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+['{0} {1} {2} {3}'.format(Act.ToPerform(), itemCount, Ent.Choose(itemType, itemCount), modifier)],
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.ToPerform()} {itemCount} {Ent.Choose(itemType, itemCount)} {modifier}'],
                                  currentCountNL(i, count)))
 
 def entityPerformActionSubItemModifierNumItems(entityValueList, subitemType, modifier, itemCount, itemType, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+['{0} {1} {2} {3} {4}'.format(Act.ToPerform(), Ent.Plural(subitemType),
-                                                                                                          modifier, itemCount, Ent.Choose(itemType, itemCount))],
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.ToPerform()} {Ent.Plural(subitemType)} {modifier} {itemCount} {Ent.Choose(itemType, itemCount)}'],
                                  currentCountNL(i, count)))
 
 def entityPerformActionSubItemModifierNumItemsModifierNewValue(entityValueList, subitemType, modifier1, itemCount, itemType, modifier2, newValue, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+['{0} {1} {2} {3} {4} {5}'.format(Act.ToPerform(), Ent.Plural(subitemType),
-                                                                                                              modifier1, itemCount, Ent.Choose(itemType, itemCount), modifier2), newValue],
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.ToPerform()} {Ent.Plural(subitemType)} {modifier1} {itemCount} {Ent.Choose(itemType, itemCount)} {modifier2}', newValue],
                                  currentCountNL(i, count)))
 
 def entityPerformActionModifierNumItemsModifier(entityValueList, modifier1, itemCount, itemType, modifier2, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+['{0} {1} {2} {3} {4}'.format(Act.ToPerform(), modifier1, itemCount, Ent.Choose(itemType, itemCount), modifier2)],
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.ToPerform()} {modifier1} {itemCount} {Ent.Choose(itemType, itemCount)} {modifier2}'],
                                  currentCountNL(i, count)))
 
 def entityPerformActionModifierItemValueList(entityValueList, modifier, infoTypeValueList, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+['{0} {1}'.format(Act.ToPerform(), modifier), None]+Ent.FormatEntityValueList(infoTypeValueList),
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.ToPerform()} {modifier}', None]+Ent.FormatEntityValueList(infoTypeValueList),
                                  currentCountNL(i, count)))
 
 def entityPerformActionModifierNewValue(entityValueList, modifier, newValue, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+['{0} {1}'.format(Act.ToPerform(), modifier), newValue],
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.ToPerform()} {modifier}', newValue],
                                  currentCountNL(i, count)))
 
 def entityPerformActionModifierNewValueItemValueList(entityValueList, modifier, newValue, infoTypeValueList, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+['{0} {1}'.format(Act.ToPerform(), modifier), newValue]+Ent.FormatEntityValueList(infoTypeValueList),
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.ToPerform()} {modifier}', newValue]+Ent.FormatEntityValueList(infoTypeValueList),
                                  currentCountNL(i, count)))
 
 def entityPerformActionItemValue(entityValueList, itemType, itemValue, i=0, count=0):
@@ -2184,22 +2172,22 @@ def entityActionPerformedMessage(entityValueList, message, i=0, count=0):
 
 def entityModifierItemValueListActionPerformed(entityValueList, modifier, infoTypeValueList, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+['{0} {1}'.format(Act.Performed(), modifier)]+Ent.FormatEntityValueList(infoTypeValueList),
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.Performed()} {modifier}']+Ent.FormatEntityValueList(infoTypeValueList),
                                  currentCountNL(i, count)))
 
 def entityModifierNewValueActionPerformed(entityValueList, modifier, newValue, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+['{0} {1}'.format(Act.Performed(), modifier), newValue],
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.Performed()} {modifier}', newValue],
                                  currentCountNL(i, count)))
 
 def entityModifierNewValueItemValueListActionPerformed(entityValueList, modifier, newValue, infoTypeValueList, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+['{0} {1}'.format(Act.Performed(), modifier), newValue]+Ent.FormatEntityValueList(infoTypeValueList),
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.Performed()} {modifier}', newValue]+Ent.FormatEntityValueList(infoTypeValueList),
                                  currentCountNL(i, count)))
 
 def entityModifierNewValueKeyValueActionPerformed(entityValueList, modifier, newValue, infoKey, infoValue, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+['{0} {1}'.format(Act.Performed(), modifier), newValue, infoKey, infoValue],
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.Performed()} {modifier}', newValue, infoKey, infoValue],
                                  currentCountNL(i, count)))
 
 def cleanFilename(filename):
@@ -2208,7 +2196,7 @@ def cleanFilename(filename):
   return filename
 
 def fileErrorMessage(filename, e):
-  return '{0}: {1}, {2}'.format(Ent.Singular(Ent.FILE), filename, str(e))
+  return f'{Ent.Singular(Ent.FILE)}: {filename}, {str(e)}'
 
 def fdErrorMessage(f, defaultFilename, e):
   return fileErrorMessage(getattr(f, 'name') if hasattr(f, 'name') else defaultFilename, e)
@@ -2389,7 +2377,7 @@ def getGSheetData():
     sheetId = getSheetIdFromSheetEntity(spreadsheet, sheetEntity)
     if sheetId is None:
       getGDocSheetDataFailedExit([Ent.USER, user, Ent.SPREADSHEET, result['name'], sheetEntity['sheetType'], sheetEntity['sheetValue']], Msg.NOT_FOUND)
-    spreadsheetUrl = '{0}?format=csv&id={1}&gid={2}'.format(re.sub('/edit$', '/export', spreadsheet['spreadsheetUrl']), fileId, sheetId)
+    spreadsheetUrl = f'{re.sub("/edit$", "/export", spreadsheet["spreadsheetUrl"])}?format=csv&id={fileId}&gid={sheetId}'
     f = TemporaryFile(mode='w+', encoding=UTF8)
     _, content = drive._http.request(uri=spreadsheetUrl, method='GET')
     f.write(content.decode(UTF8_SIG))
@@ -2457,8 +2445,8 @@ def checkAPICallsRate():
     delta = int(current-GM.Globals[GM.RATE_CHECK_START])
     if 0 <= delta < 100:
       delta = (100-delta)+3
-      error_message = 'API calls per 100 seconds limit {0} exceeded'.format(GC.Values[GC.API_CALLS_RATE_LIMIT])
-      writeStderr('{0}{1}: Backing off: {2} seconds\n'.format(WARNING_PREFIX, error_message, delta))
+      error_message = f'API calls per 100 seconds limit {GC.Values[GC.API_CALLS_RATE_LIMIT]} exceeded'
+      writeStderr(f'{WARNING_PREFIX}{error_message}: Backing off: {delta} seconds\n')
       flushStderr()
       time.sleep(delta)
       if GC.Values[GC.SHOW_API_CALLS_RETRY_DATA]:
@@ -2488,7 +2476,7 @@ def SetGlobalVariables():
       return value
     if (value[0] != ' ') and (value[-1] != ' '):
       return value
-    return "'{0}'".format(value)
+    return f"'{value}'"
 
   def _getDefault(itemName, itemEntry, oldGamPath):
     if GC.VAR_SIGFILE in itemEntry:
@@ -2561,7 +2549,7 @@ def SetGlobalVariables():
       return True
     if value in FALSE_VALUES:
       return False
-    _printValueError(sectionName, itemName, value, '{0}: {1}'.format(Msg.EXPECTED, formatChoiceList(TRUE_FALSE)))
+    _printValueError(sectionName, itemName, value, f'{Msg.EXPECTED}: {formatChoiceList(TRUE_FALSE)}')
     return False
 
   def _getCfgCharacter(sectionName, itemName):
@@ -2570,7 +2558,7 @@ def SetGlobalVariables():
       return ' '
     if len(value) == 1:
       return value
-    _printValueError(sectionName, itemName, '"{0}"'.format(value), '{0}: {1}'.format(Msg.EXPECTED, integerLimits(1, 1, Msg.STRING_LENGTH)))
+    _printValueError(sectionName, itemName, f'"{value}"', f'{Msg.EXPECTED}: {integerLimits(1, 1, Msg.STRING_LENGTH)}')
     return ''
 
   def _getCfgChoice(sectionName, itemName):
@@ -2578,14 +2566,14 @@ def SetGlobalVariables():
     choices = GC.VAR_INFO[itemName][GC.VAR_CHOICES]
     if value in choices:
       return choices[value]
-    _printValueError(sectionName, itemName, '"{0}"'.format(value), '{0}: {1}'.format(Msg.EXPECTED, ','.join(choices)))
+    _printValueError(sectionName, itemName, f'"{value}"', f'{Msg.EXPECTED}: {",".join(choices)}')
     return ''
 
   def _getCfgLocale(sectionName, itemName):
     value = _stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName)).lower().replace('-', '_')
     if value in LOCALE_CODES_MAP:
       return LOCALE_CODES_MAP[value]
-    _printValueError(sectionName, itemName, '"{0}"'.format(value), '{0}: {1}'.format(Msg.EXPECTED, ','.join(LOCALE_CODES_MAP)))
+    _printValueError(sectionName, itemName, f'"{value}"', f'{Msg.EXPECTED}: {",".join(LOCALE_CODES_MAP)}')
     return ''
 
   def _getCfgNumber(sectionName, itemName):
@@ -2599,12 +2587,11 @@ def SetGlobalVariables():
         number = minVal
       else:
         number = maxVal
-      _printValueError(sectionName, itemName, value, '{0}: {1}, {2}: {3}'.format(Msg.EXPECTED, integerLimits(minVal, maxVal),
-                                                                                 Msg.USED, number), sysRC=0)
+      _printValueError(sectionName, itemName, value, f'{Msg.EXPECTED}: {integerLimits(minVal, maxVal)}, {Msg.USED}: {number}', sysRC=0)
       return number
     except ValueError:
       pass
-    _printValueError(sectionName, itemName, value, '{0}: {1}'.format(Msg.EXPECTED, integerLimits(minVal, maxVal)))
+    _printValueError(sectionName, itemName, value, f'{Msg.EXPECTED}: {integerLimits(minVal, maxVal)}')
     return 0
 
   def _getCfgHeaderFilter(sectionName, itemName):
@@ -2618,9 +2605,9 @@ def SetGlobalVariables():
         try:
           headerFilters.append(re.compile(filterStr, re.IGNORECASE))
         except re.error as e:
-          _printValueError(sectionName, itemName, '"{0}"'.format(filterStr), '{0}: {1}'.format(Msg.INVALID_RE, e))
+          _printValueError(sectionName, itemName, f'"{filterStr}"', f'{Msg.INVALID_RE}: {e}')
     else:
-      _printValueError(sectionName, itemName, '"{0}"'.format(value), '{0}: {1}'.format(Msg.INVALID_LIST, filters))
+      _printValueError(sectionName, itemName, f'"{value}"', f'{Msg.INVALID_LIST}: {filters}')
     return headerFilters
 
   ROW_FILTER_COMP_PATTERN = re.compile(r'^(date|time|count)\s*([<>]=?|=|!=)\s*(.+)$', re.IGNORECASE)
@@ -2636,13 +2623,13 @@ def SetGlobalVariables():
       try:
         filterDict = json.loads(value.encode('unicode-escape').decode(UTF8))
       except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
-        _printValueError(sectionName, itemName, '"{0}"'.format(value), '{0}: {1}'.format(Msg.FAILED_TO_PARSE_AS_JSON, str(e)))
+        _printValueError(sectionName, itemName, f'"{value}"', f'{Msg.FAILED_TO_PARSE_AS_JSON}: {str(e)}')
         return rowFilters
     else:
       filterDict = {}
       status, filterList = shlexSplitListStatus(value)
       if not status:
-        _printValueError(sectionName, itemName, '"{0}"'.format(value), '{0}: {1}'.format(Msg.FAILED_TO_PARSE_AS_LIST, str(filterList)))
+        _printValueError(sectionName, itemName, f'"{value}"', f'{Msg.FAILED_TO_PARSE_AS_LIST}: {str(filterList)}')
         return rowFilters
       for filterVal in filterList:
         if not filterVal:
@@ -2650,14 +2637,14 @@ def SetGlobalVariables():
         try:
           column, filterStr = filterVal.split(':', 1)
         except ValueError:
-          _printValueError(sectionName, itemName, '"{0}"'.format(filterVal), '{0}: {1}'.format(Msg.EXPECTED, 'column:filter'))
+          _printValueError(sectionName, itemName, f'"{filterVal}"', f'{Msg.EXPECTED}: column:filter')
           continue
         filterDict[column] = filterStr
     for column, filterStr in iter(filterDict.items()):
       try:
         columnPat = re.compile(column, re.IGNORECASE)
       except re.error as e:
-        _printValueError(sectionName, itemName, '"{0}"'.format(column), '{0}: {1}'.format(Msg.INVALID_RE, e))
+        _printValueError(sectionName, itemName, f'"{column}"', f'{Msg.INVALID_RE}: {e}')
         continue
       mg = ROW_FILTER_COMP_PATTERN.match(filterStr)
       if mg:
@@ -2669,12 +2656,12 @@ def SetGlobalVariables():
           if valid:
             rowFilters.append((columnPat, mg.group(1), mg.group(2), filterValue))
           else:
-            _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: {1}'.format(Msg.EXPECTED, filterValue))
+            _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: {filterValue}')
         else: #count
           if mg.group(3).isdigit():
             rowFilters.append((columnPat, mg.group(1), mg.group(2), int(mg.group(3))))
           else:
-            _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: <Number>'.format(Msg.EXPECTED))
+            _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: <Number>')
         continue
       mg = ROW_FILTER_BOOL_PATTERN.match(filterStr)
       if mg:
@@ -2684,16 +2671,16 @@ def SetGlobalVariables():
         elif filterValue in FALSE_VALUES:
           rowFilters.append((columnPat, mg.group(1), False))
         else:
-          _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: <Boolean>'.format(Msg.EXPECTED))
+          _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: <Boolean>')
         continue
       mg = ROW_FILTER_RE_PATTERN.match(filterStr)
       if mg:
         try:
           rowFilters.append((columnPat, mg.group(1), re.compile(mg.group(2))))
         except re.error as e:
-          _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: {1}'.format(Msg.INVALID_RE, e))
+          _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.INVALID_RE}: {e}')
         continue
-      _printValueError(sectionName, itemName, '"{0}": "{1}"'.format(column, filterStr), '{0}: {1}'.format(Msg.EXPECTED, 'date|time|count<Operator><Value> or boolean:<Boolean> or regex:<RegularExpression>'))
+      _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: date|time|count<Operator><Value> or boolean:<Boolean> or regex:<RegularExpression>')
     return rowFilters
 
   def _getCfgSection(sectionName, itemName):
@@ -2721,7 +2708,7 @@ def SetGlobalVariables():
     minLen, maxLen = GC.VAR_INFO[itemName].get(GC.VAR_LIMITS, (None, None))
     if ((minLen is None) or (len(value) >= minLen)) and ((maxLen is None) or (len(value) <= maxLen)):
       return value
-    _printValueError(sectionName, itemName, '"{0}"'.format(value), '{0}: {1}'.format(Msg.EXPECTED, integerLimits(minLen, maxLen, Msg.STRING_LENGTH)))
+    _printValueError(sectionName, itemName, f'"{value}"', f'{Msg.EXPECTED}: {integerLimits(minLen, maxLen, Msg.STRING_LENGTH)}')
     return ''
 
   def _getCfgTimezone(sectionName, itemName):
@@ -2735,7 +2722,7 @@ def SetGlobalVariables():
     try:
       return iso8601.parse_timezone_str(value)
     except (iso8601.ParseError, OverflowError):
-      _printValueError(sectionName, itemName, value, '{0}: {1}'.format(Msg.EXPECTED, TIMEZONE_FORMAT_REQUIRED))
+      _printValueError(sectionName, itemName, value, f'{Msg.EXPECTED}: {TIMEZONE_FORMAT_REQUIRED}')
       GM.Globals[GM.CONVERT_TO_LOCAL_TIME] = False
       return iso8601.UTC
 
@@ -2795,14 +2782,14 @@ def SetGlobalVariables():
       if varType == GC.TYPE_FILE:
         expdValue = _getCfgFile(sectionName, itemName)
         if cfgValue not in ("''", expdValue):
-          cfgValue = '{0} ; {1}'.format(cfgValue, expdValue)
+          cfgValue = f'{cfgValue} ; {expdValue}'
       elif varType == GC.TYPE_DIRECTORY:
         expdValue = _getCfgDirectory(sectionName, itemName)
         if cfgValue not in ("''", expdValue):
-          cfgValue = '{0} ; {1}'.format(cfgValue, expdValue)
+          cfgValue = f'{cfgValue} ; {expdValue}'
       elif (itemName == GC.SECTION) and (sectionName != configparser.DEFAULTSECT):
         continue
-      printLine('{0}{1} = {2}'.format(Ind.Spaces(), itemName, cfgValue))
+      printLine(f'{Ind.Spaces()}{itemName} = {cfgValue}')
     Ind.Decrement()
 
   def _chkCfgDirectories(sectionName):
@@ -3032,7 +3019,7 @@ def SetGlobalVariables():
     GC.Values[GC.SMTP_FQDN] = None
 # Create/set mode for oauth2.txt.lock
   if not GM.Globals[GM.OAUTH2_TXT_LOCK]:
-    fileName = '{0}.lock'.format(GC.Values[GC.OAUTH2_TXT])
+    fileName = f'{GC.Values[GC.OAUTH2_TXT]}.lock'
     if not os.path.isfile(fileName):
       closeFile(openFile(fileName, mode=DEFAULT_FILE_APPEND_MODE))
       os.chmod(fileName, 0o666)
@@ -3213,7 +3200,7 @@ def handleOAuthTokenError(e, soft_errors):
     if not GM.Globals[GM.CURRENT_SVCACCT_USER]:
       ClientAPIAccessDeniedExit()
     systemErrorExit(SERVICE_NOT_APPLICABLE_RC, Msg.SERVICE_NOT_APPLICABLE_THIS_ADDRESS.format(GM.Globals[GM.CURRENT_SVCACCT_USER]))
-  stderrErrorMsg('Authentication Token Error - {0}'.format(errMsg))
+  stderrErrorMsg(f'Authentication Token Error - {errMsg}')
   APIAccessDeniedExit()
 
 def getOldOauth2TxtCredentials(credFamily):
@@ -3244,7 +3231,7 @@ def getOauth2TxtCredentials(storageOnly=False, exitOnError=True):
 def waitOnFailure(n, retries, error_code, error_message):
   delta = min(2 ** n, 60)+float(random.randint(1, 1000))/1000
   if n > 3:
-    writeStderr('Temporary error: {0} - {1}, Backing off: {2} seconds, Retry: {3}/{4}\n'.format(error_code, error_message, int(delta), n, retries))
+    writeStderr(f'Temporary error: {error_code} - {error_message}, Backing off: {int(delta)} seconds, Retry: {n}/{retries}\n')
     flushStderr()
   time.sleep(delta)
   if GC.Values[GC.SHOW_API_CALLS_RETRY_DATA]:
@@ -3341,7 +3328,7 @@ def getGDataOAuthToken(gdataObj, credentials=None):
     if isinstance(e.args, tuple):
       e = e.args[0]
     handleOAuthTokenError(e, False)
-  gdataObj.additional_headers['Authorization'] = 'Bearer {0}'.format(credentials.access_token)
+  gdataObj.additional_headers['Authorization'] = f'Bearer {credentials.access_token}'
   if not GC.Values[GC.DOMAIN]:
     GC.Values[GC.DOMAIN] = credentials.id_token.get('hd', 'UNKNOWN').lower()
   if not GC.Values[GC.CUSTOMER_ID]:
@@ -3449,7 +3436,7 @@ def checkGDataError(e, service):
     1800: 'Group Cannot Contain Cycle',
     1801: 'Invalid value %s' % getattr(e, 'invalidInput', '<unknown>'),
   }
-  return (error_code, error_code_map.get(error_code, 'Unknown Error: {0}'.format(str(e))))
+  return (error_code, error_code_map.get(error_code, f'Unknown Error: {str(e)}'))
 
 def callGData(service, function,
               bailOnInternalServerError=False, soft_errors=False,
@@ -3479,23 +3466,23 @@ def callGData(service, function,
           raise GDATA.ERROR_CODE_EXCEPTION_MAP[error_code](error_message)
         raise
       if soft_errors:
-        stderrErrorMsg('{0} - {1}{2}'.format(error_code, error_message, ['', ': Giving up.'][n > 1]))
+        stderrErrorMsg(f'{error_code} - {error_message}{["", ": Giving up."][n > 1]}')
         return None
       if error_code == GDATA.INSUFFICIENT_PERMISSIONS:
         APIAccessDeniedExit()
-      systemErrorExit(GOOGLE_API_ERROR_RC, '{0} - {1}'.format(error_code, error_message))
+      systemErrorExit(GOOGLE_API_ERROR_RC, f'{error_code} - {error_message}')
     except oauth2client.client.AccessTokenRefreshError as e:
       if isinstance(e.args, tuple):
         e = e.args[0]
       handleOAuthTokenError(e, GDATA.SERVICE_NOT_APPLICABLE in throw_errors)
       raise GDATA.ERROR_CODE_EXCEPTION_MAP[GDATA.SERVICE_NOT_APPLICABLE](str(e))
     except (http_client.ResponseNotReady, socket.error) as e:
-      errMsg = 'Connection error: {0}'.format(str(e) or repr(e))
+      errMsg = f'Connection error: {str(e) or repr(e)}'
       if n != retries:
         waitOnFailure(n, retries, SOCKET_ERROR_RC, errMsg)
         continue
       if soft_errors:
-        writeStderr('\n{0}{1} - Giving up.\n'.format(ERROR_PREFIX, errMsg))
+        writeStderr(f'\n{ERROR_PREFIX}{errMsg} - Giving up.\n')
         return None
       systemErrorExit(SOCKET_ERROR_RC, errMsg)
     except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
@@ -3646,7 +3633,7 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False, service=None):
       if loc != 1:
         message = message[loc+15:]
   except KeyError:
-    reason = '{0}'.format(http_status)
+    reason = f'{http_status}'
   return (http_status, reason, message)
 
 def callGAPI(service, function,
@@ -3683,7 +3670,7 @@ def callGAPI(service, function,
           raise GAPI.REASON_EXCEPTION_MAP[reason](message)
         raise e
       if soft_errors:
-        stderrErrorMsg('{0}: {1} - {2}{3}'.format(http_status, reason, message, ['', ': Giving up.'][n > 1]))
+        stderrErrorMsg(f'{http_status}: {reason} - {message}{["", ": Giving up."][n > 1]}')
         return None
       if reason == GAPI.INSUFFICIENT_PERMISSIONS:
         APIAccessDeniedExit()
@@ -3694,12 +3681,12 @@ def callGAPI(service, function,
       handleOAuthTokenError(e, GAPI.SERVICE_NOT_AVAILABLE in throw_reasons)
       raise GAPI.REASON_EXCEPTION_MAP[GAPI.SERVICE_NOT_AVAILABLE](str(e))
     except (http_client.ResponseNotReady, socket.error) as e:
-      errMsg = 'Connection error: {0}'.format(str(e) or repr(e))
+      errMsg = f'Connection error: {str(e) or repr(e)}'
       if n != retries:
         waitOnFailure(n, retries, SOCKET_ERROR_RC, errMsg)
         continue
       if soft_errors:
-        writeStderr('\n{0}{1} - Giving up.\n'.format(ERROR_PREFIX, errMsg))
+        writeStderr(f'\n{ERROR_PREFIX}{errMsg} - Giving up.\n')
         return None
       systemErrorExit(SOCKET_ERROR_RC, errMsg)
     except ValueError as e:
@@ -3798,13 +3785,13 @@ def checkCloudPrintResult(result, throw_messages=None):
     try:
       result = json.loads(result)
     except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
-      systemErrorExit(JSON_LOADS_ERROR_RC, '{0}: {1}'.format(str(e), result))
+      systemErrorExit(JSON_LOADS_ERROR_RC, f'{str(e)}: {result}')
   if not result['success']:
     message = result['message']
     if message in throw_messages:
       if message in GCP.MESSAGE_EXCEPTION_MAP:
         raise GCP.MESSAGE_EXCEPTION_MAP[message](message)
-    systemErrorExit(ACTION_FAILED_RC, '{0}: {1}'.format(result['errorCode'], result['message']))
+    systemErrorExit(ACTION_FAILED_RC, f'{result["errorCode"]}: {result["message"]}')
   return result
 
 def getCloudPrintError(resp, result):
@@ -3813,7 +3800,7 @@ def getCloudPrintError(resp, result):
   mg = re.compile(r'<title>(.*)</title>').search(result)
   if mg:
     return mg.group(1)
-  return 'Error: {0}'.format(resp['status'])
+  return f'Error: {resp["status"]}'
 
 def callGCP(service, function,
             throw_messages=None,
@@ -3823,7 +3810,7 @@ def callGCP(service, function,
   return checkCloudPrintResult(result, throw_messages=throw_messages)
 
 def readDiscoveryFile(api_version):
-  disc_filename = '{0}.json'.format(api_version)
+  disc_filename = f'{api_version}.json'
   disc_file = os.path.join(GM.Globals[GM.GAM_PATH], disc_filename)
   if hasattr(sys, '_MEIPASS'):
     json_string = readFile(os.path.join(sys._MEIPASS, disc_filename), continueOnError=True, displayError=True)
@@ -3875,7 +3862,7 @@ def getHttpAPIService(api):
           continue
         systemErrorExit(INVALID_JSON_RC, Msg.INVALID_JSON_INFORMATION)
       except (http_client.ResponseNotReady, socket.error) as e:
-        errMsg = 'Connection error: {0}'.format(str(e) or repr(e))
+        errMsg = f'Connection error: {str(e) or repr(e)}'
         if n != retries:
           waitOnFailure(n, retries, SOCKET_ERROR_RC, errMsg)
           continue
@@ -3888,7 +3875,7 @@ def getHttpAPIService(api):
         handleServerError(e)
       except IOError as e:
         systemErrorExit(FILE_ERROR_RC, str(e))
-  disc_file, discovery = readDiscoveryFile('{0}-{1}'.format(api, version))
+  disc_file, discovery = readDiscoveryFile(f'{api}-{version}')
   try:
     service = googleapiclient.discovery.build_from_document(discovery, http=httpObj)
     GM.Globals[GM.CURRENT_API_SERVICES].setdefault(api, {})
@@ -3945,7 +3932,7 @@ def _request_with_user_agent(request_method):
       if kwargs['headers'].get('user-agent'):
         if GAM_USER_AGENT not in kwargs['headers']['user-agent']:
           # Save the existing user-agent header and tack on the GAM user-agent.
-          kwargs['headers']['user-agent'] = '{0} {1}'.format(GAM_USER_AGENT, kwargs['headers']['user-agent'])
+          kwargs['headers']['user-agent'] = f'{GAM_USER_AGENT} {kwargs["headers"]["user-agent"]}'
       else:
         kwargs['headers']['user-agent'] = GAM_USER_AGENT
     else:
@@ -4033,7 +4020,7 @@ def getContactsObject(entityType=Ent.DOMAIN, entityName=None, i=0, count=0, cont
   if GC.Values[GC.NO_VERIFY_SSL]:
     ssl._create_default_https_context = ssl._create_unverified_context
   contactsObject = gdata.apps.contacts.service.ContactsService(source=GAM_INFO, contactFeed=contactFeed,
-                                                               additional_headers={'Authorization': 'Bearer {0}'.format(credentials.token)})
+                                                               additional_headers={'Authorization': f'Bearer {credentials.token}'})
   if GC.Values[GC.DEBUG_LEVEL] > 0:
     contactsObject.debug = True
   return (userEmail, contactsObject)
@@ -4056,7 +4043,7 @@ def getSitesObject(entityType=Ent.DOMAIN, entityName=None, i=0, count=0):
   if GC.Values[GC.NO_VERIFY_SSL]:
     ssl._create_default_https_context = ssl._create_unverified_context
   sitesObject = gdata.apps.sites.service.SitesService(source=GAM_INFO,
-                                                      additional_headers={'Authorization': 'Bearer {0}'.format(credentials.token)})
+                                                      additional_headers={'Authorization': f'Bearer {credentials.token}'})
   if GC.Values[GC.DEBUG_LEVEL] > 0:
     sitesObject.debug = True
   return (userEmail, sitesObject)
@@ -4141,7 +4128,7 @@ def convertUserIDtoEmail(uid, cd=None):
                               throw_reasons=GAPI.USER_GET_THROW_REASONS,
                               userKey=uid, fields='primaryEmail')['primaryEmail']
     except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
-      primaryEmail = 'uid:{0}'.format(uid)
+      primaryEmail = f'uid:{uid}'
     GM.Globals[GM.MAP_USER_ID_TO_NAME][uid] = primaryEmail
   return primaryEmail
 
@@ -4534,7 +4521,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
     queries = convertEntityToList(entity, shlexSplit=entityType == Cmd.ENTITY_CROS_QUERIES,
                                   nonListEntityType=entityType == Cmd.ENTITY_CROS_QUERY)
     if entityType == Cmd.ENTITY_CROS_SN:
-      queries = ['id:{0}'.format(query) for query in queries]
+      queries = [f'id:{query}' for query in queries]
     prevLen = 0
     for query in queries:
       printGettingAllAccountEntities(Ent.CROS_DEVICE, query)
@@ -4675,7 +4662,7 @@ def getEntitiesFromFile(shlexSplit):
     if shlexSplit:
       splitStatus, itemList = splitEntityListShlex(row.strip(), dataDelimiter)
       if not splitStatus:
-        fileDataErrorExit(filename, i, None, row.strip(), '{0}: {1}'.format(Msg.INVALID_LIST, itemList))
+        fileDataErrorExit(filename, i, None, row.strip(), f'{Msg.INVALID_LIST}: {itemList}')
     else:
       itemList = splitEntityList(row.strip(), dataDelimiter)
     for item in itemList:
@@ -4711,7 +4698,7 @@ def getEntitiesFromCSVFile(shlexSplit):
         if shlexSplit:
           splitStatus, itemList = splitEntityListShlex(row[fieldName].strip(), dataDelimiter)
           if not splitStatus:
-            fileDataErrorExit(filename, i, fieldName, row[fieldName].strip(), '{0}: {1}'.format(Msg.INVALID_LIST, itemList))
+            fileDataErrorExit(filename, i, fieldName, row[fieldName].strip(), f'{Msg.INVALID_LIST}: {itemList}')
         else:
           itemList = splitEntityList(row[fieldName].strip(), dataDelimiter)
         for item in itemList:
@@ -5070,7 +5057,7 @@ def _addAttachmentsToMessage(message, attachments):
       msg.add_header('Content-Disposition', 'attachment', filename=os.path.basename(attachFilename))
       message.attach(msg)
     except (IOError, UnicodeDecodeError) as e:
-      usageErrorExit('{0}: {1}'.format(attachFilename, str(e)))
+      usageErrorExit(f'{attachFilename}: {str(e)}')
 
 NAME_EMAIL_ADDRESS_PATTERN = re.compile(r'^.*<(.+)>$')
 
@@ -5085,7 +5072,7 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msg
     for addr, err in iter(result.items()):
       if addr in toSent:
         toSent.remove(addr)
-        toFailed[addr] = '{0}: {1}'.format(err[0], err[1])
+        toFailed[addr] = f'{err[0]}: {err[1]}'
     if toSent:
       entityActionPerformed([entityType, ','.join(toSent), Ent.MESSAGE, msgSubject], i, count)
     for addr, errMsg in iter(toFailed.items()):
@@ -5213,10 +5200,10 @@ def getFieldsFromFieldsList(fieldsList):
 
 def getItemFieldsFromFieldsList(item, fieldsList, returnItemIfNoneList=False):
   if  fieldsList:
-    return 'nextPageToken,{0}({1})'.format(item, ','.join(set(fieldsList))).replace('.', '/')
+    return f'nextPageToken,{item}({",".join(set(fieldsList))})'.replace('.', '/')
   if not returnItemIfNoneList:
     return None
-  return 'nextPageToken,{0}'.format(item)
+  return f'nextPageToken,{item}'
 
 class CSVPrintFile():
 
@@ -5463,7 +5450,7 @@ class CSVPrintFile():
           invalidTodriveFileIdExit([], Msg.NOT_WRITABLE, tdfileidLocation)
         if self.todrive['sheetEntity']:
           if result['mimeType'] != MIMETYPE_GA_SPREADSHEET:
-            invalidTodriveFileIdExit([], '{0} {1}'.format(Msg.NOT_A, Ent.Singular(Ent.SPREADSHEET)), tdfileidLocation)
+            invalidTodriveFileIdExit([], f'{Msg.NOT_A} {Ent.Singular(Ent.SPREADSHEET)}', tdfileidLocation)
           if not GC.Values[GC.TODRIVE_CLIENTACCESS]:
             _, sheet = buildGAPIServiceObject(API.SHEETSTD, self.todrive['user'])
             if sheet is None:
@@ -5512,7 +5499,7 @@ class CSVPrintFile():
           results = callGAPIpages(drive.files(), 'list', 'files',
                                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY],
                                   retry_reasons=[GAPI.UNKNOWN_ERROR],
-                                  q="name = '{0}'".format(self.todrive['parent']),
+                                  q=f"name = '{self.todrive['parent']}'",
                                   fields='nextPageToken,files(id,mimeType,capabilities(canEdit))',
                                   pageSize=1, supportsAllDrives=True)
         except GAPI.invalidQuery:
@@ -5544,7 +5531,7 @@ class CSVPrintFile():
 
   def SortIndexedTitles(self, titlesList):
     for field in self.indexedTitles:
-      fieldDotN = re.compile(r'({0})\.(\d+)(.*)'.format(field))
+      fieldDotN = re.compile(fr'({field})\.(\d+)(.*)')
       indexes = []
       subtitles = []
       for i, v in enumerate(titlesList):
@@ -5553,7 +5540,7 @@ class CSVPrintFile():
           indexes.append(i)
           subtitles.append(mg.groups(''))
       for i, ii in enumerate(indexes):
-        titlesList[ii] = ['{0}.{1}{2}'.format(subtitle[0], subtitle[1], subtitle[2]) for subtitle in sorted(subtitles, key=lambda k: (int(k[1]), k[2]))][i]
+        titlesList[ii] = [f'{subtitle[0]}.{subtitle[1]}{subtitle[2]}' for subtitle in sorted(subtitles, key=lambda k: (int(k[1]), k[2]))][i]
 
   @staticmethod
   def FixPathsTitles(titlesList):
@@ -5810,7 +5797,7 @@ class CSVPrintFile():
                               extrasaction=extrasaction, quoting=csv.QUOTE_MINIMAL, quotechar=self.quoteChar,
                               delimiter=self.columnDelimiter, lineterminator='\n')
       if writeCSVData(writer):
-        title = self.todrive['title'] or '{0} - {1}'.format(GC.Values[GC.DOMAIN], list_type)
+        title = self.todrive['title'] or f'{GC.Values[GC.DOMAIN]} - {list_type}'
         if self.todrive['timestamp']:
           title += ' - '+ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])+datetime.timedelta(days=-self.todrive['daysoffset'], hours=-self.todrive['hoursoffset']))
         action = Act.Get()
@@ -5843,7 +5830,7 @@ class CSVPrintFile():
             if not result['capabilities']['canEdit']:
               todriveCSVErrorExit(entityValueList, Msg.NOT_WRITABLE)
             if result['mimeType'] != MIMETYPE_GA_SPREADSHEET:
-              todriveCSVErrorExit(entityValueList, '{0} {1}'.format(Msg.NOT_A, Ent.Singular(Ent.SPREADSHEET)))
+              todriveCSVErrorExit(entityValueList, f'{Msg.NOT_A} {Ent.Singular(Ent.SPREADSHEET)}')
             if not GC.Values[GC.TODRIVE_CLIENTACCESS]:
               _, sheet = buildGAPIServiceObject(API.SHEETSTD, user)
               if sheet is None:
@@ -5945,7 +5932,7 @@ class CSVPrintFile():
                 todriveCSVErrorExit([Ent.USER, user, Ent.SPREADSHEET, title], str(e))
           Act.Set(action)
           file_url = result['webViewLink']
-          msg_txt = '{0}:\n{1}'.format(Msg.DATA_UPLOADED_TO_DRIVE_FILE, file_url)
+          msg_txt = f'{Msg.DATA_UPLOADED_TO_DRIVE_FILE}:\n{file_url}'
           printKeyValueList([msg_txt])
           if not self.todrive['noemail']:
             send_email(title, msg_txt, user, clientAccess=GC.Values[GC.TODRIVE_CLIENTACCESS])
@@ -6065,12 +6052,12 @@ def flattenJSON(topStructure, flattened=None,
         if key not in noLenObjects:
           flattened[path] = listLen
         for i in range(listLen):
-          _flatten(structure[i], '', '{0}.{1}'.format(path, i))
+          _flatten(structure[i], '', f'{path}.{i}')
     else:
       if structure:
         for k, v in sorted(iter(structure.items())):
           if k not in allSkipObjects:
-            _flatten(v, k, '{0}.{1}'.format(path, k))
+            _flatten(v, k, f'{path}.{k}')
       else:
         flattened[path] = ''
 
@@ -6217,8 +6204,8 @@ RI_OPTION = 7
 
 def batchRequestID(entityName, i, count, j, jcount, item, role=None, option=None):
   if role is None and option is None:
-    return '{0}\n{1}\n{2}\n{3}\n{4}\n{5}'.format(entityName, i, count, j, jcount, item)
-  return '{0}\n{1}\n{2}\n{3}\n{4}\n{5}\n{6}\n{7}'.format(entityName, i, count, j, jcount, item, role, option)
+    return f'{entityName}\n{i}\n{count}\n{j}\n{jcount}\n{item}'
+  return f'{entityName}\n{i}\n{count}\n{j}\n{jcount}\n{item}\n{role}\n{option}'
 
 TIME_OFFSET_UNITS = [('day', SECONDS_PER_DAY), ('hour', SECONDS_PER_HOUR), ('minute', SECONDS_PER_MINUTE), ('second', 1)]
 
@@ -6237,7 +6224,7 @@ def getLocalGoogleTimeOffset(testLocation='www.googleapis.com'):
   for tou in TIME_OFFSET_UNITS:
     uval, remainder = divmod(remainder, tou[1])
     if uval:
-      timeoff.append('{0} {1}{2}'.format(uval, tou[0], 's' if uval != 1 else ''))
+      timeoff.append(f'{uval} {tou[0]}{"s" if uval != 1 else ""}')
   if not timeoff:
     timeoff.append(Msg.LESS_THAN_1_SECOND)
   nicetime = ', '.join(timeoff)
@@ -6315,11 +6302,15 @@ def doVersion(checkForArgs=True):
   if simple:
     writeStdout(__version__)
     return
-  version_data = '{0} {1} - {2}\n{3}\nPython {4}.{5}.{6} {7}-bit {8}\ngoogle-api-python-client {9}\nhttplib2 {10}\noauth2client {11}\n{12} {13}\nPath: {14}\n'
-  writeStdout(version_data.format(GAM, __version__, GAM_URL, __author__, sys.version_info[0],
-                                  sys.version_info[1], sys.version_info[2], struct.calcsize('P')*8,
-                                  sys.version_info[3], googleapiclient.__version__, httplib2.__version__, oauth2client.__version__,
-                                  getOSPlatform(), platform.machine(), GM.Globals[GM.GAM_PATH]))
+  writeStdout((f'{GAM} {__version__} - {GAM_URL}\n'
+               f'{__author__}\n'
+               f'Python {sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]} {struct.calcsize("P")*8}-bit {sys.version_info[3]}\n'
+               f'google-api-python-client {googleapiclient.__version__}\n'
+               f'httplib2 {httplib2.__version__}\n'
+               f'oauth2client {oauth2client.__version__}\n'
+               f'{getOSPlatform()} {platform.machine()}\n'
+               f'Path: {GM.Globals[GM.GAM_PATH]}\n'
+               ))
   if sys.platform.startswith('win') and str(struct.calcsize('P')*8).find('32') != -1 and platform.machine().find('64') != -1:
     printKeyValueList([Msg.UPDATE_GAM_TO_64BIT])
   if timeOffset:
@@ -6332,7 +6323,7 @@ def doVersion(checkForArgs=True):
   if extended:
     printKeyValueList([ssl.OPENSSL_VERSION])
     tls_ver, cipher_name = _getServerTLSUsed(testLocation)
-    printKeyValueList(['{0} connects using {1} {2}'.format(testLocation, tls_ver, cipher_name)])
+    printKeyValueList([f'{testLocation} connects using {tls_ver} {cipher_name}'])
 
 # gam help
 def doUsage():
@@ -6759,8 +6750,8 @@ def doBatch(threadBatch=False):
       try:
         argv = shlex.split(line)
       except ValueError as e:
-        writeStderr('Command: >>>{0}<<<\n'.format(line.strip()))
-        writeStderr('{0}{1}\n'.format(ERROR_PREFIX, str(e)))
+        writeStderr(f'Command: >>>{line.strip()}<<<\n')
+        writeStderr(f'{ERROR_PREFIX}{str(e)}\n')
         errors += 1
         continue
       if argv:
@@ -6776,9 +6767,8 @@ def doBatch(threadBatch=False):
         elif cmd == Cmd.PRINT_CMD:
           items.append(argv)
         else:
-          writeStderr('Command: >>>{0}<<< {1}\n'.format(Cmd.QuotedArgumentList([argv[0]]), Cmd.QuotedArgumentList(argv[1:])))
-          writeStderr('{0}{1}: {2} <{3}>\n'.format(ERROR_PREFIX, Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1],
-                                                   Msg.EXPECTED, formatChoiceList([Cmd.GAM_CMD, Cmd.COMMIT_BATCH_CMD, Cmd.PRINT_CMD])))
+          writeStderr(f'Command: >>>{Cmd.QuotedArgumentList([argv[0]])}<<< {Cmd.QuotedArgumentList(argv[1:])}\n')
+          writeStderr(f'{ERROR_PREFIX}{Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1]}: {Msg.EXPECTED} <{formatChoiceList([Cmd.GAM_CMD, Cmd.COMMIT_BATCH_CMD, Cmd.PRINT_CMD])}>\n')
           errors += 1
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, fileErrorMessage(filename, e))
@@ -6849,7 +6839,7 @@ def getSubFields(initial_argv, fieldNames):
             re.compile(rematch.group(2))
             subFields[GAM_argvI].append((RE_TYPE, fieldName, submatch.start(), submatch.end(), rematch.group(2), rematch.group(3)))
           except re.error as e:
-            usageErrorExit('{0} {1}: {2}'.format(Cmd.OB_RE_PATTERN, Msg.ERROR, e))
+            usageErrorExit(f'{Cmd.OB_RE_PATTERN} {Msg.ERROR}: {e}')
         pos = submatch.end()
       GAM_argv.append(myarg)
     elif myarg[0] == '~':
@@ -6990,10 +6980,10 @@ def _getValidateLoginHint(login_hint):
     if not login_hint:
       login_hint = readStdin('\nWhat is your G Suite admin email address? ').strip()
     if login_hint.find('@') == -1 and GC.Values[GC.DOMAIN]:
-      login_hint = '{0}@{1}'.format(login_hint, GC.Values[GC.DOMAIN])
+      login_hint = f'{login_hint}@{GC.Values[GC.DOMAIN]}'
     if VALIDEMAIL_PATTERN.match(login_hint):
       return login_hint
-    sys.stdout.write('{0}Invalid email address: {1}\n'.format(ERROR_PREFIX, login_hint))
+    sys.stdout.write(f'{ERROR_PREFIX}Invalid email address: {login_hint}\n')
     login_hint = None
 
 def getOAuthClientIDAndSecret():
@@ -7076,7 +7066,7 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
     for a_scope in scopesList:
       selectedScopes[i] = ' ' if a_scope.get('offByDefault', False) else '*'
       i += 1
-  prompt = 'Please enter 0-{0}[a|r] or {1}: '.format(numScopes-1, '|'.join(OAUTH2_CMDS))
+  prompt = f'Please enter 0-{numScopes-1}[a|r] or {"|".join(OAUTH2_CMDS)}: '
   while True:
     os.system(['clear', 'cls'][GM.Globals[GM.WINDOWS]])
     sys.stdout.write(menu % tuple(selectedScopes))
@@ -7097,11 +7087,11 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
         if isinstance(selection, int) and selection < numScopes:
           if mode == 'R':
             if 'readonly' not in scopesList[selection]['subscopes']:
-              sys.stdout.write('{0}Scope {1} does not support read-only mode!\n'.format(ERROR_PREFIX, selection))
+              sys.stdout.write(f'{ERROR_PREFIX}Scope {selection} does not support read-only mode!\n')
               continue
           elif mode == 'A':
             if 'action' not in scopesList[selection]['subscopes']:
-              sys.stdout.write('{0}Scope {1} does not support action-only mode!\n'.format(ERROR_PREFIX, selection))
+              sys.stdout.write(f'{ERROR_PREFIX}Scope {selection} does not support action-only mode!\n')
               continue
           elif selectedScopes[selection] != '*':
             mode = '*'
@@ -7119,7 +7109,7 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
           elif selection == 'e':
             return None
           break
-        sys.stdout.write('{0}Invalid input "{1}"\n'.format(ERROR_PREFIX, choice))
+        sys.stdout.write(f'{ERROR_PREFIX}Invalid input "{choice}"\n')
     if selection == 'c':
       break
   return selectedScopes
@@ -7193,9 +7183,9 @@ def doOAuthRequest(currentScopes=None):
     if selectedScopes[i] == '*':
       scopes.append(scope['scope'])
     elif selectedScopes[i] == 'R':
-      scopes.append('{0}.readonly'.format(scope['scope']))
+      scopes.append(f'{scope["scope"]}.readonly')
     elif selectedScopes[i] == 'A':
-      scopes.append('{0}.action'.format(scope['scope']))
+      scopes.append(f'{scope["scope"]}.action')
     i += 1
   storage = getOauth2TxtCredentials(storageOnly=True)
   _run_oauth_flow(client_id, client_secret, scopes, login_hint, 'offline', storage)
@@ -7213,7 +7203,7 @@ def doOAuthDelete():
   exitIfNoOauth2Txt()
   entityType = Ent.OAUTH2_TXT_FILE
   entityName = GC.Values[GC.OAUTH2_TXT]
-  sys.stdout.write('{0}: {1}, will be Deleted in 3...'.format(Ent.Singular(entityType), entityName))
+  sys.stdout.write(f'{Ent.Singular(entityType)}: {entityName}, will be Deleted in 3...')
   sys.stdout.flush()
   time.sleep(1)
   sys.stdout.write('2...')
@@ -7264,7 +7254,7 @@ def doOAuthInfo():
       printKeyValueList([scope])
     Ind.Decrement()
   if 'email' in token_info:
-    printKeyValueList(['G Suite Admin', '{0}'.format(token_info['email'])])
+    printKeyValueList(['G Suite Admin', f'{token_info["email"]}'])
   if 'expires_in' in token_info:
     printKeyValueList(['Expires', ISOformatTimeStamp((datetime.datetime.now()+datetime.timedelta(seconds=token_info['expires_in'])).replace(tzinfo=GC.Values[GC.TIMEZONE]))])
   if showDetails:
@@ -7393,7 +7383,7 @@ def getCRMService(login_hint):
 
 def enableGAMProjectAPIs(httpObj, projectId, checkEnabled, i=0, count=0):
   apis = API.PROJECT_APIS[:]
-  projectName = 'project:{0}'.format(projectId)
+  projectName = f'project:{projectId}'
   serveman = getAPIService(API.SERVICEMANAGEMENT, httpObj)
   status = True
   if checkEnabled:
@@ -7447,16 +7437,16 @@ def enableGAMProjectAPIs(httpObj, projectId, checkEnabled, i=0, count=0):
 def _grantSARotateRights(iam, projectId, sa_email):
   printEntityMessage([Ent.PROJECT, projectId, Ent.SVCACCT, sa_email], Msg.HAS_RIGHTS_TO_ROTATE_OWN_PRIVATE_KEY)
   body = {'policy': {'bindings': [{'role': 'roles/iam.serviceAccountKeyAdmin',
-                                   'members': ['serviceAccount:{0}'.format(sa_email)]}]}}
+                                   'members': [f'serviceAccount:{sa_email}']}]}}
   callGAPI(iam.projects().serviceAccounts(), 'setIamPolicy',
-           resource='projects/-/serviceAccounts/{0}'.format(sa_email), body=body)
+           resource=f'projects/-/serviceAccounts/{sa_email}', body=body)
 
 def _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo):
   iam = getAPIService(API.IAM, httpObj)
   try:
     service_account = callGAPI(iam.projects().serviceAccounts(), 'create',
                                throw_reasons=[GAPI.NOT_FOUND, GAPI.ALREADY_EXISTS],
-                               name='projects/{0}'.format(projectInfo['projectId']),
+                               name=f'projects/{projectInfo["projectId"]}',
                                body={'accountId': svcAcctInfo['name'],
                                      'serviceAccount': {'displayName': svcAcctInfo['displayName'],
                                                         'description': svcAcctInfo['description']}})
@@ -7484,39 +7474,39 @@ def _createClientSecretsOauth2service(httpObj, projectInfo, svcAcctInfo):
     try:
       content = json.loads(content)
     except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
-      sys.stderr.write('{0}: {1}'.format(str(e), content))
+      sys.stderr.write(f'{str(e)}: {content}')
       return False
     if not 'error' in content or not 'error_description' in content:
-      sys.stderr.write('Unknown error: {0}\n'.format(content))
+      sys.stderr.write(f'Unknown error: {content}\n')
       return False
     if content['error'] == 'invalid_grant':
       return True
     if content['error_description'] == 'The OAuth client was not found.':
-      sys.stderr.write('Ooops!!\n\n{0}\n\nIs not a valid client ID. Please make sure you are following the directions exactly and that there are no extra spaces in your client ID.\n'.format(client_id))
+      sys.stderr.write(f'Ooops!!\n\n{client_id}\n\nIs not a valid client ID. Please make sure you are following the directions exactly and that there are no extra spaces in your client ID.\n')
       return False
     if content['error_description'] == 'Unauthorized':
-      sys.stderr.write('Ooops!!\n\n{0}\n\nIs not a valid client secret. Please make sure you are following the directions exactly and that there are no extra spaces in your client secret.\n'.format(client_secret))
+      sys.stderr.write(f'Ooops!!\n\n{client_secret}\n\nIs not a valid client secret. Please make sure you are following the directions exactly and that there are no extra spaces in your client secret.\n')
       return False
-    sys.stderr.write('Unknown error: {0}\n'.format(content))
+    sys.stderr.write(f'Unknown error: {content}\n')
     return False
 
   if not enableGAMProjectAPIs(httpObj, projectInfo['projectId'], False):
     return
   if not _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo):
     return
-  console_credentials_url = 'https://console.developers.google.com/apis/credentials/consent/edit?createClient&newAppInternalUser=true&project={0}'.format(projectInfo['projectId'])
+  console_credentials_url = f'https://console.developers.google.com/apis/credentials/consent/edit?createClient&newAppInternalUser=true&project={projectInfo["projectId"]}'
   csHttpObj = getHttpObj()
   while True:
-    sys.stdout.write('''Please go to:
+    sys.stdout.write(f'''Please go to:
 
-{0}
+{console_credentials_url}
 
 1. Enter "GAM" for "Application name".
 2. Leave other fields blank. Click "Save" button.
 3. Choose "Other". Enter "GAM" for "Name". Click the blue "Create" button.
 4. Copy your "client ID" value.
 
-\n'''.format(console_credentials_url))
+''')
     client_id = readStdin('Enter your Client ID: ').strip()
     if not client_id:
       client_id = readStdin('').strip()
@@ -7556,7 +7546,7 @@ def convertGCPFolderNameToID(parent, crm2):
   # for now just use callGAPI and if user has that many folders they'll
   # just need to be specific.
   folders = callGAPIitems(crm2.folders(), 'search', items='folders',
-                          body={'pageSize': 1000, 'query': 'displayName="{0}"'.format(parent)})
+                          body={'pageSize': 1000, 'query': f'displayName="{parent}"'})
   if not folders:
     entityActionFailedExit([Ent.PROJECT_FOLDER, parent], Msg.NOT_FOUND)
   jcount = len(folders)
@@ -7600,7 +7590,7 @@ def _getSvcAcctInfo(myarg, svcAcctInfo):
 def _generateProjectSvcAcctId(prefix):
   psaId = prefix
   for _ in range(3):
-    psaId += '-{0}'.format(''.join(random.choice(LOWERNUMERIC_CHARS) for _ in range(3)))
+    psaId += f'-{"".join(random.choice(LOWERNUMERIC_CHARS) for _ in range(3))}'
   return psaId
 
 def _getLoginHintProjectInfo(createCmd):
@@ -7639,8 +7629,7 @@ def _getLoginHintProjectInfo(createCmd):
     else:
       projectInfo['projectId'] = readStdin('\nWhat is your API project ID? ').strip()
       if not PROJECTID_PATTERN.match(projectInfo['projectId']):
-        systemErrorExit(USAGE_ERROR_RC, '{0} {1}: {2} <{3}>'.format(Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1], Cmd.OB_PROJECT_ID,
-                                                                    Msg.EXPECTED, PROJECTID_FORMAT_REQUIRED))
+        systemErrorExit(USAGE_ERROR_RC, f'{Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1]} {Cmd.OB_PROJECT_ID}: {Msg.EXPECTED} <{PROJECTID_FORMAT_REQUIRED}>')
   if not projectInfo['name']:
     projectInfo['name'] = 'GAM Project'
   if not svcAcctInfo['name']:
@@ -7659,7 +7648,7 @@ def _getLoginHintProjectInfo(createCmd):
     if parent_type[-1] == 's':
       parent_type = parent_type[:-1] # folders > folder, organizations > organization
     projectInfo['parent'] = {'type': parent_type, 'id': parent_id}
-  projects = _getProjects(crm, 'id:{0}'.format(projectInfo['projectId']))
+  projects = _getProjects(crm, f'id:{projectInfo["projectId"]}')
   if not createCmd:
     if not projects:
       entityActionFailedExit([Ent.USER, login_hint, Ent.PROJECT, projectInfo['projectId']], Msg.DOES_NOT_EXIST)
@@ -7712,7 +7701,7 @@ def _getLoginHintProjects(createSvcAcctCmd=False, deleteSvcAcctCmd=False, printS
   elif pfilter.lower() == 'filter':
     pfilter = getString(Cmd.OB_STRING)
   elif PROJECTID_PATTERN.match(pfilter):
-    pfilter = 'id:{0}'.format(pfilter)
+    pfilter = f'id:{pfilter}'
   else:
     Cmd.Backup()
     invalidArgumentExit(['', 'all|'][printShowCmd]+PROJECTID_FILTER_REQUIRED)
@@ -7725,7 +7714,7 @@ def _getLoginHintProjects(createSvcAcctCmd=False, deleteSvcAcctCmd=False, printS
     if not printShowCmd:
       projects = [{'projectId': projectID}]
     else:
-      projects = _getProjects(crm, 'id:{0}'.format(projectID))
+      projects = _getProjects(crm, f'id:{projectID}')
   else:
     projects = _getProjects(crm, pfilter)
   return (crm, httpObj, login_hint, projects)
@@ -7748,7 +7737,7 @@ def doCreateProject():
     body['parent'] = projectInfo['parent']
   while True:
     create_again = False
-    sys.stdout.write('Creating project "{0}"...\n'.format(body['name']))
+    sys.stdout.write(f'Creating project "{body["name"]}"...\n')
     try:
       create_operation = callGAPI(crm.projects(), 'create',
                                   throw_reasons=[GAPI.BAD_REQUEST, GAPI.ALREADY_EXISTS],
@@ -7765,10 +7754,10 @@ def doCreateProject():
         if status['error'].get('message', '') == 'No permission to create project in organization':
           sys.stdout.write('Hmm... Looks like you have no rights to your Google Cloud Organization.\nAttempting to fix that...\n')
           getorg = callGAPI(crm.organizations(), 'search',
-                            body={'filter': 'domain:{0}'.format(login_domain)})
+                            body={'filter': f'domain:{login_domain}'})
           try:
             organization = getorg['organizations'][0]['name']
-            sys.stdout.write('Your organization name is {0}\n'.format(organization))
+            sys.stdout.write(f'Your organization name is {organization}\n')
           except (KeyError, IndexError):
             systemErrorExit(3, 'You have no rights to create projects for your organization and you don\'t seem to be a super admin! Sorry, there\'s nothing more I can do.')
           org_policy = callGAPI(crm.organizations(), 'getIamPolicy',
@@ -7780,14 +7769,14 @@ def doCreateProject():
             sys.stdout.write('The following rights seem to exist:\n')
             for a_policy in org_policy['bindings']:
               if 'role' in a_policy:
-                sys.stdout.write('  Role: {0}\n'.format(a_policy['role']))
+                sys.stdout.write(f'  Role: {a_policy["role"]}\n')
               if 'members' in a_policy:
                 sys.stdout.write('  Members:\n')
                 for member in a_policy['members']:
-                  sys.stdout.write('    {0}\n'.format(member))
+                  sys.stdout.write(f'    {member}\n')
           my_role = 'roles/resourcemanager.projectCreator'
-          sys.stdout.write('Giving {0} the role of {1}...\n'.format(login_hint, my_role))
-          org_policy['bindings'].append({'role': my_role, 'members': ['user:{0}'.format(login_hint)]})
+          sys.stdout.write(f'Giving {login_hint} the role of {my_role}...\n')
+          org_policy['bindings'].append({'role': my_role, 'members': [f'user:{login_hint}']})
           callGAPI(crm.organizations(), 'setIamPolicy',
                    resource=organization, body={'policy': org_policy})
           create_again = True
@@ -7807,12 +7796,12 @@ and accept the Terms of Service (ToS). As soon as you've accepted the ToS popup,
       if status.get('done', False):
         break
       sleep_time = i ** 2
-      sys.stdout.write('Project still being created. Sleeping {0} seconds\n'.format(sleep_time))
+      sys.stdout.write(f'Project still being created. Sleeping {sleep_time} seconds\n')
       time.sleep(sleep_time)
     if create_again:
       continue
     if not status.get('done', False):
-      systemErrorExit(1, 'Failed to create project: {0}\n'.format(status))
+      systemErrorExit(1, f'Failed to create project: {status}\n')
     elif 'error' in status:
       systemErrorExit(2, status['error']+'\n')
     break
@@ -7978,12 +7967,12 @@ def doDeleteSvcAcct():
       if clientEmail:
         saName = clientEmail
       elif clientName:
-        saName = '{0}@{1}.iam.gserviceaccount.com'.format(clientName, projectId)
+        saName = f'{clientName}@{projectId}.iam.gserviceaccount.com'
       else: #clientId
         saName = clientId
       callGAPI(iam.projects().serviceAccounts(), 'delete',
                throw_reasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST],
-               name='projects/{0}/serviceAccounts/{1}'.format(projectId, saName))
+               name=f'projects/{projectId}/serviceAccounts/{saName}')
       entityActionPerformed([Ent.PROJECT, projectId, Ent.SVCACCT, saName], i, count)
     except (GAPI.notFound, GAPI.badRequest) as e:
       entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, saName], str(e), i, count)
@@ -7993,7 +7982,7 @@ def doDeleteSvcAcct():
 # gam <UserTypeEntity> update serviceaccount
 def checkServiceAccount(users):
   def printPassFail(description, result):
-    writeStdout(Ind.Spaces()+'{0:73} {1}'.format(description, result)+'\n')
+    writeStdout(Ind.Spaces()+f'{description:73} {result}'+'\n')
 
   credentials = getSvcAcctCredentials([API.USERINFO_EMAIL_SCOPE], None)
   checkScopesSet = set()
@@ -8028,8 +8017,8 @@ def checkServiceAccount(users):
         checkScopesSet.add(scope['scope'])
       elif selectedScopes[i] == 'R':
         saScopes.setdefault(scope['api'], [])
-        saScopes[scope['api']].append('{0}.readonly'.format(scope['scope']))
-        checkScopesSet.add('{0}.readonly'.format(scope['scope']))
+        saScopes[scope['api']].append(f'{scope["scope"]}.readonly')
+        checkScopesSet.add(f'{scope["scope"]}.readonly')
       i += 1
     if API.DRIVEACTIVITY_V1 in saScopes and API.DRIVE3 in saScopes:
       saScopes[API.DRIVEACTIVITY_V1].append(API.DRIVE_SCOPE)
@@ -8072,7 +8061,7 @@ def checkServiceAccount(users):
       e = e.args[0]
     auth_error = ' - '+str(e)
   Ind.Increment()
-  printPassFail('Authentication{0}'.format(auth_error), saTokenStatus)
+  printPassFail(f'Authentication{auth_error}', saTokenStatus)
   Ind.Decrement()
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -8107,7 +8096,7 @@ def checkServiceAccount(users):
       else:
         scopeStatus = 'FAIL'
         allScopesPass = False
-      printPassFail(scope, '{0}{1}'.format(scopeStatus, currentCount(j, jcount)))
+      printPassFail(scope, f'{scopeStatus}{currentCount(j, jcount)}')
     Ind.Decrement()
     service_account = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
     _, domain = splitEmailAddress(user)
@@ -8163,7 +8152,7 @@ def doPrintShowSvcAccts():
     try:
       svcAccts = callGAPIpages(iam.projects().serviceAccounts(), 'list', 'accounts',
                                throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
-                               name='projects/{0}'.format(projectId))
+                               name=f'projects/{projectId}')
       jcount = len(svcAccts)
       if not csvPF:
         entityPerformActionNumItems([Ent.PROJECT, projectId], jcount, Ent.SVCACCT, i, count)
@@ -8229,7 +8218,7 @@ def _formatOAuth2ServiceData(projectId, clientEmail, clientId, private_key, priv
     'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
     'client_email': clientEmail,
     'client_id': clientId,
-    'client_x509_cert_url': 'https://www.googleapis.com/robot/v1/metadata/x509/{0}'.format(quote(clientEmail)),
+    'client_x509_cert_url': f'https://www.googleapis.com/robot/v1/metadata/x509/{quote(clientEmail)}',
     'private_key': private_key,
     'private_key_id': private_key_id,
     'project_id': projectId,
@@ -8262,7 +8251,7 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
     projectId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id']
     clientEmail = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']
     clientId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
-  name = 'projects/-/serviceAccounts/{0}'.format(clientId)
+  name = f'projects/-/serviceAccounts/{clientId}'
   if mode != 'retainexisting':
     try:
       keys = callGAPIitems(iam.projects().serviceAccounts().keys(), 'list', 'keys',
@@ -8355,7 +8344,7 @@ def doDeleteSvcAcctKeys():
   projectId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id']
   clientEmail = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']
   clientId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
-  name = 'projects/-/serviceAccounts/{0}'.format(clientId)
+  name = f'projects/-/serviceAccounts/{clientId}'
   try:
     keys = callGAPIitems(iam.projects().serviceAccounts().keys(), 'list', 'keys',
                          throw_reasons=[GAPI.BAD_REQUEST],
@@ -8407,7 +8396,7 @@ def doShowSvcAcctKeys():
   projectId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id']
   clientEmail = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']
   clientId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
-  name = 'projects/-/serviceAccounts/{0}'.format(clientId)
+  name = f'projects/-/serviceAccounts/{clientId}'
   try:
     keys = callGAPIitems(iam.projects().serviceAccounts().keys(), 'list', 'keys',
                          throw_reasons=[GAPI.BAD_REQUEST],
@@ -8678,9 +8667,9 @@ def doReport():
             if noAuthorizedApps:
               continue
             for app in item['msgValue']:
-              appName = 'App: {0}'.format(escapeCRsNLs(app['client_name']))
+              appName = f'App: {escapeCRsNLs(app["client_name"])}'
               for key in ['num_users', 'client_id']:
-                title = '{0}.{1}'.format(appName, key)
+                title = f'{appName}.{key}'
                 csvPF.AddTitles(title)
                 row[title] = app[key]
           elif name == 'cros:device_version_distribution':
@@ -8688,7 +8677,7 @@ def doReport():
             for version in item['msgValue']:
               versions[version['version_number']] = version['num_devices']
             for k, v in sorted(iter(versions.items()), reverse=True):
-              title = 'cros:device_version.{0}'.format(k)
+              title = f'cros:device_version.{k}'
               csvPF.AddTitles(title)
               row[title] = v
           else:
@@ -8702,10 +8691,10 @@ def doReport():
                   else:
                     myvalue = value
                   if mycount and myvalue:
-                    values.append('{0}:{1}'.format(myvalue, mycount))
+                    values.append(f'{myvalue}:{mycount}')
                 value = ' '.join(values)
               elif 'version_number' in subitem and 'num_devices' in subitem:
-                values.append('{0}:{1}'.format(subitem['version_number'], subitem['num_devices']))
+                values.append(f'{subitem["version_number"]}:{subitem["num_devices"]}')
               else:
                 continue
               value = ' '.join(sorted(values, reverse=True))
@@ -8741,16 +8730,16 @@ def doReport():
               app = {'date': lastDate}
               for an_item in subitem:
                 if an_item == 'client_name':
-                  app['name'] = 'App: {0}'.format(escapeCRsNLs(subitem[an_item]))
+                  app['name'] = f'App: {escapeCRsNLs(subitem[an_item])}'
                 elif an_item == 'num_users':
-                  app['value'] = '{0} users'.format(subitem[an_item])
+                  app['value'] = f'{subitem[an_item]} users'
                 elif an_item == 'client_id':
                   app['client_id'] = subitem[an_item]
               authorizedApps.append(app)
           elif name == 'cros:device_version_distribution':
             values = []
             for subitem in item['msgValue']:
-              values.append('{0}:{1}'.format(subitem['version_number'], subitem['num_devices']))
+              values.append(f'{subitem["version_number"]}:{subitem["num_devices"]}')
             csvPF.WriteRow({'date': lastDate, 'name': name, 'value': ' '.join(sorted(values, reverse=True))})
           else:
             values = []
@@ -8763,7 +8752,7 @@ def doReport():
                   else:
                     myvalue = value
                   if mycount and myvalue:
-                    values.append('{0}:{1}'.format(myvalue, mycount))
+                    values.append(f'{myvalue}:{mycount}')
               else:
                 continue
             csvPF.WriteRow({'date': lastDate, 'name': name, 'value': ' '.join(sorted(values, reverse=True))})
@@ -8866,7 +8855,7 @@ def doReport():
     includeServices = set(fullDataServices)
   if filterTimes and filters is not None:
     for filterTimeName, filterTimeValue in iter(filterTimes.items()):
-      filters = filters.replace('#{0}#'.format(filterTimeName), filterTimeValue)
+      filters = filters.replace(f'#{filterTimeName}#', filterTimeValue)
   if userReports:
     if startEndTime.startDateTime is None:
       startEndTime.startDateTime = startEndTime.endDateTime = todaysDate()
@@ -8875,7 +8864,7 @@ def doReport():
       normalizeUsers = True
       orgUnitId = None
     elif userKey == 'all':
-      printGettingEntityItemForWhom(Ent.REPORT, 'users in orgUnit {0}'.format(orgUnit) if orgUnit else 'all users')
+      printGettingEntityItemForWhom(Ent.REPORT, f'users in orgUnit {orgUnit}' if orgUnit else 'all users')
       page_message = getPageMessage()
       users = ['all']
     else:
@@ -8949,7 +8938,7 @@ def doReport():
         break
     if not aggregateUserUsage:
       csvPF.SortRowsTwoTitles('email', 'date', False)
-      csvPF.writeCSVfile('User Reports - {0}'.format(tryDate))
+      csvPF.writeCSVfile(f'User Reports - {tryDate}')
     else:
       for usageDate, events in iter(eventCounts.items()):
         row = {'date': usageDate}
@@ -8957,7 +8946,7 @@ def doReport():
           row[event] = count
         csvPF.WriteRow(row)
       csvPF.SortRows('date', False)
-      csvPF.writeCSVfile('User Reports Aggregate - {0}'.format(tryDate))
+      csvPF.writeCSVfile(f'User Reports Aggregate - {tryDate}')
   elif customerReports:
     if startEndTime.startDateTime is None:
       startEndTime.startDateTime = startEndTime.endDateTime = todaysDate()
@@ -9006,14 +8995,14 @@ def doReport():
       except GAPI.forbidden:
         accessErrorExit(None)
       startDateTime += datetime.timedelta(days=1)
-    csvPF.writeCSVfile('Customer Report - {0}'.format(tryDate))
+    csvPF.writeCSVfile(f'Customer Report - {tryDate}')
   else: # activityReports
     if select:
       page_message = None
       normalizeUsers = True
       orgUnitId = None
     elif userKey == 'all':
-      printGettingEntityItemForWhom(Ent.ACTIVITY, 'users in orgUnit {0}'.format(orgUnit) if orgUnit else 'all users')
+      printGettingEntityItemForWhom(Ent.ACTIVITY, f'users in orgUnit {orgUnit}' if orgUnit else 'all users')
       page_message = getPageMessage()
       users = ['all']
     else:
@@ -9116,7 +9105,7 @@ def doReport():
       csvPF.AddTitles(['event', 'count'])
       for event in sorted(eventCounts):
         csvPF.WriteRow({'event': event, 'count': eventCounts[event]})
-    csvPF.writeCSVfile('{0} Activity Report'.format(report.capitalize()))
+    csvPF.writeCSVfile(f'{report.capitalize()} Activity Report')
 
 # Substitute for #user#, #email#, #usernamne#
 def _substituteForUser(field, user, userName):
@@ -9479,7 +9468,7 @@ def _processTagReplacements(tagReplacements, message):
       message = re.sub(match.group(0), tagSubs[tag], message)
     else:
 # Replace invalid RT tags with ERROR(RT)
-      message = re.sub(match.group(0), 'ERROR({0})'.format(tag), message)
+      message = re.sub(match.group(0), f'ERROR({tag})', message)
   return message
 
 def sendCreateUpdateUserNotification(body, notify, tagReplacements, i=0, count=0, msgFrom=None, createMessage=True):
@@ -9718,7 +9707,7 @@ def getCustomerSubscription(res):
     if skuId == subscription['skuId']:
       return (customerId, skuId, subscription['subscriptionId'])
   Cmd.Backup()
-  usageErrorExit('{0}, {1}'.format(Ent.FormatEntityValueList([Ent.CUSTOMER_ID, customerId, Ent.SKU, skuId]), Msg.SUBSCRIPTION_NOT_FOUND))
+  usageErrorExit(f'{Ent.FormatEntityValueList([Ent.CUSTOMER_ID, customerId, Ent.SKU, skuId])}, {Msg.SUBSCRIPTION_NOT_FOUND}')
 
 PLAN_NAME_MAP = {
   'annualmonthlypay': 'ANNUAL_MONTHLY_PAY',
@@ -10115,14 +10104,14 @@ def _showCustomerLicenseInfo(customerInfo, FJQC):
       accessErrorExit(None)
   if usage:
     if not FJQC.formatJSON:
-      printKeyValueList(['User counts as of {0}:'.format(tryDate)])
+      printKeyValueList([f'User counts as of {tryDate}:'])
       Ind.Increment()
     for item in usage[0]['parameters']:
       api_name = CUSTOMER_LICENSE_MAP.get(item['name'])
       api_value = int(item.get('intValue', '0'))
       if api_name and api_value:
         if not FJQC.formatJSON:
-          printKeyValueList([api_name, '{:,}'.format(api_value)])
+          printKeyValueList([api_name, f'{api_value:,}'])
         else:
           customerInfo[item['name']] = api_value
     if not FJQC.formatJSON:
@@ -10325,7 +10314,7 @@ def doPrintShowPrivileges():
 
   cd = buildGAPIObject(API.DIRECTORY)
   csvPF = CSVPrintFile(PRINT_PRIVILEGES_FIELDS, 'sortall') if Act.csvFormat() else None
-  fields = 'items({0})'.format(','.join(PRINT_PRIVILEGES_FIELDS))
+  fields = f'items({",".join(PRINT_PRIVILEGES_FIELDS)})'
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -10479,7 +10468,7 @@ def doCreateAdmin():
   if body['scopeType'] == 'ORG_UNIT':
     orgUnit, orgUnitId = getOrgUnitId(cd)
     body['orgUnitId'] = orgUnitId[3:]
-    scope = 'ORG_UNIT {0}'.format(orgUnit)
+    scope = f'ORG_UNIT {orgUnit}'
   else:
     scope = 'CUSTOMER'
   checkForExtraneousArguments()
@@ -10488,9 +10477,7 @@ def doCreateAdmin():
                       throw_reasons=[GAPI.INTERNAL_ERROR, GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID_ORGUNIT, GAPI.DUPLICATE],
                       customer=GC.Values[GC.CUSTOMER_ID], body=body, fields='roleAssignmentId')
     entityActionPerformedMessage([Ent.ROLE_ASSIGNMENT_ID, result['roleAssignmentId']],
-                                 '{0} {1}, {2} {3}, {4} {5}'.format(Ent.Singular(Ent.USER), user,
-                                                                    Ent.Singular(Ent.ROLE), role,
-                                                                    Ent.Singular(Ent.SCOPE), scope))
+                                 f'{Ent.Singular(Ent.USER)} {user}, {Ent.Singular(Ent.ROLE)} {role}, {Ent.Singular(Ent.SCOPE)} {scope}')
   except GAPI.internalError:
     pass
   except (GAPI.badRequest, GAPI.customerNotFound, GAPI.forbidden):
@@ -10525,7 +10512,7 @@ def doPrintShowAdmins():
     admin['assignedToUser'] = convertUserIDtoEmail(admin['assignedTo'], cd)
     admin['role'] = role_from_roleid(admin['roleId'])
     if 'orgUnitId' in admin:
-      admin['orgUnit'] = convertOrgUnitIDtoPath('id:{0}'.format(admin['orgUnitId']), cd)
+      admin['orgUnit'] = convertOrgUnitIDtoPath(f'id:{admin["orgUnitId"]}', cd)
 
   cd = buildGAPIObject(API.DIRECTORY)
   roleId = None
@@ -10584,7 +10571,7 @@ def _convertTransferAppIDtoName(apps, appID):
   for app in apps:
     if appID == app['id']:
       return app['name']
-  return 'applicationId: {0}'.format(appID)
+  return f'applicationId: {appID}'
 
 CALENDAR_APP_NAME = 'Calendar'
 DRIVE_AND_DOCS_APP_NAME = 'Drive and Docs'
@@ -11255,7 +11242,7 @@ def _doInfoOrgs(entityList):
           if orgUnitPath == user['orgUnitPath'].lower():
             printKeyValueList([user['primaryEmail']])
           elif showChildren:
-            printKeyValueList(['{0} (child)'.format(user['primaryEmail'])])
+            printKeyValueList([f'{user["primaryEmail"]} (child)'])
         Ind.Decrement()
         printKeyValueList([Msg.TOTAL_ITEMS_IN_ENTITY.format(Ent.Plural(entityType), Ent.Singular(Ent.ORGANIZATIONAL_UNIT)), len(users)])
       Ind.Decrement()
@@ -11345,7 +11332,7 @@ def _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs
     fields = ','.join(set(localFieldsList))
   else:
     fields = ','.join(set(fieldsList))
-  listfields = 'organizationUnits({0})'.format(fields)
+  listfields = f'organizationUnits({fields})'
   printGettingAllAccountEntities(Ent.ORGANIZATIONAL_UNIT)
   if listType == 'children':
     batchSubOrgs = False
@@ -11522,7 +11509,7 @@ def doPrintOrgs():
       if showCrOSCounts:
         total = 0
         for k, v in sorted(iter(crosCounts[orgUnitPath].items())):
-          row['CrOS.{0}'.format(k)] = v
+          row[f'CrOS.{k}'] = v
           total += v
         row['CrOS.Total'] = total
         if ((minCrOSCounts != -1 and total < minCrOSCounts) or
@@ -11746,7 +11733,7 @@ def infoAliases(entityList):
     else:
       setSysExitRC(ENTITY_IS_NOT_AN_ALIAS_RC)
       printEntityKVList([Ent.EMAIL, aliasEmail],
-                        ['Is a {0}, not a {1}'.format(Ent.Singular(entityType), Ent.Singular(aliasEntityType))],
+                        [f'Is a {Ent.Singular(entityType)}, not a {Ent.Singular(aliasEntityType)}'],
                         i, count)
 
   cd = buildGAPIObject(API.DIRECTORY)
@@ -11834,7 +11821,7 @@ def doPrintAliases():
                                    throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.INVALID_INPUT,
                                                   GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
                                    customer=GC.Values[GC.CUSTOMER_ID], query=query, orderBy='email',
-                                   fields='nextPageToken,users({0})'.format(','.join(userFields)),
+                                   fields=f'nextPageToken,users({",".join(userFields)})',
                                    maxResults=GC.Values[GC.USER_MAX_RESULTS])
       except (GAPI.invalidOrgunit, GAPI.invalidInput):
         entityActionFailedWarning([Ent.ALIAS, None], invalidQuery(query))
@@ -11855,7 +11842,7 @@ def doPrintAliases():
                                  page_message=getPageMessage(showFirstLastItems=True), message_attribute='email',
                                  throw_reasons=[GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
                                  customer=GC.Values[GC.CUSTOMER_ID], orderBy='email',
-                                 fields='nextPageToken,groups({0})'.format(','.join(groupFields)))
+                                 fields=f'nextPageToken,groups({",".join(groupFields)})')
     except (GAPI.resourceNotFound, GAPI.forbidden, GAPI.badRequest):
       accessErrorExit(cd)
     for group in entityList:
@@ -11907,7 +11894,7 @@ def getAuditParameters(emailAddressRequired=True, requestIdRequired=True, destUs
       parameters['auditDestUserName'], destDomain = splitEmailAddress(destEmailAddress)
       if auditObject.domain != destDomain:
         Cmd.Backup()
-        invalidArgumentExit('{0}@{1}'.format(parameters['auditDestUserName'], auditObject.domain))
+        invalidArgumentExit(f'{parameters["auditDestUserName"]}@{auditObject.domain}')
   return (auditObject, parameters)
 
 def _showFileURLs(request):
@@ -11915,7 +11902,7 @@ def _showFileURLs(request):
     printKeyValueList(['Number Of Files', request['numberOfFiles']])
     Ind.Increment()
     for i in range(int(request['numberOfFiles'])):
-      printKeyValueList(['Url{0}'.format(i), request['fileUrl'+str(i)]])
+      printKeyValueList([f'Url{i}', request['fileUrl'+str(i)]])
     Ind.Decrement()
 
 # Audit export command utilities
@@ -12004,7 +11991,7 @@ def doDownloadExportRequest():
       return
     count = int(results['numberOfFiles'])
     for i in range(count):
-      filename = os.path.join(targetFolder, 'export-{0}-{1}-{2}.mbox.gpg'.format(parameters['auditUserName'], parameters['requestId'], i))
+      filename = os.path.join(targetFolder, f'export-{parameters["auditUserName"]}-{parameters["requestId"]}-{i}.mbox.gpg')
       #don't download existing files. This does not check validity of existing local
       #file so partial/corrupt downloads will need to be deleted manually.
       if not os.path.isfile(filename):
@@ -12013,7 +12000,7 @@ def doDownloadExportRequest():
         writeFile(filename, data, mode='wb')
       else:
         entityActionNotPerformedWarning([Ent.USER, parameters['auditUser'], Ent.AUDIT_EXPORT_REQUEST, parameters['requestId']],
-                                        '{0} {1}'.format(filename, Msg.EXISTS), i+1, count)
+                                        f'{filename} {Msg.EXISTS}', i+1, count)
   except (GDATA.invalidDomain, GDATA.doesNotExist):
     entityUnknownWarning(Ent.USER, parameters['auditUser'])
   except GDATA.invalidValue:
@@ -12068,19 +12055,19 @@ def doWatchExportRequest():
     if results['status'] != 'PENDING':
       printKeyValueList(['Status is', results['status'], 'Sending email.'])
       msg_txt = '\n'
-      msg_txt += '  {0}: {1}\n'.format(Ent.Singular(Ent.REQUEST_ID), results['requestId'])
-      msg_txt += '  {0}: {1}\n'.format(Ent.Singular(Ent.USER), results['userEmailAddress'])
-      msg_txt += '  Status: {0}\n'.format(results['status'])
-      msg_txt += '  Request Date: {0}\n'.format(results['requestDate'])
-      msg_txt += '  Requested By: {0}\n'.format(results['adminEmailAddress'])
-      msg_txt += '  Requested Parts: {0}\n'.format(results['packageContent'])
-      msg_txt += '  Request Filter: {0}\n'.format(results.get('searchQuery', 'None'))
-      msg_txt += '  Include Deleted: {0}\n'.format(results['includeDeleted'])
+      msg_txt += f'  {Ent.Singular(Ent.REQUEST_ID)}: {results["requestId"]}\n'
+      msg_txt += f'  {Ent.Singular(Ent.USER)}: {results["userEmailAddress"]}\n'
+      msg_txt += f'  Status: {results["status"]}\n'
+      msg_txt += f'  Request Date: {results["requestDate"]}\n'
+      msg_txt += f'  Requested By: {results["adminEmailAddress"]}\n'
+      msg_txt += f'  Requested Parts: {results["packageContent"]}\n'
+      msg_txt += f'  Request Filter: {results.get("searchQuery", "None")}\n'
+      msg_txt += f'  Include Deleted: {results["includeDeleted"]}\n'
       if 'numberOfFiles' in results:
-        msg_txt += '  Number Of Files: {0}\n'.format(results['numberOfFiles'])
+        msg_txt += f'  Number Of Files: {results["numberOfFiles"]}\n'
         for i in range(int(results['numberOfFiles'])):
-          msg_txt += '  Url{0}: {1}\n'.format(i, results['fileUrl'+str(i)])
-      msg_subj = 'Export #{0} for {1} status is {2}'.format(results['requestId'], results['userEmailAddress'], results['status'])
+          msg_txt += f'  Url{i}: {results["fileUrl"+str(i)]}\n'
+      msg_subj = f'Export #{results["requestId"]} for {results["userEmailAddress"]} status is {results["status"]}'
       send_email(msg_subj, msg_txt, _getValueFromOAuth('email'))
       break
     printKeyValueList(['Status still PENDING, will check again in 5 minutes...'])
@@ -13965,11 +13952,11 @@ def _printShowContacts(users, entityType, contactFeed=True):
             continue
           if key in fields:
             keymap = contactsManager.CONTACT_ARRAY_PROPERTIES[key]
-            contactRow['{0}.0.count'.format(key)] = len(fields[key])
+            contactRow[f'{key}.0.count'] = len(fields[key])
             j = 0
             for item in fields[key]:
               j += 1
-              fn = '{0}.{1}.'.format(key, j)
+              fn = f'{key}.{j}.'
               fnt = item.get('label')
               if fnt:
                 contactRow[fn+'type'] = fnt
@@ -13999,12 +13986,12 @@ def _printShowContacts(users, entityType, contactFeed=True):
               else:
                 contactRow[fn+keymap['infoTitle']] = value
         if showContactGroups and CONTACT_GROUPS in fields:
-          contactRow['{0}.0.count'.format(CONTACT_GROUPS)] = len(fields[CONTACT_GROUPS])
+          contactRow[f'{CONTACT_GROUPS}.0.count'] = len(fields[CONTACT_GROUPS])
           j = 0
           for group in fields[CONTACT_GROUPS]:
             j += 1
-            fn = '{0}.{1}.'.format(CONTACT_GROUPS, j)
-            contactRow[fn+CONTACT_GROUP_ID] = 'id:{0}'.format(group)
+            fn = f'{CONTACT_GROUPS}.{j}.'
+            contactRow[fn+CONTACT_GROUP_ID] = f'id:{group}'
             if group in contactGroupIDs:
               contactRow[fn+CONTACT_GROUP_NAME] = contactGroupIDs[group]
         if not FJQC.formatJSON:
@@ -14468,12 +14455,12 @@ def printShowUserContactGroups(users):
         if groups:
           for group in groups:
             fields = contactsManager.ContactGroupToFields(group)
-            contactRow = {Ent.Singular(entityType): user, CONTACT_GROUP_ID: 'id:{0}'.format(fields[CONTACT_GROUP_ID]),
+            contactRow = {Ent.Singular(entityType): user, CONTACT_GROUP_ID: f'id:{fields[CONTACT_GROUP_ID]}',
                           CONTACT_GROUP_NAME: fields[CONTACT_GROUP_NAME], CONTACT_GROUP_UPDATED: formatLocalTime(fields[CONTACT_GROUP_UPDATED])}
             if not FJQC.formatJSON:
               csvPF.WriteRowTitles(contactRow)
             elif csvPF.CheckRowTitles(contactRow):
-              csvPF.WriteRowNoFilter({Ent.Singular(entityType): user, CONTACT_GROUP_ID: 'id:{0}'.format(fields[CONTACT_GROUP_ID]),
+              csvPF.WriteRowNoFilter({Ent.Singular(entityType): user, CONTACT_GROUP_ID: f'id:{fields[CONTACT_GROUP_ID]}',
                                       CONTACT_GROUP_NAME: fields[CONTACT_GROUP_NAME],
                                       'JSON': json.dumps(cleanJSON(fields, timeObjects=CONTACT_GROUP_TIME_OBJECTS),
                                                          ensure_ascii=False, sort_keys=True)})
@@ -14569,7 +14556,7 @@ def updateCrOSDevices(entityList):
   if orgUnitPath:
     status, orgUnitPath = checkOrgUnitPathExists(cd, orgUnitPath)
     if not status:
-      entityActionFailedWarning([Ent.CROS_DEVICE, ''], '{0}: {1}, {2}'.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT), orgUnitPath, Msg.DOES_NOT_EXIST))
+      entityActionFailedWarning([Ent.CROS_DEVICE, ''], f'{Ent.Singular(Ent.ORGANIZATIONAL_UNIT)}: {orgUnitPath}, {Msg.DOES_NOT_EXIST}')
       return
   i, count, entityList = getEntityArgument(entityList)
   function = None
@@ -15002,7 +14989,7 @@ def infoCrOSDevices(entityList):
             else:
               deviceFile = None
           if deviceFile:
-            downloadfilename = os.path.join(targetFolder, 'cros-logs-{0}-{1}.zip'.format(deviceId, deviceFile['createTime']))
+            downloadfilename = os.path.join(targetFolder, f'cros-logs-{deviceId}-{deviceFile["createTime"]}.zip')
             _, content = cd._http.request(deviceFile['downloadUrl'])
             writeFile(downloadfilename, content, mode='wb', continueOnError=True)
             printKeyValueList(['Downloaded', downloadfilename])
@@ -15184,7 +15171,7 @@ def getCrOSDeviceFiles(entityList):
       j = 0
       for deviceFile in deviceFiles:
         j += 1
-        downloadfilename = os.path.join(targetFolder, 'cros-logs-{0}-{1}.zip'.format(deviceId, deviceFile['createTime']))
+        downloadfilename = os.path.join(targetFolder, f'cros-logs-{deviceId}-{deviceFile["createTime"]}.zip')
         _, content = cd._http.request(deviceFile['downloadUrl'])
         writeFile(downloadfilename, content, mode='wb', continueOnError=True)
         entityActionPerformed([Ent.DEVICE_FILE, downloadfilename], j, jcount)
@@ -15261,7 +15248,7 @@ def doPrintCrOSDevices(entityList=None):
     attrib = 'tpmVersionInfo'
     if attrib in cros:
       for key, value in sorted(iter(cros[attrib].items())):
-        attribKey = '{0}.{1}'.format(attrib, key)
+        attribKey = f'{attrib}.{key}'
         cros[attribKey] = value
       cros.pop(attrib)
     activeTimeRanges = _filterActiveTimeRanges(cros, selectedLists.get('activeTimeRanges', False), listLimit, startDate, endDate)
@@ -15296,28 +15283,28 @@ def doPrintCrOSDevices(entityList=None):
       new_row = row.copy()
       if i < lenATR:
         for key in ['date', 'activeTime', 'duration', 'minutes']:
-          new_row['activeTimeRanges.{0}'.format(key)] = activeTimeRanges[i][key]
+          new_row[f'activeTimeRanges.{key}'] = activeTimeRanges[i][key]
       if i < lenRU:
         for key in ['email', 'type']:
-          new_row['recentUsers.{0}'.format(key)] = recentUsers[i][key]
+          new_row[f'recentUsers.{key}'] = recentUsers[i][key]
       if i < lenDF:
         for key in ['type', 'createTime']:
-          new_row['deviceFiles.{0}'.format(key)] = deviceFiles[i][key]
+          new_row[f'deviceFiles.{key}'] = deviceFiles[i][key]
       if i < lenCSR:
         new_row['cpuStatusReports.reportTime'] = cpuStatusReports[i]['reportTime']
         for tempInfo in cpuStatusReports[i].get('cpuTemperatureInfo', []):
-          new_row['cpuStatusReports.cpuTemperatureInfo.{0}'.format(tempInfo['label'])] = tempInfo['temperature']
+          new_row[f'cpuStatusReports.cpuTemperatureInfo.{tempInfo["label"]}'] = tempInfo['temperature']
         new_row['cpuStatusReports.cpuUtilizationPercentageInfo'] = cpuStatusReports[i]['cpuUtilizationPercentageInfo']
       if i < lenDVR:
         j = 0
         for volume in diskVolumeReports[i]['volumeInfo']:
-          new_row['diskVolumeReports.volumeInfo.{0}.volumeId'.format(j)] = volume['volumeId']
-          new_row['diskVolumeReports.volumeInfo.{0}.storageFree'.format(j)] = volume['storageFree']
-          new_row['diskVolumeReports.volumeInfo.{0}.storageTotal'.format(j)] = volume['storageTotal']
+          new_row[f'diskVolumeReports.volumeInfo.{j}.volumeId'] = volume['volumeId']
+          new_row[f'diskVolumeReports.volumeInfo.{j}.storageFree'] = volume['storageFree']
+          new_row[f'diskVolumeReports.volumeInfo.{j}.storageTotal'] = volume['storageTotal']
           j += 1
       if i < lenSRFR:
         for key in ['reportTime', 'systemRamFreeInfo']:
-          new_row['systemRamFreeReports.{0}'.format(key)] = systemRamFreeReports[i][key]
+          new_row[f'systemRamFreeReports.{key}'] = systemRamFreeReports[i][key]
       csvPF.WriteRowTitles(new_row)
 
   def _callbackPrintCrOS(request_id, response, exception):
@@ -15418,7 +15405,7 @@ def doPrintCrOSDevices(entityList=None):
     for query in queries:
       if queryTimes and query is not None:
         for queryTimeName, queryTimeValue in iter(queryTimes.items()):
-          query = query.replace('#{0}#'.format(queryTimeName), queryTimeValue)
+          query = query.replace(f'#{queryTimeName}#', queryTimeValue)
       printGettingAllAccountEntities(Ent.CROS_DEVICE, query)
       page_message = getPageMessage()
       pageToken = None
@@ -15505,7 +15492,7 @@ def doPrintCrOSActivity(entityList=None):
     for activeTimeRange in _filterActiveTimeRanges(cros, selectActiveTimeRanges, listLimit, startDate, endDate):
       new_row = row.copy()
       for key in ['date', 'duration', 'minutes']:
-        new_row['activeTimeRanges.{0}'.format(key)] = activeTimeRange[key]
+        new_row[f'activeTimeRanges.{key}'] = activeTimeRange[key]
       csvPF.WriteRow(new_row)
     recentUsers = _filterRecentUsers(cros, selectRecentUsers, listLimit)
     if recentUsers:
@@ -15515,7 +15502,7 @@ def doPrintCrOSActivity(entityList=None):
     for deviceFile in _filterDeviceFiles(cros, selectDeviceFiles, listLimit, startTime, endTime):
       new_row = row.copy()
       for key in ['type', 'createTime']:
-        new_row['deviceFiles.{0}'.format(key)] = deviceFile[key]
+        new_row[f'deviceFiles.{key}'] = deviceFile[key]
       csvPF.WriteRow(new_row)
 
   def _callbackPrintCrOS(request_id, response, exception):
@@ -15596,7 +15583,7 @@ def doPrintCrOSActivity(entityList=None):
     for query in queries:
       if queryTimes and query is not None:
         for queryTimeName, queryTimeValue in iter(queryTimes.items()):
-          query = query.replace('#{0}#'.format(queryTimeName), queryTimeValue)
+          query = query.replace(f'#{queryTimeName}#', queryTimeValue)
       printGettingAllAccountEntities(Ent.CROS_DEVICE, query)
       page_message = getPageMessage()
       pageToken = None
@@ -16003,7 +15990,7 @@ def doPrintMobileDevices():
   for query in queries:
     if queryTimes and query is not None:
       for queryTimeName, queryTimeValue in iter(queryTimes.items()):
-        query = query.replace('#{0}#'.format(queryTimeName), queryTimeValue)
+        query = query.replace(f'#{queryTimeName}#', queryTimeValue)
     printGettingAllAccountEntities(Ent.MOBILE_DEVICE, query)
     page_message = getPageMessage()
     pageToken = None
@@ -16403,9 +16390,9 @@ def doUpdateGroups():
   def _showAction(group, role, delivery_settings, member, j, jcount):
     kvList = []
     if role is not None and role != 'None':
-      kvList.append('{0}: {1}'.format(Ent.Singular(Ent.ROLE), role))
+      kvList.append(f'{Ent.Singular(Ent.ROLE)}: {role}')
     if delivery_settings != DELIVERY_SETTINGS_UNDEFINED:
-      kvList.append('{0}: {1}'.format(Ent.Singular(Ent.DELIVERY), delivery_settings))
+      kvList.append(f'{Ent.Singular(Ent.DELIVERY)}: {delivery_settings}')
     entityActionPerformedMessage([Ent.GROUP, group, Ent.MEMBER, member], ', '.join(kvList), j, jcount)
 
   def _addMember(group, i, count, role, delivery_settings, member, j, jcount):
@@ -16474,7 +16461,7 @@ def doUpdateGroups():
         if addBatchParms['adjust']:
           addBatchParms['adjust'] = False
           addBatchParms['wait'] += 0.25
-          writeStderr('{0}{1}\n'.format(WARNING_PREFIX, Msg.INTER_BATCH_WAIT_INCREASED.format(addBatchParms['wait'])))
+          writeStderr(f'{WARNING_PREFIX}{Msg.INTER_BATCH_WAIT_INCREASED.format(addBatchParms["wait"])}\n')
         time.sleep(0.1)
         _addMember(ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]), ri[RI_ROLE], ri[RI_OPTION], ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
@@ -16537,8 +16524,8 @@ def doUpdateGroups():
     except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet, GAPI.conflict) as e:
       entityActionFailedWarning([Ent.GROUP, group, Ent.MEMBER, member], str(e), j, jcount)
 
-  _REMOVE_MEMBER_REASON_TO_MESSAGE_MAP = {GAPI.MEMBER_NOT_FOUND: '{0} {1}'.format(Msg.NOT_A, Ent.Singular(Ent.MEMBER)),
-                                          GAPI.CONDITION_NOT_MET: '{0} {1}'.format(Msg.NOT_A, Ent.Singular(Ent.MEMBER)),
+  _REMOVE_MEMBER_REASON_TO_MESSAGE_MAP = {GAPI.MEMBER_NOT_FOUND: f'{Msg.NOT_A} {Ent.Singular(Ent.MEMBER)}',
+                                          GAPI.CONDITION_NOT_MET: f'{Msg.NOT_A} {Ent.Singular(Ent.MEMBER)}',
                                           GAPI.INVALID_MEMBER: Msg.DOES_NOT_EXIST,
                                           GAPI.CONFLICT: Msg.CONFLICTING_REQUESTS}
 
@@ -16557,7 +16544,7 @@ def doUpdateGroups():
         if remBatchParms['adjust']:
           remBatchParms['adjust'] = False
           remBatchParms['wait'] += 0.25
-          writeStderr('{0}{1}\n'.format(WARNING_PREFIX, Msg.INTER_BATCH_WAIT_INCREASED.format(remBatchParms['wait'])))
+          writeStderr(f'{WARNING_PREFIX}{Msg.INTER_BATCH_WAIT_INCREASED.format(remBatchParms["wait"])}\n')
         time.sleep(0.1)
         _removeMember(ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]), ri[RI_ROLE], ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
@@ -16599,7 +16586,7 @@ def doUpdateGroups():
       dbatch.execute()
     Ind.Decrement()
 
-  _UPDATE_MEMBER_REASON_TO_MESSAGE_MAP = {GAPI.MEMBER_NOT_FOUND: '{0} {1}'.format(Msg.NOT_A, Ent.Singular(Ent.MEMBER)),
+  _UPDATE_MEMBER_REASON_TO_MESSAGE_MAP = {GAPI.MEMBER_NOT_FOUND: f'{Msg.NOT_A} {Ent.Singular(Ent.MEMBER)}',
                                           GAPI.INVALID_MEMBER: Msg.DOES_NOT_EXIST}
 
   def _getUpdateBody(role, delivery_settings):
@@ -17315,7 +17302,7 @@ def infoGroups(entityList):
         printEntitiesCount(entityType, members)
         Ind.Increment()
         for member in members:
-          printKeyValueList([member.get('role', Ent.ROLE_MEMBER).lower(), '{0} ({1})'.format(member.get('email', member['id']), member['type'].lower())])
+          printKeyValueList([member.get('role', Ent.ROLE_MEMBER).lower(), f'{member.get("email", member["id"])} ({member["type"].lower()})'])
         Ind.Decrement()
         printKeyValueList([Msg.TOTAL_ITEMS_IN_ENTITY.format(Ent.Plural(entityType), Ent.Singular(Ent.GROUP)), len(members)])
       Ind.Decrement()
@@ -17338,11 +17325,11 @@ def doInfoGroups():
 def groupFilters(kwargs):
   queryTitle = ''
   if kwargs.get('domain'):
-    queryTitle += '{0}={1}, '.format(Ent.Singular(Ent.DOMAIN), kwargs['domain'])
+    queryTitle += f'{Ent.Singular(Ent.DOMAIN)}={kwargs["domain"]}, '
   if kwargs.get('userKey'):
-    queryTitle += '{0}={1}, '.format(Ent.Singular(Ent.MEMBER), kwargs['userKey'])
+    queryTitle += f'{Ent.Singular(Ent.MEMBER)}={kwargs["userKey"]}, '
   if kwargs.get('query'):
-    queryTitle += 'query="{0}", '.format(kwargs['query'])
+    queryTitle += f'query="{kwargs["query"]}", '
   if queryTitle:
     return queryTitle[:-2]
   return queryTitle
@@ -17477,7 +17464,7 @@ def doPrintGroups():
       for member in groupMembers:
         member_email = member.get('email', member.get('id', None))
         if not member_email:
-          writeStderr(' Not sure what to do with: {0}\n'.format(member))
+          writeStderr(f' Not sure what to do with: {member}\n')
           continue
         if member['type'] in typesSet and _checkMemberIsSuspended(member, isSuspended) and checkMemberMatch(member, memberOptions):
           role = member.get('role', Ent.ROLE_MEMBER)
@@ -17718,7 +17705,7 @@ def doPrintGroups():
   updateFieldsForGroupMatchPatterns(matchPatterns, groupFieldsLists['cd'], csvPF)
   if groupFieldsLists['cd']:
     cdfields = ','.join(set(groupFieldsLists['cd']))
-    cdfieldsnp = 'nextPageToken,groups({0})'.format(cdfields)
+    cdfieldsnp = f'nextPageToken,groups({cdfields})'
   else:
     cdfields = cdfieldsnp = None
   if matchSettings:
@@ -18033,7 +18020,7 @@ def doPrintGroupMembers():
     try:
       info = callGAPI(people.people(), 'get',
                       throw_reasons=[GAPI.NOT_FOUND],
-                      resourceName='people/{0}'.format(memberId), personfields='names')
+                      resourceName=f'people/{memberId}', personfields='names')
       if 'names' in info:
         for sourceType in ['PROFILE', 'CONTACT']:
           for name in info['names']:
@@ -18049,7 +18036,7 @@ def doPrintGroupMembers():
   memberOptions = initMemberOptions()
   groupColumn = True
   kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
-  subTitle = '{0} {1}'.format(Msg.ALL, Ent.Plural(Ent.GROUP))
+  subTitle = f'{Msg.ALL} {Ent.Plural(Ent.GROUP)}'
   fieldsList = []
   csvPF = CSVPrintFile('group')
   entityList = showOwnedBy = None
@@ -18070,14 +18057,14 @@ def doPrintGroupMembers():
       pass
     elif myarg in {'group', 'groupns', 'groususp'}:
       entityList = [getEmailAddress()]
-      subTitle = '{0}={1}'.format(Ent.Singular(Ent.GROUP), entityList[0])
+      subTitle = f'{Ent.Singular(Ent.GROUP)}={entityList[0]}'
       if myarg == 'groupns':
         memberOptions[MEMBEROPTION_ISSUSPENDED] = False
       elif myarg == 'groupsusp':
         memberOptions[MEMBEROPTION_ISSUSPENDED] = True
     elif myarg == 'select':
       entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
-      subTitle = '{0} {1}'.format(Msg.SELECTED, Ent.Plural(Ent.GROUP))
+      subTitle = f'{Msg.SELECTED} {Ent.Plural(Ent.GROUP)}'
     elif myarg in SUSPENDED_ARGUMENTS:
       memberOptions[MEMBEROPTION_ISSUSPENDED] = _getIsSuspended(myarg)
     elif getGroupRoles(myarg, rolesSet):
@@ -18124,7 +18111,7 @@ def doPrintGroupMembers():
                                  throw_reasons=[GAPI.INVALID_MEMBER, GAPI.INVALID_INPUT,
                                                 GAPI.RESOURCE_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND,
                                                 GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
-                                 orderBy='email', fields='nextPageToken,groups({0})'.format(','.join(set(cdfieldsList))), **kwargs)
+                                 orderBy='email', fields=f'nextPageToken,groups({",".join(set(cdfieldsList))})', **kwargs)
     except (GAPI.invalidMember, GAPI.invalidInput):
       invalidMember(kwargs)
       entityList = []
@@ -18232,7 +18219,7 @@ def doPrintGroupMembers():
   csvPF.SetSortTitles([])
   if memberOptions[MEMBEROPTION_RECURSIVE]:
     csvPF.MoveTitlesToEnd(['level', 'subgroup'])
-  csvPF.writeCSVfile('Group Members ({0})'.format(subTitle))
+  csvPF.writeCSVfile(f'Group Members ({subTitle})')
 
 # gam show group-mebers
 #	[([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
@@ -18274,7 +18261,7 @@ def doShowGroupMembers():
     for member in sorted(membersList, key=lambda k: (_roleOrder(k.get('role', Ent.ROLE_MEMBER)), _typeOrder(k['type']), _statusOrder(k.get('status', '')))):
       if _checkMemberIsSuspended(member, memberOptions[MEMBEROPTION_ISSUSPENDED]):
         if member.get('role', Ent.ROLE_MEMBER) in rolesSet and member['type'] in typesSet and checkMemberMatch(member, memberOptions):
-          printKeyValueList(['{0}, {1}, {2}, {3}'.format(member.get('role', Ent.ROLE_MEMBER), member['type'], member.get('email', member['id']), member.get('status', ''))])
+          printKeyValueList([f'{member.get("role", Ent.ROLE_MEMBER)}, {member["type"]}, {member.get("email", member["id"])}, {member.get("status", "")}'])
         if not includeDerivedMembership and (member['type'] == Ent.TYPE_GROUP) and (maxdepth == -1 or depth < maxdepth):
           _showGroup(member['email'], depth+1)
     if depth == 0 or Ent.TYPE_GROUP in typesSet:
@@ -18334,7 +18321,7 @@ def doShowGroupMembers():
                                  throw_reasons=[GAPI.INVALID_MEMBER, GAPI.INVALID_INPUT,
                                                 GAPI.RESOURCE_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND,
                                                 GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
-                                 orderBy='email', fields='nextPageToken,groups({0})'.format(','.join(set(cdfieldsList))), **kwargs)
+                                 orderBy='email', fields=f'nextPageToken,groups({",".join(set(cdfieldsList))})', **kwargs)
     except (GAPI.invalidMember, GAPI.invalidInput):
       invalidMember(kwargs)
       return
@@ -18380,7 +18367,7 @@ def doPrintShowGroupTree():
       accessErrorExit(cd)
 
   def showGroupParents(groupEmail, i, count):
-    printKeyValueListWithCount(['{0}: {1}'.format(groupEmail, groupParents[groupEmail]['name'])], i, count)
+    printKeyValueListWithCount([f'{groupEmail}: {groupParents[groupEmail]["name"]}'], i, count)
     Ind.Increment()
     for parentEmail in groupParents[groupEmail]['parents']:
       showGroupParents(parentEmail, 0, 0)
@@ -18780,13 +18767,13 @@ def doPrintShowAlertFeedback():
 
 def ACLRuleDict(rule):
   if rule['scope']['type'] != 'default':
-    return {'Scope': '{0}:{1}'.format(rule['scope']['type'], rule['scope']['value']), 'Role': rule['role']}
-  return {'Scope': '{0}'.format(rule['scope']['type']), 'Role': rule['role']}
+    return {'Scope': f'{rule["scope"]["type"]}:{rule["scope"]["value"]}', 'Role': rule['role']}
+  return {'Scope': f'{rule["scope"]["type"]}', 'Role': rule['role']}
 
 def ACLRuleKeyValueList(rule):
   if rule['scope']['type'] != 'default':
-    return ['Scope', '{0}:{1}'.format(rule['scope']['type'], rule['scope']['value']), 'Role', rule['role']]
-  return ['Scope', '{0}'.format(rule['scope']['type']), 'Role', rule['role']]
+    return ['Scope', f'{rule["scope"]["type"]}:{rule["scope"]["value"]}', 'Role', rule['role']]
+  return ['Scope', f'{rule["scope"]["type"]}', 'Role', rule['role']]
 
 def formatACLRule(rule):
   return formatKeyValueList('(', ACLRuleKeyValueList(rule), ')')
@@ -18802,10 +18789,10 @@ def normalizeRuleId(ruleId):
     if ruleIdParts[0] == 'default':
       return ruleId
     if ruleIdParts[0] == 'domain':
-      return '{0}:{1}'.format('domain', GC.Values[GC.DOMAIN])
-    return '{0}:{1}'.format('user', normalizeEmailAddressOrUID(ruleIdParts[0], noUid=True))
+      return f'domain:{GC.Values[GC.DOMAIN]}'
+    return f'user:{normalizeEmailAddressOrUID(ruleIdParts[0], noUid=True)}'
   if ruleIdParts[0] in {'user', 'group'}:
-    return '{0}:{1}'.format(ruleIdParts[0], normalizeEmailAddressOrUID(ruleIdParts[1], noUid=True))
+    return f'{ruleIdParts[0]}:{normalizeEmailAddressOrUID(ruleIdParts[1], noUid=True)}'
   return ruleId
 
 def makeRoleRuleIdBody(role, ruleId):
@@ -18984,9 +18971,9 @@ def _showBuilding(building, delimiter=',', i=0, count=0):
   if 'buildingName' in building:
     printEntity([Ent.BUILDING, building['buildingName']], i, count)
     Ind.Increment()
-    printKeyValueList(['buildingId', 'id:{0}'.format(building['buildingId'])])
+    printKeyValueList(['buildingId', f'id:{building["buildingId"]}'])
   else:
-    printEntity([Ent.BUILDING_ID, 'id:{0}'.format(building['buildingId'])], i, count)
+    printEntity([Ent.BUILDING_ID, f'id:{building["buildingId"]}'], i, count)
     Ind.Increment()
   if 'description' in building:
     printKeyValueList(['description', building['description']])
@@ -18995,8 +18982,8 @@ def _showBuilding(building, delimiter=',', i=0, count=0):
   if 'coordinates' in building:
     printKeyValueList(['coordinates', None])
     Ind.Increment()
-    printKeyValueList(['latitude', '{0:4.7f}'.format(building['coordinates'].get('latitude', 0))])
-    printKeyValueList(['longitude', '{0:4.7f}'.format(building['coordinates'].get('longitude', 0))])
+    printKeyValueList(['latitude', f'{building["coordinates"].get("latitude", 0):4.7f}'])
+    printKeyValueList(['longitude', f'{building["coordinates"].get("longitude", 0):4.7f}'])
     Ind.Decrement()
   if 'address' in building:
     printKeyValueList(['address', None])
@@ -19081,14 +19068,14 @@ def doPrintShowBuildings():
   else:
     for building in buildings:
       if 'buildingId' in building:
-        building['buildingId'] = 'id:{0}'.format(building['buildingId'])
+        building['buildingId'] = f'id:{building["buildingId"]}'
       if 'floorNames' in building:
         building['floorNames'] = delimiter.join(building['floorNames'])
       if 'address' in building and 'addressLines' in building['address']:
         building['address']['addressLines'] = '\n'.join(building['address']['addressLines'])
       if 'coordinates' in building:
-        building['coordinates']['latitude'] = '{0:4.7f}'.format(building['coordinates'].get('latitude', 0))
-        building['coordinates']['longitude'] = '{0:4.7f}'.format(building['coordinates'].get('longitude', 0))
+        building['coordinates']['latitude'] = f'{building["coordinates"].get("latitude", 0):4.7f}'
+        building['coordinates']['longitude'] = f'{building["coordinates"].get("longitude", 0):4.7f}'
       csvPF.WriteRowTitles(flattenJSON(building))
   if csvPF:
     csvPF.writeCSVfile('Buildings')
@@ -19349,7 +19336,7 @@ def _showResource(cd, resource, i, count, FJQC, acls=None):
 
   if 'buildingId' in resource:
     resource['buildingName'] = _getBuildingNameById(cd, resource['buildingId'])
-    resource['buildingId'] = 'id:{0}'.format(resource['buildingId'])
+    resource['buildingId'] = f'id:{resource["buildingId"]}'
   if FJQC.formatJSON:
     if acls:
       resource['acls'] = [{'id': rule['id'], 'role': rule['role']} for rule in acls]
@@ -19537,7 +19524,7 @@ def doPrintShowResourceCalendars():
     else:
       if 'buildingId' in resource:
         resource['buildingName'] = _getBuildingNameById(cd, resource['buildingId'])
-        resource['buildingId'] = 'id:{0}'.format(resource['buildingId'])
+        resource['buildingId'] = f'id:{resource["buildingId"]}'
       if not FJQC.formatJSON:
         if 'featureInstances' in resource:
           resource['featureInstances'] = ', '.join([a_feature['feature']['name'] for a_feature in resource.pop('featureInstances')])
@@ -19634,7 +19621,7 @@ def getACLScope():
 def getCalendarACLScope():
   scopeType, scopeValue = getACLScope()
   if scopeType != 'default':
-    return {'list': ['{0}:{1}'.format(scopeType, scopeValue)], 'dict': None}
+    return {'list': [f'{scopeType}:{scopeValue}'], 'dict': None}
   return {'list': [scopeType], 'dict': None}
 
 def getCalendarSiteACLScopeEntity():
@@ -20264,7 +20251,7 @@ def _validateCalendarGetEventIDs(origUser, user, cal, calId, j, jcount, calendar
           calendarEventEntity['kwargs']['q'] = calendarEventEntity['queries'][0]
         events = callGAPIpages(cal.events(), 'list', 'items',
                                throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID],
-                               calendarId=calId, fields='nextPageToken,items({0})'.format(fields),
+                               calendarId=calId, fields=f'nextPageToken,items({fields})',
                                maxResults=GC.Values[GC.EVENT_MAX_RESULTS], **calendarEventEntity['kwargs'])
         for event in events:
           for match in calendarEventEntity['matches']:
@@ -20277,7 +20264,7 @@ def _validateCalendarGetEventIDs(origUser, user, cal, calId, j, jcount, calendar
           calendarEventEntity['kwargs']['q'] = query
           events = callGAPIpages(cal.events(), 'list', 'items',
                                  throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID],
-                                 calendarId=calId, fields='nextPageToken,items({0})'.format(fields),
+                                 calendarId=calId, fields=f'nextPageToken,items({fields})',
                                  maxResults=GC.Values[GC.EVENT_MAX_RESULTS], **calendarEventEntity['kwargs'])
           for event in events:
             for match in calendarEventEntity['matches']:
@@ -20525,7 +20512,7 @@ def _moveCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntity,
         callGAPI(cal.events(), 'move',
                  throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.CANNOT_CHANGE_ORGANIZER, GAPI.CANNOT_CHANGE_ORGANIZER_OF_INSTANCE],
                  calendarId=calId, eventId=eventId, destination=newCalId, sendUpdates=sendUpdates, fields='')
-        entityModifierNewValueActionPerformed([Ent.CALENDAR, calId, Ent.EVENT, eventId], Act.MODIFIER_TO, '{0}: {1}'.format(Ent.Singular(Ent.CALENDAR), newCalId), j, jcount)
+        entityModifierNewValueActionPerformed([Ent.CALENDAR, calId, Ent.EVENT, eventId], Act.MODIFIER_TO, f'{Ent.Singular(Ent.CALENDAR)}: {newCalId}', j, jcount)
       except GAPI.notFound as e:
         if not checkCalendarExists(cal, calId):
           entityUnknownWarning(Ent.CALENDAR, calId, i, count)
@@ -20720,7 +20707,7 @@ def doCalendarsDeleteEventsOld(cal, calIds):
                               False, {}, parameters)
 
 def _purgeCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntity, doIt, parameters, emptyTrash):
-  body = {'summary': 'GamPurgeCalendar-{0:05}'.format(random.randint(1, 99999))}
+  body = {'summary': f'GamPurgeCalendar-{random.randint(1, 99999):05}'}
   if user:
     entityValueList = [Ent.USER, user, Ent.CALENDAR, body['summary']]
   else:
@@ -20940,7 +20927,7 @@ def _getEventFields(fieldsList):
       field, subField = field.split('.', 1)
       if field in EVENT_SUBFIELDS_CHOICE_MAP:
         if subField in EVENT_SUBFIELDS_CHOICE_MAP[field]:
-          fieldsList.append('{0}.{1}'.format(EVENT_FIELDS_CHOICE_MAP[field], EVENT_SUBFIELDS_CHOICE_MAP[field][subField]))
+          fieldsList.append(f'{EVENT_FIELDS_CHOICE_MAP[field]}.{EVENT_SUBFIELDS_CHOICE_MAP[field][subField]}')
         else:
           invalidChoiceExit(subField, list(EVENT_SUBFIELDS_CHOICE_MAP[field]), True)
       else:
@@ -21396,7 +21383,7 @@ def doPrintShowUserSchemas():
     csvPF.writeCSVfile('User Schemas')
 
 def formatVaultNameId(vaultName, vaultId):
-  return '{0}({1})'.format(vaultName, vaultId)
+  return f'{vaultName}({vaultId})'
 
 def convertExportNameToID(v, nameOrId, matterId, matterNameId):
   cg = UID_PATTERN.match(nameOrId)
@@ -21620,11 +21607,11 @@ def doCreateVaultExport():
   if not matterId:
     missingArgumentExit(Cmd.OB_MATTER_ITEM)
   if 'corpus' not in body['query']:
-    missingArgumentExit('corpus {0}'.format(formatChoiceList(VAULT_CORPUS_ARGUMENT_MAP)))
+    missingArgumentExit(f'corpus {formatChoiceList(VAULT_CORPUS_ARGUMENT_MAP)}')
   if 'searchMethod' not in body['query']:
     missingArgumentExit(formatChoiceList(VAULT_SEARCH_METHODS_MAP))
   if 'name' not in body:
-    body['name'] = 'GAM {0} Export - {1}'.format(body['query']['corpus'], ISOformatTimeStamp(todaysTime()))
+    body['name'] = f'GAM {body["query"]["corpus"]} Export - {ISOformatTimeStamp(todaysTime())}'
   if body['query']['corpus'] != 'DRIVE':
     body['exportOptions'].pop('driveOptions', None)
     body['exportOptions'][VAULT_CORPUS_OPTIONS_MAP[body['query']['corpus']]] = {'exportFormat': export_format}
@@ -21752,7 +21739,7 @@ def doPrintShowVaultExports():
       unknownArgumentExit()
   fields = getItemFieldsFromFieldsList('exports', fieldsList)
   exportStatuses = set(exportStatusList)
-  exportQualifier = ' ({0})'.format(','.join(exportStatusList)) if exportStatusList else ''
+  exportQualifier = f' ({",".join(exportStatusList)})' if exportStatusList else ''
   if not matters:
     printGettingAllAccountEntities(Ent.VAULT_MATTER, qualifier=' (OPEN)')
     try:
@@ -21779,7 +21766,7 @@ def doPrintShowVaultExports():
     matterName = matter['name']
     matterNameId = formatVaultNameId(matterName, matterId)
     if csvPF:
-      printGettingAllEntityItemsForWhom(Ent.VAULT_EXPORT, '{0}: {1}'.format(Ent.Singular(Ent.VAULT_MATTER), matterNameId),
+      printGettingAllEntityItemsForWhom(Ent.VAULT_EXPORT, f'{Ent.Singular(Ent.VAULT_MATTER)}: {matterNameId}',
                                         j, jcount, qualifier=exportQualifier)
       page_message = getPageMessageForWhom()
     else:
@@ -21923,7 +21910,7 @@ def doDownloadVaultExport():
       while not done:
         status, done = downloader.next_chunk()
         if not zipToStdout:
-          entityActionPerformedMessage([Ent.CLOUD_STORAGE_FILE, s_object], '{0:>7.2%}'.format(status.progress()), j, jcount)
+          entityActionPerformedMessage([Ent.CLOUD_STORAGE_FILE, s_object], f'{status.progress():>7.2%}', j, jcount)
       if not zipToStdout:
         entityModifierNewValueActionPerformed([Ent.CLOUD_STORAGE_FILE, s_object], Act.MODIFIER_TO, filename, j, jcount)
       # Necessary to make sure file is flushed by both Python and OS
@@ -21953,7 +21940,7 @@ def _getHoldEmailAddressesOrgUnitName(hold, cd):
   if 'accounts' in hold:
     accountType = 'group' if hold['corpus'] == 'GROUPS' else 'user'
     for i in range(0, len(hold['accounts'])):
-      hold['accounts'][i]['email'] = convertUIDtoEmailAddress('uid:{0}'.format(hold['accounts'][i]['accountId']), cd, accountType)
+      hold['accounts'][i]['email'] = convertUIDtoEmailAddress(f'uid:{hold["accounts"][i]["accountId"]}', cd, accountType)
   if 'orgUnit' in hold:
     hold['orgUnit']['orgUnitPath'] = convertOrgUnitIDtoPath(hold['orgUnit']['orgUnitId'], cd)
 
@@ -21993,7 +21980,7 @@ def _setHoldQuery(body, queryParameters):
         body['query'][queryType] = json.loads(queryParameters['query'])
       except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
         Cmd.SetLocation(queryParameters['queryLocation'])
-        usageErrorExit('{0}: {1}'.format(str(e), queryParameters['query']))
+        usageErrorExit(f'{str(e)}: {queryParameters["query"]}')
     elif queryParameters.get('includeSharedDriveFiles'):
       body['query'][queryType]['includeSharedDriveFiles'] = queryParameters['includeSharedDriveFiles']
   elif body['corpus'] in {'GROUPS', 'MAIL'}:
@@ -22045,9 +22032,9 @@ def doCreateVaultHold():
   if matterId is None:
     missingArgumentExit(Cmd.OB_MATTER_ITEM)
   if not body.get('corpus'):
-    missingArgumentExit('corpus {0}'.format('|'.join(VAULT_CORPUS_ARGUMENT_MAP)))
+    missingArgumentExit(f'corpus {"|".join(VAULT_CORPUS_ARGUMENT_MAP)}')
   if 'name' not in body:
-    body['name'] = 'GAM {0} Hold - {1}'.format(body['corpus'], ISOformatTimeStamp(todaysTime()))
+    body['name'] = f'GAM {body["corpus"]} Hold - {ISOformatTimeStamp(todaysTime())}'
   _setHoldQuery(body, queryParameters)
   if accounts:
     body['accounts'] = []
@@ -22309,7 +22296,7 @@ def doPrintShowVaultHolds():
     matterName = matter['name']
     matterNameId = formatVaultNameId(matterName, matterId)
     if csvPF:
-      printGettingAllEntityItemsForWhom(Ent.VAULT_HOLD, '{0}: {1}'.format(Ent.Singular(Ent.VAULT_MATTER), matterNameId), j, jcount)
+      printGettingAllEntityItemsForWhom(Ent.VAULT_HOLD, f'{Ent.Singular(Ent.VAULT_MATTER)}: {matterNameId}', j, jcount)
       page_message = getPageMessageForWhom()
     else:
       page_message = None
@@ -22355,7 +22342,7 @@ def validateCollaborators(cd):
 def _showVaultMatter(matter, cd):
   if 'matterPermissions' in matter:
     for i in range(0, len(matter['matterPermissions'])):
-      matter['matterPermissions'][i]['email'] = convertUIDtoEmailAddress('uid:{0}'.format(matter['matterPermissions'][i]['accountId']), cd)
+      matter['matterPermissions'][i]['email'] = convertUIDtoEmailAddress(f'uid:{matter["matterPermissions"][i]["accountId"]}', cd)
   Ind.Increment()
   showJSON(None, matter)
   Ind.Decrement()
@@ -22389,7 +22376,7 @@ def doCreateVaultMatter():
     else:
       unknownArgumentExit()
   if 'name' not in body:
-    body['name'] = 'GAM Matter - {0}'.format(ISOformatTimeStamp(todaysTime()))
+    body['name'] = f'GAM Matter - {ISOformatTimeStamp(todaysTime())}'
   try:
     matter = callGAPI(v.matters(), 'create',
                       throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.FORBIDDEN],
@@ -22619,7 +22606,7 @@ def doPrintShowVaultMatters():
       pass
     else:
       unknownArgumentExit()
-  fields = 'nextPageToken,matters({0})'.format(getFieldsFromFieldsList(fieldsList)) if fieldsList else None
+  fields = f'nextPageToken,matters({getFieldsFromFieldsList(fieldsList)})' if fieldsList else None
   # If no states are set, there is no filtering; if 1 state is set, the API can filter; else GAM filters
   matterStates = set()
   stateParm = None
@@ -22628,7 +22615,7 @@ def doPrintShowVaultMatters():
       stateParm = matterStatesList[0]
     else:
       matterStates = set(matterStatesList)
-    qualifier = ' ({0})'.format(','.join(matterStatesList))
+    qualifier = f' ({",".join(matterStatesList)})'
   else:
     qualifier = ''
   printGettingAllAccountEntities(Ent.VAULT_MATTER, qualifier=qualifier)
@@ -22759,7 +22746,7 @@ class SitesManager():
     GetActivityField('Summary', ['title', 'text'])
     GetActivityField('Updated', ['updated', 'text'])
     for author in activity_entry.author:
-      AppendItemToFieldsList('Authors', '{0}/{1}'.format(GetActivityFieldData(author, ['name', 'text'], 'Unknown Name'), GetActivityFieldData(author, ['email', 'text'], 'Unknown Email')))
+      AppendItemToFieldsList('Authors', f'{GetActivityFieldData(author, ["name", "text"], "Unknown Name")}/{GetActivityFieldData(author, ["email", "text"], "Unknown Email")}')
     fields['Operation'] = activity_entry.Kind()
     return fields
 
@@ -22979,7 +22966,7 @@ SITE_FIELD_PRINT_ORDER = [
 
 def _showSite(sitesManager, sitesObject, domain, site, roles, j, jcount):
   fields = sitesManager.SiteToFields(site)
-  domainSite = '{0}/{1}'.format(domain, fields[SITE_SITE])
+  domainSite = f'{domain}/{fields[SITE_SITE]}'
   printKeyValueListWithCount([SITE_SITE, domainSite], j, jcount)
   Ind.Increment()
   for field in SITE_FIELD_PRINT_ORDER:
@@ -23097,7 +23084,7 @@ def printShowSites(entityList, entityType):
       if fields[SITE_SITE] in sitesSet:
         continue
       sitesSet.add(fields[SITE_SITE])
-      domainSite = '{0}/{1}'.format(domain, fields[SITE_SITE])
+      domainSite = f'{domain}/{fields[SITE_SITE]}'
       siteRow = {Ent.Singular(entityType): entity, SITE_SITE: domainSite}
       for field in fields:
         if field != SITE_SITE:
@@ -23198,7 +23185,7 @@ def printShowSites(entityList, entityType):
           url_params['include-all-sites'] = includeAllSites
         else:
           url_params.pop('include-all-sites', None)
-        printGettingAllEntityItemsForWhom(Ent.SITE, '{0}: {1}, {2}: {3}'.format(Ent.Singular(Ent.USER), user, Ent.Singular(Ent.DOMAIN), domain))
+        printGettingAllEntityItemsForWhom(Ent.SITE, f'{Ent.Singular(Ent.USER)}: {user}, {Ent.Singular(Ent.DOMAIN)}: {domain}')
         sites = _getSites(domain, i, count)
         if not csvPF:
           _showSites(domain, j, jcount, domain, sites)
@@ -23214,7 +23201,7 @@ def printShowSites(entityList, entityType):
         url_params['include-all-sites'] = includeAllSites
       else:
         url_params.pop('include-all-sites', None)
-      printGettingAllEntityItemsForWhom(Ent.SITE, '{0}: {1}'.format(Ent.Singular(Ent.DOMAIN), domain))
+      printGettingAllEntityItemsForWhom(Ent.SITE, f'{Ent.Singular(Ent.DOMAIN)}: {domain}')
       sites = _getSites(domain, i, count)
       if not csvPF:
         _showSites(domain, i, count, domain, sites)
@@ -23300,7 +23287,7 @@ def _processSiteACLs(users, entityType):
               if not fields.get('inviteLink'):
                 entityActionPerformed([Ent.SITE, domainSite, Ent.SITE_ACL, formatACLRule(fields)], k, kcount)
               else:
-                entityActionPerformed([Ent.SITE, domainSite, Ent.SITE_ACL, '{0} (Link: {1})'.format(formatACLRule(fields), fields['inviteLink'])], k, kcount)
+                entityActionPerformed([Ent.SITE, domainSite, Ent.SITE_ACL, f'{formatACLRule(fields)} (Link: {fields["inviteLink"]})'], k, kcount)
             elif action == Act.UPDATE:
               acl = callGData(sitesObject, 'GetAclEntry',
                               throw_errors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.FORBIDDEN],
@@ -24118,7 +24105,7 @@ def updateUsers(entityList):
         userKey = result['id']
         userPrimary = result['primaryEmail']
         userName, userDomain = splitEmailAddress(userPrimary)
-        body['primaryEmail'] = 'vfe.{0}.{1:05}@{2}'.format(userName, random.randint(1, 99999), userDomain)
+        body['primaryEmail'] = f'vfe.{userName}.{random.randint(1, 99999):05}@{userDomain}'
         body['emails'] = [{'type': 'custom',
                            'customType': 'former_employee',
                            'primary': False, 'address': userPrimary}]
@@ -25065,7 +25052,7 @@ def doPrintUsers(entityList=None):
           query = ''
         else:
           query += ' '
-        query += 'isSuspended={0}'.format(isSuspended)
+        query += f'isSuspended={isSuspended}'
       printGettingAllAccountEntities(Ent.USER, query)
       page_message = getPageMessage(showFirstLastItems=True)
       pageToken = None
@@ -25088,7 +25075,7 @@ def doPrintUsers(entityList=None):
           elif customFieldMask and not query:
             entityActionFailedWarning([Ent.USER, None], invalidUserSchema(customFieldMask))
           elif query and customFieldMask:
-            entityActionFailedWarning([Ent.USER, None], '{0} or {1}'.format(invalidQuery(query), invalidUserSchema(customFieldMask)))
+            entityActionFailedWarning([Ent.USER, None], f'{invalidQuery(query)} or {invalidUserSchema(customFieldMask)}')
           else:
             entityActionFailedWarning([Ent.USER, None], str(e))
           return
@@ -25142,7 +25129,7 @@ def doPrintUsers(entityList=None):
     if sortHeaders:
       csvPF.SetSortTitles(['primaryEmail'])
     if sortRows and orderBy:
-      orderBy = 'primaryEmail' if orderBy == 'email' else 'name.{0}'.format(orderBy)
+      orderBy = 'primaryEmail' if orderBy == 'email' else f'name.{orderBy}'
       csvPF.SortRows(orderBy, reverse=sortOrder == 'DESCENDING')
     if getGroupFeed:
       csvPF.AddTitles(['GroupsCount', 'Groups'])
@@ -25212,21 +25199,21 @@ def doCreateSiteVerification():
   cname_list = cname_token.split(' ')
   cname_subdomain = cname_list[0]
   cname_value = cname_list[1]
-  printKeyValueList(['CNAME Record Name ', '{0}.{1}'.format(cname_subdomain, a_domain)])
+  printKeyValueList(['CNAME Record Name ', f'{cname_subdomain}.{a_domain}'])
   printKeyValueList(['CNAME Record Value', cname_value])
   printBlankLine()
   webserver_file_record = callGAPI(verif.webResource(), 'getToken',
-                                   body={'site': {'type': 'SITE', 'identifier': 'http://{0}/'.format(a_domain)},
+                                   body={'site': {'type': 'SITE', 'identifier': f'http://{a_domain}/'},
                                          'verificationMethod': 'FILE'})
   webserver_file_token = webserver_file_record['token']
   printKeyValueList(['Saving web server verification file to', webserver_file_token])
-  writeFile(webserver_file_token, 'google-site-verification: {0}'.format(webserver_file_token), continueOnError=True)
-  printKeyValueList(['Verification File URL', 'http://{0}/{1}'.format(a_domain, webserver_file_token)])
+  writeFile(webserver_file_token, f'google-site-verification: {webserver_file_token}', continueOnError=True)
+  printKeyValueList(['Verification File URL', f'http://{a_domain}/{webserver_file_token}'])
   printBlankLine()
   webserver_meta_record = callGAPI(verif.webResource(), 'getToken',
-                                   body={'site': {'type': 'SITE', 'identifier': 'http://{0}/'.format(a_domain)},
+                                   body={'site': {'type': 'SITE', 'identifier': f'http://{a_domain}/'},
                                          'verificationMethod': 'META'})
-  printKeyValueList(['Meta URL', '//{0}/'.format(a_domain)])
+  printKeyValueList(['Meta URL', f'//{a_domain}/'])
   printKeyValueList(['Meta HTML Header Data', webserver_meta_record['token']])
   printBlankLine()
 
@@ -25264,13 +25251,13 @@ def doUpdateSiteVerification():
     if verify_data['method'] in {'DNS_CNAME', 'DNS_TXT'}:
       if verify_data['method'] == 'DNS_CNAME':
         cname_subdomain, cname_target = verify_data['token'].split(' ')
-        query_params = {'name': '{0}.{1}'.format(cname_subdomain, a_domain), 'type': 'cname'}
+        query_params = {'name': f'{cname_subdomain}.{a_domain}', 'type': 'cname'}
         printKeyValueList(['Expected Record',
-                           '{0} IN CNAME {1}'.format(query_params['name'], cname_target)])
+                           f'{query_params["name"]} IN CNAME {cname_target}'])
       else:
-        query_params = {'name': '{0}'.format(a_domain), 'type': 'txt'}
+        query_params = {'name': f'{a_domain}', 'type': 'txt'}
         printKeyValueList(['Expected Record',
-                           '{0} IN TXT {1}'.format(query_params['name'], verify_data['token'])])
+                           f'{query_params["name"]} IN TXT {verify_data["token"]}'])
       _, content = getHttpObj().request('https://dns.google/resolve?' + urlencode(query_params), 'GET')
 ###
       result = json.loads(content.decode(UTF8))
@@ -25278,7 +25265,7 @@ def doUpdateSiteVerification():
       if status == 0 and 'Answer' in result:
         if verify_data['method'] == 'DNS_CNAME':
           printKeyValueList(['DNS      Record',
-                             '{0} IN CNAME {1}'.format(result['Answer'][0]['name'].rstrip('.'), result['Answer'][0]['data'])])
+                             f'{result["Answer"][0]["name"].rstrip(".")} IN CNAME {result["Answer"][0]["data"]}'])
         else:
           found = False
           for answer in result['Answer']:
@@ -25286,7 +25273,7 @@ def doUpdateSiteVerification():
             if answer['data'].startswith('google-site-verification'):
               found = True
               printKeyValueList(['DNS      Record',
-                                 '{0} IN TXT {1}'.format(answer['name'].rstrip('.'), answer['data'])])
+                                 f'{answer["name"].rstrip(".")} IN TXT {answer["data"]}'])
           if not found:
             printKeyValueList(['DNS      Record', 'No matching record found'])
       elif status == 0:
@@ -25303,7 +25290,7 @@ def doUpdateSiteVerification():
     showDNS = True
   else:
     verify_type = 'SITE'
-    identifier = 'http://{0}/'.format(a_domain)
+    identifier = f'http://{a_domain}/'
     showDNS = False
   checkForExtraneousArguments()
   body = {'site': {'type': verify_type, 'identifier': identifier},
@@ -25385,7 +25372,7 @@ def _getCourseStates(item, states):
 def _gettingCourseAnnouncementQuery(courseAnnouncementStates):
   query = ''
   if courseAnnouncementStates:
-    query += '{0}: {1}, '.format(Ent.Choose(Ent.COURSE_ANNOUNCEMENT_STATE, len(courseAnnouncementStates)), ','.join(courseAnnouncementStates))
+    query += f'{Ent.Choose(Ent.COURSE_ANNOUNCEMENT_STATE, len(courseAnnouncementStates))}: {",".join(courseAnnouncementStates)}, '
   if query:
     query = query[:-2]
   return query
@@ -25576,7 +25563,7 @@ class CourseAttributes():
 
   def CopyAttributes(self, newCourseId, ownerId, i=0, count=0):
     if self.announcementStates or self.workStates or self.copyTopics:
-      _, tcroom = buildGAPIServiceObject(API.CLASSROOM, 'uid:{0}'.format(ownerId))
+      _, tcroom = buildGAPIServiceObject(API.CLASSROOM, f'uid:{ownerId}')
       if tcroom is None:
         return
     if self.members in {'all', 'students'}:
@@ -25902,7 +25889,7 @@ def _setCourseFields(courseShowProperties, pagesMode):
     courseShowProperties['fields'].append('ownerId')
   if not pagesMode:
     return ','.join(set(courseShowProperties['fields']))
-  return 'nextPageToken,courses({0})'.format(','.join(set(courseShowProperties['fields'])))
+  return f'nextPageToken,courses({",".join(set(courseShowProperties["fields"]))})'
 
 def _convertCourseUserIdToEmail(croom, userId, emails, entityValueList, i, count):
   userEmail = emails.get(userId)
@@ -26038,7 +26025,7 @@ def _doInfoCourses(entityList):
               Ind.Increment()
               for teacher in teachers:
                 if 'emailAddress' in teacher['profile']:
-                  printKeyValueList(['{0} - {1}'.format(teacher['profile']['name']['fullName'], teacher['profile']['emailAddress'])])
+                  printKeyValueList([f'{teacher["profile"]["name"]["fullName"]} - {teacher["profile"]["emailAddress"]}'])
                 else:
                   printKeyValueList([teacher['profile']['name']['fullName']])
               Ind.Decrement()
@@ -26049,7 +26036,7 @@ def _doInfoCourses(entityList):
               Ind.Increment()
               for student in students:
                 if 'emailAddress' in student['profile']:
-                  printKeyValueList(['{0} - {1}'.format(student['profile']['name']['fullName'], student['profile']['emailAddress'])])
+                  printKeyValueList([f'{student["profile"]["name"]["fullName"]} - {student["profile"]["emailAddress"]}'])
                 else:
                   printKeyValueList([student['profile']['name']['fullName']])
               Ind.Decrement()
@@ -26126,11 +26113,11 @@ def _courseItemPassesFilter(item, courseItemFilter):
 def _gettingCoursesQuery(courseSelectionParameters):
   query = ''
   if courseSelectionParameters['teacherId']:
-    query += '{0}: {1}, '.format(Ent.Singular(Ent.TEACHER), courseSelectionParameters['teacherId'])
+    query += f'{Ent.Singular(Ent.TEACHER)}: {courseSelectionParameters["teacherId"]}, '
   if courseSelectionParameters['studentId']:
-    query += '{0}: {1}, '.format(Ent.Singular(Ent.STUDENT), courseSelectionParameters['studentId'])
+    query += f'{Ent.Singular(Ent.STUDENT)}: {courseSelectionParameters["studentId"]}, '
   if courseSelectionParameters['courseStates']:
-    query += '{0}: {1}, '.format(Ent.Choose(Ent.COURSE_STATE, len(courseSelectionParameters['courseStates'])), ','.join(courseSelectionParameters['courseStates']))
+    query += f'{Ent.Choose(Ent.COURSE_STATE, len(courseSelectionParameters["courseStates"]))}: {",".join(courseSelectionParameters["courseStates"])}, '
   if query:
     query = query[:-2]
   return query
@@ -26187,7 +26174,7 @@ def doPrintCourses():
     j = 0
     for member in participants:
       memberTitles = []
-      prefix = '{0}.{1}.'.format(role, j)
+      prefix = f'{role}.{j}.'
       profile = member['profile']
       emailAddress = profile.get('emailAddress')
       if emailAddress:
@@ -26423,7 +26410,7 @@ def doPrintCourseAnnouncements():
       jcount = len(courseAnnouncementIds)
       if jcount == 0:
         continue
-      fields = '{0}'.format(','.join(set(fieldsList))) if fieldsList else None
+      fields = f'{",".join(set(fieldsList))}' if fieldsList else None
       j = 0
       for courseAnnouncementId in courseAnnouncementIds:
         j += 1
@@ -26508,7 +26495,7 @@ def doPrintCourseTopics():
       jcount = len(courseTopicIds)
       if jcount == 0:
         continue
-      fields = '{0}'.format(','.join(set(fieldsList)))
+      fields = f'{",".join(set(fieldsList))}'
       j = 0
       for courseTopicId in courseTopicIds:
         j += 1
@@ -26569,7 +26556,7 @@ def _getCourseWorkSelectionParameters(myarg, courseWorkSelectionParameters):
 def _gettingCourseWorkQuery(courseWorkStates):
   query = ''
   if courseWorkStates:
-    query += '{0}: {1}, '.format(Ent.Choose(Ent.COURSE_WORK_STATE, len(courseWorkStates)), ','.join(courseWorkStates))
+    query += f'{Ent.Choose(Ent.COURSE_WORK_STATE, len(courseWorkStates))}: {",".join(courseWorkStates)}, '
   if query:
     query = query[:-2]
   return query
@@ -26657,7 +26644,7 @@ def doPrintCourseWork():
       jcount = len(courseWorkIds)
       if jcount == 0:
         continue
-      fields = '{0}'.format(','.join(set(fieldsList))) if fieldsList else None
+      fields = f'{",".join(set(fieldsList))}' if fieldsList else None
       j = 0
       for courseWorkId in courseWorkIds:
         j += 1
@@ -26699,11 +26686,11 @@ COURSE_SUBISSION_INDEXED_TITLES = ['submissionHistory']
 def _gettingCourseSubmissionQuery(courseSubmissionStates, late, userId):
   query = ''
   if courseSubmissionStates:
-    query += '{0}: {1}, '.format(Ent.Choose(Ent.COURSE_SUBMISSION_STATE, len(courseSubmissionStates)), ','.join(courseSubmissionStates))
+    query += f'{Ent.Choose(Ent.COURSE_SUBMISSION_STATE, len(courseSubmissionStates))}: {",".join(courseSubmissionStates)}, '
   if late:
-    query += '{0}, '.format(late)
+    query += f'{late}, '
   if userId:
-    query += '{0}: {1}, '.format(Ent.Singular(Ent.USER), userId)
+    query += f'{Ent.Singular(Ent.USER)}: {userId}, '
   if query:
     query = query[:-2]
   return query
@@ -26840,7 +26827,7 @@ def doPrintCourseSubmissions():
         kcount = len(courseSubmissionIds)
         if kcount == 0:
           continue
-        fields = '{0}'.format(','.join(set(fieldsList))) if fieldsList else None
+        fields = f'{",".join(set(fieldsList))}' if fieldsList else None
         k = 0
         for courseSubmissionId in courseSubmissionIds:
           k += 1
@@ -26979,7 +26966,7 @@ def _batchRemoveParticipantsFromCourse(croom, courseId, i, count, removeParticip
     else:
       http_status, reason, message = checkGAPIError(exception)
       if reason == GAPI.NOT_FOUND and ri[RI_ROLE] != Ent.COURSE_ALIAS:
-        errMsg = '{0} {1}'.format(Msg.NOT_A, Ent.Singular(ri[RI_ROLE]))
+        errMsg = f'{Msg.NOT_A} {Ent.Singular(ri[RI_ROLE])}'
       else:
         errMsg = getHTTPError(_REMOVE_PART_REASON_TO_MESSAGE_MAP, http_status, reason, message)
       entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
@@ -27149,7 +27136,7 @@ def doCourseSyncParticipants(courseIdList, getEntityListArg):
 def studentUnknownWarning(studentId, errMsg, i, count):
   setSysExitRC(SERVICE_NOT_APPLICABLE_RC)
   writeStderr(formatKeyValueList(Ind.Spaces(),
-                                 [Ent.Singular(Ent.STUDENT), studentId, '{0}: {1}'.format(Msg.SERVICE_NOT_APPLICABLE, errMsg)],
+                                 [Ent.Singular(Ent.STUDENT), studentId, f'{Msg.SERVICE_NOT_APPLICABLE}: {errMsg}'],
                                  currentCountNL(i, count)))
 
 def getGuardianEntity():
@@ -27684,7 +27671,7 @@ def _getCoursesOwnerInfo(croom, courseIds, coursesInfo, useAdminAccess):
                         throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                         id=courseId, fields='name,ownerId')
         if not useAdminAccess:
-          _, ocroom = buildGAPIServiceObject(API.CLASSROOM, 'uid:{0}'.format(info['ownerId']))
+          _, ocroom = buildGAPIServiceObject(API.CLASSROOM, f'uid:{info["ownerId"]}')
         else:
           ocroom = croom
         if ocroom is not None:
@@ -27814,7 +27801,7 @@ def createClassroomInvitations(users):
       courseInfo = coursesInfo[courseId]
       if not courseInfo:
         continue
-      courseNameId = '{0} ({1})'.format(courseInfo['name'], courseId)
+      courseNameId = f'{courseInfo["name"]} ({courseId})'
       try:
         invitation = callGAPI(courseInfo['croom'].invitations(), 'create',
                               throw_reasons=[GAPI.NOT_FOUND, GAPI.FAILED_PRECONDITION, GAPI.ALREADY_EXISTS, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
@@ -27954,7 +27941,7 @@ def printShowClassroomInvitations(users):
             j += 1
             courseId = invitation['courseId']
             courseName = _getCourseName(croom, courseNames, courseId)
-            printKeyValueListWithCount([Ent.Singular(Ent.COURSE), '{0} ({1})'.format(courseName, courseId)], j, jcount)
+            printKeyValueListWithCount([Ent.Singular(Ent.COURSE), f'{courseName} ({courseId})'], j, jcount)
             Ind.Increment()
             printKeyValueList(['id', invitation['id']])
             printKeyValueList(['role', invitation['role']])
@@ -28015,7 +28002,7 @@ def doPrintShowClassroomInvitations():
     if status > 0:
       jcount = len(invitations)
       if not FJQC.formatJSON:
-        entityPerformActionNumItems([Ent.COURSE, '{0} ({1})'.format(courseName, courseId)], jcount, entityType, i, count)
+        entityPerformActionNumItems([Ent.COURSE, f'{courseName} ({courseId})'], jcount, entityType, i, count)
       if not csvPF:
         if not FJQC.formatJSON:
           Ind.Increment()
@@ -28093,7 +28080,7 @@ def encode_multipart(fields, filepath, encoding):
     return s.replace('"', '\\"')
 
   def getFormDataLine(name, value, boundary):
-    return '--{0}'.format(boundary), 'Content-Disposition: form-data; name="{0}"'.format(escape_quote(name)), '', str(value)
+    return f'--{boundary}', f'Content-Disposition: form-data; name="{escape_quote(name)}"', '', str(value)
 
   boundary = ''.join(random.choice(ALPHANUMERIC_CHARS) for _ in range(30))
   lines = []
@@ -28109,17 +28096,17 @@ def encode_multipart(fields, filepath, encoding):
     if mimetype is None:
       mimetype = 'application/octet-stream'
     lines.extend((
-      '--{0}'.format(boundary),
-      'Content-Disposition: form-data; name="content"; filename="{0}"'.format(escape_quote(filename)),
-      'Content-Type: {0}'.format(mimetype),
+      f'--{boundary}',
+      f'Content-Disposition: form-data; name="content"; filename="{escape_quote(filename)}"',
+      f'Content-Type: {mimetype}',
       '',
       '',
       ))
-    body = '\r\n'.join(lines)+readFile(filepath, mode='r', encoding=encoding)+'\r\n--{0}--\r\n'.format(boundary)
+    body = '\r\n'.join(lines)+readFile(filepath, mode='r', encoding=encoding)+f'\r\n--{boundary}--\r\n'
   else:
-    body = '\r\n'.join(lines)+'\r\n--{0}--\r\n'.format(boundary)
+    body = '\r\n'.join(lines)+f'\r\n--{boundary}--\r\n'
   headers = {
-    'Content-Type': 'multipart/form-data; boundary={0}'.format(boundary),
+    'Content-Type': f'multipart/form-data; boundary={boundary}',
     'Content-Length': str(len(body)),
   }
   return (body, headers)
@@ -28405,9 +28392,9 @@ def normalizePrinterScopeList(rawScopeList):
     scope = scope.lower()
     if scope != 'public':
       if scope == 'domain':
-        scope = '/hd/domain/{0}'.format(GC.Values[GC.DOMAIN])
+        scope = f'/hd/domain/{GC.Values[GC.DOMAIN]}'
       elif scope.startswith('domain:'):
-        scope = '/hd/domain/{0}'.format(scope[7:])
+        scope = f'/hd/domain/{scope[7:]}'
       elif scope.startswith('user:'):
         scope = normalizeEmailAddressOrUID(scope[5:], noUid=True)
       elif scope.startswith('group:'):
@@ -28658,7 +28645,7 @@ def printerPrintShowACLs(users, printerIdList):
         except KeyError:
           kcount = 0
         if not csvPF:
-          entityPerformActionNumItems([Ent.PRINTER, '{0} ({1})'.format(result['printers'][0]['name'], printerId)], kcount, Ent.PRINTER_ACL, j, jcount)
+          entityPerformActionNumItems([Ent.PRINTER, f'{result["printers"][0]["name"]} ({printerId})'], kcount, Ent.PRINTER_ACL, j, jcount)
         if kcount == 0:
           setSysExitRC(NO_ENTITIES_FOUND)
           continue
@@ -28946,7 +28933,7 @@ def doPrintJobFetch(users, printerIdList):
                 break
               continue
           jobId = job['id']
-          fileName = os.path.join(targetFolder, '{0}-{1}'.format(cleanFilename(job['title']), jobId))
+          fileName = os.path.join(targetFolder, f'{cleanFilename(job["title"])}-{jobId}')
           _, content = cp._http.request(job['fileUrl'], method='GET')
           if writeFile(fileName, content, mode='wb', continueOnError=True):
   #          ticket = callGCP(cp.jobs(), 'getticket',
@@ -29015,7 +29002,7 @@ def printPrintJobs(users):
                          owner=parameters['owner'], offset=offset, limit=limit)
         newJobs = result['range']['jobsCount']
         if GC.Values[GC.DEBUG_LEVEL] > 0:
-          sys.stderr.write('Debug: jobCount: {0}, jobLimit: {1}, jobsCount: {2}, jobsTotal: {3}\n'.format(jobCount, parameters['jobLimit'], newJobs, int(result['range']['jobsTotal'])))
+          sys.stderr.write(f'Debug: jobCount: {jobCount}, jobLimit: {parameters["jobLimit"]}, jobsCount: {newJobs}, jobsTotal: {int(result["range"]["jobsTotal"])}\n')
         if newJobs == 0:
           break
         jobCount += newJobs
@@ -29146,7 +29133,7 @@ def _showBackupCodes(user, codes, i, count):
   j = 0
   for code in codes:
     j += 1
-    printKeyValueList(['{0:2}'.format(j), code.get('verificationCode')])
+    printKeyValueList([f'{j:2}', code.get('verificationCode')])
   Ind.Decrement()
 
 # gam <UserTypeEntity> update backupcodes|verificationcodes
@@ -29911,7 +29898,7 @@ def transferCalendars(users):
         updateBody[field] = _substituteForUser(updateBody[field], user, userName)
         updateBody[field] = updateBody[field].replace('#domain#', domain)
         updateBody[field] = updateBody[field].replace('#timestamp#', timestamp)
-    sourceRuleId = '{0}:{1}'.format('user', user)
+    sourceRuleId = f'user:{user}'
     Ind.Increment()
     j = 0
     for calId in calIds:
@@ -30390,27 +30377,27 @@ def _getCorpora(kwargs):
   return corpora == 'onlyteamdrives'
 
 QUERY_SHORTCUTS_MAP = {
-  'allfiles': "mimeType != '{0}'".format(MIMETYPE_GA_FOLDER),
-  'allfolders': "mimeType = '{0}'".format(MIMETYPE_GA_FOLDER),
-  'allgooglefiles': "mimeType != '{0}' and mimeType contains 'vnd.google'".format(MIMETYPE_GA_FOLDER),
+  'allfiles': f"mimeType != '{MIMETYPE_GA_FOLDER}'",
+  'allfolders': f"mimeType = '{MIMETYPE_GA_FOLDER}'",
+  'allgooglefiles': f"mimeType != '{MIMETYPE_GA_FOLDER}' and mimeType contains 'vnd.google'",
   'allnongooglefiles': "not mimeType contains 'vnd.google'",
   'allitems': 'allitems',
-  'myfiles': ME_IN_OWNERS_AND+"mimeType != '{0}'".format(MIMETYPE_GA_FOLDER),
-  'myfolders': ME_IN_OWNERS_AND+"mimeType = '{0}'".format(MIMETYPE_GA_FOLDER),
-  'mygooglefiles': ME_IN_OWNERS_AND+"mimeType != '{0}' and mimeType contains 'vnd.google'".format(MIMETYPE_GA_FOLDER),
+  'myfiles': ME_IN_OWNERS_AND+f"mimeType != '{MIMETYPE_GA_FOLDER}'",
+  'myfolders': ME_IN_OWNERS_AND+f"mimeType = '{MIMETYPE_GA_FOLDER}'",
+  'mygooglefiles': ME_IN_OWNERS_AND+f"mimeType != '{MIMETYPE_GA_FOLDER}' and mimeType contains 'vnd.google'",
   'mynongooglefiles': ME_IN_OWNERS_AND+"not mimeType contains 'vnd.google'",
   'myitems': ME_IN_OWNERS,
-  'othersfiles': NOT_ME_IN_OWNERS_AND+"mimeType != '{0}'".format(MIMETYPE_GA_FOLDER),
-  'othersfolders': NOT_ME_IN_OWNERS_AND+"mimeType = '{0}'".format(MIMETYPE_GA_FOLDER),
-  'othersgooglefiles': NOT_ME_IN_OWNERS_AND+"mimeType != '{0}' and mimeType contains 'vnd.google'".format(MIMETYPE_GA_FOLDER),
+  'othersfiles': NOT_ME_IN_OWNERS_AND+f"mimeType != '{MIMETYPE_GA_FOLDER}'",
+  'othersfolders': NOT_ME_IN_OWNERS_AND+f"mimeType = '{MIMETYPE_GA_FOLDER}'",
+  'othersgooglefiles': NOT_ME_IN_OWNERS_AND+f"mimeType != '{MIMETYPE_GA_FOLDER}' and mimeType contains 'vnd.google'",
   'othersnongooglefiles': NOT_ME_IN_OWNERS_AND+"not mimeType contains 'vnd.google'",
   'othersitems': NOT_ME_IN_OWNERS,
-  'writablefiles': "'me' in writers and mimeType != '{0}'".format(MIMETYPE_GA_FOLDER),
+  'writablefiles': f"'me' in writers and mimeType != '{MIMETYPE_GA_FOLDER}'",
   }
 TEAMDRIVE_QUERY_SHORTCUTS_MAP = {
-  'allfiles': "mimeType != '{0}'".format(MIMETYPE_GA_FOLDER),
-  'allfolders': "mimeType = '{0}'".format(MIMETYPE_GA_FOLDER),
-  'allgooglefiles': "mimeType != '{0}' and mimeType contains 'vnd.google'".format(MIMETYPE_GA_FOLDER),
+  'allfiles': f"mimeType != '{MIMETYPE_GA_FOLDER}'",
+  'allfolders': f"mimeType = '{MIMETYPE_GA_FOLDER}'",
+  'allgooglefiles': f"mimeType != '{MIMETYPE_GA_FOLDER}' and mimeType contains 'vnd.google'",
   'allnongooglefiles': "not mimeType contains 'vnd.google'",
   'allitems': 'allitems',
   }
@@ -30665,7 +30652,7 @@ def _convertTeamDriveNameToId(drive, user, i, count, fileIdEntity, useDomainAdmi
   try:
     feed = callGAPIpages(drive.drives(), 'list', 'drives',
                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                         #q="name = '{0}'".format(fileIdEntity['teamdrivename']),
+                         #q=f"name = '{fileIdEntity['teamdrivename']}'",
                          useDomainAdminAccess=useDomainAdminAccess,
                          fields='nextPageToken,drives(id,name)', pageSize=100)
     tddrivenamelower = fileIdEntity['teamdrivename'].lower()
@@ -30769,12 +30756,12 @@ def _getDriveFileParentInfo(drive, user, i, count, body, parameters, emptyQueryO
                         fileId=parameters[DFA_PARENTID], fields='id,mimeType')
       if result['mimeType'] != MIMETYPE_GA_FOLDER:
         entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
-                                        'parentid: {0}, {1}'.format(parameters[DFA_PARENTID], Msg.NOT_AN_ENTITY.format((Ent.Singular(Ent.DRIVE_FOLDER)))), i, count)
+                                        f'parentid: {parameters[DFA_PARENTID]}, {Msg.NOT_AN_ENTITY.format((Ent.Singular(Ent.DRIVE_FOLDER)))}', i, count)
         return False
       body['parents'].append(result['id'])
     except GAPI.fileNotFound as e:
       entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
-                                      'parentid: {0}, {1}'.format(parameters[DFA_PARENTID], str(e)), i, count)
+                                      f'parentid: {parameters[DFA_PARENTID]}, {str(e)}', i, count)
       return False
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -30796,11 +30783,11 @@ def _getDriveFileParentInfo(drive, user, i, count, body, parameters, emptyQueryO
                           fileId=parameters[DFA_TEAMDRIVE_PARENTID], fields='id,mimeType,driveId', supportsAllDrives=True)
         if result['mimeType'] != MIMETYPE_GA_FOLDER:
           entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
-                                          'teamdriveparentid: {0}, {1}'.format(parameters[DFA_TEAMDRIVE_PARENTID], Msg.NOT_AN_ENTITY.format((Ent.Singular(Ent.DRIVE_FOLDER)))), i, count)
+                                          f'fteamdriveparentid: {parameters[DFA_TEAMDRIVE_PARENTID]}, {Msg.NOT_AN_ENTITY.format(Ent.Singular(Ent.DRIVE_FOLDER))}', i, count)
           return False
         if not result.get('driveId'):
           entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
-                                          'teamdriveparentid: {0}, {1}'.format(parameters[DFA_TEAMDRIVE_PARENTID], Msg.NOT_AN_ENTITY.format((Ent.Singular(Ent.TEAMDRIVE_FOLDER)))), i, count)
+                                          f'teamdriveparentid: {parameters[DFA_TEAMDRIVE_PARENTID]}, {Msg.NOT_AN_ENTITY.format(Ent.Singular(Ent.TEAMDRIVE_FOLDER))}', i, count)
           return False
         body['parents'].append(result['id'])
         parameters[DFA_SEARCHARGS] = {'driveId': result['driveId'], 'corpora': 'drive',
@@ -30815,7 +30802,7 @@ def _getDriveFileParentInfo(drive, user, i, count, body, parameters, emptyQueryO
                                       'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
     except (GAPI.fileNotFound, GAPI.notFound) as e:
       entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
-                                      'teamdriveparentid: {0}, {1}'.format(parameters[DFA_TEAMDRIVE_PARENTID], str(e)), i, count)
+                                      f'teamdriveparentid: {parameters[DFA_TEAMDRIVE_PARENTID]}, {str(e)}', i, count)
       return False
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -30940,7 +30927,7 @@ def validateMimeType(mimeType):
     mediaType, subType = mimeType.split('/', 1)
     if mediaType in MIMETYPE_TYPES and subType:
       return mimeType
-  invalidChoiceExit(mimeType, list(MIMETYPE_CHOICE_MAP)+['({0})/mediatype'.format(formatChoiceList(MIMETYPE_TYPES))], True)
+  invalidChoiceExit(mimeType, list(MIMETYPE_CHOICE_MAP)+[f'({formatChoiceList(MIMETYPE_TYPES)})/mediatype'], True)
 
 def getMimeType():
   return validateMimeType(getString(Cmd.OB_MIMETYPE).lower())
@@ -31032,7 +31019,7 @@ def getDriveFileAttribute(myarg, body, parameters, assignLocalName):
       f.close()
     except IOError as e:
       Cmd.Backup()
-      usageErrorExit('{0}: {1}'.format(parameters[DFA_LOCALFILEPATH], str(e)))
+      usageErrorExit(f'{parameters[DFA_LOCALFILEPATH]}: {str(e)}')
     parameters[DFA_LOCALFILENAME] = os.path.basename(parameters[DFA_LOCALFILEPATH])
     if assignLocalName:
       body.setdefault('name', parameters[DFA_LOCALFILENAME])
@@ -31126,7 +31113,7 @@ def printDriveActivity(users):
                           fields='user(displayName,emailAddress)')
         entry = (result['user']['emailAddress'], result['user']['displayName'])
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
-        entry = ('uid:{0}'.format(userId), '')
+        entry = (f'uid:{userId}', '')
       userInfo[userId] = entry
     return entry
 
@@ -31166,9 +31153,9 @@ def printDriveActivity(users):
     elif myarg == 'folderid':
       baseFileList.append({'id': getString(Cmd.OB_DRIVE_FOLDER_ID), 'mimeType': MIMETYPE_GA_FOLDER})
     elif myarg == 'drivefilename':
-      query = "mimeType != '{0}' and name = '{1}'".format(MIMETYPE_GA_FOLDER, getEscapedDriveFileName())
+      query = f"mimeType != '{MIMETYPE_GA_FOLDER}' and name = '{getEscapedDriveFileName()}'"
     elif myarg == 'drivefoldername':
-      query = "mimeType = '{0}' and name = '{1}'".format(MIMETYPE_GA_FOLDER, getEscapedDriveFileName())
+      query = f"mimeType = '{MIMETYPE_GA_FOLDER}' and name = '{getEscapedDriveFileName()}'"
     elif myarg == 'query':
       query = getString(Cmd.OB_QUERY)
     elif myarg in {'start', 'starttime', 'end', 'endtime'}:
@@ -31191,15 +31178,15 @@ def printDriveActivity(users):
     if startEndTime.startTime:
       if activityFilter:
         activityFilter += ' AND '
-      activityFilter += 'time >= "{0}"'.format(startEndTime.startTime)
+      activityFilter += f'time >= "{startEndTime.startTime}"'
     if startEndTime.endTime:
       if activityFilter:
         activityFilter += ' AND '
-      activityFilter += 'time <= "{0}"'.format(startEndTime.endTime)
+      activityFilter += f'time <= "{startEndTime.endTime}"'
     if actions:
       if activityFilter:
         activityFilter += ' AND '
-      activityFilter += '{0}detail.action_detail_case:({1})'.format('-' if negativeAction else '', ' '.join(actions))
+      activityFilter += f'{"-" if negativeAction else ""}detail.action_detail_case:({" ".join(actions)})'
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -31238,7 +31225,7 @@ def printDriveActivity(users):
         drive_key = 'itemName' if v2 else  'drive_fileId'
       else:
         drive_key = 'ancestorName' if v2 else 'drive_ancestorId'
-      qualifier = ' for {0}: {1}'.format(Ent.Singular(entityType), fileId)
+      qualifier = f' for {Ent.Singular(entityType)}: {fileId}'
       printGettingAllEntityItemsForWhom(Ent.ACTIVITY, user, i, count, qualifier=qualifier)
       page_message = getPageMessageForWhom()
       pageToken = None
@@ -31248,7 +31235,7 @@ def printDriveActivity(users):
           'consolidationStrategy': {'none': {}},
           'pageSize': GC.Values[GC.ACTIVITY_MAX_RESULTS],
           'pageToken': pageToken,
-          drive_key: 'items/{0}'.format(fileId),
+          drive_key: f'items/{fileId}',
           'filter': activityFilter}
       else:
         kwargs = {
@@ -31303,7 +31290,7 @@ def printDriveActivity(users):
                 eventRow['eventTime'] = formatLocalTime(activityEvent['timestamp'])
               elif 'timeRange' in activityEvent:
                 timeRange = activityEvent['timeRange']
-                eventRow['eventTime'] = '{0}-{1}'.format(formatLocalTime(timeRange['startTime']), formatLocalTime(timeRange['endTime']))
+                eventRow['eventTime'] = f'{formatLocalTime(timeRange["startTime"])}-{formatLocalTime(timeRange["endTime"])}'
               _updateKnownUsers(activityEvent)
               if not FJQC.formatJSON:
                 activityEvent.pop('timestamp', None)
@@ -31418,7 +31405,7 @@ def printShowDriveSettings(users):
       row[title] = jcount
       j = 0
       for item, value in sorted(iter(feed[title].items())):
-        row['{0}.{1:02d}.{2}'.format(title, j, item)] = delimiter.join(value)
+        row[f'{title}.{j:02d}.{item}'] = delimiter.join(value)
         j += 1
 
   def _addSetting(row, title):
@@ -31503,16 +31490,16 @@ def printShowDriveSettings(users):
           row['maxImportSizes'] = jcount
           j = 0
           for setting, value in iter(feed['maxImportSizes'].items()):
-            row['maxImportSizes.{0}.{1}'.format(j, setting)] = formatFileSize(int(value))
+            row[f'maxImportSizes.{j}.{setting}'] = formatFileSize(int(value))
             j += 1
         if 'driveThemes' in fieldsList and 'driveThemes' in feed:
           jcount = len(feed['driveThemes'])
           row['driveThemes'] = jcount
           j = 0
           for setting in feed['driveThemes']:
-            row['driveThemes.{0:02d}.id'.format(j)] = setting['id']
-            row['driveThemes.{0:02d}.backgroundImageLink'.format(j)] = setting['backgroundImageLink']
-            row['driveThemes.{0:02d}.colorRgb'.format(j)] = setting['colorRgb']
+            row[f'driveThemes.{j:02d}.id'] = setting['id']
+            row[f'driveThemes.{j:02d}.backgroundImageLink'] = setting['backgroundImageLink']
+            row[f'driveThemes.{j:02d}.colorRgb'] = setting['colorRgb']
             j += 1
         csvPF.WriteRowTitles(row)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -31550,7 +31537,7 @@ def getFilePaths(drive, fileTree, initialResult, filePathInfo, addParentsToTree=
     if (result['mimeType'] == MIMETYPE_GA_FOLDER) and (result['name'] == TEAM_DRIVE) and result.get('driveId'):
       parentName = _getTeamDriveNameFromId(drive, result['driveId'])
       if parentName != TEAM_DRIVE:
-        return 'SharedDrive({0})'.format(parentName)
+        return f'SharedDrive({parentName})'
     return result['name']
 
   def _followParent(paths, parentId):
@@ -31929,10 +31916,10 @@ def _getDriveFieldSubField(field, fieldsList, parentsSubFields):
     elif subField in DRIVE_SUBFIELDS_CHOICE_MAP[field]:
       if field != 'labels':
         if not isinstance(DRIVE_SUBFIELDS_CHOICE_MAP[field][subField], list):
-          fieldsList.append('{0}.{1}'.format(DRIVE_FIELDS_CHOICE_MAP[field], DRIVE_SUBFIELDS_CHOICE_MAP[field][subField]))
+          fieldsList.append(f'{DRIVE_FIELDS_CHOICE_MAP[field]}.{DRIVE_SUBFIELDS_CHOICE_MAP[field][subField]}')
         else:
           for subSubField in DRIVE_SUBFIELDS_CHOICE_MAP[field][subField]:
-            fieldsList.append('{0}.{1}'.format(DRIVE_FIELDS_CHOICE_MAP[field], subSubField))
+            fieldsList.append(f'{DRIVE_FIELDS_CHOICE_MAP[field]}.{subSubField}')
       else:
         fieldsList.append(DRIVE_SUBFIELDS_CHOICE_MAP[field][subField])
     else:
@@ -32119,7 +32106,7 @@ def showFileInfo(users):
             if fields != '*':
               entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
               continue
-        printEntity([_getEntityMimeType(result), '{0} ({1})'.format(result['name'], fileId)], j, jcount)
+        printEntity([_getEntityMimeType(result), f'{result["name"]} ({fileId})'], j, jcount)
         Ind.Increment()
         if filepath:
           _, paths = getFilePaths(drive, None, result, filePathInfo)
@@ -32613,16 +32600,17 @@ def initFileTree(drive, teamdrive, getTeamDriveNames):
                         throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
                         fileId=teamdrive['driveId'], supportsAllDrives=True, fields=','.join(FILEPATH_FIELDS_TITLES+OWNED_BY_ME_FIELDS_TITLES))
       fileTree[f_file['id']] = {'info': f_file, 'children': []}
-      fileTree[f_file['id']]['info']['name'] = 'SharedDrive({0})'.format(callGAPI(drive.drives(), 'get',
-                                                                                  throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
-                                                                                  driveId=teamdrive['driveId'], fields='name')['name'])
+      name = callGAPI(drive.drives(), 'get',
+                      throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
+                      driveId=teamdrive['driveId'], fields='name')['name']
+      fileTree[f_file['id']]['info']['name'] = f'SharedDrive({name})'
     if getTeamDriveNames:
       tdrives = callGAPIpages(drive.drives(), 'list', 'drives',
                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                               fields='nextPageToken,drives(id,name)', pageSize=100)
       for tdrive in tdrives:
         if tdrive['id'] not in fileTree:
-          fileTree[tdrive['id']] = {'info': {'id': tdrive['id'], 'name': 'SharedDrive({0})'.format(tdrive['name']), 'mimeType': MIMETYPE_GA_FOLDER}, 'children': []}
+          fileTree[tdrive['id']] = {'info': {'id': tdrive['id'], 'name': f'SharedDrive({tdrive["name"]})', 'mimeType': MIMETYPE_GA_FOLDER}, 'children': []}
   except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.notFound, GAPI.notFound):
     pass
   return fileTree
@@ -32655,7 +32643,7 @@ def addFilePathsToRow(drive, fileTree, fileEntryInfo, filePathInfo, csvPF, row):
   row['paths'] = kcount
   k = 0
   for path in sorted(paths):
-    key = 'path.{0}'.format(k)
+    key = f'path.{k}'
     csvPF.AddTitles(key)
     if GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL] and (path.find('\n') >= 0 or path.find('\r') >= 0):
       row[key] = escapeCRsNLs(path)
@@ -32672,7 +32660,7 @@ def _simpleFileIdEntityList(fileIdEntityList):
 def _validatePermissionOwnerType(location, body):
   if body.get('role', '') == 'owner' and body['type'] != 'user':
     Cmd.SetLocation(location)
-    usageErrorExit(Msg.INVALID_PERMISSION_ATTRIBUTE_TYPE.format('role {0}'.format(body['role']), body['type']))
+    usageErrorExit(Msg.INVALID_PERMISSION_ATTRIBUTE_TYPE.format(f'role {body["role"]}', body['type']))
 
 def _validatePermissionAttributes(myarg, location, body, field, validTypes):
   if field in body and body['type'] not in validTypes:
@@ -32870,11 +32858,11 @@ class DriveListParameters():
           self.query += ' and ('
         if not self.mimeTypeCheck.reverse:
           for mimeType in self.mimeTypeCheck.mimeTypes:
-            self.query += "mimeType = '{0}' or ".format(mimeType)
+            self.query += f"mimeType = '{mimeType}' or "
           self.query = self.query[:-4]
         else:
           for mimeType in self.mimeTypeCheck.mimeTypes:
-            self.query += "mimeType != '{0}' and ".format(mimeType)
+            self.query += f"mimeType != '{mimeType}' and "
           self.query = self.query[:-5]
         self.query += ')'
     elif myarg == 'maxfiles':
@@ -32917,7 +32905,7 @@ class DriveListParameters():
 
   def UpdateQueryTimes(self):
     for queryTimeName, queryTimeValue in iter(self.queryTimes.items()):
-      self.query = self.query.replace('#{0}#'.format(queryTimeName), queryTimeValue)
+      self.query = self.query.replace(f'#{queryTimeName}#', queryTimeValue)
 
   def CheckShowOwnedBy(self, fileInfo):
     return self.showOwnedBy is None or fileInfo.get('ownedByMe', self.showOwnedBy) == self.showOwnedBy
@@ -33345,29 +33333,29 @@ def printFileList(users):
             field, subFields = field.split('(', 1)
             if field in DRIVE_LIST_FIELDS:
               titles.append(field)
-              titles.extend(['{0}.0.{1}'.format(field, subField) for subField in subFields[:-1].split(',') if subField])
+              titles.extend([f'{field}.0.{subField}' for subField in subFields[:-1].split(',') if subField])
             else:
-              titles.extend(['{0}.{1}'.format(field, subField) for subField in subFields[:-1].split(',') if subField])
+              titles.extend([f'{field}.{subField}' for subField in subFields[:-1].split(',') if subField])
           elif field.find('.') != -1:
             field, subField = field.split('.', 1)
             if field in DRIVE_LIST_FIELDS:
-              titles.append('{0}.0.{1}'.format(field, subField))
+              titles.append(f'{field}.0.{subField}')
             else:
-              titles.append('{0}.{1}'.format(field, subField))
+              titles.append(f'{field}.{subField}')
           elif field.lower() in DRIVE_SUBFIELDS_CHOICE_MAP:
             if field in DRIVE_LIST_FIELDS:
               titles.append(field)
               for subField in iter(DRIVE_SUBFIELDS_CHOICE_MAP[field.lower()].values()):
                 if not isinstance(subField, list):
-                  titles.append('{0}.0.{1}'.format(field, subField))
+                  titles.append(f'{field}.0.{subField}')
                 else:
-                  titles.extend(['{0}.0.{1}'.format(field, subSubField) for subSubField in subField])
+                  titles.extend([f'{field}.0.{subSubField}' for subSubField in subField])
             else:
               for subField in iter(DRIVE_SUBFIELDS_CHOICE_MAP[field.lower()].values()):
                 if not isinstance(subField, list):
-                  titles.append('{0}.{1}'.format(field, subField))
+                  titles.append(f'{field}.{subField}')
                 else:
-                  titles.extend(['{0}.{1}'.format(field, subSubField) for subSubField in subField])
+                  titles.extend([f'{field}.{subSubField}' for subSubField in subField])
           else:
             titles.append(field)
         csvPF.SetTitles(titles)
@@ -33383,11 +33371,9 @@ def printFileList(users):
       csvPF.JSONtitlesList.sort()
       csvPF.FixPathsTitles(csvPF.JSONtitlesList)
       csvPF.MoveJSONTitlesToEnd(['JSON'])
-    csvPF.writeCSVfile('{0} {1} Drive Files'.format(Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]),
-                                                    Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)))
+    csvPF.writeCSVfile(f'{Cmd.Argument(GM.Globals[GM.ENTITY_CL_START])} {Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)} Drive Files')
   else:
-    csvPFco.writeCSVfile('{0} {1} Drive File Counts'.format(Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]),
-                                                            Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)))
+    csvPFco.writeCSVfile(f'{Cmd.Argument(GM.Globals[GM.ENTITY_CL_START])} {Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)} Drive File Counts')
 
 # gam <UserTypeEntity> print filepaths <DriveFileEntity> [todrive <ToDriveAttributes>*] [oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 # gam <UserTypeEntity> show filepaths <DriveFileEntity> (orderby <DriveFileOrderByFieldName> [ascending|descending])*
@@ -33430,7 +33416,7 @@ def printShowFilePaths(users):
         entityType, paths = getFilePaths(drive, None, result, filePathInfo)
         if not csvPF:
           kcount = len(paths)
-          entityPerformActionNumItems([entityType, '{0} ({1})'.format(result['name'], fileId)], kcount, Ent.DRIVE_PATH, j, jcount)
+          entityPerformActionNumItems([entityType, f'{result["name"]} ({fileId})'], kcount, Ent.DRIVE_PATH, j, jcount)
           Ind.Increment()
           k = 0
           for path in paths:
@@ -33493,7 +33479,7 @@ def printShowFileCounts(users):
           return
     if not csvPF:
       if teamDriveId:
-        printEntityKVList([Ent.USER, user, Ent.TEAMDRIVE, '{0} ({1})'.format(teamDriveName, teamDriveId)], [Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, total), total], i, count)
+        printEntityKVList([Ent.USER, user, Ent.TEAMDRIVE, f'{teamDriveName} ({teamDriveId})'], [Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, total), total], i, count)
       else:
         printEntityKVList([Ent.USER, user], [Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, total), total], i, count)
       Ind.Increment()
@@ -33642,7 +33628,7 @@ def printShowFileTree(users):
         if showFields[field]:
           if field == 'parents':
             parents = fileEntry.get(field, [])
-            fileInfoList.extend([field, '{0} [{1}]'.format(len(parents), delimiter.join(parents))])
+            fileInfoList.extend([field, f'{len(parents)} [{delimiter.join(parents)}]'])
           elif field == 'owners':
             owners = [owner['emailAddress'] for owner in fileEntry.get(field, [])]
             if owners:
@@ -33919,7 +33905,7 @@ def createDriveFile(users):
                         useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
                         media_body=media_body, body=body, fields='id,name,mimeType', supportsAllDrives=True)
       if not csvPF:
-        titleInfo = '{0}({1})'.format(result['name'], result['id'])
+        titleInfo = f'{result["name"]}({result["id"]})'
         if parameters[DFA_LOCALFILENAME]:
           entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, titleInfo], Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], i, count)
         else:
@@ -34007,7 +33993,7 @@ def updateDriveFile(users):
                                 throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND],
                                 fileId=fileId, fields='id,mimeType,capabilities(canEdit)', supportsAllDrives=True)
               if result['mimeType'] != MIMETYPE_GA_SPREADSHEET:
-                entityActionNotPerformedWarning(entityValueList, '{0} {1}'.format(Msg.NOT_A, Ent.Singular(Ent.SPREADSHEET)), j, jcount)
+                entityActionNotPerformedWarning(entityValueList, f'{Msg.NOT_A} {Ent.Singular(Ent.SPREADSHEET)}', j, jcount)
                 continue
               if not result['capabilities']['canEdit']:
                 entityActionNotPerformedWarning(entityValueList, Msg.NOT_WRITABLE, j, jcount)
@@ -34298,14 +34284,14 @@ def _getUniqueFilename(destFilename, mimeType, targetChildren):
     mg = UNIQUE_PREFIX_PATTERN.match(base)
     if mg:
       base = mg.group(1)
-    pattern = re.compile(r'^{0}\((\d+)\)\.{1}$'.format(base, ext), flags=re.IGNORECASE)
+    pattern = re.compile(fr'^{base}\((\d+)\)\.{ext}$', flags=re.IGNORECASE)
   else:
     base = destFilename
     ext = None
     mg = UNIQUE_PREFIX_PATTERN.match(base)
     if mg:
       base = mg.group(1)
-    pattern = re.compile(r'^{0}\((\d+)\)$'.format(base), flags=re.IGNORECASE)
+    pattern = re.compile(fr'^{base}\((\d+)\)$', flags=re.IGNORECASE)
   n = 0
   for target in targetChildren:
     mg = pattern.match(target['name'])
@@ -34314,8 +34300,8 @@ def _getUniqueFilename(destFilename, mimeType, targetChildren):
       if v > n:
         n = v
   if ext is not None:
-    return '{0}({1}).{2}'.format(base, n+1, ext)
-  return '{0}({1})'.format(base, n+1)
+    return f'{base}({n+1}).{ext}'
+  return f'{base}({n+1})'
 
 def _copyPermissions(drive, user, i, count, j, jcount, entityType, fileId, fileTitle, newFileId, newFileTitle,
                      statistics, stat, copyMoveOptions):
@@ -34382,7 +34368,7 @@ def _checkForDuplicateTargetFile(drive, user, k, kcount, child, destFilename, ta
           child['name'] = destFilename
           return False
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.fileNeverWritable) as e:
-          entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, child['name'], Ent.DRIVE_FILE, target['name']], '{0}: {1}'.format(Msg.NOT_DELETABLE, str(e)), k, kcount)
+          entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, child['name'], Ent.DRIVE_FILE, target['name']], f'{Msg.NOT_DELETABLE}: {str(e)}', k, kcount)
           _incrStatistic(statistics, STAT_FILE_FAILED)
           return True
       if copyMoveOptions['duplicateFiles'] == DUPLICATE_FILE_DUPLICATE_NAME:
@@ -34416,9 +34402,7 @@ def _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destFilenam
     return callGAPIpages(drive.files(), 'list', 'files',
                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                          retry_reasons=[GAPI.UNKNOWN_ERROR],
-                         q="mimeType = '{0}' and name contains '{1}' and trashed = false and '{2}' in parents".format(source['mimeType'],
-                                                                                                                      escapeDriveFileName(_getFilenamePrefix(destFilename)),
-                                                                                                                      newParentId),
+                         q=f"mimeType = '{source['mimeType']}' and name contains '{escapeDriveFileName(_getFilenamePrefix(destFilename))}' and trashed = false and '{newParentId}' in parents",
                          orderBy='folder desc,name,modifiedTime desc',
                          fields='nextPageToken,files(id,name,capabilities,mimeType,modifiedTime)',
                          **parentParms[DFA_SEARCHARGS])
@@ -34706,7 +34690,7 @@ def copyDriveFile(users):
                 (source['mimeType'] != MIMETYPE_GA_FOLDER and copyMoveOptions['duplicateFiles'] not in [DUPLICATE_FILE_OVERWRITE_ALL, DUPLICATE_FILE_OVERWRITE_OLDER])))):
           destFilename = sourceFilename
         else:
-          destFilename = 'Copy of {0}'.format(sourceFilename)
+          destFilename = f'Copy of {sourceFilename}'
         targetChildren = _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destFilename, newParentId, statistics, parentParms)
         if targetChildren is None:
           continue
@@ -35360,20 +35344,19 @@ def getDriveFile(users):
               if overwrite or not os.path.isfile(filename):
                 break
               y += 1
-              filename = os.path.join(targetFolder, '({0})-{1}'.format(y, safe_file_title))
+              filename = os.path.join(targetFolder, f'({y})-{safe_file_title}')
           spreadsheetUrl = None
           try:
             if googleDoc:
               if (not exportSheetAsPDF and not sheetEntity) or mimeType != MIMETYPE_GA_SPREADSHEET:
                 request = drive.files().export_media(fileId=fileId, mimeType=exportFormat['mime'])
                 if revisionId:
-                  request.uri = '{0}&revision={1}'.format(request.uri, revisionId)
+                  request.uri = f'{request.uri}&revision={revisionId}'
               else:
                 spreadsheet = callGAPI(sheet.spreadsheets(), 'get',
                                        throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                                        spreadsheetId=fileId, fields='spreadsheetUrl,sheets(properties(sheetId,title))')
-                spreadsheetUrl = '{0}?exportFormat={1}&format={1}&id={2}'.format(re.sub('/edit$', '/export', spreadsheet['spreadsheetUrl']),
-                                                                                 exportFormatName, fileId)
+                spreadsheetUrl = f'{re.sub("/edit$", "/export", spreadsheet["spreadsheetUrl"])}?exportFormat={exportFormatName}&format={exportFormatName}&id={fileId}'
                 if sheetEntity:
                   entityValueList.extend([sheetEntity['sheetType'], sheetEntity['sheetValue']])
                   sheetId = getSheetIdFromSheetEntity(spreadsheet, sheetEntity)
@@ -35381,7 +35364,7 @@ def getDriveFile(users):
                     entityActionNotPerformedWarning(entityValueList, Msg.NOT_FOUND, j, jcount)
                     csvSheetNotFound = True
                     continue
-                  spreadsheetUrl += '&gid={0}'.format(sheetId)
+                  spreadsheetUrl += f'&gid={sheetId}'
                 spreadsheetUrl += exportSheetAsPDF
             else:
               if revisionId:
@@ -35400,7 +35383,7 @@ def getDriveFile(users):
               while not done:
                 status, done = downloader.next_chunk()
                 if showProgress and not suppressStdoutMsgs:
-                  entityActionPerformedMessage(entityValueList, '{0:>7.2%}'.format(status.progress()), j, jcount)
+                  entityActionPerformedMessage(entityValueList, f'{status.progress():>7.2%}', j, jcount)
             else:
               fh = open(filename, 'w', encoding=UTF8) if not targetStdout else sys.stdout
               status, content = drive._http.request(uri=spreadsheetUrl, method='GET')
@@ -35409,7 +35392,7 @@ def getDriveFile(users):
                 if targetStdout and content[-1] != '\n':
                   fh.write('\n')
               else:
-                entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, filename, 'HTTP Error: {0}'.format(status['status']), j, jcount)
+                entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, filename, f'HTTP Error: {status["status"]}', j, jcount)
                 fileDownloadFailed = True
                 break
             if not targetStdout:
@@ -35506,7 +35489,7 @@ def collectOrphans(users):
           orphanDriveFiles.append(fileEntry)
       jcount = len(orphanDriveFiles)
       entityPerformActionNumItemsModifier([Ent.USER, user], jcount, Ent.DRIVE_ORPHAN_FILE_OR_FOLDER,
-                                          '{0} {1}: {2}'.format(Act.MODIFIER_INTO, Ent.Singular(Ent.DRIVE_FOLDER), trgtUserFolderName), i, count)
+                                          f'{Act.MODIFIER_INTO} {Ent.Singular(Ent.DRIVE_FOLDER)}: {trgtUserFolderName}', i, count)
       if jcount == 0:
         continue
       if not csvPF:
@@ -35908,7 +35891,7 @@ def transferDrive(users):
       if not childEntry or childFileId in filesTransferred:
         continue
       if childFileId in skipFileIdEntity['list']:
-        entityActionNotPerformedWarning([Ent.USER, sourceUser, _getEntityMimeType(childEntry['info']), '{0} ({1})'.format(childEntry['info']['name'], childFileId)],
+        entityActionNotPerformedWarning([Ent.USER, sourceUser, _getEntityMimeType(childEntry['info']), f'{childEntry["info"]["name"]} ({childFileId})'],
                                         Msg.IN_SKIPIDS, j, jcount)
         continue
       filesTransferred.add(childFileId)
@@ -35955,7 +35938,7 @@ def transferDrive(users):
       if not childEntry['trashed']:
         childId = childEntry['id']
         if childId in skipFileIdEntity['list']:
-          entityActionNotPerformedWarning([Ent.USER, sourceUser, _getEntityMimeType(childEntry), '{0} ({1})'.format(childEntry['name'], childId)],
+          entityActionNotPerformedWarning([Ent.USER, sourceUser, _getEntityMimeType(childEntry), f'{childEntry["name"]} ({childId})'],
                                           Msg.IN_SKIPIDS)
           continue
         fileTree[fileId]['children'].append(childId)
@@ -36143,11 +36126,8 @@ def transferDrive(users):
                               fileId='root', fields='id')['id']
       if (targetDriveFree is not None) and (targetDriveFree < sourceDriveSize):
         printWarningMessage(TARGET_DRIVE_SPACE_ERROR_RC,
-                            '{0} {1}'.format(Msg.NO_TRANSFER_LACK_OF_DISK_SPACE,
-                                             formatKeyValueList('',
-                                                                ['Source drive size', formatFileSize(sourceDriveSize),
-                                                                 'Target drive free', formatFileSize(targetDriveFree)],
-                                                                '')))
+                            (f'{Msg.NO_TRANSFER_LACK_OF_DISK_SPACE} '
+                             f'{formatKeyValueList("", ["Source drive size", formatFileSize(sourceDriveSize), "Target drive free", formatFileSize(targetDriveFree)], "")}'))
         continue
       printKeyValueList(['Source drive size', formatFileSize(sourceDriveSize),
                          'Target drive free', formatFileSize(targetDriveFree) if targetDriveFree is not None else 'UNLIMITED'])
@@ -36194,10 +36174,10 @@ def transferDrive(users):
                                  fields='id,name,parents,mimeType,ownedByMe,trashed,owners(emailAddress,permissionId),permissions(id,role)')
             entityType = _getEntityMimeType(fileEntry)
             if fileId in skipFileIdEntity['list']:
-              entityActionNotPerformedWarning([Ent.USER, sourceUser, entityType, '{0} ({1})'.format(fileEntry['name'], fileId)],
+              entityActionNotPerformedWarning([Ent.USER, sourceUser, entityType, f'{fileEntry["name"]} ({fileId})'],
                                               Msg.IN_SKIPIDS, j, jcount)
               continue
-            entityPerformActionItemValue([Ent.USER, sourceUser], entityType, '{0} ({1})'.format(fileEntry['name'], fileId), j, jcount)
+            entityPerformActionItemValue([Ent.USER, sourceUser], entityType, f'{fileEntry["name"]} ({fileId})', j, jcount)
             for parentId in fileEntry.get('parents', []):
               parentIdMap[parentId] = targetIds[TARGET_PARENT_ID]
             _identifyDriveFileAndChildren(fileEntry, i, count)
@@ -36369,7 +36349,7 @@ def transferOwnership(users):
         if filepath:
           fileTree[fileId] = {'info': fileEntryInfo}
       entityType = _getEntityMimeType(fileEntryInfo)
-      entityPerformActionItemValue([Ent.USER, user], entityType, '{0} ({1})'.format(fileEntryInfo['name'], fileId), j, jcount)
+      entityPerformActionItemValue([Ent.USER, user], entityType, f'{fileEntryInfo["name"]} ({fileId})', j, jcount)
       if fileId in filesTransferred:
         continue
       filesTransferred.add(fileId)
@@ -36391,13 +36371,13 @@ def transferOwnership(users):
         continue
       Ind.Increment()
       kcount = len(filesToTransfer)
-      entityPerformActionNumItemsModifier([Ent.USER, user], kcount, Ent.DRIVE_FILE_OR_FOLDER, '{0} {1}: {2}'.format(Act.MODIFIER_TO, Ent.Singular(Ent.USER), newOwner), i, count)
+      entityPerformActionNumItemsModifier([Ent.USER, user], kcount, Ent.DRIVE_FILE_OR_FOLDER, f'{Act.MODIFIER_TO} {Ent.Singular(Ent.USER)}: {newOwner}', i, count)
       Ind.Increment()
       k = 0
       for xferFileId in filesToTransfer:
         k += 1
         entityType = filesToTransfer[xferFileId]['type']
-        fileDesc = '{0} ({1})'.format(filesToTransfer[xferFileId]['name'], xferFileId)
+        fileDesc = f'{filesToTransfer[xferFileId]["name"]} ({xferFileId})'
         try:
           callGAPI(drive.permissions(), 'update',
                    throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND, GAPI.PERMISSION_NOT_FOUND, GAPI.FORBIDDEN],
@@ -36619,7 +36599,7 @@ def claimOwnership(users):
         if filepath:
           fileTree[fileId] = {'info': fileEntryInfo}
       entityType = _getEntityMimeType(fileEntryInfo)
-      entityPerformActionItemValue([Ent.USER, user], entityType, '{0} ({1})'.format(fileEntryInfo['name'], fileId), j, jcount)
+      entityPerformActionItemValue([Ent.USER, user], entityType, f'{fileEntryInfo["name"]} ({fileId})', j, jcount)
       if fileId not in skipFileIdEntity['list'] and (includeTrashed or not fileEntryInfo['trashed']):
         owner = fileEntryInfo['owners'][0]['emailAddress']
         if not fileEntryInfo['ownedByMe'] and owner not in skipusers:
@@ -36653,7 +36633,7 @@ def claimOwnership(users):
           if not sourceDrive:
             continue
           entityPerformActionNumItemsModifier([Ent.USER, user], lcount, Ent.DRIVE_FILE_OR_FOLDER,
-                                              '{0} {1}: {2}'.format(Act.MODIFIER_FROM, Ent.Singular(Ent.USER), oldOwner), k, kcount)
+                                              f'{Act.MODIFIER_FROM} {Ent.Singular(Ent.USER)}: {oldOwner}', k, kcount)
           Ind.Increment()
           l = 0
           for ofileId, fileInfo in iter(filesToClaim[oldOwner].items()):
@@ -36662,7 +36642,7 @@ def claimOwnership(users):
               callGAPI(sourceDrive.files(), 'update',
                        fileId=ofileId, body=bodyShare, fields='')
             entityType = fileInfo['type']
-            fileDesc = '{0} ({1})'.format(fileInfo['name'], ofileId)
+            fileDesc = f'{fileInfo["name"]} ({ofileId})'
             try:
               callGAPI(sourceDrive.permissions(), 'update',
                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND, GAPI.PERMISSION_NOT_FOUND, GAPI.FORBIDDEN],
@@ -36700,12 +36680,12 @@ def claimOwnership(users):
           Ind.Decrement()
         else:
           entityPerformActionModifierNumItemsModifier([Ent.USER, user], 'Not Performed', kcount, Ent.DRIVE_FILE_OR_FOLDER,
-                                                      '{0} {1}: {2}'.format(Act.MODIFIER_FROM, Ent.Singular(Ent.USER), oldOwner), j, jcount)
+                                                      f'{Act.MODIFIER_FROM} {Ent.Singular(Ent.USER)}: {oldOwner}', j, jcount)
           Ind.Increment()
           l = 0
           for ofileId, fileInfo in iter(filesToClaim[oldOwner].items()):
             l += 1
-            entityActionNotPerformedWarning([Ent.USER, user, fileInfo['type'], '{0} ({1})'.format(fileInfo['name'], ofileId)],
+            entityActionNotPerformedWarning([Ent.USER, user, fileInfo['type'], f'{fileInfo["name"]} ({ofileId})'],
                                             Msg.USER_IN_OTHER_DOMAIN.format(Ent.Singular(Ent.USER), oldOwner), l, lcount)
           Ind.Decrement()
       Ind.Decrement()
@@ -36732,7 +36712,7 @@ def deleteEmptyDriveFolders(users):
       continue
     try:
       printEntityKVList([Ent.USER, user],
-                        ['{0} {1}'.format(Act.ToPerform(), Ent.Plural(Ent.DRIVE_FILE_OR_FOLDER))],
+                        [f'{Act.ToPerform()} {Ent.Plural(Ent.DRIVE_FILE_OR_FOLDER)}'],
                         i, count)
       Ind.Increment()
       deletedFolderIds = set()
@@ -36787,7 +36767,7 @@ def deleteEmptyDriveFolders(users):
                 entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, folder['name']], str(e), j, jcount)
             else:
               entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, folder['name']],
-                                              '{0} - {1} ({2})'.format(Msg.CONTAINS_AT_LEAST_1_ITEM, children[0]['name'], children[0]['id']), j, jcount)
+                                              f'{Msg.CONTAINS_AT_LEAST_1_ITEM} - {children[0]["name"]} ({children[0]["id"]})', j, jcount)
           else:
             entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, folder['name']],
                                             Msg.NOT_OWNED_BY.format(user), j, jcount)
@@ -36964,7 +36944,7 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
     else:
       unknownArgumentExit()
   if 'role' not in body:
-    missingArgumentExit('role {0}'.format(formatChoiceList(DRIVEFILE_ACL_ROLES_MAP)))
+    missingArgumentExit(f'role {formatChoiceList(DRIVEFILE_ACL_ROLES_MAP)}')
   _validatePermissionOwnerType(roleLocation, body)
   _validatePermissionAttributes('allowfilediscovery/withlink', withLinkLocation, body, 'allowFileDiscovery', ['anyone', 'domain'])
   _validatePermissionAttributes('expiration', expirationLocation, body, 'expirationTime', ['user', 'group'])
@@ -37040,7 +37020,7 @@ def updateDriveFileACLs(users, useDomainAdminAccess=False):
     else:
       unknownArgumentExit()
   if removeExpiration is None and 'role' not in body:
-    missingArgumentExit('role {0}'.format(formatChoiceList(DRIVEFILE_ACL_ROLES_MAP)))
+    missingArgumentExit(f'role {formatChoiceList(DRIVEFILE_ACL_ROLES_MAP)}')
   printKeys, timeObjects = _getDriveFileACLPrintKeysTimeObjects()
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -37711,9 +37691,9 @@ def doPrintShowOwnership():
     Cmd.Backup()
     invalidArgumentExit(Cmd.OB_DRIVE_FILE_ID)
   if entityType == Ent.DRIVE_FILE_OR_FOLDER_ID:
-    filters = 'doc_id=={0}'.format(fileId)
+    filters = f'doc_id=={fileId}'
   else:
-    filters = 'doc_title=={0}'.format(fileId)
+    filters = f'doc_title=={fileId}'
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -38037,7 +38017,7 @@ def _showTeamDrive(user, teamdrive, j, jcount, FJQC):
   if FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(teamdrive, timeObjects=TEAMDRIVE_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
     return
-  printEntity([Ent.USER, user, Ent.TEAMDRIVE, '{0} ({1})'.format(teamdrive['name'], teamdrive['id'])], j, jcount)
+  printEntity([Ent.USER, user, Ent.TEAMDRIVE, f'{teamdrive["name"]} ({teamdrive["id"]})'], j, jcount)
   Ind.Increment()
   printEntity([Ent.TEAMDRIVE_ID, teamdrive['id']])
   printEntity([Ent.TEAMDRIVE_NAME, teamdrive['name']])
@@ -38376,7 +38356,7 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
       for teamdrive in matchFeed:
         j += 1
         if not FJQC.formatJSON:
-          _showDriveFilePermissions(Ent.TEAMDRIVE, '{0} ({1})'.format(teamdrive['name'], teamdrive['id']),
+          _showDriveFilePermissions(Ent.TEAMDRIVE, f'{teamdrive["name"]} ({teamdrive["id"]})',
                                     teamdrive['permissions'], printKeys, timeObjects, j, jcount)
         else:
           if oneItemPerRow:
@@ -39056,7 +39036,7 @@ def createSheet(users):
         body = json.loads(spreadsheetJSON)
       except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
         Cmd.Backup()
-        usageErrorExit('{0}: {1}'.format(str(e), spreadsheetJSON))
+        usageErrorExit(f'{str(e)}: {spreadsheetJSON}')
     elif getDriveFileParentAttribute(myarg, parameters):
       changeParents = True
     else:
@@ -39091,11 +39071,11 @@ def createSheet(users):
           parentId = addParents
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.permissionDenied,
                 GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid) as e:
-          parentMsg = '{0}{1}: {2}'.format(ERROR_PREFIX, addParents, str(e))
+          parentMsg = f'{ERROR_PREFIX}{addParents}: {str(e)}'
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-          parentMsg = '{0}{1}: {2}'.format(ERROR_PREFIX, addParents, str(e))
+          parentMsg = f'{ERROR_PREFIX}{addParents}: {str(e)}'
       if FJQC.formatJSON:
-        printLine('{{"User": "{0}", "spreadsheetId": "{1}", "parentId": "{2}", "parentAssignment": "{3}", "JSON": {4}}}'.format(user, spreadsheetId, parentId, parentMsg, json.dumps(result, ensure_ascii=False, sort_keys=False)))
+        printLine('{'+f'"User": "{user}", "spreadsheetId": "{spreadsheetId}", "parentId": "{parentId}", "parentAssignment": "{parentMsg}", "JSON": {json.dumps(result, ensure_ascii=False, sort_keys=False)}'+'}')
         continue
       Ind.Increment()
       for field in ['spreadsheetId', 'spreadsheetUrl']:
@@ -39134,7 +39114,7 @@ def updateSheets(users):
         body = json.loads(spreadsheetJSON)
       except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
         Cmd.Backup()
-        usageErrorExit('{0}: {1}'.format(str(e), spreadsheetJSON))
+        usageErrorExit(f'{str(e)}: {spreadsheetJSON}')
     else:
       FJQC.GetFormatJSON(myarg)
   i, count, users = getEntityArgument(users)
@@ -39152,7 +39132,7 @@ def updateSheets(users):
                           throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                           spreadsheetId=spreadsheetId, body=body)
         if FJQC.formatJSON:
-          printLine('{{"User": "{0}", "spreadsheetId": "{1}", "JSON": {2}}}'.format(user, spreadsheetId, json.dumps(result, ensure_ascii=False, sort_keys=False)))
+          printLine('{'+f'"User": "{user}", "spreadsheetId": "{spreadsheetId}", "JSON": {json.dumps(result, ensure_ascii=False, sort_keys=False)}'+'}')
           continue
         entityActionPerformed([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], j, jcount)
         Ind.Increment()
@@ -39197,7 +39177,7 @@ def infoSheets(users):
                           throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                           spreadsheetId=spreadsheetId, ranges=ranges, includeGridData=includeGridData)
         if FJQC.formatJSON:
-          printLine('{{"User": "{0}", "spreadsheetId": "{1}", "JSON": {2}}}'.format(user, spreadsheetId, json.dumps(result, ensure_ascii=False, sort_keys=False)))
+          printLine('{'+f'"User": "{user}", "spreadsheetId": "{spreadsheetId}", "JSON": {json.dumps(result, ensure_ascii=False, sort_keys=False)}'+'}')
           continue
         printEntity([Ent.SPREADSHEET, spreadsheetId], j, jcount)
         Ind.Increment()
@@ -39264,7 +39244,7 @@ def _getSpreadsheetRangesValues(append):
           usageErrorExit(Msg.ONLY_ONE_JSON_RANGE_ALLOWED)
       except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
         Cmd.Backup()
-        usageErrorExit('{0}: {1}'.format(str(e), spreadsheetJSON))
+        usageErrorExit(f'{str(e)}: {spreadsheetJSON}')
     elif myarg in SHEET_VALUE_INPUT_OPTIONS_MAP:
       kwargs['valueInputOption'] = SHEET_VALUE_INPUT_OPTIONS_MAP[myarg]
     elif myarg == 'includevaluesinresponse':
@@ -39283,7 +39263,7 @@ def _showValueRange(valueRange):
   Ind.Increment()
   printKeyValueList(['majorDimension', valueRange['majorDimension']])
   printKeyValueList(['range', valueRange['range']])
-  printKeyValueList(['value', '{{"values": {0}}}'.format(json.dumps(valueRange.get('values', []), ensure_ascii=False, sort_keys=False))])
+  printKeyValueList(['value', '{'+f'"values": {json.dumps(valueRange.get("values", []), ensure_ascii=False, sort_keys=False)}'+'}'])
   Ind.Decrement()
 
 def _showUpdateValuesResponse(result, k, kcount):
@@ -39323,7 +39303,7 @@ def appendSheetRanges(users):
                           throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                           spreadsheetId=spreadsheetId, range=body['range'], body=body, **kwargs)
         if FJQC.formatJSON:
-          printLine('{{"User": "{0}", "spreadsheetId": "{1}", "JSON": {2}}}'.format(user, spreadsheetId, json.dumps(result, ensure_ascii=False, sort_keys=False)))
+          printLine('{'+f'"User": "{user}", "spreadsheetId": "{spreadsheetId}", "JSON": {json.dumps(result, ensure_ascii=False, sort_keys=False)}'+'}')
           continue
         for field in ['tableRange']:
           printKeyValueList([field, result[field]])
@@ -39363,7 +39343,7 @@ def updateSheetRanges(users):
                           throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                           spreadsheetId=spreadsheetId, body=body)
         if FJQC.formatJSON:
-          printLine('{{"User": "{0}", "spreadsheetId": "{1}", "JSON": {2}}}'.format(user, spreadsheetId, json.dumps(result, ensure_ascii=False, sort_keys=False)))
+          printLine('{'+f'"User": "{user}", "spreadsheetId": "{spreadsheetId}", "JSON": {json.dumps(result, ensure_ascii=False, sort_keys=False)}'+'}')
           continue
         for field in ['totalUpdatedRows', 'totalUpdatedColumns', 'totalUpdatedCells', 'totalUpdatedSheets']:
           printKeyValueList([field, result[field]])
@@ -39410,7 +39390,7 @@ def clearSheetRanges(users):
                                throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                                spreadsheetId=spreadsheetId, body=body)
         if FJQC.formatJSON:
-          printLine('{{"User": "{0}", "spreadsheetId": "{1}", "JSON": {2}}}'.format(user, spreadsheetId, json.dumps({'clearedRanges': result}, ensure_ascii=False, sort_keys=False)))
+          printLine('{'+f'"User": "{user}", "spreadsheetId": "{spreadsheetId}", "JSON": {json.dumps({"clearedRanges": result}, ensure_ascii=False, sort_keys=False)}'+'}')
           continue
         k = 0
         for clearedRange in result:
@@ -39473,7 +39453,7 @@ def printShowSheetRanges(users):
         kcount = len(valueRanges)
         if not csvPF:
           if FJQC.formatJSON:
-            printLine('{{"User": "{0}", "spreadsheetId": "{1}", "JSON": {2}}}'.format(user, spreadsheetId, json.dumps(result, ensure_ascii=False, sort_keys=False)))
+            printLine('{'+f'"User": "{user}", "spreadsheetId": "{spreadsheetId}", "JSON": {json.dumps(result, ensure_ascii=False, sort_keys=False)}'+'}')
             continue
           entityPerformActionNumItems([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], kcount, Ent.SPREADSHEET_RANGE, j, jcount)
           Ind.Increment()
@@ -39597,7 +39577,7 @@ def _printShowTokens(entityType, users):
         results = callGAPIitems(cd.tokens(), 'list', 'items',
                                 throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND,
                                                GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN],
-                                userKey=user, fields='items({0})'.format(fields))
+                                userKey=user, fields=f'items({fields})')
       jcount = len(results)
       if not csvPF:
         entityPerformActionNumItems([Ent.USER, user], jcount, Ent.ACCESS_TOKEN, i, count)
@@ -39724,7 +39704,7 @@ def watchGmail(users):
       maxMessages = getInteger(minVal=1)
     else:
       unknownArgumentExit()
-  project = 'projects/{0}'.format(_getCurrentProjectID())
+  project = f'projects/{_getCurrentProjectID()}'
   gamTopics = project+'/topics/gam-pubsub-gmail-'
   gamSubscriptions = project+'/subscriptions/gam-pubsub-gmail-'
   pubsub = buildGAPIObject(API.PUBSUB)
@@ -40091,7 +40071,7 @@ def updateLabels(users):
               Act.Set(Act.MERGE)
               entityPerformActionModifierNewValue([Ent.USER, user, Ent.LABEL, label['name']], Act.MODIFIER_WITH, newLabelName, i, count)
               messagesToRelabel = callGAPIpages(gmail.users().messages(), 'list', 'messages',
-                                                userId='me', q='label:{0}'.format(cleanLabelQuery(label['name'])))
+                                                userId='me', q=f'label:{cleanLabelQuery(label["name"])}')
               Act.Set(Act.RELABEL)
               jcount = len(messagesToRelabel)
               Ind.Increment()
@@ -40414,17 +40394,17 @@ def _initMessageThreadParameters(entityType, doIt, maxToProcess):
           'entityType': entityType, 'messageEntity': None, 'doIt': doIt, 'quick': True,
           'maxToProcess': maxToProcess, 'maxItems': 0,
           'maxToKeywords': [MESSAGES_MAX_TO_KEYWORDS[Act.Get()], 'maxtoprocess'],
-          'listType': listType, 'fields': 'nextPageToken,{0}(id)'.format(listType)}
+          'listType': listType, 'fields': f'nextPageToken,{listType}(id)'}
 
 def _getMessageSelectParameters(myarg, parameters):
   if myarg == 'query':
-    parameters['query'] += ' ({0})'.format(getString(Cmd.OB_QUERY))
+    parameters['query'] += f' ({getString(Cmd.OB_QUERY)})'
   elif myarg == 'matchlabel':
     labelName = getString(Cmd.OB_LABEL_NAME).lower().replace(' ', '-').replace('/', '-')
     if not parameters['labelGroupOpen']:
       parameters['query'] += '('
       parameters['labelGroupOpen'] = True
-    parameters['query'] += ' label:{0}'.format(labelName)
+    parameters['query'] += f' label:{labelName}'
   elif myarg in {'or', 'and'}:
     parameters['prevLabelOp'] = parameters['currLabelOp']
     parameters['currLabelOp'] = myarg
@@ -40556,7 +40536,7 @@ def _processMessagesThreads(users, entityType):
       except (GAPI.serviceNotAvailable, GAPI.badRequest):
         mcount += bcount
       except GAPI.invalidMessageId:
-        entityActionFailedWarning([Ent.USER, user, entityType, Msg.BATCH], '{0} ({1}-{2}/{3})'.format(Msg.INVALID_MESSAGE_ID, mcount+1, mcount+bcount, jcount))
+        entityActionFailedWarning([Ent.USER, user, entityType, Msg.BATCH], f'{Msg.INVALID_MESSAGE_ID} ({mcount+1}-{mcount+bcount}/{jcount})')
         mcount += bcount
       bcount = min(jcount-mcount, GC.Values[GC.MESSAGE_BATCH_SIZE])
 
@@ -41032,7 +41012,7 @@ def printShowMessagesThreads(users, entityType):
       else:
         data += _getBodyData(part, part['mimeType'] == 'message/rfc822')
     if getOrigMsg:
-      data = data.replace('\n', '\n{0}'.format(Ind.INDENT_SPACES_PER_LEVEL)).rstrip()
+      data = data.replace('\n', f'\n{Ind.INDENT_SPACES_PER_LEVEL}').rstrip()
     return headers+data
 
   def _getMessageBody(payload):
@@ -41045,31 +41025,57 @@ def printShowMessagesThreads(users, entityType):
 
   ATTACHMENT_NAME_PATTERN = re.compile(r'^.*name="(.*?)".*$')
 
-  def _showAttachments(messageId, payload, attachmentNamePattern):
+  def _showSaveAttachments(messageId, payload, attachmentNamePattern):
     for part in payload.get('parts', []):
-      if part['mimeType'] == 'text/plain':
-        if 'attachmentId' in part['body']:
-          for header in part['headers']:
-            if header['name'] in {'Content-Type', 'Content-Disposition'}:
-              mg = ATTACHMENT_NAME_PATTERN.match(header['value'])
-              if not mg:
-                continue
-              attachmentName = mg.group(1)
-              if (not attachmentNamePattern) or attachmentNamePattern.match(attachmentName):
+      if 'attachmentId' in part['body']:
+        for header in part['headers']:
+          if header['name'] in {'Content-Type', 'Content-Disposition'}:
+            mg = ATTACHMENT_NAME_PATTERN.match(header['value'])
+            if not mg:
+              continue
+            attachmentName = mg.group(1)
+            if (not attachmentNamePattern) or attachmentNamePattern.match(attachmentName):
+              if part['mimeType'] == 'text/plain' or save_attachments:
                 try:
                   result = callGAPI(gmail.users().messages().attachments(), 'get',
                                     throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND],
                                     messageId=messageId, id=part['body']['attachmentId'], userId='me')
                   if 'data' in result:
-                    printKeyValueList(['Attachment', attachmentName])
-                    Ind.Increment()
-                    printKeyValueList([Ind.MultiLineText(base64.urlsafe_b64decode(str(result['data'])).decode(UTF8)+'\n')])
-                    Ind.Decrement()
+                    if show_attachments:
+                      printKeyValueList(['Attachment', attachmentName])
+                      Ind.Increment()
+                      if part['mimeType'] == 'text/plain':
+                        printKeyValueList([Ind.MultiLineText(base64.urlsafe_b64decode(str(result['data'])).decode(UTF8)+'\n')])
+                      else:
+                        printKeyValueList(['mimeType', part['mimeType']])
+                      Ind.Decrement()
+                    if save_attachments:
+                      safe_file_title = attachmentName
+                      filename = os.path.join(targetFolder, safe_file_title)
+                      y = 0
+                      while True:
+                        if overwrite or not os.path.isfile(filename):
+                          break
+                        y += 1
+                        filename = os.path.join(targetFolder, f'({y})-{safe_file_title}')
+                      action = Act.Get()
+                      Act.Set(Act.DOWNLOAD)
+                      status, e = writeFileReturnError(filename, base64.urlsafe_b64decode(str(result['data'])), mode='wb')
+                      if status:
+                        entityActionPerformed([Ent.ATTACHMENT, filename])
+                      else:
+                        entityActionFailedWarning([Ent.ATTACHMENT, filename], str(e))
+                      Act.Set(action)
                 except (GAPI.serviceNotAvailable, GAPI.badRequest, GAPI.notFound):
                   pass
-              break
+              elif show_attachments:
+                printKeyValueList(['Attachment', attachmentName])
+                Ind.Increment()
+                printKeyValueList(['mimeType', part['mimeType']])
+                Ind.Decrement()
+            break
       else:
-        _showAttachments(messageId, part, attachmentNamePattern)
+        _showSaveAttachments(messageId, part, attachmentNamePattern)
 
   def _showMessage(result, j, jcount):
     printEntity([Ent.MESSAGE, result['id']], j, jcount)
@@ -41099,8 +41105,8 @@ def printShowMessagesThreads(users, entityType):
       Ind.Increment()
       printKeyValueList([Ind.MultiLineText(_getMessageBody(result['payload']))])
       Ind.Decrement()
-    if show_attachments:
-      _showAttachments(result['id'], result['payload'], attachmentNamePattern)
+    if show_attachments or save_attachments:
+      _showSaveAttachments(result['id'], result['payload'], attachmentNamePattern)
     Ind.Decrement()
 
   def _printMessage(user, result):
@@ -41114,7 +41120,7 @@ def printShowMessagesThreads(users, entityType):
         if headerCounts[header['name']] == 0:
           row[header['name']] = _decodeHeader(header['value'])
         else:
-          row['{0} {1}'.format(header['name'], headerCounts[header['name']])] = _decodeHeader(header['value'])
+          row[f'{header["name"]} {headerCounts[header["name"]]}'] = _decodeHeader(header['value'])
         headerCounts[header['name']] += 1
     else:
       for name in headersToShow:
@@ -41124,7 +41130,7 @@ def printShowMessagesThreads(users, entityType):
             if j == 0:
               row[SMTP_HEADERS_MAP.get(name, header['name'])] = _decodeHeader(header['value'])
             else:
-              row['{0} {1}'.format(SMTP_HEADERS_MAP.get(name, header['name']), j)] = _decodeHeader(header['value'])
+              row[f'{SMTP_HEADERS_MAP.get(name, header["name"])} {j}'] = _decodeHeader(header['value'])
             j += 1
     if show_size:
       row['SizeEstimate'] = result['sizeEstimate']
@@ -41186,7 +41192,7 @@ def printShowMessagesThreads(users, entityType):
     try:
       response = callGAPI(service, 'get',
                           throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_MESSAGE_ID],
-                          userId='me', id=ri[RI_ITEM], format=['metadata', 'full'][show_body or show_attachments])
+                          userId='me', id=ri[RI_ITEM], format=['metadata', 'full'][show_body or show_attachments or save_attachments])
       if not csvPF:
         if entityType == Ent.MESSAGE:
           _showMessage(response, int(ri[RI_J]), int(ri[RI_JCOUNT]))
@@ -41233,7 +41239,7 @@ def printShowMessagesThreads(users, entityType):
       _handleGmailError(exception, ri)
 
   def _batchPrintShowMessagesThreads(service, user, jcount, messageIds, callback):
-    svcargs = dict([('userId', 'me'), ('id', None), ('format', ['metadata', 'full'][show_body or show_attachments])]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    svcargs = dict([('userId', 'me'), ('id', None), ('format', ['metadata', 'full'][show_body or show_attachments or save_attachments])]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(service, 'get')
     dbatch = gmail.new_batch_http_request(callback=callback)
     bcount = 0
@@ -41256,11 +41262,14 @@ def printShowMessagesThreads(users, entityType):
   parameters = _initMessageThreadParameters(entityType, True, 0)
   convertCRNL = GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
-  countsOnly = includeSpamTrash = show_all_headers = show_attachments = show_body = show_labels = show_size = show_snippet = False
+  countsOnly = includeSpamTrash = overwrite = save_attachments = False
+  show_all_headers = show_attachments = show_body = show_labels = show_size = show_snippet = False
   attachmentNamePattern = None
+  targetFolderPattern = GC.Values[GC.DRIVE_DIR]
   defaultHeaders = ['Date', 'Subject', 'From', 'Reply-To', 'To', 'Delivered-To', 'Content-Type', 'Message-ID']
   headersToShow = [header.lower() for header in defaultHeaders]
   csvPF = CSVPrintFile() if Act.csvFormat() else None
+  showMode = Act.Get() == Act.SHOW
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -41270,8 +41279,10 @@ def printShowMessagesThreads(users, entityType):
     elif myarg == 'headers':
       headersToShow = getString(Cmd.OB_STRING, minLen=0).lower().replace(',', ' ').split()
       show_all_headers = headersToShow and headersToShow[0] == 'all'
-    elif myarg in {'convertcrnl', 'converttextnl', 'convertbodynl'}:
+    elif not showMode and myarg in {'convertcrnl', 'converttextnl', 'convertbodynl'}:
       convertCRNL = True
+    elif not showMode and myarg == 'delimiter':
+      delimiter = getCharacter()
     elif myarg == 'showbody':
       show_body = True
     elif myarg == 'showlabels':
@@ -41280,14 +41291,18 @@ def printShowMessagesThreads(users, entityType):
       show_size = True
     elif myarg == 'showsnippet':
       show_snippet = True
-    elif myarg == 'showattachments':
+    elif showMode and myarg == 'showattachments':
       show_attachments = True
-    elif myarg == 'attachmentnamepattern':
+    elif showMode and myarg == 'attachmentnamepattern':
       attachmentNamePattern = getREPattern(re.IGNORECASE)
+    elif showMode and myarg == 'saveattachments':
+      save_attachments = True
+    elif showMode and myarg == 'targetfolder':
+      targetFolderPattern = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
+    elif showMode and myarg == 'overwrite':
+      overwrite = getBoolean()
     elif myarg == 'includespamtrash':
       includeSpamTrash = True
-    elif myarg == 'delimiter':
-      delimiter = getCharacter()
     elif myarg == 'countsonly':
       countsOnly = True
     else:
@@ -41314,6 +41329,11 @@ def printShowMessagesThreads(users, entityType):
         labels = _getUserGmailLabels(gmail, user, i, count, fields='labels(id,name)')
         if not labels:
           continue
+      if save_attachments:
+        _, userName, _ = splitEmailAddressOrUID(user)
+        targetFolder = _substituteForUser(targetFolderPattern, user, userName)
+        if not os.path.isdir(targetFolder):
+          os.makedirs(targetFolder)
       if parameters['messageEntity'] is None:
         printGettingAllEntityItemsForWhom(entityType, user, i, count)
         listResult = callGAPIpages(service, 'list', parameters['listType'],
@@ -41344,7 +41364,7 @@ def printShowMessagesThreads(users, entityType):
         if parameters['messageEntity'] is not None or parameters['maxToProcess'] == 0 or jcount <= parameters['maxToProcess']:
           entityPerformActionNumItems([Ent.USER, user], jcount, entityType, i, count)
         else:
-          entityPerformActionNumItemsModifier([Ent.USER, user], parameters['maxToProcess'], entityType, 'of {0} Total {1}'.format(jcount, Ent.Plural(entityType)), i, count)
+          entityPerformActionNumItemsModifier([Ent.USER, user], parameters['maxToProcess'], entityType, f'of {jcount} Total {Ent.Plural(entityType)}', i, count)
       if parameters['messageEntity'] is None and parameters['maxToProcess'] and (jcount > parameters['maxToProcess']):
         jcount = parameters['maxToProcess']
       if not csvPF:
@@ -41372,6 +41392,7 @@ def printShowMessagesThreads(users, entityType):
 #	[countsonly] [headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <Character>] [todrive <ToDriveAttributes>*]
 # gam <UserTypeEntity> show message|messages (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <MessageIDEntity>)
 #	[countsonly] [headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [showattachments [attachmentnamepattern <RegularExpression>]]
+#       [saveattachments [attachmentnamepattern <RegularExpression>]] [targetfolder <FilePath>] [overwrite [<Boolean>]]
 def printShowMessages(users):
   printShowMessagesThreads(users, Ent.MESSAGE)
 
@@ -41379,6 +41400,7 @@ def printShowMessages(users):
 #	[countsonly] [headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <Character>] [todrive <ToDriveAttributes>*]
 # gam <UserTypeEntity> show thread|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <ThreadIDEntity>)
 #	[countsonly] [headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [showattachments [attachmentnamepattern <RegularExpression>]]
+#       [saveattachments [attachmentnamepattern <RegularExpression>]] [targetfolder <FilePath>] [overwrite [<Boolean>]]
 def printShowThreads(users):
   printShowMessagesThreads(users, Ent.THREAD)
 
@@ -41566,9 +41588,9 @@ def printShowDelegates(users):
             status = delegate['verificationStatus']
             delegateEmail = delegate['delegateEmail']
             if cd:
-              writeStdout('{0},{1},{2},{3}\n'.format(user, _getDelegateName(delegateEmail), status, delegateEmail))
+              writeStdout(f'{user},{_getDelegateName(delegateEmail)},{status},{delegateEmail}\n')
             else:
-              writeStdout('{0},{1},{2}\n'.format(user, status, delegateEmail))
+              writeStdout(f'{user},{status},{delegateEmail}\n')
       else:
         if delegates:
           if cd:
@@ -41606,12 +41628,11 @@ def _printFilter(user, userFilter, labels):
       if item in {'hasAttachment', 'excludeChats'}:
         row[item] = item
       elif item == 'size':
-        row[item] = 'size {0} {1}'.format(userFilter['criteria']['sizeComparison'],
-                                          formatMaxMessageBytes(userFilter['criteria'][item], ONE_KILO_10_BYTES, ONE_MEGA_10_BYTES))
+        row[item] = f'size {userFilter["criteria"]["sizeComparison"]} {formatMaxMessageBytes(userFilter["criteria"][item], ONE_KILO_10_BYTES, ONE_MEGA_10_BYTES)}'
       elif item == 'sizeComparison':
         pass
       else:
-        row[item] = '{0} {1}'.format(item, userFilter['criteria'][item])
+        row[item] = f'{item} {userFilter["criteria"][item]}'
   else:
     row['error'] = 'NoCriteria'
   if 'action' in userFilter:
@@ -41619,12 +41640,12 @@ def _printFilter(user, userFilter, labels):
       if labelId in FILTER_ADD_LABEL_TO_ARGUMENT_MAP:
         row[FILTER_ADD_LABEL_TO_ARGUMENT_MAP[labelId]] = FILTER_ADD_LABEL_TO_ARGUMENT_MAP[labelId]
       else:
-        row['label'] = 'label {0}'.format(_getLabelName(labels, labelId))
+        row['label'] = f'label {_getLabelName(labels, labelId)}'
     for labelId in userFilter['action'].get('removeLabelIds', []):
       if labelId in FILTER_REMOVE_LABEL_TO_ARGUMENT_MAP:
         row[FILTER_REMOVE_LABEL_TO_ARGUMENT_MAP[labelId]] = FILTER_REMOVE_LABEL_TO_ARGUMENT_MAP[labelId]
     if userFilter['action'].get('forward'):
-      row['forward'] = 'forward {0}'.format(userFilter['action']['forward'])
+      row['forward'] = f'forward {userFilter["action"]["forward"]}'
   else:
     row['error'] = 'NoActions'
   return row
@@ -41639,12 +41660,11 @@ def _showFilter(userFilter, j, jcount, labels):
       if item in {'hasAttachment', 'excludeChats'}:
         printKeyValueList([item])
       elif item == 'size':
-        printKeyValueList(['{0} {1} {2}'.format(item, userFilter['criteria']['sizeComparison'],
-                                                formatMaxMessageBytes(userFilter['criteria'][item], ONE_KILO_10_BYTES, ONE_MEGA_10_BYTES))])
+        printKeyValueList([f'{item} {userFilter["criteria"]["sizeComparison"]} {formatMaxMessageBytes(userFilter["criteria"][item], ONE_KILO_10_BYTES, ONE_MEGA_10_BYTES)}'])
       elif item == 'sizeComparison':
         pass
       else:
-        printKeyValueList(['{0} "{1}"'.format(item, userFilter['criteria'][item])])
+        printKeyValueList([f'{item} "{userFilter["criteria"][item]}"'])
   else:
     printKeyValueList([ERROR, Msg.NO_FILTER_CRITERIA.format(Ent.Singular(Ent.FILTER))])
   Ind.Decrement()
@@ -41655,7 +41675,7 @@ def _showFilter(userFilter, j, jcount, labels):
       if labelId in FILTER_ADD_LABEL_TO_ARGUMENT_MAP:
         printKeyValueList([FILTER_ADD_LABEL_TO_ARGUMENT_MAP[labelId]])
       else:
-        printKeyValueList(['label "{0}"'.format(_getLabelName(labels, labelId))])
+        printKeyValueList([f'label "{_getLabelName(labels, labelId)}"'])
     for labelId in sorted(userFilter['action'].get('removeLabelIds', [])):
       if labelId in FILTER_REMOVE_LABEL_TO_ARGUMENT_MAP:
         printKeyValueList([FILTER_REMOVE_LABEL_TO_ARGUMENT_MAP[labelId]])
@@ -42274,9 +42294,9 @@ SMTPMSA_DISPLAY_FIELDS = ['host', 'port', 'securityMode']
 
 def _showSendAs(result, j, jcount, sigReplyFormat):
   if result['displayName']:
-    printEntity([Ent.SENDAS_ADDRESS, '{0} <{1}>'.format(result['displayName'], result['sendAsEmail'])], j, jcount)
+    printEntity([Ent.SENDAS_ADDRESS, f'{result["displayName"]} <{result["sendAsEmail"]}>'], j, jcount)
   else:
-    printEntity([Ent.SENDAS_ADDRESS, '<{0}>'.format(result['sendAsEmail'])], j, jcount)
+    printEntity([Ent.SENDAS_ADDRESS, f'<{result["sendAsEmail"]}>'], j, jcount)
   Ind.Increment()
   if result.get('replyToAddress'):
     printKeyValueList(['ReplyTo', result['replyToAddress']])
@@ -42287,7 +42307,7 @@ def _showSendAs(result, j, jcount, sigReplyFormat):
   if 'smtpMsa' in result:
     for field in SMTPMSA_DISPLAY_FIELDS:
       if field in result['smtpMsa']:
-        printKeyValueList(['smtpMsa.{0}'.format(field), result['smtpMsa'][field]])
+        printKeyValueList([f'smtpMsa.{field}', result['smtpMsa'][field]])
   if 'verificationStatus' in result:
     printKeyValueList(['Verification Status', result['verificationStatus']])
   signature = result.get('signature')
@@ -42391,7 +42411,7 @@ def _createUpdateSendAs(users, addCmd):
   if smtpMsa:
     for field in SMTPMSA_REQUIRED_FIELDS:
       if field not in smtpMsa:
-        missingArgumentExit('smtpmsa.{0}'.format(field))
+        missingArgumentExit(f'smtpmsa.{field}')
     body['smtpMsa'] = smtpMsa
   kwargs = {'body': body, 'fields': ''}
   if not addCmd:
@@ -42498,7 +42518,7 @@ def printShowSendAs(users):
               else:
                 for field in SMTPMSA_DISPLAY_FIELDS:
                   if field in sendas[item]:
-                    row['smtpMsa.{0}'.format(field)] = sendas[item][field]
+                    row[f'smtpMsa.{field}'] = sendas[item][field]
             csvPF.WriteRowTitles(row)
         elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
           csvPF.WriteRowNoFilter({'User': user})
@@ -42544,7 +42564,7 @@ def createSmime(users):
                  throw_reasons=GAPI.GMAIL_SMIME_THROW_REASONS,
                  userId='me', sendAsEmail=sendAsEmail, id=result['id'])
       entityModifierNewValueActionPerformed([Ent.USER, user, Ent.SENDAS_ADDRESS, sendAsEmail, Ent.SMIME_ID, result['id']],
-                                            Act.MODIFIER_FROM, '{0}: {1}'.format(Ent.Singular(Ent.ISSUER_CN), result['issuerCn']), i, count)
+                                            Act.MODIFIER_FROM, f'{Ent.Singular(Ent.ISSUER_CN)}: {result["issuerCn"]}', i, count)
     except (GAPI.forbidden, GAPI.invalidArgument) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
@@ -43971,7 +43991,7 @@ def showAPICallsRetryData():
     for k, v in sorted(iter(GM.Globals[GM.API_CALLS_RETRY_DATA].items())):
       m, s = divmod(int(v[1]), 60)
       h, m = divmod(m, 60)
-      writeStderr(formatKeyValueList(Ind.Spaces(), [k, '{0}/{1}:{2:02d}:{3:02d}'.format(v[0], h, m, s)], '\n'))
+      writeStderr(formatKeyValueList(Ind.Spaces(), [k, f'{v[0]}/{h}:{m:02d}:{s:02d}'], '\n'))
     Ind.Decrement()
 
 def adjustRedirectedSTDFilesIfNotMultiprocessing():

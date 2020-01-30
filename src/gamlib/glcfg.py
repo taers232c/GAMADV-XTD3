@@ -31,9 +31,9 @@ NEVER = 'Never'
 TLS_CHOICE_MAP = {
   '': '',
   'tlsv1': 'TLSv1',
-  'tlsv1_0': 'TLSv1', 'tlsv1.0': 'TLSv1', 
-  'tlsv1_1': 'TLSv1_1', 'tlsv1.1': 'TLSv1_1', 
-  'tlsv1_2': 'TLSv1_2', 'tlsv1.2': 'TLSv1_2', 
+  'tlsv1_0': 'TLSv1', 'tlsv1.0': 'TLSv1',
+  'tlsv1_1': 'TLSv1_1', 'tlsv1.1': 'TLSv1_1',
+  'tlsv1_2': 'TLSv1_2', 'tlsv1.2': 'TLSv1_2',
   'tlsv1_3': 'TLSv1_3', 'tlsv1.3': 'TLSv1_3',
   }
 

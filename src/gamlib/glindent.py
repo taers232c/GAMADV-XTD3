@@ -43,4 +43,4 @@ class GamIndent():
     return self.INDENT_SPACES_PER_LEVEL*(self.indent-1)
 
   def MultiLineText(self, message, n=0):
-    return message.replace('\n', '\n{0}'.format(self.INDENT_SPACES_PER_LEVEL*(self.indent+n))).rstrip()
+    return message.replace('\n', f'\n{self.INDENT_SPACES_PER_LEVEL*(self.indent+n)}').rstrip()
