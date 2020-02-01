@@ -11,7 +11,8 @@ export pip=/c/Python38/scripts/pip.exe
 
 $pip install --upgrade pip
 $pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U
-$pip install src/lxml-4.4.1-cp38-cp38-win32.whl
+$pip install --upgrade lxml==4.5.0
+#$pip install src/lxml-4.5.0-cp38-cp38-win32.whl
 $pip install src/cryptography-2.8-cp38-cp38-win32.whl
 #$pip install --upgrade -r src/requirements.txt
 
