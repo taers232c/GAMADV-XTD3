@@ -1,3 +1,8 @@
+4.99.01
+
+Updated `gam.cfg` `csv_output_row_filter` processing so that field names can contain colons.
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/CSV-Print-Filtering#quoting-rules
+
 4.99.00
 
 Reworked code to use Python 'f' strings for most formatting; this feature was added in Python 3.6.
@@ -8,7 +13,7 @@ Added options to `gam show messages|threads` to allow downloading attachments.
 ```
 [saveattachments [attachmentnamepattern <RegularExpression>]] [targetfolder <FilePath>] [overwrite [<Boolean>]]
 ```
-See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Gmail-Messages-Threads#display-messagesthreads
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Gmail-Messages-Threads#download-attachments
 
 4.98.17
 

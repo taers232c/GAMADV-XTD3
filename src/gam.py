@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.00'
+__version__ = '4.99.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2635,7 +2635,9 @@ def SetGlobalVariables():
         if not filterVal:
           continue
         try:
-          column, filterStr = filterVal.split(':', 1)
+          filterTokens = shlexSplitList(filterVal, ':')
+          column = filterTokens[0]
+          filterStr = ':'.join(filterTokens[1:])
         except ValueError:
           _printValueError(sectionName, itemName, f'"{filterVal}"', f'{Msg.EXPECTED}: column:filter')
           continue
