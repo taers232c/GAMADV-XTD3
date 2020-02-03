@@ -2308,7 +2308,7 @@ gam report <ActivityApplicationName> [todrive <ToDriveAttributes>*]
         sites
 <CustomerServiceNameList> ::= "<CustomerServiceName>(,<CustomerServiceName>)*"
 
-gam report <customers|customer|domain> [todrive <ToDriveAttributes>*]
+gam report customers|customer|domain [todrive <ToDriveAttributes>*]
         [(date <Date>)|(range <Date> <Date>)] [nodatechange | (fulldatarequired all|<CustomerServiceNameList>)]
         [(fields|parameters <String>)|(services <CustomerServiceNameList>)] [noauthorizedapps]
 
@@ -2320,7 +2320,7 @@ gam report <customers|customer|domain> [todrive <ToDriveAttributes>*]
         gmail
 <UserServiceNameList> ::= "<UserServiceName>(,<UserServiceName>)*"
 
-gam report <users|user> [todrive <ToDriveAttributes>*]
+gam report users|user [todrive <ToDriveAttributes>*]
         [(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
         [(date <Date>)|(range <Date> <Date>)] [nodatechange | (fulldatarequired all|<UserServiceNameList>)]
         [filtertime.* <Time>] [filter|filters <String>]

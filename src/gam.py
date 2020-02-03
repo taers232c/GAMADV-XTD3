@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.01'
+__version__ = '4.99.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1260,6 +1260,53 @@ def getOrgUnitItem(pathOnly=False, absolutePath=True):
         return makeOrgUnitPathAbsolute(path)
       return makeOrgUnitPathRelative(path)
   missingArgumentExit([Cmd.OB_ORGUNIT_ITEM, Cmd.OB_ORGUNIT_PATH][pathOnly])
+
+def getTopLevelOrgId(cd, parentOrgUnitPath):
+  try:
+    result = callGAPI(cd.orgunits(), 'insert',
+                      throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                      customerId=GC.Values[GC.CUSTOMER_ID], body={'name': 'temp-delete-me', 'parentOrgUnitPath': parentOrgUnitPath}, fields='parentOrgUnitId,orgUnitId')
+  except GAPI.invalidOrgunit:
+    return None
+  except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
+    checkEntityAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, parentOrgUnitPath)
+    return None
+  try:
+    callGAPI(cd.orgunits(), 'delete',
+             throw_reasons=[GAPI.CONDITION_NOT_MET, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+             customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=result['orgUnitId'])
+  except (GAPI.conditionNotMet, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
+    pass
+  except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
+    checkEntityAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, parentOrgUnitPath)
+  return result['parentOrgUnitId']
+
+def getOrgUnitId(cd=None):
+  if cd is None:
+    cd = buildGAPIObject(API.DIRECTORY)
+  orgUnit = getOrgUnitItem()
+  if orgUnit[:3] == 'id:':
+    return (orgUnit, orgUnit)
+  try:
+    if orgUnit == '/':
+      result = callGAPI(cd.orgunits(), 'list',
+                        throw_reasons=[GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                        customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath='/', type='children',
+                        fields='organizationUnits(parentOrgUnitId)')
+      if result.get('organizationUnits', []):
+        return (orgUnit, result['organizationUnits'][0]['parentOrgUnitId'])
+      topLevelOrgId = getTopLevelOrgId(cd, '/')
+      if topLevelOrgId:
+        return (orgUnit, topLevelOrgId)
+      return (orgUnit, '/') #Bogus but should never happen
+    result = callGAPI(cd.orgunits(), 'get',
+                      throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                      customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(makeOrgUnitPathRelative(orgUnit)), fields='orgUnitId')
+    return (orgUnit, result['orgUnitId'])
+  except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
+    entityDoesNotExistExit(Ent.ORGANIZATIONAL_UNIT, orgUnit)
+  except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
+    accessErrorExit(cd)
 
 def validateREPattern(patstr, flags=0):
   try:
@@ -3598,6 +3645,8 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False, service=None):
       elif 'Backend Error' in message:
         error = {'error': {'errors': [{'reason': GAPI.BACKEND_ERROR, 'message': message}]}}
       elif 'Role assignment exists: RoleAssignment' in message:
+        error = {'error': {'errors': [{'reason': GAPI.DUPLICATE, 'message': message}]}}
+      elif 'Role assignment exists: roleId' in message:
         error = {'error': {'errors': [{'reason': GAPI.DUPLICATE, 'message': message}]}}
       elif 'Operation not supported' in message:
         error = {'error': {'errors': [{'reason': GAPI.OPERATION_NOT_SUPPORTED, 'message': message}]}}
@@ -8569,14 +8618,14 @@ REPORT_ACTIVITIES_TIME_OBJECTS = {'time'}
 #	[event|events <EventNameList>] [ip <String>]
 #	[maxactivities <Number>] [maxresults <Number>]
 #	[countsonly] [summary]
-# gam report <users|user> [todrive <ToDriveAttributes>*]
+# gam report users|user [todrive <ToDriveAttributes>*]
 #	[(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
 #	[(date <Date>)|(range <Date> <Date>)] [nodatechange | (fulldatarequired all|<UserServiceNameList>)]
 #	[filtertime.* <Time>] [filter|filters <String>]
 #	[(fields|parameters <String>)|(services <UserServiceNameList>)]
 #	[aggregatebydate [Boolean]]
 #	[maxresults <Number>]
-# gam report <customers|customer|domain> [todrive <ToDriveAttributes>*]
+# gam report customers|customer|domain [todrive <ToDriveAttributes>*]
 #	[(date <Date>)|(range <Date> <Date>)] [nodatechange | (fulldatarequired all|<CustomerServiceNameList>)]
 #	[(fields|parameters <String>)|(services <CustomerServiceNameList>)] [noauthorizedapps]
 def doReport():
@@ -10441,22 +10490,6 @@ def getRoleId():
       invalidChoiceExit(roleId, GM.Globals[GM.MAP_ROLE_NAME_TO_ID], True)
   return (role, roleId)
 
-def getOrgUnitId(cd=None):
-  if cd is None:
-    cd = buildGAPIObject(API.DIRECTORY)
-  orgUnit = getOrgUnitItem()
-  if orgUnit[:3] == 'id:':
-    return (orgUnit, orgUnit)
-  try:
-    result = callGAPI(cd.orgunits(), 'get',
-                      throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
-                      customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(makeOrgUnitPathRelative(orgUnit)), fields='orgUnitId')
-    return (orgUnit, result['orgUnitId'])
-  except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
-    entityDoesNotExistExit(Ent.ORGANIZATIONAL_UNIT, orgUnit)
-  except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
-    accessErrorExit(cd)
-
 ADMIN_SCOPE_TYPE_CHOICE_MAP = {'customer': 'CUSTOMER', 'orgunit': 'ORG_UNIT', 'org': 'ORG_UNIT', 'ou': 'ORG_UNIT'}
 
 # gam create admin <UserItem> <RoleItem> customer|(org_unit <OrgUnitItem>)
@@ -11144,26 +11177,6 @@ def doDeleteOrgs():
 # gam delete org|ou <OrgUnitItem>
 def doDeleteOrg():
   _doDeleteOrgs([getOrgUnitItem()])
-
-def getTopLevelOrgId(cd, parentOrgUnitPath):
-  try:
-    temp_org = callGAPI(cd.orgunits(), 'insert',
-                        throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
-                        customerId=GC.Values[GC.CUSTOMER_ID], body={'name': 'temp-delete-me', 'parentOrgUnitPath': parentOrgUnitPath}, fields='parentOrgUnitId,orgUnitId')
-  except GAPI.invalidOrgunit:
-    return None
-  except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
-    checkEntityAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, parentOrgUnitPath)
-    return None
-  try:
-    callGAPI(cd.orgunits(), 'delete',
-             throw_reasons=[GAPI.CONDITION_NOT_MET, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
-             customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=temp_org['orgUnitId'])
-  except (GAPI.conditionNotMet, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
-    pass
-  except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
-    checkEntityAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, parentOrgUnitPath)
-  return temp_org['parentOrgUnitId']
 
 SUSPENDED_ARGUMENTS = {'notsuspended', 'suspended', 'issuspended'}
 SUSPENDED_CHOICE_MAP = {'notsuspended': False, 'suspended': True}
@@ -19681,7 +19694,7 @@ def _processCalendarACLs(cal, function, entityType, calId, j, jcount, k, kcount,
     callGAPI(cal.acl(), function,
              throw_reasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_PARAMETER, GAPI.INVALID_SCOPE_VALUE,
                             GAPI.ILLEGAL_ACCESS_ROLE_FOR_DEFAULT, GAPI.CANNOT_CHANGE_OWN_ACL, GAPI.CANNOT_CHANGE_OWNER_ACL,
-                            GAPI.FORBIDDEN, GAPI.AUTH_ERROR],
+                            GAPI.FORBIDDEN, GAPI.AUTH_ERROR, GAPI.CONDITION_NOT_MET],
              calendarId=calId, **kwargs)
     entityActionPerformed([entityType, calId, Ent.CALENDAR_ACL, formatACLScopeRole(ruleId, role)], k, kcount)
   except GAPI.notFound as e:
@@ -19692,7 +19705,7 @@ def _processCalendarACLs(cal, function, entityType, calId, j, jcount, k, kcount,
       entityActionFailedWarning([entityType, calId, Ent.CALENDAR_ACL, formatACLScopeRole(ruleId, role)], str(e), k, kcount)
   except (GAPI.invalid, GAPI.invalidParameter, GAPI.invalidScopeValue,
           GAPI.illegalAccessRoleForDefault, GAPI.cannotChangeOwnAcl, GAPI.cannotChangeOwnerAcl,
-          GAPI.forbidden, GAPI.authError) as e:
+          GAPI.forbidden, GAPI.authError, GAPI.conditionNotMet) as e:
     entityActionFailedWarning([entityType, calId, Ent.CALENDAR_ACL, formatACLScopeRole(ruleId, role)], str(e), k, kcount)
   return result
 

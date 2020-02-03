@@ -1,3 +1,9 @@
+4.99.02
+
+Updated code to handle Directory API issue that prevents looking up the orgUnitId of OU /.
+This affected `gam report` if you used the `orgunit /` option.
+This affected `gam create admin <UserItem> <RoleItem> org_unit /`.
+
 4.99.01
 
 Updated `gam.cfg` `csv_output_row_filter` processing so that field names can contain colons.
