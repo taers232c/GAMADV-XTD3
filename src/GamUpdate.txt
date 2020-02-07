@@ -1,3 +1,7 @@
+4.99.03
+
+Following Jay's lead, update default password encryption in `gam create/update user`.
+
 4.99.02
 
 Updated code to handle Directory API issue that prevents looking up the orgUnitId of OU /.

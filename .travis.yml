@@ -1,4 +1,6 @@
 if: tag IS blank
+os: linux
+language: python
 
 env:
   global:
@@ -12,35 +14,38 @@ cache:
     - $HOME/python
     - $HOME/ssl
 
-matrix:
-  fast_finish: true
+jobs:
   include:
-    - os: linux
-      name: "Linux 64-bit Bionic"
-      dist: bionic
-      language: bash
-      env:
-        - GAMOS=linux
-        - PLATFORM=x86_64
-        - VMTYPE=build
     - os: linux
       dist: bionic
       arch: arm64
       name: "Linux ARM64 Bionic"
-      language: bash
-      filter_secrets: false
-      addons:
-        apt:
-          packages:
-            - ruby
+      language: shell
       env:
         - GAMOS=linux
         - PLATFORM=arm64
         - VMTYPE=build
     - os: linux
+      dist: xenial
+      arch: arm64
+      name: "Linux ARM64 Xenial"
+      language: shell
+      env:
+        - GAMOS=linux
+        - PLATFORM=arm64
+        - VMTYPE=build
+    - os: linux
+      name: "Linux 64-bit Bionic"
+      dist: bionic
+      language: shell
+      env:
+        - GAMOS=linux
+        - PLATFORM=x86_64
+        - VMTYPE=build
+    - os: linux
       name: "Linux 64-bit Xenial"
       dist: xenial
-      language: bash
+      language: shell
       env:
         - GAMOS=linux
         - PLATFORM=x86_64
@@ -48,7 +53,7 @@ matrix:
     - os: linux
       name: "Linux 64-bit Trusty"
       dist: trusty
-      language: bash
+      language: shell
       env:
         - GAMOS=linux
         - PLATFORM=x86_64
@@ -56,7 +61,7 @@ matrix:
     - os: linux
       name: "Linux 64-bit Precise"
       dist: precise
-      language: bash
+      language: shell
       env:
         - GAMOS=linux
         - PLATFORM=x86_64
@@ -104,7 +109,6 @@ matrix:
     - os: windows
       name: "Windows 64-bit"
       language: shell
-      filter_secrets: false
       env:
         - GAMOS=windows
         - PLATFORM=x86_64
@@ -112,14 +116,10 @@ matrix:
     - os: windows
       name: "Windows 32-bit"
       language: shell
-      filter_secrets: false
       env:
         - GAMOS=windows
         - PLATFORM=x86
         - VMTYPE=build
-
-before_cache:
-- echo "this is before cache"
 
 before_install:
 - source src/travis/$TRAVIS_OS_NAME-$PLATFORM-before-install.sh
@@ -150,7 +150,6 @@ deploy:
   file: gamadv-xtd3-$GAMVERSION-*
   skip_cleanup: true
   draft: true
-  all_branches: true
   on:
     repo: taers232c/GAMADV-XTD3
     condition: $VMTYPE = build

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.02'
+__version__ = '4.99.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -114,7 +114,11 @@ import oauth2client.file
 import oauth2client.tools
 from oauth2client.contrib.dictionary_storage import DictionaryStorage
 from oauth2client.contrib.multiprocess_file_storage import MultiprocessFileStorage
-from passlib.hash import sha512_crypt
+if platform.system() == 'Windows':
+  # No crypt module on Win, use passlib
+  from passlib.hash import sha512_crypt
+else:
+  from crypt import crypt
 
 if platform.system() == 'Linux':
   import distro
@@ -23657,7 +23661,9 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       body[itemName].append(itemValue)
 
   def gen_sha512_hash(password):
-    return sha512_crypt.hash(password, rounds=5000)
+    if platform.system() == 'Windows':
+      return sha512_crypt.hash(password, rounds=5000)
+    return crypt(password)
 
   def _splitSchemaNameDotFieldName(sn_fn, fnRequired=True):
     if sn_fn.find('.') != -1:
