@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.03'
+__version__ = '4.99.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -11878,10 +11878,10 @@ def doUploadAuditKey():
   auditObject = getEmailAuditObject()
   if Cmd.ArgumentsRemaining():
     filename = getString(Cmd.OB_FILE_NAME)
-    auditkey = readFile(filename)
+    auditkey = readFile(filename, mode='rb')
   else:
     filename = 'Read from stdin'
-    auditkey = sys.stdin.read()
+    auditkey = sys.stdin.read().encode(UTF8)
   checkForExtraneousArguments()
   callGData(auditObject, 'updatePGPKey',
             pgpkey=auditkey)

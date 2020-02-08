@@ -1,3 +1,7 @@
+4.99.04
+
+Fixed bug in `gam audit uploadkey` that caused a trap.
+
 4.99.03
 
 Following Jay's lead, update default password encryption in `gam create/update user`.
