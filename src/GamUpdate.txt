@@ -1,3 +1,7 @@
+4.99.05
+
+Code cleanup.
+
 4.99.04
 
 Fixed bug in `gam audit uploadkey` that caused a trap.

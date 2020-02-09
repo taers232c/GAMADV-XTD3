@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.04'
+__version__ = '4.99.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1866,7 +1866,7 @@ def formatMilliSeconds(millis):
   seconds, millis = divmod(millis, 1000)
   minutes, seconds = divmod(seconds, 60)
   hours, minutes = divmod(minutes, 60)
-  return '%02d:%02d:%02d' % (hours, minutes, seconds)
+  return f'{hours:02d}:{minutes:02d}:{seconds:02d}'
 
 def currentCount(i, count):
   return f' ({i}/{count})' if (count > GC.Values[GC.SHOW_COUNTS_MIN]) else ''
@@ -3461,12 +3461,12 @@ def checkGDataError(e, service):
     1201: 'Domain alias limit exceeded',
     1202: 'Domain suspended',
     1203: 'Domain feature unavailable',
-    1300: 'Entity %s exists' % getattr(e, 'invalidInput', '<unknown>'),
-    1301: 'Entity %s Does Not Exist' % getattr(e, 'invalidInput', '<unknown>'),
+    1300: f'Entity {getattr(e, "invalidInput", "<unknown>")} exists',
+    1301: f'Entity {getattr(e, "invalidInput", "<unknown>")} Does Not Exist',
     1302: 'Entity Name Is Reserved',
-    1303: 'Entity %s name not valid' % getattr(e, 'invalidInput', '<unknown>'),
-    1306: '%s has members. Cannot delete.' % getattr(e, 'invalidInput', '<unknown>'),
-    1317: 'Invalid input %s, reason %s' % (getattr(e, 'invalidInput', '<unknown>'), getattr(e, 'reason', '<unknown>')),
+    1303: f'Entity {getattr(e, "invalidInput", "<unknown>")} name not valid',
+    1306: f'{getattr(e, "invalidInput", "<unknown>")} has members. Cannot delete.',
+    1317: f'Invalid input {getattr(e, "invalidInput", "<unknown>")}, reason {getattr(e, "reason", "<unknown>")}',
     1400: 'Invalid Given Name',
     1401: 'Invalid Family Name',
     1402: 'Invalid Password',
@@ -3487,7 +3487,7 @@ def checkGDataError(e, service):
     1603: 'Invalid Route Address',
     1700: 'Group Cannot Contain Cycle',
     1800: 'Group Cannot Contain Cycle',
-    1801: 'Invalid value %s' % getattr(e, 'invalidInput', '<unknown>'),
+    1801: f'Invalid value {getattr(e, "invalidInput", "<unknown>")}',
   }
   return (error_code, error_code_map.get(error_code, f'Unknown Error: {str(e)}'))
 
@@ -6330,7 +6330,7 @@ def getOSPlatform():
     pltfrm = ' '.join([codename, mac_ver])
   else:
     pltfrm = platform.platform()
-  return '%s %s' % (myos, pltfrm)
+  return f'{myos} {pltfrm}'
 
 # gam version [check|checkrc|simple|extended] [timeoffset] [location <HostName>]
 def doVersion(checkForArgs=True):
@@ -7066,7 +7066,7 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
   for a_scope in scopesList:
     oauth2_menu += '[%%%%s] %%2d)  %s' % (a_scope['name'])
     if a_scope['subscopes']:
-      oauth2_menu += ' (supports %s)' % (' and '.join(a_scope['subscopes']))
+      oauth2_menu += f' (supports {" and ".join(a_scope["subscopes"])})'
     oauth2_menu += '\n'
   oauth2_menu += '''
      s)  Select all scopes
@@ -24126,7 +24126,7 @@ def updateUsers(entityList):
         userKey = result['id']
         userPrimary = result['primaryEmail']
         userName, userDomain = splitEmailAddress(userPrimary)
-        body['primaryEmail'] = f'vfe.{userName}.{random.randint(1, 99999):05}@{userDomain}'
+        body['primaryEmail'] = f'vfe.{userName}.{random.randint(1, 99999):05d}@{userDomain}'
         body['emails'] = [{'type': 'custom',
                            'customType': 'former_employee',
                            'primary': False, 'address': userPrimary}]
@@ -25300,7 +25300,7 @@ def doUpdateSiteVerification():
       elif status == 0:
         systemErrorExit(NETWORK_ERROR_RC, Msg.DOMAIN_NOT_FOUND_IN_DNS)
       else:
-        systemErrorExit(NETWORK_ERROR_RC, DNS_ERROR_CODES_MAP.get(status, 'Unknown error %s' % status))
+        systemErrorExit(NETWORK_ERROR_RC, DNS_ERROR_CODES_MAP.get(status, f'Unknown error {status}'))
 
   verif = buildGAPIObject(API.SITEVERIFICATION)
   a_domain = getString(Cmd.OB_DOMAIN_NAME)
