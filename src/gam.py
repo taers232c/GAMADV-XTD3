@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.05'
+__version__ = '4.99.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3260,7 +3260,7 @@ def getOldOauth2TxtCredentials(credFamily):
   try:
     storage = MultiprocessFileStorage(GC.Values[GC.OAUTH2_TXT], credFamily)
     return (storage, storage.get())
-  except (KeyError, ValueError):
+  except (TypeError, IndexError, KeyError, ValueError):
     return (None, None)
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, fileErrorMessage(GC.Values[GC.OAUTH2_TXT], e))
@@ -3273,7 +3273,7 @@ def getOauth2TxtCredentials(storageOnly=False, exitOnError=True):
     credentials = storage.get()
     if credentials:
       return credentials
-  except (ValueError, IndexError, KeyError):
+  except (TypeError, IndexError, KeyError, ValueError):
     pass
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, fileErrorMessage(GC.Values[GC.OAUTH2_TXT], e))
@@ -8561,6 +8561,7 @@ REPORT_CHOICE_MAP = {
   'admin': 'admin',
   'calendar': 'calendar',
   'calendars': 'calendar',
+  'chat': 'chat',
   'customer': 'customer',
   'customers': 'customer',
   'doc': 'drive',
@@ -8568,12 +8569,14 @@ REPORT_CHOICE_MAP = {
   'domain': 'customer',
   'drive': 'drive',
   'enterprisegroups': 'groups_enterprise',
+  'gcp': 'gcp',
   'gplus': 'gplus',
   'google+': 'gplus',
   'group': 'groups',
   'groups': 'groups',
   'groupsenterprise': 'groups_enterprise',
   'hangoutsmeet': 'meet',
+  'jamboard': 'jamboard',
   'login': 'login',
   'logins': 'login',
   'meet': 'meet',

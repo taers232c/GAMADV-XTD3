@@ -2271,11 +2271,14 @@ gam [<UserTypeEntity>] print printjob|printjobs [todrive <ToDriveAttribute>*] [p
         access|accesstransparency|
         admin|
         calendar|calendars|
+	chat|
         drive|doc|docs|
         enterprisegroups|groupsenterprise|
+	gcp|
         google+|gplus|
         group|groups|
         hangoutsmeet|meet|
+	jamboard|
         login|logins|
         mobile|
         oauthtoken|token|tokens|
