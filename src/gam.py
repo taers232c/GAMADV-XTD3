@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.06'
+__version__ = '4.99.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3260,7 +3260,7 @@ def getOldOauth2TxtCredentials(credFamily):
   try:
     storage = MultiprocessFileStorage(GC.Values[GC.OAUTH2_TXT], credFamily)
     return (storage, storage.get())
-  except (TypeError, IndexError, KeyError, ValueError):
+  except (AttributeError, TypeError, IndexError, KeyError, ValueError):
     return (None, None)
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, fileErrorMessage(GC.Values[GC.OAUTH2_TXT], e))
@@ -3273,7 +3273,7 @@ def getOauth2TxtCredentials(storageOnly=False, exitOnError=True):
     credentials = storage.get()
     if credentials:
       return credentials
-  except (TypeError, IndexError, KeyError, ValueError):
+  except (AttributeError, TypeError, IndexError, KeyError, ValueError):
     pass
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, fileErrorMessage(GC.Values[GC.OAUTH2_TXT], e))

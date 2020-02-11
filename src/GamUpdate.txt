@@ -1,3 +1,7 @@
+4.99.07
+
+Added error checking to handle badly-formatted oauth2.txt files.
+
 4.99.06
 
 Added additional options, 'chat' and `gcp`, and `jamboard` to `<ActivityApplicationName>` for `gam report` command.
