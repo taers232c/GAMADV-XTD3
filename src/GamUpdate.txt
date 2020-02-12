@@ -1,3 +1,9 @@
+4.99.08
+
+Added `actioncsv` option to `gam update groups`. This will produce a CSV file with columns `group,email,role,action,message`
+that shows the actions performed when updating the group.
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Groups-Membership
+
 4.99.07
 
 Added error checking to handle badly-formatted oauth2.txt files.

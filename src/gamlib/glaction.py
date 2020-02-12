@@ -200,6 +200,7 @@ class GamAction():
   MODIFIER_WITH = 'with'
   MODIFIER_WITH_CONTENT_FROM = 'with content from'
   PREFIX_NOT = 'Not'
+  PREVIEW = 'Preview'
   SUFFIX_FAILED = 'Failed'
 
   def __init__(self):

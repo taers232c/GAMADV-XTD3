@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.07'
+__version__ = '4.99.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -16338,29 +16338,38 @@ def checkGroupExists(cd, group, i=0, count=0):
     return None
 
 UPDATE_GROUP_SUBCMDS = ['add', 'create', 'delete', 'remove', 'clear', 'sync', 'update']
+GROUP_PREVIEW_TITLES = ['group', 'email', 'role', 'action', 'message']
 
 # gam update groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] [copyfrom <GroupItem>] <GroupAttributes>
 # gam update groups <GroupEntity> create|add [<GroupRole>]
 #	[usersonly|groupsonly] [notsuspended|suspended]
-#	[delivery <DeliverySetting>] [preview]
+#	[delivery <DeliverySetting>] [preview] [actioncsv]
 #	<UserTypeEntity>
 # gam update groups <GroupEntity> delete|remove [<GroupRole>]
-#	[usersonly|groupsonly] [notsuspended|suspended] [preview]
+#	[usersonly|groupsonly] [notsuspended|suspended] [preview] [actioncsv]
 #	<UserTypeEntity>
 # gam update groups <GroupEntity> sync [<GroupRole>]
 #	[usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended]
 #	[removedomainnostatusmembers]
-#	[delivery <DeliverySetting>] [preview]
+#	[delivery <DeliverySetting>] [preview] [actioncsv]
 #	<UserTypeEntity>
 # gam update groups <GroupEntity> update [<GroupRole>]
 #	[usersonly|groupsonly] [notsuspended|suspended]
-#	[delivery <DeliverySetting>] [preview] [createifnotfound]
+#	[delivery <DeliverySetting>] [preview] [actioncsv] [createifnotfound]
 #	<UserTypeEntity>
 # gam update groups <GroupEntity> clear [member] [manager] [owner]
 #	[usersonly|groupsonly] [notsuspended|suspended]
 #	[emailclearpattern|emailretainpattern <RegularExpression>]
-#	[removedomainnostatusmembers] [preview]
+#	[removedomainnostatusmembers] [preview] [actioncsv]
 def doUpdateGroups():
+
+  def _getPreviewActionCSV():
+    preview = checkArgumentPresent('preview')
+    if checkArgumentPresent('actioncsv'):
+      csvPF = CSVPrintFile(GROUP_PREVIEW_TITLES)
+    else:
+      csvPF = None
+    return (preview, csvPF)
 
   def _validateSubkeyRoleGetMembers(group, role, origGroup, groupMemberLists, i, count):
     roleLower = role.lower()
@@ -16401,21 +16410,31 @@ def doUpdateGroups():
           return cleanEmailAddress
     return emailAddress
 
-  def _previewAction(group, members, role, jcount):
+  def _previewAction(group, members, role, jcount, action):
     Ind.Increment()
     j = 0
     for member in members:
       j += 1
       entityActionPerformed([Ent.GROUP, group, role, member], j, jcount)
     Ind.Decrement()
+    if csvPF:
+      for member in members:
+        csvPF.WriteRow({'group': group, 'email': member, 'role': role, 'action': Act.PerformedName(action), 'message': Act.PREVIEW})
 
-  def _showAction(group, role, delivery_settings, member, j, jcount):
+  def _showSuccess(group, member, role, delivery_settings, j, jcount):
     kvList = []
     if role is not None and role != 'None':
       kvList.append(f'{Ent.Singular(Ent.ROLE)}: {role}')
     if delivery_settings != DELIVERY_SETTINGS_UNDEFINED:
       kvList.append(f'{Ent.Singular(Ent.DELIVERY)}: {delivery_settings}')
     entityActionPerformedMessage([Ent.GROUP, group, Ent.MEMBER, member], ', '.join(kvList), j, jcount)
+    if csvPF:
+      csvPF.WriteRow({'group': group, 'email': member, 'role': role, 'action': Act.Performed(), 'message': 'Success'})
+
+  def _showFailure(group, member, role, errMsg, j, jcount):
+    entityActionFailedWarning([Ent.GROUP, group, Ent.MEMBER, member], errMsg, j, jcount)
+    if csvPF:
+      csvPF.WriteRow({'group': group, 'email': member, 'role': role, 'action': Act.Failed(), 'message': errMsg})
 
   def _addMember(group, i, count, role, delivery_settings, member, j, jcount):
     body = {'role': role}
@@ -16432,19 +16451,19 @@ def doUpdateGroups():
                                                          GAPI.CONDITION_NOT_MET, GAPI.CONFLICT],
                retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                groupKey=group, body=body, fields='')
-      _showAction(group, role, delivery_settings, member, j, jcount)
+      _showSuccess(group, member, role, delivery_settings, j, jcount)
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(Ent.GROUP, group, i, count)
     except (GAPI.duplicate, GAPI.memberNotFound, GAPI.resourceNotFound,
             GAPI.invalidMember, GAPI.cyclicMembershipsNotAllowed, GAPI.conditionNotMet, GAPI.conflict) as e:
-      entityActionFailedWarning([Ent.GROUP, group, Ent.MEMBER, member], str(e), j, jcount)
+      _showFailure(group, member, role, str(e), j, jcount)
 
   def _handleDuplicateAdd(group, i, count, role, delivery_settings, member, j, jcount):
     try:
       result = callGAPI(cd.members(), 'get',
                         throw_reasons=[GAPI.MEMBER_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND],
                         groupKey=group, memberKey=member, fields='role')
-      entityActionFailedWarning([Ent.GROUP, group, Ent.MEMBER, member], Msg.DUPLICATE_ALREADY_A_ROLE.format(Ent.Singular(result['role'])), j, jcount)
+      _showFailure(group, member, role, Msg.DUPLICATE_ALREADY_A_ROLE.format(Ent.Singular(result['role'])), j, jcount)
       return
     except (GAPI.memberNotFound, GAPI.resourceNotFound):
       pass
@@ -16454,7 +16473,7 @@ def doUpdateGroups():
                throw_reasons=[GAPI.MEMBER_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND],
                groupKey=group, memberKey=member)
     except (GAPI.memberNotFound, GAPI.resourceNotFound):
-      entityActionFailedWarning([Ent.GROUP, group, Ent.MEMBER, member], Msg.DUPLICATE, j, jcount)
+      _showFailure(group, member, role, Msg.DUPLICATE, j, jcount)
       return
     _addMember(group, i, count, role, delivery_settings, member, j, jcount)
 
@@ -16469,7 +16488,7 @@ def doUpdateGroups():
   def _callbackAddGroupMembers(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
-      _showAction(ri[RI_ENTITY], ri[RI_ROLE], ri[RI_OPTION], ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      _showSuccess(ri[RI_ENTITY], ri[RI_ITEM], ri[RI_ROLE], ri[RI_OPTION], int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
       http_status, reason, message = checkGAPIError(exception)
       if reason in GAPI.MEMBERS_THROW_REASONS:
@@ -16478,7 +16497,7 @@ def doUpdateGroups():
         _handleDuplicateAdd(ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]), ri[RI_ROLE], ri[RI_OPTION], ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
       elif reason not in GAPI.DEFAULT_RETRY_REASONS+GAPI.MEMBERS_RETRY_REASONS:
         errMsg = getHTTPError(_ADD_MEMBER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
-        entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], Ent.MEMBER, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        _showFailure(ri[RI_ENTITY], ri[RI_ITEM], ri[RI_ROLE], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
       else:
         if addBatchParms['adjust']:
           addBatchParms['adjust'] = False
@@ -16494,7 +16513,7 @@ def doUpdateGroups():
     if jcount == 0:
       return
     if preview:
-      _previewAction(group, addMembers, role, jcount)
+      _previewAction(group, addMembers, role, jcount, Act.ADD)
       return
     if addBatchParms['size'] == 1 or jcount <= addBatchParms['size']:
       Ind.Increment()
@@ -16540,11 +16559,11 @@ def doUpdateGroups():
                                                          GAPI.CONDITION_NOT_MET, GAPI.CONFLICT],
                retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                groupKey=group, memberKey=member)
-      _showAction(group, role, DELIVERY_SETTINGS_UNDEFINED, member, j, jcount)
+      _showSuccess(group, member, role, DELIVERY_SETTINGS_UNDEFINED, j, jcount)
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(Ent.GROUP, group, i, count)
     except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet, GAPI.conflict) as e:
-      entityActionFailedWarning([Ent.GROUP, group, Ent.MEMBER, member], str(e), j, jcount)
+      _showFailure(group, member, role, str(e), j, jcount)
 
   _REMOVE_MEMBER_REASON_TO_MESSAGE_MAP = {GAPI.MEMBER_NOT_FOUND: f'{Msg.NOT_A} {Ent.Singular(Ent.MEMBER)}',
                                           GAPI.CONDITION_NOT_MET: f'{Msg.NOT_A} {Ent.Singular(Ent.MEMBER)}',
@@ -16554,14 +16573,14 @@ def doUpdateGroups():
   def _callbackRemoveGroupMembers(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
-      _showAction(ri[RI_ENTITY], ri[RI_ROLE], DELIVERY_SETTINGS_UNDEFINED, ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      _showSuccess(ri[RI_ENTITY], ri[RI_ITEM], ri[RI_ROLE], DELIVERY_SETTINGS_UNDEFINED, int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
       http_status, reason, message = checkGAPIError(exception)
       if reason in GAPI.MEMBERS_THROW_REASONS:
         entityUnknownWarning(Ent.GROUP, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
       elif reason not in GAPI.DEFAULT_RETRY_REASONS+GAPI.MEMBERS_RETRY_REASONS:
         errMsg = getHTTPError(_REMOVE_MEMBER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
-        entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], Ent.MEMBER, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        _showFailure(ri[RI_ENTITY], ri[RI_ITEM], ri[RI_ROLE], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
       else:
         if remBatchParms['adjust']:
           remBatchParms['adjust'] = False
@@ -16577,7 +16596,7 @@ def doUpdateGroups():
     if jcount == 0:
       return
     if preview:
-      _previewAction(group, removeMembers, role, jcount)
+      _previewAction(group, removeMembers, role, jcount, Act.REMOVE)
       return
     if remBatchParms['size'] == 1 or jcount <= remBatchParms['size']:
       Ind.Increment()
@@ -16631,7 +16650,7 @@ def doUpdateGroups():
                throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER],
                retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                groupKey=group, memberKey=member, body=body, fields='')
-      _showAction(group, role, delivery_settings, member, j, jcount)
+      _showSuccess(group, member, role, delivery_settings, j, jcount)
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(Ent.GROUP, group, i, count)
     except GAPI.memberNotFound as e:
@@ -16640,14 +16659,14 @@ def doUpdateGroups():
         _addMember(group, i, count, role, delivery_settings, member, j, jcount)
         Act.Set(Act.UPDATE)
       else:
-        entityActionFailedWarning([Ent.GROUP, group, Ent.MEMBER, member], str(e), j, jcount)
+        _showFailure(group, member, role, str(e), j, jcount)
     except GAPI.invalidMember as e:
-      entityActionFailedWarning([Ent.GROUP, group, Ent.MEMBER, member], str(e), j, jcount)
+      _showFailure(group, member, role, str(e), j, jcount)
 
   def _callbackUpdateGroupMembers(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
-      _showAction(ri[RI_ENTITY], ri[RI_ROLE], ri[RI_OPTION], ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      _showSuccess(ri[RI_ENTITY], ri[RI_ITEM], ri[RI_ROLE], ri[RI_OPTION], int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
       http_status, reason, message = checkGAPIError(exception)
       if reason == GAPI.MEMBER_NOT_FOUND and createIfNotFound:
@@ -16658,7 +16677,7 @@ def doUpdateGroups():
         entityUnknownWarning(Ent.GROUP, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
       else:
         errMsg = getHTTPError(_UPDATE_MEMBER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
-        entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], Ent.MEMBER, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        _showFailure(ri[RI_ENTITY], ri[RI_ITEM], ri[RI_ROLE], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
   def _batchUpdateGroupMembers(group, i, count, updateMembers, role, delivery_settings):
     Act.Set([Act.UPDATE, Act.UPDATE_PREVIEW][preview])
@@ -16667,7 +16686,7 @@ def doUpdateGroups():
     if jcount == 0:
       return
     if preview:
-      _previewAction(group, updateMembers, role, jcount)
+      _previewAction(group, updateMembers, role, jcount, Act.UPDATE)
       return
     if updBatchParms['size'] == 1 or jcount <= updBatchParms['size']:
       Ind.Increment()
@@ -16700,6 +16719,7 @@ def doUpdateGroups():
     Ind.Decrement()
 
   cd = buildGAPIObject(API.DIRECTORY)
+  csvPF = None
   getBeforeUpdate = preview = False
   entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
   CL_subCommand = getChoice(UPDATE_GROUP_SUBCMDS, defaultChoice=None)
@@ -16780,7 +16800,7 @@ def doUpdateGroups():
     baseRole, groupMemberType = _getRoleGroupMemberType()
     isSuspended = _getOptionalIsSuspended()
     delivery_settings = getDeliverySettings()
-    preview = checkArgumentPresent('preview')
+    preview, csvPF = _getPreviewActionCSV()
     _, addMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
     groupMemberLists = addMembers if isinstance(addMembers, dict) else None
     subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
@@ -16810,7 +16830,7 @@ def doUpdateGroups():
   elif CL_subCommand in {'delete', 'remove'}:
     baseRole, groupMemberType = _getRoleGroupMemberType()
     isSuspended = _getOptionalIsSuspended()
-    preview = checkArgumentPresent('preview')
+    preview, csvPF = _getPreviewActionCSV()
     _, removeMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
     groupMemberLists = removeMembers if isinstance(removeMembers, dict) else None
     subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
@@ -16843,7 +16863,7 @@ def doUpdateGroups():
     isSuspended = _getOptionalIsSuspended()
     removeDomainNoStatusMembers = checkArgumentPresent('removedomainnostatusmembers')
     delivery_settings = getDeliverySettings()
-    preview = checkArgumentPresent('preview')
+    preview, csvPF = _getPreviewActionCSV()
     _, syncMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
     groupMemberLists = syncMembers if isinstance(syncMembers, dict) else None
     subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
@@ -16941,7 +16961,7 @@ def doUpdateGroups():
     baseRole, groupMemberType = _getRoleGroupMemberType(defaultRole=None)
     isSuspended = _getOptionalIsSuspended()
     delivery_settings = getDeliverySettings()
-    preview = checkArgumentPresent('preview')
+    preview, csvPF = _getPreviewActionCSV()
     createIfNotFound = checkArgumentPresent('createifnotfound')
     _, updateMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
     groupMemberLists = updateMembers if isinstance(updateMembers, dict) else None
@@ -16993,6 +17013,8 @@ def doUpdateGroups():
         clearMatch = myarg == 'emailclearpattern'
       elif myarg == 'preview':
         preview = True
+      elif myarg == 'actioncsv':
+        csvPF = CSVPrintFile(GROUP_PREVIEW_TITLES)
       else:
         unknownArgumentExit()
     if isSuspended is not None:
@@ -17042,6 +17064,8 @@ def doUpdateGroups():
             removeMembers[role].add(member['id'])
       for role in rolesSet:
         _batchRemoveGroupMembers(group, i, count, removeMembers[role], role)
+  if csvPF:
+    csvPF.writeCSVfile('Group Updates')
 
 # gam delete groups <GroupEntity>
 def doDeleteGroups():
@@ -38844,10 +38868,10 @@ def createLicense(users):
     user = normalizeEmailAddressOrUID(user)
     try:
       callGAPI(lic.licenseAssignments(), 'insert',
-               throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR, GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET],
+               throw_reasons=[GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET, GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
                productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_SKUID], body={'userId': user}, fields='')
       entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], i, count)
-    except (GAPI.conditionNotMet, GAPI.duplicate) as e:
+    except (GAPI.duplicate, GAPI.conditionNotMet) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], str(e), i, count)
     except (GAPI.userNotFound, GAPI.forbidden, GAPI.backendError):
       entityUnknownWarning(Ent.USER, user, i, count)
@@ -38861,11 +38885,11 @@ def updateLicense(users):
     user = normalizeEmailAddressOrUID(user)
     try:
       callGAPI(lic.licenseAssignments(), 'patch',
-               throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.NOT_FOUND, GAPI.BACKEND_ERROR],
+               throw_reasons=[GAPI.NOT_FOUND, GAPI.CONDITION_NOT_MET, GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
                productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_OLDSKUID], userId=user, body={'skuId': parameters[LICENSE_SKUID]}, fields='')
       entityModifierNewValueActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.skuIdToDisplayName(parameters[LICENSE_SKUID])],
                                             Act.MODIFIER_FROM, SKU.skuIdToDisplayName(parameters[LICENSE_OLDSKUID]), i, count)
-    except GAPI.notFound as e:
+    except (GAPI.notFound, GAPI.conditionNotMet) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_OLDSKUID])], str(e), i, count)
     except (GAPI.userNotFound, GAPI.forbidden, GAPI.backendError):
       entityUnknownWarning(Ent.USER, user, i, count)
@@ -38879,10 +38903,10 @@ def deleteLicense(users):
     user = normalizeEmailAddressOrUID(user)
     try:
       callGAPI(lic.licenseAssignments(), 'delete',
-               throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.NOT_FOUND, GAPI.BACKEND_ERROR],
+               throw_reasons=[GAPI.NOT_FOUND, GAPI.CONDITION_NOT_MET, GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
                productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_SKUID], userId=user)
       entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], i, count)
-    except GAPI.notFound as e:
+    except (GAPI.notFound, GAPI.conditionNotMet) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], str(e), i, count)
     except (GAPI.userNotFound, GAPI.forbidden, GAPI.backendError):
       entityUnknownWarning(Ent.USER, user, i, count)
