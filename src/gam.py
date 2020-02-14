@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.08'
+__version__ = '4.99.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2662,6 +2662,7 @@ def SetGlobalVariables():
     return headerFilters
 
   ROW_FILTER_COMP_PATTERN = re.compile(r'^(date|time|count)\s*([<>]=?|=|!=)\s*(.+)$', re.IGNORECASE)
+  ROW_FILTER_RANGE_PATTERN = re.compile(r'^(daterange|timerange|countrange)\s*(=|!=)\s*(\S+)\s*(\S+)$', re.IGNORECASE)
   ROW_FILTER_BOOL_PATTERN = re.compile(r'^(boolean):(.+)$', re.IGNORECASE)
   ROW_FILTER_RE_PATTERN = re.compile(r'^(regex|notregex):(.*)$', re.IGNORECASE)
 
@@ -2707,14 +2708,33 @@ def SetGlobalVariables():
           else:
             valid, filterValue = getRowFilterTimeOrDeltaFromNow(mg.group(3))
           if valid:
-            rowFilters.append((columnPat, mg.group(1), mg.group(2), filterValue))
+            rowFilters.append((columnPat, mg.group(1), mg.group(2), filterValue, 0))
           else:
             _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: {filterValue}')
         else: #count
           if mg.group(3).isdigit():
-            rowFilters.append((columnPat, mg.group(1), mg.group(2), int(mg.group(3))))
+            rowFilters.append((columnPat, mg.group(1), mg.group(2), int(mg.group(3)), 0))
           else:
             _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: <Number>')
+        continue
+      mg = ROW_FILTER_RANGE_PATTERN.match(filterStr)
+      if mg:
+        if mg.group(1) in {'daterange', 'timerange'}:
+          if mg.group(1) == 'date':
+            valid1, filterValue1 = getRowFilterDateOrDeltaFromNow(mg.group(3))
+            valid2, filterValue2 = getRowFilterDateOrDeltaFromNow(mg.group(4))
+          else:
+            valid1, filterValue1 = getRowFilterTimeOrDeltaFromNow(mg.group(3))
+            valid2, filterValue2 = getRowFilterTimeOrDeltaFromNow(mg.group(4))
+          if valid1 and valid2:
+            rowFilters.append((columnPat, mg.group(1), mg.group(2), filterValue1, filterValue2))
+          else:
+            _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: {filterValue1} {filterValue2}')
+        else: #countrange
+          if mg.group(3).isdigit() and mg.group(4).isdigit():
+            rowFilters.append((columnPat, mg.group(1), mg.group(2), int(mg.group(3)), int(mg.group(4))))
+          else:
+            _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: <Number> <Number>')
         continue
       mg = ROW_FILTER_BOOL_PATTERN.match(filterStr)
       if mg:
@@ -3627,6 +3647,8 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False, service=None):
       error = {'error': {'code': 400, 'errors': [{'reason': GAPI.INVALID_INPUT, 'message': 'Entity Name Not Valid'}]}}
     elif (e.resp['status'] == '400') and ('Failed to parse Content-Range header' in e.content):
       error = {'error': {'code': 400, 'errors': [{'reason': GAPI.BAD_REQUEST, 'message': 'Failed to parse Content-Range header'}]}}
+    elif (e.resp['status'] == '400') and ('Request contains an invalid argument' in e.content):
+      error = {'error': {'code': 400, 'errors': [{'reason': GAPI.INVALID_ARGUMENT, 'message': 'Request contains an invalid argument'}]}}
     elif retryOnHttpError:
       if hasattr(service._http.request, 'credentials'):
         service._http.request.credentials.refresh(getHttpObj())
@@ -5679,6 +5701,24 @@ class CSVPrintFile():
           return True
       return False
 
+    def rowDateTimeRangeFilterMatch(dateMode, op, filterDateL, filterDateR):
+      def checkMatch(rowDate):
+        if not rowDate or not isinstance(rowDate, str):
+          return False
+        if rowDate == GC.Values[GC.NEVER_TIME]:
+          rowDate = NEVER_TIME
+        if dateMode:
+          rowTime, tz = iso8601.parse_date(rowDate)
+          rowDate = ISOformatTimeStamp(datetime.datetime(rowTime.year, rowTime.month, rowTime.day, tzinfo=tz))
+        if op == '!=':
+          return not (rowDate >= filterDateL and rowDate < filterDateR)
+        return rowDate >= filterDateL and rowDate < filterDateR
+
+      for column in columns:
+        if checkMatch(row.get(column, '')):
+          return True
+      return False
+
     def rowCountFilterMatch(op, filterCount):
       def checkMatch(rowCount):
         if isinstance(rowCount, str):
@@ -5698,6 +5738,23 @@ class CSVPrintFile():
         if op == '!=':
           return rowCount != filterCount
         return rowCount == filterCount
+
+      for column in columns:
+        if checkMatch(row.get(column, 0)):
+          return True
+      return False
+
+    def rowCountRangeFilterMatch(op, filterCountL, filterCountR):
+      def checkMatch(rowCount):
+        if isinstance(rowCount, str):
+          if not rowCount.isdigit():
+            return False
+          rowCount = int(rowCount)
+        elif not isinstance(rowCount, int):
+          return False
+        if op == '!=':
+          return not (rowCount >= filterCountL and rowCount < filterCountR)
+        return rowCount >= filterCountL and rowCount < filterCountR
 
       for column in columns:
         if checkMatch(row.get(column, 0)):
@@ -5728,8 +5785,14 @@ class CSVPrintFile():
       elif filterVal[1] in {'date', 'time'}:
         if not rowDateTimeFilterMatch(filterVal[1] == 'date', filterVal[2], filterVal[3]):
           return False
+      elif filterVal[1] in {'daterange', 'timerange'}:
+        if not rowDateTimeRangeFilterMatch(filterVal[1] == 'date', filterVal[2], filterVal[3], filterVal[4]):
+          return False
       elif filterVal[1] == 'count':
         if not rowCountFilterMatch(filterVal[2], filterVal[3]):
+          return False
+      elif filterVal[1] == 'countrange':
+        if not rowCountRangeFilterMatch(filterVal[2], filterVal[3], filterVal[4]):
           return False
       else: #boolean
         if not rowBooleanFilterMatch(filterVal[2]):
@@ -6370,7 +6433,7 @@ def doVersion(checkForArgs=True):
     printKeyValueList([Msg.UPDATE_GAM_TO_64BIT])
   if timeOffset:
     offsetSeconds, offsetFormatted = getLocalGoogleTimeOffset(testLocation)
-    printKeyValueList([Msg.YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE.format(offsetFormatted)])
+    printKeyValueList([Msg.YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE.format(testLocation, offsetFormatted)])
     if offsetSeconds > MAX_LOCAL_GOOGLE_TIME_OFFSET:
       systemErrorExit(NETWORK_ERROR_RC, Msg.PLEASE_CORRECT_YOUR_SYSTEM_TIME)
   if forceCheck:
@@ -7518,7 +7581,19 @@ def _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo):
   _grantSARotateRights(iam, projectInfo['projectId'], service_account['name'].rsplit('/', 1)[-1])
   return True
 
-def _createClientSecretsOauth2service(httpObj, projectInfo, svcAcctInfo):
+def setGAMProjectConsentScreen(httpObj, projectId, appInfo):
+  print('Setting GAM project consent screen...')
+  iap = getAPIService(API.IAP, httpObj)
+  try:
+    callGAPI(iap.projects().brands(), 'create',
+             throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.INVALID_ARGUMENT],
+             parent=f'projects/{projectId}', body=appInfo)
+  except (GAPI.alreadyExists, GAPI.invalidArgument) as e:
+    entityActionFailedWarning([Ent.PROJECT, projectId, Ent.APP_NAME, appInfo['applicationTitle'], Ent.EMAIL, appInfo['supportEmail']], str(e))
+    return False
+  return True
+
+def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo, svcAcctInfo):
 
   def _checkClientAndSecret(csHttpObj, client_id, client_secret):
     post_data = {'client_id': client_id, 'client_secret': client_secret,
@@ -7547,19 +7622,21 @@ def _createClientSecretsOauth2service(httpObj, projectInfo, svcAcctInfo):
 
   if not enableGAMProjectAPIs(httpObj, projectInfo['projectId'], False):
     return
+  if appInfo and not setGAMProjectConsentScreen(httpObj, projectInfo['projectId'], appInfo):
+    return
   if not _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo):
     return
-  console_credentials_url = f'https://console.developers.google.com/apis/credentials/consent/edit?createClient&newAppInternalUser=true&project={projectInfo["projectId"]}'
+  console_url = f'https://console.cloud.google.com/apis/credentials/oauthclient?project={projectInfo["projectId"]}'
   csHttpObj = getHttpObj()
   while True:
     sys.stdout.write(f'''Please go to:
 
-{console_credentials_url}
+{console_url}
 
-1. Enter "GAM" for "Application name".
-2. Leave other fields blank. Click "Save" button.
-3. Choose "Other". Enter "GAM" for "Name". Click the blue "Create" button.
-4. Copy your "client ID" value.
+1. Choose "Other".
+2. Enter "GAM" or another desired value for "Name".
+3. Click the blue "Create" button.
+4. Copy your "client ID" value that shows on the next page.
 
 ''')
     client_id = readStdin('Enter your Client ID: ').strip()
@@ -7573,17 +7650,18 @@ def _createClientSecretsOauth2service(httpObj, projectInfo, svcAcctInfo):
     if client_valid:
       break
     sys.stdout.write('\n')
-  cs_data = '''{
-    "installed": {
+  cs_data = f'''{{
+    "installed": {{
         "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
         "auth_uri": "https://accounts.google.com/o/oauth2/v2/auth",
-        "client_id": "%s",
-        "client_secret": "%s",
-        "project_id": "%s",
+        "client_id": "{client_id}",
+        "client_secret": "{client_secret}",
+        "created_by": "{login_hint}",
+        "project_id": "{projectInfo['projectId']}",
         "redirect_uris": ["http://localhost", "urn:ietf:wg:oauth:2.0:oob"],
         "token_uri": "https://oauth2.googleapis.com/token"
-    }
-}''' % (client_id, client_secret, projectInfo['projectId'])
+    }}
+}}'''
   writeFile(GC.Values[GC.CLIENT_SECRETS_JSON], cs_data, continueOnError=False)
   sys.stdout.write('6. Go back to your browser and click OK to close the "OAuth client" popup if it\'s still open.\n')
   sys.stdout.write('That\'s it! Your GAM Project is created and ready to use.\n')
@@ -7642,6 +7720,15 @@ def _getSvcAcctInfo(myarg, svcAcctInfo):
     return False
   return True
 
+def _getAppInfo(myarg, appInfo):
+  if myarg == 'appname':
+    appInfo['applicationTitle'] = getString(Cmd.OB_STRING)
+  elif myarg == 'supportemail':
+    appInfo['supportEmail'] = getEmailAddress(noUid=True)
+  else:
+    return False
+  return True
+
 def _generateProjectSvcAcctId(prefix):
   psaId = prefix
   for _ in range(3):
@@ -7650,9 +7737,10 @@ def _generateProjectSvcAcctId(prefix):
 
 def _getLoginHintProjectInfo(createCmd):
   login_hint = None
-  projectInfo = {'projectId': '', 'parent': '', 'name': ''}
+  appInfo = {'applicationTitle': 'GAM', 'supportEmail': ''}
+  projectInfo = {'projectId': '', 'parent': '', 'name': 'GAM Project'}
   svcAcctInfo = {'name': '', 'displayName': '', 'description': ''}
-  if not Cmd.PeekArgumentPresent(['admin', 'project', 'parent', 'projectname', 'saname', 'sadisplayname', 'sadescription']):
+  if not Cmd.PeekArgumentPresent(['admin', 'appname', 'supportemail', 'project', 'parent', 'projectname', 'saname', 'sadisplayname', 'sadescription']):
     login_hint = getString(Cmd.OB_EMAIL_ADDRESS, optional=True)
     if login_hint and login_hint.find('@') == -1:
       Cmd.Backup()
@@ -7676,6 +7764,8 @@ def _getLoginHintProjectInfo(createCmd):
         _checkProjectName(projectInfo['name'])
       elif _getSvcAcctInfo(myarg, svcAcctInfo):
         pass
+      elif createCmd and _getAppInfo(myarg, appInfo):
+        pass
       else:
         unknownArgumentExit()
   if not projectInfo['projectId']:
@@ -7685,8 +7775,6 @@ def _getLoginHintProjectInfo(createCmd):
       projectInfo['projectId'] = readStdin('\nWhat is your API project ID? ').strip()
       if not PROJECTID_PATTERN.match(projectInfo['projectId']):
         systemErrorExit(USAGE_ERROR_RC, f'{Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1]} {Cmd.OB_PROJECT_ID}: {Msg.EXPECTED} <{PROJECTID_FORMAT_REQUIRED}>')
-  if not projectInfo['name']:
-    projectInfo['name'] = 'GAM Project'
   if not svcAcctInfo['name']:
     svcAcctInfo['name'] = projectInfo['projectId']
   if not svcAcctInfo['displayName']:
@@ -7694,6 +7782,8 @@ def _getLoginHintProjectInfo(createCmd):
   if not svcAcctInfo['description']:
     svcAcctInfo['description'] = svcAcctInfo['displayName']
   login_hint = _getValidateLoginHint(login_hint)
+  if not appInfo['supportEmail']:
+    appInfo['supportEmail'] = login_hint
   httpObj, crm = getCRMService(login_hint)
   if projectInfo['parent'] and not projectInfo['parent'].startswith('organizations/') and not projectInfo['parent'].startswith('folders/'):
     crm2 = getAPIService(API.CLOUDRESOURCEMANAGER_V2, httpObj)
@@ -7712,7 +7802,7 @@ def _getLoginHintProjectInfo(createCmd):
   else:
     if projects:
       entityActionFailedExit([Ent.USER, login_hint, Ent.PROJECT, projectInfo['projectId']], Msg.DUPLICATE)
-  return (crm, httpObj, login_hint, projectInfo, svcAcctInfo)
+  return (crm, httpObj, login_hint, appInfo, projectInfo, svcAcctInfo)
 
 def _getCurrentProjectID():
   cs_data = readFile(GC.Values[GC.CLIENT_SECRETS_JSON], continueOnError=True, displayError=True)
@@ -7781,11 +7871,12 @@ def _checkForExistingProjectFiles(projectFiles):
 
 # gam create project [<EmailAddress>] [<ProjectID>]
 # gam create project [admin <EmailAddress>] [project <ProjectID>]
+#	[appname <String>] [supportemail <EmailAddress>]
 #	[projectname <ProjectName>] [parent <String>]
 #	[saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>>] [sadescription <ServiceAccountDescription>]
 def doCreateProject():
   _checkForExistingProjectFiles([GC.Values[GC.OAUTH2SERVICE_JSON], GC.Values[GC.CLIENT_SECRETS_JSON]])
-  crm, httpObj, login_hint, projectInfo, svcAcctInfo = _getLoginHintProjectInfo(True)
+  crm, httpObj, login_hint, appInfo, projectInfo, svcAcctInfo = _getLoginHintProjectInfo(True)
   login_domain = getEmailAddressDomain(login_hint)
   body = {'projectId': projectInfo['projectId'], 'name': projectInfo['name']}
   if projectInfo['parent']:
@@ -7860,15 +7951,15 @@ and accept the Terms of Service (ToS). As soon as you've accepted the ToS popup,
     elif 'error' in status:
       systemErrorExit(2, status['error']+'\n')
     break
-  _createClientSecretsOauth2service(httpObj, projectInfo, svcAcctInfo)
+  _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo, svcAcctInfo)
 
 # gam use project [<EmailAddress>] [<ProjectID>]
 # gam use project [admin <EmailAddress>] [project <ProjectID>]
 #	[saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>>] [sadescription <ServiceAccountDescription>]
 def doUseProject():
   _checkForExistingProjectFiles([GC.Values[GC.OAUTH2SERVICE_JSON], GC.Values[GC.CLIENT_SECRETS_JSON]])
-  _, httpObj, _, projectInfo, svcAcctInfo = _getLoginHintProjectInfo(False)
-  _createClientSecretsOauth2service(httpObj, projectInfo, svcAcctInfo)
+  _, httpObj, login_hint, _, projectInfo, svcAcctInfo = _getLoginHintProjectInfo(False)
+  _createClientSecretsOauth2service(httpObj, login_hint, {}, projectInfo, svcAcctInfo)
 
 # gam update project [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
 def doUpdateProject():
@@ -8039,6 +8130,12 @@ def checkServiceAccount(users):
   def printPassFail(description, result):
     writeStdout(Ind.Spaces()+f'{description:73} {result}'+'\n')
 
+  def authorizeScopes(message):
+    long_url = (f'https://admin.google.com/{domain}/ManageOauthClients'
+                f'?clientScopeToAdd={",".join(checkScopes)}'
+                f'&clientNameToAdd={service_account}')
+    printLine(message.format(long_url))
+
   credentials = getSvcAcctCredentials([API.USERINFO_EMAIL_SCOPE], None)
   checkScopesSet = set()
   if Act.Get() == Act.CHECK:
@@ -8094,7 +8191,7 @@ def checkServiceAccount(users):
   else:
     timeStatus = 'FAIL'
   Ind.Increment()
-  printPassFail(Msg.YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE.format(offsetFormatted), timeStatus)
+  printPassFail(Msg.YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE.format('www.googleapis.com', offsetFormatted), timeStatus)
   Ind.Decrement()
   oa2 = buildGAPIObject(API.OAUTH2)
   printKeyValueList([Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AUTHENTICATION, None])
@@ -8159,12 +8256,12 @@ def checkServiceAccount(users):
       if Act.Get() == Act.CHECK:
         printLine(Msg.SCOPE_AUTHORIZATION_PASSED.format(service_account))
       else:
-        printLine(Msg.SCOPE_AUTHORIZATION_UPDATE_PASSED.format(domain, service_account, ',\n'.join(checkScopes)))
+        authorizeScopes(Msg.SCOPE_AUTHORIZATION_UPDATE_PASSED)
     else:
       # Tack on email scope for more accurate checking
       checkScopes.append(API.USERINFO_EMAIL_SCOPE)
       setSysExitRC(SCOPES_NOT_AUTHORIZED)
-      printLine(Msg.SCOPE_AUTHORIZATION_FAILED.format(domain, service_account, ',\n'.join(checkScopes)))
+      authorizeScopes(Msg.SCOPE_AUTHORIZATION_FAILED)
     printBlankLine()
 
 # gam check svcacct <UserTypeEntity> (scope|scopes <APIScopeURLList>)*

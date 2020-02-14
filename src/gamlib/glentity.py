@@ -52,6 +52,7 @@ class GamEntity():
   ALIAS_TARGET = 'alit'
   API = 'api '
   APP_ACCESS_SETTINGS = 'apps'
+  APP_NAME = 'appn'
   APPLICATION_SPECIFIC_PASSWORD = 'aspa'
   ARROWS_ENABLED = 'arro'
   ATTACHMENT = 'atta'
@@ -265,6 +266,7 @@ class GamEntity():
     ALIAS_TARGET: ['Alias Targets', 'Alias Target'],
     API: ['APIs', 'API'],
     APP_ACCESS_SETTINGS: ['Application Access Settings', 'Application Access Settings'],
+    APP_NAME: ['Application Names', 'Application Name'],
     APPLICATION_SPECIFIC_PASSWORD: ['Application Specific Password IDs', 'Application Specific Password ID'],
     ARROWS_ENABLED: ['Personal Indicator Arrows Enabled', 'Personal Indicator Arrows Enabled'],
     ATTACHMENT: ['Attachments', 'Attachment'],

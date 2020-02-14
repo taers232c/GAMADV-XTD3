@@ -235,9 +235,30 @@ REQUEST_COMPLETED_NO_FILES = 'Request completed but no results/files were return
 REQUEST_NOT_COMPLETE = 'Request needs to be completed before downloading, current status is: {0}'
 RESULTS_TOO_LARGE_FOR_GOOGLE_SPREADSHEET = 'Results are too large for Google Spreadsheets. Uploading as a regular CSV file.'
 SCHEMA_WOULD_HAVE_NO_FIELDS = '{0} would have no {1}'
-SCOPE_AUTHORIZATION_FAILED = '\nSome scopes FAILED! Please go to:\n\nhttps://admin.google.com/{0}/AdminHome?#OGX:ManageOauthClients\n\nand grant Service Account Client name: {1} access to scopes:\n\n{2}'
-SCOPE_AUTHORIZATION_PASSED = '\nAll scopes PASSED!\nService Account Client name: {0} is fully authorized.'
-SCOPE_AUTHORIZATION_UPDATE_PASSED = '\nAll scopes PASSED! At:\n\nhttps://admin.google.com/{0}/AdminHome?#OGX:ManageOauthClients\n\nService Account Client name: {1} is authorized for scopes:\n\n{2}'
+SCOPE_AUTHORIZATION_FAILED = '''Some scopes FAILED!
+To authorize them, please go to:
+
+  {0}
+
+You will be directed to the G Suite admin console. The Client Name and API
+Scopes fields will be pre-populated. Please click Authorize to allow these
+scopes access. After authorizing it may take some time for this test to pass so
+wait a few moments and then try this command again.
+'''
+SCOPE_AUTHORIZATION_PASSED = '''All scopes PASSED!
+
+Service Account Client name: {0} is fully authorized.
+'''
+SCOPE_AUTHORIZATION_UPDATE_PASSED = '''All scopes PASSED!
+To authorize them (in case some scopes were unselected), please go to:
+
+  {0}
+
+You will be directed to the G Suite admin console. The Client Name and API
+Scopes fields will be pre-populated. Please click Authorize to allow these
+scopes access. After authorizing it may take some time for this test to pass so
+wait a few moments and then try this command again.
+'''
 SELECTED = 'Selected'
 SERVICE_ACCOUNT_PRIVATE_KEY_AUTHENTICATION = 'Service Account Private Key Authentication'
 SERVICE_NOT_APPLICABLE = 'Service not applicable/Does not exist'
@@ -277,5 +298,5 @@ USING_N_PROCESSES = 'Using {0} {1}...\n'
 VERSION_UPDATE_AVAILABLE = 'Version update available'
 WITH = 'with'
 WOULD_MAKE_MEMBERSHIP_CYCLE = 'Would make membership cycle'
-YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE = 'Your system time differs by {0} from Google'
+YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE = 'Your system time differs from {0} by {1}'
 YOU_CAN_ADD_DOMAIN_TO_ACCOUNT = 'You can now add: {0} or it\'s subdomains as secondary or domain aliases of the G Suite Account: {1}'

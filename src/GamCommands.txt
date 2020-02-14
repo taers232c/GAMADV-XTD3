@@ -845,6 +845,7 @@ gam <CrOSTypeEntity>|<UserTypeEntity> list [todrive <ToDriveAttribute>*] [data <
 
 gam create|add project [<EmailAddress>] [<ProjectID>]
 gam create project [admin <EmailAddress>] [project <ProjectID>]
+        [appname <String>] [supportemail <EmailAddress>]
         [projectname <ProjectName>] [parent <String>]
         [saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>]
         [sadescription <ServiceAccountDescription>]

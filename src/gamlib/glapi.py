@@ -22,7 +22,7 @@
 # APIs
 ALERTCENTER = 'alertcenter'
 CALENDAR = 'calendar'
-#CHAT = 'chat'
+CHAT = 'chat'
 CLASSROOM = 'classroom'
 CLOUDPRINT = 'cloudprint'
 CLOUDRESOURCEMANAGER_V1 = 'cloudresourcemanager1'
@@ -40,6 +40,7 @@ GMAIL = 'gmail'
 GROUPSMIGRATION = 'groupsmigration'
 GROUPSSETTINGS = 'groupssettings'
 IAM = 'iam'
+IAP = 'iap'
 LICENSING = 'licensing'
 OAUTH2 = 'oauth2'
 PEOPLE = 'people'
@@ -92,7 +93,7 @@ PROJECT_APIS = [
   'appsactivity.googleapis.com',
   'audit.googleapis.com',
   'calendar-json.googleapis.com',
-  #'chat.googleapis.com',
+  'chat.googleapis.com',
   'classroom.googleapis.com',
   'contacts.googleapis.com',
   'drive.googleapis.com',
@@ -101,6 +102,7 @@ PROJECT_APIS = [
   'groupsmigration.googleapis.com',
   'groupssettings.googleapis.com',
   'iam.googleapis.com',
+  'iap.googleapis.com',
   'licensing.googleapis.com',
   'people.googleapis.com',
   'pubsub.googleapis.com',
@@ -131,6 +133,7 @@ _INFO = {
   GROUPSMIGRATION: {'name': 'Groups Migration API', 'version': 'v1', 'v2discovery': False},
   GROUPSSETTINGS: {'name': 'Groups Settings API', 'version': 'v1', 'v2discovery': False},
   IAM: {'name': 'Identity and Access Management API', 'version': 'v1', 'v2discovery': True},
+  IAP: {'name': 'Cloud Identity-Aware Proxy API', 'version': 'v1', 'v2discovery': True},
   LICENSING: {'name': 'License Manager API', 'version': 'v1', 'v2discovery': False},
   OAUTH2: {'name': 'OAuth2 API', 'version': 'v2', 'v2discovery': False},
   PEOPLE: {'name': 'People API', 'version': 'v1', 'v2discovery': True},

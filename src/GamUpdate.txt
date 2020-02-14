@@ -1,3 +1,17 @@
+4.99.09
+
+Following Jay's lead, simplified `gam create project` and `gam <UserTypeEntity> check serviceaccount`.
+When creating a project, the initial screen where you entered the `Application name` and clicked `Save`
+has been eliminated. The `Application name` defaults to `GAM` but you can change it with the `appname <Sring>` option.
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Authorization#create-a-new-project-for-gam-authorization
+
+When `check serviceaccount` requires you to authorize scopes, the URL that you enter now fills in
+the `Client Name` and `One or More API Scopes` fields, you just click `Authorize`; you don't have to cut and paste
+these values.
+
+Updated `gam.cfg` `csv_output_row_filter` to allow range checking on counts, dates, and times.
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/CSV-Print-Filtering#column-row-filtering
+
 4.99.08
 
 Added `actioncsv` option to `gam update groups`. This will produce a CSV file with columns `group,email,role,action,message`
