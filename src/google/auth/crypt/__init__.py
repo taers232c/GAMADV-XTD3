@@ -1,4 +1,4 @@
-# Copyright 2016 Google Inc.
+# Copyright 2016 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,12 +39,7 @@ from google.auth.crypt import base
 from google.auth.crypt import rsa
 
 
-__all__ = [
-    'RSASigner',
-    'RSAVerifier',
-    'Signer',
-    'Verifier',
-]
+__all__ = ["RSASigner", "RSAVerifier", "Signer", "Verifier"]
 
 # Aliases to maintain the v1.0.0 interface, as the crypt module was split
 # into submodules.

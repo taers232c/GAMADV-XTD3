@@ -1,4 +1,4 @@
-# Copyright 2016 Google Inc.
+# Copyright 2016 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,32 +32,36 @@ from google.auth import exceptions
 
 _LOGGER = logging.getLogger(__name__)
 
-_METADATA_ROOT = 'http://{}/computeMetadata/v1/'.format(
-    os.getenv(environment_vars.GCE_METADATA_ROOT, 'metadata.google.internal'))
+_METADATA_ROOT = "http://{}/computeMetadata/v1/".format(
+    os.getenv(environment_vars.GCE_METADATA_ROOT, "metadata.google.internal")
+)
 
 # This is used to ping the metadata server, it avoids the cost of a DNS
 # lookup.
-_METADATA_IP_ROOT = 'http://{}'.format(
-    os.getenv(environment_vars.GCE_METADATA_IP, '169.254.169.254'))
-_METADATA_FLAVOR_HEADER = 'metadata-flavor'
-_METADATA_FLAVOR_VALUE = 'Google'
+_METADATA_IP_ROOT = "http://{}".format(
+    os.getenv(environment_vars.GCE_METADATA_IP, "169.254.169.254")
+)
+_METADATA_FLAVOR_HEADER = "metadata-flavor"
+_METADATA_FLAVOR_VALUE = "Google"
 _METADATA_HEADERS = {_METADATA_FLAVOR_HEADER: _METADATA_FLAVOR_VALUE}
 
 # Timeout in seconds to wait for the GCE metadata server when detecting the
 # GCE environment.
 try:
-    _METADATA_DEFAULT_TIMEOUT = int(os.getenv('GCE_METADATA_TIMEOUT', 3))
+    _METADATA_DEFAULT_TIMEOUT = int(os.getenv("GCE_METADATA_TIMEOUT", 3))
 except ValueError:  # pragma: NO COVER
     _METADATA_DEFAULT_TIMEOUT = 3
 
 
-def ping(request, timeout=_METADATA_DEFAULT_TIMEOUT):
+def ping(request, timeout=_METADATA_DEFAULT_TIMEOUT, retry_count=3):
     """Checks to see if the metadata server is available.
 
     Args:
         request (google.auth.transport.Request): A callable used to make
             HTTP requests.
         timeout (int): How long to wait for the metadata server to respond.
+        retry_count (int): How many times to attempt connecting to metadata
+            server using above timeout.
 
     Returns:
         bool: True if the metadata server is reachable, False otherwise.
@@ -68,21 +72,34 @@ def ping(request, timeout=_METADATA_DEFAULT_TIMEOUT):
     #       could lead to false negatives in the event that we are on GCE, but
     #       the metadata resolution was particularly slow. The latter case is
     #       "unlikely".
-    try:
-        response = request(
-            url=_METADATA_IP_ROOT, method='GET', headers=_METADATA_HEADERS,
-            timeout=timeout)
+    retries = 0
+    while retries < retry_count:
+        try:
+            response = request(
+                url=_METADATA_IP_ROOT,
+                method="GET",
+                headers=_METADATA_HEADERS,
+                timeout=timeout,
+            )
 
-        metadata_flavor = response.headers.get(_METADATA_FLAVOR_HEADER)
-        return (response.status == http_client.OK and
-                metadata_flavor == _METADATA_FLAVOR_VALUE)
+            metadata_flavor = response.headers.get(_METADATA_FLAVOR_HEADER)
+            return (
+                response.status == http_client.OK
+                and metadata_flavor == _METADATA_FLAVOR_VALUE
+            )
 
-    except exceptions.TransportError:
-        _LOGGER.info('Compute Engine Metadata server unavailable.')
-        return False
+        except exceptions.TransportError:
+            _LOGGER.info(
+                "Compute Engine Metadata server unavailable on" "attempt %s of %s",
+                retries + 1,
+                retry_count,
+            )
+            retries += 1
+
+    return False
 
 
-def get(request, path, root=_METADATA_ROOT, recursive=False):
+def get(request, path, root=_METADATA_ROOT, recursive=False, retry_count=5):
     """Fetch a resource from the metadata server.
 
     Args:
@@ -94,6 +111,8 @@ def get(request, path, root=_METADATA_ROOT, recursive=False):
         recursive (bool): Whether to do a recursive query of metadata. See
             https://cloud.google.com/compute/docs/metadata#aggcontents for more
             details.
+        retry_count (int): How many times to attempt connecting to metadata
+            server using above timeout.
 
     Returns:
         Union[Mapping, str]: If the metadata server returns JSON, a mapping of
@@ -108,29 +127,50 @@ def get(request, path, root=_METADATA_ROOT, recursive=False):
     query_params = {}
 
     if recursive:
-        query_params['recursive'] = 'true'
+        query_params["recursive"] = "true"
 
     url = _helpers.update_query(base_url, query_params)
 
-    response = request(url=url, method='GET', headers=_METADATA_HEADERS)
+    retries = 0
+    while retries < retry_count:
+        try:
+            response = request(url=url, method="GET", headers=_METADATA_HEADERS)
+            break
+
+        except exceptions.TransportError:
+            _LOGGER.info(
+                "Compute Engine Metadata server unavailable on" "attempt %s of %s",
+                retries + 1,
+                retry_count,
+            )
+            retries += 1
+    else:
+        raise exceptions.TransportError(
+            "Failed to retrieve {} from the Google Compute Engine"
+            "metadata service. Compute Engine Metadata server unavailable".format(url)
+        )
 
     if response.status == http_client.OK:
         content = _helpers.from_bytes(response.data)
-        if response.headers['content-type'] == 'application/json':
+        if response.headers["content-type"] == "application/json":
             try:
                 return json.loads(content)
             except ValueError as caught_exc:
                 new_exc = exceptions.TransportError(
-                    'Received invalid JSON from the Google Compute Engine'
-                    'metadata service: {:.20}'.format(content))
+                    "Received invalid JSON from the Google Compute Engine"
+                    "metadata service: {:.20}".format(content)
+                )
                 six.raise_from(new_exc, caught_exc)
         else:
             return content
     else:
         raise exceptions.TransportError(
-            'Failed to retrieve {} from the Google Compute Engine'
-            'metadata service. Status: {} Response:\n{}'.format(
-                url, response.status, response.data), response)
+            "Failed to retrieve {} from the Google Compute Engine"
+            "metadata service. Status: {} Response:\n{}".format(
+                url, response.status, response.data
+            ),
+            response,
+        )
 
 
 def get_project_id(request):
@@ -147,10 +187,10 @@ def get_project_id(request):
         google.auth.exceptions.TransportError: if an error occurred while
             retrieving metadata.
     """
-    return get(request, 'project/project-id')
+    return get(request, "project/project-id")
 
 
-def get_service_account_info(request, service_account='default'):
+def get_service_account_info(request, service_account="default"):
     """Get information about a service account from the metadata server.
 
     Args:
@@ -175,11 +215,12 @@ def get_service_account_info(request, service_account='default'):
     """
     return get(
         request,
-        'instance/service-accounts/{0}/'.format(service_account),
-        recursive=True)
+        "instance/service-accounts/{0}/".format(service_account),
+        recursive=True,
+    )
 
 
-def get_service_account_token(request, service_account='default'):
+def get_service_account_token(request, service_account="default"):
     """Get the OAuth 2.0 access token for a service account.
 
     Args:
@@ -197,8 +238,9 @@ def get_service_account_token(request, service_account='default'):
             retrieving metadata.
     """
     token_json = get(
-        request,
-        'instance/service-accounts/{0}/token'.format(service_account))
+        request, "instance/service-accounts/{0}/token".format(service_account)
+    )
     token_expiry = _helpers.utcnow() + datetime.timedelta(
-        seconds=token_json['expires_in'])
-    return token_json['access_token'], token_expiry
+        seconds=token_json["expires_in"]
+    )
+    return token_json["access_token"], token_expiry

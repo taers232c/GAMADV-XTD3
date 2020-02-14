@@ -25,6 +25,7 @@ service account.
         https://cloud.google.com/iam/credentials/reference/rest/
 """
 
+import base64
 import copy
 from datetime import datetime
 import json
@@ -35,15 +36,33 @@ from six.moves import http_client
 from google.auth import _helpers
 from google.auth import credentials
 from google.auth import exceptions
+from google.auth import jwt
+from google.auth.transport.requests import AuthorizedSession
 
 _DEFAULT_TOKEN_LIFETIME_SECS = 3600  # 1 hour in seconds
 
-_IAM_SCOPE = ['https://www.googleapis.com/auth/iam']
+_IAM_SCOPE = ["https://www.googleapis.com/auth/iam"]
 
-_IAM_ENDPOINT = ('https://iamcredentials.googleapis.com/v1/projects/-' +
-                 '/serviceAccounts/{}:generateAccessToken')
+_IAM_ENDPOINT = (
+    "https://iamcredentials.googleapis.com/v1/projects/-"
+    + "/serviceAccounts/{}:generateAccessToken"
+)
 
-_REFRESH_ERROR = 'Unable to acquire impersonated credentials'
+_IAM_SIGN_ENDPOINT = (
+    "https://iamcredentials.googleapis.com/v1/projects/-"
+    + "/serviceAccounts/{}:signBlob"
+)
+
+_IAM_IDTOKEN_ENDPOINT = (
+    "https://iamcredentials.googleapis.com/v1/"
+    + "projects/-/serviceAccounts/{}:generateIdToken"
+)
+
+_REFRESH_ERROR = "Unable to acquire impersonated credentials"
+
+_DEFAULT_TOKEN_LIFETIME_SECS = 3600  # 1 hour in seconds
+
+_DEFAULT_TOKEN_URI = "https://oauth2.googleapis.com/token"
 
 
 def _make_iam_token_request(request, principal, headers, body):
@@ -65,36 +84,33 @@ def _make_iam_token_request(request, principal, headers, body):
     """
     iam_endpoint = _IAM_ENDPOINT.format(principal)
 
-    body = json.dumps(body)
+    body = json.dumps(body).encode("utf-8")
 
-    response = request(
-        url=iam_endpoint,
-        method='POST',
-        headers=headers,
-        body=body)
+    response = request(url=iam_endpoint, method="POST", headers=headers, body=body)
 
-    response_body = response.data.decode('utf-8')
+    response_body = response.data.decode("utf-8")
 
     if response.status != http_client.OK:
         exceptions.RefreshError(_REFRESH_ERROR, response_body)
 
     try:
-        token_response = json.loads(response.data.decode('utf-8'))
-        token = token_response['accessToken']
-        expiry = datetime.strptime(
-            token_response['expireTime'], '%Y-%m-%dT%H:%M:%SZ')
+        token_response = json.loads(response.data.decode("utf-8"))
+        token = token_response["accessToken"]
+        expiry = datetime.strptime(token_response["expireTime"], "%Y-%m-%dT%H:%M:%SZ")
 
         return token, expiry
 
     except (KeyError, ValueError) as caught_exc:
         new_exc = exceptions.RefreshError(
-            '{}: No access token or invalid expiration in response.'.format(
-                _REFRESH_ERROR),
-            response_body)
+            "{}: No access token or invalid expiration in response.".format(
+                _REFRESH_ERROR
+            ),
+            response_body,
+        )
         six.raise_from(new_exc, caught_exc)
 
 
-class Credentials(credentials.Credentials):
+class Credentials(credentials.Credentials, credentials.Signing):
     """This module defines impersonated credentials which are essentially
     impersonated identities.
 
@@ -153,12 +169,17 @@ class Credentials(credentials.Credentials):
         client = storage.Client(credentials=target_credentials)
         buckets = client.list_buckets(project='your_project')
         for bucket in buckets:
-          print bucket.name
+          print(bucket.name)
     """
 
-    def __init__(self, source_credentials,  target_principal,
-                 target_scopes, delegates=None,
-                 lifetime=_DEFAULT_TOKEN_LIFETIME_SECS):
+    def __init__(
+        self,
+        source_credentials,
+        target_principal,
+        target_scopes,
+        delegates=None,
+        lifetime=_DEFAULT_TOKEN_LIFETIME_SECS,
+    ):
         """
         Args:
             source_credentials (google.auth.Credentials): The source credential
@@ -172,7 +193,8 @@ class Credentials(credentials.Credentials):
                 granted to the prceeding identity.  For example, if set to
                 [serviceAccountB, serviceAccountC], the source_credential
                 must have the Token Creator role on serviceAccountB.
-                serviceAccountB must have the Token Creator on serviceAccountC.
+                serviceAccountB must have the Token Creator on
+                serviceAccountC.
                 Finally, C must have Token Creator on target_principal.
                 If left unset, source_credential must have that role on
                 target_principal.
@@ -214,12 +236,10 @@ class Credentials(credentials.Credentials):
         body = {
             "delegates": self._delegates,
             "scope": self._target_scopes,
-            "lifetime": str(self._lifetime) + "s"
+            "lifetime": str(self._lifetime) + "s",
         }
 
-        headers = {
-            'Content-Type': 'application/json',
-        }
+        headers = {"Content-Type": "application/json"}
 
         # Apply the source credentials authentication info.
         self._source_credentials.apply(headers)
@@ -228,4 +248,101 @@ class Credentials(credentials.Credentials):
             request=request,
             principal=self._target_principal,
             headers=headers,
-            body=body)
+            body=body,
+        )
+
+    def sign_bytes(self, message):
+
+        iam_sign_endpoint = _IAM_SIGN_ENDPOINT.format(self._target_principal)
+
+        body = {"payload": base64.b64encode(message), "delegates": self._delegates}
+
+        headers = {"Content-Type": "application/json"}
+
+        authed_session = AuthorizedSession(self._source_credentials)
+
+        response = authed_session.post(
+            url=iam_sign_endpoint, headers=headers, json=body
+        )
+
+        return base64.b64decode(response.json()["signedBlob"])
+
+    @property
+    def signer_email(self):
+        return self._target_principal
+
+    @property
+    def service_account_email(self):
+        return self._target_principal
+
+    @property
+    def signer(self):
+        return self
+
+
+class IDTokenCredentials(credentials.Credentials):
+    """Open ID Connect ID Token-based service account credentials.
+
+    """
+
+    def __init__(self, target_credentials, target_audience=None, include_email=False):
+        """
+        Args:
+            target_credentials (google.auth.Credentials): The target
+                credential used as to acquire the id tokens for.
+            target_audience (string): Audience to issue the token for.
+            include_email (bool): Include email in IdToken
+        """
+        super(IDTokenCredentials, self).__init__()
+
+        if not isinstance(target_credentials, Credentials):
+            raise exceptions.GoogleAuthError(
+                "Provided Credential must be " "impersonated_credentials"
+            )
+        self._target_credentials = target_credentials
+        self._target_audience = target_audience
+        self._include_email = include_email
+
+    def from_credentials(self, target_credentials, target_audience=None):
+        return self.__class__(
+            target_credentials=self._target_credentials, target_audience=target_audience
+        )
+
+    def with_target_audience(self, target_audience):
+        return self.__class__(
+            target_credentials=self._target_credentials, target_audience=target_audience
+        )
+
+    def with_include_email(self, include_email):
+        return self.__class__(
+            target_credentials=self._target_credentials,
+            target_audience=self._target_audience,
+            include_email=include_email,
+        )
+
+    @_helpers.copy_docstring(credentials.Credentials)
+    def refresh(self, request):
+
+        iam_sign_endpoint = _IAM_IDTOKEN_ENDPOINT.format(
+            self._target_credentials.signer_email
+        )
+
+        body = {
+            "audience": self._target_audience,
+            "delegates": self._target_credentials._delegates,
+            "includeEmail": self._include_email,
+        }
+
+        headers = {"Content-Type": "application/json"}
+
+        authed_session = AuthorizedSession(self._target_credentials._source_credentials)
+
+        response = authed_session.post(
+            url=iam_sign_endpoint,
+            headers=headers,
+            data=json.dumps(body).encode("utf-8"),
+        )
+
+        id_token = response.json()["token"]
+        self.token = id_token
+        self.expiry = datetime.fromtimestamp(jwt.decode(id_token, verify=False)["exp"])
