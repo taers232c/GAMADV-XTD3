@@ -2708,19 +2708,19 @@ def SetGlobalVariables():
           else:
             valid, filterValue = getRowFilterTimeOrDeltaFromNow(mg.group(3))
           if valid:
-            rowFilters.append((columnPat, mg.group(1), mg.group(2), filterValue, 0))
+            rowFilters.append((columnPat, mg.group(1), mg.group(2), filterValue))
           else:
             _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: {filterValue}')
         else: #count
           if mg.group(3).isdigit():
-            rowFilters.append((columnPat, mg.group(1), mg.group(2), int(mg.group(3)), 0))
+            rowFilters.append((columnPat, mg.group(1), mg.group(2), int(mg.group(3))))
           else:
             _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: <Number>')
         continue
       mg = ROW_FILTER_RANGE_PATTERN.match(filterStr)
       if mg:
         if mg.group(1) in {'daterange', 'timerange'}:
-          if mg.group(1) == 'date':
+          if mg.group(1) == 'daterange':
             valid1, filterValue1 = getRowFilterDateOrDeltaFromNow(mg.group(3))
             valid2, filterValue2 = getRowFilterDateOrDeltaFromNow(mg.group(4))
           else:
@@ -5711,8 +5711,8 @@ class CSVPrintFile():
           rowTime, tz = iso8601.parse_date(rowDate)
           rowDate = ISOformatTimeStamp(datetime.datetime(rowTime.year, rowTime.month, rowTime.day, tzinfo=tz))
         if op == '!=':
-          return not (rowDate >= filterDateL and rowDate < filterDateR)
-        return rowDate >= filterDateL and rowDate < filterDateR
+          return not (rowDate >= filterDateL and rowDate <= filterDateR)
+        return rowDate >= filterDateL and rowDate <= filterDateR
 
       for column in columns:
         if checkMatch(row.get(column, '')):
@@ -5753,8 +5753,8 @@ class CSVPrintFile():
         elif not isinstance(rowCount, int):
           return False
         if op == '!=':
-          return not (rowCount >= filterCountL and rowCount < filterCountR)
-        return rowCount >= filterCountL and rowCount < filterCountR
+          return not (rowCount >= filterCountL and rowCount <= filterCountR)
+        return rowCount >= filterCountL and rowCount <= filterCountR
 
       for column in columns:
         if checkMatch(row.get(column, 0)):
