@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.09'
+__version__ = '4.99.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -39162,7 +39162,10 @@ def setProfile(users):
 def showProfile(users):
   _setShowProfile(users, 'get')
 
-# gam <UserTypeEntity> create sheet json <SpreadsheetJSONCreateRequest> [formatjson]
+# gam <UserTypeEntity> create sheet
+#	((json [charset <Charset>] <SpreadsheetJSONCreateRequest>) |
+#	 (json file <FileName> [charset <Charset>]))
+#	[formatjson]
 #	[parentid <DriveFolderID>] | [parentname <DriveFolderName>] | [anyownerparentname <DriveFolderName>]
 #	[teamdriveparentid <DriveFolderID>] [teamdriveparent <TeamDriveName>] [teamdriveparentname <DriveFolderName>]
 def createSheet(users):
@@ -39176,12 +39179,7 @@ def createSheet(users):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'json':
-      spreadsheetJSON = getString(Cmd.OB_SPREADSHEET_JSON_CREATEREQUEST)
-      try:
-        body = json.loads(spreadsheetJSON)
-      except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
-        Cmd.Backup()
-        usageErrorExit(f'{str(e)}: {spreadsheetJSON}')
+      body = getJSON([])
     elif getDriveFileParentAttribute(myarg, parameters):
       changeParents = True
     else:
@@ -39246,7 +39244,10 @@ def _validateUserGetSpreadsheetIDs(user, i, count, fileIdEntity, showEntityType)
     return (user, None, 0)
   return (user, sheet, jcount)
 
-# gam <UserTypeEntity> update sheet <DriveFileEntity> json <SpreadsheetJSONUpdateRequest> [formatjson]
+# gam <UserTypeEntity> update sheet
+#	((json [charset <Charset>] <SpreadsheetJSONUpdateRequest>) |
+#	 (json file <FileName> [charset <Charset>]))
+#	[formatjson]
 def updateSheets(users):
   spreadsheetIdEntity = getDriveFileEntity()
   body = {}
@@ -39254,12 +39255,7 @@ def updateSheets(users):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'json':
-      spreadsheetJSON = getString(Cmd.OB_SPREADSHEET_JSON_UPDATEREQUEST)
-      try:
-        body = json.loads(spreadsheetJSON)
-      except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
-        Cmd.Backup()
-        usageErrorExit(f'{str(e)}: {spreadsheetJSON}')
+      body = getJSON([])
     else:
       FJQC.GetFormatJSON(myarg)
   i, count, users = getEntityArgument(users)
@@ -39377,19 +39373,14 @@ def _getSpreadsheetRangesValues(append):
     if myarg == 'json':
       if append and spreadsheetRangesValues:
         usageErrorExit(Msg.ONLY_ONE_JSON_RANGE_ALLOWED)
-      spreadsheetJSON = getString(Cmd.OB_SPREADSHEET_JSON_RANGEVALUESLIST)
-      try:
-        spreadsheetRangeValue = json.loads(spreadsheetJSON)
-        if isinstance(spreadsheetRangeValue, list):
-          spreadsheetRangesValues.extend(spreadsheetRangeValue)
-        else:
-          spreadsheetRangesValues.append(spreadsheetRangeValue)
-        if append and len(spreadsheetRangesValues) > 1:
-          Cmd.Backup()
-          usageErrorExit(Msg.ONLY_ONE_JSON_RANGE_ALLOWED)
-      except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
+      spreadsheetRangeValue = getJSON([])
+      if isinstance(spreadsheetRangeValue, list):
+        spreadsheetRangesValues.extend(spreadsheetRangeValue)
+      else:
+        spreadsheetRangesValues.append(spreadsheetRangeValue)
+      if append and len(spreadsheetRangesValues) > 1:
         Cmd.Backup()
-        usageErrorExit(f'{str(e)}: {spreadsheetJSON}')
+        usageErrorExit(Msg.ONLY_ONE_JSON_RANGE_ALLOWED)
     elif myarg in SHEET_VALUE_INPUT_OPTIONS_MAP:
       kwargs['valueInputOption'] = SHEET_VALUE_INPUT_OPTIONS_MAP[myarg]
     elif myarg == 'includevaluesinresponse':
@@ -39421,7 +39412,10 @@ def _showUpdateValuesResponse(result, k, kcount):
     _showValueRange(result['updatedData'])
   Ind.Decrement()
 
-# gam <UserTypeEntity> append sheetrange <DriveFileEntity> json <SpreadsheetJSONRangeValuesList> [overwrite|insertrows]
+# gam <UserTypeEntity> append sheetrange <DriveFileEntity>
+#	((json [charset <Charset>] <SpreadsheetJSONRangeValues>|<SpreadsheetJSONRangeValuesList>) |
+#	 (json file <FileName> [charset <Charset>]))
+#	[overwrite|insertrows]
 #	[raw|userentered] [serialnumber|formattedstring] [formula|formattedvalue|unformattedvalue]
 #	[includevaluesinresponse [<Boolean>]] [formatjson]
 def appendSheetRanges(users):
@@ -39462,7 +39456,9 @@ def appendSheetRanges(users):
       Ind.Decrement()
     Ind.Decrement()
 
-# gam <UserTypeEntity> update sheetrange <DriveFileEntity> (json <SpreadsheetJSONRangeValuesList>)+
+# gam <UserTypeEntity> update sheetrange <DriveFileEntity>
+#	((json [charset <Charset>] <SpreadsheetJSONRangeValues>|<SpreadsheetJSONRangeValuesList>)+
+#	 (json file <FileName> [charset <Charset>]))+
 #	[raw|userentered] [serialnumber|formattedstring] [formula|formattedvalue|unformattedvalue]
 #	[includevaluesinresponse [<Boolean>]] [formatjson]
 def updateSheetRanges(users):
