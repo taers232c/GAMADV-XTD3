@@ -1,3 +1,8 @@
+4.99.11
+
+Updated `gam print/show messages` to display message labels and counts.
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Gmail-Messages-Threads#display-messagesthreads
+
 4.99.10
 
 Updated `gam create/update sheet` and `gam append/update sheetrange` to be able to read JSON data from
