@@ -41254,8 +41254,8 @@ def printShowMessagesThreads(users, entityType):
       if labelId in labelsMap:
         if not onlyUser or labelsMap[labelId]['type'] != LABEL_TYPE_SYSTEM:
           messageLabels.append(labelsMap[labelId]['name'])
-        else:
-          messageLabels.append(labelId)
+      else:
+        messageLabels.append(labelId)
     return messageLabels
 
   def _showMessage(result, j, jcount):

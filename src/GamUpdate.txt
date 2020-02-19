@@ -5,6 +5,8 @@ GAM will warn you if the key is more than 30 days old. Google recommends rotatin
 can be done with `gam update|rotate sakey`.
 See: https://github.com/taers232c/GAMADV-XTD3/wiki/Authorization#update-an-existing-service-account-key
 
+Fixed bug in `gam print/show messages` where `showlabels useronly` option was not suppressing system labels.
+
 4.99.12
 
 Handle `permissionDenied` error when processing delegates.
