@@ -18,7 +18,7 @@ jobs:
   include:
     - os: linux
       dist: bionic
-      arch: armv7l
+      arch: rpi
       name: "Linux ARMV7L Bionic"
       language: shell
       filter_secrets: false
