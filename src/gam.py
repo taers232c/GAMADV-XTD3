@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.11'
+__version__ = '4.99.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -40792,21 +40792,31 @@ def _processMessagesThreads(users, entityType):
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
-# gam <UserTypeEntity> delete message|messages (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_delete <Number>])|(ids <MessageIDEntity>)
-# gam <UserTypeEntity> modify message|messages (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_modify <Number>])|(ids <MessageIDEntity>)
+# gam <UserTypeEntity> delete message|messages
+#	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_delete <Number>])|(ids <MessageIDEntity>)
+# gam <UserTypeEntity> modify message|messages
+#	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_modify <Number>])|(ids <MessageIDEntity>)
 #	(addlabel <LabelName>)* (removelabel <LabelName>)*
-# gam <UserTypeEntity> spam message|messages (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_spam <Number>])|(ids <MessageIDEntity>)
-# gam <UserTypeEntity> trash message|messages (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_trash <Number>])|(ids <MessageIDEntity>)
-# gam <UserTypeEntity> untrash message|messages (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_untrash <Number>])|(ids <MessageIDEntity>)
+# gam <UserTypeEntity> spam message|messages
+#	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_spam <Number>])|(ids <MessageIDEntity>)
+# gam <UserTypeEntity> trash message|messages
+#	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_trash <Number>])|(ids <MessageIDEntity>)
+# gam <UserTypeEntity> untrash message|messages
+#	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_untrash <Number>])|(ids <MessageIDEntity>)
 def processMessages(users):
   _processMessagesThreads(users, Ent.MESSAGE)
 
-# gam <UserTypeEntity> delete thread|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_delete <Number>])|(ids <ThreadIDEntity>)
-# gam <UserTypeEntity> modify thread|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_modify <Number>])|(ids <ThreadIDEntity>)
+# gam <UserTypeEntity> delete thread|threads
+#	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_delete <Number>])|(ids <ThreadIDEntity>)
+# gam <UserTypeEntity> modify thread|threads
+#	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_modify <Number>])|(ids <ThreadIDEntity>)
 #	(addlabel <LabelName>)* (removelabel <LabelName>)*
-# gam <UserTypeEntity> spam thread|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_spam <Number>])|(ids <ThreadIDEntity>)
-# gam <UserTypeEntity> trash thread|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_trash <Number>])|(ids <MessageIDEntity>)
-# gam <UserTypeEntity> untrash thread|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_untrash <Number>])|(ids <ThreadIDEntity>)
+# gam <UserTypeEntity> spam thread|threads
+#	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_spam <Number>])|(ids <ThreadIDEntity>)
+# gam <UserTypeEntity> trash thread|threads
+#	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_trash <Number>])|(ids <MessageIDEntity>)
+# gam <UserTypeEntity> untrash thread|threads
+#	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_untrash <Number>])|(ids <ThreadIDEntity>)
 def processThreads(users):
   _processMessagesThreads(users, Ent.THREAD)
 
@@ -41556,20 +41566,24 @@ def printShowMessagesThreads(users, entityType):
         csvPF.AddTitle('Body')
     csvPF.writeCSVfile('Messages' if not (countsOnly and show_labels) else 'Message Label Counts')
 
-# gam <UserTypeEntity> print message|messages (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_print <Number>] [includespamtrash])|(ids <MessageIDEntity>)
+# gam <UserTypeEntity> print message|messages
+#	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_print <Number>] [includespamtrash])|(ids <MessageIDEntity>)
 #	[headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <Character>] [todrive <ToDriveAttributes>*]
 #	[countsonly|positivecountsonly] [useronly]
-# gam <UserTypeEntity> show message|messages (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <MessageIDEntity>)
+# gam <UserTypeEntity> show message|messages
+#	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <MessageIDEntity>)
 #	[headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [showattachments [attachmentnamepattern <RegularExpression>]]
 #	[countsonly|positivecountsonly] [useronly]
 #       [saveattachments [attachmentnamepattern <RegularExpression>]] [targetfolder <FilePath>] [overwrite [<Boolean>]]
 def printShowMessages(users):
   printShowMessagesThreads(users, Ent.MESSAGE)
 
-# gam <UserTypeEntity> print thread|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_print <Number>] [includespamtrash])|(ids <ThreadIDEntity>)
+# gam <UserTypeEntity> print thread|threads
+#	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_print <Number>] [includespamtrash])|(ids <ThreadIDEntity>)
 #	[headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <Character>] [todrive <ToDriveAttributes>*]
 #	[countsonly|positivecountsonly] [useronly]
-# gam <UserTypeEntity> show thread|threads (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <ThreadIDEntity>)
+# gam <UserTypeEntity> show thread|threads
+#	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <ThreadIDEntity>)
 #	[headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [showattachments [attachmentnamepattern <RegularExpression>]]
 #	[countsonly|positivecountsonly] [useronly]
 #       [saveattachments [attachmentnamepattern <RegularExpression>]] [targetfolder <FilePath>] [overwrite [<Boolean>]]
@@ -41596,10 +41610,11 @@ def delegateTo(users, checkForTo=True):
       delegateEmail = convertUIDtoEmailAddress(delegate, cd=cd)
       try:
         callGAPI(gmail.users().settings().delegates(), 'create',
-                 throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION, GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT],
+                 throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION,
+                                                         GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                  userId='me', body={'delegateEmail': delegateEmail})
         entityActionPerformed([Ent.USER, user, Ent.DELEGATE, delegateEmail], j, jcount)
-      except (GAPI.alreadyExists, GAPI.failedPrecondition, GAPI.notFound, GAPI.invalidArgument) as e:
+      except (GAPI.alreadyExists, GAPI.failedPrecondition, GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DELEGATE, delegateEmail], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.badRequest):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -41627,10 +41642,10 @@ def deleteDelegate(users):
       delegateEmail = convertUIDtoEmailAddress(delegate, cd=cd)
       try:
         callGAPI(gmail.users().settings().delegates(), 'delete',
-                 throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_INPUT],
+                 throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_INPUT, GAPI.PERMISSION_DENIED],
                  userId='me', delegateEmail=delegateEmail)
         entityActionPerformed([Ent.USER, user, Ent.DELEGATE, delegateEmail], j, jcount)
-      except (GAPI.notFound, GAPI.invalidInput) as e:
+      except (GAPI.notFound, GAPI.invalidInput, GAPI.permissionDenied) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DELEGATE, delegateEmail], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.badRequest):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -41653,8 +41668,11 @@ def updateDelegates(users):
         continue
       try:
         result = callGAPI(gmail.users().settings().delegates(), 'list',
-                          throw_reasons=GAPI.GMAIL_THROW_REASONS,
+                          throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.PERMISSION_DENIED],
                           userId='me')
+      except GAPI.permissionDenied as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.DELEGATE, None], str(e), i, count)
+        continue
       except (GAPI.serviceNotAvailable, GAPI.badRequest):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
         continue
@@ -41673,12 +41691,13 @@ def updateDelegates(users):
         delegateEmail = delegate['delegateEmail'] if delegateEntity is None else convertUIDtoEmailAddress(delegate, cd=cd)
         try:
           callGAPI(gmail.users().settings().delegates(), 'create',
-                   throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION, GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT],
+                   throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION,
+                                                           GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                    userId='me', body={'delegateEmail': delegateEmail, 'verificationStatus': 'accepted'})
           entityActionPerformed([Ent.USER, user, Ent.DELEGATE, delegateEmail], j, jcount)
         except GAPI.alreadyExists:
           entityActionPerformed([Ent.USER, user, Ent.DELEGATE, delegateEmail], j, jcount)
-        except (GAPI.failedPrecondition, GAPI.notFound, GAPI.invalidArgument) as e:
+        except (GAPI.failedPrecondition, GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DELEGATE, delegateEmail], str(e), j, jcount)
         except (GAPI.serviceNotAvailable, GAPI.badRequest):
           entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -41728,7 +41747,7 @@ def printShowDelegates(users):
       printGettingAllEntityItemsForWhom(Ent.DELEGATE, user, i, count)
     try:
       result = callGAPI(gmail.users().settings().delegates(), 'list',
-                        throw_reasons=GAPI.GMAIL_THROW_REASONS,
+                        throw_reasons=GAPI.GMAIL_THROW_REASONS+[GAPI.PERMISSION_DENIED],
                         userId='me')
       delegates = result.get('delegates', []) if result is not None else []
       jcount = len(delegates)
@@ -41775,6 +41794,8 @@ def printShowDelegates(users):
                               'delegationStatus': delegate['verificationStatus']})
         elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
           csvPF.WriteRowNoFilter({'User': user})
+    except GAPI.permissionDenied as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.DELEGATE, None], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvPF:
