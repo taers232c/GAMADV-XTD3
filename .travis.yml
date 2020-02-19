@@ -18,6 +18,16 @@ jobs:
   include:
     - os: linux
       dist: bionic
+      arch: armv7l
+      name: "Linux ARMV7L Bionic"
+      language: shell
+      filter_secrets: false
+      env:
+        - GAMOS=linux
+        - PLATFORM=armv7l
+        - VMTYPE=build
+    - os: linux
+      dist: bionic
       arch: arm64
       name: "Linux ARM64 Bionic"
       language: shell

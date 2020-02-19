@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.12'
+__version__ = '4.99.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6030,12 +6030,12 @@ class CSVPrintFile():
               try:
                 body = {'requests': []}
                 if self.todrive['sheetEntity']:
-                  sheets = callGAPI(sheet.spreadsheets(), 'get',
-                                    throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
-                                    spreadsheetId=spreadsheetId, fields='sheets/properties')
-                  sheets['sheets'][0]['properties']['title'] = self.todrive['sheetEntity']['sheetTitle']
+                  spreadsheet = callGAPI(sheet.spreadsheets(), 'get',
+                                         throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
+                                         spreadsheetId=spreadsheetId, fields='sheets/properties')
+                  spreadsheet['sheets'][0]['properties']['title'] = self.todrive['sheetEntity']['sheetTitle']
                   body['requests'].append({'updateSheetProperties':
-                                             {'properties': sheets['sheets'][0]['properties'], 'fields': 'title'}})
+                                             {'properties': spreadsheet['sheets'][0]['properties'], 'fields': 'title'}})
                 if self.todrive['locale']:
                   body['requests'].append({'updateSpreadsheetProperties':
                                              {'properties': {'locale': self.todrive['locale']}, 'fields': 'locale'}})
@@ -8214,6 +8214,27 @@ def checkServiceAccount(users):
     auth_error = ' - '+str(e)
   Ind.Increment()
   printPassFail(f'Authentication{auth_error}', saTokenStatus)
+  Ind.Decrement()
+  if saTokenStatus == 'FAIL':
+    invalidOauth2serviceJsonExit()
+  printKeyValueList([Msg.SERVICE_ACCOUNT_CHECK_PRIVATE_KEY_AGE, None])
+  _, iam = buildGAPIServiceObject(API.IAM, None)
+  currentPrivateKeyId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['private_key_id']
+  clientId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
+  name = f'projects/-/serviceAccounts/{clientId}/keys/{currentPrivateKeyId}'
+  try:
+    key = callGAPI(iam.projects().serviceAccounts().keys(), 'get',
+                   throw_reasons=[GAPI.BAD_REQUEST],
+                   name=name, fields='validAfterTime')
+  except GAPI.badRequest as e:
+    entityActionFailedExit([Ent.PROJECT, GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id'],
+                            Ent.SVCACCT, GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']],
+                           str(e))
+  # Both Google and GAM set key valid after to day before creation
+  key_created, _ = iso8601.parse_date(key['validAfterTime'])
+  key_age = todaysTime()-(key_created+datetime.timedelta(days=1))
+  Ind.Increment()
+  printPassFail(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AGE.format(key_age.days), 'WARN' if key_age.days > 30 else 'PASS')
   Ind.Decrement()
   i, count, users = getEntityArgument(users)
   for user in users:

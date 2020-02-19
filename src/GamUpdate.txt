@@ -1,3 +1,10 @@
+4.99.13
+
+Following Jay's lead, updated `gam check serviceaccount` to check the age of the private key in `oauth2service.json`.
+GAM will warn you if the key is more than 30 days old. Google recommends rotating the key on a regular basis which
+can be done with `gam rotate sakey`.
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Authorization#update-an-existing-service-account-key
+
 4.99.12
 
 Handle `permissionDenied` error when processing delegates.
