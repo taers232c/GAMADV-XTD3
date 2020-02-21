@@ -1,3 +1,7 @@
+4.99.15
+
+Instruct user to perform `gam update project` when permission is denied to access service account keys.
+
 4.99.14 
 
 Improve error handling in `gam check serviceaccount` when checking the age of the private key in `oauth2service.json`.

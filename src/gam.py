@@ -8130,6 +8130,9 @@ def doDeleteSvcAcct():
 # gam <UserTypeEntity> check serviceaccount (scope|scopes <APIScopeURLList>)*
 # gam <UserTypeEntity> update serviceaccount
 def checkServiceAccount(users):
+  def printMessage(message):
+    writeStdout(Ind.Spaces()+message+'\n')
+
   def printPassFail(description, result):
     writeStdout(Ind.Spaces()+f'{description:73} {result}'+'\n')
 
@@ -8187,7 +8190,7 @@ def checkServiceAccount(users):
               continueOnError=False)
   checkScopes = sorted(checkScopesSet)
   jcount = len(checkScopes)
-  printKeyValueList([Msg.SYSTEM_TIME_STATUS, None])
+  printMessage(Msg.SYSTEM_TIME_STATUS)
   offsetSeconds, offsetFormatted = getLocalGoogleTimeOffset()
   if offsetSeconds <= MAX_LOCAL_GOOGLE_TIME_OFFSET:
     timeStatus = 'PASS'
@@ -8197,7 +8200,7 @@ def checkServiceAccount(users):
   printPassFail(Msg.YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE.format('www.googleapis.com', offsetFormatted), timeStatus)
   Ind.Decrement()
   oa2 = buildGAPIObject(API.OAUTH2)
-  printKeyValueList([Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AUTHENTICATION, None])
+  printMessage(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AUTHENTICATION)
   # We are explicitly not doing DwD here, just confirming service account can auth
   auth_error = ''
   try:
@@ -8220,7 +8223,7 @@ def checkServiceAccount(users):
   Ind.Decrement()
   if saTokenStatus == 'FAIL':
     invalidOauth2serviceJsonExit()
-  printKeyValueList([Msg.SERVICE_ACCOUNT_CHECK_PRIVATE_KEY_AGE, None])
+  printMessage(Msg.SERVICE_ACCOUNT_CHECK_PRIVATE_KEY_AGE)
   _, iam = buildGAPIServiceObject(API.IAM, None)
   currentPrivateKeyId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['private_key_id']
   clientId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
@@ -8234,7 +8237,10 @@ def checkServiceAccount(users):
     key_created, _ = iso8601.parse_date(key['validAfterTime'])
     key_age = todaysTime()-(key_created+datetime.timedelta(days=1))
     printPassFail(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AGE.format(key_age.days), 'WARN' if key_age.days > 30 else 'PASS')
-  except (GAPI.badRequest, GAPI.invalidArgument, GAPI.notFound, GAPI.permissionDenied) as e:
+  except GAPI.permissionDenied:
+    printMessage(Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
+    printPassFail(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AGE.format('UNKNOWN'), 'WARN')
+  except (GAPI.badRequest, GAPI.invalidArgument, GAPI.notFound) as e:
     entityActionFailedWarning([Ent.PROJECT, GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id'],
                                Ent.SVCACCT, GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']],
                               str(e))
@@ -8434,7 +8440,10 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
       keys = callGAPIitems(iam.projects().serviceAccounts().keys(), 'list', 'keys',
                            throw_reasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
                            name=name, keyTypes='USER_MANAGED')
-    except (GAPI.badRequest, GAPI.permissionDenied) as e:
+    except GAPI.permissionDenied:
+      entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
+      return
+    except GAPI.badRequest as e:
       entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
       return
   if local_key_size:
@@ -8444,7 +8453,10 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
       result = callGAPI(iam.projects().serviceAccounts().keys(), 'upload',
                         throw_reasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
                         name=name, body={'publicKeyData': publicKeyData})
-    except (GAPI.badRequest, GAPI.permissionDenied) as e:
+    except GAPI.permissionDenied:
+      entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
+      return
+    except GAPI.badRequest as e:
       entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
       return
     private_key_id = result['name'].rsplit('/', 1)[-1]
@@ -8455,7 +8467,10 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
       result = callGAPI(iam.projects().serviceAccounts().keys(), 'create',
                         throw_reasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
                         name=name, body=body)
-    except (GAPI.badRequest, GAPI.permissionDenied) as e:
+    except GAPI.permissionDenied:
+      entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
+      return
+    except GAPI.badRequest as e:
       entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
       return
     oauth2service_data = base64.b64decode(result['privateKeyData']).decode(UTF8)
@@ -8487,7 +8502,10 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
                    throw_reasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
                    name=key['name'])
           entityActionPerformed([Ent.SVCACCT_KEY, keyName], i, count)
-        except (GAPI.badRequest, GAPI.permissionDenied) as e:
+        except GAPI.permissionDenied:
+          entityActionFailedWarning([Ent.SVCACCT_KEY, keyName], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
+          break
+        except GAPI.badRequest as e:
           entityActionFailedWarning([Ent.SVCACCT_KEY, keyName], str(e), i, count)
         if mode != 'retainnone':
           break
@@ -8526,7 +8544,10 @@ def doDeleteSvcAcctKeys():
     keys = callGAPIitems(iam.projects().serviceAccounts().keys(), 'list', 'keys',
                          throw_reasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
                          name=name, keyTypes='USER_MANAGED')
-  except (GAPI.badRequest, GAPI.permissionDenied) as e:
+  except GAPI.permissionDenied:
+    entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
+    return
+  except GAPI.badRequest as e:
     entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
     return
   Act.Set(Act.REVOKE)
@@ -8548,6 +8569,8 @@ def doDeleteSvcAcctKeys():
                    throw_reasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
                    name=key['name'])
           entityActionPerformed([Ent.SVCACCT_KEY, keyName], i, count)
+        except GAPI.permissionDenied:
+          entityActionFailedWarning([Ent.SVCACCT_KEY, keyName], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
         except (GAPI.badRequest, GAPI.permissionDenied) as e:
           entityActionFailedWarning([Ent.SVCACCT_KEY, keyName], str(e), i, count)
         break
@@ -8578,7 +8601,10 @@ def doShowSvcAcctKeys():
     keys = callGAPIitems(iam.projects().serviceAccounts().keys(), 'list', 'keys',
                          throw_reasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
                          name=name, keyTypes=keyTypes)
-  except (GAPI.badRequest, GAPI.permissionDenied) as e:
+  except GAPI.permissionDenied:
+    entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
+    return
+  except GAPI.badRequest as e:
     entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
     return
   count = len(keys)
