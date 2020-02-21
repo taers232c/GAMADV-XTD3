@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.13'
+__version__ = '4.99.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3629,8 +3629,8 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False, service=None):
       return (e.resp['status'], GAPI.QUOTA_EXCEEDED, eContent)
     if (e.resp['status'] == '502') and ('Bad Gateway' in eContent):
       return (e.resp['status'], GAPI.BAD_GATEWAY, eContent)
-    if (e.resp['status'] == '504') and ('Gateway Timeout' in e.content):
-      return (e.resp['status'], GAPI.GATEWAY_TIMEOUT, e.content)
+    if (e.resp['status'] == '504') and ('Gateway Timeout' in eContent):
+      return (e.resp['status'], GAPI.GATEWAY_TIMEOUT, eContent)
     if (e.resp['status'] == '403') and ('Invalid domain.' in eContent):
       error = {'error': {'code': 403, 'errors': [{'reason': GAPI.NOT_FOUND, 'message': 'Domain not found'}]}}
     elif (e.resp['status'] == '403') and ('Domain cannot use apis.' in eContent):
@@ -3645,9 +3645,9 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False, service=None):
       error = {'error': {'code': 400, 'errors': [{'reason': GAPI.NOT_FOUND, 'message': 'Entity Does Not Exist'}]}}
     elif (e.resp['status'] == '400') and ('EntityNameNotValid' in eContent):
       error = {'error': {'code': 400, 'errors': [{'reason': GAPI.INVALID_INPUT, 'message': 'Entity Name Not Valid'}]}}
-    elif (e.resp['status'] == '400') and ('Failed to parse Content-Range header' in e.content):
+    elif (e.resp['status'] == '400') and ('Failed to parse Content-Range header' in eContent):
       error = {'error': {'code': 400, 'errors': [{'reason': GAPI.BAD_REQUEST, 'message': 'Failed to parse Content-Range header'}]}}
-    elif (e.resp['status'] == '400') and ('Request contains an invalid argument' in e.content):
+    elif (e.resp['status'] == '400') and ('Request contains an invalid argument' in eContent):
       error = {'error': {'code': 400, 'errors': [{'reason': GAPI.INVALID_ARGUMENT, 'message': 'Request contains an invalid argument'}]}}
     elif retryOnHttpError:
       if hasattr(service._http.request, 'credentials'):
@@ -3678,11 +3678,14 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False, service=None):
         error = {'error': {'errors': [{'reason': GAPI.OPERATION_NOT_SUPPORTED, 'message': message}]}}
       elif 'Failed status in update settings response' in message:
         error = {'error': {'errors': [{'reason': GAPI.INVALID_INPUT, 'message': message}]}}
+    elif http_status == 400:
+      if 'does not match' in message or 'Invalid' in message:
+        error = {'error': {'errors': [{'reason': GAPI.INVALID_ARGUMENT, 'message': message}]}}
     elif http_status == 403:
-      if 'The caller does not have permission' in message:
+      if 'The caller does not have permission' in message or 'Permission iam.serviceAccountKeys' in message:
         error = {'error': {'errors': [{'reason': GAPI.PERMISSION_DENIED, 'message': message}]}}
     elif http_status == 404:
-      if 'Requested entity was not found' in message:
+      if 'Requested entity was not found' in message or 'does not exist' in message:
         error = {'error': {'errors': [{'reason': GAPI.NOT_FOUND, 'message': message}]}}
     elif http_status == 409:
       if 'Requested entity already exists' in message:
@@ -8222,19 +8225,20 @@ def checkServiceAccount(users):
   currentPrivateKeyId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['private_key_id']
   clientId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
   name = f'projects/-/serviceAccounts/{clientId}/keys/{currentPrivateKeyId}'
+  Ind.Increment()
   try:
     key = callGAPI(iam.projects().serviceAccounts().keys(), 'get',
-                   throw_reasons=[GAPI.BAD_REQUEST],
+                   throw_reasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
                    name=name, fields='validAfterTime')
-  except GAPI.badRequest as e:
-    entityActionFailedExit([Ent.PROJECT, GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id'],
-                            Ent.SVCACCT, GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']],
-                           str(e))
-  # Both Google and GAM set key valid after to day before creation
-  key_created, _ = iso8601.parse_date(key['validAfterTime'])
-  key_age = todaysTime()-(key_created+datetime.timedelta(days=1))
-  Ind.Increment()
-  printPassFail(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AGE.format(key_age.days), 'WARN' if key_age.days > 30 else 'PASS')
+    # Both Google and GAM set key valid after to day before creation
+    key_created, _ = iso8601.parse_date(key['validAfterTime'])
+    key_age = todaysTime()-(key_created+datetime.timedelta(days=1))
+    printPassFail(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AGE.format(key_age.days), 'WARN' if key_age.days > 30 else 'PASS')
+  except (GAPI.badRequest, GAPI.invalidArgument, GAPI.notFound, GAPI.permissionDenied) as e:
+    entityActionFailedWarning([Ent.PROJECT, GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id'],
+                               Ent.SVCACCT, GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']],
+                              str(e))
+    printPassFail(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AGE.format('UNKNOWN'), 'WARN')
   Ind.Decrement()
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -8428,9 +8432,9 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
   if mode != 'retainexisting':
     try:
       keys = callGAPIitems(iam.projects().serviceAccounts().keys(), 'list', 'keys',
-                           throw_reasons=[GAPI.BAD_REQUEST],
+                           throw_reasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
                            name=name, keyTypes='USER_MANAGED')
-    except GAPI.badRequest as e:
+    except (GAPI.badRequest, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
       return
   if local_key_size:
@@ -8438,9 +8442,9 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
     private_key, publicKeyData = _generatePrivateKeyAndPublicCert(projectId, clientEmail, name, local_key_size)
     try:
       result = callGAPI(iam.projects().serviceAccounts().keys(), 'upload',
-                        throw_reasons=[GAPI.BAD_REQUEST],
+                        throw_reasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
                         name=name, body={'publicKeyData': publicKeyData})
-    except GAPI.badRequest as e:
+    except (GAPI.badRequest, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
       return
     private_key_id = result['name'].rsplit('/', 1)[-1]
@@ -8449,9 +8453,9 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
     Act.Set(Act.CREATE)
     try:
       result = callGAPI(iam.projects().serviceAccounts().keys(), 'create',
-                        throw_reasons=[GAPI.BAD_REQUEST],
+                        throw_reasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
                         name=name, body=body)
-    except GAPI.badRequest as e:
+    except (GAPI.badRequest, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
       return
     oauth2service_data = base64.b64decode(result['privateKeyData']).decode(UTF8)
@@ -8480,10 +8484,10 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
         i += 1
         try:
           callGAPI(iam.projects().serviceAccounts().keys(), 'delete',
-                   throw_reasons=[GAPI.BAD_REQUEST],
+                   throw_reasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
                    name=key['name'])
           entityActionPerformed([Ent.SVCACCT_KEY, keyName], i, count)
-        except GAPI.badRequest as e:
+        except (GAPI.badRequest, GAPI.permissionDenied) as e:
           entityActionFailedWarning([Ent.SVCACCT_KEY, keyName], str(e), i, count)
         if mode != 'retainnone':
           break
@@ -8520,9 +8524,9 @@ def doDeleteSvcAcctKeys():
   name = f'projects/-/serviceAccounts/{clientId}'
   try:
     keys = callGAPIitems(iam.projects().serviceAccounts().keys(), 'list', 'keys',
-                         throw_reasons=[GAPI.BAD_REQUEST],
+                         throw_reasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
                          name=name, keyTypes='USER_MANAGED')
-  except GAPI.badRequest as e:
+  except (GAPI.badRequest, GAPI.permissionDenied) as e:
     entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
     return
   Act.Set(Act.REVOKE)
@@ -8541,10 +8545,10 @@ def doDeleteSvcAcctKeys():
           break
         try:
           callGAPI(iam.projects().serviceAccounts().keys(), 'delete',
-                   throw_reasons=[GAPI.BAD_REQUEST],
+                   throw_reasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
                    name=key['name'])
           entityActionPerformed([Ent.SVCACCT_KEY, keyName], i, count)
-        except GAPI.badRequest as e:
+        except (GAPI.badRequest, GAPI.permissionDenied) as e:
           entityActionFailedWarning([Ent.SVCACCT_KEY, keyName], str(e), i, count)
         break
     else:
@@ -8572,9 +8576,9 @@ def doShowSvcAcctKeys():
   name = f'projects/-/serviceAccounts/{clientId}'
   try:
     keys = callGAPIitems(iam.projects().serviceAccounts().keys(), 'list', 'keys',
-                         throw_reasons=[GAPI.BAD_REQUEST],
+                         throw_reasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
                          name=name, keyTypes=keyTypes)
-  except GAPI.badRequest as e:
+  except (GAPI.badRequest, GAPI.permissionDenied) as e:
     entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
     return
   count = len(keys)

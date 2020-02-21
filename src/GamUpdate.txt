@@ -1,3 +1,7 @@
+4.99.14 
+
+Improve error handling in `gam check serviceaccount` when checking the age of the private key in `oauth2service.json`.
+
 4.99.13
 
 Following Jay's lead, updated `gam check serviceaccount` to check the age of the private key in `oauth2service.json`.

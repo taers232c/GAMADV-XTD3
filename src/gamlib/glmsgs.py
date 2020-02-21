@@ -262,7 +262,7 @@ wait a few moments and then try this command again.
 '''
 SELECTED = 'Selected'
 SERVICE_ACCOUNT_PRIVATE_KEY_AUTHENTICATION = 'Service Account Private Key Authentication'
-SERVICE_ACCOUNT_CHECK_PRIVATE_KEY_AGE = 'Service Account Private Key age; Google recommends rotating keys regularly'
+SERVICE_ACCOUNT_CHECK_PRIVATE_KEY_AGE = 'Service Account Private Key age; Google recommends rotating keys on a routine basis'
 SERVICE_ACCOUNT_PRIVATE_KEY_AGE = 'Service Account Private Key age: {0} days'
 SERVICE_NOT_APPLICABLE = 'Service not applicable/Does not exist'
 SERVICE_NOT_APPLICABLE_THIS_ADDRESS = 'Service not applicable for this address: {0}'
