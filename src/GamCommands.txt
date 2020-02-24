@@ -820,11 +820,11 @@ gam help
 
 # Bulk Processing
 
-gam batch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds]
+gam batch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds [<Boolean>]]
 gam csv <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [warnifnodata]
          [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
-        (matchfield|skipfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
-gam tbatch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds]
+        (matchfield|skipfield <FieldName> <RegularExpression>)* [showcmds [<Boolean>]] gam <GAMArgumentList>
+gam tbatch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds [<Boolean>]]
 
 gam loop <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [warnifnodata]
          [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]

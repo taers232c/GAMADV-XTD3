@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.15'
+__version__ = '4.99.16'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6743,7 +6743,9 @@ def MultiprocessGAMCommands(items, logCmds):
     poolProcessResults = {}
     for item in items:
       if item[0] == Cmd.COMMIT_BATCH_CMD:
-        batchWriteStderr(Msg.COMMIT_BATCH_WAIT_N_PROCESSES.format(poolProcessesInUse, PROCESS_PLURAL_SINGULAR[poolProcessesInUse == 1]))
+        batchWriteStderr(Msg.COMMIT_BATCH_WAIT_N_PROCESSES.format(ISOformatTimeStamp(todaysTime()),
+                                                                  poolProcessesInUse,
+                                                                  PROCESS_PLURAL_SINGULAR[poolProcessesInUse == 1]))
         while poolProcessesInUse > 0:
           for ppid in list(poolProcessResults):
             try:
@@ -6754,16 +6756,16 @@ def MultiprocessGAMCommands(items, logCmds):
               pass
           if poolProcessesInUse > 0:
             time.sleep(1)
-        batchWriteStderr(Msg.COMMIT_BATCH_COMPLETE.format(Msg.PROCESSES))
+        batchWriteStderr(Msg.COMMIT_BATCH_COMPLETE.format(ISOformatTimeStamp(todaysTime()), Msg.PROCESSES))
         continue
       if item[0] == Cmd.PRINT_CMD:
         batchWriteStderr(Cmd.QuotedArgumentList(item[1:])+'\n')
         continue
       pid += 1
-      if pid % 100 == 0:
-        batchWriteStderr(Msg.PROCESSING_ITEM_N.format(pid))
+      if not logCmds and pid % 100 == 0:
+        batchWriteStderr(Msg.PROCESSING_ITEM_N.format(ISOformatTimeStamp(todaysTime()), pid))
       if logCmds:
-        batchWriteStderr(Cmd.QuotedArgumentList(item)+'\n')
+        batchWriteStderr(f'{ISOformatTimeStamp(todaysTime())},{pid},{Cmd.QuotedArgumentList(item)}\n')
       poolProcessResults[pid] = pool.apply_async(ProcessGAMCommandMulti, [pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
                                                                           GM.Globals[GM.CSV_TODRIVE],
                                                                           GC.Values[GC.CSV_OUTPUT_HEADER_FILTER],
@@ -6776,6 +6778,8 @@ def MultiprocessGAMCommands(items, logCmds):
             if poolProcessResults[ppid].ready():
               poolProcessesInUse -= 1
               del poolProcessResults[ppid]
+              if logCmds:
+                batchWriteStderr(f'{ISOformatTimeStamp(todaysTime())},{ppid},Complete\n')
           except (TypeError, IOError):
             pass
         if poolProcessesInUse == numPoolProcesses:
@@ -6785,7 +6789,18 @@ def MultiprocessGAMCommands(items, logCmds):
     pool.terminate()
   else:
     pool.close()
-  pool.join()
+  while poolProcessesInUse > 0:
+    for ppid in list(poolProcessResults):
+      try:
+        if poolProcessResults[ppid].ready():
+          poolProcessesInUse -= 1
+          del poolProcessResults[ppid]
+          if logCmds:
+            batchWriteStderr(f'{ISOformatTimeStamp(todaysTime())},{ppid},Complete\n')
+      except (TypeError, IOError):
+        pass
+    if poolProcessesInUse > 0:
+      time.sleep(1)
   if mpQueueCSVFile:
     terminateCSVFileQueueHandler(mpQueueCSVFile, mpQueueHandlerCSVFile)
   if mpQueueStdout:
@@ -6825,9 +6840,11 @@ def ThreadBatchGAMCommands(items, logCmds):
   numThreadsInUse = 0
   for item in items:
     if item[0] == Cmd.COMMIT_BATCH_CMD:
-      batchWriteStderr(Msg.COMMIT_BATCH_WAIT_N_PROCESSES.format(numThreadsInUse, THREAD_PLURAL_SINGULAR[numThreadsInUse == 1]))
+      batchWriteStderr(Msg.COMMIT_BATCH_WAIT_N_PROCESSES.format(ISOformatTimeStamp(todaysTime()),
+                                                                numThreadsInUse,
+                                                                THREAD_PLURAL_SINGULAR[numThreadsInUse == 1]))
       GM.Globals[GM.TBATCH_QUEUE].join()
-      batchWriteStderr(Msg.COMMIT_BATCH_COMPLETE.format(Msg.THREADS))
+      batchWriteStderr(Msg.COMMIT_BATCH_COMPLETE.format(ISOformatTimeStamp(todaysTime()), Msg.THREADS))
       numThreadsInUse = 0
       continue
     if item[0] == Cmd.PRINT_CMD:
@@ -6996,7 +7013,7 @@ def processSubFields(GAM_argv, row, subFields):
 
 # gam csv <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [warnifnodata]
 #	[columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
-#	(matchfield|skipfield <FieldName> <RegularExpression>)* gam <GAM argument list>
+#	(matchfield|skipfield <FieldName> <RegularExpression>)* [showcmds [<Boolean>]] gam <GAM argument list>
 def doCSV():
   filename = getString(Cmd.OB_FILE_NAME)
   if (filename == '-') and (GC.Values[GC.DEBUG_LEVEL] > 0):
@@ -7004,6 +7021,9 @@ def doCSV():
     usageErrorExit(Msg.BATCH_CSV_LOOP_DASH_DEBUG_INCOMPATIBLE.format(Cmd.CSV_CMD))
   f, csvFile, fieldnames = openCSVFileReader(filename)
   matchFields, skipFields = getMatchSkipFields(fieldnames)
+  logCmds = checkArgumentPresent('showcmds')
+  if logCmds:
+    logCmds = getBoolean()
   checkArgumentPresent(Cmd.GAM_CMD, required=True)
   if not Cmd.ArgumentsRemaining():
     missingArgumentExit(Cmd.OB_GAM_ARGUMENT_LIST)
@@ -7013,7 +7033,7 @@ def doCSV():
     if checkMatchSkipFields(row, matchFields, skipFields):
       items.append(processSubFields(GAM_argv, row, subFields))
   closeFile(f)
-  MultiprocessGAMCommands(items, False)
+  MultiprocessGAMCommands(items, logCmds)
 
 def _doList(entityList, entityType):
   buildGAPIObject(API.DIRECTORY)

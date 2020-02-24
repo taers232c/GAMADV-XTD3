@@ -1,3 +1,8 @@
+4.99.16
+
+Added `showcmds` option to `gam csv` to allow monitoring of execution processing.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Bulk-Processing
+
 4.99.15
 
 Instruct user to perform `gam update project` when permission is denied to access service account keys.
@@ -11,7 +16,7 @@ Improve error handling in `gam check serviceaccount` when checking the age of th
 Following Jay's lead, updated `gam check serviceaccount` to check the age of the private key in `oauth2service.json`.
 GAM will warn you if the key is more than 30 days old. Google recommends rotating the key on a regular basis which
 can be done with `gam update|rotate sakey`.
-See: https://github.com/taers232c/GAMADV-XTD3/wiki/Authorization#update-an-existing-service-account-key
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Authorization#update-an-existing-service-account-key
 
 Fixed bug in `gam print/show messages` where `showlabels useronly` option was not suppressing system labels.
 
@@ -22,27 +27,27 @@ Handle `permissionDenied` error when processing delegates.
 4.99.11
 
 Updated `gam print/show messages` to display message labels and counts.
-See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Gmail-Messages-Threads#display-messagesthreads
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Gmail-Messages-Threads#display-messagesthreads
 
 4.99.10
 
 Updated `gam create/update sheet` and `gam append/update sheetrange` to be able to read JSON data from
 a file as well as the command line.
-See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Spreadsheets
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Spreadsheets
 
 4.99.09
 
 Following Jay's lead, simplified `gam create project` and `gam <UserTypeEntity> check serviceaccount`.
 When creating a project, the initial screen where you entered the `Application name` and clicked `Save`
 has been eliminated. The `Application name` defaults to `GAM` but you can change it with the `appname <Sring>` option.
-See: https://github.com/taers232c/GAMADV-XTD3/wiki/Authorization#create-a-new-project-for-gam-authorization
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Authorization#create-a-new-project-for-gam-authorization
 
 When `check serviceaccount` requires you to authorize scopes, the URL that you enter now fills in
 the `Client Name` and `One or More API Scopes` fields, you just click `Authorize`; you don't have to cut and paste
 these values.
 
 Updated `gam.cfg` `csv_output_row_filter` to allow range checking on counts, dates, and times.
-See: https://github.com/taers232c/GAMADV-XTD3/wiki/CSV-Print-Filtering#column-row-filtering
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/CSV-Print-Filtering#column-row-filtering
 
 For example, to list files a user created in the last six months of 2019:
 ```
@@ -53,7 +58,7 @@ gam config csv_output_row_filter "'createdTime:daterange=2019-07-01 2019-12-31'"
 
 Added `actioncsv` option to `gam update groups`. This will produce a CSV file with columns `group,email,role,action,message`
 that shows the actions performed when updating the group.
-See: https://github.com/taers232c/GAMADV-XTD3/wiki/Groups-Membership
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Groups-Membership
 
 4.99.07
 
@@ -84,7 +89,7 @@ This affected `gam create admin <UserItem> <RoleItem> org_unit /`.
 4.99.01
 
 Updated `gam.cfg` `csv_output_row_filter` processing so that field names can contain colons.
-See: https://github.com/taers232c/GAMADV-XTD3/wiki/CSV-Print-Filtering#quoting-rules
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/CSV-Print-Filtering#quoting-rules
 
 4.99.00
 
@@ -96,7 +101,7 @@ Added options to `gam show messages|threads` to allow downloading attachments.
 ```
 [saveattachments [attachmentnamepattern <RegularExpression>]] [targetfolder <FilePath>] [overwrite [<Boolean>]]
 ```
-See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Gmail-Messages-Threads#download-attachments
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Gmail-Messages-Threads#download-attachments
 
 4.98.17
 
@@ -159,7 +164,7 @@ Fixed bug that caused a trap in `gam update group csvkmd ...`.
 4.98.04
 
 Added ability to have GAM send email via SMTP.
-See: https://github.com/taers232c/GAMADV-XTD3/wiki/Send-Email#use-smtp-to-send-messages
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Send-Email#use-smtp-to-send-messages
 
 4.98.03
 
