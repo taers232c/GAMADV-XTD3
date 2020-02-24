@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.16'
+__version__ = '4.99.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6736,7 +6736,8 @@ def MultiprocessGAMCommands(items, logCmds):
   else:
     mpQueueCSVFile = None
   signal.signal(signal.SIGINT, origSigintHandler)
-  batchWriteStderr(Msg.USING_N_PROCESSES.format(numPoolProcesses, PROCESS_PLURAL_SINGULAR[numPoolProcesses == 1]))
+  batchWriteStderr(Msg.USING_N_PROCESSES.format(ISOformatTimeStamp(todaysTime()),
+                                                numPoolProcesses, PROCESS_PLURAL_SINGULAR[numPoolProcesses == 1]))
   try:
     pid = 0
     poolProcessesInUse = 0
@@ -6816,22 +6817,26 @@ def MultiprocessGAMCommands(items, logCmds):
 
 def threadBatchWorker():
   while True:
-    item = GM.Globals[GM.TBATCH_QUEUE].get()
+    pid, item = GM.Globals[GM.TBATCH_QUEUE].get()
     try:
-      subprocess.call(item, stdout=GM.Globals[GM.STDOUT].get(GM.REDIRECT_MULTI_FD, sys.stdout), stderr=GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, sys.stderr))
+      subprocess.call(item, stdout=GM.Globals[GM.STDOUT].get(GM.REDIRECT_MULTI_FD, sys.stdout),
+                      stderr=GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, sys.stderr))
+      batchWriteStderr(f'{ISOformatTimeStamp(todaysTime())},{pid},Complete\n')
     except Exception as e:
-      batchWriteStderr(str(e)+'\n')
+      batchWriteStderr(f'{ISOformatTimeStamp(todaysTime())},{pid},{str(e)}\n')
     GM.Globals[GM.TBATCH_QUEUE].task_done()
 
 def ThreadBatchGAMCommands(items, logCmds):
   if not items:
     return
-  pythonCmd = [sys.executable.lower()]
+  pythonCmd = [sys.executable]
   if not getattr(sys, 'frozen', False): # we're not frozen
     pythonCmd.append(os.path.realpath(Cmd.Argument(0)))
   numWorkerThreads = min(len(items), GC.Values[GC.NUM_TBATCH_THREADS])
-  GM.Globals[GM.TBATCH_QUEUE] = queue.Queue(maxsize=numWorkerThreads) # GM.Globals[GM.TBATCH_QUEUE].put() gets blocked when trying to create more items than there are workers
-  batchWriteStderr(Msg.USING_N_PROCESSES.format(numWorkerThreads, THREAD_PLURAL_SINGULAR[numWorkerThreads == 1]))
+# GM.Globals[GM.TBATCH_QUEUE].put() gets blocked when trying to create more items than there are workers
+  GM.Globals[GM.TBATCH_QUEUE] = queue.Queue(maxsize=numWorkerThreads)
+  batchWriteStderr(Msg.USING_N_PROCESSES.format(ISOformatTimeStamp(todaysTime()),
+                                                numWorkerThreads, THREAD_PLURAL_SINGULAR[numWorkerThreads == 1]))
   for _ in range(numWorkerThreads):
     t = threading.Thread(target=threadBatchWorker)
     t.daemon = True
@@ -6848,17 +6853,17 @@ def ThreadBatchGAMCommands(items, logCmds):
       numThreadsInUse = 0
       continue
     if item[0] == Cmd.PRINT_CMD:
-      batchWriteStderr(Cmd.QuotedArgumentList(item[1:])+'\n')
+      batchWriteStderr(f'{ISOformatTimeStamp(todaysTime())},0,{Cmd.QuotedArgumentList(item[1:])}\n')
       continue
     pid += 1
-    if pid % 100 == 0:
-      batchWriteStderr(Msg.PROCESSING_ITEM_N.format(pid))
+    if not logCmds and pid % 100 == 0:
+      batchWriteStderr(Msg.PROCESSING_ITEM_N.format(ISOformatTimeStamp(todaysTime()), pid))
     if logCmds:
-      batchWriteStderr(Cmd.QuotedArgumentList(item)+'\n')
+      batchWriteStderr(f'{ISOformatTimeStamp(todaysTime())},{pid},{Cmd.QuotedArgumentList(item)}\n')
     if item[0] == Cmd.GAM_CMD:
-      GM.Globals[GM.TBATCH_QUEUE].put(pythonCmd+item[1:])
+      GM.Globals[GM.TBATCH_QUEUE].put((pid, pythonCmd+item[1:]))
     else:
-      GM.Globals[GM.TBATCH_QUEUE].put(item[1:])
+      GM.Globals[GM.TBATCH_QUEUE].put((pid, item[1:]))
     numThreadsInUse += 1
   GM.Globals[GM.TBATCH_QUEUE].join()
 

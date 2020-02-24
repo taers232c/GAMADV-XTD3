@@ -1,3 +1,7 @@
+4.99.17
+
+Fixed coding errors in `gam tbatch`.
+
 4.99.16
 
 Added `showcmds` option to `gam csv` to allow monitoring of execution processing.
