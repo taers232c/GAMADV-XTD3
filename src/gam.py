@@ -6802,6 +6802,8 @@ def MultiprocessGAMCommands(items, logCmds):
         pass
     if poolProcessesInUse > 0:
       time.sleep(1)
+  if logCmds:
+    batchWriteStderr(f'{ISOformatTimeStamp(todaysTime())},0,Complete\n')
   if mpQueueCSVFile:
     terminateCSVFileQueueHandler(mpQueueCSVFile, mpQueueHandlerCSVFile)
   if mpQueueStdout:
@@ -6866,6 +6868,8 @@ def ThreadBatchGAMCommands(items, logCmds):
       GM.Globals[GM.TBATCH_QUEUE].put((pid, item[1:]))
     numThreadsInUse += 1
   GM.Globals[GM.TBATCH_QUEUE].join()
+  if logCmds:
+    batchWriteStderr(f'{ISOformatTimeStamp(todaysTime())},0,Complete\n')
 
 # gam batch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds]
 def doBatch(threadBatch=False):
