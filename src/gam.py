@@ -18689,12 +18689,12 @@ def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts
       try:
         feed += callGAPIpages(lic.licenseAssignments(), 'listForProductAndSku', 'items',
                               page_message=getPageMessageForWhom(forWhom=skuIdDisplay),
-                              throw_reasons=[GAPI.INVALID, GAPI.FORBIDDEN],
+                              throw_reasons=[GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
                               customerId=GC.Values[GC.DOMAIN], productId=productId, skuId=skuId, fields=fields)
         if countsOnly:
           licenseCounts.append([Ent.PRODUCT, productId, Ent.SKU, [skuId, skuIdDisplay][returnCounts], Ent.LICENSE, len(feed)])
           feed = []
-      except (GAPI.invalid, GAPI.forbidden) as e:
+      except (GAPI.invalid, GAPI.forbidden, GAPI.invalidArgument) as e:
         entityActionNotPerformedWarning([Ent.PRODUCT, productDisplay, Ent.SKU, skuIdDisplay], str(e))
   else:
     suppressErrorMsg = False
@@ -18707,12 +18707,12 @@ def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts
       try:
         feed += callGAPIpages(lic.licenseAssignments(), 'listForProduct', 'items',
                               page_message=getPageMessageForWhom(forWhom=productDisplay),
-                              throw_reasons=[GAPI.INVALID, GAPI.FORBIDDEN],
+                              throw_reasons=[GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
                               customerId=GC.Values[GC.DOMAIN], productId=productId, fields=fields)
         if countsOnly:
           licenseCounts.append([Ent.PRODUCT, [productId, productDisplay][returnCounts], Ent.LICENSE, len(feed)])
           feed = []
-      except (GAPI.invalid, GAPI.forbidden) as e:
+      except (GAPI.invalid, GAPI.forbidden, GAPI.invalidArgument) as e:
         if not suppressErrorMsg:
           entityActionNotPerformedWarning([Ent.PRODUCT, productDisplay], str(e))
   if countsOnly:

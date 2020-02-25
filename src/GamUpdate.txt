@@ -1,3 +1,7 @@
+4.99.18
+
+Handle error in `gam print licenses` due to invalid product ID.
+
 4.99.17
 
 Fixed coding errors in `gam tbatch`.
