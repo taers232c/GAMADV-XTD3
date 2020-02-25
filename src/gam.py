@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.18'
+__version__ = '4.99.19'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -8601,7 +8601,7 @@ def doDeleteSvcAcctKeys():
           entityActionPerformed([Ent.SVCACCT_KEY, keyName], i, count)
         except GAPI.permissionDenied:
           entityActionFailedWarning([Ent.SVCACCT_KEY, keyName], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
-        except (GAPI.badRequest, GAPI.permissionDenied) as e:
+        except GAPI.badRequest as e:
           entityActionFailedWarning([Ent.SVCACCT_KEY, keyName], str(e), i, count)
         break
     else:
@@ -9586,9 +9586,21 @@ RTL_PATTERN = re.compile(r'(?s){RTL}.*?{/RTL}')
 RT_PATTERN = re.compile(r'(?s){RT}.*?{/RT}')
 TAG_REPLACE_PATTERN = re.compile(r'{(.+?)}')
 RT_MARKERS = {'RT', '/RT', 'RTL', '/RTL'}
+SKIP_PATTERNS = [re.compile(r'<head>.*?</head>'), re.compile(r'<script>.*?</script>')]
 
 def _processTagReplacements(tagReplacements, message):
-# Find all {tag}, note replacement value and starting location
+# Identify areas of message to avoid replacements
+  skipAreas = []
+  for pattern in SKIP_PATTERNS:
+    pos = 0
+    while True:
+      match = pattern.search(message, pos)
+      if not match:
+        break
+      skipAreas.append(match.span())
+      pos = match.end()+1
+  skipTags = set()
+# Find all {tag}, note replacement value and starting location; note tags in skipAreas
   tagFields = []
   tagSubs = {}
   pos = 0
@@ -9596,22 +9608,27 @@ def _processTagReplacements(tagReplacements, message):
     match = TAG_REPLACE_PATTERN.search(message, pos)
     if not match:
       break
+    start, end = match.span()
     tag = match.group(1)
     if tag not in RT_MARKERS:
-      tagSubs.setdefault(tag, tagReplacements['tags'].get(tag, {'value': ''})['value'])
-      tagFields.append((tagSubs[tag], match.start()))
-    pos = match.end()
-# Find all {RT}.*{/RT} sequences
+      for skipArea in skipAreas:
+        if start >= skipArea[0] and end <= skipArea[1]:
+          skipTags.add(tag)
+          break
+      else:
+        tagSubs.setdefault(tag, tagReplacements['tags'].get(tag, {'value': ''})['value'])
+        tagFields.append((tagSubs[tag], match.start()))
+    pos = end+1
+# Find all {RT}.*?{/RT} sequences
 # If any non-empty {tag} replacement value falls between them, then mark {RT} and {/RT} to be stripped
-# Otherwise, mark the entire {RT}.*{/RT} sequence to be stripped
+# Otherwise, mark the entire {RT}.*?{/RT} sequence to be stripped
   rtStrips = []
   pos = 0
   while True:
     match = RT_PATTERN.search(message, pos)
     if not match:
       break
-    start = match.start()
-    end = match.end()
+    start, end = match.span()
     stripEntireRT = True
     hasTags = False
     for tagField in tagFields:
@@ -9630,8 +9647,8 @@ def _processTagReplacements(tagReplacements, message):
       else:
         rtStrips.append((False, start, start+4))
         rtStrips.append((False, end-5, end))
-    pos = end
-# Find all {RTL}.*{/RTL} sequences
+    pos = end+1
+# Find all {RTL}.*?{/RTL} sequences
 # If any non-empty {RT}...{tag}... {/RT} falls between them, then mark {RTL} and {/RTL} to be stripped
 # Otherwise, mark the entire {RTL}.*{/RTL} sequence to be stripped
   rtlStrips = []
@@ -9640,8 +9657,7 @@ def _processTagReplacements(tagReplacements, message):
     match = RTL_PATTERN.search(message, pos)
     if not match:
       break
-    start = match.start()
-    end = match.end()
+    start, end = match.span()
     stripEntireRTL = True
     hasTags = False
     for tagField in tagFields:
@@ -9668,7 +9684,7 @@ def _processTagReplacements(tagReplacements, message):
         rtlStrips.append((True, start, end))
       else:
         rtlStrips.append((False, start, start+5, end-6, end))
-    pos = end
+    pos = end+1
   if rtlStrips:
     allStrips = []
     i = 0
@@ -9691,20 +9707,27 @@ def _processTagReplacements(tagReplacements, message):
       i += 1
   else:
     allStrips = rtStrips
-# Strip {RTL} {/RTL}, {RT} {/RT}, {RTL}.*{/RTL}, {RT}.*{/RT} sequences
+# Strip {RTL} {/RTL}, {RT} {/RT}, {RTL}.*?{/RTL}, {RT}.*?{/RT} sequences
   for rtStrip in allStrips[::-1]:
     message = message[:rtStrip[1]]+message[rtStrip[2]:]
-# Make {tag} replacements
+# Make {tag} replacements; ignore tags in skipAreas
+  pos = 0
   while True:
-    match = TAG_REPLACE_PATTERN.search(message)
+    match = TAG_REPLACE_PATTERN.search(message, pos)
     if not match:
       break
+    start, end = match.span()
     tag = match.group(1)
     if tag not in RT_MARKERS:
-      message = re.sub(match.group(0), tagSubs[tag], message)
+      if tag not in skipTags:
+        message = re.sub(match.group(0), tagSubs[tag], message)
+        pos = start+1
+      else:
+        pos = end+1
     else:
 # Replace invalid RT tags with ERROR(RT)
       message = re.sub(match.group(0), f'ERROR({tag})', message)
+      pos = start+1
   return message
 
 def sendCreateUpdateUserNotification(body, notify, tagReplacements, i=0, count=0, msgFrom=None, createMessage=True):
