@@ -3,7 +3,8 @@ export mypath=$(pwd)
 until powershell Install-WindowsFeature Net-Framework-Core; do echo "trying again..."; done
 cd ~
 cup -y chocolatey
-cinst -y --forcex86 python3
+#cinst -y --version=$BUILD_PYTHON_VERSION --forcex86 python
+choco install python -y --forcex86 --version=$BUILD_PYTHON_VERSION
 until cinst -y wixtoolset; do echo "trying again..."; done
 export PATH=$PATH:/c/Python38/scripts
 cd $mypath
