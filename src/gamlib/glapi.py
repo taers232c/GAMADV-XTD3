@@ -95,6 +95,7 @@ PROJECT_APIS = [
   'calendar-json.googleapis.com',
   'chat.googleapis.com',
   'classroom.googleapis.com',
+  'cloudidentity.googleapis.com',
   'contacts.googleapis.com',
   'drive.googleapis.com',
   'driveactivity.googleapis.com',
