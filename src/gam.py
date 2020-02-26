@@ -9617,7 +9617,7 @@ def _processTagReplacements(tagReplacements, message):
           break
       else:
         tagSubs.setdefault(tag, tagReplacements['tags'].get(tag, {'value': ''})['value'])
-        tagFields.append((tagSubs[tag], match.start()))
+        tagFields.append((tagSubs[tag], start))
     pos = end+1
 # Find all {RT}.*?{/RT} sequences
 # If any non-empty {tag} replacement value falls between them, then mark {RT} and {/RT} to be stripped
