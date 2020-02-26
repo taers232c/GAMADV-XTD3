@@ -79,7 +79,7 @@ jobs:
     - os: osx
       name: "MacOS 10.11"
       language: generic
-      osx_image: xcode8
+      osx_image: xcode8.3.3
       env:
         - GAMOS=macos
         - PLATFORM=x86_64
@@ -87,7 +87,7 @@ jobs:
     - os: osx
       name: "MacOS 10.12"
       language: generic
-      osx_image: xcode9.2
+      osx_image: xcode9.4.1
       env:
         - GAMOS=macos
         - PLATFORM=x86_64
@@ -95,7 +95,7 @@ jobs:
     - os: osx
       name: "MacOS 10.13"
       language: generic
-      osx_image: xcode10.1
+      osx_image: xcode10.3
       env:
         - GAMOS=macos
         - PLATFORM=x86_64
@@ -103,7 +103,7 @@ jobs:
     - os: osx
       name: "MacOS 10.14"
       language: generic
-      osx_image: xcode11.3
+      osx_image: xcode11.3.1
       env:
         - GAMOS=macos
         - PLATFORM=x86_64
