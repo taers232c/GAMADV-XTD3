@@ -1,6 +1,6 @@
 4.99.20
 
-Update executable versions to use Python 3.8.2.
+Fixed error handling for invalid drive queries.
 
 4.99.19
 

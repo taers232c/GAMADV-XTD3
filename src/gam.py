@@ -3681,7 +3681,7 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False, service=None):
         error = {'error': {'errors': [{'reason': GAPI.INVALID_INPUT, 'message': message}]}}
     elif http_status == 400:
       if 'does not match' in message or 'Invalid' in message:
-        error = {'error': {'errors': [{'reason': GAPI.INVALID_ARGUMENT, 'message': message}]}}
+        error = {'error': {'errors': [{'reason': GAPI.INVALID, 'message': message}]}}
     elif http_status == 403:
       if 'The caller does not have permission' in message or 'Permission iam.serviceAccountKeys' in message:
         error = {'error': {'errors': [{'reason': GAPI.PERMISSION_DENIED, 'message': message}]}}
@@ -8261,7 +8261,7 @@ def checkServiceAccount(users):
   Ind.Increment()
   try:
     key = callGAPI(iam.projects().serviceAccounts().keys(), 'get',
-                   throw_reasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                   throw_reasons=[GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
                    name=name, fields='validAfterTime')
     # Both Google and GAM set key valid after to day before creation
     key_created, _ = iso8601.parse_date(key['validAfterTime'])
@@ -8270,7 +8270,7 @@ def checkServiceAccount(users):
   except GAPI.permissionDenied:
     printMessage(Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
     printPassFail(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AGE.format('UNKNOWN'), 'WARN')
-  except (GAPI.badRequest, GAPI.invalidArgument, GAPI.notFound) as e:
+  except (GAPI.badRequest, GAPI.invalid, GAPI.notFound) as e:
     entityActionFailedWarning([Ent.PROJECT, GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id'],
                                Ent.SVCACCT, GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']],
                               str(e))
