@@ -3785,12 +3785,14 @@ gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*] [corpora 
         [formatjson] [quotechar <Character>]
 
 <FileTreeFieldName> ::=
+        explicitlytrashed|
         filesize|
         id|
         mimetype|
         owners|
         parents|
-        size
+        size|
+        trashed
 <FileTreeFieldNameList> ::= "<FileTreeFieldName>(,<FileTreeFieldName>)*"
 
 gam <UserTypeEntity> print filetree [todrive <ToDriveAttributes>*] [anyowner|(showownedby any|me|others)]

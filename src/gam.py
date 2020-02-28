@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.20'
+__version__ = '4.99.21'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -18468,7 +18468,7 @@ def doPrintGroupMembers():
     csvPF.MoveTitlesToEnd(['level', 'subgroup'])
   csvPF.writeCSVfile(f'Group Members ({subTitle})')
 
-# gam show group-mebers
+# gam show group-members
 #	[([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
 #	 (group|group_ns|group_susp <GroupItem>)|
 #	 (select <GroupEntity>)] [notsuspended|suspended]
@@ -31192,6 +31192,22 @@ class MimeTypeCheck():
     for mimeType in getString(Cmd.OB_MIMETYPE_LIST).lower().replace(',', ' ').split():
       self.mimeTypes.add(validateMimeType(mimeType))
 
+  def AddMimeTypeToQuery(self, query):
+    if query:
+      query += ' and ('
+    else:
+      query = '('
+    if not self.reverse:
+      for mimeType in self.mimeTypes:
+        query += f"mimeType = '{mimeType}' or "
+      query = query[:-4]
+    else:
+      for mimeType in self.mimeTypes:
+        query += f"mimeType != '{mimeType}' and "
+      query = query[:-5]
+    query += ')'
+    return query
+
   def Check(self, fileEntry):
     if not self.mimeTypes:
       return True
@@ -32810,8 +32826,7 @@ def _updateAnyOwnerQuery(query):
 
 SHOW_OWNED_BY_CHOICE_MAP = {'any': None, 'me': True, 'others': False}
 
-def _getShowOwnedBy(query):
-  showOwnedBy = getChoice(SHOW_OWNED_BY_CHOICE_MAP, mapChoice=True)
+def _updateQueryWithShowOwnedBy(showOwnedBy, query):
   if showOwnedBy is None:
     query = _updateAnyOwnerQuery(query)
   elif not showOwnedBy:
@@ -32832,7 +32847,7 @@ def _getShowOwnedBy(query):
         query = ME_IN_OWNERS_AND+query
       else:
         query = ME_IN_OWNERS
-  return (showOwnedBy, query)
+  return query
 
 OWNED_BY_ME_FIELDS_TITLES = ['ownedByMe']
 
@@ -33095,6 +33110,7 @@ class DriveListParameters():
     self.filenameMatchPattern = None
     self.PM = PermissionMatch()
     self.showOwnedBy = True
+    self.showOwnedBySet = False
     self.allowQuery = allowQuery
     self.maxItems = 0
     self.queryTimes = {}
@@ -33103,17 +33119,7 @@ class DriveListParameters():
     if myarg == 'showmimetype':
       self.mimeTypeCheck.Get()
       if self.mimeTypeInQuery:
-        if self.query:
-          self.query += ' and ('
-        if not self.mimeTypeCheck.reverse:
-          for mimeType in self.mimeTypeCheck.mimeTypes:
-            self.query += f"mimeType = '{mimeType}' or "
-          self.query = self.query[:-4]
-        else:
-          for mimeType in self.mimeTypeCheck.mimeTypes:
-            self.query += f"mimeType != '{mimeType}' and "
-          self.query = self.query[:-5]
-        self.query += ')'
+        self.query = self.mimeTypeCheck.AddMimeTypeToQuery(self.query)
     elif myarg == 'maxfiles':
       self.maxItems = getInteger(minVal=0)
     elif myarg == 'minimumfilesize':
@@ -33135,9 +33141,12 @@ class DriveListParameters():
       self.queryTimes[myarg] = getTimeOrDeltaFromNow()
     elif myarg == 'anyowner':
       self.showOwnedBy = None
+      self.showOwnedBySet = True
       self.UpdateAnyOwnerQuery()
     elif myarg == 'showownedby':
-      self.showOwnedBy, self.query = _getShowOwnedBy(self.query)
+      self.showOwnedBy = getChoice(SHOW_OWNED_BY_CHOICE_MAP, mapChoice=True)
+      self.showOwnedBySet = True
+      self.query = _updateQueryWithShowOwnedBy(self.showOwnedBy, self.query)
     elif myarg == 'filenamematchpattern':
       self.filenameMatchPattern = getREPattern(re.IGNORECASE)
     elif self.PM.ProcessArgument(myarg):
@@ -33434,6 +33443,16 @@ def printFileList(users):
       DLP.UpdateAnyOwnerQuery()
       btkwargs = fileIdEntity['teamdrive']
       getTeamDriveNames = True
+    if incrementalPrint:
+      if not DLP.showOwnedBySet and DLP.query:
+        if DLP.query.find(NOT_ME_IN_OWNERS) >= 0:
+          DLP.showOwnedBy = False
+        elif DLP.query.find(ME_IN_OWNERS) >= 0:
+          DLP.showOwnedBy = True
+        else:
+          DLP.showOwnedBy = None
+      if DLP.mimeTypeCheck.mimeTypes:
+        DLP.query = DLP.mimeTypeCheck.AddMimeTypeToQuery(DLP.query)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -33844,6 +33863,7 @@ def printShowFileCounts(users):
     csvPF.writeCSVfile('Drive File Counts')
 
 FILETREE_FIELDS_CHOICE_MAP = {
+  'explicitlytrashed': 'explicitlyTrashed',
   'filesize': 'size',
   'id': 'id',
   'mime': 'mimeType',
@@ -33851,9 +33871,10 @@ FILETREE_FIELDS_CHOICE_MAP = {
   'owners': 'owners',
   'parents': 'parents',
   'size': 'size',
+  'trashed': 'trashed',
   }
 
-FILETREE_FIELDS_PRINT_ORDER = ['id', 'parents', 'owners', 'mimeType', 'size']
+FILETREE_FIELDS_PRINT_ORDER = ['id', 'parents', 'owners', 'mimeType', 'size', 'explicitlyTrashed', 'trashed']
 
 # gam <UserTypeEntity> print filetree [todrive <ToDriveAttributes>*] [anyowner|(showownedby any|me|others)]
 #	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [depth <Number>]
@@ -33882,6 +33903,10 @@ def printShowFileTree(users):
             owners = [owner['emailAddress'] for owner in fileEntry.get(field, [])]
             if owners:
               fileInfoList.extend([field, delimiter.join(owners)])
+          elif field in {'explicitlyTrashed', 'trashed'}:
+            trashed = fileEntry.get(field, False)
+            if trashed:
+              fileInfoList.extend([field, trashed])
           else:
             fileInfoList.extend([field, fileEntry.get(field, '')])
       if fileInfoList:
@@ -33956,7 +33981,7 @@ def printShowFileTree(users):
   maxdepth = -1
   fileIdEntity = initDriveFileEntity()
   selectSubQuery = ''
-  fieldsList = ['id', 'name', 'parents', 'mimeType', 'owners(emailAddress)', 'size']
+  fieldsList = ['id', 'name', 'parents', 'mimeType', 'owners(emailAddress)', 'size', 'explicitlyTrashed', 'trashed']
   showFields = {}
   for field in FILETREE_FIELDS_CHOICE_MAP:
     showFields[FILETREE_FIELDS_CHOICE_MAP[field]] = False
@@ -34017,8 +34042,6 @@ def printShowFileTree(users):
       getTeamDriveNames = True
   if DLP.PM.permissionMatches:
     fieldsList.append('permissions')
-  if excludeTrashed:
-    fieldsList.append('trashed')
   fields = getFieldsFromFieldsList(fieldsList)
   pagesFields = getItemFieldsFromFieldsList('files', fieldsList)
   i, count, users = getEntityArgument(users)
@@ -35702,7 +35725,8 @@ def collectOrphans(users):
     elif myarg == 'anyowner':
       query = _updateAnyOwnerQuery(query)
     elif myarg == 'showownedby':
-      _, query = _getShowOwnedBy(query)
+      showOwnedBy = getChoice(SHOW_OWNED_BY_CHOICE_MAP, mapChoice=True)
+      query = _updateQueryWithShowOwnedBy(showOwnedBy, query)
     elif myarg == 'preview':
       csvPF = CSVPrintFile(['Owner', 'type', 'id', 'name'])
     elif csvPF and myarg == 'todrive':

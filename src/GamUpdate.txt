@@ -1,3 +1,11 @@
+4.99.21
+
+Improved performance of `gam print filelist` when `query` option is used.
+
+Added `explicitlytrashed` and `trashed` to `<FileTreeFieldName>` so that files/folders in the trash
+can be identified in `gam print/show filetree`.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Files#display-file-tree
+
 4.99.20
 
 Fixed error handling for invalid drive queries.
