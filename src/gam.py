@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.21'
+__version__ = '4.99.22'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -20667,13 +20667,13 @@ def _createCalendarEvents(user, cal, function, calIds, count,
         event = callGAPI(cal.events(), 'insert',
                          throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY,
                                                                     GAPI.REQUIRED_ACCESS_LEVEL, GAPI.DUPLICATE, GAPI.FORBIDDEN],
-                         calendarId=calId, sendUpdates=sendUpdates, supportsAttachments=True, body=body, fields='id')
+                         calendarId=calId, conferenceDataVersion=1, sendUpdates=sendUpdates, supportsAttachments=True, body=body, fields='id')
       else:
         event = callGAPI(cal.events(), 'import_',
                          throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY,
                                                                     GAPI.REQUIRED_ACCESS_LEVEL, GAPI.DUPLICATE, GAPI.FORBIDDEN,
                                                                     GAPI.PARTICIPANT_IS_NEITHER_ORGANIZER_NOR_ATTENDEE],
-                         calendarId=calId, supportsAttachments=True, body=body, fields='id')
+                         calendarId=calId, conferenceDataVersion=1, supportsAttachments=True, body=body, fields='id')
       entityActionPerformed([Ent.CALENDAR, calId, Ent.EVENT, event['id']], i, count)
     except (GAPI.invalid, GAPI.required, GAPI.timeRangeEmpty,
             GAPI.requiredAccessLevel, GAPI.participantIsNeitherOrganizerNorAttendee) as e:

@@ -1,6 +1,10 @@
+4.99.22
+
+Allow calendar events with `Hangouts/Meet` links to be created.
+
 4.99.21
 
-Improved performance of `gam print filelist` when `query` option is used.
+Improved performance of `gam print filelist` when `query` and `showmimetype`` options are used.
 
 Added `explicitlytrashed` and `trashed` to `<FileTreeFieldName>` so that files/folders in the trash
 can be identified in `gam print/show filetree`.
