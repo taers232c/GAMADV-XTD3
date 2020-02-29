@@ -1,3 +1,11 @@
+4.99.23
+
+Updated `gam calendar update events` to allow Hangouts Meet links to be removed from events.
+```
+gam calendar <CalendarEntity> update events eventid <EventId> json "{\"conferenceData\": null}"
+gam <UserTypeEntity> update events <UserCalendarEntity> <EventEntity> json "{\"conferenceData\": null}"
+```
+
 4.99.22
 
 Allow calendar events with `Hangouts/Meet` links to be created.

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.22'
+__version__ = '4.99.23'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -20358,7 +20358,7 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
     elif function == 'update':
       clearJSONfields(body, EVENT_JSON_UPDATE_CLEAR_FIELDS)
     clearJSONsubfields(body, EVENT_JSON_SUBFIELD_CLEAR_FIELDS)
-    if ('conferenceData' in body and
+    if ('conferenceData' in body and body['conferenceData'] and
         'createRequest' in body['conferenceData'] and
         'status' in body['conferenceData']['createRequest']):
       body['conferenceData']['createRequest']['status'].pop('statusCode', None)
@@ -20922,7 +20922,7 @@ def doCalendarsUpdateEvents(cal, calIds):
   body, parameters = _getCalendarCreateImportUpdateEventOptions('update')
   _updateDeleteCalendarEvents(None, None, cal, calIds, len(calIds), 'patch', calendarEventEntity, True,
                               _checkIfEventRecurrenceTimeZoneRequired(body, parameters), body,
-                              {'supportsAttachments': True, 'body': body, 'sendUpdates': parameters['sendUpdates'], 'fields': ''})
+                              {'conferenceDataVersion': 1, 'supportsAttachments': True, 'body': body, 'sendUpdates': parameters['sendUpdates'], 'fields': ''})
 
 def _getCalendarDeleteEventOptions(calendarEventEntity=None):
   doIt = False
