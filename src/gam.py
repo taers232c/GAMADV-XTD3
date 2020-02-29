@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.23'
+__version__ = '4.99.24'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -20333,6 +20333,8 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
     body['attachments'].append({'title': getString(Cmd.OB_STRING), 'fileUrl': getString(Cmd.OB_URL)})
   elif function == 'update' and myarg == 'clearattachments':
     body['attachments'] = []
+  elif myarg == 'hangoutsmeet':
+    body['conferenceData'] = {'createRequest': {'requestId': f'{str(uuid.uuid4())}'}}
   elif function == 'update' and myarg == 'clearhangoutsmeet':
     body['conferenceData'] = None
   elif myarg == 'recurrence':

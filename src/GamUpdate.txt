@@ -1,6 +1,11 @@
+4.99.24
+
+Added `hangoutsmeet` to `<EventAttribute>` so `gam calendar add event` and `gam calendar update events` can add Hangouts/Meet links
+to events with having to use the `json` option.
+
 4.99.23
 
-Added option `clearhangoutsmeet` to `gam calendar update events` to allow Hangouts/Meet links to be removed from events.
+Added `clearhangoutsmeet` to `<EventUpdateAttribute>` so `gam calendar update events` can remove Hangouts/Meet links from events.
 
 4.99.22
 

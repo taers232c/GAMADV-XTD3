@@ -1031,6 +1031,7 @@ gam calendar|calendars <CalendarEntity> printacl [todrive <ToDriveAttribute>*] [
         (guestscanmodify <Boolean>)|
         (guestscanseeotherguests <Boolean>)|
         guestscantseeotherguests|
+        hangoutsmeet|
         (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])|
         (jsonattendees [charset <Charset>] <JSONData>)|(jsonattendees file <FileName> [charset <Charset>])|
         (location <String>)|
