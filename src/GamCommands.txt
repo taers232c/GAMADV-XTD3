@@ -1073,6 +1073,7 @@ The following attributes are equivalent:
 <EventUpdateAttribute> ::=
         <EventAttribute>|
         clearattachments|
+        clearhangoutsmeet|
         (clearprivateproperty <PropertyKey>)|
         (clearsharedproperty <PropertyKey>)
 

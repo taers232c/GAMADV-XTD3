@@ -20333,6 +20333,8 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
     body['attachments'].append({'title': getString(Cmd.OB_STRING), 'fileUrl': getString(Cmd.OB_URL)})
   elif function == 'update' and myarg == 'clearattachments':
     body['attachments'] = []
+  elif function == 'update' and myarg == 'clearhangoutsmeet':
+    body['conferenceData'] = None
   elif myarg == 'recurrence':
     body.setdefault('recurrence', [])
     body['recurrence'].append(getString(Cmd.OB_RECURRENCE))
