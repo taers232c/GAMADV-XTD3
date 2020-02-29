@@ -1,3 +1,9 @@
+4.99.25
+
+Added option `quoteplusphonenumbers` to `gam print users` that causes GAM to add a single quote at the front
+of phone numbers that begin with a plus sign. This is necessary when uploading the data with `todrive` as Google Sheets
+generates a `Formula parse error` otherwise.
+
 4.99.24
 
 Added `hangoutsmeet` to `<EventAttribute>` so `gam calendar add event` and `gam calendar update events` can add Hangouts/Meet links

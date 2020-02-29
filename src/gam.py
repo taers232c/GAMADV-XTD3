@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.24'
+__version__ = '4.99.25'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -25157,14 +25157,14 @@ USERS_INDEXED_TITLES = ['addresses', 'aliases', 'nonEditableAliases', 'emails', 
 #	[groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
 #	[orderby <UserOrderByFieldName> [ascending|descending]]
 #	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
-#	[delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
+#	[delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>] [quoteplusphonenumbers]
 #	[issuspended <Boolean>]
 #
 # gam <UserTypeEntity> print users [todrive <ToDriveAttributes>*]
 #	[groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
 #	[orderby <UserOrderByFieldName> [ascending|descending]]
 #	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
-#	[delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>]
+#	[delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>] [quoteplusphonenumbers]
 #	[issuspended <Boolean>]
 #
 # gam print users [todrive <ToDriveAttributes>*]
@@ -25184,6 +25184,11 @@ def doPrintUsers(entityList=None):
           userEntity['primaryEmailLocal'], userEntity['primaryEmailDomain'] = splitEmailAddress(userEmail)
       for location in userEntity.get('locations', []):
         location['buildingName'] = _getBuildingNameById(cd, location.get('buildingId', ''))
+      if quotePlusPhoneNumbers:
+        for phone in userEntity.get('phones', []):
+          phoneNumber = phone.get('value', '')
+          if phoneNumber.startswith('+'):
+            phone['value'] = "'"+phoneNumber
       row = flattenJSON(userEntity, flattened={}, skipObjects=USER_SKIP_OBJECTS, timeObjects=USER_TIME_OBJECTS)
       if not FJQC.formatJSON:
         csvPF.WriteRowTitles(row)
@@ -25227,7 +25232,7 @@ def doPrintUsers(entityList=None):
   projection = 'basic'
   projectionSet = False
   customFieldMask = None
-  showDeleted = False
+  quotePlusPhoneNumbers = showDeleted = False
   isSuspended = orderBy = sortOrder = None
   viewType = 'admin_view'
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
@@ -25283,6 +25288,8 @@ def doPrintUsers(entityList=None):
       emailParts = True
     elif myarg in {'countonly', 'countsonly'}:
       countOnly = True
+    elif myarg == 'quoteplusphonenumbers':
+      quotePlusPhoneNumbers = True
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, False)
   _, _, entityList = getEntityArgument(entityList)
