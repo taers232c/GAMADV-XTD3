@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.25'
+__version__ = '4.99.26'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6895,6 +6895,8 @@ def doBatch(threadBatch=False):
   errors = 0
   try:
     for line in f:
+      if line.startswith('#'):
+        continue
       try:
         argv = shlex.split(line)
       except ValueError as e:
