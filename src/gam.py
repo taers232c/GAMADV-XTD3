@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.26'
+__version__ = '4.99.27'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1209,9 +1209,9 @@ class OrderBy():
   def orderBy(self):
     return ','.join(self.items)
 
-def getOrderBySortOrder(choiceMap, defaultChoice='ASCENDING', mapSortOrderChoice=True):
+def getOrderBySortOrder(choiceMap, defaultSortOrderChoice='ASCENDING', mapSortOrderChoice=True):
   return (getChoice(choiceMap, mapChoice=True),
-          getChoice(SORTORDER_CHOICE_MAP, defaultChoice=defaultChoice, mapChoice=mapSortOrderChoice))
+          getChoice(SORTORDER_CHOICE_MAP, defaultChoice=defaultSortOrderChoice, mapChoice=mapSortOrderChoice))
 
 def orgUnitPathQuery(path, isSuspended):
   query = "orgUnitPath='{0}'".format(path.replace("'", "\\'")) if path != '/' else ''
@@ -15569,7 +15569,7 @@ def doPrintCrOSDevices(entityList=None):
     elif entityList is None and myarg == 'select':
       _, entityList = getEntityToModify(defaultEntityType=Cmd.ENTITY_CROS, crosAllowed=True, userAllowed=False)
     elif myarg == 'orderby':
-      orderBy, sortOrder = getOrderBySortOrder(CROS_ORDERBY_CHOICE_MAP)
+      orderBy, sortOrder = getOrderBySortOrder(CROS_ORDERBY_CHOICE_MAP, 'DESCENDING', True)
     elif myarg == 'onerow':
       oneRow = True
     elif myarg == 'nolists':
@@ -15783,7 +15783,7 @@ def doPrintCrOSActivity(entityList=None):
     elif myarg == 'all':
       selectActiveTimeRanges = selectDeviceFiles = selectRecentUsers = True
     elif myarg == 'orderby':
-      orderBy, sortOrder = getOrderBySortOrder(CROS_ORDERBY_CHOICE_MAP)
+      orderBy, sortOrder = getOrderBySortOrder(CROS_ORDERBY_CHOICE_MAP, 'DESCENDING', True)
     elif myarg == 'delimiter':
       delimiter = getCharacter()
     else:

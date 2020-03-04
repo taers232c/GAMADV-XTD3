@@ -1,3 +1,13 @@
+4.99.27
+
+In `gam print cros` you can specify the property to use for sorting results.
+```
+orderby <CrOSOrderByFieldName> [ascending|descending]
+```
+Currently, there is a Google API bug that gives erroneous results when you specify `ascending`.
+Unfortunately, if you don't specify `ascending|descending`, GAM uses `ascending`.
+GAM now uses `descending` as the default to avoid the bug.
+
 4.99.26
 
 Fixed a bug where a comment line in a GAM batch file that contained an unmatched quote caused an error.
