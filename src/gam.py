@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.27'
+__version__ = '4.99.28'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6906,7 +6906,7 @@ def doBatch(threadBatch=False):
         continue
       if argv:
         cmd = argv[0].strip().lower()
-        if (not cmd) or cmd.startswith('#') or ((len(argv) == 1) and (cmd not in [Cmd.COMMIT_BATCH_CMD, Cmd.PRINT_CMD])):
+        if (not cmd) or ((len(argv) == 1) and (cmd not in [Cmd.COMMIT_BATCH_CMD, Cmd.PRINT_CMD])):
           continue
         if cmd == Cmd.GAM_CMD:
           items.append(argv)
@@ -33871,7 +33871,7 @@ def printShowFileCounts(users):
       mimeTypeCounts[f_file['mimeType']] += 1
     showMimeTypeCounts(user, mimeTypeCounts, teamDriveId, teamDriveName, i, count)
   if summary != FILECOUNT_SUMMARY_NONE:
-    showMimeTypeCounts(FILECOUNT_SUMMARY_USER, summaryMimeTypeCounts, teamDriveId, teamDriveName, 0, 0)
+    showMimeTypeCounts(FILECOUNT_SUMMARY_USER, summaryMimeTypeCounts, '', '', 0, 0)
   if csvPF:
     csvPF.writeCSVfile('Drive File Counts')
 

@@ -1,3 +1,10 @@
+4.99.28
+
+Fixed bug in `gam print filecounts` that caused a trap:
+```
+UnboundLocalError: local variable 'teamDriveId' referenced before assignment
+```
+
 4.99.27
 
 In `gam print cros` you can specify the property to use for sorting results.
