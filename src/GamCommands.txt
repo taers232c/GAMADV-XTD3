@@ -887,8 +887,6 @@ gam oauth|oauth2 delete|revoke
 gam oauth|oauth2 refresh
 gam oauth|oauth2 update
 gam oauth|oauth2 info|verify [showsecret] [accesstoken <AccessToken> idtoken <IDToken>] [showdetails]
-gam oauth|oauth2 export [<FileName>]
-gam oauth|oauth2 import <FileName>
 
 gam <UserTypeEntity> check serviceaccount (scope|scopes <APIScopeURLList>)*
 gam <UserTypeEntity> update serviceaccount
@@ -2035,6 +2033,7 @@ gam print grouptree <GroupEntity> [todrive <ToDriveAttribute>*]
 gam show grouptree <GroupEntity>
 
 <MembersFieldName> ::=
+        delivery|deliverysettings|
         email|useremail|
         group|groupemail|
         id|
@@ -2794,6 +2793,32 @@ gam <UserTypeEntity> show teamdriveacls
 
 # Vault
 
+gam create|add vaultmatter|matter [name <String>] [description <string>]
+        [collaborator|collaborators <EmailItemList>] [sendemails <Boolean>] [ccme <Boolean>]
+        [showdetails]
+gam update vaultmatter|matter <MatterItem> [name <String>] [description <string>]
+        [addcollaborator|addcollaborators <EmailItemList>] [removecollaborator|removecollaborators <EmailItemList>]
+gam update vaultmatter|matter <MatterItem> action close|reopen|delete|undelete
+gam close vaultmatter|matter <MatterItem>
+gam reopen vaultmatter|matter <MatterItem>
+gam delete vaultmatter|matter <MatterItem>
+gam undelete vaultmatter|matter <MatterItem>
+
+<ValutMatterFieldName> ::=
+        description|
+        matterid|
+        matterpermissions|
+        name|
+        state
+<VaultMatterFieldNameList> ::= "<VaultMatterFieldName>(,<VaultMatterFieldName>)*"
+
+gam info vaultmatter|matter <MatterItem> [basic|full]
+        [basic|full|(fields <VaultMatterFieldNameList>)]
+gam print vaultmatters|matters [todrive <ToDriveAttributes>*] [matterstate <MatterStateList>]
+        [basic|full|(fields <VaultMatterFieldNameList>)]
+gam show vaultmatters|matters [matterstate <MatterStateList>]
+        [basic|full|(fields <VaultMatterFieldNameList>)]
+
 gam create vaultexport|export matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
         (accounts <EmailAddressEntity>) | (orgunit|org|ou <OrgUnitPath>) | (shareddrives|teamdrives <TeamDriveIDList>) | (rooms <RoomList>) | everyone
         [scope <all_data|held_data|unprocessed_data>]
@@ -2878,32 +2903,6 @@ gam print vaultholds|holds [todrive <ToDriveAttributes>*] [matters <MatterItemLi
         [fields <VaultHoldFieldNameList>] [shownames]
 gam show vaultholds|holds [matters <MatterItemList>]
         [fields <VaultHoldFieldNameList>] [shownames]
-
-gam create|add vaultmatter|matter [name <String>] [description <string>]
-        [collaborator|collaborators <EmailItemList>] [sendemails <Boolean>] [ccme <Boolean>]
-        [showdetails]
-gam update vaultmatter|matter <MatterItem> [name <String>] [description <string>]
-        [addcollaborator|addcollaborators <EmailItemList>] [removecollaborator|removecollaborators <EmailItemList>]
-gam update vaultmatter|matter <MatterItem> action close|reopen|delete|undelete
-gam close vaultmatter|matter <MatterItem>
-gam reopen vaultmatter|matter <MatterItem>
-gam delete vaultmatter|matter <MatterItem>
-gam undelete vaultmatter|matter <MatterItem>
-
-<ValutMatterFieldName> ::=
-        description|
-        matterid|
-        matterpermissions|
-        name|
-        state
-<VaultMatterFieldNameList> ::= "<VaultMatterFieldName>(,<VaultMatterFieldName>)*"
-
-gam info vaultmatter|matter <MatterItem> [basic|full]
-        [basic|full|(fields <VaultMatterFieldNameList>)]
-gam print vaultmatters|matters [todrive <ToDriveAttributes>*] [matterstate <MatterStateList>]
-        [basic|full|(fields <VaultMatterFieldNameList>)]
-gam show vaultmatters|matters [matterstate <MatterStateList>]
-        [basic|full|(fields <VaultMatterFieldNameList>)]
 
 # Users
 

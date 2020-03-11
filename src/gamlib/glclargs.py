@@ -485,6 +485,7 @@ class GamCLArgs():
   ARG_SITEACTIVITY = 'siteactivity'
   ARG_SMIME = 'smime'
   ARG_SMIMES = 'smimes'
+  ARG_STORAGEBUCKET = 'storagebucket'
   ARG_SVCACCT = 'svcacct'
   ARG_SVCACCTS = 'svcaccts'
   ARG_TEAMDRIVE = 'teamdrive'

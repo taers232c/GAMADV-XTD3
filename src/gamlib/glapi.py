@@ -498,6 +498,12 @@ def getClientScopesList(todriveClientAccess):
     caScopes.extend(_TODRIVE_CLIENT_SCOPES)
   return sorted(caScopes, key=lambda k: k['name'])
 
+def getClientScopesURLs(todriveClientAccess):
+  caScopes = _CLIENT_SCOPES[:]
+  if todriveClientAccess:
+    caScopes.extend(_TODRIVE_CLIENT_SCOPES)
+  return sorted({scope['scope'] for scope in _CLIENT_SCOPES})
+
 def getSvcAcctScopeAPI(uscope):
   for scope in _SVCACCT_SCOPES:
     if uscope == scope['scope'] or (uscope.endswith('.readonly') and 'readonly' in scope['subscopes']):

@@ -1,3 +1,20 @@
+5.00.00
+
+Replaced deprecated `oauth2client` library with `google-auth` library.
+This change requires a one-time update of the client access file `oauth2.txt`.
+If you are running any Advanced GAM version `4.85.00` or later, this update will happen automatically.
+If you are running any Advanced GAM version before `4.85.00`, perform the following command:
+```
+gam oauth update
+```
+You can't use an updated version of `oauth2.txt` in prior versions of Advanced GAM.
+
+The following commands have been deleted as they are no longer required:
+```
+gam oauth|oauth2 export [<FileName>]
+gam oauth|oauth2 import <FileName>
+```
+
 4.99.28
 
 Fixed bug in `gam print filecounts` that caused a trap:

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '4.99.28'
+__version__ = '5.00.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -80,6 +80,8 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
+from filelock import FileLock
+
 from gamlib import glaction
 from gamlib import glapi as API
 from gamlib import glcfg as GC
@@ -105,15 +107,12 @@ import googleapiclient
 import googleapiclient.discovery
 import googleapiclient.errors
 import googleapiclient.http
+import google.oauth2.id_token
+import google.oauth2.service_account
+import google_auth_oauthlib.flow
+import google_auth_httplib2
 import httplib2
 from iso8601 import iso8601
-import google.oauth2.service_account
-import google_auth_httplib2
-import oauth2client.client
-import oauth2client.file
-import oauth2client.tools
-from oauth2client.contrib.dictionary_storage import DictionaryStorage
-from oauth2client.contrib.multiprocess_file_storage import MultiprocessFileStorage
 if platform.system() == 'Windows':
   # No crypt module on Win, use passlib
   from passlib.hash import sha512_crypt
@@ -145,11 +144,11 @@ else:
 GIT_USER = 'taers232c'
 GAM = 'GAMADV-XTD3'
 GAM_URL = f'https://github.com/{GIT_USER}/{GAM}'
-GAM_INFO = (f'{GAM} {__version__} - {GAM_URL} / '
-            f'{__author__} / '
-            f'Python {sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]} {sys.version_info[3]} / '
-            f'{platform.platform()} {platform.machine()} /'
-            )
+GAM_USER_AGENT = (f'{GAM} {__version__} - {GAM_URL} / '
+                  f'{__author__} / '
+                  f'Python {sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]} {sys.version_info[3]} / '
+                  f'{platform.platform()} {platform.machine()} /'
+                  )
 GAM_RELEASES = f'https://github.com/{GIT_USER}/{GAM}/releases'
 GAM_WIKI = f'https://github.com/{GIT_USER}/{GAM}/wiki'
 GAM_LATEST_RELEASE = f'https://api.github.com/repos/{GIT_USER}/{GAM}/releases/latest'
@@ -218,6 +217,7 @@ NEVER_TIME = '1970-01-01T00:00:00.000Z'
 NEVER_END_DATE = '1969-12-31'
 NEVER_START_DATE = NEVER_DATE
 PROJECTION_CHOICE_MAP = {'basic': 'BASIC', 'full': 'FULL'}
+REFRESH_EXPIRY = '1970-01-01T00:00:01Z'
 ME_IN_OWNERS = "'me' in owners"
 ME_IN_OWNERS_AND = ME_IN_OWNERS+" and "
 AND_ME_IN_OWNERS = " and "+ME_IN_OWNERS
@@ -2295,8 +2295,13 @@ def openFile(filename, mode=DEFAULT_FILE_READ_MODE, encoding=None, errors=None, 
     systemErrorExit(FILE_ERROR_RC, fileErrorMessage(filename, e))
 
 # Close a file
-def closeFile(f):
+def closeFile(f, forceFlush=False):
   try:
+    if forceFlush:
+      # Necessary to make sure file is flushed by both Python and OS
+      # https://stackoverflow.com/a/13762137/1503886
+      f.flush()
+      os.fsync(f.fileno())
     f.close()
     return True
   except IOError as e:
@@ -3216,6 +3221,60 @@ def getHttpObj(cache=None, timeout=None, override_min_tls=None, override_max_tls
                        tls_maximum_version=tls_maximum_version,
                        tls_minimum_version=tls_minimum_version)
 
+def _force_user_agent(user_agent):
+  """Creates a decorator which can force a user agent in HTTP headers."""
+
+  def decorator(request_method):
+    """Wraps a request method to insert a user-agent in HTTP headers."""
+
+    def wrapped_request_method(*args, **kwargs):
+      """Modifies HTTP headers to include a specified user-agent."""
+      if kwargs.get('headers') is not None:
+        if kwargs['headers'].get('user-agent'):
+          if user_agent not in kwargs['headers']['user-agent']:
+            # Save the existing user-agent header and tack on our own.
+            kwargs['headers']['user-agent'] = f'{user_agent} {kwargs["headers"]["user-agent"]}'
+        else:
+          kwargs['headers']['user-agent'] = user_agent
+      else:
+        kwargs['headers'] = {'user-agent': user_agent}
+      return request_method(*args, **kwargs)
+
+    return wrapped_request_method
+
+  return decorator
+
+class transportAgentRequest(google_auth_httplib2.Request):
+  """A Request which forces a user agent."""
+
+  @_force_user_agent(GAM_USER_AGENT)
+  def __call__(self, *args, **kwargs):
+    """Inserts the GAM user-agent header in requests."""
+    return super(transportAgentRequest, self).__call__(*args, **kwargs)
+
+
+class transportAuthorizedHttp(google_auth_httplib2.AuthorizedHttp):
+  """An AuthorizedHttp which forces a user agent during requests."""
+
+  @_force_user_agent(GAM_USER_AGENT)
+  def request(self, *args, **kwargs):
+    """Inserts the GAM user-agent header in requests."""
+    return super(transportAuthorizedHttp, self).request(*args, **kwargs)
+
+def transportCreateRequest(httpObj=None):
+  """Creates a uniform Request object with a default http, if not provided.
+
+  Args:
+    httpObj: Optional httplib2.Http compatible object to be used with the request.
+      If not provided, a default HTTP will be used.
+
+  Returns:
+    Request: A google_auth_httplib2.Request compatible Request.
+  """
+  if not httpObj:
+    httpObj = getHttpObj()
+  return transportAgentRequest(httpObj)
+
 def doGAMCheckForUpdates(forceCheck):
   def _gamLatestVersionNotAvailable():
     if forceCheck:
@@ -3277,30 +3336,101 @@ def handleOAuthTokenError(e, soft_errors):
   stderrErrorMsg(f'Authentication Token Error - {errMsg}')
   APIAccessDeniedExit()
 
-def getOldOauth2TxtCredentials(credFamily):
-  try:
-    storage = MultiprocessFileStorage(GC.Values[GC.OAUTH2_TXT], credFamily)
-    return (storage, storage.get())
-  except (AttributeError, TypeError, IndexError, KeyError, ValueError):
-    return (None, None)
-  except IOError as e:
-    systemErrorExit(FILE_ERROR_RC, fileErrorMessage(GC.Values[GC.OAUTH2_TXT], e))
-
-def getOauth2TxtCredentials(storageOnly=False, exitOnError=True):
-  try:
-    storage = MultiprocessFileStorage(GC.Values[GC.OAUTH2_TXT], API.GAM_SCOPES)
-    if storageOnly:
-      return storage
-    credentials = storage.get()
-    if credentials:
-      return credentials
-  except (AttributeError, TypeError, IndexError, KeyError, ValueError):
-    pass
-  except IOError as e:
-    systemErrorExit(FILE_ERROR_RC, fileErrorMessage(GC.Values[GC.OAUTH2_TXT], e))
+def getOauth2TxtCredentials(exitOnError=True):
+  jsonData = readFile(GC.Values[GC.OAUTH2_TXT], continueOnError=True, displayError=False)
+  if jsonData:
+    try:
+      jsonDict = json.loads(jsonData)
+      if 'client_id' in jsonDict:
+        if 'scopes' in jsonDict:
+          scopesList = jsonDict['scopes']
+          token_expiry = jsonDict.get('token_expiry', REFRESH_EXPIRY)
+        else:
+          scopesList = API.getClientScopesURLs(GC.Values[GC.TODRIVE_CLIENTACCESS])
+          token_expiry = REFRESH_EXPIRY
+        creds = google.oauth2.credentials.Credentials.from_authorized_user_file(GC.Values[GC.OAUTH2_TXT], scopesList)
+        creds.token = jsonDict.get('token', jsonDict.get('auth_token', ''))
+        creds._id_token = jsonDict.get('id_token_jwt', jsonDict.get('id_token', None))
+        creds.expiry = datetime.datetime.strptime(token_expiry, '%Y-%m-%dT%H:%M:%SZ')
+        GM.Globals[GM.DECODED_ID_TOKEN] = jsonDict.get('decoded_id_token', '')
+        return creds
+      if ((jsonDict.get('file_version') == 2) and ('credentials' in jsonDict) and
+          (API.GAM_SCOPES in jsonDict['credentials']) and isinstance(jsonDict['credentials'][API.GAM_SCOPES], dict)):
+        importCredentials = json.loads(base64.b64decode(jsonDict['credentials'][API.GAM_SCOPES]).decode('utf-8'))
+        if importCredentials:
+          info = {
+            'client_id': importCredentials['client_id'],
+            'client_secret': importCredentials['client_secret'],
+            'refresh_token': importCredentials['refresh_token']
+            }
+          creds = google.oauth2.credentials.Credentials.from_authorized_user_info(info, list(importCredentials.get('scopes', [API.REQUIRED_SCOPES])))
+          creds.token = importCredentials['access_token']
+          creds._id_token = importCredentials['id_token_jwt']
+          creds.expiry = datetime.datetime.strptime(REFRESH_EXPIRY, '%Y-%m-%dT%H:%M:%SZ')
+          GM.Globals[GM.DECODED_ID_TOKEN] = importCredentials['id_token']
+          return creds
+        if exitOnError:
+          invalidOauth2TxtExit()
+    except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
+      if exitOnError:
+        invalidOauth2TxtExit()
   if exitOnError:
     systemErrorExit(OAUTH2_TXT_REQUIRED_RC, Msg.NO_CLIENT_ACCESS_ALLOWED)
   return None
+
+def _getValueFromOAuth(field, credentials=None):
+  if not GM.Globals[GM.DECODED_ID_TOKEN]:
+    if credentials is None:
+      credentials = getClientCredentials()
+    request = transportCreateRequest()
+    GM.Globals[GM.DECODED_ID_TOKEN] = google.oauth2.id_token.verify_oauth2_token(credentials.id_token, request)
+  return GM.Globals[GM.DECODED_ID_TOKEN].get(field, 'Unknown')
+
+def writeClientCredentials(creds):
+  creds_data = {
+    'client_id': creds.client_id,
+    'client_secret': creds.client_secret,
+    'id_token': creds.id_token,
+    'refresh_token': creds.refresh_token,
+    'scopes': sorted(creds.scopes),
+    'token': creds.token,
+    'token_expiry': creds.expiry.strftime('%Y-%m-%dT%H:%M:%SZ'),
+    'token_uri': creds.token_uri,
+    }
+  expected_iss = ['https://accounts.google.com', 'accounts.google.com']
+  if _getValueFromOAuth('iss', creds) not in expected_iss:
+    systemErrorExit(OAUTH2_TXT_REQUIRED_RC, f'Wrong OAuth 2.0 credentials issuer. Got {_getValueFromOAuth("iss", creds)} expected one of {", ".join(expected_iss)}')
+  request = transportCreateRequest()
+  creds_data['decoded_id_token'] = google.oauth2.id_token.verify_oauth2_token(creds.id_token, request)
+  GM.Globals[GM.DECODED_ID_TOKEN] = creds_data['decoded_id_token']
+  writeFile(GC.Values[GC.OAUTH2_TXT], json.dumps(creds_data, indent=2, sort_keys=True))
+
+def getClientCredentials(forceRefresh=False):
+  """Gets OAuth2 credentials which are guaranteed to be fresh and valid.
+     Locks during read and possible write so that only one process will
+     attempt refresh/write when running in parallel. """
+  lock = FileLock(GM.Globals[GM.OAUTH2_TXT_LOCK])
+  with lock:
+    credentials = getOauth2TxtCredentials()
+    if not credentials:
+      invalidOauth2TxtExit()
+    if credentials.expired or forceRefresh:
+      retries = 3
+      for n in range(1, retries+1):
+        try:
+          credentials.refresh(transportCreateRequest())
+          writeClientCredentials(credentials)
+          break
+        except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
+          if n != retries:
+            waitOnFailure(n, retries, NETWORK_ERROR_RC, str(e))
+            continue
+          handleServerError(e)
+        except google.auth.exceptions.RefreshError as e:
+          if isinstance(e.args, tuple):
+            e = e.args[0]
+          handleOAuthTokenError(e, False)
+  return credentials
 
 def waitOnFailure(n, retries, error_code, error_message):
   delta = min(2 ** n, 60)+float(random.randint(1, 1000))/1000
@@ -3311,32 +3441,66 @@ def waitOnFailure(n, retries, error_code, error_message):
   if GC.Values[GC.SHOW_API_CALLS_RETRY_DATA]:
     incrAPICallsRetryData(error_message, delta)
 
-def getClientCredentials(forceRefresh=False):
-  credentials = getOauth2TxtCredentials()
-  if not credentials or credentials.invalid:
-    invalidOauth2TxtExit()
-  if credentials.access_token_expired or forceRefresh:
+DISCOVERY_URIS = [googleapiclient.discovery.V1_DISCOVERY_URI, googleapiclient.discovery.V2_DISCOVERY_URI]
+
+def getAPIService(api, httpObj):
+  api, version, v2discovery = API.getVersion(api)
+  return googleapiclient.discovery.build(api, version, http=httpObj, cache_discovery=False,
+                                         discoveryServiceUrl=DISCOVERY_URIS[v2discovery])
+
+def getService(api, httpObj):
+  hasLocalJSON = API.hasLocalJSON(api)
+  api, version, v2discovery = API.getVersion(api)
+  if api in GM.Globals[GM.CURRENT_API_SERVICES] and version in GM.Globals[GM.CURRENT_API_SERVICES][api]:
+    service = googleapiclient.discovery.build_from_document(GM.Globals[GM.CURRENT_API_SERVICES][api][version], http=httpObj)
+    if GM.Globals[GM.CACHE_DISCOVERY_ONLY]:
+      httpObj.cache = None
+    return service
+  if not hasLocalJSON:
     retries = 3
     for n in range(1, retries+1):
       try:
-        credentials.refresh(getHttpObj())
-        break
+        service = googleapiclient.discovery.build(api, version, http=httpObj, cache_discovery=False,
+                                                  discoveryServiceUrl=DISCOVERY_URIS[v2discovery])
+        GM.Globals[GM.CURRENT_API_SERVICES].setdefault(api, {})
+        GM.Globals[GM.CURRENT_API_SERVICES][api][version] = service._rootDesc.copy()
+        if GM.Globals[GM.CACHE_DISCOVERY_ONLY]:
+          httpObj.cache = None
+        return service
+      except googleapiclient.errors.UnknownApiNameOrVersion as e:
+        systemErrorExit(GOOGLE_API_ERROR_RC, Msg.UNKNOWN_API_OR_VERSION.format(str(e), __author__))
+      except (googleapiclient.errors.InvalidJsonError, KeyError, ValueError):
+        httpObj.cache = None
+        if n != retries:
+          waitOnFailure(n, retries, INVALID_JSON_RC, Msg.INVALID_JSON_INFORMATION)
+          continue
+        systemErrorExit(INVALID_JSON_RC, Msg.INVALID_JSON_INFORMATION)
+      except (http_client.ResponseNotReady, socket.error) as e:
+        errMsg = f'Connection error: {str(e) or repr(e)}'
+        if n != retries:
+          waitOnFailure(n, retries, SOCKET_ERROR_RC, errMsg)
+          continue
+        systemErrorExit(SOCKET_ERROR_RC, errMsg)
       except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
         if n != retries:
+          httpObj.connections = {}
           waitOnFailure(n, retries, NETWORK_ERROR_RC, str(e))
           continue
         handleServerError(e)
-      except (oauth2client.client.AccessTokenRefreshError, google.auth.exceptions.RefreshError) as e:
-        if isinstance(e.args, tuple):
-          e = e.args[0]
-        handleOAuthTokenError(e, False)
-  credentials.user_agent = GAM_INFO
-  return credentials
-
-def _getValueFromOAuth(field):
-  if not GM.Globals[GM.DECODED_ID_TOKEN]:
-    GM.Globals[GM.DECODED_ID_TOKEN] = getClientCredentials().id_token
-  return GM.Globals[GM.DECODED_ID_TOKEN].get(field, 'Unknown')
+      except IOError as e:
+        systemErrorExit(FILE_ERROR_RC, str(e))
+  disc_file, discovery = readDiscoveryFile(f'{api}-{version}')
+  try:
+    service = googleapiclient.discovery.build_from_document(discovery, http=httpObj)
+    GM.Globals[GM.CURRENT_API_SERVICES].setdefault(api, {})
+    GM.Globals[GM.CURRENT_API_SERVICES][api][version] = service._rootDesc.copy()
+    if GM.Globals[GM.CACHE_DISCOVERY_ONLY]:
+      httpObj.cache = None
+    return service
+  except (KeyError, ValueError):
+    invalidDiscoveryJsonExit(disc_file)
+  except IOError as e:
+    systemErrorExit(FILE_ERROR_RC, str(e))
 
 def defaultSvcAcctScopes():
   scopesList = API.getSvcAcctScopesList(GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY], False)
@@ -3394,23 +3558,24 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail):
 def getGDataOAuthToken(gdataObj, credentials=None):
   if not credentials:
     credentials = getClientCredentials()
+  request = transportCreateRequest()
   try:
-    credentials.refresh(getHttpObj())
+    credentials.refresh(request)
   except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
     handleServerError(e)
-  except oauth2client.client.AccessTokenRefreshError as e:
+  except google.auth.exceptions.RefreshError as e:
     if isinstance(e.args, tuple):
       e = e.args[0]
     handleOAuthTokenError(e, False)
-  gdataObj.additional_headers['Authorization'] = f'Bearer {credentials.access_token}'
+  gdataObj.additional_headers['Authorization'] = f'Bearer {credentials.token}'
   if not GC.Values[GC.DOMAIN]:
-    GC.Values[GC.DOMAIN] = credentials.id_token.get('hd', 'UNKNOWN').lower()
+    GC.Values[GC.DOMAIN] = GM.Globals[GM.DECODED_ID_TOKEN].get('hd', 'UNKNOWN').lower()
   if not GC.Values[GC.CUSTOMER_ID]:
     GC.Values[GC.CUSTOMER_ID] = GC.MY_CUSTOMER
-  GM.Globals[GM.ADMIN] = credentials.id_token.get('email', 'UNKNOWN').lower()
+  GM.Globals[GM.ADMIN] = GM.Globals[GM.DECODED_ID_TOKEN].get('email', 'UNKNOWN').lower()
   GM.Globals[GM.OAUTH2_CLIENT_ID] = credentials.client_id
   gdataObj.domain = GC.Values[GC.DOMAIN]
-  gdataObj.source = GAM_INFO
+  gdataObj.source = GAM_USER_AGENT
   return True
 
 def checkGDataError(e, service):
@@ -3545,7 +3710,12 @@ def callGData(service, function,
       if error_code == GDATA.INSUFFICIENT_PERMISSIONS:
         APIAccessDeniedExit()
       systemErrorExit(GOOGLE_API_ERROR_RC, f'{error_code} - {error_message}')
-    except oauth2client.client.AccessTokenRefreshError as e:
+    except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
+      if n != retries:
+        waitOnFailure(n, retries, NETWORK_ERROR_RC, str(e))
+        continue
+      handleServerError(e)
+    except google.auth.exceptions.RefreshError as e:
       if isinstance(e.args, tuple):
         e = e.args[0]
       handleOAuthTokenError(e, GDATA.SERVICE_NOT_APPLICABLE in throw_errors)
@@ -3559,26 +3729,21 @@ def callGData(service, function,
         writeStderr(f'\n{ERROR_PREFIX}{errMsg} - Giving up.\n')
         return None
       systemErrorExit(SOCKET_ERROR_RC, errMsg)
-    except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
-      if n != retries:
-        waitOnFailure(n, retries, NETWORK_ERROR_RC, str(e))
-        continue
-      handleServerError(e)
     except IOError as e:
       systemErrorExit(FILE_ERROR_RC, str(e))
 
 def writeGotMessage(msg):
-  writeStderr('\r')
-  flushStderr()
   if GC.Values[GC.SHOW_GETTINGS_GOT_NL]:
     writeStderr(msg)
   else:
+    writeStderr('\r')
     msgLen = len(msg)
     if msgLen < GM.Globals[GM.LAST_GOT_MSG_LEN]:
       writeStderr(msg+' '*(GM.Globals[GM.LAST_GOT_MSG_LEN]-msgLen))
     else:
       writeStderr(msg)
     GM.Globals[GM.LAST_GOT_MSG_LEN] = msgLen
+  flushStderr()
 
 def callGDataPages(service, function,
                    page_message=None,
@@ -3651,8 +3816,6 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False, service=None):
     elif (e.resp['status'] == '400') and ('Request contains an invalid argument' in eContent):
       error = {'error': {'code': 400, 'errors': [{'reason': GAPI.INVALID_ARGUMENT, 'message': 'Request contains an invalid argument'}]}}
     elif retryOnHttpError:
-      if hasattr(service._http.request, 'credentials'):
-        service._http.request.credentials.refresh(getHttpObj())
       return (-1, None, None)
     elif soft_errors:
       stderrErrorMsg(eContent)
@@ -3756,7 +3919,13 @@ def callGAPI(service, function,
       if reason == GAPI.INSUFFICIENT_PERMISSIONS:
         APIAccessDeniedExit()
       systemErrorExit(HTTP_ERROR_RC, formatHTTPError(http_status, reason, message))
-    except (oauth2client.client.AccessTokenRefreshError, google.auth.exceptions.RefreshError) as e:
+    except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
+      if n != retries:
+        service._http.connections = {}
+        waitOnFailure(n, retries, NETWORK_ERROR_RC, str(e))
+        continue
+      handleServerError(e)
+    except google.auth.exceptions.RefreshError as e:
       if isinstance(e.args, tuple):
         e = e.args[0]
       handleOAuthTokenError(e, GAPI.SERVICE_NOT_AVAILABLE in throw_reasons)
@@ -3777,12 +3946,6 @@ def callGAPI(service, function,
       systemErrorExit(GOOGLE_API_ERROR_RC, str(e))
     except TypeError as e:
       systemErrorExit(GOOGLE_API_ERROR_RC, str(e))
-    except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
-      if n != retries:
-        service._http.connections = {}
-        waitOnFailure(n, retries, NETWORK_ERROR_RC, str(e))
-        continue
-      handleServerError(e)
     except IOError as e:
       systemErrorExit(FILE_ERROR_RC, str(e))
 
@@ -3907,71 +4070,10 @@ def readDiscoveryFile(api_version):
   except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
     invalidDiscoveryJsonExit(disc_file)
 
-DISCOVERY_URIS = [googleapiclient.discovery.V1_DISCOVERY_URI, googleapiclient.discovery.V2_DISCOVERY_URI]
-
-def getAPIService(api, httpObj):
-  api, version, v2discovery = API.getVersion(api)
-  return googleapiclient.discovery.build(api, version, http=httpObj, cache_discovery=False,
-                                         discoveryServiceUrl=DISCOVERY_URIS[v2discovery])
-
-def getHttpAPIService(api):
-  hasLocalJSON = API.hasLocalJSON(api)
-  api, version, v2discovery = API.getVersion(api)
-  httpObj = getHttpObj(cache=GM.Globals[GM.CACHE_DIR])
-  if api in GM.Globals[GM.CURRENT_API_SERVICES] and version in GM.Globals[GM.CURRENT_API_SERVICES][api]:
-    service = googleapiclient.discovery.build_from_document(GM.Globals[GM.CURRENT_API_SERVICES][api][version], http=httpObj)
-    if GM.Globals[GM.CACHE_DISCOVERY_ONLY]:
-      httpObj.cache = None
-    return (httpObj, service)
-  if not hasLocalJSON:
-    retries = 3
-    for n in range(1, retries+1):
-      try:
-        service = googleapiclient.discovery.build(api, version, http=httpObj, cache_discovery=False,
-                                                  discoveryServiceUrl=DISCOVERY_URIS[v2discovery])
-        GM.Globals[GM.CURRENT_API_SERVICES].setdefault(api, {})
-        GM.Globals[GM.CURRENT_API_SERVICES][api][version] = service._rootDesc.copy()
-        if GM.Globals[GM.CACHE_DISCOVERY_ONLY]:
-          httpObj.cache = None
-        return (httpObj, service)
-      except googleapiclient.errors.UnknownApiNameOrVersion as e:
-        systemErrorExit(GOOGLE_API_ERROR_RC, Msg.UNKNOWN_API_OR_VERSION.format(str(e), __author__))
-      except (googleapiclient.errors.InvalidJsonError, KeyError, ValueError):
-        httpObj.cache = None
-        if n != retries:
-          waitOnFailure(n, retries, INVALID_JSON_RC, Msg.INVALID_JSON_INFORMATION)
-          continue
-        systemErrorExit(INVALID_JSON_RC, Msg.INVALID_JSON_INFORMATION)
-      except (http_client.ResponseNotReady, socket.error) as e:
-        errMsg = f'Connection error: {str(e) or repr(e)}'
-        if n != retries:
-          waitOnFailure(n, retries, SOCKET_ERROR_RC, errMsg)
-          continue
-        systemErrorExit(SOCKET_ERROR_RC, errMsg)
-      except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
-        if n != retries:
-          httpObj.connections = {}
-          waitOnFailure(n, retries, NETWORK_ERROR_RC, str(e))
-          continue
-        handleServerError(e)
-      except IOError as e:
-        systemErrorExit(FILE_ERROR_RC, str(e))
-  disc_file, discovery = readDiscoveryFile(f'{api}-{version}')
-  try:
-    service = googleapiclient.discovery.build_from_document(discovery, http=httpObj)
-    GM.Globals[GM.CURRENT_API_SERVICES].setdefault(api, {})
-    GM.Globals[GM.CURRENT_API_SERVICES][api][version] = service._rootDesc.copy()
-    if GM.Globals[GM.CACHE_DISCOVERY_ONLY]:
-      httpObj.cache = None
-    return (httpObj, service)
-  except (KeyError, ValueError):
-    invalidDiscoveryJsonExit(disc_file)
-  except IOError as e:
-    systemErrorExit(FILE_ERROR_RC, str(e))
-
 def buildGAPIObject(api):
-  httpObj, service = getHttpAPIService(api)
   credentials = getClientCredentials()
+  httpObj = transportAuthorizedHttp(credentials, getHttpObj(cache=GM.Globals[GM.CACHE_DIR]))
+  service = getService(api, httpObj)
   try:
     API_Scopes = set(list(service._rootDesc['auth']['oauth2']['scopes']))
   except KeyError:
@@ -3980,50 +4082,13 @@ def buildGAPIObject(api):
   GM.Globals[GM.CURRENT_CLIENT_API_SCOPES] = API_Scopes.intersection(credentials.scopes)
   if api != API.OAUTH2 and not GM.Globals[GM.CURRENT_CLIENT_API_SCOPES]:
     systemErrorExit(NO_SCOPES_FOR_API_RC, Msg.NO_SCOPES_FOR_API.format(API.getAPIName(api)))
-  retries = 3
-  for n in range(1, retries+1):
-    try:
-      service._http = credentials.authorize(httpObj)
-      if not GC.Values[GC.DOMAIN]:
-        GC.Values[GC.DOMAIN] = credentials.id_token.get('hd', 'UNKNOWN').lower()
-      if not GC.Values[GC.CUSTOMER_ID]:
-        GC.Values[GC.CUSTOMER_ID] = GC.MY_CUSTOMER
-      GM.Globals[GM.ADMIN] = credentials.id_token.get('email', 'UNKNOWN').lower()
-      GM.Globals[GM.OAUTH2_CLIENT_ID] = credentials.client_id
-      return service
-    except (oauth2client.client.AccessTokenRefreshError, google.auth.exceptions.RefreshError) as e:
-      if isinstance(e.args, tuple):
-        e = e.args[0]
-      handleOAuthTokenError(e, False)
-    except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
-      if n != retries:
-        httpObj.connections = {}
-        waitOnFailure(n, retries, NETWORK_ERROR_RC, str(e))
-        continue
-      handleServerError(e)
-
-# Override and wrap google_auth_httplib2 request methods so that the GAM
-# user-agent string is inserted into HTTP request headers.
-def _request_with_user_agent(request_method):
-  """Inserts the GAM user-agent header kwargs sent to a method."""
-  GAM_USER_AGENT = GAM_INFO
-
-  def wrapped_request_method(self, *args, **kwargs):
-    if kwargs.get('headers') is not None:
-      if kwargs['headers'].get('user-agent'):
-        if GAM_USER_AGENT not in kwargs['headers']['user-agent']:
-          # Save the existing user-agent header and tack on the GAM user-agent.
-          kwargs['headers']['user-agent'] = f'{GAM_USER_AGENT} {kwargs["headers"]["user-agent"]}'
-      else:
-        kwargs['headers']['user-agent'] = GAM_USER_AGENT
-    else:
-      kwargs['headers'] = {'user-agent': GAM_USER_AGENT}
-    return request_method(self, *args, **kwargs)
-
-  return wrapped_request_method
-
-google_auth_httplib2.Request.__call__ = _request_with_user_agent(google_auth_httplib2.Request.__call__)
-google_auth_httplib2.AuthorizedHttp.request = _request_with_user_agent(google_auth_httplib2.AuthorizedHttp.request)
+  if not GC.Values[GC.DOMAIN]:
+    GC.Values[GC.DOMAIN] = GM.Globals[GM.DECODED_ID_TOKEN].get('hd', 'UNKNOWN').lower()
+  if not GC.Values[GC.CUSTOMER_ID]:
+    GC.Values[GC.CUSTOMER_ID] = GC.MY_CUSTOMER
+  GM.Globals[GM.ADMIN] = GM.Globals[GM.DECODED_ID_TOKEN].get('email', 'UNKNOWN').lower()
+  GM.Globals[GM.OAUTH2_CLIENT_ID] = credentials.client_id
+  return service
 
 def getSaUser(user):
   currentClientAPI = GM.Globals[GM.CURRENT_CLIENT_API]
@@ -4035,14 +4100,15 @@ def getSaUser(user):
 
 def buildGAPIServiceObject(api, user, i=0, count=0, displayError=True):
   userEmail = getSaUser(user)
-  httpObj, service = getHttpAPIService(api)
+  httpObj = getHttpObj(cache=GM.Globals[GM.CACHE_DIR])
+  service = getService(api, httpObj)
   credentials = getSvcAcctCredentials(api, userEmail)
-  request = google_auth_httplib2.Request(httpObj)
+  request = transportCreateRequest(httpObj)
   retries = 3
   for n in range(1, retries+1):
     try:
       credentials.refresh(request)
-      service._http = google_auth_httplib2.AuthorizedHttp(credentials, http=httpObj)
+      service._http = transportAuthorizedHttp(credentials, http=httpObj)
       return (userEmail, service)
     except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
       if n != retries:
@@ -4077,7 +4143,7 @@ def initGDataObject(gdataObj, api):
 def getGDataUserCredentials(api, user, i, count):
   userEmail = getSaUser(user)
   credentials = getSvcAcctCredentials(api, userEmail)
-  request = google_auth_httplib2.Request(getHttpObj())
+  request = transportCreateRequest()
   try:
     credentials.refresh(request)
     return (userEmail, credentials)
@@ -4100,7 +4166,7 @@ def getContactsObject(entityType=Ent.DOMAIN, entityName=None, i=0, count=0, cont
     return (userEmail, None)
   if GC.Values[GC.NO_VERIFY_SSL]:
     ssl._create_default_https_context = ssl._create_unverified_context
-  contactsObject = gdata.apps.contacts.service.ContactsService(source=GAM_INFO, contactFeed=contactFeed,
+  contactsObject = gdata.apps.contacts.service.ContactsService(source=GAM_USER_AGENT, contactFeed=contactFeed,
                                                                additional_headers={'Authorization': f'Bearer {credentials.token}'})
   if GC.Values[GC.DEBUG_LEVEL] > 0:
     contactsObject.debug = True
@@ -4123,7 +4189,7 @@ def getSitesObject(entityType=Ent.DOMAIN, entityName=None, i=0, count=0):
     return (userEmail, None)
   if GC.Values[GC.NO_VERIFY_SSL]:
     ssl._create_default_https_context = ssl._create_unverified_context
-  sitesObject = gdata.apps.sites.service.SitesService(source=GAM_INFO,
+  sitesObject = gdata.apps.sites.service.SitesService(source=GAM_USER_AGENT,
                                                       additional_headers={'Authorization': f'Bearer {credentials.token}'})
   if GC.Values[GC.DEBUG_LEVEL] > 0:
     sitesObject.debug = True
@@ -6360,7 +6426,7 @@ def _getServerTLSUsed(location):
   retries = 5
   for n in range(1, retries+1):
     try:
-      httpObj.request(url, headers={'user-agent': GAM_INFO})
+      httpObj.request(url, headers={'user-agent': GAM_USER_AGENT})
       cipher_name, tls_ver, _ = httpObj.connections[conn].sock.cipher()
       return tls_ver, cipher_name
     except (httplib2.HttpLib2Error, RuntimeError) as e:
@@ -6429,7 +6495,6 @@ def doVersion(checkForArgs=True):
                f'Python {sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]} {struct.calcsize("P")*8}-bit {sys.version_info[3]}\n'
                f'google-api-python-client {googleapiclient.__version__}\n'
                f'httplib2 {httplib2.__version__}\n'
-               f'oauth2client {oauth2client.__version__}\n'
                f'{getOSPlatform()} {platform.machine()}\n'
                f'Path: {GM.Globals[GM.GAM_PATH]}\n'
                ))
@@ -7106,26 +7171,6 @@ def doListCrOS(entityList):
 def doListUser(entityList):
   _doList(entityList, Cmd.ENTITY_USERS)
 
-def revokeCredentials():
-  def _revoke(credFamily):
-    storage, credentials = getOldOauth2TxtCredentials(credFamily)
-    storage.delete()
-    if credentials:
-      credentials.revoke_uri = oauth2client.GOOGLE_REVOKE_URI
-      try:
-        credentials.revoke(httpObj)
-        time.sleep(2)
-        return True
-      except oauth2client.client.TokenRevokeError as e:
-        printErrorMessage(INVALID_TOKEN_RC, str(e))
-    return False
-
-  httpObj = getHttpObj()
-  if _revoke(API.GAM_SCOPES):
-    return
-  _revoke(API.FAM1_SCOPES)
-  _revoke(API.FAM2_SCOPES)
-
 VALIDEMAIL_PATTERN = re.compile(r'^[^@]+@[^@]+\.[^@]+$')
 
 def _getValidateLoginHint(login_hint):
@@ -7175,9 +7220,10 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
   menu = oauth2_menu % tuple(range(numScopes))
   selectedScopes = ['*'] * numScopes
   if currentScopes is None and clientAccess:
-    credentials = getOauth2TxtCredentials(exitOnError=False)
-    if credentials and not credentials.invalid:
-      if credentials.scopes is not None:
+    lock = FileLock(GM.Globals[GM.OAUTH2_TXT_LOCK])
+    with lock:
+      credentials = getOauth2TxtCredentials(exitOnError=False)
+      if credentials and credentials.scopes is not None:
         currentScopes = sorted(credentials.scopes)
   if currentScopes is not None:
     if clientAccess:
@@ -7267,14 +7313,6 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
       break
   return selectedScopes
 
-class cmd_flags():
-  def __init__(self, noLocalWebserver):
-    self.short_url = True
-    self.noauth_local_webserver = noLocalWebserver
-    self.logging_level = 'ERROR'
-    self.auth_host_name = 'localhost'
-    self.auth_host_port = [8080, 9090]
-
 def setGAMOauthURLfile(access_type):
   if access_type == 'offline' and GC.Values[GC.NO_BROWSER]:
     GM.Globals[GM.GAM_OAUTH_URL_TXT] = os.path.join(GM.Globals[GM.GAM_PATH], FN_GAM_OAUTH_URL_TXT)
@@ -7291,33 +7329,34 @@ def deleteGAMOauthURLfile():
     deleteFile(GM.Globals[GM.GAM_OAUTH_URL_TXT], continueOnError=True, displayError=True)
     GM.Globals[GM.GAM_OAUTH_URL_TXT] = None
 
-class SaveURLOAuth2WebServerFlow(oauth2client.client.OAuth2WebServerFlow):
-  def step1_get_authorize_url(self, redirect_uri=None, state=None):
-    oauthURL = super(SaveURLOAuth2WebServerFlow, self).step1_get_authorize_url()
-    writeGAMOauthURLfile(oauthURL)
-    return oauthURL
-
-def _run_oauth_flow(client_id, client_secret, scopes, login_hint, access_type, storage):
+def _run_oauth_flow(client_id, client_secret, scopes, login_hint, access_type):
   setGAMOauthURLfile(access_type)
-# Override some oauth2client.tools strings saving us a few GAM-specific mods to oauth2client
-  oauth2client.tools._FAILED_START_MESSAGE = Msg.OAUTH2_FAILED_START_MESSAGE
-  if GM.Globals[GM.GAM_OAUTH_URL_TXT]:
-    oauth2client.tools._GO_TO_LINK_MESSAGE = Msg.OAUTH2_GO_TO_LINK_MESSAGE.format(GM.Globals[GM.GAM_OAUTH_URL_TXT])
+  client_config = {
+    'installed': {
+      'client_id': client_id,
+      'client_secret': client_secret,
+      'redirect_uris': ['http://localhost', 'urn:ietf:wg:oauth:2.0:oob'],
+      'auth_uri': 'https://accounts.google.com/o/oauth2/v2/auth',
+      'token_uri': 'https://oauth2.googleapis.com/token',
+      }
+    }
+
+  flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_config(client_config, scopes, autogenerate_code_verifier=True)
+  kwargs = {'access_type': access_type}
+  if login_hint:
+    kwargs['login_hint'] = login_hint
+  if GC.Values[GC.NO_BROWSER]:
+    flow.run_console(
+            authorization_prompt_message=Msg.OAUTH2_GO_TO_LINK_MESSAGE.format(GM.Globals[GM.GAM_OAUTH_URL_TXT]),
+            authorization_code_message=Msg.ENTER_VERIFICATION_CODE,
+            **kwargs)
   else:
-    oauth2client.tools._BROWSER_OPENED_MESSAGE = Msg.OAUTH2_BROWSER_OPENED_MESSAGE
-  flow = SaveURLOAuth2WebServerFlow(client_id=client_id, client_secret=client_secret, scope=scopes,
-                                    redirect_uri=oauth2client.client.OOB_CALLBACK_URN,
-                                    login_hint=login_hint, pkce=True,
-                                    user_agent=GAM_INFO, access_type=access_type, response_type='code')
-  try:
-    credentials = oauth2client.tools.run_flow(flow=flow, storage=storage,
-                                              flags=cmd_flags(noLocalWebserver=GC.Values[GC.NO_BROWSER]),
-                                              http=getHttpObj())
-    deleteGAMOauthURLfile()
-    return credentials
-  except (httplib2.HttpLib2Error, RuntimeError) as e:
-    deleteGAMOauthURLfile()
-    handleServerError(e)
+    flow.run_local_server(
+            authorization_prompt_message=Msg.OAUTH2_BROWSER_OPENED_MESSAGE,
+            success_message=Msg.AUTHENTICATION_FLOW_COMPLETE,
+            **kwargs)
+  deleteGAMOauthURLfile()
+  return flow.credentials
 
 # gam oauth|oauth2 create|request [<EmailAddress>]
 def doOAuthRequest(currentScopes=None):
@@ -7329,7 +7368,6 @@ def doOAuthRequest(currentScopes=None):
   if selectedScopes is None:
     return False
   login_hint = _getValidateLoginHint(login_hint)
-  revokeCredentials()
   scopes = API.REQUIRED_SCOPES[:] # Email Display Scope, always included for client
   i = 0
   for scope in scopesList:
@@ -7340,8 +7378,12 @@ def doOAuthRequest(currentScopes=None):
     elif selectedScopes[i] == 'A':
       scopes.append(f'{scope["scope"]}.action')
     i += 1
-  storage = getOauth2TxtCredentials(storageOnly=True)
-  _run_oauth_flow(client_id, client_secret, scopes, login_hint, 'offline', storage)
+# Needs to be set so oauthlib doesn't puke when Google changes our scopes
+  os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = 'true'
+  credentials = _run_oauth_flow(client_id, client_secret, scopes, login_hint, 'offline')
+  lock = FileLock(GM.Globals[GM.OAUTH2_TXT_LOCK])
+  with lock:
+    writeClientCredentials(credentials)
   entityActionPerformed([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]])
   return True
 
@@ -7354,22 +7396,30 @@ def exitIfNoOauth2Txt():
 def doOAuthDelete():
   checkForExtraneousArguments()
   exitIfNoOauth2Txt()
-  entityType = Ent.OAUTH2_TXT_FILE
-  entityName = GC.Values[GC.OAUTH2_TXT]
-  sys.stdout.write(f'{Ent.Singular(entityType)}: {entityName}, will be Deleted in 3...')
-  sys.stdout.flush()
-  time.sleep(1)
-  sys.stdout.write('2...')
-  sys.stdout.flush()
-  time.sleep(1)
-  sys.stdout.write('1...')
-  sys.stdout.flush()
-  time.sleep(1)
-  sys.stdout.write('boom!\n')
-  sys.stdout.flush()
-  revokeCredentials()
-  deleteFile(GC.Values[GC.OAUTH2_TXT], continueOnError=True)
-  entityActionPerformed([entityType, entityName])
+  lock = FileLock(GM.Globals[GM.OAUTH2_TXT_LOCK], timeout=10)
+  with lock:
+    credentials = getOauth2TxtCredentials()
+    if not credentials:
+      return
+    entityType = Ent.OAUTH2_TXT_FILE
+    entityName = GC.Values[GC.OAUTH2_TXT]
+    sys.stdout.write(f'{Ent.Singular(entityType)}: {entityName}, will be Deleted in 3...')
+    sys.stdout.flush()
+    time.sleep(1)
+    sys.stdout.write('2...')
+    sys.stdout.flush()
+    time.sleep(1)
+    sys.stdout.write('1...')
+    sys.stdout.flush()
+    time.sleep(1)
+    sys.stdout.write('boom!\n')
+    sys.stdout.flush()
+    httpObj = getHttpObj()
+    params = {'token': credentials.refresh_token}
+    revoke_uri = f'https://accounts.google.com/o/oauth2/revoke?{urlencode(params)}'
+    httpObj.request(revoke_uri, 'GET')
+    deleteFile(GC.Values[GC.OAUTH2_TXT], continueOnError=True)
+    entityActionPerformed([entityType, entityName])
 
 # gam oauth|oauth2 info|verify [showsecret] [accesstoken <AccessToken> idtoken <IDToken>] [showdetails]
 def doOAuthInfo():
@@ -7390,11 +7440,15 @@ def doOAuthInfo():
   exitIfNoOauth2Txt()
   if not access_token and not id_token:
     credentials = getClientCredentials()
-    access_token = credentials.access_token
+    access_token = credentials.token
     printEntity([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]])
   oa2 = buildGAPIObject(API.OAUTH2)
-  token_info = callGAPI(oa2, 'tokeninfo',
-                        access_token=access_token, id_token=id_token)
+  try:
+    token_info = callGAPI(oa2, 'tokeninfo',
+                          throw_reasons=[GAPI.INVALID],
+                          access_token=access_token, id_token=id_token)
+  except GAPI.invalid as e:
+    entityActionFailedExit([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]], str(e))
   if 'issued_to' in token_info:
     printKeyValueList(['Client ID', token_info['issued_to']])
   if credentials is not None and showSecret:
@@ -7421,33 +7475,33 @@ def doOAuthUpdate(noArgumentCheck=False):
   if not noArgumentCheck:
     checkForExtraneousArguments()
   exitIfNoOauth2Txt()
-  jsonData = readFile(GC.Values[GC.OAUTH2_TXT], continueOnError=True, displayError=False)
+  lock = FileLock(GM.Globals[GM.OAUTH2_TXT_LOCK])
+  with lock:
+    jsonData = readFile(GC.Values[GC.OAUTH2_TXT], continueOnError=True, displayError=False)
   if not jsonData:
     invalidOauth2TxtExit()
   try:
     jsonDict = json.loads(jsonData)
     if 'client_id' in jsonDict:
-      currentScopes = jsonDict.get('scopes', [])
+      if 'scopes' in jsonDict:
+        currentScopes = jsonDict['scopes']
+      else:
+        currentScopes = API.getClientScopesURLs(GC.Values[GC.TODRIVE_CLIENTACCESS])
     elif ((jsonDict.get('file_version') == 2) and ('credentials' in jsonDict) and
           (API.GAM_SCOPES in jsonDict['credentials'])):
-      _, importCredentials = getOldOauth2TxtCredentials(API.GAM_SCOPES)
-      if importCredentials:
-        currentScopes = list(importCredentials.scopes)
+      if isinstance(jsonDict['credentials'][API.GAM_SCOPES], dict):
+        importCredentials = json.loads(base64.b64decode(jsonDict['credentials'][API.GAM_SCOPES]).decode('utf-8'))
+        currentScopes = list(importCredentials.get('scopes', []))
       else:
-        invalidOauth2TxtExit()
+        currentScopes = []
     elif ((jsonDict.get('file_version') == 2) and ('credentials' in jsonDict) and
           (API.FAM1_SCOPES in jsonDict['credentials']) and (API.FAM2_SCOPES in jsonDict['credentials'])):
       backup = GC.Values[GC.OAUTH2_TXT]+'.bak'
       if not os.path.isfile(backup):
         writeFile(backup, jsonData)
-      storage1, import1Credentials = getOldOauth2TxtCredentials(API.FAM1_SCOPES)
-      storage2, import2Credentials = getOldOauth2TxtCredentials(API.FAM2_SCOPES)
-      if import1Credentials and import2Credentials:
-        currentScopes = list(import1Credentials.scopes.union(import2Credentials.scopes))
-        storage1.delete()
-        storage2.delete()
-      else:
-        invalidOauth2TxtExit()
+      import1Credentials = json.loads(base64.b64decode(jsonDict['credentials'][API.FAM1_SCOPES]).decode('utf-8'))
+      import2Credentials = json.loads(base64.b64decode(jsonDict['credentials'][API.FAM2_SCOPES]).decode('utf-8'))
+      currentScopes = list(import1Credentials['scopes'].union(import2Credentials['scopes']))
     else:
       currentScopes = []
   except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
@@ -7463,75 +7517,12 @@ def doOAuthRefresh():
   getClientCredentials(forceRefresh=True)
   entityActionPerformed([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]])
 
-# gam oauth|oauth2 export [<FileName>]
-def doOAuthExport():
-  if Cmd.ArgumentsRemaining():
-    exportFile = getString(Cmd.OB_FILE_NAME)
-    checkForExtraneousArguments()
-  else:
-    exportFile = None
-  exitIfNoOauth2Txt()
-  credentials = getOauth2TxtCredentials()
-  if credentials:
-    oauth2Export = {
-      'file_version': 2,
-      'credentials': {
-        API.GAM_SCOPES: {
-          '_module': 'oauth2client.client',
-          '_class': 'OAuth2Credentials',
-          'access_token': credentials.access_token,
-          'client_id': credentials.client_id,
-          'client_secret': credentials.client_secret,
-          'id_token': credentials.id_token,
-          'id_token_jwt': credentials.id_token_jwt,
-          'invalid': credentials.invalid,
-          'refresh_token': credentials.refresh_token,
-          'revoke_uri': credentials.revoke_uri,
-          'scopes': sorted(list(credentials.scopes)),
-          'token_expiry': datetime.datetime.strftime(credentials.token_expiry, '%Y-%m-%dT%H:%M:%SZ'),
-          'token_info_uri': credentials.token_info_uri,
-          'token_uri': credentials.token_uri,
-          'user_agent': credentials.user_agent,
-          }
-        }
-      }
-  else:
-    invalidOauth2TxtExit()
-  if exportFile:
-    writeFile(exportFile, json.dumps(oauth2Export, ensure_ascii=False, sort_keys=True, indent=2))
-    entityModifierNewValueActionPerformed([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]], Act.MODIFIER_TO, exportFile)
-  else:
-    writeStdout(json.dumps(oauth2Export, ensure_ascii=False, sort_keys=True, indent=2)+'\n')
-
-# gam oauth|oauth2 import <FileName>
-def doOAuthImport():
-  filename = getString(Cmd.OB_FILE_NAME)
-  checkForExtraneousArguments()
-  jsonData = readFile(filename, mode='rb', continueOnError=True, displayError=False)
-  try:
-    jsonDict = json.loads(jsonData)
-    if ((jsonDict.get('file_version') == 2) and ('credentials' in jsonDict) and
-        (API.GAM_SCOPES in jsonDict['credentials'])):
-      importCredentials = oauth2client.client.Credentials.new_from_json(json.dumps(jsonDict['credentials'][API.GAM_SCOPES],
-                                                                                   ensure_ascii=False, sort_keys=True))
-      if not importCredentials or importCredentials.invalid:
-        invalidOauth2TxtImportExit(filename)
-      getOauth2TxtCredentials(storageOnly=True).put(importCredentials)
-    else:
-      invalidOauth2TxtImportExit(filename)
-  except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
-    invalidOauth2TxtImportExit(filename)
-  entityModifierNewValueActionPerformed([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]], Act.MODIFIER_FROM, filename)
-
 def getCRMService(login_hint):
   scopes = ['https://www.googleapis.com/auth/cloud-platform']
   client_id = '297408095146-fug707qsjv4ikron0hugpevbrjhkmsk7.apps.googleusercontent.com'
   client_secret = 'qM3dP8f_4qedwzWQE1VR4zzU'
-  storage_dict = {}
-  storage = DictionaryStorage(storage_dict, 'credentials')
-  credentials = _run_oauth_flow(client_id, client_secret, scopes, login_hint, 'online', storage)
-  credentials.user_agent = GAM_INFO
-  httpObj = credentials.authorize(getHttpObj())
+  credentials = _run_oauth_flow(client_id, client_secret, scopes, login_hint, 'online')
+  httpObj = transportAuthorizedHttp(credentials, getHttpObj())
   return (httpObj, getAPIService(API.CLOUDRESOURCEMANAGER_V1, httpObj))
 
 def enableGAMProjectAPIs(httpObj, projectId, checkEnabled, i=0, count=0):
@@ -8236,7 +8227,7 @@ def checkServiceAccount(users):
   # We are explicitly not doing DwD here, just confirming service account can auth
   auth_error = ''
   try:
-    request = google_auth_httplib2.Request(getHttpObj())
+    request = transportCreateRequest()
     credentials.refresh(request)
     sa_token_info = callGAPI(oa2, 'tokeninfo', access_token=credentials.token)
     if sa_token_info:
@@ -22059,14 +22050,23 @@ def doPrintShowVaultExports():
   if csvPF:
     csvPF.writeCSVfile('Vault Exports')
 
-def md5MatchesFile(filename, expected_md5):
+def md5MatchesFile(filename, expected_md5, j=0, jcount=0):
+  action = Act.Get()
+  Act.Set(Act.VERIFY)
   try:
     f = openFile(filename, 'rb')
     hash_md5 = hashlib.md5()
     for chunk in iter(lambda: f.read(4096), b""):
       hash_md5.update(chunk)
     closeFile(f)
-    return hash_md5.hexdigest() == expected_md5
+    actual_hash = hash_md5.hexdigest()
+    if actual_hash == expected_md5:
+      entityActionPerformed([Ent.FILE, filename, Ent.MD5HASH, expected_md5], j, jcount)
+      Act.Set(action)
+      return True
+    entityActionFailedWarning([Ent.FILE, filename, Ent.MD5HASH, expected_md5], Msg.DOES_NOT_MATCH.format(actual_hash), j, jcount)
+    Act.Set(action)
+    return False
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, fileErrorMessage(filename, e))
 
@@ -22166,18 +22166,10 @@ def doDownloadVaultExport():
           entityActionPerformedMessage([Ent.CLOUD_STORAGE_FILE, s_object], f'{status.progress():>7.2%}', j, jcount)
       if not zipToStdout:
         entityModifierNewValueActionPerformed([Ent.CLOUD_STORAGE_FILE, s_object], Act.MODIFIER_TO, filename, j, jcount)
-      # Necessary to make sure file is flushed by both Python and OS
-      # https://stackoverflow.com/a/13762137/1503886
-      f.flush()
-      os.fsync(f.fileno())
       if not zipToStdout:
-        closeFile(f)
+        closeFile(f, True)
       if verifyFiles:
-        Act.Set(Act.VERIFY)
-        if md5MatchesFile(filename, s_file['md5Hash']):
-          entityActionPerformed([Ent.CLOUD_STORAGE_FILE, s_object, Ent.MD5HASH, s_file['md5Hash']], j, jcount)
-        else:
-          entityActionFailedWarning([Ent.CLOUD_STORAGE_FILE, s_object, Ent.MD5HASH, s_file['md5Hash']], '', j, jcount)
+        if not md5MatchesFile(filename, s_file['md5Hash'], j, jcount):
           Ind.Decrement()
           break
       if extractFiles and ZIP_EXTENSION_PATTERN.match(filename):
@@ -22188,6 +22180,55 @@ def doDownloadVaultExport():
       entityModifierNewValueActionFailedWarning([Ent.CLOUD_STORAGE_FILE, s_object], Act.MODIFIER_TO, filename, str(e), j, jcount)
     Ind.Decrement()
   Ind.Decrement()
+
+def _getCloudStorageObject(s, bucket, s_object, local_file=None, expectedMd5=None):
+  if not local_file:
+    local_file = s_object
+  entityValueList = [Ent.DRIVE_FILE, local_file]
+  if os.path.exists(local_file):
+    printEntityMessage(entityValueList, Msg.EXISTS)
+    if not expectedMd5:
+      return # nothing to verify, just assume we're good.
+    if md5MatchesFile(local_file, expectedMd5):
+      return
+    printEntityMessage(entityValueList, Msg.DOWNLOADING_AGAIN_AND_OVER_WRITING)
+  entityPerformAction(entityValueList)
+  request = s.objects().get_media(bucket=bucket, object=s_object)
+  file_path = os.path.dirname(local_file)
+  if not os.path.exists(file_path):
+    os.makedirs(file_path)
+  f = openFile(local_file, 'wb')
+  downloader = googleapiclient.http.MediaIoBaseDownload(f, request)
+  done = False
+  while not done:
+    status, done = downloader.next_chunk()
+    entityActionPerformedMessage(entityValueList, f'{status.progress():>7.2%}')
+  entityModifierNewValueActionPerformed([Ent.CLOUD_STORAGE_FILE, s_object], Act.MODIFIER_TO, local_file)
+  closeFile(f, True)
+  if expectedMd5 and not md5MatchesFile(local_file, expectedMd5):
+    systemErrorExit(FILE_ERROR_RC, fileErrorMessage(local_file, Msg.CORRUPT_FILE))
+
+TAKEOUT_EXPORT_PATTERN = re.compile(r'(takeout-export-[a-f,0-9,-]*)')
+
+def doDownloadCloudStorageBucket():
+  bucket_url = getString(Cmd.OB_URL)
+  checkForExtraneousArguments()
+  bucket_match = re.search(TAKEOUT_EXPORT_PATTERN, bucket_url)
+  if not bucket_match:
+    systemErrorExit(ACTION_NOT_PERFORMED_RC, f'Could not find a takeout-export-* bucket in {bucket_url}')
+  bucket = bucket_match.group(1)
+  s = buildGAPIObject(API.STORAGE)
+  printGettingAllAccountEntities(Ent.FILE)
+  page_message = getPageMessage()
+  objects = callGAPIpages(s.objects(), 'list', 'items',
+                          page_message=page_message, bucket=bucket, projection='noAcl', fields='nextPageToken,items(name,id,md5Hash)')
+  count = len(objects)
+  i = 0
+  for s_object in objects:
+    i += 1
+    printGettingEntityItem(Ent.FILE, s_object['name'], i, count)
+    expectedMd5 = base64.b64decode(s_object['md5Hash']).hex()
+    _getCloudStorageObject(s, bucket, s_object['name'], expectedMd5=expectedMd5)
 
 def _getHoldEmailAddressesOrgUnitName(hold, cd):
   if 'accounts' in hold:
@@ -43436,7 +43477,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_VAULTMATTER:	doDeleteVaultMatter,
      }
     ),
-  'download': (Act.DOWNLOAD, {Cmd.ARG_VAULTEXPORT: doDownloadVaultExport}),
+  'download': (Act.DOWNLOAD, {Cmd.ARG_STORAGEBUCKET: doDownloadCloudStorageBucket, Cmd.ARG_VAULTEXPORT: doDownloadVaultExport}),
   'get': (Act.DOWNLOAD, {Cmd.ARG_CONTACTPHOTO: doGetDomainContactPhoto, Cmd.ARG_DEVICEFILE: doGetCrOSDeviceFiles}),
   'hide': (Act.HIDE, {Cmd.ARG_TEAMDRIVE: doHideUnhideTeamDrive}),
   'info':
@@ -43710,8 +43751,6 @@ MAIN_COMMANDS_OBJ_ALIASES = {
 OAUTH2_SUBCOMMANDS = {
   'create': (Act.CREATE, doOAuthRequest),
   'delete': (Act.DELETE, doOAuthDelete),
-  'export': (Act.EXPORT, doOAuthExport),
-  'import': (Act.IMPORT, doOAuthImport),
   'info': (Act.INFO, doOAuthInfo),
   'refresh': (Act.REFRESH, doOAuthRefresh),
   'update': (Act.UPDATE, doOAuthUpdate),

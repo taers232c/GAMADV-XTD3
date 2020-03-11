@@ -34,6 +34,7 @@ API_ERROR_SETTINGS = 'API error, some settings not set'
 ARE_MUTUALLY_EXCLUSIVE = 'arguments {0} and {1} are mutually exclusive'
 AS = 'as'
 AUTHORIZATION_FILE_ALREADY_EXISTS = '{0} already exists. Please delete or rename it before attempting to {1} project.'
+AUTHENTICATION_FLOW_COMPLETE = 'The authentication flow has completed. You may close this browser window and return to GAM.'
 BAD_ENTITIES_IN_SOURCE = '{0} {1} {2} in source marked >>> <<< above'
 BAD_REQUEST = 'Bad Request'
 BATCH = 'Batch'
@@ -46,6 +47,7 @@ COMMIT_BATCH_WAIT_N_PROCESSES = '{0},0,commit-batch - waiting for {1} running {2
 CONFLICTING_REQUESTS = 'Conflicting requests. Please try again'
 CONTAINS_AT_LEAST_1_ITEM = 'Contains at least 1 item'
 COUNT_N_EXCEEDS_MAX_TO_PROCESS_M = 'Count {0} exceeds maximum to {1} {2}'
+CORRUPT_FILE = 'Corrupt file'
 CREATE_USER_NOTIFY_MESSAGE = 'Hello #givenname# #familyname#,\n\nYou have a new account at #domain#\nAccount details:\nUsername: #user#\nPassword: #password#\nStart using your new account by signing in at\nhttps://www.google.com/accounts/AccountChooser?Email=#user#&continue=https://apps.google.com/user/hub\n'
 CREATE_USER_NOTIFY_SUBJECT = 'Welcome to #domain#'
 CSV_DATA_ALREADY_SAVED = 'CSV data already saved'
@@ -55,14 +57,17 @@ DIRECTLY_IN_THE = ' directly in the {0}'
 DISABLE_TLS_MIN_MAX = 'Execute: gam select default config tls_max_version "" tls_min_version "" save\n'
 DOES_NOT_EXIST = 'Does not exist'
 DOES_NOT_EXIST_OR_HAS_INVALID_FORMAT = '{0}: {1}, Does not exist or has invalid format'
+DOES_NOT_MATCH = 'Does not match {0}'
 DOMAIN_NOT_FOUND_IN_DNS = 'Domain not found in DNS!'
 DOMAIN_NOT_VERIFIED_SECONDARY = 'Domain is not a verified secondary domain'
 DOMAIN_WIDE_DELEGATION_AUTHENTICATION = 'Domain-Wide Delegation authentication'
 DONE_GENERATING_PRIVATE_KEY_AND_PUBLIC_CERTIFICATE = 'Done generating private key and public certificate'
 DO_NOT_EXIST = 'Do not exist'
+DOWNLOADING_AGAIN_AND_OVER_WRITING = 'Downloading again and over-writing...'
 DUPLICATE = 'Duplicate'
 DUPLICATE_ALREADY_A_ROLE = 'Duplicate, already a {0}'
 EITHER = 'Either'
+ENTER_VERIFICATION_CODE = 'Enter verification code: '
 ENTITY_DOES_NOT_EXIST = '{0} does not exist'
 ENTITY_NAME_NOT_VALID = 'Entity Name Not Valid'
 ERROR = 'error'
@@ -193,18 +198,10 @@ NO_SCOPES_FOR_API = 'There are no scopes authorized for the {0}'
 NO_SVCACCT_ACCESS_ALLOWED = 'No Service Account Access allowed'
 NO_TRANSFER_LACK_OF_DISK_SPACE = 'Transfer not performed due to lack of target drive space.'
 NO_USER_COUNTS_DATA_AVAILABLE = 'No User counts data available.'
-OAUTH2_FAILED_START_MESSAGE = """
-Failed to start a local webserver listening on either port 8080
-or port 9090. Please check your firewall settings and locally
-running programs that may be blocking or using those ports.
-
-Falling back to no_browser = true  and continuing with
-authorization.
-"""
 OAUTH2_BROWSER_OPENED_MESSAGE = """
 Your browser has been opened to visit:
 
-    {address}
+    {url}
 
 If your browser is on a different machine then press CTRL+C,
 set no_browser = true in gam.cfg and re-run this command.
@@ -213,7 +210,7 @@ OAUTH2_GO_TO_LINK_MESSAGE = """
 Go to the following link in your browser:
 (The link may be copied from the file {0} rather than the screen.)
 
-    {{address}}
+    {{url}}
 """
 ON_CURRENT_PRIVATE_KEY = ' on current key'
 ONLY_ADMINISTRATORS_CAN_PERFORM_SHARED_DRIVE_QUERIES = 'Only administrators can perform Shared Drive queries'
