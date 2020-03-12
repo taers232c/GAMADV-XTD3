@@ -3342,41 +3342,57 @@ def getOauth2TxtCredentials(exitOnError=True):
     try:
       jsonDict = json.loads(jsonData)
       if 'client_id' in jsonDict:
-        if 'scopes' in jsonDict:
-          scopesList = jsonDict['scopes']
-          token_expiry = jsonDict.get('token_expiry', REFRESH_EXPIRY)
-        else:
-          scopesList = API.getClientScopesURLs(GC.Values[GC.TODRIVE_CLIENTACCESS])
-          token_expiry = REFRESH_EXPIRY
+        scopesList = jsonDict.get('scopes', API.REQUIRED_SCOPES)
+        if set(scopesList) == API.REQUIRED_SCOPES_SET:
+          if exitOnError:
+            systemErrorExit(OAUTH2_TXT_REQUIRED_RC, Msg.NO_CLIENT_ACCESS_ALLOWED)
+          return (None, None)
+        token_expiry = jsonDict.get('token_expiry', REFRESH_EXPIRY)
         creds = google.oauth2.credentials.Credentials.from_authorized_user_file(GC.Values[GC.OAUTH2_TXT], scopesList)
-        creds.token = jsonDict.get('token', jsonDict.get('auth_token', ''))
-        creds._id_token = jsonDict.get('id_token_jwt', jsonDict.get('id_token', None))
+        if 'id_token_jwt' not in jsonDict:
+          creds.token = jsonDict['token']
+          creds._id_token = jsonDict['id_token']
+          GM.Globals[GM.DECODED_ID_TOKEN] = jsonDict['decoded_id_token']
+        else:
+          creds.token = jsonDict['access_token']
+          creds._id_token = jsonDict['id_token_jwt']
+          GM.Globals[GM.DECODED_ID_TOKEN] = jsonDict['id_token']
         creds.expiry = datetime.datetime.strptime(token_expiry, '%Y-%m-%dT%H:%M:%SZ')
-        GM.Globals[GM.DECODED_ID_TOKEN] = jsonDict.get('decoded_id_token', '')
-        return creds
-      if ((jsonDict.get('file_version') == 2) and ('credentials' in jsonDict) and
-          (API.GAM_SCOPES in jsonDict['credentials']) and isinstance(jsonDict['credentials'][API.GAM_SCOPES], dict)):
-        importCredentials = json.loads(base64.b64decode(jsonDict['credentials'][API.GAM_SCOPES]).decode('utf-8'))
+        return (True, creds)
+      if (jsonDict.get('file_version') == 2) and ('credentials' in jsonDict) and (API.GAM_SCOPES in jsonDict['credentials']):
+        if not jsonDict['credentials'][API.GAM_SCOPES]:
+          if exitOnError:
+            systemErrorExit(OAUTH2_TXT_REQUIRED_RC, Msg.NO_CLIENT_ACCESS_ALLOWED)
+          return (None, None)
+        if not isinstance(jsonDict['credentials'][API.GAM_SCOPES], dict):
+          importCredentials = json.loads(base64.b64decode(jsonDict['credentials'][API.GAM_SCOPES]).decode('utf-8'))
+        else:
+          importCredentials = jsonDict['credentials'][API.GAM_SCOPES]
         if importCredentials:
+          scopesList = importCredentials.get('scopes', API.REQUIRED_SCOPES)
+          if set(scopesList) == API.REQUIRED_SCOPES_SET:
+            if exitOnError:
+              systemErrorExit(OAUTH2_TXT_REQUIRED_RC, Msg.NO_CLIENT_ACCESS_ALLOWED)
+            return (None, None)
           info = {
             'client_id': importCredentials['client_id'],
             'client_secret': importCredentials['client_secret'],
             'refresh_token': importCredentials['refresh_token']
             }
-          creds = google.oauth2.credentials.Credentials.from_authorized_user_info(info, list(importCredentials.get('scopes', [API.REQUIRED_SCOPES])))
+          creds = google.oauth2.credentials.Credentials.from_authorized_user_info(info, scopesList)
           creds.token = importCredentials['access_token']
           creds._id_token = importCredentials['id_token_jwt']
-          creds.expiry = datetime.datetime.strptime(REFRESH_EXPIRY, '%Y-%m-%dT%H:%M:%SZ')
           GM.Globals[GM.DECODED_ID_TOKEN] = importCredentials['id_token']
-          return creds
-        if exitOnError:
-          invalidOauth2TxtExit()
+          creds.expiry = datetime.datetime.strptime(REFRESH_EXPIRY, '%Y-%m-%dT%H:%M:%SZ')
+          return (False, creds)
+      if jsonDict and exitOnError:
+        invalidOauth2TxtExit()
     except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
       if exitOnError:
         invalidOauth2TxtExit()
   if exitOnError:
     systemErrorExit(OAUTH2_TXT_REQUIRED_RC, Msg.NO_CLIENT_ACCESS_ALLOWED)
-  return None
+  return (None, None)
 
 def _getValueFromOAuth(field, credentials=None):
   if not GM.Globals[GM.DECODED_ID_TOKEN]:
@@ -3386,7 +3402,7 @@ def _getValueFromOAuth(field, credentials=None):
     GM.Globals[GM.DECODED_ID_TOKEN] = google.oauth2.id_token.verify_oauth2_token(credentials.id_token, request)
   return GM.Globals[GM.DECODED_ID_TOKEN].get(field, 'Unknown')
 
-def writeClientCredentials(creds):
+def writeClientCredentials(creds, filename):
   creds_data = {
     'client_id': creds.client_id,
     'client_secret': creds.client_secret,
@@ -3403,15 +3419,18 @@ def writeClientCredentials(creds):
   request = transportCreateRequest()
   creds_data['decoded_id_token'] = google.oauth2.id_token.verify_oauth2_token(creds.id_token, request)
   GM.Globals[GM.DECODED_ID_TOKEN] = creds_data['decoded_id_token']
-  writeFile(GC.Values[GC.OAUTH2_TXT], json.dumps(creds_data, indent=2, sort_keys=True))
+  if filename != '-':
+    writeFile(filename, json.dumps(creds_data, indent=2, sort_keys=True)+'\n')
+  else:
+    writeStdout(json.dumps(creds_data, ensure_ascii=False, sort_keys=True, indent=2)+'\n')
 
-def getClientCredentials(forceRefresh=False):
+def getClientCredentials(forceRefresh=False, forceWrite=False, filename=None):
   """Gets OAuth2 credentials which are guaranteed to be fresh and valid.
      Locks during read and possible write so that only one process will
      attempt refresh/write when running in parallel. """
   lock = FileLock(GM.Globals[GM.OAUTH2_TXT_LOCK])
   with lock:
-    credentials = getOauth2TxtCredentials()
+    writeCreds, credentials = getOauth2TxtCredentials()
     if not credentials:
       invalidOauth2TxtExit()
     if credentials.expired or forceRefresh:
@@ -3419,7 +3438,8 @@ def getClientCredentials(forceRefresh=False):
       for n in range(1, retries+1):
         try:
           credentials.refresh(transportCreateRequest())
-          writeClientCredentials(credentials)
+          if writeCreds or forceWrite:
+            writeClientCredentials(credentials, filename or GC.Values[GC.OAUTH2_TXT])
           break
         except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
           if n != retries:
@@ -7222,7 +7242,7 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
   if currentScopes is None and clientAccess:
     lock = FileLock(GM.Globals[GM.OAUTH2_TXT_LOCK])
     with lock:
-      credentials = getOauth2TxtCredentials(exitOnError=False)
+      _, credentials = getOauth2TxtCredentials(exitOnError=False)
       if credentials and credentials.scopes is not None:
         currentScopes = sorted(credentials.scopes)
   if currentScopes is not None:
@@ -7359,16 +7379,17 @@ def _run_oauth_flow(client_id, client_secret, scopes, login_hint, access_type):
   return flow.credentials
 
 # gam oauth|oauth2 create|request [<EmailAddress>]
-def doOAuthRequest(currentScopes=None):
+def doOAuthRequest(currentScopes=None, login_hint=None):
   client_id, client_secret = getOAuthClientIDAndSecret()
-  login_hint = getEmailAddress(noUid=True, optional=True)
+  if not login_hint:
+    login_hint = getEmailAddress(noUid=True, optional=True)
   checkForExtraneousArguments()
   scopesList = API.getClientScopesList(GC.Values[GC.TODRIVE_CLIENTACCESS])
   selectedScopes = getScopesFromUser(scopesList, True, currentScopes)
   if selectedScopes is None:
     return False
   login_hint = _getValidateLoginHint(login_hint)
-  scopes = API.REQUIRED_SCOPES[:] # Email Display Scope, always included for client
+  scopes = API.REQUIRED_SCOPES[:]
   i = 0
   for scope in scopesList:
     if selectedScopes[i] == '*':
@@ -7383,7 +7404,7 @@ def doOAuthRequest(currentScopes=None):
   credentials = _run_oauth_flow(client_id, client_secret, scopes, login_hint, 'offline')
   lock = FileLock(GM.Globals[GM.OAUTH2_TXT_LOCK])
   with lock:
-    writeClientCredentials(credentials)
+    writeClientCredentials(credentials, GC.Values[GC.OAUTH2_TXT])
   entityActionPerformed([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]])
   return True
 
@@ -7398,7 +7419,7 @@ def doOAuthDelete():
   exitIfNoOauth2Txt()
   lock = FileLock(GM.Globals[GM.OAUTH2_TXT_LOCK], timeout=10)
   with lock:
-    credentials = getOauth2TxtCredentials()
+    _, credentials = getOauth2TxtCredentials()
     if not credentials:
       return
     entityType = Ent.OAUTH2_TXT_FILE
@@ -7470,10 +7491,10 @@ def doOAuthInfo():
         printKeyValueList([k, v])
   printBlankLine()
 
-# gam oauth|oauth2 update
-def doOAuthUpdate(noArgumentCheck=False):
-  if not noArgumentCheck:
-    checkForExtraneousArguments()
+# gam oauth|oauth2 update [<EmailAddress>]
+def doOAuthUpdate():
+  login_hint = getEmailAddress(noUid=True, optional=True)
+  checkForExtraneousArguments()
   exitIfNoOauth2Txt()
   lock = FileLock(GM.Globals[GM.OAUTH2_TXT_LOCK])
   with lock:
@@ -7487,13 +7508,18 @@ def doOAuthUpdate(noArgumentCheck=False):
         currentScopes = jsonDict['scopes']
       else:
         currentScopes = API.getClientScopesURLs(GC.Values[GC.TODRIVE_CLIENTACCESS])
-    elif ((jsonDict.get('file_version') == 2) and ('credentials' in jsonDict) and
-          (API.GAM_SCOPES in jsonDict['credentials'])):
-      if isinstance(jsonDict['credentials'][API.GAM_SCOPES], dict):
-        importCredentials = json.loads(base64.b64decode(jsonDict['credentials'][API.GAM_SCOPES]).decode('utf-8'))
-        currentScopes = list(importCredentials.get('scopes', []))
-      else:
+    elif (jsonDict.get('file_version') == 2) and ('credentials' in jsonDict) and (API.GAM_SCOPES in jsonDict['credentials']):
+      if not jsonDict['credentials'][API.GAM_SCOPES]:
         currentScopes = []
+      else:
+        if not isinstance(jsonDict['credentials'][API.GAM_SCOPES], dict):
+          importCredentials = json.loads(base64.b64decode(jsonDict['credentials'][API.GAM_SCOPES]).decode('utf-8'))
+        else:
+          importCredentials = jsonDict['credentials'][API.GAM_SCOPES]
+        if importCredentials:
+          currentScopes = list(importCredentials.get('scopes', []))
+        else:
+          currentScopes = []
     elif ((jsonDict.get('file_version') == 2) and ('credentials' in jsonDict) and
           (API.FAM1_SCOPES in jsonDict['credentials']) and (API.FAM2_SCOPES in jsonDict['credentials'])):
       backup = GC.Values[GC.OAUTH2_TXT]+'.bak'
@@ -7506,7 +7532,7 @@ def doOAuthUpdate(noArgumentCheck=False):
       currentScopes = []
   except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
     invalidOauth2TxtExit()
-  if not doOAuthRequest(currentScopes):
+  if not doOAuthRequest(currentScopes, login_hint):
     entityActionNotPerformedWarning([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]], Msg.USER_CANCELLED)
     sys.exit(GM.Globals[GM.SYSEXITRC])
 
@@ -7514,8 +7540,19 @@ def doOAuthUpdate(noArgumentCheck=False):
 def doOAuthRefresh():
   checkForExtraneousArguments()
   exitIfNoOauth2Txt()
-  getClientCredentials(forceRefresh=True)
+  getClientCredentials(forceRefresh=True, forceWrite=True, filename=GC.Values[GC.OAUTH2_TXT])
   entityActionPerformed([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]])
+
+# gam oauth|oauth2 export [<FileName>]
+def doOAuthExport():
+  if Cmd.ArgumentsRemaining():
+    filename = getString(Cmd.OB_FILE_NAME)
+    checkForExtraneousArguments()
+  else:
+    filename = GC.Values[GC.OAUTH2_TXT]
+  getClientCredentials(forceRefresh=True, forceWrite=True, filename=filename)
+  if filename != '-':
+    entityModifierNewValueActionPerformed([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]], Act.MODIFIER_TO, filename)
 
 def getCRMService(login_hint):
   scopes = ['https://www.googleapis.com/auth/cloud-platform']
@@ -25196,7 +25233,8 @@ USERS_INDEXED_TITLES = ['addresses', 'aliases', 'nonEditableAliases', 'emails', 
                         'phones', 'posixAccounts', 'relations', 'sshPublicKeys', 'websites']
 
 # gam print users [todrive <ToDriveAttributes>*]
-#	([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])|[select <UserTypeEntity>]
+#	([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)]
+#	 [limittoou <OrgUnitItem>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
 #	[groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
 #	[orderby <UserOrderByFieldName> [ascending|descending]]
 #	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
@@ -25211,7 +25249,8 @@ USERS_INDEXED_TITLES = ['addresses', 'aliases', 'nonEditableAliases', 'emails', 
 #	[issuspended <Boolean>]
 #
 # gam print users [todrive <ToDriveAttributes>*]
-#	([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)] [deleted_only|only_deleted])|[select <UserTypeEntity>]
+#	([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)]
+#	 [limittoou <OrgUnitItem>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
 #	[formatjson] [quotechar <Character>] [countonly]
 #	[issuspended <Boolean>]
 #
@@ -25276,13 +25315,16 @@ def doPrintUsers(entityList=None):
   projectionSet = False
   customFieldMask = None
   quotePlusPhoneNumbers = showDeleted = False
-  isSuspended = orderBy = sortOrder = None
+  isSuspended = orgUnitPath = orgUnitPathLower = orderBy = sortOrder = None
   viewType = 'admin_view'
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'todrive':
       csvPF.GetTodriveParameters()
+    elif entityList is None and myarg == 'limittoou':
+      orgUnitPath = getOrgUnitItem(pathOnly=True)
+      orgUnitPathLower = orgUnitPath.lower()
     elif myarg == 'domain':
       domain = getString(Cmd.OB_DOMAIN_NAME).lower()
       customer = None
@@ -25348,8 +25390,19 @@ def doPrintUsers(entityList=None):
     csvPF.SetJSONTitles(['primaryEmail', 'JSON'])
   if entityList is None:
     sortRows = False
+    if orgUnitPath is not None:
+      fieldsList.append('orgUnitPath')
     fields = getItemFieldsFromFieldsList('users', fieldsList)
     for query in queries:
+      if orgUnitPath is not None:
+        if query is not None and query.find(orgUnitPath) == -1:
+          query += f" orgUnitPath='{orgUnitPath}'"
+        else:
+          if query is None:
+            query = ''
+          else:
+            query += ' '
+          query += f"orgUnitPath='{orgUnitPath}'"
       if isSuspended is not None:
         if query is None:
           query = ''
@@ -25386,12 +25439,22 @@ def doPrintUsers(entityList=None):
           accessErrorExit(cd)
         pageToken, totalItems = _processGAPIpagesResult(feed, 'users', None, totalItems, page_message, 'primaryEmail', Ent.USER)
         if feed:
-          if not countOnly:
-            for user in feed.get('users', []):
-              _printUser(user)
+          if orgUnitPath is None:
+            if not countOnly:
+              for user in feed.get('users', []):
+                _printUser(user)
+            else:
+              for user in feed.get('users', []):
+                _updateDomainCounts(user['primaryEmail'])
           else:
-            for user in feed.get('users', []):
-              _updateDomainCounts(user['primaryEmail'])
+            if not countOnly:
+              for user in feed.get('users', []):
+                if orgUnitPathLower == user.get('orgUnitPath', '').lower():
+                  _printUser(user)
+            else:
+              for user in feed.get('users', []):
+                if orgUnitPathLower == user.get('orgUnitPath', '').lower():
+                  _updateDomainCounts(user['primaryEmail'])
           del feed
         if not pageToken:
           _finalizeGAPIpagesResult(page_message)
@@ -25399,10 +25462,10 @@ def doPrintUsers(entityList=None):
   else:
     sortRows = True
 # If no individual fields were specified (allfields, basic, full) or individual fields other than primaryEmail were specified, look up each user
+    if isSuspended is not None:
+      fieldsList.append('suspended')
     if projectionSet or len(set(fieldsList)) > 1:
       jcount = len(entityList)
-      if isSuspended is not None:
-        fieldsList.append('suspended')
       fields = getFieldsFromFieldsList(fieldsList)
       svcargs = dict([('userKey', None), ('fields', fields), ('projection', projection), ('customFieldMask', customFieldMask), ('viewType', viewType)]+GM.Globals[GM.EXTRA_ARGS_LIST])
       method = getattr(cd.users(), 'get')
@@ -43751,6 +43814,7 @@ MAIN_COMMANDS_OBJ_ALIASES = {
 OAUTH2_SUBCOMMANDS = {
   'create': (Act.CREATE, doOAuthRequest),
   'delete': (Act.DELETE, doOAuthDelete),
+  'export': (Act.EXPORT, doOAuthExport),
   'info': (Act.INFO, doOAuthInfo),
   'refresh': (Act.REFRESH, doOAuthRefresh),
   'update': (Act.UPDATE, doOAuthUpdate),

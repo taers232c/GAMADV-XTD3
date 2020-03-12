@@ -1,19 +1,32 @@
 5.00.00
 
-Replaced deprecated `oauth2client` library with `google-auth` library.
-This change requires a one-time update of the client access file `oauth2.txt`.
-If you are running any Advanced GAM version `4.85.00` or later, this update will happen automatically.
-If you are running any Advanced GAM version before `4.85.00`, perform the following command:
+Replaced the deprecated `oauth2client` library with the `google-auth` library.
+This change requires a one-time update of the client access file `oauth2.txt`; GAM will continue
+to use the old version of `oauth2.txt` until you perform the update. There is a small performace
+impact until the update is performed. However, you can't use the updated version of `oauth2.txt`
+in prior versions of GAM; if you want to run GAM `5.00.00` and prior versions of GAM,
+do not perform the update until you no longer need to run the prior versions of GAM.
+
+If you are running any GAM version `4.85.00` or later, perform the following command
+to perform the update.
+```
+gam oauth refresh
+```
+If you are running any GAM version before `4.85.00`, perform the following command
+to perform the update.
 ```
 gam oauth update
 ```
-You can't use an updated version of `oauth2.txt` in prior versions of Advanced GAM.
 
-The following commands have been deleted as they are no longer required:
+The following command has been deleted as it is no longer required:
 ```
-gam oauth|oauth2 export [<FileName>]
 gam oauth|oauth2 import <FileName>
 ```
+
+Fixed bug in `gam <UserTypeEntity> print users` where the `issuspended` option was ignored.
+
+Added option `limittoou <OrgUnitItem>` to `gam print users` to limit the display to those users
+directly in the OU `<OrgUnitItem>`.
 
 4.99.28
 
@@ -1345,7 +1358,7 @@ Fixed bug where use of `csvkmd` inside of a `gam csv` command threw a spurious e
 4.85.00
 
 Due to an earlier Google limitation, GAM had to authorize Client access in two steps. That limitation has been eliminated and now GAM can authorize
-Client access in one step. This change requires a one-time update of the client access file oauth2.txt. If you are running any Advanced GAM version before
+Client access in one step. This change requires a one-time update of the client access file oauth2.txt. If you are running any GAM version before
 `4.85.00`, perform the following command:
 
 gam oauth update
