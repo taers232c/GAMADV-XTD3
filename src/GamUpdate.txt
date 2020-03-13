@@ -1,3 +1,7 @@
+5.00.01
+
+Udpated code to account for Google API change that prevented clearing a user's recovery phone.
+
 5.00.00
 
 Replaced the deprecated `oauth2client` library with the `google-auth` library.
