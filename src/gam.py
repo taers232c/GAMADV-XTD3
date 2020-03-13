@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.00.01'
+__version__ = '5.00.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3214,12 +3214,14 @@ def handleServerError(e):
 def getHttpObj(cache=None, timeout=None, override_min_tls=None, override_max_tls=None):
   tls_minimum_version = override_min_tls if override_min_tls else GC.Values[GC.TLS_MIN_VERSION] if GC.Values[GC.TLS_MIN_VERSION] else None
   tls_maximum_version = override_max_tls if override_max_tls else GC.Values[GC.TLS_MAX_VERSION] if GC.Values[GC.TLS_MAX_VERSION] else None
-  return httplib2.Http(cache=cache,
-                       timeout=timeout,
-                       ca_certs=GC.Values[GC.CACERTS_PEM],
-                       disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL],
-                       tls_maximum_version=tls_maximum_version,
-                       tls_minimum_version=tls_minimum_version)
+  httpObj = httplib2.Http(cache=cache,
+                          timeout=timeout,
+                          ca_certs=GC.Values[GC.CACERTS_PEM],
+                          disable_ssl_certificate_validation=GC.Values[GC.NO_VERIFY_SSL],
+                          tls_maximum_version=tls_maximum_version,
+                          tls_minimum_version=tls_minimum_version)
+  httpObj.redirect_codes = set(httpObj.redirect_codes) - {308}
+  return httpObj
 
 def _force_user_agent(user_agent):
   """Creates a decorator which can force a user agent in HTTP headers."""

@@ -1,6 +1,10 @@
+5.00.02
+
+Updated `httplib2` library to `0.17.0` and updated code to work around issue in library where uploading files > 100MB failed.
+
 5.00.01
 
-Udpated code to account for Google API change that prevented clearing a user's recovery phone.
+Updated code to account for Google API change that prevented clearing a user's recovery phone.
 
 5.00.00
 
