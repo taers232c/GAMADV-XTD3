@@ -1,3 +1,12 @@
+5.00.03
+
+Added commnds to display Google people/person profile information.
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-People-Profile
+
+Upgraded `googleapiclient` library to `1.7.12`.
+
+Fixed bug in `gam print groupmembers` where the `peoplelookup` option would cause an error.
+
 5.00.02
 
 Updated `httplib2` library to `0.17.0` and updated code to work around issue in library where uploading files > 100MB failed.
@@ -10,7 +19,7 @@ Updated code to account for Google API change that prevented clearing a user's r
 
 Replaced the deprecated `oauth2client` library with the `google-auth` library.
 This change requires a one-time update of the client access file `oauth2.txt`; GAM will continue
-to use the old version of `oauth2.txt` until you perform the update. There is a small performace
+to use the old version of `oauth2.txt` until you perform the update. There is a small performance
 impact until the update is performed. However, you can't use the updated version of `oauth2.txt`
 in prior versions of GAM; if you want to run GAM `5.00.00` and prior versions of GAM,
 do not perform the update until you no longer need to run the prior versions of GAM.

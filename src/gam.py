@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.00.02'
+__version__ = '5.00.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5346,6 +5346,7 @@ def getFieldsList(myarg, fieldsChoiceMap, fieldsList, initialField=None):
       fieldsList.extend(mappedFields)
     else:
       fieldsList.append(mappedFields)
+
   if myarg in fieldsChoiceMap:
     if not fieldsList and initialField is not None:
       _addInitialField(fieldsList, initialField)
@@ -18299,7 +18300,7 @@ def doPrintGroupMembers():
     try:
       info = callGAPI(people.people(), 'get',
                       throw_reasons=[GAPI.NOT_FOUND],
-                      resourceName=f'people/{memberId}', personfields='names')
+                      resourceName=f'people/{memberId}', personFields='names')
       if 'names' in info:
         for sourceType in ['PROFILE', 'CONTACT']:
           for name in info['names']:
@@ -25535,6 +25536,110 @@ def doPrintUserEntity(entityList):
     writeEntityNoHeaderCSVFile(Ent.USER, entityList)
   else:
     doPrintUsers(entityList)
+
+PEOPLE_FIELDS_CHOICE_MAP = {
+  'addresses': 'addresses',
+  'ageranges': 'ageRanges',
+  'biographies': 'biographies',
+  'birthdays': 'birthdays',
+  'braggingrights': 'braggingRights',
+  'coverphotos': 'coverPhotos',
+  'emailaddresses': 'emailAddresses',
+  'events': 'events',
+  'genders': 'genders',
+  'imclients': 'imClients',
+  'interests': 'interests',
+  'locales': 'locales',
+  'memberships': 'memberships',
+  'metadata': 'metadata',
+  'names': 'names',
+  'nicknames': 'nicknames',
+  'occupations': 'occupations',
+  'organizations': 'organizations',
+  'phonenumbers': 'phoneNumbers',
+  'photos': 'photos',
+  'relations': 'relations',
+  'relationshipinterests': 'relationshipInterests',
+  'relationshipstatuses': 'relationshipStatuses',
+  'residences': 'residences',
+  'sipaddresses': 'sipAddresses',
+  'skills': 'skills',
+  'taglines': 'taglines',
+  'urls': 'urls',
+  'userdefined': 'userDefined',
+  }
+
+# gam <UserTypeEntity> print peopleprofile [todrive <ToDriveAttributes>*]
+#	[allfields|(fields <PeopleFieldNameList>)]
+#	[formatjson] [quotechar <Character>]
+# gam <UserTypeEntity> show peopleprofile
+#	[allfields|(fields <PeopleFieldNameList>)]
+#	[formatjson]
+def printShowPeopleProfile(users):
+  cd = buildGAPIObject(API.DIRECTORY)
+  csvPF = CSVPrintFile(['User', 'resourceName']) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  peopleLookupUser = None
+  fieldsList = []
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'allfields':
+      for field in PEOPLE_FIELDS_CHOICE_MAP:
+        addFieldToFieldsList(field, PEOPLE_FIELDS_CHOICE_MAP, fieldsList)
+    elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
+      pass
+    elif myarg == 'peoplelookupuser':
+      peopleLookupUser = getEmailAddress()
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, False)
+  if not fieldsList:
+    fieldsList.append('names,emailAddresses')
+  if csvPF and FJQC.formatJSON:
+    csvPF.SetJSONTitles(['User', 'resourceName', 'JSON'])
+  if peopleLookupUser:
+    _, people = buildGAPIServiceObject(API.PEOPLE, peopleLookupUser)
+    if not people:
+      return
+  else:
+    people = buildGAPIObject(API.PEOPLE)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user = normalizeEmailAddressOrUID(user)
+    if user.find('@') != -1:
+      try:
+        memberId = callGAPI(cd.users(), 'get',
+                            throw_reasons=GAPI.USER_GET_THROW_REASONS,
+                            userKey=user, fields='id')['id']
+      except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+        continue
+    if csvPF:
+      printGettingEntityItemForWhom(Ent.PEOPLE_PROFILE, user, i, count)
+    try:
+      result = callGAPI(people.people(), 'get',
+                        throw_reasons=GAPI.PEOPLE_THROW_REASONS,
+                        resourceName=f'people/{memberId}', personFields=','.join(fieldsList))
+      if not csvPF:
+        if not FJQC.formatJSON:
+          printEntity([Ent.USER, user], i, count)
+          Ind.Increment()
+          showJSON(None, result)
+          Ind.Decrement()
+        else:
+          printLine(json.dumps(cleanJSON(result), ensure_ascii=False, sort_keys=True))
+      elif not FJQC.formatJSON:
+        csvPF.WriteRowTitles(flattenJSON(result, flattened={'User': user}))
+      elif csvPF.CheckRowTitles(result):
+        csvPF.WriteRowNoFilter({'User': user, 'resourceName': result['resourceName'],
+                                'JSON': json.dumps(cleanJSON(result),
+                                                   ensure_ascii=False, sort_keys=True)})
+    except (GAPI.serviceNotAvailable, GAPI.forbidden):
+      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+  if csvPF:
+    csvPF.writeCSVfile('People Profiles')
 
 SITEVERIFICATION_METHOD_CHOICE_MAP = {
   'cname': 'DNS_CNAME',
@@ -44234,6 +44339,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_GUARDIAN: 	printShowGuardians,
       Cmd.ARG_LABEL:		printShowLabels,
       Cmd.ARG_MESSAGE:		printShowMessages,
+      Cmd.ARG_PEOPLEPROFILE:	printShowPeopleProfile,
       Cmd.ARG_PRINTER:		printShowPrinters,
       Cmd.ARG_PRINTJOBS:	printPrintJobs,
       Cmd.ARG_SENDAS:		printShowSendAs,
@@ -44285,6 +44391,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_LABEL:		printShowLabels,
       Cmd.ARG_LANGUAGE:		showLanguage,
       Cmd.ARG_MESSAGE:		printShowMessages,
+      Cmd.ARG_PEOPLEPROFILE:	printShowPeopleProfile,
       Cmd.ARG_POP:		showPop,
       Cmd.ARG_PRINTER:		printShowPrinters,
       Cmd.ARG_PROFILE:		showProfile,

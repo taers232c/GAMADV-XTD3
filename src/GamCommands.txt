@@ -4074,6 +4074,7 @@ gam <UserTypeEntity> print messages|threads [todrive <ToDriveAttribute>*]
         [headers all|<SMTPHeaderList>]
         [showlabels] [showbody] [showsize] [showsnippet]
         [convertcrnl] [delimiter <Character>]
+
 # Users - Gmail - Profile
 
 gam <UserTypeEntity> show gmailprofile
@@ -4132,6 +4133,47 @@ gam <UserTypeEntity> show groups [roles <GroupRoleList>] [domain <DomainName>]
 gam <UserTypeEntity> create|add license <SKUID> [product|productid <ProductID>]
 gam <UserTypeEntity> update license <SKUID> [product|productid <ProductID>] [from] <SKUID>
 gam <UserTypeEntity> delete license <SKUID> [product|productid <ProductID>]
+
+# Users - People - Profile
+
+<PeopleFieldName> ::=
+        addresses|
+        ageranges|
+        biographies|
+        birthdays|
+        braggingrights|
+        coverphotos|
+        emailaddresses|
+        events|
+        genders|
+        imclients|
+        interests|
+        locales|
+        memberships|
+        metadata|
+        names|
+        nicknames|
+        occupations|
+        organizations|
+        phonenumbers|
+        photos|
+        relations|
+        relationshipinterests|
+        relationshipstatuses|
+        residences|
+        sipaddresses|
+        skills|
+        taglines|
+        urls|
+        userdefined
+<PeopleFieldNameList> ::= "<PeopleFieldName>(,<PeopleFieldName>)*"
+
+gam <UserTypeEntity> show peopleprofile
+        [allfields|(fields <PeopleFieldNameList>)] [peoplelookupuser <EmailAddress>]
+        [formatjson]
+gam <UserTypeEntity> print peopleprofile [todrive <ToDriveAttribute>*]
+        [allfields|(fields <PeopleFieldNameList>)] [peoplelookupuser <EmailAddress>]
+        [formatjson] [quotechar <Character>]
 
 # Users - Photo
 
