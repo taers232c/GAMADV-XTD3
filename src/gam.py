@@ -25500,10 +25500,10 @@ def doPrintUsers(entityList=None):
           j += 1
           userEmail = normalizeEmailAddressOrUID(userEntity)
           try:
-             user = callGAPI(cd.users(), 'get',
-                             throw_reasons=GAPI.USER_GET_THROW_REASONS+[GAPI.INVALID_INPUT, GAPI.RESOURCE_NOT_FOUND],
-                             userKey=userEmail, projection=projection, customFieldMask=customFieldMask, viewType=viewType, fields=fields)
-             _printUser(user)
+            user = callGAPI(cd.users(), 'get',
+                            throw_reasons=GAPI.USER_GET_THROW_REASONS+[GAPI.INVALID_INPUT, GAPI.RESOURCE_NOT_FOUND],
+                            userKey=userEmail, projection=projection, customFieldMask=customFieldMask, viewType=viewType, fields=fields)
+            _printUser(user)
           except (GAPI.userNotFound, GAPI.resourceNotFound):
             entityUnknownWarning(Ent.USER, userEmail, j, jcount)
           except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError) as e:
