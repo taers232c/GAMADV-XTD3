@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.00.03'
+__version__ = '5.00.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -994,11 +994,16 @@ def getDeliverySettings():
   return getChoice(GROUP_DELIVERY_SETTINGS_MAP, defaultChoice=DELIVERY_SETTINGS_UNDEFINED, mapChoice=True)
 
 UID_PATTERN = re.compile(r'u?id: ?(.+)', re.IGNORECASE)
+PEOPLE_PATTERN = re.compile(r'people/([0-9]+)$', re.IGNORECASE)
 
-def validateEmailAddressOrUID(emailAddressOrUID):
+def validateEmailAddressOrUID(emailAddressOrUID, checkPeople=True):
   cg = UID_PATTERN.match(emailAddressOrUID)
   if cg:
     return cg.group(1)
+  if checkPeople:
+    cg = PEOPLE_PATTERN.match(emailAddressOrUID)
+    if cg:
+      return cg.group(1)
   return emailAddressOrUID.find('@') != 0 and emailAddressOrUID.count('@') <= 1
 
 # Normalize user/group email address/uid
@@ -1012,6 +1017,9 @@ def normalizeEmailAddressOrUID(emailAddressOrUID, noUid=False, checkForCustomerI
     return emailAddressOrUID
   if not noUid:
     cg = UID_PATTERN.match(emailAddressOrUID)
+    if cg:
+      return cg.group(1)
+    cg = PEOPLE_PATTERN.match(emailAddressOrUID)
     if cg:
       return cg.group(1)
   atLoc = emailAddressOrUID.find('@')
@@ -4503,7 +4511,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
     cd = buildGAPIObject(API.DIRECTORY)
     groups = convertEntityToList(entity, nonListEntityType=entityType in [Cmd.ENTITY_GROUP, Cmd.ENTITY_GROUP_NS, Cmd.ENTITY_GROUP_SUSP])
     for group in groups:
-      if validateEmailAddressOrUID(group):
+      if validateEmailAddressOrUID(group, checkPeople=False):
         group = normalizeEmailAddressOrUID(group)
         printGettingAllEntityItemsForWhom(memberRoles if memberRoles else Ent.ROLE_MANAGER_MEMBER_OWNER, group, entityType=Ent.GROUP)
         validRoles, listRoles, listFields = _getRoleVerification(memberRoles, 'nextPageToken,members(email,id,type,status)')
@@ -4552,7 +4560,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
     if rolesSet:
       memberRoles = ','.join(sorted(rolesSet))
     for group in groups:
-      if validateEmailAddressOrUID(group):
+      if validateEmailAddressOrUID(group, checkPeople=False):
         _addGroupUsersToUsers(normalizeEmailAddressOrUID(group), domains, recursive)
       else:
         _showInvalidEntity(Ent.GROUP, group)
@@ -19664,6 +19672,7 @@ def _doInfoResourceCalendars(entityList):
       FJQC.GetFormatJSON(myarg)
   if getCalSettings or getCalPermissions:
     cal = buildGAPIObject(API.CALENDAR)
+  fields = ','.join(RESOURCE_ALL_FIELDS)
   i = 0
   count = len(entityList)
   for resourceId in entityList:
@@ -19671,7 +19680,7 @@ def _doInfoResourceCalendars(entityList):
     try:
       resource = callGAPI(cd.resources().calendars(), 'get',
                           throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                          customer=GC.Values[GC.CUSTOMER_ID], calendarResourceId=resourceId, fields=','.join(RESOURCE_ALL_FIELDS))
+                          customer=GC.Values[GC.CUSTOMER_ID], calendarResourceId=resourceId, fields=fields)
       if getCalSettings or getCalPermissions:
         status, acls = _getResourceACLsCalSettings(cal, resource, getCalSettings, getCalPermissions, i, count)
         if not status:
@@ -25596,6 +25605,7 @@ def printShowPeopleProfile(users):
       FJQC.GetFormatJSONQuoteChar(myarg, False)
   if not fieldsList:
     fieldsList.append('names,emailAddresses')
+  personFields = ','.join(set(fieldsList))
   if csvPF and FJQC.formatJSON:
     csvPF.SetJSONTitles(['User', 'resourceName', 'JSON'])
   if peopleLookupUser:
@@ -25616,12 +25626,14 @@ def printShowPeopleProfile(users):
       except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
         continue
+    else:
+      memberId = user
     if csvPF:
       printGettingEntityItemForWhom(Ent.PEOPLE_PROFILE, user, i, count)
     try:
       result = callGAPI(people.people(), 'get',
                         throw_reasons=GAPI.PEOPLE_THROW_REASONS,
-                        resourceName=f'people/{memberId}', personFields=','.join(fieldsList))
+                        resourceName=f'people/{memberId}', personFields=personFields)
       if not csvPF:
         if not FJQC.formatJSON:
           printEntity([Ent.USER, user], i, count)
@@ -36119,7 +36131,7 @@ def transferDrive(users):
     childFileType = _getEntityMimeType(childEntryInfo)
     if childEntryInfo['ownedByMe']:
       childEntryInfo['sourcePermission'] = {'role': 'owner'}
-      for permission in childEntryInfo['permissions']:
+      for permission in childEntryInfo.get('permissions', []):
         if targetPermissionId == permission['id']:
           childEntryInfo['targetPermission'] = _setUpdateRole(permission)
           updateTargetPermission = True

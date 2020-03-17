@@ -1,6 +1,10 @@
+5.00.04
+
+Fixed bug in `gam transfer drive` that caused a trap.
+
 5.00.03
 
-Added commnds to display Google people/person profile information.
+Added commands to display Google people/person profile information.
 See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-People-Profile
 
 Upgraded `googleapiclient` library to `1.7.12`.
