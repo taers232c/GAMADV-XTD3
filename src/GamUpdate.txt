@@ -1,3 +1,16 @@
+5.00.05
+
+`gam <UserTypeEntity> print users` uses Google Directory API batches to improve performance when retrieving user data.
+In some cases Google returns the following error:
+```
+googleapiclient.errors.HttpError: <HttpError 302 when requesting https://www.googleapis.com/batch/admin/directory_v1 returned "Found">```
+```
+At the moment it's not clear to me how to handle this error so I'm providing a workaround; if you experience this error
+do the following:
+```
+gam config batch_size 1 save
+```
+
 5.00.04
 
 Fixed bug in `gam transfer drive` that caused a trap.

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.00.04'
+__version__ = '5.00.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -25476,23 +25476,43 @@ def doPrintUsers(entityList=None):
     if projectionSet or len(set(fieldsList)) > 1:
       jcount = len(entityList)
       fields = getFieldsFromFieldsList(fieldsList)
-      svcargs = dict([('userKey', None), ('fields', fields), ('projection', projection), ('customFieldMask', customFieldMask), ('viewType', viewType)]+GM.Globals[GM.EXTRA_ARGS_LIST])
-      method = getattr(cd.users(), 'get')
-      dbatch = cd.new_batch_http_request(callback=_callbackPrintUser)
-      bcount = 0
-      j = 0
-      for userEntity in entityList:
-        j += 1
-        svcparms = svcargs.copy()
-        svcparms['userKey'] = normalizeEmailAddressOrUID(userEntity)
-        dbatch.add(method(**svcparms), request_id=batchRequestID('', 0, 0, j, jcount, svcparms['userKey']))
-        bcount += 1
-        if bcount >= GC.Values[GC.BATCH_SIZE]:
-          executeBatch(dbatch)
-          dbatch = cd.new_batch_http_request(callback=_callbackPrintUser)
-          bcount = 0
-      if bcount > 0:
-        dbatch.execute()
+      if GC.Values[GC.BATCH_SIZE] > 1 and jcount > 1:
+        svcargs = dict([('userKey', None), ('fields', fields), ('projection', projection), ('customFieldMask', customFieldMask), ('viewType', viewType)]+GM.Globals[GM.EXTRA_ARGS_LIST])
+        method = getattr(cd.users(), 'get')
+        dbatch = cd.new_batch_http_request(callback=_callbackPrintUser)
+        bcount = 0
+        j = 0
+        for userEntity in entityList:
+          j += 1
+          svcparms = svcargs.copy()
+          svcparms['userKey'] = normalizeEmailAddressOrUID(userEntity)
+          dbatch.add(method(**svcparms), request_id=batchRequestID('', 0, 0, j, jcount, svcparms['userKey']))
+          bcount += 1
+          if bcount >= GC.Values[GC.BATCH_SIZE]:
+            executeBatch(dbatch)
+            dbatch = cd.new_batch_http_request(callback=_callbackPrintUser)
+            bcount = 0
+        if bcount > 0:
+          dbatch.execute()
+      else:
+        j = 0
+        for userEntity in entityList:
+          j += 1
+          userEmail = normalizeEmailAddressOrUID(userEntity)
+          try:
+             user = callGAPI(cd.users(), 'get',
+                             throw_reasons=GAPI.USER_GET_THROW_REASONS+[GAPI.INVALID_INPUT, GAPI.RESOURCE_NOT_FOUND],
+                             userKey=userEmail, projection=projection, customFieldMask=customFieldMask, viewType=viewType, fields=fields)
+             _printUser(user)
+          except (GAPI.userNotFound, GAPI.resourceNotFound):
+            entityUnknownWarning(Ent.USER, userEmail, j, jcount)
+          except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError) as e:
+            entityActionFailedWarning([Ent.USER, userEmail], str(e), j, jcount)
+          except GAPI.invalidInput as e:
+            if customFieldMask:
+              entityActionFailedWarning([Ent.USER, userEmail], invalidUserSchema(customFieldMask), j, jcount)
+            else:
+              entityActionFailedWarning([Ent.USER, userEmail], str(e), j, jcount)
 # The only field specified was primaryEmail, just list the users/count the domains
     elif not countOnly:
       for userEntity in entityList:
