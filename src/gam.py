@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.00.05'
+__version__ = '5.00.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -16928,7 +16928,7 @@ def doUpdateGroups():
     if jcount == 0:
       return
     if preview:
-      _previewAction(group, updateMembers, role, jcount, Act.UPDATE)
+      _previewAction(group, updateMembers, role or Ent.ROLE_USER, jcount, Act.UPDATE)
       return
     if updBatchParms['size'] == 1 or jcount <= updBatchParms['size']:
       Ind.Increment()

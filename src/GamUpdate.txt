@@ -1,3 +1,7 @@
+5.00.06
+
+Fixed bug in `gam update groups <GroupEntity> update preview`` that caused a trap.
+
 5.00.05
 
 `gam <UserTypeEntity> print users` uses Google Directory API batches to improve performance when retrieving user data.
