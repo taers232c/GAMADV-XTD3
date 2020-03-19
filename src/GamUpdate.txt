@@ -2,7 +2,7 @@
 
 Fixed bug in `gam report accesstransparency|gcp` where event names were not properly passed to the API.
 
-Fixed bug in `gam batch|tbatch|csv showcmds` where the timestamp was not properly updated.
+Fixed bug in `gam batch|tbatch|csv showcmds` where the timestamp was constant. The timestamp now shows milliseconds.
 
 5.00.06
 

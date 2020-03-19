@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.00.06'
+__version__ = '5.00.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -125,8 +125,8 @@ if platform.system() == 'Linux':
 def ISOformatTimeStamp(timestamp):
   return timestamp.isoformat('T', 'seconds')
 
-def currentISOformatTimeStamp():
-  return datetime.datetime.now(GC.Values[GC.TIMEZONE]).isoformat('T', 'seconds')
+def currentISOformatTimeStamp(timespec='milliseconds'):
+  return datetime.datetime.now(GC.Values[GC.TIMEZONE]).isoformat('T', timespec)
 
 Act = glaction.GamAction()
 Cmd = glclargs.GamCLArgs()
@@ -30388,7 +30388,7 @@ def transferCalendars(users):
   if not targetCal:
     return
   if updateBody:
-    timestamp = currentISOformatTimeStamp()
+    timestamp = currentISOformatTimeStamp('seconds')
     appendFields = ','.join(set(appendFieldsList))
   targetRoleBody = {'role': 'owner', 'scope': {'type': 'user', 'value': targetUser}}
   i, count, users = getEntityArgument(users)
