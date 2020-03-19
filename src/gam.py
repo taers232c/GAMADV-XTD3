@@ -20419,7 +20419,7 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
     else:
       _, attendeeList = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
     for attendee in attendeeList:
-      body['attendees'].append({'email': attendee, 'optional': optional, 'responseStatus': responseStatus})
+      body['attendees'].append({'email': normalizeEmailAddressOrUID(attendee, noUid=True), 'optional': optional, 'responseStatus': responseStatus})
   elif myarg == 'json':
     body.update(getJSON(EVENT_JSON_CLEAR_FIELDS))
     if function == 'insert':
