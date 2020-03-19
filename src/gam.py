@@ -125,6 +125,9 @@ if platform.system() == 'Linux':
 def ISOformatTimeStamp(timestamp):
   return timestamp.isoformat('T', 'seconds')
 
+def currentISOformatTimeStamp():
+  return datetime.datetime.now(GC.Values[GC.TIMEZONE]).isoformat('T', 'seconds')
+
 Act = glaction.GamAction()
 Cmd = glclargs.GamCLArgs()
 Ent = glentity.GamEntity()
@@ -6677,7 +6680,7 @@ def StdQueueHandler(mpQueue, stdtype, gmGlobals, gcValues):
       if data[1] is not None:
         _writeData(data[1])
       if GC.Values[GC.SHOW_MULTIPROCESS_INFO]:
-        _writeData(PROCESS_MSG.format(pidData[pid]['queue'], pid, 'End', ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])), data[0], pidData[pid]['cmd']))
+        _writeData(PROCESS_MSG.format(pidData[pid]['queue'], pid, 'End', currentISOformatTimeStamp(), data[0], pidData[pid]['cmd']))
       fd.flush()
     except IOError as e:
       systemErrorExit(FILE_ERROR_RC, fdErrorMessage(fd, GM.Globals[stdtype][GM.REDIRECT_NAME], e))
@@ -6704,7 +6707,7 @@ def StdQueueHandler(mpQueue, stdtype, gmGlobals, gcValues):
     pid, dataType, dataItem = mpQueue.get()
     if dataType == GM.REDIRECT_QUEUE_START:
       pidData[pid] = {'queue': GM.Globals[stdtype][GM.REDIRECT_QUEUE],
-                      'start': ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])),
+                      'start': currentISOformatTimeStamp(),
                       'cmd': Cmd.QuotedArgumentList(dataItem)}
       if pid == 0 and GC.Values[GC.SHOW_MULTIPROCESS_INFO]:
         fd.write(PROCESS_MSG.format(pidData[pid]['queue'], pid, 'Start', pidData[pid]['start'], 0, pidData[pid]['cmd']))
@@ -6833,7 +6836,7 @@ def MultiprocessGAMCommands(items, logCmds):
   else:
     mpQueueCSVFile = None
   signal.signal(signal.SIGINT, origSigintHandler)
-  batchWriteStderr(Msg.USING_N_PROCESSES.format(ISOformatTimeStamp(todaysTime()),
+  batchWriteStderr(Msg.USING_N_PROCESSES.format(currentISOformatTimeStamp(),
                                                 numPoolProcesses, PROCESS_PLURAL_SINGULAR[numPoolProcesses == 1]))
   try:
     pid = 0
@@ -6841,7 +6844,7 @@ def MultiprocessGAMCommands(items, logCmds):
     poolProcessResults = {}
     for item in items:
       if item[0] == Cmd.COMMIT_BATCH_CMD:
-        batchWriteStderr(Msg.COMMIT_BATCH_WAIT_N_PROCESSES.format(ISOformatTimeStamp(todaysTime()),
+        batchWriteStderr(Msg.COMMIT_BATCH_WAIT_N_PROCESSES.format(currentISOformatTimeStamp(),
                                                                   poolProcessesInUse,
                                                                   PROCESS_PLURAL_SINGULAR[poolProcessesInUse == 1]))
         while poolProcessesInUse > 0:
@@ -6854,16 +6857,16 @@ def MultiprocessGAMCommands(items, logCmds):
               pass
           if poolProcessesInUse > 0:
             time.sleep(1)
-        batchWriteStderr(Msg.COMMIT_BATCH_COMPLETE.format(ISOformatTimeStamp(todaysTime()), Msg.PROCESSES))
+        batchWriteStderr(Msg.COMMIT_BATCH_COMPLETE.format(currentISOformatTimeStamp(), Msg.PROCESSES))
         continue
       if item[0] == Cmd.PRINT_CMD:
         batchWriteStderr(Cmd.QuotedArgumentList(item[1:])+'\n')
         continue
       pid += 1
       if not logCmds and pid % 100 == 0:
-        batchWriteStderr(Msg.PROCESSING_ITEM_N.format(ISOformatTimeStamp(todaysTime()), pid))
+        batchWriteStderr(Msg.PROCESSING_ITEM_N.format(currentISOformatTimeStamp(), pid))
       if logCmds:
-        batchWriteStderr(f'{ISOformatTimeStamp(todaysTime())},{pid},{Cmd.QuotedArgumentList(item)}\n')
+        batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},{Cmd.QuotedArgumentList(item)}\n')
       poolProcessResults[pid] = pool.apply_async(ProcessGAMCommandMulti, [pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
                                                                           GM.Globals[GM.CSV_TODRIVE],
                                                                           GC.Values[GC.CSV_OUTPUT_HEADER_FILTER],
@@ -6877,7 +6880,7 @@ def MultiprocessGAMCommands(items, logCmds):
               poolProcessesInUse -= 1
               del poolProcessResults[ppid]
               if logCmds:
-                batchWriteStderr(f'{ISOformatTimeStamp(todaysTime())},{ppid},Complete\n')
+                batchWriteStderr(f'{currentISOformatTimeStamp()},{ppid},Complete\n')
           except (TypeError, IOError):
             pass
         if poolProcessesInUse == numPoolProcesses:
@@ -6894,13 +6897,13 @@ def MultiprocessGAMCommands(items, logCmds):
           poolProcessesInUse -= 1
           del poolProcessResults[ppid]
           if logCmds:
-            batchWriteStderr(f'{ISOformatTimeStamp(todaysTime())},{ppid},Complete\n')
+            batchWriteStderr(f'{currentISOformatTimeStamp()},{ppid},Complete\n')
       except (TypeError, IOError):
         pass
     if poolProcessesInUse > 0:
       time.sleep(1)
   if logCmds:
-    batchWriteStderr(f'{ISOformatTimeStamp(todaysTime())},0,Complete\n')
+    batchWriteStderr(f'{currentISOformatTimeStamp()},0,Complete\n')
   if mpQueueCSVFile:
     terminateCSVFileQueueHandler(mpQueueCSVFile, mpQueueHandlerCSVFile)
   if mpQueueStdout:
@@ -6914,15 +6917,16 @@ def MultiprocessGAMCommands(items, logCmds):
     GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = None
     terminateStdQueueHandler(mpQueueStderr, mpQueueHandlerStderr)
 
-def threadBatchWorker():
+def threadBatchWorker(logCmds=False):
   while True:
     pid, item = GM.Globals[GM.TBATCH_QUEUE].get()
     try:
-      subprocess.call(item, stdout=GM.Globals[GM.STDOUT].get(GM.REDIRECT_MULTI_FD, sys.stdout),
-                      stderr=GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, sys.stderr))
-      batchWriteStderr(f'{ISOformatTimeStamp(todaysTime())},{pid},Complete\n')
+      sysRC = subprocess.call(item, stdout=GM.Globals[GM.STDOUT].get(GM.REDIRECT_MULTI_FD, sys.stdout),
+                              stderr=GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, sys.stderr))
+      if logCmds:
+        batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},Complete,{sysRC}\n')
     except Exception as e:
-      batchWriteStderr(f'{ISOformatTimeStamp(todaysTime())},{pid},{str(e)}\n')
+      batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},{str(e)}\n')
     GM.Globals[GM.TBATCH_QUEUE].task_done()
 
 def ThreadBatchGAMCommands(items, logCmds):
@@ -6934,31 +6938,31 @@ def ThreadBatchGAMCommands(items, logCmds):
   numWorkerThreads = min(len(items), GC.Values[GC.NUM_TBATCH_THREADS])
 # GM.Globals[GM.TBATCH_QUEUE].put() gets blocked when trying to create more items than there are workers
   GM.Globals[GM.TBATCH_QUEUE] = queue.Queue(maxsize=numWorkerThreads)
-  batchWriteStderr(Msg.USING_N_PROCESSES.format(ISOformatTimeStamp(todaysTime()),
+  batchWriteStderr(Msg.USING_N_PROCESSES.format(currentISOformatTimeStamp(),
                                                 numWorkerThreads, THREAD_PLURAL_SINGULAR[numWorkerThreads == 1]))
   for _ in range(numWorkerThreads):
-    t = threading.Thread(target=threadBatchWorker)
+    t = threading.Thread(target=threadBatchWorker, kwargs={'logCmds': logCmds})
     t.daemon = True
     t.start()
   pid = 0
   numThreadsInUse = 0
   for item in items:
     if item[0] == Cmd.COMMIT_BATCH_CMD:
-      batchWriteStderr(Msg.COMMIT_BATCH_WAIT_N_PROCESSES.format(ISOformatTimeStamp(todaysTime()),
+      batchWriteStderr(Msg.COMMIT_BATCH_WAIT_N_PROCESSES.format(currentISOformatTimeStamp(),
                                                                 numThreadsInUse,
                                                                 THREAD_PLURAL_SINGULAR[numThreadsInUse == 1]))
       GM.Globals[GM.TBATCH_QUEUE].join()
-      batchWriteStderr(Msg.COMMIT_BATCH_COMPLETE.format(ISOformatTimeStamp(todaysTime()), Msg.THREADS))
+      batchWriteStderr(Msg.COMMIT_BATCH_COMPLETE.format(currentISOformatTimeStamp(), Msg.THREADS))
       numThreadsInUse = 0
       continue
     if item[0] == Cmd.PRINT_CMD:
-      batchWriteStderr(f'{ISOformatTimeStamp(todaysTime())},0,{Cmd.QuotedArgumentList(item[1:])}\n')
+      batchWriteStderr(f'{currentISOformatTimeStamp()},0,{Cmd.QuotedArgumentList(item[1:])}\n')
       continue
     pid += 1
     if not logCmds and pid % 100 == 0:
-      batchWriteStderr(Msg.PROCESSING_ITEM_N.format(ISOformatTimeStamp(todaysTime()), pid))
+      batchWriteStderr(Msg.PROCESSING_ITEM_N.format(currentISOformatTimeStamp(), pid))
     if logCmds:
-      batchWriteStderr(f'{ISOformatTimeStamp(todaysTime())},{pid},{Cmd.QuotedArgumentList(item)}\n')
+      batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},{Cmd.QuotedArgumentList(item)}\n')
     if item[0] == Cmd.GAM_CMD:
       GM.Globals[GM.TBATCH_QUEUE].put((pid, pythonCmd+item[1:]))
     else:
@@ -6966,7 +6970,7 @@ def ThreadBatchGAMCommands(items, logCmds):
     numThreadsInUse += 1
   GM.Globals[GM.TBATCH_QUEUE].join()
   if logCmds:
-    batchWriteStderr(f'{ISOformatTimeStamp(todaysTime())},0,Complete\n')
+    batchWriteStderr(f'{currentISOformatTimeStamp()},0,Complete\n')
 
 # gam batch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds]
 def doBatch(threadBatch=False):
@@ -9104,7 +9108,7 @@ def doReport():
       startEndTime.Get(myarg)
     elif activityReports and myarg in {'event', 'events'}:
       for event in getString(Cmd.OB_EVENT_NAME_LIST).replace(',', ' ').split():
-        event = event.lower() if report not in {'admin', 'mobile'} else event.upper()
+        event = event.lower() if report not in {'access_transparency', 'admin', 'gcp', 'mobile'} else event.upper()
         if event not in eventNames:
           eventNames.append(event)
     elif activityReports and myarg == 'ip':
@@ -30384,7 +30388,7 @@ def transferCalendars(users):
   if not targetCal:
     return
   if updateBody:
-    timestamp = ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE]))
+    timestamp = currentISOformatTimeStamp()
     appendFields = ','.join(set(appendFieldsList))
   targetRoleBody = {'role': 'owner', 'scope': {'type': 'user', 'value': targetUser}}
   i, count, users = getEntityArgument(users)
