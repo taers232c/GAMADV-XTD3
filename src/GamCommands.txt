@@ -422,6 +422,7 @@ If an item contains spaces, it should be surrounded by ".
         (tdtimestamp [<Boolean>] [tddaysoffset <Number>] [tdhoursoffset <Number])|
         (tdtimezone <TimeZone>)|
         (tdtitle <String>)|
+        (tdcellwrap clip|overflow|wrap)|
         (tdupdatesheet [<Boolean>])|
         (tduser <EmailAddress>)
 <TransferID> ::= <String>

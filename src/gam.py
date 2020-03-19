@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.00.07'
+__version__ = '5.00.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5553,10 +5553,17 @@ class CSVPrintFile():
         drive = buildGAPIObject(API.DRIVE3)
       return drive
 
+    CELL_WRAP_MAP = {
+      'clip': 'CLIP',
+      'overflow': 'OVERFLOW_CELL',
+      'overflowcell': 'OVERFLOW_CELL',
+      'wrap': 'WRAP',
+      }
+
     localUser = localParent = False
     tdfileidLocation = tdparentLocation = tdsheetLocation = tdupdatesheetLocation = tduserLocation = Cmd.Location()
     self.todrive = {'user': GC.Values[GC.TODRIVE_USER], 'title': None, 'description': None,
-                    'sheetEntity': None, 'updatesheet': False,
+                    'sheetEntity': None, 'updatesheet': False, 'cellwrap': None,
                     'locale': GC.Values[GC.TODRIVE_LOCALE], 'timeZone': GC.Values[GC.TODRIVE_TIMEZONE],
                     'timestamp': GC.Values[GC.TODRIVE_TIMESTAMP], 'daysoffset': 0, 'hoursoffset': 0,
                     'fileId': None, 'parentId': None, 'parent': GC.Values[GC.TODRIVE_PARENT],
@@ -5578,6 +5585,8 @@ class CSVPrintFile():
       elif myarg == 'tdupdatesheet':
         tdupdatesheetLocation = Cmd.Location()
         self.todrive['updatesheet'] = getBoolean()
+      elif myarg == 'tdcellwrap':
+        self.todrive['cellwrap'] = getChoice(CELL_WRAP_MAP, mapChoice=True)
       elif myarg == 'tdlocale':
         self.todrive['locale'] = getLocaleCode()
       elif myarg == 'tdtimezone':
@@ -6080,6 +6089,10 @@ class CSVPrintFile():
                                'data': csvFile.read(), 'type': 'PASTE_NORMAL', 'delimiter': self.columnDelimiter}}
                 ]
               }
+            if self.todrive['cellwrap']:
+              body['requests'].append({'repeatCell': {'range': {'sheetId': self.todrive['sheetEntity']['sheetId']},
+                                                      'fields': 'userEnteredFormat.wrapStrategy',
+                                                      'cell': {'userEnteredFormat': {'wrapStrategy': self.todrive['cellwrap']}}}})
             try:
               callGAPI(sheet.spreadsheets(), 'batchUpdate',
                        throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
@@ -6123,7 +6136,7 @@ class CSVPrintFile():
                                 media_body=googleapiclient.http.MediaIoBaseUpload(io.BytesIO(csvFile.getvalue().encode()), mimetype='text/csv', resumable=True),
                                 fields=fields, supportsAllDrives=True)
             closeFile(csvFile)
-            if (result['mimeType'] == MIMETYPE_GA_SPREADSHEET) and (self.todrive['sheetEntity'] or self.todrive['locale'] or self.todrive['timeZone']):
+            if (result['mimeType'] == MIMETYPE_GA_SPREADSHEET) and (self.todrive['sheetEntity'] or self.todrive['locale'] or self.todrive['timeZone'] or self.todrive['cellwrap']):
               if not GC.Values[GC.TODRIVE_CLIENTACCESS]:
                 _, sheet = buildGAPIServiceObject(API.SHEETSTD, user)
                 if sheet is None:
@@ -6133,13 +6146,18 @@ class CSVPrintFile():
               spreadsheetId = result['id']
               try:
                 body = {'requests': []}
-                if self.todrive['sheetEntity']:
+                if self.todrive['sheetEntity'] or self.todrive['cellwrap']:
                   spreadsheet = callGAPI(sheet.spreadsheets(), 'get',
                                          throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                                          spreadsheetId=spreadsheetId, fields='sheets/properties')
-                  spreadsheet['sheets'][0]['properties']['title'] = self.todrive['sheetEntity']['sheetTitle']
-                  body['requests'].append({'updateSheetProperties':
-                                             {'properties': spreadsheet['sheets'][0]['properties'], 'fields': 'title'}})
+                  if self.todrive['sheetEntity']:
+                    spreadsheet['sheets'][0]['properties']['title'] = self.todrive['sheetEntity']['sheetTitle']
+                    body['requests'].append({'updateSheetProperties':
+                                               {'properties': spreadsheet['sheets'][0]['properties'], 'fields': 'title'}})
+                  if self.todrive['cellwrap']:
+                    body['requests'].append({'repeatCell': {'range': {'sheetId': spreadsheet['sheets'][0]['properties']['sheetId']},
+                                                            'fields': 'userEnteredFormat.wrapStrategy',
+                                                            'cell': {'userEnteredFormat': {'wrapStrategy': self.todrive['cellwrap']}}}})
                 if self.todrive['locale']:
                   body['requests'].append({'updateSpreadsheetProperties':
                                              {'properties': {'locale': self.todrive['locale']}, 'fields': 'locale'}})
