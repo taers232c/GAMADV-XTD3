@@ -20406,19 +20406,20 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
     body['recurrence'].append(getString(Cmd.OB_RECURRENCE))
   elif myarg == 'timezone':
     parameters['timeZone'] = getString(Cmd.OB_STRING)
-  elif myarg == 'attendee':
+  elif myarg in {'attendee', 'optionalattendee'}:
+    optional = myarg == 'optionalattendee'
     body.setdefault('attendees', [])
-    body['attendees'].append({'email': getEmailAddress(noUid=True)})
-  elif myarg == 'optionalattendee':
+    body['attendees'].append({'email': getEmailAddress(noUid=True), 'optional': optional})
+  elif myarg in {'attendeestatus', 'selectattendees'}:
     body.setdefault('attendees', [])
-    body['attendees'].append({'email': getEmailAddress(noUid=True), 'optional': True})
-  elif myarg == 'attendeestatus':
-    body.setdefault('attendees', [])
-    attendee = {}
-    attendee['optional'] = getChoice(CALENDAR_ATTENDEE_OPTIONAL_CHOICE_MAP, defaultChoice=False, mapChoice=True)
-    attendee['responseStatus'] = getChoice(CALENDAR_ATTENDEE_STATUS_CHOICE_MAP, defaultChoice='needsAction', mapChoice=True)
-    attendee['email'] = getEmailAddress(noUid=True)
-    body['attendees'].append(attendee)
+    optional = getChoice(CALENDAR_ATTENDEE_OPTIONAL_CHOICE_MAP, defaultChoice=False, mapChoice=True)
+    responseStatus = getChoice(CALENDAR_ATTENDEE_STATUS_CHOICE_MAP, defaultChoice='needsAction', mapChoice=True)
+    if myarg == 'attendeestatus':
+      attendeeList = [getEmailAddress(noUid=True)]
+    else:
+      _, attendeeList = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
+    for attendee in attendeeList:
+      body['attendees'].append({'email': attendee, 'optional': optional, 'responseStatus': responseStatus})
   elif myarg == 'json':
     body.update(getJSON(EVENT_JSON_CLEAR_FIELDS))
     if function == 'insert':

@@ -3,6 +3,9 @@
 Added option `tdcellwrap clip|overflow|wrap` to `todrive` options to allow specification of the
 cell wrapping strategy in Google spreadsheets.
 
+Added option `selectattendees [<AttendeeAttendance>] [<AttendeeStatus>] <UserTypeEntity>` to `<EventAttribute>`.
+This simplifies adding multiple attendees to an event.
+
 5.00.07
 
 Fixed bug in `gam report accesstransparency|gcp` where event names were not properly passed to the API.

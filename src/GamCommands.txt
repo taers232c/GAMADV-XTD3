@@ -3267,6 +3267,7 @@ gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <
         (privateproperty <PropertyKey> <PropertyValue>)|
         (recurrence <RRULE, EXRULE, RDATE and EXDATE line>)|
         (reminder <Number> email|popup|sms))|
+        (selectattendees [<AttendeeAttendance>] [<AttendeeStatus>] <UserTypeEntity>)|
         (sequence <Integer>)|
         (sharedproperty <PropertyKey> <PropertyValue>)|
         (source <String> <URL>)|
