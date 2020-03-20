@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.00.08'
+__version__ = '5.00.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3474,6 +3474,19 @@ def waitOnFailure(n, retries, error_code, error_message):
   if GC.Values[GC.SHOW_API_CALLS_RETRY_DATA]:
     incrAPICallsRetryData(error_message, delta)
 
+def clearServiceCache(service):
+  if hasattr(service._http, 'http') and hasattr(service._http.http, 'cache'):
+    if service._http.http.cache is None:
+      return False
+    service._http.http.cache = None
+    return True
+  if hasattr(service._http, 'cache'):
+    if service._http.cache is None:
+      return False
+    service._http.cache = None
+    return True
+  return False
+
 DISCOVERY_URIS = [googleapiclient.discovery.V1_DISCOVERY_URI, googleapiclient.discovery.V2_DISCOVERY_URI]
 
 def getAPIService(api, httpObj):
@@ -3487,7 +3500,7 @@ def getService(api, httpObj):
   if api in GM.Globals[GM.CURRENT_API_SERVICES] and version in GM.Globals[GM.CURRENT_API_SERVICES][api]:
     service = googleapiclient.discovery.build_from_document(GM.Globals[GM.CURRENT_API_SERVICES][api][version], http=httpObj)
     if GM.Globals[GM.CACHE_DISCOVERY_ONLY]:
-      httpObj.cache = None
+      clearServiceCache(service)
     return service
   if not hasLocalJSON:
     retries = 3
@@ -3498,12 +3511,11 @@ def getService(api, httpObj):
         GM.Globals[GM.CURRENT_API_SERVICES].setdefault(api, {})
         GM.Globals[GM.CURRENT_API_SERVICES][api][version] = service._rootDesc.copy()
         if GM.Globals[GM.CACHE_DISCOVERY_ONLY]:
-          httpObj.cache = None
+          clearServiceCache(service)
         return service
       except googleapiclient.errors.UnknownApiNameOrVersion as e:
         systemErrorExit(GOOGLE_API_ERROR_RC, Msg.UNKNOWN_API_OR_VERSION.format(str(e), __author__))
       except (googleapiclient.errors.InvalidJsonError, KeyError, ValueError):
-        httpObj.cache = None
         if n != retries:
           waitOnFailure(n, retries, INVALID_JSON_RC, Msg.INVALID_JSON_INFORMATION)
           continue
@@ -3528,7 +3540,7 @@ def getService(api, httpObj):
     GM.Globals[GM.CURRENT_API_SERVICES].setdefault(api, {})
     GM.Globals[GM.CURRENT_API_SERVICES][api][version] = service._rootDesc.copy()
     if GM.Globals[GM.CACHE_DISCOVERY_ONLY]:
-      httpObj.cache = None
+      clearServiceCache(service)
     return service
   except (KeyError, ValueError):
     invalidDiscoveryJsonExit(disc_file)
@@ -3973,8 +3985,7 @@ def callGAPI(service, function,
         return None
       systemErrorExit(SOCKET_ERROR_RC, errMsg)
     except ValueError as e:
-      if hasattr(service._http, 'cache') and service._http.cache is not None:
-        service._http.cache = None
+      if clearServiceCache(service):
         continue
       systemErrorExit(GOOGLE_API_ERROR_RC, str(e))
     except TypeError as e:
@@ -4105,7 +4116,7 @@ def readDiscoveryFile(api_version):
 
 def buildGAPIObject(api):
   credentials = getClientCredentials()
-  httpObj = transportAuthorizedHttp(credentials, getHttpObj(cache=GM.Globals[GM.CACHE_DIR]))
+  httpObj = transportAuthorizedHttp(credentials, http=getHttpObj(cache=GM.Globals[GM.CACHE_DIR]))
   service = getService(api, httpObj)
   try:
     API_Scopes = set(list(service._rootDesc['auth']['oauth2']['scopes']))
@@ -7592,7 +7603,7 @@ def getCRMService(login_hint):
   client_id = '297408095146-fug707qsjv4ikron0hugpevbrjhkmsk7.apps.googleusercontent.com'
   client_secret = 'qM3dP8f_4qedwzWQE1VR4zzU'
   credentials = _run_oauth_flow(client_id, client_secret, scopes, login_hint, 'online')
-  httpObj = transportAuthorizedHttp(credentials, getHttpObj())
+  httpObj = transportAuthorizedHttp(credentials, http=getHttpObj())
   return (httpObj, getAPIService(API.CLOUDRESOURCEMANAGER_V1, httpObj))
 
 def enableGAMProjectAPIs(httpObj, projectId, checkEnabled, i=0, count=0):

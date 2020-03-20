@@ -1,3 +1,13 @@
+5.00.09
+
+Fixed issue where excessive API cache files were being generated. Issue the following command
+to set the optimal API caching scheme.
+```
+gam select default config cache_discovery_only true no_cache false save verify
+```
+You should clear the gamcache folder (indicated by `cache_dir` above) after updating to this version.
+Delete all files in this folder; do not delete the folder itself, just its contents.
+
 5.00.08
 
 Added option `tdcellwrap clip|overflow|wrap` to `todrive` options to allow specification of the
