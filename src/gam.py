@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.00.09'
+__version__ = '5.00.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4105,7 +4105,7 @@ def readDiscoveryFile(api_version):
 
 def buildGAPIObject(api):
   credentials = getClientCredentials()
-  httpObj = transportAuthorizedHttp(credentials, http=getHttpObj(cache=GM.Globals[GM.CACHE_DIR]))
+  httpObj = transportAuthorizedHttp(credentials, getHttpObj(cache=GM.Globals[GM.CACHE_DIR]))
   service = getService(api, httpObj)
   try:
     API_Scopes = set(list(service._rootDesc['auth']['oauth2']['scopes']))
@@ -7592,7 +7592,7 @@ def getCRMService(login_hint):
   client_id = '297408095146-fug707qsjv4ikron0hugpevbrjhkmsk7.apps.googleusercontent.com'
   client_secret = 'qM3dP8f_4qedwzWQE1VR4zzU'
   credentials = _run_oauth_flow(client_id, client_secret, scopes, login_hint, 'online')
-  httpObj = transportAuthorizedHttp(credentials, http=getHttpObj())
+  httpObj = transportAuthorizedHttp(credentials, getHttpObj())
   return (httpObj, getAPIService(API.CLOUDRESOURCEMANAGER_V1, httpObj))
 
 def enableGAMProjectAPIs(httpObj, projectId, checkEnabled, i=0, count=0):
@@ -31617,7 +31617,7 @@ def getDriveFileAttribute(myarg, body, parameters, assignLocalName):
   else:
     unknownArgumentExit()
 
-DRIVE_ACTIVITY_V1_TITLES = ['user.name', 'user.emailAddress', 'user.permissionId', 'target.id', 'target.name', 'target.mimeType', 'eventTime']
+DRIVE_ACTIVITY_V1_TITLES = ['user.name', 'user.permissionId', 'target.id', 'target.name', 'target.mimeType', 'eventTime']
 DRIVE_ACTIVITY_V2_TITLES = ['user.name', 'user.emailAddress', 'target.id', 'target.name', 'target.mimeType', 'eventTime']
 DRIVE_ACTIVITY_ACTION_MAP = {
   'comment': ('comment', 'COMMENT'),
@@ -31860,14 +31860,13 @@ def printDriveActivity(users):
                 else:
                   if event['primaryEventType'] in actions:
                     continue
-              eventRow = flattenJSON(event, flattened={'user.emailAddress': user if event['user']['isMe'] else ''})
+              eventRow = flattenJSON(event, flattened={})
               if not FJQC.formatJSON:
                 csvPF.WriteRowTitles(eventRow)
               elif csvPF.CheckRowTitles(eventRow):
                 eventRow = {}
                 if 'user' in event:
                   eventRow['user.name'] = event['user']['name']
-                  eventRow['user.emailAddress'] = user if event['user']['isMe'] else ''
                   eventRow['user.permissionId'] = event['user']['permissionId']
                 eventRow['target.id'] = event['target']['id']
                 eventRow['target.name'] = event['target']['name']

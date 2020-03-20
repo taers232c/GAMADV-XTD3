@@ -1,7 +1,3 @@
-5.00.09
-
-Added column `user.emailAddress` to output from `gam <UserTypeEntity> print|show driveactivity` when the `v2` option is not used.
-
 5.00.08
 
 Added option `tdcellwrap clip|overflow|wrap` to `todrive` options to allow specification of the
