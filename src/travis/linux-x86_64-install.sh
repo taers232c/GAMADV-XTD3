@@ -27,6 +27,7 @@ else
     tar cfJ $GAM_LEGACY_ARCHIVE $gampath/
     echo "Legacy StaticX GAM info:"
     du -h $gampath/gam
+    chmod 755 $gampath/gam
     time $gam version extended
   fi
 fi
