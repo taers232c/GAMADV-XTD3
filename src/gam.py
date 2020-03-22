@@ -7740,7 +7740,7 @@ def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo,
 
 {console_url}
 
-1. Choose "Desktop App" for "Application type"".
+1. Choose "Desktop App" for "Application type".
 2. Enter "GAM" or another desired value for "Name".
 3. Click the blue "Create" button.
 4. Copy your "client ID" value that shows on the next page.
