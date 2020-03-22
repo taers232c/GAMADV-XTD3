@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.00.09'
+__version__ = '5.00.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7740,7 +7740,7 @@ def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo,
 
 {console_url}
 
-1. Choose "Other".
+1. Choose "Desktop App" for "Application type"".
 2. Enter "GAM" or another desired value for "Name".
 3. Click the blue "Create" button.
 4. Copy your "client ID" value that shows on the next page.
@@ -36135,19 +36135,21 @@ def transferDrive(users):
 
   def _buildTargetFile(folderName, folderParentId):
     try:
+      op = 'Find Target Folder"'
       result = callGAPIpages(targetDrive.files(), 'list', 'files',
-                             throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                             throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.BAD_REQUEST],
                              retry_reasons=[GAPI.UNKNOWN_ERROR],
                              orderBy=OBY.orderBy,
                              q=MY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS.format(escapeDriveFileName(folderName), folderParentId),
                              fields='nextPageToken,files(id)')
       if result:
         return result[0]['id']
+      op = 'Create Target Folder'
       return callGAPI(targetDrive.files(), 'create',
-                      throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS, GAPI.UNKNOWN_ERROR],
+                      throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS, GAPI.UNKNOWN_ERROR, GAPI.BAD_REQUEST],
                       body={'parents': [folderParentId], 'name': folderName, 'mimeType': MIMETYPE_GA_FOLDER}, fields='id')['id']
-    except (GAPI.forbidden, GAPI.insufficientPermissions, GAPI.unknownError) as e:
-      entityActionFailedWarning([Ent.USER, targetUser, Ent.DRIVE_FOLDER, folderName], str(e))
+    except (GAPI.forbidden, GAPI.insufficientPermissions, GAPI.unknownError, GAPI.badRequest) as e:
+      entityActionFailedWarning([Ent.USER, targetUser, Ent.DRIVE_FOLDER, folderName], f'{op}: {str(e)}')
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(targetUser, str(e))
     return None
@@ -36216,27 +36218,31 @@ def transferDrive(users):
       try:
         actionUser = sourceUser
         if not updateTargetPermission:
+          op = 'Create Source ACL'
           callGAPI(sourceDrive.permissions(), 'create',
-                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST, GAPI.SHARING_RATE_LIMIT_EXCEEDED],
+                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID_SHARING_REQUEST, GAPI.SHARING_RATE_LIMIT_EXCEEDED],
                    fileId=childFileId, sendNotificationEmail=False, body=targetWriterPermissionsBody, fields='')
+        op = 'Update Source ACL'
         callGAPI(sourceDrive.permissions(), 'update',
                  throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID_OWNERSHIP_TRANSFER,
                                                                 GAPI.PERMISSION_NOT_FOUND, GAPI.SHARING_RATE_LIMIT_EXCEEDED],
                  fileId=childFileId, permissionId=targetPermissionId,
                  transferOwnership=True, body={'role': 'owner'}, fields='')
         if removeSourceParents:
+          op = 'Remove Source Parents'
           callGAPI(sourceDrive.files(), 'update',
-                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS, retry_reasons=[GAPI.FILE_NOT_FOUND], retries=3,
+                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS, retry_reasons=[GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND], retries=3,
                    fileId=childFileId, removeParents=','.join(removeSourceParents), fields='')
         actionUser = targetUser
         if addTargetParents or removeTargetParents:
+          op = 'Add/Remove Target Parents'
           callGAPI(targetDrive.files(), 'update',
-                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS, retry_reasons=[GAPI.FILE_NOT_FOUND], retries=3,
+                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS, retry_reasons=[GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND], retries=3,
                    fileId=childFileId, addParents=','.join(addTargetParents), removeParents=','.join(removeTargetParents), fields='')
         entityModifierNewValueItemValueListActionPerformed([Ent.USER, sourceUser, childFileType, childFileName], Act.MODIFIER_TO, None, [Ent.USER, targetUser], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
               GAPI.badRequest, GAPI.sharingRateLimitExceeded) as e:
-        entityActionFailedWarning([Ent.USER, actionUser, childFileType, childFileName], str(e), j, jcount)
+        entityActionFailedWarning([Ent.USER, actionUser, childFileType, childFileName], f'{op}: {str(e)}', j, jcount)
       except GAPI.permissionNotFound:
         entityDoesNotHaveItemWarning([Ent.USER, actionUser, childFileType, childFileName, Ent.PERMISSION_ID, targetPermissionId], j, jcount)
       except GAPI.invalidSharingRequest as e:
@@ -36727,6 +36733,7 @@ def transferDrive(users):
           j += 1
           fileTree = {}
           parentIdMap = {sourceRootId: targetIds[TARGET_PARENT_ID]}
+          Act.Set(Act.TRANSFER_OWNERSHIP)
           try:
             fileEntry = callGAPI(sourceDrive.files(), 'get',
                                  throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,

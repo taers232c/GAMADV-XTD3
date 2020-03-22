@@ -1,3 +1,9 @@
+5.00.10
+
+Google changed the `Application type` option when creating a project; previously you chose `Other`, now you choose `Desktop App`.
+
+Fixed bug in `gam transfer drive` where action messages were incorrect.
+
 5.00.09
 
 Fixed issue where excessive API cache files were being generated. Issue the following command
