@@ -24,10 +24,10 @@ else
     strip $gampath/gam-staticx
     rm $gampath/gam
     mv $gampath/gam-staticx $gampath/gam
+    chmod 755 $gampath/gam
     tar cfJ $GAM_LEGACY_ARCHIVE $gampath/
     echo "Legacy StaticX GAM info:"
     du -h $gampath/gam
-    chmod 755 $gampath/gam
     time $gam version extended
   fi
 fi
