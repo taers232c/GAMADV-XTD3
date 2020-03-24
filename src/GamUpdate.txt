@@ -1,3 +1,11 @@
+5.00.11
+
+Changed code to shorten the public key lifetime in `gam create|user project` to stay within a Google limit.
+The old lifetime value caused this error:
+```
+ERROR: 400: 400 - The given public key has a lifetime of 315,446,400 seconds, which is longer than the max allowed lifetime of 315,360,000 seconds as specified in resource settings.
+```
+
 5.00.10
 
 Google changed the `Application type` option when creating a project; previously you chose `Other`, now you choose `Desktop App`.

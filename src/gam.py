@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.00.10'
+__version__ = '5.00.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -8480,7 +8480,7 @@ def _generatePrivateKeyAndPublicCert(projectId, clientEmail, name, key_size):
   builder = builder.subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)]))
   builder = builder.issuer_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)]))
   not_valid_before = datetime.datetime.today() - datetime.timedelta(days=1)
-  not_valid_after = datetime.datetime.today() + datetime.timedelta(days=365*10)
+  not_valid_after = datetime.datetime.today() + datetime.timedelta(days=365*10-1)
   builder = builder.not_valid_before(not_valid_before)
   builder = builder.not_valid_after(not_valid_after)
   builder = builder.serial_number(x509.random_serial_number())
