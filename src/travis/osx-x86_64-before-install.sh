@@ -1,6 +1,6 @@
 mypath=$HOME
 whereibelong=$(pwd)
-cpucount=$(nproc --all)
+cpucount=$(sysctl -n hw.ncpu)
 cpucount2=$(( $cpucount * 2 ))
 echo "This device has $cpucount CPUs for compiling..."
 
