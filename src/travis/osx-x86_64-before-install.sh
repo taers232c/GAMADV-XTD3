@@ -1,5 +1,9 @@
 mypath=$HOME
 whereibelong=$(pwd)
+cpucount=$(nproc --all)
+cpucount2=$(( $cpucount * 2 ))
+echo "This device has $cpucount CPUs for compiling..."
+
 #echo "Brew installing xz..."
 #brew install xz > /dev/null
 
@@ -44,8 +48,6 @@ export LD_LIBRARY_PATH=~/ssl/lib:~/python/lib
 export openssl=~/ssl/bin/openssl
 export python=~/python/bin/python3
 export pip=~/python/bin/pip3
-cpucount=$(nproc --all)
-echo "This device has $cpucount CPUs for compiling..."
 SSLVER=$($openssl version)
 SSLRESULT=$?
 PYVER=$($python -V)
@@ -98,7 +100,7 @@ if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $BUILD_OPENSSL_VERSION "* ]]
     echo "running configure with safe and unsafe"
     ./configure $safe_flags $unsafe_flags > /dev/null
   fi
-  make -j$cpucount PROFILE_TASK="-m test.regrtest --pgo -j$(( $cpucount * 2 ))" -s
+  make -j$cpucount PROFILE_TASK="-m test.regrtest --pgo -j$cpucount2" -s
   RESULT=$?
   echo "First make exited with $RESULT"
   if [ $RESULT != 0 ]; then
