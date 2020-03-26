@@ -3836,6 +3836,7 @@ gam <UserTypeEntity> print|show driveactivity [v2] [todrive <ToDriveAttributes>*
         [(fileid <DriveFileID>) | (folderid <DriveFolderID>) |
          (drivefilename <DriveFileName>) | (drivefoldername <DriveFolderName>) | (query <QueryDriveFile>)]
         [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [action|actions [not] <DriveActivityActionList>]
+        [allevents|combinedevents|singleevents] [groupingstrategy driveui|none]
         [formatjson] [quotechar <Character>]
 
 <DriveSettingsFieldName> ::=

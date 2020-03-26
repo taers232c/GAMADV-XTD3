@@ -1,8 +1,16 @@
-5.00.12
+5.01.00
 
 Upgraded to Python 3.8.2 and OpenSSL 1.1.1e.
 
 Added synonyms `endtime, starttime, originalstarttime` for `end, start, originalstart` in `<EventAttribute>` and `<EventFieldName>`.
+
+Added option `groupingstrategy driveui|none` to `gam <UserTypeEntity> print|show driveactivity`; the default is `none`.
+This option is only effective when option `v2` is not specified.
+
+Added options `allevents|combinedevents|singleevents` to `gam <UserTypeEntity> print|show driveactivity` to allow selection
+of the type of events to display. The default is `combinedevents`, the only events displayed in previous versions.
+This option is only effective when option `v2` is not specified.
+
 
 5.00.11
 

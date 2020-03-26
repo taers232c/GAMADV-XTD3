@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.00.12'
+__version__ = '5.01.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -550,10 +550,6 @@ def invalidOauth2TxtExit():
 def expiredRevokedOauth2TxtExit():
   stderrErrorMsg(Msg.IS_EXPIRED_OR_REVOKED.format(Ent.Singular(Ent.OAUTH2_TXT_FILE), GC.Values[GC.OAUTH2_TXT]))
   writeStderr(Msg.EXECUTE_GAM_OAUTH_CREATE)
-  systemErrorExit(OAUTH2_TXT_REQUIRED_RC, None)
-
-def invalidOauth2TxtImportExit(importFile):
-  stderrErrorMsg(Msg.HAS_INVALID_FORMAT.format(Ent.Singular(Ent.OAUTH2_TXT_FILE), importFile))
   systemErrorExit(OAUTH2_TXT_REQUIRED_RC, None)
 
 def invalidDiscoveryJsonExit(fileName):
@@ -3520,7 +3516,7 @@ def getService(api, httpObj):
           waitOnFailure(n, retries, INVALID_JSON_RC, Msg.INVALID_JSON_INFORMATION)
           continue
         systemErrorExit(INVALID_JSON_RC, Msg.INVALID_JSON_INFORMATION)
-      except (http_client.ResponseNotReady, socket.error) as e:
+      except (http_client.ResponseNotReady, socket.error, googleapiclient.errors.HttpError) as e:
         errMsg = f'Connection error: {str(e) or repr(e)}'
         if n != retries:
           waitOnFailure(n, retries, SOCKET_ERROR_RC, errMsg)
@@ -8500,12 +8496,13 @@ def _generatePrivateKeyAndPublicCert(projectId, clientEmail, name, key_size):
   return (private_pem, publicKeyData)
 
 def _formatOAuth2ServiceData(projectId, clientEmail, clientId, private_key, private_key_id):
+  quotedEmail = quote(clientEmail)
   GM.Globals[GM.OAUTH2SERVICE_JSON_DATA] = {
     'auth_provider_x509_cert_url': 'https://www.googleapis.com/oauth2/v1/certs',
     'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
     'client_email': clientEmail,
     'client_id': clientId,
-    'client_x509_cert_url': f'https://www.googleapis.com/robot/v1/metadata/x509/{quote(clientEmail)}',
+    'client_x509_cert_url': f'https://www.googleapis.com/robot/v1/metadata/x509/{quotedEmail}',
     'private_key': private_key,
     'private_key_id': private_key_id,
     'project_id': projectId,
@@ -31650,10 +31647,16 @@ DRIVE_ACTIVITY_ACTION_MAP = {
   'upload': ('upload', 'CREATE'),
   }
 
+GROUPING_STRATEGY_CHOICE_MAP = {
+  'driveui': 'driveUi',
+  'none': 'none'
+  }
+
 # gam <UserTypeEntity> print|show driveactivity [v2] [todrive <ToDriveAttributes>*]
 #	[(fileid <DriveFileID>) | (folderid <DriveFolderID>) |
 #	 (drivefilename <DriveFileName>) | (drivefoldername <DriveFolderName>) | (query <QueryDriveFile>)]
 #	[start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [action|actions [not] <DriveActivityActionList>]
+#	[allevents|combinedevents|singleevents] [groupingstrategy driveui|none]
 #	[formatjson] [quotechar <Character>]
 def printDriveActivity(users):
   def _getUserInfo(userId):
@@ -31687,11 +31690,42 @@ def printDriveActivity(users):
           v['personName'] = entry[1]
           break
 
+  def _processV1Event(event):
+    event['eventTime'] = formatLocalTimestamp(event['eventTimeMillis'])
+    if filterTime:
+      timeValue, _ = iso8601.parse_date(event['eventTime'])
+      if not (((startEndTime.startDateTime is None) or (timeValue >= startEndTime.startDateTime)) and
+              ((startEndTime.endDateTime is None) or (timeValue <= startEndTime.endDateTime))):
+        return
+    if actions:
+      if not negativeAction:
+        if event['primaryEventType'] not in actions:
+          return
+      else:
+        if event['primaryEventType'] in actions:
+          return
+    eventRow = flattenJSON(event, flattened={})
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(eventRow)
+    elif csvPF.CheckRowTitles(eventRow):
+      eventRow = {}
+      if 'user' in event:
+        eventRow['user.name'] = event['user']['name']
+        eventRow['user.permissionId'] = event['user']['permissionId']
+      eventRow['target.id'] = event['target']['id']
+      eventRow['target.name'] = event['target']['name']
+      eventRow['target.mimeType'] = event['target']['mimeType']
+      eventRow['eventTime'] = event['eventTime']
+      eventRow['JSON'] = json.dumps(cleanJSON(event), ensure_ascii=False, sort_keys=True)
+      csvPF.WriteRowNoFilter(eventRow)
+
   startEndTime = StartEndTime()
   baseFileList = []
   query = ''
   activityFilter = ''
   actions = set()
+  v1fields = 'nextPageToken,activities(combinedEvent)'
+  groupingStrategy = 'none'
   negativeAction = False
   filterTime = False
   v2 = checkArgumentPresent(['v2'])
@@ -31724,6 +31758,14 @@ def printDriveActivity(users):
             actions.add(mappedAction)
         else:
           invalidChoiceExit(action, DRIVE_ACTIVITY_ACTION_MAP, True)
+    elif myarg == 'allevents':
+      v1fields = 'nextPageToken,activities(combinedEvent,singleEvents)'
+    elif myarg == 'combinedevents':
+      v1fields = 'nextPageToken,activities(combinedEvent)'
+    elif myarg == 'singleevents':
+      v1fields = 'nextPageToken,activities(singleEvents)'
+    elif myarg == 'groupingstrategy':
+      groupingStrategy = getChoice(GROUPING_STRATEGY_CHOICE_MAP, mapChoice=True)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if not baseFileList and not query:
@@ -31793,7 +31835,7 @@ def printDriveActivity(users):
           'filter': activityFilter}
       else:
         kwargs = {
-          'groupingStrategy': 'none',
+          'groupingStrategy': groupingStrategy,
           'pageSize': GC.Values[GC.ACTIVITY_MAX_RESULTS],
           'pageToken': pageToken,
           drive_key: fileId,
@@ -31808,7 +31850,7 @@ def printDriveActivity(users):
           else:
             feed = callGAPI(activity.activities(), 'list',
                             throw_reasons=GAPI.ACTIVITY_THROW_REASONS,
-                            fields='nextPageToken,activities(combinedEvent)', **kwargs)
+                            fields=v1fields, **kwargs)
         except GAPI.badRequest as e:
           entityActionFailedWarning([Ent.USER, user, entityType, fileId], str(e), i, count)
           break
@@ -31859,34 +31901,10 @@ def printDriveActivity(users):
                   csvPF.WriteRowNoFilter(eventRow)
           else:
             for activityEvent in feed.get('activities', []):
-              event = activityEvent['combinedEvent']
-              event['eventTime'] = formatLocalTimestamp(event['eventTimeMillis'])
-              if filterTime:
-                timeValue, _ = iso8601.parse_date(event['eventTime'])
-                if not (((startEndTime.startDateTime is None) or (timeValue >= startEndTime.startDateTime)) and
-                        ((startEndTime.endDateTime is None) or (timeValue <= startEndTime.endDateTime))):
-                  continue
-              if actions:
-                if not negativeAction:
-                  if event['primaryEventType'] not in actions:
-                    continue
-                else:
-                  if event['primaryEventType'] in actions:
-                    continue
-              eventRow = flattenJSON(event, flattened={})
-              if not FJQC.formatJSON:
-                csvPF.WriteRowTitles(eventRow)
-              elif csvPF.CheckRowTitles(eventRow):
-                eventRow = {}
-                if 'user' in event:
-                  eventRow['user.name'] = event['user']['name']
-                  eventRow['user.permissionId'] = event['user']['permissionId']
-                eventRow['target.id'] = event['target']['id']
-                eventRow['target.name'] = event['target']['name']
-                eventRow['target.mimeType'] = event['target']['mimeType']
-                eventRow['eventTime'] = event['eventTime']
-                eventRow['JSON'] = json.dumps(cleanJSON(event), ensure_ascii=False, sort_keys=True)
-                csvPF.WriteRowNoFilter(eventRow)
+              if 'combinedEvent' in activityEvent:
+                _processV1Event(activityEvent['combinedEvent'])
+              for event in activityEvent.get('singleEvents', []):
+                _processV1Event(event)
           del feed
         if not pageToken:
           _finalizeGAPIpagesResult(page_message)
