@@ -20397,11 +20397,11 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
     body['source'] = {'title': getString(Cmd.OB_STRING), 'url': getString(Cmd.OB_URL)}
   elif myarg == 'summary':
     body['summary'] = getString(Cmd.OB_STRING, minLen=0)
-  elif myarg == 'start':
+  elif myarg in  {'start', 'starttime'}:
     body['start'] = getEventTime()
-  elif myarg == 'originalstart':
+  elif myarg in {'originalstart', 'originalstarttime'}:
     body['originalStart'] = getEventTime()
-  elif myarg == 'end':
+  elif myarg in {'end', 'endtime'}:
     body['end'] = getEventTime()
   elif myarg == 'attachment':
     body.setdefault('attachments', [])
@@ -21161,6 +21161,7 @@ EVENT_FIELDS_CHOICE_MAP = {
   'creator': 'creator',
   'description': 'description',
   'end': 'end',
+  'endtime': 'end',
   'endtimeunspecified': 'endTimeUnspecified',
   'extendedproperties': 'extendedProperties',
   'gadget': 'gadget',
@@ -21182,6 +21183,7 @@ EVENT_FIELDS_CHOICE_MAP = {
   'sequence': 'sequence',
   'source': 'source',
   'start': 'start',
+  'starttime': 'start',
   'status': 'status',
   'summary': 'summary',
   'transparency': 'transparency',

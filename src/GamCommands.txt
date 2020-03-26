@@ -1025,7 +1025,7 @@ gam calendar|calendars <CalendarEntity> printacl [todrive <ToDriveAttribute>*] [
         available|
         (colorindex|colorid <EventColorIndex>))|
         (description <String>)|
-        (end (allday <Date>)|<Time>)|
+        (end|endtime (allday <Date>)|<Time>)|
         (guestscaninviteothers <Boolean>)|
         guestscantinviteothers|
         (guestscanmodify <Boolean>)|
@@ -1037,14 +1037,14 @@ gam calendar|calendars <CalendarEntity> printacl [todrive <ToDriveAttribute>*] [
         (location <String>)|
         (noreminders|(reminder email|popup|sms <Number>))|
         (optionalattendee <EmailAddress>)|
-        (originalstart (allday <Date>)|<Time>)|
+        (originalstart|originalstarttime (allday <Date>)|<Time>)|
         (privateproperty <PropertyKey> <PropertyValue>)|
         (recurrence <RRULE, EXRULE, RDATE and EXDATE line>)|
         (reminder <Number> email|popup|sms))|
         (sequence <Integer>)|
         (sharedproperty <PropertyKey> <PropertyValue>)|
         (source <String> <URL>)|
-        (start (allday <Date>)|<Time>)|
+        (start|starttime (allday <Date>)|<Time>)|
         (status confirmed|tentative|cancelled)|
         (summary <String>)|
         tentative|
@@ -1140,7 +1140,7 @@ gam calendar|calendars <CalendarEntity> empty calendartrash
         creator|
         <EventCreatorSubfieldName>|
         description|
-        end|
+        end|endtime|
         endtimeunspecified|
         extendedproperties|
         gadget|
@@ -1155,14 +1155,14 @@ gam calendar|calendars <CalendarEntity> empty calendartrash
         locked|
         organizer|
         <EventOrganizerSubfieldName>|
-        originalstarttime|
+        originalstart|originalstarttime|
         privatecopy|
         recurrence|
         recurringeventid|
         reminders|
         sequence|
         source|
-        start|
+        start|starttime|
         status|
         summary|
         transparency|

@@ -2,6 +2,8 @@
 
 Upgraded to Python 3.8.2 and OpenSSL 1.1.1e.
 
+Added synonyms `endtime, starttime, originalstarttime` for `end, start, originalstart` in `<EventAttribute>` and `<EventFieldName>`.
+
 5.00.11
 
 Changed code to shorten the public key lifetime in `gam create|use project` to stay within a Google limit.
