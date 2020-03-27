@@ -3233,6 +3233,7 @@ gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <
         (matchfield creatoremail <RegularExpression>)|
         (matchfield creatorname <RegularExpression>)|
         (matchfield description <RegularExpression>)|
+        (matchfield hangoutlink <RegularExpression>)|
         (matchfield location <RegularExpression>)|
         (matchfield organizeremail <RegularExpression>)|
         (matchfield organizername <RegularExpression>)|
@@ -3837,6 +3838,8 @@ gam <UserTypeEntity> print|show driveactivity [v2] [todrive <ToDriveAttributes>*
          (drivefilename <DriveFileName>) | (drivefoldername <DriveFolderName>) | (query <QueryDriveFile>)]
         [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [action|actions [not] <DriveActivityActionList>]
         [allevents|combinedevents|singleevents] [groupingstrategy driveui|none]
+        [consolidationstrategy legacy|none]
+        [idmapfile <FileName>|(gsheet <UserGoogleSheet>) [charset <String>] [columndelimiter <Character>] [quotechar <Character>]]
         [formatjson] [quotechar <Character>]
 
 <DriveSettingsFieldName> ::=

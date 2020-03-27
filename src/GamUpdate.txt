@@ -1,3 +1,16 @@
+5.01.01
+
+Added option `consolidationstrategy legacy|none` to `gam <UserTypeEntity> print|show driveactivity`; the default is `none`.
+This option is only effective when option `v2` is specified.
+
+Added option `idmapfile <FileName>|(gsheet <UserGoogleSheet>) [charset <String>] [columndelimiter <Character>] [quotechar <Character>]`
+to `gam <UserTypeEntity> print|show driveactivity`.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Activity-Settings#display-drive-activity
+
+Added option `matchfield hangoutlink <RegularExpression>` to `<EventMatchProperty>` so you can search for events with a specific Hangout Link.
+
+Added additional error handling to `gam create course copyfrom`.
+
 5.01.00
 
 Upgraded to Python 3.8.2 and OpenSSL 1.1.1e.

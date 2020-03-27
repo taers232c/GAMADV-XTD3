@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.01.00'
+__version__ = '5.01.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -20242,6 +20242,7 @@ LIST_EVENTS_MATCH_FIELDS = {
   'attendeespattern': ['attendees', 'match'],
   'attendeesstatus': ['attendees', 'status'],
   'description': ['description'],
+  'hangoutlink': ['hangoutLink'],
   'location': ['location'],
   'summary': ['summary'],
   'creatorname': ['creator', 'displayName'],
@@ -20526,7 +20527,10 @@ def _eventMatches(event, match):
       eventAttr = eventAttr.get(attr, '')
       if not eventAttr:
         break
-    return match[1].search(eventAttr) is not None
+    if match[0][0] != 'hangoutLink':
+      return match[1].search(eventAttr) is not None
+# vkj-przn-nvg or vkjprznnvg
+    return match[1].search(eventAttr) is not None or match[1].search(eventAttr.replace('-', '')) is not None
   attendees = [attendee['email'] for attendee in event.get('attendees', []) if 'email' in attendee]
   if not attendees:
     return False
@@ -26151,14 +26155,14 @@ class CourseAttributes():
         try:
           result = callGAPI(tcroom.courses().announcements(), 'create',
                             throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN,
-                                           GAPI.BAD_REQUEST, GAPI.FAILED_PRECONDITION, GAPI.BACKEND_ERROR],
+                                           GAPI.BAD_REQUEST, GAPI.FAILED_PRECONDITION, GAPI.BACKEND_ERROR, GAPI.INTERNAL_ERROR],
                             courseId=newCourseId, body=body, fields='id')
           entityModifierItemValueListActionPerformed([Ent.COURSE, newCourseId, Ent.COURSE_ANNOUNCEMENT_ID, result['id']], Act.MODIFIER_FROM,
                                                      [Ent.COURSE, self.courseId, Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], j, jcount)
         except GAPI.notFound as e:
           entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
           return
-        except (GAPI.badRequest, GAPI.failedPrecondition, GAPI.backendError) as e:
+        except (GAPI.badRequest, GAPI.failedPrecondition, GAPI.backendError, GAPI.internalError) as e:
           entityModifierItemValueListActionFailedWarning([Ent.COURSE, newCourseId], Act.MODIFIER_FROM,
                                                          [Ent.COURSE, self.courseId, Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], str(e), j, jcount)
         except (GAPI.permissionDenied, GAPI.forbidden):
@@ -26182,14 +26186,14 @@ class CourseAttributes():
           result = callGAPI(tcroom.courses().courseWork(), 'create',
                             bailOnInternalError=True,
                             throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN,
-                                           GAPI.BAD_REQUEST, GAPI.FAILED_PRECONDITION, GAPI.BACKEND_ERROR],
+                                           GAPI.BAD_REQUEST, GAPI.FAILED_PRECONDITION, GAPI.BACKEND_ERROR, GAPI.INTERNAL_ERROR],
                             courseId=newCourseId, body=body, fields='id')
           entityModifierItemValueListActionPerformed([Ent.COURSE, newCourseId, Ent.COURSE_WORK_ID, result['id']], Act.MODIFIER_FROM,
                                                      [Ent.COURSE, self.courseId, Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
         except GAPI.notFound as e:
           entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
           return
-        except (GAPI.badRequest, GAPI.failedPrecondition, GAPI.backendError) as e:
+        except (GAPI.badRequest, GAPI.failedPrecondition, GAPI.backendError, GAPI.internalError) as e:
           entityModifierItemValueListActionFailedWarning([Ent.COURSE, newCourseId], Act.MODIFIER_FROM,
                                                          [Ent.COURSE, self.courseId, Ent.COURSE_WORK_ID, courseWorkId], str(e), j, jcount)
         except (GAPI.permissionDenied, GAPI.forbidden):
@@ -31647,9 +31651,9 @@ DRIVE_ACTIVITY_ACTION_MAP = {
   'upload': ('upload', 'CREATE'),
   }
 
-GROUPING_STRATEGY_CHOICE_MAP = {
-  'driveui': 'driveUi',
-  'none': 'none'
+CONSOLIDATION_GROUPING_STRATEGY_CHOICE_MAP = {
+  False: {'driveui': 'driveUi', 'legacy': 'driveUi', 'none': 'none'}, #v1
+  True: {'driveui': 'legacy', 'legacy': 'legacy', 'none': 'none'} #v2
   }
 
 # gam <UserTypeEntity> print|show driveactivity [v2] [todrive <ToDriveAttributes>*]
@@ -31657,6 +31661,8 @@ GROUPING_STRATEGY_CHOICE_MAP = {
 #	 (drivefilename <DriveFileName>) | (drivefoldername <DriveFolderName>) | (query <QueryDriveFile>)]
 #	[start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [action|actions [not] <DriveActivityActionList>]
 #	[allevents|combinedevents|singleevents] [groupingstrategy driveui|none]
+#	[consolidationstrategy legacy|none]
+#	[idmapfile <FileName>|(gsheet <UserGoogleSheet>) [charset <String>] [columndelimiter <Character>] [quotechar <Character>]]
 #	[formatjson] [quotechar <Character>]
 def printDriveActivity(users):
   def _getUserInfo(userId):
@@ -31670,7 +31676,7 @@ def printDriveActivity(users):
                           fields='user(displayName,emailAddress)')
         entry = (result['user']['emailAddress'], result['user']['displayName'])
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
-        entry = (f'uid:{userId}', '')
+        entry = (f'uid:{userId}', 'Unknown')
       userInfo[userId] = entry
     return entry
 
@@ -31704,6 +31710,11 @@ def printDriveActivity(users):
       else:
         if event['primaryEventType'] in actions:
           return
+    if 'user' in event and userInfo:
+      permissionId = event['user']['permissionId']
+      if permissionId not in userInfo:
+        userInfo[permissionId] = 'Unknown'
+      event['user']['emailAddress'] = userInfo[permissionId]
     eventRow = flattenJSON(event, flattened={})
     if not FJQC.formatJSON:
       csvPF.WriteRowTitles(eventRow)
@@ -31712,6 +31723,8 @@ def printDriveActivity(users):
       if 'user' in event:
         eventRow['user.name'] = event['user']['name']
         eventRow['user.permissionId'] = event['user']['permissionId']
+        if userInfo:
+          eventRow['user.emailAddress'] = event['user']['emailAddress']
       eventRow['target.id'] = event['target']['id']
       eventRow['target.name'] = event['target']['name']
       eventRow['target.mimeType'] = event['target']['mimeType']
@@ -31725,7 +31738,7 @@ def printDriveActivity(users):
   activityFilter = ''
   actions = set()
   v1fields = 'nextPageToken,activities(combinedEvent)'
-  groupingStrategy = 'none'
+  strategy = 'none'
   negativeAction = False
   filterTime = False
   v2 = checkArgumentPresent(['v2'])
@@ -31758,14 +31771,28 @@ def printDriveActivity(users):
             actions.add(mappedAction)
         else:
           invalidChoiceExit(action, DRIVE_ACTIVITY_ACTION_MAP, True)
-    elif myarg == 'allevents':
+    elif not v2 and myarg == 'allevents':
       v1fields = 'nextPageToken,activities(combinedEvent,singleEvents)'
-    elif myarg == 'combinedevents':
+    elif not v2 and myarg == 'combinedevents':
       v1fields = 'nextPageToken,activities(combinedEvent)'
-    elif myarg == 'singleevents':
+    elif not v2 and myarg == 'singleevents':
       v1fields = 'nextPageToken,activities(singleEvents)'
-    elif myarg == 'groupingstrategy':
-      groupingStrategy = getChoice(GROUPING_STRATEGY_CHOICE_MAP, mapChoice=True)
+    elif myarg in {'consolidationstrategy', 'groupingstrategy'}:
+      strategy = getChoice(CONSOLIDATION_GROUPING_STRATEGY_CHOICE_MAP[v2], mapChoice=True)
+    elif myarg == 'idmapfile':
+      f, csvFile, _ = openCSVFileReader(getString(Cmd.OB_FILE_NAME))
+      if not v2:
+        for row in csvFile:
+          userInfo[row['permissionId']] = row['email']
+      else:
+        for row in csvFile:
+          userInfo[row['id']] = (row['primaryEmail'], row.get('name.fullName', 'Unknown'))
+      closeFile(f)
+      if not v2:
+        titles = DRIVE_ACTIVITY_V1_TITLES[:]
+        titles.insert(1, 'user.emailAddress')
+        csvPF.SetTitles(titles)
+        csvPF.SetSortAllTitles()
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if not baseFileList and not query:
@@ -31828,14 +31855,14 @@ def printDriveActivity(users):
       totalItems = 0
       if v2:
         kwargs = {
-          'consolidationStrategy': {'none': {}},
+          'consolidationStrategy': {strategy: {}},
           'pageSize': GC.Values[GC.ACTIVITY_MAX_RESULTS],
           'pageToken': pageToken,
           drive_key: f'items/{fileId}',
           'filter': activityFilter}
       else:
         kwargs = {
-          'groupingStrategy': groupingStrategy,
+          'groupingStrategy': strategy,
           'pageSize': GC.Values[GC.ACTIVITY_MAX_RESULTS],
           'pageToken': pageToken,
           drive_key: fileId,
