@@ -14,6 +14,8 @@ else
   SSLRESULT=$?
   PYVER=$(~/python/bin/python3 -V)
   PYRESULT=$?
+  sudo apt-get -qq --yes install libxml2-dev > /dev/null
+  sudo apt-get -qq --yes install libxslt-dev > /dev/null
   if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $BUILD_OPENSSL_VERSION "* ]] || [ $PYRESULT -ne 0 ] || [[ "$PYVER" != "Python $BUILD_PYTHON_VERSION"* ]]; then
     echo "SSL Result: $SSLRESULT - SSL Ver: $SSLVER - Py Result: $PYRESULT - Py Ver: $PYVER"
     if [ $SSLRESULT -ne 0 ]; then
