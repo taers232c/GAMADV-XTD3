@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.01.01'
+__version__ = '5.01.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -9815,6 +9815,10 @@ def sendCreateUpdateUserNotification(body, notify, tagReplacements, i=0, count=0
   _makeSubstitutions('subject')
   if not notify['message']:
     notify['message'] = Msg.CREATE_USER_NOTIFY_MESSAGE if createMessage else Msg.UPDATE_USER_PASSWORD_CHANGE_NOTIFY_MESSAGE
+  elif notify['html']:
+    notify['message'] = notify['message'].replace('\r', '').replace('\\n', '<br/>')
+  else:
+    notify['message'] = notify['message'].replace('\r', '').replace('\\n', '\n')
   _makeSubstitutions('message')
   if tagReplacements['subs']:
     _getTagReplacementFieldValues(body['primaryEmail'], i, count, tagReplacements, body if createMessage else None)

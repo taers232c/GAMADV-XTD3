@@ -1,3 +1,7 @@
+5.01.02
+
+Fixed bug in `gam create|update user` where linefeed `\n` was not properly processed in `message <String>`.
+
 5.01.01
 
 Added option `consolidationstrategy legacy|none` to `gam <UserTypeEntity> print|show driveactivity`; the default is `none`.
