@@ -548,6 +548,9 @@ class GamCLArgs():
   OB_COURSE_STATE_LIST = "CourseStateList"
   OB_COURSE_SUBMISSION_ID_ENTITY = "CourseSubmissionIDEntity"
   OB_COURSE_SUBMISSION_STATE_LIST = "CourseSubmissionStateList"
+  OB_COURSE_TOPIC = 'CourseTopic'
+  OB_COURSE_TOPIC_ENTITY = "CourseTopicEntity"
+  OB_COURSE_TOPIC_ID = 'CourseTopicID'
   OB_COURSE_TOPIC_ID_ENTITY = "CourseTopicIDEntity"
   OB_COURSE_WORK_ID_ENTITY = 'CourseWorkIDEntity'
   OB_COURSE_WORK_STATE_LIST = "CourseWorkStateList"

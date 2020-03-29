@@ -262,6 +262,7 @@ If an item contains spaces, it should be surrounded by ".
 <CourseState> ::= active|archived|provisioned|declined|suspended
 <CourseSubmissionID> ::= <Number>
 <CourseSubmissionState> ::= new|created|turned_in|returned|reclaimed_by_student
+<CourseTopic> ::= <String>
 <CourseTopicID> ::= <Number>
 <CourseWorkID> ::= <Number>
 <CourseWorkState> ::= draft|published|deleted
@@ -448,6 +449,7 @@ If an item contains spaces, it should be surrounded by ".
 <CourseStateList> ::= all|"<CourseState>(,<CourseState>)*"
 <CourseSubmissionIDList> ::= "<CourseSubmissionID>(,<CourseSubmissionID>)*"
 <CourseSubmissionStateList> ::= all|"<CourseSubmissionState>(,<CourseSubmissionState>)*"
+<CourseTopicList> ::= "<CourseTopic>(,<CourseTopic>)*"
 <CourseTopicIDList> ::= "<CourseTopicID>(,<CourseTopicID>)*"
 <CourseWorkIDList> ::= "<CourseWorkID>(,<CourseWorkID>)*"
 <CourseWorkStateList> ::= all|"<CourseWorkState>(,<CourseWorkState>)*"
@@ -653,6 +655,7 @@ Specify a collection of items by directly specifying them; the item type is dete
 <CourseEntity> ::= <CourseIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
 <CourseAnnouncementIDEntity> ::= <CourseAnnouncementIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>
 <CourseSubmissionIDEntity> ::= <CourseSubmissionIDList> | <FileSelector> | <CSVFileSelector> | <CSVDataSelector>
+<CourseTopicEntity> ::= <CourseTopicList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <CourseTopicIDEntity> ::= <CourseTopicIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>
 <CourseWorkIDEntity> ::= <CourseWorkIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>
 <CrOSEntity> ::=
@@ -1585,26 +1588,32 @@ gam print gal [todrive <ToDriveAttribute>*] <ContactSelection>
 gam create|add course [id|alias <CourseAlias>] <CourseAttribute>*
         [copyfrom <CourseID>
             [announcementstates <CourseAnnouncementStateList>]
-            [workstates <CourseWorkStateList>] [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+            [workstates <CourseWorkStateList>]
+                [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]] [mapsharemodestudentcopy edit|view]
             [copytopics [<Boolean>]]
             [members none|all|students|teachers]]
 gam update course <CourseID> <CourseAttribute>+
         [copyfrom <CourseID>
             [announcementstates <CourseAnnouncementStateList>]
             [copytopics [<Boolean>]]
-            [workstates <CourseWorkStateList>] [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+            [workstates <CourseWorkStateList>]
+                 [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]] [mapsharemodestudentcopy edit|view]
             [members none|all|students|teachers]]
 gam delete course <CourseID> [archive|archived]
 
 gam update courses <CourseEntity> <CourseAttribute>+
         [copyfrom <CourseID>
             [announcementstates <CourseAnnouncementStateList>]
-            [workstates <CourseWorkStateList>] [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+            [workstates <CourseWorkStateList>]
+                [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]] [mapsharemodestudentcopy edit|view]
             [members none|all|students|teachers]]
 gam delete courses <CourseEntity> [archive|archived]
 
 gam course <CourseID> create|add alias <CourseAlias>
 gam course <CourseID> delete alias <CourseAlias>
+
+gam course <CourseID> create|add topic <CourseTopic>
+gam course <CourseID> delete topic <CourseTopicID>
 
 gam course <CourseID> create|add teachers|students <UserItem>
 gam course <CourseID> delete|remove teachers|students <UserItem>
@@ -1613,6 +1622,9 @@ gam course <CourseID> sync teachers|students [addonly|removeonly] <UserTypeEntit
 
 gam courses <CourseEntity> create|add alias <CourseAliasEntity>
 gam courses <CourseEntity> delete alias <CourseAliasEntity>
+
+gam courses <CourseEntity> create|add topic <CourseTopicEntity>
+gam courses <CourseEntity> delete topic <CourseTopicIDEntity>
 
 gam courses <CourseEntity> create|add teachers|students <UserTypeEntity>
 gam courses <CourseEntity> delete|remove teachers|students <UserTypeEntity>

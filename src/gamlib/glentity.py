@@ -91,6 +91,7 @@ class GamEntity():
   COURSE_SUBMISSION_STATE = 'csst'
   COURSE_TOPIC = 'ctop'
   COURSE_TOPIC_ID = 'ctoi'
+  COURSE_WORK = 'cwrk'
   COURSE_WORK_ID = 'cwid'
   COURSE_WORK_STATE = 'cwst'
   CREATOR_ID = 'crid'
@@ -306,6 +307,7 @@ class GamEntity():
     COURSE_SUBMISSION_STATE: ['Course Submission States', 'Course Submission State'],
     COURSE_TOPIC: ['Course Topics', 'Course Topic'],
     COURSE_TOPIC_ID: ['Course Topic IDs', 'Course Topic ID'],
+    COURSE_WORK: ['Course Works', 'Course Work'],
     COURSE_WORK_ID: ['Course Work IDs', 'Course Work ID'],
     COURSE_WORK_STATE: ['Course Work States', 'Course Work State'],
     CREATOR_ID: ['Creator IDs', 'Creator ID'],

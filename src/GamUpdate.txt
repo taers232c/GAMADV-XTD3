@@ -1,3 +1,22 @@
+5.01.03
+
+Added commands to add and remove topics to courses.
+```
+gam course <CourseID> create|add topic <CourseTopic>
+gam course <CourseID> remove topic <CourseTopicID>
+gam courses <CourseEntity> create|add topic <CourseTopicEntity>
+gam courses <CourseEntity> remove topic <CourseTopicIDEntity>
+```
+
+Added option `mapsharemodestudentcopy edit|view` to `gam create|update course copyfrom`.
+Drive files with `shareMode` `Each student will get a copy` don't seem to be able to be copied;
+this option maps that `shareMode` to `Students can edit file` or `Students can view file`.
+When this option is not used, no `shareMode` mapping is performed.
+
+Added additional error handling to `gam create|update course copyfrom`.
+
+Code cleanup.
+
 5.01.02
 
 Fixed bug in `gam create|update user` where linefeed `\n` was not properly processed in `message <String>`.
@@ -13,7 +32,7 @@ to `gam <UserTypeEntity> print|show driveactivity`.
 
 Added option `matchfield hangoutlink <RegularExpression>` to `<EventMatchProperty>` so you can search for events with a specific Hangout Link.
 
-Added additional error handling to `gam create course copyfrom`.
+Added additional error handling to `gam create|update course copyfrom`.
 
 5.01.00
 

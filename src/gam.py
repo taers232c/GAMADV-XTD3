@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.01.02'
+__version__ = '5.01.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -107,6 +107,7 @@ import googleapiclient
 import googleapiclient.discovery
 import googleapiclient.errors
 import googleapiclient.http
+import google.oauth2.credentials
 import google.oauth2.id_token
 import google.oauth2.service_account
 import google_auth_oauthlib.flow
@@ -137,12 +138,15 @@ Ind = glindent.GamIndent()
 if os.environ.get('STATICX_PROG_PATH', False):
   # StaticX static executable
   GM.Globals[GM.GAM_PATH] = os.path.dirname(os.environ['STATICX_PROG_PATH'])
-  # Pyinstaller executable
+  GM.Globals[GM.GAM_TYPE] = 'staticx'
 elif getattr(sys, 'frozen', False):
+  # Pyinstaller executable
   GM.Globals[GM.GAM_PATH] = os.path.dirname(sys.executable)
+  GM.Globals[GM.GAM_TYPE] = 'pyinstaller'
 else:
   # Source code
   GM.Globals[GM.GAM_PATH] = os.path.dirname(os.path.realpath(__file__))
+  GM.Globals[GM.GAM_TYPE] = 'pythonsource'
 
 GIT_USER = 'taers232c'
 GAM = 'GAMADV-XTD3'
@@ -2842,7 +2846,7 @@ def SetGlobalVariables():
                                                            Msg.INVALID, str(e)],
                                                           ''))
     except IOError as e:
-      systemErrorExit(FILE_ERROR_RC, fileErrorMessage(filename, e))
+      systemErrorExit(FILE_ERROR_RC, fileErrorMessage(fileName, e))
 
   def _writeGamCfgFile(config, fileName, action):
     try:
@@ -2850,7 +2854,7 @@ def SetGlobalVariables():
         config.write(f)
       printKeyValueList([Ent.Singular(Ent.CONFIG_FILE), fileName, Act.PerformedName(action)])
     except IOError as e:
-      stderrErrorMsg(fileErrorMessage(filename, e))
+      stderrErrorMsg(fileErrorMessage(fileName, e))
 
   def _verifyValues(sectionName):
     printKeyValueList([Ent.Singular(Ent.SECTION), sectionName]) # Do not use printEntity
@@ -2917,15 +2921,15 @@ def SetGlobalVariables():
                                          '\n'))
           status['errors'] = True
 
-  def _setCSVFile(filename, mode, encoding, writeHeader, multi):
-    if filename != '-':
-      if filename.startswith('./') or filename.startswith('.\\'):
-        filename = os.path.join(os.getcwd(), filename[2:])
+  def _setCSVFile(fileName, mode, encoding, writeHeader, multi):
+    if fileName != '-':
+      if fileName.startswith('./') or fileName.startswith('.\\'):
+        fileName = os.path.join(os.getcwd(), fileName[2:])
       else:
-        filename = os.path.expanduser(filename)
-      if not os.path.isabs(filename):
-        filename = os.path.join(GC.Values[GC.DRIVE_DIR], filename)
-    GM.Globals[GM.CSVFILE][GM.REDIRECT_NAME] = filename
+        fileName = os.path.expanduser(fileName)
+      if not os.path.isabs(fileName):
+        fileName = os.path.join(GC.Values[GC.DRIVE_DIR], fileName)
+    GM.Globals[GM.CSVFILE][GM.REDIRECT_NAME] = fileName
     GM.Globals[GM.CSVFILE][GM.REDIRECT_MODE] = mode
     GM.Globals[GM.CSVFILE][GM.REDIRECT_ENCODING] = encoding
     GM.Globals[GM.CSVFILE][GM.REDIRECT_COLUMN_DELIMITER] = GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER]
@@ -2934,34 +2938,34 @@ def SetGlobalVariables():
     GM.Globals[GM.CSVFILE][GM.REDIRECT_MULTIPROCESS] = multi
     GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = None
 
-  def _setSTDFile(stdtype, filename, mode, multi):
+  def _setSTDFile(stdtype, fileName, mode, multi):
     if stdtype == GM.STDOUT:
       GM.Globals[GM.SAVED_STDOUT] = None
     GM.Globals[stdtype][GM.REDIRECT_STD] = False
-    if filename == 'null':
+    if fileName == 'null':
       GM.Globals[stdtype][GM.REDIRECT_FD] = open(os.devnull, mode)
-    elif filename == '-':
+    elif fileName == '-':
       GM.Globals[stdtype][GM.REDIRECT_STD] = True
       if stdtype == GM.STDOUT:
         GM.Globals[stdtype][GM.REDIRECT_FD] = os.fdopen(os.dup(sys.stdout.fileno()), mode, encoding=GM.Globals[GM.SYS_ENCODING])
       else:
         GM.Globals[stdtype][GM.REDIRECT_FD] = os.fdopen(os.dup(sys.stderr.fileno()), mode, encoding=GM.Globals[GM.SYS_ENCODING])
     else:
-      if filename.startswith('./') or filename.startswith('.\\'):
-        filename = os.path.join(os.getcwd(), filename[2:])
+      if fileName.startswith('./') or fileName.startswith('.\\'):
+        fileName = os.path.join(os.getcwd(), fileName[2:])
       else:
-        filename = os.path.expanduser(filename)
-      if not os.path.isabs(filename):
-        filename = os.path.join(GC.Values[GC.DRIVE_DIR], filename)
+        fileName = os.path.expanduser(fileName)
+      if not os.path.isabs(fileName):
+        fileName = os.path.join(GC.Values[GC.DRIVE_DIR], fileName)
       if multi and mode == DEFAULT_FILE_WRITE_MODE:
-        deleteFile(filename)
+        deleteFile(fileName)
         mode = DEFAULT_FILE_APPEND_MODE
-      GM.Globals[stdtype][GM.REDIRECT_FD] = openFile(filename, mode)
+      GM.Globals[stdtype][GM.REDIRECT_FD] = openFile(fileName, mode)
     GM.Globals[stdtype][GM.REDIRECT_MULTI_FD] = GM.Globals[stdtype][GM.REDIRECT_FD] if not multi else StringIOobject()
     if (stdtype == GM.STDOUT) and (GC.Values[GC.DEBUG_LEVEL] > 0):
       GM.Globals[GM.SAVED_STDOUT] = sys.stdout
       sys.stdout = GM.Globals[stdtype][GM.REDIRECT_MULTI_FD]
-    GM.Globals[stdtype][GM.REDIRECT_NAME] = filename
+    GM.Globals[stdtype][GM.REDIRECT_NAME] = fileName
     GM.Globals[stdtype][GM.REDIRECT_MODE] = mode
     GM.Globals[stdtype][GM.REDIRECT_MULTIPROCESS] = multi
     GM.Globals[stdtype][GM.REDIRECT_QUEUE] = 'stdout' if stdtype == GM.STDOUT else 'stderr'
@@ -3825,11 +3829,15 @@ def callGDataPages(service, function,
     if 'url_params' in kwargs:
       kwargs['url_params'].pop('start-index', None)
 
-def checkGAPIError(e, soft_errors=False, retryOnHttpError=False, service=None):
+def checkGAPIError(e, soft_errors=False, retryOnHttpError=False):
   try:
     error = json.loads(e.content.decode(UTF8))
+    if GC.Values[GC.DEBUG_LEVEL] > 0:
+      writeStdout(f'{ERROR_PREFIX} JSON: {str(error)}+\n')
   except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
     eContent = e.content.decode(UTF8) if isinstance(e.content, bytes) else e.content
+    if GC.Values[GC.DEBUG_LEVEL] > 0:
+      writeStdout(f'{ERROR_PREFIX} HTTP: {str(eContent)}+\n')
     if (e.resp['status'] == '503') and (eContent.startswith('Quota exceeded for the current request')):
       return (e.resp['status'], GAPI.QUOTA_EXCEEDED, eContent)
     if (e.resp['status'] == '403') and (eContent.startswith('Request rate higher than configured')):
@@ -3875,6 +3883,8 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False, service=None):
         error = {'error': {'errors': [{'reason': GAPI.UNKNOWN_ERROR, 'message': message}]}}
       elif 'Backend Error' in message:
         error = {'error': {'errors': [{'reason': GAPI.BACKEND_ERROR, 'message': message}]}}
+      elif 'Internal error encountered' in message:
+        error = {'error': {'errors': [{'reason': GAPI.INTERNAL_ERROR, 'message': message}]}}
       elif 'Role assignment exists: RoleAssignment' in message:
         error = {'error': {'errors': [{'reason': GAPI.DUPLICATE, 'message': message}]}}
       elif 'Role assignment exists: roleId' in message:
@@ -3886,6 +3896,10 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False, service=None):
     elif http_status == 400:
       if 'does not match' in message or 'Invalid' in message:
         error = {'error': {'errors': [{'reason': GAPI.INVALID, 'message': message}]}}
+      elif '@AttachmentNotVisible' in message:
+        error = {'error': {'errors': [{'reason': GAPI.BAD_REQUEST, 'message': message}]}}
+      elif 'Precondition check failed' in message:
+        error = {'error': {'errors': [{'reason': GAPI.FAILED_PRECONDITION, 'message': message}]}}
     elif http_status == 403:
       if 'The caller does not have permission' in message or 'Permission iam.serviceAccountKeys' in message:
         error = {'error': {'errors': [{'reason': GAPI.PERMISSION_DENIED, 'message': message}]}}
@@ -3938,7 +3952,7 @@ def callGAPI(service, function,
     try:
       return method(**svcparms).execute()
     except googleapiclient.errors.HttpError as e:
-      http_status, reason, message = checkGAPIError(e, soft_errors=soft_errors, retryOnHttpError=n < 3, service=service)
+      http_status, reason, message = checkGAPIError(e, soft_errors=soft_errors, retryOnHttpError=n < 3)
       if http_status == -1:
         continue
       if http_status == 0:
@@ -6549,7 +6563,7 @@ def doVersion(checkForArgs=True):
   if simple:
     writeStdout(__version__)
     return
-  writeStdout((f'{GAM} {__version__} - {GAM_URL}\n'
+  writeStdout((f'{GAM} {__version__} - {GAM_URL} - {GM.Globals[GM.GAM_TYPE]}\n'
                f'{__author__}\n'
                f'Python {sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]} {struct.calcsize("P")*8}-bit {sys.version_info[3]}\n'
                f'google-api-python-client {googleapiclient.__version__}\n'
@@ -7736,7 +7750,7 @@ def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo,
 
 {console_url}
 
-1. Choose "Desktop App" for "Application type".
+1. Choose "Desktop App" or "Other" for "Application type".
 2. Enter "GAM" or another desired value for "Name".
 3. Click the blue "Create" button.
 4. Copy your "client ID" value that shows on the next page.
@@ -25929,6 +25943,7 @@ class CourseAttributes():
     self.courseId = None
     self.markPublishedAsDraft = False
     self.removeDueDate = False
+    self.mapShareModeStudentCopy = None
     self.members = 'none'
     self.teachers = []
     self.students = []
@@ -25966,6 +25981,8 @@ class CourseAttributes():
         material['driveFile']['driveFile'].pop('title', None)
         material['driveFile']['driveFile'].pop('alternateLink', None)
         material['driveFile']['driveFile'].pop('thumbnailUrl', None)
+        if material['driveFile'].get('shareMode', '') == 'STUDENT_COPY' and self.mapShareModeStudentCopy is not None:
+          material['driveFile']['shareMode'] = self.mapShareModeStudentCopy
         body['materials'].append(material)
       elif 'youtubeVideo' in material:
         material['youtubeVideo'].pop('title', None)
@@ -25989,6 +26006,11 @@ class CourseAttributes():
     if 'assignment' in body and 'studentWorkFolder' in body['assignment']:
       body['assignment']['studentWorkFolder'].pop('title', None)
       body['assignment']['studentWorkFolder'].pop('alternateLink', None)
+
+  COURSE_MATERIAL_SHAREMODE_MAP = {
+    'edit': 'EDIT',
+    'view': 'VIEW'
+    }
 
   def GetAttributes(self):
     while Cmd.ArgumentsRemaining():
@@ -26023,6 +26045,8 @@ class CourseAttributes():
         self.markPublishedAsDraft = getBoolean()
       elif myarg == 'removeduedate':
         self.removeDueDate = getBoolean()
+      elif myarg == 'mapsharemodestudentcopy':
+        self.mapShareModeStudentCopy = getChoice(self.COURSE_MATERIAL_SHAREMODE_MAP, mapChoice=True)
       elif myarg == 'copytopics':
         self.copyTopics = getBoolean()
       else:
@@ -26111,14 +26135,14 @@ class CourseAttributes():
         return
     if self.members in {'all', 'students'}:
       addParticipants = [student['profile']['emailAddress'] for student in self.students]
-      _batchAddParticipantsToCourse(self.croom, newCourseId, i, count, addParticipants, Ent.STUDENT)
+      _batchAddItemsToCourse(self.croom, newCourseId, i, count, addParticipants, Ent.STUDENT)
     if self.members in {'all', 'teachers'}:
       addParticipants = [teacher['profile']['emailAddress'] for teacher in self.teachers if teacher['profile']['id'] != ownerId]
-      _batchAddParticipantsToCourse(self.croom, newCourseId, i, count, addParticipants, Ent.TEACHER)
+      _batchAddItemsToCourse(self.croom, newCourseId, i, count, addParticipants, Ent.TEACHER)
     if self.copyTopics:
       try:
         newCourseTopics = callGAPIpages(self.croom.courses().topics(), 'list', 'topic',
-                                        throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                        throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.FAILED_PRECONDITION],
                                         courseId=newCourseId, fields='nextPageToken,topic(topicId,name)',
                                         pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         newTopicsByName = {}
@@ -26127,28 +26151,33 @@ class CourseAttributes():
       except GAPI.notFound as e:
         entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
         return
+      except GAPI.failedPrecondition as e:
+        entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
       except GAPI.forbidden:
         ClientAPIAccessDeniedExit()
       jcount = len(self.topicsById)
       j = 0
       for topicId, topicName in self.topicsById.items():
         j += 1
-        if topicName not in newTopicsByName:
-          try:
-            result = callGAPI(tcroom.courses().topics(), 'create',
-                              throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                              courseId=newCourseId, body={'name': topicName}, fields='topicId')
-            newTopicsByName[topicName] = result['topicId']
-            entityModifierItemValueListActionPerformed([Ent.COURSE, newCourseId, Ent.COURSE_TOPIC, topicName], Act.MODIFIER_FROM,
-                                                       [Ent.COURSE, self.courseId], j, jcount)
-          except GAPI.notFound as e:
-            entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
-            return
-          except GAPI.forbidden:
-            SvcAcctAPIAccessDeniedExit()
-        else:
+        if topicName in newTopicsByName:
           entityModifierItemValueListActionNotPerformedWarning([Ent.COURSE, newCourseId, Ent.COURSE_TOPIC, topicName], Act.MODIFIER_FROM,
                                                                [Ent.COURSE, self.courseId], Msg.DUPLICATE, j, jcount)
+          continue
+        try:
+          result = callGAPI(tcroom.courses().topics(), 'create',
+                            throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.FAILED_PRECONDITION],
+                            courseId=newCourseId, body={'name': topicName}, fields='topicId')
+          newTopicsByName[topicName] = result['topicId']
+          entityModifierItemValueListActionPerformed([Ent.COURSE, newCourseId, Ent.COURSE_TOPIC, topicName], Act.MODIFIER_FROM,
+                                                     [Ent.COURSE, self.courseId], j, jcount)
+        except GAPI.notFound as e:
+          entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
+          return
+        except GAPI.failedPrecondition as e:
+          entityModifierItemValueListActionFailedWarning([Ent.COURSE, newCourseId], Act.MODIFIER_FROM,
+                                                         [Ent.COURSE, self.courseId, Ent.COURSE_TOPIC, topicName], str(e), j, jcount)
+        except GAPI.forbidden:
+          SvcAcctAPIAccessDeniedExit()
     if self.courseAnnouncements:
       jcount = len(self.courseAnnouncements)
       j = 0
@@ -26156,6 +26185,10 @@ class CourseAttributes():
         j += 1
         body = courseAnnouncement.copy()
         courseAnnouncementId = body.pop('id')
+        if courseAnnouncement['state'] == 'DELETED':
+          entityModifierItemValueListActionNotPerformedWarning([Ent.COURSE, newCourseId, Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], Act.MODIFIER_FROM,
+                                                               [Ent.COURSE, self.courseId], Msg.DELETED, j, jcount)
+          continue
         try:
           result = callGAPI(tcroom.courses().announcements(), 'create',
                             throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN,
@@ -26178,6 +26211,10 @@ class CourseAttributes():
         j += 1
         body = courseWork.copy()
         courseWorkId = body.pop('id')
+        if courseWork['state'] == 'DELETED':
+          entityModifierItemValueListActionNotPerformedWarning([Ent.COURSE, newCourseId, Ent.COURSE_WORK, f'{body.get("title", courseWorkId)}'], Act.MODIFIER_FROM,
+                                                               [Ent.COURSE, self.courseId], Msg.DELETED, j, jcount)
+          continue
         topicId = body.pop('topicId', None)
         if self.copyTopics:
           if topicId:
@@ -26193,13 +26230,13 @@ class CourseAttributes():
                                            GAPI.BAD_REQUEST, GAPI.FAILED_PRECONDITION, GAPI.BACKEND_ERROR, GAPI.INTERNAL_ERROR],
                             courseId=newCourseId, body=body, fields='id')
           entityModifierItemValueListActionPerformed([Ent.COURSE, newCourseId, Ent.COURSE_WORK_ID, result['id']], Act.MODIFIER_FROM,
-                                                     [Ent.COURSE, self.courseId, Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
+                                                     [Ent.COURSE, self.courseId, Ent.COURSE_WORK, f'{body.get("title", courseWorkId)}'], j, jcount)
         except GAPI.notFound as e:
           entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
           return
         except (GAPI.badRequest, GAPI.failedPrecondition, GAPI.backendError, GAPI.internalError) as e:
           entityModifierItemValueListActionFailedWarning([Ent.COURSE, newCourseId], Act.MODIFIER_FROM,
-                                                         [Ent.COURSE, self.courseId, Ent.COURSE_WORK_ID, courseWorkId], str(e), j, jcount)
+                                                         [Ent.COURSE, self.courseId, Ent.COURSE_WORK, f'{body.get("title", courseWorkId)}'], str(e), j, jcount)
         except (GAPI.permissionDenied, GAPI.forbidden):
           SvcAcctAPIAccessDeniedExit()
 
@@ -26216,7 +26253,7 @@ class CourseAttributes():
 #	 [copyfrom <CourseID>
 #	    [announcementstates <CourseAnnouncementStateList>]
 #	    [workstates <CourseWorkStateList>]
-#	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+#	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]] [mapsharemodestudentcopy edit|view]
 #	    [copytopics [<Boolean>]]
 #	    [members none|all|students|teachers]]
 def doCreateCourse():
@@ -26266,7 +26303,7 @@ def _doUpdateCourses(entityList):
 #	 [copyfrom <CourseID>
 #	    [announcementstates <CourseAnnouncementStateList>]
 #	    [workstates <CourseWorkStateList>]
-#	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+#	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]] [mapsharemodestudentcopy edit|view]
 #	    [copytopics [<Boolean>]]
 #	    [members none|all|students|teachers]]
 def doUpdateCourses():
@@ -26276,7 +26313,7 @@ def doUpdateCourses():
 #	 [copyfrom <CourseID>
 #	    [announcementstates <CourseAnnouncementStateList>]
 #	    [workstates <CourseWorkStateList>]
-#	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+#	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]] [mapsharemodestudentcopy edit|view]
 #	    [copytopics [<Boolean>]]
 #	    [members none|all|students|teachers]]
 def doUpdateCourse():
@@ -27448,9 +27485,9 @@ def doPrintCourseParticipants():
     csvPF.SetSortTitles(COURSE_PARTICIPANTS_SORT_TITLES)
   csvPF.writeCSVfile('Course Participants')
 
-def _batchAddParticipantsToCourse(croom, courseId, i, count, addParticipants, role):
+def _batchAddItemsToCourse(croom, courseId, i, count, addParticipants, role):
   _ADD_PART_REASON_TO_MESSAGE_MAP = {GAPI.ALREADY_EXISTS: Msg.DUPLICATE, GAPI.FAILED_PRECONDITION: Msg.NOT_ALLOWED}
-  def _callbackAddParticipantsToCourse(request_id, response, exception):
+  def _callbackAddItemsToCourse(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
       entityActionPerformed([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
@@ -27468,41 +27505,46 @@ def _batchAddParticipantsToCourse(croom, courseId, i, count, addParticipants, ro
   elif role == Ent.TEACHER:
     method = getattr(croom.courses().teachers(), 'create')
     attribute = 'userId'
-  else:
+  elif role == Ent.COURSE_ALIAS:
     method = getattr(croom.courses().aliases(), 'create')
     attribute = 'alias'
+  else: # role == Ent.COURSE_TOPIC:
+    method = getattr(croom.courses().topics(), 'create')
+    attribute = 'name'
   Act.Set(Act.ADD)
   jcount = len(addParticipants)
   noScopeCourseId = removeCourseIdScope(courseId)
   entityPerformActionNumItems([Ent.COURSE, noScopeCourseId], jcount, role, i, count)
   Ind.Increment()
   svcargs = dict([('courseId', courseId), ('body', {attribute: None}), ('fields', '')]+GM.Globals[GM.EXTRA_ARGS_LIST])
-  dbatch = croom.new_batch_http_request(callback=_callbackAddParticipantsToCourse)
+  dbatch = croom.new_batch_http_request(callback=_callbackAddItemsToCourse)
   bcount = 0
   j = 0
   for participant in addParticipants:
     j += 1
     svcparms = svcargs.copy()
-    if role != Ent.COURSE_ALIAS:
+    if role in {Ent.STUDENT, Ent.TEACHER}:
       svcparms['body'][attribute] = cleanItem = normalizeEmailAddressOrUID(participant)
-    else:
+    elif role == Ent.COURSE_ALIAS:
       svcparms['body'][attribute] = addCourseIdScope(participant)
       cleanItem = removeCourseIdScope(svcparms['body'][attribute])
+    else: # role == Ent.COURSE_TOPIC:
+      svcparms['body'][attribute] = cleanItem = participant
     dbatch.add(method(**svcparms), request_id=batchRequestID(noScopeCourseId, 0, 0, j, jcount, cleanItem, role))
     bcount += 1
     if bcount >= GC.Values[GC.BATCH_SIZE]:
       executeBatch(dbatch)
-      dbatch = croom.new_batch_http_request(callback=_callbackAddParticipantsToCourse)
+      dbatch = croom.new_batch_http_request(callback=_callbackAddItemsToCourse)
       bcount = 0
   if bcount > 0:
     dbatch.execute()
   Ind.Decrement()
 
-def _batchRemoveParticipantsFromCourse(croom, courseId, i, count, removeParticipants, role):
+def _batchRemoveItemsFromCourse(croom, courseId, i, count, removeParticipants, role):
   _REMOVE_PART_REASON_TO_MESSAGE_MAP = {GAPI.NOT_FOUND: Msg.DOES_NOT_EXIST,
                                         GAPI.FORBIDDEN: Msg.FORBIDDEN,
                                         GAPI.PERMISSION_DENIED: Msg.PERMISSION_DENIED}
-  def _callbackRemoveParticipantsFromCourse(request_id, response, exception):
+  def _callbackRemoveItemssFromCourse(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
       entityActionPerformed([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
@@ -27520,42 +27562,70 @@ def _batchRemoveParticipantsFromCourse(croom, courseId, i, count, removeParticip
   elif role == Ent.TEACHER:
     method = getattr(croom.courses().teachers(), 'delete')
     attribute = 'userId'
-  else:
+  elif role == Ent.COURSE_ALIAS:
     method = getattr(croom.courses().aliases(), 'delete')
     attribute = 'alias'
+  else: # role == Ent.COURSE_TOPIC:
+    method = getattr(croom.courses().topics(), 'delete')
+    attribute = 'id'
   Act.Set(Act.REMOVE)
   jcount = len(removeParticipants)
   noScopeCourseId = removeCourseIdScope(courseId)
   entityPerformActionNumItems([Ent.COURSE, noScopeCourseId], jcount, role, i, count)
   Ind.Increment()
   svcargs = dict([('courseId', courseId), ('fields', ''), (attribute, None)]+GM.Globals[GM.EXTRA_ARGS_LIST])
-  dbatch = croom.new_batch_http_request(callback=_callbackRemoveParticipantsFromCourse)
+  dbatch = croom.new_batch_http_request(callback=_callbackRemoveItemssFromCourse)
   bcount = 0
   j = 0
   for participant in removeParticipants:
     j += 1
     svcparms = svcargs.copy()
-    if role != Ent.COURSE_ALIAS:
+    if role in {Ent.STUDENT, Ent.TEACHER}:
       svcparms[attribute] = cleanItem = normalizeEmailAddressOrUID(participant)
-    else:
+    elif role == Ent.COURSE_ALIAS:
       svcparms[attribute] = addCourseIdScope(participant)
       cleanItem = removeCourseIdScope(svcparms[attribute])
+    else: # role == Ent.COURSE_TOPIC:
+      svcparms[attribute] = cleanItem = participant
     dbatch.add(method(**svcparms), request_id=batchRequestID(noScopeCourseId, 0, 0, j, jcount, cleanItem, role))
     bcount += 1
     if bcount >= GC.Values[GC.BATCH_SIZE]:
       executeBatch(dbatch)
-      dbatch = croom.new_batch_http_request(callback=_callbackRemoveParticipantsFromCourse)
+      dbatch = croom.new_batch_http_request(callback=_callbackRemoveItemssFromCourse)
       bcount = 0
   if bcount > 0:
     dbatch.execute()
   Ind.Decrement()
 
+def _getCoursesOwnerInfo(croom, courseIds, coursesInfo, useAdminAccess):
+  for courseId in courseIds:
+    courseId = addCourseIdScope(courseId)
+    if courseId not in coursesInfo:
+      coursesInfo[courseId] = {}
+      try:
+        info = callGAPI(croom.courses(), 'get',
+                        throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                        id=courseId, fields='name,ownerId')
+        if not useAdminAccess:
+          _, ocroom = buildGAPIServiceObject(API.CLASSROOM, f'uid:{info["ownerId"]}')
+        else:
+          ocroom = croom
+        if ocroom is not None:
+          coursesInfo[courseId] = {'name': info['name'], 'croom': ocroom}
+      except GAPI.notFound:
+        entityDoesNotExistWarning(Ent.COURSE, courseId)
+      except GAPI.forbidden:
+        ClientAPIAccessDeniedExit()
+
 ADD_REMOVE_PARTICIPANT_TYPES_MAP = {
   'alias': Ent.COURSE_ALIAS,
+  'aliases': Ent.COURSE_ALIAS,
   'student': Ent.STUDENT,
   'students': Ent.STUDENT,
   'teacher': Ent.TEACHER,
   'teachers': Ent.TEACHER,
+  'topic': Ent.COURSE_TOPIC,
+  'topics': Ent.COURSE_TOPIC,
   }
 CLEAR_SYNC_PARTICIPANT_TYPES_MAP = {
   'student': Ent.STUDENT,
@@ -27570,66 +27640,84 @@ PARTICIPANT_EN_MAP = {
 
 # gam courses <CourseEntity> create|add alias <CourseAliasEntity>
 # gam course <CourseID> create|add alias <CourseAlias>
+# gam courses <CourseEntity> create|add topic <CourseTopicEntity>
+# gam course <CourseID> create|add topic <CourseTopic>
 # gam courses <CourseEntity> create|add teachers|students <UserTypeEntity>
 # gam course <CourseID> create|add teacher|student <EmailAddress>
-def doCourseAddParticipants(courseIdList, getEntityListArg):
+def doCourseAddItems(courseIdList, getEntityListArg):
   croom = buildGAPIObject(API.CLASSROOM)
   role = getChoice(ADD_REMOVE_PARTICIPANT_TYPES_MAP, mapChoice=True)
+  coursesInfo = {}
   if not getEntityListArg:
-    if role != Ent.COURSE_ALIAS:
-      addParticipants = getStringReturnInList(Cmd.OB_EMAIL_ADDRESS)
-    else:
-      addParticipants = getStringReturnInList(Cmd.OB_COURSE_ALIAS)
+    if role in {Ent.STUDENT, Ent.TEACHER}:
+      addItems = getStringReturnInList(Cmd.OB_EMAIL_ADDRESS)
+    elif role == Ent.COURSE_ALIAS:
+      addItems = getStringReturnInList(Cmd.OB_COURSE_ALIAS)
+    else: # role == Ent.COURSE_TOPIC:
+      addItems = getStringReturnInList(Cmd.OB_COURSE_TOPIC)
     courseParticipantLists = None
   else:
-    if role != Ent.COURSE_ALIAS:
-      _, addParticipants = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
-                                             typeMap={Cmd.ENTITY_COURSEPARTICIPANTS: PARTICIPANT_EN_MAP[role]},
-                                             isSuspended=False)
-    else:
-      addParticipants = getEntityList(Cmd.OB_COURSE_ALIAS_ENTITY)
-    courseParticipantLists = addParticipants if isinstance(addParticipants, dict) else None
+    if role in {Ent.STUDENT, Ent.TEACHER}:
+      _, addItems = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
+                                      typeMap={Cmd.ENTITY_COURSEPARTICIPANTS: PARTICIPANT_EN_MAP[role]},
+                                      isSuspended=False)
+    elif role == Ent.COURSE_ALIAS:
+      addItems = getEntityList(Cmd.OB_COURSE_ALIAS_ENTITY, shlexSplit=True)
+    else: # role == Ent.COURSE_TOPIC:
+      addItems = getEntityList(Cmd.OB_COURSE_TOPIC_ENTITY, shlexSplit=True)
+    courseParticipantLists = addItems if isinstance(addItems, dict) else None
   checkForExtraneousArguments()
+  _getCoursesOwnerInfo(croom, courseIdList, coursesInfo, role != Ent.COURSE_TOPIC)
   i = 0
   count = len(courseIdList)
   for courseId in courseIdList:
     i += 1
     if courseParticipantLists:
-      addParticipants = courseParticipantLists[courseId]
-    courseId = checkCourseExists(croom, courseId, i, count)
-    if courseId:
-      _batchAddParticipantsToCourse(croom, courseId, i, count, addParticipants, role)
+      addItems = courseParticipantLists[courseId]
+    courseId = addCourseIdScope(courseId)
+    courseInfo = coursesInfo[courseId]
+    if courseInfo:
+      _batchAddItemsToCourse(courseInfo['croom'], courseId, i, count, addItems, role)
 
 # gam courses <CourseEntity> remove alias <CourseAliasEntity>
 # gam course <CourseID> remove alias <CourseAlias>
+# gam courses <CourseEntity> remove topic <CourseTopicIDEntity>
+# gam course <CourseID> remove topic <CourseTopicID>
 # gam courses <CourseEntity> remove teachers|students <UserTypeEntity>
 # gam course <CourseID> remove teacher|student <EmailAddress>
-def doCourseRemoveParticipants(courseIdList, getEntityListArg):
+def doCourseRemoveItems(courseIdList, getEntityListArg):
   croom = buildGAPIObject(API.CLASSROOM)
   role = getChoice(ADD_REMOVE_PARTICIPANT_TYPES_MAP, mapChoice=True)
+  coursesInfo = {}
   if not getEntityListArg:
-    if role != Ent.COURSE_ALIAS:
-      removeParticipants = getStringReturnInList(Cmd.OB_EMAIL_ADDRESS)
-    else:
-      removeParticipants = getStringReturnInList(Cmd.OB_COURSE_ALIAS)
+    if role in {Ent.STUDENT, Ent.TEACHER}:
+      removeItems = getStringReturnInList(Cmd.OB_EMAIL_ADDRESS)
+    elif role == Ent.COURSE_ALIAS:
+      removeItems = getStringReturnInList(Cmd.OB_COURSE_ALIAS)
+    else: # role == Ent.COURSE_TOPIC:
+      removeItems = getStringReturnInList(Cmd.OB_COURSE_TOPIC_ID)
     courseParticipantLists = None
   else:
-    if role != Ent.COURSE_ALIAS:
-      _, removeParticipants = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
-                                                typeMap={Cmd.ENTITY_COURSEPARTICIPANTS: PARTICIPANT_EN_MAP[role]})
-    else:
-      removeParticipants = getEntityList(Cmd.OB_COURSE_ALIAS_ENTITY)
-    courseParticipantLists = removeParticipants if isinstance(removeParticipants, dict) else None
+    if role in {Ent.STUDENT, Ent.TEACHER}:
+      _, removeItems = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
+                                         typeMap={Cmd.ENTITY_COURSEPARTICIPANTS: PARTICIPANT_EN_MAP[role]})
+    elif role == Ent.COURSE_ALIAS:
+      removeItems = getEntityList(Cmd.OB_COURSE_ALIAS_ENTITY, shlexSplit=True)
+    else: # role == Ent.COURSE_TOPIC:
+      removeItems = getEntityList(Cmd.OB_COURSE_TOPIC_ID_ENTITY, shlexSplit=True)
+    courseParticipantLists = removeItems if isinstance(removeItems, dict) else None
   checkForExtraneousArguments()
+  _getCoursesOwnerInfo(croom, courseIdList, coursesInfo, role != Ent.COURSE_TOPIC)
   i = 0
   count = len(courseIdList)
   for courseId in courseIdList:
     i += 1
     if courseParticipantLists:
-      removeParticipants = courseParticipantLists[courseId]
-    courseId = checkCourseExists(croom, courseId, i, count)
-    if courseId:
-      _batchRemoveParticipantsFromCourse(croom, courseId, i, count, removeParticipants, role)
+      removeItems = courseParticipantLists[courseId]
+    courseId = addCourseIdScope(courseId)
+    courseInfo = coursesInfo[courseId]
+    if courseInfo:
+      _batchRemoveItemsFromCourse(courseInfo['croom'], courseId, i, count, removeItems, role)
 
 # gam courses <CourseEntity> clear teachers|students
 # gam course <CourseID> clear teacher|student
@@ -27642,7 +27730,7 @@ def doCourseClearParticipants(courseIdList, getEntityListArg):
   for courseId in courseIdList:
     i += 1
     removeParticipants = getUsersToModify(PARTICIPANT_EN_MAP[role], courseId)
-    _batchRemoveParticipantsFromCourse(croom, courseId, i, count, removeParticipants, role)
+    _batchRemoveItemsFromCourse(croom, courseId, i, count, removeParticipants, role)
 
 # gam courses <CourseEntity> sync teachers|students [addonly|removeonly] <UserTypeEntity>
 # gam course <CourseID> sync teachers|students [addonly|removeonly] <UserTypeEntity>
@@ -27672,9 +27760,9 @@ def doCourseSyncParticipants(courseIdList, getEntityListArg):
       for user in getUsersToModify(PARTICIPANT_EN_MAP[role], courseId):
         currentParticipantsSet.add(normalizeEmailAddressOrUID(user))
       if syncOperation != 'removeonly':
-        _batchAddParticipantsToCourse(croom, courseId, i, count, list(syncParticipantsSet-currentParticipantsSet), role)
+        _batchAddItemsToCourse(croom, courseId, i, count, list(syncParticipantsSet-currentParticipantsSet), role)
       if syncOperation != 'addonly':
-        _batchRemoveParticipantsFromCourse(croom, courseId, i, count, list(currentParticipantsSet-syncParticipantsSet), role)
+        _batchRemoveItemsFromCourse(croom, courseId, i, count, list(currentParticipantsSet-syncParticipantsSet), role)
 
 def studentUnknownWarning(studentId, errMsg, i, count):
   setSysExitRC(SERVICE_NOT_APPLICABLE_RC)
@@ -28203,26 +28291,6 @@ CLASSROOM_ROLE_ALL = 'ALL'
 CLASSROOM_ROLE_OWNER = 'OWNER'
 CLASSROOM_ROLE_STUDENT = 'STUDENT'
 CLASSROOM_ROLE_TEACHER = 'TEACHER'
-
-def _getCoursesOwnerInfo(croom, courseIds, coursesInfo, useAdminAccess):
-  for courseId in courseIds:
-    courseId = addCourseIdScope(courseId)
-    if courseId not in coursesInfo:
-      coursesInfo[courseId] = {}
-      try:
-        info = callGAPI(croom.courses(), 'get',
-                        throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                        id=courseId, fields='name,ownerId')
-        if not useAdminAccess:
-          _, ocroom = buildGAPIServiceObject(API.CLASSROOM, f'uid:{info["ownerId"]}')
-        else:
-          ocroom = croom
-        if ocroom is not None:
-          coursesInfo[courseId] = {'name': info['name'], 'croom': ocroom}
-      except GAPI.notFound:
-        entityDoesNotExistWarning(Ent.COURSE, courseId)
-      except GAPI.forbidden:
-        ClientAPIAccessDeniedExit()
 
 def _getClassroomInvitations(croom, userId, courseId, role, i, count, j=0, jcount=0):
   try:
@@ -44162,9 +44230,9 @@ def processCalendarsCommands():
 
 # Course command sub-commands
 COURSE_SUBCOMMANDS = {
-  'add': (Act.ADD, doCourseAddParticipants),
+  'add': (Act.ADD, doCourseAddItems),
   'clear': (Act.REMOVE, doCourseClearParticipants),
-  'remove': (Act.REMOVE, doCourseRemoveParticipants),
+  'remove': (Act.REMOVE, doCourseRemoveItems),
   'sync': (Act.SYNC, doCourseSyncParticipants),
   }
 
