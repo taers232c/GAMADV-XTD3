@@ -1589,7 +1589,8 @@ gam create|add course [id|alias <CourseAlias>] <CourseAttribute>*
         [copyfrom <CourseID>
             [announcementstates <CourseAnnouncementStateList>]
             [workstates <CourseWorkStateList>]
-                [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]] [mapsharemodestudentcopy edit|view]
+                [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+                [mapsharemodestudentcopy edit|none|view]
             [copytopics [<Boolean>]]
             [members none|all|students|teachers]]
 gam update course <CourseID> <CourseAttribute>+
@@ -1597,7 +1598,8 @@ gam update course <CourseID> <CourseAttribute>+
             [announcementstates <CourseAnnouncementStateList>]
             [copytopics [<Boolean>]]
             [workstates <CourseWorkStateList>]
-                 [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]] [mapsharemodestudentcopy edit|view]
+                 [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+                 [mapsharemodestudentcopy edit|none|view]
             [members none|all|students|teachers]]
 gam delete course <CourseID> [archive|archived]
 
@@ -1605,7 +1607,8 @@ gam update courses <CourseEntity> <CourseAttribute>+
         [copyfrom <CourseID>
             [announcementstates <CourseAnnouncementStateList>]
             [workstates <CourseWorkStateList>]
-                [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]] [mapsharemodestudentcopy edit|view]
+                [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]][
+                mapsharemodestudentcopy edit|none|view]
             [members none|all|students|teachers]]
 gam delete courses <CourseEntity> [archive|archived]
 

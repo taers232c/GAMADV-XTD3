@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.01.03'
+__version__ = '5.01.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -12152,10 +12152,10 @@ def doPrintAliases():
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
                                  page_message=getPageMessage(showFirstLastItems=True), message_attribute='email',
-                                 throw_reasons=[GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                                 throw_reasons=GAPI.GROUP_LIST_RETRY_REASONS,
                                  customer=GC.Values[GC.CUSTOMER_ID], orderBy='email',
                                  fields=f'nextPageToken,groups({",".join(groupFields)})')
-    except (GAPI.resourceNotFound, GAPI.forbidden, GAPI.badRequest):
+    except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
       accessErrorExit(cd)
     for group in entityList:
       for alias in group.get('aliases', []):
@@ -17069,7 +17069,7 @@ def doUpdateGroups():
           group = callGAPI(cd.groups(), 'update',
                            throw_reasons=GAPI.GROUP_UPDATE_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
                            groupKey=group, body=body, fields='email')['email']
-        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalid, GAPI.systemError) as e:
+        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalid, GAPI.invalidInput, GAPI.systemError) as e:
           entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
           continue
       if gs_body and not GroupIsAbuseOrPostmaster(group):
@@ -17541,6 +17541,7 @@ def infoGroups(entityList):
                             groupUniqueId=group, fields=gsfields) # Use email address retrieved from cd since GS API doesn't support uid
       if getGroups:
         groups = callGAPIpages(cd.groups(), 'list', 'groups',
+                               throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
                                userKey=group, orderBy='email', fields='nextPageToken,groups(name,email)')
       if getUsers:
         validRoles, listRoles, listFields = _getRoleVerification(memberRoles, 'nextPageToken,members(email,id,role,status,type)')
@@ -17642,8 +17643,9 @@ def infoGroups(entityList):
         Ind.Decrement()
         printKeyValueList([Msg.TOTAL_ITEMS_IN_ENTITY.format(Ent.Plural(entityType), Ent.Singular(Ent.GROUP)), len(members)])
       Ind.Decrement()
-    except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
-            GAPI.backendError, GAPI.invalid, GAPI.invalidParameter, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
+    except (GAPI.notFound, GAPI.groupNotFound, GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.backendError,
+            GAPI.invalid, GAPI.invalidMember, GAPI.invalidParameter, GAPI.invalidInput, GAPI.forbidden, GAPI.badRequest,
+            GAPI.permissionDenied,
             GAPI.systemError, GAPI.serviceLimit) as e:
       entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
 
@@ -18080,9 +18082,7 @@ def doPrintGroups():
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
                                  page_message=getPageMessage(showFirstLastItems=True), message_attribute='email',
-                                 throw_reasons=[GAPI.INVALID_MEMBER, GAPI.INVALID_INPUT,
-                                                GAPI.RESOURCE_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND,
-                                                GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
                                  orderBy='email', fields=cdfieldsnp, maxResults=maxResults, **kwargs)
     except (GAPI.invalidMember, GAPI.invalidInput):
       invalidMember(kwargs)
@@ -18444,9 +18444,7 @@ def doPrintGroupMembers():
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
                                  page_message=getPageMessage(showFirstLastItems=True), message_attribute='email',
-                                 throw_reasons=[GAPI.INVALID_MEMBER, GAPI.INVALID_INPUT,
-                                                GAPI.RESOURCE_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND,
-                                                GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
                                  orderBy='email', fields=f'nextPageToken,groups({",".join(set(cdfieldsList))})', **kwargs)
     except (GAPI.invalidMember, GAPI.invalidInput):
       invalidMember(kwargs)
@@ -18654,9 +18652,7 @@ def doShowGroupMembers():
     try:
       groupsList = callGAPIpages(cd.groups(), 'list', 'groups',
                                  page_message=getPageMessage(showFirstLastItems=True), message_attribute='email',
-                                 throw_reasons=[GAPI.INVALID_MEMBER, GAPI.INVALID_INPUT,
-                                                GAPI.RESOURCE_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND,
-                                                GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
                                  orderBy='email', fields=f'nextPageToken,groups({",".join(set(cdfieldsList))})', **kwargs)
     except (GAPI.invalidMember, GAPI.invalidInput):
       invalidMember(kwargs)
@@ -18689,9 +18685,7 @@ def doPrintShowGroupTree():
     groupParents[groupEmail] = {'name': groupName, 'parents': []}
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
-                                 throw_reasons=[GAPI.INVALID_MEMBER, GAPI.INVALID_INPUT,
-                                                GAPI.RESOURCE_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND,
-                                                GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
                                  userKey=groupEmail, orderBy='email', fields='nextPageToken,groups(email,name)')
       for parentGroup in entityList:
         groupParents[groupEmail]['parents'].append(parentGroup['email'])
@@ -24516,7 +24510,7 @@ def updateUsers(entityList):
       if groupOrgUnitMap:
         try:
           groups = callGAPIpages(cd.groups(), 'list', 'groups',
-                                 throw_reasons=[GAPI.INVALID_MEMBER, GAPI.INVALID_INPUT],
+                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
                                  userKey=userKey, orderBy='email', fields='nextPageToken,groups(email)')
         except (GAPI.invalidMember, GAPI.invalidInput):
           entityUnknownWarning(Ent.USER, userKey, i, count)
@@ -24573,7 +24567,7 @@ def updateUsers(entityList):
       entityActionFailedWarning([Ent.USER, user], Msg.INVALID_SCHEMA_VALUE, i, count)
     except GAPI.invalidOrgunit:
       entityActionFailedWarning([Ent.USER, user], Msg.INVALID_ORGUNIT, i, count)
-    except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+    except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
             GAPI.invalid, GAPI.invalidInput, GAPI.invalidParameter,
             GAPI.badRequest, GAPI.backendError, GAPI.systemError) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
@@ -25007,6 +25001,7 @@ def infoUsers(entityList):
                       userKey=userEmail, projection=projection, customFieldMask=customFieldMask, viewType=viewType, fields=fields)
       if getGroups:
         groups = callGAPIpages(cd.groups(), 'list', 'groups',
+                               throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
                                userKey=user['primaryEmail'], orderBy='email', fields='nextPageToken,groups(name,email)')
       if getLicenses:
         svcargs = dict([('userId', None), ('productId', None), ('skuId', None), ('fields', 'skuId')]+GM.Globals[GM.EXTRA_ARGS_LIST])
@@ -25261,9 +25256,10 @@ def infoUsers(entityList):
       Ind.Decrement()
     except (GAPI.userNotFound, GAPI.resourceNotFound):
       entityUnknownWarning(Ent.USER, userEmail, i, count)
-    except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError) as e:
+    except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+            GAPI.badRequest, GAPI.backendError, GAPI.systemError) as e:
       entityActionFailedWarning([Ent.USER, userEmail], str(e), i, count)
-    except GAPI.invalidInput as e:
+    except (GAPI.invalidInput, GAPI.invalidMember) as e:
       if customFieldMask:
         entityActionFailedWarning([Ent.USER, userEmail], invalidUserSchema(customFieldMask), i, count)
       else:
@@ -25589,10 +25585,16 @@ def doPrintUsers(entityList=None):
         i += 1
         userEmail = user['primaryEmail']
         printGettingAllEntityItemsForWhom(Ent.GROUP_MEMBERSHIP, userEmail, i, count)
-        groups = callGAPIpages(cd.groups(), 'list', 'groups',
-                               userKey=userEmail, orderBy='email', fields='nextPageToken,groups(email)')
-        user['GroupsCount'] = len(groups)
-        user['Groups'] = delimiter.join([groupname['email'] for groupname in groups])
+        try:
+          groups = callGAPIpages(cd.groups(), 'list', 'groups',
+                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
+                                 userKey=userEmail, orderBy='email', fields='nextPageToken,groups(email)')
+          user['GroupsCount'] = len(groups)
+          user['Groups'] = delimiter.join([groupname['email'] for groupname in groups])
+        except (GAPI.invalidMember, GAPI.invalidInput):
+          badRequestWarning(Ent.GROUP, Ent.MEMBER, userEmail)
+        except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
+          accessErrorExit(cd)
     if getLicenseFeed:
       csvPF.AddTitles(['LicensesCount', 'Licenses', 'LicensesDisplay'])
       licenses = doPrintLicenses(returnFields=['userId', 'skuId'])
@@ -26009,6 +26011,7 @@ class CourseAttributes():
 
   COURSE_MATERIAL_SHAREMODE_MAP = {
     'edit': 'EDIT',
+    'none': None,
     'view': 'VIEW'
     }
 
@@ -26253,7 +26256,8 @@ class CourseAttributes():
 #	 [copyfrom <CourseID>
 #	    [announcementstates <CourseAnnouncementStateList>]
 #	    [workstates <CourseWorkStateList>]
-#	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]] [mapsharemodestudentcopy edit|view]
+#	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+#		[mapsharemodestudentcopy edit|none|view]
 #	    [copytopics [<Boolean>]]
 #	    [members none|all|students|teachers]]
 def doCreateCourse():
@@ -26303,7 +26307,8 @@ def _doUpdateCourses(entityList):
 #	 [copyfrom <CourseID>
 #	    [announcementstates <CourseAnnouncementStateList>]
 #	    [workstates <CourseWorkStateList>]
-#	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]] [mapsharemodestudentcopy edit|view]
+#	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+#		 [mapsharemodestudentcopy edit|none|view]
 #	    [copytopics [<Boolean>]]
 #	    [members none|all|students|teachers]]
 def doUpdateCourses():
@@ -26313,7 +26318,8 @@ def doUpdateCourses():
 #	 [copyfrom <CourseID>
 #	    [announcementstates <CourseAnnouncementStateList>]
 #	    [workstates <CourseWorkStateList>]
-#	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]] [mapsharemodestudentcopy edit|view]
+#	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+#		[mapsharemodestudentcopy edit|none|view]
 #	    [copytopics [<Boolean>]]
 #	    [members none|all|students|teachers]]
 def doUpdateCourse():
@@ -38967,8 +38973,15 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
   if checkGroups:
     if emailAddress:
       cd = buildGAPIObject(API.DIRECTORY)
-      groups = callGAPIpages(cd.groups(), 'list', 'groups',
-                             userKey=emailAddress, orderBy='email', fields='nextPageToken,groups(email)')
+      try:
+        groups = callGAPIpages(cd.groups(), 'list', 'groups',
+                               throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
+                               userKey=emailAddress, orderBy='email', fields='nextPageToken,groups(email)')
+      except (GAPI.invalidMember, GAPI.invalidInput):
+        badRequestWarning(Ent.GROUP, Ent.MEMBER, emailAddress)
+        return
+      except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
+        accessErrorExit(cd)
       groupsSet = {group['email'] for group in groups}
     else:
       checkGroups = False
@@ -39234,9 +39247,7 @@ def deleteUserFromGroups(users):
     if groupKeys is None:
       try:
         result = callGAPIpages(cd.groups(), 'list', 'groups',
-                               throw_reasons=[GAPI.INVALID_MEMBER, GAPI.INVALID_INPUT,
-                                              GAPI.RESOURCE_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND,
-                                              GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                               throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
                                userKey=user, orderBy='email', fields='nextPageToken,groups(email)')
       except (GAPI.invalidMember, GAPI.invalidInput):
         badRequestWarning(Ent.GROUP, Ent.MEMBER, user)
@@ -39359,9 +39370,7 @@ def syncUserWithGroups(users):
     currGroups = {}
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
-                                 throw_reasons=[GAPI.INVALID_MEMBER, GAPI.INVALID_INPUT,
-                                                GAPI.RESOURCE_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND,
-                                                GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
                                  userKey=user, orderBy='email', fields='nextPageToken,groups(email)')
     except (GAPI.invalidMember, GAPI.invalidInput):
       badRequestWarning(Ent.GROUP, Ent.MEMBER, user)
@@ -39436,9 +39445,7 @@ def printShowUserGroups(users):
     user = normalizeEmailAddressOrUID(user)
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
-                                 throw_reasons=[GAPI.INVALID_MEMBER, GAPI.INVALID_INPUT,
-                                                GAPI.RESOURCE_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND,
-                                                GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
                                  userKey=user, orderBy='email', fields='nextPageToken,groups(email)', **kwargs)
     except (GAPI.invalidMember, GAPI.invalidInput):
       badRequestWarning(Ent.GROUP, Ent.MEMBER, user)

@@ -1,3 +1,7 @@
+5.01.04
+
+Improved error handling when listing groups with an invalid `userKey` parameter; this is a rare event.
+
 5.01.03
 
 Added commands to add and remove topics to courses.
