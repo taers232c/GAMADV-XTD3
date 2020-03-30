@@ -8,7 +8,7 @@ env:
     - MIN_PYTHON_VERSION=3.8.1
     - BUILD_OPENSSL_VERSION=1.1.1e
     - MIN_OPENSSL_VERSION=1.1.1d
-    - PATCHELF_VERSION=0.10
+    - PATCHELF_VERSION=0.9
     - PYINSTALLER_VERSION=3.5
 cache:
   directories:
@@ -70,7 +70,6 @@ jobs:
         - GAMOS=linux
         - PLATFORM=x86_64
         - VMTYPE=build
-        - PATCHELF_VERSION=0.9
     - os: osx
       name: "MacOS 10.10"
       language: generic
