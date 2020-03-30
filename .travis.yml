@@ -70,6 +70,7 @@ jobs:
         - GAMOS=linux
         - PLATFORM=x86_64
         - VMTYPE=build
+        - PATCHELF_VERSION=0.9
     - os: osx
       name: "MacOS 10.10"
       language: generic
