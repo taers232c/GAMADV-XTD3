@@ -31,5 +31,5 @@ else
     time $gam version extended
   fi
   echo "GAM packages:"
-  ls -l gam-*.tar.xz
+  ls -l gam-*.tar
 fi
