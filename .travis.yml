@@ -11,6 +11,7 @@ env:
     - MIN_OPENSSL_VERSION=1.1.1f
     - PATCHELF_VERSION=0.10
     - PYINSTALLER_VERSION=3.5
+    - DIST_UPGRADE=false
 cache:
   directories:
     - $HOME/.cache/pip
