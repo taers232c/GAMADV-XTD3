@@ -1190,6 +1190,7 @@ gam calendar|calendars <CalendarEntity> print events [<EventEntity>] <EventDispl
 gam calendar <CalendarEntity> addevent <EventAttribute>+ [<EventNotificationAttribute>]
 gam calendar <CalendarEntity> deleteevent (id|eventid <EventID>)+ [doit] [<EventNotificationAttribute>]
 gam calendar <CalendarEntity> moveevent (id|eventid <EventID>)+ destination <CalendarItem> [<EventNotificationAttribute>]
+gam calendar <CalendarEntity> updateevent <EventID> <EventAttribute>+ [<EventNotificationAttribute>]
 gam calendar <CalendarEntity> wipe
 gam calendar <CalendarEntity> printevents <EventSelectProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>]
          [countsonly] [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
@@ -1593,23 +1594,27 @@ gam create|add course [id|alias <CourseAlias>] <CourseAttribute>*
                 [mapsharemodestudentcopy edit|none|view]
             [copytopics [<Boolean>]]
             [members none|all|students|teachers]]
+            [logdrivefileids [<Boolean>>]]
 gam update course <CourseID> <CourseAttribute>+
         [copyfrom <CourseID>
             [announcementstates <CourseAnnouncementStateList>]
-            [copytopics [<Boolean>]]
             [workstates <CourseWorkStateList>]
-                 [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
-                 [mapsharemodestudentcopy edit|none|view]
+                [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+                [mapsharemodestudentcopy edit|none|view]
+            [copytopics [<Boolean>]]
             [members none|all|students|teachers]]
+            [logdrivefileids [<Boolean>>]]
 gam delete course <CourseID> [archive|archived]
 
 gam update courses <CourseEntity> <CourseAttribute>+
         [copyfrom <CourseID>
             [announcementstates <CourseAnnouncementStateList>]
             [workstates <CourseWorkStateList>]
-                [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]][
-                mapsharemodestudentcopy edit|none|view]
+                [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+                [mapsharemodestudentcopy edit|none|view]
+            [copytopics [<Boolean>]]
             [members none|all|students|teachers]]
+            [logdrivefileids [<Boolean>>]]
 gam delete courses <CourseEntity> [archive|archived]
 
 gam course <CourseID> create|add alias <CourseAlias>

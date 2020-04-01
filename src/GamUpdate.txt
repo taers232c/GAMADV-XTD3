@@ -1,3 +1,12 @@
+5.01.05
+
+Code cleanup for calendar event processing.
+
+Code cleanup for course alias processing.
+
+Added option `logdrivefileids [<Boolean>>]` to `gam create|update course copyfrom`.
+This is a special purpose option added for research purposes.
+
 5.01.04
 
 Improved error handling when listing groups with an invalid `userKey` parameter; this is a rare event.
