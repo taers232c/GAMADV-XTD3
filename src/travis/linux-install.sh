@@ -18,7 +18,7 @@ else
   du -h $gampath/gam
   time $gam version extended
 
-  if ([ "${TRAVIS_DIST}" == "precise" ] || [ "${TRAVIS_DIST}" == "trusty" ] || [ "${TRAVIS_DIST}" == "xenial" ]) && [ "${PLATFORM}" == "x86_64" ]; then
+  if [ "${TRAVIS_DIST}" == "precise" ] && [ "${PLATFORM}" == "x86_64" ]; then
     GAM_LEGACY_ARCHIVE=$gampath-${GAMVERSION}-${GAMOS}-${PLATFORM}-legacy.tar.xz
     $python -OO -m staticx $gampath/gam $gampath/gam-staticx
     strip $gampath/gam-staticx
@@ -31,5 +31,5 @@ else
     time $gam version extended
   fi
   echo "GAM packages:"
-  ls -l gam-*.tar
+  ls -l $gampath-*.xz
 fi
