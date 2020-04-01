@@ -4,7 +4,7 @@ echo "compiling GAM with pyinstaller..."
 pyinstaller --clean --noupx -F --distpath=$gampath $GAMOS-gam.spec
 export gam="$gampath/gam"
 echo "running compiled GAM..."
-$gam version extended
+$gam version
 export GAMVERSION=`$gam version simple | head -n 1 | cut -c1-7`
 cp LICENSE $gampath/
 cp license.rtf $gampath/

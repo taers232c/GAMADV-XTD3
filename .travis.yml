@@ -1,14 +1,15 @@
 if: tag IS blank
 os: linux
 language: python
+dist: xenial
 
 env:
   global:
     - BUILD_PYTHON_VERSION=3.8.2
-    - MIN_PYTHON_VERSION=3.8.1
-    - BUILD_OPENSSL_VERSION=1.1.1e
-    - MIN_OPENSSL_VERSION=1.1.1d
-    - PATCHELF_VERSION=0.9
+    - MIN_PYTHON_VERSION=3.8.2
+    - BUILD_OPENSSL_VERSION=1.1.1f
+    - MIN_OPENSSL_VERSION=1.1.1f
+    - PATCHELF_VERSION=0.10
     - PYINSTALLER_VERSION=3.5
 cache:
   directories:
@@ -19,127 +20,87 @@ cache:
 jobs:
   include:
     - os: linux
-      dist: bionic
-      arch: arm64
-      name: "Linux ARM64 Bionic"
-      language: shell
-      filter_secrets: false
-      env:
-        - GAMOS=linux
-        - PLATFORM=arm64
-        - VMTYPE=build
-    - os: linux
-      dist: xenial
-      arch: arm64
-      name: "Linux ARM64 Xenial"
-      language: shell
-      filter_secrets: false
-      env:
-        - GAMOS=linux
-        - PLATFORM=arm64
-        - VMTYPE=build
-    - os: linux
       name: "Linux 64-bit Bionic"
       dist: bionic
       language: shell
-      env:
-        - GAMOS=linux
-        - PLATFORM=x86_64
-        - VMTYPE=build
     - os: linux
       name: "Linux 64-bit Xenial"
       dist: xenial
       language: shell
-      env:
-        - GAMOS=linux
-        - PLATFORM=x86_64
-        - VMTYPE=build
     - os: linux
       name: "Linux 64-bit Trusty"
       dist: trusty
       language: shell
-      env:
-        - GAMOS=linux
-        - PLATFORM=x86_64
-        - VMTYPE=build
     - os: linux
       name: "Linux 64-bit Precise"
       dist: precise
       language: shell
-      env:
-        - GAMOS=linux
-        - PLATFORM=x86_64
-        - VMTYPE=build
+    - os: linux
+      name: "Linux ARM64 Bionic"
+      dist: bionic
+      arch: arm64
+      language: shell
+      filter_secrets: false
+    - os: linux
+      name: "Linux ARM64 Xenial"
+      dist: xenial
+      arch: arm64
+      language: shell
+      filter_secrets: false
     - os: osx
       name: "MacOS 10.10"
       language: generic
       osx_image: xcode6.4
-      env:
-        - GAMOS=macos
-        - PLATFORM=x86_64
-        - VMTYPE=build
     - os: osx
       name: "MacOS 10.11"
       language: generic
       osx_image: xcode8
-      env:
-        - GAMOS=macos
-        - PLATFORM=x86_64
-        - VMTYPE=build
     - os: osx
       name: "MacOS 10.12"
       language: generic
       osx_image: xcode9.2
-      env:
-        - GAMOS=macos
-        - PLATFORM=x86_64
-        - VMTYPE=build
     - os: osx
       name: "MacOS 10.13"
       language: generic
       osx_image: xcode10.1
-      env:
-        - GAMOS=macos
-        - PLATFORM=x86_64
-        - VMTYPE=build
     - os: osx
       name: "MacOS 10.14"
       language: generic
       osx_image: xcode11.3
-      env:
-        - GAMOS=macos
-        - PLATFORM=x86_64
-        - VMTYPE=build
     - os: windows
       name: "Windows 64-bit"
       language: shell
-      env:
-        - GAMOS=windows
-        - PLATFORM=x86_64
-        - VMTYPE=build
     - os: windows
       name: "Windows 32-bit"
       language: shell
-      env:
-        - GAMOS=windows
-        - PLATFORM=x86
-        - VMTYPE=build
 
 before_install:
-- source src/travis/$TRAVIS_OS_NAME-before-install.sh
+- if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+    export GAMOS="macos";
+  else
+    export GAMOS="${TRAVIS_OS_NAME}";
+  fi
+- if [ "${TRAVIS_JOB_NAME}" == "Windows 32-bit" ]; then
+    export PLATFORM="x86";
+  elif [ "${TRAVIS_CPU_ARCH}" == "amd64" ]; then
+    export PLATFORM="x86_64";
+  else
+    export PLATFORM="${TRAVIS_CPU_ARCH}";
+  fi
+- source src/travis/${TRAVIS_OS_NAME}-before-install.sh
 
 install:
-- source src/travis/$TRAVIS_OS_NAME-install.sh
+- source src/travis/${TRAVIS_OS_NAME}-install.sh
 
 script:
 - $gam version extended
 - $gam version | grep travis # travis should be part of the path (not /tmp or such)
 # determine which Python version GAM is built with and ensure it's at least build version from above.
-- if [ "$VMTYPE" == "build" ]; then vline=$($gam version | grep "Python "); python_line=($vline); this_python=${python_line[1]}; $python tools/a_atleast_b.py $this_python $MIN_PYTHON_VERSION; fi
+- if [[ "$TRAVIS_JOB_NAME" != *"Testing" ]];  then vline=$($gam version | grep "Python "); python_line=($vline); this_python=${python_line[1]}; $python tools/a_atleast_b.py $this_python $MIN_PYTHON_VERSION; fi
 # determine which OpenSSL version GAM is built with and ensure it's at least build version from above.
-- if [ "$VMTYPE" == "build" ]; then vline=$($gam version extended | grep "OpenSSL "); openssl_line=($vline); this_openssl=${openssl_line[1]}; $python tools/a_atleast_b.py $this_openssl $MIN_OPENSSL_VERSION; fi
-- if [ "$VMTYPE" == "build" ]; then $gam version extended | grep TLSv1\.[23]; fi # Builds should default TLS 1.2 or 1.3 to Google
-- if [ "$VMTYPE" == "build" ]; then $gam config tls_min_version TLSv1_2 version extended location tls-v1-0.badssl.com:1010; [[ $? == 3 ]]; fi # expect fail since server doesn't support our TLS version
+- if [[ "$TRAVIS_JOB_NAME" != *"Testing" ]]; then vline=$($gam version extended | grep "OpenSSL "); openssl_line=($vline); this_openssl=${openssl_line[1]}; $python tools/a_atleast_b.py $this_openssl $MIN_OPENSSL_VERSION; fi
+- if [[ "$TRAVIS_JOB_NAME" != *"Testing" ]]; then $gam version extended | grep TLSv1\.[23]; fi # Builds should default TLS 1.2 or 1.3 to Google
+- if [[ "$TRAVIS_JOB_NAME" != *"Testing" ]]; then $gam config tls_min_version TLSv1_2 version extended location tls-v1-0.badssl.com:1010; [[ $? == 3 ]]; fi # expect fail since server doesn't support our TLS version
 
 before_deploy:
 - export TRAVIS_TAG="preview"
@@ -156,4 +117,4 @@ deploy:
   draft: true
   on:
     repo: taers232c/GAMADV-XTD3
-    condition: $VMTYPE = build
+    condition: $TRAVIS_JOB_NAME != *"Testing"

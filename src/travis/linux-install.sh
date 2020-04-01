@@ -1,5 +1,5 @@
 cd src
-if [ "$VMTYPE" == "test" ]; then
+if [[ "$TRAVIS_JOB_NAME" == *"Testing" ]]; then
   export gam="$python gam.py"
   export gampath=$(readlink -e .)
 else
@@ -18,8 +18,8 @@ else
   du -h $gampath/gam
   time $gam version extended
 
-  if [[ "$dist" == "precise" ]]; then
-    GAM_LEGACY_ARCHIVE=$gampath-$GAMVERSION-$GAMOS-$PLATFORM-legacy.tar.xz
+  if ([ "${TRAVIS_DIST}" == "precise" ] || [ "${TRAVIS_DIST}" == "trusty" ] || [ "${TRAVIS_DIST}" == "xenial" ]) && [ "${PLATFORM}" == "x86_64" ]; then
+    GAM_LEGACY_ARCHIVE=$gampath-${GAMVERSION}-${GAMOS}-${PLATFORM}-legacy.tar.xz
     $python -OO -m staticx $gampath/gam $gampath/gam-staticx
     strip $gampath/gam-staticx
     rm $gampath/gam
@@ -30,4 +30,6 @@ else
     du -h $gampath/gam
     time $gam version extended
   fi
+  echo "GAM packages:"
+  ls -l gam-*.tar.xz
 fi
