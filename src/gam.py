@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.01.06'
+__version__ = '5.01.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -25741,7 +25741,7 @@ def printShowPeopleProfile(users):
       printGettingEntityItemForWhom(Ent.PEOPLE_PROFILE, user, i, count)
     try:
       result = callGAPI(people.people(), 'get',
-                        throw_reasons=GAPI.PEOPLE_THROW_REASONS,
+                        throw_reasons=GAPI.PEOPLE_GET_THROW_REASONS,
                         resourceName=f'people/{memberId}', personFields=personFields)
       if not csvPF:
         if not FJQC.formatJSON:
@@ -25757,6 +25757,8 @@ def printShowPeopleProfile(users):
         csvPF.WriteRowNoFilter({'User': user, 'resourceName': result['resourceName'],
                                 'JSON': json.dumps(cleanJSON(result),
                                                    ensure_ascii=False, sort_keys=True)})
+    except GAPI.notFound:
+      entityUnknownWarning(Ent.USER, user, i, count)
     except (GAPI.serviceNotAvailable, GAPI.forbidden):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvPF:
