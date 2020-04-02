@@ -1,3 +1,7 @@
+5.01.06
+
+Fixed bug in `gam print course-submissions showuserprofile` that caused a trap.
+
 5.01.05
 
 Code cleanup for calendar event processing.

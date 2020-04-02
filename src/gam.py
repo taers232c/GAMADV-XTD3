@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.01.05'
+__version__ = '5.01.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -27348,7 +27348,7 @@ def doPrintCourseSubmissions():
                                    userId=userId, fields='emailAddress,name')
             userProfiles[userId] = {'profile': {'emailAddress': userProfile.get('emailAddress', ''), 'name': userProfile['name']}}
           except (GAPI.notFound, GAPI.permissionDenied):
-            userProfiles[userId] = {'profile': {'emailAddress', '', 'name', {'givenName': '', 'familyName': '', 'fullName': ''}}}
+            userProfiles[userId] = {'profile': {'emailAddress': '', 'name': {'givenName': '', 'familyName': '', 'fullName': ''}}}
         courseSubmission.update(userProfiles[userId])
     row = flattenJSON(courseSubmission, flattened={'courseId': course['id'], 'courseName': course['name']}, timeObjects=COURSE_SUBMISSION_TIME_OBJECTS)
     if not FJQC.formatJSON:
