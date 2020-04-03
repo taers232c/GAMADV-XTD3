@@ -28,6 +28,8 @@ jobs:
       name: "Linux 64-bit Xenial"
       dist: xenial
       language: shell
+      env:
+        - DIST_UPGRADE=false
     - os: linux
       name: "Linux 64-bit Trusty"
       dist: trusty
