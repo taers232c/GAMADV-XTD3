@@ -1,9 +1,9 @@
 5.01.08
 
-Added options `tdbackupsheet <SheetEntity>` and `tdcopysheet <SheetEntity>` to `<ToDriveAttribute>`.
-When you're using `tdfileid <DriveFileID>` and `tdupdatesheet <SheetEntity>` with `todrive` to update a sheet in a spreadsheet:
-* `tdbackupsheet <SheetEntity>` causes the current sheet data to be copied and pasted to another sheet before the sheet is updated
-* `tdcopysheet <SheetEntity>` causes the updated sheet data to be copied and pasted to another sheet after the sheet is updated
+Added options `tdbackupsheet (id:<Number>)|<String>` and `tdcopysheet (id:<Number>)|<String>` to `<ToDriveAttribute>`.
+When you're using `tdfileid <DriveFileID> tdsheet (id:<Number>)|<String> tdupdatesheet` with `todrive` to update a sheet in a spreadsheet:
+* `tdbackupsheet (id:<Number>)|<String>` causes the current sheet data to be copied and pasted to another existing sheet before the sheet is updated
+* `tdcopysheet (id:<Number>)|<String>` causes the updated sheet data to be copied and pasted to another existing sheet after the sheet is updated
 Suppose you have a spreadsheet with sheets `Monday` ... `Friday`, `Backup Monday` ... `Backup Friday` and `Latest`.
 Each day you run a report to update the current day sheet (`Tuesday`), you want to backup the data first (`Backup Tuesday`) and
 you want the updated data copied to `Latest` so you don't have to remember what the day of the week is.

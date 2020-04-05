@@ -413,8 +413,8 @@ If an item contains spaces, it should be surrounded by ".
         See: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 <Title> ::= <String>
 <ToDriveAttribute> ::=
-        (tdbackupsheet (id:<Number>)|String>)|
-        (tdcopysheet (id:<Number>)|String>)|
+        (tdbackupsheet (id:<Number>)|<String>)|
+        (tdcopysheet (id:<Number>)|<String>)|
         (tddescription <String>)|
         (tdfileid <DriveFileID>)|
         (tdlocalcopy [<Boolean>])|
@@ -422,7 +422,7 @@ If an item contains spaces, it should be surrounded by ".
         (tdnobrowser [<Boolean>])|
         (tdnoemail [<Boolean>])|
         (tdparent (id:<DriveFolderID>)|<DriveFolderName>)|
-        (tdsheet (id:<Number>)|String>)|
+        (tdsheet (id:<Number>)|<String>)|
         (tdtimestamp [<Boolean>] [tddaysoffset <Number>] [tdhoursoffset <Number])|
         (tdtimezone <TimeZone>)|
         (tdtitle <String>)|
