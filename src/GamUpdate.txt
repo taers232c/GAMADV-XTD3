@@ -1,3 +1,17 @@
+5.01.08
+
+Added options `tdbackupsheet <SheetEntity>` and `tdcopysheet <SheetEntity>` to `<ToDriveAttribute>`.
+When you're using `tdfileid <DriveFileID>` and `tdupdatesheet <SheetEntity>` with `todrive` to update a sheet in a spreadsheet:
+* `tdbackupsheet <SheetEntity>` causes the current sheet data to be copied and pasted to another sheet before the sheet is updated
+* `tdcopysheet <SheetEntity>` causes the updated sheet data to be copied and pasted to another sheet after the sheet is updated
+Suppose you have a spreadsheet with sheets `Monday` ... `Friday`, `Backup Monday` ... `Backup Friday` and `Latest`.
+Each day you run a report to update the current day sheet (`Tuesday`), you want to backup the data first (`Backup Tuesday`) and
+you want the updated data copied to `Latest` so you don't have to remember what the day of the week is.
+```
+gam redirect csv - todrive tdfileid <DriveFileID> tdupdatesheet tdsheet Tuesday tdbackupsheet "Backup Tuesday" tdcopysheet "Latest" ...
+```
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Todrive#command-line-options
+
 5.01.07
 
 Handle `ERROR: 404: notFound - Requested entity was not found.` in `gam show peopleprofile`.
