@@ -1,3 +1,40 @@
+5.02.00
+
+THERE IS A DEFAULT BEHAVIOR CHANGE WHEN UPDATING ATTENDEES IN EVENTS - READ CAREFULLY.
+
+The default behavior of `gam calendar <CalendarEntity> update events` and `gam <UserTypeEntity> update events <UserCalendarEntity>`
+has been changed regarding attendees. In versions of GAM before `5.02.00`, updating attendees in calendar events was complicated because you had to
+supply the complete attendee list even if you just wanted incremental changes.
+The default behavior now is to allow incremental changes to the attendees list;
+the current attendee list is downloaded and the specified changes are applied.
+
+The `replacemode` option invokes the previous behavior from versions before `5.02.00`; the current attendee list is replaced.
+
+The following options have been added to allow removal of attendees:
+* `clearattendees` - Clear all current attendees from the attendee list
+* `removeattendee <EmailAddress>` - Remove a single attendee from the attendee list
+* `selectremoveattendees <UserTypeEntity>` - Remove a selected collection of attendees from the attendee list
+
+Added option `replacedescription <RegularExpression> <String>` to the same `update events` commands. This allows you to make changes
+to the event description rather than re-entering it. The option can be repeated to make several changes.
+
+Updated option `query <QueryDriveFile>` in `gam print filelist|filecounts|filetree` to avoid a potential problem.
+In these commands, the default query is `'me' in owners`; when you specify `query "query-clause"`, they are combined with
+`and' resulting in `'me' in owners and query-clause`. OK so far. If, however, you specify `query "query-clause or query-clause"`,
+the end result is `'me' in owners and query-clause or query-clause` which almost certainly is not what you want. Now, parentheses
+are used and the result is `'me' in owners and (query-clause or query-clause)`. For full control over the query,
+use the `fullquery <QueryDriveFile>` option.
+
+Added an additional service account scope `Classroom API - Profile Emails` so that student profile email addresses
+are displayed in `gam print course-submissions showuserprofile`. After upgrading issue the following command
+to enable this scope.
+```
+gam <UserTypeEntity> update serviceaccount
+```
+
+Starting from initial code from Jay, added commands to get customer and user usage reports over a date range.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Reports
+
 5.01.09
 
 Fixed bug that caused a trap in tag replace processing when setting a signature.

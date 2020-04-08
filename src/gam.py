@@ -22,10 +22,11 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.01.09'
+__version__ = '5.02.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
+import calendar as calendarlib
 import codecs
 import collections
 import configparser
@@ -113,6 +114,7 @@ import google_auth_oauthlib.flow
 import google_auth_httplib2
 import httplib2
 from iso8601 import iso8601
+#from dateutil.relativedelta import relativedelta
 if platform.system() == 'Windows':
   # No crypt module on Win, use passlib
   from passlib.hash import sha512_crypt
@@ -3878,10 +3880,12 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False):
       systemErrorExit(HTTP_ERROR_RC, eContent)
   if 'error' in error:
     http_status = error['error']['code']
-    try:
+    if 'errors' in error['error']:
       message = error['error']['errors'][0]['message']
-    except KeyError:
+      status = ''
+    else:
       message = error['error']['message']
+      status = error['error'].get('status', '')
     if http_status == 500:
       if not message:
         message = Msg.UNKNOWN
@@ -3903,16 +3907,18 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False):
         error = {'error': {'errors': [{'reason': GAPI.INVALID, 'message': message}]}}
       elif '@AttachmentNotVisible' in message:
         error = {'error': {'errors': [{'reason': GAPI.BAD_REQUEST, 'message': message}]}}
-      elif 'Precondition check failed' in message:
+      elif status == 'FAILED_PRECONDITION' or 'Precondition check failed' in message:
         error = {'error': {'errors': [{'reason': GAPI.FAILED_PRECONDITION, 'message': message}]}}
+      elif status == 'INVALID_ARGUMENT':
+        error = {'error': {'errors': [{'reason': GAPI.INVALID_ARGUMENT, 'message': message}]}}
     elif http_status == 403:
-      if 'The caller does not have permission' in message or 'Permission iam.serviceAccountKeys' in message:
+      if status == 'PERMISSION_DENIED' or 'The caller does not have permission' in message or 'Permission iam.serviceAccountKeys' in message:
         error = {'error': {'errors': [{'reason': GAPI.PERMISSION_DENIED, 'message': message}]}}
     elif http_status == 404:
-      if 'Requested entity was not found' in message or 'does not exist' in message:
+      if status == 'NOT_FOUND' or 'Requested entity was not found' in message or 'does not exist' in message:
         error = {'error': {'errors': [{'reason': GAPI.NOT_FOUND, 'message': message}]}}
     elif http_status == 409:
-      if 'Requested entity already exists' in message:
+      if status == 'ALREADY_EXISTS' or 'Requested entity already exists' in message:
         error = {'error': {'errors': [{'reason': GAPI.ALREADY_EXISTS, 'message': message}]}}
   else:
     if 'error_description' in error:
@@ -8837,9 +8843,203 @@ def _adjustTryDate(errMsg, noDateChange):
     return None
   return match_date.group(1)
 
-NL_SPACES_PATTERN = re.compile(r'\n +')
+CUSTOMER_USER_CHOICES = {'customer', 'user'}
+
+# gam report usageparameters customer|user [todrive <ToDriveAttributes>*]
+def doReportUsageParameters():
+  report = getChoice(CUSTOMER_USER_CHOICES)
+  csvPF = CSVPrintFile(['parameter'], 'sortall')
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    else:
+      unknownArgumentExit()
+  rep = buildGAPIObject(API.REPORTS)
+  if report == 'customer':
+    service = rep.customerUsageReports()
+    kwargs = {}
+  else: # 'user'
+    service = rep.userUsageReport()
+    kwargs = {'userKey': _getValueFromOAuth('email')}
+  customerId = GC.Values[GC.CUSTOMER_ID]
+  if customerId == GC.MY_CUSTOMER:
+    customerId = None
+  tryDate = todaysDate()
+  oneDay = datetime.timedelta(days=1)
+  partialApps = []
+  allParameters = []
+  while True:
+    try:
+      response = callGAPI(service, 'get',
+                          throw_reasons=[GAPI.INVALID, GAPI.BAD_REQUEST],
+                          date=tryDate.strftime(YYYYMMDD_FORMAT), customerId=customerId,
+                          fields='warnings(data),usageReports(parameters(name))',
+                          **kwargs)
+      partial_on_thisday = []
+      for warning in response.get('warnings', []):
+        for data in warning.get('data', []):
+          if data.get('key') == 'application':
+            partial_on_thisday.append(data['value'])
+      if partialApps:
+        partialApps = [app for app in partialApps if app in partial_on_thisday]
+      else:
+        partialApps = partial_on_thisday
+      for parameter in response['usageReports'][0]['parameters']:
+        name = parameter.get('name')
+        if name and name not in allParameters:
+          allParameters.append(name)
+      if not partialApps:
+        break
+      tryDate -= oneDay
+    except GAPI.badRequest:
+      printErrorMessage(BAD_REQUEST_RC, Msg.BAD_REQUEST)
+      return
+    except GAPI.invalid as e:
+      tryDate = _adjustTryDate(str(e), False)
+      if not tryDate:
+        break
+      tryDate = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)
+  allParameters.sort()
+  for parameter in allParameters:
+    csvPF.WriteRow({'parameter': parameter})
+  csvPF.writeCSVfile(f'{report.capitalize()} Report Usage Parameters')
 
 REPORTS_PARAMETERS_SIMPLE_TYPES = ['intValue', 'boolValue', 'datetimeValue', 'stringValue']
+
+# gam report usage user [todrive <ToDriveAttributes>*]
+#	[(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
+#	[start|startdate <Date>] [end|enddate <Date>] [range <Date> <Date>]
+#	[fields|parameters <String>)]
+# gam report usage |customer [todrive <ToDriveAttributes>*]
+#	[start|startdate <Date>] [end|enddate <Date>] [range <Date> <Date>]
+#	[fields|parameters <String>)]
+def doReportUsage():
+  def usageEntitySelectors():
+    selectorChoices = Cmd.USER_ENTITY_SELECTORS+Cmd.USER_CSVDATA_ENTITY_SELECTORS
+    if GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
+      selectorChoices += Cmd.SERVICE_ACCOUNT_ONLY_ENTITY_SELECTORS[:]+[Cmd.ENTITY_USER, Cmd.ENTITY_USERS]
+    else:
+      selectorChoices += Cmd.BASE_ENTITY_SELECTORS[:]+Cmd.USER_ENTITIES[:]
+    return selectorChoices
+
+  report = getChoice(CUSTOMER_USER_CHOICES)
+  rep = buildGAPIObject(API.REPORTS)
+  titles = ['date']
+  if report == 'customer':
+    userReports = False
+    service = rep.customerUsageReports()
+    kwargs = [{}]
+  else: # 'user'
+    userReports = True
+    service = rep.userUsageReport()
+    kwargs = [{'userKey': 'all'}]
+    titles.append('user')
+  csvPF = CSVPrintFile(titles, 'sortall')
+  customerId = GC.Values[GC.CUSTOMER_ID]
+  if customerId == GC.MY_CUSTOMER:
+    customerId = None
+  parameters = set()
+  users = []
+  orgUnitId = None
+  startEndTime = StartEndTime('startdate', 'enddate')
+  skipDayNumbers = []
+  skipDates = []
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg in {'start', 'startdate'}:
+      startEndTime.Get('start')
+    elif myarg in {'end', 'enddate'}:
+      startEndTime.Get('end')
+    elif myarg == 'range':
+      startEndTime.Get(myarg)
+    elif userReports and myarg in ['orgunit', 'org', 'ou']:
+      _, orgUnitId = getOrgUnitId()
+    elif myarg in {'fields', 'parameters'}:
+      parameters = parameters.union(getString(Cmd.OB_STRING).replace(',', ' ').split())
+    elif myarg == 'skipdates':
+      for skip in getString(Cmd.OB_STRING).split(','):
+        try:
+          skipDates.append(datetime.datetime.strptime(skip, YYYYMMDD_FORMAT))
+        except ValueError:
+          invalidArgumentExit(YYYYMMDD_FORMAT_REQUIRED)
+    elif myarg == 'skipdaysofweek':
+      skipdaynames = getString(Cmd.OB_STRING).split(',')
+      dow = [d.lower() for d in calendarlib.day_abbr]
+      skipDayNumbers = [dow.index(d) for d in skipdaynames if d in dow]
+    elif userReports and myarg == 'select' or myarg in usageEntitySelectors():
+      if myarg != 'select':
+        Cmd.Backup()
+      _, users = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
+    else:
+      unknownArgumentExit()
+  if startEndTime.startDateTime is None:
+#    startEndTime.startDateTime = todaysDate()+relativedelta(months=-1)
+    startEndTime.startDateTime = todaysDate()+datetime.timedelta(days=-31)
+  if startEndTime.endDateTime is None:
+    startEndTime.endDateTime = todaysDate()
+  startDateTime = startEndTime.startDateTime
+  startDate = startDateTime.strftime('%Y-%m-%d')
+  endDateTime = startEndTime.endDateTime
+  useDate = endDateTime.strftime('%Y-%m-%d')
+  oneDay = datetime.timedelta(days=1)
+  if users:
+    kwargs = [{'userKey': normalizeEmailAddressOrUID(user)} for user in users]
+  if orgUnitId:
+    for kw in kwargs:
+      kw['orgUnitID'] = orgUnitId
+  parameters = ','.join(parameters) if parameters else None
+  while startDateTime <= endDateTime:
+    useDate = startDateTime.strftime('%Y-%m-%d')
+    if startDateTime.weekday() in skipDayNumbers or useDate in skipDates:
+      startDateTime += oneDay
+      continue
+    startDateTime += oneDay
+    try:
+      for kwarg in kwargs:
+        try:
+          usage = callGAPIpages(service, 'get', 'usageReports',
+                                throw_reasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                                customerId=customerId, date=useDate,
+                                parameters=parameters, **kwarg)
+        except GAPI.badRequest:
+          continue
+        for entity in usage:
+          row = {'date': useDate}
+          if 'userEmail' in entity['entity']:
+            row['user'] = entity['entity']['userEmail']
+          for item in entity['parameters']:
+            if 'name' not in item:
+              continue
+            name = item['name']
+            if name == 'cros:device_version_distribution':
+              versions = {}
+              for version in item['msgValue']:
+                versions[version['version_number']] = version['num_devices']
+              for k, v in sorted(iter(versions.items()), reverse=True):
+                title = f'cros:num_devices_chrome_.{k}'
+                row[title] = v
+            else:
+              for ptype in REPORTS_PARAMETERS_SIMPLE_TYPES:
+                if ptype in item:
+                  if ptype != 'datetimeValue':
+                    row[name] = item[ptype]
+                  else:
+                    row[name] = formatLocalTime(item[ptype])
+                  break
+              else:
+                row[name] = ''
+          csvPF.WriteRowTitles(row)
+    except GAPI.invalid as e:
+      stderrWarningMsg(str(e))
+      break
+    except GAPI.forbidden:
+      accessErrorExit(None)
+  csvPF.writeCSVfile(f'{report.capitalize()} Usage Report - {startDate}:{useDate}')
+
+NL_SPACES_PATTERN = re.compile(r'\n +')
 
 REPORT_CHOICE_MAP = {
   'access': 'access_transparency',
@@ -8872,6 +9072,8 @@ REPORT_CHOICE_MAP = {
   'saml': 'saml',
   'token': 'token',
   'tokens': 'token',
+  'usage': 'usage',
+  'usageparameters': 'usageparameters',
   'user': 'user',
   'users': 'user',
   'useraccounts': 'user_accounts',
@@ -9108,12 +9310,19 @@ def doReport():
     return (True, lastDate)
 
   report = getChoice(REPORT_CHOICE_MAP, mapChoice=True)
+  if report == 'usage':
+    doReportUsage()
+    return
+  if report == 'usageparameters':
+    doReportUsageParameters()
+    return
   rep = buildGAPIObject(API.REPORTS)
   customerId = GC.Values[GC.CUSTOMER_ID]
   if customerId == GC.MY_CUSTOMER:
     customerId = None
   csvPF = CSVPrintFile()
-  filters = parameters = actorIpAddress = orgUnit = orgUnitId = None
+  filters = actorIpAddress = orgUnit = orgUnitId = None
+  parameters = set()
   eventCounts = {}
   eventNames = []
   startEndTime = StartEndTime('start', 'end')
@@ -9146,7 +9355,7 @@ def doReport():
     elif usageReports and myarg == 'nodatechange':
       noDateChange = True
     elif usageReports and myarg in {'fields', 'parameters'}:
-      parameters = getString(Cmd.OB_STRING)
+      parameters = parameters.union(getString(Cmd.OB_STRING).replace(',', ' ').split())
     elif usageReports and myarg == 'fulldatarequired':
       if dataRequiredServices is None:
         dataRequiredServices = set()
@@ -9195,6 +9404,7 @@ def doReport():
       aggregateUserUsage = getBoolean()
     else:
       unknownArgumentExit()
+  parameters = ','.join(parameters) if parameters else None
   if usageReports and not includeServices:
     includeServices = set(fullDataServices)
   if filterTimes and filters is not None:
@@ -20424,6 +20634,8 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
     body['iCalUID'] = getString(Cmd.OB_ICALUID)
   elif myarg == 'description':
     body['description'] = getStringWithCRsNLs()
+  elif function == 'update' and myarg == 'replacedescription':
+    parameters['replaceDescription'].append((getREPattern(re.IGNORECASE), getString(Cmd.OB_STRING, minLen=0)))
   elif myarg == 'location':
     body['location'] = getString(Cmd.OB_STRING, minLen=0)
   elif myarg == 'source':
@@ -20450,25 +20662,44 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
     body['recurrence'].append(getString(Cmd.OB_RECURRENCE))
   elif myarg == 'timezone':
     parameters['timeZone'] = getString(Cmd.OB_STRING)
-  elif myarg in {'attendee', 'optionalattendee'}:
-    optional = myarg == 'optionalattendee'
-    body.setdefault('attendees', [])
-    body['attendees'].append({'email': getEmailAddress(noUid=True), 'optional': optional})
+  elif function == 'update' and myarg == 'replacemode':
+    parameters['replaceMode'] = True
+  elif function == 'update' and myarg == 'clearattendees':
+    parameters['clearAttendees'] = True
+  elif function == 'update' and myarg == 'removeattendee':
+    parameters['removeAttendees'].add(getEmailAddress(noUid=True))
+  elif function == 'update' and myarg == 'selectremoveattendees':
+    _, attendeeList = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
+    for attendee in attendeeList:
+      parameters['removeAttendees'].add(normalizeEmailAddressOrUID(attendee, noUid=True))
+  elif myarg == 'attendee':
+    parameters['attendees'].append({'email': getEmailAddress(noUid=True)})
+  elif myarg == 'optionalattendee':
+    parameters['attendees'].append({'email': getEmailAddress(noUid=True), 'optional': True})
   elif myarg in {'attendeestatus', 'selectattendees'}:
-    body.setdefault('attendees', [])
-    optional = getChoice(CALENDAR_ATTENDEE_OPTIONAL_CHOICE_MAP, defaultChoice=False, mapChoice=True)
-    responseStatus = getChoice(CALENDAR_ATTENDEE_STATUS_CHOICE_MAP, defaultChoice='needsAction', mapChoice=True)
+    optional = getChoice(CALENDAR_ATTENDEE_OPTIONAL_CHOICE_MAP, defaultChoice=None, mapChoice=True)
+    responseStatus = getChoice(CALENDAR_ATTENDEE_STATUS_CHOICE_MAP, defaultChoice=None, mapChoice=True)
     if myarg == 'attendeestatus':
       attendeeList = [getEmailAddress(noUid=True)]
     else:
       _, attendeeList = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
     for attendee in attendeeList:
-      body['attendees'].append({'email': normalizeEmailAddressOrUID(attendee, noUid=True), 'optional': optional, 'responseStatus': responseStatus})
+      addAttendee = {'email': normalizeEmailAddressOrUID(attendee, noUid=True)}
+      if optional is not None:
+        addAttendee['optional'] = optional
+      if responseStatus is not None:
+        addAttendee['responseStatus'] = responseStatus
+      parameters['attendees'].append(addAttendee)
   elif myarg == 'json':
-    body.update(getJSON(EVENT_JSON_CLEAR_FIELDS))
+    jsonData = getJSON(EVENT_JSON_CLEAR_FIELDS)
     if function == 'insert':
+      body.update(jsonData)
       clearJSONfields(body, EVENT_JSON_INSERT_CLEAR_FIELDS)
     elif function == 'update':
+      if 'event' in jsonData and 'attendees' in jsonData['event']:
+        parameters['attendees'].extend(jsonData['event'].pop('attendees'))
+        clearJSONsubfields(parameters, EVENT_JSONATTENDEES_SUBFIELD_CLEAR_FIELDS)
+      body.update(jsonData)
       clearJSONfields(body, EVENT_JSON_UPDATE_CLEAR_FIELDS)
     clearJSONsubfields(body, EVENT_JSON_SUBFIELD_CLEAR_FIELDS)
     if ('conferenceData' in body and body['conferenceData'] and
@@ -20478,12 +20709,10 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
   elif myarg == 'jsonattendees':
     jsonData = getJSON([])
     if 'event' in jsonData and 'attendees' in jsonData['event']:
-      body.setdefault('attendees', [])
-      body['attendees'].extend(jsonData['event']['attendees'])
+      parameters['attendees'].extend(jsonData['event']['attendees'])
     elif 'attendees' in jsonData:
-      body.setdefault('attendees', [])
-      body['attendees'].extend(jsonData['attendees'])
-    clearJSONsubfields(body, EVENT_JSONATTENDEES_SUBFIELD_CLEAR_FIELDS)
+      parameters['attendees'].extend(jsonData['attendees'])
+    clearJSONsubfields(parameters, EVENT_JSONATTENDEES_SUBFIELD_CLEAR_FIELDS)
   elif function != 'import' and _getCalendarSendUpdates(myarg, parameters):
     pass
   elif myarg == 'anyonecanaddself':
@@ -20741,7 +20970,9 @@ def _validateCalendarGetEvents(origUser, user, cal, calId, j, jcount, calendarEv
 
 def _getCalendarCreateImportUpdateEventOptions(function, calendarEventEntity=None):
   body = {}
-  parameters = {'sendUpdates': 'none'}
+  parameters = {'clearAttendees': False, 'replaceMode': False,
+                'attendees': [], 'removeAttendees': set(),
+                'replaceDescription': [], 'sendUpdates': 'none'}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if calendarEventEntity and myarg in {'id', 'eventid'}:
@@ -20771,6 +21002,8 @@ def _setEventRecurrenceTimeZone(cal, calId, body, parameters, i, count):
   return True
 
 def _createCalendarEvents(user, cal, function, calIds, count, body, parameters):
+  if parameters['attendees']:
+    body['attendees'] = parameters.pop('attendees')
   i = 0
   for calId in calIds:
     i += 1
@@ -20820,6 +21053,17 @@ def doCalendarsImportEvent(cal, calIds):
   _doCalendarsCreateImportEvent(cal, calIds, 'import')
 
 def _updateCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntity, body, parameters):
+  updateFieldList = []
+  if parameters['replaceDescription']:
+    updateFieldList.append('description')
+  if not parameters['replaceMode'] and (parameters['attendees'] or parameters['removeAttendees']):
+    updateFieldList.append('attendees')
+  updateFields = ','.join(updateFieldList)
+  if 'attendees' not in updateFieldList:
+    if parameters['attendees']:
+      body['attendees'] = parameters.pop('attendees')
+    elif parameters['clearAttendees']:
+      body['attendees'] = []
   i = 0
   for calId in calIds:
     i += 1
@@ -20833,6 +21077,33 @@ def _updateCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntit
     for eventId in calEventIds:
       j += 1
       try:
+        if updateFieldList:
+          event = callGAPI(cal.events(), 'get',
+                           throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.DELETED, GAPI.FORBIDDEN],
+                           calendarId=calId, eventId=eventId, fields=updateFields)
+          if 'description' in updateFieldList and 'description' in event:
+            body['description'] = event['description']
+            for replacement in parameters['replaceDescription']:
+              body['description'] = re.sub(replacement[0], replacement[1], body['description'])
+          if 'attendees' in updateFieldList:
+            if not parameters['clearAttendees']:
+              if 'attendees' in event:
+                body['attendees'] = event['attendees']
+                for addAttendee in parameters['attendees']:
+                  for attendee in body['attendees']:
+                    if attendee['email'].lower() == addAttendee['email']:
+                      attendee.update(addAttendee)
+                      break
+                  else:
+                    body['attendees'].append(addAttendee)
+              elif parameters['attendees']:
+                body['attendees'] = parameters['attendees']
+            elif parameters['attendees']:
+              body['attendees'] = parameters['attendees']
+            else:
+              body['attendees'] = []
+            if parameters['removeAttendees']:
+              body['attendees'] = [attendee for attendee in body['attendees'] if attendee['email'].lower() not in parameters['removeAttendees']]
         callGAPI(cal.events(), 'patch',
                  throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.DELETED, GAPI.FORBIDDEN,
                                                             GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY,
@@ -20856,13 +21127,13 @@ def _updateCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntit
         break
     Ind.Decrement()
 
-# gam calendars <CalendarEntity> update event <EventEntity> <EventUpdateAttributes>+
+# gam calendars <CalendarEntity> update events [<EventEntity>] [replacemode] <EventUpdateAttribute>+ [<EventNotificationAttribute>]
 def doCalendarsUpdateEvents(cal, calIds):
   calendarEventEntity = getCalendarEventEntity()
   body, parameters = _getCalendarCreateImportUpdateEventOptions('update')
   _updateCalendarEvents(None, None, cal, calIds, len(calIds), calendarEventEntity, body, parameters)
 
-# gam calendar <CalendarEntity> updateevent <EventID> <EventUpdateAttributes>+
+# gam calendar <CalendarEntity> updateevent <EventID> [replacemode] <EventUpdateAttribute>+ [<EventNotificationAttribute>]
 def doCalendarsUpdateEventsOld(cal, calIds):
   calendarEventEntity = initCalendarEventEntity()
   calendarEventEntity['list'].append(getString(Cmd.OB_EVENT_ID))
@@ -26138,25 +26409,23 @@ class CourseAttributes():
       try:
         self.courseAnnouncements = callGAPIpages(self.croom.courses().announcements(), 'list', 'announcements',
                                                  page_message=getPageMessage(),
-                                                 throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                                 throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
                                                  courseId=self.courseId, announcementStates=self.announcementStates,
                                                  pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         for courseAnnouncement in self.courseAnnouncements:
           for field in self.COURSE_ANNOUNCEMENT_READONLY_FIELDS:
             courseAnnouncement.pop(field, None)
           self.CleanMaterials(courseAnnouncement, Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncement['id'])
-      except GAPI.notFound as e:
+      except (GAPI.notFound, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.COURSE, self.courseId], str(e))
         return False
-      except GAPI.forbidden:
-        ClientAPIAccessDeniedExit()
     if self.workStates:
       printGettingAllEntityItemsForWhom(Ent.COURSE_WORK_ID, Ent.TypeName(Ent.COURSE, self.courseId), 0, 0,
                                         _gettingCourseWorkQuery(self.workStates))
       try:
         self.courseWorks = callGAPIpages(self.croom.courses().courseWork(), 'list', 'courseWork',
                                          page_message=getPageMessage(),
-                                         throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                         throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
                                          courseId=self.courseId, courseWorkStates=self.workStates,
                                          pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         for courseWork in self.courseWorks:
@@ -26169,27 +26438,22 @@ class CourseAttributes():
           if self.removeDueDate:
             courseWork.pop('dueDate', None)
             courseWork.pop('dueTime', None)
-
-      except GAPI.notFound as e:
+      except (GAPI.notFound, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.COURSE, self.courseId], str(e))
         return False
-      except GAPI.forbidden:
-        ClientAPIAccessDeniedExit()
     if self.copyTopics:
       printGettingAllEntityItemsForWhom(Ent.COURSE_TOPIC, Ent.TypeName(Ent.COURSE, self.courseId), 0, 0)
       try:
         courseTopics = callGAPIpages(self.croom.courses().topics(), 'list', 'topic',
                                      page_message=getPageMessage(),
-                                     throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                     throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
                                      courseId=self.courseId, fields='nextPageToken,topic(topicId,name)',
                                      pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         for topic in courseTopics:
           self.topicsById[topic['topicId']] = topic['name']
-      except GAPI.notFound as e:
+      except (GAPI.notFound, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.COURSE, self.courseId], str(e))
         return False
-      except GAPI.forbidden:
-        ClientAPIAccessDeniedExit()
     return True
 
   def CopyAttributes(self, newCourseId, ownerId, i=0, count=0):
@@ -26206,7 +26470,7 @@ class CourseAttributes():
     if self.copyTopics:
       try:
         newCourseTopics = callGAPIpages(self.croom.courses().topics(), 'list', 'topic',
-                                        throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.FAILED_PRECONDITION],
+                                        throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.FAILED_PRECONDITION, GAPI.INVALID_ARGUMENT],
                                         courseId=newCourseId, fields='nextPageToken,topic(topicId,name)',
                                         pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         newTopicsByName = {}
@@ -26215,7 +26479,7 @@ class CourseAttributes():
       except GAPI.notFound as e:
         entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
         return
-      except GAPI.failedPrecondition as e:
+      except (GAPI.failedPrecondition, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
       except GAPI.forbidden:
         ClientAPIAccessDeniedExit()
@@ -26229,7 +26493,7 @@ class CourseAttributes():
           continue
         try:
           result = callGAPI(tcroom.courses().topics(), 'create',
-                            throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.FAILED_PRECONDITION],
+                            throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.FAILED_PRECONDITION, GAPI.INVALID_ARGUMENT],
                             courseId=newCourseId, body={'name': topicName}, fields='topicId')
           newTopicsByName[topicName] = result['topicId']
           entityModifierItemValueListActionPerformed([Ent.COURSE, newCourseId, Ent.COURSE_TOPIC, topicName], Act.MODIFIER_FROM,
@@ -26237,7 +26501,7 @@ class CourseAttributes():
         except GAPI.notFound as e:
           entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
           return
-        except GAPI.failedPrecondition as e:
+        except (GAPI.failedPrecondition, GAPI.invalidArgument) as e:
           entityModifierItemValueListActionFailedWarning([Ent.COURSE, newCourseId], Act.MODIFIER_FROM,
                                                          [Ent.COURSE, self.courseId, Ent.COURSE_TOPIC, topicName], str(e), j, jcount)
         except GAPI.forbidden:
@@ -26354,8 +26618,8 @@ def _doUpdateCourses(entityList):
     try:
       if courseAttributes.body:
         result = callGAPI(croom.courses(), 'patch',
-                          throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED,
-                                         GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                          throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION,
+                                         GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
                           id=courseId, body=courseAttributes.body, updateMask=updateMask, fields='id,name,ownerId')
         entityActionPerformed([Ent.COURSE_NAME, result['name'], Ent.COURSE, result['id']], i, count)
       else:
@@ -26364,7 +26628,8 @@ def _doUpdateCourses(entityList):
                           id=courseId, fields='id,name,ownerId')
       if courseAttributes.courseId:
         courseAttributes.CopyFromCourse(result['id'], result['ownerId'], i, count)
-    except (GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition, GAPI.forbidden, GAPI.badRequest) as e:
+    except (GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition,
+            GAPI.forbidden, GAPI.badRequest, GAPI.invalidArgument) as e:
       entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
 
 # gam update courses <CourseEntity> <CourseAttributes>+
@@ -26408,13 +26673,15 @@ def _doDeleteCourses(entityList):
     try:
       if body:
         callGAPI(croom.courses(), 'patch',
-                 throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                 throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION,
+                                GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
                  id=courseId, body=body, updateMask=updateMask, fields='')
       callGAPI(croom.courses(), 'delete',
                throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION],
                id=courseId)
       entityActionPerformed([Ent.COURSE, removeCourseIdScope(courseId)], i, count)
-    except (GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition, GAPI.forbidden, GAPI.badRequest) as e:
+    except (GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition,
+            GAPI.forbidden, GAPI.badRequest, GAPI.invalidArgument) as e:
       entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
 
 # gam delete courses <CourseEntity> [archive|archived]
@@ -26532,11 +26799,11 @@ def _getCourseShowProperties(myarg, courseShowProperties):
     return False
   return True
 
-def _setCourseFields(courseShowProperties, pagesMode):
+def _setCourseFields(courseShowProperties, pagesMode, getOwnerId=False):
   if not courseShowProperties['fields']:
     return None
   courseShowProperties['fields'].append('id')
-  if courseShowProperties['ownerEmail']:
+  if courseShowProperties['ownerEmail'] or getOwnerId:
     courseShowProperties['fields'].append('ownerId')
   if not pagesMode:
     return ','.join(set(courseShowProperties['fields']))
@@ -26773,14 +27040,14 @@ def _gettingCoursesQuery(courseSelectionParameters):
     query = query[:-2]
   return query
 
-def _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties):
+def _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties, getOwnerId=False):
   if not courseSelectionParameters['courseIds']:
-    fields = _setCourseFields(courseShowProperties, True)
+    fields = _setCourseFields(courseShowProperties, True, getOwnerId)
     printGettingAllAccountEntities(Ent.COURSE, _gettingCoursesQuery(courseSelectionParameters))
     try:
       return callGAPIpages(croom.courses(), 'list', 'courses',
                            page_message=getPageMessage(),
-                           throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                           throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
                            teacherId=courseSelectionParameters['teacherId'],
                            studentId=courseSelectionParameters['studentId'],
                            courseStates=courseSelectionParameters['courseStates'],
@@ -26792,12 +27059,12 @@ def _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties):
         entityUnknownWarning(Ent.STUDENT, courseSelectionParameters['studentId'])
       elif courseSelectionParameters['studentId'] and courseSelectionParameters['teacherId']:
         entityOrEntityUnknownWarning(Ent.TEACHER, courseSelectionParameters['teacherId'], Ent.STUDENT, courseSelectionParameters['studentId'])
-    except GAPI.badRequest as e:
+    except (GAPI.badRequest, GAPI.invalidArgument) as e:
       entityActionFailedWarning([Ent.COURSE, None], str(e))
     except GAPI.forbidden:
       ClientAPIAccessDeniedExit()
     return None
-  fields = _setCourseFields(courseShowProperties, False)
+  fields = _setCourseFields(courseShowProperties, False, getOwnerId)
   coursesInfo = []
   for courseId in courseSelectionParameters['courseIds']:
     courseId = addCourseIdScope(courseId)
@@ -27050,13 +27317,13 @@ def doPrintCourseAnnouncements():
       try:
         results = callGAPIpages(croom.courses().announcements(), 'list', 'announcements',
                                 page_message=getPageMessage(),
-                                throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
                                 courseId=courseId, announcementStates=courseAnnouncementStates, orderBy=OBY.orderBy,
                                 fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
-      except GAPI.forbidden:
-        ClientAPIAccessDeniedExit()
-      for courseAnnouncement in results:
-        _printCourseAnnouncement(course, courseAnnouncement, i, count)
+        for courseAnnouncement in results:
+          _printCourseAnnouncement(course, courseAnnouncement, i, count)
+      except (GAPI.notFound, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+        entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
     else:
       jcount = len(courseAnnouncementIds)
       if jcount == 0:
@@ -27067,13 +27334,13 @@ def doPrintCourseAnnouncements():
         j += 1
         try:
           courseAnnouncement = callGAPI(croom.courses().announcements(), 'get',
-                                        throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                        throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
                                         courseId=courseId, id=courseAnnouncementId, fields=fields)
           _printCourseAnnouncement(course, courseAnnouncement, i, count)
         except GAPI.notFound:
           entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], j, jcount)
-        except GAPI.forbidden:
-          ClientAPIAccessDeniedExit()
+        except (GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+          entityActionFailedWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], str(e), j, jcount)
   csvPF.writeCSVfile('Course Announcements')
 
 COURSE_TOPICS_TIME_OBJECTS = {'updateTime'}
@@ -27135,13 +27402,13 @@ def doPrintCourseTopics():
       try:
         results = callGAPIpages(croom.courses().topics(), 'list', 'topic',
                                 page_message=getPageMessage(),
-                                throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
                                 courseId=courseId,
                                 fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
-      except GAPI.forbidden:
-        ClientAPIAccessDeniedExit()
-      for courseTopic in results:
-        _printCourseTopic(course, courseTopic)
+        for courseTopic in results:
+          _printCourseTopic(course, courseTopic)
+      except (GAPI.notFound, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+        entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
     else:
       jcount = len(courseTopicIds)
       if jcount == 0:
@@ -27152,13 +27419,13 @@ def doPrintCourseTopics():
         j += 1
         try:
           courseTopic = callGAPI(croom.courses().topics(), 'get',
-                                 throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                 throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
                                  courseId=courseId, id=courseTopicId, fields=fields)
           _printCourseTopic(course, courseTopic)
         except GAPI.notFound:
           entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_TOPIC_ID, courseTopicId], j, jcount)
-        except GAPI.forbidden:
-          ClientAPIAccessDeniedExit()
+        except (GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+          entityActionFailedWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_TOPIC_ID, courseTopicId], str(e), j, jcount)
   csvPF.writeCSVfile('Course Topics')
 
 COURSE_WORK_FIELDS_CHOICE_MAP = {
@@ -27284,13 +27551,13 @@ def doPrintCourseWork():
       try:
         results = callGAPIpages(croom.courses().courseWork(), 'list', 'courseWork',
                                 page_message=getPageMessage(),
-                                throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
                                 courseId=courseId, courseWorkStates=courseWorkSelectionParameters['courseWorkStates'], orderBy=OBY.orderBy,
                                 fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
-      except GAPI.forbidden:
-        ClientAPIAccessDeniedExit()
-      for courseWork in results:
-        _printCourseWork(course, courseWork, i, count)
+        for courseWork in results:
+          _printCourseWork(course, courseWork, i, count)
+      except (GAPI.notFound, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+        entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
     else:
       jcount = len(courseWorkIds)
       if jcount == 0:
@@ -27301,13 +27568,13 @@ def doPrintCourseWork():
         j += 1
         try:
           courseWork = callGAPI(croom.courses().courseWork(), 'get',
-                                throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
                                 courseId=courseId, id=courseWorkId, fields=fields)
           _printCourseWork(course, courseWork, i, count)
         except GAPI.notFound:
           entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
-        except GAPI.forbidden:
-          ClientAPIAccessDeniedExit()
+        except (GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+          entityActionFailedWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_WORK_ID, courseWorkId], str(e), j, jcount)
   csvPF.writeCSVfile('Course Work')
 
 COURSE_SUBMISSION_FIELDS_CHOICE_MAP = {
@@ -27362,7 +27629,7 @@ def doPrintCourseSubmissions():
       if userId:
         if userId not in userProfiles:
           try:
-            userProfile = callGAPI(croom.userProfiles(), 'get',
+            userProfile = callGAPI(tcroom.userProfiles(), 'get',
                                    throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
                                    userId=userId, fields='emailAddress,name')
             userProfiles[userId] = {'profile': {'emailAddress': userProfile.get('emailAddress', ''), 'name': userProfile['name']}}
@@ -27417,7 +27684,7 @@ def doPrintCourseSubmissions():
       pass
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
-  coursesInfo = _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties)
+  coursesInfo = _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties, getOwnerId=True)
   if coursesInfo is None:
     return
   applyCourseItemFilter = _setApplyCourseItemFilter(courseItemFilter, fieldsList)
@@ -27428,6 +27695,9 @@ def doPrintCourseSubmissions():
   count = len(coursesInfo)
   for course in coursesInfo:
     i += 1
+    _, tcroom = buildGAPIServiceObject(API.CLASSROOM, f"uid:{course['ownerId']}")
+    if tcroom is None:
+      continue
     courseId = course['id']
     if courseWorkIdsLists:
       courseWorkIds = courseWorkIdsLists[courseId]
@@ -27436,14 +27706,15 @@ def doPrintCourseSubmissions():
       try:
         results = callGAPIpages(croom.courses().courseWork(), 'list', 'courseWork',
                                 page_message=getPageMessage(),
-                                throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
                                 courseId=courseId, courseWorkStates=courseWorkSelectionParameters['courseWorkStates'], orderBy=OBY.orderBy,
                                 fields='nextPageToken,courseWork(id)', pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
+        courseWorkIdsForCourse = [courseWork['id'] for courseWork in results]
       except GAPI.notFound:
         continue
-      except GAPI.forbidden:
-        ClientAPIAccessDeniedExit()
-      courseWorkIdsForCourse = [courseWork['id'] for courseWork in results]
+      except (GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+        entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
+        continue
     else:
       courseWorkIdsForCourse = courseWorkIds
     jcount = len(courseWorkIdsForCourse)
@@ -27459,16 +27730,15 @@ def doPrintCourseSubmissions():
         try:
           results = callGAPIpages(croom.courses().courseWork().studentSubmissions(), 'list', 'studentSubmissions',
                                   page_message=getPageMessage(),
-                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
                                   courseId=courseId, courseWorkId=courseWorkId, states=courseSubmissionStates, late=late, userId=courseSelectionParameters['studentId'],
                                   fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
+          for submission in results:
+            _printCourseSubmission(course, submission)
         except GAPI.notFound:
           entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
-          continue
-        except GAPI.forbidden:
-          ClientAPIAccessDeniedExit()
-        for submission in results:
-          _printCourseSubmission(course, submission)
+        except (GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+          entityActionFailedWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_WORK_ID, courseWorkId], str(e), j, jcount)
       else:
         if courseSubmissionIdsLists:
           if not GM.Globals[GM.CSV_SUBKEY_FIELD]:
@@ -27484,14 +27754,14 @@ def doPrintCourseSubmissions():
           k += 1
           try:
             submission = callGAPI(croom.courses().courseWork().studentSubmissions(), 'get',
-                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
                                   courseId=courseId, courseWorkId=courseWorkId, id=courseSubmissionId,
                                   fields=fields)
             _printCourseSubmission(course, submission)
           except GAPI.notFound:
             entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_WORK_ID, courseWorkId, Ent.COURSE_SUBMISSION_ID, courseSubmissionId], k, kcount)
-          except GAPI.forbidden:
-            ClientAPIAccessDeniedExit()
+          except (GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+            entityActionFailedWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_WORK_ID, courseWorkId, Ent.COURSE_SUBMISSION_ID, courseSubmissionId], str(e), k, kcount)
   csvPF.writeCSVfile('Course Submissions')
 
 COURSE_PARTICIPANTS_SORT_TITLES = ['courseId', 'courseName', 'userRole', 'userId']
@@ -30675,7 +30945,7 @@ def createCalendarEvent(users):
 def importCalendarEvent(users):
   _createImportCalendarEvent(users, 'import')
 
-# gam <UserTypeEntity> update events <UserCalendarEntity> <EventEntity> <EventUpdateAttributes>+
+# gam <UserTypeEntity> update events <UserCalendarEntity> [<EventEntity>] [replacemode] <EventUpdateAttribute>+ [<EventNotificationAttribute>]
 def updateCalendarEvents(users):
   calendarEntity = getUserCalendarEntity()
   calendarEventEntity = getCalendarEventEntity()
@@ -33598,7 +33868,7 @@ class DriveListParameters():
       self.minimumFileSize = getInteger(minVal=0)
     elif self.allowQuery and myarg == 'query':
       if self.query:
-        self.query += ' and '+getString(Cmd.OB_QUERY)
+        self.query += ' and ('+getString(Cmd.OB_QUERY)+')'
       else:
         self.query = getString(Cmd.OB_QUERY)
     elif self.allowQuery and myarg == 'fullquery':
@@ -33606,7 +33876,7 @@ class DriveListParameters():
     elif self.allowQuery and myarg in QUERY_SHORTCUTS_MAP:
       self.UpdateAnyOwnerQuery()
       if self.query:
-        self.query += ' and '+QUERY_SHORTCUTS_MAP[myarg]
+        self.query += ' and ('+QUERY_SHORTCUTS_MAP[myarg]+')'
       else:
         self.query = QUERY_SHORTCUTS_MAP[myarg]
     elif self.allowQuery and myarg.startswith('querytime'):
@@ -33771,7 +34041,7 @@ def printFileList(users):
       return
     q = WITH_PARENTS.format(fileEntry['id'])
     if selectSubQuery:
-      q += ' and '+selectSubQuery
+      q += ' and ('+selectSubQuery+')'
     try:
       children = callGAPIpages(drive.files(), 'list', 'files',
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID],
@@ -34423,7 +34693,7 @@ def printShowFileTree(users):
       return
     q = WITH_PARENTS.format(fileEntry['id'])
     if selectSubQuery:
-      q += ' and '+selectSubQuery
+      q += ' and ('+selectSubQuery+')'
     try:
       children = callGAPIpages(drive.files(), 'list', 'files',
                                throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID],

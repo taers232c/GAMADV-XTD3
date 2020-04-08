@@ -50,6 +50,7 @@ If an item contains spaces, it should be surrounded by ".
         slategrey|snow|springgreen|steelblue| tan|teal|thistle|tomato|turquoise|violet|
         wheat|white|whitesmoke|yellow|yellowgreen
 <ColorName> ::= <ColorNameGoogle>|<ColorNameWeb>
+<DayOfWeek> ::= mon|tue|wed|thu|fri|sat|sun
 <FileFormat> ::=
         csv|doc|dot|docx|dotx|epub|html|jpeg|jpg|mht|odp|ods|odt|
         pdf|png|ppt|pot|potx|pptx|rtf|svg|tsv|txt|xls|xlt|xlsx|xltx|zip|
@@ -864,7 +865,7 @@ gam update project [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
 gam delete project [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
 gam show projects [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
 gam print projects [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
-        [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
+        [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
 
 gam create|add svcacct [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
         [saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>]
@@ -875,7 +876,7 @@ gam check svcacct <UserTypeEntity> (scope|scopes <APIScopeURLList>)*
 gam update svcacct <UserTypeEntity> 
 gam show svcaccts [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
 gam print svcaccts [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
-        [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
+        [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
 
 gam create sakey [(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
 gam update sakey [(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
@@ -923,13 +924,13 @@ gam undelete alert <AlertID>
 gam info alert <AlertID> [formatjson]
 gam show alerts [filter <QueryAlert>] [orderby createtime [ascending|descending]]
         [formatjson]
-gam print alerts [todrive <ToDriveAttributes>*] [filter <QueryAlert>] [orderby createtime [ascending|descending]]
+gam print alerts [todrive <ToDriveAttribute>*] [filter <QueryAlert>] [orderby createtime [ascending|descending]]
         [formatjson] [quotechar <Character>]
 
 gam create alertfeedback <AlertID> not_useful|somewhat_useful|very_useful
 gam show alertfeedback [alert <AlertID>] [filter <QueryAlert>] [orderby createtime [ascending|descending]]
         [formatjson]
-gam print alertfeedback [todrive <ToDriveAttributes>*] [alert <AlertID>] [filter <QueryAlert>] [orderby createtime [ascending|descending]]
+gam print alertfeedback [todrive <ToDriveAttribute>*] [alert <AlertID>] [filter <QueryAlert>] [orderby createtime [ascending|descending]]
         [formatjson] [quotechar <Character>]
 
 # Aliases
@@ -1038,7 +1039,8 @@ gam calendar|calendars <CalendarEntity> printacl [todrive <ToDriveAttribute>*] [
         (guestscanseeotherguests <Boolean>)|
         guestscantseeotherguests|
         hangoutsmeet|
-        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])|
+        (json [charset <Charset>] <JSONData>)|
+        (json file <FileName> [charset <Charset>])|
         (jsonattendees [charset <Charset>] <JSONData>)|(jsonattendees file <FileName> [charset <Charset>])|
         (location <String>)|
         (noreminders|(reminder email|popup|sms <Number>))|
@@ -1047,6 +1049,7 @@ gam calendar|calendars <CalendarEntity> printacl [todrive <ToDriveAttribute>*] [
         (privateproperty <PropertyKey> <PropertyValue>)|
         (recurrence <RRULE, EXRULE, RDATE and EXDATE line>)|
         (reminder <Number> email|popup|sms))|
+        (selectattendees [<AttendeeAttendance>] [<AttendeeStatus>] <UserTypeEntity>)|
         (sequence <Integer>)|
         (sharedproperty <PropertyKey> <PropertyValue>)|
         (source <String> <URL>)|
@@ -1064,14 +1067,6 @@ The following attributes are equivalent:
         guestscantseeothers - guestscanseeotherguests False
         tentative - status tentative
 
-<EventNotificationAttribute> ::=
-        notifyattendees|(sendnotifications <Boolean>)|(sendupdates all|enternalonly|none)
-
-The following attributes are equivalent:
-        notifyattendees - sendupdates all
-        sendnotifications false - sendupdates none
-        sendnotifications true - sendupdates all
-
 <EventImportAttribute> ::=
         <EventAttribute>|
         (organizername <String>)|
@@ -1080,13 +1075,25 @@ The following attributes are equivalent:
 <EventUpdateAttribute> ::=
         <EventAttribute>|
         clearattachments|
+        clearattendees|
         clearhangoutsmeet|
         (clearprivateproperty <PropertyKey>)|
-        (clearsharedproperty <PropertyKey>)
+        (clearsharedproperty <PropertyKey>)|
+        (removeattendee <EmailAddress>)|
+        (replacedescription <RegularExpression> <String>)|
+        (selectremoveattendees <UserTypeEntity>)
+
+<EventNotificationAttribute> ::=
+        notifyattendees|(sendnotifications <Boolean>)|(sendupdates all|enternalonly|none)
+
+The following attributes are equivalent:
+        notifyattendees - sendupdates all
+        sendnotifications false - sendupdates none
+        sendnotifications true - sendupdates all
 
 gam calendar|calendars <CalendarEntity> create|add event [id <String>] <EventAttribute>+ [<EventNotificationAttribute>]
 gam calendar|calendars <CalendarEntity> import event icaluid <iCalUID> <EventImportAttribute>+
-gam calendar|calendars <CalendarEntity> update events [<EventEntity>] <EventUpdateAttribute>+ [<EventNotificationAttribute>]
+gam calendar|calendars <CalendarEntity> update events [<EventEntity>] [replacemode] <EventUpdateAttribute>+ [<EventNotificationAttribute>]
 gam calendar|calendars <CalendarEntity> delete events [<EventEntity>] [doit] [<EventNotificationAttribute>]
 gam calendar|calendars <CalendarEntity> purge events [<EventEntity>] [doit] [<EventNotificationAttribute>]
 gam calendar|calendars <CalendarEntity> wipe events
@@ -1193,7 +1200,7 @@ gam calendar|calendars <CalendarEntity> print events [<EventEntity>] <EventDispl
 gam calendar <CalendarEntity> addevent <EventAttribute>+ [<EventNotificationAttribute>]
 gam calendar <CalendarEntity> deleteevent (id|eventid <EventID>)+ [doit] [<EventNotificationAttribute>]
 gam calendar <CalendarEntity> moveevent (id|eventid <EventID>)+ destination <CalendarItem> [<EventNotificationAttribute>]
-gam calendar <CalendarEntity> updateevent <EventID> <EventAttribute>+ [<EventNotificationAttribute>]
+gam calendar <CalendarEntity> updateevent <EventID> [replacemode] <EventUpdateAttribute>+ [<EventNotificationAttribute>]
 gam calendar <CalendarEntity> wipe
 gam calendar <CalendarEntity> printevents <EventSelectProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>]
          [countsonly] [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
@@ -1723,7 +1730,7 @@ gam print course-announcements [todrive <ToDriveAttribute>*]
         (orderby <CourseAnnouncementOrderByFieldName> [ascending|descending])*)
         [showcreatoremails] [fields <CourseAnnouncementFieldNameList>] [formatjson] [quotechar <Character>]
         [timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
-gam print course-topics [todrive <ToDriveAttributes>*]
+gam print course-topics [todrive <ToDriveAttribute>*]
         (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         [topicids <CourseTopicIDEntity>]
         [formatjson] [quotechar <Character>]
@@ -1745,17 +1752,17 @@ gam print course-submissions [todrive <ToDriveAttribute>*]
 # Classroom - Invitations
 
 gam <UserTypeEntity> create classroominvitation courses <CourseEntity> [role owner|student|teacher]
-        [adminaccess|asadmin] [csvformat] [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
+        [adminaccess|asadmin] [csvformat] [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
 gam <UserTypeEntity> accept classroominvitation (ids <ClassroomInvitationIDEntity>)|([courses <CourseEntity>] [role all|owner|student|teacher])
 gam <UserTypeEntity> delete classroominvitation (ids <ClassroomInvitationIDEntity>)|([courses <CourseEntity>] [role all|owner|student|teacher])
 gam <UserTypeEntity> show classroominvitations [role all|owner|student|teacher]
         [formatjson]
-gam <UserTypeEntity> print classroominvitations [todrive <ToDriveAttributes>*] [role all|owner|student|teacher]
+gam <UserTypeEntity> print classroominvitations [todrive <ToDriveAttribute>*] [role all|owner|student|teacher]
         [formatjson] [quotechar <Character>]
 
 gam show classroominvitations (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
         [role all|owner|student|teacher] [formatjson]
-gam print classroominvitations [todrive <ToDriveAttributes>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
+gam print classroominvitations [todrive <ToDriveAttribute>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
         [role all|owner|student|teacher] [formatjson] [quotechar <Character>]
 
 # Classroom - Guardians
@@ -2100,7 +2107,7 @@ gam show group-members
 
 # Licenses
 
-gam print licenses [todrive <ToDriveAttributes>*] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite] [countsonly]
+gam print licenses [todrive <ToDriveAttribute>*] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite] [countsonly]
 gam show licenses [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite]
 
 # Mobile Devices
@@ -2294,18 +2301,29 @@ gam [<UserTypeEntity>] print printjob|printjobs [todrive <ToDriveAttribute>*] [p
 
 # Reports
 
+gam report usageparameters customer|user [todrive <ToDriveAttribute>*]
+gam report usage user [todrive]
+	[<UserTypeItem>)|(orgunit|org|ou <OrgUnitPath>)]
+        [startdate <Date>] [enddate <Date>] [range <Date> <Date>]
+	[skipdates <Date>(,<Date>)*] [skipdaysofweek <DayOfWeek>(,<DayOfWeek>)*]
+	[fields|parameters <String>]
+gam report usage customer [todrive <ToDriveAttribute>*]
+        [startdate <Date>] [enddate <Date>] [range <Date> <Date>]
+	[skipdates <Date>(,<Date>)*] [skipdaysofweek <DayOfWeek>(,<DayOfWeek>)*]
+	[fields|parameters <String>]
+
 <ActivityApplicationName> ::=
         access|accesstransparency|
         admin|
         calendar|calendars|
-	chat|
+        chat|
         drive|doc|docs|
         enterprisegroups|groupsenterprise|
-	gcp|
+        gcp|
         google+|gplus|
         group|groups|
         hangoutsmeet|meet|
-	jamboard|
+        jamboard|
         login|logins|
         mobile|
         oauthtoken|token|tokens|
@@ -2313,7 +2331,7 @@ gam [<UserTypeEntity>] print printjob|printjobs [todrive <ToDriveAttribute>*] [p
         saml|
         useraccounts
 
-gam report <ActivityApplicationName> [todrive <ToDriveAttributes>*]
+gam report <ActivityApplicationName> [todrive <ToDriveAttribute>*]
         [(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
         [([start <Time>] [end <Time>])|(range <Time> <Time>)|yesterday]
         [filtertime.* <Time>] [filter|filters <String>]
@@ -2338,7 +2356,7 @@ gam report <ActivityApplicationName> [todrive <ToDriveAttributes>*]
         sites
 <CustomerServiceNameList> ::= "<CustomerServiceName>(,<CustomerServiceName>)*"
 
-gam report customers|customer|domain [todrive <ToDriveAttributes>*]
+gam report customers|customer|domain [todrive <ToDriveAttribute>*]
         [(date <Date>)|(range <Date> <Date>)] [nodatechange | (fulldatarequired all|<CustomerServiceNameList>)]
         [(fields|parameters <String>)|(services <CustomerServiceNameList>)] [noauthorizedapps]
 
@@ -2350,7 +2368,7 @@ gam report customers|customer|domain [todrive <ToDriveAttributes>*]
         gmail
 <UserServiceNameList> ::= "<UserServiceName>(,<UserServiceName>)*"
 
-gam report users|user [todrive <ToDriveAttributes>*]
+gam report users|user [todrive <ToDriveAttribute>*]
         [(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
         [(date <Date>)|(range <Date> <Date>)] [nodatechange | (fulldatarequired all|<UserServiceNameList>)]
         [filtertime.* <Time>] [filter|filters <String>]
@@ -2671,7 +2689,7 @@ gam show drivefileacls <TeamDriveEntityAdmin>
         <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson]
-gam print drivefileacls <TeamDriveEntityAdmin> [todrive <ToDriveAttributes>*]
+gam print drivefileacls <TeamDriveEntityAdmin> [todrive <ToDriveAttribute>*]
         [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
@@ -2698,7 +2716,7 @@ gam <UserTypeEntity> show drivefileacls <TeamDriveEntityAdmin>
         <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson] adminaccess
-gam <UserTypeEntity> print drivefileacls <TeamDriveEntityAdmin> [todrive <ToDriveAttributes>*]
+gam <UserTypeEntity> print drivefileacls <TeamDriveEntityAdmin> [todrive <ToDriveAttribute>*]
         [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
@@ -2839,7 +2857,7 @@ gam undelete vaultmatter|matter <MatterItem>
 
 gam info vaultmatter|matter <MatterItem> [basic|full]
         [basic|full|(fields <VaultMatterFieldNameList>)]
-gam print vaultmatters|matters [todrive <ToDriveAttributes>*] [matterstate <MatterStateList>]
+gam print vaultmatters|matters [todrive <ToDriveAttribute>*] [matterstate <MatterStateList>]
         [basic|full|(fields <VaultMatterFieldNameList>)]
 gam show vaultmatters|matters [matterstate <MatterStateList>]
         [basic|full|(fields <VaultMatterFieldNameList>)]
@@ -2879,7 +2897,7 @@ gam info vaultexport|export <ExportItem> matter <MatterItem>
         [fields <VaultExportFieldNameList>] [shownames]
 gam info vaultexport|export <MatterItem> <ExportItem>
         [fields <VaultExportFieldNameList>] [shownames]
-gam print vaultexports|exports [todrive <ToDriveAttributes>*]
+gam print vaultexports|exports [todrive <ToDriveAttribute>*]
         [matters <MatterItemList>] [exportstatus <ExportStatusList>]
         [fields <VaultExportFieldNameList>] [shownames]
 gam show vaultexports|exports
@@ -2924,7 +2942,7 @@ gam info vaulthold|hold <HoldItem> matter <MatterItem>
         [fields <VaultHoldFieldNameList>] [shownames]
 gam info vaulthold|hold <MatterItem> <HoldItem>
         [fields <VaultHoldFieldNameList>] [shownames]
-gam print vaultholds|holds [todrive <ToDriveAttributes>*] [matters <MatterItemList>]
+gam print vaultholds|holds [todrive <ToDriveAttribute>*] [matters <MatterItemList>]
         [fields <VaultHoldFieldNameList>] [shownames]
 gam show vaultholds|holds [matters <MatterItemList>]
         [fields <VaultHoldFieldNameList>] [shownames]
@@ -3139,7 +3157,7 @@ gam <UserTypeEntity> show asps|applicationspecificpasswords
 gam <UserTypeEntity> update backupcodes|verificationcodes
 gam <UserTypeEntity> delete backupcodes|verificationcodes
 gam <UserTypeEntity> show backupcodes|verificationcodes
-gam <UserTypeEntity> print backupcodes|verificationcodes [todrive <ToDriveAttributes>*] [delimiter <Character>]
+gam <UserTypeEntity> print backupcodes|verificationcodes [todrive <ToDriveAttribute>*] [delimiter <Character>]
 
 # Users - Calendars
 
@@ -3277,17 +3295,20 @@ gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <
         available|
         (colorindex|colorid <EventColorIndex>))|
         (description <String>)|
-        (end (allday <Date>)|<Time>)|
+        (end|endtime (allday <Date>)|<Time>)|
         (guestscaninviteothers <Boolean>)|
         guestscantinviteothers|
         (guestscanmodify <Boolean>)|
         (guestscanseeotherguests <Boolean>)|
         guestscantseeotherguests|
+        hangoutsmeet|
+        (json [charset <Charset>] <JSONData>)|
+        (json file <FileName> [charset <Charset>])|
         (jsonattendees [charset <Charset>] <JSONData>)|(jsonattendees file <FileName> [charset <Charset>])|
         (location <String>)|
         (noreminders|(reminder email|popup|sms <Number>))|
         (optionalattendee <EmailAddress>)|
-        (originalstart (allday <Date>)|<Time>)|
+        (originalstart|originalstarttime (allday <Date>)|<Time>)|
         (privateproperty <PropertyKey> <PropertyValue>)|
         (recurrence <RRULE, EXRULE, RDATE and EXDATE line>)|
         (reminder <Number> email|popup|sms))|
@@ -3295,7 +3316,7 @@ gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <
         (sequence <Integer>)|
         (sharedproperty <PropertyKey> <PropertyValue>)|
         (source <String> <URL>)|
-        (start (allday <Date>)|<Time>)|
+        (start|starttime (allday <Date>)|<Time>)|
         (status confirmed|tentative|cancelled)|
         (summary <String>)|
         tentative|
@@ -3309,6 +3330,22 @@ The following attributes are equivalent:
         guestscantseeothers - guestscanseeotherguests False
         tentative - status tentative
 
+<EventImportAttribute> ::=
+        <EventAttribute>|
+        (organizername <String>)|
+        (organizeremail <EmailAddress>)
+
+<EventUpdateAttribute> ::=
+        <EventAttribute>|
+        clearattachments|
+        clearattendees|
+        clearhangoutsmeet|
+        (clearprivateproperty <PropertyKey>)|
+        (clearsharedproperty <PropertyKey>)|
+        (removeattendee <EmailAddress>)|
+        (replacedescription <RegularExpression> <String>)|
+        (selectremoveattendees <UserTypeEntity>)
+
 <EventNotificationAttribute> ::=
         notifyattendees|(sendnotifications <Boolean>)|(sendupdates all|enternalonly|none)
 
@@ -3317,27 +3354,11 @@ The following attributes are equivalent:
         sendnotifications false - sendupdates none
         sendnotifications true - sendupdates all
 
-<EventCreateAttribute> ::=
-        <EventAttribute>|
-        <EventNotificationAttribute>
-
-<EventImportAttribute> ::=
-        <EventAttribute>|
-        (organizername <String>)|
-        (organizeremail <EmailAddress>)
-
-<EventUpdateAttribute> ::=
-        <EventAttribute>|
-        <EventNotificationAttribute>|
-        clearattachments|
-        (clearprivateproperty <PropertyKey>)|
-        (clearsharedproperty <PropertyKey>)
-
 Add update and delete events in any calendar for which a user has access
 
-gam <UserTypeEntity> create|add event <UserCalendarEntity> [id <String>] <EventCreateAttribute>+
+gam <UserTypeEntity> create|add event <UserCalendarEntity> [id <String>] <EventAttribute>+
 gam <UserTypeEntity> import event <UserCalendarEntity> icaluid <iCalUID> <EventImportAttribute>+
-gam <UserTypeEntity> update events <UserCalendarEntity> [<EventEntity>] <EventUpdateAttribute>+
+gam <UserTypeEntity> update events <UserCalendarEntity> [<EventEntity>] [replacemode] <EventUpdateAttribute>+ [<EventNotificationAttribute>]
 gam <UserTypeEntity> delete events <UserCalendarEntity> [<EventEntity>] [doit] [<EventNotificationAttribute>]
 gam <UserTypeEntity> purge events <UserCalendarEntity> [<EventEntity>] [doit] [<EventNotificationAttribute>]
 gam <UserTypeEntity> wipe events <UserCalendarEntity>
@@ -3566,7 +3587,7 @@ gam <UserTypeEntity> show drivefileacls <DriveFileEntity>
         <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson]
-gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive <ToDriveAttributes>*]
+gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive <ToDriveAttribute>*]
         [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
@@ -3622,7 +3643,7 @@ gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>]
         [keepuser | (retainrole reader|commenter|writer|editor|fileorganizer|none)] [noretentionmessages]
         [nonowner_retainrole reader|commenter|writer|editor|fileorganizer|current|none] [nonowner_targetrole reader|commenter|writer|editor|fileorganizer|current|none|source]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-        [preview] [todrive <ToDriveAttributes>*]
+        [preview] [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [(targetuserfoldername <DriveFolderName>)|(targetuserfolderid <DriveFolderID>)] [preview] [todrive <ToDriveAttribute>*]
@@ -3827,7 +3848,7 @@ gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*] [corpora 
         trashed
 <FileTreeFieldNameList> ::= "<FileTreeFieldName>(,<FileTreeFieldName>)*"
 
-gam <UserTypeEntity> print filetree [todrive <ToDriveAttributes>*] [anyowner|(showownedby any|me|others)]
+gam <UserTypeEntity> print filetree [todrive <ToDriveAttribute>*] [anyowner|(showownedby any|me|others)]
         [select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [depth <Number>]
         [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
         <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
@@ -3856,7 +3877,7 @@ gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
         upload
 <DriveActivityActionList> ::= "<DriveActivityAction>(,<DriveActivityAction>)*"
 
-gam <UserTypeEntity> print|show driveactivity [v2] [todrive <ToDriveAttributes>*]
+gam <UserTypeEntity> print|show driveactivity [v2] [todrive <ToDriveAttribute>*]
         [(fileid <DriveFileID>) | (folderid <DriveFolderID>) |
          (drivefilename <DriveFileName>) | (drivefoldername <DriveFolderName>) | (query <QueryDriveFile>)]
         [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [action|actions [not] <DriveActivityActionList>]
@@ -4154,7 +4175,7 @@ gam <UserTypeEntity> add groups ([<GroupRole>] [[delivery] <DeliverySetting>] <G
 gam <UserTypeEntity> delete groups [<GroupEntity>]
 gam <UserTypeEntity> update groups ([<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)+
 gam <UserTypeEntity> sync groups ([<GroupRole>] <GroupEntity>)+
-gam <UserTypeEntity> print groups [roles <GroupRoleList>] [domain <DomainName>] [todrive <ToDriveAttributes>*]
+gam <UserTypeEntity> print groups [roles <GroupRoleList>] [domain <DomainName>] [todrive <ToDriveAttribute>*]
 gam <UserTypeEntity> show groups [roles <GroupRoleList>] [domain <DomainName>]
 
 # Users - Licenses
@@ -4321,11 +4342,11 @@ gam <UserTypeEntity> show sheetrange <DriveFileEntity> (range <SpreadsheetRange>
 
 gam <UserTypeEntity> delete tokens clientid <ClientID>
 
-gam <UserTypeEntity> print tokens|token [todrive <ToDriveAttributes>*] [clientid <ClientID>]
+gam <UserTypeEntity> print tokens|token [todrive <ToDriveAttribute>*] [clientid <ClientID>]
         [orderby clientid|displaytext] [delimiter <Character>]
 gam <UserTypeEntity> show tokens|token|3lo|oauth [clientid <ClientID>]
         [orderby clientid|displaytext]
-gam print tokens|token [todrive <ToDriveAttributes>*] [clientid <ClientID>]
+gam print tokens|token [todrive <ToDriveAttribute>*] [clientid <ClientID>]
         [orderby clientid|displaytext] [delimiter <Character>]
         [<UserTypeEntity>]
 
