@@ -1,3 +1,7 @@
+5.01.09
+
+Fixed bug that caused a trap in tag replace processing when setting a signature.
+
 5.01.08
 
 Added options `tdbackupsheet (id:<Number>)|<String>` and `tdcopysheet (id:<Number>)|<String>` to `<ToDriveAttribute>`.

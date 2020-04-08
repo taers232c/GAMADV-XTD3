@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.01.08'
+__version__ = '5.01.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -9706,7 +9706,7 @@ def _processTagReplacements(tagReplacements, message):
       if not match:
         break
       skipAreas.append(match.span())
-      pos = match.end()+1
+      pos = match.end()
   skipTags = set()
 # Find all {tag}, note replacement value and starting location; note tags in skipAreas
   tagFields = []
@@ -9726,7 +9726,7 @@ def _processTagReplacements(tagReplacements, message):
       else:
         tagSubs.setdefault(tag, tagReplacements['tags'].get(tag, {'value': ''})['value'])
         tagFields.append((tagSubs[tag], start))
-    pos = end+1
+    pos = end
 # Find all {RT}.*?{/RT} sequences
 # If any non-empty {tag} replacement value falls between them, then mark {RT} and {/RT} to be stripped
 # Otherwise, mark the entire {RT}.*?{/RT} sequence to be stripped
@@ -9755,7 +9755,7 @@ def _processTagReplacements(tagReplacements, message):
       else:
         rtStrips.append((False, start, start+4))
         rtStrips.append((False, end-5, end))
-    pos = end+1
+    pos = end
 # Find all {RTL}.*?{/RTL} sequences
 # If any non-empty {RT}...{tag}... {/RT} falls between them, then mark {RTL} and {/RTL} to be stripped
 # Otherwise, mark the entire {RTL}.*{/RTL} sequence to be stripped
@@ -9792,7 +9792,7 @@ def _processTagReplacements(tagReplacements, message):
         rtlStrips.append((True, start, end))
       else:
         rtlStrips.append((False, start, start+5, end-6, end))
-    pos = end+1
+    pos = end
   if rtlStrips:
     allStrips = []
     i = 0
@@ -9831,7 +9831,7 @@ def _processTagReplacements(tagReplacements, message):
         message = re.sub(match.group(0), tagSubs[tag], message)
         pos = start+1
       else:
-        pos = end+1
+        pos = end
     else:
 # Replace invalid RT tags with ERROR(RT)
       message = re.sub(match.group(0), f'ERROR({tag})', message)
