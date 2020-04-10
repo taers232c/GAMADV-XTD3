@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.02.00'
+__version__ = '5.02.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -114,7 +114,6 @@ import google_auth_oauthlib.flow
 import google_auth_httplib2
 import httplib2
 from iso8601 import iso8601
-#from dateutil.relativedelta import relativedelta
 if platform.system() == 'Windows':
   # No crypt module on Win, use passlib
   from passlib.hash import sha512_crypt
@@ -3109,6 +3108,7 @@ def SetGlobalVariables():
 # Process selectfilter
   if filterSectionName:
     GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] = _getCfgHeaderFilter(filterSectionName, GC.CSV_OUTPUT_HEADER_FILTER)
+    GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER] = _getCfgHeaderFilter(filterSectionName, GC.CSV_OUTPUT_HEADER_DROP_FILTER)
     GC.Values[GC.CSV_OUTPUT_ROW_FILTER] = _getCfgRowFilter(filterSectionName, GC.CSV_OUTPUT_ROW_FILTER)
   if status['errors']:
     sys.exit(CONFIG_ERROR_RC)
@@ -3199,6 +3199,8 @@ def SetGlobalVariables():
   if GM.Globals[GM.PID] != 0:
     if not GC.Values[GC.CSV_OUTPUT_HEADER_FILTER]:
       GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] = GM.Globals[GM.CSV_OUTPUT_HEADER_FILTER][:]
+    if not GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER]:
+      GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER] = GM.Globals[GM.CSV_OUTPUT_HEADER_DROP_FILTER][:]
     if not GC.Values[GC.CSV_OUTPUT_ROW_FILTER]:
       GC.Values[GC.CSV_OUTPUT_ROW_FILTER] = GM.Globals[GM.CSV_OUTPUT_ROW_FILTER][:]
 # If no select/options commands were executed or some were and there are more arguments on the command line,
@@ -5449,6 +5451,7 @@ class CSVPrintFile():
         self.SetSortAllTitles()
     self.SetIndexedTitles(indexedTitles if indexedTitles is not None else [])
     self.SetHeaderFilter(GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] if checkFilters else [])
+    self.SetHeaderDropFilter(GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER] if checkFilters else [])
     self.SetRowFilter(GC.Values[GC.CSV_OUTPUT_ROW_FILTER] if checkFilters else [])
     self.SetZeroBlankMimeTypeCounts(False)
 
@@ -6008,17 +6011,23 @@ class CSVPrintFile():
   def SetHeaderFilter(self, headerFilter):
     self.headerFilter = headerFilter
 
-  def HeaderFilterMatch(self, title):
-    for filterStr in self.headerFilter:
+  def SetHeaderDropFilter(self, headerDropFilter):
+    self.headerDropFilter = headerDropFilter
+
+  def HeaderFilterMatch(self, filters, title):
+    for filterStr in filters:
       if filterStr.match(title):
         return True
     return False
 
   def FilterHeaders(self):
-    self.titlesList = [t for t in self.titlesList if self.HeaderFilterMatch(t)]
+    if self.headerDropFilter:
+      self.titlesList = [t for t in self.titlesList if not self.HeaderFilterMatch(self.headerDropFilter, t)]
+    if self.headerFilter:
+      self.titlesList = [t for t in self.titlesList if self.HeaderFilterMatch(self.headerFilter, t)]
     self.titlesSet = set(self.titlesList)
     if not self.titlesSet:
-      systemErrorExit(USAGE_ERROR_RC, Msg.NO_COLUMNS_SELECTED_WITH_CSV_OUTPUT_HEADER_FILTER.format(GC.CSV_OUTPUT_HEADER_FILTER))
+      systemErrorExit(USAGE_ERROR_RC, Msg.NO_COLUMNS_SELECTED_WITH_CSV_OUTPUT_HEADER_FILTER.format(GC.CSV_OUTPUT_HEADER_FILTER, GC.CSV_OUTPUT_HEADER_DROP_FILTER))
 
   def writeCSVfile(self, list_type):
 
@@ -6253,7 +6262,7 @@ class CSVPrintFile():
       self.ZeroBlankMimeTypeCounts()
     if self.rowFilter:
       self.CheckRowFilterHeaders()
-    if self.headerFilter:
+    if self.headerFilter or self.headerDropFilter:
       self.FilterHeaders()
       extrasaction = 'ignore'
     else:
@@ -6673,6 +6682,7 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF):
     csvPF.SetColumnDelimiter(GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER])
     csvPF.SetQuoteChar(GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR])
     csvPF.SetHeaderFilter(GC.Values[GC.CSV_OUTPUT_HEADER_FILTER])
+    csvPF.SetHeaderDropFilter(GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER])
     csvPF.SetRowFilter(GC.Values[GC.CSV_OUTPUT_ROW_FILTER])
   list_type = 'CSV'
   while True:
@@ -6703,6 +6713,7 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF):
       csvPF.SetColumnDelimiter(GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER])
       csvPF.SetQuoteChar(GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR])
       csvPF.SetHeaderFilter(GC.Values[GC.CSV_OUTPUT_HEADER_FILTER])
+      csvPF.SetHeaderDropFilter(GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER])
       csvPF.SetRowFilter(GC.Values[GC.CSV_OUTPUT_ROW_FILTER])
     else:
       break
@@ -6810,7 +6821,7 @@ def terminateStdQueueHandler(mpQueue, mpQueueHandler):
   mpQueue.put((0, GM.REDIRECT_QUEUE_EOF, None))
   mpQueueHandler.join()
 
-def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr, todrive, csvHeaderFilter, csvRowFilter, args):
+def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr, todrive, csvHeaderFilter, csvHeaderDropFilter, csvRowFilter, args):
   initializeLogging()
   if sys.platform.startswith('win'):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
@@ -6822,6 +6833,7 @@ def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr, to
   GM.Globals[GM.CSV_DATA_FIELD] = None
   GM.Globals[GM.CSV_TODRIVE] = todrive.copy()
   GM.Globals[GM.CSV_OUTPUT_HEADER_FILTER] = csvHeaderFilter[:]
+  GM.Globals[GM.CSV_OUTPUT_HEADER_DROP_FILTER] = csvHeaderDropFilter[:]
   GM.Globals[GM.CSV_OUTPUT_ROW_FILTER] = csvRowFilter[:]
   GM.Globals[GM.CSVFILE] = {}
   if mpQueueCSVFile:
@@ -6938,6 +6950,7 @@ def MultiprocessGAMCommands(items, logCmds):
       poolProcessResults[pid] = pool.apply_async(ProcessGAMCommandMulti, [pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
                                                                           GM.Globals[GM.CSV_TODRIVE],
                                                                           GC.Values[GC.CSV_OUTPUT_HEADER_FILTER],
+                                                                          GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER],
                                                                           GC.Values[GC.CSV_OUTPUT_ROW_FILTER],
                                                                           item])
       poolProcessesInUse += 1
@@ -8976,9 +8989,10 @@ def doReportUsage():
     else:
       unknownArgumentExit()
   if startEndTime.startDateTime is None:
-#    startEndTime.startDateTime = todaysDate()+relativedelta(months=-1)
-    startEndTime.startDateTime = todaysDate()+datetime.timedelta(days=-31)
-  if startEndTime.endDateTime is None:
+    if startEndTime.endDateTime is None:
+      startEndTime.endDateTime = todaysDate()
+    startEndTime.startDateTime = startEndTime.endDateTime+datetime.timedelta(days=-31)
+  elif startEndTime.endDateTime is None:
     startEndTime.endDateTime = todaysDate()
   startDateTime = startEndTime.startDateTime
   startDate = startDateTime.strftime('%Y-%m-%d')
@@ -15919,14 +15933,14 @@ def doPrintCrOSDevices(entityList=None):
     elif myarg in CROS_LISTS_ARGUMENTS:
       _getSelectedLists(myarg)
     elif myarg in CROS_FIELDS_CHOICE_MAP:
-      addFieldToFieldsList(myarg, CROS_FIELDS_CHOICE_MAP, fieldsList)
+      csvPF.AddField(myarg, CROS_FIELDS_CHOICE_MAP, fieldsList)
     elif myarg == 'fields':
       for field in _getFieldsList():
         if field in CROS_FIELDS_CHOICE_MAP:
           if field in CROS_LISTS_ARGUMENTS:
             _getSelectedLists(field)
           else:
-            addFieldToFieldsList(field, CROS_FIELDS_CHOICE_MAP, fieldsList)
+            csvPF.AddField(field, CROS_FIELDS_CHOICE_MAP, fieldsList)
         else:
           invalidChoiceExit(field, CROS_FIELDS_CHOICE_MAP, True)
     else:

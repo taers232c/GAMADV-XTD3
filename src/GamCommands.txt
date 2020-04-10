@@ -783,7 +783,7 @@ verify
     Values are determined in this order: Selected section, DEFAULT section, Program default
 
 ## Select a filter section from gam.cfg and process a GAM command using values from that section
-The only <VariableName>s recognized in this <Section> are: csv_output_header_filter and csv_output_row_filter.
+The only <VariableName>s recognized in this <Section> are: csv_output_header_filter, csv_output_header_drop_filter and csv_output_row_filter.
 <SelectFilter> ::=
         selectfilter <Section>
 
