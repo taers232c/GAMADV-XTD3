@@ -5292,15 +5292,15 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msg
       entityActionPerformed([entityType, ','.join(toSent), Ent.MESSAGE, msgSubject], i, count)
     for addr, errMsg in iter(toFailed.items()):
       entityActionFailedWarning([entityType, addr, Ent.MESSAGE, msgSubject], errMsg, i, count)
-  if msgFrom is None:
-    msgFrom = msgFromAddr = _getValueFromOAuth('email')
-  else:
-    match = NAME_EMAIL_ADDRESS_PATTERN.match(msgFrom)
+
+  def cleanAddr(emailAddr):
+    match = NAME_EMAIL_ADDRESS_PATTERN.match(emailAddr)
     if match:
-      msgFromAddr = match.group(1)
-    else:
-      msgFromAddr = msgFrom
-    msgFromAddr = normalizeEmailAddressOrUID(msgFromAddr, noUid=True)
+      return match.group(1)
+    return emailAddr
+
+  if msgFrom is None:
+    msgFrom = _getValueFromOAuth('email')
   # Force ASCII for RFC compliance
   # xmlcharref seems to work to display at least
   # some unicode in HTML body and is ignored in
@@ -5323,15 +5323,16 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msg
     message['BCC'] = bccRecipients.lower()
   if mailBox is None:
     mailBox = msgFrom
+  mailBoxAddr = normalizeEmailAddressOrUID(cleanAddr(mailBox), noUid=True)
   action = Act.Get()
   Act.Set(Act.SENDEMAIL)
   if not GC.Values[GC.SMTP_HOST]:
     if not clientAccess:
-      userId, gmail = buildGAPIServiceObject(API.GMAIL, mailBox)
+      userId, gmail = buildGAPIServiceObject(API.GMAIL, mailBoxAddr)
       if not gmail:
         return
     else:
-      userId = msgFromAddr
+      userId = mailBoxAddr
       gmail = buildGAPIObject(API.GMAIL)
     message['To'] = (msgTo if msgTo else userId).lower()
     try:
@@ -5344,7 +5345,7 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msg
             GAPI.invalidArgument, GAPI.forbidden) as e:
       entityActionFailedWarning([Ent.RECIPIENT, msgTo, Ent.MESSAGE, msgSubject], str(e), i, count)
   else:
-    message['To'] = (msgTo if msgTo else msgFromAddr).lower()
+    message['To'] = (msgTo if msgTo else mailBoxAddr).lower()
     server = None
     try:
       server = smtplib.SMTP(GC.Values[GC.SMTP_HOST], 587, GC.Values[GC.SMTP_FQDN])
@@ -10089,7 +10090,7 @@ def sendCreateUpdateUserNotification(body, notify, tagReplacements, i=0, count=0
   send_email(notify['subject'], notify['message'], notify['emailAddress'], i, count,
              msgFrom=msgFrom, html=notify['html'], charset=notify['charset'])
 
-# gam sendemail <RecipientEntity> [from <UserItem>] [mailbox <UserItem>] [replyto <EmailAddress>]
+# gam sendemail <RecipientEntity> [from <EmailAddress>] [mailbox <EmailAddress>] [replyto <EmailAddress>]
 #	[cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
 #	[subject <String>] [(message <String>)|(file <FileName> [charset <CharSet>])]
 #	(replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
@@ -10143,7 +10144,7 @@ def doSendEmail(users=None):
     elif myarg == 'bcc':
       bccRecipients = getRecipients()
     elif myarg == 'mailbox':
-      mailBox  = getString(Cmd.OB_EMAIL_ADDRESS)
+      mailBox = getString(Cmd.OB_EMAIL_ADDRESS)
     elif myarg == 'singlemessage':
       singleMessage = True
     elif myarg == 'html':

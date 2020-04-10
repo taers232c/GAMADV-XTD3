@@ -3,6 +3,15 @@
 Added `csv_output_header_drop_filter` to `gam.cfg` to allow CSV header filtering by exclusion.
 * See: https://github.com/taers232c/GAMADV-XTD3/wiki/CSV-Print-Filtering#column-header-filtering
 
+Thanks to @bousquf for the following enhancement. You want to send a message from an authorized group
+but a group email address can't be used in the Gmail API as the sender. Added the option `mailbox <EmailAddress>`
+to `gam sendemail` to allow specifying the sender email address used in the Gmail API as different from `from <EmailAddress>`. 
+
+For example:
+```
+gam sendemail destination@email.com from "IT Group <group@domain.com>" mailbox user@domain.com subject "test subject" message "text body" ...
+```
+
 5.02.00
 
 THERE IS A DEFAULT BEHAVIOR CHANGE WHEN UPDATING ATTENDEES IN EVENTS - READ CAREFULLY.
