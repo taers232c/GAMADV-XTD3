@@ -5278,7 +5278,7 @@ NAME_EMAIL_ADDRESS_PATTERN = re.compile(r'^.*<(.+)>$')
 
 # Send an email
 def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msgFrom=None, msgReplyTo=None,
-               html=False, charset=UTF8, attachments=None, ccRecipients=None, bccRecipients=None):
+               html=False, charset=UTF8, attachments=None, ccRecipients=None, bccRecipients=None, mailBox=None):
   def checkResult(entityType, recipients):
     if not recipients:
       return
@@ -5292,7 +5292,6 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msg
       entityActionPerformed([entityType, ','.join(toSent), Ent.MESSAGE, msgSubject], i, count)
     for addr, errMsg in iter(toFailed.items()):
       entityActionFailedWarning([entityType, addr, Ent.MESSAGE, msgSubject], errMsg, i, count)
-
   if msgFrom is None:
     msgFrom = msgFromAddr = _getValueFromOAuth('email')
   else:
@@ -5315,18 +5314,20 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msg
     message.attach(msg)
     _addAttachmentsToMessage(message, attachments)
   message['Subject'] = msgSubject
-  message['From'] = msgFromAddr
+  message['From'] = msgFrom
   if msgReplyTo is not None:
     message['Reply-To'] = msgReplyTo
   if ccRecipients:
     message['CC'] = ccRecipients.lower()
   if bccRecipients:
     message['BCC'] = bccRecipients.lower()
+  if mailBox is None:
+    mailBox = msgFrom
   action = Act.Get()
   Act.Set(Act.SENDEMAIL)
   if not GC.Values[GC.SMTP_HOST]:
     if not clientAccess:
-      userId, gmail = buildGAPIServiceObject(API.GMAIL, msgFromAddr)
+      userId, gmail = buildGAPIServiceObject(API.GMAIL, mailBox)
       if not gmail:
         return
     else:
@@ -10088,7 +10089,7 @@ def sendCreateUpdateUserNotification(body, notify, tagReplacements, i=0, count=0
   send_email(notify['subject'], notify['message'], notify['emailAddress'], i, count,
              msgFrom=msgFrom, html=notify['html'], charset=notify['charset'])
 
-# gam sendemail <RecipientEntity> [from <UserItem>] [replyto <EmailAddress>]
+# gam sendemail <RecipientEntity> [from <UserItem>] [mailbox <UserItem>] [replyto <EmailAddress>]
 #	[cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
 #	[subject <String>] [(message <String>)|(file <FileName> [charset <CharSet>])]
 #	(replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
@@ -10116,6 +10117,7 @@ def doSendEmail(users=None):
     recipients = ['']
   ccRecipients = []
   bccRecipients = []
+  mailBox = None
   msgReplyTo = None
   singleMessage = False
   tagReplacements = _initTagReplacements()
@@ -10140,6 +10142,8 @@ def doSendEmail(users=None):
       ccRecipients = getRecipients()
     elif myarg == 'bcc':
       bccRecipients = getRecipients()
+    elif myarg == 'mailbox':
+      mailBox  = getString(Cmd.OB_EMAIL_ADDRESS)
     elif myarg == 'singlemessage':
       singleMessage = True
     elif myarg == 'html':
@@ -10188,7 +10192,7 @@ def doSendEmail(users=None):
                                           Act.MODIFIER_TO, jcount+len(ccRecipients)+len(bccRecipients), Ent.RECIPIENT, i, count)
       send_email(notify['subject'], notify['message'], ','.join(recipients), i, count,
                  msgFrom=msgFrom, msgReplyTo=msgReplyTo, html=notify['html'], charset=notify['charset'],
-                 attachments=attachments, ccRecipients=','.join(ccRecipients), bccRecipients=','.join(bccRecipients))
+                 attachments=attachments, ccRecipients=','.join(ccRecipients), bccRecipients=','.join(bccRecipients), mailBox=mailBox)
     else:
       entityPerformActionModifierNumItems([Ent.USER, msgFrom], Act.MODIFIER_TO, jcount, Ent.RECIPIENT, i, count)
       Ind.Increment()
@@ -10197,7 +10201,7 @@ def doSendEmail(users=None):
         j += 1
         send_email(notify['subject'], notify['message'], recipient, j, jcount,
                    msgFrom=msgFrom, msgReplyTo=msgReplyTo, html=notify['html'], charset=notify['charset'],
-                   attachments=attachments)
+                   attachments=attachments, mailBox=mailBox)
       Ind.Decrement()
 
 ADDRESS_FIELDS_PRINT_ORDER = ['contactName', 'organizationName', 'addressLine1', 'addressLine2', 'addressLine3', 'locality', 'region', 'postalCode', 'countryCode']
