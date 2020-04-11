@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.02.01'
+__version__ = '5.02.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1355,10 +1355,10 @@ def getSheetEntity():
       if cg:
         if cg.group(1).isdigit():
           Cmd.Advance()
-          return {'sheetType': Ent.SHEET_ID, 'sheetValue': int(cg.group(1)), 'sheetId': int(cg.group(1)), 'sheetTitle': '', 'checkSheet': True}
+          return {'sheetType': Ent.SHEET_ID, 'sheetValue': int(cg.group(1)), 'sheetId': int(cg.group(1)), 'sheetTitle': ''}
       else:
         Cmd.Advance()
-        return {'sheetType': Ent.SHEET, 'sheetValue': sheet, 'sheetId': None, 'sheetTitle': sheet, 'checkSheet': True}
+        return {'sheetType': Ent.SHEET, 'sheetValue': sheet, 'sheetId': None, 'sheetTitle': sheet}
   missingArgumentExit(Cmd.OB_SHEET_ENTITY)
 
 def getSheetIdFromSheetEntity(spreadsheet, sheetEntity):
@@ -5705,7 +5705,6 @@ class CSVPrintFile():
                 if protectedSheetId(spreadsheet, sheetId):
                   invalidTodriveFileIdExit([self.todrive[sheetEntity]['sheetType'], self.todrive[sheetEntity]['sheetValue']], Msg.NOT_WRITABLE, tdsheetLocation[sheetEntity])
                 self.todrive[sheetEntity]['sheetId'] = sheetId
-                self.todrive[sheetEntity]['checkSheet'] = False
           except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
                   GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid) as e:
             invalidTodriveFileIdExit([], str(e), tdfileidLocation)
@@ -6126,19 +6125,17 @@ class CSVPrintFile():
             for sheetEntity in iter(self.TDSHEET_ENTITY_MAP.values()):
               if self.todrive[sheetEntity]:
                 entityValueList = [Ent.USER, user, Ent.SPREADSHEET, title, self.todrive[sheetEntity]['sheetType'], self.todrive[sheetEntity]['sheetValue']]
-                if self.todrive[sheetEntity]['checkSheet']:
-                  if spreadsheet is None:
-                    spreadsheet = callGAPI(sheet.spreadsheets(), 'get',
-                                           throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
-                                           spreadsheetId=self.todrive['fileId'],
-                                           fields='spreadsheetUrl,sheets(properties(sheetId,title),protectedRanges(range(sheetId),requestingUserCanEdit))')
-                  sheetId = getSheetIdFromSheetEntity(spreadsheet, self.todrive[sheetEntity])
-                  if sheetId is None:
-                    todriveCSVErrorExit(entityValueList, Msg.NOT_FOUND)
-                  if protectedSheetId(spreadsheet, sheetId):
-                    todriveCSVErrorExit(entityValueList, Msg.NOT_WRITABLE)
-                  self.todrive[sheetEntity]['sheetId'] = sheetId
-                  self.todrive[sheetEntity]['checkSheet'] = False
+                if spreadsheet is None:
+                  spreadsheet = callGAPI(sheet.spreadsheets(), 'get',
+                                         throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
+                                         spreadsheetId=self.todrive['fileId'],
+                                         fields='spreadsheetUrl,sheets(properties(sheetId,title),protectedRanges(range(sheetId),requestingUserCanEdit))')
+                sheetId = getSheetIdFromSheetEntity(spreadsheet, self.todrive[sheetEntity])
+                if sheetId is None:
+                  todriveCSVErrorExit(entityValueList, Msg.NOT_FOUND)
+                if protectedSheetId(spreadsheet, sheetId):
+                  todriveCSVErrorExit(entityValueList, Msg.NOT_WRITABLE)
+                self.todrive[sheetEntity]['sheetId'] = sheetId
             body = {'requests': []}
             if self.todrive['backupSheetEntity']:
               body['requests'].append({"copyPaste": {"source": {"sheetId": self.todrive['sheetEntity']['sheetId']},
@@ -34891,9 +34888,11 @@ def printShowFileTree(users):
   if csvPF:
     csvPF.writeCSVfile('Drive File Tree')
 
-# gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] [<DriveFileCreateAttributes>] [csv [todrive <ToDriveAttributes>*]]
+# gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] [<DriveFileCreateAttributes>]
+#	[csv [todrive <ToDriveAttributes>*]] [returnidonly]
 def createDriveFile(users):
   csvPF = media_body = None
+  returnIdOnly = False
   fileIdEntity = initDriveFileEntity()
   body = {}
   parameters = initDriveFileAttributes()
@@ -34903,6 +34902,8 @@ def createDriveFile(users):
       body['name'] = getString(Cmd.OB_DRIVE_FILE_NAME)
     elif myarg == 'csv':
       csvPF = CSVPrintFile()
+    elif myarg == 'returnidonly':
+      returnIdOnly = True
     elif csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     else:
@@ -34937,7 +34938,9 @@ def createDriveFile(users):
                         keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                         useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
                         media_body=media_body, body=body, fields='id,name,mimeType', supportsAllDrives=True)
-      if not csvPF:
+      if returnIdOnly:
+        writeStdout(f'{result["id"]}\n')
+      elif not csvPF:
         titleInfo = f'{result["name"]}({result["id"]})'
         if parameters[DFA_LOCALFILENAME]:
           entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, titleInfo], Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], i, count)

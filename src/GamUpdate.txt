@@ -1,3 +1,16 @@
+5.02.02
+
+Added `returnidonly` to `gam <UserTypeEntity> create drivefile` that causes GAM to return just the
+file ID of the created file as output. This will be useful in scripts that create a file and then
+want to perform subsequent GAM command on the file. This file ID will only be valid when the return code
+of the command is 0; program accordingly.
+```
+Linux/MacOS
+fileId=`gam user user@domain.com create drivefile ...`
+Windows PowerShell
+$fileId = & gam user user@domain.com create drivefile ...`
+```
+
 5.02.01
 
 Added `csv_output_header_drop_filter` to `gam.cfg` to allow CSV header filtering by exclusion.

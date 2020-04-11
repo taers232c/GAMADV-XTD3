@@ -2544,7 +2544,7 @@ gam print schema|schemas [todrive <ToDriveAttribute>*]
 
 # Send Email
 
-gam sendemail [recipient|to] <RecipientEntity> [from <EmailAddress>] [mailbox <EmailAddress>] [replyto <EmailAddress>]
+gam sendemail [recipient|to] <RecipientEntity> [from <EnailAddress>] [mailbox <EmailAddress>] [replyto <EmailAddress>]
         [cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
         [subject <String>]
         (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])
@@ -3450,7 +3450,8 @@ gam <UserTypeEntity> update calattendees <UserCalendarEntity> [<EventEntity>] [a
          (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
          (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))
 
-gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] <DriveFileCreateAttribute>* [csv [todrive <ToDriveAttribute>*]]
+gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] <DriveFileCreateAttribute>*
+        [csv [todrive <ToDriveAttribute>*]] [returnidonly]
 
 <DriveFileUpdateAttribute> ::=
         <DriveFileAttribute>|
