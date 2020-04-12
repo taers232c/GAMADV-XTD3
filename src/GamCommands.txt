@@ -682,7 +682,8 @@ Specify a collection of items by directly specifying them; the item type is dete
         (anyname <DriveFileName>) | (anyname:<DriveFileName>) |
         (anydrivefilename <DriveFileName>) | (anydrivefilename:<DriveFileName>)
 <DriveFileQueryEntity> ::= 
-        (query <QueryDriveFile>) | (query:<QueryDriveFile>)
+        (query <QueryDriveFile>) | (query:<QueryDriveFile>) |
+        (fullquery <QueryDriveFile>)
 <DriveFileQueryShortcut> ::=
         all_files | all_folders | all_google_files | all_non_google_files | all_items |
         my_files | my_folders | my_google_files | my_non_google_files | my_items |
@@ -4281,6 +4282,14 @@ The following right-hand side characters are part of the meta-syntax: <>()*|
         '{"requests": [{<Request>}(,{<Request>})], "includeSpreadsheetInResponse": true|false,
           "responseRanges": ["<SpreadsheetRange>"(,"<SpreadsheetRange>")],
           "responseIncludeGridData": true|false}
+<SpreadsheetField> ::=
+        developermetadata|
+        namedranges|
+        properties|
+        sheets|
+        spreadcheetid|
+        spreadcheeturl
+<SpreadsheetFieldList> ::= [<SpreadsheetField>(,<SpreadsheetField>)*]
 <SpreadsheetRange> ::= <String>
 <SpreadsheetValue> ::= "<String>"|<Number>|true|false
 <SpreadsheetValueList> ::= [<SpreadsheetValue>(,<SpreadsheetValue>)*]
@@ -4311,7 +4320,12 @@ gam <UserTypeEntity> update sheet <DriveFileEntity>
         ((json [charset <Charset>] <SpreadsheetJSONUpdateRequest>) |
          (json file <FileName> [charset <Charset>]))
         [formatjson]
-gam <UserTypeEntity> info sheet <DriveFileEntity> (range <SpreadsheetRange>)* [includegriddata [<Boolean>]] [formatjson]
+gam <UserTypeEntity> info|show sheet <DriveFileEntity>
+        [fields <SpreadsheetFieldList>] (range <SpreadsheetRange>)* [includegriddata [<Boolean>]]
+        [formatjson]
+gam <UserTypeEntity> print sheet <DriveFileEntity> [todrive <ToDriveAttribute>*]
+        [fields <SpreadsheetFieldList>] (range <SpreadsheetRange>)* [includegriddata [<Boolean>]]
+        [formatjson] [quotechar <Character>]
 
 See: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values#ValueRange
 See: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/append

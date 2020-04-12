@@ -45,6 +45,8 @@ CSV_SUBKEY_FIELD = 'cssk'
 CSV_DATA_FIELD = 'csdf'
 # Filter for column headers
 CSV_OUTPUT_HEADER_FILTER = 'cohf'
+# Filter for column headers to drop
+CSV_OUTPUT_HEADER_DROP_FILTER = 'codf'
 # Filter for column values
 CSV_OUTPUT_ROW_FILTER = 'corf'
 # Current API services
@@ -166,6 +168,7 @@ Globals = {
   CSV_SUBKEY_FIELD: None,
   CSV_DATA_FIELD: None,
   CSV_OUTPUT_HEADER_FILTER: [],
+  CSV_OUTPUT_HEADER_DROP_FILTER: [],
   CSV_OUTPUT_ROW_FILTER: [],
   CURRENT_API_SERVICES: {},
   CURRENT_CLIENT_API: None,

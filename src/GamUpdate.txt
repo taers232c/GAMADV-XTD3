@@ -1,3 +1,16 @@
+5.02.03
+
+Fixed bug where `query:<QueryDriveFile>` was not recognized on the command line.
+
+Fixed bug where `csv_output_header_drop_filter` caused a trap when a CSV file was processed.
+
+Added command to get Google Spreadsheet data in CSV format.
+```
+gam <UserTypeEntity> print sheet <DriveFileEntity> [todrive <ToDriveAttribute>*]
+        [fields <SpreadsheetFieldList>] (range <SpreadsheetRange>)* [includegriddata [<Boolean>]]
+        [formatjson] [quotechar <Character>]
+```
+
 5.02.02
 
 Added `returnidonly` to `gam <UserTypeEntity> create drivefile` that causes GAM to return just the

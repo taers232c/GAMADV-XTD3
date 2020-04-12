@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.02.02'
+__version__ = '5.02.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -8155,7 +8155,8 @@ def doDeleteProject():
       entityActionFailedWarning([Ent.PROJECT, projectId], str(e))
   Ind.Decrement()
 
-# gam print projects [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)] [todrive <ToDriveAttributes>*] [formatjson] [quotechar <Character>]
+# gam print projects [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)] [todrive <ToDriveAttributes>*]
+#	[formatjson] [quotechar <Character>]
 # gam show projects [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
 def doPrintShowProjects():
   _, _, login_hint, projects = _getLoginHintProjects(printShowCmd=True)
@@ -8990,7 +8991,7 @@ def doReportUsage():
   if startEndTime.startDateTime is None:
     if startEndTime.endDateTime is None:
       startEndTime.endDateTime = todaysDate()
-    startEndTime.startDateTime = startEndTime.endDateTime+datetime.timedelta(days=-31)
+    startEndTime.startDateTime = startEndTime.endDateTime+datetime.timedelta(days=-30)
   elif startEndTime.endDateTime is None:
     startEndTime.endDateTime = todaysDate()
   startDateTime = startEndTime.startDateTime
@@ -33887,6 +33888,11 @@ class DriveListParameters():
         self.query += ' and ('+getString(Cmd.OB_QUERY)+')'
       else:
         self.query = getString(Cmd.OB_QUERY)
+    elif self.allowQuery and myarg.startswith('query:'):
+      if self.query:
+        self.query += ' and ('+myarg[6:]+')'
+      else:
+        self.query = myarg[6:]
     elif self.allowQuery and myarg == 'fullquery':
       self.query = getString(Cmd.OB_QUERY, minLen=0)
     elif self.allowQuery and myarg in QUERY_SHORTCUTS_MAP:
@@ -34900,10 +34906,10 @@ def createDriveFile(users):
     myarg = getArgument()
     if myarg == 'drivefilename':
       body['name'] = getString(Cmd.OB_DRIVE_FILE_NAME)
-    elif myarg == 'csv':
-      csvPF = CSVPrintFile()
     elif myarg == 'returnidonly':
       returnIdOnly = True
+    elif myarg == 'csv':
+      csvPF = CSVPrintFile()
     elif csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     else:
@@ -40189,20 +40195,39 @@ def updateSheets(users):
         break
     Ind.Decrement()
 
-# gam <UserTypeEntity> info sheet <DriveFileEntity> (range <String>)* [includegriddata [<Boolean>]] [formatjson]
-def infoSheets(users):
+SPREADSHEET_FIELDS_CHOICE_MAP = {
+  'developermetadata': 'developerMetadata',
+  'namedranges': 'namedRanges',
+  'properties': 'properties',
+  'sheets': 'sheets',
+  'spreadcheetid': 'spreadsheetId',
+  'spreadcheeturl': 'spreadsheetUrl',
+  }
+
+# gam <UserTypeEntity> info|show sheet <DriveFileEntity>
+#	[fields <SpreadsheetFieldList>] (range <SpreadsheetRange>)* [includegriddata [<Boolean>]]
+#	[formatjson]
+# gam <UserTypeEntity> print sheet <DriveFileEntity> [todrive <ToDriveAttribute>*]
+#	[fields <SpreadsheetFieldList>] (range <SpreadsheetRange>)* [includegriddata [<Boolean>]]
+#	[formatjson] [quotechar <Character>]
+def infoPrintShowSheets(users):
+  csvPF = CSVPrintFile(['User', 'spreadsheetId'], 'sortall') if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
   spreadsheetIdEntity = getDriveFileEntity()
+  fieldsList = []
   ranges = []
   includeGridData = False
-  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'range':
       ranges.append(getString(Cmd.OB_SPREADSHEET_RANGE))
     elif myarg == 'includegriddata':
       includeGridData = getBoolean()
+    elif getFieldsList(myarg, SPREADSHEET_FIELDS_CHOICE_MAP, fieldsList, 'spreadsheetId'):
+      pass
     else:
-      FJQC.GetFormatJSON(myarg)
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  fields = getFieldsFromFieldsList(fieldsList)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -40216,17 +40241,29 @@ def infoSheets(users):
       try:
         result = callGAPI(sheet.spreadsheets(), 'get',
                           throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
-                          spreadsheetId=spreadsheetId, ranges=ranges, includeGridData=includeGridData)
-        if FJQC.formatJSON:
-          printLine('{'+f'"User": "{user}", "spreadsheetId": "{spreadsheetId}", "JSON": {json.dumps(result, ensure_ascii=False, sort_keys=False)}'+'}')
-          continue
-        printEntity([Ent.SPREADSHEET, spreadsheetId], j, jcount)
-        Ind.Increment()
-        printKeyValueList(['spreadsheetUrl', result['spreadsheetUrl']])
-        for field in ['properties', 'sheets', 'namedRanges', 'developerMetadata']:
-          if field in result:
-            showJSON(field, result[field])
-        Ind.Decrement()
+                          spreadsheetId=spreadsheetId, ranges=ranges, includeGridData=includeGridData, fields=fields)
+        if not includeGridData and 'sheets' in result:
+          for sheet in result['sheets']:
+            sheet.pop('data', None)
+        if not csvPF:
+          if FJQC.formatJSON:
+            printLine('{'+f'"User": "{user}", "spreadsheetId": "{spreadsheetId}", "JSON": {json.dumps(result, ensure_ascii=False, sort_keys=False)}'+'}')
+            continue
+          printEntity([Ent.SPREADSHEET, spreadsheetId], j, jcount)
+          Ind.Increment()
+          if 'spreadsheetUrl' in result:
+            printKeyValueList(['spreadsheetUrl', result['spreadsheetUrl']])
+          for field in ['properties', 'sheets', 'namedRanges', 'developerMetadata']:
+            if field in result:
+              showJSON(field, result[field])
+          Ind.Decrement()
+        else:
+          row = flattenJSON(result, flattened={'User': user, 'spreadsheetId': spreadsheetId})
+          if not FJQC.formatJSON:
+            csvPF.WriteRowTitles(row)
+          elif csvPF.CheckRowTitles(row):
+            csvPF.WriteRowNoFilter({'User': user, 'spreadsheetId': spreadsheetId,
+                                    'JSON': json.dumps(result, ensure_ascii=False, sort_keys=False)})
       except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
               GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], str(e), j, jcount)
@@ -40234,6 +40271,8 @@ def infoSheets(users):
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
     Ind.Decrement()
+  if csvPF:
+    csvPF.writeCSVfile('Spreadsheet')
 
 SHEET_VALUE_INPUT_OPTIONS_MAP = {
   'raw': 'RAW',
@@ -44851,7 +44890,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_GROUPMEMBERS:	infoGroupMembers,
       Cmd.ARG_PRINTER:		infoPrinters,
       Cmd.ARG_SENDAS:		infoSendAs,
-      Cmd.ARG_SHEET:		infoSheets,
+      Cmd.ARG_SHEET:		infoPrintShowSheets,
       Cmd.ARG_SITE:		infoUserSites,
       Cmd.ARG_SITEACL:		processUserSiteACLs,
       Cmd.ARG_TEAMDRIVE:	infoTeamDrive,
@@ -44895,6 +44934,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_PRINTER:		printShowPrinters,
       Cmd.ARG_PRINTJOBS:	printPrintJobs,
       Cmd.ARG_SENDAS:		printShowSendAs,
+      Cmd.ARG_SHEET:		infoPrintShowSheets,
       Cmd.ARG_SHEETRANGE:	printShowSheetRanges,
       Cmd.ARG_SIGNATURE:	printShowSendAs,
       Cmd.ARG_SMIME:		printShowSmimes,
@@ -44948,6 +44988,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_PRINTER:		printShowPrinters,
       Cmd.ARG_PROFILE:		showProfile,
       Cmd.ARG_SENDAS:		printShowSendAs,
+      Cmd.ARG_SHEET:		infoPrintShowSheets,
       Cmd.ARG_SHEETRANGE:	printShowSheetRanges,
       Cmd.ARG_SIGNATURE:	showSignature,
       Cmd.ARG_SITE:		printShowUserSites,
