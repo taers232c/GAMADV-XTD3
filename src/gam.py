@@ -40219,7 +40219,9 @@ def infoPrintShowSheets(users):
   includeGridData = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'range':
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'range':
       ranges.append(getString(Cmd.OB_SPREADSHEET_RANGE))
     elif myarg == 'includegriddata':
       includeGridData = getBoolean()
