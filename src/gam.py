@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.02.03'
+__version__ = '5.02.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6015,7 +6015,8 @@ class CSVPrintFile():
   def SetHeaderDropFilter(self, headerDropFilter):
     self.headerDropFilter = headerDropFilter
 
-  def HeaderFilterMatch(self, filters, title):
+  @staticmethod
+  def HeaderFilterMatch(filters, title):
     for filterStr in filters:
       if filterStr.match(title):
         return True

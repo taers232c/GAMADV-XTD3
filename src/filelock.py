@@ -358,17 +358,21 @@ class WindowsFileLock(BaseFileLock):
         return None
 
     def _release(self):
+        # Do not remove the lockfile:
+        #
+        #   https://github.com/benediktschmitt/py-filelock/issues/31
+        #   https://stackoverflow.com/questions/17708885/flock-removing-locked-file-without-race-condition
         fd = self._lock_file_fd
         self._lock_file_fd = None
         msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
         os.close(fd)
 
-        try:
-            os.remove(self._lock_file)
-        # Probably another instance of the application
-        # that acquired the file lock.
-        except OSError:
-            pass
+#        try:
+#            os.remove(self._lock_file)
+#        # Probably another instance of the application
+#        # that acquired the file lock.
+#        except OSError:
+#            pass
         return None
 
 # Unix locking mechanism

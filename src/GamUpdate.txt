@@ -1,3 +1,8 @@
+5.02.04
+
+Fixed race condition on Windows involving locking `oauth2.txt.lock`.
+ERROR: [WinError 2] The system cannot find the file specified: 'C:\\GAMConfig\\oauth2.txt.lock'
+
 5.02.03
 
 Fixed bug where `query:<QueryDriveFile>` was not recognized on the command line.
