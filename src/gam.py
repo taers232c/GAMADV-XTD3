@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.01'
+__version__ = '5.03.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3923,6 +3923,9 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False):
     elif http_status == 409:
       if status == 'ALREADY_EXISTS' or 'Requested entity already exists' in message:
         error = {'error': {'errors': [{'reason': GAPI.ALREADY_EXISTS, 'message': message}]}}
+    elif http_status == 429:
+      if status == 'RESOURCE_EXHAUSTED' or 'Quota exceeded' in message:
+        error = {'error': {'errors': [{'reason': GAPI.QUOTA_EXCEEDED, 'message': message}]}}
   else:
     if 'error_description' in error:
       if error['error_description'] == 'Invalid Value':

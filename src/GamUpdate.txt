@@ -1,3 +1,7 @@
+5.03.02
+
+Handle `ERROR: 429: 429 - Quota exceeded for quota group 'ReadGroup' and limit 'Read requests per user per 100 seconds' of service 'sheets.googleapis.com' for consumer 'project_number:#####'.`
+
 5.03.01
 
 Fixed bug in `gam report usage` where `skipdates` were not processed and then enhanced `skipdates` to allow date ranges `<Date>:<Date>`.
