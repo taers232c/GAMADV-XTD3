@@ -1,3 +1,39 @@
+5.03.00
+
+Fixed bug in `gam report usage user` taht caused a trap.
+
+Added option `showparentsidsaslist` to `gam show fileinfo` and `gam print filelist` that causes GAM to
+display the parents of a drive file/folder as a list of IDs rather that discrete entities.
+In `gam show fileinfo` you will see:
+```
+parentsIds: ABCDE-EvX8uQ6H5tqZ73b2oAT4IIcK-JZ 012jnewfiM5G8S0lpNU05R0NCNHc
+```
+In `gam print filelist` you will see:
+```
+...,parents,parentsIds,...
+...,2,ABCDE-EvX8uQ6H5tqZ73b2oAT4IIcK-JZ 012jnewfiM5G8S0lpNU05R0NCNHc,...
+```
+
+A significant Drive File change is coming later this year regarding files with multiple parents.
+* See: https://developers.google.com/drive/api/v3/multi-parenting
+
+A new command has been added to create Drive File shortcuts.
+```
+gam <UserTypeEntity> create|add drivefileshortcut <DriveFileEntity> [shortcutname <String>]
+        [<DriveFileParentAttribute>]
+        [csv [todrive <ToDriveAttributes>*]] [returnidonly]
+```
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Files#create-shortcuts
+
+In `<MimeTypeShortcut>` `gshortcut` now refers to the new shortcuts and `g3pshortcut` to the previous third-party shortcuts.
+
+Added items to `<DriveFileQueryShortcut>` that can be used in `gam print filelist|filecounts|filetree`:
+```
+all_shortcuts | all_3p_shortcuts |
+my_shortcuts | my_3p_shortcuts |
+others_shortcuts | others_3p_shortcuts
+```
+
 5.02.04
 
 Fixed race condition on Windows involving locking `oauth2.txt.lock`.

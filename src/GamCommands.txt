@@ -159,6 +159,8 @@ If an item contains spaces, it should be surrounded by ".
         gpresentation|
         gscript|
         gsheet|gspreadsheet|
+        gshortcut|
+        g3pshortcut|
         gsite
 <MimeTypeName> ::= application|audio|font|image|message|model|multipart|text|video
 <MimeType> ::= <MimeTypeShortcut>|(<MimeTypeName>/<String>)
@@ -685,9 +687,9 @@ Specify a collection of items by directly specifying them; the item type is dete
         (query <QueryDriveFile>) | (query:<QueryDriveFile>) |
         (fullquery <QueryDriveFile>)
 <DriveFileQueryShortcut> ::=
-        all_files | all_folders | all_google_files | all_non_google_files | all_items |
-        my_files | my_folders | my_google_files | my_non_google_files | my_items |
-        others_files | others_folders | others_google_files | others_non_google_files | others_items |
+        all_files | all_folders | all_google_files | all_non_google_files | all_shortcuts | all_3p_shortcuts | all_items |
+        my_files | my_folders | my_google_files | my_non_google_files | my_shortcuts | my_3p_shortcuts | my_items |
+        others_files | others_folders | others_google_files | others_non_google_files | others_shortcuts | others_3p_shortcuts | others_items |
         writable_files
 <DriveRoot> ::= root | mydrive
 <TeamDriveIDEntity> ::=
@@ -3436,38 +3438,37 @@ gam <UserTypeEntity> update calattendees <UserCalendarEntity> [<EventEntity>] [a
         (viewerscancopycontent [<Boolean>])|
         (writerscanshare|writerscantshare [<Boolean>])
 
+<DriveFileParentAttribute> ::=
+        (parentid <DriveFolderID>)|
+        (parentname <DriveFolderName>)|
+        (anyownerparentname <DriveFolderName>)|
+        (teamdriveparentid <DriveFolderID>)|
+        (teamdriveparent <TeamDriveName>)|
+        (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
+        (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))|
+        (teamdriveparentid <DriveFolderID>)|(teamdriveparent <TeamDriveName>)|
+        (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
+        (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>)
+
 <DriveFileCreateAttribute> ::=
         <DriveFileAttribute>|
+        <DriveFileParentAttribute>|
         ignoredefaultvisibility|
-        usecontentasindexabletext|
-        ((parentid <DriveFolderID>)|
-         (parentname <DriveFolderName>)|
-         (anyownerparentname <DriveFolderName>)|
-         (teamdriveparentid <DriveFolderID>)|
-         (teamdriveparent <TeamDriveName>)|
-         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
-         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))|
-         (teamdriveparentid <DriveFolderID>)|(teamdriveparent <TeamDriveName>)|
-         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
-         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))
+        usecontentasindexabletext
 
-gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>] <DriveFileCreateAttribute>*
+gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>]
+        <DriveFileCreateAttribute>*
+        [csv [todrive <ToDriveAttribute>*]] [returnidonly]
+
+gam <UserTypeEntity> create|add drivefileshortcut <DriveFileEntity> [shortcutname <String>]
+        [<DriveFileParentAttribute>]
         [csv [todrive <ToDriveAttribute>*]] [returnidonly]
 
 <DriveFileUpdateAttribute> ::=
         <DriveFileAttribute>|
+        <DriveFileParentAttribute>|
         (modifieddate|modifiedtime <Time>)|
         usecontentasindexabletext|
-        ((parentid <DriveFolderID>)|
-         (parentname <DriveFolderName>)|
-         (anyownerparentname <DriveFolderName>)|
-         (teamdriveparentid <DriveFolderID>)|
-         (teamdriveparent <TeamDriveName>)|
-         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
-         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))|
-         (teamdriveparentid <DriveFolderID>)|(teamdriveparent <TeamDriveName>)|
-         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
-         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))|
         ((addparents <DriveFolderIDList>)|
          (addparentname <DriveFolderName>)|
          (addanyownerparentname <DriveFolderName>))|
@@ -3481,19 +3482,10 @@ gam <UserTypeEntity> update drivefile <DriveFileEntity>
         [gsheet|csvsheet <SheetEntity>] [charset <CharSet>] [columndelimiter <Character>]
 
 <DriveFileCopyAttribute> ::=
+        <DriveFileParentAttribute>|
         ignoredefaultvisibility|
         (modifieddate|modifiedtime <Time>)|
-        (mimetype <MimeType>)|
-        ((parentid <DriveFolderID>)|
-         (parentname <DriveFolderName>)|
-         (anyownerparentname <DriveFolderName>)|
-         (teamdriveparentid <DriveFolderID>)|
-         (teamdriveparent <TeamDriveName>)|
-         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
-         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))|
-         (teamdriveparentid <DriveFolderID>)|(teamdriveparent <TeamDriveName>)|
-         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
-         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))
+        (mimetype <MimeType>)
 
 gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>]
         [summary [<Boolean>]] [excludetrashed]
@@ -3505,21 +3497,9 @@ gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileNam
         [copyfilepermissions [<Boolean>]]
         [copytopfolderpermissions [<Boolean>]] [copysubfolderpermissions [<Boolean>]]
 
-<DriveFileMoveAttribute> ::=
-        ((parentid <DriveFolderID>)|
-         (parentname <DriveFolderName>)|
-         (anyownerparentname <DriveFolderName>)|
-         (teamdriveparentid <DriveFolderID>)|
-         (teamdriveparent <TeamDriveName>)|
-         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
-         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))|
-         (teamdriveparentid <DriveFolderID>)|(teamdriveparent <TeamDriveName>)|
-         (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
-         (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))
-
 gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>]
         [summary [<Boolean>]]
-        <DriveFileMoveAttribute>* [mergewithparent|mergewithparentretain [<Boolean>]]
+        <DriveFileParentAttribute>* [mergewithparent|mergewithparentretain [<Boolean>]]
         [duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
         [duplicatefolders merge|duplicatename|uniquename|skip]
         [copytopfileparents none|all] [copytopfolderparents none|all]
@@ -3650,6 +3630,39 @@ gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>]
 gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [(targetuserfoldername <DriveFolderName>)|(targetuserfolderid <DriveFolderID>)] [preview] [todrive <ToDriveAttribute>*]
 
+<DriveCapabilitiesSubfieldName> ::=
+        canaddchildren|
+        canaddmydriveparent|
+        canchangecopyrequireswriterpermission|
+        canchangeviewerscancopycontent|
+        cancomment|
+        cancopy|
+        candelete|
+        candownload|
+        canedit|
+        canlistchildren|
+        canmodifycontent|
+        canmovechildrenoutofdrive|
+        canmovechildrenoutofteamdrive|
+        canmovechildrenwithindrive|
+        canmovechildrenwithinteamdrive|
+        canmoveitemintoteamdrive|
+        canmoveitemoutofdrive|
+        canmoveitemoutofteamdrive|
+        canmoveitemwithindrive|
+        canmoveitemwithinteamdrive|
+        canmoveteamdriveitem|
+        canreaddrive|
+        canreadrevisions|
+        canreadteamdrive|
+        canremovechildren|
+        canremovemydriveparent|
+        canrename|
+        canshare|
+        cantrash|
+        cantrashchildren|
+        canuntrash
+
 <DriveLabelsSubfieldName> ::=
         labels.modified|        # modifiedByMe
         labels.restricted|      # copyRequiresWriterPermission
@@ -3717,6 +3730,10 @@ gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (ord
         trashinguser.photolink|
         trashinguser.picture
 
+<DriveShortcutDetailsSubfieldName> ::=
+        shortcutdetails.targetid|
+        shortcutdetails.targetmimetype
+
 <DriveFieldName> ::=
         alternatelink|
         appdatacontents|
@@ -3725,6 +3742,7 @@ gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (ord
         cancomment|
         canreadrevisions|
         capabilities|
+        <DriveCapabilitiesSubfieldName>|
         contenthints|
         copyable|
         copyrequireswriterpermission|
@@ -3774,6 +3792,8 @@ gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (ord
         sharedwithmedate|sharedwithmetime|
         sharinguser|
         <DriveSharingUserSubfieldName>|
+        shortcutdetails|
+        <DriveShortcutDetailsSubfieldName>|
         size|
         spaces|
         starred|
@@ -3811,7 +3831,7 @@ gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (ord
 
 gam <UserTypeEntity> show fileinfo <DriveFileEntity>
          [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [showdrivename]
-         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [showparentsidsaslist]
 gam <UserTypeEntity> show filepath <DriveFileEntity>
          (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> print filepath <DriveFileEntity> [todrive <ToDriveAttribute>*]
@@ -3829,14 +3849,17 @@ gam <UserTypeEntity> print filecounts [todrive <ToDriveAttribute>*] [corpora <Co
         <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
         [summary none|only|plus]
 
-gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
+gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*]
+        [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
         [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) |
-          (select <DriveFileEntityListTree> [selectsubquery <QueryDriveFile>] [norecursion|(depth <Number>)] [showparent])]
+          (select <DriveFileEntityListTree> [selectsubquery <QueryDriveFile>]
+           [norecursion|(depth <Number>)] [showparent])]
         (querytime.* <Time>)* [maxfiles <Integer>] [countsonly] [nodataheaders <String>]
-        [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
+        [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
+        [filenamematchpattern <RegularExpression>]
         <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
         [filepath|fullpath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [showdrivename]
-        (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
+        (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [showparentsidsaslist]
         [formatjson] [quotechar <Character>]
 
 <FileTreeFieldName> ::=

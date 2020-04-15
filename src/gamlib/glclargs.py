@@ -363,6 +363,8 @@ class GamCLArgs():
   ARG_DRIVEFILE = 'drivefile'
   ARG_DRIVEFILEACL = 'drivefileacl'
   ARG_DRIVEFILEACLS = 'drivefileacls'
+  ARG_DRIVEFILESHORTCUT = 'drivefileshortcut'
+  ARG_DRIVEFILESHORTCUTS = 'drivefileshortcuts'
   ARG_DRIVESETTINGS = 'drivesettings'
   ARG_DRIVETRASH = 'drivetrash'
   ARG_EMPTYDRIVEFOLDERS = 'emptydrivefolders'

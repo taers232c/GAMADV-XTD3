@@ -115,6 +115,7 @@ class GamEntity():
   DRIVE_FILE_ID = 'fili'
   DRIVE_FILE_NAME = 'filn'
   DRIVE_FILE_REVISION = 'filr'
+  DRIVE_FILE_SHORTCUT = 'fils'
   DRIVE_FILE_OR_FOLDER = 'fifo'
   DRIVE_FILE_OR_FOLDER_ACL = 'fiac'
   DRIVE_FILE_OR_FOLDER_ID = 'fifi'
@@ -331,6 +332,7 @@ class GamEntity():
     DRIVE_FILE_ID: ['Drive File IDs', 'Drive File ID'],
     DRIVE_FILE_NAME: ['Drive File Names', 'Drive File Name'],
     DRIVE_FILE_REVISION: ['Drive File Revisions', 'Drive File Revision'],
+    DRIVE_FILE_SHORTCUT: ['Drive File Shortcuts', 'Drive File Shortcut'],
     DRIVE_FILE_OR_FOLDER: ['Drive Files/Folders', 'Drive File/Folder'],
     DRIVE_FILE_OR_FOLDER_ACL: ['Drive File/Folder ACLs', 'Drive File/Folder ACL'],
     DRIVE_FILE_OR_FOLDER_ID: ['Drive File/Folder IDs', 'Drive File/Folder ID'],

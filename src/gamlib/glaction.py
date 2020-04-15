@@ -38,6 +38,7 @@ class GamAction():
   COLLECT = 'collect'
   COPY = 'copy'
   CREATE = 'crea'
+  CREATE_SHORTCUT = 'crsc'
   DEDUP = 'dedu'
   DELETE = 'dele'
   DELETE_EMPTY = 'delm'
@@ -124,6 +125,7 @@ class GamAction():
     COLLECT: ['Collected', 'Collect'],
     COPY: ['Copied', 'Copy'],
     CREATE: ['Created', 'Create'],
+    CREATE_SHORTCUT: ['Shortcut Created', 'Create Shortcut'],
     DEDUP: ['Duplicates Deleted', 'Delete Duplicates'],
     DELETE: ['Deleted', 'Delete'],
     DELETE_EMPTY: ['Deleted', 'Delete Empty'],
