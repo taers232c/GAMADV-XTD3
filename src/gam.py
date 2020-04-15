@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.00'
+__version__ = '5.03.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1644,9 +1644,9 @@ class StartEndTime():
     self._endkw = endkw
 
   def Get(self, myarg):
-    if myarg in {'start', 'starttime'}:
+    if myarg in {'start', self._startkw}:
       self.startDateTime, _, self.startTime = getTimeOrDeltaFromNow(True)
-    elif myarg in {'end', 'endtime'}:
+    elif myarg in {'end', self._endkw}:
       self.endDateTime, _, self.endTime = getTimeOrDeltaFromNow(True)
     elif myarg == 'yesterday':
       self.startDateTime = todaysDate()+datetime.timedelta(days=-1)
@@ -8963,16 +8963,13 @@ def doReportUsage():
   orgUnitId = None
   startEndTime = StartEndTime('startdate', 'enddate')
   skipDayNumbers = []
-  skipDates = []
+  skipDates = set()
+  oneDay = datetime.timedelta(days=1)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg in {'start', 'startdate'}:
-      startEndTime.Get('start')
-    elif myarg in {'end', 'enddate'}:
-      startEndTime.Get('end')
-    elif myarg == 'range':
+    elif myarg in {'start', 'startdate', 'end', 'enddate', 'range'}:
       startEndTime.Get(myarg)
     elif userReports and myarg in ['orgunit', 'org', 'ou']:
       _, orgUnitId = getOrgUnitId()
@@ -8980,10 +8977,23 @@ def doReportUsage():
       parameters = parameters.union(getString(Cmd.OB_STRING).replace(',', ' ').split())
     elif myarg == 'skipdates':
       for skip in getString(Cmd.OB_STRING).split(','):
-        try:
-          skipDates.append(datetime.datetime.strptime(skip, YYYYMMDD_FORMAT))
-        except ValueError:
-          invalidArgumentExit(YYYYMMDD_FORMAT_REQUIRED)
+        if skip.find(':') == -1:
+          try:
+            skipDates.add(datetime.datetime.strptime(skip, YYYYMMDD_FORMAT))
+          except ValueError:
+            invalidArgumentExit(YYYYMMDD_FORMAT_REQUIRED)
+        else:
+          skipStart, skipEnd = skip.split(':')
+          try:
+            skipStartDate = datetime.datetime.strptime(skipStart, YYYYMMDD_FORMAT)
+            skipEndDate = datetime.datetime.strptime(skipEnd, YYYYMMDD_FORMAT)
+            if skipEndDate < skipStartDate:
+              usageErrorExit(Msg.INVALID_TIME_RANGE.format(myarg, skipEnd, myarg, skipStart))
+            while skipStartDate <= skipEndDate:
+              skipDates.add(skipStartDate)
+              skipStartDate += oneDay
+          except ValueError:
+            invalidArgumentExit(YYYYMMDD_FORMAT_REQUIRED)
     elif myarg == 'skipdaysofweek':
       skipdaynames = getString(Cmd.OB_STRING).split(',')
       dow = [d.lower() for d in calendarlib.day_abbr]
@@ -9000,11 +9010,10 @@ def doReportUsage():
     startEndTime.startDateTime = startEndTime.endDateTime+datetime.timedelta(days=-30)
   elif startEndTime.endDateTime is None:
     startEndTime.endDateTime = todaysDate()
-  startDateTime = startEndTime.startDateTime
+  startDateTime = datetime.datetime(startEndTime.startDateTime.year, startEndTime.startDateTime.month, startEndTime.startDateTime.day)
   startDate = startDateTime.strftime('%Y-%m-%d')
-  endDateTime = startEndTime.endDateTime
+  endDateTime = datetime.datetime(startEndTime.endDateTime.year, startEndTime.endDateTime.month, startEndTime.endDateTime.day)
   useDate = endDateTime.strftime('%Y-%m-%d')
-  oneDay = datetime.timedelta(days=1)
   if users:
     kwargs = [{'userKey': normalizeEmailAddressOrUID(user)} for user in users]
   if orgUnitId:
@@ -9013,7 +9022,7 @@ def doReportUsage():
   parameters = ','.join(parameters) if parameters else None
   while startDateTime <= endDateTime:
     useDate = startDateTime.strftime('%Y-%m-%d')
-    if startDateTime.weekday() in skipDayNumbers or useDate in skipDates:
+    if startDateTime.weekday() in skipDayNumbers or startDateTime in skipDates:
       startDateTime += oneDay
       continue
     startDateTime += oneDay
@@ -33781,12 +33790,12 @@ class PermissionMatch():
         self.permissionFields.add('displayName')
       elif myarg == 'expirationstart':
         expirationStartLocation = Cmd.Location()
-        startEndTime.Get('start')
+        startEndTime.Get(myarg)
         body[myarg] = startEndTime.startDateTime
         self.permissionFields.add('expirationTime')
       elif myarg == 'expirationend':
         expirationEndLocation = Cmd.Location()
-        startEndTime.Get('end')
+        startEndTime.Get(myarg)
         body[myarg] = startEndTime.endDateTime
         self.permissionFields.add('expirationTime')
       elif myarg == 'deleted':
