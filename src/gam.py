@@ -9011,9 +9011,9 @@ def doReportUsage():
   elif startEndTime.endDateTime is None:
     startEndTime.endDateTime = todaysDate()
   startDateTime = datetime.datetime(startEndTime.startDateTime.year, startEndTime.startDateTime.month, startEndTime.startDateTime.day)
-  startDate = startDateTime.strftime('%Y-%m-%d')
+  startDate = startDateTime.strftime(YYYYMMDD_FORMAT)
   endDateTime = datetime.datetime(startEndTime.endDateTime.year, startEndTime.endDateTime.month, startEndTime.endDateTime.day)
-  useDate = endDateTime.strftime('%Y-%m-%d')
+  useDate = endDateTime.strftime(YYYYMMDD_FORMAT)
   if users:
     kwargs = [{'userKey': normalizeEmailAddressOrUID(user)} for user in users]
   if orgUnitId:
@@ -9021,7 +9021,7 @@ def doReportUsage():
       kw['orgUnitID'] = orgUnitId
   parameters = ','.join(parameters) if parameters else None
   while startDateTime <= endDateTime:
-    useDate = startDateTime.strftime('%Y-%m-%d')
+    useDate = startDateTime.strftime(YYYYMMDD_FORMAT)
     if startDateTime.weekday() in skipDayNumbers or startDateTime in skipDates:
       startDateTime += oneDay
       continue
@@ -9469,7 +9469,7 @@ def doReport():
       endDateTime = startEndTime.endDateTime
       lastDate = None
       while startDateTime <= endDateTime:
-        tryDate = startDateTime.strftime('%Y-%m-%d')
+        tryDate = startDateTime.strftime(YYYYMMDD_FORMAT)
         try:
           if not userCustomerRange and dataRequiredServices is not None:
             warnings = callGAPIitems(rep.userUsageReport(), 'get', 'warnings',
@@ -9541,7 +9541,7 @@ def doReport():
     endDateTime = startEndTime.endDateTime
     lastDate = None
     while startDateTime <= endDateTime:
-      tryDate = startDateTime.strftime('%Y-%m-%d')
+      tryDate = startDateTime.strftime(YYYYMMDD_FORMAT)
       try:
         if not userCustomerRange and dataRequiredServices is not None:
           warnings = callGAPIitems(rep.customerUsageReports(), 'get', 'warnings',
