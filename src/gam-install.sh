@@ -234,9 +234,11 @@ fi
 if [ "$update_profile" = true ]; then
   alias_line="alias gam=\"${target_dir// /\\ }/$target_gam\""
   if [ "$gamos" == "linux" ]; then
-    update_profile "$HOME/.bash_aliases" 0 || update_profile "$HOME/.bash_profile" 0 || update_profile "$HOME/.bashrc" 0 || update_profile "$HOME/.zshrc" 0
+    update_profile "$HOME/.bash_aliases" 0 || update_profile "$HOME/.bash_profile" 0 || update_profile "$HOME/.bashrc" 0
+    update_profile "$HOME/.zshrc" 0
   elif [ "$gamos" == "macos" ]; then
-    update_profile "$HOME/.bash_aliases" 0 || update_profile "$HOME/.bash_profile" 0 || update_profile "$HOME/.bashrc" 0 || update_profile "$HOME/.zshrc" 0 || update_profile "$HOME/.profile" 1
+    update_profile "$HOME/.bash_aliases" 0 || update_profile "$HOME/.bash_profile" 0 || update_profile "$HOME/.bashrc" 0 || update_profile "$HOME/.profile" 1
+    update_profile "$HOME/.zshrc" 1
   fi
 else
   echo_yellow "skipping profile update."

@@ -1,3 +1,7 @@
+5.03.04
+
+Allow relative dates in `skipdates` in `gam report usage`; e.g., `skipdates -10d:-5d`.
+
 5.03.03
 
 Improved error handling when parsing `skipdates` in `gam report usage`; made report title dates match actual dates used.

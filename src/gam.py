@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.03'
+__version__ = '5.03.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1453,13 +1453,13 @@ def getStringWithCRsNLsOrFile(myarg, minLen=0):
     return readFile(filename, encoding=encoding)
   return unescapeCRsNLs(getString(Cmd.OB_STRING, minLen=minLen))
 
+def todaysDate():
+  return datetime.datetime(GM.Globals[GM.DATETIME_NOW].year, GM.Globals[GM.DATETIME_NOW].month, GM.Globals[GM.DATETIME_NOW].day,
+                           tzinfo=GC.Values[GC.TIMEZONE])
+
 def todaysTime():
   return datetime.datetime(GM.Globals[GM.DATETIME_NOW].year, GM.Globals[GM.DATETIME_NOW].month, GM.Globals[GM.DATETIME_NOW].day,
                            GM.Globals[GM.DATETIME_NOW].hour, GM.Globals[GM.DATETIME_NOW].minute,
-                           tzinfo=GC.Values[GC.TIMEZONE])
-
-def todaysDate():
-  return datetime.datetime(GM.Globals[GM.DATETIME_NOW].year, GM.Globals[GM.DATETIME_NOW].month, GM.Globals[GM.DATETIME_NOW].day,
                            tzinfo=GC.Values[GC.TIMEZONE])
 
 def getDelta(argstr, pattern):
@@ -1561,7 +1561,33 @@ def getYYYYMMDD_HHMM():
         invalidArgumentExit(YYYYMMDD_HHMM_FORMAT_REQUIRED)
   missingArgumentExit(YYYYMMDD_HHMM_FORMAT_REQUIRED)
 
+YYYYMMDDTHHMMSSZ_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 YYYYMMDD_PATTERN = re.compile(r'^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+
+def getDateOrDeltaFromNow(returnDateTime=False):
+  if Cmd.ArgumentsRemaining():
+    argstr = Cmd.Current().strip().upper()
+    if argstr:
+      if argstr in TODAY_NOW or argstr[0] in PLUS_MINUS:
+        if argstr == 'NOW':
+          argstr = 'TODAY'
+        argDate = getDeltaDate(argstr)
+      elif argstr == 'NEVER':
+        argDate = datetime.datetime.strptime(NEVER_DATE, YYYYMMDD_FORMAT)
+      elif YYYYMMDD_PATTERN.match(argstr):
+        try:
+          argDate = datetime.datetime.strptime(argstr, YYYYMMDD_FORMAT)
+        except ValueError:
+          invalidArgumentExit(YYYYMMDD_FORMAT_REQUIRED)
+      else:
+        invalidArgumentExit(YYYYMMDD_FORMAT_REQUIRED)
+      Cmd.Advance()
+      if not returnDateTime:
+        return argDate.strftime(YYYYMMDD_FORMAT)
+      return (datetime.datetime(argDate.year, argDate.month, argDate.day, tzinfo=GC.Values[GC.TIMEZONE]),
+              GC.Values[GC.TIMEZONE], argDate.strftime(YYYYMMDD_FORMAT))
+  missingArgumentExit(YYYYMMDD_FORMAT_REQUIRED)
+
 YYYYMMDDTHHMMSS_FORMAT_REQUIRED = 'yyyy-mm-ddThh:mm:ss[.fff](Z|(+|-(hh:mm)))'
 TIMEZONE_FORMAT_REQUIRED = 'Z|(+|-(hh:mm))'
 
@@ -1638,27 +1664,28 @@ def getRowFilterTimeOrDeltaFromNow(argstr):
     return (False, YYYYMMDDTHHMMSS_FORMAT_REQUIRED)
 
 class StartEndTime():
-  def __init__(self, startkw='starttime', endkw='endtime'):
+  def __init__(self, startkw='starttime', endkw='endtime', mode='time'):
     self.startTime = self.endTime = self.startDateTime = self.endDateTime = None
     self._startkw = startkw
     self._endkw = endkw
+    self._getValueOrDeltaFromNow = getTimeOrDeltaFromNow if mode == 'time' else getDateOrDeltaFromNow
 
   def Get(self, myarg):
     if myarg in {'start', self._startkw}:
-      self.startDateTime, _, self.startTime = getTimeOrDeltaFromNow(True)
+      self.startDateTime, _, self.startTime = self._getValueOrDeltaFromNow(True)
     elif myarg in {'end', self._endkw}:
-      self.endDateTime, _, self.endTime = getTimeOrDeltaFromNow(True)
+      self.endDateTime, _, self.endTime = self._getValueOrDeltaFromNow(True)
     elif myarg == 'yesterday':
       self.startDateTime = todaysDate()+datetime.timedelta(days=-1)
       self.startTime = ISOformatTimeStamp(self.startDateTime)
       self.endDateTime = todaysDate()+datetime.timedelta(seconds=-1)
       self.endTime = ISOformatTimeStamp(self.endDateTime)
     else: # elif myarg == 'range':
-      self.startDateTime, _, self.startTime = getTimeOrDeltaFromNow(True)
-      self.endDateTime, _, self.endTime = getTimeOrDeltaFromNow(True)
+      self.startDateTime, _, self.startTime = self._getValueOrDeltaFromNow(True)
+      self.endDateTime, _, self.endTime = self._getValueOrDeltaFromNow(True)
     if self.startDateTime and self.endDateTime and self.endDateTime < self.startDateTime:
       Cmd.Backup()
-      usageErrorExit(Msg.INVALID_TIME_RANGE.format(self._endkw, self.endTime, self._startkw, self.startTime))
+      usageErrorExit(Msg.INVALID_DATE_TIME_RANGE.format(self._endkw, self.endTime, self._startkw, self.startTime))
 
 EVENTID_PATTERN = re.compile(r'^[a-v0-9]{5,1024}$')
 EVENTID_FORMAT_REQUIRED = '[a-v0-9]{5,1024}'
@@ -3382,7 +3409,7 @@ def getOauth2TxtCredentials(exitOnError=True):
           creds.token = jsonDict['access_token']
           creds._id_token = jsonDict['id_token_jwt']
           GM.Globals[GM.DECODED_ID_TOKEN] = jsonDict['id_token']
-        creds.expiry = datetime.datetime.strptime(token_expiry, '%Y-%m-%dT%H:%M:%SZ')
+        creds.expiry = datetime.datetime.strptime(token_expiry, YYYYMMDDTHHMMSSZ_FORMAT)
         return (True, creds)
       if (jsonDict.get('file_version') == 2) and ('credentials' in jsonDict) and (API.GAM_SCOPES in jsonDict['credentials']):
         if not jsonDict['credentials'][API.GAM_SCOPES]:
@@ -3408,7 +3435,7 @@ def getOauth2TxtCredentials(exitOnError=True):
           creds.token = importCredentials['access_token']
           creds._id_token = importCredentials['id_token_jwt']
           GM.Globals[GM.DECODED_ID_TOKEN] = importCredentials['id_token']
-          creds.expiry = datetime.datetime.strptime(REFRESH_EXPIRY, '%Y-%m-%dT%H:%M:%SZ')
+          creds.expiry = datetime.datetime.strptime(REFRESH_EXPIRY, YYYYMMDDTHHMMSSZ_FORMAT)
           return (False, creds)
       if jsonDict and exitOnError:
         invalidOauth2TxtExit()
@@ -3437,7 +3464,7 @@ def writeClientCredentials(creds, filename):
     'refresh_token': creds.refresh_token,
     'scopes': sorted(creds.scopes),
     'token': creds.token,
-    'token_expiry': creds.expiry.strftime('%Y-%m-%dT%H:%M:%SZ'),
+    'token_expiry': creds.expiry.strftime(YYYYMMDDTHHMMSSZ_FORMAT),
     'token_uri': creds.token_uri,
     }
   expected_iss = ['https://accounts.google.com', 'accounts.google.com']
@@ -8945,6 +8972,22 @@ def doReportUsage():
       selectorChoices += Cmd.BASE_ENTITY_SELECTORS[:]+Cmd.USER_ENTITIES[:]
     return selectorChoices
 
+  def validateYYYYMMDD(argstr):
+    if argstr in TODAY_NOW or argstr[0] in PLUS_MINUS:
+      if argstr == 'NOW':
+        argstr = 'TODAY'
+      deltaDate = getDelta(argstr, DELTA_DATE_PATTERN)
+      if deltaDate is None:
+        Cmd.Backup()
+        invalidArgumentExit(DELTA_DATE_FORMAT_REQUIRED)
+      return deltaDate
+    try:
+      argDate = datetime.datetime.strptime(argstr, YYYYMMDD_FORMAT)
+      return datetime.datetime(argDate.year, argDate.month, argDate.day, tzinfo=GC.Values[GC.TIMEZONE])
+    except ValueError:
+      Cmd.Backup()
+      invalidArgumentExit(YYYYMMDD_FORMAT_REQUIRED)
+
   report = getChoice(CUSTOMER_USER_CHOICES)
   rep = buildGAPIObject(API.REPORTS)
   titles = ['date']
@@ -8964,7 +9007,7 @@ def doReportUsage():
   parameters = set()
   users = []
   orgUnitId = None
-  startEndTime = StartEndTime('startdate', 'enddate')
+  startEndTime = StartEndTime('startdate', 'enddate', 'date')
   skipDayNumbers = []
   skipDates = set()
   oneDay = datetime.timedelta(days=1)
@@ -8979,27 +9022,19 @@ def doReportUsage():
     elif myarg in {'fields', 'parameters'}:
       parameters = parameters.union(getString(Cmd.OB_STRING).replace(',', ' ').split())
     elif myarg == 'skipdates':
-      for skip in getString(Cmd.OB_STRING).split(','):
+      for skip in getString(Cmd.OB_STRING).upper().split(','):
         if skip.find(':') == -1:
-          try:
-            skipDates.add(datetime.datetime.strptime(skip, YYYYMMDD_FORMAT))
-          except ValueError:
-            Cmd.Backup()
-            invalidArgumentExit(YYYYMMDD_FORMAT_REQUIRED)
+          skipDates.add(validateYYYYMMDD(skip))
         else:
           skipStart, skipEnd = skip.split(':', 1)
-          try:
-            skipStartDate = datetime.datetime.strptime(skipStart, YYYYMMDD_FORMAT)
-            skipEndDate = datetime.datetime.strptime(skipEnd, YYYYMMDD_FORMAT)
-            if skipEndDate < skipStartDate:
-              Cmd.Backup()
-              usageErrorExit(Msg.INVALID_TIME_RANGE.format(myarg, skipEnd, myarg, skipStart))
-            while skipStartDate <= skipEndDate:
-              skipDates.add(skipStartDate)
-              skipStartDate += oneDay
-          except ValueError:
+          skipStartDate = validateYYYYMMDD(skipStart)
+          skipEndDate = validateYYYYMMDD(skipEnd)
+          if skipEndDate < skipStartDate:
             Cmd.Backup()
-            invalidArgumentExit(YYYYMMDD_FORMAT_REQUIRED)
+            usageErrorExit(Msg.INVALID_DATE_TIME_RANGE.format(myarg, skipEnd, myarg, skipStart))
+          while skipStartDate <= skipEndDate:
+            skipDates.add(skipStartDate)
+            skipStartDate += oneDay
     elif myarg == 'skipdaysofweek':
       skipdaynames = getString(Cmd.OB_STRING).split(',')
       dow = [d.lower() for d in calendarlib.day_abbr]
@@ -9014,9 +9049,9 @@ def doReportUsage():
     startEndTime.endDateTime = todaysDate()
   if startEndTime.startDateTime is None:
     startEndTime.startDateTime = startEndTime.endDateTime+datetime.timedelta(days=-30)
-  startDateTime = datetime.datetime(startEndTime.startDateTime.year, startEndTime.startDateTime.month, startEndTime.startDateTime.day)
+  startDateTime = startEndTime.startDateTime
   startDate = startDateTime.strftime(YYYYMMDD_FORMAT)
-  endDateTime = datetime.datetime(startEndTime.endDateTime.year, startEndTime.endDateTime.month, startEndTime.endDateTime.day)
+  endDateTime = startEndTime.endDateTime
   endDate = endDateTime.strftime(YYYYMMDD_FORMAT)
   startUseDate = endUseDate = None
   if users:
