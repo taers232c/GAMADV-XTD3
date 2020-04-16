@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.02'
+__version__ = '5.03.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -8984,18 +8984,21 @@ def doReportUsage():
           try:
             skipDates.add(datetime.datetime.strptime(skip, YYYYMMDD_FORMAT))
           except ValueError:
+            Cmd.Backup()
             invalidArgumentExit(YYYYMMDD_FORMAT_REQUIRED)
         else:
-          skipStart, skipEnd = skip.split(':')
+          skipStart, skipEnd = skip.split(':', 1)
           try:
             skipStartDate = datetime.datetime.strptime(skipStart, YYYYMMDD_FORMAT)
             skipEndDate = datetime.datetime.strptime(skipEnd, YYYYMMDD_FORMAT)
             if skipEndDate < skipStartDate:
+              Cmd.Backup()
               usageErrorExit(Msg.INVALID_TIME_RANGE.format(myarg, skipEnd, myarg, skipStart))
             while skipStartDate <= skipEndDate:
               skipDates.add(skipStartDate)
               skipStartDate += oneDay
           except ValueError:
+            Cmd.Backup()
             invalidArgumentExit(YYYYMMDD_FORMAT_REQUIRED)
     elif myarg == 'skipdaysofweek':
       skipdaynames = getString(Cmd.OB_STRING).split(',')
@@ -9007,16 +9010,15 @@ def doReportUsage():
       _, users = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
     else:
       unknownArgumentExit()
-  if startEndTime.startDateTime is None:
-    if startEndTime.endDateTime is None:
-      startEndTime.endDateTime = todaysDate()
-    startEndTime.startDateTime = startEndTime.endDateTime+datetime.timedelta(days=-30)
-  elif startEndTime.endDateTime is None:
+  if startEndTime.endDateTime is None:
     startEndTime.endDateTime = todaysDate()
+  if startEndTime.startDateTime is None:
+    startEndTime.startDateTime = startEndTime.endDateTime+datetime.timedelta(days=-30)
   startDateTime = datetime.datetime(startEndTime.startDateTime.year, startEndTime.startDateTime.month, startEndTime.startDateTime.day)
   startDate = startDateTime.strftime(YYYYMMDD_FORMAT)
   endDateTime = datetime.datetime(startEndTime.endDateTime.year, startEndTime.endDateTime.month, startEndTime.endDateTime.day)
-  useDate = endDateTime.strftime(YYYYMMDD_FORMAT)
+  endDate = endDateTime.strftime(YYYYMMDD_FORMAT)
+  startUseDate = endUseDate = None
   if users:
     kwargs = [{'userKey': normalizeEmailAddressOrUID(user)} for user in users]
   if orgUnitId:
@@ -9024,10 +9026,10 @@ def doReportUsage():
       kw['orgUnitID'] = orgUnitId
   parameters = ','.join(parameters) if parameters else None
   while startDateTime <= endDateTime:
-    useDate = startDateTime.strftime(YYYYMMDD_FORMAT)
     if startDateTime.weekday() in skipDayNumbers or startDateTime in skipDates:
       startDateTime += oneDay
       continue
+    useDate = startDateTime.strftime(YYYYMMDD_FORMAT)
     startDateTime += oneDay
     try:
       for kwarg in kwargs:
@@ -9063,13 +9065,20 @@ def doReportUsage():
                   break
               else:
                 row[name] = ''
+          if not startUseDate:
+            startUseDate = useDate
+          endUseDate = useDate
           csvPF.WriteRowTitles(row)
     except GAPI.invalid as e:
       stderrWarningMsg(str(e))
       break
     except GAPI.forbidden:
       accessErrorExit(None)
-  csvPF.writeCSVfile(f'{report.capitalize()} Usage Report - {startDate}:{useDate}')
+  if startUseDate:
+    reportName = f'{report.capitalize()} Usage Report - {startUseDate}:{endUseDate}'
+  else:
+    reportName = f'{report.capitalize()} Usage Report - {startDate}:{endDate} - No Data'
+  csvPF.writeCSVfile(reportName)
 
 NL_SPACES_PATTERN = re.compile(r'\n +')
 
@@ -26161,8 +26170,13 @@ DNS_ERROR_CODES_MAP = {
 # gam update verify|verification <DomainName> cname|txt|text|file|site [showdns]
 def doUpdateSiteVerification():
   def showDNSrecords():
-    verify_data = callGAPI(verif.webResource(), 'getToken',
-                           body=body)
+    try:
+      verify_data = callGAPI(verif.webResource(), 'getToken',
+                             throw_reasons=[GAPI.BAD_REQUEST, GAPI.INVALID_PARAMETER],
+                             body=body)
+    except (GAPI.badRequest, GAPI.invalidParameter) as e:
+      printKeyValueList([ERROR, str(e)])
+      return
     printKeyValueList(['Method', verify_data['method']])
     if verify_data['method'] in {'DNS_CNAME', 'DNS_TXT'}:
       if verify_data['method'] == 'DNS_CNAME':
@@ -26213,12 +26227,15 @@ def doUpdateSiteVerification():
           'verificationMethod': verificationMethod}
   try:
     verify_result = callGAPI(verif.webResource(), 'insert',
-                             throw_reasons=[GAPI.BAD_REQUEST],
+                             throw_reasons=[GAPI.BAD_REQUEST, GAPI.INVALID_PARAMETER],
                              verificationMethod=verificationMethod, body=body)
   except GAPI.badRequest as e:
     printKeyValueList([ERROR, str(e)])
     if showDNS:
       showDNSrecords()
+    return
+  except GAPI.invalidParameter as e:
+    printKeyValueList([ERROR, str(e)])
     return
   printKeyValueList(['Verified!'])
   if showDNS:

@@ -1,3 +1,9 @@
+5.03.03
+
+Improved error handling when parsing `skipdates` in `gam report usage`; made report title dates match actual dates used.
+
+Updated error handling in `gam update verify|verification <DomainName> cname|txt|text|site|file`.
+
 5.03.02
 
 Handle `ERROR: 429: 429 - Quota exceeded for quota group 'ReadGroup' and limit 'Read requests per user per 100 seconds' of service 'sheets.googleapis.com' for consumer 'project_number:#####'.`
