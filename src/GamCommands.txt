@@ -2622,6 +2622,7 @@ gam create|add teamdrive <Name>
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         (<TeamDriveRestrictionsSubfieldName> <Boolean>)*
         [hide <Boolean>]
+        [csv [todrive <ToDriveAttribute>*]] [returnidonly]
 gam delete teamdrive <TeamDriveEntity>
 gam hide teamdrive <TeamDriveEntity>
 gam unhide teamdrive <TeamDriveEntity>

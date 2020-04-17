@@ -1,3 +1,22 @@
+5.03.06
+
+Fixed bug in `gam <UserTypeEntity> update calattendees` where `replacestatus` and `updatestatus` were not
+properly updating the attendee status.
+
+Added `returnidonly` to `gam [<UserTypeEntity>] create teamdrive` that causes GAM to return just the
+ID of the created Team Drive as output. This will be useful in scripts that create a Team Drive and then
+want to perform subsequent GAM command on the Team Drive. This ID will only be valid when the return code
+of the command is 0; program accordingly.
+```
+Linux/MacOS
+teamDriveId=`gam user user@domain.com create teamdrive ... returnidonly`
+Windows PowerShell
+$teamDriveId = & gam user user@domain.com create teamdrive ... returnidonly`
+```
+
+Handled Google delays in `gam [<UserTypeEntity>] create teamdrive` when trying to set Team Drive restrictions
+or hiding the Team Drive after it has been created.
+
 5.03.05
 
 Fixed bug where `gam <UserTypeEntity> print filelist ... countsonly todrive` did not upload the CSV file to Google Drive.
@@ -82,9 +101,9 @@ want to perform subsequent GAM command on the file. This file ID will only be va
 of the command is 0; program accordingly.
 ```
 Linux/MacOS
-fileId=`gam user user@domain.com create drivefile ...`
+fileId=`gam user user@domain.com create drivefile ... returnidonly`
 Windows PowerShell
-$fileId = & gam user user@domain.com create drivefile ...`
+$fileId = & gam user user@domain.com create drivefile ... returnidonly`
 ```
 
 5.02.01

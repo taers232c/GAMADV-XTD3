@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.05'
+__version__ = '5.03.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -31286,10 +31286,8 @@ def updateCalendarAttendees(users):
               update['done'] = True
               if ((updStatus is not None and updStatus != oldStatus) or
                   (updOptional is not None and updOptional != oldOptional)):
-                if updStatus is not None and updStatus != oldStatus:
-                  attendee['responseStatus'] = updStatus
-                if updOptional is not None and updOptional != oldOptional:
-                  attendee['optional'] = updOptional
+                attendee['responseStatus'] = updStatus if updStatus is not None else oldStatus
+                attendee['optional'] = updOptional if updOptional is not None else oldOptional
                 Act.Set(Act.UPDATE)
                 entityPerformAction([Ent.EVENT, eventSummary, Ent.ATTENDEE, oldAddr], u, ucount)
                 needsUpdate = True
@@ -31301,10 +31299,8 @@ def updateCalendarAttendees(users):
               u += 1
               update['done'] = True
               attendee['email'] = update['email']
-              if updStatus is not None and updStatus != oldStatus:
-                attendee['responseStatus'] = updStatus
-              if updOptional is not None and updOptional != oldOptional:
-                attendee['optional'] = updOptional
+              attendee['responseStatus'] = updStatus if updStatus is not None else oldStatus
+              attendee['optional'] = updOptional if updOptional is not None else oldOptional
               Act.Set(Act.REPLACE)
               entityPerformActionModifierNewValue([Ent.EVENT, eventSummary, Ent.ATTENDEE, oldAddr], Act.MODIFIER_WITH, update['email'], u, ucount)
               updatedAttendees.append(attendee)
@@ -39046,11 +39042,13 @@ def _getTeamDriveRestrictions(myarg, body):
 #	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 #	(<TeamDriveRestrictionsFieldName> <Boolean>)*
 #	[hide <Boolean>]
+#	[csv [todrive <ToDriveAttribute>*]] [returnidonly]
 def createTeamDrive(users, useDomainAdminAccess=False):
   requestId = str(uuid.uuid4())
   body = {'name': getString(Cmd.OB_NAME, checkBlank=True)}
   updateBody = {}
-  hide = False
+  csvPF = None
+  hide = returnIdOnly = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if _getTeamDriveTheme(myarg, body):
@@ -39059,10 +39057,18 @@ def createTeamDrive(users, useDomainAdminAccess=False):
       pass
     elif myarg == 'hide':
       hide = getBoolean()
+    elif myarg == 'returnidonly':
+      returnIdOnly = True
+    elif myarg == 'csv':
+      csvPF = CSVPrintFile()
+    elif csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
     elif myarg in ADMIN_ACCESS_OPTIONS:
       useDomainAdminAccess = True
     else:
       unknownArgumentExit()
+  if csvPF:
+    csvPF.SetTitles(['User', 'name', 'id'])
   for field in ['backgroundImageFile', 'colorRgb']:
     if field in body:
       updateBody[field] = body.pop(field)
@@ -39083,7 +39089,12 @@ def createTeamDrive(users, useDomainAdminAccess=False):
                                                                           GAPI.DUPLICATE, GAPI.BAD_REQUEST],
                              requestId=requestId, body=body, fields='id')
         teamDriveId = teamdrive['id']
-        entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
+        if returnIdOnly:
+          writeStdout(f'{teamDriveId}\n')
+        elif not csvPF:
+          entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
+        else:
+          csvPF.WriteRow({'User': user, 'name': body['name'], 'id': teamDriveId})
         doUpdate = True
         break
       except (GAPI.transientError, GAPI.teamDriveAlreadyExists) as e:
@@ -39105,29 +39116,54 @@ def createTeamDrive(users, useDomainAdminAccess=False):
       try:
         if updateBody:
           Act.Set(Act.UPDATE)
-          try:
-            callGAPI(drive.drives(), 'update',
-                     throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST,
-                                                                  GAPI.NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE],
-                     useDomainAdminAccess=useDomainAdminAccess, driveId=teamDriveId, body=updateBody)
-            entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
-          except GAPI.badRequest as e:
-            entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
+          retry = 0
+          while True:
+            try:
+              callGAPI(drive.drives(), 'update',
+                       throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST,
+                                                                    GAPI.NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE],
+                       useDomainAdminAccess=useDomainAdminAccess, driveId=teamDriveId, body=updateBody)
+              if not returnIdOnly and not csvPF:
+                entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
+              break
+            except GAPI.notFound:
+              retry += 1
+              if retry > 3:
+                entityActionFailedWarning([Ent.USER, user, Ent.REQUEST_ID, requestId], str(e), i, count)
+                break
+              time.sleep(retry*retry)
+            except GAPI.badRequest as e:
+              entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
+              break
         if hide:
           Act.Set(Act.HIDE)
-          callGAPI(drive.drives(), 'hide',
-                   throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                   driveId=teamDriveId)
-          entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
-      except (GAPI.notFound, GAPI.forbidden, GAPI.badRequest, GAPI.noManageTeamDriveAdministratorPrivilege) as e:
+          retry = 0
+          while True:
+            try:
+              callGAPI(drive.drives(), 'hide',
+                       throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                       driveId=teamDriveId)
+              if not returnIdOnly and not csvPF:
+                entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
+              break
+            except GAPI.notFound:
+              retry += 1
+              if retry > 3:
+                entityActionFailedWarning([Ent.USER, user, Ent.REQUEST_ID, requestId], str(e), i, count)
+                break
+              time.sleep(retry*retry)
+      except (GAPI.forbidden, GAPI.badRequest, GAPI.noManageTeamDriveAdministratorPrivilege) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+  if csvPF:
+    csvPF.writeCSVfile('SharedDrives')
 
 # gam create|add teamdrive <Name>
 #	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 #	(<TeamDriveRestrictionsFieldName> <Boolean>)*
 #	[hide <Boolean>]
+#	[csv [todrive <ToDriveAttribute>*]] [returnidonly]
 def doCreateTeamDrive():
   createTeamDrive([_getValueFromOAuth('email')], True)
 
