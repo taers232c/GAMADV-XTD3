@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.04'
+__version__ = '5.03.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -34449,10 +34449,9 @@ def printFileList(users):
         _printChildDriveFolderContents(drive, fileEntryInfo, user, i, count, 0)
     if countsOnly:
       writeMimeTypeCountsRow(user, mimeTypeCounts)
-  if not csvPF.rows:
-    setSysExitRC(NO_ENTITIES_FOUND)
   if not countsOnly:
     if not csvPF.rows:
+      setSysExitRC(NO_ENTITIES_FOUND)
       if not nodataFields:
         if DFF.fieldsList:
           nodataFields = ['Owner']+list(set(DFF.fieldsList)-skipObjects)
@@ -34508,6 +34507,9 @@ def printFileList(users):
       csvPF.MoveJSONTitlesToEnd(['JSON'])
     csvPF.writeCSVfile(f'{Cmd.Argument(GM.Globals[GM.ENTITY_CL_START])} {Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)} Drive Files')
   else:
+    if not csvPFco.rows:
+      setSysExitRC(NO_ENTITIES_FOUND)
+    csvPFco.todrive = csvPF.todrive
     csvPFco.writeCSVfile(f'{Cmd.Argument(GM.Globals[GM.ENTITY_CL_START])} {Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)} Drive File Counts')
 
 # gam <UserTypeEntity> print filepaths <DriveFileEntity> [todrive <ToDriveAttribute>*] [oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
