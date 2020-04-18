@@ -39126,7 +39126,7 @@ def createTeamDrive(users, useDomainAdminAccess=False):
               if not returnIdOnly and not csvPF:
                 entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
               break
-            except GAPI.notFound:
+            except GAPI.notFound as e:
               retry += 1
               if retry > 3:
                 entityActionFailedWarning([Ent.USER, user, Ent.REQUEST_ID, requestId], str(e), i, count)
@@ -39146,7 +39146,7 @@ def createTeamDrive(users, useDomainAdminAccess=False):
               if not returnIdOnly and not csvPF:
                 entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
               break
-            except GAPI.notFound:
+            except GAPI.notFound as e:
               retry += 1
               if retry > 3:
                 entityActionFailedWarning([Ent.USER, user, Ent.REQUEST_ID, requestId], str(e), i, count)
