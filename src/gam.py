@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.06'
+__version__ = '5.03.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -26223,7 +26223,7 @@ def doUpdateSiteVerification():
         query_params = {'name': f'{a_domain}', 'type': 'txt'}
         printKeyValueList(['Expected Record',
                            f'{query_params["name"]} IN TXT {verify_data["token"]}'])
-      _, content = getHttpObj().request('https://dns.google/resolve?' + urlencode(query_params), 'GET')
+      _, content = getHttpObj().request('https://dns.google.com/resolve?' + urlencode(query_params), 'GET')
 ###
       result = json.loads(content.decode(UTF8))
       status = result['Status']

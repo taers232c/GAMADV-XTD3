@@ -1,3 +1,7 @@
+5.03.07
+
+Updated `gam update verify` to avoid getting: `ERROR: A failure in the SSL library occurred (_ssl.c:1108)`
+
 5.03.06
 
 Fixed bug in `gam <UserTypeEntity> update calattendees` where `replacestatus` and `updatestatus` were not
