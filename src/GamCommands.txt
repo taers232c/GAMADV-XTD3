@@ -3628,7 +3628,7 @@ gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [preview] [todrive <ToDriveAttribute>*]
 
-gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+gam <UserTypeEntity> collect orphans (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [(targetuserfoldername <DriveFolderName>)|(targetuserfolderid <DriveFolderID>)] [preview] [todrive <ToDriveAttribute>*]
 
 <DriveCapabilitiesSubfieldName> ::=
@@ -4168,11 +4168,16 @@ gam <UserTypeEntity> info sendas <EmailAddressEntity> [compact|format|html]
 gam <UserTypeEntity> show sendas [compact|format|html]
 gam <UserTypeEntity> print sendas [todrive <ToDriveAttribute>*]
 
-gam <UserTypeEntity> create|add smime file <FileName> [password <Password>] [sendas|sendasemail <EmailAddress>] [default]
-gam <UserTypeEntity> update smime [id <S/MIMEID>] [sendas|sendasemail <EmailAddress>] [default]
-gam <UserTypeEntity> delete smime [id <S/MIMEID>] [sendas|sendasemail <EmailAddress>]
-gam <UserTypeEntity> show smimes [primaryonly]
-gam <UserTypeEntity> print smimes [todrive <ToDriveAttribute>*] [primaryonly]
+gam <UserTypeEntity> create|add smime file <FileName> [password <Password>]
+        [sendas|sendasemail <EmailAddress>] [default]
+gam <UserTypeEntity> update smime default
+        [id <S/MIMEID>] [sendas|sendasemail <EmailAddress>]
+gam <UserTypeEntity> delete smime
+        [id <S/MIMEID>] [sendas|sendasemail <EmailAddress>]
+gam <UserTypeEntity> show smimes
+        [primary|default|(sendas|sendasemail <EmailAddress>)]
+gam <UserTypeEntity> print smimes [todrive <ToDriveAttribute>*]
+        [primary|default|(sendas|sendasemail <EmailAddress>)]
 
 gam <UserTypeEntity> signature|sig <String>|(file <FileName> [charset <Charset>]) (replace <Tag> <UserReplacement>)*
         [html [<Boolean>]] [name <String>] [replyto <EmailAddress>] [default] [primary] [treatasalias <Boolean>]

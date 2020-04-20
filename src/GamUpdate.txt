@@ -1,3 +1,15 @@
+5.03.08
+
+Enhanced error handling in `gam update|delete smime` when invalid data is entered.
+
+Enhanced `gam print|show smimes` to allow more selection options as to which S/MIME configurations to display.
+```
+gam <UserTypeEntity> show smimes
+        [primary|default|(sendas|sendasemail <EmailAddress>)]
+gam <UserTypeEntity> print smimes [todrive <ToDriveAttribute>*]
+        [primary|default|(sendas|sendasemail <EmailAddress>)]
+```
+
 5.03.07
 
 Updated `gam update verify` to avoid getting: `ERROR: A failure in the SSL library occurred (_ssl.c:1108)`

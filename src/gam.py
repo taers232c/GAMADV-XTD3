@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.07'
+__version__ = '5.03.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -26202,7 +26202,7 @@ DNS_ERROR_CODES_MAP = {
   9: 'Name not in zone'
   }
 
-# gam update verify|verification <DomainName> cname|txt|text|file|site [showdns]
+# gam update verify|verification <DomainName> cname|txt|text|file|site
 def doUpdateSiteVerification():
   def showDNSrecords():
     try:
@@ -36650,7 +36650,7 @@ def getDriveFile(users):
         break
     Ind.Decrement()
 
-# gam <UserTypeEntity> collect orphans [anyowner|(showownedby any|me|others)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+# gam <UserTypeEntity> collect orphans (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[(targetuserfoldername <DriveFolderName>)(targetuserfolderid <DriveFolderID>)] [preview] [todrive <ToDriveAttribute>*]
 def collectOrphans(users):
   OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
@@ -36670,11 +36670,12 @@ def collectOrphans(users):
     elif myarg == 'targetuserfolderid':
       targetUserFolderId = getString(Cmd.OB_DRIVE_FOLDER_ID)
       targetUserFolderPattern = None
-    elif myarg == 'anyowner':
-      query = _updateAnyOwnerQuery(query)
-    elif myarg == 'showownedby':
-      showOwnedBy = getChoice(SHOW_OWNED_BY_CHOICE_MAP, mapChoice=True)
-      query = _updateQueryWithShowOwnedBy(showOwnedBy, query)
+# Removed 2020-04-19: misidentifies shareWithMe files as orphans
+#    elif myarg == 'anyowner':
+#      query = _updateAnyOwnerQuery(query)
+#    elif myarg == 'showownedby':
+#      showOwnedBy = getChoice(SHOW_OWNED_BY_CHOICE_MAP, mapChoice=True)
+#      query = _updateQueryWithShowOwnedBy(showOwnedBy, query)
     elif myarg == 'preview':
       csvPF = CSVPrintFile(['Owner', 'type', 'id', 'name'])
     elif csvPF and myarg == 'todrive':
@@ -43879,7 +43880,8 @@ def printShowSendAs(users):
   if csvPF:
     csvPF.writeCSVfile('SendAs')
 
-# gam <UserTypeEntity> create|add smime file <FileName> [password <Password>] [sendas|sendasemail <EmailAddress>] [default]
+# gam <UserTypeEntity> create|add smime file <FileName> [password <Password>]
+#	[sendas|sendasemail <EmailAddress>] [default]
 def createSmime(users):
   sendAsEmailBase = None
   setDefault = False
@@ -43908,15 +43910,19 @@ def createSmime(users):
       continue
     sendAsEmail = sendAsEmailBase if sendAsEmailBase else user
     try:
+      Act.Set(Act.CREATE)
       result = callGAPI(gmail.users().settings().sendAs().smimeInfo(), 'insert',
                         throw_reasons=GAPI.GMAIL_SMIME_THROW_REASONS,
                         userId='me', sendAsEmail=sendAsEmail, body=body, fields='id,issuerCn')
-      if setDefault:
-        callGAPI(gmail.users().settings().sendAs().smimeInfo(), 'setDefault',
-                 throw_reasons=GAPI.GMAIL_SMIME_THROW_REASONS,
-                 userId='me', sendAsEmail=sendAsEmail, id=result['id'])
       entityModifierNewValueActionPerformed([Ent.USER, user, Ent.SENDAS_ADDRESS, sendAsEmail, Ent.SMIME_ID, result['id']],
                                             Act.MODIFIER_FROM, f'{Ent.Singular(Ent.ISSUER_CN)}: {result["issuerCn"]}', i, count)
+      if setDefault:
+        Act.Set(Act.UPDATE)
+        smimeId = result['id']
+        callGAPI(gmail.users().settings().sendAs().smimeInfo(), 'setDefault',
+                 throw_reasons=GAPI.GMAIL_SMIME_THROW_REASONS,
+                 userId='me', sendAsEmail=sendAsEmail, id=smimeId)
+        entityActionPerformedMessage([Ent.USER, user, Ent.SENDAS_ADDRESS, sendAsEmail, Ent.SMIME_ID, smimeId], Msg.DEFAULT_SMIME, i, count)
     except (GAPI.forbidden, GAPI.invalidArgument) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
@@ -43951,7 +43957,8 @@ def _getSmimeIds(gmail, user, i, count, sendAsEmail, function):
     entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   return None
 
-# gam <UserTypeEntity> update smime [id <SmimeID>] [sendas|sendasemail <EmailAddress>] [default]
+# gam <UserTypeEntity> update smime default
+#	[id <SmimeID>] [sendas|sendasemail <EmailAddress>]
 def updateSmime(users):
   smimeIdBase = None
   sendAsEmailBase = None
@@ -43985,13 +43992,16 @@ def updateSmime(users):
       callGAPI(gmail.users().settings().sendAs().smimeInfo(), 'setDefault',
                throw_reasons=GAPI.GMAIL_SMIME_THROW_REASONS,
                userId='me', sendAsEmail=sendAsEmail, id=smimeId)
-      entityActionPerformed([Ent.USER, user, Ent.SENDAS_ADDRESS, sendAsEmail, Ent.SMIME_ID, smimeId], i, count)
+      entityActionPerformedMessage([Ent.USER, user, Ent.SENDAS_ADDRESS, sendAsEmail, Ent.SMIME_ID, smimeId], Msg.DEFAULT_SMIME, i, count)
+    except GAPI.notFound as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.SMIME_ID, smimeId], str(e), i, count)
     except (GAPI.forbidden, GAPI.invalidArgument) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
-# gam <UserTypeEntity> delete smime [id <SmimeID>] [sendas|sendasemail <EmailAddress>]
+# gam <UserTypeEntity> delete smime
+#	[id <SmimeID>] [sendas|sendasemail <EmailAddress>]
 def deleteSmime(users):
   smimeIdBase = None
   sendAsEmailBase = None
@@ -44021,22 +44031,31 @@ def deleteSmime(users):
                throw_reasons=GAPI.GMAIL_SMIME_THROW_REASONS,
                userId='me', sendAsEmail=sendAsEmail, id=smimeId)
       entityActionPerformed([Ent.USER, user, Ent.SENDAS_ADDRESS, sendAsEmail, Ent.SMIME_ID, smimeId], i, count)
+    except GAPI.notFound as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.SMIME_ID, smimeId], str(e), i, count)
     except (GAPI.forbidden, GAPI.invalidArgument) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
-# gam <UserTypeEntity> print smimes [todrive <ToDriveAttribute>*] [primaryonly]
-# gam <UserTypeEntity> show smimes [primaryonly]
+# gam <UserTypeEntity> print smimes [todrive <ToDriveAttribute>*]
+#	[primary|default|(sendas|sendasemail <EmailAddress>)]
+# gam <UserTypeEntity> show smimes
+#	[primary|default|(sendas|sendasemail <EmailAddress>)]
 def printShowSmimes(users):
   csvPF = CSVPrintFile(['User', 'id', 'isDefault', 'issuerCn', 'expiration', 'encryptedKeyPassword', 'pem']) if Act.csvFormat() else None
-  primaryonly = False
+  selectField = 'sendAsEmail'
+  sendAsEmailBase = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg == 'primaryonly':
-      primaryonly = True
+    elif myarg in {'default', 'defaultonly'}:
+      selectField = 'isDefault'
+    elif myarg in {'primary', 'primaryonly'}:
+      selectField = 'isPrimary'
+    elif myarg in {'sendas', 'sendasemail'}:
+      sendAsEmailBase = getEmailAddress(noUid=True)
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
@@ -44046,13 +44065,13 @@ def printShowSmimes(users):
     if not gmail:
       continue
     try:
-      if primaryonly:
-        sendAsEmails = [user]
+      if sendAsEmailBase:
+        sendAsEmails = [sendAsEmailBase]
       else:
         results = callGAPIitems(gmail.users().settings().sendAs(), 'list', 'sendAs',
                                 throw_reasons=GAPI.GMAIL_THROW_REASONS,
-                                userId='me', fields='sendAs(sendAsEmail)')
-        sendAsEmails = [sendAs['sendAsEmail'] for sendAs in results]
+                                userId='me', fields='sendAs(isDefault,isPrimary,sendAsEmail)')
+        sendAsEmails = [sendAs['sendAsEmail'] for sendAs in results if sendAs.get(selectField, False)]
       jcount = len(sendAsEmails)
       if not csvPF:
         entityPerformActionSubItemModifierNumItems([Ent.USER, user], Ent.SMIME_ID, Act.MODIFIER_FROM, jcount, Ent.SENDAS_ADDRESS, i, count)
