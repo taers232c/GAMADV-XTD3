@@ -1,7 +1,7 @@
 cd src
 export gampath="gamadv-xtd3"
 echo "compiling GAM with pyinstaller..."
-pyinstaller --clean --noupx -F --distpath=$gampath $GAMOS-gam.spec
+pyinstaller --clean --noupx -F --distpath=$gampath gam.spec
 export gam="$gampath/gam"
 echo "running compiled GAM..."
 $gam version

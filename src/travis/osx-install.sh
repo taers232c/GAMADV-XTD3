@@ -2,7 +2,7 @@ cd src
 export gampath="gamadv-xtd3"
 echo "MacOS Version Info According to Python:"
 python -c "import platform; print(platform.mac_ver())"
-$python -OO -m PyInstaller --clean --noupx --strip -F --distpath=$gampath $GAMOS-gam.spec
+$python -OO -m PyInstaller --clean --noupx --strip -F --distpath=$gampath gam.spec
 export gam="$gampath/gam"
 export GAMVERSION=`$gam version simple | head -n 1 | cut -c1-7`
 cp LICENSE $gampath/

@@ -1,3 +1,27 @@
+5.03.09
+
+Upgraded to OpenSSL 1.1.1g.
+
+Added attributes to allow specifying calandar and event colors by name.
+```
+<CalendarColorName> ::=
+        amethyst|avocado|banana|basil|birch|bluberry|
+        cherryblossom|citron|cobalt|cocoa|eucalyptus|flamingo|
+        grape|graphite|lavender|mango|peacock|pistachio|
+        pumpkin|radicchio|sage|tangerine|tomato|wisteria|
+<CalendarAttribute> ::=
+        ...
+        (color <CalendarColorName>)|
+        ...
+<EventColorName> ::=
+        banana|basil|blueberry|flamingo|graphite|grape|
+        lavender|peacock|sage|tangerine|tomato
+<EventAttribute> ::=
+        ...
+        (color <EventColorName>)|
+        ...
+```
+
 5.03.08
 
 Enhanced error handling in `gam update|delete smime` when invalid data is entered.

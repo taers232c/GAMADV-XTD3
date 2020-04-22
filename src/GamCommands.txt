@@ -23,6 +23,12 @@ If an item contains spaces, it should be surrounded by ".
 <TrueValues> ::= true|on|yes|enabled|1
 
 <Charset> ::= ascii|latin1|mbcs|utf-8|utf-8-sig|utf-16|<String>
+<CalendarColorIndex> ::= <Number in range 1-24>
+<CalendarColorName> ::=
+        amethyst|avocado|banana|basil|birch|bluberry|
+        cherryblossom|citron|cobalt|cocoa|eucalyptus|flamingo|
+        grape|graphite|lavender|mango|peacock|pistachio|
+        pumpkin|radicchio|sage|tangerine|tomato|wisteria|
 <ColorNameGoogle> ::=
         asparagus|bluevelvet|bubblegum|cardinal|chocolateicecream|denim|desertsand|
         earthworm| macaroni|marsorange|mountaingray|mountaingrey|mouse|oldbrickred|
@@ -51,6 +57,10 @@ If an item contains spaces, it should be surrounded by ".
         wheat|white|whitesmoke|yellow|yellowgreen
 <ColorName> ::= <ColorNameGoogle>|<ColorNameWeb>
 <DayOfWeek> ::= mon|tue|wed|thu|fri|sat|sun
+<EventColorIndex> ::= <Number in range 1-11>
+<EventColorName> ::=
+        banana|basil|blueberry|flamingo|graphite|grape|
+        lavender|peacock|sage|tangerine|tomato
 <FileFormat> ::=
         csv|doc|dot|docx|dotx|epub|html|jpeg|jpg|mht|odp|ods|odt|
         pdf|png|ppt|pot|potx|pptx|rtf|svg|tsv|txt|xls|xlt|xlsx|xltx|zip|
@@ -246,7 +256,6 @@ If an item contains spaces, it should be surrounded by ".
 <CalendarACLScope> ::=
         <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|
         domain:<DomainName>)|domain|default
-<CalendarColorIndex> ::= <Number in range 1-24>
 <CalendarItem> ::= <EmailAddress>|<String>
 <ChatRoom> ::= <String>
 <ClassroomInvitationID> ::= <String>
@@ -309,7 +318,6 @@ If an item contains spaces, it should be surrounded by ".
 <EmailAddress> ::= <String>@<DomainName>
 <EmailItem> ::= <EmailAddress>|<UniqueID>|<String>
 <EmailReplacement> ::= <String>
-<EventColorIndex> ::= <Number in range 1-11>
 <EventID> ::= <String>
 <EventName> ::= <String>
 <ExportItem> ::= <UniqueID>|<String>
@@ -1287,10 +1295,10 @@ gam <CrOSTypeEntity> update action <CrOSAction> [acknowledge_device_touch_requir
 <CrOSOrderByFieldName> ::=
         lastsync|location|notes|serialnumber|status|supportenddate|user
 
-gam info cros <CrOSEntity> [guessaue] [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
+gam info cros <CrOSEntity> [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
         [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
-gam <CrOSTypeEntity> info [guessaue] [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
+gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
         [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
 
@@ -1300,7 +1308,7 @@ If none of these options are chosen, all CrOS devices are selected.
 
 gam print cros [todrive <ToDriveAttribute>*]
         [(query <QueryCrOS>)|(queries <QueryCrOSList>)] [limittoou <OrgUnitItem>]
-        (querytime.* <Time>)* [guessaue]
+        (querytime.* <Time>)*
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
         [nolists|(<CrOSListFieldName>* [onerow]) [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
@@ -1309,14 +1317,12 @@ gam print cros [todrive <ToDriveAttribute>*]
 Print fields for specified CrOS devices.
 
 gam print cros [todrive <ToDriveAttribute>*] select <CrOSTypeEntity>
-        [guessaue]
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
         [nolists|(<CrOSListFieldName>* [onerow]) [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
         [sortheaders] [formatjson] [quotechar <Character>]
 
 gam <CrOSTypeEntity> print cros [todrive <ToDriveAttribute>*]
-        [guessaue]
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
         [nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
@@ -3203,6 +3209,7 @@ gam <UserTypeEntity> print backupcodes|verificationcodes [todrive <ToDriveAttrib
 
 <CalendarAttribute> ::=
         (backgroundcolor <ColorValue>)|
+        (color <CalendarColorName>)|
         (colorindex|colorid <CalendarColorIndex>)|
         (foregroundcolor <ColorValue>)|
         (hidden <Boolean>)|
@@ -3297,6 +3304,7 @@ gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <
         (attendee <EmailAddress>)|
         (attendeestatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddress>)|
         available|
+        (color <EventColorName>)|
         (colorindex|colorid <EventColorIndex>))|
         (description <String>)|
         (end|endtime (allday <Date>)|<Time>)|

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.08'
+__version__ = '5.03.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -32,7 +32,6 @@ import collections
 import configparser
 import csv
 import datetime
-import difflib
 from email.charset import add_charset, QP
 from email.generator import Generator
 from email.header import decode_header, Header
@@ -748,6 +747,18 @@ def getChoiceAndValue(item, choices, delimiter):
       return (choice, value)
     missingArgumentExit(item)
   invalidChoiceExit(choice, choices, False)
+
+CALENDAR_COLOR_MAP = {
+  'amethyst': 24, 'avocado': 10, 'banana': 12, 'basil': 8, 'birch': 20, 'blueberry': 16,
+  'cherryblossom': 22, 'citron': 11, 'cobalt': 15, 'cocoa': 1, 'eucalyptus': 7, 'flamingo': 2,
+  'grape': 23, 'graphite': 19, 'lavender': 17, 'mango': 6, 'peacock': 14, 'pistachio': 9,
+  'pumpkin': 5, 'radicchio': 21, 'sage': 13, 'tangerine': 4, 'tomato': 3, 'wisteria': 18,
+  }
+
+CALENDAR_EVENT_COLOR_MAP = {
+  'banana': 5, 'basil': 10, 'blueberry': 9, 'flamingo': 4, 'graphite': 8, 'grape': 3,
+  'lavender': 1, 'peacock': 7, 'sage': 2, 'tangerine': 6, 'tomato': 11,
+  }
 
 GOOGLE_COLOR_MAP = {
   'asparagus': '#7bd148', 'bluevelvet': '#9a9cff', 'bubblegum': '#f691b2', 'cardinal': '#f83a22',
@@ -15243,39 +15254,6 @@ def checkTPMVulnerability(cros):
     else:
       cros['tpmVersionInfo']['tpmVulnerability'] = 'NOT IMPACTED'
 
-FN_CROS_AUE_DATES_JSON = 'cros-aue-dates.json'
-
-def readCrOSAUEDates():
-  disc_filename = FN_CROS_AUE_DATES_JSON
-  disc_file = os.path.join(GM.Globals[GM.GAM_PATH], disc_filename)
-  if hasattr(sys, '_MEIPASS'):
-    json_string = readFile(os.path.join(sys._MEIPASS, disc_filename), continueOnError=True, displayError=True)
-  elif os.path.isfile(disc_file):
-    json_string = readFile(disc_file, continueOnError=True, displayError=True)
-  else:
-    json_string = None
-  if json_string:
-    try:
-      GM.Globals[GM.CROS_AUE_DATES] = json.loads(json_string)
-      return True
-    except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
-      pass
-  stderrErrorMsg(Msg.DOES_NOT_EXIST_OR_HAS_INVALID_FORMAT.format(Ent.Singular(Ent.CROS_AUE_DATES_JSON_FILE), disc_filename))
-  return False
-
-def guessCrosAUEDate(cros, guessedAUEs):
-  crosModel = cros.get('model')
-  if crosModel:
-    if crosModel not in guessedAUEs:
-      closest_match = difflib.get_close_matches(crosModel, GM.Globals[GM.CROS_AUE_DATES], n=1)
-      if closest_match:
-        guessedAUEs[crosModel] = {'guessedAUEDate': GM.Globals[GM.CROS_AUE_DATES][closest_match[0]],
-                                  'guessedAUEModel': closest_match[0]}
-      else:
-        guessedAUEs[crosModel] = {'guessedAUEDate': u'',
-                                  'guessedAUEModel': u''}
-    cros.update(guessedAUEs[crosModel])
-
 def _filterActiveTimeRanges(cros, selected, listLimit, startDate, endDate):
   if not selected:
     cros.pop('activeTimeRanges', None)
@@ -15457,8 +15435,6 @@ CROS_SCALAR_PROPERTY_PRINT_ORDER = [
   'manufactureDate',
   'supportEndDate',
   'autoUpdateExpiration',
-  'guessedAUEDate',
-  'guessedAUEModel',
   'willAutoRenew',
   ]
 
@@ -15475,7 +15451,7 @@ CROS_LISTS_ARGUMENTS = (CROS_ACTIVE_TIME_RANGES_ARGUMENTS+CROS_RECENT_USERS_ARGU
 CROS_START_ARGUMENTS = ['start', 'startdate', 'oldestdate']
 CROS_END_ARGUMENTS = ['end', 'enddate']
 
-# gam <CrOSTypeEntity> info [guessaue] [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
+# gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
 def infoCrOSDevices(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
@@ -15483,8 +15459,7 @@ def infoCrOSDevices(entityList):
   targetFolder = GC.Values[GC.DRIVE_DIR]
   projection = None
   fieldsList = []
-  guessAUE = noLists = False
-  guessedAUEs = {}
+  noLists = False
   FJQC = FormatJSONQuoteChar()
   listLimit = 0
   startDate = endDate = startTime = endTime = None
@@ -15494,8 +15469,6 @@ def infoCrOSDevices(entityList):
       noLists = True
     elif myarg == 'listlimit':
       listLimit = getInteger(minVal=0)
-    elif myarg == 'guessaue':
-      guessAUE = readCrOSAUEDates()
     elif myarg in CROS_START_ARGUMENTS:
       startDate, startTime = _getFilterDateTime()
     elif myarg in CROS_END_ARGUMENTS:
@@ -15533,8 +15506,6 @@ def infoCrOSDevices(entityList):
       FJQC.GetFormatJSON(myarg)
   if fieldsList:
     fieldsList.append('deviceId')
-    if guessAUE:
-      fieldsList.append('model')
     if downloadfile:
       fieldsList.append('deviceFiles.downloadUrl')
   fields = getFieldsFromFieldsList(fieldsList)
@@ -15551,8 +15522,6 @@ def infoCrOSDevices(entityList):
     checkTPMVulnerability(cros)
     if 'autoUpdateExpiration' in cros:
       cros['autoUpdateExpiration'] = formatLocalDatestamp(cros['autoUpdateExpiration'])
-    if guessAUE:
-      guessCrosAUEDate(cros, guessedAUEs)
     if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(cros, timeObjects=CROS_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
       continue
@@ -15822,14 +15791,14 @@ CROS_INDEXED_TITLES = ['activeTimeRanges', 'recentUsers', 'deviceFiles',
 
 # gam print cros [todrive <ToDriveAttribute>*]
 #	[(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
-#	[querytime.* <Time>] [guessaue] [start <Date>] [end <Date>]
+#	[querytime.* <Time>] [start <Date>] [end <Date>]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]]
 #	[nolists|(<DrOSListFieldName>* [onerow])] [listlimit <Number>]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
 #	[sortheaders] [formatjson] [quotechar <Character>]
 #
 # gam <CrOSTypeEntity> print cros [todrive <ToDriveAttribute>*]
-#	[guessaue] [start <Date>] [end <Date>]
+#	[start <Date>] [end <Date>]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]]
 #	[nolists|(<DrOSListFieldName>* [onerow])] [listlimit <Number>]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
@@ -15853,8 +15822,6 @@ def doPrintCrOSDevices(entityList=None):
     checkTPMVulnerability(cros)
     if 'autoUpdateExpiration' in cros:
       cros['autoUpdateExpiration'] = formatLocalDatestamp(cros['autoUpdateExpiration'])
-    if guessAUE:
-      guessCrosAUEDate(cros, guessedAUEs)
     if FJQC.formatJSON:
       if not csvPF.rowFilter or csvPF.CheckRowTitles(flattenJSON(cros, listLimit=listLimit, timeObjects=CROS_TIME_OBJECTS)):
         csvPF.WriteRowNoFilter({'deviceId': cros['deviceId'],
@@ -15953,8 +15920,7 @@ def doPrintCrOSDevices(entityList=None):
   startDate = endDate = startTime = endTime = None
   selectedLists = {}
   queryTimes = {}
-  allFields = guessAUE = noLists = oneRow = sortHeaders = False
-  guessedAUEs = {}
+  allFields = noLists = oneRow = sortHeaders = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'todrive':
@@ -15976,8 +15942,6 @@ def doPrintCrOSDevices(entityList=None):
       selectedLists = {}
     elif myarg == 'listlimit':
       listLimit = getInteger(minVal=0)
-    elif myarg == 'guessaue':
-      guessAUE = readCrOSAUEDates()
     elif myarg in CROS_START_ARGUMENTS:
       startDate, startTime = _getFilterDateTime()
     elif myarg in CROS_END_ARGUMENTS:
@@ -16017,8 +15981,6 @@ def doPrintCrOSDevices(entityList=None):
       addFieldToFieldsList(selectList, CROS_FIELDS_CHOICE_MAP, fieldsList)
   if fieldsList:
     fieldsList.append('deviceId')
-    if guessAUE:
-      fieldsList.append('model')
   _, _, entityList = getEntityArgument(entityList)
   if FJQC.formatJSON:
     sortHeaders = False
@@ -20816,6 +20778,8 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
     body['transparency'] = 'transparent'
   elif myarg == 'visibility':
     body['visibility'] = getChoice(CALENDAR_EVENT_VISIBILITY_CHOICES)
+  elif myarg == 'color':
+    body['colorId'] = getChoice(CALENDAR_EVENT_COLOR_MAP, mapChoice=True)
   elif myarg in {'colorindex', 'colorid'}:
     body['colorId'] = getInteger(CALENDAR_EVENT_MIN_COLOR_INDEX, CALENDAR_EVENT_MAX_COLOR_INDEX)
   elif myarg == 'noreminders':
@@ -26223,7 +26187,7 @@ def doUpdateSiteVerification():
         query_params = {'name': f'{a_domain}', 'type': 'txt'}
         printKeyValueList(['Expected Record',
                            f'{query_params["name"]} IN TXT {verify_data["token"]}'])
-      _, content = getHttpObj().request('https://dns.google.com/resolve?' + urlencode(query_params), 'GET')
+      _, content = getHttpObj().request('https://dns.google/resolve?' + urlencode(query_params), 'GET')
 ###
       result = json.loads(content.decode(UTF8))
       status = result['Status']
@@ -30426,6 +30390,8 @@ def _getCalendarAttributes(body):
       body['hidden'] = getBoolean()
     elif myarg == 'summary':
       body['summaryOverride'] = getString(Cmd.OB_STRING)
+    elif myarg == 'color':
+      body['colorId'] = getChoice(CALENDAR_COLOR_MAP, mapChoice=True)
     elif myarg in {'colorindex', 'colorid'}:
       body['colorId'] = getInteger(minVal=CALENDAR_MIN_COLOR_INDEX, maxVal=CALENDAR_MAX_COLOR_INDEX)
     elif myarg == 'backgroundcolor':
