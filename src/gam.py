@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.09'
+__version__ = '5.03.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2878,7 +2878,7 @@ def SetGlobalVariables():
       value = os.path.expanduser(os.path.join(_getCfgDirectory(sectionName, GC.CONFIG_DIR), value))
     elif not value and itemName == GC.CACERTS_PEM:
       if hasattr(sys, '_MEIPASS'):
-        value = os.path.join(sys._MEIPASS, GC.FN_CACERTS_PEM)
+        value = os.path.join(sys._MEIPASS, GC.FN_CACERTS_PEM) #pylint: disable=no-member
       else:
         value = os.path.join(GM.Globals[GM.GAM_PATH], GC.FN_CACERTS_PEM)
     return value
@@ -4167,7 +4167,7 @@ def readDiscoveryFile(api_version):
   disc_filename = f'{api_version}.json'
   disc_file = os.path.join(GM.Globals[GM.GAM_PATH], disc_filename)
   if hasattr(sys, '_MEIPASS'):
-    json_string = readFile(os.path.join(sys._MEIPASS, disc_filename), continueOnError=True, displayError=True)
+    json_string = readFile(os.path.join(sys._MEIPASS, disc_filename), continueOnError=True, displayError=True) #pylint: disable=no-member
   elif os.path.isfile(disc_file):
     json_string = readFile(disc_file, continueOnError=True, displayError=True)
   else:
@@ -31439,7 +31439,9 @@ def doTeamDriveSearch(drive, user, i, count, query, useDomainAdminAccess):
   try:
     files = callGAPIpages(drive.drives(), 'list', 'drives',
                           page_message=getPageMessageForWhom(),
-                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.QUERY_REQUIRES_ADMIN_CREDENTIALS, GAPI.NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE],
+                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID,
+                                                                       GAPI.QUERY_REQUIRES_ADMIN_CREDENTIALS,
+                                                                       GAPI.NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE],
                           q=query, useDomainAdminAccess=useDomainAdminAccess,
                           fields='nextPageToken,drives(id)', pageSize=100)
     if files:
@@ -32595,7 +32597,7 @@ def doShowTeamDriveThemes():
 def initFilePathInfo():
   return {'ids': {}, 'allPaths': {}, 'localPaths': None}
 
-def getFilePaths(drive, fileTree, initialResult, filePathInfo, addParentsToTree=False):
+def getFilePaths(drive, fileTree, initialResult, filePathInfo, addParentsToTree=False, showDepth=False):
   def _getParentName(result):
     if (result['mimeType'] == MIMETYPE_GA_FOLDER) and (result['name'] == TEAM_DRIVE) and result.get('driveId'):
       parentName = _getTeamDriveNameFromId(drive, result['driveId'])
@@ -32639,17 +32641,22 @@ def getFilePaths(drive, fileTree, initialResult, filePathInfo, addParentsToTree=
       else:
         paths[parentId][lparentId] = filePathInfo['allPaths'][lparentId]
 
-  def _makeFilePaths(localPaths, fplist, filePaths, name):
+  def _makeFilePaths(localPaths, fplist, filePaths, name, maxDepth):
     for k, v in iter(localPaths.items()):
       fplist.append(filePathInfo['ids'].get(k, ''))
       if not v:
         fp = fplist[:]
+        if showDepth:
+          depth = len(fp)
+          if depth > maxDepth:
+            maxDepth = depth-1
         fp.reverse()
         fp.append(name)
         filePaths.append(os.path.join(*fp))
       else:
-        _makeFilePaths(v, fplist, filePaths, name)
+        maxDepth = _makeFilePaths(v, fplist, filePaths, name, maxDepth)
       fplist.pop()
+    return maxDepth
 
   filePaths = []
   parents = initialResult.get('parents', [])
@@ -32660,8 +32667,10 @@ def getFilePaths(drive, fileTree, initialResult, filePathInfo, addParentsToTree=
         _followParent(filePathInfo['allPaths'], parentId)
       filePathInfo['localPaths'][parentId] = filePathInfo['allPaths'][parentId]
     fplist = []
-    _makeFilePaths(filePathInfo['localPaths'], fplist, filePaths, initialResult['name'])
-  return (_getEntityMimeType(initialResult), filePaths)
+    maxDepth = _makeFilePaths(filePathInfo['localPaths'], fplist, filePaths, initialResult['name'], -1)
+  else:
+    maxDepth = 0
+  return (_getEntityMimeType(initialResult), filePaths, maxDepth)
 
 DRIVEFILE_ORDERBY_CHOICE_MAP = {
   'createddate': 'createdTime',
@@ -33187,7 +33196,7 @@ def showFileInfo(users):
         printEntity([_getEntityMimeType(result), f'{result["name"]} ({fileId})'], j, jcount)
         Ind.Increment()
         if filepath:
-          _, paths = getFilePaths(drive, None, result, filePathInfo)
+          _, paths, _ = getFilePaths(drive, None, result, filePathInfo)
           kcount = len(paths)
           printKeyValueList(['paths', kcount])
           Ind.Increment()
@@ -33717,9 +33726,11 @@ def buildFileTree(feed, drive, teamdrive=None, getTeamDriveNames=False):
   extendFileTree(fileTree, feed)
   return fileTree
 
-def addFilePathsToRow(drive, fileTree, fileEntryInfo, filePathInfo, csvPF, row):
-  _, paths = getFilePaths(drive, fileTree, fileEntryInfo, filePathInfo)
+def addFilePathsToRow(drive, fileTree, fileEntryInfo, filePathInfo, csvPF, row, showDepth=False):
+  _, paths, maxDepth = getFilePaths(drive, fileTree, fileEntryInfo, filePathInfo, showDepth=showDepth)
   kcount = len(paths)
+  if showDepth:
+    row['depth'] = maxDepth
   row['paths'] = kcount
   k = 0
   for path in sorted(paths):
@@ -34010,7 +34021,7 @@ DRIVE_INDEXED_TITLES = ['parents', 'path', 'permissions']
 #	[querytime.* <Time>] [maxfiles <Integer>] [countsonly] [nodataheaders <String>]
 #	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
 #	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
-#	[filepath|fullpath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
+#	[filepath|fullpath [showdepth]] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [showparentsidsaslist]
 #	[formatjson] [quotechar <Character>]
 def printFileList(users):
@@ -34048,11 +34059,7 @@ def printFileList(users):
           permfield = 'permissions.'+field
           if permfield not in DFF.fieldsList:
             DFF.fieldsList.append(permfield)
-    if onlyTeamDrives or getPermissionsForTeamDrives:
-      if 'driveId' not in DFF.fieldsList:
-        skipObjects.add('driveId')
-        DFF.fieldsList.append('driveId')
-    if DFF.showTeamDriveNames:
+    if onlyTeamDrives or getPermissionsForTeamDrives or DFF.showTeamDriveNames:
       if 'driveId' not in DFF.fieldsList:
         skipObjects.add('driveId')
         DFF.fieldsList.append('driveId')
@@ -34081,7 +34088,7 @@ def printFileList(users):
     if DFF.showTeamDriveNames and driveId:
       fileInfo['driveName'] = DFF.TeamDriveName(driveId)
     if filepath:
-      addFilePathsToRow(drive, fileTree, fileInfo, filePathInfo, csvPF, row)
+      addFilePathsToRow(drive, fileTree, fileInfo, filePathInfo, csvPF, row, showDepth=showDepth)
     if showParentsIdsAsList and 'parents' in fileInfo:
       fileInfo['parentsIds'] = fileInfo.pop('parents')
     if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
@@ -34157,7 +34164,8 @@ def printFileList(users):
 
   csvPF = CSVPrintFile('Owner', indexedTitles=DRIVE_INDEXED_TITLES)
   FJQC = FormatJSONQuoteChar(csvPF)
-  buildTree = countsOnly = filepath = fullpath = getTeamDriveNames = noRecursion = onlyTeamDrives = showParentsIdsAsList = showParent = False
+  buildTree = countsOnly = filepath = fullpath = getTeamDriveNames = noRecursion = \
+    onlyTeamDrives = showParentsIdsAsList = showDepth = showParent = False
   maxdepth = -1
   nodataFields = []
   simpleLists = ['permissionIds', 'spaces']
@@ -34183,6 +34191,8 @@ def printFileList(users):
       noRecursion = getBoolean()
     elif myarg == 'depth':
       maxdepth = getInteger(minVal=-1)
+    elif myarg == 'showdepth':
+      showDepth = True
     elif myarg == 'showparent':
       showParent = getBoolean()
     elif DFF.ProcessArgument(myarg):
@@ -34210,6 +34220,8 @@ def printFileList(users):
       DLP.UpdateAnyOwnerQuery()
     else:
       FJQC.GetFormatJSONQuoteChar(myarg)
+  if not filepath and not fullpath:
+    showDepth = False
   noSelect = (not fileIdEntity
               or (not fileIdEntity['dict']
                   and not fileIdEntity['query']
@@ -34402,7 +34414,7 @@ def printFileList(users):
           userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
           break
       if fullpath:
-        getFilePaths(drive, fileTree, fileEntryInfo, filePathInfo, True)
+        getFilePaths(drive, fileTree, fileEntryInfo, filePathInfo, addParentsToTree=True, showDepth=showDepth)
       if (showParent and fileEntryInfo['id'] != 'Orphans') or fileEntryInfo['mimeType'] != MIMETYPE_GA_FOLDER or noRecursion:
         if fileId not in filesPrinted:
           filesPrinted.add(fileId)
@@ -34512,7 +34524,7 @@ def printShowFilePaths(users):
         result = callGAPI(drive.files(), 'get',
                           throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
                           fileId=fileId, fields='name,parents,mimeType', supportsAllDrives=True)
-        entityType, paths = getFilePaths(drive, None, result, filePathInfo)
+        entityType, paths, _ = getFilePaths(drive, None, result, filePathInfo)
         if not csvPF:
           kcount = len(paths)
           entityPerformActionNumItems([entityType, f'{result["name"]} ({fileId})'], kcount, Ent.DRIVE_PATH, j, jcount)

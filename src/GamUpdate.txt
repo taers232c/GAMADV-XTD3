@@ -1,3 +1,9 @@
+5.03.10
+
+Added option `showdepth` as an option to `gam print filelist`. When used with `filepath` or `fullpath`, GAM
+will display a `depth` column. Files/folders directly in `My Drive` are at depth 0, the depth increases by 1
+for each containing folder. For files with multiple parents, the maximum depth is displayed.
+
 5.03.09
 
 Upgraded to OpenSSL 1.1.1g.

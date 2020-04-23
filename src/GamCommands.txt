@@ -3867,7 +3867,7 @@ gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*]
         [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
         [filenamematchpattern <RegularExpression>]
         <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
-        [filepath|fullpath] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [showdrivename]
+        [filepath|fullpath [showdepth]] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [showdrivename]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [showparentsidsaslist]
         [formatjson] [quotechar <Character>]
 
