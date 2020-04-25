@@ -32,8 +32,8 @@ jobs:
       name: "Linux 64-bit Xenial"
       dist: xenial
       language: shell
-      env:
-        - DIST_UPGRADE=false
+#      env:
+#        - DIST_UPGRADE=false
     - os: linux
       name: "Linux 64-bit Trusty"
       dist: trusty
@@ -42,8 +42,8 @@ jobs:
       name: "Linux 64-bit Precise"
       dist: precise
       language: shell
-#      env:
-#        - PATCHELF_VERSION=0.9
+      env:
+        - PATCHELF_VERSION=0.9
     - os: linux
       name: "Linux ARM64 Focal"
       dist: focal

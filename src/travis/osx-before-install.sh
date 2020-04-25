@@ -9,7 +9,8 @@ echo "This device has $cpucount CPUs for compiling..."
 #brew upgrade
 
 # prefer standard GNU tools like date over MacOS defaults
-export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
+export PATH="/usr/local/opt/coreutils/libexec/gnubin:$(brew --prefix)/opt/gnu-tar/libexec/gnubin:$PATH"
+#export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
 
 cd ~
 
