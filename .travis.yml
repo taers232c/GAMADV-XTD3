@@ -24,6 +24,8 @@ jobs:
       name: "Linux 64-bit Focal"
       dist: focal
       language: shell
+      env:
+        - DIST_UPGRADE=false
     - os: linux
       name: "Linux 64-bit Bionic"
       dist: bionic
@@ -32,8 +34,8 @@ jobs:
       name: "Linux 64-bit Xenial"
       dist: xenial
       language: shell
-#      env:
-#        - DIST_UPGRADE=false
+      env:
+        - DIST_UPGRADE=false
     - os: linux
       name: "Linux 64-bit Trusty"
       dist: trusty
