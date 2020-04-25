@@ -11,6 +11,7 @@ for each containing folder. For files with multiple parents, the maximum depth i
 5.03.09
 
 Upgraded to OpenSSL 1.1.1g.
+Upgraded to google-auth 1.14.1.
 
 Added attributes to allow specifying calandar and event colors by name.
 ```
