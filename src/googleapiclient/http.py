@@ -81,11 +81,6 @@ DEFAULT_HTTP_TIMEOUT_SEC = 60
 
 _LEGACY_BATCH_URI = "https://www.googleapis.com/batch"
 
-if six.PY2:
-    # That's a builtin python3 exception, nonexistent in python2.
-    # Defined to None to avoid NameError while trying to catch it
-    ConnectionError = None
-
 
 def _should_retry_response(resp_status, content):
     """Determines whether a response should be retried.
@@ -182,10 +177,6 @@ def _retry_request(
             # It's important that this be before socket.error as it's a subclass
             # socket.timeout has no errorcode
             exception = socket_timeout
-        except ConnectionError as connection_error:
-            # Needs to be before socket.error as it's a subclass of
-            # OSError (socket.error)
-            exception = connection_error
         except socket.error as socket_error:
             # errno's contents differ by platform, so we have to match by name.
             if socket.errno.errorcode.get(socket_error.errno) not in {
@@ -709,7 +700,7 @@ class MediaIoBaseDownload(object):
 
     Raises:
       googleapiclient.errors.HttpError if the response was not a 2xx.
-      httplib2.HttpLib2Error if a transport error has occurred.
+      httplib2.HttpLib2Error if a transport error has occured.
     """
         headers = self._headers.copy()
         headers["range"] = "bytes=%d-%d" % (
@@ -860,7 +851,7 @@ class HttpRequest(object):
 
     Raises:
       googleapiclient.errors.HttpError if the response was not a 2xx.
-      httplib2.HttpLib2Error if a transport error has occurred.
+      httplib2.HttpLib2Error if a transport error has occured.
     """
         if http is None:
             http = self.http
@@ -956,7 +947,7 @@ class HttpRequest(object):
 
     Raises:
       googleapiclient.errors.HttpError if the response was not a 2xx.
-      httplib2.HttpLib2Error if a transport error has occurred.
+      httplib2.HttpLib2Error if a transport error has occured.
     """
         if http is None:
             http = self.http
@@ -1419,7 +1410,7 @@ class BatchHttpRequest(object):
       request: list, list of request objects to send.
 
     Raises:
-      httplib2.HttpLib2Error if a transport error has occurred.
+      httplib2.HttpLib2Error if a transport error has occured.
       googleapiclient.errors.BatchError if the response is the wrong format.
     """
         message = MIMEMultipart("mixed")
@@ -1495,7 +1486,7 @@ class BatchHttpRequest(object):
       None
 
     Raises:
-      httplib2.HttpLib2Error if a transport error has occurred.
+      httplib2.HttpLib2Error if a transport error has occured.
       googleapiclient.errors.BatchError if the response is the wrong format.
     """
         # If we have no requests return
@@ -1760,18 +1751,16 @@ class HttpMockSequence(object):
         connection_type=None,
     ):
         resp, content = self._iterable.pop(0)
-        content = six.ensure_binary(content)
-
-        if content == b"echo_request_headers":
+        if content == "echo_request_headers":
             content = headers
-        elif content == b"echo_request_headers_as_json":
+        elif content == "echo_request_headers_as_json":
             content = json.dumps(headers)
-        elif content == b"echo_request_body":
+        elif content == "echo_request_body":
             if hasattr(body, "read"):
                 content = body.read()
             else:
                 content = body
-        elif content == b"echo_request_uri":
+        elif content == "echo_request_uri":
             content = uri
         if isinstance(content, six.text_type):
             content = content.encode("utf-8")
@@ -1902,13 +1891,6 @@ def build_http():
     # for Resumable Uploads rather than Permanent Redirects.
     # This asks httplib2 to exclude 308s from the status codes
     # it treats as redirects
-    try:
-      http.redirect_codes = http.redirect_codes - {308}
-    except AttributeError:
-      # Apache Beam tests depend on this library and cannot
-      # currently upgrade their httplib2 version
-      # http.redirect_codes does not exist in previous versions
-      # of httplib2, so pass
-      pass
+    http.redirect_codes = http.redirect_codes - {308}
 
     return http

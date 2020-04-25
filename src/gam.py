@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.11'
+__version__ = '5.03.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -51,7 +51,6 @@ import logging
 import mimetypes
 import multiprocessing
 import os
-import pkg_resources
 import platform
 import queue
 import random
@@ -6651,7 +6650,7 @@ def doVersion(checkForArgs=True):
   writeStdout((f'{GAM} {__version__} - {GAM_URL} - {GM.Globals[GM.GAM_TYPE]}\n'
                f'{__author__}\n'
                f'Python {sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]} {struct.calcsize("P")*8}-bit {sys.version_info[3]}\n'
-               f'google-api-python-client {pkg_resources.get_distribution("google-api-python-client").version}\n'
+               f'google-api-python-client {googleapiclient.__version__}\n'
                f'httplib2 {httplib2.__version__}\n'
                f'{getOSPlatform()} {platform.machine()}\n'
                f'Path: {GM.Globals[GM.GAM_PATH]}\n'

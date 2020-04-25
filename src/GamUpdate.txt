@@ -1,7 +1,3 @@
-5.03.11
-
-Upgraded to google-api-python-client 1.8.2.
-
 5.03.10
 
 Added option `showdepth` as an option to `gam print filelist`. When used with `filepath` or `fullpath`, GAM

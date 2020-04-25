@@ -46,7 +46,6 @@ import re
 # Third-party imports
 import httplib2
 import uritemplate
-import google.api_core.client_options
 
 # Local imports
 from googleapiclient import _auth
@@ -131,10 +130,10 @@ def fix_method_name(name):
     name: string, method name.
 
   Returns:
-    The name with '_' appended if the name is a reserved word and '$' and '-'
+    The name with '_' appended if the name is a reserved word and '$' 
     replaced with '_'. 
   """
-    name = name.replace("$", "_").replace("-", "_")
+    name = name.replace("$", "_")
     if keyword.iskeyword(name) or name in RESERVED_WORDS:
         return name + "_"
     else:
@@ -177,7 +176,6 @@ def build(
     credentials=None,
     cache_discovery=True,
     cache=None,
-    client_options=None,
 ):
     """Construct a Resource for interacting with an API.
 
@@ -204,8 +202,6 @@ def build(
     cache_discovery: Boolean, whether or not to cache the discovery doc.
     cache: googleapiclient.discovery_cache.base.CacheBase, an optional
       cache object for the discovery documents.
-    client_options: Dictionary or google.api_core.client_options, Client options to set user
-      options on the client. API endpoint should be set through client_options.
 
   Returns:
     A Resource object with methods for interacting with the service.
@@ -232,7 +228,6 @@ def build(
                 model=model,
                 requestBuilder=requestBuilder,
                 credentials=credentials,
-                client_options=client_options
             )
         except HttpError as e:
             if e.resp.status == http_client.NOT_FOUND:
@@ -309,7 +304,6 @@ def build_from_document(
     model=None,
     requestBuilder=HttpRequest,
     credentials=None,
-    client_options=None
 ):
     """Create a Resource for interacting with an API.
 
@@ -334,8 +328,6 @@ def build_from_document(
     credentials: oauth2client.Credentials or
       google.auth.credentials.Credentials, credentials to be used for
       authentication.
-    client_options: Dictionary or google.api_core.client_options, Client options to set user
-      options on the client. API endpoint should be set through client_options.
 
   Returns:
     A Resource object with methods for interacting with the service.
@@ -358,16 +350,7 @@ def build_from_document(
         )
         raise InvalidJsonError()
 
-    # If an API Endpoint is provided on client options, use that as the base URL
-    base = urljoin(service['rootUrl'], service["servicePath"])
-    if client_options:
-        if type(client_options) == dict:
-            client_options = google.api_core.client_options.from_dict(
-                client_options
-            )
-        if client_options.api_endpoint:
-            base = client_options.api_endpoint
-
+    base = urljoin(service["rootUrl"], service["servicePath"])
     schema = Schemas(service)
 
     # If the http client is not specified, then we must construct an http client

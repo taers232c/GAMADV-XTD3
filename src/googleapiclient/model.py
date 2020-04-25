@@ -27,13 +27,12 @@ __author__ = "jcgregorio@google.com (Joe Gregorio)"
 import json
 import logging
 import platform
-import pkg_resources
 
 from six.moves.urllib.parse import urlencode
 
+from googleapiclient import __version__
 from googleapiclient.errors import HttpError
 
-_LIBRARY_VERSION = pkg_resources.get_distribution("google-api-python-client").version
 _PY_VERSION = platform.python_version()
 
 LOGGER = logging.getLogger(__name__)
@@ -153,7 +152,7 @@ class BaseModel(Model):
         else:
             headers["x-goog-api-client"] = ""
         headers["x-goog-api-client"] += "gdcl/%s gl-python/%s" % (
-            _LIBRARY_VERSION,
+            __version__,
             _PY_VERSION,
         )
 
@@ -219,7 +218,7 @@ class BaseModel(Model):
                 return self.no_content_response
             return self.deserialize(content)
         else:
-            LOGGER.debug("Content from bad request was: %r" % content)
+            LOGGER.debug("Content from bad request was: %s" % content)
             raise HttpError(resp, content)
 
     def serialize(self, body_value):
