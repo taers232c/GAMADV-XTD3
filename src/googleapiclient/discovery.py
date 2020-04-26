@@ -46,9 +46,9 @@ import re
 # Third-party imports
 import httplib2
 import uritemplate
-import google.api_core.client_options
 
 # Local imports
+from googleapiclient.google.api_core import client_options
 from googleapiclient import _auth
 from googleapiclient import mimeparse
 from googleapiclient.errors import HttpError
