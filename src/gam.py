@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.11'
+__version__ = '5.03.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -26460,14 +26460,14 @@ class CourseAttributes():
       try:
         self.courseAnnouncements = callGAPIpages(self.croom.courses().announcements(), 'list', 'announcements',
                                                  page_message=getPageMessage(),
-                                                 throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
+                                                 throw_reasons=GAPI.COURSE_ACCESS_THROW_REASONS,
                                                  courseId=self.courseId, announcementStates=self.announcementStates,
                                                  pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         for courseAnnouncement in self.courseAnnouncements:
           for field in self.COURSE_ANNOUNCEMENT_READONLY_FIELDS:
             courseAnnouncement.pop(field, None)
           self.CleanMaterials(courseAnnouncement, Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncement['id'])
-      except (GAPI.notFound, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.COURSE, self.courseId], str(e))
         return False
     if self.workStates:
@@ -26476,7 +26476,7 @@ class CourseAttributes():
       try:
         self.courseWorks = callGAPIpages(self.croom.courses().courseWork(), 'list', 'courseWork',
                                          page_message=getPageMessage(),
-                                         throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
+                                         throw_reasons=GAPI.COURSE_ACCESS_THROW_REASONS,
                                          courseId=self.courseId, courseWorkStates=self.workStates,
                                          pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         for courseWork in self.courseWorks:
@@ -26489,7 +26489,7 @@ class CourseAttributes():
           if self.removeDueDate:
             courseWork.pop('dueDate', None)
             courseWork.pop('dueTime', None)
-      except (GAPI.notFound, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.COURSE, self.courseId], str(e))
         return False
     if self.copyTopics:
@@ -26497,12 +26497,12 @@ class CourseAttributes():
       try:
         courseTopics = callGAPIpages(self.croom.courses().topics(), 'list', 'topic',
                                      page_message=getPageMessage(),
-                                     throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
+                                     throw_reasons=GAPI.COURSE_ACCESS_THROW_REASONS,
                                      courseId=self.courseId, fields='nextPageToken,topic(topicId,name)',
                                      pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         for topic in courseTopics:
           self.topicsById[topic['topicId']] = topic['name']
-      except (GAPI.notFound, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.COURSE, self.courseId], str(e))
         return False
     return True
@@ -26521,7 +26521,7 @@ class CourseAttributes():
     if self.copyTopics:
       try:
         newCourseTopics = callGAPIpages(self.croom.courses().topics(), 'list', 'topic',
-                                        throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.FAILED_PRECONDITION, GAPI.INVALID_ARGUMENT],
+                                        throw_reasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.FAILED_PRECONDITION],
                                         courseId=newCourseId, fields='nextPageToken,topic(topicId,name)',
                                         pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         newTopicsByName = {}
@@ -26530,10 +26530,8 @@ class CourseAttributes():
       except GAPI.notFound as e:
         entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
         return
-      except (GAPI.failedPrecondition, GAPI.invalidArgument) as e:
+      except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.failedPrecondition, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
-      except GAPI.forbidden:
-        ClientAPIAccessDeniedExit()
       jcount = len(self.topicsById)
       j = 0
       for topicId, topicName in self.topicsById.items():
@@ -27098,7 +27096,7 @@ def _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties, getO
     try:
       return callGAPIpages(croom.courses(), 'list', 'courses',
                            page_message=getPageMessage(),
-                           throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
+                           throw_reasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST],
                            teacherId=courseSelectionParameters['teacherId'],
                            studentId=courseSelectionParameters['studentId'],
                            courseStates=courseSelectionParameters['courseStates'],
@@ -27110,10 +27108,8 @@ def _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties, getO
         entityUnknownWarning(Ent.STUDENT, courseSelectionParameters['studentId'])
       elif courseSelectionParameters['studentId'] and courseSelectionParameters['teacherId']:
         entityOrEntityUnknownWarning(Ent.TEACHER, courseSelectionParameters['teacherId'], Ent.STUDENT, courseSelectionParameters['studentId'])
-    except (GAPI.badRequest, GAPI.invalidArgument) as e:
+    except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.badRequest) as e:
       entityActionFailedWarning([Ent.COURSE, None], str(e))
-    except GAPI.forbidden:
-      ClientAPIAccessDeniedExit()
     return None
   fields = _setCourseFields(courseShowProperties, False, getOwnerId)
   coursesInfo = []
@@ -27368,12 +27364,12 @@ def doPrintCourseAnnouncements():
       try:
         results = callGAPIpages(croom.courses().announcements(), 'list', 'announcements',
                                 page_message=getPageMessage(),
-                                throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
+                                throw_reasons=GAPI.COURSE_ACCESS_THROW_REASONS,
                                 courseId=courseId, announcementStates=courseAnnouncementStates, orderBy=OBY.orderBy,
                                 fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         for courseAnnouncement in results:
           _printCourseAnnouncement(course, courseAnnouncement, i, count)
-      except (GAPI.notFound, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
     else:
       jcount = len(courseAnnouncementIds)
@@ -27385,12 +27381,12 @@ def doPrintCourseAnnouncements():
         j += 1
         try:
           courseAnnouncement = callGAPI(croom.courses().announcements(), 'get',
-                                        throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
+                                        throw_reasons=GAPI.COURSE_ACCESS_THROW_REASONS,
                                         courseId=courseId, id=courseAnnouncementId, fields=fields)
           _printCourseAnnouncement(course, courseAnnouncement, i, count)
         except GAPI.notFound:
           entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], j, jcount)
-        except (GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+        except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
           entityActionFailedWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], str(e), j, jcount)
   csvPF.writeCSVfile('Course Announcements')
 
@@ -27453,12 +27449,12 @@ def doPrintCourseTopics():
       try:
         results = callGAPIpages(croom.courses().topics(), 'list', 'topic',
                                 page_message=getPageMessage(),
-                                throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
+                                throw_reasons=GAPI.COURSE_ACCESS_THROW_REASONS,
                                 courseId=courseId,
                                 fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         for courseTopic in results:
           _printCourseTopic(course, courseTopic)
-      except (GAPI.notFound, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
     else:
       jcount = len(courseTopicIds)
@@ -27470,12 +27466,12 @@ def doPrintCourseTopics():
         j += 1
         try:
           courseTopic = callGAPI(croom.courses().topics(), 'get',
-                                 throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
+                                 throw_reasons=GAPI.COURSE_ACCESS_THROW_REASONS,
                                  courseId=courseId, id=courseTopicId, fields=fields)
           _printCourseTopic(course, courseTopic)
         except GAPI.notFound:
           entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_TOPIC_ID, courseTopicId], j, jcount)
-        except (GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+        except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
           entityActionFailedWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_TOPIC_ID, courseTopicId], str(e), j, jcount)
   csvPF.writeCSVfile('Course Topics')
 
@@ -27602,12 +27598,12 @@ def doPrintCourseWork():
       try:
         results = callGAPIpages(croom.courses().courseWork(), 'list', 'courseWork',
                                 page_message=getPageMessage(),
-                                throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
+                                throw_reasons=GAPI.COURSE_ACCESS_THROW_REASONS,
                                 courseId=courseId, courseWorkStates=courseWorkSelectionParameters['courseWorkStates'], orderBy=OBY.orderBy,
                                 fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         for courseWork in results:
           _printCourseWork(course, courseWork, i, count)
-      except (GAPI.notFound, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
     else:
       jcount = len(courseWorkIds)
@@ -27619,12 +27615,12 @@ def doPrintCourseWork():
         j += 1
         try:
           courseWork = callGAPI(croom.courses().courseWork(), 'get',
-                                throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
+                                throw_reasons=GAPI.COURSE_ACCESS_THROW_REASONS,
                                 courseId=courseId, id=courseWorkId, fields=fields)
           _printCourseWork(course, courseWork, i, count)
         except GAPI.notFound:
           entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
-        except (GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+        except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
           entityActionFailedWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_WORK_ID, courseWorkId], str(e), j, jcount)
   csvPF.writeCSVfile('Course Work')
 
@@ -27757,13 +27753,13 @@ def doPrintCourseSubmissions():
       try:
         results = callGAPIpages(croom.courses().courseWork(), 'list', 'courseWork',
                                 page_message=getPageMessage(),
-                                throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
+                                throw_reasons=GAPI.COURSE_ACCESS_THROW_REASONS,
                                 courseId=courseId, courseWorkStates=courseWorkSelectionParameters['courseWorkStates'], orderBy=OBY.orderBy,
                                 fields='nextPageToken,courseWork(id)', pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         courseWorkIdsForCourse = [courseWork['id'] for courseWork in results]
       except GAPI.notFound:
         continue
-      except (GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+      except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
         continue
     else:
@@ -27781,14 +27777,14 @@ def doPrintCourseSubmissions():
         try:
           results = callGAPIpages(croom.courses().courseWork().studentSubmissions(), 'list', 'studentSubmissions',
                                   page_message=getPageMessage(),
-                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
+                                  throw_reasons=GAPI.COURSE_ACCESS_THROW_REASONS,
                                   courseId=courseId, courseWorkId=courseWorkId, states=courseSubmissionStates, late=late, userId=courseSelectionParameters['studentId'],
                                   fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
           for submission in results:
             _printCourseSubmission(course, submission)
         except GAPI.notFound:
           entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
-        except (GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+        except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
           entityActionFailedWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_WORK_ID, courseWorkId], str(e), j, jcount)
       else:
         if courseSubmissionIdsLists:
@@ -27805,13 +27801,13 @@ def doPrintCourseSubmissions():
           k += 1
           try:
             submission = callGAPI(croom.courses().courseWork().studentSubmissions(), 'get',
-                                  throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
+                                  throw_reasons=GAPI.COURSE_ACCESS_THROW_REASONS,
                                   courseId=courseId, courseWorkId=courseWorkId, id=courseSubmissionId,
                                   fields=fields)
             _printCourseSubmission(course, submission)
           except GAPI.notFound:
             entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_WORK_ID, courseWorkId, Ent.COURSE_SUBMISSION_ID, courseSubmissionId], k, kcount)
-          except (GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+          except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
             entityActionFailedWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_WORK_ID, courseWorkId, Ent.COURSE_SUBMISSION_ID, courseSubmissionId], str(e), k, kcount)
   csvPF.writeCSVfile('Course Submissions')
 
