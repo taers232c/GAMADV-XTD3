@@ -9,6 +9,8 @@ else
   export LD_LIBRARY_PATH=~/ssl/lib:~/python/lib
   cpucount=$(nproc --all)
   echo "This device has $cpucount CPUs for compiling..."
+  echo -e "nameserver 8.8.8.8\nnameserver 8.8.4.4" > /tmp/resolv.conf
+  sudo cp /tmp/resolv.conf /etc
   SSLVER=$(~/ssl/bin/openssl version)
   SSLRESULT=$?
   PYVER=$(~/python/bin/python3 -V)
