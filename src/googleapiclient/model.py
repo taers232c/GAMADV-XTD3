@@ -27,13 +27,13 @@ __author__ = "jcgregorio@google.com (Joe Gregorio)"
 import json
 import logging
 import platform
-import pkg_resources
 
 from six.moves.urllib.parse import urlencode
 
 from googleapiclient.errors import HttpError
 
-_LIBRARY_VERSION = pkg_resources.get_distribution("google-api-python-client").version
+from googleapiclient import __version__
+_LIBRARY_VERSION = __version__
 _PY_VERSION = platform.python_version()
 
 LOGGER = logging.getLogger(__name__)
