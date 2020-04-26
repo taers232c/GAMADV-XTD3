@@ -48,7 +48,7 @@ import httplib2
 import uritemplate
 
 # Local imports
-from googleapiclient.google.api_core import client_options
+from googleapiclient import client_options
 from googleapiclient import _auth
 from googleapiclient import mimeparse
 from googleapiclient.errors import HttpError
