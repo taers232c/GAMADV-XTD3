@@ -16,4 +16,3 @@ MACOSVERSION=$(defaults read loginwindow SystemVersionStampAsString | cut -c1-5)
 GAM_ARCHIVE=$gampath-$GAMVERSION-$GAMOS-$MACOSVERSION-$PLATFORM.tar
 echo "GAM Archive:" $GAM_ARCHIVE
 tar --create --file $GAM_ARCHIVE $gampath/
-#tar cf $GAM_ARCHIVE $gampath/
