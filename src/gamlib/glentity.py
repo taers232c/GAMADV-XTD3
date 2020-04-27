@@ -80,6 +80,7 @@ class GamEntity():
   CONTACT_GROUP = 'cogr'
   CONTACT_GROUP_NAME = 'cogn'
   COPYFROM_COURSE = 'cfco'
+  COPYFROM_GROUP = 'cfgr'
   COURSE = 'cour'
   COURSE_ALIAS = 'coal'
   COURSE_ANNOUNCEMENT_ID = 'caid'
@@ -97,7 +98,6 @@ class GamEntity():
   CREATOR_ID = 'crid'
   CREDENTIALS = 'cred'
   CRITERIA = 'crit'
-  CROS_AUE_DATES_JSON_FILE = 'caue'
   CROS_DEVICE = 'cros'
   CUSTOMER_DOMAIN = 'cudo'
   CUSTOMER_ID = 'cuid'
@@ -297,6 +297,7 @@ class GamEntity():
     CONTACT_GROUP: ['Contact Groups', 'Contact Group'],
     CONTACT_GROUP_NAME: ['Contact Group Names', 'Contact Group Name'],
     COPYFROM_COURSE: ['Copy From Courses', 'CopyFrom Course'],
+    COPYFROM_GROUP: ['Copy From Groups', 'CopyFrom Group'],
     COURSE: ['Courses', 'Course'],
     COURSE_ALIAS: ['Course Aliases', 'Course Alias'],
     COURSE_ANNOUNCEMENT_ID: ['Course Announcement IDs', 'Course Announcement ID'],
@@ -314,7 +315,6 @@ class GamEntity():
     CREATOR_ID: ['Creator IDs', 'Creator ID'],
     CREDENTIALS: ['Credentials', 'Credentials'],
     CRITERIA: ['Criteria', 'Criteria'],
-    CROS_AUE_DATES_JSON_FILE: ['ChromeOS AUE Dates File', 'ChromeOS AUE Dates File'],
     CROS_DEVICE: ['CrOS Devices', 'CrOS Device'],
     CUSTOMER_DOMAIN: ['Customer Domains', 'Customer Domain'],
     CUSTOMER_ID: ['Customer IDs', 'Customer ID'],

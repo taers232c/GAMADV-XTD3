@@ -40461,8 +40461,8 @@ def infoPrintShowSheets(users):
                           throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                           spreadsheetId=spreadsheetId, ranges=ranges, includeGridData=includeGridData, fields=fields)
         if not includeGridData and 'sheets' in result:
-          for sheet in result['sheets']:
-            sheet.pop('data', None)
+          for usheet in result['sheets']:
+            usheet.pop('data', None)
         if not csvPF:
           if FJQC.formatJSON:
             printLine('{'+f'"User": "{user}", "spreadsheetId": "{spreadsheetId}", "JSON": {json.dumps(result, ensure_ascii=False, sort_keys=False)}'+'}')
