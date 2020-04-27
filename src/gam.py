@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.14'
+__version__ = '5.03.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -43636,10 +43636,10 @@ def showLanguage(users):
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
-SIG_REPLY_HTML = 'html'
-SIG_REPLY_COMPACT = 'compact'
-SIG_REPLY_FORMAT = 'format'
-SIG_REPLY_OPTIONS = {SIG_REPLY_HTML, SIG_REPLY_COMPACT, SIG_REPLY_FORMAT}
+SIG_REPLY_HTML = 0
+SIG_REPLY_COMPACT = 1
+SIG_REPLY_FORMAT = 2
+SIG_REPLY_OPTIONS_MAP = {'html': SIG_REPLY_HTML, 'compact': SIG_REPLY_COMPACT, 'format': SIG_REPLY_FORMAT}
 SMTPMSA_DISPLAY_FIELDS = ['host', 'port', 'securityMode']
 
 def _showSendAs(result, j, jcount, sigReplyFormat):
@@ -43794,8 +43794,8 @@ def _deleteInfoSendAs(users, function):
   if function == 'get':
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
-      if myarg in SIG_REPLY_OPTIONS:
-        sigReplyFormat = myarg
+      if myarg in SIG_REPLY_OPTIONS_MAP:
+        sigReplyFormat = SIG_REPLY_OPTIONS_MAP[myarg]
       else:
         unknownArgumentExit()
   else:
@@ -43823,7 +43823,7 @@ def deleteSendAs(users):
 def infoSendAs(users):
   _deleteInfoSendAs(users, 'get')
 
-# gam <UserTypeEntity> print sendas [todrive <ToDriveAttribute>*]
+# gam <UserTypeEntity> print sendas [compact] [todrive <ToDriveAttribute>*]
 # gam <UserTypeEntity> show sendas [compact|format|html]
 def printShowSendAs(users):
   csvPF = CSVPrintFile(['User', 'displayName', 'sendAsEmail', 'replyToAddress',
@@ -43834,8 +43834,8 @@ def printShowSendAs(users):
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif not csvPF and myarg in SIG_REPLY_OPTIONS:
-      sigReplyFormat = myarg
+    elif (not csvPF and myarg in SIG_REPLY_OPTIONS_MAP) or (csvPF and myarg == 'compact'):
+      sigReplyFormat = SIG_REPLY_OPTIONS_MAP[myarg]
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
@@ -43864,7 +43864,10 @@ def printShowSendAs(users):
             row = {'User': user, 'isPrimary': False}
             for item in sendas:
               if item != 'smtpMsa':
-                row[item] = sendas[item]
+                if item != 'signature' or sigReplyFormat != SIG_REPLY_COMPACT:
+                  row[item] = sendas[item]
+                else:
+                  row[item] = sendas[item].replace('\r', '').replace('\n', '')
               else:
                 for field in SMTPMSA_DISPLAY_FIELDS:
                   if field in sendas[item]:
@@ -44166,8 +44169,8 @@ def showSignature(users):
     myarg = getArgument()
     if myarg == 'primary':
       primary = True
-    elif myarg in SIG_REPLY_OPTIONS:
-      sigReplyFormat = myarg
+    elif myarg in SIG_REPLY_OPTIONS_MAP:
+      sigReplyFormat = SIG_REPLY_OPTIONS_MAP[myarg]
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
@@ -44306,7 +44309,7 @@ def setVacation(users):
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
-# gam <UserTypeEntity> print vacation [enabledonly] [todrive <ToDriveAttribute>*]
+# gam <UserTypeEntity> print vacation [compact] [enabledonly] [todrive <ToDriveAttribute>*]
 # gam <UserTypeEntity> show vacation [compact|format|html] [enabledonly]
 def printShowVacation(users):
   def _printVacation(user, result, showDisabled):
@@ -44344,8 +44347,8 @@ def printShowVacation(users):
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif not csvPF and myarg in SIG_REPLY_OPTIONS:
-      sigReplyFormat = myarg
+    elif (not csvPF and myarg in SIG_REPLY_OPTIONS_MAP) or (csvPF and myarg == 'compact'):
+      sigReplyFormat = SIG_REPLY_OPTIONS_MAP[myarg]
     elif myarg == 'enabledonly':
       showDisabled = False
     else:

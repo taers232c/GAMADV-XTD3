@@ -1,3 +1,9 @@
+5.03.15
+
+Added `compact` option to `gam print sendas|signature|vacation` that causes GAM to strip
+embedded carriage returns and newlines from the uploaded signature/vacation message.
+This makes these values easier to process in the CSV file.
+
 5.03.14
 
 Handle `ERROR: Authentication Token Error - invalid_grant: The account has been deleted.`
