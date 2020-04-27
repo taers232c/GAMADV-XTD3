@@ -1,3 +1,7 @@
+5.03.13
+
+Improved error reporting when accessing group settings.
+
 5.03.12
 
 Added additional error handling when accessing courses.

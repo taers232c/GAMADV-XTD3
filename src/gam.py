@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.12'
+__version__ = '5.03.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2037,6 +2037,11 @@ def entityActionNotPerformedWarning(entityValueList, errMessage, i=0, count=0):
   setSysExitRC(ACTION_NOT_PERFORMED_RC)
   writeStderr(formatKeyValueList(Ind.Spaces(),
                                  Ent.FormatEntityValueList(entityValueList)+[Act.NotPerformed(), errMessage],
+                                 currentCountNL(i, count)))
+
+def entityItemValueListActionNotPerformedWarning(entityValueList, infoTypeValueList, errMessage, i=0, count=0):
+  writeStdout(formatKeyValueList(Ind.Spaces(),
+                                 Ent.FormatEntityValueList(entityValueList)+[Act.NotPerformed(), '']+Ent.FormatEntityValueList(infoTypeValueList)+[errMessage],
                                  currentCountNL(i, count)))
 
 def entityModifierItemValueListActionNotPerformedWarning(entityValueList, modifier, infoTypeValueList, errMessage, i=0, count=0):
@@ -16810,7 +16815,7 @@ def getGroupAttrValue(argument, gs_body):
 def GroupIsAbuseOrPostmaster(emailAddr):
   return emailAddr.startswith('abuse@') or emailAddr.startswith('postmaster@')
 
-def getSettingsFromGroup(cd, gs, gs_body):
+def getSettingsFromGroup(cd, group, gs, gs_body):
   if gs_body:
     copySettingsFromGroup = gs_body.pop('copyfrom', None)
     if copySettingsFromGroup:
@@ -16827,12 +16832,15 @@ def getSettingsFromGroup(cd, gs, gs_body):
             settings.pop(field, None)
           settings.update(gs_body)
           return settings
-        entityActionNotPerformedWarning([Ent.GROUP, copySettingsFromGroup], Msg.API_ERROR_SETTINGS)
+        entityItemValueListActionNotPerformedWarning([Ent.GROUP, group], [Ent.COPYFROM_GROUP, copySettingsFromGroup], Msg.API_ERROR_SETTINGS)
         return None
-      except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+      except GAPI.notFound:
+        entityItemValueListActionNotPerformedWarning([Ent.GROUP, group], [Ent.COPYFROM_GROUP, copySettingsFromGroup], Msg.DOES_NOT_EXIST)
+        return None
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
               GAPI.backendError, GAPI.invalid, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
               GAPI.systemError, GAPI.serviceLimit) as e:
-        entityActionNotPerformedWarning([Ent.GROUP, copySettingsFromGroup], str(e))
+        entityItemValueListActionNotPerformedWarning([Ent.GROUP, group], [Ent.COPYFROM_GROUP, copySettingsFromGroup], str(e))
         return None
   return gs_body
 
@@ -16861,7 +16869,7 @@ def doCreateGroup():
   gs_body.setdefault('name', body['email'])
   if gs_body:
     gs = buildGAPIObject(API.GROUPSSETTINGS)
-    gs_body = getSettingsFromGroup(cd, gs, gs_body)
+    gs_body = getSettingsFromGroup(cd, body['email'], gs, gs_body)
     if not gs_body or not checkReplyToCustom(body['email'], gs_body):
       return
     if not getBeforeUpdate:
@@ -16884,7 +16892,9 @@ def doCreateGroup():
     entityActionPerformed([Ent.GROUP, body['email']])
   except GAPI.duplicate:
     entityDuplicateWarning([Ent.GROUP, body['email']])
-  except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+  except GAPI.notFound:
+    entityActionFailedWarning([Ent.GROUP, body['email']], Msg.DOES_NOT_EXIST)
+  except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
           GAPI.backendError, GAPI.invalid, GAPI.invalidAttributeValue, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
           GAPI.systemError, GAPI.serviceLimit) as e:
     entityActionFailedWarning([Ent.GROUP, body['email']], str(e))
@@ -17307,7 +17317,7 @@ def doUpdateGroups():
         getGroupAttrValue(myarg, gs_body)
     if gs_body:
       gs = buildGAPIObject(API.GROUPSSETTINGS)
-      gs_body = getSettingsFromGroup(cd, gs, gs_body)
+      gs_body = getSettingsFromGroup(cd, ','.join(entityList), gs, gs_body)
       if not gs_body:
         return
       if not getBeforeUpdate:
@@ -17333,7 +17343,10 @@ def doUpdateGroups():
             settings.update(gs_body)
           if not checkReplyToCustom(group, settings, i, count):
             continue
-        except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+        except GAPI.notFound:
+          entityActionFailedWarning([Ent.GROUP, group], Msg.DOES_NOT_EXIST, i, count)
+          continue
+        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
                 GAPI.backendError, GAPI.invalid, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
                 GAPI.systemError, GAPI.serviceLimit) as e:
           entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
@@ -17351,7 +17364,10 @@ def doUpdateGroups():
           callGAPI(gs.groups(), 'update',
                    throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
                    groupUniqueId=group, body=settings, fields='')
-        except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+        except GAPI.notFound:
+          entityActionFailedWarning([Ent.GROUP, group], Msg.DOES_NOT_EXIST, i, count)
+          continue
+        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
                 GAPI.backendError, GAPI.invalid, GAPI.invalidAttributeValue, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
                 GAPI.systemError, GAPI.serviceLimit) as e:
           entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
@@ -17917,7 +17933,9 @@ def infoGroups(entityList):
         Ind.Decrement()
         printKeyValueList([Msg.TOTAL_ITEMS_IN_ENTITY.format(Ent.Plural(entityType), Ent.Singular(Ent.GROUP)), len(members)])
       Ind.Decrement()
-    except (GAPI.notFound, GAPI.groupNotFound, GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.backendError,
+    except GAPI.notFound:
+      entityActionFailedWarning([Ent.GROUP, group], Msg.DOES_NOT_EXIST, i, count)
+    except (GAPI.groupNotFound, GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.backendError,
             GAPI.invalid, GAPI.invalidMember, GAPI.invalidParameter, GAPI.invalidInput, GAPI.forbidden, GAPI.badRequest,
             GAPI.permissionDenied,
             GAPI.systemError, GAPI.serviceLimit) as e:
@@ -18199,7 +18217,10 @@ def doPrintGroups():
         response = callGAPI(gs.groups(), 'get',
                             throw_reasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retry_reasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
                             groupUniqueId=ri[RI_ENTITY], fields=gsfields)
-      except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+      except GAPI.notFound:
+        entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], Ent.GROUP_SETTINGS, None], Msg.DOES_NOT_EXIST, i, int(ri[RI_COUNT]))
+        response = {}
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
               GAPI.backendError, GAPI.invalid, GAPI.invalidParameter, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
               GAPI.systemError, GAPI.serviceLimit) as e:
         entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], Ent.GROUP_SETTINGS, None], str(e), i, int(ri[RI_COUNT]))
@@ -19343,9 +19364,11 @@ def doPrintShowAlertFeedback():
   for sk in OBY.items:
     if sk.endswith(' desc'):
       field, _ = sk.split(' ')
+      reverse = True
     else:
       field = sk
-    feedbacks = sorted(feedbacks, key=lambda k: k[field], reverse=sk.endswith(' desc'))
+      reverse = False
+    feedbacks = sorted(feedbacks, key=lambda k: k[field], reverse=reverse) #pylint: disable=cell-var-from-loop
   if not csvPF:
     jcount = len(feedbacks)
     if not FJQC.formatJSON:
