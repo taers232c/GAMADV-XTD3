@@ -63,6 +63,7 @@ FAM_LIST = [FAM1_SCOPES, FAM2_SCOPES]
 DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive'
 GMAIL_SEND_SCOPE = 'https://www.googleapis.com/auth/gmail.send'
 USERINFO_EMAIL_SCOPE = 'https://www.googleapis.com/auth/userinfo.email' # email
+USERINFO_PROFILE_SCOPE = 'https://www.googleapis.com/auth/userinfo.profile' # profile
 VAULT_SCOPES = ['https://www.googleapis.com/auth/ediscovery', 'https://www.googleapis.com/auth/ediscovery.readonly']
 REQUIRED_SCOPES = ['email', 'profile']
 REQUIRED_SCOPES_SET = set(REQUIRED_SCOPES)
@@ -83,6 +84,7 @@ OAUTH2_TOKEN_ERRORS = [
   'invalid_grant: Not a valid email',
   'invalid_grant: Invalid JWT: No valid verifier found for issuer',
   'invalid_request: Invalid impersonation prn email address',
+  'invalid_request: Invalid impersonation &quot;sub&quot; field',
   'unauthorized_client: Client is unauthorized to retrieve access tokens using this method',
   'unauthorized_client: Client is unauthorized to retrieve access tokens using this method, or client not authorized for any of the scopes requested',
   'unauthorized_client: Unauthorized client or scope in request',
