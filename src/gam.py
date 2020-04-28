@@ -44333,7 +44333,10 @@ def printShowVacation(users):
       row['message'] = escapeCRsNLs(result['responseBodyPlainText'])
     elif result.get('responseBodyHtml'):
       row['html'] = True
-      row['message'] = escapeCRsNLs(result['responseBodyHtml'])
+      if sigReplyFormat == SIG_REPLY_HTML:
+        row['message'] = escapeCRsNLs(result['responseBodyHtml'])
+      else:
+        row['message'] = result['responseBodyHtml'].replace('\r', '').replace('\n', '')
     else:
       row['html'] = False
       row['message'] = 'None'
