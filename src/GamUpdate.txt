@@ -1,3 +1,11 @@
+5.03.16
+
+Handle `ERROR: Authentication Token Error - invalid_grant: The account has been deleted`
+
+This occurs when a user is specified as `uid:<String>` and `<String>` does not represent a valid user.
+This can occur when doing `gam print course-work|course-submissions` where the owner of a course
+has been deleted as GAM only gets the course owner in the form `uid:<String>` from the Classroom API.
+
 5.03.15
 
 Added `compact` option to `gam print sendas|signature|vacation` that causes GAM to strip
@@ -6,7 +14,7 @@ This makes these values easier to process in the CSV file.
 
 5.03.14
 
-Handle `ERROR: Authentication Token Error - invalid_grant: The account has been deleted.`
+Handle `ERROR: Authentication Token Error - invalid_request: Invalid impersonation &quot;sub&quot; field`
 
 This occurs when a user is specified as `uid:<String>` and `<String>` does not represent a valid user.
 This can occur when doing `gam print course-work|course-submissions` where the owner of a course
