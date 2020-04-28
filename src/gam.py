@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.16'
+__version__ = '5.03.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7773,13 +7773,13 @@ def _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo):
   iam = getAPIService(API.IAM, httpObj)
   try:
     service_account = callGAPI(iam.projects().serviceAccounts(), 'create',
-                               throw_reasons=[GAPI.NOT_FOUND, GAPI.ALREADY_EXISTS],
+                               throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.ALREADY_EXISTS],
                                name=f'projects/{projectInfo["projectId"]}',
                                body={'accountId': svcAcctInfo['name'],
                                      'serviceAccount': {'displayName': svcAcctInfo['displayName'],
                                                         'description': svcAcctInfo['description']}})
     entityActionPerformed([Ent.PROJECT, projectInfo['projectId'], Ent.SVCACCT, service_account['name'].rsplit('/', 1)[-1]])
-  except GAPI.notFound as e:
+  except (GAPI.notFound, GAPI.permissionDenied) as e:
     entityActionFailedWarning([Ent.PROJECT, projectInfo['projectId']], str(e))
     return False
   except GAPI.alreadyExists as e:
@@ -8182,7 +8182,8 @@ def doUpdateProject():
     i += 1
     projectId = project['projectId']
     Act.Set(Act.UPDATE)
-    enableGAMProjectAPIs(httpObj, projectId, True, i, count)
+    if not enableGAMProjectAPIs(httpObj, projectId, True, i, count):
+      continue
     iam = getAPIService(API.IAM, httpObj)
     _getSvcAcctData() # needed to read in GM.OAUTH2SERVICE_JSON_DATA
     _grantSARotateRights(iam, projectId, GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email'])
@@ -32532,10 +32533,12 @@ def printShowDriveSettings(users):
       feed['name'] = feed['user']['displayName']
       feed['maxUploadSize'] = formatFileSize(int(feed['maxUploadSize']))
       feed['permissionId'] = feed['user']['permissionId']
-      feed['storageQuota'].setdefault('limit', 0)
-      feed['limit'] = 'LIMITED' if feed['storageQuota'].get('limit', 0) > 0 else 'UNLIMITED'
+      if 'limit' in feed['storageQuota']:
+        feed['limit'] = formatFileSize(int(feed['storageQuota']['limit']))
+      else:
+        feed['limit'] = 'UNLIMITED'
       for setting in ['usage', 'usageInDrive', 'usageInDriveTrash']:
-        feed[setting] = formatFileSize(int(feed['storageQuota'].get(setting, 0)))
+        feed[setting] = formatFileSize(int(feed['storageQuota'].get(setting, '0')))
       if 'rootFolderId' in fieldsList:
         feed['rootFolderId'] = callGAPI(drive.files(), 'get',
                                         throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,

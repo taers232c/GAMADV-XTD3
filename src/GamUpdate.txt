@@ -1,3 +1,7 @@
+5.03.17
+
+Fixed bug in `gam print drivesettings` that caused a trap.
+
 5.03.16
 
 Handle `ERROR: Authentication Token Error - invalid_grant: The account has been deleted`
