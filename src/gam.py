@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.17'
+__version__ = '5.03.18'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -9689,7 +9689,7 @@ def doReport():
         for activity in feed:
           events = activity.pop('events')
           if not countsOnly:
-            activity_row = flattenJSON(activity, flattened={}, timeObjects=REPORT_ACTIVITIES_TIME_OBJECTS)
+            activity_row = flattenJSON(activity, timeObjects=REPORT_ACTIVITIES_TIME_OBJECTS)
             purge_parameters = True
             for event in events:
               for item in event.get('parameters', []):
@@ -9725,7 +9725,7 @@ def doReport():
                   purge_parameters = False
               if purge_parameters:
                 event.pop('parameters', None)
-              row = flattenJSON(event, flattened={})
+              row = flattenJSON(event)
               row.update(activity_row)
               csvPF.WriteRowTitles(row)
           elif not summary:
@@ -19273,7 +19273,7 @@ def doPrintShowAlerts():
     Ind.Decrement()
   else:
     for alert in alerts:
-      row = flattenJSON(alert, flattened={}, timeObjects=ALERT_TIME_OBJECTS)
+      row = flattenJSON(alert, timeObjects=ALERT_TIME_OBJECTS)
       if not FJQC.formatJSON:
         csvPF.WriteRowTitles(row)
       elif csvPF.CheckRowTitles(row):
@@ -19382,7 +19382,7 @@ def doPrintShowAlertFeedback():
     Ind.Decrement()
   else:
     for feedback in feedbacks:
-      row = flattenJSON(feedback, flattened={}, timeObjects=ALERT_TIME_OBJECTS)
+      row = flattenJSON(feedback, timeObjects=ALERT_TIME_OBJECTS)
       if not FJQC.formatJSON:
         csvPF.WriteRowTitles(row)
       elif csvPF.CheckRowTitles(row):
@@ -21810,7 +21810,7 @@ def doCalendarsPrintShowSettings(cal, calIds):
         else:
           printLine(json.dumps(cleanJSON(calendar), ensure_ascii=False, sort_keys=True))
       else:
-        row = flattenJSON(calendar, flattened={})
+        row = flattenJSON(calendar)
         if not FJQC.formatJSON:
           row['calendarId'] = row.pop('id')
           csvPF.WriteRowTitles(row)
@@ -25718,7 +25718,7 @@ def doPrintUsers(entityList=None):
           phoneNumber = phone.get('value', '')
           if phoneNumber.startswith('+'):
             phone['value'] = "'"+phoneNumber
-      row = flattenJSON(userEntity, flattened={}, skipObjects=USER_SKIP_OBJECTS, timeObjects=USER_TIME_OBJECTS)
+      row = flattenJSON(userEntity, skipObjects=USER_SKIP_OBJECTS, timeObjects=USER_TIME_OBJECTS)
       if not FJQC.formatJSON:
         csvPF.WriteRowTitles(row)
       elif csvPF.CheckRowTitles(row):
@@ -27261,7 +27261,7 @@ def doPrintCourses():
         _saveParticipants(course, teachers, 'teachers', ttitles)
       if courseShowProperties['members'] != 'teachers':
         _saveParticipants(course, students, 'students', stitles)
-    row = flattenJSON(course, flattened={}, timeObjects=COURSE_TIME_OBJECTS, noLenObjects=COURSE_NOLEN_OBJECTS)
+    row = flattenJSON(course, timeObjects=COURSE_TIME_OBJECTS, noLenObjects=COURSE_NOLEN_OBJECTS)
     if not FJQC.formatJSON:
       csvPF.WriteRowTitles(row)
     elif csvPF.CheckRowTitles(row):
@@ -32201,7 +32201,7 @@ def printDriveActivity(users):
       if permissionId not in userInfo:
         userInfo[permissionId] = 'Unknown'
       event['user']['emailAddress'] = userInfo[permissionId]
-    eventRow = flattenJSON(event, flattened={})
+    eventRow = flattenJSON(event)
     if not FJQC.formatJSON:
       csvPF.WriteRowTitles(eventRow)
     elif csvPF.CheckRowTitles(eventRow):
@@ -38977,8 +38977,7 @@ def doPrintShowOwnership():
             else:
               printLine(json.dumps(cleanJSON(fileInfo), ensure_ascii=False, sort_keys=True))
           else:
-            row = {}
-            flattenJSON(fileInfo, flattened=row)
+            row = flattenJSON(fileInfo)
             if not FJQC.formatJSON:
               csvPF.WriteRowTitles(row)
             elif csvPF.CheckRowTitles(row):
