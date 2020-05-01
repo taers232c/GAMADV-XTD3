@@ -1,3 +1,39 @@
+5.04.00
+
+Expanded options for selecting collections of files with `gam <UserTypeEntity> print filelist|filetree`.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Files-Display
+```
+<DriveFileEntityShortcut> ::=
+        all |
+        allteamdrives|allshareddrives |
+        mydrive_any |
+        mydrive_me |
+        mydrive_others |
+        orphans |
+        ownedby_any |
+        ownedby_me |
+        ownedby_others |
+        root|mydrive |
+        root_with_orphans|mydrive_with_orphans |
+        sharedwithme_all |
+        sharedwithme_mydrive |
+        sharedwithme_notmydrive
+```
+
+Added suboption `summary none|only|plus` to option `countsonly` in `gam <UserTypeEntity> print filelist`
+that specifies display of a summarization of file counts across all users specified in the command.
+* `none` - No summary is displayed; this is the default
+* `only` - Only the summary is displayed, no individual user file counts are displayed
+* `plus` - The summary is displayed in addition to the individual user file counts
+These are the same options as in `gam <UserTypeEntity" print filecounts` but `print filelist` offers
+mush more powerful file selection capabilities.
+
+Following Jay's lead, enhanced `gam oauth create` to allow specification of the desired
+scopes on the command line. Entering `<APIScopeURLList>` by hand would be tedious at best
+but could be used in a script.
+```
+gam oauth|oauth2 create|request [admin <EmailAddress>] [scopes <APIScopeURLList>]
+```
 5.03.18
 
 Fixed bug in `gam print ownership` where data was not being returned in CSV file.
@@ -9,6 +45,8 @@ Fixed bug in `gam print drivesettings` that caused a trap.
 5.03.16
 
 Handle `ERROR: Authentication Token Error - invalid_grant: The account has been deleted`
+
+This message relates to users recently deleted; they are still defined.
 
 This occurs when a user is specified as `uid:<String>` and `<String>` does not represent a valid user.
 This can occur when doing `gam print course-work|course-submissions` where the owner of a course
@@ -24,6 +62,8 @@ This makes these values easier to process in the CSV file.
 
 Handle `ERROR: Authentication Token Error - invalid_request: Invalid impersonation &quot;sub&quot; field`
 
+This message relates to users that are no longer defined.
+
 This occurs when a user is specified as `uid:<String>` and `<String>` does not represent a valid user.
 This can occur when doing `gam print course-work|course-submissions` where the owner of a course
 has been deleted as GAM only gets the course owner in the form `uid:<String>` from the Classroom API.
@@ -31,6 +71,8 @@ has been deleted as GAM only gets the course owner in the form `uid:<String>` fr
 5.03.13
 
 Improved error reporting when accessing group settings.
+
+Fixed bug in `gam print spreadsheets` that caused a trap when multiple sheets were specified.
 
 5.03.12
 
@@ -42,14 +84,13 @@ Upgraded to googleapiclient 1.8.2.
 
 5.03.10
 
-Added option `showdepth` as an option to `gam print filelist`. When used with `filepath` or `fullpath`, GAM
+Added option `showdepth` to `gam print filelist`. When used with `filepath` or `fullpath`, GAM
 will display a `depth` column. Files/folders directly in `My Drive` are at depth 0, the depth increases by 1
 for each containing folder. For files with multiple parents, the maximum depth is displayed.
 
 5.03.09
 
 Upgraded to OpenSSL 1.1.1g.
-Upgraded to google-auth 1.14.1.
 
 Added attributes to allow specifying calandar and event colors by name.
 ```

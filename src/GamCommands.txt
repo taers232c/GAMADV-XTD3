@@ -687,10 +687,12 @@ Specify a collection of items by directly specifying them; the item type is dete
         (id <DriveFileItem>) | (id:<DriveFileItem>) |
         (ids <DriveFileList>) | (ids:<DriveFileList>)
 <DriveFileNameEntity> ::=
+        (anyname <DriveFileName>) | (anyname:<DriveFileName>) |
+        (anydrivefilename <DriveFileName>) | (anydrivefilename:<DriveFileName>) |
         (name <DriveFileName>) | (name:<DriveFileName>) |
         (drivefilename <DriveFileName>) | (drivefilename:<DriveFileName>) |
-        (anyname <DriveFileName>) | (anyname:<DriveFileName>) |
-        (anydrivefilename <DriveFileName>) | (anydrivefilename:<DriveFileName>)
+        (othername <DriveFileName>) | (othername:<DriveFileName>) |
+        (otherdrivefilename <DriveFileName>) | (otherdrivefilename:<DriveFileName>)
 <DriveFileQueryEntity> ::= 
         (query <QueryDriveFile>) | (query:<QueryDriveFile>) |
         (fullquery <QueryDriveFile>)
@@ -699,7 +701,6 @@ Specify a collection of items by directly specifying them; the item type is dete
         my_files | my_folders | my_google_files | my_non_google_files | my_shortcuts | my_3p_shortcuts | my_items |
         others_files | others_folders | others_google_files | others_non_google_files | others_shortcuts | others_3p_shortcuts | others_items |
         writable_files
-<DriveRoot> ::= root | mydrive
 <TeamDriveIDEntity> ::=
         <DriveFileItem> |
         (teamdriveid <DriveFileItem>) | (teamdriveid:<DriveFileItem>)
@@ -725,23 +726,27 @@ Specify a collection of items by directly specifying them; the item type is dete
         <DriveFileNameEntity> |
         <DriveFileQueryEntity> |
         <DriveFileQueryShortcut> |
-        <DriveRoot> |
+        root | mydrive |
         <TeamDriveIDEntity> [<TeamDriveFileQueryShortcut>] |
         <TeamDriveNameEntity> [<TeamDriveFileQueryShortcut>] |
         <TeamDriveFileNameEntity> |
         <TeamDriveFileQueryEntity> |
         <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
-<DriveFileEntityListTree> ::=
-        <DriveFileIDEntity> |
-        <DriveFileNameEntity> |
-        <DriveFileQueryEntity> |
+<DriveFileEntityShortcut> ::=
+        all |
+        allteamdrives|allshareddrives |
+        mydrive_any |
+        mydrive_me |
+        mydrive_others |
         orphans |
-        <DriveRoot> |
-        <TeamDriveIDEntity> |
-        <TeamDriveNameEntity> |
-        <TeamDriveFileNameEntity> |
-        <TeamDriveFileQueryEntity> |
-        <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
+        ownedby_any |
+        ownedby_me |
+        ownedby_others |
+        root|mydrive |
+        root_with_orphans|mydrive_with_orphans |
+        sharedwithme_all |
+        sharedwithme_mydrive |
+        sharedwithme_notmydrive
 <DriveFilePermissionEntity> ::=
          <DriveFilePermissionList> |
          (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>]) |
@@ -902,7 +907,9 @@ gam delete sakeys <ServiceAccountKeyList>+ [doit]
 gam show sakeys [all|system|user]
 
 gam oauth|oauth2 create|request [<EmailAddress>]
+gam oauth|oauth2 create|request [admin <EmailAddress>] [scopes <APIScopeURLList>]
 gam oauth|oauth2 update [<EmailAddress>]
+gam oauth|oauth2 update [admin <EmailAddress>]
 gam oauth|oauth2 delete|revoke
 gam oauth|oauth2 export [<FileName>]
 gam oauth|oauth2 refresh
@@ -2312,14 +2319,14 @@ gam [<UserTypeEntity>] print printjob|printjobs [todrive <ToDriveAttribute>*] [p
 
 gam report usageparameters customer|user [todrive <ToDriveAttribute>*]
 gam report usage user [todrive]
-	[<UserTypeItem>)|(orgunit|org|ou <OrgUnitPath>)]
+        [<UserTypeItem>)|(orgunit|org|ou <OrgUnitPath>)]
         [startdate <Date>] [enddate <Date>] [range <Date> <Date>]
-	[skipdates <Date>[:<Date>](,<Date>[:<Date>])*] [skipdaysofweek <DayOfWeek>(,<DayOfWeek>)*]
-	[fields|parameters <String>]
+        [skipdates <Date>[:<Date>](,<Date>[:<Date>])*] [skipdaysofweek <DayOfWeek>(,<DayOfWeek>)*]
+        [fields|parameters <String>]
 gam report usage customer [todrive <ToDriveAttribute>*]
         [startdate <Date>] [enddate <Date>] [range <Date> <Date>]
-	[skipdates <Date>[:<Date>](,<Date>[:<Date>])*] [skipdaysofweek <DayOfWeek>(,<DayOfWeek>)*]
-	[fields|parameters <String>]
+        [skipdates <Date>[:<Date>](,<Date>[:<Date>])*] [skipdaysofweek <DayOfWeek>(,<DayOfWeek>)*]
+        [fields|parameters <String>]
 
 <ActivityApplicationName> ::=
         access|accesstransparency|
@@ -3845,30 +3852,42 @@ gam <UserTypeEntity> show filepath <DriveFileEntity>
          (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> print filepath <DriveFileEntity> [todrive <ToDriveAttribute>*]
          [oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-gam <UserTypeEntity> show filecounts [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
-        [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
-        (querytime.* <Time>)*
-        [select <TeamDriveEntity>] [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
-        <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
-        [summary none|only|plus]
-gam <UserTypeEntity> print filecounts [todrive <ToDriveAttribute>*] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
-        [query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
-        (querytime.* <Time>)*
-        [select <TeamDriveEntity>] [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
-        <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
-        [summary none|only|plus]
-
-gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> print filecounts [todrive <ToDriveAttribute>*]
+        [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>
+              (querytime.* <Time>)*) |
+          (select <TeamDriveEntity>))]
         [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
-        [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) |
-          (select <DriveFileEntityListTree> [selectsubquery <QueryDriveFile>]
-           [norecursion|(depth <Number>)] [showparent])]
-        (querytime.* <Time>)* [maxfiles <Integer>] [countsonly] [nodataheaders <String>]
         [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
         [filenamematchpattern <RegularExpression>]
         <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
-        [filepath|fullpath [showdepth]] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [showdrivename]
-        (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [showparentsidsaslist]
+        [excludetrashed]
+        [summary none|only|plus]
+gam <UserTypeEntity> show filecounts
+        [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>
+              (querytime.* <Time>)*) |
+          (select <TeamDriveEntity>))]
+        [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
+        [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
+        [filenamematchpattern <RegularExpression>]
+        <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
+        [excludetrashed]
+        [summary none|only|plus]
+
+gam <UserTypeEntity> print filelist [todrive <ToDriveAttribute>*] [corpora <CorporaAttribute>]
+        [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>
+              (querytime.* <Time>)*) |
+          (select <DriveFileEntity>|<DriveFileEntityShortcut> [selectsubquery <QueryDriveFile>]
+              [norecursion|(depth <Number>)] [showparent])]
+        [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
+        [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
+        [filenamematchpattern <RegularExpression>]
+        <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
+        [excludetrashed]
+        [maxfiles <Integer>] [nodataheaders <String>]
+        [countsonly [summary none|only|plus]]
+        [filepath|fullpath [showdepth]] [buildtree]
+        [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [showdrivename] [showparentsidsaslist]
+        (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
         [formatjson] [quotechar <Character>]
 
 <FileTreeFieldName> ::=
@@ -3882,18 +3901,30 @@ gam <UserTypeEntity> print|show filelist [todrive <ToDriveAttribute>*]
         trashed
 <FileTreeFieldNameList> ::= "<FileTreeFieldName>(,<FileTreeFieldName>)*"
 
-gam <UserTypeEntity> print filetree [todrive <ToDriveAttribute>*] [anyowner|(showownedby any|me|others)]
-        [select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [depth <Number>]
-        [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
+gam <UserTypeEntity> print filetree [todrive <ToDriveAttribute>*]
+        [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>
+              (querytime.* <Time>)*) |
+          (select <DriveFileEntity>|<DriveFileEntityShortcut> [selectsubquery <QueryDriveFile>]
+              [depth <Number>])]
+        [anyowner|(showownedby any|me|others)]
+        [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
+        [filenamematchpattern <RegularExpression>]
         <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
-        (orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
         [excludetrashed] [noindent]
-gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
-        [select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [depth <Number>]
-        [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
+        [fields <FileTreeFieldNameList>]
+        (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
+gam <UserTypeEntity> show filetree
+        [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>
+              (querytime.* <Time>)*) |
+          (select <DriveFileEntity>|<DriveFileEntityShortcut> [selectsubquery <QueryDriveFile>]
+              [depth <Number>])]
+        [anyowner|(showownedby any|me|others)]
+        [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
+        [filenamematchpattern <RegularExpression>]
         <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
-        (orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
         [excludetrashed]
+        [fields <FileTreeFieldNameList>]
+        (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
 
 <DriveActivityAction> ::=
         comment|
