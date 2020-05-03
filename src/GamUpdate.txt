@@ -1,24 +1,4 @@
-5.04.00
-
-Expanded options for selecting collections of files with `gam <UserTypeEntity> print filelist|filetree`.
-* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Files-Display
-```
-<DriveFileEntityShortcut> ::=
-        all |
-        allteamdrives|allshareddrives |
-        mydrive_any |
-        mydrive_me |
-        mydrive_others |
-        orphans |
-        ownedby_any |
-        ownedby_me |
-        ownedby_others |
-        root|mydrive |
-        root_with_orphans|mydrive_with_orphans |
-        sharedwithme_all |
-        sharedwithme_mydrive |
-        sharedwithme_notmydrive
-```
+5.03.19
 
 Added suboption `summary none|only|plus` to option `countsonly` in `gam <UserTypeEntity> print filelist`
 that specifies display of a summarization of file counts across all users specified in the command.
@@ -34,13 +14,14 @@ but could be used in a script.
 ```
 gam oauth|oauth2 create|request [admin <EmailAddress>] [scopes <APIScopeURLList>]
 ```
+
 5.03.18
 
 Fixed bug in `gam print ownership` where data was not being returned in CSV file.
 
 5.03.17
 
-Fixed bug in `gam print drivesettings` that caused a trap.
+Fixed bug in `gam <UserTypeEntity> print drivesettings` that caused a trap.
 
 5.03.16
 
@@ -54,7 +35,7 @@ has been deleted as GAM only gets the course owner in the form `uid:<String>` fr
 
 5.03.15
 
-Added `compact` option to `gam print sendas|signature|vacation` that causes GAM to strip
+Added `compact` option to `gam <UserTypeEntity> print sendas|signature|vacation` that causes GAM to strip
 embedded carriage returns and newlines from the uploaded signature/vacation message.
 This makes these values easier to process in the CSV file.
 
@@ -72,7 +53,7 @@ has been deleted as GAM only gets the course owner in the form `uid:<String>` fr
 
 Improved error reporting when accessing group settings.
 
-Fixed bug in `gam print spreadsheets` that caused a trap when multiple sheets were specified.
+Fixed bug in `gam <UserTypeEntity> print spreadsheets` that caused a trap when multiple sheets were specified.
 
 5.03.12
 
@@ -84,18 +65,19 @@ Upgraded to googleapiclient 1.8.2.
 
 5.03.10
 
-Added option `showdepth` to `gam print filelist`. When used with `filepath` or `fullpath`, GAM
+Added option `showdepth` to `gam <UserTypeEntity> print filelist`. When used with `filepath` or `fullpath`, GAM
 will display a `depth` column. Files/folders directly in `My Drive` are at depth 0, the depth increases by 1
 for each containing folder. For files with multiple parents, the maximum depth is displayed.
 
 5.03.09
 
 Upgraded to OpenSSL 1.1.1g.
+Upgraded to google-auth 1.14.1.
 
 Added attributes to allow specifying calandar and event colors by name.
 ```
 <CalendarColorName> ::=
-        amethyst|avocado|banana|basil|birch|bluberry|
+        amethyst|avocado|banana|basil|birch|blueberry|
         cherryblossom|citron|cobalt|cocoa|eucalyptus|flamingo|
         grape|graphite|lavender|mango|peacock|pistachio|
         pumpkin|radicchio|sage|tangerine|tomato|wisteria|
@@ -114,7 +96,7 @@ Added attributes to allow specifying calandar and event colors by name.
 
 5.03.08
 
-Enhanced error handling in `gam update|delete smime` when invalid data is entered.
+Enhanced error handling in `gam <UserTypeEntity> update|delete smime` when invalid data is entered.
 
 Enhanced `gam print|show smimes` to allow more selection options as to which S/MIME configurations to display.
 ```
@@ -173,7 +155,7 @@ Fixed bug in `gam report usage` where `skipdates` were not processed and then en
 
 Fixed bug in `gam report usage user` that caused a trap.
 
-Added option `showparentsidsaslist` to `gam show fileinfo` and `gam print filelist` that causes GAM to
+Added option `showparentsidsaslist` to `gam <UserTypeEntity> show fileinfo` and `gam print filelist` that causes GAM to
 display the parents of a drive file/folder as a list of IDs rather that discrete entities.
 In `gam show fileinfo` you will see:
 ```

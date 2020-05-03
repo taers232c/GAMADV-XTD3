@@ -732,21 +732,6 @@ Specify a collection of items by directly specifying them; the item type is dete
         <TeamDriveFileNameEntity> |
         <TeamDriveFileQueryEntity> |
         <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
-<DriveFileEntityShortcut> ::=
-        all |
-        allteamdrives|allshareddrives |
-        mydrive_any |
-        mydrive_me |
-        mydrive_others |
-        orphans |
-        ownedby_any |
-        ownedby_me |
-        ownedby_others |
-        root|mydrive |
-        root_with_orphans|mydrive_with_orphans |
-        sharedwithme_all |
-        sharedwithme_mydrive |
-        sharedwithme_notmydrive
 <DriveFilePermissionEntity> ::=
          <DriveFilePermissionList> |
          (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>]) |
@@ -3375,7 +3360,7 @@ The following attributes are equivalent:
 
 Add update and delete events in any calendar for which a user has access
 
-gam <UserTypeEntity> create|add event <UserCalendarEntity> [id <String>] <EventAttribute>+
+gam <UserTypeEntity> create|add event <UserCalendarEntity> [id <String>] <EventAttribute>+ [<EventNotificationAttribute>]
 gam <UserTypeEntity> import event <UserCalendarEntity> icaluid <iCalUID> <EventImportAttribute>+
 gam <UserTypeEntity> update events <UserCalendarEntity> [<EventEntity>] [replacemode] <EventUpdateAttribute>+ [<EventNotificationAttribute>]
 gam <UserTypeEntity> delete events <UserCalendarEntity> [<EventEntity>] [doit] [<EventNotificationAttribute>]
@@ -3429,10 +3414,27 @@ gam <UserTypeEntity> update calattendees <UserCalendarEntity> [<EventEntity>] [a
         title_natural|
         viewedbymedate|viewedbymetime
 
-<DriveFileIDEntity> ::= (<DriveFileItem>) | (id <DriveFileItem>) | (id:<DriveFileItem>) | (ids <DriveFileList>) | (ids:<DriveFileList>)
-<DriveFileNameEntity> ::= (drivefilename <DriveFileName>) | (drivefilename:<DriveFileName>) | (anydrivefilename <DriveFileName>) | (anydrivefilename:<DriveFileName>)
-<DriveFileQueryEntity> ::= (query <QueryDriveFile>) | (query:<QueryDriveFile>)
-<DriveFileEntity> ::= <DriveFileIDEntity> | <DriveFileNameEntity> | <DriveFileQueryEntity> | <DriveFileQueryShortcut> |  root | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
+<DriveFileIDEntity> ::=
+        <DriveFileItem> |
+        (id <DriveFileItem>) | (id:<DriveFileItem>) |
+        (ids <DriveFileList>) | (ids:<DriveFileList>)
+<DriveFileNameEntity> ::=
+        (anyname <DriveFileName>) | (anyname:<DriveFileName>) |
+        (anydrivefilename <DriveFileName>) | (anydrivefilename:<DriveFileName>) |
+        (name <DriveFileName>) | (name:<DriveFileName>) |
+        (drivefilename <DriveFileName>) | (drivefilename:<DriveFileName>) |
+        (othername <DriveFileName>) | (othername:<DriveFileName>) |
+        (otherdrivefilename <DriveFileName>) | (otherdrivefilename:<DriveFileName>)
+<DriveFileQueryEntity> ::= 
+        (query <QueryDriveFile>) | (query:<QueryDriveFile>) |
+        (fullquery <QueryDriveFile>)
+<DriveFileEntity> ::=
+        <DriveFileIDEntity> |
+        <DriveFileNameEntity> |
+        <DriveFileQueryEntity> |
+        <DriveFileQueryShortcut> |
+        root | mydrive |
+        <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
 
 <DriveFileAttribute> ::=
         (copyrequireswriterpermission [<Boolean>])|
@@ -3876,7 +3878,7 @@ gam <UserTypeEntity> show filecounts
 gam <UserTypeEntity> print filelist [todrive <ToDriveAttribute>*] [corpora <CorporaAttribute>]
         [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>
               (querytime.* <Time>)*) |
-          (select <DriveFileEntity>|<DriveFileEntityShortcut> [selectsubquery <QueryDriveFile>]
+          (select <DriveFileEntity> [selectsubquery <QueryDriveFile>]
               [norecursion|(depth <Number>)] [showparent])]
         [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
         [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
@@ -3904,7 +3906,7 @@ gam <UserTypeEntity> print filelist [todrive <ToDriveAttribute>*] [corpora <Corp
 gam <UserTypeEntity> print filetree [todrive <ToDriveAttribute>*]
         [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>
               (querytime.* <Time>)*) |
-          (select <DriveFileEntity>|<DriveFileEntityShortcut> [selectsubquery <QueryDriveFile>]
+          (select <DriveFileEntity>  [selectsubquery <QueryDriveFile>]
               [depth <Number>])]
         [anyowner|(showownedby any|me|others)]
         [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
@@ -3916,7 +3918,7 @@ gam <UserTypeEntity> print filetree [todrive <ToDriveAttribute>*]
 gam <UserTypeEntity> show filetree
         [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>
               (querytime.* <Time>)*) |
-          (select <DriveFileEntity>|<DriveFileEntityShortcut> [selectsubquery <QueryDriveFile>]
+          (select <DriveFileEntity>  [selectsubquery <QueryDriveFile>]
               [depth <Number>])]
         [anyowner|(showownedby any|me|others)]
         [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
