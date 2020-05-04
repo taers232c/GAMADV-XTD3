@@ -35068,7 +35068,6 @@ def printShowFileTree(users):
 def createDriveFile(users):
   csvPF = media_body = None
   returnIdOnly = False
-  fileIdEntity = initDriveFileEntity()
   body = {}
   parameters = initDriveFileAttributes()
   while Cmd.ArgumentsRemaining():
@@ -35091,7 +35090,7 @@ def createDriveFile(users):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, drive, _ = _validateUserGetFileIDs(user, i, count, fileIdEntity)
+    user, drive = buildGAPIServiceObject(API.DRIVE3, user, i, count)
     if not drive:
       continue
     if not _getDriveFileParentInfo(drive, user, i, count, body, parameters):

@@ -1,5 +1,7 @@
 5.03.20
 
+Fixed bug that improperly set return code to 60 in `gam <UserTypeEntity> create|add drivefile`.
+
 Fixed pyinstaller issue that caused this message to appear at the end of each command:
 ```
 Failed to execute script gam
