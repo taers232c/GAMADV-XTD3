@@ -1,6 +1,9 @@
 # -*- mode: python -*-
 import sys
 
+import importlib
+from PyInstaller.utils.hooks import copy_metadata
+
 sys.modules['FixTk'] = None
 
 extra_files = [
@@ -10,6 +13,9 @@ extra_files = [
     ('email-audit-v1.json', '.'),
     ('sites-v1.json', '.')
     ]
+
+extra_files += copy_metadata('google-api-python-client')
+
 a = Analysis(['gam.py'],
              hiddenimports=[],
              hookspath=None,
