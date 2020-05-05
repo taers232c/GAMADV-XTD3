@@ -3,6 +3,8 @@ import sys
 
 #from PyInstaller.utils.hooks import copy_metadata
 
+#hidden_imports = collect_submodules('pkg_resources._vendor') + ['pkg_resources.py2_warn'] # Added py2_warn for setuptools 45.0 and later.
+
 sys.modules['FixTk'] = None
 
 extra_files = [
@@ -16,7 +18,7 @@ extra_files = [
 #extra_files += copy_metadata('google-api-python-client')
 
 a = Analysis(['gam.py'],
-             hiddenimports=[],
+             hiddenimports=['pkg_resources.py2_warn'],
              hookspath=None,
              excludes=['FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter'],
              datas=extra_files,
