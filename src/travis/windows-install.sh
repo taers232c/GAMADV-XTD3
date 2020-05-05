@@ -3,7 +3,8 @@ echo "compiling GAM with pyinstaller..."
 export gampath="gamadv-xtd3"
 rm -rf $gampath
 mkdir $gampath
-pyinstaller --clean --noupx -F --distpath $gampath gam.spec
+#pyinstaller --clean --noupx -F --distpath $gampath gam.spec
+pyinstaller --debug=all --clean --noupx -F --distpath $gampath gam.spec
 export gam="${gampath}/gam"
 echo "running compiled GAM..."
 $gam version
