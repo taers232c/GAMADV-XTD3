@@ -1,10 +1,6 @@
 # -*- mode: python -*-
 import sys
 
-#from PyInstaller.utils.hooks import copy_metadata
-
-#hidden_imports = collect_submodules('pkg_resources._vendor') + ['pkg_resources.py2_warn'] # Added py2_warn for setuptools 45.0 and later.
-
 sys.modules['FixTk'] = None
 
 extra_files = [
@@ -14,8 +10,6 @@ extra_files = [
     ('email-audit-v1.json', '.'),
     ('sites-v1.json', '.')
     ]
-
-#extra_files += copy_metadata('google-api-python-client')
 
 a = Analysis(['gam.py'],
              hiddenimports=['pkg_resources.py2_warn'],
