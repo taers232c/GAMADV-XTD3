@@ -64,9 +64,12 @@ $pip install --upgrade -r src/requirements.txt
 # lots of malware uses PyInstaller default bootloader
 # https://stackoverflow.com/questions/53584395/how-to-recompile-the-bootloader-of-pyinstaller
 echo "Downloading PyInstaller..."
-wget --quiet https://github.com/pyinstaller/pyinstaller/archive/develop.tar.gz
-tar xf develop.tar.gz
-cd pyinstaller-develop/bootloader
+wget --quiet https://github.com/pyinstaller/pyinstaller/releases/download/v$PYINSTALLER_VERSION/PyInstaller-$PYINSTALLER_VERSION.tar.gz
+tar xf PyInstaller-$PYINSTALLER_VERSION.tar.gz
+cd PyInstaller-$PYINSTALLER_VERSION/bootloader
+#wget --quiet https://github.com/pyinstaller/pyinstaller/archive/develop.tar.gz
+#tar xf develop.tar.gz
+#cd pyinstaller-develop/bootloader
 echo "bootloader before:"
 md5sum ../PyInstaller/bootloader/Windows-${BITS}bit/*
 
