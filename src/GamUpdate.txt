@@ -1,3 +1,10 @@
+5.03.21
+
+Added code to wait for Service Account creation to complete in `gam create project` to avoid this error:
+```
+ERROR: 404: Requested entity was not found. - 404
+```
+
 5.03.20
 
 Fixed bug that improperly set return code to 60 in `gam <UserTypeEntity> create|add drivefile`.

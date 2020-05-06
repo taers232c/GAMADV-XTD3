@@ -172,6 +172,7 @@ class GamEntity():
   PAGE_SIZE = 'page'
   PARENT_ORGANIZATIONAL_UNIT = 'porg'
   PARTICIPANT = 'part'
+  PEOPLE_PHOTO = 'peph'
   PEOPLE_PROFILE = 'pepr'
   PERMISSION = 'perm'
   PERMISSION_ID = 'peid'
@@ -389,6 +390,7 @@ class GamEntity():
     PAGE_SIZE: ['Page Size', 'Page Size'],
     PARENT_ORGANIZATIONAL_UNIT: ['Parent Organizational Units', 'Parent Organizational Unit'],
     PARTICIPANT: ['Participants', 'Participant'],
+    PEOPLE_PHOTO: ['People Photo', 'People Photo'],
     PEOPLE_PROFILE: ['People Profile', 'People Profile'],
     PERMISSION: ['Permissions', 'Permission'],
     PERMISSION_ID: ['Permission IDs', 'Permission ID'],

@@ -391,7 +391,7 @@ _SVCACCT_SCOPES = [
   {'name': 'Identity and Access Management API',
    'api': IAM,
    'subscopes': [],
-   'scope': 'https://www.googleapis.com/auth/iam'},
+   'scope': 'https://www.googleapis.com/auth/cloud-platform'},
   {'name': 'People API',
    'api': PEOPLE,
    'subscopes': READONLY,

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.20'
+__version__ = '5.03.21'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7677,8 +7677,11 @@ def doOAuthInfo():
 # gam oauth|oauth2 update [<EmailAddress>]
 # gam oauth|oauth2 update [admin <EmailAddress>]
 def doOAuthUpdate():
-  checkArgumentPresent('admin')
-  login_hint = getEmailAddress(noUid=True, optional=True)
+  if Cmd.PeekArgumentPresent(['admin']):
+    Cmd.Advance()
+    login_hint = getEmailAddress(noUid=True)
+  else:
+    login_hint = getEmailAddress(noUid=True, optional=True)
   checkForExtraneousArguments()
   exitIfNoOauth2Txt()
   lock = FileLock(GM.Globals[GM.OAUTH2_TXT_LOCK])
@@ -7824,8 +7827,9 @@ def _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo):
     entityActionFailedWarning([Ent.PROJECT, projectInfo['projectId'], Ent.SVCACCT, svcAcctInfo['name']], str(e))
     return False
   GM.Globals[GM.SVCACCT_SCOPES_DEFINED] = False
-  doProcessSvcAcctKeys(mode='retainexisting', iam=iam, projectId=service_account['projectId'],
-                       clientEmail=service_account['email'], clientId=service_account['uniqueId'])
+  if not doProcessSvcAcctKeys(mode='retainexisting', iam=iam, projectId=service_account['projectId'],
+                              clientEmail=service_account['email'], clientId=service_account['uniqueId']):
+    return False
   _grantSARotateRights(iam, projectInfo['projectId'], service_account['name'].rsplit('/', 1)[-1])
   return True
 
@@ -8192,7 +8196,7 @@ and accept the Terms of Service (ToS). As soon as you've accepted the ToS popup,
       if status.get('done', False):
         break
       sleep_time = i ** 2
-      sys.stdout.write(f'Project still being created. Sleeping {sleep_time} seconds\n')
+      sys.stdout.write(Msg.PROJECT_STILL_BEING_CREATED_SLEEPING.format(sleep_time))
       time.sleep(sleep_time)
     if create_again:
       continue
@@ -8692,23 +8696,34 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
                            name=name, keyTypes='USER_MANAGED')
     except GAPI.permissionDenied:
       entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
-      return
+      return False
     except GAPI.badRequest as e:
       entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
-      return
+      return False
   if local_key_size:
     Act.Set(Act.UPLOAD)
     private_key, publicKeyData = _generatePrivateKeyAndPublicCert(projectId, clientEmail, name, local_key_size)
-    try:
-      result = callGAPI(iam.projects().serviceAccounts().keys(), 'upload',
-                        throw_reasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
-                        name=name, body={'publicKeyData': publicKeyData})
-    except GAPI.permissionDenied:
-      entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
-      return
-    except GAPI.badRequest as e:
-      entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
-      return
+    time.sleep(5)
+    maxRetries = 10
+    for i in range(1, maxRetries+1):
+      try:
+        result = callGAPI(iam.projects().serviceAccounts().keys(), 'upload',
+                          throw_reasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
+                          name=name, body={'publicKeyData': publicKeyData})
+        break
+      except GAPI.notFound as e:
+        if i == maxRetries:
+          entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
+          return False
+        sleep_time = i*5
+        sys.stdout.write(Msg.WAITING_FOR_SERVICE_ACCOUNT_CREATION_TO_COMPLETE_SLEEPING.format(sleep_time))
+        time.sleep(sleep_time)
+      except GAPI.permissionDenied:
+        entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
+        return False
+      except GAPI.badRequest as e:
+        entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
+        return False
     private_key_id = result['name'].rsplit('/', 1)[-1]
     oauth2service_data = _formatOAuth2ServiceData(projectId, clientEmail, clientId, private_key, private_key_id)
   else:
@@ -8719,10 +8734,10 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
                         name=name, body=body)
     except GAPI.permissionDenied:
       entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
-      return
+      return False
     except GAPI.badRequest as e:
       entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
-      return
+      return False
     oauth2service_data = base64.b64decode(result['privateKeyData']).decode(UTF8)
     private_key_id = result['name'].rsplit('/', 1)[-1]
   entityActionPerformed([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail, Ent.SVCACCT_KEY, private_key_id])
@@ -8760,6 +8775,7 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
         if mode != 'retainnone':
           break
     Ind.Decrement()
+  return True
 
 # gam create sakey|sakeys [(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
 def doCreateSvcAcctKeys():
