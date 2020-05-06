@@ -8705,6 +8705,7 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
     private_key, publicKeyData = _generatePrivateKeyAndPublicCert(projectId, clientEmail, name, local_key_size)
     time.sleep(5)
     maxRetries = 10
+    printEntityMessage([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.UPLOADING_NEW_PUBLIC_CERTIFICATE_TO_GOOGLE)
     for i in range(1, maxRetries+1):
       try:
         result = callGAPI(iam.projects().serviceAccounts().keys(), 'upload',
