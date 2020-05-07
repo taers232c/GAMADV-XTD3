@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.22'
+__version__ = '5.03.23'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -274,6 +274,7 @@ DFA_TEAMDRIVE_PARENTQUERY = 'teamDriveParentQuery'
 DFA_KWARGS = 'kwargs'
 DFA_SEARCHARGS = 'searchargs'
 DFA_USE_CONTENT_AS_INDEXABLE_TEXT = 'useContentAsIndexableText'
+DFA_PRESERVE_FILE_TIMES = 'preserveFileTimes'
 # Program return codes
 UNKNOWN_ERROR_RC = 1
 USAGE_ERROR_RC = 2
@@ -1913,6 +1914,9 @@ def formatLocalTime(dateTimeStr):
     return ISOformatTimeStamp(timestamp.astimezone(GC.Values[GC.TIMEZONE]))
   except (iso8601.ParseError, OverflowError):
     return dateTimeStr
+
+def formatLocalSecondsTimestamp(timestamp):
+  return ISOformatTimeStamp(datetime.datetime.fromtimestamp(int(timestamp), GC.Values[GC.TIMEZONE]))
 
 def formatLocalTimestamp(timestamp):
   return ISOformatTimeStamp(datetime.datetime.fromtimestamp(int(timestamp)//1000, GC.Values[GC.TIMEZONE]))
@@ -32147,7 +32151,7 @@ def getDriveFileAddRemoveParentAttribute(myarg, parameters):
     return False
   return True
 
-def getDriveFileAttribute(myarg, body, parameters, assignLocalName):
+def getDriveFileAttribute(myarg, body, parameters, assignLocalName, updateCmd):
   if myarg == 'localfile':
     parameters[DFA_LOCALFILEPATH] = getString(Cmd.OB_FILE_NAME)
     try:
@@ -32176,6 +32180,12 @@ def getDriveFileAttribute(myarg, body, parameters, assignLocalName):
     body[myarg] = getBoolean()
   elif myarg in {'lastviewedbyme', 'lastviewedbyuser', 'lastviewedbymedate', 'lastviewedbymetime'}:
     body['viewedByMeTime'] = getTimeOrDeltaFromNow()
+  elif not updateCmd and myarg in {'createddate', 'createdtime'}:
+    body['createdTime'] = getTimeOrDeltaFromNow()
+  elif myarg in {'modifieddate', 'modifiedtime'}:
+    body['modifiedTime'] = getTimeOrDeltaFromNow()
+  elif myarg == 'preservefiletimes':
+    parameters[DFA_PRESERVE_FILE_TIMES] = getBoolean()
   elif myarg == 'description':
     body['description'] = getStringWithCRsNLs()
   elif myarg == 'mimetype':
@@ -35099,6 +35109,25 @@ def printShowFileTree(users):
   if csvPF:
     csvPF.writeCSVfile('Drive File Tree')
 
+def getCreationModificationTimes(path_to_file):
+  """
+  Try to get the date that a file was created, falling back to when it was
+  last modified if that isn't possible.
+  See http://stackoverflow.com/a/39501288/1709587 for explanation.
+  """
+  mtime = os.path.getmtime(path_to_file)
+  if platform.system() == 'Windows':
+    ctime = os.path.getctime(path_to_file)
+  else:
+    stat = os.stat(path_to_file)
+    try:
+      ctime = stat.st_birthtime
+    except AttributeError:
+      # We're probably on Linux. No easy way to get creation dates here,
+      # so we'll settle for when its content was last modified.
+      ctime = stat.st_mtime
+  return (formatLocalSecondsTimestamp(ctime), formatLocalSecondsTimestamp(mtime))
+
 # gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>]
 #	<DriveFileCreateAttribute>]
 #	[csv [todrive <ToDriveAttribute>*]] [returnidonly]
@@ -35118,7 +35147,7 @@ def createDriveFile(users):
     elif csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     else:
-      getDriveFileAttribute(myarg, body, parameters, True)
+      getDriveFileAttribute(myarg, body, parameters, True, False)
   if csvPF:
     fileNameTitle = 'title' if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else 'name'
     csvPF.SetTitles(['User', fileNameTitle, 'id'])
@@ -35137,6 +35166,8 @@ def createDriveFile(users):
         media_body = googleapiclient.http.MediaFileUpload(parameters[DFA_LOCALFILEPATH], mimetype=parameters[DFA_LOCALMIMETYPE], resumable=True)
         if media_body.size() == 0:
           media_body = None
+        if parameters[DFA_PRESERVE_FILE_TIMES]:
+          body['createdTime'], body['modifiedTime'] = getCreationModificationTimes(parameters[DFA_LOCALFILEPATH])
       except IOError as e:
         systemErrorExit(FILE_ERROR_RC, fileErrorMessage(parameters[DFA_LOCALFILEPATH], e))
     try:
@@ -35265,8 +35296,6 @@ def updateDriveFile(users):
       assignLocalName = False
     elif myarg == 'newfilename':
       body['name'] = getString(Cmd.OB_DRIVE_FILE_NAME)
-    elif myarg in {'modifieddate', 'modifiedtime'}:
-      body['modifiedTime'] = getTimeOrDeltaFromNow()
     elif getDriveFileAddRemoveParentAttribute(myarg, parameters):
       pass
     elif myarg in {'gsheet', 'csvsheet'}:
@@ -35276,7 +35305,7 @@ def updateDriveFile(users):
     elif myarg == 'columndelimiter':
       columnDelimiter = getCharacter()
     else:
-      getDriveFileAttribute(myarg, body, parameters, assignLocalName)
+      getDriveFileAttribute(myarg, body, parameters, assignLocalName, True)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -35292,6 +35321,8 @@ def updateDriveFile(users):
             media_body = googleapiclient.http.MediaFileUpload(parameters[DFA_LOCALFILEPATH], mimetype=parameters[DFA_LOCALMIMETYPE], resumable=True)
             if media_body.size() == 0:
               media_body = None
+            if parameters[DFA_PRESERVE_FILE_TIMES]:
+              _, body['modifiedTime'] = getCreationModificationTimes(parameters[DFA_LOCALFILEPATH])
           except IOError as e:
             systemErrorExit(FILE_ERROR_RC, fileErrorMessage(parameters[DFA_LOCALFILEPATH], e))
       status, addParents, removeParents = _getDriveFileAddRemoveParentInfo(user, i, count, parameters, drive)

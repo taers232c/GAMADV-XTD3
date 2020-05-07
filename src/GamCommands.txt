@@ -3448,6 +3448,7 @@ gam <UserTypeEntity> update calattendees <UserCalendarEntity> [<EventEntity>] [a
         (localfile <FileName>)|
         (mimetype <MimeType>)|
         (ocrlanguage <Language>)|
+        (preservefiletimes [<Boolean>])|
         (privateproperty <PropertyKey> <PropertyValue>)|
         (publicproperty <PropertyKey> <PropertyValue>)|
         (property <PropertyKey> <PropertyValue> [private|public])|
@@ -3473,6 +3474,8 @@ gam <UserTypeEntity> update calattendees <UserCalendarEntity> [<EventEntity>] [a
 <DriveFileCreateAttribute> ::=
         <DriveFileAttribute>|
         <DriveFileParentAttribute>|
+        (createddate|createdtime <Time>)|
+        (modifieddate|modifiedtime <Time>)|
         ignoredefaultvisibility|
         usecontentasindexabletext
 

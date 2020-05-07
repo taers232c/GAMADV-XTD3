@@ -1,3 +1,14 @@
+5.03.23
+
+Added options `createdtime <Time>` and `modifiedtime <Time>` to `gam <UserTypeEntity> create drivefile`
+to allow setting these values.
+
+Added option `preservefiletimes` to `gam <UserTypeEntity> create|update drivefile` that, when used with
+`localfile <FileName>`, will set the createdtime and modifiedtime values from the local file.
+
+On some Linux systems getting the createdtime is problematic.
+* See: https://stackoverflow.com/questions/237079/how-to-get-file-creation-modification-date-times-in-python/39501288#39501288
+
 5.03.22
 
 Added option `includederivedmembership` to `gam print groups` that is effective when
