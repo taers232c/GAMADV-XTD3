@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.21'
+__version__ = '5.03.22'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -8703,7 +8703,6 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
   if local_key_size:
     Act.Set(Act.UPLOAD)
     private_key, publicKeyData = _generatePrivateKeyAndPublicCert(projectId, clientEmail, name, local_key_size)
-    time.sleep(5)
     maxRetries = 10
     printEntityMessage([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.UPLOADING_NEW_PUBLIC_CERTIFICATE_TO_GOOGLE)
     for i in range(1, maxRetries+1):
@@ -8717,7 +8716,8 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
           entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
           return False
         sleep_time = i*5
-        sys.stdout.write(Msg.WAITING_FOR_SERVICE_ACCOUNT_CREATION_TO_COMPLETE_SLEEPING.format(sleep_time))
+        if i > 3:
+          sys.stdout.write(Msg.WAITING_FOR_SERVICE_ACCOUNT_CREATION_TO_COMPLETE_SLEEPING.format(sleep_time))
         time.sleep(sleep_time)
       except GAPI.permissionDenied:
         entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
@@ -18095,7 +18095,9 @@ PRINT_GROUPS_JSON_TITLES = ['email', 'JSON']
 #	[maxresults <Number>]
 #	[allfields|([basic] [settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
 #	[nodeprecated]
-#	[roles <GroupRoleList>] [members|memberscount] [managers|managerscount] [owners|ownerscount] [countsonly]
+#	[roles <GroupRoleList>]
+#	[members|memberscount] [managers|managerscount] [owners|ownerscount] [totalcount] [countsonly]
+#	[includederivedmembership]
 #	[notsuspended|suspended]
 #	[types <GroupTypeList>]
 #	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
@@ -18140,15 +18142,13 @@ def doPrintGroups():
         else:
           row[field] = groupEntity[field]
     if groupMembers is not None:
+      membersCount = managersCount = ownersCount = 0
       if members:
         membersList = []
-        membersCount = 0
       if managers:
         managersList = []
-        managersCount = 0
       if owners:
         ownersList = []
-        ownersCount = 0
       for member in groupMembers:
         member_email = member.get('email', member.get('id', None))
         if not member_email:
@@ -18175,6 +18175,8 @@ def doPrintGroups():
             membersCount += 1
             if not membersCountOnly:
               membersList.append(member_email)
+      if totalCount:
+        row['TotalCount'] = membersCount+managersCount+ownersCount
       if members:
         row['MembersCount'] = membersCount
         if not membersCountOnly:
@@ -18239,6 +18241,7 @@ def doPrintGroups():
       try:
         response = callGAPI(cd.members(), 'list',
                             throw_reasons=GAPI.MEMBERS_THROW_REASONS, retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
+                            includeDerivedMembership=memberOptions[MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP],
                             groupKey=ri[RI_ENTITY], roles=ri[RI_ROLE], fields='nextPageToken,members(email,id,role,type,status)',
                             maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden) as e:
@@ -18253,6 +18256,7 @@ def doPrintGroups():
         response = callGAPI(cd.members(), 'list',
                             throw_reasons=GAPI.MEMBERS_THROW_REASONS, retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                             pageToken=pageToken,
+                            includeDerivedMembership=memberOptions[MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP],
                             groupKey=ri[RI_ENTITY], roles=ri[RI_ROLE], fields='nextPageToken,members(email,id,role,type,status)',
                             maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden) as e:
@@ -18296,7 +18300,7 @@ def doPrintGroups():
   kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
   convertCRNL = GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
-  getSettings = members = membersCountOnly = managers = managersCountOnly = owners = ownersCountOnly = sortHeaders = False
+  getSettings = members = membersCountOnly = managers = managersCountOnly = owners = ownersCountOnly = sortHeaders = totalCount = False
   maxResults = None
   groupFieldsLists = {'cd': ['email'], 'gs': []}
   csvPF = CSVPrintFile(groupFieldsLists['cd'])
@@ -18368,6 +18372,13 @@ def doPrintGroups():
       for key, value in iter(matchBody.items()):
         matchSettings.setdefault(key, {'notvalues': [], 'values': []})
         matchSettings[key][valueList].append(value)
+    elif getGroupRoles(myarg, rolesSet):
+      if Ent.ROLE_MEMBER in rolesSet:
+        members = True
+      if Ent.ROLE_MANAGER in rolesSet:
+        managers = True
+      if Ent.ROLE_OWNER in rolesSet:
+        owners = True
     elif myarg in {'members', 'memberscount'}:
       rolesSet.add(Ent.ROLE_MEMBER)
       members = True
@@ -18387,8 +18398,12 @@ def doPrintGroups():
       pass
     elif getMemberMatchOptions(myarg, memberOptions):
       pass
+    elif myarg == 'totalcount':
+      totalCount = True
     elif myarg == 'countsonly':
       membersCountOnly = managersCountOnly = ownersCountOnly = True
+    elif myarg == 'includederivedmembership':
+      memberOptions[MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP] = True
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, False)
   if not typesSet:
@@ -18411,6 +18426,8 @@ def doPrintGroups():
   memberRoles = ','.join(sorted(rolesSet)) if rolesSet else None
   rolesOrSettings = memberRoles or getSettings
   if memberRoles:
+    if totalCount:
+      csvPF.AddTitles('TotalCount')
     if members:
       csvPF.AddTitles('MembersCount')
       if not membersCountOnly:
@@ -18471,6 +18488,7 @@ def doPrintGroups():
   if memberRoles:
     required += 1
     svcargs = dict([('groupKey', None), ('roles', memberRoles), ('fields', 'nextPageToken,members(email,id,role,type,status)'),
+                    ('includeDerivedMembership', memberOptions[MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP]),
                     ('maxResults', GC.Values[GC.MEMBER_MAX_RESULTS])]+GM.Globals[GM.EXTRA_ARGS_LIST])
   if getSettings:
     required += 1
@@ -18536,6 +18554,8 @@ def doPrintGroups():
       if not deprecatedAttributesSet:
         sortTitles += sorted([attr[0] for attr in iter(GROUP_DEPRECATED_ATTRIBUTES.values())])
     if memberRoles:
+      if totalCount:
+        sortTitles.append('TotalCount')
       if members:
         sortTitles.append('MembersCount')
         if not membersCountOnly:

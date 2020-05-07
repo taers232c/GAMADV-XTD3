@@ -1,3 +1,21 @@
+5.03.22
+
+Added option `includederivedmembership` to `gam print groups` that is effective when
+any of the options `roles`, 'members', 'managers' or `owners` is used.
+The `includederivedmembership` option causes the API to expand type GROUP and type CUSTOMER
+members to display their constituent members while still displaying the original member.
+
+Added option `totalcount` to `gam print groups` that is effective when
+any of the options `countsonly`, 'memberscount', 'managerscount' or `ownerscount` is used.
+A column 'TotalCount' that is the total number of members in a group will be included.
+
+The following command combines these two options to give you a listing of all of your groups
+with their membership counts. The counts will be higher than expected as the API returns
+both a group and its members.
+```
+gam print groups roles member,manager,owner countsonly totalcount includederivedmembership
+```
+
 5.03.21
 
 Added code to wait for Service Account creation to complete in `gam create project` to avoid this error:
