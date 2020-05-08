@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.23'
+__version__ = '5.03.24'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -263,18 +263,16 @@ DFA_OCRLANGUAGE = 'ocrLanguage'
 DFA_PARENTID = 'parentId'
 DFA_PARENTQUERY = 'parentQuery'
 DFA_ADD_PARENT_IDS = 'addParentIds'
-DFA_REMOVE_PARENT_IDS = 'removeParentIds'
-DFA_ADD_PARENTS = 'addParents'
-DFA_REMOVE_PARENTS = 'removeParents'
 DFA_ADD_PARENT_NAMES = 'addParentNames'
+DFA_REMOVE_PARENT_IDS = 'removeParentIds'
 DFA_REMOVE_PARENT_NAMES = 'removeParentNames'
+DFA_PRESERVE_FILE_TIMES = 'preserveFileTimes'
 DFA_TEAMDRIVE_PARENT = 'teamDriveParent'
 DFA_TEAMDRIVE_PARENTID = 'teamDriveParentId'
 DFA_TEAMDRIVE_PARENTQUERY = 'teamDriveParentQuery'
 DFA_KWARGS = 'kwargs'
 DFA_SEARCHARGS = 'searchargs'
 DFA_USE_CONTENT_AS_INDEXABLE_TEXT = 'useContentAsIndexableText'
-DFA_PRESERVE_FILE_TIMES = 'preserveFileTimes'
 # Program return codes
 UNKNOWN_ERROR_RC = 1
 USAGE_ERROR_RC = 2
@@ -32091,13 +32089,25 @@ class MimeTypeCheck():
     return fileEntry['mimeType'] not in self.mimeTypes
 
 def initDriveFileAttributes():
-  return {DFA_LOCALFILEPATH: None, DFA_LOCALFILENAME: None, DFA_LOCALMIMETYPE: None,
+  return {DFA_IGNORE_DEFAULT_VISIBILITY: False,
+          DFA_KEEP_REVISION_FOREVER: False,
+          DFA_LOCALFILEPATH: None,
+          DFA_LOCALFILENAME: None,
+          DFA_LOCALMIMETYPE: None,
           DFA_OCRLANGUAGE: None,
-          DFA_PARENTID: None, DFA_PARENTQUERY: None,
-          DFA_ADD_PARENT_IDS: [], DFA_ADD_PARENT_NAMES: [],
-          DFA_REMOVE_PARENT_IDS: [], DFA_REMOVE_PARENT_NAMES: [],
-          DFA_TEAMDRIVE_PARENT: None, DFA_TEAMDRIVE_PARENTID: None, DFA_TEAMDRIVE_PARENTQUERY: None, DFA_KWARGS: {}, DFA_SEARCHARGS: {},
-          DFA_IGNORE_DEFAULT_VISIBILITY: False, DFA_KEEP_REVISION_FOREVER: False, DFA_USE_CONTENT_AS_INDEXABLE_TEXT: False}
+          DFA_PARENTID: None,
+          DFA_PARENTQUERY: None,
+          DFA_ADD_PARENT_IDS: [],
+          DFA_ADD_PARENT_NAMES: [],
+          DFA_REMOVE_PARENT_IDS: [],
+          DFA_REMOVE_PARENT_NAMES: [],
+          DFA_PRESERVE_FILE_TIMES: False,
+          DFA_TEAMDRIVE_PARENT: None,
+          DFA_TEAMDRIVE_PARENTID: None,
+          DFA_TEAMDRIVE_PARENTQUERY: None,
+          DFA_KWARGS: {},
+          DFA_SEARCHARGS: {},
+          DFA_USE_CONTENT_AS_INDEXABLE_TEXT: False}
 
 DRIVEFILE_PROPERTY_VISIBILITY_CHOICE_MAP = {
   'private': 'appProperties',
@@ -32153,9 +32163,9 @@ def getDriveFileAddRemoveParentAttribute(myarg, parameters):
 
 def getDriveFileAttribute(myarg, body, parameters, assignLocalName, updateCmd):
   if myarg == 'localfile':
-    parameters[DFA_LOCALFILEPATH] = getString(Cmd.OB_FILE_NAME)
+    parameters[DFA_LOCALFILEPATH] = os.path.expanduser(getString(Cmd.OB_FILE_NAME))
     try:
-      f = open(os.path.expanduser(parameters[DFA_LOCALFILEPATH]), 'rb')
+      f = open(parameters[DFA_LOCALFILEPATH], 'rb')
       f.close()
     except IOError as e:
       Cmd.Backup()

@@ -1,3 +1,7 @@
+5.03.24
+
+Fixed bug that caused a trap in `gam <UserTypeEntity> create|update drivefile` when `localfile <FileName>` was used and `<FileName>` started with `~`.
+
 5.03.23
 
 Added options `createdtime <Time>` and `modifiedtime <Time>` to `gam <UserTypeEntity> create drivefile`
