@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.24'
+__version__ = '5.03.25'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -254,6 +254,9 @@ WITH_OTHER_FILE_NAME = NOT_ME_IN_OWNERS_AND+WITH_ANY_FILE_NAME
 # Cloudprint
 CLOUDPRINT_ACCESS_URL = 'https://www.google.com/cloudprint/addpublicprinter.html?printerid={0}&key={1}'
 #
+DFA_CREATED_TIME = 'createdTime'
+DFA_MODIFIED_TIME = 'modifiedTime'
+DFA_PRESERVE_FILE_TIMES = 'preserveFileTimes'
 DFA_IGNORE_DEFAULT_VISIBILITY = 'ignoreDefaultVisibility'
 DFA_KEEP_REVISION_FOREVER = 'keepRevisionForever'
 DFA_LOCALFILEPATH = 'localFilepath'
@@ -266,7 +269,6 @@ DFA_ADD_PARENT_IDS = 'addParentIds'
 DFA_ADD_PARENT_NAMES = 'addParentNames'
 DFA_REMOVE_PARENT_IDS = 'removeParentIds'
 DFA_REMOVE_PARENT_NAMES = 'removeParentNames'
-DFA_PRESERVE_FILE_TIMES = 'preserveFileTimes'
 DFA_TEAMDRIVE_PARENT = 'teamDriveParent'
 DFA_TEAMDRIVE_PARENTID = 'teamDriveParentId'
 DFA_TEAMDRIVE_PARENTQUERY = 'teamDriveParentQuery'
@@ -30531,10 +30533,16 @@ def _showCalendar(calendar, j, jcount, FJQC, acls=None):
   _showCalendarSettings(calendar, j, jcount)
   Ind.Increment()
   printKeyValueList(['Primary', calendar.get('primary', FALSE)])
-  printKeyValueList(['Access Level', calendar['accessRole']])
-  printKeyValueList(['Hidden', calendar.get('hidden', FALSE)])
-  printKeyValueList(['Selected', calendar.get('selected', FALSE)])
-  printKeyValueList(['Color ID', calendar['colorId'], 'Background Color', calendar['backgroundColor'], 'Foreground Color', calendar['foregroundColor']])
+  if 'accessRole' in calendar:
+    printKeyValueList(['Access Level', calendar['accessRole']])
+  if 'deleted' in calendar:
+    printKeyValueList(['Deleted', calendar['deleted']])
+  if 'hidden' in calendar:
+    printKeyValueList(['Hidden', calendar['hidden']])
+  if 'selected' in calendar:
+    printKeyValueList(['Selected', calendar['selected']])
+  if 'colorId' in calendar:
+    printKeyValueList(['Color ID', calendar['colorId'], 'Background Color', calendar['backgroundColor'], 'Foreground Color', calendar['foregroundColor']])
   printKeyValueList(['Default Reminders', None])
   Ind.Increment()
   for reminder in calendar.get('defaultReminders', []):
@@ -30561,10 +30569,12 @@ def _showCalendar(calendar, j, jcount, FJQC, acls=None):
 def _processCalendarList(user, calId, j, jcount, cal, function, **kwargs):
   try:
     callGAPI(cal.calendarList(), function,
-             throw_reasons=[GAPI.NOT_FOUND, GAPI.DUPLICATE, GAPI.CANNOT_CHANGE_OWN_ACL],
+             throw_reasons=[GAPI.NOT_FOUND, GAPI.DUPLICATE,
+                            GAPI.CANNOT_CHANGE_OWN_ACL, GAPI.CANNOT_CHANGE_OWN_PRIMARY_SUBSCRIPTION],
              **kwargs)
     entityActionPerformed([Ent.USER, user, Ent.CALENDAR, calId], j, jcount)
-  except (GAPI.notFound, GAPI.duplicate, GAPI.cannotChangeOwnAcl) as e:
+  except (GAPI.notFound, GAPI.duplicate,
+          GAPI.cannotChangeOwnAcl, GAPI.cannotChangeOwnPrimarySubscription) as e:
     entityActionFailedWarning([Ent.USER, user, Ent.CALENDAR, calId], str(e), j, jcount)
 
 # gam <UserTypeEntity> add calendars <UserCalendarAddEntity> <CalendarAttribute>
@@ -31699,7 +31709,7 @@ def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
       fileIdEntity['query'] = DRIVE_BY_NAME_CHOICE_MAP[mycmd].format(getEscapedDriveFileName())
     elif mycmd in {'root', 'mydrive'}:
       cleanFileIDsList(fileIdEntity, [ROOT])
-    elif  mycmd in {'rootwithorphans', 'mydrivewithorphans'}:
+    elif orphansOK and mycmd in {'rootwithorphans', 'mydrivewithorphans'}:
       cleanFileIDsList(fileIdEntity, [ROOT, ORPHANS])
     elif orphansOK and mycmd == 'orphans':
       cleanFileIDsList(fileIdEntity, [ORPHANS])
@@ -32089,7 +32099,10 @@ class MimeTypeCheck():
     return fileEntry['mimeType'] not in self.mimeTypes
 
 def initDriveFileAttributes():
-  return {DFA_IGNORE_DEFAULT_VISIBILITY: False,
+  return {DFA_CREATED_TIME: None,
+          DFA_MODIFIED_TIME: None,
+          DFA_PRESERVE_FILE_TIMES: False,
+          DFA_IGNORE_DEFAULT_VISIBILITY: False,
           DFA_KEEP_REVISION_FOREVER: False,
           DFA_LOCALFILEPATH: None,
           DFA_LOCALFILENAME: None,
@@ -32101,7 +32114,6 @@ def initDriveFileAttributes():
           DFA_ADD_PARENT_NAMES: [],
           DFA_REMOVE_PARENT_IDS: [],
           DFA_REMOVE_PARENT_NAMES: [],
-          DFA_PRESERVE_FILE_TIMES: False,
           DFA_TEAMDRIVE_PARENT: None,
           DFA_TEAMDRIVE_PARENTID: None,
           DFA_TEAMDRIVE_PARENTQUERY: None,
@@ -32167,6 +32179,21 @@ def getDriveFileAttribute(myarg, body, parameters, assignLocalName, updateCmd):
     try:
       f = open(parameters[DFA_LOCALFILEPATH], 'rb')
       f.close()
+      # See http://stackoverflow.com/a/39501288/1709587 for explanation.
+      mtime = os.path.getmtime(parameters[DFA_LOCALFILEPATH])
+      parameters[DFA_MODIFIED_TIME] = formatLocalSecondsTimestamp(mtime)
+      if not updateCmd:
+        if platform.system() == 'Windows':
+          ctime = os.path.getctime(parameters[DFA_LOCALFILEPATH])
+        else:
+          stat = os.stat(parameters[DFA_LOCALFILEPATH])
+          if hasattr(stat, 'st_birthtime'):
+            ctime = stat.st_birthtime
+          else:
+            # We're probably on Linux. No easy way to get creation dates here,
+            # so we'll settle for when its content was last modified.
+            ctime = stat.st_mtime
+        parameters[DFA_CREATED_TIME] = formatLocalSecondsTimestamp(ctime)
     except IOError as e:
       Cmd.Backup()
       usageErrorExit(f'{parameters[DFA_LOCALFILEPATH]}: {str(e)}')
@@ -32231,6 +32258,20 @@ def getDriveFileAttribute(myarg, body, parameters, assignLocalName, updateCmd):
     body[driveprop['visibility']].append({driveprop['key']: driveprop['value']})
   else:
     unknownArgumentExit()
+
+def setPreservedFileTimes(body, parameters, updateCmd):
+  body['modifiedTime'] = parameters[DFA_MODIFIED_TIME]
+  if not updateCmd:
+    body['createdTime'] = parameters[DFA_CREATED_TIME]
+
+def getMediaBody(parameters):
+  try:
+    media_body = googleapiclient.http.MediaFileUpload(parameters[DFA_LOCALFILEPATH], mimetype=parameters[DFA_LOCALMIMETYPE], resumable=True)
+    if media_body.size() == 0:
+      media_body = None
+    return media_body
+  except IOError as e:
+    systemErrorExit(FILE_ERROR_RC, fileErrorMessage(parameters[DFA_LOCALFILEPATH], e))
 
 DRIVE_ACTIVITY_V1_TITLES = ['user.name', 'user.permissionId', 'target.id', 'target.name', 'target.mimeType', 'eventTime']
 DRIVE_ACTIVITY_V2_TITLES = ['user.name', 'user.emailAddress', 'target.id', 'target.name', 'target.mimeType', 'eventTime']
@@ -35119,25 +35160,6 @@ def printShowFileTree(users):
   if csvPF:
     csvPF.writeCSVfile('Drive File Tree')
 
-def getCreationModificationTimes(path_to_file):
-  """
-  Try to get the date that a file was created, falling back to when it was
-  last modified if that isn't possible.
-  See http://stackoverflow.com/a/39501288/1709587 for explanation.
-  """
-  mtime = os.path.getmtime(path_to_file)
-  if platform.system() == 'Windows':
-    ctime = os.path.getctime(path_to_file)
-  else:
-    stat = os.stat(path_to_file)
-    try:
-      ctime = stat.st_birthtime
-    except AttributeError:
-      # We're probably on Linux. No easy way to get creation dates here,
-      # so we'll settle for when its content was last modified.
-      ctime = stat.st_mtime
-  return (formatLocalSecondsTimestamp(ctime), formatLocalSecondsTimestamp(mtime))
-
 # gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>]
 #	<DriveFileCreateAttribute>]
 #	[csv [todrive <ToDriveAttribute>*]] [returnidonly]
@@ -35158,6 +35180,10 @@ def createDriveFile(users):
       csvPF.GetTodriveParameters()
     else:
       getDriveFileAttribute(myarg, body, parameters, True, False)
+  if parameters[DFA_LOCALFILEPATH]:
+    if parameters[DFA_PRESERVE_FILE_TIMES]:
+      setPreservedFileTimes(body, parameters, False)
+    media_body = getMediaBody(parameters)
   if csvPF:
     fileNameTitle = 'title' if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else 'name'
     csvPF.SetTitles(['User', fileNameTitle, 'id'])
@@ -35171,15 +35197,6 @@ def createDriveFile(users):
       continue
     if not _getDriveFileParentInfo(drive, user, i, count, body, parameters):
       continue
-    if parameters[DFA_LOCALFILEPATH]:
-      try:
-        media_body = googleapiclient.http.MediaFileUpload(parameters[DFA_LOCALFILEPATH], mimetype=parameters[DFA_LOCALMIMETYPE], resumable=True)
-        if media_body.size() == 0:
-          media_body = None
-        if parameters[DFA_PRESERVE_FILE_TIMES]:
-          body['createdTime'], body['modifiedTime'] = getCreationModificationTimes(parameters[DFA_LOCALFILEPATH])
-      except IOError as e:
-        systemErrorExit(FILE_ERROR_RC, fileErrorMessage(parameters[DFA_LOCALFILEPATH], e))
     try:
       result = callGAPI(drive.files(), 'create',
                         throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
@@ -35316,6 +35333,11 @@ def updateDriveFile(users):
       columnDelimiter = getCharacter()
     else:
       getDriveFileAttribute(myarg, body, parameters, assignLocalName, True)
+  if operation == 'update' and parameters[DFA_LOCALFILEPATH]:
+    if parameters[DFA_PRESERVE_FILE_TIMES]:
+      setPreservedFileTimes(body, parameters, True)
+    if not sheetEntity:
+      media_body = getMediaBody(parameters)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -35325,16 +35347,6 @@ def updateDriveFile(users):
     if not _getDriveFileParentInfo(drive, user, i, count, body, parameters, defaultToRoot=False):
       continue
     if operation == 'update':
-      if parameters[DFA_LOCALFILEPATH]:
-        if not sheetEntity:
-          try:
-            media_body = googleapiclient.http.MediaFileUpload(parameters[DFA_LOCALFILEPATH], mimetype=parameters[DFA_LOCALMIMETYPE], resumable=True)
-            if media_body.size() == 0:
-              media_body = None
-            if parameters[DFA_PRESERVE_FILE_TIMES]:
-              _, body['modifiedTime'] = getCreationModificationTimes(parameters[DFA_LOCALFILEPATH])
-          except IOError as e:
-            systemErrorExit(FILE_ERROR_RC, fileErrorMessage(parameters[DFA_LOCALFILEPATH], e))
       status, addParents, removeParents = _getDriveFileAddRemoveParentInfo(user, i, count, parameters, drive)
       if not status:
         continue

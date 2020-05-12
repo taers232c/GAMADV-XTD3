@@ -31,6 +31,7 @@ CANNOT_CHANGE_ORGANIZER = 'cannotChangeOrganizer'
 CANNOT_CHANGE_ORGANIZER_OF_INSTANCE = 'cannotChangeOrganizerOfInstance'
 CANNOT_CHANGE_OWN_ACL = 'cannotChangeOwnAcl'
 CANNOT_CHANGE_OWNER_ACL = 'cannotChangeOwnerAcl'
+CANNOT_CHANGE_OWN_PRIMARY_SUBSCRIPTION = 'cannotChangeOwnPrimarySubscription'
 CANNOT_COPY_FILE = 'cannotCopyFile'
 CANNOT_DELETE_ONLY_REVISION = 'cannotDeleteOnlyRevision'
 CANNOT_DELETE_PRIMARY_CALENDAR = 'cannotDeletePrimaryCalendar'
@@ -279,6 +280,8 @@ class cannotChangeOwnAcl(Exception):
   pass
 class cannotChangeOwnerAcl(Exception):
   pass
+class cannotChangeOwnPrimarySubscription(Exception):
+  pass
 class cannotCopyFile(Exception):
   pass
 class cannotDeleteOnlyRevision(Exception):
@@ -501,6 +504,7 @@ REASON_EXCEPTION_MAP = {
   CANNOT_CHANGE_ORGANIZER_OF_INSTANCE: cannotChangeOrganizerOfInstance,
   CANNOT_CHANGE_OWN_ACL: cannotChangeOwnAcl,
   CANNOT_CHANGE_OWNER_ACL: cannotChangeOwnerAcl,
+  CANNOT_CHANGE_OWN_PRIMARY_SUBSCRIPTION: cannotChangeOwnPrimarySubscription,
   CANNOT_COPY_FILE: cannotCopyFile,
   CANNOT_DELETE_ONLY_REVISION: cannotDeleteOnlyRevision,
   CANNOT_DELETE_PRIMARY_CALENDAR: cannotDeletePrimaryCalendar,
