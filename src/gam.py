@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.25'
+__version__ = '5.03.26'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -38300,6 +38300,7 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
   emailMessage = None
   fileIdEntity = getDriveFileEntity()
   body = {}
+  ubody = {}
   body['type'] = getChoice(DRIVEFILE_ACL_PERMISSION_TYPES)
   if body['type'] != 'anyone':
     if body['type'] != 'domain':
@@ -38321,9 +38322,10 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
       body['role'] = getChoice(DRIVEFILE_ACL_ROLES_MAP, mapChoice=True)
       if body['role'] == 'owner':
         sendNotificationEmail = _transferOwnership = True
+      ubody['role'] = body['role']
     elif myarg in {'expiration', 'expires'}:
       expirationLocation = Cmd.Location()
-      body['expirationTime'] = getTimeOrDeltaFromNow()
+      ubody['expirationTime'] = getTimeOrDeltaFromNow()
     elif myarg == 'sendemail':
       sendNotificationEmail = True
     elif myarg == 'emailmessage':
@@ -38364,6 +38366,13 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
                               useDomainAdminAccess=useDomainAdminAccess,
                               fileId=fileId, sendNotificationEmail=sendNotificationEmail, emailMessage=emailMessage,
                               transferOwnership=_transferOwnership, body=body, fields='*', supportsAllDrives=True)
+        if 'expirationTime' in ubody:
+          permission = callGAPI(drive.permissions(), 'update',
+                                bailOnInternalError=True,
+                                throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_UPDATE_ACL_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
+                                useDomainAdminAccess=useDomainAdminAccess,
+                                fileId=fileId, permissionId=permission['id'], removeExpiration=False,
+                                body=ubody, fields='*', supportsAllDrives=True)
         entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
         if showDetails:
           _showDriveFilePermission(permission, printKeys, timeObjects)
@@ -38413,7 +38422,7 @@ def updateDriveFileACLs(users, useDomainAdminAccess=False):
       useDomainAdminAccess = True
     else:
       unknownArgumentExit()
-  if removeExpiration is None and 'role' not in body:
+  if (removeExpiration or 'expirationTime' in body) and 'role' not in body:
     missingArgumentExit(f'role {formatChoiceList(DRIVEFILE_ACL_ROLES_MAP)}')
   printKeys, timeObjects = _getDriveFileACLPrintKeysTimeObjects()
   i, count, users = getEntityArgument(users)
@@ -38438,7 +38447,7 @@ def updateDriveFileACLs(users, useDomainAdminAccess=False):
           fileName, entityType = _getDriveFileNameFromId(drive, fileId)
         result = callGAPI(drive.permissions(), 'update',
                           bailOnInternalError=True,
-                          throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_UPDATE_ACL_THROW_REASONS,
+                          throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_UPDATE_ACL_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
                           useDomainAdminAccess=useDomainAdminAccess,
                           fileId=fileId, permissionId=permissionId, removeExpiration=removeExpiration,
                           transferOwnership=body.get('role', '') == 'owner', body=body, fields='*', supportsAllDrives=True)
@@ -38447,7 +38456,8 @@ def updateDriveFileACLs(users, useDomainAdminAccess=False):
           _showDriveFilePermission(result, printKeys, timeObjects)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
               GAPI.badRequest, GAPI.invalidOwnershipTransfer, GAPI.cannotRemoveOwner,
-              GAPI.ownershipChangeAcrossDomainNotPermitted, GAPI.sharingRateLimitExceeded, GAPI.insufficientAdministratorPrivileges,
+              GAPI.fileNeverWritable, GAPI.ownershipChangeAcrossDomainNotPermitted, GAPI.sharingRateLimitExceeded,
+              GAPI.insufficientAdministratorPrivileges,
               GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported,
               GAPI.cannotUpdatePermission, GAPI.cannotModifyInheritedTeamDrivePermission, GAPI.fieldNotWritable) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
@@ -38706,11 +38716,11 @@ def deleteDriveFileACLs(users, useDomainAdminAccess=False):
         if showTitles:
           fileName, entityType = _getDriveFileNameFromId(drive, fileId)
         callGAPI(drive.permissions(), 'delete',
-                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_DELETE_ACL_THROW_REASONS,
+                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_DELETE_ACL_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
                  useDomainAdminAccess=useDomainAdminAccess, fileId=fileId, permissionId=permissionId, supportsAllDrives=True)
         entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.badRequest, GAPI.cannotRemoveOwner, GAPI.cannotModifyInheritedTeamDrivePermission,
+              GAPI.fileNeverWritable, GAPI.badRequest, GAPI.cannotRemoveOwner, GAPI.cannotModifyInheritedTeamDrivePermission,
               GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
       except GAPI.notFound as e:

@@ -1,3 +1,8 @@
+5.03.26
+
+Updated code to properly handle specifying an expiration time when creating a drive file ACL.
+GAM must first create the ACL and then update it with the expiration time.
+
 5.03.25
 
 Fixed bug that caused a trap in `gam <UserTypeEntity> show calendars showdeleted`.
