@@ -1,3 +1,7 @@
+5.03.27
+
+Added option `formatjson` to `gam <UserTypeEntity> show fileinfo`.
+
 5.03.26
 
 Updated code to properly handle specifying an expiration time when creating a drive file ACL.

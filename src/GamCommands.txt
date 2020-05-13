@@ -571,7 +571,7 @@ Specify a collection of ChromeOS devices by directly specifying them or by speci
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
                 [delimiter <Character>])|
         (csvkmd cros|cros_sn|cros_ous|cros_ous_and_children
-                (<FileName>|(gsheet <UserGoogleSheet>) 
+                (<FileName>|(gsheet <UserGoogleSheet>)
                         [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
                  [fields <FieldNameList>]
                 (keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>])+
@@ -693,13 +693,31 @@ Specify a collection of items by directly specifying them; the item type is dete
         (drivefilename <DriveFileName>) | (drivefilename:<DriveFileName>) |
         (othername <DriveFileName>) | (othername:<DriveFileName>) |
         (otherdrivefilename <DriveFileName>) | (otherdrivefilename:<DriveFileName>)
-<DriveFileQueryEntity> ::= 
+<DriveFileQueryEntity> ::=
         (query <QueryDriveFile>) | (query:<QueryDriveFile>) |
         (fullquery <QueryDriveFile>)
 <DriveFileQueryShortcut> ::=
-        all_files | all_folders | all_google_files | all_non_google_files | all_shortcuts | all_3p_shortcuts | all_items |
-        my_files | my_folders | my_google_files | my_non_google_files | my_shortcuts | my_3p_shortcuts | my_items |
-        others_files | others_folders | others_google_files | others_non_google_files | others_shortcuts | others_3p_shortcuts | others_items |
+        all_files |
+        all_folders |
+        all_google_files |
+        all_non_google_files |
+        all_shortcuts |
+        all_3p_shortcuts |
+        all_items |
+        my_files |
+        my_folders |
+        my_google_files |
+        my_non_google_files |
+        my_shortcuts |
+        my_3p_shortcuts |
+        my_items |
+        others_files |
+        others_folders |
+        others_google_files |
+        others_non_google_files |
+        others_shortcuts |
+        others_3p_shortcuts |
+        others_items |
         writable_files
 <TeamDriveIDEntity> ::=
         <DriveFileItem> |
@@ -874,7 +892,7 @@ gam create|add svcacct [<EmailAddress>] [current|gam|<ProjectID>|(filter <String
 gam delete svcacct [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
         (saemail <ServiceAccountEmail>)|(saname <ServiceAccountName>)|(sauniqueid <ServiceAccountUniqueID>)
 gam check svcacct <UserTypeEntity> (scope|scopes <APIScopeURLList>)*
-gam update svcacct <UserTypeEntity> 
+gam update svcacct <UserTypeEntity>
 gam show svcaccts [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
 gam print svcaccts [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
         [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
@@ -1605,7 +1623,7 @@ gam create|add course [id|alias <CourseAlias>] <CourseAttribute>*
                 [mapsharemodestudentcopy edit|none|view]
             [copytopics [<Boolean>]]
             [members none|all|students|teachers]]
-            [logdrivefileids [<Boolean>>]]
+            [logdrivefileids [<Boolean>]]
 gam update course <CourseID> <CourseAttribute>+
         [copyfrom <CourseID>
             [announcementstates <CourseAnnouncementStateList>]
@@ -1614,7 +1632,7 @@ gam update course <CourseID> <CourseAttribute>+
                 [mapsharemodestudentcopy edit|none|view]
             [copytopics [<Boolean>]]
             [members none|all|students|teachers]]
-            [logdrivefileids [<Boolean>>]]
+            [logdrivefileids [<Boolean>]]
 gam delete course <CourseID> [archive|archived]
 
 gam update courses <CourseEntity> <CourseAttribute>+
@@ -1625,7 +1643,7 @@ gam update courses <CourseEntity> <CourseAttribute>+
                 [mapsharemodestudentcopy edit|none|view]
             [copytopics [<Boolean>]]
             [members none|all|students|teachers]]
-            [logdrivefileids [<Boolean>>]]
+            [logdrivefileids [<Boolean>]]
 gam delete courses <CourseEntity> [archive|archived]
 
 gam course <CourseID> create|add alias <CourseAlias>
@@ -2254,7 +2272,7 @@ gam [<UserTypeEntity>] update printer|printers <PrinterIDEntity> <PrinterAttribu
 gam [<UserTypeEntity>] delete printer|printers <PrinterIDEntity>
 
 gam [<UserTypeEntity>] info printer|printers <PrinterIDEntity>
-        [everything] [extrafields <PrinterExtraFieldList>] 
+        [everything] [extrafields <PrinterExtraFieldList>]
 gam [<UserTypeEntity>] show printer|printers
         [(query <QueryPrinter>)|(queries <QueryPrinterList>)]
         [type <String>] [status <String>]
@@ -3427,7 +3445,7 @@ gam <UserTypeEntity> update calattendees <UserCalendarEntity> [<EventEntity>] [a
         (drivefilename <DriveFileName>) | (drivefilename:<DriveFileName>) |
         (othername <DriveFileName>) | (othername:<DriveFileName>) |
         (otherdrivefilename <DriveFileName>) | (otherdrivefilename:<DriveFileName>)
-<DriveFileQueryEntity> ::= 
+<DriveFileQueryEntity> ::=
         (query <QueryDriveFile>) | (query:<QueryDriveFile>) |
         (fullquery <QueryDriveFile>)
 <DriveFileEntity> ::=
@@ -3853,7 +3871,7 @@ gam <UserTypeEntity> collect orphans (orderby <DriveFileOrderByFieldName> [ascen
         permissionmatchaction|pma process|skip
 
 gam <UserTypeEntity> show fileinfo <DriveFileEntity>
-         [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [showdrivename]
+         [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
          (orderby <DriveFileOrderByFieldName> [ascending|descending])* [showparentsidsaslist]
 gam <UserTypeEntity> show filepath <DriveFileEntity>
          (orderby <DriveFileOrderByFieldName> [ascending|descending])*

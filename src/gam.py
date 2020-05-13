@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.26'
+__version__ = '5.03.27'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -33284,7 +33284,7 @@ def _setGetPermissionsForTeamDrives(fieldsList):
   return (getPermissionsForTeamDrives, permissionsFields)
 
 # gam <UserTypeEntity> show fileinfo <DriveFileEntity>
-#	[filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
+#	[filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [showparentsidsaslist]
 def showFileInfo(users):
   def _setSelectionFields():
@@ -33305,6 +33305,7 @@ def showFileInfo(users):
   skipObjects = set()
   fileIdEntity = getDriveFileEntity()
   DFF = DriveFileFields()
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'filepath':
@@ -33315,7 +33316,7 @@ def showFileInfo(users):
     elif DFF.ProcessArgument(myarg):
       pass
     else:
-      unknownArgumentExit()
+      FJQC.GetFormatJSON(myarg)
   getPermissionsForTeamDrives = False
   if DFF.fieldsList:
     getPermissionsForTeamDrives, permissionsFields = _setGetPermissionsForTeamDrives(DFF.fieldsList)
@@ -33332,7 +33333,7 @@ def showFileInfo(users):
   for user in users:
     i += 1
     user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity,
-                                                  entityType=Ent.DRIVE_FILE_OR_FOLDER,
+                                                  entityType=Ent.DRIVE_FILE_OR_FOLDER if not FJQC.formatJSON else None,
                                                   orderBy=DFF.orderBy)
     if jcount == 0:
       continue
@@ -33371,8 +33372,9 @@ def showFileInfo(users):
             if fields != '*':
               entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
               continue
-        printEntity([_getEntityMimeType(result), f'{result["name"]} ({fileId})'], j, jcount)
-        Ind.Increment()
+        if not FJQC.formatJSON:
+          printEntity([_getEntityMimeType(result), f'{result["name"]} ({fileId})'], j, jcount)
+          Ind.Increment()
         if filepath:
           _, paths, _ = getFilePaths(drive, None, result, filePathInfo)
           kcount = len(paths)
@@ -33388,9 +33390,12 @@ def showFileInfo(users):
         else:
           _mapDriveParents(result, DFF.parentsSubFields)
           _mapDriveProperties(result)
-        showJSON(None, result, skipObjects, timeObjects, simpleLists,
-                 {'owners': 'displayName', 'parents': 'id', 'permissions': ['name', 'displayName'][GC.Values[GC.DRIVE_V3_NATIVE_NAMES]]})
-        Ind.Decrement()
+        if not FJQC.formatJSON:
+          showJSON(None, result, skipObjects, timeObjects, simpleLists,
+                   {'owners': 'displayName', 'parents': 'id', 'permissions': ['name', 'displayName'][GC.Values[GC.DRIVE_V3_NATIVE_NAMES]]})
+          Ind.Decrement()
+        else:
+          printLine(json.dumps(cleanJSON(result, skipObjects=skipObjects, timeObjects=timeObjects), ensure_ascii=False, sort_keys=True))
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
