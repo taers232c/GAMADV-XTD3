@@ -1,3 +1,7 @@
+5.03.29
+
+Following Jay's lead, cleaned up code for `gam report`; in particular, backing up to earlier dates to find data.
+
 5.03.28
 
 Updated code in `gam info domain` to perform retries when getting license information to

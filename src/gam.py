@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.28'
+__version__ = '5.03.29'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -8970,6 +8970,24 @@ def _adjustTryDate(errMsg, noDateChange):
     return None
   return match_date.group(1)
 
+def _checkDataRequiredServices(warnings, tryDate, dataRequiredServices, hasReports):
+  oneDay = datetime.timedelta(days=1)
+  # move to day before if we don't have at least one usageReport
+  if not hasReports:
+    tryDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)-oneDay
+    return (0, tryDateTime.strftime(YYYYMMDD_FORMAT))
+  for warning in warnings:
+    if warning['code'] == 'PARTIAL_DATA_AVAILABLE':
+      for app in warning['data']:
+        if app['key'] == 'application' and app['value'] != 'docs' and ('all' in dataRequiredServices or app['value'] in dataRequiredServices):
+          tryDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)-oneDay
+          return (0, tryDateTime.strftime(YYYYMMDD_FORMAT))
+    elif warning['code'] == 'DATA_NOT_AVAILABLE':
+      for app in warning['data']:
+        if app['key'] == 'application' and app['value'] != 'docs' and ('all' in dataRequiredServices or app['value'] in dataRequiredServices):
+          return (-1, tryDate)
+  return (1, tryDate)
+
 CUSTOMER_USER_CHOICES = {'customer', 'user'}
 
 # gam report usageparameters customer|user [todrive <ToDriveAttribute>*]
@@ -9278,20 +9296,6 @@ REPORT_ACTIVITIES_TIME_OBJECTS = {'time'}
 #	[(date <Date>)|(range <Date> <Date>)] [nodatechange | (fulldatarequired all|<CustomerServiceNameList>)]
 #	[(fields|parameters <String>)|(services <CustomerServiceNameList>)] [noauthorizedapps]
 def doReport():
-  def _checkDataRequiredServices(warnings, tryDate):
-
-    for warning in warnings:
-      if warning['code'] == 'PARTIAL_DATA_AVAILABLE':
-        for app in warning['data']:
-          if app['key'] == 'application' and app['value'] != 'docs' and (not dataRequiredServices or app['value'] in dataRequiredServices):
-            tryDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)-datetime.timedelta(days=1)
-            return (0, tryDateTime.strftime(YYYYMMDD_FORMAT))
-      elif warning['code'] == 'DATA_NOT_AVAILABLE':
-        for app in warning['data']:
-          if app['key'] == 'application' and app['value'] != 'docs' and (not dataRequiredServices or app['value'] in dataRequiredServices):
-            return (-1, tryDate)
-    return (1, tryDate)
-
   def processUserUsage(usage, lastDate):
     if not usage or lastDate == usage[0]['date']:
       return (lastDate is None, lastDate)
@@ -9480,6 +9484,7 @@ def doReport():
   eventCounts = {}
   eventNames = []
   startEndTime = StartEndTime('start', 'end')
+  oneDay = datetime.timedelta(days=1)
   filterTimes = {}
   maxActivities = 0
   maxResults = 1000
@@ -9489,7 +9494,7 @@ def doReport():
   userReports = report == 'user'
   usageReports = customerReports or userReports
   activityReports = not usageReports
-  dataRequiredServices = None
+  dataRequiredServices = set()
   if usageReports:
     fullDataServices = CUSTOMER_REPORT_SERVICES if customerReports else USER_REPORT_SERVICES
     includeServices = set()
@@ -9511,15 +9516,16 @@ def doReport():
     elif usageReports and myarg in {'fields', 'parameters'}:
       parameters = parameters.union(getString(Cmd.OB_STRING).replace(',', ' ').split())
     elif usageReports and myarg == 'fulldatarequired':
-      if dataRequiredServices is None:
-        dataRequiredServices = set()
       fdr = getString(Cmd.OB_SERVICE_NAME_LIST, minLen=0).lower()
-      if fdr and fdr != 'all':
-        for field in fdr.replace(',', ' ').split():
-          if field in fullDataServices:
-            dataRequiredServices.add(field)
-          else:
-            invalidChoiceExit(field, fullDataServices, True)
+      if fdr:
+        if fdr != 'all':
+          for field in fdr.replace(',', ' ').split():
+            if field in fullDataServices:
+              dataRequiredServices.add(field)
+            else:
+              invalidChoiceExit(field, fullDataServices, True)
+        else:
+          dataRequiredServices = {'all'}
     elif usageReports and myarg in {'service', 'services'}:
       for field in getString(Cmd.OB_SERVICE_NAME_LIST).lower().replace(',', ' ').split():
         if field in fullDataServices:
@@ -9596,16 +9602,20 @@ def doReport():
       while startDateTime <= endDateTime:
         tryDate = startDateTime.strftime(YYYYMMDD_FORMAT)
         try:
-          if not userCustomerRange and dataRequiredServices is not None:
-            warnings = callGAPIitems(rep.userUsageReport(), 'get', 'warnings',
-                                     throw_reasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
-                                     userKey=user, date=tryDate, customerId=customerId,
-                                     orgUnitID=orgUnitId, fields='warnings')
-            fullData, tryDate = _checkDataRequiredServices(warnings, tryDate)
+          if not userCustomerRange:
+            result = callGAPI(rep.userUsageReport(), 'get',
+                              throw_reasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                              userKey=user, date=tryDate, customerId=customerId,
+                              orgUnitID=orgUnitId, fields='warnings,usageReports', maxResults=1)
+            warnings = result.get('warnings', [])
+            hasReports = bool(result.get('usageReports', []))
+            fullData, tryDate = _checkDataRequiredServices(warnings, tryDate, dataRequiredServices, hasReports)
             if fullData < 0:
               printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_REPORT_AVAILABLE.format(report))
               break
             if fullData == 0:
+              if noDateChange:
+                break
               startDateTime = endDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)
               continue
           usage = callGAPIpages(rep.userUsageReport(), 'get', 'usageReports',
@@ -9614,12 +9624,6 @@ def doReport():
                                 userKey=user, date=tryDate, customerId=customerId,
                                 orgUnitID=orgUnitId, filters=filters, parameters=parameters,
                                 maxResults=maxResults)
-          if not userCustomerRange and not usage:
-            startDateTime += datetime.timedelta(days=-1)
-            endDateTime = startDateTime
-            if noDateChange:
-              break
-            continue
           if not aggregateUserUsage:
             status, lastDate = processUserUsage(usage, lastDate)
           else:
@@ -9641,7 +9645,7 @@ def doReport():
           break
         except GAPI.forbidden:
           accessErrorExit(None)
-        startDateTime += datetime.timedelta(days=1)
+        startDateTime += oneDay
       if exitUserLoop:
         break
     if not aggregateUserUsage:
@@ -9668,26 +9672,24 @@ def doReport():
     while startDateTime <= endDateTime:
       tryDate = startDateTime.strftime(YYYYMMDD_FORMAT)
       try:
-        if not userCustomerRange and dataRequiredServices is not None:
-          warnings = callGAPIitems(rep.customerUsageReports(), 'get', 'warnings',
-                                   throw_reasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
-                                   date=tryDate, customerId=customerId, fields='warnings')
-          fullData, tryDate = _checkDataRequiredServices(warnings, tryDate)
+        if not userCustomerRange:
+          result = callGAPI(rep.customerUsageReports(), 'get',
+                            throw_reasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                            date=tryDate, customerId=customerId, fields='warnings,usageReports')
+          warnings = result.get('warnings', [])
+          hasReports = bool(result.get('usageReports', []))
+          fullData, tryDate = _checkDataRequiredServices(warnings, tryDate, dataRequiredServices, hasReports)
           if fullData < 0:
             printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_REPORT_AVAILABLE.format(report))
-            return
+            break
           if fullData == 0:
+            if noDateChange:
+              break
             startDateTime = endDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)
             continue
         usage = callGAPIpages(rep.customerUsageReports(), 'get', 'usageReports',
                               throw_reasons=[GAPI.INVALID, GAPI.FORBIDDEN],
                               date=tryDate, customerId=customerId, parameters=parameters)
-        if not userCustomerRange and not usage:
-          startDateTime += datetime.timedelta(days=-1)
-          endDateTime = startDateTime
-          if noDateChange:
-            break
-          continue
         if userCustomerRange:
           status, lastDate = processCustomerUsageOneRow(usage, lastDate)
         else:
@@ -9702,7 +9704,7 @@ def doReport():
         continue
       except GAPI.forbidden:
         accessErrorExit(None)
-      startDateTime += datetime.timedelta(days=1)
+      startDateTime += oneDay
     csvPF.writeCSVfile(f'Customer Report - {tryDate}')
   else: # activityReports
     if select:
@@ -10827,22 +10829,22 @@ def _showCustomerLicenseInfo(customerInfo, FJQC):
   rep = buildGAPIObject(API.REPORTS)
   parameters = ','.join(CUSTOMER_LICENSE_MAP)
   tryDate = todaysDate().strftime(YYYYMMDD_FORMAT)
-  oneDay = datetime.timedelta(days=1)
-  retry = 0
-  maxRetries = 10
+  dataRequiredServices = {'accounts'}
   while True:
     try:
-      usage = callGAPIpages(rep.customerUsageReports(), 'get', 'usageReports',
-                            throw_reasons=[GAPI.INVALID, GAPI.FORBIDDEN],
-                            customerId=customerInfo['id'], date=tryDate, parameters=parameters)
-      if usage:
-        break
-      retry += 1
-      if retry == maxRetries:
+      result = callGAPI(rep.customerUsageReports(), 'get',
+                        throw_reasons=[GAPI.INVALID, GAPI.FORBIDDEN],
+                        date=tryDate, customerId=customerInfo['id'], fields='warnings,usageReports', parameters=parameters)
+      warnings = result.get('warnings', [])
+      usage = result.get('usageReports', [])
+      hasReports = bool(usage)
+      fullData, tryDate = _checkDataRequiredServices(warnings, tryDate, dataRequiredServices, hasReports)
+      if fullData < 0:
         printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_USER_COUNTS_DATA_AVAILABLE)
         return
-      tryDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)-oneDay
-      tryDate = tryDateTime.strftime(YYYYMMDD_FORMAT)
+      if fullData == 0:
+        continue
+      break
     except GAPI.invalid as e:
       tryDate = _adjustTryDate(str(e), False)
       if not tryDate:
