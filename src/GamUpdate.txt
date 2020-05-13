@@ -1,3 +1,8 @@
+5.03.28
+
+Updated code in `gam info domain` to perform retries when getting license information to
+avoid this warning: `WARNING: No User counts data available.`
+
 5.03.27
 
 Added option `formatjson` to `gam <UserTypeEntity> show fileinfo`.

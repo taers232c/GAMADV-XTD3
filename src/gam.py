@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.27'
+__version__ = '5.03.28'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -10827,12 +10827,22 @@ def _showCustomerLicenseInfo(customerInfo, FJQC):
   rep = buildGAPIObject(API.REPORTS)
   parameters = ','.join(CUSTOMER_LICENSE_MAP)
   tryDate = todaysDate().strftime(YYYYMMDD_FORMAT)
+  oneDay = datetime.timedelta(days=1)
+  retry = 0
+  maxRetries = 10
   while True:
     try:
       usage = callGAPIpages(rep.customerUsageReports(), 'get', 'usageReports',
                             throw_reasons=[GAPI.INVALID, GAPI.FORBIDDEN],
                             customerId=customerInfo['id'], date=tryDate, parameters=parameters)
-      break
+      if usage:
+        break
+      retry += 1
+      if retry == maxRetries:
+        printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_USER_COUNTS_DATA_AVAILABLE)
+        return
+      tryDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)-oneDay
+      tryDate = tryDateTime.strftime(YYYYMMDD_FORMAT)
     except GAPI.invalid as e:
       tryDate = _adjustTryDate(str(e), False)
       if not tryDate:
@@ -10840,22 +10850,19 @@ def _showCustomerLicenseInfo(customerInfo, FJQC):
       continue
     except GAPI.forbidden:
       accessErrorExit(None)
-  if usage:
-    if not FJQC.formatJSON:
-      printKeyValueList([f'User counts as of {tryDate}:'])
-      Ind.Increment()
-    for item in usage[0]['parameters']:
-      api_name = CUSTOMER_LICENSE_MAP.get(item['name'])
-      api_value = int(item.get('intValue', '0'))
-      if api_name and api_value:
-        if not FJQC.formatJSON:
-          printKeyValueList([api_name, f'{api_value:,}'])
-        else:
-          customerInfo[item['name']] = api_value
-    if not FJQC.formatJSON:
-      Ind.Decrement()
-  else:
-    printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_USER_COUNTS_DATA_AVAILABLE)
+  if not FJQC.formatJSON:
+    printKeyValueList([f'User counts as of {tryDate}:'])
+    Ind.Increment()
+  for item in usage[0]['parameters']:
+    api_name = CUSTOMER_LICENSE_MAP.get(item['name'])
+    api_value = int(item.get('intValue', '0'))
+    if api_name and api_value:
+      if not FJQC.formatJSON:
+        printKeyValueList([api_name, f'{api_value:,}'])
+      else:
+        customerInfo[item['name']] = api_value
+  if not FJQC.formatJSON:
+    Ind.Decrement()
 
 # gam info customer [formatjson]
 def doInfoCustomer(returnCustomerInfo=None, FJQC=None):
