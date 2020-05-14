@@ -69,7 +69,7 @@ _SKUS = {
   '1010340001': {
     'product': '101034', 'aliases': ['gseau', 'enterprisearchived', 'gsuiteenterprisearchived'], 'displayName': 'G Suite Enterprise Archived'},
   '1010060001': {
-    'product': 'Google-Apps', 'aliases': ['d4e', 'driveenterprise', 'drive4enterprise'], 'displayName': 'Drive Enterprise'},
+    'product': '101006', 'aliases': ['gsuiteessentials', 'essentials', 'd4e', 'driveenterprise', 'drive4enterprise'], 'displayName': 'G Suite Essentials'},
   'Google-Drive-storage-20GB': {
     'product': 'Google-Drive-storage', 'aliases': ['drive20gb', '20gb', 'googledrivestorage20gb'], 'displayName': 'Google Drive Storage 20GB'},
   'Google-Drive-storage-50GB': {

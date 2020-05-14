@@ -200,6 +200,7 @@ NO_REPORT_AVAILABLE = 'No {0} report available.'
 NO_SCOPES_FOR_API = 'There are no scopes authorized for the {0}'
 NO_SVCACCT_ACCESS_ALLOWED = 'No Service Account Access allowed'
 NO_TRANSFER_LACK_OF_DISK_SPACE = 'Transfer not performed due to lack of target drive space.'
+NO_USAGE_PARAMETERS_DATA_AVAILABLE = 'No usage parameters data available.'
 NO_USER_COUNTS_DATA_AVAILABLE = 'No User counts data available.'
 OAUTH2_BROWSER_OPENED_MESSAGE = """
 Your browser has been opened to visit:

@@ -3893,6 +3893,9 @@ def callGDataPages(service, function,
       kwargs['url_params'].pop('start-index', None)
 
 def checkGAPIError(e, soft_errors=False, retryOnHttpError=False):
+  def makeErrorDict(code, reason, message):
+    return {'error': {'code': code, 'errors': [{'reason': reason, 'message': message}]}}
+
   try:
     error = json.loads(e.content.decode(UTF8))
     if GC.Values[GC.DEBUG_LEVEL] > 0:
@@ -3910,23 +3913,23 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False):
     if (e.resp['status'] == '504') and ('Gateway Timeout' in eContent):
       return (e.resp['status'], GAPI.GATEWAY_TIMEOUT, eContent)
     if (e.resp['status'] == '403') and ('Invalid domain.' in eContent):
-      error = {'error': {'code': 403, 'errors': [{'reason': GAPI.NOT_FOUND, 'message': 'Domain not found'}]}}
+      error = makeErrorDict(403, GAPI.NOT_FOUND, 'Domain not found')
     elif (e.resp['status'] == '403') and ('Domain cannot use apis.' in eContent):
-      error = {'error': {'code': 403, 'errors': [{'reason': GAPI.DOMAIN_CANNOT_USE_APIS, 'message': 'Domain cannot use apis'}]}}
+      error = makeErrorDict(403, GAPI.DOMAIN_CANNOT_USE_APIS, 'Domain cannot use apis')
     elif (e.resp['status'] == '400') and ('InvalidSsoSigningKey' in eContent):
-      error = {'error': {'code': 400, 'errors': [{'reason': GAPI.INVALID, 'message': 'InvalidSsoSigningKey'}]}}
+      error = makeErrorDict(400, GAPI.INVALID, 'InvalidSsoSigningKey')
     elif (e.resp['status'] == '400') and ('UnknownError' in eContent):
-      error = {'error': {'code': 400, 'errors': [{'reason': GAPI.INVALID, 'message': 'UnknownError'}]}}
+      error = makeErrorDict(400, GAPI.INVALID, 'UnknownError')
     elif (e.resp['status'] == '400') and ('FeatureUnavailableForUser' in eContent):
-      error = {'error': {'code': 400, 'errors': [{'reason': GAPI.SERVICE_NOT_AVAILABLE, 'message': 'Feature Unavailable For User'}]}}
+      error = makeErrorDict(400, GAPI.SERVICE_NOT_AVAILABLE, 'Feature Unavailable For User')
     elif (e.resp['status'] == '400') and ('EntityDoesNotExist' in eContent):
-      error = {'error': {'code': 400, 'errors': [{'reason': GAPI.NOT_FOUND, 'message': 'Entity Does Not Exist'}]}}
+      error = makeErrorDict(400, GAPI.NOT_FOUND, 'Entity Does Not Exist')
     elif (e.resp['status'] == '400') and ('EntityNameNotValid' in eContent):
-      error = {'error': {'code': 400, 'errors': [{'reason': GAPI.INVALID_INPUT, 'message': 'Entity Name Not Valid'}]}}
+      error = makeErrorDict(400, GAPI.INVALID_INPUT, 'Entity Name Not Valid')
     elif (e.resp['status'] == '400') and ('Failed to parse Content-Range header' in eContent):
-      error = {'error': {'code': 400, 'errors': [{'reason': GAPI.BAD_REQUEST, 'message': 'Failed to parse Content-Range header'}]}}
+      error = makeErrorDict(400, GAPI.BAD_REQUEST, 'Failed to parse Content-Range header')
     elif (e.resp['status'] == '400') and ('Request contains an invalid argument' in eContent):
-      error = {'error': {'code': 400, 'errors': [{'reason': GAPI.INVALID_ARGUMENT, 'message': 'Request contains an invalid argument'}]}}
+      error = makeErrorDict(400, GAPI.INVALID_ARGUMENT, 'Request contains an invalid argument')
     elif retryOnHttpError:
       return (-1, None, None)
     elif soft_errors:
@@ -3945,46 +3948,46 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False):
     if http_status == 500:
       if not message:
         message = Msg.UNKNOWN
-        error = {'error': {'errors': [{'reason': GAPI.UNKNOWN_ERROR, 'message': message}]}}
+        error = makeErrorDict(http_status, GAPI.UNKNOWN_ERROR, message)
       elif 'Backend Error' in message:
-        error = {'error': {'errors': [{'reason': GAPI.BACKEND_ERROR, 'message': message}]}}
+        error = makeErrorDict(http_status, GAPI.BACKEND_ERROR, message)
       elif 'Internal error encountered' in message:
-        error = {'error': {'errors': [{'reason': GAPI.INTERNAL_ERROR, 'message': message}]}}
+        error = makeErrorDict(http_status, GAPI.INTERNAL_ERROR, message)
       elif 'Role assignment exists: RoleAssignment' in message:
-        error = {'error': {'errors': [{'reason': GAPI.DUPLICATE, 'message': message}]}}
+        error = makeErrorDict(http_status, GAPI.DUPLICATE, message)
       elif 'Role assignment exists: roleId' in message:
-        error = {'error': {'errors': [{'reason': GAPI.DUPLICATE, 'message': message}]}}
+        error = makeErrorDict(http_status, GAPI.DUPLICATE, message)
       elif 'Operation not supported' in message:
-        error = {'error': {'errors': [{'reason': GAPI.OPERATION_NOT_SUPPORTED, 'message': message}]}}
+        error = makeErrorDict(http_status, GAPI.OPERATION_NOT_SUPPORTED, message)
       elif 'Failed status in update settings response' in message:
-        error = {'error': {'errors': [{'reason': GAPI.INVALID_INPUT, 'message': message}]}}
+        error = makeErrorDict(http_status, GAPI.INVALID_INPUT, message)
     elif http_status == 400:
       if 'does not match' in message or 'Invalid' in message:
-        error = {'error': {'errors': [{'reason': GAPI.INVALID, 'message': message}]}}
+        error = makeErrorDict(http_status, GAPI.INVALID, message)
       elif '@AttachmentNotVisible' in message:
-        error = {'error': {'errors': [{'reason': GAPI.BAD_REQUEST, 'message': message}]}}
+        error = makeErrorDict(http_status, GAPI.BAD_REQUEST, message)
       elif status == 'FAILED_PRECONDITION' or 'Precondition check failed' in message:
-        error = {'error': {'errors': [{'reason': GAPI.FAILED_PRECONDITION, 'message': message}]}}
+        error = makeErrorDict(http_status, GAPI.FAILED_PRECONDITION, message)
       elif status == 'INVALID_ARGUMENT':
-        error = {'error': {'errors': [{'reason': GAPI.INVALID_ARGUMENT, 'message': message}]}}
+        error = makeErrorDict(http_status, GAPI.INVALID_ARGUMENT, message)
     elif http_status == 403:
       if status == 'PERMISSION_DENIED' or 'The caller does not have permission' in message or 'Permission iam.serviceAccountKeys' in message:
-        error = {'error': {'errors': [{'reason': GAPI.PERMISSION_DENIED, 'message': message}]}}
+        error = makeErrorDict(http_status, GAPI.PERMISSION_DENIED, message)
     elif http_status == 404:
       if status == 'NOT_FOUND' or 'Requested entity was not found' in message or 'does not exist' in message:
-        error = {'error': {'errors': [{'reason': GAPI.NOT_FOUND, 'message': message}]}}
+        error = makeErrorDict(http_status, GAPI.NOT_FOUND, message)
     elif http_status == 409:
       if status == 'ALREADY_EXISTS' or 'Requested entity already exists' in message:
-        error = {'error': {'errors': [{'reason': GAPI.ALREADY_EXISTS, 'message': message}]}}
+        error = makeErrorDict(http_status, GAPI.ALREADY_EXISTS, message)
     elif http_status == 429:
       if status == 'RESOURCE_EXHAUSTED' or 'Quota exceeded' in message:
-        error = {'error': {'errors': [{'reason': GAPI.QUOTA_EXCEEDED, 'message': message}]}}
+        error = makeErrorDict(http_status, GAPI.QUOTA_EXCEEDED, message)
   else:
     if 'error_description' in error:
       if error['error_description'] == 'Invalid Value':
         message = error['error_description']
         http_status = 400
-        error = {'error': {'errors': [{'reason': GAPI.INVALID, 'message': message}]}}
+        error = makeErrorDict(http_status, GAPI.INVALID, message)
       else:
         systemErrorExit(GOOGLE_API_ERROR_RC, str(error))
     else:
@@ -9040,37 +9043,28 @@ def doReportUsageParameters():
   customerId = GC.Values[GC.CUSTOMER_ID]
   if customerId == GC.MY_CUSTOMER:
     customerId = None
-  tryDate = todaysDate()
-  oneDay = datetime.timedelta(days=1)
-  partialApps = []
-  allParameters = []
+  tryDate = todaysDate().strftime(YYYYMMDD_FORMAT)
+  allParameters = set()
+  dataRequiredServices = {'all'}
   while True:
     try:
       result = callGAPI(service, 'get',
                         throw_reasons=[GAPI.INVALID, GAPI.BAD_REQUEST],
-                        date=tryDate.strftime(YYYYMMDD_FORMAT), customerId=customerId,
-                        fields='warnings(data),usageReports(parameters(name))',
-                        **kwargs)
-      hasReports = bool(result.get('usageReports', []))
-      if not hasReports:
-        tryDate -= oneDay
-        continue
-      partial_on_thisday = []
-      for warning in result.get('warnings', []):
-        for data in warning.get('data', []):
-          if data.get('key') == 'application':
-            partial_on_thisday.append(data['value'])
-      if partialApps:
-        partialApps = [app for app in partialApps if app in partial_on_thisday]
-      else:
-        partialApps = partial_on_thisday
-      for parameter in result['usageReports'][0]['parameters']:
-        name = parameter.get('name')
-        if name and name not in allParameters:
-          allParameters.append(name)
-      if not partialApps:
+                        date=tryDate, customerId=customerId, fields='warnings,usageReports(parameters(name))', **kwargs)
+      warnings = result.get('warnings', [])
+      usage = result.get('usageReports')
+      hasReports = bool(usage)
+      fullData, tryDate = _checkDataRequiredServices(warnings, tryDate, dataRequiredServices, hasReports)
+      if fullData < 0:
+        printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_USAGE_PARAMETERS_DATA_AVAILABLE)
+        return
+      if hasReports:
+        for parameter in usage[0]['parameters']:
+          name = parameter.get('name')
+          if name:
+            allParameters.add(name)
+      if fullData == 1:
         break
-      tryDate -= oneDay
     except GAPI.badRequest:
       printErrorMessage(BAD_REQUEST_RC, Msg.BAD_REQUEST)
       return
@@ -9078,9 +9072,7 @@ def doReportUsageParameters():
       tryDate = _adjustTryDate(str(e), False)
       if not tryDate:
         break
-      tryDate = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)
-  allParameters.sort()
-  for parameter in allParameters:
+  for parameter in sorted(allParameters):
     csvPF.WriteRow({'parameter': parameter})
   csvPF.writeCSVfile(f'{report.capitalize()} Report Usage Parameters')
 
@@ -10885,7 +10877,7 @@ def _showCustomerLicenseInfo(customerInfo, FJQC):
         return
       continue
     except GAPI.forbidden:
-      accessErrorExit(None)
+      return
   if not FJQC.formatJSON:
     printKeyValueList([f'User counts as of {tryDate}:'])
     Ind.Increment()
@@ -10909,9 +10901,12 @@ def doInfoCustomer(returnCustomerInfo=None, FJQC=None):
     customerInfo = callGAPI(cd.customers(), 'get',
                             throw_reasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                             customerKey=GC.Values[GC.CUSTOMER_ID])
-    customerInfo['verified'] = callGAPI(cd.domains(), 'get',
-                                        throw_reasons=[GAPI.DOMAIN_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                                        customer=customerInfo['id'], domainName=customerInfo['customerDomain'], fields='verified')['verified']
+    try:
+      customerInfo['verified'] = callGAPI(cd.domains(), 'get',
+                                          throw_reasons=[GAPI.DOMAIN_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                          customer=customerInfo['id'], domainName=customerInfo['customerDomain'], fields='verified')['verified']
+    except (GAPI.domainNotFound):
+      customerInfo['verified'] = False
     # From Jay Lee
     # If customer has changed primary domain, customerCreationTime is date of current primary being added, not customer create date.
     # We should get all domains and use oldest date
@@ -12585,7 +12580,7 @@ def doPrintAliases():
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
                                  page_message=getPageMessage(showFirstLastItems=True), message_attribute='email',
-                                 throw_reasons=GAPI.GROUP_LIST_RETRY_REASONS,
+                                 throw_reasons=GAPI.GROUP_LIST_THROW_REASONS,
                                  customer=GC.Values[GC.CUSTOMER_ID], orderBy='email',
                                  fields=f'nextPageToken,groups({",".join(groupFields)})')
     except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
@@ -17936,7 +17931,7 @@ def infoGroups(entityList):
                             groupUniqueId=group, fields=gsfields) # Use email address retrieved from cd since GS API doesn't support uid
       if getGroups:
         groups = callGAPIpages(cd.groups(), 'list', 'groups',
-                               throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
+                               throw_reasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
                                userKey=group, orderBy='email', fields='nextPageToken,groups(name,email)')
       if getUsers:
         validRoles, listRoles, listFields = _getRoleVerification(memberRoles, 'nextPageToken,members(email,id,role,status,type)')
@@ -18499,7 +18494,7 @@ def doPrintGroups():
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
                                  page_message=getPageMessage(showFirstLastItems=True), message_attribute='email',
-                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
+                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
                                  orderBy='email', fields=cdfieldsnp, maxResults=maxResults, **kwargs)
     except (GAPI.invalidMember, GAPI.invalidInput):
       invalidMember(kwargs)
@@ -18864,7 +18859,7 @@ def doPrintGroupMembers():
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
                                  page_message=getPageMessage(showFirstLastItems=True), message_attribute='email',
-                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
+                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
                                  orderBy='email', fields=f'nextPageToken,groups({",".join(set(cdfieldsList))})', **kwargs)
     except (GAPI.invalidMember, GAPI.invalidInput):
       invalidMember(kwargs)
@@ -19072,7 +19067,7 @@ def doShowGroupMembers():
     try:
       groupsList = callGAPIpages(cd.groups(), 'list', 'groups',
                                  page_message=getPageMessage(showFirstLastItems=True), message_attribute='email',
-                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
+                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
                                  orderBy='email', fields=f'nextPageToken,groups({",".join(set(cdfieldsList))})', **kwargs)
     except (GAPI.invalidMember, GAPI.invalidInput):
       invalidMember(kwargs)
@@ -19105,7 +19100,7 @@ def doPrintShowGroupTree():
     groupParents[groupEmail] = {'name': groupName, 'parents': []}
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
-                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
+                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
                                  userKey=groupEmail, orderBy='email', fields='nextPageToken,groups(email,name)')
       for parentGroup in entityList:
         groupParents[groupEmail]['parents'].append(parentGroup['email'])
@@ -25021,7 +25016,7 @@ def updateUsers(entityList):
       if groupOrgUnitMap:
         try:
           groups = callGAPIpages(cd.groups(), 'list', 'groups',
-                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
+                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
                                  userKey=userKey, orderBy='email', fields='nextPageToken,groups(email)')
         except (GAPI.invalidMember, GAPI.invalidInput):
           entityUnknownWarning(Ent.USER, userKey, i, count)
@@ -25511,9 +25506,13 @@ def infoUsers(entityList):
                       throw_reasons=GAPI.USER_GET_THROW_REASONS+[GAPI.INVALID_INPUT, GAPI.RESOURCE_NOT_FOUND],
                       userKey=userEmail, projection=projection, customFieldMask=customFieldMask, viewType=viewType, fields=fields)
       if getGroups:
-        groups = callGAPIpages(cd.groups(), 'list', 'groups',
-                               throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
-                               userKey=user['primaryEmail'], orderBy='email', fields='nextPageToken,groups(name,email)')
+        try:
+          groups = callGAPIpages(cd.groups(), 'list', 'groups',
+                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
+                                 userKey=user['primaryEmail'], orderBy='email', fields='nextPageToken,groups(name,email)')
+        except GAPI.forbidden:
+### Print some message
+          groups = []
       if getLicenses:
         svcargs = dict([('userId', None), ('productId', None), ('skuId', None), ('fields', 'skuId')]+GM.Globals[GM.EXTRA_ARGS_LIST])
         method = getattr(lic.licenseAssignments(), 'get')
@@ -26098,7 +26097,7 @@ def doPrintUsers(entityList=None):
         printGettingAllEntityItemsForWhom(Ent.GROUP_MEMBERSHIP, userEmail, i, count)
         try:
           groups = callGAPIpages(cd.groups(), 'list', 'groups',
-                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
+                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
                                  userKey=userEmail, orderBy='email', fields='nextPageToken,groups(email)')
           user['GroupsCount'] = len(groups)
           user['Groups'] = delimiter.join([groupname['email'] for groupname in groups])
@@ -39775,7 +39774,7 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
       cd = buildGAPIObject(API.DIRECTORY)
       try:
         groups = callGAPIpages(cd.groups(), 'list', 'groups',
-                               throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
+                               throw_reasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
                                userKey=emailAddress, orderBy='email', fields='nextPageToken,groups(email)')
       except (GAPI.invalidMember, GAPI.invalidInput):
         badRequestWarning(Ent.GROUP, Ent.MEMBER, emailAddress)
@@ -40049,7 +40048,7 @@ def deleteUserFromGroups(users):
     if groupKeys is None:
       try:
         result = callGAPIpages(cd.groups(), 'list', 'groups',
-                               throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
+                               throw_reasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
                                userKey=user, orderBy='email', fields='nextPageToken,groups(email)')
       except (GAPI.invalidMember, GAPI.invalidInput):
         badRequestWarning(Ent.GROUP, Ent.MEMBER, user)
@@ -40172,7 +40171,7 @@ def syncUserWithGroups(users):
     currGroups = {}
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
-                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
+                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
                                  userKey=user, orderBy='email', fields='nextPageToken,groups(email)')
     except (GAPI.invalidMember, GAPI.invalidInput):
       badRequestWarning(Ent.GROUP, Ent.MEMBER, user)
@@ -40247,7 +40246,7 @@ def printShowUserGroups(users):
     user = normalizeEmailAddressOrUID(user)
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
-                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_RETRY_REASONS,
+                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
                                  userKey=user, orderBy='email', fields='nextPageToken,groups(email)', **kwargs)
     except (GAPI.invalidMember, GAPI.invalidInput):
       badRequestWarning(Ent.GROUP, Ent.MEMBER, user)
