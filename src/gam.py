@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.30'
+__version__ = '5.03.31'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7812,7 +7812,7 @@ def _grantSARotateRights(iam, projectId, sa_email):
   body = {'policy': {'bindings': [{'role': 'roles/iam.serviceAccountKeyAdmin',
                                    'members': [f'serviceAccount:{sa_email}']}]}}
   callGAPI(iam.projects().serviceAccounts(), 'setIamPolicy',
-           resource=f'projects/-/serviceAccounts/{sa_email}', body=body)
+           resource=f'projects/{projectId}/serviceAccounts/{sa_email}', body=body)
 
 def _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo):
   iam = getAPIService(API.IAM, httpObj)
@@ -8075,7 +8075,7 @@ GAM_PROJECT_FILTER = 'id:gam-project-*'
 PROJECTID_FILTER_REQUIRED = 'current|gam|<ProjectID>|(filter <String>)'
 PROJECTS_CREATESVCACCT_OPTIONS = {'saname', 'sadisplayname', 'sadescription'}
 PROJECTS_DELETESVCACCT_OPTIONS = {'saemail', 'saname', 'sauniqueid'}
-PROJECTS_PRINTSHOW_OPTIONS = {'todrive', 'formatjson', 'quotechar'}
+PROJECTS_PRINTSHOW_OPTIONS = {'showsakeys', 'todrive', 'formatjson', 'quotechar'}
 
 def _getLoginHintProjects(createSvcAcctCmd=False, deleteSvcAcctCmd=False, printShowCmd=False):
   checkArgumentPresent(['admin'])
@@ -8219,7 +8219,7 @@ def doUseProject():
   _, httpObj, login_hint, _, projectInfo, svcAcctInfo = _getLoginHintProjectInfo(False)
   _createClientSecretsOauth2service(httpObj, login_hint, {}, projectInfo, svcAcctInfo)
 
-# gam update project [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
+# gam update project [[admin] <EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
 def doUpdateProject():
   _, httpObj, login_hint, projects = _getLoginHintProjects()
   count = len(projects)
@@ -8237,7 +8237,7 @@ def doUpdateProject():
     _grantSARotateRights(iam, projectId, GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email'])
   Ind.Decrement()
 
-# gam delete project [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
+# gam delete project [[admin] <EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
 def doDeleteProject():
   crm, _, login_hint, projects = _getLoginHintProjects()
   count = len(projects)
@@ -8256,9 +8256,9 @@ def doDeleteProject():
       entityActionFailedWarning([Ent.PROJECT, projectId], str(e))
   Ind.Decrement()
 
-# gam print projects [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)] [todrive <ToDriveAttribute>*]
+# gam print projects [[admin] <EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)] [todrive <ToDriveAttribute>*]
 #	[formatjson] [quotechar <Character>]
-# gam show projects [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
+# gam show projects [[admin] <EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
 def doPrintShowProjects():
   _, _, login_hint, projects = _getLoginHintProjects(printShowCmd=True)
   csvPF = CSVPrintFile('User') if Act.csvFormat() else None
@@ -8312,7 +8312,7 @@ def doPrintShowProjects():
           csvPF.WriteRowNoFilter({'User': login_hint, 'JSON': json.dumps(cleanJSON(project, timeObjects=['createTime']), ensure_ascii=False, sort_keys=True)})
     csvPF.writeCSVfile('Projects')
 
-# gam create|add svcacct [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
+# gam create|add svcacct [[admin] <EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
 #	[saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>>] [sadescription <ServiceAccountDescription>]
 def doCreateSvcAcct():
   _checkForExistingProjectFiles([GC.Values[GC.OAUTH2SERVICE_JSON]])
@@ -8340,7 +8340,7 @@ def doCreateSvcAcct():
     _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo)
   Ind.Decrement()
 
-# gam delete svcacct [<EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
+# gam delete svcacct [[admin] <EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
 #	(saemail <ServiceAccountEmail>)|(saname <ServiceAccountName>)|(sauniqueid <ServiceAccountUniqueID>)
 def doDeleteSvcAcct():
   _, httpObj, login_hint, projects = _getLoginHintProjects(deleteSvcAcctCmd=True)
@@ -8483,8 +8483,9 @@ def checkServiceAccount(users):
   printMessage(Msg.SERVICE_ACCOUNT_CHECK_PRIVATE_KEY_AGE)
   _, iam = buildGAPIServiceObject(API.IAM, None)
   currentPrivateKeyId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['private_key_id']
+  projectId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id']
   clientId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
-  name = f'projects/-/serviceAccounts/{clientId}/keys/{currentPrivateKeyId}'
+  name = f'projects/{projectId}/serviceAccounts/{clientId}/keys/{currentPrivateKeyId}'
   Ind.Increment()
   try:
     key = callGAPI(iam.projects().serviceAccounts().keys(), 'get',
@@ -8558,24 +8559,66 @@ def doCheckUpdateSvcAcct():
   _, entityList = getEntityToModify(defaultEntityType=Cmd.ENTITY_USER)
   checkServiceAccount(entityList)
 
-SVCACCT_DISPLAY_FIELDS = ['displayName', 'description', 'oauth2ClientId', 'uniqueId', 'disabled']
+def _getSAKeys(iam, projectId, clientEmail, name, keyTypes):
+  try:
+    keys = callGAPIitems(iam.projects().serviceAccounts().keys(), 'list', 'keys',
+                         throw_reasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
+                         name=name, keyTypes=keyTypes)
+    return (True, keys)
+  except GAPI.permissionDenied:
+    entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
+  except GAPI.badRequest as e:
+    entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
+  return (False, None)
 
-# gam print svcaccts [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)] [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
+def _showSAKeys(keys, count, currentPrivateKeyId):
+  Ind.Increment()
+  i = 0
+  for key in keys:
+    i += 1
+    keyName = key.pop('name').rsplit('/', 1)[-1]
+    printKeyValueListWithCount(['name', keyName], i, count)
+    Ind.Increment()
+    for k, v in sorted(iter(key.items())):
+      if k not in ['validAfterTime', 'validBeforeTime']:
+        printKeyValueList([k, v])
+      else:
+        printKeyValueList([k, formatLocalTime(v)])
+    if keyName == currentPrivateKeyId:
+      printKeyValueList(['usedToAuthenticateThisRequest', True])
+    Ind.Decrement()
+  Ind.Decrement()
+
+SVCACCT_DISPLAY_FIELDS = ['displayName', 'description', 'oauth2ClientId', 'uniqueId', 'disabled']
+SVCACCT_KEY_TYPE_CHOICE_MAP = {
+  'all': None,
+  'system': 'SYSTEM_MANAGED',
+  'systemmanaged': 'SYSTEM_MANAGED',
+  'user': 'USER_MANAGED',
+  'usermanaged': 'USER_MANAGED'
+  }
+
+# gam print svcaccts [[admin] <EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
+#	[showsakeys all|system|user]
+#	[todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
 # gam show svcaccts [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
+#	[showsakeys all|system|user]
 def doPrintShowSvcAccts():
   _, httpObj, login_hint, projects = _getLoginHintProjects(printShowCmd=True)
   csvPF = CSVPrintFile('User') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   iam = getAPIService(API.IAM, httpObj)
-  if csvPF:
-    while Cmd.ArgumentsRemaining():
-      myarg = getArgument()
-      if csvPF and myarg == 'todrive':
-        csvPF.GetTodriveParameters()
-      else:
-        FJQC.GetFormatJSONQuoteChar(myarg, True)
-  else:
-    checkForExtraneousArguments()
+  keyTypes = None
+  showSAKeys = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'showsakeys':
+      keyTypes = getChoice(SVCACCT_KEY_TYPE_CHOICE_MAP, mapChoice=True)
+      showSAKeys = True
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
   count = len(projects)
   if not csvPF:
     entityPerformActionSubItemModifierNumItems([Ent.USER, login_hint], Ent.SVCACCT, Act.MODIFIER_FOR, count, Ent.PROJECT)
@@ -8589,6 +8632,9 @@ def doPrintShowSvcAccts():
     projectId = project['projectId']
     if csvPF:
       printGettingAllEntityItemsForWhom(Ent.SVCACCT, projectId, i, count)
+    if project['lifecycleState'] != 'ACTIVE':
+      entityActionNotPerformedWarning([Ent.PROJECT, projectId], Msg.DELETED, i, count)
+      continue
     try:
       svcAccts = callGAPIpages(iam.projects().serviceAccounts(), 'list', 'accounts',
                                throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
@@ -8605,16 +8651,27 @@ def doPrintShowSvcAccts():
           for field in SVCACCT_DISPLAY_FIELDS:
             if field in svcAcct:
               printKeyValueList([field, svcAcct[field]])
+          if showSAKeys:
+            name = f"projects/{projectId}/serviceAccounts/{svcAcct['oauth2ClientId']}"
+            status, keys = _getSAKeys(iam, projectId, svcAcct['email'], name, keyTypes)
+            if status:
+              kcount = len(keys)
+              if kcount > 0:
+                printKeyValueList([Ent.Choose(Ent.SVCACCT_KEY, kcount), kcount])
+                _showSAKeys(keys, kcount, '')
           Ind.Decrement()
         Ind.Decrement()
       else:
-        if not FJQC.formatJSON:
-          for svcAcct in svcAccts:
+        for svcAcct in svcAccts:
+          if showSAKeys:
+            name = f"projects/{projectId}/serviceAccounts/{svcAcct['oauth2ClientId']}"
+            status, keys = _getSAKeys(iam, projectId, svcAcct['email'], name, keyTypes)
+            if status:
+              svcAcct['keys'] = keys
+          if not FJQC.formatJSON:
             csvPF.WriteRowTitles(flattenJSON(svcAcct, flattened={'User': login_hint}))
-        else:
-          for svcAcct in svcAccts:
-            if not csvPF.rowFilter or csvPF.CheckRowTitles(flattenJSON(svcAcct, flattened={'User': login_hint})):
-              csvPF.WriteRowNoFilter({'User': login_hint, 'JSON': json.dumps(cleanJSON(svcAcct), ensure_ascii=False, sort_keys=True)})
+          elif not csvPF.rowFilter or csvPF.CheckRowTitles(flattenJSON(svcAcct, flattened={'User': login_hint})):
+            csvPF.WriteRowNoFilter({'User': login_hint, 'JSON': json.dumps(cleanJSON(svcAcct), ensure_ascii=False, sort_keys=True)})
     except (GAPI.notFound, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.PROJECT, projectId], str(e))
   Ind.Decrement()
@@ -8692,7 +8749,7 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
     projectId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id']
     clientEmail = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']
     clientId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
-  name = f'projects/-/serviceAccounts/{clientId}'
+  name = f'projects/{projectId}/serviceAccounts/{clientId}'
   if mode != 'retainexisting':
     try:
       keys = callGAPIitems(iam.projects().serviceAccounts().keys(), 'list', 'keys',
@@ -8810,7 +8867,7 @@ def doDeleteSvcAcctKeys():
   projectId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id']
   clientEmail = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']
   clientId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
-  name = f'projects/-/serviceAccounts/{clientId}'
+  name = f'projects/{projectId}/serviceAccounts/{clientId}'
   try:
     keys = callGAPIitems(iam.projects().serviceAccounts().keys(), 'list', 'keys',
                          throw_reasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
@@ -8855,49 +8912,22 @@ def doShowSvcAcctKeys():
   keyTypes = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'all':
-      keyTypes = None
-    elif myarg in ['system', 'systemmanaged']:
-      keyTypes = 'SYSTEM_MANAGED'
-    elif myarg in ['user', 'usermanaged']:
-      keyTypes = 'USER_MANAGED'
+    if myarg in SVCACCT_KEY_TYPE_CHOICE_MAP:
+      keyTypes = SVCACCT_KEY_TYPE_CHOICE_MAP[myarg]
     else:
       unknownArgumentExit()
   currentPrivateKeyId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['private_key_id']
   projectId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id']
   clientEmail = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']
   clientId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
-  name = f'projects/-/serviceAccounts/{clientId}'
-  try:
-    keys = callGAPIitems(iam.projects().serviceAccounts().keys(), 'list', 'keys',
-                         throw_reasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
-                         name=name, keyTypes=keyTypes)
-  except GAPI.permissionDenied:
-    entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
-    return
-  except GAPI.badRequest as e:
-    entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
+  name = f'projects/{projectId}/serviceAccounts/{clientId}'
+  status, keys = _getSAKeys(iam, projectId, clientEmail, name, keyTypes)
+  if not status:
     return
   count = len(keys)
   entityPerformActionNumItems([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], count, Ent.SVCACCT_KEY)
-  if count == 0:
-    return
-  Ind.Increment()
-  i = 0
-  for key in keys:
-    i += 1
-    keyName = key.pop('name').rsplit('/', 1)[-1]
-    printKeyValueListWithCount(['name', keyName], i, count)
-    Ind.Increment()
-    for k, v in sorted(iter(key.items())):
-      if k not in ['validAfterTime', 'validBeforeTime']:
-        printKeyValueList([k, v])
-      else:
-        printKeyValueList([k, formatLocalTime(v)])
-    if keyName == currentPrivateKeyId:
-      printKeyValueList(['usedToAuthenticateThisRequest', True])
-    Ind.Decrement()
-  Ind.Decrement()
+  if count > 0:
+    _showSAKeys(keys, count, currentPrivateKeyId)
 
 # gam whatis <EmailItem> [noinfo]
 def doWhatIs():
@@ -9021,11 +9051,11 @@ def doReportUsageParameters():
                         date=tryDate.strftime(YYYYMMDD_FORMAT), customerId=customerId,
                         fields='warnings(data),usageReports(parameters(name))',
                         **kwargs)
-      partial_on_thisday = []
       hasReports = bool(result.get('usageReports', []))
       if not hasReports:
         tryDate -= oneDay
         continue
+      partial_on_thisday = []
       for warning in result.get('warnings', []):
         for data in warning.get('data', []):
           if data.get('key') == 'application':

@@ -1,3 +1,8 @@
+5.03.31
+
+Added option `showsakeys all|system|user` to `gam print|show svcaccts` that adds service account
+key information to the display. This requires an additional API call per service account.
+
 5.03.30
 
 Updated code in `gam report usageparameters` to avoid a trap due to a Google API change.
