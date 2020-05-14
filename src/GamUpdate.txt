@@ -1,3 +1,7 @@
+5.03.30
+
+Updated code in `gam report usageparameters` to avoid a trap due to a Google API change.
+
 5.03.29
 
 Following Jay's lead, cleaned up code for `gam report`; in particular, backing up to earlier dates to find data.

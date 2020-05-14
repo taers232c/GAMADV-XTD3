@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.29'
+__version__ = '5.03.30'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -9016,13 +9016,17 @@ def doReportUsageParameters():
   allParameters = []
   while True:
     try:
-      response = callGAPI(service, 'get',
-                          throw_reasons=[GAPI.INVALID, GAPI.BAD_REQUEST],
-                          date=tryDate.strftime(YYYYMMDD_FORMAT), customerId=customerId,
-                          fields='warnings(data),usageReports(parameters(name))',
-                          **kwargs)
+      result = callGAPI(service, 'get',
+                        throw_reasons=[GAPI.INVALID, GAPI.BAD_REQUEST],
+                        date=tryDate.strftime(YYYYMMDD_FORMAT), customerId=customerId,
+                        fields='warnings(data),usageReports(parameters(name))',
+                        **kwargs)
       partial_on_thisday = []
-      for warning in response.get('warnings', []):
+      hasReports = bool(result.get('usageReports', []))
+      if not hasReports:
+        tryDate -= oneDay
+        continue
+      for warning in result.get('warnings', []):
         for data in warning.get('data', []):
           if data.get('key') == 'application':
             partial_on_thisday.append(data['value'])
@@ -9030,7 +9034,7 @@ def doReportUsageParameters():
         partialApps = [app for app in partialApps if app in partial_on_thisday]
       else:
         partialApps = partial_on_thisday
-      for parameter in response['usageReports'][0]['parameters']:
+      for parameter in result['usageReports'][0]['parameters']:
         name = parameter.get('name')
         if name and name not in allParameters:
           allParameters.append(name)
