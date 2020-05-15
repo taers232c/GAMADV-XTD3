@@ -1,3 +1,9 @@
+5.03.32
+
+Fixed code in `gam <UserTypeEntity> create drivefile` to allow the `parentid` option to specify a Shared Drive.
+
+Upgraded to distro 1.5.0.
+
 5.03.31
 
 Added option `showsakeys all|system|user` to `gam print|show svcaccts` that adds service account

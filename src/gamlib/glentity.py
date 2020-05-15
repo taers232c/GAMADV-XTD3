@@ -150,6 +150,7 @@ class GamEntity():
   GUARDIAN_AND_INVITATION = 'gani'
   IMAP_ENABLED = 'imap'
   INSTANCE = 'inst'
+  IAM_POLICY = 'iamp'
   ITEM = 'item'
   ISSUER_CN = 'iss'
   KEYBOARD_SHORTCUTS_ENABLED = 'kbsc'
@@ -366,6 +367,7 @@ class GamEntity():
     GUARDIAN: ['Guardians', 'Guardian'],
     GUARDIAN_INVITATION: ['Guardian Invitations', 'Guardian Invitation'],
     GUARDIAN_AND_INVITATION: ['Guardians and Invitations', 'Guardian and Invitation'],
+    IAM_POLICY: ['IAM Policies', 'IAM Policy'],
     IMAP_ENABLED: ['IMAP Enabled', 'IMAP Enabled'],
     INSTANCE: ['Instances', 'Instance'],
     ISSUER_CN: ['Issuer CNs', 'Issuer CN'],

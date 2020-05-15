@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.31'
+__version__ = '5.03.32'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -31925,7 +31925,7 @@ def _getDriveFileParentInfo(drive, user, i, count, body, parameters, emptyQueryO
     try:
       result = callGAPI(drive.files(), 'get',
                         throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND],
-                        fileId=parameters[DFA_PARENTID], fields='id,mimeType')
+                        fileId=parameters[DFA_PARENTID], fields='id,mimeType', supportsAllDrives=True)
       if result['mimeType'] != MIMETYPE_GA_FOLDER:
         entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
                                         f'parentid: {parameters[DFA_PARENTID]}, {Msg.NOT_AN_ENTITY.format((Ent.Singular(Ent.DRIVE_FOLDER)))}', i, count)
