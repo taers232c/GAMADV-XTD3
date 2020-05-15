@@ -200,7 +200,7 @@ If an item contains spaces, it should be surrounded by ".
         gvpremier|voicepremier|googlevoicepremier|1010330002|
         chrome|cdm|googlechromedevicemanagement|Google-Chrome-Device-Management|
         coordinate|googlecoordinate|Google-Coordinate|
-        d4e|driveenterprise|drive4enterprise|1010060001|
+        gsuiteessentials|essentials|d4e|driveenterprise|drive4enterprise|1010060001|
         drive20gb|20gb|googledrivestorage20gb|Google-Drive-storage-20GB|
         drive50gb|50gb|googledrivestorage50gb|Google-Drive-storage-50GB|
         drive200gb|200gb|googledrivestorage200gb|Google-Drive-storage-200GB|
@@ -883,8 +883,10 @@ gam use project [admin <EmailAddress>] [project <ProjectID>]
 gam update project [[admin] <EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
 gam delete project [[admin] <EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
 gam show projects [[admin] <EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
-gam print projects [[admin] <EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
-        [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
+        [states all|active|deleterequested] [showiampolicies 0|1|3]
+gam print projects [[admin] <EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)] [todrive <ToDriveAttribute>*]
+        [states all|active|deleterequested] [showiampolicies 0|1|3 [onememberperrow]]
+        [delimiter <Character>]] [[formatjson] [quotechar <Character>]
 
 gam create|add svcacct [[admin] <EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
         [saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>]

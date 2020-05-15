@@ -101,6 +101,7 @@ PROJECT_APIS = [
   'chat.googleapis.com',
   'classroom.googleapis.com',
   'cloudidentity.googleapis.com',
+  'cloudresourcemanager.googleapis.com',
   'contacts.googleapis.com',
   'drive.googleapis.com',
   'driveactivity.googleapis.com',
@@ -407,6 +408,10 @@ _SVCACCT_SCOPES = [
   ]
 
 _SVCACCT_SPECIAL_SCOPES = [
+  {'name': 'Cloud Resource Manager API v1',
+   'api': CLOUDRESOURCEMANAGER_V1,
+   'subscopes': [],
+   'scope': 'https://www.googleapis.com/auth/cloud-platform'},
   {'name': 'Drive API - todrive',
    'api': DRIVETD,
    'subscopes': [],

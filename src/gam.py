@@ -8078,11 +8078,13 @@ GAM_PROJECT_FILTER = 'id:gam-project-*'
 PROJECTID_FILTER_REQUIRED = 'current|gam|<ProjectID>|(filter <String>)'
 PROJECTS_CREATESVCACCT_OPTIONS = {'saname', 'sadisplayname', 'sadescription'}
 PROJECTS_DELETESVCACCT_OPTIONS = {'saemail', 'saname', 'sauniqueid'}
-PROJECTS_PRINTSHOW_OPTIONS = {'showsakeys', 'todrive', 'formatjson', 'quotechar'}
+PROJECTS_PRINTSHOW_OPTIONS = {'showsakeys', 'showiampolicies', 'onememberperrow', 'states', 'todrive', 'delimiter', 'formatjson', 'quotechar'}
 
-def _getLoginHintProjects(createSvcAcctCmd=False, deleteSvcAcctCmd=False, printShowCmd=False):
-  checkArgumentPresent(['admin'])
-  login_hint = getString(Cmd.OB_EMAIL_ADDRESS, optional=True)
+def _getLoginHintProjects(createSvcAcctCmd=False, deleteSvcAcctCmd=False, printShowCmd=False, readOnly=False):
+  if checkArgumentPresent(['admin']):
+    login_hint = getString(Cmd.OB_EMAIL_ADDRESS)
+  else:
+    login_hint = getString(Cmd.OB_EMAIL_ADDRESS, optional=True)
   if login_hint and login_hint.find('@') == -1:
     Cmd.Backup()
     login_hint = None
@@ -8114,7 +8116,16 @@ def _getLoginHintProjects(createSvcAcctCmd=False, deleteSvcAcctCmd=False, printS
   if not printShowCmd and not createSvcAcctCmd and not deleteSvcAcctCmd:
     checkForExtraneousArguments()
   login_hint = _getValidateLoginHint(login_hint)
-  httpObj, crm = getCRMService(login_hint)
+  if readOnly:
+    _getSvcAcctData()
+    if GM.Globals[GM.SVCACCT_SCOPES_DEFINED] and API.CLOUDRESOURCEMANAGER_V1 in GM.Globals[GM.SVCACCT_SCOPES]:
+      _, crm = buildGAPIServiceObject(API.CLOUDRESOURCEMANAGER_V1, login_hint)
+      if crm:
+        httpObj = crm._http
+  else:
+    crm = None
+  if not crm:
+    httpObj, crm = getCRMService(login_hint)
   if pfilter in {'current', 'id:current'}:
     projectID = _getCurrentProjectID()
     if not printShowCmd:
@@ -8259,22 +8270,52 @@ def doDeleteProject():
       entityActionFailedWarning([Ent.PROJECT, projectId], str(e))
   Ind.Decrement()
 
+PROJECT_TIMEOBJECTS = ['createTime']
+PROJECT_STATE_CHOICE_MAP = {
+  'all': {'ACTIVE', 'DELETE_REQUESTED'},
+  'active': {'ACTIVE'},
+  'deleterequested': {'DELETE_REQUESTED'}
+  }
+
 # gam print projects [[admin] <EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)] [todrive <ToDriveAttribute>*]
-#	[formatjson] [quotechar <Character>]
+#	[states all|active|deleterequested] [showiampolicies 0|1|3 [onememberperrow]]
+#	[delimiter <Character>]] [[formatjson] [quotechar <Character>]
 # gam show projects [[admin] <EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
+#	[states all|active|deleterequested] [showiampolicies 0|1|3]
 def doPrintShowProjects():
-  _, _, login_hint, projects = _getLoginHintProjects(printShowCmd=True)
-  csvPF = CSVPrintFile('User') if Act.csvFormat() else None
+  def _getProjectPolicies(crm, projectId, policyBody, i, count):
+    try:
+      policy = callGAPI(crm.projects(), 'getIamPolicy',
+                        throw_reasons=[GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                        resource=projectId, body=policyBody)
+      return policy
+    except (GAPI.forbidden, GAPI.permissionDenied) as e:
+      entityActionFailedWarning([Ent.PROJECT, projectId, Ent.IAM_POLICY], str(e), i, count)
+    return {}
+
+  crm, _, login_hint, projects = _getLoginHintProjects(printShowCmd=True, readOnly=True)
+  csvPF = CSVPrintFile(['User', 'projectId']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-  if csvPF:
-    while Cmd.ArgumentsRemaining():
-      myarg = getArgument()
-      if csvPF and myarg == 'todrive':
-        csvPF.GetTodriveParameters()
-      else:
-        FJQC.GetFormatJSONQuoteChar(myarg, True)
-  else:
-    checkForExtraneousArguments()
+  oneMemberPerRow = False
+  showIAMPolicies = -1
+  lifecycleStates = PROJECT_STATE_CHOICE_MAP['active']
+  policy = None
+  delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif csvPF and myarg == 'onememberperrow':
+      oneMemberPerRow = True
+    elif myarg == 'states':
+      lifecycleStates = getChoice(PROJECT_STATE_CHOICE_MAP, mapChoice=True)
+    elif myarg == 'showiampolicies':
+      showIAMPolicies = int(getChoice(['0', '1', '3']))
+      policyBody = {'options': {"requestedPolicyVersion": showIAMPolicies}}
+    elif myarg == 'delimiter':
+      delimiter = getCharacter()
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
   if not csvPF:
     count = len(projects)
     entityPerformActionNumItems([Ent.USER, login_hint], count, Ent.PROJECT)
@@ -8282,7 +8323,12 @@ def doPrintShowProjects():
     i = 0
     for project in projects:
       i += 1
-      printEntity([Ent.PROJECT, project['projectId']], i, count)
+      if project['lifecycleState'] not in lifecycleStates:
+        continue
+      projectId = project['projectId']
+      if showIAMPolicies >= 0:
+        policy = _getProjectPolicies(crm, projectId, policyBody, i, count)
+      printEntity([Ent.PROJECT, projectId], i, count)
       Ind.Increment()
       printKeyValueList(['projectNumber', project['projectNumber']])
       printKeyValueList(['name', project['name']])
@@ -8301,18 +8347,73 @@ def doPrintShowProjects():
         printKeyValueList(['type', project['parent']['type']])
         printKeyValueList(['id', project['parent']['id']])
         Ind.Decrement()
+      if policy:
+        printKeyValueList([Ent.Singular(Ent.IAM_POLICY), ''])
+        Ind.Increment()
+        jcount = len(policy['bindings'])
+        printKeyValueList(['version', policy['version']])
+        printKeyValueList(['bindings', jcount])
+        Ind.Increment()
+        j = 0
+        for binding in policy['bindings']:
+          j += 1
+          printKeyValueListWithCount(['role', binding['role']], j, jcount)
+          Ind.Increment()
+          for member in binding.get('members', []):
+            printKeyValueList(['member', member])
+          if 'condition' in binding:
+            printKeyValueList(['condition', ''])
+            Ind.Increment()
+            for k, v in iter(binding['condition'].items()):
+              printKeyValueList([k, v])
+            Ind.Decrement()
+          Ind.Decrement()
+        Ind.Decrement()
+        Ind.Decrement()
       Ind.Decrement()
     Ind.Decrement()
   else:
-    csvPF.AddTitles(['projectId', 'projectNumber', 'name', 'createTime', 'lifecycleState'])
-    csvPF.SetSortAllTitles()
     if not FJQC.formatJSON:
-      for project in projects:
-        csvPF.WriteRowTitles(flattenJSON(project, flattened={'User': login_hint}, timeObjects=['createTime']))
-    else:
-      for project in projects:
-        if not csvPF.rowFilter or csvPF.CheckRowTitles(flattenJSON(project, flattened={'User': login_hint}, timeObjects=['createTime'])):
-          csvPF.WriteRowNoFilter({'User': login_hint, 'JSON': json.dumps(cleanJSON(project, timeObjects=['createTime']), ensure_ascii=False, sort_keys=True)})
+      csvPF.AddTitles(['projectId', 'projectNumber', 'name', 'createTime', 'lifecycleState'])
+      csvPF.SetSortAllTitles()
+    count = len(projects)
+    i = 0
+    for project in projects:
+      i += 1
+      if project['lifecycleState'] not in lifecycleStates:
+        continue
+      projectId = project['projectId']
+      if showIAMPolicies >= 0:
+        policy = _getProjectPolicies(crm, projectId, policyBody, i, count)
+      if FJQC.formatJSON:
+        if policy is not None:
+          project['policy'] = policy
+        row = flattenJSON(project, flattened={'User': login_hint}, timeObjects=PROJECT_TIMEOBJECTS)
+        if not csvPF.rowFilter or csvPF.CheckRowTitles(row):
+          csvPF.WriteRowNoFilter({'User': login_hint, 'projectId': projectId,
+                                  'JSON': json.dumps(cleanJSON(project),
+                                                     ensure_ascii=False, sort_keys=True)})
+        continue
+      row = flattenJSON(project, flattened={'User': login_hint}, timeObjects=PROJECT_TIMEOBJECTS)
+      if not policy:
+        csvPF.WriteRowTitles(row)
+        continue
+      row['policy.version'] = policy['version']
+      for binding in policy['bindings']:
+        prow = row.copy()
+        prow['policy.role'] = binding['role']
+        if 'condition' in binding:
+          for k, v in iter(binding['condition'].items()):
+            prow[f'policy.condition.{k}'] = v
+        members = binding.get('members', [])
+        if not oneMemberPerRow:
+          prow['policy.members'] = delimiter.join(members)
+          csvPF.WriteRowTitles(prow)
+        else:
+          for member in members:
+            mrow = prow.copy()
+            mrow['policy.member'] = member
+            csvPF.WriteRowTitles(mrow)
     csvPF.writeCSVfile('Projects')
 
 # gam create|add svcacct [[admin] <EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
@@ -8574,6 +8675,8 @@ def _getSAKeys(iam, projectId, clientEmail, name, keyTypes):
     entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
   return (False, None)
 
+SVCACCT_KEY_TIME_OBJECTS = ['validAfterTime', 'validBeforeTime']
+
 def _showSAKeys(keys, count, currentPrivateKeyId):
   Ind.Increment()
   i = 0
@@ -8583,7 +8686,7 @@ def _showSAKeys(keys, count, currentPrivateKeyId):
     printKeyValueListWithCount(['name', keyName], i, count)
     Ind.Increment()
     for k, v in sorted(iter(key.items())):
-      if k not in ['validAfterTime', 'validBeforeTime']:
+      if k not in SVCACCT_KEY_TIME_OBJECTS:
         printKeyValueList([k, v])
       else:
         printKeyValueList([k, formatLocalTime(v)])
@@ -8607,8 +8710,8 @@ SVCACCT_KEY_TYPE_CHOICE_MAP = {
 # gam show svcaccts [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
 #	[showsakeys all|system|user]
 def doPrintShowSvcAccts():
-  _, httpObj, login_hint, projects = _getLoginHintProjects(printShowCmd=True)
-  csvPF = CSVPrintFile('User') if Act.csvFormat() else None
+  _, httpObj, login_hint, projects = _getLoginHintProjects(printShowCmd=True, readOnly=True)
+  csvPF = CSVPrintFile(['User', 'projectId']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   iam = getAPIService(API.IAM, httpObj)
   keyTypes = None
@@ -8671,10 +8774,13 @@ def doPrintShowSvcAccts():
             status, keys = _getSAKeys(iam, projectId, svcAcct['email'], name, keyTypes)
             if status:
               svcAcct['keys'] = keys
+          row = flattenJSON(svcAcct, flattened={'User': login_hint}, timeObjects=SVCACCT_KEY_TIME_OBJECTS)
           if not FJQC.formatJSON:
-            csvPF.WriteRowTitles(flattenJSON(svcAcct, flattened={'User': login_hint}))
-          elif not csvPF.rowFilter or csvPF.CheckRowTitles(flattenJSON(svcAcct, flattened={'User': login_hint})):
-            csvPF.WriteRowNoFilter({'User': login_hint, 'JSON': json.dumps(cleanJSON(svcAcct), ensure_ascii=False, sort_keys=True)})
+            csvPF.WriteRowTitles(row)
+          elif not csvPF.rowFilter or csvPF.CheckRowTitles(row):
+            csvPF.WriteRowNoFilter({'User': login_hint, 'projectId': projectId,
+                                    'JSON': json.dumps(cleanJSON(svcAcct, timeObjects=SVCACCT_KEY_TIME_OBJECTS),
+                                                       ensure_ascii=False, sort_keys=True)})
     except (GAPI.notFound, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.PROJECT, projectId], str(e))
   Ind.Decrement()

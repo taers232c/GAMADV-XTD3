@@ -2,6 +2,14 @@
 
 Fixed code in `gam <UserTypeEntity> create drivefile` to allow the `parentid` option to specify a Shared Drive.
 
+Added option `states all|active|deleterequested` to `gam print|show projects` that allows selection of
+projects to display based on their state.
+
+Added option `showiampolicies 0|1|3` to `gam print|show projects` that adds project policy
+information to the display. This requires an additional API call per project.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Authorization#display-projects
+
 Upgraded to distro 1.5.0.
 
 5.03.31
