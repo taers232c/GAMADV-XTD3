@@ -1,3 +1,9 @@
+5.03.33
+
+Fixed bug in `gam print projects` that caused a trap when `showiampolicies` was used.
+
+Upgraded to Python 3.8.3.
+
 5.03.32
 
 Fixed code in `gam <UserTypeEntity> create drivefile` to allow the `parentid` option to specify a Shared Drive.

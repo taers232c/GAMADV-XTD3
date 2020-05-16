@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.32'
+__version__ = '5.03.33'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7930,9 +7930,9 @@ def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo,
 def _getProjects(crm, pfilter):
   try:
     return callGAPIpages(crm.projects(), 'list', 'projects',
-                         throw_reasons=[GAPI.BAD_REQUEST],
+                         throw_reasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
                          filter=pfilter)
-  except GAPI.badRequest as e:
+  except (GAPI.badRequest, GAPI.invalidArgument) as e:
     entityActionFailedExit([Ent.PROJECT, pfilter], str(e))
 
 def convertGCPFolderNameToID(parent, crm2):
@@ -8350,12 +8350,13 @@ def doPrintShowProjects():
       if policy:
         printKeyValueList([Ent.Singular(Ent.IAM_POLICY), ''])
         Ind.Increment()
-        jcount = len(policy['bindings'])
+        bindings = policy.get('bindings', [])
+        jcount = len(bindings)
         printKeyValueList(['version', policy['version']])
         printKeyValueList(['bindings', jcount])
         Ind.Increment()
         j = 0
-        for binding in policy['bindings']:
+        for binding in bindings:
           j += 1
           printKeyValueListWithCount(['role', binding['role']], j, jcount)
           Ind.Increment()
@@ -8399,7 +8400,7 @@ def doPrintShowProjects():
         csvPF.WriteRowTitles(row)
         continue
       row['policy.version'] = policy['version']
-      for binding in policy['bindings']:
+      for binding in policy.get('bindings', []):
         prow = row.copy()
         prow['policy.role'] = binding['role']
         if 'condition' in binding:
@@ -11011,7 +11012,7 @@ def doInfoCustomer(returnCustomerInfo=None, FJQC=None):
       customerInfo['verified'] = callGAPI(cd.domains(), 'get',
                                           throw_reasons=[GAPI.DOMAIN_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                                           customer=customerInfo['id'], domainName=customerInfo['customerDomain'], fields='verified')['verified']
-    except (GAPI.domainNotFound):
+    except GAPI.domainNotFound:
       customerInfo['verified'] = False
     # From Jay Lee
     # If customer has changed primary domain, customerCreationTime is date of current primary being added, not customer create date.
