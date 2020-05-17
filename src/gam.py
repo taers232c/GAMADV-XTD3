@@ -7187,8 +7187,11 @@ def doThreadBatch():
 def doAutoBatch(entityType, entityList, CL_command):
   remaining = Cmd.Remaining()
   items = []
+  initial_argv = [Cmd.GAM_CMD]
+  if GM.Globals[GM.SECTION]:
+    initial_argv.extend([Cmd.SELECT_CMD, GM.Globals[GM.SECTION]])
   for entity in entityList:
-    items.append([Cmd.GAM_CMD, entityType, entity, CL_command]+remaining)
+    items.append(initial_argv+[entityType, entity, CL_command]+remaining)
   MultiprocessGAMCommands(items, False)
 
 # Process command line arguments, find substitutions
