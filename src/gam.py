@@ -45887,7 +45887,7 @@ def doLoop():
   GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = mpQueue
   for row in csvFile:
     if checkMatchSkipFields(row, matchFields, skipFields):
-      ProcessGAMCommand(processSubFields(GAM_argv, row, subFields), processGamCfg=processGamCfg)
+      ProcessGAMCommand(processSubFields(GAM_argv, row, subFields), processGamCfg=processGamCfg, inLoop=True)
       if (GM.Globals[GM.SYSEXITRC] > 0) and (GM.Globals[GM.SYSEXITRC] <= HARD_ERROR_RC):
         break
   closeFile(f)
