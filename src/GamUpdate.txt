@@ -1,3 +1,16 @@
+5.03.34
+
+Updated code to properly handle `gam.cfg` section selection in conjunction with `csv` processung.
+This command structure now operates as expected; `gam.cfg` `<SectionName>` is used for all processing.
+```
+gam select <SectionName> ... csv <FileName> ... gam ...
+```
+Previously, you had to do either of the following to get `gam.cfg` `<SectionName>` to be used for all processing.
+```
+gam select <SectionName> save ... csv <FileName> ... gam ...
+gam csv <FileName> ... gam select <SectionName> ...
+```
+
 5.03.33
 
 Fixed bug in `gam print projects` that caused a trap when `showiampolicies` was used.

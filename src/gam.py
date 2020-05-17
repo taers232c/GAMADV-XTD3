@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.33'
+__version__ = '5.03.34'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2911,6 +2911,7 @@ def SetGlobalVariables():
       systemErrorExit(FILE_ERROR_RC, fileErrorMessage(fileName, e))
 
   def _writeGamCfgFile(config, fileName, action):
+    GM.Globals[GM.SECTION] = None # No need to save section for inner gams
     try:
       with open(fileName, DEFAULT_FILE_WRITE_MODE) as f:
         config.write(f)
@@ -3070,6 +3071,7 @@ def SetGlobalVariables():
 # select <SectionName> [save] [verify]
   if checkArgumentPresent(Cmd.SELECT_CMD):
     sectionName = _selectSection()
+    GM.Globals[GM.SECTION] = sectionName # Save section for inner gams
     while Cmd.ArgumentsRemaining():
       if checkArgumentPresent('save'):
         GM.Globals[GM.PARSER].set(configparser.DEFAULTSECT, GC.SECTION, sectionName)
@@ -7284,7 +7286,10 @@ def doCSV():
   checkArgumentPresent(Cmd.GAM_CMD, required=True)
   if not Cmd.ArgumentsRemaining():
     missingArgumentExit(Cmd.OB_GAM_ARGUMENT_LIST)
-  GAM_argv, subFields = getSubFields([Cmd.GAM_CMD], fieldnames)
+  initial_argv = [Cmd.GAM_CMD]
+  if GM.Globals[GM.SECTION] and not Cmd.PeekArgumentPresent(Cmd.SELECT_CMD):
+    initial_argv.extend([Cmd.SELECT_CMD, GM.Globals[GM.SECTION]])
+  GAM_argv, subFields = getSubFields(initial_argv, fieldnames)
   items = []
   for row in csvFile:
     if checkMatchSkipFields(row, matchFields, skipFields):
@@ -45744,7 +45749,7 @@ def closeSTDFilesIfNotMultiprocessing():
     closeSTDFile(GM.STDERR, sys.stderr)
 
 # Process GAM command
-def ProcessGAMCommand(args, processGamCfg=True):
+def ProcessGAMCommand(args, processGamCfg=True, inLoop=False):
   setSysExitRC(0)
   Cmd.InitializeArguments(args)
   Ind.Reset()
@@ -45834,20 +45839,22 @@ def ProcessGAMCommand(args, processGamCfg=True):
     adjustRedirectedSTDFilesIfNotMultiprocessing()
   except SystemExit as e:
     GM.Globals[GM.SYSEXITRC] = e.code
-    showAPICallsRetryData()
-    try:
-      adjustRedirectedSTDFilesIfNotMultiprocessing()
-    except SystemExit:
-      pass
+    if not inLoop:
+      showAPICallsRetryData()
+      try:
+        adjustRedirectedSTDFilesIfNotMultiprocessing()
+      except SystemExit:
+        pass
   except Exception:
     print_exc(file=sys.stderr)
     setSysExitRC(UNKNOWN_ERROR_RC)
     showAPICallsRetryData()
     adjustRedirectedSTDFilesIfNotMultiprocessing()
   if processGamCfg:
-    if GM.Globals.get(GM.SAVED_STDOUT) is not None:
-      sys.stdout = GM.Globals[GM.SAVED_STDOUT]
-    closeSTDFilesIfNotMultiprocessing()
+    if not inLoop:
+      if GM.Globals.get(GM.SAVED_STDOUT) is not None:
+        sys.stdout = GM.Globals[GM.SAVED_STDOUT]
+      closeSTDFilesIfNotMultiprocessing()
   return GM.Globals[GM.SYSEXITRC]
 
 # gam loop <FileName>|-|(gsheet <UserGoogleSheet>) [charset <String>] [warnifnodata]

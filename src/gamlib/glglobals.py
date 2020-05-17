@@ -142,6 +142,8 @@ REDIRECT_QUEUE_VALUES = 'values'
 REDIRECT_QUEUE_START = 'start'
 REDIRECT_QUEUE_END = 'end'
 REDIRECT_QUEUE_EOF = 'eof'
+# Section name from outer gam, passed to inner gams
+SECTION = 'sect'
 # Most errors print a message and bail out with a return code
 # Some commands want to set a non-zero return code but not bail
 SYSEXITRC = 'sxrc'
@@ -207,6 +209,7 @@ Globals = {
   STDERR: {},
   STDOUT: {},
   SAVED_STDOUT: None,
+  SECTION: None,
   SYSEXITRC: 0,
   SYS_ENCODING: 'utf-8',
   TBATCH_QUEUE: None,
