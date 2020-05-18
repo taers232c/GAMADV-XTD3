@@ -1,3 +1,7 @@
+5.03.35
+
+Fixed bug in `gam print|show projects` that caused a trap.
+
 5.03.34
 
 Updated code to properly handle `gam.cfg` section selection in conjunction with `csv` processung.

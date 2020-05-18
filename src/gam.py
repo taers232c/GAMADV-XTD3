@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.34'
+__version__ = '5.03.35'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -8124,14 +8124,13 @@ def _getLoginHintProjects(createSvcAcctCmd=False, deleteSvcAcctCmd=False, printS
   if not printShowCmd and not createSvcAcctCmd and not deleteSvcAcctCmd:
     checkForExtraneousArguments()
   login_hint = _getValidateLoginHint(login_hint)
+  crm = None
   if readOnly:
     _getSvcAcctData()
     if GM.Globals[GM.SVCACCT_SCOPES_DEFINED] and API.CLOUDRESOURCEMANAGER_V1 in GM.Globals[GM.SVCACCT_SCOPES]:
       _, crm = buildGAPIServiceObject(API.CLOUDRESOURCEMANAGER_V1, login_hint)
       if crm:
         httpObj = crm._http
-  else:
-    crm = None
   if not crm:
     httpObj, crm = getCRMService(login_hint)
   if pfilter in {'current', 'id:current'}:
