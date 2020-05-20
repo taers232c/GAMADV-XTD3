@@ -2377,7 +2377,6 @@ gam report <ActivityApplicationName> [todrive <ToDriveAttribute>*]
         gmail|
         gplus|
         meet|
-        mobile|
         sites
 <CustomerServiceNameList> ::= "<CustomerServiceName>(,<CustomerServiceName>)*"
 
@@ -2390,7 +2389,8 @@ gam report customers|customer|domain [todrive <ToDriveAttribute>*]
         classroom|
         docs|
         drive|
-        gmail
+        gmail|
+        gplus
 <UserServiceNameList> ::= "<UserServiceName>(,<UserServiceName>)*"
 
 gam report users|user [todrive <ToDriveAttribute>*]
@@ -2702,9 +2702,10 @@ These commands are used to manage the ACLs on the Team Drives themselves, not th
 In these commands, the Google administrator named in oauth2.txt is used.
 
 gam create|add drivefileacl <TeamDriveEntityAdmin>
-        anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>) (role <DriveFileACLRole>)
-        [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>]
-        [sendemail] [emailmessage <String>] [showtitles] [nodetails]
+        anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
+        (role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])]
+        [enforceSingleParent [<Boolean>]] [moveToNewOwnersRoot [<Boolean>]]
+        [expiration <Time>] [sendemail] [emailmessage <String>] [showtitles] [nodetails]
 gam update drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail>
         (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails]
 gam delete drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles]
@@ -3122,7 +3123,7 @@ gam print users [todrive <ToDriveAttribute>*]
         ([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)]
          [limittoou <OrgUnitPath>] [deleted_only|only_deleted])
         [orderby <UserOrderByFieldName> [ascending|descending]]
-        [groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
+        [groups|groupsincolumns] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
         [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>] [quoteplusphonenumbers]
         [issuspended <Boolean>]
@@ -3131,14 +3132,14 @@ Print fields for specified users.
 
 gam print users [todrive <ToDriveAttribute>*] select <UserTypeEntity>
         [orderby <UserOrderByFieldName> [ascending|descending]]
-        [groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
+        [groups|groupsincolumns] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
         [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>] [quoteplusphonenumbers]
         [issuspended <Boolean>]
 
 gam <UserTypeEntity> print users [todrive <ToDriveAttribute>*]
         [orderby <UserOrderByFieldName> [ascending|descending]]
-        [groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
+        [groups|groupsincolumns] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
         [delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>] [quoteplusphonenumbers]
         [issuspended <Boolean>]

@@ -1,3 +1,15 @@
+5.03.36
+
+Added option `groupsincolumns` to `gam print users` as an alternative to the `groups` option.
+
+With `groups', there will be two columns displayed: `GroupsCount` and `Groups`.
+* `GroupsCount` - The number of groups to which the user belongs
+* `Groups` - A list of group email addresses
+
+With `groupsincolumns', there will be multiple columns displayed: `Groups` and `Groups.<Number>`.
+* `Groups` - The number of groups to which the user belongs
+* `Groups.<Number>` - A single group enail address
+
 5.03.35
 
 Fixed bug in `gam print|show projects` that caused a trap.

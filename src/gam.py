@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.35'
+__version__ = '5.03.36'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -9404,7 +9404,6 @@ CUSTOMER_REPORT_SERVICES = [
   'gmail',
   'gplus',
   'meet',
-  'mobile',
   'sites',
   ]
 
@@ -9414,6 +9413,7 @@ USER_REPORT_SERVICES = [
   'docs',
   'drive',
   'gmail',
+  'gplus',
   ]
 
 REPORT_ACTIVITIES_TIME_OBJECTS = {'time'}
@@ -25919,14 +25919,14 @@ USERS_INDEXED_TITLES = ['addresses', 'aliases', 'nonEditableAliases', 'emails', 
 # gam print users [todrive <ToDriveAttribute>*]
 #	([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)]
 #	 [limittoou <OrgUnitItem>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
-#	[groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
+#	[groups|groupsincolumns] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
 #	[orderby <UserOrderByFieldName> [ascending|descending]]
 #	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
 #	[delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>] [quoteplusphonenumbers]
 #	[issuspended <Boolean>]
 #
 # gam <UserTypeEntity> print users [todrive <ToDriveAttribute>*]
-#	[groups] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
+#	[groups|groupsincolumns] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
 #	[orderby <UserOrderByFieldName> [ascending|descending]]
 #	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
 #	[delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>] [quoteplusphonenumbers]
@@ -25991,7 +25991,7 @@ def doPrintUsers(entityList=None):
   fieldsList = ['primaryEmail']
   csvPF = CSVPrintFile(fieldsList, indexedTitles=USERS_INDEXED_TITLES)
   FJQC = FormatJSONQuoteChar(csvPF)
-  countOnly = sortHeaders = getGroupFeed = getLicenseFeed = emailParts = False
+  countOnly = sortHeaders = getGroupFeed = getLicenseFeed = groupsInColumns = emailParts = False
   customer = GC.Values[GC.CUSTOMER_ID]
   domain = None
   queries = [None]
@@ -26051,6 +26051,10 @@ def doPrintUsers(entityList=None):
       pass
     elif myarg == 'groups':
       getGroupFeed = True
+      groupsInColumns = False
+    elif myarg == 'groupsincolumns':
+      getGroupFeed = True
+      groupsInColumns = True
     elif myarg in {'license', 'licenses', 'licence', 'licences'}:
       getLicenseFeed = True
     elif myarg in {'emailpart', 'emailparts', 'username'}:
@@ -26202,7 +26206,11 @@ def doPrintUsers(entityList=None):
       orderBy = 'primaryEmail' if orderBy == 'email' else f'name.{orderBy}'
       csvPF.SortRows(orderBy, reverse=sortOrder == 'DESCENDING')
     if getGroupFeed:
-      csvPF.AddTitles(['GroupsCount', 'Groups'])
+      if not groupsInColumns:
+        csvPF.AddTitles(['GroupsCount', 'Groups'])
+      else:
+        csvPF.AddTitles(['Groups'])
+      maxGroups = 0
       i = 0
       count = len(csvPF.rows)
       for user in csvPF.rows:
@@ -26213,12 +26221,22 @@ def doPrintUsers(entityList=None):
           groups = callGAPIpages(cd.groups(), 'list', 'groups',
                                  throw_reasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
                                  userKey=userEmail, orderBy='email', fields='nextPageToken,groups(email)')
-          user['GroupsCount'] = len(groups)
-          user['Groups'] = delimiter.join([groupname['email'] for groupname in groups])
+          numGroups = len(groups)
+          if not groupsInColumns:
+            user['GroupsCount'] = numGroups
+            user['Groups'] = delimiter.join([groupname['email'] for groupname in groups])
+          else:
+            if numGroups > maxGroups:
+              maxGroups = numGroups
+            user['Groups'] = numGroups
+            for j, group in enumerate(groups):
+              user[f'Groups.{j}'] = group['email']
         except (GAPI.invalidMember, GAPI.invalidInput):
           badRequestWarning(Ent.GROUP, Ent.MEMBER, userEmail)
         except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
           accessErrorExit(cd)
+      if groupsInColumns:
+        csvPF.AddTitles([f'Groups.{j}' for j in range(maxGroups)])
     if getLicenseFeed:
       csvPF.AddTitles(['LicensesCount', 'Licenses', 'LicensesDisplay'])
       licenses = doPrintLicenses(returnFields=['userId', 'skuId'])
@@ -36604,7 +36622,7 @@ def moveDriveFile(users):
               entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, destFilename], Msg.DUPLICATE, j, jcount)
               _incrStatistic(statistics, STAT_FOLDER_DUPLICATE)
               continue
-          if ((not copyMoveOptions['sourceDriveId'] and copyMoveOptions['destDriveId']) or
+          if ((copyMoveOptions['sourceDriveId'] != copyMoveOptions['destDriveId']) or
               copyMoveOptions['mergeWithParent'] or copyMoveOptions['mergeWithParentRetain'] or copyMoveOptions['retainSourceFolders'] or
               (copyMoveOptions['copySubFileParents'] != COPY_NONPATH_PARENTS) or (copyMoveOptions['copySubFolderParents'] != COPY_NONPATH_PARENTS) or
               (copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE and _targetFilenameExists(destFilename, source['mimeType'], targetChildren))):
