@@ -1,3 +1,8 @@
+5.03.37
+
+Updated `gam <UserTypeEntity> get drivefile` to properly set the end-of-line character on Windows
+when the `gsheet|csvsheet <SheetEntity>` option was used to download a Google Sheet.
+
 5.03.36
 
 Added option `groupsincolumns` to `gam print users` as an alternative to the `groups` option.

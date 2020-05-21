@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.36'
+__version__ = '5.03.37'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -36949,7 +36949,7 @@ def getDriveFile(users):
                 if showProgress and not suppressStdoutMsgs:
                   entityActionPerformedMessage(entityValueList, f'{status.progress():>7.2%}', j, jcount)
             else:
-              fh = open(filename, 'w', encoding=UTF8) if not targetStdout else sys.stdout
+              fh = open(filename, 'w', encoding=UTF8, newline='') if not targetStdout else sys.stdout
               status, content = drive._http.request(uri=spreadsheetUrl, method='GET')
               if status['status'] == '200':
                 fh.write(content.decode(UTF8_SIG))
