@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.37'
+__version__ = '5.03.38'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4528,6 +4528,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
       result = callGAPIpages(cd.members(), 'list', 'members',
                              page_message=getPageMessageForWhom(),
                              throw_reasons=GAPI.MEMBERS_THROW_REASONS,
+                             includeDerivedMembership=recursive,
                              groupKey=group, roles=listRoles, fields=listFields, maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(Ent.GROUP, group)
@@ -4545,8 +4546,6 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
               continue
           entitySet.add(email)
           entityList.append(email)
-      elif recursive and member['type'] == Ent.TYPE_GROUP:
-        _addGroupUsersToUsers(member['email'], domains, recursive)
 
   entityError = {'entityType': None, 'doesNotExist': 0, 'invalid': 0}
   entityList = []

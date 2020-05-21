@@ -1,3 +1,7 @@
+5.03.38
+
+Improved performance of `group_users|group_users_ns|group_users_susp <GroupList>` when `recursive` is specified.
+
 5.03.37
 
 Updated `gam <UserTypeEntity> get drivefile` to properly set the end-of-line character on Windows
