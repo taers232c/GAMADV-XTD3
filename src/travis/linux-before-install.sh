@@ -40,10 +40,14 @@ else
     mkdir python
     echo "RUNNING: apt update..."
     sudo apt-get -qq --yes update > /dev/null
-    if [[ "$DIST_UPGRADE" == "true" ]]; then
-      echo "RUNNING: apt dist-upgrade..."
-      sudo apt-get -qq --yes dist-upgrade > /dev/null
-    fi
+#    if [[ "$DIST_UPGRADE" == "true" ]]; then
+#      echo "RUNNING: apt dist-upgrade..."
+#      sudo apt-get -qq --yes dist-upgrade > /dev/null
+#    fi
+    echo "RUNNING: apt upgrade..."
+    sudo apt-mark hold openssh-server
+    sudo apt-get --yes upgrade
+    sudo apt-get --yes --with-new-pkgs upgrade
     echo "Installing build tools..."
     sudo apt-get -qq --yes install build-essential
     echo "Installing deps for python3"
@@ -80,7 +84,8 @@ else
       echo "running configure with safe and unsafe"
       ./configure $safe_flags $unsafe_flags > /dev/null
     fi
-    make -j$cpucount PROFILE_TASK="-m test.regrtest --pgo -j$(( $cpucount * 2 ))" -s
+    #make -j$cpucount PROFILE_TASK="-m test.regrtest --pgo -j$(( $cpucount * 2 ))" -s
+    make -j$cpucount -s
     RESULT=$?
     echo "First make exited with $RESULT"
     if [ $RESULT != 0 ]; then

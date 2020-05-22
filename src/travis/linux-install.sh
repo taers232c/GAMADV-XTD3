@@ -16,7 +16,6 @@ else
   this_glibc_ver=$(ldd --version | awk '/ldd/{print $NF}')
   GAM_ARCHIVE=$gampath-$GAMVERSION-$GAMOS-$PLATFORM-glibc$this_glibc_ver.tar.xz
   tar --create --file $GAM_ARCHIVE --xz $gampath/
-#  tar cfJ $GAM_ARCHIVE $gampath/
   echo "PyInstaller GAM info:"
   du -h $gampath/gam
   time $gam version extended
