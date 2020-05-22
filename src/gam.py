@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.38'
+__version__ = '5.03.39'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4521,14 +4521,14 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
     entityError['invalid'] += 1
     printErrorMessage(INVALID_ENTITY_RC, formatKeyValueList('', [Ent.Singular(entityType), entityName, Msg.INVALID], ''))
 
-  def _addGroupUsersToUsers(group, domains, recursive):
+  def _addGroupUsersToUsers(group, domains, recursive, includeDerivedMembership):
     printGettingAllEntityItemsForWhom(memberRoles if memberRoles else Ent.ROLE_MANAGER_MEMBER_OWNER, group, entityType=Ent.GROUP)
     validRoles, listRoles, listFields = _getRoleVerification(memberRoles, 'nextPageToken,members(email,type,status)')
     try:
       result = callGAPIpages(cd.members(), 'list', 'members',
                              page_message=getPageMessageForWhom(),
                              throw_reasons=GAPI.MEMBERS_THROW_REASONS,
-                             includeDerivedMembership=recursive,
+                             includeDerivedMembership=includeDerivedMembership,
                              groupKey=group, roles=listRoles, fields=listFields, maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(Ent.GROUP, group)
@@ -4546,6 +4546,8 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
               continue
           entitySet.add(email)
           entityList.append(email)
+      elif recursive and member['type'] == Ent.TYPE_GROUP:
+        _addGroupUsersToUsers(member['email'], domains, recursive, includeDerivedMembership)
 
   entityError = {'entityType': None, 'doesNotExist': 0, 'invalid': 0}
   entityList = []
@@ -4638,7 +4640,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
       isSuspended = True
     cd = buildGAPIObject(API.DIRECTORY)
     groups = convertEntityToList(entity)
-    recursive = False
+    includeDerivedMembership = recursive = False
     domains = []
     rolesSet = set()
     while Cmd.ArgumentsRemaining():
@@ -4651,6 +4653,10 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
         domains.extend(getEntityList(Cmd.OB_DOMAIN_NAME_ENTITY))
       elif myarg == 'recursive':
         recursive = True
+        includeDerivedMembership = False
+      elif myarg == 'includederivedmembership':
+        includeDerivedMembership = True
+        recursive = False
       elif myarg == 'end':
         break
       else:
@@ -4660,7 +4666,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
       memberRoles = ','.join(sorted(rolesSet))
     for group in groups:
       if validateEmailAddressOrUID(group, checkPeople=False):
-        _addGroupUsersToUsers(normalizeEmailAddressOrUID(group), domains, recursive)
+        _addGroupUsersToUsers(normalizeEmailAddressOrUID(group), domains, recursive, includeDerivedMembership)
       else:
         _showInvalidEntity(Ent.GROUP, group)
   elif entityType in [Cmd.ENTITY_OU, Cmd.ENTITY_OUS, Cmd.ENTITY_OU_AND_CHILDREN, Cmd.ENTITY_OUS_AND_CHILDREN,
@@ -5229,7 +5235,7 @@ def getEntityToModify(defaultEntityType=None, crosAllowed=False, userAllowed=Tru
         # Skip over sub-arguments
         while Cmd.ArgumentsRemaining():
           myarg = getArgument()
-          if myarg in GROUP_ROLES_MAP or myarg in {'primarydomain', 'domains', 'recursive'}:
+          if myarg in GROUP_ROLES_MAP or myarg in {'primarydomain', 'domains', 'recursive', 'includederivedmembership'}:
             pass
           elif myarg == 'end':
             break

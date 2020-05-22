@@ -593,7 +593,7 @@ Specify a collection of Users by directly specifying them or by specifiying item
         (groups|groups_ns|groups_susp <GroupList>)|
         (group_users|group_users_ns|group_users_susp <GroupList>
                 [members] [managers] [owners]
-                [primarydomain] [domains <DomainNameList>] [recursive] end)|
+                [primarydomain] [domains <DomainNameList>] [recursive|includederivedmembership] end)|
         (ou|ou_ns|ou_susp <OrgUnitItem>)|
         (ou_and_children|ou_and_children_ns|ou_and_children_susp <OrgUnitItem>)|
         (ous|ous_ns|ous_susp <OrgUnitList>)|

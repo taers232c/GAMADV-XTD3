@@ -1,3 +1,10 @@
+5.03.39
+
+Added option `includederivedmembership` to `group_users|group_users_ns|group_users_susp <GroupList>` as an
+alternative to the `recursive` option.
+* `recursive` - Expand subgroups but do not expand a member of type CUSTOMER (all users in a domain)
+* `includederivedmembership` - Expand subgroups and  expand a member of type CUSTOMER (all users in a domain)
+
 5.03.38
 
 Improved performance of `group_users|group_users_ns|group_users_susp <GroupList>` when `recursive` is specified.
