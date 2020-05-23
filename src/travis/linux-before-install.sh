@@ -42,8 +42,10 @@ else
     sudo apt-get -qq --yes update > /dev/null
     echo "RUNNING: apt upgrade..."
     sudo apt-mark hold openssh-server
-    sudo apt-get --yes upgrade
-    sudo apt-get --yes --with-new-pkgs upgrade
+    if [[ "$DIST_UPGRADE" == "true" ]]; then
+      sudo apt-get --yes upgrade
+      sudo apt-get --yes --with-new-pkgs upgrade
+    fi
     echo "Installing build tools..."
     sudo apt-get -qq --yes install build-essential
     echo "Installing deps for python3"

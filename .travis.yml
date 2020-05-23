@@ -11,6 +11,7 @@ env:
     - MIN_OPENSSL_VERSION=1.1.1g
     - PATCHELF_VERSION=0.10
     - PYINSTALLER_COMMIT=3010fdfaa037e9b19e936711d0c0be9b314b03c6
+    - DIST_UPGRADE=true
 cache:
   directories:
     - $HOME/.cache/pip
@@ -31,6 +32,8 @@ jobs:
       name: "Linux 64-bit Xenial"
       dist: xenial
       language: shell
+      env:
+        - DIST_UPGRADE=false
     - os: linux
       name: "Linux 64-bit Trusty"
       dist: trusty
