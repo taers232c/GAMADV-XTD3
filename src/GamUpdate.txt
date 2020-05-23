@@ -1,3 +1,11 @@
+5.03.40
+
+Fixed `gam download vaultexport|export` to properly handle the `targetname <FileName>` option.
+Previously, all of the top level files downloaded were given the same `<FileName>` and overwrote each other.
+Now, the extensions of the top level files will be appended to `<FileName>` so that
+distinct files are downloaded and written. Additionally, `<FileName>` can contain the strings `#objectname#`, `#filename#`
+and `#extension#` which will be replaced by the values from the orignal object names.
+
 5.03.39
 
 Added option `includederivedmembership` to `group_users|group_users_ns|group_users_susp <GroupList>` as an

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.39'
+__version__ = '5.03.40'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -22794,6 +22794,7 @@ def md5MatchesFile(filename, expected_md5, j=0, jcount=0):
     systemErrorExit(FILE_ERROR_RC, fileErrorMessage(filename, e))
 
 ZIP_EXTENSION_PATTERN = re.compile(r'^.*\.zip$', re.IGNORECASE)
+COUNT_ZIP_EXTENSION_PATTERN = re.compile(r'^.*(-\d+\.zip)$', re.IGNORECASE)
 
 # gam download vaultexport|export <ExportItem> matter <MatterItem> [targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
 # gam download vaultexport|export <MatterItem> <ExportItem> [targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
@@ -22873,7 +22874,18 @@ def doDownloadVaultExport():
     if zipToStdout and not ZIP_EXTENSION_PATTERN.match(filename):
       continue
     if targetName:
-      filename = targetName
+      _, s_objectFilename = s_object.rsplit('/', 1)
+      mg = COUNT_ZIP_EXTENSION_PATTERN.match(s_objectFilename)
+      if mg:
+        s_objectExtension = mg.group(1)
+      else:
+        _, s_objectExtension = s_objectFilename.rsplit('.', 1)
+        s_objectExtension = '.'+s_objectExtension
+      if targetName.find('#') == -1:
+        filename = targetName+s_objectExtension
+      else:
+        filename = targetName.replace('#objectname#', s_object).replace('#filename#', s_objectFilename).replace('#extension#', s_objectExtension)
+      filename = os.path.join(targetFolder, filename.replace('/', '-'))
     Act.Set(Act.DOWNLOAD)
     if not zipToStdout:
       performAction(Ent.CLOUD_STORAGE_FILE, s_object, j, jcount)
