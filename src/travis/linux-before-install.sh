@@ -40,10 +40,6 @@ else
     mkdir python
     echo "RUNNING: apt update..."
     sudo apt-get -qq --yes update > /dev/null
-#    if [[ "$DIST_UPGRADE" == "true" ]]; then
-#      echo "RUNNING: apt dist-upgrade..."
-#      sudo apt-get -qq --yes dist-upgrade > /dev/null
-#    fi
     echo "RUNNING: apt upgrade..."
     sudo apt-mark hold openssh-server
     sudo apt-get --yes upgrade
