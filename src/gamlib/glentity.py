@@ -124,6 +124,7 @@ class GamEntity():
   DRIVE_FOLDER_NAME = 'foln'
   DRIVE_ORPHAN_FILE_OR_FOLDER = 'orph'
   DRIVE_PARENT_FOLDER = 'fipf'
+  DRIVE_PARENT_FOLDER_REFERENCE = 'pfrf'
   DRIVE_PATH = 'drvp'
   DRIVE_SETTINGS = 'drvs'
   DRIVE_TRASH = 'drvt'
@@ -343,6 +344,7 @@ class GamEntity():
     DRIVE_FOLDER_NAME: ['Drive Folder Names', 'Drive Folder Name'],
     DRIVE_ORPHAN_FILE_OR_FOLDER: ['Drive Orphan Files/Folders', 'Drive Orphan File/Folder'],
     DRIVE_PARENT_FOLDER: ['Drive Parent Folders', 'Drive Parent Folder'],
+    DRIVE_PARENT_FOLDER_REFERENCE: ['Drive Parent Folder References', 'Drive Parent Folder Reference'],
     DRIVE_PATH: ['Drive Paths', 'Drive Path'],
     DRIVE_SETTINGS: ['Drive Settings', 'Drive Settings'],
     DRIVE_TRASH: ['Drive Trash', 'Drive Trash'],

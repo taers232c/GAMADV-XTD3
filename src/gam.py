@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.40'
+__version__ = '5.03.41'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -230,15 +230,15 @@ NEVER_END_DATE = '1969-12-31'
 NEVER_START_DATE = NEVER_DATE
 PROJECTION_CHOICE_MAP = {'basic': 'BASIC', 'full': 'FULL'}
 REFRESH_EXPIRY = '1970-01-01T00:00:01Z'
+REPLACE_GROUP_PATTERN = re.compile(r'\\(\d+)')
+
+# Queries
 ME_IN_OWNERS = "'me' in owners"
 ME_IN_OWNERS_AND = ME_IN_OWNERS+" and "
 AND_ME_IN_OWNERS = " and "+ME_IN_OWNERS
 NOT_ME_IN_OWNERS = "not "+ME_IN_OWNERS
 NOT_ME_IN_OWNERS_AND = NOT_ME_IN_OWNERS+" and "
 AND_NOT_ME_IN_OWNERS = " and "+NOT_ME_IN_OWNERS
-REPLACE_GROUP_PATTERN = re.compile(r'\\(\d+)')
-
-# Queries
 ANY_FOLDERS = "mimeType = '"+MIMETYPE_GA_FOLDER+"'"
 MY_FOLDERS = ME_IN_OWNERS_AND+ANY_FOLDERS
 NON_TRASHED = "trashed = false"
@@ -250,6 +250,7 @@ MY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS = ME_IN_OWNERS_AND+"mimeType = '"+MIMETY
 WITH_ANY_FILE_NAME = "name = '{0}'"
 WITH_MY_FILE_NAME = ME_IN_OWNERS_AND+WITH_ANY_FILE_NAME
 WITH_OTHER_FILE_NAME = NOT_ME_IN_OWNERS_AND+WITH_ANY_FILE_NAME
+AND_NOT_SHORTCUT = " and mimeType != '"+MIMETYPE_GA_SHORTCUT+"'"
 
 # Cloudprint
 CLOUDPRINT_ACCESS_URL = 'https://www.google.com/cloudprint/addpublicprinter.html?printerid={0}&key={1}'
@@ -35422,18 +35423,18 @@ def createDriveFile(users):
     csvPF.writeCSVfile('Files')
 
 # gam <UserTypeEntity> create|add drivefileshortcut <DriveFileEntity> [shortcutname <String>]
-#	[<DriveFileParentAttribute>]
+#	[<DriveFileParentAttribute>|convertparents]
 #	[csv [todrive <ToDriveAttribute>*]] [returnidonly]
 def createDriveFileShortcut(users):
-  csvPF = shortcutName = None
-  newParentsSpecified = returnIdOnly = False
+  csvPF = baseShortcutName = None
+  convertParents = newParentsSpecified = returnIdOnly = False
   fileIdEntity = getDriveFileEntity()
   parentBody = {}
   parentParms = initDriveFileAttributes()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'shortcutname':
-      shortcutName = getString(Cmd.OB_DRIVE_FILE_NAME)
+      baseShortcutName = getString(Cmd.OB_DRIVE_FILE_NAME)
     elif myarg == 'returnidonly':
       returnIdOnly = True
     elif myarg == 'csv':
@@ -35441,14 +35442,26 @@ def createDriveFileShortcut(users):
     elif csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif getDriveFileParentAttribute(myarg, parentParms):
+      if convertParents:
+        usageErrorExit(Msg.ARE_MUTUALLY_EXCLUSIVE.format(myarg, 'convertparents'))
       newParentsSpecified = True
+    elif myarg == 'convertparents':
+      if newParentsSpecified:
+        usageErrorExit(Msg.ARE_MUTUALLY_EXCLUSIVE.format(myarg, '<DriveFileParentAttribute>'))
+      convertParents = True
     else:
       unknownArgumentExit()
-  Act.Set(Act.CREATE_SHORTCUT)
+  if fileIdEntity['query']:
+    fileIdEntity['query'] = fileIdEntity['query']+AND_NOT_SHORTCUT
+  elif fileIdEntity['teamdrivefilequery']:
+    fileIdEntity['teamdrivefilequery'] = fileIdEntity['teamdrivefilequery']+AND_NOT_SHORTCUT
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_SHORTCUT)
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity)
+    if not returnIdOnly and not csvPF:
+      entityPerformActionSubItemModifierNumItems([Ent.USER, user], Ent.DRIVE_FILE_SHORTCUT,
+                                                 Act.MODIFIER_FOR, jcount, Ent.DRIVE_FILE_OR_FOLDER, i, count)
     if jcount == 0:
       continue
     if not _getDriveFileParentInfo(drive, user, i, count, parentBody, parentParms):
@@ -35456,49 +35469,90 @@ def createDriveFileShortcut(users):
     if newParentsSpecified:
       newParents = parentBody['parents']
       numNewParents = len(newParents)
-      if numNewParents > 1:
-        entityActionNotPerformedWarning([Ent.USER, user],
-                                        Msg.MULTIPLE_PARENTS_SPECIFIED.format(numNewParents), i, count)
-        continue
-    else:
+    elif not convertParents:
       newParents = [ROOT]
+      numNewParents = 1
     Ind.Increment()
     j = 0
     for fileId in fileIdEntity['list']:
       j += 1
+      Act.Set(Act.CREATE)
       try:
         target = callGAPI(drive.files(), 'get',
                           throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
-                          fileId=fileId, fields='mimeType,name', supportsAllDrives=True)
+                          fileId=fileId, fields='mimeType,name,parents', supportsAllDrives=True)
+      except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
+              GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, fileId], str(e), j, jcount)
+        continue
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+        break
+      targetName = target['name']
+      if baseShortcutName:
+        shortcutName = baseShortcutName.replace('#filename#', targetName)
+      else:
+        shortcutName = targetName
+      targetEntityType = _getEntityMimeType(target)
+      if convertParents:
+        newParents = target.get('parents', [])[:-1]
+        numNewParents = len(newParents)
+        if numNewParents <= 1:
+          entityActionNotPerformedWarning([Ent.USER, user, targetEntityType, targetName, Ent.DRIVE_FILE_SHORTCUT, None],
+                                          Msg.NO_PARENTS_TO_CONVERT_TO_SHORTCUTS, j, jcount)
+          continue
+      removeParents = []
+      body = {'name': shortcutName, 'mimeType': MIMETYPE_GA_SHORTCUT, 'parents': None, 'shortcutDetails': {'targetId': fileId}}
+      if not returnIdOnly and not csvPF:
+        entityPerformActionNumItems([Ent.USER, user, targetEntityType, targetName], numNewParents, Ent.DRIVE_FILE_SHORTCUT, j, jcount)
+      Ind.Increment()
+      k = 0
+      for parentId in newParents:
+        k += 1
+        body['parents'] = [parentId]
         try:
-          body = {'name': shortcutName or f"Shortcut to {target['name']}", 'mimeType': MIMETYPE_GA_SHORTCUT,
-                  'parents': newParents, 'shortcutDetails': {'targetId': fileId}}
           result = callGAPI(drive.files(), 'create',
                             throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
                                                                          GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
                                                                          GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED],
                             body=body, fields='id,name', supportsAllDrives=True)
+          removeParents.append(parentId)
           if returnIdOnly:
             writeStdout(f'{result["id"]}\n')
           elif not csvPF:
-            entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE_SHORTCUT, f'{result["name"]}({result["id"]})'],
-                                                  Act.MODIFIER_FOR, f'{target["name"]}({fileId})', j, jcount)
+            entityActionPerformed([Ent.USER, user, targetEntityType, targetName, Ent.DRIVE_FILE_SHORTCUT, f'{result["name"]}({result["id"]})'],
+                                  k, numNewParents)
           else:
-            csvPF.WriteRow({'User': user, 'name': result['name'], 'id': result['id'], 'targetName': target['name'], 'targetId': fileId})
+            csvPF.WriteRow({'User': user, 'name': result['name'], 'id': result['id'], 'targetName': targetName, 'targetId': fileId})
         except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
                 GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed) as e:
-          entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_SHORTCUT, body['name']], str(e), j, jcount)
-      except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
-              GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed) as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, fileId], str(e), j, jcount)
-      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
-        break
+          entityActionFailedWarning([Ent.USER, user, targetEntityType, targetName, Ent.DRIVE_FILE_SHORTCUT, body['name']], str(e), k, numNewParents)
+      Ind.Decrement()
+      if convertParents and removeParents:
+        if not returnIdOnly and not csvPF:
+          lcount = len(removeParents)
+          Act.Set(Act.DELETE)
+          entityPerformActionNumItems([Ent.USER, user, targetEntityType, targetName], lcount, Ent.DRIVE_PARENT_FOLDER_REFERENCE, j, jcount)
+        try:
+          callGAPI(drive.files(), 'update',
+                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST],
+                   fileId=fileId,
+                   removeParents=','.join(removeParents), body={}, fields='id', supportsAllDrives=True)
+          if not returnIdOnly and not csvPF:
+            Ind.Increment()
+            for l, parent in enumerate(removeParents):
+              entityActionPerformed([Ent.USER, user, targetEntityType, targetName, Ent.DRIVE_PARENT_FOLDER_REFERENCE, parent], l+1, lcount)
+            Ind.Decrement()
+        except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
+                GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed) as e:
+          entityActionFailedWarning([Ent.USER, user, targetEntityType, targetName, Ent.DRIVE_PARENT_FOLDER_REFERENCE, str(l)], str(e), j, jcount)
+      Ind.Decrement()
+    Ind.Decrement()
   if csvPF:
     csvPF.writeCSVfile('Shortcuts')
 
 # gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [retainname | (newfilename <DriveFileName>)]
-#	[<DriveFileUpdateAttribute>]
+#	<DriveFileUpdateAttribute>*
 #	[gsheet|csvsheet <SheetEntity>] [charset <String>] [columndelimiter <Character>]
 def updateDriveFile(users):
   fileIdEntity = getDriveFileEntity()

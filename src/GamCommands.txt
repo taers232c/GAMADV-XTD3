@@ -3507,7 +3507,7 @@ gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>]
         [csv [todrive <ToDriveAttribute>*]] [returnidonly]
 
 gam <UserTypeEntity> create|add drivefileshortcut <DriveFileEntity> [shortcutname <String>]
-        [<DriveFileParentAttribute>]
+        [<DriveFileParentAttribute>|convertparents]
         [csv [todrive <ToDriveAttribute>*]] [returnidonly]
 
 <DriveFileUpdateAttribute> ::=

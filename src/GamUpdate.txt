@@ -1,3 +1,12 @@
+5.03.41
+
+Added option `convertparents` to `gam <UserTypeEntity> create|add drivefileshortcut <DriveFileEntity>`; this options causes
+GAM to convert all but the last parent references in `<DriveFileEntity>` to shortcuts.
+Previuosly, if you didn't specify the `shortcutname <String>` option, the shortcut was named 'Shortcut to <DriveFileName>`
+where `<DriveFileName>` is the name of each file referenced in `<DriveFileEntity>`. Now, to be consistent with Google Drive,
+the shortcut will be named `<DriveFileName>`. `<String>` can contain the string `#filename#` which will be replaced with
+`<DriveFileName>`; this allows you to get the previous behavior with `shortcutname "Shortcut to #filename#"`.
+
 5.03.40
 
 Fixed `gam download vaultexport|export` to properly handle the `targetname <FileName>` option.
