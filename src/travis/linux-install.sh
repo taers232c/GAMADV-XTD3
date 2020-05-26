@@ -22,13 +22,13 @@ else
 
   if [ "${TRAVIS_DIST}" == "precise" ] && [ "${PLATFORM}" == "x86_64" ]; then
     GAM_LEGACY_ARCHIVE=$gampath-${GAMVERSION}-${GAMOS}-${PLATFORM}-legacy.tar.xz
-    $python -OO -m staticx $gampath/gam $gampath/gam-staticx
+#    $python -OO -m staticx $gampath/gam $gampath/gam-staticx
+    $python -OO -m staticx -l /lib/x86_64-linux-gnu/libresolv.so.2 -l /lib/x86_64-linux-gnu/libnss_dns.so.2 $gampath/gam $gampath/gam-staticx
     strip $gampath/gam-staticx
     rm $gampath/gam
     mv $gampath/gam-staticx $gampath/gam
     chmod 755 $gampath/gam
     tar --create --file $GAM_LEGACY_ARCHIVE --xz $gampath/
-#    tar cfJ $GAM_LEGACY_ARCHIVE $gampath/
     echo "Legacy StaticX GAM info:"
     du -h $gampath/gam
     time $gam version extended

@@ -9,16 +9,16 @@ else
   export LD_LIBRARY_PATH=~/ssl/lib:~/python/lib
   cpucount=$(nproc --all)
   echo "This device has $cpucount CPUs for compiling..."
-  echo -e "nameserver 8.8.8.8\nnameserver 8.8.4.4" > /tmp/resolv.conf
-  sudo cp /tmp/resolv.conf /etc
-  sudo apt-get -qq --yes update > /dev/null
-  sudo apt-get -qq --yes install xz-utils > /dev/null
+#  echo -e "nameserver 8.8.8.8\nnameserver 8.8.4.4" > /tmp/resolv.conf
+#  sudo cp /tmp/resolv.conf /etc
+#  sudo apt-get -qq --yes update > /dev/null
+#  sudo apt-get -qq --yes install xz-utils > /dev/null
   SSLVER=$(~/ssl/bin/openssl version)
   SSLRESULT=$?
   PYVER=$(~/python/bin/python3 -V)
   PYRESULT=$?
-  sudo apt-get -qq --yes install libxml2-dev > /dev/null
-  sudo apt-get -qq --yes install libxslt-dev > /dev/null
+#  sudo apt-get -qq --yes install libxml2-dev > /dev/null
+#  sudo apt-get -qq --yes install libxslt-dev > /dev/null
   if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $BUILD_OPENSSL_VERSION "* ]] || [ $PYRESULT -ne 0 ] || [[ "$PYVER" != "Python $BUILD_PYTHON_VERSION"* ]]; then
     echo "SSL Result: $SSLRESULT - SSL Ver: $SSLVER - Py Result: $PYRESULT - Py Ver: $PYVER"
     if [ $SSLRESULT -ne 0 ]; then
