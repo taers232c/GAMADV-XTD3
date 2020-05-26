@@ -27,6 +27,7 @@ AUTH_ERROR = 'authError'
 BACKEND_ERROR = 'backendError'
 BAD_GATEWAY = 'badGateway'
 BAD_REQUEST = 'badRequest'
+CANNOT_ADD_PARENT = 'cannotAddParent'
 CANNOT_CHANGE_ORGANIZER = 'cannotChangeOrganizer'
 CANNOT_CHANGE_ORGANIZER_OF_INSTANCE = 'cannotChangeOrganizerOfInstance'
 CANNOT_CHANGE_OWN_ACL = 'cannotChangeOwnAcl'
@@ -272,6 +273,8 @@ class backendError(Exception):
   pass
 class badRequest(Exception):
   pass
+class cannotAddParent(Exception):
+  pass
 class cannotChangeOrganizer(Exception):
   pass
 class cannotChangeOrganizerOfInstance(Exception):
@@ -500,6 +503,7 @@ REASON_EXCEPTION_MAP = {
   AUTH_ERROR: authError,
   BACKEND_ERROR: backendError,
   BAD_REQUEST: badRequest,
+  CANNOT_ADD_PARENT: cannotAddParent,
   CANNOT_CHANGE_ORGANIZER: cannotChangeOrganizer,
   CANNOT_CHANGE_ORGANIZER_OF_INSTANCE: cannotChangeOrganizerOfInstance,
   CANNOT_CHANGE_OWN_ACL: cannotChangeOwnAcl,

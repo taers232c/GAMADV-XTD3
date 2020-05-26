@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.03.41'
+__version__ = '5.04.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -264,6 +264,7 @@ DFA_LOCALFILEPATH = 'localFilepath'
 DFA_LOCALFILENAME = 'localFilename'
 DFA_LOCALMIMETYPE = 'localMimeType'
 DFA_OCRLANGUAGE = 'ocrLanguage'
+DFA_ENFORCE_SINGLE_PARENT = 'enforceSingleParent'
 DFA_PARENTID = 'parentId'
 DFA_PARENTQUERY = 'parentQuery'
 DFA_ADD_PARENT_IDS = 'addParentIds'
@@ -2447,7 +2448,7 @@ def getGDocSheetDataFailedExit(entityValueList, errMsg, i=0, count=0):
 # gdoc <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity>
 def getGDocData():
   user = getEmailAddress()
-  fileIdEntity = getDriveFileEntity(orphansOK=False, queryShortcutsOK=False)
+  fileIdEntity = getDriveFileEntity(queryShortcutsOK=False)
   user, drive, jcount = _validateUserGetFileIDs(user, 0, 0, fileIdEntity)
   if not drive:
     sys.exit(GM.Globals[GM.SYSEXITRC])
@@ -2482,7 +2483,7 @@ def getGDocData():
 # gsheet <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity> <SheetEntity>
 def getGSheetData():
   user = getEmailAddress()
-  fileIdEntity = getDriveFileEntity(orphansOK=False, queryShortcutsOK=False)
+  fileIdEntity = getDriveFileEntity(queryShortcutsOK=False)
   sheetEntity = getSheetEntity()
   user, drive, jcount = _validateUserGetFileIDs(user, 0, 0, fileIdEntity)
   if not drive:
@@ -3964,6 +3965,9 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False):
         error = makeErrorDict(http_status, GAPI.OPERATION_NOT_SUPPORTED, message)
       elif 'Failed status in update settings response' in message:
         error = makeErrorDict(http_status, GAPI.INVALID_INPUT, message)
+    elif http_status == 503:
+      if status == 'UNAVAILABLE' or 'The service is currently unavailable' in message:
+        error = makeErrorDict(http_status, GAPI.SERVICE_NOT_AVAILABLE, message)
     elif http_status == 400:
       if 'does not match' in message or 'Invalid' in message:
         error = makeErrorDict(http_status, GAPI.INVALID, message)
@@ -31666,21 +31670,16 @@ def printShowCalendarEvents(users):
 def _getEntityMimeType(fileEntry):
   return Ent.DRIVE_FOLDER if fileEntry['mimeType'] == MIMETYPE_GA_FOLDER else Ent.DRIVE_FILE
 
-TEAM_DRIVE_CORPORA = 'allTeamDrives,user'
+CORPORA_ALL_DRIVES = 'allDrives'
 CORPORA_CHOICE_MAP = {
-  'alldrives': 'allDrives',
-  'allshareddrives': TEAM_DRIVE_CORPORA,
-  'allteamdrives': TEAM_DRIVE_CORPORA,
+  'alldrives': CORPORA_ALL_DRIVES,
+  'allshareddrives': CORPORA_ALL_DRIVES,
+  'allteamdrives': CORPORA_ALL_DRIVES,
   'domain': 'domain',
-  'onlyteamdrives': TEAM_DRIVE_CORPORA,
+  'onlyshareddrives': CORPORA_ALL_DRIVES,
+  'onlyteamdrives': CORPORA_ALL_DRIVES,
   'user': 'user',
   }
-
-def _getCorpora(kwargs):
-  corpora = getChoice(CORPORA_CHOICE_MAP)
-  kwargs['corpora'] = CORPORA_CHOICE_MAP[corpora]
-  kwargs['includeItemsFromAllDrives'] = kwargs['supportsAllDrives'] = True
-  return corpora == 'onlyteamdrives'
 
 QUERY_SHORTCUTS_MAP = {
   'allfiles': f"mimeType != '{MIMETYPE_GA_FOLDER}'",
@@ -31845,7 +31844,35 @@ DRIVE_BY_NAME_CHOICE_MAP = {
   'otherdrivefilename': WITH_ANY_FILE_NAME,
   }
 
-def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
+LOCATION_ALL_DRIVES = 0
+LOCATION_MYDRIVE = 1
+LOCATION_ORPHANS = 2
+LOCATION_OWNEDBY_ANY = 3
+LOCATION_OWNEDBY_OTHERS = 4
+LOCATION_SHARED_WITHME = 5
+LOCATION_ONLY_SHARED_DRIVES = 6
+
+LOCATION_CHOICE_MAP = {
+  'alldrives': {'fileids': [ROOT, ORPHANS, SHARED_WITHME, SHARED_DRIVES], 'owner': None, 'location': LOCATION_ALL_DRIVES, 'setShowOwnedBy': True},
+  'root': {'fileids': [ROOT], 'owner': True, 'location': LOCATION_MYDRIVE, 'setShowOwnedBy': False},
+  'rootwithorphans': {'fileids': [ROOT, ORPHANS], 'owner': True, 'location': LOCATION_MYDRIVE, 'setShowOwnedBy': False},
+  'mydrive': {'fileids': [ROOT], 'owner': True, 'location': LOCATION_MYDRIVE, 'setShowOwnedBy': False},
+  'mydrivewithorphans': {'fileids': [ROOT, ORPHANS], 'owner': True, 'location': LOCATION_MYDRIVE, 'setShowOwnedBy': False},
+  'mydriveany': {'fileids': [ROOT, ORPHANS], 'owner': None, 'location': LOCATION_MYDRIVE, 'setShowOwnedBy': True},
+  'mydriveme': {'fileids': [ROOT, ORPHANS], 'owner': True, 'location': LOCATION_MYDRIVE, 'setShowOwnedBy': True},
+  'mydriveothers': {'fileids': [ROOT], 'owner': False, 'location': LOCATION_MYDRIVE, 'setShowOwnedBy': True},
+  'onlyshareddrives': {'fileids': [SHARED_DRIVES], 'owner': False, 'location': LOCATION_ONLY_SHARED_DRIVES, 'setShowOwnedBy': True},
+  'onlyteamdrives': {'fileids': [SHARED_DRIVES], 'owner': False, 'location': LOCATION_ONLY_SHARED_DRIVES, 'setShowOwnedBy': True},
+  'orphans': {'fileids': [ORPHANS], 'owner': True, 'location': LOCATION_ORPHANS, 'setShowOwnedBy': True},
+  'ownedbyany': {'fileids': [ROOT, ORPHANS, SHARED_WITHME], 'owner': None, 'location': LOCATION_OWNEDBY_ANY, 'setShowOwnedBy': True},
+  'ownedbyme': {'fileids': [ROOT, ORPHANS], 'owner': True, 'location': LOCATION_MYDRIVE, 'setShowOwnedBy': True},
+  'ownedbyothers': {'fileids': [ROOT, SHARED_WITHME], 'owner': False, 'location': LOCATION_OWNEDBY_OTHERS, 'setShowOwnedBy': True},
+  'sharedwithme': {'fileids': [ROOT, SHARED_WITHME], 'owner': False, 'location': LOCATION_OWNEDBY_OTHERS, 'setShowOwnedBy': True},
+  'sharedwithmemydrive': {'fileids': [ROOT], 'owner': False, 'location': LOCATION_MYDRIVE, 'setShowOwnedBy': True},
+  'sharedwithmenotmydrive': {'fileids': [SHARED_WITHME], 'owner': False, 'location': LOCATION_SHARED_WITHME, 'setShowOwnedBy': True},
+  }
+
+def getDriveFileEntity(queryShortcutsOK=True, DLP=None):
   def _getKeywordColonValue(kwColonValue):
     kw, value = kwColonValue.split(':', 1)
     kw = kw.lower().replace('_', '').replace('-', '')
@@ -31899,12 +31926,11 @@ def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
       fileIdEntity['query'] = QUERY_SHORTCUTS_MAP[mycmd]
     elif mycmd in DRIVE_BY_NAME_CHOICE_MAP:
       fileIdEntity['query'] = DRIVE_BY_NAME_CHOICE_MAP[mycmd].format(getEscapedDriveFileName())
-    elif mycmd in {'root', 'mydrive'}:
+    elif not DLP and mycmd in {'root', 'mydrive'}:
       cleanFileIDsList(fileIdEntity, [ROOT])
-    elif orphansOK and mycmd in {'rootwithorphans', 'mydrivewithorphans'}:
-      cleanFileIDsList(fileIdEntity, [ROOT, ORPHANS])
-    elif orphansOK and mycmd == 'orphans':
-      cleanFileIDsList(fileIdEntity, [ORPHANS])
+    elif DLP and mycmd in LOCATION_CHOICE_MAP:
+      DLP.SetLocation(LOCATION_CHOICE_MAP[mycmd])
+      cleanFileIDsList(fileIdEntity, DLP.locationFileIds)
     elif mycmd.startswith('teamdrive') or mycmd.startswith('shareddrive'):
       fileIdEntity['teamdrive'] = {'driveId': None,
                                    'corpora': 'drive', 'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
@@ -31936,11 +31962,49 @@ def getDriveFileEntity(orphansOK=False, queryShortcutsOK=True):
         else:
           break
       if not fileIdEntity['teamdrive'].get('driveId'):
-        fileIdEntity['teamdrive']['corpora'] = TEAM_DRIVE_CORPORA
+        fileIdEntity['teamdrive']['corpora'] = CORPORA_ALL_DRIVES
     elif (mycmd.find(':') > 0) and _getKeywordColonValue(myarg):
       pass
     else:
       cleanFileIDsList(fileIdEntity, [myarg])
+  return fileIdEntity
+
+def getDriveFileEntityTeamDriveOnly():
+  def _getTDKeywordColonValue(kwColonValue):
+    kw, value = kwColonValue.split(':', 1)
+    kw = kw.lower().replace('_', '').replace('-', '')
+    if kw in {'teamdriveid', 'shareddriveid'}:
+      fileIdEntity['teamdrive']['driveId'] = value
+    elif kw in {'teamdrive', 'shareddrive'}:
+      fileIdEntity['teamdrivename'] = value
+    elif kw in {'teamdriveadminquery', 'shareddriveadminquery'}:
+      fileIdEntity['teamdriveadminquery'] = value
+    else:
+      return False
+    return True
+
+  fileIdEntity = initDriveFileEntity()
+  myarg = getString(Cmd.OB_DRIVE_FILE_ID, checkBlank=True)
+  mycmd = myarg.lower().replace('_', '').replace('-', '')
+  if mycmd.startswith('teamdrive') or mycmd.startswith('shareddrive'):
+    fileIdEntity['teamdrive'] = {'driveId': None,
+                                 'corpora': 'drive', 'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
+    if mycmd in {'teamdriveid', 'shareddriveid'}:
+      fileIdEntity['teamdrive']['driveId'] = getString(Cmd.OB_TEAMDRIVE_ID)
+    elif mycmd in {'teamdrive', 'shareddrive'}:
+      fileIdEntity['teamdrivename'] = getString(Cmd.OB_TEAMDRIVE_NAME)
+    elif mycmd in {'teamdriveadminquery', 'shareddriveadminquery'}:
+      fileIdEntity['teamdriveadminquery'] = getString(Cmd.OB_QUERY)
+    elif (mycmd.find(':') > 0) and _getTDKeywordColonValue(myarg):
+      pass
+    else:
+      unknownArgumentExit()
+    if not fileIdEntity['teamdrive'].get('driveId'):
+      fileIdEntity['teamdrive']['corpora'] = CORPORA_ALL_DRIVES
+  elif (mycmd.find(':') > 0) and _getTDKeywordColonValue(myarg):
+    pass
+  else:
+    unknownArgumentExit()
   return fileIdEntity
 
 def getTeamDriveEntity():
@@ -32013,7 +32077,25 @@ def _getDriveFileNameFromId(drive, fileId, combineTitleId=True):
     pass
   return (fileId, Ent.DRIVE_FILE_OR_FOLDER_ID)
 
+def _simpleFileIdEntityList(fileIdEntityList):
+  for fileId in fileIdEntityList:
+    if fileId not in {ROOT, ORPHANS, SHARED_WITHME, SHARED_DRIVES}:
+      return False
+  return True
+
 def _validateUserGetFileIDs(user, i, count, fileIdEntity, drive=None, entityType=None, orderBy=None, useDomainAdminAccess=False):
+  def _identifyRoot():
+    try:
+      rootFolderId = callGAPI(drive.files(), 'get',
+                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                              fileId=ROOT, fields='id')['id']
+      for j in fileIdEntity[ROOT]:
+        fileIdEntity['list'][j] = rootFolderId
+      return True
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+      return False
+
   if fileIdEntity['dict']:
     cleanFileIDsList(fileIdEntity, fileIdEntity['dict'][user])
   if not drive:
@@ -32022,6 +32104,14 @@ def _validateUserGetFileIDs(user, i, count, fileIdEntity, drive=None, entityType
       return (user, None, 0)
   else:
     user = convertUIDtoEmailAddress(user)
+  if fileIdEntity['list'] and _simpleFileIdEntityList(fileIdEntity['list']):
+    l = len(fileIdEntity['list'])
+    if ROOT in fileIdEntity['list'] and fileIdEntity[ROOT]:
+      if not _identifyRoot():
+        return (user, None, 0)
+    if entityType:
+      entityPerformActionNumItems([Ent.USER, user], l, entityType, i, count)
+    return (user, drive, l)
   if fileIdEntity['teamdrivename'] and 'driveId' not in fileIdEntity:
     if not _convertTeamDriveNameToId(drive, user, i, count, fileIdEntity, useDomainAdminAccess):
       return (user, None, 0)
@@ -32044,7 +32134,7 @@ def _validateUserGetFileIDs(user, i, count, fileIdEntity, drive=None, entityType
       return (user, None, 0)
   elif fileIdEntity['teamdrivefilequery']:
     if not fileIdEntity['teamdrive'].get('driveId'):
-      fileIdEntity['teamdrive']['corpora'] = TEAM_DRIVE_CORPORA
+      fileIdEntity['teamdrive']['corpora'] = CORPORA_ALL_DRIVES
     fileIdEntity['list'] = doDriveSearch(drive, user, i, count, query=fileIdEntity['teamdrivefilequery'], orderBy=orderBy, teamDriveOnly=True, **fileIdEntity['teamdrive'])
     if fileIdEntity['list'] is None or not fileIdEntity['list']:
       setSysExitRC(NO_ENTITIES_FOUND)
@@ -32052,15 +32142,8 @@ def _validateUserGetFileIDs(user, i, count, fileIdEntity, drive=None, entityType
     fileIdEntity['teamdrive'].pop('driveId', None)
     fileIdEntity['teamdrive'].pop('corpora', None)
   elif fileIdEntity[ROOT]:
-    try:
-      rootFolderId = callGAPI(drive.files(), 'get',
-                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
-                              fileId=ROOT, fields='id')['id']
-    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+    if not _identifyRoot():
       return (user, None, 0)
-    for j in fileIdEntity[ROOT]:
-      fileIdEntity['list'][j] = rootFolderId
   l = len(fileIdEntity['list'])
   if l == 0:
     setSysExitRC(NO_ENTITIES_FOUND)
@@ -32300,6 +32383,7 @@ def initDriveFileAttributes():
           DFA_LOCALFILENAME: None,
           DFA_LOCALMIMETYPE: None,
           DFA_OCRLANGUAGE: None,
+          DFA_ENFORCE_SINGLE_PARENT: False,
           DFA_PARENTID: None,
           DFA_PARENTQUERY: None,
           DFA_ADD_PARENT_IDS: [],
@@ -32341,9 +32425,11 @@ def getDriveFileParentAttribute(myarg, parameters):
     parameters[DFA_TEAMDRIVE_PARENTID] = getString(Cmd.OB_DRIVE_FOLDER_ID)
   elif myarg in {'teamdriveparentname', 'shareddriveparentname'}:
     parameters[DFA_TEAMDRIVE_PARENTQUERY] = ANY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName())
-    parameters[DFA_KWARGS]['corpora'] = TEAM_DRIVE_CORPORA
+    parameters[DFA_KWARGS]['corpora'] = CORPORA_ALL_DRIVES
     parameters[DFA_KWARGS]['includeItemsFromAllDrives'] = True
     parameters[DFA_KWARGS]['supportsAllDrives'] = True
+  elif myarg == 'enforcesingleparent':
+    parameters[DFA_ENFORCE_SINGLE_PARENT] = getBoolean(defaultValue=None)
   else:
     return False
   return True
@@ -32361,6 +32447,8 @@ def getDriveFileAddRemoveParentAttribute(myarg, parameters):
     parameters[DFA_ADD_PARENT_NAMES].append(ANY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName()))
   elif myarg in {'removeanyownerparentname', 'removesharedparentname'}:
     parameters[DFA_REMOVE_PARENT_NAMES].append(ANY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName()))
+  elif myarg == 'enforcesingleparent':
+    parameters[DFA_ENFORCE_SINGLE_PARENT] = getBoolean(defaultValue=None)
   else:
     return False
   return True
@@ -34024,65 +34112,105 @@ def _updateAnyOwnerQuery(query):
   query = _stripNotMeInOwners(query)
   return _stripMeInOwners(query)
 
-SHOW_OWNED_BY_CHOICE_MAP = {'any': None, 'me': True, 'others': False}
-
-def _updateQueryWithShowOwnedBy(showOwnedBy, query):
-  if showOwnedBy is None:
-    query = _updateAnyOwnerQuery(query)
-  elif not showOwnedBy:
-    if query.find(NOT_ME_IN_OWNERS) >= 0:
-      pass
-    else:
-      query = _stripMeInOwners(query)
-      if query:
-        query = NOT_ME_IN_OWNERS_AND+query
-      else:
-        query = NOT_ME_IN_OWNERS
-  else:
-    if query.find(ME_IN_OWNERS) >= 0:
-      pass
-    else:
-      query = _stripNotMeInOwners(query)
-      if query:
-        query = ME_IN_OWNERS_AND+query
-      else:
-        query = ME_IN_OWNERS
-  return query
-
 OWNED_BY_ME_FIELDS_TITLES = ['ownedByMe']
 
-def initFileTree(drive, teamdrive, getTeamDriveNames):
+def initFileTree(drive, teamdrive, DLP, teamdriveFields, showParent):
   fileTree = {
-    ORPHANS: {'info': {'id': ORPHANS, 'name': ORPHANS, 'mimeType': MIMETYPE_GA_FOLDER, 'ownedByMe': True}, 'children': []},
+    ORPHANS: {'info': {'id': ORPHANS, 'name': ORPHANS, 'mimeType': MIMETYPE_GA_FOLDER, 'ownedByMe': True},
+              'noParents': True, 'children': []},
+    SHARED_WITHME: {'info': {'id': SHARED_WITHME, 'name': SHARED_WITHME, 'mimeType': MIMETYPE_GA_FOLDER, 'ownedByMe': False},
+                    'noParents': True, 'children': []},
+    SHARED_DRIVES: {'info': {'id': SHARED_DRIVES, 'name': SHARED_DRIVES, 'mimeType': MIMETYPE_GA_FOLDER, 'ownedByMe': False, 'driveId': SHARED_DRIVES},
+                    'noParents': True, 'children': []},
     }
   try:
     if not teamdrive:
       f_file = callGAPI(drive.files(), 'get',
                         throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                         fileId=ROOT, fields=','.join(FILEPATH_FIELDS_TITLES+OWNED_BY_ME_FIELDS_TITLES))
-      fileTree[f_file['id']] = {'info': f_file, 'children': []}
+      fileTree[f_file['id']] = {'info': f_file, 'noParents': True, 'children': []}
     elif 'driveId' in teamdrive:
       f_file = callGAPI(drive.files(), 'get',
                         throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
                         fileId=teamdrive['driveId'], supportsAllDrives=True, fields=','.join(FILEPATH_FIELDS_TITLES+OWNED_BY_ME_FIELDS_TITLES))
-      fileTree[f_file['id']] = {'info': f_file, 'children': []}
+      fileTree[f_file['id']] = {'info': f_file, 'noParents': True, 'children': []}
       name = callGAPI(drive.drives(), 'get',
                       throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
                       driveId=teamdrive['driveId'], fields='name')['name']
       fileTree[f_file['id']]['info']['name'] = f'SharedDrive({name})'
-    if getTeamDriveNames:
+    if DLP.getTeamDriveNames or DLP.checkLocation in {LOCATION_ALL_DRIVES, LOCATION_ONLY_SHARED_DRIVES}:
       tdrives = callGAPIpages(drive.drives(), 'list', 'drives',
                               throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID, GAPI.NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE],
                               fields='nextPageToken,drives(id,name)', pageSize=100)
       for tdrive in tdrives:
-        if tdrive['id'] not in fileTree:
-          fileTree[tdrive['id']] = {'info': {'id': tdrive['id'], 'name': f'SharedDrive({tdrive["name"]})', 'mimeType': MIMETYPE_GA_FOLDER}, 'children': []}
+        fileId = tdrive['id']
+        if fileId not in fileTree:
+          fileTree[fileId] = {'info': {'id': fileId, 'name': f'SharedDrive({tdrive["name"]})', 'mimeType': MIMETYPE_GA_FOLDER},
+                              'noParents': True, 'children': []}
+        for field in teamdriveFields:
+          if field in tdrive:
+            fileTree[fileId]['info'][field] = tdrive[field]
+        if showParent:
+          fileTree[fileId]['info']['driveId'] = fileId
+        fileTree[SHARED_DRIVES]['children'].append(fileId)
+  except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy,
+          GAPI.notFound, GAPI.invalid, GAPI.noListTeamDrivesAdministratorPrivilege):
+    return (None, False)
+  return (fileTree, True)
+
+def extendFileTree(fileTree, feed, DLP):
+  for f_file in feed:
+    if not DLP.CheckOnlyTeamDrives(f_file) or not DLP.CheckExcludeTrashed(f_file):
+      continue
+    if not f_file.get('parents', []):
+      f_file['parents'] = [ORPHANS] if f_file.get('ownedByMe', False) else [SHARED_WITHME]
+    fileId = f_file['id']
+    if fileId not in fileTree:
+      fileTree[fileId] = {'info': f_file, 'children': []}
+    else:
+      fileTree[fileId]['info'] = f_file
+    for parentId in f_file['parents']:
+      if parentId not in fileTree:
+        fileTree[parentId] = {'info': {'id': parentId, 'name': parentId, 'mimeType': MIMETYPE_GA_FOLDER}, 'children': []}
+      fileTree[parentId]['children'].append(fileId)
+
+def extendFileTreeParents(drive, fileTree, fields):
+  def _followParent(fileId):
+    try:
+      result = callGAPI(drive.files(), 'get',
+                        throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
+                        fileId=fileId, fields=fields, supportsAllDrives=True)
+      if not result.get('parents', []):
+        result['parents'] = [ORPHANS] if result.get('ownedByMe', False) else [SHARED_WITHME]
+      fileTree[fileId]['info'] = result
+      fileTree[fileId]['info']['noDisplay'] = True
+      for parentId in result['parents']:
+        if parentId not in fileTree:
+          fileTree[parentId] = {'info': {'id': parentId, 'name': parentId, 'mimeType': MIMETYPE_GA_FOLDER}, 'children': []}
+          _followParent(parentId)
+        fileTree[parentId]['children'].append(fileId)
+    except (GAPI.fileNotFound, GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
+      fileTree[fileId] = {'info': {'id': fileId, 'name': fileId, 'mimeType': MIMETYPE_GA_FOLDER, 'parents': [], 'noDisplay': True},
+                          'children': []}
+
+  for fileId in list(fileTree):
+    f_file = fileTree[fileId]
+    if 'parents' not in f_file['info'] and not f_file.get('noParents', False):
+      f_file['info']['noDisplay'] = True
+      _followParent(fileId)
+
+def buildFileTree(feed, drive):
+  fileTree = {
+    ORPHANS: {'info': {'id': ORPHANS, 'name': ORPHANS, 'mimeType': MIMETYPE_GA_FOLDER, 'ownedByMe': True}, 'children': []},
+    }
+  try:
+    f_file = callGAPI(drive.files(), 'get',
+                      throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
+                      fileId=ROOT, fields=','.join(FILEPATH_FIELDS_TITLES+OWNED_BY_ME_FIELDS_TITLES))
+    fileTree[f_file['id']] = {'info': f_file, 'children': []}
   except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy,
           GAPI.notFound, GAPI.invalid, GAPI.noListTeamDrivesAdministratorPrivilege):
     pass
-  return fileTree
-
-def extendFileTree(fileTree, feed):
   for f_file in feed:
     if 'parents' not in f_file:
       f_file['parents'] = []
@@ -34098,10 +34226,6 @@ def extendFileTree(fileTree, feed):
       if parentId not in fileTree:
         fileTree[parentId] = {'info': {'id': parentId, 'name': parentId, 'mimeType': MIMETYPE_GA_FOLDER}, 'children': []}
       fileTree[parentId]['children'].append(fileId)
-
-def buildFileTree(feed, drive, teamdrive=None, getTeamDriveNames=False):
-  fileTree = initFileTree(drive, teamdrive, getTeamDriveNames)
-  extendFileTree(fileTree, feed)
   return fileTree
 
 def addFilePathsToRow(drive, fileTree, fileEntryInfo, filePathInfo, csvPF, row, showDepth=False):
@@ -34119,12 +34243,6 @@ def addFilePathsToRow(drive, fileTree, fileEntryInfo, filePathInfo, csvPF, row, 
     else:
       row[key] = path
     k += 1
-
-def _simpleFileIdEntityList(fileIdEntityList):
-  for fileId in fileIdEntityList:
-    if fileId not in {ROOT, ORPHANS}:
-      return False
-  return True
 
 def _validatePermissionOwnerType(location, body):
   if body.get('role', '') == 'owner' and body['type'] != 'user':
@@ -34306,77 +34424,242 @@ class PermissionMatch():
               return self.permissionMatchKeep
     return not self.permissionMatchKeep
 
+def noFileSelectFileIdEntity(fileIdEntity):
+  return (not fileIdEntity
+          or (not fileIdEntity['dict']
+              and not fileIdEntity['query']
+              and not fileIdEntity['teamdrivefilequery']
+              and not fileIdEntity['list']))
+
 class DriveListParameters():
-  def __init__(self, mimeTypeInQuery=False, allowQuery=True):
-    self.mimeTypeInQuery = mimeTypeInQuery
-    self.query = ME_IN_OWNERS
+  def __init__(self, myargOptions):
+    self.PM = PermissionMatch()
+    self.myargOptions = myargOptions
+    self.checkLocation = None
+    self.excludeTrashed = False
+    self.filenameMatchPattern = None
+    self.getTeamDriveNames = False
+    self.kwargs = {}
+    self.fileIdEntity = {}
+    self.locationFileIds = []
+    self.locationSet = False
+    self.maxItems = 0
     self.mimeTypeCheck = MimeTypeCheck()
     self.minimumFileSize = None
-    self.filenameMatchPattern = None
-    self.PM = PermissionMatch()
-    self.showOwnedBy = True
-    self.showOwnedBySet = False
-    self.allowQuery = allowQuery
-    self.maxItems = 0
+    self.onlyTeamDrives = False
     self.queryTimes = {}
+    self.showOwnedBy = True
+    self.showSharedByMe = None
 
-  def ProcessArgument(self, myarg):
-    if myarg == 'showmimetype':
-      self.mimeTypeCheck.Get()
-      if self.mimeTypeInQuery:
-        self.query = self.mimeTypeCheck.AddMimeTypeToQuery(self.query)
-    elif myarg == 'maxfiles':
+  SHOW_OWNED_BY_CHOICE_MAP = {'any': None, 'me': True, 'others': False}
+  SHOW_SHARED_BY_ME_CHOICE_MAP = {'any': None, 'true': True, 'false': False}
+
+  def ProcessArgument(self, myarg, fileIdEntity):
+    if myarg == 'maxfiles':
       self.maxItems = getInteger(minVal=0)
     elif myarg == 'minimumfilesize':
       self.minimumFileSize = getInteger(minVal=0)
-    elif self.allowQuery and myarg == 'query':
-      if self.query:
-        self.query += ' and ('+getString(Cmd.OB_QUERY)+')'
-      else:
-        self.query = getString(Cmd.OB_QUERY)
-    elif self.allowQuery and myarg.startswith('query:'):
-      if self.query:
-        self.query += ' and ('+myarg[6:]+')'
-      else:
-        self.query = myarg[6:]
-    elif self.allowQuery and myarg == 'fullquery':
-      self.query = getString(Cmd.OB_QUERY, minLen=0)
-    elif self.allowQuery and myarg in QUERY_SHORTCUTS_MAP:
-      self.UpdateAnyOwnerQuery()
-      if self.query:
-        self.query += ' and ('+QUERY_SHORTCUTS_MAP[myarg]+')'
-      else:
-        self.query = QUERY_SHORTCUTS_MAP[myarg]
-    elif self.allowQuery and myarg.startswith('querytime'):
-      self.queryTimes[myarg] = getTimeOrDeltaFromNow()
-    elif myarg == 'anyowner':
-      self.showOwnedBy = None
-      self.showOwnedBySet = True
-      self.UpdateAnyOwnerQuery()
-    elif myarg == 'showownedby':
-      self.showOwnedBy = getChoice(SHOW_OWNED_BY_CHOICE_MAP, mapChoice=True)
-      self.showOwnedBySet = True
-      self.query = _updateQueryWithShowOwnedBy(self.showOwnedBy, self.query)
+    elif myarg == 'showsharedbyme':
+      self.showSharedByMe = getChoice(self.SHOW_SHARED_BY_ME_CHOICE_MAP, mapChoice=True)
     elif myarg == 'filenamematchpattern':
       self.filenameMatchPattern = getREPattern(re.IGNORECASE)
     elif self.PM.ProcessArgument(myarg):
       pass
+    elif myarg == 'anyowner':
+      self.showOwnedBy = None
+      self.UpdateAnyOwnerQuery()
+    elif myarg == 'showownedby':
+      self.showOwnedBy = getChoice(self.SHOW_OWNED_BY_CHOICE_MAP, mapChoice=True)
+      self.UpdateQueryWithShowOwnedBy()
+    elif myarg == 'showmimetype':
+      self.mimeTypeCheck.Get()
+      if self.myargOptions['mimeTypeInQuery']:
+        self.fileIdEntity['query'] = self.mimeTypeCheck.AddMimeTypeToQuery(self.fileIdEntity['query'])
+    elif myarg == 'excludetrashed':
+      self.excludeTrashed = True
+    elif noFileSelectFileIdEntity(fileIdEntity):
+      if self.myargOptions['allowQuery'] and myarg == 'query':
+        self.AppendToQuery(getString(Cmd.OB_QUERY))
+      elif self.myargOptions['allowQuery'] and myarg.startswith('query:'):
+        self.AppendToQuery(myarg[6:])
+      elif self.myargOptions['allowQuery'] and myarg == 'fullquery':
+        self.SetQuery(getString(Cmd.OB_QUERY, minLen=0))
+      elif self.myargOptions['allowQuery'] and myarg in QUERY_SHORTCUTS_MAP:
+        self.UpdateAnyOwnerQuery()
+        self.AppendToQuery(QUERY_SHORTCUTS_MAP[myarg])
+      elif  self.myargOptions['allowQuery'] and myarg.startswith('querytime'):
+        self.queryTimes[myarg] = getTimeOrDeltaFromNow()
+      elif self.myargOptions['allowChoose'] and myarg == 'choose':
+        myarg = getArgument()
+        if myarg in DRIVE_BY_NAME_CHOICE_MAP:
+          self.SetQuery(DRIVE_BY_NAME_CHOICE_MAP[myarg].format(getEscapedDriveFileName()))
+        elif myarg in LOCATION_CHOICE_MAP:
+          self.locationSet = True
+          self.SetLocation(LOCATION_CHOICE_MAP[myarg])
+        elif myarg.find(':') > 0:
+          kw, value = myarg.split(':', 1)
+          if kw in DRIVE_BY_NAME_CHOICE_MAP:
+            self.SetQuery(DRIVE_BY_NAME_CHOICE_MAP[kw].format(escapeDriveFileName(value)))
+          else:
+            invalidChoiceExit(myarg, list(DRIVE_BY_NAME_CHOICE_MAP), True)
+        else:
+          invalidChoiceExit(myarg, list(DRIVE_BY_NAME_CHOICE_MAP)+list(LOCATION_CHOICE_MAP), True)
+      elif self.myargOptions['allowCorpora'] and myarg == 'corpora':
+        corpora = getChoice(CORPORA_CHOICE_MAP)
+        self.kwargs['corpora'] = CORPORA_CHOICE_MAP[corpora]
+        self.kwargs['includeItemsFromAllDrives'] = self.kwargs['supportsAllDrives'] = True
+        self.onlyTeamDrives = corpora in {'onlyshareddrives', 'onlyteamdrives'}
+        self.getTeamDriveNames = True
+        self.UpdateAnyOwnerQuery()
+        self.SetLocationFileIDsList(LOCATION_CHOICE_MAP['alldrives' if not self.onlyTeamDrives else 'onlyshareddrives'])
+      else:
+        return False
     else:
+      if (myarg == 'query' or
+          myarg.startswith('query:') or
+          myarg == 'fullquery' or
+          myarg in QUERY_SHORTCUTS_MAP or
+          myarg in DRIVE_BY_NAME_CHOICE_MAP or
+          myarg.startswith('querytime')):
+        usageErrorExit(Msg.ARE_MUTUALLY_EXCLUSIVE.format('select', myarg))
       return False
     return True
 
-  def MapDrive2QueryToDrive3(self):
-    self.query = _mapDrive2QueryToDrive3(self.query)
+  def InitDriveIdEntity(self):
+    if not self.fileIdEntity:
+      self.fileIdEntity = initDriveFileEntity()
+      self.fileIdEntity['query'] = ME_IN_OWNERS
+
+  def AppendToQuery(self, query):
+    self.InitDriveIdEntity()
+    if self.fileIdEntity['query']:
+      self.fileIdEntity['query'] += ' and ('+query+')'
+    else:
+      self.fileIdEntity['query'] = query
+
+  def SetQuery(self, query):
+    self.InitDriveIdEntity()
+    self.fileIdEntity['query'] = query
 
   def UpdateAnyOwnerQuery(self):
-    self.query = _updateAnyOwnerQuery(self.query)
+    self.InitDriveIdEntity()
+    self.fileIdEntity['query'] = _updateAnyOwnerQuery(self.fileIdEntity['query'])
 
-  def UpdateQueryTimes(self):
-    for queryTimeName, queryTimeValue in iter(self.queryTimes.items()):
-      self.query = self.query.replace(f'#{queryTimeName}#', queryTimeValue)
+  def UpdateQueryWithShowOwnedBy(self):
+    self.InitDriveIdEntity()
+    if self.showOwnedBy is None:
+      self.fileIdEntity['query'] = _updateAnyOwnerQuery(self.fileIdEntity['query'])
+    elif not self.showOwnedBy:
+      if self.fileIdEntity['query'].find(NOT_ME_IN_OWNERS) >= 0:
+        pass
+      else:
+        self.fileIdEntity['query'] = _stripMeInOwners(self.fileIdEntity['query'])
+        if self.fileIdEntity['query']:
+          self.fileIdEntity['query'] = NOT_ME_IN_OWNERS_AND+self.fileIdEntity['query']
+        else:
+          self.fileIdEntity['query'] = NOT_ME_IN_OWNERS
+    else:
+      if self.fileIdEntity['query'].find(ME_IN_OWNERS) >= 0:
+        pass
+      else:
+        self.fileIdEntity['query'] = _stripNotMeInOwners(self.fileIdEntity['query'])
+        if self.fileIdEntity['query']:
+          self.fileIdEntity['query'] = ME_IN_OWNERS_AND+self.fileIdEntity['query']
+        else:
+          self.fileIdEntity['query'] = ME_IN_OWNERS
 
   def CheckShowOwnedBy(self, fileInfo):
     return self.showOwnedBy is None or fileInfo.get('ownedByMe', self.showOwnedBy) == self.showOwnedBy
+
+  def CheckShowSharedByMe(self, fileInfo):
+    return self.showSharedByMe is None or (fileInfo.get('shared', self.showSharedByMe) == self.showSharedByMe and fileInfo.get('ownedByMe', False))
+
+  def SetLocationFileIDsList(self, location):
+    self.locationFileIds = location['fileids']
+    self.checkLocation = location['location']
+    self.InitDriveIdEntity()
+    cleanFileIDsList(self.fileIdEntity, self.locationFileIds)
+
+  def SetLocation(self, location):
+    self.SetLocationFileIDsList(location)
+    if self.checkLocation in {LOCATION_ALL_DRIVES, LOCATION_ONLY_SHARED_DRIVES}:
+      self.kwargs = {'corpora': 'allDrives', 'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
+      self.showOwnedBy = None
+      self.fileIdEntity['query'] = ''
+      self.onlyTeamDrives = self.checkLocation == LOCATION_ONLY_SHARED_DRIVES
+    elif location['setShowOwnedBy']:
+      self.showOwnedBy = location['owner']
+      if self.showOwnedBy is None:
+        self.fileIdEntity['query'] = ''
+      elif self.showOwnedBy:
+        self.fileIdEntity['query'] = ME_IN_OWNERS
+      else:
+        self.fileIdEntity['query'] = NOT_ME_IN_OWNERS
+    else:
+      if self.fileIdEntity['query'].find(NOT_ME_IN_OWNERS) >= 0:
+        self.fileIdEntity['query'] = NOT_ME_IN_OWNERS
+      elif self.fileIdEntity['query'].find(ME_IN_OWNERS) >= 0:
+        self.fileIdEntity['query'] = ME_IN_OWNERS
+
+  def SetShowOwnedBy(self, showOwnedBy):
+    self.showOwnedBy = showOwnedBy
+
+  def GetFileIdEntity(self):
+    if not self.fileIdEntity:
+      self.fileIdEntity = initDriveFileEntity()
+      self.fileIdEntity['query'] = ME_IN_OWNERS
+    return self.fileIdEntity
+
+  def AddMimeTypeToQuery(self):
+    if not self.fileIdEntity:
+      self.fileIdEntity = initDriveFileEntity()
+    if self.mimeTypeCheck.mimeTypes:
+      self.fileIdEntity['query'] = self.mimeTypeCheck.AddMimeTypeToQuery(self.fileIdEntity['query'])
+
+  def Finalize(self, fileIdEntity):
+    self.fileIdEntity.setdefault('query', '')
+    if self.excludeTrashed:
+      self.AppendToQuery('trashed=false')
+    if self.fileIdEntity['query']:
+      for queryTimeName, queryTimeValue in iter(self.queryTimes.items()):
+        self.fileIdEntity['query'] = self.fileIdEntity['query'].replace(f'#{queryTimeName}#', queryTimeValue)
+      self.fileIdEntity['query'] = _mapDrive2QueryToDrive3(self.fileIdEntity['query'])
+    if not fileIdEntity.get('teamdrive'):
+      if self.fileIdEntity['query']:
+        if self.fileIdEntity['query'].find(NOT_ME_IN_OWNERS) >= 0 or (not self.showOwnedBy and self.showOwnedBy is not None):
+          if not self.locationFileIds:
+            self.SetLocationFileIDsList(LOCATION_CHOICE_MAP['ownedbyothers'])
+          self.SetShowOwnedBy(False)
+        elif self.fileIdEntity['query'].find(ME_IN_OWNERS) >= 0 or self.showOwnedBy:
+          if not self.locationFileIds:
+            self.SetLocationFileIDsList(LOCATION_CHOICE_MAP['ownedbyme'])
+          self.SetShowOwnedBy(True)
+        else:
+          if not self.locationFileIds:
+            self.SetLocationFileIDsList(LOCATION_CHOICE_MAP['ownedbyany'])
+          self.SetShowOwnedBy(None)
+      else:
+        if not self.locationFileIds:
+          self.SetLocationFileIDsList(LOCATION_CHOICE_MAP['ownedbyany'])
+        self.SetShowOwnedBy(None)
+    else:
+      self.UpdateAnyOwnerQuery()
+#      if not self.locationFileIds:
+#        self.SetLocationFileIDsList(LOCATION_CHOICE_MAP['onlyshareddrives'])
+      self.SetShowOwnedBy(None)
+
+  def GetLocationFileIdsFromTree(self, fileTree, fileIdEntity):
+    cleanList = []
+    for fileId in self.locationFileIds:
+      if fileId == ROOT or (fileId in fileTree and fileTree[fileId]['children']):
+        cleanList.append(fileId)
+    cleanFileIDsList(fileIdEntity, cleanList)
+
+  def CheckExcludeTrashed(self, fileInfo):
+    return not self.excludeTrashed or not fileInfo.get('trashed', False)
+
+  def CheckFilenameMatch(self, fileInfo):
+    return not self.filenameMatchPattern or self.filenameMatchPattern.match(fileInfo['name'])
 
   def CheckMimeType(self, fileInfo):
     return self.mimeTypeCheck.Check(fileInfo)
@@ -34384,14 +34667,15 @@ class DriveListParameters():
   def CheckMinimumFileSize(self, fileInfo):
     return self.minimumFileSize is None or int(fileInfo.get('size', '0')) >= self.minimumFileSize
 
-  def CheckFilenameMatch(self, fileInfo):
-    return not self.filenameMatchPattern or self.filenameMatchPattern.match(fileInfo['name'])
+  def CheckOnlyTeamDrives(self, fileInfo):
+    return not self.onlyTeamDrives or fileInfo.get('driveId') is not None
 
   def CheckPermissionMatches(self, fileInfo):
     return self.PM.CheckPermissionMatches(fileInfo)
 
 FILELIST_FIELDS_TITLES = ['id', 'mimeType', 'parents']
 DRIVE_INDEXED_TITLES = ['parents', 'path', 'permissions']
+CHECK_LOCATION_FIELDS_TITLES = ['driveId', 'id', 'mimeType', 'ownedByMe', 'parents', 'shared']
 
 FILECOUNT_SUMMARY_NONE = 0
 FILECOUNT_SUMMARY_ONLY = -1
@@ -34403,16 +34687,22 @@ FILECOUNT_SUMMARY_CHOICE_MAP = {
   }
 FILECOUNT_SUMMARY_USER = 'Summary'
 
-# gam <UserTypeEntity> print filelist [todrive <ToDriveAttribute>*] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
-#	[((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) |
-#	  (select <DriveFileEntityListTree> [selectsubquery <QueryDriveFile>] [norecursion|(depth <Number>)] [showparent])]
-#	[querytime.* <Time>] [maxfiles <Integer>]
+# gam <UserTypeEntity> print filelist [todrive <ToDriveAttribute>*]
+#	[((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) (querytime.* <Time>)*]
+#	[choose <DriveFileNameEntity>|<DriveFileEntityShortcut>]
+#	[corpora <CorporaAttribute>]
+#	[select <DriveFileEntity>> [selectsubquery <QueryDriveFile>]
+#	    [norecursion|(depth <Number>)] [showparent]]
+#	[anyowner|(showownedby any|me|others)]
 #	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
 #	[filenamematchpattern <RegularExpression>]
 #	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
+#	[excludetrashed]
+#	[maxfiles <Integer>] [nodataheaders <String>]
 #	[countsonly [summary none|only|plus]]
-#	[filepath|fullpath [showdepth]] [buildtree] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
-#	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>] [showparentsidsaslist]
+#	[filepath|fullpath [showdepth]] [buildtree]
+#	[allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [showdrivename] [showparentsidsaslist]
+#	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
 #	[formatjson] [quotechar <Character>]
 def printFileList(users):
   def _setSelectionFields():
@@ -34420,6 +34710,8 @@ def printFileList(users):
       _setSkipObjects(skipObjects, FILELIST_FIELDS_TITLES, DFF.fieldsList)
     if DLP.showOwnedBy is not None:
       _setSkipObjects(skipObjects, OWNED_BY_ME_FIELDS_TITLES, DFF.fieldsList)
+    if DLP.showSharedByMe is not None or DLP.checkLocation is not None:
+      _setSkipObjects(skipObjects, CHECK_LOCATION_FIELDS_TITLES, DFF.fieldsList)
     if DLP.mimeTypeCheck.mimeTypes:
       _setSkipObjects(skipObjects, ['mimeType'], DFF.fieldsList)
     if countsOnly:
@@ -34428,8 +34720,10 @@ def printFileList(users):
         DFF.fieldsList.append('mimeType')
     if DLP.minimumFileSize is not None:
       _setSkipObjects(skipObjects, ['size'], DFF.fieldsList)
-    if DLP.filenameMatchPattern:
+    if DLP.filenameMatchPattern or showParent:
       _setSkipObjects(skipObjects, ['name'], DFF.fieldsList)
+    if DLP.excludeTrashed:
+      _setSkipObjects(skipObjects, ['trashed'], DFF.fieldsList)
     if DLP.PM.permissionMatches:
       for field in DFF.fieldsList:
         if field.startswith('permissions'):
@@ -34441,17 +34735,20 @@ def printFileList(users):
           permfield = 'permissions.'+field
           if permfield not in DFF.fieldsList:
             DFF.fieldsList.append(permfield)
-    if onlyTeamDrives or getPermissionsForTeamDrives or DFF.showTeamDriveNames:
+    if DLP.onlyTeamDrives or getPermissionsForTeamDrives or DFF.showTeamDriveNames:
       _setSkipObjects(skipObjects, ['driveId'], DFF.fieldsList)
 
   def _printFileInfo(drive, user, f_file):
     driveId = f_file.get('driveId')
-    if (not DLP.CheckShowOwnedBy(f_file) or
+    if (f_file.get('noDisplay', False) or
+        not DLP.CheckShowOwnedBy(f_file) or
+        not DLP.CheckShowSharedByMe(f_file) or
+        not DLP.CheckExcludeTrashed(f_file) or
         not DLP.CheckMimeType(f_file) or
         not DLP.CheckMinimumFileSize(f_file) or
         not DLP.CheckFilenameMatch(f_file) or
         ('permissions' in f_file and not DLP.CheckPermissionMatches(f_file)) or
-        (onlyTeamDrives and not driveId)):
+        (DLP.onlyTeamDrives and not driveId)):
       return
     if getPermissionsForTeamDrives and driveId and 'permissions' not in f_file:
       try:
@@ -34503,9 +34800,13 @@ def printFileList(users):
       for childFileId in parentFileEntry['children']:
         childEntry = fileTree.get(childFileId)
         if childEntry:
+          if not DLP.CheckExcludeTrashed(childEntry['info']):
+            continue
           if childFileId not in filesPrinted:
             filesPrinted.add(childFileId)
-            _printFileInfo(drive, user, childEntry['info'].copy())
+            # Don't show My Drive/Shared Drive unless asked
+            if showParent or parentFileEntry['info']['id'] != parentFileEntry['info'].get('driveId', ''):
+              _printFileInfo(drive, user, childEntry['info'].copy())
           if childEntry['info']['mimeType'] == MIMETYPE_GA_FOLDER and (maxdepth == -1 or depth < maxdepth):
             _printChildDriveFolderContents(drive, childEntry['info'], user, i, count, depth+1)
       return
@@ -34544,29 +34845,34 @@ def printFileList(users):
 
   csvPF = CSVPrintFile('Owner', indexedTitles=DRIVE_INDEXED_TITLES)
   FJQC = FormatJSONQuoteChar(csvPF)
-  buildTree = countsOnly = filepath = fullpath = getTeamDriveNames = noRecursion = \
-    onlyTeamDrives = showParentsIdsAsList = showDepth = showParent = False
+  buildTree = countsOnly = filepath = fullpath = noRecursion = \
+    showParentsIdsAsList = showDepth = showParent = False
   maxdepth = -1
   nodataFields = []
   simpleLists = ['permissionIds', 'spaces']
   skipObjects = set()
-  selectSubQuery = ''
   fileIdEntity = {}
+  selectSubQuery = ''
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
-  DLP = DriveListParameters()
+  DLP = DriveListParameters({'allowChoose': True, 'allowCorpora': True, 'allowQuery': True, 'mimeTypeInQuery': False})
   DFF = DriveFileFields()
-  kwargs = {}
   summary = FILECOUNT_SUMMARY_NONE
   summaryMimeTypeCounts = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif DLP.ProcessArgument(myarg):
+    elif DFF.ProcessArgument(myarg):
+      pass
+    elif DLP.ProcessArgument(myarg, fileIdEntity):
       pass
     elif myarg == 'select':
-      fileIdEntity = getDriveFileEntity(orphansOK=True, queryShortcutsOK=False)
-      DLP.query = ''
+      if fileIdEntity:
+        usageErrorExit(Msg.CAN_NOT_BE_SPECIFIED_MORE_THAN_ONCE.format('select'))
+      if not DLP.fileIdEntity:
+        fileIdEntity = getDriveFileEntity(DLP=DLP)
+      else:
+        fileIdEntity = getDriveFileEntityTeamDriveOnly()
     elif myarg == 'selectsubquery':
       selectSubQuery = getString(Cmd.OB_QUERY, minLen=0)
     elif myarg == 'norecursion':
@@ -34577,8 +34883,6 @@ def printFileList(users):
       showDepth = True
     elif myarg == 'showparent':
       showParent = getBoolean()
-    elif DFF.ProcessArgument(myarg):
-      pass
     elif myarg == 'nodataheaders':
       nodataFields = getString(Cmd.OB_FIELD_NAME_LIST).replace('_', '').replace(',', ' ').split()
     elif myarg == 'filepath':
@@ -34598,32 +34902,36 @@ def printFileList(users):
     elif myarg == 'showparentsidsaslist':
       showParentsIdsAsList = True
       simpleLists.append('parentsIds')
-    elif myarg == 'corpora':
-      onlyTeamDrives = _getCorpora(kwargs)
-      getTeamDriveNames = True
-      DLP.UpdateAnyOwnerQuery()
     else:
       FJQC.GetFormatJSONQuoteChar(myarg)
   if not filepath and not fullpath:
     showDepth = False
-  noSelect = (not fileIdEntity
-              or (not fileIdEntity['dict']
-                  and not fileIdEntity['query']
-                  and not fileIdEntity['teamdrivefilequery']
-                  and not fileIdEntity['list']))
+  noSelect = noFileSelectFileIdEntity(fileIdEntity)
   if noSelect:
     buildTree = True
-    if maxdepth != -1:
+    if maxdepth != -1 or filepath:
       if not fileIdEntity:
         fileIdEntity = initDriveFileEntity()
+        DLP.GetFileIdEntity()
       if not fileIdEntity['teamdrive']:
         cleanFileIDsList(fileIdEntity, [ROOT, ORPHANS])
       noSelect = False
+    elif not fileIdEntity:
+      fileIdEntity = DLP.GetFileIdEntity()
   elif not buildTree:
     buildTree = (not fileIdEntity['dict']
                  and not fileIdEntity['query']
                  and not fileIdEntity['teamdrivefilequery']
                  and _simpleFileIdEntityList(fileIdEntity['list']))
+  incrementalPrint = buildTree and (not filepath) and noSelect and not DLP.locationSet
+  if incrementalPrint:
+    DLP.AddMimeTypeToQuery()
+  if buildTree:
+    if not fileIdEntity.get('teamdrive'):
+      btkwargs = DLP.kwargs
+    else:
+      btkwargs = fileIdEntity['teamdrive']
+    DLP.Finalize(fileIdEntity)
   if DLP.PM.permissionMatches:
     getPermissionsForTeamDrives = True
     permissionsFields = 'nextPageToken,permissions'
@@ -34636,16 +34944,21 @@ def printFileList(users):
     fields = getFieldsFromFieldsList(DFF.fieldsList)
     pagesFields = getItemFieldsFromFieldsList('files', DFF.fieldsList)
   elif not DFF.allFields:
-    if not countsOnly:
-      for field in ['name', 'webviewlink']:
-        csvPF.AddField(field, DRIVE_FIELDS_CHOICE_MAP, DFF.fieldsList)
     _setSelectionFields()
+    if not countsOnly and not set(DFF.fieldsList)-skipObjects:
+      for field in ['name', 'webviewlink']:
+        skipObjects.discard(DRIVE_FIELDS_CHOICE_MAP[field])
+        csvPF.AddField(field, DRIVE_FIELDS_CHOICE_MAP, DFF.fieldsList)
     fields = getFieldsFromFieldsList(DFF.fieldsList)
     pagesFields = getItemFieldsFromFieldsList('files', DFF.fieldsList)
   else:
     fields = pagesFields = '*'
     DFF.SetAllParentsSubFields()
     skipObjects = skipObjects.union(DEFAULT_SKIP_OBJECTS)
+  teamdriveFields = []
+  for field in ['capabilities', 'createdTime']:
+    if fields == '*' or field in DFF.fieldsList:
+      teamdriveFields.append(field)
   if filepath and not countsOnly:
     csvPF.AddTitles('paths')
     csvPF.SetFixPaths(True)
@@ -34658,26 +34971,6 @@ def printFileList(users):
   else:
     fileNameTitle = 'name'
   csvPF.RemoveTitles(['capabilities'])
-  DLP.MapDrive2QueryToDrive3()
-  DLP.UpdateQueryTimes()
-  incrementalPrint = buildTree and (not filepath) and noSelect
-  if buildTree:
-    if not fileIdEntity.get('teamdrive'):
-      btkwargs = kwargs
-    else:
-      DLP.UpdateAnyOwnerQuery()
-      btkwargs = fileIdEntity['teamdrive']
-      getTeamDriveNames = True
-    if incrementalPrint:
-      if not DLP.showOwnedBySet and DLP.query:
-        if DLP.query.find(NOT_ME_IN_OWNERS) >= 0:
-          DLP.showOwnedBy = False
-        elif DLP.query.find(ME_IN_OWNERS) >= 0:
-          DLP.showOwnedBy = True
-        else:
-          DLP.showOwnedBy = None
-      if DLP.mimeTypeCheck.mimeTypes:
-        DLP.query = DLP.mimeTypeCheck.AddMimeTypeToQuery(DLP.query)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -34697,14 +34990,19 @@ def printFileList(users):
       filePathInfo = initFilePathInfo()
     filesPrinted = set()
     mimeTypeCounts = {}
-    if incrementalPrint:
-      printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=DLP.query)
+    if buildTree:
+      printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=DLP.fileIdEntity['query'])
       page_message = getPageMessageForWhom()
       pageToken = None
       totalItems = 0
       maxResults = GC.Values[GC.DRIVE_MAX_RESULTS]
       tweakMaxResults = DLP.maxItems and maxResults
+      if not incrementalPrint:
+        fileTree, status = initFileTree(drive, fileIdEntity.get('teamdrive'), DLP, teamdriveFields, showParent)
+        if not status:
+          continue
       queryError = False
+      userError = False
       while True:
         if tweakMaxResults and DLP.maxItems-totalItems < GC.Values[GC.DRIVE_MAX_RESULTS]:
           maxResults = DLP.maxItems-totalItems
@@ -34714,9 +35012,10 @@ def printFileList(users):
                                                                        GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                           retry_reasons=[GAPI.UNKNOWN_ERROR],
                           pageToken=pageToken,
-                          q=DLP.query, orderBy=DFF.orderBy, fields=pagesFields, pageSize=maxResults, **btkwargs)
+                          q=DLP.fileIdEntity['query'], orderBy=DFF.orderBy,
+                          fields=pagesFields, pageSize=maxResults, **btkwargs)
         except (GAPI.invalidQuery, GAPI.invalid):
-          entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(DLP.query), i, count)
+          entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(DLP.fileIdEntity['query']), i, count)
           queryError = True
           break
         except GAPI.fileNotFound:
@@ -34727,57 +35026,36 @@ def printFileList(users):
           break
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+          userError = True
           break
         pageToken, totalItems = _processGAPIpagesResult(feed, 'files', None, totalItems, page_message, None, Ent.DRIVE_FILE_OR_FOLDER)
         if feed:
-          for f_file in feed.get('files', []):
-            _printFileInfo(drive, user, f_file)
+          if not incrementalPrint:
+            extendFileTree(fileTree, feed.get('files', []), DLP)
+          else:
+            for f_file in feed.get('files', []):
+              _printFileInfo(drive, user, f_file)
           del feed
         if not pageToken or (DLP.maxItems and totalItems >= DLP.maxItems):
           _finalizeGAPIpagesResult(page_message)
           break
       if queryError:
         break
-      if countsOnly:
-        if summary != FILECOUNT_SUMMARY_NONE:
-          for mimeType, mtcount in iter(mimeTypeCounts.items()):
-            summaryMimeTypeCounts.setdefault(mimeType, 0)
-            summaryMimeTypeCounts[mimeType] += mtcount
-        if summary != FILECOUNT_SUMMARY_ONLY:
-          writeMimeTypeCountsRow(user, mimeTypeCounts)
-      continue
-    fileTree = {}
-    if buildTree:
-      printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=DLP.query)
-      try:
-        feed = callGAPIpages(drive.files(), 'list', 'files',
-                             page_message=getPageMessageForWhom(), maxItems=DLP.maxItems,
-                             throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND,
-                                                                          GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
-                             retry_reasons=[GAPI.UNKNOWN_ERROR],
-                             q=DLP.query, orderBy=DFF.orderBy, fields=pagesFields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
-      except (GAPI.invalidQuery, GAPI.invalid):
-        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(DLP.query), i, count)
-        break
-      except GAPI.fileNotFound:
-        printGotEntityItemsForWhom(0)
+      if userError:
         continue
-      except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, fileIdEntity['teamdrive']['driveId']], str(e), i, count)
-        continue
-      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
-        continue
-      if filepath or not noSelect:
-        fileTree = buildFileTree(feed, drive, getTeamDriveNames=getTeamDriveNames)
-      if noSelect:
-        for f_file in feed:
-          _printFileInfo(drive, user, f_file)
-        del feed
+      if incrementalPrint:
         if countsOnly:
+          if summary != FILECOUNT_SUMMARY_NONE:
+            for mimeType, mtcount in iter(mimeTypeCounts.items()):
+              summaryMimeTypeCounts.setdefault(mimeType, 0)
+              summaryMimeTypeCounts[mimeType] += mtcount
           if summary != FILECOUNT_SUMMARY_ONLY:
             writeMimeTypeCountsRow(user, mimeTypeCounts)
         continue
+      extendFileTreeParents(drive, fileTree, fields)
+      DLP.GetLocationFileIdsFromTree(fileTree, fileIdEntity)
+    else:
+      fileTree = {}
     user, drive, jcount = _validateUserGetFileIDs(origUser, i, count, fileIdEntity, drive=drive)
     if jcount == 0:
       continue
@@ -34945,21 +35223,41 @@ def printShowFilePaths(users):
   if csvPF:
     csvPF.writeCSVfile('Drive File Paths')
 
-# gam <UserTypeEntity> print filecounts [todrive <ToDriveAttribute>*] [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
-#	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
-#	[querytime.* <Time>]
-#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
-#	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
+# gam <UserTypeEntity> print filecounts [todrive <ToDriveAttribute>*]
+#	[((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) (querytime.* <Time>)*]
+#	[corpora <CorporaAttribute>]
 #	[select <TeamDriveEntity>]
+#	[anyowner|(showownedby any|me|others)]
+#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
+#	[filenamematchpattern <RegularExpression>]
+#	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
+#	[excludetrashed]
 #	[summary none|only|plus]
-# gam <UserTypeEntity> show filecounts [corpora <CorporaAttribute>] [anyowner|(showownedby any|me|others)]
-#	[query <QueryDriveFile>] [fullquery <QueryDriveFile>] [<DriveFileQueryShortcut>]
-#	[querytime.* <Time>]
-#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
-#	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
+# gam <UserTypeEntity> show filecounts
+#	[((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) (querytime.* <Time>)*]
+#	[corpora <CorporaAttribute>]
 #	[select <TeamDriveEntity>]
+#	[anyowner|(showownedby any|me|others)]
+#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
+#	[filenamematchpattern <RegularExpression>]
+#	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
+#	[excludetrashed]
 #	[summary none|only|plus]
 def printShowFileCounts(users):
+  def _setSelectionFields():
+    if DLP.showOwnedBy is not None:
+      fieldsList.extend(OWNED_BY_ME_FIELDS_TITLES)
+    if DLP.minimumFileSize is not None:
+      fieldsList.append('size')
+    if DLP.filenameMatchPattern:
+      fieldsList.append('name')
+    if DLP.excludeTrashed:
+      fieldsList.append('trashed')
+    if DLP.PM.permissionMatches:
+      fieldsList.extend(['id', 'permissions'])
+    if DLP.onlyTeamDrives or getPermissionsForTeamDrives:
+      fieldsList.append('driveId')
+
   def showMimeTypeCounts(user, mimeTypeCounts, teamDriveId, teamDriveName, i, count):
     total = 0
     for mimeTypeCount in iter(mimeTypeCounts.values()):
@@ -34992,46 +35290,41 @@ def printShowFileCounts(users):
   if csvPF:
     csvPF.SetZeroBlankMimeTypeCounts(True)
   fieldsList = ['mimeType']
-  DLP = DriveListParameters(mimeTypeInQuery=True)
-  onlyTeamDrives = False
+  DLP = DriveListParameters({'allowChoose': False, 'allowCorpora': True, 'allowQuery': True, 'mimeTypeInQuery': True})
   summary = FILECOUNT_SUMMARY_NONE
   summaryMimeTypeCounts = {}
-  fileIdEntity = initDriveFileEntity()
+  fileIdEntity = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif DLP.ProcessArgument(myarg):
+    elif DLP.ProcessArgument(myarg, fileIdEntity):
       pass
-    elif myarg == 'corpora':
-      onlyTeamDrives = _getCorpora(fileIdEntity['teamdrive'])
-      if onlyTeamDrives:
-        fieldsList.append('driveId')
     elif myarg == 'select':
+      if fileIdEntity:
+        usageErrorExit(Msg.CAN_NOT_BE_SPECIFIED_MORE_THAN_ONCE.format('select'))
       fileIdEntity = getTeamDriveEntity()
     elif myarg == 'summary':
       summary = getChoice(FILECOUNT_SUMMARY_CHOICE_MAP, mapChoice=True)
     else:
       unknownArgumentExit()
-  if fileIdEntity.get('teamdrive'):
-    DLP.UpdateAnyOwnerQuery()
+  if not fileIdEntity:
+    fileIdEntity = DLP.GetFileIdEntity()
+  if not fileIdEntity.get('teamdrive'):
+    btkwargs = DLP.kwargs
+  else:
+    btkwargs = fileIdEntity['teamdrive']
     fieldsList.append('driveId')
-  if DLP.minimumFileSize is not None:
-    fieldsList.append('size')
-  if DLP.filenameMatchPattern:
-    fieldsList.append('name')
+  DLP.Finalize(fileIdEntity)
   if DLP.PM.permissionMatches:
-    fieldsList.extend(['id', 'permissions'])
     getPermissionsForTeamDrives = True
     permissionsFields = 'nextPageToken,permissions'
   else:
     getPermissionsForTeamDrives = False
+  _setSelectionFields()
   if csvPF:
     csvPF.SetTitles(['User', 'id', 'name', 'Total'] if fileIdEntity.get('teamdrive') else ['User', 'Total'])
     csvPF.SetSortAllTitles()
-  DLP.MapDrive2QueryToDrive3()
-  DLP.UpdateQueryTimes()
-  summaryMimeTypeCounts = {}
   pagesFields = getItemFieldsFromFieldsList('files', fieldsList)
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -35045,44 +35338,65 @@ def printShowFileCounts(users):
     else:
       teamDriveName = ''
     mimeTypeCounts = {}
-    printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=DLP.query)
-    try:
-      feed = callGAPIpages(drive.files(), 'list', 'files',
-                           page_message=getPageMessageForWhom(),
-                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND,
-                                                                        GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
-                           retry_reasons=[GAPI.UNKNOWN_ERROR],
-                           q=DLP.query, fields=pagesFields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **fileIdEntity['teamdrive'])
-    except (GAPI.invalidQuery, GAPI.invalid):
-      entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, None], invalidQuery(DLP.query), i, count)
-      continue
-    except GAPI.fileNotFound:
-      printGotEntityItemsForWhom(0)
-      continue
-    except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
-      continue
-    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
-      continue
-    for f_file in feed:
-      if (not DLP.CheckMinimumFileSize(f_file) or
-          not DLP.CheckFilenameMatch(f_file) or
-          ('permissions' in f_file and not DLP.CheckPermissionMatches(f_file)) or
-          (onlyTeamDrives and not f_file.get('driveId'))):
-        continue
-      if getPermissionsForTeamDrives and f_file.get('driveId') and 'permissions' not in f_file:
-        try:
-          f_file['permissions'] = callGAPIpages(drive.permissions(), 'list', 'permissions',
-                                                throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST],
-                                                fileId=f_file['id'], fields=permissionsFields, supportsAllDrives=True)
-          if not DLP.CheckPermissionMatches(f_file):
+    printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=DLP.fileIdEntity['query'])
+    page_message = getPageMessageForWhom()
+    pageToken = None
+    totalItems = 0
+    maxResults = GC.Values[GC.DRIVE_MAX_RESULTS]
+    queryError = userError = False
+    while True:
+      try:
+        feed = callGAPI(drive.files(), 'list',
+                        throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND,
+                                                                     GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                        retry_reasons=[GAPI.UNKNOWN_ERROR],
+                        pageToken=pageToken,
+                        q=DLP.fileIdEntity['query'],
+                        fields=pagesFields, pageSize=maxResults, **btkwargs)
+      except (GAPI.invalidQuery, GAPI.invalid):
+        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, None], invalidQuery(DLP.fileIdEntity['query']), i, count)
+        queryError = True
+        break
+      except GAPI.fileNotFound:
+        printGotEntityItemsForWhom(0)
+        break
+      except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
+        break
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+        userError = True
+        break
+      pageToken, totalItems = _processGAPIpagesResult(feed, 'files', None, totalItems, page_message, None, Ent.DRIVE_FILE_OR_FOLDER)
+      if feed:
+        for f_file in feed.get('files', []):
+          if (not DLP.CheckShowOwnedBy(f_file) or
+              not DLP.CheckShowSharedByMe(f_file) or
+              not DLP.CheckExcludeTrashed(f_file) or
+              not DLP.CheckMinimumFileSize(f_file) or
+              not DLP.CheckFilenameMatch(f_file) or
+              ('permissions' in f_file and not DLP.CheckPermissionMatches(f_file)) or
+              (DLP.onlyTeamDrives and not f_file.get('driveId'))):
             continue
-        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.internalError,
-                GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy, GAPI.badRequest):
-          continue
-      mimeTypeCounts.setdefault(f_file['mimeType'], 0)
-      mimeTypeCounts[f_file['mimeType']] += 1
+          if getPermissionsForTeamDrives and f_file.get('driveId') and 'permissions' not in f_file:
+            try:
+              f_file['permissions'] = callGAPIpages(drive.permissions(), 'list', 'permissions',
+                                                    throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST],
+                                                    fileId=f_file['id'], fields=permissionsFields, supportsAllDrives=True)
+              if not DLP.CheckPermissionMatches(f_file):
+                continue
+            except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.internalError,
+                    GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy, GAPI.badRequest):
+              continue
+          mimeTypeCounts.setdefault(f_file['mimeType'], 0)
+          mimeTypeCounts[f_file['mimeType']] += 1
+      if not pageToken or (DLP.maxItems and totalItems >= DLP.maxItems):
+        _finalizeGAPIpagesResult(page_message)
+        break
+    if queryError:
+      break
+    if userError:
+      continue
     showMimeTypeCounts(user, mimeTypeCounts, teamDriveId, teamDriveName, i, count)
   if summary != FILECOUNT_SUMMARY_NONE:
     showMimeTypeCounts(FILECOUNT_SUMMARY_USER, summaryMimeTypeCounts, '', '', 0, 0)
@@ -35103,21 +35417,28 @@ FILETREE_FIELDS_CHOICE_MAP = {
 
 FILETREE_FIELDS_PRINT_ORDER = ['id', 'parents', 'owners', 'mimeType', 'size', 'explicitlyTrashed', 'trashed']
 
-# gam <UserTypeEntity> print filetree [todrive <ToDriveAttribute>*] [anyowner|(showownedby any|me|others)]
-#	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [depth <Number>]
-#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
+# gam <UserTypeEntity> print filetree [todrive <ToDriveAttribute>*]
+#	[select <DriveFileEntity>> [selectsubquery <QueryDriveFile>] [depth <Number>]]
+#	[anyowner|(showownedby any|me|others)]
+#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
+#	[filenamematchpattern <RegularExpression>]
 #	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
-#	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
-#	[excludetrashed] [noindent]
-# gam <UserTypeEntity> show filetree [anyowner|(showownedby any|me|others)]
-#	[select <DriveFileEntityListTree>] [selectsubquery <QueryDriveFile>] [depth <Number>]
-#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [filenamematchpattern <RegularExpression>]
-#	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
-#	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [fields <FileTreeFieldNameList>] [delimiter <Character>]
 #	[excludetrashed]
+#	[fields <FileTreeFieldNameList>]
+#	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
+#	[noindent]
+# gam <UserTypeEntity> show filetree
+#	[select <DriveFileEntity>> [selectsubquery <QueryDriveFile>] [depth <Number>]]
+#	[anyowner|(showownedby any|me|others)]
+#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
+#	[filenamematchpattern <RegularExpression>]
+#	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
+#	[excludetrashed]
+#	[fields <FileTreeFieldNameList>]
+#	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
 def printShowFileTree(users):
   def _showFileInfo(fileEntry, depth, j=0, jcount=0):
-    if excludeTrashed and fileEntry.get('trashed', False):
+    if not DLP.CheckExcludeTrashed(fileEntry):
       return
     if not csvPF:
       fileInfoList = []
@@ -35161,7 +35482,7 @@ def printShowFileTree(users):
     for childId in fileEntry['children']:
       childEntry = fileTree.get(childId)
       if childEntry:
-        if excludeTrashed and childEntry['info'].get('trashed', False):
+        if not DLP.CheckExcludeTrashed(childEntry['info']):
           continue
         if (DLP.CheckMimeType(childEntry['info']) and
             DLP.CheckMinimumFileSize(childEntry['info']) and
@@ -35174,7 +35495,7 @@ def printShowFileTree(users):
           Ind.Decrement()
 
   def _showChildDriveFolderContents(drive, fileEntry, user, i, count, depth):
-    if excludeTrashed and fileEntry.get('trashed', False):
+    if not DLP.CheckExcludeTrashed(fileEntry):
       return
     q = WITH_PARENTS.format(fileEntry['id'])
     if selectSubQuery:
@@ -35192,7 +35513,7 @@ def printShowFileTree(users):
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
       return
     for childEntryInfo in children:
-      if excludeTrashed and childEntryInfo.get('trashed', False):
+      if not DLP.CheckExcludeTrashed(childEntryInfo):
         continue
       if (DLP.CheckMimeType(childEntryInfo) and
           DLP.CheckMinimumFileSize(childEntryInfo) and
@@ -35206,24 +35527,27 @@ def printShowFileTree(users):
 
   csvPF = CSVPrintFile(['User', 'index', 'depth', 'name']) if Act.csvFormat() else None
   maxdepth = -1
-  fileIdEntity = initDriveFileEntity()
+  fileIdEntity = {}
   selectSubQuery = ''
-  fieldsList = ['id', 'name', 'parents', 'mimeType', 'owners(emailAddress)', 'size', 'explicitlyTrashed', 'trashed']
+  fieldsList = ['driveId', 'id', 'name', 'parents', 'mimeType', 'ownedByMe', 'owners(emailAddress)',
+                'shared', 'size', 'explicitlyTrashed', 'trashed']
   showFields = {}
   for field in FILETREE_FIELDS_CHOICE_MAP:
     showFields[FILETREE_FIELDS_CHOICE_MAP[field]] = False
-  buildTree = excludeTrashed = noindent = getTeamDriveNames = False
-  OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
-  DLP = DriveListParameters(allowQuery=False)
+  buildTree = noindent = False
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
+  OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
+  DLP = DriveListParameters({'allowChoose': False, 'allowCorpora': False, 'allowQuery': False, 'mimeTypeInQuery': False})
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif DLP.ProcessArgument(myarg):
+    elif DLP.ProcessArgument(myarg, fileIdEntity):
       pass
     elif myarg == 'select':
-      fileIdEntity = getDriveFileEntity(orphansOK=True, queryShortcutsOK=False)
+      if fileIdEntity:
+        usageErrorExit(Msg.CAN_NOT_BE_SPECIFIED_MORE_THAN_ONCE.format('select'))
+      fileIdEntity = getDriveFileEntity(DLP=DLP)
     elif myarg == 'selectsubquery':
       selectSubQuery = getString(Cmd.OB_QUERY, minLen=0)
     elif myarg == 'orderby':
@@ -35242,8 +35566,6 @@ def printShowFileTree(users):
       delimiter = getCharacter()
     elif csvPF and myarg == 'noindent':
       noindent = True
-    elif myarg == 'excludetrashed':
-      excludeTrashed = True
     else:
       unknownArgumentExit()
   if csvPF:
@@ -35255,22 +35577,29 @@ def printShowFileTree(users):
     else:
       fileNameTitle = 'name'
       fileSize = 'size'
-  buildTree = (not fileIdEntity['dict']
-               and not fileIdEntity['query']
-               and not fileIdEntity['teamdrivefilequery']
-               and _simpleFileIdEntityList(fileIdEntity['list']))
+  buildTree = (not fileIdEntity
+               or (not fileIdEntity['dict']
+                   and not fileIdEntity['query']
+                   and not fileIdEntity['teamdrivefilequery']
+                   and _simpleFileIdEntityList(fileIdEntity['list'])))
   if buildTree:
+    if not fileIdEntity:
+      fileIdEntity = initDriveFileEntity()
+      DLP.GetFileIdEntity()
     if not fileIdEntity.get('teamdrive'):
-      btkwargs = {'q': DLP.query}
-      defaultSelection = not fileIdEntity['list']
+      btkwargs = DLP.kwargs
+      btkwargs['q'] = DLP.fileIdEntity['query']
+      cleanFileIDsList(fileIdEntity, [ROOT, ORPHANS])
     else:
       btkwargs = fileIdEntity['teamdrive']
-      defaultSelection = False
-      getTeamDriveNames = True
+    DLP.Finalize(fileIdEntity)
+  elif not fileIdEntity:
+    fileIdEntity = initDriveFileEntity()
   if DLP.PM.permissionMatches:
     fieldsList.append('permissions')
   fields = getFieldsFromFieldsList(fieldsList)
   pagesFields = getItemFieldsFromFieldsList('files', fieldsList)
+  teamdriveFields = []
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -35279,11 +35608,13 @@ def printShowFileTree(users):
     if not drive:
       continue
     if buildTree:
-      printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=DLP.query)
+      fileTree, status = initFileTree(drive, fileIdEntity.get('teamdrive'), DLP, teamdriveFields, True)
+      if not status:
+        continue
+      printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=DLP.fileIdEntity['query'])
       page_message = getPageMessageForWhom()
       pageToken = None
       totalItems = 0
-      fileTree = initFileTree(drive, fileIdEntity.get('teamdrive'), getTeamDriveNames)
       userError = False
       while True:
         try:
@@ -35291,8 +35622,8 @@ def printShowFileTree(users):
                           throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                           retry_reasons=[GAPI.UNKNOWN_ERROR],
                           pageToken=pageToken,
-                          orderBy=OBY.orderBy, fields=pagesFields,
-                          pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
+                          orderBy=OBY.orderBy,
+                          fields=pagesFields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
         except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, fileIdEntity['teamdrive']['driveId']], str(e), i, count)
           userError = True
@@ -35303,18 +35634,15 @@ def printShowFileTree(users):
           break
         pageToken, totalItems = _processGAPIpagesResult(feed, 'files', None, totalItems, page_message, None, Ent.DRIVE_FILE_OR_FOLDER)
         if feed:
-          extendFileTree(fileTree, feed.get('files', []))
+          extendFileTree(fileTree, feed.get('files', []), DLP)
           del feed
         if not pageToken:
           _finalizeGAPIpagesResult(page_message)
           break
       if userError:
         continue
-      if defaultSelection:
-        if ORPHANS in fileTree and fileTree[ORPHANS]['children']:
-          cleanFileIDsList(fileIdEntity, [ROOT, ORPHANS])
-        else:
-          cleanFileIDsList(fileIdEntity, [ROOT])
+      extendFileTreeParents(drive, fileTree, fields)
+      DLP.GetLocationFileIdsFromTree(fileTree, fileIdEntity)
     else:
       fileTree = {}
     user, drive, jcount = _validateUserGetFileIDs(origUser, i, count, fileIdEntity, drive=drive, entityType=Ent.DRIVE_FILE_OR_FOLDER)
@@ -35326,17 +35654,16 @@ def printShowFileTree(users):
     Ind.Increment()
     for fileId in fileIdEntity['list']:
       j += 1
-      if buildTree:
-        fileEntry = fileTree.get(fileId)
-        if not fileEntry:
-          entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER, fileId], Msg.NOT_FOUND, j, jcount)
-          continue
+      fileEntry = fileTree.get(fileId)
+      if fileEntry:
         fileEntryInfo = fileEntry['info']
       else:
         try:
           fileEntryInfo = callGAPI(drive.files(), 'get',
                                    throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
                                    fileId=fileId, fields=fields, supportsAllDrives=True)
+          if buildTree:
+            fileTree[fileId] = {'info': fileEntryInfo}
         except GAPI.fileNotFound:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, fileId], Msg.NOT_FOUND, j, jcount)
           continue
@@ -35357,8 +35684,27 @@ def printShowFileTree(users):
   if csvPF:
     csvPF.writeCSVfile('Drive File Tree')
 
+def getCreationModificationTimes(path_to_file):
+  """
+  Try to get the date that a file was created, falling back to when it was
+  last modified if that isn't possible.
+  See http://stackoverflow.com/a/39501288/1709587 for explanation.
+  """
+  mtime = os.path.getmtime(path_to_file)
+  if platform.system() == 'Windows':
+    ctime = os.path.getctime(path_to_file)
+  else:
+    stat = os.stat(path_to_file)
+    try:
+      ctime = stat.st_birthtime
+    except AttributeError:
+      # We're probably on Linux. No easy way to get creation dates here,
+      # so we'll settle for when its content was last modified.
+      ctime = stat.st_mtime
+  return (formatLocalSecondsTimestamp(ctime), formatLocalSecondsTimestamp(mtime))
+
 # gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>]
-#	<DriveFileCreateAttribute>]
+#	<DriveFileCreateAttribute>* [enforcesingleparent <Boolean>]
 #	[csv [todrive <ToDriveAttribute>*]] [returnidonly]
 def createDriveFile(users):
   csvPF = media_body = None
@@ -35397,8 +35743,10 @@ def createDriveFile(users):
     try:
       result = callGAPI(drive.files(), 'create',
                         throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
-                                                                     GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
+                                                                     GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT,
+                                                                     GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
                                                                      GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED],
+                        enforceSingleParent=parameters[DFA_ENFORCE_SINGLE_PARENT],
                         ocrLanguage=parameters[DFA_OCRLANGUAGE],
                         ignoreDefaultVisibility=parameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                         keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
@@ -35414,7 +35762,7 @@ def createDriveFile(users):
           entityActionPerformed([Ent.USER, user, _getEntityMimeType(result), titleInfo], i, count)
       else:
         csvPF.WriteRow({'User': user, fileNameTitle: result['name'], 'id': result['id']})
-    except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
+    except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest, GAPI.cannotAddParent,
             GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, body['name']], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -35552,7 +35900,7 @@ def createDriveFileShortcut(users):
     csvPF.writeCSVfile('Shortcuts')
 
 # gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [retainname | (newfilename <DriveFileName>)]
-#	<DriveFileUpdateAttribute>*
+#	<DriveFileUpdateAttribute>* [enforcesingleparent <Boolean>]
 #	[gsheet|csvsheet <SheetEntity>] [charset <String>] [columndelimiter <Character>]
 def updateDriveFile(users):
   fileIdEntity = getDriveFileEntity()
@@ -35596,8 +35944,9 @@ def updateDriveFile(users):
       continue
     if not _getDriveFileParentInfo(drive, user, i, count, body, parameters, defaultToRoot=False):
       continue
+    newParents = body.pop('parents', [])
     if operation == 'update':
-      status, addParents, removeParents = _getDriveFileAddRemoveParentInfo(user, i, count, parameters, drive)
+      status, addParentsBase, removeParentsBase = _getDriveFileAddRemoveParentInfo(user, i, count, parameters, drive)
       if not status:
         continue
       Ind.Increment()
@@ -35605,7 +35954,8 @@ def updateDriveFile(users):
       for fileId in fileIdEntity['list']:
         j += 1
         try:
-          newParents = body.pop('parents', [])
+          addParents = addParentsBase[:]
+          removeParents = removeParentsBase[:]
           if newParents:
             result = callGAPI(drive.files(), 'get',
                               throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
@@ -35640,10 +35990,11 @@ def updateDriveFile(users):
                 entityActionNotPerformedWarning(entityValueList, Msg.NOT_WRITABLE, j, jcount)
                 continue
               result = callGAPI(drive.files(), 'update',
-                                throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT,
+                                throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT,
+                                                                               GAPI.CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT,
                                                                                GAPI.TEAMDRIVES_PARENT_LIMIT, GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED,
                                                                                GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED],
-                                fileId=fileId,
+                                fileId=fileId, enforceSingleParent=parameters[DFA_ENFORCE_SINGLE_PARENT],
                                 ocrLanguage=parameters[DFA_OCRLANGUAGE],
                                 keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                                 useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
@@ -35672,10 +36023,11 @@ def updateDriveFile(users):
               break
           elif media_body:
             result = callGAPI(drive.files(), 'update',
-                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.FILE_NEVER_WRITABLE, GAPI.CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT,
+                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT,
+                                                                             GAPI.FILE_NEVER_WRITABLE, GAPI.CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT,
                                                                              GAPI.TEAMDRIVES_PARENT_LIMIT, GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED,
                                                                              GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED],
-                              fileId=fileId,
+                              fileId=fileId, enforceSingleParent=parameters[DFA_ENFORCE_SINGLE_PARENT],
                               ocrLanguage=parameters[DFA_OCRLANGUAGE],
                               keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                               useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
@@ -35685,10 +36037,11 @@ def updateDriveFile(users):
             entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, result['name']], Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], j, jcount)
           else:
             result = callGAPI(drive.files(), 'update',
-                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.FILE_NEVER_WRITABLE, GAPI.CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT,
+                              throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT,
+                                                                             GAPI.FILE_NEVER_WRITABLE, GAPI.CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT,
                                                                              GAPI.TEAMDRIVES_PARENT_LIMIT, GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED,
                                                                              GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED],
-                              fileId=fileId,
+                              fileId=fileId, enforceSingleParent=parameters[DFA_ENFORCE_SINGLE_PARENT],
                               ocrLanguage=parameters[DFA_OCRLANGUAGE],
                               keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                               useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
@@ -35700,7 +36053,8 @@ def updateDriveFile(users):
             else:
               entityActionPerformed([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], j, jcount)
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
-                GAPI.unknownError, GAPI.invalid, GAPI.badRequest, GAPI.fileNeverWritable, GAPI.cannotModifyViewersCanCopyContent,
+                GAPI.unknownError, GAPI.invalid, GAPI.badRequest, GAPI.cannotAddParent,
+                GAPI.fileNeverWritable, GAPI.cannotModifyViewersCanCopyContent,
                 GAPI.teamDrivesParentLimit, GAPI.teamDrivesFolderMoveInNotSupported, GAPI.teamDrivesSharingRestrictionNotAllowed) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -35715,7 +36069,7 @@ def updateDriveFile(users):
         try:
           result = callGAPI(drive.files(), 'copy',
                             throw_reasons=GAPI.DRIVE_COPY_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT],
-                            fileId=fileId,
+                            fileId=fileId, enforceSingleParent=parameters[DFA_ENFORCE_SINGLE_PARENT],
                             ignoreDefaultVisibility=parameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                             keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                             body=body, fields='id,name', supportsAllDrives=True)
@@ -36063,7 +36417,8 @@ COPY_SUB_PARENTS_CHOICES = {'all': COPY_ALL_PARENTS, 'none': COPY_NO_PARENTS, 'n
 
 # gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>]
 #	[summary [<Boolean>]] [excludetrashed]
-#	<DriveFileCopyAttribute>* [mergewithparent [<Boolean>]] [recursive [depth <Number>]]
+#	<DriveFileCopyAttribute>*
+#	[mergewithparent [<Boolean>]] [recursive [depth <Number>]]
 #	[duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
 #	[duplicatefolders merge|duplicatename|uniquename|skip]
 #	[copytopfileparents none|all] [copytopfolderparents none|all]
@@ -36398,7 +36753,8 @@ def copyDriveFile(users):
 
 # gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>]
 #	[summary [<Boolean>]]
-#	[<DriveFileParentAttribute>] [mergewithparent|mergewithparentretain [<Boolean>]]
+#	[<DriveFileParentAttribute>]
+#       [mergewithparent|mergewithparentretain [<Boolean>]]
 #	[duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
 #	[duplicatefolders merge|duplicatename|uniquename|skip]
 #	[copysubfileparents nonpath|none|all] [copysubfolderparents nonpath|none|all]
@@ -37315,7 +37671,8 @@ def transferDrive(users):
           op = 'Add/Remove Target Parents'
           callGAPI(targetDrive.files(), 'update',
                    throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS, retry_reasons=[GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND], retries=3,
-                   fileId=childFileId, addParents=','.join(addTargetParents), removeParents=','.join(removeTargetParents), fields='')
+                   fileId=childFileId,
+                   addParents=','.join(addTargetParents), removeParents=','.join(removeTargetParents), fields='')
         entityModifierNewValueItemValueListActionPerformed([Ent.USER, sourceUser, childFileType, childFileName], Act.MODIFIER_TO, None, [Ent.USER, targetUser], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
               GAPI.badRequest, GAPI.sharingRateLimitExceeded) as e:
@@ -37404,7 +37761,8 @@ def transferDrive(users):
         try:
           callGAPI(targetDrive.files(), 'update',
                    throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS, retry_reasons=[GAPI.FILE_NOT_FOUND], retries=3,
-                   fileId=childFileId, addParents=mappedParentId, body={}, fields='')
+                   fileId=childFileId,
+                   addParents=mappedParentId, body={}, fields='')
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
           entityActionFailedWarning([Ent.USER, targetUser, childFileType, childFileName], str(e), j, jcount)
           return
@@ -38542,8 +38900,10 @@ def _showDriveFilePermissions(entityType, fileName, permissions, printKeys, time
 # gam <UserTypeEntity> create|add drivefileacl <DriveFileEntity> [adminaccess|asadmin]
 #	anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
 #	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])]
+#	[enforcesingleparent <Boolean>] [moveToNewOwnersRoot [<Boolean>]]
 #	[expiration <Time>] [sendemail] [emailmessage <String>] [showtitles] [nodetails]
 def createDriveFileACL(users, useDomainAdminAccess=False):
+  enforceSingleParent = moveToNewOwnersRoot = False
   sendNotificationEmail = showTitles = _transferOwnership = False
   roleLocation = withLinkLocation = expirationLocation = None
   showDetails = True
@@ -38573,6 +38933,10 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
       if body['role'] == 'owner':
         sendNotificationEmail = _transferOwnership = True
       ubody['role'] = body['role']
+    elif myarg == 'enforcesingleparent':
+      enforceSingleParent = getBoolean(defaultValue=None)
+    elif myarg == 'movetonewownersroot':
+      moveToNewOwnersRoot = getBoolean(defaultValue=None)
     elif myarg in {'expiration', 'expires'}:
       expirationLocation = Cmd.Location()
       ubody['expirationTime'] = getTimeOrDeltaFromNow()
@@ -38613,6 +38977,7 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
         permission = callGAPI(drive.permissions(), 'create',
                               bailOnInternalError=True,
                               throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_CREATE_ACL_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
+                              enforceSingleParent=enforceSingleParent, moveToNewOwnersRoot=moveToNewOwnersRoot,
                               useDomainAdminAccess=useDomainAdminAccess,
                               fileId=fileId, sendNotificationEmail=sendNotificationEmail, emailMessage=emailMessage,
                               transferOwnership=_transferOwnership, body=body, fields='*', supportsAllDrives=True)
@@ -38756,6 +39121,7 @@ def getJSONPermissionSkips(myarg, skips):
 
 # gam <UserTypeEntity> create|add permissions <DriveFileEntity> <DriveFilePermissionsEntity> [adminaccess|asadmin]
 #	[expiration <Time>] [sendmail] [emailmessage <String>]
+#	[enforcesingleparent <Boolean>] [moveToNewOwnersRoot <Boolean>]
 #	<PermissionMatch>* [<PermissionMatchAction>]
 def createDriveFilePermissions(users, useDomainAdminAccess=False):
   def convertJSONPermissions(jsonPermissions):
@@ -38840,6 +39206,7 @@ def createDriveFilePermissions(users, useDomainAdminAccess=False):
     if int(ri[RI_J]) == int(ri[RI_JCOUNT]):
       Ind.Decrement()
 
+  enforceSingleParent = moveToNewOwnersRoot = False
   sendNotificationEmail = False
   emailMessage = expiration = None
   fileIdEntity = getDriveFileEntity()
@@ -38854,7 +39221,11 @@ def createDriveFilePermissions(users, useDomainAdminAccess=False):
     PM.SetDefaultMatch(False, {'role': 'owner'})
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg in {'expiration', 'expires'}:
+    if myarg == 'enforcesingleparent':
+      enforceSingleParent = getBoolean(defaultValue=None)
+    elif myarg == 'movetonewownersroot':
+      moveToNewOwnersRoot = getBoolean(defaultValue=None)
+    elif myarg in {'expiration', 'expires'}:
       expiration = getTimeOrDeltaFromNow()
     elif myarg == 'sendemail':
       sendNotificationEmail = True
@@ -38918,6 +39289,8 @@ def createDriveFilePermissions(users, useDomainAdminAccess=False):
           entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, fileId, Ent.PERMITTEE, permission], Msg.INVALID, k, kcount)
           continue
         if svcparms['body']['role'] == 'owner':
+          svcparms['enforceSingleParent'] = enforceSingleParent
+          svcparms['moveToNewOwnersRoot'] = moveToNewOwnersRoot
           svcparms['transferOwnership'] = svcparms['sendNotificationEmail'] = True
         dbatch.add(method(**svcparms), request_id=batchRequestID(fileId, j, jcount, k, kcount, permission))
         bcount += 1
@@ -40717,13 +41090,12 @@ def showProfile(users):
 # gam <UserTypeEntity> create sheet
 #	((json [charset <Charset>] <SpreadsheetJSONCreateRequest>) |
 #	 (json file <FileName> [charset <Charset>]))
-#	[formatjson]
-#	[parentid <DriveFolderID>] | [parentname <DriveFolderName>] | [anyownerparentname <DriveFolderName>]
-#	[teamdriveparentid <DriveFolderID>] [teamdriveparent <TeamDriveName>] [teamdriveparentname <DriveFolderName>]
+#	[<DriveFileParentAttribute>]
+#	[formatjson] [returnidonly]
 def createSheet(users):
   parameters = initDriveFileAttributes()
   parentBody = {}
-  changeParents = False
+  changeParents = returnIdOnly = False
   addParents = ''
   removeParents = ROOT
   body = {}
@@ -40734,6 +41106,8 @@ def createSheet(users):
       body = getJSON([])
     elif getDriveFileParentAttribute(myarg, parameters):
       changeParents = True
+    elif myarg == 'returnidonly':
+      returnIdOnly = True
     else:
       FJQC.GetFormatJSON(myarg)
   i, count, users = getEntityArgument(users)
@@ -40754,22 +41128,25 @@ def createSheet(users):
                         throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                         body=body)
       spreadsheetId = result['spreadsheetId']
-      if not FJQC.formatJSON:
+      if not returnIdOnly and not FJQC.formatJSON:
         entityActionPerformed([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], i, count)
       parentId = ROOT
       parentMsg = 'Success'
       if changeParents:
         try:
           callGAPI(drive.files(), 'update',
-                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.CANNOT_ADD_PARENT],
                    fileId=result['spreadsheetId'],
                    addParents=addParents, removeParents=removeParents, fields='', supportsAllDrives=True)
           parentId = addParents
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.permissionDenied,
-                GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid) as e:
+                GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.cannotAddParent) as e:
           parentMsg = f'{ERROR_PREFIX}{addParents}: {str(e)}'
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           parentMsg = f'{ERROR_PREFIX}{addParents}: {str(e)}'
+      if returnIdOnly:
+        writeStdout(f'{spreadsheetId}\n')
+        continue
       if FJQC.formatJSON:
         printLine('{'+f'"User": "{user}", "spreadsheetId": "{spreadsheetId}", "parentId": "{parentId}", "parentAssignment": "{parentMsg}", "JSON": {json.dumps(result, ensure_ascii=False, sort_keys=False)}'+'}')
         continue

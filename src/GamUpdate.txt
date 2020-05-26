@@ -1,8 +1,27 @@
+5.04.00
+
+Expanded options for selecting collections of files with `gam <UserTypeEntity> print filelist`.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Files-Display
+
+Updated `gam <UserTypeEntity> print filelist filepath|fullpath` to include additional path information.
+Each path will start file:
+* `My Drive` - Files on My Drive that are not orphans
+* `Orphans` - Files on My Drive that are orphans
+* `SharedWithMe` - Files shared with the user that have no parent on My Drive
+* `SharedDrive` - Files on Shared Drives
+
+Added options `enforcesingleparent <Boolean>` and `movetonewownersroot <Boolean>`
+to the relevant `create|update drivefile` and `create drivefileacl` commands to allow testing of an upcoming Google Drive change.
+* See: https://developers.google.com/drive/api/v3/ref-single-parent
+Do NOT set `enforcesingleparent true` until you throughly understand its ramifications.
+This is a work in progress, I'm testing using `enforcesingleparent` with other commands like `copy|move drivefile'
+and 'transfer drive`.
+
 5.03.41
 
-Added option `convertparents` to `gam <UserTypeEntity> create|add drivefileshortcut <DriveFileEntity>`; this options causes
-GAM to convert all but the last parent references in `<DriveFileEntity>` to shortcuts.
-Previuosly, if you didn't specify the `shortcutname <String>` option, the shortcut was named 'Shortcut to <DriveFileName>`
+Added option `convertparents` to `gam <UserTypeEntity> create|add drivefileshortcut <DriveFileEntity>`; this option causes
+GAM to convert all but the last parent reference in `<DriveFileEntity>` to shortcuts.
+Previuosly, if you didn't specify the `shortcutname <String>` option, the shortcut was named `Shortcut to <DriveFileName>`
 where `<DriveFileName>` is the name of each file referenced in `<DriveFileEntity>`. Now, to be consistent with Google Drive,
 the shortcut will be named `<DriveFileName>`. `<String>` can contain the string `#filename#` which will be replaced with
 `<DriveFileName>`; this allows you to get the previous behavior with `shortcutname "Shortcut to #filename#"`.
@@ -13,7 +32,7 @@ Fixed `gam download vaultexport|export` to properly handle the `targetname <File
 Previously, all of the top level files downloaded were given the same `<FileName>` and overwrote each other.
 Now, the extensions of the top level files will be appended to `<FileName>` so that
 distinct files are downloaded and written. Additionally, `<FileName>` can contain the strings `#objectname#`, `#filename#`
-and `#extension#` which will be replaced by the values from the orignal object names.
+and `#extension#` which will be replaced by the values from the orignal object names to construct a complete top level name.
 
 5.03.39
 
@@ -64,21 +83,17 @@ gam csv <FileName> ... gam select <SectionName> ...
 
 Fixed bug in `gam print projects` that caused a trap when `showiampolicies` was used.
 
-Upgraded to Python 3.8.3.
-
 5.03.32
 
 Fixed code in `gam <UserTypeEntity> create drivefile` to allow the `parentid` option to specify a Shared Drive.
 
 Added option `states all|active|deleterequested` to `gam print|show projects` that allows selection of
-projects to display based on their state.
+projects to display.
 
 Added option `showiampolicies 0|1|3` to `gam print|show projects` that adds project policy
-information to the display. This requires an additional API call per project.
+information to the display. This requires an additional API call per service account.
 
 * See: https://github.com/taers232c/GAMADV-XTD3/wiki/Authorization#display-projects
-
-Upgraded to distro 1.5.0.
 
 5.03.31
 
@@ -129,13 +144,13 @@ On some Linux systems getting the createdtime is problematic.
 5.03.22
 
 Added option `includederivedmembership` to `gam print groups` that is effective when
-any of the options `roles`, `members`, `managers` or `owners` is used.
+any of the options `roles`, 'members', 'managers' or `owners` is used.
 The `includederivedmembership` option causes the API to expand type GROUP and type CUSTOMER
 members to display their constituent members while still displaying the original member.
 
 Added option `totalcount` to `gam print groups` that is effective when
-any of the options `countsonly`, `memberscount`, `managerscount` or `ownerscount` is used.
-A column `TotalCount` that is the total number of members in a group will be included.
+any of the options `countsonly`, 'memberscount', 'managerscount' or `ownerscount` is used.
+A column 'TotalCount' that is the total number of members in a group will be included.
 
 The following command combines these two options to give you a listing of all of your groups
 with their membership counts. The counts will be higher than expected as the API returns
@@ -155,11 +170,6 @@ ERROR: 404: Requested entity was not found. - 404
 
 Fixed bug that improperly set return code to 60 in `gam <UserTypeEntity> create|add drivefile`.
 
-Fixed pyinstaller issue that caused this message to appear at the end of each command:
-```
-Failed to execute script gam
-```
-
 5.03.19
 
 Added suboption `summary none|only|plus` to option `countsonly` in `gam <UserTypeEntity> print filelist`
@@ -176,7 +186,6 @@ but could be used in a script.
 ```
 gam oauth|oauth2 create|request [admin <EmailAddress>] [scopes <APIScopeURLList>]
 ```
-
 5.03.18
 
 Fixed bug in `gam print ownership` where data was not being returned in CSV file.
