@@ -4,7 +4,7 @@ Expanded options for selecting collections of files with `gam <UserTypeEntity> p
 * See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Files-Display
 
 Updated `gam <UserTypeEntity> print filelist filepath|fullpath` to include additional path information.
-Each path will start file:
+Each path will start with:
 * `My Drive` - Files on My Drive that are not orphans
 * `Orphans` - Files on My Drive that are orphans
 * `SharedWithMe` - Files shared with the user that have no parent on My Drive
