@@ -36,9 +36,11 @@ class GamCLArgs():
   ENTITY_DOMAINS_NS = 'domains_ns'
   ENTITY_DOMAINS_SUSP = 'domains_susp'
   ENTITY_GROUP = 'group'
+  ENTITY_GROUP_INDE = 'group_inde'
   ENTITY_GROUP_NS = 'group_ns'
   ENTITY_GROUP_SUSP = 'group_susp'
   ENTITY_GROUPS = 'groups'
+  ENTITY_GROUPS_INDE = 'groups_inde'
   ENTITY_GROUPS_NS = 'groups_ns'
   ENTITY_GROUPS_SUSP = 'groups_susp'
   ENTITY_GROUP_USERS = 'group_users'
@@ -83,9 +85,11 @@ class GamCLArgs():
     ENTITY_DOMAINS_NS,
     ENTITY_DOMAINS_SUSP,
     ENTITY_GROUP,
+    ENTITY_GROUP_INDE,
     ENTITY_GROUP_NS,
     ENTITY_GROUP_SUSP,
     ENTITY_GROUPS,
+    ENTITY_GROUPS_INDE,
     ENTITY_GROUPS_NS,
     ENTITY_GROUPS_SUSP,
     ENTITY_GROUP_USERS,
@@ -261,6 +265,7 @@ class GamCLArgs():
     ENTITY_DOMAINS_NS,
     ENTITY_DOMAINS_SUSP,
     ENTITY_GROUPS,
+    ENTITY_GROUPS_INDE,
     ENTITY_GROUPS_NS,
     ENTITY_GROUPS_SUSP,
     ENTITY_GROUP_USERS,

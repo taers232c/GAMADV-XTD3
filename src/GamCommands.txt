@@ -591,6 +591,7 @@ Specify a collection of Users by directly specifying them or by specifiying item
         (domains|domains_ns|domains_susp <DomainNameListList>)|
         (group|group_ns|group_susp <GroupItem>)|
         (groups|groups_ns|groups_susp <GroupList>)|
+        (group_inde <GroupItem>)|(groups_inde <GroupList>)|
         (group_users|group_users_ns|group_users_susp <GroupList>
                 [members] [managers] [owners]
                 [primarydomain] [domains <DomainNameList>] [recursive|includederivedmembership] end)|
@@ -613,11 +614,11 @@ Specify a collection of Users by directly specifying them or by specifiying item
                 [fields <FieldNameList>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
                 [delimiter <Character>])|
-        (datafile users|groups|groups_ns|groups_susp|ous|ous_ns|ous_susp|
+        (datafile users|groups|groups_ns|groups_susp|groups_inde|ous|ous_ns|ous_susp|
                 ous_and_children|ous_and_children_ns|ous_and_children_susp|
                 courseparticipants|students|teachers
                 (<FileName>|(gdoc <UserGoogleDoc>) [charset <Charset>] [delimiter <Character>]))|
-        (csvdatafile users|groups|groups_ns|groups_susp|ous|ous_ns|ous_susp|
+        (csvdatafile users|groups|groups_ns|groups_susp|groups_inde|ous|ous_ns|ous_susp|
                 ous_and_children|ous_and_children_ns|ous_and_children_susp|
                 courseparticipants|students|teachers
                 ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)
@@ -625,7 +626,7 @@ Specify a collection of Users by directly specifying them or by specifiying item
                 [fields <FieldNameList>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
                 [delimiter <Character>])|
-        (csvkmd users|groups|groups_ns_|groups_susp|ous|ous_ns|ous_susp|
+        (csvkmd users|groups|groups_ns_|groups_susp|groups_inde|ous|ous_ns|ous_susp|
                 ous_and_children|ous_and_children_ns|ous_and_children_susp|
                 courseparticipants|students|teachers
                 (<FileName>|(gsheet <UserGoogleSheet>)

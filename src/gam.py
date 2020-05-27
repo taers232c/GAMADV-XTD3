@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.04.00'
+__version__ = '5.04.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4557,7 +4557,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
   entityError = {'entityType': None, 'doesNotExist': 0, 'invalid': 0}
   entityList = []
   entitySet = set()
-  if entityType in [Cmd.ENTITY_USER, Cmd.ENTITY_USERS]:
+  if entityType in {Cmd.ENTITY_USER, Cmd.ENTITY_USERS}:
     if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
       buildGAPIObject(API.DIRECTORY)
     result = convertEntityToList(entity, nonListEntityType=entityType == Cmd.ENTITY_USER)
@@ -4570,7 +4570,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
         _showInvalidEntity(Ent.USER, user)
     if GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
       return entityList
-  elif entityType in [Cmd.ENTITY_ALL_USERS, Cmd.ENTITY_ALL_USERS_NS, Cmd.ENTITY_ALL_USERS_NS_SUSP, Cmd.ENTITY_ALL_USERS_SUSP]:
+  elif entityType in {Cmd.ENTITY_ALL_USERS, Cmd.ENTITY_ALL_USERS_NS, Cmd.ENTITY_ALL_USERS_NS_SUSP, Cmd.ENTITY_ALL_USERS_SUSP}:
     cd = buildGAPIObject(API.DIRECTORY)
     query = Cmd.ALL_USERS_QUERY_MAP[entityType]
     printGettingAllAccountEntities(Ent.USER)
@@ -4585,7 +4585,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
       accessErrorExit(cd)
     entityList = [user['primaryEmail'] for user in result]
     printGotAccountEntities(len(entityList))
-  elif entityType in [Cmd.ENTITY_DOMAINS, Cmd.ENTITY_DOMAINS_NS, Cmd.ENTITY_DOMAINS_SUSP]:
+  elif entityType in {Cmd.ENTITY_DOMAINS, Cmd.ENTITY_DOMAINS_NS, Cmd.ENTITY_DOMAINS_SUSP}:
     if entityType == Cmd.ENTITY_DOMAINS_NS:
       query = 'isSuspended=False'
     elif entityType == Cmd.ENTITY_DOMAINS_SUSP:
@@ -4609,13 +4609,17 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
         continue
       entityList = [user['primaryEmail'] for user in result]
       printGotAccountEntities(len(entityList))
-  elif entityType in [Cmd.ENTITY_GROUP, Cmd.ENTITY_GROUPS, Cmd.ENTITY_GROUP_NS, Cmd.ENTITY_GROUPS_NS, Cmd.ENTITY_GROUP_SUSP, Cmd.ENTITY_GROUPS_SUSP]:
-    if entityType in [Cmd.ENTITY_GROUP_NS, Cmd.ENTITY_GROUPS_NS]:
+  elif entityType in {Cmd.ENTITY_GROUP, Cmd.ENTITY_GROUPS,
+                      Cmd.ENTITY_GROUP_NS, Cmd.ENTITY_GROUPS_NS,
+                      Cmd.ENTITY_GROUP_SUSP, Cmd.ENTITY_GROUPS_SUSP,
+                      Cmd.ENTITY_GROUP_INDE, Cmd.ENTITY_GROUPS_INDE}:
+    if entityType in {Cmd.ENTITY_GROUP_NS, Cmd.ENTITY_GROUPS_NS}:
       isSuspended = False
-    elif entityType in [Cmd.ENTITY_GROUP_SUSP, Cmd.ENTITY_GROUPS_SUSP]:
+    elif entityType in {Cmd.ENTITY_GROUP_SUSP, Cmd.ENTITY_GROUPS_SUSP}:
       isSuspended = True
+    includeDerivedMembership = entityType in {Cmd.ENTITY_GROUP_INDE, Cmd.ENTITY_GROUPS_INDE}
     cd = buildGAPIObject(API.DIRECTORY)
-    groups = convertEntityToList(entity, nonListEntityType=entityType in [Cmd.ENTITY_GROUP, Cmd.ENTITY_GROUP_NS, Cmd.ENTITY_GROUP_SUSP])
+    groups = convertEntityToList(entity, nonListEntityType=entityType in {Cmd.ENTITY_GROUP, Cmd.ENTITY_GROUP_NS, Cmd.ENTITY_GROUP_SUSP, Cmd.ENTITY_GROUP_INDE})
     for group in groups:
       if validateEmailAddressOrUID(group, checkPeople=False):
         group = normalizeEmailAddressOrUID(group)
@@ -4625,6 +4629,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
           result = callGAPIpages(cd.members(), 'list', 'members',
                                  page_message=getPageMessageForWhom(),
                                  throw_reasons=GAPI.MEMBERS_THROW_REASONS,
+                                 includeDerivedMembership=includeDerivedMembership,
                                  groupKey=group, roles=listRoles, fields=listFields, maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
         except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
           entityUnknownWarning(Ent.GROUP, group)
@@ -4633,12 +4638,13 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
         for member in result:
           email = member['email'].lower() if member['type'] != Ent.TYPE_CUSTOMER else member['id']
           if ((groupMemberType in ('ALL', member['type'])) and
+              (not includeDerivedMembership or (member['type'] == Ent.TYPE_USER)) and
               _checkMemberRoleIsSuspended(member, validRoles, isSuspended) and email not in entitySet):
             entitySet.add(email)
             entityList.append(email)
       else:
         _showInvalidEntity(Ent.GROUP, group)
-  elif entityType in [Cmd.ENTITY_GROUP_USERS, Cmd.ENTITY_GROUP_USERS_NS, Cmd.ENTITY_GROUP_USERS_SUSP]:
+  elif entityType in {Cmd.ENTITY_GROUP_USERS, Cmd.ENTITY_GROUP_USERS_NS, Cmd.ENTITY_GROUP_USERS_SUSP}:
     if entityType == Cmd.ENTITY_GROUP_USERS_NS:
       isSuspended = False
     elif entityType == Cmd.ENTITY_GROUP_USERS_SUSP:
@@ -4674,18 +4680,18 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
         _addGroupUsersToUsers(normalizeEmailAddressOrUID(group), domains, recursive, includeDerivedMembership)
       else:
         _showInvalidEntity(Ent.GROUP, group)
-  elif entityType in [Cmd.ENTITY_OU, Cmd.ENTITY_OUS, Cmd.ENTITY_OU_AND_CHILDREN, Cmd.ENTITY_OUS_AND_CHILDREN,
+  elif entityType in {Cmd.ENTITY_OU, Cmd.ENTITY_OUS, Cmd.ENTITY_OU_AND_CHILDREN, Cmd.ENTITY_OUS_AND_CHILDREN,
                       Cmd.ENTITY_OU_NS, Cmd.ENTITY_OUS_NS, Cmd.ENTITY_OU_AND_CHILDREN_NS, Cmd.ENTITY_OUS_AND_CHILDREN_NS,
-                      Cmd.ENTITY_OU_SUSP, Cmd.ENTITY_OUS_SUSP, Cmd.ENTITY_OU_AND_CHILDREN_SUSP, Cmd.ENTITY_OUS_AND_CHILDREN_SUSP]:
-    if entityType in [Cmd.ENTITY_OU_NS, Cmd.ENTITY_OUS_NS, Cmd.ENTITY_OU_AND_CHILDREN_NS, Cmd.ENTITY_OUS_AND_CHILDREN_NS]:
+                      Cmd.ENTITY_OU_SUSP, Cmd.ENTITY_OUS_SUSP, Cmd.ENTITY_OU_AND_CHILDREN_SUSP, Cmd.ENTITY_OUS_AND_CHILDREN_SUSP}:
+    if entityType in {Cmd.ENTITY_OU_NS, Cmd.ENTITY_OUS_NS, Cmd.ENTITY_OU_AND_CHILDREN_NS, Cmd.ENTITY_OUS_AND_CHILDREN_NS}:
       isSuspended = False
-    elif entityType in [Cmd.ENTITY_OU_SUSP, Cmd.ENTITY_OUS_SUSP, Cmd.ENTITY_OU_AND_CHILDREN_SUSP, Cmd.ENTITY_OUS_AND_CHILDREN_SUSP]:
+    elif entityType in {Cmd.ENTITY_OU_SUSP, Cmd.ENTITY_OUS_SUSP, Cmd.ENTITY_OU_AND_CHILDREN_SUSP, Cmd.ENTITY_OUS_AND_CHILDREN_SUSP}:
       isSuspended = True
     cd = buildGAPIObject(API.DIRECTORY)
-    ous = convertEntityToList(entity, shlexSplit=True, nonListEntityType=entityType in [Cmd.ENTITY_OU, Cmd.ENTITY_OU_AND_CHILDREN,
+    ous = convertEntityToList(entity, shlexSplit=True, nonListEntityType=entityType in {Cmd.ENTITY_OU, Cmd.ENTITY_OU_AND_CHILDREN,
                                                                                         Cmd.ENTITY_OU_NS, Cmd.ENTITY_OU_AND_CHILDREN_NS,
-                                                                                        Cmd.ENTITY_OU_SUSP, Cmd.ENTITY_OU_AND_CHILDREN_SUSP])
-    directlyInOU = entityType in [Cmd.ENTITY_OU, Cmd.ENTITY_OUS, Cmd.ENTITY_OU_NS, Cmd.ENTITY_OUS_NS, Cmd.ENTITY_OU_SUSP, Cmd.ENTITY_OUS_SUSP]
+                                                                                        Cmd.ENTITY_OU_SUSP, Cmd.ENTITY_OU_AND_CHILDREN_SUSP})
+    directlyInOU = entityType in {Cmd.ENTITY_OU, Cmd.ENTITY_OUS, Cmd.ENTITY_OU_NS, Cmd.ENTITY_OUS_NS, Cmd.ENTITY_OU_SUSP, Cmd.ENTITY_OUS_SUSP}
     qualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)) if directlyInOU else Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
     fields = 'nextPageToken,users(primaryEmail,orgUnitPath)' if directlyInOU else 'nextPageToken,users(primaryEmail)'
     prevLen = 0
@@ -4719,7 +4725,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
       totalLen = len(entityList)
       printGotEntityItemsForWhom(totalLen-prevLen)
       prevLen = totalLen
-  elif entityType in [Cmd.ENTITY_QUERY, Cmd.ENTITY_QUERIES]:
+  elif entityType in {Cmd.ENTITY_QUERY, Cmd.ENTITY_QUERIES}:
     cd = buildGAPIObject(API.DIRECTORY)
     queries = convertEntityToList(entity, shlexSplit=True, nonListEntityType=entityType == Cmd.ENTITY_QUERY)
     prevLen = 0
@@ -4748,13 +4754,13 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
       prevLen = totalLen
   elif entityType == Cmd.ENTITY_LICENSES:
     entityList = doPrintLicenses(returnFields=['userId'], skus=entity.split(','))
-  elif entityType in [Cmd.ENTITY_COURSEPARTICIPANTS, Cmd.ENTITY_TEACHERS, Cmd.ENTITY_STUDENTS]:
+  elif entityType in {Cmd.ENTITY_COURSEPARTICIPANTS, Cmd.ENTITY_TEACHERS, Cmd.ENTITY_STUDENTS}:
     croom = buildGAPIObject(API.CLASSROOM)
     courses = convertEntityToList(entity)
     for course in courses:
       courseId = addCourseIdScope(course)
       try:
-        if entityType in [Cmd.ENTITY_COURSEPARTICIPANTS, Cmd.ENTITY_TEACHERS]:
+        if entityType in {Cmd.ENTITY_COURSEPARTICIPANTS, Cmd.ENTITY_TEACHERS}:
           printGettingAllEntityItemsForWhom(Ent.TEACHER, removeCourseIdScope(courseId), entityType=Ent.COURSE)
           result = callGAPIpages(croom.courses().teachers(), 'list', 'teachers',
                                  page_message=getPageMessageForWhom(),
@@ -4766,7 +4772,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
             if email and (email not in entitySet):
               entitySet.add(email)
               entityList.append(email)
-        if entityType in [Cmd.ENTITY_COURSEPARTICIPANTS, Cmd.ENTITY_STUDENTS]:
+        if entityType in {Cmd.ENTITY_COURSEPARTICIPANTS, Cmd.ENTITY_STUDENTS}:
           printGettingAllEntityItemsForWhom(Ent.STUDENT, removeCourseIdScope(courseId), entityType=Ent.COURSE)
           result = callGAPIpages(croom.courses().students(), 'list', 'students',
                                  page_message=getPageMessageForWhom(),
@@ -4803,7 +4809,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       accessErrorExit(cd)
     entityList = [device['deviceId'] for device in result]
-  elif entityType in [Cmd.ENTITY_CROS_QUERY, Cmd.ENTITY_CROS_QUERIES, Cmd.ENTITY_CROS_SN]:
+  elif entityType in {Cmd.ENTITY_CROS_QUERY, Cmd.ENTITY_CROS_QUERIES, Cmd.ENTITY_CROS_SN}:
     cd = buildGAPIObject(API.DIRECTORY)
     queries = convertEntityToList(entity, shlexSplit=entityType == Cmd.ENTITY_CROS_QUERIES,
                                   nonListEntityType=entityType == Cmd.ENTITY_CROS_QUERY)
@@ -4832,13 +4838,13 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
       totalLen = len(entityList)
       printGotAccountEntities(totalLen-prevLen)
       prevLen = totalLen
-  elif entityType in [Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OU_AND_CHILDREN, Cmd.ENTITY_CROS_OUS, Cmd.ENTITY_CROS_OUS_AND_CHILDREN]:
+  elif entityType in {Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OU_AND_CHILDREN, Cmd.ENTITY_CROS_OUS, Cmd.ENTITY_CROS_OUS_AND_CHILDREN}:
     cd = buildGAPIObject(API.DIRECTORY)
     ous = convertEntityToList(entity, shlexSplit=True, nonListEntityType=entityType in [Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OU_AND_CHILDREN])
-    directlyInOU = entityType in [Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OUS]
+    directlyInOU = entityType in {Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OUS}
     numOus = len(ous)
     allQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, numOus)) if directlyInOU else Msg.IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, numOus))
-    if entityType in [Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OUS]:
+    if entityType in {Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OUS}:
       oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)) if directlyInOU else Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
       for ou in ous:
         ou = makeOrgUnitPathAbsolute(ou)

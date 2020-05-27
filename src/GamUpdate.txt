@@ -1,3 +1,13 @@
+5.04.01
+
+Starting from code by Eduardo Mazolini submitted to Jay, added `group_inde <GroupItem>` and `groups_inde <GroupList>`
+to `<UserTypeEntity>`. These represent all users, regardless of suspension status, from the specified groups and their subgroups.
+They are equivalent to:
+```
+group_users <GroupItem> members managers owners includederivedmembership end
+group_users <GroupItemList> members managers owners includederivedmembership end
+```
+
 5.04.00
 
 Expanded options for selecting collections of files with `gam <UserTypeEntity> print filelist`.
