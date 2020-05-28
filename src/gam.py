@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.04.01'
+__version__ = '5.04.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1752,7 +1752,7 @@ def getAgeTime():
     invalidArgumentExit(AGE_TIME_FORMAT_REQUIRED)
   missingArgumentExit(AGE_TIME_FORMAT_REQUIRED)
 
-CALENDAR_REMINDER_METHODS = ['email', 'sms', 'popup']
+CALENDAR_REMINDER_METHODS = ['email', 'popup']
 CALENDAR_REMINDER_MAX_MINUTES = 40320
 
 def getCalendarReminder(allowClearNone=False):
@@ -25178,7 +25178,7 @@ def updateUsers(entityList):
           result = callGAPI(cd.users(), 'update',
                             throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN,
                                            GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.INVALID_PARAMETER,
-                                           GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
+                                           GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE, GAPI.DUPLICATE],
                             userKey=userKey, body=body, fields=fields)
           entityActionPerformed([Ent.USER, user], i, count)
           if notify.get('emailAddress') and notify['password']:
@@ -25213,6 +25213,8 @@ def updateUsers(entityList):
       entityUnknownWarning(Ent.USER, user, i, count)
     except GAPI.invalidSchemaValue:
       entityActionFailedWarning([Ent.USER, user], Msg.INVALID_SCHEMA_VALUE, i, count)
+    except GAPI.duplicate as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.USER, body['primaryEmail']], str(e), i, count)
     except GAPI.invalidOrgunit:
       entityActionFailedWarning([Ent.USER, user], Msg.INVALID_ORGUNIT, i, count)
     except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
@@ -26574,10 +26576,10 @@ def checkCourseExists(croom, courseId, i=0, count=0, entityType=Ent.COURSE):
     result = callGAPI(croom.courses(), 'get',
                       throw_reasons=[GAPI.NOT_FOUND],
                       id=courseId, fields='id,ownerId')
-    return (result['id'], result['ownerId'])
+    return result
   except GAPI.notFound:
     entityActionFailedWarning([entityType, removeCourseIdScope(courseId)], Msg.DOES_NOT_EXIST, i, count)
-    return (None, None)
+    return None
 
 COURSE_MEMBER_ARGUMENTS = ['none', 'all', 'students', 'teachers']
 COURSE_STATE_MAPS = {
@@ -26636,6 +26638,7 @@ class CourseAttributes():
     self.markPublishedAsDraft = False
     self.removeDueDate = False
     self.mapShareModeStudentCopy = None
+    self.copyMaterialsFiles = False
     self.members = 'none'
     self.teachers = []
     self.students = []
@@ -26677,7 +26680,7 @@ class CourseAttributes():
         if material['driveFile'].get('shareMode', '') == 'STUDENT_COPY' and self.mapShareModeStudentCopy is not None:
           material['driveFile']['shareMode'] = self.mapShareModeStudentCopy
         body['materials'].append(material)
-        if self.csvPF:
+        if self.csvPF and not self.copyMaterialsFiles:
           self.csvPF.WriteRow({'courseId': self.courseId, 'ownerId': self.ownerId, 'fileId': material['driveFile']['driveFile']['id']})
       elif 'youtubeVideo' in material:
         material['youtubeVideo'].pop('title', None)
@@ -26743,6 +26746,8 @@ class CourseAttributes():
         self.removeDueDate = getBoolean()
       elif myarg == 'mapsharemodestudentcopy':
         self.mapShareModeStudentCopy = getChoice(self.COURSE_MATERIAL_SHAREMODE_MAP, mapChoice=True)
+      elif myarg == 'copymaterialsfiles':
+        self.copyMaterialsFiles = getBoolean()
       elif myarg == 'copytopics':
         self.copyTopics = getBoolean()
       elif myarg == 'logdrivefileids':
@@ -26758,9 +26763,12 @@ class CourseAttributes():
       if 'name' not in self.body:
         missingArgumentExit('name <String>)')
     if self.courseId:
-      self.courseId, self.ownerId = checkCourseExists(self.croom, self.courseId, entityType=Ent.COPYFROM_COURSE)
-      if self.courseId is None:
+      copyFromCourseInfo = checkCourseExists(self.croom, self.courseId, entityType=Ent.COPYFROM_COURSE)
+      if copyFromCourseInfo is None:
         return False
+      self.ownerId = copyFromCourseInfo['ownerId']
+      if (self.announcementStates or self.workStates) and self.copyMaterialsFiles:
+        self.body['courseState'] = 'ACTIVE'
     elif self.members != 'none' or self.announcementStates or self.workStates or self.copyTopics:
       missingArgumentExit('copyfrom <CourseID>)')
     else:
@@ -26822,10 +26830,60 @@ class CourseAttributes():
         return False
     return True
 
-  def CopyAttributes(self, newCourseId, ownerId, i=0, count=0):
+  def CopyMaterials(self, drive, newCourseId, body, entityType, entityId, teacherFolderId):
+    def _copyMaterialsError(fileId, errMsg):
+      entityModifierItemValueListActionNotPerformedWarning([Ent.COURSE, newCourseId, entityType, entityId, Ent.COURSE_MATERIAL_DRIVEFILE, ''], Act.MODIFIER_FROM,
+                                                           [Ent.COURSE, self.courseId, Ent.COURSE_MATERIAL_DRIVEFILE, fileId], errMsg)
+
+    if 'materials' not in body:
+      return
+    action = Act.Get()
+    Act.Set(Act.COPY)
+    materials = body.pop('materials')
+    body['materials'] = []
+    for material in materials:
+      if 'driveFile' in material:
+        fileId = material['driveFile']['driveFile']['id']
+        try:
+          source = callGAPI(drive.files(), 'get',
+                            throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
+                            fileId=fileId,
+                            fields='name,appProperties,capabilities,contentHints,copyRequiresWriterPermission,description,mimeType,modifiedTime,properties,starred,driveId,viewedByMeTime,writersCanShare',
+                            supportsAllDrives=True)
+          if not source.pop('capabilities')['canCopy']:
+            _copyMaterialsError(fileId, Msg.NOT_COPYABLE)
+            continue
+          source['parents'] = [teacherFolderId]
+          result = callGAPI(drive.files(), 'copy',
+                            throw_reasons=GAPI.DRIVE_COPY_THROW_REASONS+[GAPI.BAD_REQUEST],
+                            fileId=fileId, body=source, fields='id', supportsAllDrives=True)
+          material['driveFile']['driveFile']['id'] = result['id']
+          body['materials'].append(material)
+          entityModifierItemValueListActionPerformed([Ent.COURSE, newCourseId, entityType, entityId, Ent.COURSE_MATERIAL_DRIVEFILE, result['id']], Act.MODIFIER_FROM,
+                                                     [Ent.COURSE, self.courseId, Ent.COURSE_MATERIAL_DRIVEFILE, fileId])
+          if self.csvPF:
+            self.csvPF.WriteRow({'courseId': self.courseId, 'ownerId': self.ownerId, 'fileId': result['id']})
+        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
+                GAPI.unknownError, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.fileNeverWritable) as e:
+          _copyMaterialsError(fileId, str(e))
+        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+          _copyMaterialsError(fileId, str(e))
+          break
+      else:
+        body['materials'].append(material)
+    Act.Set(action)
+
+  def CopyAttributes(self, newCourse, i=0, count=0):
+    newCourseId = newCourse['id']
+    ownerId = newCourse['ownerId']
+    teacherFolderId = newCourse['teacherFolder']['id']
     if self.announcementStates or self.workStates or self.copyTopics:
       _, tcroom = buildGAPIServiceObject(API.CLASSROOM, f'uid:{ownerId}')
       if tcroom is None:
+        return
+    if (self.announcementStates or self.workStates) and self.copyMaterialsFiles:
+      _, tdrive = buildGAPIServiceObject(API.DRIVE3, f'uid:{ownerId}')
+      if tdrive is None:
         return
     if self.members in {'all', 'students'}:
       addParticipants = [student['profile']['emailAddress'] for student in self.students]
@@ -26881,6 +26939,8 @@ class CourseAttributes():
           entityModifierItemValueListActionNotPerformedWarning([Ent.COURSE, newCourseId, Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], Act.MODIFIER_FROM,
                                                                [Ent.COURSE, self.courseId], Msg.DELETED, j, jcount)
           continue
+        if self.copyMaterialsFiles:
+          self.CopyMaterials(tdrive, newCourseId, body, Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId, teacherFolderId)
         try:
           result = callGAPI(tcroom.courses().announcements(), 'create',
                             throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN,
@@ -26907,6 +26967,8 @@ class CourseAttributes():
           entityModifierItemValueListActionNotPerformedWarning([Ent.COURSE, newCourseId, Ent.COURSE_WORK, f'{body.get("title", courseWorkId)}'], Act.MODIFIER_FROM,
                                                                [Ent.COURSE, self.courseId], Msg.DELETED, j, jcount)
           continue
+        if self.copyMaterialsFiles:
+          self.CopyMaterials(tdrive, newCourseId, body, Ent.COURSE_WORK_ID, courseWorkId, teacherFolderId)
         topicId = body.pop('topicId', None)
         if self.copyTopics:
           if topicId:
@@ -26932,12 +26994,12 @@ class CourseAttributes():
         except (GAPI.permissionDenied, GAPI.forbidden):
           SvcAcctAPIAccessDeniedExit()
 
-  def CopyFromCourse(self, newCourseId, ownerId, i=0, count=0):
+  def CopyFromCourse(self, newCourse, i=0, count=0):
     action = Act.Get()
     Act.Set(Act.COPY)
-    entityPerformActionModifierItemValueList([Ent.COURSE, newCourseId], Act.MODIFIER_FROM, [Ent.COURSE, self.courseId], i, count)
+    entityPerformActionModifierItemValueList([Ent.COURSE, newCourse['id']], Act.MODIFIER_FROM, [Ent.COURSE, self.courseId], i, count)
     Ind.Increment()
-    self.CopyAttributes(newCourseId, ownerId, i, count)
+    self.CopyAttributes(newCourse, i, count)
     if self.csvPF:
       self.csvPF.writeCSVfile('Course Drive File IDs')
     Ind.Decrement()
@@ -26949,6 +27011,7 @@ class CourseAttributes():
 #	    [workstates <CourseWorkStateList>]
 #	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
 #		[mapsharemodestudentcopy edit|none|view]
+#           [copymaterialsfiles [<Boolean>]]
 #	    [copytopics [<Boolean>]]
 #	    [members none|all|students|teachers]]
 #	    [logdrivefileids [<Boolean>>]]
@@ -26961,10 +27024,10 @@ def doCreateCourse():
     result = callGAPI(croom.courses(), 'create',
                       throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED,
                                      GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
-                      body=courseAttributes.body, fields='id,name,ownerId')
+                      body=courseAttributes.body, fields='id,name,ownerId,courseState,teacherFolder(id)')
     entityActionPerformed([Ent.COURSE_NAME, result['name'], Ent.COURSE, result['id']])
     if courseAttributes.courseId:
-      courseAttributes.CopyFromCourse(result['id'], result['ownerId'])
+      courseAttributes.CopyFromCourse(result)
   except (GAPI.alreadyExists, GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition, GAPI.forbidden, GAPI.badRequest) as e:
     entityActionFailedWarning([Ent.COURSE_NAME, courseAttributes.body['name'], Ent.TEACHER, courseAttributes.body['ownerId']], str(e))
 
@@ -26984,14 +27047,14 @@ def _doUpdateCourses(entityList):
         result = callGAPI(croom.courses(), 'patch',
                           throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION,
                                          GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
-                          id=courseId, body=courseAttributes.body, updateMask=updateMask, fields='id,name,ownerId')
+                          id=courseId, body=courseAttributes.body, updateMask=updateMask, fields='id,name,ownerId,courseState,teacherFolder(id)')
         entityActionPerformed([Ent.COURSE_NAME, result['name'], Ent.COURSE, result['id']], i, count)
       else:
         result = callGAPI(croom.courses(), 'get',
                           throw_reasons=[GAPI.NOT_FOUND],
-                          id=courseId, fields='id,name,ownerId')
+                          id=courseId, fields='id,name,ownerId,courseState,teacherFolder(id)')
       if courseAttributes.courseId:
-        courseAttributes.CopyFromCourse(result['id'], result['ownerId'], i, count)
+        courseAttributes.CopyFromCourse(result, i, count)
     except (GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition,
             GAPI.forbidden, GAPI.badRequest, GAPI.invalidArgument) as e:
       entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
@@ -27001,7 +27064,8 @@ def _doUpdateCourses(entityList):
 #	    [announcementstates <CourseAnnouncementStateList>]
 #	    [workstates <CourseWorkStateList>]
 #	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
-#		 [mapsharemodestudentcopy edit|none|view]
+#		[mapsharemodestudentcopy edit|none|view]
+#           [copymaterialsfiles [<Boolean>]]
 #	    [copytopics [<Boolean>]]
 #	    [members none|all|students|teachers]]
 #	    [logdrivefileids [<Boolean>>]]
@@ -27014,6 +27078,7 @@ def doUpdateCourses():
 #	    [workstates <CourseWorkStateList>]
 #	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
 #		[mapsharemodestudentcopy edit|none|view]
+#           [copymaterialsfiles [<Boolean>]]
 #	    [copytopics [<Boolean>]]
 #	    [members none|all|students|teachers]]
 def doUpdateCourse():
@@ -28457,8 +28522,7 @@ def doCourseSyncParticipants(courseIdList, getEntityListArg):
       syncParticipantsSet = set()
       for user in courseParticipantLists[courseId]:
         syncParticipantsSet.add(normalizeEmailAddressOrUID(user))
-    courseId, _ = checkCourseExists(croom, courseId, i, count)
-    if courseId:
+    if checkCourseExists(croom, courseId, i, count):
       currentParticipantsSet = set()
       for user in getUsersToModify(PARTICIPANT_EN_MAP[role], courseId):
         currentParticipantsSet.add(normalizeEmailAddressOrUID(user))
@@ -30682,7 +30746,7 @@ def _validateUserGetCalendarIds(user, i, count, calendarEntity,
       entityPerformActionSubItemModifierNumItemsModifierNewValue([Ent.USER, user], itemType, modifier, jcount, Ent.CALENDAR, Act.MODIFIER_TO, newCalId, i, count)
   return (user, cal, calIds, jcount)
 
-CALENDAR_NOTIFICATION_METHODS = ['email', 'sms']
+CALENDAR_NOTIFICATION_METHODS = ['email']
 CALENDAR_NOTIFICATION_TYPES_MAP = {
   'eventcreation': 'eventCreation',
   'eventchange': 'eventChange',

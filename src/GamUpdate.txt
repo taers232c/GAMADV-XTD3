@@ -1,3 +1,12 @@
+5.04.02
+
+Added option `copymaterialsfiles [<Boolean>]` to `gam create|update course copyfrom`.
+When used in conjunction with `announcementstates` and `workstates`, any files referenced by materials
+in announcements or class work in the `copyfrom` course will be copied to the course being created/updated;
+by default, links to those files will be copied. You must verify that the teacher of the course being created/updated
+has access to the files in the `copyfrom` course. Files can only be copied to a course that is ACTIVE;
+GAM will adjust the course state as necessary.
+
 5.04.01
 
 Starting from code by Eduardo Mazolini submitted to Jay, added `group_inde <GroupItem>` and `groups_inde <GroupList>`

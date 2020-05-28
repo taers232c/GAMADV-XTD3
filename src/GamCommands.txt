@@ -1084,12 +1084,12 @@ gam calendar|calendars <CalendarEntity> printacl [todrive <ToDriveAttribute>*] [
         (json file <FileName> [charset <Charset>])|
         (jsonattendees [charset <Charset>] <JSONData>)|(jsonattendees file <FileName> [charset <Charset>])|
         (location <String>)|
-        (noreminders|(reminder email|popup|sms <Number>))|
+        (noreminders|(reminder email|popup <Number>))|
         (optionalattendee <EmailAddress>)|
         (originalstart|originalstarttime (allday <Date>)|<Time>)|
         (privateproperty <PropertyKey> <PropertyValue>)|
         (recurrence <RRULE, EXRULE, RDATE and EXDATE line>)|
-        (reminder <Number> email|popup|sms))|
+        (reminder <Number> email|popup))|
         (selectattendees [<AttendeeAttendance>] [<AttendeeStatus>] <UserTypeEntity>)|
         (sequence <Integer>)|
         (sharedproperty <PropertyKey> <PropertyValue>)|
@@ -1641,6 +1641,7 @@ gam create|add course [id|alias <CourseAlias>] <CourseAttribute>*
             [workstates <CourseWorkStateList>]
                 [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
                 [mapsharemodestudentcopy edit|none|view]
+            [copymaterialsfiles [<Boolean>]]
             [copytopics [<Boolean>]]
             [members none|all|students|teachers]]
             [logdrivefileids [<Boolean>]]
@@ -1650,6 +1651,7 @@ gam update course <CourseID> <CourseAttribute>+
             [workstates <CourseWorkStateList>]
                 [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
                 [mapsharemodestudentcopy edit|none|view]
+            [copymaterialsfiles [<Boolean>]]
             [copytopics [<Boolean>]]
             [members none|all|students|teachers]]
             [logdrivefileids [<Boolean>]]
@@ -1661,6 +1663,7 @@ gam update courses <CourseEntity> <CourseAttribute>+
             [workstates <CourseWorkStateList>]
                 [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
                 [mapsharemodestudentcopy edit|none|view]
+            [copymaterialsfiles [<Boolean>]]
             [copytopics [<Boolean>]]
             [members none|all|students|teachers]]
             [logdrivefileids [<Boolean>]]
@@ -3247,8 +3250,8 @@ gam <UserTypeEntity> print backupcodes|verificationcodes [todrive <ToDriveAttrib
         (colorindex|colorid <CalendarColorIndex>)|
         (foregroundcolor <ColorValue>)|
         (hidden <Boolean>)|
-        (notification clear|(email|sms eventcreation|eventchange|eventcancellation|eventresponse|agenda))|
-        (reminder clear|(email|sms|pop <Number>)|(<Number> email|sms|pop))|
+        (notification clear|(email eventcreation|eventchange|eventcancellation|eventresponse|agenda))|
+        (reminder clear|(email|pop <Number>)|(<Number> email|pop))|
         (selected <Boolean>)|
         (summary <String>)
 
@@ -3352,12 +3355,12 @@ gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <
         (json file <FileName> [charset <Charset>])|
         (jsonattendees [charset <Charset>] <JSONData>)|(jsonattendees file <FileName> [charset <Charset>])|
         (location <String>)|
-        (noreminders|(reminder email|popup|sms <Number>))|
+        (noreminders|(reminder email|popup <Number>))|
         (optionalattendee <EmailAddress>)|
         (originalstart|originalstarttime (allday <Date>)|<Time>)|
         (privateproperty <PropertyKey> <PropertyValue>)|
         (recurrence <RRULE, EXRULE, RDATE and EXDATE line>)|
-        (reminder <Number> email|popup|sms))|
+        (reminder <Number> email|popup))|
         (selectattendees [<AttendeeAttendance>] [<AttendeeStatus>] <UserTypeEntity>)|
         (sequence <Integer>)|
         (sharedproperty <PropertyKey> <PropertyValue>)|

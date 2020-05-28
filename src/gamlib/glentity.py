@@ -85,6 +85,7 @@ class GamEntity():
   COURSE_ALIAS = 'coal'
   COURSE_ANNOUNCEMENT_ID = 'caid'
   COURSE_ANNOUNCEMENT_STATE = 'cast'
+  COURSE_MATERIAL_DRIVEFILE = 'comd'
   COURSE_MATERIAL_FORM = 'comf'
   COURSE_NAME = 'cona'
   COURSE_STATE = 'cost'
@@ -305,6 +306,7 @@ class GamEntity():
     COURSE_ALIAS: ['Course Aliases', 'Course Alias'],
     COURSE_ANNOUNCEMENT_ID: ['Course Announcement IDs', 'Course Announcement ID'],
     COURSE_ANNOUNCEMENT_STATE: ['Course Announcement States', 'Course Announcement State'],
+    COURSE_MATERIAL_DRIVEFILE: ['Course Material Drive Files', 'Course Material Drive File'],
     COURSE_MATERIAL_FORM: ['Course Material Forms', 'Course Material Form'],
     COURSE_NAME: ['Course Names', 'Course Name'],
     COURSE_STATE: ['Course States', 'Course State'],
