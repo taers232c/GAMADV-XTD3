@@ -35985,13 +35985,13 @@ def checkDriveFileShortcut(users):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'csv':
-      csvPF = CSVPrintFile(['User', 'name', 'id', 'shortcutDetails.targetId', 'shortcutDetails.targetMimeType',
+      csvPF = CSVPrintFile(['User', 'name', 'id', 'parentId', 'shortcutDetails.targetId', 'shortcutDetails.targetMimeType',
                             'targetName', 'targetId', 'targetMimeType', 'code'], 'sortall')
     elif csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     else:
       unknownArgumentExit()
-  scfields = 'id,name,mimeType,shortcutDetails'
+  scfields = 'id,name,mimeType,parents,shortcutDetails'
   trfields = 'id,name,mimeType'
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -36019,6 +36019,7 @@ def checkDriveFileShortcut(users):
             row['code'] = SHORTCUT_CODE_NOT_A_SHORTCUT
             csvPF.WriteRow(row)
           continue
+        row['parentId'] = scresult['parents'][0]
         row['shortcutDetails.targetId'] = scresult['shortcutDetails']['targetId']
         row['shortcutDetails.targetMimeType'] = scresult['shortcutDetails']['targetMimeType']
         trfileId = scresult['shortcutDetails']['targetId']
