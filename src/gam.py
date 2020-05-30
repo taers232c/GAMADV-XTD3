@@ -35971,6 +35971,12 @@ def createDriveFileShortcut(users):
   if csvPF:
     csvPF.writeCSVfile('Shortcuts')
 
+SHORTCUT_CODE_VALID = 0
+SHORTCUT_CODE_SHORTCUT_NOT_FOUND = 1
+SHORTCUT_CODE_NOT_A_SHORTCUT = 2
+SHORTCUT_CODE_TARGET_NOT_FOUND = 3
+SHORTCUT_CODE_MIMETYPE_MISMATCH = 4
+
 # gam <UserTypeEntity> check drivefileshortcut <DriveFileEntity>
 #	[csv [todrive <ToDriveAttribute>*]]
 def checkDriveFileShortcut(users):
@@ -35980,7 +35986,7 @@ def checkDriveFileShortcut(users):
     myarg = getArgument()
     if myarg == 'csv':
       csvPF = CSVPrintFile(['User', 'name', 'id', 'shortcutDetails.targetId', 'shortcutDetails.targetMimeType',
-                            'targetName', 'targetId', 'targetMimeType', 'valid', 'message'], 'sortall')
+                            'targetName', 'targetId', 'targetMimeType', 'code'], 'sortall')
     elif csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     else:
@@ -35999,17 +36005,18 @@ def checkDriveFileShortcut(users):
     j = 0
     for fileId in fileIdEntity['list']:
       j += 1
-      row = {'User': user, 'id': fileId, 'valid': False}
+      row = {'User': user, 'id': fileId}
       try:
         scresult = callGAPI(drive.files(), 'get',
                             throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
                             fileId=fileId, fields=scfields, supportsAllDrives=True)
         row['name'] = scresult['name']
         if scresult['mimeType'] != MIMETYPE_GA_SHORTCUT:
-          row['message'] = Msg.INVALID_MIMETYPE.format(scresult['mimeType'], MIMETYPE_GA_SHORTCUT)
           if not csvPF:
-            entityActionFailedWarning([Ent.USER, user, _getEntityMimeType(scresult), fileId], row['message'], j, jcount)
+            entityActionFailedWarning([Ent.USER, user, _getEntityMimeType(scresult), fileId],
+                                      Msg.INVALID_MIMETYPE.format(scresult['mimeType'], MIMETYPE_GA_SHORTCUT), j, jcount)
           else:
+            row['code'] = SHORTCUT_CODE_NOT_A_SHORTCUT
             csvPF.WriteRow(row)
           continue
         row['shortcutDetails.targetId'] = scresult['shortcutDetails']['targetId']
@@ -36028,23 +36035,23 @@ def checkDriveFileShortcut(users):
             if not csvPF:
               entityActionPerformed(entityList, j, jcount)
             else:
-              row['valid'] = True
+              row['code'] = SHORTCUT_CODE_VALID
           else:
-            row['message'] = Msg.MIMETYPE_MISMATCH.format(scresult['shortcutDetails']['targetMimeType'], trresult['mimeType'])
             if not csvPF:
-              entityActionFailedWarning(entityList, row['message'], j, jcount)
+              entityActionFailedWarning(entityList, Msg.MIMETYPE_MISMATCH.format(scresult['shortcutDetails']['targetMimeType'], trresult['mimeType']), j, jcount)
+            else:
+              row['code'] = SHORTCUT_CODE_MIMETYPE_MISMATCH
         except GAPI.fileNotFound:
           if not csvPF:
             entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_SHORTCUT, f"{scresult['name']}({fileId})",
                                        _getTargetEntityMimeType(scresult), trfileId], Msg.NOT_FOUND, j, jcount)
           else:
-            row['message'] = f'{Ent.Singular(_getTargetEntityMimeType(scresult))}: {trfileId} {Msg.NOT_FOUND}'
+            row['code'] = SHORTCUT_CODE_TARGET_NOT_FOUND
       except GAPI.fileNotFound:
-        errMsg = Msg.NOT_FOUND
         if not csvPF:
-          entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_SHORTCUT, fileId], errMsg, j, jcount)
+          entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_SHORTCUT, fileId], Msg.NOT_FOUND, j, jcount)
         else:
-          row['message'] = f'{Ent.Singular(Ent.DRIVE_FILE_SHORTCUT)} {fileId} {Msg.NOT_FOUND}'
+          row['code'] = SHORTCUT_CODE_SHORTCUT_NOT_FOUND
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
