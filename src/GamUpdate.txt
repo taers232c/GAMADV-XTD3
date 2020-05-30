@@ -1,3 +1,7 @@
+5.04.03
+
+Added additional error handling when managing licenses.
+
 5.04.02
 
 Added option `copymaterialsfiles [<Boolean>]` to `gam create|update course copyfrom`.
