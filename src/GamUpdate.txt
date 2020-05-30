@@ -1,3 +1,11 @@
+5.04.04
+
+Added command to check the validity of drive file shortcuts.
+```
+gam <UserTypeEntity> check drivefileshortcut <DriveFileEntity>
+        [csv [todrive <ToDriveAttribute>*]]
+```
+
 5.04.03
 
 Added additional error handling when managing licenses.

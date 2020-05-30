@@ -3526,10 +3526,6 @@ gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>]
         <DriveFileCreateAttribute>* [enforcesingleparent <Boolean>]
         [csv [todrive <ToDriveAttribute>*]] [returnidonly]
 
-gam <UserTypeEntity> create|add drivefileshortcut <DriveFileEntity> [shortcutname <String>]
-        [<DriveFileParentAttribute>|convertparents]
-        [csv [todrive <ToDriveAttribute>*]] [returnidonly]
-
 <DriveFileUpdateAttribute> ::=
         <DriveFileAttribute>|
         <DriveFileParentAttribute>|
@@ -3582,6 +3578,13 @@ gam <UserTypeEntity> delete drivefile <DriveFileEntity> [purge|untrash|trash]
 gam <UserTypeEntity> purge drivefile <DriveFileEntity>
 gam <UserTypeEntity> trash drivefile <DriveFileEntity>
 gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
+
+gam <UserTypeEntity> create|add drivefileshortcut <DriveFileEntity> [shortcutname <String>]
+        [<DriveFileParentAttribute>|convertparents]
+        [csv [todrive <ToDriveAttribute>*]] [returnidonly]
+
+gam <UserTypeEntity> check drivefileshortcut <DriveFileEntity>
+        [csv [todrive <ToDriveAttribute>*]]
 
 <DriveFileACLRole> ::= commenter|editor|fileorganizer|organizer|owner|reader|writer
 <DriveFilePermission> ::= anyone|anyonewithlink|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>|domainwithlink:<DomainName>;<DriveFileACLRole>

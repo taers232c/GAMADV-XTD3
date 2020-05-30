@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.04.03'
+__version__ = '5.04.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -31740,6 +31740,9 @@ def printShowCalendarEvents(users):
 def _getEntityMimeType(fileEntry):
   return Ent.DRIVE_FOLDER if fileEntry['mimeType'] == MIMETYPE_GA_FOLDER else Ent.DRIVE_FILE
 
+def _getTargetEntityMimeType(fileEntry):
+  return Ent.DRIVE_FOLDER if fileEntry['shortcutDetails']['targetMimeType'] == MIMETYPE_GA_FOLDER else Ent.DRIVE_FILE
+
 CORPORA_ALL_DRIVES = 'allDrives'
 CORPORA_CHOICE_MAP = {
   'alldrives': CORPORA_ALL_DRIVES,
@@ -35964,10 +35967,92 @@ def createDriveFileShortcut(users):
         except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
                 GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed) as e:
           entityActionFailedWarning([Ent.USER, user, targetEntityType, targetName, Ent.DRIVE_PARENT_FOLDER_REFERENCE, str(l)], str(e), j, jcount)
-      Ind.Decrement()
     Ind.Decrement()
   if csvPF:
     csvPF.writeCSVfile('Shortcuts')
+
+# gam <UserTypeEntity> check drivefileshortcut <DriveFileEntity>
+#	[csv [todrive <ToDriveAttribute>*]]
+def checkDriveFileShortcut(users):
+  csvPF = None
+  fileIdEntity = getDriveFileEntity()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'csv':
+      csvPF = CSVPrintFile(['User', 'name', 'id', 'shortcutDetails.targetId', 'shortcutDetails.targetMimeType',
+                            'targetName', 'targetId', 'targetMimeType', 'valid', 'message'], 'sortall')
+    elif csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    else:
+      unknownArgumentExit()
+  scfields = 'id,name,mimeType,shortcutDetails'
+  trfields = 'id,name,mimeType'
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity)
+    if not csvPF:
+      entityPerformActionNumItems([Ent.USER, user], jcount, Ent.DRIVE_FILE_SHORTCUT, i, count)
+    if jcount == 0:
+      continue
+    Ind.Increment()
+    j = 0
+    for fileId in fileIdEntity['list']:
+      j += 1
+      row = {'User': user, 'id': fileId, 'valid': False}
+      try:
+        scresult = callGAPI(drive.files(), 'get',
+                            throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
+                            fileId=fileId, fields=scfields, supportsAllDrives=True)
+        row['name'] = scresult['name']
+        if scresult['mimeType'] != MIMETYPE_GA_SHORTCUT:
+          row['message'] = Msg.INVALID_MIMETYPE.format(scresult['mimeType'], MIMETYPE_GA_SHORTCUT)
+          if not csvPF:
+            entityActionFailedWarning([Ent.USER, user, _getEntityMimeType(scresult), fileId], row['message'], j, jcount)
+          else:
+            csvPF.WriteRow(row)
+          continue
+        row['shortcutDetails.targetId'] = scresult['shortcutDetails']['targetId']
+        row['shortcutDetails.targetMimeType'] = scresult['shortcutDetails']['targetMimeType']
+        trfileId = scresult['shortcutDetails']['targetId']
+        try:
+          trresult = callGAPI(drive.files(), 'get',
+                              throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
+                              fileId=trfileId, fields=trfields, supportsAllDrives=True)
+          row['targetName'] = trresult['name']
+          row['targetId'] = trresult['id']
+          row['targetMimeType'] = trresult['mimeType']
+          entityList = [Ent.USER, user, Ent.DRIVE_FILE_SHORTCUT, f"{scresult['name']}({fileId})",
+                        _getEntityMimeType(trresult), f"{trresult['name']}({trfileId})"]
+          if scresult['shortcutDetails']['targetMimeType'] == trresult['mimeType']:
+            if not csvPF:
+              entityActionPerformed(entityList, j, jcount)
+            else:
+              row['valid'] = True
+          else:
+            row['message'] = Msg.MIMETYPE_MISMATCH.format(scresult['shortcutDetails']['targetMimeType'], trresult['mimeType'])
+            if not csvPF:
+              entityActionFailedWarning(entityList, row['message'], j, jcount)
+        except GAPI.fileNotFound:
+          if not csvPF:
+            entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_SHORTCUT, f"{scresult['name']}({fileId})",
+                                       _getTargetEntityMimeType(scresult), trfileId], Msg.NOT_FOUND, j, jcount)
+          else:
+            row['message'] = f'{Ent.Singular(_getTargetEntityMimeType(scresult))}: {trfileId} {Msg.NOT_FOUND}'
+      except GAPI.fileNotFound:
+        errMsg = Msg.NOT_FOUND
+        if not csvPF:
+          entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_SHORTCUT, fileId], errMsg, j, jcount)
+        else:
+          row['message'] = f'{Ent.Singular(Ent.DRIVE_FILE_SHORTCUT)} {fileId} {Msg.NOT_FOUND}'
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+        break
+      if csvPF:
+        csvPF.WriteRow(row)
+    Ind.Decrement()
+  if csvPF:
+    csvPF.writeCSVfile('Check Shortcuts')
 
 # gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [retainname | (newfilename <DriveFileName>)]
 #	<DriveFileUpdateAttribute>* [enforcesingleparent <Boolean>]
@@ -45952,7 +46037,7 @@ USER_COMMANDS_WITH_OBJECTS = {
   'append': (Act.APPEND, {Cmd.ARG_SHEETRANGE: appendSheetRanges}),
   'archive': (Act.ARCHIVE, {Cmd.ARG_MESSAGE: archiveMessages}),
   'cancel': (Act.CANCEL, {Cmd.ARG_GUARDIANINVITATION: cancelGuardianInvitations}),
-  'check': (Act.CHECK, {Cmd.ARG_SERVICEACCOUNT: checkServiceAccount}),
+  'check': (Act.CHECK, {Cmd.ARG_DRIVEFILESHORTCUT: checkDriveFileShortcut, Cmd.ARG_SERVICEACCOUNT: checkServiceAccount}),
   'claim': (Act.CLAIM, {Cmd.ARG_OWNERSHIP: claimOwnership}),
   'clear': (Act.CLEAR, {Cmd.ARG_CONTACT: clearUserContacts, Cmd.ARG_GUARDIAN: clearGuardians, Cmd.ARG_SHEETRANGE: clearSheetRanges}),
   'collect': (Act.COLLECT, {Cmd.ARG_ORPHANS: collectOrphans}),
