@@ -19,15 +19,12 @@ cache:
     - $HOME/ssl
 
 jobs:
-  allow_failures:
-    - dist: focal
   fast_finish: true
   include:
     - os: linux
       name: "Linux 64-bit Focal"
       dist: focal
       language: shell
-      filter_secrets: false
     - os: linux
       name: "Linux 64-bit Bionic"
       dist: bionic
@@ -83,7 +80,7 @@ jobs:
     - os: osx
       name: "MacOS 10.15"
       language: generic
-      osx_image: xcode11.4
+      osx_image: xcode11.5
     - os: windows
       name: "Windows 64-bit"
       language: shell
