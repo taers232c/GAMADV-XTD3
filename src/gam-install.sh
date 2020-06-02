@@ -8,8 +8,8 @@ GAM installation script.
 OPTIONS:
    -h      show help.
    -d      Directory where gam folder will be installed. Default is \$HOME/bin/
-   -a      Architecture to install (x86_64). Default is to detect your arch with "uname -m".
    -o      OS we are running (linux, macos). Default is to detect your OS with "uname -s".
+   -a      Architecture to install (x86_64, x86_64_legacy, arm, arm64); only applies to Linux. Default is to detect your arch with "uname -m".
    -b      OS version. Default is to detect on MacOS and Linux.
    -l      Just upgrade GAM to latest version. Skips project creation and auth.
    -p      Profile update (true, false). Should script add gam command to environment. Default is true.
@@ -29,7 +29,8 @@ upgrade_only=false
 gamversion="latest"
 adminuser=""
 regularuser=""
-gam_glibc_vers="2.31 2.27 2.23 2.19 2.15"
+gam_x86_64_glibc_vers="2.31 2.27 2.23 2.19 2.15"
+gam_arm64_glibc_vers="2.27 2.23"
 gam_macos_vers="10.15 10.14 10.13 10.12 10.11 10.10"
 
 while getopts "hd:a:o:b:lp:u:r:v:" OPTION
@@ -53,15 +54,15 @@ done
 target_dir=${target_dir%/}
 
 update_profile() {
-	[ $2 -eq 1 ] || [ -f "$1" ] || return 1
+        [ $2 -eq 1 ] || [ -f "$1" ] || return 1
 
-	grep -F "$alias_line" "$1" > /dev/null 2>&1
-	if [ $? -ne 0 ]; then
+        grep -F "$alias_line" "$1" > /dev/null 2>&1
+        if [ $? -ne 0 ]; then
                 echo_yellow "Adding gam alias to profile file $1."
-		echo -e "\n$alias_line" >> "$1"
+                echo -e "\n$alias_line" >> "$1"
         else
           echo_yellow "gam alias already exists in profile file $1. Skipping add."
-	fi
+        fi
 }
 
 echo_red()
@@ -100,17 +101,33 @@ case $gamos in
       this_glibc_ver=$osversion
     fi
     echo "This Linux distribution uses glibc $this_glibc_ver"
-    useglibc="legacy"
-    for gam_glibc_ver in $gam_glibc_vers; do
-      if version_gt $this_glibc_ver $gam_glibc_ver; then
-        useglibc="glibc$gam_glibc_ver"
-        echo_green "Using GAM compiled against $useglibc"
-        break
-      fi
-    done
     case $gamarch in
-      x86_64) gamfile="linux-x86_64-$useglibc.tar.xz";;
-      arm64|aarch64) gamfile="linux-arm64-$useglibc.tar.xz";;
+      x86_64)
+        useglibc="legacy"
+        for gam_glibc_ver in $gam_x86_64_glibc_vers; do
+          if version_gt $this_glibc_ver $gam_glibc_ver; then
+            useglibc="glibc$gam_glibc_ver"
+            echo_green "Using GAM compiled against $useglibc"
+            break
+          fi
+        done
+        gamfile="linux-x86_64-$useglibc.tar.xz";;
+      x86_64_legacy)
+        gamfile="linux-x86_64-legacy.tar.xz";;
+      arm|arm64|aarch64)
+        useglibc=""
+        for gam_glibc_ver in $gam_arm64_glibc_vers; do
+          if version_gt $this_glibc_ver $gam_glibc_ver; then
+            useglibc="glibc$gam_glibc_ver"
+            echo_green "Using GAM compiled against $useglibc"
+            break
+          fi
+        done
+        if [ "$useglibc" == "" ]; then
+          echo_red "Sorry, you need to be running at least glibc $useglibc to run GAM"
+          exit
+        fi
+        gamfile="linux-arm64-$useglibc.tar.xz";;
       *)
         echo_red "ERROR: this installer currently only supports x86_64 and arm64 Linux. Looks like you're running on $gamarch. Exiting."
         exit
