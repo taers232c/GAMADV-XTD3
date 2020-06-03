@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.04.04'
+__version__ = '5.04.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7517,24 +7517,7 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
       break
   return selectedScopes
 
-def setGAMOauthURLfile(access_type):
-  if access_type == 'offline' and GC.Values[GC.NO_BROWSER]:
-    GM.Globals[GM.GAM_OAUTH_URL_TXT] = os.path.join(GM.Globals[GM.GAM_PATH], FN_GAM_OAUTH_URL_TXT)
-  else:
-    GM.Globals[GM.GAM_OAUTH_URL_TXT] = None
-
-def writeGAMOauthURLfile(oauthURL):
-  if GM.Globals[GM.GAM_OAUTH_URL_TXT]:
-    writeFile(GM.Globals[GM.GAM_OAUTH_URL_TXT], oauthURL,
-              mode='w', continueOnError=True, displayError=True)
-
-def deleteGAMOauthURLfile():
-  if GM.Globals[GM.GAM_OAUTH_URL_TXT]:
-    deleteFile(GM.Globals[GM.GAM_OAUTH_URL_TXT], continueOnError=True, displayError=True)
-    GM.Globals[GM.GAM_OAUTH_URL_TXT] = None
-
 def _run_oauth_flow(client_id, client_secret, scopes, login_hint, access_type):
-  setGAMOauthURLfile(access_type)
   client_config = {
     'installed': {
       'client_id': client_id,
@@ -7550,16 +7533,19 @@ def _run_oauth_flow(client_id, client_secret, scopes, login_hint, access_type):
   if login_hint:
     kwargs['login_hint'] = login_hint
   if GC.Values[GC.NO_BROWSER]:
+    fileName = os.path.join(GM.Globals[GM.GAM_PATH], FN_GAM_OAUTH_URL_TXT)
+    auth_url, _ = flow.authorization_url(**kwargs)
+    writeFile(fileName, auth_url, mode='w', continueOnError=True, displayError=True)
     flow.run_console(
-            authorization_prompt_message=Msg.OAUTH2_GO_TO_LINK_MESSAGE.format(GM.Globals[GM.GAM_OAUTH_URL_TXT]),
+            authorization_prompt_message=Msg.OAUTH2_GO_TO_LINK_MESSAGE.format(fileName),
             authorization_code_message=Msg.ENTER_VERIFICATION_CODE,
             **kwargs)
+    deleteFile(fileName, continueOnError=True, displayError=True)
   else:
     flow.run_local_server(
             authorization_prompt_message=Msg.OAUTH2_BROWSER_OPENED_MESSAGE,
             success_message=Msg.AUTHENTICATION_FLOW_COMPLETE,
             **kwargs)
-  deleteGAMOauthURLfile()
   return flow.credentials
 
 def doOAuthRequest(currentScopes, login_hint, verifyScopes=False):
