@@ -402,9 +402,10 @@ class InstalledAppFlow(Flow):
 
         self.redirect_uri = self._OOB_REDIRECT_URI
 
+        auth_url_callback = kwargs.pop("auth_url_callback", None)
+
         auth_url, _ = self.authorization_url(**kwargs)
 
-        auth_url_callback = kwargs.pop("auth_url_callback", None)
         if auth_url_callback is not None:
             auth_url_callback(auth_url)
 

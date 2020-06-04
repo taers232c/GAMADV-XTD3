@@ -784,10 +784,10 @@ class GamCLArgs():
   def SetEncoding(self, encoding):
     self.encoding = encoding
 
-# Concatenate list members, any item containing spaces is enclosed in ""
+# Concatenate list members, any item containing spaces, commas or single quotes is enclosed in ""
   @staticmethod
   def QuotedArgumentList(items):
-    return ' '.join([item if item and (item.find(' ') == -1) and (item.find(',') == -1) else '"'+item+'"' for item in items])
+    return ' '.join([item if item and (item.find(' ') == -1) and (item.find(',') == -1) and (item.find("'") == -1) else '"'+item+'"' for item in items])
 
 # Mark bad argument in command line
   def CommandLineWithBadArgumentMarked(self, extraneous):

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.04.06'
+__version__ = '5.04.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7535,7 +7535,7 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
 
 def writeGAMOauthURLfile(oauthURL):
   writeFile(GM.Globals[GM.GAM_OAUTH_URL_TXT], oauthURL, mode='w', continueOnError=True, displayError=True)
-  
+
 def _run_oauth_flow(client_id, client_secret, scopes, login_hint, access_type):
   client_config = {
     'installed': {
