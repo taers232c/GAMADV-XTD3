@@ -289,6 +289,7 @@ class GamCLArgs():
 # Command line batch/csv/loop/tbatch keywords
   BATCH_CMD = 'batch'
   CSV_CMD = 'csv'
+  CSVTEST_CMD = 'csvtest'
   LOOP_CMD = 'loop'
   TBATCH_CMD = 'tbatch'
 # Command line select/selectfilter/config/redirect arguments

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.04.05'
+__version__ = '5.04.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -287,7 +287,7 @@ FILE_ERROR_RC = 6
 MEMORY_ERROR_RC = 7
 KEYBOARD_INTERRUPT_RC = 8
 HTTP_ERROR_RC = 9
-SCOPES_NOT_AUTHORIZED = 10
+SCOPES_NOT_AUTHORIZED_RC = 10
 DATA_ERROR_RC = 11
 API_ACCESS_DENIED_RC = 12
 CONFIG_ERROR_RC = 13
@@ -7292,7 +7292,7 @@ def processSubFields(GAM_argv, row, subFields):
 # gam csv <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [warnifnodata]
 #	[columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
 #	(matchfield|skipfield <FieldName> <RegularExpression>)* [showcmds [<Boolean>]] gam <GAM argument list>
-def doCSV():
+def doCSV(testMode=False):
   filename = getString(Cmd.OB_FILE_NAME)
   if (filename == '-') and (GC.Values[GC.DEBUG_LEVEL] > 0):
     Cmd.Backup()
@@ -7314,7 +7314,23 @@ def doCSV():
     if checkMatchSkipFields(row, matchFields, skipFields):
       items.append(processSubFields(GAM_argv, row, subFields))
   closeFile(f)
-  MultiprocessGAMCommands(items, logCmds)
+  if not testMode:
+    MultiprocessGAMCommands(items, logCmds)
+  else:
+    numItems = min(len(items), 10)
+    writeStdout(Msg.CSV_FILE_HEADERS.format(filename))
+    Ind.Increment()
+    for field in fieldnames:
+      writeStdout(f'{Ind.Spaces()}{field}\n')
+    Ind.Decrement()
+    writeStdout(Msg.CSV_SAMPLE_COMMANDS.format(numItems, GAM))
+    Ind.Increment()
+    for i in range(numItems):
+      writeStdout(f'{Ind.Spaces()}{Cmd.QuotedArgumentList(items[i])}\n')
+    Ind.Decrement()
+
+def doCSVTest():
+  doCSV(testMode=True)
 
 def _doList(entityList, entityType):
   buildGAPIObject(API.DIRECTORY)
@@ -7517,6 +7533,9 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
       break
   return selectedScopes
 
+def writeGAMOauthURLfile(oauthURL):
+  writeFile(GM.Globals[GM.GAM_OAUTH_URL_TXT], oauthURL, mode='w', continueOnError=True, displayError=True)
+  
 def _run_oauth_flow(client_id, client_secret, scopes, login_hint, access_type):
   client_config = {
     'installed': {
@@ -7533,19 +7552,24 @@ def _run_oauth_flow(client_id, client_secret, scopes, login_hint, access_type):
   if login_hint:
     kwargs['login_hint'] = login_hint
   if GC.Values[GC.NO_BROWSER]:
-    fileName = os.path.join(GM.Globals[GM.GAM_PATH], FN_GAM_OAUTH_URL_TXT)
-    auth_url, _ = flow.authorization_url(**kwargs)
-    writeFile(fileName, auth_url, mode='w', continueOnError=True, displayError=True)
-    flow.run_console(
-            authorization_prompt_message=Msg.OAUTH2_GO_TO_LINK_MESSAGE.format(fileName),
-            authorization_code_message=Msg.ENTER_VERIFICATION_CODE,
-            **kwargs)
-    deleteFile(fileName, continueOnError=True, displayError=True)
+    GM.Globals[GM.GAM_OAUTH_URL_TXT] = os.path.join(GM.Globals[GM.GAM_PATH], FN_GAM_OAUTH_URL_TXT)
+    kwargs['auth_url_callback'] = writeGAMOauthURLfile
+    try:
+      flow.run_console(
+        authorization_prompt_message=Msg.OAUTH2_GO_TO_LINK_MESSAGE.format(GM.Globals[GM.GAM_OAUTH_URL_TXT]),
+        authorization_code_message=Msg.ENTER_VERIFICATION_CODE,
+        writeGAMOauthURLfile=writeGAMOauthURLfile,
+        **kwargs)
+    except Exception as e:
+      stderrErrorMsg(Msg.AUTHENTICATION_FLOW_FAILED.format(str(e)))
+      deleteFile(GM.Globals[GM.GAM_OAUTH_URL_TXT], continueOnError=True, displayError=True)
+      systemErrorExit(SCOPES_NOT_AUTHORIZED_RC, None)
+    deleteFile(GM.Globals[GM.GAM_OAUTH_URL_TXT], continueOnError=True, displayError=True)
   else:
     flow.run_local_server(
-            authorization_prompt_message=Msg.OAUTH2_BROWSER_OPENED_MESSAGE,
-            success_message=Msg.AUTHENTICATION_FLOW_COMPLETE,
-            **kwargs)
+      authorization_prompt_message=Msg.OAUTH2_BROWSER_OPENED_MESSAGE,
+      success_message=Msg.AUTHENTICATION_FLOW_COMPLETE,
+      **kwargs)
   return flow.credentials
 
 def doOAuthRequest(currentScopes, login_hint, verifyScopes=False):
@@ -8663,7 +8687,7 @@ def checkServiceAccount(users):
     else:
       # Tack on email scope for more accurate checking
       checkScopes.append(API.USERINFO_EMAIL_SCOPE)
-      setSysExitRC(SCOPES_NOT_AUTHORIZED)
+      setSysExitRC(SCOPES_NOT_AUTHORIZED_RC)
       authorizeScopes(Msg.SCOPE_AUTHORIZATION_FAILED)
     printBlankLine()
 
@@ -45345,6 +45369,7 @@ CMD_FUNCTION = 1
 BATCH_CSV_COMMANDS = {
   Cmd.BATCH_CMD: (Act.PERFORM, doBatch),
   Cmd.CSV_CMD: (Act.PERFORM, doCSV),
+  Cmd.CSVTEST_CMD: (Act.PERFORM, doCSVTest),
   Cmd.TBATCH_CMD: (Act.PERFORM, doThreadBatch),
   }
 MAIN_COMMANDS = {

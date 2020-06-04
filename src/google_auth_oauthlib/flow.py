@@ -404,6 +404,10 @@ class InstalledAppFlow(Flow):
 
         auth_url, _ = self.authorization_url(**kwargs)
 
+        auth_url_callback = kwargs.pop("auth_url_callback", None)
+        if auth_url_callback is not None:
+            auth_url_callback(auth_url)
+
         print(authorization_prompt_message.format(url=auth_url))
 
         code = input(authorization_code_message)

@@ -1,3 +1,8 @@
+5.04.06
+
+Fixed `gam config no_browser true oauth create` to write correct data to file `gamoauthurl.txt` so that the
+authorization URL can be copied from the file rather than from the screen.
+
 5.04.05
 
 Fixed `gam config no_browser true oauth create` to write file `gamoauthurl.txt` so that the
