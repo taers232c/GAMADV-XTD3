@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.04.08'
+__version__ = '5.04.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -10413,7 +10413,7 @@ def doSendEmail(users=None):
     return getNormalizedEmailAddressEntity()
 
   body = {}
-  notify = {'subject': '', 'message': '', 'html': False, 'charset': UTF8}
+  notify = {'subject': '', 'message': '', 'html': False, 'charset': UTF8, 'password': ''}
   if users is None:
     msgFroms = [None]
     checkArgumentPresent({'recipient', 'recipients', 'to'})
@@ -10462,7 +10462,7 @@ def doSendEmail(users=None):
     elif myarg in {'lastname', 'familyname'}:
       body.setdefault('name', {})
       body['name']['familyName'] = getString(Cmd.OB_STRING, minLen=0, maxLen=60)
-    elif myarg == 'password':
+    elif myarg in {'password', 'notifypassword'}:
       body['password'] = notify['password'] = getString(Cmd.OB_PASSWORD, maxLen=100)
     elif myarg == 'replace':
       _getTagReplacement(tagReplacements, False)
@@ -24526,6 +24526,8 @@ UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP = {
   'agreed2terms': 'agreedToTerms',
   'agreedtoterms': 'agreedToTerms',
   'archived': 'archived',
+  'base64-md5': 'hashFunction',
+  'base64-sha1': 'hashFunction',
   'changepassword': 'changePasswordAtNextLogin',
   'changepasswordatnextlogin': 'changePasswordAtNextLogin',
   'crypt': 'hashFunction',
@@ -24583,11 +24585,13 @@ UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP = {
   }
 
 HASH_FUNCTION_MAP = {
-  'sha': 'SHA-1',
-  'sha1': 'SHA-1',
-  'sha-1': 'SHA-1',
-  'md5': 'MD5',
+  'base64-md5': 'MD5',
+  'base64-sha1': 'SHA-1',
   'crypt': 'crypt',
+  'md5': 'MD5',
+  'sha': 'SHA-1',
+  'sha-1': 'SHA-1',
+  'sha1': 'SHA-1',
   }
 
 ADDRESS_ARGUMENT_TO_FIELD_MAP = {
@@ -24695,6 +24699,17 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       return sha512_crypt.hash(password, rounds=5000)
     return crypt(password)
 
+  def _finalizePassword(body, notify, up):
+    if not notify[up]:
+      notify[up] = body[up] if clearPassword else Msg.CONTACT_ADMINISTRATOR_FOR_PASSWORD
+    if hashPassword:
+      body[up] = gen_sha512_hash(body[up])
+      body['hashFunction'] = 'crypt'
+    elif b64DecryptPassword:
+      if body[up].lower()[:5] in ['{md5}', '{sha}']:
+        body[up] = body[up][5:]
+      body[up] = base64.b64decode(body[up]).hex()
+
   def _splitSchemaNameDotFieldName(sn_fn, fnRequired=True):
     if sn_fn.find('.') != -1:
       schemaName, fieldName = sn_fn.split('.', 1)
@@ -24717,8 +24732,9 @@ def getUserAttributes(cd, updateCmd, noUid=False):
     makeRandomPassword = True
     body['primaryEmail'] = getEmailAddress(noUid=noUid)
   notFoundBody = {}
-  hashPassword = True
-  notify = {'subject': '', 'message': '', 'html': False, 'charset': UTF8}
+  b64DecryptPassword = False
+  clearPassword = hashPassword = True
+  notify = {'subject': '', 'message': '', 'html': False, 'charset': UTF8, 'password': ''}
   primary = {}
   updatePrimaryEmail = {}
   groupOrgUnitMap = None
@@ -24734,6 +24750,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       notify['message'], notify['charset'] = getStringOrFile(myarg)
     elif myarg == 'html':
       notify['html'] = getBoolean()
+    elif myarg == 'notifypassword':
+      notify['password'] = getString(Cmd.OB_PASSWORD, maxLen=100)
     elif myarg == 'replace':
       _getTagReplacement(tagReplacements, True)
     elif myarg == 'admin':
@@ -24753,7 +24771,6 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       if notFoundBody[up].lower() == 'random':
         rnd = SystemRandom()
         notFoundBody[up] = ''.join(rnd.choice(PASSWORD_SAFE_CHARS) for _ in range(25))
-      notify['notFoundPassword'] = notFoundBody[up]
     elif updateCmd and myarg == 'updateprimaryemail':
       search = getString(Cmd.OB_RE_PATTERN)
       pattern = validateREPattern(search, re.IGNORECASE)
@@ -24795,7 +24812,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         body[up] = getBoolean()
       elif up == 'hashFunction':
         body[up] = HASH_FUNCTION_MAP[myarg]
-        hashPassword = False
+        clearPassword = hashPassword = False
+        b64DecryptPassword = myarg.startswith('base64')
       elif up == 'primaryEmail':
         if updateCmd:
           body[up] = getEmailAddress(noUid=True)
@@ -25074,10 +25092,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
   if makeRandomPassword:
     rnd = SystemRandom()
     body[up] = ''.join(rnd.choice(PASSWORD_SAFE_CHARS) for _ in range(25))
-  notify[up] = body.get(up)
-  if up in body and hashPassword:
-    body[up] = gen_sha512_hash(body[up])
-    body['hashFunction'] = 'crypt'
+  if up in body:
+    _finalizePassword(body, notify, up)
   if createIfNotFound:
     if not notFoundBody:
       if up in body:
@@ -25086,9 +25102,10 @@ def getUserAttributes(cd, updateCmd, noUid=False):
           notFoundBody['hashfunction'] = body['hashFunction']
         notify['notFoundPassword'] = notify[up]
     else:
-      if hashPassword:
-        notFoundBody[up] = gen_sha512_hash(notFoundBody[up])
-        notFoundBody['hashFunction'] = 'crypt'
+      notify['notFoundPassword'] = notify[up] if notify[up] else notFoundBody[up] if clearPassword else Msg.CONTACT_ADMINISTRATOR_FOR_PASSWORD
+      _finalizePassword(notFoundBody, notify, up)
+  if 'hashFunction' in body and up not in body:
+    body.pop('hashFunction')
   return (body, notify, tagReplacements, addGroups, updatePrimaryEmail, createIfNotFound, notFoundBody, groupOrgUnitMap)
 
 def createUserAddToGroups(cd, user, addGroups, i, count):
@@ -25098,7 +25115,9 @@ def createUserAddToGroups(cd, user, addGroups, i, count):
   Act.Set(action)
 
 # gam create user <EmailAddress> <UserAttribute>
-#	[notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
+#	(groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
+#	[notify <EmailAddress>] [subject <String>] [notifypassword <Stribg>]
+#	    [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
 #	(replace <Tag> <String>)*
 def doCreateUser():
   cd = buildGAPIObject(API.DIRECTORY)
@@ -25116,7 +25135,6 @@ def doCreateUser():
     if addGroups:
       createUserAddToGroups(cd, result['primaryEmail'], addGroups, 0, 0)
     if notify.get('emailAddress'):
-      result['password'] = notify['password']
       sendCreateUpdateUserNotification(result, notify, tagReplacements)
   except GAPI.duplicate:
     entityDuplicateWarning([Ent.USER, user])
@@ -25134,7 +25152,9 @@ def doCreateUser():
 #	    [keyfield <FieldName>] [datafield <FieldName>]]
 #	[clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
 #	[createifnotfound] [notfoundpassword random|<Password>]
-#	[notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
+#	(groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
+#	[notify <EmailAddress>] [subject <String>] [notifypassword <Stribg>]
+#	    [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
 #	(replace <Tag> <String>)*
 def updateUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
@@ -25191,7 +25211,6 @@ def updateUsers(entityList):
                             userKey=userKey, body=body, fields=fields)
           entityActionPerformed([Ent.USER, user], i, count)
           if notify.get('emailAddress') and notify['password']:
-            result['password'] = notify['password']
             sendCreateUpdateUserNotification(result, notify, tagReplacements, i, count, createMessage=False)
         except GAPI.userNotFound:
           if createIfNotFound:
@@ -25210,7 +25229,7 @@ def updateUsers(entityList):
                 if addGroups:
                   createUserAddToGroups(cd, result['primaryEmail'], addGroups, i, count)
                 if notify.get('emailAddress'):
-                  result['password'] = notify['password'] = notify['notFoundPassword']
+                  notify['password'] = notify['notFoundPassword']
                   sendCreateUpdateUserNotification(result, notify, tagReplacements, i, count)
               except GAPI.duplicate:
                 entityDuplicateWarning([Ent.USER, user], i, count)

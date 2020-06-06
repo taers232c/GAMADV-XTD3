@@ -3044,7 +3044,7 @@ gam show vaultholds|holds [matters <MatterItemList>]
         (agreed2terms|agreedtoterms <Boolean>)|
         (archived <Boolean>)|
         (changepassword|changepasswordatnextlogin <Boolean>)|
-        (crypt|sha|sha1|sha-1|md5|nohash)|
+        (base64-md5|base64-sha1|crypt|sha|sha1|sha-1|md5|nohash)|
         (customerid <String>)|
         (email|primaryemail|username <EmailAddress>)|
         (firstname|givenname <String>)|
@@ -3059,41 +3059,85 @@ gam show vaultholds|holds [matters <MatterItemList>]
         (recoveryemail <EmailAddress>)|
         (recoveryphone <string>)|
         (suspended <Boolean>)|
-        (<SchemaName>.<FieldName> [multivalued|multivalue|value|multinonempty [type home|other|work|(custom <String>)]] <String>)
+        (<SchemaName>.<FieldName> [multivalued|multivalue|value|multinonempty
+                                  [type home|other|work|(custom <String>)]] <String>)
 <UserMultiAttribute> ::=
-        (address clear|(type home|other|work|(custom <String>) [unstructured|formatted <String>] [pobox <String>] [extendedaddress <String>] [streetaddress <String>]
-                [locality <String>] [region <String>] [postalcode <String>] [country <String>] [countrycode <String>] notprimary|primary))|
-        (otheremail clear|(home|other|work|<String> <String>))|
-        (externalid clear|(account|customer|login_id|network|organization|<String> <String>))|
-        (im clear|(type home|other|work|(custom <String>) protocol aim|gtalk|icq|jabber|msn|net_meeting|qq|skype|yahoo|(custom_protocol <String>) <String> [notprimary|primary]))|
-        (keyword clear|(mission|occupation|outlook|(custom <string>) <String>))|
-        (location clear|(type default|desk|<String> area <String> [building|buildingid <String>] [floor|floorname <String>] [section|floorsection <String>] [desk|deskcode <String>] endlocation))|
-        (organization clear|([type domain_only|school|unknown|work] [customtype <String>] [name <String>] [title <String>] [department <String>] [symbol <String>]
-                [costcenter <String>]  [location <String>] [description <String>] [domain <String>] [fulltimeequivalent <Integer>] notprimary|primary))|
-        (phone clear|([type assistant|callback|car|company_main|grand_central|home|home_fax|isdn|main|mobile|other|other_fax|pager|radio|telex|tty_tdd|work|work_fax|work_mobile|work_pager|(custom <String>)]
-                [value <String>] notprimary|primary))|
-        (posix clear|(username <String> uid <Integer> gid <Integer> [system|systemid <String>] [home|homedirectory <String>] [shell <String>]
-                [gecos <String>] [os|operatingSystemType linux|unspecified|windows] [primary <Boolean>] endposix))|
-        (relation clear|(admin_assistant|assistant|brother|child|domestic_partner|dotted-line_manager|exec_assistant|father|friend|manager|mother|parent|partner|referred_by|relative|sister|spouse|<String> <String>))|
-        (sshkeys clear|(key <String> [expires <Integer>] endssh))|
-        (website clear|(app_install_page|blog|ftp|home|home_page|other|profile|reservations|resume|work|<String> <URL> [notprimary|primary]))
+<UserMultiAttribute> ::=
+        (address type home|other|work|(custom <String>)
+                [unstructured|formatted <String>]
+                [pobox <String>] [extendedaddress <String>] [streetaddress <String>]
+                [locality <String>] [region <String>] [postalcode <String>]
+                [country <String>] [countrycode <String>]
+                notprimary|primary)|
+        (otheremail home|other|work|<String> <String>)|
+        (externalid account|customer|login_id|network|organization|<String> <String>)|
+        (im type home|other|work|(custom <String>)
+                protocol aim|gtalk|icq|jabber|msn|net_meeting|qq|
+                skype|yahoo|(custom_protocol <String>) <String>
+                notprimary|primary)|
+        (keyword mission|occupation|outlook|(custom <string>) <String>)|
+        (location type default|desk|<String> area <String>
+                [building|buildingid <String>] [floor|floorname <String>]
+                [section|floorsection <String>] [desk|deskcode <String>] endlocation)|
+        (organization [type domain_only|school|unknown|work] [customtype <String>]
+                [name <String>] [title <String>] [department <String>]
+                [symbol <String>] [costcenter <String>] [location <String>]
+                [description <String>] [domain <String>]
+                [fulltimeequivalent <Integer>]
+                notprimary|primary)|
+        (phone [type assistant|callback|car|company_main|grand_central|home|
+                home_fax|isdn|main|mobile|other|other_fax|pager|radio|telex|tty_tdd|
+                work|work_fax|work_mobile|work_pager|(custom <String>)]
+                [value <String>]
+                notprimary|primary)|
+        (posix username <String> uid <Integer> gid <Integer> [system|systemid <String>]
+                [home|homedirectory <String>] [shell <String>]
+                [gecos <String>] [os|operatingSystemType linux|unspecified|windows]
+                [primary <Boolean>] endposix)|
+        (relation admin_assistant|assistant|brother|child|domestic_partner|
+                dotted-line_manager|exec_assistant|father|friend|manager|mother|
+                parent|partner|referred_by|relative|sister|spouse|<String> <String>)|
+        (sshkeys key <String> [expires <Integer>] endssh)|
+        (website app_install_page|blog|ftp|home|home_page|other|
+                profile|reservations|resume|work|<String> <URL>
+                notprimary|primary)
+
+<UserClearAttribute> ::=
+        (address clear)|
+        (otheremail clear)|
+        (externalid clear)|
+        (im clear)|
+        (keyword clear)|
+        (location clear)|
+        (organization clear)|
+        (phone clear)|
+        (posix clear)|
+        (relation clear)|
+        (sshkeys clear)|
+        (website clear)
+
 <UserAttribute> ::=
         (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])|
         <UserBasicAttribute>|
-        <UserMultiAttribute>
+        <UserMultiAttribute>|
+        <UserClearAttribute>
 
 gam create|add user <EmailAddress> <UserAttribute>*
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
-        [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
-        (replace <Tag> <UserReplacement>)*
+        [notify <EmailAddress>] [subject <String>] [notifypassword <String>]
+            [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
+            (replace <Tag> <UserReplacement>)*
 gam update user <UserItem> <UserAttribute>*
         [updateprimaryemail <RegularExpression> <EmailReplacement>]
-        [updateoufromgroup <FileName> [charset <CharSet>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
-            [keyfield <FieldName>] [datafield <FieldName>]]
+        [updateoufromgroup <FileName> [charset <CharSet>]
+            [columndelimiter <Character>] [quotechar <Character>]
+            [fields <FieldNameList>] [keyfield <FieldName>] [datafield <FieldName>]]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
-        [createifnotfound] [notfoundpassword random|<Password>] (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
-        [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
-        (replace <Tag> <UserReplacement>)*
+        [createifnotfound] [notfoundpassword random|<Password>]
+        (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
+        [notify <EmailAddress>] [subject <String>] [notifypassword <String>]
+            [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
+            (replace <Tag> <UserReplacement>)*
 gam delete user <UserItem>
 gam undelete user <UserItem> [org|ou <OrgUnitPath>]
 gam suspend user <UserItem>
@@ -3104,12 +3148,14 @@ gam info user [<UserItem>] [quick] [noaliases] [nogroups] [nolicenses|nolicences
 
 gam update users <UserTypeEntity> <UserAttribute>*
         [updateprimaryemail <RegularExpression> <EmailReplacement>]
-        [updateoufromgroup <FileName> [charset <CharSet>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
-            [keyfield <FieldName>] [datafield <FieldName>]]
+        [updateoufromgroup <FileName> [charset <CharSet>]
+            [columndelimiter <Character>] [quotechar <Character>]
+            [fields <FieldNameList>] [keyfield <FieldName>] [datafield <FieldName>]]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
         [createifnotfound] [notfoundpassword random|<Password>] (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
-        [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
-        (replace <Tag> <UserReplacement>)*
+        [notify <EmailAddress>] [subject <String>] [notifypassword <String>]
+            [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
+            (replace <Tag> <UserReplacement>)*
 gam delete users <UserTypeEntity>
 gam undelete users <UserEntity> [org|ou <OrgUnitPath>]
 gam suspend users <UserTypeEntity>
@@ -3120,12 +3166,14 @@ gam info users <UserTypeEntity> [quick] [noaliases] [nogroups] [nolicenses|nolic
 
 gam <UserTypeEntity> update users <UserAttribute>*
         [updateprimaryemail <RegularExpression> <EmailReplacement>]
-        [updateoufromgroup <FileName> [charset <CharSet>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
-            [keyfield <FieldName>] [datafield <FieldName>]]
+        [updateoufromgroup <FileName> [charset <CharSet>]
+            [columndelimiter <Character>] [quotechar <Character>]
+            [fields <FieldNameList>] [keyfield <FieldName>] [datafield <FieldName>]]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
         [createifnotfound] [notfoundpassword random|<Password>] (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
-        [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])]
-        (replace <Tag> <UserReplacement>)*
+        [notify <EmailAddress>] [subject <String>] [notifypassword <String>]
+            [message <String>|(file <FileName> [charset <CharSet>])]
+            (replace <Tag> <UserReplacement>)*
 gam <UserTypeEntity> delete users
 gam <UserEntity> undelete users [org|ou <OrgUnitPath>]
 gam <UserTypeEntity> suspend users

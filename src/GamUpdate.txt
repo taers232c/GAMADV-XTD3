@@ -1,3 +1,15 @@
+5.04.09
+
+Following Jay's lead, added options `base64-md5` and `base64-sha1` to `gam create|update user` as alternative
+methods of specifying the `password` format. This allows pulling md5 and sha-1 passwords stored in OpenLDAP format
+into G Suite. This command sets the user password to "helloworld".
+```
+gam update user user@example.com password "{SHA}at+xg6SiyUovktq1redipHiJpaE=" base64-sha1
+```
+
+Added option `notifypassword <String>` to `gam create|update user` that allows providing a plain text password to
+be sent in a notification when a hashed password is specified on the command line.
+
 5.04.08
 
 Finally, fixed `gam config no_browser true oauth create` to write correct data to file `gamoauthurl.txt` so that the

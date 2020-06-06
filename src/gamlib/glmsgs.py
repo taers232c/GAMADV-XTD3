@@ -47,6 +47,7 @@ COLUMN_DOES_NOT_MATCH_ANY_OUTPUT_COLUMNS = '{0} column "{1}" does not match any 
 COMMIT_BATCH_COMPLETE = '{0},0,commit-batch - running {1} finished, proceeding\n'
 COMMIT_BATCH_WAIT_N_PROCESSES = '{0},0,commit-batch - waiting for {1} running {2} to finish before proceeding\n'
 CONFLICTING_REQUESTS = 'Conflicting requests. Please try again'
+CONTACT_ADMINISTRATOR_FOR_PASSWORD = 'Contact administrator for password'
 CONTAINS_AT_LEAST_1_ITEM = 'Contains at least 1 item'
 COUNT_N_EXCEEDS_MAX_TO_PROCESS_M = 'Count {0} exceeds maximum to {1} {2}'
 CORRUPT_FILE = 'Corrupt file'
