@@ -1,3 +1,11 @@
+5.04.10
+
+Added command to get a user's profile photo.
+```
+`gam <UserTypeEntity> get profilephoto [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>] [noshow]
+```
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Photo
+
 5.04.09
 
 Following Jay's lead, added options `base64-md5` and `base64-sha1` to `gam create|update user` as alternative

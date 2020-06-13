@@ -4406,6 +4406,7 @@ gam <UserTypeEntity> update photo [<FileNamePattern>]
 gam <UserTypeEntity> update photo [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
 gam <UserTypeEntity> delete photo
 gam <UserTypeEntity> get photo [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>] [noshow]
+gam <UserTypeEntity> get profilephoto [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>] [noshow]
 
 # Users - Profile
 

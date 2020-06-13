@@ -455,6 +455,7 @@ class GamCLArgs():
   ARG_PRINTJOBS = 'printjobs'
   ARG_PRIVILEGES = 'privileges'
   ARG_PROFILE = 'profile'
+  ARG_PROFILE_PHOTO = 'profilephoto'
   ARG_PROJECT = 'project'
   ARG_PROJECTS = 'projects'
   ARG_RESELLERCUSTOMER = 'resellercustomer'

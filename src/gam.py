@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.04.09'
+__version__ = '5.04.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -41204,9 +41204,10 @@ def deletePhoto(users):
     except (GAPI.userNotFound, GAPI.forbidden):
       entityUnknownWarning(Ent.USER, user, i, count)
 
-# gam <UserTypeEntity> get photo [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>] [noshow]
-def getPhoto(users):
+def getPhoto(users, profileMode):
   cd = buildGAPIObject(API.DIRECTORY)
+  if profileMode:
+    people = buildGAPIObject(API.PEOPLE)
   targetFolder = os.getcwd()
   filenamePattern = '#email#.jpg'
   showPhotoData = True
@@ -41231,22 +41232,55 @@ def getPhoto(users):
     _, userName, _ = splitEmailAddressOrUID(user)
     filename = os.path.join(targetFolder, _substituteForUser(filenamePattern, user, userName))
     try:
-      entityPerformActionNumItems([Ent.USER, user], 1, Ent.PHOTO, i, count)
-      photo = callGAPI(cd.users().photos(), 'get',
-                       throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.PHOTO_NOT_FOUND],
-                       userKey=user)
-      photo_data = str(photo['photoData'])
-      if showPhotoData:
-        writeStdout(photo_data+'\n')
-      status, e = writeFileReturnError(filename, base64.urlsafe_b64decode(photo_data), mode='wb')
+      if not showPhotoData:
+        entityPerformActionNumItems([Ent.USER, user], 1, Ent.PHOTO, i, count)
+      if not profileMode:
+        photo = callGAPI(cd.users().photos(), 'get',
+                         throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.PHOTO_NOT_FOUND],
+                         userKey=user)
+        if showPhotoData:
+          writeStdout(photo['photoData']+'\n')
+        photo_data = base64.urlsafe_b64decode(photo['photoData'])
+      else:
+        memberId = getUserPeopleId(cd, user, i, count)
+        result = callGAPI(people.people(), 'get',
+                          throw_reasons=[GAPI.NOT_FOUND],
+                          resourceName=f'people/{memberId}', personFields='photos')
+        url = None
+        for photo in result.get('photos', []):
+          if photo['metadata']['source']['type'] == 'PROFILE':
+            url = photo['url']
+            break
+        if not url:
+          raise GAPI.photoNotFound(Msg.NOT_FOUND)
+        try:
+          status, photo_data = getHttpObj().request(url, 'GET')
+          if status['status'] != '200':
+            entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], Msg.NOT_ALLOWED, i, count)
+            continue
+          if showPhotoData:
+            writeStdout(base64.urlsafe_b64encode(photo_data).decode(UTF8)+'\n')
+        except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
+          entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], str(e), i, count)
+          continue
+      status, e = writeFileReturnError(filename, photo_data, mode='wb')
       if status:
-        entityActionPerformed([Ent.USER, user, Ent.PHOTO, filename], i, count)
+        if not showPhotoData:
+          entityActionPerformed([Ent.USER, user, Ent.PHOTO, filename], i, count)
       else:
         entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], str(e), i, count)
     except GAPI.photoNotFound as e:
       entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, None], str(e), i, count)
     except (GAPI.userNotFound, GAPI.forbidden):
       entityUnknownWarning(Ent.USER, user, i, count)
+
+# gam <UserTypeEntity> get photo [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>] [noshow]
+def getUserPhoto(users):
+  getPhoto(users, False)
+
+# gam <UserTypeEntity> get profilephoto [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>] [noshow]
+def getProfilePhoto(users):
+  getPhoto(users, True)
 
 PROFILE_SHARING_CHOICE_MAP = {
   'share': True,
@@ -46120,7 +46154,14 @@ USER_COMMANDS_WITH_OBJECTS = {
     ),
   'draft': (Act.DRAFT, {Cmd.ARG_MESSAGE: draftMessage}),
   'empty': (Act.EMPTY, {Cmd.ARG_CALENDARTRASH: emptyCalendarTrash, Cmd.ARG_DRIVETRASH: emptyDriveTrash}),
-  'get': (Act.DOWNLOAD, {Cmd.ARG_CONTACTPHOTO: getUserContactPhoto, Cmd.ARG_DRIVEFILE: getDriveFile, Cmd.ARG_PHOTO: getPhoto}),
+  'get':
+    (Act.DOWNLOAD,
+     {Cmd.ARG_CONTACTPHOTO: getUserContactPhoto,
+      Cmd.ARG_DRIVEFILE: getDriveFile,
+      Cmd.ARG_PHOTO: getUserPhoto,
+      Cmd.ARG_PROFILE_PHOTO: getProfilePhoto
+     }
+    ),
   'hide': (Act.HIDE, {Cmd.ARG_TEAMDRIVE: hideUnhideTeamDrive}),
   'import': (Act.IMPORT, {Cmd.ARG_EVENT: importCalendarEvent, Cmd.ARG_MESSAGE: importMessage}),
   'info':
