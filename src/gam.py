@@ -41243,6 +41243,8 @@ def getPhoto(users, profileMode):
         photo_data = base64.urlsafe_b64decode(photo['photoData'])
       else:
         memberId = getUserPeopleId(cd, user, i, count)
+        if not memberId:
+          continue
         result = callGAPI(people.people(), 'get',
                           throw_reasons=[GAPI.NOT_FOUND],
                           resourceName=f'people/{memberId}', personFields='photos')
@@ -41252,7 +41254,8 @@ def getPhoto(users, profileMode):
             url = photo['url']
             break
         if not url:
-          raise GAPI.photoNotFound(Msg.NOT_FOUND)
+          entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, None], Msg.PROFILE_PHOTO_NOT_FOUND, i, count)
+          continue
         try:
           status, photo_data = getHttpObj().request(url, 'GET')
           if status['status'] != '200':
@@ -41269,7 +41272,7 @@ def getPhoto(users, profileMode):
           entityActionPerformed([Ent.USER, user, Ent.PHOTO, filename], i, count)
       else:
         entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], str(e), i, count)
-    except GAPI.photoNotFound as e:
+    except (GAPI.notFound, GAPI.photoNotFound) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, None], str(e), i, count)
     except (GAPI.userNotFound, GAPI.forbidden):
       entityUnknownWarning(Ent.USER, user, i, count)

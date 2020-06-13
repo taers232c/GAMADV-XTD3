@@ -236,6 +236,7 @@ PRIMARY_EMAIL_DID_NOT_MATCH_PATTERN = 'primaryEmail address did not match patter
 PROCESS = 'process'
 PROCESSES = 'processes'
 PROCESSING_ITEM_N = '{0},0,Processing item {1}\n'
+PROFILE_PHOTO_NOT_FOUND = 'Profile photo not found'
 PROJECT_STILL_BEING_CREATED_SLEEPING = 'Project still being created. Sleeping {0} seconds\n'
 RECOMMEND_RUNNING_GAM_ROTATE_SAKEY = 'Recommend running "gam rotate sakey" to get a new key\n'
 REFUSING_TO_DEPROVISION_DEVICES = 'Refusing to deprovision {0} devices because acknowledge_device_touch_requirement not specified.\nDeprovisioning a device means the device will have to be physically wiped and re-enrolled to be managed by your domain again.\nThis requires physical access to the device and is very time consuming to perform for each device.\nPlease add "acknowledge_device_touch_requirement" to the GAM command if you understand this and wish to proceed with the deprovision.\nPlease also be aware that deprovisioning can have an effect on your device license count.\nSee https://support.google.com/chrome/a/answer/3523633 for full details.'
