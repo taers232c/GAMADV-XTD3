@@ -41210,6 +41210,7 @@ def getPhoto(users, profileMode):
     people = buildGAPIObject(API.PEOPLE)
   targetFolder = os.getcwd()
   filenamePattern = '#email#.jpg'
+  returnURLonly = False
   showPhotoData = True
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -41223,6 +41224,8 @@ def getPhoto(users, profileMode):
       filenamePattern = getString(Cmd.OB_PHOTO_FILENAME_PATTERN)
     elif myarg == 'noshow':
       showPhotoData = False
+    elif profileMode and myarg == 'returnurlonly':
+      returnURLonly = True
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
@@ -41256,6 +41259,9 @@ def getPhoto(users, profileMode):
         if not url:
           entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, None], Msg.PROFILE_PHOTO_NOT_FOUND, i, count)
           continue
+        if returnURLonly:
+          writeStdout(f'{url}\n')
+          continue
         try:
           status, photo_data = getHttpObj().request(url, 'GET')
           if status['status'] != '200':
@@ -41277,11 +41283,13 @@ def getPhoto(users, profileMode):
     except (GAPI.userNotFound, GAPI.forbidden):
       entityUnknownWarning(Ent.USER, user, i, count)
 
-# gam <UserTypeEntity> get photo [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>] [noshow]
+# gam <UserTypeEntity> get photo [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]]
+#	[noshow]
 def getUserPhoto(users):
   getPhoto(users, False)
 
-# gam <UserTypeEntity> get profilephoto [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>] [noshow]
+# gam <UserTypeEntity> get profilephoto [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
+#	[noshow] [returnurlonly]
 def getProfilePhoto(users):
   getPhoto(users, True)
 
