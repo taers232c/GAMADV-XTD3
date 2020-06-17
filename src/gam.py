@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.04.11'
+__version__ = '5.04.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7792,27 +7792,29 @@ def getCRMService(login_hint):
 
 def enableGAMProjectAPIs(httpObj, projectId, checkEnabled, i=0, count=0):
   apis = API.PROJECT_APIS[:]
-  projectName = f'project:{projectId}'
-  serveman = getAPIService(API.SERVICEMANAGEMENT, httpObj)
+  projectName = f'projects/{projectId}'
+  serveu = getAPIService(API.SERVICEUSAGE, httpObj)
   status = True
   if checkEnabled:
     try:
-      services = callGAPIpages(serveman.services(), 'list', 'services',
+      services = callGAPIpages(serveu.services(), 'list', 'services',
                                throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
-                               consumerId=projectName, fields='nextPageToken,services(serviceName)')
+                               parent=projectName, filter='state:ENABLED',
+                               fields='nextPageToken,services(name)')
       Act.Set(Act.CHECK)
       jcount = len(services)
       entityPerformActionNumItems([Ent.PROJECT, projectId], jcount, Ent.API, i, count)
       Ind.Increment()
       j = 0
-      for service in sorted(services, key=lambda k: k['serviceName']):
+      for service in sorted(services, key=lambda k: k['name']):
         j += 1
-        if 'serviceName' in service:
-          if service['serviceName'] in apis:
-            printEntityKVList([Ent.API, service['serviceName']], ['Already enabled'], j, jcount)
-            apis.remove(service['serviceName'])
+        if 'name' in service:
+          serviceName = service['name'].split('/')[-1]
+          if serviceName in apis:
+            printEntityKVList([Ent.API, serviceName], ['Already enabled'], j, jcount)
+            apis.remove(serviceName)
           else:
-            printEntityKVList([Ent.API, service['serviceName']], ['Already enabled (non-GAM which is fine)'], j, jcount)
+            printEntityKVList([Ent.API, serviceName], ['Already enabled (non-GAM which is fine)'], j, jcount)
       Ind.Decrement()
     except (GAPI.notFound, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.PROJECT, projectId], str(e), i, count)
@@ -7825,11 +7827,12 @@ def enableGAMProjectAPIs(httpObj, projectId, checkEnabled, i=0, count=0):
     j = 0
     for api in apis:
       j += 1
+      serviceName = f'projects/{projectId}/services/{api}'
       while True:
         try:
-          callGAPI(serveman.services(), 'enable',
+          callGAPI(serveu.services(), 'enable',
                    throw_reasons=[GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
-                   serviceName=api, body={'consumerId': projectName})
+                   name=serviceName)
           entityActionPerformed([Ent.API, api], j, jcount)
           break
         except GAPI.failedPrecondition as e:

@@ -48,6 +48,7 @@ PUBSUB = 'pubsub'
 REPORTS = 'reports'
 RESELLER = 'reseller'
 SERVICEMANAGEMENT = 'servicemanagement'
+SERVICEUSAGE = 'serviceusage'
 SHEETS = 'sheets'
 SHEETSTD = 'sheetstd'
 SITES = 'sites'
@@ -148,6 +149,7 @@ _INFO = {
   REPORTS: {'name': 'Reports API', 'version': 'reports_v1', 'v2discovery': False, 'mappedAPI': 'admin'},
   RESELLER: {'name': 'Reseller API', 'version': 'v1', 'v2discovery': False},
   SERVICEMANAGEMENT: {'name': 'Service Management API', 'version': 'v1', 'v2discovery': True},
+  SERVICEUSAGE: {'name': 'Service Usage API', 'version': 'v1', 'v2discovery': True},
   SHEETS: {'name': 'Sheets API', 'version': 'v4', 'v2discovery': True},
   SHEETSTD: {'name': 'Sheets API - todrive', 'version': 'v4', 'v2discovery': True, 'mappedAPI': 'sheets'},
   SITES: {'name': 'Sites API', 'version': 'v1', 'v2discovery': False},
