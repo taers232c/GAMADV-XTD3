@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.04.12'
+__version__ = '5.04.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -28553,7 +28553,9 @@ def doCourseSyncParticipants(courseIdList, getEntityListArg):
       syncParticipantsSet = set()
       for user in courseParticipantLists[courseId]:
         syncParticipantsSet.add(normalizeEmailAddressOrUID(user))
-    if checkCourseExists(croom, courseId, i, count):
+    courseInfo = checkCourseExists(croom, courseId, i, count)
+    if courseInfo:
+      courseId = courseInfo['id']
       currentParticipantsSet = set()
       for user in getUsersToModify(PARTICIPANT_EN_MAP[role], courseId):
         currentParticipantsSet.add(normalizeEmailAddressOrUID(user))

@@ -1,11 +1,12 @@
-5.04.12
-
-Following Jay's lead, switched to using the Service Usage API when enabling project APIs.
-
 5.04.11
 
 Added option `returnurlonly` to gam <UserTypeEntity> get profilephoto` that causes GAM to return just the URL
 of the profile photo.
+
+Following Jay's lead, switched to using the Service Usage API when enabling project APIs.
+
+Fixed bug in `gam course <CourseID> sync` that caused spurious results when `<CourseID>` was an alias
+without the leading `d:`.
 
 5.04.10
 
