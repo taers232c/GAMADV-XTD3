@@ -1447,7 +1447,7 @@ gam <CrOSTypeEntity> get devicefile [select <DeviceFileEntity>] [targetfolder <F
         (mileage <String>)|
         (name <String>)|
         (nickname <String>)|
-        (note <String>|(file <FileName> [charset <Charset>]))|
+        (note <String>|(file <FileName> [charset <Charset>])|(gdoc <UserGoogleDoc>))|
         (occupation <String>)|
         (organization clear|(work|other|<String> <String> ((location <String>)|(department <String>)|(title <String>)|(jobdescription <String>)|(symbol <String>))* notprimary|primary))|
         (phone clear|(work|home|other|fax|work_fax|home_fax|other_fax|main|company_main|assistant|mobile|work_mobile|pager|work_pager|car|radio|callback|isdn|telex|tty_tdd|<String> <String> notprimary|primary))|
@@ -1697,7 +1697,9 @@ gam info courses <CourseEntity> [owneremail] [alias|aliases] [show all|students|
         [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson]
 gam print courses [todrive <ToDriveAttribute>*]
         (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
-        [owneremail] [owneremailmatchpattern <RegularExpression>] [alias|aliases] [delimiter <Character>] [show all|students|teachers] [countsonly]
+        [owneremail] [owneremailmatchpattern <RegularExpression>]
+        [alias|aliases|aliasesincolumns [delimiter <Character>]]
+        [show all|students|teachers] [countsonly]
         [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson] [quotechar <Character>]
         [timefilter creationtime|updatetime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 gam print course-participants [todrive <ToDriveAttribute>*]
@@ -2591,15 +2593,15 @@ gam print schema|schemas [todrive <ToDriveAttribute>*]
 gam sendemail [recipient|to] <RecipientEntity> [from <EnailAddress>] [mailbox <EmailAddress>] [replyto <EmailAddress>]
         [cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
         [subject <String>]
-        (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])
-        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
+        (message|textmessage <String>)|(file|textfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
+        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
         (replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
         [newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
 gam <UserTypeEntity> sendemail [recipient|to <RecipientEntity>] [replyto <EmailAddress>]
         [cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
         [subject <String>]
-        (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])
-        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
+        (message|textmessage <String>)|(file|textfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
+        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
         (replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
         [newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
 
@@ -3053,7 +3055,9 @@ gam show vaultholds|holds [matters <MatterItemList>]
         (ipwhitelisted <Boolean>)|
         (language clear|<LanguageList>)|
         (lastname|familyname <String>)|
-        (note clear|([text_html|text_plain] <String>|(file <FileName> [charset <Charset>])))|
+        (note clear|([text_html|text_plain] <String>|
+                                            (file|htmlfile <FileName> [charset <Charset>])|
+                                            (gdoc|ghtml <UserGoogleDoc>)))|
         (org|ou|orgunitpath <OrgUnitPath>)
         (password random|<Password>)|
         (recoveryemail <EmailAddress>)|
@@ -3125,8 +3129,9 @@ gam show vaultholds|holds [matters <MatterItemList>]
 gam create|add user <EmailAddress> <UserAttribute>*
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
         [notify <EmailAddress>] [subject <String>] [notifypassword <String>]
-            [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
-            (replace <Tag> <UserReplacement>)*
+            [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
+             (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
+        (replace <Tag> <UserReplacement>)*
 gam update user <UserItem> <UserAttribute>*
         [updateprimaryemail <RegularExpression> <EmailReplacement>]
         [updateoufromgroup <FileName> [charset <CharSet>]
@@ -3136,8 +3141,9 @@ gam update user <UserItem> <UserAttribute>*
         [createifnotfound] [notfoundpassword random|<Password>]
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
         [notify <EmailAddress>] [subject <String>] [notifypassword <String>]
-            [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
-            (replace <Tag> <UserReplacement>)*
+            [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
+             (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
+        (replace <Tag> <UserReplacement>)*
 gam delete user <UserItem>
 gam undelete user <UserItem> [org|ou <OrgUnitPath>]
 gam suspend user <UserItem>
@@ -3154,7 +3160,7 @@ gam update users <UserTypeEntity> <UserAttribute>*
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
         [createifnotfound] [notfoundpassword random|<Password>] (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
         [notify <EmailAddress>] [subject <String>] [notifypassword <String>]
-            [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
+            [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]|(gdoc <UserGoogleDoc>)
             (replace <Tag> <UserReplacement>)*
 gam delete users <UserTypeEntity>
 gam undelete users <UserEntity> [org|ou <OrgUnitPath>]
@@ -3172,7 +3178,7 @@ gam <UserTypeEntity> update users <UserAttribute>*
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
         [createifnotfound] [notfoundpassword random|<Password>] (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
         [notify <EmailAddress>] [subject <String>] [notifypassword <String>]
-            [message <String>|(file <FileName> [charset <CharSet>])]
+            [message <String>|(file <FileName> [charset <CharSet>])]|(gdoc <UserGoogleDoc>)
             (replace <Tag> <UserReplacement>)*
 gam <UserTypeEntity> delete users
 gam <UserEntity> undelete users [org|ou <OrgUnitPath>]
@@ -4242,19 +4248,19 @@ gam <UserTypeEntity> print labels|label [onlyuser|useronly [<Boolean>]] [showcou
 
 gam <UserTypeEntity> draft message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)*
         (header <String> <String>)*
-        (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])
-        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
+        (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
+        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
         (replace <Tag> <UserReplacement>)* (attach <FileName> [charset <CharSet>])*
 gam <UserTypeEntity> import message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)*
         (header <String> <String>)* (addlabel <LabelName>)* [labels <LabelNameList>]
-        (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])
-        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
+        (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
+        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
         (replace <Tag> <UserReplacement>)* (attach <FileName> [charset <CharSet>])*
         [deleted [<Boolean>]] [checkspam [<Boolean>]] [processforcalendar [<Boolean>]]
 gam <UserTypeEntity> insert message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)*
         (header <String> <String>)* (addlabel <LabelName>)* [labels <LabelNameList>]
-        (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])
-        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
+        (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
+        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
         (replace <Tag> <UserReplacement>)* (attach <FileName> [charset <CharSet>])*
         [deleted [<Boolean>]]
 
@@ -4302,10 +4308,16 @@ gam <UserTypeEntity> print gmailprofile [todrive <ToDriveAttribute>*]
 
 # Users - Gmail - Send As/Signature/Vacation
 
-gam <UserTypeEntity> [create|add] sendas <EmailAddress> <String> [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <Tag> <UserReplacement>)*]
+gam <UserTypeEntity> [create|add] sendas <EmailAddress> <String>
+        [signature|sig|htmlsig <String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)
+            (replace <Tag> <UserReplacement>)*]
         [html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
-        [smtpmsa.host <SMTPHostName> smtpmsa.port 25|465|587 smtpmsa.username <UserName> smtpmsa.password <Password> [smtpmsa.securitymode none|ssl|starttls]]
-gam <UserTypeEntity> update sendas <EmailAddress> [name <String>] [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <Tag> <UserReplacement>)*]
+        [smtpmsa.host <SMTPHostName> smtpmsa.port 25|465|587
+         smtpmsa.username <UserName> smtpmsa.password <Password>
+         [smtpmsa.securitymode none|ssl|starttls]]
+gam <UserTypeEntity> update sendas <EmailAddress> [name <String>]
+        [signature|sig|htmlsig <String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)
+            (replace <Tag> <UserReplacement>)*]
         [html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
 gam <UserTypeEntity> delete sendas <EmailAddressEntity>
 gam <UserTypeEntity> info sendas <EmailAddressEntity> [compact|format|html]
@@ -4323,13 +4335,19 @@ gam <UserTypeEntity> show smimes
 gam <UserTypeEntity> print smimes [todrive <ToDriveAttribute>*]
         [primary|default|(sendas|sendasemail <EmailAddress>)]
 
-gam <UserTypeEntity> signature|sig <String>|(file <FileName> [charset <Charset>]) (replace <Tag> <UserReplacement>)*
-        [html [<Boolean>]] [name <String>] [replyto <EmailAddress>] [default] [primary] [treatasalias <Boolean>]
+gam <UserTypeEntity> signature|sig
+        <String>|(htmlsig <String>)|(file|htmlfile <FileName> [charset <Charset>])|(gdoc|ghtml <UserGoogleDoc>)
+        (replace <Tag> <UserReplacement>)*
+        [html [<Boolean>]] [name <String>] [replyto <EmailAddress>]
+        [default] [primary] [treatasalias <Boolean>]
 gam <UserTypeEntity> show signature|sig [compact|format|html] [primary]
 gam <UserTypeEntity> print signature [compact] [todrive <ToDriveAttribute>*]
 
-gam <UserTypeEntity> vacation <Boolean> subject <String> [message <String>|(file <FileName> [charset <CharSet>])] (replace <Tag> <UserReplacement>)*
-        [html [<Boolean>]] [contactsonly [<Boolean>]] [domainonly [<Boolean>]] [start|startdate <Date>|Started] [end|enddate <Date>|NotSpecified]
+gam <UserTypeEntity> vacation <Boolean> subject <String>
+        [message|htmlmessage <String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)]
+        (replace <Tag> <UserReplacement>)*
+        [html [<Boolean>]] [contactsonly [<Boolean>]] [domainonly [<Boolean>]]
+        [start|startdate <Date>|Started] [end|enddate <Date>|NotSpecified]
 gam <UserTypeEntity> show vacation [compact|format|html] [enabledonly]
 gam <UserTypeEntity> print vacation [compact] [enabledonly] [todrive <ToDriveAttribute>*]
 

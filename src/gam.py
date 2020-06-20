@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.04.11'
+__version__ = '5.05.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -221,6 +221,8 @@ MIMETYPE_GA_SHORTCUT = APPLICATION_VND_GOOGLE_APPS+'shortcut'
 MIMETYPE_GA_3P_SHORTCUT = APPLICATION_VND_GOOGLE_APPS+'drive-sdk'
 MIMETYPE_GA_SITE = APPLICATION_VND_GOOGLE_APPS+'site'
 MIMETYPE_GA_SPREADSHEET = APPLICATION_VND_GOOGLE_APPS+'spreadsheet'
+MIMETYPE_TEXT_HTML = 'text/html'
+MIMETYPE_TEXT_PLAIN = 'text/plain'
 
 GOOGLE_NAMESERVERS = ['8.8.8.8', '8.8.4.4']
 NEVER_DATE = '1970-01-01'
@@ -1456,22 +1458,33 @@ def getStringReturnInList(item):
     return [argstr]
   return []
 
-SIG_ARGUMENTS = {'signature', 'sig'}
-FILE_ARGUMENTS = {'file', 'textfile', 'htmlfile'}
+SORF_SIG_ARGUMENTS = {'signature', 'sig', 'textsig', 'htmlsig'}
+SORF_MSG_ARGUMENTS = {'message', 'textmessage', 'htmlmessage'}
+SORF_FILE_ARGUMENTS = {'file', 'textfile', 'htmlfile', 'gdoc', 'ghtml'}
+SORF_HTML_ARGUMENTS = {'htmlsig', 'htmlmessage', 'htmlfile', 'ghtml'}
+SORF_SIG_FILE_ARGUMENTS = SORF_SIG_ARGUMENTS.union(SORF_FILE_ARGUMENTS)
+SORF_MSG_FILE_ARGUMENTS = SORF_MSG_ARGUMENTS.union(SORF_FILE_ARGUMENTS)
 
 def getStringOrFile(myarg, minLen=0):
-  if (myarg in SIG_ARGUMENTS and checkArgumentPresent(FILE_ARGUMENTS)) or myarg in FILE_ARGUMENTS:
-    filename = getString(Cmd.OB_FILE_NAME)
-    encoding = getCharSet()
-    return (readFile(filename, encoding=encoding), encoding)
-  return (getString(Cmd.OB_STRING, minLen=minLen), UTF8)
+  if myarg in SORF_SIG_ARGUMENTS:
+    if checkArgumentPresent(SORF_FILE_ARGUMENTS):
+      myarg = Cmd.Previous().strip().lower().replace('_', '')
+  html = myarg in SORF_HTML_ARGUMENTS
+  if myarg in SORF_FILE_ARGUMENTS:
+    if myarg not in {'gdoc', 'ghtml'}:
+      filename = getString(Cmd.OB_FILE_NAME)
+      encoding = getCharSet()
+      return (readFile(filename, encoding=encoding), encoding, html)
+    f = getGDocData(MIMETYPE_TEXT_HTML if html else MIMETYPE_TEXT_PLAIN)
+    data = f.read()
+    f.close()
+    return (data, UTF8, html)
+  return (getString(Cmd.OB_STRING, minLen=minLen), UTF8, html)
 
-def getStringWithCRsNLsOrFile(myarg, minLen=0):
-  if myarg == 'file' or checkArgumentPresent('file'):
-    filename = getString(Cmd.OB_FILE_NAME)
-    encoding = getCharSet()
-    return readFile(filename, encoding=encoding)
-  return unescapeCRsNLs(getString(Cmd.OB_STRING, minLen=minLen))
+def getStringWithCRsNLsOrFile():
+  if checkArgumentPresent(SORF_FILE_ARGUMENTS):
+    return getStringOrFile(Cmd.Previous().strip().lower().replace('_', ''), minLen=0)[0]
+  return unescapeCRsNLs(getString(Cmd.OB_STRING, minLen=0))
 
 def todaysDate():
   return datetime.datetime(GM.Globals[GM.DATETIME_NOW].year, GM.Globals[GM.DATETIME_NOW].month, GM.Globals[GM.DATETIME_NOW].day,
@@ -2446,7 +2459,7 @@ def getGDocSheetDataFailedExit(entityValueList, errMsg, i=0, count=0):
                                                        currentCountNL(i, count)))
 
 # gdoc <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity>
-def getGDocData():
+def getGDocData(mimeType):
   user = getEmailAddress()
   fileIdEntity = getDriveFileEntity(queryShortcutsOK=False)
   user, drive, jcount = _validateUserGetFileIDs(user, 0, 0, fileIdEntity)
@@ -2462,17 +2475,35 @@ def getGDocData():
                       throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
                       fileId=fileId, fields='name,mimeType,exportLinks',
                       supportsAllDrives=True)
-    if result['mimeType'] != MIMETYPE_GA_DOCUMENT:
+# Google Doc
+    if 'exportLinks' in result:
+      if mimeType != MIMETYPE_TEXT_PLAIN or mimeType not in result['exportLinks']:
+        getGDocSheetDataFailedExit([Ent.USER, user, Ent.DRIVE_FILE, result['name']],
+                                   Msg.INVALID_MIMETYPE.format(result['mimeType'], mimeType))
+      f = TemporaryFile(mode='w+', encoding=UTF8)
+      _, content = drive._http.request(uri=result['exportLinks'][mimeType], method='GET')
+      f.write(content.decode(UTF8_SIG))
+      f.seek(0)
+      return f
+# Drive File
+    if result['mimeType'] != mimeType:
       getGDocSheetDataFailedExit([Ent.USER, user, Ent.DRIVE_FILE, result['name']],
-                                 Msg.INVALID_MIMETYPE.format(result['mimeType'], MIMETYPE_GA_DOCUMENT))
+                                 Msg.INVALID_MIMETYPE.format(result['mimeType'], mimeType))
+    fb = TemporaryFile(mode='wb+')
+    request = drive.files().get_media(fileId=fileId)
+    downloader = googleapiclient.http.MediaIoBaseDownload(fb, request)
+    done = False
+    while not done:
+      _, done = downloader.next_chunk()
     f = TemporaryFile(mode='w+', encoding=UTF8)
-    _, content = drive._http.request(uri=result['exportLinks']['text/plain'], method='GET')
-    f.write(content.decode(UTF8_SIG))
+    fb.seek(0)
+    f.write(fb.read().decode(UTF8_SIG))
+    fb.close()
     f.seek(0)
     return f
   except GAPI.fileNotFound:
     getGDocSheetDataFailedExit([Ent.USER, user, Ent.DOCUMENT, fileId], Msg.DOES_NOT_EXIST)
-  except (IOError, httplib2.HttpLib2Error) as e:
+  except (IOError, httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
     if f:
       f.close()
     getGDocSheetDataFailedExit([Ent.USER, user, Ent.DOCUMENT, fileId], str(e))
@@ -4944,7 +4975,7 @@ def getEntitiesFromFile(shlexSplit):
     encoding = getCharSet()
     f = openFile(filename, encoding=encoding, stripUTFBOM=True)
   else:
-    f = getGDocData()
+    f = getGDocData(MIMETYPE_TEXT_PLAIN)
     getCharSet()
   dataDelimiter = getDelimiter()
   entitySet = set()
@@ -5878,7 +5909,22 @@ class CSVPrintFile():
   def SetFixPaths(self, fixPaths):
     self.fixPaths = fixPaths
 
+  def FixCourseAliasesTitles(self):
+# Put Aliases.* after Aliases
+    try:
+      aliasesIndex = self.sortTitlesList.index('Aliases')
+      index = self.titlesList.index('Aliases.0')
+      tempSortTitlesList = self.sortTitlesList[:]
+      self.SetSortTitles(tempSortTitlesList[:aliasesIndex+1])
+      while self.titlesList[index].startswith('Aliases.'):
+        self.AddSortTitle(self.titlesList[index])
+        index += 1
+      self.AddSortTitles(tempSortTitlesList[aliasesIndex+1:])
+    except ValueError:
+      pass
+
   def RearrangeCourseTitles(self, ttitles, stitles):
+# Put teachers and students after courseMaterialSets if present, otherwise at end
     ttitles['list'].sort()
     stitles['list'].sort()
     try:
@@ -7145,7 +7191,7 @@ def doBatch(threadBatch=False):
     encoding = getCharSet()
     f = openFile(filename, encoding=encoding, stripUTFBOM=True)
   else:
-    f = getGDocData()
+    f = getGDocData(MIMETYPE_TEXT_PLAIN)
     getCharSet()
   logCmds = False
   while Cmd.ArgumentsRemaining():
@@ -10400,12 +10446,16 @@ def sendCreateUpdateUserNotification(body, notify, tagReplacements, i=0, count=0
 
 # gam sendemail <RecipientEntity> [from <EmailAddress>] [mailbox <EmailAddress>] [replyto <EmailAddress>]
 #	[cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
-#	[subject <String>] [(message <String>)|(file <FileName> [charset <CharSet>])]
+#	[subject <String>]
+#	(message|textmessage <String>)|(file|textfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
+#	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
 #	(replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
 #	[newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
 # gam <UserTypeEntity> sendemail [recipient <RecipientEntity>] [replyto <EmailAddress>]
 #	[cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
-#	[subject <String>] [(message <String>)|(file <FileName> [charset <CharSet>])]
+#	[subject <String>]
+#	(message|textmessage <String>)|(file|textfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
+#	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
 #	(replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
 #	[newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
 def doSendEmail(users=None):
@@ -10441,12 +10491,8 @@ def doSendEmail(users=None):
       msgReplyTo = getString(Cmd.OB_EMAIL_ADDRESS)
     elif myarg == 'subject':
       notify['subject'] = getString(Cmd.OB_STRING)
-    elif myarg in {'message', 'textmessage', 'file', 'textfile'}:
-      notify['message'], notify['charset'] = getStringOrFile(myarg)
-      notify['html'] = False
-    elif myarg in {'htmlmessage', 'htmlfile'}:
-      notify['message'], notify['charset'] = getStringOrFile(myarg)
-      notify['html'] = True
+    elif myarg in SORF_MSG_FILE_ARGUMENTS:
+      notify['message'], notify['charset'], notify['html'] = getStringOrFile(myarg)
     elif myarg == 'cc':
       ccRecipients = getRecipients()
     elif myarg == 'bcc':
@@ -13606,7 +13652,7 @@ class ContactsManager():
       elif fieldName == CONTACT_LANGUAGE:
         fields[fieldName] = getLanguageCode()
       elif fieldName == CONTACT_NOTES:
-        fields[fieldName] = getStringWithCRsNLsOrFile('')
+        fields[fieldName] = getStringWithCRsNLsOrFile()
       elif fieldName == CONTACT_ADDRESSES:
         if CheckClearFieldsList(fieldName):
           continue
@@ -24749,8 +24795,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       notify['emailAddress'] = getEmailAddress(noUid=True)
     elif myarg == 'subject':
       notify['subject'] = getString(Cmd.OB_STRING)
-    elif myarg in {'message', 'file'}:
-      notify['message'], notify['charset'] = getStringOrFile(myarg)
+    elif myarg in SORF_MSG_FILE_ARGUMENTS:
+      notify['message'], notify['charset'], notify['html'] = getStringOrFile(myarg)
     elif myarg == 'html':
       notify['html'] = getBoolean()
     elif myarg == 'notifypassword':
@@ -24922,7 +24968,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
           continue
         entry = {}
         getKeywordAttribute(typeKeywords, entry, defaultChoice='text_plain')
-        entry['value'] = getStringWithCRsNLsOrFile('')
+        entry['value'] = getStringWithCRsNLsOrFile()
         body[up] = entry
       elif up == 'organizations':
         if checkClearBodyList(body, up):
@@ -25120,7 +25166,8 @@ def createUserAddToGroups(cd, user, addGroups, i, count):
 # gam create user <EmailAddress> <UserAttribute>
 #	(groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
 #	[notify <EmailAddress>] [subject <String>] [notifypassword <Stribg>]
-#	    [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
+#	    [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
+#	     (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
 #	(replace <Tag> <String>)*
 def doCreateUser():
   cd = buildGAPIObject(API.DIRECTORY)
@@ -25157,7 +25204,8 @@ def doCreateUser():
 #	[createifnotfound] [notfoundpassword random|<Password>]
 #	(groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
 #	[notify <EmailAddress>] [subject <String>] [notifypassword <Stribg>]
-#	    [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
+#	    [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
+#	     (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
 #	(replace <Tag> <String>)*
 def updateUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
@@ -27200,12 +27248,16 @@ COURSE_PROPERTY_PRINT_ORDER = [
   ]
 
 def _initCourseShowProperties(fields=None):
-  return {'aliases': False, 'ownerEmail': False, 'ownerEmailMatchPattern': None, 'members': 'none', 'countsOnly': False,
+  return {'aliases': False, 'aliasesInColumns': False, 'ownerEmail': False, 'ownerEmailMatchPattern': None, 'members': 'none', 'countsOnly': False,
           'fields': fields if fields is not None else [], 'skips': []}
 
 def _getCourseShowProperties(myarg, courseShowProperties):
   if myarg in {'alias', 'aliases'}:
     courseShowProperties['aliases'] = True
+    courseShowProperties['aliasesInColumns'] = False
+  elif myarg == 'aliasesincolumns':
+    courseShowProperties['aliases'] = True
+    courseShowProperties['aliasesInColumns'] = True
   elif myarg == 'owneremail':
     courseShowProperties['ownerEmail'] = True
   elif myarg == 'owneremailmatchpattern':
@@ -27219,6 +27271,10 @@ def _getCourseShowProperties(myarg, courseShowProperties):
     for field in _getFieldsList():
       if field in {'alias', 'aliases'}:
         courseShowProperties['aliases'] = True
+        courseShowProperties['aliasesInColumns'] = False
+      elif field == 'aliasesincolumns':
+        courseShowProperties['aliases'] = True
+        courseShowProperties['aliasesInColumns'] = True
       elif field == 'owneremail':
         courseShowProperties['ownerEmail'] = True
         courseShowProperties['fields'].append(COURSE_FIELDS_CHOICE_MAP[field])
@@ -27538,7 +27594,9 @@ def _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties, getO
   return coursesInfo
 
 # gam print courses [todrive <ToDriveAttribute>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
-#	[owneremail] [owneremailmatchpattern <RegularExpression>] [alias|aliases] [delimiter <Character>] [show none|all|students|teachers] [countsonly]
+#	[owneremail] [owneremailmatchpattern <RegularExpression>]
+#	[alias|aliases|aliasesincolumns [delimiter <Character>]]
+#	[show none|all|students|teachers] [countsonly]
 #	[fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson] [quotechar <Character>]
 #	[timefilter creationtime|updatetime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 def doPrintCourses():
@@ -27642,7 +27700,10 @@ def doPrintCourses():
         continue
     aliases, teachers, students = _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFields, studentsFields, True, i, count)
     if courseShowProperties['aliases']:
-      course['Aliases'] = delimiter.join([removeCourseAliasScope(alias['alias']) for alias in aliases])
+      if not courseShowProperties['aliasesInColumns']:
+        course['Aliases'] = delimiter.join([removeCourseAliasScope(alias['alias']) for alias in aliases])
+      else:
+        course['Aliases'] = [removeCourseAliasScope(alias['alias']) for alias in aliases]
     if courseShowProperties['members'] != 'none':
       if courseShowProperties['members'] != 'students':
         _saveParticipants(course, teachers, 'teachers', ttitles)
@@ -27672,6 +27733,8 @@ def doPrintCourses():
     if courseShowProperties['aliases']:
       csvPF.AddTitles('Aliases')
     csvPF.SetSortTitles(COURSE_PROPERTY_PRINT_ORDER)
+    if courseShowProperties['aliases'] and courseShowProperties['aliasesInColumns']:
+      csvPF.FixCourseAliasesTitles()
     if courseShowProperties['members'] != 'none':
       csvPF.RearrangeCourseTitles(ttitles, stitles)
   csvPF.writeCSVfile('Courses')
@@ -43186,10 +43249,8 @@ def _draftImportInsertMessage(users, operation):
       if (value.find('#user#') >= 0) or (value.find('#email#') >= 0) or (value.find('#username#') >= 0):
         substituteForUserInHeaders = True
       msgHeaders[SMTP_HEADERS_MAP.get(header, header)] = value
-    elif myarg in {'message', 'textmessage', 'file', 'textfile'}:
-      msgText, _ = getStringOrFile(myarg)
-    elif myarg in {'htmlmessage', 'htmlfile'}:
-      msgHTML, _ = getStringOrFile(myarg)
+    elif myarg in SORF_MSG_FILE_ARGUMENTS:
+      msgText, _, _ = getStringOrFile(myarg)
     elif myarg == 'replace':
       _getTagReplacement(tagReplacements, False)
     elif operation in IMPORT_INSERT and myarg == 'addlabel':
@@ -43312,20 +43373,23 @@ def _draftImportInsertMessage(users, operation):
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
 
 # gam <UserTypeEntity> draft message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
-#	(textmessage <String>)|(textfile <FileName> [charset <CharSet>]) (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
+#	(textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
+#	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
 #	(replace <Tag> <String>)* (attach <FileName> [charset <CharSet>])*
 def draftMessage(users):
   _draftImportInsertMessage(users, u'draft')
 
 # gam <UserTypeEntity> import message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)* (addlabel <LabelName>)*
-#	(textmessage <String>)|(textfile <FileName> [charset <CharSet>]) (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
+#	(textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
+#	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
 #	(replace <Tag> <String>)* (attach <FileName> [charset <CharSet>])*
 #	[deleted [<Boolean>]] [nevermarkspam [<Boolean>]] [processforcalendar [<Boolean>]]
 def importMessage(users):
   _draftImportInsertMessage(users, u'import')
 
 # gam <UserTypeEntity> insert message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)* (addlabel <LabelName>)*
-#	(textmessage <String>)|(textfile <FileName> [charset <CharSet>]) (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])
+#	(textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
+#	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
 #	(replace <Tag> <String>)* (attach <FileName> [charset <CharSet>])*
 #	[deleted [<Boolean>]]
 def insertMessage(users):
@@ -44789,8 +44853,8 @@ def _createUpdateSendAs(users, addCmd):
   html = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg in {'signature', 'sig', 'file'}:
-      signature, _ = getStringOrFile(myarg)
+    if myarg in SORF_SIG_FILE_ARGUMENTS:
+      signature, _, html = getStringOrFile(myarg)
     elif myarg == 'html':
       html = getBoolean()
     elif addCmd and myarg.startswith('smtpmsa.'):
@@ -44829,13 +44893,19 @@ def _createUpdateSendAs(users, addCmd):
       kwargs['body']['signature'] = _processSignature(tagReplacements, signature, html)
     _processSendAs(user, i, count, Ent.SENDAS_ADDRESS, emailAddress, i, count, gmail, ['patch', 'create'][addCmd], False, **kwargs)
 
-# gam <UserTypeEntity> [create|add] sendas <EmailAddress> <String> [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*]
+# gam <UserTypeEntity> [create|add] sendas <EmailAddress> <String>
+#	[signature|sig|htmlsig <String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)
+#	    (replace <Tag> <String>)*]
 #	[html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
-#	[smtpmsa.host <SMTPHostName> smtpmsa.port 25|465|587 smtpmsa.username <UserName> smtpmsa.password <Password> [smtpmsa.securitymode none|ssl|starttls]]
+#	[smtpmsa.host <SMTPHostName> smtpmsa.port 25|465|587
+#	 smtpmsa.username <UserName> smtpmsa.password <Password>
+#	 [smtpmsa.securitymode none|ssl|starttls]]
 def createSendAs(users):
   _createUpdateSendAs(users, True)
 
-# gam <UserTypeEntity> update sendas <EmailAddress> [name <String>] [signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*]
+# gam <UserTypeEntity> update sendas <EmailAddress> [name <String>]
+#	[signature|sig|htmlsig <String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)
+#	    (replace <Tag> <String>)*]
 #	[html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
 def updateSendAs(users):
   _createUpdateSendAs(users, False)
@@ -45172,13 +45242,16 @@ def printShowSmimes(users):
   if csvPF:
     csvPF.writeCSVfile('S/MIME')
 
-# gam <UserTypeEntity> signature|sig <String>|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*
-#	[html [<Boolean>]] [name <String>] [replyto <EmailAddress>] [default] [primary] [treatasalias <Boolean>]
+# gam <UserTypeEntity> signature|sig
+#	<String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)
+#	(replace <Tag> <String>)*
+#	[html [<Boolean>]] [name <String>] [replyto <EmailAddress>]
+#	[default] [primary] [treatasalias <Boolean>]
 def setSignature(users):
   tagReplacements = _initTagReplacements()
-  signature, _ = getStringOrFile('sig')
+  signature, _, html = getStringOrFile('sig')
   body = {}
-  html = primary = False
+  primary = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'primary':
@@ -45298,8 +45371,11 @@ def _showVacation(user, i, count, result, showDisabled, sigReplyFormat):
       printKeyValueList(['Message', 'None'])
   Ind.Decrement()
 
-# gam <UserTypeEntity> vacation <Boolean> subject <String> (message <String>|(file <FileName> [charset <CharSet>]) (replace <Tag> <String>)*
-#	[html [<Boolean>]] [contactsonly [<Boolean>]] [domainonly [<Boolean>]] [start|startdate <Date>|Started] [end|enddate <Date>|NotSpecified]
+# gam <UserTypeEntity> vacation <Boolean> subject <String>
+#	[message|htmlmessage <String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)]
+#	(replace <Tag> <String>)*
+#	[html [<Boolean>]] [contactsonly [<Boolean>]] [domainonly [<Boolean>]]
+#	[start|startdate <Date>|Started] [end|enddate <Date>|NotSpecified]
 def setVacation(users):
   enable = getBoolean(None)
   body = {'enableAutoReply': enable}
@@ -45310,8 +45386,10 @@ def setVacation(users):
     myarg = getArgument()
     if myarg == 'subject':
       body['responseSubject'] = getString(Cmd.OB_STRING, minLen=0)
-    elif myarg in {'message', 'file'}:
-      message, _ = getStringOrFile(myarg)
+    elif myarg in SORF_MSG_FILE_ARGUMENTS:
+      message, _, html = getStringOrFile(myarg)
+      if html:
+        responseBodyType = 'responseBodyHtml'
     elif myarg == 'replace':
       _getTagReplacement(tagReplacements, True)
     elif myarg == 'html':

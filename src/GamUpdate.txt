@@ -1,3 +1,14 @@
+5.05.00
+
+Google Docs and Drive Files can be used to specify notes, messages and signatures.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Command-Data-From-Google-Docs-Sheets
+
+Added option `aliasesincolumns` to `gam print courses` that alters the display of course aliases.
+When the `aliases` option is used, all aliases are displayed in the single column `Aliases`
+separated by a delimiter. As aliases can contain spaces, this format could make the data hard to interpret.
+When `aliasesincolumns` is specified, the `Aliases` column contains the number of aliases and 'Aliases.0`, `Aliases.1`, ...
+contain the individual aliases.
+
 5.04.11
 
 Added option `returnurlonly` to gam <UserTypeEntity> get profilephoto` that causes GAM to return just the URL
