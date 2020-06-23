@@ -1,3 +1,11 @@
+5.05.01
+
+Allow `querytime.* <Time>` option in conjunction with `selectsubquery <QueryDriveFile>`
+in `gam <UserTypeEntity> print filelist`. For example, you can identify all Meet recordings
+within a particular time period, in this case, all recordings older than 30 days.
+```
+gam user user@domain.com print filelist select name "Meet Recordings" querytime30d -30d selectsubquery "modifiedTime<'#querytime30d#'" fields id,name
+```
 5.05.00
 
 Google Docs and Drive Files can be used to specify notes, messages and signatures.
@@ -6,7 +14,7 @@ Google Docs and Drive Files can be used to specify notes, messages and signature
 Added option `aliasesincolumns` to `gam print courses` that alters the display of course aliases.
 When the `aliases` option is used, all aliases are displayed in the single column `Aliases`
 separated by a delimiter. As aliases can contain spaces, this format could make the data hard to interpret.
-When `aliasesincolumns` is specified, the `Aliases` column contains the number of aliases and 'Aliases.0`, `Aliases.1`, ...
+When `aliasesincolumns` is specified, the `Aliases` column contains the number of aliases and `Aliases.0`, `Aliases.1`, ...
 contain the individual aliases.
 
 5.04.11

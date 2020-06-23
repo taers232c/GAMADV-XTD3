@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.05.00'
+__version__ = '5.05.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -34646,6 +34646,8 @@ class DriveListParameters():
         self.fileIdEntity['query'] = self.mimeTypeCheck.AddMimeTypeToQuery(self.fileIdEntity['query'])
     elif myarg == 'excludetrashed':
       self.excludeTrashed = True
+    elif myarg.startswith('querytime'):
+      self.queryTimes[myarg] = getTimeOrDeltaFromNow()
     elif noFileSelectFileIdEntity(fileIdEntity):
       if self.myargOptions['allowQuery'] and myarg == 'query':
         self.AppendToQuery(getString(Cmd.OB_QUERY))
@@ -34656,8 +34658,6 @@ class DriveListParameters():
       elif self.myargOptions['allowQuery'] and myarg in QUERY_SHORTCUTS_MAP:
         self.UpdateAnyOwnerQuery()
         self.AppendToQuery(QUERY_SHORTCUTS_MAP[myarg])
-      elif  self.myargOptions['allowQuery'] and myarg.startswith('querytime'):
-        self.queryTimes[myarg] = getTimeOrDeltaFromNow()
       elif self.myargOptions['allowChoose'] and myarg == 'choose':
         myarg = getArgument()
         if myarg in DRIVE_BY_NAME_CHOICE_MAP:
@@ -34688,8 +34688,7 @@ class DriveListParameters():
           myarg.startswith('query:') or
           myarg == 'fullquery' or
           myarg in QUERY_SHORTCUTS_MAP or
-          myarg in DRIVE_BY_NAME_CHOICE_MAP or
-          myarg.startswith('querytime')):
+          myarg in DRIVE_BY_NAME_CHOICE_MAP):
         usageErrorExit(Msg.ARE_MUTUALLY_EXCLUSIVE.format('select', myarg))
       return False
     return True
@@ -35140,6 +35139,10 @@ def printFileList(users):
   else:
     fileNameTitle = 'name'
   csvPF.RemoveTitles(['capabilities'])
+  if DLP.queryTimes and selectSubQuery:
+    for queryTimeName, queryTimeValue in iter(DLP.queryTimes.items()):
+      selectSubQuery = selectSubQuery.replace(f'#{queryTimeName}#', queryTimeValue)
+    selectSubQuery = _mapDrive2QueryToDrive3(selectSubQuery)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
