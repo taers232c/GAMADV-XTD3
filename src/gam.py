@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.05.01'
+__version__ = '5.05.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -34841,7 +34841,7 @@ class DriveListParameters():
   def CheckPermissionMatches(self, fileInfo):
     return self.PM.CheckPermissionMatches(fileInfo)
 
-FILELIST_FIELDS_TITLES = ['id', 'mimeType', 'parents']
+FILELIST_FIELDS_TITLES = ['id', 'name', 'mimeType', 'parents']
 DRIVE_INDEXED_TITLES = ['parents', 'path', 'permissions']
 CHECK_LOCATION_FIELDS_TITLES = ['driveId', 'id', 'mimeType', 'ownedByMe', 'parents', 'shared']
 
