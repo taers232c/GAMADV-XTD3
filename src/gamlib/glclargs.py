@@ -400,6 +400,8 @@ class GamCLArgs():
   ARG_GMAILPROFILE = 'gmailprofile'
   ARG_GROUP = 'group'
   ARG_GROUPS = 'groups'
+  ARG_GROUPLIST = 'grouplist'
+  ARG_GROUPSLIST = 'groupslist'
   ARG_GROUPMEMBERS = 'groupmembers'
   ARG_GROUPSMEMBERS = 'groupsmembers'
   ARG_GROUPTREE = 'grouptree'

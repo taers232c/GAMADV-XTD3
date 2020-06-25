@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.05.02'
+__version__ = '5.05.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -41083,6 +41083,8 @@ def printShowUserGroups(users):
   for user in users:
     i += 1
     user = normalizeEmailAddressOrUID(user)
+    if csvPF:
+      printGettingAllEntityItemsForWhom(Ent.GROUP, user, i, count)
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
                                  throw_reasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
@@ -41126,6 +41128,45 @@ def printShowUserGroups(users):
     Ind.Decrement()
   if csvPF:
     csvPF.writeCSVfile('User Groups')
+
+# gam <UserTypeEntity> print groupslist [domain <DomainName>] [todrive <ToDriveAttribute>*]
+#	[delimiter <Character>] [quotechar <Character>]
+
+def printUserGroupsList(users):
+  cd = buildGAPIObject(API.DIRECTORY)
+  kwargs = {}
+  csvPF = CSVPrintFile(['User', 'Groups', 'GroupsList'])
+  FJQC = FormatJSONQuoteChar(csvPF)
+  delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'domain':
+      kwargs['domain'] = getString(Cmd.OB_DOMAIN_NAME).lower()
+    elif myarg == 'delimiter':
+      delimiter = getCharacter()
+    else:
+      FJQC.GetQuoteChar(myarg)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user = normalizeEmailAddressOrUID(user)
+    printGettingAllEntityItemsForWhom(Ent.GROUP, user, i, count)
+    try:
+      entityList = callGAPIpages(cd.groups(), 'list', 'groups',
+                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
+                                 userKey=user, orderBy='email', fields='nextPageToken,groups(email)', **kwargs)
+    except (GAPI.invalidMember, GAPI.invalidInput):
+      badRequestWarning(Ent.GROUP, Ent.MEMBER, user)
+      continue
+    except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
+      if kwargs.get('domain'):
+        badRequestWarning(Ent.GROUP, Ent.DOMAIN, kwargs['domain'])
+        return
+      accessErrorExit(cd)
+    csvPF.WriteRow({'User': user, 'Groups': len(entityList), 'GroupsList': delimiter.join([group['email'] for group in entityList])})
+  csvPF.writeCSVfile('User GroupsList')
 
 # License command utilities
 LICENSE_SKUID = 'skuId'
@@ -46311,6 +46352,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_FORWARDINGADDRESS:	printShowForwardingAddresses,
       Cmd.ARG_GMAILPROFILE:	printShowGmailProfile,
       Cmd.ARG_GROUP:		printShowUserGroups,
+      Cmd.ARG_GROUPSLIST:	printUserGroupsList,
       Cmd.ARG_GUARDIAN: 	printShowGuardians,
       Cmd.ARG_LABEL:		printShowLabels,
       Cmd.ARG_MESSAGE:		printShowMessages,
@@ -46468,6 +46510,7 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_FORWARDS:	Cmd.ARG_FORWARD,
   Cmd.ARG_FORWARDINGADDRESSES:	Cmd.ARG_FORWARDINGADDRESS,
   Cmd.ARG_GROUPS:	Cmd.ARG_GROUP,
+  Cmd.ARG_GROUPLIST:	Cmd.ARG_GROUPSLIST,
   Cmd.ARG_GROUPSMEMBERS:	Cmd.ARG_GROUPMEMBERS,
   Cmd.ARG_GUARDIANINVITATIONS:	Cmd.ARG_GUARDIANINVITATION,
   Cmd.ARG_GUARDIANINVITE:	Cmd.ARG_GUARDIANINVITATION,

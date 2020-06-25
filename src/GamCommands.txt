@@ -4370,6 +4370,8 @@ gam <UserTypeEntity> update groups ([<GroupRole>] [[delivery] <DeliverySetting>]
 gam <UserTypeEntity> sync groups ([<GroupRole>] <GroupEntity>)+
 gam <UserTypeEntity> print groups [roles <GroupRoleList>] [domain <DomainName>] [todrive <ToDriveAttribute>*]
 gam <UserTypeEntity> show groups [roles <GroupRoleList>] [domain <DomainName>]
+gam <UserTypeEntity> print groupslist [domain <DomainName>] [todrive <ToDriveAttribute>*]
+        [delimiter <Character>] [quotechar <Character>]
 
 # Users - Licenses
 
