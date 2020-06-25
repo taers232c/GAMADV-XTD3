@@ -1,3 +1,8 @@
+5.05.04
+
+Fixed bug in `gam <UserTypeEntity> print filelist` where using `query:"XXX"` would improperly
+downshift `XXX'; using `query "XXX"` worked properly.
+
 5.05.03
 
 Added command to list all of the groups to which a user directly belongs. There are three columns:
@@ -7,6 +12,10 @@ Added command to list all of the groups to which a user directly belongs. There 
 ```
 gam <UserTypeEntity> print groupslist [domain <DomainName>] [todrive <ToDriveAttribute>*]
         [delimiter <Character>] [quotechar <Character>]
+```
+For example, to find all students that aren't in any groups:
+```
+gam config csv_output_row_filter "Groups:count=0" ou /Students print groupslist
 ```
 
 5.05.02
