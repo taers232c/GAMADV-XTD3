@@ -1272,6 +1272,7 @@ gam <CrOSTypeEntity> update <CrOSAttribute>+ [quickcrosmove [<Boolean>]]
         deprovision_same_model_replace|
         deprovision_different_model_replace|
         deprovision_retiring_device|
+        deprovision_upgrade_transfer|
         disable|
         reenable
 

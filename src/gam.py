@@ -15437,6 +15437,7 @@ CROS_ACTION_CHOICE_MAP = {
   'deprovisionsamemodelreplacement': ('deprovision', 'same_model_replacement'),
   'deprovisiondifferentmodelreplace': ('deprovision', 'different_model_replacement'),
   'deprovisiondifferentmodelreplacement': ('deprovision', 'different_model_replacement'),
+  'deprovisionupgradetransfer': ('deprovision', 'upgrade_transfer'),
   'deprovisionretiringdevice': ('deprovision', 'retiring_device'),
   'disable': ('disable', None),
   'reenable': ('reenable', None)

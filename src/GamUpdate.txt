@@ -6,6 +6,8 @@ were displayed/counted when a permission match was defined.
 Updated code to avoid a trap in `gam <UserTypeEntity> update drivefile <DriveFileEntity> ... csvsheet <SheetEntity>`;
 the Google Sheets API was not returning the sheetId in a call where GAM expected it.
 
+Following Jay's lead, added `deprovision_upgrade_transfer` to `<CrOSAction>`.
+
 5.05.04
 
 Fixed bug in `gam <UserTypeEntity> print filelist` where using `query:"XXX"` would improperly
