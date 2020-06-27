@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.05.04'
+__version__ = '5.05.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1399,7 +1399,7 @@ def getSheetIdFromSheetEntity(spreadsheet, sheetEntity):
 def protectedSheetId(spreadsheet, sheetId):
   for sheet in spreadsheet['sheets']:
     for protectedRange in sheet.get('protectedRanges', []):
-      if protectedRange['range']['sheetId'] == sheetId and not protectedRange.get('requestingUserCanEdit', False):
+      if protectedRange.get('range', {}).get('sheetId', -1) == sheetId and not protectedRange.get('requestingUserCanEdit', False):
         return True
   return False
 
@@ -34908,6 +34908,7 @@ def printFileList(users):
 
   def _printFileInfo(drive, user, f_file):
     driveId = f_file.get('driveId')
+    checkTeamDrivePermissions = getPermissionsForTeamDrives and driveId and 'permissions' not in f_file
     if (f_file.get('noDisplay', False) or
         not DLP.CheckShowOwnedBy(f_file) or
         not DLP.CheckShowSharedByMe(f_file) or
@@ -34915,10 +34916,10 @@ def printFileList(users):
         not DLP.CheckMimeType(f_file) or
         not DLP.CheckMinimumFileSize(f_file) or
         not DLP.CheckFilenameMatch(f_file) or
-        ('permissions' in f_file and not DLP.CheckPermissionMatches(f_file)) or
+        (not checkTeamDrivePermissions and not DLP.CheckPermissionMatches(f_file)) or
         (DLP.onlyTeamDrives and not driveId)):
       return
-    if getPermissionsForTeamDrives and driveId and 'permissions' not in f_file:
+    if checkTeamDrivePermissions:
       try:
         f_file['permissions'] = callGAPIpages(drive.permissions(), 'list', 'permissions',
                                               throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
@@ -35542,15 +35543,17 @@ def printShowFileCounts(users):
       pageToken, totalItems = _processGAPIpagesResult(feed, 'files', None, totalItems, page_message, None, Ent.DRIVE_FILE_OR_FOLDER)
       if feed:
         for f_file in feed.get('files', []):
+          driveId = f_file.get('driveId')
+          checkTeamDrivePermissions = getPermissionsForTeamDrives and driveId and 'permissions' not in f_file
           if (not DLP.CheckShowOwnedBy(f_file) or
               not DLP.CheckShowSharedByMe(f_file) or
               not DLP.CheckExcludeTrashed(f_file) or
               not DLP.CheckMinimumFileSize(f_file) or
               not DLP.CheckFilenameMatch(f_file) or
-              ('permissions' in f_file and not DLP.CheckPermissionMatches(f_file)) or
-              (DLP.onlyTeamDrives and not f_file.get('driveId'))):
+              (not checkTeamDrivePermissions and not DLP.CheckPermissionMatches(f_file)) or
+              (DLP.onlyTeamDrives and not driveId)):
             continue
-          if getPermissionsForTeamDrives and f_file.get('driveId') and 'permissions' not in f_file:
+          if checkTeamDrivePermissions:
             try:
               f_file['permissions'] = callGAPIpages(drive.permissions(), 'list', 'permissions',
                                                     throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST],
