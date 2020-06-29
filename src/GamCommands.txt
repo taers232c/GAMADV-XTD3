@@ -1743,6 +1743,7 @@ gam print course-participants [todrive <ToDriveAttribute>*]
         state|
         submissionmodificationmode|
         title|
+        topicid|
         updatetime|
         worktype
 <CourseWorkFieldNameList> ::= "<CourseWorkFieldName>(,<CourseWorkFieldName>)*"

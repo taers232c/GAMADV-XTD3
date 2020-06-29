@@ -4133,12 +4133,19 @@ def _processGAPIpagesResult(results, items, allResults, totalItems, page_message
   if page_message:
     show_message = page_message.replace(TOTAL_ITEMS_MARKER, str(totalItems))
     if message_attribute:
-      try:
-        show_message = show_message.replace(FIRST_ITEM_MARKER, str(results[items][0][message_attribute]))
-        show_message = show_message.replace(LAST_ITEM_MARKER, str(results[items][-1][message_attribute]))
-      except (IndexError, KeyError):
-        show_message = show_message.replace(FIRST_ITEM_MARKER, '')
-        show_message = show_message.replace(LAST_ITEM_MARKER, '')
+      first_item = results[items][0] if pageItems > 0 else {}
+      last_item = results[items][-1] if pageItems > 1 else first_item
+      if isinstance(message_attribute, str):
+        first_item = str(first_item.get(message_attribute, ''))
+        last_item = str(last_item.get(message_attribute, ''))
+      else:
+        for attr in message_attribute:
+          first_item = first_item.get(attr, {})
+          last_item = last_item.get(attr, {})
+        first_item = str(first_item)
+        last_item = str(last_item)
+      show_message = show_message.replace(FIRST_ITEM_MARKER, first_item)
+      show_message = show_message.replace(LAST_ITEM_MARKER, last_item)
     writeGotMessage(show_message.replace('{0}', str(Ent.Choose(entityType, totalItems))))
   return (pageToken, totalItems)
 
@@ -5828,10 +5835,12 @@ class CSVPrintFile():
       if self.todrive['parent'].startswith('id:'):
         try:
           result = callGAPI(drive.files(), 'get',
-                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND],
+                            throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND, GAPI.INVALID],
                             fileId=self.todrive['parent'][3:], fields='id,mimeType,capabilities(canEdit)', supportsAllDrives=True)
         except GAPI.fileNotFound:
           invalidTodriveParentExit(Ent.DRIVE_FOLDER_ID, Msg.NOT_FOUND)
+        except GAPI.invalid as e:
+          invalidTodriveParentExit(Ent.DRIVE_FOLDER_ID, str(e))
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           invalidTodriveUserExit(Ent.USER, str(e))
         if result['mimeType'] != MIMETYPE_GA_FOLDER:
@@ -27968,6 +27977,7 @@ COURSE_WORK_FIELDS_CHOICE_MAP = {
   'state': 'state',
   'submissionmodificationmode': 'submissionModificationMode',
   'title': 'title',
+  'topicid': 'topicId',
   'updatetime': 'updateTime',
   'workid': 'id',
   'worktype': 'workType',
