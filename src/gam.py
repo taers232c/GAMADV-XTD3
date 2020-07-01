@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.05.06'
+__version__ = '5.05.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -25685,7 +25685,6 @@ def infoUsers(entityList):
   viewType = 'admin_view'
   fieldsList = []
   groups = []
-  licenses = []
   skus = SKU.getSortedSKUList()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -25747,6 +25746,7 @@ def infoUsers(entityList):
 ### Print some message
           groups = []
       if getLicenses:
+        licenses = []
         svcargs = dict([('userId', None), ('productId', None), ('skuId', None), ('fields', 'skuId')]+GM.Globals[GM.EXTRA_ARGS_LIST])
         method = getattr(lic.licenseAssignments(), 'get')
         dbatch = lic.new_batch_http_request(callback=_callbackGetLicense)

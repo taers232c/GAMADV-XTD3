@@ -3067,7 +3067,7 @@ gam show vaultholds|holds [matters <MatterItemList>]
         (suspended <Boolean>)|
         (<SchemaName>.<FieldName> [multivalued|multivalue|value|multinonempty
                                   [type home|other|work|(custom <String>)]] <String>)
-<UserMultiAttribute> ::=
+
 <UserMultiAttribute> ::=
         (address type home|other|work|(custom <String>)
                 [unstructured|formatted <String>]

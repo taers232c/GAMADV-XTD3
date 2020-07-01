@@ -1,3 +1,7 @@
+5.05.07
+
+Fixed bug in `gam info user` where extraneous license information was displayed.
+
 5.05.06
 
 Added `topicid` to `<CourseWorkFieldName>`.
