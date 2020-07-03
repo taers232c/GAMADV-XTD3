@@ -2,6 +2,8 @@
 
 Fixed bug in `gam <UserTypeEntity> print|show messages` that caused a trap.
 
+Fixed bug in `gam <UserTypeEntity> check|update serviceaccount`.
+
 5.05.09
 
 Added option `returnidonly` to `gam <UserTypeEntity> copy drivefile <DriveFileEntity>` and

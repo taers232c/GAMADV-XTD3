@@ -8604,6 +8604,7 @@ def checkServiceAccount(users):
 
   credentials = getSvcAcctCredentials([API.USERINFO_EMAIL_SCOPE], None)
   checkScopesSet = set()
+  writeURLtoFile = False
   if Act.Get() == Act.CHECK:
     allScopes = API.getSvcAcctScopes(GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY], False)
     while Cmd.ArgumentsRemaining():
