@@ -1,3 +1,7 @@
+5.05.10
+
+Fixed bug in `gam <UserTypeEntity> print|show messages` that caused a trap.
+
 5.05.09
 
 Added option `returnidonly` to `gam <UserTypeEntity> copy drivefile <DriveFileEntity>` and

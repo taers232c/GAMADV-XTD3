@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.05.09'
+__version__ = '5.05.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -33754,6 +33754,9 @@ def _setGetPermissionsForTeamDrives(fieldsList):
     permissionsFields = getItemFieldsFromFieldsList('permissions', permissionsFieldsList, True)
   return (getPermissionsForTeamDrives, permissionsFields)
 
+# gam <UserTypeEntity> info drivefile <DriveFileEntity>
+#	[filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
+#	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [showparentsidsaslist]
 # gam <UserTypeEntity> show fileinfo <DriveFileEntity>
 #	[filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [showparentsidsaslist]
@@ -43483,7 +43486,7 @@ def insertMessage(users):
 
 def printShowMessagesThreads(users, entityType):
 
-  HEADER_ENCODE_PATTERN = re.compile(r'=\?(.*?)\?Q\?(.*?)\?=')
+  HEADER_ENCODE_PATTERN = re.compile(r'=\?([^?]*?)\?[qQbB]\?(.*?)\?=', re.VERBOSE | re.MULTILINE)
 
   def _decodeHeader(header):
     header = header.encode(UTF8, 'replace').decode(UTF8)
@@ -43491,7 +43494,7 @@ def printShowMessagesThreads(users, entityType):
       mg = HEADER_ENCODE_PATTERN.search(header)
       if not mg:
         return header
-      header = header[:mg.start()]+decode_header(mg.group())[0][0].decode(mg.group(1)).encode(UTF8)+header[mg.end():]
+      header = header[:mg.start()]+decode_header(mg.group())[0][0].decode(mg.group(1))+header[mg.end():]
 
   def _getBodyData(payload, getOrigMsg):
     data = headers = ''
@@ -46350,6 +46353,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CALENDARACL:	infoCalendarACLs,
       Cmd.ARG_CONTACT:		infoUserContacts,
       Cmd.ARG_CONTACTGROUP:	infoUserContactGroups,
+      Cmd.ARG_DRIVEFILE:	showFileInfo,
       Cmd.ARG_DRIVEFILEACL:	infoDriveFileACLs,
       Cmd.ARG_EVENT:		infoCalendarEvents,
       Cmd.ARG_FILTER:		infoFilters,

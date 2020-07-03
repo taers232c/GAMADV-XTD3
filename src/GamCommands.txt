@@ -3635,6 +3635,10 @@ gam <UserTypeEntity> purge drivefile <DriveFileEntity>
 gam <UserTypeEntity> trash drivefile <DriveFileEntity>
 gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
 
+gam <UserTypeEntity> info drivefile <DriveFileEntity>
+        [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
+        (orderby <DriveFileOrderByFieldName> [ascending|descending])* [showparentsidsaslist]
+
 gam <UserTypeEntity> create|add drivefileshortcut <DriveFileEntity> [shortcutname <String>]
         [<DriveFileParentAttribute>|convertparents]
         [csv [todrive <ToDriveAttribute>*]] [returnidonly]
