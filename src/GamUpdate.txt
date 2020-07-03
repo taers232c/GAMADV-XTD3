@@ -1,3 +1,12 @@
+5.05.09
+
+Added option `returnidonly` to `gam <UserTypeEntity> copy drivefile <DriveFileEntity>` and
+`gam <UserTypeEntity> update drivefile <DriveFileEntity> copy` that causes GAM to return just the
+file ID of the copied file as output. This will be useful in scripts that copy a file and then
+want to perform subsequent GAM commands on the copied file. When copying folders, the option is only useful
+when copying a folder without recursion. This file ID will only be valid when the return code
+of the command is 0; program accordingly.
+
 5.05.08
 
 Added option `writeurltofile` to `gam <UserTypeEntity> check|update serviceaccount` to have

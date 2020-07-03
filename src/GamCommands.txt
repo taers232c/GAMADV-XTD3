@@ -3594,8 +3594,8 @@ gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>]
          (removeparentname <DriveFolderName>)|
          (removeanyownerparentname <DriveFolderName>))
 
-gam <UserTypeEntity> update drivefile <DriveFileEntity>
-        [copy] [retainname | (newfilename <DriveFileName>)]
+gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly]
+        [retainname | (newfilename <DriveFileName>)]
         <DriveFileUpdateAttribute>* [enforcesingleparent <Boolean>]
         [gsheet|csvsheet <SheetEntity>] [charset <CharSet>] [columndelimiter <Character>]
 
@@ -3606,7 +3606,7 @@ gam <UserTypeEntity> update drivefile <DriveFileEntity>
         (mimetype <MimeType>)
 
 gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>]
-        [summary [<Boolean>]] [excludetrashed]
+        [summary [<Boolean>]] [excludetrashed] [returnidonly]
         <DriveFileCopyAttribute>* [enforcesingleparent <Boolean>]
         [mergewithparent [<Boolean>]] [recursive [depth <Number>]]
         [duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]

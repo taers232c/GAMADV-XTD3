@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.05.08'
+__version__ = '5.05.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -36187,7 +36187,8 @@ def checkDriveFileShortcut(users):
   if csvPF:
     csvPF.writeCSVfile('Check Shortcuts')
 
-# gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [retainname | (newfilename <DriveFileName>)]
+# gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly]
+#	[retainname | (newfilename <DriveFileName>)]
 #	<DriveFileUpdateAttribute>* [enforcesingleparent <Boolean>]
 #	[gsheet|csvsheet <SheetEntity>] [charset <String>] [columndelimiter <Character>]
 def updateDriveFile(users):
@@ -36199,12 +36200,15 @@ def updateDriveFile(users):
   encoding = GC.Values[GC.CHARSET]
   columnDelimiter = GC.Values[GC.CSV_INPUT_COLUMN_DELIMITER]
   assignLocalName = True
+  returnIdOnly = False
   operation = 'update'
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'copy':
       operation = 'copy'
       Act.Set(Act.COPY)
+    elif myarg == 'returnidonly':
+      returnIdOnly = True
     elif myarg == 'retainname':
       assignLocalName = False
     elif myarg == 'newfilename':
@@ -36227,7 +36231,8 @@ def updateDriveFile(users):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER)
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity,
+                                                  entityType=Ent.DRIVE_FILE_OR_FOLDER if not returnIdOnly else None)
     if jcount == 0:
       continue
     if not _getDriveFileParentInfo(drive, user, i, count, body, parameters, defaultToRoot=False):
@@ -36361,8 +36366,11 @@ def updateDriveFile(users):
                             ignoreDefaultVisibility=parameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                             keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                             body=body, fields='id,name', supportsAllDrives=True)
-          entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, fileId],
-                                                             Act.MODIFIER_TO, result['name'], [Ent.DRIVE_FILE_ID, result['id']], j, jcount)
+          if returnIdOnly:
+            writeStdout(f'{result["id"]}\n')
+          else:
+            entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, fileId],
+                                                               Act.MODIFIER_TO, result['name'], [Ent.DRIVE_FILE_ID, result['id']], j, jcount)
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
                 GAPI.unknownError, GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.cannotModifyViewersCanCopyContent) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, fileId], str(e), j, jcount)
@@ -36704,7 +36712,7 @@ COPY_TOP_PARENTS_CHOICES = {'all': COPY_ALL_PARENTS, 'none': COPY_NO_PARENTS}
 COPY_SUB_PARENTS_CHOICES = {'all': COPY_ALL_PARENTS, 'none': COPY_NO_PARENTS, 'nonpath': COPY_NONPATH_PARENTS}
 
 # gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>]
-#	[summary [<Boolean>]] [excludetrashed]
+#	[summary [<Boolean>]] [excludetrashed] [returnidonly]
 #	<DriveFileCopyAttribute>*
 #	[mergewithparent [<Boolean>]] [recursive [depth <Number>]]
 #	[duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
@@ -36770,9 +36778,12 @@ def copyDriveFile(users):
       newFolderId = callGAPI(drive.files(), 'create',
                              throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS, GAPI.INTERNAL_ERROR],
                              body=body, fields='id', supportsAllDrives=True)['id']
-      entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, folderTitle],
-                                                         Act.MODIFIER_TO, newFolderTitle,
-                                                         [Ent.DRIVE_FOLDER_ID, newFolderId], j, jcount)
+      if returnIdOnly:
+        writeStdout(f'{newFolderId}\n')
+      else:
+        entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, folderTitle],
+                                                           Act.MODIFIER_TO, newFolderTitle,
+                                                           [Ent.DRIVE_FOLDER_ID, newFolderId], j, jcount)
       _incrStatistic(statistics, STAT_FOLDER_COPIED_MOVED)
       if copyMoveOptions[['copySubFolderPermissions', 'copyTopFolderPermissions'][atTop]]:
         _copyPermissions(drive, user, i, count, j, jcount, Ent.DRIVE_FOLDER, folderId, folderTitle, newFolderId, newFolderTitle,
@@ -36879,7 +36890,7 @@ def copyDriveFile(users):
   parentParms = initDriveFileAttributes()
   copyParameters = initDriveFileAttributes()
   copyMoveOptions = initCopyMoveOptions(False)
-  excludeTrashed = newParentsSpecified = recursive = False
+  excludeTrashed = newParentsSpecified = recursive = returnIdOnly = False
   maxdepth = -1
   copiedFiles = {}
   statistics = _initStatistics()
@@ -36889,6 +36900,8 @@ def copyDriveFile(users):
       pass
     elif getDriveFileParentAttribute(myarg, parentParms):
       newParentsSpecified = True
+    elif myarg == 'returnidonly':
+      returnIdOnly = True
     elif myarg == 'excludetrashed':
       excludeTrashed = True
     elif myarg == 'recursive':
@@ -36908,7 +36921,8 @@ def copyDriveFile(users):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER)
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity,
+                                                  entityType=Ent.DRIVE_FILE_OR_FOLDER if not returnIdOnly else None)
     if jcount == 0:
       continue
     if not _getDriveFileParentInfo(drive, user, i, count, parentBody, parentParms):
@@ -37021,8 +37035,11 @@ def copyDriveFile(users):
                             ignoreDefaultVisibility=copyParameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                             keepRevisionForever=copyParameters[DFA_KEEP_REVISION_FOREVER],
                             body=source, fields='id,name', supportsAllDrives=True)
-          entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, sourceFilename],
-                                                             Act.MODIFIER_TO, result['name'], [Ent.DRIVE_FILE_ID, result['id']], j, jcount)
+          if returnIdOnly:
+            writeStdout(f'{result["id"]}\n')
+          else:
+            entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, sourceFilename],
+                                                               Act.MODIFIER_TO, result['name'], [Ent.DRIVE_FILE_ID, result['id']], j, jcount)
           _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
           if copyMoveOptions['copyFilePermissions']:
             _copyPermissions(drive, user, i, count, j, jcount, Ent.DRIVE_FILE, sourceId, sourceFilename, result['id'], result['name'],
