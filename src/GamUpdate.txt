@@ -1,3 +1,9 @@
+5.05.08
+
+Added option `writeurltofile` to `gam <UserTypeEntity> check|update serviceaccount` to have
+GAM write the authorization URL into the file `gamsvcaccturl.txt` in the folder with the GAM executable.
+This is useful for older versions of Command Prompt and PowerShell that can't properly copy/paste multi line strings.
+
 5.05.07
 
 Fixed bug in `gam info user` where extraneous license information was displayed.

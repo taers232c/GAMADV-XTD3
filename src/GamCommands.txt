@@ -938,8 +938,8 @@ gam oauth|oauth2 export [<FileName>]
 gam oauth|oauth2 refresh
 gam oauth|oauth2 info|verify [showsecret] [accesstoken <AccessToken> idtoken <IDToken>] [showdetails]
 
-gam <UserTypeEntity> check serviceaccount (scope|scopes <APIScopeURLList>)*
-gam <UserTypeEntity> update serviceaccount
+gam <UserTypeEntity> check serviceaccount (scope|scopes <APIScopeURLList>)* [writeurltofile]
+gam <UserTypeEntity> update serviceaccount [writeurltofile]
 
 # Administrators
 

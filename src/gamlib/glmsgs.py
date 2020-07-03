@@ -218,7 +218,7 @@ set no_browser = true in gam.cfg and re-run this command.
 """
 OAUTH2_GO_TO_LINK_MESSAGE = """
 Go to the following link in your browser:
-(The link may be copied from the file {0} rather than the screen.)
+{0}
 
     {{url}}
 """
@@ -229,8 +229,11 @@ ONLY_ONE_OWNER_ALLOWED = 'Only one owner allowed'
 OR = 'or'
 PERMISSION_DENIED = 'The caller does not have permission'
 PLEASE_CORRECT_YOUR_SYSTEM_TIME = 'Please correct your system time.'
+PLEASE_RESOLVE_ERROR = '\nPlease resolve error as described above\n\n'
 PLEASE_SELECT_ENTITY_TO_PROCESS = '{0} {1} found, please select the correct one to {2} and specify with {3}'
 PLEASE_SPECIFY_BUILDING_EXACT_CASE_NAME_OR_ID = 'Please specify building by exact case name or ID.'
+PRESS_ENTER_ONCE_AUTHORIZATION_IS_COMPLETE = 'Press enter once authorization is complete.'
+PRESS_ENTER_ONCE_ERROR_RESOLVED = 'Press enter once error is resolved and we will try enabling the API again.'
 PREVIEW_ONLY = 'Preview Only'
 PRIMARY_EMAIL_DID_NOT_MATCH_PATTERN = 'primaryEmail address did not match pattern: {0}'
 PROCESS = 'process'
@@ -246,9 +249,9 @@ REQUEST_NOT_COMPLETE = 'Request needs to be completed before downloading, curren
 RESULTS_TOO_LARGE_FOR_GOOGLE_SPREADSHEET = 'Results are too large for Google Spreadsheets. Uploading as a regular CSV file.'
 SCHEMA_WOULD_HAVE_NO_FIELDS = '{0} would have no {1}'
 SCOPE_AUTHORIZATION_FAILED = '''Some scopes FAILED!
-To authorize them, please go to:
-
-  {0}
+To authorize them, please go to the following link in your browser:
+{0}
+    {1}
 
 You will be directed to the G Suite admin console. The Client Name and API
 Scopes fields will be pre-populated. Please click Authorize to allow these
@@ -260,9 +263,9 @@ SCOPE_AUTHORIZATION_PASSED = '''All scopes PASSED!
 Service Account Client name: {0} is fully authorized.
 '''
 SCOPE_AUTHORIZATION_UPDATE_PASSED = '''All scopes PASSED!
-To authorize them (in case some scopes were unselected), please go to:
-
-  {0}
+To authorize them (in case some scopes were unselected), please go to the following link in your browser:
+{0}
+    {1}
 
 You will be directed to the G Suite admin console. The Client Name and API
 Scopes fields will be pre-populated. Please click Authorize to allow these
@@ -284,6 +287,7 @@ STRING_LENGTH = 'string length'
 SUBKEY_FIELD_MISMATCH = 'subkeyfield {0} does not match saved subkeyfield {1}'
 SUBSCRIPTION_NOT_FOUND = 'Could not find subscription'
 SYSTEM_TIME_STATUS = 'System time status'
+THE_LINK_MAY_BE_COPIED_FROM_THE_FILE_RATHER_THAN_THE_SCREEN = '(The link may be copied from the file {0} rather than the screen.)\n'
 THREAD = 'thread'
 THREADS = 'threads'
 TO = 'To'

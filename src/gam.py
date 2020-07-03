@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.05.07'
+__version__ = '5.05.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -186,6 +186,7 @@ FN_GAM_CFG = 'gam.cfg'
 FN_LAST_UPDATE_CHECK_TXT = 'lastupdatecheck.txt'
 FN_GAMCOMMANDS_TXT = 'GamCommands.txt'
 FN_GAM_OAUTH_URL_TXT = 'gamoauthurl.txt'
+FN_GAM_SVCACCT_URL_TXT = 'gamsvcaccturl.txt'
 MY_DRIVE = 'My Drive'
 TEAM_DRIVE = 'Drive'
 ROOT = 'root'
@@ -7611,7 +7612,7 @@ def _run_oauth_flow(client_id, client_secret, scopes, login_hint, access_type):
     kwargs['auth_url_callback'] = writeGAMOauthURLfile
     try:
       flow.run_console(
-        authorization_prompt_message=Msg.OAUTH2_GO_TO_LINK_MESSAGE.format(GM.Globals[GM.GAM_OAUTH_URL_TXT]),
+        authorization_prompt_message=Msg.OAUTH2_GO_TO_LINK_MESSAGE.format(Msg.THE_LINK_MAY_BE_COPIED_FROM_THE_FILE_RATHER_THAN_THE_SCREEN.format(GM.Globals[GM.GAM_OAUTH_URL_TXT])),
         authorization_code_message=Msg.ENTER_VERIFICATION_CODE,
         **kwargs)
     except Exception as e:
@@ -7892,8 +7893,8 @@ def enableGAMProjectAPIs(httpObj, projectId, checkEnabled, i=0, count=0):
           break
         except GAPI.failedPrecondition as e:
           entityActionFailedWarning([Ent.API, api], str(e), j, jcount)
-          writeStderr('\nPlease resolve error as described above\n\n')
-          readStdin('Press enter once resolved and we will try enabling the API again.')
+          writeStderr(Msg.PLEASE_RESOLVE_ERROR)
+          readStdin(Msg.PRESS_ENTER_ONCE_ERROR_RESOLVED)
         except (GAPI.forbidden, GAPI.permissionDenied) as e:
           entityActionFailedWarning([Ent.API, api], str(e), j, jcount)
           status = False
@@ -8579,8 +8580,8 @@ def doDeleteSvcAcct():
       entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, saName], str(e), i, count)
     Ind.Decrement()
 
-# gam <UserTypeEntity> check serviceaccount (scope|scopes <APIScopeURLList>)*
-# gam <UserTypeEntity> update serviceaccount
+# gam <UserTypeEntity> check serviceaccount (scope|scopes <APIScopeURLList>)* [writeurltofile]
+# gam <UserTypeEntity> update serviceaccount [writeurltofile]
 def checkServiceAccount(users):
   def printMessage(message):
     writeStdout(Ind.Spaces()+message+'\n')
@@ -8592,7 +8593,14 @@ def checkServiceAccount(users):
     long_url = (f'https://admin.google.com/{domain}/ManageOauthClients'
                 f'?clientScopeToAdd={",".join(checkScopes)}'
                 f'&clientNameToAdd={service_account}')
-    printLine(message.format(long_url))
+    if not writeURLtoFile:
+      printLine(message.format('', long_url))
+    else:
+      filename = os.path.join(GM.Globals[GM.GAM_PATH], FN_GAM_SVCACCT_URL_TXT)
+      printLine(message.format(Msg.THE_LINK_MAY_BE_COPIED_FROM_THE_FILE_RATHER_THAN_THE_SCREEN.format(filename), long_url))
+      writeFile(filename, long_url, mode='w', continueOnError=True, displayError=True)
+      readStdin(Msg.PRESS_ENTER_ONCE_AUTHORIZATION_IS_COMPLETE)
+      deleteFile(filename, continueOnError=True, displayError=True)
 
   credentials = getSvcAcctCredentials([API.USERINFO_EMAIL_SCOPE], None)
   checkScopesSet = set()
@@ -8607,12 +8615,15 @@ def checkServiceAccount(users):
             checkScopesSet.add(scope)
           else:
             invalidChoiceExit(scope, allScopes, True)
+      elif myarg == 'writeurltofile':
+        writeURLtoFile = True
       else:
         unknownArgumentExit()
     if not checkScopesSet:
       for scope in iter(GM.Globals[GM.SVCACCT_SCOPES].values()):
         checkScopesSet.update(scope)
   else:
+    writeURLtoFile = checkArgumentPresent('writeurltofile')
     checkForExtraneousArguments()
     saScopes = {}
     scopesList = API.getSvcAcctScopesList(GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY], True)
