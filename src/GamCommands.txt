@@ -434,7 +434,8 @@ If an item contains spaces, it should be surrounded by ".
         (tdnoemail [<Boolean>])|
         (tdparent (id:<DriveFolderID>)|<DriveFolderName>)|
         (tdsheet (id:<Number>)|<String>)|
-        (tdtimestamp [<Boolean>] [tddaysoffset <Number>] [tdhoursoffset <Number])|
+        (tdtimestamp [<Boolean>] [tdtimeformat <String>]
+            [tddaysoffset <Number>] [tdhoursoffset <Number])|
         (tdtimezone <TimeZone>)|
         (tdtitle <String>)|
         (tdcellwrap clip|overflow|wrap)|

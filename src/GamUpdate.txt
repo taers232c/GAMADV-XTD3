@@ -1,3 +1,9 @@
+5.05.11
+
+Added `todrive_timeformat` to `gam.cfg` and `tdtimeformat <String>` to `<ToDriveAttribute>`to allow
+customization of the timestamp format used in file names when files are uploaded with `todrive`.
+* See: https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior
+
 5.05.10
 
 Fixed bug in `gam <UserTypeEntity> print|show messages` that caused a trap.

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.05.10'
+__version__ = '5.05.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5727,6 +5727,7 @@ class CSVPrintFile():
                     'backupSheetEntity': None, 'copySheetEntity': None,
                     'locale': GC.Values[GC.TODRIVE_LOCALE], 'timeZone': GC.Values[GC.TODRIVE_TIMEZONE],
                     'timestamp': GC.Values[GC.TODRIVE_TIMESTAMP], 'daysoffset': 0, 'hoursoffset': 0,
+                    'timeformat': GC.Values[GC.TODRIVE_TIMEFORMAT],
                     'fileId': None, 'parentId': None, 'parent': GC.Values[GC.TODRIVE_PARENT],
                     'localcopy': GC.Values[GC.TODRIVE_LOCALCOPY], 'nobrowser': GC.Values[GC.TODRIVE_NOBROWSER],
                     'noemail': GC.Values[GC.TODRIVE_NOEMAIL]}
@@ -5755,6 +5756,8 @@ class CSVPrintFile():
         self.todrive['timeZone'] = getString(Cmd.OB_STRING, minLen=0)
       elif myarg == 'tdtimestamp':
         self.todrive['timestamp'] = getBoolean()
+      elif myarg == 'tdtimeformat':
+        self.todrive['timeformat'] = getString(Cmd.OB_STRING, minLen=0)
       elif myarg == 'tddaysoffset':
         self.todrive['daysoffset'] = getInteger(minVal=0)
       elif myarg == 'tdhoursoffset':
@@ -6217,7 +6220,11 @@ class CSVPrintFile():
       if writeCSVData(writer):
         title = self.todrive['title'] or f'{GC.Values[GC.DOMAIN]} - {list_type}'
         if self.todrive['timestamp']:
-          title += ' - '+ISOformatTimeStamp(datetime.datetime.now(GC.Values[GC.TIMEZONE])+datetime.timedelta(days=-self.todrive['daysoffset'], hours=-self.todrive['hoursoffset']))
+          tdtime = datetime.datetime.now(GC.Values[GC.TIMEZONE])+datetime.timedelta(days=-self.todrive['daysoffset'], hours=-self.todrive['hoursoffset'])
+          if not self.todrive['timeformat']:
+            title += ' - '+ISOformatTimeStamp(tdtime)
+          else:
+            title += ' - '+tdtime.strftime(self.todrive['timeformat'])
         action = Act.Get()
         if not GC.Values[GC.TODRIVE_CLIENTACCESS]:
           user, drive = buildGAPIServiceObject(API.DRIVETD, self.todrive['user'])
