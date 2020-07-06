@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.05.11'
+__version__ = '5.05.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -11068,6 +11068,13 @@ CUSTOMER_LICENSE_MAP = {
   }
 
 def _showCustomerLicenseInfo(customerInfo, FJQC):
+  def numUsersAvailable(usage):
+    if usage and 'parameters' in usage[0]:
+      for item in usage[0]['parameters']:
+        if item['name'] == 'accounts:num_users':
+          return True
+    return False
+
   rep = buildGAPIObject(API.REPORTS)
   parameters = ','.join(CUSTOMER_LICENSE_MAP)
   tryDate = todaysDate().strftime(YYYYMMDD_FORMAT)
@@ -11079,6 +11086,8 @@ def _showCustomerLicenseInfo(customerInfo, FJQC):
                         date=tryDate, customerId=customerInfo['id'], fields='warnings,usageReports', parameters=parameters)
       warnings = result.get('warnings', [])
       usage = result.get('usageReports', [])
+      if numUsersAvailable(usage):
+        break
       hasReports = bool(usage)
       fullData, tryDate = _checkDataRequiredServices(warnings, tryDate, dataRequiredServices, hasReports)
       if fullData < 0:
