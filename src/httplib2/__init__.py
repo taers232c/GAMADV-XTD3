@@ -15,7 +15,7 @@ __contributors__ = [
     "Alex Yu",
 ]
 __license__ = "MIT"
-__version__ = '0.17.0'
+__version__ = "0.18.1"
 
 import base64
 import calendar
@@ -1284,7 +1284,7 @@ class HTTPSConnectionWithTimeout(http.client.HTTPSConnection):
 
     def connect(self):
         """Connect to a host on a given (SSL) port."""
-        if self.proxy_info and self.proxy_info.isgood():
+        if self.proxy_info and self.proxy_info.isgood() and self.proxy_info.applies_to(self.host):
             use_proxy = True
             proxy_type, proxy_host, proxy_port, proxy_rdns, proxy_user, proxy_pass, proxy_headers = (
                 self.proxy_info.astuple()
@@ -1366,7 +1366,7 @@ class HTTPSConnectionWithTimeout(http.client.HTTPSConnection):
             except socket.error as e:
                 socket_err = e
                 if self.debuglevel > 0:
-                    print("connect fail: ({0}, {1})".format((self.host, self.port)))
+                    print("connect fail: ({0}, {1})".format(self.host, self.port))
                     if use_proxy:
                         print(
                             "proxy: {0}".format(
@@ -1790,6 +1790,9 @@ a string that contains the response entity body.
                 headers["user-agent"] = "Python-httplib2/%s (gzip)" % __version__
 
             uri = iri2uri(uri)
+            # Prevent CWE-75 space injection to manipulate request via part of uri.
+            # Prevent CWE-93 CRLF injection to modify headers via part of uri.
+            uri = uri.replace(" ", "%20").replace("\r", "%0D").replace("\n", "%0A")
 
             (scheme, authority, request_uri, defrag_uri) = urlnorm(uri)
 

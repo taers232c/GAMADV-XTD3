@@ -1170,7 +1170,7 @@ class BatchHttpRequest(object):
         if batch_uri == _LEGACY_BATCH_URI:
             LOGGER.warn(
                 "You have constructed a BatchHttpRequest using the legacy batch "
-                "endpoint %s. This endpoint will be turned down on March 25, 2019. "
+                "endpoint %s. This endpoint will be turned down on August 12, 2020. "
                 "Please provide the API-specific endpoint or use "
                 "service.new_batch_http_request(). For more details see "
                 "https://developers.googleblog.com/2018/03/discontinuing-support-for-json-rpc-and.html"
@@ -1249,7 +1249,7 @@ class BatchHttpRequest(object):
 
         # NB: we intentionally leave whitespace between base/id and '+', so RFC2822
         # line folding works properly on Python 3; see
-        # https://github.com/google/google-api-python-client/issues/164
+        # https://github.com/googleapis/google-api-python-client/issues/164
         return "<%s + %s>" % (self._base_id, quote(id_))
 
     def _header_to_id(self, header):
