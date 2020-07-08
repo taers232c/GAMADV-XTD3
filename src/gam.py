@@ -34467,6 +34467,15 @@ def addFilePathsToRow(drive, fileTree, fileEntryInfo, filePathInfo, csvPF, row, 
       row[key] = path
     k += 1
 
+def addFilePathsToInfo(drive, fileTree, fileEntryInfo, filePathInfo):
+  _, paths, _ = getFilePaths(drive, fileTree, fileEntryInfo, filePathInfo, showDepth=False)
+  fileEntryInfo['paths'] = []
+  for path in sorted(paths):
+    if GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL] and (path.find('\n') >= 0 or path.find('\r') >= 0):
+      fileEntryInfo['paths'].append(escapeCRsNLs(path))
+    else:
+      fileEntryInfo['paths'].append(path)
+
 def _validatePermissionOwnerType(location, body):
   if body.get('role', '') == 'owner' and body['type'] != 'user':
     Cmd.SetLocation(location)
@@ -34922,7 +34931,7 @@ FILECOUNT_SUMMARY_USER = 'Summary'
 #	[excludetrashed]
 #	[maxfiles <Integer>] [nodataheaders <String>]
 #	[countsonly [summary none|only|plus]]
-#	[filepath|fullpath [showdepth]] [buildtree]
+#	[filepath|fullpath [addpathstojson] [showdepth]] [buildtree]
 #	[allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [showdrivename] [showparentsidsaslist]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
 #	[formatjson] [quotechar <Character>]
@@ -34988,7 +34997,10 @@ def printFileList(users):
     if DFF.showTeamDriveNames and driveId:
       fileInfo['driveName'] = DFF.TeamDriveName(driveId)
     if filepath:
-      addFilePathsToRow(drive, fileTree, fileInfo, filePathInfo, csvPF, row, showDepth=showDepth)
+      if not FJQC.formatJSON or not addPathsToJSON:
+        addFilePathsToRow(drive, fileTree, fileInfo, filePathInfo, csvPF, row, showDepth=showDepth)
+      else:
+        addFilePathsToInfo(drive, fileTree, fileInfo, filePathInfo)
     if showParentsIdsAsList and 'parents' in fileInfo:
       fileInfo['parentsIds'] = fileInfo.pop('parents')
     if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
@@ -35068,7 +35080,7 @@ def printFileList(users):
 
   csvPF = CSVPrintFile('Owner', indexedTitles=DRIVE_INDEXED_TITLES)
   FJQC = FormatJSONQuoteChar(csvPF)
-  buildTree = countsOnly = filepath = fullpath = noRecursion = \
+  addPathsToJSON = buildTree = countsOnly = filepath = fullpath = noRecursion = \
     showParentsIdsAsList = showDepth = showParent = False
   maxdepth = -1
   nodataFields = []
@@ -35112,6 +35124,8 @@ def printFileList(users):
       filepath = True
     elif myarg == 'fullpath':
       filepath = fullpath = True
+    elif myarg == 'addpathstojson':
+      addPathsToJSON = True
     elif myarg == 'buildtree':
       buildTree = True
     elif myarg == 'countsonly':

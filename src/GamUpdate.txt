@@ -3,6 +3,10 @@
 Fixed bug where `csv_output_header_drop_filter` and `csv_output_header_filter` were not properly
 processed when `formatjson` was specified in a print command.
 
+Added option `addpathstojson` to `gam <UserTypeEntity> print filelist`. When `filepath|fullpath`,
+`formatjson` and `addpathstojson` are all specified, the path information will be included in the
+JSON data rather than as additional columns.
+
 5.06.01
 
 Fixed bug in `gam info user <UserItem> nolicenses` that caused a trap.
