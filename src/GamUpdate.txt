@@ -1,3 +1,7 @@
+5.06.01
+
+Fixed bug in `gam info user <UserItem> nolicenses` that caused a trap.
+
 5.06.00
 
 Update google_auth, google_auth_httlib2, google_auth_oauthlib, googleapiclient, httplib2 libraries.
@@ -6,7 +10,7 @@ Update google_auth, google_auth_httlib2, google_auth_oauthlib, googleapiclient, 
 
 Updated `gam info domain` to get the first available user/license count data. The Reports API seems
 to be giving misleading messages that only partial data is available when, in fact, all of the data is available.
-Thus, GAM is backing up to an earlier date uncecessarily.
+Thus, GAM is backing up to an earlier date unnecessarily.
 
 5.05.11
 
