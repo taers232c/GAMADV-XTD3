@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.06.01'
+__version__ = '5.06.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6168,6 +6168,15 @@ class CSVPrintFile():
     if not self.titlesSet:
       systemErrorExit(USAGE_ERROR_RC, Msg.NO_COLUMNS_SELECTED_WITH_CSV_OUTPUT_HEADER_FILTER.format(GC.CSV_OUTPUT_HEADER_FILTER, GC.CSV_OUTPUT_HEADER_DROP_FILTER))
 
+  def FilterJSONHeaders(self):
+    if self.headerDropFilter:
+      self.JSONtitlesList = [t for t in self.JSONtitlesList if not self.HeaderFilterMatch(self.headerDropFilter, t)]
+    if self.headerFilter:
+      self.JSONtitlesList = [t for t in self.JSONtitlesList if self.HeaderFilterMatch(self.headerFilter, t)]
+    self.JSONtitlesSet = set(self.JSONtitlesList)
+    if not self.JSONtitlesSet:
+      systemErrorExit(USAGE_ERROR_RC, Msg.NO_COLUMNS_SELECTED_WITH_CSV_OUTPUT_HEADER_FILTER.format(GC.CSV_OUTPUT_HEADER_FILTER, GC.CSV_OUTPUT_HEADER_DROP_FILTER))
+
   def writeCSVfile(self, list_type):
 
     def todriveCSVErrorExit(entityValueList, errMsg):
@@ -6404,7 +6413,10 @@ class CSVPrintFile():
     if self.rowFilter:
       self.CheckRowFilterHeaders()
     if self.headerFilter or self.headerDropFilter:
-      self.FilterHeaders()
+      if not self.formatJSON:
+        self.FilterHeaders()
+      else:
+        self.FilterJSONHeaders()
       extrasaction = 'ignore'
     else:
       extrasaction = 'raise'
