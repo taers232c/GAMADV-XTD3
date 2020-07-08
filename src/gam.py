@@ -33879,13 +33879,16 @@ def showFileInfo(users):
           printEntity([_getEntityMimeType(result), f'{result["name"]} ({fileId})'], j, jcount)
           Ind.Increment()
         if filepath:
-          _, paths, _ = getFilePaths(drive, None, result, filePathInfo)
-          kcount = len(paths)
-          printKeyValueList(['paths', kcount])
-          Ind.Increment()
-          for path in paths:
-            printKeyValueList(['path', path])
-          Ind.Decrement()
+          if not FJQC.formatJSON:
+            _, paths, _ = getFilePaths(drive, None, result, filePathInfo)
+            kcount = len(paths)
+            printKeyValueList(['paths', kcount])
+            Ind.Increment()
+            for path in sorted(paths):
+              printKeyValueList(['path', path])
+            Ind.Decrement()
+          else:
+            addFilePathsToInfo(drive, None, result, filePathInfo)
         if showParentsIdsAsList and 'parents' in result:
           result['parentsIds'] = result.pop('parents')
         if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:

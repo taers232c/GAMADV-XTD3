@@ -7,6 +7,9 @@ Added option `addpathstojson` to `gam <UserTypeEntity> print filelist`. When `fi
 `formatjson` and `addpathstojson` are all specified, the path information will be included in the
 JSON data rather than as additional columns.
 
+Fixed `gam <UserTypeEntity> show fileinfo <DriveFileEntity>` to properly include path information
+in the JSON data when `filepath` and `formatjson` are specified.
+
 5.06.01
 
 Fixed bug in `gam info user <UserItem> nolicenses` that caused a trap.
