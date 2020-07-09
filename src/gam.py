@@ -2419,9 +2419,12 @@ def readFile(filename, mode=DEFAULT_FILE_READ_MODE, encoding=None, newline=None,
 def writeFile(filename, data, mode=DEFAULT_FILE_WRITE_MODE,
               continueOnError=False, displayError=True):
   try:
-    kwargs = setEncoding(mode, None)
-    with open(os.path.expanduser(filename), mode, **kwargs) as f:
-      f.write(data)
+    if filename != '-':
+      kwargs = setEncoding(mode, None)
+      with open(os.path.expanduser(filename), mode, **kwargs) as f:
+        f.write(data)
+      return True
+    GM.Globals[GM.STDOUT].get(GM.REDIRECT_MULTI_FD, sys.stdout).write(data)
     return True
   except (IOError, LookupError, UnicodeError) as e:
     if continueOnError:
