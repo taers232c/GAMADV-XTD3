@@ -1,3 +1,10 @@
+5.06.03
+
+Added option `lograndompassword <FileName>` to `gam create|update user`. When this option
+and `password random` or `notfoundpassword random` are specified, the user email address and random
+password are appended to `<FileName>`. When bulk creating/updating users, this lets you log the
+random passwords without have to send a notification email.
+
 5.06.02
 
 Fixed bug where `csv_output_header_drop_filter` and `csv_output_header_filter` were not properly

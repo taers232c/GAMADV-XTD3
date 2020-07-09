@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.06.02'
+__version__ = '5.06.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -24833,6 +24833,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
   notFoundBody = {}
   b64DecryptPassword = False
   clearPassword = hashPassword = True
+  logPasswordOptions = {'filename': '', 'password': '', 'notFoundPassword': ''}
   notify = {'subject': '', 'message': '', 'html': False, 'charset': UTF8, 'password': ''}
   primary = {}
   updatePrimaryEmail = {}
@@ -24853,6 +24854,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       notify['password'] = getString(Cmd.OB_PASSWORD, maxLen=100)
     elif myarg == 'replace':
       _getTagReplacement(tagReplacements, True)
+    elif myarg == 'lograndompassword':
+      logPasswordOptions['filename'] = getString(Cmd.OB_FILE_NAME)
     elif myarg == 'admin':
       value = getBoolean()
       if updateCmd or value:
@@ -24870,6 +24873,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       if notFoundBody[up].lower() == 'random':
         rnd = SystemRandom()
         notFoundBody[up] = ''.join(rnd.choice(PASSWORD_SAFE_CHARS) for _ in range(25))
+        logPasswordOptions['notFoundPassword'] = notFoundBody[up]
     elif updateCmd and myarg == 'updateprimaryemail':
       search = getString(Cmd.OB_RE_PATTERN)
       pattern = validateREPattern(search, re.IGNORECASE)
@@ -25191,6 +25195,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
   if makeRandomPassword:
     rnd = SystemRandom()
     body[up] = ''.join(rnd.choice(PASSWORD_SAFE_CHARS) for _ in range(25))
+    logPasswordOptions['password'] = body[up]
   if up in body:
     _finalizePassword(body, notify, up)
   if createIfNotFound:
@@ -25200,12 +25205,13 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         if 'hashfunction' in body:
           notFoundBody['hashfunction'] = body['hashFunction']
         notify['notFoundPassword'] = notify[up]
+        logPasswordOptions['notFoundPassword'] = logPasswordOptions['password']
     else:
       notify['notFoundPassword'] = notify[up] if notify[up] else notFoundBody[up] if clearPassword else Msg.CONTACT_ADMINISTRATOR_FOR_PASSWORD
       _finalizePassword(notFoundBody, notify, up)
   if 'hashFunction' in body and up not in body:
     body.pop('hashFunction')
-  return (body, notify, tagReplacements, addGroups, updatePrimaryEmail, createIfNotFound, notFoundBody, groupOrgUnitMap)
+  return (body, notify, tagReplacements, addGroups, updatePrimaryEmail, createIfNotFound, notFoundBody, groupOrgUnitMap, logPasswordOptions)
 
 def createUserAddToGroups(cd, user, addGroups, i, count):
   action = Act.Get()
@@ -25215,13 +25221,14 @@ def createUserAddToGroups(cd, user, addGroups, i, count):
 
 # gam create user <EmailAddress> <UserAttribute>
 #	(groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
-#	[notify <EmailAddress>] [subject <String>] [notifypassword <Stribg>]
+#	[notify <EmailAddress>] [subject <String>] [notifypassword <String>]
 #	    [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
 #	     (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
 #	(replace <Tag> <String>)*
+#	[lograndompassword <FileName>]
 def doCreateUser():
   cd = buildGAPIObject(API.DIRECTORY)
-  body, notify, tagReplacements, addGroups, _, _, _, _ = getUserAttributes(cd, False, noUid=True)
+  body, notify, tagReplacements, addGroups, _, _, _, _, logPasswordOptions = getUserAttributes(cd, False, noUid=True)
   user = body['primaryEmail']
   fields = '*' if tagReplacements['subs'] else 'primaryEmail,name'
   try:
@@ -25232,6 +25239,8 @@ def doCreateUser():
                                      GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
                       body=body, fields=fields)
     entityActionPerformed([Ent.USER, user])
+    if logPasswordOptions['filename'] and logPasswordOptions['password']:
+      writeFile(logPasswordOptions['filename'], f'{user},{logPasswordOptions["password"]}\n', mode='a', continueOnError=True)
     if addGroups:
       createUserAddToGroups(cd, result['primaryEmail'], addGroups, 0, 0)
     if notify.get('emailAddress'):
@@ -25253,13 +25262,14 @@ def doCreateUser():
 #	[clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
 #	[createifnotfound] [notfoundpassword random|<Password>]
 #	(groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
-#	[notify <EmailAddress>] [subject <String>] [notifypassword <Stribg>]
+#	[notify <EmailAddress>] [subject <String>] [notifypassword <String>]
 #	    [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
 #	     (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
 #	(replace <Tag> <String>)*
+#	[lograndompassword <FileName>]
 def updateUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
-  body, notify, tagReplacements, addGroups, updatePrimaryEmail, createIfNotFound, notFoundBody, groupOrgUnitMap = getUserAttributes(cd, True)
+  body, notify, tagReplacements, addGroups, updatePrimaryEmail, createIfNotFound, notFoundBody, groupOrgUnitMap, logPasswordOptions = getUserAttributes(cd, True)
   vfe = 'primaryEmail' in body and body['primaryEmail'][:4].lower() == 'vfe@'
   i, count, entityList = getEntityArgument(entityList)
   fields = '*' if tagReplacements['subs'] else 'primaryEmail,name'
@@ -25311,6 +25321,8 @@ def updateUsers(entityList):
                                            GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE, GAPI.DUPLICATE],
                             userKey=userKey, body=body, fields=fields)
           entityActionPerformed([Ent.USER, user], i, count)
+          if logPasswordOptions['filename'] and logPasswordOptions['password']:
+            writeFile(logPasswordOptions['filename'], f'{userKey},{logPasswordOptions["password"]}\n', mode='a', continueOnError=True)
           if notify.get('emailAddress') and notify['password']:
             sendCreateUpdateUserNotification(result, notify, tagReplacements, i, count, createMessage=False)
         except GAPI.userNotFound:
@@ -25327,6 +25339,8 @@ def updateUsers(entityList):
                                   body=body, fields=fields)
                 Act.Set(Act.CREATE)
                 entityActionPerformed([Ent.USER, user], i, count)
+                if logPasswordOptions['filename'] and logPasswordOptions['notFoundPassword']:
+                  writeFile(logPasswordOptions['filename'], f'{user},{logPasswordOptions["notFoundPassword"]}\n', mode='a', continueOnError=True)
                 if addGroups:
                   createUserAddToGroups(cd, result['primaryEmail'], addGroups, i, count)
                 if notify.get('emailAddress'):

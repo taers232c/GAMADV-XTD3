@@ -3135,6 +3135,7 @@ gam create|add user <EmailAddress> <UserAttribute>*
             [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
              (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
         (replace <Tag> <UserReplacement>)*
+        [lograndompassword <FileName>]
 gam update user <UserItem> <UserAttribute>*
         [updateprimaryemail <RegularExpression> <EmailReplacement>]
         [updateoufromgroup <FileName> [charset <CharSet>]
@@ -3147,6 +3148,7 @@ gam update user <UserItem> <UserAttribute>*
             [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
              (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
         (replace <Tag> <UserReplacement>)*
+        [lograndompassword <FileName>]
 gam delete user <UserItem>
 gam undelete user <UserItem> [org|ou <OrgUnitPath>]
 gam suspend user <UserItem>
@@ -3165,6 +3167,7 @@ gam update users <UserTypeEntity> <UserAttribute>*
         [notify <EmailAddress>] [subject <String>] [notifypassword <String>]
             [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]|(gdoc <UserGoogleDoc>)
             (replace <Tag> <UserReplacement>)*
+        [lograndompassword <FileName>]
 gam delete users <UserTypeEntity>
 gam undelete users <UserEntity> [org|ou <OrgUnitPath>]
 gam suspend users <UserTypeEntity>
@@ -3183,6 +3186,7 @@ gam <UserTypeEntity> update users <UserAttribute>*
         [notify <EmailAddress>] [subject <String>] [notifypassword <String>]
             [message <String>|(file <FileName> [charset <CharSet>])]|(gdoc <UserGoogleDoc>)
             (replace <Tag> <UserReplacement>)*
+        [lograndompassword <FileName>]
 gam <UserTypeEntity> delete users
 gam <UserEntity> undelete users [org|ou <OrgUnitPath>]
 gam <UserTypeEntity> suspend users
