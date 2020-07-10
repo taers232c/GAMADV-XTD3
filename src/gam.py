@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.06.03'
+__version__ = '5.06.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -19613,9 +19613,9 @@ def doPrintShowAlerts():
     return
   try:
     alerts = callGAPIpages(ac.alerts(), 'list', 'alerts',
-                           throw_reasons=GAPI.ALERT_THROW_REASONS+[GAPI.BAD_REQUEST],
+                           throw_reasons=GAPI.ALERT_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
                            orderBy=OBY.orderBy, **kwargs)
-  except GAPI.badRequest as e:
+  except (GAPI.badRequest, GAPI.invalidArgument) as e:
     entityActionFailedWarning([Ent.ALERT, None], str(e))
     return
   except (GAPI.serviceNotAvailable, GAPI.authError):

@@ -787,7 +787,6 @@ Specify a collection of items by directly specifying them; the item type is dete
         (before|after <Time>) | (range <Time> <Time>) |
         <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <EmailAddressEntity> ::= <EmailAddressList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<EventIDEntity> ::= <EventIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <FilterIDEntity> ::= <FilterIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <GroupEntity> ::= <GroupList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <GuardianEntity> ::= <GuardianList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
@@ -1059,9 +1058,16 @@ gam calendar|calendars <CalendarEntity> printacl [todrive <ToDriveAttribute>*] [
         (matchfield transparency <RegularExpression>)|
         (matchfield visibility <RegularExpression>)
 
-<EventEntity> ::=
-        (id|eventid <EventId>)|(event|events <EventIdList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|
+<EventIDEntity> ::=
+        (id|eventid <EventId>) |
+        (event|events <EventIdList> |
+        <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)
+
+<EventSelectEntity> ::=
         (<EventSelectProperty>+ <EventMatchProperty>*)
+
+<EventEntity> ::=
+        <EventIDEntity> | <EventSelectEntity>
 
 <AttendeeAttendance> ::= optional|required
 <AttendeeStatus> ::= accepted|declined|needsaction|tentative
@@ -1234,9 +1240,9 @@ gam calendar|calendars <CalendarEntity> empty calendartrash
 
 gam calendar|calendars <CalendarEntity> info events [<EventEntity>] [maxinstances <Number>] [fields <EventFieldNameList>]
         [formatjson]
-gam calendar|calendars <CalendarEntity> show events [<EventEntity>] <EventDisplayProperty>* [fields <EventFieldNameList>]
+gam calendar|calendars <CalendarEntity> show events [<EventSelectEntity>] <EventDisplayProperty>* [fields <EventFieldNameList>]
         [countsonly] [formatjson]
-gam calendar|calendars <CalendarEntity> print events [<EventEntity>] <EventDisplayProperty>* [fields <EventFieldNameList>]
+gam calendar|calendars <CalendarEntity> print events [<EventSelectEntity>] <EventDisplayProperty>* [fields <EventFieldNameList>]
         [countsonly] [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
 
 gam calendar <CalendarEntity> addevent <EventAttribute>+ [<EventNotificationAttribute>]
@@ -3484,9 +3490,9 @@ gam <UserTypeEntity> empty calendartrash <UserCalendarEntity>
 
 gam <UserTypeEntity> info events <UserCalendarEntity> [<EventEntity>] [maxinstances <Number>] [fields <EventFieldNameList>]
         [formatjson]
-gam <UserTypeEntity> show events <UserCalendarEntity> [<EventEntity>] <EventDisplayProperty>* [fields <EventFieldNameList>]
+gam <UserTypeEntity> show events <UserCalendarEntity> [<EventSelectEntity>] <EventDisplayProperty>* [fields <EventFieldNameList>]
         [countsonly] [formatjson]
-gam <UserTypeEntity> print events <UserCalendarEntity> [<EventEntity>] <EventDisplayProperty>* [fields <EventFieldNameList>]
+gam <UserTypeEntity> print events <UserCalendarEntity> [<EventSelectEntity>] <EventDisplayProperty>* [fields <EventFieldNameList>]
         [countsonly] [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> update calattendees <UserCalendarEntity> [<EventEntity>] [anyorganizer] [<EventNotificationAttribute>] [doit]

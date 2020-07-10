@@ -1,3 +1,7 @@
+5.06.04
+
+Handle `ERROR: 400: invalidArgument - Request contains an invalid argument.` in `gam print|show alerts`.
+
 5.06.03
 
 Added option `lograndompassword <FileName>` to `gam create|update user`. When this option
