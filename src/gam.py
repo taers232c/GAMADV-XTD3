@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.06.04'
+__version__ = '5.06.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -12439,7 +12439,7 @@ def doPrintOrgs():
                         pageToken=pageToken,
                         customer=GC.Values[GC.CUSTOMER_ID], query=orgUnitPathQuery(orgUnitPath, None),
                         fields='nextPageToken,users(orgUnitPath,suspended)', maxResults=GC.Values[GC.USER_MAX_RESULTS])
-      except (GAPI.badRequest, GAPI.invalidInput, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError,
+      except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.invalidInput, GAPI.badRequest, GAPI.backendError,
               GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
         checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, orgUnitPath)
         break
@@ -12463,12 +12463,14 @@ def doPrintOrgs():
       while True:
         try:
           feed = callGAPI(cd.chromeosdevices(), 'list', 'chromeosdevices',
-                          throw_reasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                          throw_reasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
+                                         GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                           pageToken=pageToken,
                           customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=orgUnitPath,
                           fields='nextPageToken,chromeosdevices(status)', maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
-        except (GAPI.badRequest, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.resourceNotFound, GAPI.forbidden):
-          checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, orgUnit)
+        except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.invalidInput, GAPI.badRequest, GAPI.backendError,
+                GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
+          checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, orgUnitPath)
           break
         pageToken, totalItems = _processGAPIpagesResult(feed, 'chromeosdevices', None, totalItems, page_message, None, Ent.CROS_DEVICE)
         if feed:

@@ -1,3 +1,7 @@
+5.06.05
+
+Handle trap in `gam print orgs mincroscount|minusercount` when an OU with a trailing space in the name is encountered.
+
 5.06.04
 
 Handle `ERROR: 400: invalidArgument - Request contains an invalid argument.` in `gam print|show alerts`.
