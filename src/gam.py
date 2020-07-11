@@ -24818,7 +24818,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
     return crypt(password)
 
   def _getPassword():
-      return getString(Cmd.OB_PASSWORD, minLen=1 if not ignoreNullPassword else 0, maxLen=100)
+    return getString(Cmd.OB_PASSWORD, minLen=1 if not ignoreNullPassword else 0, maxLen=100)
 
   def _finalizePassword(body, notify, up):
     if not notify[up]:
