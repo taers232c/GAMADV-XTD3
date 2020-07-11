@@ -1,6 +1,13 @@
 5.06.05
 
-Handle trap in `gam print orgs mincroscount|minusercount` when an OU with a trailing space in the name is encountered.
+Added option `timerangeorder ascending|descending` to `gam print cros|crosactivity`. By default, the
+Google Directory API returns `activeTimeRanges` for CrOS devices in ascending (oldest to newest) order.
+Specifying `timerangeorder descending` causes GAM to re-order `activeTimeRanges` in descending (newest to oldest) order.
+This makes it easy to get the `N` most recent values with `activetimeranges listlimit N timerangeorder descending`.
+
+Added option `ignorenullpassword` to `gam create|update user` to cause GAM to ignore options like `password ""` or
+`password ~password` where the CSV entry `password` is null. This would typically be used when processing CSV files
+where only selected user's passwords are being updated.
 
 5.06.04
 

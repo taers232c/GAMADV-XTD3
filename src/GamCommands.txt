@@ -1336,7 +1336,7 @@ gam <CrOSTypeEntity> update action <CrOSAction> [acknowledge_device_touch_requir
 gam info cros <CrOSEntity> [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
         [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
-gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
+gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
         [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
 
@@ -1348,7 +1348,7 @@ gam print cros [todrive <ToDriveAttribute>*]
         [(query <QueryCrOS>)|(queries <QueryCrOSList>)] [limittoou <OrgUnitItem>]
         (querytime.* <Time>)*
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
-        [nolists|(<CrOSListFieldName>* [onerow]) [listlimit <Number>] [start <Date>] [end <Date>]
+        [nolists|(<CrOSListFieldName>* [onerow]) [listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
         [sortheaders] [formatjson] [quotechar <Character>]
 
@@ -1356,13 +1356,13 @@ Print fields for specified CrOS devices.
 
 gam print cros [todrive <ToDriveAttribute>*] select <CrOSTypeEntity>
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
-        [nolists|(<CrOSListFieldName>* [onerow]) [listlimit <Number>] [start <Date>] [end <Date>]
+        [nolists|(<CrOSListFieldName>* [onerow]) [listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
         [sortheaders] [formatjson] [quotechar <Character>]
 
 gam <CrOSTypeEntity> print cros [todrive <ToDriveAttribute>*]
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
-        [nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>] [start <Date>] [end <Date>]
+        [nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
         [sortheaders] [formatjson] [quotechar <Character>]
 
@@ -1391,19 +1391,19 @@ gam print crosactivity [todrive <ToDriveAttribute>*]
         [(query <QueryCrOS>)|(queries <QueryCrOSList>)] [limittoou <OrgUnitItem>]
         (querytime.* <Time>)*
         [orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [both] [devicefiles] [all]
-        [listlimit <Number>] [start <Date>] [end <Date>]
+        [listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
         [delimiter <Character>] [formatjson] [quotechar <Character>]
 
 Print activity for specified CrOS devices.
 
 gam print crosactivity [todrive <ToDriveAttribute>*] select <CroSTypeEntity>
         [orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [both] [devicefiles] [all]
-        [listlimit <Number>] [start <Date>] [end <Date>]
+        [listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
         [delimiter <Character>] [formatjson] [quotechar <Character>]
 
 gam <CrOSTypeEntity> print crosactivity [todrive <ToDriveAttribute>*]
         [orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [both] [devicefiles] [all]
-        [listlimit <Number>] [start <Date>] [end <Date>]
+        [listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
         [delimiter <Character>] [formatjson] [quotechar <Character>]
 
 The basic column headers are: deviceId,annotatedAssetId,annotatedLocation,serialNumber,orgUnitPath.
@@ -3141,7 +3141,7 @@ gam create|add user <EmailAddress> <UserAttribute>*
             [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
              (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
         (replace <Tag> <UserReplacement>)*
-        [lograndompassword <FileName>]
+        [lograndompassword <FileName>] [ignorenullpassword]
 gam update user <UserItem> <UserAttribute>*
         [updateprimaryemail <RegularExpression> <EmailReplacement>]
         [updateoufromgroup <FileName> [charset <CharSet>]
@@ -3154,7 +3154,7 @@ gam update user <UserItem> <UserAttribute>*
             [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
              (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
         (replace <Tag> <UserReplacement>)*
-        [lograndompassword <FileName>]
+        [lograndompassword <FileName>] [ignorenullpassword]
 gam delete user <UserItem>
 gam undelete user <UserItem> [org|ou <OrgUnitPath>]
 gam suspend user <UserItem>
@@ -3173,7 +3173,7 @@ gam update users <UserTypeEntity> <UserAttribute>*
         [notify <EmailAddress>] [subject <String>] [notifypassword <String>]
             [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]|(gdoc <UserGoogleDoc>)
             (replace <Tag> <UserReplacement>)*
-        [lograndompassword <FileName>]
+        [lograndompassword <FileName>] [ignorenullpassword]
 gam delete users <UserTypeEntity>
 gam undelete users <UserEntity> [org|ou <OrgUnitPath>]
 gam suspend users <UserTypeEntity>
@@ -3192,7 +3192,7 @@ gam <UserTypeEntity> update users <UserAttribute>*
         [notify <EmailAddress>] [subject <String>] [notifypassword <String>]
             [message <String>|(file <FileName> [charset <CharSet>])]|(gdoc <UserGoogleDoc>)
             (replace <Tag> <UserReplacement>)*
-        [lograndompassword <FileName>]
+        [lograndompassword <FileName>] [ignorenullpassword]
 gam <UserTypeEntity> delete users
 gam <UserEntity> undelete users [org|ou <OrgUnitPath>]
 gam <UserTypeEntity> suspend users

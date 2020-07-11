@@ -15602,13 +15602,16 @@ def checkTPMVulnerability(cros):
     else:
       cros['tpmVersionInfo']['tpmVulnerability'] = 'NOT IMPACTED'
 
-def _filterActiveTimeRanges(cros, selected, listLimit, startDate, endDate):
+def _filterActiveTimeRanges(cros, selected, listLimit, startDate, endDate, activeTimeRangesOrder):
   if not selected:
     cros.pop('activeTimeRanges', None)
     return []
   filteredItems = []
+  activeTimeRanges = cros.get('activeTimeRanges', [])
+  if activeTimeRangesOrder == 'DESCENDING':
+    activeTimeRanges.reverse()
   i = 0
-  for item in cros.get('activeTimeRanges', []):
+  for item in activeTimeRanges:
     activityDate = datetime.datetime.strptime(item['date'], YYYYMMDD_FORMAT)
     if ((startDate is None) or (activityDate >= startDate)) and ((endDate is None) or (activityDate <= endDate)):
       item['duration'] = formatMilliSeconds(item['activeTime'])
@@ -15799,7 +15802,7 @@ CROS_LISTS_ARGUMENTS = (CROS_ACTIVE_TIME_RANGES_ARGUMENTS+CROS_RECENT_USERS_ARGU
 CROS_START_ARGUMENTS = ['start', 'startdate', 'oldestdate']
 CROS_END_ARGUMENTS = ['end', 'enddate']
 
-# gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
+# gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
 def infoCrOSDevices(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
@@ -15811,6 +15814,7 @@ def infoCrOSDevices(entityList):
   FJQC = FormatJSONQuoteChar()
   listLimit = 0
   startDate = endDate = startTime = endTime = None
+  activeTimeRangesOrder = 'ASCENDING'
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'nolists':
@@ -15821,6 +15825,8 @@ def infoCrOSDevices(entityList):
       startDate, startTime = _getFilterDateTime()
     elif myarg in CROS_END_ARGUMENTS:
       endDate, endTime = _getFilterDateTime()
+    elif myarg == 'timerangeorder':
+      activeTimeRangesOrder = getChoice(SORTORDER_CHOICE_MAP, mapChoice=True)
     elif myarg == 'allfields':
       projection = 'FULL'
       fieldsList = []
@@ -15892,7 +15898,7 @@ def infoCrOSDevices(entityList):
         printKeyValueList([key, value])
       Ind.Decrement()
     if not noLists:
-      activeTimeRanges = _filterActiveTimeRanges(cros, True, listLimit, startDate, endDate)
+      activeTimeRanges = _filterActiveTimeRanges(cros, True, listLimit, startDate, endDate, activeTimeRangesOrder)
       if activeTimeRanges:
         printKeyValueList(['activeTimeRanges'])
         Ind.Increment()
@@ -16141,14 +16147,14 @@ CROS_INDEXED_TITLES = ['activeTimeRanges', 'recentUsers', 'deviceFiles',
 #	[(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
 #	[querytime.* <Time>] [start <Date>] [end <Date>]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]]
-#	[nolists|(<DrOSListFieldName>* [onerow])] [listlimit <Number>]
+#	[nolists|(<DrOSListFieldName>* [onerow])] [listlimit <Number>] [timerangeorder ascending|descending]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
 #	[sortheaders] [formatjson] [quotechar <Character>]
 #
 # gam <CrOSTypeEntity> print cros [todrive <ToDriveAttribute>*]
 #	[start <Date>] [end <Date>]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]]
-#	[nolists|(<DrOSListFieldName>* [onerow])] [listlimit <Number>]
+#	[nolists|(<DrOSListFieldName>* [onerow])] [listlimit <Number>] [timerangeorder ascending|descending]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
 #	[sortheaders] [formatjson] [quotechar <Character>]
 def doPrintCrOSDevices(entityList=None):
@@ -16190,7 +16196,7 @@ def doPrintCrOSDevices(entityList=None):
         attribKey = f'{attrib}.{key}'
         cros[attribKey] = value
       cros.pop(attrib)
-    activeTimeRanges = _filterActiveTimeRanges(cros, selectedLists.get('activeTimeRanges', False), listLimit, startDate, endDate)
+    activeTimeRanges = _filterActiveTimeRanges(cros, selectedLists.get('activeTimeRanges', False), listLimit, startDate, endDate, activeTimeRangesOrder)
     recentUsers = _filterRecentUsers(cros, selectedLists.get('recentUsers', False), listLimit)
     deviceFiles = _filterDeviceFiles(cros, selectedLists.get('deviceFiles', False), listLimit, startTime, endTime)
     cpuStatusReports = _filterCPUStatusReports(cros, selectedLists.get('cpuStatusReports', False), listLimit, startTime, endTime)
@@ -16269,6 +16275,7 @@ def doPrintCrOSDevices(entityList=None):
   selectedLists = {}
   queryTimes = {}
   allFields = noLists = oneRow = sortHeaders = False
+  activeTimeRangesOrder = 'ASCENDING'
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'todrive':
@@ -16294,6 +16301,8 @@ def doPrintCrOSDevices(entityList=None):
       startDate, startTime = _getFilterDateTime()
     elif myarg in CROS_END_ARGUMENTS:
       endDate, endTime = _getFilterDateTime()
+    elif myarg == 'timerangeorder':
+      activeTimeRangesOrder = getChoice(SORTORDER_CHOICE_MAP, mapChoice=True)
     elif myarg in PROJECTION_CHOICE_MAP:
       projection = PROJECTION_CHOICE_MAP[myarg]
       sortHeaders = True
@@ -16405,11 +16414,13 @@ CROS_ACTIVITY_TIME_OBJECTS = {'createTime'}
 # gam print crosactivity [todrive <ToDriveAttribute>*]
 #	[(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
 #	[querytime.* <Time>]
-#	[orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [devicefiles] [both|all] [listlimit <Number>] [start <Date>] [end <Date>]
+#	[orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [both] [devicefiles] [all]
+#	[listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
 #	[delimiter <Character>] [formatjson] [quotechar <Character>]
 #
 # gam <CrOSTypeEntity> print crosactivity [todrive <ToDriveAttribute>*]
-#	[orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [devicefiles] [both|all] [listlimit <Number>] [start <Date>] [end <Date>]
+#	[orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [both] [devicefiles] [all]
+#	[listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
 #	[delimiter <Character>] [formatjson] [quotechar <Character>]
 def doPrintCrOSActivity(entityList=None):
   def _printCrOS(cros):
@@ -16423,7 +16434,7 @@ def doPrintCrOSActivity(entityList=None):
     for attrib in cros:
       if attrib not in {'recentUsers', 'activeTimeRanges', 'deviceFiles'}:
         row[attrib] = cros[attrib]
-    for activeTimeRange in _filterActiveTimeRanges(cros, selectActiveTimeRanges, listLimit, startDate, endDate):
+    for activeTimeRange in _filterActiveTimeRanges(cros, selectActiveTimeRanges, listLimit, startDate, endDate, activeTimeRangesOrder):
       new_row = row.copy()
       for key in ['date', 'duration', 'minutes']:
         new_row[f'activeTimeRanges.{key}'] = activeTimeRange[key]
@@ -16463,6 +16474,7 @@ def doPrintCrOSActivity(entityList=None):
   startDate = endDate = startTime = endTime = None
   queryTimes = {}
   selectActiveTimeRanges = selectDeviceFiles = selectRecentUsers = False
+  activeTimeRangesOrder = 'ASCENDING'
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'todrive':
@@ -16481,6 +16493,8 @@ def doPrintCrOSActivity(entityList=None):
       startDate, startTime = _getFilterDateTime()
     elif myarg in CROS_END_ARGUMENTS:
       endDate, endTime = _getFilterDateTime()
+    elif myarg == 'timerangeorder':
+      activeTimeRangesOrder = getChoice(SORTORDER_CHOICE_MAP, mapChoice=True)
     elif myarg in CROS_ACTIVE_TIME_RANGES_ARGUMENTS:
       selectActiveTimeRanges = True
     elif myarg in CROS_DEVICE_FILES_ARGUMENTS:
@@ -24803,6 +24817,9 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       return sha512_crypt.hash(password, rounds=5000)
     return crypt(password)
 
+  def _getPassword():
+      return getString(Cmd.OB_PASSWORD, minLen=1 if not ignoreNullPassword else 0, maxLen=100)
+
   def _finalizePassword(body, notify, up):
     if not notify[up]:
       notify[up] = body[up] if clearPassword else Msg.CONTACT_ADMINISTRATOR_FOR_PASSWORD
@@ -24836,7 +24853,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
     makeRandomPassword = True
     body['primaryEmail'] = getEmailAddress(noUid=noUid)
   notFoundBody = {}
-  b64DecryptPassword = False
+  b64DecryptPassword = ignoreNullPassword = False
   clearPassword = hashPassword = True
   logPasswordOptions = {'filename': '', 'password': '', 'notFoundPassword': ''}
   notify = {'subject': '', 'message': '', 'html': False, 'charset': UTF8, 'password': ''}
@@ -24855,8 +24872,12 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       notify['message'], notify['charset'], notify['html'] = getStringOrFile(myarg)
     elif myarg == 'html':
       notify['html'] = getBoolean()
+    elif myarg == 'ignorenullpassword':
+      ignoreNullPassword = True
     elif myarg == 'notifypassword':
-      notify['password'] = getString(Cmd.OB_PASSWORD, maxLen=100)
+      password = _getPassword()
+      if password:
+        notify['password'] = password
     elif myarg == 'replace':
       _getTagReplacement(tagReplacements, True)
     elif myarg == 'lograndompassword':
@@ -24874,11 +24895,13 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       groupOrgUnitMap = _getGroupOrgUnitMap()
     elif updateCmd and myarg == 'notfoundpassword':
       up = 'password'
-      notFoundBody[up] = getString(Cmd.OB_PASSWORD, maxLen=100)
-      if notFoundBody[up].lower() == 'random':
-        rnd = SystemRandom()
-        notFoundBody[up] = ''.join(rnd.choice(PASSWORD_SAFE_CHARS) for _ in range(25))
-        logPasswordOptions['notFoundPassword'] = notFoundBody[up]
+      password = _getPassword()
+      if password:
+        notFoundBody[up] = password
+        if notFoundBody[up].lower() == 'random':
+          rnd = SystemRandom()
+          notFoundBody[up] = ''.join(rnd.choice(PASSWORD_SAFE_CHARS) for _ in range(25))
+          logPasswordOptions['notFoundPassword'] = notFoundBody[up]
     elif updateCmd and myarg == 'updateprimaryemail':
       search = getString(Cmd.OB_RE_PATTERN)
       pattern = validateREPattern(search, re.IGNORECASE)
@@ -24912,10 +24935,12 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         body.setdefault('name', {})
         body['name'][up] = getString(Cmd.OB_STRING, minLen=0, maxLen=60)
       elif up == 'password':
-        makeRandomPassword = False
-        body[up] = getString(Cmd.OB_PASSWORD, maxLen=100)
-        if body[up].lower() == 'random':
-          makeRandomPassword = True
+        password = _getPassword()
+        if password:
+          makeRandomPassword = False
+          body[up] = password
+          if body[up].lower() == 'random':
+            makeRandomPassword = True
       elif propertyClass == UProp.PC_BOOLEAN:
         body[up] = getBoolean()
       elif up == 'hashFunction':
