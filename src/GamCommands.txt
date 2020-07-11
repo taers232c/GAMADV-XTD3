@@ -1335,9 +1335,12 @@ gam <CrOSTypeEntity> update action <CrOSAction> [acknowledge_device_touch_requir
 
 gam info cros <CrOSEntity> [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+        [timerangeorder ascending|descending]
         [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
-gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
+
+gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+        [timerangeorder ascending|descending]
         [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
 
 Print fields for selected CrOS devices; use these options to select CrOS devices:
@@ -1348,22 +1351,25 @@ gam print cros [todrive <ToDriveAttribute>*]
         [(query <QueryCrOS>)|(queries <QueryCrOSList>)] [limittoou <OrgUnitItem>]
         (querytime.* <Time>)*
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
-        [nolists|(<CrOSListFieldName>* [onerow]) [listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
+        [nolists|(<CrOSListFieldName>* [onerow]) [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+        [timerangeorder ascending|descending]
         [sortheaders] [formatjson] [quotechar <Character>]
 
 Print fields for specified CrOS devices.
 
 gam print cros [todrive <ToDriveAttribute>*] select <CrOSTypeEntity>
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
-        [nolists|(<CrOSListFieldName>* [onerow]) [listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
+        [nolists|(<CrOSListFieldName>* [onerow]) [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+        [timerangeorder ascending|descending]
         [sortheaders] [formatjson] [quotechar <Character>]
 
 gam <CrOSTypeEntity> print cros [todrive <ToDriveAttribute>*]
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
-        [nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
+        [nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>] [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+        [timerangeorder ascending|descending]
         [sortheaders] [formatjson] [quotechar <Character>]
 
 The first column will always be deviceId; the remaining field names will be sorted if allfields, basic, full or sortheaders is specified;
@@ -1390,19 +1396,22 @@ If none of these options are chosen, all CrOS devices are selected.
 gam print crosactivity [todrive <ToDriveAttribute>*]
         [(query <QueryCrOS>)|(queries <QueryCrOSList>)] [limittoou <OrgUnitItem>]
         (querytime.* <Time>)*
-        [orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [both] [devicefiles] [all]
+        [orderby <CrOSOrderByFieldName> [ascending|descending]]
+        [recentusers] [timeranges] [both] [devicefiles] [all]
         [listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
         [delimiter <Character>] [formatjson] [quotechar <Character>]
 
 Print activity for specified CrOS devices.
 
 gam print crosactivity [todrive <ToDriveAttribute>*] select <CroSTypeEntity>
-        [orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [both] [devicefiles] [all]
+        [orderby <CrOSOrderByFieldName> [ascending|descending]]
+        [recentusers] [timeranges] [both] [devicefiles] [all]
         [listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
         [delimiter <Character>] [formatjson] [quotechar <Character>]
 
 gam <CrOSTypeEntity> print crosactivity [todrive <ToDriveAttribute>*]
-        [orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [both] [devicefiles] [all]
+        [orderby <CrOSOrderByFieldName> [ascending|descending]]
+        [recentusers] [timeranges] [both] [devicefiles] [all]
         [listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
         [delimiter <Character>] [formatjson] [quotechar <Character>]
 
