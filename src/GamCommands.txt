@@ -1692,10 +1692,12 @@ gam course <CourseID> delete alias <CourseAlias>
 gam course <CourseID> create|add topic <CourseTopic>
 gam course <CourseID> delete topic <CourseTopicID>
 
-gam course <CourseID> create|add teachers|students <UserItem>
+gam course <CourseID> create|add teachers [makefirstteacherowner] <UserItem>
+gam course <CourseID> create|add students <UserItem>
 gam course <CourseID> delete|remove teachers|students <UserItem>
 gam course <CourseID> clear teachers|students
-gam course <CourseID> sync teachers|students [addonly|removeonly] <UserTypeEntity>
+gam course <CourseID> sync teachers [addonly|removeonly] [makefirstteacherowner] <UserTypeEntity>
+gam course <CourseID> sync students [addonly|removeonly] <UserTypeEntity>
 
 gam courses <CourseEntity> create|add alias <CourseAliasEntity>
 gam courses <CourseEntity> delete alias <CourseAliasEntity>
@@ -1703,10 +1705,12 @@ gam courses <CourseEntity> delete alias <CourseAliasEntity>
 gam courses <CourseEntity> create|add topic <CourseTopicEntity>
 gam courses <CourseEntity> delete topic <CourseTopicIDEntity>
 
-gam courses <CourseEntity> create|add teachers|students <UserTypeEntity>
+gam courses <CourseEntity> create|add teachers [makefirstteacherowner] <UserTypeEntity>
+gam courses <CourseEntity> create|add students <UserTypeEntity>
 gam courses <CourseEntity> delete|remove teachers|students <UserTypeEntity>
 gam courses <CourseEntity> clear teachers|students
-gam courses <CourseEntity> sync teachers|students [addonly|removeonly] <UserTypeEntity>
+gam courses <CourseEntity> sync teachers [addonly|removeonly] [makefirstteacherowner] <UserTypeEntity>
+gam courses <CourseEntity> sync students [addonly|removeonly] <UserTypeEntity>
 
 gam info course <CourseID> [owneremail] [alias|aliases] [show all|students|teachers] [countsonly]
         [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson]

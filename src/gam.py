@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.06.05'
+__version__ = '5.06.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -197,7 +197,7 @@ SHARED_DRIVES = 'SharedDrives'
 LOWERNUMERIC_CHARS = string.ascii_lowercase+string.digits
 ALPHANUMERIC_CHARS = LOWERNUMERIC_CHARS+string.ascii_uppercase
 URL_SAFE_CHARS = ALPHANUMERIC_CHARS+'-._~'
-PASSWORD_SAFE_CHARS = ALPHANUMERIC_CHARS+string.punctuation+' '
+PASSWORD_SAFE_CHARS = ALPHANUMERIC_CHARS+'!#$%&()* -./:;<=>?@[\\]^_{|}~'
 FILENAME_SAFE_CHARS = ALPHANUMERIC_CHARS+'-_.() '
 ADMIN_ACCESS_OPTIONS = {'adminaccess', 'asadmin'}
 
@@ -28574,6 +28574,20 @@ def _getCoursesOwnerInfo(croom, courseIds, coursesInfo, useAdminAccess):
       except GAPI.forbidden:
         ClientAPIAccessDeniedExit()
 
+def _updateCourseOwner(croom, courseId, owner, i, count):
+  action = Act.Get()
+  Act.Set(Act.UPDATE_OWNER)
+  try:
+    callGAPI(croom.courses(), 'patch',
+             throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION,
+                            GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
+             id=courseId, body={'ownerId': owner}, updateMask='ownerId', fields='id')
+    entityActionPerformed([Ent.COURSE, courseId, Ent.TEACHER, owner], i, count)
+  except (GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition,
+          GAPI.forbidden, GAPI.badRequest, GAPI.invalidArgument) as e:
+    entityActionFailedWarning([Ent.COURSE, courseId, Ent.TEACHER, owner], str(e), i, count)
+  Act.Set(action)
+
 ADD_REMOVE_PARTICIPANT_TYPES_MAP = {
   'alias': Ent.COURSE_ALIAS,
   'aliases': Ent.COURSE_ALIAS,
@@ -28599,11 +28613,15 @@ PARTICIPANT_EN_MAP = {
 # gam course <CourseID> create|add alias <CourseAlias>
 # gam courses <CourseEntity> create|add topic <CourseTopicEntity>
 # gam course <CourseID> create|add topic <CourseTopic>
-# gam courses <CourseEntity> create|add teachers|students <UserTypeEntity>
-# gam course <CourseID> create|add teacher|student <EmailAddress>
+# gam courses <CourseEntity> create|add students <UserTypeEntity>
+# gam course <CourseID> create|add student <EmailAddress>
+# gam courses <CourseEntity> create|add teachers [makefirstteacherowner] <UserTypeEntity>
+# gam course <CourseID> create|add teacher [makefirstteacherowner] <EmailAddress>
 def doCourseAddItems(courseIdList, getEntityListArg):
   croom = buildGAPIObject(API.CLASSROOM)
   role = getChoice(ADD_REMOVE_PARTICIPANT_TYPES_MAP, mapChoice=True)
+  if role == Ent.TEACHER:
+    makeFirstTeacherOwner = checkArgumentPresent(['makefirstteacherowner'])
   coursesInfo = {}
   if not getEntityListArg:
     if role in {Ent.STUDENT, Ent.TEACHER}:
@@ -28623,6 +28641,10 @@ def doCourseAddItems(courseIdList, getEntityListArg):
     else: # role == Ent.COURSE_TOPIC:
       addItems = getEntityList(Cmd.OB_COURSE_TOPIC_ENTITY, shlexSplit=True)
     courseParticipantLists = addItems if isinstance(addItems, dict) else None
+  if courseParticipantLists is None:
+    firstTeacher = None
+    if makeFirstTeacherOwner and addItems:
+      firstTeacher = normalizeEmailAddressOrUID(addItems[0])
   checkForExtraneousArguments()
   _getCoursesOwnerInfo(croom, courseIdList, coursesInfo, role != Ent.COURSE_TOPIC)
   i = 0
@@ -28631,10 +28653,15 @@ def doCourseAddItems(courseIdList, getEntityListArg):
     i += 1
     if courseParticipantLists:
       addItems = courseParticipantLists[courseId]
+      firstTeacher = None
+      if makeFirstTeacherOwner and addItems:
+        firstTeacher = normalizeEmailAddressOrUID(addItems[0])
     courseId = addCourseIdScope(courseId)
     courseInfo = coursesInfo[courseId]
     if courseInfo:
       _batchAddItemsToCourse(courseInfo['croom'], courseId, i, count, addItems, role)
+      if makeFirstTeacherOwner and firstTeacher:
+        _updateCourseOwner(courseInfo['croom'], courseId, firstTeacher, i, count)
 
 # gam courses <CourseEntity> remove alias <CourseAliasEntity>
 # gam course <CourseID> remove alias <CourseAlias>
@@ -28689,11 +28716,15 @@ def doCourseClearParticipants(courseIdList, getEntityListArg):
     removeParticipants = getUsersToModify(PARTICIPANT_EN_MAP[role], courseId)
     _batchRemoveItemsFromCourse(croom, courseId, i, count, removeParticipants, role)
 
-# gam courses <CourseEntity> sync teachers|students [addonly|removeonly] <UserTypeEntity>
-# gam course <CourseID> sync teachers|students [addonly|removeonly] <UserTypeEntity>
+# gam courses <CourseEntity> sync students [addonly|removeonly] <UserTypeEntity>
+# gam course <CourseID> sync students [addonly|removeonly] <UserTypeEntity>
+# gam courses <CourseEntity> sync teachers [addonly|removeonly] [makefirstteacherowner] <UserTypeEntity>
+# gam course <CourseID> sync teachers [addonly|removeonly] [makefirstteacherowner] <UserTypeEntity>
 def doCourseSyncParticipants(courseIdList, getEntityListArg):
   croom = buildGAPIObject(API.CLASSROOM)
   role = getChoice(CLEAR_SYNC_PARTICIPANT_TYPES_MAP, mapChoice=True)
+  if role == Ent.TEACHER:
+    makeFirstTeacherOwner = checkArgumentPresent(['makefirstteacherowner'])
   syncOperation = getChoice(['addonly', 'removeonly'], defaultChoice='addremove')
   _, syncParticipants = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
                                           typeMap={Cmd.ENTITY_COURSEPARTICIPANTS: PARTICIPANT_EN_MAP[role]}, isSuspended=False)
@@ -28701,16 +28732,24 @@ def doCourseSyncParticipants(courseIdList, getEntityListArg):
   courseParticipantLists = syncParticipants if isinstance(syncParticipants, dict) else None
   if courseParticipantLists is None:
     syncParticipantsSet = set()
-    for user in syncParticipants:
-      syncParticipantsSet.add(normalizeEmailAddressOrUID(user))
+    firstTeacher = None
+    if syncParticipants:
+      for user in syncParticipants:
+        syncParticipantsSet.add(normalizeEmailAddressOrUID(user))
+      if makeFirstTeacherOwner:
+        firstTeacher = normalizeEmailAddressOrUID(syncParticipants[0])
   i = 0
   count = len(courseIdList)
   for courseId in courseIdList:
     i += 1
     if courseParticipantLists:
       syncParticipantsSet = set()
-      for user in courseParticipantLists[courseId]:
-        syncParticipantsSet.add(normalizeEmailAddressOrUID(user))
+      firstTeacher = None
+      if courseParticipantLists[courseId]:
+        for user in courseParticipantLists[courseId]:
+          syncParticipantsSet.add(normalizeEmailAddressOrUID(user))
+        if makeFirstTeacherOwner:
+          firstTeacher = normalizeEmailAddressOrUID(courseParticipantLists[courseId][0])
     courseInfo = checkCourseExists(croom, courseId, i, count)
     if courseInfo:
       courseId = courseInfo['id']
@@ -28719,6 +28758,8 @@ def doCourseSyncParticipants(courseIdList, getEntityListArg):
         currentParticipantsSet.add(normalizeEmailAddressOrUID(user))
       if syncOperation != 'removeonly':
         _batchAddItemsToCourse(croom, courseId, i, count, list(syncParticipantsSet-currentParticipantsSet), role)
+      if makeFirstTeacherOwner and firstTeacher:
+        _updateCourseOwner(croom, courseId, firstTeacher, i, count)
       if syncOperation != 'addonly':
         _batchRemoveItemsFromCourse(croom, courseId, i, count, list(currentParticipantsSet-syncParticipantsSet), role)
 

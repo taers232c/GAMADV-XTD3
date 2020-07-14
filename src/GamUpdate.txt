@@ -1,3 +1,15 @@
+5.06.06
+
+Added option `makefirstteacherowner` to the following commands:
+```
+gam course <CourseID> create|add teachers [makefirstteacherowner] <UserItem>
+gam course <CourseID> sync teachers [addonly|removeonly] [makefirstteacherowner] <UserTypeEntity>
+gam courses <CourseEntity> create|add teachers [makefirstteacherowner] <UserTypeEntity>
+gam courses <CourseEntity> sync teachers [addonly|removeonly] [makefirstteacherowner] <UserTypeEntity>
+```
+In each command the only/first user in `<UserItem>` or `<UserTypeEntity>` will be updated to be the
+owner of the Course(s).
+
 5.06.05
 
 Added option `timerangeorder ascending|descending` to `gam print cros|crosactivity`. By default, the
