@@ -1,3 +1,11 @@
+5.06.07
+
+Added option `showtopicnames` to `gam print course-work` which causes gam to include
+the column `topicName` in the output. An additional API call per course is required
+to get the `topicId` to `topicName` map.
+
+Upgraded to Python 3.8.4.
+
 5.06.06
 
 Added option `makefirstteacherowner` to the following commands:

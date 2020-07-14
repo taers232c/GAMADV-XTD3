@@ -1805,7 +1805,7 @@ gam print course-work [todrive <ToDriveAttribute>*]
         (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         (workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)*
         (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
-        [showcreatoremails] [fields <CourseWorkFieldNameList>] [formatjson] [quotechar <Character>]
+        [showcreatoremails] [showtopicnames] [fields <CourseWorkFieldNameList>] [formatjson] [quotechar <Character>]
         [timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 gam print course-submissions [todrive <ToDriveAttribute>*]
         (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])

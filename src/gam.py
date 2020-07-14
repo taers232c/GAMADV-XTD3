@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.06.06'
+__version__ = '5.06.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -28099,9 +28099,23 @@ def _gettingCourseWorkQuery(courseWorkStates):
 #	(course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
 #	(workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)*
 #	(orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
-#	[showcreatoremails] [fields <CourseWorkFieldNameList>] [formatjson] [quotechar <Character>]
+#	[showcreatoremails] [showtopicnames] [fields <CourseWorkFieldNameList>] [formatjson] [quotechar <Character>]
 #	[timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 def doPrintCourseWork():
+  def _getTopicNames(croom, courseId):
+    topicNames = {}
+    try:
+      results = callGAPIpages(croom.courses().topics(), 'list', 'topic',
+                              page_message=getPageMessage(),
+                              throw_reasons=GAPI.COURSE_ACCESS_THROW_REASONS,
+                              courseId=courseId,
+                              fields='nextPageToken,topic(topicId,name)', pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
+      for courseTopic in results:
+       topicNames[courseTopic['topicId']] = courseTopic['name'] 
+    except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+      pass
+    return topicNames
+
   def _printCourseWork(course, courseWork, i, count):
     if applyCourseItemFilter and not _courseItemPassesFilter(courseWork, courseItemFilter):
       return
@@ -28109,6 +28123,10 @@ def doPrintCourseWork():
       courseWork['creatorUserEmail'] = _convertCourseUserIdToEmail(croom, courseWork['creatorUserId'], creatorEmails,
                                                                    [Ent.COURSE, course['id'], Ent.COURSE_WORK_ID, courseWork['id'],
                                                                     Ent.CREATOR_ID, courseWork['creatorUserId']], i, count)
+    if showTopicNames:
+      topicId = courseWork.get('topicId')
+      if topicId:
+        courseWork['topicName'] = topicNames.get(topicId, topicId)
     row = flattenJSON(courseWork, flattened={'courseId': course['id'], 'courseName': course['name']}, timeObjects=COURSE_WORK_TIME_OBJECTS)
     if not FJQC.formatJSON:
       csvPF.WriteRowTitles(row)
@@ -28127,7 +28145,7 @@ def doPrintCourseWork():
   courseShowProperties = _initCourseShowProperties(['name'])
   OBY = OrderBy(COURSE_WORK_ORDERBY_CHOICE_MAP)
   creatorEmails = {}
-  showCreatorEmail = False
+  showCreatorEmail = showTopicNames = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'todrive':
@@ -28142,12 +28160,16 @@ def doPrintCourseWork():
       OBY.GetChoice()
     elif myarg in {'showcreatoremails', 'creatoremail'}:
       showCreatorEmail = True
+    elif myarg == 'showtopicnames':
+      showTopicNames = True
     elif getFieldsList(myarg, COURSE_WORK_FIELDS_CHOICE_MAP, fieldsList, 'id'):
       pass
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if showCreatorEmail and fieldsList:
     fieldsList.append('creatorUserId')
+  if showTopicNames and fieldsList:
+    fieldsList.append('topicId')
   coursesInfo = _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties)
   if coursesInfo is None:
     return
@@ -28159,6 +28181,8 @@ def doPrintCourseWork():
   for course in coursesInfo:
     i += 1
     courseId = course['id']
+    if showTopicNames:
+      topicNames = _getTopicNames(croom, courseId)
     if courseWorkIdsLists:
       courseWorkIds = courseWorkIdsLists[courseId]
     if not courseWorkIds:
@@ -28582,10 +28606,10 @@ def _updateCourseOwner(croom, courseId, owner, i, count):
              throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION,
                             GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
              id=courseId, body={'ownerId': owner}, updateMask='ownerId', fields='id')
-    entityActionPerformed([Ent.COURSE, courseId, Ent.TEACHER, owner], i, count)
+    entityActionPerformed([Ent.COURSE, removeCourseIdScope(courseId), Ent.TEACHER, owner], i, count)
   except (GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition,
           GAPI.forbidden, GAPI.badRequest, GAPI.invalidArgument) as e:
-    entityActionFailedWarning([Ent.COURSE, courseId, Ent.TEACHER, owner], str(e), i, count)
+    entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId), Ent.TEACHER, owner], str(e), i, count)
   Act.Set(action)
 
 ADD_REMOVE_PARTICIPANT_TYPES_MAP = {
