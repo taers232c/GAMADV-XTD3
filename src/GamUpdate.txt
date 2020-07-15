@@ -1,3 +1,7 @@
+5.06.08
+
+Fixed bug in `gam course <CourseID> sync students` that caused a trap.
+
 5.06.07
 
 Added option `showtopicnames` to `gam print course-work` which causes gam to include

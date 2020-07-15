@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.06.07'
+__version__ = '5.06.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -28646,6 +28646,8 @@ def doCourseAddItems(courseIdList, getEntityListArg):
   role = getChoice(ADD_REMOVE_PARTICIPANT_TYPES_MAP, mapChoice=True)
   if role == Ent.TEACHER:
     makeFirstTeacherOwner = checkArgumentPresent(['makefirstteacherowner'])
+  else:
+    makeFirstTeacherOwner = False
   coursesInfo = {}
   if not getEntityListArg:
     if role in {Ent.STUDENT, Ent.TEACHER}:
@@ -28749,6 +28751,8 @@ def doCourseSyncParticipants(courseIdList, getEntityListArg):
   role = getChoice(CLEAR_SYNC_PARTICIPANT_TYPES_MAP, mapChoice=True)
   if role == Ent.TEACHER:
     makeFirstTeacherOwner = checkArgumentPresent(['makefirstteacherowner'])
+  else:
+    makeFirstTeacherOwner = False
   syncOperation = getChoice(['addonly', 'removeonly'], defaultChoice='addremove')
   _, syncParticipants = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
                                           typeMap={Cmd.ENTITY_COURSEPARTICIPANTS: PARTICIPANT_EN_MAP[role]}, isSuspended=False)
