@@ -2,6 +2,8 @@
 
 Fixed bug in `gam course <CourseID> sync students` that caused a trap.
 
+Handle `LookupError: unknown encoding` trap in `gam print messages`.
+
 5.06.07
 
 Added option `showtopicnames` to `gam print course-work` which causes gam to include

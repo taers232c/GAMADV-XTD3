@@ -28111,8 +28111,8 @@ def doPrintCourseWork():
                               courseId=courseId,
                               fields='nextPageToken,topic(topicId,name)', pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
       for courseTopic in results:
-       topicNames[courseTopic['topicId']] = courseTopic['name'] 
-    except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+        topicNames[courseTopic['topicId']] = courseTopic['name']
+    except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument):
       pass
     return topicNames
 
@@ -43653,7 +43653,11 @@ def printShowMessagesThreads(users, entityType):
       mg = HEADER_ENCODE_PATTERN.search(header)
       if not mg:
         return header
-      header = header[:mg.start()]+decode_header(mg.group())[0][0].decode(mg.group(1))+header[mg.end():]
+      try:
+        header = header[:mg.start()]+decode_header(mg.group())[0][0].decode(mg.group(1))+header[mg.end():]
+      except LookupError:
+        stderrWarningMsg(Msg.INVALID_CHARSET.format(mg.group(1)))
+        return header
 
   def _getBodyData(payload, getOrigMsg):
     data = headers = ''
