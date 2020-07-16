@@ -1,3 +1,7 @@
+5.06.09
+
+Handle `ERROR: 500: internalError - Internal error encountered.` in `gam <UserTypeEntity> update license`.
+
 5.06.08
 
 Fixed bug in `gam course <CourseID> sync students` that caused a trap.
