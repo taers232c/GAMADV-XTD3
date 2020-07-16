@@ -28054,6 +28054,7 @@ COURSE_WORK_FIELDS_CHOICE_MAP = {
   'creatoruserid': 'creatorUserId',
   'description': 'description',
   'duedate': 'dueDate',
+  'duetime': 'dueTime',
   'id': 'id',
   'materials': 'materials',
   'maxpoints': 'maxPoints',

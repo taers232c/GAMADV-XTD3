@@ -1756,6 +1756,7 @@ gam print course-participants [todrive <ToDriveAttribute>*]
         creator|creatoruserid|
         description|
         duedate|
+        duetime|
         id|
         materials|
         maxpoints|
