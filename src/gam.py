@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.06.09'
+__version__ = '5.06.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -28107,7 +28107,6 @@ def doPrintCourseWork():
     topicNames = {}
     try:
       results = callGAPIpages(croom.courses().topics(), 'list', 'topic',
-                              page_message=getPageMessage(),
                               throw_reasons=GAPI.COURSE_ACCESS_THROW_REASONS,
                               courseId=courseId,
                               fields='nextPageToken,topic(topicId,name)', pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])

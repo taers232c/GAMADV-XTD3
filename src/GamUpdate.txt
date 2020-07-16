@@ -1,3 +1,7 @@
+5.06.10
+
+Fixed bug that caused trap in `gam print course-work ... showtopicnames`.
+
 5.06.09
 
 Handle `ERROR: 500: internalError - Internal error encountered.` in `gam <UserTypeEntity> update license`.
