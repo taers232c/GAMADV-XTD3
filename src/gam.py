@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.06.10'
+__version__ = '5.06.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -9541,7 +9541,7 @@ REPORT_ACTIVITIES_TIME_OBJECTS = {'time'}
 #	[filtertime.* <Time>] [filter|filters <String>]
 #	[event|events <EventNameList>] [ip <String>]
 #	[maxactivities <Number>] [maxresults <Number>]
-#	[countsonly] [summary]
+#	[countsonly [summary] [eventrowfilter]]
 # gam report users|user [todrive <ToDriveAttribute>*]
 #	[(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
 #	[(date <Date>)|(range <Date> <Date>)] [nodatechange | (fulldatarequired all|<UserServiceNameList>)]
@@ -9745,7 +9745,7 @@ def doReport():
   filterTimes = {}
   maxActivities = 0
   maxResults = 1000
-  aggregateUserUsage = countsOnly = exitUserLoop = noAuthorizedApps = noDateChange = normalizeUsers = select = summary = userCustomerRange = False
+  aggregateUserUsage = countsOnly = eventRowFilter = exitUserLoop = noAuthorizedApps = noDateChange = normalizeUsers = select = summary = userCustomerRange = False
   userKey = 'all'
   customerReports = report == 'customer'
   userReports = report == 'user'
@@ -9806,6 +9806,8 @@ def doReport():
       countsOnly = True
     elif activityReports and myarg == 'summary':
       summary = True
+    elif activityReports and myarg == 'eventrowfilter':
+      eventRowFilter = True
     elif not customerReports and myarg.startswith('filtertime'):
       filterTimes[myarg] = getTimeOrDeltaFromNow()
     elif not customerReports and myarg in {'filter', 'filters'}:
@@ -10008,7 +10010,8 @@ def doReport():
           accessErrorExit(None)
         for activity in feed:
           events = activity.pop('events')
-          if not countsOnly:
+          actor = activity['actor'].get('email', activity['actor'].get('key', 'Unknown'))
+          if not countsOnly or eventRowFilter:
             activity_row = flattenJSON(activity, timeObjects=REPORT_ACTIVITIES_TIME_OBJECTS)
             purge_parameters = True
             for event in events:
@@ -10047,9 +10050,17 @@ def doReport():
                 event.pop('parameters', None)
               row = flattenJSON(event)
               row.update(activity_row)
+            if not countsOnly:
               csvPF.WriteRowTitles(row)
+            elif not csvPF.rowFilter or csvPF.CheckRowTitles(row):
+              if not summary:
+                eventCounts.setdefault(actor, {})
+                eventCounts[actor].setdefault(event['name'], 0)
+                eventCounts[actor][event['name']] += 1
+              else:
+                eventCounts.setdefault(event['name'], 0)
+                eventCounts[event['name']] += 1
           elif not summary:
-            actor = activity['actor'].get('email', activity['actor'].get('key', 'Unknown'))
             eventCounts.setdefault(actor, {})
             for event in events:
               eventCounts[actor].setdefault(event['name'], 0)
@@ -10060,18 +10071,21 @@ def doReport():
               eventCounts[event['name']] += 1
     if not countsOnly:
       csvPF.SetSortTitles(['name'])
-    elif not summary:
-      csvPF.AddTitles('emailAddress')
-      for actor, events in iter(eventCounts.items()):
-        row = {'emailAddress': actor}
-        for event, count in iter(events.items()):
-          row[event] = count
-        csvPF.WriteRowTitles(row)
-      csvPF.SetSortTitles(['emailAddress'])
     else:
-      csvPF.AddTitles(['event', 'count'])
-      for event in sorted(eventCounts):
-        csvPF.WriteRow({'event': event, 'count': eventCounts[event]})
+      if eventRowFilter:
+        csvPF.SetRowFilter([])
+      if not summary:
+        csvPF.SetTitles('emailAddress')
+        for actor, events in iter(eventCounts.items()):
+          row = {'emailAddress': actor}
+          for event, count in iter(events.items()):
+            row[event] = count
+          csvPF.WriteRowTitles(row)
+        csvPF.SetSortTitles(['emailAddress'])
+      else:
+        csvPF.SetTitles(['event', 'count'])
+        for event in sorted(eventCounts):
+          csvPF.WriteRow({'event': event, 'count': eventCounts[event]})
     csvPF.writeCSVfile(f'{report.capitalize()} Activity Report')
 
 # Substitute for #user#, #email#, #usernamne#

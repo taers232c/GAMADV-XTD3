@@ -1,3 +1,19 @@
+5.06.11
+
+Added option `eventrowfilter` to `gam report <ActivityApplictionName> ... countsonly` that causes
+GAM to apply `config csv_output_row_filter` to the event details rather than the event counts.
+For example, you're interested in files with extension `xyz` created yesterday.
+```
+Details for each file
+gam config csv_output_row_filter "doc_title:regex:\.xyz" report drive event create yesterday
+
+Number of files by each user
+gam config csv_output_row_filter "doc_title:regex:\.xyz" report drive event create yesterday countsonly eventrowfilter
+
+Number of files summarized across all users
+gam config csv_output_row_filter "doc_title:regex:\.xyz" report drive event create yesterday countsonly summary eventrowfilter
+```
+
 5.06.10
 
 Fixed bug that caused trap in `gam print course-work ... showtopicnames`.
