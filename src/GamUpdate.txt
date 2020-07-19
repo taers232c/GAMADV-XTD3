@@ -1,3 +1,7 @@
+5.06.12
+
+Fixed bug in `gam sendemail` where PDF attachements weren't properly encoded.
+
 5.06.11
 
 Added option `eventrowfilter` to `gam report <ActivityApplictionName> ... countsonly` that causes

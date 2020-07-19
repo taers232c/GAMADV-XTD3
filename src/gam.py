@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.06.11'
+__version__ = '5.06.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -35,6 +35,7 @@ import datetime
 from email.charset import add_charset, QP
 from email.generator import Generator
 from email.header import decode_header, Header
+from email.mime.application import MIMEApplication
 from email.mime.audio import MIMEAudio
 from email.mime.base import MIMEBase
 from email.mime.image import MIMEImage
@@ -5386,6 +5387,8 @@ def _addAttachmentsToMessage(message, attachments):
         msg = MIMEImage(readFile(attachFilename, 'rb'), _subtype=sub_type)
       elif main_type == 'audio':
         msg = MIMEAudio(readFile(attachFilename, 'rb'), _subtype=sub_type)
+      elif main_type == 'application':
+        msg = MIMEApplication(readFile(attachFilename, 'rb'), _subtype=sub_type)
       else:
         msg = MIMEBase(main_type, sub_type)
         msg.set_payload(readFile(attachFilename, 'rb'))
@@ -10475,7 +10478,7 @@ def _processTagReplacements(tagReplacements, message):
       pos = start+1
   return message
 
-def sendCreateUpdateUserNotification(body, notify, tagReplacements, i=0, count=0, msgFrom=None, createMessage=True):
+def sendCreateUpdateUserNotification(body, basenotify, tagReplacements, i=0, count=0, msgFrom=None, createMessage=True):
   def _makeSubstitutions(field):
     notify[field] = _substituteForUser(notify[field], body['primaryEmail'], userName)
     notify[field] = notify[field].replace('#domain#', domain)
@@ -10484,6 +10487,7 @@ def sendCreateUpdateUserNotification(body, notify, tagReplacements, i=0, count=0
     notify[field] = notify[field].replace('#password#', notify['password'])
 
   userName, domain = splitEmailAddress(body['primaryEmail'])
+  notify = basenotify.copy()
   if not notify['subject']:
     notify['subject'] = Msg.CREATE_USER_NOTIFY_SUBJECT if createMessage else Msg.UPDATE_USER_PASSWORD_CHANGE_NOTIFY_SUBJECT
   _makeSubstitutions('subject')
