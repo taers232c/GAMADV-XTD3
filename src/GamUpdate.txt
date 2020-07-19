@@ -1,3 +1,15 @@
+5.07.00
+
+In versions of GAM before `5.07.00`, when you did `gam <UserTypeEntity> update users password random`
+and `<UserTypeEntity>` specified multiple users, all of them were assigned the same random password;
+this is the same behavior as in Standard GAM. Additionally, there was a bug where the same notification
+information was sent for all users when `notify <EmailAddress>` was specified; this is fixed.
+
+If you would like each of the users in `<UserTypeEntity>` to be assigned a unique random password, specify `password uniquerandom`.
+
+Added option `no_action_if_alias` to `gam <UserTypeEntity> update|delete|suspend|unsuspend users`; the specified action
+will not be performed if `<UserTypeEntity>` specifies an alias rather than a primary email address.
+
 5.06.12
 
 Fixed bug in `gam sendemail` where PDF attachements weren't properly encoded.

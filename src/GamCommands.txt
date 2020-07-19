@@ -3082,7 +3082,7 @@ gam show vaultholds|holds [matters <MatterItemList>]
                                             (file|htmlfile <FileName> [charset <Charset>])|
                                             (gdoc|ghtml <UserGoogleDoc>)))|
         (org|ou|orgunitpath <OrgUnitPath>)
-        (password random|<Password>)|
+        (password random|uniquerandom|<Password>)|
         (recoveryemail <EmailAddress>)|
         (recoveryphone <string>)|
         (suspended <Boolean>)|
@@ -3149,14 +3149,14 @@ gam show vaultholds|holds [matters <MatterItemList>]
         <UserMultiAttribute>|
         <UserClearAttribute>
 
-gam create|add user <EmailAddress> <UserAttribute>*
+gam create|add user <EmailAddress> [ignorenullpassword] <UserAttribute>*
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
         [notify <EmailAddress>] [subject <String>] [notifypassword <String>]
             [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
              (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
         (replace <Tag> <UserReplacement>)*
-        [lograndompassword <FileName>] [ignorenullpassword]
-gam update user <UserItem> <UserAttribute>*
+        [lograndompassword <FileName>]
+gam update user <UserItem> [ignorenullpassword] <UserAttribute>* [noactionifalias]
         [updateprimaryemail <RegularExpression> <EmailReplacement>]
         [updateoufromgroup <FileName> [charset <CharSet>]
             [columndelimiter <Character>] [quotechar <Character>]
@@ -3168,16 +3168,16 @@ gam update user <UserItem> <UserAttribute>*
             [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
              (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
         (replace <Tag> <UserReplacement>)*
-        [lograndompassword <FileName>] [ignorenullpassword]
-gam delete user <UserItem>
+        [lograndompassword <FileName>]
+gam delete user <UserItem> [noactionifalias]
 gam undelete user <UserItem> [org|ou <OrgUnitPath>]
-gam suspend user <UserItem>
-gam unsuspend user <UserItem>
+gam suspend user <UserItem> [noactionifalias]
+gam unsuspend user <UserItem> [noactionifalias]
 gam info user [<UserItem>] [quick] [noaliases] [nogroups] [nolicenses|nolicences]
         [noschemas|(schemas|custom <SchemaNameList>)|(customschemas <SchemaNameList>)]
         [userview] <UserFieldName>* [fields <UserFieldNameList>] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
 
-gam update users <UserTypeEntity> <UserAttribute>*
+gam update users <UserTypeEntity> [ignorenullpassword] <UserAttribute>* [noactionifalias]
         [updateprimaryemail <RegularExpression> <EmailReplacement>]
         [updateoufromgroup <FileName> [charset <CharSet>]
             [columndelimiter <Character>] [quotechar <Character>]
@@ -3187,16 +3187,16 @@ gam update users <UserTypeEntity> <UserAttribute>*
         [notify <EmailAddress>] [subject <String>] [notifypassword <String>]
             [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]|(gdoc <UserGoogleDoc>)
             (replace <Tag> <UserReplacement>)*
-        [lograndompassword <FileName>] [ignorenullpassword]
-gam delete users <UserTypeEntity>
+        [lograndompassword <FileName>]
+gam delete users <UserTypeEntity> [noactionifalias]
 gam undelete users <UserEntity> [org|ou <OrgUnitPath>]
-gam suspend users <UserTypeEntity>
-gam unsuspend users <UserTypeEntity>
+gam suspend users <UserTypeEntity> [noactionifalias]
+gam unsuspend users <UserTypeEntity> [noactionifalias]
 gam info users <UserTypeEntity> [quick] [noaliases] [nogroups] [nolicenses|nolicences]
         [noschemas|(schemas|custom <SchemaNameList>)|(customschemas <SchemaNameList>)]
         [userview] <UserFieldName>* [fields <UserFieldNameList>] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
 
-gam <UserTypeEntity> update users <UserAttribute>*
+gam <UserTypeEntity> update users [ignorenullpassword] <UserAttribute>* [noactionifalias]
         [updateprimaryemail <RegularExpression> <EmailReplacement>]
         [updateoufromgroup <FileName> [charset <CharSet>]
             [columndelimiter <Character>] [quotechar <Character>]
@@ -3206,11 +3206,11 @@ gam <UserTypeEntity> update users <UserAttribute>*
         [notify <EmailAddress>] [subject <String>] [notifypassword <String>]
             [message <String>|(file <FileName> [charset <CharSet>])]|(gdoc <UserGoogleDoc>)
             (replace <Tag> <UserReplacement>)*
-        [lograndompassword <FileName>] [ignorenullpassword]
-gam <UserTypeEntity> delete users
+        [lograndompassword <FileName>]
+gam <UserTypeEntity> delete users [noactionifalias]
 gam <UserEntity> undelete users [org|ou <OrgUnitPath>]
-gam <UserTypeEntity> suspend users
-gam <UserTypeEntity> unsuspend users
+gam <UserTypeEntity> suspend users [noactionifalias]
+gam <UserTypeEntity> unsuspend users [noactionifalias]
 gam <UserTypeEntity> info users [quick] [noaliases] [nogroups] [nolicenses|nolicences]
         [noschemas|(schemas|custom <SchemaNameList>)|(customschemas <SchemaNameList>)]
         [userview] <UserFieldName>* [fields <UserFieldNameList>] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]

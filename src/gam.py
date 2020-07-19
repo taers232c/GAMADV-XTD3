@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.06.12'
+__version__ = '5.07.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -24656,6 +24656,115 @@ def _getGroupOrgUnitMap():
   closeFile(f)
   return groupOrgUnitMap
 
+class PasswordOptions():
+  def __init__(self, updateCmd):
+    self.password = ''
+    self.notFoundPassword = ''
+    self.b64DecryptPassword = False
+    self.clearPassword = True
+    self.hashPassword = True
+    self.ignoreNullPassword = False
+    self.makeRandomPassword = not updateCmd
+    self.makeUniqueRandomPassword = False
+    self.notifyPasswordSet = False
+    self.updateCmd = updateCmd
+    self.filename = ''
+
+  def GetPassword(self):
+    return getString(Cmd.OB_PASSWORD, minLen=1 if not self.ignoreNullPassword else 0, maxLen=100)
+
+  def ProcessArgument(self, myarg, notify, notFoundBody):
+    if myarg == 'ignorenullpassword':
+      self.ignoreNullPassword = True
+    elif myarg == 'notifypassword':
+      password = self.GetPassword()
+      if password:
+        notify['password'] = password
+        self.notifyPasswordSet = True
+    elif myarg == 'nohash':
+      self.hashPassword = False
+    elif self.updateCmd and myarg == 'notfoundpassword':
+      up = 'password'
+      password = self.GetPassword()
+      if password:
+        notFoundBody[up] = password
+        if notFoundBody[up].lower() in {'random', 'uniquerandom'}:
+          rnd = SystemRandom()
+          notFoundBody[up] = ''.join(rnd.choice(PASSWORD_SAFE_CHARS) for _ in range(25))
+          self.notFoundPassword = notFoundBody[up]
+    elif myarg == 'lograndompassword':
+      self.filename = getString(Cmd.OB_FILE_NAME)
+    else:
+      return False
+    return True
+
+  HASH_FUNCTION_MAP = {
+    'base64-md5': 'MD5',
+    'base64-sha1': 'SHA-1',
+    'crypt': 'crypt',
+    'md5': 'MD5',
+    'sha': 'SHA-1',
+    'sha-1': 'SHA-1',
+    'sha1': 'SHA-1',
+    }
+
+  def ProcessPropertyArgument(self, myarg, up, body):
+    if up == 'password':
+      password = self.GetPassword()
+      if password:
+        body[up] = password
+        self.makeRandomPassword = self.makeUniqueRandomPassword = False
+        if password.lower() == 'random':
+          self.makeRandomPassword = True
+        elif password.lower() == 'uniquerandom':
+          if self.updateCmd:
+            self.makeUniqueRandomPassword = True
+          else:
+            self.makeRandomPassword = True
+    elif up == 'hashFunction':
+      body[up] = self.HASH_FUNCTION_MAP[myarg]
+      self.clearPassword = self.hashPassword = False
+      self.b64DecryptPassword = myarg.startswith('base64')
+    else:
+      return False
+    return True
+
+  def FinalizePassword(self, body, notify, up):
+    if not self.notifyPasswordSet:
+      notify[up] = body[up] if self.clearPassword else Msg.CONTACT_ADMINISTRATOR_FOR_PASSWORD
+    if self.hashPassword:
+      if platform.system() == 'Windows':
+        body[up] = sha512_crypt.hash(body[up], rounds=5000)
+      else:
+        body[up] = crypt(body[up])
+      body['hashFunction'] = 'crypt'
+    elif self.b64DecryptPassword:
+      if body[up].lower()[:5] in ['{md5}', '{sha}']:
+        body[up] = body[up][5:]
+      body[up] = base64.b64decode(body[up]).hex()
+
+  def AssignPassword(self, body, notify, notFoundBody, createIfNotFound):
+    up = 'password'
+    if self.makeRandomPassword or self.makeUniqueRandomPassword:
+      rnd = SystemRandom()
+      body[up] = ''.join(rnd.choice(PASSWORD_SAFE_CHARS) for _ in range(25))
+      self.password = body[up]
+    if up in body:
+      self.FinalizePassword(body, notify, up)
+    elif 'hashFunction' in body:
+      body.pop('hashFunction')
+    if createIfNotFound:
+      if not notFoundBody:
+        if up in body:
+          notFoundBody = {up: body[up]}
+          if 'hashfunction' in body:
+            notFoundBody['hashfunction'] = body['hashFunction']
+          notify['notFoundPassword'] = notify[up]
+          self.notFoundPassword = self.password
+      else:
+        notify['notFoundPassword'] = notify[up] if notify[up] else notFoundBody[up] if self.clearPassword else Msg.CONTACT_ADMINISTRATOR_FOR_PASSWORD
+        self.FinalizePassword(notFoundBody, notify, up)
+
 UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP = {
   'address': 'addresses',
   'addresses': 'addresses',
@@ -24718,16 +24827,6 @@ UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP = {
   'username': 'primaryEmail',
   'website': 'websites',
   'websites': 'websites',
-  }
-
-HASH_FUNCTION_MAP = {
-  'base64-md5': 'MD5',
-  'base64-sha1': 'SHA-1',
-  'crypt': 'crypt',
-  'md5': 'MD5',
-  'sha': 'SHA-1',
-  'sha-1': 'SHA-1',
-  'sha1': 'SHA-1',
   }
 
 ADDRESS_ARGUMENT_TO_FIELD_MAP = {
@@ -24830,25 +24929,6 @@ def getUserAttributes(cd, updateCmd, noUid=False):
               usageErrorExit(Msg.MULTIPLE_ITEMS_MARKED_PRIMARY.format(itemName))
       body[itemName].append(itemValue)
 
-  def gen_sha512_hash(password):
-    if platform.system() == 'Windows':
-      return sha512_crypt.hash(password, rounds=5000)
-    return crypt(password)
-
-  def _getPassword():
-    return getString(Cmd.OB_PASSWORD, minLen=1 if not ignoreNullPassword else 0, maxLen=100)
-
-  def _finalizePassword(body, notify, up):
-    if not notify[up]:
-      notify[up] = body[up] if clearPassword else Msg.CONTACT_ADMINISTRATOR_FOR_PASSWORD
-    if hashPassword:
-      body[up] = gen_sha512_hash(body[up])
-      body['hashFunction'] = 'crypt'
-    elif b64DecryptPassword:
-      if body[up].lower()[:5] in ['{md5}', '{sha}']:
-        body[up] = body[up][5:]
-      body[up] = base64.b64decode(body[up]).hex()
-
   def _splitSchemaNameDotFieldName(sn_fn, fnRequired=True):
     if sn_fn.find('.') != -1:
       schemaName, fieldName = sn_fn.split('.', 1)
@@ -24862,24 +24942,20 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         return (schemaName, None)
     invalidArgumentExit(Cmd.OB_SCHEMA_NAME_FIELD_NAME)
 
-  createIfNotFound = False
+  createIfNotFound = noActionIfAlias = False
   if updateCmd:
     body = {}
-    makeRandomPassword = False
   else:
     body = {'name': {'givenName': 'Unknown', 'familyName': 'Unknown'}}
-    makeRandomPassword = True
     body['primaryEmail'] = getEmailAddress(noUid=noUid)
   notFoundBody = {}
-  b64DecryptPassword = ignoreNullPassword = False
-  clearPassword = hashPassword = True
-  logPasswordOptions = {'filename': '', 'password': '', 'notFoundPassword': ''}
   notify = {'subject': '', 'message': '', 'html': False, 'charset': UTF8, 'password': ''}
   primary = {}
   updatePrimaryEmail = {}
   groupOrgUnitMap = None
   tagReplacements = _initTagReplacements()
   addGroups = {}
+  PwdOpts = PasswordOptions(updateCmd)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'notify':
@@ -24890,36 +24966,21 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       notify['message'], notify['charset'], notify['html'] = getStringOrFile(myarg)
     elif myarg == 'html':
       notify['html'] = getBoolean()
-    elif myarg == 'ignorenullpassword':
-      ignoreNullPassword = True
-    elif myarg == 'notifypassword':
-      password = _getPassword()
-      if password:
-        notify['password'] = password
+    elif PwdOpts.ProcessArgument(myarg, notify, notFoundBody):
+      pass
     elif myarg == 'replace':
       _getTagReplacement(tagReplacements, True)
-    elif myarg == 'lograndompassword':
-      logPasswordOptions['filename'] = getString(Cmd.OB_FILE_NAME)
     elif myarg == 'admin':
       value = getBoolean()
       if updateCmd or value:
         Cmd.Backup()
         unknownArgumentExit()
-    elif myarg == 'nohash':
-      hashPassword = False
     elif updateCmd and myarg == 'createifnotfound':
       createIfNotFound = True
+    elif updateCmd and myarg == 'noactionifalias':
+      noActionIfAlias = True
     elif updateCmd and myarg == 'updateoufromgroup':
       groupOrgUnitMap = _getGroupOrgUnitMap()
-    elif updateCmd and myarg == 'notfoundpassword':
-      up = 'password'
-      password = _getPassword()
-      if password:
-        notFoundBody[up] = password
-        if notFoundBody[up].lower() == 'random':
-          rnd = SystemRandom()
-          notFoundBody[up] = ''.join(rnd.choice(PASSWORD_SAFE_CHARS) for _ in range(25))
-          logPasswordOptions['notFoundPassword'] = notFoundBody[up]
     elif updateCmd and myarg == 'updateprimaryemail':
       search = getString(Cmd.OB_RE_PATTERN)
       pattern = validateREPattern(search, re.IGNORECASE)
@@ -24952,19 +25013,10 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       elif up == 'familyName':
         body.setdefault('name', {})
         body['name'][up] = getString(Cmd.OB_STRING, minLen=0, maxLen=60)
-      elif up == 'password':
-        password = _getPassword()
-        if password:
-          makeRandomPassword = False
-          body[up] = password
-          if body[up].lower() == 'random':
-            makeRandomPassword = True
+      elif PwdOpts.ProcessPropertyArgument(myarg, up, body):
+        pass
       elif propertyClass == UProp.PC_BOOLEAN:
         body[up] = getBoolean()
-      elif up == 'hashFunction':
-        body[up] = HASH_FUNCTION_MAP[myarg]
-        clearPassword = hashPassword = False
-        b64DecryptPassword = myarg.startswith('base64')
       elif up == 'primaryEmail':
         if updateCmd:
           body[up] = getEmailAddress(noUid=True)
@@ -25239,27 +25291,9 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         body[up][schemaName][fieldName] = getString(Cmd.OB_STRING, minLen=0)
     else:
       unknownArgumentExit()
-  up = 'password'
-  if makeRandomPassword:
-    rnd = SystemRandom()
-    body[up] = ''.join(rnd.choice(PASSWORD_SAFE_CHARS) for _ in range(25))
-    logPasswordOptions['password'] = body[up]
-  if up in body:
-    _finalizePassword(body, notify, up)
-  if createIfNotFound:
-    if not notFoundBody:
-      if up in body:
-        notFoundBody = {up: body[up]}
-        if 'hashfunction' in body:
-          notFoundBody['hashfunction'] = body['hashFunction']
-        notify['notFoundPassword'] = notify[up]
-        logPasswordOptions['notFoundPassword'] = logPasswordOptions['password']
-    else:
-      notify['notFoundPassword'] = notify[up] if notify[up] else notFoundBody[up] if clearPassword else Msg.CONTACT_ADMINISTRATOR_FOR_PASSWORD
-      _finalizePassword(notFoundBody, notify, up)
-  if 'hashFunction' in body and up not in body:
-    body.pop('hashFunction')
-  return (body, notify, tagReplacements, addGroups, updatePrimaryEmail, createIfNotFound, notFoundBody, groupOrgUnitMap, logPasswordOptions)
+  if not PwdOpts.makeUniqueRandomPassword:
+    PwdOpts.AssignPassword(body, notify, notFoundBody, createIfNotFound)
+  return (body, notify, tagReplacements, addGroups, PwdOpts, updatePrimaryEmail, notFoundBody, groupOrgUnitMap, createIfNotFound, noActionIfAlias)
 
 def createUserAddToGroups(cd, user, addGroups, i, count):
   action = Act.Get()
@@ -25273,10 +25307,10 @@ def createUserAddToGroups(cd, user, addGroups, i, count):
 #	    [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
 #	     (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
 #	(replace <Tag> <String>)*
-#	[lograndompassword <FileName>]
+#	[lograndompassword <FileName>] [ignorenullpassword]
 def doCreateUser():
   cd = buildGAPIObject(API.DIRECTORY)
-  body, notify, tagReplacements, addGroups, _, _, _, _, logPasswordOptions = getUserAttributes(cd, False, noUid=True)
+  body, notify, tagReplacements, addGroups, PwdOpts, _, _, _, _, _ = getUserAttributes(cd, False, noUid=True)
   user = body['primaryEmail']
   fields = '*' if tagReplacements['subs'] else 'primaryEmail,name'
   try:
@@ -25287,8 +25321,8 @@ def doCreateUser():
                                      GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
                       body=body, fields=fields)
     entityActionPerformed([Ent.USER, user])
-    if logPasswordOptions['filename'] and logPasswordOptions['password']:
-      writeFile(logPasswordOptions['filename'], f'{user},{logPasswordOptions["password"]}\n', mode='a', continueOnError=True)
+    if PwdOpts.filename and PwdOpts.password:
+      writeFile(PwdOpts.filename, f'{user},{PwdOpts.password}\n', mode='a', continueOnError=True)
     if addGroups:
       createUserAddToGroups(cd, result['primaryEmail'], addGroups, 0, 0)
     if notify.get('emailAddress'):
@@ -25303,7 +25337,24 @@ def doCreateUser():
           GAPI.invalid, GAPI.invalidInput, GAPI.invalidParameter) as e:
     entityActionFailedWarning([Ent.USER, user], str(e))
 
-# gam <UserTypeEntity> update user <UserAttribute>
+def verifyPrimaryEmail(cd, user, createIfNotFound, i, count):
+  try:
+    result = callGAPI(cd.users(), 'get',
+                      throw_reasons=GAPI.USER_GET_THROW_REASONS,
+                      userKey=user, fields='id,primaryEmail')
+    if (result['primaryEmail'].lower() == user) or (result['id'] == user):
+      return True
+    entityActionNotPerformedWarning([Ent.USER, user], Msg.NOT_A_PRIMARY_EMAIL_ADDRESS, i, count)
+    return False
+  except GAPI.userNotFound:
+    if createIfNotFound:
+      return True
+  except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+    pass
+  entityUnknownWarning(Ent.USER, user, i, count)
+  return False
+
+# gam <UserTypeEntity> update user <UserAttribute>* [noactionifalias]
 #	[updateprimaryemail <RegularExpression> <EmailReplacement>]
 #	[updateoufromgroup <FileName> [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
 #	    [keyfield <FieldName>] [datafield <FieldName>]]
@@ -25314,16 +25365,18 @@ def doCreateUser():
 #	    [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
 #	     (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
 #	(replace <Tag> <String>)*
-#	[lograndompassword <FileName>]
+#	[lograndompassword <FileName>] [ignorenullpassword]
 def updateUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
-  body, notify, tagReplacements, addGroups, updatePrimaryEmail, createIfNotFound, notFoundBody, groupOrgUnitMap, logPasswordOptions = getUserAttributes(cd, True)
+  body, notify, tagReplacements, addGroups, PwdOpts, updatePrimaryEmail, notFoundBody, groupOrgUnitMap, createIfNotFound, noActionIfAlias = getUserAttributes(cd, True)
   vfe = 'primaryEmail' in body and body['primaryEmail'][:4].lower() == 'vfe@'
   i, count, entityList = getEntityArgument(entityList)
   fields = '*' if tagReplacements['subs'] else 'primaryEmail,name'
   for user in entityList:
     i += 1
     user = userKey = normalizeEmailAddressOrUID(user)
+    if noActionIfAlias and not verifyPrimaryEmail(cd, user, createIfNotFound, i, count):
+      continue
     try:
       if vfe:
         result = callGAPI(cd.users(), 'get',
@@ -25362,6 +25415,8 @@ def updateUsers(entityList):
           continue
         body['orgUnitPath'] = orgUnit
       if body:
+        if PwdOpts.makeUniqueRandomPassword:
+          PwdOpts.AssignPassword(body, notify, notFoundBody, createIfNotFound)
         try:
           result = callGAPI(cd.users(), 'update',
                             throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN,
@@ -25369,8 +25424,8 @@ def updateUsers(entityList):
                                            GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE, GAPI.DUPLICATE],
                             userKey=userKey, body=body, fields=fields)
           entityActionPerformed([Ent.USER, user], i, count)
-          if logPasswordOptions['filename'] and logPasswordOptions['password']:
-            writeFile(logPasswordOptions['filename'], f'{userKey},{logPasswordOptions["password"]}\n', mode='a', continueOnError=True)
+          if PwdOpts.filename and PwdOpts.password:
+            writeFile(PwdOpts.filename, f'{userKey},{PwdOpts.password}\n', mode='a', continueOnError=True)
           if notify.get('emailAddress') and notify['password']:
             sendCreateUpdateUserNotification(result, notify, tagReplacements, i, count, createMessage=False)
         except GAPI.userNotFound:
@@ -25387,8 +25442,8 @@ def updateUsers(entityList):
                                   body=body, fields=fields)
                 Act.Set(Act.CREATE)
                 entityActionPerformed([Ent.USER, user], i, count)
-                if logPasswordOptions['filename'] and logPasswordOptions['notFoundPassword']:
-                  writeFile(logPasswordOptions['filename'], f'{user},{logPasswordOptions["notFoundPassword"]}\n', mode='a', continueOnError=True)
+                if PwdOpts.filename and PwdOpts.notFoundPassword:
+                  writeFile(PwdOpts.filename, f'{user},{PwdOpts.notFoundPassword}\n', mode='a', continueOnError=True)
                 if addGroups:
                   createUserAddToGroups(cd, result['primaryEmail'], addGroups, i, count)
                 if notify.get('emailAddress'):
@@ -25413,26 +25468,25 @@ def updateUsers(entityList):
             GAPI.badRequest, GAPI.backendError, GAPI.systemError) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
 
-# gam update users <UserTypeEntity> <UserAttribute> [updateprimaryemail <RegularExpression> <EmailReplacement>]
-#	[clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
-#	[createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
+# gam update users <UserTypeEntity> ...
 def doUpdateUsers():
   updateUsers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)[1])
 
-# gam update user <UserItem> <UserAttribute> [updateprimaryemail <RegularExpression> <EmailReplacement>]
-#	[clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
-#	[createifnotfound] [notify <EmailAddress>] [subject <String>] [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]
+# gam update user <UserItem> ...
 def doUpdateUser():
   updateUsers(getStringReturnInList(Cmd.OB_USER_ITEM))
 
-# gam <UserTypeEntity> delete users
+# gam <UserTypeEntity> delete users [noactionifalias]
 def deleteUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
+  noActionIfAlias = checkArgumentPresent('noactionifalias')
   checkForExtraneousArguments()
   i, count, entityList = getEntityArgument(entityList)
   for user in entityList:
     i += 1
     user = normalizeEmailAddressOrUID(user)
+    if noActionIfAlias and not verifyPrimaryEmail(cd, user, False, i, count):
+      continue
     try:
       callGAPI(cd.users(), 'delete',
                throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND,
@@ -25444,11 +25498,11 @@ def deleteUsers(entityList):
     except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
 
-# gam delete users <UserTypeEntity>
+# gam delete users <UserTypeEntity> [noactionifalias]
 def doDeleteUsers():
   deleteUsers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)[1])
 
-# gam delete user <UserItem>
+# gam delete user <UserItem> [noactionifalias]
 def doDeleteUser():
   deleteUsers(getStringReturnInList(Cmd.OB_USER_ITEM))
 
@@ -25535,12 +25589,15 @@ def doUndeleteUser():
 
 def suspendUnsuspendUsers(entityList, suspended):
   cd = buildGAPIObject(API.DIRECTORY)
+  noActionIfAlias = checkArgumentPresent('noactionifalias')
   checkForExtraneousArguments()
   body = {'suspended': suspended}
   i, count, entityList = getEntityArgument(entityList)
   for user in entityList:
     i += 1
     user = normalizeEmailAddressOrUID(user)
+    if noActionIfAlias and not verifyPrimaryEmail(cd, user, False, i, count):
+      continue
     try:
       callGAPI(cd.users(), 'update',
                throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND,
@@ -25552,27 +25609,27 @@ def suspendUnsuspendUsers(entityList, suspended):
     except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
 
-# gam <UserTypeEntity> suspend users
+# gam <UserTypeEntity> suspend users [noactionifalias]
 def suspendUsers(entityList):
   suspendUnsuspendUsers(entityList, True)
 
-# gam suspend users <UserTypeEntity>
+# gam suspend users <UserTypeEntity> [noactionifalias]
 def doSuspendUsers():
   suspendUnsuspendUsers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)[1], True)
 
-# gam suspend user <UserItem>
+# gam suspend user <UserItem> [noactionifalias]
 def doSuspendUser():
   suspendUnsuspendUsers(getStringReturnInList(Cmd.OB_USER_ITEM), True)
 
-# gam <UserTypeEntity> unsuspend users
+# gam <UserTypeEntity> unsuspend users [noactionifalias]
 def unsuspendUsers(entityList):
   suspendUnsuspendUsers(entityList, False)
 
-# gam unsuspend users <UserTypeEntity>
+# gam unsuspend users <UserTypeEntity> [noactionifalias]
 def doUnsuspendUsers():
   suspendUnsuspendUsers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)[1], False)
 
-# gam unsuspend user <UserItem>
+# gam unsuspend user <UserItem> [noactionifalias]
 def doUnsuspendUser():
   suspendUnsuspendUsers(getStringReturnInList(Cmd.OB_USER_ITEM), False)
 
