@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.07.00'
+__version__ = '5.07.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5567,6 +5567,7 @@ class CSVPrintFile():
     self.SetQuoteChar(GM.Globals[GM.CSVFILE].get(GM.REDIRECT_QUOTE_CHAR, GC.Values.get(GC.CSV_OUTPUT_QUOTE_CHAR, '"')))
     self.SetFormatJSON(False)
     self.SetFixPaths(False)
+    self.SetShowPermissionsLast(False)
     self.sortTitlesSet = set()
     self.sortTitlesList = []
     if sortTitles is not None:
@@ -5916,6 +5917,17 @@ class CSVPrintFile():
     except ValueError:
       pass
 
+  def MovePermsToEnd(self):
+# Put permissions at end of titles
+    try:
+      last = len(self.titlesList)
+      start = end = self.titlesList.index('permissions')
+      while end < last and self.titlesList[end].startswith('permissions'):
+        end += 1
+      self.titlesList = self.titlesList[:start]+self.titlesList[end:]+self.titlesList[start:end]
+    except ValueError:
+      pass
+
   def SetColumnDelimiter(self, columnDelimiter):
     self.columnDelimiter = columnDelimiter
 
@@ -5927,6 +5939,9 @@ class CSVPrintFile():
 
   def SetFixPaths(self, fixPaths):
     self.fixPaths = fixPaths
+
+  def SetShowPermissionsLast(self, showPermissionsLast):
+    self.showPermissionsLast = showPermissionsLast
 
   def FixCourseAliasesTitles(self):
 # Put Aliases.* after Aliases
@@ -6411,7 +6426,8 @@ class CSVPrintFile():
       GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_CSVPF,
                                                      (self.titlesList, self.sortTitlesList, self.indexedTitles,
                                                       self.formatJSON, self.JSONtitlesList,
-                                                      self.fixPaths, self.zeroBlankMimeTypeCounts)))
+                                                      self.fixPaths, self.showPermissionsLast,
+                                                      self.zeroBlankMimeTypeCounts)))
       GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_DATA, self.rows))
       return
     if self.zeroBlankMimeTypeCounts:
@@ -6431,6 +6447,8 @@ class CSVPrintFile():
       self.SortIndexedTitles(self.titlesList)
       if self.fixPaths:
         self.FixPathsTitles(self.titlesList)
+      if self.showPermissionsLast:
+        self.MovePermsToEnd()
       titlesList = self.titlesList
     else:
       titlesList = self.JSONtitlesList
@@ -6861,7 +6879,8 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF):
       csvPF.SetFormatJSON(dataItem[3])
       csvPF.AddJSONTitles(dataItem[4])
       csvPF.SetFixPaths(dataItem[5])
-      csvPF.SetZeroBlankMimeTypeCounts(dataItem[6])
+      csvPF.SetShowPermissionsLast(dataItem[6])
+      csvPF.SetZeroBlankMimeTypeCounts(dataItem[7])
     elif dataType == GM.REDIRECT_QUEUE_DATA:
       csvPF.rows.extend(dataItem)
     elif dataType == GM.REDIRECT_QUEUE_ARGS:
@@ -35123,7 +35142,8 @@ FILECOUNT_SUMMARY_USER = 'Summary'
 #	[maxfiles <Integer>] [nodataheaders <String>]
 #	[countsonly [summary none|only|plus]]
 #	[filepath|fullpath [addpathstojson] [showdepth]] [buildtree]
-#	[allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [showdrivename] [showparentsidsaslist]
+#	[allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
+#	[showdrivename] [showparentsidsaslist] [showpermissionslast]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
 #	[formatjson] [quotechar <Character>]
 def printFileList(users):
@@ -35330,6 +35350,8 @@ def printFileList(users):
     elif myarg == 'showparentsidsaslist':
       showParentsIdsAsList = True
       simpleLists.append('parentsIds')
+    elif myarg == 'showpermissionslast':
+      csvPF.SetShowPermissionsLast(True)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg)
   if not filepath and not fullpath:

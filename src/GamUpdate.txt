@@ -1,3 +1,9 @@
+5.07.01
+
+Added option `showpermissionslast` to `gam <UserTypeEntity> print filelist` which causes GAM
+to display all `permissions` fields as the right-most columns in the CSV file. This option does not apply
+when `formatjson` is specified.
+
 5.07.00
 
 In versions of GAM before `5.07.00`, when you did `gam <UserTypeEntity> update users password random`
@@ -46,7 +52,7 @@ Handle `LookupError: unknown encoding` trap in `gam print messages`.
 
 5.06.07
 
-Added option `showtopicnames` to `gam print course-work` which causes gam to include
+Added option `showtopicnames` to `gam print course-work` which causes GAM to include
 the column `topicName` in the output. An additional API call per course is required
 to get the `topicId` to `topicName` map.
 
