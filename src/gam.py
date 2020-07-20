@@ -7066,6 +7066,15 @@ PROCESS_PLURAL_SINGULAR = [Msg.PROCESSES, Msg.PROCESS]
 THREAD_PLURAL_SINGULAR = [Msg.THREADS, Msg.THREAD]
 
 def MultiprocessGAMCommands(items, logCmds):
+  def getPool(numPoolProcesses):
+    try:
+      return multiprocessing.Pool(processes=numPoolProcesses)
+    except IOError as e:
+      systemErrorExit(FILE_ERROR_RC, e)
+    except AssertionError as e:
+      Cmd.SetLocation(0)
+      usageErrorExit(str(e))
+
   def poolCallback(pid):
     poolProcessResults[0] -= 1
     if logCmds:
@@ -7075,13 +7084,7 @@ def MultiprocessGAMCommands(items, logCmds):
     return
   numPoolProcesses = min(len(items), GC.Values[GC.NUM_THREADS])
   origSigintHandler = signal.signal(signal.SIGINT, signal.SIG_IGN)
-  try:
-    pool = multiprocessing.Pool(processes=numPoolProcesses)
-  except IOError as e:
-    systemErrorExit(FILE_ERROR_RC, e)
-  except AssertionError as e:
-    Cmd.SetLocation(0)
-    usageErrorExit(str(e))
+  pool = getPool(numPoolProcesses)
   if GM.Globals[GM.WINDOWS]:
     savedValues = saveNonPickleableValues()
   if GM.Globals[GM.STDOUT][GM.REDIRECT_MULTIPROCESS]:
@@ -7128,7 +7131,7 @@ def MultiprocessGAMCommands(items, logCmds):
           time.sleep(1)
         pool.close()
         pool.join()
-        pool = multiprocessing.Pool(processes=numPoolProcesses)
+        pool = getPool(numPoolProcesses)
       if not logCmds and pid % 100 == 0:
         batchWriteStderr(Msg.PROCESSING_ITEM_N.format(currentISOformatTimeStamp(), pid))
       if logCmds:
@@ -7150,8 +7153,6 @@ def MultiprocessGAMCommands(items, logCmds):
   else:
     pool.close()
   pool.join()
-#  while poolProcessResults[0] > 0:
-#    time.sleep(1)
   if logCmds:
     batchWriteStderr(f'{currentISOformatTimeStamp()},0,Complete\n')
   if mpQueueCSVFile:
@@ -21484,17 +21485,17 @@ def _createCalendarEvents(user, cal, function, calIds, count, body, parameters):
     try:
       if function == 'insert':
         event = callGAPI(cal.events(), 'insert',
-                         throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY,
+                         throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY, GAPI.EVENT_DURATION_EXCEEDS_LIMIT,
                                                                     GAPI.REQUIRED_ACCESS_LEVEL, GAPI.DUPLICATE, GAPI.FORBIDDEN],
                          calendarId=calId, conferenceDataVersion=1, sendUpdates=parameters['sendUpdates'], supportsAttachments=True, body=body, fields='id')
       else:
         event = callGAPI(cal.events(), 'import_',
-                         throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY,
+                         throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY, GAPI.EVENT_DURATION_EXCEEDS_LIMIT,
                                                                     GAPI.REQUIRED_ACCESS_LEVEL, GAPI.DUPLICATE, GAPI.FORBIDDEN,
                                                                     GAPI.PARTICIPANT_IS_NEITHER_ORGANIZER_NOR_ATTENDEE],
                          calendarId=calId, conferenceDataVersion=1, supportsAttachments=True, body=body, fields='id')
       entityActionPerformed([Ent.CALENDAR, calId, Ent.EVENT, event['id']], i, count)
-    except (GAPI.invalid, GAPI.required, GAPI.timeRangeEmpty,
+    except (GAPI.invalid, GAPI.required, GAPI.timeRangeEmpty, GAPI.eventDurationExceedsLimit,
             GAPI.requiredAccessLevel, GAPI.participantIsNeitherOrganizerNorAttendee) as e:
       entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, event['id']], str(e), i, count)
     except GAPI.duplicate as e:
@@ -21573,7 +21574,7 @@ def _updateCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntit
               body['attendees'] = [attendee for attendee in body['attendees'] if attendee['email'].lower() not in parameters['removeAttendees']]
         callGAPI(cal.events(), 'patch',
                  throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.DELETED, GAPI.FORBIDDEN,
-                                                            GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY,
+                                                            GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY, GAPI.EVENT_DURATION_EXCEEDS_LIMIT,
                                                             GAPI.REQUIRED_ACCESS_LEVEL, GAPI.CANNOT_CHANGE_ORGANIZER_OF_INSTANCE],
                  calendarId=calId, eventId=eventId, conferenceDataVersion=1, sendUpdates=parameters['sendUpdates'], supportsAttachments=True,
                  body=body, fields='')
@@ -21583,7 +21584,7 @@ def _updateCalendarEvents(origUser, user, cal, calIds, count, calendarEventEntit
           entityUnknownWarning(Ent.CALENDAR, calId, j, jcount)
           break
         entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId], str(e), j, jcount)
-      except (GAPI.forbidden, GAPI.invalid, GAPI.required, GAPI.timeRangeEmpty,
+      except (GAPI.forbidden, GAPI.invalid, GAPI.required, GAPI.timeRangeEmpty, GAPI.eventDurationExceedsLimit,
               GAPI.requiredAccessLevel, GAPI.cannotChangeOrganizerOfInstance) as e:
         entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId], str(e), j, jcount)
       except GAPI.notACalendarUser as e:
@@ -32474,7 +32475,7 @@ def _getTeamDriveNameFromId(drive, teamDriveId):
   except (GAPI.notFound, GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
     return TEAM_DRIVE
 
-def _getDriveFileNameFromId(drive, fileId, combineTitleId=True):
+def _getDriveFileNameFromId(drive, fileId, combineTitleId=True, useDomainAdminAccess=False):
   try:
     result = callGAPI(drive.files(), 'get',
                       throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
@@ -32486,7 +32487,21 @@ def _getDriveFileNameFromId(drive, fileId, combineTitleId=True):
       if combineTitleId:
         fileName += '('+fileId+')'
       return (fileName, _getEntityMimeType(result))
-  except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.internalError,
+  except GAPI.fileNotFound:
+    if useDomainAdminAccess:
+      try:
+        result = callGAPI(drive.drives(), 'get',
+                          throw_reasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
+                          useDomainAdminAccess=useDomainAdminAccess,
+                          driveId=fileId, fields='name')
+        if result:
+          fileName = result['name']
+          if combineTitleId:
+            fileName += '('+fileId+')'
+          return (fileName, Ent.DRIVE_FOLDER)
+      except GAPI.notFound:
+        pass
+  except (GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.internalError,
           GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
     pass
   return (fileId, Ent.DRIVE_FILE_OR_FOLDER_ID)
@@ -40067,7 +40082,7 @@ def infoDriveFileACLs(users, useDomainAdminAccess=False):
         fileName = fileId
         entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
         if showTitles:
-          fileName, entityType = _getDriveFileNameFromId(drive, fileId, not FJQC.formatJSON)
+          fileName, entityType = _getDriveFileNameFromId(drive, fileId, not FJQC.formatJSON, useDomainAdminAccess)
         permission = callGAPI(drive.permissions(), 'get',
                               throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.PERMISSION_NOT_FOUND, GAPI.INSUFFICIENT_ADMINISTRATOR_PRIVILEGES],
                               useDomainAdminAccess=useDomainAdminAccess,
@@ -40171,7 +40186,7 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
       fileName = fileId
       entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
       if showTitles:
-        fileName, entityType = _getDriveFileNameFromId(drive, fileId, not (csvPF or FJQC.formatJSON))
+        fileName, entityType = _getDriveFileNameFromId(drive, fileId, not (csvPF or FJQC.formatJSON), useDomainAdminAccess)
       try:
         results = callGAPIpages(drive.permissions(), 'list', 'permissions',
                                 throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INSUFFICIENT_ADMINISTRATOR_PRIVILEGES],

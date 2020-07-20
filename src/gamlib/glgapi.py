@@ -61,6 +61,7 @@ DOMAIN_NOT_FOUND = 'domainNotFound'
 DOMAIN_NOT_VERIFIED_SECONDARY = 'domainNotVerifiedSecondary'
 DOMAIN_POLICY = 'domainPolicy'
 DUPLICATE = 'duplicate'
+EVENT_DURATION_EXCEEDS_LIMIT = 'eventDurationExceedsLimit'
 FAILED_PRECONDITION = 'failedPrecondition'
 FIELD_NOT_WRITABLE = 'fieldNotWritable'
 FILE_NEVER_WRITABLE = 'fileNeverWritable'
@@ -339,6 +340,8 @@ class domainPolicy(Exception):
   pass
 class duplicate(Exception):
   pass
+class eventDurationExceedsLimit(Exception):
+  pass
 class failedPrecondition(Exception):
   pass
 class fieldNotWritable(Exception):
@@ -536,6 +539,7 @@ REASON_EXCEPTION_MAP = {
   DOMAIN_NOT_VERIFIED_SECONDARY: domainNotVerifiedSecondary,
   DOMAIN_POLICY: domainPolicy,
   DUPLICATE: duplicate,
+  EVENT_DURATION_EXCEEDS_LIMIT: eventDurationExceedsLimit,
   FAILED_PRECONDITION: failedPrecondition,
   FIELD_NOT_WRITABLE: fieldNotWritable,
   FILE_NEVER_WRITABLE: fileNeverWritable,
