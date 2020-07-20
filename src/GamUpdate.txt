@@ -1,3 +1,7 @@
+5.08.00
+
+Recoded `gam csv` processing to avoid hangs.
+
 5.07.01
 
 Added option `showpermissionslast` to `gam <UserTypeEntity> print filelist` which causes GAM

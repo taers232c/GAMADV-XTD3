@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.07.01'
+__version__ = '5.08.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7045,6 +7045,7 @@ def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr, to
     mpQueueStderr.put((pid, GM.REDIRECT_QUEUE_END, [sysRC, GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD].getvalue()]))
     GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD].close()
     GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = None
+  return pid
 
 def batchWriteStderr(data):
   fd = GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, sys.stderr)
@@ -7065,6 +7066,11 @@ PROCESS_PLURAL_SINGULAR = [Msg.PROCESSES, Msg.PROCESS]
 THREAD_PLURAL_SINGULAR = [Msg.THREADS, Msg.THREAD]
 
 def MultiprocessGAMCommands(items, logCmds):
+  def poolCallback(pid):
+    poolProcessResults[0] -= 1
+    if logCmds:
+      batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},Complete\n')
+
   if not items:
     return
   numPoolProcesses = min(len(items), GC.Values[GC.NUM_THREADS])
@@ -7102,23 +7108,14 @@ def MultiprocessGAMCommands(items, logCmds):
                                                 numPoolProcesses, PROCESS_PLURAL_SINGULAR[numPoolProcesses == 1]))
   try:
     pid = 0
-    poolProcessesInUse = 0
-    poolProcessResults = {}
+    poolProcessResults = {pid: 0}
     for item in items:
       if item[0] == Cmd.COMMIT_BATCH_CMD:
         batchWriteStderr(Msg.COMMIT_BATCH_WAIT_N_PROCESSES.format(currentISOformatTimeStamp(),
-                                                                  poolProcessesInUse,
-                                                                  PROCESS_PLURAL_SINGULAR[poolProcessesInUse == 1]))
-        while poolProcessesInUse > 0:
-          for ppid in list(poolProcessResults):
-            try:
-              if poolProcessResults[ppid].ready():
-                poolProcessesInUse -= 1
-                del poolProcessResults[ppid]
-            except (TypeError, IOError):
-              pass
-          if poolProcessesInUse > 0:
-            time.sleep(1)
+                                                                  poolProcessResults[0],
+                                                                  PROCESS_PLURAL_SINGULAR[poolProcessResults[0] == 1]))
+        while poolProcessResults[0] > 0:
+          time.sleep(1)
         batchWriteStderr(Msg.COMMIT_BATCH_COMPLETE.format(currentISOformatTimeStamp(), Msg.PROCESSES))
         continue
       if item[0] == Cmd.PRINT_CMD:
@@ -7129,42 +7126,24 @@ def MultiprocessGAMCommands(items, logCmds):
         batchWriteStderr(Msg.PROCESSING_ITEM_N.format(currentISOformatTimeStamp(), pid))
       if logCmds:
         batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},{Cmd.QuotedArgumentList(item)}\n')
-      poolProcessResults[pid] = pool.apply_async(ProcessGAMCommandMulti, [pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
-                                                                          GM.Globals[GM.CSV_TODRIVE],
-                                                                          GC.Values[GC.CSV_OUTPUT_HEADER_FILTER],
-                                                                          GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER],
-                                                                          GC.Values[GC.CSV_OUTPUT_ROW_FILTER],
-                                                                          item])
-      poolProcessesInUse += 1
-      while poolProcessesInUse == numPoolProcesses:
-        for ppid in list(poolProcessResults):
-          try:
-            if poolProcessResults[ppid].ready():
-              poolProcessesInUse -= 1
-              del poolProcessResults[ppid]
-              if logCmds:
-                batchWriteStderr(f'{currentISOformatTimeStamp()},{ppid},Complete\n')
-          except (TypeError, IOError):
-            pass
-        if poolProcessesInUse == numPoolProcesses:
-          time.sleep(1)
+      pool.apply_async(ProcessGAMCommandMulti,
+                       [pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
+                        GM.Globals[GM.CSV_TODRIVE],
+                        GC.Values[GC.CSV_OUTPUT_HEADER_FILTER],
+                        GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER],
+                        GC.Values[GC.CSV_OUTPUT_ROW_FILTER],
+                        item],
+                       callback=poolCallback)
+      poolProcessResults[0] += 1
+      while poolProcessResults[0] == numPoolProcesses:
+        time.sleep(1)
   except KeyboardInterrupt:
     setSysExitRC(KEYBOARD_INTERRUPT_RC)
     pool.terminate()
   else:
     pool.close()
-  while poolProcessesInUse > 0:
-    for ppid in list(poolProcessResults):
-      try:
-        if poolProcessResults[ppid].ready():
-          poolProcessesInUse -= 1
-          del poolProcessResults[ppid]
-          if logCmds:
-            batchWriteStderr(f'{currentISOformatTimeStamp()},{ppid},Complete\n')
-      except (TypeError, IOError):
-        pass
-    if poolProcessesInUse > 0:
-      time.sleep(1)
+  while poolProcessResults[0] > 0:
+    time.sleep(1)
   if logCmds:
     batchWriteStderr(f'{currentISOformatTimeStamp()},0,Complete\n')
   if mpQueueCSVFile:
