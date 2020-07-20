@@ -7122,6 +7122,13 @@ def MultiprocessGAMCommands(items, logCmds):
         batchWriteStderr(Cmd.QuotedArgumentList(item[1:])+'\n')
         continue
       pid += 1
+# Make new pool every 1000 processes
+      if pid % 1000 == 0:
+        while poolProcessResults[0] > 0:
+          time.sleep(1)
+        pool.close()
+        pool.join()
+        pool = multiprocessing.Pool(processes=numPoolProcesses)
       if not logCmds and pid % 100 == 0:
         batchWriteStderr(Msg.PROCESSING_ITEM_N.format(currentISOformatTimeStamp(), pid))
       if logCmds:
@@ -7142,8 +7149,9 @@ def MultiprocessGAMCommands(items, logCmds):
     pool.terminate()
   else:
     pool.close()
-  while poolProcessResults[0] > 0:
-    time.sleep(1)
+  pool.join()
+#  while poolProcessResults[0] > 0:
+#    time.sleep(1)
   if logCmds:
     batchWriteStderr(f'{currentISOformatTimeStamp()},0,Complete\n')
   if mpQueueCSVFile:
