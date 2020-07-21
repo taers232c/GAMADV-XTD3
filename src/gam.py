@@ -7066,6 +7066,15 @@ PROCESS_PLURAL_SINGULAR = [Msg.PROCESSES, Msg.PROCESS]
 THREAD_PLURAL_SINGULAR = [Msg.THREADS, Msg.THREAD]
 
 def MultiprocessGAMCommands(items, logCmds):
+  def getPool(numPoolProcesses):
+    try:
+      return multiprocessing.Pool(processes=numPoolProcesses)
+    except IOError as e:
+      systemErrorExit(FILE_ERROR_RC, e)
+    except AssertionError as e:
+      Cmd.SetLocation(0)
+      usageErrorExit(str(e))
+
   def poolCallback(pid):
     poolProcessResults[0] -= 1
     if logCmds:
@@ -7075,13 +7084,7 @@ def MultiprocessGAMCommands(items, logCmds):
     return
   numPoolProcesses = min(len(items), GC.Values[GC.NUM_THREADS])
   origSigintHandler = signal.signal(signal.SIGINT, signal.SIG_IGN)
-  try:
-    pool = multiprocessing.Pool(processes=numPoolProcesses, maxtasksperchild=200)
-  except IOError as e:
-    systemErrorExit(FILE_ERROR_RC, e)
-  except AssertionError as e:
-    Cmd.SetLocation(0)
-    usageErrorExit(str(e))
+  pool = getPool(numPoolProcesses)
   if GM.Globals[GM.WINDOWS]:
     savedValues = saveNonPickleableValues()
   if GM.Globals[GM.STDOUT][GM.REDIRECT_MULTIPROCESS]:
@@ -7122,6 +7125,13 @@ def MultiprocessGAMCommands(items, logCmds):
         batchWriteStderr(Cmd.QuotedArgumentList(item[1:])+'\n')
         continue
       pid += 1
+# Make new pool every 1000 processes
+      if pid % 1000 == 0:
+        while poolProcessResults[0] > 0:
+          time.sleep(1)
+        pool.close()
+        pool.join()
+        pool = getPool(numPoolProcesses)
       if not logCmds and pid % 100 == 0:
         batchWriteStderr(Msg.PROCESSING_ITEM_N.format(currentISOformatTimeStamp(), pid))
       if logCmds:
