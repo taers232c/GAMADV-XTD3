@@ -1,9 +1,13 @@
+5.08.01
+
+Simplified `gam csv` recoding.
+
 5.08.00
 
 Recoded `gam csv` processing to avoid hangs, particularly on Windows.
 
 Fixed code in `gam info drivefileacl ... showtitles` and `gam print|show drivefileacls ... showtitles`
-to sucessfully get the Team Drive name.
+to scucessfully get the Team Drive name.
 
 5.07.01
 
