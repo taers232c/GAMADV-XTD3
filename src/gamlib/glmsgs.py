@@ -23,6 +23,7 @@
 # These values can be translated into other languages
 ACCESS_FORBIDDEN = 'Access Forbidden'
 ACTION_APPLIED = 'Action Applied'
+ACTION_MAY_BE_DELAYED = 'Action may be delayed'
 ADMIN_STATUS_CHANGED_TO = 'Admin Status Changed to'
 ALL = 'All'
 ALREADY_EXISTS_USE_MERGE_ARGUMENT = 'Already exists; use the "merge" argument to merge the labels'
@@ -46,7 +47,6 @@ CAN_NOT_BE_SPECIFIED_MORE_THAN_ONCE = 'Argument {0} can not be specified more th
 COLUMN_DOES_NOT_MATCH_ANY_OUTPUT_COLUMNS = '{0} column "{1}" does not match any output columns'
 COMMIT_BATCH_COMPLETE = '{0},0,commit-batch - running {1} finished, proceeding\n'
 COMMIT_BATCH_WAIT_N_PROCESSES = '{0},0,commit-batch - waiting for {1} running {2} to finish before proceeding\n'
-CONFLICTING_REQUESTS = 'Conflicting requests. Please try again'
 CONTACT_ADMINISTRATOR_FOR_PASSWORD = 'Contact administrator for password'
 CONTAINS_AT_LEAST_1_ITEM = 'Contains at least 1 item'
 COUNT_N_EXCEEDS_MAX_TO_PROCESS_M = 'Count {0} exceeds maximum to {1} {2}'

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.08.01'
+__version__ = '5.08.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -17367,12 +17367,14 @@ def doUpdateGroups():
       for member in members:
         csvPF.WriteRow({'group': group, 'email': member, 'role': role, 'action': Act.PerformedName(action), 'message': Act.PREVIEW})
 
-  def _showSuccess(group, member, role, delivery_settings, j, jcount):
+  def _showSuccess(group, member, role, delivery_settings, j, jcount, optMsg=None):
     kvList = []
     if role is not None and role != 'None':
       kvList.append(f'{Ent.Singular(Ent.ROLE)}: {role}')
     if delivery_settings != DELIVERY_SETTINGS_UNDEFINED:
       kvList.append(f'{Ent.Singular(Ent.DELIVERY)}: {delivery_settings}')
+    if optMsg:
+      kvList.append(optMsg)
     entityActionPerformedMessage([Ent.GROUP, group, Ent.MEMBER, member], ', '.join(kvList), j, jcount)
     if csvPF:
       csvPF.WriteRow({'group': group, 'email': member, 'role': role, 'action': Act.Performed(), 'message': 'Success'})
@@ -17401,8 +17403,10 @@ def doUpdateGroups():
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(Ent.GROUP, group, i, count)
     except (GAPI.duplicate, GAPI.memberNotFound, GAPI.resourceNotFound,
-            GAPI.invalidMember, GAPI.cyclicMembershipsNotAllowed, GAPI.conditionNotMet, GAPI.conflict) as e:
+            GAPI.invalidMember, GAPI.cyclicMembershipsNotAllowed, GAPI.conditionNotMet) as e:
       _showFailure(group, member, role, str(e), j, jcount)
+    except GAPI.conflict:
+      _showSuccess(group, member, role, delivery_settings, j, jcount, Msg.ACTION_MAY_BE_DELAYED)
 
   def _handleDuplicateAdd(group, i, count, role, delivery_settings, member, j, jcount):
     try:
@@ -17428,7 +17432,6 @@ def doUpdateGroups():
                                        GAPI.MEMBER_NOT_FOUND: Msg.DOES_NOT_EXIST,
                                        GAPI.RESOURCE_NOT_FOUND: Msg.DOES_NOT_EXIST,
                                        GAPI.INVALID_MEMBER: Msg.INVALID_MEMBER,
-                                       GAPI.CONFLICT: Msg.CONFLICTING_REQUESTS,
                                        GAPI.CYCLIC_MEMBERSHIPS_NOT_ALLOWED: Msg.WOULD_MAKE_MEMBERSHIP_CYCLE}
 
   def _callbackAddGroupMembers(request_id, response, exception):
@@ -17439,6 +17442,8 @@ def doUpdateGroups():
       http_status, reason, message = checkGAPIError(exception)
       if reason in GAPI.MEMBERS_THROW_REASONS:
         entityUnknownWarning(Ent.GROUP, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
+      elif reason == GAPI.CONFLICT:
+        _showSuccess(ri[RI_ENTITY], ri[RI_ITEM], ri[RI_ROLE], ri[RI_OPTION], int(ri[RI_J]), int(ri[RI_JCOUNT]), Msg.ACTION_MAY_BE_DELAYED)
       elif reason in [GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET]:
         _handleDuplicateAdd(ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]), ri[RI_ROLE], ri[RI_OPTION], ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
       elif reason not in GAPI.DEFAULT_RETRY_REASONS+GAPI.MEMBERS_RETRY_REASONS:
@@ -17508,13 +17513,14 @@ def doUpdateGroups():
       _showSuccess(group, member, role, DELIVERY_SETTINGS_UNDEFINED, j, jcount)
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(Ent.GROUP, group, i, count)
-    except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet, GAPI.conflict) as e:
+    except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet) as e:
       _showFailure(group, member, role, str(e), j, jcount)
+    except GAPI.conflict:
+      _showSuccess(group, member, role, DELIVERY_SETTINGS_UNDEFINED, j, jcount, Msg.ACTION_MAY_BE_DELAYED)
 
   _REMOVE_MEMBER_REASON_TO_MESSAGE_MAP = {GAPI.MEMBER_NOT_FOUND: f'{Msg.NOT_A} {Ent.Singular(Ent.MEMBER)}',
                                           GAPI.CONDITION_NOT_MET: f'{Msg.NOT_A} {Ent.Singular(Ent.MEMBER)}',
-                                          GAPI.INVALID_MEMBER: Msg.DOES_NOT_EXIST,
-                                          GAPI.CONFLICT: Msg.CONFLICTING_REQUESTS}
+                                          GAPI.INVALID_MEMBER: Msg.DOES_NOT_EXIST}
 
   def _callbackRemoveGroupMembers(request_id, response, exception):
     ri = request_id.splitlines()
@@ -17524,6 +17530,8 @@ def doUpdateGroups():
       http_status, reason, message = checkGAPIError(exception)
       if reason in GAPI.MEMBERS_THROW_REASONS:
         entityUnknownWarning(Ent.GROUP, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
+      elif reason == GAPI.CONFLICT:
+        _showSuccess(ri[RI_ENTITY], ri[RI_ITEM], ri[RI_ROLE], DELIVERY_SETTINGS_UNDEFINED, int(ri[RI_J]), int(ri[RI_JCOUNT]), Msg.ACTION_MAY_BE_DELAYED)
       elif reason not in GAPI.DEFAULT_RETRY_REASONS+GAPI.MEMBERS_RETRY_REASONS:
         errMsg = getHTTPError(_REMOVE_MEMBER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
         _showFailure(ri[RI_ENTITY], ri[RI_ITEM], ri[RI_ROLE], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
@@ -30992,7 +31000,8 @@ def getUserCalendarEntity(default='primary', noSelectionKwargs=None):
     elif _getCourseCalendarSelectionParameters(myarg):
       courseCalendarSelected = True
     elif _noSelectionMade() and (myarg.find('@') != -1 or myarg.find('id:') != -1):
-      calendarEntity['list'].extend(convertEntityToList(Cmd.Previous(), shlexSplit=True))
+      Cmd.Backup()
+      calendarEntity['list'].append(getEmailAddress())
     else:
       Cmd.Backup()
       break
@@ -41085,8 +41094,9 @@ def _addUserToGroups(cd, user, addGroupsSet, addGroups, i, count):
       body['delivery_settings'] = addGroups[group]['delivery_settings']
     try:
       callGAPI(cd.members(), 'insert',
-               throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.DUPLICATE, GAPI.CYCLIC_MEMBERSHIPS_NOT_ALLOWED, GAPI.CONDITION_NOT_MET,
-                                                         GAPI.MEMBER_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND, GAPI.INVALID_MEMBER],
+               throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.DUPLICATE, GAPI.MEMBER_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND,
+                                                         GAPI.INVALID_MEMBER, GAPI.CYCLIC_MEMBERSHIPS_NOT_ALLOWED,
+                                                         GAPI.CONDITION_NOT_MET, GAPI.CONFLICT],
                retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                groupKey=group, body=body, fields='')
       entityActionPerformed([Ent.GROUP, group, role, user], j, jcount)
@@ -41094,6 +41104,8 @@ def _addUserToGroups(cd, user, addGroupsSet, addGroups, i, count):
       entityUnknownWarning(Ent.GROUP, group, j, jcount)
     except (GAPI.duplicate, GAPI.cyclicMembershipsNotAllowed, GAPI.conditionNotMet) as e:
       entityActionFailedWarning([Ent.GROUP, group, role, user], str(e), j, jcount)
+    except GAPI.conflict:
+      entityActionPerformedMessage([Ent.GROUP, group, role, user], Msg.ACTION_MAY_BE_DELAYED, j, jcount)
     except (GAPI.memberNotFound, GAPI.resourceNotFound, GAPI.invalidMember) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
   Ind.Decrement()
@@ -41149,7 +41161,8 @@ def _deleteUserFromGroups(cd, user, deleteGroupsSet, deleteGroups, i, count):
     role = deleteGroups[group]['role']
     try:
       callGAPI(cd.members(), 'delete',
-               throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER, GAPI.CONDITION_NOT_MET],
+               throw_reasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER,
+                                                         GAPI.CONDITION_NOT_MET, GAPI.CONFLICT],
                retry_reasons=GAPI.MEMBERS_RETRY_REASONS,
                groupKey=group, memberKey=user)
       entityActionPerformed([Ent.GROUP, group, role, user], j, jcount)
@@ -41157,6 +41170,8 @@ def _deleteUserFromGroups(cd, user, deleteGroupsSet, deleteGroups, i, count):
       entityUnknownWarning(Ent.GROUP, group, j, jcount)
     except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.GROUP, group], str(e), j, jcount)
+    except GAPI.conflict:
+      entityActionPerformedMessage([Ent.GROUP, group, role, user], Msg.ACTION_MAY_BE_DELAYED, j, jcount)
   Ind.Decrement()
 
 # gam <UserTypeEntity> delete group|groups [<GroupEntity>]

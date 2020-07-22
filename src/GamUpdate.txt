@@ -1,3 +1,7 @@
+5.08.02
+
+Handle `ERROR: 409: conflict - Conflicting requests. Please try again` when adding members to groups.
+
 5.08.01
 
 Simplified `gam csv` recoding.
