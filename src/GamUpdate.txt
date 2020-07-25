@@ -1,3 +1,19 @@
+5.08.03
+
+Added option `countsrowfilter` to `gam <UserTypeEntity> print filelist ... countsonly` that causes
+GAM to apply `config csv_output_row_filter` to the file counts rather than the file details.
+
+Display file counts for users with files of size greater that 100MB, `csv_output_row_filter`
+is applied to the file details.
+```
+gam config csv_output_row_filter "size:count>100000000" all users print filelist countsonly fields size
+```
+Display file counts for users with more than 100 `video/mp4` files, `csv_output_row_filter`
+is applied to the file counts.
+```
+gam config csv_output_row_filter "video/mp4:count>100" csv_output_header_filter "Owner,video/mp4" all users print filelist countsonly countsrowfilter
+```
+
 5.08.02
 
 Handle `ERROR: 409: conflict - Conflicting requests. Please try again` when adding members to groups.

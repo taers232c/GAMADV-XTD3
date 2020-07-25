@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.08.02'
+__version__ = '5.08.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5553,7 +5553,7 @@ def getItemFieldsFromFieldsList(item, fieldsList, returnItemIfNoneList=False):
 
 class CSVPrintFile():
 
-  def __init__(self, titles=None, sortTitles=None, indexedTitles=None, checkFilters=True):
+  def __init__(self, titles=None, sortTitles=None, indexedTitles=None):
     self.rows = []
     self.todrive = GM.Globals[GM.CSV_TODRIVE]
     self.titlesSet = set()
@@ -5576,9 +5576,9 @@ class CSVPrintFile():
       else:
         self.SetSortAllTitles()
     self.SetIndexedTitles(indexedTitles if indexedTitles is not None else [])
-    self.SetHeaderFilter(GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] if checkFilters else [])
-    self.SetHeaderDropFilter(GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER] if checkFilters else [])
-    self.SetRowFilter(GC.Values[GC.CSV_OUTPUT_ROW_FILTER] if checkFilters else [])
+    self.SetHeaderFilter(GC.Values[GC.CSV_OUTPUT_HEADER_FILTER])
+    self.SetHeaderDropFilter(GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER])
+    self.SetRowFilter(GC.Values[GC.CSV_OUTPUT_ROW_FILTER])
     self.SetZeroBlankMimeTypeCounts(False)
 
   def AddTitle(self, title):
@@ -6129,6 +6129,12 @@ class CSVPrintFile():
         self.AddTitle(title)
     if self.RowFilterMatch(row):
       self.rows.append(row)
+
+  def WriteRowTitlesNoFilter(self, row):
+    for title in row:
+      if title not in self.titlesSet:
+        self.AddTitle(title)
+    self.rows.append(row)
 
   def WriteRowTitlesJSONNoFilter(self, row):
     for title in row:
@@ -33817,33 +33823,33 @@ DRIVE_PARENTS_SUBFIELDS_CHOICE_MAP = {
   }
 
 DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP = {
-  'id': 'id',
-  'name': 'displayName',
-  'displayname': 'displayName',
-  'emailaddress': 'emailAddress',
-  'domain': 'domain',
-  'role': 'role',
   'additionalroles': 'role',
-  'type': 'type',
   'allowfilediscovery': 'allowFileDiscovery',
-  'withlink': 'allowFileDiscovery',
-  'photolink': 'photoLink',
+  'deleted': 'deleted',
+  'displayname': 'displayName',
+  'domain': 'domain',
+  'emailaddress': 'emailAddress',
   'expirationdate': 'expirationTime',
   'expirationtime': 'expirationTime',
+  'id': 'id',
+  'name': 'displayName',
   'permissiondetails': 'permissionDetails',
+  'photolink': 'photoLink',
+  'role': 'role',
   'teamdrivepermissiondetails': 'teamDrivePermissionDetails',
-  'deleted': 'deleted',
+  'type': 'type',
+  'withlink': 'allowFileDiscovery',
   }
 
 DRIVE_SHARINGUSER_SUBFIELDS_CHOICE_MAP = {
-  'name': 'displayName',
   'displayname': 'displayName',
-  'photolink': 'photoLink',
-  'picture': 'photoLink',
+  'emailaddress': 'emailAddress',
   'isauthenticateduser': 'me',
   'me': 'me',
+  'name': 'displayName',
   'permissionid': 'permissionId',
-  'emailaddress': 'emailAddress',
+  'photolink': 'photoLink',
+  'picture': 'photoLink',
   }
 
 DRIVE_SHORTCUTDETAILS_SUBFIELDS_CHOICE_MAP = {
@@ -35141,7 +35147,7 @@ FILECOUNT_SUMMARY_USER = 'Summary'
 #	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	[excludetrashed]
 #	[maxfiles <Integer>] [nodataheaders <String>]
-#	[countsonly [summary none|only|plus]]
+#	[countsonly [summary none|only|plus]] [countsrowfilter]
 #	[filepath|fullpath [addpathstojson] [showdepth]] [buildtree]
 #	[allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
 #	[showdrivename] [showparentsidsaslist] [showpermissionslast]
@@ -35238,8 +35244,12 @@ def printFileList(users):
         row['JSON'] = json.dumps(fileInfo, ensure_ascii=False, sort_keys=False)
         csvPF.WriteRowTitlesJSONNoFilter(row)
     else:
-      csvPF.UpdateMimeTypeCounts(flattenJSON(fileInfo, flattened=row, skipObjects=skipObjects, timeObjects=timeObjects,
-                                             simpleLists=simpleLists, delimiter=delimiter), mimeTypeCounts)
+      if not countsRowFilter:
+        csvPF.UpdateMimeTypeCounts(flattenJSON(fileInfo, flattened=row, skipObjects=skipObjects, timeObjects=timeObjects,
+                                               simpleLists=simpleLists, delimiter=delimiter), mimeTypeCounts)
+      else:
+        mimeTypeCounts.setdefault(fileInfo['mimeType'], 0)
+        mimeTypeCounts[fileInfo['mimeType']] += 1
 
   def _printChildDriveFolderContents(drive, fileEntry, user, i, count, depth):
     parentFileEntry = fileTree.get(fileEntry['id'])
@@ -35288,11 +35298,14 @@ def printFileList(users):
       total += mimeTypeCount
     row = {'Owner': user, 'Total': total}
     row.update(mimeTypeCounts)
-    csvPFco.WriteRowTitles(row)
+    if not countsRowFilter:
+      csvPFco.WriteRowTitlesNoFilter(row)
+    else:
+      csvPFco.WriteRowTitles(row)
 
   csvPF = CSVPrintFile('Owner', indexedTitles=DRIVE_INDEXED_TITLES)
   FJQC = FormatJSONQuoteChar(csvPF)
-  addPathsToJSON = buildTree = countsOnly = filepath = fullpath = noRecursion = \
+  addPathsToJSON = countsRowFilter = buildTree = countsOnly = filepath = fullpath = noRecursion = \
     showParentsIdsAsList = showDepth = showParent = False
   maxdepth = -1
   nodataFields = []
@@ -35340,9 +35353,11 @@ def printFileList(users):
       addPathsToJSON = True
     elif myarg == 'buildtree':
       buildTree = True
+    elif myarg == 'countsrowfilter':
+      countsRowFilter = True
     elif myarg == 'countsonly':
       countsOnly = True
-      csvPFco = CSVPrintFile(['Owner', 'Total'], 'sortall', checkFilters=False)
+      csvPFco = CSVPrintFile(['Owner', 'Total'], 'sortall')
       csvPFco.SetZeroBlankMimeTypeCounts(True)
     elif myarg == 'summary':
       summary = getChoice(FILECOUNT_SUMMARY_CHOICE_MAP, mapChoice=True)
@@ -35610,6 +35625,8 @@ def printFileList(users):
     if summary != FILECOUNT_SUMMARY_NONE:
       writeMimeTypeCountsRow(FILECOUNT_SUMMARY_USER, summaryMimeTypeCounts)
     csvPFco.todrive = csvPF.todrive
+    if not countsRowFilter:
+      csvPFco.SetRowFilter([])
     csvPFco.writeCSVfile(f'{Cmd.Argument(GM.Globals[GM.ENTITY_CL_START])} {Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)} Drive File Counts')
 
 # gam <UserTypeEntity> print filepaths <DriveFileEntity> [todrive <ToDriveAttribute>*] [oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
