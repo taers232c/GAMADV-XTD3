@@ -6093,6 +6093,8 @@ class CSVPrintFile():
 
     for filterVal in self.rowFilter:
       columns = [t for t in self.titlesList if filterVal[0].match(t)]
+      if not columns:
+        columns = [None]
       if filterVal[1] == 'regex':
         if not rowRegexFilterMatch(filterVal[2]):
           return False

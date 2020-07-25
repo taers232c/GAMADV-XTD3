@@ -14,6 +14,11 @@ is applied to the file counts.
 gam config csv_output_row_filter "video/mp4:count>100" csv_output_header_filter "Owner,video/mp4" all users print filelist countsonly countsrowfilter
 ```
 
+Fixed bug in processing `csv_output_row_filter "field:regex:^$"` where a row without the field column would not match.
+It should match as the filter is trying to match an empty field.
+
+Upgraded to Python 3.8.5.
+
 5.08.02
 
 Handle `ERROR: 409: conflict - Conflicting requests. Please try again` when adding members to groups.
