@@ -38093,11 +38093,12 @@ def collectOrphans(users):
           continue
         try:
           callGAPI(drive.files(), 'update',
+                   bailOnInternalError=True
                    throw_reasons=GAPI.DRIVE_USER_THROW_REASONS, retry_reasons=[GAPI.FILE_NOT_FOUND],
                    enforceSingleParent=True, fileId=fileId, body={}, addParents=newParentId, fields='')
           entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, fileType, fileName],
                                                              Act.MODIFIER_INTO, None, [Ent.DRIVE_FOLDER, trgtUserFolderName], j, jcount)
-        except (GAPI.fileNotFound) as e:
+        except (GAPI.fileNotFound, GAPI.internalError) as e:
           entityActionFailedWarning([Ent.USER, user, fileType, fileName], str(e), j, jcount)
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
