@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.08.04'
+__version__ = '5.08.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5992,6 +5992,20 @@ class CSVPrintFile():
           return False
       return True
 
+    def stripTimeFromDateTime(rowDate):
+      if YYYYMMDD_PATTERN.match(rowDate):
+        try:
+          rowTime = datetime.datetime.strptime(rowDate, YYYYMMDD_FORMAT)
+        except ValueError:
+          return None
+        tz = GC.Values[GC.TIMEZONE]
+      else:
+        try:
+          rowTime, tz = iso8601.parse_date(rowDate)
+        except (iso8601.ParseError, OverflowError):
+          return None
+      return ISOformatTimeStamp(datetime.datetime(rowTime.year, rowTime.month, rowTime.day, tzinfo=tz))
+
     def rowDateTimeFilterMatch(dateMode, op, filterDate):
       def checkMatch(rowDate):
         if not rowDate or not isinstance(rowDate, str):
@@ -5999,8 +6013,9 @@ class CSVPrintFile():
         if rowDate == GC.Values[GC.NEVER_TIME]:
           rowDate = NEVER_TIME
         if dateMode:
-          rowTime, tz = iso8601.parse_date(rowDate)
-          rowDate = ISOformatTimeStamp(datetime.datetime(rowTime.year, rowTime.month, rowTime.day, tzinfo=tz))
+          rowDate = stripTimeFromDateTime(rowDate)
+          if not rowDate:
+            return False
         if op == '<':
           return rowDate < filterDate
         if op == '<=':
@@ -6025,8 +6040,9 @@ class CSVPrintFile():
         if rowDate == GC.Values[GC.NEVER_TIME]:
           rowDate = NEVER_TIME
         if dateMode:
-          rowTime, tz = iso8601.parse_date(rowDate)
-          rowDate = ISOformatTimeStamp(datetime.datetime(rowTime.year, rowTime.month, rowTime.day, tzinfo=tz))
+          rowDate = stripTimeFromDateTime(rowDate)
+          if not rowDate:
+            return False
         if op == '!=':
           return not filterDateL <= rowDate <= filterDateR
         return filterDateL <= rowDate <= filterDateR
