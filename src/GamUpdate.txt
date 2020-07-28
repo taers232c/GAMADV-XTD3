@@ -1,3 +1,7 @@
+5.08.04
+
+Updated code in `gam <UserTypeEntity> collect orphans` to avoid `Temporary error: internalError - Internal Error`.
+
 5.08.03
 
 Added option `countsrowfilter` to `gam <UserTypeEntity> print filelist ... countsonly` that causes

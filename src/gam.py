@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.08.03'
+__version__ = '5.08.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -38094,7 +38094,7 @@ def collectOrphans(users):
         try:
           callGAPI(drive.files(), 'update',
                    throw_reasons=GAPI.DRIVE_USER_THROW_REASONS, retry_reasons=[GAPI.FILE_NOT_FOUND],
-                   fileId=fileId, body={}, addParents=newParentId, fields='')
+                   enforceSingleParent=True, fileId=fileId, body={}, addParents=newParentId, fields='')
           entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, fileType, fileName],
                                                              Act.MODIFIER_INTO, None, [Ent.DRIVE_FOLDER, trgtUserFolderName], j, jcount)
         except (GAPI.fileNotFound) as e:
