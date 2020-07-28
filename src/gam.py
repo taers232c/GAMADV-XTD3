@@ -2778,8 +2778,8 @@ def SetGlobalVariables():
       _printValueError(sectionName, itemName, f'"{value}"', f'{Msg.INVALID_LIST}: {filters}')
     return headerFilters
 
-  ROW_FILTER_COMP_PATTERN = re.compile(r'^(date|time|count)\s*([<>]=?|=|!=)\s*(.+)$', re.IGNORECASE)
-  ROW_FILTER_RANGE_PATTERN = re.compile(r'^(daterange|timerange|countrange)\s*(=|!=)\s*(\S+)\s*(\S+)$', re.IGNORECASE)
+  ROW_FILTER_COMP_PATTERN = re.compile(r'^(date|time|count)\s*([<>]=?|=|!=)(.+)$', re.IGNORECASE)
+  ROW_FILTER_RANGE_PATTERN = re.compile(r'^(daterange|timerange|countrange)(=|!=)(\S+)/(\S+)$', re.IGNORECASE)
   ROW_FILTER_BOOL_PATTERN = re.compile(r'^(boolean):(.+)$', re.IGNORECASE)
   ROW_FILTER_RE_PATTERN = re.compile(r'^(regex|notregex):(.*)$', re.IGNORECASE)
 
@@ -2846,12 +2846,12 @@ def SetGlobalVariables():
           if valid1 and valid2:
             rowFilters.append((columnPat, mg.group(1), mg.group(2), filterValue1, filterValue2))
           else:
-            _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: {filterValue1} {filterValue2}')
+            _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: {filterValue1}/{filterValue2}')
         else: #countrange
           if mg.group(3).isdigit() and mg.group(4).isdigit():
             rowFilters.append((columnPat, mg.group(1), mg.group(2), int(mg.group(3)), int(mg.group(4))))
           else:
-            _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: <Number> <Number>')
+            _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: <Number>/<Number>')
         continue
       mg = ROW_FILTER_BOOL_PATTERN.match(filterStr)
       if mg:

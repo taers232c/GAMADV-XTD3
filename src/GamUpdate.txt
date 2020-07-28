@@ -3,6 +3,23 @@
 Improved error handling in `gam create|update course ... copyfrom <CourseID>` when trying to copy links
 to inaccessible materials files.
 
+Updated definition of `<RowValueFilter>` in `config csv_output_row_filter` to avoid a parsing error.
+The two elements in a range must now be separated by a forward slash `/`, not by a space as this caused the error.
+```
+<RowValueFilter> ::=
+        count<Operator><Number>|
+        countrange=<Number>/<Number>|
+        countrange!=<Number>/<Number>|
+        date<Operator><Date>|
+        daterange=<Date>/<Date>|
+        daterange!=<Date>/<Date>|
+        time<Operator><Time>|
+        timerange=<Time>/<Time>|
+        timerange!=<Time>/<Time>|
+        boolean:<Boolean>|
+        regex:<RegularExpression>|
+        notregex:<RegularExpression>
+```
 5.08.05
 
 Fixed bug in `config csv_output_row_filter "<FieldName>:date<Operator><Date>"` that caused a trap.
