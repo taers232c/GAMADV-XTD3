@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.08.05'
+__version__ = '5.08.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -27200,11 +27200,9 @@ class CourseAttributes():
         except GAPI.notFound as e:
           entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
           return
-        except (GAPI.failedPrecondition, GAPI.invalidArgument) as e:
+        except (GAPI.failedPrecondition, GAPI.invalidArgument, GAPI.forbidden) as e:
           entityModifierItemValueListActionFailedWarning([Ent.COURSE, newCourseId], Act.MODIFIER_FROM,
                                                          [Ent.COURSE, self.courseId, Ent.COURSE_TOPIC, topicName], str(e), j, jcount)
-        except GAPI.forbidden:
-          SvcAcctAPIAccessDeniedExit()
     if self.courseAnnouncements:
       jcount = len(self.courseAnnouncements)
       j = 0
@@ -27228,11 +27226,10 @@ class CourseAttributes():
         except GAPI.notFound as e:
           entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
           return
-        except (GAPI.badRequest, GAPI.failedPrecondition, GAPI.backendError, GAPI.internalError) as e:
+        except (GAPI.badRequest, GAPI.failedPrecondition, GAPI.backendError, GAPI.internalError,
+                GAPI.permissionDenied, GAPI.forbidden) as e:
           entityModifierItemValueListActionFailedWarning([Ent.COURSE, newCourseId], Act.MODIFIER_FROM,
                                                          [Ent.COURSE, self.courseId, Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], str(e), j, jcount)
-        except (GAPI.permissionDenied, GAPI.forbidden):
-          SvcAcctAPIAccessDeniedExit()
     if self.courseWorks:
       jcount = len(self.courseWorks)
       j = 0
@@ -27265,11 +27262,10 @@ class CourseAttributes():
         except GAPI.notFound as e:
           entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
           return
-        except (GAPI.badRequest, GAPI.failedPrecondition, GAPI.backendError, GAPI.internalError) as e:
+        except (GAPI.badRequest, GAPI.failedPrecondition, GAPI.backendError, GAPI.internalError,
+                GAPI.permissionDenied, GAPI.forbidden) as e:
           entityModifierItemValueListActionFailedWarning([Ent.COURSE, newCourseId], Act.MODIFIER_FROM,
                                                          [Ent.COURSE, self.courseId, Ent.COURSE_WORK, f'{body.get("title", courseWorkId)}'], str(e), j, jcount)
-        except (GAPI.permissionDenied, GAPI.forbidden):
-          SvcAcctAPIAccessDeniedExit()
 
   def CopyFromCourse(self, newCourse, i=0, count=0):
     action = Act.Get()

@@ -1,3 +1,8 @@
+5.08.06
+
+Improved error handling in `gam create|update course ... copyfrom <CourseID>` when trying to copy links
+to inaccessible materials files.
+
 5.08.05
 
 Fixed bug in `config csv_output_row_filter "<FieldName>:date<Operator><Date>"` that caused a trap.
