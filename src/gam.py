@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.08.07'
+__version__ = '5.08.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2554,7 +2554,7 @@ def getGSheetData():
   except GAPI.fileNotFound:
     getGDocSheetDataFailedExit([Ent.USER, user, Ent.SPREADSHEET, fileId], Msg.DOES_NOT_EXIST)
   except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-          GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
+          GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
     getGDocSheetDataFailedExit([Ent.USER, user, Ent.SPREADSHEET, fileId, sheetEntity['sheetType'], sheetEntity['sheetValue']], str(e))
   except (IOError, httplib2.HttpLib2Error) as e:
     if f:
@@ -5271,6 +5271,8 @@ def getEntityToModify(defaultEntityType=None, crosAllowed=False, userAllowed=Tru
   if entityType:
     if entityType not in Cmd.CROS_ENTITIES:
       entityClass = Cmd.ENTITY_USERS
+      if entityType == Cmd.ENTITY_OAUTHUSER:
+        return (entityClass, [_getValueFromOAuth('email')])
       entityItem = getString(Cmd.OB_USER_ENTITY, minLen=0)
     else:
       entityClass = Cmd.ENTITY_CROS
@@ -5833,7 +5835,7 @@ class CSVPrintFile():
                   invalidTodriveFileIdExit([self.todrive[sheetEntity]['sheetType'], self.todrive[sheetEntity]['sheetValue']], Msg.NOT_WRITABLE, tdsheetLocation[sheetEntity])
                 self.todrive[sheetEntity]['sheetId'] = sheetId
           except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-                  GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid) as e:
+                  GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
             invalidTodriveFileIdExit([], str(e), tdfileidLocation)
       except GAPI.fileNotFound:
         invalidTodriveFileIdExit([], Msg.NOT_FOUND, tdfileidLocation)
@@ -6351,7 +6353,7 @@ class CSVPrintFile():
                        throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                        spreadsheetId=self.todrive['fileId'], body=body)
             except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-                    GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid) as e:
+                    GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
               todriveCSVErrorExit(entityValueList, str(e))
             closeFile(csvFile)
 # Create/update file
@@ -6422,7 +6424,7 @@ class CSVPrintFile():
                            throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                            spreadsheetId=spreadsheetId, body=body)
               except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-                      GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid) as e:
+                      GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
                 todriveCSVErrorExit([Ent.USER, user, Ent.SPREADSHEET, title], str(e))
           Act.Set(action)
           file_url = result['webViewLink']
@@ -8416,7 +8418,7 @@ PROJECT_STATE_CHOICE_MAP = {
 
 # gam print projects [[admin] <EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)] [todrive <ToDriveAttribute>*]
 #	[states all|active|deleterequested] [showiampolicies 0|1|3 [onememberperrow]]
-#	[delimiter <Character>]] [[formatjson] [quotechar <Character>]
+#	[delimiter <Character>] [formatjson [quotechar <Character>]]
 # gam show projects [[admin] <EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
 #	[states all|active|deleterequested] [showiampolicies 0|1|3]
 def doPrintShowProjects():
@@ -8855,7 +8857,7 @@ SVCACCT_KEY_TYPE_CHOICE_MAP = {
 
 # gam print svcaccts [[admin] <EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
 #	[showsakeys all|system|user]
-#	[todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
+#	[todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
 # gam show svcaccts [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
 #	[showsakeys all|system|user]
 def doPrintShowSvcAccts():
@@ -11025,7 +11027,7 @@ def _printDomain(domain, csvPF):
 
 DOMAIN_ALIAS_SORT_TITLES = ['domainAliasName', 'parentDomainName', 'creationTime', 'verified']
 
-# gam print domainaliases [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
+# gam print domainaliases [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
 # gam show domainaliases [formatjson]
 def doPrintShowDomainAliases():
   cd = buildGAPIObject(API.DIRECTORY)
@@ -11306,7 +11308,7 @@ def doInfoDomain():
 
 DOMAIN_SORT_TITLES = ['domainName', 'parentDomainName', 'creationTime', 'type', 'verified']
 
-# gam print domains [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
+# gam print domains [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
 # gam show domains [formatjson]
 def doPrintShowDomains():
   cd = buildGAPIObject(API.DIRECTORY)
@@ -15029,7 +15031,7 @@ def _printShowContacts(users, entityType, contactFeed=True):
 
 # gam <UserTypeEntity> print contacts [todrive <ToDriveAttribute>*] <UserContactSelection>
 #	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
-#	[fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
+#	[fields <ContactFieldNameList>] [formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show contacts <UserContactSelection>
 #	[basic|full|countsonly] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
 #	[fields <ContactFieldNameList>] [formatjson]
@@ -15038,7 +15040,7 @@ def printShowUserContacts(users):
 
 # gam print contacts [todrive <ToDriveAttribute>*] <ContactSelection>
 #	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
-#	[fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
+#	[fields <ContactFieldNameList>] [formatjson [quotechar <Character>]]
 # gam show contacts <ContactSelection>
 #	[basic|full|countsonly] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
 #	[fields <ContactFieldNameList>] [formatjson]
@@ -15047,7 +15049,7 @@ def doPrintShowDomainContacts():
 
 # gam print gal [todrive <ToDriveAttribute>*] <ContactSelection>
 #	[basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]]
-#	[fields <ContactFieldNameList>] [formatjson] [quotechar <Character>]
+#	[fields <ContactFieldNameList>] [formatjson [quotechar <Character>]]
 # gam show gal <ContactSelection>
 #	[basic|full|countsonly] [orderby <ContactOrderByFieldName> [ascending|descending]]
 #	[fields <ContactFieldNameList>] [formatjson]
@@ -15423,7 +15425,7 @@ def infoUserContactGroups(users):
 
 # gam <UserTypeEntity> print contactgroups [todrive <ToDriveAttribute>*] [updated_min <Date>]
 #	[basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
-#	[formatjson] [quotechar <Character>]
+#	[formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show contactgroups [updated_min <Date>]
 #	[basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
 #	[formatjson]
@@ -16188,14 +16190,14 @@ CROS_INDEXED_TITLES = ['activeTimeRanges', 'recentUsers', 'deviceFiles',
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]]
 #	[nolists|(<DrOSListFieldName>* [onerow])] [listlimit <Number>] [timerangeorder ascending|descending]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
-#	[sortheaders] [formatjson] [quotechar <Character>]
+#	[sortheaders] [formatjson [quotechar <Character>]]
 #
 # gam <CrOSTypeEntity> print cros [todrive <ToDriveAttribute>*]
 #	[start <Date>] [end <Date>]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]]
 #	[nolists|(<DrOSListFieldName>* [onerow])] [listlimit <Number>] [timerangeorder ascending|descending]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
-#	[sortheaders] [formatjson] [quotechar <Character>]
+#	[sortheaders] [formatjson [quotechar <Character>]]
 def doPrintCrOSDevices(entityList=None):
   def _getSelectedLists(myarg):
     if myarg in CROS_ACTIVE_TIME_RANGES_ARGUMENTS:
@@ -16455,12 +16457,12 @@ CROS_ACTIVITY_TIME_OBJECTS = {'createTime'}
 #	[querytime.* <Time>]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [both] [devicefiles] [all]
 #	[listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
-#	[delimiter <Character>] [formatjson] [quotechar <Character>]
+#	[delimiter <Character>] [formatjson [quotechar <Character>]]
 #
 # gam <CrOSTypeEntity> print crosactivity [todrive <ToDriveAttribute>*]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [both] [devicefiles] [all]
 #	[listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
-#	[delimiter <Character>] [formatjson] [quotechar <Character>]
+#	[delimiter <Character>] [formatjson [quotechar <Character>]]
 def doPrintCrOSActivity(entityList=None):
   def _printCrOS(cros):
     row = {}
@@ -16876,7 +16878,7 @@ MOBILE_ORDERBY_CHOICE_MAP = {
 #	[orderby <MobileOrderByFieldName> [ascending|descending]]
 #	[basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>]
 #	[delimiter <Character>] [appslimit <Number>] [oneappperrow] [listlimit <Number>]
-#	[formatjson] [quotechar <Character>]
+#	[formatjson [quotechar <Character>]]
 def doPrintMobileDevices():
   def _appDetails(app):
     appDetails = []
@@ -18448,7 +18450,7 @@ PRINT_GROUPS_JSON_TITLES = ['email', 'JSON']
 #	[types <GroupTypeList>]
 #	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
 #	[convertcrnl] [delimiter <Character>] [sortheaders]
-#	[formatjson] [quotechar <Character>]
+#	[formatjson [quotechar <Character>]]
 def doPrintGroups():
   def _printGroupRow(groupEntity, groupMembers, groupSettings):
     row = {}
@@ -19653,7 +19655,7 @@ ALERT_ORDERBY_CHOICE_MAP = {
 # gam show alerts [filter <String>] [orderby createtime [ascending|descending]]
 #	[formatjson]
 # gam print alerts [todrive <ToDriveAttribute>*] [filter <String>] [orderby createtime [ascending|descending]]
-#	[formatjson] [quotechar <Character>]
+#	[formatjson [quotechar <Character>]]
 def doPrintShowAlerts():
   csvPF = CSVPrintFile(['alertId', 'createTime']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
@@ -19751,7 +19753,7 @@ ALERT_FEEDBACK_ORDERBY_CHOICE_MAP = {
 # gam show alertfeedback [alert <AlertID>] [filter <String>] [orderby createtime [ascending|descending]]
 #	[formatjson]
 # gam print alertfeedback [todrive <ToDriveAttribute>*] [alert <AlertID>] [filter <String>] [orderby createtime [ascending|descending]]
-#	[formatjson] [quotechar <Character>]
+#	[formatjson [quotechar <Character>]]
 def doPrintShowAlertFeedback():
   csvPF = CSVPrintFile(['feedbackId', 'createTime']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
@@ -20492,7 +20494,7 @@ RESOURCE_FIELDS_CHOICE_MAP = {
 #	[acls] [calendar] [convertcrnl] [formatjson]
 # gam print resources [todrive <ToDriveAttribute>*] [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)]
 #	[query <String>]
-#	[acls] [calendar] [convertcrnl] [formatjson] [quotechar <Character>]
+#	[acls] [calendar] [convertcrnl] [formatjson [quotechar <Character>]]
 def doPrintShowResourceCalendars():
   cd = buildGAPIObject(API.DIRECTORY)
   convertCRNL = GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]
@@ -20930,7 +20932,7 @@ def _getCalendarPrintShowACLOptions(entityType):
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   return (csvPF, FJQC)
 
-# gam calendars <CalendarEntity> print acls [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
+# gam calendars <CalendarEntity> print acls [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
 # gam calendars <CalendarEntity> show acls [formatjson]
 # gam calendar <CalendarEntity> showacl [formatjson]
 def doCalendarsPrintShowACLs(cal, calIds):
@@ -22138,7 +22140,7 @@ def _printShowCalendarEvents(origUser, user, cal, calIds, count, calendarEventEn
         csvPF.WriteRow(row)
 
 # gam calendars <CalendarEntity> print events <EventEntity> <EventDisplayProperties>* [fields <EventFieldNameList>]
-#	[countsonly] [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
+#	[countsonly] [formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
 # gam calendars <CalendarEntity> show events <EventEntity> <EventDisplayProperties>* [fields <EventFieldNameList>]
 #	[countsonly] [formatjson]
 def doCalendarsPrintShowEvents(cal, calIds):
@@ -22323,8 +22325,8 @@ def doResourceInfoCalendarACLs(entityList):
       continue
     _infoCalendarACLs(cal, resourceId, Ent.RESOURCE_CALENDAR, calId, i, count, ruleIds, jcount, FJQC)
 
-# gam resource <ResourceID> print calendaracls [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
-# gam resources <ResourceEntity> print calendaracls [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
+# gam resource <ResourceID> print calendaracls [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
+# gam resources <ResourceEntity> print calendaracls [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
 # gam resource <ResourceID> show calendaracls [formatjson]
 # gam resources <ResourceEntity> show calendaracls [formatjson]
 def doResourcePrintShowCalendarACLs(entityList):
@@ -25598,14 +25600,14 @@ def undeleteUsers(entityList):
       callGAPI(cd.users(), 'undelete',
                throw_reasons=[GAPI.DELETED_USER_NOT_FOUND, GAPI.INVALID_ORGUNIT,
                               GAPI.DOMAIN_NOT_FOUND, GAPI.DOMAIN_CANNOT_USE_APIS,
-                              GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID],
+                              GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.DUPLICATE],
                userKey=user_uid, body={'orgUnitPath': makeOrgUnitPathAbsolute(orgUnitPaths[0])})
       entityActionPerformed([Ent.DELETED_USER, user], i, count)
     except GAPI.deletedUserNotFound:
       entityUnknownWarning(Ent.DELETED_USER, user, i, count)
     except GAPI.invalidOrgunit:
       entityActionFailedWarning([Ent.USER, user], Msg.INVALID_ORGUNIT, i, count)
-    except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.invalid) as e:
+    except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.invalid, GAPI.duplicate) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
 
 # gam undelete users <UserEntity> [org|ou <OrgUnitPath>]
@@ -26229,24 +26231,24 @@ USERS_INDEXED_TITLES = ['addresses', 'aliases', 'nonEditableAliases', 'emails', 
 #	[groups|groupsincolumns] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
 #	[orderby <UserOrderByFieldName> [ascending|descending]]
 #	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
-#	[delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>] [quoteplusphonenumbers]
+#	[delimiter <Character>] [sortheaders] [formatjson [quotechar <Character>]] [quoteplusphonenumbers]
 #	[issuspended <Boolean>]
 #
 # gam <UserTypeEntity> print users [todrive <ToDriveAttribute>*]
 #	[groups|groupsincolumns] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
 #	[orderby <UserOrderByFieldName> [ascending|descending]]
 #	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
-#	[delimiter <Character>] [sortheaders] [formatjson] [quotechar <Character>] [quoteplusphonenumbers]
+#	[delimiter <Character>] [sortheaders] [formatjson [quotechar <Character>]] [quoteplusphonenumbers]
 #	[issuspended <Boolean>]
 #
 # gam print users [todrive <ToDriveAttribute>*]
 #	([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)]
 #	 [limittoou <OrgUnitItem>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
-#	[formatjson] [quotechar <Character>] [countonly]
+#	[formatjson [quotechar <Character>]] [countonly]
 #	[issuspended <Boolean>]
 #
 # gam <UserTypeEntity> print users [todrive <ToDriveAttribute>*]
-#	[formatjson] [quotechar <Character>] [countonly]
+#	[formatjson [quotechar <Character>]] [countonly]
 #	[issuspended <Boolean>]
 def doPrintUsers(entityList=None):
   def _printUser(userEntity):
@@ -26619,7 +26621,7 @@ PEOPLE_FIELDS_CHOICE_MAP = {
 
 # gam <UserTypeEntity> print peopleprofile [todrive <ToDriveAttribute>*]
 #	[allfields|(fields <PeopleFieldNameList>)]
-#	[formatjson] [quotechar <Character>]
+#	[formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show peopleprofile
 #	[allfields|(fields <PeopleFieldNameList>)]
 #	[formatjson]
@@ -27791,7 +27793,7 @@ def _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties, getO
 #	[owneremail] [owneremailmatchpattern <RegularExpression>]
 #	[alias|aliases|aliasesincolumns [delimiter <Character>]]
 #	[show none|all|students|teachers] [countsonly]
-#	[fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson] [quotechar <Character>]
+#	[fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson [quotechar <Character>]]
 #	[timefilter creationtime|updatetime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 def doPrintCourses():
   def _saveParticipants(course, participants, role, rtitles):
@@ -27961,7 +27963,7 @@ COURSE_ANNOUNCEMENTS_INDEXED_TITLES = ['materials']
 #	(course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
 #	(announcementids <CourseAnnouncementIDEntity>)|((announcementstates <CourseAnnouncementStateList>)*
 #	(orderby <CourseAnnouncementOrderByFieldName> [ascending|descending])*)
-#	[showcreatoremails] [fields <CourseAnnouncementFieldNameList>] [formatjson] [quotechar <Character>]
+#	[showcreatoremails] [fields <CourseAnnouncementFieldNameList>] [formatjson [quotechar <Character>]]
 #	[timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 def doPrintCourseAnnouncements():
   def _printCourseAnnouncement(course, courseAnnouncement, i, count):
@@ -28064,7 +28066,7 @@ COURSE_TOPICS_SORT_TITLES = ['courseId', 'courseName', 'topicId', 'name', 'updat
 # gam print course-topics [todrive <ToDriveAttribute>*]
 #	(course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
 #	[topicids <CourseTopicIDEntity>]
-#	[formatjson] [quotechar <Character>]
+#	[formatjson [quotechar <Character>]]
 #	[timefilter updatetime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 def doPrintCourseTopics():
   def _printCourseTopic(course, courseTopic):
@@ -28200,7 +28202,7 @@ def _gettingCourseWorkQuery(courseWorkStates):
 #	(course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
 #	(workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)*
 #	(orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
-#	[showcreatoremails] [showtopicnames] [fields <CourseWorkFieldNameList>] [formatjson] [quotechar <Character>]
+#	[showcreatoremails] [showtopicnames] [fields <CourseWorkFieldNameList>] [formatjson [quotechar <Character>]]
 #	[timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 def doPrintCourseWork():
   def _getTopicNames(croom, courseId):
@@ -28358,7 +28360,7 @@ def _gettingCourseSubmissionQuery(courseSubmissionStates, late, userId):
 #	(workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)*
 #	(orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
 #	(submissionids <CourseSubmissionIDEntity>)|((submissionstates <CourseSubmissionStateList>)*) [late|notlate]
-#	[fields <CourseSubmissionFieldNameList>] [formatjson] [quotechar <Character>] [showuserprofile]
+#	[fields <CourseSubmissionFieldNameList>] [formatjson [quotechar <Character>]] [showuserprofile]
 #	[timefilter creationtime|updatetime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 def doPrintCourseSubmissions():
   def _printCourseSubmission(course, courseSubmission):
@@ -28508,7 +28510,7 @@ COURSE_PARTICIPANTS_SORT_TITLES = ['courseId', 'courseName', 'userRole', 'userId
 
 # gam print course-participants [todrive <ToDriveAttribute>*]
 #	(course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
-#	[show all|students|teachers] [formatjson] [quotechar <Character>]
+#	[show all|students|teachers] [formatjson [quotechar <Character>]]
 def doPrintCourseParticipants():
   croom = buildGAPIObject(API.CLASSROOM)
   csvPF = CSVPrintFile(['courseId', 'courseName'])
@@ -29403,14 +29405,14 @@ def _printShowGuardians(entityList=None):
 #	[showstudentemails] [formatjson]
 # gam print guardian|guardians [todrive <ToDriveAttribute>*] [accepted|invitations|all] [states <GuardianInvitationStateList>] [invitedguardian <EmailAddress>]
 #	[student <StudentItem>] [<UserTypeEntity>]
-#	[showstudentemails] [formatjson] [quotechar <Character>]
+#	[showstudentemails] [formatjson [quotechar <Character>]]
 def doPrintShowGuardians():
   _printShowGuardians()
 
 # gam <UserTypeEntity> show guardian|guardians [accepted|invitations|all] [states <GuardianInvitationStateList>] [invitedguardian <EmailAddress>]
 #	[showstudentemails] [formatjson]
 # gam <UserTypeEntity> print guardian|guardians [todrive <ToDriveAttribute>*] [accepted|invitations|all] [states <GuardianInvitationStateList>] [invitedguardian <EmailAddress>]
-#	[showstudentemails] [formatjson] [quotechar <Character>]
+#	[showstudentemails] [formatjson [quotechar <Character>]]
 def printShowGuardians(users):
   _printShowGuardians(users)
 
@@ -29482,7 +29484,7 @@ CLASSROOM_ROLE_ENTITY_MAP = {
   }
 
 # gam <UserTypeEntity> create classroominvitation courses <CourseEntity> [role owner|student|teacher]
-#	[adminaccess|asadmin] [csvformat] [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
+#	[adminaccess|asadmin] [csvformat] [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
 def createClassroomInvitations(users):
   croom = buildGAPIObject(API.CLASSROOM)
   classroomEmails = {}
@@ -29636,7 +29638,7 @@ def deleteClassroomInvitations(users):
 # gam <UserTypeEntity> show classroominvitations [role all|owner|student|teacher]
 #	[formatjson]
 # gam <UserTypeEntity> print classroominvitations [todrive <ToDriveAttribute>*] [role all|owner|student|teacher]
-#	[formatjson] [quotechar <Character>]
+#	[formatjson [quotechar <Character>]]
 def printShowClassroomInvitations(users):
   croom = buildGAPIObject(API.CLASSROOM)
   classroomEmails = {}
@@ -29704,7 +29706,7 @@ def printShowClassroomInvitations(users):
 # gam show classroominvitations (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
 #	[role all|owner|student|teacher] [formatjson]
 # gam print classroominvitations [todrive <ToDriveAttribute>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
-#	[role all|owner|student|teacher] [formatjson] [quotechar <Character>]
+#	[role all|owner|student|teacher] [formatjson [quotechar <Character>]]
 def doPrintShowClassroomInvitations():
   croom = buildGAPIObject(API.CLASSROOM)
   classroomEmails = {}
@@ -31570,7 +31572,7 @@ def infoCalendarACLs(users):
     _doInfoCalendarACLs(origUser, user, cal, calIds, jcount, ACLScopeEntity, FJQC)
     Ind.Decrement()
 
-# gam <UserTypeEntity> print calendaracls <UserCalendarEntity> [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
+# gam <UserTypeEntity> print calendaracls <UserCalendarEntity> [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show calendaracls <UserCalendarEntity> [formatjson]
 def printShowCalendarACLs(users):
   calendarEntity = getUserCalendarEntity(default='all')
@@ -32076,7 +32078,7 @@ def infoCalendarEvents(users):
     Ind.Decrement()
 
 # gam <UserTypeEntity> print events <UserCalendarEntity> <EventEntity> <EventDisplayProperties>* [fields <EventFieldNameList>]
-#	[countsonly] [formatjson] [quotechar <Character>] [todrive <ToDriveAttribute>*]
+#	[countsonly] [formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
 # gam <UserTypeEntity> show events <UserCalendarEntity> <EventEntity> <EventDisplayProperties>* [fields <EventFieldNameList>]
 #	[countsonly] [formatjson]
 def printShowCalendarEvents(users):
@@ -33033,7 +33035,7 @@ CONSOLIDATION_GROUPING_STRATEGY_CHOICE_MAP = {
 #	[allevents|combinedevents|singleevents] [groupingstrategy driveui|none]
 #	[consolidationstrategy legacy|none]
 #	[idmapfile <FileName>|(gsheet <UserGoogleSheet>) [charset <String>] [columndelimiter <Character>] [quotechar <Character>]]
-#	[formatjson] [quotechar <Character>]
+#	[formatjson [quotechar <Character>]]
 def printDriveActivity(users):
   def _getUserInfo(userId):
     if userId.startswith('people/'):
@@ -35166,7 +35168,7 @@ FILECOUNT_SUMMARY_USER = 'Summary'
 #	[allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
 #	[showdrivename] [showparentsidsaslist] [showpermissionslast]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
-#	[formatjson] [quotechar <Character>]
+#	[formatjson [quotechar <Character>]]
 def printFileList(users):
   def _setSelectionFields():
     if fileIdEntity or filepath:
@@ -36600,7 +36602,7 @@ def updateDriveFile(users):
             except GAPI.fileNotFound as e:
               entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_ID, fileId], str(e), j, jcount)
             except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-                    GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid) as e:
+                    GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
               entityActionFailedWarning(entityValueList, str(e), j, jcount)
             except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
               userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -38010,7 +38012,7 @@ def getDriveFile(users):
       except GAPI.revisionNotFound:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId, Ent.DRIVE_FILE_REVISION, revisionId], Msg.DOES_NOT_EXIST, j, jcount)
       except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid) as e:
+              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, fileId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -40165,7 +40167,7 @@ def getDriveFilePermissionsFields(myarg, fieldsList):
 #	[oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 #	<PermissionMatch>* [<PermissionMatchAction>]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
-#	[formatjson] [quotechar <Character>] [adminaccess|asadmin]
+#	[formatjson [quotechar <Character>]] [adminaccess|asadmin]
 # gam <UserTypeEntity> show drivefileacls <DriveFileEntity>
 #	[oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 #	<PermissionMatch>* [<PermissionMatchAction>]
@@ -40278,7 +40280,7 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
 def doPrintShowDriveFileACLs():
   printShowDriveFileACLs([_getValueFromOAuth('email')], True)
 
-# gam print ownership <DriveFileID>|(drivefilename <DriveFileName>) [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>]
+# gam print ownership <DriveFileID>|(drivefilename <DriveFileName>) [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
 # gam show ownership <DriveFileID>|(drivefilename <DriveFileName>) [formatjson]
 def doPrintShowOwnership():
   rep = buildGAPIObject(API.REPORTS)
@@ -40760,11 +40762,11 @@ TEAMDRIVE_ROLES_CAPABILITIES_MAP = {
 # gam <UserTypeEntity> print teamdrives [todrive <ToDriveAttribute>*]
 #	[adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]]
 #	[matchname <RegularExpression>] (role|roles <TeamDriveACLRoleList>)*
-#	[fields <TeamDriveFieldNameList>] [formatjson] [quotechar <Character>]
+#	[fields <TeamDriveFieldNameList>] [formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show teamdrives
 #	[adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]]
 #	[matchname <RegularExpression>] (role|roles <TeamDriveACLRoleLIst>)*
-#	[fields <TeamDriveFieldNameList>] [formatjson] [quotechar <Character>]
+#	[fields <TeamDriveFieldNameList>] [formatjson [quotechar <Character>]]
 def printShowTeamDrives(users, useDomainAdminAccess=False):
   def stripNonShowFields(teamdrive):
     if not showFields:
@@ -40895,7 +40897,7 @@ TEAMDRIVE_INDEXED_TITLES = ['permissions']
 #	[teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
 #	[user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
 #	[oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
-#	[formatjson] [quotechar <Character>]
+#	[formatjson [quotechar <Character>]]
 #	asadmin
 # gam <UserTypeEntity> show teamdriveacls
 #	[teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
@@ -41832,7 +41834,8 @@ def createSheet(users):
                    addParents=addParents, removeParents=removeParents, fields='', supportsAllDrives=True)
           parentId = addParents
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.permissionDenied,
-                GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.cannotAddParent) as e:
+                GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument,
+                GAPI.cannotAddParent) as e:
           parentMsg = f'{ERROR_PREFIX}{addParents}: {str(e)}'
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           parentMsg = f'{ERROR_PREFIX}{addParents}: {str(e)}'
@@ -41904,7 +41907,7 @@ def updateSheets(users):
             showJSON(field, result[field])
         Ind.Decrement()
       except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid) as e:
+              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -41925,7 +41928,7 @@ SPREADSHEET_FIELDS_CHOICE_MAP = {
 #	[formatjson]
 # gam <UserTypeEntity> print sheet <DriveFileEntity> [todrive <ToDriveAttribute>*]
 #	[fields <SpreadsheetFieldList>] (range <SpreadsheetRange>)* [includegriddata [<Boolean>]]
-#	[formatjson] [quotechar <Character>]
+#	[formatjson [quotechar <Character>]]
 def infoPrintShowSheets(users):
   csvPF = CSVPrintFile(['User', 'spreadsheetId'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
@@ -41983,7 +41986,7 @@ def infoPrintShowSheets(users):
             csvPF.WriteRowNoFilter({'User': user, 'spreadsheetId': spreadsheetId,
                                     'JSON': json.dumps(result, ensure_ascii=False, sort_keys=False)})
       except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid) as e:
+              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -42031,7 +42034,9 @@ def _getSpreadsheetRangesValues(append):
       if append and spreadsheetRangesValues:
         usageErrorExit(Msg.ONLY_ONE_JSON_RANGE_ALLOWED)
       spreadsheetRangeValue = getJSON([])
-      if isinstance(spreadsheetRangeValue, list):
+      if isinstance(spreadsheetRangeValue, dict) and 'valueRanges' in spreadsheetRangeValue:
+        spreadsheetRangesValues.extend(spreadsheetRangeValue['valueRanges'])
+      elif isinstance(spreadsheetRangeValue, list):
         spreadsheetRangesValues.extend(spreadsheetRangeValue)
       else:
         spreadsheetRangesValues.append(spreadsheetRangeValue)
@@ -42105,7 +42110,7 @@ def appendSheetRanges(users):
           printKeyValueList([field, result[field]])
         _showUpdateValuesResponse(result['updates'], k, kcount)
       except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid) as e:
+              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -42150,7 +42155,7 @@ def updateSheetRanges(users):
           k += 1
           _showUpdateValuesResponse(response, k, kcount)
       except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid) as e:
+              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -42195,7 +42200,7 @@ def clearSheetRanges(users):
           k += 1
           printKeyValueListWithCount(['range', clearedRange], k, kcount)
       except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid) as e:
+              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -42205,10 +42210,10 @@ def clearSheetRanges(users):
 
 # gam <UserTypeEntity> print sheetrange <DriveFileEntity> (range <SpreadsheetRange>)*  [todrive <ToDriveAttribute>*]
 #	[rows|columns] [serialnumber|formattedstring] [formula|formattedvalue|unformattedvalue]
-#	[formatjson] [quotechar <Character>]
+#	[formatjson [quotechar <Character>] [valuerangesonly [<Boolean>]]]
 # gam <UserTypeEntity> show sheetrange <DriveFileEntity> (range <SpreadsheetRange>)*
 #	[rows|columns] [serialnumber|formattedstring] [formula|formattedvalue|unformattedvalue]
-#	[formatjson]
+#	[formatjson [valuerangesonly [<Boolean>]]]
 def printShowSheetRanges(users):
   csvPF = CSVPrintFile(['User', 'spreadsheetId'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
@@ -42219,12 +42224,15 @@ def printShowSheetRanges(users):
     'valueRenderOption': 'FORMATTED_VALUE',
     'dateTimeRenderOption': 'FORMATTED_STRING',
     }
+  valueRangesOnly = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg == 'range':
       spreadsheetRanges.append(getString(Cmd.OB_SPREADSHEET_RANGE))
+    elif myarg == 'valuerangesonly':
+      valueRangesOnly = getBoolean()
     elif myarg in SHEET_DIMENSIONS_MAP:
       kwargs['majorDimension'] = SHEET_DIMENSIONS_MAP[myarg]
     elif myarg in SHEET_VALUE_RENDER_OPTIONS_MAP:
@@ -42233,6 +42241,8 @@ def printShowSheetRanges(users):
       kwargs['dateTimeRenderOption'] = SHEET_DATETIME_RENDER_OPTIONS_MAP[myarg]
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if csvPF and FJQC.formatJSON and valueRangesOnly:
+    csvPF.SetJSONTitles(['JSON'])
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -42251,7 +42261,10 @@ def printShowSheetRanges(users):
         kcount = len(valueRanges)
         if not csvPF:
           if FJQC.formatJSON:
-            printLine('{'+f'"User": "{user}", "spreadsheetId": "{spreadsheetId}", "JSON": {json.dumps(result, ensure_ascii=False, sort_keys=False)}'+'}')
+            if not valueRangesOnly:
+              printLine('{'+f'"User": "{user}", "spreadsheetId": "{spreadsheetId}", "JSON": {json.dumps(result, ensure_ascii=False, sort_keys=False)}'+'}')
+            else:
+              printLine(json.dumps(result.get('valueRanges', []), ensure_ascii=False, sort_keys=False))
             continue
           entityPerformActionNumItems([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], kcount, Ent.SPREADSHEET_RANGE, j, jcount)
           Ind.Increment()
@@ -42267,12 +42280,15 @@ def printShowSheetRanges(users):
             if not FJQC.formatJSON:
               csvPF.WriteRowTitles(row)
             elif csvPF.CheckRowTitles(row):
-              csvPF.WriteRowNoFilter({'User': user, 'spreadsheetId': spreadsheetId,
-                                      'JSON': json.dumps(result, ensure_ascii=False, sort_keys=False)})
+              if not valueRangesOnly:
+                csvPF.WriteRowNoFilter({'User': user, 'spreadsheetId': spreadsheetId,
+                                        'JSON': json.dumps(result, ensure_ascii=False, sort_keys=False)})
+              else:
+                csvPF.WriteRowNoFilter({'JSON': json.dumps(result.get('valueRanges', []), ensure_ascii=False, sort_keys=False)})
           elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
             csvPF.WriteRowNoFilter({'User': user})
       except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid) as e:
+              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)

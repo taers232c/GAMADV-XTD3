@@ -47,6 +47,7 @@ class GamCLArgs():
   ENTITY_GROUP_USERS_NS = 'group_users_ns'
   ENTITY_GROUP_USERS_SUSP = 'group_users_susp'
   ENTITY_LICENSES = 'licenses'
+  ENTITY_OAUTHUSER = 'oauthuser'
   ENTITY_OU = 'ou'
   ENTITY_OU_NS = 'ou_ns'
   ENTITY_OU_SUSP = 'ou_susp'
@@ -96,6 +97,7 @@ class GamCLArgs():
     ENTITY_GROUP_USERS_NS,
     ENTITY_GROUP_USERS_SUSP,
     ENTITY_LICENSES,
+    ENTITY_OAUTHUSER,
     ENTITY_OU,
     ENTITY_OU_NS,
     ENTITY_OU_SUSP,

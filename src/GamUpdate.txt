@@ -1,3 +1,27 @@
+5.08.08
+
+Added option `valuerangesonly` to `gam <UserTypeEntity> print|show sheetrange` which, in
+conjunction with `formatjson` limits the display to just the `valueRanges` data. This will
+make it simpler to capture the sheetrange data, modify it, and update the sheet with the modified data.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Spreadsheets#display-values-in-a-spreadsheet
+
+Added `oauthuser` to `<UserTypeEntity>`; it represents the admin email address from `oauth2.txt`.
+
+This will typically be used when multiple customers/domains are defined in `gam.cfg`.
+For example, to get information about the admin.
+```
+$ gam oauth info
+Client OAuth2 File: /GamConfig/oauth2.txt
+...
+G Suite Admin: admin@domain.com
+Expires: 2020-07-29T14:26:50-07:00
+
+$gam oauthuser info user
+User: admin@domain.com
+  Settings
+...
+```
+
 5.08.07
 
 Fixed bug in `gam print group-members recursive noduplicates` where a groups members would not be displayed if it
