@@ -1,3 +1,10 @@
+5.08.07
+
+Fixed bug in `gam print group-members recursive noduplicates` where a groups members would not be displayed if it
+was processed as a subgroup of another group before it was processed as a top level group.
+
+Handle `ERROR: 400: badRequest - Bad Request` in `gam <UserTypeEntity> transfer drive <UserItem>`.
+
 5.08.06
 
 Improved error handling in `gam create|update course ... copyfrom <CourseID>` when trying to copy links

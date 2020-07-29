@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.08.06'
+__version__ = '5.08.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -19197,7 +19197,6 @@ def doPrintGroupMembers():
   memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS] = 'delivery_settings' in fieldsList
   userFields = getFieldsFromFieldsList(userFieldsList)
   memberRoles = ','.join(sorted(rolesSet)) if rolesSet else None
-  membersSet = set()
   level = 0
   customerKey = GC.Values[GC.CUSTOMER_ID]
   setCustomerMemberEmail = 'email' in fieldsList
@@ -19212,6 +19211,7 @@ def doPrintGroupMembers():
     if not checkGroupMatchPatterns(groupEmail, group, matchPatterns):
       continue
     membersList = []
+    membersSet = set()
     getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, count, memberOptions, level, typesSet)
     if showOwnedBy and not checkGroupShowOwnedBy(showOwnedBy, membersList):
       continue
@@ -38350,14 +38350,15 @@ def transferDrive(users):
             entityActionFailedWarning([Ent.USER, ownerUser, childFileType, childFileName], str(e), j, jcount)
             return
           except GAPI.invalidSharingRequest as e:
-            entityActionFailedWarning([Ent.USER, ownerUser, childFileType, childFileName], Ent.TypeNameMessage(Ent.PERMISSION_ID, sourcePermissionId, str(e)), j, jcount)
+            entityActionFailedWarning([Ent.USER, ownerUser, childFileType, childFileName],
+                                      Ent.TypeNameMessage(Ent.PERMISSION_ID, sourcePermissionId, str(e)), j, jcount)
             return
           except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
             userSvcNotApplicableOrDriveDisabled(ownerUser, str(e), i, count)
             return
         try:
           callGAPI(targetDrive.files(), 'update',
-                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS, retry_reasons=[GAPI.FILE_NOT_FOUND], retries=3,
+                   throw_reasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST], retry_reasons=[GAPI.FILE_NOT_FOUND], retries=3,
                    fileId=childFileId,
                    addParents=mappedParentId, body={}, fields='')
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
