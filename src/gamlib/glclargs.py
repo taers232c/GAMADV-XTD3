@@ -332,6 +332,10 @@ class GamCLArgs():
   ARG_CALENDARACLS = 'calendaracls'
   ARG_CALENDARTRASH = 'calendartrash'
   ARG_CALSETTINGS = 'calsettings'
+  ARG_CIDEVICE = 'cidevice'
+  ARG_CIDEVICES = 'cidevices'
+  ARG_CIGROUP = 'cigroup'
+  ARG_CIGROUPS = 'cigroups'
   ARG_CLASS = 'class'
   ARG_CLASSES = 'classes'
   ARG_CLASSPARTICIPANTS = 'classparticipants'
@@ -679,6 +683,7 @@ class GamCLArgs():
   OB_SPREADSHEET_JSON_UPDATEREQUEST = 'SpreadsheetJSONUpdateRequest'
   OB_SPREADSHEET_JSON_VALUES = 'SpreadsheetJSONValues'
   OB_SPREADSHEET_RANGE = 'SpreadsheetRange'
+  OB_SPREADSHEET_RANGE_LIST = 'SpreadsheetRangeList'
   OB_STATE_NAME_LIST = "StateNameList"
   OB_STRING = 'String'
   OB_STUDENT_ITEM = 'StudentItem'

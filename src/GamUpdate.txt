@@ -1,3 +1,8 @@
+5.08.09
+
+Added option `rangelist <SpreadsheetRangeList>` to gam <UserTypeEntity> clear|info|print|show sheetrange`.
+This allows specifying multiple ranges with a single argument.
+
 5.08.08
 
 Added option `valuerangesonly` to `gam <UserTypeEntity> print|show sheetrange` which, in

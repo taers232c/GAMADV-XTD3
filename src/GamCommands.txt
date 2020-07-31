@@ -1033,14 +1033,14 @@ gam calendar|calendars <CalendarEntity> printacl [todrive <ToDriveAttribute>*] [
 <AttendeeStatus> ::= accepted|declined|needsaction|tentative
 
 <EventSelectProperty> ::=
-        (endtime|timemax <Time>)|
+        (after|starttime|timemin <Time>)|
+        (before|endtime|timemax <Time>)|
         (query <QueryCalendar>)|
         (privateextendedproperty <String>)|
         (sharedextendedproperty <Syting>)|
         showdeletedevents|
         showhiddeninvitations|
         singleevents|
-        (starttime|timemin <Time>)|
         (updatedmin <Time>)
 
 <EventMatchProperty> ::=
@@ -3386,14 +3386,14 @@ gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <
 <AttendeeStatus> ::= accepted|declined|needsaction|tentative
 
 <EventSelectProperty> ::=
-        (endtime|timemax <Time>)|
+        (after|starttime|timemin <Time>)|
+        (before|endtime|timemax <Time>)|
         (query <QueryCalendar>)|
         (privateextendedproperty <String>)|
         (sharedextendedproperty <Syting>)|
         showdeletedevents|
         showhiddeninvitations|
         singleevents|
-        (starttime|timemin <Time>)|
         (updatedmin <Time>)
 
 <EventMatchProperty> ::=
@@ -4517,10 +4517,11 @@ The following right-hand side characters are part of the meta-syntax: <>()*|
         sheets|
         spreadcheetid|
         spreadcheeturl
-<SpreadsheetFieldList> ::= [<SpreadsheetField>(,<SpreadsheetField>)*]
+<SpreadsheetFieldList> ::= "<SpreadsheetField>(,<SpreadsheetField>)*"
 <SpreadsheetRange> ::= <String>
+<SpreadsheetRangeList> ::= "'<SpreadsheetRange>'(,'<SpreadsheetRange>')*"
 <SpreadsheetValue> ::= "<String>"|<Number>|true|false
-<SpreadsheetValueList> ::= [<SpreadsheetValue>(,<SpreadsheetValue>)*]
+<SpreadsheetValueList> ::= "<SpreadsheetValue>(,<SpreadsheetValue>)*"
 <SpreadsheetJSONRangeValues> ::=
         '{"range": <SpreadsheetRange>, "values": [<SpreadsheetValueList>(,<SpreadsheetValueList>)*],
           "majorDimension": "ROWS|COLUMNS"}'
@@ -4540,10 +4541,14 @@ gam <UserTypeEntity> update sheet <DriveFileEntity>
          (json file <FileName> [charset <Charset>]))
         [formatjson]
 gam <UserTypeEntity> info|show sheet <DriveFileEntity>
-        [fields <SpreadsheetFieldList>] (range <SpreadsheetRange>)* [includegriddata [<Boolean>]]
+        [fields <SpreadsheetFieldList>]
+        (range <SpreadsheetRange>)* (rangelist <SpreadsheetRangeList>)*
+        [includegriddata [<Boolean>]]
         [formatjson]
 gam <UserTypeEntity> print sheet <DriveFileEntity> [todrive <ToDriveAttribute>*]
-        [fields <SpreadsheetFieldList>] (range <SpreadsheetRange>)* [includegriddata [<Boolean>]]
+        [fields <SpreadsheetFieldList>]
+        (range <SpreadsheetRange>)* (rangelist <SpreadsheetRangeList>)*
+        [includegriddata [<Boolean>]]
         [formatjson [quotechar <Character>]]
 
 See: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values#ValueRange
@@ -4562,13 +4567,16 @@ gam <UserTypeEntity> update sheetrange <DriveFileEntity>
         [raw|userentered] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
         [includevaluesinresponse [<Boolean>]] [formatjson]
 
-gam <UserTypeEntity> clear sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+
+gam <UserTypeEntity> clear sheetrange <DriveFileEntity>
+        (range <SpreadsheetRange>)+ (rangelist <SpreadsheetRangeList>)*
         [formatjson]
 
-gam <UserTypeEntity> print sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+ [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> print sheetrange <DriveFileEntity> [todrive <ToDriveAttribute>*]
+        (range <SpreadsheetRange>)* (rangelist <SpreadsheetRangeList>)*
         [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
         [formatjson [quotechar <Character>] [valuerangesonly [<Boolean>]]]
-gam <UserTypeEntity> show sheetrange <DriveFileEntity> (range <SpreadsheetRange>)+
+gam <UserTypeEntity> show sheetrange <DriveFileEntity> 
+        (range <SpreadsheetRange>)* (rangelist <SpreadsheetRangeList>)*
         [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
         [formatjson [valuerangesonly [<Boolean>]]]
 

@@ -34,7 +34,9 @@ class GamEntity():
 
   TYPE_CUSTOMER = 'CUSTOMER'
   TYPE_EXTERNAL = 'EXTERNAL'
+  TYPE_OTHER = 'OTHER'
   TYPE_GROUP = 'GROUP'
+  TYPE_SERVICE_ACCOUNT = 'SERVICE_ACCOUNT'
   TYPE_USER = 'USER'
 
 # Keys into NAMES; arbitrary values but must be unique

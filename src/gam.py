@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.08.08'
+__version__ = '5.08.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -41924,10 +41924,14 @@ SPREADSHEET_FIELDS_CHOICE_MAP = {
   }
 
 # gam <UserTypeEntity> info|show sheet <DriveFileEntity>
-#	[fields <SpreadsheetFieldList>] (range <SpreadsheetRange>)* [includegriddata [<Boolean>]]
+#	[fields <SpreadsheetFieldList>]
+#	(range <SpreadsheetRange>)* (rangelist <SpreadsheetRangeList>)*
+#	[includegriddata [<Boolean>]]
 #	[formatjson]
 # gam <UserTypeEntity> print sheet <DriveFileEntity> [todrive <ToDriveAttribute>*]
-#	[fields <SpreadsheetFieldList>] (range <SpreadsheetRange>)* [includegriddata [<Boolean>]]
+#	[fields <SpreadsheetFieldList>]
+#	(range <SpreadsheetRange>)* (rangelist <SpreadsheetRangeList>)*
+#	[includegriddata [<Boolean>]]
 #	[formatjson [quotechar <Character>]]
 def infoPrintShowSheets(users):
   csvPF = CSVPrintFile(['User', 'spreadsheetId'], 'sortall') if Act.csvFormat() else None
@@ -41942,6 +41946,8 @@ def infoPrintShowSheets(users):
       csvPF.GetTodriveParameters()
     elif myarg == 'range':
       ranges.append(getString(Cmd.OB_SPREADSHEET_RANGE))
+    elif myarg == 'rangelist':
+      ranges.extend(convertEntityToList(getString(Cmd.OB_SPREADSHEET_RANGE_LIST), shlexSplit=True))
     elif myarg == 'includegriddata':
       includeGridData = getBoolean()
     elif getFieldsList(myarg, SPREADSHEET_FIELDS_CHOICE_MAP, fieldsList, 'spreadsheetId'):
@@ -42163,7 +42169,9 @@ def updateSheetRanges(users):
       Ind.Decrement()
     Ind.Decrement()
 
-# gam <UserTypeEntity> clear sheetrange <DriveFileEntity> (range <SpreadsheetRange>)* [formatjson]
+# gam <UserTypeEntity> clear sheetrange <DriveFileEntity>
+#	(range <SpreadsheetRange>)* (rangelist <SpreadsheetRangeList>)*
+#	[formatjson]
 def clearSheetRanges(users):
   spreadsheetIdEntity = getDriveFileEntity()
   body = {'ranges': []}
@@ -42172,6 +42180,8 @@ def clearSheetRanges(users):
     myarg = getArgument()
     if myarg == 'range':
       body['ranges'].append(getString(Cmd.OB_SPREADSHEET_RANGE))
+    elif myarg == 'rangelist':
+      body['ranges'].extend(convertEntityToList(getString(Cmd.OB_SPREADSHEET_RANGE_LIST), shlexSplit=True))
     else:
       FJQC.GetFormatJSON(myarg)
   kcount = len(body['ranges'])
@@ -42208,10 +42218,12 @@ def clearSheetRanges(users):
       Ind.Decrement()
     Ind.Decrement()
 
-# gam <UserTypeEntity> print sheetrange <DriveFileEntity> (range <SpreadsheetRange>)*  [todrive <ToDriveAttribute>*]
+# gam <UserTypeEntity> print sheetrange <DriveFileEntity> [todrive <ToDriveAttribute>*]
+#	(range <SpreadsheetRange>)* (rangelist <SpreadsheetRangeList>)*
 #	[rows|columns] [serialnumber|formattedstring] [formula|formattedvalue|unformattedvalue]
 #	[formatjson [quotechar <Character>] [valuerangesonly [<Boolean>]]]
-# gam <UserTypeEntity> show sheetrange <DriveFileEntity> (range <SpreadsheetRange>)*
+# gam <UserTypeEntity> show sheetrange <DriveFileEntity>
+#	(range <SpreadsheetRange>)* (rangelist <SpreadsheetRangeList>)*
 #	[rows|columns] [serialnumber|formattedstring] [formula|formattedvalue|unformattedvalue]
 #	[formatjson [valuerangesonly [<Boolean>]]]
 def printShowSheetRanges(users):
@@ -42231,6 +42243,8 @@ def printShowSheetRanges(users):
       csvPF.GetTodriveParameters()
     elif myarg == 'range':
       spreadsheetRanges.append(getString(Cmd.OB_SPREADSHEET_RANGE))
+    elif myarg == 'rangelist':
+      spreadsheetRanges.extend(convertEntityToList(getString(Cmd.OB_SPREADSHEET_RANGE_LIST), shlexSplit=True))
     elif myarg == 'valuerangesonly':
       valueRangesOnly = getBoolean()
     elif myarg in SHEET_DIMENSIONS_MAP:

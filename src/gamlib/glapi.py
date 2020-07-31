@@ -24,6 +24,8 @@ ALERTCENTER = 'alertcenter'
 CALENDAR = 'calendar'
 CHAT = 'chat'
 CLASSROOM = 'classroom'
+CLOUDIDENTITY_DEVICES = 'cloudidentitydevices'
+CLOUDIDENTITY_GROUPS = 'cloudidentitygroups'
 CLOUDPRINT = 'cloudprint'
 CLOUDRESOURCEMANAGER_V1 = 'cloudresourcemanager1'
 CLOUDRESOURCEMANAGER_V2 = 'cloudresourcemanager2'
@@ -125,6 +127,8 @@ _INFO = {
   ALERTCENTER: {'name': 'AlertCenter API', 'version': 'v1beta1', 'v2discovery': True},
   CALENDAR: {'name': 'Calendar API', 'version': 'v3', 'v2discovery': False},
   CLASSROOM: {'name': 'Classroom API', 'version': 'v1', 'v2discovery': True},
+  CLOUDIDENTITY_DEVICES: {'name': 'Cloud Identity Devices API', 'version': 'v1beta1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
+  CLOUDIDENTITY_GROUPS: {'name': 'Cloud Identity Groups API', 'version': 'v1beta1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
   CLOUDPRINT: {'name': 'Cloudprint API', 'version': 'v2', 'v2discovery': True, 'localjson': True},
   CLOUDRESOURCEMANAGER_V1: {'name': 'Cloud Resource Manager API v1', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudresourcemanager'},
   CLOUDRESOURCEMANAGER_V2: {'name': 'Cloud Resource Manager API v2', 'version': 'v2', 'v2discovery': True, 'mappedAPI': 'cloudresourcemanager'},
@@ -197,6 +201,14 @@ _CLIENT_SCOPES = [
    'api': CLASSROOM,
    'subscopes': READONLY,
    'scope': 'https://www.googleapis.com/auth/classroom.rosters'},
+#  {'name': 'Cloud Identity Devices API',
+#   'api': CLOUDIDENTITY_DEVICES,
+#   'subscopes': READONLY,
+#   'scope': 'https://www.googleapis.com/auth/cloud-identity.devices'},
+#  {'name': 'Cloud Identity Groups API',
+#   'api': CLOUDIDENTITY_GROUPS,
+#   'subscopes': READONLY,
+#   'scope': 'https://www.googleapis.com/auth/cloud-identity.groups'},
   {'name': 'Cloudprint API',
    'api': CLOUDPRINT,
    'subscopes': [],
