@@ -3033,8 +3033,6 @@ def SetGlobalVariables():
     GM.Globals[GM.CSVFILE][GM.REDIRECT_NAME] = fileName
     GM.Globals[GM.CSVFILE][GM.REDIRECT_MODE] = mode
     GM.Globals[GM.CSVFILE][GM.REDIRECT_ENCODING] = encoding
-    GM.Globals[GM.CSVFILE][GM.REDIRECT_COLUMN_DELIMITER] = GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER]
-    GM.Globals[GM.CSVFILE][GM.REDIRECT_QUOTE_CHAR] = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR]
     GM.Globals[GM.CSVFILE][GM.REDIRECT_WRITE_HEADER] = writeHeader
     GM.Globals[GM.CSVFILE][GM.REDIRECT_MULTIPROCESS] = multi
     GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = None
@@ -3248,9 +3246,9 @@ def SetGlobalVariables():
       writeHeader = not checkArgumentPresent('noheader')
       encoding = getCharSet()
       if checkArgumentPresent('columndelimiter'):
-        GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER] = getCharacter()
+        GM.Globals[GM.CSV_OUTPUT_COLUMN_DELIMITER] = GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER] = getCharacter()
       if checkArgumentPresent('quotechar'):
-        GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR] = getCharacter()
+        GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR] = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR] = getCharacter()
       _setCSVFile(filename, mode, encoding, writeHeader, multi)
       GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE_CSVPF] = CSVPrintFile()
       if checkArgumentPresent('todrive'):
@@ -5565,8 +5563,8 @@ class CSVPrintFile():
     if titles is not None:
       self.SetTitles(titles)
       self.SetJSONTitles(titles)
-    self.SetColumnDelimiter(GM.Globals[GM.CSVFILE].get(GM.REDIRECT_COLUMN_DELIMITER, GC.Values.get(GC.CSV_OUTPUT_COLUMN_DELIMITER, ',')))
-    self.SetQuoteChar(GM.Globals[GM.CSVFILE].get(GM.REDIRECT_QUOTE_CHAR, GC.Values.get(GC.CSV_OUTPUT_QUOTE_CHAR, '"')))
+    self.SetColumnDelimiter(GM.Globals.get(GM.CSV_OUTPUT_COLUMN_DELIMITER, GC.Values.get(GC.CSV_OUTPUT_COLUMN_DELIMITER, ',')))
+    self.SetQuoteChar(GM.Globals.get(GM.CSV_OUTPUT_QUOTE_CHAR, GC.Values.get(GC.CSV_OUTPUT_QUOTE_CHAR, '"')))
     self.SetFormatJSON(False)
     self.SetFixPaths(False)
     self.SetShowPermissionsLast(False)
@@ -6451,7 +6449,7 @@ class CSVPrintFile():
       GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_TODRIVE, self.todrive))
       GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_CSVPF,
                                                      (self.titlesList, self.sortTitlesList, self.indexedTitles,
-                                                      self.formatJSON, self.JSONtitlesList,
+                                                      self.formatJSON, self.JSONtitlesList, self.quoteChar,
                                                       self.fixPaths, self.showPermissionsLast,
                                                       self.zeroBlankMimeTypeCounts)))
       GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_DATA, self.rows))
@@ -6650,7 +6648,7 @@ class FormatJSONQuoteChar():
   def __init__(self, csvPF=None, formatJSONOnly=False):
     self.SetCsvPF(csvPF)
     self.SetFormatJSON(False)
-    self.SetQuoteChar(GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR])
+    self.SetQuoteChar(GM.Globals.get(GM.CSV_OUTPUT_QUOTE_CHAR, GC.Values.get(GC.CSV_OUTPUT_QUOTE_CHAR, '"')))
     if not formatJSONOnly:
       return
     while Cmd.ArgumentsRemaining():
@@ -6904,9 +6902,10 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF):
       csvPF.SetIndexedTitles(dataItem[2])
       csvPF.SetFormatJSON(dataItem[3])
       csvPF.AddJSONTitles(dataItem[4])
-      csvPF.SetFixPaths(dataItem[5])
-      csvPF.SetShowPermissionsLast(dataItem[6])
-      csvPF.SetZeroBlankMimeTypeCounts(dataItem[7])
+      csvPF.SetQuoteChar(dataItem[5])
+      csvPF.SetFixPaths(dataItem[6])
+      csvPF.SetShowPermissionsLast(dataItem[7])
+      csvPF.SetZeroBlankMimeTypeCounts(dataItem[8])
     elif dataType == GM.REDIRECT_QUEUE_DATA:
       csvPF.rows.extend(dataItem)
     elif dataType == GM.REDIRECT_QUEUE_ARGS:
@@ -7029,7 +7028,10 @@ def terminateStdQueueHandler(mpQueue, mpQueueHandler):
   mpQueue.put((0, GM.REDIRECT_QUEUE_EOF, None))
   mpQueueHandler.join()
 
-def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr, todrive, csvHeaderFilter, csvHeaderDropFilter, csvRowFilter, args):
+def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
+                           todrive,
+                           csvColumnDelimiter, csvQuoteChar, csvHeaderFilter, csvHeaderDropFilter, csvRowFilter,
+                           args):
   initializeLogging()
   if sys.platform.startswith('win'):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
@@ -7040,6 +7042,8 @@ def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr, to
   GM.Globals[GM.CSV_SUBKEY_FIELD] = None
   GM.Globals[GM.CSV_DATA_FIELD] = None
   GM.Globals[GM.CSV_TODRIVE] = todrive.copy()
+  GM.Globals[GM.CSV_OUTPUT_COLUMN_DELIMITER] = csvColumnDelimiter
+  GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR] = csvQuoteChar
   GM.Globals[GM.CSV_OUTPUT_HEADER_FILTER] = csvHeaderFilter[:]
   GM.Globals[GM.CSV_OUTPUT_HEADER_DROP_FILTER] = csvHeaderDropFilter[:]
   GM.Globals[GM.CSV_OUTPUT_ROW_FILTER] = csvRowFilter[:]
@@ -7155,6 +7159,8 @@ def MultiprocessGAMCommands(items, logCmds):
       pool.apply_async(ProcessGAMCommandMulti,
                        [pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
                         GM.Globals[GM.CSV_TODRIVE],
+                        GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER],
+                        GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR],
                         GC.Values[GC.CSV_OUTPUT_HEADER_FILTER],
                         GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER],
                         GC.Values[GC.CSV_OUTPUT_ROW_FILTER],

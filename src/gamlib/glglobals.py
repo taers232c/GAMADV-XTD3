@@ -41,6 +41,10 @@ CSV_DATA_DICT = 'csdd'
 CSV_KEY_FIELD = 'cskf'
 CSV_SUBKEY_FIELD = 'cssk'
 CSV_DATA_FIELD = 'csdf'
+# Column delimiter in CSV output file
+CSV_OUTPUT_COLUMN_DELIMITER = 'codl'
+# Quote character in CSV output file
+CSV_OUTPUT_QUOTE_CHAR = 'coqc'
 # Filter for column headers
 CSV_OUTPUT_HEADER_FILTER = 'cohf'
 # Filter for column headers to drop
@@ -127,8 +131,6 @@ REDIRECT_FD = 'rdfd'
 REDIRECT_MULTI_FD = 'rdmf'
 REDIRECT_STD = 'rdst'
 REDIRECT_ENCODING = 'rden'
-REDIRECT_COLUMN_DELIMITER = 'rddl'
-REDIRECT_QUOTE_CHAR = 'rdqc'
 REDIRECT_WRITE_HEADER = 'rdwh'
 REDIRECT_MULTIPROCESS = 'rdmp'
 REDIRECT_QUEUE = 'rdq'
@@ -166,6 +168,8 @@ Globals = {
   CSV_KEY_FIELD: None,
   CSV_SUBKEY_FIELD: None,
   CSV_DATA_FIELD: None,
+  CSV_OUTPUT_COLUMN_DELIMITER: ',',
+  CSV_OUTPUT_QUOTE_CHAR: '"',
   CSV_OUTPUT_HEADER_FILTER: [],
   CSV_OUTPUT_HEADER_DROP_FILTER: [],
   CSV_OUTPUT_ROW_FILTER: [],
