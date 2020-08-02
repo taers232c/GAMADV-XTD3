@@ -1,3 +1,10 @@
+5.08.10
+
+Fixed bug in `gam calendars <CalendarEntity> <Command> event` commands where service account access was not used
+when `<CalendarEntity>` specified a user's primary calendar.
+*  `<Command>=add` - The event creator would be the administrator rather than the user
+*  `<Command>=update` - Some fields in the event were not updated, e.g., reminder
+
 5.08.09
 
 Added option `rangelist <SpreadsheetRangeList>` to gam <UserTypeEntity> clear|info|print|show sheetrange`.
