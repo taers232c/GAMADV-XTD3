@@ -1,3 +1,8 @@
+5.08.11
+
+Handle `ERROR: 403: requiredAccessLevel - You need to have owner access to this calendar.` in
+`gam <UserTypeEntity> modify|remove calendars`.
+
 5.08.10
 
 Fixed bug in `gam calendars <CalendarEntity> <Command> event` commands where service account access was not used

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.08.10'
+__version__ = '5.08.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -31347,10 +31347,10 @@ def _modifyRemoveCalendars(users, calendarEntity, function, **kwargs):
       try:
         callGAPI(cal.calendars(), function,
                  throw_reasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.CANNOT_DELETE_PRIMARY_CALENDAR,
-                                                            GAPI.FORBIDDEN, GAPI.INVALID],
+                                                            GAPI.FORBIDDEN, GAPI.INVALID, GAPI.REQUIRED_ACCESS_LEVEL],
                  calendarId=calId, **kwargs)
         entityActionPerformed([Ent.USER, user, Ent.CALENDAR, calId], j, jcount)
-      except (GAPI.notFound, GAPI.cannotDeletePrimaryCalendar, GAPI.forbidden, GAPI.invalid) as e:
+      except (GAPI.notFound, GAPI.cannotDeletePrimaryCalendar, GAPI.forbidden, GAPI.invalid, GAPI.requiredAccessLevel) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.CALENDAR, calId], str(e), j, jcount)
       except GAPI.notACalendarUser as e:
         entityActionFailedWarning([Ent.USER, user], str(e), i, count)
