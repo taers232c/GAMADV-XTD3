@@ -1,3 +1,11 @@
+5.08.12
+
+Updated `gam report users` to create a column `accounts:disabled_time` from the timestamp in the column `accounts:disabled_reason`.
+This makes it possible to filter on the time. For example, to see all users suspended more than a year ago:
+```
+gam config csv_output_row_filter "accounts.is_suspended:boolean:true,accounts.disabled_time:date<-1y" report user user all parameters accounts:is_suspended,accounts:disabled_reason
+```
+
 5.08.11
 
 Handle `ERROR: 403: requiredAccessLevel - You need to have owner access to this calendar.` in

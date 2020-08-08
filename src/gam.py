@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.08.11'
+__version__ = '5.08.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4551,10 +4551,11 @@ def _checkMemberIsSuspended(member, isSuspended):
   memberStatus = member.get('status', 'UNKNOWN')
   return isSuspended is None or (not isSuspended and memberStatus != 'SUSPENDED') or (isSuspended and memberStatus == 'SUSPENDED')
 
+def _checkMemberRole(member, validRoles):
+  return not validRoles or member.get('role', Ent.ROLE_MEMBER) in validRoles
+
 def _checkMemberRoleIsSuspended(member, validRoles, isSuspended):
-  memberStatus = member.get('status', 'UNKNOWN')
-  return ((not validRoles or member.get('role', Ent.ROLE_MEMBER) in validRoles) and
-          (isSuspended is None or (not isSuspended and memberStatus != 'SUSPENDED') or (isSuspended and memberStatus == 'SUSPENDED')))
+  return _checkMemberRole(member, validRoles) and _checkMemberIsSuspended(member, isSuspended)
 
 # Turn the entity into a list of Users/CrOS devices
 def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, groupMemberType=Ent.TYPE_USER):
@@ -9237,7 +9238,7 @@ def doWhatIs():
                       groupKey=email, fields='id,email')
     if (result['email'].lower() == email) or (result['id'] == email):
       if showInfo:
-        infoGroups(entityList=[email])
+        infoGroups([email])
       else:
         _showPrimaryType(Ent.GROUP, email)
       setSysExitRC(ENTITY_IS_A_GROUP_RC)
@@ -9501,6 +9502,7 @@ def doReportUsage():
   csvPF.writeCSVfile(reportName)
 
 NL_SPACES_PATTERN = re.compile(r'\n +')
+DISABLED_REASON_TIME_PATTERN = re.compile(r'.*(\d{4}/\d{2}/\d{2}-\d{2}:\d{2}:\d{2})')
 
 REPORT_CHOICE_MAP = {
   'access': 'access_transparency',
@@ -9600,6 +9602,15 @@ def doReport():
         service, _ = name.split(':', 1)
         if service not in includeServices:
           continue
+        if name == 'accounts:disabled_reason':
+          mg = DISABLED_REASON_TIME_PATTERN.match(item['stringValue'])
+          if mg:
+            try:
+              disabledTime = formatLocalTime(datetime.datetime.strptime(mg.group(1), '%Y/%m/%d-%H:%M:%S').replace(tzinfo=iso8601.UTC).strftime(YYYYMMDDTHHMMSSZ_FORMAT))
+              row['accounts:disabled_time'] = disabledTime
+              csvPF.AddTitles('accounts:disabled_time')
+            except ValueError:
+              pass
         csvPF.AddTitles(name)
         for ptype in REPORTS_PARAMETERS_SIMPLE_TYPES:
           if ptype in item:
@@ -14886,7 +14897,7 @@ def infoUserContacts(users):
 def doInfoDomainContacts():
   _infoContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
-# gam info gal <GalEntity>
+# gam info gal <ContactEntity>
 #	[basic|full]
 #	[fields <ContactFieldNameList>] [formatjson]
 def doInfoGAL():
@@ -18141,7 +18152,7 @@ GROUP_FIELDS_CHOICE_MAP = {
   'id': 'id',
   'name': 'name',
   }
-GROUP_BASIC_INFO_PRINT_ORDER = ['id', 'name', 'description', 'directMembersCount', 'adminCreated']
+GROUP_INFO_PRINT_ORDER = ['id', 'name', 'description', 'directMembersCount', 'adminCreated']
 INFO_GROUP_OPTIONS = {'nousers', 'groups'}
 
 def infoGroups(entityList):
@@ -18266,7 +18277,7 @@ def infoGroups(entityList):
       Ind.Increment()
       printEntity([Ent.GROUP_SETTINGS, None])
       Ind.Increment()
-      for key in GROUP_BASIC_INFO_PRINT_ORDER:
+      for key in GROUP_INFO_PRINT_ORDER:
         if key not in basic_info:
           continue
         value = basic_info[key]
@@ -18898,7 +18909,7 @@ def doPrintGroups():
     gsbatch.execute()
   _writeCompleteRows()
   if sortHeaders:
-    sortTitles = ['email']+GROUP_BASIC_INFO_PRINT_ORDER+['aliases', 'nonEditableAliases']
+    sortTitles = ['email']+GROUP_INFO_PRINT_ORDER+['aliases', 'nonEditableAliases']
     if getSettings:
       sortTitles += sorted([attr[0] for attr in iter(GROUP_SETTINGS_ATTRIBUTES.values())])
       for key in GROUP_MERGED_ATTRIBUTES_PRINT_ORDER:
