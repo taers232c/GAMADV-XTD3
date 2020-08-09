@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.08.12'
+__version__ = '5.08.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -33759,6 +33759,7 @@ DRIVE_FIELDS_CHOICE_MAP = {
   'drivename': 'driveId',
   'editable': 'capabilities.canEdit',
   'explicitlytrashed': 'explicitlyTrashed',
+  'exportlinks': 'exportLinks',
   'fileextension': 'fileExtension',
   'filesize': 'size',
   'foldercolorrgb': 'folderColorRgb',

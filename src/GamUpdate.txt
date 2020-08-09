@@ -1,3 +1,7 @@
+5.08.13
+
+Added `exportlinks` to `<DriveFieldName>`.
+
 5.08.12
 
 Updated `gam report users` to create a column `accounts:disabled_time` from the timestamp in the column `accounts:disabled_reason`.
