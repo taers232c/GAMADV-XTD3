@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.08.13'
+__version__ = '5.08.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -24251,8 +24251,10 @@ def _showSite(sitesManager, sitesObject, domain, site, roles, j, jcount):
         if fields['role'] in roles:
           printKeyValueList([formatACLRule(fields)])
       Ind.Decrement()
-    except (GDATA.notFound, GDATA.forbidden) as e:
+    except GDATA.notFound as e:
       entityActionFailedWarning([Ent.SITE, domainSite], str(e))
+    except GDATA.forbidden:
+      pass
   Ind.Decrement()
 
 SITE_ACL_ROLES_MAP = {
@@ -24363,8 +24365,10 @@ def printShowSites(entityList, entityType):
               siteACLRow.update(ACLRuleDict(fields))
               csvPF.WriteRowTitles(siteACLRow)
               rowShown = True
-        except (GDATA.notFound, GDATA.forbidden) as e:
+        except GDATA.notFound as e:
           entityActionFailedWarning([Ent.SITE, domainSite], str(e), i, count)
+        except GDATA.forbidden:
+          pass
       if not rowShown:
         csvPF.WriteRowTitles(siteRow)
 
