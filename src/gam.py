@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.08.15'
+__version__ = '5.08.16'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -37991,7 +37991,7 @@ def getDriveFile(users):
                 spreadsheet = callGAPI(sheet.spreadsheets(), 'get',
                                        throw_reasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                                        spreadsheetId=fileId, fields='spreadsheetUrl,sheets(properties(sheetId,title))')
-                spreadsheetUrl = f'{re.sub("/edit$", "/export", spreadsheet["spreadsheetUrl"])}?exportFormat={exportFormatName}&format={exportFormatName}&id={fileId}'
+                spreadsheetUrl = f'{re.sub("/edit.*$", "/export", spreadsheet["spreadsheetUrl"])}?exportFormat={exportFormatName}&format={exportFormatName}&id={fileId}'
                 if sheetEntity:
                   entityValueList.extend([sheetEntity['sheetType'], sheetEntity['sheetValue']])
                   sheetId = getSheetIdFromSheetEntity(spreadsheet, sheetEntity)

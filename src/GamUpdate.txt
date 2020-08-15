@@ -1,3 +1,8 @@
+5.08.16
+
+Updated code in `gam <UserTypeEntity> get drivefile <DriveFileEntity> csvsheet <SheetEntity>` to handle
+unexpected data in Spreadsheet URL.
+
 5.08.15
 
 Fixed bug in `gam courses <CourseEntity> clear|sync` that misinterpreted `<CourseEntity>` when it was a course alias containing a space.
