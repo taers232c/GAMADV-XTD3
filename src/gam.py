@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.08.14'
+__version__ = '5.08.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4558,7 +4558,7 @@ def _checkMemberRoleIsSuspended(member, validRoles, isSuspended):
   return _checkMemberRole(member, validRoles) and _checkMemberIsSuspended(member, isSuspended)
 
 # Turn the entity into a list of Users/CrOS devices
-def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, groupMemberType=Ent.TYPE_USER):
+def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, groupMemberType=Ent.TYPE_USER, noListConversion=False):
   def _incrEntityDoesNotExist(entityType):
     entityError['entityType'] = entityType
     entityError['doesNotExist'] += 1
@@ -4798,7 +4798,10 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
     entityList = doPrintLicenses(returnFields=['userId'], skus=entity.split(','))
   elif entityType in {Cmd.ENTITY_COURSEPARTICIPANTS, Cmd.ENTITY_TEACHERS, Cmd.ENTITY_STUDENTS}:
     croom = buildGAPIObject(API.CLASSROOM)
-    courses = convertEntityToList(entity)
+    if not noListConversion:
+      courses = convertEntityToList(entity)
+    else:
+      courses = [entity]
     for course in courses:
       courseId = addCourseIdScope(course)
       try:
@@ -28883,7 +28886,7 @@ def doCourseClearParticipants(courseIdList, getEntityListArg):
   count = len(courseIdList)
   for courseId in courseIdList:
     i += 1
-    removeParticipants = getUsersToModify(PARTICIPANT_EN_MAP[role], courseId)
+    removeParticipants = getUsersToModify(PARTICIPANT_EN_MAP[role], courseId, noListConversion=True)
     _batchRemoveItemsFromCourse(croom, courseId, i, count, removeParticipants, role)
 
 # gam courses <CourseEntity> sync students [addonly|removeonly] <UserTypeEntity>
@@ -28926,7 +28929,7 @@ def doCourseSyncParticipants(courseIdList, getEntityListArg):
     if courseInfo:
       courseId = courseInfo['id']
       currentParticipantsSet = set()
-      for user in getUsersToModify(PARTICIPANT_EN_MAP[role], courseId):
+      for user in getUsersToModify(PARTICIPANT_EN_MAP[role], courseId, noListConversion=True):
         currentParticipantsSet.add(normalizeEmailAddressOrUID(user))
       if syncOperation != 'removeonly':
         _batchAddItemsToCourse(croom, courseId, i, count, list(syncParticipantsSet-currentParticipantsSet), role)
