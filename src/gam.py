@@ -2545,7 +2545,7 @@ def getGSheetData():
     sheetId = getSheetIdFromSheetEntity(spreadsheet, sheetEntity)
     if sheetId is None:
       getGDocSheetDataFailedExit([Ent.USER, user, Ent.SPREADSHEET, result['name'], sheetEntity['sheetType'], sheetEntity['sheetValue']], Msg.NOT_FOUND)
-    spreadsheetUrl = f'{re.sub("/edit$", "/export", spreadsheet["spreadsheetUrl"])}?format=csv&id={fileId}&gid={sheetId}'
+    spreadsheetUrl = f'{re.sub("/edit.*$", "/export", spreadsheet["spreadsheetUrl"])}?format=csv&id={fileId}&gid={sheetId}'
     f = TemporaryFile(mode='w+', encoding=UTF8)
     _, content = drive._http.request(uri=spreadsheetUrl, method='GET')
     f.write(content.decode(UTF8_SIG))

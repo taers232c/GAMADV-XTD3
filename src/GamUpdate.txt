@@ -1,7 +1,7 @@
 5.08.16
 
-Updated code in `gam <UserTypeEntity> get drivefile <DriveFileEntity> csvsheet <SheetEntity>` to handle
-unexpected data in Spreadsheet URL.
+Updated code in `gam <UserTypeEntity> get drivefile <DriveFileEntity> csvsheet <SheetEntity>` and `gsheet(:<FieldName>)+ <UserGoogleSheet>`
+to handle unexpected data in Spreadsheet URL. 
 
 5.08.15
 
