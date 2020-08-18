@@ -444,6 +444,8 @@ class photoNotFound(Exception):
   pass
 class queryRequiresAdminCredentials(Exception):
   pass
+class quotaExceeded(Exception):
+  pass
 class rateLimitExceeded(Exception):
   pass
 class required(Exception):
@@ -591,6 +593,7 @@ REASON_EXCEPTION_MAP = {
   PERMISSION_NOT_FOUND: permissionNotFound,
   PHOTO_NOT_FOUND: photoNotFound,
   QUERY_REQUIRES_ADMIN_CREDENTIALS: queryRequiresAdminCredentials,
+  QUOTA_EXCEEDED: quotaExceeded,
   RATE_LIMIT_EXCEEDED: rateLimitExceeded,
   REQUIRED: required,
   REQUIRED_ACCESS_LEVEL: requiredAccessLevel,
