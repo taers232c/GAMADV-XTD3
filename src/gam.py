@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.08.16'
+__version__ = '5.08.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -8651,6 +8651,9 @@ def checkServiceAccount(users):
     long_url = (f'https://admin.google.com/{domain}/ManageOauthClients'
                 f'?clientScopeToAdd={",".join(checkScopes)}'
                 f'&clientNameToAdd={service_account}')
+#    long_url = ('https://admin.google.com/ac/owl/domainwidedelegation'
+#                f'?clientScopeToAdd={",".join(checkScopes)}'
+#                f'&clientIdToAdd={service_account}')
     if not writeURLtoFile:
       printLine(message.format('', long_url))
     else:
@@ -22814,12 +22817,14 @@ def doCreateVaultExport():
       body['exportOptions'][VAULT_CORPUS_OPTIONS_MAP['MAIL']]['showConfidentialModeContent'] = showConfidentialModeContent
   try:
     export = callGAPI(v.matters().exports(), 'create',
-                      throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.BAD_REQUEST, GAPI.BACKEND_ERROR, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
+                      throw_reasons=[GAPI.ALREADY_EXISTS, GAPI.BAD_REQUEST, GAPI.BACKEND_ERROR,
+                                     GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.QUOTA_EXCEEDED],
                       matterId=matterId, body=body)
     entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, formatVaultNameId(export['name'], export['id'])])
     if showDetails:
       _showVaultExport(export, None)
-  except (GAPI.alreadyExists, GAPI.badRequest, GAPI.backendError, GAPI.failedPrecondition, GAPI.forbidden) as e:
+  except (GAPI.alreadyExists, GAPI.badRequest, GAPI.backendError,
+          GAPI.failedPrecondition, GAPI.forbidden, GAPI.quotaExceeded) as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, body.get('name')], str(e))
 
 # gam delete vaultexport|export <ExportItem> matter <MatterItem>

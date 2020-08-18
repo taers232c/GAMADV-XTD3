@@ -1,3 +1,7 @@
+5.08.17
+
+Improve error handling in `gam create vaultexport matter <MatterItem>` of `quotaExceeded - Exceeded running export limit of 20 concurrent exports.`.
+
 5.08.16
 
 Updated code in `gam <UserTypeEntity> get drivefile <DriveFileEntity> csvsheet <SheetEntity>` and `gsheet(:<FieldName>)+ <UserGoogleSheet>`
