@@ -1,6 +1,15 @@
+5.08.18
+
+Updated `gam [<UserTypeEntity>] print drivefileacls <DriveFileEntity>` to display output
+even if `<DriveFileEntity>` doesn't have any ACLs.
+```
+Owner,id,permissions
+user@domain.com,abcyKMQf_RK8iUk9xyz,0
+```
+
 5.08.17
 
-Improve error handling in `gam create vaultexport matter <MatterItem>` of `quotaExceeded - Exceeded running export limit of 20 concurrent exports.`.
+Improved error handling in `gam create vaultexport matter <MatterItem>` of `quotaExceeded - Exceeded running export limit of 20 concurrent exports.`.
 
 5.08.16
 

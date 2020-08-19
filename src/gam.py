@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.08.17'
+__version__ = '5.08.18'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -40297,7 +40297,7 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
               _showDriveFilePermissionJSON(user, fileId, fileName, permission, timeObjects)
           else:
             _showDriveFilePermissionsJSON(user, fileId, fileName, permissions, timeObjects)
-      elif permissions:
+      else:
         baserow = {'Owner': user, 'id': fileId}
         if showTitles:
           baserow[fileNameTitle] = fileName
