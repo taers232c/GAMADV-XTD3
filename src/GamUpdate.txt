@@ -1,3 +1,11 @@
+5.08.19
+
+Fixed bug in `gam update user <UserItem> createifnotfound` that gave the following error even though
+all of the required fields were specified.
+```
+Update Failed: Unable to create not found user, some required field (givenName, familyName, password/notfoundpassword) not present
+```
+
 5.08.18
 
 Updated `gam [<UserTypeEntity>] print drivefileacls <DriveFileEntity>` to display output

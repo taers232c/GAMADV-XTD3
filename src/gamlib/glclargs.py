@@ -336,6 +336,10 @@ class GamCLArgs():
   ARG_CIDEVICES = 'cidevices'
   ARG_CIGROUP = 'cigroup'
   ARG_CIGROUPS = 'cigroups'
+  ARG_GIGROUPMEMBERS = 'cigroupmembers'
+  ARG_CIGROUPSMEMBERS = 'cigroupsmembers'
+  ARG_CIMEMBER = 'cimember'
+  ARG_CIMEMBERS = 'cimembers'
   ARG_CLASS = 'class'
   ARG_CLASSES = 'classes'
   ARG_CLASSPARTICIPANTS = 'classparticipants'
@@ -609,6 +613,7 @@ class GamCLArgs():
   OB_FILTER_ID_ENTITY = 'FilterIDEntity'
   OB_FORMAT_LIST = 'FormatList'
   OB_GAM_ARGUMENT_LIST = 'GAM argument list'
+  OB_GROUP_ALIAS_LIST = "GroupAliasList"
   OB_GROUP_ENTITY = 'GroupEntity'
   OB_GROUP_ITEM = 'GroupItem'
   OB_GROUP_ROLE_LIST = 'GroupRoleList'

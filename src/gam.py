@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.08.18'
+__version__ = '5.08.19'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -17287,8 +17287,8 @@ def doCreateGroup():
       gs_body.update(getJSON(GROUP_JSON_SKIP_FIELDS))
     else:
       getGroupAttrValue(myarg, gs_body)
-  gs_body.setdefault('name', body['email'])
   if gs_body:
+    gs_body.setdefault('name', body['email'])
     gs = buildGAPIObject(API.GROUPSSETTINGS)
     gs_body = getSettingsFromGroup(cd, body['email'], gs, gs_body)
     if not gs_body or not checkReplyToCustom(body['email'], gs_body):
@@ -24837,7 +24837,7 @@ class PasswordOptions():
     if createIfNotFound:
       if not notFoundBody:
         if up in body:
-          notFoundBody = {up: body[up]}
+          notFoundBody[up] = body[up]
           if 'hashfunction' in body:
             notFoundBody['hashfunction'] = body['hashFunction']
           notify['notFoundPassword'] = notify[up]
