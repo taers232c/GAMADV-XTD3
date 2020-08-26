@@ -1,3 +1,8 @@
+5.08.20
+
+Updated maximum value for `num_threads` and `num_tbatch_threads` in `gam.cfg` to 1000. This is a special use case,
+do not use values much higher than 20 in normal circumstances.
+
 5.08.19
 
 Fixed bug in `gam update user <UserItem> createifnotfound` that gave the following error even though

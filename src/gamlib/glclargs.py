@@ -336,7 +336,7 @@ class GamCLArgs():
   ARG_CIDEVICES = 'cidevices'
   ARG_CIGROUP = 'cigroup'
   ARG_CIGROUPS = 'cigroups'
-  ARG_GIGROUPMEMBERS = 'cigroupmembers'
+  ARG_CIGROUPMEMBERS = 'cigroupmembers'
   ARG_CIGROUPSMEMBERS = 'cigroupsmembers'
   ARG_CIMEMBER = 'cimember'
   ARG_CIMEMBERS = 'cimembers'
