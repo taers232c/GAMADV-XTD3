@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.08.20'
+__version__ = '5.08.21'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3945,6 +3945,8 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False):
     if (e.resp['status'] == '503') and (eContent.startswith('Quota exceeded for the current request')):
       return (e.resp['status'], GAPI.QUOTA_EXCEEDED, eContent)
     if (e.resp['status'] == '403') and (eContent.startswith('Request rate higher than configured')):
+      return (e.resp['status'], GAPI.QUOTA_EXCEEDED, eContent)
+    if (e.resp['status'] == '429') and (eContent.startswith('Quota exceeded for quota metric')):
       return (e.resp['status'], GAPI.QUOTA_EXCEEDED, eContent)
     if (e.resp['status'] == '502') and ('Bad Gateway' in eContent):
       return (e.resp['status'], GAPI.BAD_GATEWAY, eContent)
@@ -22107,6 +22109,24 @@ def _getCalendarPrintShowEventOptions(calendarEventEntity, entityType):
   _addEventEntitySelectFields(calendarEventEntity, fieldsList)
   return (csvPF, FJQC, fieldsList)
 
+def _getEventWeekdays(event):
+  for attr in ['start', 'end']:
+    if attr in event:
+      if 'date' in event[attr]:
+        try:
+          dateTime = datetime.datetime.strptime(event[attr]['date'], YYYYMMDD_FORMAT)
+        except ValueError:
+          continue
+      elif 'dateTime' in event[attr]:
+        try:
+          dateTime, _ = iso8601.parse_date(event[attr]['dateTime'])
+        except (iso8601.ParseError, OverflowError):
+          continue
+      else:
+        continue
+      weekday = dateTime.weekday()
+      event[attr]['weekday'] = calendarlib.day_abbr[weekday]
+      
 EVENT_SHOW_ORDER = ['id', 'summary', 'status', 'description', 'location',
                     'start', 'end', 'endTimeUnspecified',
                     'creator', 'organizer', 'created', 'updated', 'iCalUID']
@@ -22126,6 +22146,7 @@ def _showCalendarEvent(primaryEmail, calId, eventEntityType, event, k, kcount, F
     return
   printEntity([eventEntityType, event['id']], k, kcount)
   skipObjects = {'id'}
+#  _getEventWeekdays(event)
   Ind.Increment()
   for field in EVENT_SHOW_ORDER:
     if field in event:
@@ -22160,6 +22181,7 @@ def _printShowCalendarEvents(origUser, user, origCal, calIds, count, calendarEve
             row = {'calendarId': calId, 'id': event['id']}
             if user:
               row['primaryEmail'] = user
+#            _getEventWeekdays(event)
             flattenJSON(event, flattened=row, timeObjects=EVENT_TIME_OBJECTS)
             if not FJQC.formatJSON:
               csvPF.WriteRowTitles(row)
@@ -28626,24 +28648,41 @@ def _batchAddItemsToCourse(croom, courseId, i, count, addParticipants, role):
       entityActionPerformed([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
       http_status, reason, message = checkGAPIError(exception)
-      if reason in [GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR]:
-        errMsg = getPhraseDNEorSNA(ri[RI_ITEM])
-      else:
-        errMsg = getHTTPError(_ADD_PART_REASON_TO_MESSAGE_MAP, http_status, reason, message)
-      entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      if reason != GAPI.QUOTA_EXCEEDED:
+        if reason in [GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR]:
+          errMsg = getPhraseDNEorSNA(ri[RI_ITEM])
+        else:
+          errMsg = getHTTPError(_ADD_PART_REASON_TO_MESSAGE_MAP, http_status, reason, message)
+        entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        return
+      waitOnFailure(1, 10, reason, message)
+      try:
+        callGAPI(service, 'create',
+                 throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR,
+                                GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION, GAPI.QUOTA_EXCEEDED],
+                 courseId=courseId, body={attribute: ri[RI_ITEM]}, fields='')
+      except (GAPI.notFound, GAPI.backendError, GAPI.forbidden):
+        entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], getPhraseDNEorSNA(ri[RI_ITEM]), int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      except GAPI.alreadyExists:
+        entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], Msg.DUPLICATE, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      except GAPI.failedPrecondition:
+        entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], Msg.NOT_ALLOWED, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      except GAPI.quotaExceeded as e:
+        entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
   if role == Ent.STUDENT:
-    method = getattr(croom.courses().students(), 'create')
+    service = croom.courses().students()
     attribute = 'userId'
   elif role == Ent.TEACHER:
-    method = getattr(croom.courses().teachers(), 'create')
+    service = croom.courses().teachers()
     attribute = 'userId'
   elif role == Ent.COURSE_ALIAS:
-    method = getattr(croom.courses().aliases(), 'create')
+    service = croom.courses().aliases()
     attribute = 'alias'
   else: # role == Ent.COURSE_TOPIC:
-    method = getattr(croom.courses().topics(), 'create')
+    service = croom.courses().topics()
     attribute = 'name'
+  method = getattr(service, 'create')
   Act.Set(Act.ADD)
   jcount = len(addParticipants)
   noScopeCourseId = removeCourseIdScope(courseId)

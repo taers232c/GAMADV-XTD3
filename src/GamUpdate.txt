@@ -1,3 +1,10 @@
+5.08.21
+
+Added code to handle the following error when adding students to courses:
+```
+429: quotaExceeded - Quota exceeded for quota metric 'Requests' and limit 'Requests per minute per user' of service 'classroom.googleapis.com'
+```
+
 5.08.20
 
 Updated maximum value for `num_threads` and `num_tbatch_threads` in `gam.cfg` to 1000. This is a special use case,
