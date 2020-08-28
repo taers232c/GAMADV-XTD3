@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.09.00'
+__version__ = '5.09.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -43778,7 +43778,10 @@ def _draftImportInsertMessage(users, operation):
         substituteForUserInHeaders = True
       msgHeaders[SMTP_HEADERS_MAP.get(header, header)] = value
     elif myarg in SORF_MSG_FILE_ARGUMENTS:
-      msgText, _, _ = getStringOrFile(myarg)
+      if 'html' in myarg:
+        msgHTML, _, _ = getStringOrFile(myarg)
+      else:
+        msgText, _, _ = getStringOrFile(myarg)
     elif myarg == 'replace':
       _getTagReplacement(tagReplacements, False)
     elif operation in IMPORT_INSERT and myarg == 'addlabel':
