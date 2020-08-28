@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.08.21'
+__version__ = '5.08.22'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -22126,7 +22126,7 @@ def _getEventWeekdays(event):
         continue
       weekday = dateTime.weekday()
       event[attr]['weekday'] = calendarlib.day_abbr[weekday]
-      
+
 EVENT_SHOW_ORDER = ['id', 'summary', 'status', 'description', 'location',
                     'start', 'end', 'endTimeUnspecified',
                     'creator', 'organizer', 'created', 'updated', 'iCalUID']
@@ -28660,7 +28660,9 @@ def _batchAddItemsToCourse(croom, courseId, i, count, addParticipants, role):
         callGAPI(service, 'create',
                  throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR,
                                 GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION, GAPI.QUOTA_EXCEEDED],
-                 courseId=courseId, body={attribute: ri[RI_ITEM]}, fields='')
+                 courseId=ri[RI_ENTITY],
+                 body={attribute: ri[RI_ITEM] if ri[RI_ROLE] != Ent.COURSE_ALIAS else addCourseAliasScope(ri[RI_ITEM])},
+                 fields='')
       except (GAPI.notFound, GAPI.backendError, GAPI.forbidden):
         entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], getPhraseDNEorSNA(ri[RI_ITEM]), int(ri[RI_J]), int(ri[RI_JCOUNT]))
       except GAPI.alreadyExists:
@@ -28722,24 +28724,43 @@ def _batchRemoveItemsFromCourse(croom, courseId, i, count, removeParticipants, r
       entityActionPerformed([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
       http_status, reason, message = checkGAPIError(exception)
-      if reason == GAPI.NOT_FOUND and ri[RI_ROLE] != Ent.COURSE_ALIAS:
-        errMsg = f'{Msg.NOT_A} {Ent.Singular(ri[RI_ROLE])}'
-      else:
-        errMsg = getHTTPError(_REMOVE_PART_REASON_TO_MESSAGE_MAP, http_status, reason, message)
-      entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      if reason != GAPI.QUOTA_EXCEEDED:
+        if reason == GAPI.NOT_FOUND and ri[RI_ROLE] != Ent.COURSE_ALIAS:
+          errMsg = f'{Msg.NOT_A} {Ent.Singular(ri[RI_ROLE])}'
+        else:
+          errMsg = getHTTPError(_REMOVE_PART_REASON_TO_MESSAGE_MAP, http_status, reason, message)
+        entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        return
+      waitOnFailure(1, 10, reason, message)
+      try:
+        callGAPI(service, 'delete',
+                 throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED,
+                                GAPI.QUOTA_EXCEEDED],
+                 courseId=ri[RI_ENTITY],
+                 body={attribute: ri[RI_ITEM] if ri[RI_ROLE] != Ent.COURSE_ALIAS else addCourseAliasScope(ri[RI_ITEM])},
+                 fields='')
+      except GAPI.notFound:
+        entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], Msg.DOES_NOT_EXIST, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      except GAPI.forbidden:
+        entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], Msg.FORBIDDEN, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      except GAPI.permissionDenied:
+        entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], Msg.PERMISSION_DENIED, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      except GAPI.quotaExceeded as e:
+        entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
   if role == Ent.STUDENT:
-    method = getattr(croom.courses().students(), 'delete')
+    service = croom.courses().students()
     attribute = 'userId'
   elif role == Ent.TEACHER:
-    method = getattr(croom.courses().teachers(), 'delete')
+    service = croom.courses().teachers()
     attribute = 'userId'
   elif role == Ent.COURSE_ALIAS:
-    method = getattr(croom.courses().aliases(), 'delete')
+    service = croom.courses().aliases()
     attribute = 'alias'
   else: # role == Ent.COURSE_TOPIC:
-    method = getattr(croom.courses().topics(), 'delete')
+    service = croom.courses().topics()
     attribute = 'id'
+  method = getattr(service, 'delete')
   Act.Set(Act.REMOVE)
   jcount = len(removeParticipants)
   noScopeCourseId = removeCourseIdScope(courseId)
