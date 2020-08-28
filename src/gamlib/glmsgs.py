@@ -255,10 +255,17 @@ To authorize them, please go to the following link in your browser:
 {0}
     {1}
 
-You will be directed to the G Suite admin console. The Client Name and API
-Scopes fields will be pre-populated. Please click Authorize to allow these
-scopes access. After authorizing it may take some time for this test to pass so
-wait a few moments and then try this command again.
+You will be directed to the G Suite admin console Security/API controls/Domain-wide Delegation page
+In the Add a new Client ID box click AUTHORIZE
+If the box closes you're done
+If you get the message "Client ID already exists", do the following:
+Note the Client ID and then click CANCEL
+Find your Client ID in the Client ID column, move the mouse over that row and click Delete at the right end of the row
+In the Delete box that pops up, verify your Client ID and then click DELETE
+Refresh the browser page
+In the Add a new Client ID box click AUTHORIZE
+When the box closes you're done
+After authorizing it may take some time for this test to pass so wait a few moments and then try this command again.
 '''
 SCOPE_AUTHORIZATION_PASSED = '''All scopes PASSED!
 
@@ -269,10 +276,17 @@ To authorize them (in case some scopes were unselected), please go to the follow
 {0}
     {1}
 
-You will be directed to the G Suite admin console. The Client Name and API
-Scopes fields will be pre-populated. Please click Authorize to allow these
-scopes access. After authorizing it may take some time for this test to pass so
-wait a few moments and then try this command again.
+You will be directed to the G Suite admin console Security/API controls/Domain-wide Delegation page
+In the Add a new Client ID box click AUTHORIZE
+If the box closes you're done
+If you get the message "Client ID already exists", do the following:
+Note the Client ID and then click CANCEL
+Find your Client ID in the Client ID column, move the mouse over that row and click Delete at the right end of the row
+In the Delete box that pops up, verify your Client ID and then click DELETE
+Refresh the browser page
+In the Add a new Client ID box click AUTHORIZE
+When the box closes you're done
+After authorizing it may take some time for this test to pass so wait a few moments and then try this command again.
 '''
 SELECTED = 'Selected'
 SERVICE_ACCOUNT_PRIVATE_KEY_AUTHENTICATION = 'Service Account Private Key Authentication'

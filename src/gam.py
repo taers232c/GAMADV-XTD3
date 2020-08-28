@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.08.22'
+__version__ = '5.08.23'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -8650,12 +8650,12 @@ def checkServiceAccount(users):
     writeStdout(Ind.Spaces()+f'{description:73} {result}'+'\n')
 
   def authorizeScopes(message):
-    long_url = (f'https://admin.google.com/{domain}/ManageOauthClients'
-                f'?clientScopeToAdd={",".join(checkScopes)}'
-                f'&clientNameToAdd={service_account}')
-#    long_url = ('https://admin.google.com/ac/owl/domainwidedelegation'
+#    long_url = (f'https://admin.google.com/{domain}/ManageOauthClients'
 #                f'?clientScopeToAdd={",".join(checkScopes)}'
-#                f'&clientIdToAdd={service_account}')
+#                f'&clientNameToAdd={service_account}')
+    long_url = ('https://admin.google.com/ac/owl/domainwidedelegation'
+                f'?clientScopeToAdd={",".join(checkScopes)}'
+                f'&clientIdToAdd={service_account}')
     if not writeURLtoFile:
       printLine(message.format('', long_url))
     else:
