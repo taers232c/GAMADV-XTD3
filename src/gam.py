@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.09.01'
+__version__ = '5.09.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -21048,7 +21048,7 @@ def _getCalendarListEventsDisplayProperty(myarg, calendarEventEntity):
 
 def initCalendarEventEntity():
   return {'list': [], 'queries': [], 'kwargs': {}, 'dict': None,
-          'matches': [], 'maxinstances': -1, 'countsOnly': False}
+          'matches': [], 'maxinstances': -1, 'countsOnly': False, 'showDayOfWeek': False}
 
 def getCalendarEventEntity(noIds=False):
   calendarEventEntity = initCalendarEventEntity()
@@ -22075,7 +22075,9 @@ def _infoCalendarEvents(origUser, user, origCal, calIds, count, calendarEventEnt
         break
     Ind.Decrement()
 
-# gam calendars <CalendarEntity> info events <EventEntity> [maxinstances <Number>] [fields <EventFieldNameList>] [formatjson]
+# gam calendars <CalendarEntity> info events <EventEntity> [maxinstances <Number>]
+#	[fields <EventFieldNameList>] [showdayofweek]
+#	[formatjson]
 def doCalendarsInfoEvents(calIds):
   calendarEventEntity = getCalendarEventEntity()
   FJQC, fieldsList = _getCalendarInfoEventOptions(calendarEventEntity)
@@ -22097,6 +22099,8 @@ def _getCalendarPrintShowEventOptions(calendarEventEntity, entityType):
       _getEventFields(fieldsList)
     elif myarg == 'countsonly':
       calendarEventEntity['countsOnly'] = True
+    elif myarg == 'showdayofweek':
+      calendarEventEntity['showDayOfWeek'] = True
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if calendarEventEntity['countsOnly']:
@@ -22109,23 +22113,21 @@ def _getCalendarPrintShowEventOptions(calendarEventEntity, entityType):
   _addEventEntitySelectFields(calendarEventEntity, fieldsList)
   return (csvPF, FJQC, fieldsList)
 
-def _getEventWeekdays(event):
+def _getEventDaysOfWeek(event):
   for attr in ['start', 'end']:
     if attr in event:
       if 'date' in event[attr]:
         try:
           dateTime = datetime.datetime.strptime(event[attr]['date'], YYYYMMDD_FORMAT)
+          event[attr]['dayOfWeek'] = calendarlib.day_abbr[dateTime.weekday()]
         except ValueError:
-          continue
+          pass
       elif 'dateTime' in event[attr]:
         try:
           dateTime, _ = iso8601.parse_date(event[attr]['dateTime'])
+          event[attr]['dayOfWeek'] = calendarlib.day_abbr[dateTime.weekday()]
         except (iso8601.ParseError, OverflowError):
-          continue
-      else:
-        continue
-      weekday = dateTime.weekday()
-      event[attr]['weekday'] = calendarlib.day_abbr[weekday]
+          pass
 
 EVENT_SHOW_ORDER = ['id', 'summary', 'status', 'description', 'location',
                     'start', 'end', 'endTimeUnspecified',
@@ -22146,7 +22148,6 @@ def _showCalendarEvent(primaryEmail, calId, eventEntityType, event, k, kcount, F
     return
   printEntity([eventEntityType, event['id']], k, kcount)
   skipObjects = {'id'}
-#  _getEventWeekdays(event)
   Ind.Increment()
   for field in EVENT_SHOW_ORDER:
     if field in event:
@@ -22170,6 +22171,8 @@ def _printShowCalendarEvents(origUser, user, origCal, calIds, count, calendarEve
         j = 0
         for event in events:
           j += 1
+          if calendarEventEntity['showDayOfWeek']:
+            _getEventDaysOfWeek(event)
           _showCalendarEvent(user, calId, Ent.EVENT, event, j, jcount, FJQC)
         Ind.Decrement()
       else:
@@ -22181,7 +22184,8 @@ def _printShowCalendarEvents(origUser, user, origCal, calIds, count, calendarEve
             row = {'calendarId': calId, 'id': event['id']}
             if user:
               row['primaryEmail'] = user
-#            _getEventWeekdays(event)
+            if calendarEventEntity['showDayOfWeek']:
+              _getEventDaysOfWeek(event)
             flattenJSON(event, flattened=row, timeObjects=EVENT_TIME_OBJECTS)
             if not FJQC.formatJSON:
               csvPF.WriteRowTitles(row)
@@ -22201,9 +22205,11 @@ def _printShowCalendarEvents(origUser, user, origCal, calIds, count, calendarEve
         row['events'] = jcount
         csvPF.WriteRow(row)
 
-# gam calendars <CalendarEntity> print events <EventEntity> <EventDisplayProperties>* [fields <EventFieldNameList>]
+# gam calendars <CalendarEntity> print events <EventEntity> <EventDisplayProperties>*
+#	[fields <EventFieldNameList>] [showdayofweek]
 #	[countsonly] [formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
-# gam calendars <CalendarEntity> show events <EventEntity> <EventDisplayProperties>* [fields <EventFieldNameList>]
+# gam calendars <CalendarEntity> show events <EventEntity> <EventDisplayProperties>*
+#	[fields <EventFieldNameList>] [showdayofweek]
 #	[countsonly] [formatjson]
 def doCalendarsPrintShowEvents(calIds):
   calendarEventEntity = getCalendarEventEntity(noIds=True)
@@ -32171,7 +32177,9 @@ def updateCalendarAttendees(users):
       Ind.Decrement()
     Ind.Decrement()
 
-# gam <UserTypeEntity> info events <UserCalendarEntity> <EventEntity> [maxinstances <Number>] [fields <EventFieldNameList>] [formatjson]
+# gam <UserTypeEntity> info events <UserCalendarEntity> <EventEntity> [maxinstances <Number>]
+#	[fields <EventFieldNameList>] [showdayofweek]
+#	[formatjson]
 def infoCalendarEvents(users):
   calendarEntity = getUserCalendarEntity()
   calendarEventEntity = getCalendarEventEntity()
@@ -32187,9 +32195,11 @@ def infoCalendarEvents(users):
     _infoCalendarEvents(origUser, user, cal, calIds, jcount, calendarEventEntity, FJQC, fieldsList)
     Ind.Decrement()
 
-# gam <UserTypeEntity> print events <UserCalendarEntity> <EventEntity> <EventDisplayProperties>* [fields <EventFieldNameList>]
+# gam <UserTypeEntity> print events <UserCalendarEntity> <EventEntity> <EventDisplayProperties>*
+#	[fields <EventFieldNameList>] [showdayofweek]
 #	[countsonly] [formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
-# gam <UserTypeEntity> show events <UserCalendarEntity> <EventEntity> <EventDisplayProperties>* [fields <EventFieldNameList>]
+# gam <UserTypeEntity> show events <UserCalendarEntity> <EventEntity> <EventDisplayProperties>*
+#	[fields <EventFieldNameList>] [showdayofweek]
 #	[countsonly] [formatjson]
 def printShowCalendarEvents(users):
   calendarEntity = getUserCalendarEntity()

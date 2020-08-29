@@ -1,3 +1,9 @@
+5.09.02
+
+Added option `showdayofweek` to `gam calendar <CalendarEntity> info|show|print events` and
+`gam <UserTypeEntity> info|show|print events <UserCalendarEntity>` to display the day of week
+when event start and end times are displayed.
+
 5.09.01
 
 Fixed bug `gam <UserTypeEntity> draft|import|insert message` where `htmlmessage`, `htmlfile` and `ghtml`
