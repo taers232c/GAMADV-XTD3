@@ -8650,9 +8650,6 @@ def checkServiceAccount(users):
     writeStdout(Ind.Spaces()+f'{description:73} {result}'+'\n')
 
   def authorizeScopes(message):
-#    long_url = (f'https://admin.google.com/{domain}/ManageOauthClients'
-#                f'?clientScopeToAdd={",".join(checkScopes)}'
-#                f'&clientNameToAdd={service_account}')
     long_url = ('https://admin.google.com/ac/owl/domainwidedelegation'
                 f'?clientScopeToAdd={",".join(checkScopes)}'
                 f'&clientIdToAdd={service_account}')
@@ -8810,7 +8807,6 @@ def checkServiceAccount(users):
       printPassFail(scope, f'{scopeStatus}{currentCount(j, jcount)}')
     Ind.Decrement()
     service_account = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
-    _, domain = splitEmailAddress(user)
     if allScopesPass:
       if Act.Get() == Act.CHECK:
         printLine(Msg.SCOPE_AUTHORIZATION_PASSED.format(service_account))
