@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.09.02'
+__version__ = '5.10.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7110,6 +7110,12 @@ def MultiprocessGAMCommands(items, logCmds):
   if not items:
     return
   numPoolProcesses = min(len(items), GC.Values[GC.NUM_THREADS])
+  if GC.Values[GC.MULTIPROCESS_POOL_LIMIT] == -1:
+    parallelPoolProcesses = -1
+  elif GC.Values[GC.MULTIPROCESS_POOL_LIMIT] == 0:
+    parallelPoolProcesses = numPoolProcesses
+  else:
+    parallelPoolProcesses = min(numPoolProcesses, GC.Values[GC.MULTIPROCESS_POOL_LIMIT])
   origSigintHandler = signal.signal(signal.SIGINT, signal.SIG_IGN)
   try:
     pool = multiprocessing.Pool(processes=numPoolProcesses, maxtasksperchild=200)
@@ -7173,8 +7179,9 @@ def MultiprocessGAMCommands(items, logCmds):
                         item],
                        callback=poolCallback)
       poolProcessResults[0] += 1
-      while poolProcessResults[0] == numPoolProcesses:
-        time.sleep(1)
+      if parallelPoolProcesses > 0:
+        while poolProcessResults[0] == parallelPoolProcesses:
+          time.sleep(1)
   except KeyboardInterrupt:
     setSysExitRC(KEYBOARD_INTERRUPT_RC)
     pool.terminate()

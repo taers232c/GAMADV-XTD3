@@ -125,6 +125,8 @@ MESSAGE_BATCH_SIZE = 'message_batch_size'
 MESSAGE_MAX_RESULTS = 'message_max_results'
 # When retrieving lists of Mobile devices from API, how many should be retrieved in each chunk
 MOBILE_MAX_RESULTS = 'mobile_max_results'
+# Number of parallel multiprocess pool.apply_async calls; -1: no limit, 0: NUM_THREADS, >0: specific limit
+MULTIPROCESS_POOL_LIMIT = 'multiprocess_pool_limit'
 # Value to substitute for NEVER_TIME
 NEVER_TIME = 'never_time'
 # If no_browser is False, writeCSVfile won't open a browser when todrive is set
@@ -239,6 +241,7 @@ Defaults = {
   MESSAGE_BATCH_SIZE: '50',
   MESSAGE_MAX_RESULTS: '500',
   MOBILE_MAX_RESULTS: '100',
+  MULTIPROCESS_POOL_LIMIT: '0',
   NEVER_TIME: NEVER,
   NO_BROWSER: FALSE,
   NO_CACHE: FALSE,
@@ -345,6 +348,7 @@ VAR_INFO = {
   MESSAGE_BATCH_SIZE: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (1, 1000)},
   MESSAGE_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (1, 10000)},
   MOBILE_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (1, 100)},
+  MULTIPROCESS_POOL_LIMIT: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (-1, None)},
   NEVER_TIME: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   NO_BROWSER: {VAR_TYPE: TYPE_BOOLEAN, VAR_SIGFILE: 'nobrowser.txt', VAR_SFFT: (FALSE, TRUE)},
   NO_CACHE: {VAR_TYPE: TYPE_BOOLEAN, VAR_SIGFILE: 'nocache.txt', VAR_SFFT: (FALSE, TRUE)},
