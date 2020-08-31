@@ -2,9 +2,9 @@
 
 Added `multiprocess_pool_limit` to gam.cfg; it controls how GAM passes commands
 to the multiprocessing pool. This is a special use case for testing.
-* -1 - Pass all commands to the multiprocessing pool immediately
-*  0 - Pass commands to the multiprocessing pool in batches of size `num_threads`; this the default
-* >0 - Pass commands to the multiprocessing pool in batches of the indicated size
+* `-1` - Pass all commands to the multiprocessing pool immediately
+* ` 0` - Pass commands to the multiprocessing pool in batches of size `num_threads`; this the default
+* `>0` - Pass commands to the multiprocessing pool in batches of the indicated size
 
 5.09.02
 

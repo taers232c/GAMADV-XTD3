@@ -7115,7 +7115,7 @@ def MultiprocessGAMCommands(items, logCmds):
   elif GC.Values[GC.MULTIPROCESS_POOL_LIMIT] == 0:
     parallelPoolProcesses = numPoolProcesses
   else:
-    parallelPoolProcesses = min(numPoolProcesses, GC.Values[GC.MULTIPROCESS_POOL_LIMIT])
+    parallelPoolProcesses = min(len(items), GC.Values[GC.MULTIPROCESS_POOL_LIMIT])
   origSigintHandler = signal.signal(signal.SIGINT, signal.SIG_IGN)
   try:
     pool = multiprocessing.Pool(processes=numPoolProcesses, maxtasksperchild=200)
