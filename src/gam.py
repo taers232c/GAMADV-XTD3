@@ -6152,7 +6152,9 @@ class CSVPrintFile():
         return False
     for filterVal in self.rowDropFilter:
       columns = [t for t in self.titlesList if filterVal[0].match(t)]
-      if columns and filterMatch(filterVal):
+      if not columns:
+        columns = [None]
+      if filterMatch(filterVal):
         return False
     return True
 
