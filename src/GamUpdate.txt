@@ -1,3 +1,9 @@
+5.10.01
+
+Added `csv_output_row_drop_filter` to `gam.cfg` to allow CSV row filtering by specifying filters
+that cause the row to be dropped if any of the filters match.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/CSV-Print-Filtering#column-row-filtering
+
 5.10.00
 
 Added `multiprocess_pool_limit` to gam.cfg; it controls how GAM passes commands

@@ -48,9 +48,11 @@ CSV_OUTPUT_QUOTE_CHAR = 'coqc'
 # Filter for column headers
 CSV_OUTPUT_HEADER_FILTER = 'cohf'
 # Filter for column headers to drop
-CSV_OUTPUT_HEADER_DROP_FILTER = 'codf'
+CSV_OUTPUT_HEADER_DROP_FILTER = 'cohd'
 # Filter for column values
 CSV_OUTPUT_ROW_FILTER = 'corf'
+# Filter for column drop values
+CSV_OUTPUT_ROW_DROP_FILTER = 'cord'
 # Current API services
 CURRENT_API_SERVICES = 'caps'
 # Current Client API
@@ -173,6 +175,7 @@ Globals = {
   CSV_OUTPUT_HEADER_FILTER: [],
   CSV_OUTPUT_HEADER_DROP_FILTER: [],
   CSV_OUTPUT_ROW_FILTER: [],
+  CSV_OUTPUT_ROW_DROP_FILTER: [],
   CURRENT_API_SERVICES: {},
   CURRENT_CLIENT_API: None,
   CURRENT_CLIENT_API_SCOPES: set(),

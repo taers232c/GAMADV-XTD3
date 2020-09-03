@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.10.00'
+__version__ = '5.10.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3202,6 +3202,7 @@ def SetGlobalVariables():
     GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] = _getCfgHeaderFilter(filterSectionName, GC.CSV_OUTPUT_HEADER_FILTER)
     GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER] = _getCfgHeaderFilter(filterSectionName, GC.CSV_OUTPUT_HEADER_DROP_FILTER)
     GC.Values[GC.CSV_OUTPUT_ROW_FILTER] = _getCfgRowFilter(filterSectionName, GC.CSV_OUTPUT_ROW_FILTER)
+    GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER] = _getCfgRowFilter(filterSectionName, GC.CSV_OUTPUT_ROW_DROP_FILTER)
   if status['errors']:
     sys.exit(CONFIG_ERROR_RC)
 # Global values cleanup
@@ -3295,6 +3296,8 @@ def SetGlobalVariables():
       GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER] = GM.Globals[GM.CSV_OUTPUT_HEADER_DROP_FILTER][:]
     if not GC.Values[GC.CSV_OUTPUT_ROW_FILTER]:
       GC.Values[GC.CSV_OUTPUT_ROW_FILTER] = GM.Globals[GM.CSV_OUTPUT_ROW_FILTER][:]
+    if not GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER]:
+      GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER] = GM.Globals[GM.CSV_OUTPUT_ROW_DROP_FILTER][:]
 # If no select/options commands were executed or some were and there are more arguments on the command line,
 # warn if the json files are missing and return True
   if (Cmd.Location() == 1) or (Cmd.ArgumentsRemaining()):
@@ -5585,6 +5588,7 @@ class CSVPrintFile():
     self.SetHeaderFilter(GC.Values[GC.CSV_OUTPUT_HEADER_FILTER])
     self.SetHeaderDropFilter(GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER])
     self.SetRowFilter(GC.Values[GC.CSV_OUTPUT_ROW_FILTER])
+    self.SetRowDropFilter(GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER])
     self.SetZeroBlankMimeTypeCounts(False)
 
   def AddTitle(self, title):
@@ -5985,6 +5989,9 @@ class CSVPrintFile():
   def SetRowFilter(self, rowFilter):
     self.rowFilter = rowFilter
 
+  def SetRowDropFilter(self, rowDropFilter):
+    self.rowDropFilter = rowDropFilter
+
   def RowFilterMatch(self, row):
     def rowRegexFilterMatch(filterPattern):
       for column in columns:
@@ -6113,31 +6120,40 @@ class CSVPrintFile():
           return True
       return False
 
+    def filterMatch(filterVal):
+      if filterVal[1] == 'regex':
+        if rowRegexFilterMatch(filterVal[2]):
+          return True
+      elif filterVal[1] == 'notregex':
+        if rowNotRegexFilterMatch(filterVal[2]):
+          return True
+      elif filterVal[1] in {'date', 'time'}:
+        if rowDateTimeFilterMatch(filterVal[1] == 'date', filterVal[2], filterVal[3]):
+          return True
+      elif filterVal[1] in {'daterange', 'timerange'}:
+        if rowDateTimeRangeFilterMatch(filterVal[1] == 'date', filterVal[2], filterVal[3], filterVal[4]):
+          return True
+      elif filterVal[1] == 'count':
+        if rowCountFilterMatch(filterVal[2], filterVal[3]):
+          return True
+      elif filterVal[1] == 'countrange':
+        if rowCountRangeFilterMatch(filterVal[2], filterVal[3], filterVal[4]):
+          return True
+      else: #boolean
+        if rowBooleanFilterMatch(filterVal[2]):
+          return True
+      return False
+
     for filterVal in self.rowFilter:
       columns = [t for t in self.titlesList if filterVal[0].match(t)]
       if not columns:
         columns = [None]
-      if filterVal[1] == 'regex':
-        if not rowRegexFilterMatch(filterVal[2]):
-          return False
-      elif filterVal[1] == 'notregex':
-        if not rowNotRegexFilterMatch(filterVal[2]):
-          return False
-      elif filterVal[1] in {'date', 'time'}:
-        if not rowDateTimeFilterMatch(filterVal[1] == 'date', filterVal[2], filterVal[3]):
-          return False
-      elif filterVal[1] in {'daterange', 'timerange'}:
-        if not rowDateTimeRangeFilterMatch(filterVal[1] == 'date', filterVal[2], filterVal[3], filterVal[4]):
-          return False
-      elif filterVal[1] == 'count':
-        if not rowCountFilterMatch(filterVal[2], filterVal[3]):
-          return False
-      elif filterVal[1] == 'countrange':
-        if not rowCountRangeFilterMatch(filterVal[2], filterVal[3], filterVal[4]):
-          return False
-      else: #boolean
-        if not rowBooleanFilterMatch(filterVal[2]):
-          return False
+      if not filterMatch(filterVal):
+        return False
+    for filterVal in self.rowDropFilter:
+      columns = [t for t in self.titlesList if filterVal[0].match(t)]
+      if columns and filterMatch(filterVal):
+        return False
     return True
 
   def WriteRowNoFilter(self, row):
@@ -6196,6 +6212,10 @@ class CSVPrintFile():
       columns = [t for t in self.titlesList if filterVal[0].match(t)]
       if not columns:
         stderrWarningMsg(Msg.COLUMN_DOES_NOT_MATCH_ANY_OUTPUT_COLUMNS.format(GC.CSV_OUTPUT_ROW_FILTER, filterVal[0].pattern))
+    for filterVal in self.rowDropFilter:
+      columns = [t for t in self.titlesList if filterVal[0].match(t)]
+      if not columns:
+        stderrWarningMsg(Msg.COLUMN_DOES_NOT_MATCH_ANY_OUTPUT_COLUMNS.format(GC.CSV_OUTPUT_ROW_DROP_FILTER, filterVal[0].pattern))
 
   def SetHeaderFilter(self, headerFilter):
     self.headerFilter = headerFilter
@@ -6462,7 +6482,7 @@ class CSVPrintFile():
       return
     if self.zeroBlankMimeTypeCounts:
       self.ZeroBlankMimeTypeCounts()
-    if self.rowFilter:
+    if self.rowFilter or self.rowDropFilter:
       self.CheckRowFilterHeaders()
     if self.headerFilter or self.headerDropFilter:
       if not self.formatJSON:
@@ -6895,6 +6915,7 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF):
     csvPF.SetHeaderFilter(GC.Values[GC.CSV_OUTPUT_HEADER_FILTER])
     csvPF.SetHeaderDropFilter(GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER])
     csvPF.SetRowFilter(GC.Values[GC.CSV_OUTPUT_ROW_FILTER])
+    csvPF.SetRowDropFilter(GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER])
   list_type = 'CSV'
   while True:
     dataType, dataItem = mpQueue.get()
@@ -6928,6 +6949,7 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF):
       csvPF.SetHeaderFilter(GC.Values[GC.CSV_OUTPUT_HEADER_FILTER])
       csvPF.SetHeaderDropFilter(GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER])
       csvPF.SetRowFilter(GC.Values[GC.CSV_OUTPUT_ROW_FILTER])
+      csvPF.SetRowDropFilter(GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER])
     else:
       break
   csvPF.writeCSVfile(list_type)
@@ -7036,7 +7058,9 @@ def terminateStdQueueHandler(mpQueue, mpQueueHandler):
 
 def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
                            todrive,
-                           csvColumnDelimiter, csvQuoteChar, csvHeaderFilter, csvHeaderDropFilter, csvRowFilter,
+                           csvColumnDelimiter, csvQuoteChar,
+                           csvHeaderFilter, csvHeaderDropFilter,
+                           csvRowFilter, csvRowDropFilter,
                            args):
   initializeLogging()
   if sys.platform.startswith('win'):
@@ -7053,6 +7077,7 @@ def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
   GM.Globals[GM.CSV_OUTPUT_HEADER_FILTER] = csvHeaderFilter[:]
   GM.Globals[GM.CSV_OUTPUT_HEADER_DROP_FILTER] = csvHeaderDropFilter[:]
   GM.Globals[GM.CSV_OUTPUT_ROW_FILTER] = csvRowFilter[:]
+  GM.Globals[GM.CSV_OUTPUT_ROW_DROP_FILTER] = csvRowDropFilter[:]
   GM.Globals[GM.CSVFILE] = {}
   if mpQueueCSVFile:
     GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = mpQueueCSVFile
@@ -7171,11 +7196,9 @@ def MultiprocessGAMCommands(items, logCmds):
       pool.apply_async(ProcessGAMCommandMulti,
                        [pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
                         GM.Globals[GM.CSV_TODRIVE],
-                        GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER],
-                        GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR],
-                        GC.Values[GC.CSV_OUTPUT_HEADER_FILTER],
-                        GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER],
-                        GC.Values[GC.CSV_OUTPUT_ROW_FILTER],
+                        GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER], GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR],
+                        GC.Values[GC.CSV_OUTPUT_HEADER_FILTER], GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER],
+                        GC.Values[GC.CSV_OUTPUT_ROW_FILTER], GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER],
                         item],
                        callback=poolCallback)
       poolProcessResults[0] += 1
@@ -25533,7 +25556,8 @@ def updateUsers(entityList):
           result = callGAPI(cd.users(), 'update',
                             throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN,
                                            GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.INVALID_PARAMETER,
-                                           GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE, GAPI.DUPLICATE],
+                                           GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE, GAPI.DUPLICATE,
+                                           GAPI.INSUFFICIENT_ARCHIVED_USER_LICENSES],
                             userKey=userKey, body=body, fields=fields)
           entityActionPerformed([Ent.USER, user], i, count)
           if PwdOpts.filename and PwdOpts.password:
@@ -25576,7 +25600,7 @@ def updateUsers(entityList):
     except GAPI.invalidOrgunit:
       entityActionFailedWarning([Ent.USER, user], Msg.INVALID_ORGUNIT, i, count)
     except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
-            GAPI.invalid, GAPI.invalidInput, GAPI.invalidParameter,
+            GAPI.invalid, GAPI.invalidInput, GAPI.invalidParameter, GAPI.insufficientArchivedUserLicenses,
             GAPI.badRequest, GAPI.backendError, GAPI.systemError) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
 

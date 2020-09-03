@@ -76,6 +76,7 @@ GATEWAY_TIMEOUT = 'gatewayTimeout'
 GROUP_NOT_FOUND = 'groupNotFound'
 ILLEGAL_ACCESS_ROLE_FOR_DEFAULT = 'illegalAccessRoleForDefault'
 INSUFFICIENT_ADMINISTRATOR_PRIVILEGES = 'insufficientAdministratorPrivileges'
+INSUFFICIENT_ARCHIVED_USER_LICENSES = 'INSUFFICIENT_ARCHIVED_USER_LICENSES'
 INSUFFICIENT_FILE_PERMISSIONS = 'insufficientFilePermissions'
 INSUFFICIENT_PERMISSIONS = 'insufficientPermissions'
 INTERNAL_ERROR = 'internalError'
@@ -370,6 +371,8 @@ class illegalAccessRoleForDefault(Exception):
   pass
 class insufficientAdministratorPrivileges(Exception):
   pass
+class insufficientArchivedUserLicenses(Exception):
+  pass
 class insufficientFilePermissions(Exception):
   pass
 class insufficientPermissions(Exception):
@@ -557,6 +560,7 @@ REASON_EXCEPTION_MAP = {
   GROUP_NOT_FOUND: groupNotFound,
   ILLEGAL_ACCESS_ROLE_FOR_DEFAULT: illegalAccessRoleForDefault,
   INSUFFICIENT_ADMINISTRATOR_PRIVILEGES: insufficientAdministratorPrivileges,
+  INSUFFICIENT_ARCHIVED_USER_LICENSES: insufficientArchivedUserLicenses,
   INSUFFICIENT_FILE_PERMISSIONS: insufficientFilePermissions,
   INSUFFICIENT_PERMISSIONS: insufficientPermissions,
   INTERNAL_ERROR: internalError,
