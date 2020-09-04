@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.10.01'
+__version__ = '5.10.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3943,38 +3943,39 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False):
       writeStdout(f'{ERROR_PREFIX} JSON: {str(error)}+\n')
   except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
     eContent = e.content.decode(UTF8) if isinstance(e.content, bytes) else e.content
+    lContent = eContent.lower()
     if GC.Values[GC.DEBUG_LEVEL] > 0:
       writeStdout(f'{ERROR_PREFIX} HTTP: {str(eContent)}+\n')
-    if (e.resp['status'] == '503') and (eContent.startswith('Quota exceeded for the current request')):
+    if (e.resp['status'] == '403') and (lContent.startswith('request rate higher than configured')):
       return (e.resp['status'], GAPI.QUOTA_EXCEEDED, eContent)
-    if (e.resp['status'] == '403') and (eContent.startswith('Request rate higher than configured')):
+    if (e.resp['status'] == '429') and (lContent.startswith('quota exceeded for quota metric')):
       return (e.resp['status'], GAPI.QUOTA_EXCEEDED, eContent)
-    if (e.resp['status'] == '429') and (eContent.startswith('Quota exceeded for quota metric')):
-      return (e.resp['status'], GAPI.QUOTA_EXCEEDED, eContent)
-    if (e.resp['status'] == '502') and ('Bad Gateway' in eContent):
+    if (e.resp['status'] == '502') and ('bad gateway' in lContent):
       return (e.resp['status'], GAPI.BAD_GATEWAY, eContent)
-    if (e.resp['status'] == '504') and ('Gateway Timeout' in eContent):
+    if (e.resp['status'] == '503') and (lContent.startswith('quota exceeded for the current request')):
+      return (e.resp['status'], GAPI.QUOTA_EXCEEDED, eContent)
+    if (e.resp['status'] == '504') and ('gateway timeout' in lContent):
       return (e.resp['status'], GAPI.GATEWAY_TIMEOUT, eContent)
-    if (e.resp['status'] == '403') and ('Invalid domain.' in eContent):
+    if (e.resp['status'] == '403') and ('invalid domain.' in lContent):
       error = makeErrorDict(403, GAPI.NOT_FOUND, 'Domain not found')
-    elif (e.resp['status'] == '403') and ('Domain cannot use apis.' in eContent):
+    elif (e.resp['status'] == '403') and ('domain cannot use apis.' in lContent):
       error = makeErrorDict(403, GAPI.DOMAIN_CANNOT_USE_APIS, 'Domain cannot use apis')
-    elif (e.resp['status'] == '400') and ('InvalidSsoSigningKey' in eContent):
+    elif (e.resp['status'] == '400') and ('invalidssosigningkey' in lContent):
       error = makeErrorDict(400, GAPI.INVALID, 'InvalidSsoSigningKey')
-    elif (e.resp['status'] == '400') and ('UnknownError' in eContent):
+    elif (e.resp['status'] == '400') and ('unknownerror' in lContent):
       error = makeErrorDict(400, GAPI.INVALID, 'UnknownError')
-    elif (e.resp['status'] == '400') and ('FeatureUnavailableForUser' in eContent):
+    elif (e.resp['status'] == '400') and ('featureunavailableforuser' in lContent):
       error = makeErrorDict(400, GAPI.SERVICE_NOT_AVAILABLE, 'Feature Unavailable For User')
-    elif (e.resp['status'] == '400') and ('EntityDoesNotExist' in eContent):
+    elif (e.resp['status'] == '400') and ('entitydoesnotexist' in lContent):
       error = makeErrorDict(400, GAPI.NOT_FOUND, 'Entity Does Not Exist')
-    elif (e.resp['status'] == '400') and ('EntityNameNotValid' in eContent):
+    elif (e.resp['status'] == '400') and ('entitynamenotvalid' in lContent):
       error = makeErrorDict(400, GAPI.INVALID_INPUT, 'Entity Name Not Valid')
-    elif (e.resp['status'] == '400') and ('Failed to parse Content-Range header' in eContent):
+    elif (e.resp['status'] == '400') and ('failed to parse Content-Range header' in lContent):
       error = makeErrorDict(400, GAPI.BAD_REQUEST, 'Failed to parse Content-Range header')
-    elif (e.resp['status'] == '400') and ('Request contains an invalid argument' in eContent):
+    elif (e.resp['status'] == '400') and ('request contains an invalid argument' in lContent):
       error = makeErrorDict(400, GAPI.INVALID_ARGUMENT, 'Request contains an invalid argument')
     elif retryOnHttpError:
-      return (-1, None, None)
+      return (-1, None, eContent)
     elif soft_errors:
       stderrErrorMsg(eContent)
       return (0, None, None)
@@ -3988,45 +3989,54 @@ def checkGAPIError(e, soft_errors=False, retryOnHttpError=False):
     else:
       message = error['error']['message']
       status = error['error'].get('status', '')
+    lmessage = message.lower()
     if http_status == 500:
-      if not message:
+      if not lmessage:
         message = Msg.UNKNOWN
         error = makeErrorDict(http_status, GAPI.UNKNOWN_ERROR, message)
-      elif 'Backend Error' in message:
+      elif 'backend error' in lmessage:
         error = makeErrorDict(http_status, GAPI.BACKEND_ERROR, message)
-      elif 'Internal error encountered' in message:
+      elif 'internal error encountered' in lmessage:
         error = makeErrorDict(http_status, GAPI.INTERNAL_ERROR, message)
-      elif 'Role assignment exists: RoleAssignment' in message:
+      elif 'role assignment exists: roleassignment' in lmessage:
         error = makeErrorDict(http_status, GAPI.DUPLICATE, message)
-      elif 'Role assignment exists: roleId' in message:
+      elif 'role assignment exists: roleid' in lmessage:
         error = makeErrorDict(http_status, GAPI.DUPLICATE, message)
-      elif 'Operation not supported' in message:
+      elif 'operation not supported' in lmessage:
         error = makeErrorDict(http_status, GAPI.OPERATION_NOT_SUPPORTED, message)
-      elif 'Failed status in update settings response' in message:
+      elif 'failed status in update settings response' in lmessage:
         error = makeErrorDict(http_status, GAPI.INVALID_INPUT, message)
+    elif http_status == 502:
+      if 'bad gateway' in lmessage:
+        error = makeErrorDict(http_status, GAPI.BAD_GATEWAY, message)
     elif http_status == 503:
-      if status == 'UNAVAILABLE' or 'The service is currently unavailable' in message:
+      if status == 'UNAVAILABLE' or 'the service is currently unavailable' in lmessage:
         error = makeErrorDict(http_status, GAPI.SERVICE_NOT_AVAILABLE, message)
+      elif message.startswith('quota exceeded for the current request'):
+        error = makeErrorDict(http_status, GAPI.QUOTA_EXCEEDED, message)
+    elif http_status == 504:
+      if 'gateway timeout' in lmessage:
+        error = makeErrorDict(http_status, GAPI.GATEWAY_TIMEOUT, message)
     elif http_status == 400:
-      if 'does not match' in message or 'Invalid' in message:
+      if 'does not match' in lmessage or 'invalid' in lmessage:
         error = makeErrorDict(http_status, GAPI.INVALID, message)
-      elif '@AttachmentNotVisible' in message:
+      elif '@attachmentnotvisible' in lmessage:
         error = makeErrorDict(http_status, GAPI.BAD_REQUEST, message)
-      elif status == 'FAILED_PRECONDITION' or 'Precondition check failed' in message:
+      elif status == 'FAILED_PRECONDITION' or 'precondition check failed' in lmessage:
         error = makeErrorDict(http_status, GAPI.FAILED_PRECONDITION, message)
       elif status == 'INVALID_ARGUMENT':
         error = makeErrorDict(http_status, GAPI.INVALID_ARGUMENT, message)
     elif http_status == 403:
-      if status == 'PERMISSION_DENIED' or 'The caller does not have permission' in message or 'Permission iam.serviceAccountKeys' in message:
+      if status == 'PERMISSION_DENIED' or 'the caller does not have permission' in lmessage or 'permission iam.serviceaccountkeys' in lmessage:
         error = makeErrorDict(http_status, GAPI.PERMISSION_DENIED, message)
     elif http_status == 404:
-      if status == 'NOT_FOUND' or 'Requested entity was not found' in message or 'does not exist' in message:
+      if status == 'NOT_FOUND' or 'requested entity was not found' in lmessage or 'does not exist' in lmessage:
         error = makeErrorDict(http_status, GAPI.NOT_FOUND, message)
     elif http_status == 409:
-      if status == 'ALREADY_EXISTS' or 'Requested entity already exists' in message:
+      if status == 'ALREADY_EXISTS' or 'requested entity already exists' in lmessage:
         error = makeErrorDict(http_status, GAPI.ALREADY_EXISTS, message)
     elif http_status == 429:
-      if status == 'RESOURCE_EXHAUSTED' or 'Quota exceeded' in message:
+      if status == 'RESOURCE_EXHAUSTED' or 'quota exceeded' in lmessage:
         error = makeErrorDict(http_status, GAPI.QUOTA_EXCEEDED, message)
   else:
     if 'error_description' in error:
@@ -4075,7 +4085,10 @@ def callGAPI(service, function,
       if http_status == -1:
         # The error detail indicated that we should retry this request
         # We'll refresh credentials and make another pass
-        service._http.credentials.refresh(getHttpObj())
+        try:
+          service._http.credentials.refresh(getHttpObj())
+        except TypeError:
+          systemErrorExit(HTTP_ERROR_RC, message)
         continue
       if http_status == 0:
         return None

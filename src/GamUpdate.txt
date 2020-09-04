@@ -1,3 +1,7 @@
+5.10.02
+
+Improve `Bad Gateway` API error handling.
+
 5.10.01
 
 Added `csv_output_row_drop_filter` to `gam.cfg` to allow CSV row filtering by specifying filters
