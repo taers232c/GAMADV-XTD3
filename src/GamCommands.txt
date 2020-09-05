@@ -373,6 +373,8 @@ If an item contains spaces, it should be surrounded by ".
         See: https://support.google.com/chrome/a/answer/1698333
 <QueryDriveFile> ::= <String>
         See: https://developers.google.com/drive/api/v3/search-files
+<QueryDynamicGroup> ::= <String>
+        See: https://cloud.google.com/identity/docs/reference/rest/v1beta1/groups#dynamicgroupquery
 <QueryGmail> ::= <String>
         See: https://support.google.com/mail/answer/7190
 <QueryGroup> ::= <String>
@@ -2013,8 +2015,12 @@ gam show domainaliases|aliasdomains [formatjson]
         <GroupWhoCanModerateMembersDeprecatedAttribute>|
         <GroupDeprecatedAttribute>
 
-gam create|add group <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>*
-gam update group|groups <GroupEntity> [email <EmailAddress>] [copyfrom <GroupItem>] <GroupAttribute>*
+gam create|add group <EmailAddress>
+        [copyfrom <GroupItem>] <GroupAttribute>*
+gam update group|groups <GroupEntity> [email <EmailAddress>]
+        [copyfrom <GroupItem>] <GroupAttribute>*
+        [makesecuritygroup] [dynamicgroupquery <QueryDynamicGroup>]
+        [admincreated <Boolean>]
 gam update group|groups <GroupEntity> create|add [<GroupRole>]
         [usersonly|groupsonly] [notsuspended|suspended]
         [[delivery] <DeliverySetting>]
@@ -2106,9 +2112,23 @@ gam delete group|groups <GroupEntity>
         whocanviewmembership
 <GroupFieldNameList> ::= "<GroupFieldName>(,<GroupFieldName>)*"
 
+<CIGroupFieldName> ::=
+        additionalgroupkeys|
+        createtime|
+        description|
+        displayname|
+        dynamicgroupmetadata|
+        groupkey|
+        labels|
+        name|
+        parent|
+        updatetime
+<CIGroupFieldNameList> ::= "<CIGroupFieldName>(,<CIGroupFieldName>)*"
+
 gam info group|groups <GroupEntity>
         [nousers] [quick] [noaliases] [groups]
         [basic] <GroupFieldName>* [fields <GroupFieldNameList>] [nodeprecated]
+        [ciallfields|(cifields <CIGroupFieldNameList>)]
         [members] [managers] [owners]
         [notsuspended|suspended]
         [types <GroupTypeList>]
@@ -2123,6 +2143,7 @@ gam print groups [todrive <ToDriveAttribute>*]
         [admincreatedmatch <Boolean>]
         [maxresults <Number>]
         [allfields|([basic] [settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
+        [ciallfields|(cifields <CIGroupFieldNameList>)]
         [nodeprecated]
         [roles <GroupRoleList>]
         [members|memberscount] [managers|managerscount] [owners|ownerscount] [totalcount] [countsonly]

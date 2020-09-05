@@ -1,3 +1,23 @@
+5.11.00
+
+Added options `ciallfields` and `cifields <CIGroupFieldNameList>` to `gam info|print groups`. 
+These allow display of `Cloud Identity Groups` information.
+* https://cloud.google.com/identity/docs/groups
+* https://gsuiteupdates.googleblog.com/2020/08/new-api-cloud-identity-groups-google.html
+
+Added option `makesecuritygroup` to `gam update groups` to update a Google Group to a Security Group.
+* https://gsuiteupdates.googleblog.com/2020/09/security-groups-beta.html
+Warning: A Security Group cannot be changed back to a Google Group.
+
+To use these features you must add the Cloud Identity Groups API to your project and authorize
+the appropriate scope.
+```
+gam update project
+gam oauth create
+```
+
+This is Beta software from Google, use with caution.
+
 5.10.02
 
 Improve `Bad Gateway` API error handling.

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.10.02'
+__version__ = '5.11.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -17308,6 +17308,19 @@ def getSettingsFromGroup(cd, group, gs, gs_body):
         return None
   return gs_body
 
+def convertGroupEmailToCloudID(ci, group, i=0, count=0):
+  group = normalizeEmailAddressOrUID(group)
+  try:
+    return callGAPI(ci.groups(), 'lookup',
+                    throw_reasons=GAPI.CIGROUP_GET_THROW_REASONS,
+                    retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
+                    groupKey_id=group, fields='name').get('name')
+  except (GAPI.notFound,
+          GAPI.domainNotFound, GAPI.domainCannotUseApis,
+          GAPI.forbidden, GAPI.badRequest):
+    entityUnknownWarning(Ent.GROUP, group, i, count)
+    return None
+
 def checkReplyToCustom(group, settings, i=0, count=0):
   if settings.get('replyTo') != 'REPLY_TO_CUSTOM' or settings.get('customReplyTo', ''):
     return True
@@ -17378,7 +17391,10 @@ def checkGroupExists(cd, group, i=0, count=0):
 UPDATE_GROUP_SUBCMDS = ['add', 'create', 'delete', 'remove', 'clear', 'sync', 'update']
 GROUP_PREVIEW_TITLES = ['group', 'email', 'role', 'action', 'message']
 
-# gam update groups <GroupEntity> [admincreated <Boolean>] [email <EmailAddress>] [copyfrom <GroupItem>] <GroupAttribute>
+# gam update groups <GroupEntity> [email <EmailAddress>]
+#	[copyfrom <GroupItem>] <GroupAttribute>*
+#	[makesecuritygroup] [dynamicgroupquery <QueryDynamicGroup>]
+#	[admincreated <Boolean>]
 # gam update groups <GroupEntity> create|add [<GroupRole>]
 #	[usersonly|groupsonly] [notsuspended|suspended]
 #	[delivery <DeliverySetting>] [preview] [actioncsv]
@@ -17775,12 +17791,20 @@ def doUpdateGroups():
   if not CL_subCommand:
     body = {}
     gs_body = {}
+    ci_body = {}
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if myarg == 'email':
         body['email'] = getEmailAddress(noUid=True)
       elif myarg == 'admincreated':
         body['adminCreated'] = getBoolean()
+      elif myarg == 'makesecuritygroup':
+        ci_body['labels'] = {'cloudidentity.googleapis.com/groups.discussion_forum': '',
+                             'cloudidentity.googleapis.com/groups.security': ''}
+      elif myarg == 'dynamicquery':
+        ci_body.setdefault('dynamicGroupMetadata', {'queries': []})
+        ci_body['dynamicGroupMetadata']['queries'].append({'resourceType': 'USER',
+                                                           'query': getString(Cmd.OB_QUERY)})
       elif myarg == 'getbeforeupdate':
         getBeforeUpdate = True
       elif myarg == 'json':
@@ -17794,6 +17818,8 @@ def doUpdateGroups():
         return
       if not getBeforeUpdate:
         settings = gs_body
+    elif ci_body:
+      ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
     elif not body:
       return
     Act.Set(Act.UPDATE)
@@ -17846,6 +17872,18 @@ def doUpdateGroups():
           continue
         except GAPI.required:
           entityActionFailedWarning([Ent.GROUP, group], Msg.INVALID_JSON_SETTING, i, count)
+          continue
+      if ci_body:
+        name = convertGroupEmailToCloudID(ci, group, i, count)
+        if not name:
+          continue
+        try:
+          result = callGAPI(ci.groups(), 'patch',
+                            throw_reasons=GAPI.CIGROUP_UPDATE_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
+                            name=name, body=ci_body, updateMask=','.join(list(ci_body.keys())))
+        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalid, GAPI.invalidInput,
+                GAPI.systemError, GAPI.permissionDenied, GAPI.failedPrecondition) as e:
+          entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
           continue
       entityActionPerformed([Ent.GROUP, group], i, count)
   elif CL_subCommand in {'create', 'add'}:
@@ -18204,21 +18242,40 @@ GROUP_FIELDS_CHOICE_MAP = {
 GROUP_INFO_PRINT_ORDER = ['id', 'name', 'description', 'directMembersCount', 'adminCreated']
 INFO_GROUP_OPTIONS = {'nousers', 'groups'}
 
+CIGROUP_FIELDS_CHOICE_MAP = {
+  'additionalgroupkeys': 'additionalGroupKeys',
+  'createtime': 'createTime',
+  'description': 'description',
+  'displayname': 'displayName',
+  'dynamicgroupmetadata': 'dynamicGroupMetadata',
+  'groupkey': 'groupKey',
+  'labels': 'labels',
+  'name': 'name',
+  'parent': 'parent',
+  'updatetime': 'updateTime',
+  }
+CIGROUP_FIELDS_WITH_CRS_NLS = {'description'}
+CIGROUP_INFO_PRINT_ORDER = ['groupKey', 'name', 'displayName', 'description', 'createTime', 'updateTime',
+                            'additionalGroupKeys', 'labels', 'parent', 'dynamicGroupMetadata']
+CIGROUP_TIME_OBJECTS = {'createTime', 'updateTime', 'statusTime'}
+
 def infoGroups(entityList):
   def initGroupFieldsLists():
     if not groupFieldsLists['cd']:
       groupFieldsLists['cd'] = ['email']
+    if not groupFieldsLists['ci']:
+      groupFieldsLists['ci'] = []
     if not groupFieldsLists['gs']:
       groupFieldsLists['gs'] = []
 
   cd = buildGAPIObject(API.DIRECTORY)
   getAliases = getUsers = True
-  getGroups = getSettings = False
+  getCloudIdentity = getGroups = getSettings = False
   showDeprecatedAttributes = True
   FJQC = FormatJSONQuoteChar()
   groups = []
   members = []
-  groupFieldsLists = {'cd': None, 'gs': None}
+  groupFieldsLists = {'cd': None, 'ci': None, 'gs': None}
   isSuspended = None
   entityType = Ent.MEMBER
   rolesSet = set()
@@ -18249,6 +18306,11 @@ def infoGroups(entityList):
       initGroupFieldsLists()
       for field in GROUP_FIELDS_CHOICE_MAP:
         addFieldToFieldsList(field, GROUP_FIELDS_CHOICE_MAP, groupFieldsLists['cd'])
+    elif myarg == 'ciallfields':
+      if not groupFieldsLists['ci']:
+        groupFieldsLists['ci'] = []
+      for field in CIGROUP_FIELDS_CHOICE_MAP:
+        addFieldToFieldsList(field, CIGROUP_FIELDS_CHOICE_MAP, groupFieldsLists['ci'])
     elif myarg in GROUP_FIELDS_CHOICE_MAP:
       initGroupFieldsLists()
       addFieldToFieldsList(myarg, GROUP_FIELDS_CHOICE_MAP, groupFieldsLists['cd'])
@@ -18266,6 +18328,13 @@ def infoGroups(entityList):
           if attrProperties is None:
             invalidChoiceExit(field, list(GROUP_FIELDS_CHOICE_MAP)+list(GROUP_ATTRIBUTES_SET), True)
           groupFieldsLists['gs'].extend([attrProperties[0]])
+    elif myarg == 'cifields':
+      initGroupFieldsLists()
+      for field in _getFieldsList():
+        if field in CIGROUP_FIELDS_CHOICE_MAP:
+          addFieldToFieldsList(field, CIGROUP_FIELDS_CHOICE_MAP, groupFieldsLists['ci'])
+        else:
+          invalidChoiceExit(field, list(CIGROUP_FIELDS_CHOICE_MAP), True)
 # Ignore info user arguments that may have come from whatis
     elif myarg in INFO_USER_OPTIONS:
       if myarg == 'schemas':
@@ -18286,6 +18355,10 @@ def infoGroups(entityList):
     gsfields = None
   if getSettings:
     gs = buildGAPIObject(API.GROUPSSETTINGS)
+  if groupFieldsLists['ci']:
+    getCloudIdentity = True
+    cifields = getFieldsFromFieldsList(groupFieldsLists['ci'])
+    ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
   i = 0
   count = len(entityList)
   for group in entityList:
@@ -18296,6 +18369,15 @@ def infoGroups(entityList):
                             throw_reasons=GAPI.GROUP_GET_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
                             groupKey=group, fields=cdfields)
       group = basic_info['email']
+      if getCloudIdentity:
+        name = convertGroupEmailToCloudID(ci, group, i, count)
+        if not name:
+          continue
+        ci_info = callGAPI(ci.groups(), 'get',
+                           throw_reasons=GAPI.CIGROUP_GET_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
+                           name=name, fields=cifields)
+      else:
+        ci_info = {}
       settings = {}
       if getSettings and not GroupIsAbuseOrPostmaster(group):
         settings = callGAPI(gs.groups(), 'get',
@@ -18316,6 +18398,7 @@ def infoGroups(entityList):
             members.append(member)
       if FJQC.formatJSON:
         basic_info.update(settings)
+        basic_info['cloudIdentity'] = ci_info
         if getGroups:
           basic_info['groups'] = groups
         if getUsers:
@@ -18324,6 +18407,23 @@ def infoGroups(entityList):
         continue
       printEntity([Ent.GROUP, group], i, count)
       Ind.Increment()
+      if ci_info:
+        printEntity([Ent.GROUP_CLOUD_IDENTITY, None])
+        Ind.Increment()
+        for key in CIGROUP_INFO_PRINT_ORDER:
+          if key not in ci_info:
+            continue
+          value = ci_info[key]
+          if isinstance(value, (list, dict)):
+            showJSON(key, value, timeObjects=CIGROUP_TIME_OBJECTS)
+          elif key not in CIGROUP_FIELDS_WITH_CRS_NLS:
+            if key not in CIGROUP_TIME_OBJECTS:
+              printKeyValueList([key, value])
+            else:
+              printKeyValueList([key, formatLocalTime(value)])
+          else:
+            printKeyValueWithCRsNLs(key, value)
+        Ind.Decrement()
       printEntity([Ent.GROUP_SETTINGS, None])
       Ind.Increment()
       for key in GROUP_INFO_PRINT_ORDER:
@@ -18409,13 +18509,13 @@ def infoGroups(entityList):
       entityActionFailedWarning([Ent.GROUP, group], Msg.DOES_NOT_EXIST, i, count)
     except (GAPI.groupNotFound, GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.backendError,
             GAPI.invalid, GAPI.invalidMember, GAPI.invalidParameter, GAPI.invalidInput, GAPI.forbidden, GAPI.badRequest,
-            GAPI.permissionDenied,
-            GAPI.systemError, GAPI.serviceLimit) as e:
+            GAPI.permissionDenied, GAPI.systemError, GAPI.serviceLimit) as e:
       entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
 
 # gam info groups <GroupEntity>
 #	[nousers] [quick] [noaliases] [groups]
 #	[basic] <GroupFieldName>* [fields <GroupFieldNameList>] [nodeprecated]
+#	[ciallfields|(cifields <CIGroupFieldNameList>)]
 #	[roles <GroupRoleList>] [members] [managers] [owners]
 #	[notsuspended|suspended]
 #	[types <GroupTypeList>]
@@ -18508,6 +18608,7 @@ PRINT_GROUPS_JSON_TITLES = ['email', 'JSON']
 #	[admincreatedmatch <Boolean>]
 #	[maxresults <Number>]
 #	[allfields|([basic] [settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
+#	[ciallfields|(cifields <CIGroupFieldNameList>)]
 #	[nodeprecated]
 #	[roles <GroupRoleList>]
 #	[members|memberscount] [managers|managerscount] [owners|ownerscount] [totalcount] [countsonly]
@@ -18518,7 +18619,7 @@ PRINT_GROUPS_JSON_TITLES = ['email', 'JSON']
 #	[convertcrnl] [delimiter <Character>] [sortheaders]
 #	[formatjson [quotechar <Character>]]
 def doPrintGroups():
-  def _printGroupRow(groupEntity, groupMembers, groupSettings):
+  def _printGroupRow(groupEntity, groupCloudIdentity, groupSettings, groupMembers):
     row = {}
     if matchSettings:
       if not isinstance(groupSettings, dict):
@@ -18545,6 +18646,8 @@ def doPrintGroups():
         row['JSON-members'] = json.dumps(groupMembers, ensure_ascii=False, sort_keys=True)
       if isinstance(groupSettings, dict):
         row['JSON-settings'] = json.dumps(groupSettings, ensure_ascii=False, sort_keys=True)
+      if isinstance(groupCloudIdentity, dict):
+        row['JSON-cloudIdentity'] = json.dumps(groupCloudIdentity, ensure_ascii=False, sort_keys=True)
       csvPF.WriteRowNoFilter(row)
       return
     for field in groupFieldsLists['cd']:
@@ -18604,16 +18707,27 @@ def doPrintGroups():
         if not ownersCountOnly:
           row['Owners'] = delimiter.join(ownersList)
     if isinstance(groupSettings, dict):
-      for key in groupSettings:
+      for key, value in iter(groupSettings.items()):
         if key not in {'kind', 'etag', 'email', 'name', 'description'}:
-          setting_value = groupSettings[key]
-          if setting_value is None:
-            setting_value = ''
+          if value is None:
+            value = ''
           csvPF.AddTitles(key)
           if convertCRNL and key in GROUP_FIELDS_WITH_CRS_NLS:
-            row[key] = escapeCRsNLs(setting_value)
+            row[key] = escapeCRsNLs(value)
           else:
-            row[key] = setting_value
+            row[key] = value
+    if isinstance(groupCloudIdentity, dict):
+      labels = groupCloudIdentity.pop('labels', {})
+      if labels:
+        groupCloudIdentity['labels'] = []
+        for k, v in iter(labels.items()):
+          if not v:
+            groupCloudIdentity['labels'].append(k)
+          else:
+            groupCloudIdentity['labels'].append(f'{k}:{v}')
+      for key, value in sorted(iter(flattenJSON({'cloudIdentity': groupCloudIdentity}, flattened={}, timeObjects=CIGROUP_TIME_OBJECTS).items())):
+        csvPF.AddTitles(key)
+        row[key] = value
     csvPF.WriteRow(row)
 
   def _callbackProcessGroupBasic(request_id, response, exception):
@@ -18707,16 +18821,16 @@ def doPrintGroups():
   def _writeCompleteRows():
     complete = [k for k in groupData if groupData[k]['required'] == 0]
     for k in complete:
-      _printGroupRow(groupData[k]['entity'], groupData[k]['members'], groupData[k]['settings'])
+      _printGroupRow(groupData[k]['entity'], groupData[k]['cloudIdentity'], groupData[k]['settings'], groupData[k]['members'])
       del groupData[k]
 
   cd = buildGAPIObject(API.DIRECTORY)
   kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
   convertCRNL = GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
-  getSettings = members = membersCountOnly = managers = managersCountOnly = owners = ownersCountOnly = sortHeaders = totalCount = False
+  getCloudIdentity = getSettings = members = membersCountOnly = managers = managersCountOnly = owners = ownersCountOnly = sortHeaders = totalCount = False
   maxResults = None
-  groupFieldsLists = {'cd': ['email'], 'gs': []}
+  groupFieldsLists = {'cd': ['email'], 'ci': [], 'gs': []}
   csvPF = CSVPrintFile(groupFieldsLists['cd'])
   FJQC = FormatJSONQuoteChar(csvPF)
   rolesSet = set()
@@ -18756,13 +18870,19 @@ def doPrintGroups():
       sortHeaders = True
       for field in GROUP_FIELDS_CHOICE_MAP:
         csvPF.AddField(field, GROUP_FIELDS_CHOICE_MAP, groupFieldsLists['cd'])
+    elif myarg == 'ciallfields':
+      sortHeaders = True
+      for field in CIGROUP_FIELDS_CHOICE_MAP:
+        addFieldToFieldsList(field, CIGROUP_FIELDS_CHOICE_MAP, groupFieldsLists['ci'])
     elif myarg == 'settings':
       getSettings = sortHeaders = True
     elif myarg == 'allfields':
       getSettings = sortHeaders = True
-      groupFieldsLists = {'cd': [], 'gs': []}
+      groupFieldsLists = {'cd': [], 'ci': [], 'gs': []}
       for field in GROUP_FIELDS_CHOICE_MAP:
         csvPF.AddField(field, GROUP_FIELDS_CHOICE_MAP, groupFieldsLists['cd'])
+      for field in CIGROUP_FIELDS_CHOICE_MAP:
+        addFieldToFieldsList(field, CIGROUP_FIELDS_CHOICE_MAP, groupFieldsLists['ci'])
     elif myarg == 'sortheaders':
       sortHeaders = getBoolean()
     elif myarg in GROUP_FIELDS_CHOICE_MAP:
@@ -18779,6 +18899,12 @@ def doPrintGroups():
           if attrProperties is None:
             invalidChoiceExit(field, list(GROUP_FIELDS_CHOICE_MAP)+list(GROUP_ATTRIBUTES_SET), True)
           csvPF.AddField(field, {field: attrProperties[0]}, groupFieldsLists['gs'])
+    elif myarg == 'cifields':
+      for field in _getFieldsList():
+        if field in CIGROUP_FIELDS_CHOICE_MAP:
+          addFieldToFieldsList(field, CIGROUP_FIELDS_CHOICE_MAP, groupFieldsLists['ci'])
+        else:
+          invalidChoiceExit(field, list(CIGROUP_FIELDS_CHOICE_MAP), True)
     elif myarg == 'matchsetting':
       valueList = getChoice({'not': 'notvalues'}, mapChoice=True, defaultChoice='values')
       matchBody = {}
@@ -18837,8 +18963,12 @@ def doPrintGroups():
     gsfields = None
   if getSettings:
     gs = buildGAPIObject(API.GROUPSSETTINGS)
+  if groupFieldsLists['ci']:
+    getCloudIdentity = True
+    cifields = getFieldsFromFieldsList(groupFieldsLists['ci'])
+    ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
   memberRoles = ','.join(sorted(rolesSet)) if rolesSet else None
-  rolesOrSettings = memberRoles or getSettings
+  rolesOrSettings = memberRoles or getSettings or getCloudIdentity
   if memberRoles:
     if totalCount:
       csvPF.AddTitles('TotalCount')
@@ -18861,6 +18991,8 @@ def doPrintGroups():
       csvPF.AddJSONTitle('JSON-members')
     if getSettings:
       csvPF.AddJSONTitle('JSON-settings')
+    if getCloudIdentity:
+      csvPF.AddJSONTitle('JSON-cloudIdentity')
   if entitySelection is None:
     printGettingAllAccountEntities(Ent.GROUP, groupFilters(kwargs))
     try:
@@ -18904,6 +19036,8 @@ def doPrintGroups():
     svcargs = dict([('groupKey', None), ('roles', memberRoles), ('fields', 'nextPageToken,members(email,id,role,type,status)'),
                     ('includeDerivedMembership', memberOptions[MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP]),
                     ('maxResults', GC.Values[GC.MEMBER_MAX_RESULTS])]+GM.Globals[GM.EXTRA_ARGS_LIST])
+  if getCloudIdentity:
+    required += 1
   if getSettings:
     required += 1
     svcargsgs = dict([('groupUniqueId', None), ('fields', gsfields)]+GM.Globals[GM.EXTRA_ARGS_LIST])
@@ -18923,9 +19057,9 @@ def doPrintGroups():
     if not checkGroupMatchPatterns(groupEmail, groupEntity, matchPatterns):
       continue
     if not rolesOrSettings:
-      _printGroupRow(groupEntity, None, None)
+      _printGroupRow(groupEntity, None, None, None)
       continue
-    groupData[i] = {'entity': groupEntity, 'members': [], 'settings': getSettings, 'required': required}
+    groupData[i] = {'entity': groupEntity, 'cloudIdentity': {}, 'settings': getSettings, 'members': [], 'required': required}
     if memberRoles:
       printGettingEntityItemForWhom(memberRoles, groupEmail, i, count)
       svcparms = svcargs.copy()
@@ -18952,6 +19086,22 @@ def doPrintGroups():
       else:
         groupData[i]['settings'] = False
         groupData[i]['required'] -= 1
+    if getCloudIdentity:
+      printGettingEntityItemForWhom(Ent.GROUP_CLOUD_IDENTITY, groupEmail, i, count)
+      name = convertGroupEmailToCloudID(ci, groupEmail, i, count)
+      if not name:
+        continue
+      try:
+        response = callGAPI(ci.groups(), 'get',
+                            throw_reasons=GAPI.GROUP_GET_THROW_REASONS, retry_reasons=GAPI.GROUP_GET_RETRY_REASONS,
+                            name=name, fields=cifields)
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
+              GAPI.permissionDenied, GAPI.systemError) as e:
+        entityActionFailedWarning([Ent.GROUP, groupEmail, Ent.GROUP_CLOUD_IDENTITY, None], str(e), i, count)
+        response = {}
+      groupData[i]['cloudIdentity'] = response
+      groupData[i]['required'] -= 1
+      _writeCompleteRows()
   if cdbcount > 0:
     cdbatch.execute()
   if getSettings and gsbcount > 0:
