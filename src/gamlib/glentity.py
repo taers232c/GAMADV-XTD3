@@ -367,7 +367,7 @@ class GamEntity():
     GMAIL_PROFILE: ['Gmail Profile', 'Gmail Profile'],
     GROUP: ['Groups', 'Group'],
     GROUP_ALIAS: ['Group Aliases', 'Group Alias'],
-    GROUP_CLOUD_IDENTITY: ['Group Cloud Identity', 'Group Cloud Identity'],
+    GROUP_CLOUD_IDENTITY: ['Group Cloud Identities', 'Group Cloud Identity'],
     GROUP_EMAIL: ['Group Emails', 'Group Email'],
     GROUP_MEMBERSHIP: ['Group Memberships', 'Group Membership'],
     GROUP_SETTINGS: ['Group Settings', 'Group Settings'],

@@ -1,3 +1,11 @@
+5.11.01
+
+Improved performance of `gam print groups ciallfields|(cifields <CIGroupFieldNameList>)`.
+
+Handled bug in Cloud Identity Groups API where groups with `whoCanJoin INVITED_CAN_JOIN` can't be accessed by the API.
+
+This is Beta software from Google, use with caution.
+
 5.11.00
 
 Added options `ciallfields` and `cifields <CIGroupFieldNameList>` to `gam info|print groups`. 

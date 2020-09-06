@@ -58,6 +58,7 @@ class GamAction():
   INSERT = 'insr'
   INVALIDATE = 'inva'
   LIST = 'list'
+  LOOKUP = 'look'
   MERGE = 'merg'
   MODIFY = 'modi'
   MOVE = 'move'
@@ -144,6 +145,7 @@ class GamAction():
     INSERT: ['Inserted', 'Insert'],
     INVALIDATE: ['Invalidated', 'Invalidate'],
     LIST: ['Listed', 'List'],
+    LOOKUP: ['Lookedup', 'Lookup'],
     MERGE: ['Merged', 'Merge'],
     MODIFY: ['Modified', 'Modify'],
     MOVE: ['Moved', 'Move'],
