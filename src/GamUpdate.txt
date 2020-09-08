@@ -1,3 +1,18 @@
+5.11.02
+
+Changed the prompt for a login email address for all `gam project` commands to reflect that
+what is required is a GCP project manager email address. For most cases, this will be a G Suite super admin but in
+some cases GCP and G Suite management is separated and a GCP manager email address is required.
+```
+$ gam show projects filter gam
+Enter an email address authorized to manage GCP Projects: filter gam?
+$ gam update project
+Enter an email address authorized to manage GCP Projects: gam-project-abc-123-xyx?
+```
+
+Added option `scalarsfirst` to `gam print users` that, when column headers are sorted, causes
+the scalar user fields to appear before the user fields with repeating values.
+
 5.11.01
 
 Improved performance of `gam print groups ciallfields|(cifields <CIGroupFieldNameList>)`.
@@ -3498,7 +3513,7 @@ gam print licenses [todrive <ToDriveAttributes>*] [(products|product <ProductIDL
 
 Both commands have additional options for selecting which products/SKUs to display.
 * allskus - Select all Google product SKUs
-* gsuite - Select GSuite products: Google-Apps and 101031
+* gsuite - Select G Suite products: Google-Apps and 101031
 
 4.65.05
 

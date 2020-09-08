@@ -3250,7 +3250,8 @@ gam print users [todrive <ToDriveAttribute>*]
         [orderby <UserOrderByFieldName> [ascending|descending]]
         [groups|groupsincolumns] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
-        [delimiter <Character>] [sortheaders] [formatjson [quotechar <Character>]] [quoteplusphonenumbers]
+        [delimiter <Character>] [sortheaders [<Boolean>]] [scalarsfirst [<Boolean>]]
+        [formatjson [quotechar <Character>]] [quoteplusphonenumbers]
         [issuspended <Boolean>]
 
 Print fields for specified users.
@@ -3259,14 +3260,16 @@ gam print users [todrive <ToDriveAttribute>*] select <UserTypeEntity>
         [orderby <UserOrderByFieldName> [ascending|descending]]
         [groups|groupsincolumns] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
-        [delimiter <Character>] [sortheaders] [formatjson [quotechar <Character>]] [quoteplusphonenumbers]
+        [delimiter <Character>] [sortheaders [<Boolean>]] [scalarsfirst [<Boolean>]]
+        [formatjson [quotechar <Character>]] [quoteplusphonenumbers]
         [issuspended <Boolean>]
 
 gam <UserTypeEntity> print users [todrive <ToDriveAttribute>*]
         [orderby <UserOrderByFieldName> [ascending|descending]]
         [groups|groupsincolumns] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
-        [delimiter <Character>] [sortheaders] [formatjson [quotechar <Character>]] [quoteplusphonenumbers]
+        [delimiter <Character>] [sortheaders [<Boolean>]] [scalarsfirst [<Boolean>]]
+        [formatjson [quotechar <Character>]] [quoteplusphonenumbers]
         [issuspended <Boolean>]
 
 The first column will always be primaryEmail; the remaining field names will be sorted if allfields, basic, full or sortheaders is specified;

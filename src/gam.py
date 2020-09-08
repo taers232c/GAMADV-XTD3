@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.11.01'
+__version__ = '5.11.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7554,10 +7554,13 @@ def doListUser(entityList):
 
 VALIDEMAIL_PATTERN = re.compile(r'^[^@]+@[^@]+\.[^@]+$')
 
-def _getValidateLoginHint(login_hint):
+def _getValidateLoginHint(login_hint, projectId=None):
   while True:
     if not login_hint:
-      login_hint = readStdin('\nWhat is your G Suite admin email address? ').strip()
+      if not projectId:
+        login_hint = readStdin(Msg.ENTER_GSUITE_ADMIN_EMAIL_ADDRESS).strip()
+      else:
+        login_hint = readStdin(Msg.ENTER_MANAGE_GCP_PROJECT_EMAIL_ADDRESS.format(projectId)).strip()
     if login_hint.find('@') == -1 and GC.Values[GC.DOMAIN]:
       login_hint = f'{login_hint}@{GC.Values[GC.DOMAIN]}'
     if VALIDEMAIL_PATTERN.match(login_hint):
@@ -7712,25 +7715,26 @@ def _run_oauth_flow(client_id, client_secret, scopes, login_hint, access_type):
   kwargs = {'access_type': access_type}
   if login_hint:
     kwargs['login_hint'] = login_hint
-  if GC.Values[GC.NO_BROWSER]:
-    GM.Globals[GM.GAM_OAUTH_URL_TXT] = os.path.join(GM.Globals[GM.GAM_PATH], FN_GAM_OAUTH_URL_TXT)
-    kwargs['auth_url_callback'] = writeGAMOauthURLfile
-    try:
+  try:
+    if GC.Values[GC.NO_BROWSER]:
+      GM.Globals[GM.GAM_OAUTH_URL_TXT] = os.path.join(GM.Globals[GM.GAM_PATH], FN_GAM_OAUTH_URL_TXT)
+      kwargs['auth_url_callback'] = writeGAMOauthURLfile
       flow.run_console(
         authorization_prompt_message=Msg.OAUTH2_GO_TO_LINK_MESSAGE.format(Msg.THE_LINK_MAY_BE_COPIED_FROM_THE_FILE_RATHER_THAN_THE_SCREEN.format(GM.Globals[GM.GAM_OAUTH_URL_TXT])),
         authorization_code_message=Msg.ENTER_VERIFICATION_CODE,
         **kwargs)
-    except Exception as e:
-      stderrErrorMsg(Msg.AUTHENTICATION_FLOW_FAILED.format(str(e)))
       deleteFile(GM.Globals[GM.GAM_OAUTH_URL_TXT], continueOnError=True, displayError=True)
-      systemErrorExit(SCOPES_NOT_AUTHORIZED_RC, None)
-    deleteFile(GM.Globals[GM.GAM_OAUTH_URL_TXT], continueOnError=True, displayError=True)
-  else:
-    flow.run_local_server(
-      authorization_prompt_message=Msg.OAUTH2_BROWSER_OPENED_MESSAGE,
-      success_message=Msg.AUTHENTICATION_FLOW_COMPLETE,
-      **kwargs)
-  return flow.credentials
+    else:
+      flow.run_local_server(
+        authorization_prompt_message=Msg.OAUTH2_BROWSER_OPENED_MESSAGE,
+        success_message=Msg.AUTHENTICATION_FLOW_COMPLETE,
+        **kwargs)
+    return flow.credentials
+  except Exception as e:
+    stderrErrorMsg(Msg.AUTHENTICATION_FLOW_FAILED.format(str(e)))
+    if GC.Values[GC.NO_BROWSER]:
+      deleteFile(GM.Globals[GM.GAM_OAUTH_URL_TXT], continueOnError=True, displayError=True)
+    systemErrorExit(SCOPES_NOT_AUTHORIZED_RC, None)
 
 def doOAuthRequest(currentScopes, login_hint, verifyScopes=False):
   client_id, client_secret = getOAuthClientIDAndSecret()
@@ -8239,7 +8243,7 @@ def _getLoginHintProjectInfo(createCmd):
     svcAcctInfo['displayName'] = projectInfo['name']
   if not svcAcctInfo['description']:
     svcAcctInfo['description'] = svcAcctInfo['displayName']
-  login_hint = _getValidateLoginHint(login_hint)
+  login_hint = _getValidateLoginHint(login_hint, projectInfo['projectId'])
   if not appInfo['supportEmail']:
     appInfo['supportEmail'] = login_hint
   httpObj, crm = getCRMService(login_hint)
@@ -8262,7 +8266,7 @@ def _getLoginHintProjectInfo(createCmd):
       entityActionFailedExit([Ent.USER, login_hint, Ent.PROJECT, projectInfo['projectId']], Msg.DUPLICATE)
   return (crm, httpObj, login_hint, appInfo, projectInfo, svcAcctInfo)
 
-def _getCurrentProjectID():
+def _getCurrentProjectId():
   cs_data = readFile(GC.Values[GC.CLIENT_SECRETS_JSON], continueOnError=True, displayError=True)
   if not cs_data:
     invalidClientSecretsJsonExit()
@@ -8312,7 +8316,11 @@ def _getLoginHintProjects(createSvcAcctCmd=False, deleteSvcAcctCmd=False, printS
     invalidArgumentExit(['', 'all|'][printShowCmd]+PROJECTID_FILTER_REQUIRED)
   if not printShowCmd and not createSvcAcctCmd and not deleteSvcAcctCmd:
     checkForExtraneousArguments()
-  login_hint = _getValidateLoginHint(login_hint)
+  if pfilter in {'current', 'id:current'}:
+    projectId = _getCurrentProjectId()
+  else:
+    projectId = f'filter {pfilter or "all"}'
+  login_hint = _getValidateLoginHint(login_hint, projectId)
   crm = None
   if readOnly:
     _getSvcAcctData()
@@ -8323,11 +8331,10 @@ def _getLoginHintProjects(createSvcAcctCmd=False, deleteSvcAcctCmd=False, printS
   if not crm:
     httpObj, crm = getCRMService(login_hint)
   if pfilter in {'current', 'id:current'}:
-    projectID = _getCurrentProjectID()
     if not printShowCmd:
-      projects = [{'projectId': projectID}]
+      projects = [{'projectId': projectId}]
     else:
-      projects = _getProjects(crm, f'id:{projectID}')
+      projects = _getProjects(crm, f'id:{projectId}')
   else:
     projects = _getProjects(crm, pfilter)
   return (crm, httpObj, login_hint, projects)
@@ -17333,7 +17340,7 @@ def convertGroupEmailToCloudID(ci, group, i=0, count=0):
           GAPI.systemError, GAPI.permissionDenied) as e:
     action = Act.Get()
     Act.Set(Act.LOOKUP)
-    entityActionFailedWarning([Ent.GROUP, group, Ent.GROUP_CLOUD_IDENTITY, None], str(e), i, count)
+    entityActionFailedWarning([Ent.GROUP, group, Ent.CLOUD_IDENTITY_GROUP, None], str(e), i, count)
     Act.Set(action)
     return None
 
@@ -18420,7 +18427,7 @@ def infoGroups(entityList):
       printEntity([Ent.GROUP, group], i, count)
       Ind.Increment()
       if ci_info:
-        printEntity([Ent.GROUP_CLOUD_IDENTITY, None])
+        printEntity([Ent.CLOUD_IDENTITY_GROUP, None])
         Ind.Increment()
         for key in CIGROUP_INFO_PRINT_ORDER:
           if key not in ci_info:
@@ -19029,7 +19036,7 @@ def doPrintGroups():
       else:
         accessErrorExit(cd)
     if getCloudIdentity:
-      printGettingAllAccountEntities(Ent.GROUP_CLOUD_IDENTITY)
+      printGettingAllAccountEntities(Ent.CLOUD_IDENTITY_GROUP)
       try:
         ciGroupList = callGAPIpages(ci.groups(), 'list', 'groups',
                                     page_message=getPageMessage(showFirstLastItems=True), message_attribute=['groupKey', 'id'],
@@ -19065,7 +19072,7 @@ def doPrintGroups():
         cdbatch = cd.new_batch_http_request(callback=_callbackProcessGroupBasic)
         cdbcount = 0
       if getCloudIdentity:
-        printGettingEntityItemForWhom(Ent.GROUP_CLOUD_IDENTITY, groupEmail, i, count)
+        printGettingEntityItemForWhom(Ent.CLOUD_IDENTITY_GROUP, groupEmail, i, count)
         name = convertGroupEmailToCloudID(ci, groupEmail, i, count)
         if name:
           try:
@@ -19080,7 +19087,7 @@ def doPrintGroups():
           except (GAPI.notFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
                   GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
                   GAPI.systemError, GAPI.permissionDenied) as e:
-            entityActionFailedWarning([Ent.GROUP, groupEmail, Ent.GROUP_CLOUD_IDENTITY, None], str(e), i, count)
+            entityActionFailedWarning([Ent.GROUP, groupEmail, Ent.CLOUD_IDENTITY_GROUP, None], str(e), i, count)
     if cdbcount > 0:
       cdbatch.execute()
   required = 0
@@ -26605,7 +26612,7 @@ def doPrintUsers(entityList=None):
   fieldsList = ['primaryEmail']
   csvPF = CSVPrintFile(fieldsList, indexedTitles=USERS_INDEXED_TITLES)
   FJQC = FormatJSONQuoteChar(csvPF)
-  countOnly = sortHeaders = getGroupFeed = getLicenseFeed = groupsInColumns = emailParts = False
+  countOnly = sortHeaders = getGroupFeed = getLicenseFeed = groupsInColumns = emailParts = scalarsFirst = False
   customer = GC.Values[GC.CUSTOMER_ID]
   domain = None
   queries = [None]
@@ -26661,6 +26668,8 @@ def doPrintUsers(entityList=None):
       fieldsList = []
     elif myarg == 'sortheaders':
       sortHeaders = getBoolean()
+    elif myarg == 'scalarsfirst':
+      scalarsFirst = getBoolean()
     elif csvPF.GetFieldsListTitles(myarg, USER_FIELDS_CHOICE_MAP, fieldsList, 'primaryEmail'):
       pass
     elif myarg == 'groups':
@@ -26815,7 +26824,10 @@ def doPrintUsers(entityList=None):
         _updateDomainCounts(normalizeEmailAddressOrUID(userEntity))
   if not countOnly:
     if sortHeaders:
-      csvPF.SetSortTitles(['primaryEmail'])
+      sortTitles = ['primaryEmail']
+      if scalarsFirst:
+        sortTitles.extend(sorted([f'name.{field}' for field in USER_NAME_PROPERTY_PRINT_ORDER]+USER_LANGUAGE_PROPERTY_PRINT_ORDER+USER_SCALAR_PROPERTY_PRINT_ORDER))
+      csvPF.SetSortTitles(sortTitles)
     if sortRows and orderBy:
       orderBy = 'primaryEmail' if orderBy == 'email' else f'name.{orderBy}'
       csvPF.SortRows(orderBy, reverse=sortOrder == 'DESCENDING')
@@ -28064,12 +28076,12 @@ def _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties, getO
     try:
       return callGAPIpages(croom.courses(), 'list', 'courses',
                            page_message=getPageMessage(),
-                           throw_reasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST],
+                           throw_reasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID],
                            teacherId=courseSelectionParameters['teacherId'],
                            studentId=courseSelectionParameters['studentId'],
                            courseStates=courseSelectionParameters['courseStates'],
                            fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
-    except GAPI.notFound:
+    except (GAPI.invalid, GAPI.notFound):
       if (not courseSelectionParameters['studentId']) and courseSelectionParameters['teacherId']:
         entityUnknownWarning(Ent.TEACHER, courseSelectionParameters['teacherId'])
       elif (not courseSelectionParameters['teacherId']) and courseSelectionParameters['studentId']:
@@ -42880,7 +42892,7 @@ def watchGmail(users):
       maxMessages = getInteger(minVal=1)
     else:
       unknownArgumentExit()
-  project = f'projects/{_getCurrentProjectID()}'
+  project = f'projects/{_getCurrentProjectId()}'
   gamTopics = project+'/topics/gam-pubsub-gmail-'
   gamSubscriptions = project+'/subscriptions/gam-pubsub-gmail-'
   pubsub = buildGAPIObject(API.PUBSUB)

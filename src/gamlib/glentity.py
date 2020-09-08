@@ -75,6 +75,7 @@ class GamEntity():
   CLASSROOM_OAUTH2_TXT_FILE = 'coa'
   CLASSROOM_USER_PROFILE = 'clup'
   CLIENT_SECRETS_JSON_FILE = 'csjf'
+  CLOUD_IDENTITY_GROUP = 'cidg'
   CLOUD_STORAGE_FILE = 'clsf'
   COLLABORATOR = 'cola'
   CONFIG_FILE = 'conf'
@@ -145,7 +146,6 @@ class GamEntity():
   GMAIL_PROFILE = 'gmpr'
   GROUP = 'grou'
   GROUP_ALIAS = 'gali'
-  GROUP_CLOUD_IDENTITY = 'gcid'
   GROUP_EMAIL = 'gale'
   GROUP_MEMBERSHIP = 'gmem'
   GROUP_SETTINGS = 'gset'
@@ -297,6 +297,7 @@ class GamEntity():
     CLASSROOM_OAUTH2_TXT_FILE: ['Classroom OAuth2 File', 'Classroom OAuth2 File'],
     CLASSROOM_USER_PROFILE: ['Classroom User Profile', 'Classroom User Profile'],
     CLIENT_SECRETS_JSON_FILE: ['Client Secrets File', 'Client Secrets File'],
+    CLOUD_IDENTITY_GROUP: ['Cloud Identity Groups', 'Cloud Identity Group'],
     CLOUD_STORAGE_FILE: ['Cloud Storage Files', 'Cloud Storage File'],
     COLLABORATOR: ['Collaborators', 'Collaborator'],
     CONFIG_FILE: ['Config File', 'Config File'],
@@ -367,7 +368,6 @@ class GamEntity():
     GMAIL_PROFILE: ['Gmail Profile', 'Gmail Profile'],
     GROUP: ['Groups', 'Group'],
     GROUP_ALIAS: ['Group Aliases', 'Group Alias'],
-    GROUP_CLOUD_IDENTITY: ['Group Cloud Identities', 'Group Cloud Identity'],
     GROUP_EMAIL: ['Group Emails', 'Group Email'],
     GROUP_MEMBERSHIP: ['Group Memberships', 'Group Membership'],
     GROUP_SETTINGS: ['Group Settings', 'Group Settings'],
