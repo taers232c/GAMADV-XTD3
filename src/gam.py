@@ -26826,7 +26826,7 @@ def doPrintUsers(entityList=None):
     if sortHeaders:
       sortTitles = ['primaryEmail']
       if scalarsFirst:
-        sortTitles.extend(sorted([f'name.{field}' for field in USER_NAME_PROPERTY_PRINT_ORDER]+USER_LANGUAGE_PROPERTY_PRINT_ORDER+USER_SCALAR_PROPERTY_PRINT_ORDER))
+        sortTitles.extend([f'name.{field}' for field in USER_NAME_PROPERTY_PRINT_ORDER]+sorted(USER_LANGUAGE_PROPERTY_PRINT_ORDER+USER_SCALAR_PROPERTY_PRINT_ORDER))
       csvPF.SetSortTitles(sortTitles)
     if sortRows and orderBy:
       orderBy = 'primaryEmail' if orderBy == 'email' else f'name.{orderBy}'
