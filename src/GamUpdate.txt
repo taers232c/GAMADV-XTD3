@@ -2,12 +2,12 @@
 
 Changed the prompt for a login email address for all `gam project` commands to reflect that
 what is required is a GCP project manager email address. For most cases, this will be a G Suite super admin but in
-some cases GCP and G Suite management is separated and a GCP manager email address is required.
+some cases GCP and G Suite management is separated and a GCP project manager email address is required.
 ```
 $ gam show projects filter gam
-Enter an email address authorized to manage GCP Projects: filter gam?
+Enter your G Suite admin or GCP project manager email address authorized to manage project(s): filter gam?
 $ gam update project
-Enter an email address authorized to manage GCP Projects: gam-project-abc-123-xyx?
+Enter your G Suite admin or GCP project manager email address authorized to manage project(s): gam-project-abc-123-xyx?
 ```
 
 Added option `scalarsfirst` to `gam print users` that, when column headers are sorted, causes
