@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.11.02'
+__version__ = '5.11.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -28886,15 +28886,17 @@ def doPrintCourseParticipants():
   csvPF.writeCSVfile('Course Participants')
 
 def _batchAddItemsToCourse(croom, courseId, i, count, addParticipants, role):
-  _ADD_PART_REASON_TO_MESSAGE_MAP = {GAPI.ALREADY_EXISTS: Msg.DUPLICATE, GAPI.FAILED_PRECONDITION: Msg.NOT_ALLOWED}
+  _ADD_PART_REASON_TO_MESSAGE_MAP = {GAPI.NOT_FOUND: Msg.DOES_NOT_EXIST,
+                                     GAPI.ALREADY_EXISTS: Msg.DUPLICATE,
+                                     GAPI.FAILED_PRECONDITION: Msg.NOT_ALLOWED}
   def _callbackAddItemsToCourse(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
       entityActionPerformed([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
       http_status, reason, message = checkGAPIError(exception)
-      if reason != GAPI.QUOTA_EXCEEDED:
-        if reason in [GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR]:
+      if (reason != GAPI.QUOTA_EXCEEDED) and ((reason != GAPI.NOT_FOUND) or (ri[RI_ROLE] == Ent.COURSE_ALIAS)):
+        if reason in [GAPI.FORBIDDEN, GAPI.BACKEND_ERROR]:
           errMsg = getPhraseDNEorSNA(ri[RI_ITEM])
         else:
           errMsg = getHTTPError(_ADD_PART_REASON_TO_MESSAGE_MAP, http_status, reason, message)
@@ -28905,6 +28907,7 @@ def _batchAddItemsToCourse(croom, courseId, i, count, addParticipants, role):
         callGAPI(service, 'create',
                  throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR,
                                 GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION, GAPI.QUOTA_EXCEEDED],
+                 retry_reasons=[GAPI.NOT_FOUND], retries=10 if reason != GAPI.NOT_FOUND else 3,
                  courseId=ri[RI_ENTITY],
                  body={attribute: ri[RI_ITEM] if ri[RI_ROLE] != Ent.COURSE_ALIAS else addCourseAliasScope(ri[RI_ITEM])},
                  fields='')

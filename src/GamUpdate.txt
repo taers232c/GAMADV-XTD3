@@ -1,3 +1,9 @@
+5.11.03
+
+Added additional retries to `gam course add|sync teachers|students` when Google reports that the teacher|student
+email address is not found. In certain (not well defined) circumstances Google reports valid email addresses
+as not found.
+
 5.11.02
 
 Changed the prompt for a login email address for all `gam project` commands to reflect that
