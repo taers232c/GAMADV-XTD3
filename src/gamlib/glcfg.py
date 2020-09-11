@@ -176,6 +176,8 @@ TLS_MIN_VERSION = 'tls_min_version'
 TLS_MAX_VERSION = 'tls_max_version'
 # Time Zone
 TIMEZONE = 'timezone'
+# Clear basic filter when updating an existing sheet
+TODRIVE_CLEARFILTER = 'todrive_clearfilter'
 # Use client access for todrive
 TODRIVE_CLIENTACCESS = 'todrive_clientaccess'
 # Enable conversion to Google Sheets when uploading todrive files
@@ -268,6 +270,7 @@ Defaults = {
   TLS_MIN_VERSION: 'TLSv1_2' if hasattr(ssl.SSLContext(), "minimum_version") else '',
   TLS_MAX_VERSION: '',
   TIMEZONE: 'utc',
+  TODRIVE_CLEARFILTER: FALSE,
   TODRIVE_CLIENTACCESS: FALSE,
   TODRIVE_CONVERSION: TRUE,
   TODRIVE_LOCALCOPY: FALSE,
@@ -376,6 +379,7 @@ VAR_INFO = {
   TLS_MIN_VERSION: {VAR_TYPE: TYPE_CHOICE, VAR_ENVVAR: 'GAM_TLS_MIN_VERSION', VAR_CHOICES: TLS_CHOICE_MAP},
   TLS_MAX_VERSION: {VAR_TYPE: TYPE_CHOICE, VAR_ENVVAR: 'GAM_TLS_MAX_VERSION', VAR_CHOICES: TLS_CHOICE_MAP},
   TIMEZONE: {VAR_TYPE: TYPE_TIMEZONE},
+  TODRIVE_CLEARFILTER: {VAR_TYPE: TYPE_BOOLEAN},
   TODRIVE_CLIENTACCESS: {VAR_TYPE: TYPE_BOOLEAN},
   TODRIVE_CONVERSION: {VAR_TYPE: TYPE_BOOLEAN},
   TODRIVE_LOCALCOPY: {VAR_TYPE: TYPE_BOOLEAN},

@@ -427,6 +427,7 @@ If an item contains spaces, it should be surrounded by ".
 <Title> ::= <String>
 <ToDriveAttribute> ::=
         (tdbackupsheet (id:<Number>)|<String>)|
+        (tdclearfilter [<Boolean>])|
         (tdcopysheet (id:<Number>)|<String>)|
         (tddescription <String>)|
         (tdfileid <DriveFileID>)|

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.11.03'
+__version__ = '5.11.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5753,7 +5753,8 @@ class CSVPrintFile():
     for sheetEntity in iter(self.TDSHEET_ENTITY_MAP.values()):
       tdsheetLocation[sheetEntity] = Cmd.Location()
     self.todrive = {'user': GC.Values[GC.TODRIVE_USER], 'title': None, 'description': None,
-                    'sheetEntity': None, 'updatesheet': False, 'cellwrap': None,
+                    'sheetEntity': None, 'updatesheet': False,
+                    'cellwrap': None, 'clearfilter': GC.Values[GC.TODRIVE_CLEARFILTER],
                     'backupSheetEntity': None, 'copySheetEntity': None,
                     'locale': GC.Values[GC.TODRIVE_LOCALE], 'timeZone': GC.Values[GC.TODRIVE_TIMEZONE],
                     'timestamp': GC.Values[GC.TODRIVE_TIMESTAMP], 'daysoffset': 0, 'hoursoffset': 0,
@@ -5780,6 +5781,8 @@ class CSVPrintFile():
         self.todrive['updatesheet'] = getBoolean()
       elif myarg == 'tdcellwrap':
         self.todrive['cellwrap'] = getChoice(CELL_WRAP_MAP, mapChoice=True)
+      elif myarg == 'tdclearfilter':
+        self.todrive['clearfilter'] = getBoolean()
       elif myarg == 'tdlocale':
         self.todrive['locale'] = getLocaleCode()
       elif myarg == 'tdtimezone':
@@ -6377,6 +6380,8 @@ class CSVPrintFile():
             if self.todrive['backupSheetEntity']:
               body['requests'].append({"copyPaste": {"source": {"sheetId": self.todrive['sheetEntity']['sheetId']},
                                                      "destination": {"sheetId": self.todrive['backupSheetEntity']['sheetId']}, "pasteType": "PASTE_NORMAL"}})
+            if self.todrive['clearfilter']:
+              body['requests'].append({'clearBasicFilter': {'sheetId': self.todrive['sheetEntity']['sheetId']}})
             body['requests'].append({'updateCells': {'range': {'sheetId': self.todrive['sheetEntity']['sheetId']}, 'fields': '*'}})
             body['requests'].append({'pasteData': {'coordinate': {'sheetId': self.todrive['sheetEntity']['sheetId'], 'rowIndex': '0', 'columnIndex': '0'},
                                                    'data': csvFile.read(), 'type': 'PASTE_NORMAL', 'delimiter': self.columnDelimiter}})

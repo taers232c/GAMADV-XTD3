@@ -1,3 +1,11 @@
+5.11.04
+
+Added `todrive_clearfilter` to `gam.cfg` and `tdclearfilter` to `<ToDriveAttribute>` that cause GAM to
+clear the spreadsheet basic filter when uploading data to an existing sheet in an existing file.
+When False, the current/default behavior, the data suppressed by an existing filter is not replaced
+by the uploaded data. This might be desirable if you wanted to compare the previous and current data,
+but in general you probably want a value of True so that the uploaded data completely replaces the existing data.
+
 5.11.03
 
 Added additional retries to `gam course add|sync teachers|students` when Google reports that the teacher|student
@@ -59,7 +67,7 @@ that cause the row to be dropped if any of the filters match.
 
 5.10.00
 
-Added `multiprocess_pool_limit` to gam.cfg; it controls how GAM passes commands
+Added `multiprocess_pool_limit` to `gam.cfg`; it controls how GAM passes commands
 to the multiprocessing pool. This is a special use case for testing.
 * `-1` - Pass all commands to the multiprocessing pool immediately
 * ` 0` - Pass commands to the multiprocessing pool in batches of size `num_threads`; this the default
