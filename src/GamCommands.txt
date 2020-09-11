@@ -4529,6 +4529,11 @@ gam <UserTypeEntity> show teamdrives
         [matchname <RegularExpression>] (role|roles <TeamDriveACLRoleList>)*
         [fields <TeamDriveFieldNameList>] [formatjson]
 
+# Users - Force Signout and Turn Off 2-Step Verification
+
+gam <UserTypeEntity> signout
+gam <UserTypeEntity> turnoff2sv
+
 # Users - Spreadsheets
 
 See: https://developers.google.com/sheets/api/reference/rest/

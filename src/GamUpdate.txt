@@ -1,3 +1,18 @@
+5.11.05
+
+Added a command to sign a user out of all web and device sessions and reset their sign-in cookies.
+The user will have to sign in by authenticating again.
+```
+gam <UserTypeEntity> signout
+```
+
+Added a command to turn off 2-Step Verification for a user.
+If successful this call will turn off 2-Step Verification and also remove all registered second steps on the user account.
+This call will fail if the user is not enrolled in 2-Step Verificationin or has 2-Step Verification enforced, or is enrolled in the Advanced Protection Program.
+```
+gam <UserTypeEntity> turnoff2sv
+```
+
 5.11.04
 
 Added `todrive_clearfilter` to `gam.cfg` and `tdclearfilter` to `<ToDriveAttribute>` that cause GAM to

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.11.04'
+__version__ = '5.11.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -25981,6 +25981,33 @@ def doUnsuspendUsers():
 def doUnsuspendUser():
   suspendUnsuspendUsers(getStringReturnInList(Cmd.OB_USER_ITEM), False)
 
+def signoutTurnoff2svUsers(entityList, action):
+  cd = buildGAPIObject(API.DIRECTORY)
+  service = cd.users() if action == 'signOut' else cd.twoStepVerification()
+  checkForExtraneousArguments()
+  i, count, entityList = getEntityArgument(entityList)
+  for user in entityList:
+    i += 1
+    user = normalizeEmailAddressOrUID(user)
+    try:
+      callGAPI(service, action,
+               throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.INVALID, GAPI.DOMAIN_NOT_FOUND,
+                              GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN],
+               userKey=user)
+      entityActionPerformed([Ent.USER, user], i, count)
+    except GAPI.userNotFound:
+      entityUnknownWarning(Ent.USER, user, i, count)
+    except (GAPI.invalid, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden) as e:
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
+
+# gam <UserTypeEntity> signout
+def signoutUsers(entityList):
+  signoutTurnoff2svUsers(entityList, 'signOut')
+
+# gam <UserTypeEntity> turnoff2sv
+def turnoff2svUsers(entityList):
+  signoutTurnoff2svUsers(entityList, 'turnOff')
+
 USER_NAME_PROPERTY_PRINT_ORDER = [
   'givenName',
   'familyName',
@@ -46956,6 +46983,8 @@ USER_COMMANDS = {
   'sendas': (Act.ADD, createSendAs),
   'sendemail': (Act.SENDEMAIL, doSendEmail),
   'signature': (Act.SET, setSignature),
+  'signout': (Act.SIGNOUT, signoutUsers),
+  'turnoff2sv': (Act.TURNOFF2SV, turnoff2svUsers),
   'vacation': (Act.SET, setVacation),
   }
 

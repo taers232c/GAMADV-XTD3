@@ -85,7 +85,8 @@ class GamAction():
   SENDEMAIL = 'send'
   SET = 'set '
   SHOW = 'show'
-  SKIP = u'skip'
+  SIGNOUT = 'siou'
+  SKIP = 'skip'
   SPAM = 'spam'
   SUBMIT = 'subm'
   SUSPEND = 'susp'
@@ -93,6 +94,7 @@ class GamAction():
   TRANSFER = 'tran'
   TRANSFER_OWNERSHIP = 'trow'
   TRASH = 'tras'
+  TURNOFF2SV = 'to2s'
   UNDELETE = 'unde'
   UNHIDE = 'unhi'
   UNSUSPEND = 'unsu'
@@ -172,6 +174,7 @@ class GamAction():
     SENDEMAIL: ['Email Sent', 'Send Email'],
     SET: ['Set', 'Set'],
     SHOW: ['Shown', 'Show'],
+    SIGNOUT: ['Signed Out', 'Signout'],
     SKIP: ['Skipped', 'Skip'],
     SPAM: ['Marked as Spam', 'Mark as Spam'],
     SUBMIT: ['Submitted', 'Submit'],
@@ -180,6 +183,7 @@ class GamAction():
     TRANSFER: ['Transferred', 'Transfer'],
     TRANSFER_OWNERSHIP: ['Ownership Transferred', 'Transfer Ownership'],
     TRASH: ['Trashed', 'Trash'],
+    TURNOFF2SV: ['2-Step Verification Turned Off', 'Turn Off 2-Step Verification'],
     UNDELETE: ['Undeleted', 'Undelete'],
     UNHIDE: ['Unhidden', 'Unhide'],
     UNSUSPEND: ['Unsuspended', 'Unsuspend'],
