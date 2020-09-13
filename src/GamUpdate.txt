@@ -2,8 +2,8 @@
 
 Starting from preliminary code from Jay, added commands to manage administrative roles.
 ```
-gam create adminrole <String> privileges <PrivilegesList> [description <String>]
-gam update adminrole <RoleItem> [name <String>] [privileges <PrivilegesList>] [description <String>]
+gam create adminrole <String> privileges all|all_ou|<PrivilegesList> [description <String>]
+gam update adminrole <RoleItem> [name <String>] [privileges all|all_ou|<PrivilegesList>] [description <String>]
 gam delete adminrole <RoleItem>
 ```
 

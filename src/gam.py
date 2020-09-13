@@ -11580,11 +11580,11 @@ def _createUpdateAdminRole(updateCmd):
   except (GAPI.badRequest, GAPI.customerNotFound):
     accessErrorExit(cd)
 
-# gam create adminrole <String> privileges <PrivilegesList> [description <String>]
+# gam create adminrole <String> privileges all|all_ou|<PrivilegesList> [description <String>]
 def doCreateAdminRole(updateCmd=False):
   _createUpdateAdminRole(False)
 
-# gam update adminrole <RoleItem> [name <String>] [privileges <PrivilegesList>] [description <String>]
+# gam update adminrole <RoleItem> [name <String>] [privileges all|all_ou|<PrivilegesList>] [description <String>]
 def doUpdateAdminRole():
   _createUpdateAdminRole(True)
 

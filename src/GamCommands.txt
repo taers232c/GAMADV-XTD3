@@ -952,8 +952,8 @@ gam show privileges
 <RoleAssignmentID> ::= <String>
 <RoleItem> ::= id:<String>|uid:<string>|<String>
 
-gam create adminrole <String> privileges <PrivilegesList> [description <String>]
-gam update adminrole <RoleItem> [name <String>] [privileges <PrivilegesList>] [description <String>]
+gam create adminrole <String> privileges all|all_ou|<PrivilegesList> [description <String>]
+gam update adminrole <RoleItem> [name <String>] [privileges all|all_ou|<PrivilegesList>] [description <String>]
 gam delete adminrole <RoleItem>
 gam print adminroles|roles [todrive <ToDriveAttribute>*] [privileges]
 gam show adminroles|roles [privileges]
