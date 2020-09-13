@@ -949,11 +949,14 @@ gam <UserTypeEntity> update serviceaccount [writeurltofile]
 gam print privileges [todrive <ToDriveAttribute>*]
 gam show privileges
 
-gam print adminroles|roles [todrive <ToDriveAttribute>*] [privileges]
-gam show adminroles|roles [privileges]
-
 <RoleAssignmentID> ::= <String>
 <RoleItem> ::= id:<String>|uid:<string>|<String>
+
+gam create adminrole <String> privileges <PrivilegesList> [description <String>]
+gam update adminrole <RoleItem> [name <String>] [privileges <PrivilegesList>] [description <String>]
+gam delete adminrole <RoleItem>
+gam print adminroles|roles [todrive <ToDriveAttribute>*] [privileges]
+gam show adminroles|roles [privileges]
 
 gam create|add admin <UserItem> <RoleItem> customer|(org_unit <OrgUnitItem>)
 gam delete admin <RoleAssignmentId>
@@ -4152,7 +4155,7 @@ gam <UserTypeEntity> empty drivetrash [<TeamDriveEntity>]
 
 # Users - Deprovision
 
-gam <UserTypeEntity> deprovision|deprov [popimap]
+gam <UserTypeEntity> deprovision|deprov [popimap] [signout] [turnoff2sv]
 
 # Users - Gmail - Delegates
 

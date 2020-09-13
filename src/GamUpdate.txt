@@ -1,3 +1,15 @@
+5.11.06
+
+Starting from preliminary code from Jay, added commands to manage administrative roles.
+```
+gam create adminrole <String> privileges <PrivilegesList> [description <String>]
+gam update adminrole <RoleItem> [name <String>] [privileges <PrivilegesList>] [description <String>]
+gam delete adminrole <RoleItem>
+```
+
+Added options `signout` and `turnoff2sv` to `gam <UserTypeEntity> deprovision` to sign out a user
+and turn off their 2-Step Verification when deprovisioning.
+
 5.11.05
 
 Added a command to sign a user out of all web and device sessions and reset their sign-in cookies.

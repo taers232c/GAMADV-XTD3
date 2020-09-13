@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.11.05'
+__version__ = '5.11.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -8709,7 +8709,7 @@ def checkServiceAccount(users):
   def authorizeScopes(message):
     long_url = ('https://admin.google.com/ac/owl/domainwidedelegation'
                 f'?clientScopeToAdd={",".join(checkScopes)}'
-                f'&clientIdToAdd={service_account}')
+                f'&clientIdToAdd={service_account}&overwriteClientId=true')
     if not writeURLtoFile:
       printLine(message.format('', long_url))
     else:
@@ -11440,6 +11440,15 @@ def doPrintShowDomains():
 
 PRINT_PRIVILEGES_FIELDS = ['serviceId', 'serviceName', 'privilegeName', 'isOuScopable', 'childPrivileges']
 
+def _listPrivileges(cd):
+  fields = f'items({",".join(PRINT_PRIVILEGES_FIELDS)})'
+  try:
+    return callGAPIitems(cd.privileges(), 'list', 'items',
+                         throw_reasons=[GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN],
+                         customer=GC.Values[GC.CUSTOMER_ID], fields=fields)
+  except (GAPI.badRequest, GAPI.customerNotFound, GAPI.forbidden):
+    accessErrorExit(cd)
+
 # gam print privileges [todrive <ToDriveAttribute>*]
 # gam show privileges
 def doPrintShowPrivileges():
@@ -11462,33 +11471,137 @@ def doPrintShowPrivileges():
 
   cd = buildGAPIObject(API.DIRECTORY)
   csvPF = CSVPrintFile(PRINT_PRIVILEGES_FIELDS, 'sortall') if Act.csvFormat() else None
-  fields = f'items({",".join(PRINT_PRIVILEGES_FIELDS)})'
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     else:
       unknownArgumentExit()
-  try:
-    privileges = callGAPIitems(cd.privileges(), 'list', 'items',
-                               throw_reasons=[GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN],
-                               customer=GC.Values[GC.CUSTOMER_ID], fields=fields)
-    if not csvPF:
-      count = len(privileges)
-      performActionNumItems(count, Ent.PRIVILEGE)
-      Ind.Increment()
-      i = 0
-      for privilege in privileges:
-        i += 1
-        _showPrivilege(privilege, i, count)
-      Ind.Decrement()
-    else:
-      for privilege in privileges:
-        csvPF.WriteRowTitles(flattenJSON(privilege))
-  except (GAPI.badRequest, GAPI.customerNotFound, GAPI.forbidden):
-    accessErrorExit(cd)
+  privileges = _listPrivileges(cd)
+  if not csvPF:
+    count = len(privileges)
+    performActionNumItems(count, Ent.PRIVILEGE)
+    Ind.Increment()
+    i = 0
+    for privilege in privileges:
+      i += 1
+      _showPrivilege(privilege, i, count)
+    Ind.Decrement()
+  else:
+    for privilege in privileges:
+      csvPF.WriteRowTitles(flattenJSON(privilege))
   if csvPF:
     csvPF.writeCSVfile('Privileges')
+
+def makeRoleIdNameMap():
+  GM.Globals[GM.MAKE_ROLE_ID_NAME_MAP] = False
+  cd = buildGAPIObject(API.DIRECTORY)
+  try:
+    result = callGAPIpages(cd.roles(), 'list', 'items',
+                           throw_reasons=[GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN],
+                           customer=GC.Values[GC.CUSTOMER_ID],
+                           fields='nextPageToken,items(roleId,roleName)',
+                           maxResults=100)
+  except (GAPI.badRequest, GAPI.customerNotFound, GAPI.forbidden):
+    accessErrorExit(cd)
+  for role in result:
+    GM.Globals[GM.MAP_ROLE_ID_TO_NAME][role['roleId']] = role['roleName']
+    GM.Globals[GM.MAP_ROLE_NAME_TO_ID][role['roleName']] = role['roleId']
+
+def role_from_roleid(roleid):
+  if GM.Globals[GM.MAKE_ROLE_ID_NAME_MAP]:
+    makeRoleIdNameMap()
+  return GM.Globals[GM.MAP_ROLE_ID_TO_NAME].get(roleid, roleid)
+
+def roleid_from_role(role):
+  if GM.Globals[GM.MAKE_ROLE_ID_NAME_MAP]:
+    makeRoleIdNameMap()
+  return GM.Globals[GM.MAP_ROLE_NAME_TO_ID].get(role, None)
+
+def getRoleId():
+  role = getString(Cmd.OB_ROLE_ITEM)
+  cg = UID_PATTERN.match(role)
+  if cg:
+    roleId = cg.group(1)
+  else:
+    roleId = roleid_from_role(role)
+    if not roleId:
+      invalidChoiceExit(role, GM.Globals[GM.MAP_ROLE_NAME_TO_ID], True)
+  return (role, roleId)
+
+def _createUpdateAdminRole(updateCmd):
+  cd = buildGAPIObject(API.DIRECTORY)
+  if not updateCmd:
+    body = {'roleName': getString(Cmd.OB_STRING)}
+  else:
+    body = {}
+    _, roleId = getRoleId()
+  privileges = _listPrivileges(cd)
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'privileges':
+      privs = getString(Cmd.OB_PRIVILEGE_LIST).upper()
+      if privs == 'ALL':
+        body['rolePrivileges'] = [{'privilegeName': p['privilegeName'], 'serviceId': p['serviceId']} for p in privileges]
+      elif privs == 'ALL_OU':
+        body['rolePrivileges'] = [{'privilegeName': p['privilegeName'], 'serviceId': p['serviceId']} for p in privileges if p.get('isOuScopable')]
+      else:
+        body.setdefault('rolePrivileges', [])
+        privs = privs.split(',')
+        for priv in privs:
+          for p in privileges:
+            if priv == p['privilegeName']:
+              body['rolePrivileges'].append({'privilegeName': p['privilegeName'], 'serviceId': p['serviceId']})
+              break
+          else:
+            invalidChoiceExit(priv, [p['privilegeName'] for p in privileges], True)
+    elif myarg == 'description':
+      body['roleDescription'] = getString(Cmd.OB_STRING)
+    elif myarg == 'name':
+      body['roleName'] = getString(Cmd.OB_STRING)
+    else:
+      unknownArgumentExit()
+  if not updateCmd and not body.get('rolePrivileges'):
+    missingArgumentExit('privileges')
+  try:
+    if not updateCmd:
+      result = callGAPI(cd.roles(), 'insert',
+                        throw_reasons=[GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN]+[GAPI.DUPLICATE],
+                        customer=GC.Values[GC.CUSTOMER_ID], body=body, fields='roleId,roleName')
+    else:
+      result = callGAPI(cd.roles(), 'patch',
+                        throw_reasons=[GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN]+[GAPI.NOT_FOUND],
+                        customer=GC.Values[GC.CUSTOMER_ID], roleId=roleId, body=body, fields='roleId,roleName')
+    entityActionPerformed([Ent.ROLE, f"{result['roleName']}({result['roleId']})"])
+  except GAPI.duplicate as e:
+    entityActionFailedWarning([Ent.ROLE, f"{body['roleName']}"], str(e))
+  except (GAPI.notFound, GAPI.forbidden) as e:
+    entityActionFailedWarning([Ent.ROLE, f"{roleId}"], str(e))
+  except (GAPI.badRequest, GAPI.customerNotFound):
+    accessErrorExit(cd)
+
+# gam create adminrole <String> privileges <PrivilegesList> [description <String>]
+def doCreateAdminRole(updateCmd=False):
+  _createUpdateAdminRole(False)
+
+# gam update adminrole <RoleItem> [name <String>] [privileges <PrivilegesList>] [description <String>]
+def doUpdateAdminRole():
+  _createUpdateAdminRole(True)
+
+# gam delete adminrole <RoleItem>
+def doDeleteAdminRole():
+  cd = buildGAPIObject(API.DIRECTORY)
+  role, roleId = getRoleId()
+  checkForExtraneousArguments()
+  try:
+    callGAPI(cd.roles(), 'delete',
+             throw_reasons=[GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN]+[GAPI.NOT_FOUND],
+             customer=GC.Values[GC.CUSTOMER_ID], roleId=roleId)
+    entityActionPerformed([Ent.ROLE, f"{role}({roleId})"])
+  except (GAPI.notFound, GAPI.forbidden) as e:
+    entityActionFailedWarning([Ent.ROLE, f"{roleId}"], str(e))
+  except (GAPI.badRequest, GAPI.customerNotFound):
+    accessErrorExit(cd)
 
 PRINT_ADMIN_ROLES_FIELDS = ['roleId', 'roleName', 'roleDescription', 'isSuperAdminRole', 'isSystemRole']
 
@@ -11551,42 +11664,6 @@ def doPrintShowAdminRoles():
   if csvPF:
     csvPF.writeCSVfile('Admin Roles')
 
-def makeRoleIdNameMap():
-  GM.Globals[GM.MAKE_ROLE_ID_NAME_MAP] = False
-  cd = buildGAPIObject(API.DIRECTORY)
-  try:
-    result = callGAPIpages(cd.roles(), 'list', 'items',
-                           throw_reasons=[GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN],
-                           customer=GC.Values[GC.CUSTOMER_ID],
-                           fields='nextPageToken,items(roleId,roleName)',
-                           maxResults=100)
-  except (GAPI.badRequest, GAPI.customerNotFound, GAPI.forbidden):
-    accessErrorExit(cd)
-  for role in result:
-    GM.Globals[GM.MAP_ROLE_ID_TO_NAME][role['roleId']] = role['roleName']
-    GM.Globals[GM.MAP_ROLE_NAME_TO_ID][role['roleName']] = role['roleId']
-
-def role_from_roleid(roleid):
-  if GM.Globals[GM.MAKE_ROLE_ID_NAME_MAP]:
-    makeRoleIdNameMap()
-  return GM.Globals[GM.MAP_ROLE_ID_TO_NAME].get(roleid, roleid)
-
-def roleid_from_role(role):
-  if GM.Globals[GM.MAKE_ROLE_ID_NAME_MAP]:
-    makeRoleIdNameMap()
-  return GM.Globals[GM.MAP_ROLE_NAME_TO_ID].get(role, None)
-
-def getRoleId():
-  role = getString(Cmd.OB_ROLE_ID)
-  cg = UID_PATTERN.match(role)
-  if cg:
-    roleId = cg.group(1)
-  else:
-    roleId = roleid_from_role(role)
-    if not roleId:
-      invalidChoiceExit(roleId, GM.Globals[GM.MAP_ROLE_NAME_TO_ID], True)
-  return (role, roleId)
-
 ADMIN_SCOPE_TYPE_CHOICE_MAP = {'customer': 'CUSTOMER', 'orgunit': 'ORG_UNIT', 'org': 'ORG_UNIT', 'ou': 'ORG_UNIT'}
 
 # gam create admin <UserItem> <RoleItem> customer|(org_unit <OrgUnitItem>)
@@ -11629,9 +11706,9 @@ def doDeleteAdmin():
              throw_reasons=[GAPI.NOT_FOUND, GAPI.OPERATION_NOT_SUPPORTED, GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN],
              customer=GC.Values[GC.CUSTOMER_ID], roleAssignmentId=roleAssignmentId)
     entityActionPerformed([Ent.ROLE_ASSIGNMENT_ID, roleAssignmentId])
-  except (GAPI.notFound, GAPI.operationNotSupported) as e:
+  except (GAPI.notFound, GAPI.operationNotSupported, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.ROLE_ASSIGNMENT_ID, roleAssignmentId], str(e))
-  except (GAPI.badRequest, GAPI.customerNotFound, GAPI.forbidden):
+  except (GAPI.badRequest, GAPI.customerNotFound):
     accessErrorExit(cd)
 
 PRINT_ADMIN_FIELDS = 'nextPageToken,items(roleAssignmentId,roleId,assignedTo,scopeType,orgUnitId)'
@@ -42840,11 +42917,20 @@ def printShowTokens(users):
 def doPrintTokens():
   _printShowTokens(None, None)
 
-# gam <UserTypeEntity> deprovision|deprov [popimap]
+# gam <UserTypeEntity> deprovision|deprov [popimap] [signout] [turnoff2sv]
 def deprovisionUser(users):
   cd = buildGAPIObject(API.DIRECTORY)
-  disablePopImap = checkArgumentPresent('popimap')
-  checkForExtraneousArguments()
+  disablePopImap = signout = turnoff2sv = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'popimap':
+      disablePopImap = True
+    elif myarg == 'signout':
+      signout = True
+    elif myarg == 'turnoff2sv':
+      turnoff2sv = True
+    else:
+      unknownArgumentExit()
   if disablePopImap:
     imapBody = _imapDefaults(False)
     popBody = _popDefaults(False)
@@ -42910,6 +42996,26 @@ def deprovisionUser(users):
             entityActionFailedWarning([Ent.USER, user, Ent.ACCESS_TOKEN, clientId], str(e), j, jcount)
         Ind.Decrement()
 #
+      if turnoff2sv:
+        Act.Set(Act.TURNOFF2SV)
+        try:
+          callGAPI(cd.twoStepVerification(), 'turnOff',
+                   throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.INVALID, GAPI.DOMAIN_NOT_FOUND,
+                                  GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN],
+                   userKey=user)
+          entityActionPerformed([Ent.USER, user], i, count)
+        except GAPI.invalid as e:
+          entityActionFailedWarning([Ent.USER, user], str(e), i, count)
+#
+      if signout:
+        Act.Set(Act.SIGNOUT)
+        callGAPI(cd.users(), 'signOut',
+                 throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.INVALID, GAPI.DOMAIN_NOT_FOUND,
+                                GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN],
+                 userKey=user)
+        entityActionPerformed([Ent.USER, user], i, count)
+#
+      Act.Set(Act.DEPROVISION)
       if disablePopImap:
         _setImap(user, imapBody, i, count)
         _setPop(user, popBody, i, count)
@@ -42917,6 +43023,8 @@ def deprovisionUser(users):
       entityActionPerformed([Ent.USER, user], i, count)
     except GAPI.userNotFound:
       entityUnknownWarning(Ent.USER, user, i, count)
+    except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden) as e:
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
 
 # gam <UserTypeEntity> watch gmail [maxmessages <Integer>]
 def watchGmail(users):
@@ -46349,6 +46457,7 @@ MAIN_COMMANDS = {
 # Main commands with objects
 MAIN_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_ADMIN:	doCreateAdmin,
+  Cmd.ARG_ADMINROLE:	doCreateAdminRole,
   Cmd.ARG_ALERTFEEDBACK:	doCreateAlertFeedback,
   Cmd.ARG_ALIAS:	doCreateAliases,
   Cmd.ARG_BUILDING:	doCreateBuilding,
@@ -46392,6 +46501,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
   'delete':
     (Act.DELETE,
      {Cmd.ARG_ADMIN:		doDeleteAdmin,
+      Cmd.ARG_ADMINROLE:	doDeleteAdminRole,
       Cmd.ARG_ALIAS:		doDeleteAliases,
       Cmd.ARG_ALERT:		doDeleteOrUndeleteAlert,
       Cmd.ARG_BUILDING:		doDeleteBuilding,
@@ -46469,7 +46579,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
     ),
   'print':
     (Act.PRINT,
-     {Cmd.ARG_ADMINROLES:	doPrintShowAdminRoles,
+     {Cmd.ARG_ADMINROLE:	doPrintShowAdminRoles,
       Cmd.ARG_ADMIN:		doPrintShowAdmins,
       Cmd.ARG_ALERT:		doPrintShowAlerts,
       Cmd.ARG_ALERTFEEDBACK:	doPrintShowAlertFeedback,
@@ -46530,7 +46640,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
   'rotate': (Act.UPDATE, {Cmd.ARG_SAKEY: doProcessSvcAcctKeys}),
   'show':
     (Act.SHOW,
-     {Cmd.ARG_ADMINROLES:	doPrintShowAdminRoles,
+     {Cmd.ARG_ADMINROLE:	doPrintShowAdminRoles,
       Cmd.ARG_ADMIN:		doPrintShowAdmins,
       Cmd.ARG_ALERT:		doPrintShowAlerts,
       Cmd.ARG_ALERTFEEDBACK:	doPrintShowAlertFeedback,
@@ -46574,7 +46684,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
   'unhide': (Act.UNHIDE, {Cmd.ARG_TEAMDRIVE: doHideUnhideTeamDrive}),
   'update':
     (Act.UPDATE,
-     {Cmd.ARG_ALIAS:		doUpdateAliases,
+     {Cmd.ARG_ADMINROLE:	doUpdateAdminRole,
+      Cmd.ARG_ALIAS:		doUpdateAliases,
       Cmd.ARG_BUILDING:		doUpdateBuilding,
       Cmd.ARG_CONTACT:		doUpdateDomainContacts,
       Cmd.ARG_CONTACTPHOTO:	doUpdateDomainContactPhoto,
@@ -46622,6 +46733,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
 
 MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_ADMINS:	Cmd.ARG_ADMIN,
+  Cmd.ARG_ADMINROLES:	Cmd.ARG_ADMINROLE,
   Cmd.ARG_ALERTFEEDBACKS:	Cmd.ARG_ALERTFEEDBACK,
   Cmd.ARG_ALERTS:	Cmd.ARG_ALERT,
   Cmd.ARG_ALERTSFEEDBACK:	Cmd.ARG_ALERTFEEDBACK,
@@ -46675,7 +46787,8 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_RESELLERSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
   Cmd.ARG_RESOLDCUSTOMERS:	Cmd.ARG_RESOLDCUSTOMER,
   Cmd.ARG_RESOLDSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
-  Cmd.ARG_ROLES:	Cmd.ARG_ADMINROLES,
+  Cmd.ARG_ROLE:		Cmd.ARG_ADMINROLE,
+  Cmd.ARG_ROLES:	Cmd.ARG_ADMINROLE,
   Cmd.ARG_SAKEYS:	Cmd.ARG_SAKEY,
   Cmd.ARG_SCHEMAS:	Cmd.ARG_SCHEMA,
   Cmd.ARG_SHAREDDRIVE:	Cmd.ARG_TEAMDRIVE,
