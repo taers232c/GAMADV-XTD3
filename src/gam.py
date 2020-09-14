@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.11.06'
+__version__ = '5.12.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2781,7 +2781,7 @@ def SetGlobalVariables():
   ROW_FILTER_COMP_PATTERN = re.compile(r'^(date|time|count)\s*([<>]=?|=|!=)(.+)$', re.IGNORECASE)
   ROW_FILTER_RANGE_PATTERN = re.compile(r'^(daterange|timerange|countrange)(=|!=)(\S+)/(\S+)$', re.IGNORECASE)
   ROW_FILTER_BOOL_PATTERN = re.compile(r'^(boolean):(.+)$', re.IGNORECASE)
-  ROW_FILTER_RE_PATTERN = re.compile(r'^(regex|notregex):(.*)$', re.IGNORECASE)
+  ROW_FILTER_RE_PATTERN = re.compile(r'^(regex|regexcs|notregex|notregexcs):(.*)$', re.IGNORECASE)
 
   def _getCfgRowFilter(sectionName, itemName):
     value = GM.Globals[GM.PARSER].get(sectionName, itemName)
@@ -2819,54 +2819,63 @@ def SetGlobalVariables():
         continue
       mg = ROW_FILTER_COMP_PATTERN.match(filterStr)
       if mg:
-        if mg.group(1) in {'date', 'time'}:
-          if mg.group(1) == 'date':
+        filterType = mg.group(1).lower()
+        if filterType in {'date', 'time'}:
+          if filterType == 'date':
             valid, filterValue = getRowFilterDateOrDeltaFromNow(mg.group(3))
           else:
             valid, filterValue = getRowFilterTimeOrDeltaFromNow(mg.group(3))
           if valid:
-            rowFilters.append((columnPat, mg.group(1), mg.group(2), filterValue))
+            rowFilters.append((columnPat, filterType, mg.group(2), filterValue))
           else:
             _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: {filterValue}')
         else: #count
           if mg.group(3).isdigit():
-            rowFilters.append((columnPat, mg.group(1), mg.group(2), int(mg.group(3))))
+            rowFilters.append((columnPat, filterType, mg.group(2), int(mg.group(3))))
           else:
             _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: <Number>')
         continue
       mg = ROW_FILTER_RANGE_PATTERN.match(filterStr)
       if mg:
-        if mg.group(1) in {'daterange', 'timerange'}:
-          if mg.group(1) == 'daterange':
+        filterType = mg.group(1).lower()
+        if filterType in {'daterange', 'timerange'}:
+          if filterType == 'daterange':
             valid1, filterValue1 = getRowFilterDateOrDeltaFromNow(mg.group(3))
             valid2, filterValue2 = getRowFilterDateOrDeltaFromNow(mg.group(4))
           else:
             valid1, filterValue1 = getRowFilterTimeOrDeltaFromNow(mg.group(3))
             valid2, filterValue2 = getRowFilterTimeOrDeltaFromNow(mg.group(4))
           if valid1 and valid2:
-            rowFilters.append((columnPat, mg.group(1), mg.group(2), filterValue1, filterValue2))
+            rowFilters.append((columnPat, filterType, mg.group(2), filterValue1, filterValue2))
           else:
             _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: {filterValue1}/{filterValue2}')
         else: #countrange
           if mg.group(3).isdigit() and mg.group(4).isdigit():
-            rowFilters.append((columnPat, mg.group(1), mg.group(2), int(mg.group(3)), int(mg.group(4))))
+            rowFilters.append((columnPat, filterType, mg.group(2), int(mg.group(3)), int(mg.group(4))))
           else:
             _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: <Number>/<Number>')
         continue
       mg = ROW_FILTER_BOOL_PATTERN.match(filterStr)
       if mg:
+        filterType = mg.group(1).lower()
         filterValue = mg.group(2).lower()
         if filterValue in TRUE_VALUES:
-          rowFilters.append((columnPat, mg.group(1), True))
+          rowFilters.append((columnPat, filterType, True))
         elif filterValue in FALSE_VALUES:
-          rowFilters.append((columnPat, mg.group(1), False))
+          rowFilters.append((columnPat, filterType, False))
         else:
           _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: <Boolean>')
         continue
       mg = ROW_FILTER_RE_PATTERN.match(filterStr)
       if mg:
+        filterType = mg.group(1).lower()
         try:
-          rowFilters.append((columnPat, mg.group(1), re.compile(mg.group(2))))
+          if filterType.endswith('cs'):
+            filterType = filterType[0:-2]
+            flags = 0
+          else:
+            flags = re.IGNORECASE
+          rowFilters.append((columnPat, filterType, re.compile(mg.group(2), flags)))
         except re.error as e:
           _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.INVALID_RE}: {e}')
         continue
@@ -11529,8 +11538,11 @@ def getRoleId():
       invalidChoiceExit(role, GM.Globals[GM.MAP_ROLE_NAME_TO_ID], True)
   return (role, roleId)
 
-def _createUpdateAdminRole(updateCmd):
+# gam create adminrole <String> privileges all|all_ou|<PrivilegesList> [description <String>]
+# gam update adminrole <RoleItem> [name <String>] [privileges all|all_ou|<PrivilegesList>] [description <String>]
+def doCreateUpdateAdminRoles():
   cd = buildGAPIObject(API.DIRECTORY)
+  updateCmd = Act.Get() == Act.UPDATE
   if not updateCmd:
     body = {'roleName': getString(Cmd.OB_STRING)}
   else:
@@ -11579,14 +11591,6 @@ def _createUpdateAdminRole(updateCmd):
     entityActionFailedWarning([Ent.ROLE, f"{roleId}"], str(e))
   except (GAPI.badRequest, GAPI.customerNotFound):
     accessErrorExit(cd)
-
-# gam create adminrole <String> privileges all|all_ou|<PrivilegesList> [description <String>]
-def doCreateAdminRole(updateCmd=False):
-  _createUpdateAdminRole(False)
-
-# gam update adminrole <RoleItem> [name <String>] [privileges all|all_ou|<PrivilegesList>] [description <String>]
-def doUpdateAdminRole():
-  _createUpdateAdminRole(True)
 
 # gam delete adminrole <RoleItem>
 def doDeleteAdminRole():
@@ -12758,8 +12762,11 @@ def doShowOrgTree():
 
 ALIAS_TARGET_TYPES = ['user', 'group', 'target']
 
-def _doCreateUpdateAliases(doUpdate):
+# gam create aliases|nicknames <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
+# gam update aliases|nicknames <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
+def doCreateUpdateAliases():
   cd = buildGAPIObject(API.DIRECTORY)
+  updateCmd = Act.Get() == Act.UPDATE
   aliasList = getEntityList(Cmd.OB_EMAIL_ADDRESS_ENTITY)
   targetType = getChoice(ALIAS_TARGET_TYPES)
   targetEmails = getEntityList(Cmd.OB_GROUP_ENTITY)
@@ -12777,7 +12784,7 @@ def _doCreateUpdateAliases(doUpdate):
     if jcount > 0:
 # Only process first target
       targetEmail = normalizeEmailAddressOrUID(targetEmails[0])
-      if doUpdate:
+      if updateCmd:
         try:
           callGAPI(cd.users().aliases(), 'delete',
                    throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE,
@@ -12838,14 +12845,6 @@ def _doCreateUpdateAliases(doUpdate):
         entityActionFailedWarning([Ent.GROUP_ALIAS, aliasEmail, Ent.GROUP, targetEmail], Msg.INVALID_ALIAS, i, count)
       except (GAPI.groupNotFound, GAPI.userNotFound, GAPI.badRequest, GAPI.forbidden):
         entityUnknownWarning(Ent.ALIAS_TARGET, targetEmail, i, count)
-
-# gam create aliases|nicknames <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
-def doCreateAliases():
-  _doCreateUpdateAliases(False)
-
-# gam update aliases|nicknames <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
-def doUpdateAliases():
-  _doCreateUpdateAliases(True)
 
 # gam delete aliases|nicknames [user|group|target] <EmailAddressEntity>
 def doDeleteAliases():
@@ -22755,8 +22754,15 @@ SCHEMA_FIELDTYPE_CHOICE_MAP = {
   'string': 'STRING',
   }
 
-def _doCreateUpdateUserSchemas(updateCmd, entityList):
+# gam create schema|schemas <SchemaName> <SchemaFieldDefinition>+
+# gam update schema|schemas <SchemaEntity> <SchemaFieldDefinition>+
+def doCreateUpdateUserSchemas():
   cd = buildGAPIObject(API.DIRECTORY)
+  updateCmd = Act.Get() == Act.UPDATE
+  if not updateCmd:
+    entityList = getStringReturnInList(Cmd.OB_SCHEMA_NAME)
+  else:
+    entityList = getEntityList(Cmd.OB_SCHEMA_ENTITY)
   addBody = {'schemaName': '', 'fields': []}
   deleteFields = []
   while Cmd.ArgumentsRemaining():
@@ -22841,14 +22847,6 @@ def _doCreateUpdateUserSchemas(updateCmd, entityList):
       entityActionFailedWarning([Ent.USER_SCHEMA, schemaName], str(e), i, count)
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.USER_SCHEMA, schemaName, i, count)
-
-# gam create schema|schemas <SchemaName> <SchemaFieldDefinition>+
-def doCreateUserSchema():
-  _doCreateUpdateUserSchemas(False, getStringReturnInList(Cmd.OB_SCHEMA_NAME))
-
-# gam update schema|schemas <SchemaEntity> <SchemaFieldDefinition>+
-def doUpdateUserSchemas():
-  _doCreateUpdateUserSchemas(True, getEntityList(Cmd.OB_SCHEMA_ENTITY))
 
 # gam delete schema|schemas <SchemaEntity>
 def doDeleteUserSchemas():
@@ -26058,32 +26056,31 @@ def doUnsuspendUsers():
 def doUnsuspendUser():
   suspendUnsuspendUsers(getStringReturnInList(Cmd.OB_USER_ITEM), False)
 
-def signoutTurnoff2svUsers(entityList, action):
+# gam <UserTypeEntity> signout
+# gam <UserTypeEntity> turnoff2sv
+def signoutTurnoff2SVUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
-  service = cd.users() if action == 'signOut' else cd.twoStepVerification()
+  if Act.Get() == Act.SIGNOUT:
+    service = cd.users()
+    function = 'signOut'
+  else:
+    service = cd.twoStepVerification()
+    function = 'turnOff'
   checkForExtraneousArguments()
   i, count, entityList = getEntityArgument(entityList)
   for user in entityList:
     i += 1
     user = normalizeEmailAddressOrUID(user)
     try:
-      callGAPI(service, action,
+      callGAPI(service, function,
                throw_reasons=[GAPI.USER_NOT_FOUND, GAPI.INVALID, GAPI.DOMAIN_NOT_FOUND,
-                              GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN],
+                              GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN, GAPI.AUTH_ERROR],
                userKey=user)
       entityActionPerformed([Ent.USER, user], i, count)
     except GAPI.userNotFound:
       entityUnknownWarning(Ent.USER, user, i, count)
-    except (GAPI.invalid, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden) as e:
+    except (GAPI.invalid, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.authError) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
-
-# gam <UserTypeEntity> signout
-def signoutUsers(entityList):
-  signoutTurnoff2svUsers(entityList, 'signOut')
-
-# gam <UserTypeEntity> turnoff2sv
-def turnoff2svUsers(entityList):
-  signoutTurnoff2svUsers(entityList, 'turnOff')
 
 USER_NAME_PROPERTY_PRINT_ORDER = [
   'givenName',
@@ -45768,9 +45765,21 @@ SMTPMSA_PORTS = ['25', '465', '587']
 SMTPMSA_SECURITY_MODES = ['none', 'ssl', 'starttls']
 SMTPMSA_REQUIRED_FIELDS = ['host', 'port', 'username', 'password']
 
-def _createUpdateSendAs(users, addCmd):
+# gam <UserTypeEntity> [create|add] sendas <EmailAddress> <String>
+#	[signature|sig|htmlsig <String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)
+#	    (replace <Tag> <String>)*]
+#	[html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
+#	[smtpmsa.host <SMTPHostName> smtpmsa.port 25|465|587
+#	 smtpmsa.username <UserName> smtpmsa.password <Password>
+#	 [smtpmsa.securitymode none|ssl|starttls]]
+# gam <UserTypeEntity> update sendas <EmailAddress> [name <String>]
+#	[signature|sig|htmlsig <String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)
+#	    (replace <Tag> <String>)*]
+#	[html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
+def createUpdateSendAs(users):
+  updateCmd = Act.Get() == Act.UPDATE
   emailAddress = getEmailAddress(noUid=True)
-  if addCmd:
+  if not updateCmd:
     body = {'sendAsEmail': emailAddress, 'displayName': getString(Cmd.OB_NAME)}
   else:
     body = {}
@@ -45784,7 +45793,7 @@ def _createUpdateSendAs(users, addCmd):
       signature, _, html = getStringOrFile(myarg)
     elif myarg == 'html':
       html = getBoolean()
-    elif addCmd and myarg.startswith('smtpmsa.'):
+    elif not updateCmd and myarg.startswith('smtpmsa.'):
       if myarg == 'smtpmsa.host':
         smtpMsa['host'] = getString(Cmd.OB_SMTP_HOST_NAME)
       elif myarg == 'smtpmsa.port':
@@ -45807,7 +45816,7 @@ def _createUpdateSendAs(users, addCmd):
         missingArgumentExit(f'smtpmsa.{field}')
     body['smtpMsa'] = smtpMsa
   kwargs = {'body': body, 'fields': ''}
-  if not addCmd:
+  if updateCmd:
     kwargs['sendAsEmail'] = emailAddress
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -45818,26 +45827,12 @@ def _createUpdateSendAs(users, addCmd):
     if signature is not None and tagReplacements['subs']:
       _getTagReplacementFieldValues(user, i, count, tagReplacements)
       kwargs['body']['signature'] = _processSignature(tagReplacements, signature, html)
-    _processSendAs(user, i, count, Ent.SENDAS_ADDRESS, emailAddress, i, count, gmail, ['patch', 'create'][addCmd], False, **kwargs)
+    _processSendAs(user, i, count, Ent.SENDAS_ADDRESS, emailAddress, i, count, gmail, ['create', 'patch'][updateCmd], False, **kwargs)
 
-# gam <UserTypeEntity> [create|add] sendas <EmailAddress> <String>
-#	[signature|sig|htmlsig <String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)
-#	    (replace <Tag> <String>)*]
-#	[html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
-#	[smtpmsa.host <SMTPHostName> smtpmsa.port 25|465|587
-#	 smtpmsa.username <UserName> smtpmsa.password <Password>
-#	 [smtpmsa.securitymode none|ssl|starttls]]
-def createSendAs(users):
-  _createUpdateSendAs(users, True)
-
-# gam <UserTypeEntity> update sendas <EmailAddress> [name <String>]
-#	[signature|sig|htmlsig <String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)
-#	    (replace <Tag> <String>)*]
-#	[html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
-def updateSendAs(users):
-  _createUpdateSendAs(users, False)
-
-def _deleteInfoSendAs(users, function):
+# gam <UserTypeEntity> delete sendas <EmailAddressEntity>
+# gam <UserTypeEntity> info sendas <EmailAddressEntity> [compact|format|html]
+def deleteInfoSendAs(users):
+  function = 'delete' if Act.Get() == Act.DELETE else 'get'
   emailAddressEntity = getUserObjectEntity(Cmd.OB_EMAIL_ADDRESS_ENTITY, Ent.SENDAS_ADDRESS)
   sigReplyFormat = SIG_REPLY_HTML
   if function == 'get':
@@ -45863,14 +45858,6 @@ def _deleteInfoSendAs(users, function):
       if not _processSendAs(user, i, count, Ent.SENDAS_ADDRESS, emailAddress, j, jcount, gmail, function, sigReplyFormat, sendAsEmail=emailAddress):
         break
     Ind.Decrement()
-
-# gam <UserTypeEntity> delete sendas <EmailAddressEntity>
-def deleteSendAs(users):
-  _deleteInfoSendAs(users, 'delete')
-
-# gam <UserTypeEntity> info sendas <EmailAddressEntity> [compact|format|html]
-def infoSendAs(users):
-  _deleteInfoSendAs(users, 'get')
 
 # gam <UserTypeEntity> print sendas [compact] [todrive <ToDriveAttribute>*]
 # gam <UserTypeEntity> show sendas [compact|format|html]
@@ -46457,9 +46444,9 @@ MAIN_COMMANDS = {
 # Main commands with objects
 MAIN_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_ADMIN:	doCreateAdmin,
-  Cmd.ARG_ADMINROLE:	doCreateAdminRole,
+  Cmd.ARG_ADMINROLE:	doCreateUpdateAdminRoles,
   Cmd.ARG_ALERTFEEDBACK:	doCreateAlertFeedback,
-  Cmd.ARG_ALIAS:	doCreateAliases,
+  Cmd.ARG_ALIAS:	doCreateUpdateAliases,
   Cmd.ARG_BUILDING:	doCreateBuilding,
   Cmd.ARG_CONTACT:	doCreateDomainContact,
   Cmd.ARG_COURSE:	doCreateCourse,
@@ -46477,7 +46464,7 @@ MAIN_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_RESOLDCUSTOMER:	doCreateResoldCustomer,
   Cmd.ARG_RESOLDSUBSCRIPTION:	doCreateResoldSubscription,
   Cmd.ARG_RESOURCE:	doCreateResourceCalendar,
-  Cmd.ARG_SCHEMA:	doCreateUserSchema,
+  Cmd.ARG_SCHEMA:	doCreateUpdateUserSchemas,
   Cmd.ARG_SAKEY:	doCreateSvcAcctKeys,
   Cmd.ARG_SITE:		doCreateDomainSite,
   Cmd.ARG_SITEACL:	doProcessDomainSiteACLs,
@@ -46684,8 +46671,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
   'unhide': (Act.UNHIDE, {Cmd.ARG_TEAMDRIVE: doHideUnhideTeamDrive}),
   'update':
     (Act.UPDATE,
-     {Cmd.ARG_ADMINROLE:	doUpdateAdminRole,
-      Cmd.ARG_ALIAS:		doUpdateAliases,
+     {Cmd.ARG_ADMINROLE:	doCreateUpdateAdminRoles,
+      Cmd.ARG_ALIAS:		doCreateUpdateAliases,
       Cmd.ARG_BUILDING:		doUpdateBuilding,
       Cmd.ARG_CONTACT:		doUpdateDomainContacts,
       Cmd.ARG_CONTACTPHOTO:	doUpdateDomainContactPhoto,
@@ -46706,7 +46693,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_RESOLDSUBSCRIPTION:	doUpdateResoldSubscription,
       Cmd.ARG_RESOURCE:		doUpdateResourceCalendar,
       Cmd.ARG_RESOURCES:	doUpdateResourceCalendars,
-      Cmd.ARG_SCHEMA:		doUpdateUserSchemas,
+      Cmd.ARG_SCHEMA:		doCreateUpdateUserSchemas,
       Cmd.ARG_SAKEY:		doUpdateSvcAcctKeys,
       Cmd.ARG_SITE:		doUpdateDomainSites,
       Cmd.ARG_SITEACL:		doProcessDomainSiteACLs,
@@ -47093,11 +47080,11 @@ USER_COMMANDS = {
   'printers': (Act.PROCESS, processPrintersCommands),
   'printjobs': (Act.PROCESS, processPrintjobsCommands),
   'profile': (Act.SET, setProfile),
-  'sendas': (Act.ADD, createSendAs),
+  'sendas': (Act.ADD, createUpdateSendAs),
   'sendemail': (Act.SENDEMAIL, doSendEmail),
   'signature': (Act.SET, setSignature),
-  'signout': (Act.SIGNOUT, signoutUsers),
-  'turnoff2sv': (Act.TURNOFF2SV, turnoff2svUsers),
+  'signout': (Act.SIGNOUT, signoutTurnoff2SVUsers),
+  'turnoff2sv': (Act.TURNOFF2SV, signoutTurnoff2SVUsers),
   'vacation': (Act.SET, setVacation),
   }
 
@@ -47122,7 +47109,7 @@ USER_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_LABEL:	createLabel,
   Cmd.ARG_LICENSE:	createLicense,
   Cmd.ARG_PERMISSION:	createDriveFilePermissions,
-  Cmd.ARG_SENDAS:	createSendAs,
+  Cmd.ARG_SENDAS:	createUpdateSendAs,
   Cmd.ARG_SHEET:	createSheet,
   Cmd.ARG_SITE:		createUserSite,
   Cmd.ARG_SITEACL:	processUserSiteACLs,
@@ -47170,7 +47157,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_PERMISSION:	deletePermissions,
       Cmd.ARG_PHOTO:		deletePhoto,
       Cmd.ARG_PRINTER:		deletePrinters,
-      Cmd.ARG_SENDAS:		deleteSendAs,
+      Cmd.ARG_SENDAS:		deleteInfoSendAs,
       Cmd.ARG_SMIME:		deleteSmime,
       Cmd.ARG_SITEACL:		processUserSiteACLs,
       Cmd.ARG_TEAMDRIVE:	deleteTeamDrive,
@@ -47204,7 +47191,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_FORWARDINGADDRESS:	infoForwardingAddresses,
       Cmd.ARG_GROUPMEMBERS:	infoGroupMembers,
       Cmd.ARG_PRINTER:		infoPrinters,
-      Cmd.ARG_SENDAS:		infoSendAs,
+      Cmd.ARG_SENDAS:		deleteInfoSendAs,
       Cmd.ARG_SHEET:		infoPrintShowSheets,
       Cmd.ARG_SITE:		infoUserSites,
       Cmd.ARG_SITEACL:		processUserSiteACLs,
@@ -47347,7 +47334,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_LICENSE:		updateLicense,
       Cmd.ARG_PHOTO:		updatePhoto,
       Cmd.ARG_PRINTER:		updatePrinters,
-      Cmd.ARG_SENDAS:		updateSendAs,
+      Cmd.ARG_SENDAS:		createUpdateSendAs,
       Cmd.ARG_SERVICEACCOUNT:	checkServiceAccount,
       Cmd.ARG_SHEET:		updateSheets,
       Cmd.ARG_SHEETRANGE:	updateSheetRanges,

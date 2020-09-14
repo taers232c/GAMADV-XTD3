@@ -1,9 +1,18 @@
+5.12.00
+
+Changed `regex:<RegularExpression>` and `notregex:<RegularExpression>` processing in `csv_output_row_filter`.
+In prior versions, the `<RegularExpression>` was processed in a case sensitive manner; in many cases this is
+probably not desirable; e.g., matching file names which are case insensitive.
+
+Now, `<RegularExpression>` is processed in a case insensitive manner. **This is a change in behavior.**
+To get the prior case sensitive processing, use `regexcs:<RegularExpression>` and `notregexcs:<RegularExpression>`,
+
 5.11.06
 
 Starting from preliminary code from Jay, added commands to manage administrative roles.
 ```
-gam create adminrole <String> privileges all|all_ou|<PrivilegesList> [description <String>]
-gam update adminrole <RoleItem> [name <String>] [privileges all|all_ou|<PrivilegesList>] [description <String>]
+gam create adminrole <String> privileges <PrivilegesList> [description <String>]
+gam update adminrole <RoleItem> [name <String>] [privileges <PrivilegesList>] [description <String>]
 gam delete adminrole <RoleItem>
 ```
 

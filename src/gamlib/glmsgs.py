@@ -257,15 +257,10 @@ To authorize them, please go to the following link in your browser:
 {0}
     {1}
 
-You will be directed to the G Suite admin console Security/API controls/Domain-wide Delegation page
-In the Add a new Client ID box click AUTHORIZE
-If the box closes you're done
-If you get the message "Client ID already exists", do the following:
-Note the Client ID and then click CANCEL
-Find your Client ID in the Client ID column, move the mouse over that row and click Delete at the right end of the row
-In the Delete box that pops up, verify your Client ID and then click DELETE
-Refresh the browser page
-In the Add a new Client ID box click AUTHORIZE
+You will be directed to the G Suite admin console Security/API Controls/Domain-wide Delegation page
+The "Add a new Client ID" box will open
+Make sure that "Overwrite existing client ID" is checked
+Click AUTHORIZE
 When the box closes you're done
 After authorizing it may take some time for this test to pass so wait a few moments and then try this command again.
 '''
@@ -278,15 +273,10 @@ To authorize them (in case some scopes were unselected), please go to the follow
 {0}
     {1}
 
-You will be directed to the G Suite admin console Security/API controls/Domain-wide Delegation page
-In the Add a new Client ID box click AUTHORIZE
-If the box closes you're done
-If you get the message "Client ID already exists", do the following:
-Note the Client ID and then click CANCEL
-Find your Client ID in the Client ID column, move the mouse over that row and click Delete at the right end of the row
-In the Delete box that pops up, verify your Client ID and then click DELETE
-Refresh the browser page
-In the Add a new Client ID box click AUTHORIZE
+You will be directed to the G Suite admin console Security/API Controls/Domain-wide Delegation page
+The "Add a new Client ID" box will open
+Make sure that "Overwrite existing client ID" is checked
+Click AUTHORIZE
 When the box closes you're done
 After authorizing it may take some time for this test to pass so wait a few moments and then try this command again.
 '''
