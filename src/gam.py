@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.12.00'
+__version__ = '5.12.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3547,7 +3547,12 @@ def writeClientCredentials(creds, filename):
   if _getValueFromOAuth('iss', creds) not in expected_iss:
     systemErrorExit(OAUTH2_TXT_REQUIRED_RC, f'Wrong OAuth 2.0 credentials issuer. Got {_getValueFromOAuth("iss", creds)} expected one of {", ".join(expected_iss)}')
   request = transportCreateRequest()
-  creds_data['decoded_id_token'] = google.oauth2.id_token.verify_oauth2_token(creds.id_token, request)
+  try:
+    creds_data['decoded_id_token'] = google.oauth2.id_token.verify_oauth2_token(creds.id_token, request)
+  except ValueError as e:
+    if 'Token used too early' in str(e):
+      stderrErrorMsg(Msg.PLEASE_CORRECT_YOUR_SYSTEM_TIME)
+    systemErrorExit(SYSTEM_ERROR_RC, str(e))
   GM.Globals[GM.DECODED_ID_TOKEN] = creds_data['decoded_id_token']
   if filename != '-':
     writeFile(filename, json.dumps(creds_data, indent=2, sort_keys=True)+'\n')
@@ -3718,9 +3723,8 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail):
 def getGDataOAuthToken(gdataObj, credentials=None):
   if not credentials:
     credentials = getClientCredentials()
-  request = transportCreateRequest()
   try:
-    credentials.refresh(request)
+    credentials.refresh(transportCreateRequest())
   except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
     handleServerError(e)
   except google.auth.exceptions.RefreshError as e:
@@ -12345,7 +12349,10 @@ def _doDeleteOrgs(entityList):
       entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], Msg.HAS_CHILD_ORGS.format(Ent.Plural(Ent.ORGANIZATIONAL_UNIT)), i, count)
     except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
       entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], Msg.DOES_NOT_EXIST, i, count)
-    except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
+    except GAPI.invalidCustomerId as e:
+### Check for my_customer
+      entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CUSTOMER_ID, GC.Values[GC.CUSTOMER_ID]], str(e), i, count)
+    except (GAPI.badRequest, GAPI.loginRequired):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, orgUnitPath)
 
 # gam delete orgs|ous <OrgUnitEntity>
@@ -19451,7 +19458,7 @@ def doPrintGroupMembers():
         rolesSet.add(Ent.ROLE_OWNER)
     elif getGroupMatchPatterns(myarg, matchPatterns):
       pass
-    elif myarg in {'group', 'groupns', 'groususp'}:
+    elif myarg in {'group', 'groupns', 'groupsusp'}:
       entityList = [getEmailAddress()]
       subTitle = f'{Ent.Singular(Ent.GROUP)}={entityList[0]}'
       if myarg == 'groupns':
@@ -26350,7 +26357,7 @@ def infoUsers(entityList):
           groups = callGAPIpages(cd.groups(), 'list', 'groups',
                                  throw_reasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
                                  userKey=user['primaryEmail'], orderBy='email', fields='nextPageToken,groups(name,email)')
-        except GAPI.forbidden:
+        except (GAPI.forbidden, GAPI.domainNotFound):
 ### Print some message
           groups = []
       licenses = []
@@ -27276,12 +27283,14 @@ def checkCourseExists(croom, courseId, i=0, count=0, entityType=Ent.COURSE):
   courseId = addCourseIdScope(courseId)
   try:
     result = callGAPI(croom.courses(), 'get',
-                      throw_reasons=[GAPI.NOT_FOUND],
+                      throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
                       id=courseId, fields='id,ownerId')
     return result
   except GAPI.notFound:
     entityActionFailedWarning([entityType, removeCourseIdScope(courseId)], Msg.DOES_NOT_EXIST, i, count)
-    return None
+  except GAPI.permissionDenied as e:
+    entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
+  return None
 
 COURSE_MEMBER_ARGUMENTS = ['none', 'all', 'students', 'teachers']
 COURSE_STATE_MAPS = {
@@ -27557,7 +27566,7 @@ class CourseAttributes():
             continue
           source['parents'] = [teacherFolderId]
           result = callGAPI(drive.files(), 'copy',
-                            throw_reasons=GAPI.DRIVE_COPY_THROW_REASONS+[GAPI.BAD_REQUEST],
+                            throw_reasons=GAPI.DRIVE_COPY_THROW_REASONS,
                             fileId=fileId, body=source, fields='id', supportsAllDrives=True)
           material['driveFile']['driveFile']['id'] = result['id']
           body['materials'].append(material)
@@ -27749,7 +27758,7 @@ def _doUpdateCourses(entityList):
         entityActionPerformed([Ent.COURSE_NAME, result['name'], Ent.COURSE, result['id']], i, count)
       else:
         result = callGAPI(croom.courses(), 'get',
-                          throw_reasons=[GAPI.NOT_FOUND],
+                          throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
                           id=courseId, fields='id,name,ownerId,courseState,teacherFolder(id)')
       if courseAttributes.courseId:
         courseAttributes.CopyFromCourse(result, i, count)
@@ -28037,7 +28046,7 @@ def _doInfoCourses(entityList):
     courseId = addCourseIdScope(course)
     try:
       course = callGAPI(croom.courses(), 'get',
-                        throw_reasons=[GAPI.NOT_FOUND],
+                        throw_reasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
                         id=courseId, fields=fields)
       if courseShowProperties['ownerEmail']:
         course['ownerEmail'] = _convertCourseUserIdToEmail(croom, course['ownerId'], ownerEmails,
@@ -28098,6 +28107,8 @@ def _doInfoCourses(entityList):
       Ind.Decrement()
     except GAPI.notFound:
       entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], Msg.DOES_NOT_EXIST, i, count)
+    except GAPI.permissionDenied as e:
+      entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
     except GAPI.forbidden:
       ClientAPIAccessDeniedExit()
 
@@ -29151,7 +29162,7 @@ def _getCoursesOwnerInfo(croom, courseIds, coursesInfo, useAdminAccess):
       coursesInfo[courseId] = {}
       try:
         info = callGAPI(croom.courses(), 'get',
-                        throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                        throw_reasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
                         id=courseId, fields='name,ownerId')
         if not useAdminAccess:
           _, ocroom = buildGAPIServiceObject(API.CLASSROOM, f'uid:{info["ownerId"]}')
@@ -29161,6 +29172,8 @@ def _getCoursesOwnerInfo(croom, courseIds, coursesInfo, useAdminAccess):
           coursesInfo[courseId] = {'name': info['name'], 'croom': ocroom}
       except GAPI.notFound:
         entityDoesNotExistWarning(Ent.COURSE, courseId)
+      except GAPI.permissionDenied as e:
+        entityActionFailedWarning([Ent.COURSE, courseId], str(e))
       except GAPI.forbidden:
         ClientAPIAccessDeniedExit()
 
@@ -37123,7 +37136,7 @@ def updateDriveFile(users):
         j += 1
         try:
           result = callGAPI(drive.files(), 'copy',
-                            throw_reasons=GAPI.DRIVE_COPY_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT],
+                            throw_reasons=GAPI.DRIVE_COPY_THROW_REASONS+[GAPI.CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT],
                             fileId=fileId, enforceSingleParent=parameters[DFA_ENFORCE_SINGLE_PARENT],
                             ignoreDefaultVisibility=parameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                             keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
@@ -37641,7 +37654,7 @@ def copyDriveFile(users):
               _copyPermissions(drive, user, i, count, k, kcount, Ent.DRIVE_FILE, childId, childTitle, result['id'], result['name'],
                                statistics, STAT_FILE_PERMISSIONS_FAILED, copyMoveOptions)
           except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-                  GAPI.cannotCopyFile, GAPI.responsePreparationFailure, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded) as e:
+                  GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded) as e:
             entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], str(e), k, kcount)
             _incrStatistic(statistics, STAT_FILE_FAILED)
       Ind.Decrement()
@@ -37792,7 +37805,7 @@ def copyDriveFile(users):
             source.pop('writersCanShare', None)
           source.update(copyBody)
           result = callGAPI(drive.files(), 'copy',
-                            throw_reasons=GAPI.DRIVE_COPY_THROW_REASONS+[GAPI.BAD_REQUEST],
+                            throw_reasons=GAPI.DRIVE_COPY_THROW_REASONS,
                             fileId=fileId,
                             ignoreDefaultVisibility=copyParameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                             keepRevisionForever=copyParameters[DFA_KEEP_REVISION_FOREVER],

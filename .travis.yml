@@ -10,7 +10,7 @@ env:
     - BUILD_OPENSSL_VERSION=1.1.1g
     - MIN_OPENSSL_VERSION=1.1.1g
     - PATCHELF_VERSION=0.11
-    - PYINSTALLER_COMMIT=e9f9d79d6b23c767512156323d0a5d28c6386a57
+    - PYINSTALLER_COMMIT=ad39eb8df209d02636399ffdc44521a97886cf8c
     - DIST_UPGRADE=true
 cache:
   directories:
@@ -46,6 +46,12 @@ jobs:
       env:
         - PATCHELF_VERSION=0.9
     - os: linux
+      name: "Linux ARM64 Focal"
+      dist: focal
+      arch: arm64
+      language: shell
+      filter_secrets: false
+    - os: linux
       name: "Linux ARM64 Bionic"
       dist: bionic
       arch: arm64
@@ -80,7 +86,7 @@ jobs:
     - os: osx
       name: "MacOS 10.15"
       language: generic
-      osx_image: xcode11.5
+      osx_image: xcode11.7
     - os: windows
       name: "Windows 64-bit"
       language: shell

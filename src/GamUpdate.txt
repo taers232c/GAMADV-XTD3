@@ -1,3 +1,10 @@
+5.12.01
+
+Added code to handle the following error when an attempt is made to copy a site:
+```
+ERROR: 400: badRequest - The requested conversion is not supported.
+``
+
 5.12.00
 
 Changed `regex:<RegularExpression>` and `notregex:<RegularExpression>` processing in `csv_output_row_filter`.
