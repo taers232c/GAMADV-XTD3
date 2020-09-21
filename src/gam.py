@@ -2266,7 +2266,8 @@ def entityPerformActionSubItemModifierNumItems(entityValueList, subitemType, mod
 
 def entityPerformActionSubItemModifierNumItemsModifierNewValue(entityValueList, subitemType, modifier1, itemCount, itemType, modifier2, newValue, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.ToPerform()} {Ent.Plural(subitemType)} {modifier1} {itemCount} {Ent.Choose(itemType, itemCount)} {modifier2}', newValue],
+                                 Ent.FormatEntityValueList(entityValueList)+
+                                 [f'{Act.ToPerform()} {Ent.Plural(subitemType)} {modifier1} {itemCount} {Ent.Choose(itemType, itemCount)} {modifier2}', newValue],
                                  currentCountNL(i, count)))
 
 def entityPerformActionModifierNumItemsModifier(entityValueList, modifier1, itemCount, itemType, modifier2, i=0, count=0):
@@ -3534,6 +3535,9 @@ def _getValueFromOAuth(field, credentials=None):
     GM.Globals[GM.DECODED_ID_TOKEN] = google.oauth2.id_token.verify_oauth2_token(credentials.id_token, request)
   return GM.Globals[GM.DECODED_ID_TOKEN].get(field, 'Unknown')
 
+def _getAdminEmail():
+  return _getValueFromOAuth('email')
+
 def writeClientCredentials(creds, filename):
   creds_data = {
     'client_id': creds.client_id,
@@ -4335,7 +4339,7 @@ def buildGAPIServiceObject(api, user, i=0, count=0, displayError=True):
 
 def buildGAPICloudprintObject(user, i, count):
   if user is None:
-    return _getValueFromOAuth('email'), buildGAPIObject(API.CLOUDPRINT)
+    return _getAdminEmail(), buildGAPIObject(API.CLOUDPRINT)
   return buildGAPIServiceObject(API.CLOUDPRINT, user, i, count)
 
 def initGDataObject(gdataObj, api):
@@ -5307,7 +5311,7 @@ def getEntityToModify(defaultEntityType=None, crosAllowed=False, userAllowed=Tru
     if entityType not in Cmd.CROS_ENTITIES:
       entityClass = Cmd.ENTITY_USERS
       if entityType == Cmd.ENTITY_OAUTHUSER:
-        return (entityClass, [_getValueFromOAuth('email')])
+        return (entityClass, [_getAdminEmail()])
       entityItem = getString(Cmd.OB_USER_ENTITY, minLen=0)
     else:
       entityClass = Cmd.ENTITY_CROS
@@ -5460,7 +5464,7 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msg
     return emailAddr
 
   if msgFrom is None:
-    msgFrom = _getValueFromOAuth('email')
+    msgFrom = _getAdminEmail()
   # Force ASCII for RFC compliance
   # xmlcharref seems to work to display at least
   # some unicode in HTML body and is ignored in
@@ -5546,14 +5550,14 @@ def _addInitialField(fieldsList, initialField):
   else:
     fieldsList.append(initialField)
 
-# fieldName is command line argument
-# fieldNameMap maps fieldName to API field names
+# myarg is command line argument
+# fieldChoiceMap maps myarg to API field names
 #FIELD_CHOICES_MAP = {
 #  'foo': 'foo',
 #  'foobar': 'fooBar',
 #  }
 # fieldsList is the list of API fields
-def getFieldsList(myarg, fieldsChoiceMap, fieldsList, initialField=None):
+def getFieldsList(myarg, fieldsChoiceMap, fieldsList, initialField=None, fieldsArg='fields'):
   def addMappedFields(mappedFields):
     if isinstance(mappedFields, list):
       fieldsList.extend(mappedFields)
@@ -5564,7 +5568,7 @@ def getFieldsList(myarg, fieldsChoiceMap, fieldsList, initialField=None):
     if not fieldsList and initialField is not None:
       _addInitialField(fieldsList, initialField)
     addMappedFields(fieldsChoiceMap[myarg])
-  elif myarg == 'fields':
+  elif myarg == fieldsArg:
     if not fieldsList and initialField is not None:
       _addInitialField(fieldsList, initialField)
     for field in _getFieldsList():
@@ -5833,7 +5837,7 @@ class CSVPrintFile():
       Cmd.SetLocation(tdsheetLocation['sheetEntity']-1)
       missingArgumentExit('tdfileid and tdupdatesheet')
     if not self.todrive['user'] or GC.Values[GC.TODRIVE_CLIENTACCESS]:
-      self.todrive['user'] = _getValueFromOAuth('email')
+      self.todrive['user'] = _getAdminEmail()
     if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY] and not GC.Values[GC.TODRIVE_CLIENTACCESS]:
       user = checkUserExists(buildGAPIObject(API.DIRECTORY), self.todrive['user'])
       if not user:
@@ -8094,10 +8098,12 @@ def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo,
     if content['error'] == 'invalid_grant':
       return True
     if content['error_description'] == 'The OAuth client was not found.':
-      sys.stderr.write(f'Ooops!!\n\n{client_id}\n\nIs not a valid client ID. Please make sure you are following the directions exactly and that there are no extra spaces in your client ID.\n')
+      sys.stderr.write(f'\n\n{client_id}\n\nIs not a valid client ID. '\
+                         'Please make sure you are following the directions exactly and that there are no extra spaces in your client ID.\n')
       return False
     if content['error_description'] == 'Unauthorized':
-      sys.stderr.write(f'Ooops!!\n\n{client_secret}\n\nIs not a valid client secret. Please make sure you are following the directions exactly and that there are no extra spaces in your client secret.\n')
+      sys.stderr.write(f'\n\n{client_secret}\n\nIs not a valid client secret. '\
+                         'Please make sure you are following the directions exactly and that there are no extra spaces in your client secret.\n')
       return False
     sys.stderr.write(f'Unknown error: {content}\n')
     return False
@@ -9379,7 +9385,7 @@ def doReportUsageParameters():
     kwargs = {}
   else: # 'user'
     service = rep.userUsageReport()
-    kwargs = {'userKey': _getValueFromOAuth('email')}
+    kwargs = {'userKey': _getAdminEmail()}
   customerId = GC.Values[GC.CUSTOMER_ID]
   if customerId == GC.MY_CUSTOMER:
     customerId = None
@@ -13267,7 +13273,7 @@ def doWatchExportRequest():
         for i in range(int(results['numberOfFiles'])):
           msg_txt += f'  Url{i}: {results["fileUrl"+str(i)]}\n'
       msg_subj = f'Export #{results["requestId"]} for {results["userEmailAddress"]} status is {results["status"]}'
-      send_email(msg_subj, msg_txt, _getValueFromOAuth('email'))
+      send_email(msg_subj, msg_txt, _getAdminEmail())
       break
     printKeyValueList(['Status still PENDING, will check again in 5 minutes...'])
     time.sleep(300)
@@ -16211,7 +16217,9 @@ def infoCrOSDevices(entityList):
     Ind.Decrement()
 
 # gam info cros|croses <CrOSEntity> [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
-#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
+#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+#	[downloadfile latest|<Time>] [targetfolder <FilePath>]
+#	[formatjson]
 def doInfoCrOSDevices():
   infoCrOSDevices(getCrOSDeviceEntity())
 
@@ -16992,7 +17000,7 @@ def _getMobileFieldsArguments(myarg, parameters):
   elif myarg in PROJECTION_CHOICE_MAP:
     parameters['projection'] = PROJECTION_CHOICE_MAP[myarg]
     parameters['fieldsList'] = []
-  elif getFieldsList(myarg, MOBILE_FIELDS_CHOICE_MAP, parameters['fieldsList'], 'resourceId'):
+  elif getFieldsList(myarg, MOBILE_FIELDS_CHOICE_MAP, parameters['fieldsList'], initialField='resourceId'):
     pass
   else:
     return False
@@ -19944,7 +19952,7 @@ def doDeleteOrUndeleteAlert():
   else:
     action = 'undelete'
     kwargs = {'body': {}}
-  user, ac = buildGAPIServiceObject(API.ALERTCENTER, _getValueFromOAuth('email'))
+  user, ac = buildGAPIServiceObject(API.ALERTCENTER, _getAdminEmail())
   if not ac:
     return
   try:
@@ -19982,7 +19990,7 @@ def doInfoAlert():
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     FJQC.GetFormatJSONQuoteChar(myarg, False)
-  user, ac = buildGAPIServiceObject(API.ALERTCENTER, _getValueFromOAuth('email'))
+  user, ac = buildGAPIServiceObject(API.ALERTCENTER, _getAdminEmail())
   if not ac:
     return
   try:
@@ -20021,7 +20029,7 @@ def doPrintShowAlerts():
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if csvPF and not FJQC.formatJSON:
     csvPF.SetSortTitles(['alertId', 'createTime', 'startTime', 'endTime', 'customerId', 'type', 'source', 'deleted'])
-  user, ac = buildGAPIServiceObject(API.ALERTCENTER, _getValueFromOAuth('email'))
+  user, ac = buildGAPIServiceObject(API.ALERTCENTER, _getAdminEmail())
   if not ac:
     return
   try:
@@ -20064,7 +20072,7 @@ ALERT_TYPE_MAP = {
 
 # gam create alertfeedback <AlertID> not_useful|somewhat_useful|very_useful
 def doCreateAlertFeedback():
-  user, ac = buildGAPIServiceObject(API.ALERTCENTER, _getValueFromOAuth('email'))
+  user, ac = buildGAPIServiceObject(API.ALERTCENTER, _getAdminEmail())
   if not ac:
     return
   alertId = getString(Cmd.OB_ALERT_ID)
@@ -20122,7 +20130,7 @@ def doPrintShowAlertFeedback():
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if csvPF and not FJQC.formatJSON:
     csvPF.SetSortTitles(['feedbackId', 'createTime', 'alertId', 'customerId', 'type', 'email'])
-  user, ac = buildGAPIServiceObject(API.ALERTCENTER, _getValueFromOAuth('email'))
+  user, ac = buildGAPIServiceObject(API.ALERTCENTER, _getAdminEmail())
   if not ac:
     return
   try:
@@ -20446,7 +20454,7 @@ def doPrintShowBuildings():
       delimiter = getCharacter()
     elif myarg == 'allfields':
       fieldsList = []
-    elif getFieldsList(myarg, BUILDINGS_FIELDS_CHOICE_MAP, fieldsList, 'buildingId'):
+    elif getFieldsList(myarg, BUILDINGS_FIELDS_CHOICE_MAP, fieldsList, initialField='buildingId'):
       pass
     else:
       unknownArgumentExit()
@@ -21278,8 +21286,8 @@ def _printShowCalendarACLs(cal, user, entityType, calId, i, count, csvPF, FJQC):
           csvPF.WriteRowNoFilter({'resourceId': user, 'resourceEmail': calId,
                                   'JSON': json.dumps(cleanJSON(rule), ensure_ascii=False, sort_keys=False)})
 
-def _getCalendarPrintShowACLOptions(entityType):
-  csvPF = CSVPrintFile(['primaryEmail', 'calendarId'] if entityType == Ent.USER else ['calendarId'] if entityType == Ent.CALENDAR else ['resourceId', 'resourceEmail'], 'sortall') if Act.csvFormat() else None
+def _getCalendarPrintShowACLOptions(entityType, titles):
+  csvPF = CSVPrintFile(titles, 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -21293,7 +21301,7 @@ def _getCalendarPrintShowACLOptions(entityType):
 # gam calendars <CalendarEntity> show acls [formatjson]
 # gam calendar <CalendarEntity> showacl [formatjson]
 def doCalendarsPrintShowACLs(calIds):
-  csvPF, FJQC = _getCalendarPrintShowACLOptions(Ent.CALENDAR)
+  csvPF, FJQC = _getCalendarPrintShowACLOptions(Ent.CALENDAR, ['calendarId'])
   count = len(calIds)
   i = 0
   for calId in calIds:
@@ -22726,7 +22734,7 @@ def doResourceInfoCalendarACLs(entityList):
 # gam resources <ResourceEntity> show calendaracls [formatjson]
 def doResourcePrintShowCalendarACLs(entityList):
   cal = buildGAPIObject(API.CALENDAR)
-  csvPF, FJQC = _getCalendarPrintShowACLOptions(Ent.RESOURCE_CALENDAR)
+  csvPF, FJQC = _getCalendarPrintShowACLOptions(Ent.RESOURCE_CALENDAR, ['resourceId', 'resourceEmail'])
   i = 0
   count = len(entityList)
   for resourceId in entityList:
@@ -23239,7 +23247,7 @@ def doInfoVaultExport():
       exportId, exportName, exportNameId = convertExportNameToID(v, exportName, matterId, matterNameId)
     elif myarg == 'shownames':
       cd = buildGAPIObject(API.DIRECTORY)
-    elif getFieldsList(myarg, VAULT_EXPORT_FIELDS_CHOICE_MAP, fieldsList, ['id', 'name']):
+    elif getFieldsList(myarg, VAULT_EXPORT_FIELDS_CHOICE_MAP, fieldsList, initialField=['id', 'name']):
       pass
     else:
       unknownArgumentExit()
@@ -23283,7 +23291,7 @@ def doPrintShowVaultExports():
           invalidChoiceExit(state, list(VAULT_EXPORT_STATUS_MAP), True)
     elif myarg == 'shownames':
       cd = buildGAPIObject(API.DIRECTORY)
-    elif getFieldsList(myarg, VAULT_EXPORT_FIELDS_CHOICE_MAP, fieldsList, ['id', 'name']):
+    elif getFieldsList(myarg, VAULT_EXPORT_FIELDS_CHOICE_MAP, fieldsList, initialField=['id', 'name']):
       pass
     else:
       unknownArgumentExit()
@@ -23843,7 +23851,7 @@ def doInfoVaultHold():
       holdId, holdName, holdNameId = convertHoldNameToID(v, holdName, matterId, matterNameId)
     elif myarg == 'shownames':
       cd = buildGAPIObject(API.DIRECTORY)
-    elif getFieldsList(myarg, VAULT_HOLD_FIELDS_CHOICE_MAP, fieldsList, ['holdId', 'name']):
+    elif getFieldsList(myarg, VAULT_HOLD_FIELDS_CHOICE_MAP, fieldsList, initialField=['holdId', 'name']):
       pass
     else:
       unknownArgumentExit()
@@ -23877,7 +23885,7 @@ def doPrintShowVaultHolds():
       matters = shlexSplitList(getString(Cmd.OB_MATTER_ITEM_LIST))
     elif myarg == 'shownames':
       cd = buildGAPIObject(API.DIRECTORY)
-    elif getFieldsList(myarg, VAULT_HOLD_FIELDS_CHOICE_MAP, fieldsList, ['holdId', 'name']):
+    elif getFieldsList(myarg, VAULT_HOLD_FIELDS_CHOICE_MAP, fieldsList, initialField=['holdId', 'name']):
       pass
     else:
       unknownArgumentExit()
@@ -24158,7 +24166,7 @@ def doInfoVaultMatter():
     myarg = getArgument()
     if myarg in PROJECTION_CHOICE_MAP:
       view = PROJECTION_CHOICE_MAP[myarg]
-    elif getFieldsList(myarg, VAULT_MATTER_FIELDS_CHOICE_MAP, fieldsList, ['matterId', 'name']):
+    elif getFieldsList(myarg, VAULT_MATTER_FIELDS_CHOICE_MAP, fieldsList, initialField=['matterId', 'name']):
       pass
     else:
       unknownArgumentExit()
@@ -24214,7 +24222,7 @@ def doPrintShowVaultMatters():
           invalidChoiceExit(state, list(VAULT_MATTER_STATE_MAP), True)
     elif myarg in PROJECTION_CHOICE_MAP:
       view = PROJECTION_CHOICE_MAP[myarg]
-    elif getFieldsList(myarg, VAULT_MATTER_FIELDS_CHOICE_MAP, fieldsList, ['matterId', 'name']):
+    elif getFieldsList(myarg, VAULT_MATTER_FIELDS_CHOICE_MAP, fieldsList, initialField=['matterId', 'name']):
       pass
     else:
       unknownArgumentExit()
@@ -26652,7 +26660,7 @@ def doInfoUser():
   if Cmd.ArgumentsRemaining():
     infoUsers(getStringReturnInList(Cmd.OB_USER_ITEM))
   else:
-    infoUsers([_getValueFromOAuth('email')])
+    infoUsers([_getAdminEmail()])
 
 USERS_ORDERBY_CHOICE_MAP = {
   'familyname': 'familyName',
@@ -26798,7 +26806,7 @@ def doPrintUsers(entityList=None):
       sortHeaders = getBoolean()
     elif myarg == 'scalarsfirst':
       scalarsFirst = getBoolean()
-    elif csvPF.GetFieldsListTitles(myarg, USER_FIELDS_CHOICE_MAP, fieldsList, 'primaryEmail'):
+    elif csvPF.GetFieldsListTitles(myarg, USER_FIELDS_CHOICE_MAP, fieldsList, initialField='primaryEmail'):
       pass
     elif myarg == 'groups':
       getGroupFeed = True
@@ -27574,7 +27582,8 @@ class CourseAttributes():
           source = callGAPI(drive.files(), 'get',
                             throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
                             fileId=fileId,
-                            fields='name,appProperties,capabilities,contentHints,copyRequiresWriterPermission,description,mimeType,modifiedTime,properties,starred,driveId,viewedByMeTime,writersCanShare',
+                            fields='name,appProperties,capabilities,contentHints,copyRequiresWriterPermission,'\
+                              'description,mimeType,modifiedTime,properties,starred,driveId,viewedByMeTime,writersCanShare',
                             supportsAllDrives=True)
           if not source.pop('capabilities')['canCopy']:
             _copyMaterialsError(fileId, Msg.NOT_COPYABLE)
@@ -28458,7 +28467,7 @@ def doPrintCourseAnnouncements():
       OBY.GetChoice()
     elif myarg in {'showcreatoremails', 'creatoremail'}:
       showCreatorEmail = True
-    elif getFieldsList(myarg, COURSE_ANNOUNCEMENTS_FIELDS_CHOICE_MAP, fieldsList, 'id'):
+    elif getFieldsList(myarg, COURSE_ANNOUNCEMENTS_FIELDS_CHOICE_MAP, fieldsList, initialField='id'):
       pass
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
@@ -28713,7 +28722,7 @@ def doPrintCourseWork():
       showCreatorEmail = True
     elif myarg == 'showtopicnames':
       showTopicNames = True
-    elif getFieldsList(myarg, COURSE_WORK_FIELDS_CHOICE_MAP, fieldsList, 'id'):
+    elif getFieldsList(myarg, COURSE_WORK_FIELDS_CHOICE_MAP, fieldsList, initialField='id'):
       pass
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
@@ -28871,7 +28880,7 @@ def doPrintCourseSubmissions():
       late = 'NOT_LATE_ONLY'
     elif myarg == 'showuserprofile':
       showUserProfile = True
-    elif getFieldsList(myarg, COURSE_SUBMISSION_FIELDS_CHOICE_MAP, fieldsList, 'id'):
+    elif getFieldsList(myarg, COURSE_SUBMISSION_FIELDS_CHOICE_MAP, fieldsList, initialField='id'):
       pass
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
@@ -32068,7 +32077,7 @@ def infoCalendarACLs(users):
 # gam <UserTypeEntity> show calendaracls <UserCalendarEntity> [formatjson]
 def printShowCalendarACLs(users):
   calendarEntity = getUserCalendarEntity(default='all')
-  csvPF, FJQC = _getCalendarPrintShowACLOptions(Ent.USER)
+  csvPF, FJQC = _getCalendarPrintShowACLOptions(Ent.USER, ['primaryEmail', 'calendarId'])
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -33996,7 +34005,7 @@ def showTeamDriveThemes(users):
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
 
 def doShowTeamDriveThemes():
-  showTeamDriveThemes([_getValueFromOAuth('email')])
+  showTeamDriveThemes([_getAdminEmail()])
 
 def initFilePathInfo():
   return {'ids': {}, 'allPaths': {}, 'localPaths': None}
@@ -34470,7 +34479,7 @@ class DriveFileFields():
   def TeamDriveName(self, driveId):
     if driveId not in self.teamDriveNames:
       if not self.drive:
-        _, self.drive = buildGAPIServiceObject(API.DRIVE3, _getValueFromOAuth('email'))
+        _, self.drive = buildGAPIServiceObject(API.DRIVE3, _getAdminEmail())
         if not self.drive:
           self.teamDriveNames[driveId] = TEAM_DRIVE
           return TEAM_DRIVE
@@ -34973,7 +34982,7 @@ def printShowFileRevisions(users):
       showTitles = True
       if csvPF:
         csvPF.AddTitles(fileNameTitle)
-    elif getFieldsList(myarg, FILEREVISIONS_FIELDS_CHOICE_MAP, fieldsList, 'id'):
+    elif getFieldsList(myarg, FILEREVISIONS_FIELDS_CHOICE_MAP, fieldsList, initialField='id'):
       pass
     else:
       unknownArgumentExit()
@@ -37601,7 +37610,8 @@ def copyDriveFile(users):
                                    throw_reasons=GAPI.DRIVE_USER_THROW_REASONS,
                                    retry_reasons=[GAPI.UNKNOWN_ERROR],
                                    q=WITH_PARENTS.format(folderId),
-                                   fields='nextPageToken,files(id,name,parents,appProperties,capabilities,contentHints,copyRequiresWriterPermission,description,folderColorRgb,mimeType,modifiedTime,properties,starred,driveId,trashed,viewedByMeTime,writersCanShare)',
+                                   fields='nextPageToken,files(id,name,parents,appProperties,capabilities,contentHints,copyRequiresWriterPermission,'\
+                                     'description,folderColorRgb,mimeType,modifiedTime,properties,starred,driveId,trashed,viewedByMeTime,writersCanShare)',
                                    orderBy='folder desc,name,modifiedTime desc',
                                    pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **sourceSearchArgs)
     kcount = len(sourceChildren)
@@ -37725,7 +37735,8 @@ def copyDriveFile(users):
         source = callGAPI(drive.files(), 'get',
                           throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
                           fileId=fileId,
-                          fields='id,name,parents,appProperties,capabilities,contentHints,copyRequiresWriterPermission,description,mimeType,modifiedTime,properties,starred,driveId,trashed,viewedByMeTime,writersCanShare',
+                          fields='id,name,parents,appProperties,capabilities,contentHints,copyRequiresWriterPermission,'\
+                            'description,mimeType,modifiedTime,properties,starred,driveId,trashed,viewedByMeTime,writersCanShare',
                           supportsAllDrives=True)
         sourceFilename = source['name']
         copyMoveOptions['sourceDriveId'] = source.get('driveId')
@@ -37966,7 +37977,8 @@ def moveDriveFile(users):
                                    retry_reasons=[GAPI.UNKNOWN_ERROR],
                                    q=WITH_PARENTS.format(folderId),
                                    orderBy='folder desc,name,modifiedTime desc',
-                                   fields='nextPageToken,files(id,name,parents,appProperties,capabilities,contentHints,copyRequiresWriterPermission,description,folderColorRgb,mimeType,modifiedTime,properties,starred,driveId,trashed,viewedByMeTime,writersCanShare)',
+                                   fields='nextPageToken,files(id,name,parents,appProperties,capabilities,contentHints,copyRequiresWriterPermission,'\
+                                     'description,folderColorRgb,mimeType,modifiedTime,properties,starred,driveId,trashed,viewedByMeTime,writersCanShare)',
                                    pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **sourceSearchArgs)
     kcount = len(sourceChildren)
     if kcount > 0:
@@ -38086,7 +38098,8 @@ def moveDriveFile(users):
         source = callGAPI(drive.files(), 'get',
                           throw_reasons=GAPI.DRIVE_GET_THROW_REASONS,
                           fileId=fileId,
-                          fields='id,name,parents,appProperties,capabilities,contentHints,copyRequiresWriterPermission,description,mimeType,modifiedTime,properties,starred,driveId,trashed,viewedByMeTime,writersCanShare',
+                          fields='id,name,parents,appProperties,capabilities,contentHints,copyRequiresWriterPermission,'\
+                            'description,mimeType,modifiedTime,properties,starred,driveId,trashed,viewedByMeTime,writersCanShare',
                           supportsAllDrives=True)
         sourceFilename = source['name']
         copyMoveOptions['sourceDriveId'] = source.get('driveId')
@@ -38472,6 +38485,8 @@ def getDriveFile(users):
                   entityActionPerformedMessage(entityValueList, f'{status.progress():>7.2%}', j, jcount)
             else:
               fh = open(filename, 'w', encoding=UTF8, newline='') if not targetStdout else sys.stdout
+              if GC.Values[GC.DEBUG_LEVEL] > 0:
+                sys.stderr.write(f'Debug: spreadsheetUrl: {spreadsheetUrl}\n')
               status, content = drive._http.request(uri=spreadsheetUrl, method='GET')
               if status['status'] == '200':
                 fh.write(content.decode(UTF8_SIG))
@@ -40105,7 +40120,7 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
     Ind.Decrement()
 
 def doCreateDriveFileACL():
-  createDriveFileACL([_getValueFromOAuth('email')], True)
+  createDriveFileACL([_getAdminEmail()], True)
 
 # gam <UserTypeEntity> update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [adminaccess|asadmin]
 #	(role <DriveFileACLRole>) [expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails]
@@ -40185,7 +40200,7 @@ def updateDriveFileACLs(users, useDomainAdminAccess=False):
     Ind.Decrement()
 
 def doUpdateDriveFileACLs():
-  updateDriveFileACLs([_getValueFromOAuth('email')], True)
+  updateDriveFileACLs([_getAdminEmail()], True)
 
 def getJSONPermissionSkips(myarg, skips):
   if myarg in {'jsonskiprole', 'jsonskiproles'}:
@@ -40400,7 +40415,7 @@ def createDriveFilePermissions(users, useDomainAdminAccess=False):
     Ind.Decrement()
 
 def doCreatePermissions():
-  createDriveFilePermissions([_getValueFromOAuth('email')], True)
+  createDriveFilePermissions([_getAdminEmail()], True)
 
 # gam <UserTypeEntity> delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [adminaccess|asadmin] [showtitles]
 def deleteDriveFileACLs(users, useDomainAdminAccess=False):
@@ -40453,7 +40468,7 @@ def deleteDriveFileACLs(users, useDomainAdminAccess=False):
     Ind.Decrement()
 
 def doDeleteDriveFileACLs():
-  deleteDriveFileACLs([_getValueFromOAuth('email')], True)
+  deleteDriveFileACLs([_getAdminEmail()], True)
 
 # gam <UserTypeEntity> delete permissions <DriveFileEntity> <DriveFilePermissionIDEntity> [adminaccess|asadmin]
 #	<PermissionMatch>* [<PermissionMatchAction>]
@@ -40575,7 +40590,7 @@ def deletePermissions(users, useDomainAdminAccess=False):
     Ind.Decrement()
 
 def doDeletePermissions():
-  deletePermissions([_getValueFromOAuth('email')], True)
+  deletePermissions([_getAdminEmail()], True)
 
 # gam <UserTypeEntity> info drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail>
 #	[showtitles] [formatjson] [adminaccess|asadmin]
@@ -40636,7 +40651,7 @@ def infoDriveFileACLs(users, useDomainAdminAccess=False):
     Ind.Decrement()
 
 def doInfoDriveFileACLs():
-  infoDriveFileACLs([_getValueFromOAuth('email')], True)
+  infoDriveFileACLs([_getAdminEmail()], True)
 
 DRIVEFILE_BASIC_PERMISSION_FIELDS = [
   'id', 'emailAddress', 'domain', 'role', 'type',
@@ -40775,7 +40790,7 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
     csvPF.writeCSVfile('Drive File ACLs')
 
 def doPrintShowDriveFileACLs():
-  printShowDriveFileACLs([_getValueFromOAuth('email')], True)
+  printShowDriveFileACLs([_getAdminEmail()], True)
 
 # gam print ownership <DriveFileID>|(drivefilename <DriveFileName>) [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
 # gam show ownership <DriveFileID>|(drivefilename <DriveFileName>) [formatjson]
@@ -41060,7 +41075,7 @@ def createTeamDrive(users, useDomainAdminAccess=False):
 #	[hide <Boolean>]
 #	[csv [todrive <ToDriveAttribute>*]] [returnidonly]
 def doCreateTeamDrive():
-  createTeamDrive([_getValueFromOAuth('email')], True)
+  createTeamDrive([_getAdminEmail()], True)
 
 # gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [adminaccess|asadmin] [name <Name>]
 #	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
@@ -41099,7 +41114,7 @@ def updateTeamDrive(users, useDomainAdminAccess=False):
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
 
 def doUpdateTeamDrive():
-  updateTeamDrive([_getValueFromOAuth('email')], True)
+  updateTeamDrive([_getAdminEmail()], True)
 
 # gam <UserTypeEntity> delete teamdrive <TeamDriveEntity>
 def deleteTeamDrive(users):
@@ -41126,7 +41141,7 @@ def deleteTeamDrive(users):
 
 # gam delete teamdrive <TeamDriveEntity>
 def doDeleteTeamDrive():
-  deleteTeamDrive([_getValueFromOAuth('email')])
+  deleteTeamDrive([_getAdminEmail()])
 
 # gam <UserTypeEntity> hide/unhide teamdrive <TeamDriveEntity>
 def hideUnhideTeamDrive(users):
@@ -41152,7 +41167,7 @@ def hideUnhideTeamDrive(users):
 
 # gam hide/unhide teamdrive <TeamDriveEntity>
 def doHideUnhideTeamDrive():
-  hideUnhideTeamDrive([_getValueFromOAuth('email')])
+  hideUnhideTeamDrive([_getAdminEmail()])
 
 TEAMDRIVE_FIELDS_CHOICE_MAP = {
   'backgroundimagefile': 'backgroundImageFile',
@@ -41207,7 +41222,7 @@ def infoTeamDrive(users, useDomainAdminAccess=False):
     myarg = getArgument()
     if myarg in ADMIN_ACCESS_OPTIONS:
       useDomainAdminAccess = True
-    elif getFieldsList(myarg, TEAMDRIVE_FIELDS_CHOICE_MAP, fieldsList, ['id', 'name']):
+    elif getFieldsList(myarg, TEAMDRIVE_FIELDS_CHOICE_MAP, fieldsList, initialField=['id', 'name']):
       pass
     else:
       FJQC.GetFormatJSON(myarg)
@@ -41231,7 +41246,7 @@ def infoTeamDrive(users, useDomainAdminAccess=False):
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
 
 def doInfoTeamDrive():
-  infoTeamDrive([_getValueFromOAuth('email')], True)
+  infoTeamDrive([_getAdminEmail()], True)
 
 TEAMDRIVE_ACL_ROLES_MAP = {
   'commenter': 'commenter',
@@ -41295,7 +41310,7 @@ def printShowTeamDrives(users, useDomainAdminAccess=False):
       pass
     elif myarg in ADMIN_ACCESS_OPTIONS:
       useDomainAdminAccess = True
-    elif getFieldsList(myarg, TEAMDRIVE_FIELDS_CHOICE_MAP, fieldsList, ['id', 'name']):
+    elif getFieldsList(myarg, TEAMDRIVE_FIELDS_CHOICE_MAP, fieldsList, initialField=['id', 'name']):
       pass
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
@@ -41386,7 +41401,7 @@ def printShowTeamDrives(users, useDomainAdminAccess=False):
     csvPF.writeCSVfile('SharedDrives')
 
 def doPrintShowTeamDrives():
-  printShowTeamDrives([_getValueFromOAuth('email')], True)
+  printShowTeamDrives([_getAdminEmail()], True)
 
 TEAMDRIVE_INDEXED_TITLES = ['permissions']
 
@@ -41570,7 +41585,7 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
     csvPF.writeCSVfile('SharedDrive ACLs')
 
 def doPrintShowTeamDriveACLs():
-  printShowTeamDriveACLs([_getValueFromOAuth('email')], True)
+  printShowTeamDriveACLs([_getAdminEmail()], True)
 
 # gam <UserTypeEntity> delete alias|aliases
 def deleteUsersAliases(users):
@@ -42340,7 +42355,8 @@ def createSheet(users):
         writeStdout(f'{spreadsheetId}\n')
         continue
       if FJQC.formatJSON:
-        printLine('{'+f'"User": "{user}", "spreadsheetId": "{spreadsheetId}", "parentId": "{parentId}", "parentAssignment": "{parentMsg}", "JSON": {json.dumps(result, ensure_ascii=False, sort_keys=False)}'+'}')
+        printLine('{'+f'"User": "{user}", "spreadsheetId": "{spreadsheetId}", "parentId": "{parentId}", '\
+                    '"parentAssignment": "{parentMsg}", "JSON": {json.dumps(result, ensure_ascii=False, sort_keys=False)}'+'}')
         continue
       Ind.Increment()
       for field in ['spreadsheetId', 'spreadsheetUrl']:
@@ -42447,7 +42463,7 @@ def infoPrintShowSheets(users):
       ranges.extend(convertEntityToList(getString(Cmd.OB_SPREADSHEET_RANGE_LIST), shlexSplit=True))
     elif myarg == 'includegriddata':
       includeGridData = getBoolean()
-    elif getFieldsList(myarg, SPREADSHEET_FIELDS_CHOICE_MAP, fieldsList, 'spreadsheetId'):
+    elif getFieldsList(myarg, SPREADSHEET_FIELDS_CHOICE_MAP, fieldsList, initialField='spreadsheetId'):
       pass
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
@@ -44229,7 +44245,7 @@ def _draftImportInsertMessage(users, operation):
       msgHeaders['To'] = '#user#'
       substituteForUserInHeaders = True
     if 'From' not in msgHeaders:
-      msgHeaders['From'] = _getValueFromOAuth('email')
+      msgHeaders['From'] = _getAdminEmail()
     kwargs = {'internalDateSource': internalDateSource, 'deleted': deleted}
     if operation == 'import':
       function = 'import_'
