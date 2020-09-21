@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.12.01'
+__version__ = '5.12.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -230,6 +230,7 @@ GOOGLE_NAMESERVERS = ['8.8.8.8', '8.8.4.4']
 NEVER_DATE = '1970-01-01'
 NEVER_DATETIME = '1970-01-01 00:00'
 NEVER_TIME = '1970-01-01T00:00:00.000Z'
+NEVER_TIME_NOMS = '1970-01-01T00:00:00Z'
 NEVER_END_DATE = '1969-12-31'
 NEVER_START_DATE = NEVER_DATE
 PROJECTION_CHOICE_MAP = {'basic': 'BASIC', 'full': 'FULL'}
@@ -295,6 +296,7 @@ SCOPES_NOT_AUTHORIZED_RC = 10
 DATA_ERROR_RC = 11
 API_ACCESS_DENIED_RC = 12
 CONFIG_ERROR_RC = 13
+SYSTEM_ERROR_RC = 14
 NO_SCOPES_FOR_API_RC = 15
 CLIENT_SECRETS_JSON_REQUIRED_RC = 16
 OAUTH2SERVICE_JSON_REQUIRED_RC = 16
@@ -1922,7 +1924,7 @@ def formatFileSize(fileSize):
   return f'{fileSize//ONE_GIGA_10_BYTES}gb'
 
 def formatLocalTime(dateTimeStr):
-  if dateTimeStr == NEVER_TIME:
+  if dateTimeStr in {NEVER_TIME, NEVER_TIME_NOMS}:
     return GC.Values[GC.NEVER_TIME]
   if not GM.Globals[GM.CONVERT_TO_LOCAL_TIME] or not dateTimeStr.endswith('Z'):
     return dateTimeStr
@@ -25281,6 +25283,15 @@ ORGANIZATION_ARGUMENT_TO_FIELD_MAP = {
   'title': 'title',
   }
 
+# (MultiValue, IgnoreEmpty)
+SCHEMA_VALUE_PROCESS_MAP = {
+  'multivalued': (True, False),
+  'multivalue': (True, False),
+  'value': (True, False),
+  'multinonempty': (True, True),
+  'scalarnonempty': (False, True)
+  }
+
 USER_JSON_SKIP_FIELDS = ['agreedToTerms', 'aliases', 'creationTime', 'customerId', 'deletionTime', 'groups', 'id',
                          'isAdmin', 'isDelegatedAdmin', 'isEnforcedIn2Sv', 'isEnrolledIn2Sv', 'isMailboxSetup',
                          'lastLoginTime', 'licenses', 'primaryEmail', 'thumbnailPhotoEtag', 'thumbnailPhotoUrl']
@@ -25705,8 +25716,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       up = 'customSchemas'
       body.setdefault(up, {})
       body[up].setdefault(schemaName, {})
-      multivalue = getChoice(['multivalued', 'multivalue', 'value', 'multinonempty'], defaultChoice=None)
-      if multivalue is not None:
+      multivalue, ignoreEmpty = getChoice(SCHEMA_VALUE_PROCESS_MAP, defaultChoice=(False, False), mapChoice=True)
+      if multivalue:
         body[up][schemaName].setdefault(fieldName, [])
         typeKeywords = UProp.PROPERTIES[up][UProp.TYPE_KEYWORDS]
         clTypeKeyword = typeKeywords[UProp.PTKW_CL_TYPE_KEYWORD]
@@ -25714,10 +25725,14 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         if checkArgumentPresent(clTypeKeyword):
           getKeywordAttribute(typeKeywords, schemaValue)
         schemaValue['value'] = getString(Cmd.OB_STRING, minLen=0)
-        if schemaValue['value'] or multivalue != 'multinonempty':
+        if schemaValue['value'] or not ignoreEmpty:
           body[up][schemaName][fieldName].append(schemaValue)
       else:
-        body[up][schemaName][fieldName] = getString(Cmd.OB_STRING, minLen=0)
+        schemaValue = getString(Cmd.OB_STRING, minLen=0)
+        if schemaValue or not ignoreEmpty:
+          body[up][schemaName][fieldName] = schemaValue
+        elif updateCmd:
+          body[up][schemaName][fieldName] = None
     else:
       unknownArgumentExit()
   if not PwdOpts.makeUniqueRandomPassword:

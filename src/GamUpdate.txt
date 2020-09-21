@@ -1,3 +1,23 @@
+5.12.02
+
+Updated processing of scalar schema fields in `gam create|update user` to allow suppression
+of empty values; these fields show up as `Undefined` in the Contacts directory.
+It is already the case that empty values can be suppressed for multivalued fields.
+```
+<UserBasicAttribute> ::=
+        (<SchemaName>.<FieldName> [scalarnonempty|
+                                   [multivalued|multivalue|value|multinonempty [type home|other|work|(custom <String>)]]]
+                                  <String>)
+```
+An empty scalar field will be defined.
+```
+gam update user user@domain.com SchemaName.FieldName ""
+```
+An empty scalar field will be suppressed.
+```
+gam update user user@domain.com SchemaName.FieldName scalarnonempty ""
+```
+
 5.12.01
 
 Added code to handle the following error when an attempt is made to copy a site:

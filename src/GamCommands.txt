@@ -3114,8 +3114,9 @@ gam show vaultholds|holds [matters <MatterItemList>]
         (recoveryemail <EmailAddress>)|
         (recoveryphone <string>)|
         (suspended <Boolean>)|
-        (<SchemaName>.<FieldName> [multivalued|multivalue|value|multinonempty
-                                  [type home|other|work|(custom <String>)]] <String>)
+        (<SchemaName>.<FieldName> [scalarnonempty|
+                                   [multivalued|multivalue|value|multinonempty [type home|other|work|(custom <String>)]]]
+                                  <String>)
 
 <UserMultiAttribute> ::=
         (address type home|other|work|(custom <String>)
