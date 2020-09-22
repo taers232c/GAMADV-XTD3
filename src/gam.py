@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.12.02'
+__version__ = '5.12.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -432,6 +432,12 @@ def dehtml(text):
   parser.feed(str(text))
   parser.close()
   return parser.text()
+
+def currentCount(i, count):
+  return f' ({i}/{count})' if (count > GC.Values[GC.SHOW_COUNTS_MIN]) else ''
+
+def currentCountNL(i, count):
+  return f' ({i}/{count})\n' if (count > GC.Values[GC.SHOW_COUNTS_MIN]) else '\n'
 
 # Format a key value list
 #   key, value	-> "key: value" + ", " if not last item
@@ -1955,12 +1961,6 @@ def formatMilliSeconds(millis):
   minutes, seconds = divmod(seconds, 60)
   hours, minutes = divmod(minutes, 60)
   return f'{hours:02d}:{minutes:02d}:{seconds:02d}'
-
-def currentCount(i, count):
-  return f' ({i}/{count})' if (count > GC.Values[GC.SHOW_COUNTS_MIN]) else ''
-
-def currentCountNL(i, count):
-  return f' ({i}/{count})\n' if (count > GC.Values[GC.SHOW_COUNTS_MIN]) else '\n'
 
 def getPhraseDNEorSNA(email):
   return Msg.DOES_NOT_EXIST if getEmailAddressDomain(email) == GC.Values[GC.DOMAIN] else Msg.SERVICE_NOT_APPLICABLE
@@ -26699,10 +26699,10 @@ USERS_INDEXED_TITLES = ['addresses', 'aliases', 'nonEditableAliases', 'emails', 
 #	[formatjson [quotechar <Character>]] [countonly]
 #	[issuspended <Boolean>]
 def doPrintUsers(entityList=None):
-  def _printUser(userEntity):
+  def _printUser(userEntity, i, count):
     if isSuspended is None or isSuspended == userEntity.get('suspended', isSuspended):
-      if emailParts and ('primaryEmail' in userEntity):
-        userEmail = userEntity['primaryEmail']
+      userEmail = userEntity['primaryEmail']
+      if printOptions['emailParts']:
         if userEmail.find('@') != -1:
           userEntity['primaryEmailLocal'], userEntity['primaryEmailDomain'] = splitEmailAddress(userEmail)
       for location in userEntity.get('locations', []):
@@ -26712,11 +26712,39 @@ def doPrintUsers(entityList=None):
           phoneNumber = phone.get('value', '')
           if phoneNumber.startswith('+'):
             phone['value'] = "'"+phoneNumber
+      if printOptions['getGroupFeed']:
+        printGettingAllEntityItemsForWhom(Ent.GROUP_MEMBERSHIP, userEmail, i, count)
+        try:
+          groups = callGAPIpages(cd.groups(), 'list', 'groups',
+                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
+                                 userKey=userEmail, orderBy='email', fields='nextPageToken,groups(email)')
+          numGroups = len(groups)
+          if not printOptions['groupsInColumns']:
+            userEntity['GroupsCount'] = numGroups
+            userEntity['Groups'] = delimiter.join([groupname['email'] for groupname in groups])
+          else:
+            if numGroups > printOptions['maxGroups']:
+              printOptions['maxGroups'] = numGroups
+            userEntity['Groups'] = numGroups
+            for j, group in enumerate(groups):
+              userEntity[f'Groups.{j}'] = group['email']
+        except (GAPI.invalidMember, GAPI.invalidInput):
+          badRequestWarning(Ent.GROUP, Ent.MEMBER, userEmail)
+        except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
+          accessErrorExit(cd)
+      if licenses:
+        u_licenses = licenses.get(userEmail.lower())
+        if u_licenses:
+          userEntity['LicensesCount'] = len(u_licenses)
+          userEntity['Licenses'] = delimiter.join(u_licenses)
+          userEntity['LicensesDisplay'] = delimiter.join([SKU.skuIdToDisplayName(skuId) for skuId in u_licenses])
+        else:
+          userEntity['LicensesCount'] = 0
       row = flattenJSON(userEntity, skipObjects=USER_SKIP_OBJECTS, timeObjects=USER_TIME_OBJECTS)
       if not FJQC.formatJSON:
         csvPF.WriteRowTitles(row)
       elif csvPF.CheckRowTitles(row):
-        csvPF.WriteRowNoFilter({'primaryEmail': userEntity['primaryEmail'],
+        csvPF.WriteRowNoFilter({'primaryEmail': userEmail,
                                 'JSON': json.dumps(cleanJSON(userEntity, skipObjects=USER_SKIP_OBJECTS, timeObjects=USER_TIME_OBJECTS),
                                                    ensure_ascii=False, sort_keys=True)})
 
@@ -26733,7 +26761,7 @@ def doPrintUsers(entityList=None):
   def _callbackPrintUser(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
-      _printUser(response)
+      _printUser(response, int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
       http_status, reason, message = checkGAPIError(exception)
       if reason in GAPI.USER_GET_THROW_REASONS:
@@ -26748,8 +26776,18 @@ def doPrintUsers(entityList=None):
   fieldsList = ['primaryEmail']
   csvPF = CSVPrintFile(fieldsList, indexedTitles=USERS_INDEXED_TITLES)
   FJQC = FormatJSONQuoteChar(csvPF)
-  countOnly = sortHeaders = getGroupFeed = getLicenseFeed = groupsInColumns = emailParts = scalarsFirst = False
+  printOptions = {
+    'countOnly': False,
+    'emailParts': False,
+    'getGroupFeed': False,
+    'getLicenseFeed': False,
+    'groupsInColumns': False,
+    'scalarsFirst': False,
+    'sortHeaders': False,
+    'maxGroups': 0
+    }
   customer = GC.Values[GC.CUSTOMER_ID]
+  licenses = {}
   domain = None
   queries = [None]
   projection = 'basic'
@@ -26796,45 +26834,56 @@ def doPrintUsers(entityList=None):
       delimiter = getCharacter()
     elif myarg in PROJECTION_CHOICE_MAP:
       projection = myarg
-      projectionSet = sortHeaders = True
+      projectionSet = printOptions['sortHeaders'] = True
       fieldsList = []
     elif myarg == 'allfields':
       projection = 'basic'
-      projectionSet = sortHeaders = True
+      projectionSet = printOptions['sortHeaders'] = True
       fieldsList = []
     elif myarg == 'sortheaders':
-      sortHeaders = getBoolean()
+      printOptions['sortHeaders'] = getBoolean()
     elif myarg == 'scalarsfirst':
-      scalarsFirst = getBoolean()
+      printOptions['scalarsFirst'] = getBoolean()
     elif csvPF.GetFieldsListTitles(myarg, USER_FIELDS_CHOICE_MAP, fieldsList, initialField='primaryEmail'):
       pass
     elif myarg == 'groups':
-      getGroupFeed = True
-      groupsInColumns = False
+      printOptions['getGroupFeed'] = True
+      printOptions['groupsInColumns'] = False
     elif myarg == 'groupsincolumns':
-      getGroupFeed = True
-      groupsInColumns = True
+      printOptions['getGroupFeed'] = True
+      printOptions['groupsInColumns'] = True
     elif myarg in {'license', 'licenses', 'licence', 'licences'}:
-      getLicenseFeed = True
+      printOptions['getLicenseFeed'] = True
     elif myarg in {'emailpart', 'emailparts', 'username'}:
-      emailParts = True
+      printOptions['emailParts'] = True
     elif myarg in {'countonly', 'countsonly'}:
-      countOnly = True
+      printOptions['countOnly'] = True
     elif myarg == 'quoteplusphonenumbers':
       quotePlusPhoneNumbers = True
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, False)
   _, _, entityList = getEntityArgument(entityList)
-  if countOnly:
+  if printOptions['countOnly']:
     fieldsList = ['primaryEmail']
     domainCounts = {}
     if not FJQC.formatJSON:
       csvPF.SetTitles(['domain', 'count'])
     else:
       csvPF.SetJSONTitles(['JSON'])
-  elif FJQC.formatJSON:
-    sortHeaders = False
-    csvPF.SetJSONTitles(['primaryEmail', 'JSON'])
+  else:
+    if FJQC.formatJSON:
+      printOptions['sortHeaders'] = False
+      csvPF.SetJSONTitles(['primaryEmail', 'JSON'])
+    else:
+      if printOptions['getGroupFeed']:
+        if not printOptions['groupsInColumns']:
+          csvPF.AddTitles(['GroupsCount', 'Groups'])
+        else:
+          csvPF.AddTitles(['Groups'])
+      if printOptions['getLicenseFeed']:
+        csvPF.AddTitles(['LicensesCount', 'Licenses', 'LicensesDisplay'])
+    if printOptions['getLicenseFeed']:
+      licenses = doPrintLicenses(returnFields=['userId', 'skuId'])
   if entityList is None:
     sortRows = False
     if orgUnitPath is not None:
@@ -26887,17 +26936,17 @@ def doPrintUsers(entityList=None):
         pageToken, totalItems = _processGAPIpagesResult(feed, 'users', None, totalItems, page_message, 'primaryEmail', Ent.USER)
         if feed:
           if orgUnitPath is None:
-            if not countOnly:
+            if not printOptions['countOnly']:
               for user in feed.get('users', []):
-                _printUser(user)
+                _printUser(user, 0, 0)
             else:
               for user in feed.get('users', []):
                 _updateDomainCounts(user['primaryEmail'])
           else:
-            if not countOnly:
+            if not printOptions['countOnly']:
               for user in feed.get('users', []):
                 if orgUnitPathLower == user.get('orgUnitPath', '').lower():
-                  _printUser(user)
+                  _printUser(user, 0, 0)
             else:
               for user in feed.get('users', []):
                 if orgUnitPathLower == user.get('orgUnitPath', '').lower():
@@ -26941,7 +26990,7 @@ def doPrintUsers(entityList=None):
             user = callGAPI(cd.users(), 'get',
                             throw_reasons=GAPI.USER_GET_THROW_REASONS+[GAPI.INVALID_INPUT, GAPI.RESOURCE_NOT_FOUND],
                             userKey=userEmail, projection=projection, customFieldMask=customFieldMask, viewType=viewType, fields=fields)
-            _printUser(user)
+            _printUser(user, j, jcount)
           except (GAPI.userNotFound, GAPI.resourceNotFound):
             entityUnknownWarning(Ent.USER, userEmail, j, jcount)
           except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError) as e:
@@ -26952,73 +27001,38 @@ def doPrintUsers(entityList=None):
             else:
               entityActionFailedWarning([Ent.USER, userEmail], str(e), j, jcount)
 # The only field specified was primaryEmail, just list the users/count the domains
-    elif not countOnly:
+    elif not printOptions['countOnly']:
       for userEntity in entityList:
-        _printUser({'primaryEmail': normalizeEmailAddressOrUID(userEntity)})
+        _printUser({'primaryEmail': normalizeEmailAddressOrUID(userEntity)}, 0, 0)
     else:
       for userEntity in entityList:
         _updateDomainCounts(normalizeEmailAddressOrUID(userEntity))
-  if not countOnly:
-    if sortHeaders:
+  if not printOptions['countOnly']:
+    if printOptions['sortHeaders']:
       sortTitles = ['primaryEmail']
-      if scalarsFirst:
+      if printOptions['scalarsFirst']:
         sortTitles.extend([f'name.{field}' for field in USER_NAME_PROPERTY_PRINT_ORDER]+sorted(USER_LANGUAGE_PROPERTY_PRINT_ORDER+USER_SCALAR_PROPERTY_PRINT_ORDER))
       csvPF.SetSortTitles(sortTitles)
+      csvPF.SortTitles()
+      csvPF.SetSortTitles([])
     if sortRows and orderBy:
       orderBy = 'primaryEmail' if orderBy == 'email' else f'name.{orderBy}'
       csvPF.SortRows(orderBy, reverse=sortOrder == 'DESCENDING')
-    if getGroupFeed:
-      if not groupsInColumns:
-        csvPF.AddTitles(['GroupsCount', 'Groups'])
+    if printOptions['getGroupFeed']:
+      if not printOptions['groupsInColumns']:
+        csvPF.MoveTitlesToEnd(['GroupsCount', 'Groups'])
       else:
-        csvPF.AddTitles(['Groups'])
-      maxGroups = 0
-      i = 0
-      count = len(csvPF.rows)
-      for user in csvPF.rows:
-        i += 1
-        userEmail = user['primaryEmail']
-        printGettingAllEntityItemsForWhom(Ent.GROUP_MEMBERSHIP, userEmail, i, count)
-        try:
-          groups = callGAPIpages(cd.groups(), 'list', 'groups',
-                                 throw_reasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
-                                 userKey=userEmail, orderBy='email', fields='nextPageToken,groups(email)')
-          numGroups = len(groups)
-          if not groupsInColumns:
-            user['GroupsCount'] = numGroups
-            user['Groups'] = delimiter.join([groupname['email'] for groupname in groups])
-          else:
-            if numGroups > maxGroups:
-              maxGroups = numGroups
-            user['Groups'] = numGroups
-            for j, group in enumerate(groups):
-              user[f'Groups.{j}'] = group['email']
-        except (GAPI.invalidMember, GAPI.invalidInput):
-          badRequestWarning(Ent.GROUP, Ent.MEMBER, userEmail)
-        except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
-          accessErrorExit(cd)
-      if groupsInColumns:
-        csvPF.AddTitles([f'Groups.{j}' for j in range(maxGroups)])
-    if getLicenseFeed:
-      csvPF.AddTitles(['LicensesCount', 'Licenses', 'LicensesDisplay'])
-      licenses = doPrintLicenses(returnFields=['userId', 'skuId'])
-      if licenses:
-        for user in csvPF.rows:
-          u_licenses = licenses.get(user['primaryEmail'].lower())
-          if u_licenses:
-            user['LicensesCount'] = len(u_licenses)
-            user['Licenses'] = delimiter.join(u_licenses)
-            user['LicensesDisplay'] = delimiter.join([SKU.skuIdToDisplayName(skuId) for skuId in u_licenses])
-          else:
-            user['LicensesCount'] = 0
+        csvPF.MoveTitlesToEnd(['Groups']+[f'Groups.{j}' for j in range(printOptions['maxGroups'])])
+    if printOptions['getLicenseFeed']:
+      csvPF.MoveTitlesToEnd(['LicensesCount', 'Licenses', 'LicensesDisplay'])
   elif not FJQC.formatJSON:
     for domain, count in sorted(iter(domainCounts.items())):
       csvPF.WriteRowNoFilter({'domain': domain, 'count': count})
   else:
     csvPF.WriteRowNoFilter({'JSON': json.dumps(cleanJSON(domainCounts), ensure_ascii=False, sort_keys=True)})
-  if countOnly:
+  if printOptions['countOnly']:
     csvPF.SetIndexedTitles([])
-  csvPF.writeCSVfile('Users' if not countOnly else 'User Domain Counts')
+  csvPF.writeCSVfile('Users' if not printOptions['countOnly'] else 'User Domain Counts')
 
 # gam <UserTypeEntity> print users
 def doPrintUserEntity(entityList):

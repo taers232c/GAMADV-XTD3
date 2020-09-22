@@ -1,3 +1,9 @@
+5.12.03
+
+Fixed bug in `gam print users ... groups|groupsincolumns` that caused no rows to be output
+when `config csv_output_row_filter "GroupCounts:count>n` or `config csv_output_row_filter "^Groups$:count>n`
+was specified.
+
 5.12.02
 
 Updated processing of scalar schema fields in `gam create|update user` to allow suppression
