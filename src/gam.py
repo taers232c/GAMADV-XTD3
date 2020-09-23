@@ -4636,6 +4636,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
   entityError = {'entityType': None, 'doesNotExist': 0, 'invalid': 0}
   entityList = []
   entitySet = set()
+  entityLocation = Cmd.Location()
   if entityType in {Cmd.ENTITY_USER, Cmd.ENTITY_USERS}:
     if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
       buildGAPIObject(API.DIRECTORY)
@@ -4981,8 +4982,10 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
   else:
     systemErrorExit(UNKNOWN_ERROR_RC, 'getUsersToModify coding error')
   if entityError['doesNotExist'] > 0:
+    Cmd.SetLocation(entityLocation)
     badEntitiesExit(entityError, 'doesNotExist')
   if entityError['invalid'] > 0:
+    Cmd.SetLocation(entityLocation)
     badEntitiesExit(entityError, 'invalid')
   return entityList
 
