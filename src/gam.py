@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.12.03'
+__version__ = '5.12.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -31358,21 +31358,45 @@ def deleteASP(users):
         break
     Ind.Decrement()
 
+# gam <UserTypeEntity> print asps|applicationspecificpasswords [todrive <ToDriveAttribute>*]
 # gam <UserTypeEntity> show asps|applicationspecificpasswords
-def showASPs(users):
+def printShowASPs(users):
   cd = buildGAPIObject(API.DIRECTORY)
-  checkForExtraneousArguments()
+  csvPF = CSVPrintFile(['User']) if Act.csvFormat() else None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    else:
+      unknownArgumentExit()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     user = normalizeEmailAddressOrUID(user)
+    if csvPF:
+      printGettingEntityItemForWhom(Ent.APPLICATION_SPECIFIC_PASSWORD, user, i, count)
     try:
       asps = callGAPIitems(cd.asps(), 'list', 'items',
                            throw_reasons=[GAPI.USER_NOT_FOUND],
                            userKey=user)
-      _showASPs(user, asps, i, count)
+      if not csvPF:
+        _showASPs(user, asps, i, count)
+      else:
+        for asp in asps:
+          asp.pop('userKey', None)
+          if asp['creationTime'] == '0':
+            asp['creationTime'] = 'Unknown'
+          else:
+            asp['creationTime'] = formatLocalTimestamp(asp['creationTime'])
+          if asp['lastTimeUsed'] == '0':
+            asp['lastTimeUsed'] = GC.NEVER
+          else:
+            asp['lastTimeUsed'] = formatLocalTimestamp(asp['lastTimeUsed'])
+        csvPF.WriteRowTitles(flattenJSON({'asps': asps}, flattened={'User': user}))
     except GAPI.userNotFound:
       entityUnknownWarning(Ent.USER, user, i, count)
+  if csvPF:
+    csvPF.writeCSVfile('Application Specific Passwords')
 
 def _showBackupCodes(user, codes, i, count):
   Act.Set(Act.SHOW)
@@ -31448,6 +31472,8 @@ def printShowBackupCodes(users):
   for user in users:
     i += 1
     user = normalizeEmailAddressOrUID(user)
+    if csvPF:
+      printGettingEntityItemForWhom(Ent.BACKUP_VERIFICATION_CODES, user, i, count)
     try:
       codes = callGAPIitems(cd.verificationCodes(), 'list', 'items',
                             throw_reasons=[GAPI.USER_NOT_FOUND],
@@ -31455,7 +31481,6 @@ def printShowBackupCodes(users):
       if not csvPF:
         _showBackupCodes(user, codes, i, count)
       else:
-        printGettingEntityItemForWhom(Ent.BACKUP_VERIFICATION_CODES, user, i, count)
         csvPF.WriteRow({'User': user,
                         'verificationCodes': delimiter.join([code['verificationCode'] for code in codes if 'verificationCode' in code])})
     except GAPI.userNotFound:
@@ -47263,7 +47288,8 @@ USER_COMMANDS_WITH_OBJECTS = {
   'purge': (Act.PURGE, {Cmd.ARG_DRIVEFILE: purgeDriveFile, Cmd.ARG_EVENT: purgeCalendarEvents}),
   'print':
     (Act.PRINT,
-     {Cmd.ARG_BACKUPCODE:	printShowBackupCodes,
+     {Cmd.ARG_ASP:		printShowASPs,
+      Cmd.ARG_BACKUPCODE:	printShowBackupCodes,
       Cmd.ARG_CALENDAR:		printShowCalendars,
       Cmd.ARG_CALENDARACL:	printShowCalendarACLs,
       Cmd.ARG_CALSETTINGS:	printShowCalSettings,
@@ -47314,7 +47340,7 @@ USER_COMMANDS_WITH_OBJECTS = {
   'remove': (Act.REMOVE, {Cmd.ARG_CALENDAR: removeCalendars}),
   'show':
     (Act.SHOW,
-     {Cmd.ARG_ASP:		showASPs,
+     {Cmd.ARG_ASP:		printShowASPs,
       Cmd.ARG_BACKUPCODE:	printShowBackupCodes,
       Cmd.ARG_CALENDAR:		printShowCalendars,
       Cmd.ARG_CALENDARACL:	printShowCalendarACLs,
