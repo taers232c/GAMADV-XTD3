@@ -1,3 +1,8 @@
+5.12.05
+
+Added option `oneitemperrow` to `gam <UserTypeEntity> print asps` to have each of a
+user's Application Specific Passwords displayed on a separate row.
+
 5.12.04
 
 Added command to display Application Specific Passwords in CSV format.

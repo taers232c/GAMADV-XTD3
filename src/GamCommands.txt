@@ -3314,6 +3314,7 @@ gam <UserTypeEntity> delete alias|aliases
 gam <UserTypeEntity> delete asps|applicationspecificpasswords all|<ASPIDList>
 gam <UserTypeEntity> show asps|applicationspecificpasswords
 gam <UserTypeEntity> print asps|applicationspecificpasswords [todrive <ToDriveAttribute>*]
+        [oneitemperrow]
 
 gam <UserTypeEntity> update backupcodes|verificationcodes
 gam <UserTypeEntity> delete backupcodes|verificationcodes
