@@ -18997,14 +18997,14 @@ def doPrintGroups():
         csvPF.AddField(field, GROUP_FIELDS_CHOICE_MAP, groupFieldsLists['cd'])
     elif myarg == 'ciallfields':
       sortHeaders = True
-      groupFieldsLists['ci']= []
+      groupFieldsLists['ci'] = []
       for field in CIGROUP_FIELDS_CHOICE_MAP:
         addFieldToFieldsList(field, CIGROUP_FIELDS_CHOICE_MAP, groupFieldsLists['ci'])
     elif myarg == 'settings':
       getSettings = sortHeaders = True
     elif myarg == 'allfields':
       getSettings = sortHeaders = True
-      groupFieldsLists['cd']= []
+      groupFieldsLists['cd'] = []
       groupFieldsLists['gs'] = []
       for field in GROUP_FIELDS_CHOICE_MAP:
         csvPF.AddField(field, GROUP_FIELDS_CHOICE_MAP, groupFieldsLists['cd'])
