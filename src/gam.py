@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.12.05'
+__version__ = '5.12.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -613,18 +613,6 @@ def usageErrorExit(message, extraneous=False):
   writeStderr(Msg.HELP_SYNTAX.format(os.path.join(GM.Globals[GM.GAM_PATH], FN_GAMCOMMANDS_TXT)))
   writeStderr(Msg.HELP_WIKI.format(GAM_WIKI))
   sys.exit(USAGE_ERROR_RC)
-
-def badEntitiesExit(entityError, errorType):
-  Cmd.Backup()
-  writeStderr(Cmd.CommandLineWithBadArgumentMarked(False))
-  count = entityError[errorType]
-  if errorType == 'doesNotExist':
-    stderrErrorMsg(Msg.BAD_ENTITIES_IN_SOURCE.format(count, Ent.Choose(entityError['entityType'], count),
-                                                     Msg.DO_NOT_EXIST if count != 1 else Msg.DOES_NOT_EXIST))
-    sys.exit(ENTITY_DOES_NOT_EXIST_RC)
-  else:
-    stderrErrorMsg(Msg.BAD_ENTITIES_IN_SOURCE.format(count, Msg.INVALID, Ent.Choose(entityError['entityType'], count)))
-    sys.exit(INVALID_ENTITY_RC)
 
 def csvFieldErrorExit(fieldName, fieldNames, backupArg=False, checkForCharset=False):
   if backupArg:
@@ -2237,6 +2225,12 @@ def performActionNumItems(itemCount, itemType, i=0, count=0):
 def performActionModifierNumItems(modifier, itemCount, itemType, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
                                  [f'{Act.ToPerform()} {modifier} {itemCount} {Ent.Choose(itemType, itemCount)}'],
+                                 currentCountNL(i, count)))
+
+def actionNotPerformedNumItemsWarning(itemCount, itemType, errMessage, i=0, count=0):
+  setSysExitRC(ACTION_NOT_PERFORMED_RC)
+  writeStderr(formatKeyValueList(Ind.Spaces(),
+                                 [Ent.Choose(itemType, itemCount), itemCount, Act.NotPerformed(), errMessage],
                                  currentCountNL(i, count)))
 
 def entityPerformAction(entityValueList, i=0, count=0):
@@ -4598,11 +4592,11 @@ def _checkMemberRoleIsSuspended(member, validRoles, isSuspended):
 def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, groupMemberType=Ent.TYPE_USER, noListConversion=False):
   def _incrEntityDoesNotExist(entityType):
     entityError['entityType'] = entityType
-    entityError['doesNotExist'] += 1
+    entityError[ENTITY_ERROR_DNE] += 1
 
   def _showInvalidEntity(entityType, entityName):
     entityError['entityType'] = entityType
-    entityError['invalid'] += 1
+    entityError[ENTITY_ERROR_INVALID] += 1
     printErrorMessage(INVALID_ENTITY_RC, formatKeyValueList('', [Ent.Singular(entityType), entityName, Msg.INVALID], ''))
 
   def _addGroupUsersToUsers(group, domains, recursive, includeDerivedMembership):
@@ -4633,7 +4627,9 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
       elif recursive and member['type'] == Ent.TYPE_GROUP:
         _addGroupUsersToUsers(member['email'], domains, recursive, includeDerivedMembership)
 
-  entityError = {'entityType': None, 'doesNotExist': 0, 'invalid': 0}
+  ENTITY_ERROR_DNE = 'doesNotExist'
+  ENTITY_ERROR_INVALID = 'invalid'
+  entityError = {'entityType': None, ENTITY_ERROR_DNE: 0, ENTITY_ERROR_INVALID: 0}
   entityList = []
   entitySet = set()
   entityLocation = Cmd.Location()
@@ -4960,7 +4956,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
           _incrEntityDoesNotExist(Ent.ORGANIZATIONAL_UNIT)
           continue
         ouSet.add(result['orgUnitPath'].lower())
-      if entityError['doesNotExist'] == 0:
+      if entityError[ENTITY_ERROR_DNE] == 0:
         qualifier = Msg.IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, len(ous)))
         printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, ','.join(ous), qualifier=allQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
         try:
@@ -4981,12 +4977,18 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
         printGotEntityItemsForWhom(len(entityList))
   else:
     systemErrorExit(UNKNOWN_ERROR_RC, 'getUsersToModify coding error')
-  if entityError['doesNotExist'] > 0:
-    Cmd.SetLocation(entityLocation)
-    badEntitiesExit(entityError, 'doesNotExist')
-  if entityError['invalid'] > 0:
-    Cmd.SetLocation(entityLocation)
-    badEntitiesExit(entityError, 'invalid')
+  for errorType in [ENTITY_ERROR_DNE, ENTITY_ERROR_INVALID]:
+    if entityError[errorType] > 0:
+      Cmd.SetLocation(entityLocation-1)
+      writeStderr(Cmd.CommandLineWithBadArgumentMarked(False))
+      count = entityError[errorType]
+      if errorType == ENTITY_ERROR_DNE:
+        stderrErrorMsg(Msg.BAD_ENTITIES_IN_SOURCE.format(count, Ent.Choose(entityError['entityType'], count),
+                                                         Msg.DO_NOT_EXIST if count != 1 else Msg.DOES_NOT_EXIST))
+        sys.exit(ENTITY_DOES_NOT_EXIST_RC)
+      else:
+        stderrErrorMsg(Msg.BAD_ENTITIES_IN_SOURCE.format(count, Msg.INVALID, Ent.Choose(entityError['entityType'], count)))
+        sys.exit(INVALID_ENTITY_RC)
   return entityList
 
 def splitEntityList(entity, dataDelimiter):
@@ -18995,17 +18997,17 @@ def doPrintGroups():
         csvPF.AddField(field, GROUP_FIELDS_CHOICE_MAP, groupFieldsLists['cd'])
     elif myarg == 'ciallfields':
       sortHeaders = True
+      groupFieldsLists['ci']= []
       for field in CIGROUP_FIELDS_CHOICE_MAP:
         addFieldToFieldsList(field, CIGROUP_FIELDS_CHOICE_MAP, groupFieldsLists['ci'])
     elif myarg == 'settings':
       getSettings = sortHeaders = True
     elif myarg == 'allfields':
       getSettings = sortHeaders = True
-      groupFieldsLists = {'cd': [], 'ci': [], 'gs': []}
+      groupFieldsLists['cd']= []
+      groupFieldsLists['gs'] = []
       for field in GROUP_FIELDS_CHOICE_MAP:
         csvPF.AddField(field, GROUP_FIELDS_CHOICE_MAP, groupFieldsLists['cd'])
-      for field in CIGROUP_FIELDS_CHOICE_MAP:
-        addFieldToFieldsList(field, CIGROUP_FIELDS_CHOICE_MAP, groupFieldsLists['ci'])
     elif myarg == 'sortheaders':
       sortHeaders = getBoolean()
     elif myarg in GROUP_FIELDS_CHOICE_MAP:
@@ -25584,7 +25586,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
           if argument == clTypeKeyword:
             getKeywordAttribute(typeKeywords, entry)
           elif argument == typeKeywords[UProp.PTKW_CL_CUSTOMTYPE_KEYWORD]:
-            entry[typeKeywords[UProp.PTKW_ATTR_CUSTOMTYPE_KEYWORD]] = getString(Cmd.OB_STRING)
+            entry[typeKeywords[UProp.PTKW_ATTR_CUSTOMTYPE_KEYWORD]] = getString(Cmd.OB_STRING, minLen=0)
             entry.pop(typeKeywords[UProp.PTKW_ATTR_TYPE_KEYWORD], None)
           elif argument in ORGANIZATION_ARGUMENT_TO_FIELD_MAP:
             argument = ORGANIZATION_ARGUMENT_TO_FIELD_MAP[argument]

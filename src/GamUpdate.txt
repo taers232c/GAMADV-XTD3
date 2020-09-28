@@ -1,3 +1,10 @@
+5.12.06
+
+Fixed bug in `gam print groups` that caused the following error:
+```
+ERROR: 400: invalid - Request contains an invalid argument.
+```
+
 5.12.05
 
 Added option `oneitemperrow` to `gam <UserTypeEntity> print asps` to have each of a
