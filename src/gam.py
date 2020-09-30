@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.12.07'
+__version__ = '5.12.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -42096,59 +42096,140 @@ def getLicenseParameters(operation):
   checkForExtraneousArguments()
   return (lic, parameters)
 
+def _batchCreateLicenses(lic, parameters, count, items):
+  _CREATE_LICENSE_REASON_TO_MESSAGE_MAP = {GAPI.USER_NOT_FOUND: Msg.DOES_NOT_EXIST, GAPI.FORBIDDEN: Msg.DOES_NOT_EXIST, GAPI.BACKEND_ERROR: Msg.DOES_NOT_EXIST}
+  def _callbackCreateLicense(request_id, response, exception):
+    ri = request_id.splitlines()
+    if exception is None:
+      entityActionPerformed([Ent.USER, ri[RI_ENTITY], Ent.LICENSE, ri[RI_ITEM]], int(ri[RI_I]), int(ri[RI_COUNT]))
+    else:
+      http_status, reason, message = checkGAPIError(exception)
+      errMsg = getHTTPError(_CREATE_LICENSE_REASON_TO_MESSAGE_MAP, http_status, reason, message)
+      entityActionFailedWarning([Ent.USER, ri[RI_ENTITY], Ent.LICENSE, ri[RI_ITEM]], errMsg, int(ri[RI_I]), int(ri[RI_COUNT]))
+
+  skuDisplayName = SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])
+  performActionNumItems(count, Ent.LICENSE)
+  Ind.Increment()
+  svcargs = dict([('productId', parameters[LICENSE_PRODUCTID]), ('skuId', parameters[LICENSE_SKUID]), ('body', {'userId': None}), ('fields', '')]+GM.Globals[GM.EXTRA_ARGS_LIST])
+  method = getattr(lic.licenseAssignments(), 'insert')
+  dbatch = lic.new_batch_http_request(callback=_callbackCreateLicense)
+  bcount = 0
+  i = 0
+  for user in items:
+    i += 1
+    svcparms = svcargs.copy()
+    svcparms['body']['userId'] = normalizeEmailAddressOrUID(user)
+    dbatch.add(method(**svcparms), request_id=batchRequestID(svcparms['body']['userId'], i, count, 0, 0, skuDisplayName))
+    bcount += 1
+    if bcount >= GC.Values[GC.BATCH_SIZE]:
+      executeBatch(dbatch)
+      dbatch = lic.new_batch_http_request(callback=_callbackCreateLicense)
+      bcount = 0
+  if bcount > 0:
+    dbatch.execute()
+  Ind.Decrement()
+
 # gam <UserTypeEntity> create|add license <SKUID>
 def createLicense(users):
   lic, parameters = getLicenseParameters('insert')
-  i, count, users = getEntityArgument(users)
-  for user in users:
+  _, count, users = getEntityArgument(users)
+  _batchCreateLicenses(lic, parameters, count, users)
+
+def _batchUpdateLicenses(lic, parameters, count, items):
+  _UPDATE_LICENSE_REASON_TO_MESSAGE_MAP = {GAPI.USER_NOT_FOUND: Msg.DOES_NOT_EXIST, GAPI.FORBIDDEN: Msg.DOES_NOT_EXIST, GAPI.BACKEND_ERROR: Msg.DOES_NOT_EXIST}
+  def _callbackUpdateLicense(request_id, response, exception):
+    ri = request_id.splitlines()
+    if exception is None:
+      entityModifierNewValueActionPerformed([Ent.USER, ri[RI_ENTITY], Ent.LICENSE, ri[RI_ITEM]],
+                                            Act.MODIFIER_FROM, ri[RI_ROLE], int(ri[RI_I]), int(ri[RI_COUNT]))
+    else:
+      http_status, reason, message = checkGAPIError(exception)
+      errMsg = getHTTPError(_UPDATE_LICENSE_REASON_TO_MESSAGE_MAP, http_status, reason, message)
+      entityActionFailedWarning([Ent.USER, ri[RI_ENTITY], Ent.LICENSE, ri[RI_ROLE]], errMsg, int(ri[RI_I]), int(ri[RI_COUNT]))
+
+  skuDisplayName = SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])
+  skuOldDisplayName = SKU.formatSKUIdDisplayName(parameters[LICENSE_OLDSKUID])
+  performActionNumItems(count, Ent.LICENSE)
+  Ind.Increment()
+  svcargs = dict([('userId', None), ('productId', parameters[LICENSE_PRODUCTID]), ('skuId', parameters[LICENSE_OLDSKUID]),
+                  ('body', {'skuId': parameters[LICENSE_SKUID]}), ('fields', '')]+GM.Globals[GM.EXTRA_ARGS_LIST])
+  method = getattr(lic.licenseAssignments(), 'patch')
+  dbatch = lic.new_batch_http_request(callback=_callbackUpdateLicense)
+  bcount = 0
+  i = 0
+  for user in items:
     i += 1
-    user = normalizeEmailAddressOrUID(user)
-    try:
-      callGAPI(lic.licenseAssignments(), 'insert',
-               throwReasons=[GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET, GAPI.INVALID, GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
-               productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_SKUID], body={'userId': user}, fields='')
-      entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], i, count)
-    except (GAPI.duplicate, GAPI.conditionNotMet, GAPI.invalid) as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], str(e), i, count)
-    except (GAPI.userNotFound, GAPI.forbidden, GAPI.backendError):
-      entityUnknownWarning(Ent.USER, user, i, count)
+    svcparms = svcargs.copy()
+    svcparms['userId'] = normalizeEmailAddressOrUID(user)
+    dbatch.add(method(**svcparms), request_id=batchRequestID(svcparms['userId'], i, count, 0, 0, skuDisplayName, skuOldDisplayName))
+    bcount += 1
+    if bcount >= GC.Values[GC.BATCH_SIZE]:
+      executeBatch(dbatch)
+      dbatch = lic.new_batch_http_request(callback=_callbackUpdateLicense)
+      bcount = 0
+  if bcount > 0:
+    dbatch.execute()
+  Ind.Decrement()
 
 # gam <UserTypeEntity> update license <SKUID> [from] <SKUID>
 def updateLicense(users):
   lic, parameters = getLicenseParameters('patch')
-  i, count, users = getEntityArgument(users)
-  for user in users:
+  _, count, users = getEntityArgument(users)
+  _batchUpdateLicenses(lic, parameters, count, users)
+
+def _batchDeleteLicenses(lic, parameters, count, items):
+  _DELETE_LICENSE_REASON_TO_MESSAGE_MAP = {GAPI.USER_NOT_FOUND: Msg.DOES_NOT_EXIST, GAPI.FORBIDDEN: Msg.DOES_NOT_EXIST, GAPI.BACKEND_ERROR: Msg.DOES_NOT_EXIST}
+  def _callbackDeleteLicense(request_id, response, exception):
+    ri = request_id.splitlines()
+    if exception is None:
+      entityActionPerformed([Ent.USER, ri[RI_ENTITY], Ent.LICENSE, ri[RI_ITEM]], int(ri[RI_I]), int(ri[RI_COUNT]))
+    else:
+      http_status, reason, message = checkGAPIError(exception)
+      errMsg = getHTTPError(_DELETE_LICENSE_REASON_TO_MESSAGE_MAP, http_status, reason, message)
+      entityActionFailedWarning([Ent.USER, ri[RI_ENTITY], Ent.LICENSE, ri[RI_ITEM]], errMsg, int(ri[RI_I]), int(ri[RI_COUNT]))
+
+  skuDisplayName = SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])
+  performActionNumItems(count, Ent.LICENSE)
+  Ind.Increment()
+  svcargs = dict([('userId', None), ('productId', parameters[LICENSE_PRODUCTID]), ('skuId', parameters[LICENSE_SKUID]), ('fields', '')]+GM.Globals[GM.EXTRA_ARGS_LIST])
+  method = getattr(lic.licenseAssignments(), 'delete')
+  dbatch = lic.new_batch_http_request(callback=_callbackDeleteLicense)
+  bcount = 0
+  i = 0
+  for user in items:
     i += 1
-    user = normalizeEmailAddressOrUID(user)
-    try:
-      callGAPI(lic.licenseAssignments(), 'patch',
-               bailOnInternalError=True,
-               throwReasons=[GAPI.INTERNAL_ERROR, GAPI.NOT_FOUND, GAPI.CONDITION_NOT_MET, GAPI.INVALID,
-                             GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
-               productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_OLDSKUID], userId=user, body={'skuId': parameters[LICENSE_SKUID]}, fields='')
-      entityModifierNewValueActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.skuIdToDisplayName(parameters[LICENSE_SKUID])],
-                                            Act.MODIFIER_FROM, SKU.skuIdToDisplayName(parameters[LICENSE_OLDSKUID]), i, count)
-    except (GAPI.internalError, GAPI.notFound, GAPI.conditionNotMet, GAPI.invalid) as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_OLDSKUID])], str(e), i, count)
-    except (GAPI.userNotFound, GAPI.forbidden, GAPI.backendError):
-      entityUnknownWarning(Ent.USER, user, i, count)
+    svcparms = svcargs.copy()
+    svcparms['userId'] = normalizeEmailAddressOrUID(user)
+    dbatch.add(method(**svcparms), request_id=batchRequestID(svcparms['userId'], i, count, 0, 0, skuDisplayName))
+    bcount += 1
+    if bcount >= GC.Values[GC.BATCH_SIZE]:
+      executeBatch(dbatch)
+      dbatch = lic.new_batch_http_request(callback=_callbackDeleteLicense)
+      bcount = 0
+  if bcount > 0:
+    dbatch.execute()
+  Ind.Decrement()
 
 # gam <UserTypeEntity> delete license <SKUID>
 def deleteLicense(users):
   lic, parameters = getLicenseParameters('delete')
-  i, count, users = getEntityArgument(users)
+  _, count, users = getEntityArgument(users)
+  _batchDeleteLicenses(lic, parameters, count, users)
+
+# gam <UserTypeEntity> sync license <SKUID>
+def syncLicense(users):
+  lic, parameters = getLicenseParameters('sync')
+  _, _, users = getEntityArgument(users)
+  usersSet = set()
   for user in users:
-    i += 1
-    user = normalizeEmailAddressOrUID(user)
-    try:
-      callGAPI(lic.licenseAssignments(), 'delete',
-               throwReasons=[GAPI.NOT_FOUND, GAPI.CONDITION_NOT_MET, GAPI.INVALID, GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
-               productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_SKUID], userId=user)
-      entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], i, count)
-    except (GAPI.notFound, GAPI.conditionNotMet, GAPI.invalid) as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], str(e), i, count)
-    except (GAPI.userNotFound, GAPI.forbidden, GAPI.backendError):
-      entityUnknownWarning(Ent.USER, user, i, count)
+    usersSet.add(normalizeEmailAddressOrUID(user))
+  currentLicenses = set(doPrintLicenses(returnFields=['userId'], skus=[parameters[LICENSE_SKUID]]))
+  deleteSet = currentLicenses-usersSet
+  Act.Set(Act.DELETE)
+  _batchDeleteLicenses(lic, parameters, len(deleteSet), deleteSet)
+  addSet = usersSet-currentLicenses
+  Act.Set(Act.ADD)
+  _batchCreateLicenses(lic, parameters, len(addSet), addSet)
 
 # gam <UserTypeEntity> update photo [<FileNamePattern>]
 # gam <UserTypeEntity> update photo [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
@@ -47409,7 +47490,7 @@ USER_COMMANDS_WITH_OBJECTS = {
     ),
   'spam': (Act.SPAM, {Cmd.ARG_MESSAGE: processMessages, Cmd.ARG_THREAD: processThreads}),
   'suspend': (Act.SUSPEND, {Cmd.ARG_USER: suspendUsers}),
-  'sync': (Act.SYNC, {Cmd.ARG_GROUP: syncUserWithGroups, Cmd.ARG_GUARDIAN: syncGuardians}),
+  'sync': (Act.SYNC, {Cmd.ARG_GROUP: syncUserWithGroups, Cmd.ARG_GUARDIAN: syncGuardians, Cmd.ARG_LICENSE: syncLicense}),
   'transfer': (Act.TRANSFER, {Cmd.ARG_DRIVE: transferDrive, Cmd.ARG_CALENDAR: transferCalendars, Cmd.ARG_OWNERSHIP: transferOwnership}),
   'trash': (Act.TRASH, {Cmd.ARG_DRIVEFILE: trashDriveFile, Cmd.ARG_MESSAGE: processMessages, Cmd.ARG_THREAD: processThreads}),
   'undelete': (Act.UNDELETE, {Cmd.ARG_USER: undeleteUsers}),

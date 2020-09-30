@@ -1,3 +1,15 @@
+5.12.08
+
+Following Jay's lead, added the following command to syncrhonize users and licenses.
+```
+gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>]
+```
+* GAM determines which users currently hold a license for `<SKUID>`.
+* The license will be deleted for all current license holders that are not in `<UserTypeEntity>`.
+* The license will be added for all users in `<UserTypeEntity>` that are not current license holders.
+
+All license commands now use batch processing to improve performance.
+
 5.12.07
 
 Handle the following error when executing `gam courses <CourseEntity> create|delete|clear|sync students|teachers`.
