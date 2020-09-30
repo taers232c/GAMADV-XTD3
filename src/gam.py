@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.12.06'
+__version__ = '5.12.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -29057,7 +29057,7 @@ def _batchAddItemsToCourse(croom, courseId, i, count, addParticipants, role):
       entityActionPerformed([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
       http_status, reason, message = checkGAPIError(exception)
-      if (reason != GAPI.QUOTA_EXCEEDED) and ((reason != GAPI.NOT_FOUND) or (ri[RI_ROLE] == Ent.COURSE_ALIAS)):
+      if (reason not in {GAPI.QUOTA_EXCEEDED, GAPI.SERVICE_NOT_AVAILABLE}) and ((reason != GAPI.NOT_FOUND) or (ri[RI_ROLE] == Ent.COURSE_ALIAS)):
         if reason in [GAPI.FORBIDDEN, GAPI.BACKEND_ERROR]:
           errMsg = getPhraseDNEorSNA(ri[RI_ITEM])
         else:
@@ -29068,8 +29068,9 @@ def _batchAddItemsToCourse(croom, courseId, i, count, addParticipants, role):
       try:
         callGAPI(service, 'create',
                  throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR,
-                               GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION, GAPI.QUOTA_EXCEEDED],
-                 retryReasons=[GAPI.NOT_FOUND], retries=10 if reason != GAPI.NOT_FOUND else 3,
+                               GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION,
+                               GAPI.QUOTA_EXCEEDED, GAPI.SERVICE_NOT_AVAILABLE],
+                 retryReasons=[GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE], retries=10 if reason != GAPI.NOT_FOUND else 3,
                  courseId=ri[RI_ENTITY],
                  body={attribute: ri[RI_ITEM] if ri[RI_ROLE] != Ent.COURSE_ALIAS else addCourseAliasScope(ri[RI_ITEM])},
                  fields='')
@@ -29079,7 +29080,7 @@ def _batchAddItemsToCourse(croom, courseId, i, count, addParticipants, role):
         entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], Msg.DUPLICATE, int(ri[RI_J]), int(ri[RI_JCOUNT]))
       except GAPI.failedPrecondition:
         entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], Msg.NOT_ALLOWED, int(ri[RI_J]), int(ri[RI_JCOUNT]))
-      except GAPI.quotaExceeded as e:
+      except (GAPI.quotaExceeded, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
   if role == Ent.STUDENT:
@@ -29134,7 +29135,7 @@ def _batchRemoveItemsFromCourse(croom, courseId, i, count, removeParticipants, r
       entityActionPerformed([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
       http_status, reason, message = checkGAPIError(exception)
-      if reason != GAPI.QUOTA_EXCEEDED:
+      if reason not in {GAPI.QUOTA_EXCEEDED, GAPI.SERVICE_NOT_AVAILABLE}:
         if reason == GAPI.NOT_FOUND and ri[RI_ROLE] != Ent.COURSE_ALIAS:
           errMsg = f'{Msg.NOT_A} {Ent.Singular(ri[RI_ROLE])}'
         else:
@@ -29144,7 +29145,9 @@ def _batchRemoveItemsFromCourse(croom, courseId, i, count, removeParticipants, r
       waitOnFailure(1, 10, reason, message)
       try:
         callGAPI(service, 'delete',
-                 throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED, GAPI.QUOTA_EXCEEDED],
+                 throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED,
+                               GAPI.QUOTA_EXCEEDED, GAPI.SERVICE_NOT_AVAILABLE],
+                 retryReasons=[GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE], retries=10 if reason != GAPI.NOT_FOUND else 3,
                  courseId=ri[RI_ENTITY],
                  body={attribute: ri[RI_ITEM] if ri[RI_ROLE] != Ent.COURSE_ALIAS else addCourseAliasScope(ri[RI_ITEM])},
                  fields='')
@@ -29154,7 +29157,7 @@ def _batchRemoveItemsFromCourse(croom, courseId, i, count, removeParticipants, r
         entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], Msg.FORBIDDEN, int(ri[RI_J]), int(ri[RI_JCOUNT]))
       except GAPI.permissionDenied:
         entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], Msg.PERMISSION_DENIED, int(ri[RI_J]), int(ri[RI_JCOUNT]))
-      except GAPI.quotaExceeded as e:
+      except (GAPI.quotaExceeded, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
   if role == Ent.STUDENT:

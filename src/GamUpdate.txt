@@ -1,3 +1,10 @@
+5.12.07
+
+Handle the following error when executing `gam courses <CourseEntity> create|delete|clear|sync students|teachers`.
+```
+ERROR: 503: serviceNotAvailable - The service is currently unavailable.
+```
+
 5.12.06
 
 Fixed bug in `gam print groups` that caused the following error:
