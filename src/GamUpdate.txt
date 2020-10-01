@@ -1,3 +1,7 @@
+5.12.09
+
+Remove batch processing from licensing commands as Jay reports that it generates many errors.
+
 5.12.08
 
 Following Jay's lead, added the following command to syncrhonize users and licenses.
