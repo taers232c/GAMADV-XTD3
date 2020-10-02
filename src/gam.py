@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.12.09'
+__version__ = '5.12.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -42103,7 +42103,7 @@ def _createLicenses(lic, parameters, count, users):
     user = normalizeEmailAddressOrUID(user)
     try:
       callGAPI(lic.licenseAssignments(), 'insert',
-               throw_reasons=[GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET, GAPI.INVALID, GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
+               throwReasons=[GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET, GAPI.INVALID, GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
                productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_SKUID], body={'userId': user}, fields='')
       entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], i, count)
     except (GAPI.duplicate, GAPI.conditionNotMet, GAPI.invalid) as e:
@@ -42127,8 +42127,8 @@ def updateLicense(users):
     try:
       callGAPI(lic.licenseAssignments(), 'patch',
                bailOnInternalError=True,
-               throw_reasons=[GAPI.INTERNAL_ERROR, GAPI.NOT_FOUND, GAPI.CONDITION_NOT_MET, GAPI.INVALID,
-                              GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
+               throwReasons=[GAPI.INTERNAL_ERROR, GAPI.NOT_FOUND, GAPI.CONDITION_NOT_MET, GAPI.INVALID,
+                             GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
                productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_OLDSKUID], userId=user, body={'skuId': parameters[LICENSE_SKUID]}, fields='')
       entityModifierNewValueActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.skuIdToDisplayName(parameters[LICENSE_SKUID])],
                                             Act.MODIFIER_FROM, SKU.skuIdToDisplayName(parameters[LICENSE_OLDSKUID]), i, count)
@@ -42144,7 +42144,7 @@ def _deleteLicenses(lic, parameters, count, users):
     user = normalizeEmailAddressOrUID(user)
     try:
       callGAPI(lic.licenseAssignments(), 'delete',
-               throw_reasons=[GAPI.NOT_FOUND, GAPI.CONDITION_NOT_MET, GAPI.INVALID, GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
+               throwReasons=[GAPI.NOT_FOUND, GAPI.CONDITION_NOT_MET, GAPI.INVALID, GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
                productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_SKUID], userId=user)
       entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], i, count)
     except (GAPI.notFound, GAPI.conditionNotMet, GAPI.invalid) as e:

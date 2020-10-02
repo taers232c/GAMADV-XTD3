@@ -1,3 +1,7 @@
+5.12.10
+
+Fixed bug introduced in 5.12.09 when removing batch processing for licenses.
+
 5.12.09
 
 Remove batch processing from licensing commands as Jay reports that it generates many errors.
