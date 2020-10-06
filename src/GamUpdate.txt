@@ -1,7 +1,5 @@
 5.22.00
 
-Upgraded to Python 3.9.0.
-
 The following additions are derived from initial work by Jay.
 
 Added commands to support the new Device Management API.
