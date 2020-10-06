@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.22.00'
+__version__ = '5.22.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -18494,13 +18494,14 @@ def doUpdateGroups():
     try:
       callGAPI(cd.members(), 'delete',
                throwReasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER,
+                                                        GAPI.RESOURCE_NOT_FOUND,
                                                         GAPI.CONDITION_NOT_MET, GAPI.CONFLICT],
                retryReasons=GAPI.MEMBERS_RETRY_REASONS,
                groupKey=group, memberKey=member)
       _showSuccess(group, member, role, DELIVERY_SETTINGS_UNDEFINED, j, jcount)
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(Ent.GROUP, group, i, count)
-    except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet) as e:
+    except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.resourceNotFound, GAPI.conditionNotMet) as e:
       _showFailure(group, member, role, str(e), j, jcount)
     except GAPI.conflict:
       _showSuccess(group, member, role, DELIVERY_SETTINGS_UNDEFINED, j, jcount, Msg.ACTION_MAY_BE_DELAYED)
@@ -18519,7 +18520,7 @@ def doUpdateGroups():
         entityUnknownWarning(Ent.GROUP, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
       elif reason == GAPI.CONFLICT:
         _showSuccess(ri[RI_ENTITY], ri[RI_ITEM], ri[RI_ROLE], DELIVERY_SETTINGS_UNDEFINED, int(ri[RI_J]), int(ri[RI_JCOUNT]), Msg.ACTION_MAY_BE_DELAYED)
-      elif reason not in GAPI.DEFAULT_RETRY_REASONS+GAPI.MEMBERS_RETRY_REASONS:
+      elif reason not in GAPI.DEFAULT_RETRY_REASONS+GAPI.MEMBERS_RETRY_REASONS+[GAPI.RESOURCE_NOT_FOUND]:
         errMsg = getHTTPError(_REMOVE_MEMBER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
         _showFailure(ri[RI_ENTITY], ri[RI_ITEM], ri[RI_ROLE], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
       else:

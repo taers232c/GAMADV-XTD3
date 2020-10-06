@@ -1,3 +1,12 @@
+5.22.01
+
+Handle the following error when deleting members from groups. This is an invalid message from Google,
+the member is in the group but Google seems to think that it is an invalid email address. I'm not sure what
+the long term solution is but this fix keeps GAM from terminating.
+```
+ERROR: 404: resourceNotFound - Does not exist
+```
+
 5.22.00
 
 The following additions are derived from initial work by Jay.
