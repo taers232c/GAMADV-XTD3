@@ -48,6 +48,8 @@ FN_OAUTH2SERVICE_JSON = 'oauth2service.json'
 # The following XXX constants are the names of the items in gam.cfg
 # When retrieving lists of Google Drive activities from API, how many should be retrieved in each chunk
 ACTIVITY_MAX_RESULTS = 'activity_max_results'
+# Admin email address, required when enable_dasa is true, overrides oauth2.txt value otherwise
+ADMIN_EMAIL = 'admin_email'
 # Check if API calls rate exceeds limit
 API_CALLS_RATE_CHECK = 'api_calls_rate_check'
 # API calls per 100 seconds limit
@@ -113,6 +115,8 @@ DRIVE_MAX_RESULTS = 'drive_max_results'
 DRIVE_V3_NATIVE_NAMES = 'drive_v3_native_names'
 # When processing email messages in batches, how many should be processed in each batch
 EMAIL_BATCH_SIZE = 'email_batch_size'
+# Enable Delegated Admin Service Account
+ENABLE_DASA = 'enable_dasa'
 # When retrieving lists of calendar events from API, how many should be retrieved in each chunk
 EVENT_MAX_RESULTS = 'event_max_results'
 # Path to extra_args.txt
@@ -207,6 +211,7 @@ USER_SERVICE_ACCOUNT_ACCESS_ONLY = 'user_service_account_access_only'
 
 Defaults = {
   ACTIVITY_MAX_RESULTS: '100',
+  ADMIN_EMAIL: '',
   API_CALLS_RATE_CHECK: FALSE,
   API_CALLS_RATE_LIMIT: '100',
   AUTO_BATCH_MIN: '0',
@@ -239,6 +244,7 @@ Defaults = {
   DRIVE_MAX_RESULTS: '1000',
   DRIVE_V3_NATIVE_NAMES: TRUE,
   EMAIL_BATCH_SIZE: '50',
+  ENABLE_DASA: FALSE,
   EVENT_MAX_RESULTS: '250',
   EXTRA_ARGS: '',
   INTER_BATCH_WAIT: '0',
@@ -316,6 +322,7 @@ VAR_ACCESS = 'aces'
 
 VAR_INFO = {
   ACTIVITY_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (1, 500)},
+  ADMIN_EMAIL: {VAR_TYPE: TYPE_STRING, VAR_ENVVAR: 'GA_ADMIN_EMAIL', VAR_LIMITS: (0, None)},
   API_CALLS_RATE_CHECK: {VAR_TYPE: TYPE_BOOLEAN},
   API_CALLS_RATE_LIMIT: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (50, None)},
   AUTO_BATCH_MIN: {VAR_TYPE: TYPE_INTEGER, VAR_ENVVAR: 'GAM_AUTOBATCH', VAR_LIMITS: (0, 100)},
@@ -348,6 +355,7 @@ VAR_INFO = {
   DRIVE_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (1, 1000)},
   DRIVE_V3_NATIVE_NAMES: {VAR_TYPE: TYPE_BOOLEAN},
   EMAIL_BATCH_SIZE: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (1, 100)},
+  ENABLE_DASA: {VAR_TYPE: TYPE_BOOLEAN, VAR_SIGFILE: 'enabledasa.txt', VAR_SFFT: (FALSE, TRUE)},
   EVENT_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (1, 2500)},
   EXTRA_ARGS: {VAR_TYPE: TYPE_FILE, VAR_SIGFILE: FN_EXTRA_ARGS_TXT, VAR_SFFT: ('', FN_EXTRA_ARGS_TXT), VAR_ACCESS: os.R_OK},
   INTER_BATCH_WAIT: {VAR_TYPE: TYPE_FLOAT, VAR_LIMITS: (0.0, 60.0)},

@@ -78,6 +78,7 @@ class GamEntity():
   CLOUD_IDENTITY_GROUP = 'cidg'
   CLOUD_STORAGE_FILE = 'clsf'
   COLLABORATOR = 'cola'
+  COMPANY_DEVICE = 'codv'
   CONFIG_FILE = 'conf'
   CONTACT = 'cont'
   CONTACT_GROUP = 'cogr'
@@ -109,8 +110,10 @@ class GamEntity():
   DELEGATE = 'dele'
   DELETED_USER = 'del'
   DELIVERY = 'deli'
+  DEVICE = 'devi'
   DEVICE_FILE = 'devf'
   DIRECTORY = 'drct'
+  DEVICE_USER = 'devu'
   DISCOVERY_JSON_FILE = 'disc'
   DOCUMENT = 'doc'
   DOMAIN = 'doma'
@@ -183,6 +186,7 @@ class GamEntity():
   PERMISSION = 'perm'
   PERMISSION_ID = 'peid'
   PERMITTEE = 'prmt'
+  PERSONAL_DEVICE = 'pedv'
   PHOTO = 'phot'
   POP_ENABLED = 'popa'
   PRINTER = 'prin'
@@ -300,6 +304,7 @@ class GamEntity():
     CLOUD_IDENTITY_GROUP: ['Cloud Identity Groups', 'Cloud Identity Group'],
     CLOUD_STORAGE_FILE: ['Cloud Storage Files', 'Cloud Storage File'],
     COLLABORATOR: ['Collaborators', 'Collaborator'],
+    COMPANY_DEVICE: ['Company Devices', 'Company Device'],
     CONFIG_FILE: ['Config File', 'Config File'],
     CONTACT: ['Contacts', 'Contact'],
     CONTACT_GROUP: ['Contact Groups', 'Contact Group'],
@@ -331,7 +336,9 @@ class GamEntity():
     DELEGATE: ['Delegates', 'Delegate'],
     DELETED_USER: ['Deleted Users', 'Deleted User'],
     DELIVERY: ['Delivery', 'Delivery'],
+    DEVICE: ['Devices', 'Device'],
     DEVICE_FILE: ['Device Files', 'Device File'],
+    DEVICE_USER: ['Device Users', 'Device User'],
     DIRECTORY: ['Directories', 'Directory'],
     DISCOVERY_JSON_FILE: ['Discovery File', 'Discovery File'],
     DOCUMENT: ['Documents', 'Document'],
@@ -405,6 +412,7 @@ class GamEntity():
     PERMISSION: ['Permissions', 'Permission'],
     PERMISSION_ID: ['Permission IDs', 'Permission ID'],
     PERMITTEE: ['Permittees', 'Permittee'],
+    PERSONAL_DEVICE: ['Personal Devices', 'Personal Device'],
     PHOTO: ['Photos', 'Photo'],
     POP_ENABLED: ['POP Enabled', 'POP Enabled'],
     PRINTER: ['Printers', 'Printer'],

@@ -1,3 +1,31 @@
+5.22.00
+
+The following additions are derived from initial work by Jay.
+
+Added commands to support the new Device Management API.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Cloud-Identity-Devices
+
+To use these commands you must update your service account authorization.
+```
+gam user user@domain.com check serviceaccount
+```
+
+In the following places a Google Admin email address is required; by default the admin email address in `oauth2.txt` is used.
+* Managing Shared Drives as an administrator.
+* Executing `gam alert|alertfeedback` commands.
+* Sending email when a from user is not specified
+* Uploading files with `todrive` when neither `todrive_user` or `tduser` is specified.
+* All `gam printer` commands when `<UserTypeEntity>` is omitted.
+
+Added `admin_email` to `gam.cfg` which will supercede the value from `oauth2.txt`.
+
+Added `enable_dasa` to `gam.cfg`. When True, GAM will use a Delegated Admin Service Account
+for all API access. This is the initial step in getting GAM to use Service Account access for all API calls.
+**This is for testing only!**
+
+The following variables in `gam.cfg` must be set when `enable_dasa` is True: `admin_email`, `customer_id` and `domain`,
+`customer_id` may not be set to `my_customer`.
+
 5.12.10
 
 Fixed bug introduced in 5.12.09 when removing batch processing for licenses.

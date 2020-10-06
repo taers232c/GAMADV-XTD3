@@ -27,9 +27,12 @@ class GamAction():
   ADD = 'add '
   ADD_PREVIEW = 'addp'
   APPEND = 'apnd'
+  APPROVE = 'aprv'
   ARCHIVE = 'arch'
   BACKUP = 'back'
+  BLOCK = 'blok'
   CANCEL = 'canc'
+  CANCEL_WIPE = 'canw'
   CHECK = 'chek'
   CLAIM = 'clai'
   CLAIM_OWNERSHIP = 'clow'
@@ -38,9 +41,11 @@ class GamAction():
   COLLECT = 'collect'
   COPY = 'copy'
   CREATE = 'crea'
+  CREATE_PREVIEW = 'crep'
   DEDUP = 'dedu'
   DELETE = 'dele'
   DELETE_EMPTY = 'delm'
+  DELETE_PREVIEW = 'delp'
   DEPROVISION = 'depr'
   DISABLE = 'disa'
   DOWNLOAD = 'down'
@@ -62,9 +67,12 @@ class GamAction():
   MERGE = 'merg'
   MODIFY = 'modi'
   MOVE = 'move'
+  NOACTION = 'noac'
+  NOACTION_PREVIEW = 'noap'
   PERFORM = 'perf'
   PRINT = 'prin'
   PROCESS = 'proc'
+  PROCESS_PREVIEW = 'prop'
   PURGE = 'purg'
   REENABLE = 'reen'
   REFRESH = 'refr'
@@ -108,6 +116,7 @@ class GamAction():
   VERIFY = 'vrfy'
   WATCH = 'watc'
   WIPE = 'wipe'
+  WIPE_PREVIEW = 'wipp'
   # Usage:
   # ACTION_NAMES[1] n Items - Delete 10 Users
   # Item xxx ACTION_NAMES[0] - User xxx Deleted
@@ -117,9 +126,12 @@ class GamAction():
     ADD: ['Added', 'Add'],
     ADD_PREVIEW: ['Added (Preview)', 'Add (Preview)'],
     APPEND: ['Appended', 'Append'],
+    APPROVE: ['Approved', 'Approve'],
     ARCHIVE: ['Archived', 'Archive'],
     BACKUP: ['Backed up', 'Backup'],
+    BLOCK: ['Blocked', 'Block'],
     CANCEL: ['Cancelled', 'Cancel'],
+    CANCEL_WIPE: ['Wipe Cancelled', 'Cancel Wipe'],
     CHECK: ['Checked', 'Check'],
     CLAIM: ['Claimed', 'Claim'],
     CLAIM_OWNERSHIP: ['Ownership Claimed', 'Claim Ownership'],
@@ -128,9 +140,11 @@ class GamAction():
     COLLECT: ['Collected', 'Collect'],
     COPY: ['Copied', 'Copy'],
     CREATE: ['Created', 'Create'],
+    CREATE_PREVIEW: ['Created (Preview)', 'Create (Preview)'],
     DEDUP: ['Duplicates Deleted', 'Delete Duplicates'],
     DELETE: ['Deleted', 'Delete'],
     DELETE_EMPTY: ['Deleted', 'Delete Empty'],
+    DELETE_PREVIEW: ['Deleted (Preview)', 'Delete (Preview)'],
     DEPROVISION: ['Deprovisioned', 'Deprovision'],
     DISABLE: ['Disabled', 'Disable'],
     DOWNLOAD: ['Downloaded', 'Download'],
@@ -151,9 +165,12 @@ class GamAction():
     MERGE: ['Merged', 'Merge'],
     MODIFY: ['Modified', 'Modify'],
     MOVE: ['Moved', 'Move'],
+    NOACTION: ['No Action', 'No Action'],
+    NOACTION_PREVIEW: ['No Action (Preview)', 'No Action (Preview)'],
     PERFORM: ['Action Performed', 'Perform Action'],
     PRINT: ['Printed', 'Print'],
     PROCESS: ['Processed', 'Process'],
+    PROCESS_PREVIEW: ['Processed (Preview)', 'Process (Preview)'],
     PURGE: ['Purged', 'Purge'],
     REENABLE: ['Reenabled', 'Reenable'],
     REFRESH: ['Refreshed', 'Refresh'],
@@ -197,6 +214,7 @@ class GamAction():
     VERIFY: ['Verified', 'Verify'],
     WATCH: ['Watched', 'Watch'],
     WIPE: ['Wiped', 'Wipe'],
+    WIPE_PREVIEW: ['Wiped (Preview)', 'Wipe (Preview)'],
     }
   #
   MODIFIER_CONTENTS_WITH = 'contents with'

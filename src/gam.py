@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.12.10'
+__version__ = '5.22.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -109,6 +109,7 @@ import googleapiclient.errors
 import googleapiclient.http
 import google.oauth2.credentials
 import google.oauth2.id_token
+from google.auth.jwt import Credentials as JWTCredentials
 import google.oauth2.service_account
 import google_auth_oauthlib.flow
 import google_auth_httplib2
@@ -3008,6 +3009,8 @@ def SetGlobalVariables():
         fileName = GC.Values[itemName]
         if (not fileName) and (itemName == GC.EXTRA_ARGS):
           continue
+        if GC.Values[GC.ENABLE_DASA] and (itemName in {GC.OAUTH2_TXT, GC.CLIENT_SECRETS_JSON}):
+          continue
         if not os.path.isfile(fileName):
           writeStderr(formatKeyValueList([WARNING_PREFIX, ERROR_PREFIX][itemName == GC.CACERTS_PEM],
                                          [Ent.Singular(Ent.CONFIG_FILE), GM.Globals[GM.GAM_CFG_FILE],
@@ -3304,6 +3307,21 @@ def SetGlobalVariables():
       GC.Values[GC.CSV_OUTPUT_ROW_FILTER] = GM.Globals[GM.CSV_OUTPUT_ROW_FILTER][:]
     if not GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER]:
       GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER] = GM.Globals[GM.CSV_OUTPUT_ROW_DROP_FILTER][:]
+# customer_id, domain and dasa_admin must be set when enable_dasa = true
+  if GC.Values[GC.ENABLE_DASA]:
+    errors = 0
+    for itemName in [GC.CUSTOMER_ID, GC.DOMAIN, GC.ADMIN_EMAIL]:
+      if not GC.Values[itemName] or (itemName == GC.CUSTOMER_ID and GC.Values[itemName] == GC.MY_CUSTOMER):
+        stderrErrorMsg(formatKeyValueList('',
+                                          [Ent.Singular(Ent.CONFIG_FILE), GM.Globals[GM.GAM_CFG_FILE],
+                                           Ent.Singular(Ent.SECTION), sectionName,
+                                           itemName, GC.Values[itemName] or '""',
+                                           GC.ENABLE_DASA, GC.Values[GC.ENABLE_DASA],
+                                           Msg.NOT_COMPATIBLE],
+                                          '\n'))
+        errors += 1
+    if errors:
+      sys.exit(USAGE_ERROR_RC)
 # If no select/options commands were executed or some were and there are more arguments on the command line,
 # warn if the json files are missing and return True
   if (Cmd.Location() == 1) or (Cmd.ArgumentsRemaining()):
@@ -3461,7 +3479,21 @@ def handleOAuthTokenError(e, softErrors):
   stderrErrorMsg(f'Authentication Token Error - {errMsg}')
   APIAccessDeniedExit()
 
-def getOauth2TxtCredentials(exitOnError=True):
+def getOauth2TxtCredentials(exitOnError=True, api=None, noDASA=False):
+  if not noDASA and GC.Values[GC.ENABLE_DASA]:
+    jsonData = readFile(GC.Values[GC.OAUTH2SERVICE_JSON], continueOnError=True, displayError=False)
+    if jsonData:
+      try:
+        jsonDict = json.loads(jsonData)
+        if GC.Values[GC.ENABLE_DASA]:
+          if 'private_key' in jsonDict:
+            api, _, _ = API.getVersion(api)
+            creds = JWTCredentials.from_service_account_info(jsonDict,
+                                                             audience=f'https://{api}.googleapis.com/')
+            return (True, creds)
+      except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
+        pass
+    invalidOauth2serviceJsonExit()
   jsonData = readFile(GC.Values[GC.OAUTH2_TXT], continueOnError=True, displayError=False)
   if jsonData:
     try:
@@ -3530,6 +3562,8 @@ def _getValueFromOAuth(field, credentials=None):
   return GM.Globals[GM.DECODED_ID_TOKEN].get(field, 'Unknown')
 
 def _getAdminEmail():
+  if GC.Values[GC.ADMIN_EMAIL]:
+    return GC.Values[GC.ADMIN_EMAIL]
   return _getValueFromOAuth('email')
 
 def writeClientCredentials(creds, filename):
@@ -3559,13 +3593,13 @@ def writeClientCredentials(creds, filename):
   else:
     writeStdout(json.dumps(creds_data, ensure_ascii=False, sort_keys=True, indent=2)+'\n')
 
-def getClientCredentials(forceRefresh=False, forceWrite=False, filename=None):
+def getClientCredentials(forceRefresh=False, forceWrite=False, filename=None, api=None, noDASA=False):
   """Gets OAuth2 credentials which are guaranteed to be fresh and valid.
      Locks during read and possible write so that only one process will
      attempt refresh/write when running in parallel. """
   lock = FileLock(GM.Globals[GM.OAUTH2_TXT_LOCK])
   with lock:
-    writeCreds, credentials = getOauth2TxtCredentials()
+    writeCreds, credentials = getOauth2TxtCredentials(api=api, noDASA=noDASA)
     if not credentials:
       invalidOauth2TxtExit()
     if credentials.expired or forceRefresh:
@@ -4278,23 +4312,24 @@ def readDiscoveryFile(api_version):
     invalidDiscoveryJsonExit(disc_file)
 
 def buildGAPIObject(api):
-  credentials = getClientCredentials()
+  credentials = getClientCredentials(api=api)
   httpObj = transportAuthorizedHttp(credentials, http=getHttpObj(cache=GM.Globals[GM.CACHE_DIR]))
   service = getService(api, httpObj)
-  try:
-    API_Scopes = set(list(service._rootDesc['auth']['oauth2']['scopes']))
-  except KeyError:
-    API_Scopes = set(API.VAULT_SCOPES) if api == API.VAULT else set()
-  GM.Globals[GM.CURRENT_CLIENT_API] = api
-  GM.Globals[GM.CURRENT_CLIENT_API_SCOPES] = API_Scopes.intersection(credentials.scopes)
-  if api != API.OAUTH2 and not GM.Globals[GM.CURRENT_CLIENT_API_SCOPES]:
-    systemErrorExit(NO_SCOPES_FOR_API_RC, Msg.NO_SCOPES_FOR_API.format(API.getAPIName(api)))
-  if not GC.Values[GC.DOMAIN]:
-    GC.Values[GC.DOMAIN] = GM.Globals[GM.DECODED_ID_TOKEN].get('hd', 'UNKNOWN').lower()
-  if not GC.Values[GC.CUSTOMER_ID]:
-    GC.Values[GC.CUSTOMER_ID] = GC.MY_CUSTOMER
-  GM.Globals[GM.ADMIN] = GM.Globals[GM.DECODED_ID_TOKEN].get('email', 'UNKNOWN').lower()
-  GM.Globals[GM.OAUTH2_CLIENT_ID] = credentials.client_id
+  if not GC.Values[GC.ENABLE_DASA]:
+    try:
+      API_Scopes = set(list(service._rootDesc['auth']['oauth2']['scopes']))
+    except KeyError:
+      API_Scopes = set(API.VAULT_SCOPES) if api == API.VAULT else set()
+    GM.Globals[GM.CURRENT_CLIENT_API] = api
+    GM.Globals[GM.CURRENT_CLIENT_API_SCOPES] = API_Scopes.intersection(credentials.scopes)
+    if api != API.OAUTH2 and not GM.Globals[GM.CURRENT_CLIENT_API_SCOPES]:
+      systemErrorExit(NO_SCOPES_FOR_API_RC, Msg.NO_SCOPES_FOR_API.format(API.getAPIName(api)))
+    if not GC.Values[GC.DOMAIN]:
+      GC.Values[GC.DOMAIN] = GM.Globals[GM.DECODED_ID_TOKEN].get('hd', 'UNKNOWN').lower()
+    if not GC.Values[GC.CUSTOMER_ID]:
+      GC.Values[GC.CUSTOMER_ID] = GC.MY_CUSTOMER
+    GM.Globals[GM.ADMIN] = GM.Globals[GM.DECODED_ID_TOKEN].get('email', 'UNKNOWN').lower()
+    GM.Globals[GM.OAUTH2_CLIENT_ID] = credentials.client_id
   return service
 
 def getSaUser(user):
@@ -4338,7 +4373,7 @@ def buildGAPICloudprintObject(user, i, count):
 
 def initGDataObject(gdataObj, api):
   GM.Globals[GM.CURRENT_CLIENT_API] = api
-  credentials = getClientCredentials()
+  credentials = getClientCredentials(noDASA=True)
   GM.Globals[GM.CURRENT_CLIENT_API_SCOPES] = API.getClientScopesSet(api).intersection(credentials.scopes)
   if not GM.Globals[GM.CURRENT_CLIENT_API_SCOPES]:
     systemErrorExit(NO_SCOPES_FOR_API_RC, Msg.NO_SCOPES_FOR_API.format(API.getAPIName(api)))
@@ -7744,26 +7779,32 @@ def _run_oauth_flow(client_id, client_secret, scopes, login_hint, access_type):
   kwargs = {'access_type': access_type}
   if login_hint:
     kwargs['login_hint'] = login_hint
-  try:
-    if GC.Values[GC.NO_BROWSER]:
-      GM.Globals[GM.GAM_OAUTH_URL_TXT] = os.path.join(GM.Globals[GM.GAM_PATH], FN_GAM_OAUTH_URL_TXT)
-      kwargs['auth_url_callback'] = writeGAMOauthURLfile
-      flow.run_console(
-        authorization_prompt_message=Msg.OAUTH2_GO_TO_LINK_MESSAGE.format(Msg.THE_LINK_MAY_BE_COPIED_FROM_THE_FILE_RATHER_THAN_THE_SCREEN.format(GM.Globals[GM.GAM_OAUTH_URL_TXT])),
-        authorization_code_message=Msg.ENTER_VERIFICATION_CODE,
-        **kwargs)
-      deleteFile(GM.Globals[GM.GAM_OAUTH_URL_TXT], continueOnError=True, displayError=True)
-    else:
-      flow.run_local_server(
-        authorization_prompt_message=Msg.OAUTH2_BROWSER_OPENED_MESSAGE,
-        success_message=Msg.AUTHENTICATION_FLOW_COMPLETE,
-        **kwargs)
-    return flow.credentials
-  except Exception as e:
-    stderrErrorMsg(Msg.AUTHENTICATION_FLOW_FAILED.format(str(e)))
-    if GC.Values[GC.NO_BROWSER]:
-      deleteFile(GM.Globals[GM.GAM_OAUTH_URL_TXT], continueOnError=True, displayError=True)
-    systemErrorExit(SCOPES_NOT_AUTHORIZED_RC, None)
+  noBrowser = GC.Values[GC.NO_BROWSER]
+  while True:
+    try:
+      if noBrowser:
+        GM.Globals[GM.GAM_OAUTH_URL_TXT] = os.path.join(GM.Globals[GM.GAM_PATH], FN_GAM_OAUTH_URL_TXT)
+        kwargs['auth_url_callback'] = writeGAMOauthURLfile
+        flow.run_console(
+          authorization_prompt_message=Msg.OAUTH2_GO_TO_LINK_MESSAGE.format(Msg.THE_LINK_MAY_BE_COPIED_FROM_THE_FILE_RATHER_THAN_THE_SCREEN.format(GM.Globals[GM.GAM_OAUTH_URL_TXT])),
+          authorization_code_message=Msg.ENTER_VERIFICATION_CODE,
+          **kwargs)
+        deleteFile(GM.Globals[GM.GAM_OAUTH_URL_TXT], continueOnError=True, displayError=True)
+      else:
+        flow.run_local_server(
+          authorization_prompt_message=Msg.OAUTH2_BROWSER_OPENED_MESSAGE,
+          success_message=Msg.AUTHENTICATION_FLOW_COMPLETE,
+          **kwargs)
+      return flow.credentials
+    except Exception as e:
+      stderrErrorMsg(Msg.AUTHENTICATION_FLOW_FAILED.format(str(e)))
+      if noBrowser:
+        deleteFile(GM.Globals[GM.GAM_OAUTH_URL_TXT], continueOnError=True, displayError=True)
+      elif 'Address already in use' in str(e):
+        writeStderr(Msg.WILL_RERUN_WITH_NO_BROWSER_TRUE)
+        noBrowser = True
+        continue
+      systemErrorExit(SCOPES_NOT_AUTHORIZED_RC, None)
 
 def doOAuthRequest(currentScopes, login_hint, verifyScopes=False):
   client_id, client_secret = getOAuthClientIDAndSecret()
@@ -7949,10 +7990,10 @@ def doOAuthUpdate():
         writeFile(backup, jsonData)
       import1Credentials = json.loads(base64.b64decode(jsonDict['credentials'][API.FAM1_SCOPES]).decode('utf-8'))
       import2Credentials = json.loads(base64.b64decode(jsonDict['credentials'][API.FAM2_SCOPES]).decode('utf-8'))
-      currentScopes = list(import1Credentials['scopes'].union(import2Credentials['scopes']))
+      currentScopes = list(set(import1Credentials['scopes']).union(set(import2Credentials['scopes'])))
     else:
       currentScopes = []
-  except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
+  except (AttributeError, IndexError, KeyError, SyntaxError, TypeError, ValueError):
     invalidOauth2TxtExit()
   if not doOAuthRequest(currentScopes, login_hint, verifyScopes=True):
     entityActionNotPerformedWarning([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]], Msg.USER_CANCELLED)
@@ -16825,6 +16866,718 @@ def doPrintCrOSEntity(entityList):
   else:
     doPrintCrOSActivity(entityList)
 
+# Device command utilities
+def buildGAPICIDeviceServiceObject():
+  _, ci = buildGAPIServiceObject(API.CLOUDIDENTITY_DEVICES, _getAdminEmail(), displayError=True)
+  return ci
+
+def _getCIDeviceCustomerID():
+  customer = GC.Values[GC.CUSTOMER_ID]
+  if customer.startswith('C'):
+    customer = customer[1:]
+  return f'customers/{customer}'
+
+def getUpdateDeleteCIDeviceOptions(entityType, count, action, doit, actionChoices):
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if not action and myarg == 'action':
+      action = getChoice(actionChoices)
+    elif myarg == 'doit':
+      doit = True
+    else:
+      unknownArgumentExit()
+  if not action:
+    actionNotPerformedNumItemsWarning(count, entityType, Msg.NO_ACTION_SPECIFIED)
+    sys.exit(GM.Globals[GM.SYSEXITRC])
+  if not doit:
+    actionNotPerformedNumItemsWarning(count, entityType, Msg.USE_DOIT_ARGUMENT_TO_PERFORM_ACTION)
+    sys.exit(GM.Globals[GM.SYSEXITRC])
+  return action
+
+def getCIDeviceEntity():
+  ci = buildGAPICIDeviceServiceObject()
+  customer = _getCIDeviceCustomerID()
+  if checkArgumentPresent('devicesn'):
+    query = f'serial:{getString(Cmd.OB_SERIAL_NUMBER)}'
+  elif checkArgumentPresent('query'):
+    query = getString(Cmd.OB_QUERY)
+  else:
+    name = getString(Cmd.OB_DEVICE_ENTITY)
+    if name[:6].lower() == 'query:':
+      query = name[6:]
+    else:
+      if name.lower() in {'id', 'name'}:
+        name = getString(Cmd.OB_DEVICE_ID)
+      if not name.startswith('devices/'):
+        name = f'devices/{name}'
+      return ([{'name': name}], ci, customer, True)
+  printGettingAllAccountEntities(Ent.DEVICE, query)
+  pageMessage = getPageMessage()
+  try:
+    devices = callGAPIpages(ci.devices(), 'list', 'devices',
+                            throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED],
+                            pageMessage=pageMessage,
+                            customer=customer, filter=query,
+                            fields='nextPageToken,devices(name)', pageSize=100)
+    return (devices, ci, customer, False)
+  except GAPI.invalid:
+    Cmd.Backup()
+    usageErrorExit(Msg.INVALID_QUERY)
+  except GAPI.permissionDenied as e:
+    entityActionFailedWarning([Ent.DEVICE, None], str(e))
+    return ([], ci, customer, False)
+
+DEVICE_USERNAME_PATTERN = re.compile(r'^(devices/.+)/(deviceUsers/.+)$')
+DEVICE_USERNAME_FORMAT_REQUIRED = 'devices/<String>/deviceUsers/<String>'
+def getCIDeviceUserEntity():
+  ci = buildGAPICIDeviceServiceObject()
+  customer = _getCIDeviceCustomerID()
+  if checkArgumentPresent('query'):
+    query = getString(Cmd.OB_QUERY)
+  else:
+    name = getString(Cmd.OB_DEVICE_USER_ENTITY)
+    if name[:6].lower() == 'query:':
+      query = name[6:]
+    else:
+      if name.lower() in {'id', 'name'}:
+        name = getString(Cmd.OB_DEVICE_USER_ID)
+      if DEVICE_USERNAME_PATTERN.match(name):
+        return ([{'name': name}], ci, customer, True)
+      Cmd.Backup()
+      invalidArgumentExit(DEVICE_USERNAME_FORMAT_REQUIRED)
+  printGettingAllAccountEntities(Ent.DEVICE_USER, query)
+  pageMessage = getPageMessage()
+  try:
+    deviceUsers = callGAPIpages(ci.devices().deviceUsers(), 'list', 'deviceUsers',
+                                throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED],
+                                pageMessage=pageMessage,
+                                customer=customer, filter=query, parent='devices/-',
+                                fields='nextPageToken,deviceUsers(name)', pageSize=20)
+    return (deviceUsers, ci, customer, False)
+  except GAPI.invalid:
+    Cmd.Backup()
+    usageErrorExit(Msg.INVALID_QUERY)
+  except GAPI.permissionDenied as e:
+    entityActionFailedWarning([Ent.DEVICE_USER, None], str(e))
+    return ([], ci, customer, False)
+
+def _makeDeviceId(name, device):
+  deviceId = f'{name}'
+  for field in ['deviceType', 'serialNumber', 'assetTag']:
+    if field in device:
+      deviceId += f', {field}: {device[field]}'
+  return deviceId
+
+DEVICE_TYPE_MAP = {
+  'android': 'ANDROID',
+  'chromeos': 'CHROME_OS',
+  'googlesync': 'GOOGLE_SYNC',
+  'ios': 'IOS',
+  'linux': 'LINUX',
+  'macos': 'MAC_OS',
+  'windows': 'WINDOWS'
+  }
+
+DEVICE_TIME_OBJECTS = {'createTime', 'firstSyncTime', 'lastSyncTime', 'securityPatchTime'}
+
+# gam create device serialnumber <String> devicetype <DeviceType> [assettag <String>]
+def doCreateCIDevice():
+  ci = buildGAPICIDeviceServiceObject()
+  customer = _getCIDeviceCustomerID()
+  body = {'deviceType': '', 'serialNumber': ''}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'serialnumber':
+      body['serialNumber'] = getString(Cmd.OB_STRING)
+    elif myarg == 'devicetype':
+      body['deviceType'] = getChoice(DEVICE_TYPE_MAP, mapChoice=True)
+    elif myarg in {'assettag', 'assteid'}:
+      body['assetTag'] = getString(Cmd.OB_STRING)
+    else:
+      unknownArgumentExit()
+  if not body['serialNumber']:
+    missingArgumentExit('serialnumber')
+  if not body['deviceType']:
+    missingArgumentExit('devicetype')
+  try:
+    result = callGAPI(ci.devices(), 'create',
+                      throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED, GAPI.DUPLICATE],
+                      customer=customer, body=body, fields='name')
+    deviceId = _makeDeviceId(f'{result["response"]["name"]}', body)
+    entityActionPerformed([Ent.COMPANY_DEVICE, deviceId])
+  except (GAPI.invalid, GAPI.permissionDenied, GAPI.duplicate) as e:
+    deviceId = _makeDeviceId('/devices/???', body)
+    entityActionFailedWarning([Ent.COMPANY_DEVICE, deviceId], str(e))
+
+DEVICE_ACTION_CHOICES = {'cancelwipe', 'wipe'}
+
+def _performCIDeviceAction(action):
+  entityList, ci, customer, doit = getCIDeviceEntity()
+  count = len(entityList)
+  action = getUpdateDeleteCIDeviceOptions(Ent.DEVICE, count, action, doit, DEVICE_ACTION_CHOICES)
+  if action == 'delete':
+    kwargs = {'customer': customer}
+  else:
+    kwargs = {'body': {'customer': customer}}
+  i = 0
+  for device in entityList:
+    i += 1
+    name = device['name']
+    try:
+      result = callGAPI(ci.devices(), action,
+                        bailOnInternalError=True,
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED],
+                        name=name, **kwargs)
+      if result['done']:
+        if 'error' not in result:
+          entityActionPerformed([Ent.DEVICE, name], i, count)
+        else:
+          entityActionFailedWarning([Ent.DEVICE, name], result['error']['message'], i, count)
+      else:
+        entityActionPerformedMessage([Ent.DEVICE, name], Msg.ACTION_IN_PROGRESS.format(action), i, count)
+      showJSON(None, result, timeObjects=DEVICE_TIME_OBJECTS)
+    except GAPI.notFound:
+      entityUnknownWarning(Ent.DEVICE, f'{name}', i, count)
+    except (GAPI.invalid, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
+      entityActionFailedWarning([Ent.DEVICE, f'{name}'], str(e), i, count)
+
+# gam delete device <DeviceEntity> [doit]
+def doDeleteCIDevice():
+  _performCIDeviceAction('delete')
+
+# gam cancelwipe device <DeviceEntity> [doit]
+def doCancelWipeCIDevice():
+  _performCIDeviceAction('cancelWipe')
+
+# gam wipe device <DeviceEntity> [doit]
+def doWipeCIDevice():
+  _performCIDeviceAction('wipe')
+
+# gam update device <DeviceEntity> action <DeviceAction> [doit]
+def doUpdateCIDevice():
+  _performCIDeviceAction(None)
+
+DEVICE_MISSING_ACTION_MAP = {
+  'delete': 'delete',
+  'wipe': 'wipe',
+  'donothing': 'none',
+  'none': 'none',
+  }
+
+# gam sync devices
+#	[(query <QueryDevice>)|(queries <QueryDeviceList>) (querytime.* <Time>)*]
+#	csvfile <FileName>
+#	(devicetype_column <String>)|(static_devicetype <DeviceType>)
+#	(serialnumber_column <String>)
+#	[assettag_column <String>]
+#	[unassigned_missing_action delete|wipe|none|donothing]
+#	[assigned_missing_action delete|wipe|none|donothing]
+#	[preview]
+def doSyncCIDevices():
+  ci = buildGAPICIDeviceServiceObject()
+  customer = _getCIDeviceCustomerID()
+  queryTimes = {}
+  queries = [None]
+  filename = None
+  serialNumberColumn = 'serialNumber'
+  deviceTypeColumn = 'deviceType'
+  assetTagColumn = None
+  staticDeviceType = None
+  fieldsList = ['serialNumber', 'deviceType', 'lastSyncTime', 'name']
+  unassignedMissingAction = 'delete'
+  assignedMissingAction = 'donothing'
+  preview = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg in ['filter', 'filters', 'query', 'queries']:
+      queries = getQueries(myarg)
+    elif myarg.startswith('querytime'):
+      queryTimes[myarg] = getTimeOrDeltaFromNow()[0:19]
+    elif myarg == 'csvfile':
+      filename = getString(Cmd.OB_STRING)
+    elif myarg == 'serialNumberColumn':
+      serialNumberColumn = getString(Cmd.OB_STRING)
+    elif myarg == 'devicetypecolumn':
+      deviceTypeColumn = getString(Cmd.OB_STRING)
+    elif myarg in {'assettagcolumn', 'assetidcolumn'}:
+      assetTagColumn = getString(Cmd.OB_STRING)
+      fieldsList.append('assetTag')
+    elif myarg == 'staticdevicetype':
+      staticDeviceType = getChoice(DEVICE_TYPE_MAP, mapChoice=True)
+    elif myarg == 'unassignedmissingaction':
+      unassignedMissingAction = getChoice(DEVICE_MISSING_ACTION_MAP, mapChoice=True)
+    elif myarg == 'assignedmissingaction':
+      assignedMissingAction = getChoice(DEVICE_MISSING_ACTION_MAP, mapChoice=True)
+    elif myarg == 'preview':
+      preview = True
+    else:
+      unknownArgumentExit()
+  if not filename:
+    missingArgumentExit('csvfile')
+  f, csvFile, fieldnames = openCSVFileReader(filename)
+  if serialNumberColumn not in fieldnames:
+    csvFieldErrorExit(serialNumberColumn, fieldnames)
+  if not staticDeviceType and deviceTypeColumn not in fieldnames:
+    csvFieldErrorExit(deviceTypeColumn, fieldnames)
+  if assetTagColumn and assetTagColumn not in fieldnames:
+    csvFieldErrorExit(assetTagColumn, fieldnames)
+  localDevices = []
+  for row in csvFile:
+    # upper() is very important to comparison since Google
+    # always return uppercase serials
+    localDevice = {'serialNumber': row[serialNumberColumn].strip().upper()}
+    if staticDeviceType:
+      localDevice['deviceType'] = staticDeviceType
+    else:
+      localDevice['deviceType'] = row[deviceTypeColumn].strip()
+    if assetTagColumn:
+      localDevice['assetTag'] = row[assetTagColumn].strip()
+    localDevices.append(localDevice)
+  closeFile(f)
+  fields = f'nextPageToken,devices({",".join(fieldsList)})'
+  remoteDevices = []
+  for query in queries:
+    if queryTimes and query is not None:
+      for queryTimeName, queryTimeValue in iter(queryTimes.items()):
+        query = query.replace(f'#{queryTimeName}#', queryTimeValue)
+    printGettingAllAccountEntities(Ent.COMPANY_DEVICE, query)
+    pageMessage = getPageMessage()
+    try:
+      remoteDevices += callGAPIpages(ci.devices(), 'list', 'devices',
+                                     throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED],
+                                     pageMessage=pageMessage,
+                                     customer=customer, filter=query, view='COMPANY_INVENTORY',
+                                     fields=fields, pageSize=100)
+    except (GAPI.invalid, GAPI.permissionDenied) as e:
+      entityActionFailedWarning([Ent.COMPANY_DEVICE, None], str(e))
+      return
+  remoteDeviceMap = {}
+  for remoteDevice in remoteDevices:
+    sn = remoteDevice['serialNumber']
+    last_sync = remoteDevice.pop('lastSyncTime', NEVER_TIME_NOMS)
+    name = remoteDevice.pop('name')
+    remoteDeviceMap[sn] = {'name': name}
+    if last_sync == NEVER_TIME_NOMS:
+      remoteDeviceMap[sn]['unassigned'] = True
+  devicesToAdd = [device for device in localDevices if device not in remoteDevices]
+  missingDevices = [device for device in remoteDevices if device not in localDevices]
+  Act.Set([Act.CREATE, Act.CREATE_PREVIEW][preview])
+  count = len(devicesToAdd)
+  performActionNumItems(count, Ent.COMPANY_DEVICE)
+  i = 0
+  for device in devicesToAdd:
+    i += 1
+    try:
+      if not preview:
+        result = callGAPI(ci.devices(), 'create',
+                          throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED, GAPI.DUPLICATE],
+                          customer=customer, body=device, fields='name')
+        deviceId = _makeDeviceId(f'{result["response"]["name"]}', device)
+      else:
+        deviceId = _makeDeviceId('/devices/???', device)
+      entityActionPerformed([Ent.COMPANY_DEVICE, deviceId], i, count)
+    except (GAPI.invalid, GAPI.permissionDenied, GAPI.duplicate) as e:
+      deviceId = _makeDeviceId('/devices/???', device)
+      entityActionFailedWarning([Ent.COMPANY_DEVICE, deviceId], str(e), i, count)
+  Act.Set([Act.PROCESS, Act.PROCESS_PREVIEW][preview])
+  count = len(missingDevices)
+  performActionNumItems(count, Ent.COMPANY_DEVICE)
+  i = 0
+  for device in missingDevices:
+    i += 1
+    sn = device['serialNumber']
+    name = remoteDeviceMap[sn]['name']
+    deviceId = _makeDeviceId(f'{name}', device)
+    unassigned = remoteDeviceMap[sn].get('unassigned')
+    action = unassignedMissingAction if unassigned else assignedMissingAction
+    if action == 'none':
+      Act.Set([Act.NOACTION, Act.NOACTION_PREVIEW][preview])
+      entityActionPerformed([Ent.COMPANY_DEVICE, deviceId], i, count)
+      continue
+    if action == 'delete':
+      Act.Set([Act.DELETE, Act.DELETE_PREVIEW][preview])
+      kwargs = {'customer': customer}
+    else:
+      Act.Set([Act.WIPE, Act.WIPE_PREVIEW][preview])
+      kwargs = {'body': {'customer': customer}}
+    try:
+      if not preview:
+        result = callGAPI(ci.devices(), action,
+                          bailOnInternalError=True,
+                          throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED],
+                          name=name, **kwargs)
+      else:
+        result = {'done': True}
+      if result['done']:
+        if 'error' not in result:
+          entityActionPerformed([Ent.COMPANY_DEVICE, deviceId], i, count)
+        else:
+          entityActionFailedWarning([Ent.COMPANY_DEVICE, deviceId], result['error']['message'], i, count)
+      else:
+        entityActionPerformedMessage([Ent.COMPANY_DEVICE, deviceId], Msg.ACTION_IN_PROGRESS.format(action), i, count)
+    except GAPI.notFound:
+      entityUnknownWarning(Ent.COMPANY_DEVICE, deviceId, i, count)
+    except (GAPI.invalid, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
+      entityActionFailedWarning([Ent.COMPANY_DEVICE, deviceId], str(e), i, count)
+
+DEVICE_FIELDS_CHOICE_MAP = {
+  'androidspecificattributes': 'androidSpecificAttributes',
+  'assettag': 'assetTag',
+  'basebandversion': 'basebandVersion',
+  'bootloaderversion': 'bootloaderVersion',
+  'brand': 'brand',
+  'buildnumber': 'buildNumber',
+  'compromisedstate': 'compromisedState',
+  'createtime': 'createTime',
+  'devicetype': 'deviceType',
+  'enableddeveloperoptions': 'enabledDeveloperOptions',
+  'enabledusbdebugging': 'enabledUsbDebugging',
+  'encryptionstate': 'encryptionState',
+  'imei': 'imei',
+  'kernelversion': 'kernelVersion',
+  'lastsynctime': 'lastSyncTime',
+  'managementstate': 'managementState',
+  'manufacturer': 'manufacturer',
+  'meid': 'meid',
+  'model': 'model',
+  'name': 'name',
+  'networkoperator': 'networkOperator',
+  'osversion': 'osVersion',
+  'otheraccounts': 'otherAccounts',
+  'ownertype': 'ownerType',
+  'releaseversion': 'releaseVersion',
+  'securitypatchtime': 'securityPatchTime',
+  'serialnumber': 'serialNumber',
+  'wifimacaddresses': 'wifiMacAddresses'
+  }
+
+DEVICEUSER_FIELDS_CHOICE_MAP = {
+  'compromisedstate': 'compromisedState',
+  'createtime': 'createTime',
+  'firstsynctime': 'firstSyncTime',
+  'languagecode': 'languageCode',
+  'lastsynctime': 'lastSyncTime',
+  'managementstate': 'managementState',
+  'name': 'name',
+  'passwordstate': 'passwordState',
+  'useragent': 'userAgent',
+  'useremail': 'userEmail',
+  }
+
+# gam info device <DeviceEntity>
+#	<DeviceFieldName>* [fields <DevieFieldNameList>] [userfields <DeviceUserFieldNameList>]
+#	[nodeviceusers]
+#	[formatjson]
+def doInfoCIDevice():
+  entityList, ci, customer, _ = getCIDeviceEntity()
+  FJQC = FormatJSONQuoteChar()
+  fieldsList = []
+  userFieldsList = []
+  getDeviceUsers = True
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if getFieldsList(myarg, DEVICE_FIELDS_CHOICE_MAP, fieldsList, initialField='name'):
+      pass
+    elif getFieldsList(myarg, DEVICEUSER_FIELDS_CHOICE_MAP, userFieldsList, initialField='name', fieldsArg='userfields'):
+      pass
+    elif myarg == 'nodeviceusers':
+      getDeviceUsers = False
+    else:
+      FJQC.GetFormatJSON(myarg)
+  fields = getFieldsFromFieldsList(fieldsList)
+  userFields = getFieldsFromFieldsList(userFieldsList)
+  i = 0
+  count = len(entityList)
+  for device in entityList:
+    i += 1
+    name = device['name']
+    try:
+      device = callGAPI(ci.devices(), 'get',
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.PERMISSION_DENIED],
+                        name=name, customer=customer, fields=fields)
+      if getDeviceUsers:
+        device_users = callGAPIpages(ci.devices().deviceUsers(), 'list', 'deviceUsers',
+                                     throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED],
+                                     parent=name, customer=customer, fields=userFields)
+      else:
+        device_users = []
+      if FJQC.formatJSON:
+        if getDeviceUsers:
+          device['users'] = device_users
+        printLine(json.dumps(cleanJSON(device, timeObjects=DEVICE_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+      else:
+        printEntity([Ent.DEVICE, device.pop('name')])
+        Ind.Increment()
+        showJSON(None, device, timeObjects=DEVICE_TIME_OBJECTS)
+        count = len(device_users)
+        i = 0
+        for device_user in device_users:
+          i += 1
+          printEntity([Ent.DEVICE_USER, device_user.pop('name')], i, count)
+          Ind.Increment()
+          showJSON(None, device_user, timeObjects=DEVICE_TIME_OBJECTS)
+          Ind.Decrement()
+          Ind.Decrement()
+    except GAPI.notFound:
+      entityUnknownWarning(Ent.DEVICE, f'{name}')
+    except (GAPI.invalid, GAPI.permissionDenied) as e:
+      entityActionFailedWarning([Ent.DEVICE, f'{name}'], str(e))
+
+DEVICE_VIEW_CHOICE_MAP = {
+  'all': (None, Ent.DEVICE),
+  'company': ('COMPANY_INVENTORY', Ent.COMPANY_DEVICE),
+  'personal': ('USER_ASSIGNED_DEVICES', Ent.PERSONAL_DEVICE),
+  'nocompanydevices': ('USER_ASSIGNED_DEVICES', Ent.PERSONAL_DEVICE),
+  'nopersonaldevices': ('COMPANY_INVENTORY', Ent.COMPANY_DEVICE)
+  }
+DEVICE_ORDERBY_CHOICE_MAP = {
+  'createtime': 'create_time',
+  'devicetype': 'device_type',
+  'lastsynctime': 'last_sync_time',
+  'model': 'model',
+  'osversion': 'os_version',
+  'serialnumber': 'serial_number'
+  }
+
+# gam print devices [todrive <ToDriveAttribute>*]
+#	[(query <QueryDevice>)|(queries <QueryDeviceList>) (querytime.* <Time>)*]
+#	<DeviceFieldName>* [fields <DeviceFieldNameList>] [userfields <DeviceUserFieldNameList>]
+#	[orderby <DeviceOrderByFieldName> [ascending|descending]]
+#	[all|company|personal|nocompanydevices|nopersonaldevices]
+#	[nodeviceusers]
+#	[formatjson [quotechar <Character>]]
+def doPrintCIDevices():
+  ci = buildGAPICIDeviceServiceObject()
+  customer = _getCIDeviceCustomerID()
+  parent = 'devices/-'
+  csvPF = CSVPrintFile(['name'], 'sortall') if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  OBY = OrderBy(DEVICE_ORDERBY_CHOICE_MAP)
+  fieldsList = []
+  userFieldsList = []
+  queryTimes = {}
+  queries = [None]
+  view, entityType = DEVICE_VIEW_CHOICE_MAP['all']
+  getDeviceUsers = True
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg in ['filter', 'filters', 'query', 'queries']:
+      queries = getQueries(myarg)
+    elif myarg.startswith('querytime'):
+      queryTimes[myarg] = getTimeOrDeltaFromNow()[0:19]
+    elif myarg == 'orderby':
+      OBY.GetChoice()
+    elif myarg in DEVICE_VIEW_CHOICE_MAP:
+      view, entityType = DEVICE_VIEW_CHOICE_MAP[myarg]
+    elif myarg == 'nodeviceusers':
+      getDeviceUsers = False
+    elif getFieldsList(myarg, DEVICE_FIELDS_CHOICE_MAP, fieldsList, initialField='name'):
+      pass
+    elif getFieldsList(myarg, DEVICEUSER_FIELDS_CHOICE_MAP, userFieldsList, initialField='name', fieldsArg='userfields'):
+      pass
+    elif myarg == 'sortheaders':
+      pass
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  fields = getItemFieldsFromFieldsList('devices', fieldsList)
+  userFields = getItemFieldsFromFieldsList('deviceUsers', userFieldsList)
+  for query in queries:
+    if queryTimes and query is not None:
+      for queryTimeName, queryTimeValue in iter(queryTimes.items()):
+        query = query.replace(f'#{queryTimeName}#', queryTimeValue)
+    devices = []
+    printGettingAllAccountEntities(entityType, query)
+    pageMessage = getPageMessage()
+    try:
+      devices += callGAPIpages(ci.devices(), 'list', 'devices',
+                               throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED],
+                               pageMessage=pageMessage,
+                               customer=customer, filter=query,
+                               orderBy=OBY.orderBy, view=view, fields=fields, pageSize=100)
+    except (GAPI.invalid, GAPI.permissionDenied) as e:
+      entityActionFailedWarning([entityType, None], str(e))
+      continue
+    if getDeviceUsers:
+      deviceDict = {}
+      for device in devices:
+        deviceDict[device['name']] = device
+      printGettingAllAccountEntities(Ent.DEVICE_USER, query)
+      pageMessage = getPageMessage()
+      try:
+        deviceUsers = callGAPIpages(ci.devices().deviceUsers(), 'list', 'deviceUsers',
+                                    throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED],
+                                    pageMessage=pageMessage,
+                                    customer=customer, filter=query, parent=parent,
+                                    fields=userFields, pageSize=20)
+        for deviceUser in deviceUsers:
+          mg = DEVICE_USERNAME_PATTERN.match(deviceUser['name'])
+          if mg:
+            deviceName = mg.group(1)
+            if deviceName in deviceDict:
+              deviceDict[deviceName].setdefault('users', [])
+              deviceDict[deviceName]['users'].append(deviceUser)
+      except (GAPI.invalid, GAPI.permissionDenied) as e:
+        entityActionFailedWarning([entityType, None], str(e))
+    if not FJQC.formatJSON:
+      for device in devices:
+        csvPF.WriteRowTitles(flattenJSON(device, timeObjects=DEVICE_TIME_OBJECTS))
+    else:
+      for device in devices:
+        if not csvPF.rowFilter or csvPF.CheckRowTitles(flattenJSON(device, timeObjects=DEVICE_TIME_OBJECTS)):
+          csvPF.WriteRow({'name': device['name'],
+                          'JSON': json.dumps(cleanJSON(device, timeObjects=DEVICE_TIME_OBJECTS),
+                                             ensure_ascii=False, sort_keys=True)})
+  csvPF.writeCSVfile('Devices')
+
+DEVICE_USER_ACTION_CHOICES = {'approve', 'block', 'cancelwipe', 'wipe'}
+
+def _performCIDeviceUserAction(action):
+  entityList, ci, customer, doit = getCIDeviceUserEntity()
+  count = len(entityList)
+  action = getUpdateDeleteCIDeviceOptions(Ent.DEVICE_USER, count, action, doit, DEVICE_USER_ACTION_CHOICES)
+  if action == 'delete':
+    kwargs = {'customer': customer}
+  else:
+    kwargs = {'body': {'customer': customer}}
+  i = 0
+  for deviceUser in entityList:
+    i += 1
+    name = deviceUser['name']
+    try:
+      result = callGAPI(ci.devices().deviceUsers(), action,
+                        bailOnInternalError=True,
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED],
+                        name=name, **kwargs)
+      if result['done']:
+        if 'error' not in result:
+          entityActionPerformed([Ent.DEVICE_USER, name], i, count)
+        else:
+          entityActionFailedWarning([Ent.DEVICE_USER, name], result['error']['message'], i, count)
+      else:
+        entityActionPerformedMessage([Ent.DEVICE_USER, name], Msg.ACTION_IN_PROGRESS.format(action), i, count)
+      showJSON(None, result, timeObjects=DEVICE_TIME_OBJECTS)
+    except GAPI.notFound:
+      entityUnknownWarning(Ent.DEVICE_USER, f'{name}', i, count)
+    except (GAPI.invalid, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
+      entityActionFailedWarning([Ent.DEVICE_USER, f'{name}'], str(e), i, count)
+
+# gam approve deviceuser <DeviceUserEntity> [doit]
+def doApproveCIDeviceUser():
+  _performCIDeviceUserAction('approve')
+
+# gam block deviceuser <DeviceUserEntity> [doit]
+def doBlockCIDeviceUser():
+  _performCIDeviceUserAction('block')
+
+# gam delete deviceuser <DeviceUserEntity> [doit]
+def doDeleteCIDeviceUser():
+  _performCIDeviceUserAction('delete')
+
+# gam cancelwipe deviceuser <DeviceUserEntity> [doit]
+def doCancelWipeCIDeviceUser():
+  _performCIDeviceUserAction('cancelWipe')
+
+# gam wipe deviceuser <DeviceUserEntity> [doit]
+def doWipeCIDeviceUser():
+  _performCIDeviceUserAction('wipe')
+
+# gam update device <DeviceUserEntity> action <DeviceUserAction> [doit]
+def doUpdateCIDeviceUser():
+  _performCIDeviceUserAction(None)
+
+# gam info deviceuser <DeviceUserEntity>
+#	<DeviceUserFieldName>* [fields <DevieUserFieldNameList>]
+#	[formatjson]
+def doInfoCIDeviceUser():
+  entityList, ci, customer, _ = getCIDeviceUserEntity()
+  FJQC = FormatJSONQuoteChar()
+  userFieldsList = []
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if getFieldsList(myarg, DEVICE_FIELDS_CHOICE_MAP, userFieldsList, initialField='name'):
+      pass
+    else:
+      FJQC.GetFormatJSON(myarg)
+  userFields = getFieldsFromFieldsList(userFieldsList)
+  i = 0
+  count = len(entityList)
+  for deviceUser in entityList:
+    i += 1
+    name = deviceUser['name']
+    try:
+      deviceUser = callGAPI(ci.devices().deviceUsers(), 'get',
+                            throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.PERMISSION_DENIED],
+                            name=name, customer=customer, fields=userFields)
+      if FJQC.formatJSON:
+        printLine(json.dumps(cleanJSON(deviceUser, timeObjects=DEVICE_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+      else:
+        printEntity([Ent.DEVICE_USER, deviceUser.pop('name')], i, count)
+        Ind.Increment()
+        showJSON(None, deviceUser, timeObjects=DEVICE_TIME_OBJECTS)
+        Ind.Decrement()
+    except GAPI.notFound:
+      entityUnknownWarning(Ent.DEVICE_USER, f'{name}', i, count)
+    except (GAPI.invalid, GAPI.permissionDenied) as e:
+      entityActionFailedWarning([Ent.DEVICE_USER, f'{name}'], str(e), i, count)
+
+# gam print deviceusers [todrive <ToDriveAttribute>*]
+#	[(query <QueryDevice>)|(queries <QueryDeviceList>) (querytime.* <Time>)*]
+#	<DeviceUserFieldName>* [fields <DevieUserFieldNameList>]
+#	[orderby <DeviceOrderByFieldName> [ascending|descending]]
+#	[formatjson [quotechar <Character>]]
+def doPrintCIDeviceUsers():
+  ci = buildGAPICIDeviceServiceObject()
+  customer = _getCIDeviceCustomerID()
+  csvPF = CSVPrintFile(['name'], 'sortall') if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  OBY = OrderBy(DEVICE_ORDERBY_CHOICE_MAP)
+  fieldsList = []
+  queryTimes = {}
+  queries = [None]
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg in ['filter', 'filters', 'query', 'queries']:
+      queries = getQueries(myarg)
+    elif myarg.startswith('querytime'):
+      queryTimes[myarg] = getTimeOrDeltaFromNow()[0:19]
+    elif myarg == 'orderby':
+      OBY.GetChoice()
+    elif getFieldsList(myarg, DEVICEUSER_FIELDS_CHOICE_MAP, fieldsList, initialField='name'):
+      pass
+    elif myarg == 'sortheaders':
+      pass
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  fields = getItemFieldsFromFieldsList('deviceUsers', fieldsList)
+  for query in queries:
+    if queryTimes and query is not None:
+      for queryTimeName, queryTimeValue in iter(queryTimes.items()):
+        query = query.replace(f'#{queryTimeName}#', queryTimeValue)
+    printGettingAllAccountEntities(Ent.DEVICE_USER, query)
+    pageMessage = getPageMessage()
+    try:
+      deviceUsers = callGAPIpages(ci.devices().deviceUsers(), 'list', 'deviceUsers',
+                                  throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED],
+                                  pageMessage=pageMessage,
+                                  customer=customer, filter=query,
+                                  orderBy=OBY.orderBy, parent='devices/-', fields=fields, pageSize=20)
+      if not FJQC.formatJSON:
+        for deviceUser in deviceUsers:
+          csvPF.WriteRowTitles(flattenJSON(deviceUser, timeObjects=DEVICE_TIME_OBJECTS))
+      else:
+        for deviceUser in deviceUsers:
+          if not csvPF.rowFilter or csvPF.CheckRowTitles(flattenJSON(deviceUser, timeObjects=DEVICE_TIME_OBJECTS)):
+            csvPF.WriteRow({'name': deviceUser['name'],
+                            'JSON': json.dumps(cleanJSON(deviceUser, timeObjects=DEVICE_TIME_OBJECTS),
+                                               ensure_ascii=False, sort_keys=True)})
+    except (GAPI.invalid, GAPI.permissionDenied) as e:
+      entityActionFailedWarning([Ent.DEVICE_USER, None], str(e))
+  csvPF.writeCSVfile('Device Users')
+
 # Mobile command utilities
 MOBILE_ACTION_CHOICE_MAP = {
   'accountwipe': 'admin_account_wipe',
@@ -17062,8 +17815,8 @@ MOBILE_ORDERBY_CHOICE_MAP = {
   'type': 'type',
   }
 
-# gam print mobile [todrive <ToDriveAttribute>*] [(query <QueryMobile>)|(queries <QueryMobileList>)]
-#	[querytime.* <Time>]
+# gam print mobile [todrive <ToDriveAttribute>*]
+#	[(query <QueryMobile>)|(queries <QueryMobileList>) [querytime.* <Time>]]
 #	[orderby <MobileOrderByFieldName> [ascending|descending]]
 #	[basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>]
 #	[delimiter <Character>] [appslimit <Number>] [oneappperrow] [listlimit <Number>]
@@ -17519,7 +18272,7 @@ GROUP_PREVIEW_TITLES = ['group', 'email', 'role', 'action', 'message']
 
 # gam update groups <GroupEntity> [email <EmailAddress>]
 #	[copyfrom <GroupItem>] <GroupAttribute>*
-#	[makesecuritygroup]
+#	[makesecuritygroup|security]
 #	[admincreated <Boolean>]
 # gam update groups <GroupEntity> create|add [<GroupRole>]
 #	[usersonly|groupsonly] [notsuspended|suspended]
@@ -17924,7 +18677,7 @@ def doUpdateGroups():
         body['email'] = getEmailAddress(noUid=True)
       elif myarg == 'admincreated':
         body['adminCreated'] = getBoolean()
-      elif myarg == 'makesecuritygroup':
+      elif myarg in {'security', 'makesecuritygroup'}:
         ci_body['labels'] = {'cloudidentity.googleapis.com/groups.discussion_forum': '',
                              'cloudidentity.googleapis.com/groups.security': ''}
       elif myarg == 'getbeforeupdate':
@@ -18428,7 +19181,7 @@ def infoGroups(entityList):
       initGroupFieldsLists()
       for field in GROUP_FIELDS_CHOICE_MAP:
         addFieldToFieldsList(field, GROUP_FIELDS_CHOICE_MAP, groupFieldsLists['cd'])
-    elif myarg == 'ciallfields':
+    elif myarg in {'ciallfields', 'allcifields'}:
       if not groupFieldsLists['ci']:
         groupFieldsLists['ci'] = []
       for field in CIGROUP_FIELDS_CHOICE_MAP:
@@ -18995,7 +19748,7 @@ def doPrintGroups():
       sortHeaders = True
       for field in GROUP_FIELDS_CHOICE_MAP:
         csvPF.AddField(field, GROUP_FIELDS_CHOICE_MAP, groupFieldsLists['cd'])
-    elif myarg == 'ciallfields':
+    elif myarg in {'ciallfields', 'allcifields'}:
       sortHeaders = True
       groupFieldsLists['ci'] = []
       for field in CIGROUP_FIELDS_CHOICE_MAP:
@@ -46574,6 +47327,7 @@ MAIN_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_CONTACT:	doCreateDomainContact,
   Cmd.ARG_COURSE:	doCreateCourse,
   Cmd.ARG_DATATRANSFER:	doCreateDataTransfer,
+  Cmd.ARG_DEVICE:	doCreateCIDevice,
   Cmd.ARG_DOMAIN:	doCreateDomain,
   Cmd.ARG_DOMAINALIAS:	doCreateDomainAlias,
   Cmd.ARG_DRIVEFILEACL:	doCreateDriveFileACL,
@@ -46602,7 +47356,10 @@ MAIN_ADD_CREATE_FUNCTIONS = {
 
 MAIN_COMMANDS_WITH_OBJECTS = {
   'add': (Act.ADD, MAIN_ADD_CREATE_FUNCTIONS),
+  'approve': (Act.APPROVE, {Cmd.ARG_DEVICEUSER: doApproveCIDeviceUser}),
+  'block': (Act.BLOCK, {Cmd.ARG_DEVICEUSER: doBlockCIDeviceUser}),
   'cancel': (Act.CANCEL, {Cmd.ARG_GUARDIANINVITATION: doCancelGuardianInvitation}),
+  'cancelwipe': (Act.CANCEL_WIPE, {Cmd.ARG_DEVICE: doCancelWipeCIDevice, Cmd.ARG_DEVICEUSER: doCancelWipeCIDeviceUser}),
   'check': (Act.CHECK, {Cmd.ARG_SVCACCT: doCheckUpdateSvcAcct}),
   'clear': (Act.CLEAR, {Cmd.ARG_CONTACT: doClearDomainContacts}),
   'close': (Act.CLOSE, {Cmd.ARG_VAULTMATTER: doCloseVaultMatter}),
@@ -46619,6 +47376,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CONTACTPHOTO:	doDeleteDomainContactPhoto,
       Cmd.ARG_COURSE:		doDeleteCourse,
       Cmd.ARG_COURSES:		doDeleteCourses,
+      Cmd.ARG_DEVICE:		doDeleteCIDevice,
+      Cmd.ARG_DEVICEUSER:	doDeleteCIDeviceUser,
       Cmd.ARG_DOMAIN:		doDeleteDomain,
       Cmd.ARG_DOMAINALIAS:	doDeleteDomainAlias,
       Cmd.ARG_DRIVEFILEACL:	doDeleteDriveFileACLs,
@@ -46660,6 +47419,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CROS:		doInfoCrOSDevices,
       Cmd.ARG_CUSTOMER:		doInfoCustomer,
       Cmd.ARG_DATATRANSFER:	doInfoDataTransfer,
+      Cmd.ARG_DEVICE:		doInfoCIDevice,
+      Cmd.ARG_DEVICEUSER:	doInfoCIDeviceUser,
       Cmd.ARG_DOMAIN:		doInfoDomain,
       Cmd.ARG_DOMAINALIAS:	doInfoDomainAlias,
       Cmd.ARG_DRIVEFILEACL:	doInfoDriveFileACLs,
@@ -46707,6 +47468,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CROS:		doPrintCrOSDevices,
       Cmd.ARG_CROSACTIVITY:	doPrintCrOSActivity,
       Cmd.ARG_DATATRANSFER:	doPrintShowDataTransfers,
+      Cmd.ARG_DEVICE:		doPrintCIDevices,
+      Cmd.ARG_DEVICEUSER:	doPrintCIDeviceUsers,
       Cmd.ARG_DOMAIN:		doPrintShowDomains,
       Cmd.ARG_DOMAINALIAS:	doPrintShowDomainAliases,
       Cmd.ARG_DRIVEFILEACL:	doPrintShowDriveFileACLs,
@@ -46791,6 +47554,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
      }
     ),
   'suspend': (Act.SUSPEND, {Cmd.ARG_USER: doSuspendUser, Cmd.ARG_USERS: doSuspendUsers}),
+  'sync': (Act.SYNC, {Cmd.ARG_DEVICE: doSyncCIDevices}),
   'unhide': (Act.UNHIDE, {Cmd.ARG_TEAMDRIVE: doHideUnhideTeamDrive}),
   'update':
     (Act.UPDATE,
@@ -46803,6 +47567,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_COURSES:		doUpdateCourses,
       Cmd.ARG_CROS:		doUpdateCrOSDevices,
       Cmd.ARG_CUSTOMER:		doUpdateCustomer,
+      Cmd.ARG_DEVICE:		doUpdateCIDevice,
+      Cmd.ARG_DEVICEUSER:	doUpdateCIDeviceUser,
       Cmd.ARG_DOMAIN:		doUpdateDomain,
       Cmd.ARG_DRIVEFILEACL:	doUpdateDriveFileACLs,
       Cmd.ARG_FEATURE:		doUpdateFeature,
@@ -46839,6 +47605,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
     ),
   'unsuspend': (Act.UNSUSPEND, {Cmd.ARG_USER: doUnsuspendUser, Cmd.ARG_USERS: doUnsuspendUsers}),
   'use': (Act.USE, {Cmd.ARG_PROJECT: doUseProject}),
+  'wipe': (Act.WIPE, {Cmd.ARG_DEVICE: doWipeCIDevice, Cmd.ARG_DEVICEUSER: doWipeCIDeviceUser}),
   }
 
 MAIN_COMMANDS_OBJ_ALIASES = {
@@ -46860,7 +47627,9 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_CONTACTPHOTOS:	Cmd.ARG_CONTACTPHOTO,
   Cmd.ARG_CROSES:	Cmd.ARG_CROS,
   Cmd.ARG_DATATRANSFERS:	Cmd.ARG_DATATRANSFER,
+  Cmd.ARG_DEVICES:	Cmd.ARG_DEVICE,
   Cmd.ARG_DEVICEFILES:	Cmd.ARG_DEVICEFILE,
+  Cmd.ARG_DEVICEUSERS:	Cmd.ARG_DEVICEUSER,
   Cmd.ARG_DOMAINS:	Cmd.ARG_DOMAIN,
   Cmd.ARG_DOMAINALIASES:	Cmd.ARG_DOMAINALIAS,
   Cmd.ARG_DRIVEFILEACLS:	Cmd.ARG_DRIVEFILEACL,
@@ -46939,6 +47708,8 @@ OAUTH2_SUBCOMMAND_ALIASES = {
 def processOauthCommands():
   CL_subCommand = getChoice(OAUTH2_SUBCOMMANDS, choiceAliases=OAUTH2_SUBCOMMAND_ALIASES)
   Act.Set(OAUTH2_SUBCOMMANDS[CL_subCommand][CMD_ACTION])
+  if GC.Values[GC.ENABLE_DASA]:
+    systemErrorExit(USAGE_ERROR_RC, Msg.COMMAND_NOT_COMPATIBLE_WITH_ENABLE_DASA.format('oauth', CL_subCommand))
   OAUTH2_SUBCOMMANDS[CL_subCommand][CMD_FUNCTION]()
 
 # Audit command sub-commands

@@ -25,7 +25,7 @@ If an item contains spaces, it should be surrounded by ".
 <Charset> ::= ascii|latin1|mbcs|utf-8|utf-8-sig|utf-16|<String>
 <CalendarColorIndex> ::= <Number in range 1-24>
 <CalendarColorName> ::=
-        amethyst|avocado|banana|basil|birch|bluberry|
+        amethyst|avocado|banana|basil|birch|blueberry|
         cherryblossom|citron|cobalt|cocoa|eucalyptus|flamingo|
         grape|graphite|lavender|mango|peacock|pistachio|
         pumpkin|radicchio|sage|tangerine|tomato|wisteria|
@@ -243,6 +243,10 @@ If an item contains spaces, it should be surrounded by ".
         now|today
 <RegularExpression> ::= <String>
         See: https://docs.python.org/3.7/library/re.html
+<ProjectID> ::= <String>
+        Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
+<ServiceAccountName> ::= <String>
+        Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
 <SiteName> ::= [a-z,0-9,-]+
 <UniqueID> ::= uid:<String>
 
@@ -286,6 +290,9 @@ If an item contains spaces, it should be surrounded by ".
         digest|
         disabled|
         none|nomail
+<DeviceID> ::= devices/<String>
+<DeviceType> ::= android|chrome_os|google_sync|ios|linux|mac_os|windows
+<DeviceUserID> ::= devices/<String>/deviceUsers/<String>
 <DomainAlias> ::= <String>
 <DomainName> ::= <String>(.<String>)+
 <DriveFileACLRole> ::=
@@ -347,10 +354,9 @@ If an item contains spaces, it should be surrounded by ".
 <MaximumNumberOfSeats> ::= <Number>
 <MessageID> ::= <String>
 <MobileID> ::= <String>
-<MobileItem> ::= <MobileID>|(query:<QueryMobile>)|(query <QueryMobile>)
 <NumberOfSeats> ::= <Number>
 <OrgUnitID> ::= id:<String>
-<OrgUnitPath> ::= /|(/<String)+
+<OrgUnitPath> ::= /|(/<String>)+
 <OrgUnitItem> ::= <OrgUnitID>|<OrgUnitPath>
 <ParameterKey> ::= <String>
 <ParameterValue> ::= <String>
@@ -362,6 +368,10 @@ If an item contains spaces, it should be surrounded by ".
 <PrintJobAge> ::= <Number>(m|h|d|w)
 <PrintJobID> ::= <String>
 <PrintJobStatus> ::= done|error|held|in_progress|queued|submitted
+<ProjectID> ::= <String>
+        Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
+<ProjectName> ::= <String>
+        Must match this Python Regular Expression: [a-zA-Z0-9 '"!-]{4,30}
 <PropertyKey> ::= <String>
 <PropertyValue> ::= <String>
 <QueryAlert> ::= <String>
@@ -396,10 +406,6 @@ If an item contains spaces, it should be surrounded by ".
 <SchemaName> ::= <String>
 <Section> ::= <String>
 <SerialNumber> ::= <String>
-<ProjectID> ::= <String>
-        Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
-<ProjectName> ::= <String>
-        Must match this Python Regular Expression: [a-zA-Z0-9 '"!-]{4,30}
 <ServiceAccountName> ::= <String>
         Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
 <ServiceAccountDisplayName> ::= <String>
@@ -467,11 +473,13 @@ If an item contains spaces, it should be surrounded by ".
 <CourseStateList> ::= all|"<CourseState>(,<CourseState>)*"
 <CourseSubmissionIDList> ::= "<CourseSubmissionID>(,<CourseSubmissionID>)*"
 <CourseSubmissionStateList> ::= all|"<CourseSubmissionState>(,<CourseSubmissionState>)*"
-<CourseTopicList> ::= "<CourseTopic>(,<CourseTopic>)*"
 <CourseTopicIDList> ::= "<CourseTopicID>(,<CourseTopicID>)*"
+<CourseTopicList> ::= "<CourseTopic>(,<CourseTopic>)*"
 <CourseWorkIDList> ::= "<CourseWorkID>(,<CourseWorkID>)*"
 <CourseWorkStateList> ::= all|"<CourseWorkState>(,<CourseWorkState>)*"
 <CrOSIDList> ::= "<CrOSID>(,<CrOSID>)*"
+<DeviceIDList> ::= "<DeviceID>(,<DeviceID>)*"
+<DeviceUserList> ::= "<DeviceUserID>(,<DeviceUserID>)*"
 <DomainNameList> ::= "<DomainName>(,<DomainName>)*"
 <DriveFolderIDList> ::= "<DriveFolderID>(,<DriveFolderID>)*"
 <DriveFileList> ::= "<DriveFileItem>(,<DriveFileItem>)*"
@@ -498,13 +506,14 @@ If an item contains spaces, it should be surrounded by ".
 <MatterStateList> ::= "<MatterState>(,<MatterState>)*"
 <MessageIDList> ::= "<MessageID>(,<MessageID>)*"
 <MimeTypeList> ::= "<MimeType>(,<MimeType>)*"
-<MobileList> ::= "<MobileID>(,<MobileID>)*"
+<MobileIDList> ::= "<MobileID>(,<MobileID>)*"
 <OrgUnitList> ::= "<OrgUnitItem>(,<OrgUnitItem>)*"
 <PrinterACLScopeList> ::= "<PrinterACLScope>(,<PrinterACLScope>)*"
 <PrinterIDList> ::= "<PrinterID>(,<PrinterID>)*"
 <PrintJobIDList> ::= "<PrintJobID>(,<PrintJobID>)*"
 <ProductIDList> ::= "(<ProductID>|SKUID>)(,<ProductID>|SKUID>)*"
 <QueryCrOSList> ::= "<QueryCrOS>(,<QueryCrOS>)*"
+<QueryDeviceList> ::= "<QueryDevice>(,<QueryDevice>)*"
 <QueryMobileList> ::= "<QueryMobile>(,<QueryMobile>)*"
 <QueryPrinterList> ::= "<QueryPrinter>(,<QueryPrinter>)*"
 <QueryPrintJobList> ::= "<QueryPrintJob>(,<QueryPrintJob>)*"
@@ -674,13 +683,15 @@ Specify a collection of items by directly specifying them; the item type is dete
 <CourseEntity> ::= <CourseIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
 <CourseAnnouncementIDEntity> ::= <CourseAnnouncementIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>
 <CourseSubmissionIDEntity> ::= <CourseSubmissionIDList> | <FileSelector> | <CSVFileSelector> | <CSVDataSelector>
-<CourseTopicEntity> ::= <CourseTopicList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <CourseTopicIDEntity> ::= <CourseTopicIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>
+<CourseTopicEntity> ::= <CourseTopicList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <CourseWorkIDEntity> ::= <CourseWorkIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>
 <CrOSEntity> ::=
         <CrOSIDList> | (cros_sn <SerialNumberList>) |
-        (query:<QueryCrOS>)|(query:orgunitpath:<OrgUnitPath>)|(query <QueryCrOS>) |
-        <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
+        (query:<QueryCrOS>)|(query:orgunitpath:<OrgUnitPath>)|(query <QueryCrOS>)
+<DeviceEntity> ::=
+        <DeviceList> | (device_sn <SerialNumber>)
+        (query:<QueryDevice>)|(query <QueryDevice>)
 <DeviceFileEntity> ::=
         <TimeList> |
         (first|last|allexceptfirst|allexceptlast <Number>) |
@@ -795,7 +806,9 @@ Specify a collection of items by directly specifying them; the item type is dete
 <GuardianEntity> ::= <GuardianList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <GuardianInvitationIDEntity> ::= <GuardianInvitationIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <MessageIDEntity> ::= <MessageIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<MobileEntity> ::= <MobileItem> | <MobileList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
+<MobileEntity> ::=
+        <MobileIDList> |
+        (query:<QueryMobile>)|(query <QueryMobile>)
 <OrgUnitEntity> ::= <OrgUnitList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
 <PrinterACLScopeEntity>::= <PrinterACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <PrinterIDEntity> ::= <PrinterIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
@@ -2207,6 +2220,113 @@ gam show group-members
 gam print licenses [todrive <ToDriveAttribute>*] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite] [countsonly]
 gam show licenses [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite]
 
+# Cloud Identity Devices
+
+<DeviceID> ::= devices/<String>
+<DeviceUserID> ::= devices/<String>/deviceUsers/<String>
+<DeviceType> ::= android|chrome_os|google_sync|ios|linux|mac_os|windows
+
+<DeviceFieldName> ::=
+        androidspecificattributes|
+        assettag|
+        basebandversion|
+        bootloaderversion|
+        brand|
+        buildnumber|
+        compromisedstate|
+        createtime|
+        devicetype|
+        enableddeveloperoptions|
+        enabledusbdebugging|
+        encryptionstate|
+        imei|
+        kernelversion|
+        lastsynctime|
+        managementstate|
+        manufacturer|
+        meid|
+        model|
+        name|
+        networkoperator|
+        osversion|
+        otheraccounts|
+        ownertype|
+        releaseversion|
+        securitypatchtime|
+        serialnumber|
+        wifimacaddresses
+<DeviceFieldNameList> ::= "<DeviceFieldName>(,<DeviceFieldName>)*"
+
+<DeviceUserFieldName> ::=
+        compromisedstate|
+        createtime|
+        firstsynctime|
+        languagecode|
+        lastsynctime|
+        managementstate|
+        name|
+        passwordstate|
+        useragent|
+        useremail
+<DeviceUserFieldNameList> ::= "<DeviceUserFieldName>(,<DeviceUserFieldName>)*"
+
+<DeviceOrderbyFieldName> ::= 
+        createtime|devicetype|lastsynctime|model|osversion|serialnumber
+
+<DeviceAction> ::=
+        cancelwipe|
+        wipe
+
+gam create device serialnumber <String> devicetype <DeviceType> [assettag <String>]
+gam delete device <DeviceEntity> [doit]
+gam update device <DeviceEntity> action <DeviceAction> [doit]
+gam cancelwipe device <DeviceEntity> [doit]
+gam wipe device <DeviceEntity> [doit]
+
+gam sync devices
+        [(query <QueryDevice>)|(queries <QueryDeviceList>) (querytime.* <Time>)*]
+        csvfile <FileName>
+        (devicetype_column <String>)|(static_devicetype <DeviceType>)
+        (serialnumber_column <String>)
+        [assettag_column <String>]
+        [unassigned_missing_action delete|wipe|donothing]
+        [assigned_missing_action delete|wipe|donothing]
+	[preview]
+
+gam info device <DeviceEntity>
+        <DeviceFieldName>* [fields <DeviceFieldNameList>] [userfields <DeviceUserFieldNameList>]
+        [nodeviceusers]
+        [formatjson]
+gam print devices [todrive <ToDriveAttribute>*]
+        [(query <QueryDevice>)|(queries <QueryDeviceList>) (querytime.* <Time>)*]
+        <DeviceFieldName>* [fields <DeviceFieldNameList>] [userfields <DeviceUserFieldNameList>]
+        [orderby <DeviceOrderByFieldName> [ascending|descending]]
+        [all|company|personal|nocompanydevices|nopersonaldevices]
+        [nodeviceusers]
+        [formatjson [quotechar <Character>]]
+
+<DeviceUserAction> ::=
+        approve|
+        block|
+        cancelwipe|
+        wipe
+
+gam delete deviceuser <DeviceUserEntity> [doit]
+gam update deviceuser <DeviceUserEntity> action <DeviceUserAction> [doit]
+gam approve deviceuser <DeviceUserEntity> [doit]
+gam block deviceuser <DeviceUserEntity> [doit]
+gam cancelwipe deviceuser <DeviceUserEntity> [doit]
+gam wipe deviceuser <DeviceUserEntity> [doit]
+
+gam info deviceuser <DeviceUserEntity>
+        <DeviceUserFieldName>* [fields <DeviceUserFieldNameList>]
+        [formatjson]
+gam print deviceusers [todrive <ToDriveAttribute>*]
+        [(query <QueryDevice>)|(queries <QueryDeviceList>) (querytime.* <Time>)*]
+        <DeviceUserFieldName>* [fields <DeviceUserFieldNameList>]
+        [orderby <DeviceOrderByFieldName> [ascending|descending]]
+        [formatjson [quotechar <Character>]]
+
 # Mobile Devices
 
 <MobileAction> ::=
@@ -2270,8 +2390,7 @@ gam delete mobile <MobileEntity>
 gam info mobile <MobileEntity>
         [basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>] [formatjson]
 gam print mobile [todrive <ToDriveAttribute>*]
-        [(query <QueryMobile>)|(queries <QueryMobileList>)]
-        (querytime.* <Time>)*
+        [(query <QueryMobile>)|(queries <QueryMobileList>) (querytime.* <Time>)*]
         [orderby <MobileOrderByFieldName> [ascending|descending]]
         [basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>]
         [delimiter <Character>] [appslimit <Number>] [oneappperrow] [listlimit <Number>]
@@ -3319,7 +3438,8 @@ gam <UserTypeEntity> print asps|applicationspecificpasswords [todrive <ToDriveAt
 gam <UserTypeEntity> update backupcodes|verificationcodes
 gam <UserTypeEntity> delete backupcodes|verificationcodes
 gam <UserTypeEntity> show backupcodes|verificationcodes
-gam <UserTypeEntity> print backupcodes|verificationcodes [todrive <ToDriveAttribute>*] [delimiter <Character>]
+gam <UserTypeEntity> print backupcodes|verificationcodes [todrive <ToDriveAttribute>*]
+        [delimiter <Character>]
 
 # Users - Calendars
 
@@ -4448,6 +4568,7 @@ gam <UserTypeEntity> print groupslist [domain <DomainName>] [todrive <ToDriveAtt
 gam <UserTypeEntity> create|add license <SKUID> [product|productid <ProductID>]
 gam <UserTypeEntity> update license <SKUID> [product|productid <ProductID>] [from] <SKUID>
 gam <UserTypeEntity> delete license <SKUID> [product|productid <ProductID>]
+gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>]
 
 # Users - People - Profile
 
