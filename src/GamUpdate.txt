@@ -1,3 +1,7 @@
+5.22.02
+
+Fixed bug where `gam config csv_output_column_delimiter "x"` was not being properly processed.
+
 5.22.01
 
 Handle the following error when deleting members from groups. This is an invalid message from Google,

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.22.01'
+__version__ = '5.22.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5644,8 +5644,12 @@ class CSVPrintFile():
     if titles is not None:
       self.SetTitles(titles)
       self.SetJSONTitles(titles)
-    self.SetColumnDelimiter(GM.Globals.get(GM.CSV_OUTPUT_COLUMN_DELIMITER, GC.Values.get(GC.CSV_OUTPUT_COLUMN_DELIMITER, ',')))
-    self.SetQuoteChar(GM.Globals.get(GM.CSV_OUTPUT_QUOTE_CHAR, GC.Values.get(GC.CSV_OUTPUT_QUOTE_CHAR, '"')))
+    if GM.Globals.get(GM.CSV_OUTPUT_COLUMN_DELIMITER) is None:
+      GM.Globals[GM.CSV_OUTPUT_COLUMN_DELIMITER] = GC.Values.get(GC.CSV_OUTPUT_COLUMN_DELIMITER, ',')
+    self.SetColumnDelimiter(GM.Globals[GM.CSV_OUTPUT_COLUMN_DELIMITER])
+    if GM.Globals.get(GM.CSV_OUTPUT_QUOTE_CHAR) is None:
+      GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR] = GC.Values.get(GC.CSV_OUTPUT_QUOTE_CHAR, '"')
+    self.SetQuoteChar(GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR])
     self.SetFormatJSON(False)
     self.SetFixPaths(False)
     self.SetShowPermissionsLast(False)
@@ -6554,7 +6558,8 @@ class CSVPrintFile():
       GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_TODRIVE, self.todrive))
       GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_CSVPF,
                                                      (self.titlesList, self.sortTitlesList, self.indexedTitles,
-                                                      self.formatJSON, self.JSONtitlesList, self.quoteChar,
+                                                      self.formatJSON, self.JSONtitlesList,
+                                                      self.columnDelimiter, self.quoteChar,
                                                       self.fixPaths, self.showPermissionsLast,
                                                       self.zeroBlankMimeTypeCounts)))
       GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_DATA, self.rows))
@@ -7008,10 +7013,11 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF):
       csvPF.SetIndexedTitles(dataItem[2])
       csvPF.SetFormatJSON(dataItem[3])
       csvPF.AddJSONTitles(dataItem[4])
-      csvPF.SetQuoteChar(dataItem[5])
-      csvPF.SetFixPaths(dataItem[6])
-      csvPF.SetShowPermissionsLast(dataItem[7])
-      csvPF.SetZeroBlankMimeTypeCounts(dataItem[8])
+      csvPF.SetColumnDelimiter(dataItem[5])
+      csvPF.SetQuoteChar(dataItem[6])
+      csvPF.SetFixPaths(dataItem[7])
+      csvPF.SetShowPermissionsLast(dataItem[8])
+      csvPF.SetZeroBlankMimeTypeCounts(dataItem[9])
     elif dataType == GM.REDIRECT_QUEUE_DATA:
       csvPF.rows.extend(dataItem)
     elif dataType == GM.REDIRECT_QUEUE_ARGS:
