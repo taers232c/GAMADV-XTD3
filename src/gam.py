@@ -1029,7 +1029,7 @@ def getDeliverySettings():
 UID_PATTERN = re.compile(r'u?id: ?(.+)', re.IGNORECASE)
 PEOPLE_PATTERN = re.compile(r'people/([0-9]+)$', re.IGNORECASE)
 
-def validateEmailAddressOrUID(emailAddressOrUID, checkPeople=True):
+def validateEmailAddressOrUID(emailAddressOrUID, checkPeople=True, ciGroupsAPI=False):
   cg = UID_PATTERN.match(emailAddressOrUID)
   if cg:
     return cg.group(1)
@@ -1037,6 +1037,8 @@ def validateEmailAddressOrUID(emailAddressOrUID, checkPeople=True):
     cg = PEOPLE_PATTERN.match(emailAddressOrUID)
     if cg:
       return cg.group(1)
+  if ciGroupsAPI and emailAddressOrUID.startswith('groups/'):
+    return emailAddressOrUID
   return emailAddressOrUID.find('@') != 0 and emailAddressOrUID.count('@') <= 1
 
 # Normalize user/group email address/uid

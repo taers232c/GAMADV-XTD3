@@ -23,6 +23,9 @@
 class GamCLArgs():
 
 # GAM entity types as specified on the command line
+  ENTITY_CIGROUP = 'cigroup'
+  ENTITY_CIGROUPS = 'cigroups'
+  ENTITY_CIGROUP_USERS = 'cigroup_users'
   ENTITY_COURSEPARTICIPANTS = 'courseparticipants'
   ENTITY_CROS = 'cros'
   ENTITY_CROS_QUERIES = 'crosqueries'
@@ -333,6 +336,10 @@ class GamCLArgs():
   ARG_CALENDARACLS = 'calendaracls'
   ARG_CALENDARTRASH = 'calendartrash'
   ARG_CALSETTINGS = 'calsettings'
+  ARG_CIGROUP = 'cigroup'
+  ARG_CIGROUPS = 'cigroups'
+  ARG_CIGROUPMEMBERS = 'cigroupmembers'
+  ARG_CIGROUPSMEMBERS = 'cigroupsmembers'
   ARG_CIMEMBER = 'cimember'
   ARG_CIMEMBERS = 'cimembers'
   ARG_CLASS = 'class'
