@@ -10676,8 +10676,9 @@ def sendCreateUpdateUserNotification(body, basenotify, tagReplacements, i=0, cou
     _getTagReplacementFieldValues(body['primaryEmail'], i, count, tagReplacements, body if createMessage else None)
   notify['subject'] = _processTagReplacements(tagReplacements, notify['subject'])
   notify['message'] = _processTagReplacements(tagReplacements, notify['message'])
-  send_email(notify['subject'], notify['message'], notify['emailAddress'], i, count,
-             msgFrom=msgFrom, html=notify['html'], charset=notify['charset'])
+  for recipient in notify['recipients']:
+    send_email(notify['subject'], notify['message'], recipient, i, count,
+               msgFrom=msgFrom, html=notify['html'], charset=notify['charset'])
 
 # gam sendemail <RecipientEntity> [from <EmailAddress>] [mailbox <EmailAddress>] [replyto <EmailAddress>]
 #	[cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
@@ -10763,7 +10764,7 @@ def doSendEmail(users=None):
   if body.get('primaryEmail'):
     if ((jcount == 1) and recipients[0] and
         ('password' in body) and ('name' in body) and ('givenName' in body['name']) and ('familyName' in body['name'])):
-      notify['emailAddress'] = recipients[0]
+      notify['recipients'] = recipients
       sendCreateUpdateUserNotification(body, notify, tagReplacements, msgFrom=msgFroms[0])
     else:
       usageErrorExit(Msg.NEWUSER_REQUIREMENTS, True)
@@ -26172,7 +26173,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'notify':
-      notify['emailAddress'] = getEmailAddress(noUid=True)
+      notify['recipients'] = getNormalizedEmailAddressEntity()
     elif myarg == 'subject':
       notify['subject'] = getString(Cmd.OB_STRING)
     elif myarg in SORF_MSG_FILE_ARGUMENTS:
@@ -26520,7 +26521,7 @@ def createUserAddToGroups(cd, user, addGroups, i, count):
 
 # gam create user <EmailAddress> <UserAttribute>
 #	(groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
-#	[notify <EmailAddress>] [subject <String>] [notifypassword <String>]
+#	[notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
 #	    [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
 #	     (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
 #	(replace <Tag> <String>)*
@@ -26542,7 +26543,7 @@ def doCreateUser():
       writeFile(PwdOpts.filename, f'{user},{PwdOpts.password}\n', mode='a', continueOnError=True)
     if addGroups:
       createUserAddToGroups(cd, result['primaryEmail'], addGroups, 0, 0)
-    if notify.get('emailAddress'):
+    if notify.get('recipients'):
       sendCreateUpdateUserNotification(result, notify, tagReplacements)
   except GAPI.duplicate:
     entityDuplicateWarning([Ent.USER, user])
@@ -26578,7 +26579,7 @@ def verifyPrimaryEmail(cd, user, createIfNotFound, i, count):
 #	[clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
 #	[createifnotfound] [notfoundpassword random|<Password>]
 #	(groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
-#	[notify <EmailAddress>] [subject <String>] [notifypassword <String>]
+#	[notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
 #	    [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
 #	     (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
 #	(replace <Tag> <String>)*
@@ -26644,7 +26645,7 @@ def updateUsers(entityList):
           entityActionPerformed([Ent.USER, user], i, count)
           if PwdOpts.filename and PwdOpts.password:
             writeFile(PwdOpts.filename, f'{userKey},{PwdOpts.password}\n', mode='a', continueOnError=True)
-          if notify.get('emailAddress') and notify['password']:
+          if notify.get('recipients') and notify['password']:
             sendCreateUpdateUserNotification(result, notify, tagReplacements, i, count, createMessage=False)
         except GAPI.userNotFound:
           if createIfNotFound:
@@ -26664,7 +26665,7 @@ def updateUsers(entityList):
                   writeFile(PwdOpts.filename, f'{user},{PwdOpts.notFoundPassword}\n', mode='a', continueOnError=True)
                 if addGroups:
                   createUserAddToGroups(cd, result['primaryEmail'], addGroups, i, count)
-                if notify.get('emailAddress'):
+                if notify.get('recipients'):
                   notify['password'] = notify['notFoundPassword']
                   sendCreateUpdateUserNotification(result, notify, tagReplacements, i, count)
               except GAPI.duplicate:

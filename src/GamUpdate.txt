@@ -1,5 +1,8 @@
 5.22.02
 
+Changed option `notify <EmailAddress>` in `gam create|update user` to `notify <EmailAddressList>`
+so that notifications about account creation|update can be sent to multiple recipients.
+
 Fixed bug where `gam config csv_output_column_delimiter "x"` was not being properly processed.
 
 5.22.01

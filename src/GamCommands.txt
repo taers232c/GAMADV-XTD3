@@ -3299,7 +3299,7 @@ gam show vaultholds|holds [matters <MatterItemList>]
 
 gam create|add user <EmailAddress> [ignorenullpassword] <UserAttribute>*
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
-        [notify <EmailAddress>] [subject <String>] [notifypassword <String>]
+        [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
             [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
              (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
         (replace <Tag> <UserReplacement>)*
@@ -3312,7 +3312,7 @@ gam update user <UserItem> [ignorenullpassword] <UserAttribute>* [noactionifalia
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
         [createifnotfound] [notfoundpassword random|<Password>]
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
-        [notify <EmailAddress>] [subject <String>] [notifypassword <String>]
+        [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
             [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
              (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
         (replace <Tag> <UserReplacement>)*
@@ -3332,7 +3332,7 @@ gam update users <UserTypeEntity> [ignorenullpassword] <UserAttribute>* [noactio
             [fields <FieldNameList>] [keyfield <FieldName>] [datafield <FieldName>]]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
         [createifnotfound] [notfoundpassword random|<Password>] (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
-        [notify <EmailAddress>] [subject <String>] [notifypassword <String>]
+        [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
             [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]|(gdoc <UserGoogleDoc>)
             (replace <Tag> <UserReplacement>)*
         [lograndompassword <FileName>]
@@ -3351,7 +3351,7 @@ gam <UserTypeEntity> update users [ignorenullpassword] <UserAttribute>* [noactio
             [fields <FieldNameList>] [keyfield <FieldName>] [datafield <FieldName>]]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
         [createifnotfound] [notfoundpassword random|<Password>] (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
-        [notify <EmailAddress>] [subject <String>] [notifypassword <String>]
+        [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
             [message <String>|(file <FileName> [charset <CharSet>])]|(gdoc <UserGoogleDoc>)
             (replace <Tag> <UserReplacement>)*
         [lograndompassword <FileName>]
