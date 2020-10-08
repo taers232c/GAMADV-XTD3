@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.22.02'
+__version__ = '5.22.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -18278,7 +18278,7 @@ GROUP_PREVIEW_TITLES = ['group', 'email', 'role', 'action', 'message']
 
 # gam update groups <GroupEntity> [email <EmailAddress>]
 #	[copyfrom <GroupItem>] <GroupAttribute>*
-#	[makesecuritygroup|security]
+#	[makesecuritygroup|security] [alias|aliases <AliasList>] [dynamic <QueryDynamicGroup>]
 #	[admincreated <Boolean>]
 # gam update groups <GroupEntity> create|add [<GroupRole>]
 #	[usersonly|groupsonly] [notsuspended|suspended]
@@ -18687,6 +18687,14 @@ def doUpdateGroups():
       elif myarg in {'security', 'makesecuritygroup'}:
         ci_body['labels'] = {'cloudidentity.googleapis.com/groups.discussion_forum': '',
                              'cloudidentity.googleapis.com/groups.security': ''}
+      elif myarg == 'dynamic':
+        ci_body.setdefault('dynamicGroupMetadata', {'queries': []})
+        ci_body['dynamicGroupMetadata']['queries'].append({'resourceType': 'USER',
+                                                           'query': getString(Cmd.OB_QUERY)})
+      elif ciGroupsAPI and myarg in ['alias', 'aliases']:
+        ci_body.setdefault('additionalGroupKeys', [])
+        for alias in convertEntityToList(getString(Cmd.OB_GROUP_ALIAS_LIST), shlexSplit=True):
+          ci_body['additionalGroupKeys'].append({'id': alias})
       elif myarg == 'getbeforeupdate':
         getBeforeUpdate = True
       elif myarg == 'json':

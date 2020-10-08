@@ -1,3 +1,8 @@
+5.22.03
+
+Added options `alias|aliases <AliasList>` and `dynamic <QueryDynamicGroup>` to
+`gam update group` to allow setting options on Cloud Identity groups.
+
 5.22.02
 
 Changed option `notify <EmailAddress>` in `gam create|update user` to `notify <EmailAddressList>`
