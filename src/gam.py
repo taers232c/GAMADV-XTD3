@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.22.03'
+__version__ = '5.22.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1045,7 +1045,7 @@ def validateEmailAddressOrUID(emailAddressOrUID, checkPeople=True):
 # foo@ -> foo@domain
 # foo@bar.com -> foo@bar.com
 # @domain -> domain
-def normalizeEmailAddressOrUID(emailAddressOrUID, noUid=False, checkForCustomerId=False, noLower=False):
+def normalizeEmailAddressOrUID(emailAddressOrUID, noUid=False, checkForCustomerId=False, noLower=False, ciGroupsAPI=False):
   if checkForCustomerId and (emailAddressOrUID == GC.Values[GC.CUSTOMER_ID]):
     return emailAddressOrUID
   if not noUid:
@@ -1055,6 +1055,8 @@ def normalizeEmailAddressOrUID(emailAddressOrUID, noUid=False, checkForCustomerI
     cg = PEOPLE_PATTERN.match(emailAddressOrUID)
     if cg:
       return cg.group(1)
+  if ciGroupsAPI and emailAddressOrUID.startswith('groups/'):
+    return emailAddressOrUID
   atLoc = emailAddressOrUID.find('@')
   if atLoc == 0:
     return emailAddressOrUID[1:].lower() if not noLower else emailAddressOrUID[1:]
@@ -4438,12 +4440,14 @@ def getSitesObject(entityType=Ent.DOMAIN, entityName=None, i=0, count=0):
   return (userEmail, sitesObject)
 
 # Convert UID to email address
-def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, emailTypes=None, checkForCustomerId=False):
+def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, emailTypes=None, checkForCustomerId=False, ciGroupsAPI=False):
   if emailTypes is None:
     emailTypes = ['user']
   elif not isinstance(emailTypes, list):
     emailTypes = [emailTypes] if emailTypes != 'any' else ['user', 'group']
   if checkForCustomerId and (emailAddressOrUID == GC.Values[GC.CUSTOMER_ID]):
+    return emailAddressOrUID
+  if ciGroupsAPI and emailAddressOrUID.startswith('groups/'):
     return emailAddressOrUID
   normalizedEmailAddressOrUID = normalizeEmailAddressOrUID(emailAddressOrUID)
   if normalizedEmailAddressOrUID.find('@') > 0:
@@ -4608,10 +4612,23 @@ GROUP_TYPES_MAP = {
   }
 ALL_GROUP_TYPES = {Ent.TYPE_CUSTOMER, Ent.TYPE_GROUP, Ent.TYPE_USER}
 
+CIGROUP_TYPES_MAP = {
+  'group': Ent.TYPE_GROUP,
+  'other': Ent.TYPE_OTHER,
+  'serviceaccount': Ent.TYPE_SERVICE_ACCOUNT,
+  'user': Ent.TYPE_USER,
+  }
+ALL_CIGROUP_TYPES = {Ent.TYPE_GROUP, Ent.TYPE_OTHER, Ent.TYPE_SERVICE_ACCOUNT, Ent.TYPE_USER}
+
 def _getRoleVerification(memberRoles, fields):
   if memberRoles and memberRoles.find(Ent.ROLE_MEMBER) != -1:
     return (set(memberRoles.split(',')), None, fields if fields.find('role') != -1 else fields[:-1]+',role)')
   return (set(), memberRoles, fields)
+
+def _getCIRoleVerification(memberRoles):
+  if memberRoles:
+    return set(memberRoles.split(','))
+  return set()
 
 def _checkMemberIsSuspended(member, isSuspended):
   memberStatus = member.get('status', 'UNKNOWN')
@@ -4622,6 +4639,91 @@ def _checkMemberRole(member, validRoles):
 
 def _checkMemberRoleIsSuspended(member, validRoles, isSuspended):
   return _checkMemberRole(member, validRoles) and _checkMemberIsSuspended(member, isSuspended)
+
+def getCIGroupMemberRole(member):
+  ''' returns the highest role of member '''
+  roles = {}
+  memberRoles = member.get('roles', [{'name': Ent.MEMBER}])
+  for role in memberRoles:
+    roles[role['name']] = role
+  for a_role in [Ent.ROLE_OWNER, Ent.ROLE_MANAGER, Ent.ROLE_MEMBER]:
+    if a_role in roles:
+      member['role'] = a_role
+      if 'expiryDetails' in roles[a_role]:
+        member['expireTime'] = roles[a_role]['expiryDetails']['expireTime']
+      return
+  member['role'] = memberRoles[0]['name']
+
+def convertGroupCloudIDToEmail(ci, group, i=0, count=0):
+  if not group.startswith('groups/'):
+    return (ci, normalizeEmailAddressOrUID(group))
+  if not ci:
+    ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
+  try:
+    ciGroup = callGAPI(ci.groups(), 'get',
+                       throwReasons=GAPI.CIGROUP_GET_THROW_REASONS,
+                       retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
+                       name=group, fields='groupKey(id)')
+    return (ci, ciGroup['groupKey']['id'])
+  except (GAPI.notFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
+          GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
+          GAPI.systemError, GAPI.permissionDenied) as e:
+    action = Act.Get()
+    Act.Set(Act.LOOKUP)
+    entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, group, Ent.GROUP, None], str(e), i, count)
+    Act.Set(action)
+    return (ci, None)
+
+def convertGroupEmailToCloudID(ci, group, i=0, count=0):
+  if group.startswith('groups/'):
+    return (ci, group)
+  group = normalizeEmailAddressOrUID(group)
+  if not ci:
+    ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
+  try:
+    ciGroup = callGAPI(ci.groups(), 'lookup',
+                       throwReasons=GAPI.CIGROUP_GET_THROW_REASONS,
+                       retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
+                       groupKey_id=group, fields='name')
+    return (ci, ciGroup['name'])
+  except (GAPI.notFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
+          GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
+          GAPI.systemError, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
+    action = Act.Get()
+    Act.Set(Act.LOOKUP)
+    entityActionFailedWarning([Ent.GROUP, group, Ent.CLOUD_IDENTITY_GROUP, None], str(e), i, count)
+    Act.Set(action)
+    return (ci, None)
+
+def checkGroupExists(cd, ci, ciGroupsAPI, returnCloudID, group, i=0, count=0):
+  group = normalizeEmailAddressOrUID(group, ciGroupsAPI=ciGroupsAPI)
+  if not returnCloudID:
+    if not group.startswith('groups/'):
+      try:
+        result = callGAPI(cd.groups(), 'get',
+                          throwReasons=GAPI.GROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
+                          groupKey=group, fields='email')
+        return (ci, result['email'])
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.invalid, GAPI.systemError):
+        entityUnknownWarning(Ent.GROUP, group, i, count)
+        return (ci, None)
+    else:
+      return convertGroupCloudIDToEmail(ci, group, i, count)
+  else:
+    if group.startswith('groups/'):
+      try:
+        result = callGAPI(ci.groups(), 'get',
+                          throwReasons=GAPI.CIGROUP_GET_THROW_REASONS,
+                          retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
+                          name=group, fields='groupKey(id)')
+        return (ci, result['groupKey']['id'])
+      except (GAPI.notFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
+              GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
+              GAPI.systemError, GAPI.permissionDenied):
+        entityUnknownWarning(Ent.GROUP, group, i, count)
+        return (ci, None)
+    else:
+      return convertGroupEmailToCloudID(ci, group, i, count)
 
 # Turn the entity into a list of Users/CrOS devices
 def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, groupMemberType=Ent.TYPE_USER, noListConversion=False):
@@ -18029,6 +18131,7 @@ GROUP_MODERATE_MEMBERS_ATTRIBUTES = {
 GROUP_BASIC_ATTRIBUTES = {
   'description': ['description', {GC.VAR_TYPE: GC.TYPE_STRING}],
   'name': ['name', {GC.VAR_TYPE: GC.TYPE_STRING}],
+  'displayname': ['name', {GC.VAR_TYPE: GC.TYPE_STRING}],
   }
 GROUP_SETTINGS_ATTRIBUTES = {
   'allowexternalmembers': ['allowExternalMembers', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
@@ -18190,35 +18293,34 @@ def getSettingsFromGroup(cd, group, gs, gs_body):
         return None
   return gs_body
 
-def convertGroupEmailToCloudID(ci, group, i=0, count=0):
-  group = normalizeEmailAddressOrUID(group)
-  try:
-    return callGAPI(ci.groups(), 'lookup',
-                    throwReasons=GAPI.CIGROUP_GET_THROW_REASONS,
-                    retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
-                    groupKey_id=group, fields='name').get('name')
-  except (GAPI.notFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
-          GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
-          GAPI.systemError, GAPI.permissionDenied) as e:
-    action = Act.Get()
-    Act.Set(Act.LOOKUP)
-    entityActionFailedWarning([Ent.GROUP, group, Ent.CLOUD_IDENTITY_GROUP, None], str(e), i, count)
-    Act.Set(action)
-    return None
-
 def checkReplyToCustom(group, settings, i=0, count=0):
   if settings.get('replyTo') != 'REPLY_TO_CUSTOM' or settings.get('customReplyTo', ''):
     return True
   entityActionNotPerformedWarning([Ent.GROUP, group], Msg.REPLY_TO_CUSTOM_REQUIRES_EMAIL_ADDRESS, i, count)
   return False
 
+GROUP_CIGROUP_ENTITYTYPE_MAP = {False: Ent.GROUP, True: Ent.CLOUD_IDENTITY_GROUP}
+GROUP_CIGROUP_FIELDS_MAP = {'name': 'displayName', 'description': 'description'}
 GROUP_JSON_SKIP_FIELDS = ['email', 'adminCreated', 'directMembersCount', 'members', 'aliases', 'nonEditableAliases']
 
 # gam create group <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>
-def doCreateGroup():
+def doCreateGroup(ciGroupsAPI=False):
   cd = buildGAPIObject(API.DIRECTORY)
   getBeforeUpdate = False
-  body = {'email': getEmailAddress(noUid=True)}
+  groupEmail = getEmailAddress(noUid=True)
+  entityType = GROUP_CIGROUP_ENTITYTYPE_MAP[ciGroupsAPI]
+  if not ciGroupsAPI:
+    ci = None
+    body = {'email': groupEmail}
+  else:
+    ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
+    initialGroupConfig = 'EMPTY'
+    setTrueCustomerId(cd)
+    parent = f'customers/{GC.Values[GC.CUSTOMER_ID]}'
+    body = {'groupKey': {'id': groupEmail},
+            'parent': parent,
+            'labels': {'cloudidentity.googleapis.com/groups.discussion_forum': ''},
+            }
   gs_body = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -18226,59 +18328,76 @@ def doCreateGroup():
       getBeforeUpdate = True
     elif myarg == 'json':
       gs_body.update(getJSON(GROUP_JSON_SKIP_FIELDS))
+    elif ciGroupsAPI and myarg in ['alias', 'aliases']:
+      body.setdefault('additionalGroupKeys', [])
+      for alias in convertEntityToList(getString(Cmd.OB_GROUP_ALIAS_LIST), shlexSplit=True):
+        body['additionalGroupKeys'].append({'id': alias})
+    elif ciGroupsAPI and myarg == 'dynamic':
+      body.setdefault('dynamicGroupMetadata', {'queries': []})
+      body['dynamicGroupMetadata']['queries'].append({'resourceType': 'USER',
+                                                      'query': getString(Cmd.OB_QUERY)})
+    elif ciGroupsAPI and myarg == 'makeowner':
+      initialGroupConfig = 'WITH_INITIAL_OWNER'
     else:
       getGroupAttrValue(myarg, gs_body)
+  if ciGroupsAPI:
+    for k, v in iter(GROUP_CIGROUP_FIELDS_MAP.items()):
+      if k in gs_body:
+        body[v] = gs_body.pop(k)
+    body.setdefault('displayName', groupEmail)
   if gs_body:
-    gs_body.setdefault('name', body['email'])
+    gs_body.setdefault('name', groupEmail)
     gs = buildGAPIObject(API.GROUPSSETTINGS)
-    gs_body = getSettingsFromGroup(cd, body['email'], gs, gs_body)
-    if not gs_body or not checkReplyToCustom(body['email'], gs_body):
+    gs_body = getSettingsFromGroup(cd, groupEmail, gs, gs_body)
+    if not gs_body or not checkReplyToCustom(groupEmail, gs_body):
       return
     if not getBeforeUpdate:
       settings = gs_body
   try:
-    callGAPI(cd.groups(), 'insert',
-             throwReasons=GAPI.GROUP_CREATE_THROW_REASONS,
-             body=body, fields='')
-    if gs_body and not GroupIsAbuseOrPostmaster(body['email']):
+    if not ciGroupsAPI:
+      callGAPI(cd.groups(), 'insert',
+               throwReasons=GAPI.GROUP_CREATE_THROW_REASONS,
+               body=body, fields='')
+    else:
+      callGAPI(ci.groups(), 'create',
+               throwReasons=GAPI.CIGROUP_CREATE_THROW_REASONS,
+               initialGroupConfig=initialGroupConfig, body=body, fields='')
+    if gs_body and not GroupIsAbuseOrPostmaster(groupEmail):
       if getBeforeUpdate:
         settings = callGAPI(gs.groups(), 'get',
                             throwReasons=GAPI.GROUP_SETTINGS_THROW_REASONS,
                             retryReasons=GAPI.GROUP_SETTINGS_RETRY_REASONS+[GAPI.NOT_FOUND],
-                            groupUniqueId=body['email'], fields='*')
+                            groupUniqueId=groupEmail, fields='*')
         settings.update(gs_body)
       callGAPI(gs.groups(), 'update',
                throwReasons=GAPI.GROUP_SETTINGS_THROW_REASONS,
                retryReasons=GAPI.GROUP_SETTINGS_RETRY_REASONS+[GAPI.NOT_FOUND],
-               groupUniqueId=body['email'], body=settings, fields='')
-    entityActionPerformed([Ent.GROUP, body['email']])
-  except GAPI.duplicate:
-    entityDuplicateWarning([Ent.GROUP, body['email']])
+               groupUniqueId=groupEmail, body=settings, fields='')
+    entityActionPerformed([entityType, groupEmail])
+  except (GAPI.alreadyExists, GAPI.duplicate):
+    entityDuplicateWarning([entityType, groupEmail])
   except GAPI.notFound:
-    entityActionFailedWarning([Ent.GROUP, body['email']], Msg.DOES_NOT_EXIST)
+    entityActionFailedWarning([entityType, groupEmail], Msg.DOES_NOT_EXIST)
   except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
-          GAPI.backendError, GAPI.invalid, GAPI.invalidAttributeValue, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
-          GAPI.systemError, GAPI.serviceLimit) as e:
-    entityActionFailedWarning([Ent.GROUP, body['email']], str(e))
+          GAPI.backendError, GAPI.invalid, GAPI.invalidAttributeValue, GAPI.invalidInput, GAPI.invalidArgument,
+          GAPI.badRequest, GAPI.permissionDenied, GAPI.systemError, GAPI.serviceLimit) as e:
+    entityActionFailedWarning([entityType, groupEmail], str(e))
   except GAPI.required:
-    entityActionFailedWarning([Ent.GROUP, body['email']], Msg.INVALID_JSON_SETTING)
+    entityActionFailedWarning([entityType, groupEmail], Msg.INVALID_JSON_SETTING)
 
-def checkGroupExists(cd, group, i=0, count=0):
-  group = normalizeEmailAddressOrUID(group)
-  try:
-    return callGAPI(cd.groups(), 'get',
-                    throwReasons=GAPI.GROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
-                    groupKey=group, fields='email')['email']
-  except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.invalid, GAPI.systemError):
-    entityUnknownWarning(Ent.GROUP, group, i, count)
-    return None
+# gam create cigroup <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>
+#	[makeowner]
+#	[alias|aliases <AliasList>] [dynamic <QueryDynamicGroup>]
+def doCreateCIGroup():
+  doCreateGroup(ciGroupsAPI=True)
 
 UPDATE_GROUP_SUBCMDS = ['add', 'create', 'delete', 'remove', 'clear', 'sync', 'update']
 GROUP_PREVIEW_TITLES = ['group', 'email', 'role', 'action', 'message']
 
 # gam update groups <GroupEntity> [email <EmailAddress>]
 #	[copyfrom <GroupItem>] <GroupAttribute>*
-#	[makesecuritygroup|security] [alias|aliases <AliasList>] [dynamic <QueryDynamicGroup>]
+#	[makesecuritygroup|security]
+#	[alias|aliases <AliasList>] [dynamic <QueryDynamicGroup>]
 #	[admincreated <Boolean>]
 # gam update groups <GroupEntity> create|add [<GroupRole>]
 #	[usersonly|groupsonly] [notsuspended|suspended]
@@ -18300,7 +18419,7 @@ GROUP_PREVIEW_TITLES = ['group', 'email', 'role', 'action', 'message']
 #	[usersonly|groupsonly] [notsuspended|suspended]
 #	[emailclearpattern|emailretainpattern <RegularExpression>]
 #	[removedomainnostatusmembers] [preview] [actioncsv]
-def doUpdateGroups():
+def doUpdateGroups(ciGroupsAPI=False):
 
   def _getPreviewActionCSV():
     preview = checkArgumentPresent('preview')
@@ -18667,6 +18786,8 @@ def doUpdateGroups():
     Ind.Decrement()
 
   cd = buildGAPIObject(API.DIRECTORY)
+  ci = None
+  entityType = GROUP_CIGROUP_ENTITYTYPE_MAP[ciGroupsAPI]
   csvPF = None
   getBeforeUpdate = preview = False
   entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
@@ -18684,10 +18805,12 @@ def doUpdateGroups():
         body['email'] = getEmailAddress(noUid=True)
       elif myarg == 'admincreated':
         body['adminCreated'] = getBoolean()
+      elif myarg == 'getbeforeupdate':
+        getBeforeUpdate = True
       elif myarg in {'security', 'makesecuritygroup'}:
         ci_body['labels'] = {'cloudidentity.googleapis.com/groups.discussion_forum': '',
                              'cloudidentity.googleapis.com/groups.security': ''}
-      elif myarg == 'dynamic':
+      elif myarg in {'dynamic', 'dynamicquery'}:
         ci_body.setdefault('dynamicGroupMetadata', {'queries': []})
         ci_body['dynamicGroupMetadata']['queries'].append({'resourceType': 'USER',
                                                            'query': getString(Cmd.OB_QUERY)})
@@ -18695,29 +18818,34 @@ def doUpdateGroups():
         ci_body.setdefault('additionalGroupKeys', [])
         for alias in convertEntityToList(getString(Cmd.OB_GROUP_ALIAS_LIST), shlexSplit=True):
           ci_body['additionalGroupKeys'].append({'id': alias})
-      elif myarg == 'getbeforeupdate':
-        getBeforeUpdate = True
       elif myarg == 'json':
         gs_body.update(getJSON(GROUP_JSON_SKIP_FIELDS))
       else:
         getGroupAttrValue(myarg, gs_body)
+    if ci_body or ciGroupsAPI:
+      ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
+      if 'email' in body:
+        ci_body['groupKey'] = {'id': body.pop('email')}
     if gs_body:
       gs = buildGAPIObject(API.GROUPSSETTINGS)
       gs_body = getSettingsFromGroup(cd, ','.join(entityList), gs, gs_body)
-      if not gs_body:
+      if ci_body or ciGroupsAPI:
+        for k, v in iter(GROUP_CIGROUP_FIELDS_MAP.items()):
+          if k in gs_body:
+            ci_body[v] = gs_body.pop(k)
+      if gs_body:
+        if not getBeforeUpdate:
+          settings = gs_body
+      elif not ci_body:
         return
-      if not getBeforeUpdate:
-        settings = gs_body
-    elif ci_body:
-      ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
-    elif not body:
+    elif not body and not ci_body:
       return
     Act.Set(Act.UPDATE)
     i = 0
     count = len(entityList)
     for group in entityList:
       i += 1
-      group = normalizeEmailAddressOrUID(group)
+      ci, group = convertGroupCloudIDToEmail(ci, group, i, count)
       if gs_body and not GroupIsAbuseOrPostmaster(group):
         try:
           if group.find('@') == -1: # group settings API won't take uid so we make sure cd API is used so that we can grab real email.
@@ -18732,20 +18860,21 @@ def doUpdateGroups():
           if not checkReplyToCustom(group, settings, i, count):
             continue
         except GAPI.notFound:
-          entityActionFailedWarning([Ent.GROUP, group], Msg.DOES_NOT_EXIST, i, count)
+          entityActionFailedWarning([entityType, group], Msg.DOES_NOT_EXIST, i, count)
           continue
         except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
                 GAPI.backendError, GAPI.invalid, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
                 GAPI.systemError, GAPI.serviceLimit) as e:
-          entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
+          entityActionFailedWarning([entityType, group], str(e), i, count)
           continue
       if body:
         try:
           group = callGAPI(cd.groups(), 'update',
                            throwReasons=GAPI.GROUP_UPDATE_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
                            groupKey=group, body=body, fields='email')['email']
-        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalid, GAPI.invalidInput, GAPI.systemError) as e:
-          entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
+        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalid, GAPI.invalidInput,
+                GAPI.systemError, GAPI.permissionDenied, GAPI.failedPrecondition) as e:
+          entityActionFailedWarning([entityType, group], str(e), i, count)
           continue
       if gs_body and not GroupIsAbuseOrPostmaster(group):
         try:
@@ -18753,29 +18882,29 @@ def doUpdateGroups():
                    throwReasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retryReasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
                    groupUniqueId=group, body=settings, fields='')
         except GAPI.notFound:
-          entityActionFailedWarning([Ent.GROUP, group], Msg.DOES_NOT_EXIST, i, count)
+          entityActionFailedWarning([entityType, group], Msg.DOES_NOT_EXIST, i, count)
           continue
         except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
                 GAPI.backendError, GAPI.invalid, GAPI.invalidAttributeValue, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
                 GAPI.systemError, GAPI.serviceLimit) as e:
-          entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
+          entityActionFailedWarning([entityType, group], str(e), i, count)
           continue
         except GAPI.required:
-          entityActionFailedWarning([Ent.GROUP, group], Msg.INVALID_JSON_SETTING, i, count)
+          entityActionFailedWarning([entityType, group], Msg.INVALID_JSON_SETTING, i, count)
           continue
       if ci_body:
-        name = convertGroupEmailToCloudID(ci, group, i, count)
+        _, name = convertGroupEmailToCloudID(ci, group, i, count)
         if not name:
           continue
         try:
-          result = callGAPI(ci.groups(), 'patch',
-                            throwReasons=GAPI.CIGROUP_UPDATE_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
-                            name=name, body=ci_body, updateMask=','.join(list(ci_body.keys())))
+          callGAPI(ci.groups(), 'patch',
+                   throwReasons=GAPI.CIGROUP_UPDATE_THROW_REASONS,
+                   name=name, body=ci_body, updateMask=','.join(list(ci_body.keys())))
         except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalid, GAPI.invalidInput,
                 GAPI.systemError, GAPI.permissionDenied, GAPI.failedPrecondition) as e:
-          entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
+          entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, group], str(e), i, count)
           continue
-      entityActionPerformed([Ent.GROUP, group], i, count)
+      entityActionPerformed([entityType, group], i, count)
   elif CL_subCommand in {'create', 'add'}:
     baseRole, groupMemberType = _getRoleGroupMemberType()
     isSuspended = _getOptionalIsSuspended()
@@ -18796,17 +18925,18 @@ def doUpdateGroups():
         else:
           roleList = groupMemberLists[group]
       origGroup = group
-      group = checkGroupExists(cd, group, i, count)
-      if group:
-        for role in roleList:
-          if groupMemberLists and subkeyRoleField:
-            role, addMembers = _validateSubkeyRoleGetMembers(group, role, origGroup, groupMemberLists, i, count)
-            if role is None:
-              continue
-          _batchAddGroupMembers(group, i, count,
-                                [convertUIDtoEmailAddress(member, cd=cd, emailTypes='any',
-                                                          checkForCustomerId=True) for member in addMembers],
-                                role, delivery_settings)
+      ci, group = checkGroupExists(cd, ci, ciGroupsAPI, False, group, i, count)
+      if not group:
+        continue
+      for role in roleList:
+        if groupMemberLists and subkeyRoleField:
+          role, addMembers = _validateSubkeyRoleGetMembers(group, role, origGroup, groupMemberLists, i, count)
+          if role is None:
+            continue
+        _batchAddGroupMembers(group, i, count,
+                              [convertUIDtoEmailAddress(member, cd=cd, emailTypes='any',
+                                                        checkForCustomerId=True) for member in addMembers],
+                              role, delivery_settings)
   elif CL_subCommand in {'delete', 'remove'}:
     baseRole, groupMemberType = _getRoleGroupMemberType()
     isSuspended = _getOptionalIsSuspended()
@@ -18826,17 +18956,18 @@ def doUpdateGroups():
         else:
           roleList = groupMemberLists[group]
       origGroup = group
-      group = checkGroupExists(cd, group, i, count)
-      if group:
-        for role in roleList:
-          if groupMemberLists and subkeyRoleField:
-            role, removeMembers = _validateSubkeyRoleGetMembers(group, role, origGroup, groupMemberLists, i, count)
-            if role is None:
-              continue
-          _batchRemoveGroupMembers(group, i, count,
-                                   [convertUIDtoEmailAddress(member, cd=cd, emailTypes='any',
-                                                             checkForCustomerId=True) for member in removeMembers],
-                                   role)
+      ci, group = checkGroupExists(cd, ci, ciGroupsAPI, False, group, i, count)
+      if not group:
+        continue
+      for role in roleList:
+        if groupMemberLists and subkeyRoleField:
+          role, removeMembers = _validateSubkeyRoleGetMembers(group, role, origGroup, groupMemberLists, i, count)
+          if role is None:
+            continue
+        _batchRemoveGroupMembers(group, i, count,
+                                 [convertUIDtoEmailAddress(member, cd=cd, emailTypes='any',
+                                                           checkForCustomerId=True) for member in removeMembers],
+                                 role)
   elif CL_subCommand == 'sync':
     baseRole, groupMemberType = _getRoleGroupMemberType()
     syncOperation = getChoice(['addonly', 'removeonly'], defaultChoice='addremove')
@@ -18864,79 +18995,80 @@ def doUpdateGroups():
     for group in entityList:
       i += 1
       origGroup = group
-      group = checkGroupExists(cd, group, i, count)
-      if group:
-        if groupMemberLists is None:
+      ci, group = checkGroupExists(cd, ci, ciGroupsAPI, False, group, i, count)
+      if not group:
+        continue
+      if groupMemberLists is None:
+        roleList = [baseRole]
+      else:
+        if not subkeyRoleField:
           roleList = [baseRole]
         else:
-          if not subkeyRoleField:
-            roleList = [baseRole]
-          else:
-            roleList = groupMemberLists[origGroup]
-          for role in roleList:
-            role = role.upper()
-            syncMembersSets[role] = set()
-            syncMembersMaps[role] = {}
-        rolesSet = set()
+          roleList = groupMemberLists[origGroup]
         for role in roleList:
-          origRole = role
           role = role.upper()
-          if groupMemberLists is None:
+          syncMembersSets[role] = set()
+          syncMembersMaps[role] = {}
+      rolesSet = set()
+      for role in roleList:
+        origRole = role
+        role = role.upper()
+        if groupMemberLists is None:
+          rolesSet.add(role)
+        else:
+          if not subkeyRoleField:
             rolesSet.add(role)
+            syncMembers = groupMemberLists[origGroup]
           else:
-            if not subkeyRoleField:
-              rolesSet.add(role)
-              syncMembers = groupMemberLists[origGroup]
-            else:
-              role, syncMembers = _validateSubkeyRoleGetMembers(group, origRole, origGroup, groupMemberLists, i, count)
-              if role is None:
-                continue
-              rolesSet.add(role)
-            for member in syncMembers:
-              syncMembersSets[role].add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailTypes='any',
-                                                                                       checkForCustomerId=True), syncMembersMaps[role]))
-        if not rolesSet:
-          continue
-        memberRoles = ','.join(sorted(rolesSet))
-        printGettingAllEntityItemsForWhom(memberRoles, group, entityType=Ent.GROUP)
-        try:
-          result = callGAPIpages(cd.members(), 'list', 'members',
-                                 pageMessage=getPageMessageForWhom(),
-                                 throwReasons=GAPI.MEMBERS_THROW_REASONS,
-                                 groupKey=group, roles=None if Ent.ROLE_MEMBER in rolesSet else memberRoles,
-                                 fields='nextPageToken,members(email,id,type,status,role)',
-                                 maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
-        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
-          entityUnknownWarning(Ent.GROUP, group, i, count)
-          continue
+            role, syncMembers = _validateSubkeyRoleGetMembers(group, origRole, origGroup, groupMemberLists, i, count)
+            if role is None:
+              continue
+            rolesSet.add(role)
+          for member in syncMembers:
+            syncMembersSets[role].add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailTypes='any',
+                                                                                     checkForCustomerId=True), syncMembersMaps[role]))
+      if not rolesSet:
+        continue
+      memberRoles = ','.join(sorted(rolesSet))
+      printGettingAllEntityItemsForWhom(memberRoles, group, entityType=Ent.GROUP)
+      try:
+        result = callGAPIpages(cd.members(), 'list', 'members',
+                               pageMessage=getPageMessageForWhom(),
+                               throwReasons=GAPI.MEMBERS_THROW_REASONS,
+                               groupKey=group, roles=None if Ent.ROLE_MEMBER in rolesSet else memberRoles,
+                               fields='nextPageToken,members(email,id,type,status,role)',
+                               maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+        entityUnknownWarning(Ent.GROUP, group, i, count)
+        continue
+      for role in rolesSet:
+        currentMembersSets[role] = set()
+        currentMembersMaps[role] = {}
+        domainNoStatusMembersSets[role] = set()
+      for member in result:
+        role = member.get('role', Ent.ROLE_MEMBER)
+        email, memberStatus = _getMemberEmailStatus(member)
+        if groupMemberType in ('ALL', member['type']) and role in rolesSet:
+          if not removeDomainNoStatusMembers or memberStatus != 'NONE':
+            if isSuspended is None or (not isSuspended and memberStatus != 'SUSPENDED') or (isSuspended and memberStatus == 'SUSPENDED'):
+              currentMembersSets[role].add(_cleanConsumerAddress(email, currentMembersMaps[role]))
+          else:
+            domainNoStatusMembersSets[role].add(member['id'])
+      if syncOperation != 'addonly':
         for role in rolesSet:
-          currentMembersSets[role] = set()
-          currentMembersMaps[role] = {}
-          domainNoStatusMembersSets[role] = set()
-        for member in result:
-          role = member.get('role', Ent.ROLE_MEMBER)
-          email, memberStatus = _getMemberEmailStatus(member)
-          if groupMemberType in ('ALL', member['type']) and role in rolesSet:
-            if not removeDomainNoStatusMembers or memberStatus != 'NONE':
-              if isSuspended is None or (not isSuspended and memberStatus != 'SUSPENDED') or (isSuspended and memberStatus == 'SUSPENDED'):
-                currentMembersSets[role].add(_cleanConsumerAddress(email, currentMembersMaps[role]))
-            else:
-              domainNoStatusMembersSets[role].add(member['id'])
-        if syncOperation != 'addonly':
-          for role in rolesSet:
-            if domainNoStatusMembersSets[role]:
-              _batchRemoveGroupMembers(group, i, count,
-                                       domainNoStatusMembersSets[role],
-                                       role)
+          if domainNoStatusMembersSets[role]:
             _batchRemoveGroupMembers(group, i, count,
-                                     [currentMembersMaps[role].get(emailAddress, emailAddress) for emailAddress in currentMembersSets[role]-syncMembersSets[role]],
+                                     domainNoStatusMembersSets[role],
                                      role)
-        if syncOperation != 'removeonly':
-          for role in [Ent.ROLE_OWNER, Ent.ROLE_MANAGER, Ent.ROLE_MEMBER]:
-            if role in rolesSet:
-              _batchAddGroupMembers(group, i, count,
-                                    [syncMembersMaps[role].get(emailAddress, emailAddress) for emailAddress in syncMembersSets[role]-currentMembersSets[role]],
-                                    role, delivery_settings)
+          _batchRemoveGroupMembers(group, i, count,
+                                   [currentMembersMaps[role].get(emailAddress, emailAddress) for emailAddress in currentMembersSets[role]-syncMembersSets[role]],
+                                   role)
+      if syncOperation != 'removeonly':
+        for role in [Ent.ROLE_OWNER, Ent.ROLE_MANAGER, Ent.ROLE_MEMBER]:
+          if role in rolesSet:
+            _batchAddGroupMembers(group, i, count,
+                                  [syncMembersMaps[role].get(emailAddress, emailAddress) for emailAddress in syncMembersSets[role]-currentMembersSets[role]],
+                                  role, delivery_settings)
   elif CL_subCommand == 'update':
     baseRole, groupMemberType = _getRoleGroupMemberType(defaultRole=None)
     isSuspended = _getOptionalIsSuspended()
@@ -18958,16 +19090,17 @@ def doUpdateGroups():
         else:
           roleList = groupMemberLists[group]
       origGroup = group
-      group = checkGroupExists(cd, group, i, count)
-      if group:
-        for role in roleList:
-          if groupMemberLists and subkeyRoleField:
-            role, updateMembers = _validateSubkeyRoleGetMembers(group, role, origGroup, groupMemberLists, i, count)
-            if role is None:
-              continue
-          _batchUpdateGroupMembers(group, i, count,
-                                   [convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True) for member in updateMembers],
-                                   role, delivery_settings)
+      ci, group = checkGroupExists(cd, ci, ciGroupsAPI, False, group, i, count)
+      if not group:
+        continue
+      for role in roleList:
+        if groupMemberLists and subkeyRoleField:
+          role, updateMembers = _validateSubkeyRoleGetMembers(group, role, origGroup, groupMemberLists, i, count)
+          if role is None:
+            continue
+        _batchUpdateGroupMembers(group, i, count,
+                                 [convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True) for member in updateMembers],
+                                 role, delivery_settings)
   else: #clear
     rolesSet = set()
     groupMemberType = 'ALL'
@@ -19009,7 +19142,9 @@ def doUpdateGroups():
     count = len(entityList)
     for group in entityList:
       i += 1
-      group = normalizeEmailAddressOrUID(group)
+      ci, group = checkGroupExists(cd, ci, ciGroupsAPI, False, group, i, count)
+      if not group:
+        continue
       printGettingAllEntityItemsForWhom(memberRoles, group, qualifier=qualifier, entityType=Ent.GROUP)
       try:
         result = callGAPIpages(cd.members(), 'list', 'members',
@@ -19047,23 +19182,46 @@ def doUpdateGroups():
   if csvPF:
     csvPF.writeCSVfile('Group Updates')
 
+# gam update cigroup <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>
+#	[makesecuritygroup|security] [alias|aliases <AliasList>] [dynamic <QueryDynamicGroup>]
+
+def doUpdateCIGroups():
+  doUpdateGroups(ciGroupsAPI=True)
+
 # gam delete groups <GroupEntity>
-def doDeleteGroups():
-  cd = buildGAPIObject(API.DIRECTORY)
+def doDeleteGroups(ciGroupsAPI=False):
+  if not ciGroupsAPI:
+    cd = buildGAPIObject(API.DIRECTORY)
+    ci = None
+  else:
+    ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
+  entityType = GROUP_CIGROUP_ENTITYTYPE_MAP[ciGroupsAPI]
   entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
   checkForExtraneousArguments()
   i = 0
   count = len(entityList)
   for group in entityList:
     i += 1
-    group = normalizeEmailAddressOrUID(group)
     try:
-      callGAPI(cd.groups(), 'delete',
-               throwReasons=[GAPI.GROUP_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID],
-               groupKey=group)
-      entityActionPerformed([Ent.GROUP, group], i, count)
-    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.invalid):
-      entityUnknownWarning(Ent.GROUP, group, i, count)
+      if not ciGroupsAPI:
+        ci, groupKey = convertGroupCloudIDToEmail(ci, group, i, count)
+        callGAPI(cd.groups(), 'delete',
+                 throwReasons=[GAPI.GROUP_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID],
+                 groupKey=groupKey)
+      else:
+        _, groupKey = convertGroupEmailToCloudID(ci, group, i, count)
+        if not groupKey:
+          continue
+        callGAPI(ci.groups(), 'delete',
+                 throwReasons=[GAPI.NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID],
+                 name=groupKey)
+      entityActionPerformed([entityType, groupKey], i, count)
+    except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.invalid):
+      entityUnknownWarning(entityType, groupKey, i, count)
+
+# gam delete cigroups <GroupEntity>
+def doDeleteCIGroups():
+  doDeleteGroups(ciGroupsAPI=True)
 
 def getGroupRoles(myarg, rolesSet):
   if myarg in {'role', 'roles'}:
@@ -47339,6 +47497,7 @@ MAIN_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_ALERTFEEDBACK:	doCreateAlertFeedback,
   Cmd.ARG_ALIAS:	doCreateUpdateAliases,
   Cmd.ARG_BUILDING:	doCreateBuilding,
+  Cmd.ARG_CIGROUP:	doCreateCIGroup,
   Cmd.ARG_CONTACT:	doCreateDomainContact,
   Cmd.ARG_COURSE:	doCreateCourse,
   Cmd.ARG_DATATRANSFER:	doCreateDataTransfer,
@@ -47387,6 +47546,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ALIAS:		doDeleteAliases,
       Cmd.ARG_ALERT:		doDeleteOrUndeleteAlert,
       Cmd.ARG_BUILDING:		doDeleteBuilding,
+      Cmd.ARG_CIGROUP:		doDeleteCIGroups,
       Cmd.ARG_CONTACT:		doDeleteDomainContacts,
       Cmd.ARG_CONTACTPHOTO:	doDeleteDomainContactPhoto,
       Cmd.ARG_COURSE:		doDeleteCourse,
@@ -47576,6 +47736,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
      {Cmd.ARG_ADMINROLE:	doCreateUpdateAdminRoles,
       Cmd.ARG_ALIAS:		doCreateUpdateAliases,
       Cmd.ARG_BUILDING:		doUpdateBuilding,
+      Cmd.ARG_CIGROUP:		doUpdateCIGroups,
       Cmd.ARG_CONTACT:		doUpdateDomainContacts,
       Cmd.ARG_CONTACTPHOTO:	doUpdateDomainContactPhoto,
       Cmd.ARG_COURSE:		doUpdateCourse,
@@ -47634,6 +47795,7 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_ALIASES:	Cmd.ARG_ALIAS,
   Cmd.ARG_APIPROJECT:	Cmd.ARG_PROJECT,
   Cmd.ARG_BUILDINGS:	Cmd.ARG_BUILDING,
+  Cmd.ARG_CIGROUPS:	Cmd.ARG_CIGROUP,
   Cmd.ARG_CLASS:	Cmd.ARG_COURSE,
   Cmd.ARG_CLASSES:	Cmd.ARG_COURSES,
   Cmd.ARG_CLASSPARTICIPANTS:	Cmd.ARG_COURSEPARTICIPANTS,

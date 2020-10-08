@@ -1,3 +1,10 @@
+5.22.04
+
+The following additions are derived from initial work by Jay.
+
+Added commands to manage Cloud Identity groups. This is a work in progress.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Cloud-Identity-Groups
+
 5.22.03
 
 Added options `alias|aliases <AliasList>` and `dynamic <QueryDynamicGroup>` to

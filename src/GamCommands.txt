@@ -1956,6 +1956,29 @@ gam info domainalias|aliasdomain <DomainAlias> [formatjson]
 gam print domainaliases|aliasdomains [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
 gam show domainaliases|aliasdomains [formatjson]
 
+# Cloud Identity Groups
+
+<CIGroupFieldsName> ::=
+        additionalgroupkeys|
+        createtime|
+        description|
+        displayname|
+        dynamicgroupmetadata|
+        groupkey|
+        labels|
+        name|
+        parent|
+        updatetime
+<CIGroupFieldNameList> ::= "<CIGroupFieldName>(,<CIGroupFieldName>)*"
+
+gam create cigroup <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>
+        [makeowner]
+        [alias|aliases <AliasList>] [dynamic <QueryDynamicGroup>]
+gam update cigroup <GroupEntity> [copyfrom <GroupItem>] <GroupAttribute>
+        [makesecuritygroup|security]
+        [alias|aliases <AliasList>] [dynamic <QueryDynamicGroup>]
+gam delete cigroups <GroupEntity>
+
 # Groups
 
 <GroupSettingsAttribute> ::=
