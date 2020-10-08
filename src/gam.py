@@ -18691,7 +18691,7 @@ def doUpdateGroups():
         ci_body.setdefault('dynamicGroupMetadata', {'queries': []})
         ci_body['dynamicGroupMetadata']['queries'].append({'resourceType': 'USER',
                                                            'query': getString(Cmd.OB_QUERY)})
-      elif ciGroupsAPI and myarg in ['alias', 'aliases']:
+      elif myarg in ['alias', 'aliases']:
         ci_body.setdefault('additionalGroupKeys', [])
         for alias in convertEntityToList(getString(Cmd.OB_GROUP_ALIAS_LIST), shlexSplit=True):
           ci_body['additionalGroupKeys'].append({'id': alias})
