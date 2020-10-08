@@ -10709,7 +10709,7 @@ def doSendEmail(users=None):
     recipients = getRecipients()
   else:
     msgFroms = users
-    recipients = ['']
+    recipients = []
   ccRecipients = []
   bccRecipients = []
   mailBox = None
@@ -10762,8 +10762,7 @@ def doSendEmail(users=None):
     notify['subject'] = _processTagReplacements(tagReplacements, notify['subject'])
   jcount = len(recipients)
   if body.get('primaryEmail'):
-    if ((jcount == 1) and recipients[0] and
-        ('password' in body) and ('name' in body) and ('givenName' in body['name']) and ('familyName' in body['name'])):
+    if (recipients and ('password' in body) and ('name' in body) and ('givenName' in body['name']) and ('familyName' in body['name'])):
       notify['recipients'] = recipients
       sendCreateUpdateUserNotification(body, notify, tagReplacements, msgFrom=msgFroms[0])
     else:
