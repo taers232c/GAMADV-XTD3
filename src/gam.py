@@ -16,13 +16,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""GAMADV-XTD3 is a command line tool which allows Administrators to control their G Suite domain and accounts.
+"""GAMADV-XTD3 is a command line tool which allows Administrators to control their Google Workspace domain and accounts.
 
 For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.22.04'
+__version__ = '5.22.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -211,19 +211,19 @@ DEFAULT_FILE_WRITE_MODE = 'w'
 
 # Google API constants
 APPLICATION_VND_GOOGLE_APPS = 'application/vnd.google-apps.'
-MIMETYPE_GA_DOCUMENT = APPLICATION_VND_GOOGLE_APPS+'document'
-MIMETYPE_GA_DRAWING = APPLICATION_VND_GOOGLE_APPS+'drawing'
-MIMETYPE_GA_FILE = APPLICATION_VND_GOOGLE_APPS+'file'
-MIMETYPE_GA_FOLDER = APPLICATION_VND_GOOGLE_APPS+'folder'
-MIMETYPE_GA_FORM = APPLICATION_VND_GOOGLE_APPS+'form'
-MIMETYPE_GA_FUSIONTABLE = APPLICATION_VND_GOOGLE_APPS+'fusiontable'
-MIMETYPE_GA_MAP = APPLICATION_VND_GOOGLE_APPS+'map'
-MIMETYPE_GA_PRESENTATION = APPLICATION_VND_GOOGLE_APPS+'presentation'
-MIMETYPE_GA_SCRIPT = APPLICATION_VND_GOOGLE_APPS+'script'
-MIMETYPE_GA_SHORTCUT = APPLICATION_VND_GOOGLE_APPS+'shortcut'
-MIMETYPE_GA_3P_SHORTCUT = APPLICATION_VND_GOOGLE_APPS+'drive-sdk'
-MIMETYPE_GA_SITE = APPLICATION_VND_GOOGLE_APPS+'site'
-MIMETYPE_GA_SPREADSHEET = APPLICATION_VND_GOOGLE_APPS+'spreadsheet'
+MIMETYPE_GA_DOCUMENT = f'{APPLICATION_VND_GOOGLE_APPS}document'
+MIMETYPE_GA_DRAWING = f'{APPLICATION_VND_GOOGLE_APPS}drawing'
+MIMETYPE_GA_FILE = f'{APPLICATION_VND_GOOGLE_APPS}file'
+MIMETYPE_GA_FOLDER = f'{APPLICATION_VND_GOOGLE_APPS}folder'
+MIMETYPE_GA_FORM = f'{APPLICATION_VND_GOOGLE_APPS}form'
+MIMETYPE_GA_FUSIONTABLE = f'{APPLICATION_VND_GOOGLE_APPS}fusiontable'
+MIMETYPE_GA_MAP = f'{APPLICATION_VND_GOOGLE_APPS}map'
+MIMETYPE_GA_PRESENTATION = f'{APPLICATION_VND_GOOGLE_APPS}presentation'
+MIMETYPE_GA_SCRIPT = f'{APPLICATION_VND_GOOGLE_APPS}script'
+MIMETYPE_GA_SHORTCUT = f'{APPLICATION_VND_GOOGLE_APPS}shortcut'
+MIMETYPE_GA_3P_SHORTCUT = f'{APPLICATION_VND_GOOGLE_APPS}drive-sdk'
+MIMETYPE_GA_SITE = f'{APPLICATION_VND_GOOGLE_APPS}site'
+MIMETYPE_GA_SPREADSHEET = f'{APPLICATION_VND_GOOGLE_APPS}spreadsheet'
 MIMETYPE_TEXT_HTML = 'text/html'
 MIMETYPE_TEXT_PLAIN = 'text/plain'
 
@@ -11371,8 +11371,8 @@ CUSTOMER_LICENSE_MAP = {
   'accounts:num_users': 'Total Users',
   'accounts:gsuite_basic_total_licenses': 'G Suite Basic Licenses',
   'accounts:gsuite_basic_used_licenses': 'G Suite Basic Users',
-  'accounts:gsuite_enterprise_total_licenses': 'G Suite Enterprise Licenses',
-  'accounts:gsuite_enterprise_used_licenses': 'G Suite Enterprise Users',
+  'accounts:gsuite_enterprise_total_licenses': 'Workspace Enterprise Plus Licenses',
+  'accounts:gsuite_enterprise_used_licenses': 'Workspace Enterprise PLus Users',
   'accounts:gsuite_unlimited_total_licenses': 'G Suite Business Licenses',
   'accounts:gsuite_unlimited_used_licenses': 'G Suite Business Users',
   'accounts:vault_total_licenses': 'Google Vault Licenses',
@@ -34260,6 +34260,7 @@ MIMETYPE_CHOICE_MAP = {
   'gsite': MIMETYPE_GA_SITE,
   'gsheet': MIMETYPE_GA_SPREADSHEET,
   'gspreadsheet': MIMETYPE_GA_SPREADSHEET,
+  'shortcut': MIMETYPE_GA_SHORTCUT,
   }
 
 MIMETYPE_TYPES = ['application', 'audio', 'font', 'image', 'message', 'model', 'multipart', 'text', 'video']
@@ -34339,6 +34340,10 @@ def initDriveFileAttributes():
 DRIVEFILE_PROPERTY_VISIBILITY_CHOICE_MAP = {
   'private': 'appProperties',
   'public': 'properties'
+  }
+
+DRIVE_FILE_CONTENT_RESTRICTIONS_CHOICE_MAP = {
+  'readonly': 'readOnly',
   }
 
 def getDriveFileProperty(visibility=None):
@@ -34427,6 +34432,17 @@ def getDriveFileAttribute(myarg, body, parameters, assignLocalName, updateCmd):
     deprecatedArgument(myarg)
   elif myarg == 'ocrlanguage':
     parameters[DFA_OCRLANGUAGE] = getLanguageCode()
+  elif myarg == 'contentrestrictions':
+    body['contentRestrictions'] = [{}]
+    restriction = getChoice(DRIVE_FILE_CONTENT_RESTRICTIONS_CHOICE_MAP, mapChoice=True)
+    if restriction == 'readOnly':
+      body['contentRestrictions'][0][restriction] = getBoolean()
+      if checkArgumentPresent(['reason']):
+        if body['contentRestrictions'][0][restriction]:
+          body['contentRestrictions'][0]['reason'] = getString(Cmd.OB_STRING, minLen=0)
+        else:
+          Cmd.Backup()
+          usageErrorExit(Msg.REASON_ONLY_VALID_WITH_CONTENTRESTRICTIONS_READONLY_TRUE)
   elif myarg == 'viewerscancopycontent':
     body['copyRequiresWriterPermission'] = not getBoolean()
   elif myarg in {'copyrequireswriterpermission', 'restrict', 'restricted'}:
@@ -34446,6 +34462,9 @@ def getDriveFileAttribute(myarg, body, parameters, assignLocalName, updateCmd):
     body['description'] = getStringWithCRsNLs()
   elif myarg == 'mimetype':
     body['mimeType'] = getMimeType()
+  elif myarg == 'shortcut':
+    body['mimeType'] = MIMETYPE_GA_SHORTCUT
+    body['shortcutDetails'] = {'targetId': getString(Cmd.OB_DRIVE_FOLDER_ID)}
   elif getDriveFileParentAttribute(myarg, parameters):
     pass
   elif myarg == 'writerscanshare':
@@ -35201,6 +35220,7 @@ DRIVE_FIELDS_CHOICE_MAP = {
   'canreadrevisions': 'capabilities.canReadRevisions',
   'capabilities': 'capabilities',
   'contenthints': 'contentHints',
+  'contentrestrictions': 'contentRestrictions',
   'copyable': 'capabilities.canCopy',
   'copyrequireswriterpermission': 'copyRequiresWriterPermission',
   'createddate': 'createdTime',
@@ -35313,6 +35333,14 @@ DRIVE_CAPABILITIES_SUBFIELDS_CHOICE_MAP = {
   'canuntrash': 'canUntrash',
   }
 
+DRIVE_CONTENT_RESTRICTIONS_SUBFIELDS_CHOICE_MAP = {
+  'readonly': 'readOnly',
+  'reason': 'reason',
+  'restrictinguser': 'restructingUser',
+  'restrictiontime': 'restrictionTime',
+  'type': 'type',
+  }
+
 DRIVE_OWNERS_SUBFIELDS_CHOICE_MAP = {
   'displayname': 'displayName',
   'emailaddress': 'emailAddress',
@@ -35365,6 +35393,7 @@ DRIVE_SHORTCUTDETAILS_SUBFIELDS_CHOICE_MAP = {
 
 DRIVE_SUBFIELDS_CHOICE_MAP = {
   'capabilities': DRIVE_CAPABILITIES_SUBFIELDS_CHOICE_MAP,
+  'contentrestrictions': DRIVE_CONTENT_RESTRICTIONS_SUBFIELDS_CHOICE_MAP,
   'labels': DRIVE_LABEL_CHOICE_MAP,
   'lastmodifyinguser': DRIVE_SHARINGUSER_SUBFIELDS_CHOICE_MAP,
   'owners': DRIVE_OWNERS_SUBFIELDS_CHOICE_MAP,
@@ -35381,7 +35410,7 @@ FILEINFO_FIELDS_TITLES = ['name', 'mimeType']
 FILEPATH_FIELDS_TITLES = ['name', 'id', 'mimeType', 'parents']
 
 def _getDriveTimeObjects():
-  timeObjects = ['createdTime', 'viewedByMeTime', 'modifiedByMeTime', 'modifiedTime', 'sharedWithMeTime']
+  timeObjects = ['createdTime', 'viewedByMeTime', 'modifiedByMeTime', 'modifiedTime', 'restrictionTime', 'sharedWithMeTime']
   if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
     _mapDrive3TitlesToDrive2(timeObjects, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
   return set(timeObjects)

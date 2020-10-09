@@ -171,7 +171,8 @@ If an item contains spaces, it should be surrounded by ".
         gsheet|gspreadsheet|
         gshortcut|
         g3pshortcut|
-        gsite
+        gsite|
+        shortcut
 <MimeTypeName> ::= application|audio|font|image|message|model|multipart|text|video
 <MimeType> ::= <MimeTypeShortcut>|(<MimeTypeName>/<String>)
 <ProductID> ::=
@@ -180,7 +181,7 @@ If an item contains spaces, it should be surrounded by ".
         Google-Coordinate|
         Google-Drive-storage|
         Google-Vault|
-        101001|101005|101006|101031|101033|101034
+        101001|101005|101031|101033|101034
 <SKUID> ::=
         cloudidentity|identity|1010010001|
         cloudidentitypremium|identitypremium|1010050001|
@@ -190,7 +191,11 @@ If an item contains spaces, it should be surrounded by ".
         gams|postini|gsuitegams|gsuitepostini|gsuitemessagesecurity|Google-Apps-For-Postini|
         gal|gsl|lite|gsuitelite|Google-Apps-Lite|
         gau|gsb|unlimited|gsuitebusiness|Google-Apps-Unlimited|
-        gae|gse|enterprise|gsuiteenterprise|1010020020|
+        wsentplus|workspaceenterpriseplus|gae|gse|enterprise|gsuiteenterprise|1010020020|
+        wsbizplus|workspacebusinessplus|1010020025|
+        wsentstan|workspaceenterprisestandard|'1010020026|
+        wsbizstart|workspacebusinessstarter|1010020027|
+        wsbizstan|workspacebusinessstandard|1010020028|
         gsefe|e4e|gsuiteenterpriseeducation|1010310002|
         gsefes|e4es|gsuiteenterpriseeducationstudent|1010310003|
         gsbau|businessarchived|gsuitebusinessarchived|1010340002|
@@ -199,8 +204,8 @@ If an item contains spaces, it should be surrounded by ".
         gvstandard|voicestandard|googlevoicestandard|1010330004|
         gvpremier|voicepremier|googlevoicepremier|1010330002|
         chrome|cdm|googlechromedevicemanagement|Google-Chrome-Device-Management|
-        coordinate|googlecoordinate|Google-Coordinate|
-        gsuiteessentials|essentials|d4e|driveenterprise|drive4enterprise|1010060001|
+        wsess|workspaceesentials|gsuiteessentials|essentials|d4e|driveenterprise|drive4enterprise|1010060001|
+        wsentess|workspaceenterpriseessentials|1010060003|
         drive20gb|20gb|googledrivestorage20gb|Google-Drive-storage-20GB|
         drive50gb|50gb|googledrivestorage50gb|Google-Drive-storage-50GB|
         drive200gb|200gb|googledrivestorage200gb|Google-Drive-storage-200GB|
@@ -261,6 +266,7 @@ If an item contains spaces, it should be surrounded by ".
         <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|
         domain:<DomainName>)|domain|default
 <CalendarItem> ::= <EmailAddress>|<String>
+<GIGroupItem> ::= <EmailAddress>|<UniqueID>|groups/<String>
 <ChatRoom> ::= <String>
 <ClassroomInvitationID> ::= <String>
 <ClientID> ::= <String>
@@ -381,6 +387,8 @@ If an item contains spaces, it should be surrounded by ".
         See: https://developers.google.com/google-apps/contacts/v3/reference#contacts-query-parameters-reference
 <QueryCrOS> ::= <String>
         See: https://support.google.com/chrome/a/answer/1698333
+<QueryDevice> ::= <String>
+        See: https://support.google.com/a/answer/7549103
 <QueryDriveFile> ::= <String>
         See: https://developers.google.com/drive/api/v3/search-files
 <QueryDynamicGroup> ::= <String>
@@ -2314,7 +2322,7 @@ gam sync devices
         [assettag_column <String>]
         [unassigned_missing_action delete|wipe|donothing]
         [assigned_missing_action delete|wipe|donothing]
-	[preview]
+        [preview]
 
 gam info device <DeviceEntity>
         <DeviceFieldName>* [fields <DeviceFieldNameList>] [userfields <DeviceUserFieldNameList>]
@@ -3743,6 +3751,8 @@ gam <UserTypeEntity> update calattendees <UserCalendarEntity> [<EventEntity>] [a
         <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
 
 <DriveFileAttribute> ::=
+        (contentrestrictions readonly false)|
+        (contentrestrictions readonly true [reason <String>])|
         (copyrequireswriterpermission [<Boolean>])|
         (description <String>)|
         (folderColorRgb <ColorValue>)|
@@ -3757,6 +3767,7 @@ gam <UserTypeEntity> update calattendees <UserCalendarEntity> [<EventEntity>] [a
         (publicproperty <PropertyKey> <PropertyValue>)|
         (property <PropertyKey> <PropertyValue> [private|public])|
         (restricted|restrict [<Boolean>])|
+        (shortcut <DriveFileID>)|
         (starred|star [<Boolean>])|
         (trashed|trash [<Boolean>])|
         (viewed|view [<Boolean>])|
@@ -4000,6 +4011,13 @@ gam <UserTypeEntity> collect orphans (orderby <DriveFileOrderByFieldName> [ascen
         cantrashchildren|
         canuntrash
 
+<DriveContentRestrictionsSubfieldName> ::=
+        readonly|
+        reason|
+        restrictinguser|
+        restrictiontime|
+        type
+
 <DriveLabelsSubfieldName> ::=
         labels.modified|        # modifiedByMe
         labels.restricted|      # copyRequiresWriterPermission
@@ -4081,6 +4099,8 @@ gam <UserTypeEntity> collect orphans (orderby <DriveFileOrderByFieldName> [ascen
         capabilities|
         <DriveCapabilitiesSubfieldName>|
         contenthints|
+        contentrestrictions|
+        <DriveContentRestrictionsSubfieldName>|
         copyable|
         copyrequireswriterpermission|
         createddate|createdtime|

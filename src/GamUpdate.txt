@@ -1,3 +1,26 @@
+5.22.05
+
+Added options to `gam create|update drivefile` to manage content restrictions.
+* https://gsuiteupdates.googleblog.com/2020/10/lock-files-using-the-google-drive-api.html
+```
+<DriveFileAttribute> ::=
+        (contentrestrictions readonly false)|
+        (contentrestrictions readonly true [reason <String>])|
+```
+
+Added new Workspace licenses SKUs.
+* https://developers.google.com/admin-sdk/licensing/v1/how-tos/products
+```
+<SKUID> ::=
+        wsentplus|workspaceenterpriseplus|gae|gse|enterprise|gsuiteenterprise|1010020020|
+        wsbizplus|workspacebusinessplus|1010020025|
+        wsentstan|workspaceenterprisestandard|'1010020026|
+        wsbizstart|workspacebusinessstarter|1010020027|
+        wsbizstan|workspacebusinessstandard|1010020028|
+        wsess|workspaceesentials|gsuiteessentials|essentials|d4e|driveenterprise|drive4enterprise|1010060001|
+        wsentess|workspaceenterpriseessentials|1010060003|
+```
+
 5.22.04
 
 The following additions are derived from initial work by Jay.

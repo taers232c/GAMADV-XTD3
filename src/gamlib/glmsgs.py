@@ -76,8 +76,8 @@ DOWNLOADING_AGAIN_AND_OVER_WRITING = 'Downloading again and over-writing...'
 DUPLICATE = 'Duplicate'
 DUPLICATE_ALREADY_A_ROLE = 'Duplicate, already a {0}'
 EITHER = 'Either'
-ENTER_GSUITE_ADMIN_EMAIL_ADDRESS = '\nEnter your G Suite admin email address? '
-ENTER_MANAGE_GCP_PROJECT_EMAIL_ADDRESS = '\nEnter your G Suite admin or GCP project manager email address authorized to manage project(s): {0}? '
+ENTER_GSUITE_ADMIN_EMAIL_ADDRESS = '\nEnter your Google Workspace admin email address? '
+ENTER_MANAGE_GCP_PROJECT_EMAIL_ADDRESS = '\nEnter your Google Workspace admin or GCP project manager email address authorized to manage project(s): {0}? '
 ENTER_VERIFICATION_CODE = 'Enter verification code: '
 ENTITY_DOES_NOT_EXIST = '{0} does not exist'
 ENTITY_NAME_NOT_VALID = 'Entity Name Not Valid'
@@ -100,7 +100,7 @@ FORMAT_NOT_DOWNLOADABLE = 'Format not downloadable'
 FROM = 'From'
 GAM_EXITING_FOR_UPDATE = 'GAM is now exiting so that you can overwrite this old version with the latest release'
 GAM_LATEST_VERSION_NOT_AVAILABLE = 'GAM Latest Version information not available'
-GAM_OUT_OF_MEMORY = 'GAM has run out of memory. If this is a large G Suite instance, you should use a 64-bit version of GAM on Windows or a 64-bit version of Python on other systems.'
+GAM_OUT_OF_MEMORY = 'GAM has run out of memory. If this is a large Google Workspace instance, you should use a 64-bit version of GAM on Windows or a 64-bit version of Python on other systems.'
 GENERATING_NEW_PRIVATE_KEY = 'Generating new private key'
 GETTING = 'Getting'
 GETTING_ALL = 'Getting all'
@@ -248,6 +248,7 @@ PROCESSES = 'processes'
 PROCESSING_ITEM_N = '{0},0,Processing item {1}\n'
 PROFILE_PHOTO_NOT_FOUND = 'Profile photo not found'
 PROJECT_STILL_BEING_CREATED_SLEEPING = 'Project still being created. Sleeping {0} seconds\n'
+REASON_ONLY_VALID_WITH_CONTENTRESTRICTIONS_READONLY_TRUE = 'reason only valid with contentrestrictions readonly true'
 RECOMMEND_RUNNING_GAM_ROTATE_SAKEY = 'Recommend running "gam rotate sakey" to get a new key\n'
 REFUSING_TO_DEPROVISION_DEVICES = 'Refusing to deprovision {0} devices because acknowledge_device_touch_requirement not specified.\nDeprovisioning a device means the device will have to be physically wiped and re-enrolled to be managed by your domain again.\nThis requires physical access to the device and is very time consuming to perform for each device.\nPlease add "acknowledge_device_touch_requirement" to the GAM command if you understand this and wish to proceed with the deprovision.\nPlease also be aware that deprovisioning can have an effect on your device license count.\nSee https://support.google.com/chrome/a/answer/3523633 for full details.'
 REPLY_TO_CUSTOM_REQUIRES_EMAIL_ADDRESS = 'replyto REPLY_TO_CUSTOM requires customReplyTo <EmailAddress>'
@@ -260,7 +261,7 @@ To authorize them, please go to the following link in your browser:
 {0}
     {1}
 
-You will be directed to the G Suite admin console Security/API Controls/Domain-wide Delegation page
+You will be directed to the Google Workspace admin console Security/API Controls/Domain-wide Delegation page
 The "Add a new Client ID" box will open
 Make sure that "Overwrite existing client ID" is checked
 Click AUTHORIZE
@@ -276,7 +277,7 @@ To authorize them (in case some scopes were unselected), please go to the follow
 {0}
     {1}
 
-You will be directed to the G Suite admin console Security/API Controls/Domain-wide Delegation page
+You will be directed to the Google Workspace admin console Security/API Controls/Domain-wide Delegation page
 The "Add a new Client ID" box will open
 Make sure that "Overwrite existing client ID" is checked
 Click AUTHORIZE
@@ -330,4 +331,4 @@ WILL_RERUN_WITH_NO_BROWSER_TRUE = 'Will re-run command with no_browser true\n'
 WITH = 'with'
 WOULD_MAKE_MEMBERSHIP_CYCLE = 'Would make membership cycle'
 YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE = 'Your system time differs from {0} by {1}'
-YOU_CAN_ADD_DOMAIN_TO_ACCOUNT = 'You can now add: {0} or it\'s subdomains as secondary or domain aliases of the G Suite Account: {1}'
+YOU_CAN_ADD_DOMAIN_TO_ACCOUNT = 'You can now add: {0} or it\'s subdomains as secondary or domain aliases of the Google Workspace Account: {1}'
