@@ -34574,7 +34574,6 @@ def printDriveActivity(users):
   actions = set()
   strategy = 'none'
   negativeAction = False
-  filterTime = False
   checkArgumentPresent(['v2'])
   csvPF = CSVPrintFile(DRIVE_ACTIVITY_TITLES, 'sortall')
   FJQC = FormatJSONQuoteChar(csvPF)
@@ -34595,7 +34594,6 @@ def printDriveActivity(users):
       query = getString(Cmd.OB_QUERY)
     elif myarg in {'start', 'starttime', 'end', 'endtime'}:
       startEndTime.Get(myarg)
-      filterTime = True
     elif myarg in {'action', 'actions'}:
       negativeAction = checkArgumentPresent('not')
       for action in _getFieldsList():
