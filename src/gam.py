@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.22.05'
+__version__ = '5.22.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3711,8 +3711,7 @@ def defaultSvcAcctScopes():
   for scope in scopesList:
     saScopes.setdefault(scope['api'], [])
     saScopes[scope['api']].append(scope['scope'])
-  saScopes[API.DRIVEACTIVITY_V1].append(API.DRIVE_SCOPE)
-  saScopes[API.DRIVEACTIVITY_V2].append(API.DRIVE_SCOPE)
+  saScopes[API.DRIVEACTIVITY].append(API.DRIVE_SCOPE)
   saScopes[API.DRIVE2] = saScopes[API.DRIVE3]
   saScopes[API.DRIVETD] = saScopes[API.DRIVE3]
   saScopes[API.SHEETSTD] = saScopes[API.SHEETS]
@@ -8936,10 +8935,8 @@ def checkServiceAccount(users):
         saScopes[scope['api']].append(f'{scope["scope"]}.readonly')
         checkScopesSet.add(f'{scope["scope"]}.readonly')
       i += 1
-    if API.DRIVEACTIVITY_V1 in saScopes and API.DRIVE3 in saScopes:
-      saScopes[API.DRIVEACTIVITY_V1].append(API.DRIVE_SCOPE)
-    if API.DRIVEACTIVITY_V2 in saScopes and API.DRIVE3 in saScopes:
-      saScopes[API.DRIVEACTIVITY_V2].append(API.DRIVE_SCOPE)
+    if API.DRIVEACTIVITY in saScopes and API.DRIVE3 in saScopes:
+      saScopes[API.DRIVEACTIVITY].append(API.DRIVE_SCOPE)
     if API.DRIVE3 in saScopes:
       saScopes[API.DRIVE2] = saScopes[API.DRIVE3]
     GM.Globals[GM.OAUTH2SERVICE_JSON_DATA][API.OAUTH2SA_SCOPES] = saScopes
@@ -34511,36 +34508,30 @@ def getMediaBody(parameters):
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, fileErrorMessage(parameters[DFA_LOCALFILEPATH], e))
 
-DRIVE_ACTIVITY_V1_TITLES = ['user.name', 'user.permissionId', 'target.id', 'target.name', 'target.mimeType', 'eventTime']
-DRIVE_ACTIVITY_V2_TITLES = ['user.name', 'user.emailAddress', 'target.id', 'target.name', 'target.mimeType', 'eventTime']
+DRIVE_ACTIVITY_TITLES = ['user.name', 'user.emailAddress', 'target.id', 'target.name', 'target.mimeType', 'eventTime']
 DRIVE_ACTIVITY_ACTION_MAP = {
-  'comment': ('comment', 'COMMENT'),
-  'create': ('create', 'CREATE'),
-  'delete': ('trash', 'DELETE'),
-  'dlpchange': (None, 'DLP_CHANGE'),
-  'edit': ('edit', 'EDIT'),
-  'emptytrash': ('emptyTrash', 'DELETE'),
-  'move': ('move', 'MOVE'),
-  'permissionchange': ('permissionChange', 'PERMISSION_CHANGE'),
-  'reference': (None, 'REFERENCE'),
-  'rename': ('rename', 'RENAME'),
-  'restore': ('untrash', 'RESTORE'),
-  'settingschange': (None, 'SETTINGS_CHANGE'),
-  'trash': ('trash', 'DELETE'),
-  'untrash': ('untrash', 'RESTORE'),
-  'upload': ('upload', 'CREATE'),
+  'comment': 'COMMENT',
+  'create': 'CREATE',
+  'delete': 'DELETE',
+  'dlpchange': 'DLP_CHANGE',
+  'edit': 'EDIT',
+  'emptytrash': 'DELETE',
+  'move': 'MOVE',
+  'permissionchange': 'PERMISSION_CHANGE',
+  'reference': 'REFERENCE',
+  'rename': 'RENAME',
+  'restore': 'RESTORE',
+  'settingschange': 'SETTINGS_CHANGE',
+  'trash': 'DELETE',
+  'untrash': 'RESTORE',
+  'upload': 'CREATE',
   }
+CONSOLIDATION_GROUPING_STRATEGY_CHOICE_MAP = {'driveui': 'legacy', 'legacy': 'legacy', 'none': 'none'}
 
-CONSOLIDATION_GROUPING_STRATEGY_CHOICE_MAP = {
-  False: {'driveui': 'driveUi', 'legacy': 'driveUi', 'none': 'none'}, #v1
-  True: {'driveui': 'legacy', 'legacy': 'legacy', 'none': 'none'} #v2
-  }
-
-# gam <UserTypeEntity> print|show driveactivity [v2] [todrive <ToDriveAttribute>*]
+# gam <UserTypeEntity> print|show driveactivity [todrive <ToDriveAttribute>*]
 #	[(fileid <DriveFileID>) | (folderid <DriveFolderID>) |
 #	 (drivefilename <DriveFileName>) | (drivefoldername <DriveFolderName>) | (query <QueryDriveFile>)]
 #	[start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [action|actions [not] <DriveActivityActionList>]
-#	[allevents|combinedevents|singleevents] [groupingstrategy driveui|none]
 #	[consolidationstrategy legacy|none]
 #	[idmapfile <FileName>|(gsheet <UserGoogleSheet>) [charset <String>] [columndelimiter <Character>] [quotechar <Character>]]
 #	[formatjson [quotechar <Character>]]
@@ -34576,53 +34567,16 @@ def printDriveActivity(users):
           v['personName'] = entry[1]
           break
 
-  def _processV1Event(event):
-    event['eventTime'] = formatLocalTimestamp(event['eventTimeMillis'])
-    if filterTime:
-      timeValue, _ = iso8601.parse_date(event['eventTime'])
-      if not (((startEndTime.startDateTime is None) or (timeValue >= startEndTime.startDateTime)) and
-              ((startEndTime.endDateTime is None) or (timeValue <= startEndTime.endDateTime))):
-        return
-    if actions:
-      if not negativeAction:
-        if event['primaryEventType'] not in actions:
-          return
-      else:
-        if event['primaryEventType'] in actions:
-          return
-    if 'user' in event and userInfo:
-      permissionId = event['user']['permissionId']
-      if permissionId not in userInfo:
-        userInfo[permissionId] = 'Unknown'
-      event['user']['emailAddress'] = userInfo[permissionId]
-    eventRow = flattenJSON(event)
-    if not FJQC.formatJSON:
-      csvPF.WriteRowTitles(eventRow)
-    elif csvPF.CheckRowTitles(eventRow):
-      eventRow = {}
-      if 'user' in event:
-        eventRow['user.name'] = event['user']['name']
-        eventRow['user.permissionId'] = event['user']['permissionId']
-        if userInfo:
-          eventRow['user.emailAddress'] = event['user']['emailAddress']
-      eventRow['target.id'] = event['target']['id']
-      eventRow['target.name'] = event['target']['name']
-      eventRow['target.mimeType'] = event['target']['mimeType']
-      eventRow['eventTime'] = event['eventTime']
-      eventRow['JSON'] = json.dumps(cleanJSON(event), ensure_ascii=False, sort_keys=True)
-      csvPF.WriteRowNoFilter(eventRow)
-
   startEndTime = StartEndTime()
   baseFileList = []
   query = ''
   activityFilter = ''
   actions = set()
-  v1fields = 'nextPageToken,activities(combinedEvent)'
   strategy = 'none'
   negativeAction = False
   filterTime = False
-  v2 = checkArgumentPresent(['v2'])
-  csvPF = CSVPrintFile(DRIVE_ACTIVITY_V2_TITLES if v2 else DRIVE_ACTIVITY_V1_TITLES, 'sortall')
+  checkArgumentPresent(['v2'])
+  csvPF = CSVPrintFile(DRIVE_ACTIVITY_TITLES, 'sortall')
   FJQC = FormatJSONQuoteChar(csvPF)
   userInfo = {}
   while Cmd.ArgumentsRemaining():
@@ -34646,54 +34600,40 @@ def printDriveActivity(users):
       negativeAction = checkArgumentPresent('not')
       for action in _getFieldsList():
         if action in DRIVE_ACTIVITY_ACTION_MAP:
-          mappedAction = DRIVE_ACTIVITY_ACTION_MAP[action][v2]
+          mappedAction = DRIVE_ACTIVITY_ACTION_MAP[action]
           if mappedAction:
             actions.add(mappedAction)
         else:
           invalidChoiceExit(action, DRIVE_ACTIVITY_ACTION_MAP, True)
-    elif not v2 and myarg == 'allevents':
-      v1fields = 'nextPageToken,activities(combinedEvent,singleEvents)'
-    elif not v2 and myarg == 'combinedevents':
-      v1fields = 'nextPageToken,activities(combinedEvent)'
-    elif not v2 and myarg == 'singleevents':
-      v1fields = 'nextPageToken,activities(singleEvents)'
+    elif myarg in {'allevents', 'combinedevents', 'singleevents'}:
+      pass
     elif myarg in {'consolidationstrategy', 'groupingstrategy'}:
-      strategy = getChoice(CONSOLIDATION_GROUPING_STRATEGY_CHOICE_MAP[v2], mapChoice=True)
+      strategy = getChoice(CONSOLIDATION_GROUPING_STRATEGY_CHOICE_MAP, mapChoice=True)
     elif myarg == 'idmapfile':
       f, csvFile, _ = openCSVFileReader(getString(Cmd.OB_FILE_NAME))
-      if not v2:
-        for row in csvFile:
-          userInfo[row['permissionId']] = row['email']
-      else:
-        for row in csvFile:
-          userInfo[row['id']] = (row['primaryEmail'], row.get('name.fullName', 'Unknown'))
+      for row in csvFile:
+        userInfo[row['id']] = (row['primaryEmail'], row.get('name.fullName', 'Unknown'))
       closeFile(f)
-      if not v2:
-        titles = DRIVE_ACTIVITY_V1_TITLES[:]
-        titles.insert(1, 'user.emailAddress')
-        csvPF.SetTitles(titles)
-        csvPF.SetSortAllTitles()
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if not baseFileList and not query:
     baseFileList = [{'id': ROOT, 'mimeType': MIMETYPE_GA_FOLDER}]
-  if v2:
-    if startEndTime.startTime:
-      if activityFilter:
-        activityFilter += ' AND '
-      activityFilter += f'time >= "{startEndTime.startTime}"'
-    if startEndTime.endTime:
-      if activityFilter:
-        activityFilter += ' AND '
-      activityFilter += f'time <= "{startEndTime.endTime}"'
-    if actions:
-      if activityFilter:
-        activityFilter += ' AND '
-      activityFilter += f'{"-" if negativeAction else ""}detail.action_detail_case:({" ".join(actions)})'
+  if startEndTime.startTime:
+    if activityFilter:
+      activityFilter += ' AND '
+    activityFilter += f'time >= "{startEndTime.startTime}"'
+  if startEndTime.endTime:
+    if activityFilter:
+      activityFilter += ' AND '
+    activityFilter += f'time <= "{startEndTime.endTime}"'
+  if actions:
+    if activityFilter:
+      activityFilter += ' AND '
+    activityFilter += f'{"-" if negativeAction else ""}detail.action_detail_case:({" ".join(actions)})'
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, activity = buildGAPIServiceObject([API.DRIVEACTIVITY_V1, API.DRIVEACTIVITY_V2][v2], user, i, count)
+    user, activity = buildGAPIServiceObject(API.DRIVEACTIVITY, user, i, count)
     if not activity:
       continue
     _, drive = buildGAPIServiceObject(API.DRIVE3, user, i, count)
@@ -34725,39 +34665,25 @@ def printDriveActivity(users):
       fileId = f_file['id']
       entityType = Ent.DRIVE_FOLDER_ID if f_file['mimeType'] == MIMETYPE_GA_FOLDER else Ent.DRIVE_FILE_ID
       if entityType == Ent.DRIVE_FILE_ID:
-        drive_key = 'itemName' if v2 else  'drive_fileId'
+        drive_key = 'itemName'
       else:
-        drive_key = 'ancestorName' if v2 else 'drive_ancestorId'
+        drive_key = 'ancestorName'
       qualifier = f' for {Ent.Singular(entityType)}: {fileId}'
       printGettingAllEntityItemsForWhom(Ent.ACTIVITY, user, i, count, qualifier=qualifier)
       pageMessage = getPageMessageForWhom()
       pageToken = None
       totalItems = 0
-      if v2:
-        kwargs = {
-          'consolidationStrategy': {strategy: {}},
-          'pageSize': GC.Values[GC.ACTIVITY_MAX_RESULTS],
-          'pageToken': pageToken,
-          drive_key: f'items/{fileId}',
-          'filter': activityFilter}
-      else:
-        kwargs = {
-          'groupingStrategy': strategy,
-          'pageSize': GC.Values[GC.ACTIVITY_MAX_RESULTS],
-          'pageToken': pageToken,
-          drive_key: fileId,
-          'source': 'drive.google.com',
-          'userId': 'me'}
+      kwargs = {
+        'consolidationStrategy': {strategy: {}},
+        'pageSize': GC.Values[GC.ACTIVITY_MAX_RESULTS],
+        'pageToken': pageToken,
+        drive_key: f'items/{fileId}',
+        'filter': activityFilter}
       while True:
         try:
-          if v2:
-            feed = callGAPI(activity.activity(), 'query',
-                            throwReasons=GAPI.ACTIVITY_THROW_REASONS,
-                            fields='nextPageToken,activities', body=kwargs)
-          else:
-            feed = callGAPI(activity.activities(), 'list',
-                            throwReasons=GAPI.ACTIVITY_THROW_REASONS,
-                            fields=v1fields, **kwargs)
+          feed = callGAPI(activity.activity(), 'query',
+                          throwReasons=GAPI.ACTIVITY_THROW_REASONS,
+                          fields='nextPageToken,activities', body=kwargs)
         except GAPI.badRequest as e:
           entityActionFailedWarning([Ent.USER, user, entityType, fileId], str(e), i, count)
           break
@@ -34767,51 +34693,44 @@ def printDriveActivity(users):
         pageToken, totalItems = _processGAPIpagesResult(feed, 'activities', None, totalItems, pageMessage, None, Ent.ACTIVITY)
         kwargs['pageToken'] = pageToken
         if feed:
-          if v2:
-            for activityEvent in feed.get('activities', []):
-              eventRow = {}
-              actors = activityEvent.get('actors', [])
-              if actors:
-                userId = actors[0].get('user', {}).get('knownUser', {}).get('personName', '')
-                if userId:
-                  entry = _getUserInfo(userId)
-                  eventRow['user.name'] = entry[1]
-                  eventRow['user.emailAddress'] = entry[0]
-              targets = activityEvent.get('targets', [])
-              if targets:
-                driveItem = targets[0].get('driveItem')
-                if driveItem:
-                  eventRow['target.id'] = driveItem['name'][6:]
-                  eventRow['target.name'] = driveItem['title']
-                  eventRow['target.mimeType'] = driveItem['mimeType']
-                else:
-                  teamDrive = targets[0].get('teamDrive')
-                  if teamDrive:
-                    eventRow['target.id'] = teamDrive['name'][11:]
-                    eventRow['target.name'] = teamDrive['title']
-              if 'timestamp' in activityEvent:
-                eventRow['eventTime'] = formatLocalTime(activityEvent['timestamp'])
-              elif 'timeRange' in activityEvent:
-                timeRange = activityEvent['timeRange']
-                eventRow['eventTime'] = f'{formatLocalTime(timeRange["startTime"])}-{formatLocalTime(timeRange["endTime"])}'
-              _updateKnownUsers(activityEvent)
-              if not FJQC.formatJSON:
-                activityEvent.pop('timestamp', None)
-                activityEvent.pop('timeRange', None)
-                flattenJSON(activityEvent, flattened=eventRow)
-                csvPF.WriteRowTitles(eventRow)
+          for activityEvent in feed.get('activities', []):
+            eventRow = {}
+            actors = activityEvent.get('actors', [])
+            if actors:
+              userId = actors[0].get('user', {}).get('knownUser', {}).get('personName', '')
+              if userId:
+                entry = _getUserInfo(userId)
+                eventRow['user.name'] = entry[1]
+                eventRow['user.emailAddress'] = entry[0]
+            targets = activityEvent.get('targets', [])
+            if targets:
+              driveItem = targets[0].get('driveItem')
+              if driveItem:
+                eventRow['target.id'] = driveItem['name'][6:]
+                eventRow['target.name'] = driveItem['title']
+                eventRow['target.mimeType'] = driveItem['mimeType']
               else:
-                checkRow = eventRow.copy()
-                flattenJSON(activityEvent, flattened=checkRow)
-                if csvPF.CheckRowTitles(checkRow):
-                  eventRow['JSON'] = json.dumps(cleanJSON(activityEvent), ensure_ascii=False, sort_keys=True)
-                  csvPF.WriteRowNoFilter(eventRow)
-          else:
-            for activityEvent in feed.get('activities', []):
-              if 'combinedEvent' in activityEvent:
-                _processV1Event(activityEvent['combinedEvent'])
-              for event in activityEvent.get('singleEvents', []):
-                _processV1Event(event)
+                teamDrive = targets[0].get('teamDrive')
+                if teamDrive:
+                  eventRow['target.id'] = teamDrive['name'][11:]
+                  eventRow['target.name'] = teamDrive['title']
+            if 'timestamp' in activityEvent:
+              eventRow['eventTime'] = formatLocalTime(activityEvent['timestamp'])
+            elif 'timeRange' in activityEvent:
+              timeRange = activityEvent['timeRange']
+              eventRow['eventTime'] = f'{formatLocalTime(timeRange["startTime"])}-{formatLocalTime(timeRange["endTime"])}'
+            _updateKnownUsers(activityEvent)
+            if not FJQC.formatJSON:
+              activityEvent.pop('timestamp', None)
+              activityEvent.pop('timeRange', None)
+              flattenJSON(activityEvent, flattened=eventRow)
+              csvPF.WriteRowTitles(eventRow)
+            else:
+              checkRow = eventRow.copy()
+              flattenJSON(activityEvent, flattened=checkRow)
+              if csvPF.CheckRowTitles(checkRow):
+                eventRow['JSON'] = json.dumps(cleanJSON(activityEvent), ensure_ascii=False, sort_keys=True)
+                csvPF.WriteRowNoFilter(eventRow)
           del feed
         if not pageToken:
           _finalizeGAPIpagesResult(pageMessage)

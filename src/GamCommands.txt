@@ -178,7 +178,6 @@ If an item contains spaces, it should be surrounded by ".
 <ProductID> ::=
         Google-Apps|
         Google-Chrome-Device-Management|
-        Google-Coordinate|
         Google-Drive-storage|
         Google-Vault|
         101001|101005|101031|101033|101034
@@ -4286,11 +4285,10 @@ gam <UserTypeEntity> print filelist [todrive <ToDriveAttribute>*]
         upload
 <DriveActivityActionList> ::= "<DriveActivityAction>(,<DriveActivityAction>)*"
 
-gam <UserTypeEntity> print|show driveactivity [v2] [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> print|show driveactivity [todrive <ToDriveAttribute>*]
         [(fileid <DriveFileID>) | (folderid <DriveFolderID>) |
          (drivefilename <DriveFileName>) | (drivefoldername <DriveFolderName>) | (query <QueryDriveFile>)]
         [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [action|actions [not] <DriveActivityActionList>]
-        [allevents|combinedevents|singleevents] [groupingstrategy driveui|none]
         [consolidationstrategy legacy|none]
         [idmapfile <FileName>|(gsheet <UserGoogleSheet>) [charset <String>] [columndelimiter <Character>] [quotechar <Character>]]
         [formatjson [quotechar <Character>]]

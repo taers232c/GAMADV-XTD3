@@ -35,8 +35,7 @@ DIRECTORY = 'directory'
 DRIVE2 = 'drive2'
 DRIVE3 = 'drive3'
 DRIVETD = 'drivetd'
-DRIVEACTIVITY_V1 = 'appsactivity'
-DRIVEACTIVITY_V2 = 'driveactivity'
+DRIVEACTIVITY = 'driveactivity'
 EMAIL_AUDIT = 'email-audit'
 GMAIL = 'gmail'
 GROUPSMIGRATION = 'groupsmigration'
@@ -138,8 +137,7 @@ _INFO = {
   DRIVE2: {'name': 'Drive API v2', 'version': 'v2', 'v2discovery': False, 'mappedAPI': 'drive'},
   DRIVE3: {'name': 'Drive API v3', 'version': 'v3', 'v2discovery': False, 'mappedAPI': 'drive'},
   DRIVETD: {'name': 'Drive API v3 - todrive', 'version': 'v3', 'v2discovery': False, 'mappedAPI': 'drive'},
-  DRIVEACTIVITY_V1: {'name': 'Drive Activity API v1', 'version': 'v1', 'v2discovery': False},
-  DRIVEACTIVITY_V2: {'name': 'Drive Activity API v2', 'version': 'v2', 'v2discovery': True},
+  DRIVEACTIVITY: {'name': 'Drive Activity API v2', 'version': 'v2', 'v2discovery': True},
   EMAIL_AUDIT: {'name': 'Email Audit API', 'version': 'v1', 'v2discovery': False},
   GMAIL: {'name': 'Gmail API', 'version': 'v1', 'v2discovery': True},
   GROUPSMIGRATION: {'name': 'Groups Migration API', 'version': 'v1', 'v2discovery': False},
@@ -379,12 +377,8 @@ _SVCACCT_SCOPES = [
    'api': DRIVE3,
    'subscopes': READONLY,
    'scope': DRIVE_SCOPE},
-  {'name': 'Drive Activity API v1 - must pair with Drive API',
-   'api': DRIVEACTIVITY_V1,
-   'subscopes': [],
-   'scope': 'https://www.googleapis.com/auth/activity'},
   {'name': 'Drive Activity API v2 - must pair with Drive API',
-   'api': DRIVEACTIVITY_V2,
+   'api': DRIVEACTIVITY,
    'subscopes': [],
    'scope': 'https://www.googleapis.com/auth/drive.activity'},
   {'name': 'Gmail API - Full Access',

@@ -1,3 +1,9 @@
+5.22.06
+
+The Drive Activity API v1 has been deprecated, thus `gam print|show driveactivity` will now
+always use Drive Activity API v2. The `v2` option is ignored; the options `allevents`, `combinedevents` and `singleevents`
+are ignored as they have no meaning with Drive Activity API v2.
+
 5.22.05
 
 Added options to `gam create|update drivefile` to manage content restrictions.
