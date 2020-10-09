@@ -1,3 +1,7 @@
+5.23.00
+
+Upgraded to Python 3.9.0.
+
 5.22.06
 
 The Drive Activity API v1 has been deprecated, thus `gam print|show driveactivity` will now
