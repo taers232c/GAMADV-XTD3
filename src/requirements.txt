@@ -1,4 +1,4 @@
 cryptography
-libxml2
-linxslt
+libxml2-dev
+linxslt-dev
 lxml
