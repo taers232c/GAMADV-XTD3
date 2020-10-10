@@ -1,2 +1,4 @@
 cryptography
+libxml2
+linxslt
 lxml
