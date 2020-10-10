@@ -1,12 +1,12 @@
 if [[ "$PLATFORM" == "x86_64" ]]; then
   export BITS="64"
-  export LXML_BITS="_amd64"
+  export LXML_BITS="lxml-4.5.2-cp39-cp39-win_amd64.whl"
   export PYTHONFILE_BITS="-amd64"
   export OPENSSL_BITS="-x64"
   export WIX_BITS="x64"
 elif [[ "$PLATFORM" == "x86" ]]; then
   export BITS="32"
-  export LXML_BITS="32"
+  export LXML_BITS="lxml-4.5.2-cp39-cp39-win32.whl"
   export PYTHONFILE_BITS=""
   export OPENSSL_BITS=""
   export WIX_BITS="x86"
@@ -59,7 +59,7 @@ cd $mypath
 
 $pip install --upgrade pip
 $pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U
-$pip install --upgrade lxml-4.5.2-cp39-cp39-win$LXML_BITS.whl
+$pip install --upgrade src/$LXML_BITS
 $pip install --upgrade cryptography
 #$pip install --upgrade -r src/requirements.txt
 #$pip install --upgrade pyinstaller
