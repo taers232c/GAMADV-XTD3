@@ -104,13 +104,7 @@ $python -V
 cd $whereibelong
 
 #export PATH=/usr/local/opt/python/libexec/bin:$PATH
-echo "pip: $pip"
-echo "Upgrade pip"
 $pip install --upgrade pip
-echo "Upgrading pip packages..."
 $pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U
-echo "Upgrade gam requirements"
-ls -l /Users/travis/python/lib/python3.9/site-packages/libx*
 $pip install --upgrade -r src/requirements.txt
-echo "Upgrade pyinstaller"
 $pip install --upgrade git+git://github.com/pyinstaller/pyinstaller.git@$PYINSTALLER_COMMIT
