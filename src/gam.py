@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.22.06'
+__version__ = '5.22.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -18302,7 +18302,7 @@ GROUP_CIGROUP_ENTITYTYPE_MAP = {False: Ent.GROUP, True: Ent.CLOUD_IDENTITY_GROUP
 GROUP_CIGROUP_FIELDS_MAP = {'name': 'displayName', 'description': 'description'}
 GROUP_JSON_SKIP_FIELDS = ['email', 'adminCreated', 'directMembersCount', 'members', 'aliases', 'nonEditableAliases']
 
-# gam create group <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>
+# gam create group <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>*
 def doCreateGroup(ciGroupsAPI=False):
   cd = buildGAPIObject(API.DIRECTORY)
   getBeforeUpdate = False
@@ -18385,8 +18385,7 @@ def doCreateGroup(ciGroupsAPI=False):
     entityActionFailedWarning([entityType, groupEmail], Msg.INVALID_JSON_SETTING)
 
 # gam create cigroup <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>
-#	[makeowner]
-#	[alias|aliases <AliasList>] [dynamic <QueryDynamicGroup>]
+#	[makeowner] [alias|aliases <AliasList>] [dynamic <QueryDynamicGroup>]
 def doCreateCIGroup():
   doCreateGroup(ciGroupsAPI=True)
 
@@ -18395,8 +18394,7 @@ GROUP_PREVIEW_TITLES = ['group', 'email', 'role', 'action', 'message']
 
 # gam update groups <GroupEntity> [email <EmailAddress>]
 #	[copyfrom <GroupItem>] <GroupAttribute>*
-#	[makesecuritygroup|security]
-#	[alias|aliases <AliasList>] [dynamic <QueryDynamicGroup>]
+#	[security|makesecuritygroup]
 #	[admincreated <Boolean>]
 # gam update groups <GroupEntity> create|add [<GroupRole>]
 #	[usersonly|groupsonly] [notsuspended|suspended]
@@ -18809,14 +18807,6 @@ def doUpdateGroups(ciGroupsAPI=False):
       elif myarg in {'security', 'makesecuritygroup'}:
         ci_body['labels'] = {'cloudidentity.googleapis.com/groups.discussion_forum': '',
                              'cloudidentity.googleapis.com/groups.security': ''}
-      elif myarg in {'dynamic', 'dynamicquery'}:
-        ci_body.setdefault('dynamicGroupMetadata', {'queries': []})
-        ci_body['dynamicGroupMetadata']['queries'].append({'resourceType': 'USER',
-                                                           'query': getString(Cmd.OB_QUERY)})
-      elif myarg in ['alias', 'aliases']:
-        ci_body.setdefault('additionalGroupKeys', [])
-        for alias in convertEntityToList(getString(Cmd.OB_GROUP_ALIAS_LIST), shlexSplit=True):
-          ci_body['additionalGroupKeys'].append({'id': alias})
       elif myarg == 'json':
         gs_body.update(getJSON(GROUP_JSON_SKIP_FIELDS))
       else:
@@ -19182,8 +19172,7 @@ def doUpdateGroups(ciGroupsAPI=False):
     csvPF.writeCSVfile('Group Updates')
 
 # gam update cigroup <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>
-#	[makesecuritygroup|security] [alias|aliases <AliasList>] [dynamic <QueryDynamicGroup>]
-
+#	[makesecuritygroup|security]
 def doUpdateCIGroups():
   doUpdateGroups(ciGroupsAPI=True)
 

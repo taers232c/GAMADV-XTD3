@@ -1978,12 +1978,10 @@ gam show domainaliases|aliasdomains [formatjson]
         updatetime
 <CIGroupFieldNameList> ::= "<CIGroupFieldName>(,<CIGroupFieldName>)*"
 
-gam create cigroup <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>
-        [makeowner]
-        [alias|aliases <AliasList>] [dynamic <QueryDynamicGroup>]
+gam create cigroup <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>*
+        [makeowner] [alias|aliases <AliasList>] [dynamic <QueryDynamicGroup>]
 gam update cigroup <GroupEntity> [copyfrom <GroupItem>] <GroupAttribute>
-        [makesecuritygroup|security]
-        [alias|aliases <AliasList>] [dynamic <QueryDynamicGroup>]
+        [security|makesecuritygroup]
 gam delete cigroups <GroupEntity>
 
 # Groups
@@ -2066,7 +2064,7 @@ gam create|add group <EmailAddress>
         [copyfrom <GroupItem>] <GroupAttribute>*
 gam update group|groups <GroupEntity> [email <EmailAddress>]
         [copyfrom <GroupItem>] <GroupAttribute>*
-        [makesecuritygroup] [alias|aliases <AliasList>] [dynamic <QueryDynamicGroup>]
+        [makesecuritygroup]
         [admincreated <Boolean>]
 gam update group|groups <GroupEntity> create|add [<GroupRole>]
         [usersonly|groupsonly] [notsuspended|suspended]

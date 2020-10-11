@@ -1,3 +1,8 @@
+5.22.07
+
+Deleted options `alias|aliases <AliasList>` and `dynamic <QueryDynamicGroup>` from `gam update group`
+as the options are only applicable when the group is created.
+
 5.22.06
 
 The Drive Activity API v1 has been deprecated, thus `gam print|show driveactivity` will now
