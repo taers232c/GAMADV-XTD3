@@ -1,6 +1,10 @@
+5.22.08
+
+Fixed bug in `gam create device` that caused a trap.
+
 5.22.07
 
-Deleted options `alias|aliases <AliasList>` and `dynamic <QueryDynamicGroup>` from `gam update group`
+Deleted options `alias|aliases <AliasList>` and `dynamic <QueryDynamicGroup>` from `gam update cigroup`
 as the options are only applicable when the group is created.
 
 5.22.06

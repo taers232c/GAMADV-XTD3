@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.22.07'
+__version__ = '5.22.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -17108,11 +17108,11 @@ def doCreateCIDevice():
     missingArgumentExit('devicetype')
   try:
     result = callGAPI(ci.devices(), 'create',
-                      throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED, GAPI.DUPLICATE],
-                      customer=customer, body=body, fields='name')
+                      throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED, GAPI.ALREADY_EXISTS],
+                      customer=customer, body=body)
     deviceId = _makeDeviceId(f'{result["response"]["name"]}', body)
     entityActionPerformed([Ent.COMPANY_DEVICE, deviceId])
-  except (GAPI.invalid, GAPI.permissionDenied, GAPI.duplicate) as e:
+  except (GAPI.invalid, GAPI.permissionDenied, GAPI.alreadyExists) as e:
     deviceId = _makeDeviceId('/devices/???', body)
     entityActionFailedWarning([Ent.COMPANY_DEVICE, deviceId], str(e))
 
@@ -17142,7 +17142,6 @@ def _performCIDeviceAction(action):
           entityActionFailedWarning([Ent.DEVICE, name], result['error']['message'], i, count)
       else:
         entityActionPerformedMessage([Ent.DEVICE, name], Msg.ACTION_IN_PROGRESS.format(action), i, count)
-      showJSON(None, result, timeObjects=DEVICE_TIME_OBJECTS)
     except GAPI.notFound:
       entityUnknownWarning(Ent.DEVICE, f'{name}', i, count)
     except (GAPI.invalid, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
