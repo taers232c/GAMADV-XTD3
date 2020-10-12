@@ -1312,18 +1312,33 @@ def getOrgUnitItem(pathOnly=False, absolutePath=True):
   missingArgumentExit([Cmd.OB_ORGUNIT_ITEM, Cmd.OB_ORGUNIT_PATH][pathOnly])
 
 def getTopLevelOrgId(cd, parentOrgUnitPath):
+  if parentOrgUnitPath != '/':
+    try:
+      result = callGAPI(cd.orgunits(), 'get',
+                        throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR,
+                                      GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                        customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(makeOrgUnitPathRelative(parentOrgUnitPath)),
+                        fields='orgUnitId')
+      return result['orgUnitId']
+    except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
+      return None
+    except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
+      checkEntityAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, parentOrgUnitPath)
+      return None
   try:
     result = callGAPI(cd.orgunits(), 'insert',
-                      throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                      throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.BACKEND_ERROR,
+                                    GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
                       customerId=GC.Values[GC.CUSTOMER_ID], body={'name': 'temp-delete-me', 'parentOrgUnitPath': parentOrgUnitPath}, fields='parentOrgUnitId,orgUnitId')
-  except GAPI.invalidOrgunit:
+  except (GAPI.invalidOrgunit, GAPI.backendError):
     return None
   except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
     checkEntityAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, parentOrgUnitPath)
     return None
   try:
     callGAPI(cd.orgunits(), 'delete',
-             throwReasons=[GAPI.CONDITION_NOT_MET, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+             throwReasons=[GAPI.CONDITION_NOT_MET, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR,
+                           GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
              customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=result['orgUnitId'])
   except (GAPI.conditionNotMet, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
     pass
@@ -16976,6 +16991,8 @@ def doPrintCrOSEntity(entityList):
 # Device command utilities
 def buildGAPICIDeviceServiceObject():
   _, ci = buildGAPIServiceObject(API.CLOUDIDENTITY_DEVICES, _getAdminEmail(), displayError=True)
+  if not ci:
+    sys.exit(GM.Globals[GM.SYSEXITRC])
   return ci
 
 def _getCIDeviceCustomerID():

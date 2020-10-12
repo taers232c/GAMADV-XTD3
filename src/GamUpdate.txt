@@ -2,6 +2,11 @@
 
 Fixed bug in `gam create device` that caused a trap.
 
+Fixed bug in `gam print org fromparent <OrgUnitPath> showparent` that caused `ERROR: API access Denied`
+when `<OrgUnitPath>` had no sub OUs.
+
+Handle error when `gam device` commands are issued but Service Account access is not enabled.
+
 5.22.07
 
 Deleted options `alias|aliases <AliasList>` and `dynamic <QueryDynamicGroup>` from `gam update cigroup`
