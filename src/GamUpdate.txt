@@ -1,3 +1,10 @@
+5.22.10
+
+Updated `gam user <UserItem> print driveactivity` to do additional checking to find
+values for user.name and user.emailAddress. Events return a `user` if a logged in user
+performed the action; events return an `impersonation` if an action was performed on behalf
+of a user via the Drive API; GAM now handles `impersonation` as well as `user`.
+
 5.22.09
 
 Fixed bug in `gam user <UserItem> print driveactivity` where the actor user names were

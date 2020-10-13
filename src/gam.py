@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.22.09'
+__version__ = '5.22.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -34702,6 +34702,8 @@ def printDriveActivity(users):
             actors = activityEvent.get('actors', [])
             if actors:
               userId = actors[0].get('user', {}).get('knownUser', {}).get('personName', '')
+              if not userId:
+                userId = actors[0].get('impersonation', {}).get('impersonatedUser', {}).get('knownUser', {}).get('personName', '')
               if userId:
                 entry = _getUserInfo(userId)
                 eventRow['user.name'] = entry[1]
