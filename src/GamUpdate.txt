@@ -1,3 +1,8 @@
+5.22.09
+
+Fixed bug in `gam user <UserItem> print driveactivity` where the actor user names were
+incorrectly shown as the user `<UserItem>` rather than the actual user.
+
 5.22.08
 
 Fixed bug in `gam create device` that caused a trap.

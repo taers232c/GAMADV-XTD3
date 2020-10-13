@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.22.08'
+__version__ = '5.22.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -34547,11 +34547,11 @@ def printDriveActivity(users):
     entry = userInfo.get(userId)
     if entry is None:
       try:
-        result = callGAPI(drive.about(), 'get',
-                          throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
-                          fields='user(displayName,emailAddress)')
-        entry = (result['user']['emailAddress'], result['user']['displayName'])
-      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
+        result = callGAPI(cd.users(), 'get',
+                          throwReasons=GAPI.USER_GET_THROW_REASONS,
+                          userKey=userId, fields='primaryEmail,name.fullName')
+        entry = (result['primaryEmail'], result['name']['fullName'])
+      except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
         entry = (f'uid:{userId}', 'Unknown')
       userInfo[userId] = entry
     return entry
@@ -34572,6 +34572,7 @@ def printDriveActivity(users):
           v['personName'] = entry[1]
           break
 
+  cd = buildGAPIObject(API.DIRECTORY)
   startEndTime = StartEndTime()
   baseFileList = []
   query = ''
