@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.22.10'
+__version__ = '5.22.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6382,7 +6382,7 @@ class CSVPrintFile():
     self.rows.append(row)
 
   def CheckRowTitles(self, row):
-    if not self.rowFilter:
+    if not self.rowFilter and not self.rowDropFilter:
       return True
     for title in row:
       if title not in self.titlesSet:
@@ -8064,7 +8064,7 @@ def doOAuthInfo():
       printKeyValueList([scope])
     Ind.Decrement()
   if 'email' in token_info:
-    printKeyValueList(['G Suite Admin', f'{token_info["email"]}'])
+    printKeyValueList(['Google Workspace Admin', f'{token_info["email"]}'])
   if 'expires_in' in token_info:
     printKeyValueList(['Expires', ISOformatTimeStamp((datetime.datetime.now()+datetime.timedelta(seconds=token_info['expires_in'])).replace(tzinfo=GC.Values[GC.TIMEZONE]))])
   if showDetails:
@@ -8789,7 +8789,7 @@ def doPrintShowProjects():
         if policy is not None:
           project['policy'] = policy
         row = flattenJSON(project, flattened={'User': login_hint}, timeObjects=PROJECT_TIMEOBJECTS)
-        if not csvPF.rowFilter or csvPF.CheckRowTitles(row):
+        if csvPF.CheckRowTitles(row):
           csvPF.WriteRowNoFilter({'User': login_hint, 'projectId': projectId,
                                   'JSON': json.dumps(cleanJSON(project),
                                                      ensure_ascii=False, sort_keys=True)})
@@ -9185,7 +9185,7 @@ def doPrintShowSvcAccts():
           row = flattenJSON(svcAcct, flattened={'User': login_hint}, timeObjects=SVCACCT_KEY_TIME_OBJECTS)
           if not FJQC.formatJSON:
             csvPF.WriteRowTitles(row)
-          elif not csvPF.rowFilter or csvPF.CheckRowTitles(row):
+          elif csvPF.CheckRowTitles(row):
             csvPF.WriteRowNoFilter({'User': login_hint, 'projectId': projectId,
                                     'JSON': json.dumps(cleanJSON(svcAcct, timeObjects=SVCACCT_KEY_TIME_OBJECTS),
                                                        ensure_ascii=False, sort_keys=True)})
@@ -10345,7 +10345,7 @@ def doReport():
               row.update(activity_row)
             if not countsOnly:
               csvPF.WriteRowTitles(row)
-            elif not csvPF.rowFilter or csvPF.CheckRowTitles(row):
+            elif csvPF.CheckRowTitles(row):
               if not summary:
                 eventCounts.setdefault(actor, {})
                 eventCounts[actor].setdefault(event['name'], 0)
@@ -16570,7 +16570,7 @@ def doPrintCrOSDevices(entityList=None):
     if 'autoUpdateExpiration' in cros:
       cros['autoUpdateExpiration'] = formatLocalDatestamp(cros['autoUpdateExpiration'])
     if FJQC.formatJSON:
-      if not csvPF.rowFilter or csvPF.CheckRowTitles(flattenJSON(cros, listLimit=listLimit, timeObjects=CROS_TIME_OBJECTS)):
+      if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(cros, listLimit=listLimit, timeObjects=CROS_TIME_OBJECTS)):
         csvPF.WriteRowNoFilter({'deviceId': cros['deviceId'],
                                 'JSON': json.dumps(cleanJSON(cros, listLimit=listLimit, timeObjects=CROS_TIME_OBJECTS),
                                                    ensure_ascii=False, sort_keys=True)})
@@ -16819,7 +16819,7 @@ def doPrintCrOSActivity(entityList=None):
   def _printCrOS(cros):
     row = {}
     if FJQC.formatJSON:
-      if not csvPF.rowFilter or csvPF.CheckRowTitles(flattenJSON(cros, listLimit=listLimit, timeObjects=CROS_ACTIVITY_TIME_OBJECTS)):
+      if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(cros, listLimit=listLimit, timeObjects=CROS_ACTIVITY_TIME_OBJECTS)):
         csvPF.WriteRowNoFilter({'deviceId': cros['deviceId'],
                                 'JSON': json.dumps(cleanJSON(cros, timeObjects=CROS_ACTIVITY_TIME_OBJECTS),
                                                    ensure_ascii=False, sort_keys=True)})
@@ -17548,7 +17548,7 @@ def doPrintCIDevices():
         csvPF.WriteRowTitles(flattenJSON(device, timeObjects=DEVICE_TIME_OBJECTS))
     else:
       for device in devices:
-        if not csvPF.rowFilter or csvPF.CheckRowTitles(flattenJSON(device, timeObjects=DEVICE_TIME_OBJECTS)):
+        if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(device, timeObjects=DEVICE_TIME_OBJECTS)):
           csvPF.WriteRow({'name': device['name'],
                           'JSON': json.dumps(cleanJSON(device, timeObjects=DEVICE_TIME_OBJECTS),
                                              ensure_ascii=False, sort_keys=True)})
@@ -17693,7 +17693,7 @@ def doPrintCIDeviceUsers():
           csvPF.WriteRowTitles(flattenJSON(deviceUser, timeObjects=DEVICE_TIME_OBJECTS))
       else:
         for deviceUser in deviceUsers:
-          if not csvPF.rowFilter or csvPF.CheckRowTitles(flattenJSON(deviceUser, timeObjects=DEVICE_TIME_OBJECTS)):
+          if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(deviceUser, timeObjects=DEVICE_TIME_OBJECTS)):
             csvPF.WriteRow({'name': deviceUser['name'],
                             'JSON': json.dumps(cleanJSON(deviceUser, timeObjects=DEVICE_TIME_OBJECTS),
                                                ensure_ascii=False, sort_keys=True)})
@@ -17959,7 +17959,7 @@ def doPrintMobileDevices():
 
   def _printMobile(mobile):
     if FJQC.formatJSON:
-      if not csvPF.rowFilter or csvPF.CheckRowTitles(flattenJSON(mobile, listLimit=listLimit, skipObjects=DEFAULT_SKIP_OBJECTS, timeObjects=MOBILE_TIME_OBJECTS)):
+      if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(mobile, listLimit=listLimit, skipObjects=DEFAULT_SKIP_OBJECTS, timeObjects=MOBILE_TIME_OBJECTS)):
         csvPF.WriteRow({'resourceId': mobile['resourceId'],
                         'JSON': json.dumps(cleanJSON(mobile, listLimit=listLimit, skipObjects=DEFAULT_SKIP_OBJECTS, timeObjects=MOBILE_TIME_OBJECTS),
                                            ensure_ascii=False, sort_keys=True)})
