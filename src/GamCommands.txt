@@ -1605,7 +1605,7 @@ gam <UserTypeEntity> show contacts <UserContactSelection>
         [basic|full|countsonly] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
         [fields <ContactFieldNameList>] [formatjson]
 gam <UserTypeEntity> print contacts [todrive <ToDriveAttribute>*] <UserContactSelection>
-        [basic|full|countsonly] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+        [basic|full|countsonly] [showgroups|showgroupnameslist] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
         [fields <ContactFieldNameList>] [formatjson [quotechar <Character>]]
 
 gam <UserTypeEntity> update contactphotos <ContactEntity>|<UserContactSelection>

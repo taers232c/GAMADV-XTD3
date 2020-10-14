@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.22.11'
+__version__ = '5.22.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -14083,9 +14083,9 @@ class ContactsManager():
       fieldName = getChoice(ContactsManager.CONTACT_ARGUMENT_TO_PROPERTY_MAP, mapChoice=True)
       if fieldName == CONTACT_JSON:
         if entityType == Ent.USER:
-          fields.update(getJSON(['ContactID']))
+          fields.update(getJSON([CONTACT_ID, CONTACT_GROUPS]))
         else:
-          fields.update(getJSON(['ContactID', 'ContactGroups']))
+          fields.update(getJSON([CONTACT_ID, CONTACT_GROUPS, CONTACT_GROUPS_LIST]))
       elif fieldName == CONTACT_BIRTHDAY:
         fields[fieldName] = getYYYYMMDD(minLen=0)
       elif fieldName == CONTACT_GENDER:
@@ -15242,7 +15242,7 @@ def _printShowContacts(users, entityType, contactFeed=True):
                        contactsManager.CONTACT_ARRAY_PROPERTY_PRINT_ORDER) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   contactQuery = _initContactQueryAttributes()
-  countsOnly = showContactGroups = False
+  countsOnly = showContactGroups = showContactGroupNamesList = False
   displayFieldsList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -15250,6 +15250,8 @@ def _printShowContacts(users, entityType, contactFeed=True):
       csvPF.GetTodriveParameters()
     elif contactFeed and myarg == 'showgroups':
       showContactGroups = True
+    elif contactFeed and myarg == 'showgroupnameslist':
+      showContactGroups = showContactGroupNamesList = True
     elif myarg == 'fields':
       _getContactFieldsList(contactsManager, displayFieldsList)
       if contactFeed and CONTACT_GROUPS in displayFieldsList:
@@ -15370,6 +15372,8 @@ def _printShowContacts(users, entityType, contactFeed=True):
         if not FJQC.formatJSON:
           csvPF.WriteRowTitles(contactRow)
         elif csvPF.CheckRowTitles(contactRow):
+          if showContactGroupNamesList and CONTACT_GROUPS in fields:
+            fields[CONTACT_GROUPS_LIST] = [contactGroupIDs[group] for group in fields[CONTACT_GROUPS] if group in contactGroupIDs]
           csvPF.WriteRowNoFilter({Ent.Singular(entityType): user, CONTACT_ID: fields[CONTACT_ID],
                                   CONTACT_NAME: fields.get(CONTACT_NAME, ''),
                                   'JSON': json.dumps(cleanJSON(fields, timeObjects=CONTACT_TIME_OBJECTS),
@@ -15380,7 +15384,7 @@ def _printShowContacts(users, entityType, contactFeed=True):
     csvPF.writeCSVfile('Contacts')
 
 # gam <UserTypeEntity> print contacts [todrive <ToDriveAttribute>*] <UserContactSelection>
-#	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+#	[basic|full] [showgroups|showgroupnameslist] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
 #	[fields <ContactFieldNameList>] [formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show contacts <UserContactSelection>
 #	[basic|full|countsonly] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
@@ -34176,6 +34180,11 @@ def _getDriveFileParentInfo(drive, user, i, count, body, parameters, emptyQueryO
       body['parents'].append(parent)
   if defaultToRoot and ('parents' not in body or not body['parents']):
     body['parents'] = [ROOT]
+  numParents = len(body.get('parents', []))
+  if numParents > 1:
+    entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
+                                    Msg.MULTIPLE_PARENTS_SPECIFIED.format(numParents), i, count)
+    return False
   return True
 
 def _getDriveFileAddRemoveParentInfo(user, i, count, parameters, drive):

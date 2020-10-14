@@ -1,3 +1,13 @@
+5.22.12
+
+Added check for more than one parent in `gam create|update|copy|move drivefile` and `gam create sheet`;
+multiple file parents are no longer allowed.
+* https://developers.google.com/drive/api/v3/ref-single-parent
+
+Added option `showgroupnameslist` to `gam <UserTypeEntity> print contacts` that is used in conjunction
+with `formatjson` to add the key `ContactGroupsList` with a list of contact group names to the JSON output.
+This key and its values can be used when creating contacts with the `json` option to set contact groups.
+
 5.22.11
 
 Fixed bug where `csv_output_row_drop_filter` was not being processed when `formatjson` was specified.
