@@ -1,3 +1,25 @@
+5.23.00
+
+Added `preview` option to `gam <UserTypeEntity> create|update|delete|sync license` commmands;
+if specified, the changes will be previewed but not executed.
+
+Added `actioncsv` option to `gam <UserTypeEntity> create|update|delete|sync license` commands.
+For `create`, 'delete` and 'sync`, this will produce a CSV file with columns `user,productId,skuId,action,message`.
+For `update`, this will produce a CSV file with columns `user,productId,oldskuId,skuId,action,message`.
+This file shows the actions performed when processing the licenses.
+
+Added `addonly|removeonly` options to `gam <UserTypeEntity> sync license` commands. By default, a sync will perform
+add and remove operations; these options limit the operations as specified.
+```
+gam <UserTypeEntity> create|add license <SKUID> [product|productid <ProductID>] [preview] [actioncsv]
+gam <UserTypeEntity> update license <SKUID> [product|productid <ProductID>] [from] <SKUID> [preview] [actioncsv]
+gam <UserTypeEntity> delete license <SKUID> [product|productid <ProductID>] [preview] [actioncsv]
+gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>] [addonly|removeonly] [preview] [actioncsv]
+```
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Licenses
+
+Fixed bug in `gam <UserTypeEntity> sync license` where an attempt was made to add a license to an existing license holder.
+
 5.22.13
 
 Following Jay's lead, added commands to send commands to ChromeOS devices.

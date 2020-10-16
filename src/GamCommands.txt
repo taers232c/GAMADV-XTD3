@@ -4617,10 +4617,10 @@ gam <UserTypeEntity> print groupslist [domain <DomainName>] [todrive <ToDriveAtt
 
 # Users - Licenses
 
-gam <UserTypeEntity> create|add license <SKUID> [product|productid <ProductID>]
-gam <UserTypeEntity> update license <SKUID> [product|productid <ProductID>] [from] <SKUID>
-gam <UserTypeEntity> delete license <SKUID> [product|productid <ProductID>]
-gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>]
+gam <UserTypeEntity> create|add license <SKUID> [product|productid <ProductID>] [preview] [actioncsv]
+gam <UserTypeEntity> update license <SKUID> [product|productid <ProductID>] [from] <SKUID> [preview] [actioncsv]
+gam <UserTypeEntity> delete license <SKUID> [product|productid <ProductID>] [preview] [actioncsv]
+gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>] [addonly|removeonly] [preview] [actioncsv]
 
 # Users - People - Profile
 

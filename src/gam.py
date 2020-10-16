@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.22.13'
+__version__ = '5.23.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -18512,6 +18512,10 @@ def doCreateGroup(ciGroupsAPI=False):
 def doCreateCIGroup():
   doCreateGroup(ciGroupsAPI=True)
 
+# addonly|removeonly]
+def getSyncOperation():
+  return getChoice(['addonly', 'removeonly'], defaultChoice='addremove')
+
 UPDATE_GROUP_SUBCMDS = ['add', 'create', 'delete', 'remove', 'clear', 'sync', 'update']
 GROUP_PREVIEW_TITLES = ['group', 'email', 'role', 'action', 'message']
 
@@ -18609,7 +18613,7 @@ def doUpdateGroups(ciGroupsAPI=False):
       kvList.append(optMsg)
     entityActionPerformedMessage([Ent.GROUP, group, Ent.MEMBER, member], ', '.join(kvList), j, jcount)
     if csvPF:
-      csvPF.WriteRow({'group': group, 'email': member, 'role': role, 'action': Act.Performed(), 'message': 'Success'})
+      csvPF.WriteRow({'group': group, 'email': member, 'role': role, 'action': Act.Performed(), 'message': Act.SUCCESS})
 
   def _showFailure(group, member, role, errMsg, j, jcount):
     entityActionFailedWarning([Ent.GROUP, group, Ent.MEMBER, member], errMsg, j, jcount)
@@ -19082,7 +19086,7 @@ def doUpdateGroups(ciGroupsAPI=False):
                                  role)
   elif CL_subCommand == 'sync':
     baseRole, groupMemberType = _getRoleGroupMemberType()
-    syncOperation = getChoice(['addonly', 'removeonly'], defaultChoice='addremove')
+    syncOperation = getSyncOperation()
     isSuspended = _getOptionalIsSuspended()
     removeDomainNoStatusMembers = checkArgumentPresent('removedomainnostatusmembers')
     delivery_settings = getDeliverySettings()
@@ -20955,7 +20959,7 @@ def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts
     csvPF.writeCSVfile('Licenses')
     return
   if returnFields:
-    if returnFields == 'userId':
+    if returnFields == ['userId']:
       userIds = []
       for u_license in feed:
         userId = u_license.get('userId', '').lower()
@@ -30417,7 +30421,7 @@ def doCourseSyncParticipants(courseIdList, getEntityListArg):
     makeFirstTeacherOwner = checkArgumentPresent(['makefirstteacherowner'])
   else:
     makeFirstTeacherOwner = False
-  syncOperation = getChoice(['addonly', 'removeonly'], defaultChoice='addremove')
+  syncOperation = getSyncOperation()
   _, syncParticipants = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
                                           typeMap={Cmd.ENTITY_COURSEPARTICIPANTS: PARTICIPANT_EN_MAP[role]}, isSuspended=False)
   checkForExtraneousArguments()
@@ -31864,7 +31868,7 @@ def getPrinterScopeListsForRole(cp, printerId, i, count, role):
 # gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> sync user|manager|owner [addonly|removeonly] <PrinterACLScopeEntity> [notify]
 def printerSyncACLs(users, printerIdList):
   role = getChoice(PRINTER_ROLE_MAP, mapChoice=True)
-  syncOperation = getChoice(['addonly', 'removeonly'], defaultChoice='addremove')
+  syncOperation = getSyncOperation()
   scopeList, printerScopeLists = getPrinterACLScopeEntity()
   notify = checkArgumentPresent('notify')
   checkForExtraneousArguments()
@@ -43080,6 +43084,7 @@ def printUserGroupsList(users):
 LICENSE_SKUID = 'skuId'
 LICENSE_PRODUCTID = 'productId'
 LICENSE_OLDSKUID = 'oldSkuId'
+LICENSE_PREVIEW_TITLES = ['user', 'productId', 'skuId', 'action', 'message']
 
 def getLicenseParameters(operation):
   lic = buildGAPIObject(API.LICENSING)
@@ -43090,85 +43095,146 @@ def getLicenseParameters(operation):
   if operation == 'patch':
     checkArgumentPresent('from')
     _, parameters[LICENSE_OLDSKUID] = getGoogleSKU()
+  if operation == 'sync':
+    parameters['syncOperation'] = getSyncOperation()
+  parameters['preview'] = checkArgumentPresent('preview')
+  if checkArgumentPresent('actioncsv'):
+    titles = LICENSE_PREVIEW_TITLES
+    if operation == 'patch':
+      titles.insert(2, 'oldskuId')
+    parameters['csvPF'] = CSVPrintFile(titles)
+  else:
+    parameters['csvPF'] = None
   checkForExtraneousArguments()
   return (lic, parameters)
 
+def _writeLicenseAction(parameters, user, action, message):
+  if action != Act.UPDATE:
+    parameters['csvPF'].WriteRow({'user': user,
+                                  'productId': parameters[LICENSE_PRODUCTID],
+                                  'skuId': parameters[LICENSE_SKUID],
+                                  'action': Act.PerformedName(action),
+                                  'message': message})
+  else:
+    parameters['csvPF'].WriteRow({'user': user,
+                                  'productId': parameters[LICENSE_PRODUCTID],
+                                  'oldskuId': parameters[LICENSE_OLDSKUID],
+                                  'skuId': parameters[LICENSE_SKUID],
+                                  'action': Act.PerformedName(action),
+                                  'message': message})
+
 def _createLicenses(lic, parameters, count, users):
+  Act.Set([Act.ADD, Act.ADD_PREVIEW][parameters['preview']])
+  if parameters['preview']:
+    message = Act.PREVIEW
   i = 0
   for user in users:
     i += 1
     user = normalizeEmailAddressOrUID(user)
     try:
-      callGAPI(lic.licenseAssignments(), 'insert',
-               throwReasons=[GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET, GAPI.INVALID, GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
-               productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_SKUID], body={'userId': user}, fields='')
+      if not parameters['preview']:
+        callGAPI(lic.licenseAssignments(), 'insert',
+                 throwReasons=[GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET, GAPI.INVALID, GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
+                 productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_SKUID], body={'userId': user}, fields='')
+        message = Act.SUCCESS
       entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], i, count)
     except (GAPI.duplicate, GAPI.conditionNotMet, GAPI.invalid) as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], str(e), i, count)
-    except (GAPI.userNotFound, GAPI.forbidden, GAPI.backendError):
+      message = str(e)
+      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], message, i, count)
+    except (GAPI.userNotFound, GAPI.forbidden, GAPI.backendError) as e:
+      message = str(e)
       entityUnknownWarning(Ent.USER, user, i, count)
+    if parameters['csvPF']:
+      _writeLicenseAction(parameters, user, Act.ADD, message)
 
-# gam <UserTypeEntity> create|add license <SKUID>
+# gam <UserTypeEntity> create|add license <SKUID> [preview] [actioncsv]
 def createLicense(users):
   lic, parameters = getLicenseParameters('insert')
   _, count, users = getEntityArgument(users)
   _createLicenses(lic, parameters, count, users)
+  if parameters['csvPF']:
+    parameters['csvPF'].writeCSVfile('Create Licenses')
 
-# gam <UserTypeEntity> update license <SKUID> [from] <SKUID>
+# gam <UserTypeEntity> update license <SKUID> [from] <SKUID> [preview] [actioncsv]
 def updateLicense(users):
   lic, parameters = getLicenseParameters('patch')
   i, count, users = getEntityArgument(users)
+  Act.Set([Act.UPDATE, Act.UPDATE_PREVIEW][parameters['preview']])
+  if parameters['preview']:
+    message = Act.PREVIEW
+  body = {'skuId': parameters[LICENSE_SKUID]}
   for user in users:
     i += 1
     user = normalizeEmailAddressOrUID(user)
     try:
-      callGAPI(lic.licenseAssignments(), 'patch',
-               bailOnInternalError=True,
-               throwReasons=[GAPI.INTERNAL_ERROR, GAPI.NOT_FOUND, GAPI.CONDITION_NOT_MET, GAPI.INVALID,
-                             GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
-               productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_OLDSKUID], userId=user, body={'skuId': parameters[LICENSE_SKUID]}, fields='')
+      if not parameters['preview']:
+        callGAPI(lic.licenseAssignments(), 'patch',
+                 bailOnInternalError=True,
+                 throwReasons=[GAPI.INTERNAL_ERROR, GAPI.NOT_FOUND, GAPI.CONDITION_NOT_MET, GAPI.INVALID,
+                               GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
+                 productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_OLDSKUID], userId=user, body=body, fields='')
+        message = Act.SUCCESS
       entityModifierNewValueActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.skuIdToDisplayName(parameters[LICENSE_SKUID])],
                                             Act.MODIFIER_FROM, SKU.skuIdToDisplayName(parameters[LICENSE_OLDSKUID]), i, count)
     except (GAPI.internalError, GAPI.notFound, GAPI.conditionNotMet, GAPI.invalid) as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_OLDSKUID])], str(e), i, count)
-    except (GAPI.userNotFound, GAPI.forbidden, GAPI.backendError):
+      message = str(e)
+      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_OLDSKUID])], message, i, count)
+    except (GAPI.userNotFound, GAPI.forbidden, GAPI.backendError) as e:
+      message = str(e)
       entityUnknownWarning(Ent.USER, user, i, count)
+    if parameters['csvPF']:
+      _writeLicenseAction(parameters, user, Act.UPDATE, message)
+  if parameters['csvPF']:
+    parameters['csvPF'].writeCSVfile('Update Licenses')
 
 def _deleteLicenses(lic, parameters, count, users):
+  Act.Set([Act.DELETE, Act.DELETE_PREVIEW][parameters['preview']])
+  if parameters['preview']:
+    message = Act.PREVIEW
   i = 0
   for user in users:
     i += 1
     user = normalizeEmailAddressOrUID(user)
     try:
-      callGAPI(lic.licenseAssignments(), 'delete',
-               throwReasons=[GAPI.NOT_FOUND, GAPI.CONDITION_NOT_MET, GAPI.INVALID, GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
-               productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_SKUID], userId=user)
+      if not parameters['preview']:
+        callGAPI(lic.licenseAssignments(), 'delete',
+                 throwReasons=[GAPI.NOT_FOUND, GAPI.CONDITION_NOT_MET, GAPI.INVALID, GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
+                 productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_SKUID], userId=user)
+        message = Act.SUCCESS
       entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], i, count)
     except (GAPI.notFound, GAPI.conditionNotMet, GAPI.invalid) as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], str(e), i, count)
-    except (GAPI.userNotFound, GAPI.forbidden, GAPI.backendError):
+      message = str(e)
+      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], message, i, count)
+    except (GAPI.userNotFound, GAPI.forbidden, GAPI.backendError) as e:
+      message = str(e)
       entityUnknownWarning(Ent.USER, user, i, count)
+    if parameters['csvPF']:
+      _writeLicenseAction(parameters, user, Act.DELETE, message)
 
-# gam <UserTypeEntity> delete license <SKUID>
+# gam <UserTypeEntity> delete license <SKUID> [preview] [actioncsv]
 def deleteLicense(users):
   lic, parameters = getLicenseParameters('delete')
   _, count, users = getEntityArgument(users)
   _deleteLicenses(lic, parameters, count, users)
+  if parameters['csvPF']:
+    parameters['csvPF'].writeCSVfile('Delete Licenses')
 
-# gam <UserTypeEntity> sync license <SKUID>
+# gam <UserTypeEntity> sync license <SKUID> [addonly|removeonly] [preview] [actioncsv]
 def syncLicense(users):
   lic, parameters = getLicenseParameters('sync')
   _, _, users = getEntityArgument(users)
   usersSet = set()
   for user in users:
     usersSet.add(normalizeEmailAddressOrUID(user))
-  currentLicenses = set(doPrintLicenses(returnFields=['userId'], skus=[parameters[LICENSE_SKUID]]))
-  deleteSet = currentLicenses-usersSet
-  Act.Set(Act.DELETE)
-  _deleteLicenses(lic, parameters, len(deleteSet), deleteSet)
-  addSet = usersSet-currentLicenses
-  Act.Set(Act.ADD)
-  _createLicenses(lic, parameters, len(addSet), addSet)
+  currentLicenses = set(getUsersToModify(Cmd.ENTITY_LICENSES, parameters[LICENSE_SKUID]))
+  if parameters['syncOperation'] != 'addonly':
+    deleteSet = currentLicenses-usersSet
+    _deleteLicenses(lic, parameters, len(deleteSet), deleteSet)
+  if parameters['syncOperation'] != 'removeonly':
+    addSet = usersSet-currentLicenses
+    _createLicenses(lic, parameters, len(addSet), addSet)
+  if parameters['csvPF']:
+    parameters['csvPF'].writeCSVfile('Sync Licenses')
 
 # gam <UserTypeEntity> update photo [<FileNamePattern>]
 # gam <UserTypeEntity> update photo [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
@@ -43413,7 +43479,7 @@ def createSheet(users):
       if not returnIdOnly and not FJQC.formatJSON:
         entityActionPerformed([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], i, count)
       parentId = ROOT
-      parentMsg = 'Success'
+      parentMsg = Act.SUCCESS
       if changeParents:
         try:
           callGAPI(drive.files(), 'update',
