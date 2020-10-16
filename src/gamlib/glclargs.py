@@ -563,6 +563,7 @@ class GamCLArgs():
   OB_CLIENT_ID = 'ClientID'
   OB_COLLABORATOR_ITEM = 'CollaboratorItem'
   OB_COLLABORATOR_ENTITY = 'CollaboratorEntity'
+  OB_COMMAND_ID = 'CommandID'
   OB_CONTACT_EMAIL_TYPE = 'ContactEmailType'
   OB_CONTACT_ENTITY = 'ContactEntity'
   OB_CONTACT_GROUP_ENTITY = 'ContactGroupEntity'

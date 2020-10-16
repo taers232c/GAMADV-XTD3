@@ -1,3 +1,21 @@
+5.22.13
+
+Following Jay's lead, added commands to send commands to ChromeOS devices.
+```
+<CrOSCommand>
+	reboot|
+	remote_powerwash|
+	set_volume <0-100>|
+	wipe_users|
+	take_a_screenshot
+
+gam issuecommand cros <CrOSEntity> command <CrOSCommand> [times_to_check_status <Integer>] [doit]
+gam <CrOSTypeEntity> issuecommand command <CrOSCommand> [times_to_check_status <Integer>] [doit]
+gam getcommand cros <CrOSEntity> commandid <CommandID> [times_to_check_status <Integer>]
+gam <CrOSTypeEntity> getcommand commandid <CommandID> [times_to_check_status <Integer>]
+```
+* https://github.com/taers232c/GAMADV-XTD3/wiki/ChromeOS-Devices
+
 5.22.12
 
 Added check for more than one parent in `gam create|update|copy|move drivefile` and `gam create sheet`;

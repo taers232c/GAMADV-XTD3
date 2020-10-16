@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.22.12'
+__version__ = '5.22.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4083,14 +4083,14 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False):
       if 'gateway timeout' in lmessage:
         error = makeErrorDict(http_status, GAPI.GATEWAY_TIMEOUT, message)
     elif http_status == 400:
-      if 'does not match' in lmessage or 'invalid' in lmessage:
-        error = makeErrorDict(http_status, GAPI.INVALID, message)
-      elif '@attachmentnotvisible' in lmessage:
+      if '@attachmentnotvisible' in lmessage:
         error = makeErrorDict(http_status, GAPI.BAD_REQUEST, message)
       elif status == 'FAILED_PRECONDITION' or 'precondition check failed' in lmessage:
         error = makeErrorDict(http_status, GAPI.FAILED_PRECONDITION, message)
       elif status == 'INVALID_ARGUMENT':
         error = makeErrorDict(http_status, GAPI.INVALID_ARGUMENT, message)
+      elif 'does not match' in lmessage or 'invalid' in lmessage:
+        error = makeErrorDict(http_status, GAPI.INVALID, message)
     elif http_status == 403:
       if status == 'PERMISSION_DENIED' or 'the caller does not have permission' in lmessage or 'permission iam.serviceaccountkeys' in lmessage:
         error = makeErrorDict(http_status, GAPI.PERMISSION_DENIED, message)
@@ -15898,7 +15898,8 @@ CROS_ACTION_NAME_MAP = {
   'reenable': Act.REENABLE,
   }
 
-# gam <CrOSTypeEntity> update (<CrOSAttribute>+ [quickcrosmove [<Boolean>]])|(action <CrOSAction> [acknowledge_device_touch_requirement])
+# gam <CrOSTypeEntity> update <CrOSAttribute>+ [quickcrosmove [<Boolean>]]
+# gam <CrOSTypeEntity> update action <CrOSAction> [acknowledge_device_touch_requirement]
 def updateCrOSDevices(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
   update_body = {}
@@ -15980,9 +15981,111 @@ def updateCrOSDevices(entityList):
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.CROS_DEVICE, deviceId, i, count)
 
-# gam update cros|croses <CrOSEntity> (<CrOSAttribute>+ [quickcrosmove [<Boolean>]])|(action <CrOSAction> [acknowledge_device_touch_requirement])
+# gam update cros|croses <CrOSEntity> <CrOSAttribute>+ [quickcrosmove [<Boolean>]]
+# gam update cros|croses <CrOSEntity> action <CrOSAction> [acknowledge_device_touch_requirement]
 def doUpdateCrOSDevices():
   updateCrOSDevices(getCrOSDeviceEntity())
+
+CROS_COMMAND_CHOICE_MAP = {
+  'reboot': 'REBOOT',
+  'remotepowerwash': 'REMOTE_POWERWASH',
+  'setvolume': 'SET_VOLUME',
+  'takeascreenshot': 'TAKE_A_SCREENSHOT',
+  'wipeusers': 'WIPE_USERS'
+  }
+
+CROS_DOIT_REQUIRED_COMMANDS = {'WIPE_USERS', 'REMOTE_POWERWASH'}
+CROS_KIOSK_COMMANDS = {'REBOOT', 'SET_VOLUME', 'TAKE_A_SCREENSHOT'}
+CROS_COMMAND_FINAL_STATES = {'EXPIRED', 'CANCELLED', 'EXECUTED_BY_CLIENT'}
+CROS_COMMAND_TIME_OBJECTS = {'executeTime', 'issueTime', 'commandExpireTime'}
+
+def displayCrOSCommandResult(cd, deviceId, commandId, checkResultRetries, i, count):
+  Ind.Increment()
+  try:
+    for _ in range(0, checkResultRetries):
+      time.sleep(2)
+      result = callGAPI(cd.customer().devices().chromeos().commands(), 'get',
+                        customerId=GC.Values[GC.CUSTOMER_ID], deviceId=deviceId, commandId=commandId)
+      showJSON(None, result, timeObjects=CROS_COMMAND_TIME_OBJECTS)
+      state = result.get('state')
+      if state in CROS_COMMAND_FINAL_STATES:
+        break
+  except (GAPI.invalidArgument, GAPI.badRequest, GAPI.notFound, GAPI.forbidden) as e:
+    entityActionFailedWarning([Ent.CROS_DEVICE, deviceId], str(e), i, count)
+  Ind.Decrement()
+
+# gam <CrOSTypeEntity> issuecommand command <CrOSCommand> [times_to_check_status <Integer>] [doit]
+def issueCommandCrOSDevices(entityList):
+  cd = buildGAPIObject(API.DIRECTORY)
+  body = {}
+  checkResultRetries = 1
+  doit = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'command':
+      body['commandType'] = getChoice(CROS_COMMAND_CHOICE_MAP, mapChoice=True)
+      if body['commandType'] == 'SET_VOLUME':
+        body['payload'] = json.dumps({'volume': getInteger(minVal=0, maxVal=100)})
+    elif myarg == 'timestocheckstatus':
+      checkResultRetries = getInteger(minVal=0)
+    elif myarg == 'doit':
+      doit = True
+    else:
+      unknownArgumentExit()
+  if not body:
+    missingArgumentExit('command <CrOSCommand>')
+  i, count, entityList = getEntityArgument(entityList)
+  if body['commandType'] in CROS_DOIT_REQUIRED_COMMANDS and not doit:
+    actionNotPerformedNumItemsWarning(count, Ent.CROS_DEVICE, Msg.USE_DOIT_ARGUMENT_TO_PERFORM_ACTION)
+    return
+  for deviceId in entityList:
+    i += 1
+    try:
+      result = callGAPI(cd.customer().devices().chromeos(), 'issueCommand',
+                        throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND],
+                        customerId=GC.Values[GC.CUSTOMER_ID], deviceId=deviceId, body=body)
+      commandId = result.get('commandId')
+      entityActionPerformed([Ent.CROS_DEVICE, deviceId, Ent.ACTION, body['commandType'], Ent.COMMAND_ID, commandId], i, count)
+      displayCrOSCommandResult(cd, deviceId, commandId, checkResultRetries, i, count)
+    except GAPI.invalidArgument as e:
+      errMsg = str(e)
+      if body['commandType'] in CROS_KIOSK_COMMANDS:
+        errMsg += Msg.KIOSK_MODE_REQUIRED.format(body['commandType'])
+      entityActionFailedWarning([Ent.CROS_DEVICE, deviceId], errMsg, i, count)
+    except GAPI.notFound as e:
+      entityActionFailedWarning([Ent.CROS_DEVICE, deviceId], str(e), i, count)
+
+# gam issuecommand <CrOSEntity> command <CrOSCommand> [times_to_check_status <Integer>] [doit]
+def doIssueCommandCrOSDevices():
+  issueCommandCrOSDevices(getCrOSDeviceEntity())
+
+# gam <CrOSTypeEntity> getcommand commandid <CommandID> [times_to_check_status <Integer>]
+def getCommandResultCrOSDevices(entityList):
+  cd = buildGAPIObject(API.DIRECTORY)
+  commandId = ''
+  checkResultRetries = 1
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'commandid':
+      commandId = getString(Cmd.OB_COMMAND_ID)
+    elif myarg == 'timestocheckstatus':
+      checkResultRetries = getInteger(minVal=0)
+    else:
+      unknownArgumentExit()
+  if not commandId:
+    missingArgumentExit('commandid <CommandID>')
+  i, count, entityList = getEntityArgument(entityList)
+  for deviceId in entityList:
+    i += 1
+    try:
+      printEntity([Ent.CROS_DEVICE, deviceId, Ent.COMMAND_ID, commandId], i, count)
+      displayCrOSCommandResult(cd, deviceId, commandId, checkResultRetries, i, count)
+    except (GAPI.invalidArgument, GAPI.notFound) as e:
+      entityActionFailedWarning([Ent.CROS_DEVICE, deviceId, Ent.COMMAND_ID, commandId], str(e), i, count)
+
+# gam getcommand <CrOSEntity> commandid <CommandID> [times_to_check_status <Integer>]
+def doGetCommandResultCrOSDevices():
+  getCommandResultCrOSDevices(getCrOSDeviceEntity())
 
 # From https://www.chromium.org/chromium-os/tpm_firmware_update
 CROS_TPM_VULN_VERSIONS = ['41f', '420', '628', '8520']
@@ -20361,9 +20464,10 @@ GROUPMEMBERS_DEFAULT_FIELDS = ['group', 'type', 'role', 'id', 'status', 'email']
 #	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
 #	[descriptionmatchpattern <RegularExpression>]
 #	[showownedby <UserItem>]
-#	[roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
+#	[roles <GroupRoleList>] [members] [managers] [owners]
 #	[types <GroupTypeList>]
 #	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
+#	[membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
 #	[userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
 #	[peoplelookup|(peoplelookupuser <EmailAddress>)]
 #	[includederivedmembership]
@@ -39819,10 +39923,12 @@ def transferDrive(users):
             return
         try:
           callGAPI(targetDrive.files(), 'update',
-                   throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST], retryReasons=[GAPI.FILE_NOT_FOUND], retries=3,
+                   throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT],
+                   retryReasons=[GAPI.FILE_NOT_FOUND], retries=3,
                    fileId=childFileId,
                    addParents=mappedParentId, body={}, fields='')
-        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
+        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+                GAPI.badRequest, GAPI.cannotAddParent) as e:
           entityActionFailedWarning([Ent.USER, targetUser, childFileType, childFileName], str(e), j, jcount)
           return
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -47547,6 +47653,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
     ),
   'download': (Act.DOWNLOAD, {Cmd.ARG_STORAGEBUCKET: doDownloadCloudStorageBucket, Cmd.ARG_VAULTEXPORT: doDownloadVaultExport}),
   'get': (Act.DOWNLOAD, {Cmd.ARG_CONTACTPHOTO: doGetDomainContactPhoto, Cmd.ARG_DEVICEFILE: doGetCrOSDeviceFiles}),
+  'getcommand': (Act.GET_COMMAND_RESULT, {Cmd.ARG_CROS: doGetCommandResultCrOSDevices}),
   'hide': (Act.HIDE, {Cmd.ARG_TEAMDRIVE: doHideUnhideTeamDrive}),
   'info':
     (Act.INFO,
@@ -47588,6 +47695,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_VERIFY:		doInfoSiteVerification,
      }
     ),
+  'issuecommand': (Act.ISSUE_COMMAND, {Cmd.ARG_CROS: doIssueCommandCrOSDevices}),
   'print':
     (Act.PRINT,
      {Cmd.ARG_ADMINROLE:	doPrintShowAdminRoles,
@@ -48085,7 +48193,9 @@ COMMANDS_ALIASES = {
 
 # <CrOSTypeEntity> commands
 CROS_COMMANDS = {
+  'getcommand': (Act.GET_COMMAND_RESULT, getCommandResultCrOSDevices),
   'info': (Act.INFO, infoCrOSDevices),
+  'issuecommand': (Act.ISSUE_COMMAND, issueCommandCrOSDevices),
   'list': (Act.LIST, doListCrOS),
   'print': (Act.PRINT, doPrintCrOSEntity),
   'update': (Act.UPDATE, updateCrOSDevices),

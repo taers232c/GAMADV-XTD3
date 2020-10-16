@@ -54,6 +54,7 @@ class GamAction():
   ENABLE = 'enbl'
   EXPORT = 'expo'
   EXTRACT = 'extr'
+  GET_COMMAND_RESULT = 'gtcr'
   FETCH = 'fetc'
   FORWARD = 'forw'
   HIDE = 'hide'
@@ -62,6 +63,7 @@ class GamAction():
   INITIALIZE = 'init'
   INSERT = 'insr'
   INVALIDATE = 'inva'
+  ISSUE_COMMAND = 'isco'
   LIST = 'list'
   LOOKUP = 'look'
   MERGE = 'merg'
@@ -154,12 +156,14 @@ class GamAction():
     EXPORT: ['Exported', 'Export'],
     EXTRACT: ['Extracted', 'Extract'],
     FORWARD: ['Forwarded', 'Forward'],
+    GET_COMMAND_RESULT: ['Got Command Result', 'Get Command Result'],
     HIDE: ['Hidden', 'Hide'],
     IMPORT: ['Imported', 'Import'],
     INFO: ['Shown', 'Show Info'],
     INITIALIZE: ['Initialized', 'Initialize'],
     INSERT: ['Inserted', 'Insert'],
     INVALIDATE: ['Invalidated', 'Invalidate'],
+    ISSUE_COMMAND: ['Command Issued', 'Issue Command'],
     LIST: ['Listed', 'List'],
     LOOKUP: ['Lookedup', 'Lookup'],
     MERGE: ['Merged', 'Merge'],

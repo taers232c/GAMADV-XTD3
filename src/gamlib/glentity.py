@@ -78,6 +78,7 @@ class GamEntity():
   CLOUD_IDENTITY_GROUP = 'cidg'
   CLOUD_STORAGE_FILE = 'clsf'
   COLLABORATOR = 'cola'
+  COMMAND_ID = 'cmdi'
   COMPANY_DEVICE = 'codv'
   CONFIG_FILE = 'conf'
   CONTACT = 'cont'
@@ -304,6 +305,7 @@ class GamEntity():
     CLOUD_IDENTITY_GROUP: ['Cloud Identity Groups', 'Cloud Identity Group'],
     CLOUD_STORAGE_FILE: ['Cloud Storage Files', 'Cloud Storage File'],
     COLLABORATOR: ['Collaborators', 'Collaborator'],
+    COMMAND_ID: ['Command IDs', 'Command ID'],
     COMPANY_DEVICE: ['Company Devices', 'Company Device'],
     CONFIG_FILE: ['Config File', 'Config File'],
     CONTACT: ['Contacts', 'Contact'],

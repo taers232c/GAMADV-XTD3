@@ -97,7 +97,6 @@ OAUTH2_TOKEN_ERRORS = [
 PROJECT_APIS = [
   'admin.googleapis.com',
   'alertcenter.googleapis.com',
-  'appsactivity.googleapis.com',
   'audit.googleapis.com',
   'calendar-json.googleapis.com',
   'chat.googleapis.com',

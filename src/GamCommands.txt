@@ -270,6 +270,7 @@ If an item contains spaces, it should be surrounded by ".
 <ClassroomInvitationID> ::= <String>
 <ClientID> ::= <String>
 <ColorValue> ::= <ColorName>|<ColorHex>
+<CommandID> ::= <String>
 <ContactID> ::= <String>
 <ContactGroupID> ::= id:<String>
 <ContactGroupName> ::= <String>
@@ -1294,6 +1295,29 @@ gam calendar|calendars <CalendarEntity> modify <CalendarSettings>+
 
 # ChromeOS Devices
 
+<CrOSAction> ::=
+        deprovision_different_model_replace|
+        deprovision_retiring_device|
+        deprovision_same_model_replace|
+        deprovision_upgrade_transfer|
+        disable|
+        reenable
+
+gam update cros <CrOSEntity> action <CrOSAction> [acknowledge_device_touch_requirement]
+gam <CrOSTypeEntity> update action <CrOSAction> [acknowledge_device_touch_requirement]
+
+<CrOSCommand>
+        reboot|
+        remote_powerwash|
+        set_volume <0-100>|
+        wipe_users|
+        take_a_screenshot
+
+gam issuecommand cros <CrOSEntity> command <CrOSCommand> [times_to_check_status <Integer>] [doit]
+gam <CrOSTypeEntity> issuecommand command <CrOSCommand> [times_to_check_status <Integer>] [doit]
+gam getcommand cros <CrOSEntity> commandid <CommandID> [times_to_check_status <Integer>]
+gam <CrOSTypeEntity> getcommand commandid <CommandID> [times_to_check_status <Integer>]
+
 <CrOSAttribute> ::=
         (asset|assetid|tag <String>)|
         (location <String>)|
@@ -1303,17 +1327,6 @@ gam calendar|calendars <CalendarEntity> modify <CalendarSettings>+
 
 gam update cros <CrOSEntity> <CrOSAttribute>+ [quickcrosmove [<Boolean>]]
 gam <CrOSTypeEntity> update <CrOSAttribute>+ [quickcrosmove [<Boolean>]]
-
-<CrOSAction> ::=
-        deprovision_same_model_replace|
-        deprovision_different_model_replace|
-        deprovision_retiring_device|
-        deprovision_upgrade_transfer|
-        disable|
-        reenable
-
-gam update cros <CrOSEntity> action <CrOSAction> [acknowledge_device_touch_requirement]
-gam <CrOSTypeEntity> update action <CrOSAction> [acknowledge_device_touch_requirement]
 
 <CrOSFieldName> ::=
         activetimeranges|timeranges|
@@ -2064,7 +2077,7 @@ gam create|add group <EmailAddress>
         [copyfrom <GroupItem>] <GroupAttribute>*
 gam update group|groups <GroupEntity> [email <EmailAddress>]
         [copyfrom <GroupItem>] <GroupAttribute>*
-        [makesecuritygroup]
+        [security|makesecuritygroup]
         [admincreated <Boolean>]
 gam update group|groups <GroupEntity> create|add [<GroupRole>]
         [usersonly|groupsonly] [notsuspended|suspended]
