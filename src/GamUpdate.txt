@@ -18,6 +18,15 @@ gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>] [addon
 ```
 * https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Licenses
 
+Updated `commit-batch` command in batch files to take an optional argument that causes GAM to wait for user input before continuing.
+* `commit-batch`
+  * GAM waits for all running GAM commands to complete
+  * GAM continues
+* `commit-batch <String>`
+  * GAM waits for all running GAM commands to complete
+  * GAM prints `<String>` and waits for the user to press any key
+  * GAM continues
+
 Fixed bug in `gam <UserTypeEntity> sync license` where an attempt was made to add a license to an existing license holder.
 
 5.22.13

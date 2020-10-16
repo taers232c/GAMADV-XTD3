@@ -7387,6 +7387,8 @@ def MultiprocessGAMCommands(items, logCmds):
         while poolProcessResults[0] > 0:
           time.sleep(1)
         batchWriteStderr(Msg.COMMIT_BATCH_COMPLETE.format(currentISOformatTimeStamp(), Msg.PROCESSES))
+        if len(item) > 1:
+          readStdin(f'{currentISOformatTimeStamp()},0,{Cmd.QuotedArgumentList(item[1:])}')
         continue
       if item[0] == Cmd.PRINT_CMD:
         batchWriteStderr(Cmd.QuotedArgumentList(item[1:])+'\n')
@@ -7441,6 +7443,9 @@ def threadBatchWorker(logCmds=False):
       batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},{str(e)}\n')
     GM.Globals[GM.TBATCH_QUEUE].task_done()
 
+BATCH_COMMANDS = [Cmd.GAM_CMD, Cmd.COMMIT_BATCH_CMD, Cmd.PRINT_CMD]
+TBATCH_COMMANDS = [Cmd.GAM_CMD, Cmd.COMMIT_BATCH_CMD, Cmd.EXECUTE_CMD, Cmd.PRINT_CMD]
+
 def ThreadBatchGAMCommands(items, logCmds):
   if not items:
     return
@@ -7466,6 +7471,8 @@ def ThreadBatchGAMCommands(items, logCmds):
       GM.Globals[GM.TBATCH_QUEUE].join()
       batchWriteStderr(Msg.COMMIT_BATCH_COMPLETE.format(currentISOformatTimeStamp(), Msg.THREADS))
       numThreadsInUse = 0
+      if len(item) > 1:
+        readStdin(f'{currentISOformatTimeStamp()},0,{Cmd.QuotedArgumentList(item[1:])}')
       continue
     if item[0] == Cmd.PRINT_CMD:
       batchWriteStderr(f'{currentISOformatTimeStamp()},0,{Cmd.QuotedArgumentList(item[1:])}\n')
@@ -7503,6 +7510,7 @@ def doBatch(threadBatch=False):
       logCmds = getBoolean()
     else:
       unknownArgumentExit()
+  validCommands = BATCH_COMMANDS if not threadBatch else TBATCH_COMMANDS
   items = []
   errors = 0
   try:
@@ -7520,17 +7528,11 @@ def doBatch(threadBatch=False):
         cmd = argv[0].strip().lower()
         if (not cmd) or ((len(argv) == 1) and (cmd not in [Cmd.COMMIT_BATCH_CMD, Cmd.PRINT_CMD])):
           continue
-        if cmd == Cmd.GAM_CMD:
-          items.append(argv)
-        elif cmd == Cmd.COMMIT_BATCH_CMD:
-          items.append([cmd])
-        elif cmd == Cmd.EXECUTE_CMD:
-          items.append(argv)
-        elif cmd == Cmd.PRINT_CMD:
+        if cmd in validCommands:
           items.append(argv)
         else:
           writeStderr(f'Command: >>>{Cmd.QuotedArgumentList([argv[0]])}<<< {Cmd.QuotedArgumentList(argv[1:])}\n')
-          writeStderr(f'{ERROR_PREFIX}{Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1]}: {Msg.EXPECTED} <{formatChoiceList([Cmd.GAM_CMD, Cmd.COMMIT_BATCH_CMD, Cmd.PRINT_CMD])}>\n')
+          writeStderr(f'{ERROR_PREFIX}{Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1]}: {Msg.EXPECTED} <{formatChoiceList(validCommands)}>\n')
           errors += 1
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, fileErrorMessage(filename, e))
