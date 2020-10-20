@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.23.00'
+__version__ = '5.23.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -27367,7 +27367,7 @@ def infoUsers(entityList):
         licenses.append(response['skuId'])
 
   cd = buildGAPIObject(API.DIRECTORY)
-  getAliases = getBuildingNames = getGroups = getLicenses = getSchemas = True
+  getAliases = getBuildingNames = getGroups = getLicenses = getSchemas = not GC.Values[GC.QUICK_INFO_USER]
   FJQC = FormatJSONQuoteChar()
   projection = 'full'
   customFieldMask = None
@@ -27379,17 +27379,20 @@ def infoUsers(entityList):
     myarg = getArgument()
     if myarg == 'quick':
       getAliases = getBuildingNames = getGroups = getLicenses = getSchemas = False
-    elif myarg == 'noaliases':
-      getAliases = False
-    elif myarg == 'nobuildingnames':
-      getBuildingNames = False
-    elif myarg == 'nogroups':
-      getGroups = False
-    elif myarg in {'nolicenses', 'nolicences'}:
-      getLicenses = False
+    elif myarg in {'noaliases', 'aliases'}:
+      getAliases = myarg == 'aliases'
+    elif myarg in {'nobuildingnames', 'buildingnames'}:
+      getBuildingNames = myarg == 'buildingnames'
+    elif myarg in {'nogroups', 'groups'}:
+      getGroups = myarg == 'groups'
+    elif myarg in {'nolicenses', 'nolicences', 'licenses', 'licences'}:
+      getLicenses = myarg in {'licenses', 'licences'}
     elif myarg == 'noschemas':
       getSchemas = False
       projection = 'basic'
+    elif myarg == 'allschemas':
+      getSchemas = True
+      projection = 'full'
     elif myarg in {'custom', 'schemas', 'customschemas'}:
       getSchemas = True
       projection = 'custom'
@@ -27697,15 +27700,27 @@ def infoUsers(entityList):
       else:
         entityActionFailedWarning([Ent.USER, userEmail], str(e), i, count)
 
-# gam info users <UserTypeEntity> [quick] [noaliases] [nogroups] [nolicenses|nolicences]
-#	[noschemas|(schemas|custom <SchemaNameList>)|(customschemas <SchemaNameList>)]
-#	[userview] [fields <UserFieldNameList>] [products|product <ProductIDList>] [skus|sku <SKUIDList>] [formatjson]
+# gam info users <UserTypeEntity>
+#	[quick]
+#	[noaliases|aliases]
+#	[nobuildingnames|buildingnames]
+#	[nogroups|groups]
+#	[nolicenses|nolicences|licenses|licences]
+#	[noschemas|allschemas|(schemas|custom <SchemaNameList>)|(customschemas <SchemaNameList>)]
+#	[userview] <UserFieldName>* [fields <UserFieldNameList>]
+#	[(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
 def doInfoUsers():
   infoUsers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, delayGet=True)[1])
 
-# gam info user <UserItem> [quick] [noaliases] [nogroups] [nolicenses|nolicences]
-#	[noschemas|(schemas|custom <SchemaNameList>)|(customschemas <SchemaNameList>)]
-#	[userview] [fields <UserFieldNameList>] [products|product <ProductIDList>] [skus|sku <SKUIDList>] [formatjson]
+# gam info user <UserItem>
+#	[quick]
+#	[noaliases|aliases]
+#	[nobuildingnames|buildingnames]
+#	[nogroups|groups]
+#	[nolicenses|nolicences|licenses|licences]
+#	[noschemas|allschemas|(schemas|custom <SchemaNameList>)|(customschemas <SchemaNameList>)]
+#	[userview] <UserFieldName>* [fields <UserFieldNameList>]
+#	[(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
 # gam info user
 def doInfoUser():
   if Cmd.ArgumentsRemaining():
@@ -30173,7 +30188,7 @@ def _batchRemoveItemsFromCourse(croom, courseId, i, count, removeParticipants, r
   _REMOVE_PART_REASON_TO_MESSAGE_MAP = {GAPI.NOT_FOUND: Msg.DOES_NOT_EXIST,
                                         GAPI.FORBIDDEN: Msg.FORBIDDEN,
                                         GAPI.PERMISSION_DENIED: Msg.PERMISSION_DENIED}
-  def _callbackRemoveItemssFromCourse(request_id, response, exception):
+  def _callbackRemoveItemsFromCourse(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
       entityActionPerformed([Ent.COURSE, ri[RI_ENTITY], ri[RI_ROLE], ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
@@ -30223,7 +30238,7 @@ def _batchRemoveItemsFromCourse(croom, courseId, i, count, removeParticipants, r
   entityPerformActionNumItems([Ent.COURSE, noScopeCourseId], jcount, role, i, count)
   Ind.Increment()
   svcargs = dict([('courseId', courseId), ('fields', ''), (attribute, None)]+GM.Globals[GM.EXTRA_ARGS_LIST])
-  dbatch = croom.new_batch_http_request(callback=_callbackRemoveItemssFromCourse)
+  dbatch = croom.new_batch_http_request(callback=_callbackRemoveItemsFromCourse)
   bcount = 0
   j = 0
   for participant in removeParticipants:
@@ -30240,7 +30255,7 @@ def _batchRemoveItemsFromCourse(croom, courseId, i, count, removeParticipants, r
     bcount += 1
     if bcount >= GC.Values[GC.BATCH_SIZE]:
       executeBatch(dbatch)
-      dbatch = croom.new_batch_http_request(callback=_callbackRemoveItemssFromCourse)
+      dbatch = croom.new_batch_http_request(callback=_callbackRemoveItemsFromCourse)
       bcount = 0
   if bcount > 0:
     dbatch.execute()
@@ -30275,11 +30290,15 @@ def _updateCourseOwner(croom, courseId, owner, i, count):
     callGAPI(croom.courses(), 'patch',
              throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION,
                            GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
-             id=courseId, body={'ownerId': owner}, updateMask='ownerId', fields='id')
+             id=courseId, body={'ownerId': owner}, updateMask='ownerId', fields='ownerId')
     entityActionPerformed([Ent.COURSE, removeCourseIdScope(courseId), Ent.TEACHER, owner], i, count)
   except (GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition,
           GAPI.forbidden, GAPI.badRequest, GAPI.invalidArgument) as e:
-    entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId), Ent.TEACHER, owner], str(e), i, count)
+    errMsg = str(e)
+    if '@UserAlreadyOwner' not in errMsg:
+      entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId), Ent.TEACHER, owner], errMsg, i, count)
+    else:
+      entityActionPerformedMessage([Ent.COURSE, removeCourseIdScope(courseId), Ent.TEACHER, owner], Msg.ALREADY_WAS_OWNER, i, count)
   Act.Set(action)
 
 ADD_REMOVE_PARTICIPANT_TYPES_MAP = {

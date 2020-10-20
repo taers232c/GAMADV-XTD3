@@ -1,3 +1,14 @@
+5.23.01
+
+Added `quick_info_user` to `gam.cfg` to control how much information requiring additional API calls is displayed with `gam info user`.
+The default behavior (`quick_info_user = False`) is to display aliases, building names, groups, licenses and all custom schemas.
+You use options to disable whatever additional information you don't want.
+
+With `quick_info_user = true`, then none of the additional information is displayed by default.
+You use options to enable whatever additional information you do want.
+
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Users#display-information-about-users
+
 5.23.00
 
 Added `preview` option to `gam <UserTypeEntity> create|update|delete|sync license` commmands;
