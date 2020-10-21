@@ -1344,6 +1344,7 @@ gam <CrOSTypeEntity> update <CrOSAttribute>+ [quickcrosmove [<Boolean>]]
         ethernetmacaddress0|
         firmwareversion|
         lastenrollmenttime|
+        lastknownnetwork|
         lastsync|
         macaddress|
         manufacturedate|
@@ -1369,6 +1370,7 @@ gam <CrOSTypeEntity> update <CrOSAttribute>+ [quickcrosmove [<Boolean>]]
         cpustatusreports|
         devicefiles|
         diskvolumereports|
+        lastknownnetwork|
         recentusers|
         systemramfreereports
 
@@ -1418,8 +1420,8 @@ The first column will always be deviceId; the remaining field names will be sort
 otherwise, the remaining field names will appear in the order specified.
 
 The basic argument outputs these column headers: deviceId,annotatedAssetId,annotatedLocation,annotatedUser,lastSync,notes,serialNumber,status.
-The allfields/full arguments output all column headers including six headers: activeTimeRanges, cpuStatusReports, deviceFiles, diskVolumeReports, recentUsers and systemRamFreeReports
-that repeat with multiple subvalues each, yielding a large number of columns that make the output hard to process.
+The allfields/full arguments output all column headers including seven headers: activeTimeRanges, cpuStatusReports, deviceFiles, diskVolumeReports,
+lastknownnetwork, recentUsers and systemRamFreeReports that repeat with multiple subvalues each, yielding a large number of columns that make the output hard to process.
 The nolists argument suppresses these six headers; if you want these headers in a more manageable form specify <CrOSListFieldName> values as desired.
 One set of values for all <CrOSListFieldName> fields specified will be output on a separate row with all of the other headers.
 

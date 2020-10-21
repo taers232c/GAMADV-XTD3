@@ -9,6 +9,8 @@ You use options to enable whatever additional information you do want.
 
 * https://github.com/taers232c/GAMADV-XTD3/wiki/Users#display-information-about-users
 
+Added `lastknownnetwork` to `<CrOSFieldName>`.
+
 5.23.00
 
 Added `preview` option to `gam <UserTypeEntity> create|update|delete|sync license` commmands;

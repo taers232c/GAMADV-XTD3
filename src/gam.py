@@ -16194,21 +16194,21 @@ def _filterRecentUsers(cros, selected, listLimit):
   cros['recentUsers'] = filteredItems
   return cros['recentUsers']
 
-def _filterDiskVolumeReports(cros, selected, listLimit):
+def _filterBasicList(cros, field, selected, listLimit):
   if not selected:
-    cros.pop('diskVolumeReports', None)
+    cros.pop(field, None)
     return []
   if listLimit:
     filteredItems = []
     i = 0
-    for item in cros.get('diskVolumeReports', []):
+    for item in cros.get(field, []):
       filteredItems.append(item)
       i += 1
       if listLimit and i == listLimit:
         break
-    cros['diskVolumeReports'] = filteredItems
-    return cros['diskVolumeReports']
-  return cros.get('diskVolumeReports', [])
+    cros[field] = filteredItems
+    return cros[field]
+  return cros.get(field, [])
 
 def _getFilterDateTime():
   filterDate = getYYYYMMDD(returnDateTime=True)
@@ -16231,7 +16231,9 @@ CROS_FIELDS_CHOICE_MAP = {
   'ethernetmacaddress': 'ethernetMacAddress',
   'ethernetmacaddress0': 'ethernetMacAddress0',
   'firmwareversion': 'firmwareVersion',
+  'lastdeviceenrolleremail': 'lastDeviceEnrollerEmail',
   'lastenrollmenttime': 'lastEnrollmentTime',
+  'lastknownnetwork': 'lastKnownNetwork',
   'lastsync': 'lastSync',
   'location': 'annotatedLocation',
   'macaddress': 'macAddress',
@@ -16249,8 +16251,8 @@ CROS_FIELDS_CHOICE_MAP = {
   'serialnumber': 'serialNumber',
   'status': 'status',
   'supportenddate': 'supportEndDate',
-  'systemramtotal': 'systemRamTotal',
   'systemramfreereports': 'systemRamFreeReports',
+  'systemramtotal': 'systemRamTotal',
   'tag': 'annotatedAssetId',
   'timeranges': ['activeTimeRanges.activeTime', 'activeTimeRanges.date'],
   'times': ['activeTimeRanges.activeTime', 'activeTimeRanges.date'],
@@ -16297,8 +16299,10 @@ CROS_DEVICE_FILES_ARGUMENTS = ['devicefiles', 'files']
 CROS_CPU_STATUS_REPORTS_ARGUMENTS = ['cpustatusreports']
 CROS_DISK_VOLUME_REPORTS_ARGUMENTS = ['diskvolumereports']
 CROS_SYSTEM_RAM_FREE_REPORTS_ARGUMENTS = ['systemramfreereports']
-CROS_LISTS_ARGUMENTS = (CROS_ACTIVE_TIME_RANGES_ARGUMENTS+CROS_RECENT_USERS_ARGUMENTS+CROS_DEVICE_FILES_ARGUMENTS+
-                        CROS_CPU_STATUS_REPORTS_ARGUMENTS+CROS_DISK_VOLUME_REPORTS_ARGUMENTS+CROS_SYSTEM_RAM_FREE_REPORTS_ARGUMENTS)
+CROS_LAST_KNOWN_NETWORK_ARGUMENTS = ['lastknownnetwork']
+CROS_LISTS_ARGUMENTS = CROS_ACTIVE_TIME_RANGES_ARGUMENTS+CROS_RECENT_USERS_ARGUMENTS+CROS_DEVICE_FILES_ARGUMENTS+\
+    CROS_CPU_STATUS_REPORTS_ARGUMENTS+CROS_DISK_VOLUME_REPORTS_ARGUMENTS+CROS_SYSTEM_RAM_FREE_REPORTS_ARGUMENTS+\
+    CROS_LAST_KNOWN_NETWORK_ARGUMENTS
 CROS_START_ARGUMENTS = ['start', 'startdate', 'oldestdate']
 CROS_END_ARGUMENTS = ['end', 'enddate']
 
@@ -16465,7 +16469,7 @@ def infoCrOSDevices(entityList):
           printKeyValueList(['cpuUtilizationPercentageInfo', cpuStatusReport['cpuUtilizationPercentageInfo']])
           Ind.Decrement()
         Ind.Decrement()
-      diskVolumeReports = _filterDiskVolumeReports(cros, True, listLimit)
+      diskVolumeReports = _filterBasicList(cros, 'diskVolumeReports', True, listLimit)
       if diskVolumeReports:
         printKeyValueList(['diskVolumeReports'])
         Ind.Increment()
@@ -16479,6 +16483,16 @@ def infoCrOSDevices(entityList):
             printKeyValueList(['storageFree', volume['storageFree']])
             printKeyValueList(['storageTotal', volume['storageTotal']])
             Ind.Decrement()
+          Ind.Decrement()
+        Ind.Decrement()
+      lastKnownNetworks = _filterBasicList(cros, 'lastKnownNetwork', True, listLimit)
+      if lastKnownNetworks:
+        printKeyValueList(['lastKnownNetwork'])
+        Ind.Increment()
+        for lastKnownNetwork in lastKnownNetworks:
+          printKeyValueList(['ipAddress', lastKnownNetwork['ipAddress']])
+          Ind.Increment()
+          printKeyValueList(['wanIpAddress', lastKnownNetwork['wanIpAddress']])
           Ind.Decrement()
         Ind.Decrement()
       systemRamFreeReports = _filterSystemRamFreeReports(cros, True, listLimit, startTime, endTime)
@@ -16643,20 +16657,20 @@ CROS_ORDERBY_CHOICE_MAP = {
   }
 
 CROS_INDEXED_TITLES = ['activeTimeRanges', 'recentUsers', 'deviceFiles',
-                       'cpuStatusReports', 'diskVolumeReports', 'systemRamFreeReports']
+                       'cpuStatusReports', 'diskVolumeReports', 'lastKnownNetwork', 'systemRamFreeReports']
 
 # gam print cros [todrive <ToDriveAttribute>*]
 #	[(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
 #	[querytime.* <Time>] [start <Date>] [end <Date>]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]]
-#	[nolists|(<DrOSListFieldName>* [onerow])] [listlimit <Number>] [timerangeorder ascending|descending]
+#	[nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>] [timerangeorder ascending|descending]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
 #	[sortheaders] [formatjson [quotechar <Character>]]
 #
 # gam <CrOSTypeEntity> print cros [todrive <ToDriveAttribute>*]
 #	[start <Date>] [end <Date>]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]]
-#	[nolists|(<DrOSListFieldName>* [onerow])] [listlimit <Number>] [timerangeorder ascending|descending]
+#	[nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>] [timerangeorder ascending|descending]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
 #	[sortheaders] [formatjson [quotechar <Character>]]
 def doPrintCrOSDevices(entityList=None):
@@ -16673,6 +16687,8 @@ def doPrintCrOSDevices(entityList=None):
       selectedLists['diskVolumeReports'] = True
     elif myarg in CROS_SYSTEM_RAM_FREE_REPORTS_ARGUMENTS:
       selectedLists['systemRamFreeReports'] = True
+    elif myarg in CROS_LAST_KNOWN_NETWORK_ARGUMENTS:
+      selectedLists['lastKnownNetwork'] = True
 
   def _printCrOS(cros):
     checkTPMVulnerability(cros)
@@ -16702,7 +16718,8 @@ def doPrintCrOSDevices(entityList=None):
     recentUsers = _filterRecentUsers(cros, selectedLists.get('recentUsers', False), listLimit)
     deviceFiles = _filterDeviceFiles(cros, selectedLists.get('deviceFiles', False), listLimit, startTime, endTime)
     cpuStatusReports = _filterCPUStatusReports(cros, selectedLists.get('cpuStatusReports', False), listLimit, startTime, endTime)
-    diskVolumeReports = _filterDiskVolumeReports(cros, selectedLists.get('diskVolumeReports', False), listLimit)
+    diskVolumeReports = _filterBasicList(cros, 'diskVolumeReports', selectedLists.get('diskVolumeReports', False), listLimit)
+    lastKnownNetworks = _filterBasicList(cros, 'lastKnownNetwork', selectedLists.get('lastKnownNetwork', False), listLimit)
     systemRamFreeReports = _filterSystemRamFreeReports(cros, selectedLists.get('systemRamFreeReports', False), listLimit, startTime, endTime)
     if oneRow:
       csvPF.WriteRowTitles(flattenJSON(cros, listLimit=listLimit, timeObjects=CROS_TIME_OBJECTS))
@@ -16710,13 +16727,13 @@ def doPrintCrOSDevices(entityList=None):
     row = {}
     for attrib in cros:
       if attrib not in {'kind', 'etag', 'tpmVersionInfo', 'recentUsers', 'activeTimeRanges',
-                        'deviceFiles', 'cpuStatusReports', 'diskVolumeReports', 'systemRamFreeReports'}:
+                        'deviceFiles', 'cpuStatusReports', 'diskVolumeReports', 'lastKnownNetwork', 'systemRamFreeReports'}:
         if attrib not in CROS_TIME_OBJECTS:
           row[attrib] = cros[attrib]
         else:
           row[attrib] = formatLocalTime(cros[attrib])
     if noLists or (not activeTimeRanges and not recentUsers and not deviceFiles and
-                   not cpuStatusReports and not diskVolumeReports and not systemRamFreeReports):
+                   not cpuStatusReports and not diskVolumeReports and not lastKnownNetworks and not systemRamFreeReports):
       csvPF.WriteRowTitles(row)
       return
     lenATR = len(activeTimeRanges)
@@ -16724,9 +16741,10 @@ def doPrintCrOSDevices(entityList=None):
     lenDF = len(deviceFiles)
     lenCSR = len(cpuStatusReports)
     lenDVR = len(diskVolumeReports)
+    lenLKN = len(lastKnownNetworks)
     lenSRFR = len(systemRamFreeReports)
     new_row = row
-    for i in range(min(max(lenATR, lenRU, lenDF, lenCSR, lenDVR, lenSRFR), listLimit or max(lenATR, lenRU, lenDF, lenCSR, lenDVR, lenSRFR))):
+    for i in range(min(max(lenATR, lenRU, lenDF, lenCSR, lenDVR, lenLKN, lenSRFR), listLimit or max(lenATR, lenRU, lenDF, lenCSR, lenDVR, lenLKN, lenSRFR))):
       new_row = row.copy()
       if i < lenATR:
         for key in ['date', 'activeTime', 'duration', 'minutes']:
@@ -16749,6 +16767,9 @@ def doPrintCrOSDevices(entityList=None):
           new_row[f'diskVolumeReports.volumeInfo.{j}.storageFree'] = volume['storageFree']
           new_row[f'diskVolumeReports.volumeInfo.{j}.storageTotal'] = volume['storageTotal']
           j += 1
+      if i < lenLKN:
+        for key in ['ipAddress', 'wanIpAddress']:
+          new_row[f'lastKnownNetwork.{key}'] = lastKnownNetworks[i][key]
       if i < lenSRFR:
         for key in ['reportTime', 'systemRamFreeInfo']:
           new_row[f'systemRamFreeReports.{key}'] = systemRamFreeReports[i][key]
