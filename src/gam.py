@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.23.01'
+__version__ = '5.23.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -19556,7 +19556,7 @@ def infoGroups(entityList):
                             groupKey=group, fields=cdfields)
       group = basic_info['email']
       if getCloudIdentity:
-        name = convertGroupEmailToCloudID(ci, group, i, count)
+        _, name = convertGroupEmailToCloudID(ci, group, i, count)
         if not name:
           continue
         ci_info = callGAPI(ci.groups(), 'get',
@@ -20240,7 +20240,7 @@ def doPrintGroups():
         cdbcount = 0
       if getCloudIdentity:
         printGettingEntityItemForWhom(Ent.CLOUD_IDENTITY_GROUP, groupEmail, i, count)
-        name = convertGroupEmailToCloudID(ci, groupEmail, i, count)
+        _, name = convertGroupEmailToCloudID(ci, groupEmail, i, count)
         if name:
           try:
             ciGroup = callGAPI(ci.groups(), 'get',

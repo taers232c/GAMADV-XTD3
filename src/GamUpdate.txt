@@ -1,3 +1,10 @@
+5.23.02
+
+Fixed bug in `gam info group <GroupEntity> ciallfields` that caused the error:
+```
+ERROR: expected string or bytes-like object
+```
+
 5.23.01
 
 Added `quick_info_user` to `gam.cfg` to control how much information requiring additional API calls is displayed with `gam info user`.
