@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.23.02'
+__version__ = '5.23.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -42617,7 +42617,7 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
       teamdrive['permissions'] = []
       try:
         results = callGAPIpages(drive.permissions(), 'list', 'permissions',
-                                throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                                throwReasons=GAPI.DRIVE3_GET_ACL_REASONS,
                                 useDomainAdminAccess=useDomainAdminAccess,
                                 fileId=teamdrive['id'], fields=fields, supportsAllDrives=True)
         for permission in results:
@@ -42631,7 +42631,8 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
             teamdrive['permissions'].append(permission)
         if teamdrive['permissions']:
           matchFeed.append(teamdrive)
-      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError):
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
+              GAPI.insufficientAdministratorPrivileges, GAPI.insufficientFilePermissions, GAPI.unknownError):
         pass
     jcount = len(matchFeed)
     if jcount == 0:

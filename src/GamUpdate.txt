@@ -1,3 +1,10 @@
+5.23.03
+
+Updated `gam print teamdriveacls user <EmailAddress>` to handle the following error:
+```
+ERROR: 403: insufficientAdministratorPrivileges - The requesting user does not have the administrator privileges required to access shared drive
+```
+
 5.23.02
 
 Fixed bug in `gam info group <GroupEntity> ciallfields` that caused the error:
