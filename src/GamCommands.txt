@@ -440,6 +440,7 @@ If an item contains spaces, it should be surrounded by ".
         See: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 <Title> ::= <String>
 <ToDriveAttribute> ::=
+        (tdaddsheet [<Boolean>])|
         (tdbackupsheet (id:<Number>)|<String>)|
         (tdclearfilter [<Boolean>])|
         (tdcopysheet (id:<Number>)|<String>)|

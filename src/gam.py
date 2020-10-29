@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.23.03'
+__version__ = '5.23.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5929,12 +5929,12 @@ class CSVPrintFile():
     CELL_WRAP_MAP = {'clip': 'CLIP', 'overflow': 'OVERFLOW_CELL', 'overflowcell': 'OVERFLOW_CELL', 'wrap': 'WRAP'}
 
     localUser = localParent = False
-    tdfileidLocation = tdparentLocation = tdupdatesheetLocation = tduserLocation = Cmd.Location()
+    tdfileidLocation = tdparentLocation = tdaddsheetLocation = tdupdatesheetLocation = tduserLocation = Cmd.Location()
     tdsheetLocation = {}
     for sheetEntity in iter(self.TDSHEET_ENTITY_MAP.values()):
       tdsheetLocation[sheetEntity] = Cmd.Location()
     self.todrive = {'user': GC.Values[GC.TODRIVE_USER], 'title': None, 'description': None,
-                    'sheetEntity': None, 'updatesheet': False,
+                    'sheetEntity': None, 'addsheet': False, 'updatesheet': False,
                     'cellwrap': None, 'clearfilter': GC.Values[GC.TODRIVE_CLEARFILTER],
                     'backupSheetEntity': None, 'copySheetEntity': None,
                     'locale': GC.Values[GC.TODRIVE_LOCALE], 'timeZone': GC.Values[GC.TODRIVE_TIMEZONE],
@@ -5957,9 +5957,16 @@ class CSVPrintFile():
         sheetEntity = self.TDSHEET_ENTITY_MAP[myarg]
         tdsheetLocation[sheetEntity] = Cmd.Location()
         self.todrive[sheetEntity] = getSheetEntity()
+      elif myarg == 'tdaddsheet':
+        tdaddsheetLocation = Cmd.Location()
+        self.todrive['addsheet'] = getBoolean()
+        if self.todrive['addsheet']:
+          self.todrive['updatesheet'] = False
       elif myarg == 'tdupdatesheet':
         tdupdatesheetLocation = Cmd.Location()
         self.todrive['updatesheet'] = getBoolean()
+        if self.todrive['updatesheet']:
+          self.todrive['addsheet'] = False
       elif myarg == 'tdcellwrap':
         self.todrive['cellwrap'] = getChoice(CELL_WRAP_MAP, mapChoice=True)
       elif myarg == 'tdclearfilter':
@@ -5992,6 +5999,9 @@ class CSVPrintFile():
       else:
         Cmd.Backup()
         break
+    if self.todrive['addsheet'] and not self.todrive['fileId']:
+      Cmd.SetLocation(tdaddsheetLocation-1)
+      missingArgumentExit('tdfileid')
     if self.todrive['updatesheet'] and (not self.todrive['fileId'] or not self.todrive['sheetEntity']):
       Cmd.SetLocation(tdupdatesheetLocation-1)
       missingArgumentExit('tdfileid and tdsheet')
@@ -6489,7 +6499,7 @@ class CSVPrintFile():
         closeFile(csvFile)
 
     def writeCSVToDrive():
-      if self.todrive['updatesheet']:
+      if self.todrive['addsheet'] or self.todrive['updatesheet']:
         csvFile = TemporaryFile(mode='w+', encoding=UTF8)
       else:
         csvFile = StringIOobject()
@@ -6516,8 +6526,8 @@ class CSVPrintFile():
         importSize = csvFile.tell()
 # Update sheet
         try:
-          if self.todrive['updatesheet']:
-            Act.Set(Act.UPDATE)
+          if self.todrive['addsheet'] or self.todrive['updatesheet']:
+            Act.Set(Act.CREATE if self.todrive['addsheet'] else Act.UPDATE)
             result = callGAPI(drive.about(), 'get',
                               throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
                               fields='maxImportSizes')
@@ -6543,26 +6553,38 @@ class CSVPrintFile():
               sheet = buildGAPIObject(API.SHEETS)
             csvFile.seek(0)
             spreadsheet = None
-            for sheetEntity in iter(self.TDSHEET_ENTITY_MAP.values()):
-              if self.todrive[sheetEntity]:
-                entityValueList = [Ent.USER, user, Ent.SPREADSHEET, title, self.todrive[sheetEntity]['sheetType'], self.todrive[sheetEntity]['sheetValue']]
-                if spreadsheet is None:
-                  spreadsheet = callGAPI(sheet.spreadsheets(), 'get',
-                                         throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
-                                         spreadsheetId=self.todrive['fileId'],
-                                         fields='spreadsheetUrl,sheets(properties(sheetId,title),protectedRanges(range(sheetId),requestingUserCanEdit))')
-                sheetId = getSheetIdFromSheetEntity(spreadsheet, self.todrive[sheetEntity])
-                if sheetId is None:
-                  todriveCSVErrorExit(entityValueList, Msg.NOT_FOUND)
-                if protectedSheetId(spreadsheet, sheetId):
-                  todriveCSVErrorExit(entityValueList, Msg.NOT_WRITABLE)
-                self.todrive[sheetEntity]['sheetId'] = sheetId
+            if self.todrive['addsheet']:
+              body = {'requests': [{'addSheet': {'properties': {'title': title, 'sheetType': 'GRID'}}}]}
+              try:
+                addresult = callGAPI(sheet.spreadsheets(), 'batchUpdate',
+                                     throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
+                                     spreadsheetId=self.todrive['fileId'], body=body)
+                self.todrive['sheetEntity'] = {'sheetId': addresult['replies'][0]['addSheet']['properties']['sheetId']}
+              except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
+                      GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
+                todriveCSVErrorExit(entityValueList, str(e))
+            else:
+              for sheetEntity in iter(self.TDSHEET_ENTITY_MAP.values()):
+                if self.todrive[sheetEntity]:
+                  entityValueList = [Ent.USER, user, Ent.SPREADSHEET, title, self.todrive[sheetEntity]['sheetType'], self.todrive[sheetEntity]['sheetValue']]
+                  if spreadsheet is None:
+                    spreadsheet = callGAPI(sheet.spreadsheets(), 'get',
+                                           throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
+                                           spreadsheetId=self.todrive['fileId'],
+                                           fields='spreadsheetUrl,sheets(properties(sheetId,title),protectedRanges(range(sheetId),requestingUserCanEdit))')
+                  sheetId = getSheetIdFromSheetEntity(spreadsheet, self.todrive[sheetEntity])
+                  if sheetId is None:
+                    todriveCSVErrorExit(entityValueList, Msg.NOT_FOUND)
+                  if protectedSheetId(spreadsheet, sheetId):
+                    todriveCSVErrorExit(entityValueList, Msg.NOT_WRITABLE)
+                  self.todrive[sheetEntity]['sheetId'] = sheetId
             body = {'requests': []}
-            if self.todrive['backupSheetEntity']:
-              body['requests'].append({"copyPaste": {"source": {"sheetId": self.todrive['sheetEntity']['sheetId']},
-                                                     "destination": {"sheetId": self.todrive['backupSheetEntity']['sheetId']}, "pasteType": "PASTE_NORMAL"}})
-            if self.todrive['clearfilter']:
-              body['requests'].append({'clearBasicFilter': {'sheetId': self.todrive['sheetEntity']['sheetId']}})
+            if not self.todrive['addsheet']:
+              if self.todrive['backupSheetEntity']:
+                body['requests'].append({"copyPaste": {"source": {"sheetId": self.todrive['sheetEntity']['sheetId']},
+                                                       "destination": {"sheetId": self.todrive['backupSheetEntity']['sheetId']}, "pasteType": "PASTE_NORMAL"}})
+              if self.todrive['clearfilter']:
+                body['requests'].append({'clearBasicFilter': {'sheetId': self.todrive['sheetEntity']['sheetId']}})
             body['requests'].append({'updateCells': {'range': {'sheetId': self.todrive['sheetEntity']['sheetId']}, 'fields': '*'}})
             body['requests'].append({'pasteData': {'coordinate': {'sheetId': self.todrive['sheetEntity']['sheetId'], 'rowIndex': '0', 'columnIndex': '0'},
                                                    'data': csvFile.read(), 'type': 'PASTE_NORMAL', 'delimiter': self.columnDelimiter}})

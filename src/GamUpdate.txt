@@ -1,3 +1,9 @@
+5.23.04
+
+Added option `tdaddsheet [<Boolean>]` to `<ToDriveAttribute>`.  When used with `tdfileid`,
+a new sheet (tab) within an existing Google spreadsheet can be created with a `gam print todrive` command.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Todrive#command-line-options
+
 5.23.03
 
 Updated `gam print teamdriveacls user <EmailAddress>` to handle the following error:
