@@ -1,7 +1,7 @@
 5.23.05
 
 Added option `tdaddsheettitle <String>` to `<ToDriveAttribute>`.  When used with `tdaddsheet`,
-the new sheet (tab) can be named independently of the spreadsheet file.
+the new sheet (tab) can be named independently of the existing Google spreadsheet file.
 
 5.23.04
 
