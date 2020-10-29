@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.23.04'
+__version__ = '5.23.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5933,7 +5933,7 @@ class CSVPrintFile():
     tdsheetLocation = {}
     for sheetEntity in iter(self.TDSHEET_ENTITY_MAP.values()):
       tdsheetLocation[sheetEntity] = Cmd.Location()
-    self.todrive = {'user': GC.Values[GC.TODRIVE_USER], 'title': None, 'description': None,
+    self.todrive = {'user': GC.Values[GC.TODRIVE_USER], 'title': None, 'description': None, 'addsheettitle': None,
                     'sheetEntity': None, 'addsheet': False, 'updatesheet': False,
                     'cellwrap': None, 'clearfilter': GC.Values[GC.TODRIVE_CLEARFILTER],
                     'backupSheetEntity': None, 'copySheetEntity': None,
@@ -5957,6 +5957,8 @@ class CSVPrintFile():
         sheetEntity = self.TDSHEET_ENTITY_MAP[myarg]
         tdsheetLocation[sheetEntity] = Cmd.Location()
         self.todrive[sheetEntity] = getSheetEntity()
+      elif myarg == 'tdaddsheettitle':
+        self.todrive['addsheettitle'] = getString(Cmd.OB_STRING)
       elif myarg == 'tdaddsheet':
         tdaddsheetLocation = Cmd.Location()
         self.todrive['addsheet'] = getBoolean()
@@ -6508,12 +6510,15 @@ class CSVPrintFile():
                               delimiter=self.columnDelimiter, lineterminator='\n')
       if writeCSVData(writer):
         title = self.todrive['title'] or f'{GC.Values[GC.DOMAIN]} - {list_type}'
+        addSheetTitle = self.todrive['addsheettitle'] or title
         if self.todrive['timestamp']:
           tdtime = datetime.datetime.now(GC.Values[GC.TIMEZONE])+datetime.timedelta(days=-self.todrive['daysoffset'], hours=-self.todrive['hoursoffset'])
           if not self.todrive['timeformat']:
             title += ' - '+ISOformatTimeStamp(tdtime)
+            addSheetTitle += ' - '+ISOformatTimeStamp(tdtime)
           else:
             title += ' - '+tdtime.strftime(self.todrive['timeformat'])
+            addSheetTitle += ' - '+tdtime.strftime(self.todrive['timeformat'])
         action = Act.Get()
         if not GC.Values[GC.TODRIVE_CLIENTACCESS]:
           user, drive = buildGAPIServiceObject(API.DRIVETD, self.todrive['user'])
@@ -6554,7 +6559,7 @@ class CSVPrintFile():
             csvFile.seek(0)
             spreadsheet = None
             if self.todrive['addsheet']:
-              body = {'requests': [{'addSheet': {'properties': {'title': title, 'sheetType': 'GRID'}}}]}
+              body = {'requests': [{'addSheet': {'properties': {'title': addSheetTitle, 'sheetType': 'GRID'}}}]}
               try:
                 addresult = callGAPI(sheet.spreadsheets(), 'batchUpdate',
                                      throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,

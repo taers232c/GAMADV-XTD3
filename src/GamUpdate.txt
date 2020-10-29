@@ -1,3 +1,8 @@
+5.23.05
+
+Added option `tdaddsheettitle <String>` to `<ToDriveAttribute>`.  When used with `tdaddsheet`,
+the new sheet (tab) can be named independently of the spreadsheet file.
+
 5.23.04
 
 Added option `tdaddsheet [<Boolean>]` to `<ToDriveAttribute>`.  When used with `tdfileid`,
