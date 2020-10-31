@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.23.06'
+__version__ = '5.23.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -39893,18 +39893,20 @@ def transferDrive(users):
     else:
       targetIds[TARGET_ORPHANS_PARENT_ID] = targetIds[TARGET_PARENT_ID]
 
-  def _getMappedParentForRootParentOrOrphan(childEntryInfo):
+  def _getMappedParentForRootParentOrOrphan(childEntryInfo, atSelectTop):
     if 'parents' not in childEntryInfo or not childEntryInfo['parents']:
-      return targetIds[TARGET_ORPHANS_PARENT_ID]
+      return (None, targetIds[TARGET_ORPHANS_PARENT_ID])
+    if atSelectTop:
+      return (childEntryInfo['parents'], targetIds[TARGET_PARENT_ID])
     for parentId in childEntryInfo['parents']:
       if parentId == sourceRootId:
-        return targetIds[TARGET_PARENT_ID]
-    return None
+        return ([sourceRootId], targetIds[TARGET_PARENT_ID])
+    return (None, None)
 
   def _setUpdateRole(permission):
     return {'role': permission['role']}
 
-  def _transferFile(childEntry, i, count, j, jcount):
+  def _transferFile(childEntry, i, count, j, jcount, atSelectTop):
     childEntryInfo = childEntry['info']
     childFileId = childEntryInfo['id']
     childFileName = childEntryInfo['name']
@@ -40032,7 +40034,7 @@ def transferDrive(users):
         parentIdMap[childFileId] = _buildTargetFile(childFileName, targetIds[TARGET_ORPHANS_PARENT_ID])
         entityActionPerformed([Ent.USER, sourceUser, childFileType, childFileName], j, jcount)
         return
-      mappedParentId = _getMappedParentForRootParentOrOrphan(childEntryInfo)
+      existingParentIds, mappedParentId = _getMappedParentForRootParentOrOrphan(childEntryInfo, atSelectTop)
       if mappedParentId is not None:
         if childEntryInfo['targetPermission']['role'] in {'none', 'reader'}:
           try:
@@ -40050,22 +40052,51 @@ def transferDrive(users):
           except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
             userSvcNotApplicableOrDriveDisabled(ownerUser, str(e), i, count)
             return
-        try:
-          callGAPI(targetDrive.files(), 'update',
-                   throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT],
-                   retryReasons=[GAPI.FILE_NOT_FOUND], retries=3,
-                   fileId=childFileId,
-                   addParents=mappedParentId, body={}, fields='')
-        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-                GAPI.badRequest, GAPI.cannotAddParent) as e:
-          entityActionFailedWarning([Ent.USER, targetUser, childFileType, childFileName], str(e), j, jcount)
-          return
-        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-          userSvcNotApplicableOrDriveDisabled(targetUser, str(e), i, count)
-          return
+        if existingParentIds is not None:
+# We have to make a shortcut to a non-owned non-orphan as we can't change the parents
+          try:
+            body = {'name': childFileName, 'mimeType': MIMETYPE_GA_SHORTCUT, 'parents': [mappedParentId], 'shortcutDetails': {'targetId': childFileId}}
+            callGAPI(targetDrive.files(), 'create',
+                     throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
+                                                                 GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
+                                                                 GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED],
+                     body=body, fields='', supportsAllDrives=True)
+          except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
+                  GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed) as e:
+            entityActionFailedWarning([Ent.USER, targetUser, childFileType, childFileName, Ent.DRIVE_FILE_SHORTCUT, body['name']], str(e), j, jcount)
+            return
+# Delete existing parents
+          try:
+            callGAPI(sourceDrive.files(), 'update',
+                     throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST],
+                     retryReasons=[GAPI.FILE_NOT_FOUND], retries=3,
+                     fileId=childFileId,
+                     removeParents=','.join(existingParentIds), body={}, fields='')
+          except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+                  GAPI.badRequest) as e:
+            entityActionFailedWarning([Ent.USER, sourceUser, childFileType, childFileName], str(e), j, jcount)
+            return
+          except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+            userSvcNotApplicableOrDriveDisabled(sourceUser, str(e), i, count)
+            return
+        else:
+# We can add a parent when transferring an orphan
+          try:
+            callGAPI(targetDrive.files(), 'update',
+                     throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT],
+                     retryReasons=[GAPI.FILE_NOT_FOUND], retries=3,
+                     fileId=childFileId,
+                     addParents=mappedParentId, body={}, fields='')
+          except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+                  GAPI.badRequest, GAPI.cannotAddParent) as e:
+            entityActionFailedWarning([Ent.USER, targetUser, childFileType, childFileName], str(e), j, jcount)
+            return
+          except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+            userSvcNotApplicableOrDriveDisabled(targetUser, str(e), i, count)
+            return
       entityActionPerformed([Ent.USER, sourceUser, childFileType, childFileName], j, jcount)
 
-  def _manageRoleRetention(childEntry, i, count, j, jcount):
+  def _manageRoleRetention(childEntry, i, count, j, jcount, atSelectTop):
     def _setTargetInsertBody(permission):
       return {'role': permission['role'], 'type': 'user', 'emailAddress': targetUser}
 
@@ -40125,8 +40156,10 @@ def transferDrive(users):
       if not errorTargetRole:
         if resetTargetRole:
           resetTargetRole = _checkForDiminishedTargetRole(childEntryInfo['targetPermission'], targetInsertBody)
-        elif _getMappedParentForRootParentOrOrphan(childEntryInfo) is not None and childEntryInfo['targetPermission']['role'] in {'none', 'reader'}:
-          resetTargetRole = True
+        else:
+          _, mappedParentId = _getMappedParentForRootParentOrOrphan(childEntryInfo, atSelectTop)
+          if mappedParentId is not None and childEntryInfo['targetPermission']['role'] in {'none', 'reader'}:
+            resetTargetRole = True
       try:
         if nonOwnerRetainRoleBody['role'] != 'none':
           if nonOwnerRetainRoleBody['role'] != 'current':
@@ -40190,7 +40223,7 @@ def transferDrive(users):
                                         Msg.IN_SKIPIDS, j, jcount)
         continue
       filesTransferred.add(childFileId)
-      _transferFile(childEntry, i, count, j, jcount)
+      _transferFile(childEntry, i, count, j, jcount, False)
       if childEntry['info']['mimeType'] == MIMETYPE_GA_FOLDER:
         Ind.Increment()
         _transferDriveFilesFromTree(childEntry, i, count)
@@ -40207,7 +40240,7 @@ def transferDrive(users):
       if not childEntry or childFileId in filesTransferred or childFileId in skipFileIdEntity['list']:
         continue
       filesTransferred.add(childFileId)
-      _manageRoleRetention(childEntry, i, count, j, jcount)
+      _manageRoleRetention(childEntry, i, count, j, jcount, False)
       if childEntry['info']['mimeType'] == MIMETYPE_GA_FOLDER:
         Ind.Increment()
         _manageRoleRetentionDriveFilesFromTree(childEntry, i, count)
@@ -40239,13 +40272,13 @@ def transferDrive(users):
         fileTree[fileId]['children'].append(childId)
         _identifyDriveFileAndChildren(childEntry, i, count)
 
-  def _transferDriveFileAndChildren(fileEntry, i, count, j, jcount):
+  def _transferDriveFileAndChildren(fileEntry, i, count, j, jcount, atSelectTop):
     fileId = fileEntry['info']['id']
     if fileId in filesTransferred:
       return
     if fileEntry['info']['name'] != MY_DRIVE:
       filesTransferred.add(fileId)
-      _transferFile(fileEntry, i, count, j, jcount)
+      _transferFile(fileEntry, i, count, j, jcount, atSelectTop)
     kcount = len(fileEntry['children'])
     if kcount == 0:
       return
@@ -40255,16 +40288,16 @@ def transferDrive(users):
       childEntry = fileTree.get(childFileId)
       if childEntry:
         Ind.Increment()
-        _transferDriveFileAndChildren(childEntry, i, count, k, kcount)
+        _transferDriveFileAndChildren(childEntry, i, count, k, kcount, False)
         Ind.Decrement()
 
-  def _manageRoleRetentionDriveFileAndChildren(fileEntry, i, count, j, jcount):
+  def _manageRoleRetentionDriveFileAndChildren(fileEntry, i, count, j, jcount, atSelectTop):
     fileId = fileEntry['info']['id']
     if fileId in filesTransferred:
       return
     if fileEntry['info']['name'] != MY_DRIVE:
       filesTransferred.add(fileId)
-      _manageRoleRetention(fileEntry, i, count, j, jcount)
+      _manageRoleRetention(fileEntry, i, count, j, jcount, atSelectTop)
     kcount = len(fileEntry['children'])
     if kcount == 0:
       return
@@ -40274,7 +40307,7 @@ def transferDrive(users):
       childEntry = fileTree.get(childFileId)
       if childEntry:
         Ind.Increment()
-        _manageRoleRetentionDriveFileAndChildren(childEntry, i, count, k, kcount)
+        _manageRoleRetentionDriveFileAndChildren(childEntry, i, count, k, kcount, False)
         Ind.Decrement()
 
   targetUser = getEmailAddress()
@@ -40478,11 +40511,11 @@ def transferDrive(users):
               parentIdMap[parentId] = targetIds[TARGET_PARENT_ID]
             _identifyDriveFileAndChildren(fileEntry, i, count)
             filesTransferred = set()
-            _transferDriveFileAndChildren(fileTree[fileId], i, count, j, jcount)
+            _transferDriveFileAndChildren(fileTree[fileId], i, count, j, jcount, True)
             if not csvPF:
               Act.Set(Act.RETAIN)
               filesTransferred = set()
-              _manageRoleRetentionDriveFileAndChildren(fileTree[fileId], i, count, j, jcount)
+              _manageRoleRetentionDriveFileAndChildren(fileTree[fileId], i, count, j, jcount, True)
           except GAPI.fileNotFound:
             entityActionFailedWarning([Ent.USER, sourceUser, Ent.DRIVE_FILE_OR_FOLDER, fileId], Msg.NOT_FOUND, j, jcount)
           except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:

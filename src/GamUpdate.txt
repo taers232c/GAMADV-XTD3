@@ -1,3 +1,14 @@
+5.23.07
+
+Fixed code in `gam <UserTypeEntity> transfer drive <UserItem>` that caused the following error:
+```
+ERROR: 403: cannotAddParent - Increasing the number of parents is not allowed
+```
+This was caused by the Google change effective 2020-10-01 that prevents files/folders from having
+more that one parent. When transferring files from userA to userB, files owned by userC directly
+in userA's My Drive (or in the top level of `select <DriveFileEntity>`) can't have their parents
+changed; now, userB will get a shortcut to those files.
+
 5.23.06
 
 Added `todrive_sheet_timestamp [<Boolean>]` and `todrive_sheet_timeformat <String>` to `gam.cfg`.
