@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.23.05'
+__version__ = '5.23.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3154,6 +3154,14 @@ def SetGlobalVariables():
   value = GM.Globals[GM.PARSER].get(configparser.DEFAULTSECT, GC.TODRIVE_NOEMAIL)
   if value == '':
     GM.Globals[GM.PARSER].set(configparser.DEFAULTSECT, GC.TODRIVE_NOEMAIL, str(not _getCfgBoolean(configparser.DEFAULTSECT, GC.NO_BROWSER)).lower())
+# Handle todrive_sheet_timestamp and todrive_sheet_timeformat if not present
+  for section in [sectionName, configparser.DEFAULTSECT]:
+    value = GM.Globals[GM.PARSER].get(section, GC.TODRIVE_SHEET_TIMESTAMP)
+    if value == 'copy':
+      GM.Globals[GM.PARSER].set(section, GC.TODRIVE_SHEET_TIMESTAMP, str(_getCfgBoolean(section, GC.TODRIVE_TIMESTAMP)).lower())
+    value = GM.Globals[GM.PARSER].get(section, GC.TODRIVE_SHEET_TIMEFORMAT)
+    if value == 'copy':
+      GM.Globals[GM.PARSER].set(section, GC.TODRIVE_SHEET_TIMEFORMAT, _getCfgString(section, GC.TODRIVE_TIMEFORMAT))
 # config (<VariableName> [=] <Value>)* [save] [verify]
   if checkArgumentPresent(Cmd.CONFIG_CMD):
     while Cmd.ArgumentsRemaining():
@@ -5933,13 +5941,14 @@ class CSVPrintFile():
     tdsheetLocation = {}
     for sheetEntity in iter(self.TDSHEET_ENTITY_MAP.values()):
       tdsheetLocation[sheetEntity] = Cmd.Location()
-    self.todrive = {'user': GC.Values[GC.TODRIVE_USER], 'title': None, 'description': None, 'addsheettitle': None,
+    self.todrive = {'user': GC.Values[GC.TODRIVE_USER], 'title': None, 'description': None,
                     'sheetEntity': None, 'addsheet': False, 'updatesheet': False,
                     'cellwrap': None, 'clearfilter': GC.Values[GC.TODRIVE_CLEARFILTER],
                     'backupSheetEntity': None, 'copySheetEntity': None,
                     'locale': GC.Values[GC.TODRIVE_LOCALE], 'timeZone': GC.Values[GC.TODRIVE_TIMEZONE],
-                    'timestamp': GC.Values[GC.TODRIVE_TIMESTAMP], 'daysoffset': 0, 'hoursoffset': 0,
-                    'timeformat': GC.Values[GC.TODRIVE_TIMEFORMAT],
+                    'daysoffset': 0, 'hoursoffset': 0,
+                    'timestamp': GC.Values[GC.TODRIVE_TIMESTAMP], 'timeformat': GC.Values[GC.TODRIVE_TIMEFORMAT],
+                    'sheettimestamp': GC.Values[GC.TODRIVE_SHEET_TIMESTAMP], 'sheettimeformat': GC.Values[GC.TODRIVE_SHEET_TIMEFORMAT],
                     'fileId': None, 'parentId': None, 'parent': GC.Values[GC.TODRIVE_PARENT],
                     'localcopy': GC.Values[GC.TODRIVE_LOCALCOPY], 'nobrowser': GC.Values[GC.TODRIVE_NOBROWSER],
                     'noemail': GC.Values[GC.TODRIVE_NOEMAIL]}
@@ -5957,8 +5966,6 @@ class CSVPrintFile():
         sheetEntity = self.TDSHEET_ENTITY_MAP[myarg]
         tdsheetLocation[sheetEntity] = Cmd.Location()
         self.todrive[sheetEntity] = getSheetEntity()
-      elif myarg == 'tdaddsheettitle':
-        self.todrive['addsheettitle'] = getString(Cmd.OB_STRING)
       elif myarg == 'tdaddsheet':
         tdaddsheetLocation = Cmd.Location()
         self.todrive['addsheet'] = getBoolean()
@@ -5981,6 +5988,10 @@ class CSVPrintFile():
         self.todrive['timestamp'] = getBoolean()
       elif myarg == 'tdtimeformat':
         self.todrive['timeformat'] = getString(Cmd.OB_STRING, minLen=0)
+      elif myarg == 'tdsheettimestamp':
+        self.todrive['sheettimestamp'] = getBoolean()
+      elif myarg == 'tdsheettimeformat':
+        self.todrive['sheettimeformat'] = getString(Cmd.OB_STRING, minLen=0)
       elif myarg == 'tddaysoffset':
         self.todrive['daysoffset'] = getInteger(minVal=0)
       elif myarg == 'tdhoursoffset':
@@ -6510,15 +6521,21 @@ class CSVPrintFile():
                               delimiter=self.columnDelimiter, lineterminator='\n')
       if writeCSVData(writer):
         title = self.todrive['title'] or f'{GC.Values[GC.DOMAIN]} - {list_type}'
-        addSheetTitle = self.todrive['addsheettitle'] or title
+        if self.todrive['sheetEntity'] and self.todrive['sheetEntity']['sheetTitle']:
+          sheetTitle = self.todrive['sheetEntity']['sheetTitle']
+        else:
+          sheetTitle = title
+        tdtime = datetime.datetime.now(GC.Values[GC.TIMEZONE])+datetime.timedelta(days=-self.todrive['daysoffset'], hours=-self.todrive['hoursoffset'])
         if self.todrive['timestamp']:
-          tdtime = datetime.datetime.now(GC.Values[GC.TIMEZONE])+datetime.timedelta(days=-self.todrive['daysoffset'], hours=-self.todrive['hoursoffset'])
           if not self.todrive['timeformat']:
             title += ' - '+ISOformatTimeStamp(tdtime)
-            addSheetTitle += ' - '+ISOformatTimeStamp(tdtime)
           else:
             title += ' - '+tdtime.strftime(self.todrive['timeformat'])
-            addSheetTitle += ' - '+tdtime.strftime(self.todrive['timeformat'])
+        if self.todrive['sheettimestamp']:
+          if not self.todrive['sheettimeformat']:
+            sheetTitle += ' - '+ISOformatTimeStamp(tdtime)
+          else:
+            sheetTitle += ' - '+tdtime.strftime(self.todrive['sheettimeformat'])
         action = Act.Get()
         if not GC.Values[GC.TODRIVE_CLIENTACCESS]:
           user, drive = buildGAPIServiceObject(API.DRIVETD, self.todrive['user'])
@@ -6559,7 +6576,7 @@ class CSVPrintFile():
             csvFile.seek(0)
             spreadsheet = None
             if self.todrive['addsheet']:
-              body = {'requests': [{'addSheet': {'properties': {'title': addSheetTitle, 'sheetType': 'GRID'}}}]}
+              body = {'requests': [{'addSheet': {'properties': {'title': sheetTitle, 'sheetType': 'GRID'}}}]}
               try:
                 addresult = callGAPI(sheet.spreadsheets(), 'batchUpdate',
                                      throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
@@ -6658,7 +6675,7 @@ class CSVPrintFile():
                                          throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                                          spreadsheetId=spreadsheetId, fields='sheets/properties')
                   if self.todrive['sheetEntity'] and self.todrive['sheetEntity']['sheetTitle']:
-                    spreadsheet['sheets'][0]['properties']['title'] = self.todrive['sheetEntity']['sheetTitle']
+                    spreadsheet['sheets'][0]['properties']['title'] = sheetTitle
                     body['requests'].append({'updateSheetProperties':
                                                {'properties': spreadsheet['sheets'][0]['properties'], 'fields': 'title'}})
                   if self.todrive['cellwrap']:
@@ -34310,7 +34327,7 @@ def _getDriveFileParentInfo(drive, user, i, count, body, parameters, emptyQueryO
                           fileId=parameters[DFA_TEAMDRIVE_PARENTID], fields='id,mimeType,driveId', supportsAllDrives=True)
         if result['mimeType'] != MIMETYPE_GA_FOLDER:
           entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
-                                          f'fteamdriveparentid: {parameters[DFA_TEAMDRIVE_PARENTID]}, {Msg.NOT_AN_ENTITY.format(Ent.Singular(Ent.DRIVE_FOLDER))}', i, count)
+                                          f'teamdriveparentid: {parameters[DFA_TEAMDRIVE_PARENTID]}, {Msg.NOT_AN_ENTITY.format(Ent.Singular(Ent.DRIVE_FOLDER))}', i, count)
           return False
         if not result.get('driveId'):
           entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
@@ -37823,12 +37840,29 @@ def getCreationModificationTimes(path_to_file):
       ctime = stat.st_mtime
   return (formatLocalSecondsTimestamp(ctime), formatLocalSecondsTimestamp(mtime))
 
+def writeReturnIdLink(returnIdLink, mimeType, result):
+  if returnIdLink != 'editLink':
+    writeStdout(f'{result[returnIdLink]}\n')
+    return
+  for mt in MICROSOFT_FORMATS_LIST:
+    if mimeType == mt['mime']:
+      if mt['ext'][1] == 'd':
+        writeStdout(f'https://docs.google.com/document/d/{result["id"]}/edit\n')
+        return
+      if mt['ext'][1] == 'x':
+        writeStdout(f'https://docs.google.com/spreadsheets/d/{result["id"]}/edit\n')
+        return
+      if mt['ext'][1] == 'p':
+        writeStdout(f'https://docs.google.com/presentation/d/{result["id"]}/edit\n')
+        return
+  writeStdout(f'https://drive.google.com/file/d/{result["id"]}/edit\n')
+
 # gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>]
 #	<DriveFileCreateAttribute>* [enforcesingleparent <Boolean>]
-#	[csv [todrive <ToDriveAttribute>*]] [returnidonly]
+#	[csv [todrive <ToDriveAttribute>*]] [returnidonly|returnlinkonly|returneditlinkonly]
 def createDriveFile(users):
   csvPF = media_body = None
-  returnIdOnly = False
+  returnIdLink = None
   body = {}
   parameters = initDriveFileAttributes()
   while Cmd.ArgumentsRemaining():
@@ -37836,7 +37870,11 @@ def createDriveFile(users):
     if myarg == 'drivefilename':
       body['name'] = getString(Cmd.OB_DRIVE_FILE_NAME)
     elif myarg == 'returnidonly':
-      returnIdOnly = True
+      returnIdLink = 'id'
+    elif myarg == 'returnlinkonly':
+      returnIdLink = 'webViewLink'
+    elif myarg == 'returneditlinkonly':
+      returnIdLink = 'editLink'
     elif myarg == 'csv':
       csvPF = CSVPrintFile()
     elif csvPF and myarg == 'todrive':
@@ -37871,9 +37909,9 @@ def createDriveFile(users):
                         ignoreDefaultVisibility=parameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                         keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                         useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
-                        media_body=media_body, body=body, fields='id,name,mimeType', supportsAllDrives=True)
-      if returnIdOnly:
-        writeStdout(f'{result["id"]}\n')
+                        media_body=media_body, body=body, fields='id,name,mimeType,webViewLink', supportsAllDrives=True)
+      if returnIdLink:
+        writeReturnIdLink(returnIdLink, parameters[DFA_LOCALMIMETYPE], result)
       elif not csvPF:
         titleInfo = f'{result["name"]}({result["id"]})'
         if parameters[DFA_LOCALFILENAME]:
@@ -38110,7 +38148,7 @@ def checkDriveFileShortcut(users):
   if csvPF:
     csvPF.writeCSVfile('Check Shortcuts')
 
-# gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly]
+# gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly|returnlinkonly]
 #	[retainname | (newfilename <DriveFileName>)]
 #	<DriveFileUpdateAttribute>* [enforcesingleparent <Boolean>]
 #	[gsheet|csvsheet <SheetEntity>] [charset <String>] [columndelimiter <Character>]
@@ -38123,7 +38161,7 @@ def updateDriveFile(users):
   encoding = GC.Values[GC.CHARSET]
   columnDelimiter = GC.Values[GC.CSV_INPUT_COLUMN_DELIMITER]
   assignLocalName = True
-  returnIdOnly = False
+  returnIdLink = None
   operation = 'update'
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -38131,7 +38169,9 @@ def updateDriveFile(users):
       operation = 'copy'
       Act.Set(Act.COPY)
     elif myarg == 'returnidonly':
-      returnIdOnly = True
+      returnIdLink = 'id'
+    elif myarg == 'returnlinkonly':
+      returnIdLink = 'webViewLink'
     elif myarg == 'retainname':
       assignLocalName = False
     elif myarg == 'newfilename':
@@ -38155,7 +38195,7 @@ def updateDriveFile(users):
   for user in users:
     i += 1
     user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity,
-                                                  entityType=Ent.DRIVE_FILE_OR_FOLDER if not returnIdOnly else None)
+                                                  entityType=Ent.DRIVE_FILE_OR_FOLDER if returnIdLink is None else None)
     if jcount == 0:
       continue
     if not _getDriveFileParentInfo(drive, user, i, count, body, parameters, defaultToRoot=False):
@@ -38215,7 +38255,7 @@ def updateDriveFile(users):
                                 keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                                 useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
                                 addParents=','.join(addParents), removeParents=','.join(removeParents),
-                                body=body, fields='id,name,mimeType', supportsAllDrives=True)
+                                body=body, fields='id,name,mimeType,webViewLink', supportsAllDrives=True)
 ### File size check??
               sbody = {
                 'requests': [
@@ -38227,8 +38267,11 @@ def updateDriveFile(users):
               callGAPI(sheet.spreadsheets(), 'batchUpdate',
                        throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                        spreadsheetId=fileId, body=sbody)
-              entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, result['name'], sheetEntity['sheetType'], sheetEntity['sheetValue']],
-                                                    Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], j, jcount)
+              if returnIdLink:
+                writeStdout(f'{result[returnIdLink]}\n')
+              else:
+                entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, result['name'], sheetEntity['sheetType'], sheetEntity['sheetValue']],
+                                                      Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], j, jcount)
             except GAPI.fileNotFound as e:
               entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_ID, fileId], str(e), j, jcount)
             except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
@@ -38248,9 +38291,12 @@ def updateDriveFile(users):
                               keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                               useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
                               addParents=','.join(addParents), removeParents=','.join(removeParents),
-                              media_body=media_body, body=body, fields='id,name,mimeType',
+                              media_body=media_body, body=body, fields='id,name,mimeType,webViewLink',
                               supportsAllDrives=True)
-            entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, result['name']], Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], j, jcount)
+            if returnIdLink:
+              writeStdout(f'{result[returnIdLink]}\n')
+            else:
+              entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, result['name']], Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], j, jcount)
           else:
             result = callGAPI(drive.files(), 'update',
                               throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT,
@@ -38262,12 +38308,18 @@ def updateDriveFile(users):
                               keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                               useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
                               addParents=','.join(addParents), removeParents=','.join(removeParents),
-                              body=body, fields='id,name,mimeType',
+                              body=body, fields='id,name,mimeType,webViewLink',
                               supportsAllDrives=True)
             if result:
-              entityActionPerformed([Ent.USER, user, _getEntityMimeType(result), result['name']], j, jcount)
+              if returnIdLink:
+                writeStdout(f'{result[returnIdLink]}\n')
+              else:
+                entityActionPerformed([Ent.USER, user, _getEntityMimeType(result), result['name']], j, jcount)
             else:
-              entityActionPerformed([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], j, jcount)
+              if returnIdLink:
+                writeStdout(f'{fileId}\n')
+              else:
+                entityActionPerformed([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], j, jcount)
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
                 GAPI.unknownError, GAPI.invalid, GAPI.badRequest, GAPI.cannotAddParent,
                 GAPI.fileNeverWritable, GAPI.cannotModifyViewersCanCopyContent,
@@ -38288,9 +38340,9 @@ def updateDriveFile(users):
                             fileId=fileId, enforceSingleParent=parameters[DFA_ENFORCE_SINGLE_PARENT],
                             ignoreDefaultVisibility=parameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                             keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
-                            body=body, fields='id,name', supportsAllDrives=True)
-          if returnIdOnly:
-            writeStdout(f'{result["id"]}\n')
+                            body=body, fields='id,name,webViewLink', supportsAllDrives=True)
+          if returnIdLink:
+            writeReturnIdLink(returnIdLink, parameters[DFA_LOCALMIMETYPE], result)
           else:
             entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, fileId],
                                                                Act.MODIFIER_TO, result['name'], [Ent.DRIVE_FILE_ID, result['id']], j, jcount)
@@ -38635,7 +38687,7 @@ COPY_TOP_PARENTS_CHOICES = {'all': COPY_ALL_PARENTS, 'none': COPY_NO_PARENTS}
 COPY_SUB_PARENTS_CHOICES = {'all': COPY_ALL_PARENTS, 'none': COPY_NO_PARENTS, 'nonpath': COPY_NONPATH_PARENTS}
 
 # gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>]
-#	[summary [<Boolean>]] [excludetrashed] [returnidonly]
+#	[summary [<Boolean>]] [excludetrashed] [returnidonly|returnlinkonly]
 #	<DriveFileCopyAttribute>*
 #	[mergewithparent [<Boolean>]] [recursive [depth <Number>]]
 #	[duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
@@ -38698,11 +38750,12 @@ def copyDriveFile(users):
         return (None, False)
     body['name'] = newFolderTitle
     try:
-      newFolderId = callGAPI(drive.files(), 'create',
-                             throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS, GAPI.INTERNAL_ERROR],
-                             body=body, fields='id', supportsAllDrives=True)['id']
-      if returnIdOnly:
-        writeStdout(f'{newFolderId}\n')
+      result = callGAPI(drive.files(), 'create',
+                        throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS, GAPI.INTERNAL_ERROR],
+                        body=body, fields='id,webViewLink', supportsAllDrives=True)
+      newFolderId = result['id']
+      if returnIdLink:
+        writeStdout(f'{result[returnIdLink]}\n')
       else:
         entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, folderTitle],
                                                            Act.MODIFIER_TO, newFolderTitle,
@@ -38814,7 +38867,8 @@ def copyDriveFile(users):
   parentParms = initDriveFileAttributes()
   copyParameters = initDriveFileAttributes()
   copyMoveOptions = initCopyMoveOptions(False)
-  excludeTrashed = newParentsSpecified = recursive = returnIdOnly = False
+  excludeTrashed = newParentsSpecified = recursive = False
+  returnIdLink = None
   maxdepth = -1
   copiedFiles = {}
   statistics = _initStatistics()
@@ -38825,7 +38879,9 @@ def copyDriveFile(users):
     elif getDriveFileParentAttribute(myarg, parentParms):
       newParentsSpecified = True
     elif myarg == 'returnidonly':
-      returnIdOnly = True
+      returnIdLink = 'id'
+    elif myarg == 'returnlinkonly':
+      returnIdLink = 'webViewLink'
     elif myarg == 'excludetrashed':
       excludeTrashed = True
     elif myarg == 'recursive':
@@ -38846,7 +38902,7 @@ def copyDriveFile(users):
   for user in users:
     i += 1
     user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity,
-                                                  entityType=Ent.DRIVE_FILE_OR_FOLDER if not returnIdOnly else None)
+                                                  entityType=Ent.DRIVE_FILE_OR_FOLDER if returnIdLink is None else None)
     if jcount == 0:
       continue
     if not _getDriveFileParentInfo(drive, user, i, count, parentBody, parentParms):
@@ -38959,9 +39015,9 @@ def copyDriveFile(users):
                             fileId=fileId,
                             ignoreDefaultVisibility=copyParameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                             keepRevisionForever=copyParameters[DFA_KEEP_REVISION_FOREVER],
-                            body=source, fields='id,name', supportsAllDrives=True)
-          if returnIdOnly:
-            writeStdout(f'{result["id"]}\n')
+                            body=source, fields='id,name,webViewLink', supportsAllDrives=True)
+          if returnIdLink:
+            writeStdout(f'{result[returnIdLink]}\n')
           else:
             entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, sourceFilename],
                                                                Act.MODIFIER_TO, result['name'], [Ent.DRIVE_FILE_ID, result['id']], j, jcount)

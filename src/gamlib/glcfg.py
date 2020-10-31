@@ -198,9 +198,13 @@ TODRIVE_NOBROWSER = 'todrive_nobrowser'
 TODRIVE_NOEMAIL = 'todrive_noemail'
 # ID/Name of parent folder for todrive files
 TODRIVE_PARENT = 'todrive_parent'
+# Append timestamp to todrive sheet name
+TODRIVE_SHEET_TIMESTAMP = 'todrive_sheet_timestamp'
+# Sheet timestamp format, empty defalts to ISOFormat
+TODRIVE_SHEET_TIMEFORMAT = 'todrive_sheet_timeformat'
 # Append timestamp to todrive file name
 TODRIVE_TIMESTAMP = 'todrive_timestamp'
-# timestamp format, empty defalts to ISOFormat
+# Timestamp format, empty defalts to ISOFormat
 TODRIVE_TIMEFORMAT = 'todrive_timeformat'
 # Specify timezone for Google Sheets
 TODRIVE_TIMEZONE = 'todrive_timezone'
@@ -287,6 +291,8 @@ Defaults = {
   TODRIVE_NOBROWSER: '',
   TODRIVE_NOEMAIL: '',
   TODRIVE_PARENT: 'root',
+  TODRIVE_SHEET_TIMESTAMP: 'copy', # copy from TODRIVE_TIMESTAMP
+  TODRIVE_SHEET_TIMEFORMAT: 'copy', # copy from TODRIVE_TIMEFORMAT
   TODRIVE_TIMESTAMP: FALSE,
   TODRIVE_TIMEFORMAT: '',
   TODRIVE_TIMEZONE: '',
@@ -399,6 +405,8 @@ VAR_INFO = {
   TODRIVE_NOBROWSER: {VAR_TYPE: TYPE_BOOLEAN, VAR_SIGFILE: 'nobrowser.txt', VAR_SFFT: (FALSE, TRUE)},
   TODRIVE_NOEMAIL: {VAR_TYPE: TYPE_BOOLEAN},
   TODRIVE_PARENT: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
+  TODRIVE_SHEET_TIMESTAMP: {VAR_TYPE: TYPE_BOOLEAN},
+  TODRIVE_SHEET_TIMEFORMAT: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   TODRIVE_TIMESTAMP: {VAR_TYPE: TYPE_BOOLEAN},
   TODRIVE_TIMEFORMAT: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   TODRIVE_TIMEZONE: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},

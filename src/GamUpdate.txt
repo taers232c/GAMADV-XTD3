@@ -1,3 +1,23 @@
+5.23.06
+
+Added `todrive_sheet_timestamp [<Boolean>]` and `todrive_sheet_timeformat <String>` to `gam.cfg`.
+Added `tdsheettimestamp [<Boolean>]` and `tdsheettimeformat <String>` to `<ToDriveAttribute>`.
+These allow setting timestamp information on a sheet (tab) that is different than the timestamp
+information on the Google spreadsheet file.
+
+Removed option `tdaddsheettitle <String>` from `<ToDriveAttribute>`; use the existing `tdsheet <String>`
+option with `tdaddsheet` to name the new sheet (tab).
+
+** This is not a backwards compatible change, but it is simpler; I apologize for the inconvenience.**
+
+Added option `returnlinkonly` to `gam <UserTypeEntity> create|update drivefile` that causes GAM to return just the
+`webViewLink` of the created/updated file as output. This would typically be used with `localfile <FileName> mimetype gdoc|gsheet|gpresentation`
+where Google converts the local file `<FileName>` to a Google document.
+```
+$ gam user user@domain.com create drivefile localfile local.xlsx returnlinkonly mimetype gsheet
+https://docs.google.com/spreadsheets/d/12340ar1pW3GkiNlVhTFaNigkP3nZnoE5iTynjFjwxyz/edit?usp=drivesdk
+```
+
 5.23.05
 
 Added option `tdaddsheettitle <String>` to `<ToDriveAttribute>`.  When used with `tdaddsheet`,

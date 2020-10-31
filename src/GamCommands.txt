@@ -441,7 +441,6 @@ If an item contains spaces, it should be surrounded by ".
 <Title> ::= <String>
 <ToDriveAttribute> ::=
         (tdaddsheet [<Boolean>])|
-        (tdaddsheettitle <String>)|
         (tdbackupsheet (id:<Number>)|<String>)|
         (tdclearfilter [<Boolean>])|
         (tdcopysheet (id:<Number>)|<String>)|
@@ -453,8 +452,9 @@ If an item contains spaces, it should be surrounded by ".
         (tdnoemail [<Boolean>])|
         (tdparent (id:<DriveFolderID>)|<DriveFolderName>)|
         (tdsheet (id:<Number>)|<String>)|
-        (tdtimestamp [<Boolean>] [tdtimeformat <String>]
-            [tddaysoffset <Number>] [tdhoursoffset <Number])|
+        (tdsheettimestamp [<Boolean>] [tdsheettimeformat <String>])
+        (tdtimestamp [<Boolean>] [tdtimeformat <String>])|
+        ([tddaysoffset <Number>] [tdhoursoffset <Number])|
         (tdtimezone <TimeZone>)|
         (tdtitle <String>)|
         (tdcellwrap clip|overflow|wrap)|
@@ -3828,7 +3828,7 @@ gam <UserTypeEntity> update calattendees <UserCalendarEntity> [<EventEntity>] [a
 
 gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>]
         <DriveFileCreateAttribute>* [enforcesingleparent <Boolean>]
-        [csv [todrive <ToDriveAttribute>*]] [returnidonly]
+        [csv [todrive <ToDriveAttribute>*]] [returnidonly|returnlinkonly]
 
 <DriveFileUpdateAttribute> ::=
         <DriveFileAttribute>|
@@ -3842,7 +3842,7 @@ gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>]
          (removeparentname <DriveFolderName>)|
          (removeanyownerparentname <DriveFolderName>))
 
-gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly]
+gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly|returnlinkonly]
         [retainname | (newfilename <DriveFileName>)]
         <DriveFileUpdateAttribute>* [enforcesingleparent <Boolean>]
         [gsheet|csvsheet <SheetEntity>] [charset <CharSet>] [columndelimiter <Character>]
@@ -3854,7 +3854,7 @@ gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly]
         (mimetype <MimeType>)
 
 gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>]
-        [summary [<Boolean>]] [excludetrashed] [returnidonly]
+        [summary [<Boolean>]] [excludetrashed] [returnidonly|returnlinkonly]
         <DriveFileCopyAttribute>* [enforcesingleparent <Boolean>]
         [mergewithparent [<Boolean>]] [recursive [depth <Number>]]
         [duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
