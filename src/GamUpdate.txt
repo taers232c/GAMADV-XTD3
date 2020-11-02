@@ -1,3 +1,13 @@
+5.23.08
+
+Added optional qualifer `not` to match patterns in `gam print groups` and `gam print|show group-members`.
+The groups will be selected if the `matchpattern` does not match the `<RegularExpression>`.
+```
+emailmatchpattern [not] <RegularExpression>
+namematchpattern [not] <RegularExpression>
+descriptionmatchpattern [not] <RegularExpression>
+```
+
 5.23.07
 
 Fixed code in `gam <UserTypeEntity> transfer drive <UserItem>` that caused the following error:

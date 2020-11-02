@@ -2200,8 +2200,8 @@ gam print groups [todrive <ToDriveAttribute>*]
         [([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
          (select <GroupEntity>)]
         [showownedby <UserItem>]
-        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
-        [descriptionmatchpattern <RegularExpression>] (matchsetting [not] <GroupAttribute>)*
+        [emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
+        [descriptionmatchpattern [not] <RegularExpression>] (matchsetting [not] <GroupAttribute>)*
         [admincreatedmatch <Boolean>]
         [maxresults <Number>]
         [allfields|([basic] [settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
@@ -2237,8 +2237,8 @@ gam print group-members [todrive <ToDriveAttribute>*]
          (group|group_ns|group_susp <GroupItem>)|
          (select <GroupEntity>)] [notsuspended|suspended]
         [showownedby <UserItem>]
-        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
-        [descriptionmatchpattern <RegularExpression>]
+        [emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
+        [descriptionmatchpattern [not] <RegularExpression>]
         [admincreatedmatch <Boolean>]
         [roles <GroupRoleList>] [members] [managers] [owners] [membernames] <MembersFieldName>*
         [types <GroupTypeList>]
@@ -2252,8 +2252,8 @@ gam show group-members
          (group|group_ns|group_susp <GroupItem>)|
          (select <GroupEntity>)] [notsuspended|suspended]
         [showownedby <UserItem>]
-        [emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
-        [descriptionmatchpattern <RegularExpression>]
+        [emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
+        [descriptionmatchpattern [not] <RegularExpression>]
         [admincreatedmatch <Boolean>]
         [roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
         [types <GroupTypeList>]

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.23.07'
+__version__ = '5.23.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -19790,14 +19790,14 @@ def checkGroupShowOwnedBy(showOwnedBy, members):
       return True
   return False
 
-def getGroupMatchPatterns(myarg, matchPatterns):
+def getGroupMatchPatterns(myarg, matchPatterns, ciGroupsAPI):
   if myarg == 'emailmatchpattern':
-    matchPatterns['email'] = getREPattern(re.IGNORECASE)
+    matchPatterns['email'] = {'not': checkArgumentPresent('not'), 'pattern': getREPattern(re.IGNORECASE)}
   elif myarg == 'namematchpattern':
-    matchPatterns['name'] = getREPattern(re.IGNORECASE|re.UNICODE)
+    matchPatterns['name' if not ciGroupsAPI else 'displayName'] = {'not': checkArgumentPresent('not'), 'pattern': getREPattern(re.IGNORECASE|re.UNICODE)}
   elif myarg == 'descriptionmatchpattern':
-    matchPatterns['description'] = getREPattern(re.IGNORECASE|re.UNICODE)
-  elif myarg == 'admincreatedmatch':
+    matchPatterns['description'] = {'not': checkArgumentPresent('not'), 'pattern': getREPattern(re.IGNORECASE|re.UNICODE)}
+  elif not ciGroupsAPI and myarg == 'admincreatedmatch':
     matchPatterns['adminCreated'] = getBoolean(None)
   else:
     return False
@@ -19812,19 +19812,28 @@ def updateFieldsForGroupMatchPatterns(matchPatterns, fieldsList, csvPF=None):
         fieldsList.append(field)
 
 def clearUnneededGroupMatchPatterns(matchPatterns):
-  for field in ['name', 'description', 'adminCreated']:
+  for field in ['name', 'displayName', 'description', 'adminCreated']:
     matchPatterns.pop(field, None)
 
 def checkGroupMatchPatterns(groupEmail, group, matchPatterns):
-  for field, pattern in iter(matchPatterns.items()):
+  for field, match in iter(matchPatterns.items()):
     if field == 'email':
-      if not pattern.match(groupEmail):
-        return False
+      if not match['not']:
+        if not match['pattern'].match(groupEmail):
+          return False
+      else:
+        if match['pattern'].match(groupEmail):
+          return False
     elif field == 'adminCreated':
-      if pattern != group[field]:
+      if match != group[field]:
         return False
-    elif not pattern.match(group[field]):
-      return False
+    else: # field in {'name', 'displayName', 'description'}:
+      if not match['not']:
+        if not match['pattern'].match(group[field]):
+          return False
+      else:
+        if match['pattern'].match(group[field]):
+          return False
   return True
 
 PRINT_GROUPS_JSON_TITLES = ['email', 'JSON']
@@ -19833,8 +19842,8 @@ PRINT_GROUPS_JSON_TITLES = ['email', 'JSON']
 #	[([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
 #	 (select <GroupEntity>)]
 #	[showownedby <UserItem>]
-#	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
-#	[descriptionmatchpattern <RegularExpression>] (matchsetting [not] <GroupAttribute>)*
+#	[emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
+#	[descriptionmatchpattern [not] <RegularExpression>] (matchsetting [not] <GroupAttribute>)*
 #	[admincreatedmatch <Boolean>]
 #	[maxresults <Number>]
 #	[allfields|([basic] [settings] <GroupFieldName>* [fields <GroupFieldNameList>])]
@@ -20081,7 +20090,7 @@ def doPrintGroups():
       if myarg == 'showownedby':
         showOwnedBy = setGroupShowOwnedBy(kwargs)
         rolesSet.add(Ent.ROLE_OWNER)
-    elif getGroupMatchPatterns(myarg, matchPatterns):
+    elif getGroupMatchPatterns(myarg, matchPatterns, False):
       pass
     elif myarg == 'select':
       entitySelection = getEntityList(Cmd.OB_GROUP_ENTITY)
@@ -20532,8 +20541,8 @@ GROUPMEMBERS_DEFAULT_FIELDS = ['group', 'type', 'role', 'id', 'status', 'email']
 #	[([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
 #	 (group|group_ns|group_susp <GroupItem>)|
 #	 (select <GroupEntity>)] [notsuspended|suspended]
-#	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
-#	[descriptionmatchpattern <RegularExpression>]
+#	[emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
+#	[descriptionmatchpattern [not] <RegularExpression>]
 #	[showownedby <UserItem>]
 #	[roles <GroupRoleList>] [members] [managers] [owners]
 #	[types <GroupTypeList>]
@@ -20580,7 +20589,7 @@ def doPrintGroupMembers():
       if myarg == 'showownedby':
         showOwnedBy = setGroupShowOwnedBy(kwargs)
         rolesSet.add(Ent.ROLE_OWNER)
-    elif getGroupMatchPatterns(myarg, matchPatterns):
+    elif getGroupMatchPatterns(myarg, matchPatterns, False):
       pass
     elif myarg in {'group', 'groupns', 'groupsusp'}:
       entityList = [getEmailAddress()]
@@ -20751,8 +20760,8 @@ def doPrintGroupMembers():
 #	 (group|group_ns|group_susp <GroupItem>)|
 #	 (select <GroupEntity>)] [notsuspended|suspended]
 #	[showownedby <UserItem>]
-#	[emailmatchpattern <RegularExpression>] [namematchpattern <RegularExpression>]
-#	[descriptionmatchpattern <RegularExpression>]
+#	[emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
+#	[descriptionmatchpattern [not] <RegularExpression>]
 #	[roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
 #	[types <GroupTypeList>]
 #	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
@@ -20809,7 +20818,7 @@ def doShowGroupMembers():
       if myarg == 'showownedby':
         showOwnedBy = setGroupShowOwnedBy(kwargs)
         rolesSet.add(Ent.ROLE_OWNER)
-    elif getGroupMatchPatterns(myarg, matchPatterns):
+    elif getGroupMatchPatterns(myarg, matchPatterns, False):
       pass
     elif myarg in {'group', 'groupns', 'groupsusp'}:
       entityList = [getEmailAddress()]
