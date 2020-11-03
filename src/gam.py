@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.23.08'
+__version__ = '5.24.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -184,6 +184,9 @@ MAX_GOOGLE_SHEET_CELLS = 5000000 # See https://support.google.com/drive/answer/3
 MAX_LOCAL_GOOGLE_TIME_OFFSET = 30
 UTF8 = 'utf-8'
 UTF8_SIG = 'utf-8-sig'
+EV_GAMCFGDIR = 'GAMCFGDIR'
+EV_GAMCFGSECTION = 'GAMCFGSECTION'
+EV_OLDGAMPATH = 'OLDGAMPATH'
 FN_GAM_CFG = 'gam.cfg'
 FN_LAST_UPDATE_CHECK_TXT = 'lastupdatecheck.txt'
 FN_GAMCOMMANDS_TXT = 'GamCommands.txt'
@@ -3099,7 +3102,7 @@ def SetGlobalVariables():
 
   if not GM.Globals[GM.PARSER]:
     homePath = os.path.expanduser('~')
-    GM.Globals[GM.GAM_CFG_PATH] = os.environ.get('GAMCFGDIR', None)
+    GM.Globals[GM.GAM_CFG_PATH] = os.environ.get(EV_GAMCFGDIR, None)
     if GM.Globals[GM.GAM_CFG_PATH]:
       GM.Globals[GM.GAM_CFG_PATH] = os.path.expanduser(GM.Globals[GM.GAM_CFG_PATH])
     else:
@@ -3112,7 +3115,7 @@ def SetGlobalVariables():
       for itemName, itemEntry in iter(GC.VAR_INFO.items()):
         if itemEntry[GC.VAR_TYPE] == GC.TYPE_DIRECTORY:
           _getDefault(itemName, itemEntry, None)
-      oldGamPath = os.environ.get('OLDGAMPATH', GC.Defaults[GC.CONFIG_DIR])
+      oldGamPath = os.environ.get(EV_OLDGAMPATH, GC.Defaults[GC.CONFIG_DIR])
       for itemName, itemEntry in iter(GC.VAR_INFO.items()):
         if itemEntry[GC.VAR_TYPE] != GC.TYPE_DIRECTORY:
           _getDefault(itemName, itemEntry, oldGamPath)
@@ -3130,20 +3133,30 @@ def SetGlobalVariables():
       _readGamCfgFile(GM.Globals[GM.PARSER], GM.Globals[GM.GAM_CFG_FILE])
     GM.Globals[GM.LAST_UPDATE_CHECK_TXT] = os.path.join(_getCfgDirectory(configparser.DEFAULTSECT, GC.CONFIG_DIR), FN_LAST_UPDATE_CHECK_TXT)
   status = {'errors': False}
-  sectionName = _getCfgSection(configparser.DEFAULTSECT, GC.SECTION)
   filterSectionName = None
-# select <SectionName> [save] [verify]
-  if checkArgumentPresent(Cmd.SELECT_CMD):
-    sectionName = _selectSection()
+  GM.Globals[GM.GAM_CFG_SECTION] = os.environ.get(EV_GAMCFGSECTION, None)
+  if GM.Globals[GM.GAM_CFG_SECTION]:
+    sectionName = GM.Globals[GM.GAM_CFG_SECTION]
     GM.Globals[GM.SECTION] = sectionName # Save section for inner gams
-    while Cmd.ArgumentsRemaining():
-      if checkArgumentPresent('save'):
-        GM.Globals[GM.PARSER].set(configparser.DEFAULTSECT, GC.SECTION, sectionName)
-        _writeGamCfgFile(GM.Globals[GM.PARSER], GM.Globals[GM.GAM_CFG_FILE], Act.SAVE)
-      elif checkArgumentPresent('verify'):
-        _verifyValues(sectionName)
-      else:
-        break
+    if not GM.Globals[GM.PARSER].has_section(sectionName):
+      usageErrorExit(formatKeyValueList('', [EV_GAMCFGSECTION, sectionName, Msg.NOT_FOUND], ''))
+    if checkArgumentPresent(Cmd.SELECT_CMD):
+      Cmd.Backup()
+      usageErrorExit(formatKeyValueList('', [EV_GAMCFGSECTION, sectionName, 'select', Msg.NOT_ALLOWED], ''))
+  else:
+    sectionName = _getCfgSection(configparser.DEFAULTSECT, GC.SECTION)
+# select <SectionName> [save] [verify]
+    if checkArgumentPresent(Cmd.SELECT_CMD):
+      sectionName = _selectSection()
+      GM.Globals[GM.SECTION] = sectionName # Save section for inner gams
+      while Cmd.ArgumentsRemaining():
+        if checkArgumentPresent('save'):
+          GM.Globals[GM.PARSER].set(configparser.DEFAULTSECT, GC.SECTION, sectionName)
+          _writeGamCfgFile(GM.Globals[GM.PARSER], GM.Globals[GM.GAM_CFG_FILE], Act.SAVE)
+        elif checkArgumentPresent('verify'):
+          _verifyValues(sectionName)
+        else:
+          break
 # selectfilter <SectionName>
   if checkArgumentPresent(Cmd.SELECTFILTER_CMD):
     filterSectionName = _selectSection()
@@ -7599,7 +7612,7 @@ def doAutoBatch(entityType, entityList, CL_command):
   remaining = Cmd.Remaining()
   items = []
   initial_argv = [Cmd.GAM_CMD]
-  if GM.Globals[GM.SECTION]:
+  if GM.Globals[GM.SECTION] and not GM.Globals[GM.GAM_CFG_SECTION]:
     initial_argv.extend([Cmd.SELECT_CMD, GM.Globals[GM.SECTION]])
   for entity in entityList:
     items.append(initial_argv+[entityType, entity, CL_command]+remaining)
@@ -7701,7 +7714,7 @@ def doCSV(testMode=False):
   if not Cmd.ArgumentsRemaining():
     missingArgumentExit(Cmd.OB_GAM_ARGUMENT_LIST)
   initial_argv = [Cmd.GAM_CMD]
-  if GM.Globals[GM.SECTION] and not Cmd.PeekArgumentPresent(Cmd.SELECT_CMD):
+  if GM.Globals[GM.SECTION] and not GM.Globals[GM.GAM_CFG_SECTION] and not Cmd.PeekArgumentPresent(Cmd.SELECT_CMD):
     initial_argv.extend([Cmd.SELECT_CMD, GM.Globals[GM.SECTION]])
   GAM_argv, subFields = getSubFields(initial_argv, fieldnames)
   items = []
@@ -43514,10 +43527,11 @@ def deletePhoto(users):
     user = normalizeEmailAddressOrUID(user)
     try:
       callGAPI(cd.users().photos(), 'delete',
-               throwReasons=[GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.PHOTO_NOT_FOUND],
+               bailOnInternalError=True,
+               throwReasons=[GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.PHOTO_NOT_FOUND, GAPI.INTERNAL_ERROR],
                userKey=user)
       entityActionPerformed([Ent.USER, user, Ent.PHOTO, ''], i, count)
-    except GAPI.photoNotFound as e:
+    except (GAPI.photoNotFound, GAPI.internalError) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, ''], str(e), i, count)
     except (GAPI.userNotFound, GAPI.forbidden):
       entityUnknownWarning(Ent.USER, user, i, count)

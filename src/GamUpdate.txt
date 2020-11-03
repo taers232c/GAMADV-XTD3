@@ -1,3 +1,14 @@
+5.24.00
+
+Added a new environment variable `GAMCFGSECTION` that selects a `[Section]` within `gam.cfg`.
+This allows multiple users with distinct logins on the same computer to share `gam.cfg` but  eah
+reference a unique `[Section]`. This might be used if you want each user to have their own GAM
+project for auditing purposes. When `GAMCFGSECTION` is set, the user will not be allowed to select
+a different `[Section]`.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/gam.cfg#multiple-users-projects-on-one-computer
+
+Updated `gam <UserTypeEntity> delete photo` to handle `Error 500 Internal error.`
+
 5.23.08
 
 Added optional qualifer `not` to match patterns in `gam print groups` and `gam print|show group-members`.

@@ -77,6 +77,7 @@ EXTRA_ARGS_LIST = 'exad'
 # gam.cfg file
 GAM_CFG_PATH = 'gcpa'
 GAM_CFG_FILE = 'gcfi'
+GAM_CFG_SECTION = 'gcse'
 # File containing oauth create URL
 GAM_OAUTH_URL_TXT = 'gout'
 # Path to gam
@@ -189,6 +190,7 @@ Globals = {
   EXTRA_ARGS_LIST: [],
   GAM_CFG_PATH: '',
   GAM_CFG_FILE: '',
+  GAM_CFG_SECTION: '',
   GAM_OAUTH_URL_TXT: None,
   GAM_PATH: '.',
   GAM_TYPE: '',
