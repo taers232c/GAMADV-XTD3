@@ -4007,8 +4007,11 @@ gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [preview] [todrive <ToDriveAttribute>*]
 
-gam <UserTypeEntity> collect orphans (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-        [(targetuserfoldername <DriveFolderName>)|(targetuserfolderid <DriveFolderID>)] [preview] [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> collect orphans
+        [(targetuserfoldername <DriveFolderName>)|(targetuserfolderid <DriveFolderID>)]
+        [useshortcuts [<Boolean>]]
+        (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+        [preview] [todrive <ToDriveAttribute>*]
 
 <DriveCapabilitiesSubfieldName> ::=
         canaddchildren|

@@ -39720,8 +39720,11 @@ def getDriveFile(users):
         break
     Ind.Decrement()
 
-# gam <UserTypeEntity> collect orphans (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-#	[(targetuserfoldername <DriveFolderName>)(targetuserfolderid <DriveFolderID>)] [preview] [todrive <ToDriveAttribute>*]
+# gam <UserTypeEntity> collect orphans
+#	[(targetuserfoldername <DriveFolderName>)(targetuserfolderid <DriveFolderID>)]
+#	[useshortcuts [<Boolean>]]
+#	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
+#	[preview] [todrive <ToDriveAttribute>*]
 def collectOrphans(users):
   OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
   csvPF = None
@@ -39730,6 +39733,7 @@ def collectOrphans(users):
   targetUserFolderPattern = '#user# orphaned files'
   targetParentBody = {}
   query = ME_IN_OWNERS_AND+'trashed = false'
+  useShortcuts = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'orderby':
@@ -39746,6 +39750,8 @@ def collectOrphans(users):
 #    elif myarg == 'showownedby':
 #      showOwnedBy = getChoice(SHOW_OWNED_BY_CHOICE_MAP, mapChoice=True)
 #      query = _updateQueryWithShowOwnedBy(showOwnedBy, query)
+    elif myarg == 'useshortcuts':
+      useShortcuts = getBoolean()
     elif myarg == 'preview':
       csvPF = CSVPrintFile(['Owner', 'type', 'id', 'name'])
     elif csvPF and myarg == 'todrive':
@@ -39806,18 +39812,51 @@ def collectOrphans(users):
         if csvPF:
           csvPF.WriteRow({'Owner': user, 'type': Ent.Singular(fileType), 'id': fileId, 'name': fileName})
           continue
-        try:
-          callGAPI(drive.files(), 'update',
-                   bailOnInternalError=True,
-                   throwReasons=GAPI.DRIVE_USER_THROW_REASONS, retryReasons=[GAPI.FILE_NOT_FOUND],
-                   enforceSingleParent=True, fileId=fileId, body={}, addParents=newParentId, fields='')
-          entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, fileType, fileName],
-                                                             Act.MODIFIER_INTO, None, [Ent.DRIVE_FOLDER, trgtUserFolderName], j, jcount)
-        except (GAPI.fileNotFound, GAPI.internalError) as e:
-          entityActionFailedWarning([Ent.USER, user, fileType, fileName], str(e), j, jcount)
-        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-          userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
-          break
+        if not useShortcuts:
+          try:
+            callGAPI(drive.files(), 'update',
+                     bailOnInternalError=True,
+                     throwReasons=GAPI.DRIVE_USER_THROW_REASONS, retryReasons=[GAPI.FILE_NOT_FOUND],
+                     enforceSingleParent=True, fileId=fileId, body={}, addParents=newParentId, fields='')
+            entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, fileType, fileName],
+                                                               Act.MODIFIER_INTO, None, [Ent.DRIVE_FOLDER, trgtUserFolderName], j, jcount)
+          except (GAPI.fileNotFound, GAPI.internalError) as e:
+            entityActionFailedWarning([Ent.USER, user, fileType, fileName], str(e), j, jcount)
+          except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+            userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+            break
+        else:
+          try:
+            ### Check for existing shortcut, do not duplicate
+            files = callGAPIitems(drive.files(), 'list', 'files',
+                                  throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID],
+                                  q=f"'me' in owners and name = '{escapeDriveFileName(fileName)}' and mimeType = '{MIMETYPE_GA_SHORTCUT}' and '{newParentId}' in parents and trashed = false",
+                                  fields='files(id,shortcutDetails(targetId))')
+            existingShortcut = False
+            for f_file in files:
+              if f_file['shortcutDetails']['targetId'] == fileId:
+                entityActionNotPerformedWarning([Ent.USER, user, fileType, fileName, Ent.DRIVE_FILE_SHORTCUT, f"{fileName}({f_file['id']})"],
+                                                Msg.ALREADY_EXISTS_IN_TARGET_FOLDER.format(Ent.Singular(Ent.DRIVE_FOLDER), trgtUserFolderName), j, jcount)
+                existingShortcut = True
+                break
+            if existingShortcut:
+              continue
+            body = {'name': fileName, 'mimeType': MIMETYPE_GA_SHORTCUT, 'parents': [newParentId], 'shortcutDetails': {'targetId': fileId}}
+            result = callGAPI(drive.files(), 'create',
+                              throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
+                                                                          GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR],
+                              body=body, fields='id,name', supportsAllDrives=True)
+            entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, fileType, fileName, Ent.DRIVE_FILE_SHORTCUT, f'{result["name"]}({result["id"]})'],
+                                                               Act.MODIFIER_INTO, None, [Ent.DRIVE_FOLDER, trgtUserFolderName], j, jcount)
+
+          except GAPI.invalidQuery:
+            entityActionFailedWarning([Ent.USER, user, fileType, fileName], invalidQuery(query), j, jcount)
+          except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
+                  GAPI.fileNotFound, GAPI.unknownError) as e:
+            entityActionFailedWarning([Ent.USER, user, fileType, fileName, Ent.DRIVE_FILE_SHORTCUT, body['name']], str(e), j, jcount)
+          except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+            userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+            break
       Ind.Decrement()
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)

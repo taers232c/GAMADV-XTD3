@@ -8,6 +8,11 @@ namematchpattern [not] <RegularExpression>
 descriptionmatchpattern [not] <RegularExpression>
 ```
 
+Added option `useshortcuts [<Boolean>]` to `gam <UserTypeEntity> collect orphans`. By default,
+GAM adds the target user folder as a parent of an orphan. This may now fail as the orphan may have parents belonging
+to other users and files can now have only one parent. With `useshortcuts true`, GAM puts a shortcut to the orphan
+into the target user folder and does not modify the orphan's parents. GAM will not duplicate an existing shortcut.
+
 5.23.07
 
 Fixed code in `gam <UserTypeEntity> transfer drive <UserItem>` that caused the following error:
