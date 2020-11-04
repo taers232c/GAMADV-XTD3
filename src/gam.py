@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.24.00'
+__version__ = '5.24.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6071,7 +6071,11 @@ class CSVPrintFile():
               if self.todrive[sheetEntity]:
                 sheetId = getSheetIdFromSheetEntity(spreadsheet, self.todrive[sheetEntity])
                 if sheetId is None:
-                  invalidTodriveFileIdExit([self.todrive[sheetEntity]['sheetType'], self.todrive[sheetEntity]['sheetValue']], Msg.NOT_FOUND, tdsheetLocation[sheetEntity])
+                  if not self.todrive['addsheet']:
+                    invalidTodriveFileIdExit([self.todrive[sheetEntity]['sheetType'], self.todrive[sheetEntity]['sheetValue']], Msg.NOT_FOUND, tdsheetLocation[sheetEntity])
+                else:
+                  if self.todrive['addsheet']:
+                    invalidTodriveFileIdExit([self.todrive[sheetEntity]['sheetType'], self.todrive[sheetEntity]['sheetValue']], Msg.ALREADY_EXISTS, tdsheetLocation[sheetEntity])
                 if protectedSheetId(spreadsheet, sheetId):
                   invalidTodriveFileIdExit([self.todrive[sheetEntity]['sheetType'], self.todrive[sheetEntity]['sheetValue']], Msg.NOT_WRITABLE, tdsheetLocation[sheetEntity])
                 self.todrive[sheetEntity]['sheetId'] = sheetId
