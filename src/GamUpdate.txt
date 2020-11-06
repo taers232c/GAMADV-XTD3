@@ -1,3 +1,7 @@
+5.24.03
+
+Fixed bug in `gam <UserTypeEntity> print filecounts showmimetype <MimeTypeList>` that caused a trap.
+
 5.24.02
 
 Updated `gam calendar <CalendarEntity> move events` and `gam <UserTypeEntity> move events <UserCalendarEntity>`

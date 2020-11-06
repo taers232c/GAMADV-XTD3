@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.24.02'
+__version__ = '5.24.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -36613,7 +36613,7 @@ class DriveListParameters():
     elif myarg == 'showmimetype':
       self.mimeTypeCheck.Get()
       if self.myargOptions['mimeTypeInQuery']:
-        self.fileIdEntity['query'] = self.mimeTypeCheck.AddMimeTypeToQuery(self.fileIdEntity['query'])
+        self.fileIdEntity['query'] = self.mimeTypeCheck.AddMimeTypeToQuery(self.fileIdEntity.get('query', ''))
     elif myarg == 'excludetrashed':
       self.excludeTrashed = True
     elif myarg.startswith('querytime'):
