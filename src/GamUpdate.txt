@@ -1,3 +1,11 @@
+5.24.02
+
+Updated `gam calendar <CalendarEntity> move events` and `gam <UserTypeEntity> move events <UserCalendarEntity>`
+to handle the following error:
+```
+ERROR: 403 requiredAccessLevel - You need to have writer access to this calendar.
+```
+
 5.24.01
 
 Fixed bug introduced in 5.23.06 where `todrive tdfileid <FileID> tdaddsheet tdsheet "Sheet Title"`
