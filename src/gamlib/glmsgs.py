@@ -165,6 +165,7 @@ MEMBERSHIP_IS_PENDING_WILL_DELETE_ADD_TO_ACCEPT = 'Membership is pending, will d
 MIMETYPE_MISMATCH = 'Shortcut target mimeType {0} does not match actual target mimeType {1}'
 MISMATCH_RE_SEARCH_REPLACE_SUBFIELDS = 'The subfield ({2}) in replace "{3}" exceeds the number of subfields ({0}) in search "{1}"'
 MISMATCH_SEARCH_REPLACE_SUBFIELDS = 'The number of subfields ({0}) in search "{1}" does not match the number of subfields ({2}) in replace "{3}"'
+MISSING_FIELDS = 'Missing fields: {0}\n'
 MULTIPLE_BUILDINGS_SAME_NAME = '{0} {1} with the same (case-insensitive) name exist'
 MULTIPLE_ENTITIES_FOUND = 'Multiple {0} ({1}) found, {2}'
 MULTIPLE_ITEMS_MARKED_PRIMARY = 'Multiple {0} are marked primary, only one can be primary'

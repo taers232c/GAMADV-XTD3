@@ -1,3 +1,10 @@
+5.24.04
+
+Updated `gam <UserTypeEntity> print|show forward` to handle the following error:
+```
+ERROR: 400: failedPrecondition - Precondition check failed.
+```
+
 5.24.03
 
 Fixed bug in `gam <UserTypeEntity> print filecounts showmimetype <MimeTypeList>` that caused a trap.

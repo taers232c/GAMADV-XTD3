@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.24.03'
+__version__ = '5.24.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -566,8 +566,10 @@ def invalidClientSecretsJsonExit():
   writeStderr(Msg.INSTRUCTIONS_CLIENT_SECRETS_JSON)
   systemErrorExit(CLIENT_SECRETS_JSON_REQUIRED_RC, None)
 
-def invalidOauth2serviceJsonExit():
+def invalidOauth2serviceJsonExit(missingFields=None):
   stderrErrorMsg(Msg.DOES_NOT_EXIST_OR_HAS_INVALID_FORMAT.format(Ent.Singular(Ent.OAUTH2SERVICE_JSON_FILE), GC.Values[GC.OAUTH2SERVICE_JSON]))
+  if missingFields:
+    writeStderr(Msg.MISSING_FIELDS.format(','.join(missingFields)))
   writeStderr(Msg.INSTRUCTIONS_OAUTH2SERVICE_JSON)
   systemErrorExit(OAUTH2SERVICE_JSON_REQUIRED_RC, None)
 
@@ -8951,6 +8953,18 @@ def doDeleteSvcAcct():
       entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, saName], str(e), i, count)
     Ind.Decrement()
 
+def _getSvcAcctKeyProjectClientFields():
+  missingFields = []
+  for field in ['private_key_id', 'project_id', 'client_email', 'client_id']:
+    if field not in GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]:
+      missingFields.append(field)
+  if missingFields:
+    invalidOauth2serviceJsonExit(missingFields)
+  return (GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['private_key_id'],
+          GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id'],
+          GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email'],
+          GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id'])
+
 # gam <UserTypeEntity> check serviceaccount (scope|scopes <APIScopeURLList>)* [writeurltofile]
 # gam <UserTypeEntity> update serviceaccount [writeurltofile]
 def checkServiceAccount(users):
@@ -9058,9 +9072,7 @@ def checkServiceAccount(users):
     invalidOauth2serviceJsonExit()
   printMessage(Msg.SERVICE_ACCOUNT_CHECK_PRIVATE_KEY_AGE)
   _, iam = buildGAPIServiceObject(API.IAM, None)
-  currentPrivateKeyId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['private_key_id']
-  projectId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id']
-  clientId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
+  currentPrivateKeyId, projectId, _, clientId = _getSvcAcctKeyProjectClientFields()
   name = f'projects/{projectId}/serviceAccounts/{clientId}/keys/{currentPrivateKeyId}'
   Ind.Increment()
   try:
@@ -9325,10 +9337,7 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
         unknownArgumentExit()
     if mode is None:
       mode = 'retainnone'
-    currentPrivateKeyId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['private_key_id']
-    projectId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id']
-    clientEmail = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']
-    clientId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
+    currentPrivateKeyId, projectId, clientEmail, clientId = _getSvcAcctKeyProjectClientFields()
   name = f'projects/{projectId}/serviceAccounts/{clientId}'
   if mode != 'retainexisting':
     try:
@@ -9443,10 +9452,7 @@ def doDeleteSvcAcctKeys():
     else:
       Cmd.Backup()
       keyList.extend(getString(Cmd.OB_SERVICE_ACCOUNT_KEY_LIST, minLen=0).strip().replace(',', ' ').split())
-  currentPrivateKeyId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['private_key_id']
-  projectId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id']
-  clientEmail = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']
-  clientId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
+  currentPrivateKeyId, projectId, clientEmail, clientId = _getSvcAcctKeyProjectClientFields()
   name = f'projects/{projectId}/serviceAccounts/{clientId}'
   try:
     keys = callGAPIitems(iam.projects().serviceAccounts().keys(), 'list', 'keys',
@@ -9496,10 +9502,7 @@ def doShowSvcAcctKeys():
       keyTypes = SVCACCT_KEY_TYPE_CHOICE_MAP[myarg]
     else:
       unknownArgumentExit()
-  currentPrivateKeyId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['private_key_id']
-  projectId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id']
-  clientEmail = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']
-  clientId = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id']
+  currentPrivateKeyId, projectId, clientEmail, clientId = _getSvcAcctKeyProjectClientFields()
   name = f'projects/{projectId}/serviceAccounts/{clientId}'
   status, keys = _getSAKeys(iam, projectId, clientEmail, name, keyTypes)
   if not status:
@@ -46763,7 +46766,10 @@ def setForward(users):
                         userId='me', body=body)
       _showForward(user, i, count, result)
     except GAPI.failedPrecondition as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.FORWARDING_ADDRESS, body['emailAddress']], str(e), i, count)
+      if enable:
+        entityActionFailedWarning([Ent.USER, user, Ent.FORWARDING_ADDRESS, body['emailAddress']], str(e), i, count)
+      else:
+        entityActionFailedWarning([Ent.USER, user], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
@@ -46807,13 +46813,15 @@ def printShowForward(users):
       continue
     try:
       result = callGAPI(gmail.users().settings(), 'getAutoForwarding',
-                        throwReasons=GAPI.GMAIL_THROW_REASONS,
+                        throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.FAILED_PRECONDITION],
                         userId='me')
       if not csvPF:
         _showForward(user, i, count, result)
       else:
         printGettingEntityItemForWhom(Ent.FORWARD_ENABLED, user, i, count)
         _printForward(user, result, showDisabled)
+    except GAPI.failedPrecondition as e:
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvPF:
@@ -46904,7 +46912,7 @@ def printShowForwardingAddresses(users):
       continue
     try:
       results = callGAPIitems(gmail.users().settings().forwardingAddresses(), 'list', 'forwardingAddresses',
-                              throwReasons=GAPI.GMAIL_THROW_REASONS,
+                              throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.FAILED_PRECONDITION],
                               userId='me')
       jcount = len(results)
       if not csvPF:
@@ -46922,6 +46930,8 @@ def printShowForwardingAddresses(users):
             csvPF.WriteRow({'User': user, 'forwardingEmail': forward['forwardingEmail'], 'verificationStatus': forward['verificationStatus']})
         elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
           csvPF.WriteRowNoFilter({'User': user})
+    except GAPI.failedPrecondition as e:
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvPF:
