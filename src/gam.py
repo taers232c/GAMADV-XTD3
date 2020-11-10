@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.24.04'
+__version__ = '5.24.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4077,8 +4077,8 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False):
     else:
       message = error['error']['message']
       status = error['error'].get('status', '')
-    lmessage = message.lower()
     if http_status == 500:
+      lmessage = message.lower() if message is not None else ''
       if not lmessage:
         message = Msg.UNKNOWN
         error = makeErrorDict(http_status, GAPI.UNKNOWN_ERROR, message)
