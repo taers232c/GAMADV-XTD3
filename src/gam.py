@@ -7105,7 +7105,8 @@ def doVersion(checkForArgs=True):
                f'httplib2 {httplib2.__version__}\n'
                f'{getOSPlatform()} {platform.machine()}\n'
                f'Path: {GM.Globals[GM.GAM_PATH]}\n'
-               f'{Ent.Singular(Ent.CONFIG_FILE)}: {GM.Globals[GM.GAM_CFG_FILE]}, {Ent.Singular(Ent.SECTION)}: {GM.Globals[GM.GAM_CFG_SECTION_NAME]}, customer_id: {GC.Values[GC.CUSTOMER_ID]}, domain: {GC.Values[GC.DOMAIN]}\n'
+               f'{Ent.Singular(Ent.CONFIG_FILE)}: {GM.Globals[GM.GAM_CFG_FILE]}, {Ent.Singular(Ent.SECTION)}: {GM.Globals[GM.GAM_CFG_SECTION_NAME]}, '
+               f'{GC.CUSTOMER_ID}: {GC.Values[GC.CUSTOMER_ID]}, {GC.DOMAIN}: {GC.Values[GC.DOMAIN]}\n'
                ))
   if sys.platform.startswith('win') and str(struct.calcsize('P')*8).find('32') != -1 and platform.machine().find('64') != -1:
     printKeyValueList([Msg.UPDATE_GAM_TO_64BIT])
