@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.24.06'
+__version__ = '5.24.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3159,6 +3159,7 @@ def SetGlobalVariables():
           _verifyValues(sectionName)
         else:
           break
+  GM.Globals[GM.GAM_CFG_SECTION_NAME] = sectionName
 # selectfilter <SectionName>
   if checkArgumentPresent(Cmd.SELECTFILTER_CMD):
     filterSectionName = _selectSection()
@@ -7104,6 +7105,7 @@ def doVersion(checkForArgs=True):
                f'httplib2 {httplib2.__version__}\n'
                f'{getOSPlatform()} {platform.machine()}\n'
                f'Path: {GM.Globals[GM.GAM_PATH]}\n'
+               f'{Ent.Singular(Ent.CONFIG_FILE)}: {GM.Globals[GM.GAM_CFG_FILE]}, {Ent.Singular(Ent.SECTION)}: {GM.Globals[GM.GAM_CFG_SECTION_NAME]}, customer_id: {GC.Values[GC.CUSTOMER_ID]}, domain: {GC.Values[GC.DOMAIN]}\n'
                ))
   if sys.platform.startswith('win') and str(struct.calcsize('P')*8).find('32') != -1 and platform.machine().find('64') != -1:
     printKeyValueList([Msg.UPDATE_GAM_TO_64BIT])

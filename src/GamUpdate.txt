@@ -1,3 +1,10 @@
+5.24.07
+
+Added an additional line of output to `gam version` that displays some basic configuration data.
+```
+Config File: /Users/Admin/.gam/gam.cfg, Section: DEFAULT, customer_id: C01234567, domain: domain.com
+```
+
 5.24.06
 
 Corrected 5.24.05 update to properly handle an unexpected `HttpError 500` that caused a trap.
