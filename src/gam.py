@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.24.07'
+__version__ = '5.24.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -38544,10 +38544,10 @@ CLEAR_COPY_MOVE_PARENT_OPTIONS = {
   'copyTopFolderParents': COPY_NO_PARENTS,
   'copySubFolderParents': COPY_NO_PARENTS,
   }
-CLEAR_COPY_MOVE_FOLDER_PERMISSION_OPTIONS = {
-  'copyTopFolderPermissions': False,
-  'copySubFolderPermissions': False,
-  }
+#CLEAR_COPY_MOVE_FOLDER_PERMISSION_OPTIONS = {
+#  'copyTopFolderPermissions': False,
+#  'copySubFolderPermissions': False,
+#  }
 
 def _targetFilenameExists(destFilename, mimeType, targetChildren):
   destFilenameLower = destFilename.lower()
@@ -39001,8 +39001,8 @@ def copyDriveFile(users):
           continue
         if copyMoveOptions['sourceDriveId'] or copyMoveOptions['destDriveId']:
           copyMoveOptions.update(CLEAR_COPY_MOVE_PARENT_OPTIONS)
-        if copyMoveOptions['destDriveId']:
-          copyMoveOptions.update(CLEAR_COPY_MOVE_FOLDER_PERMISSION_OPTIONS)
+#        if copyMoveOptions['destDriveId']:
+#          copyMoveOptions.update(CLEAR_COPY_MOVE_FOLDER_PERMISSION_OPTIONS)
         if source['mimeType'] == MIMETYPE_GA_FOLDER:
           if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE:
             if _identicalSourceTarget(fileId, targetChildren):
@@ -39359,7 +39359,7 @@ def moveDriveFile(users):
           continue
         if copyMoveOptions['sourceDriveId'] or copyMoveOptions['destDriveId']:
           copyMoveOptions.update(CLEAR_COPY_MOVE_PARENT_OPTIONS)
-        copyMoveOptions.update(CLEAR_COPY_MOVE_FOLDER_PERMISSION_OPTIONS)
+#        copyMoveOptions.update(CLEAR_COPY_MOVE_FOLDER_PERMISSION_OPTIONS)
         if source['mimeType'] == MIMETYPE_GA_FOLDER:
           if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE:
             if _identicalSourceTarget(fileId, targetChildren):

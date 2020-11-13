@@ -1,4 +1,9 @@
-5.24.07
+5.24.08
+
+Removed restrictions in `gam <UserTypeEntity> copy|move drivefile <DriveFileEntity>` that prevented
+adding ACLs to folders on Shared Drives as it was not allowed; Google now allows this.
+
+.24.07
 
 Added an additional line of output to `gam version` that displays some basic configuration data.
 ```
