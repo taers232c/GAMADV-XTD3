@@ -1,3 +1,7 @@
+5.24.10
+
+Fixed bug in `gam <UserTypeEntity> copy drivefile <DriveFileEntity>` that caused a trap.
+
 5.24.09
 
 Fixed `gam print courses show all|students|teachers` to eliminate duplicated columns.

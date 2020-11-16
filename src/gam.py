@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.24.09'
+__version__ = '5.24.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -38618,7 +38618,7 @@ def _copyPermissions(drive, user, i, count, j, jcount, entityType, fileId, fileT
       if ((permission['role'] not in {'owner', 'organizer', 'fileOrganizer'}) and
           not (copyMoveOptions['destDriveId'] and permission['id'] == 'anyone')):
         permission.pop('id')
-        permission.pop('deleted')
+        permission.pop('deleted', None)
         try:
           callGAPI(drive.permissions(), 'create',
                    throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST,
