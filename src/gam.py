@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.24.10'
+__version__ = '5.24.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -16076,13 +16076,14 @@ def displayCrOSCommandResult(cd, deviceId, commandId, checkResultRetries, i, cou
     for _ in range(0, checkResultRetries):
       time.sleep(2)
       result = callGAPI(cd.customer().devices().chromeos().commands(), 'get',
+                        throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                         customerId=GC.Values[GC.CUSTOMER_ID], deviceId=deviceId, commandId=commandId)
       showJSON(None, result, timeObjects=CROS_COMMAND_TIME_OBJECTS)
       state = result.get('state')
       if state in CROS_COMMAND_FINAL_STATES:
         break
   except (GAPI.invalidArgument, GAPI.badRequest, GAPI.notFound, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.CROS_DEVICE, deviceId], str(e), i, count)
+    entityActionFailedWarning([Ent.CROS_DEVICE, deviceId, Ent.COMMAND_ID, commandId], str(e), i, count)
   Ind.Decrement()
 
 # gam <CrOSTypeEntity> issuecommand command <CrOSCommand> [times_to_check_status <Integer>] [doit]
@@ -16148,11 +16149,8 @@ def getCommandResultCrOSDevices(entityList):
   i, count, entityList = getEntityArgument(entityList)
   for deviceId in entityList:
     i += 1
-    try:
-      printEntity([Ent.CROS_DEVICE, deviceId, Ent.COMMAND_ID, commandId], i, count)
-      displayCrOSCommandResult(cd, deviceId, commandId, checkResultRetries, i, count)
-    except (GAPI.invalidArgument, GAPI.notFound) as e:
-      entityActionFailedWarning([Ent.CROS_DEVICE, deviceId, Ent.COMMAND_ID, commandId], str(e), i, count)
+    printEntity([Ent.CROS_DEVICE, deviceId, Ent.COMMAND_ID, commandId], i, count)
+    displayCrOSCommandResult(cd, deviceId, commandId, checkResultRetries, i, count)
 
 # gam getcommand <CrOSEntity> commandid <CommandID> [times_to_check_status <Integer>]
 def doGetCommandResultCrOSDevices():
