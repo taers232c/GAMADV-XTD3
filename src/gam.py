@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.24.08'
+__version__ = '5.24.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6209,8 +6209,10 @@ class CSVPrintFile():
 
   def RearrangeCourseTitles(self, ttitles, stitles):
 # Put teachers and students after courseMaterialSets if present, otherwise at end
-    ttitles['list'].sort()
-    stitles['list'].sort()
+    for title in ttitles['list']:
+      self.titlesList.remove(title)
+    for title in stitles['list']:
+      self.titlesList.remove(title)
     try:
       cmsIndex = self.titlesList.index('courseMaterialSets')
       self.titlesList = self.titlesList[:cmsIndex]+ttitles['list']+stitles['list']+self.titlesList[cmsIndex:]
@@ -29565,6 +29567,8 @@ def doPrintCourses():
     if courseShowProperties['aliases']:
       csvPF.AddTitles('Aliases')
     csvPF.SetSortTitles(COURSE_PROPERTY_PRINT_ORDER)
+    csvPF.SortTitles()
+    csvPF.SetSortTitles([])
     if courseShowProperties['aliases'] and courseShowProperties['aliasesInColumns']:
       csvPF.FixCourseAliasesTitles()
     if courseShowProperties['members'] != 'none':
@@ -38614,6 +38618,7 @@ def _copyPermissions(drive, user, i, count, j, jcount, entityType, fileId, fileT
       if ((permission['role'] not in {'owner', 'organizer', 'fileOrganizer'}) and
           not (copyMoveOptions['destDriveId'] and permission['id'] == 'anyone')):
         permission.pop('id')
+        permission.pop('deleted')
         try:
           callGAPI(drive.permissions(), 'create',
                    throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST,
