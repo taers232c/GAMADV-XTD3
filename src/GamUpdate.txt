@@ -1,3 +1,8 @@
+5.24.12
+
+Updated `gam <UserTypeEntity> show messages|threads saveattachments` to convert the characters `/` and `:`
+to `_` in attachment names so that they can be saved.
+
 5.24.11
 
 Updated `gam <CrOSTypeEntity> getcommand commandid <CommandID>` to handle the following error:

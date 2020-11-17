@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.24.11'
+__version__ = '5.24.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -45821,7 +45821,7 @@ def printShowMessagesThreads(users, entityType):
                         printKeyValueList(['mimeType', part['mimeType']])
                       Ind.Decrement()
                     if save_attachments:
-                      safe_file_title = attachmentName
+                      safe_file_title = cleanFilename(attachmentName)
                       filename = os.path.join(targetFolder, safe_file_title)
                       y = 0
                       while True:
