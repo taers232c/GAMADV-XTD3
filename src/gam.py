@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.24.12'
+__version__ = '5.24.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -43202,14 +43202,17 @@ def syncUserWithGroups(users):
     else:
       printEntityKVList([Ent.USER, user], [Msg.NO_CHANGES], i, count)
 
-# gam <UserTypeEntity> print groups [roles <GroupRoleList>] [domain <DomainName>] [todrive <ToDriveAttribute>*]
+# gam <UserTypeEntity> print groups [roles <GroupRoleList>] [domain <DomainName>]
+#	[countsonly] [todrive <ToDriveAttribute>*]
 # gam <UserTypeEntity> show groups [roles <GroupRoleList>] [domain <DomainName>]
+#	[countsonly]
 def printShowUserGroups(users):
   cd = buildGAPIObject(API.DIRECTORY)
   kwargs = {}
   csvPF = CSVPrintFile(['User', 'Group', 'Role', 'Status', 'Delivery'], 'sortall') if Act.csvFormat() else None
   rolesSet = set()
   allRoles = True
+  countsOnly = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -43222,12 +43225,26 @@ def printShowUserGroups(users):
           rolesSet.add(GROUP_ROLES_MAP[role])
         else:
           invalidChoiceExit(role, GROUP_ROLES_MAP, True)
+    elif myarg == 'countsonly':
+      countsOnly = True
     else:
       unknownArgumentExit()
   if not rolesSet:
     rolesSet = ALL_GROUP_ROLES
   else:
     allRoles = rolesSet - ALL_GROUP_ROLES
+  if countsOnly:
+    zeroCounts = {'User': None}
+    for role in [Ent.ROLE_MEMBER, Ent.ROLE_MANAGER, Ent.ROLE_OWNER]:
+      if role in rolesSet:
+        zeroCounts[role] = 0
+    if csvPF:
+      titles = ['User']
+      for role in [Ent.ROLE_MEMBER, Ent.ROLE_MANAGER, Ent.ROLE_OWNER]:
+        if role in rolesSet:
+          titles.append(role)
+      csvPF.SetTitles(titles)
+      csvPF.SetSortTitles([])
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -43252,6 +43269,9 @@ def printShowUserGroups(users):
         entityPerformActionNumItems([Ent.USER, user], jcount, Ent.GROUP, i, count)
       else:
         entityPerformActionModifierNumItems([Ent.USER, user], Msg.MAXIMUM_OF, jcount, Ent.GROUP, i, count)
+    if countsOnly:
+      userCounts = zeroCounts.copy()
+      userCounts['User'] = user
     Ind.Increment()
     j = 0
     for groupEntity in entityList:
@@ -43266,7 +43286,9 @@ def printShowUserGroups(users):
         status = result.get('status', 'UNKNOWN')
         delivery_settings = result.get('delivery_settings', '')
         if role in rolesSet:
-          if not csvPF:
+          if countsOnly:
+            userCounts[role] += 1
+          elif not csvPF:
             printEntity([Ent.GROUP, groupEmail, Ent.ROLE, role, Ent.STATUS, status, Ent.DELIVERY, delivery_settings], j, jcount)
           else:
             csvPF.WriteRow({'User': user, 'Group': groupEmail, 'Role': role, 'Status': status, 'Delivery': delivery_settings})
@@ -43274,6 +43296,15 @@ def printShowUserGroups(users):
         entityUnknownWarning(Ent.GROUP, groupEmail, j, jcount)
       except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], str(e), j, jcount)
+    if countsOnly:
+      if not csvPF:
+        kvList = []
+        for role in [Ent.ROLE_MEMBER, Ent.ROLE_MANAGER, Ent.ROLE_OWNER]:
+          if role in rolesSet:
+            kvList.extend([role, userCounts[role]])
+        printEntityKVList([Ent.USER, user], kvList)
+      else:
+        csvPF.WriteRow(userCounts)
     Ind.Decrement()
   if csvPF:
     csvPF.writeCSVfile('User Groups')

@@ -4635,8 +4635,10 @@ gam <UserTypeEntity> add groups ([<GroupRole>] [[delivery] <DeliverySetting>] <G
 gam <UserTypeEntity> delete groups [<GroupEntity>]
 gam <UserTypeEntity> update groups ([<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)+
 gam <UserTypeEntity> sync groups ([<GroupRole>] <GroupEntity>)+
-gam <UserTypeEntity> print groups [roles <GroupRoleList>] [domain <DomainName>] [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> print groups [roles <GroupRoleList>] [domain <DomainName>]
+        [countsonly] [todrive <ToDriveAttribute>*]
 gam <UserTypeEntity> show groups [roles <GroupRoleList>] [domain <DomainName>]
+        [countsonly]
 gam <UserTypeEntity> print groupslist [domain <DomainName>] [todrive <ToDriveAttribute>*]
         [delimiter <Character>] [quotechar <Character>]
 
