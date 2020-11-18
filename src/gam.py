@@ -2569,6 +2569,8 @@ def getGSheetData():
       getGDocSheetDataFailedExit([Ent.USER, user, Ent.SPREADSHEET, result['name'], sheetEntity['sheetType'], sheetEntity['sheetValue']], Msg.NOT_FOUND)
     spreadsheetUrl = f'{re.sub("/edit.*$", "/export", spreadsheet["spreadsheetUrl"])}?format=csv&id={fileId}&gid={sheetId}'
     f = TemporaryFile(mode='w+', encoding=UTF8)
+    if GC.Values[GC.DEBUG_LEVEL] > 0:
+      sys.stderr.write(f'Debug: spreadsheetUrl: {spreadsheetUrl}\n')
     _, content = drive._http.request(uri=spreadsheetUrl, method='GET')
     f.write(content.decode(UTF8_SIG))
     f.seek(0)
@@ -6549,15 +6551,19 @@ class CSVPrintFile():
           sheetTitle = title
         tdtime = datetime.datetime.now(GC.Values[GC.TIMEZONE])+datetime.timedelta(days=-self.todrive['daysoffset'], hours=-self.todrive['hoursoffset'])
         if self.todrive['timestamp']:
+          if title:
+            title += ' - '
           if not self.todrive['timeformat']:
-            title += ' - '+ISOformatTimeStamp(tdtime)
+            title += ISOformatTimeStamp(tdtime)
           else:
-            title += ' - '+tdtime.strftime(self.todrive['timeformat'])
+            title += tdtime.strftime(self.todrive['timeformat'])
         if self.todrive['sheettimestamp']:
+          if sheetTitle:
+            sheetTitle += ' - '
           if not self.todrive['sheettimeformat']:
-            sheetTitle += ' - '+ISOformatTimeStamp(tdtime)
+            sheetTitle += ISOformatTimeStamp(tdtime)
           else:
-            sheetTitle += ' - '+tdtime.strftime(self.todrive['sheettimeformat'])
+            sheetTitle += tdtime.strftime(self.todrive['sheettimeformat'])
         action = Act.Get()
         if not GC.Values[GC.TODRIVE_CLIENTACCESS]:
           user, drive = buildGAPIServiceObject(API.DRIVETD, self.todrive['user'])

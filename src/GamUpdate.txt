@@ -3,6 +3,10 @@
 Added option `countsonly` to `gam <UserTypeEntity> print|show groups` that causes GAM to display
 the number of groups, by role, to which a user belongs rather than listing the group details.
 
+Updated `todrive` to improve formatting of blank `tdtitle` and `tdsheet` when using `tdtimestamp true` and
+`tdsheettimestamp true`. Previously, a ` - ` followed by the timestamp was appended to the title
+resulting in something like this: ` - 2020-11-18T12.34.56Z`; now, the ` - ` is omitted.
+
 5.24.12
 
 Updated `gam <UserTypeEntity> show messages|threads saveattachments` to convert the characters `/` and `:`
