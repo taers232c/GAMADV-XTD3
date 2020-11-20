@@ -5,8 +5,8 @@ dist: xenial
 
 env:
   global:
-    - BUILD_PYTHON_VERSION=3.8.6
-    - MIN_PYTHON_VERSION=3.8.6
+    - BUILD_PYTHON_VERSION=3.9.0
+    - MIN_PYTHON_VERSION=3.9.0
     - BUILD_OPENSSL_VERSION=1.1.1h
     - MIN_OPENSSL_VERSION=1.1.1h
     - PATCHELF_VERSION=0.11
@@ -33,8 +33,6 @@ jobs:
       name: "Linux 64-bit Xenial"
       dist: xenial
       language: shell
-      env:
-        - DIST_UPGRADE=false
     - os: linux
       name: "Linux 64-bit Trusty"
       dist: trusty
