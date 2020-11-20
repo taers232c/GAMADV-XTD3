@@ -7,6 +7,8 @@ Updated `todrive` to improve formatting of blank `tdtitle` and `tdsheet` when us
 `tdsheettimestamp true`. Previously, a ` - ` followed by the timestamp was appended to the title
 resulting in something like this: ` - 2020-11-18T12.34.56Z`; now, the ` - ` is omitted.
 
+Upgraded to Python 3.9.0.
+
 5.24.12
 
 Updated `gam <UserTypeEntity> show messages|threads saveattachments` to convert the characters `/` and `:`
