@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.24.13'
+__version__ = '5.24.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1393,10 +1393,10 @@ def getREPattern(flags=0):
       return validateREPattern(patstr, flags)
   missingArgumentExit(Cmd.OB_RE_PATTERN)
 
-def getSheetEntity():
+def getSheetEntity(allowBlankSheet):
   if Cmd.ArgumentsRemaining():
     sheet = Cmd.Current()
-    if sheet:
+    if sheet or allowBlankSheet:
       cg = UID_PATTERN.match(sheet)
       if cg:
         if cg.group(1).isdigit():
@@ -5983,7 +5983,7 @@ class CSVPrintFile():
       elif myarg in self.TDSHEET_ENTITY_MAP:
         sheetEntity = self.TDSHEET_ENTITY_MAP[myarg]
         tdsheetLocation[sheetEntity] = Cmd.Location()
-        self.todrive[sheetEntity] = getSheetEntity()
+        self.todrive[sheetEntity] = getSheetEntity(True)
       elif myarg == 'tdaddsheet':
         tdaddsheetLocation = Cmd.Location()
         self.todrive['addsheet'] = getBoolean()
@@ -6030,9 +6030,13 @@ class CSVPrintFile():
       else:
         Cmd.Backup()
         break
-    if self.todrive['addsheet'] and not self.todrive['fileId']:
-      Cmd.SetLocation(tdaddsheetLocation-1)
-      missingArgumentExit('tdfileid')
+    if self.todrive['addsheet']:
+      if not self.todrive['fileId']:
+        Cmd.SetLocation(tdaddsheetLocation-1)
+        missingArgumentExit('tdfileid')
+      if self.todrive['sheetEntity'] and self.todrive['sheetEntity']['sheetId']:
+        Cmd.SetLocation(tdsheetLocation[sheetEntity]-1)
+        invalidArgumentExit('tdsheet <String>')
     if self.todrive['updatesheet'] and (not self.todrive['fileId'] or not self.todrive['sheetEntity']):
       Cmd.SetLocation(tdupdatesheetLocation-1)
       missingArgumentExit('tdfileid and tdsheet')
@@ -6544,11 +6548,14 @@ class CSVPrintFile():
                               extrasaction=extrasaction, quoting=csv.QUOTE_MINIMAL, quotechar=self.quoteChar,
                               delimiter=self.columnDelimiter, lineterminator='\n')
       if writeCSVData(writer):
-        title = self.todrive['title'] or f'{GC.Values[GC.DOMAIN]} - {list_type}'
-        if self.todrive['sheetEntity'] and self.todrive['sheetEntity']['sheetTitle']:
-          sheetTitle = self.todrive['sheetEntity']['sheetTitle']
+        if self.todrive['title'] is None or (not self.todrive['title'] and not self.todrive['timestamp']):
+          title = f'{GC.Values[GC.DOMAIN]} - {list_type}'
         else:
+          title = self.todrive['title']
+        if self.todrive['sheetEntity'] is None or (not self.todrive['sheetEntity']['sheetTitle'] and not self.todrive['sheettimestamp']):
           sheetTitle = title
+        else:
+          sheetTitle = self.todrive['sheetEntity']['sheetTitle']
         tdtime = datetime.datetime.now(GC.Values[GC.TIMEZONE])+datetime.timedelta(days=-self.todrive['daysoffset'], hours=-self.todrive['hoursoffset'])
         if self.todrive['timestamp']:
           if title:
