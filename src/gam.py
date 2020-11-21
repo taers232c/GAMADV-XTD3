@@ -2542,7 +2542,7 @@ def getGDocData(mimeType):
 def getGSheetData():
   user = getEmailAddress()
   fileIdEntity = getDriveFileEntity(queryShortcutsOK=False)
-  sheetEntity = getSheetEntity()
+  sheetEntity = getSheetEntity(False)
   user, drive, jcount = _validateUserGetFileIDs(user, 0, 0, fileIdEntity)
   if not drive:
     sys.exit(GM.Globals[GM.SYSEXITRC])
@@ -38230,7 +38230,7 @@ def updateDriveFile(users):
     elif getDriveFileAddRemoveParentAttribute(myarg, parameters):
       pass
     elif myarg in {'gsheet', 'csvsheet'}:
-      sheetEntity = getSheetEntity()
+      sheetEntity = getSheetEntity(False)
     elif myarg == 'charset':
       encoding = getString(Cmd.OB_CHAR_SET)
     elif myarg == 'columndelimiter':
@@ -39594,7 +39594,7 @@ def getDriveFile(users):
     elif myarg == 'revision':
       revisionId = getString(Cmd.OB_DRIVE_FILE_REVISION_ID)
     elif myarg in {'gsheet', 'csvsheet'}:
-      sheetEntity = getSheetEntity()
+      sheetEntity = getSheetEntity(False)
     elif myarg == 'exportsheetaspdf':
       exportSheetAsPDF = getString(Cmd.OB_STRING, minLen=0)
     elif myarg == 'nocache':
