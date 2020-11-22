@@ -79,23 +79,27 @@ CONTACT_MAX_RESULTS = 'contact_max_results'
 CSV_INPUT_COLUMN_DELIMITER = 'csv_input_column_delimiter'
 # Quote character in CSV input file
 CSV_INPUT_QUOTE_CHAR = 'csv_input_quote_char'
+# Filter for input column values
+CSV_INPUT_ROW_FILTER = 'csv_input_row_filter'
+# Filter for input column drop values
+CSV_INPUT_ROW_DROP_FILTER = 'csv_input_row_drop_filter'
 # Convert newlines in text fields to "\n" in CSV output file
 CSV_OUTPUT_CONVERT_CR_NL = 'csv_output_convert_cr_nl'
 # Column delimiter in CSV output file
 CSV_OUTPUT_COLUMN_DELIMITER = 'csv_output_column_delimiter'
 # Field list delimiter in CSV output file
 CSV_OUTPUT_FIELD_DELIMITER = 'csv_output_field_delimiter'
-# Filter for column headers
+# Filter for output column headers
 CSV_OUTPUT_HEADER_FILTER = 'csv_output_header_filter'
-# Filter for column headers to drop
+# Filter for output column headers to drop
 CSV_OUTPUT_HEADER_DROP_FILTER = 'csv_output_header_drop_filter'
 # Line terminator in CSV output file
 CSV_OUTPUT_LINE_TERMINATOR = 'csv_output_line_terminator'
 # Quote character in CSV output file
 CSV_OUTPUT_QUOTE_CHAR = 'csv_output_quote_char'
-# Filter for column values
+# Filter for output column values
 CSV_OUTPUT_ROW_FILTER = 'csv_output_row_filter'
-# Filter for column drop values
+# Filter for output column drop values
 CSV_OUTPUT_ROW_DROP_FILTER = 'csv_output_row_drop_filter'
 # Output rows for users even if they do not have the print object (delegate, filters, ...)
 CSV_OUTPUT_USERS_AUDIT = 'csv_output_users_audit'
@@ -232,6 +236,8 @@ Defaults = {
   CONTACT_MAX_RESULTS: '100',
   CSV_INPUT_COLUMN_DELIMITER: ',',
   CSV_INPUT_QUOTE_CHAR: '\'"\'',
+  CSV_INPUT_ROW_FILTER: '',
+  CSV_INPUT_ROW_DROP_FILTER: '',
   CSV_OUTPUT_COLUMN_DELIMITER: ',',
   CSV_OUTPUT_CONVERT_CR_NL: FALSE,
   CSV_OUTPUT_FIELD_DELIMITER: u"' '",
@@ -346,6 +352,8 @@ VAR_INFO = {
   CONTACT_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (1, 10000)},
   CSV_INPUT_COLUMN_DELIMITER: {VAR_TYPE: TYPE_CHARACTER},
   CSV_INPUT_QUOTE_CHAR: {VAR_TYPE: TYPE_CHARACTER},
+  CSV_INPUT_ROW_FILTER: {VAR_TYPE: TYPE_ROWFILTER},
+  CSV_INPUT_ROW_DROP_FILTER: {VAR_TYPE: TYPE_ROWFILTER},
   CSV_OUTPUT_COLUMN_DELIMITER: {VAR_TYPE: TYPE_CHARACTER},
   CSV_OUTPUT_CONVERT_CR_NL: {VAR_TYPE: TYPE_BOOLEAN},
   CSV_OUTPUT_FIELD_DELIMITER: {VAR_TYPE: TYPE_CHARACTER},

@@ -1,3 +1,10 @@
+5.25.00
+
+Added `csv_input_row_filter` and `csv_input_row_drop_filter` to `gam.cfg` to allow CSV row filtering of input
+CSV Files.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/CSV-Input-Filtering#column-row-filtering
+
 5.24.14
 
 Fixed error that didn't allow blank `tdsheet`.

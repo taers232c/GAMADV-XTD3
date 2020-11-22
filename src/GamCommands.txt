@@ -843,10 +843,16 @@ verify
     Print the variable values for the selected section
     Values are determined in this order: Selected section, DEFAULT section, Program default
 
-## Select a filter section from gam.cfg and process a GAM command using values from that section
-The only <VariableName>s recognized in this <Section> are: csv_output_header_filter, csv_output_header_drop_filter and csv_output_row_filter.
-<SelectFilter> ::=
-        selectfilter <Section>
+## Select an output filter section from gam.cfg and process a GAM command using values from that section
+The only <VariableName>s recognized in this <Section> are: csv_output_header_filter, csv_output_header_drop_filter,
+csv_output_row_filter and csv_output_row_drop_filter.
+<SelectOutputFilter> ::=
+        selectfilter|selectoutputfilter <Section>
+
+## Select an input filter section from gam.cfg and process a GAM command using values from that section
+The only <VariableName>s recognized in this <Section> are: csv_input_row_filter and csv_input_row_drop_filter.
+<SelectInputFilter> ::=
+        selectinputfilter <Section>
 
 ## Set variables in gam.cfg.
 
@@ -876,11 +882,11 @@ For redirect csv, the optional arguments must appear in the order shown.
         redirect stderr null [multiprocess] |
         redirect stderr stdout [multiprocess]
 
-<Select> <SelectFilter> <Config> <Redirect> must come before all other arguments and in this order,  ... indicates that additional GAM arguments may appear.
+<Select> <SelectInputFilter> <SelectOutputFilter> <Config> <Redirect> must come before all other arguments and in this order,  ... indicates that additional GAM arguments may appear.
 
-gam [<Select>] [<SelectFilter>] [<Config>] [<Redirect>] ...
+gam [<Select>] [<SelectFInputFilter>] [<SelectOutputilter>] [<Config>] [<Redirect>] ...
 
-<Select> <SelectFilter> <Config> <Redirect>] will not be shown in the following command descriptions but can be used with any Gam command.
+<Select> <SelectInputFilter> <SelectOutputFilter> <Config> <Redirect>] will not be shown in the following command descriptions but can be used with any Gam command.
 
 # Version and Help
 
@@ -1044,19 +1050,19 @@ gam audit monitor list <EmailAddress>
 <CalendarACLScopeList> ::= "<CalendarACLScope>(,<CalendarACLScope>)*"
 <CalendarACLScopeEntity>::= <CalendarACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
-gam calendar|calendars <CalendarEntity> create|add acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
-gam calendar|calendars <CalendarEntity> update acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
-gam calendar|calendars <CalendarEntity> delete acls|calendaracls [<CalendarACLRole>] <CalendarACLScopeEntity>
-gam calendar|calendars <CalendarEntity> info acls|calendaracls <CalendarACLScopeEntity> [formatjson]
+gam calendars <CalendarEntity> create|add acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
+gam calendars <CalendarEntity> update acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
+gam calendars <CalendarEntity> delete acls|calendaracls [<CalendarACLRole>] <CalendarACLScopeEntity>
+gam calendars <CalendarEntity> info acls|calendaracls <CalendarACLScopeEntity> [formatjson]
 
-gam calendar|calendars <CalendarEntity> show acls|calendaracls [formatjson]
-gam calendar|calendars <CalendarEntity> print acls|calendaracls [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
+gam calendars <CalendarEntity> show acls|calendaracls [formatjson]
+gam calendars <CalendarEntity> print acls|calendaracls [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
 
-gam calendar|calendars <CalendarEntity> create|add <CalendarACLRole> ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default [sendnotifications <Boolean>]
-gam calendar|calendars <CalendarEntity> update <CalendarACLRole> ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default [sendnotifications <Boolean>]
-gam calendar|calendars <CalendarEntity> delete [<CalendarACLRole>] ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default
-gam calendar|calendars <CalendarEntity> showacl [formatjson]
-gam calendar|calendars <CalendarEntity> printacl [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
+gam calendar <CalendarEntity> create|add <CalendarACLRole> ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default [sendnotifications <Boolean>]
+gam calendar <CalendarEntity> update <CalendarACLRole> ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default [sendnotifications <Boolean>]
+gam calendar <CalendarEntity> delete [<CalendarACLRole>] ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default
+gam calendar <CalendarEntity> showacl [formatjson]
+gam calendar <CalendarEntity> printacl [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
 
 <AttendeeAttendance> ::= optional|required
 <AttendeeStatus> ::= accepted|declined|needsaction|tentative

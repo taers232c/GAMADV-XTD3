@@ -41,17 +41,21 @@ CSV_DATA_DICT = 'csdd'
 CSV_KEY_FIELD = 'cskf'
 CSV_SUBKEY_FIELD = 'cssk'
 CSV_DATA_FIELD = 'csdf'
+# Filter for input column values
+CSV_INPUT_ROW_FILTER = 'corf'
+# Filter for input column drop values
+CSV_INPUT_ROW_DROP_FILTER = 'cord'
 # Column delimiter in CSV output file
 CSV_OUTPUT_COLUMN_DELIMITER = 'codl'
 # Quote character in CSV output file
 CSV_OUTPUT_QUOTE_CHAR = 'coqc'
-# Filter for column headers
+# Filter for output column headers
 CSV_OUTPUT_HEADER_FILTER = 'cohf'
-# Filter for column headers to drop
+# Filter for output column headers to drop
 CSV_OUTPUT_HEADER_DROP_FILTER = 'cohd'
-# Filter for column values
+# Filter for output column values
 CSV_OUTPUT_ROW_FILTER = 'corf'
-# Filter for column drop values
+# Filter for output column drop values
 CSV_OUTPUT_ROW_DROP_FILTER = 'cord'
 # Current API services
 CURRENT_API_SERVICES = 'caps'
@@ -172,6 +176,8 @@ Globals = {
   CSV_KEY_FIELD: None,
   CSV_SUBKEY_FIELD: None,
   CSV_DATA_FIELD: None,
+  CSV_INPUT_ROW_FILTER: [],
+  CSV_INPUT_ROW_DROP_FILTER: [],
   CSV_OUTPUT_COLUMN_DELIMITER: None,
   CSV_OUTPUT_QUOTE_CHAR: None,
   CSV_OUTPUT_HEADER_FILTER: [],

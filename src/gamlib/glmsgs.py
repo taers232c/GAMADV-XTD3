@@ -48,6 +48,7 @@ BATCH_CSV_LOOP_DASH_DEBUG_INCOMPATIBLE = '"gam {0} - ..." is not compatible with
 BATCH_NOT_PROCESSED_ERRORS = '{0}batch file: {1}, not processed, {2} {3}\n'
 CAN_NOT_BE_DOWNLOADED = 'Can not be downloaded'
 CAN_NOT_BE_SPECIFIED_MORE_THAN_ONCE = 'Argument {0} can not be specified more than once'
+COLUMN_DOES_NOT_MATCH_ANY_INPUT_COLUMNS = '{0} column "{1}" does not match any input columns'
 COLUMN_DOES_NOT_MATCH_ANY_OUTPUT_COLUMNS = '{0} column "{1}" does not match any output columns'
 COMMAND_NOT_COMPATIBLE_WITH_ENABLE_DASA = 'gam {0} {1} is not compatible with enable_dasa = true in gam.cfg'
 COMMIT_BATCH_COMPLETE = '{0},0,commit-batch - running {1} finished, proceeding\n'

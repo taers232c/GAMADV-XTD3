@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.24.14'
+__version__ = '5.25.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1865,13 +1865,15 @@ def getMatchSkipFields(fieldNames):
       break
   return (matchFields, skipFields)
 
-def checkMatchSkipFields(row, matchFields, skipFields):
+def checkMatchSkipFields(row, fieldnames, matchFields, skipFields):
   for matchField, matchPattern in iter(matchFields.items()):
     if (matchField not in row) or not matchPattern.search(row[matchField]):
       return False
   for skipField, matchPattern in iter(skipFields.items()):
     if (skipField in row) and matchPattern.search(row[skipField]):
       return False
+  if fieldnames and (GC.Values[GC.CSV_INPUT_ROW_FILTER] or GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER]):
+    return RowFilterMatch(row, fieldnames, GC.Values[GC.CSV_INPUT_ROW_FILTER], GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER])
   return True
 
 def checkSubkeyField():
@@ -3137,7 +3139,7 @@ def SetGlobalVariables():
       _readGamCfgFile(GM.Globals[GM.PARSER], GM.Globals[GM.GAM_CFG_FILE])
     GM.Globals[GM.LAST_UPDATE_CHECK_TXT] = os.path.join(_getCfgDirectory(configparser.DEFAULTSECT, GC.CONFIG_DIR), FN_LAST_UPDATE_CHECK_TXT)
   status = {'errors': False}
-  filterSectionName = None
+  inputFilterSectionName = outputFilterSectionName = None
   GM.Globals[GM.GAM_CFG_SECTION] = os.environ.get(EV_GAMCFGSECTION, None)
   if GM.Globals[GM.GAM_CFG_SECTION]:
     sectionName = GM.Globals[GM.GAM_CFG_SECTION]
@@ -3162,9 +3164,15 @@ def SetGlobalVariables():
         else:
           break
   GM.Globals[GM.GAM_CFG_SECTION_NAME] = sectionName
-# selectfilter <SectionName>
-  if checkArgumentPresent(Cmd.SELECTFILTER_CMD):
-    filterSectionName = _selectSection()
+# selectfilter|selectoutputfilter|selectinputfilter <SectionName>
+  while True:
+    filterCommand = getChoice([Cmd.SELECTFILTER_CMD, Cmd.SELECTOUTPUTFILTER_CMD, Cmd.SELECTINPUTFILTER_CMD], defaultChoice=None)
+    if filterCommand is None:
+      break
+    if filterCommand != Cmd.SELECTINPUTFILTER_CMD:
+      outputFilterSectionName = _selectSection()
+    else:
+      inputFilterSectionName = _selectSection()
 # Handle todrive_nobrowser and todrive_noemail if not present
   value = GM.Globals[GM.PARSER].get(configparser.DEFAULTSECT, GC.TODRIVE_NOBROWSER)
   if value == '':
@@ -3251,12 +3259,15 @@ def SetGlobalVariables():
       GC.Values[itemName] = _getCfgString(sectionName, itemName)
     elif varType == GC.TYPE_FILE:
       GC.Values[itemName] = _getCfgFile(sectionName, itemName)
-# Process selectfilter
-  if filterSectionName:
-    GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] = _getCfgHeaderFilter(filterSectionName, GC.CSV_OUTPUT_HEADER_FILTER)
-    GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER] = _getCfgHeaderFilter(filterSectionName, GC.CSV_OUTPUT_HEADER_DROP_FILTER)
-    GC.Values[GC.CSV_OUTPUT_ROW_FILTER] = _getCfgRowFilter(filterSectionName, GC.CSV_OUTPUT_ROW_FILTER)
-    GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER] = _getCfgRowFilter(filterSectionName, GC.CSV_OUTPUT_ROW_DROP_FILTER)
+# Process selectfilter|selectoutputfilter|selectinputfilter
+  if inputFilterSectionName:
+    GC.Values[GC.CSV_INPUT_ROW_FILTER] = _getCfgRowFilter(inputFilterSectionName, GC.CSV_INPUT_ROW_FILTER)
+    GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER] = _getCfgRowFilter(inputFilterSectionName, GC.CSV_INPUT_ROW_DROP_FILTER)
+  if outputFilterSectionName:
+    GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] = _getCfgHeaderFilter(outputFilterSectionName, GC.CSV_OUTPUT_HEADER_FILTER)
+    GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER] = _getCfgHeaderFilter(outputFilterSectionName, GC.CSV_OUTPUT_HEADER_DROP_FILTER)
+    GC.Values[GC.CSV_OUTPUT_ROW_FILTER] = _getCfgRowFilter(outputFilterSectionName, GC.CSV_OUTPUT_ROW_FILTER)
+    GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER] = _getCfgRowFilter(outputFilterSectionName, GC.CSV_OUTPUT_ROW_DROP_FILTER)
   if status['errors']:
     sys.exit(CONFIG_ERROR_RC)
 # Global values cleanup
@@ -3342,8 +3353,12 @@ def SetGlobalVariables():
   if not GC.Values[GC.NO_UPDATE_CHECK]:
     doGAMCheckForUpdates(0)
   initAPICallsRateCheck()
-# Inherit csv_output_header_filter/csv_output_row_filter if not locally defined
+# Inherit csv_input_row_filter/csv_output_header_filter/csv_output_row_filter if not locally defined
   if GM.Globals[GM.PID] != 0:
+    if not GC.Values[GC.CSV_INPUT_ROW_FILTER]:
+      GC.Values[GC.CSV_INPUT_ROW_FILTER] = GM.Globals[GM.CSV_INPUT_ROW_FILTER][:]
+    if not GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER]:
+      GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER] = GM.Globals[GM.CSV_INPUT_ROW_DROP_FILTER][:]
     if not GC.Values[GC.CSV_OUTPUT_HEADER_FILTER]:
       GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] = GM.Globals[GM.CSV_OUTPUT_HEADER_FILTER][:]
     if not GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER]:
@@ -5252,7 +5267,7 @@ def getEntitiesFromCSVFile(shlexSplit):
   i = 1
   for row in csvFile:
     i += 1
-    if checkMatchSkipFields(row, matchFields, skipFields):
+    if checkMatchSkipFields(row, None, matchFields, skipFields):
       for fieldName in fileFieldNameList[1:]:
         if shlexSplit:
           splitStatus, itemList = splitEntityListShlex(row[fieldName].strip(), dataDelimiter)
@@ -5297,7 +5312,7 @@ def getEntitiesFromCSVbyField():
     item = row[keyField].strip()
     if not item:
       return []
-    if not checkMatchSkipFields(row, matchFields, skipFields):
+    if not checkMatchSkipFields(row, None, matchFields, skipFields):
       return []
     if keyPattern:
       keyList = [keyPattern.sub(keyValue, keyItem.strip()) for keyItem in splitEntityList(item, keyDelimiter)]
@@ -5733,6 +5748,187 @@ def _addInitialField(fieldsList, initialField):
     fieldsList.extend(initialField)
   else:
     fieldsList.append(initialField)
+
+def CheckInputRowFilterHeaders(titlesList, rowFilter, rowDropFilter):
+  status = True
+  for filterVal in rowFilter:
+    columns = [t for t in titlesList if filterVal[0].match(t)]
+    if not columns:
+      stderrErrorMsg(Msg.COLUMN_DOES_NOT_MATCH_ANY_INPUT_COLUMNS.format(GC.CSV_INPUT_ROW_FILTER, filterVal[0].pattern))
+      status = False
+  for filterVal in rowDropFilter:
+    columns = [t for t in titlesList if filterVal[0].match(t)]
+    if not columns:
+      stderrErrorMsg(Msg.COLUMN_DOES_NOT_MATCH_ANY_INPUT_COLUMNS.format(GC.CSV_INPUT_ROW_DROP_FILTER, filterVal[0].pattern))
+      status = False
+  if not status:
+    sys.exit(USAGE_ERROR_RC)
+
+def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
+  def rowRegexFilterMatch(filterPattern):
+    for column in columns:
+      if filterPattern.search(str(row.get(column, ''))):
+        return True
+    return False
+
+  def rowNotRegexFilterMatch(filterPattern):
+    for column in columns:
+      if filterPattern.search(str(row.get(column, ''))):
+        return False
+    return True
+
+  def stripTimeFromDateTime(rowDate):
+    if YYYYMMDD_PATTERN.match(rowDate):
+      try:
+        rowTime = datetime.datetime.strptime(rowDate, YYYYMMDD_FORMAT)
+      except ValueError:
+        return None
+      tz = GC.Values[GC.TIMEZONE]
+    else:
+      try:
+        rowTime, tz = iso8601.parse_date(rowDate)
+      except (iso8601.ParseError, OverflowError):
+        return None
+    return ISOformatTimeStamp(datetime.datetime(rowTime.year, rowTime.month, rowTime.day, tzinfo=tz))
+
+  def rowDateTimeFilterMatch(dateMode, op, filterDate):
+    def checkMatch(rowDate):
+      if not rowDate or not isinstance(rowDate, str):
+        return False
+      if rowDate == GC.Values[GC.NEVER_TIME]:
+        rowDate = NEVER_TIME
+      if dateMode:
+        rowDate = stripTimeFromDateTime(rowDate)
+        if not rowDate:
+          return False
+      if op == '<':
+        return rowDate < filterDate
+      if op == '<=':
+        return rowDate <= filterDate
+      if op == '>':
+        return rowDate > filterDate
+      if op == '>=':
+        return rowDate >= filterDate
+      if op == '!=':
+        return rowDate != filterDate
+      return rowDate == filterDate
+
+    for column in columns:
+      if checkMatch(row.get(column, '')):
+        return True
+    return False
+
+  def rowDateTimeRangeFilterMatch(dateMode, op, filterDateL, filterDateR):
+    def checkMatch(rowDate):
+      if not rowDate or not isinstance(rowDate, str):
+        return False
+      if rowDate == GC.Values[GC.NEVER_TIME]:
+        rowDate = NEVER_TIME
+      if dateMode:
+        rowDate = stripTimeFromDateTime(rowDate)
+        if not rowDate:
+          return False
+      if op == '!=':
+        return not filterDateL <= rowDate <= filterDateR
+      return filterDateL <= rowDate <= filterDateR
+
+    for column in columns:
+      if checkMatch(row.get(column, '')):
+        return True
+    return False
+
+  def rowCountFilterMatch(op, filterCount):
+    def checkMatch(rowCount):
+      if isinstance(rowCount, str):
+        if not rowCount.isdigit():
+          return False
+        rowCount = int(rowCount)
+      elif not isinstance(rowCount, int):
+        return False
+      if op == '<':
+        return rowCount < filterCount
+      if op == '<=':
+        return rowCount <= filterCount
+      if op == '>':
+        return rowCount > filterCount
+      if op == '>=':
+        return rowCount >= filterCount
+      if op == '!=':
+        return rowCount != filterCount
+      return rowCount == filterCount
+
+    for column in columns:
+      if checkMatch(row.get(column, 0)):
+        return True
+    return False
+
+  def rowCountRangeFilterMatch(op, filterCountL, filterCountR):
+    def checkMatch(rowCount):
+      if isinstance(rowCount, str):
+        if not rowCount.isdigit():
+          return False
+        rowCount = int(rowCount)
+      elif not isinstance(rowCount, int):
+        return False
+      if op == '!=':
+        return not filterCountL <= rowCount <= filterCountR
+      return filterCountL <= rowCount <= filterCountR
+
+    for column in columns:
+      if checkMatch(row.get(column, 0)):
+        return True
+    return False
+
+  def rowBooleanFilterMatch(filterBoolean):
+    def checkMatch(rowBoolean):
+      if isinstance(rowBoolean, bool):
+        return rowBoolean == filterBoolean
+      if isinstance(rowBoolean, str) and rowBoolean.lower() in TRUE_FALSE:
+        return rowBoolean.capitalize() == str(filterBoolean)
+      return False
+
+    for column in columns:
+      if checkMatch(row.get(column, False)):
+        return True
+    return False
+
+  def filterMatch(filterVal):
+    if filterVal[1] == 'regex':
+      if rowRegexFilterMatch(filterVal[2]):
+        return True
+    elif filterVal[1] == 'notregex':
+      if rowNotRegexFilterMatch(filterVal[2]):
+        return True
+    elif filterVal[1] in {'date', 'time'}:
+      if rowDateTimeFilterMatch(filterVal[1] == 'date', filterVal[2], filterVal[3]):
+        return True
+    elif filterVal[1] in {'daterange', 'timerange'}:
+      if rowDateTimeRangeFilterMatch(filterVal[1] == 'date', filterVal[2], filterVal[3], filterVal[4]):
+        return True
+    elif filterVal[1] == 'count':
+      if rowCountFilterMatch(filterVal[2], filterVal[3]):
+        return True
+    elif filterVal[1] == 'countrange':
+      if rowCountRangeFilterMatch(filterVal[2], filterVal[3], filterVal[4]):
+        return True
+    else: #boolean
+      if rowBooleanFilterMatch(filterVal[2]):
+        return True
+    return False
+
+  for filterVal in rowFilter:
+    columns = [t for t in titlesList if filterVal[0].match(t)]
+    if not columns:
+      columns = [None]
+    if not filterMatch(filterVal):
+      return False
+  for filterVal in rowDropFilter:
+    columns = [t for t in titlesList if filterVal[0].match(t)]
+    if not columns:
+      columns = [None]
+    if filterMatch(filterVal):
+      return False
+  return True
 
 # myarg is command line argument
 # fieldChoiceMap maps myarg to API field names
@@ -6240,184 +6436,18 @@ class CSVPrintFile():
   def SetRowDropFilter(self, rowDropFilter):
     self.rowDropFilter = rowDropFilter
 
-  def RowFilterMatch(self, row):
-    def rowRegexFilterMatch(filterPattern):
-      for column in columns:
-        if filterPattern.search(str(row.get(column, ''))):
-          return True
-      return False
-
-    def rowNotRegexFilterMatch(filterPattern):
-      for column in columns:
-        if filterPattern.search(str(row.get(column, ''))):
-          return False
-      return True
-
-    def stripTimeFromDateTime(rowDate):
-      if YYYYMMDD_PATTERN.match(rowDate):
-        try:
-          rowTime = datetime.datetime.strptime(rowDate, YYYYMMDD_FORMAT)
-        except ValueError:
-          return None
-        tz = GC.Values[GC.TIMEZONE]
-      else:
-        try:
-          rowTime, tz = iso8601.parse_date(rowDate)
-        except (iso8601.ParseError, OverflowError):
-          return None
-      return ISOformatTimeStamp(datetime.datetime(rowTime.year, rowTime.month, rowTime.day, tzinfo=tz))
-
-    def rowDateTimeFilterMatch(dateMode, op, filterDate):
-      def checkMatch(rowDate):
-        if not rowDate or not isinstance(rowDate, str):
-          return False
-        if rowDate == GC.Values[GC.NEVER_TIME]:
-          rowDate = NEVER_TIME
-        if dateMode:
-          rowDate = stripTimeFromDateTime(rowDate)
-          if not rowDate:
-            return False
-        if op == '<':
-          return rowDate < filterDate
-        if op == '<=':
-          return rowDate <= filterDate
-        if op == '>':
-          return rowDate > filterDate
-        if op == '>=':
-          return rowDate >= filterDate
-        if op == '!=':
-          return rowDate != filterDate
-        return rowDate == filterDate
-
-      for column in columns:
-        if checkMatch(row.get(column, '')):
-          return True
-      return False
-
-    def rowDateTimeRangeFilterMatch(dateMode, op, filterDateL, filterDateR):
-      def checkMatch(rowDate):
-        if not rowDate or not isinstance(rowDate, str):
-          return False
-        if rowDate == GC.Values[GC.NEVER_TIME]:
-          rowDate = NEVER_TIME
-        if dateMode:
-          rowDate = stripTimeFromDateTime(rowDate)
-          if not rowDate:
-            return False
-        if op == '!=':
-          return not filterDateL <= rowDate <= filterDateR
-        return filterDateL <= rowDate <= filterDateR
-
-      for column in columns:
-        if checkMatch(row.get(column, '')):
-          return True
-      return False
-
-    def rowCountFilterMatch(op, filterCount):
-      def checkMatch(rowCount):
-        if isinstance(rowCount, str):
-          if not rowCount.isdigit():
-            return False
-          rowCount = int(rowCount)
-        elif not isinstance(rowCount, int):
-          return False
-        if op == '<':
-          return rowCount < filterCount
-        if op == '<=':
-          return rowCount <= filterCount
-        if op == '>':
-          return rowCount > filterCount
-        if op == '>=':
-          return rowCount >= filterCount
-        if op == '!=':
-          return rowCount != filterCount
-        return rowCount == filterCount
-
-      for column in columns:
-        if checkMatch(row.get(column, 0)):
-          return True
-      return False
-
-    def rowCountRangeFilterMatch(op, filterCountL, filterCountR):
-      def checkMatch(rowCount):
-        if isinstance(rowCount, str):
-          if not rowCount.isdigit():
-            return False
-          rowCount = int(rowCount)
-        elif not isinstance(rowCount, int):
-          return False
-        if op == '!=':
-          return not filterCountL <= rowCount <= filterCountR
-        return filterCountL <= rowCount <= filterCountR
-
-      for column in columns:
-        if checkMatch(row.get(column, 0)):
-          return True
-      return False
-
-    def rowBooleanFilterMatch(filterBoolean):
-      def checkMatch(rowBoolean):
-        if isinstance(rowBoolean, bool):
-          return rowBoolean == filterBoolean
-        if isinstance(rowBoolean, str) and rowBoolean.lower() in TRUE_FALSE:
-          return rowBoolean.capitalize() == str(filterBoolean)
-        return False
-
-      for column in columns:
-        if checkMatch(row.get(column, False)):
-          return True
-      return False
-
-    def filterMatch(filterVal):
-      if filterVal[1] == 'regex':
-        if rowRegexFilterMatch(filterVal[2]):
-          return True
-      elif filterVal[1] == 'notregex':
-        if rowNotRegexFilterMatch(filterVal[2]):
-          return True
-      elif filterVal[1] in {'date', 'time'}:
-        if rowDateTimeFilterMatch(filterVal[1] == 'date', filterVal[2], filterVal[3]):
-          return True
-      elif filterVal[1] in {'daterange', 'timerange'}:
-        if rowDateTimeRangeFilterMatch(filterVal[1] == 'date', filterVal[2], filterVal[3], filterVal[4]):
-          return True
-      elif filterVal[1] == 'count':
-        if rowCountFilterMatch(filterVal[2], filterVal[3]):
-          return True
-      elif filterVal[1] == 'countrange':
-        if rowCountRangeFilterMatch(filterVal[2], filterVal[3], filterVal[4]):
-          return True
-      else: #boolean
-        if rowBooleanFilterMatch(filterVal[2]):
-          return True
-      return False
-
-    for filterVal in self.rowFilter:
-      columns = [t for t in self.titlesList if filterVal[0].match(t)]
-      if not columns:
-        columns = [None]
-      if not filterMatch(filterVal):
-        return False
-    for filterVal in self.rowDropFilter:
-      columns = [t for t in self.titlesList if filterVal[0].match(t)]
-      if not columns:
-        columns = [None]
-      if filterMatch(filterVal):
-        return False
-    return True
-
   def WriteRowNoFilter(self, row):
     self.rows.append(row)
 
   def WriteRow(self, row):
-    if self.RowFilterMatch(row):
+    if RowFilterMatch(row, self.titlesList, self.rowFilter, self.rowDropFilter):
       self.rows.append(row)
 
   def WriteRowTitles(self, row):
     for title in row:
       if title not in self.titlesSet:
         self.AddTitle(title)
-    if self.RowFilterMatch(row):
+    if RowFilterMatch(row, self.titlesList, self.rowFilter, self.rowDropFilter):
       self.rows.append(row)
 
   def WriteRowTitlesNoFilter(self, row):
@@ -6438,13 +6468,13 @@ class CSVPrintFile():
     for title in row:
       if title not in self.titlesSet:
         self.AddTitle(title)
-    return self.RowFilterMatch(row)
+    return RowFilterMatch(row, self.titlesList, self.rowFilter, self.rowDropFilter)
 
   def UpdateMimeTypeCounts(self, row, mimeTypeCounts):
     for title in row:
       if title not in self.titlesSet:
         self.AddTitle(title)
-    if self.RowFilterMatch(row):
+    if RowFilterMatch(row, self.titlesList, self.rowFilter, self.rowDropFilter):
       mimeTypeCounts.setdefault(row['mimeType'], 0)
       mimeTypeCounts[row['mimeType']] += 1
 
@@ -6457,7 +6487,7 @@ class CSVPrintFile():
         if title not in self.sortTitlesSet and title not in row:
           row[title] = 0
 
-  def CheckRowFilterHeaders(self):
+  def CheckOutputRowFilterHeaders(self):
     for filterVal in self.rowFilter:
       columns = [t for t in self.titlesList if filterVal[0].match(t)]
       if not columns:
@@ -6764,7 +6794,7 @@ class CSVPrintFile():
     if self.zeroBlankMimeTypeCounts:
       self.ZeroBlankMimeTypeCounts()
     if self.rowFilter or self.rowDropFilter:
-      self.CheckRowFilterHeaders()
+      self.CheckOutputRowFilterHeaders()
     if self.headerFilter or self.headerDropFilter:
       if not self.formatJSON:
         self.FilterHeaders()
@@ -7741,9 +7771,11 @@ def doCSV(testMode=False):
   if GM.Globals[GM.SECTION] and not GM.Globals[GM.GAM_CFG_SECTION] and not Cmd.PeekArgumentPresent(Cmd.SELECT_CMD):
     initial_argv.extend([Cmd.SELECT_CMD, GM.Globals[GM.SECTION]])
   GAM_argv, subFields = getSubFields(initial_argv, fieldnames)
+  if GC.Values[GC.CSV_INPUT_ROW_FILTER] or GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER]:
+    CheckInputRowFilterHeaders(fieldnames, GC.Values[GC.CSV_INPUT_ROW_FILTER], GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER])
   items = []
   for row in csvFile:
-    if checkMatchSkipFields(row, matchFields, skipFields):
+    if checkMatchSkipFields(row, fieldnames, matchFields, skipFields):
       items.append(processSubFields(GAM_argv, row, subFields))
   closeFile(f)
   if not testMode:
@@ -42302,7 +42334,7 @@ def createTeamDrive(users, useDomainAdminAccess=False):
         teamdrive = callGAPI(drive.drives(), 'create',
                              bailOnTransientError=True,
                              throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TRANSIENT_ERROR, GAPI.TEAMDRIVE_ALREADY_EXISTS,
-                                                                         GAPI.DUPLICATE, GAPI.BAD_REQUEST],
+                                                                         GAPI.INSUFFICIENT_PERMISSIONS, GAPI.DUPLICATE, GAPI.BAD_REQUEST],
                              requestId=requestId, body=body, fields='id')
         teamDriveId = teamdrive['id']
         if returnIdOnly:
@@ -42322,7 +42354,7 @@ def createTeamDrive(users, useDomainAdminAccess=False):
       except GAPI.duplicate:
         entityActionFailedWarning([Ent.USER, user, Ent.REQUEST_ID, requestId], Msg.DUPLICATE, i, count)
         break
-      except (GAPI.badRequest) as e:
+      except (GAPI.insufficientPermissions, GAPI.badRequest) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.REQUEST_ID, requestId], str(e), i, count)
         break
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -49091,6 +49123,8 @@ def doLoop():
   checkArgumentPresent(Cmd.GAM_CMD, required=True)
   if not Cmd.ArgumentsRemaining():
     missingArgumentExit(Cmd.OB_GAM_ARGUMENT_LIST)
+  if GC.Values[GC.CSV_INPUT_ROW_FILTER] or GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER]:
+    CheckInputRowFilterHeaders(fieldnames, GC.Values[GC.CSV_INPUT_ROW_FILTER], GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER])
   choice = Cmd.Current().strip().lower()
   if choice == Cmd.LOOP_CMD:
     usageErrorExit(Msg.NESTED_LOOP_CMD_NOT_ALLOWED)
@@ -49107,7 +49141,7 @@ def doLoop():
     mpQueue = None
   GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = mpQueue
   for row in csvFile:
-    if checkMatchSkipFields(row, matchFields, skipFields):
+    if checkMatchSkipFields(row, fieldnames, matchFields, skipFields):
       ProcessGAMCommand(processSubFields(GAM_argv, row, subFields), processGamCfg=processGamCfg, inLoop=True)
       if (GM.Globals[GM.SYSEXITRC] > 0) and (GM.Globals[GM.SYSEXITRC] <= HARD_ERROR_RC):
         break
