@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.25.00'
+__version__ = '5.25.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -10426,7 +10426,9 @@ def doReport():
             for event in events:
               for item in event.get('parameters', []):
                 itemSet = set(item)
-                if not itemSet.symmetric_difference({'value', 'name'}):
+                if not itemSet.symmetric_difference({'name'}):
+                  event[item['name']] = ''
+                elif not itemSet.symmetric_difference({'value', 'name'}):
                   event[item['name']] = NL_SPACES_PATTERN.sub('', item['value'])
                 elif not itemSet.symmetric_difference({'intValue', 'name'}):
                   if item['name'] in {'start_time', 'end_time'}:

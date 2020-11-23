@@ -1,3 +1,8 @@
+5.25.01
+
+Updated code in `gam report admin` to handle event parameters with no value; this is what caused the
+trap fixed in 5.25.00. This update formats those parameters in the same manner as other parameters.
+
 5.25.00
 
 Added `csv_input_row_filter` and `csv_input_row_drop_filter` to `gam.cfg` to allow CSV row filtering of input
