@@ -5,6 +5,8 @@ CSV Files.
 
 * See: https://github.com/taers232c/GAMADV-XTD3/wiki/CSV-Input-Filtering#column-row-filtering
 
+Updated code in `gam report admin` to avoid a trap caused by a change the Report API.
+
 5.24.14
 
 Fixed error that didn't allow blank `tdsheet`.

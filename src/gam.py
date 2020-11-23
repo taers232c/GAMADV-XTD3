@@ -10426,9 +10426,9 @@ def doReport():
             for event in events:
               for item in event.get('parameters', []):
                 itemSet = set(item)
-                if not itemSet.difference({'value', 'name'}):
+                if not itemSet.symmetric_difference({'value', 'name'}):
                   event[item['name']] = NL_SPACES_PATTERN.sub('', item['value'])
-                elif not itemSet.difference({'intValue', 'name'}):
+                elif not itemSet.symmetric_difference({'intValue', 'name'}):
                   if item['name'] in {'start_time', 'end_time'}:
                     val = item.get('intValue')
                     if val is not None:
@@ -10439,9 +10439,9 @@ def doReport():
                         event[item['name']] = val
                   else:
                     event[item['name']] = item['intValue']
-                elif not itemSet.difference({'boolValue', 'name'}):
+                elif not itemSet.symmetric_difference({'boolValue', 'name'}):
                   event[item['name']] = item['boolValue']
-                elif not itemSet.difference({'multiValue', 'name'}):
+                elif not itemSet.symmetric_difference({'multiValue', 'name'}):
                   event[item['name']] = ' '.join(item['multiValue'])
                 elif item['name'] == 'scope_data':
                   parts = {}
