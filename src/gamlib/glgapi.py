@@ -483,6 +483,8 @@ class serviceLimit(Exception):
   pass
 class serviceNotAvailable(Exception):
   pass
+class shareOutNotPermittedToUser(Exception):
+  pass
 class sharingRateLimitExceeded(Exception):
   pass
 class systemError(Exception):
