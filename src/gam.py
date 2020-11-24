@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.25.01'
+__version__ = '5.25.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -41445,7 +41445,7 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
           _showDriveFilePermission(permission, printKeys, timeObjects)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
               GAPI.fileNeverWritable, GAPI.ownershipChangeAcrossDomainNotPermitted, GAPI.teamDriveDomainUsersOnlyRestriction,
-              GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
+              GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded, GAPI.shareOutNotPermittedToUser,
               GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.ownerOnTeamDriveItemNotSupported,
               GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
               GAPI.teamDrivesFolderSharingNotSupported) as e:
@@ -41524,7 +41524,7 @@ def updateDriveFileACLs(users, useDomainAdminAccess=False):
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
               GAPI.badRequest, GAPI.invalidOwnershipTransfer, GAPI.cannotRemoveOwner,
               GAPI.fileNeverWritable, GAPI.ownershipChangeAcrossDomainNotPermitted, GAPI.sharingRateLimitExceeded,
-              GAPI.insufficientAdministratorPrivileges,
+              GAPI.insufficientAdministratorPrivileges, GAPI.shareOutNotPermittedToUser,
               GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported,
               GAPI.cannotUpdatePermission, GAPI.cannotModifyInheritedTeamDrivePermission, GAPI.fieldNotWritable) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
@@ -41648,7 +41648,8 @@ def createDriveFilePermissions(users, useDomainAdminAccess=False):
         entityActionPerformed([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
               GAPI.invalidSharingRequest, GAPI.ownershipChangeAcrossDomainNotPermitted, GAPI.teamDriveDomainUsersOnlyRestriction,
-              GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded, GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains,
+              GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded, GAPI.shareOutNotPermittedToUser,
+              GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains,
               GAPI.ownerOnTeamDriveItemNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
               GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.teamDrivesFolderSharingNotSupported,
               GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
