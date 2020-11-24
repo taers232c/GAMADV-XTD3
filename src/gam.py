@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.25.02'
+__version__ = '5.25.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -9028,6 +9028,8 @@ def checkServiceAccount(users):
     long_url = ('https://admin.google.com/ac/owl/domainwidedelegation'
                 f'?clientScopeToAdd={",".join(checkScopes)}'
                 f'&clientIdToAdd={service_account}&overwriteClientId=true')
+    if GC.Values[GC.DOMAIN]:
+      long_url += f'&dn={GC.Values[GC.DOMAIN]}'
     if not writeURLtoFile:
       printLine(message.format('', long_url))
     else:

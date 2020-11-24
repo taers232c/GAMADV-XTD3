@@ -1,3 +1,8 @@
+5.25.03
+
+Updated `gam <UserTypeEntity> check|update serviceaccount` to add `&dn=<DomainName>` to the end
+of the end of the authorization URL. This will be most useful to Google Resellers managing multiple accounts.
+
 5.25.02
 
 Updated `gam <UserTypeEntity> create drivefileacl` to handle the following error:
