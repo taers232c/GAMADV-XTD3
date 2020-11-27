@@ -2361,8 +2361,8 @@ def cleanFilename(filename):
     filename = filename.replace(ch, '_')
   return filename
 
-def fileErrorMessage(filename, e):
-  return f'{Ent.Singular(Ent.FILE)}: {filename}, {str(e)}'
+def fileErrorMessage(filename, e, entityType=Ent.FILE):
+  return f'{Ent.Singular(entityType)}: {filename}, {str(e)}'
 
 def fdErrorMessage(f, defaultFilename, e):
   return fileErrorMessage(getattr(f, 'name') if hasattr(f, 'name') else defaultFilename, e)
@@ -2981,7 +2981,7 @@ def SetGlobalVariables():
                                                            Msg.INVALID, str(e)],
                                                           ''))
     except IOError as e:
-      systemErrorExit(FILE_ERROR_RC, fileErrorMessage(fileName, e))
+      systemErrorExit(FILE_ERROR_RC, fileErrorMessage(fileName, e, Ent.CONFIG_FILE))
 
   def _writeGamCfgFile(config, fileName, action):
     GM.Globals[GM.SECTION] = None # No need to save section for inner gams
@@ -2990,7 +2990,7 @@ def SetGlobalVariables():
         config.write(f)
       printKeyValueList([Ent.Singular(Ent.CONFIG_FILE), fileName, Act.PerformedName(action)])
     except IOError as e:
-      stderrErrorMsg(fileErrorMessage(fileName, e))
+      stderrErrorMsg(fileErrorMessage(fileName, e, Ent.CONFIG_FILE))
 
   def _verifyValues(sectionName):
     printKeyValueList([Ent.Singular(Ent.SECTION), sectionName]) # Do not use printEntity
