@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.25.03'
+__version__ = '5.25.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4257,7 +4257,7 @@ def _processGAPIpagesResult(results, items, allResults, totalItems, pageMessage,
     pageToken = None
     results = {items: []}
     pageItems = 0
-  if pageMessage:
+  if pageMessage and pageItems:
     showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
     if messageAttribute:
       firstItem = results[items][0] if pageItems > 0 else {}
@@ -9122,6 +9122,9 @@ def checkServiceAccount(users):
   Ind.Decrement()
   if saTokenStatus == 'FAIL':
     invalidOauth2serviceJsonExit()
+  _getSvcAcctData() # needed to read in GM.OAUTH2SERVICE_JSON_DATA
+  if GM.Globals[GM.SVCACCT_SCOPES_DEFINED] and API.IAM not in GM.Globals[GM.SVCACCT_SCOPES]:
+    GM.Globals[GM.SVCACCT_SCOPES][API.IAM] = [API.IAM_SCOPE]
   printMessage(Msg.SERVICE_ACCOUNT_CHECK_PRIVATE_KEY_AGE)
   _, iam = buildGAPIServiceObject(API.IAM, None)
   currentPrivateKeyId, projectId, _, clientId = _getSvcAcctKeyProjectClientFields()

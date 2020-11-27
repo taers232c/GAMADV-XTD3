@@ -1,3 +1,8 @@
+5.25.04
+
+Updated `gam <UserTypeEntity> check|update serviceaccount` to avoid `ERROR: No Service Account Access allowed`
+when getting Service Account key age and `Identity and Access Management API` is not enabled.
+
 5.25.03
 
 Updated `gam <UserTypeEntity> check|update serviceaccount` to add `&dn=<DomainName>` to the end

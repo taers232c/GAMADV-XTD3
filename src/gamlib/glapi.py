@@ -64,6 +64,7 @@ FAM_LIST = [FAM1_SCOPES, FAM2_SCOPES]
 #
 DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive'
 GMAIL_SEND_SCOPE = 'https://www.googleapis.com/auth/gmail.send'
+IAM_SCOPE = 'https://www.googleapis.com/auth/cloud-platform'
 USERINFO_EMAIL_SCOPE = 'https://www.googleapis.com/auth/userinfo.email' # email
 USERINFO_PROFILE_SCOPE = 'https://www.googleapis.com/auth/userinfo.profile' # profile
 VAULT_SCOPES = ['https://www.googleapis.com/auth/ediscovery', 'https://www.googleapis.com/auth/ediscovery.readonly']
@@ -399,7 +400,7 @@ _SVCACCT_SCOPES = [
   {'name': 'Identity and Access Management API',
    'api': IAM,
    'subscopes': [],
-   'scope': 'https://www.googleapis.com/auth/cloud-platform'},
+   'scope': IAM_SCOPE},
   {'name': 'People API',
    'api': PEOPLE,
    'subscopes': READONLY,
