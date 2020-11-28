@@ -9780,8 +9780,9 @@ def doReportUsage():
   if customerId == GC.MY_CUSTOMER:
     customerId = None
   parameters = set()
-  users = []
-  orgUnitId = None
+  select = False
+  userKey = 'all'
+  orgUnit = orgUnitId = None
   startEndTime = StartEndTime('startdate', 'enddate', 'date')
   skipDayNumbers = []
   skipDates = set()
@@ -9793,7 +9794,7 @@ def doReportUsage():
     elif myarg in {'start', 'startdate', 'end', 'enddate', 'range', 'thismonth', 'previousmonths'}:
       startEndTime.Get(myarg)
     elif userReports and myarg in ['orgunit', 'org', 'ou']:
-      _, orgUnitId = getOrgUnitId()
+      orgUnit, orgUnitId = getOrgUnitId()
     elif myarg in {'fields', 'parameters'}:
       parameters = parameters.union(getString(Cmd.OB_STRING).replace(',', ' ').split())
     elif myarg == 'skipdates':
@@ -9814,10 +9815,13 @@ def doReportUsage():
       skipdaynames = getString(Cmd.OB_STRING).split(',')
       dow = [d.lower() for d in calendarlib.day_abbr]
       skipDayNumbers = [dow.index(d) for d in skipdaynames if d in dow]
-    elif userReports and myarg == 'select' or myarg in usageEntitySelectors():
+    elif userReports and myarg == 'user':
+      userKey = getString(Cmd.OB_EMAIL_ADDRESS)
+    elif userReports and (myarg == 'select' or myarg in usageEntitySelectors()):
       if myarg != 'select':
         Cmd.Backup()
       _, users = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
+      select = True
     else:
       unknownArgumentExit()
   if startEndTime.endDateTime is None:
@@ -9829,11 +9833,24 @@ def doReportUsage():
   endDateTime = startEndTime.endDateTime
   endDate = endDateTime.strftime(YYYYMMDD_FORMAT)
   startUseDate = endUseDate = None
-  if users:
-    kwargs = [{'userKey': normalizeEmailAddressOrUID(user)} for user in users]
-  if orgUnitId:
-    for kw in kwargs:
-      kw['orgUnitID'] = orgUnitId
+  showGetting = False
+  if userReports:
+    if select:
+      showGetting = True
+      kwargs = [{'userKey': normalizeEmailAddressOrUID(user)} for user in users]
+    elif userKey == 'all':
+      if orgUnitId:
+        kwargs[0]['orgUnitID'] = orgUnitId
+        printGettingEntityItemForWhom(Ent.REPORT, f'users in orgUnit {orgUnit}')
+      else:
+        printGettingEntityItemForWhom(Ent.REPORT, 'all users')
+      pageMessage = getPageMessage()
+    else:
+      kwargs = [{'userKey': normalizeEmailAddressOrUID(userKey)}]
+      printGettingEntityItemForWhom(Ent.REPORT, kwargs[0]['userKey'])
+      pageMessage = getPageMessage()
+  else:
+    pageMessage = None
   parameters = ','.join(parameters) if parameters else None
   while startDateTime <= endDateTime:
     if startDateTime.weekday() in skipDayNumbers or startDateTime in skipDates:
@@ -9843,8 +9860,12 @@ def doReportUsage():
     startDateTime += oneDay
     try:
       for kwarg in kwargs:
+        if showGetting:
+          printGettingEntityItemForWhom(Ent.REPORT, kwarg['userKey'])
+          pageMessage = getPageMessage()
         try:
           usage = callGAPIpages(service, 'get', 'usageReports',
+                                pageMessage=pageMessage,
                                 throwReasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
                                 customerId=customerId, date=useDate,
                                 parameters=parameters, **kwarg)
@@ -10278,7 +10299,7 @@ def doReport():
       pageMessage = getPageMessage()
       users = ['all']
     else:
-      Ent.SetGetting(Ent.USER)
+      Ent.SetGetting(Ent.REPORT)
       pageMessage = getPageMessage()
       users = [normalizeEmailAddressOrUID(userKey)]
       orgUnitId = None
