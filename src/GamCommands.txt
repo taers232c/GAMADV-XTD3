@@ -1385,12 +1385,14 @@ gam <CrOSTypeEntity> update <CrOSAttribute>+ [quickcrosmove [<Boolean>]]
 <CrOSOrderByFieldName> ::=
         lastsync|location|notes|serialnumber|status|supportenddate|user
 
-gam info cros <CrOSEntity> [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
+gam info cros <CrOSEntity> [nolists] [listlimit <Number>]
+        [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
         [timerangeorder ascending|descending]
         [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
 
-gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
+gam <CrOSTypeEntity> info [nolists] [listlimit <Number>]
+        [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
         [timerangeorder ascending|descending]
         [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
@@ -2570,12 +2572,14 @@ gam [<UserTypeEntity>] print printjob|printjobs [todrive <ToDriveAttribute>*] [p
 
 gam report usageparameters customer|user [todrive <ToDriveAttribute>*]
 gam report usage user [todrive]
-        [<UserTypeItem>)|(orgunit|org|ou <OrgUnitPath>)]
-        [startdate <Date>] [enddate <Date>] [range <Date> <Date>]
+        [(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
+        [([start|startdate <Date>] [end|enddate <Date>])|(range <Date> <Date>)|
+         thismonth|(previousmonths <Integer>)]
         [skipdates <Date>[:<Date>](,<Date>[:<Date>])*] [skipdaysofweek <DayOfWeek>(,<DayOfWeek>)*]
         [fields|parameters <String>]
 gam report usage customer [todrive <ToDriveAttribute>*]
-        [startdate <Date>] [enddate <Date>] [range <Date> <Date>]
+        [([start|startdate <Date>] [end|enddate <Date>])|(range <Date> <Date>)|
+         thismonth|(previousmonths <Integer>)]
         [skipdates <Date>[:<Date>](,<Date>[:<Date>])*] [skipdaysofweek <DayOfWeek>(,<DayOfWeek>)*]
         [fields|parameters <String>]
 
@@ -2600,7 +2604,8 @@ gam report usage customer [todrive <ToDriveAttribute>*]
 
 gam report <ActivityApplicationName> [todrive <ToDriveAttribute>*]
         [(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
-        [([start <Time>] [end <Time>])|(range <Time> <Time>)|yesterday]
+        [([start <Time>] [end <Time>])|(range <Time> <Time>)|
+         yesterday|thismonth|(previousmonths <Integer>)]
         [filtertime.* <Time>] [filter|filters <String>]
         [event|events <EventNameList>] [ip <String>]
         [maxactivities <Number>] [maxresults <Number>]
@@ -4330,7 +4335,9 @@ gam <UserTypeEntity> print filelist [todrive <ToDriveAttribute>*]
 gam <UserTypeEntity> print|show driveactivity [todrive <ToDriveAttribute>*]
         [(fileid <DriveFileID>) | (folderid <DriveFolderID>) |
          (drivefilename <DriveFileName>) | (drivefoldername <DriveFolderName>) | (query <QueryDriveFile>)]
-        [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [action|actions [not] <DriveActivityActionList>]
+        [([start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>])|(range <Date> <Date>)|
+         yesterday|thismonth|(previousmonths <Integer>)]
+        [action|actions [not] <DriveActivityActionList>]
         [consolidationstrategy legacy|none]
         [idmapfile <FileName>|(gsheet <UserGoogleSheet>) [charset <String>] [columndelimiter <Character>] [quotechar <Character>]]
         [formatjson [quotechar <Character>]]

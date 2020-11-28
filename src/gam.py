@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.25.04'
+__version__ = '5.25.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -79,6 +79,8 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
+
+from dateutil.relativedelta import relativedelta
 
 from filelock import FileLock
 
@@ -1732,13 +1734,27 @@ class StartEndTime():
     elif myarg in {'end', self._endkw}:
       self.endDateTime, _, self.endTime = self._getValueOrDeltaFromNow(True)
     elif myarg == 'yesterday':
-      self.startDateTime = todaysDate()+datetime.timedelta(days=-1)
+      currDate = todaysDate()
+      self.startDateTime = currDate+datetime.timedelta(days=-1)
       self.startTime = ISOformatTimeStamp(self.startDateTime)
-      self.endDateTime = todaysDate()+datetime.timedelta(seconds=-1)
+      self.endDateTime = currDate+datetime.timedelta(seconds=-1)
       self.endTime = ISOformatTimeStamp(self.endDateTime)
-    else: # elif myarg == 'range':
+    elif myarg == 'range':
       self.startDateTime, _, self.startTime = self._getValueOrDeltaFromNow(True)
       self.endDateTime, _, self.endTime = self._getValueOrDeltaFromNow(True)
+    else: #elif myarg in {'thismonth', 'previousmonths'}
+      if myarg == 'thismonth':
+        firstMonth = 0
+      else:
+        firstMonth = getInteger(minVal=1, maxVal=6)
+      currDate = todaysDate()
+      self.startDateTime = currDate+relativedelta(months=-firstMonth, day=1, hour=0, minute=0, second=0, microsecond=0)
+      self.startTime = ISOformatTimeStamp(self.startDateTime)
+      if myarg == 'thismonth':
+        self.endDateTime = todaysTime()
+      else:
+        self.endDateTime = currDate+relativedelta(day=1, hour=23, minute=59, second=59, microsecond=0)+relativedelta(days=-1)
+      self.endTime = ISOformatTimeStamp(self.endDateTime)
     if self.startDateTime and self.endDateTime and self.endDateTime < self.startDateTime:
       Cmd.Backup()
       usageErrorExit(Msg.INVALID_DATE_TIME_RANGE.format(self._endkw, self.endTime, self._startkw, self.startTime))
@@ -9715,10 +9731,12 @@ REPORTS_PARAMETERS_SIMPLE_TYPES = ['intValue', 'boolValue', 'datetimeValue', 'st
 
 # gam report usage user [todrive <ToDriveAttribute>*]
 #	[(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
-#	[start|startdate <Date>] [end|enddate <Date>] [range <Date> <Date>]
+#	[([start|startdate <Date>] [end|enddate <Date>])|(range <Date> <Date>)|
+#	 thismonth|(previousmonths <Integer>)]
 #	[fields|parameters <String>)]
 # gam report usage |customer [todrive <ToDriveAttribute>*]
-#	[start|startdate <Date>] [end|enddate <Date>] [range <Date> <Date>]
+#	[([start|startdate <Date>] [end|enddate <Date>])|(range <Date> <Date>)|
+#	 thismonth|(previousmonths <Integer>)]
 #	[fields|parameters <String>)]
 def doReportUsage():
   def usageEntitySelectors():
@@ -9772,7 +9790,7 @@ def doReportUsage():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg in {'start', 'startdate', 'end', 'enddate', 'range'}:
+    elif myarg in {'start', 'startdate', 'end', 'enddate', 'range', 'thismonth', 'previousmonths'}:
       startEndTime.Get(myarg)
     elif userReports and myarg in ['orgunit', 'org', 'ou']:
       _, orgUnitId = getOrgUnitId()
@@ -9942,20 +9960,25 @@ REPORT_ACTIVITIES_TIME_OBJECTS = {'time'}
 
 # gam report <ActivityApplictionName> [todrive <ToDriveAttribute>*]
 #	[(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
-#	[([start <Time>] [end <Time>])|(range <Time> <Time>)|yesterday]
+#	[([start <Time>] [end <Time>])|(range <Time> <Time>)|
+#	 yesterday|thismonth|(previousmonths <Integer>)]
 #	[filtertime.* <Time>] [filter|filters <String>]
 #	[event|events <EventNameList>] [ip <String>]
 #	[maxactivities <Number>] [maxresults <Number>]
 #	[countsonly [summary] [eventrowfilter]]
 # gam report users|user [todrive <ToDriveAttribute>*]
 #	[(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
-#	[(date <Date>)|(range <Date> <Date>)] [nodatechange | (fulldatarequired all|<UserServiceNameList>)]
+#	[(date <Date>)|(range <Date> <Date>)|
+#	 yesterday|thismonth|(previousmonths <Integer>)]
+#	[nodatechange | (fulldatarequired all|<UserServiceNameList>)]
 #	[filtertime.* <Time>] [filter|filters <String>]
 #	[(fields|parameters <String>)|(services <UserServiceNameList>)]
 #	[aggregatebydate [Boolean]]
 #	[maxresults <Number>]
 # gam report customers|customer|domain [todrive <ToDriveAttribute>*]
-#	[(date <Date>)|(range <Date> <Date>)] [nodatechange | (fulldatarequired all|<CustomerServiceNameList>)]
+#	[(date <Date>)|(range <Date> <Date>)|
+#	 yesterday|thismonth|(previousmonths <Integer>)]
+#	[nodatechange | (fulldatarequired all|<CustomerServiceNameList>)]
 #	[(fields|parameters <String>)|(services <CustomerServiceNameList>)] [noauthorizedapps]
 def doReport():
   def processUserUsage(usage, lastDate):
@@ -10173,13 +10196,13 @@ def doReport():
     myarg = getArgument()
     if myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg == 'range':
+    elif myarg in {'range', 'thismonth', 'previousmonths'}:
       startEndTime.Get(myarg)
       userCustomerRange = True
     elif myarg in {'orgunit', 'org', 'ou'}:
       orgUnit, orgUnitId = getOrgUnitId()
-    elif usageReports and myarg == 'date':
-      startEndTime.Get('start')
+    elif usageReports and myarg in {'date', 'yesterday'}:
+      startEndTime.Get('start' if myarg == 'date' else myarg)
       startEndTime.endDateTime = startEndTime.startDateTime
       userCustomerRange = False
     elif usageReports and myarg == 'nodatechange':
@@ -16425,8 +16448,12 @@ CROS_LISTS_ARGUMENTS = CROS_ACTIVE_TIME_RANGES_ARGUMENTS+CROS_RECENT_USERS_ARGUM
 CROS_START_ARGUMENTS = ['start', 'startdate', 'oldestdate']
 CROS_END_ARGUMENTS = ['end', 'enddate']
 
-# gam <CrOSTypeEntity> info [nolists] [listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
-#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>] [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
+# gam <CrOSTypeEntity> info [nolists] [listlimit <Number>]
+#	[start <Date>] [end <Date>]
+#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+#	[timerangeorder ascending|descending]
+#	[downloadfile latest|<Time>] [targetfolder <FilePath>]
+#	[formatjson]
 def infoCrOSDevices(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
   downloadfile = None
@@ -16626,15 +16653,16 @@ def infoCrOSDevices(entityList):
         Ind.Decrement()
     Ind.Decrement()
 
-# gam info cros|croses <CrOSEntity> [nolists] [listlimit <Number>] [start <Date>] [end <Date>]
+# gam info cros|croses <CrOSEntity> [nolists] [listlimit <Number>]
+#	[start <Date>] [end <Date>]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+#	[timerangeorder ascending|descending]
 #	[downloadfile latest|<Time>] [targetfolder <FilePath>]
 #	[formatjson]
 def doInfoCrOSDevices():
   infoCrOSDevices(getCrOSDeviceEntity())
 
 def getDeviceFilesEntity():
-
   deviceFilesEntity = {'list': [], 'dict': None, 'count': None, 'time': None, 'range': None}
   startEndTime = StartEndTime()
   entitySelector = getEntitySelector()
@@ -34826,7 +34854,8 @@ CONSOLIDATION_GROUPING_STRATEGY_CHOICE_MAP = {'driveui': 'legacy', 'legacy': 'le
 # gam <UserTypeEntity> print|show driveactivity [todrive <ToDriveAttribute>*]
 #	[(fileid <DriveFileID>) | (folderid <DriveFolderID>) |
 #	 (drivefilename <DriveFileName>) | (drivefoldername <DriveFolderName>) | (query <QueryDriveFile>)]
-#	[start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [action|actions [not] <DriveActivityActionList>]
+#	[([start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>])|(range <Date>|<Time> <Date>|<Time>)]
+#	[action|actions [not] <DriveActivityActionList>]
 #	[consolidationstrategy legacy|none]
 #	[idmapfile <FileName>|(gsheet <UserGoogleSheet>) [charset <String>] [columndelimiter <Character>] [quotechar <Character>]]
 #	[formatjson [quotechar <Character>]]
@@ -34888,7 +34917,7 @@ def printDriveActivity(users):
       query = f"mimeType = '{MIMETYPE_GA_FOLDER}' and name = '{getEscapedDriveFileName()}'"
     elif myarg == 'query':
       query = getString(Cmd.OB_QUERY)
-    elif myarg in {'start', 'starttime', 'end', 'endtime'}:
+    elif myarg in {'start', 'starttime', 'end', 'endtime', 'range'}:
       startEndTime.Get(myarg)
     elif myarg in {'action', 'actions'}:
       negativeAction = checkArgumentPresent('not')
@@ -39909,7 +39938,7 @@ def collectOrphans(users):
             break
         else:
           try:
-            ### Check for existing shortcut, do not duplicate
+            # Check for existing shortcut, do not duplicate
             files = callGAPIitems(drive.files(), 'list', 'files',
                                   throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID],
                                   q=f"'me' in owners and name = '{escapeDriveFileName(fileName)}' and mimeType = '{MIMETYPE_GA_SHORTCUT}' and '{newParentId}' in parents and trashed = false",

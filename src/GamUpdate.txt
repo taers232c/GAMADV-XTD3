@@ -1,3 +1,10 @@
+5.25.05
+
+Added options `thismonth` and `previousmonths <Integer` to `gam report`
+to provide calendar oriented date/time ranges.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Reports
+
 5.25.04
 
 Updated `gam <UserTypeEntity> check|update serviceaccount` to avoid `ERROR: No Service Account Access allowed`
