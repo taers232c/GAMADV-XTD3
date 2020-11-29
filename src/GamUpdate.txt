@@ -1,3 +1,9 @@
+5.25.06
+
+Added option `scope|scopes <APIScopeURLList>` to `gam <UserTypeEntity> update serviceaccount` to allow
+specification of the desired scopes on the command line. Entering `<APIScopeURLList>` by hand would be tedious at best
+but could be used in a script.
+
 5.25.05
 
 Added options `thismonth` and `previousmonths <Integer` to `gam report`

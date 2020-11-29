@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.25.05'
+__version__ = '5.25.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -9032,7 +9032,7 @@ def _getSvcAcctKeyProjectClientFields():
           GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id'])
 
 # gam <UserTypeEntity> check serviceaccount (scope|scopes <APIScopeURLList>)* [writeurltofile]
-# gam <UserTypeEntity> update serviceaccount [writeurltofile]
+# gam <UserTypeEntity> update serviceaccount (scope|scopes <APIScopeURLList>)* [writeurltofile]
 def checkServiceAccount(users):
   def printMessage(message):
     writeStdout(Ind.Spaces()+message+'\n')
@@ -9056,45 +9056,46 @@ def checkServiceAccount(users):
       deleteFile(filename, continueOnError=True, displayError=True)
 
   credentials = getSvcAcctCredentials([API.USERINFO_EMAIL_SCOPE], None)
+  allScopes = API.getSvcAcctScopes(GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY], Act.Get() == Act.UPDATE)
   checkScopesSet = set()
+  saScopes = {}
   writeURLtoFile = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg in {'scope', 'scopes'}:
+      for scope in getString(Cmd.OB_API_SCOPE_URL_LIST).lower().replace(',', ' ').split():
+        api = API.getSvcAcctScopeAPI(scope)
+        if api is not None:
+          saScopes.setdefault(api, [])
+          saScopes[api].append(scope)
+          checkScopesSet.add(scope)
+        else:
+          invalidChoiceExit(scope, allScopes, True)
+    elif myarg == 'writeurltofile':
+      writeURLtoFile = True
+    else:
+      unknownArgumentExit()
   if Act.Get() == Act.CHECK:
-    allScopes = API.getSvcAcctScopes(GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY], False)
-    while Cmd.ArgumentsRemaining():
-      myarg = getArgument()
-      if myarg in {'scope', 'scopes'}:
-        for scope in getString(Cmd.OB_API_SCOPE_URL_LIST).lower().replace(',', ' ').split():
-          api = API.getSvcAcctScopeAPI(scope)
-          if api is not None:
-            checkScopesSet.add(scope)
-          else:
-            invalidChoiceExit(scope, allScopes, True)
-      elif myarg == 'writeurltofile':
-        writeURLtoFile = True
-      else:
-        unknownArgumentExit()
     if not checkScopesSet:
       for scope in iter(GM.Globals[GM.SVCACCT_SCOPES].values()):
         checkScopesSet.update(scope)
   else:
-    writeURLtoFile = checkArgumentPresent('writeurltofile')
-    checkForExtraneousArguments()
-    saScopes = {}
-    scopesList = API.getSvcAcctScopesList(GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY], True)
-    selectedScopes = getScopesFromUser(scopesList, False, GM.Globals[GM.SVCACCT_SCOPES])
-    if selectedScopes is None:
-      return False
-    i = 0
-    for scope in scopesList:
-      if selectedScopes[i] == '*':
-        saScopes.setdefault(scope['api'], [])
-        saScopes[scope['api']].append(scope['scope'])
-        checkScopesSet.add(scope['scope'])
-      elif selectedScopes[i] == 'R':
-        saScopes.setdefault(scope['api'], [])
-        saScopes[scope['api']].append(f'{scope["scope"]}.readonly')
-        checkScopesSet.add(f'{scope["scope"]}.readonly')
-      i += 1
+    if not checkScopesSet:
+      scopesList = API.getSvcAcctScopesList(GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY], True)
+      selectedScopes = getScopesFromUser(scopesList, False, GM.Globals[GM.SVCACCT_SCOPES])
+      if selectedScopes is None:
+        return False
+      i = 0
+      for scope in scopesList:
+        if selectedScopes[i] == '*':
+          saScopes.setdefault(scope['api'], [])
+          saScopes[scope['api']].append(scope['scope'])
+          checkScopesSet.add(scope['scope'])
+        elif selectedScopes[i] == 'R':
+          saScopes.setdefault(scope['api'], [])
+          saScopes[scope['api']].append(f'{scope["scope"]}.readonly')
+          checkScopesSet.add(f'{scope["scope"]}.readonly')
+        i += 1
     if API.DRIVEACTIVITY in saScopes and API.DRIVE3 in saScopes:
       saScopes[API.DRIVEACTIVITY].append(API.DRIVE_SCOPE)
     if API.DRIVE3 in saScopes:
@@ -9211,8 +9212,8 @@ def checkServiceAccount(users):
       authorizeScopes(Msg.SCOPE_AUTHORIZATION_FAILED)
     printBlankLine()
 
-# gam check svcacct <UserTypeEntity> (scope|scopes <APIScopeURLList>)*
-# gam update svcacct <UserTypeEntity>
+# gam check svcacct <UserTypeEntity> (scope|scopes <APIScopeURLList>)* [writeurltofile]
+# gam update svcacct <UserTypeEntity> (scope|scopes <APIScopeURLList>)* [writeurltofile]
 def doCheckUpdateSvcAcct():
   _, entityList = getEntityToModify(defaultEntityType=Cmd.ENTITY_USER)
   checkServiceAccount(entityList)

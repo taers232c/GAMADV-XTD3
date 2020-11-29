@@ -941,8 +941,8 @@ gam create|add svcacct [[admin] <EmailAddress>] [current|gam|<ProjectID>|(filter
         [sadescription <ServiceAccountDescription>]
 gam delete svcacct [[admin] <EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
         (saemail <ServiceAccountEmail>)|(saname <ServiceAccountName>)|(sauniqueid <ServiceAccountUniqueID>)
-gam check svcacct <UserTypeEntity> (scope|scopes <APIScopeURLList>)*
-gam update svcacct <UserTypeEntity>
+gam check svcacct <UserTypeEntity> (scope|scopes <APIScopeURLList>)* [writeurltofile]
+gam update svcacct <UserTypeEntity> (scope|scopes <APIScopeURLList>)* [writeurltofile]
 gam show svcaccts [[admin] <EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
         [showsakeys all|system|user]
 gam print svcaccts [[admin] <EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
@@ -971,7 +971,7 @@ gam oauth|oauth2 refresh
 gam oauth|oauth2 info|verify [showsecret] [accesstoken <AccessToken> idtoken <IDToken>] [showdetails]
 
 gam <UserTypeEntity> check serviceaccount (scope|scopes <APIScopeURLList>)* [writeurltofile]
-gam <UserTypeEntity> update serviceaccount [writeurltofile]
+gam <UserTypeEntity> update serviceaccount (scope|scopes <APIScopeURLList>)* [writeurltofile]
 
 # Administrators
 
