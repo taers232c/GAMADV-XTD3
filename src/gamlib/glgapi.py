@@ -133,6 +133,7 @@ SHARING_RATE_LIMIT_EXCEEDED = 'sharingRateLimitExceeded'
 SYSTEM_ERROR = 'systemError'
 TEAMDRIVE_ALREADY_EXISTS = 'teamDriveAlreadyExists'
 TEAMDRIVE_DOMAIN_USERS_ONLY_RESTRICTION = 'teamDriveDomainUsersOnlyRestriction'
+TEAMDRIVE_HIERARCHY_TOO_DEEP = 'teamDriveHierarchyTooDeep'
 TEAMDRIVE_MEMBERSHIP_REQUIRED = 'teamDriveMembershipRequired'
 TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED = 'teamDrivesFolderMoveInNotSupported'
 TEAMDRIVES_FOLDER_SHARING_NOT_SUPPORTED = 'teamDrivesFolderSharingNotSupported'
@@ -493,6 +494,8 @@ class teamDriveAlreadyExists(Exception):
   pass
 class teamDriveDomainUsersOnlyRestriction(Exception):
   pass
+class teamDriveHierarchyTooDeep(Exception):
+  pass
 class teamDriveMembershipRequired(Exception):
   pass
 class teamDrivesFolderMoveInNotSupported(Exception):
@@ -627,6 +630,7 @@ REASON_EXCEPTION_MAP = {
   SYSTEM_ERROR: systemError,
   TEAMDRIVE_ALREADY_EXISTS: teamDriveAlreadyExists,
   TEAMDRIVE_DOMAIN_USERS_ONLY_RESTRICTION: teamDriveDomainUsersOnlyRestriction,
+  TEAMDRIVE_HIERARCHY_TOO_DEEP: teamDriveHierarchyTooDeep,
   TEAMDRIVE_MEMBERSHIP_REQUIRED: teamDriveMembershipRequired,
   TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED: teamDrivesFolderMoveInNotSupported,
   TEAMDRIVES_FOLDER_SHARING_NOT_SUPPORTED: teamDrivesFolderSharingNotSupported,

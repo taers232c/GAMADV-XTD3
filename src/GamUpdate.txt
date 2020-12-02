@@ -1,3 +1,10 @@
+5.25.07
+
+When creating/copying files/folders, handle the following error:
+```
+ERROR: 403: teamDriveHierarchyTooDeep - The shared drive hierarchy depth will exceed the limit.
+```
+
 5.25.06
 
 Added option `scope|scopes <APIScopeURLList>` to `gam <UserTypeEntity> update serviceaccount` to allow

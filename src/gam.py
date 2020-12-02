@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.25.06'
+__version__ = '5.25.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4734,8 +4734,7 @@ def convertGroupCloudIDToEmail(ci, group, i=0, count=0):
     ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
   try:
     ciGroup = callGAPI(ci.groups(), 'get',
-                       throwReasons=GAPI.CIGROUP_GET_THROW_REASONS,
-                       retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
+                       throwReasons=GAPI.CIGROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
                        name=group, fields='groupKey(id)')
     return (ci, ciGroup['groupKey']['id'])
   except (GAPI.notFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
@@ -6727,7 +6726,9 @@ class CSVPrintFile():
               Act.Set(Act.CREATE)
               body['parents'] = [self.todrive['parentId']]
               result = callGAPI(drive.files(), 'create',
-                                throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR],
+                                throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
+                                                                            GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
+                                                                            GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
                                 body=body,
                                 media_body=googleapiclient.http.MediaIoBaseUpload(io.BytesIO(csvFile.getvalue().encode()), mimetype='text/csv', resumable=True),
                                 fields=fields, supportsAllDrives=True)
@@ -6774,7 +6775,8 @@ class CSVPrintFile():
                            throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                            spreadsheetId=spreadsheetId, body=body)
               except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-                      GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
+                      GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest,
+                      GAPI.invalid, GAPI.invalidArgument, GAPI.teamDriveHierarchyTooDeep) as e:
                 todriveCSVErrorExit([Ent.USER, user, Ent.SPREADSHEET, title], str(e))
           Act.Set(action)
           file_url = result['webViewLink']
@@ -38044,7 +38046,8 @@ def createDriveFile(users):
                         throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
                                                                     GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT,
                                                                     GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
-                                                                    GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED],
+                                                                    GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
+                                                                    GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
                         enforceSingleParent=parameters[DFA_ENFORCE_SINGLE_PARENT],
                         ocrLanguage=parameters[DFA_OCRLANGUAGE],
                         ignoreDefaultVisibility=parameters[DFA_IGNORE_DEFAULT_VISIBILITY],
@@ -38062,7 +38065,7 @@ def createDriveFile(users):
       else:
         csvPF.WriteRow({'User': user, fileNameTitle: result['name'], 'id': result['id']})
     except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest, GAPI.cannotAddParent,
-            GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed) as e:
+            GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.teamDriveHierarchyTooDeep) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, body['name']], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -38161,7 +38164,8 @@ def createDriveFileShortcut(users):
           result = callGAPI(drive.files(), 'create',
                             throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
                                                                         GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
-                                                                        GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED],
+                                                                        GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
+                                                                        GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
                             body=body, fields='id,name', supportsAllDrives=True)
           removeParents.append(parentId)
           if returnIdOnly:
@@ -38172,7 +38176,7 @@ def createDriveFileShortcut(users):
           else:
             csvPF.WriteRow({'User': user, 'name': result['name'], 'id': result['id'], 'targetName': targetName, 'targetId': fileId})
         except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
-                GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed) as e:
+                GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.teamDriveHierarchyTooDeep) as e:
           entityActionFailedWarning([Ent.USER, user, targetEntityType, targetName, Ent.DRIVE_FILE_SHORTCUT, body['name']], str(e), k, numNewParents)
       Ind.Decrement()
       if convertParents and removeParents:
@@ -38893,7 +38897,8 @@ def copyDriveFile(users):
     body['name'] = newFolderTitle
     try:
       result = callGAPI(drive.files(), 'create',
-                        throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS, GAPI.INTERNAL_ERROR],
+                        throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS, GAPI.INTERNAL_ERROR,
+                                                                    GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
                         body=body, fields='id,webViewLink', supportsAllDrives=True)
       newFolderId = result['id']
       if returnIdLink:
@@ -38907,7 +38912,7 @@ def copyDriveFile(users):
         _copyPermissions(drive, user, i, count, j, jcount, Ent.DRIVE_FOLDER, folderId, folderTitle, newFolderId, newFolderTitle,
                          statistics, STAT_FOLDER_PERMISSIONS_FAILED, copyMoveOptions)
       return (newFolderId, False)
-    except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.internalError) as e:
+    except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.internalError, GAPI.teamDriveHierarchyTooDeep) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], str(e), j, jcount)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -39269,7 +39274,8 @@ def moveDriveFile(users):
     body['name'] = newFolderTitle
     try:
       newFolderId = callGAPI(drive.files(), 'create',
-                             throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS, GAPI.INTERNAL_ERROR],
+                             throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS, GAPI.INTERNAL_ERROR,
+                                                                         GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
                              body=body, fields='id', supportsAllDrives=True)['id']
       entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, folderTitle],
                                                          Act.MODIFIER_TO, newFolderTitle,
@@ -39279,7 +39285,7 @@ def moveDriveFile(users):
         _copyPermissions(drive, user, i, count, j, jcount, Ent.DRIVE_FOLDER, folderId, folderTitle, newFolderId, newFolderTitle,
                          statistics, STAT_FOLDER_PERMISSIONS_FAILED, copyMoveOptions)
       return (newFolderId, False)
-    except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.internalError) as e:
+    except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.internalError, GAPI.teamDriveHierarchyTooDeep) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], str(e), j, jcount)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -39927,9 +39933,10 @@ def collectOrphans(users):
         if 'parents' not in targetParentBody or not targetParentBody['parents']:
           try:
             newParentId = callGAPI(drive.files(), 'create',
-                                   throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS, GAPI.UNKNOWN_ERROR],
+                                   throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
+                                                                               GAPI.UNKNOWN_ERROR, GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
                                    body={'name': trgtUserFolderName, 'mimeType': MIMETYPE_GA_FOLDER}, fields='id')['id']
-          except (GAPI.forbidden, GAPI.insufficientPermissions, GAPI.unknownError) as e:
+          except (GAPI.forbidden, GAPI.insufficientPermissions, GAPI.unknownError, GAPI.teamDriveHierarchyTooDeep) as e:
             entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, trgtUserFolderName], str(e), i, count)
             continue
         else:
@@ -39977,7 +39984,8 @@ def collectOrphans(users):
             body = {'name': fileName, 'mimeType': MIMETYPE_GA_SHORTCUT, 'parents': [newParentId], 'shortcutDetails': {'targetId': fileId}}
             result = callGAPI(drive.files(), 'create',
                               throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
-                                                                          GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR],
+                                                                          GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
+                                                                          GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
                               body=body, fields='id,name', supportsAllDrives=True)
             entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, fileType, fileName, Ent.DRIVE_FILE_SHORTCUT, f'{result["name"]}({result["id"]})'],
                                                                Act.MODIFIER_INTO, None, [Ent.DRIVE_FOLDER, trgtUserFolderName], j, jcount)
@@ -39985,7 +39993,7 @@ def collectOrphans(users):
           except GAPI.invalidQuery:
             entityActionFailedWarning([Ent.USER, user, fileType, fileName], invalidQuery(query), j, jcount)
           except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
-                  GAPI.fileNotFound, GAPI.unknownError) as e:
+                  GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDriveHierarchyTooDeep) as e:
             entityActionFailedWarning([Ent.USER, user, fileType, fileName, Ent.DRIVE_FILE_SHORTCUT, body['name']], str(e), j, jcount)
           except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
             userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -40051,9 +40059,10 @@ def transferDrive(users):
         return result[0]['id']
       op = 'Create Target Folder'
       return callGAPI(targetDrive.files(), 'create',
-                      throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS, GAPI.UNKNOWN_ERROR, GAPI.BAD_REQUEST],
+                      throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
+                                                                  GAPI.UNKNOWN_ERROR, GAPI.BAD_REQUEST, GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
                       body={'parents': [folderParentId], 'name': folderName, 'mimeType': MIMETYPE_GA_FOLDER}, fields='id')['id']
-    except (GAPI.forbidden, GAPI.insufficientPermissions, GAPI.unknownError, GAPI.badRequest) as e:
+    except (GAPI.forbidden, GAPI.insufficientPermissions, GAPI.unknownError, GAPI.badRequest, GAPI.teamDriveHierarchyTooDeep) as e:
       entityActionFailedWarning([Ent.USER, targetUser, Ent.DRIVE_FOLDER, folderName], f'{op}: {str(e)}')
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(targetUser, str(e))
@@ -40240,10 +40249,11 @@ def transferDrive(users):
             callGAPI(targetDrive.files(), 'create',
                      throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
                                                                  GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
-                                                                 GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED],
+                                                                 GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
+                                                                 GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
                      body=body, fields='', supportsAllDrives=True)
           except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
-                  GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed) as e:
+                  GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.teamDriveHierarchyTooDeep) as e:
             entityActionFailedWarning([Ent.USER, targetUser, childFileType, childFileName, Ent.DRIVE_FILE_SHORTCUT, body['name']], str(e), j, jcount)
             return
 # Delete existing parents
