@@ -44,7 +44,7 @@ jobs:
       dist: precise
       language: shell
       env:
-        - PATCHELF_VERSION=0.12
+        - PATCHELF_VERSION=0.9
     - os: linux
       name: "Linux ARM64 Focal"
       dist: focal
