@@ -1,5 +1,9 @@
 5.25.07
 
+Perform retries when Google returns an error instead of Google Sheet data when using `gsheet <UserGoogleSheet>`.
+This seems to happen when you quickly execute a series of GAM commands that access the same Google Sheet to retrieve
+data for each command.
+
 When creating/copying files/folders, handle the following error:
 ```
 ERROR: 403: teamDriveHierarchyTooDeep - The shared drive hierarchy depth will exceed the limit.

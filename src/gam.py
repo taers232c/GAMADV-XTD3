@@ -2497,6 +2497,14 @@ def deleteFile(filename, continueOnError=False, displayError=True):
         return
       systemErrorExit(FILE_ERROR_RC, fileErrorMessage(filename, e))
 
+def getGDocSheetDataRetryWarning(entityValueList, errMsg, i=0, count=0):
+  action = Act.Get()
+  Act.Set(Act.RETRIEVE_DATA)
+  stderrWarningMsg(formatKeyValueList(Ind.Spaces(),
+                                      Ent.FormatEntityValueList(entityValueList)+[Act.NotPerformed(), errMsg, 'Retry', ''],
+                                      currentCountNL(i, count)))
+  Act.Set(action)
+
 def getGDocSheetDataFailedExit(entityValueList, errMsg, i=0, count=0):
   Act.Set(Act.RETRIEVE_DATA)
   systemErrorExit(ACTION_FAILED_RC, formatKeyValueList(Ind.Spaces(),
@@ -2556,6 +2564,8 @@ def getGDocData(mimeType):
     userSvcNotApplicableOrDriveDisabled(user, str(e))
     sys.exit(GM.Globals[GM.SYSEXITRC])
 
+TITLE_PATTERN = re.compile(r'.*<title>(.+)</title>')
+
 # gsheet <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity> <SheetEntity>
 def getGSheetData():
   user = getEmailAddress()
@@ -2589,7 +2599,19 @@ def getGSheetData():
     f = TemporaryFile(mode='w+', encoding=UTF8)
     if GC.Values[GC.DEBUG_LEVEL] > 0:
       sys.stderr.write(f'Debug: spreadsheetUrl: {spreadsheetUrl}\n')
-    _, content = drive._http.request(uri=spreadsheetUrl, method='GET')
+    retries = 3
+    for n in range(1, retries+1):
+      _, content = drive._http.request(uri=spreadsheetUrl, method='GET')
+# Check for HTML error message instead of data
+      utf8data = content[0:600].decode('utf-8')
+      if not utf8data.startswith('<!DOCTYPE html>'):
+        break
+      tg = TITLE_PATTERN.match(utf8data)
+      errMsg = tg.group(1) if tg else 'Unknown error'
+      getGDocSheetDataRetryWarning([Ent.USER, user, Ent.SPREADSHEET, result['name'], sheetEntity['sheetType'], sheetEntity['sheetValue']], errMsg, n, retries)
+      time.sleep(20)
+    else:
+      getGDocSheetDataFailedExit([Ent.USER, user, Ent.SPREADSHEET, result['name'], sheetEntity['sheetType'], sheetEntity['sheetValue']], errMsg)
     f.write(content.decode(UTF8_SIG))
     f.seek(0)
     return f
