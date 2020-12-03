@@ -5,6 +5,10 @@ When getting group settings, handle the following error:
 ERROR: 503: serviceNotAvailable - The service is currently unavailable.
 ```
 
+Added `tdsheetdaysoffset <Number>` and `tdsheethoursoffset <Number>` to `<ToDriveAttribute>`.
+These allow setting timestamp offset information on a sheet (tab) that is different than the timestamp
+information on the Google spreadsheet file.
+
 5.25.07
 
 Perform retries when Google returns an error instead of Google Sheet data when using `gsheet <UserGoogleSheet>`.

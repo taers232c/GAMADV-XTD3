@@ -266,6 +266,7 @@ If an item contains spaces, it should be surrounded by ".
         domain:<DomainName>)|domain|default
 <CalendarItem> ::= <EmailAddress>|<String>
 <GIGroupItem> ::= <EmailAddress>|<UniqueID>|groups/<String>
+<CIGroupType> ::= customer|group|serviceaccount|user
 <ChatRoom> ::= <String>
 <ClassroomInvitationID> ::= <String>
 <ClientID> ::= <String>
@@ -453,6 +454,7 @@ If an item contains spaces, it should be surrounded by ".
         (tdparent (id:<DriveFolderID>)|<DriveFolderName>)|
         (tdsheet (id:<Number>)|<String>)|
         (tdsheettimestamp [<Boolean>] [tdsheettimeformat <String>])
+        ([tdsheetdaysoffset <Number>] [tdsheethoursoffset <Number])|
         (tdtimestamp [<Boolean>] [tdtimeformat <String>])|
         ([tddaysoffset <Number>] [tdhoursoffset <Number])|
         (tdtimezone <TimeZone>)|
@@ -473,6 +475,7 @@ If an item contains spaces, it should be surrounded by ".
 <CalendarACLScopeList> ::= "<CalendarACLScope>(,<CalendarACLScope>)*"
 <CalendarList> ::= "<CalendarItem>(,<CalendarItem>)*"
 <ChatRoomList> ::= "<ChatRoom>(,<ChatRoom>)*"
+<CIGroupTypeList> ::= "<CIGroupType>(,<CIGroupType>)*"
 <ClassroomInvitationIDList> ::= "<ClassroomInvitationID>(,<ClassroomInvitationID>)*"
 <ContactGroupList> ::= "<ContactGroupItem>(,<ContactGroupItem>)*"
 <ContactIDList> ::= "<ContactID>(,<ContactID>)*"

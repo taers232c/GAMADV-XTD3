@@ -6196,9 +6196,10 @@ class CSVPrintFile():
                     'cellwrap': None, 'clearfilter': GC.Values[GC.TODRIVE_CLEARFILTER],
                     'backupSheetEntity': None, 'copySheetEntity': None,
                     'locale': GC.Values[GC.TODRIVE_LOCALE], 'timeZone': GC.Values[GC.TODRIVE_TIMEZONE],
-                    'daysoffset': 0, 'hoursoffset': 0,
                     'timestamp': GC.Values[GC.TODRIVE_TIMESTAMP], 'timeformat': GC.Values[GC.TODRIVE_TIMEFORMAT],
+                    'daysoffset': None, 'hoursoffset': None,
                     'sheettimestamp': GC.Values[GC.TODRIVE_SHEET_TIMESTAMP], 'sheettimeformat': GC.Values[GC.TODRIVE_SHEET_TIMEFORMAT],
+                    'sheetdaysoffset': None, 'sheethoursoffset': None,
                     'fileId': None, 'parentId': None, 'parent': GC.Values[GC.TODRIVE_PARENT],
                     'localcopy': GC.Values[GC.TODRIVE_LOCALCOPY], 'nobrowser': GC.Values[GC.TODRIVE_NOBROWSER],
                     'noemail': GC.Values[GC.TODRIVE_NOEMAIL]}
@@ -6246,6 +6247,10 @@ class CSVPrintFile():
         self.todrive['daysoffset'] = getInteger(minVal=0)
       elif myarg == 'tdhoursoffset':
         self.todrive['hoursoffset'] = getInteger(minVal=0)
+      elif myarg == 'tdsheetdaysoffset':
+        self.todrive['sheetdaysoffset'] = getInteger(minVal=0)
+      elif myarg == 'tdsheethoursoffset':
+        self.todrive['sheethoursoffset'] = getInteger(minVal=0)
       elif myarg == 'tdfileid':
         self.todrive['fileId'] = getString(Cmd.OB_DRIVE_FILE_ID)
         tdfileidLocation = Cmd.Location()
@@ -6622,7 +6627,10 @@ class CSVPrintFile():
           sheetTitle = title
         else:
           sheetTitle = self.todrive['sheetEntity']['sheetTitle']
-        tdtime = datetime.datetime.now(GC.Values[GC.TIMEZONE])+datetime.timedelta(days=-self.todrive['daysoffset'], hours=-self.todrive['hoursoffset'])
+        tdbasetime = tdtime = datetime.datetime.now(GC.Values[GC.TIMEZONE])
+        if self.todrive['daysoffset'] is not None or self.todrive['hoursoffset'] is not None:
+          tdtime = tdbasetime+relativedelta(days=-self.todrive['daysoffset'] if self.todrive['daysoffset'] is not None else 0,
+                                            hours=-self.todrive['hoursoffset'] if self.todrive['hoursoffset'] is not None else 0)
         if self.todrive['timestamp']:
           if title:
             title += ' - '
@@ -6631,6 +6639,9 @@ class CSVPrintFile():
           else:
             title += tdtime.strftime(self.todrive['timeformat'])
         if self.todrive['sheettimestamp']:
+          if self.todrive['sheetdaysoffset'] is not None or self.todrive['sheethoursoffset'] is not None:
+            tdtime = tdbasetime+relativedelta(days=-self.todrive['sheetdaysoffset'] if self.todrive['sheetdaysoffset'] is not None else 0,
+                                              hours=-self.todrive['sheethoursoffset'] if self.todrive['sheethoursoffset'] is not None else 0)
           if sheetTitle:
             sheetTitle += ' - '
           if not self.todrive['sheettimeformat']:
