@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.25.07'
+__version__ = '5.25.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2603,10 +2603,9 @@ def getGSheetData():
     for n in range(1, retries+1):
       _, content = drive._http.request(uri=spreadsheetUrl, method='GET')
 # Check for HTML error message instead of data
-      utf8data = content[0:600].decode('utf-8')
-      if not utf8data.startswith('<!DOCTYPE html>'):
+      if content[0:15] != b'<!DOCTYPE html>':
         break
-      tg = TITLE_PATTERN.match(utf8data)
+      tg = TITLE_PATTERN.match(content[0:600].decode('utf-8'))
       errMsg = tg.group(1) if tg else 'Unknown error'
       getGDocSheetDataRetryWarning([Ent.USER, user, Ent.SPREADSHEET, result['name'], sheetEntity['sheetType'], sheetEntity['sheetValue']], errMsg, n, retries)
       time.sleep(20)
@@ -18626,7 +18625,7 @@ def getSettingsFromGroup(cd, group, gs, gs_body):
         return None
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
               GAPI.backendError, GAPI.invalid, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
-              GAPI.systemError, GAPI.serviceLimit) as e:
+              GAPI.systemError, GAPI.serviceLimit, GAPI.serviceNotAvailable) as e:
         entityItemValueListActionNotPerformedWarning([Ent.GROUP, group], [Ent.COPYFROM_GROUP, copySettingsFromGroup], str(e))
         return None
   return gs_body
@@ -18718,7 +18717,7 @@ def doCreateGroup(ciGroupsAPI=False):
     entityActionFailedWarning([entityType, groupEmail], Msg.DOES_NOT_EXIST)
   except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
           GAPI.backendError, GAPI.invalid, GAPI.invalidAttributeValue, GAPI.invalidInput, GAPI.invalidArgument,
-          GAPI.badRequest, GAPI.permissionDenied, GAPI.systemError, GAPI.serviceLimit) as e:
+          GAPI.badRequest, GAPI.permissionDenied, GAPI.systemError, GAPI.serviceLimit, GAPI.serviceNotAvailable) as e:
     entityActionFailedWarning([entityType, groupEmail], str(e))
   except GAPI.required:
     entityActionFailedWarning([entityType, groupEmail], Msg.INVALID_JSON_SETTING)
@@ -19196,7 +19195,7 @@ def doUpdateGroups(ciGroupsAPI=False):
           continue
         except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
                 GAPI.backendError, GAPI.invalid, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
-                GAPI.systemError, GAPI.serviceLimit) as e:
+                GAPI.systemError, GAPI.serviceLimit, GAPI.serviceNotAvailable) as e:
           entityActionFailedWarning([entityType, group], str(e), i, count)
           continue
       if body:
@@ -19218,7 +19217,7 @@ def doUpdateGroups(ciGroupsAPI=False):
           continue
         except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
                 GAPI.backendError, GAPI.invalid, GAPI.invalidAttributeValue, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
-                GAPI.systemError, GAPI.serviceLimit) as e:
+                GAPI.systemError, GAPI.serviceLimit, GAPI.serviceNotAvailable) as e:
           entityActionFailedWarning([entityType, group], str(e), i, count)
           continue
         except GAPI.required:
@@ -19888,7 +19887,7 @@ def infoGroups(entityList):
       entityActionFailedWarning([Ent.GROUP, group], Msg.DOES_NOT_EXIST, i, count)
     except (GAPI.groupNotFound, GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.backendError,
             GAPI.invalid, GAPI.invalidMember, GAPI.invalidParameter, GAPI.invalidInput, GAPI.forbidden, GAPI.badRequest,
-            GAPI.permissionDenied, GAPI.systemError, GAPI.serviceLimit) as e:
+            GAPI.permissionDenied, GAPI.systemError, GAPI.serviceLimit, GAPI.serviceNotAvailable) as e:
       entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
 
 # gam info groups <GroupEntity>
@@ -20202,7 +20201,7 @@ def doPrintGroups():
         response = {}
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
               GAPI.backendError, GAPI.invalid, GAPI.invalidParameter, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
-              GAPI.systemError, GAPI.serviceLimit) as e:
+              GAPI.systemError, GAPI.serviceLimit, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], Ent.GROUP_SETTINGS, None], str(e), i, int(ri[RI_COUNT]))
         response = {}
     groupData[i]['settings'] = response

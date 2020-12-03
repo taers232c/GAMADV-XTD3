@@ -1,3 +1,10 @@
+5.25.08
+
+When getting group settings, handle the following error:
+```
+ERROR: 503: serviceNotAvailable - The service is currently unavailable.
+```
+
 5.25.07
 
 Perform retries when Google returns an error instead of Google Sheet data when using `gsheet <UserGoogleSheet>`.
