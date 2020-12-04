@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.25.08'
+__version__ = '5.25.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -45458,7 +45458,7 @@ def _processMessagesThreads(users, entityType):
       body['ids'] = messageIds[mcount:mcount+bcount]
       try:
         callGAPI(gmail.users().messages(), function,
-                 throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.INVALID_MESSAGE_ID],
+                 throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.INVALID_MESSAGE_ID, GAPI.FAILED_PRECONDITION],
                  userId='me', body=body)
         for messageId in body['ids']:
           mcount += 1
@@ -45467,6 +45467,9 @@ def _processMessagesThreads(users, entityType):
         mcount += bcount
       except GAPI.invalidMessageId:
         entityActionFailedWarning([Ent.USER, user, entityType, Msg.BATCH], f'{Msg.INVALID_MESSAGE_ID} ({mcount+1}-{mcount+bcount}/{jcount})')
+        mcount += bcount
+      except GAPI.failedPrecondition as e:
+        entityActionFailedWarning([Ent.USER, user, entityType, Msg.BATCH], f'{str(e)} ({mcount+1}-{mcount+bcount}/{jcount})')
         mcount += bcount
       bcount = min(jcount-mcount, GC.Values[GC.MESSAGE_BATCH_SIZE])
 
