@@ -1,3 +1,7 @@
+5.25.10
+
+Extended 5.25.09 to handle additional errors in `gam <UserTypeEntity> process messages|threads`.
+
 5.25.09
 
 In `gam <UserTypeEntity> delete messages|threads`, handle the following error:

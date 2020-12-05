@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.25.09'
+__version__ = '5.25.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -45367,7 +45367,8 @@ def _finalizeMessageSelectParameters(parameters, queryOrIdsRequired):
     parameters['query'] = None
   parameters['maxItems'] = parameters['maxToProcess'] if parameters['quick'] else 0
 
-# gam <UserTypeEntity> archive messages <GroupItem> (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_archive <Number>])|(ids <MessageIDEntity>)
+# gam <UserTypeEntity> archive messages <GroupItem>
+#	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_archive <Number>])|(ids <MessageIDEntity>)
 def archiveMessages(users):
   entityType = Ent.MESSAGE
   parameters = _initMessageThreadParameters(entityType, False, 0)
@@ -45404,51 +45405,55 @@ def archiveMessages(users):
         printGettingAllEntityItemsForWhom(entityType, user, i, count)
         listResult = callGAPIpages(service, 'list', parameters['listType'],
                                    pageMessage=getPageMessage(), maxItems=parameters['maxItems'],
-                                   throwReasons=GAPI.GMAIL_THROW_REASONS,
+                                   throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT],
                                    userId='me', q=parameters['query'], fields=parameters['fields'],
                                    maxResults=GC.Values[GC.MESSAGE_MAX_RESULTS])
         messageIds = [message['id'] for message in listResult]
-      jcount = len(messageIds)
-      if jcount == 0:
-        entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(entityType)), i, count)
-        setSysExitRC(NO_ENTITIES_FOUND)
-        continue
-      if parameters['messageEntity'] is None:
-        if parameters['maxToProcess'] and jcount > parameters['maxToProcess']:
-          entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.COUNT_N_EXCEEDS_MAX_TO_PROCESS_M.format(jcount, Act.ToPerform(), parameters['maxToProcess']), i, count)
-          continue
-        if not parameters['doIt']:
-          entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.USE_DOIT_ARGUMENT_TO_PERFORM_ACTION, i, count)
-          continue
-      entityPerformActionNumItems([Ent.USER, user], jcount, entityType, i, count)
-      Ind.Increment()
-      j = 0
-      for messageId in messageIds:
-        j += 1
-        try:
-          message = callGAPI(service, 'get',
-                             throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT],
-                             userId='me', id=messageId, format='raw')
-          stream = StringIOobject()
-          stream.write(base64.urlsafe_b64decode(str(message['raw'])))
-          try:
-            callGAPI(gm.archive(), 'insert',
-                     throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID],
-                     groupId=group, media_body=googleapiclient.http.MediaIoBaseUpload(stream, mimetype='message/rfc822', resumable=True))
-            entityActionPerformed([Ent.USER, user, entityType, messageId], j, jcount)
-          except GAPI.serviceNotAvailable:
-            entityServiceNotApplicableWarning(Ent.USER, user, i, count)
-            break
-          except (GAPI.badRequest, GAPI.invalid) as e:
-            entityActionFailedWarning([Ent.USER, user, entityType, messageId], str(e), j, jcount)
-        except (GAPI.serviceNotAvailable, GAPI.badRequest):
-          entityServiceNotApplicableWarning(Ent.USER, user, i, count)
-          break
-        except (GAPI.notFound, GAPI.invalidArgument) as e:
-          entityActionFailedWarning([Ent.USER, user, entityType, messageId], str(e), j, jcount)
-      Ind.Decrement()
+    except (GAPI.failedPrecondition, GAPI.permissionDenied, GAPI.invalidArgument) as e:
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
+      continue
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      continue
+    jcount = len(messageIds)
+    if jcount == 0:
+      entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(entityType)), i, count)
+      setSysExitRC(NO_ENTITIES_FOUND)
+      continue
+    if parameters['messageEntity'] is None:
+      if parameters['maxToProcess'] and jcount > parameters['maxToProcess']:
+        entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.COUNT_N_EXCEEDS_MAX_TO_PROCESS_M.format(jcount, Act.ToPerform(), parameters['maxToProcess']), i, count)
+        continue
+      if not parameters['doIt']:
+        entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.USE_DOIT_ARGUMENT_TO_PERFORM_ACTION, i, count)
+        continue
+    entityPerformActionNumItems([Ent.USER, user], jcount, entityType, i, count)
+    Ind.Increment()
+    j = 0
+    for messageId in messageIds:
+      j += 1
+      try:
+        message = callGAPI(service, 'get',
+                           throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT],
+                           userId='me', id=messageId, format='raw')
+        stream = StringIOobject()
+        stream.write(base64.urlsafe_b64decode(str(message['raw'])))
+        try:
+          callGAPI(gm.archive(), 'insert',
+                   throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID],
+                   groupId=group, media_body=googleapiclient.http.MediaIoBaseUpload(stream, mimetype='message/rfc822', resumable=True))
+          entityActionPerformed([Ent.USER, user, entityType, messageId], j, jcount)
+        except GAPI.serviceNotAvailable:
+          entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+          break
+        except (GAPI.badRequest, GAPI.invalid) as e:
+          entityActionFailedWarning([Ent.USER, user, entityType, messageId], str(e), j, jcount)
+      except (GAPI.serviceNotAvailable, GAPI.badRequest):
+        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+        break
+      except (GAPI.notFound, GAPI.invalidArgument) as e:
+        entityActionFailedWarning([Ent.USER, user, entityType, messageId], str(e), j, jcount)
+    Ind.Decrement()
 
 def _processMessagesThreads(users, entityType):
   def _batchDeleteModifyMessages(gmail, function, user, jcount, messageIds, body):
@@ -45458,7 +45463,7 @@ def _processMessagesThreads(users, entityType):
       body['ids'] = messageIds[mcount:mcount+bcount]
       try:
         callGAPI(gmail.users().messages(), function,
-                 throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.INVALID_MESSAGE_ID, GAPI.FAILED_PRECONDITION],
+                 throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.INVALID_MESSAGE_ID],
                  userId='me', body=body)
         for messageId in body['ids']:
           mcount += 1
@@ -45467,9 +45472,6 @@ def _processMessagesThreads(users, entityType):
         mcount += bcount
       except GAPI.invalidMessageId:
         entityActionFailedWarning([Ent.USER, user, entityType, Msg.BATCH], f'{Msg.INVALID_MESSAGE_ID} ({mcount+1}-{mcount+bcount}/{jcount})')
-        mcount += bcount
-      except GAPI.failedPrecondition as e:
-        entityActionFailedWarning([Ent.USER, user, entityType, Msg.BATCH], f'{str(e)} ({mcount+1}-{mcount+bcount}/{jcount})')
         mcount += bcount
       bcount = min(jcount-mcount, GC.Values[GC.MESSAGE_BATCH_SIZE])
 
@@ -45536,54 +45538,58 @@ def _processMessagesThreads(users, entityType):
     if not gmail:
       continue
     service = gmail.users().messages() if entityType == Ent.MESSAGE else gmail.users().threads()
+    if addLabelNames or removeLabelNames:
+      userGmailLabels = _getUserGmailLabels(gmail, user, i, count, fields='labels(id,name,type)')
+      if not userGmailLabels:
+        continue
+      labelNameMap = _initLabelNameMap(userGmailLabels)
+      addLabelIds = _convertLabelNamesToIds(gmail, addLabelNames, labelNameMap, True)
+      removeLabelIds = _convertLabelNamesToIds(gmail, removeLabelNames, labelNameMap, False)
     try:
-      if addLabelNames or removeLabelNames:
-        userGmailLabels = _getUserGmailLabels(gmail, user, i, count, fields='labels(id,name,type)')
-        if not userGmailLabels:
-          continue
-        labelNameMap = _initLabelNameMap(userGmailLabels)
-        addLabelIds = _convertLabelNamesToIds(gmail, addLabelNames, labelNameMap, True)
-        removeLabelIds = _convertLabelNamesToIds(gmail, removeLabelNames, labelNameMap, False)
       if parameters['messageEntity'] is None:
         printGettingAllEntityItemsForWhom(Ent.MESSAGE, user, i, count)
         listResult = callGAPIpages(service, 'list', parameters['listType'],
                                    pageMessage=getPageMessage(), maxItems=parameters['maxItems'],
-                                   throwReasons=GAPI.GMAIL_THROW_REASONS,
+                                   throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT],
                                    userId='me', q=parameters['query'], fields=parameters['fields'], includeSpamTrash=includeSpamTrash,
                                    maxResults=GC.Values[GC.MESSAGE_MAX_RESULTS])
         messageIds = [message['id'] for message in listResult]
       else:
         # Need to get authorization set up for batch
         callGAPI(gmail.users(), 'getProfile',
-                 throwReasons=GAPI.GMAIL_THROW_REASONS,
+                 throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT],
                  userId='me', fields='')
-      jcount = len(messageIds)
-      if jcount == 0:
-        entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(entityType)), i, count)
-        setSysExitRC(NO_ENTITIES_FOUND)
-        continue
-      if parameters['messageEntity'] is None:
-        if parameters['maxToProcess'] and jcount > parameters['maxToProcess']:
-          entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.COUNT_N_EXCEEDS_MAX_TO_PROCESS_M.format(jcount, Act.ToPerform(), parameters['maxToProcess']), i, count)
-          continue
-        if not parameters['doIt']:
-          entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.USE_DOIT_ARGUMENT_TO_PERFORM_ACTION, i, count)
-          continue
-      entityPerformActionNumItems([Ent.USER, user], jcount, entityType, i, count)
-      Ind.Increment()
-      if function == 'delete' and entityType == Ent.MESSAGE:
-        _batchDeleteModifyMessages(gmail, 'batchDelete', user, jcount, messageIds, {'ids': []})
-      elif function == 'modify' and entityType == Ent.MESSAGE:
-        _batchDeleteModifyMessages(gmail, 'batchModify', user, jcount, messageIds, {'ids': [], 'addLabelIds': addLabelIds, 'removeLabelIds': removeLabelIds})
-      else:
-        if addLabelIds or removeLabelIds:
-          kwargs = {'body': {'addLabelIds': addLabelIds, 'removeLabelIds': removeLabelIds}}
-        else:
-          kwargs = {}
-        _batchProcessMessagesThreads(service, function, user, jcount, messageIds, **kwargs)
-      Ind.Decrement()
+    except (GAPI.failedPrecondition, GAPI.permissionDenied, GAPI.invalidArgument) as e:
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
+      continue
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      continue
+    jcount = len(messageIds)
+    if jcount == 0:
+      entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(entityType)), i, count)
+      setSysExitRC(NO_ENTITIES_FOUND)
+      continue
+    if parameters['messageEntity'] is None:
+      if parameters['maxToProcess'] and jcount > parameters['maxToProcess']:
+        entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.COUNT_N_EXCEEDS_MAX_TO_PROCESS_M.format(jcount, Act.ToPerform(), parameters['maxToProcess']), i, count)
+        continue
+      if not parameters['doIt']:
+        entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.USE_DOIT_ARGUMENT_TO_PERFORM_ACTION, i, count)
+        continue
+    entityPerformActionNumItems([Ent.USER, user], jcount, entityType, i, count)
+    Ind.Increment()
+    if function == 'delete' and entityType == Ent.MESSAGE:
+      _batchDeleteModifyMessages(gmail, 'batchDelete', user, jcount, messageIds, {'ids': []})
+    elif function == 'modify' and entityType == Ent.MESSAGE:
+      _batchDeleteModifyMessages(gmail, 'batchModify', user, jcount, messageIds, {'ids': [], 'addLabelIds': addLabelIds, 'removeLabelIds': removeLabelIds})
+    else:
+      if addLabelIds or removeLabelIds:
+        kwargs = {'body': {'addLabelIds': addLabelIds, 'removeLabelIds': removeLabelIds}}
+      else:
+        kwargs = {}
+      _batchProcessMessagesThreads(service, function, user, jcount, messageIds, **kwargs)
+    Ind.Decrement()
 
 # gam <UserTypeEntity> delete message|messages
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_delete <Number>])|(ids <MessageIDEntity>)
@@ -46298,62 +46304,66 @@ def printShowMessagesThreads(users, entityType):
         printGettingAllEntityItemsForWhom(entityType, user, i, count)
         listResult = callGAPIpages(service, 'list', parameters['listType'],
                                    pageMessage=getPageMessage(), maxItems=parameters['maxItems'],
-                                   throwReasons=GAPI.GMAIL_THROW_REASONS,
+                                   throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT],
                                    userId='me', q=parameters['query'], fields=parameters['fields'], includeSpamTrash=includeSpamTrash,
                                    maxResults=GC.Values[GC.MESSAGE_MAX_RESULTS])
         messageIds = [message['id'] for message in listResult]
       else:
         # Need to get authorization set up for batch
         callGAPI(gmail.users(), 'getProfile',
-                 throwReasons=GAPI.GMAIL_THROW_REASONS,
+                 throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT],
                  userId='me', fields='')
-      jcount = len(messageIds)
-      if jcount == 0:
-        setSysExitRC(NO_ENTITIES_FOUND)
-      if countsOnly and not show_labels:
-        if not csvPF:
-          printEntityKVList([Ent.USER, user], [parameters['listType'], jcount], i, count)
-        else:
-          csvPF.WriteRow({'User': user, parameters['listType']: jcount})
-        continue
-      if jcount == 0:
-        if not csvPF:
-          entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(entityType)), i, count)
-        continue
-      if not csvPF and not countsOnly: #show_labels is True
-        if parameters['messageEntity'] is not None or parameters['maxToProcess'] == 0 or jcount <= parameters['maxToProcess']:
-          entityPerformActionNumItems([Ent.USER, user], jcount, entityType, i, count)
-        else:
-          entityPerformActionNumItemsModifier([Ent.USER, user], parameters['maxToProcess'], entityType, f'of {jcount} Total {Ent.Plural(entityType)}', i, count)
-      if parameters['messageEntity'] is None and parameters['maxToProcess'] and (jcount > parameters['maxToProcess']):
-        jcount = parameters['maxToProcess']
-      if not csvPF:
-        Ind.Increment()
-        _batchPrintShowMessagesThreads(service, user, jcount, messageIds)
-        Ind.Decrement()
-      else:
-        _batchPrintShowMessagesThreads(service, user, jcount, messageIds)
-      if countsOnly: #show_labels is True
-        if onlyUser or positiveCountsOnly:
-          userLabelsMap = {}
-          for labelId, label in iter(labelsMap.items()):
-            if ((not onlyUser or label['type'] != LABEL_TYPE_SYSTEM) and
-                (not positiveCountsOnly or label['count'] > 0)):
-              userLabelsMap[labelId] = label
-          labelsMap = userLabelsMap
-        if not csvPF:
-          jcount = len(labelsMap)
-          entityPerformActionNumItems([Ent.USER, user], jcount, Ent.LABEL, i, count)
-          Ind.Increment()
-          j = 0
-          for label in sorted(iter(labelsMap.values()), key=lambda k: k['name']):
-            j += 1
-            printEntityKVList([Ent.LABEL, label['name']], ['Count', label['count'], 'Type', label['type']], j, jcount)
-          Ind.Decrement()
-        else:
-          csvPF.WriteRowTitles(flattenJSON({'Labels': sorted(iter(labelsMap.values()), key=lambda k: k['name'])}, flattened={'User': user}))
+    except (GAPI.failedPrecondition, GAPI.permissionDenied, GAPI.invalidArgument) as e:
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
+      continue
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      continue
+    jcount = len(messageIds)
+    if jcount == 0:
+      setSysExitRC(NO_ENTITIES_FOUND)
+    if countsOnly and not show_labels:
+      if not csvPF:
+        printEntityKVList([Ent.USER, user], [parameters['listType'], jcount], i, count)
+      else:
+        csvPF.WriteRow({'User': user, parameters['listType']: jcount})
+      continue
+    if jcount == 0:
+      if not csvPF:
+        entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(entityType)), i, count)
+      continue
+    if not csvPF and not countsOnly: #show_labels is True
+      if parameters['messageEntity'] is not None or parameters['maxToProcess'] == 0 or jcount <= parameters['maxToProcess']:
+        entityPerformActionNumItems([Ent.USER, user], jcount, entityType, i, count)
+      else:
+        entityPerformActionNumItemsModifier([Ent.USER, user], parameters['maxToProcess'], entityType, f'of {jcount} Total {Ent.Plural(entityType)}', i, count)
+    if parameters['messageEntity'] is None and parameters['maxToProcess'] and (jcount > parameters['maxToProcess']):
+      jcount = parameters['maxToProcess']
+    if not csvPF:
+      Ind.Increment()
+      _batchPrintShowMessagesThreads(service, user, jcount, messageIds)
+      Ind.Decrement()
+    else:
+      _batchPrintShowMessagesThreads(service, user, jcount, messageIds)
+    if countsOnly: #show_labels is True
+      if onlyUser or positiveCountsOnly:
+        userLabelsMap = {}
+        for labelId, label in iter(labelsMap.items()):
+          if ((not onlyUser or label['type'] != LABEL_TYPE_SYSTEM) and
+              (not positiveCountsOnly or label['count'] > 0)):
+            userLabelsMap[labelId] = label
+        labelsMap = userLabelsMap
+      if not csvPF:
+        jcount = len(labelsMap)
+        entityPerformActionNumItems([Ent.USER, user], jcount, Ent.LABEL, i, count)
+        Ind.Increment()
+        j = 0
+        for label in sorted(iter(labelsMap.values()), key=lambda k: k['name']):
+          j += 1
+          printEntityKVList([Ent.LABEL, label['name']], ['Count', label['count'], 'Type', label['type']], j, jcount)
+        Ind.Decrement()
+      else:
+        csvPF.WriteRowTitles(flattenJSON({'Labels': sorted(iter(labelsMap.values()), key=lambda k: k['name'])}, flattened={'User': user}))
   if csvPF:
     if not countsOnly:
       csvPF.RemoveTitles(['Snippet', 'SizeEstimate', 'Labels', 'Body'])
