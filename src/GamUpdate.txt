@@ -1,3 +1,9 @@
+5.25.11
+
+Google does not support `/` in group email addresses but doesn't give an error if you assign an address that contains a `/`.
+The Directory API will accept such an address but the Group Settings API won't; this update maps `/` to `%2F`
+so the Group Settings will accept the address.
+
 5.25.10
 
 Extended 5.25.09 to handle additional errors in `gam <UserTypeEntity> process messages|threads`.

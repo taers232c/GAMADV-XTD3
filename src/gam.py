@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.25.10'
+__version__ = '5.25.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2564,7 +2564,7 @@ def getGDocData(mimeType):
     userSvcNotApplicableOrDriveDisabled(user, str(e))
     sys.exit(GM.Globals[GM.SYSEXITRC])
 
-TITLE_PATTERN = re.compile(r'.*<title>(.+)</title>')
+HTML_TITLE_PATTERN = re.compile(r'.*<title>(.+)</title>')
 
 # gsheet <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity> <SheetEntity>
 def getGSheetData():
@@ -2605,7 +2605,7 @@ def getGSheetData():
 # Check for HTML error message instead of data
       if content[0:15] != b'<!DOCTYPE html>':
         break
-      tg = TITLE_PATTERN.match(content[0:600].decode('utf-8'))
+      tg = HTML_TITLE_PATTERN.match(content[0:600].decode('utf-8'))
       errMsg = tg.group(1) if tg else 'Unknown error'
       getGDocSheetDataRetryWarning([Ent.USER, user, Ent.SPREADSHEET, result['name'], sheetEntity['sheetType'], sheetEntity['sheetValue']], errMsg, n, retries)
       time.sleep(20)
@@ -4089,16 +4089,20 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False):
     lContent = eContent.lower()
     if GC.Values[GC.DEBUG_LEVEL] > 0:
       writeStdout(f'{ERROR_PREFIX} HTTP: {str(eContent)}+\n')
-    if (e.resp['status'] == '403') and (lContent.startswith('request rate higher than configured')):
-      return (e.resp['status'], GAPI.QUOTA_EXCEEDED, eContent)
-    if (e.resp['status'] == '429') and (lContent.startswith('quota exceeded for quota metric')):
-      return (e.resp['status'], GAPI.QUOTA_EXCEEDED, eContent)
-    if (e.resp['status'] == '502') and ('bad gateway' in lContent):
-      return (e.resp['status'], GAPI.BAD_GATEWAY, eContent)
-    if (e.resp['status'] == '503') and (lContent.startswith('quota exceeded for the current request')):
-      return (e.resp['status'], GAPI.QUOTA_EXCEEDED, eContent)
-    if (e.resp['status'] == '504') and ('gateway timeout' in lContent):
-      return (e.resp['status'], GAPI.GATEWAY_TIMEOUT, eContent)
+    if eContent[0:15] != b'<!DOCTYPE html>':
+      if (e.resp['status'] == '403') and (lContent.startswith('request rate higher than configured')):
+        return (e.resp['status'], GAPI.QUOTA_EXCEEDED, eContent)
+      if (e.resp['status'] == '429') and (lContent.startswith('quota exceeded for quota metric')):
+        return (e.resp['status'], GAPI.QUOTA_EXCEEDED, eContent)
+      if (e.resp['status'] == '502') and ('bad gateway' in lContent):
+        return (e.resp['status'], GAPI.BAD_GATEWAY, eContent)
+      if (e.resp['status'] == '503') and (lContent.startswith('quota exceeded for the current request')):
+        return (e.resp['status'], GAPI.QUOTA_EXCEEDED, eContent)
+      if (e.resp['status'] == '504') and ('gateway timeout' in lContent):
+        return (e.resp['status'], GAPI.GATEWAY_TIMEOUT, eContent)
+    else:
+      tg = HTML_TITLE_PATTERN.match(lContent)
+      lContent = tg.group(1) if tg else 'bad request'
     if (e.resp['status'] == '403') and ('invalid domain.' in lContent):
       error = makeErrorDict(403, GAPI.NOT_FOUND, 'Domain not found')
     elif (e.resp['status'] == '403') and ('domain cannot use apis.' in lContent):
@@ -4117,6 +4121,10 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False):
       error = makeErrorDict(400, GAPI.BAD_REQUEST, 'Failed to parse Content-Range header')
     elif (e.resp['status'] == '400') and ('request contains an invalid argument' in lContent):
       error = makeErrorDict(400, GAPI.INVALID_ARGUMENT, 'Request contains an invalid argument')
+    elif (e.resp['status'] == '404') and ('not found' in lContent):
+      error = makeErrorDict(404, GAPI.NOT_FOUND, lContent)
+    elif (e.resp['status'] == '404') and ('bad request' in lContent):
+      error = makeErrorDict(404, GAPI.BAD_REQUEST, lContent)
     elif retryOnHttpError:
       return (-1, None, eContent)
     elif softErrors:
@@ -18612,6 +18620,9 @@ def getGroupAttrValue(argument, gs_body):
 def GroupIsAbuseOrPostmaster(emailAddr):
   return emailAddr.startswith('abuse@') or emailAddr.startswith('postmaster@')
 
+def mapGroupEmailForSettings(emailAddr):
+  return emailAddr.replace('/', '%2F')
+
 def getSettingsFromGroup(cd, group, gs, gs_body):
   if gs_body:
     copySettingsFromGroup = gs_body.pop('copyfrom', None)
@@ -18623,7 +18634,7 @@ def getSettingsFromGroup(cd, group, gs, gs_body):
                                            groupKey=copySettingsFromGroup, fields='email')['email']
         settings = callGAPI(gs.groups(), 'get',
                             throwReasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retryReasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
-                            groupUniqueId=copySettingsFromGroup, fields='*')
+                            groupUniqueId=mapGroupEmailForSettings(copySettingsFromGroup), fields='*')
         if settings is not None:
           for field in ['email', 'name', 'description']:
             settings.pop(field, None)
@@ -18715,12 +18726,12 @@ def doCreateGroup(ciGroupsAPI=False):
         settings = callGAPI(gs.groups(), 'get',
                             throwReasons=GAPI.GROUP_SETTINGS_THROW_REASONS,
                             retryReasons=GAPI.GROUP_SETTINGS_RETRY_REASONS+[GAPI.NOT_FOUND],
-                            groupUniqueId=groupEmail, fields='*')
+                            groupUniqueId=mapGroupEmailForSettings(groupEmail), fields='*')
         settings.update(gs_body)
       callGAPI(gs.groups(), 'update',
                throwReasons=GAPI.GROUP_SETTINGS_THROW_REASONS,
                retryReasons=GAPI.GROUP_SETTINGS_RETRY_REASONS+[GAPI.NOT_FOUND],
-               groupUniqueId=groupEmail, body=settings, fields='')
+               groupUniqueId=mapGroupEmailForSettings(groupEmail), body=settings, fields='')
     entityActionPerformed([entityType, groupEmail])
   except (GAPI.alreadyExists, GAPI.duplicate):
     entityDuplicateWarning([entityType, groupEmail])
@@ -19197,7 +19208,7 @@ def doUpdateGroups(ciGroupsAPI=False):
           if getBeforeUpdate:
             settings = callGAPI(gs.groups(), 'get',
                                 throwReasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retryReasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
-                                groupUniqueId=group, fields='*')
+                                groupUniqueId=mapGroupEmailForSettings(group), fields='*')
             settings.update(gs_body)
           if not checkReplyToCustom(group, settings, i, count):
             continue
@@ -19222,7 +19233,7 @@ def doUpdateGroups(ciGroupsAPI=False):
         try:
           callGAPI(gs.groups(), 'update',
                    throwReasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retryReasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
-                   groupUniqueId=group, body=settings, fields='')
+                   groupUniqueId=mapGroupEmailForSettings(group), body=settings, fields='')
         except GAPI.notFound:
           entityActionFailedWarning([entityType, group], Msg.DOES_NOT_EXIST, i, count)
           continue
@@ -19769,9 +19780,10 @@ def infoGroups(entityList):
         ci_info = {}
       settings = {}
       if getSettings and not GroupIsAbuseOrPostmaster(group):
+ # Use email address retrieved from cd since GS API doesn't support uid
         settings = callGAPI(gs.groups(), 'get',
                             throwReasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retryReasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
-                            groupUniqueId=group, fields=gsfields) # Use email address retrieved from cd since GS API doesn't support uid
+                            groupUniqueId=mapGroupEmailForSettings(group), fields=gsfields)
       if getGroups:
         groups = callGAPIpages(cd.groups(), 'list', 'groups',
                                throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
@@ -20206,7 +20218,7 @@ def doPrintGroups():
       try:
         response = callGAPI(gs.groups(), 'get',
                             throwReasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retryReasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
-                            groupUniqueId=ri[RI_ENTITY], fields=gsfields)
+                            groupUniqueId=mapGroupEmailForSettings(ri[RI_ENTITY]), fields=gsfields)
       except GAPI.notFound:
         entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], Ent.GROUP_SETTINGS, None], Msg.DOES_NOT_EXIST, i, int(ri[RI_COUNT]))
         response = {}
@@ -20512,7 +20524,7 @@ def doPrintGroups():
       if not GroupIsAbuseOrPostmaster(groupEmail):
         printGettingEntityItemForWhom(Ent.GROUP_SETTINGS, groupEmail, i, count)
         svcparmsgs = svcargsgs.copy()
-        svcparmsgs['groupUniqueId'] = groupEmail
+        svcparmsgs['groupUniqueId'] = mapGroupEmailForSettings(groupEmail)
         gsbatch.add(gsmethod(**svcparmsgs), request_id=batchRequestID(groupEmail, i, count, 0, 0, None))
         gsbcount += 1
         if gsbcount >= GC.Values[GC.BATCH_SIZE]:
