@@ -1,3 +1,7 @@
+5.25.12
+
+Added more error handling for `gam <UserTypeEntity> process messages|threads`.
+
 5.25.11
 
 Google does not support `/` in group email addresses but doesn't give an error if you assign an address that contains a `/`.

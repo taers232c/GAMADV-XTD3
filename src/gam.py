@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.25.11'
+__version__ = '5.25.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -45417,11 +45417,11 @@ def archiveMessages(users):
         printGettingAllEntityItemsForWhom(entityType, user, i, count)
         listResult = callGAPIpages(service, 'list', parameters['listType'],
                                    pageMessage=getPageMessage(), maxItems=parameters['maxItems'],
-                                   throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT],
+                                   throwReasons=GAPI.GMAIL_THROW_REASONS+GAPI.GMAIL_LIST_THROW_REASONS,
                                    userId='me', q=parameters['query'], fields=parameters['fields'],
                                    maxResults=GC.Values[GC.MESSAGE_MAX_RESULTS])
         messageIds = [message['id'] for message in listResult]
-    except (GAPI.failedPrecondition, GAPI.permissionDenied, GAPI.invalidArgument) as e:
+    except (GAPI.failedPrecondition, GAPI.permissionDenied, GAPI.invalid, GAPI.invalidArgument) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
       continue
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
@@ -45562,16 +45562,16 @@ def _processMessagesThreads(users, entityType):
         printGettingAllEntityItemsForWhom(Ent.MESSAGE, user, i, count)
         listResult = callGAPIpages(service, 'list', parameters['listType'],
                                    pageMessage=getPageMessage(), maxItems=parameters['maxItems'],
-                                   throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT],
+                                   throwReasons=GAPI.GMAIL_THROW_REASONS+GAPI.GMAIL_LIST_THROW_REASONS,
                                    userId='me', q=parameters['query'], fields=parameters['fields'], includeSpamTrash=includeSpamTrash,
                                    maxResults=GC.Values[GC.MESSAGE_MAX_RESULTS])
         messageIds = [message['id'] for message in listResult]
       else:
         # Need to get authorization set up for batch
         callGAPI(gmail.users(), 'getProfile',
-                 throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT],
+                 throwReasons=GAPI.GMAIL_THROW_REASONS+GAPI.GMAIL_LIST_THROW_REASONS,
                  userId='me', fields='')
-    except (GAPI.failedPrecondition, GAPI.permissionDenied, GAPI.invalidArgument) as e:
+    except (GAPI.failedPrecondition, GAPI.permissionDenied, GAPI.invalid, GAPI.invalidArgument) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
       continue
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
@@ -46316,16 +46316,16 @@ def printShowMessagesThreads(users, entityType):
         printGettingAllEntityItemsForWhom(entityType, user, i, count)
         listResult = callGAPIpages(service, 'list', parameters['listType'],
                                    pageMessage=getPageMessage(), maxItems=parameters['maxItems'],
-                                   throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT],
+                                   throwReasons=GAPI.GMAIL_THROW_REASONS+GAPI.GMAIL_LIST_THROW_REASONS,
                                    userId='me', q=parameters['query'], fields=parameters['fields'], includeSpamTrash=includeSpamTrash,
                                    maxResults=GC.Values[GC.MESSAGE_MAX_RESULTS])
         messageIds = [message['id'] for message in listResult]
       else:
         # Need to get authorization set up for batch
         callGAPI(gmail.users(), 'getProfile',
-                 throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT],
+                 throwReasons=GAPI.GMAIL_THROW_REASONS+GAPI.GMAIL_LIST_THROW_REASONS,
                  userId='me', fields='')
-    except (GAPI.failedPrecondition, GAPI.permissionDenied, GAPI.invalidArgument) as e:
+    except (GAPI.failedPrecondition, GAPI.permissionDenied, GAPI.invalid, GAPI.invalidArgument) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
       continue
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
