@@ -21,7 +21,8 @@ else
   echo "PyInstaller GAM info:"
   du -h $gam
   time $gam version extended
-  if [ "${TRAVIS_DIST}" == "precise" ] && [ "${PLATFORM}" == "x86_64" ]; then
+#  if [ "${TRAVIS_DIST}" == "precise" ] && [ "${PLATFORM}" == "x86_64" ]; then
+  if [ "${TRAVIS_DIST}" == "trusty" ] && [ "${PLATFORM}" == "x86_64" ]; then
     GAM_LEGACY_ARCHIVE=gamadv-xtd3-${GAMVERSION}-${GAMOS}-${PLATFORM}-legacy.tar.xz
     $python -OO -m staticx -l /lib/x86_64-linux-gnu/libresolv.so.2 -l /lib/x86_64-linux-gnu/libnss_dns.so.2 $gam $gam-staticx
     strip $gam-staticx
