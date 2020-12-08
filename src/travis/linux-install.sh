@@ -22,18 +22,17 @@ else
   du -h $gam
   time $gam version extended
 #  if [ "${TRAVIS_DIST}" == "precise" ] && [ "${PLATFORM}" == "x86_64" ]; then
-  if [ "${TRAVIS_DIST}" == "trusty" ] && [ "${PLATFORM}" == "x86_64" ]; then
-    GAM_LEGACY_ARCHIVE=gamadv-xtd3-${GAMVERSION}-${GAMOS}-${PLATFORM}-legacy.tar.xz
-    $python -OO -m staticx -l /lib/x86_64-linux-gnu/libresolv.so.2 -l /lib/x86_64-linux-gnu/libnss_dns.so.2 $gam $gam-staticx
-    strip $gam-staticx
-    rm $gampath/gam
-    mv $gam-staticx $gam
-    chmod 755 $gam
-    tar -C dist/ --create --file $GAM_LEGACY_ARCHIVE --xz gamadv-xtd3
-    echo "Legacy StaticX GAM info:"
-    du -h $gam
-    time $gam version extended
-  fi
+#    GAM_LEGACY_ARCHIVE=gamadv-xtd3-${GAMVERSION}-${GAMOS}-${PLATFORM}-legacy.tar.xz
+#    $python -OO -m staticx -l /lib/x86_64-linux-gnu/libresolv.so.2 -l /lib/x86_64-linux-gnu/libnss_dns.so.2 $gam $gam-staticx
+#    strip $gam-staticx
+#    rm $gampath/gam
+#    mv $gam-staticx $gam
+#    chmod 755 $gam
+#    tar -C dist/ --create --file $GAM_LEGACY_ARCHIVE --xz gamadv-xtd3
+#    echo "Legacy StaticX GAM info:"
+#    du -h $gam
+#    time $gam version extended
+#  fi
   echo "GAM packages:"
   ls -l gamadv-xtd3-*.tar.xz
 fi
