@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.25.12'
+__version__ = '5.25.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2128,7 +2128,7 @@ def userSvcNotApplicableOrDriveDisabled(user, errMessage, i=0, count=0):
     entityActionNotPerformedWarning([Ent.USER, user], errMessage, i, count)
 
 # Getting ... utilities
-def printGettingAllAccountEntities(entityType, query='', qualifier=''):
+def printGettingAllAccountEntities(entityType, query='', qualifier='', accountType=Ent.ACCOUNT):
   if GC.Values[GC.SHOW_GETTINGS]:
     if query:
       Ent.SetGettingQuery(entityType, query)
@@ -2136,7 +2136,7 @@ def printGettingAllAccountEntities(entityType, query='', qualifier=''):
       Ent.SetGettingQualifier(entityType, qualifier)
     else:
       Ent.SetGetting(entityType)
-    writeStderr(f'{Msg.GETTING_ALL} {Ent.PluralGetting()}{Ent.GettingPreQualifier()}{Ent.MayTakeTime(Ent.ACCOUNT)}\n')
+    writeStderr(f'{Msg.GETTING_ALL} {Ent.PluralGetting()}{Ent.GettingPreQualifier()}{Ent.MayTakeTime(accountType)}\n')
 
 def printGotAccountEntities(count):
   if GC.Values[GC.SHOW_GETTINGS]:
@@ -4783,8 +4783,7 @@ def convertGroupEmailToCloudID(ci, group, i=0, count=0):
     ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
   try:
     ciGroup = callGAPI(ci.groups(), 'lookup',
-                       throwReasons=GAPI.CIGROUP_GET_THROW_REASONS,
-                       retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
+                       throwReasons=GAPI.CIGROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
                        groupKey_id=group, fields='name')
     return (ci, ciGroup['name'])
   except (GAPI.notFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
@@ -4814,8 +4813,7 @@ def checkGroupExists(cd, ci, ciGroupsAPI, returnCloudID, group, i=0, count=0):
     if group.startswith('groups/'):
       try:
         result = callGAPI(ci.groups(), 'get',
-                          throwReasons=GAPI.CIGROUP_GET_THROW_REASONS,
-                          retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
+                          throwReasons=GAPI.CIGROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
                           name=group, fields='groupKey(id)')
         return (ci, result['groupKey']['id'])
       except (GAPI.notFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
@@ -6897,7 +6895,7 @@ def writeEntityNoHeaderCSVFile(entityType, entityList):
   GM.Globals[GM.CSVFILE][GM.REDIRECT_WRITE_HEADER] = False
   csvPF.writeCSVfile(Ent.Plural(entityType))
 
-DEFAULT_SKIP_OBJECTS = {'kind', 'etag', 'etags'}
+DEFAULT_SKIP_OBJECTS = {'kind', 'etag', 'etags', '@type'}
 
 # Clean a JSON object
 def cleanJSON(topStructure, listLimit=None, skipObjects=None, timeObjects=None):
@@ -17443,7 +17441,7 @@ DEVICE_TYPE_MAP = {
   'windows': 'WINDOWS'
   }
 
-DEVICE_TIME_OBJECTS = {'createTime', 'firstSyncTime', 'lastSyncTime', 'securityPatchTime'}
+DEVICE_TIME_OBJECTS = {'createTime', 'firstSyncTime', 'lastSyncTime', 'lastUpdateTime', 'securityPatchTime'}
 
 # gam create device serialnumber <String> devicetype <DeviceType> [assettag <String>]
 def doCreateCIDevice():
@@ -17763,6 +17761,10 @@ def doInfoCIDevice():
         device_users = callGAPIpages(ci.devices().deviceUsers(), 'list', 'deviceUsers',
                                      throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED],
                                      parent=name, customer=customer, fields=userFields)
+        for device_user in device_users:
+          device_user['client_states'] = callGAPIpages(ci.devices().deviceUsers().clientStates(), 'list', 'clientStates',
+                                                       throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED],
+                                                       parent=device_user['name'], customer=customer)
       else:
         device_users = []
       if FJQC.formatJSON:
@@ -17921,7 +17923,9 @@ def _performCIDeviceUserAction(action):
           entityActionFailedWarning([Ent.DEVICE_USER, name], result['error']['message'], i, count)
       else:
         entityActionPerformedMessage([Ent.DEVICE_USER, name], Msg.ACTION_IN_PROGRESS.format(action), i, count)
+      Ind.Increment()
       showJSON(None, result, timeObjects=DEVICE_TIME_OBJECTS)
+      Ind.Decrement()
     except GAPI.notFound:
       entityUnknownWarning(Ent.DEVICE_USER, f'{name}', i, count)
     except (GAPI.invalid, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
@@ -18041,6 +18045,135 @@ def doPrintCIDeviceUsers():
     except (GAPI.invalid, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.DEVICE_USER, None], str(e))
   csvPF.writeCSVfile('Device Users')
+
+DEVICE_USER_COMPLIANCE_STATE_CHOICE_MAP = {
+  'compliant': 'COMPLIANT',
+  'noncompliant': 'NON_COMPLIANT'
+  }
+DEVICE_USER_HEALTH_SCORE_CHOICE_MAP = {
+  'verypoor': 'VERY_POOR',
+  'poor': 'POOR',
+  'neutral': 'NEUTRAL',
+  'good': 'GOOD',
+  'verygood': 'VERY_GOOD'
+  }
+DEVICE_USER_MANAGED_STATE_CHOICE_MAP = {
+  'clear': None,
+  'managed': 'MANAGED',
+  'unmanaged': 'UNMANAGED'
+  }
+DEVICE_USER_CUSTOM_VALUE_TYPE_CHOICE_MAP = {
+  'bool': 'boolValue',
+  'boolean': 'boolValue',
+  'number': 'numberValue',
+  'string': 'stringValue'
+  }
+
+# gam info deviceuserstate <DeviceUserEntity> [clientid <String>]
+def doInfoCIDeviceUserState():
+  setTrueCustomerId()
+  entityList, ci, customer, _ = getCIDeviceUserEntity()
+  customerID = customer[10:]
+  client_id = f'{customerID}-gam'
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'clientid':
+      client_id = f'{customerID}-{getString(Cmd.OB_STRING)}'
+    else:
+      unknownArgumentExit()
+  count = len(entityList)
+  i = 0
+  for deviceUser in entityList:
+    i += 1
+    deviceUser = deviceUser['name']
+    name = f'{deviceUser}/clientStates/{client_id}'
+    try:
+      result = callGAPI(ci.devices().deviceUsers().clientStates(), 'get',
+                        bailOnInternalError=True,
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED],
+                        name=name, customer=customer)
+      printEntity([Ent.DEVICE_USER_CLIENT_STATE, name], i, count)
+      Ind.Increment()
+      result.pop('name', None)
+      showJSON(None, result, timeObjects=DEVICE_TIME_OBJECTS)
+      Ind.Decrement()
+    except GAPI.notFound:
+      entityUnknownWarning(Ent.DEVICE_USER, deviceUser, i, count)
+    except (GAPI.invalid, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
+      entityActionFailedWarning([Ent.DEVICE_USER, deviceUser], str(e), i, count)
+
+# gam update deviceuserstate <DeviceUserEntity> [clientid <String>]
+#	[customid <String>] [assettags clear|<AssetTagList>]
+#	[compliantstate|compliancestate compliant|noncompliant] [managedstate clear|managed|unmanaged]
+#	[healthscore verypoor|poor|neutral|good|verygood] [scorereason clear|<String>]
+#	(customvalue (bool|boolean <Boolean>)|(number <Integer>)(string <String>))*
+def doUpdateCIDeviceUserState():
+  setTrueCustomerId()
+  entityList, ci, customer, _ = getCIDeviceUserEntity()
+  customerID = customer[10:]
+  client_id = f'{customerID}-gam'
+  body = {}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'clientid':
+      client_id = f'{customerID}-{getString(Cmd.OB_STRING)}'
+    elif myarg in ['assettag', 'assettags']:
+      body['assetTags'] = convertEntityToList(getString(Cmd.OB_STRING, minLen=0), shlexSplit=True)
+      if not body['assetTags'] or body['assetTags'] == ['clear']:
+        # TODO: This doesn't work to clear existing values; figure out why.
+        body['assetTags'] = [None]
+    elif myarg in ['compliantstate', 'compliancestate']:
+      body['complianceState'] = getChoice(DEVICE_USER_COMPLIANCE_STATE_CHOICE_MAP, mapChoice=True)
+    elif myarg == 'healthscore':
+      body['healthScore'] = getChoice(DEVICE_USER_HEALTH_SCORE_CHOICE_MAP, mapChoice=True)
+    elif myarg in ['scorereason']:
+      body['scoreReason'] = getString(Cmd.OB_STRING)
+      if body['scoreReason'] == 'clear':
+        body['scoreReason'] = None
+    elif myarg == 'customid':
+      body['customId'] = getString(Cmd.OB_STRING)
+    elif myarg == 'customvalue':
+      valueType = getChoice(DEVICE_USER_CUSTOM_VALUE_TYPE_CHOICE_MAP, mapChoice=True)
+      key = getString(Cmd.OB_STRING)
+      if valueType == 'boolValue':
+        value = getBoolean()
+      elif valueType == 'numberValue':
+        value = getInteger()
+      else: # stringValue
+        value = getString(Cmd.OB_STRING)
+      body.setdefault('keyValuePairs', {})
+      body['keyValuePairs'][key] = {valueType: value}
+    elif myarg == 'managedstate':
+      body['managed'] = getChoice(DEVICE_USER_MANAGED_STATE_CHOICE_MAP, mapChoice=True)
+    else:
+      unknownArgumentExit()
+  count = len(entityList)
+  i = 0
+  for deviceUser in entityList:
+    i += 1
+    deviceUser = deviceUser['name']
+    name = f'{deviceUser}/clientStates/{client_id}'
+    try:
+      result = callGAPI(ci.devices().deviceUsers().clientStates(), 'patch',
+                        bailOnInternalError=True,
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED],
+                        name=name, customer=customer, updateMask=','.join(body.keys()), body=body)
+      if result['done']:
+        if 'error' not in result:
+          entityActionPerformed([Ent.DEVICE_USER_CLIENT_STATE, name], i, count)
+          result = result['response']
+          result.pop('name')
+        else:
+          entityActionFailedWarning([Ent.DEVICE_USER_CLIENT_STATE, name], result['error']['message'], i, count)
+      else:
+        entityActionPerformedMessage([Ent.DEVICE_USER_CLIENT_STATE, name], Msg.ACTION_IN_PROGRESS.format('update Client State'), i, count)
+      Ind.Increment()
+      showJSON(None, result, timeObjects=DEVICE_TIME_OBJECTS)
+      Ind.Decrement()
+    except GAPI.notFound:
+      entityUnknownWarning(Ent.DEVICE_USER, deviceUser)
+    except (GAPI.invalid, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
+      entityActionFailedWarning([Ent.DEVICE_USER, deviceUser], str(e))
 
 # Mobile command utilities
 MOBILE_ACTION_CHOICE_MAP = {
@@ -18744,12 +18877,7 @@ def doCreateGroup(ciGroupsAPI=False):
   except GAPI.required:
     entityActionFailedWarning([entityType, groupEmail], Msg.INVALID_JSON_SETTING)
 
-# gam create cigroup <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>
-#	[makeowner] [alias|aliases <AliasList>] [dynamic <QueryDynamicGroup>]
-def doCreateCIGroup():
-  doCreateGroup(ciGroupsAPI=True)
-
-# addonly|removeonly]
+# [addonly|removeonly]
 def getSyncOperation():
   return getChoice(['addonly', 'removeonly'], defaultChoice='addremove')
 
@@ -18781,7 +18909,6 @@ GROUP_PREVIEW_TITLES = ['group', 'email', 'role', 'action', 'message']
 #	[emailclearpattern|emailretainpattern <RegularExpression>]
 #	[removedomainnostatusmembers] [preview] [actioncsv]
 def doUpdateGroups(ciGroupsAPI=False):
-
   def _getPreviewActionCSV():
     preview = checkArgumentPresent('preview')
     if checkArgumentPresent('actioncsv'):
@@ -19535,11 +19662,6 @@ def doUpdateGroups(ciGroupsAPI=False):
   if csvPF:
     csvPF.writeCSVfile('Group Updates')
 
-# gam update cigroup <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>
-#	[makesecuritygroup|security]
-def doUpdateCIGroups():
-  doUpdateGroups(ciGroupsAPI=True)
-
 # gam delete groups <GroupEntity>
 def doDeleteGroups(ciGroupsAPI=False):
   if not ciGroupsAPI:
@@ -19570,10 +19692,6 @@ def doDeleteGroups(ciGroupsAPI=False):
       entityActionPerformed([entityType, groupKey], i, count)
     except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.invalid):
       entityUnknownWarning(entityType, groupKey, i, count)
-
-# gam delete cigroups <GroupEntity>
-def doDeleteCIGroups():
-  doDeleteGroups(ciGroupsAPI=True)
 
 def getGroupRoles(myarg, rolesSet):
   if myarg in {'role', 'roles'}:
@@ -21117,6 +21235,20 @@ def doPrintShowGroupTree():
       printGroupParents(group, row)
   if csvPF:
     csvPF.writeCSVfile('Group Tree')
+
+# gam create cigroup <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>
+#	[makeowner] [alias|aliases <AliasList>] [dynamic <QueryDynamicGroup>]
+def doCreateCIGroup():
+  doCreateGroup(ciGroupsAPI=True)
+
+# gam delete cigroups <GroupEntity>
+def doDeleteCIGroups():
+  doDeleteGroups(ciGroupsAPI=True)
+
+# gam update cigroup <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>
+#	[makesecuritygroup|security]
+def doUpdateCIGroups():
+  doUpdateGroups(ciGroupsAPI=True)
 
 # gam print licenses [todrive <ToDriveAttribute>*] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite] [countsonly]
 def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts=False):
@@ -24359,6 +24491,12 @@ VAULT_CORPUS_ARGUMENT_MAP = {
   'mail': 'MAIL',
   'groups': 'GROUPS',
   'hangoutschat': 'HANGOUTS_CHAT',
+  'voice': 'VOICE',
+  }
+VAULT_VOICE_COVERED_DATA_MAP = {
+  'calllogs': 'CALL_LOGS',
+  'textmessages': 'TEXT_MESSAGES',
+  'voicemails': 'VOICEMAILS',
   }
 VAULT_EXPORT_DATASCOPE_MAP = {
   'alldata': 'ALL_DATA',
@@ -24379,27 +24517,79 @@ VAULT_CORPUS_OPTIONS_MAP = {
   'MAIL': 'mailOptions',
   'GROUPS': 'groupsOptions',
   'HANGOUTS_CHAT': 'hangoutsChatOptions',
+  'VOICE': 'voiceOptions',
   }
 VAULT_CORPUS_QUERY_MAP = {
   'DRIVE': 'driveQuery',
   'MAIL': 'mailQuery',
   'GROUPS': 'groupsQuery',
   'HANGOUTS_CHAT': 'hangoutsChatQuery',
+  'VOICE': 'voiceQuery',
   }
+VAULT_QUERY_ARGS = [
+  'corpus', 'scope', 'terms', 'start', 'starttime', 'end', 'endtime', 'timezone',
+  'includerooms', 'excludedrafts',
+  'driveversiondate', 'includeshareddrives', 'includeteamdrives'] + list(VAULT_SEARCH_METHODS_MAP.keys())
 
-# gam create vaultexport|export matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
-#	(accounts <EmailAddressEntity>) | (orgunit|org|ou <OrgUnitPath>) | (shareddrives|teamdrives <TeamDriveIDList>) | (rooms <RoomList>) | everyone
+def _buildVaultQuery(myarg, query):
+  if not query:
+    query['dataScope'] = 'ALL_DATA'
+  if myarg == 'corpus':
+    query['corpus'] = getChoice(VAULT_CORPUS_ARGUMENT_MAP, mapChoice=True)
+  elif myarg in VAULT_SEARCH_METHODS_MAP:
+    if query.get('searchMethod'):
+      Cmd.Backup()
+      usageErrorExit(Msg.MULTIPLE_SEARCH_METHODS_SPECIFIED.format(formatChoiceList(VAULT_SEARCH_METHODS_MAP)))
+    searchMethod = VAULT_SEARCH_METHODS_MAP[myarg]
+    query['searchMethod'] = searchMethod
+    if searchMethod == 'ACCOUNT':
+      query['accountInfo'] = {'emails': getNormalizedEmailAddressEntity()}
+    elif searchMethod == 'ORG_UNIT':
+      query['orgUnitInfo'] = {'orgUnitId': getOrgUnitId()[1]}
+    elif searchMethod == 'SHARED_DRIVE':
+      query['sharedDriveInfo'] = {'sharedDriveIds': getString(Cmd.OB_TEAMDRIVE_ID_LIST).replace(',', ' ').split()}
+    elif searchMethod == 'ROOM':
+      query['hangoutsChatInfo'] = {'roomId': getString(Cmd.OB_ROOM_LIST).replace(',', ' ').split()}
+  elif myarg == 'scope':
+    query['dataScope'] = getChoice(VAULT_EXPORT_DATASCOPE_MAP, mapChoice=True)
+  elif myarg == 'terms':
+    query['terms'] = getString(Cmd.OB_STRING)
+  elif myarg in {'start', 'starttime'}:
+    query['startTime'] = getTimeOrDeltaFromNow()
+  elif myarg in {'end', 'endtime'}:
+    query['endTime'] = getTimeOrDeltaFromNow()
+  elif myarg == 'timezone':
+    query['timeZone'] = getString(Cmd.OB_STRING)
+  elif myarg == 'includerooms':
+    query['hangoutsChatOptions'] = {'includeRooms': getBoolean()}
+  elif myarg == 'excludedrafts':
+    query['mailOptions'] = {'excludeDrafts': getBoolean()}
+  elif myarg == 'driveversiondate':
+    query.setdefault('driveOptions', {})['versionDate'] = getTimeOrDeltaFromNow()
+  elif myarg in {'includeshareddrives', 'includeteamdrives'}:
+    query.setdefault('driveOptions', {})['includeSharedDrives'] = getBoolean()
+
+def _validateVaultQuery(query):
+  if 'corpus' not in query:
+    missingArgumentExit(f'corpus {formatChoiceList(VAULT_CORPUS_ARGUMENT_MAP)}')
+  if 'searchMethod' not in query:
+    missingArgumentExit(formatChoiceList(VAULT_SEARCH_METHODS_MAP))
+
+# gam create vaultexport|export matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat|voice
+#	(accounts <EmailAddressEntity>) | (orgunit|org|ou <OrgUnitPath>) | everyone
+#	(shareddrives|teamdrives <TeamDriveIDList>) | (rooms <RoomList>)
 #	[scope <all_data|held_data|unprocessed_data>]
 #	[terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [timezone <TimeZone>]
 #	[excludedrafts <Boolean>] [format mbox|pst] [showconfidentialmodecontent <Boolean>]
 #	[includerooms <Boolean>]
+#	[covereddata calllogs|textmessages|voicemails]
 #	[includeshareddrives|includeteamdrives <Boolean>] [driveversiondate <Date>|<Time>] [includeaccessinfo <Boolean>]
 #	[region any|europe|us] [showdetails]
 def doCreateVaultExport():
   v = buildGAPIObject(API.VAULT)
   matterId = None
   body = {'query': {'dataScope': 'ALL_DATA'}, 'exportOptions': {}}
-  export_format = 'MBOX'
+  exportFormat = 'MBOX'
   showConfidentialModeContent = None
   showDetails = False
   while Cmd.ArgumentsRemaining():
@@ -24409,65 +24599,34 @@ def doCreateVaultExport():
       body['matterId'] = matterId
     elif myarg == 'name':
       body['name'] = getString(Cmd.OB_STRING)
-    elif myarg == 'corpus':
-      body['query']['corpus'] = getChoice(VAULT_CORPUS_ARGUMENT_MAP, mapChoice=True)
-    elif myarg in VAULT_SEARCH_METHODS_MAP:
-      if body['query'].get('searchMethod'):
-        Cmd.Backup()
-        usageErrorExit(Msg.MULTIPLE_SEARCH_METHODS_SPECIFIED.format(formatChoiceList(VAULT_SEARCH_METHODS_MAP)))
-      searchMethod = VAULT_SEARCH_METHODS_MAP[myarg]
-      body['query']['searchMethod'] = searchMethod
-      if searchMethod == 'ACCOUNT':
-        body['query']['accountInfo'] = {'emails': getNormalizedEmailAddressEntity()}
-      elif searchMethod == 'ORG_UNIT':
-        body['query']['orgUnitInfo'] = {'orgUnitId': getOrgUnitId()[1]}
-      elif searchMethod == 'SHARED_DRIVE':
-        body['query']['sharedDriveInfo'] = {'sharedDriveIds': getString(Cmd.OB_TEAMDRIVE_ID_LIST).replace(',', ' ').split()}
-      elif searchMethod == 'ROOM':
-        body['query']['hangoutsChatInfo'] = {'roomId': getString(Cmd.OB_ROOM_LIST).replace(',', ' ').split()}
-    elif myarg == 'scope':
-      body['query']['dataScope'] = getChoice(VAULT_EXPORT_DATASCOPE_MAP, mapChoice=True)
-    elif myarg == 'terms':
-      body['query']['terms'] = getString(Cmd.OB_STRING)
-    elif myarg in {'start', 'starttime'}:
-      body['query']['startTime'] = getTimeOrDeltaFromNow()
-    elif myarg in {'end', 'endtime'}:
-      body['query']['endTime'] = getTimeOrDeltaFromNow()
-    elif myarg == 'timezone':
-      body['query']['timeZone'] = getString(Cmd.OB_STRING)
-    elif myarg == 'includerooms':
-      body['query']['hangoutsChatOptions'] = {'includeRooms': getBoolean()}
-    elif myarg == 'excludedrafts':
-      body['query']['mailOptions'] = {'excludeDrafts': getBoolean()}
+    elif myarg in VAULT_QUERY_ARGS:
+      _buildVaultQuery(myarg, body['query'])
     elif myarg == 'format':
-      export_format = getChoice(VAULT_EXPORT_FORMAT_MAP, mapChoice=True)
-    elif myarg == 'region':
-      body['exportOptions']['region'] = getChoice(VAULT_EXPORT_REGION_MAP, mapChoice=True)
+      exportFormat = getChoice(VAULT_EXPORT_FORMAT_MAP, mapChoice=True)
     elif myarg == 'showconfidentialmodecontent':
       showConfidentialModeContent = getBoolean()
-    elif myarg == 'driveversiondate':
-      body['query'].setdefault('driveOptions', {})['versionDate'] = getTimeOrDeltaFromNow()
-    elif myarg in {'includeshareddrives', 'includeteamdrives'}:
-      body['query'].setdefault('driveOptions', {})['includeSharedDrives'] = getBoolean()
+    elif myarg == 'region':
+      body['exportOptions']['region'] = getChoice(VAULT_EXPORT_REGION_MAP, mapChoice=True)
     elif myarg == 'includeaccessinfo':
       body['exportOptions'].setdefault('driveOptions', {})['includeAccessInfo'] = getBoolean()
+    elif myarg == 'covereddata':
+      body['exportOptions'].setdefault('voiceOptions', {})['coveredData'] = getChoice(VAULT_VOICE_COVERED_DATA_MAP, mapChoice=True)
     elif myarg == 'showdetails':
       showDetails = True
     else:
       unknownArgumentExit()
   if not matterId:
     missingArgumentExit(Cmd.OB_MATTER_ITEM)
-  if 'corpus' not in body['query']:
-    missingArgumentExit(f'corpus {formatChoiceList(VAULT_CORPUS_ARGUMENT_MAP)}')
-  if 'searchMethod' not in body['query']:
-    missingArgumentExit(formatChoiceList(VAULT_SEARCH_METHODS_MAP))
+  _validateVaultQuery(body['query'])
   if 'name' not in body:
     body['name'] = f'GAM {body["query"]["corpus"]} Export - {ISOformatTimeStamp(todaysTime())}'
   if body['query']['corpus'] != 'DRIVE':
     body['exportOptions'].pop('driveOptions', None)
-    body['exportOptions'][VAULT_CORPUS_OPTIONS_MAP[body['query']['corpus']]] = {'exportFormat': export_format}
+    body['exportOptions'][VAULT_CORPUS_OPTIONS_MAP[body['query']['corpus']]] = {'exportFormat': exportFormat}
     if body['query']['corpus'] == 'MAIL' and showConfidentialModeContent is not None:
       body['exportOptions'][VAULT_CORPUS_OPTIONS_MAP['MAIL']]['showConfidentialModeContent'] = showConfidentialModeContent
+  if body['query']['corpus'] != 'VOICE':
+    body['exportOptions'].pop('voiceOptions', None)
   try:
     export = callGAPI(v.matters().exports(), 'create',
                       throwReasons=[GAPI.ALREADY_EXISTS, GAPI.BAD_REQUEST, GAPI.BACKEND_ERROR,
@@ -24882,6 +25041,8 @@ def _getHoldQueryParameters(myarg, queryParameters):
     queryParameters['includeRooms'] = getBoolean()
   elif myarg in {'includeshareddrives', 'includeteamdrives'}:
     queryParameters['includeSharedDriveFiles'] = getBoolean()
+  elif myarg == 'covereddata':
+    queryParameters['coveredData'] = getChoice(VAULT_VOICE_COVERED_DATA_MAP, mapChoice=True)
   else:
     return False
   return True
@@ -24910,12 +25071,16 @@ def _setHoldQuery(body, queryParameters):
   elif body['corpus'] == 'HANGOUTS_CHAT':
     if queryParameters.get('includeRooms'):
       body['query'][queryType]['includeRooms'] = queryParameters['includeRooms']
+  elif body['corpus'] == 'VOICE':
+    if queryParameters.get('coveredData'):
+      body['query'][queryType]['coveredData'] = queryParameters['coveredData']
 
 # gam create vaulthold|hold matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
 #	[(accounts|groups|users <EmailItemList>) | (orgunit|org|ou <OrgUnit>)]
 #	[query <QueryVaultCorpus>]
 #	[terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 #	[includerooms <Boolean>]
+#	[covereddata calllogs|textmessages|voicemails]
 #	[includeshareddrives|includeteamdrives <Boolean>]
 #	[showdetails]
 def doCreateVaultHold():
@@ -24972,6 +25137,7 @@ def doCreateVaultHold():
 #	[query <QueryVaultCorpus>]
 #	[terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 #	[includerooms <Boolean>]
+#	[covereddata calllogs|textmessages|voicemails]
 #	[includeshareddrives|includeteamdrives <Boolean>]
 #	[showdetails]
 def doUpdateVaultHold():
@@ -25568,6 +25734,98 @@ def doPrintShowVaultMatters():
         csvPF.WriteRowTitles(flattenJSON(matter))
   if csvPF:
     csvPF.writeCSVfile('Vault Matters')
+
+PRINT_VAULT_COUNTS_TITLES = ['account', 'count', 'error']
+
+# gam print vaultcounts [todrive <ToDriveAttributes>*]
+#	matter <MatterItem> corpus drive|mail|groups|hangouts_chat|voice
+#	(accounts <EmailAddressEntity>) | (orgunit|org|ou <OrgUnitPath>) | everyone
+#	(shareddrives|teamdrives <TeamDriveIDList>) | (rooms <RoomList>)
+#	[scope <all_data|held_data|unprocessed_data>]
+#	[terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [timezone <TimeZone>]
+#	[excludedrafts <Boolean>]
+#	[includerooms <Boolean>]
+#	[includeshareddrives|includeteamdrives <Boolean>] [driveversiondate <Date>|<Time>]
+#	[wait <Integer>]
+# gam print vaultcounts [todrive <ToDriveAttributes>*]
+#	 matter <MatterItem> operation <String> [wait <Integer>]
+def doPrintVaultCounts():
+  v = buildGAPIObject(API.VAULT)
+  csvPF = CSVPrintFile(PRINT_VAULT_COUNTS_TITLES, 'sortall')
+  matterId = name = None
+  operationWait = 15
+  body = {'view': 'ALL'}
+  query = {}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'matter':
+      matterId, _ = getMatterItem(v)
+    elif myarg == 'operation':
+      name = getString(Cmd.OB_STRING)
+    elif myarg in VAULT_QUERY_ARGS:
+      _buildVaultQuery(myarg, query)
+    elif myarg == 'wait':
+      operationWait = getInteger(minVal=1)
+    else:
+      unknownArgumentExit()
+  if not matterId:
+    missingArgumentExit(Cmd.OB_MATTER_ITEM)
+  if name:
+    operation = {'name': name}
+    doWait = False
+  else:
+    _validateVaultQuery(query)
+    body['query'] = query
+    operation = callGAPI(v.matters(), 'count',
+                         matterId=matterId, body=body)
+    doWait = True
+  printGettingAllAccountEntities(Ent.VAULT_MATTER_ARTIFACT, qualifier=f' for {Ent.Singular(Ent.VAULT_OPERATION)}: {operation["name"]}',
+                                 accountType=Ent.VAULT_MATTER)
+  while not operation.get('done'):
+    if doWait:
+      printEntityMessage([Ent.VAULT_OPERATION, operation['name']], Msg.IS_NOT_DONE_CHECKING_IN_SECONDS.format(operationWait))
+      time.sleep(operationWait)
+    try:
+      operation = callGAPI(v.operations(), 'get',
+                           throwReasons=[GAPI.NOT_FOUND],
+                           name=operation['name'])
+    except GAPI.notFound as e:
+      entityActionFailedExit([Ent.VAULT_OPERATION, operation['name']], str(e))
+    doWait = True
+  response = operation.get('response', {})
+  query = operation['metadata']['query']
+  search_method = query.get('searchMethod')
+  # ARGH count results don't include accounts with zero items.
+  # so we keep track of which accounts we searched and can report
+  # zero data for them.
+  if search_method == 'ACCOUNT':
+    query_accounts = query.get('accountInfo', [])
+  elif search_method == 'ENTIRE_ORG':
+    query_accounts = getUsersToModify(Cmd.ENTITY_SELECTOR_ALL, Cmd.ENTITY_USERS)
+  elif search_method == 'ORG_UNIT':
+    query_accounts = getUsersToModify(Cmd.ENTITY_OU, query['orgUnitInfo']['orgUnitId'])
+  mailcounts = response.get('mailCountResult', {})
+  groupcounts = response.get('groupsCountResult', {})
+  for a_count in [mailcounts, groupcounts]:
+    for errored_account in a_count.get('accountCountErrors', []):
+      account = errored_account.get('account')
+      csvPF.WriteRow({'account': account, 'error': errored_account.get('errorType')})
+      if account in query_accounts:
+        query_accounts.remove(account)
+    for account in a_count.get('nonQueryableAccounts', []):
+      csvPF.WriteRow({'account': account, 'error': 'Not queried because not on hold'})
+      if account in query_accounts:
+        query_accounts.remove(account)
+    for account in a_count.get('accountCounts', []):
+      email = account.get('account', {}).get('email', '')
+      csvPF.WriteRow({'account': email, 'count': account.get('count')})
+      if email in query_accounts:
+        query_accounts.remove(email)
+  for account in query_accounts:
+    csvPF.WriteRow({'account': account, 'count': 0})
+  csvPF.writeCSVfile('Vault Counts')
 
 def checkSiteExists(sitesObject, domain, site):
   try:
@@ -38164,7 +38422,14 @@ def createDriveFileShortcut(users):
       newParents = parentBody['parents']
       numNewParents = len(newParents)
     elif not convertParents:
-      newParents = [ROOT]
+      try:
+        rootFolderId = callGAPI(drive.files(), 'get',
+                                throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                fileId=ROOT, fields='id')['id']
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+        continue
+      newParents = [rootFolderId]
       numNewParents = 1
     Ind.Increment()
     j = 0
@@ -38199,10 +38464,27 @@ def createDriveFileShortcut(users):
       body = {'name': shortcutName, 'mimeType': MIMETYPE_GA_SHORTCUT, 'parents': None, 'shortcutDetails': {'targetId': fileId}}
       if not returnIdOnly and not csvPF:
         entityPerformActionNumItems([Ent.USER, user, targetEntityType, targetName], numNewParents, Ent.DRIVE_FILE_SHORTCUT, j, jcount)
+      try:
+        existingShortcuts = callGAPI(drive.files(), 'list',
+                                     throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID],
+                                     retryReasons=[GAPI.UNKNOWN_ERROR],
+                                     supportsAllDrives=True, includeItemsFromAllDrives=True,
+                                     q=f"shortcutDetails.targetId = '{fileId}' and trashed = False", fields='files(id,name,parents)')['files']
+      except (GAPI.invalidQuery, GAPI.invalid, GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
+        existingShortcuts = []
       Ind.Increment()
       k = 0
       for parentId in newParents:
         k += 1
+        duplicateShortcut = False
+        for shortcut in existingShortcuts:
+          if parentId in shortcut['parents'] and shortcutName == shortcut['name']:
+            entityActionNotPerformedWarning([Ent.USER, user, targetEntityType, targetName, Ent.DRIVE_FILE_SHORTCUT, f'{shortcut["name"]}({shortcut["id"]})'],
+                                            Msg.DUPLICATE, k, numNewParents)
+            duplicateShortcut = True
+            break
+        if duplicateShortcut:
+          continue
         body['parents'] = [parentId]
         try:
           result = callGAPI(drive.files(), 'create',
@@ -48181,6 +48463,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DATATRANSFER:	doInfoDataTransfer,
       Cmd.ARG_DEVICE:		doInfoCIDevice,
       Cmd.ARG_DEVICEUSER:	doInfoCIDeviceUser,
+      Cmd.ARG_DEVICEUSERSTATE:	doInfoCIDeviceUserState,
       Cmd.ARG_DOMAIN:		doInfoDomain,
       Cmd.ARG_DOMAINALIAS:	doInfoDomainAlias,
       Cmd.ARG_DRIVEFILEACL:	doInfoDriveFileACLs,
@@ -48263,6 +48546,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_TRANSFERAPPS:	doShowTransferApps,
       Cmd.ARG_USER:		doPrintUsers,
       Cmd.ARG_USERS:		doPrintUsers,
+      Cmd.ARG_VAULTCOUNT:	doPrintVaultCounts,
       Cmd.ARG_VAULTEXPORT:	doPrintShowVaultExports,
       Cmd.ARG_VAULTHOLD:	doPrintShowVaultHolds,
       Cmd.ARG_VAULTMATTER:	doPrintShowVaultMatters,
@@ -48331,6 +48615,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CUSTOMER:		doUpdateCustomer,
       Cmd.ARG_DEVICE:		doUpdateCIDevice,
       Cmd.ARG_DEVICEUSER:	doUpdateCIDeviceUser,
+      Cmd.ARG_DEVICEUSERSTATE:	doUpdateCIDeviceUserState,
       Cmd.ARG_DOMAIN:		doUpdateDomain,
       Cmd.ARG_DRIVEFILEACL:	doUpdateDriveFileACLs,
       Cmd.ARG_FEATURE:		doUpdateFeature,
@@ -48445,6 +48730,7 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_TOKENS:	Cmd.ARG_TOKEN,
   Cmd.ARG_TRANSFER:	Cmd.ARG_DATATRANSFER,
   Cmd.ARG_TRANSFERS:	Cmd.ARG_DATATRANSFER,
+  Cmd.ARG_VAULTCOUNTS:	Cmd.ARG_VAULTCOUNT,
   Cmd.ARG_VAULTEXPORTS:	Cmd.ARG_VAULTEXPORT,
   Cmd.ARG_VAULTHOLDS:	Cmd.ARG_VAULTHOLD,
   Cmd.ARG_VAULTMATTERS:	Cmd.ARG_VAULTMATTER,

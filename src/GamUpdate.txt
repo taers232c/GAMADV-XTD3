@@ -1,3 +1,19 @@
+5.25.13
+
+Following Jay's lead, added commands to display and update Cloud Identity Device User Client States.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Cloud-Identity-Devices#display-device-user-client-state
+
+This is Beta software from Google, experiment and use with caution.
+
+Following Jay's lead, added a command to display item counts retained in Google Vault.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Vault#display-vault-counts
+
+Updated `gam <UserTypeEntity> create drivefileshortcut <DriveFileEntity>` to not create duplicate shortcuts.
+A duplicate shortcut is one that is in the same folder as another shortcut of the same name pointing to the
+same target file/folder.
+
 5.25.12
 
 Added more error handling for `gam <UserTypeEntity> process messages|threads`.

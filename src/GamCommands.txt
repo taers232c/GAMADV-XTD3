@@ -260,6 +260,7 @@ If an item contains spaces, it should be surrounded by ".
 <AlertID> ::= <String>
 <APIScopeURL> ::= <String>
 <ASPID> ::= <String>
+<AssetTag> ::= <String>
 <BuildingID> ::= <String>|id:<String>
 <CalendarACLScope> ::=
         <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|
@@ -472,6 +473,7 @@ If an item contains spaces, it should be surrounded by ".
 
 <APIScopeURLList> ::= "<APIScopeURL>(,<APIScopeURL>)*"
 <ASPIDList> ::= "<ASPID>(,<ASPID>)*"
+<AssetTagList> ::= "<AssetTag>(,<AssetTag>)*"
 <CalendarACLScopeList> ::= "<CalendarACLScope>(,<CalendarACLScope>)*"
 <CalendarList> ::= "<CalendarItem>(,<CalendarItem>)*"
 <ChatRoomList> ::= "<ChatRoom>(,<ChatRoom>)*"
@@ -2383,6 +2385,13 @@ gam print deviceusers [todrive <ToDriveAttribute>*]
         [orderby <DeviceOrderByFieldName> [ascending|descending]]
         [formatjson [quotechar <Character>]]
 
+gam info deviceuserstate <DeviceUserEntity> [clientid <String>] 
+gam update deviceuserstate <DeviceUserEntity> [clientid <String>] 
+        [customid <String>] [assettags clear|<AssetTagList>]
+        [compliantstate|compliancestate compliant|noncompliant] [managedstate clear|managed|unmanaged]
+        [healthscore very_poor|poor|neutral|good|very_good] [scorereason clear|<String>]
+        (customvalue (bool|boolean <Boolean>)|(number <Integer>)|(string <String>))*
+
 # Mobile Devices
 
 <MobileAction> ::=
@@ -2631,7 +2640,8 @@ gam report <ActivityApplicationName> [todrive <ToDriveAttribute>*]
 <CustomerServiceNameList> ::= "<CustomerServiceName>(,<CustomerServiceName>)*"
 
 gam report customers|customer|domain [todrive <ToDriveAttribute>*]
-        [(date <Date>)|(range <Date> <Date>)] [nodatechange | (fulldatarequired all|<CustomerServiceNameList>)]
+        [(date <Date>)|(range <Date> <Date>)]
+        [nodatechange | (fulldatarequired all|<CustomerServiceNameList>)]
         [(fields|parameters <String>)|(services <CustomerServiceNameList>)] [noauthorizedapps]
 
 <UserServiceName> ::=
@@ -2645,7 +2655,8 @@ gam report customers|customer|domain [todrive <ToDriveAttribute>*]
 
 gam report users|user [todrive <ToDriveAttribute>*]
         [(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
-        [(date <Date>)|(range <Date> <Date>)] [nodatechange | (fulldatarequired all|<UserServiceNameList>)]
+        [(date <Date>)|(range <Date> <Date>)]
+        [nodatechange | (fulldatarequired all|<UserServiceNameList>)]
         [filtertime.* <Time>] [filter|filters <String>]
         [(fields|parameters <String>)|(services <UserServiceNameList>)]
         [aggregatebydate [Boolean]]
@@ -3140,12 +3151,26 @@ gam print vaultmatters|matters [todrive <ToDriveAttribute>*] [matterstate <Matte
 gam show vaultmatters|matters [matterstate <MatterStateList>]
         [basic|full|(fields <VaultMatterFieldNameList>)]
 
-gam create vaultexport|export matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
-        (accounts <EmailAddressEntity>) | (orgunit|org|ou <OrgUnitPath>) | (shareddrives|teamdrives <TeamDriveIDList>) | (rooms <RoomList>) | everyone
+gam print vaultcounts [todrive <ToDriveAttributes>*]
+        matter <MatterItem> corpus drive|mail|groups|hangouts_chat|voice
+        (accounts <EmailAddressEntity>) | (orgunit|org|ou <OrgUnitPath>) | everyone
+        (shareddrives|teamdrives <TeamDriveIDList>) | (rooms <RoomList>)
+        [scope <all_data|held_data|unprocessed_data>]
+        [terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [timezone <TimeZone>]
+        [excludedrafts <Boolean>]
+        [includerooms <Boolean>]
+        [includeshareddrives|includeteamdrives <Boolean>] [driveversiondate <Date>|<Time>]
+        [wait <Integer>]
+gam print vaultcounts [todrive <ToDriveAttributes>*]
+        matter <MatterItem> operation <String> [wait <Integer>]
+
+gam create vaultexport|export matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat|voice
+        (accounts <EmailAddressEntity>) | (orgunit|org|ou <OrgUnitPath>) | everyone
+        (shareddrives|teamdrives <TeamDriveIDList>) | (rooms <RoomList>)
         [scope <all_data|held_data|unprocessed_data>]
         [terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [timezone <TimeZone>]
         [excludedrafts <Boolean>] [format mbox|pst] [showconfidentialmodecontent <Boolean>]
-        [includerooms <Boolean>]
+        [includerooms <Boolean>] [covereddata calllogs|textmessages|voicemails]
         [includeshareddrives|includeteamdrives <Boolean>] [driveversiondate <Date>|<Time>] [includeaccessinfo <Boolean>]
         [region any|europe|us] [showdetails]
 gam delete vaultexport|export <ExportItem> matter <MatterItem>
@@ -3186,14 +3211,14 @@ gam create vaulthold|hold matter <MatterItem> [name <String>] corpus drive|mail|
         [(accounts|groups|users <EmailItemList>) | (orgunit|org|ou <OrgUnit>)]
         [query <QueryVaultCorpus>]
         [terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
-        [includerooms <Boolean>]
+        [includerooms <Boolean>] [covereddata calllogs|textmessages|voicemails]
         [includeshareddrives|includeteamdrives <Boolean>]
         [showdetails]
 gam update vaulthold|hold <HoldItem> matter <MatterItem>
         [([addaccounts|addgroups|addusers <EmailItemList>] [removeaccounts|removegroups|removeusers <EmailItemList>]) | (orgunit|org|ou <OrgUnit>)]
         [query <QueryVaultCorpus>]
         [terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
-        [includerooms <Boolean>]
+        [includerooms <Boolean>] [covereddata calllogs|textmessages|voicemails]
         [includeshareddrives|includeteamdrives <Boolean>]
         [showdetails]
 gam delete vaulthold|hold <HoldItem> matter <MatterItem>

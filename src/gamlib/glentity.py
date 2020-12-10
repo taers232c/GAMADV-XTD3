@@ -115,6 +115,7 @@ class GamEntity():
   DEVICE_FILE = 'devf'
   DIRECTORY = 'drct'
   DEVICE_USER = 'devu'
+  DEVICE_USER_CLIENT_STATE = 'ducs'
   DISCOVERY_JSON_FILE = 'disc'
   DOCUMENT = 'doc'
   DOMAIN = 'doma'
@@ -261,7 +262,9 @@ class GamEntity():
   VAULT_EXPORT = 'vlte'
   VAULT_HOLD = 'vlth'
   VAULT_MATTER = 'vltm'
+  VAULT_MATTER_ARTIFACT = 'vlma'
   VAULT_MATTER_ID = 'vlmi'
+  VAULT_OPERATION = 'vlto'
   WEBCLIPS_ENABLED = 'webc'
   # _NAMES[0] is plural, _NAMES[1] is singular unless the item name is explicitly plural (Calendar Settings)
   # For items with Boolean values, both entries are singular (Forward, POP)
@@ -341,6 +344,7 @@ class GamEntity():
     DEVICE: ['Devices', 'Device'],
     DEVICE_FILE: ['Device Files', 'Device File'],
     DEVICE_USER: ['Device Users', 'Device User'],
+    DEVICE_USER_CLIENT_STATE: ['Device Users Client States', 'Device User Client State'],
     DIRECTORY: ['Directories', 'Directory'],
     DISCOVERY_JSON_FILE: ['Discovery File', 'Discovery File'],
     DOCUMENT: ['Documents', 'Document'],
@@ -488,7 +492,9 @@ class GamEntity():
     VAULT_EXPORT: ['Vault Exports', 'Vault Export'],
     VAULT_HOLD: ['Vault Holds', 'Vault Hold'],
     VAULT_MATTER: ['Vault Matters', 'Vault Matter'],
+    VAULT_MATTER_ARTIFACT: ['Vault Matter Artifacts', 'Vault Matter Artifact'],
     VAULT_MATTER_ID: ['Vault Matter IDs', 'Vault Matter ID'],
+    VAULT_OPERATION: ['Vault Operations', 'Vault Operation'],
     WEBCLIPS_ENABLED: ['Web Clips Enabled', 'Web Clips Enabled'],
     ROLE_MANAGER: ['Managers', 'Manager'],
     ROLE_MEMBER: ['Members', 'Member'],
