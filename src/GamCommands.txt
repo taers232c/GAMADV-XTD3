@@ -384,6 +384,8 @@ If an item contains spaces, it should be surrounded by ".
 <PropertyValue> ::= <String>
 <QueryAlert> ::= <String>
         See: https://developers.google.com/admin-sdk/alertcenter/guides/query-filters
+<QueryBrowser> ::= <String>
+        See: https://support.google.com/chrome/a/answer/9681204#retrieve_all_chrome_devices_for_an_account
 <QueryCalendar> ::= <String>
 <QueryContact> ::= <String>
         See: https://developers.google.com/google-apps/contacts/v3/reference#contacts-query-parameters-reference
@@ -527,6 +529,7 @@ If an item contains spaces, it should be surrounded by ".
 <PrinterIDList> ::= "<PrinterID>(,<PrinterID>)*"
 <PrintJobIDList> ::= "<PrintJobID>(,<PrintJobID>)*"
 <ProductIDList> ::= "(<ProductID>|SKUID>)(,<ProductID>|SKUID>)*"
+<QueryBrowserList> ::= "<QueryBrowser>(,<QueryBrowser>)*"
 <QueryCrOSList> ::= "<QueryCrOS>(,<QueryCrOS>)*"
 <QueryDeviceList> ::= "<QueryDevice>(,<QueryDevice>)*"
 <QueryMobileList> ::= "<QueryMobile>(,<QueryMobile>)*"
@@ -689,6 +692,11 @@ Specify a collection of items by directly specifying them; the item type is dete
 
 ## Named collections
 
+<BrowserEntity> ::=
+        <DeviceIDList> | 
+        (query:<QueryBrowser>)|(query:orgunitpath:<OrgUnitPath>)|(query <QueryBrowser>) |
+        (browserou <OrgUnitItem>) | (browserous <OrgUnitList>) |
+        <FileSelector> | <CSVFileSelector>
 <CalendarACLScopeEntity>::= <CalendarACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <CalendarEntity> ::= <CalendarList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <ClassroomInvitationIDEntity> ::= <ClassroomInvitationIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
@@ -705,7 +713,7 @@ Specify a collection of items by directly specifying them; the item type is dete
         <CrOSIDList> | (cros_sn <SerialNumberList>) |
         (query:<QueryCrOS>)|(query:orgunitpath:<OrgUnitPath>)|(query <QueryCrOS>)
 <DeviceEntity> ::=
-        <DeviceList> | (device_sn <SerialNumber>)
+        <DeviceIDList> | (device_sn <SerialNumber>)
         (query:<QueryDevice>)|(query <QueryDevice>)
 <DeviceFileEntity> ::=
         <TimeList> |
@@ -1306,6 +1314,98 @@ gam calendar|calendars <CalendarEntity> show settings [formatjson]
 gam calendar|calendars <CalendarEntity> print settings [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
 gam calendar|calendars <CalendarEntity> modify <CalendarSettings>+
 
+# Chrome Browser Cloud Management
+
+<QueryBrowser> ::= <String> See: https://support.google.com/chrome/a/answer/9681204#retrieve_all_chrome_devices_for_an_account
+<QueryBrowserList> ::= "<QueryBrowser>(,<QueryBrowser>)*"
+
+<BrowserEntity> ::=
+        <DeviceIDList> | 
+        (query:<QueryBrowser>)|(query:orgunitpath:<OrgUnitPath>)|(query <QueryBrowser>) |
+        (browserou <OrgUnitItem>) | (browserous <OrgUnitList>) |
+        <FileSelector> | <CSVFileSelector>
+
+<BrowserAttribute> ::=
+        (annotatedassetid|asset|assetid <String>)|
+        (annotatedlocation|location <String>)|
+        (annotatednotes|notes <String>)|(updatenotes <String>)|
+        (annotateduser|user <String>
+
+<BrowserFieldName> ::=
+        annotatedassetid|asset|assetid|
+        annotatedlocation|location|
+        annotatednotes|notes|
+        annotateduser|user|
+        browsers|
+        browserversions|
+        deviceid|
+        extensioncount|
+        installedbrowserversion|
+        lastactivitytime|
+        lastdeviceuser|
+        lastdeviceusers|
+        lastpolicyfetchtime|
+        lastregistrationtime|
+        laststatusreporttime|
+        machinename|
+        machinepolicies|
+        orgunitpath|org|orgunit|
+        osarchitecture|
+        osplatform|
+        osplatformversion|
+        osversion|
+        ou|
+        policycount|
+        safebrowsingclickthroughcount|
+        serialnumber|
+        virtualdeviceid
+<BrowserFieldNameList> ::= "<BrowseFieldName>(,<BrowserFieldName>)*"
+
+<BrowserOrderByFieldName> ::=
+        annotatedassetid|assetassetid|
+        annotatedlocation|location|
+        annotatednotes|notes|
+        annotateduser|user|
+        browserversionchannel|
+        browserversionsortable|
+        deviceid|id|
+        enrollmentdate|
+        extensioncount|
+        lastactivity|
+        lastsignedinuser|
+        lastsync|
+        machinename|
+        orgunit|ou|org|
+        osversion|
+        osversionsortable|
+        platformmajorversion|
+        policycount
+
+gam delete browser <DeviceID>
+gam update browser <BrowserEntity> <BrowserAttibute>+
+gam move browsers ou|org|orgunit <OrgUnitPath>
+        ((ids <DeviceIDList>) |
+         (queries <QueryBrowserList> [querytime.* <Time>]) |
+         (browserou <OrgUnitItem>) | (browserous <OrgUnitList>) |
+         <FileSelector> | <CSVFileSelector>)
+        [batchsize <Integer>]
+
+gam info browser <DeviceID>
+        [basic|full|annotated] <BrowserFieldName>* [fields <BrowserFieldNameList>]
+        [formatjson]
+gam show browsers
+        ([browserou <OrgUnitPath>] [(query <QueryBrowser)|(queries <QueryBrowserList>))|(select <BrowserEntity>))
+        [querytime.* <Time>]
+        [orderby <BrowserOrderByFieldName> [ascending|descending]]
+        [basic|full|allfields|annotated] <BrowserFieldName>* [fields <BrowserFieldNameList>]
+        [formatjson]
+gam print browsers [todrive <ToDriveAttribute>*]
+        ([browserou<OrgUnitPath>] [(query <QueryBrowser)|(queries <QueryBrowserList>))|(select <BrowserEntity>))
+        [querytime.* <Time>]
+        [orderby <BrowserOrderByFieldName> [ascending|descending]]
+        [basic|full|allfields|annotated] <BrowserFieldName>* [fields <BrowserFieldNameList>]
+        [sortheaders] [formatjson [quotechar <Character>]]
+
 # ChromeOS Devices
 
 <CrOSAction> ::=
@@ -1462,7 +1562,7 @@ gam print crosactivity [todrive <ToDriveAttribute>*]
 
 Print activity for specified CrOS devices.
 
-gam print crosactivity [todrive <ToDriveAttribute>*] select <CroSTypeEntity>
+gam print crosactivity [todrive <ToDriveAttribute>*] select <CrOSTypeEntity>
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
         [recentusers] [timeranges] [both] [devicefiles] [all]
         [listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
@@ -1665,6 +1765,12 @@ gam show gal <ContactSelection>
 gam print gal [todrive <ToDriveAttribute>*] <ContactSelection>
         [basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]]
         [fields <ContactFieldNameList>] [formatjson [quotechar <Character>]]
+
+# Contacts - Delegation
+gam <UserTypeEntity> create contactdelegate <UserEntity>
+gam <UserTypeEntity> delete contactdelegate <UserEntity>
+gam <UserTypeEntity> print contactdelegates [todrive <ToDriveAttribute>*] [shownames]
+gam <UserTypeEntity> show contactdelegates [shownames] [csv]
 
 # Classroom - Courses
 
@@ -3402,7 +3508,7 @@ gam update user <UserItem> [ignorenullpassword] <UserAttribute>* [noactionifalia
         (replace <Tag> <UserReplacement>)*
         [lograndompassword <FileName>]
 gam delete user <UserItem> [noactionifalias]
-gam undelete user <UserItem> [org|ou <OrgUnitPath>]
+gam undelete user <UserItem> [ou|org|orgunit <OrgUnitPath>]
 gam suspend user <UserItem> [noactionifalias]
 gam unsuspend user <UserItem> [noactionifalias]
 gam info user [<UserItem>]
@@ -3427,7 +3533,7 @@ gam update users <UserTypeEntity> [ignorenullpassword] <UserAttribute>* [noactio
             (replace <Tag> <UserReplacement>)*
         [lograndompassword <FileName>]
 gam delete users <UserTypeEntity> [noactionifalias]
-gam undelete users <UserEntity> [org|ou <OrgUnitPath>]
+gam undelete users <UserEntity> [ou|org|orgunit <OrgUnitPath>]
 gam suspend users <UserTypeEntity> [noactionifalias]
 gam unsuspend users <UserTypeEntity> [noactionifalias]
 gam info users <UserTypeEntity>
@@ -3452,7 +3558,7 @@ gam <UserTypeEntity> update users [ignorenullpassword] <UserAttribute>* [noactio
             (replace <Tag> <UserReplacement>)*
         [lograndompassword <FileName>]
 gam <UserTypeEntity> delete users [noactionifalias]
-gam <UserEntity> undelete users [org|ou <OrgUnitPath>]
+gam <UserEntity> undelete users [ou|org|orgunit <OrgUnitPath>]
 gam <UserTypeEntity> suspend users [noactionifalias]
 gam <UserTypeEntity> unsuspend users [noactionifalias]
 gam <UserTypeEntity> info users

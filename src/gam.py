@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.25.13'
+__version__ = '5.25.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -495,6 +495,8 @@ def stderrWarningMsg(message):
 
 # Something's wrong with CustomerID
 def accessErrorMessage(cd):
+  if cd is None:
+    cd = buildGAPIObject(API.DIRECTORY)
   try:
     callGAPI(cd.customers(), 'get',
              throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
@@ -2627,7 +2629,7 @@ def getGSheetData():
     userSvcNotApplicableOrDriveDisabled(user, str(e))
     sys.exit(GM.Globals[GM.SYSEXITRC])
 
-# Open a CSV file, get optional arguments [charset <String>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+# Open a CSV file, get optional arguments [charset <String>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>] [endcsv|(fields <FieldNameList>)]
 def openCSVFileReader(filename, fieldnames=None):
   if filename.lower() != 'gsheet':
     encoding = getCharSet()
@@ -2652,7 +2654,7 @@ def openCSVFileReader(filename, fieldnames=None):
     quotechar = getCharacter()
   else:
     quotechar = GC.Values[GC.CSV_INPUT_QUOTE_CHAR]
-  if checkArgumentPresent('fields'):
+  if not checkArgumentPresent('endcsv') and checkArgumentPresent('fields'):
     fieldnames = shlexSplitList(getString(Cmd.OB_FIELD_NAME_LIST))
   try:
     csvFile = csv.DictReader(f, fieldnames=fieldnames, delimiter=columnDelimiter, quotechar=quotechar)
@@ -4076,7 +4078,7 @@ def callGDataPages(service, function,
     if 'url_params' in kwargs:
       kwargs['url_params'].pop('start-index', None)
 
-def checkGAPIError(e, softErrors=False, retryOnHttpError=False):
+def checkGAPIError(e, softErrors=False, retryOnHttpError=False, mapNotFound=True):
   def makeErrorDict(code, reason, message):
     return {'error': {'code': code, 'errors': [{'reason': reason, 'message': message}]}}
 
@@ -4203,7 +4205,7 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False):
     reason = error['error']['errors'][0]['reason']
     for messageItem in GAPI.REASON_MESSAGE_MAP.get(reason, []):
       if messageItem[0] in message:
-        if reason in [GAPI.NOT_FOUND, GAPI.RESOURCE_NOT_FOUND]:
+        if reason in [GAPI.NOT_FOUND, GAPI.RESOURCE_NOT_FOUND] and mapNotFound:
           message = Msg.DOES_NOT_EXIST
         reason = messageItem[1]
         break
@@ -4216,7 +4218,7 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False):
   return (http_status, reason, message)
 
 def callGAPI(service, function,
-             bailOnInternalError=False, bailOnTransientError=False, softErrors=False,
+             bailOnInternalError=False, bailOnTransientError=False, softErrors=False, mapNotFound=True,
              throwReasons=None, retryReasons=None, retries=10,
              **kwargs):
   if throwReasons is None:
@@ -4232,7 +4234,7 @@ def callGAPI(service, function,
     try:
       return method(**svcparms).execute()
     except googleapiclient.errors.HttpError as e:
-      http_status, reason, message = checkGAPIError(e, softErrors=softErrors, retryOnHttpError=n < 3)
+      http_status, reason, message = checkGAPIError(e, softErrors=softErrors, retryOnHttpError=n < 3, mapNotFound=mapNotFound)
       if http_status == -1:
         # The error detail indicated that we should retry this request
         # We'll refresh credentials and make another pass
@@ -4302,22 +4304,23 @@ def _processGAPIpagesResult(results, items, allResults, totalItems, pageMessage,
     pageToken = None
     results = {items: []}
     pageItems = 0
-  if pageMessage and pageItems:
+  if pageMessage:
     showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
-    if messageAttribute:
-      firstItem = results[items][0] if pageItems > 0 else {}
-      lastItem = results[items][-1] if pageItems > 1 else firstItem
-      if isinstance(messageAttribute, str):
-        firstItem = str(firstItem.get(messageAttribute, ''))
-        lastItem = str(lastItem.get(messageAttribute, ''))
-      else:
-        for attr in messageAttribute:
-          firstItem = firstItem.get(attr, {})
-          lastItem = lastItem.get(attr, {})
-        firstItem = str(firstItem)
-        lastItem = str(lastItem)
-      showMessage = showMessage.replace(FIRST_ITEM_MARKER, firstItem)
-      showMessage = showMessage.replace(LAST_ITEM_MARKER, lastItem)
+    if pageItems:
+      if messageAttribute:
+        firstItem = results[items][0] if pageItems > 0 else {}
+        lastItem = results[items][-1] if pageItems > 1 else firstItem
+        if isinstance(messageAttribute, str):
+          firstItem = str(firstItem.get(messageAttribute, ''))
+          lastItem = str(lastItem.get(messageAttribute, ''))
+        else:
+          for attr in messageAttribute:
+            firstItem = firstItem.get(attr, {})
+            lastItem = lastItem.get(attr, {})
+          firstItem = str(firstItem)
+          lastItem = str(lastItem)
+        showMessage = showMessage.replace(FIRST_ITEM_MARKER, firstItem)
+        showMessage = showMessage.replace(LAST_ITEM_MARKER, lastItem)
     writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(entityType, totalItems))))
   return (pageToken, totalItems)
 
@@ -4814,7 +4817,7 @@ def checkGroupExists(cd, ci, ciGroupsAPI, returnCloudID, group, i=0, count=0):
       try:
         result = callGAPI(ci.groups(), 'get',
                           throwReasons=GAPI.CIGROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
-                          name=group, fields='groupKey(id)')
+                          name=group, fields='name,groupKey(id)')
         return (ci, result['groupKey']['id'])
       except (GAPI.notFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
               GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
@@ -5211,6 +5214,61 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
               entityList.append(device['deviceId'])
               break
         printGotEntityItemsForWhom(len(entityList))
+  elif entityType == Cmd.ENTITY_BROWSER:
+    result = convertEntityToList(entity)
+    for deviceId in result:
+      if deviceId not in entitySet:
+        entitySet.add(deviceId)
+        entityList.append(deviceId)
+  elif entityType in {Cmd.ENTITY_BROWSER_OU, Cmd.ENTITY_BROWSER_OUS}:
+    cbcm = buildGAPIObject(API.CBCM)
+    ous = convertEntityToList(entity, shlexSplit=True, nonListEntityType=entityType == Cmd.ENTITY_BROWSER_OU)
+    numOus = len(ous)
+    allQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, numOus))
+    oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
+    for ou in ous:
+      ou = makeOrgUnitPathAbsolute(ou)
+      printGettingAllEntityItemsForWhom(Ent.CHROME_BROWSER, ou, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
+      try:
+        result = callGAPIpages(cbcm.chromebrowsers(), 'list', 'browsers',
+                               pageMessage=getPageMessage(),
+                               throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.FORBIDDEN],
+                               customer=GC.Values[GC.CUSTOMER_ID], orgUnitPath=ou, projection='BASIC',
+                               orderBy='id', sortOrder='ASCENDING', fields='nextPageToken,browsers(deviceId)')
+      except (GAPI.badRequest, GAPI.invalidOrgunit, GAPI.forbidden):
+        checkEntityDNEorAccessErrorExit(None, Ent.ORGANIZATIONAL_UNIT, ou)
+        _incrEntityDoesNotExist(Ent.ORGANIZATIONAL_UNIT)
+        continue
+      entityList.extend([browser['deviceId'] for browser in result])
+    Ent.SetGettingQualifier(Ent.CHROME_BROWSER, allQualifier)
+    Ent.SetGettingForWhom(','.join(ous))
+    printGotEntityItemsForWhom(len(entityList))
+  elif entityType in {Cmd.ENTITY_BROWSER_QUERY, Cmd.ENTITY_BROWSER_QUERIES}:
+    cbcm = buildGAPIObject(API.CBCM)
+    queries = convertEntityToList(entity, shlexSplit=entityType == Cmd.ENTITY_BROWSER_QUERIES,
+                                  nonListEntityType=entityType == Cmd.ENTITY_BROWSER_QUERY)
+    prevLen = 0
+    for query in queries:
+      printGettingAllAccountEntities(Ent.CHROME_BROWSER, query)
+      try:
+        result = callGAPIpages(cbcm.chromebrowsers(), 'list', 'browsers',
+                               pageMessage=getPageMessage(),
+                               throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                               customer=GC.Values[GC.CUSTOMER_ID], query=query, projection='BASIC',
+                               orderBy='id', sortOrder='ASCENDING', fields='nextPageToken,browsers(deviceId)')
+      except GAPI.invalidInput:
+        Cmd.Backup()
+        usageErrorExit(Msg.INVALID_QUERY)
+      except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+        accessErrorExit(None)
+      for device in result:
+        deviceId = device['deviceId']
+        if deviceId not in entitySet:
+          entitySet.add(deviceId)
+          entityList.append(deviceId)
+      totalLen = len(entityList)
+      printGotAccountEntities(totalLen-prevLen)
+      prevLen = totalLen
   else:
     systemErrorExit(UNKNOWN_ERROR_RC, 'getUsersToModify coding error')
   for errorType in [ENTITY_ERROR_DNE, ENTITY_ERROR_INVALID]:
@@ -5290,7 +5348,7 @@ def getEntitiesFromFile(shlexSplit):
   return entityList
 
 # <FileName>(:<FieldName>)+ [charset <String>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>]
-#	[fields <FieldNameList>] (matchfield|skipfield <FieldName> <RegularExpression>)* [delimiter <Character>]
+#	[endcsv|(fields <FieldNameList>)] (matchfield|skipfield <FieldName> <RegularExpression>)* [delimiter <Character>]
 def getEntitiesFromCSVFile(shlexSplit):
   drive, fileFieldName = os.path.splitdrive(getString(Cmd.OB_FILE_NAME_FIELD_NAME))
   if fileFieldName.find(':') == -1:
@@ -5461,7 +5519,7 @@ def getEntityArgument(entityList):
     Cmd.SetLocation(clLoc)
   return (0, len(entityList), entityList)
 
-def getEntityToModify(defaultEntityType=None, crosAllowed=False, userAllowed=True,
+def getEntityToModify(defaultEntityType=None, browserAllowed=False, crosAllowed=False, userAllowed=True,
                       typeMap=None, isSuspended=None, groupMemberType=Ent.TYPE_USER, delayGet=False):
   if GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
     crosAllowed = False
@@ -5472,6 +5530,8 @@ def getEntityToModify(defaultEntityType=None, crosAllowed=False, userAllowed=Tru
     selectorChoices += Cmd.USER_ENTITY_SELECTORS+Cmd.USER_CSVDATA_ENTITY_SELECTORS
   if crosAllowed:
     selectorChoices += Cmd.CROS_ENTITY_SELECTORS+Cmd.CROS_CSVDATA_ENTITY_SELECTORS
+  if browserAllowed:
+    selectorChoices = Cmd.BROWSER_ENTITY_SELECTORS
   entitySelector = getChoice(selectorChoices, defaultChoice=None)
   if entitySelector:
     choices = []
@@ -5490,24 +5550,23 @@ def getEntityToModify(defaultEntityType=None, crosAllowed=False, userAllowed=Tru
               {'entityType': entityType, 'entity': None})
     if userAllowed:
       if entitySelector == Cmd.ENTITY_SELECTOR_FILE:
-        return (Cmd.ENTITY_USERS,
-                getUsersToModify(Cmd.ENTITY_USERS, getEntitiesFromFile(False)))
+        return (Cmd.ENTITY_USERS, getUsersToModify(Cmd.ENTITY_USERS, getEntitiesFromFile(False)))
       if entitySelector in [Cmd.ENTITY_SELECTOR_CSV, Cmd.ENTITY_SELECTOR_CSVFILE]:
-        return (Cmd.ENTITY_USERS,
-                getUsersToModify(Cmd.ENTITY_USERS, getEntitiesFromCSVFile(False)))
+        return (Cmd.ENTITY_USERS, getUsersToModify(Cmd.ENTITY_USERS, getEntitiesFromCSVFile(False)))
     if crosAllowed:
       if entitySelector == Cmd.ENTITY_SELECTOR_CROSFILE:
-        return (Cmd.ENTITY_CROS,
-                getUsersToModify(Cmd.ENTITY_CROS, getEntitiesFromFile(False)))
-      if entitySelector == Cmd.ENTITY_SELECTOR_CROSFILE_SN:
-        return (Cmd.ENTITY_CROS,
-                getUsersToModify(Cmd.ENTITY_CROS_SN, getEntitiesFromFile(False)))
+        return (Cmd.ENTITY_CROS, getEntitiesFromFile(False))
       if entitySelector in [Cmd.ENTITY_SELECTOR_CROSCSV, Cmd.ENTITY_SELECTOR_CROSCSVFILE]:
-        return (Cmd.ENTITY_CROS,
-                getUsersToModify(Cmd.ENTITY_CROS, getEntitiesFromCSVFile(False)))
+        return (Cmd.ENTITY_CROS, getEntitiesFromCSVFile(False))
+      if entitySelector == Cmd.ENTITY_SELECTOR_CROSFILE_SN:
+        return (Cmd.ENTITY_CROS, getUsersToModify(Cmd.ENTITY_CROS_SN, getEntitiesFromFile(False)))
       if entitySelector in [Cmd.ENTITY_SELECTOR_CROSCSV_SN, Cmd.ENTITY_SELECTOR_CROSCSVFILE_SN]:
-        return (Cmd.ENTITY_CROS,
-                getUsersToModify(Cmd.ENTITY_CROS_SN, getEntitiesFromCSVFile(False)))
+        return (Cmd.ENTITY_CROS, getUsersToModify(Cmd.ENTITY_CROS_SN, getEntitiesFromCSVFile(False)))
+    if browserAllowed:
+      if entitySelector == Cmd.ENTITY_SELECTOR_FILE:
+        return (Cmd.ENTITY_BROWSER, getEntitiesFromFile(False))
+      if entitySelector in [Cmd.ENTITY_SELECTOR_CSV, Cmd.ENTITY_SELECTOR_CSVFILE]:
+        return (Cmd.ENTITY_BROWSER, getEntitiesFromCSVFile(False))
     if entitySelector == Cmd.ENTITY_SELECTOR_DATAFILE:
       if userAllowed:
         choices += Cmd.USER_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY] else [Cmd.ENTITY_USERS]
@@ -5547,22 +5606,25 @@ def getEntityToModify(defaultEntityType=None, crosAllowed=False, userAllowed=Tru
     entityChoices += Cmd.USER_ENTITIES if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY] else [Cmd.ENTITY_USER, Cmd.ENTITY_USERS]
   if crosAllowed:
     entityChoices += Cmd.CROS_ENTITIES
+  if browserAllowed:
+    entityChoices += Cmd.BROWSER_ENTITIES
   entityType = mapEntityType(getChoice(entityChoices, choiceAliases=Cmd.ENTITY_ALIAS_MAP, defaultChoice=defaultEntityType), typeMap)
   if entityType:
-    if entityType not in Cmd.CROS_ENTITIES:
+    if entityType not in Cmd.CROS_ENTITIES+Cmd.BROWSER_ENTITIES:
       entityClass = Cmd.ENTITY_USERS
       if entityType == Cmd.ENTITY_OAUTHUSER:
         return (entityClass, [_getAdminEmail()])
       entityItem = getString(Cmd.OB_USER_ENTITY, minLen=0)
-    else:
+    elif entityType not in Cmd.CROS_ENTITIES:
       entityClass = Cmd.ENTITY_CROS
       entityItem = getString(Cmd.OB_CROS_ENTITY, minLen=0)
+    else:
+      entityClass = Cmd.ENTITY_BROWSER
+      entityItem = getString(Cmd.OB_BROWSER_ENTITY, minLen=0)
     if not delayGet:
       if entityClass == Cmd.ENTITY_USERS:
-        return (entityClass,
-                getUsersToModify(entityType, entityItem, isSuspended=isSuspended, groupMemberType=groupMemberType))
-      return (entityClass,
-              getUsersToModify(entityType, entityItem))
+        return (entityClass, getUsersToModify(entityType, entityItem, isSuspended=isSuspended, groupMemberType=groupMemberType))
+      return (entityClass, getUsersToModify(entityType, entityItem))
     GM.Globals[GM.ENTITY_CL_DELAY_START] = Cmd.Location()
     if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
       buildGAPIObject(API.DIRECTORY)
@@ -5644,14 +5706,14 @@ def _validateUserGetMessageIds(user, i, count, entity):
     return (user, None, None)
   return (user, gmail, entityList)
 
-def checkUserExists(cd, user, i=0, count=0):
+def checkUserExists(cd, user, entityType=Ent.USER, i=0, count=0):
   user = normalizeEmailAddressOrUID(user)
   try:
     return callGAPI(cd.users(), 'get',
                     throwReasons=GAPI.USER_GET_THROW_REASONS,
                     userKey=user, fields='primaryEmail')['primaryEmail']
   except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
-    entityUnknownWarning(Ent.USER, user, i, count)
+    entityUnknownWarning(entityType, user, i, count)
     return None
 
 # Add attachements to an email message
@@ -16058,6 +16120,151 @@ def printShowUserContactGroups(users):
   if csvPF:
     csvPF.writeCSVfile('Contact Groups')
 
+# Delegate command utilities
+def _validateUserGetDelegateList(cd, user, i, count, entity):
+  if entity['dict']:
+    entityList = entity['dict'][user]
+  else:
+    entityList = entity['list']
+  user = checkUserExists(cd, user, i, count)
+  if not user:
+    return (user, None, 0)
+  jcount = len(entityList)
+  entityPerformActionNumItems([Ent.USER, user], jcount, entity['item'], i, count)
+  if jcount == 0:
+    setSysExitRC(NO_ENTITIES_FOUND)
+  return (user, entityList, jcount)
+
+def _getDelegateName(cd, delegateEmail, delegateNames):
+  if delegateEmail in delegateNames:
+    return delegateNames[delegateEmail]
+  try:
+    result = callGAPI(cd.users(), 'get',
+                      throwReasons=GAPI.USER_GET_THROW_REASONS,
+                      userKey=delegateEmail, fields='name(fullName)')
+    delegateName = result.get('name', {'fullName': delegateEmail}).get('fullName', delegateEmail)
+  except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+    delegateName = delegateEmail
+  delegateNames[delegateEmail] = delegateName
+  return delegateName
+
+# gam <UserTypeEntity> create contactdelegate <UserEntity>
+# gam <UserTypeEntity> delete contactdelegate <UserEntity>
+def processContactDelegates(users):
+  condel = buildGAPIObject(API.CONTACTDELEGATION)
+  cd = buildGAPIObject(API.DIRECTORY)
+  function = 'delete' if Act.Get() == Act.DELETE else 'create'
+  delegateEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DELEGATE)
+  checkForExtraneousArguments()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, delegates, jcount = _validateUserGetDelegateList(cd, user, i, count, delegateEntity)
+    if jcount == 0:
+      continue
+    Ind.Increment()
+    j = 0
+    for delegate in delegates:
+      j += 1
+      delegateEmail = checkUserExists(cd, delegate, Ent.CONTACT_DELEGATE, j, jcount)
+      if not delegateEmail:
+        continue
+      try:
+        if function == 'create':
+          callGAPI(condel.delegates(), function,
+                   throwReasons=GAPI.CONTACT_DELEGATE_THROW_REASONS,
+                   user=user, body={'email': delegateEmail})
+        else:
+          callGAPI(condel.delegates(), function,
+                   throwReasons=GAPI.CONTACT_DELEGATE_THROW_REASONS,
+                   user=user, delegate=delegateEmail)
+        entityActionPerformed([Ent.USER, user, Ent.CONTACT_DELEGATE, delegateEmail], j, jcount)
+      except (GAPI.failedPrecondition, GAPI.permissionDenied) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.CONTACT_DELEGATE, delegateEmail], str(e), j, jcount)
+      except (GAPI.serviceNotAvailable, GAPI.badRequest):
+        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+    Ind.Decrement()
+
+# gam <UserTypeEntity> print contactdelegates [todrive <ToDriveAttribute>*] [shownames]
+# gam <UserTypeEntity> show contactdelegates [shownames] [csv]
+def printShowContactDelegates(users):
+  condel = buildGAPIObject(API.CONTACTDELEGATION)
+  titlesList = ['User', 'delegateAddress']
+  csvPF = CSVPrintFile() if Act.csvFormat() else None
+  cd = buildGAPIObject(API.DIRECTORY)
+  csvStyle = showNames = False
+  delegateNames = {}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif not csvPF and myarg == 'csv':
+      csvStyle = True
+    elif myarg == 'shownames':
+      titlesList = ['User', 'delegateName', 'delegateAddress']
+      showNames = True
+    else:
+      unknownArgumentExit()
+  if csvPF:
+    csvPF.AddTitles(titlesList)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user = checkUserExists(cd, user, i, count)
+    if not user:
+      continue
+    if csvPF:
+      printGettingAllEntityItemsForWhom(Ent.CONTACT_DELEGATE, user, i, count)
+    try:
+      delegates = callGAPIpages(condel.delegates(), 'list', 'delegates',
+                                throwReasons=GAPI.CONTACT_DELEGATE_THROW_REASONS,
+                                user=user)
+    except (GAPI.failedPrecondition, GAPI.permissionDenied) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.CONTACT_DELEGATE, None], str(e), i, count)
+      continue
+    except (GAPI.serviceNotAvailable, GAPI.badRequest):
+      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      continue
+    jcount = len(delegates)
+    if not csvPF:
+      entityPerformActionNumItems([Ent.USER, user], jcount, Ent.CONTACT_DELEGATE, i, count)
+      if not csvStyle:
+        Ind.Increment()
+        j = 0
+        for delegate in delegates:
+          j += 1
+          delegateEmail = delegate['email']
+          if showNames:
+            printEntity([Ent.CONTACT_DELEGATE, _getDelegateName(cd, delegateEmail, delegateNames)], j, jcount)
+            Ind.Increment()
+            printKeyValueList(['Delegate Email', delegateEmail])
+            Ind.Decrement()
+          else:
+            printEntity([Ent.DELEGATE, delegateEmail], j, jcount)
+        Ind.Decrement()
+      else:
+        j = 0
+        for delegate in delegates:
+          j += 1
+          delegateEmail = delegate['email']
+          if showNames:
+            writeStdout(f'{user},{_getDelegateName(cd, delegateEmail, delegateNames)},{delegateEmail}\n')
+          else:
+            writeStdout(f'{user},{delegateEmail}\n')
+    else:
+      if delegates:
+        if showNames:
+          for delegate in delegates:
+            csvPF.WriteRow({'User': user, 'delegateName': _getDelegateName(cd, delegate['email'], delegateNames),
+                            'delegateAddress': delegate['email']})
+        else:
+          for delegate in delegates:
+            csvPF.WriteRow({'User': user, 'delegateAddress': delegate['email']})
+      elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
+        csvPF.WriteRowNoFilter({'User': user})
+  if csvPF:
+    csvPF.writeCSVfile('Contact Delegates')
+
 # CrOS commands utilities
 def getCrOSDeviceEntity():
   if checkArgumentPresent('crossn'):
@@ -17326,6 +17533,368 @@ def doPrintCrOSEntity(entityList):
       doPrintCrOSDevices(entityList)
   else:
     doPrintCrOSActivity(entityList)
+
+# gam delete browser <DeviceID>
+def doDeleteBrowsers():
+  cbcm = buildGAPIObject(API.CBCM)
+  deviceId = getString(Cmd.OB_DEVICE_ID)
+  checkForExtraneousArguments()
+  try:
+    callGAPI(cbcm.chromebrowsers(), 'delete',
+             throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+             customer=GC.Values[GC.CUSTOMER_ID], deviceId=deviceId)
+    entityActionPerformed([Ent.CHROME_BROWSER, deviceId])
+  except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+    checkEntityAFDNEorAccessErrorExit(None, Ent.CHROME_BROWSER, deviceId)
+
+BROWSER_TIME_OBJECTS = ['lastActivityTime', 'lastPolicyFetchTime', 'lastRegistrationTime', 'lastStatusReportTime', 'safeBrowsingWarningsResetTime']
+
+def _showBrowser(browser, FJQC, i=0, count=0):
+  if FJQC.formatJSON:
+    printLine(json.dumps(cleanJSON(browser), ensure_ascii=False, sort_keys=True))
+  else:
+    printEntity([Ent.CHROME_BROWSER, browser['deviceId']], i, count)
+    Ind.Increment()
+    showJSON(None, browser, timeObjects=BROWSER_TIME_OBJECTS)
+    Ind.Decrement()
+
+BROWSER_FIELDS_CHOICE_MAP = {
+  'annotatedassetid': 'annotatedAssetId',
+  'annotatedlocation': 'annotatedLocation',
+  'annotatednotes': 'annotatedNotes',
+  'annotateduser': 'annotatedUser',
+  'asset': 'annotatedAssetId',
+  'assetid': 'annotatedAssetId',
+  'browsers': 'browsers',
+  'browserversions': 'browserVersions',
+  'deviceid': 'deviceId',
+  'extensioncount': 'extensionCount',
+  'installedbrowserversion': 'installedBrowserVersion',
+  'lastactivitytime': 'lastActivityTime',
+  'lastdeviceuser': 'lastDeviceUser',
+  'lastdeviceusers': 'lastDeviceUsers',
+  'lastpolicyfetchtime': 'lastPolicyFetchTime',
+  'lastregistrationtime': 'lastRegistrationTime',
+  'laststatusreporttime': 'lastStatusReportTime',
+  'location': 'annotatedLocation',
+  'machinename': 'machineName',
+  'machinepolicies': 'machinePolicies',
+  'notes': 'annotatedNotes',
+  'org': 'orgUnitPath',
+  'orgunit': 'orgUnitPath',
+  'orgunitpath': 'orgUnitPath',
+  'osarchitecture':  'osArchitecture',
+  'osplatform': 'osPlatform',
+  'osplatformversion': 'osPlatformVersion',
+  'osversion': 'osVersion',
+  'ou': 'orgUnitPath',
+  'policycount': 'policyCount',
+  'safebrowsingclickthroughcount': 'safeBrowsingClickThroughCount',
+  'serialnumber': 'serialNumber',
+  'user': 'annotatedUser',
+  'virtualdeviceid': 'virtualDeviceId',
+  }
+BROWSER_ANNOTATED_FIELDS_LIST = ['annotatedAssetId', 'annotatedLocation', 'annotatedNotes', 'annotatedUser']
+BROWSER_FULL_ACCESS_FIELDS = {'browsers', 'lastDeviceUsers', 'lastStatusReportTime', 'machinePolicies'}
+
+# gam info browser <DeviceID>
+#	[basic|full|annotated] <BrowserFieldName>* [fields <BrowserFieldNameList>]
+#	[formatjson]
+def doInfoBrowsers():
+  cbcm = buildGAPIObject(API.CBCM)
+  deviceId = getString(Cmd.OB_DEVICE_ID)
+  projection = 'BASIC'
+  fieldsList = []
+  FJQC = FormatJSONQuoteChar()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'annotated':
+      projection = 'BASIC'
+      fieldsList = BROWSER_ANNOTATED_FIELDS_LIST
+    elif myarg in PROJECTION_CHOICE_MAP:
+      projection = PROJECTION_CHOICE_MAP[myarg]
+      fieldsList = []
+    elif getFieldsList(myarg, BROWSER_FIELDS_CHOICE_MAP, fieldsList, initialField='deviceId'):
+      pass
+    else:
+      FJQC.GetFormatJSON(myarg)
+  if projection == 'BASIC' and set(fieldsList).intersection(BROWSER_FULL_ACCESS_FIELDS):
+    projection = 'FULL'
+  fields = ','.join(set(fieldsList))
+  try:
+    browser = callGAPI(cbcm.chromebrowsers(), 'get',
+                       throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                       customer=GC.Values[GC.CUSTOMER_ID], deviceId=deviceId, projection=projection, fields=fields)
+    _showBrowser(browser, FJQC)
+  except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+    checkEntityAFDNEorAccessErrorExit(None, Ent.CHROME_BROWSER, deviceId)
+
+# gam move browsers ou|org|orgunit <OrgUnitPath>
+#	((ids <DeviceIDList>) |
+#	 (queries <QueryBrowserList> [querytime.* <Time>]) |
+#	 (browserou <OrgUnitItem>) | (browserous <OrgUnitList>) |
+#	 <FileSelector> | <CSVFileSelector>)
+#	[batchsize <Integer>]
+def doMoveBrowsers():
+  cbcm = buildGAPIObject(API.CBCM)
+  deviceIds = []
+  batch_size = GC.Values[GC.BATCH_SIZE]
+  orgUnitPath = ''
+  queries = []
+  queryTimes = {}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg in ['ou', 'org', 'orgunit']:
+      orgUnitPath = getOrgUnitItem()
+    elif myarg == 'ids':
+      deviceIds.extend(convertEntityToList(getString(Cmd.OB_DEVICE_ID_LIST, minLen=0)))
+    elif myarg == 'file':
+      deviceIds.extend(getEntitiesFromFile(False))
+    elif myarg == 'csvfile':
+      deviceIds.extend(getEntitiesFromCSVFile(False))
+    elif myarg in {'query', 'queries'}:
+      queries = getQueries(myarg)
+    elif myarg.startswith('querytime'):
+      queryTimes[myarg] = getTimeOrDeltaFromNow()[0:19]
+    elif myarg == 'browserou':
+      deviceIds.extend(getUsersToModify(Cmd.ENTITY_BROWSER_OU, getOrgUnitItem(pathOnly=True, absolutePath=True)))
+    elif myarg == 'browserous':
+      deviceIds.extend(getUsersToModify(Cmd.ENTITY_BROWSER_OUS, getEntityList(Cmd.OB_ORGUNIT_ENTITY, shlexSplit=True)))
+    elif myarg == 'batchsize':
+      batch_size = getInteger(minVal=1, maxVal=600)
+    else:
+      unknownArgumentExit()
+  if not orgUnitPath:
+    missingArgumentExit('orgunit')
+  if queries:
+    for query in queries:
+      if queryTimes:
+        for queryTimeName, queryTimeValue in iter(queryTimes.items()):
+          query = query.replace(f'#{queryTimeName}#', queryTimeValue)
+    deviceIds.extend(getUsersToModify(Cmd.ENTITY_BROWSER_QUERIES, queries))
+  body = {'org_unit_path': orgUnitPath}
+  bcount = 0
+  jcount = len(deviceIds)
+  j = 0
+  while bcount < jcount:
+    kcount = min(jcount-bcount, batch_size)
+    try:
+      body['resource_ids'] = deviceIds[bcount:bcount+kcount]
+      callGAPI(cbcm.chromebrowsers(), 'moveChromeBrowsersToOu',
+               mapNotFound=False,
+               throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+               customer=GC.Values[GC.CUSTOMER_ID], body=body)
+      for deviceId in deviceIds:
+        j += 1
+        entityActionPerformed([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CHROME_BROWSER, deviceId], j, jcount)
+      bcount += kcount
+    except GAPI.invalidOrgunit:
+      entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], Msg.INVALID_ORGUNIT)
+      break
+    except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
+      entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CHROME_BROWSER, f'IDs: {deviceIds[bcount]} - {deviceIds[bcount+kcount-1]}'], str(e))
+      bcount += kcount
+
+UPDATE_BROWSER_ARGUMENT_TO_PROPERTY_MAP = {
+  'annotatedassetid': 'annotatedAssetId',
+  'annotatedlocation': 'annotatedLocation',
+  'annotatednotes': 'annotatedNotes',
+  'annotateduser': 'annotatedUser',
+  'asset': 'annotatedAssetId',
+  'assetid': 'annotatedAssetId',
+  'location': 'annotatedLocation',
+  'notes': 'annotatedNotes',
+  'updatenotes': 'annotatedNotes',
+  'user': 'annotatedUser',
+  }
+
+BROWSER_DEVICEID_ANNOTATED_FIELDS = 'deviceId,annotatedAssetId,annotatedLocation,annotatedNotes,annotatedUser'
+
+# gam update browser <BrowserEntity> <BrowserAttibute>+ [updatenotes <String>]
+def doUpdateBrowsers():
+  cbcm = buildGAPIObject(API.CBCM)
+  _, entityList = getEntityToModify(defaultEntityType=Cmd.ENTITY_BROWSER, browserAllowed=True, crosAllowed=False, userAllowed=False)
+  body = {}
+  updateNotes = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg in UPDATE_BROWSER_ARGUMENT_TO_PROPERTY_MAP:
+      up = UPDATE_BROWSER_ARGUMENT_TO_PROPERTY_MAP[myarg]
+      if up == 'annotatedNotes':
+        body[up] = getStringWithCRsNLs()
+        updateNotes = body[up] if myarg == 'updatenotes' and body[up].find('#notes#') != -1 else None
+      else:
+        body[up] = getString(Cmd.OB_STRING)
+    else:
+      unknownArgumentExit()
+  i = 0
+  count = len(entityList)
+  for deviceId in entityList:
+    i += 1
+    try:
+      browser = callGAPI(cbcm.chromebrowsers(), 'get',
+                         throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                         customer=GC.Values[GC.CUSTOMER_ID], deviceId=deviceId,
+                         projection='BASIC', fields=BROWSER_DEVICEID_ANNOTATED_FIELDS)
+      if updateNotes:
+        body['annotatedNotes'] = updateNotes.replace('#notes#', browser['annotatedNotes'])
+      browser.update(body)
+      callGAPI(cbcm.chromebrowsers(), 'update',
+               throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+               customer=GC.Values[GC.CUSTOMER_ID], deviceId=deviceId,
+               body=browser, projection='BASIC', fields="deviceId")
+      entityActionPerformed([Ent.CHROME_BROWSER, deviceId], i, count)
+    except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+      checkEntityAFDNEorAccessErrorExit(None, Ent.CHROME_BROWSER, deviceId, i, count)
+
+BROWSER_ORDERBY_CHOICE_MAP = {
+  'annotatedassetid': 'annotated_asset_id', 'asset': 'annotated_asset_id', 'assetid': 'annotated_asset_id',
+  'annotatedlocation': 'annotated_location', 'location': 'annotated_location',
+  'annotatednotes': 'notes', 'notes': 'notes',
+  'annotateduser': 'annotated_user', 'user': 'annotated_user',
+  'browserversionchannel': 'browser_version_channel',
+  'browserversionsortable': 'browser_version_sortable',
+  'deviceid': 'id', 'id': 'id',
+  'enrollmentdate': 'enrollment_date',
+  'extensioncount': 'extension_count',
+  'lastactivity': 'last_activity',
+  'lastsignedinuser': 'last_signed_in_user',
+  'lastsync': 'last_sync',
+  'machinename': 'machine_name',
+  'orgunit': 'org_unit', 'ou': 'org_unit', 'org': 'org_unit',
+  'osversion': 'os_version',
+  'osversionsortable': 'os_version_sortable',
+  'platformmajorversion': 'platform_major_version',
+  'policycount': 'policy_count',
+  #  'safebrowsingclickthrough': 'safe_browsing_clickthrough',
+  }
+
+# gam show browsers
+#	([browserou <OrgUnitPath>] [(query <QueryBrowser)|(queries <QueryBrowserList>))|(select <BrowserEntity>))
+#	[querytime.* <Time>]
+#	[orderby <BrowserOrderByFieldName> [ascending|descending]]
+#	[basic|full|allfields|annotated] <BrowserFieldName>* [fields <BrowserFieldNameList>]
+#	[formatjson]
+# gam print browsers [todrive <ToDriveAttribute>*]
+#	([browserou <OrgUnitPath>] [(query <QueryBrowser)|(queries <QueryBrowserList>))|(select <BrowserEntity>))
+#	[querytime.* <Time>]
+#	[orderby <BrowserOrderByFieldName> [ascending|descending]]
+#	[basic|full|allfields|annotated] <BrowserFieldName>* [fields <BrowserFieldNameList>]
+#	[sortheaders] [formatjson [quotechar <Character>]]
+def doPrintShowBrowsers():
+  def _printBrowser(browser):
+    if FJQC.formatJSON:
+      if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(browser, timeObjects=BROWSER_TIME_OBJECTS)):
+        csvPF.WriteRowNoFilter({'deviceId': browser['deviceId'],
+                                'JSON': json.dumps(cleanJSON(browser, timeObjects=BROWSER_TIME_OBJECTS),
+                                                   ensure_ascii=False, sort_keys=True)})
+      return
+    row = flattenJSON(browser, timeObjects=BROWSER_TIME_OBJECTS)
+    csvPF.WriteRowTitles(row)
+
+  cbcm = buildGAPIObject(API.CBCM)
+  csvPF = CSVPrintFile(['deviceId']) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  fieldsList = []
+  projection = 'BASIC'
+  orderBy = 'id'
+  sortOrder = 'ASCENDING'
+  entityList = orgUnitPath = None
+  queries = [None]
+  queryTimes = {}
+  sortHeaders = sortRows = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg in {'query', 'queries'}:
+      queries = getQueries(myarg)
+    elif myarg.startswith('querytime'):
+      queryTimes[myarg] = getTimeOrDeltaFromNow()[0:19]
+    elif myarg == 'browserou':
+      orgUnitPath = getOrgUnitItem(pathOnly=True, absolutePath=True)
+    elif myarg == 'select':
+      _, entityList = getEntityToModify(defaultEntityType=Cmd.ENTITY_BROWSER, browserAllowed=True, crosAllowed=False, userAllowed=False)
+    elif myarg == 'orderby':
+      orderBy, sortOrder = getOrderBySortOrder(BROWSER_ORDERBY_CHOICE_MAP, 'DESCENDING', True)
+    elif myarg == 'annotated':
+      projection = 'BASIC'
+      fieldsList = BROWSER_ANNOTATED_FIELDS_LIST
+    elif (myarg == 'projection') or myarg in PROJECTION_CHOICE_MAP:
+      if myarg == 'projection':
+        projection = getChoice(PROJECTION_CHOICE_MAP, mapChoice=True)
+      else:
+        projection = PROJECTION_CHOICE_MAP[myarg]
+      fieldsList = []
+    elif myarg == 'allfields':
+      projection = 'FULL'
+      sortHeaders = True
+      fieldsList = []
+    elif myarg == 'sortheaders':
+      sortHeaders = True
+    elif getFieldsList(myarg, BROWSER_FIELDS_CHOICE_MAP, fieldsList, initialField='deviceId'):
+      pass
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if projection == 'BASIC' and set(fieldsList).intersection(BROWSER_FULL_ACCESS_FIELDS):
+    projection = 'FULL'
+  fields = getItemFieldsFromFieldsList('browsers', fieldsList)
+  if FJQC.formatJSON:
+    sortHeaders = False
+  if entityList is None:
+    for query in queries:
+      if queryTimes and query is not None:
+        for queryTimeName, queryTimeValue in iter(queryTimes.items()):
+          query = query.replace(f'#{queryTimeName}#', queryTimeValue)
+      printGettingAllAccountEntities(Ent.CHROME_BROWSER, query)
+      pageMessage = getPageMessage()
+      try:
+        browsers = callGAPIpages(cbcm.chromebrowsers(), 'list', 'browsers',
+                                 pageMessage=pageMessage,
+                                 throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.FORBIDDEN],
+                                 customer=GC.Values[GC.CUSTOMER_ID], orgUnitPath=orgUnitPath, query=query, projection=projection,
+                                 orderBy=orderBy, sortOrder=sortOrder, fields=fields)
+        if not csvPF:
+          jcount = len(browsers)
+          performActionNumItems(jcount, Ent.CHROME_BROWSER)
+          Ind.Increment()
+          j = 0
+          for browser in browsers:
+            j += 1
+            _showBrowser(browser, FJQC, j, jcount)
+          Ind.Decrement()
+        else:
+          for browser in browsers:
+            _printBrowser(browser)
+      except GAPI.invalidInput as e:
+        if query:
+          entityActionFailedWarning([Ent.CHROME_BROWSER, None], invalidQuery(query))
+        else:
+          entityActionFailedWarning([Ent.CHROME_BROWSER, None], str(e))
+      except GAPI.invalidOrgunit as e:
+        entityActionFailedWarning([Ent.CHROME_BROWSER, None], str(e))
+      except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+        accessErrorExit(None)
+  else:
+    sortRows = True
+    jcount = len(entityList)
+    fields = getFieldsFromFieldsList(fieldsList)
+    j = 0
+    for deviceId in entityList:
+      j += 1
+      try:
+        browser = callGAPI(cbcm.chromebrowsers(), 'get',
+                           throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                           customer=GC.Values[GC.CUSTOMER_ID], deviceId=deviceId, projection=projection, fields=fields)
+        _printBrowser(browser)
+      except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+        checkEntityAFDNEorAccessErrorExit(None, Ent.CHROME_BROWSER, deviceId)
+  if csvPF:
+    if sortRows and orderBy:
+      csvPF.SortRows(orderBy, reverse=sortOrder == 'DESCENDING')
+    if sortHeaders:
+      csvPF.SetSortTitles(['deviceId'])
+    csvPF.writeCSVfile('Browsers')
 
 # Device command utilities
 def buildGAPICIDeviceServiceObject():
@@ -27514,10 +28083,10 @@ def doDeleteUsers():
 def doDeleteUser():
   deleteUsers(getStringReturnInList(Cmd.OB_USER_ITEM))
 
-# gam <UserEntity> undelete users [org|ou <OrgUnitPath>]
+# gam <UserEntity> undelete users [ou|org|orgunit <OrgUnitPath>]
 def undeleteUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
-  if checkArgumentPresent(['org', 'ou']):
+  if checkArgumentPresent(['ou', 'org', 'orgunit']):
     entitySelector = getEntitySelector()
     if entitySelector:
       orgUnitPaths = getEntitySelection(entitySelector, True)
@@ -27587,11 +28156,11 @@ def undeleteUsers(entityList):
     except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.invalid, GAPI.duplicate) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
 
-# gam undelete users <UserEntity> [org|ou <OrgUnitPath>]
+# gam undelete users <UserEntity> [ou|org|orgunit <OrgUnitPath>]
 def doUndeleteUsers():
   undeleteUsers(getEntityList(Cmd.OB_USER_ENTITY))
 
-# gam undelete user <UserItem> [org|ou <OrgUnitPath>]
+# gam undelete user <UserItem> [ou|org|orgunit <OrgUnitPath>]
 def doUndeleteUser():
   undeleteUsers(getStringReturnInList(Cmd.OB_USER_ITEM))
 
@@ -46695,11 +47264,11 @@ def printShowMessages(users):
 def printShowThreads(users):
   printShowMessagesThreads(users, Ent.THREAD)
 
-# gam <UserTypeEntity> delegate to <UserEntity>
-def delegateTo(users, checkForTo=True):
+# gam <UserTypeEntity> create|add delegate|delegates <UserEntity>
+# gam <UserTypeEntity> delete delegate|delegates <UserEntity>
+def processDelegates(users):
   cd = buildGAPIObject(API.DIRECTORY)
-  if checkForTo:
-    checkArgumentPresent('to', required=True)
+  function = 'delete' if Act.Get() == Act.DELETE else 'create'
   delegateEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DELEGATE)
   checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
@@ -46714,10 +47283,15 @@ def delegateTo(users, checkForTo=True):
       j += 1
       delegateEmail = convertUIDtoEmailAddress(delegate, cd=cd)
       try:
-        callGAPI(gmail.users().settings().delegates(), 'create',
-                 throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION,
-                                                        GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
-                 userId='me', body={'delegateEmail': delegateEmail})
+        if function == 'create':
+          callGAPI(gmail.users().settings().delegates(), function,
+                   throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION,
+                                                          GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                   userId='me', body={'delegateEmail': delegateEmail})
+        else:
+          callGAPI(gmail.users().settings().delegates(), function,
+                   throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_INPUT, GAPI.PERMISSION_DENIED],
+                   userId='me', delegateEmail=delegateEmail)
         entityActionPerformed([Ent.USER, user, Ent.DELEGATE, delegateEmail], j, jcount)
       except (GAPI.alreadyExists, GAPI.failedPrecondition, GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DELEGATE, delegateEmail], str(e), j, jcount)
@@ -46725,36 +47299,10 @@ def delegateTo(users, checkForTo=True):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
     Ind.Decrement()
 
-# gam <UserTypeEntity> create|add delegate|delegates <UserEntity>
-def createDelegate(users):
-  delegateTo(users, checkForTo=False)
-
-# gam <UserTypeEntity> delete delegate|delegates <UserEntity>
-def deleteDelegate(users):
-  cd = buildGAPIObject(API.DIRECTORY)
-  delegateEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DELEGATE)
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, gmail, delegates, jcount = _validateUserGetObjectList(user, i, count, delegateEntity)
-    if jcount == 0:
-      continue
-    Ind.Increment()
-    j = 0
-    for delegate in delegates:
-      j += 1
-      delegateEmail = convertUIDtoEmailAddress(delegate, cd=cd)
-      try:
-        callGAPI(gmail.users().settings().delegates(), 'delete',
-                 throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_INPUT, GAPI.PERMISSION_DENIED],
-                 userId='me', delegateEmail=delegateEmail)
-        entityActionPerformed([Ent.USER, user, Ent.DELEGATE, delegateEmail], j, jcount)
-      except (GAPI.notFound, GAPI.invalidInput, GAPI.permissionDenied) as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.DELEGATE, delegateEmail], str(e), j, jcount)
-      except (GAPI.serviceNotAvailable, GAPI.badRequest):
-        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
-    Ind.Decrement()
+# gam <UserTypeEntity> delegate to <UserEntity>
+def delegateTo(users):
+  checkArgumentPresent('to', required=True)
+  processDelegates(users)
 
 # gam <UserTypeEntity> update delegate|delegates [<UserEntity>]
 def updateDelegates(users):
@@ -46811,23 +47359,10 @@ def updateDelegates(users):
 # gam <UserTypeEntity> print delegates|delegate [todrive <ToDriveAttribute>*] [shownames]
 # gam <UserTypeEntity> show delegates|delegate [shownames] [csv]
 def printShowDelegates(users):
-  def _getDelegateName(delegateEmail):
-    if delegateEmail in delegateNames:
-      return delegateNames[delegateEmail]
-    try:
-      result = callGAPI(cd.users(), 'get',
-                        throwReasons=GAPI.USER_GET_THROW_REASONS,
-                        userKey=delegateEmail, fields='name(fullName)')
-      delegateName = result.get('name', {'fullName': delegateEmail}).get('fullName', delegateEmail)
-    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
-      delegateName = delegateEmail
-    delegateNames[delegateEmail] = delegateName
-    return delegateName
-
   titlesList = ['User', 'delegateAddress', 'delegationStatus']
   csvPF = CSVPrintFile() if Act.csvFormat() else None
   cd = None
-  csvStyle = False
+  csvStyle = showNames = False
   delegateNames = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -46838,6 +47373,7 @@ def printShowDelegates(users):
     elif myarg == 'shownames':
       cd = buildGAPIObject(API.DIRECTORY)
       titlesList = ['User', 'delegateName', 'delegateAddress', 'delegationStatus']
+      showNames = True
     else:
       unknownArgumentExit()
   if csvPF:
@@ -46866,7 +47402,7 @@ def printShowDelegates(users):
             status = delegate['verificationStatus']
             delegateEmail = delegate['delegateEmail']
             if cd:
-              printEntity([Ent.DELEGATE, _getDelegateName(delegateEmail)], j, jcount)
+              printEntity([Ent.DELEGATE, _getDelegateName(cd, delegateEmail, delegateNames)], j, jcount)
               Ind.Increment()
               printKeyValueList(['Status', status])
               printKeyValueList(['Delegate Email', delegateEmail])
@@ -46884,14 +47420,14 @@ def printShowDelegates(users):
             status = delegate['verificationStatus']
             delegateEmail = delegate['delegateEmail']
             if cd:
-              writeStdout(f'{user},{_getDelegateName(delegateEmail)},{status},{delegateEmail}\n')
+              writeStdout(f'{user},{_getDelegateName(cd, delegateEmail, delegateNames)},{status},{delegateEmail}\n')
             else:
               writeStdout(f'{user},{status},{delegateEmail}\n')
       else:
         if delegates:
-          if cd:
+          if showNames:
             for delegate in delegates:
-              csvPF.WriteRow({'User': user, 'delegateName': _getDelegateName(delegate['delegateEmail']),
+              csvPF.WriteRow({'User': user, 'delegateName': _getDelegateName(cd, delegate['delegateEmail'], delegateNames),
                               'delegateAddress': delegate['delegateEmail'], 'delegationStatus': delegate['verificationStatus']})
           else:
             for delegate in delegates:
@@ -48411,6 +48947,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ADMINROLE:	doDeleteAdminRole,
       Cmd.ARG_ALIAS:		doDeleteAliases,
       Cmd.ARG_ALERT:		doDeleteOrUndeleteAlert,
+      Cmd.ARG_BROWSER:		doDeleteBrowsers,
       Cmd.ARG_BUILDING:		doDeleteBuilding,
       Cmd.ARG_CIGROUP:		doDeleteCIGroups,
       Cmd.ARG_CONTACT:		doDeleteDomainContacts,
@@ -48455,6 +48992,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
      {Cmd.ARG_ALERT:		doInfoAlert,
       Cmd.ARG_ALIAS:		doInfoAliases,
       Cmd.ARG_BUILDING:		doInfoBuilding,
+      Cmd.ARG_BROWSER:		doInfoBrowsers,
       Cmd.ARG_CONTACT:		doInfoDomainContacts,
       Cmd.ARG_COURSE:		doInfoCourse,
       Cmd.ARG_COURSES:		doInfoCourses,
@@ -48492,6 +49030,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
      }
     ),
   'issuecommand': (Act.ISSUE_COMMAND, {Cmd.ARG_CROS: doIssueCommandCrOSDevices}),
+  'move': (Act.MOVE, {Cmd.ARG_BROWSER: doMoveBrowsers}),
   'print':
     (Act.PRINT,
      {Cmd.ARG_ADMINROLE:	doPrintShowAdminRoles,
@@ -48499,6 +49038,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ALERT:		doPrintShowAlerts,
       Cmd.ARG_ALERTFEEDBACK:	doPrintShowAlertFeedback,
       Cmd.ARG_ALIAS:		doPrintAliases,
+      Cmd.ARG_BROWSER:		doPrintShowBrowsers,
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
       Cmd.ARG_CLASSROOMINVITATION:	doPrintShowClassroomInvitations,
       Cmd.ARG_CONTACT:		doPrintShowDomainContacts,
@@ -48562,6 +49102,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ADMIN:		doPrintShowAdmins,
       Cmd.ARG_ALERT:		doPrintShowAlerts,
       Cmd.ARG_ALERTFEEDBACK:	doPrintShowAlertFeedback,
+      Cmd.ARG_BROWSER:		doPrintShowBrowsers,
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
       Cmd.ARG_CLASSROOMINVITATION:	doPrintShowClassroomInvitations,
       Cmd.ARG_CONTACT:		doPrintShowDomainContacts,
@@ -48605,6 +49146,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
     (Act.UPDATE,
      {Cmd.ARG_ADMINROLE:	doCreateUpdateAdminRoles,
       Cmd.ARG_ALIAS:		doCreateUpdateAliases,
+      Cmd.ARG_BROWSER:		doUpdateBrowsers,
       Cmd.ARG_BUILDING:		doUpdateBuilding,
       Cmd.ARG_CIGROUP:		doUpdateCIGroups,
       Cmd.ARG_CONTACT:		doUpdateDomainContacts,
@@ -48665,6 +49207,7 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_ALIASDOMAINS:	Cmd.ARG_DOMAINALIAS,
   Cmd.ARG_ALIASES:	Cmd.ARG_ALIAS,
   Cmd.ARG_APIPROJECT:	Cmd.ARG_PROJECT,
+  Cmd.ARG_BROWSERS:	Cmd.ARG_BROWSER,
   Cmd.ARG_BUILDINGS:	Cmd.ARG_BUILDING,
   Cmd.ARG_CIGROUPS:	Cmd.ARG_CIGROUP,
   Cmd.ARG_CLASS:	Cmd.ARG_COURSE,
@@ -49041,8 +49584,9 @@ USER_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_CALENDARACL:	createCalendarACLs,
   Cmd.ARG_CLASSROOMINVITATION:	createClassroomInvitations,
   Cmd.ARG_CONTACT:	createUserContact,
+  Cmd.ARG_CONTACTDELEGATE:	processContactDelegates,
   Cmd.ARG_CONTACTGROUP:	createUserContactGroup,
-  Cmd.ARG_DELEGATE:	createDelegate,
+  Cmd.ARG_DELEGATE:	processDelegates,
   Cmd.ARG_DRIVEFILE:	createDriveFile,
   Cmd.ARG_DRIVEFILEACL:	createDriveFileACL,
   Cmd.ARG_DRIVEFILESHORTCUT:	createDriveFileShortcut,
@@ -49084,9 +49628,10 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CALENDARACL:	deleteCalendarACLs,
       Cmd.ARG_CLASSROOMINVITATION:	deleteClassroomInvitations,
       Cmd.ARG_CONTACT:		deleteUserContacts,
+      Cmd.ARG_CONTACTDELEGATE:	processContactDelegates,
       Cmd.ARG_CONTACTGROUP:	deleteUserContactGroups,
       Cmd.ARG_CONTACTPHOTO:	deleteUserContactPhoto,
-      Cmd.ARG_DELEGATE:		deleteDelegate,
+      Cmd.ARG_DELEGATE:		processDelegates,
       Cmd.ARG_DRIVEFILE:	deleteDriveFile,
       Cmd.ARG_DRIVEFILEACL:	deleteDriveFileACLs,
       Cmd.ARG_EMPTYDRIVEFOLDERS:	deleteEmptyDriveFolders,
@@ -49158,6 +49703,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CLASSROOMINVITATION:	printShowClassroomInvitations,
       Cmd.ARG_CLASSROOMPROFILE:	printShowClassroomProfile,
       Cmd.ARG_CONTACT:		printShowUserContacts,
+      Cmd.ARG_CONTACTDELEGATE:	printShowContactDelegates,
       Cmd.ARG_CONTACTGROUP:	printShowUserContactGroups,
       Cmd.ARG_DELEGATE:		printShowDelegates,
       Cmd.ARG_DRIVEACTIVITY:	printDriveActivity,
@@ -49210,6 +49756,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CLASSROOMINVITATION:	printShowClassroomInvitations,
       Cmd.ARG_CLASSROOMPROFILE:	printShowClassroomProfile,
       Cmd.ARG_CONTACT:		printShowUserContacts,
+      Cmd.ARG_CONTACTDELEGATE:	printShowContactDelegates,
       Cmd.ARG_CONTACTGROUP:	printShowUserContactGroups,
       Cmd.ARG_DELEGATE:		printShowDelegates,
       Cmd.ARG_DRIVEACTIVITY:	printDriveActivity,
@@ -49320,6 +49867,7 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_CALENDARACLS:	Cmd.ARG_CALENDARACL,
   Cmd.ARG_CLASSROOMINVITATIONS:	Cmd.ARG_CLASSROOMINVITATION,
   Cmd.ARG_CONTACTS:	Cmd.ARG_CONTACT,
+  Cmd.ARG_CONTACTDELEGATES:	Cmd.ARG_CONTACTDELEGATE,
   Cmd.ARG_CONTACTGROUPS:	Cmd.ARG_CONTACTGROUP,
   Cmd.ARG_CONTACTPHOTOS:	Cmd.ARG_CONTACTPHOTO,
   Cmd.ARG_DELEGATES:	Cmd.ARG_DELEGATE,

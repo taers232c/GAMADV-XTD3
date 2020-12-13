@@ -68,6 +68,7 @@ class GamEntity():
   CALENDAR = 'cale'
   CALENDAR_ACL = 'cacl'
   CALENDAR_SETTINGS = 'cset'
+  CHROME_BROWSER = 'chbr'
   CLASSROOM_INVITATION = 'clai'
   CLASSROOM_INVITATION_OWNER = 'clio'
   CLASSROOM_INVITATION_STUDENT = 'clis'
@@ -82,6 +83,7 @@ class GamEntity():
   COMPANY_DEVICE = 'codv'
   CONFIG_FILE = 'conf'
   CONTACT = 'cont'
+  CONTACT_DELEGATE = 'cond'
   CONTACT_GROUP = 'cogr'
   CONTACT_GROUP_NAME = 'cogn'
   COPYFROM_COURSE = 'cfco'
@@ -271,7 +273,7 @@ class GamEntity():
   # These values can be translated into other languages
   _NAMES = {
     ACCESS_TOKEN: ['Access Tokens', 'Access Token'],
-    ACCOUNT: ['G Suite Accounts', 'G Suite Account'],
+    ACCOUNT: ['Google Workspace Accounts', 'Google Workspace Account'],
     ACTION: ['Actions', 'Action'],
     ACTIVITY: ['Activities', 'Activity'],
     ADMINISTRATOR: ['Administrators', 'Administrator'],
@@ -298,6 +300,7 @@ class GamEntity():
     CALENDAR: ['Calendars', 'Calendar'],
     CALENDAR_ACL: ['Calendar ACLs', 'Calendar ACL'],
     CALENDAR_SETTINGS: ['Calendar Settings', 'Calendar Settings'],
+    CHROME_BROWSER: ['Chrome Browsers', 'Chrome Browser'],
     CLASSROOM_INVITATION: ['Classroom Invitations', 'Classroom Invitation'],
     CLASSROOM_INVITATION_OWNER: ['Classroom Owner Invitations', 'Classroom Owner Invitation'],
     CLASSROOM_INVITATION_STUDENT: ['Classroom Student Invitations', 'Classroom Student Invitation'],
@@ -312,6 +315,7 @@ class GamEntity():
     COMPANY_DEVICE: ['Company Devices', 'Company Device'],
     CONFIG_FILE: ['Config File', 'Config File'],
     CONTACT: ['Contacts', 'Contact'],
+    CONTACT_DELEGATE: ['Contact Delegates', 'Contact Delegate'],
     CONTACT_GROUP: ['Contact Groups', 'Contact Group'],
     CONTACT_GROUP_NAME: ['Contact Group Names', 'Contact Group Name'],
     COPYFROM_COURSE: ['Copy From Courses', 'CopyFrom Course'],

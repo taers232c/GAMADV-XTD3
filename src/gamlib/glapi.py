@@ -22,6 +22,7 @@
 # APIs
 ALERTCENTER = 'alertcenter'
 CALENDAR = 'calendar'
+CBCM = 'cbcm'
 CHAT = 'chat'
 CLASSROOM = 'classroom'
 CLOUDIDENTITY_DEVICES = 'cloudidentitydevices'
@@ -30,6 +31,7 @@ CLOUDPRINT = 'cloudprint'
 CLOUDRESOURCEMANAGER_V1 = 'cloudresourcemanager1'
 CLOUDRESOURCEMANAGER_V2 = 'cloudresourcemanager2'
 CONTACTS = 'contacts'
+CONTACTDELEGATION = 'contactdelegation'
 DATATRANSFER = 'datatransfer'
 DIRECTORY = 'directory'
 DRIVE2 = 'drive2'
@@ -125,6 +127,7 @@ PROJECT_APIS = [
 _INFO = {
   ALERTCENTER: {'name': 'AlertCenter API', 'version': 'v1beta1', 'v2discovery': True},
   CALENDAR: {'name': 'Calendar API', 'version': 'v3', 'v2discovery': False},
+  CBCM: {'name': 'Chrome Browser Cloud Management API', 'version': 'v1.1beta1', 'v2discovery': True, 'localjson': True},
   CLASSROOM: {'name': 'Classroom API', 'version': 'v1', 'v2discovery': True},
   CLOUDIDENTITY_DEVICES: {'name': 'Cloud Identity Devices API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
   CLOUDIDENTITY_GROUPS: {'name': 'Cloud Identity Groups API', 'version': 'v1beta1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
@@ -132,6 +135,7 @@ _INFO = {
   CLOUDRESOURCEMANAGER_V1: {'name': 'Cloud Resource Manager API v1', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudresourcemanager'},
   CLOUDRESOURCEMANAGER_V2: {'name': 'Cloud Resource Manager API v2', 'version': 'v2', 'v2discovery': True, 'mappedAPI': 'cloudresourcemanager'},
   CONTACTS: {'name': 'Contacts API', 'version': 'v3', 'v2discovery': False},
+  CONTACTDELEGATION: {'name': 'Contact Delegation API', 'version': 'v1', 'v2discovery': True, 'localjson': True},
   DATATRANSFER: {'name': 'Data Transfer API', 'version': 'datatransfer_v1', 'v2discovery': False, 'mappedAPI': 'admin'},
   DIRECTORY: {'name': 'Directory API', 'version': 'directory_v1', 'v2discovery': False, 'mappedAPI': 'admin'},
   DRIVE2: {'name': 'Drive API v2', 'version': 'v2', 'v2discovery': False, 'mappedAPI': 'drive'},
@@ -167,6 +171,12 @@ _CLIENT_SCOPES = [
    'api': CALENDAR,
    'subscopes': READONLY,
    'scope': 'https://www.googleapis.com/auth/calendar'},
+  {
+    'name': 'Chrome Browser Cloud Management API',
+    'api': CBCM,
+    'subscopes': READONLY,
+    'scope': 'https://www.googleapis.com/auth/admin.directory.device.chromebrowsers',
+  },
   {'name': 'Classroom API - Courses',
    'api': CLASSROOM,
    'subscopes': READONLY,
@@ -215,6 +225,10 @@ _CLIENT_SCOPES = [
    'api': CONTACTS,
    'subscopes': [],
    'scope': 'https://www.google.com/m8/feeds'},
+  {'name': 'Contact Delegation API',
+   'api': CONTACTDELEGATION,
+   'subscopes': READONLY,
+   'scope': 'https://www.googleapis.com/auth/admin.contact.delegation'},
   {'name': 'Data Transfer API',
    'api': DATATRANSFER,
    'subscopes': READONLY,

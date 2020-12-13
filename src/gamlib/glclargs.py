@@ -23,6 +23,11 @@
 class GamCLArgs():
 
 # GAM entity types as specified on the command line
+  ENTITY_BROWSER = 'ids'
+  ENTITY_BROWSER_OU = 'browserou'
+  ENTITY_BROWSER_OUS = 'browserous'
+  ENTITY_BROWSER_QUERIES = 'browserqueies'
+  ENTITY_BROWSER_QUERY = 'browserquery'
   ENTITY_CIGROUP = 'cigroup'
   ENTITY_CIGROUPS = 'cigroups'
   ENTITY_CIGROUP_USERS = 'cigroup_users'
@@ -73,6 +78,13 @@ class GamCLArgs():
   ENTITY_USERS_NS_SUSP = 'users_ns_susp'
   ENTITY_USERS_SUSP = 'users_susp'
 #
+  BROWSER_ENTITIES = [
+    ENTITY_BROWSER,
+    ENTITY_BROWSER_QUERIES,
+    ENTITY_BROWSER_QUERY,
+    ENTITY_BROWSER_OU,
+    ENTITY_BROWSER_OUS,
+    ]
   CROS_ENTITIES = [
     ENTITY_CROS,
     ENTITY_CROS_QUERIES,
@@ -122,6 +134,9 @@ class GamCLArgs():
     ]
 # Aliases for CL entity types
   ENTITY_ALIAS_MAP = {
+    'browsers': ENTITY_BROWSER,
+    'browserorg': ENTITY_BROWSER_OU,
+    'browserorgs': ENTITY_BROWSER_OUS,
     'crosorg': ENTITY_CROS_OU,
     'crosorg_and_child': ENTITY_CROS_OU_AND_CHILDREN,
     'crosorg_and_children': ENTITY_CROS_OU_AND_CHILDREN,
@@ -206,6 +221,11 @@ class GamCLArgs():
     ENTITY_SELECTOR_CSVKMD,
     ENTITY_SELECTOR_CSVSUBKEY,
     ENTITY_SELECTOR_DATAFILE,
+    ]
+  BROWSER_ENTITY_SELECTORS = [
+    ENTITY_SELECTOR_CSV,
+    ENTITY_SELECTOR_CSVFILE,
+    ENTITY_SELECTOR_FILE,
     ]
   CROS_ENTITY_SELECTORS = [
     ENTITY_SELECTOR_CROSCSV,
@@ -329,6 +349,8 @@ class GamCLArgs():
   ARG_ASPS = 'asps'
   ARG_BACKUPCODE = 'backupcode'
   ARG_BACKUPCODES = 'backupcodes'
+  ARG_BROWSER = 'browser'
+  ARG_BROWSERS = 'browsers'
   ARG_BUILDING = 'building'
   ARG_BUILDINGS = 'buildings'
   ARG_CALATTENDEES = 'calattendees'
@@ -353,6 +375,8 @@ class GamCLArgs():
   ARG_CLASSROOMPROFILE = 'classroomprofile'
   ARG_CONTACT = 'contact'
   ARG_CONTACTS = 'contacts'
+  ARG_CONTACTDELEGATE = 'contactdelegate'
+  ARG_CONTACTDELEGATES = 'contactdelegates'
   ARG_CONTACTGROUP = 'contactgroup'
   ARG_CONTACTGROUPS = 'contactgroups'
   ARG_CONTACTPHOTO = 'contactphoto'
@@ -558,6 +582,7 @@ class GamCLArgs():
   OB_API_SCOPE_URL_LIST = 'APIScopeURLList'
   OB_ARGUMENT = 'argument'
   OB_ASP_ID_LIST = 'ASPIDList'
+  OB_BROWSER_ENTITY = 'BrowserEntity'
   OB_BUILDING_ID = 'BuildingID'
   OB_CALENDAR_ENTITY = 'CalendarEntity'
   OB_CALENDAR_ITEM = 'CalendarItem'
@@ -595,6 +620,7 @@ class GamCLArgs():
   OB_DEVICE_FILE_ENTITY = 'DeviceFileEntity'
   OB_DEVICE_ENTITY = 'DeviceEntity'
   OB_DEVICE_ID = 'DeviceID'
+  OB_DEVICE_ID_LIST = 'DeviceIDList'
   OB_DEVICE_USER_ENTITY = 'DeviceUserEntity'
   OB_DEVICE_USER_ID = 'DeviceUserID'
   OB_DOMAIN_ALIAS = 'DomainAlias'

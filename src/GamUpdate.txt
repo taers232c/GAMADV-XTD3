@@ -1,3 +1,17 @@
+5.25.14
+
+Following Jay's lead, added commands to support Contact Delegation,
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Contacts-Delegates.
+
+This is Beta software from Google, experiment and use with caution.
+
+Following Jay's lead, addeds to support Chrome Browser Cloud Management
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Chrome-Browser-Cloud-Management
+
+This is Beta software from Google, experiment and use with caution.
+
 5.25.13
 
 Following Jay's lead, added commands to display and update Cloud Identity Device User Client States.
