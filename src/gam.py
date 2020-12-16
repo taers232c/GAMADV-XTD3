@@ -24767,8 +24767,8 @@ SCHEMA_FIELDTYPE_CHOICE_MAP = {
   'string': 'STRING',
   }
 
-# gam create schema|schemas <SchemaName> <SchemaFieldDefinition>+
-# gam update schema|schemas <SchemaEntity> <SchemaFieldDefinition>+
+# gam create schema|schemas <SchemaName> [displayname <String>] <SchemaFieldDefinition>+
+# gam update schema|schemas <SchemaEntity> [displayname <String>] <SchemaFieldDefinition>+
 def doCreateUpdateUserSchemas():
   cd = buildGAPIObject(API.DIRECTORY)
   updateCmd = Act.Get() == Act.UPDATE
@@ -24778,6 +24778,7 @@ def doCreateUpdateUserSchemas():
     entityList = getEntityList(Cmd.OB_SCHEMA_ENTITY)
   addBody = {'schemaName': '', 'fields': []}
   deleteFields = []
+  schemaDisplayName = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'field':
@@ -24785,7 +24786,9 @@ def doCreateUpdateUserSchemas():
       a_field = {'fieldName': fieldName.replace(' ', '_'), 'displayName': fieldName, 'fieldType': 'STRING'}
       while Cmd.ArgumentsRemaining():
         argument = getArgument()
-        if argument == 'type':
+        if argument == 'displayname':
+          a_field['displayName'] = getString(Cmd.OB_FIELD_NAME)
+        elif argument == 'type':
           a_field['fieldType'] = getChoice(SCHEMA_FIELDTYPE_CHOICE_MAP, mapChoice=True)
         elif argument in {'multivalued', 'multivalue'}:
           a_field['multiValued'] = True
@@ -24805,19 +24808,24 @@ def doCreateUpdateUserSchemas():
       addBody['fields'].append(a_field)
     elif updateCmd and myarg == 'deletefield':
       deleteFields.append(getString(Cmd.OB_FIELD_NAME).replace(' ', '_'))
+    elif myarg == 'displayname':
+      schemaDisplayName = getString(Cmd.OB_SCHEMA_NAME)
     else:
       unknownArgumentExit()
-  if not updateCmd and not addBody['fields']:
-    missingArgumentExit('SchemaFieldDefinition')
   i = 0
   count = len(entityList)
+  if not updateCmd:
+    if not addBody['fields']:
+      missingArgumentExit('SchemaFieldDefinition')
+  elif schemaDisplayName and count > 1:
+    usageErrorExit(Msg.DISPLAYNAME_NOT_ALLOWED_WHEN_UPDATING_MULTIPLE_SCHEMAS)
   for schemaName in entityList:
     i += 1
     try:
       if updateCmd:
         oldBody = callGAPI(cd.schemas(), 'get',
                            throwReasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                           customerId=GC.Values[GC.CUSTOMER_ID], schemaKey=schemaName, fields='schemaName,fields')
+                           customerId=GC.Values[GC.CUSTOMER_ID], schemaKey=schemaName, fields='schemaName,displayName,fields')
         for field in oldBody['fields']:
           field.pop('etag', None)
           field.pop('kind', None)
@@ -24845,13 +24853,15 @@ def doCreateUpdateUserSchemas():
           entityActionNotPerformedWarning([Ent.USER_SCHEMA, schemaName],
                                           Msg.SCHEMA_WOULD_HAVE_NO_FIELDS.format(Ent.Singular(Ent.USER_SCHEMA), Ent.Plural(Ent.FIELD)))
           continue
+        if schemaDisplayName:
+          oldBody['displayName'] = schemaDisplayName
         result = callGAPI(cd.schemas(), 'update',
                           throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                           customerId=GC.Values[GC.CUSTOMER_ID], body=oldBody, schemaKey=schemaName)
         entityActionPerformed([Ent.USER_SCHEMA, result['schemaName']], i, count)
       else:
         addBody['schemaName'] = schemaName.replace(' ', '_')
-        addBody['displayName'] = schemaName
+        addBody['displayName'] = schemaDisplayName if schemaDisplayName else schemaName
         result = callGAPI(cd.schemas(), 'insert',
                           throwReasons=[GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                           customerId=GC.Values[GC.CUSTOMER_ID], body=addBody, fields='schemaName')

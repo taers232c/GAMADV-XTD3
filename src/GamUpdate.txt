@@ -2,7 +2,20 @@
 
 Updated commands that create and update schemas to convert spaces to `_` in schema
 and field names as spaces are not valid. The schema and field display names will
-retain the spaces.
+retain the spaces. Added options to allow specification of the schema/field display name
+as independent of the schema/field name.
+```
+<SchemaFieldDefinition> ::=
+        field <FieldName> [displayname <String>]
+            (type bool|date|double|email|int64|phone|string)
+            [multivalued|multivalue] [indexed] [restricted]
+            [range <Number> <Number>]
+        endfield
+
+gam create|add schema|schemas <SchemaName> [displayname <String>] <SchemaFieldDefinition>+
+gam update schema <SchemaName> [displayname <String>] <SchemaFieldDefinition>* (deletefield <FieldName>)*
+gam update schemas <SchemaEntity> [displayname <String>] <SchemaFieldDefinition>* (deletefield <FieldName>)*
+```
 
 Updated `gam <UserTypeEntity> move drivefile <DriveFileEntity>` to move a folder
 from a Shared Drive to My Drive by updating the parent rather than creating a new folder.
@@ -15,11 +28,17 @@ Following Jay's lead, added commands to support Contact Delegation,
 
 * See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Contacts-Delegates.
 
+You must perform `gam oauth create` and select this API to use these commands.
+* Contact Delegation API (supports readonly)
+
 This is Beta software from Google, experiment and use with caution.
 
 Following Jay's lead, addeds to support Chrome Browser Cloud Management
 
 * See: https://github.com/taers232c/GAMADV-XTD3/wiki/Chrome-Browser-Cloud-Management
+
+You must perform `gam oauth create` and select this API to use these commands.
+* Chrome Browser Cloud Management API (supports readonly)
 
 This is Beta software from Google, experiment and use with caution.
 
@@ -90,7 +109,7 @@ but could be used in a script.
 
 5.25.05
 
-Added options `thismonth` and `previousmonths <Integer` to `gam report`
+Added options `thismonth` and `previousmonths <Integer>` to `gam report`
 to provide calendar oriented date/time ranges.
 
 * See: https://github.com/taers232c/GAMADV-XTD3/wiki/Reports
@@ -166,7 +185,7 @@ Fixed `gam print courses show all|students|teachers` to eliminate duplicated col
 Removed restrictions in `gam <UserTypeEntity> copy|move drivefile <DriveFileEntity>` that prevented
 adding ACLs to folders on Shared Drives as it was not allowed; Google now allows this.
 
-.24.07
+5.24.07
 
 Added an additional line of output to `gam version` that displays some basic configuration data.
 ```
@@ -214,7 +233,7 @@ an existing sheet.
 5.24.00
 
 Added a new environment variable `GAMCFGSECTION` that selects a `[Section]` within `gam.cfg`.
-This allows multiple users with distinct logins on the same computer to share `gam.cfg` but  eah
+This allows multiple users with distinct logins on the same computer to share `gam.cfg` but each
 reference a unique `[Section]`. This might be used if you want each user to have their own GAM
 project for auditing purposes. When `GAMCFGSECTION` is set, the user will not be allowed to select
 a different `[Section]`.
@@ -490,7 +509,7 @@ Remove batch processing from licensing commands as Jay reports that it generates
 
 5.12.08
 
-Following Jay's lead, added the following command to syncrhonize users and licenses.
+Following Jay's lead, added the following command to synchronize users and licenses.
 ```
 gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>]
 ```

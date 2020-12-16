@@ -2920,17 +2920,21 @@ gam resources <ResourceEntity> print acls|calendaracls [todrive <ToDriveAttribut
 # Schemas
 
 <SchemaFieldDefinition> ::=
-        field <FieldName> (type bool|date|double|email|int64|phone|string) [multivalued|multivalue] [indexed] [restricted] [range <Number> <Number>] endfield
+        field <FieldName> [displayname <String>]
+            (type bool|date|double|email|int64|phone|string)
+            [multivalued|multivalue] [indexed] [restricted]
+            [range <Number> <Number>]
+        endfield
 
-gam create|add schema|schemas <SchemaName> <SchemaFieldDefinition>+
-gam update schema <SchemaName> <SchemaFieldDefinition>* (deletefield <FieldName>)*
+gam create|add schema|schemas <SchemaName> [displayname <String>] <SchemaFieldDefinition>+
+gam update schema <SchemaName> [displayname <String>] <SchemaFieldDefinition>* (deletefield <FieldName>)*
 gam delete schema <SchemaName>
 gam info schema <SchemaName>
 
-gam update schemas <SchemaEntity> <SchemaFieldDefinition>* (deletefield <FieldName>)*
+gam update schemas <SchemaEntity> [displayname <String>] <SchemaFieldDefinition>* (deletefield <FieldName>)*
 gam delete schemas <SchemaEntity>
-gam info schemas <SchemaEntity>
 
+gam info schemas <SchemaEntity>
 gam show schema|schemas
 gam print schema|schemas [todrive <ToDriveAttribute>*]
 
