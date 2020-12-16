@@ -1,3 +1,14 @@
+5.25.15
+
+Updated commands that create and update schemas to convert spaces to `_` in schema
+and field names as spaces are not valid. The schema and field display names will
+retain the spaces.
+
+Updated `gam <UserTypeEntity> move drivefile <DriveFileEntity>` to move a folder
+from a Shared Drive to My Drive by updating the parent rather than creating a new folder.
+
+Upgraded to Python 3.9.1.
+
 5.25.14
 
 Following Jay's lead, added commands to support Contact Delegation,

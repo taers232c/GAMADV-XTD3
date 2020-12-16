@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.25.14'
+__version__ = '5.25.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -24781,7 +24781,8 @@ def doCreateUpdateUserSchemas():
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'field':
-      a_field = {'fieldName': getString(Cmd.OB_FIELD_NAME), 'fieldType': 'STRING'}
+      fieldName = getString(Cmd.OB_FIELD_NAME)
+      a_field = {'fieldName': fieldName.replace(' ', '_'), 'displayName': fieldName, 'fieldType': 'STRING'}
       while Cmd.ArgumentsRemaining():
         argument = getArgument()
         if argument == 'type':
@@ -24803,7 +24804,7 @@ def doCreateUpdateUserSchemas():
           unknownArgumentExit()
       addBody['fields'].append(a_field)
     elif updateCmd and myarg == 'deletefield':
-      deleteFields.append(getString(Cmd.OB_FIELD_NAME))
+      deleteFields.append(getString(Cmd.OB_FIELD_NAME).replace(' ', '_'))
     else:
       unknownArgumentExit()
   if not updateCmd and not addBody['fields']:
@@ -24849,7 +24850,8 @@ def doCreateUpdateUserSchemas():
                           customerId=GC.Values[GC.CUSTOMER_ID], body=oldBody, schemaKey=schemaName)
         entityActionPerformed([Ent.USER_SCHEMA, result['schemaName']], i, count)
       else:
-        addBody['schemaName'] = schemaName
+        addBody['schemaName'] = schemaName.replace(' ', '_')
+        addBody['displayName'] = schemaName
         result = callGAPI(cd.schemas(), 'insert',
                           throwReasons=[GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                           customerId=GC.Values[GC.CUSTOMER_ID], body=addBody, fields='schemaName')
@@ -40364,7 +40366,8 @@ def moveDriveFile(users):
         targetChildren = _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destFilename, newParentId, statistics, parentParms)
         if targetChildren is None:
           continue
-        if copyMoveOptions['sourceDriveId'] or copyMoveOptions['destDriveId']:
+# If copying from My Drive to a Shared Drive, parents have to be recreated.
+        if copyMoveOptions['destDriveId'] and not copyMoveOptions['sourceDriveId']:
           copyMoveOptions.update(CLEAR_COPY_MOVE_PARENT_OPTIONS)
 #        copyMoveOptions.update(CLEAR_COPY_MOVE_FOLDER_PERMISSION_OPTIONS)
         if source['mimeType'] == MIMETYPE_GA_FOLDER:
