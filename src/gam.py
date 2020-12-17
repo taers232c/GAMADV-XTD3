@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.25.15'
+__version__ = '5.25.16'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -47027,10 +47027,13 @@ def printShowMessagesThreads(users, entityType):
       response = callGAPI(service, 'get',
                           throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_MESSAGE_ID],
                           userId='me', id=ri[RI_ITEM], format=['metadata', 'full'][show_body or show_attachments or save_attachments])
-      if not csvPF:
-        _callbacks['process'](response, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      if countsOnly:
+        _callbacks['process'](response)
       else:
-        _callbacks['process'](ri[RI_ENTITY], response)
+        if not csvPF:
+          _callbacks['process'](response, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        else:
+          _callbacks['process'](ri[RI_ENTITY], response)
     except GAPI.notFound:
       entityActionFailedWarning([Ent.USER, ri[RI_ENTITY], entityType, ri[RI_ITEM]], Msg.DOES_NOT_EXIST, int(ri[RI_J]), int(ri[RI_JCOUNT]))
     except GAPI.invalidMessageId:

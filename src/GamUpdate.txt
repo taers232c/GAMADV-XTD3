@@ -1,3 +1,7 @@
+5.25.16
+
+Fixed bug in `gam <UserTypeEntity> print messages showlabels countsonly` that caused a trap.
+
 5.25.15
 
 Updated commands that create and update schemas to convert spaces to `_` in schema
