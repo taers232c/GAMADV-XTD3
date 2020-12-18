@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.25.16'
+__version__ = '5.25.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2843,6 +2843,7 @@ def SetGlobalVariables():
       _printValueError(sectionName, itemName, f'"{value}"', f'{Msg.INVALID_LIST}: {filters}')
     return headerFilters
 
+  ROW_FILTER_ANY_ALL_PATTERN = re.compile(r'^(any:|all:)(.+)$', re.IGNORECASE)
   ROW_FILTER_COMP_PATTERN = re.compile(r'^(date|time|count)\s*([<>]=?|=|!=)(.+)$', re.IGNORECASE)
   ROW_FILTER_RANGE_PATTERN = re.compile(r'^(daterange|timerange|countrange)(=|!=)(\S+)/(\S+)$', re.IGNORECASE)
   ROW_FILTER_BOOL_PATTERN = re.compile(r'^(boolean):(.+)$', re.IGNORECASE)
@@ -2882,6 +2883,11 @@ def SetGlobalVariables():
       except re.error as e:
         _printValueError(sectionName, itemName, f'"{column}"', f'{Msg.INVALID_RE}: {e}')
         continue
+      anyMatch = True
+      mg = ROW_FILTER_ANY_ALL_PATTERN.match(filterStr)
+      if mg:
+        anyMatch = mg.group(1).lower() == 'any:'
+        filterStr = mg.group(2)
       mg = ROW_FILTER_COMP_PATTERN.match(filterStr)
       if mg:
         filterType = mg.group(1).lower()
@@ -2891,12 +2897,12 @@ def SetGlobalVariables():
           else:
             valid, filterValue = getRowFilterTimeOrDeltaFromNow(mg.group(3))
           if valid:
-            rowFilters.append((columnPat, filterType, mg.group(2), filterValue))
+            rowFilters.append((columnPat, anyMatch, filterType, mg.group(2), filterValue))
           else:
             _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: {filterValue}')
         else: #count
           if mg.group(3).isdigit():
-            rowFilters.append((columnPat, filterType, mg.group(2), int(mg.group(3))))
+            rowFilters.append((columnPat, anyMatch, filterType, mg.group(2), int(mg.group(3))))
           else:
             _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: <Number>')
         continue
@@ -2911,12 +2917,12 @@ def SetGlobalVariables():
             valid1, filterValue1 = getRowFilterTimeOrDeltaFromNow(mg.group(3))
             valid2, filterValue2 = getRowFilterTimeOrDeltaFromNow(mg.group(4))
           if valid1 and valid2:
-            rowFilters.append((columnPat, filterType, mg.group(2), filterValue1, filterValue2))
+            rowFilters.append((columnPat, anyMatch, filterType, mg.group(2), filterValue1, filterValue2))
           else:
             _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: {filterValue1}/{filterValue2}')
         else: #countrange
           if mg.group(3).isdigit() and mg.group(4).isdigit():
-            rowFilters.append((columnPat, filterType, mg.group(2), int(mg.group(3)), int(mg.group(4))))
+            rowFilters.append((columnPat, anyMatch, filterType, mg.group(2), int(mg.group(3)), int(mg.group(4))))
           else:
             _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: <Number>/<Number>')
         continue
@@ -2925,9 +2931,9 @@ def SetGlobalVariables():
         filterType = mg.group(1).lower()
         filterValue = mg.group(2).lower()
         if filterValue in TRUE_VALUES:
-          rowFilters.append((columnPat, filterType, True))
+          rowFilters.append((columnPat, anyMatch, filterType, True))
         elif filterValue in FALSE_VALUES:
-          rowFilters.append((columnPat, filterType, False))
+          rowFilters.append((columnPat, anyMatch, filterType, False))
         else:
           _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: <Boolean>')
         continue
@@ -2940,7 +2946,7 @@ def SetGlobalVariables():
             flags = 0
           else:
             flags = re.IGNORECASE
-          rowFilters.append((columnPat, filterType, re.compile(mg.group(2), flags)))
+          rowFilters.append((columnPat, anyMatch, filterType, re.compile(mg.group(2), flags)))
         except re.error as e:
           _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.INVALID_RE}: {e}')
         continue
@@ -5870,16 +5876,28 @@ def CheckInputRowFilterHeaders(titlesList, rowFilter, rowDropFilter):
 
 def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
   def rowRegexFilterMatch(filterPattern):
-    for column in columns:
-      if filterPattern.search(str(row.get(column, ''))):
-        return True
-    return False
+    if anyMatch:
+      for column in columns:
+        if filterPattern.search(str(row.get(column, ''))):
+          return True
+      return False
+    else:
+      for column in columns:
+        if not filterPattern.search(str(row.get(column, ''))):
+          return False
+      return True
 
   def rowNotRegexFilterMatch(filterPattern):
-    for column in columns:
-      if filterPattern.search(str(row.get(column, ''))):
-        return False
-    return True
+    if anyMatch:
+      for column in columns:
+        if filterPattern.search(str(row.get(column, ''))):
+          return False
+      return True
+    else:
+      for column in columns:
+        if not filterPattern.search(str(row.get(column, ''))):
+          return True
+      return False
 
   def stripTimeFromDateTime(rowDate):
     if YYYYMMDD_PATTERN.match(rowDate):
@@ -5917,10 +5935,16 @@ def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
         return rowDate != filterDate
       return rowDate == filterDate
 
-    for column in columns:
-      if checkMatch(row.get(column, '')):
-        return True
-    return False
+    if anyMatch:
+      for column in columns:
+        if checkMatch(row.get(column, '')):
+          return True
+      return False
+    else:
+      for column in columns:
+        if not checkMatch(row.get(column, '')):
+          return False
+      return True
 
   def rowDateTimeRangeFilterMatch(dateMode, op, filterDateL, filterDateR):
     def checkMatch(rowDate):
@@ -5936,10 +5960,16 @@ def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
         return not filterDateL <= rowDate <= filterDateR
       return filterDateL <= rowDate <= filterDateR
 
-    for column in columns:
-      if checkMatch(row.get(column, '')):
-        return True
-    return False
+    if anyMatch:
+      for column in columns:
+        if checkMatch(row.get(column, '')):
+          return True
+      return False
+    else:
+      for column in columns:
+        if not checkMatch(row.get(column, '')):
+          return False
+      return True
 
   def rowCountFilterMatch(op, filterCount):
     def checkMatch(rowCount):
@@ -5961,10 +5991,16 @@ def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
         return rowCount != filterCount
       return rowCount == filterCount
 
-    for column in columns:
-      if checkMatch(row.get(column, 0)):
-        return True
-    return False
+    if anyMatch:
+      for column in columns:
+        if checkMatch(row.get(column, 0)):
+          return True
+      return False
+    else:
+      for column in columns:
+        if not checkMatch(row.get(column, 0)):
+          return False
+      return True
 
   def rowCountRangeFilterMatch(op, filterCountL, filterCountR):
     def checkMatch(rowCount):
@@ -5978,10 +6014,16 @@ def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
         return not filterCountL <= rowCount <= filterCountR
       return filterCountL <= rowCount <= filterCountR
 
-    for column in columns:
-      if checkMatch(row.get(column, 0)):
-        return True
-    return False
+    if anyMatch:
+      for column in columns:
+        if checkMatch(row.get(column, 0)):
+          return True
+      return False
+    else:
+      for column in columns:
+        if not checkMatch(row.get(column, 0)):
+          return False
+      return True
 
   def rowBooleanFilterMatch(filterBoolean):
     def checkMatch(rowBoolean):
@@ -5991,32 +6033,38 @@ def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
         return rowBoolean.capitalize() == str(filterBoolean)
       return False
 
-    for column in columns:
-      if checkMatch(row.get(column, False)):
-        return True
-    return False
+    if anyMatch:
+      for column in columns:
+        if checkMatch(row.get(column, False)):
+          return True
+      return False
+    else:
+      for column in columns:
+        if not checkMatch(row.get(column, False)):
+          return False
+      return True
 
   def filterMatch(filterVal):
-    if filterVal[1] == 'regex':
-      if rowRegexFilterMatch(filterVal[2]):
+    if filterVal[2] == 'regex':
+      if rowRegexFilterMatch(filterVal[3]):
         return True
-    elif filterVal[1] == 'notregex':
-      if rowNotRegexFilterMatch(filterVal[2]):
+    elif filterVal[2] == 'notregex':
+      if rowNotRegexFilterMatch(filterVal[3]):
         return True
-    elif filterVal[1] in {'date', 'time'}:
-      if rowDateTimeFilterMatch(filterVal[1] == 'date', filterVal[2], filterVal[3]):
+    elif filterVal[2] in {'date', 'time'}:
+      if rowDateTimeFilterMatch(filterVal[2] == 'date', filterVal[3], filterVal[4]):
         return True
-    elif filterVal[1] in {'daterange', 'timerange'}:
-      if rowDateTimeRangeFilterMatch(filterVal[1] == 'date', filterVal[2], filterVal[3], filterVal[4]):
+    elif filterVal[2] in {'daterange', 'timerange'}:
+      if rowDateTimeRangeFilterMatch(filterVal[2] == 'date', filterVal[3], filterVal[4], filterVal[5]):
         return True
-    elif filterVal[1] == 'count':
-      if rowCountFilterMatch(filterVal[2], filterVal[3]):
+    elif filterVal[2] == 'count':
+      if rowCountFilterMatch(filterVal[3], filterVal[4]):
         return True
-    elif filterVal[1] == 'countrange':
-      if rowCountRangeFilterMatch(filterVal[2], filterVal[3], filterVal[4]):
+    elif filterVal[2] == 'countrange':
+      if rowCountRangeFilterMatch(filterVal[3], filterVal[4], filterVal[5]):
         return True
     else: #boolean
-      if rowBooleanFilterMatch(filterVal[2]):
+      if rowBooleanFilterMatch(filterVal[3]):
         return True
     return False
 
@@ -6024,12 +6072,14 @@ def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
     columns = [t for t in titlesList if filterVal[0].match(t)]
     if not columns:
       columns = [None]
+    anyMatch = filterVal[1]
     if not filterMatch(filterVal):
       return False
   for filterVal in rowDropFilter:
     columns = [t for t in titlesList if filterVal[0].match(t)]
     if not columns:
       columns = [None]
+    anyMatch = filterVal[1]
     if filterMatch(filterVal):
       return False
   return True

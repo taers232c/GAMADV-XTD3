@@ -1,3 +1,15 @@
+5.25.17
+
+Currently, when doing CSV row filter matching, lf you specify a regular expression for a field name that matches
+several columns, the filter matches if any of the columns has a match. In the case of `notregex|notregexcs`,
+the filter matches if none (not any) of the columns has a match.
+
+This has been extended to allow specifying that the filter will match only if all of the columns have a match.
+In the case of `notregex|notregexcs`, the filter matches if some (not all) of the columns have a match.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/CSV-Input-Filtering
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/CSV-Ouput-Filtering
+
 5.25.16
 
 Fixed bug in `gam <UserTypeEntity> print messages showlabels countsonly` that caused a trap.
