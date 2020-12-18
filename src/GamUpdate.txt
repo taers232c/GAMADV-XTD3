@@ -1,3 +1,13 @@
+5.25.18
+
+The Google message id was added to the output from `gam sendemail`.
+This allows you to easily get details about the message sent, e.g, the SMTP Message-ID.
+
+Added options `(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*`
+to `gam sendemail` that allows adding user specified headers to the message being sent.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Send-Email
+
 5.25.17
 
 Currently, when doing CSV row filter matching, lf you specify a regular expression for a field name that matches

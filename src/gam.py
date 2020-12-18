@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.25.17'
+__version__ = '5.25.18'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5751,7 +5751,7 @@ NAME_EMAIL_ADDRESS_PATTERN = re.compile(r'^.*<(.+)>$')
 
 # Send an email
 def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msgFrom=None, msgReplyTo=None,
-               html=False, charset=UTF8, attachments=None, ccRecipients=None, bccRecipients=None, mailBox=None):
+               html=False, charset=UTF8, attachments=None, msgHeaders=None, ccRecipients=None, bccRecipients=None, mailBox=None):
   def checkResult(entityType, recipients):
     if not recipients:
       return
@@ -5791,9 +5791,11 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msg
   if msgReplyTo is not None:
     message['Reply-To'] = msgReplyTo
   if ccRecipients:
-    message['CC'] = ccRecipients.lower()
+    message['Cc'] = ccRecipients.lower()
   if bccRecipients:
-    message['BCC'] = bccRecipients.lower()
+    message['Bcc'] = bccRecipients.lower()
+  for header, value in iter(msgHeaders.items()):
+    message.setdefault(header, value)
   if mailBox is None:
     mailBox = msgFrom
   mailBoxAddr = normalizeEmailAddressOrUID(cleanAddr(mailBox), noUid=True)
@@ -5809,11 +5811,11 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msg
       gmail = buildGAPIObject(API.GMAIL)
     message['To'] = (msgTo if msgTo else userId).lower()
     try:
-      callGAPI(gmail.users().messages(), 'send',
-               throwReasons=[GAPI.SERVICE_NOT_AVAILABLE, GAPI.AUTH_ERROR, GAPI.DOMAIN_POLICY,
-                             GAPI.INVALID_ARGUMENT, GAPI.FORBIDDEN],
-               userId=userId, body={'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()}, fields='')
-      entityActionPerformed([Ent.RECIPIENT, msgTo, Ent.MESSAGE, msgSubject], i, count)
+      result = callGAPI(gmail.users().messages(), 'send',
+                        throwReasons=[GAPI.SERVICE_NOT_AVAILABLE, GAPI.AUTH_ERROR, GAPI.DOMAIN_POLICY,
+                                      GAPI.INVALID_ARGUMENT, GAPI.FORBIDDEN],
+                        userId=userId, body={'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()}, fields='id')
+      entityActionPerformedMessage([Ent.RECIPIENT, msgTo, Ent.MESSAGE, msgSubject], f"{result['id']}", i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy,
             GAPI.invalidArgument, GAPI.forbidden) as e:
       entityActionFailedWarning([Ent.RECIPIENT, msgTo, Ent.MESSAGE, msgSubject], str(e), i, count)
@@ -11116,6 +11118,7 @@ def sendCreateUpdateUserNotification(body, basenotify, tagReplacements, i=0, cou
 #	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
 #	(replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
 #	[newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
+#	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
 # gam <UserTypeEntity> sendemail [recipient <RecipientEntity>] [replyto <EmailAddress>]
 #	[cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
 #	[subject <String>]
@@ -11123,6 +11126,7 @@ def sendCreateUpdateUserNotification(body, basenotify, tagReplacements, i=0, cou
 #	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
 #	(replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
 #	[newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
+#	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
 def doSendEmail(users=None):
   def getRecipients():
     if checkArgumentPresent('select'):
@@ -11139,6 +11143,7 @@ def doSendEmail(users=None):
   else:
     msgFroms = users
     recipients = []
+  msgHeaders = {}
   ccRecipients = []
   bccRecipients = []
   mailBox = None
@@ -11182,6 +11187,15 @@ def doSendEmail(users=None):
       _getTagReplacement(tagReplacements, False)
     elif myarg == 'attach':
       attachments.append((getFilename(), getCharSet()))
+    elif myarg in SMTP_HEADERS_MAP:
+      if myarg in SMTP_DATE_HEADERS:
+        msgDate, _, _ = getTimeOrDeltaFromNow(True)
+        msgHeaders[SMTP_HEADERS_MAP[myarg]] = formatdate(time.mktime(msgDate.timetuple()) + msgDate.microsecond/1E6, True)
+      else:
+        msgHeaders[SMTP_HEADERS_MAP[myarg]] = getString(Cmd.OB_STRING)
+    elif myarg == 'header':
+      header = getString(Cmd.OB_STRING, minLen=1).lower()
+      msgHeaders[SMTP_HEADERS_MAP.get(header, header)] = getString(Cmd.OB_STRING)
     else:
       unknownArgumentExit()
   notify['message'] = notify['message'].replace('\r', '').replace('\\n', '\n')
@@ -11211,7 +11225,8 @@ def doSendEmail(users=None):
                                           Act.MODIFIER_TO, jcount+len(ccRecipients)+len(bccRecipients), Ent.RECIPIENT, i, count)
       send_email(notify['subject'], notify['message'], ','.join(recipients), i, count,
                  msgFrom=msgFrom, msgReplyTo=msgReplyTo, html=notify['html'], charset=notify['charset'],
-                 attachments=attachments, ccRecipients=','.join(ccRecipients), bccRecipients=','.join(bccRecipients), mailBox=mailBox)
+                 attachments=attachments, msgHeaders=msgHeaders, ccRecipients=','.join(ccRecipients), bccRecipients=','.join(bccRecipients),
+                 mailBox=mailBox)
     else:
       entityPerformActionModifierNumItems([Ent.USER, msgFrom], Act.MODIFIER_TO, jcount, Ent.RECIPIENT, i, count)
       Ind.Increment()
@@ -11220,7 +11235,7 @@ def doSendEmail(users=None):
         j += 1
         send_email(notify['subject'], notify['message'], recipient, j, jcount,
                    msgFrom=msgFrom, msgReplyTo=msgReplyTo, html=notify['html'], charset=notify['charset'],
-                   attachments=attachments, mailBox=mailBox)
+                   attachments=attachments, msgHeaders=msgHeaders, mailBox=mailBox)
       Ind.Decrement()
 
 ADDRESS_FIELDS_PRINT_ORDER = ['contactName', 'organizationName', 'addressLine1', 'addressLine2', 'addressLine3', 'locality', 'region', 'postalCode', 'countryCode']
@@ -46821,14 +46836,17 @@ def _draftImportInsertMessage(users, operation):
     except GAPI.invalidArgument as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
 
-# gam <UserTypeEntity> draft message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
+# gam <UserTypeEntity> draft message
+#	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
 #	(textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
 #	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
 #	(replace <Tag> <String>)* (attach <FileName> [charset <CharSet>])*
 def draftMessage(users):
   _draftImportInsertMessage(users, u'draft')
 
-# gam <UserTypeEntity> import message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)* (addlabel <LabelName>)*
+# gam <UserTypeEntity> import message
+#	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
+#	(addlabel <LabelName>)*
 #	(textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
 #	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
 #	(replace <Tag> <String>)* (attach <FileName> [charset <CharSet>])*
@@ -46836,7 +46854,9 @@ def draftMessage(users):
 def importMessage(users):
   _draftImportInsertMessage(users, u'import')
 
-# gam <UserTypeEntity> insert message (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)* (addlabel <LabelName>)*
+# gam <UserTypeEntity> insert message
+#	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
+#	(addlabel <LabelName>)*
 #	(textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
 #	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
 #	(replace <Tag> <String>)* (attach <FileName> [charset <CharSet>])*
