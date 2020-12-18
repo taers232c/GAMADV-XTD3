@@ -5881,11 +5881,10 @@ def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
         if filterPattern.search(str(row.get(column, ''))):
           return True
       return False
-    else:
-      for column in columns:
-        if not filterPattern.search(str(row.get(column, ''))):
-          return False
-      return True
+    for column in columns:
+      if not filterPattern.search(str(row.get(column, ''))):
+        return False
+    return True
 
   def rowNotRegexFilterMatch(filterPattern):
     if anyMatch:
@@ -5893,11 +5892,10 @@ def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
         if filterPattern.search(str(row.get(column, ''))):
           return False
       return True
-    else:
-      for column in columns:
-        if not filterPattern.search(str(row.get(column, ''))):
-          return True
-      return False
+    for column in columns:
+      if not filterPattern.search(str(row.get(column, ''))):
+        return True
+    return False
 
   def stripTimeFromDateTime(rowDate):
     if YYYYMMDD_PATTERN.match(rowDate):
@@ -5940,11 +5938,10 @@ def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
         if checkMatch(row.get(column, '')):
           return True
       return False
-    else:
-      for column in columns:
-        if not checkMatch(row.get(column, '')):
-          return False
-      return True
+    for column in columns:
+      if not checkMatch(row.get(column, '')):
+        return False
+    return True
 
   def rowDateTimeRangeFilterMatch(dateMode, op, filterDateL, filterDateR):
     def checkMatch(rowDate):
@@ -5965,11 +5962,10 @@ def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
         if checkMatch(row.get(column, '')):
           return True
       return False
-    else:
-      for column in columns:
-        if not checkMatch(row.get(column, '')):
-          return False
-      return True
+    for column in columns:
+      if not checkMatch(row.get(column, '')):
+        return False
+    return True
 
   def rowCountFilterMatch(op, filterCount):
     def checkMatch(rowCount):
@@ -5996,11 +5992,10 @@ def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
         if checkMatch(row.get(column, 0)):
           return True
       return False
-    else:
-      for column in columns:
-        if not checkMatch(row.get(column, 0)):
-          return False
-      return True
+    for column in columns:
+      if not checkMatch(row.get(column, 0)):
+        return False
+    return True
 
   def rowCountRangeFilterMatch(op, filterCountL, filterCountR):
     def checkMatch(rowCount):
@@ -6019,11 +6014,10 @@ def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
         if checkMatch(row.get(column, 0)):
           return True
       return False
-    else:
-      for column in columns:
-        if not checkMatch(row.get(column, 0)):
-          return False
-      return True
+    for column in columns:
+      if not checkMatch(row.get(column, 0)):
+        return False
+    return True
 
   def rowBooleanFilterMatch(filterBoolean):
     def checkMatch(rowBoolean):
@@ -6038,11 +6032,10 @@ def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
         if checkMatch(row.get(column, False)):
           return True
       return False
-    else:
-      for column in columns:
-        if not checkMatch(row.get(column, False)):
-          return False
-      return True
+    for column in columns:
+      if not checkMatch(row.get(column, False)):
+        return False
+    return True
 
   def filterMatch(filterVal):
     if filterVal[2] == 'regex':
