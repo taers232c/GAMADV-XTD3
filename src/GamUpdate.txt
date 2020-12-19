@@ -1,3 +1,7 @@
+5.25.19
+
+Fixed bug introduced in 5.25.18  where using `todrive_noemail false` or `tdnoemail false` caused a trap. 
+
 5.25.18
 
 The Google message id was added to the output from `gam sendemail`.

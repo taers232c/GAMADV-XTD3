@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.25.18'
+__version__ = '5.25.19'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5794,9 +5794,10 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msg
     message['Cc'] = ccRecipients.lower()
   if bccRecipients:
     message['Bcc'] = bccRecipients.lower()
-  for header, value in iter(msgHeaders.items()):
-    if header not in {'Subject', 'From', 'To', 'Reply-To', 'Cc', 'Bcc'}:
-      message[header] = value
+  if msgHeaders:
+    for header, value in iter(msgHeaders.items()):
+      if header not in {'Subject', 'From', 'To', 'Reply-To', 'Cc', 'Bcc'}:
+        message[header] = value
   if mailBox is None:
     mailBox = msgFrom
   mailBoxAddr = normalizeEmailAddressOrUID(cleanAddr(mailBox), noUid=True)
@@ -11195,8 +11196,8 @@ def doSendEmail(users=None):
       else:
         msgHeaders[SMTP_HEADERS_MAP[myarg]] = getString(Cmd.OB_STRING)
     elif myarg == 'header':
-      header = getString(Cmd.OB_STRING, minLen=1).lower()
-      msgHeaders[SMTP_HEADERS_MAP.get(header, header)] = getString(Cmd.OB_STRING)
+      header = getString(Cmd.OB_STRING, minLen=1)
+      msgHeaders[SMTP_HEADERS_MAP.get(header.lower(), header)] = getString(Cmd.OB_STRING)
     else:
       unknownArgumentExit()
   notify['message'] = notify['message'].replace('\r', '').replace('\\n', '\n')
@@ -46706,11 +46707,11 @@ def _draftImportInsertMessage(users, operation):
           substituteForUserInHeaders = True
         msgHeaders[SMTP_HEADERS_MAP[myarg]] = value
     elif myarg == 'header':
-      header = getString(Cmd.OB_STRING, minLen=1).lower()
+      header = getString(Cmd.OB_STRING, minLen=1)
       value = getString(Cmd.OB_STRING)
       if (value.find('#user#') >= 0) or (value.find('#email#') >= 0) or (value.find('#username#') >= 0):
         substituteForUserInHeaders = True
-      msgHeaders[SMTP_HEADERS_MAP.get(header, header)] = value
+      msgHeaders[SMTP_HEADERS_MAP.get(header.lower(), header)] = value
     elif myarg in SORF_MSG_FILE_ARGUMENTS:
       if 'html' in myarg:
         msgHTML, _, _ = getStringOrFile(myarg)

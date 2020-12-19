@@ -82,11 +82,11 @@ jobs:
     - os: osx
       name: "MacOS 10.14"
       language: generic
-      osx_image: xcode11.3
+      osx_image: xcode11.3.1
     - os: osx
       name: "MacOS 10.15"
       language: generic
-      osx_image: xcode12
+      osx_image: xcode12.2
     - os: windows
       name: "Windows 64-bit"
       language: shell
