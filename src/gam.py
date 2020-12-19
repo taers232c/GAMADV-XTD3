@@ -5795,7 +5795,8 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msg
   if bccRecipients:
     message['Bcc'] = bccRecipients.lower()
   for header, value in iter(msgHeaders.items()):
-    message.setdefault(header, value)
+    if header not in {'Subject', 'From', 'To', 'Reply-To', 'Cc', 'Bcc'}:
+      message[header] = value
   if mailBox is None:
     mailBox = msgFrom
   mailBoxAddr = normalizeEmailAddressOrUID(cleanAddr(mailBox), noUid=True)
