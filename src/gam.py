@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.25.19'
+__version__ = '5.25.20'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2848,6 +2848,7 @@ def SetGlobalVariables():
   ROW_FILTER_RANGE_PATTERN = re.compile(r'^(daterange|timerange|countrange)(=|!=)(\S+)/(\S+)$', re.IGNORECASE)
   ROW_FILTER_BOOL_PATTERN = re.compile(r'^(boolean):(.+)$', re.IGNORECASE)
   ROW_FILTER_RE_PATTERN = re.compile(r'^(regex|regexcs|notregex|notregexcs):(.*)$', re.IGNORECASE)
+  REGEX_CHARS = '^$*+|$[{('
 
   def _getCfgRowFilter(sectionName, itemName):
     value = GM.Globals[GM.PARSER].get(sectionName, itemName)
@@ -2878,8 +2879,14 @@ def SetGlobalVariables():
           continue
         filterDict[column] = filterStr
     for column, filterStr in iter(filterDict.items()):
+      for c in REGEX_CHARS:
+        if c in column:
+          columnPat = column
+          break
+      else:
+        columnPat = f'^{column}$'
       try:
-        columnPat = re.compile(column, re.IGNORECASE)
+        columnPat = re.compile(columnPat, re.IGNORECASE)
       except re.error as e:
         _printValueError(sectionName, itemName, f'"{column}"', f'{Msg.INVALID_RE}: {e}')
         continue
@@ -44861,7 +44868,8 @@ def createSheet(users):
           showJSON(field, result[field])
       Ind.Decrement()
     except (GAPI.notFound, GAPI.forbidden, GAPI.internalError,
-            GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest, GAPI.invalid) as e:
+            GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest,
+            GAPI.invalid, GAPI.invalidArgument) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, ''], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)

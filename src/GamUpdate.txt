@@ -1,3 +1,14 @@
+5.25.20
+
+Changed processing of `<FieldNameFilter>` when performing column row filtering to simplify specifying
+field names that should match a field but none of its subfields.
+If `<FieldNameFilter>` doesn't contain any of the following regular expression characters `^$*+|$[{(`,
+it will be surrounded with `^$` so that it doesn't match any subfields that begin with `<FieldNameFilter>` as a prefix.
+In previous versions, you had to surround `<FieldNameFilter>` with `^$` to get this behavior.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/CSV-Input-Filtering#column-row-filtering
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/CSV-Output-Filtering#column-row-filtering
+
 5.25.19
 
 Fixed bug introduced in 5.25.18  where using `todrive_noemail false` or `tdnoemail false` caused a trap. 
