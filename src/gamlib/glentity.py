@@ -193,9 +193,6 @@ class GamEntity():
   PERSONAL_DEVICE = 'pedv'
   PHOTO = 'phot'
   POP_ENABLED = 'popa'
-  PRINTER = 'prin'
-  PRINTER_ACL = 'pacl'
-  PRINTJOB = 'prjo'
   PRIVILEGE = 'priv'
   PRODUCT = 'prod'
   PROFILE_SHARING_ENABLED = 'prof'
@@ -425,9 +422,6 @@ class GamEntity():
     PERSONAL_DEVICE: ['Personal Devices', 'Personal Device'],
     PHOTO: ['Photos', 'Photo'],
     POP_ENABLED: ['POP Enabled', 'POP Enabled'],
-    PRINTER: ['Printers', 'Printer'],
-    PRINTER_ACL: ['Printer ACLs', 'Printer ACL'],
-    PRINTJOB: ['Print Jobs', 'Print Job'],
     PRIVILEGE: ['Privileges', 'Privilege'],
     PRODUCT: ['Products', 'Product'],
     PROFILE_SHARING_ENABLED: ['Profile Sharing Enabled', 'Profile Sharing Enabled'],

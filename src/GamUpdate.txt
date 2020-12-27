@@ -1,3 +1,13 @@
+5.31.00
+
+Removed all Cloud Print related commands,
+
+Extended support for Cloud Identity Groups.
+This is Beta software from Google, experiment and use with caution.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Cloud-Identity-Groups
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Cloud-Identity-Groups-Memberships
+
 5.25.20
 
 Changed processing of `<FieldNameFilter>` when performing column row filtering to simplify specifying
@@ -11,7 +21,7 @@ In previous versions, you had to surround `<FieldNameFilter>` with `^$` to get t
 
 5.25.19
 
-Fixed bug introduced in 5.25.18  where using `todrive_noemail false` or `tdnoemail false` caused a trap. 
+Fixed bug where using `todrive_noemail false` or `tdnoemail false` caused a trap. 
 
 5.25.18
 
@@ -578,6 +588,10 @@ ERROR: 400: invalid - Request contains an invalid argument.
 
 Added option `oneitemperrow` to `gam <UserTypeEntity> print asps` to have each of a
 user's Application Specific Passwords displayed on a separate row.
+```
+gam <UserTypeEntity> print asps|applicationspecificpasswords [todrive <ToDriveAttribute>*]
+        [oneitemperrow]
+```
 
 5.12.04
 
@@ -617,7 +631,7 @@ gam update user user@domain.com SchemaName.FieldName scalarnonempty ""
 Added code to handle the following error when an attempt is made to copy a site:
 ```
 ERROR: 400: badRequest - The requested conversion is not supported.
-``
+```
 
 5.12.00
 
@@ -626,14 +640,14 @@ In prior versions, the `<RegularExpression>` was processed in a case sensitive m
 probably not desirable; e.g., matching file names which are case insensitive.
 
 Now, `<RegularExpression>` is processed in a case insensitive manner. **This is a change in behavior.**
-To get the prior case sensitive processing, use `regexcs:<RegularExpression>` and `notregexcs:<RegularExpression>`,
+To get the prior case sensitive processing, use `regexcs:<RegularExpression>` and `notregexcs:<RegularExpression>`.
 
 5.11.06
 
 Starting from preliminary code from Jay, added commands to manage administrative roles.
 ```
-gam create adminrole <String> privileges <PrivilegesList> [description <String>]
-gam update adminrole <RoleItem> [name <String>] [privileges <PrivilegesList>] [description <String>]
+gam create adminrole <String> privileges all|all_ou|<PrivilegesList> [description <String>]
+gam update adminrole <RoleItem> [name <String>] [privileges all|all_ou|<PrivilegesList>] [description <String>]
 gam delete adminrole <RoleItem>
 ```
 

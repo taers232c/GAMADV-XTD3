@@ -96,6 +96,9 @@ class GamCLArgs():
     ENTITY_CROS_SN,
     ]
   USER_ENTITIES = [
+    ENTITY_CIGROUP,
+    ENTITY_CIGROUPS,
+    ENTITY_CIGROUP_USERS,
     ENTITY_COURSEPARTICIPANTS,
     ENTITY_DOMAINS,
     ENTITY_DOMAINS_NS,
@@ -286,6 +289,8 @@ class GamCLArgs():
     ]
   USER_ENTITY_SELECTOR_DATAFILE_CSVKMD_SUBTYPES = [
     ENTITY_USERS,
+    ENTITY_CIGROUPS,
+    ENTITY_CIGROUP_USERS,
     ENTITY_DOMAINS,
     ENTITY_DOMAINS_NS,
     ENTITY_DOMAINS_SUSP,
@@ -494,10 +499,6 @@ class GamCLArgs():
   ARG_PHOTO = 'photo'
   ARG_POP = 'pop'
   ARG_POP3 = 'pop3'
-  ARG_PRINT = 'print'
-  ARG_PRINTER = 'printer'
-  ARG_PRINTERS = 'printers'
-  ARG_PRINTJOBS = 'printjobs'
   ARG_PRIVILEGES = 'privileges'
   ARG_PROFILE = 'profile'
   ARG_PROFILE_PHOTO = 'profilephoto'
@@ -671,7 +672,6 @@ class GamCLArgs():
   OB_ICALUID = 'iCalUID'
   OB_ID_TOKEN = 'IDToken'
   OB_JOB_ID = 'JobID'
-  OB_JOB_OR_PRINTER_ID = 'JobID|PrinterID'
   OB_JSON_DATA = 'JSONData'
   OB_LABEL_COLOR_HEX = 'LabelColorHex'
   OB_LABEL_NAME = 'LabelName'
@@ -692,10 +692,6 @@ class GamCLArgs():
   OB_PARAMETER_VALUE = 'ParameterValue'
   OB_PASSWORD = 'Password'
   OB_PHOTO_FILENAME_PATTERN = 'FilenameNamePattern'
-  OB_PRINTER_ID = 'PrinterID'
-  OB_PRINTER_ID_ENTITY = 'PrinterIDEntity'
-  OB_PRINTJOB_AGE = 'PrintJobAge'
-  OB_PRINTJOB_ID = 'PrintJobID'
   OB_PRIVILEGE_LIST = 'PrivilegeList'
   OB_PRODUCT_ID = 'ProductID'
   OB_PRODUCT_ID_LIST = 'ProductIDList'

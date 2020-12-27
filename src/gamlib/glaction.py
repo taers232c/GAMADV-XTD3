@@ -78,7 +78,6 @@ class GamAction():
   PURGE = 'purg'
   REENABLE = 'reen'
   REFRESH = 'refr'
-  REGISTER = 'regi'
   RELABEL = 'rela'
   REMOVE = 'remo'
   REMOVE_PREVIEW = 'remp'
@@ -178,7 +177,6 @@ class GamAction():
     PURGE: ['Purged', 'Purge'],
     REENABLE: ['Reenabled', 'Reenable'],
     REFRESH: ['Refreshed', 'Refresh'],
-    REGISTER: ['Registered', 'Register'],
     RELABEL: ['Relabeled', 'Relabel'],
     REMOVE: ['Removed', 'Remove'],
     REMOVE_PREVIEW: ['Removed (Preview)', 'Remove (Preview)'],

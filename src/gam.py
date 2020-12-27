@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.25.20'
+__version__ = '5.31.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -90,7 +90,6 @@ from gamlib import glcfg as GC
 from gamlib import glclargs
 from gamlib import glentity
 from gamlib import glgapi as GAPI
-from gamlib import glgcp as GCP
 from gamlib import glgdata as GDATA
 from gamlib import glglobals as GM
 from gamlib import glindent
@@ -4381,39 +4380,6 @@ def callGAPIitems(service, function, items,
     return results.get(items, [])
   return []
 
-def checkCloudPrintResult(result, throw_messages=None):
-  if isinstance(result, bytes):
-    result = result.decode(UTF8)
-  if throw_messages is None:
-    throw_messages = []
-  if isinstance(result, str):
-    try:
-      result = json.loads(result)
-    except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
-      systemErrorExit(JSON_LOADS_ERROR_RC, f'{str(e)}: {result}')
-  if not result['success']:
-    message = result['message']
-    if message in throw_messages:
-      if message in GCP.MESSAGE_EXCEPTION_MAP:
-        raise GCP.MESSAGE_EXCEPTION_MAP[message](message)
-    systemErrorExit(ACTION_FAILED_RC, f'{result["errorCode"]}: {result["message"]}')
-  return result
-
-def getCloudPrintError(resp, result):
-  if isinstance(result, bytes):
-    result = result.decode(UTF8)
-  mg = re.compile(r'<title>(.*)</title>').search(result)
-  if mg:
-    return mg.group(1)
-  return f'Error: {resp["status"]}'
-
-def callGCP(service, function,
-            throw_messages=None,
-            **kwargs):
-  result = callGAPI(service, function,
-                    **kwargs)
-  return checkCloudPrintResult(result, throw_messages=throw_messages)
-
 def readDiscoveryFile(api_version):
   disc_filename = f'{api_version}.json'
   disc_file = os.path.join(GM.Globals[GM.GAM_PATH], disc_filename)
@@ -4485,11 +4451,6 @@ def buildGAPIServiceObject(api, user, i=0, count=0, displayError=True):
       if displayError:
         entityServiceNotApplicableWarning(Ent.USER, userEmail, i, count)
       return (userEmail, None)
-
-def buildGAPICloudprintObject(user, i, count):
-  if user is None:
-    return _getAdminEmail(), buildGAPIObject(API.CLOUDPRINT)
-  return buildGAPIServiceObject(API.CLOUDPRINT, user, i, count)
 
 def initGDataObject(gdataObj, api):
   GM.Globals[GM.CURRENT_CLIENT_API] = api
@@ -4565,9 +4526,9 @@ def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, emailTypes=None, checkF
     emailTypes = [emailTypes] if emailTypes != 'any' else ['user', 'group']
   if checkForCustomerId and (emailAddressOrUID == GC.Values[GC.CUSTOMER_ID]):
     return emailAddressOrUID
+  normalizedEmailAddressOrUID = normalizeEmailAddressOrUID(emailAddressOrUID, ciGroupsAPI=ciGroupsAPI)
   if ciGroupsAPI and emailAddressOrUID.startswith('groups/'):
     return emailAddressOrUID
-  normalizedEmailAddressOrUID = normalizeEmailAddressOrUID(emailAddressOrUID)
   if normalizedEmailAddressOrUID.find('@') > 0:
     return normalizedEmailAddressOrUID
   if cd is None:
@@ -4723,21 +4684,6 @@ GROUP_ROLES_MAP = {
   }
 ALL_GROUP_ROLES = {Ent.ROLE_MANAGER, Ent.ROLE_MEMBER, Ent.ROLE_OWNER}
 
-GROUP_TYPES_MAP = {
-  'customer': Ent.TYPE_CUSTOMER,
-  'group': Ent.TYPE_GROUP,
-  'user': Ent.TYPE_USER,
-  }
-ALL_GROUP_TYPES = {Ent.TYPE_CUSTOMER, Ent.TYPE_GROUP, Ent.TYPE_USER}
-
-CIGROUP_TYPES_MAP = {
-  'group': Ent.TYPE_GROUP,
-  'other': Ent.TYPE_OTHER,
-  'serviceaccount': Ent.TYPE_SERVICE_ACCOUNT,
-  'user': Ent.TYPE_USER,
-  }
-ALL_CIGROUP_TYPES = {Ent.TYPE_GROUP, Ent.TYPE_OTHER, Ent.TYPE_SERVICE_ACCOUNT, Ent.TYPE_USER}
-
 def _getRoleVerification(memberRoles, fields):
   if memberRoles and memberRoles.find(Ent.ROLE_MEMBER) != -1:
     return (set(memberRoles.split(',')), None, fields if fields.find('role') != -1 else fields[:-1]+',role)')
@@ -4767,14 +4713,16 @@ def getCIGroupMemberRole(member):
   for a_role in [Ent.ROLE_OWNER, Ent.ROLE_MANAGER, Ent.ROLE_MEMBER]:
     if a_role in roles:
       member['role'] = a_role
-      if 'expiryDetails' in roles[a_role]:
-        member['expireTime'] = roles[a_role]['expiryDetails']['expireTime']
+      if 'expiryDetail' in roles[a_role]:
+        member['expireTime'] = roles[a_role]['expiryDetail']['expireTime']
       return
   member['role'] = memberRoles[0]['name']
 
 def convertGroupCloudIDToEmail(ci, group, i=0, count=0):
   if not group.startswith('groups/'):
-    return (ci, normalizeEmailAddressOrUID(group))
+    group = normalizeEmailAddressOrUID(group, ciGroupsAPI=True)
+    if not group.startswith('groups/'):
+      return (ci, group)
   if not ci:
     ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
   try:
@@ -4792,16 +4740,19 @@ def convertGroupCloudIDToEmail(ci, group, i=0, count=0):
     return (ci, None)
 
 def convertGroupEmailToCloudID(ci, group, i=0, count=0):
+  group = normalizeEmailAddressOrUID(group, ciGroupsAPI=True)
+  if not group.startswith('groups/') and group.find('@') == -1:
+    group = 'groups/'+group
   if group.startswith('groups/'):
-    return (ci, group)
-  group = normalizeEmailAddressOrUID(group)
+    ci, groupEmail = convertGroupCloudIDToEmail(ci, group, i, count)
+    return (ci, group, groupEmail)
   if not ci:
     ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
   try:
     ciGroup = callGAPI(ci.groups(), 'lookup',
                        throwReasons=GAPI.CIGROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
                        groupKey_id=group, fields='name')
-    return (ci, ciGroup['name'])
+    return (ci, ciGroup['name'], group)
   except (GAPI.notFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
           GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
           GAPI.systemError, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
@@ -4809,11 +4760,11 @@ def convertGroupEmailToCloudID(ci, group, i=0, count=0):
     Act.Set(Act.LOOKUP)
     entityActionFailedWarning([Ent.GROUP, group, Ent.CLOUD_IDENTITY_GROUP, None], str(e), i, count)
     Act.Set(action)
-    return (ci, None)
+    return (ci, None, None)
 
-def checkGroupExists(cd, ci, ciGroupsAPI, returnCloudID, group, i=0, count=0):
+def checkGroupExists(cd, ci, ciGroupsAPI, group, i=0, count=0):
   group = normalizeEmailAddressOrUID(group, ciGroupsAPI=ciGroupsAPI)
-  if not returnCloudID:
+  if not ciGroupsAPI:
     if not group.startswith('groups/'):
       try:
         result = callGAPI(cd.groups(), 'get',
@@ -4826,17 +4777,19 @@ def checkGroupExists(cd, ci, ciGroupsAPI, returnCloudID, group, i=0, count=0):
     else:
       return convertGroupCloudIDToEmail(ci, group, i, count)
   else:
+    if not group.startswith('groups/') and group.find('@') == -1:
+      group = 'groups/'+group
     if group.startswith('groups/'):
       try:
         result = callGAPI(ci.groups(), 'get',
                           throwReasons=GAPI.CIGROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
                           name=group, fields='name,groupKey(id)')
-        return (ci, result['groupKey']['id'])
+        return (ci, result['name'], result['groupKey']['id'])
       except (GAPI.notFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
               GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
               GAPI.systemError, GAPI.permissionDenied):
         entityUnknownWarning(Ent.GROUP, group, i, count)
-        return (ci, None)
+        return (ci, None, None)
     else:
       return convertGroupEmailToCloudID(ci, group, i, count)
 
@@ -4878,6 +4831,30 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
           entityList.append(email)
       elif recursive and member['type'] == Ent.TYPE_GROUP:
         _addGroupUsersToUsers(member['email'], domains, recursive, includeDerivedMembership)
+
+  def _addCIGroupUsersToUsers(groupName, groupEmail, recursive):
+    printGettingAllEntityItemsForWhom(memberRoles if memberRoles else Ent.ROLE_MANAGER_MEMBER_OWNER, groupEmail, entityType=Ent.CLOUD_IDENTITY_GROUP)
+    validRoles = _getCIRoleVerification(memberRoles)
+    try:
+      result = callGAPIpages(ci.groups().memberships(), 'list', 'memberships',
+                             pageMessage=getPageMessageForWhom(),
+                             throwReasons=GAPI.MEMBERS_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
+                             parent=groupName, view='FULL',
+                             fields='nextPageToken,memberships(name,memberKey(id),roles(name),type)', pageSize=GC.Values[GC.MEMBER_MAX_RESULTS])
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+      entityUnknownWarning(Ent.CLOUD_IDENTITY_GROUP, groupEmail)
+      _incrEntityDoesNotExist(Ent.CLOUD_IDENTITY_GROUP)
+      return
+    for member in result:
+      getCIGroupMemberRole(member)
+      if member['type'] == Ent.TYPE_USER:
+        email = member.get('memberKey', {}).get('id', '')
+        if (email and _checkMemberRole(member, validRoles) and email not in entitySet):
+          entitySet.add(email)
+          entityList.append(email)
+      elif recursive and member['type'] == Ent.TYPE_GROUP and _checkMemberRole(member, validRoles):
+        _, gname = member['name'].rsplit('/', 1)
+        _addCIGroupUsersToUsers(f'groups/{gname}', f'groups/{gname}', recursive)
 
   ENTITY_ERROR_DNE = 'doesNotExist'
   ENTITY_ERROR_INVALID = 'invalid'
@@ -5006,6 +4983,58 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
     for group in groups:
       if validateEmailAddressOrUID(group, checkPeople=False):
         _addGroupUsersToUsers(normalizeEmailAddressOrUID(group), domains, recursive, includeDerivedMembership)
+      else:
+        _showInvalidEntity(Ent.GROUP, group)
+  elif entityType in {Cmd.ENTITY_CIGROUP, Cmd.ENTITY_CIGROUPS}:
+    ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
+    groups = convertEntityToList(entity, nonListEntityType=entityType in {Cmd.ENTITY_CIGROUP})
+    for group in groups:
+      if validateEmailAddressOrUID(group, checkPeople=False, ciGroupsAPI=True):
+        _, name, groupEmail = convertGroupEmailToCloudID(ci, group)
+        printGettingAllEntityItemsForWhom(memberRoles if memberRoles else Ent.ROLE_MANAGER_MEMBER_OWNER, groupEmail, entityType=Ent.CLOUD_IDENTITY_GROUP)
+        validRoles = _getCIRoleVerification(memberRoles)
+        try:
+          result = callGAPIpages(ci.groups().memberships(), 'list', 'memberships',
+                                 pageMessage=getPageMessageForWhom(),
+                                 throwReasons=GAPI.MEMBERS_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
+                                 parent=name, view='FULL',
+                                 fields='nextPageToken,memberships(memberKey(id),roles(name),type)',
+                                 pageSize=GC.Values[GC.MEMBER_MAX_RESULTS])
+        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+          entityUnknownWarning(Ent.CLOUD_IDENTITY_GROUP, groupEmail)
+          _incrEntityDoesNotExist(Ent.CLOUD_IDENTITY_GROUP)
+          continue
+        for member in result:
+          getCIGroupMemberRole(member)
+          email = member.get('memberKey', {}).get('id', '')
+          if (email and (groupMemberType in ('ALL', member['type'])) and
+              _checkMemberRole(member, validRoles) and email not in entitySet):
+            entitySet.add(email)
+            entityList.append(email)
+      else:
+        _showInvalidEntity(Ent.CLOUD_IDENTITY_GROUP, groupEmail)
+  elif entityType in {Cmd.ENTITY_CIGROUP_USERS}:
+    ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
+    groups = convertEntityToList(entity)
+    recursive = False
+    rolesSet = set()
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if myarg in GROUP_ROLES_MAP:
+        rolesSet.add(GROUP_ROLES_MAP[myarg])
+      elif myarg == 'recursive':
+        recursive = True
+      elif myarg == 'end':
+        break
+      else:
+        Cmd.Backup()
+        missingArgumentExit('end')
+    if rolesSet:
+      memberRoles = ','.join(sorted(rolesSet))
+    for group in groups:
+      _, name, groupEmail = convertGroupEmailToCloudID(ci, group)
+      if name:
+        _addCIGroupUsersToUsers(name, groupEmail, recursive)
       else:
         _showInvalidEntity(Ent.GROUP, group)
   elif entityType in {Cmd.ENTITY_OU, Cmd.ENTITY_OUS, Cmd.ENTITY_OU_AND_CHILDREN, Cmd.ENTITY_OUS_AND_CHILDREN,
@@ -5642,7 +5671,7 @@ def getEntityToModify(defaultEntityType=None, browserAllowed=False, crosAllowed=
     if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
       buildGAPIObject(API.DIRECTORY)
     if entityClass == Cmd.ENTITY_USERS:
-      if entityType in [Cmd.ENTITY_GROUP_USERS, Cmd.ENTITY_GROUP_USERS_NS, Cmd.ENTITY_GROUP_USERS_SUSP]:
+      if entityType in [Cmd.ENTITY_GROUP_USERS, Cmd.ENTITY_GROUP_USERS_NS, Cmd.ENTITY_GROUP_USERS_SUSP, Cmd.ENTITY_CIGROUP_USERS]:
         # Skip over sub-arguments
         while Cmd.ArgumentsRemaining():
           myarg = getArgument()
@@ -6188,6 +6217,15 @@ class CSVPrintFile():
   def MoveTitlesToEnd(self, titles):
     self.RemoveTitles(titles)
     self.AddTitles(titles)
+
+  def MapTitles(self, ov, nv):
+    if ov in self.titlesSet:
+      self.titlesSet.remove(ov)
+      self.titlesSet.add(nv)
+      for i, v in enumerate(self.titlesList):
+        if v == ov:
+          self.titlesList[i] = nv
+          break
 
   def AddSortTitle(self, title):
     self.sortTitlesSet.add(title)
@@ -19428,7 +19466,7 @@ def checkReplyToCustom(group, settings, i=0, count=0):
   return False
 
 GROUP_CIGROUP_ENTITYTYPE_MAP = {False: Ent.GROUP, True: Ent.CLOUD_IDENTITY_GROUP}
-GROUP_CIGROUP_FIELDS_MAP = {'name': 'displayName', 'description': 'description'}
+GROUP_CIGROUP_FIELDS_MAP = {'name': 'displayName', 'displayname': 'displayName', 'description': 'description'}
 GROUP_JSON_SKIP_FIELDS = ['email', 'adminCreated', 'directMembersCount', 'members', 'aliases', 'nonEditableAliases']
 
 # gam create group <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>*
@@ -19544,7 +19582,8 @@ GROUP_PREVIEW_TITLES = ['group', 'email', 'role', 'action', 'message']
 #	[usersonly|groupsonly] [notsuspended|suspended]
 #	[emailclearpattern|emailretainpattern <RegularExpression>]
 #	[removedomainnostatusmembers] [preview] [actioncsv]
-def doUpdateGroups(ciGroupsAPI=False):
+def doUpdateGroups():
+
   def _getPreviewActionCSV():
     preview = checkArgumentPresent('preview')
     if checkArgumentPresent('actioncsv'):
@@ -19557,7 +19596,7 @@ def doUpdateGroups(ciGroupsAPI=False):
     roleLower = role.lower()
     if roleLower in GROUP_ROLES_MAP:
       return (GROUP_ROLES_MAP[roleLower], groupMemberLists[origGroup][role])
-    entityActionNotPerformedWarning([Ent.GROUP, group, Ent.ROLE, role], Msg.INVALID_ROLE.format(','.join(sorted(GROUP_ROLES_MAP))), i, count)
+    entityActionNotPerformedWarning([entityType, group, Ent.ROLE, role], Msg.INVALID_ROLE.format(','.join(sorted(GROUP_ROLES_MAP))), i, count)
     return (None, None)
 
   def _getRoleGroupMemberType(defaultRole=Ent.ROLE_MEMBER):
@@ -19597,7 +19636,7 @@ def doUpdateGroups(ciGroupsAPI=False):
     j = 0
     for member in members:
       j += 1
-      entityActionPerformed([Ent.GROUP, group, role, member], j, jcount)
+      entityActionPerformed([entityType, group, role, member], j, jcount)
     Ind.Decrement()
     if csvPF:
       for member in members:
@@ -19611,12 +19650,12 @@ def doUpdateGroups(ciGroupsAPI=False):
       kvList.append(f'{Ent.Singular(Ent.DELIVERY)}: {delivery_settings}')
     if optMsg:
       kvList.append(optMsg)
-    entityActionPerformedMessage([Ent.GROUP, group, Ent.MEMBER, member], ', '.join(kvList), j, jcount)
+    entityActionPerformedMessage([entityType, group, Ent.MEMBER, member], ', '.join(kvList), j, jcount)
     if csvPF:
       csvPF.WriteRow({'group': group, 'email': member, 'role': role, 'action': Act.Performed(), 'message': Act.SUCCESS})
 
   def _showFailure(group, member, role, errMsg, j, jcount):
-    entityActionFailedWarning([Ent.GROUP, group, Ent.MEMBER, member], errMsg, j, jcount)
+    entityActionFailedWarning([entityType, group, Ent.MEMBER, member], errMsg, j, jcount)
     if csvPF:
       csvPF.WriteRow({'group': group, 'email': member, 'role': role, 'action': Act.Failed(), 'message': errMsg})
 
@@ -19637,7 +19676,7 @@ def doUpdateGroups(ciGroupsAPI=False):
                groupKey=group, body=body, fields='')
       _showSuccess(group, member, role, delivery_settings, j, jcount)
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
-      entityUnknownWarning(Ent.GROUP, group, i, count)
+      entityUnknownWarning(entityType, group, i, count)
     except (GAPI.duplicate, GAPI.memberNotFound, GAPI.resourceNotFound,
             GAPI.invalidMember, GAPI.cyclicMembershipsNotAllowed, GAPI.conditionNotMet) as e:
       _showFailure(group, member, role, str(e), j, jcount)
@@ -19653,7 +19692,7 @@ def doUpdateGroups(ciGroupsAPI=False):
       return
     except (GAPI.memberNotFound, GAPI.resourceNotFound):
       pass
-    printEntityKVList([Ent.GROUP, group, Ent.MEMBER, member], [Msg.MEMBERSHIP_IS_PENDING_WILL_DELETE_ADD_TO_ACCEPT], j, jcount)
+    printEntityKVList([entityType, group, Ent.MEMBER, member], [Msg.MEMBERSHIP_IS_PENDING_WILL_DELETE_ADD_TO_ACCEPT], j, jcount)
     try:
       callGAPI(cd.members(), 'delete',
                throwReasons=[GAPI.MEMBER_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND],
@@ -19677,7 +19716,7 @@ def doUpdateGroups(ciGroupsAPI=False):
     else:
       http_status, reason, message = checkGAPIError(exception)
       if reason in GAPI.MEMBERS_THROW_REASONS:
-        entityUnknownWarning(Ent.GROUP, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
+        entityUnknownWarning(entityType, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
       elif reason == GAPI.CONFLICT:
         _showSuccess(ri[RI_ENTITY], ri[RI_ITEM], ri[RI_ROLE], ri[RI_OPTION], int(ri[RI_J]), int(ri[RI_JCOUNT]), Msg.ACTION_MAY_BE_DELAYED)
       elif reason in [GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET]:
@@ -19696,7 +19735,7 @@ def doUpdateGroups(ciGroupsAPI=False):
   def _batchAddGroupMembers(group, i, count, addMembers, role, delivery_settings):
     Act.Set([Act.ADD, Act.ADD_PREVIEW][preview])
     jcount = len(addMembers)
-    entityPerformActionNumItems([Ent.GROUP, group], jcount, role, i, count)
+    entityPerformActionNumItems([entityType, group], jcount, role, i, count)
     if jcount == 0:
       return
     if preview:
@@ -19749,7 +19788,7 @@ def doUpdateGroups(ciGroupsAPI=False):
                groupKey=group, memberKey=member)
       _showSuccess(group, member, role, DELIVERY_SETTINGS_UNDEFINED, j, jcount)
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
-      entityUnknownWarning(Ent.GROUP, group, i, count)
+      entityUnknownWarning(entityType, group, i, count)
     except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.resourceNotFound, GAPI.conditionNotMet) as e:
       _showFailure(group, member, role, str(e), j, jcount)
     except GAPI.conflict:
@@ -19766,7 +19805,7 @@ def doUpdateGroups(ciGroupsAPI=False):
     else:
       http_status, reason, message = checkGAPIError(exception)
       if reason in GAPI.MEMBERS_THROW_REASONS:
-        entityUnknownWarning(Ent.GROUP, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
+        entityUnknownWarning(entityType, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
       elif reason == GAPI.CONFLICT:
         _showSuccess(ri[RI_ENTITY], ri[RI_ITEM], ri[RI_ROLE], DELIVERY_SETTINGS_UNDEFINED, int(ri[RI_J]), int(ri[RI_JCOUNT]), Msg.ACTION_MAY_BE_DELAYED)
       elif reason not in GAPI.DEFAULT_RETRY_REASONS+GAPI.MEMBERS_RETRY_REASONS+[GAPI.RESOURCE_NOT_FOUND]:
@@ -19783,7 +19822,7 @@ def doUpdateGroups(ciGroupsAPI=False):
   def _batchRemoveGroupMembers(group, i, count, removeMembers, role):
     Act.Set([Act.REMOVE, Act.REMOVE_PREVIEW][preview])
     jcount = len(removeMembers)
-    entityPerformActionNumItems([Ent.GROUP, group], jcount, role, i, count)
+    entityPerformActionNumItems([entityType, group], jcount, role, i, count)
     if jcount == 0:
       return
     if preview:
@@ -19843,7 +19882,7 @@ def doUpdateGroups(ciGroupsAPI=False):
                groupKey=group, memberKey=member, body=body, fields='')
       _showSuccess(group, member, role, delivery_settings, j, jcount)
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
-      entityUnknownWarning(Ent.GROUP, group, i, count)
+      entityUnknownWarning(entityType, group, i, count)
     except GAPI.memberNotFound as e:
       if createIfNotFound:
         Act.Set(Act.ADD)
@@ -19865,7 +19904,7 @@ def doUpdateGroups(ciGroupsAPI=False):
         _addMember(ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]), ri[RI_ROLE], ri[RI_OPTION], ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
         Act.Set(Act.UPDATE)
       elif reason in GAPI.MEMBERS_THROW_REASONS:
-        entityUnknownWarning(Ent.GROUP, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
+        entityUnknownWarning(entityType, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
       else:
         errMsg = getHTTPError(_UPDATE_MEMBER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
         _showFailure(ri[RI_ENTITY], ri[RI_ITEM], ri[RI_ROLE], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
@@ -19873,7 +19912,7 @@ def doUpdateGroups(ciGroupsAPI=False):
   def _batchUpdateGroupMembers(group, i, count, updateMembers, role, delivery_settings):
     Act.Set([Act.UPDATE, Act.UPDATE_PREVIEW][preview])
     jcount = len(updateMembers)
-    entityPerformActionNumItems([Ent.GROUP, group], jcount, Ent.MEMBER, i, count)
+    entityPerformActionNumItems([entityType, group], jcount, Ent.MEMBER, i, count)
     if jcount == 0:
       return
     if preview:
@@ -19911,7 +19950,7 @@ def doUpdateGroups(ciGroupsAPI=False):
 
   cd = buildGAPIObject(API.DIRECTORY)
   ci = None
-  entityType = GROUP_CIGROUP_ENTITYTYPE_MAP[ciGroupsAPI]
+  entityType = Ent.GROUP
   csvPF = None
   getBeforeUpdate = preview = False
   entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
@@ -19938,14 +19977,14 @@ def doUpdateGroups(ciGroupsAPI=False):
         gs_body.update(getJSON(GROUP_JSON_SKIP_FIELDS))
       else:
         getGroupAttrValue(myarg, gs_body)
-    if ci_body or ciGroupsAPI:
+    if ci_body:
       ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
       if 'email' in body:
         ci_body['groupKey'] = {'id': body.pop('email')}
     if gs_body:
       gs = buildGAPIObject(API.GROUPSSETTINGS)
       gs_body = getSettingsFromGroup(cd, ','.join(entityList), gs, gs_body)
-      if ci_body or ciGroupsAPI:
+      if ci_body:
         for k, v in iter(GROUP_CIGROUP_FIELDS_MAP.items()):
           if k in gs_body:
             ci_body[v] = gs_body.pop(k)
@@ -20009,7 +20048,7 @@ def doUpdateGroups(ciGroupsAPI=False):
           entityActionFailedWarning([entityType, group], Msg.INVALID_JSON_SETTING, i, count)
           continue
       if ci_body:
-        _, name = convertGroupEmailToCloudID(ci, group, i, count)
+        _, name, _ = convertGroupEmailToCloudID(ci, group, i, count)
         if not name:
           continue
         try:
@@ -20041,7 +20080,7 @@ def doUpdateGroups(ciGroupsAPI=False):
         else:
           roleList = groupMemberLists[group]
       origGroup = group
-      ci, group = checkGroupExists(cd, ci, ciGroupsAPI, False, group, i, count)
+      ci, group = checkGroupExists(cd, ci, False, group, i, count)
       if not group:
         continue
       for role in roleList:
@@ -20072,7 +20111,7 @@ def doUpdateGroups(ciGroupsAPI=False):
         else:
           roleList = groupMemberLists[group]
       origGroup = group
-      ci, group = checkGroupExists(cd, ci, ciGroupsAPI, False, group, i, count)
+      ci, group = checkGroupExists(cd, ci, False, group, i, count)
       if not group:
         continue
       for role in roleList:
@@ -20111,7 +20150,7 @@ def doUpdateGroups(ciGroupsAPI=False):
     for group in entityList:
       i += 1
       origGroup = group
-      ci, group = checkGroupExists(cd, ci, ciGroupsAPI, False, group, i, count)
+      ci, group = checkGroupExists(cd, ci, False, group, i, count)
       if not group:
         continue
       if groupMemberLists is None:
@@ -20146,7 +20185,7 @@ def doUpdateGroups(ciGroupsAPI=False):
       if not rolesSet:
         continue
       memberRoles = ','.join(sorted(rolesSet))
-      printGettingAllEntityItemsForWhom(memberRoles, group, entityType=Ent.GROUP)
+      printGettingAllEntityItemsForWhom(memberRoles, group, entityType=entityType)
       try:
         result = callGAPIpages(cd.members(), 'list', 'members',
                                pageMessage=getPageMessageForWhom(),
@@ -20155,7 +20194,7 @@ def doUpdateGroups(ciGroupsAPI=False):
                                fields='nextPageToken,members(email,id,type,status,role)',
                                maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
-        entityUnknownWarning(Ent.GROUP, group, i, count)
+        entityUnknownWarning(entityType, group, i, count)
         continue
       for role in rolesSet:
         currentMembersSets[role] = set()
@@ -20170,6 +20209,7 @@ def doUpdateGroups(ciGroupsAPI=False):
               currentMembersSets[role].add(_cleanConsumerAddress(email, currentMembersMaps[role]))
           else:
             domainNoStatusMembersSets[role].add(member['id'])
+      del result
       if syncOperation != 'addonly':
         for role in rolesSet:
           if domainNoStatusMembersSets[role]:
@@ -20206,7 +20246,7 @@ def doUpdateGroups(ciGroupsAPI=False):
         else:
           roleList = groupMemberLists[group]
       origGroup = group
-      ci, group = checkGroupExists(cd, ci, ciGroupsAPI, False, group, i, count)
+      ci, group = checkGroupExists(cd, ci, False, group, i, count)
       if not group:
         continue
       for role in roleList:
@@ -20258,10 +20298,10 @@ def doUpdateGroups(ciGroupsAPI=False):
     count = len(entityList)
     for group in entityList:
       i += 1
-      ci, group = checkGroupExists(cd, ci, ciGroupsAPI, False, group, i, count)
+      ci, group = checkGroupExists(cd, ci, False, group, i, count)
       if not group:
         continue
-      printGettingAllEntityItemsForWhom(memberRoles, group, qualifier=qualifier, entityType=Ent.GROUP)
+      printGettingAllEntityItemsForWhom(memberRoles, group, qualifier=qualifier, entityType=entityType)
       try:
         result = callGAPIpages(cd.members(), 'list', 'members',
                                pageMessage=getPageMessageForWhom(),
@@ -20270,7 +20310,7 @@ def doUpdateGroups(ciGroupsAPI=False):
                                fields='nextPageToken,members(email,id,type,status,role)',
                                maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
-        entityUnknownWarning(Ent.GROUP, group, i, count)
+        entityUnknownWarning(entityType, group, i, count)
         continue
       removeMembers = {}
       for role in rolesSet:
@@ -20293,6 +20333,7 @@ def doUpdateGroups(ciGroupsAPI=False):
                   removeMembers[role].add(email if memberStatus != 'UNKNOWN' else member['id'])
           elif memberStatus == 'NONE':
             removeMembers[role].add(member['id'])
+      del result
       for role in rolesSet:
         _batchRemoveGroupMembers(group, i, count, removeMembers[role], role)
   if csvPF:
@@ -20319,7 +20360,7 @@ def doDeleteGroups(ciGroupsAPI=False):
                  throwReasons=[GAPI.GROUP_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID],
                  groupKey=groupKey)
       else:
-        _, groupKey = convertGroupEmailToCloudID(ci, group, i, count)
+        _, groupKey, group = convertGroupEmailToCloudID(ci, group, i, count)
         if not groupKey:
           continue
         callGAPI(ci.groups(), 'delete',
@@ -20341,6 +20382,13 @@ def getGroupRoles(myarg, rolesSet):
   else:
     return False
   return True
+
+GROUP_TYPES_MAP = {
+  'customer': Ent.TYPE_CUSTOMER,
+  'group': Ent.TYPE_GROUP,
+  'user': Ent.TYPE_USER,
+  }
+ALL_GROUP_TYPES = {Ent.TYPE_CUSTOMER, Ent.TYPE_GROUP, Ent.TYPE_USER}
 
 def getGroupTypes(myarg, typesSet):
   if myarg in {'type', 'types'}:
@@ -20384,6 +20432,13 @@ def checkMemberMatch(member, memberOptions):
     return memberOptions[MEMBEROPTION_DISPLAYMATCH]
   return not memberOptions[MEMBEROPTION_DISPLAYMATCH]
 
+def checkCIMemberMatch(member, memberOptions):
+  if not memberOptions[MEMBEROPTION_MATCHPATTERN]:
+    return True
+  if memberOptions[MEMBEROPTION_MATCHPATTERN].match(member.get('memberKey', {}).get('id', '')):
+    return memberOptions[MEMBEROPTION_DISPLAYMATCH]
+  return not memberOptions[MEMBEROPTION_DISPLAYMATCH]
+
 GROUP_FIELDS_CHOICE_MAP = {
   'admincreated': 'adminCreated',
   'aliases': ['aliases', 'nonEditableAliases'],
@@ -20402,16 +20457,48 @@ CIGROUP_FIELDS_CHOICE_MAP = {
   'description': 'description',
   'displayname': 'displayName',
   'dynamicgroupmetadata': 'dynamicGroupMetadata',
+  'email': 'groupKey',
   'groupkey': 'groupKey',
+  'id': 'name',
   'labels': 'labels',
-  'name': 'name',
+  'name': 'displayName',
   'parent': 'parent',
   'updatetime': 'updateTime',
   }
+CIGROUP_FULL_FIELDS = {'additionalGroupKeys', 'createTime', 'dynamicGroupMetadata', 'parent', 'updateTime'}
 CIGROUP_FIELDS_WITH_CRS_NLS = {'description'}
-CIGROUP_INFO_PRINT_ORDER = ['groupKey', 'name', 'displayName', 'description', 'createTime', 'updateTime',
-                            'additionalGroupKeys', 'labels', 'parent', 'dynamicGroupMetadata']
+CIGROUP_INFO_PRINT_ORDER = ['id', 'name', 'description', 'createTime', 'updateTime',
+                            'groupKey', 'additionalGroupKeys', 'labels', 'parent', 'dynamicGroupMetadata']
 CIGROUP_TIME_OBJECTS = {'createTime', 'updateTime', 'statusTime'}
+
+def mapCIGroupFieldNames(group):
+  if 'groupKey' in group:
+    group['email'] = group['groupKey'].pop('id')
+    if not group['groupKey']:
+      group.pop('groupKey')
+  if 'name' in group:
+    group['id'] = group.pop('name')
+  if 'displayName' in group:
+    group['name'] = group.pop('displayName')
+
+def _showCIGroup(group, groupEmail, i=0, count=0):
+  printEntity([Ent.CLOUD_IDENTITY_GROUP, groupEmail], i, count)
+  mapCIGroupFieldNames(group)
+  Ind.Increment()
+  for key in CIGROUP_INFO_PRINT_ORDER:
+    if key not in group:
+      continue
+    value = group[key]
+    if isinstance(value, (list, dict)):
+      showJSON(key, value, timeObjects=CIGROUP_TIME_OBJECTS)
+    elif key not in CIGROUP_FIELDS_WITH_CRS_NLS:
+      if key not in CIGROUP_TIME_OBJECTS:
+        printKeyValueList([key, value])
+      else:
+        printKeyValueList([key, formatLocalTime(value)])
+    else:
+      printKeyValueWithCRsNLs(key, value)
+  Ind.Decrement()
 
 def infoGroups(entityList):
   def initGroupFieldsLists():
@@ -20423,6 +20510,7 @@ def infoGroups(entityList):
       groupFieldsLists['gs'] = []
 
   cd = buildGAPIObject(API.DIRECTORY)
+  ci = None
   getAliases = getUsers = True
   getCloudIdentity = getGroups = getSettings = False
   showDeprecatedAttributes = True
@@ -20517,21 +20605,21 @@ def infoGroups(entityList):
   count = len(entityList)
   for group in entityList:
     i += 1
-    group = normalizeEmailAddressOrUID(group)
+    ci, group = convertGroupCloudIDToEmail(ci, group, i, count)
     try:
       basic_info = callGAPI(cd.groups(), 'get',
                             throwReasons=GAPI.GROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
                             groupKey=group, fields=cdfields)
       group = basic_info['email']
       if getCloudIdentity:
-        _, name = convertGroupEmailToCloudID(ci, group, i, count)
+        _, name, _ = convertGroupEmailToCloudID(ci, group, i, count)
         if not name:
           continue
-        ci_info = callGAPI(ci.groups(), 'get',
+        cigInfo = callGAPI(ci.groups(), 'get',
                            throwReasons=GAPI.CIGROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
                            name=name, fields=cifields)
       else:
-        ci_info = {}
+        cigInfo = {}
       settings = {}
       if getSettings and not GroupIsAbuseOrPostmaster(group):
  # Use email address retrieved from cd since GS API doesn't support uid
@@ -20553,7 +20641,7 @@ def infoGroups(entityList):
             members.append(member)
       if FJQC.formatJSON:
         basic_info.update(settings)
-        basic_info['cloudIdentity'] = ci_info
+        basic_info['cloudIdentity'] = cigInfo
         if getGroups:
           basic_info['groups'] = groups
         if getUsers:
@@ -20562,23 +20650,8 @@ def infoGroups(entityList):
         continue
       printEntity([Ent.GROUP, group], i, count)
       Ind.Increment()
-      if ci_info:
-        printEntity([Ent.CLOUD_IDENTITY_GROUP, None])
-        Ind.Increment()
-        for key in CIGROUP_INFO_PRINT_ORDER:
-          if key not in ci_info:
-            continue
-          value = ci_info[key]
-          if isinstance(value, (list, dict)):
-            showJSON(key, value, timeObjects=CIGROUP_TIME_OBJECTS)
-          elif key not in CIGROUP_FIELDS_WITH_CRS_NLS:
-            if key not in CIGROUP_TIME_OBJECTS:
-              printKeyValueList([key, value])
-            else:
-              printKeyValueList([key, formatLocalTime(value)])
-          else:
-            printKeyValueWithCRsNLs(key, value)
-        Ind.Decrement()
+      if cigInfo:
+        _showCIGroup(cigInfo, None)
       printEntity([Ent.GROUP_SETTINGS, None])
       Ind.Increment()
       for key in GROUP_INFO_PRINT_ORDER:
@@ -20761,6 +20834,139 @@ def checkGroupMatchPatterns(groupEmail, group, matchPatterns):
           return False
   return True
 
+def initGroupMemberDisplayOptions():
+  return {'members': False, 'membersCountOnly': False,
+          'managers': False, 'managersCountOnly': False,
+          'owners': False, 'ownersCountOnly': False,
+          'totalCount': False}
+
+def getGroupRolesMemberDisplayOptions(myarg, rolesSet, memberDisplayOptions):
+  def setMemberDisplayOptionsRole():
+    if Ent.ROLE_MEMBER in rolesSet:
+      memberDisplayOptions['members'] = True
+    if Ent.ROLE_MANAGER in rolesSet:
+      memberDisplayOptions['managers'] = True
+    if Ent.ROLE_OWNER in rolesSet:
+      memberDisplayOptions['owners'] = True
+
+  if myarg in {'role', 'roles'}:
+    for role in getString(Cmd.OB_GROUP_ROLE_LIST).lower().replace(',', ' ').split():
+      if role in GROUP_ROLES_MAP:
+        rolesSet.add(GROUP_ROLES_MAP[role])
+      else:
+        invalidChoiceExit(role, GROUP_ROLES_MAP, True)
+    setMemberDisplayOptionsRole()
+  elif myarg in GROUP_ROLES_MAP:
+    rolesSet.add(GROUP_ROLES_MAP[myarg])
+    setMemberDisplayOptionsRole()
+  elif myarg in {'members', 'memberscount'}:
+    rolesSet.add(Ent.ROLE_MEMBER)
+    memberDisplayOptions['members'] = True
+    if myarg == 'memberscount':
+      memberDisplayOptions['membersCountOnly'] = True
+  elif myarg in {'managers', 'managerscount'}:
+    rolesSet.add(Ent.ROLE_MANAGER)
+    memberDisplayOptions['managers'] = True
+    if myarg == 'managerscount':
+      memberDisplayOptions['managersCountOnly'] = True
+  elif myarg in {'owners', 'ownerscount'}:
+    rolesSet.add(Ent.ROLE_OWNER)
+    memberDisplayOptions['owners'] = True
+    if myarg == 'ownerscount':
+      memberDisplayOptions['ownersCountOnly'] = True
+  elif myarg == 'totalcount':
+    memberDisplayOptions['totalCount'] = True
+  elif myarg == 'countsonly':
+    memberDisplayOptions['membersCountOnly'] = memberDisplayOptions['managersCountOnly'] = memberDisplayOptions['ownersCountOnly'] = True
+  else:
+    return False
+  return True
+
+def setMemberDisplayTitles(memberDisplayOptions, csvPF):
+  if memberDisplayOptions['totalCount']:
+    csvPF.AddTitles('TotalCount')
+  if memberDisplayOptions['members']:
+    csvPF.AddTitles('MembersCount')
+    if not memberDisplayOptions['membersCountOnly']:
+      csvPF.AddTitles('Members')
+  if memberDisplayOptions['managers']:
+    csvPF.AddTitles('ManagersCount')
+    if not memberDisplayOptions['managersCountOnly']:
+      csvPF.AddTitles('Managers')
+  if memberDisplayOptions['owners']:
+    csvPF.AddTitles('OwnersCount')
+    if not memberDisplayOptions['ownersCountOnly']:
+      csvPF.AddTitles('Owners')
+
+def setMemberDisplaySortTitles(memberDisplayOptions, sortTitles):
+  if memberDisplayOptions['totalCount']:
+    sortTitles.append('TotalCount')
+  if memberDisplayOptions['members']:
+    sortTitles.append('MembersCount')
+    if not memberDisplayOptions['membersCountOnly']:
+      sortTitles.append('Members')
+  if memberDisplayOptions['managers']:
+    sortTitles.append('ManagersCount')
+    if not memberDisplayOptions['managersCountOnly']:
+      sortTitles.append('Managers')
+  if memberDisplayOptions['owners']:
+    sortTitles.append('OwnersCount')
+    if not memberDisplayOptions['ownersCountOnly']:
+      sortTitles.append('Owners')
+
+def addMemberInfoToRow(row, groupMembers, typesSet, memberOptions, memberDisplayOptions, delimiter, isSuspended, ciGroupsAPI):
+  membersCount = managersCount = ownersCount = 0
+  if memberDisplayOptions['members']:
+    membersList = []
+  if memberDisplayOptions['managers']:
+    managersList = []
+  if memberDisplayOptions['owners']:
+    ownersList = []
+  checkMatch = checkMemberMatch if not ciGroupsAPI else checkCIMemberMatch
+  for member in groupMembers:
+    if not ciGroupsAPI:
+      member_email = member.get('email', member.get('id', None))
+    else:
+      member_email = member.get('memberKey', {}).get('id', member['name'])
+    if not member_email:
+      writeStderr(f' Not sure what to do with: {member}\n')
+      continue
+    if member['type'] in typesSet and (not ciGroupsAPI or _checkMemberIsSuspended(member, isSuspended)) and checkMatch(member, memberOptions):
+      role = member.get('role', Ent.ROLE_MEMBER)
+      if role == Ent.ROLE_MEMBER:
+        if memberDisplayOptions['members']:
+          membersCount += 1
+          if not memberDisplayOptions['membersCountOnly']:
+            membersList.append(member_email)
+      elif role == Ent.ROLE_MANAGER:
+        if memberDisplayOptions['managers']:
+          managersCount += 1
+          if not memberDisplayOptions['managersCountOnly']:
+            managersList.append(member_email)
+      elif role == Ent.ROLE_OWNER:
+        if memberDisplayOptions['owners']:
+          ownersCount += 1
+          if not memberDisplayOptions['ownersCountOnly']:
+            ownersList.append(member_email)
+      elif memberDisplayOptions['members']:
+        membersCount += 1
+        if not memberDisplayOptions['membersCountOnly']:
+          membersList.append(member_email)
+  if memberDisplayOptions['totalCount']:
+    row['TotalCount'] = membersCount+managersCount+ownersCount
+  if memberDisplayOptions['members']:
+    row['MembersCount'] = membersCount
+    if not memberDisplayOptions['membersCountOnly']:
+      row['Members'] = delimiter.join(membersList)
+  if memberDisplayOptions['managers']:
+    row['ManagersCount'] = managersCount
+    if not memberDisplayOptions['managersCountOnly']:
+      row['Managers'] = delimiter.join(managersList)
+  if memberDisplayOptions['owners']:
+    row['OwnersCount'] = ownersCount
+    if not memberDisplayOptions['ownersCountOnly']:
+      row['Owners'] = delimiter.join(ownersList)
+
 PRINT_GROUPS_JSON_TITLES = ['email', 'JSON']
 
 # gam print groups [todrive <ToDriveAttribute>*]
@@ -20806,7 +21012,7 @@ def doPrintGroups():
     if FJQC.formatJSON:
       row['email'] = groupEntity['email']
       row['JSON'] = json.dumps(groupEntity, ensure_ascii=False, sort_keys=True)
-      if memberRoles and groupMembers is not None:
+      if rolesSet and groupMembers is not None:
         row['JSON-members'] = json.dumps(groupMembers, ensure_ascii=False, sort_keys=True)
       if isinstance(groupSettings, dict):
         row['JSON-settings'] = json.dumps(groupSettings, ensure_ascii=False, sort_keys=True)
@@ -20823,54 +21029,8 @@ def doPrintGroups():
           row[field] = escapeCRsNLs(groupEntity[field])
         else:
           row[field] = groupEntity[field]
-    if groupMembers is not None:
-      membersCount = managersCount = ownersCount = 0
-      if members:
-        membersList = []
-      if managers:
-        managersList = []
-      if owners:
-        ownersList = []
-      for member in groupMembers:
-        member_email = member.get('email', member.get('id', None))
-        if not member_email:
-          writeStderr(f' Not sure what to do with: {member}\n')
-          continue
-        if member['type'] in typesSet and _checkMemberIsSuspended(member, isSuspended) and checkMemberMatch(member, memberOptions):
-          role = member.get('role', Ent.ROLE_MEMBER)
-          if role == Ent.ROLE_MEMBER:
-            if members:
-              membersCount += 1
-              if not membersCountOnly:
-                membersList.append(member_email)
-          elif role == Ent.ROLE_MANAGER:
-            if managers:
-              managersCount += 1
-              if not managersCountOnly:
-                managersList.append(member_email)
-          elif role == Ent.ROLE_OWNER:
-            if owners:
-              ownersCount += 1
-              if not ownersCountOnly:
-                ownersList.append(member_email)
-          elif members:
-            membersCount += 1
-            if not membersCountOnly:
-              membersList.append(member_email)
-      if totalCount:
-        row['TotalCount'] = membersCount+managersCount+ownersCount
-      if members:
-        row['MembersCount'] = membersCount
-        if not membersCountOnly:
-          row['Members'] = delimiter.join(membersList)
-      if managers:
-        row['ManagersCount'] = managersCount
-        if not managersCountOnly:
-          row['Managers'] = delimiter.join(managersList)
-      if owners:
-        row['OwnersCount'] = ownersCount
-        if not ownersCountOnly:
-          row['Owners'] = delimiter.join(ownersList)
+    if rolesSet and groupMembers is not None:
+      addMemberInfoToRow(row, groupMembers, typesSet, memberOptions, memberDisplayOptions, delimiter, isSuspended, False)
     if isinstance(groupSettings, dict):
       for key, value in iter(groupSettings.items()):
         if key not in {'kind', 'etag', 'email', 'name', 'description'}:
@@ -20881,17 +21041,14 @@ def doPrintGroups():
             row[key] = escapeCRsNLs(value)
           else:
             row[key] = value
-    groupCloudIdentity = ciGroups.get(row['email'], {})
-    if groupCloudIdentity:
-      labels = groupCloudIdentity.pop('labels', {})
-      if labels:
-        groupCloudIdentity['labels'] = []
-        for k, v in iter(labels.items()):
-          if not v:
-            groupCloudIdentity['labels'].append(k)
-          else:
-            groupCloudIdentity['labels'].append(f'{k}:{v}')
-      for key, value in sorted(iter(flattenJSON({'cloudIdentity': groupCloudIdentity}, flattened={}, timeObjects=CIGROUP_TIME_OBJECTS).items())):
+    groupCloudEntity = ciGroups.get(row['email'], {})
+    if groupCloudEntity:
+      for k, v in iter(groupCloudEntity.pop('labels', {}).items()):
+        if v == '':
+          groupCloudEntity[f'labels.{k}'] = True
+        else:
+          groupCloudEntity[f'labels.{k}'] = v
+      for key, value in sorted(iter(flattenJSON({'cloudIdentity': groupCloudEntity}, flattened={}, timeObjects=CIGROUP_TIME_OBJECTS).items())):
         csvPF.AddTitles(key)
         row[key] = value
     csvPF.WriteRow(row)
@@ -20991,10 +21148,12 @@ def doPrintGroups():
       del groupData[k]
 
   cd = buildGAPIObject(API.DIRECTORY)
+  ci = None
   kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
   convertCRNL = GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
-  getCloudIdentity = getSettings = members = membersCountOnly = managers = managersCountOnly = owners = ownersCountOnly = showCIgroupKey = sortHeaders = totalCount = False
+  getCloudIdentity = getSettings = showCIgroupKey = sortHeaders = False
+  memberDisplayOptions = initGroupMemberDisplayOptions()
   maxResults = None
   groupFieldsLists = {'cd': ['email'], 'ci': [], 'gs': []}
   csvPF = CSVPrintFile(groupFieldsLists['cd'])
@@ -21014,7 +21173,6 @@ def doPrintGroups():
     elif getGroupFilters(myarg, kwargs):
       if myarg == 'showownedby':
         showOwnedBy = setGroupShowOwnedBy(kwargs)
-        rolesSet.add(Ent.ROLE_OWNER)
     elif getGroupMatchPatterns(myarg, matchPatterns, False):
       pass
     elif myarg == 'select':
@@ -21079,36 +21237,12 @@ def doPrintGroups():
       for key, value in iter(matchBody.items()):
         matchSettings.setdefault(key, {'notvalues': [], 'values': []})
         matchSettings[key][valueList].append(value)
-    elif getGroupRoles(myarg, rolesSet):
-      if Ent.ROLE_MEMBER in rolesSet:
-        members = True
-      if Ent.ROLE_MANAGER in rolesSet:
-        managers = True
-      if Ent.ROLE_OWNER in rolesSet:
-        owners = True
-    elif myarg in {'members', 'memberscount'}:
-      rolesSet.add(Ent.ROLE_MEMBER)
-      members = True
-      if myarg == 'memberscount':
-        membersCountOnly = True
-    elif myarg in {'managers', 'managerscount'}:
-      rolesSet.add(Ent.ROLE_MANAGER)
-      managers = True
-      if myarg == 'managerscount':
-        managersCountOnly = True
-    elif myarg in {'owners', 'ownerscount'}:
-      rolesSet.add(Ent.ROLE_OWNER)
-      owners = True
-      if myarg == 'ownerscount':
-        ownersCountOnly = True
+    elif getGroupRolesMemberDisplayOptions(myarg, rolesSet, memberDisplayOptions):
+      pass
     elif getGroupTypes(myarg, typesSet):
       pass
     elif getMemberMatchOptions(myarg, memberOptions):
       pass
-    elif myarg == 'totalcount':
-      totalCount = True
-    elif myarg == 'countsonly':
-      membersCountOnly = managersCountOnly = ownersCountOnly = True
     elif myarg == 'includederivedmembership':
       memberOptions[MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP] = True
     else:
@@ -21134,31 +21268,22 @@ def doPrintGroups():
     setTrueCustomerId(cd)
     getCloudIdentity = True
     showCIgroupKey = 'groupKey' in groupFieldsLists['ci']
-    groupFieldsLists['ci'].append('groupKey(id)')
+    if not showCIgroupKey:
+      groupFieldsLists['ci'].append('groupKey(id)')
     cifields = ','.join(set(groupFieldsLists['ci']))
     cifieldsnp = f'nextPageToken,groups({cifields})'
     ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
-  memberRoles = ','.join(sorted(rolesSet)) if rolesSet else None
-  showDetails = memberRoles or getSettings or getCloudIdentity
-  if memberRoles:
-    if totalCount:
-      csvPF.AddTitles('TotalCount')
-    if members:
-      csvPF.AddTitles('MembersCount')
-      if not membersCountOnly:
-        csvPF.AddTitles('Members')
-    if managers:
-      csvPF.AddTitles('ManagersCount')
-      if not managersCountOnly:
-        csvPF.AddTitles('Managers')
-    if owners:
-      csvPF.AddTitles('OwnersCount')
-      if not ownersCountOnly:
-        csvPF.AddTitles('Owners')
+  getRolesSet = rolesSet.copy()
+  if showOwnedBy:
+    getRolesSet.add(Ent.ROLE_OWNER)
+  getRoles = ','.join(sorted(getRolesSet))
+  showDetails = getRoles or getSettings or getCloudIdentity
+  if rolesSet:
+    setMemberDisplayTitles(memberDisplayOptions, csvPF)
   if FJQC.formatJSON:
     sortHeaders = False
     csvPF.SetJSONTitles(PRINT_GROUPS_JSON_TITLES)
-    if memberRoles:
+    if rolesSet:
       csvPF.AddJSONTitle('JSON-members')
     if getSettings:
       csvPF.AddJSONTitle('JSON-settings')
@@ -21185,10 +21310,10 @@ def doPrintGroups():
       try:
         ciGroupList = callGAPIpages(ci.groups(), 'list', 'groups',
                                     pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute=['groupKey', 'id'],
-                                    throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
+                                    throwReasons=GAPI.CIGROUP_LIST_THROW_REASONS,
                                     parent=f'customers/{GC.Values[GC.CUSTOMER_ID]}', view='FULL',
                                     fields=cifieldsnp, pageSize=500)
-      except (GAPI.forbidden, GAPI.badRequest):
+      except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
         accessErrorExit(cd)
       for ciGroup in ciGroupList:
         key = ciGroup['groupKey']['id']
@@ -21217,8 +21342,8 @@ def doPrintGroups():
         cdbatch = cd.new_batch_http_request(callback=_callbackProcessGroupBasic)
         cdbcount = 0
       if getCloudIdentity:
+        _, name, groupEmail = convertGroupEmailToCloudID(ci, groupEmail, i, count)
         printGettingEntityItemForWhom(Ent.CLOUD_IDENTITY_GROUP, groupEmail, i, count)
-        _, name = convertGroupEmailToCloudID(ci, groupEmail, i, count)
         if name:
           try:
             ciGroup = callGAPI(ci.groups(), 'get',
@@ -21236,9 +21361,9 @@ def doPrintGroups():
     if cdbcount > 0:
       cdbatch.execute()
   required = 0
-  if memberRoles:
+  if getRoles:
     required += 1
-    svcargs = dict([('groupKey', None), ('roles', memberRoles), ('fields', 'nextPageToken,members(email,id,role,type,status)'),
+    svcargs = dict([('groupKey', None), ('roles', getRoles), ('fields', 'nextPageToken,members(email,id,role,type,status)'),
                     ('includeDerivedMembership', memberOptions[MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP]),
                     ('maxResults', GC.Values[GC.MEMBER_MAX_RESULTS])]+GM.Globals[GM.EXTRA_ARGS_LIST])
   if getSettings:
@@ -21263,11 +21388,11 @@ def doPrintGroups():
       _printGroupRow(groupEntity, None, None)
       continue
     groupData[i] = {'entity': groupEntity, 'cloudIdentity': {}, 'settings': getSettings, 'members': [], 'required': required}
-    if memberRoles:
-      printGettingEntityItemForWhom(memberRoles, groupEmail, i, count)
+    if getRoles:
+      printGettingEntityItemForWhom(getRoles, groupEmail, i, count)
       svcparms = svcargs.copy()
       svcparms['groupKey'] = groupEmail
-      cdbatch.add(cdmethod(**svcparms), request_id=batchRequestID(groupEmail, i, count, 0, 0, None, memberRoles))
+      cdbatch.add(cdmethod(**svcparms), request_id=batchRequestID(groupEmail, i, count, 0, 0, None, getRoles))
       cdbcount += 1
       if cdbcount >= GC.Values[GC.BATCH_SIZE]:
         executeBatch(cdbatch)
@@ -21304,32 +21429,32 @@ def doPrintGroups():
           sortTitles += sorted([attr[0] for attr in iter(GROUP_MERGED_TO_COMPONENT_MAP[key].values())])
       if not deprecatedAttributesSet:
         sortTitles += sorted([attr[0] for attr in iter(GROUP_DEPRECATED_ATTRIBUTES.values())])
-    if memberRoles:
-      if totalCount:
-        sortTitles.append('TotalCount')
-      if members:
-        sortTitles.append('MembersCount')
-        if not membersCountOnly:
-          sortTitles.append('Members')
-      if managers:
-        sortTitles.append('ManagersCount')
-        if not managersCountOnly:
-          sortTitles.append('Managers')
-      if owners:
-        sortTitles.append('OwnersCount')
-        if not ownersCountOnly:
-          sortTitles.append('Owners')
+    if rolesSet:
+      setMemberDisplaySortTitles(memberDisplayOptions, sortTitles)
     csvPF.SetSortTitles(sortTitles)
   csvPF.writeCSVfile('Groups')
+
+def mapCIGroupMemberFieldNames(member):
+  member['email'] = member['memberKey'].pop('id')
+  if not member['memberKey']:
+    member.pop('memberKey')
+  if 'name' in member:
+    member['id'] = member.pop('name')
 
 INFO_GROUPMEMBERS_FIELDS = ['role', 'type', 'status', 'delivery_settings']
 
 # gam <UserTypeEntity> info member <GroupEntity>
-def infoGroupMembers(entityList):
-  cd = buildGAPIObject(API.DIRECTORY)
+def infoGroupMembers(entityList, ciGroupsAPI=False):
+  if not ciGroupsAPI:
+    cd = buildGAPIObject(API.DIRECTORY)
+    ci = None
+    fieldsList = INFO_GROUPMEMBERS_FIELDS
+    fields = ','.join(fieldsList)
+  else:
+    ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
+  entityType = GROUP_CIGROUP_ENTITYTYPE_MAP[ciGroupsAPI]
   groups = getEntityList(Cmd.OB_GROUP_ENTITY)
   checkForExtraneousArguments()
-  fields = ','.join(INFO_GROUPMEMBERS_FIELDS)
   groupsLists = groups if isinstance(groups, dict) else None
   i, count, entityList = getEntityArgument(entityList)
   for user in entityList:
@@ -21338,31 +21463,80 @@ def infoGroupMembers(entityList):
     if groupsLists:
       groups = groupsLists[user]
     jcount = len(groups)
-    entityPerformActionNumItems([Ent.MEMBER, memberKey], jcount, Ent.GROUP, i, count)
+    entityPerformActionNumItems([Ent.MEMBER, memberKey], jcount, entityType, i, count)
     Ind.Increment()
     j = 0
     for group in groups:
       j += 1
-      groupKey = normalizeEmailAddressOrUID(group)
-      try:
-        result = callGAPI(cd.members(), 'get',
-                          throwReasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND], retryReasons=GAPI.MEMBERS_RETRY_REASONS,
-                          groupKey=groupKey, memberKey=memberKey, fields=fields)
-        result.setdefault('role', Ent.ROLE_MEMBER)
-        printEntity([Ent.GROUP, groupKey], j, jcount)
-        Ind.Increment()
-        for field in INFO_GROUPMEMBERS_FIELDS:
-          printKeyValueList([field, result[field]])
-        Ind.Decrement()
-      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
-        entityActionFailedWarning([Ent.GROUP, group], str(e), j, jcount)
-      except GAPI.memberNotFound:
-        entityActionFailedWarning([Ent.GROUP, group], Msg.NOT_AN_ENTITY.format(Ent.Singular(Ent.MEMBER)), j, jcount)
+      if not ciGroupsAPI:
+        try:
+          ci, groupKey = convertGroupCloudIDToEmail(ci, group, i, count)
+          result = callGAPI(cd.members(), 'get',
+                            throwReasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND], retryReasons=GAPI.MEMBERS_RETRY_REASONS,
+                            groupKey=groupKey, memberKey=memberKey, fields=fields)
+          result.setdefault('role', Ent.ROLE_MEMBER)
+          printEntity([entityType, groupKey], j, jcount)
+          Ind.Increment()
+          for field in INFO_GROUPMEMBERS_FIELDS:
+            printKeyValueList([field, result[field]])
+          Ind.Decrement()
+        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
+          entityActionFailedWarning([entityType, group], str(e), j, jcount)
+        except GAPI.memberNotFound:
+          entityActionFailedWarning([entityType, group, Ent.MEMBER, memberKey], Msg.NOT_AN_ENTITY.format(Ent.Singular(Ent.MEMBER)), j, jcount)
+      else:
+        _, groupKey, group = convertGroupEmailToCloudID(ci, group, j, jcount)
+        if not groupKey:
+          continue
+        try:
+          memberName = callGAPI(ci.groups().memberships(), 'lookup',
+                                throwReasons=GAPI.GROUP_GET_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                                parent=groupKey, memberKey_id=memberKey, fields='name').get('name')
+          result = callGAPI(ci.groups().memberships(), 'get',
+                            name=memberName)
+          printEntity([entityType, group], j, jcount)
+          Ind.Increment()
+          getCIGroupMemberRole(result)
+          kvList = ['role', result['role']]
+          if 'expireTime' in result:
+            kvList.extend(['expireTime', formatLocalTime(result['expireTime'])])
+          printKeyValueList(kvList)
+          printKeyValueList(['type', result['type']])
+          for field in ['createTime', 'updateTime']:
+            printKeyValueList([field, formatLocalTime(result[field])])
+          Ind.Decrement()
+        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
+          entityActionFailedWarning([entityType, groupKey], str(e), j, jcount)
+        except (GAPI.notFound, GAPI.memberNotFound, GAPI.permissionDenied):
+          entityActionFailedWarning([entityType, groupKey, Ent.MEMBER, memberKey], Msg.NOT_AN_ENTITY.format(Ent.Singular(Ent.MEMBER)), j, jcount)
     Ind.Decrement()
 
 # gam info member <UserTypeEntity> <GroupEntity>
 def doInfoGroupMembers():
-  infoGroupMembers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)[1])
+  infoGroupMembers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)[1], False)
+
+def getGroupMembersEntityList(cd, entityList, matchPatterns, fieldsList, kwargs):
+  if entityList is None:
+    updateFieldsForGroupMatchPatterns(matchPatterns, fieldsList)
+    subTitle = groupFilters(kwargs)
+    printGettingAllAccountEntities(Ent.GROUP, subTitle)
+    try:
+      entityList = callGAPIpages(cd.groups(), 'list', 'groups',
+                                 pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute='email',
+                                 throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
+                                 orderBy='email', fields=f'nextPageToken,groups({",".join(set(fieldsList))})', **kwargs)
+    except (GAPI.invalidMember, GAPI.invalidInput):
+      invalidMember(kwargs)
+      entityList = []
+    except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
+      if kwargs.get('domain'):
+        badRequestWarning(Ent.GROUP, Ent.DOMAIN, kwargs['domain'])
+        entityList = []
+      else:
+        accessErrorExit(cd)
+  else:
+    clearUnneededGroupMatchPatterns(matchPatterns)
+  return entityList
 
 def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, count, memberOptions, level, typesSet):
   def _getMemberDeliverySettings(member):
@@ -21492,6 +21666,7 @@ def doPrintGroupMembers():
     return ''
 
   cd = buildGAPIObject(API.DIRECTORY)
+  ci = None
   people = None
   peopleNames = {}
   memberOptions = initMemberOptions()
@@ -21513,11 +21688,10 @@ def doPrintGroupMembers():
     elif getGroupFilters(myarg, kwargs):
       if myarg == 'showownedby':
         showOwnedBy = setGroupShowOwnedBy(kwargs)
-        rolesSet.add(Ent.ROLE_OWNER)
     elif getGroupMatchPatterns(myarg, matchPatterns, False):
       pass
     elif myarg in {'group', 'groupns', 'groupsusp'}:
-      entityList = [getEmailAddress()]
+      entityList = [getString(Cmd.OB_EMAIL_ADDRESS)]
       subTitle = f'{Ent.Singular(Ent.GROUP)}={entityList[0]}'
       if myarg == 'groupns':
         memberOptions[MEMBEROPTION_ISSUSPENDED] = False
@@ -21562,26 +21736,7 @@ def doPrintGroupMembers():
       unknownArgumentExit()
   if not typesSet:
     typesSet = {Ent.TYPE_USER} if memberOptions[MEMBEROPTION_RECURSIVE] else ALL_GROUP_TYPES
-  if entityList is None:
-    updateFieldsForGroupMatchPatterns(matchPatterns, cdfieldsList)
-    subTitle = groupFilters(kwargs)
-    printGettingAllAccountEntities(Ent.GROUP, subTitle)
-    try:
-      entityList = callGAPIpages(cd.groups(), 'list', 'groups',
-                                 pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute='email',
-                                 throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
-                                 orderBy='email', fields=f'nextPageToken,groups({",".join(set(cdfieldsList))})', **kwargs)
-    except (GAPI.invalidMember, GAPI.invalidInput):
-      invalidMember(kwargs)
-      entityList = []
-    except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
-      if kwargs.get('domain'):
-        badRequestWarning(Ent.GROUP, Ent.DOMAIN, kwargs['domain'])
-        entityList = []
-      else:
-        accessErrorExit(cd)
-  else:
-    clearUnneededGroupMatchPatterns(matchPatterns)
+  entityList = getGroupMembersEntityList(cd, entityList, matchPatterns, cdfieldsList, kwargs)
   if not fieldsList:
     for field in GROUPMEMBERS_DEFAULT_FIELDS:
       csvPF.AddField(field, {field: field}, fieldsList)
@@ -21602,7 +21757,12 @@ def doPrintGroupMembers():
     csvPF.RemoveTitles(['name.fullName'])
   memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS] = 'delivery_settings' in fieldsList
   userFields = getFieldsFromFieldsList(userFieldsList)
-  memberRoles = ','.join(sorted(rolesSet)) if rolesSet else None
+  if not rolesSet:
+    rolesSet = ALL_GROUP_ROLES
+  getRolesSet = rolesSet.copy()
+  if showOwnedBy:
+    getRolesSet.add(Ent.ROLE_OWNER)
+  getRoles = ','.join(sorted(getRolesSet))
   level = 0
   customerKey = GC.Values[GC.CUSTOMER_ID]
   setCustomerMemberEmail = 'email' in fieldsList
@@ -21613,15 +21773,18 @@ def doPrintGroupMembers():
     if isinstance(group, dict):
       groupEmail = group['email']
     else:
-      groupEmail = convertUIDtoEmailAddress(group, cd, 'group')
+      groupEmail = convertUIDtoEmailAddress(group, cd, 'group', ciGroupsAPI=True)
+      ci, groupEmail = convertGroupCloudIDToEmail(ci, groupEmail, i, count)
     if not checkGroupMatchPatterns(groupEmail, group, matchPatterns):
       continue
     membersList = []
     membersSet = set()
-    getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, count, memberOptions, level, typesSet)
+    getGroupMembers(cd, groupEmail, getRoles, membersList, membersSet, i, count, memberOptions, level, typesSet)
     if showOwnedBy and not checkGroupShowOwnedBy(showOwnedBy, membersList):
       continue
     for member in membersList:
+      if member['role'] not in rolesSet:
+        continue
       memberId = member['id']
       row = {}
       if groupColumn:
@@ -21727,6 +21890,7 @@ def doShowGroupMembers():
       Ind.Decrement()
 
   cd = buildGAPIObject(API.DIRECTORY)
+  ci = None
   customerKey = GC.Values[GC.CUSTOMER_ID]
   kwargs = {'customer': customerKey}
   entityList = showOwnedBy = None
@@ -21742,11 +21906,10 @@ def doShowGroupMembers():
     if getGroupFilters(myarg, kwargs):
       if myarg == 'showownedby':
         showOwnedBy = setGroupShowOwnedBy(kwargs)
-        rolesSet.add(Ent.ROLE_OWNER)
     elif getGroupMatchPatterns(myarg, matchPatterns, False):
       pass
     elif myarg in {'group', 'groupns', 'groupsusp'}:
-      entityList = [getEmailAddress()]
+      entityList = [getString(Cmd.OB_EMAIL_ADDRESS)]
       if myarg == 'groupns':
         memberOptions[MEMBEROPTION_ISSUSPENDED] = False
       elif myarg == 'groupsusp':
@@ -21771,35 +21934,16 @@ def doShowGroupMembers():
     rolesSet = ALL_GROUP_ROLES
   if not typesSet:
     typesSet = ALL_GROUP_TYPES
-  if entityList is None:
-    updateFieldsForGroupMatchPatterns(matchPatterns, cdfieldsList)
-    printGettingAllAccountEntities(Ent.GROUP, groupFilters(kwargs))
-    try:
-      groupsList = callGAPIpages(cd.groups(), 'list', 'groups',
-                                 pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute='email',
-                                 throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
-                                 orderBy='email', fields=f'nextPageToken,groups({",".join(set(cdfieldsList))})', **kwargs)
-    except (GAPI.invalidMember, GAPI.invalidInput):
-      invalidMember(kwargs)
-      return
-    except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
-      if kwargs.get('domain'):
-        badRequestWarning(Ent.GROUP, Ent.DOMAIN, kwargs['domain'])
-        return
-      accessErrorExit(cd)
-  else:
-    clearUnneededGroupMatchPatterns(matchPatterns)
-    groupsList = []
-    for group in entityList:
-      if isinstance(group, dict):
-        groupsList.append({'email': group['email']})
-      else:
-        groupsList.append({'email': convertUIDtoEmailAddress(group, cd, 'group')})
+  entityList = getGroupMembersEntityList(cd, entityList, matchPatterns, cdfieldsList, kwargs)
   i = 0
-  count = len(groupsList)
-  for group in groupsList:
+  count = len(entityList)
+  for group in entityList:
     i += 1
-    groupEmail = group['email']
+    if isinstance(group, dict):
+      groupEmail = group['email']
+    else:
+      groupEmail = convertUIDtoEmailAddress(group, cd, 'group', ciGroupsAPI=True)
+      ci, groupEmail = convertGroupCloudIDToEmail(ci, groupEmail, i, count)
     if checkGroupMatchPatterns(groupEmail, group, matchPatterns):
       _showGroup(groupEmail, 0)
 
@@ -21877,14 +22021,1357 @@ def doPrintShowGroupTree():
 def doCreateCIGroup():
   doCreateGroup(ciGroupsAPI=True)
 
+# gam update cigroups <GroupEntity> [email <EmailAddress>]
+#	[copyfrom <GroupItem>] <GroupAttribute>*
+#	[security|makesecuritygroup]
+# gam update cigroups <GroupEntity> create|add [<GroupRole>]
+#	[usersonly|groupsonly] [notsuspended|suspended]
+#	[expire|expires <Time>] [preview] [actioncsv]
+#	<UserTypeEntity>
+# gam update cigroups <GroupEntity> delete|remove [<GroupRole>]
+#	[usersonly|groupsonly] [notsuspended|suspended] [preview] [actioncsv]
+#	<UserTypeEntity>
+# gam update cigroups <GroupEntity> sync [<GroupRole>]
+#	[usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended]
+#	[expire|expires <Time>] [preview] [actioncsv]
+#	<UserTypeEntity>
+# gam update cigroups <GroupEntity> update [<GroupRole>]
+#	[usersonly|groupsonly] [notsuspended|suspended]
+#	[expire|expires <Time>] [preview] [actioncsv]
+#	<UserTypeEntity>
+# gam update cigroups <GroupEntity> clear [member] [manager] [owner]
+#	[usersonly|groupsonly]
+#	[emailclearpattern|emailretainpattern <RegularExpression>]
+#	[preview] [actioncsv]
+def doUpdateCIGroups():
+
+  def _getExpireTime(role):
+    if role == Ent.ROLE_MEMBER and checkArgumentPresent(['expire', 'expires']):
+      return getTimeOrDeltaFromNow()
+    return None
+
+  def _getPreviewActionCSV():
+    preview = checkArgumentPresent('preview')
+    if checkArgumentPresent('actioncsv'):
+      csvPF = CSVPrintFile(GROUP_PREVIEW_TITLES)
+    else:
+      csvPF = None
+    return (preview, csvPF)
+
+  def _validateSubkeyRoleGetMembers(group, role, origGroup, groupMemberLists, i, count):
+    roleLower = role.lower()
+    if roleLower in GROUP_ROLES_MAP:
+      return (GROUP_ROLES_MAP[roleLower], groupMemberLists[origGroup][role])
+    entityActionNotPerformedWarning([entityType, group, Ent.ROLE, role], Msg.INVALID_ROLE.format(','.join(sorted(GROUP_ROLES_MAP))), i, count)
+    return (None, None)
+
+  def _getRoleGroupMemberType(defaultRole=Ent.ROLE_MEMBER):
+    role = getChoice(GROUP_ROLES_MAP, defaultChoice=defaultRole, mapChoice=True)
+    groupMemberType = getChoice({'usersonly': Ent.TYPE_USER, 'groupsonly': Ent.TYPE_GROUP}, defaultChoice='ALL', mapChoice=True)
+    return (role, groupMemberType)
+
+  def _getMemberEmail(member):
+    if member['type'] == Ent.TYPE_CUSTOMER:
+      return member['id']
+    return member.get('memberKey', {}).get('id', '')
+
+  def checkDynamicGroup(ci, group, i, count):
+    try:
+      result = callGAPI(ci.groups(), 'get',
+                        throwReasons=GAPI.CIGROUP_GET_THROW_REASONS,
+                        retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
+                        name=group, fields='labels')
+      if 'cloudidentity.googleapis.com/groups.dynamic' in result.get('labels', {}):
+        entityActionNotPerformedWarning([entityType, group], Msg.DYNAMIC_GROUP_MEMBERSHIP_CANNOT_BE_MODIFIED, i, count)
+        return True
+      return False
+    except (GAPI.notFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
+            GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
+            GAPI.systemError, GAPI.permissionDenied):
+      return True
+
+# Convert foo@googlemail.com to foo@gmail.com; eliminate periods in name for foo.bar@gmail.com
+  def _cleanConsumerAddress(emailAddress, mapCleanToOriginal):
+    atLoc = emailAddress.find('@')
+    if atLoc > 0:
+      if emailAddress[atLoc+1:] in {'gmail.com', 'googlemail.com'}:
+        cleanEmailAddress = emailAddress[:atLoc].replace('.', '')+'@gmail.com'
+        if cleanEmailAddress != emailAddress:
+          mapCleanToOriginal[cleanEmailAddress] = emailAddress
+          return cleanEmailAddress
+    return emailAddress
+
+  def _previewAction(group, members, role, jcount, action):
+    Ind.Increment()
+    j = 0
+    for member in members:
+      j += 1
+      entityActionPerformed([entityType, group, role, member], j, jcount)
+    Ind.Decrement()
+    if csvPF:
+      for member in members:
+        csvPF.WriteRow({'group': group, 'email': member, 'role': role, 'action': Act.PerformedName(action), 'message': Act.PREVIEW})
+
+  def _showSuccess(group, member, role, expireTime, j, jcount, optMsg=None):
+    kvList = []
+    if role is not None and role != 'None':
+      kvList.append(f'{Ent.Singular(Ent.ROLE)}: {role}')
+    if expireTime:
+      kvList.extend(['expireTime', formatLocalTime(expireTime)])
+    if optMsg:
+      kvList.append(optMsg)
+    entityActionPerformedMessage([entityType, group, Ent.MEMBER, member], ', '.join(kvList), j, jcount)
+    if csvPF:
+      csvPF.WriteRow({'group': group, 'email': member, 'role': role, 'action': Act.Performed(), 'message': Act.SUCCESS})
+
+  def _showFailure(group, member, role, errMsg, j, jcount):
+    entityActionFailedWarning([entityType, group, Ent.MEMBER, member], errMsg, j, jcount)
+    if csvPF:
+      csvPF.WriteRow({'group': group, 'email': member, 'role': role, 'action': Act.Failed(), 'message': errMsg})
+
+  def _batchAddGroupMembers(group, i, count, addMembers, role, expireTime):
+    Act.Set([Act.ADD, Act.ADD_PREVIEW][preview])
+    jcount = len(addMembers)
+    entityPerformActionNumItems([entityType, group], jcount, role, i, count)
+    if jcount == 0:
+      return
+    if preview:
+      _previewAction(group, addMembers, role, jcount, Act.ADD)
+      return
+    Ind.Increment()
+    j = 0
+    for member in addMembers:
+      j += 1
+      body = {'memberKey': {'id': member}, 'roles': [{'name': Ent.ROLE_MEMBER}]}
+      if role != Ent.ROLE_MEMBER:
+        body['roles'].append({'name': role})
+      elif expireTime not in {None, NEVER_TIME}:
+        body['roles'][0]['expiryDetail'] = {'expireTime': expireTime}
+      try:
+        callGAPI(ci.groups().memberships(), 'create',
+                 throwReasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.DUPLICATE, GAPI.MEMBER_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND,
+                                                          GAPI.INVALID_MEMBER, GAPI.CYCLIC_MEMBERSHIPS_NOT_ALLOWED,
+                                                          GAPI.CONDITION_NOT_MET, GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED,
+                                                          GAPI.ALREADY_EXISTS, GAPI.CONFLICT],
+                 parent=group, body=body, fields='')
+        _showSuccess(group, member, role, expireTime, j, jcount)
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+        entityUnknownWarning(entityType, group, i, count)
+      except (GAPI.duplicate, GAPI.memberNotFound, GAPI.resourceNotFound,
+              GAPI.invalidMember, GAPI.cyclicMembershipsNotAllowed, GAPI.conditionNotMet,
+              GAPI.failedPrecondition, GAPI.permissionDenied, GAPI.alreadyExists) as e:
+        _showFailure(group, member, role, str(e), j, jcount)
+      except GAPI.conflict:
+        _showSuccess(group, member, role, expireTime, j, jcount, Msg.ACTION_MAY_BE_DELAYED)
+    Ind.Decrement()
+
+  def _batchRemoveGroupMembers(group, i, count, removeMembers, role):
+    Act.Set([Act.REMOVE, Act.REMOVE_PREVIEW][preview])
+    jcount = len(removeMembers)
+    entityPerformActionNumItems([entityType, group], jcount, role, i, count)
+    if jcount == 0:
+      return
+    if preview:
+      _previewAction(group, removeMembers, role, jcount, Act.REMOVE)
+      return
+    Ind.Increment()
+    j = 0
+    for member in removeMembers:
+      j += 1
+      memberEmail = member['email']
+      try:
+        callGAPI(ci.groups().memberships(), 'delete',
+                 throwReasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.FAILED_PRECONDITION],
+                 name=member['name'])
+        _showSuccess(group, memberEmail, role, None, j, jcount)
+      except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
+        _showFailure(group, memberEmail, role, str(e), j, jcount)
+    Ind.Decrement()
+
+  cd = buildGAPIObject(API.DIRECTORY)
+  ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
+  entityType = Ent.CLOUD_IDENTITY_GROUP
+  csvPF = None
+  getBeforeUpdate = preview = False
+  entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
+  CL_subCommand = getChoice(UPDATE_GROUP_SUBCMDS, defaultChoice=None)
+  if not CL_subCommand:
+    gs_body = {}
+    ci_body = {}
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if myarg == 'email':
+        ci_body['groupKey'] = {'id': getEmailAddress(noUid=True)}
+      elif myarg == 'getbeforeupdate':
+        getBeforeUpdate = True
+      elif myarg in {'security', 'makesecuritygroup'}:
+        ci_body['labels'] = {'cloudidentity.googleapis.com/groups.discussion_forum': '',
+                             'cloudidentity.googleapis.com/groups.security': ''}
+      elif myarg == 'json':
+        gs_body.update(getJSON(GROUP_JSON_SKIP_FIELDS))
+      else:
+        getGroupAttrValue(myarg, gs_body)
+    ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
+    if gs_body:
+      gs = buildGAPIObject(API.GROUPSSETTINGS)
+      gs_body = getSettingsFromGroup(cd, ','.join(entityList), gs, gs_body)
+      for k, v in iter(GROUP_CIGROUP_FIELDS_MAP.items()):
+        if k in gs_body:
+          ci_body[v] = gs_body.pop(k)
+      if gs_body:
+        if not getBeforeUpdate:
+          settings = gs_body
+      elif not ci_body:
+        return
+    elif not ci_body:
+      return
+    Act.Set(Act.UPDATE)
+    i = 0
+    count = len(entityList)
+    for group in entityList:
+      i += 1
+      ci, group = convertGroupCloudIDToEmail(ci, group, i, count)
+      if gs_body and not GroupIsAbuseOrPostmaster(group):
+        try:
+          if group.find('@') == -1: # group settings API won't take uid so we make sure cd API is used so that we can grab real email.
+            group = callGAPI(cd.groups(), 'get',
+                             throwReasons=GAPI.GROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
+                             groupKey=group, fields='email')['email']
+          if getBeforeUpdate:
+            settings = callGAPI(gs.groups(), 'get',
+                                throwReasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retryReasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
+                                groupUniqueId=mapGroupEmailForSettings(group), fields='*')
+            settings.update(gs_body)
+          if not checkReplyToCustom(group, settings, i, count):
+            continue
+        except GAPI.notFound:
+          entityActionFailedWarning([entityType, group], Msg.DOES_NOT_EXIST, i, count)
+          continue
+        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+                GAPI.backendError, GAPI.invalid, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
+                GAPI.systemError, GAPI.serviceLimit, GAPI.serviceNotAvailable) as e:
+          entityActionFailedWarning([entityType, group], str(e), i, count)
+          continue
+      if gs_body and not GroupIsAbuseOrPostmaster(group):
+        try:
+          callGAPI(gs.groups(), 'update',
+                   throwReasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retryReasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
+                   groupUniqueId=mapGroupEmailForSettings(group), body=settings, fields='')
+        except GAPI.notFound:
+          entityActionFailedWarning([entityType, group], Msg.DOES_NOT_EXIST, i, count)
+          continue
+        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+                GAPI.backendError, GAPI.invalid, GAPI.invalidAttributeValue, GAPI.invalidInput, GAPI.badRequest, GAPI.permissionDenied,
+                GAPI.systemError, GAPI.serviceLimit, GAPI.serviceNotAvailable) as e:
+          entityActionFailedWarning([entityType, group], str(e), i, count)
+          continue
+        except GAPI.required:
+          entityActionFailedWarning([entityType, group], Msg.INVALID_JSON_SETTING, i, count)
+          continue
+      if ci_body:
+        _, name, _ = convertGroupEmailToCloudID(ci, group, i, count)
+        if not name:
+          continue
+        try:
+          callGAPI(ci.groups(), 'patch',
+                   throwReasons=GAPI.CIGROUP_UPDATE_THROW_REASONS,
+                   name=name, body=ci_body, updateMask=','.join(list(ci_body.keys())))
+        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalid, GAPI.invalidInput,
+                GAPI.systemError, GAPI.permissionDenied, GAPI.failedPrecondition) as e:
+          entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, group], str(e), i, count)
+          continue
+      entityActionPerformed([entityType, group], i, count)
+  elif CL_subCommand in {'create', 'add'}:
+    baseRole, groupMemberType = _getRoleGroupMemberType()
+    isSuspended = _getOptionalIsSuspended()
+    expireTime = _getExpireTime(baseRole)
+    preview, csvPF = _getPreviewActionCSV()
+    _, addMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
+    groupMemberLists = addMembers if isinstance(addMembers, dict) else None
+    subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
+    checkForExtraneousArguments()
+    i = 0
+    count = len(entityList)
+    for group in entityList:
+      i += 1
+      roleList = [baseRole]
+      if groupMemberLists:
+        if not subkeyRoleField:
+          addMembers = groupMemberLists[group]
+        else:
+          roleList = groupMemberLists[group]
+      origGroup = group
+      _, parent, group = checkGroupExists(cd, ci, True, group, i, count)
+      if not group or checkDynamicGroup(ci, parent, i, count):
+        continue
+      for role in roleList:
+        if groupMemberLists and subkeyRoleField:
+          role, addMembers = _validateSubkeyRoleGetMembers(group, role, origGroup, groupMemberLists, i, count)
+          if role is None:
+            continue
+        _batchAddGroupMembers(parent, i, count,
+                              [convertUIDtoEmailAddress(member, cd=cd, emailTypes='any',
+                                                        checkForCustomerId=True) for member in addMembers],
+                              role, expireTime)
+  elif CL_subCommand in {'delete', 'remove'}:
+    baseRole, groupMemberType = _getRoleGroupMemberType()
+    isSuspended = _getOptionalIsSuspended()
+    preview, csvPF = _getPreviewActionCSV()
+    _, removeMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
+    groupMemberLists = removeMembers if isinstance(removeMembers, dict) else None
+    subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
+    checkForExtraneousArguments()
+    i = 0
+    count = len(entityList)
+    for group in entityList:
+      i += 1
+      roleList = [baseRole]
+      if groupMemberLists:
+        if not subkeyRoleField:
+          removeMembers = groupMemberLists[group]
+        else:
+          roleList = groupMemberLists[group]
+      origGroup = group
+      _, parent, group = checkGroupExists(cd, ci, True, group, i, count)
+      if not group or checkDynamicGroup(ci, parent, i, count):
+        continue
+      for role in roleList:
+        if groupMemberLists and subkeyRoleField:
+          role, removeMembers = _validateSubkeyRoleGetMembers(group, role, origGroup, groupMemberLists, i, count)
+          if role is None:
+            continue
+        Act.Set([Act.DELETE, Act.DELETE_PREVIEW][preview])
+        jcount = len(removeMembers)
+        entityPerformActionNumItems([entityType, group], jcount, Ent.MEMBER, i, count)
+        if jcount == 0:
+          continue
+        if preview:
+          _previewAction(group, removeMembers, role or Ent.ROLE_USER, jcount, Act.DELETE)
+          continue
+        Ind.Increment()
+        j = 0
+        for member in removeMembers:
+          j += 1
+          memberEmail = convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True)
+          try:
+            memberName = callGAPI(ci.groups().memberships(), 'lookup',
+                                  throwReasons=GAPI.GROUP_GET_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                                  parent=parent, memberKey_id=member, fields='name').get('name')
+            callGAPI(ci.groups().memberships(), 'delete',
+                     throwReasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.FAILED_PRECONDITION],
+                     name=memberName)
+            _showSuccess(group, memberEmail, role, None, j, jcount)
+          except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden,
+                  GAPI.notFound, GAPI.memberNotFound, GAPI.permissionDenied, GAPI.invalidMember, GAPI.failedPrecondition) as e:
+            _showFailure(group, memberEmail, role, str(e), j, jcount)
+        Ind.Decrement()
+  elif CL_subCommand == 'sync':
+    baseRole, groupMemberType = _getRoleGroupMemberType()
+    syncOperation = getSyncOperation()
+    isSuspended = _getOptionalIsSuspended()
+    expireTime = _getExpireTime(baseRole)
+    preview, csvPF = _getPreviewActionCSV()
+    _, syncMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
+    groupMemberLists = syncMembers if isinstance(syncMembers, dict) else None
+    subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
+    syncMembersSets = {}
+    syncMembersMaps = {}
+    currentMembersSets = {}
+    currentMembersMaps = {}
+    if groupMemberLists is None:
+      syncMembersSets[baseRole] = set()
+      syncMembersMaps[baseRole] = {}
+      for member in syncMembers:
+        syncMembersSets[baseRole].add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailTypes='any',
+                                                                                     checkForCustomerId=True), syncMembersMaps[baseRole]))
+    checkForExtraneousArguments()
+    i = 0
+    count = len(entityList)
+    for group in entityList:
+      i += 1
+      origGroup = group
+      _, parent, group = checkGroupExists(cd, ci, True, group, i, count)
+      if not group or checkDynamicGroup(ci, parent, i, count):
+        continue
+      if groupMemberLists is None:
+        roleList = [baseRole]
+      else:
+        if not subkeyRoleField:
+          roleList = [baseRole]
+        else:
+          roleList = groupMemberLists[origGroup]
+        for role in roleList:
+          role = role.upper()
+          syncMembersSets[role] = set()
+          syncMembersMaps[role] = {}
+      rolesSet = set()
+      for role in roleList:
+        origRole = role
+        role = role.upper()
+        if groupMemberLists is None:
+          rolesSet.add(role)
+        else:
+          if not subkeyRoleField:
+            rolesSet.add(role)
+            syncMembers = groupMemberLists[origGroup]
+          else:
+            role, syncMembers = _validateSubkeyRoleGetMembers(group, origRole, origGroup, groupMemberLists, i, count)
+            if role is None:
+              continue
+            rolesSet.add(role)
+          for member in syncMembers:
+            syncMembersSets[role].add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailTypes='any',
+                                                                                     checkForCustomerId=True), syncMembersMaps[role]))
+      if not rolesSet:
+        continue
+      memberRoles = ','.join(sorted(rolesSet))
+      printGettingAllEntityItemsForWhom(memberRoles, group, entityType=entityType)
+      try:
+        result = callGAPIpages(ci.groups().memberships(), 'list', 'memberships',
+                               pageMessage=getPageMessageForWhom(),
+                               throwReasons=GAPI.MEMBERS_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
+                               parent=parent, view='FULL',
+                               fields='nextPageToken,memberships(name,memberKey(id),roles(name),type)',
+                               pageSize=GC.Values[GC.MEMBER_MAX_RESULTS])
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+        entityUnknownWarning(Ent.CLOUD_IDENTITY_GROUP, group)
+        continue
+      currentMembersNames = {}
+      for role in rolesSet:
+        currentMembersSets[role] = set()
+        currentMembersMaps[role] = {}
+      for member in result:
+        getCIGroupMemberRole(member)
+        role = member['role']
+        email = member.get('memberKey', {}).get('id', '')
+        if groupMemberType in ('ALL', member['type']) and role in rolesSet:
+          cleanAddress = _cleanConsumerAddress(email, currentMembersMaps[role])
+          currentMembersSets[role].add(cleanAddress)
+          currentMembersNames[cleanAddress] = member['name']
+      del result
+      if syncOperation != 'removeonly':
+        for role in [Ent.ROLE_OWNER, Ent.ROLE_MANAGER, Ent.ROLE_MEMBER]:
+          if role in rolesSet:
+            _batchAddGroupMembers(parent, i, count,
+                                  [syncMembersMaps[role].get(emailAddress, emailAddress) for emailAddress in syncMembersSets[role]-currentMembersSets[role]],
+                                  role, expireTime)
+      if syncOperation != 'addonly':
+        for role in rolesSet:
+          _batchRemoveGroupMembers(parent, i, count,
+                                   [{'name': currentMembersNames[emailAddress],
+                                     'email': currentMembersMaps[role].get(emailAddress, emailAddress)} for emailAddress in currentMembersSets[role]-syncMembersSets[role]],
+                                   role)
+  elif CL_subCommand == 'update':
+    baseRole, groupMemberType = _getRoleGroupMemberType()
+    isSuspended = _getOptionalIsSuspended()
+    expireTime = _getExpireTime(baseRole)
+    preview, csvPF = _getPreviewActionCSV()
+    _, updateMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
+    groupMemberLists = updateMembers if isinstance(updateMembers, dict) else None
+    subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
+    checkForExtraneousArguments()
+    i = 0
+    count = len(entityList)
+    for group in entityList:
+      i += 1
+      roleList = [baseRole]
+      if groupMemberLists:
+        if not subkeyRoleField:
+          updateMembers = groupMemberLists[group]
+        else:
+          roleList = groupMemberLists[group]
+      origGroup = group
+      _, parent, group = checkGroupExists(cd, ci, True, group, i, count)
+      if not group or checkDynamicGroup(ci, parent, i, count):
+        continue
+      for role in roleList:
+        if groupMemberLists and subkeyRoleField:
+          role, updateMembers = _validateSubkeyRoleGetMembers(group, role, origGroup, groupMemberLists, i, count)
+          if role is None:
+            continue
+        Act.Set([Act.UPDATE, Act.UPDATE_PREVIEW][preview])
+        jcount = len(updateMembers)
+        entityPerformActionNumItems([entityType, group], jcount, Ent.MEMBER, i, count)
+        if jcount == 0:
+          continue
+        if preview:
+          _previewAction(group, updateMembers, role, jcount, Act.UPDATE)
+          continue
+        Ind.Increment()
+        j = 0
+        for member in updateMembers:
+          j += 1
+          memberEmail = convertUIDtoEmailAddress(member, cd=cd, emailTypes='any', checkForCustomerId=True)
+          try:
+            memberName = callGAPI(ci.groups().memberships(), 'lookup',
+                                  throwReasons=GAPI.GROUP_GET_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                                  parent=parent, memberKey_id=memberEmail, fields='name').get('name')
+          except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden,
+                  GAPI.notFound, GAPI.memberNotFound, GAPI.permissionDenied, GAPI.invalidMember) as e:
+            _showFailure(group, memberEmail, role, str(e), j, jcount)
+            continue
+          preUpdateRoles = []
+          addRoles = []
+          removeRoles = []
+          postUpdateRoles = []
+          memberRoles = callGAPI(ci.groups().memberships(), 'get',
+                                 name=memberName, fields='roles')
+          getCIGroupMemberRole(memberRoles)
+          current_roles = [crole['name'] for crole in memberRoles['roles']]
+          # When upgrading role, strip any expiryDetail from member before role changes
+          if role != Ent.ROLE_MEMBER:
+            if 'expireTime' in memberRoles:
+              preUpdateRoles.append({'fieldMask': 'expiryDetail.expireTime',
+                                     'membershipRole': {'name': Ent.ROLE_MEMBER, 'expiryDetail': {'expireTime': None}}})
+          # When downgrading role or simply updating member expireTime, update expiryDetail after role changes
+          elif expireTime:
+            postUpdateRoles.append({'fieldMask': 'expiryDetail.expireTime',
+                                    'membershipRole': {'name': role, 'expiryDetail': {'expireTime': expireTime if expireTime != NEVER_TIME else None}}})
+          for crole in current_roles:
+            if crole not in {Ent.ROLE_MEMBER, role}:
+              removeRoles.append(crole)
+          if role not in current_roles:
+            new_role = {'name': role}
+            if role == Ent.ROLE_MEMBER and expireTime not in {None, NEVER_TIME}:
+              new_role['expiryDetail'] = {'expireTime': expireTime}
+              postUpdateRoles = []
+            addRoles.append(new_role)
+          bodys = []
+          if preUpdateRoles:
+            bodys.append({'updateRolesParams': preUpdateRoles})
+          if addRoles:
+            bodys.append({'addRoles': addRoles})
+          if removeRoles:
+            bodys.append({'removeRoles': removeRoles})
+          if postUpdateRoles:
+            bodys.append({'updateRolesParams': postUpdateRoles})
+          errors = False
+          for body in bodys:
+            try:
+              callGAPI(ci.groups().memberships(), 'modifyMembershipRoles',
+                       throwReasons=[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER, GAPI.FAILED_PRECONDITION, GAPI.INVALID_ARGUMENT],
+                       name=memberName, body=body)
+            except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.failedPrecondition, GAPI.invalidArgument) as e:
+              _showFailure(group, memberEmail, role, str(e), j, jcount)
+              errors = True
+              break
+          if not errors:
+            _showSuccess(group, memberEmail, role, None, j, jcount)
+        Ind.Decrement()
+  else: #clear
+    rolesSet = set()
+    groupMemberType = 'ALL'
+    isSuspended = None
+    emailMatchPattern = None
+    clearMatch = True
+    qualifier = ''
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if myarg in GROUP_ROLES_MAP:
+        rolesSet.add(GROUP_ROLES_MAP[myarg])
+      elif myarg == 'usersonly':
+        groupMemberType = Ent.TYPE_USER
+      elif myarg == 'groupsonly':
+        groupMemberType = Ent.TYPE_GROUP
+      elif myarg in {'emailclearpattern', 'emailretainpattern'}:
+        emailMatchPattern = getREPattern(re.IGNORECASE)
+        clearMatch = myarg == 'emailclearpattern'
+      elif myarg == 'preview':
+        preview = True
+      elif myarg == 'actioncsv':
+        csvPF = CSVPrintFile(GROUP_PREVIEW_TITLES)
+      else:
+        unknownArgumentExit()
+    Act.Set(Act.REMOVE)
+    if not rolesSet:
+      rolesSet.add(Ent.ROLE_MEMBER)
+    memberRoles = ','.join(sorted(rolesSet))
+    i = 0
+    count = len(entityList)
+    for group in entityList:
+      i += 1
+      _, parent, group = checkGroupExists(cd, ci, True, group, i, count)
+      if not group or checkDynamicGroup(ci, parent, i, count):
+        continue
+      printGettingAllEntityItemsForWhom(memberRoles, group, qualifier=qualifier, entityType=entityType)
+      try:
+        result = callGAPIpages(ci.groups().memberships(), 'list', 'memberships',
+                               pageMessage=getPageMessageForWhom(),
+                               throwReasons=GAPI.MEMBERS_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
+                               parent=parent, view='FULL',
+                               fields='nextPageToken,memberships(name,memberKey(id),roles(name),type)',
+                               pageSize=GC.Values[GC.MEMBER_MAX_RESULTS])
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+        entityUnknownWarning(entityType, group, i, count)
+        continue
+      removeMembers = {}
+      for role in rolesSet:
+        removeMembers[role] = []
+      for member in result:
+        getCIGroupMemberRole(member)
+        memberName = member['name']
+        memberEmail = _getMemberEmail(member)
+        role = member['role']
+        if groupMemberType in ('ALL', member['type']) and role in rolesSet:
+          if emailMatchPattern is None:
+            removeMembers[role].append({'name': memberName, 'email': memberEmail})
+          elif member['type'] == Ent.TYPE_CUSTOMER:
+            pass
+          elif emailMatchPattern.match(email):
+            if clearMatch:
+              removeMembers[role].append({'name': memberName, 'email': memberEmail})
+          else:
+            if not clearMatch:
+              removeMembers[role].append({'name': memberName, 'email': memberEmail})
+      del result
+      for role in rolesSet:
+        _batchRemoveGroupMembers(group, i, count, removeMembers[role], role)
+  if csvPF:
+    csvPF.writeCSVfile('Cloud Identity Group Updates')
+
 # gam delete cigroups <GroupEntity>
 def doDeleteCIGroups():
   doDeleteGroups(ciGroupsAPI=True)
 
-# gam update cigroup <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>
-#	[makesecuritygroup|security]
-def doUpdateCIGroups():
-  doUpdateGroups(ciGroupsAPI=True)
+CIGROUP_TYPES_MAP = {
+  'group': Ent.TYPE_GROUP,
+  'other': Ent.TYPE_OTHER,
+  'serviceaccount': Ent.TYPE_SERVICE_ACCOUNT,
+  'user': Ent.TYPE_USER,
+  }
+ALL_CIGROUP_TYPES = {Ent.TYPE_GROUP, Ent.TYPE_OTHER, Ent.TYPE_SERVICE_ACCOUNT, Ent.TYPE_USER}
+
+def getCIGroupTypes(myarg, typesSet):
+  if myarg in {'type', 'types'}:
+    for gtype in getString(Cmd.OB_GROUP_TYPE_LIST).lower().replace(',', ' ').split():
+      if gtype in CIGROUP_TYPES_MAP:
+        typesSet.add(CIGROUP_TYPES_MAP[gtype])
+      else:
+        invalidChoiceExit(gtype, GROUP_TYPES_MAP, True)
+  else:
+    return False
+  return True
+
+# gam info cigroups <GroupEntity>
+#	[nousers] [quick] [noaliases]
+#	[allfields|<CIGroupFieldName>*|(fields <CIGroupFieldNameList>)]
+#	[roles <GroupRoleList>] [members] [managers] [owners]
+#	[types <CIGroupTypeList>]
+#	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
+#	[formatjson]
+def doInfoCIGroups():
+  def initGroupFieldsLists():
+    if not groupFieldsLists['ci']:
+      groupFieldsLists['ci'] = ['groupKey']
+
+  ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
+  entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
+  getAliases = getUsers = True
+  showJoinDate = True
+  showUpdateDate = False
+  FJQC = FormatJSONQuoteChar()
+  members = []
+  groupFieldsLists = {'ci': None}
+  entityType = Ent.MEMBER
+  rolesSet = set()
+  typesSet = set()
+  memberOptions = initMemberOptions()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'quick':
+      getAliases = getUsers = False
+    elif myarg == 'nousers':
+      getUsers = False
+    elif getGroupRoles(myarg, rolesSet):
+      getUsers = True
+    elif getCIGroupTypes(myarg, typesSet):
+      pass
+    elif getMemberMatchOptions(myarg, memberOptions):
+      pass
+    elif myarg == 'noaliases':
+      getAliases = False
+    elif myarg in {'allfields', 'ciallfields', 'allcifields'}:
+      if not groupFieldsLists['ci']:
+        groupFieldsLists['ci'] = []
+      for field in CIGROUP_FIELDS_CHOICE_MAP:
+        addFieldToFieldsList(field, CIGROUP_FIELDS_CHOICE_MAP, groupFieldsLists['ci'])
+    elif myarg in CIGROUP_FIELDS_CHOICE_MAP:
+      initGroupFieldsLists()
+      addFieldToFieldsList(myarg, CIGROUP_FIELDS_CHOICE_MAP, groupFieldsLists['ci'])
+    elif myarg in {'fields', 'cifields'}:
+      initGroupFieldsLists()
+      for field in _getFieldsList():
+        if field in CIGROUP_FIELDS_CHOICE_MAP:
+          addFieldToFieldsList(field, CIGROUP_FIELDS_CHOICE_MAP, groupFieldsLists['ci'])
+        else:
+          invalidChoiceExit(field, CIGROUP_FIELDS_CHOICE_MAP, True)
+    elif myarg == 'nojoindate':
+      showJoinDate = False
+    elif myarg == 'showupdatedate':
+      showUpdateDate = True
+    else:
+      FJQC.GetFormatJSON(myarg)
+  if not typesSet:
+    typesSet = ALL_CIGROUP_TYPES
+  fields = getFieldsFromFieldsList(groupFieldsLists['ci'])
+  if not showJoinDate and not showUpdateDate:
+    view = 'BASIC'
+    pageSize = 1000
+  else:
+    view = 'FULL'
+    pageSize = 500
+  i = 0
+  count = len(entityList)
+  for group in entityList:
+    i += 1
+    _, name, group = convertGroupEmailToCloudID(ci, group, i, count)
+    if not name:
+      continue
+    try:
+      cigInfo = callGAPI(ci.groups(), 'get',
+                         throwReasons=GAPI.CIGROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
+                         name=name, fields=fields)
+      group = cigInfo['groupKey']['id']
+      if not getAliases:
+        cigInfo.pop('additionalGroupKeys', None)
+      if getUsers:
+        result = callGAPIpages(ci.groups().memberships(), 'list', 'memberships',
+                               throwReasons=GAPI.MEMBERS_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
+                               parent=name, view=view, fields='*', pageSize=pageSize)
+        members = []
+        for member in result:
+          getCIGroupMemberRole(member)
+          if (member['type'] in typesSet and _checkMemberRole(member, rolesSet) and checkCIMemberMatch(member, memberOptions)):
+            members.append(member)
+      if FJQC.formatJSON:
+        if getUsers:
+          cigInfo['members'] = members
+        printLine(json.dumps(cleanJSON(cigInfo, timeObjects=CIGROUP_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+        continue
+      _showCIGroup(cigInfo, group, i, count)
+      if getUsers:
+        printEntitiesCount(entityType, members)
+        Ind.Increment()
+        for member in members:
+          memberEmail = member.get('memberKey', {}).get('id', member['name'])
+          getCIGroupMemberRole(member)
+          kvList = [member['role'].lower(), f'{memberEmail} ({member["type"].lower()})']
+          if showJoinDate:
+            kvList.extend(['joined', formatLocalTime(member['createTime']) if 'createTime' in member else 'Unknown'])
+          if showUpdateDate:
+            kvList.extend(['updated', formatLocalTime(member['updateTime']) if 'updateTime' in member else 'Unknown'])
+          if 'expireTime' in member:
+            kvList.extend(['expires', formatLocalTime(member['expireTime'])])
+          printKeyValueList(kvList)
+        Ind.Decrement()
+        printKeyValueList([Msg.TOTAL_ITEMS_IN_ENTITY.format(Ent.Plural(entityType), Ent.Singular(Ent.CLOUD_IDENTITY_GROUP)), len(members)])
+      Ind.Decrement()
+    except GAPI.notFound:
+      entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, group], Msg.DOES_NOT_EXIST, i, count)
+    except (GAPI.groupNotFound, GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.backendError,
+            GAPI.invalid, GAPI.invalidMember, GAPI.invalidParameter, GAPI.invalidInput, GAPI.forbidden, GAPI.badRequest,
+            GAPI.permissionDenied,
+            GAPI.systemError, GAPI.serviceLimit) as e:
+      entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, group], str(e), i, count)
+
+def checkCIGroupShowOwnedBy(showOwnedBy, members):
+  for member in members:
+    if member['memberKey']['id'] == showOwnedBy:
+      if member['role'] == Ent.ROLE_OWNER:
+        return True
+  return False
+
+def updateFieldsForCIGroupMatchPatterns(matchPatterns, fieldsList, csvPF=None):
+  for field in ['displayName', 'description']:
+    if field in matchPatterns:
+      if csvPF is not None:
+        csvPF.AddField(field, CIGROUP_FIELDS_CHOICE_MAP, fieldsList)
+      else:
+        fieldsList.append(field)
+
+PRINT_CIGROUPS_JSON_TITLES = ['email', 'JSON']
+
+# gam print cigroups [todrive <ToDriveAttribute>*]
+#	[(cimember <UserItem>)|(select <GroupEntity>)]
+#	[showownedby <UserItem>]
+#	[emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
+#	[descriptionmatchpattern [not] <RegularExpression>]
+#	[allfields|(<CIGroupFieldName>* [fields <CIGroupFieldNameList>])]
+#	[roles <GroupRoleList>]
+#	[members|memberscount] [managers|managerscount] [owners|ownerscount] [totalcount] [countsonly]
+#	[types <CIGroupTypeList>]
+#	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
+#	[convertcrnl] [delimiter <Character>]
+#	[formatjson [quotechar <Character>]]
+def doPrintCIGroups():
+  def _printGroupRow(groupEntity, groupMembers):
+    for member in groupMembers:
+      getCIGroupMemberRole(member)
+    if showOwnedBy and not checkCIGroupShowOwnedBy(showOwnedBy, groupMembers):
+      return
+    if not keepName:
+      groupEntity.pop('name', None)
+    row = {}
+    if FJQC.formatJSON:
+      row['email'] = groupEntity['groupKey']['id'].lower()
+      row['JSON'] = json.dumps(groupEntity, ensure_ascii=False, sort_keys=True)
+      if rolesSet and groupMembers is not None:
+        row['JSON-members'] = json.dumps(groupMembers, ensure_ascii=False, sort_keys=True)
+      csvPF.WriteRowNoFilter(row)
+      return
+    mapCIGroupFieldNames(groupEntity)
+    for k, v in iter(groupEntity.pop('labels', {}).items()):
+      if v == '':
+        groupEntity[f'labels.{k}'] = True
+      else:
+        groupEntity[f'labels.{k}'] = v
+    for key, value in sorted(iter(flattenJSON(groupEntity, flattened={}, timeObjects=CIGROUP_TIME_OBJECTS).items())):
+      csvPF.AddTitles(key)
+      row[key] = value
+    if rolesSet and groupMembers is not None:
+      addMemberInfoToRow(row, groupMembers, typesSet, memberOptions, memberDisplayOptions, delimiter, False, True)
+    csvPF.WriteRow(row)
+
+  ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
+  setTrueCustomerId()
+  delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
+  sortHeaders = False
+  memberDisplayOptions = initGroupMemberDisplayOptions()
+  pageSize = 500
+  groupFieldsLists = {'ci': ['groupKey']}
+  csvPF = CSVPrintFile(['email'])
+  FJQC = FormatJSONQuoteChar(csvPF)
+  rolesSet = set()
+  typesSet = set()
+  memberOptions = initMemberOptions()
+  entitySelection = groupMembers = query = showOwnedBy = None
+  matchPatterns = {}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'showownedby':
+      showOwnedBy = convertUIDtoEmailAddress(getEmailAddress(), emailTypes=['user'])
+    elif myarg in {'cimember', 'enterprisemember'}:
+      emailAddress = convertUIDtoEmailAddress(getEmailAddress(), emailTypes=['user', 'group'])
+      query = f"member_key_id == '{emailAddress}' && 'cloudidentity.googleapis.com/groups.discussion_forum' in labels"
+      entitySelection = None
+    elif getGroupMatchPatterns(myarg, matchPatterns, True):
+      pass
+    elif myarg == 'select':
+      entitySelection = getEntityList(Cmd.OB_GROUP_ENTITY)
+      query = None
+    elif myarg == 'maxresults':
+      pageSize = getInteger(minVal=1, maxVal=500)
+    elif myarg == 'delimiter':
+      delimiter = getCharacter()
+    elif myarg in {'allfields', 'ciallfields', 'allcifields'}:
+      sortHeaders = True
+      groupFieldsLists = {'ci': []}
+      for field in CIGROUP_FIELDS_CHOICE_MAP:
+        addFieldToFieldsList(field, CIGROUP_FIELDS_CHOICE_MAP, groupFieldsLists['ci'])
+    elif myarg == 'sortheaders':
+      sortHeaders = getBoolean()
+    elif myarg in CIGROUP_FIELDS_CHOICE_MAP:
+      csvPF.AddField(myarg, CIGROUP_FIELDS_CHOICE_MAP, groupFieldsLists['ci'])
+    elif myarg in {'fields', 'cifields'}:
+      for field in _getFieldsList():
+        if field in CIGROUP_FIELDS_CHOICE_MAP:
+          csvPF.AddField(field, CIGROUP_FIELDS_CHOICE_MAP, groupFieldsLists['ci'])
+        else:
+          invalidChoiceExit(field, list(GROUP_FIELDS_CHOICE_MAP)+list(GROUP_ATTRIBUTES_SET), True)
+    elif getGroupRolesMemberDisplayOptions(myarg, rolesSet, memberDisplayOptions):
+      pass
+    elif getCIGroupTypes(myarg, typesSet):
+      pass
+    elif getMemberMatchOptions(myarg, memberOptions):
+      pass
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, False)
+  if not typesSet:
+    typesSet = ALL_CIGROUP_TYPES
+    csvPF.SetJSONTitles(PRINT_CIGROUPS_JSON_TITLES)
+  csvPF.MapTitles('name', 'id')
+  csvPF.MapTitles('displayName', 'name')
+  updateFieldsForCIGroupMatchPatterns(matchPatterns, groupFieldsLists['ci'], csvPF)
+  if groupFieldsLists['ci']:
+    keepName = 'name' in groupFieldsLists['ci']
+    groupFieldsLists['ci'].append('name')
+    fields = ','.join(set(groupFieldsLists['ci']))
+  else:
+    keepName = True
+    fields = '*'
+  fieldsnp = f'nextPageToken,groups({fields})'
+  getRolesSet = rolesSet.copy()
+  if showOwnedBy:
+    getRolesSet.add(Ent.ROLE_OWNER)
+  getRoles = ','.join(sorted(getRolesSet))
+  if rolesSet:
+    setMemberDisplayTitles(memberDisplayOptions, csvPF)
+  if FJQC.formatJSON:
+    sortHeaders = False
+    csvPF.SetJSONTitles(PRINT_CIGROUPS_JSON_TITLES)
+    if rolesSet:
+      csvPF.AddJSONTitle('JSON-members')
+  if query:
+    printGettingAllAccountEntities(Ent.CLOUD_IDENTITY_GROUP, query)
+    try:
+      result = callGAPIpages(ci.groups().memberships(), 'searchTransitiveGroups', 'memberships',
+                             pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute=['groupKey', 'id'],
+                             throwReasons=GAPI.CIGROUP_LIST_USERKEY_THROW_REASONS,
+                             parent='groups/-', query=query,
+                             fields='nextPageToken,memberships(group,groupKey(id),relationType)', pageSize=pageSize)
+      entitySelection = [{'email': entity['groupKey']['id'], 'name': entity['group']} for entity in result if entity['relationType'] == 'DIRECT']
+    except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
+            GAPI.forbidden, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument,
+            GAPI.systemError, GAPI.permissionDenied) as e:
+      entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, None], str(e))
+      return
+  getFullFieldsList = []
+  if entitySelection is None:
+    if groupFieldsLists['ci']:
+      for field in groupFieldsLists['ci']:
+        if field in CIGROUP_FULL_FIELDS:
+          getFullFieldsList.append(field)
+    else:
+      getFullFieldsList = list(CIGROUP_FULL_FIELDS)
+    getFullFields = ','.join(getFullFieldsList)
+    printGettingAllAccountEntities(Ent.CLOUD_IDENTITY_GROUP)
+    try:
+      entityList = callGAPIpages(ci.groups(), 'list', 'groups',
+                                 pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute=['groupKey', 'id'],
+                                 throwReasons=GAPI.CIGROUP_LIST_THROW_REASONS,
+                                 parent=f'customers/{GC.Values[GC.CUSTOMER_ID]}', view='FULL',
+                                 fields=fieldsnp, pageSize=pageSize)
+    except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
+            GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
+            GAPI.systemError, GAPI.permissionDenied) as e:
+      entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, None], str(e))
+      return
+  else:
+    getFullFields = ''
+    entityList = []
+    i = 0
+    count = len(entitySelection)
+    for group in entitySelection:
+      i += 1
+      if isinstance(group, dict):
+        name = group['name']
+        groupEmail = group['email']
+      else:
+        _, name, groupEmail = convertGroupEmailToCloudID(ci, group, i, count)
+      printGettingEntityItemForWhom(Ent.CLOUD_IDENTITY_GROUP, groupEmail, i, count)
+      if name:
+        try:
+          ciGroup = callGAPI(ci.groups(), 'get',
+                             throwReasons=GAPI.CIGROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
+                             name=name, fields=fields)
+          entityList.append(ciGroup)
+        except (GAPI.notFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
+                GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
+                GAPI.systemError, GAPI.permissionDenied) as e:
+          entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, groupEmail], str(e), i, count)
+  i = 0
+  count = len(entityList)
+  for groupEntity in entityList:
+    i += 1
+    groupEmail = groupEntity['groupKey']['id'].lower()
+    if not checkGroupMatchPatterns(groupEmail, groupEntity, matchPatterns):
+      continue
+    if getFullFields:
+      try:
+        fullInfo = callGAPI(ci.groups(), 'get',
+                            throwReasons=GAPI.CIGROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
+                            name=groupEntity['name'], fields=getFullFields)
+        groupEntity.update(fullInfo)
+      except (GAPI.notFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
+              GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
+              GAPI.systemError, GAPI.permissionDenied) as e:
+        entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, groupEmail], str(e), i, count)
+    groupMembers = {}
+    if getRoles:
+      printGettingEntityItemForWhom(getRoles, groupEmail, i, count)
+      try:
+        groupMembers = callGAPIpages(ci.groups().memberships(), 'list', 'memberships',
+                                     throwReasons=GAPI.MEMBERS_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
+                                     pageMessage=getPageMessage(), messageAttribute=['memberKey', 'id'],
+                                     parent=groupEntity['name'], view='FULL', fields='*', pageSize=pageSize)
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+        entityUnknownWarning(Ent.CLOUD_IDENTITY_GROUP, groupEmail, i, count)
+    _printGroupRow(groupEntity, groupMembers)
+  if sortHeaders:
+    sortTitles = ['email']+CIGROUP_INFO_PRINT_ORDER
+    if rolesSet:
+      setMemberDisplaySortTitles(memberDisplayOptions, sortTitles)
+    csvPF.SetSortTitles(sortTitles)
+  csvPF.SortRows('email', False)
+  csvPF.writeCSVfile('Cloud Identity Groups')
+
+# gam <UserTypeEntity> info cimember <GroupEntity>
+def infoCIGroupMembers(entityList):
+  infoGroupMembers(entityList, True)
+
+# gam info cimember <UserTypeEntity> <GroupEntity>
+def doInfoCIGroupMembers():
+  infoGroupMembers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)[1], True)
+
+def getCIGroupMembersEntityList(ci, entityList, query, subTitle, matchPatterns, fieldsList, csvPF):
+  if query:
+    printGettingAllAccountEntities(Ent.CLOUD_IDENTITY_GROUP, query)
+    try:
+      result = callGAPIpages(ci.groups().memberships(), 'searchTransitiveGroups', 'memberships',
+                             pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute=['groupKey', 'id'],
+                             throwReasons=GAPI.CIGROUP_LIST_USERKEY_THROW_REASONS,
+                             parent='groups/-', query=query,
+                             fields='nextPageToken,memberships(groupKey(id),relationType)', pageSize=500)
+      entityList = [entity['groupKey']['id'] for entity in result if entity['relationType'] == 'DIRECT']
+    except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
+            GAPI.forbidden, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument,
+            GAPI.systemError, GAPI.permissionDenied) as e:
+      entityActionFailedExit([Ent.CLOUD_IDENTITY_GROUP, None], str(e))
+  elif entityList is None:
+    updateFieldsForCIGroupMatchPatterns(matchPatterns, fieldsList, csvPF)
+    printGettingAllAccountEntities(Ent.CLOUD_IDENTITY_GROUP, subTitle)
+    try:
+      entityList = callGAPIpages(ci.groups(), 'list', 'groups',
+                                 pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute=['groupKey', 'id'],
+                                 throwReasons=GAPI.CIGROUP_LIST_THROW_REASONS,
+                                 parent=f'customers/{GC.Values[GC.CUSTOMER_ID]}', view='FULL',
+                                 fields=f'nextPageToken,groups({",".join(set(fieldsList))})', pageSize=500)
+    except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
+      accessErrorExit(ci)
+  else:
+    clearUnneededGroupMatchPatterns(matchPatterns)
+  return entityList
+
+def getCIGroupMembers(ci, groupName, memberRoles, membersList, membersSet, i, count, memberOptions, level, typesSet):
+  printGettingAllEntityItemsForWhom(memberRoles if memberRoles else Ent.ROLE_MANAGER_MEMBER_OWNER, groupName, i, count)
+  validRoles = _getCIRoleVerification(memberRoles)
+  try:
+    groupMembers = callGAPIpages(ci.groups().memberships(), 'list', 'memberships',
+                                 throwReasons=GAPI.MEMBERS_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
+                                 parent=groupName, view='FULL',
+                                 fields='nextPageToken,memberships(*)', pageSize=GC.Values[GC.MEMBER_MAX_RESULTS])
+  except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+    entityUnknownWarning(Ent.CLOUD_IDENTITY_GROUP, groupName, i, count)
+    return
+  if not memberOptions[MEMBEROPTION_RECURSIVE]:
+    if memberOptions[MEMBEROPTION_NODUPLICATES]:
+      for member in groupMembers:
+        getCIGroupMemberRole(member)
+        if _checkMemberRole(member, validRoles) and member['name'] not in membersSet:
+          membersSet.add(member['name'])
+          if member['type'] in typesSet and checkCIMemberMatch(member, memberOptions):
+            membersList.append(member)
+    else:
+      for member in groupMembers:
+        getCIGroupMemberRole(member)
+        if _checkMemberRole(member, validRoles):
+          if member['type'] in typesSet and checkCIMemberMatch(member, memberOptions):
+            membersList.append(member)
+  elif memberOptions[MEMBEROPTION_NODUPLICATES]:
+    groupMemberList = []
+    for member in groupMembers:
+      getCIGroupMemberRole(member)
+      if member['type'] == Ent.TYPE_USER:
+        if (member['type'] in typesSet and checkCIMemberMatch(member, memberOptions) and
+            _checkMemberRole(member, validRoles) and
+            member['name'] not in membersSet):
+          membersSet.add(member['name'])
+          member['level'] = level
+          member['subgroup'] = groupName
+          membersList.append(member)
+      elif member['type'] == Ent.TYPE_GROUP:
+        if member['name'] not in membersSet:
+          membersSet.add(member['name'])
+          if member['type'] in typesSet and checkCIMemberMatch(member, memberOptions):
+            member['level'] = level
+            member['subgroup'] = groupName
+            membersList.append(member)
+          _, gname = member['name'].rsplit('/', 1)
+          groupMemberList.append(f'groups/{gname}')
+    for member in groupMemberList:
+      getCIGroupMembers(ci, member, memberRoles, membersList, membersSet, i, count, memberOptions, level+1, typesSet)
+  else:
+    for member in groupMembers:
+      getCIGroupMemberRole(member)
+      if member['type'] == Ent.TYPE_USER:
+        if (member['type'] in typesSet and checkCIMemberMatch(member, memberOptions) and
+            _checkMemberRole(member, validRoles)):
+          member['level'] = level
+          member['subgroup'] = groupName
+          membersList.append(member)
+      elif member['type'] == Ent.TYPE_GROUP:
+        if member['type'] in typesSet and checkCIMemberMatch(member, memberOptions):
+          member['level'] = level
+          member['subgroup'] = groupName
+          membersList.append(member)
+        _, gname = member['name'].rsplit('/', 1)
+        getCIGroupMembers(ci, f'groups/{gname}', memberRoles, membersList, membersSet, i, count, memberOptions, level+1, typesSet)
+
+CIGROUPMEMBERS_FIELDS_CHOICE_MAP = {
+  'createtime': 'createTime',
+  'expiretime': 'expireTime',
+  'id': 'name',
+  'memberkey': 'memberKey',
+  'name': 'name',
+  'preferredmemberkey': 'preferredMemberKey',
+  'role': 'roles',
+  'roles': 'roles',
+  'type': 'type',
+  'updatetime': 'updateTime',
+  'useremail': 'memberKey)',
+  }
+CIGROUPMEMBERS_DEFAULT_FIELDS = [
+  'type', 'roles', 'name', 'memberkey', 'preferredmemberkey', 'createtime', 'updatetime', 'expiretime']
+CIGROUPMEMBERS_SORT_FIELDS = [
+  'type', 'role', 'id', 'email',
+  'memberKey.namespace', 'name', 'preferredMemberKey.id', 'preferredMemberKey.namespace',
+  'createTime', 'updateTime', 'expireTime'
+  ]
+CIGROUPMEMBERS_TIME_OBJECTS = {'createTime', 'updateTime', 'expireTime'}
+
+# gam print cigroup-members [todrive <ToDriveAttribute>*]
+#	[(cimember <UserItem>)|(cigroup <GroupItem>)|(select <GroupEntity>)]
+#	[emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
+#	[descriptionmatchpattern [not] <RegularExpression>]
+#	[showownedby <UserItem>]
+#	[roles <GroupRoleList>] [members] [managers] [owners]
+#	[types <CIGroupTypeList>]
+#	<CIGroupMembersFieldName>* [fields <CIGroupMembersFieldNameList>]
+#	[recursive [noduplicates]] [nogroupeemail]
+#	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
+def doPrintCIGroupMembers():
+  ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
+  setTrueCustomerId()
+  memberOptions = initMemberOptions()
+  groupColumn = True
+  subTitle = f'{Msg.ALL} {Ent.Plural(Ent.CLOUD_IDENTITY_GROUP)}'
+  fieldsList = []
+  groupFieldsLists = {'ci': ['groupKey', 'name']}
+  csvPF = CSVPrintFile(['group'])
+  entityList = query = showOwnedBy = None
+  rolesSet = set()
+  typesSet = set()
+  matchPatterns = {}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'showownedby':
+      showOwnedBy = convertUIDtoEmailAddress(getEmailAddress(), emailTypes=['user'])
+    elif getGroupMatchPatterns(myarg, matchPatterns, True):
+      pass
+    elif myarg in {'cimember', 'enterprisemember'}:
+      emailAddress = convertUIDtoEmailAddress(getEmailAddress(), emailTypes=['user', 'group'])
+      query = f"member_key_id == '{emailAddress}' && 'cloudidentity.googleapis.com/groups.discussion_forum' in labels"
+      entityList = None
+    elif myarg in {'cigroup', 'group'}:
+      entityList = [getString(Cmd.OB_EMAIL_ADDRESS)]
+      subTitle = f'{Ent.Singular(Ent.CLOUD_IDENTITY_GROUP)}={entityList[0]}'
+      query = None
+    elif myarg == 'select':
+      entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
+      subTitle = f'{Msg.SELECTED} {Ent.Plural(Ent.CLOUD_IDENTITY_GROUP)}'
+      query = None
+    elif getGroupRoles(myarg, rolesSet):
+      pass
+    elif getCIGroupTypes(myarg, typesSet):
+      pass
+    elif getMemberMatchOptions(myarg, memberOptions):
+      pass
+    elif getFieldsList(myarg, CIGROUPMEMBERS_FIELDS_CHOICE_MAP, fieldsList):
+      pass
+    elif myarg == 'noduplicates':
+      memberOptions[MEMBEROPTION_NODUPLICATES] = True
+    elif myarg == 'recursive':
+      memberOptions[MEMBEROPTION_RECURSIVE] = True
+    elif myarg == 'nogroupemail':
+      groupColumn = False
+    else:
+      unknownArgumentExit()
+  if not typesSet:
+    typesSet = {Ent.TYPE_USER} if memberOptions[MEMBEROPTION_RECURSIVE] else ALL_CIGROUP_TYPES
+  fields = ','.join(set(groupFieldsLists['ci']))
+  entityList = getCIGroupMembersEntityList(ci, entityList, query, subTitle, matchPatterns, groupFieldsLists['ci'], csvPF)
+  if not fieldsList:
+    for field in CIGROUPMEMBERS_DEFAULT_FIELDS:
+      addFieldToFieldsList(field, CIGROUPMEMBERS_FIELDS_CHOICE_MAP, fieldsList)
+  if not groupColumn:
+    csvPF.RemoveTitles(['group'])
+  displayFieldsList = fieldsList[:]
+  if 'roles' in displayFieldsList:
+    displayFieldsList.remove('roles')
+    displayFieldsList.append('role')
+  if not rolesSet:
+    rolesSet = ALL_GROUP_ROLES
+  getRolesSet = rolesSet.copy()
+  if showOwnedBy:
+    getRolesSet.add(Ent.ROLE_OWNER)
+  getRoles = ','.join(sorted(getRolesSet))
+  level = 0
+  i = 0
+  count = len(entityList)
+  for group in entityList:
+    i += 1
+    if isinstance(group, dict):
+      groupEntity = group
+    else:
+      _, name, groupEmail = convertGroupEmailToCloudID(ci, group, i, count)
+      if not name:
+        continue
+      try:
+        groupEntity = callGAPI(ci.groups(), 'get',
+                               throwReasons=GAPI.CIGROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
+                               name=name, fields=fields)
+      except (GAPI.notFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
+              GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
+              GAPI.systemError, GAPI.permissionDenied) as e:
+        entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, groupEmail], str(e), i, count)
+        continue
+    groupEmail = groupEntity['groupKey']['id'].lower()
+    if not checkGroupMatchPatterns(groupEmail, groupEntity, matchPatterns):
+      continue
+    membersList = []
+    membersSet = set()
+    getCIGroupMembers(ci, groupEntity['name'], getRoles, membersList, membersSet, i, count, memberOptions, level, typesSet)
+    if showOwnedBy and not checkCIGroupShowOwnedBy(showOwnedBy, membersList):
+      continue
+    for member in membersList:
+      if member['role'] not in rolesSet:
+        continue
+      row = {}
+      if groupColumn:
+        row['group'] = groupEmail
+      dmember = {}
+      for field in displayFieldsList:
+        if field in member:
+          dmember[field] = member[field]
+      if memberOptions[MEMBEROPTION_RECURSIVE]:
+        row['level'] = member['level']
+        row['subgroup'] = member['subgroup']
+      mapCIGroupMemberFieldNames(dmember)
+      csvPF.WriteRowTitles(flattenJSON(dmember, flattened=row, timeObjects=CIGROUPMEMBERS_TIME_OBJECTS))
+  sortTitles = ['group'] if groupColumn else []
+  csvPF.SetSortTitles(sortTitles+CIGROUPMEMBERS_SORT_FIELDS)
+  csvPF.SortTitles()
+  csvPF.SetSortTitles([])
+  if memberOptions[MEMBEROPTION_RECURSIVE]:
+    csvPF.MoveTitlesToEnd(['level', 'subgroup'])
+  csvPF.writeCSVfile(f'Cloud Identity Group Members ({subTitle})')
+
+# gam show cigroup-members
+#	[(cimember <UserItem>)|(cigroup <GroupItem>)|(select <GroupEntity>)]
+#	[emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
+#	[descriptionmatchpattern [not] <RegularExpression>]
+#	[showownedby <UserItem>]
+#	[roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
+#	[types <CIGroupTypeList>]
+#	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
+def doShowCIGroupMembers():
+  def _roleOrder(key):
+    return {Ent.ROLE_OWNER: 0, Ent.ROLE_MANAGER: 1, Ent.ROLE_MEMBER: 2}.get(key, 3)
+
+  def _typeOrder(key):
+    return {Ent.TYPE_CUSTOMER: 0, Ent.TYPE_USER: 1, Ent.TYPE_GROUP: 2, Ent.TYPE_EXTERNAL: 3}.get(key, 4)
+
+  def _showGroup(groupName, groupEmail, depth):
+    try:
+      membersList = callGAPIpages(ci.groups().memberships(), 'list', 'memberships',
+                                  throwReasons=GAPI.MEMBERS_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
+                                  parent=groupName, view='FULL',
+                                  fields='nextPageToken,memberships(*)', pageSize=GC.Values[GC.MEMBER_MAX_RESULTS])
+      for member in membersList:
+        getCIGroupMemberRole(member)
+      if showOwnedBy and not checkCIGroupShowOwnedBy(showOwnedBy, membersList):
+        return
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+      if depth == 0:
+        entityUnknownWarning(Ent.CLOUD_IDENTITY_GROUP, groupEmail, i, count)
+      return
+    if depth == 0:
+      printEntity([Ent.CLOUD_IDENTITY_GROUP, groupEmail], i, count)
+    if depth == 0 or Ent.TYPE_GROUP in typesSet:
+      Ind.Increment()
+    for member in sorted(membersList, key=lambda k: (_roleOrder(k.get('role', Ent.ROLE_MEMBER)), _typeOrder(k['type']))):
+      if (member['type'] in typesSet and _checkMemberRole(member, rolesSet) and checkCIMemberMatch(member, memberOptions)):
+        memberDetails = f'{member.get("role", Ent.ROLE_MEMBER)}, {member["type"]}, {member["memberKey"]["id"]}'
+        for field in ['createTime', 'updateTime', 'expireTime']:
+          if field in member:
+            memberDetails += f', {formatLocalTime(member[field])}'
+        printKeyValueList([memberDetails])
+      if (member['type'] == Ent.TYPE_GROUP) and (maxdepth == -1 or depth < maxdepth):
+        _, gname = member['name'].rsplit('/', 1)
+        _showGroup(f'groups/{gname}', member['memberKey']['id'], depth+1)
+    if depth == 0 or Ent.TYPE_GROUP in typesSet:
+      Ind.Decrement()
+
+  ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
+  setTrueCustomerId()
+  subTitle = f'{Msg.ALL} {Ent.Plural(Ent.CLOUD_IDENTITY_GROUP)}'
+  groupFieldsLists = {'ci': ['groupKey', 'name']}
+  entityList = query = showOwnedBy = None
+  rolesSet = set()
+  typesSet = set()
+  memberOptions = initMemberOptions()
+  matchPatterns = {}
+  maxdepth = -1
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'showownedby':
+      showOwnedBy = convertUIDtoEmailAddress(getEmailAddress(), emailTypes=['user'])
+    elif getGroupMatchPatterns(myarg, matchPatterns, False):
+      pass
+    elif myarg in {'cimember', 'enterprisemember'}:
+      emailAddress = convertUIDtoEmailAddress(getEmailAddress(), emailTypes=['user', 'group'])
+      query = f"member_key_id == '{emailAddress}' && 'cloudidentity.googleapis.com/groups.discussion_forum' in labels"
+      entityList = None
+    elif myarg in {'cigroup', 'group'}:
+      entityList = [getString(Cmd.OB_EMAIL_ADDRESS)]
+      subTitle = f'{Ent.Singular(Ent.CLOUD_IDENTITY_GROUP)}={entityList[0]}'
+      query = None
+    elif myarg == 'select':
+      entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
+      subTitle = f'{Msg.SELECTED} {Ent.Plural(Ent.CLOUD_IDENTITY_GROUP)}'
+      query = None
+    elif getGroupRoles(myarg, rolesSet):
+      pass
+    elif getCIGroupTypes(myarg, typesSet):
+      pass
+    elif getMemberMatchOptions(myarg, memberOptions):
+      pass
+    elif myarg == 'depth':
+      maxdepth = getInteger(minVal=-1)
+    else:
+      unknownArgumentExit()
+  if not rolesSet:
+    rolesSet = ALL_GROUP_ROLES
+  if not typesSet:
+    typesSet = ALL_CIGROUP_TYPES
+  fields = ','.join(set(groupFieldsLists['ci']))
+  entityList = getCIGroupMembersEntityList(ci, entityList, query, subTitle, matchPatterns, groupFieldsLists['ci'], None)
+  i = 0
+  count = len(entityList)
+  for group in entityList:
+    i += 1
+    if isinstance(group, dict):
+      groupEntity = group
+    else:
+      _, name, groupEmail = convertGroupEmailToCloudID(ci, group, i, count)
+      if not name:
+        continue
+      try:
+        groupEntity = callGAPI(ci.groups(), 'get',
+                               throwReasons=GAPI.CIGROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
+                               name=name, fields=fields)
+      except (GAPI.notFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
+              GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
+              GAPI.systemError, GAPI.permissionDenied) as e:
+        entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, groupEmail], str(e), i, count)
+        continue
+    groupEmail = groupEntity['groupKey']['id'].lower()
+    if checkGroupMatchPatterns(groupEmail, groupEntity, matchPatterns):
+      _showGroup(groupEntity['name'], groupEmail, 0)
 
 # gam print licenses [todrive <ToDriveAttribute>*] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite] [countsonly]
 def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts=False):
@@ -32555,961 +34042,6 @@ def printShowClassroomProfile(users):
       entityActionFailedWarning([Ent.USER, userId], str(e))
   if csvPF:
     csvPF.writeCSVfile('Classroom User Profiles')
-
-def encode_multipart(fields, filepath, encoding):
-  def escape_quote(s):
-    return s.replace('"', '\\"')
-
-  def getFormDataLine(name, value, boundary):
-    return f'--{boundary}', f'Content-Disposition: form-data; name="{escape_quote(name)}"', '', str(value)
-
-  boundary = ''.join(random.choice(ALPHANUMERIC_CHARS) for _ in range(30))
-  lines = []
-  for name, value in iter(fields.items()):
-    if name == 'tags':
-      for tag in value:
-        lines.extend(getFormDataLine('tag', tag, boundary))
-    else:
-      lines.extend(getFormDataLine(name, value, boundary))
-  if filepath:
-    filename = os.path.basename(filepath)
-    mimetype = mimetypes.guess_type(filepath)[0]
-    if mimetype is None:
-      mimetype = 'application/octet-stream'
-    lines.extend((
-      f'--{boundary}',
-      f'Content-Disposition: form-data; name="content"; filename="{escape_quote(filename)}"',
-      f'Content-Type: {mimetype}',
-      '',
-      '',
-      ))
-    body = '\r\n'.join(lines)+readFile(filepath, mode='r', encoding=encoding)+f'\r\n--{boundary}--\r\n'
-  else:
-    body = '\r\n'.join(lines)+f'\r\n--{boundary}--\r\n'
-  headers = {
-    'Content-Type': f'multipart/form-data; boundary={boundary}',
-    'Content-Length': str(len(body)),
-  }
-  return (body, headers)
-
-# gam [<UserTypeEntity>] register printer
-# gam [<UserTypeEntity>] printer register
-def registerPrinter(users):
-  checkForExtraneousArguments()
-  cd = buildGAPIObject(API.DIRECTORY)
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, cp = buildGAPICloudprintObject(user, i, count)
-    if not cp:
-      continue
-    try:
-      userId = callGAPI(cd.users(), 'get',
-                        throwReasons=GAPI.USER_GET_THROW_REASONS,
-                        userKey=user, fields='id')['id']
-    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
-      entityUnknownWarning(Ent.USER, user, i, count)
-      continue
-    entityPerformActionNumItems([Ent.USER, user], 1, Ent.PRINTER, i, count)
-    Ind.Increment()
-    form_fields = {
-      'name': GAM, 'proxy': GAM, 'uuid': userId, 'manufacturer': __author__, 'model': 'cp1', 'gcp_version': '2.0',
-      'setup_url': GAM_URL, 'support_url': 'https://groups.google.com/forum/#!forum/google-apps-manager',
-      'update_url': GAM_RELEASES,
-      'firmware': __version__, 'semantic_state': {"version": "1.0", "printer": {"state": "IDLE"}}, 'use_cdd': True,
-      'capabilities': {"version": "1.0",
-                       "printer": {"supported_content_type": [{"content_type": "application/pdf", "min_version": "1.5"},
-                                                              {"content_type": "image/jpeg"},
-                                                              {"content_type": "text/plain"},
-                                                              ],
-                                   "copies": {"default": 1, "max": 100},
-                                   "media_size": {"option": [{"name": "ISO_A4", "width_microns": 210000, "height_microns": 297000},
-                                                             {"name": "NA_LEGAL", "width_microns": 215900, "height_microns": 355600},
-                                                             {"name": "NA_LETTER", "width_microns": 215900, "height_microns": 279400, "is_default": True},
-                                                             ],
-                                                  },
-                                   },
-                       },
-      'tags': [GAM, GAM_URL],
-      }
-    body, headers = encode_multipart(form_fields, None, None)
-    resp, result = cp._http.request(uri='https://www.google.com/cloudprint/register', method='POST', body=body, headers=headers)
-    if resp['status'] == '200':
-      result = checkCloudPrintResult(result)
-      entityActionPerformed([Ent.PRINTER, result['printers'][0]['id']])
-    else:
-      entityActionFailedWarning([Ent.PRINTER, None], getCloudPrintError(resp, result))
-    Ind.Decrement()
-
-def doRegisterPrinter():
-  registerPrinter([None])
-
-#
-PRINTER_UPDATE_ITEMS_CHOICE_MAP = {
-  'currentquota': 'currentQuota',
-  'dailyquota': 'dailyQuota',
-  'defaultdisplayname': 'defaultDisplayName',
-  'description': 'description',
-  'displayname': 'displayName',
-  'firmware': 'firmware',
-  'gcpversion': 'gcpVersion',
-  'istosaccepted': 'isTosAccepted',
-  'manufacturer': 'manufacturer',
-  'model': 'model',
-  'name': 'name',
-  'ownerid': 'ownerId',
-  'proxy': 'proxy',
-  'public': 'public',
-  'quotaenabled': 'quotaEnabled',
-  'setupurl': 'setupUrl',
-  'status': 'status',
-  'supporturl': 'supportUrl',
-  'type': 'type',
-  'updateurl': 'updateUrl',
-  'uuid': 'uuid',
-  }
-
-# gam [<UserTypeEntity>] update printer|printers <PrinterIDEntity> <PrinterAttribute>
-def updatePrinters(users):
-  entityList = getEntityList(Cmd.OB_PRINTER_ID_ENTITY)
-  kwargs = {}
-  while Cmd.ArgumentsRemaining():
-    item = getChoice(PRINTER_UPDATE_ITEMS_CHOICE_MAP, mapChoice=True)
-    if item in {'isTosAccepted', 'public', 'quotaEnabled'}:
-      kwargs[item] = getBoolean()
-    elif item in {'currentQuota', 'dailyQuota', 'status'}:
-      kwargs[item] = getInteger(minVal=0)
-    elif item in {'displayName', 'defaultDisplayName'}:
-      kwargs[item] = getString(Cmd.OB_STRING, minLen=0)
-    else:
-      kwargs[item] = getString(Cmd.OB_STRING)
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, cp = buildGAPICloudprintObject(user, i, count)
-    if not cp:
-      continue
-    j = 0
-    jcount = len(entityList)
-    entityPerformActionNumItems([Ent.USER, user], jcount, Ent.PRINTER, i, count)
-    Ind.Increment()
-    for printerId in entityList:
-      j += 1
-      try:
-        callGCP(cp.printers(), 'update',
-                throw_messages=[GCP.UNKNOWN_PRINTER],
-                printerid=printerId, **kwargs)
-        entityActionPerformed([Ent.PRINTER, printerId], j, jcount)
-      except GCP.unknownPrinter as e:
-        entityActionFailedWarning([Ent.PRINTER, printerId], str(e), j, jcount)
-    Ind.Decrement()
-
-def doUpdatePrinters():
-  updatePrinters([None])
-
-# gam [<UserTypeEntity>] delete printer|printers <PrinterIDEntity>
-def deletePrinters(users):
-  entityList = getEntityList(Cmd.OB_PRINTER_ID_ENTITY)
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, cp = buildGAPICloudprintObject(user, i, count)
-    if not cp:
-      continue
-    j = 0
-    jcount = len(entityList)
-    entityPerformActionNumItems([Ent.USER, user], jcount, Ent.PRINTER, i, count)
-    Ind.Increment()
-    for printerId in entityList:
-      j += 1
-      try:
-        callGCP(cp.printers(), 'delete',
-                throw_messages=[GCP.UNKNOWN_PRINTER],
-                printerid=printerId)
-        entityActionPerformed([Ent.PRINTER, printerId], j, jcount)
-      except GCP.unknownPrinter as e:
-        entityActionFailedWarning([Ent.PRINTER, printerId], str(e), j, jcount)
-    Ind.Decrement()
-
-def doDeletePrinters():
-  deletePrinters([None])
-
-PRINTER_EXTRA_FIELDS_CHOICE_MAP = {
-  'connectionstatus': 'connectionStatus',
-  'semanticstate': 'semanticState',
-  'uistate': 'uiState',
-  'queuedjobscount': 'queuedJobsCount',
-  }
-
-def _getPrinterExtraFields():
-  extra_fields = []
-  for field in _getFieldsList():
-    if field in PRINTER_EXTRA_FIELDS_CHOICE_MAP:
-      addFieldToFieldsList(field, PRINTER_EXTRA_FIELDS_CHOICE_MAP, extra_fields)
-    else:
-      invalidChoiceExit(field, PRINTER_EXTRA_FIELDS_CHOICE_MAP, True)
-  return ','.join(extra_fields)
-
-def _showPrinter(printer, everything, i, count):
-  printEntity([Ent.PRINTER, printer['id']], i, count)
-  Ind.Increment()
-  printer['createTime'] = formatLocalTimestamp(printer['createTime'])
-  printer['accessTime'] = formatLocalTimestamp(printer['accessTime'])
-  printer['updateTime'] = formatLocalTimestamp(printer['updateTime'])
-  printer['tags'] = ' '.join(printer['tags'])
-  if not everything:
-    printer.pop('capabilities', None)
-    printer.pop('access', None)
-  showJSON(None, printer)
-  Ind.Decrement()
-
-# gam [<UserTypeEntity>] info printers <PrinterIDEntity> [everything [<Boolean>]] [extrafields <PrinterExtraFieldsList>]
-def infoPrinters(users):
-  entityList = getEntityList(Cmd.OB_PRINTER_ID_ENTITY)
-  everything = False
-  extra_fields = None
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == 'everything':
-      everything = getBoolean()
-    elif myarg == 'extrafields':
-      extra_fields = _getPrinterExtraFields()
-    else:
-      unknownArgumentExit()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, cp = buildGAPICloudprintObject(user, i, count)
-    if not cp:
-      continue
-    j = 0
-    jcount = len(entityList)
-    entityPerformActionNumItems([Ent.USER, user], jcount, Ent.PRINTER, i, count)
-    Ind.Increment()
-    for printerId in entityList:
-      j += 1
-      try:
-        result = callGCP(cp.printers(), 'get',
-                         throw_messages=[GCP.UNKNOWN_PRINTER],
-                         printerid=printerId, extra_fields=extra_fields)
-        _showPrinter(result['printers'][0], everything, j, jcount)
-      except GCP.unknownPrinter as e:
-        entityActionFailedWarning([Ent.PRINTER, printerId], str(e), j, jcount)
-    Ind.Decrement()
-
-def doInfoPrinters():
-  infoPrinters([None])
-
-PRINTER_SORT_TITLES = ['id', 'name', 'displayName', 'description', 'createTime', 'updateTime', 'accessTime']
-
-# gam [<UserTypeEntity>] show printers
-#	[(query <QueryPrinter>)|(queries <QueryPrinterList>)] [type <String>] [status <String>]
-#	[include_save_to_google_docs [<Boolean>]]
-#	[extrafields <PrinterExtraFieldsList>]
-# gam [<UserTypeEntity>] print printers [todrive <ToDriveAttribute>*]
-#	[(query <QueryPrinter>)|(queries <QueryPrinterList>)] [type <String>] [status <String>]
-#	[include_save_to_google_docs [<Boolean>]]
-#	[extrafields <PrinterExtraFieldsList>] [delimiter <Character>]
-def printShowPrinters(users):
-  csvPF = CSVPrintFile(['id'], PRINTER_SORT_TITLES) if Act.csvFormat() else None
-  queries = [None]
-  printer_type = None
-  connection_status = None
-  extra_fields = None
-  delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
-  includeSaveToGoogleDocs = False
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    elif myarg in {'query', 'queries'}:
-      queries = getQueries(myarg)
-    elif myarg == 'type':
-      printer_type = getString(Cmd.OB_STRING)
-    elif myarg == 'status':
-      connection_status = getString(Cmd.OB_STRING)
-    elif myarg == 'extrafields':
-      extra_fields = _getPrinterExtraFields()
-    elif myarg == 'delimiter':
-      delimiter = getCharacter()
-    elif myarg == 'includesavetogoogledocs':
-      includeSaveToGoogleDocs = getBoolean()
-    else:
-      unknownArgumentExit()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, cp = buildGAPICloudprintObject(user, i, count)
-    if not cp:
-      continue
-    if csvPF:
-      printGettingEntityItemForWhom(Ent.PRINTER, user, i, count)
-    for query in queries:
-      printers = callGCP(cp.printers(), 'list',
-                         q=query, type=printer_type, connection_status=connection_status, extra_fields=extra_fields)
-      j = 0
-      jcount = len(printers['printers'])
-      for printer in printers['printers']:
-        j += 1
-        if includeSaveToGoogleDocs or printer['id'] != '__google__docs':
-          if not csvPF:
-            _showPrinter(printer, False, j, jcount)
-          else:
-            printer['createTime'] = formatLocalTimestamp(printer['createTime'])
-            printer['accessTime'] = formatLocalTimestamp(printer['accessTime'])
-            printer['updateTime'] = formatLocalTimestamp(printer['updateTime'])
-            printer['tags'] = delimiter.join(printer['tags'])
-            csvPF.WriteRowTitles(flattenJSON(printer))
-  if csvPF:
-    csvPF.writeCSVfile('Printers')
-
-def doPrintShowPrinters():
-  printShowPrinters([None])
-
-def normalizePrinterScopeList(rawScopeList):
-  scopeList = []
-  for scope in rawScopeList:
-    scope = scope.lower()
-    if scope != 'public':
-      if scope == 'domain':
-        scope = f'/hd/domain/{GC.Values[GC.DOMAIN]}'
-      elif scope.startswith('domain:'):
-        scope = f'/hd/domain/{scope[7:]}'
-      elif scope.startswith('user:'):
-        scope = normalizeEmailAddressOrUID(scope[5:], noUid=True)
-      elif scope.startswith('group:'):
-        scope = normalizeEmailAddressOrUID(scope[6:], noUid=True)
-      else:
-        scope = normalizeEmailAddressOrUID(scope, noUid=True)
-    scopeList.append(scope)
-  return scopeList
-
-def getPrinterACLScopeEntity():
-  groupMemberType = getChoice({'usersonly': Ent.TYPE_USER, 'groupsonly': Ent.TYPE_GROUP}, defaultChoice='ALL', mapChoice=True)
-  _, scopeList = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, groupMemberType=groupMemberType)
-  printerScopeLists = scopeList if isinstance(scopeList, dict) else None
-  if printerScopeLists is None:
-    scopeList = normalizePrinterScopeList(scopeList)
-  return scopeList, printerScopeLists
-
-def userProcessPrinters(user, jcount, i, count):
-  action = Act.Get()
-  Act.Set(Act.PROCESS)
-  entityPerformActionNumItems([Ent.USER, user], jcount, Ent.PRINTER, i, count)
-  Act.Set(action)
-
-def _batchCreatePrinterACLs(cp, printerId, i, count, scopeList, role, notify):
-  Act.Set(Act.ADD)
-  jcount = len(scopeList)
-  entityPerformActionNumItems([Ent.PRINTER, printerId], jcount, role, i, count)
-  Ind.Increment()
-  j = 0
-  for scope in scopeList:
-    j += 1
-    if scope.lower() == 'public':
-      public = True
-      scope = None
-      roleForScope = None
-      skip_notification = None
-    else:
-      public = None
-      roleForScope = role
-      skip_notification = not notify if scope.find('@') != -1 else True
-    try:
-      callGCP(cp.printers(), 'share',
-              throw_messages=[GCP.UNKNOWN_PRINTER, GCP.FAILED_TO_SHARE_THE_PRINTER, GCP.USER_IS_NOT_AUTHORIZED],
-              printerid=printerId, role=roleForScope, scope=scope, public=public, skip_notification=skip_notification)
-      if scope is not None:
-        entityActionPerformed([Ent.PRINTER, printerId, roleForScope, scope], j, jcount)
-      else:
-        entityActionPerformed([Ent.PRINTER, printerId, Ent.SCOPE, 'public'], j, jcount)
-    except GCP.userIsNotAuthorized:
-      entityActionFailedWarning([Ent.PRINTER, printerId, roleForScope, scope], Msg.ONLY_ONE_OWNER_ALLOWED, j, jcount)
-    except GCP.failedToShareThePrinter:
-      entityActionFailedWarning([Ent.PRINTER, printerId, roleForScope, scope], Msg.INVALID_SCOPE, j, jcount)
-    except GCP.unknownPrinter as e:
-      entityActionFailedWarning([Ent.PRINTER, printerId], str(e), i, count)
-      break
-  Ind.Decrement()
-
-PRINTER_ROLE_MAP = {'manager': Ent.ROLE_MANAGER, 'owner': Ent.ROLE_OWNER, 'user': Ent.ROLE_USER}
-PRINTER_ROLE_PRINT_MAP = {'manager': Ent.ROLE_MANAGER, 'owner': Ent.ROLE_OWNER, 'user': Ent.ROLE_USER, 'print': 'print'}
-PRINTER_PUBLIC_SCOPE_LIST = ['public']
-
-# gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> create|add user|manager|owner <PrinterACLScopeEntity> [notify]
-# gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> create|add print public
-def printerCreateACL(users, printerIdList):
-  role = getChoice(PRINTER_ROLE_PRINT_MAP, mapChoice=True)
-  if role != 'print':
-    scopeList, printerScopeLists = getPrinterACLScopeEntity()
-  else:
-    role = Ent.ROLE_PUBLIC
-    scopeList = PRINTER_PUBLIC_SCOPE_LIST
-    printerScopeLists = None
-    checkArgumentPresent(scopeList, required=True)
-  notify = checkArgumentPresent('notify')
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, cp = buildGAPICloudprintObject(user, i, count)
-    if not cp:
-      continue
-    j = 0
-    jcount = len(printerIdList)
-    userProcessPrinters(user, jcount, i, count)
-    Ind.Increment()
-    for printerId in printerIdList:
-      j += 1
-      if printerScopeLists:
-        scopeList = normalizePrinterScopeList(printerScopeLists[printerId])
-      _batchCreatePrinterACLs(cp, printerId, j, jcount, scopeList, role, notify)
-    Ind.Decrement()
-
-def _batchDeletePrinterACLs(cp, printerId, i, count, scopeList, role):
-  Act.Set(Act.DELETE)
-  jcount = len(scopeList)
-  entityPerformActionNumItems([Ent.PRINTER, printerId], jcount, role, i, count)
-  Ind.Increment()
-  j = 0
-  for scope in scopeList:
-    j += 1
-    if scope.lower() == 'public':
-      public = True
-      scope = None
-    else:
-      public = None
-    try:
-      callGCP(cp.printers(), 'unshare',
-              throw_messages=[GCP.UNKNOWN_PRINTER],
-              printerid=printerId, scope=scope, public=public)
-      if scope is None:
-        scope = 'public'
-      entityActionPerformed([Ent.PRINTER, printerId, Ent.SCOPE, scope], j, jcount)
-    except GCP.unknownPrinter as e:
-      entityActionFailedWarning([Ent.PRINTER, printerId], str(e), i, count)
-      break
-  Ind.Decrement()
-
-# gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> delete [user|manager|owner] <PrinterACLScopeEntity>
-# gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> delete [print] public
-def printerDeleteACLs(users, printerIdList):
-  role = getChoice(PRINTER_ROLE_PRINT_MAP, defaultChoice=None, mapChoice=True)
-  if role != 'print':
-    scopeList, printerScopeLists = getPrinterACLScopeEntity()
-  else:
-    role = Ent.ROLE_PUBLIC
-    scopeList = PRINTER_PUBLIC_SCOPE_LIST
-    printerScopeLists = None
-    checkArgumentPresent(scopeList, required=True)
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, cp = buildGAPICloudprintObject(user, i, count)
-    if not cp:
-      continue
-    j = 0
-    jcount = len(printerIdList)
-    userProcessPrinters(user, jcount, i, count)
-    Ind.Increment()
-    for printerId in printerIdList:
-      j += 1
-      if printerScopeLists:
-        scopeList = normalizePrinterScopeList(printerScopeLists[printerId])
-      _batchDeletePrinterACLs(cp, printerId, j, jcount, scopeList, Ent.SCOPE)
-    Ind.Decrement()
-
-def getPrinterScopeListsForRole(cp, printerId, i, count, role):
-  try:
-    result = callGCP(cp.printers(), 'get',
-                     throw_messages=[GCP.UNKNOWN_PRINTER],
-                     printerid=printerId)
-    try:
-      jcount = len(result['printers'][0]['access'])
-    except KeyError:
-      jcount = 0
-    scopeList = []
-    if jcount > 0:
-      for acl in result['printers'][0]['access']:
-        if acl.get('role') == role:
-          scopeList.append(acl['scope'].lower())
-    return scopeList
-  except GCP.unknownPrinter as e:
-    entityActionFailedWarning([Ent.PRINTER, printerId], str(e), i, count)
-    return None
-
-# gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> sync user|manager|owner [addonly|removeonly] <PrinterACLScopeEntity> [notify]
-def printerSyncACLs(users, printerIdList):
-  role = getChoice(PRINTER_ROLE_MAP, mapChoice=True)
-  syncOperation = getSyncOperation()
-  scopeList, printerScopeLists = getPrinterACLScopeEntity()
-  notify = checkArgumentPresent('notify')
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, cp = buildGAPICloudprintObject(user, i, count)
-    if not cp:
-      continue
-    j = 0
-    jcount = len(printerIdList)
-    userProcessPrinters(user, jcount, i, count)
-    Ind.Increment()
-    for printerId in printerIdList:
-      j += 1
-      if printerScopeLists:
-        scopeList = normalizePrinterScopeList(printerScopeLists[printerId])
-      currentScopeList = getPrinterScopeListsForRole(cp, printerId, j, jcount, role)
-      if currentScopeList is not None:
-        if syncOperation != 'removeonly':
-          _batchCreatePrinterACLs(cp, printerId, j, jcount, list(set(scopeList)-set(currentScopeList)), role, notify)
-        if syncOperation != 'addonly':
-          _batchDeletePrinterACLs(cp, printerId, j, jcount, list(set(currentScopeList)-set(scopeList)), role)
-    Ind.Decrement()
-
-# gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> wipe user|manager|owner
-def printerWipeACLs(users, printerIdList):
-  role = getChoice(PRINTER_ROLE_MAP, mapChoice=True)
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, cp = buildGAPICloudprintObject(user, i, count)
-    if not cp:
-      continue
-    j = 0
-    jcount = len(printerIdList)
-    userProcessPrinters(user, jcount, i, count)
-    Ind.Increment()
-    for printerId in printerIdList:
-      j += 1
-      currentScopeList = getPrinterScopeListsForRole(cp, printerId, j, jcount, role)
-      if currentScopeList is not None:
-        _batchDeletePrinterACLs(cp, printerId, j, jcount, currentScopeList, role)
-    Ind.Decrement()
-
-PRINTACLS_SORT_TITLES = ['id', 'printerName', 'email', 'name', 'membership', 'is_pending', 'role', 'scope', 'type']
-
-# gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> printacls [todrive <ToDriveAttribute>*]
-# gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> showacls
-def printerPrintShowACLs(users, printerIdList):
-  csvPF = CSVPrintFile(['id', 'printerName'], PRINTACLS_SORT_TITLES) if Act.csvFormat() else None
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    else:
-      unknownArgumentExit()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, cp = buildGAPICloudprintObject(user, i, count)
-    if not cp:
-      continue
-    j = 0
-    jcount = len(printerIdList)
-    if not csvPF:
-      userProcessPrinters(user, jcount, i, count)
-    Ind.Increment()
-    for printerId in printerIdList:
-      j += 1
-      try:
-        if csvPF:
-          printGettingEntityItemForWhom(Ent.PRINTER_ACL, printerId, j, jcount)
-        result = callGCP(cp.printers(), 'get',
-                         throw_messages=[GCP.UNKNOWN_PRINTER],
-                         printerid=printerId)
-        try:
-          kcount = len(result['printers'][0]['access'])
-        except KeyError:
-          kcount = 0
-        if not csvPF:
-          entityPerformActionNumItems([Ent.PRINTER, f'{result["printers"][0]["name"]} ({printerId})'], kcount, Ent.PRINTER_ACL, j, jcount)
-        if kcount == 0:
-          setSysExitRC(NO_ENTITIES_FOUND)
-          continue
-        if not csvPF:
-          Ind.Increment()
-          for acl in result['printers'][0]['access']:
-            if 'key' in acl:
-              acl['accessURL'] = CLOUDPRINT_ACCESS_URL.format(printerId, acl['key'])
-            showJSON(None, acl)
-            printBlankLine()
-          Ind.Decrement()
-        else:
-          for acl in result['printers'][0]['access']:
-            if 'key' in acl:
-              acl['accessURL'] = CLOUDPRINT_ACCESS_URL.format(printerId, acl['key'])
-            csvPF.WriteRowTitles(flattenJSON(acl, flattened={'id': printerId, 'printerName': result['printers'][0]['name']}))
-      except GCP.unknownPrinter as e:
-        entityActionFailedWarning([Ent.PRINTER, printerId], str(e), j, jcount)
-    Ind.Decrement()
-  if csvPF:
-    csvPF.writeCSVfile('PrinterACLs')
-
-def userProcessPrintJobs(user, jcount, i, count):
-  action = Act.Get()
-  Act.Set(Act.PROCESS)
-  entityPerformActionNumItems([Ent.USER, user], jcount, Ent.PRINTJOB, i, count)
-  Act.Set(action)
-
-# gam [<UserTypeEntity>] printjob|printjobs <PrintJobEntity> cancel
-def doPrintJobCancel(users, jobIdList):
-  checkForExtraneousArguments()
-  ssd = '{"state": {"type": "ABORTED", "user_action_cause": {"action_code": "CANCELLED"}}}'
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, cp = buildGAPICloudprintObject(user, i, count)
-    if not cp:
-      continue
-    j = 0
-    jcount = len(jobIdList)
-    userProcessPrintJobs(user, jcount, i, count)
-    Ind.Increment()
-    for jobId in jobIdList:
-      j += 1
-      try:
-        callGCP(cp.jobs(), 'update',
-                throw_messages=[GCP.UNKNOWN_JOB_ID],
-                jobid=jobId, semantic_state_diff=ssd)
-        entityActionPerformed([Ent.PRINTJOB, jobId], j, jcount)
-      except GCP.unknownJobId as e:
-        entityActionFailedWarning([Ent.PRINTJOB, jobId], str(e), j, jcount)
-    Ind.Decrement()
-
-# gam [<UserTypeEntity>] printjob|printjobs <PrintJobEntity> delete
-def doPrintJobDelete(users, jobIdList):
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, cp = buildGAPICloudprintObject(user, i, count)
-    if not cp:
-      continue
-    j = 0
-    jcount = len(jobIdList)
-    userProcessPrintJobs(user, jcount, i, count)
-    Ind.Increment()
-    for jobId in jobIdList:
-      j += 1
-      try:
-        callGCP(cp.jobs(), 'delete',
-                throw_messages=[GCP.UNKNOWN_JOB_ID],
-                jobid=jobId)
-        entityActionPerformed([Ent.PRINTJOB, jobId], j, jcount)
-      except GCP.unknownJobId as e:
-        entityActionFailedWarning([Ent.PRINTJOB, jobId], str(e), j, jcount)
-    Ind.Decrement()
-
-# gam [<UserTypeEntity>] printjob|printjobs <PrintJobEntity> resubmit <PrinterID>
-def doPrintJobResubmit(users, jobIdList):
-  printerId = getString(Cmd.OB_PRINTER_ID)
-  ssd = '{"state": {"type": "HELD"}}'
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, cp = buildGAPICloudprintObject(user, i, count)
-    if not cp:
-      continue
-    j = 0
-    jcount = len(jobIdList)
-    userProcessPrintJobs(user, jcount, i, count)
-    Ind.Increment()
-    for jobId in jobIdList:
-      j += 1
-      try:
-        result = callGCP(cp.jobs(), 'update',
-                         throw_messages=[GCP.UNKNOWN_JOB_ID, GCP.CANT_MODIFY_FINISHED_JOB],
-                         jobid=jobId, semantic_state_diff=ssd)
-        ticket = callGCP(cp.jobs(), 'getticket',
-                         throw_messages=[GCP.UNKNOWN_JOB_ID, GCP.CANT_MODIFY_FINISHED_JOB],
-                         jobid=jobId, use_cjt=True)
-        result = callGCP(cp.jobs(), 'resubmit',
-                         throw_messages=[GCP.UNKNOWN_PRINTER, GCP.UNKNOWN_JOB_ID, GCP.CANT_MODIFY_FINISHED_JOB],
-                         printerid=printerId, jobid=jobId, ticket=ticket)
-        entityActionPerformed([Ent.PRINTJOB, result['job']['id'], Ent.PRINTER, printerId], j, jcount)
-      except GCP.unknownJobId as e:
-        entityActionFailedWarning([Ent.PRINTJOB, jobId], str(e), j, jcount)
-      except (GCP.cantModifyFinishedJob, GCP.unknownPrinter) as e:
-        entityActionFailedWarning([Ent.PRINTJOB, jobId, Ent.PRINTER, printerId], str(e), j, jcount)
-    Ind.Decrement()
-
-# gam [<UserTypeEntity>] printjob <PrinterID> submit
-#	(<FileName> [charset  <String>])|<URL> [name|title <String>] (tag <String>)*
-def doPrintJobSubmit(users, printerIdList):
-  printerId = printerIdList[0]
-  content = getString(Cmd.OB_FILE_NAME_OR_URL)
-  form_fields = {'printerid': printerId,
-                 'title': content,
-                 'ticket': '{"version": "1.0"}',
-                 'tags': [GAM, GAM_URL]}
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == 'tag':
-      form_fields['tags'].append(getString(Cmd.OB_STRING))
-    elif myarg in {'name', 'title'}:
-      form_fields['title'] = getString(Cmd.OB_STRING)
-    else:
-      unknownArgumentExit()
-  if content[:4] == 'http':
-    form_fields['content'] = content
-    form_fields['contentType'] = 'url'
-    filepath = None
-  else:
-    filepath = content
-    encoding = getCharSet()
-  body, headers = encode_multipart(form_fields, filepath, encoding)
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, cp = buildGAPICloudprintObject(user, i, count)
-    if not cp:
-      continue
-    userProcessPrintJobs(user, 1, i, count)
-    Ind.Increment()
-    try:
-      resp, result = cp._http.request(uri='https://www.google.com/cloudprint/submit', method='POST', body=body, headers=headers)
-      if resp['status'] == '200':
-        result = checkCloudPrintResult(result)
-        entityActionPerformed([Ent.PRINTER, printerId, Ent.PRINTJOB, result['job']['id']])
-      else:
-        entityActionFailedWarning([Ent.PRINTER, printerId], getCloudPrintError(resp, result))
-    except GCP.unknownPrinter as e:
-      entityActionFailedWarning([Ent.PRINTER, printerId], str(e))
-    Ind.Decrement()
-#
-PRINTJOB_STATUS_MAP = {
-  'done': 'DONE',
-  'error': 'ERROR',
-  'held': 'HELD',
-  'inprogress': 'IN_PROGRESS',
-  'queued': 'QUEUED',
-  'submitted': 'SUBMITTED',
-  }
-# Map argument to API value
-PRINTJOB_ASCENDINGORDER_MAP = {
-  'createtime': 'CREATE_TIME',
-  'status': 'STATUS',
-  'title': 'TITLE',
-  }
-# Map API value from ascending to descending
-PRINTJOB_DESCENDINGORDER_MAP = {
-  'CREATE_TIME': 'CREATE_TIME_DESC',
-  'STATUS': 'STATUS_DESC',
-  'TITLE': 'TITLE_DESC',
-  }
-
-PRINTJOBS_DEFAULT_JOB_LIMIT = 0
-PRINTJOBS_DEFAULT_MAX_RESULTS = 100
-
-def initPrintjobListParameters():
-  return {'older_or_newer': 0,
-          'age': None,
-          'sortorder': None,
-          'owner': None,
-          'queries': [None],
-          'status': None,
-          'jobLimit': PRINTJOBS_DEFAULT_JOB_LIMIT,
-         }
-
-def getPrintjobListParameters(myarg, parameters):
-  if myarg == 'olderthan':
-    parameters['older_or_newer'] = 1
-    parameters['age'] = getAgeTime()
-  elif myarg == 'newerthan':
-    parameters['older_or_newer'] = -1
-    parameters['age'] = getAgeTime()
-  elif myarg in {'query', 'queries'}:
-    parameters['queries'] = getQueries(myarg)
-  elif myarg == 'status':
-    parameters['status'] = getChoice(PRINTJOB_STATUS_MAP, mapChoice=True)
-  elif myarg == 'orderby':
-    parameters['sortorder'] = getChoice(PRINTJOB_ASCENDINGORDER_MAP, mapChoice=True)
-    if getChoice(SORTORDER_CHOICE_MAP, defaultChoice='ASCENDING', mapChoice=True) == 'DESCENDING':
-      parameters['sortorder'] = PRINTJOB_DESCENDINGORDER_MAP[parameters['sortorder']]
-  elif myarg in {'owner', 'user'}:
-    parameters['owner'] = getEmailAddress(noUid=True)
-  elif myarg == 'limit':
-    parameters['jobLimit'] = getInteger(minVal=0)
-  else:
-    unknownArgumentExit()
-
-# gam [<UserTypeEntity>] printjob <PrinterID>|any fetch
-#	[olderthan|newerthan <PrintJobAge>] [(query <QueryPrintJob>)|(queries <QueryPrintJobList>)]
-#	[status done|error|held|in_progress|queued|submitted]
-#	[orderby <PrintJobOrderByFieldName> [ascending|descending]]
-#	[owner|user <EmailAddress>]
-#	[limit <Number>] [drivedir|(targetfolder <FilePath>)]
-def doPrintJobFetch(users, printerIdList):
-  printerId = printerIdList[0]
-  if printerId.lower() == 'any':
-    printerId = None
-  parameters = initPrintjobListParameters()
-  targetFolder = os.getcwd()
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == 'drivedir':
-      targetFolder = GC.Values[GC.DRIVE_DIR]
-    elif myarg == 'targetfolder':
-      targetFolder = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
-      if not os.path.isdir(targetFolder):
-        os.makedirs(targetFolder)
-    else:
-      getPrintjobListParameters(myarg, parameters)
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, cp = buildGAPICloudprintObject(user, i, count)
-    if not cp:
-      continue
-    if printerId:
-      try:
-        callGCP(cp.printers(), 'get',
-                throw_messages=[GCP.UNKNOWN_PRINTER],
-                printerid=printerId)
-      except GCP.unknownPrinter as e:
-        entityActionFailedWarning([Ent.PRINTER, printerId], str(e))
-        return
-    ssd = '{"state": {"type": "DONE"}}'
-    if ((not parameters['sortorder']) or (parameters['sortorder'] == 'CREATE_TIME_DESC')) and (parameters['older_or_newer'] < 0):
-      timeExit = True
-    elif (parameters['sortorder'] == 'CREATE_TIME') and (parameters['older_or_newer'] > 0):
-      timeExit = True
-    else:
-      timeExit = False
-    for query in parameters['queries']:
-      jobCount = offset = 0
-      exitLoop = False
-      while not exitLoop:
-        if parameters['jobLimit'] == 0:
-          limit = PRINTJOBS_DEFAULT_MAX_RESULTS
-        else:
-          limit = min(PRINTJOBS_DEFAULT_MAX_RESULTS, parameters['jobLimit']-jobCount)
-          if limit == 0:
-            break
-        result = callGCP(cp.jobs(), 'list',
-                         throw_messages=[GCP.UNKNOWN_PRINTER, GCP.NO_PRINT_JOBS],
-                         printerid=printerId, q=query, status=parameters['status'], sortorder=parameters['sortorder'],
-                         owner=parameters['owner'], offset=offset, limit=limit)
-        newJobs = result['range']['jobsCount']
-        if newJobs == 0:
-          break
-        jobCount += newJobs
-        offset += newJobs
-        for job in result['jobs']:
-          createTime = int(job['createTime'])
-          if parameters['older_or_newer'] > 0:
-            if createTime > parameters['age']:
-              if timeExit:
-                exitLoop = True
-                break
-              continue
-          elif parameters['older_or_newer'] < 0:
-            if createTime < parameters['age']:
-              if timeExit:
-                exitLoop = True
-                break
-              continue
-          jobId = job['id']
-          fileName = os.path.join(targetFolder, f'{cleanFilename(job["title"])}-{jobId}')
-          _, content = cp._http.request(job['fileUrl'], method='GET')
-          if writeFile(fileName, content, mode='wb', continueOnError=True):
-  #          ticket = callGCP(cp.jobs(), 'getticket',
-  #                           jobid=jobId, use_cjt=True)
-            result = callGCP(cp.jobs(), 'update',
-                             jobid=jobId, semantic_state_diff=ssd)
-            entityModifierNewValueActionPerformed([Ent.PRINTER, printerId, Ent.PRINTJOB, jobId], Act.MODIFIER_TO, fileName)
-      if jobCount == 0:
-        entityActionFailedWarning([Ent.PRINTER, printerId, Ent.PRINTJOB, ''], Msg.NO_PRINT_JOBS)
-
-PRINTJOB_SORT_TITLES = ['printerid', 'id', 'printerName', 'title', 'ownerId', 'createTime', 'updateTime']
-
-# gam [<UserTypeEntity>] print printjobs [todrive <ToDriveAttribute>*] [printer|printerid <PrinterID>]
-#	[olderthan|newerthan <PrintJobAge>] [(query <QueryPrintJob>)|(queries <QueryPrintJobList>)]
-#	[status <PrintJobStatus>]
-#	[orderby <PrintJobOrderByFieldName> [ascending|descending]]
-#	[owner|user <EmailAddress>]
-#	[limit <Number>] [delimiter <Character>]
-def printPrintJobs(users):
-  csvPF = CSVPrintFile(['printerid', 'id'], PRINTJOB_SORT_TITLES)
-  printerId = None
-  parameters = initPrintjobListParameters()
-  delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    elif myarg in {'printer', 'printerid'}:
-      printerId = getString(Cmd.OB_PRINTER_ID)
-    elif myarg == 'delimiter':
-      delimiter = getCharacter()
-    else:
-      getPrintjobListParameters(myarg, parameters)
-  if ((not parameters['sortorder']) or (parameters['sortorder'] == 'CREATE_TIME_DESC')) and (parameters['older_or_newer'] < 0):
-    timeExit = True
-  elif (parameters['sortorder'] == 'CREATE_TIME') and (parameters['older_or_newer'] > 0):
-    timeExit = True
-  else:
-    timeExit = False
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, cp = buildGAPICloudprintObject(user, i, count)
-    if not cp:
-      continue
-    if printerId:
-      try:
-        callGCP(cp.printers(), 'get',
-                throw_messages=[GCP.UNKNOWN_PRINTER],
-                printerid=printerId)
-      except GCP.unknownPrinter as e:
-        entityActionFailedWarning([Ent.PRINTER, printerId], str(e))
-        return
-    for query in parameters['queries']:
-      jobCount = offset = 0
-      exitLoop = False
-      while not exitLoop:
-        if parameters['jobLimit'] == 0:
-          limit = PRINTJOBS_DEFAULT_MAX_RESULTS
-        else:
-          limit = min(PRINTJOBS_DEFAULT_MAX_RESULTS, parameters['jobLimit']-jobCount)
-          if limit == 0:
-            break
-        result = callGCP(cp.jobs(), 'list',
-                         printerid=printerId, q=query, status=parameters['status'], sortorder=parameters['sortorder'],
-                         owner=parameters['owner'], offset=offset, limit=limit)
-        newJobs = result['range']['jobsCount']
-        if GC.Values[GC.DEBUG_LEVEL] > 0:
-          sys.stderr.write(f'Debug: jobCount: {jobCount}, jobLimit: {parameters["jobLimit"]}, jobsCount: {newJobs}, jobsTotal: {int(result["range"]["jobsTotal"])}\n')
-        if newJobs == 0:
-          break
-        jobCount += newJobs
-        offset += newJobs
-        for job in result['jobs']:
-          createTime = int(job['createTime'])
-          if parameters['older_or_newer'] > 0:
-            if createTime > parameters['age']:
-              if timeExit:
-                exitLoop = True
-                break
-              continue
-          elif parameters['older_or_newer'] < 0:
-            if createTime < parameters['age']:
-              if timeExit:
-                exitLoop = True
-                break
-              continue
-          job['createTime'] = formatLocalTimestamp(job['createTime'])
-          job['updateTime'] = formatLocalTimestamp(job['updateTime'])
-          job['tags'] = delimiter.join(job['tags'])
-          csvPF.WriteRowTitles(flattenJSON(job))
-  csvPF.writeCSVfile('Print Jobs')
-
-def doPrintPrintJobs():
-  printPrintJobs([None])
 
 def _showASPs(user, asps, i=0, count=0):
   Act.Set(Act.SHOW)
@@ -49055,7 +49587,6 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ORG:		doDeleteOrg,
       Cmd.ARG_ORGS:		doDeleteOrgs,
       Cmd.ARG_PERMISSION:	doDeletePermissions,
-      Cmd.ARG_PRINTER:		doDeletePrinters,
       Cmd.ARG_PROJECT:		doDeleteProject,
       Cmd.ARG_RESOLDSUBSCRIPTION:	doDeleteResoldSubscription,
       Cmd.ARG_RESOURCE:		doDeleteResourceCalendar,
@@ -49082,6 +49613,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ALIAS:		doInfoAliases,
       Cmd.ARG_BUILDING:		doInfoBuilding,
       Cmd.ARG_BROWSER:		doInfoBrowsers,
+      Cmd.ARG_CIGROUP:		doInfoCIGroups,
+      Cmd.ARG_CIGROUPMEMBERS:	doInfoCIGroupMembers,
       Cmd.ARG_CONTACT:		doInfoDomainContacts,
       Cmd.ARG_COURSE:		doInfoCourse,
       Cmd.ARG_COURSES:		doInfoCourses,
@@ -49101,7 +49634,6 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_MOBILE:		doInfoMobileDevices,
       Cmd.ARG_ORG:		doInfoOrg,
       Cmd.ARG_ORGS:		doInfoOrgs,
-      Cmd.ARG_PRINTER:		doInfoPrinters,
       Cmd.ARG_RESOLDCUSTOMER:	doInfoResoldCustomer,
       Cmd.ARG_RESOLDSUBSCRIPTION:	doInfoResoldSubscription,
       Cmd.ARG_RESOURCE:		doInfoResourceCalendar,
@@ -49129,6 +49661,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ALIAS:		doPrintAliases,
       Cmd.ARG_BROWSER:		doPrintShowBrowsers,
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
+      Cmd.ARG_CIGROUP:		doPrintCIGroups,
+      Cmd.ARG_CIGROUPMEMBERS:	doPrintCIGroupMembers,
       Cmd.ARG_CLASSROOMINVITATION:	doPrintShowClassroomInvitations,
       Cmd.ARG_CONTACT:		doPrintShowDomainContacts,
       Cmd.ARG_COURSE:		doPrintCourses,
@@ -49157,8 +49691,6 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ORG:		doPrintOrgs,
       Cmd.ARG_ORGS:		doPrintOrgs,
       Cmd.ARG_OWNERSHIP:	doPrintShowOwnership,
-      Cmd.ARG_PRINTER:		doPrintShowPrinters,
-      Cmd.ARG_PRINTJOBS:	doPrintPrintJobs,
       Cmd.ARG_PRIVILEGES:	doPrintShowPrivileges,
       Cmd.ARG_PROJECT:		doPrintShowProjects,
       Cmd.ARG_RESOLDSUBSCRIPTION:	doPrintShowResoldSubscriptions,
@@ -49181,7 +49713,6 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_VAULTMATTER:	doPrintShowVaultMatters,
      }
     ),
-  'register': (Act.REGISTER, {Cmd.ARG_PRINTER: doRegisterPrinter}),
   'reopen': (Act.REOPEN, {Cmd.ARG_VAULTMATTER: doReopenVaultMatter}),
   'replace': (Act.UPDATE, {Cmd.ARG_SAKEY: doReplaceSvcAcctKeys}),
   'rotate': (Act.UPDATE, {Cmd.ARG_SAKEY: doProcessSvcAcctKeys}),
@@ -49193,6 +49724,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ALERTFEEDBACK:	doPrintShowAlertFeedback,
       Cmd.ARG_BROWSER:		doPrintShowBrowsers,
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
+      Cmd.ARG_CIGROUPMEMBERS:	doShowCIGroupMembers,
       Cmd.ARG_CLASSROOMINVITATION:	doPrintShowClassroomInvitations,
       Cmd.ARG_CONTACT:		doPrintShowDomainContacts,
       Cmd.ARG_DATATRANSFER:	doPrintShowDataTransfers,
@@ -49207,7 +49739,6 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_LICENSE:		doShowLicenses,
       Cmd.ARG_ORGTREE:		doShowOrgTree,
       Cmd.ARG_OWNERSHIP:	doPrintShowOwnership,
-      Cmd.ARG_PRINTER:		doPrintShowPrinters,
       Cmd.ARG_PRIVILEGES:	doPrintShowPrivileges,
       Cmd.ARG_PROJECT:		doPrintShowProjects,
       Cmd.ARG_RESOLDSUBSCRIPTION:	doPrintShowResoldSubscriptions,
@@ -49254,7 +49785,6 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_MOBILE:		doUpdateMobileDevices,
       Cmd.ARG_ORG:		doUpdateOrg,
       Cmd.ARG_ORGS:		doUpdateOrgs,
-      Cmd.ARG_PRINTER:		doUpdatePrinters,
       Cmd.ARG_PROJECT:		doUpdateProject,
       Cmd.ARG_RESOLDCUSTOMER:	doUpdateResoldCustomer,
       Cmd.ARG_RESOLDSUBSCRIPTION:	doUpdateResoldSubscription,
@@ -49299,6 +49829,7 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_BROWSERS:	Cmd.ARG_BROWSER,
   Cmd.ARG_BUILDINGS:	Cmd.ARG_BUILDING,
   Cmd.ARG_CIGROUPS:	Cmd.ARG_CIGROUP,
+  Cmd.ARG_CIGROUPSMEMBERS:	Cmd.ARG_CIGROUPMEMBERS,
   Cmd.ARG_CLASS:	Cmd.ARG_COURSE,
   Cmd.ARG_CLASSES:	Cmd.ARG_COURSES,
   Cmd.ARG_CLASSPARTICIPANTS:	Cmd.ARG_COURSEPARTICIPANTS,
@@ -49339,8 +49870,6 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_OUTREE:	Cmd.ARG_ORGTREE,
   Cmd.ARG_PARTICIPANTS:	Cmd.ARG_COURSEPARTICIPANTS,
   Cmd.ARG_PERMISSIONS:	Cmd.ARG_PERMISSION,
-  Cmd.ARG_PRINT:	Cmd.ARG_PRINTER,
-  Cmd.ARG_PRINTERS:	Cmd.ARG_PRINTER,
   Cmd.ARG_PROJECTS:	Cmd.ARG_PROJECT,
   Cmd.ARG_RESELLERCUSTOMERS:	Cmd.ARG_RESOLDCUSTOMER,
   Cmd.ARG_RESELLERSUBSCRIPTIONS:	Cmd.ARG_RESOLDSUBSCRIPTION,
@@ -49519,54 +50048,6 @@ def processCourseCommands():
 def processCoursesCommands():
   executeCourseCommands(getEntityList(Cmd.OB_COURSE_ENTITY, shlexSplit=True), True)
 
-# Printer command sub-commands
-PRINTER_SUBCOMMANDS = {
-  'add': (Act.ADD, printerCreateACL),
-  'delete': (Act.DELETE, printerDeleteACLs),
-  'printacls': (Act.PRINT, printerPrintShowACLs),
-  'showacls': (Act.SHOW, printerPrintShowACLs),
-  'sync': (Act.SYNC, printerSyncACLs),
-  'wipe': (Act.DELETE, printerWipeACLs),
-  }
-
-# Printer sub-command aliases
-PRINTER_SUBCOMMAND_ALIASES = {
-  'create':	'add',
-  'del':	'delete',
-  'printacl':	'printacls',
-  'showacl':	'showacls',
-  'remove':	'delete',
-  }
-
-def processPrintersCommands(users=None):
-  if users is None:
-    users = [None]
-  printerIdList = getEntityList(Cmd.OB_PRINTER_ID_ENTITY)
-  if printerIdList[0] == 'register':
-    Act.Set(Act.REGISTER)
-    registerPrinter(users)
-    return
-  CL_subCommand = getChoice(PRINTER_SUBCOMMANDS, choiceAliases=PRINTER_SUBCOMMAND_ALIASES)
-  Act.Set(PRINTER_SUBCOMMANDS[CL_subCommand][CMD_ACTION])
-  PRINTER_SUBCOMMANDS[CL_subCommand][CMD_FUNCTION](users, printerIdList)
-
-# Printjob command sub-commands
-PRINTJOB_SUBCOMMANDS = {
-  'cancel': (Act.CANCEL, doPrintJobCancel),
-  'delete': (Act.DELETE, doPrintJobDelete),
-  'fetch': (Act.DOWNLOAD, doPrintJobFetch),
-  'resubmit': (Act.RESUBMIT, doPrintJobResubmit),
-  'submit': (Act.SUBMIT, doPrintJobSubmit),
-  }
-
-def processPrintjobsCommands(users=None):
-  if users is None:
-    users = [None]
-  jobPrinterIdList = getEntityList(Cmd.OB_PRINTER_ID_ENTITY)
-  CL_subCommand = getChoice(PRINTJOB_SUBCOMMANDS)
-  Act.Set(PRINTJOB_SUBCOMMANDS[CL_subCommand][CMD_ACTION])
-  PRINTJOB_SUBCOMMANDS[CL_subCommand][CMD_FUNCTION](users, jobPrinterIdList)
-
 # Resource command sub-commands
 RESOURCE_SUBCOMMANDS_WITH_OBJECTS = {
   'add': (Act.ADD, {Cmd.ARG_CALENDARACL: doResourceCreateCalendarACLs}),
@@ -49608,8 +50089,6 @@ COMMANDS_MAP = {
   'calendars':	processCalendarsCommands,
   'course':	processCourseCommands,
   'courses':	processCoursesCommands,
-  'printers':	processPrintersCommands,
-  'printjobs':	processPrintjobsCommands,
   'resource':	processResourceCommands,
   'resources':	processResourcesCommands,
   }
@@ -49654,8 +50133,6 @@ USER_COMMANDS = {
   'list': (Act.LIST, doListUser),
   'language': (Act.SET, setLanguage),
   'pop': (Act.SET, setPop),
-  'printers': (Act.PROCESS, processPrintersCommands),
-  'printjobs': (Act.PROCESS, processPrintjobsCommands),
   'profile': (Act.SET, setProfile),
   'sendas': (Act.ADD, createUpdateSendAs),
   'sendemail': (Act.SENDEMAIL, doSendEmail),
@@ -49735,7 +50212,6 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_MESSAGE:		processMessages,
       Cmd.ARG_PERMISSION:	deletePermissions,
       Cmd.ARG_PHOTO:		deletePhoto,
-      Cmd.ARG_PRINTER:		deletePrinters,
       Cmd.ARG_SENDAS:		deleteInfoSendAs,
       Cmd.ARG_SMIME:		deleteSmime,
       Cmd.ARG_SITEACL:		processUserSiteACLs,
@@ -49761,6 +50237,7 @@ USER_COMMANDS_WITH_OBJECTS = {
     (Act.INFO,
      {Cmd.ARG_CALENDAR:		infoCalendars,
       Cmd.ARG_CALENDARACL:	infoCalendarACLs,
+      Cmd.ARG_CIGROUPMEMBERS:	infoCIGroupMembers,
       Cmd.ARG_CONTACT:		infoUserContacts,
       Cmd.ARG_CONTACTGROUP:	infoUserContactGroups,
       Cmd.ARG_DRIVEFILE:	showFileInfo,
@@ -49769,7 +50246,6 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_FILTER:		infoFilters,
       Cmd.ARG_FORWARDINGADDRESS:	infoForwardingAddresses,
       Cmd.ARG_GROUPMEMBERS:	infoGroupMembers,
-      Cmd.ARG_PRINTER:		infoPrinters,
       Cmd.ARG_SENDAS:		deleteInfoSendAs,
       Cmd.ARG_SHEET:		infoPrintShowSheets,
       Cmd.ARG_SITE:		infoUserSites,
@@ -49815,8 +50291,6 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_LABEL:		printShowLabels,
       Cmd.ARG_MESSAGE:		printShowMessages,
       Cmd.ARG_PEOPLEPROFILE:	printShowPeopleProfile,
-      Cmd.ARG_PRINTER:		printShowPrinters,
-      Cmd.ARG_PRINTJOBS:	printPrintJobs,
       Cmd.ARG_SENDAS:		printShowSendAs,
       Cmd.ARG_SHEET:		infoPrintShowSheets,
       Cmd.ARG_SHEETRANGE:	printShowSheetRanges,
@@ -49833,7 +50307,6 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_VACATION:		printShowVacation,
      }
     ),
-  'register': (Act.REGISTER, {Cmd.ARG_PRINTER: registerPrinter}),
   'remove': (Act.REMOVE, {Cmd.ARG_CALENDAR: removeCalendars}),
   'show':
     (Act.SHOW,
@@ -49870,7 +50343,6 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_MESSAGE:		printShowMessages,
       Cmd.ARG_PEOPLEPROFILE:	printShowPeopleProfile,
       Cmd.ARG_POP:		showPop,
-      Cmd.ARG_PRINTER:		printShowPrinters,
       Cmd.ARG_PROFILE:		showProfile,
       Cmd.ARG_SENDAS:		printShowSendAs,
       Cmd.ARG_SHEET:		infoPrintShowSheets,
@@ -49915,7 +50387,6 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_LABELSETTINGS:	updateLabelSettings,
       Cmd.ARG_LICENSE:		updateLicense,
       Cmd.ARG_PHOTO:		updatePhoto,
-      Cmd.ARG_PRINTER:		updatePrinters,
       Cmd.ARG_SENDAS:		createUpdateSendAs,
       Cmd.ARG_SERVICEACCOUNT:	checkServiceAccount,
       Cmd.ARG_SHEET:		updateSheets,
@@ -49938,8 +50409,6 @@ USER_COMMANDS_ALIASES = {
   'deprov':	'deprovision',
   'imap4':	'imap',
   'pop3':	'pop',
-  'printer':	'printers',
-  'printjob':	'printjobs',
   'sig':	'signature',
   'utf':	'unicode',
   'utf-8':	'unicode',
@@ -49955,6 +50424,8 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_CALENDARS:	Cmd.ARG_CALENDAR,
   Cmd.ARG_CALENDARACLS:	Cmd.ARG_CALENDARACL,
   Cmd.ARG_CLASSROOMINVITATIONS:	Cmd.ARG_CLASSROOMINVITATION,
+  Cmd.ARG_CIMEMBER:	Cmd.ARG_CIGROUPMEMBERS,
+  Cmd.ARG_CIMEMBERS:	Cmd.ARG_CIGROUPMEMBERS,
   Cmd.ARG_CONTACTS:	Cmd.ARG_CONTACT,
   Cmd.ARG_CONTACTDELEGATES:	Cmd.ARG_CONTACTDELEGATE,
   Cmd.ARG_CONTACTGROUPS:	Cmd.ARG_CONTACTGROUP,
@@ -49987,7 +50458,6 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_OAUTH:	Cmd.ARG_TOKEN,
   Cmd.ARG_PERMISSIONS:	Cmd.ARG_PERMISSION,
   Cmd.ARG_POP3:		Cmd.ARG_POP,
-  Cmd.ARG_PRINTERS:	Cmd.ARG_PRINTER,
   Cmd.ARG_SECCALS:	Cmd.ARG_CALENDAR,
   Cmd.ARG_SHAREDDRIVE:	Cmd.ARG_TEAMDRIVE,
   Cmd.ARG_SHAREDDRIVES:	Cmd.ARG_TEAMDRIVE,

@@ -63,25 +63,25 @@ _SKUS = {
     'product': 'Google-Apps', 'aliases': ['gau', 'gsb', 'unlimited', 'gsuitebusiness'], 'displayName': 'G Suite Business'},
   '1010020020': {
     'product': 'Google-Apps', 'aliases': ['gae', 'gse', 'enterprise', 'gsuiteenterprise',
-                                          'wsentplus', 'workspaceenterpriseplus'], 'displayName': 'Workspace Enterprise Plus'},
+                                          'wsentplus', 'workspaceenterpriseplus'], 'displayName': 'Google Workspace Enterprise Plus'},
   '1010020025': {
-    'product': 'Google-Apps', 'aliases': ['wsbizplus', 'workspacebusinessplus'], 'displayName': 'Workspace Business Plus'},
+    'product': 'Google-Apps', 'aliases': ['wsbizplus', 'workspacebusinessplus'], 'displayName': 'Google Workspace Business Plus'},
   '1010020026': {
-    'product': 'Google-Apps', 'aliases': ['wsentstan', 'workspaceenterprisestandard'], 'displayName': 'Workspace Enterprise Standard'},
+    'product': 'Google-Apps', 'aliases': ['wsentstan', 'workspaceenterprisestandard'], 'displayName': 'Google Workspace Enterprise Standard'},
   '1010020027': {
-    'product': 'Google-Apps', 'aliases': ['wsbizstart', 'workspacebusinessstarter'], 'displayName': 'Workspace Business Starter'},
+    'product': 'Google-Apps', 'aliases': ['wsbizstart', 'workspacebusinessstarter'], 'displayName': 'Google Workspace Business Starter'},
   '1010020028': {
-    'product': 'Google-Apps', 'aliases': ['wsbizstan', 'workspacebusinessstandard'], 'displayName': 'Workspace Business Standard'},
+    'product': 'Google-Apps', 'aliases': ['wsbizstan', 'workspacebusinessstandard'], 'displayName': 'Google Workspace Business Standard'},
   '1010340002': {
     'product': '101034', 'aliases': ['gsbau', 'businessarchived', 'gsuitebusinessarchived'], 'displayName': 'G Suite Business Archived'},
   '1010340001': {
-    'product': '101034', 'aliases': ['gseau', 'enterprisearchived', 'gsuiteenterprisearchived'], 'displayName': 'Workspace Enterprise Plus Archived'},
+    'product': '101034', 'aliases': ['gseau', 'enterprisearchived', 'gsuiteenterprisearchived'], 'displayName': 'Google Workspace Enterprise Plus Archived'},
   '1010060001': {
     'product': 'Google-Apps', 'aliases': ['gsuiteessentials', 'essentials',
                                           'd4e', 'driveenterprise', 'drive4enterprise',
                                           'wsess', 'workspaceesentials'], 'displayName': 'Google Workspace Essentials'},
   '1010060003': {
-    'product': 'Google-Apps', 'aliases': ['wsentess', 'workspaceenterpriseessentials'], 'displayName': 'Workspace Enterprise Essentials'},
+    'product': 'Google-Apps', 'aliases': ['wsentess', 'workspaceenterpriseessentials'], 'displayName': 'Google Workspace Enterprise Essentials'},
   'Google-Drive-storage-20GB': {
     'product': 'Google-Drive-storage', 'aliases': ['drive20gb', '20gb', 'googledrivestorage20gb'], 'displayName': 'Google Drive Storage 20GB'},
   'Google-Drive-storage-50GB': {

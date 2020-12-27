@@ -6,7 +6,6 @@ sys.modules['FixTk'] = None
 extra_files = [
     ('cacerts.pem', '.'),
     ('cbcm-v1.1beta1.json', '.'),
-    ('cloudprint-v2.json', '.'),
     ('contacts-v3.json', '.'),
     ('contactdelegation-v1.json', '.'),
     ('email-audit-v1.json', '.'),
