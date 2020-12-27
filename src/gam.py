@@ -16747,7 +16747,6 @@ CROS_FIELDS_CHOICE_MAP = {
   'ethernetmacaddress': 'ethernetMacAddress',
   'ethernetmacaddress0': 'ethernetMacAddress0',
   'firmwareversion': 'firmwareVersion',
-  'lastdeviceenrolleremail': 'lastDeviceEnrollerEmail',
   'lastenrollmenttime': 'lastEnrollmentTime',
   'lastknownnetwork': 'lastKnownNetwork',
   'lastsync': 'lastSync',

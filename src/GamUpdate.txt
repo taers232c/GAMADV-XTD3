@@ -3,7 +3,7 @@
 Removed all Cloud Print related commands,
 
 Extended support for Cloud Identity Groups.
-This is Beta software from Google, experiment and use with caution.
+This is Beta software from Google and a first release from me, experiment and use with caution.
 
 * See: https://github.com/taers232c/GAMADV-XTD3/wiki/Cloud-Identity-Groups
 * See: https://github.com/taers232c/GAMADV-XTD3/wiki/Cloud-Identity-Groups-Memberships
