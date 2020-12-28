@@ -163,7 +163,7 @@ def base64ToString(s):
         raise SyntaxError(e)
 
 def stringToBase64(s):
-    return base64.encodestring(s).replace("\n", "")
+    return base64.encodebytes(s).replace("\n", "")
 
 def mpiToNumber(mpi): #mpi is an openssl-format bignum string
     if (ord(mpi[4]) & 0x80) !=0: #Make sure this is a positive number

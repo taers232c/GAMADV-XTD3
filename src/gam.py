@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.00'
+__version__ = '5.31.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4722,14 +4722,14 @@ def convertGroupCloudIDToEmail(ci, group, i=0, count=0):
   if not group.startswith('groups/'):
     group = normalizeEmailAddressOrUID(group, ciGroupsAPI=True)
     if not group.startswith('groups/'):
-      return (ci, group)
+      return (ci, None, group)
   if not ci:
     ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
   try:
     ciGroup = callGAPI(ci.groups(), 'get',
                        throwReasons=GAPI.CIGROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
                        name=group, fields='groupKey(id)')
-    return (ci, ciGroup['groupKey']['id'])
+    return (ci, None, ciGroup['groupKey']['id'])
   except (GAPI.notFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
           GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
           GAPI.systemError, GAPI.permissionDenied) as e:
@@ -4737,14 +4737,14 @@ def convertGroupCloudIDToEmail(ci, group, i=0, count=0):
     Act.Set(Act.LOOKUP)
     entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, group, Ent.GROUP, None], str(e), i, count)
     Act.Set(action)
-    return (ci, None)
+    return (ci, None, None)
 
 def convertGroupEmailToCloudID(ci, group, i=0, count=0):
   group = normalizeEmailAddressOrUID(group, ciGroupsAPI=True)
   if not group.startswith('groups/') and group.find('@') == -1:
     group = 'groups/'+group
   if group.startswith('groups/'):
-    ci, groupEmail = convertGroupCloudIDToEmail(ci, group, i, count)
+    ci, _, groupEmail = convertGroupCloudIDToEmail(ci, group, i, count)
     return (ci, group, groupEmail)
   if not ci:
     ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
@@ -4770,12 +4770,13 @@ def checkGroupExists(cd, ci, ciGroupsAPI, group, i=0, count=0):
         result = callGAPI(cd.groups(), 'get',
                           throwReasons=GAPI.GROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
                           groupKey=group, fields='email')
-        return (ci, result['email'])
+        return (ci, None, result['email'])
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.invalid, GAPI.systemError):
         entityUnknownWarning(Ent.GROUP, group, i, count)
-        return (ci, None)
+        return (ci, None, None)
     else:
-      return convertGroupCloudIDToEmail(ci, group, i, count)
+      ci, _, groupEmail = convertGroupCloudIDToEmail(ci, group, i, count)
+      return (ci, None, groupEmail)
   else:
     if not group.startswith('groups/') and group.find('@') == -1:
       group = 'groups/'+group
@@ -19999,7 +20000,7 @@ def doUpdateGroups():
     count = len(entityList)
     for group in entityList:
       i += 1
-      ci, group = convertGroupCloudIDToEmail(ci, group, i, count)
+      ci, _, group = convertGroupCloudIDToEmail(ci, group, i, count)
       if gs_body and not GroupIsAbuseOrPostmaster(group):
         try:
           if group.find('@') == -1: # group settings API won't take uid so we make sure cd API is used so that we can grab real email.
@@ -20079,7 +20080,7 @@ def doUpdateGroups():
         else:
           roleList = groupMemberLists[group]
       origGroup = group
-      ci, group = checkGroupExists(cd, ci, False, group, i, count)
+      ci, _, group = checkGroupExists(cd, ci, False, group, i, count)
       if not group:
         continue
       for role in roleList:
@@ -20110,7 +20111,7 @@ def doUpdateGroups():
         else:
           roleList = groupMemberLists[group]
       origGroup = group
-      ci, group = checkGroupExists(cd, ci, False, group, i, count)
+      ci, _, group = checkGroupExists(cd, ci, False, group, i, count)
       if not group:
         continue
       for role in roleList:
@@ -20149,7 +20150,7 @@ def doUpdateGroups():
     for group in entityList:
       i += 1
       origGroup = group
-      ci, group = checkGroupExists(cd, ci, False, group, i, count)
+      ci, _, group = checkGroupExists(cd, ci, False, group, i, count)
       if not group:
         continue
       if groupMemberLists is None:
@@ -20245,7 +20246,7 @@ def doUpdateGroups():
         else:
           roleList = groupMemberLists[group]
       origGroup = group
-      ci, group = checkGroupExists(cd, ci, False, group, i, count)
+      ci, _, group = checkGroupExists(cd, ci, False, group, i, count)
       if not group:
         continue
       for role in roleList:
@@ -20297,7 +20298,7 @@ def doUpdateGroups():
     count = len(entityList)
     for group in entityList:
       i += 1
-      ci, group = checkGroupExists(cd, ci, False, group, i, count)
+      ci, _, group = checkGroupExists(cd, ci, False, group, i, count)
       if not group:
         continue
       printGettingAllEntityItemsForWhom(memberRoles, group, qualifier=qualifier, entityType=entityType)
@@ -20354,7 +20355,7 @@ def doDeleteGroups(ciGroupsAPI=False):
     i += 1
     try:
       if not ciGroupsAPI:
-        ci, groupKey = convertGroupCloudIDToEmail(ci, group, i, count)
+        ci, _, groupKey = convertGroupCloudIDToEmail(ci, group, i, count)
         callGAPI(cd.groups(), 'delete',
                  throwReasons=[GAPI.GROUP_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID],
                  groupKey=groupKey)
@@ -20604,7 +20605,7 @@ def infoGroups(entityList):
   count = len(entityList)
   for group in entityList:
     i += 1
-    ci, group = convertGroupCloudIDToEmail(ci, group, i, count)
+    ci, _, group = convertGroupCloudIDToEmail(ci, group, i, count)
     try:
       basic_info = callGAPI(cd.groups(), 'get',
                             throwReasons=GAPI.GROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
@@ -21469,7 +21470,7 @@ def infoGroupMembers(entityList, ciGroupsAPI=False):
       j += 1
       if not ciGroupsAPI:
         try:
-          ci, groupKey = convertGroupCloudIDToEmail(ci, group, i, count)
+          ci, _, groupKey = convertGroupCloudIDToEmail(ci, group, i, count)
           result = callGAPI(cd.members(), 'get',
                             throwReasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND], retryReasons=GAPI.MEMBERS_RETRY_REASONS,
                             groupKey=groupKey, memberKey=memberKey, fields=fields)
@@ -21773,7 +21774,7 @@ def doPrintGroupMembers():
       groupEmail = group['email']
     else:
       groupEmail = convertUIDtoEmailAddress(group, cd, 'group', ciGroupsAPI=True)
-      ci, groupEmail = convertGroupCloudIDToEmail(ci, groupEmail, i, count)
+      ci, _, groupEmail = convertGroupCloudIDToEmail(ci, groupEmail, i, count)
     if not checkGroupMatchPatterns(groupEmail, group, matchPatterns):
       continue
     membersList = []
@@ -21942,7 +21943,7 @@ def doShowGroupMembers():
       groupEmail = group['email']
     else:
       groupEmail = convertUIDtoEmailAddress(group, cd, 'group', ciGroupsAPI=True)
-      ci, groupEmail = convertGroupCloudIDToEmail(ci, groupEmail, i, count)
+      ci, _, groupEmail = convertGroupCloudIDToEmail(ci, groupEmail, i, count)
     if checkGroupMatchPatterns(groupEmail, group, matchPatterns):
       _showGroup(groupEmail, 0)
 
@@ -22229,7 +22230,7 @@ def doUpdateCIGroups():
     count = len(entityList)
     for group in entityList:
       i += 1
-      ci, group = convertGroupCloudIDToEmail(ci, group, i, count)
+      ci, _, group = convertGroupCloudIDToEmail(ci, group, i, count)
       if gs_body and not GroupIsAbuseOrPostmaster(group):
         try:
           if group.find('@') == -1: # group settings API won't take uid so we make sure cd API is used so that we can grab real email.

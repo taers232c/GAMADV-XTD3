@@ -28,7 +28,7 @@ import atom.url
 import gdata.oauth as oauth
 import gdata.oauth.rsa as oauth_rsa
 import gdata.tlslite.utils.keyfactory as keyfactory
-import gdata.tlslite.utils.cryptomath as cryptomath
+from base64 import encodebytes
 
 import gdata.gauth
 
@@ -841,7 +841,7 @@ class OAuthToken(atom.http_interface.GenericToken):
       dict Header to be sent with every subsequent request after
       authentication.
     """
-    if isinstance(http_url, (str,)):
+    if isinstance(http_url, str):
       http_url = atom.url.parse_url(http_url)
     header = None
     token = None
@@ -938,7 +938,7 @@ class SecureAuthSubToken(AuthSubToken):
     timestamp = int(math.floor(time.time()))
     nonce = '%lu' % random.randrange(1, 2**64)
     data = '%s %s %d %s' % (http_method, str(http_url), timestamp, nonce)
-    sig = cryptomath.bytesToBase64(self.rsa_key.hashAndSign(data))
+    sig = encodebytes(str(self.rsa_key.hashAndSign(data))).rstrip()
     header = {'Authorization': '%s"%s" data="%s" sig="%s" sigalg="rsa-sha1"' %
               (AUTHSUB_AUTH_LABEL, self.token_string, data, sig)}
     return header

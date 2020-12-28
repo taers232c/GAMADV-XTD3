@@ -450,7 +450,7 @@ def generate_signature(data, rsa_key):
   if hasattr(base64, 'b64encode'):
     return base64.b64encode(signed)
   else:
-    return base64.encodestring(signed).replace('\n', '')
+    return base64.encodebytes(signed).replace('\n', '')
 
 
 class SecureAuthSubToken(AuthSubToken):
@@ -619,7 +619,7 @@ def generate_hmac_signature(http_request, consumer_key, consumer_secret,
   if hasattr(base64, 'b64encode'):
     return base64.b64encode(hashed.digest())
   else:
-    return base64.encodestring(hashed.digest()).replace('\n', '')
+    return base64.encodebytes(hashed.digest()).replace('\n', '')
 
 
 def generate_rsa_signature(http_request, consumer_key, rsa_key,
@@ -640,7 +640,7 @@ def generate_rsa_signature(http_request, consumer_key, rsa_key,
   if hasattr(base64, 'b64encode'):
     return base64.b64encode(signed)
   else:
-    return base64.encodestring(signed).replace('\n', '')
+    return base64.encodebytes(signed).replace('\n', '')
 
 
 def generate_auth_header(consumer_key, timestamp, nonce, signature_type,
