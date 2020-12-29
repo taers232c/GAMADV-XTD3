@@ -2063,6 +2063,36 @@ def entityDoesNotHaveItemWarning(entityValueList, i=0, count=0):
                                  Ent.FormatEntityValueList(entityValueList)+[Msg.DOES_NOT_EXIST],
                                  currentCountNL(i, count)))
 
+def duplicateAliasGroupUserWarning(cd, entityValueList, i=0, count=0):
+  email = entityValueList[1]
+  try:
+    result = callGAPI(cd.users(), 'get',
+                      throwReasons=GAPI.USER_GET_THROW_REASONS,
+                      userKey=email, fields='id,primaryEmail')
+    if (result['primaryEmail'].lower() == email) or (result['id'] == email):
+      kvList = [Ent.USER, email]
+    else:
+      kvList = [Ent.USER_ALIAS, email, Ent.USER, result['primaryEmail']]
+  except (GAPI.userNotFound, GAPI.badRequest,
+          GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.backendError, GAPI.systemError):
+    try:
+      result = callGAPI(cd.groups(), 'get',
+                        throwReasons=GAPI.GROUP_GET_THROW_REASONS,
+                        groupKey=email, fields='id,email')
+      if (result['email'].lower() == email) or (result['id'] == email):
+        kvList = [Ent.GROUP, email]
+      else:
+        kvList = [Ent.GROUP_ALIAS, email, Ent.GROUP, result['email']]
+    except (GAPI.groupNotFound,
+            GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest):
+      kvList = [Ent.EMAIL, email]
+  writeStderr(formatKeyValueList(Ind.Spaces(),
+                                 Ent.FormatEntityValueList(entityValueList)+
+                                 [Act.Failed(), Msg.DUPLICATE]+
+                                 Ent.FormatEntityValueList(kvList),
+                                 currentCountNL(i, count)))
+  setSysExitRC(ENTITY_DUPLICATE_RC)
+
 def entityDuplicateWarning(entityValueList, i=0, count=0):
   setSysExitRC(ENTITY_DUPLICATE_RC)
   writeStderr(formatKeyValueList(Ind.Spaces(),
@@ -13380,7 +13410,7 @@ def doCreateUpdateAliases():
           entityActionFailedWarning([Ent.USER_ALIAS, aliasEmail, Ent.USER, targetEmail], str(e), i, count)
           continue
         except GAPI.duplicate:
-          entityActionFailedWarning([Ent.USER_ALIAS, aliasEmail, Ent.USER, targetEmail], Msg.DUPLICATE, i, count)
+          duplicateAliasGroupUserWarning(cd, [Ent.USER_ALIAS, aliasEmail, Ent.USER, targetEmail], i, count)
           continue
         except (GAPI.invalid, GAPI.invalidInput):
           entityActionFailedWarning([Ent.USER_ALIAS, aliasEmail, Ent.USER, targetEmail], Msg.INVALID_ALIAS, i, count)
@@ -13399,7 +13429,7 @@ def doCreateUpdateAliases():
       except (GAPI.conditionNotMet, GAPI.limitExceeded) as e:
         entityActionFailedWarning([Ent.GROUP_ALIAS, aliasEmail, Ent.GROUP, targetEmail], str(e), i, count)
       except GAPI.duplicate:
-        entityActionFailedWarning([Ent.GROUP_ALIAS, aliasEmail, Ent.GROUP, targetEmail], Msg.DUPLICATE, i, count)
+        duplicateAliasGroupUserWarning(cd, [Ent.GROUP_ALIAS, aliasEmail, Ent.GROUP, targetEmail], i, count)
       except (GAPI.invalid, GAPI.invalidInput):
         entityActionFailedWarning([Ent.GROUP_ALIAS, aliasEmail, Ent.GROUP, targetEmail], Msg.INVALID_ALIAS, i, count)
       except (GAPI.groupNotFound, GAPI.userNotFound, GAPI.badRequest, GAPI.forbidden):
@@ -19541,7 +19571,7 @@ def doCreateGroup(ciGroupsAPI=False):
                groupUniqueId=mapGroupEmailForSettings(groupEmail), body=settings, fields='')
     entityActionPerformed([entityType, groupEmail])
   except (GAPI.alreadyExists, GAPI.duplicate):
-    entityDuplicateWarning([entityType, groupEmail])
+    duplicateAliasGroupUserWarning(cd, [entityType, groupEmail])
   except GAPI.notFound:
     entityActionFailedWarning([entityType, groupEmail], Msg.DOES_NOT_EXIST)
   except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
@@ -29468,7 +29498,7 @@ def doCreateUser():
     if notify.get('recipients'):
       sendCreateUpdateUserNotification(result, notify, tagReplacements)
   except GAPI.duplicate:
-    entityDuplicateWarning([Ent.USER, user])
+    duplicateAliasGroupUserWarning(cd, [Ent.USER, user])
   except GAPI.invalidSchemaValue:
     entityActionFailedWarning([Ent.USER, user], Msg.INVALID_SCHEMA_VALUE)
   except GAPI.invalidOrgunit:
@@ -29591,7 +29621,7 @@ def updateUsers(entityList):
                   notify['password'] = notify['notFoundPassword']
                   sendCreateUpdateUserNotification(result, notify, tagReplacements, i, count)
               except GAPI.duplicate:
-                entityDuplicateWarning([Ent.USER, user], i, count)
+                duplicateAliasGroupUserWarning(cd, [Ent.USER, user], i, count)
             else:
               entityActionFailedWarning([Ent.USER, user], Msg.UNABLE_TO_CREATE_NOT_FOUND_USER, i, count)
           else:

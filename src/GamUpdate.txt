@@ -1,6 +1,22 @@
 5.31.01
 
-Code cleanup.
+When creating an `alias`, `group` or `user`, additional informations is given when the item is a duplicate.
+```
+$ gam create alias techassistant user user2@domain.com
+User Alias: techassistant@domain.com, User: user2@domain.com, Create Failed: Duplicate, User Alias: techassistant@domain.com, User: user1@domain.com
+
+$ gam create group technology@domain.com
+Group: technology@domain.com, Create Failed: Duplicate, Group: technology@domain.com
+$ gam create group appletech@domain.com
+Group: appletech@domain.com, Create Failed: Duplicate, Group Alias: appletech@domain.com, Group: technology@domain.com
+
+$ gam create user user1@domain.com
+User: user1@domain.com, Create Failed: Duplicate, User: user1@domain.com
+$ gam create user techassistant@domain.com
+User: techassistant@domain.com, Create Failed: Duplicate, User Alias: techassistant@domain.com, User: user1@domain.com
+$ gam create user appletech@domain.com
+User: appletech@domain.com, Create Failed: Duplicate, Group Alias: appletech@domain.com, Group: technology@domain.com
+```
 
 5.31.00
 
