@@ -12,6 +12,7 @@ env:
     - PATCHELF_VERSION=0.12
     - PYINSTALLER_COMMIT=5bc2c4620bfc5dde5a76a007c7ff50ee74223ca5
     - DIST_UPGRADE=true
+    - MACOS_UNIVERSAL=false
 cache:
   directories:
     - $HOME/.cache/pip
@@ -91,6 +92,8 @@ jobs:
       name: "MacOS 11.0"
       language: generic
       osx_image: xcode12.3
+      env: 
+        - MACOS_UNIVERSAL=true
     - os: windows
       name: "Windows 64-bit"
       language: shell
