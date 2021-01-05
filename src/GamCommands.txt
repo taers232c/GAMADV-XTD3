@@ -1406,6 +1406,39 @@ gam print browsers [todrive <ToDriveAttribute>*]
         [basic|full|allfields|annotated] <BrowserFieldName>* [fields <BrowserFieldNameList>]
         [sortheaders] [formatjson [quotechar <Character>]]
 
+gam create browsertoken
+        [browserou <OrgUnitPath>] [expire|expires <Time>]
+        [formatjson]
+gam revoke browsertoken <BrowserTokenPermanentID>
+
+<BrowserTokenFieldName> ::=
+        createtime|
+        creatorid|
+        customerid|
+        expiretime|
+        org|
+        orgunit|
+        orgunitpath|
+        revoketime|
+        revokerid|
+        state|
+        token|
+        tokenpermanentid
+<BrowserTokenFieldNameList> ::= "<BrowseTokenFieldName>(,<BrowserTokenFieldName>)*"
+
+gam show browsertokens
+        ([browserou <OrgUnitPath>] [(query <QueryBrowser)|(queries <QueryBrowserList>)))
+        [querytime.* <Time>]
+        [orderby <BrowserTokenFieldName> [ascending|descending]]
+        [allfields] <BrowserTokenFieldName>* [fields <BrowserTokenFieldNameList>]
+        [formatjson]
+gam print browsertokens [todrive <ToDriveAttribute>*]
+        ([browserou <OrgUnitPath>] [(query <QueryBrowser)|(queries <QueryBrowserList>)))
+        [querytime.* <Time>]
+        [orderby <BrowserTokenFieldName> [ascending|descending]]
+        [allfields] <BrowserTokenFieldName>* [fields <BrowserTokenFieldNameList>]
+        [sortheaders] [formatjson [quotechar <Character>]]
+
 # ChromeOS Devices
 
 <CrOSAction> ::=

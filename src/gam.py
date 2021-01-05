@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.01'
+__version__ = '5.31.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7331,16 +7331,22 @@ def _getServerTLSUsed(location):
       handleServerError(e)
 
 MACOS_CODENAMES = {
-  6:  'Snow Leopard',
-  7:  'Lion',
-  8:  'Mountain Lion',
-  9:  'Mavericks',
-  10: 'Yosemite',
-  11: 'El Capitan',
-  12: 'Sierra',
-  13: 'High Sierra',
-  14: 'Mojave',
-  15: 'Catalina'
+  10: {
+    6:  'Snow Leopard',
+    7:  'Lion',
+    8:  'Mountain Lion',
+    9:  'Mavericks',
+    10: 'Yosemite',
+    11: 'El Capitan',
+    12: 'Sierra',
+    13: 'High Sierra',
+    14: 'Mojave',
+    15: 'Catalina'
+    },
+  11: {
+    0: 'Big Sur',
+    1: 'Big Sur'
+    }
   }
 
 def getOSPlatform():
@@ -7352,8 +7358,9 @@ def getOSPlatform():
   elif myos == 'Darwin':
     myos = 'MacOS'
     mac_ver = platform.mac_ver()[0]
+    major_ver = int(mac_ver.split('.')[0]) # macver 10.14.6 == major_ver 10
     minor_ver = int(mac_ver.split('.')[1]) # macver 10.14.6 == minor_ver 14
-    codename = MACOS_CODENAMES.get(minor_ver, '')
+    codename = MACOS_CODENAMES.get(major_ver, {}).get(minor_ver, '')
     pltfrm = ' '.join([codename, mac_ver])
   else:
     pltfrm = platform.platform()
@@ -18030,6 +18037,172 @@ def doPrintShowBrowsers():
     if sortHeaders:
       csvPF.SetSortTitles(['deviceId'])
     csvPF.writeCSVfile('Browsers')
+
+def _showBrowserToken(browser, FJQC, i=0, count=0):
+  if FJQC.formatJSON:
+    printLine(json.dumps(cleanJSON(browser), ensure_ascii=False, sort_keys=True))
+  else:
+    printEntity([Ent.CHROME_BROWSER_ENROLLMENT_TOKEN, browser['token']], i, count)
+    Ind.Increment()
+    showJSON(None, browser, timeObjects=BROWSER_TOKEN_TIME_OBJECTS)
+    Ind.Decrement()
+
+# gam create browsertoken
+#	[browserou <OrgUnitPath>] [expire|expires <Time>]
+#	[formatjson]
+def doCreateBrowserToken():
+  cbcm = buildGAPIObject(API.CBCM)
+  FJQC = FormatJSONQuoteChar()
+  body = {'token_type': 'CHROME_BROWSER'}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'browserou':
+      body['org_unit_path'] = getOrgUnitItem(pathOnly=True, absolutePath=True)
+    elif myarg in ['expire', 'expires']:
+      body['expire_time'] = getTimeOrDeltaFromNow()
+    else:
+      FJQC.GetFormatJSON(myarg)
+  try:
+    browser = callGAPI(cbcm.enrollmentTokens(), 'create',
+                       throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.FORBIDDEN],
+                       customer=GC.Values[GC.CUSTOMER_ID], body=body)
+    entityActionPerformed([Ent.CHROME_BROWSER_ENROLLMENT_TOKEN, browser['token']])
+    Ind.Increment()
+    _showBrowserToken(browser, FJQC, 0, 0)
+    Ind.Decrement()
+  except (GAPI.invalidInput, GAPI.invalidOrgunit) as e:
+    entityActionFailedWarning([Ent.CHROME_BROWSER_ENROLLMENT_TOKEN, None], str(e))
+  except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+    accessErrorExit(None)
+
+# gam revoke browsertoken <BrowserTokenPermanentID>
+def doRevokeBrowserToken():
+  cbcm = buildGAPIObject(API.CBCM)
+  tokenPermanentId = getString(Cmd.OB_BROWSER_ENROLLEMNT_TOKEN_ID)
+  checkForExtraneousArguments()
+  try:
+    callGAPI(cbcm.enrollmentTokens(), 'revoke',
+             throwReasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.FORBIDDEN],
+             customer=GC.Values[GC.CUSTOMER_ID], tokenPermanentId=tokenPermanentId)
+    entityActionPerformed([Ent.CHROME_BROWSER_ENROLLMENT_TOKEN, tokenPermanentId])
+  except (GAPI.invalid, GAPI.invalidInput, GAPI.badRequest, GAPI.resourceNotFound, GAPI.invalidOrgunit) as e:
+    entityActionFailedWarning([Ent.CHROME_BROWSER_ENROLLMENT_TOKEN, tokenPermanentId], str(e))
+  except GAPI.forbidden:
+    accessErrorExit(None)
+
+BROWSER_TOKEN_TIME_OBJECTS = ['createTime', 'expireTime', 'revokeTime']
+
+BROWSER_TOKEN_FIELDS_CHOICE_MAP = {
+  'createtime': 'createTime',
+  'creatorid': 'creatorId',
+  'customerid': 'customerId',
+  'expiretime': 'expireTime',
+  'org': 'orgUnitPath',
+  'orgunit': 'orgUnitPath',
+  'orgunitpath': 'orgUnitPath',
+  'revoketime': 'revokeTime',
+  'revokerid': 'revokerId',
+  'state': 'state',
+  'token': 'token',
+  'tokenpermanentid': 'tokenPermanentId',
+  }
+
+# gam show browsertokens
+#	([browserou <OrgUnitPath>] [(query <QueryBrowser)|(queries <QueryBrowserList>)))
+#	[querytime.* <Time>]
+#	[orderby <BrowserTokenFieldName> [ascending|descending]]
+#	[allfields] <BrowserTokenFieldName>* [fields <BrowserTokenFieldNameList>]
+#	[formatjson]
+# gam print browsertokens [todrive <ToDriveAttribute>*]
+#	([browserou <OrgUnitPath>] [(query <QueryBrowser)|(queries <QueryBrowserList>)))
+#	[querytime.* <Time>]
+#	[orderby <BrowserTokenFieldName> [ascending|descending]]
+#	[allfields] <BrowserTokenFieldName>* [fields <BrowserTokenFieldNameList>]
+#	[sortheaders] [formatjson [quotechar <Character>]]
+def doPrintShowBrowserTokens():
+  def _printBrowserToken(browser):
+    if FJQC.formatJSON:
+      if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(browser, timeObjects=BROWSER_TOKEN_TIME_OBJECTS)):
+        csvPF.WriteRowNoFilter({'token': browser['token'],
+                                'JSON': json.dumps(cleanJSON(browser, timeObjects=BROWSER_TOKEN_TIME_OBJECTS),
+                                                   ensure_ascii=False, sort_keys=True)})
+      return
+    row = flattenJSON(browser, timeObjects=BROWSER_TOKEN_TIME_OBJECTS)
+    csvPF.WriteRowTitles(row)
+
+  cbcm = buildGAPIObject(API.CBCM)
+  csvPF = CSVPrintFile(['token']) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  fieldsList = []
+  orderBy = 'token'
+  sortOrder = 'ASCENDING'
+  orgUnitPath = None
+  queries = [None]
+  queryTimes = {}
+  sortHeaders = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg in {'query', 'queries'}:
+      queries = getQueries(myarg)
+    elif myarg.startswith('querytime'):
+      queryTimes[myarg] = getTimeOrDeltaFromNow()[0:19]
+    elif myarg == 'browserou':
+      orgUnitPath = getOrgUnitItem(pathOnly=True, absolutePath=True)
+    elif myarg == 'orderby':
+      orderBy, sortOrder = getOrderBySortOrder(BROWSER_TOKEN_FIELDS_CHOICE_MAP, 'DESCENDING', True)
+    elif myarg == 'allfields':
+      sortHeaders = True
+      fieldsList = []
+    elif myarg == 'sortheaders':
+      sortHeaders = True
+    elif getFieldsList(myarg, BROWSER_TOKEN_FIELDS_CHOICE_MAP, fieldsList, initialField='token'):
+      pass
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  fields = getItemFieldsFromFieldsList('chromeEnrollmentTokens', fieldsList)
+  if FJQC.formatJSON:
+    sortHeaders = False
+  for query in queries:
+    if queryTimes and query is not None:
+      for queryTimeName, queryTimeValue in iter(queryTimes.items()):
+        query = query.replace(f'#{queryTimeName}#', queryTimeValue)
+    printGettingAllAccountEntities(Ent.CHROME_BROWSER_ENROLLMENT_TOKEN, query)
+    pageMessage = getPageMessage()
+    try:
+      browsers = callGAPIpages(cbcm.enrollmentTokens(), 'list', 'chromeEnrollmentTokens',
+                               pageMessage=pageMessage,
+                               throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.FORBIDDEN],
+                               customer=GC.Values[GC.CUSTOMER_ID], orgUnitPath=orgUnitPath, query=query,
+                               fields=fields)
+      if not csvPF:
+        jcount = len(browsers)
+        performActionNumItems(jcount, Ent.CHROME_BROWSER_ENROLLMENT_TOKEN)
+        Ind.Increment()
+        j = 0
+        for browser in browsers:
+          j += 1
+          _showBrowserToken(browser, FJQC, j, jcount)
+        Ind.Decrement()
+      else:
+        for browser in browsers:
+          _printBrowserToken(browser)
+    except GAPI.invalidInput as e:
+      if query:
+        entityActionFailedWarning([Ent.CHROME_BROWSER_ENROLLMENT_TOKEN, None], invalidQuery(query))
+      else:
+        entityActionFailedWarning([Ent.CHROME_BROWSER_ENROLLMENT_TOKEN, None], str(e))
+    except GAPI.invalidOrgunit as e:
+      entityActionFailedWarning([Ent.CHROME_BROWSER_ENROLLMENT_TOKEN, None], str(e))
+    except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+      accessErrorExit(None)
+  if csvPF:
+    if orderBy:
+      csvPF.SortRows(orderBy, reverse=sortOrder == 'DESCENDING')
+    if sortHeaders:
+      csvPF.SetSortTitles(['token'])
+    csvPF.writeCSVfile('Browser Enrollment Tokens')
 
 # Device command utilities
 def buildGAPICIDeviceServiceObject():
@@ -49549,6 +49722,7 @@ MAIN_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_ADMINROLE:	doCreateUpdateAdminRoles,
   Cmd.ARG_ALERTFEEDBACK:	doCreateAlertFeedback,
   Cmd.ARG_ALIAS:	doCreateUpdateAliases,
+  Cmd.ARG_BROWSERTOKEN:	doCreateBrowserToken,
   Cmd.ARG_BUILDING:	doCreateBuilding,
   Cmd.ARG_CIGROUP:	doCreateCIGroup,
   Cmd.ARG_CONTACT:	doCreateDomainContact,
@@ -49690,6 +49864,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ALERTFEEDBACK:	doPrintShowAlertFeedback,
       Cmd.ARG_ALIAS:		doPrintAliases,
       Cmd.ARG_BROWSER:		doPrintShowBrowsers,
+      Cmd.ARG_BROWSERTOKEN:	doPrintShowBrowserTokens,
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
       Cmd.ARG_CIGROUP:		doPrintCIGroups,
       Cmd.ARG_CIGROUPMEMBERS:	doPrintCIGroupMembers,
@@ -49746,6 +49921,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
   'reopen': (Act.REOPEN, {Cmd.ARG_VAULTMATTER: doReopenVaultMatter}),
   'replace': (Act.UPDATE, {Cmd.ARG_SAKEY: doReplaceSvcAcctKeys}),
   'rotate': (Act.UPDATE, {Cmd.ARG_SAKEY: doProcessSvcAcctKeys}),
+  'revoke': (Act.REVOKE, {Cmd.ARG_BROWSERTOKEN: doRevokeBrowserToken}),
   'show':
     (Act.SHOW,
      {Cmd.ARG_ADMINROLE:	doPrintShowAdminRoles,
@@ -49753,6 +49929,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ALERT:		doPrintShowAlerts,
       Cmd.ARG_ALERTFEEDBACK:	doPrintShowAlertFeedback,
       Cmd.ARG_BROWSER:		doPrintShowBrowsers,
+      Cmd.ARG_BROWSERTOKEN:	doPrintShowBrowserTokens,
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
       Cmd.ARG_CIGROUPMEMBERS:	doShowCIGroupMembers,
       Cmd.ARG_CLASSROOMINVITATION:	doPrintShowClassroomInvitations,
@@ -49857,6 +50034,7 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_ALIASES:	Cmd.ARG_ALIAS,
   Cmd.ARG_APIPROJECT:	Cmd.ARG_PROJECT,
   Cmd.ARG_BROWSERS:	Cmd.ARG_BROWSER,
+  Cmd.ARG_BROWSERTOKENS:	Cmd.ARG_BROWSERTOKEN,
   Cmd.ARG_BUILDINGS:	Cmd.ARG_BUILDING,
   Cmd.ARG_CIGROUPS:	Cmd.ARG_CIGROUP,
   Cmd.ARG_CIGROUPSMEMBERS:	Cmd.ARG_CIGROUPMEMBERS,

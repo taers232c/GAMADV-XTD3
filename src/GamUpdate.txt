@@ -1,3 +1,7 @@
+5.31.02
+
+Build macOS 11.1 Big Sur version.
+
 5.31.01
 
 When creating an `alias`, `group` or `user`, additional informations is given when the item is a duplicate.
