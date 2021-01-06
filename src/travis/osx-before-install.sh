@@ -100,6 +100,15 @@ else
   codesign --remove-signature /Library/Frameworks/Python.framework/Versions/3.9/Python
   export python=/usr/local/bin/python3
   export pip=/usr/local/bin/pip3
+
+# Where's Python
+  echo "which python"
+  /usr/bin/which python
+  echo "which python3"
+  /usr/bin/which python3
+  echo "which pyinstaller"
+  /usr/bin/which pyinstaller
+
 fi
 
 $python -V
