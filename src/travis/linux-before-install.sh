@@ -43,8 +43,8 @@ else
     echo "RUNNING: apt upgrade..."
     sudo apt-mark hold openssh-server
     if [[ "$DIST_UPGRADE" == "true" ]]; then
-      sudo apt-get --yes upgrade
-      sudo apt-get --yes --with-new-pkgs upgrade
+      sudo apt-get -qq --yes upgrade
+      sudo apt-get -qq --yes --with-new-pkgs upgrade
     fi
     echo "Installing build tools..."
     sudo apt-get -qq --yes install build-essential
