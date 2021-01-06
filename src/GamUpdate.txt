@@ -1,6 +1,12 @@
 5.31.02
 
-Build macOS 11.1 Big Sur version.
+Added initial support for Chrome Browser Enrollment Token API.
+
+* See: https://support.google.com/chrome/a/answer/9949706
+This is Beta software from Google and a first release from me, experiment and use with caution.
+
+Updated `gam <UserTypeEntity> draft|import|insert message` to disallow `content-type` header that caused a trap.
+Ths value of this header is derived from other arguments and can not be explicitly set.
 
 5.31.01
 
@@ -108,7 +114,7 @@ You must perform `gam oauth create` and select this API to use these commands.
 
 This is Beta software from Google, experiment and use with caution.
 
-Following Jay's lead, addeds to support Chrome Browser Cloud Management
+Following Jay's lead, added commands to support Chrome Browser Cloud Management
 
 * See: https://github.com/taers232c/GAMADV-XTD3/wiki/Chrome-Browser-Cloud-Management
 

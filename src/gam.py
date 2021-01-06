@@ -7341,7 +7341,8 @@ MACOS_CODENAMES = {
     12: 'Sierra',
     13: 'High Sierra',
     14: 'Mojave',
-    15: 'Catalina'
+    15: 'Catalina',
+    16: 'Big Sur'
     },
   11: {
     0: 'Big Sur',
@@ -18108,13 +18109,13 @@ BROWSER_TOKEN_FIELDS_CHOICE_MAP = {
   }
 
 # gam show browsertokens
-#	([browserou <OrgUnitPath>] [(query <QueryBrowser)|(queries <QueryBrowserList>)))
+#	([browserou <OrgUnitPath>] [(query <QueryBrowserToken)|(queries <QueryBrowserTokenList>)))
 #	[querytime.* <Time>]
 #	[orderby <BrowserTokenFieldName> [ascending|descending]]
 #	[allfields] <BrowserTokenFieldName>* [fields <BrowserTokenFieldNameList>]
 #	[formatjson]
 # gam print browsertokens [todrive <ToDriveAttribute>*]
-#	([browserou <OrgUnitPath>] [(query <QueryBrowser)|(queries <QueryBrowserList>)))
+#	([browserou <OrgUnitPath>] [(query <QueryBrowserToken)|(queries <QueryBrowserTokenList>)))
 #	[querytime.* <Time>]
 #	[orderby <BrowserTokenFieldName> [ascending|descending]]
 #	[allfields] <BrowserTokenFieldName>* [fields <BrowserTokenFieldNameList>]
@@ -47439,6 +47440,8 @@ def _draftImportInsertMessage(users, operation):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in SMTP_HEADERS_MAP:
+      if myarg == 'content-type':
+        unknownArgumentExit()
       if myarg in SMTP_DATE_HEADERS:
         msgDate, _, _ = getTimeOrDeltaFromNow(True)
         msgHeaders[SMTP_HEADERS_MAP[myarg]] = formatdate(time.mktime(msgDate.timetuple()) + msgDate.microsecond/1E6, True)
@@ -47451,6 +47454,8 @@ def _draftImportInsertMessage(users, operation):
         msgHeaders[SMTP_HEADERS_MAP[myarg]] = value
     elif myarg == 'header':
       header = getString(Cmd.OB_STRING, minLen=1)
+      if header.lower() == 'content-type':
+        unknownArgumentExit()
       value = getString(Cmd.OB_STRING)
       if (value.find('#user#') >= 0) or (value.find('#email#') >= 0) or (value.find('#username#') >= 0):
         substituteForUserInHeaders = True

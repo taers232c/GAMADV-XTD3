@@ -1427,13 +1427,13 @@ gam revoke browsertoken <BrowserTokenPermanentID>
 <BrowserTokenFieldNameList> ::= "<BrowseTokenFieldName>(,<BrowserTokenFieldName>)*"
 
 gam show browsertokens
-        ([browserou <OrgUnitPath>] [(query <QueryBrowser)|(queries <QueryBrowserList>)))
+        ([browserou <OrgUnitPath>] [(query <QueryBrowserToken)|(queries <QueryBrowserTokenList>)))
         [querytime.* <Time>]
         [orderby <BrowserTokenFieldName> [ascending|descending]]
         [allfields] <BrowserTokenFieldName>* [fields <BrowserTokenFieldNameList>]
         [formatjson]
 gam print browsertokens [todrive <ToDriveAttribute>*]
-        ([browserou <OrgUnitPath>] [(query <QueryBrowser)|(queries <QueryBrowserList>)))
+        ([browserou <OrgUnitPath>] [(query <QueryBrowserToken)|(queries <QueryBrowserTokenList>)))
         [querytime.* <Time>]
         [orderby <BrowserTokenFieldName> [ascending|descending]]
         [allfields] <BrowserTokenFieldName>* [fields <BrowserTokenFieldNameList>]
