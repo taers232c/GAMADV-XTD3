@@ -121,7 +121,7 @@ jobs:
       language: generic
       osx_image: xcode12.3
       env: 
-        - PYFILE=python-$BUILD_PYTHON_VERSION-macosx11.0.pkg
+        - PYFILE=python-$BUILD_PYTHON_VERSION-macos11.0.pkg
     - os: windows
       name: "Windows 64-bit"
       language: shell
