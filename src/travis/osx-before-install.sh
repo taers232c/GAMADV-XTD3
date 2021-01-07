@@ -15,7 +15,7 @@ bash --version
 
 cd ~
 
-if [[ "$MACOS_UNIVERSAL" == "false" ]]; then
+if [[ "$PYFILE" == "build" ]]; then
   export LD_LIBRARY_PATH=~/ssl/lib:~/python/lib
   export openssl=~/ssl/bin/openssl
   export python=~/python/bin/python3
@@ -89,12 +89,11 @@ if [[ "$MACOS_UNIVERSAL" == "false" ]]; then
 else
 # Use official Python.org version of Python which is backwards compatible
 # with older MacOS versions
-  export pyfile=python-$BUILD_PYTHON_VERSION-macos11.0.pkg
-  /bin/rm -f $pyfile
+  /bin/rm -f $PYFILE
 
-  wget https://www.python.org/ftp/python/$BUILD_PYTHON_VERSION/$pyfile
+  wget https://www.python.org/ftp/python/$BUILD_PYTHON_VERSION/$PYFILE
   echo "installing Python $BUILD_PYTHON_VERSION..."
-  sudo installer -pkg ./$pyfile -target /
+  sudo installer -pkg ./$PYFILE -target /
 
 # This fixes https://github.com/pyinstaller/pyinstaller/issues/5062
   codesign --remove-signature /Library/Frameworks/Python.framework/Versions/3.9/Python
