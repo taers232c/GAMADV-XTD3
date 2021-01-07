@@ -37,7 +37,7 @@ jobs:
       dist: xenial
       language: shell
       env:
-        - DIST_UPGRADE=true
+        - DIST_UPGRADE=false
     - os: linux
       name: "Linux 64-bit Trusty"
       dist: trusty
@@ -79,7 +79,7 @@ jobs:
       name: "MacOS 10.10"
       language: generic
       env: 
-        - PYFILE=python-$BUILD_PYTHON_VERSION-macosx10.9.pkg
+        - PYFILE=build
       osx_image: xcode6.4
     - os: osx
       name: "MacOS 10.11"

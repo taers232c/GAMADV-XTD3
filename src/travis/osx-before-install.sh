@@ -3,8 +3,8 @@ whereibelong=$(pwd)
 cpucount=$(sysctl -n hw.ncpu)
 echo "This device has $cpucount CPUs for compiling..."
 
-brew install coreutils
-brew install bash
+brew upgrade coreutils
+brew upgrade bash
 
 # prefer standard GNU tools like date over MacOS defaults
 export PATH="/usr/local/opt/coreutils/libexec/gnubin:$(brew --prefix)/opt/gnu-tar/libexec/gnubin:$PATH"
