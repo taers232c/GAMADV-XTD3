@@ -15,7 +15,7 @@ bash --version
 
 cd ~
 
-if [[ "$PYFILE" == "build" ]]; then
+if [[ "$PYFILE" == "build" ]] || [[ "$PYFILE" == "rebuild" ]]; then
   export LD_LIBRARY_PATH=~/ssl/lib:~/python/lib
   export openssl=~/ssl/bin/openssl
   export python=~/python/bin/python3
@@ -24,7 +24,7 @@ if [[ "$PYFILE" == "build" ]]; then
   SSLRESULT=$?
   PYVER=$($python -V)
   PYRESULT=$?
-  if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $BUILD_OPENSSL_VERSION "* ]] || [ $PYRESULT -ne 0 ] || [[ "$PYVER" != "Python $BUILD_PYTHON_VERSION"* ]]; then
+  if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $BUILD_OPENSSL_VERSION "* ]] || [ $PYRESULT -ne 0 ] || [[ "$PYVER" != "Python $BUILD_PYTHON_VERSION"* ]] || [[ "$PYFILE" == "rebuild" ]]; then
     echo "SSL Result: $SSLRESULT - SSL Ver: $SSLVER - Py Result: $PYRESULT - Py Ver: $PYVER"
     if [ $SSLRESULT -ne 0 ]; then
       echo "sslresult -ne 0"
@@ -96,7 +96,7 @@ else
   sudo installer -pkg ./$PYFILE -target /
 
 # This fixes https://github.com/pyinstaller/pyinstaller/issues/5062
-  codesign --remove-signature /Library/Frameworks/Python.framework/Versions/3.9/Python
+#  codesign --remove-signature /Library/Frameworks/Python.framework/Versions/3.9/Python
   export python=/usr/local/bin/python3
   export pip=/usr/local/bin/pip3
 fi
