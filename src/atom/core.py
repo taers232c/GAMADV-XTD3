@@ -22,7 +22,7 @@
 
 import inspect
 
-import xml.etree.ElementTree as ET
+import lxml.etree as ElementTree
 
 try:
     from xml.dom.minidom import parseString as xmlString
@@ -287,7 +287,7 @@ class XmlElement(object):
             self.text = tree.text
 
     def _to_tree(self, version=1):
-        new_tree = ET.Element(_get_qname(self, version))
+        new_tree = ElementTree.Element(_get_qname(self, version))
         self._attach_members(new_tree, version)
         return new_tree
 
@@ -295,7 +295,7 @@ class XmlElement(object):
         """Convert members to XML elements/attributes and add them to the tree.
 
         Args:
-          tree: An ET.Element which will be modified. The members of
+          tree: An ElementTree.Element which will be modified. The members of
                 this object will be added as child elements or attributes
                 according to the rules described in _expected_elements and
                 _expected_attributes. The elements and attributes stored in
@@ -339,7 +339,7 @@ class XmlElement(object):
     def to_string(self, version=1, encoding=None, pretty_print=None):
         """Converts this object to XML."""
 
-        tree_string = ET.tostring(self._to_tree(version))
+        tree_string = ElementTree.tostring(self._to_tree(version))
 
         if pretty_print and xmlString is not None:
             return xmlString(tree_string).toprettyxml()
@@ -353,7 +353,7 @@ class XmlElement(object):
 
     def _become_child(self, tree, version=1):
         """Adds a child element to tree with the XML data in self."""
-        new_child = ET.Element(_get_qname(self, version))
+        new_child = ElementTree.Element(_get_qname(self, version))
         tree.append(new_child)
         new_child.tag = _get_qname(self, version)
         self._attach_members(new_child, version)
@@ -504,7 +504,7 @@ def parse(xml_string, target_class=None, version=1):
         target_class = XmlElement
     if not isinstance(xml_string, bytes):
         raise Exception("This function only accepts bytes")
-    tree = ET.fromstring(xml_string)
+    tree = ElementTree.fromstring(xml_string)
     return _xml_element_from_tree(tree, target_class, version)
 
 

@@ -1,7 +1,3 @@
-5.31.03
-
-Eliminate use of lxml library.
-
 5.31.02
 
 Added initial support for Chrome Browser Enrollment Token API.
@@ -10,7 +6,7 @@ Added initial support for Chrome Browser Enrollment Token API.
 This is Beta software from Google and a first release from me, experiment and use with caution.
 
 Updated `gam <UserTypeEntity> draft|import|insert message` to disallow `content-type` header that caused a trap.
-The value of this header is derived from other arguments and can not be explicitly set.
+Ths value of this header is derived from other arguments and can not be explicitly set.
 
 5.31.01
 
@@ -55,7 +51,7 @@ In previous versions, you had to surround `<FieldNameFilter>` with `^$` to get t
 
 5.25.19
 
-Fixed bug introduced in 5.25.18  where using `todrive_noemail false` or `tdnoemail false` caused a trap. 
+Fixed bug where using `todrive_noemail false` or `tdnoemail false` caused a trap. 
 
 5.25.18
 

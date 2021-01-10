@@ -34,7 +34,7 @@ from functools import wraps
 
 # __author__ = 'api.jscudder (Jeffrey Scudder)'
 
-import xml.etree.ElementTree as ET
+import lxml.etree as ElementTree
 import warnings
 
 # XML namespaces which are often used in Atom entities.
@@ -103,7 +103,7 @@ def CreateClassFromXMLString(target_class, xml_string, string_encoding=None):
     encoding = string_encoding or XML_STRING_ENCODING
     if encoding and isinstance(xml_string, str):
         xml_string = xml_string.encode(encoding)
-    tree = ET.fromstring(xml_string)
+    tree = ElementTree.fromstring(xml_string)
     return _CreateClassFromElementTree(target_class, tree)
 
 
@@ -326,7 +326,7 @@ class AtomBase(ExtensionContainer):
         not be called on instances of AtomBase.
 
         """
-        new_child = ET.Element('tag__')
+        new_child = ElementTree.Element('tag__')
         tree.append(new_child)
         new_child.tag = '{%s}%s' % (self.__class__._namespace,
                                     self.__class__._tag)
@@ -340,14 +340,14 @@ class AtomBase(ExtensionContainer):
         not be called on this class.
 
         """
-        new_tree = ET.Element('{%s}%s' % (self.__class__._namespace,
+        new_tree = ElementTree.Element('{%s}%s' % (self.__class__._namespace,
                                                    self.__class__._tag))
         self._AddMembersToElementTree(new_tree)
         return new_tree
 
     def ToString(self, string_encoding=str):
         """Converts the Atom object to a string containing XML."""
-        return ET.tostring(self._ToElementTree(), encoding=string_encoding)
+        return ElementTree.tostring(self._ToElementTree(), encoding=string_encoding)
 
     def __str__(self):
         return self.ToString()
@@ -1342,8 +1342,8 @@ class ExtensionElement(object):
         self.text = text
 
     def ToString(self):
-        element_tree = self._TransferToElementTree(ET.Element('tag__'))
-        return ET.tostring(element_tree, encoding="UTF-8")
+        element_tree = self._TransferToElementTree(ElementTree.Element('tag__'))
+        return ElementTree.tostring(element_tree, encoding="UTF-8")
 
     def _TransferToElementTree(self, element_tree):
         if self.tag is None:
@@ -1367,14 +1367,14 @@ class ExtensionElement(object):
     def _BecomeChildElement(self, element_tree):
         """Converts this object into an etree element and adds it as a child node.
 
-        Adds self to the ET. This method is required to avoid verbose XML
+        Adds self to the ElementTree. This method is required to avoid verbose XML
         which constantly redefines the namespace.
 
         Args:
-          element_tree: ET._Element The element to which this object's XML
+          element_tree: ElementTree._Element The element to which this object's XML
               will be added.
         """
-        new_element = ET.Element('tag__')  # uh, uhm... empty tag name - sorry google, this is bogus? (c)https://github.com/lqc
+        new_element = ElementTree.Element('tag__')  # uh, uhm... empty tag name - sorry google, this is bogus? (c)https://github.com/lqc
         element_tree.append(new_element)
         self._TransferToElementTree(new_element)
 
@@ -1418,7 +1418,7 @@ class ExtensionElement(object):
 
 
 def ExtensionElementFromString(xml_string):
-    element_tree = ET.fromstring(xml_string)
+    element_tree = ElementTree.fromstring(xml_string)
     return _ExtensionElementFromElementTree(element_tree)
 
 

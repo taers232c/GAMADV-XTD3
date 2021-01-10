@@ -33,7 +33,7 @@ import atom.http_interface
 import atom.token_store
 import atom.url
 
-import xml.etree.ElementTree as ET
+import lxml.etree as ElementTree
 import atom
 
 
@@ -213,7 +213,7 @@ class AtomService(object):
         """Insert data into an APP server at the given URI.
 
         Args:
-          data: string, ET._Element, or something with a __str__ method
+          data: string, ElementTree._Element, or something with a __str__ method
                 The XML to be sent to the uri.
           uri: string The location (feed) to which the data should be inserted.
                Example: '/base/feeds/items'.
@@ -245,7 +245,7 @@ class AtomService(object):
         """Updates an entry at the given URI.
 
         Args:
-          data: string, ET._Element, or xml_wrapper.ElementWrapper The
+          data: string, ElementTree._Element, or xml_wrapper.ElementWrapper The
                 XML containing the updated data.
           uri: string A URI indicating entry to which the update will be applied.
                Example: '/base/feeds/items/ITEM-ID'
@@ -678,8 +678,8 @@ def __SendDataPart(data, connection):
         # TODO add handling for unicode.
         connection.send(data)
         return
-    elif ET.iselement(data):
-        connection.send(ET.tostring(data))
+    elif ElementTree.iselement(data):
+        connection.send(ElementTree.tostring(data))
         return
     # Check to see if data is a file-like object that has a read method.
     elif hasattr(data, 'read'):
@@ -710,8 +710,8 @@ def CalculateDataLength(data):
         return len(data)
     elif isinstance(data, list):
         return None
-    elif ET.iselement(data):
-        return len(ET.tostring(data))
+    elif ElementTree.iselement(data):
+        return len(ElementTree.tostring(data))
     elif hasattr(data, 'read'):
         # If this is a file-like object, don't try to guess the length.
         return None
