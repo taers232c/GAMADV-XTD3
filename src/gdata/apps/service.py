@@ -16,7 +16,7 @@
 
 __author__ = 'tmatsuo@sios.com (Takashi MATSUO)'
 
-import lxml.etree as ElementTree
+import xml.etree.ElementTree as ET
 import urllib.request, urllib.parse, urllib.error
 import gdata
 import atom.service
@@ -61,7 +61,7 @@ class AppsForYourDomainException(Error):
 
     Error.__init__(self, response)
     try:
-      self.element_tree = ElementTree.fromstring(response['body'])
+      self.element_tree = ET.fromstring(response['body'])
       self.error_code = int(self.element_tree[0].attrib['errorCode'])
       self.reason = self.element_tree[0].attrib['reason']
       self.invalidInput = self.element_tree[0].attrib['invalidInput']

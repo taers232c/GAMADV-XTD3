@@ -63,7 +63,7 @@ __author__ = 'api.jscudder (Jeffrey Scudder)'
 import re
 import urllib.request, urllib.parse, urllib.error
 import urllib.parse
-import lxml.etree as ElementTree
+import xml.etree.ElementTree as ET
 import atom.service
 import gdata
 import atom
@@ -1203,7 +1203,7 @@ class GDataService(atom.service.AtomService):
     """Insert or update  data into a GData service at the given URI.
 
     Args:
-      data: string, ElementTree._Element, atom.Entry, or gdata.GDataEntry The
+      data: string, ET._Element, atom.Entry, or gdata.GDataEntry The
             XML to be sent to the uri.
       uri: string The location (feed) to which the data should be inserted.
            Example: '/base/feeds/items'.
@@ -1243,7 +1243,7 @@ class GDataService(atom.service.AtomService):
 
     Args:
       verb: string, either 'POST' or 'PUT'
-      data: string, ElementTree._Element, atom.Entry, or gdata.GDataEntry The
+      data: string, ET._Element, atom.Entry, or gdata.GDataEntry The
             XML to be sent to the uri. 
       uri: string The location (feed) to which the data should be inserted. 
            Example: '/base/feeds/items'. 
@@ -1281,8 +1281,8 @@ class GDataService(atom.service.AtomService):
         url_params['gsessionid'] = self.__gsessionid
 
     if data and media_source:
-      if ElementTree.iselement(data):
-        data_str = ElementTree.tostring(data)
+      if ET.iselement(data):
+        data_str = ET.tostring(data)
       else:
         data_str = str(data)
         
@@ -1363,7 +1363,7 @@ class GDataService(atom.service.AtomService):
     """Updates an entry at the given URI.
      
     Args:
-      data: string, ElementTree._Element, or xml_wrapper.ElementWrapper The 
+      data: string, ET._Element, or xml_wrapper.ElementWrapper The 
             XML containing the updated data.
       uri: string A URI indicating entry to which the update will be applied.
            Example: '/base/feeds/items/ITEM-ID'

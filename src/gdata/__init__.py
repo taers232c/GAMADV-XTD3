@@ -25,7 +25,7 @@ __author__ = 'j.s@google.com (Jeffrey Scudder)'
 
 import os
 import atom
-import lxml.etree as ElementTree
+import xml.etree.ElementTree as ET
 
 # XML namespaces which are often used in GData entities.
 GDATA_NAMESPACE = 'http://schemas.google.com/g/2005'
@@ -307,7 +307,7 @@ class ExtendedProperty(atom.AtomBase):
     self.extension_elements = []
     if isinstance(blob, atom.ExtensionElement):
       self.extension_elements.append(blob)
-    elif ElementTree.iselement(blob):
+    elif ET.iselement(blob):
       self.extension_elements.append(atom._ExtensionElementFromElementTree(
           blob))
     else:
