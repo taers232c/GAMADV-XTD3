@@ -4131,6 +4131,10 @@ gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileNam
         [copysubfileparents nonpath|none|all] [copysubfolderparents nonpath|none|all]
         [retainsourcefolders [<Boolean>]]
 
+gam <UserTypeEntity> get document <DriveFileEntity>
+        [viewmode default|suggestions_inline|preview_suggestions_accepted|preview_without_suggestions]
+        [targetfolder <FilePath>] [targetname -|<FileName>] [overwrite [<Boolean>]]
+
 gam <UserTypeEntity> get drivefile <DriveFileEntity> [revision <DriveFileRevisionID>]
         [(format <FileFormatList>)|(gsheet|csvsheet <SheetEntity>)] [exportsheetaspdf <String>]
         [targetfolder <FilePath>] [targetname -|<FileName>] [overwrite [<Boolean>]] [showprogress [<Boolean>]]

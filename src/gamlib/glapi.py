@@ -33,6 +33,7 @@ CONTACTS = 'contacts'
 CONTACTDELEGATION = 'contactdelegation'
 DATATRANSFER = 'datatransfer'
 DIRECTORY = 'directory'
+DOCS = 'docs'
 DRIVE2 = 'drive2'
 DRIVE3 = 'drive3'
 DRIVETD = 'drivetd'
@@ -106,6 +107,7 @@ PROJECT_APIS = [
   'cloudidentity.googleapis.com',
   'cloudresourcemanager.googleapis.com',
   'contacts.googleapis.com',
+  'docs.googleapis.com',
   'drive.googleapis.com',
   'driveactivity.googleapis.com',
   'gmail.googleapis.com',
@@ -136,6 +138,7 @@ _INFO = {
   CONTACTDELEGATION: {'name': 'Contact Delegation API', 'version': 'v1', 'v2discovery': True, 'localjson': True},
   DATATRANSFER: {'name': 'Data Transfer API', 'version': 'datatransfer_v1', 'v2discovery': False, 'mappedAPI': 'admin'},
   DIRECTORY: {'name': 'Directory API', 'version': 'directory_v1', 'v2discovery': False, 'mappedAPI': 'admin'},
+  DOCS: {'name': 'Docs API', 'version': 'v1', 'v2discovery': True},
   DRIVE2: {'name': 'Drive API v2', 'version': 'v2', 'v2discovery': False, 'mappedAPI': 'drive'},
   DRIVE3: {'name': 'Drive API v3', 'version': 'v3', 'v2discovery': False, 'mappedAPI': 'drive'},
   DRIVETD: {'name': 'Drive API v3 - todrive', 'version': 'v3', 'v2discovery': False, 'mappedAPI': 'drive'},
@@ -385,6 +388,10 @@ _SVCACCT_SCOPES = [
    'api': DRIVEACTIVITY,
    'subscopes': [],
    'scope': 'https://www.googleapis.com/auth/drive.activity'},
+  {'name': 'Docs API',
+   'api': DOCS,
+   'subscopes': READONLY,
+   'scope': 'https://www.googleapis.com/auth/documents'},
   {'name': 'Gmail API - Full Access',
    'api': GMAIL,
    'subscopes': [],

@@ -1,3 +1,11 @@
+5.31.04
+
+Added a command to download a Google Document in JSON format.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Files-Manage#download-google-documents-as-json
+
+You'll have to do `gam update project` and `gam <UserTypeEntity> check|update serviceaccount` to enable this command.
+
 5.31.03
 
 Fixed bug in `gam <UserTypeEntity> move drivefile <DriveFileEntity>` that caused a trap when

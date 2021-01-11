@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.03'
+__version__ = '5.31.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -41571,6 +41571,82 @@ def getDriveFile(users):
         break
     Ind.Decrement()
 
+SUGGESTIONS_VIEW_MODE_CHOICE_MAP = {
+  'default': 'DEFAULT_FOR_CURRENT_ACCESS',
+  'suggestionsinline': 'SUGGESTIONS_INLINE',
+  'previewsuggestionsaccepted': 'PREVIEW_SUGGESTIONS_ACCEPTED',
+  'previewwithoutsuggestions': 'PREVIEW_WITHOUT_SUGGESTIONS'
+  }
+
+# gam <UserTypeEntity> get document <DriveFileEntity>
+#	[viewmode default|suggestions_inline|preview_suggestions_accepted|preview_without_suggestions]
+#	[targetfolder <FilePath>] [targetname -|<FileName>] [overwrite [<Boolean>]]
+def getGoogleDocument(users):
+  fileIdEntity = getDriveFileEntity()
+  suggestionsViewMode = SUGGESTIONS_VIEW_MODE_CHOICE_MAP['default']
+  targetFolderPattern = GC.Values[GC.DRIVE_DIR]
+  targetNamePattern = None
+  overwrite = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'viewmode':
+      suggestionsViewMode = getChoice(SUGGESTIONS_VIEW_MODE_CHOICE_MAP, mapChoice=True)
+    elif myarg == 'targetfolder':
+      targetFolderPattern = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
+    elif myarg == 'targetname':
+      targetNamePattern = getString(Cmd.OB_FILE_NAME)
+      targetNamePattern == '-'
+    elif myarg == 'overwrite':
+      overwrite = getBoolean()
+    else:
+      unknownArgumentExit()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DOCUMENT)
+    if jcount == 0:
+      continue
+    _, docs = buildGAPIServiceObject(API.DOCS, user, i, count)
+    if not docs:
+      continue
+    _, userName, _ = splitEmailAddressOrUID(user)
+    targetFolder = _substituteForUser(targetFolderPattern, user, userName)
+    if not os.path.isdir(targetFolder):
+      os.makedirs(targetFolder)
+    targetName = _substituteForUser(targetNamePattern, user, userName) if targetNamePattern else None
+    Ind.Increment()
+    j = 0
+    for fileId in fileIdEntity['list']:
+      j += 1
+      try:
+        result = callGAPI(drive.files(), 'get',
+                          throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
+                          fileId=fileId, fields='name,mimeType', supportsAllDrives=True)
+        docName = result['name']
+        if result['mimeType'] != MIMETYPE_GA_DOCUMENT:
+          entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, docName],
+                                          Msg.INVALID_MIMETYPE.format(result['mimeType'], MIMETYPE_GA_DOCUMENT), j, jcount)
+          continue
+        safe_file_title = targetName or cleanFilename(result['name'])
+        filename = os.path.join(targetFolder, safe_file_title)
+        y = 0
+        while True:
+          if overwrite or not os.path.isfile(filename):
+            break
+          y += 1
+          filename = os.path.join(targetFolder, f'({y})-{safe_file_title}')
+        result = callGAPI(docs.documents(), 'get',
+                          throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
+                          documentId=fileId, suggestionsViewMode=suggestionsViewMode)
+        if writeFile(filename, json.dumps(result, indent=2, sort_keys=True)+'\n', continueOnError=True):
+          entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DOCUMENT, f'{docName}({fileId})'], Act.MODIFIER_TO, filename, j, jcount)
+      except GAPI.fileNotFound:
+        entityActionFailedWarning([Ent.USER, user, Ent.DOCUMENT, fileId], Msg.DOES_NOT_EXIST, j, jcount)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+        break
+    Ind.Decrement()
+
 # gam <UserTypeEntity> collect orphans
 #	[(targetuserfoldername <DriveFolderName>)(targetuserfolderid <DriveFolderID>)]
 #	[useshortcuts [<Boolean>]]
@@ -50443,6 +50519,7 @@ USER_COMMANDS_WITH_OBJECTS = {
   'get':
     (Act.DOWNLOAD,
      {Cmd.ARG_CONTACTPHOTO: getUserContactPhoto,
+      Cmd.ARG_DOCUMENT: getGoogleDocument,
       Cmd.ARG_DRIVEFILE: getDriveFile,
       Cmd.ARG_PHOTO: getUserPhoto,
       Cmd.ARG_PROFILE_PHOTO: getProfilePhoto
