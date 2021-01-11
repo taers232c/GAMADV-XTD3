@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.02'
+__version__ = '5.31.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -40432,7 +40432,7 @@ def _copyPermissions(drive, user, i, count, j, jcount, entityType, fileId, fileT
         continue
       if ((permission['role'] not in {'owner', 'organizer', 'fileOrganizer'}) and
           not (copyMoveOptions['destDriveId'] and permission['id'] == 'anyone')):
-        permission.pop('id')
+        permissionId = permission.pop('id')
         permission.pop('deleted', None)
         try:
           callGAPI(drive.permissions(), 'create',
@@ -40441,6 +40441,7 @@ def _copyPermissions(drive, user, i, count, j, jcount, entityType, fileId, fileT
                                                                  GAPI.ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                                                  GAPI.FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
                                                                  GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED],
+                   retryReasons=[GAPI.INVALID_SHARING_REQUEST],
                    fileId=newFileId, sendNotificationEmail=False, emailMessage=None,
                    body=permission, fields='', supportsAllDrives=True)
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
@@ -40448,7 +40449,7 @@ def _copyPermissions(drive, user, i, count, j, jcount, entityType, fileId, fileT
                 GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.teamDrivesSharingRestrictionNotAllowed) as e:
           entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle], str(e), j, jcount)
         except GAPI.invalidSharingRequest as e:
-          entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle], Ent.TypeNameMessage(Ent.PERMISSION_ID, permission['id'], str(e)), j, jcount)
+          entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle], Ent.TypeNameMessage(Ent.PERMISSION_ID, permissionId, str(e)), j, jcount)
   except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
     userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
     _incrStatistic(statistics, stat)
@@ -41981,21 +41982,22 @@ def transferDrive(users):
           except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
             userSvcNotApplicableOrDriveDisabled(sourceUser, str(e), i, count)
             return
-        else:
-# We can add a parent when transferring an orphan
-          try:
-            callGAPI(targetDrive.files(), 'update',
-                     throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT],
-                     retryReasons=[GAPI.FILE_NOT_FOUND], retries=3,
-                     fileId=childFileId,
-                     addParents=mappedParentId, body={}, fields='')
-          except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-                  GAPI.badRequest, GAPI.cannotAddParent) as e:
-            entityActionFailedWarning([Ent.USER, targetUser, childFileType, childFileName], str(e), j, jcount)
-            return
-          except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-            userSvcNotApplicableOrDriveDisabled(targetUser, str(e), i, count)
-            return
+# 5.31.03 - Non-owned files without parents are SharedWithMe, parents can not be changed
+#        else:
+## We can add a parent when transferring an orphan
+#          try:
+#            callGAPI(targetDrive.files(), 'update',
+#                     throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT],
+#                     retryReasons=[GAPI.FILE_NOT_FOUND], retries=3,
+#                     fileId=childFileId,
+#                     addParents=mappedParentId, body={}, fields='')
+#          except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+#                  GAPI.badRequest, GAPI.cannotAddParent) as e:
+#            entityActionFailedWarning([Ent.USER, targetUser, childFileType, childFileName], str(e), j, jcount)
+#            return
+#          except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+#            userSvcNotApplicableOrDriveDisabled(targetUser, str(e), i, count)
+#            return
       entityActionPerformed([Ent.USER, sourceUser, childFileType, childFileName], j, jcount)
 
   def _manageRoleRetention(childEntry, i, count, j, jcount, atSelectTop):
@@ -42062,6 +42064,7 @@ def transferDrive(users):
           _, mappedParentId = _getMappedParentForRootParentOrOrphan(childEntryInfo, atSelectTop)
           if mappedParentId is not None and childEntryInfo['targetPermission']['role'] in {'none', 'reader'}:
             resetTargetRole = True
+# Update owner permissions
       try:
         if nonOwnerRetainRoleBody['role'] != 'none':
           if nonOwnerRetainRoleBody['role'] != 'current':
@@ -42084,6 +42087,7 @@ def transferDrive(users):
         entityDoesNotHaveItemWarning([Ent.USER, ownerUser, childFileType, childFileName, Ent.PERMISSION_ID, sourcePermissionId], j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(ownerUser, str(e), i, count)
+# Update target permissions
       if resetTargetRole and targetUser != ownerUser:
         try:
           if nonOwnerTargetRoleBody['role'] != 'none':
