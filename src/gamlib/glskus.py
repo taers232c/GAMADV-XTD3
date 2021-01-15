@@ -109,15 +109,17 @@ _SKUS = {
   }
 
 def getProductAndSKU(sku):
-  l_sku = sku.lower().replace('-', '').replace(' ', '')
+  l_sku = sku.lower().replace('-', '').replace(' ', '').strip()
+  if l_sku.startswith('nv:'):
+    if ':' in sku[3:]:
+      return sku[3:].split(':', 1)
+    return (None, sku)
   for a_sku, sku_values in list(_SKUS.items()):
-    if l_sku == a_sku.lower().replace('-', '') or l_sku in sku_values['aliases'] or l_sku == sku_values['displayName'].lower().replace(' ', ''):
+    if ((l_sku == a_sku.lower().replace('-', '')) or
+        (l_sku in sku_values['aliases']) or
+        (l_sku == sku_values['displayName'].lower().replace(' ', ''))):
       return (sku_values['product'], a_sku)
-  try:
-    product = re.search('^([A-Z,a-z]*-[A-Z,a-z]*)', sku).group(1)
-  except AttributeError:
-    product = sku
-  return (product, sku)
+  return (None, sku)
 
 def productIdToDisplayName(productId):
   return _PRODUCTS.get(productId, productId)
@@ -129,14 +131,16 @@ def formatProductIdDisplayName(productId):
   return f'{productId} ({productIdDisplay})'
 
 def normalizeProductId(product):
-  l_product = product.lower().replace('-', '').replace(' ', '')
+  l_product = product.lower().replace('-', '').replace(' ', '').strip()
+  if l_product.startswith('nv:'):
+    return (True, product[3:])
   for a_sku, sku_values in list(_SKUS.items()):
-    if ((l_product == sku_values['product'].lower().replace('-', ''))
-        or (l_product == a_sku.lower().replace('-', ''))
-        or (l_product in sku_values['aliases'])
-        or (l_product == sku_values['displayName'].lower().replace(' ', ''))):
-      return sku_values['product']
-  return product
+    if ((l_product == sku_values['product'].lower().replace('-', '')) or
+        (l_product == a_sku.lower().replace('-', '')) or
+        (l_product in sku_values['aliases']) or
+        (l_product == sku_values['displayName'].lower().replace(' ', ''))):
+      return (True, sku_values['product'])
+  return (False, product)
 
 def getSortedProductList():
   return sorted(_PRODUCTS)

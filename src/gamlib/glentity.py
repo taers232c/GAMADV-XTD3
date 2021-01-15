@@ -450,7 +450,7 @@ class GamEntity():
     SIGNATURE: ['Signatures', 'Signature'],
     SITE: ['Sites', 'Site'],
     SITE_ACL: ['Site ACLs', 'Site ACL'],
-    SKU: ['SKUs', 'SK'],
+    SKU: ['SKUs', 'SKU'],
     SMIME_ID: ['S/MIME Certificate IDs', 'S/MIME Certificate ID'],
     SNIPPETS_ENABLED: ['Preview Snippets Enabled', 'Preview Snippets Enabled'],
     SSO_KEY: ['SSO Key', 'SSO Key'],

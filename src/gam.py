@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.04'
+__version__ = '5.31.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1160,17 +1160,22 @@ def getGoogleProduct():
   if Cmd.ArgumentsRemaining():
     product = Cmd.Current().strip()
     if product:
+      status, productId = SKU.normalizeProductId(product)
+      if not status:
+        invalidChoiceExit(productId, SKU.getSortedProductList(), False)
       Cmd.Advance()
-      return SKU.normalizeProductId(product)
+      return productId
   missingArgumentExit(Cmd.OB_PRODUCT_ID)
 
 def getGoogleProductList():
   if Cmd.ArgumentsRemaining():
     productsList = []
     for product in Cmd.Current().split(','):
-      product = SKU.normalizeProductId(product)
-      if product not in productsList:
-        productsList.append(product)
+      status, productId = SKU.normalizeProductId(product)
+      if not status:
+        invalidChoiceExit(productId, SKU.getSortedProductList(), False)
+      if productId not in productsList:
+        productsList.append(productId)
     Cmd.Advance()
     return productsList
   missingArgumentExit(Cmd.OB_PRODUCT_ID_LIST)
@@ -1187,9 +1192,11 @@ def getGoogleSKUList():
   if Cmd.ArgumentsRemaining():
     skusList = []
     for sku in Cmd.Current().split(','):
-      _, sku = SKU.getProductAndSKU(sku)
-      if sku not in skusList:
-        skusList.append(sku)
+      productId, sku = SKU.getProductAndSKU(sku)
+      if not productId:
+        invalidChoiceExit(sku, SKU.getSortedSKUList(), False)
+      if (productId, sku) not in skusList:
+        skusList.append((productId, sku))
     Cmd.Advance()
     return skusList
   missingArgumentExit(Cmd.OB_SKU_ID_LIST)
@@ -5141,7 +5148,15 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
       printGotAccountEntities(totalLen-prevLen)
       prevLen = totalLen
   elif entityType == Cmd.ENTITY_LICENSES:
-    entityList = doPrintLicenses(returnFields=['userId'], skus=entity.split(','))
+    skusList = []
+    for item in entity.split(','):
+      productId, sku = SKU.getProductAndSKU(item)
+      if not productId:
+        _incrEntityDoesNotExist(Ent.SKU)
+      elif (productId, sku) not in skusList:
+        skusList.append((productId, sku))
+    if skusList:
+      entityList = doPrintLicenses(returnFields=['userId'], skus=skusList)
   elif entityType in {Cmd.ENTITY_COURSEPARTICIPANTS, Cmd.ENTITY_TEACHERS, Cmd.ENTITY_STUDENTS}:
     croom = buildGAPIObject(API.CLASSROOM)
     if not noListConversion:
@@ -6644,9 +6659,11 @@ class CSVPrintFile():
   def RearrangeCourseTitles(self, ttitles, stitles):
 # Put teachers and students after courseMaterialSets if present, otherwise at end
     for title in ttitles['list']:
-      self.titlesList.remove(title)
+      if title in self.titlesList:
+        self.titlesList.remove(title)
     for title in stitles['list']:
-      self.titlesList.remove(title)
+      if title in self.titlesList:
+        self.titlesList.remove(title)
     try:
       cmsIndex = self.titlesList.index('courseMaterialSets')
       self.titlesList = self.titlesList[:cmsIndex]+ttitles['list']+stitles['list']+self.titlesList[cmsIndex:]
@@ -11454,7 +11471,9 @@ def _getResoldSubscriptionAttr(customerId):
       body['seats']['numberOfSeats'] = getInteger(minVal=0)
       body['seats']['maximumNumberOfSeats'] = getInteger(minVal=0)
     elif myarg in {'sku', 'skuid'}:
-      _, body['skuId'] = SKU.getProductAndSKU(getString(Cmd.OB_SKU_ID))
+      productId, body['skuId'] = SKU.getProductAndSKU(getString(Cmd.OB_SKU_ID))
+      if not productId:
+        invalidChoiceExit(body['skuId'], SKU.getSortedSKUList(), True)
     elif myarg in {'customerauthtoken', 'transfertoken'}:
       customerAuthToken = getString('customer_auth_token')
     else:
@@ -23618,9 +23637,10 @@ def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts
   else:
     fields = getItemFieldsFromFieldsList('items', returnFields)
   if skus:
-    for skuId in skus:
+    for sku in skus:
       Ent.SetGetting(Ent.LICENSE)
-      productId, skuId = SKU.getProductAndSKU(skuId)
+      productId = sku[0]
+      skuId = sku[1]
       productDisplay = SKU.formatProductIdDisplayName(productId)
       skuIdDisplay = SKU.formatSKUIdDisplayName(skuId)
       try:
@@ -25855,7 +25875,7 @@ def _moveCalendarEvents(origUser, user, origCal, calIds, count, calendarEventEnt
         entityActionFailedWarning([Ent.CALENDAR, calId], str(e), i, count)
         break
       except (GAPI.forbidden, GAPI.requiredAccessLevel, GAPI.cannotChangeOrganizer, GAPI.cannotChangeOrganizerOfInstance) as e:
-        entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId], str(e), j, jcount)
+        entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId, Ent.CALENDAR, newCalId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError):
         entityServiceNotApplicableWarning(Ent.CALENDAR, calId, i, count)
         break
@@ -30285,10 +30305,11 @@ def infoUsers(entityList):
         svcargs = dict([('userId', None), ('productId', None), ('skuId', None), ('fields', 'skuId')]+GM.Globals[GM.EXTRA_ARGS_LIST])
         method = getattr(lic.licenseAssignments(), 'get')
         dbatch = lic.new_batch_http_request(callback=_callbackGetLicense)
-        for skuId in skus:
+        for sku in skus:
           svcparms = svcargs.copy()
           svcparms['userId'] = user['primaryEmail']
-          svcparms['productId'], svcparms['skuId'] = SKU.getProductAndSKU(skuId)
+          svcparms['productId'] = sku[0]
+          svcparms['skuId'] = sku[1]
           dbatch.add(method(**svcparms))
         dbatch.execute()
       if FJQC.formatJSON:
@@ -31305,6 +31326,7 @@ class CourseAttributes():
     self.courseWorks = []
     self.copyTopics = False
     self.topicsById = {}
+    self.currDateTime = None
     self.csvPF = None
 
   COURSE_ANNOUNCEMENT_READONLY_FIELDS = [
@@ -31531,6 +31553,15 @@ class CourseAttributes():
         body['materials'].append(material)
     Act.Set(action)
 
+  def checkDueDate(self, body):
+    if 'dueDate' in body and 'dueTime' in body:
+      try:
+        return self.currDateTime < datetime.datetime(body['dueDate']['year'], body['dueDate']['month'], body['dueDate']['day'],
+                                                     body['dueTime']['hours'], body['dueTime']['minutes'], tzinfo=iso8601.UTC)
+      except ValueError:
+        pass
+    return False
+
   def CopyAttributes(self, newCourse, i=0, count=0):
     newCourseId = newCourse['id']
     ownerId = newCourse['ownerId']
@@ -31632,18 +31663,22 @@ class CourseAttributes():
               newTopicId = newTopicsByName.get(topicName)
               if newTopicId:
                 body['topicId'] = newTopicId
+        if not self.removeDueDate and not self.checkDueDate(body):
+          body.pop('dueDate', None)
+          body.pop('dueTime', None)
         try:
           result = callGAPI(tcroom.courses().courseWork(), 'create',
                             bailOnInternalError=True,
                             throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN,
-                                          GAPI.BAD_REQUEST, GAPI.FAILED_PRECONDITION, GAPI.BACKEND_ERROR, GAPI.INTERNAL_ERROR],
+                                          GAPI.BAD_REQUEST, GAPI.FAILED_PRECONDITION, GAPI.BACKEND_ERROR,
+                                          GAPI.INTERNAL_ERROR, GAPI.INVALID_ARGUMENT],
                             courseId=newCourseId, body=body, fields='id')
           entityModifierItemValueListActionPerformed([Ent.COURSE, newCourseId, Ent.COURSE_WORK_ID, result['id']], Act.MODIFIER_FROM,
                                                      [Ent.COURSE, self.courseId, Ent.COURSE_WORK, f'{body.get("title", courseWorkId)}'], j, jcount)
         except GAPI.notFound as e:
           entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
           return
-        except (GAPI.badRequest, GAPI.failedPrecondition, GAPI.backendError, GAPI.internalError,
+        except (GAPI.badRequest, GAPI.failedPrecondition, GAPI.backendError, GAPI.internalError, GAPI.invalidArgument,
                 GAPI.permissionDenied, GAPI.forbidden) as e:
           entityModifierItemValueListActionFailedWarning([Ent.COURSE, newCourseId], Act.MODIFIER_FROM,
                                                          [Ent.COURSE, self.courseId, Ent.COURSE_WORK, f'{body.get("title", courseWorkId)}'], str(e), j, jcount)
@@ -31653,6 +31688,8 @@ class CourseAttributes():
     Act.Set(Act.COPY)
     entityPerformActionModifierItemValueList([Ent.COURSE, newCourse['id']], Act.MODIFIER_FROM, [Ent.COURSE, self.courseId], i, count)
     Ind.Increment()
+    if not self.removeDueDate:
+      self.currDateTime = datetime.datetime.now(iso8601.UTC)
     self.CopyAttributes(newCourse, i, count)
     if self.csvPF:
       self.csvPF.writeCSVfile('Course Drive File IDs')
@@ -41580,7 +41617,7 @@ SUGGESTIONS_VIEW_MODE_CHOICE_MAP = {
 
 # gam <UserTypeEntity> get document <DriveFileEntity>
 #	[viewmode default|suggestions_inline|preview_suggestions_accepted|preview_without_suggestions]
-#	[targetfolder <FilePath>] [targetname -|<FileName>] [overwrite [<Boolean>]]
+#	[targetfolder <FilePath>] [targetname <FileName>] [overwrite [<Boolean>]]
 def getGoogleDocument(users):
   fileIdEntity = getDriveFileEntity()
   suggestionsViewMode = SUGGESTIONS_VIEW_MODE_CHOICE_MAP['default']
@@ -41595,7 +41632,6 @@ def getGoogleDocument(users):
       targetFolderPattern = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
     elif myarg == 'targetname':
       targetNamePattern = getString(Cmd.OB_FILE_NAME)
-      targetNamePattern == '-'
     elif myarg == 'overwrite':
       overwrite = getBoolean()
     else:
@@ -45265,9 +45301,13 @@ def getLicenseParameters(operation):
   parameters[LICENSE_PRODUCTID], parameters[LICENSE_SKUID] = getGoogleSKU()
   if checkArgumentPresent(['product', 'productid']):
     parameters[LICENSE_PRODUCTID] = getGoogleProduct()
+  elif not parameters[LICENSE_PRODUCTID]:
+    invalidChoiceExit(parameters[LICENSE_SKUID], SKU.getSortedSKUList(), True)
   if operation == 'patch':
     checkArgumentPresent('from')
-    _, parameters[LICENSE_OLDSKUID] = getGoogleSKU()
+    productId, parameters[LICENSE_OLDSKUID] = getGoogleSKU()
+    if not productId:
+      invalidChoiceExit(parameters[LICENSE_OLDSKUID], SKU.getSortedSKUList(), True)
   if operation == 'sync':
     parameters['syncOperation'] = getSyncOperation()
   parameters['preview'] = checkArgumentPresent('preview')

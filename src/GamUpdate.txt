@@ -1,3 +1,17 @@
+5.31.05
+
+Improved error message generated when trying to move a calendar event to a calender without write access.
+
+Updated all commands/options that reference License Products and SKUs to validate the values entered.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Licenses#definitions
+
+Updated `gam create course copyfrom <CourseID>` and `gam update course <CourseID> copyfrom <CourseID>`
+to remove Course Work due dates that fall before the current time; if not removed, the Course Work
+can not be copied.
+* `removeduedate false` - Remove due dates before the current time; this is the default
+* `removeduedate|removeduedate true` - Remove all due dates
+
 5.31.04
 
 Added a command to download a Google Document in JSON format.
