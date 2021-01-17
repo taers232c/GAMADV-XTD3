@@ -85,6 +85,7 @@ echo -e '\x1B[0m'
 
 version_gt()
 {
+echo "Check:${2}"
 if [ "${1}" = "${2}" ]; then
   true
 else
