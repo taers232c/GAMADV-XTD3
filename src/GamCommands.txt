@@ -4641,6 +4641,13 @@ gam <UserTypeEntity> print delegates|delegate [todrive <ToDriveAttribute>*] [sho
 
 # Users - Gmail - Filters
 
+<GmailCategory> ::=
+        forums|
+        personal|
+        promotions|
+        social|
+        updates
+
 <FilterCriteria> ::=
         excludechats|
         (from <String>)|
@@ -4653,19 +4660,25 @@ gam <UserTypeEntity> print delegates|delegate [todrive <ToDriveAttribute>*] [sho
 
 <FilterAction> ::=
         archive|
+        (category <GmailCategory>)|
         (forward <EmailAddress>)|
-        (important|notimportant)|(star)|
-        (label <LabelID>)|
+        (important|notimportant)|
+        (label <LabelName>)|
         markread|
         neverspam|
+        star|
         trash
 
-gam <UserTypeEntity> [create|add] filter <FilterCriteria>+ <FilterAction>+
+gam <UserTypeEntity> [create|add] filter
+        (<FilterCriteria>+ <FilterAction>+) |
+        ((json [charset <Charset>] <String>) |
+         (json file <FileName> [charset <Charset>]))
 gam <UserTypeEntity> delete filters <FilterIDEntity>
 
 gam <UserTypeEntity> info filters <FilterIDEntity>
 gam <UserTypeEntity> show filters [labelidsonly]
 gam <UserTypeEntity> print filters [labelidsonly] [todrive <ToDriveAttribute>*]
+        [formatjson] [quotechar <Character>]
 
 # Users - Gmail - Forwarding
 

@@ -3,7 +3,7 @@
 #
 # GAMADV-XTD3
 #
-# Copyright 2020, All Rights Reserved.
+# Copyright 2021, All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.05'
+__version__ = '5.31.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -47060,19 +47060,29 @@ def printShowLabels(users):
   if csvPF:
     csvPF.writeCSVfile('Labels')
 
-def _initLabelNameMap(userGmailLabels):
-  baseLabelNameMap = {
-    'INBOX': 'INBOX', 'SPAM': 'SPAM', 'TRASH': 'TRASH',
-    'UNREAD': 'UNREAD', 'STARRED': 'STARRED', 'IMPORTANT': 'IMPORTANT',
-    'SENT': 'SENT', 'DRAFT': 'DRAFT',
-    'CATEGORY_PERSONAL': 'CATEGORY_PERSONAL',
-    'CATEGORY_SOCIAL': 'CATEGORY_SOCIAL',
-    'CATEGORY_PROMOTIONS': 'CATEGORY_PROMOTIONS',
-    'CATEGORY_UPDATES': 'CATEGORY_UPDATES',
-    'CATEGORY_FORUMS': 'CATEGORY_FORUMS',
-    }
+GMAIL_SYSTEM_LABELS = {
+  'CHAT': 'CHAT',
+  'DRAFT': 'DRAFT',
+  'IMPORTANT': 'IMPORTANT',
+  'INBOX': 'INBOX',
+  'SENT': 'SENT',
+  'SPAM': 'SPAM',
+  'STARRED': 'STARRED',
+  'TRASH': 'TRASH',
+  'UNREAD': 'UNREAD',
+  }
+GMAIL_CATEGORY_LABELS = {
+  'CATEGORY_PERSONAL': 'CATEGORY_PERSONAL',
+  'CATEGORY_SOCIAL': 'CATEGORY_SOCIAL',
+  'CATEGORY_PROMOTIONS': 'CATEGORY_PROMOTIONS',
+  'CATEGORY_UPDATES': 'CATEGORY_UPDATES',
+  'CATEGORY_FORUMS': 'CATEGORY_FORUMS',
+  }
 
-  labelNameMap = baseLabelNameMap.copy()
+def _initLabelNameMap(userGmailLabels):
+  labelNameMap = {}
+  labelNameMap.update(GMAIL_SYSTEM_LABELS)
+  labelNameMap.update(GMAIL_CATEGORY_LABELS)
   for label in userGmailLabels['labels']:
     if label['type'] == 'system':
       labelNameMap[label['id']] = label['id']
@@ -48470,6 +48480,13 @@ def _showFilter(userFilter, j, jcount, labels):
     Ind.Decrement()
   Ind.Decrement()
 #
+FILTER_CATEGORY_CHOICE_MAP = {
+  'personal': 'CATEGORY_PERSONAL',
+  'social': 'CATEGORY_SOCIAL',
+  'promotions': 'CATEGORY_PROMOTIONS',
+  'updates': 'CATEGORY_UPDATES',
+  'forums': 'CATEGORY_FORUMS',
+  }
 FILTER_CRITERIA_CHOICE_MAP = {
   'excludechats': 'excludeChats',
   'from': 'from',
@@ -48485,7 +48502,7 @@ FILTER_CRITERIA_CHOICE_MAP = {
   }
 FILTER_ADD_LABEL_ACTIONS = ['important', 'star', 'trash']
 FILTER_REMOVE_LABEL_ACTIONS = ['markread', 'notimportant', 'archive', 'neverspam']
-FILTER_ACTION_CHOICES = FILTER_ADD_LABEL_ACTIONS+FILTER_REMOVE_LABEL_ACTIONS+['forward', 'label']
+FILTER_ACTION_CHOICES = FILTER_ADD_LABEL_ACTIONS+FILTER_REMOVE_LABEL_ACTIONS+['category', 'forward', 'label']
 FILTER_ACTION_LABEL_MAP = {
   'archive': 'INBOX',
   'important': 'IMPORTANT',
@@ -48496,17 +48513,18 @@ FILTER_ACTION_LABEL_MAP = {
   'trash': 'TRASH',
   }
 
-# gam <UserTypeEntity> [create|add] filter <FilterCriteria>+ <FilterAction>+
+# gam <UserTypeEntity> [create|add]
+#	(filter <FilterCriteria>+ <FilterAction>+) |
+#	((json [charset <Charset>] <String>) |
+#	 (json file <FileName> [charset <Charset>]))
 def createFilter(users):
-  body = {}
-  addLabelName = None
-  addLabelIds = []
-  removeLabelIds = []
+  body = {'criteria': {}, 'action': {'addLabelIds': [], 'removeLabelIds': []}}
+  jsonData = None
+  categorySet = labelSet = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg in FILTER_CRITERIA_CHOICE_MAP:
+    if jsonData is None and myarg in FILTER_CRITERIA_CHOICE_MAP:
       myarg = FILTER_CRITERIA_CHOICE_MAP[myarg]
-      body.setdefault('criteria', {})
       if myarg in {'from', 'to', 'subject', 'query', 'negatedQuery'}:
         body['criteria'][myarg] = getString(Cmd.OB_STRING)
       elif myarg in {'hasAttachment', 'excludeChats'}:
@@ -48514,50 +48532,85 @@ def createFilter(users):
       elif myarg == 'size':
         body['criteria']['sizeComparison'] = getChoice(['larger', 'smaller'])
         body['criteria'][myarg] = getMaxMessageBytes(ONE_KILO_10_BYTES, ONE_MEGA_10_BYTES)
-    elif myarg in FILTER_ACTION_CHOICES:
-      body.setdefault('action', {})
+    elif jsonData is None and myarg in FILTER_ACTION_CHOICES:
       if myarg in FILTER_ADD_LABEL_ACTIONS:
-        addLabelIds.append(myarg)
-        if (myarg == 'important') and ('notimportant' in removeLabelIds):
-          removeLabelIds.remove('notimportant')
+        myarg = FILTER_ACTION_LABEL_MAP[myarg]
+        body['action']['addLabelIds'].append(myarg)
+        if (myarg == 'IMPORTANT') and (myarg in body['action']['removeLabelIds']):
+          body['action']['removeLabelIds'].remove(myarg)
       elif myarg in FILTER_REMOVE_LABEL_ACTIONS:
-        removeLabelIds.append(myarg)
-        if (myarg == 'notimportant') and ('important' in addLabelIds):
-          addLabelIds.remove('important')
+        myarg = FILTER_ACTION_LABEL_MAP[myarg]
+        body['action']['removeLabelIds'].append(myarg)
+        if (myarg == 'IMPORTANT') and (myarg in body['action']['addLabelIds']):
+          body['action']['addLabelIds'].remove(myarg)
       elif myarg == 'forward':
         body['action']['forward'] = getEmailAddress(noUid=True)
-      else: #elif myarg == 'label':
-        addLabelName = getString(Cmd.OB_LABEL_NAME)
+      elif myarg == 'label':
+        label = getString(Cmd.OB_LABEL_NAME)
+        labelUpper = label.upper()
+        if labelUpper not in GMAIL_SYSTEM_LABELS:
+          if labelUpper not in GMAIL_CATEGORY_LABELS:
+            if not labelSet:
+              body['action']['addLabelIds'].append(label)
+              labelSet = True
+            else:
+              Cmd.Backup()
+              usageErrorExit(Msg.FILTER_CAN_ONLY_CONTAIN_ONE_USER_LABEL)
+          elif not categorySet:
+            body['action']['addLabelIds'].append(labelUpper)
+            categorySet = True
+          else:
+            Cmd.Backup()
+            usageErrorExit(Msg.FILTER_CAN_ONLY_CONTAIN_ONE_CATEGORY_LABEL)
+        else:
+          body['action']['addLabelIds'].append(labelUpper)
+          if (labelUpper == 'IMPORTANT') and (labelUpper in body['action']['removeLabelIds']):
+            body['action']['removeLabelIds'].remove(labelUpper)
+      elif myarg == 'category':
+        if not categorySet:
+          body['action']['addLabelIds'].append(getChoice(FILTER_CATEGORY_CHOICE_MAP, mapChoice=True))
+          categorySet = True
+        else:
+          Cmd.Backup()
+          usageErrorExit(Msg.FILTER_CAN_ONLY_CONTAIN_ONE_CATEGORY_LABEL)
+      else:
+        unknownArgumentExit()
+    elif myarg == 'json':
+      jsonData = getJSON([])
+      body['criteria'] = jsonData['criteria']
+      body['action'] = jsonData['action']
     else:
       unknownArgumentExit()
-  if 'criteria' not in body:
+  if not body['criteria']:
     missingChoiceExit(FILTER_CRITERIA_CHOICE_MAP)
-  if 'action' not in body:
+  if not body['action']['addLabelIds'] and not body['action']['removeLabelIds'] and 'forward' not in body['action']:
     missingChoiceExit(FILTER_ACTION_CHOICES)
-  if removeLabelIds:
-    body['action']['removeLabelIds'] = [FILTER_ACTION_LABEL_MAP[action] for action in FILTER_REMOVE_LABEL_ACTIONS if action in removeLabelIds]
+  for i, labelId in enumerate(body['action']['addLabelIds']):
+    if labelId not in GMAIL_SYSTEM_LABELS and labelId not in GMAIL_CATEGORY_LABELS:
+      addLabelIndex = i
+      addLabelName = labelId
+      break
+  else:
+    addLabelIndex = -1
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
     if not gmail:
       continue
-    labels = _getUserGmailLabels(gmail, user, i, count, fields='labels(id,name)')
-    if not labels:
-      continue
+    if addLabelIndex >= 0:
+      labels = _getUserGmailLabels(gmail, user, i, count, fields='labels(id,name)')
+      if not labels:
+        continue
     try:
-      if addLabelIds:
-        body['action']['addLabelIds'] = [FILTER_ACTION_LABEL_MAP[action] for action in FILTER_ADD_LABEL_ACTIONS if action in addLabelIds]
-      if addLabelName:
-        if not addLabelIds:
-          body['action']['addLabelIds'] = []
+      if addLabelIndex >= 0:
         addLabelId = _getLabelId(labels, addLabelName)
         if not addLabelId:
           result = callGAPI(gmail.users().labels(), 'create',
                             throwReasons=GAPI.GMAIL_THROW_REASONS,
                             userId='me', body={'name': addLabelName}, fields='id')
           addLabelId = result['id']
-        body['action']['addLabelIds'].append(addLabelId)
+        body['action']['addLabelIds'][addLabelIndex] = addLabelId
       result = callGAPI(gmail.users().settings().filters(), 'create',
                         throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.INVALID_ARGUMENT, GAPI.FAILED_PRECONDITION],
                         userId='me', body=body, fields='id')
@@ -48629,10 +48682,12 @@ def infoFilters(users):
     Ind.Decrement()
 
 # gam <UserTypeEntity> print filters [labelidsonly] [todrive <ToDriveAttribute>*]
+#	[formatjson] [quotechar <Character>]
 # gam <UserTypeEntity> show filters [labelidsonly]
 def printShowFilters(users):
   labelIdsOnly = False
-  csvPF = CSVPrintFile(['User', 'id'], 'sortall') if Act.csvFormat() else None
+  csvPF = CSVPrintFile() if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -48640,7 +48695,9 @@ def printShowFilters(users):
     elif myarg == 'labelidsonly':
       labelIdsOnly = True
     else:
-      unknownArgumentExit()
+      FJQC.GetFormatJSONQuoteChar(myarg)
+  if csvPF:
+    csvPF.SetFormatJSON(False)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -48670,12 +48727,27 @@ def printShowFilters(users):
         printGettingEntityItemForWhom(Ent.FILTER, user, i, count)
         if results:
           for userFilter in results:
-            csvPF.WriteRowTitles(_printFilter(user, userFilter, labels))
+            row = _printFilter(user, userFilter, labels)
+            if FJQC.formatJSON:
+              # Map user label IDs to label names
+              if 'addLabelIds' in userFilter['action']:
+                for i, labelId in enumerate(userFilter['action']['addLabelIds']):
+                  if labelId not in GMAIL_SYSTEM_LABELS and labelId not in GMAIL_CATEGORY_LABELS:
+                    userFilter['action']['addLabelIds'][i] = _getLabelName(labels, labelId)
+              row['JSON'] = json.dumps(userFilter, ensure_ascii=False, sort_keys=False)
+            csvPF.WriteRowTitles(row)
         elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
           csvPF.WriteRowNoFilter({'User': user})
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvPF:
+    csvPF.SetFormatJSON(False)
+    csvPF.SetSortTitles(['User', 'id', 'from', 'to', 'subject', 'query', 'negatedQuery', 'hasAttachment', 'excludeChats', 'size', 'forward',
+                         'archive', 'important', 'label', 'markread', 'star'])
+    csvPF.SortTitles()
+    if FJQC.formatJSON:
+      csvPF.MoveTitlesToEnd(['JSON'])
+    csvPF.SetSortTitles([])
     csvPF.writeCSVfile('Filters')
 
 EMAILSETTINGS_OLD_NEW_OLD_FORWARD_ACTION_MAP = {

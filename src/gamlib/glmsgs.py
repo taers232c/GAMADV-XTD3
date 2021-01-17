@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2020 Ross Scroggs All Rights Reserved.
+# Copyright (C) 2021 Ross Scroggs All Rights Reserved.
 #
 # All Rights Reserved.
 #
@@ -99,6 +99,8 @@ FAILED_TO_PARSE_AS_JSON = 'Failed to parse as JSON'
 FAILED_TO_PARSE_AS_LIST = 'Failed to parse as list'
 FIELD_NOT_FOUND_IN_SCHEMA = 'Field {0} not found in schema {1}'
 FINISHED = 'Finished'
+FILTER_CAN_ONLY_CONTAIN_ONE_CATEGORY_LABEL = 'Filter can only contain one CATEGORY label'
+FILTER_CAN_ONLY_CONTAIN_ONE_USER_LABEL = 'Filter can only contain one USER label'
 FOR = 'for'
 FORBIDDEN = 'Forbidden'
 FORMAT_NOT_AVAILABLE = 'Format ({0}) not available'
