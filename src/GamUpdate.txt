@@ -1,3 +1,11 @@
+5.31.07
+
+Updated `gam <UserTypeEntity> print users` to handle the following error:
+```
+ERROR: 403: rateLimitExceeded - Quota exceeded for quota group 'default' and limit 'Queries per user per 100 seconds'
+of service 'admin.googleapis.com' for consumer 'project_number:Project#Here'.
+```
+
 5.31.06
 
 Updated `gam <UserTypeEntity> print|create filter` to make it easier to copy filters from

@@ -271,6 +271,7 @@ If an item contains spaces, it should be surrounded by ".
 <APIScopeURL> ::= <String>
 <ASPID> ::= <String>
 <AssetTag> ::= <String>
+<BrowserTokenPermanentID> ::= <String>
 <BuildingID> ::= <String>|id:<String>
 <CalendarACLScope> ::=
         <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|
@@ -396,6 +397,8 @@ If an item contains spaces, it should be surrounded by ".
         See: https://developers.google.com/admin-sdk/alertcenter/guides/query-filters
 <QueryBrowser> ::= <String>
         See: https://support.google.com/chrome/a/answer/9681204#retrieve_all_chrome_devices_for_an_account
+<QueryBrowserToken> ::= <String>
+        See: https://support.google.com/chrome/a/answer/9949706?ref_topic=9301744
 <QueryCalendar> ::= <String>
 <QueryContact> ::= <String>
         See: https://developers.google.com/google-apps/contacts/v3/reference#contacts-query-parameters-reference
@@ -1404,20 +1407,20 @@ gam info browser <DeviceID>
         [basic|full|annotated] <BrowserFieldName>* [fields <BrowserFieldNameList>]
         [formatjson]
 gam show browsers
-        ([browserou <OrgUnitPath>] [(query <QueryBrowser>)|(queries <QueryBrowserList>))|(select <BrowserEntity>))
+        ([ou|org|orgunit|browserou <OrgUnitPath>] [(query <QueryBrowser>)|(queries <QueryBrowserList>))|(select <BrowserEntity>))
         [querytime.* <Time>]
         [orderby <BrowserOrderByFieldName> [ascending|descending]]
         [basic|full|allfields|annotated] <BrowserFieldName>* [fields <BrowserFieldNameList>]
         [formatjson]
 gam print browsers [todrive <ToDriveAttribute>*]
-        ([browserou<OrgUnitPath>] [(query <QueryBrowser>)|(queries <QueryBrowserList>))|(select <BrowserEntity>))
+        ([ou|org|orgunit|browserou <OrgUnitPath>] [(query <QueryBrowser>)|(queries <QueryBrowserList>))|(select <BrowserEntity>))
         [querytime.* <Time>]
         [orderby <BrowserOrderByFieldName> [ascending|descending]]
         [basic|full|allfields|annotated] <BrowserFieldName>* [fields <BrowserFieldNameList>]
         [sortheaders] [formatjson [quotechar <Character>]]
 
 gam create browsertoken
-        [browserou <OrgUnitPath>] [expire|expires <Time>]
+        [ou|org|orgunit|browserou <OrgUnitPath>] [expire|expires <Time>]
         [formatjson]
 gam revoke browsertoken <BrowserTokenPermanentID>
 
@@ -1437,13 +1440,13 @@ gam revoke browsertoken <BrowserTokenPermanentID>
 <BrowserTokenFieldNameList> ::= "<BrowseTokenFieldName>(,<BrowserTokenFieldName>)*"
 
 gam show browsertokens
-        ([browserou <OrgUnitPath>] [(query <QueryBrowserToken)|(queries <QueryBrowserTokenList>)))
+        ([ou|org|orgunit|browserou <OrgUnitPath>] [(query <QueryBrowserToken)|(queries <QueryBrowserTokenList>)))
         [querytime.* <Time>]
         [orderby <BrowserTokenFieldName> [ascending|descending]]
         [allfields] <BrowserTokenFieldName>* [fields <BrowserTokenFieldNameList>]
         [formatjson]
 gam print browsertokens [todrive <ToDriveAttribute>*]
-        ([browserou <OrgUnitPath>] [(query <QueryBrowserToken)|(queries <QueryBrowserTokenList>)))
+        ([ou|org|orgunit|browserou <OrgUnitPath>] [(query <QueryBrowserToken)|(queries <QueryBrowserTokenList>)))
         [querytime.* <Time>]
         [orderby <BrowserTokenFieldName> [ascending|descending]]
         [allfields] <BrowserTokenFieldName>* [fields <BrowserTokenFieldNameList>]

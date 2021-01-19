@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.06'
+__version__ = '5.31.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -10044,7 +10044,7 @@ def doReportUsage():
       csvPF.GetTodriveParameters()
     elif myarg in {'start', 'startdate', 'end', 'enddate', 'range', 'thismonth', 'previousmonths'}:
       startEndTime.Get(myarg)
-    elif userReports and myarg in ['orgunit', 'org', 'ou']:
+    elif userReports and myarg in ['ou', 'org', 'orgunit']:
       orgUnit, orgUnitId = getOrgUnitId()
     elif myarg in {'fields', 'parameters'}:
       parameters = parameters.union(getString(Cmd.OB_STRING).replace(',', ' ').split())
@@ -17932,13 +17932,13 @@ BROWSER_ORDERBY_CHOICE_MAP = {
   }
 
 # gam show browsers
-#	([browserou <OrgUnitPath>] [(query <QueryBrowser)|(queries <QueryBrowserList>))|(select <BrowserEntity>))
+#	([ou|org|orgunit|browserou <OrgUnitPath>] [(query <QueryBrowser)|(queries <QueryBrowserList>))|(select <BrowserEntity>))
 #	[querytime.* <Time>]
 #	[orderby <BrowserOrderByFieldName> [ascending|descending]]
 #	[basic|full|allfields|annotated] <BrowserFieldName>* [fields <BrowserFieldNameList>]
 #	[formatjson]
 # gam print browsers [todrive <ToDriveAttribute>*]
-#	([browserou <OrgUnitPath>] [(query <QueryBrowser)|(queries <QueryBrowserList>))|(select <BrowserEntity>))
+#	([ou|org|orgunit|browserou <OrgUnitPath>] [(query <QueryBrowser)|(queries <QueryBrowserList>))|(select <BrowserEntity>))
 #	[querytime.* <Time>]
 #	[orderby <BrowserOrderByFieldName> [ascending|descending]]
 #	[basic|full|allfields|annotated] <BrowserFieldName>* [fields <BrowserFieldNameList>]
@@ -17973,7 +17973,7 @@ def doPrintShowBrowsers():
       queries = getQueries(myarg)
     elif myarg.startswith('querytime'):
       queryTimes[myarg] = getTimeOrDeltaFromNow()[0:19]
-    elif myarg == 'browserou':
+    elif myarg in ['ou', 'org', 'orgunit', 'browserou']:
       orgUnitPath = getOrgUnitItem(pathOnly=True, absolutePath=True)
     elif myarg == 'select':
       _, entityList = getEntityToModify(defaultEntityType=Cmd.ENTITY_BROWSER, browserAllowed=True, crosAllowed=False, userAllowed=False)
@@ -18068,7 +18068,7 @@ def _showBrowserToken(browser, FJQC, i=0, count=0):
     Ind.Decrement()
 
 # gam create browsertoken
-#	[browserou <OrgUnitPath>] [expire|expires <Time>]
+#	[ou|org|orgunit|browserou <OrgUnitPath>] [expire|expires <Time>]
 #	[formatjson]
 def doCreateBrowserToken():
   cbcm = buildGAPIObject(API.CBCM)
@@ -18076,7 +18076,7 @@ def doCreateBrowserToken():
   body = {'token_type': 'CHROME_BROWSER'}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'browserou':
+    if myarg in ['ou', 'org', 'orgunit', 'browserou']:
       body['org_unit_path'] = getOrgUnitItem(pathOnly=True, absolutePath=True)
     elif myarg in ['expire', 'expires']:
       body['expire_time'] = getTimeOrDeltaFromNow()
@@ -18128,13 +18128,13 @@ BROWSER_TOKEN_FIELDS_CHOICE_MAP = {
   }
 
 # gam show browsertokens
-#	([browserou <OrgUnitPath>] [(query <QueryBrowserToken)|(queries <QueryBrowserTokenList>)))
+#	([ou|org|orgunit|browserou <OrgUnitPath>] [(query <QueryBrowserToken)|(queries <QueryBrowserTokenList>)))
 #	[querytime.* <Time>]
 #	[orderby <BrowserTokenFieldName> [ascending|descending]]
 #	[allfields] <BrowserTokenFieldName>* [fields <BrowserTokenFieldNameList>]
 #	[formatjson]
 # gam print browsertokens [todrive <ToDriveAttribute>*]
-#	([browserou <OrgUnitPath>] [(query <QueryBrowserToken)|(queries <QueryBrowserTokenList>)))
+#	([ou|org|orgunit|browserou <OrgUnitPath>] [(query <QueryBrowserToken)|(queries <QueryBrowserTokenList>)))
 #	[querytime.* <Time>]
 #	[orderby <BrowserTokenFieldName> [ascending|descending]]
 #	[allfields] <BrowserTokenFieldName>* [fields <BrowserTokenFieldNameList>]
@@ -18168,7 +18168,7 @@ def doPrintShowBrowserTokens():
       queries = getQueries(myarg)
     elif myarg.startswith('querytime'):
       queryTimes[myarg] = getTimeOrDeltaFromNow()[0:19]
-    elif myarg == 'browserou':
+    elif myarg in ['ou', 'org', 'orgunit', 'browserou']:
       orgUnitPath = getOrgUnitItem(pathOnly=True, absolutePath=True)
     elif myarg == 'orderby':
       orderBy, sortOrder = getOrderBySortOrder(BROWSER_TOKEN_FIELDS_CHOICE_MAP, 'DESCENDING', True)
@@ -18222,7 +18222,7 @@ def doPrintShowBrowserTokens():
       csvPF.SortRows(orderBy, reverse=sortOrder == 'DESCENDING')
     if sortHeaders:
       csvPF.SetSortTitles(['token'])
-    csvPF.writeCSVfile('Browser Enrollment Tokens')
+    csvPF.writeCSVfile('Chrome Browser Enrollment Tokens')
 
 # Device command utilities
 def buildGAPICIDeviceServiceObject():
@@ -30698,9 +30698,26 @@ def doPrintUsers(entityList=None):
         entityUnknownWarning(Ent.USER, ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
       elif (reason == GAPI.INVALID_INPUT) and customFieldMask:
         entityActionFailedWarning([Ent.USER, ri[RI_ITEM]], invalidUserSchema(customFieldMask), int(ri[RI_J]), int(ri[RI_JCOUNT]))
-      else:
+      elif reason not in GAPI.DEFAULT_RETRY_REASONS:
         errMsg = getHTTPError(_PRINT_USER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
         printKeyValueList([ERROR, errMsg])
+      else:
+        waitOnFailure(1, 10, reason, message)
+        try:
+          user = callGAPI(cd.users(), 'get',
+                          throwReasons=GAPI.USER_GET_THROW_REASONS+[GAPI.INVALID_INPUT, GAPI.RESOURCE_NOT_FOUND, GAPI.RATE_LIMIT_EXCEEDED],
+                          userKey=ri[RI_ITEM], projection=projection, customFieldMask=customFieldMask, viewType=viewType, fields=fields)
+          _printUser(user, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        except (GAPI.userNotFound, GAPI.resourceNotFound):
+          entityUnknownWarning(Ent.USER, ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest,
+                GAPI.backendError, GAPI.systemError, GAPI.rateLimitExceeded) as e:
+          entityActionFailedWarning([Ent.USER, ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        except GAPI.invalidInput as e:
+          if customFieldMask:
+            entityActionFailedWarning([Ent.USER, ri[RI_ITEM]], invalidUserSchema(customFieldMask), int(ri[RI_J]), int(ri[RI_JCOUNT]))
+          else:
+            entityActionFailedWarning([Ent.USER, ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
   cd = buildGAPIObject(API.DIRECTORY)
   fieldsList = ['primaryEmail']
@@ -30918,12 +30935,13 @@ def doPrintUsers(entityList=None):
           userEmail = normalizeEmailAddressOrUID(userEntity)
           try:
             user = callGAPI(cd.users(), 'get',
-                            throwReasons=GAPI.USER_GET_THROW_REASONS+[GAPI.INVALID_INPUT, GAPI.RESOURCE_NOT_FOUND],
+                            throwReasons=GAPI.USER_GET_THROW_REASONS+[GAPI.INVALID_INPUT, GAPI.RESOURCE_NOT_FOUND, GAPI.RATE_LIMIT_EXCEEDED],
                             userKey=userEmail, projection=projection, customFieldMask=customFieldMask, viewType=viewType, fields=fields)
             _printUser(user, j, jcount)
           except (GAPI.userNotFound, GAPI.resourceNotFound):
             entityUnknownWarning(Ent.USER, userEmail, j, jcount)
-          except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError) as e:
+          except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest,
+                  GAPI.backendError, GAPI.systemError, GAPI.rateLimitExceeded) as e:
             entityActionFailedWarning([Ent.USER, userEmail], str(e), j, jcount)
           except GAPI.invalidInput as e:
             if customFieldMask:
