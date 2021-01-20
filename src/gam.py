@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.07'
+__version__ = '5.31.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -31745,28 +31745,68 @@ def _doUpdateCourses(entityList):
   courseAttributes = CourseAttributes(croom, True)
   if not courseAttributes.GetAttributes():
     return
-  updateMask = ','.join(list(courseAttributes.body))
   i = 0
   count = len(entityList)
   for course in entityList:
     i += 1
     courseId = addCourseIdScope(course)
-    try:
-      if courseAttributes.body:
-        result = callGAPI(croom.courses(), 'patch',
-                          throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION,
-                                        GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
-                          id=courseId, body=courseAttributes.body, updateMask=updateMask, fields='id,name,ownerId,courseState,teacherFolder(id)')
-        entityActionPerformed([Ent.COURSE_NAME, result['name'], Ent.COURSE, result['id']], i, count)
-      else:
-        result = callGAPI(croom.courses(), 'get',
-                          throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
-                          id=courseId, fields='id,name,ownerId,courseState,teacherFolder(id)')
-      if courseAttributes.courseId:
-        courseAttributes.CopyFromCourse(result, i, count)
-    except (GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition,
-            GAPI.forbidden, GAPI.badRequest, GAPI.invalidArgument) as e:
-      entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
+    body = courseAttributes.body.copy()
+    newOwner = body.get('ownerId')
+    modifier = Act.MODIFIER_WITH_COTEACHER_OWNER
+    complete = False
+    while not complete:
+      complete = True
+      try:
+        if body:
+          result = callGAPI(croom.courses(), 'patch',
+                            throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION,
+                                          GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
+                            id=courseId, body=body, updateMask=','.join(list(body)), fields='id,name,ownerId,courseState,teacherFolder(id)')
+        else:
+          result = callGAPI(croom.courses(), 'get',
+                            throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                            id=courseId, fields='id,name,ownerId,courseState,teacherFolder(id)')
+        if courseAttributes.body:
+          if not newOwner:
+            entityActionPerformed([Ent.COURSE_NAME, result['name'], Ent.COURSE, result['id']], i, count)
+          else:
+            entityModifierNewValueActionPerformed([Ent.COURSE_NAME, result['name'], Ent.COURSE, result['id']],
+                                                  modifier, newOwner, i, count)
+        if courseAttributes.courseId:
+          courseAttributes.CopyFromCourse(result, i, count)
+      except (GAPI.notFound, GAPI.permissionDenied,
+              GAPI.forbidden, GAPI.badRequest, GAPI.invalidArgument) as e:
+        entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
+      except GAPI.failedPrecondition as e:
+        errMsg = str(e)
+        if newOwner and '@UserAlreadyOwner Cannot transfer course to the user who is already the owner' in errMsg:
+## Handle trying to update current owner to owner, we're done if nothing else was being updated
+          body.pop('ownerId')
+          modifier = Act.MODIFIER_WITH_CURRENT_OWNER
+          complete = False
+        elif newOwner and '@IneligibleOwner Only a co-teacher can be invited as owner of the course' in errMsg:
+## Add new owner as teacher, then go back and do update
+          action = Act.Get()
+          Act.Set(Act.ADD)
+          try:
+            callGAPI(croom.courses().teachers(), 'create',
+                     throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR,
+                                   GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION,
+                                   GAPI.QUOTA_EXCEEDED, GAPI.SERVICE_NOT_AVAILABLE],
+                     courseId=courseId, body={'userId': newOwner}, fields='')
+            modifier = Act.MODIFIER_WITH_NEW_TEACHER_OWNER
+            complete = False
+          except (GAPI.notFound, GAPI.backendError, GAPI.forbidden):
+            entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId), Ent.TEACHER, newOwner], getPhraseDNEorSNA(newOwner), i, count)
+          except GAPI.alreadyExists:
+            entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId), Ent.TEACHER, newOwner], Msg.DUPLICATE, i, count)
+          except GAPI.failedPrecondition:
+            entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId), Ent.TEACHER, newOwner], Msg.NOT_ALLOWED, i, count)
+          except (GAPI.quotaExceeded, GAPI.serviceNotAvailable) as e:
+            entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId), Ent.TEACHER, newOwner], str(e), i, count)
+          Act.Set(action)
+        else:
+          entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
 
 # gam update courses <CourseEntity> <CourseAttribute>+
 #	 [copyfrom <CourseID>

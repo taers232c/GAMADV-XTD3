@@ -1,3 +1,8 @@
+5.31.08
+
+Enhanced `gam update course <CourseID> teacher <UserItem>` to handle special situations better.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Classroom-Courses#updating-course-owner
+
 5.31.07
 
 Updated `gam <UserTypeEntity> print users` to handle the following error:
