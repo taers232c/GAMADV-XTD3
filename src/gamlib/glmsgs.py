@@ -21,6 +21,96 @@
 """
 
 # These values can be translated into other languages
+# Project creation messages in order of appearance
+CREATING_PROJECT = 'Creating project "{0}"...\n'
+CHECKING_PROJECT_CREATION_STATUS = 'Checking project creation status...\n'
+NO_RIGHTS_GOOGLE_CLOUD_ORGANIZATION = 'Looks like you have no rights to your Google Cloud Organization.\nAttempting to fix that...\n'
+YOUR_ORGANIZATION_NAME_IS = 'Your organization name is {0}\n'
+YOU_HAVE_NO_RIGHTS_TO_CREATE_PROJECTS_AND_YOU_ARE_NOT_A_SUPER_ADMIN = 'You have no rights to create projects for your organization and you don\'t seem to be a super admin! Sorry, there\'s nothing more I can do.'
+LOOKS_LIKE_NO_ONE_HAS_RIGHTS_TO_YOUR_GOOGLE_CLOUD_ORGANIZATION_ATTEMPTING_TO_GIVE_YOU_CREATE_RIGHTS = 'Looks like no one has rights to your Google Cloud Organization. Attempting to give you create rights...\n'
+THE_FOLLOWING_RIGHTS_SEEM_TO_EXIST = 'The following rights seem to exist:\n'
+GIVING_LOGIN_HINT_THE_CREATOR_ROLE = 'Giving {0} the role of {1}...\n'
+ACCEPT_CLOUD_TOS = '''Please go to:
+
+https://console.cloud.google.com/start&authuser={0}
+
+and accept the Terms of Service (ToS). As soon as you've accepted the ToS popup, you can return here and press enter.\n'''
+
+PROJECT_STILL_BEING_CREATED_SLEEPING = 'Project still being created. Sleeping {0} seconds\n'
+FAILED_TO_CREATE_PROJECT = 'Failed to create project: {0}\n'
+SETTING_GAM_PROJECT_CONSENT_SCREEN = 'Setting GAM project consent screen...\n'
+PLEASE_RESOLVE_ERROR = '\nPlease resolve error as described above\n\n'
+PRESS_ENTER_ONCE_ERROR_RESOLVED = 'Press enter once error is resolved and we will try enabling the API again.'
+CREATE_PROJECT_INSTRUCTIONS = '''Please go to:
+
+{0}
+
+1. Choose "Desktop App" or "Other" for "Application type".
+2. Enter "GAM" or another desired value for "Name".
+3. Click the blue "Create" button.
+4. Copy your "client ID" value that shows on the next page.
+'''
+ENTER_YOUR_CLIENT_ID = '\nEnter your Client ID: '
+GO_BACK_TO_YOUR_BROWSER_AND_COPY_YOUR_CLIENT_SECRET_VALUE = '\n5. Go back to your browser and copy your "client secret" value.\n'
+ENTER_YOUR_CLIENT_SECRET = '\nEnter your Client Secret: '
+GO_BACK_TO_YOUR_BROWSER_AND_CLICK_OK_TO_CLOSE_THE_OAUTH_CLIENT_POPUP = '\n6. Go back to your browser and click OK to close the "OAuth client" popup if it\'s still open.\n'
+IS_NOT_A_VALID_CLIENT_ID = '''
+
+{0}
+
+Is not a valid client ID.
+
+Please make sure you are following the directions exactly and that there are no extra spaces in your client ID.
+'''
+IS_NOT_A_VALID_CLIENT_SECRET = '''
+
+{0}
+
+Is not a valid client secret.
+
+Please make sure you are following the directions exactly and that there are no extra spaces in your client secret.
+'''
+YOUR_GAM_PROJECT_IS_CREATED_AND_READY_TO_USE = 'That\'s it! Your GAM Project is created and ready to use.\n'
+
+# check|update service messages in order of appearance
+SYSTEM_TIME_STATUS = 'System time status'
+YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE = 'Your system time differs from {0} by {1}'
+THE_LINK_MAY_BE_COPIED_FROM_THE_FILE_RATHER_THAN_THE_SCREEN = '(The link may be copied from the file {0} rather than the screen.)\n'
+PRESS_ENTER_ONCE_AUTHORIZATION_IS_COMPLETE = 'Press enter once authorization is complete.'
+SERVICE_ACCOUNT_PRIVATE_KEY_AUTHENTICATION = 'Service Account Private Key Authentication'
+SERVICE_ACCOUNT_CHECK_PRIVATE_KEY_AGE = 'Service Account Private Key age; Google recommends rotating keys on a routine basis'
+SERVICE_ACCOUNT_PRIVATE_KEY_AGE = 'Service Account Private Key age: {0} days'
+UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS = 'Please run "gam update project" to view/manage service account keys'
+DOMAIN_WIDE_DELEGATION_AUTHENTICATION = 'Domain-Wide Delegation authentication'
+SCOPE_AUTHORIZATION_PASSED = '''All scopes PASSED!
+
+Service Account Client name: {0} is fully authorized.
+'''
+SCOPE_AUTHORIZATION_UPDATE_PASSED = '''All scopes PASSED!
+To authorize them (in case some scopes were unselected), please go to the following link in your browser:
+{0}
+    {1}
+
+You will be directed to the Google Workspace admin console Security/API Controls/Domain-wide Delegation page
+The "Add a new Client ID" box will open
+Make sure that "Overwrite existing client ID" is checked
+Click AUTHORIZE
+When the box closes you're done
+After authorizing it may take some time for this test to pass so wait a few moments and then try this command again.
+'''
+SCOPE_AUTHORIZATION_FAILED = '''Some scopes FAILED!
+To authorize them, please go to the following link in your browser:
+{0}
+    {1}
+
+You will be directed to the Google Workspace admin console Security/API Controls/Domain-wide Delegation page
+The "Add a new Client ID" box will open
+Make sure that "Overwrite existing client ID" is checked
+Click AUTHORIZE
+When the box closes you're done
+After authorizing it may take some time for this test to pass so wait a few moments and then try this command again.
+'''
+# General messages
 ACCESS_FORBIDDEN = 'Access Forbidden'
 ACTION_APPLIED = 'Action Applied'
 ACTION_IN_PROGRESS = 'Action {0} in progress'
@@ -74,7 +164,6 @@ DOES_NOT_EXIST_OR_HAS_INVALID_FORMAT = '{0}: {1}, Does not exist or has invalid 
 DOES_NOT_MATCH = 'Does not match {0}'
 DOMAIN_NOT_FOUND_IN_DNS = 'Domain not found in DNS!'
 DOMAIN_NOT_VERIFIED_SECONDARY = 'Domain is not a verified secondary domain'
-DOMAIN_WIDE_DELEGATION_AUTHENTICATION = 'Domain-Wide Delegation authentication'
 DONE_GENERATING_PRIVATE_KEY_AND_PUBLIC_CERTIFICATE = 'Done generating private key and public certificate'
 DO_NOT_EXIST = 'Do not exist'
 DOWNLOADING_AGAIN_AND_OVER_WRITING = 'Downloading again and over-writing...'
@@ -246,18 +335,14 @@ ONLY_ONE_OWNER_ALLOWED = 'Only one owner allowed'
 OR = 'or'
 PERMISSION_DENIED = 'The caller does not have permission'
 PLEASE_CORRECT_YOUR_SYSTEM_TIME = 'Please correct your system time.'
-PLEASE_RESOLVE_ERROR = '\nPlease resolve error as described above\n\n'
 PLEASE_SELECT_ENTITY_TO_PROCESS = '{0} {1} found, please select the correct one to {2} and specify with {3}'
 PLEASE_SPECIFY_BUILDING_EXACT_CASE_NAME_OR_ID = 'Please specify building by exact case name or ID.'
-PRESS_ENTER_ONCE_AUTHORIZATION_IS_COMPLETE = 'Press enter once authorization is complete.'
-PRESS_ENTER_ONCE_ERROR_RESOLVED = 'Press enter once error is resolved and we will try enabling the API again.'
 PREVIEW_ONLY = 'Preview Only'
 PRIMARY_EMAIL_DID_NOT_MATCH_PATTERN = 'primaryEmail address did not match pattern: {0}'
 PROCESS = 'process'
 PROCESSES = 'processes'
 PROCESSING_ITEM_N = '{0},0,Processing item {1}\n'
 PROFILE_PHOTO_NOT_FOUND = 'Profile photo not found'
-PROJECT_STILL_BEING_CREATED_SLEEPING = 'Project still being created. Sleeping {0} seconds\n'
 REASON_ONLY_VALID_WITH_CONTENTRESTRICTIONS_READONLY_TRUE = 'reason only valid with contentrestrictions readonly true'
 RECOMMEND_RUNNING_GAM_ROTATE_SAKEY = 'Recommend running "gam rotate sakey" to get a new key\n'
 REFUSING_TO_DEPROVISION_DEVICES = 'Refusing to deprovision {0} devices because acknowledge_device_touch_requirement not specified.\nDeprovisioning a device means the device will have to be physically wiped and re-enrolled to be managed by your domain again.\nThis requires physical access to the device and is very time consuming to perform for each device.\nPlease add "acknowledge_device_touch_requirement" to the GAM command if you understand this and wish to proceed with the deprovision.\nPlease also be aware that deprovisioning can have an effect on your device license count.\nSee https://support.google.com/chrome/a/answer/3523633 for full details.'
@@ -266,38 +351,7 @@ REQUEST_COMPLETED_NO_FILES = 'Request completed but no results/files were return
 REQUEST_NOT_COMPLETE = 'Request needs to be completed before downloading, current status is: {0}'
 RESULTS_TOO_LARGE_FOR_GOOGLE_SPREADSHEET = 'Results are too large for Google Spreadsheets. Uploading as a regular CSV file.'
 SCHEMA_WOULD_HAVE_NO_FIELDS = '{0} would have no {1}'
-SCOPE_AUTHORIZATION_FAILED = '''Some scopes FAILED!
-To authorize them, please go to the following link in your browser:
-{0}
-    {1}
-
-You will be directed to the Google Workspace admin console Security/API Controls/Domain-wide Delegation page
-The "Add a new Client ID" box will open
-Make sure that "Overwrite existing client ID" is checked
-Click AUTHORIZE
-When the box closes you're done
-After authorizing it may take some time for this test to pass so wait a few moments and then try this command again.
-'''
-SCOPE_AUTHORIZATION_PASSED = '''All scopes PASSED!
-
-Service Account Client name: {0} is fully authorized.
-'''
-SCOPE_AUTHORIZATION_UPDATE_PASSED = '''All scopes PASSED!
-To authorize them (in case some scopes were unselected), please go to the following link in your browser:
-{0}
-    {1}
-
-You will be directed to the Google Workspace admin console Security/API Controls/Domain-wide Delegation page
-The "Add a new Client ID" box will open
-Make sure that "Overwrite existing client ID" is checked
-Click AUTHORIZE
-When the box closes you're done
-After authorizing it may take some time for this test to pass so wait a few moments and then try this command again.
-'''
 SELECTED = 'Selected'
-SERVICE_ACCOUNT_PRIVATE_KEY_AUTHENTICATION = 'Service Account Private Key Authentication'
-SERVICE_ACCOUNT_CHECK_PRIVATE_KEY_AGE = 'Service Account Private Key age; Google recommends rotating keys on a routine basis'
-SERVICE_ACCOUNT_PRIVATE_KEY_AGE = 'Service Account Private Key age: {0} days'
 SERVICE_NOT_APPLICABLE = 'Service not applicable/Does not exist'
 SERVICE_NOT_APPLICABLE_THIS_ADDRESS = 'Service not applicable for this address: {0}'
 STARTING_THREAD = 'Starting thread'
@@ -308,8 +362,6 @@ STATISTICS_MOVE_FOLDER = 'Total: {0}, Moved: {1}, Duplicate: {2}, Merged: {3}, M
 STRING_LENGTH = 'string length'
 SUBKEY_FIELD_MISMATCH = 'subkeyfield {0} does not match saved subkeyfield {1}'
 SUBSCRIPTION_NOT_FOUND = 'Could not find subscription'
-SYSTEM_TIME_STATUS = 'System time status'
-THE_LINK_MAY_BE_COPIED_FROM_THE_FILE_RATHER_THAN_THE_SCREEN = '(The link may be copied from the file {0} rather than the screen.)\n'
 THREAD = 'thread'
 THREADS = 'threads'
 TO = 'To'
@@ -322,7 +374,6 @@ UNKNOWN_API_OR_VERSION = 'Unknown Google API or version: ({0}), contact {1}'
 UNRECOVERABLE_ERROR = 'Unrecoverable error'
 UPDATE_ATTENDEE_CHANGES = 'Update attendee changes'
 UPDATE_GAM_TO_64BIT = "You're running a 32-bit version of GAM on a 64-bit version of Windows, upgrade to a windows-x86_64 version of GAM"
-UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS = 'Please run "gam update project" to view/manage service account keys'
 UPDATE_USER_PASSWORD_CHANGE_NOTIFY_MESSAGE = 'The account password for #givenname# #familyname#, #user# has been changed to: #password#\n'
 UPDATE_USER_PASSWORD_CHANGE_NOTIFY_SUBJECT = 'Account #user# password has been changed'
 UPLOADING_NEW_PUBLIC_CERTIFICATE_TO_GOOGLE = 'Uploading new public certificate to Google...\n'
@@ -340,5 +391,4 @@ WAITING_FOR_SERVICE_ACCOUNT_CREATION_TO_COMPLETE_SLEEPING = 'Waiting for Service
 WILL_RERUN_WITH_NO_BROWSER_TRUE = 'Will re-run command with no_browser true\n'
 WITH = 'with'
 WOULD_MAKE_MEMBERSHIP_CYCLE = 'Would make membership cycle'
-YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE = 'Your system time differs from {0} by {1}'
 YOU_CAN_ADD_DOMAIN_TO_ACCOUNT = 'You can now add: {0} or it\'s subdomains as secondary or domain aliases of the Google Workspace Account: {1}'

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.08'
+__version__ = '5.31.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -8617,7 +8617,7 @@ def _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo):
   return True
 
 def setGAMProjectConsentScreen(httpObj, projectId, appInfo):
-  print('Setting GAM project consent screen...')
+  sys.stdout.write(Msg.SETTING_GAM_PROJECT_CONSENT_SCREEN)
   iap = getAPIService(API.IAP, httpObj)
   try:
     callGAPI(iap.projects().brands(), 'create',
@@ -8649,12 +8649,10 @@ def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo,
     if content['error'] == 'invalid_grant':
       return True
     if content['error_description'] == 'The OAuth client was not found.':
-      sys.stderr.write(f'\n\n{client_id}\n\nIs not a valid client ID. '\
-                         'Please make sure you are following the directions exactly and that there are no extra spaces in your client ID.\n')
+      sys.stderr.write(Msg.IS_NOT_A_VALID_CLIENT_ID.format(client_id))
       return False
     if content['error_description'] == 'Unauthorized':
-      sys.stderr.write(f'\n\n{client_secret}\n\nIs not a valid client secret. '\
-                         'Please make sure you are following the directions exactly and that there are no extra spaces in your client secret.\n')
+      sys.stderr.write(Msg.IS_NOT_A_VALID_CLIENT_SECRET.format(client_secret))
       return False
     sys.stderr.write(f'Unknown error: {content}\n')
     return False
@@ -8665,24 +8663,15 @@ def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo,
     return
   if not _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo):
     return
-  console_url = f'https://console.cloud.google.com/apis/credentials/oauthclient?project={projectInfo["projectId"]}'
+  console_url = f'https://console.cloud.google.com/apis/credentials/oauthclient?project={projectInfo["projectId"]}&authuser={login_hint}'
   csHttpObj = getHttpObj()
   while True:
-    sys.stdout.write(f'''Please go to:
-
-{console_url}
-
-1. Choose "Desktop App" or "Other" for "Application type".
-2. Enter "GAM" or another desired value for "Name".
-3. Click the blue "Create" button.
-4. Copy your "client ID" value that shows on the next page.
-
-''')
-    client_id = readStdin('Enter your Client ID: ').strip()
+    sys.stdout.write(Msg.CREATE_PROJECT_INSTRUCTIONS.format(console_url))
+    client_id = readStdin(Msg.ENTER_YOUR_CLIENT_ID).strip()
     if not client_id:
       client_id = readStdin('').strip()
-    sys.stdout.write('\n5. Go back to your browser and copy your "client secret" value.\n')
-    client_secret = readStdin('Enter your Client Secret: ').strip()
+    sys.stdout.write(Msg.GO_BACK_TO_YOUR_BROWSER_AND_COPY_YOUR_CLIENT_SECRET_VALUE)
+    client_secret = readStdin(Msg.ENTER_YOUR_CLIENT_SECRET).strip()
     if not client_secret:
       client_secret = readStdin('').strip()
     client_valid = _checkClientAndSecret(csHttpObj, client_id, client_secret)
@@ -8702,8 +8691,8 @@ def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo,
     }}
 }}'''
   writeFile(GC.Values[GC.CLIENT_SECRETS_JSON], cs_data, continueOnError=False)
-  sys.stdout.write('6. Go back to your browser and click OK to close the "OAuth client" popup if it\'s still open.\n')
-  sys.stdout.write('That\'s it! Your GAM Project is created and ready to use.\n')
+  sys.stdout.write(Msg.GO_BACK_TO_YOUR_BROWSER_AND_CLICK_OK_TO_CLOSE_THE_OAUTH_CLIENT_POPUP)
+  sys.stdout.write(Msg.YOUR_GAM_PROJECT_IS_CREATED_AND_READY_TO_USE)
 
 def _getProjects(crm, pfilter):
   try:
@@ -8935,7 +8924,7 @@ def doCreateProject():
     body['parent'] = projectInfo['parent']
   while True:
     create_again = False
-    sys.stdout.write(f'Creating project "{body["name"]}"...\n')
+    sys.stdout.write(Msg.CREATING_PROJECT.format(body['name']))
     try:
       create_operation = callGAPI(crm.projects(), 'create',
                                   throwReasons=[GAPI.BAD_REQUEST, GAPI.ALREADY_EXISTS],
@@ -8945,26 +8934,26 @@ def doCreateProject():
     operation_name = create_operation['name']
     time.sleep(5) # Google recommends always waiting at least 5 seconds
     for i in range(1, 5):
-      sys.stdout.write('Checking project status...\n')
+      sys.stdout.write(Msg.CHECKING_PROJECT_CREATION_STATUS)
       status = callGAPI(crm.operations(), 'get',
                         name=operation_name)
       if 'error' in status:
         if status['error'].get('message', '') == 'No permission to create project in organization':
-          sys.stdout.write('Hmm... Looks like you have no rights to your Google Cloud Organization.\nAttempting to fix that...\n')
+          sys.stdout.write(Msg.NO_RIGHTS_GOOGLE_CLOUD_ORGANIZATION)
           getorg = callGAPI(crm.organizations(), 'search',
                             body={'filter': f'domain:{login_domain}'})
           try:
             organization = getorg['organizations'][0]['name']
-            sys.stdout.write(f'Your organization name is {organization}\n')
+            sys.stdout.write(Msg.YOUR_ORGANIZATION_NAME_IS.format(organization))
           except (KeyError, IndexError):
-            systemErrorExit(3, 'You have no rights to create projects for your organization and you don\'t seem to be a super admin! Sorry, there\'s nothing more I can do.')
+            systemErrorExit(3, Msg.YOU_HAVE_NO_RIGHTS_TO_CREATE_PROJECTS_AND_YOU_ARE_NOT_A_SUPER_ADMIN)
           org_policy = callGAPI(crm.organizations(), 'getIamPolicy',
                                 resource=organization)
           if 'bindings' not in org_policy:
             org_policy['bindings'] = []
-            sys.stdout.write('Looks like no one has rights to your Google Cloud Organization. Attempting to give you create rights...\n')
+            sys.stdout.write(Msg.LOOKS_LIKE_NO_ONE_HAS_RIGHTS_TO_YOUR_GOOGLE_CLOUD_ORGANIZATION_ATTEMPTING_TO_GIVE_YOU_CREATE_RIGHTS)
           else:
-            sys.stdout.write('The following rights seem to exist:\n')
+            sys.stdout.write(Msg.THE_FOLLOWING_RIGHTS_SEEM_TO_EXIST)
             for a_policy in org_policy['bindings']:
               if 'role' in a_policy:
                 sys.stdout.write(f'  Role: {a_policy["role"]}\n')
@@ -8973,7 +8962,7 @@ def doCreateProject():
                 for member in a_policy['members']:
                   sys.stdout.write(f'    {member}\n')
           my_role = 'roles/resourcemanager.projectCreator'
-          sys.stdout.write(f'Giving {login_hint} the role of {my_role}...\n')
+          sys.stdout.write(Msg.GIVING_LOGIN_HINT_THE_CREATOR_ROLE.format(login_hint, my_role))
           org_policy['bindings'].append({'role': my_role, 'members': [f'user:{login_hint}']})
           callGAPI(crm.organizations(), 'setIamPolicy',
                    resource=organization, body={'policy': org_policy})
@@ -8981,11 +8970,7 @@ def doCreateProject():
           break
         try:
           if status['error']['details'][0]['violations'][0]['description'] == 'Callers must accept Terms of Service':
-            readStdin('''Please go to:
-
-https://console.cloud.google.com/start
-
-and accept the Terms of Service (ToS). As soon as you've accepted the ToS popup, you can return here and press enter.\n''')
+            readStdin(Msg.ACCEPT_CLOUD_TOS.format(login_hint))
             create_again = True
             break
         except (IndexError, KeyError):
@@ -8999,7 +8984,7 @@ and accept the Terms of Service (ToS). As soon as you've accepted the ToS popup,
     if create_again:
       continue
     if not status.get('done', False):
-      systemErrorExit(1, f'Failed to create project: {status}\n')
+      systemErrorExit(1, Msg.FAILED_TO_CREATE_PROJECT.format(status))
     elif 'error' in status:
       systemErrorExit(2, status['error']+'\n')
     break
@@ -9296,6 +9281,7 @@ def checkServiceAccount(users):
                 f'&clientIdToAdd={service_account}&overwriteClientId=true')
     if GC.Values[GC.DOMAIN]:
       long_url += f'&dn={GC.Values[GC.DOMAIN]}'
+    long_url += f'&authuser={_getAdminEmail()}'
     if not writeURLtoFile:
       printLine(message.format('', long_url))
     else:
