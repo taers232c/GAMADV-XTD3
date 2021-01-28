@@ -449,9 +449,9 @@ If an item contains spaces, it should be surrounded by ".
 <SMTPHostName> ::= <String>
 <StudentItem> ::= <EmailAddress>|<UniqueID>|<String>
 <Tag> ::= <String>
-<TeamDriveACLRole> ::= commenter|contentmanager|fileorganizer|organizer|reader|writer
-<TeamDriveID> ::= <String>
-<TeamDriveName> ::= <String>
+<SharedDriveACLRole> ::= commenter|contentmanager|fileorganizer|organizer|reader|writer
+<SharedDriveID> ::= <String>
+<SharedDriveName> ::= <String>
 <ThreadID> ::= <String>
 <TimeZone> ::= <String>
         See: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
@@ -557,8 +557,8 @@ If an item contains spaces, it should be surrounded by ".
 <SiteList> ::= "<SiteItem>(,<SiteItem>)*"
 <SKUIDList> ="<SKUID>(,<SKUID>)*"
 <SMTPHeaderList> ::= "<SMTPDateHeader|SMTPHeader>(,<SMTPDateHeader|SMTPHeader>)*"
-<TeamDriveACLRoleList> ::= "<TeamDriveACLRole>(,<TeamDriveACLRole>)*"
-<TeamDriveIDList> ::= "<TeamDriveID>(,<TeamDriveID>)*"
+<SharedDriveACLRoleList> ::= "<SharedDriveACLRole>(,<SharedDriveACLRole>)*"
+<SharedDriveIDList> ::= "<SharedDriveID>(,<SharedDriveID>)*"
 <ThreadIDList> ::= "<ThreadID>(,<ThreadID>)*"
 <TimeList> ::= "<Time>(,<Time>)*"
 <UserList> ::= "<UserItem>(,<UserItem>)*"
@@ -579,9 +579,9 @@ Items, separated by spaces, with spaces, commas or single quotes in the items th
 
 ## Data from a user's Google Sheets file sheet
 <UserGoogleDoc> ::=
-        <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity>|(<TeamDriveEntity> <TeamDriveFileNameEntity>)
+        <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity>|(<SharedDriveEntity> <SharedDriveFileNameEntity>)
 <UserGoogleSheet> ::=
-        <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity>|(<TeamDriveEntity> <TeamDriveFileNameEntity>) <SheetEntity>
+        <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity>|(<SharedDriveEntity> <SharedDriveFileNameEntity>) <SheetEntity>
 
 ## Collections of ChromeOS Devices
 
@@ -786,25 +786,25 @@ Specify a collection of items by directly specifying them; the item type is dete
         sharedwithme_all |
         sharedwithme_mydrive |
         sharedwithme_notmydrive
-<TeamDriveIDEntity> ::=
+<SharedDriveIDEntity> ::=
         <DriveFileItem> |
         (teamdriveid <DriveFileItem>) | (teamdriveid:<DriveFileItem>)
-<TeamDriveNameEntity> ::=
-        (teamdrive <TeamDriveName>) | (teamdrive:<TeamDriveName>)
-<TeamDriveEntity> ::=
-        <TeamDriveIDEntity> |
-        <TeamDriveNameEntity>
-<TeamDriveAdminQueryEntity> ::=
+<SharedDriveNameEntity> ::=
+        (teamdrive <SharedDriveName>) | (teamdrive:<SharedDriveName>)
+<SharedDriveEntity> ::=
+        <SharedDriveIDEntity> |
+        <SharedDriveNameEntity>
+<SharedDriveAdminQueryEntity> ::=
         (teamdriveadminquery <QueryTeamDrive>) | (teamdriveadminquery:<QueryTeamDrive>)
-<TeamDriveEntityAdmin> ::=
-        <TeamDriveIDEntity> |
-        <TeamDriveNameEntity>|
-        <TeamDriveAdminQueryEntity>
-<TeamDriveFileNameEntity> ::=
+<SharedDriveEntityAdmin> ::=
+        <SharedDriveIDEntity> |
+        <SharedDriveNameEntity>|
+        <SharedDriveAdminQueryEntity>
+<SharedDriveFileNameEntity> ::=
         (teamdrivefilename <DriveFileName>) | (teamdrivefilename:<DriveFileName>)
-<TeamDriveFileQueryEntity> ::=
+<SharedDriveFileQueryEntity> ::=
         (teamdrivequery <QueryDriveFile>) | (teamdrivequery:<QueryDriveFile>)
-<TeamDriveFileQueryShortcut> ::=
+<SharedDriveFileQueryShortcut> ::=
         all_files | all_folders | all_google_files | all_non_google_files | all_items
 <DriveFileEntity> ::=
         <DriveFileIDEntity> |
@@ -812,10 +812,10 @@ Specify a collection of items by directly specifying them; the item type is dete
         <DriveFileQueryEntity> |
         <DriveFileQueryShortcut> |
         root | mydrive |
-        <TeamDriveIDEntity> [<TeamDriveFileQueryShortcut>] |
-        <TeamDriveNameEntity> [<TeamDriveFileQueryShortcut>] |
-        <TeamDriveFileNameEntity> |
-        <TeamDriveFileQueryEntity> |
+        <SharedDriveIDEntity> [<SharedDriveFileQueryShortcut>] |
+        <SharedDriveNameEntity> [<SharedDriveFileQueryShortcut>] |
+        <SharedDriveFileNameEntity> |
+        <SharedDriveFileQueryEntity> |
         <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
 <DriveFilePermissionEntity> ::=
         <DriveFilePermissionList> |
@@ -854,7 +854,7 @@ Specify a collection of items by directly specifying them; the item type is dete
 <SchemaEntity> ::= <SchemaNameList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
 <SiteACLScopeEntity>::= <SiteACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <SiteEntity> ::= <SiteList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<TeamDriveEntity> ::= <TeamDriveID> | (teamdriveid <TeamDriveID>) | (teamdriveid:<TeamDriveID>) | (teamdrive <TeamDriveName>) | (teamdrive:<TeamDriveName>)
+<SharedDriveEntity> ::= <SharedDriveID> | (teamdriveid <SharedDriveID>) | (teamdriveid:<SharedDriveID>) | (teamdrive <SharedDriveName>) | (teamdrive:<SharedDriveName>)
 <ThreadIDEntity> ::= <ThreadIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <UserEntity> ::= <UserList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
@@ -3109,9 +3109,9 @@ gam [<UserTypeEntity>] info siteacls <SiteEntity> <SiteACLScopeEntity>
 gam [<UserTypeEntity>] show siteacls <SiteEntity>
 gam [<UserTypeEntity>] print siteacls <SiteEntity> [todrive <ToDriveAttribute>*]
 
-# Team Drives
+# Shared Drives
 
-<TeamDriveFieldName> ::=
+<SharedDriveFieldName> ::=
         backgroundimagefile|
         backgroundimagelink|
         capabilities|
@@ -3121,9 +3121,9 @@ gam [<UserTypeEntity>] print siteacls <SiteEntity> [todrive <ToDriveAttribute>*]
         name|
         restrictions|
         themeid
-<TeamDriveFieldNameList> ::= "<TeamDriveFieldName>(,<TeamDriveFieldName>)*"
+<SharedDriveFieldNameList> ::= "<SharedDriveFieldName>(,<SharedDriveFieldName>)*"
 
-<TeamDriveRestrictionsFieldName> ::=
+<SharedDriveRestrictionsFieldName> ::=
         adminmanagedrestrictions|
         copyrequireswriterpermission|
         domainusersonly|
@@ -3134,41 +3134,41 @@ In these commands, the Google administrator named in oauth2.txt is used.
 gam show teamdrivethemes
 gam create|add teamdrive <Name>
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
-        (<TeamDriveRestrictionsSubfieldName> <Boolean>)*
+        (<SharedDriveRestrictionsSubfieldName> <Boolean>)*
         [hide <Boolean>]
         [csv [todrive <ToDriveAttribute>*]] [returnidonly]
-gam delete teamdrive <TeamDriveEntity>
-gam hide teamdrive <TeamDriveEntity>
-gam unhide teamdrive <TeamDriveEntity>
-gam update teamdrive <TeamDriveEntity> [name <Name>]
+gam delete teamdrive <SharedDriveEntity>
+gam hide teamdrive <SharedDriveEntity>
+gam unhide teamdrive <SharedDriveEntity>
+gam update teamdrive <SharedDriveEntity> [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
-        (<TeamDriveRestrictionsFieldName> <Boolean>)*
-gam info teamdrive <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
-gam show teamdriveinfo <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
+        (<SharedDriveRestrictionsFieldName> <Boolean>)*
+gam info teamdrive <SharedDriveEntity> [fields <SharedDriveFieldNameList>] [formatjson]
+gam show teamdriveinfo <SharedDriveEntity> [fields <SharedDriveFieldNameList>] [formatjson]
 gam print teamdrives [todrive <ToDriveAttribute>*]
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-        [fields <TeamDriveFieldNameList>] [formatjson [quotechar <Character>]]
+        [fields <SharedDriveFieldNameList>] [formatjson [quotechar <Character>]]
 gam show teamdrives
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-        [fields <TeamDriveFieldNameList>] [formatjson]
+        [fields <SharedDriveFieldNameList>] [formatjson]
 
 In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
 
 gam <UserTypeEntity> create|add teamdrive <Name> adminaccess
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
-        (<TeamDriveRestrictionsSubfieldName> <Boolean>)*
+        (<SharedDriveRestrictionsSubfieldName> <Boolean>)*
         [hide <Boolean>]
-gam <UserTypeEntity> delete teamdrive <TeamDriveEntity> adminaccess
-gam <UserTypeEntity> info teamdrive <TeamDriveEntity> adminaccess [fields <TeamDriveFieldNameList>] [formatjson]
-gam <UserTypeEntity> show teamdriveinfo <TeamDriveEntity> adminaccess [fields <TeamDriveFieldNameList>] [formatjson]
+gam <UserTypeEntity> delete teamdrive <SharedDriveEntity> adminaccess
+gam <UserTypeEntity> info teamdrive <SharedDriveEntity> adminaccess [fields <SharedDriveFieldNameList>] [formatjson]
+gam <UserTypeEntity> show teamdriveinfo <SharedDriveEntity> adminaccess [fields <SharedDriveFieldNameList>] [formatjson]
 gam <UserTypeEntity> print teamdrives [todrive <ToDriveAttribute>*]
         adminaccess [teamdriveadminquery|query <QueryTeamDrive>]
-        [matchname <RegularExpression>] (role|roles <TeamDriveACLRoleList>)*
-        [fields <TeamDriveFieldNameList>] [formatjson [quotechar <Character>]]
+        [matchname <RegularExpression>] (role|roles <SharedDriveACLRoleList>)*
+        [fields <SharedDriveFieldNameList>] [formatjson [quotechar <Character>]]
 gam <UserTypeEntity> show teamdrives
         adminaccess [teamdriveadminquery|query <QueryTeamDrive>]
-        [matchname <RegularExpression>] (role|roles <TeamDriveACLRoleList>)*
-        [fields <TeamDriveFieldNameList>] [formatjson]
+        [matchname <RegularExpression>] (role|roles <SharedDriveACLRoleList>)*
+        [fields <SharedDriveFieldNameList>] [formatjson]
 
 These commands are used to manage the ACLs on the Team Drives themselves, not the files/folders on the Team Drives.
 
@@ -3193,70 +3193,70 @@ These commands are used to manage the ACLs on the Team Drives themselves, not th
 
 In these commands, the Google administrator named in oauth2.txt is used.
 
-gam create|add drivefileacl <TeamDriveEntityAdmin>
+gam create|add drivefileacl <SharedDriveEntityAdmin>
         anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
         (role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])]
         [enforcesingleparent <Boolean>] [movetonewownersroot [<Boolean>]]
         [expiration <Time>] [sendemail] [emailmessage <String>] [showtitles] [nodetails]
-gam update drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail>
+gam update drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail>
         (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails]
-gam delete drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles]
-gam info drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail>
+gam delete drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles]
+gam info drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail>
         [showtitles] [formatjson]
-gam show drivefileacls <TeamDriveEntityAdmin>
+gam show drivefileacls <SharedDriveEntityAdmin>
         [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson]
-gam print drivefileacls <TeamDriveEntityAdmin> [todrive <ToDriveAttribute>*]
+gam print drivefileacls <SharedDriveEntityAdmin> [todrive <ToDriveAttribute>*]
         [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson [quotechar <Character>]]
-gam create|add permissions <TeamDriveEntityAdmin> <DriveFilePermissionEntity>
+gam create|add permissions <SharedDriveEntityAdmin> <DriveFilePermissionEntity>
         [expires|expiration <Time>] [sendemail] [emailmessage <String>]
         <PermissionMatch>* [<PermissionMatchAction>]
-gam delete permissions <TeamDriveEntityAdmin> <DriveFilePermissionIDEntity>
+gam delete permissions <SharedDriveEntityAdmin> <DriveFilePermissionIDEntity>
         <PermissionMatch>* [<PermissionMatchAction>]
 
 In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
 
-gam <UserTypeEntity> create|add drivefileacl <TeamDriveEntityAdmin>
+gam <UserTypeEntity> create|add drivefileacl <SharedDriveEntityAdmin>
         anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>) (role <DriveFileACLRole>)
         [enforcesingleparent <Boolean>] [movetonewownersroot [<Boolean>]]
         [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>]
         [sendemail] [emailmessage <String>] [showtitles] [nodetails] adminaccess
-gam <UserTypeEntity> update drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail>
+gam <UserTypeEntity> update drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail>
         (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails] adminaccess
-gam <UserTypeEntity> delete drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles] adminaccess
-gam <UserTypeEntity> info drivefileacl <TeamDriveEntityAdmin> <DriveFilePermissionIDorEmail>
+gam <UserTypeEntity> delete drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles] adminaccess
+gam <UserTypeEntity> info drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail>
         [showtitles] [formatjson] adminaccess
-gam <UserTypeEntity> show drivefileacls <TeamDriveEntityAdmin>
+gam <UserTypeEntity> show drivefileacls <SharedDriveEntityAdmin>
         [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson] adminaccess
-gam <UserTypeEntity> print drivefileacls <TeamDriveEntityAdmin> [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> print drivefileacls <SharedDriveEntityAdmin> [todrive <ToDriveAttribute>*]
         [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson [quotechar <Character>]] adminaccess
-gam <UserTypeEntity> create|add permissions <TeamDriveEntityAdmin> <DriveFilePermissionEntity>
+gam <UserTypeEntity> create|add permissions <SharedDriveEntityAdmin> <DriveFilePermissionEntity>
         [expires|expiration <Time>] [sendemail] [emailmessage <String>] adminaccess
         <PermissionMatch>* [<PermissionMatchAction>]
-gam <UserTypeEntity> delete permissions <TeamDriveEntityAdmin> <DriveFilePermissionIDEntity> adminaccess
+gam <UserTypeEntity> delete permissions <SharedDriveEntityAdmin> <DriveFilePermissionIDEntity> adminaccess
         <PermissionMatch>* [<PermissionMatchAction>]
 
 In these commands, the Google administrator named in oauth2.txt is used.
 
 gam print teamdriveacls [todrive <ToDriveAttribute>*]
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-        [user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
+        [user|group <EmailAddress> [checkgroups]] (role|roles <SharedDriveACLRoleList>)*
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         [formatjson [quotechar <Character>]]
 gam show teamdriveacls
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-        [user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
+        [user|group <EmailAddress> [checkgroups]] (role|roles <SharedDriveACLRoleList>)*
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         [formatjson [quotechar <Character>]]
 
@@ -3264,12 +3264,12 @@ In these commands, you specify an administrator and then indicate that you want 
 
 gam <UserTypeEntity> print teamdriveacls [todrive <ToDriveAttribute>*]
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-        [user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
+        [user|group <EmailAddress> [checkgroups]] (role|roles <SharedDriveACLRoleList>)*
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         [formatjson [quotechar <Character>]] asadmin
 gam <UserTypeEntity> show teamdriveacls
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-        [user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
+        [user|group <EmailAddress> [checkgroups]] (role|roles <SharedDriveACLRoleList>)*
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         [formatjson [quotechar <Character>]] asadmin
 
@@ -3385,7 +3385,7 @@ gam show vaultmatters|matters [matterstate <MatterStateList>]
 gam print vaultcounts [todrive <ToDriveAttributes>*]
         matter <MatterItem> corpus drive|mail|groups|hangouts_chat|voice
         (accounts <EmailAddressEntity>) | (orgunit|org|ou <OrgUnitPath>) | everyone
-        (shareddrives|teamdrives <TeamDriveIDList>) | (rooms <RoomList>)
+        (shareddrives|teamdrives <SharedDriveIDList>) | (rooms <RoomList>)
         [scope <all_data|held_data|unprocessed_data>]
         [terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [timezone <TimeZone>]
         [excludedrafts <Boolean>]
@@ -3397,7 +3397,7 @@ gam print vaultcounts [todrive <ToDriveAttributes>*]
 
 gam create vaultexport|export matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat|voice
         (accounts <EmailAddressEntity>) | (orgunit|org|ou <OrgUnitPath>) | everyone
-        (shareddrives|teamdrives <TeamDriveIDList>) | (rooms <RoomList>)
+        (shareddrives|teamdrives <SharedDriveIDList>) | (rooms <RoomList>)
         [scope <all_data|held_data|unprocessed_data>]
         [terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [timezone <TimeZone>]
         [excludedrafts <Boolean>] [format mbox|pst] [showconfidentialmodecontent <Boolean>]
@@ -4081,12 +4081,12 @@ gam <UserTypeEntity> update calattendees <UserCalendarEntity> [<EventEntity>] [a
         (parentname <DriveFolderName>)|
         (anyownerparentname <DriveFolderName>)|
         (teamdriveparentid <DriveFolderID>)|
-        (teamdriveparent <TeamDriveName>)|
-        (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
-        (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>))|
-        (teamdriveparentid <DriveFolderID>)|(teamdriveparent <TeamDriveName>)|
-        (teamdriveparentid <TeamDriveID> teamdriveparentname <DriveFolderName>)|
-        (teamdriveparent <TeamDriveName> teamdriveparentname <DriveFolderName>)
+        (teamdriveparent <SharedDriveName>)|
+        (teamdriveparentid <SharedDriveID> teamdriveparentname <DriveFolderName>)|
+        (teamdriveparent <SharedDriveName> teamdriveparentname <DriveFolderName>))|
+        (teamdriveparentid <DriveFolderID>)|(teamdriveparent <SharedDriveName>)|
+        (teamdriveparentid <SharedDriveID> teamdriveparentname <DriveFolderName>)|
+        (teamdriveparent <SharedDriveName> teamdriveparentname <DriveFolderName>)
 
 <DriveFileCreateAttribute> ::=
         <DriveFileAttribute>|
@@ -4508,7 +4508,7 @@ gam <UserTypeEntity> print filecounts [todrive <ToDriveAttribute>*]
         [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>)
             (querytime.* <Time>)*]
         [corpora <CorporaAttribute>]
-        [select <TeamDriveEntity>]
+        [select <SharedDriveEntity>]
         [anyowner|(showownedby any|me|others)]
         [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
         [filenamematchpattern <RegularExpression>]
@@ -4519,7 +4519,7 @@ gam <UserTypeEntity> show filecounts
         [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>)
             (querytime.* <Time>)*]
         [corpora <CorporaAttribute>]
-        [select <TeamDriveEntity>]
+        [select <SharedDriveEntity>]
         [anyowner|(showownedby any|me|others)]
         [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
         [filenamematchpattern <RegularExpression>]
@@ -4626,8 +4626,8 @@ gam <UserTypeEntity> print|show driveactivity [todrive <ToDriveAttribute>*]
 gam <UserTypeEntity> print drivesettings [todrive <ToDriveAttribute>*] [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <Character>]
 gam <UserTypeEntity> show drivesettings [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <Character>]
 
-gam <UserTypeEntity> delete emptydrivefolders [<TeamDriveEntity>]
-gam <UserTypeEntity> empty drivetrash [<TeamDriveEntity>]
+gam <UserTypeEntity> delete emptydrivefolders [<SharedDriveEntity>]
+gam <UserTypeEntity> empty drivetrash [<SharedDriveEntity>]
 
 # Users - Deprovision
 
@@ -4999,7 +4999,7 @@ gam <UserTypeEntity> show profile
 
 # Users - Team Drives
 
-<TeamDriveRestrictionsSubfieldName> ::=
+<SharedDriveRestrictionsSubfieldName> ::=
         restrictions.adminmanagedrestrictions|
         restrictions.copyrequireswriterpermission|
         restrictions.domainusersonly|
@@ -5008,23 +5008,23 @@ gam <UserTypeEntity> show profile
 gam <UserTypeEntity> show teamdrivethemes
 gam <UserTypeEntity> create|add teamdrive <Name> [adminaccess|asadmin]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
-        (<TeamDriveRestrictionsSubfieldName> <Boolean>)*
+        (<SharedDriveRestrictionsSubfieldName> <Boolean>)*
         [hide <Boolean>]
-gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [adminaccess|asadmin] [name <Name>]
+gam <UserTypeEntity> update teamdrive <SharedDriveEntity> [adminaccess|asadmin] [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
-        (<TeamDriveRestrictionsSubfieldName> <Boolean>)*
-gam <UserTypeEntity> delete teamdrive <TeamDriveEntity>
-gam <UserTypeEntity> hide teamdrive <TeamDriveEntity>
-gam <UserTypeEntity> unhide teamdrive <TeamDriveEntity>
-gam <UserTypeEntity> info teamdrive <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
-gam <UserTypeEntity> info teamdrive <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
-gam <UserTypeEntity> show teamdriveinfo <TeamDriveEntity> [fields <TeamDriveFieldNameList>] [formatjson]
+        (<SharedDriveRestrictionsSubfieldName> <Boolean>)*
+gam <UserTypeEntity> delete teamdrive <SharedDriveEntity>
+gam <UserTypeEntity> hide teamdrive <SharedDriveEntity>
+gam <UserTypeEntity> unhide teamdrive <SharedDriveEntity>
+gam <UserTypeEntity> info teamdrive <SharedDriveEntity> [fields <SharedDriveFieldNameList>] [formatjson]
+gam <UserTypeEntity> info teamdrive <SharedDriveEntity> [fields <SharedDriveFieldNameList>] [formatjson]
+gam <UserTypeEntity> show teamdriveinfo <SharedDriveEntity> [fields <SharedDriveFieldNameList>] [formatjson]
 gam <UserTypeEntity> print teamdrives [todrive <ToDriveAttribute>*]
-        [matchname <RegularExpression>] (role|roles <TeamDriveACLRoleList>)*
-        [fields <TeamDriveFieldNameList>] [formatjson [quotechar <Character>]]
+        [matchname <RegularExpression>] (role|roles <SharedDriveACLRoleList>)*
+        [fields <SharedDriveFieldNameList>] [formatjson [quotechar <Character>]]
 gam <UserTypeEntity> show teamdrives
-        [matchname <RegularExpression>] (role|roles <TeamDriveACLRoleList>)*
-        [fields <TeamDriveFieldNameList>] [formatjson]
+        [matchname <RegularExpression>] (role|roles <SharedDriveACLRoleList>)*
+        [fields <SharedDriveFieldNameList>] [formatjson]
 
 # Users - Force Signout and Turn Off 2-Step Verification
 

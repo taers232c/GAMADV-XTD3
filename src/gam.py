@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.09'
+__version__ = '5.31.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1729,6 +1729,22 @@ def getRowFilterTimeOrDeltaFromNow(argstr):
   except (iso8601.ParseError, OverflowError):
     return (False, YYYYMMDDTHHMMSS_FORMAT_REQUIRED)
 
+def mapQueryRelativeTimes(query, keywords):
+  QUOTES = '\'"'
+  for kw in keywords:
+    pattern = re.compile(rf'({kw})\s*([<>]=?|=|!=)\s*[{QUOTES}]?(now|today|[+-]\d+[mhdwy])', re.IGNORECASE)
+    pos = 0
+    while True:
+      mg = pattern.search(query, pos)
+      if not mg:
+        break
+      if mg.groups()[2] is not None:
+        deltaTime = getDelta(mg.group(3).upper(), DELTA_TIME_PATTERN)
+        if deltaTime:
+          query = query[:mg.start(3)]+ISOformatTimeStamp(deltaTime)+query[mg.end(3):]
+      pos = mg.end()
+  return query
+
 class StartEndTime():
   def __init__(self, startkw='starttime', endkw='endtime', mode='time'):
     self.startTime = self.endTime = self.startDateTime = self.endDateTime = None
@@ -2454,7 +2470,7 @@ def openFile(filename, mode=DEFAULT_FILE_READ_MODE, encoding=None, errors=None, 
     if 'b' not in mode:
       return sys.stdout
     return os.fdopen(os.dup(sys.stdout.fileno()), 'wb')
-  except (IOError, LookupError, UnicodeError) as e:
+  except (IOError, LookupError, UnicodeDecodeError, UnicodeError) as e:
     if continueOnError:
       if displayError:
         stderrWarningMsg(fileErrorMessage(filename, e))
@@ -2505,7 +2521,7 @@ def writeFile(filename, data, mode=DEFAULT_FILE_WRITE_MODE,
       return True
     GM.Globals[GM.STDOUT].get(GM.REDIRECT_MULTI_FD, sys.stdout).write(data)
     return True
-  except (IOError, LookupError, UnicodeError) as e:
+  except (IOError, LookupError, UnicodeDecodeError, UnicodeError) as e:
     if continueOnError:
       if displayError:
         stderrErrorMsg(fileErrorMessage(filename, e))
@@ -2520,7 +2536,7 @@ def writeFileReturnError(filename, data, mode=DEFAULT_FILE_WRITE_MODE):
     with open(os.path.expanduser(filename), mode, **kwargs) as f:
       f.write(data)
     return (True, None)
-  except (IOError, LookupError, UnicodeError) as e:
+  except (IOError, LookupError, UnicodeDecodeError, UnicodeError) as e:
     return (False, e)
 
 # Delete a file
@@ -2680,7 +2696,7 @@ def openCSVFileReader(filename, fieldnames=None):
         stderrWarningMsg(fileErrorMessage(filename, Msg.NO_CSV_FILE_DATA_FOUND))
         sys.exit(NO_ENTITIES_FOUND)
       f.seek(loc)
-    except IOError as e:
+    except (IOError, UnicodeDecodeError, UnicodeError) as e:
       systemErrorExit(FILE_ERROR_RC, fileErrorMessage(filename, e))
   if checkArgumentPresent('columndelimiter'):
     columnDelimiter = getCharacter()
@@ -2695,7 +2711,7 @@ def openCSVFileReader(filename, fieldnames=None):
   try:
     csvFile = csv.DictReader(f, fieldnames=fieldnames, delimiter=columnDelimiter, quotechar=quotechar)
     return (f, csvFile, csvFile.fieldnames if csvFile.fieldnames is not None else [])
-  except csv.Error as e:
+  except (csv.Error, UnicodeDecodeError, UnicodeError) as e:
     systemErrorExit(FILE_ERROR_RC, e)
 
 def incrAPICallsRetryData(errMsg, delta):
@@ -4370,7 +4386,7 @@ def _processGAPIpagesResult(results, items, allResults, totalItems, pageMessage,
           lastItem = str(lastItem)
         showMessage = showMessage.replace(FIRST_ITEM_MARKER, firstItem)
         showMessage = showMessage.replace(LAST_ITEM_MARKER, lastItem)
-    writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(entityType, totalItems))))
+      writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(entityType, totalItems))))
   return (pageToken, totalItems)
 
 def _finalizeGAPIpagesResult(pageMessage):
@@ -35838,6 +35854,7 @@ TITLE_QUERY_PATTERN = re.compile(r'title((?: *!?=)|(?: +contains))', flags=re.IG
 def _mapDrive2QueryToDrive3(query):
   if query:
     query = TITLE_QUERY_PATTERN.sub(r'name\1', query).replace('modifiedDate', 'modifiedTime').replace('lastViewedByMeDate', 'viewedByMeTime')
+    query = mapQueryRelativeTimes(query, ['modifiedTime', 'viewedByMeTime'])
   return query
 
 def escapeDriveFileName(filename):
@@ -36707,7 +36724,7 @@ def printDriveActivity(users):
     elif myarg == 'drivefoldername':
       query = f"mimeType = '{MIMETYPE_GA_FOLDER}' and name = '{getEscapedDriveFileName()}'"
     elif myarg == 'query':
-      query = getString(Cmd.OB_QUERY)
+      query = _mapDrive2QueryToDrive3(getString(Cmd.OB_QUERY))
     elif myarg in {'start', 'starttime', 'end', 'endtime', 'range'}:
       startEndTime.Get(myarg)
     elif myarg in {'action', 'actions'}:
@@ -44580,6 +44597,8 @@ def printShowTeamDrives(users, useDomainAdminAccess=False):
     elif myarg in {'teamdriveadminquery', 'shareddriveadminquery', 'query'}:
       queryLocation = Cmd.Location()
       query = getString(Cmd.OB_QUERY, minLen=0) or None
+      if query:
+        query = mapQueryRelativeTimes(query, ['createdTime'])
     elif myarg == 'matchname':
       matchPattern = getREPattern(re.IGNORECASE)
     elif myarg in {'role', 'roles'}:
@@ -44708,6 +44727,8 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
     elif myarg in {'teamdriveadminquery', 'shareddriveadminquery', 'query'}:
       queryLocation = Cmd.Location()
       query = getString(Cmd.OB_QUERY, minLen=0) or None
+      if query:
+        query = mapQueryRelativeTimes(query, ['createdTime'])
     elif myarg == 'matchname':
       matchPattern = getREPattern(re.IGNORECASE)
     elif myarg in {'user', 'group'}:

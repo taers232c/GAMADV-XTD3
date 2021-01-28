@@ -1,3 +1,17 @@
+5.31.10
+
+Updated code to avoid a trap when an input CSV file is not encoded in UTF-8.
+You'll still get an error but not a trap.
+````
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf3 in position 893: invalid continuation byte
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+```
+
+Updated `gam print cigroups` to suppress this message,
+```
+Got n Cloud Identity Groups: %%first_item%% - %%last_item%%
+```
+
 5.31.09
 
 Updated `create project` and `check|update serviceaccount` URLs to include administrator email address.
