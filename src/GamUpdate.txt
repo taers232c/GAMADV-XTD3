@@ -8,8 +8,8 @@ ERROR: 503: serviceNotAvailable - The service is currently unavailable.
 Fixed bug in `gam <UserTypeEntity> transfer drive <UserItem> select <DriveFileItem>` that caused files to be orphaned.
 
 Added option `mergewithtarget` to `gam <UserTypeEntity> transfer drive <UserItem> select <DriveFileItem>`
-to allow transferring a folder without creating a new target user folder. The contents of the folder, but not
-the folder itself, are transferred to the new owner.
+to allow transferring a folder without creating a new folder in the target user folder.
+The contents of the folder, but not the folder itself, are transferred to the new owner.
 ```
 gam user oldowner@domain.com transfer drive newowner@domain.com select name "Old Owner Folder" targetfoldername "New Owner Folder" targetuserfoldername "" mergewithtarget true
 ```
