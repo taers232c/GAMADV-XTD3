@@ -1,8 +1,24 @@
+5.31.11
+
+Updated code to handle the following error when getting lists of students/teachers from courses.
+```
+ERROR: 503: serviceNotAvailable - The service is currently unavailable.
+```
+
+Fixed bug in `gam <UserTypeEntity> transfer drive <UserItem> select <DriveFileItem>` that caused files to be orphaned.
+
+Added option `mergewithtarget` to `gam <UserTypeEntity> transfer drive <UserItem> select <DriveFileItem>`
+to allow transferring a folder without creating a new target user folder. The contents of the folder, but not
+the folder itself, are transferred to the new owner.
+```
+gam user oldowner@domain.com transfer drive newowner@domain.com select name "Old Owner Folder" targetfoldername "New Owner Folder" targetuserfoldername "" mergewithtarget true
+```
+
 5.31.10
 
 Updated code to avoid a trap when an input CSV file is not encoded in UTF-8.
 You'll still get an error but not a trap.
-````
+```
 UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf3 in position 893: invalid continuation byte
 UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
 ```

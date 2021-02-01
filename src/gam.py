@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.10'
+__version__ = '5.31.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4910,6 +4910,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
         _, gname = member['name'].rsplit('/', 1)
         _addCIGroupUsersToUsers(f'groups/{gname}', f'groups/{gname}', recursive)
 
+  GM.Globals[GM.CLASSROOM_SERVICE_NOT_AVAILABLE] = False
   ENTITY_ERROR_DNE = 'doesNotExist'
   ENTITY_ERROR_INVALID = 'invalid'
   entityError = {'entityType': None, ENTITY_ERROR_DNE: 0, ENTITY_ERROR_INVALID: 0}
@@ -5186,7 +5187,8 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
           printGettingAllEntityItemsForWhom(Ent.TEACHER, removeCourseIdScope(courseId), entityType=Ent.COURSE)
           result = callGAPIpages(croom.courses().teachers(), 'list', 'teachers',
                                  pageMessage=getPageMessageForWhom(),
-                                 throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                                 throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.SERVICE_NOT_AVAILABLE],
+                                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                  courseId=courseId, fields='nextPageToken,teachers/profile/emailAddress',
                                  pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
           for teacher in result:
@@ -5198,7 +5200,8 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
           printGettingAllEntityItemsForWhom(Ent.STUDENT, removeCourseIdScope(courseId), entityType=Ent.COURSE)
           result = callGAPIpages(croom.courses().students(), 'list', 'students',
                                  pageMessage=getPageMessageForWhom(),
-                                 throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                                 throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.SERVICE_NOT_AVAILABLE],
+                                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                  courseId=courseId, fields='nextPageToken,students/profile/emailAddress',
                                  pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
           for student in result:
@@ -5209,6 +5212,10 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
       except GAPI.notFound:
         entityDoesNotExistWarning(Ent.COURSE, removeCourseIdScope(courseId))
         _incrEntityDoesNotExist(Ent.COURSE)
+      except GAPI.serviceNotAvailable as e:
+        entityActionNotPerformedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e))
+        GM.Globals[GM.CLASSROOM_SERVICE_NOT_AVAILABLE] = True
+        break
       except (GAPI.forbidden, GAPI.badRequest):
         ClientAPIAccessDeniedExit()
   elif entityType == Cmd.ENTITY_CROS:
@@ -33371,6 +33378,8 @@ def doCourseClearParticipants(courseIdList, getEntityListArg):
   for courseId in courseIdList:
     i += 1
     removeParticipants = getUsersToModify(PARTICIPANT_EN_MAP[role], courseId, noListConversion=True)
+    if GM.Globals[GM.CLASSROOM_SERVICE_NOT_AVAILABLE]:
+      continue
     _batchRemoveItemsFromCourse(croom, courseId, i, count, removeParticipants, role)
 
 # gam courses <CourseEntity> sync students [addonly|removeonly] <UserTypeEntity>
@@ -33413,7 +33422,10 @@ def doCourseSyncParticipants(courseIdList, getEntityListArg):
     if courseInfo:
       courseId = courseInfo['id']
       currentParticipantsSet = set()
-      for user in getUsersToModify(PARTICIPANT_EN_MAP[role], courseId, noListConversion=True):
+      currentParticipants = getUsersToModify(PARTICIPANT_EN_MAP[role], courseId, noListConversion=True)
+      if GM.Globals[GM.CLASSROOM_SERVICE_NOT_AVAILABLE]:
+        continue
+      for user in currentParticipants:
         currentParticipantsSet.add(normalizeEmailAddressOrUID(user))
       if syncOperation != 'removeonly':
         _batchAddItemsToCourse(croom, courseId, i, count, list(syncParticipantsSet-currentParticipantsSet), role)
@@ -35448,7 +35460,8 @@ def emptyCalendarTrash(users):
     _emptyCalendarTrash(user, cal, calIds, jcount)
     Ind.Decrement()
 
-# gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer] [<EventNotificationAttribute>] [doit]
+# gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer]
+#	[<EventNotificationAttribute>] [doit]
 #	(csv <FileName>|(gsheet <UserGoogleSheet>))*
 #	(delete <EmailAddress>)*
 #	(deleteentity <EmailAddressEntity>)*
@@ -41908,11 +41921,13 @@ TRANSFER_DRIVEFILE_ACL_ROLES_MAP = {
   }
 
 # gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>]
-#	[(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>]
-#	[targetuserorphansfoldername <DriveFolderName>]
+#	[(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)]
+#	[targetuserfoldername <DriveFolderName>] [targetuserorphansfoldername <DriveFolderName>]
+#	[mergewithtarget [<Boolean>]]
 #	[skipids <DriveFileEntity>]
 #	[keepuser | (retainrole reader|commenter|writer|editor|fileorganizer|none)] [noretentionmessages]
-#	[nonowner_retainrole reader|commenter|writer|editor|fileorganizer|current|none] [nonowner_targetrole reader|commenter|writer|editor|fileorganizer|current|none|source]
+#	[nonowner_retainrole reader|commenter|writer|editor|fileorganizer|current|none]
+#	[nonowner_targetrole reader|commenter|writer|editor|fileorganizer|current|none|source]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[preview] [todrive <ToDriveAttribute>*]
 def transferDrive(users):
@@ -42003,13 +42018,14 @@ def transferDrive(users):
       addTargetParents = set()
       removeSourceParents = set()
       removeTargetParents = set()
-      if 'parents' in childEntryInfo and childEntryInfo['parents']:
-        for parentId in childEntryInfo['parents']:
+      childParents = childEntryInfo.get('parents', [])
+      if childParents:
+        for parentId in childParents:
           if parentId in parentIdMap:
             addTargetParents.add(parentIdMap[parentId])
             if parentId != sourceRootId:
               removeSourceParents.add(parentId)
-            else:
+            elif not mergeWithTarget:
               removeTargetParents.add(targetRootId)
       else:
         if targetIds[TARGET_ORPHANS_PARENT_ID] is None:
@@ -42357,7 +42373,8 @@ def transferDrive(users):
       return
     if fileEntry['info']['name'] != MY_DRIVE:
       filesTransferred.add(fileId)
-      _transferFile(fileEntry, i, count, j, jcount, atSelectTop)
+      if not atSelectTop or not mergeWithTarget:
+        _transferFile(fileEntry, i, count, j, jcount, atSelectTop)
     kcount = len(fileEntry['children'])
     if kcount == 0:
       return
@@ -42376,7 +42393,8 @@ def transferDrive(users):
       return
     if fileEntry['info']['name'] != MY_DRIVE:
       filesTransferred.add(fileId)
-      _manageRoleRetention(fileEntry, i, count, j, jcount, atSelectTop)
+      if not atSelectTop or  not mergeWithTarget:
+        _manageRoleRetention(fileEntry, i, count, j, jcount, atSelectTop)
     kcount = len(fileEntry['children'])
     if kcount == 0:
       return
@@ -42401,6 +42419,7 @@ def transferDrive(users):
   targetUserFolderPattern = '#user# old files'
   targetUserOrphansFolderPattern = '#user# orphaned files'
   targetIds = [None, None]
+  mergeWithTarget = False
   thirdPartyOwners = {}
   skipFileIdEntity = initDriveFileEntity()
   while Cmd.ArgumentsRemaining():
@@ -42434,6 +42453,8 @@ def transferDrive(users):
     elif myarg == 'select':
       fileIdEntity = getDriveFileEntity()
       buildTree = False
+    elif myarg == 'mergewithtarget':
+      mergeWithTarget = getBoolean()
     elif myarg == 'skipids':
       skipFileIdEntity = getDriveFileEntity()
     elif myarg == 'preview':
@@ -42586,8 +42607,11 @@ def transferDrive(users):
                                               Msg.IN_SKIPIDS, j, jcount)
               continue
             entityPerformActionItemValue([Ent.USER, sourceUser], entityType, f'{fileEntry["name"]} ({fileId})', j, jcount)
-            for parentId in fileEntry.get('parents', []):
-              parentIdMap[parentId] = targetIds[TARGET_PARENT_ID]
+            if not mergeWithTarget:
+              for parentId in fileEntry.get('parents', []):
+                parentIdMap[parentId] = targetIds[TARGET_PARENT_ID]
+            else:
+              parentIdMap[fileId] = targetIds[TARGET_PARENT_ID]
             _identifyDriveFileAndChildren(fileEntry, i, count)
             filesTransferred = set()
             _transferDriveFileAndChildren(fileTree[fileId], i, count, j, jcount, True)

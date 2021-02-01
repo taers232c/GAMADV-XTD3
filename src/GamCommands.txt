@@ -3999,7 +3999,8 @@ gam <UserTypeEntity> print events <UserCalendarEntity> [<EventSelectEntity>] <Ev
         [fields <EventFieldNameList>] [showdayofweek]
         [countsonly] [formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
 
-gam <UserTypeEntity> update calattendees <UserCalendarEntity> [<EventEntity>] [anyorganizer] [<EventNotificationAttribute>] [doit]
+gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer]
+        [<EventNotificationAttribute>] [doit]
         (csv <FileName>|(gsheet <UserGoogleSheet>))*
         (delete <EmailAddress>)*
         (deleteentity <EmailAddressEntity>)*
@@ -4273,11 +4274,13 @@ gam <UserTypeEntity> claim ownership <DriveFileEntity> [includetrashed]
         [preview] [filepath] [buildtree] [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>]
-        [(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)] [targetuserfoldername <DriveFolderName>]
-        [targetuserorphansfoldername <DriveFolderName>]
+        [(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)]
+        [targetuserfoldername <DriveFolderName>] [targetuserorphansfoldername <DriveFolderName>]
+        [mergewithtarget [<Boolean>]]
         [skipids <DriveFileEntity>]
         [keepuser | (retainrole reader|commenter|writer|editor|fileorganizer|none)] [noretentionmessages]
-        [nonowner_retainrole reader|commenter|writer|editor|fileorganizer|current|none] [nonowner_targetrole reader|commenter|writer|editor|fileorganizer|current|none|source]
+        [nonowner_retainrole reader|commenter|writer|editor|fileorganizer|current|none]
+        [nonowner_targetrole reader|commenter|writer|editor|fileorganizer|current|none|source]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [preview] [todrive <ToDriveAttribute>*]
 

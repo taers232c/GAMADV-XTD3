@@ -33,6 +33,8 @@ API_CALLS_RETRY_DATA = 'rtry'
 CACHE_DIR = 'gacd'
 # Reset GAM cache directory after discovery
 CACHE_DISCOVERY_ONLY = 'gcdo'
+# Classroom service not available
+CLASSROOM_SERVICE_NOT_AVAILABLE = 'csna'
 # Convert to local time
 CONVERT_TO_LOCAL_TIME = 'ctlt'
 # csvfile keyfield <FieldName> [delimiter <Character>] (matchfield <FieldName> <MatchPattern>)* [datafield <FieldName>(:<FieldName>*) [delimiter <String>]]
@@ -171,6 +173,7 @@ Globals = {
   API_CALLS_RETRY_DATA: {},
   CACHE_DIR: None,
   CACHE_DISCOVERY_ONLY: True,
+  CLASSROOM_SERVICE_NOT_AVAILABLE: False,
   CONVERT_TO_LOCAL_TIME: False,
   CSV_DATA_DICT: {},
   CSV_KEY_FIELD: None,
