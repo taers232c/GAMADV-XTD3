@@ -1,3 +1,7 @@
+5.31.13
+
+Updated `gam update|delete|info resoldsubscription` to allow SKU abbreviations.
+
 5.31.12
 
 Fixed bug in `gam print licenses allskus|gsuite` that produced garbage output.

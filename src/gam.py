@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.12'
+__version__ = '5.31.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -11440,7 +11440,9 @@ def doInfoResoldCustomer():
 
 def getCustomerSubscription(res):
   customerId = getString(Cmd.OB_CUSTOMER_ID)
-  skuId = getString(Cmd.OB_SKU_ID)
+  productId, skuId = SKU.getProductAndSKU(getString(Cmd.OB_SKU_ID))
+  if not productId:
+    invalidChoiceExit(skuId, SKU.getSortedSKUList(), True)
   try:
     subscriptions = callGAPIpages(res.subscriptions(), 'list', 'subscriptions',
                                   throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
