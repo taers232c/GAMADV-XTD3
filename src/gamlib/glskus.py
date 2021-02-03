@@ -160,8 +160,11 @@ def getSortedSKUList():
 def convertProductListToSKUList(productList):
   skuList = []
   for productId in productList:
-    skuList += [skuId for skuId in _SKUS if _SKUS[skuId]['product'] == productId]
+    skuList += [(productId, skuId) for skuId in _SKUS if _SKUS[skuId]['product'] == productId]
   return skuList
+
+def getAllSKUs():
+  return convertProductListToSKUList(sorted(_PRODUCTS))
 
 def getGSuiteSKUs():
   return convertProductListToSKUList(['Google-Apps', '101031'])

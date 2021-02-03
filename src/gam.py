@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.11'
+__version__ = '5.31.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -23624,7 +23624,7 @@ def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts
         skus = getGoogleSKUList()
         products = []
       elif myarg == 'allskus':
-        skus = SKU.getSortedSKUList()
+        skus = SKU.getAllSKUs()
         products = []
       elif myarg == 'gsuite':
         skus = SKU.getGSuiteSKUs()
@@ -30246,7 +30246,7 @@ def infoUsers(entityList):
   viewType = 'admin_view'
   fieldsList = []
   groups = []
-  skus = SKU.getSortedSKUList()
+  skus = SKU.getAllSKUs()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'quick':
