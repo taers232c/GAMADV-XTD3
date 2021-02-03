@@ -1,3 +1,7 @@
+5.31.14
+
+Fixed bug in `gam <UserTypeEntity> print filters formatjson quotechar <Character>` that caused a trap.
+
 5.31.13
 
 Updated `gam update|delete|info resoldsubscription` to allow SKU abbreviations.

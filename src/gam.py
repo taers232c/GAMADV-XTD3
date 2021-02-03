@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.13'
+__version__ = '5.31.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -48821,7 +48821,7 @@ def printShowFilters(users):
             row = _printFilter(user, userFilter, labels)
             if FJQC.formatJSON:
               # Map user label IDs to label names
-              if 'addLabelIds' in userFilter['action']:
+              if 'action' in userFilter and 'addLabelIds' in userFilter['action']:
                 for i, labelId in enumerate(userFilter['action']['addLabelIds']):
                   if labelId not in GMAIL_SYSTEM_LABELS and labelId not in GMAIL_CATEGORY_LABELS:
                     userFilter['action']['addLabelIds'][i] = _getLabelName(labels, labelId)
