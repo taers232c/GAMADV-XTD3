@@ -4264,12 +4264,12 @@ gam <UserTypeEntity> update filerevisions <DriveFileEntity> select <DriveFileRev
 
 gam <UserTypeEntity> show filerevisions <DriveFileEntity>
         [select <DriveFileRevisionIDEntity>]
-        [previewdelete|previewupdate] [showtitles]
+        [previewdelete] [showtitles]
         [<RevisionsFieldName>*|(fields <RevisionsFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive <ToDriveAttribute>*]
         [select <DriveFileRevisionIDEntity>]
-        [previewdelete|previewupdate] [showtitles] [oneitemperrow]
+        [previewdelete] [showtitles] [oneitemperrow]
         [<RevisionsFieldName>*|(fields <RevisionsFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 

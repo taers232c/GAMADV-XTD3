@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.15'
+__version__ = '5.31.16'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -38121,12 +38121,12 @@ DRIVE_REVISIONS_INDEXED_TITLES = ['revisions']
 
 # gam <UserTypeEntity> show filerevisions <DriveFileEntity>
 #	[select <DriveFileRevisionIDEntity>]
-#	[previewdelete|previewupdate] [showtitles]
+#	[previewdelete] [showtitles]
 #	[<RevisionsFieldName>*|(fields <RevisionsFieldNameList>)]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 # gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive <ToDriveAttribute>*]
 #	[select <DriveFileRevisionIDEntity>]
-#	[previewdelete|previewupdate] [showtitles] [oneitemperrow]
+#	[previewdelete] [showtitles] [oneitemperrow]
 #	[<RevisionsFieldName>*|(fields <RevisionsFieldNameList>)]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 def printShowFileRevisions(users):
@@ -38134,7 +38134,7 @@ def printShowFileRevisions(users):
   fieldsList = []
   fileIdEntity = getDriveFileEntity()
   revisionsEntity = None
-  oneItemPerRow = previewAction = showTitles = False
+  oneItemPerRow = previewDelete = showTitles = False
   OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
   fileNameTitle = 'title' if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else 'name'
   while Cmd.ArgumentsRemaining():
@@ -38149,8 +38149,8 @@ def printShowFileRevisions(users):
         csvPF.AddTitles('revision.id')
     elif myarg == 'orderby':
       OBY.GetChoice()
-    elif myarg in {'previewdelete', 'previewupdate'}:
-      previewAction = True
+    elif myarg == 'previewdelete':
+      previewDelete = True
     elif myarg == 'showtitles':
       showTitles = True
       if csvPF:
@@ -38193,7 +38193,7 @@ def printShowFileRevisions(users):
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
       if revisionsEntity:
-        results = _selectRevisionResults(results, fileId, origUser, revisionsEntity, previewAction)
+        results = _selectRevisionResults(results, fileId, origUser, revisionsEntity, previewDelete)
       if not csvPF:
         kcount = len(results)
         entityPerformActionNumItems([entityType, fileName], kcount, Ent.DRIVE_FILE_REVISION, j, jcount)
