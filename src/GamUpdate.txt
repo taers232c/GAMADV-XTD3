@@ -1,3 +1,9 @@
+5.31.15
+
+Added command to manage publishing file revisions to the web.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Revisions#manage-file-revisions-publishing
+
 5.31.14
 
 Fixed bug in `gam <UserTypeEntity> print filters formatjson quotechar <Character>` that caused a trap.

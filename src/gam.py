@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.14'
+__version__ = '5.31.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4918,7 +4918,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
   entitySet = set()
   entityLocation = Cmd.Location()
   if entityType in {Cmd.ENTITY_USER, Cmd.ENTITY_USERS}:
-    if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
+    if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY] and not GC.Values[GC.DOMAIN]:
       buildGAPIObject(API.DIRECTORY)
     result = convertEntityToList(entity, nonListEntityType=entityType == Cmd.ENTITY_USER)
     for user in result:
@@ -37917,6 +37917,93 @@ def deleteFileRevisions(users):
           entityActionNotPerformedWarning([Ent.USER, user, entityType, fileName, Ent.DRIVE_FILE_REVISION, revisionId], Msg.PREVIEW_ONLY, k, kcount)
       Ind.Decrement()
 
+REVISIONS_FIELDS_CHOICE_MAP = {
+  'published': 'published',
+  'publishauto': 'publishAuto',
+  'publishedoutsidedomain': 'publishedOutsideDomain'
+  }
+# gam <UserTypeEntity> update filerevisions <DriveFileEntity> select <DriveFileRevisionIdEntity> [previewupdate]
+#	[published [<Boolean>]] [publishauto [<Boolean>]] [publishedoutsidedomain [<Boolean>]]
+#	[showtitles] [doit] [max_to_update <Number>]
+def updateFileRevisions(users):
+  fileIdEntity = getDriveFileEntity()
+  revisionsEntity = None
+  previewUpdate = showTitles = doIt = False
+  maxToProcess = 1
+  body = {}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'select':
+      revisionsEntity = getRevisionsEntity()
+    elif myarg in REVISIONS_FIELDS_CHOICE_MAP:
+      body[REVISIONS_FIELDS_CHOICE_MAP[myarg]] = getBoolean()
+    elif myarg == 'previewupdate':
+      previewUpdate = True
+    elif myarg == 'showtitles':
+      showTitles = True
+    elif myarg == 'doit':
+      doIt = True
+    elif myarg in {'maxtoupdate', 'maxtoprocess'}:
+      maxToProcess = getInteger(minVal=0)
+    else:
+      unknownArgumentExit()
+  if not revisionsEntity:
+    missingArgumentExit('select <DriveFileRevisionIdEntity>')
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    origUser = user
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity)
+    if jcount == 0:
+      continue
+    j = 0
+    for fileId in fileIdEntity['list']:
+      j += 1
+      fileName = fileId
+      entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
+      if showTitles:
+        fileName, entityType = _getDriveFileNameFromId(drive, fileId)
+      revisionIds = _selectRevisionIds(drive, fileId, origUser, user, i, count, j, jcount, revisionsEntity)
+      kcount = len(revisionIds)
+      if kcount == 0:
+        entityNumEntitiesActionNotPerformedWarning([Ent.USER, user, entityType, fileName], Ent.DRIVE_FILE_REVISION, kcount,
+                                                   Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(Ent.DRIVE_FILE_REVISION)), j, jcount)
+        setSysExitRC(NO_ENTITIES_FOUND)
+        continue
+      if not previewUpdate:
+        if maxToProcess and kcount > maxToProcess:
+          entityNumEntitiesActionNotPerformedWarning([Ent.USER, user, entityType, fileName], Ent.DRIVE_FILE_REVISION, kcount,
+                                                     Msg.COUNT_N_EXCEEDS_MAX_TO_PROCESS_M.format(kcount, Act.ToPerform(), maxToProcess), j, jcount)
+          continue
+        if not doIt:
+          entityNumEntitiesActionNotPerformedWarning([Ent.USER, user, entityType, fileName], Ent.DRIVE_FILE_REVISION, kcount,
+                                                     Msg.USE_DOIT_ARGUMENT_TO_PERFORM_ACTION, j, jcount)
+          continue
+        entityPerformActionNumItems([Ent.USER, user, entityType, fileName], kcount, Ent.DRIVE_FILE_REVISION, j, jcount)
+      else:
+        entityPerformActionNumItemsModifier([Ent.USER, user, entityType, fileName], kcount, Ent.DRIVE_FILE_REVISION, Msg.PREVIEW_ONLY, j, jcount)
+      Ind.Increment()
+      k = 0
+      for revisionId in revisionIds:
+        k += 1
+        if not previewUpdate:
+          try:
+            callGAPI(drive.revisions(), 'update',
+                     throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.REVISION_NOT_FOUND, GAPI.REVISIONS_NOT_SUPPORTED],
+                     fileId=fileId, revisionId=revisionId, body=body)
+            entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.DRIVE_FILE_REVISION, revisionId], k, kcount)
+          except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+                  GAPI.badRequest, GAPI.revisionsNotSupported) as e:
+            entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
+          except GAPI.revisionNotFound:
+            entityDoesNotHaveItemWarning([Ent.USER, user, entityType, fileName, Ent.DRIVE_FILE_REVISION, revisionId], k, kcount)
+          except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+            userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+            break
+        else:
+          entityActionNotPerformedWarning([Ent.USER, user, entityType, fileName, Ent.DRIVE_FILE_REVISION, revisionId], Msg.PREVIEW_ONLY, k, kcount)
+      Ind.Decrement()
+
 def _selectRevisionResults(results, fileId, origUser, revisionsEntity, previewDelete):
   numRevisions = len(results)
   if numRevisions == 0:
@@ -38032,16 +38119,22 @@ def _showRevision(revision, timeObjects, i=0, count=0):
 
 DRIVE_REVISIONS_INDEXED_TITLES = ['revisions']
 
-# gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive <ToDriveAttribute>*] [oneitemperrow] [select <DriveFileRevisionIDEntity>] [previewdelete]
-#	[showtitles] [<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-# gam <UserTypeEntity> show filerevisions <DriveFileEntity> [select <DriveFileRevisionIDEntity>] [previewdelete]
-#	[showtitles] [<DriveFieldName>*|(fields <DriveFieldNameList>)] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+# gam <UserTypeEntity> show filerevisions <DriveFileEntity>
+#	[select <DriveFileRevisionIDEntity>]
+#	[previewdelete|previewupdate] [showtitles]
+#	[<RevisionsFieldName>*|(fields <RevisionsFieldNameList>)]
+#	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
+# gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive <ToDriveAttribute>*]
+#	[select <DriveFileRevisionIDEntity>]
+#	[previewdelete|previewupdate] [showtitles] [oneitemperrow]
+#	[<RevisionsFieldName>*|(fields <RevisionsFieldNameList>)]
+#	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 def printShowFileRevisions(users):
   csvPF = CSVPrintFile(['Owner', 'id']) if Act.csvFormat() else None
   fieldsList = []
   fileIdEntity = getDriveFileEntity()
   revisionsEntity = None
-  oneItemPerRow = previewDelete = showTitles = False
+  oneItemPerRow = previewAction = showTitles = False
   OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
   fileNameTitle = 'title' if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else 'name'
   while Cmd.ArgumentsRemaining():
@@ -38056,8 +38149,8 @@ def printShowFileRevisions(users):
         csvPF.AddTitles('revision.id')
     elif myarg == 'orderby':
       OBY.GetChoice()
-    elif myarg == 'previewdelete':
-      previewDelete = True
+    elif myarg in {'previewdelete', 'previewupdate'}:
+      previewAction = True
     elif myarg == 'showtitles':
       showTitles = True
       if csvPF:
@@ -38100,7 +38193,7 @@ def printShowFileRevisions(users):
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
       if revisionsEntity:
-        results = _selectRevisionResults(results, fileId, origUser, revisionsEntity, previewDelete)
+        results = _selectRevisionResults(results, fileId, origUser, revisionsEntity, previewAction)
       if not csvPF:
         kcount = len(results)
         entityPerformActionNumItems([entityType, fileName], kcount, Ent.DRIVE_FILE_REVISION, j, jcount)
@@ -50879,6 +50972,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DRIVEFILE:	updateDriveFile,
       Cmd.ARG_DRIVEFILEACL:	updateDriveFileACLs,
       Cmd.ARG_EVENT:		updateCalendarEvents,
+      Cmd.ARG_FILEREVISION:	updateFileRevisions,
       Cmd.ARG_GROUP:		updateUserGroups,
       Cmd.ARG_LABEL:		updateLabels,
       Cmd.ARG_LABELSETTINGS:	updateLabelSettings,
