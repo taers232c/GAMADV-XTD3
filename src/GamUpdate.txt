@@ -1,6 +1,6 @@
 5.31.19
 
-Updated code to handle the following error when moving calendar events.
+Updated code to handle the following error when moving calendar events:
 ```
 ERROR: 400: invalid - Cannot have multiple conferences of type Hangout and NamedHangout.
 ```
