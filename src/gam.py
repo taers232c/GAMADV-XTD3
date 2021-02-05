@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.18'
+__version__ = '5.31.19'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -25876,7 +25876,7 @@ def _moveCalendarEvents(origUser, user, origCal, calIds, count, calendarEventEnt
       j += 1
       try:
         callGAPI(cal.events(), 'move',
-                 throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.REQUIRED_ACCESS_LEVEL,
+                 throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.REQUIRED_ACCESS_LEVEL, GAPI.INVALID,
                                                            GAPI.CANNOT_CHANGE_ORGANIZER, GAPI.CANNOT_CHANGE_ORGANIZER_OF_INSTANCE],
                  calendarId=calId, eventId=eventId, destination=newCalId, sendUpdates=parameters['sendUpdates'], fields='')
         entityModifierNewValueActionPerformed([Ent.CALENDAR, calId, Ent.EVENT, eventId], Act.MODIFIER_TO, f'{Ent.Singular(Ent.CALENDAR)}: {newCalId}', j, jcount)
@@ -25888,7 +25888,7 @@ def _moveCalendarEvents(origUser, user, origCal, calIds, count, calendarEventEnt
       except GAPI.notACalendarUser as e:
         entityActionFailedWarning([Ent.CALENDAR, calId], str(e), i, count)
         break
-      except (GAPI.forbidden, GAPI.requiredAccessLevel, GAPI.cannotChangeOrganizer, GAPI.cannotChangeOrganizerOfInstance) as e:
+      except (GAPI.forbidden, GAPI.requiredAccessLevel, GAPI.invalid, GAPI.cannotChangeOrganizer, GAPI.cannotChangeOrganizerOfInstance) as e:
         entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId, Ent.CALENDAR, newCalId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError):
         entityServiceNotApplicableWarning(Ent.CALENDAR, calId, i, count)
