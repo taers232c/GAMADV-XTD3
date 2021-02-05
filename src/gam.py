@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.17'
+__version__ = '5.31.18'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -16738,7 +16738,8 @@ def _filterCPUStatusReports(cros, selected, listLimit, startTime, endTime):
       item['reportTime'] = formatLocalTime(item['reportTime'])
       for tempInfo in item.get('cpuTemperatureInfo', []):
         tempInfo['label'] = tempInfo['label'].strip()
-      item['cpuUtilizationPercentageInfo'] = ','.join([str(x) for x in item['cpuUtilizationPercentageInfo']])
+      if 'cpuUtilizationPercentageInfo' in item:
+        item['cpuUtilizationPercentageInfo'] = ','.join([str(x) for x in item['cpuUtilizationPercentageInfo']])
       filteredItems.append(item)
       i += 1
       if listLimit and i == listLimit:
@@ -17054,7 +17055,8 @@ def infoCrOSDevices(entityList):
           for tempInfo in cpuStatusReport.get('cpuTemperatureInfo', []):
             printKeyValueList([tempInfo['label'], tempInfo['temperature']])
           Ind.Decrement()
-          printKeyValueList(['cpuUtilizationPercentageInfo', cpuStatusReport['cpuUtilizationPercentageInfo']])
+          if 'cpuUtilizationPercentageInfo' in cpuStatusReport:
+            printKeyValueList(['cpuUtilizationPercentageInfo', cpuStatusReport['cpuUtilizationPercentageInfo']])
           Ind.Decrement()
         Ind.Decrement()
       diskVolumeReports = _filterBasicList(cros, 'diskVolumeReports', True, listLimit)
@@ -17348,7 +17350,8 @@ def doPrintCrOSDevices(entityList=None):
         new_row['cpuStatusReports.reportTime'] = cpuStatusReports[i]['reportTime']
         for tempInfo in cpuStatusReports[i].get('cpuTemperatureInfo', []):
           new_row[f'cpuStatusReports.cpuTemperatureInfo.{tempInfo["label"]}'] = tempInfo['temperature']
-        new_row['cpuStatusReports.cpuUtilizationPercentageInfo'] = cpuStatusReports[i]['cpuUtilizationPercentageInfo']
+        if 'cpuUtilizationPercentageInfo' in cpuStatusReports[i]:
+          new_row['cpuStatusReports.cpuUtilizationPercentageInfo'] = cpuStatusReports[i]['cpuUtilizationPercentageInfo']
       if i < lenDVR:
         j = 0
         for volume in diskVolumeReports[i]['volumeInfo']:

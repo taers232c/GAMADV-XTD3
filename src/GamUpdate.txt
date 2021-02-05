@@ -1,3 +1,7 @@
+5.31.18
+
+Updated `gam info cros <CrOSEntity>` and `gam print cros` to avoid trap caused by change in API behavior.
+
 5.31.17
 
 Updated `gam <UserTypeEntity> create|add teamdrive <Name>` to handle the following error:
