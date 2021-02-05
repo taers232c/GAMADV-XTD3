@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.16'
+__version__ = '5.31.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -44410,7 +44410,8 @@ def createTeamDrive(users, useDomainAdminAccess=False):
         teamdrive = callGAPI(drive.drives(), 'create',
                              bailOnTransientError=True,
                              throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TRANSIENT_ERROR, GAPI.TEAMDRIVE_ALREADY_EXISTS,
-                                                                         GAPI.INSUFFICIENT_PERMISSIONS, GAPI.DUPLICATE, GAPI.BAD_REQUEST],
+                                                                         GAPI.INSUFFICIENT_PERMISSIONS, GAPI.INSUFFICIENT_FILE_PERMISSIONS,
+                                                                         GAPI.DUPLICATE, GAPI.BAD_REQUEST],
                              requestId=requestId, body=body, fields='id')
         teamDriveId = teamdrive['id']
         if returnIdOnly:
@@ -44430,7 +44431,7 @@ def createTeamDrive(users, useDomainAdminAccess=False):
       except GAPI.duplicate:
         entityActionFailedWarning([Ent.USER, user, Ent.REQUEST_ID, requestId], Msg.DUPLICATE, i, count)
         break
-      except (GAPI.insufficientPermissions, GAPI.badRequest) as e:
+      except (GAPI.insufficientPermissions, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.REQUEST_ID, requestId], str(e), i, count)
         break
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:

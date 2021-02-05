@@ -1,3 +1,10 @@
+5.31.17
+
+Updated `gam <UserTypeEntity> create|add teamdrive <Name>` to handle the following error:
+```
+ERROR: 403: insufficientFilePermissions - The user does not have sufficient permissions for this file.
+```
+
 5.31.16
 
 Deleted option `previewupdate` from `gam <UserTypeEntity> print|show filerevisions <DriveFileEntity>`
