@@ -47366,7 +47366,7 @@ def _finalizeMessageSelectParameters(parameters, queryOrIdsRequired):
     missingArgumentExit('query|matchlabel|ids')
   else:
     parameters['query'] = None
-  parameters['maxItems'] = parameters['maxToProcess'] if parameters['quick'] else 0
+  parameters['maxItems'] = parameters['maxToProcess'] if parameters['quick'] and not parameters['labelMatchPattern'] else 0
 
 # gam <UserTypeEntity> archive messages <GroupItem>
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_archive <Number>])|(ids <MessageIDEntity>)
@@ -48046,24 +48046,24 @@ def printShowMessagesThreads(users, entityType):
 
   def _getMatchMessageLabels(result):
     messageLabels = []
+    match = False
     for labelId in result.get('labelIds', []):
       if labelId in labelsMap:
+        match |= labelsMap[labelId]['match']
         if not onlyUser or labelsMap[labelId]['type'] != LABEL_TYPE_SYSTEM:
           messageLabels.append(labelsMap[labelId]['name'])
       else:
         messageLabels.append(labelId)
-    if parameters['labelMatchPattern']:
-      for label in messageLabels:
-        if parameters['labelMatchPattern'].match(label):
-          break
-      else:
-        return None
+    if labelMatchPattern and not match:
+      return None
     return messageLabels
 
   def _showMessage(result, j, jcount):
-    if show_labels or parameters['labelMatchPattern']:
+    if parameters['maxToProcess'] and parameters['messagesProcessed'] == parameters['maxToProcess']:
+      return
+    if show_labels or labelMatchPattern:
       messageLabels = _getMatchMessageLabels(result)
-      if messageLabels == None:
+      if messageLabels is None:
         return
     printEntity([Ent.MESSAGE, result['id']], j, jcount)
     Ind.Increment()
@@ -48089,11 +48089,14 @@ def printShowMessagesThreads(users, entityType):
     if show_attachments or save_attachments:
       _showSaveAttachments(result['id'], result['payload'], attachmentNamePattern)
     Ind.Decrement()
+    parameters['messagesProcessed'] += 1
 
   def _printMessage(user, result):
-    if show_labels or parameters['labelMatchPattern']:
+    if parameters['maxToProcess'] and parameters['messagesProcessed'] == parameters['maxToProcess']:
+      return
+    if show_labels or labelMatchPattern:
       messageLabels = _getMatchMessageLabels(result)
-      if messageLabels == None:
+      if messageLabels is None:
         return
     row = {'User': user, 'threadId': result['threadId'], 'id': result['id']}
     if show_snippet:
@@ -48127,6 +48130,7 @@ def printShowMessagesThreads(users, entityType):
       else:
         row['Body'] = escapeCRsNLs(_getMessageBody(result['payload']))
     csvPF.WriteRowTitles(row)
+    parameters['messagesProcessed'] += 1
 
   def _countMessageLabels(result):
     labelIds = result.get('labelIds', [])
@@ -48135,8 +48139,9 @@ def printShowMessagesThreads(users, entityType):
         if labelId in labelsMap:
           labelsMap[labelId]['count'] += 1
         else:
-          labelsMap[labelId] = {'name': labelId, 'count': 1, 'type': LABEL_TYPE_USER}
-    else:
+          labelsMap[labelId] = {'name': labelId, 'count': 1, 'type': LABEL_TYPE_USER,
+                                'match': True if not labelMatchPattern else labelMatchPattern.match(labelId) is not None}
+    elif not labelMatchPattern:
       labelsMap['*None*']['count'] += 1
 
   def _showThread(result, j, jcount):
@@ -48224,12 +48229,14 @@ def printShowMessagesThreads(users, entityType):
       svcparms['id'] = messageId
       dbatch.add(method(**svcparms), request_id=batchRequestID(user, 0, 0, j, jcount, svcparms['id']))
       bcount += 1
-      if parameters['maxToProcess'] and j == parameters['maxToProcess']:
+      if not labelMatchPattern and parameters['maxToProcess'] and j == parameters['maxToProcess']:
         break
       if bcount == GC.Values[GC.EMAIL_BATCH_SIZE]:
         executeBatch(dbatch)
         dbatch = gmail.new_batch_http_request(callback=_callbacks['batch'])
         bcount = 0
+        if labelMatchPattern and parameters['messagesProcessed'] == parameters['maxToProcess']:
+          break
     if bcount > 0:
       dbatch.execute()
 
@@ -48285,6 +48292,7 @@ def printShowMessagesThreads(users, entityType):
       onlyUser = getBoolean()
     else:
       unknownArgumentExit()
+  labelMatchPattern = parameters['labelMatchPattern']
   _finalizeMessageSelectParameters(parameters, False)
   if csvPF:
     if countsOnly:
@@ -48314,13 +48322,14 @@ def printShowMessagesThreads(users, entityType):
     if not gmail:
       continue
     service = gmail.users().messages() if entityType == Ent.MESSAGE else gmail.users().threads()
-    if show_labels or parameters['labelMatchPattern']:
+    if show_labels or labelMatchPattern:
       labels = _getUserGmailLabels(gmail, user, i, count, fields='labels(id,name,type)')
       if not labels:
         continue
-      labelsMap = {'*None*': {'name': '*None*', 'count': 0, 'type': LABEL_TYPE_USER}}
+      labelsMap = {'*None*': {'name': '*None*', 'count': 0, 'type': LABEL_TYPE_USER, 'match': labelMatchPattern is None}}
       for label in labels['labels']:
-        labelsMap[label['id']] = {'name': label['name'], 'count': 0, 'type': label['type']}
+        labelsMap[label['id']] = {'name': label['name'], 'count': 0, 'type': label['type'],
+                                  'match': True if not labelMatchPattern else labelMatchPattern.match(label['name']) is not None}
     if save_attachments:
       _, userName, _ = splitEmailAddressOrUID(user)
       targetFolder = _substituteForUser(targetFolderPattern, user, userName)
@@ -48360,12 +48369,16 @@ def printShowMessagesThreads(users, entityType):
         entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(entityType)), i, count)
       continue
     if not csvPF and not countsOnly: #show_labels is True
-      if parameters['messageEntity'] is not None or parameters['maxToProcess'] == 0 or jcount <= parameters['maxToProcess']:
+      if parameters['messageEntity'] is not None or (parameters['maxToProcess'] == 0 or jcount <= parameters['maxToProcess']) and not labelMatchPattern:
         entityPerformActionNumItems([Ent.USER, user], jcount, entityType, i, count)
-      else:
+      elif not labelMatchPattern:
         entityPerformActionNumItemsModifier([Ent.USER, user], parameters['maxToProcess'], entityType, f'of {jcount} Total {Ent.Plural(entityType)}', i, count)
-    if parameters['messageEntity'] is None and parameters['maxToProcess'] and (jcount > parameters['maxToProcess']):
+      else:
+        entityPerformActionModifierNumItemsModifier([Ent.USER, user], Msg.MAXIMUM_OF, parameters['maxToProcess'] or jcount, entityType,
+                                                    f'of {jcount} Total {Ent.Plural(entityType)}', i, count)
+    if parameters['messageEntity'] is None and not labelMatchPattern and parameters['maxToProcess'] and (jcount > parameters['maxToProcess']):
       jcount = parameters['maxToProcess']
+    parameters['messagesProcessed'] = 0
     if not csvPF:
       Ind.Increment()
       _batchPrintShowMessagesThreads(service, user, jcount, messageIds)
@@ -48373,10 +48386,11 @@ def printShowMessagesThreads(users, entityType):
     else:
       _batchPrintShowMessagesThreads(service, user, jcount, messageIds)
     if countsOnly: #show_labels is True
-      if onlyUser or positiveCountsOnly:
+      if onlyUser or positiveCountsOnly or labelMatchPattern:
         userLabelsMap = {}
         for labelId, label in iter(labelsMap.items()):
-          if ((not onlyUser or label['type'] != LABEL_TYPE_SYSTEM) and
+          if (label['match'] and
+              (not onlyUser or label['type'] != LABEL_TYPE_SYSTEM) and
               (not positiveCountsOnly or label['count'] > 0)):
             userLabelsMap[labelId] = label
         labelsMap = userLabelsMap
