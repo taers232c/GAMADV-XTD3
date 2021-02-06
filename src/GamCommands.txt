@@ -4858,6 +4858,7 @@ gam <UserTypeEntity> untrash messages|threads
 gam <UserTypeEntity> show messages|threads
         (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])*
          [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <MessageIDEntity>)
+        [labelmatchpattern <RegularExpression>]
         [countsonly|positivecountsonly] [useronly]
         [headers all|<SMTPHeaderList>]
         [showlabels] [showbody] [showsize] [showsnippet]
@@ -4867,6 +4868,7 @@ gam <UserTypeEntity> show messages|threads
 gam <UserTypeEntity> print messages|threads [todrive <ToDriveAttribute>*]
         (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])*
          [quick|notquick] [max_to_print <Number>] [includespamtrash])|(ids <MessageIDEntity>)
+	[labelmatchpattern <RegularExpression>]
         [countsonly|positivecountsonly] [useronly]
         [headers all|<SMTPHeaderList>]
         [showlabels] [showbody] [showsize] [showsnippet]

@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.19'
+__version__ = '5.31.20'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -47320,6 +47320,7 @@ def _initMessageThreadParameters(entityType, doIt, maxToProcess):
   listType = 'messages' if entityType == Ent.MESSAGE else 'threads'
   return {'currLabelOp': 'and', 'prevLabelOp': 'and', 'labelGroupOpen':  False, 'query': '',
           'entityType': entityType, 'messageEntity': None, 'doIt': doIt, 'quick': True,
+          'labelMatchPattern': None,
           'maxToProcess': maxToProcess, 'maxItems': 0,
           'maxToKeywords': [MESSAGES_MAX_TO_KEYWORDS[Act.Get()], 'maxtoprocess'],
           'listType': listType, 'fields': f'nextPageToken,{listType}(id)'}
@@ -47341,6 +47342,8 @@ def _getMessageSelectParameters(myarg, parameters):
       parameters['labelGroupOpen'] = False
     if parameters['currLabelOp'] == 'or':
       parameters['query'] += ' OR '
+  elif myarg == 'labelmatchpattern':
+    parameters['labelMatchPattern'] = getREPattern(re.IGNORECASE)
   elif myarg == 'ids':
     parameters['messageEntity'] = getUserObjectEntity(Cmd.OB_MESSAGE_ID, parameters['entityType'])
   elif myarg == 'quick':
@@ -48041,7 +48044,7 @@ def printShowMessagesThreads(users, entityType):
       else:
         _showSaveAttachments(messageId, part, attachmentNamePattern)
 
-  def _getMessageLabels(result):
+  def _getMatchMessageLabels(result):
     messageLabels = []
     for labelId in result.get('labelIds', []):
       if labelId in labelsMap:
@@ -48049,9 +48052,19 @@ def printShowMessagesThreads(users, entityType):
           messageLabels.append(labelsMap[labelId]['name'])
       else:
         messageLabels.append(labelId)
+    if parameters['labelMatchPattern']:
+      for label in messageLabels:
+        if parameters['labelMatchPattern'].match(label):
+          break
+      else:
+        return None
     return messageLabels
 
   def _showMessage(result, j, jcount):
+    if show_labels or parameters['labelMatchPattern']:
+      messageLabels = _getMatchMessageLabels(result)
+      if messageLabels == None:
+        return
     printEntity([Ent.MESSAGE, result['id']], j, jcount)
     Ind.Increment()
     if show_snippet:
@@ -48067,7 +48080,7 @@ def printShowMessagesThreads(users, entityType):
     if show_size:
       printKeyValueList(['SizeEstimate', result['sizeEstimate']])
     if show_labels:
-      printKeyValueList(['Labels', ','.join(_getMessageLabels(result))])
+      printKeyValueList(['Labels', ','.join(messageLabels)])
     if show_body:
       printKeyValueList(['Body', None])
       Ind.Increment()
@@ -48078,6 +48091,10 @@ def printShowMessagesThreads(users, entityType):
     Ind.Decrement()
 
   def _printMessage(user, result):
+    if show_labels or parameters['labelMatchPattern']:
+      messageLabels = _getMatchMessageLabels(result)
+      if messageLabels == None:
+        return
     row = {'User': user, 'threadId': result['threadId'], 'id': result['id']}
     if show_snippet:
       row['Snippet'] = dehtml(result['snippet']).replace('\n', ' ')
@@ -48103,7 +48120,7 @@ def printShowMessagesThreads(users, entityType):
     if show_size:
       row['SizeEstimate'] = result['sizeEstimate']
     if show_labels:
-      row['Labels'] = delimiter.join(_getMessageLabels(result))
+      row['Labels'] = delimiter.join(messageLabels)
     if show_body:
       if not convertCRNL:
         row['Body'] = _getMessageBody(result['payload'])
@@ -48297,7 +48314,7 @@ def printShowMessagesThreads(users, entityType):
     if not gmail:
       continue
     service = gmail.users().messages() if entityType == Ent.MESSAGE else gmail.users().threads()
-    if show_labels:
+    if show_labels or parameters['labelMatchPattern']:
       labels = _getUserGmailLabels(gmail, user, i, count, fields='labels(id,name,type)')
       if not labels:
         continue
@@ -48389,10 +48406,12 @@ def printShowMessagesThreads(users, entityType):
 
 # gam <UserTypeEntity> print message|messages
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_print <Number>] [includespamtrash])|(ids <MessageIDEntity>)
+#	[labelmatchpattern <RegularExpression>]
 #	[headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <Character>] [todrive <ToDriveAttribute>*]
 #	[countsonly|positivecountsonly] [useronly]
 # gam <UserTypeEntity> show message|messages
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <MessageIDEntity>)
+#	[labelmatchpattern <RegularExpression>]
 #	[headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [showattachments [attachmentnamepattern <RegularExpression>]]
 #	[countsonly|positivecountsonly] [useronly]
 #       [saveattachments [attachmentnamepattern <RegularExpression>]] [targetfolder <FilePath>] [overwrite [<Boolean>]]
@@ -48401,10 +48420,12 @@ def printShowMessages(users):
 
 # gam <UserTypeEntity> print thread|threads
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_print <Number>] [includespamtrash])|(ids <ThreadIDEntity>)
+#	[labelmatchpattern <RegularExpression>]
 #	[headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <Character>] [todrive <ToDriveAttribute>*]
 #	[countsonly|positivecountsonly] [useronly]
 # gam <UserTypeEntity> show thread|threads
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <ThreadIDEntity>)
+#	[labelmatchpattern <RegularExpression>]
 #	[headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [showattachments [attachmentnamepattern <RegularExpression>]]
 #	[countsonly|positivecountsonly] [useronly]
 #       [saveattachments [attachmentnamepattern <RegularExpression>]] [targetfolder <FilePath>] [overwrite [<Boolean>]]

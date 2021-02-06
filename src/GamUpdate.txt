@@ -1,3 +1,10 @@
+5.32.20
+
+Added option `labelmatchpattern <RegularExpression>` to `gam <UserTypeEntity> print|show messages|threads`
+that causes only messages with some label that matches `<RegularExpression>` to be displayed.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Gmail-Messages-Threads#display-a-selected-set-of-messages
+
 5.31.19
 
 Updated code to handle the following error when moving calendar events:
