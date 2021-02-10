@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.20'
+__version__ = '5.31.21'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2792,6 +2792,15 @@ def SetGlobalVariables():
     Cmd.Backup()
     usageErrorExit(formatKeyValueList('', [Ent.Singular(Ent.SECTION), value, Msg.NOT_FOUND], ''))
 
+  def _showSections():
+    printKeyValueList([Ent.Singular(Ent.CONFIG_FILE), GM.Globals[GM.GAM_CFG_FILE]])
+    sections = [configparser.DEFAULTSECT]
+    sections.extend(GM.Globals[GM.PARSER].sections())
+    Ind.Increment()
+    for section in sections:
+      printKeyValueList([f'{section}{" *" if section == sectionName else ""}'])
+    Ind.Decrement()
+
   def _checkMakeDir(itemName):
     if not os.path.isdir(GC.Defaults[itemName]):
       try:
@@ -3268,6 +3277,9 @@ def SetGlobalVariables():
         else:
           break
   GM.Globals[GM.GAM_CFG_SECTION_NAME] = sectionName
+# showsections
+  if checkArgumentPresent(Cmd.SHOWSECTIONS_CMD):
+    _showSections()
 # selectfilter|selectoutputfilter|selectinputfilter <SectionName>
   while True:
     filterCommand = getChoice([Cmd.SELECTFILTER_CMD, Cmd.SELECTOUTPUTFILTER_CMD, Cmd.SELECTINPUTFILTER_CMD], defaultChoice=None)
@@ -27363,6 +27375,7 @@ def _getCloudStorageObject(s, bucket, s_object, local_file=None, expectedMd5=Non
 
 TAKEOUT_EXPORT_PATTERN = re.compile(r'(takeout-export-[a-f,0-9,-]*)')
 
+# gam download storagebucket <URL>
 def doDownloadCloudStorageBucket():
   bucket_url = getString(Cmd.OB_URL)
   checkForExtraneousArguments()

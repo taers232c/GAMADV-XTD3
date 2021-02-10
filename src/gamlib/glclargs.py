@@ -322,14 +322,15 @@ class GamCLArgs():
   CSVTEST_CMD = 'csvtest'
   LOOP_CMD = 'loop'
   TBATCH_CMD = 'tbatch'
-# Command line select/selectfilter/selectoutputfilter/selectinputfilter/config/redirect arguments
+# Command line select/showsections/selectfilter/selectoutputfilter/selectinputfilter/config/redirect arguments
+  SHOWSECTIONS_CMD = 'showsections'
   SELECT_CMD = 'select'
   SELECTFILTER_CMD = 'selectfilter'
   SELECTOUTPUTFILTER_CMD = 'selectoutputfilter'
   SELECTINPUTFILTER_CMD = 'selectinputfilter'
   CONFIG_CMD = 'config'
   REDIRECT_CMD = 'redirect'
-  GAM_META_COMMANDS = [SELECT_CMD, SELECTFILTER_CMD, SELECTOUTPUTFILTER_CMD, SELECTINPUTFILTER_CMD, CONFIG_CMD, REDIRECT_CMD,]
+  GAM_META_COMMANDS = [SHOWSECTIONS_CMD, SELECT_CMD, SELECTFILTER_CMD, SELECTOUTPUTFILTER_CMD, SELECTINPUTFILTER_CMD, CONFIG_CMD, REDIRECT_CMD,]
 # Command line arguments
   ARG_3LO = '3lo'
   ARG_ACL = 'acl'

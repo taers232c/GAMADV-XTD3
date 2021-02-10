@@ -1,4 +1,18 @@
-5.32.20
+5.31.21
+
+Added meta-command `showsections` that displays all of the sections in gam.cfg and marks the currently selected section with a *.
+```
+gam showsections
+$ gam showsections
+Config File: /Users/admin/GamConfig/gam.cfg
+  DEFAULT
+  Client1
+  Client2
+  Client3 *
+  Client4
+```
+
+5.31.20
 
 Added option `labelmatchpattern <RegularExpression>` to `gam <UserTypeEntity> print|show messages|threads`
 that causes only messages with some label that matches `<RegularExpression>` to be displayed.
