@@ -1,7 +1,8 @@
 5.31.22
 
 Updated `gam <UserTypeEntity> get document|drivefile <DriveFileEntity>` to add `*|~` to the list
-of characters in Google Drive file names that are changed to `_`. The copmplete list is now `\/:*|~`.
+of characters in Google Drive file names that are changed to `_`; the copmplete list is now `\/:*|~`.
+This is to prevent local file system errors.
 
 5.31.21
 
