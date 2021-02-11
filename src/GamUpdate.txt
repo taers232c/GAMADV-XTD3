@@ -1,3 +1,8 @@
+5.31.22
+
+Updated `gam <UserTypeEntity> get document|drivefile <DriveFileEntity>` to add `*|~` to the list
+of characters in Google Drive file names that are changed to `_`. The copmplete list is now `\/:*|~`.
+
 5.31.21
 
 Added meta-command `showsections` that displays all of the sections in gam.cfg and marks the currently selected section with a *.

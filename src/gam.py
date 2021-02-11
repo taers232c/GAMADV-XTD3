@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.21'
+__version__ = '5.31.22'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2427,7 +2427,7 @@ def entityModifierNewValueKeyValueActionPerformed(entityValueList, modifier, new
                                  currentCountNL(i, count)))
 
 def cleanFilename(filename):
-  for ch in '\\/:':
+  for ch in '\\/:*|~':
     filename = filename.replace(ch, '_')
   return filename
 
