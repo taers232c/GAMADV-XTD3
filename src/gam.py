@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.22'
+__version__ = '5.31.23'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2795,7 +2795,7 @@ def SetGlobalVariables():
   def _showSections():
     printKeyValueList([Ent.Singular(Ent.CONFIG_FILE), GM.Globals[GM.GAM_CFG_FILE]])
     sections = [configparser.DEFAULTSECT]
-    sections.extend(GM.Globals[GM.PARSER].sections())
+    sections.extend(sorted(GM.Globals[GM.PARSER].sections()))
     Ind.Increment()
     for section in sections:
       printKeyValueList([f'{section}{" *" if section == sectionName else ""}'])

@@ -1,3 +1,7 @@
+5.31.23
+
+Updated `gam showsections` to display section names in sorted order.
+
 5.31.22
 
 Updated `gam <UserTypeEntity> get document|drivefile <DriveFileEntity>` to add `*|~` to the list
