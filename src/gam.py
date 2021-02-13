@@ -2794,10 +2794,8 @@ def SetGlobalVariables():
 
   def _showSections():
     printKeyValueList([Ent.Singular(Ent.CONFIG_FILE), GM.Globals[GM.GAM_CFG_FILE]])
-    sections = [configparser.DEFAULTSECT]
-    sections.extend(sorted(GM.Globals[GM.PARSER].sections()))
     Ind.Increment()
-    for section in sections:
+    for section in [configparser.DEFAULTSECT]+sorted(GM.Globals[GM.PARSER].sections()):
       printKeyValueList([f'{section}{" *" if section == sectionName else ""}'])
     Ind.Decrement()
 
