@@ -477,6 +477,7 @@ If an item contains spaces, it should be surrounded by ".
         (tdtitle <String>)|
         (tdcellwrap clip|overflow|wrap)|
         (tdupdatesheet [<Boolean>])|
+        (tduploadnodata [<Boolean>])|
         (tduser <EmailAddress>)
 <TransferID> ::= <String>
 <URI> ::= <String>
@@ -3081,7 +3082,7 @@ gam <UserTypeEntity> sendemail [recipient|to <RecipientEntity>]
 
 # Sites
 
-<SiteACLRole> ::= editor|invite|owner|reader|writer
+<SiteACLRole> ::= editor|owner|reader|writer
 <SiteACLRoleList> ::= "<SiteACLRole>(,<SiteACLRole>)*"
 
 <SiteACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|default

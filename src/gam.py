@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.23'
+__version__ = '5.31.24'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -341,6 +341,7 @@ SERVICE_NOT_APPLICABLE_RC = 73
 TARGET_DRIVE_SPACE_ERROR_RC = 74
 USER_REQUIRED_TO_CHANGE_PASSWORD_ERROR_RC = 75
 USER_SUSPENDED_ERROR_RC = 76
+NO_CSV_DATA_TO_UPLOAD_RC = 77
 #
 def escapeCRsNLs(value):
   return value.replace('\r', '\\r').replace('\n', '\\n')
@@ -3660,7 +3661,7 @@ def getOauth2TxtCredentials(exitOnError=True, api=None, noDASA=False):
       try:
         jsonDict = json.loads(jsonData)
         if GC.Values[GC.ENABLE_DASA]:
-          if 'private_key' in jsonDict:
+          if 'private_key_id' in jsonDict:
             api, _, _ = API.getVersion(api)
             creds = JWTCredentials.from_service_account_info(jsonDict,
                                                              audience=f'https://{api}.googleapis.com/')
@@ -6440,8 +6441,8 @@ class CSVPrintFile():
                     'sheettimestamp': GC.Values[GC.TODRIVE_SHEET_TIMESTAMP], 'sheettimeformat': GC.Values[GC.TODRIVE_SHEET_TIMEFORMAT],
                     'sheetdaysoffset': None, 'sheethoursoffset': None,
                     'fileId': None, 'parentId': None, 'parent': GC.Values[GC.TODRIVE_PARENT],
-                    'localcopy': GC.Values[GC.TODRIVE_LOCALCOPY], 'nobrowser': GC.Values[GC.TODRIVE_NOBROWSER],
-                    'noemail': GC.Values[GC.TODRIVE_NOEMAIL]}
+                    'localcopy': GC.Values[GC.TODRIVE_LOCALCOPY], 'uploadnodata': GC.Values[GC.TODRIVE_UPLOAD_NODATA], 
+                    'nobrowser': GC.Values[GC.TODRIVE_NOBROWSER], 'noemail': GC.Values[GC.TODRIVE_NOEMAIL]}
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if myarg == 'tduser':
@@ -6499,6 +6500,8 @@ class CSVPrintFile():
         localParent = True
       elif myarg == 'tdlocalcopy':
         self.todrive['localcopy'] = getBoolean()
+      elif myarg == 'tduploadnodata':
+        self.todrive['uploadnodata'] = getBoolean()
       elif myarg == 'tdnobrowser':
         self.todrive['nobrowser'] = getBoolean()
       elif myarg == 'tdnoemail':
@@ -6852,6 +6855,11 @@ class CSVPrintFile():
         closeFile(csvFile)
 
     def writeCSVToDrive():
+      numRows = len(self.rows)
+      if numRows == 0 and not self.todrive['uploadnodata']:
+        printKeyValueList([Msg.NO_CSV_DATA_TO_UPLOAD])
+        setSysExitRC(NO_CSV_DATA_TO_UPLOAD_RC)
+        return
       if self.todrive['addsheet'] or self.todrive['updatesheet']:
         csvFile = TemporaryFile(mode='w+', encoding=UTF8)
       else:
@@ -6906,7 +6914,7 @@ class CSVPrintFile():
             result = callGAPI(drive.about(), 'get',
                               throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
                               fields='maxImportSizes')
-            if len(self.rows)*len(titlesList) > MAX_GOOGLE_SHEET_CELLS or importSize > int(result['maxImportSizes'][MIMETYPE_GA_SPREADSHEET]):
+            if numRows*len(titlesList) > MAX_GOOGLE_SHEET_CELLS or importSize > int(result['maxImportSizes'][MIMETYPE_GA_SPREADSHEET]):
               todriveCSVErrorExit([Ent.USER, user], Msg.RESULTS_TOO_LARGE_FOR_GOOGLE_SPREADSHEET)
             fields = ','.join(['id', 'mimeType', 'webViewLink', 'name', 'capabilities(canEdit)'])
             body = {'name': title, 'description': self.todrive['description']}
@@ -6984,7 +6992,7 @@ class CSVPrintFile():
               result = callGAPI(drive.about(), 'get',
                                 throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
                                 fields='maxImportSizes')
-              if len(self.rows)*len(titlesList) > MAX_GOOGLE_SHEET_CELLS or importSize > int(result['maxImportSizes'][MIMETYPE_GA_SPREADSHEET]):
+              if numRows*len(titlesList) > MAX_GOOGLE_SHEET_CELLS or importSize > int(result['maxImportSizes'][MIMETYPE_GA_SPREADSHEET]):
                 printKeyValueList([WARNING, Msg.RESULTS_TOO_LARGE_FOR_GOOGLE_SPREADSHEET])
                 mimeType = 'text/csv'
               else:

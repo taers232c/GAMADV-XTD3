@@ -1,3 +1,11 @@
+5.31.24
+
+Added `todrive_upload_nodata [<Boolean>]` to `gam.cfg` and `tduploadnodata [<Boolean>]` to `<ToDriveAttribute>`.
+
+* When `True`, the default, CSV files with no data rows will be uploaded; this is the existing behavior.
+* When `False`, CSV files with no data rows will be not be uploaded; the message `No CSV data to upload`
+will be displayed and the return code will be set to 77.
+
 5.31.23
 
 Updated `gam showsections` to display section names in sorted order.

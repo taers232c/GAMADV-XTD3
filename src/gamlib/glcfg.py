@@ -212,6 +212,8 @@ TODRIVE_TIMESTAMP = 'todrive_timestamp'
 TODRIVE_TIMEFORMAT = 'todrive_timeformat'
 # Specify timezone for Google Sheets
 TODRIVE_TIMEZONE = 'todrive_timezone'
+# Upload data files with no data
+TODRIVE_UPLOAD_NODATA = 'todrive_upload_nodata'
 # User for todrive files
 TODRIVE_USER = 'todrive_user'
 # When retrieving lists of Users from API, how many should be retrieved in each chunk
@@ -302,6 +304,7 @@ Defaults = {
   TODRIVE_TIMESTAMP: FALSE,
   TODRIVE_TIMEFORMAT: '',
   TODRIVE_TIMEZONE: '',
+  TODRIVE_UPLOAD_NODATA: TRUE,
   TODRIVE_USER: '',
   USER_MAX_RESULTS: '500',
   USER_SERVICE_ACCOUNT_ACCESS_ONLY: FALSE,
@@ -418,6 +421,7 @@ VAR_INFO = {
   TODRIVE_TIMESTAMP: {VAR_TYPE: TYPE_BOOLEAN},
   TODRIVE_TIMEFORMAT: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   TODRIVE_TIMEZONE: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
+  TODRIVE_UPLOAD_NODATA: {VAR_TYPE: TYPE_BOOLEAN},
   TODRIVE_USER: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   USER_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (1, 500)},
   USER_SERVICE_ACCOUNT_ACCESS_ONLY: {VAR_TYPE: TYPE_BOOLEAN},
