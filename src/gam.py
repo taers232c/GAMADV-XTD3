@@ -22,7 +22,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.24'
+__version__ = '5.31.25'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6441,7 +6441,7 @@ class CSVPrintFile():
                     'sheettimestamp': GC.Values[GC.TODRIVE_SHEET_TIMESTAMP], 'sheettimeformat': GC.Values[GC.TODRIVE_SHEET_TIMEFORMAT],
                     'sheetdaysoffset': None, 'sheethoursoffset': None,
                     'fileId': None, 'parentId': None, 'parent': GC.Values[GC.TODRIVE_PARENT],
-                    'localcopy': GC.Values[GC.TODRIVE_LOCALCOPY], 'uploadnodata': GC.Values[GC.TODRIVE_UPLOAD_NODATA], 
+                    'localcopy': GC.Values[GC.TODRIVE_LOCALCOPY], 'uploadnodata': GC.Values[GC.TODRIVE_UPLOAD_NODATA],
                     'nobrowser': GC.Values[GC.TODRIVE_NOBROWSER], 'noemail': GC.Values[GC.TODRIVE_NOEMAIL]}
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
@@ -10005,10 +10005,33 @@ def doReportUsageParameters():
     csvPF.WriteRow({'parameter': parameter})
   csvPF.writeCSVfile(f'{report.capitalize()} Report Usage Parameters')
 
+def getUserOrgUnits(cd, orgUnit, orgUnitId):
+  try:
+    if orgUnit == orgUnitId:
+      orgUnit = callGAPI(cd.orgunits(), 'get',
+                         throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR,
+                                       GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                         customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=orgUnit, fields='orgUnitPath')['orgUnitPath']
+    printGettingAllEntityItemsForWhom(Ent.USER, orgUnit, qualifier=Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)),
+                                      entityType=Ent.ORGANIZATIONAL_UNIT)
+    result = callGAPIpages(cd.users(), 'list', 'users',
+                           pageMessage=getPageMessageForWhom(),
+                           throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
+                                         GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                           customer=GC.Values[GC.CUSTOMER_ID], query=orgUnitPathQuery(orgUnit, None), orderBy='email',
+                           fields='nextPageToken,users(primaryEmail,orgUnitPath)', maxResults=GC.Values[GC.USER_MAX_RESULTS])
+    userOrgUnits = {}
+    for user in result:
+      userOrgUnits[user['primaryEmail']] = user['orgUnitPath']
+    return userOrgUnits
+  except (GAPI.badRequest, GAPI.invalidInput, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError,
+          GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
+    checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, orgUnit)
+
 REPORTS_PARAMETERS_SIMPLE_TYPES = ['intValue', 'boolValue', 'datetimeValue', 'stringValue']
 
 # gam report usage user [todrive <ToDriveAttribute>*]
-#	[(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
+#	[(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath> [showorgunit])|(select <UserTypeEntity>)]
 #	[([start|startdate <Date>] [end|enddate <Date>])|(range <Date> <Date>)|
 #	 thismonth|(previousmonths <Integer>)]
 #	[fields|parameters <String>)]
@@ -10053,14 +10076,15 @@ def doReportUsage():
     service = rep.userUsageReport()
     kwargs = [{'userKey': 'all'}]
     titles.append('user')
-  csvPF = CSVPrintFile(titles, 'sortall')
+  csvPF = CSVPrintFile()
   customerId = GC.Values[GC.CUSTOMER_ID]
   if customerId == GC.MY_CUSTOMER:
     customerId = None
   parameters = set()
-  select = False
+  select = showOrgUnit = False
   userKey = 'all'
-  orgUnit = orgUnitId = None
+  cd = orgUnit = orgUnitId = None
+  userOrgUnits = {}
   startEndTime = StartEndTime('startdate', 'enddate', 'date')
   skipDayNumbers = []
   skipDates = set()
@@ -10072,7 +10096,12 @@ def doReportUsage():
     elif myarg in {'start', 'startdate', 'end', 'enddate', 'range', 'thismonth', 'previousmonths'}:
       startEndTime.Get(myarg)
     elif userReports and myarg in ['ou', 'org', 'orgunit']:
-      orgUnit, orgUnitId = getOrgUnitId()
+      if cd is None:
+        cd = buildGAPIObject(API.DIRECTORY)
+      orgUnit, orgUnitId = getOrgUnitId(cd)
+      select = False
+    elif userReports and myarg == 'showorgunit':
+      showOrgUnit = True
     elif myarg in {'fields', 'parameters'}:
       parameters = parameters.union(getString(Cmd.OB_STRING).replace(',', ' ').split())
     elif myarg == 'skipdates':
@@ -10095,10 +10124,13 @@ def doReportUsage():
       skipDayNumbers = [dow.index(d) for d in skipdaynames if d in dow]
     elif userReports and myarg == 'user':
       userKey = getString(Cmd.OB_EMAIL_ADDRESS)
+      orgUnit = orgUnitId = None
+      select = False
     elif userReports and (myarg == 'select' or myarg in usageEntitySelectors()):
       if myarg != 'select':
         Cmd.Backup()
       _, users = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
+      orgUnit = orgUnitId = None
       select = True
     else:
       unknownArgumentExit()
@@ -10112,6 +10144,8 @@ def doReportUsage():
   endDate = endDateTime.strftime(YYYYMMDD_FORMAT)
   startUseDate = endUseDate = None
   showGetting = False
+  if not orgUnitId:
+    showOrgUnit = False
   if userReports:
     if select:
       showGetting = True
@@ -10119,6 +10153,7 @@ def doReportUsage():
     elif userKey == 'all':
       if orgUnitId:
         kwargs[0]['orgUnitID'] = orgUnitId
+        userOrgUnits = getUserOrgUnits(cd, orgUnit, orgUnitId)
         printGettingEntityItemForWhom(Ent.REPORT, f'users in orgUnit {orgUnit}')
       else:
         printGettingEntityItemForWhom(Ent.REPORT, 'all users')
@@ -10127,8 +10162,12 @@ def doReportUsage():
       kwargs = [{'userKey': normalizeEmailAddressOrUID(userKey)}]
       printGettingEntityItemForWhom(Ent.REPORT, kwargs[0]['userKey'])
       pageMessage = getPageMessage()
+    if showOrgUnit:
+      titles.append('orgUnitPath')
   else:
     pageMessage = None
+  csvPF.SetTitles(titles)
+  csvPF.SetSortAllTitles()
   parameters = ','.join(parameters) if parameters else None
   while startDateTime <= endDateTime:
     if startDateTime.weekday() in skipDayNumbers or startDateTime in skipDates:
@@ -10153,6 +10192,8 @@ def doReportUsage():
           row = {'date': useDate}
           if 'userEmail' in entity['entity']:
             row['user'] = entity['entity']['userEmail']
+            if showOrgUnit:
+              row['orgUnitPath'] = userOrgUnits.get(row['user'], 'Unknown')
           for item in entity.get('parameters', []):
             if 'name' not in item:
               continue
@@ -10258,7 +10299,7 @@ USER_REPORT_SERVICES = [
 REPORT_ACTIVITIES_TIME_OBJECTS = {'time'}
 
 # gam report <ActivityApplictionName> [todrive <ToDriveAttribute>*]
-#	[(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
+#	[(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath> [showorgunit])|(select <UserTypeEntity>)]
 #	[([start <Time>] [end <Time>])|(range <Time> <Time>)|
 #	 yesterday|thismonth|(previousmonths <Integer>)]
 #	[filtertime.* <Time>] [filter|filters <String>]
@@ -10266,7 +10307,7 @@ REPORT_ACTIVITIES_TIME_OBJECTS = {'time'}
 #	[maxactivities <Number>] [maxresults <Number>]
 #	[countsonly [summary] [eventrowfilter]]
 # gam report users|user [todrive <ToDriveAttribute>*]
-#	[(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
+#	[(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath> [showorgunit])|(select <UserTypeEntity>)]
 #	[(date <Date>)|(range <Date> <Date>)|
 #	 yesterday|thismonth|(previousmonths <Integer>)]
 #	[nodatechange | (fulldatarequired all|<UserServiceNameList>)]
@@ -10288,6 +10329,8 @@ def doReport():
       if 'entity' not in user_report:
         continue
       row = {'email': user_report['entity']['userEmail'], 'date': user_report['date']}
+      if showOrgUnit:
+        row['orgUnitPath'] = userOrgUnits.get(row['email'], 'Unknown')
       for item in user_report.get('parameters', []):
         if 'name' not in item:
           continue
@@ -10473,6 +10516,7 @@ def doReport():
     customerId = None
   csvPF = CSVPrintFile()
   filters = actorIpAddress = orgUnit = orgUnitId = None
+  showOrgUnit = False
   parameters = set()
   eventCounts = {}
   eventNames = []
@@ -10483,6 +10527,8 @@ def doReport():
   maxResults = 1000
   aggregateUserUsage = countsOnly = eventRowFilter = exitUserLoop = noAuthorizedApps = noDateChange = normalizeUsers = select = summary = userCustomerRange = False
   userKey = 'all'
+  cd = orgUnit = orgUnitId = None
+  userOrgUnits = {}
   customerReports = report == 'customer'
   userReports = report == 'user'
   usageReports = customerReports or userReports
@@ -10499,7 +10545,12 @@ def doReport():
       startEndTime.Get(myarg)
       userCustomerRange = True
     elif myarg in {'orgunit', 'org', 'ou'}:
-      orgUnit, orgUnitId = getOrgUnitId()
+      if cd is None:
+        cd = buildGAPIObject(API.DIRECTORY)
+      orgUnit, orgUnitId = getOrgUnitId(cd)
+      select = False
+    elif myarg == 'showorgunit':
+      showOrgUnit = True
     elif usageReports and myarg in {'date', 'yesterday'}:
       startEndTime.Get('start' if myarg == 'date' else myarg)
       startEndTime.endDateTime = startEndTime.startDateTime
@@ -10552,8 +10603,11 @@ def doReport():
       maxResults = getInteger(minVal=1, maxVal=1000)
     elif not customerReports and myarg == 'user':
       userKey = getString(Cmd.OB_EMAIL_ADDRESS)
+      orgUnit = orgUnitId = None
+      select = False
     elif not customerReports and myarg == 'select':
       _, users = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
+      orgUnit = orgUnitId = None
       select = True
     elif userReports and myarg == 'aggregatebydate':
       aggregateUserUsage = getBoolean()
@@ -10565,6 +10619,8 @@ def doReport():
   if filterTimes and filters is not None:
     for filterTimeName, filterTimeValue in iter(filterTimes.items()):
       filters = filters.replace(f'#{filterTimeName}#', filterTimeValue)
+  if not orgUnitId:
+    showOrgUnit = False
   if userReports:
     if startEndTime.startDateTime is None:
       startEndTime.startDateTime = startEndTime.endDateTime = todaysDate()
@@ -10573,7 +10629,11 @@ def doReport():
       normalizeUsers = True
       orgUnitId = None
     elif userKey == 'all':
-      printGettingEntityItemForWhom(Ent.REPORT, f'users in orgUnit {orgUnit}' if orgUnit else 'all users')
+      if orgUnitId:
+        userOrgUnits = getUserOrgUnits(cd, orgUnit, orgUnitId)
+        printGettingEntityItemForWhom(Ent.REPORT, f'users in orgUnit {orgUnit}')
+      else:
+        printGettingEntityItemForWhom(Ent.REPORT, 'all users')
       pageMessage = getPageMessage()
       users = ['all']
     else:
@@ -10581,7 +10641,13 @@ def doReport():
       pageMessage = getPageMessage()
       users = [normalizeEmailAddressOrUID(userKey)]
       orgUnitId = None
-    csvPF.SetTitles(['email', 'date'] if not aggregateUserUsage else ['date'])
+    if aggregateUserUsage:
+      titles = ['date']
+    if not showOrgUnit:
+      titles = ['email', 'date']
+    else:
+      titles = ['email', 'orgUnitPath', 'date']
+    csvPF.SetTitles(titles)
     csvPF.SetSortAllTitles()
     i = 0
     count = len(users)
@@ -10707,7 +10773,11 @@ def doReport():
       normalizeUsers = True
       orgUnitId = None
     elif userKey == 'all':
-      printGettingEntityItemForWhom(Ent.ACTIVITY, f'users in orgUnit {orgUnit}' if orgUnit else 'all users')
+      if orgUnitId:
+        userOrgUnits = getUserOrgUnits(cd, orgUnit, orgUnitId)
+        printGettingEntityItemForWhom(Ent.REPORT, f'users in orgUnit {orgUnit}')
+      else:
+        printGettingEntityItemForWhom(Ent.REPORT, 'all users')
       pageMessage = getPageMessage()
       users = ['all']
     else:
@@ -10747,6 +10817,8 @@ def doReport():
         for activity in feed:
           events = activity.pop('events')
           actor = activity['actor'].get('email', activity['actor'].get('key', 'Unknown'))
+          if showOrgUnit:
+            activity['actor']['orgUnitPath'] = userOrgUnits.get(actor, 'Unknown')
           if not countsOnly or eventRowFilter:
             activity_row = flattenJSON(activity, timeObjects=REPORT_ACTIVITIES_TIME_OBJECTS)
             purge_parameters = True
@@ -42142,7 +42214,7 @@ def transferDrive(users):
             addTargetParents.add(parentIdMap[parentId])
             if parentId != sourceRootId:
               removeSourceParents.add(parentId)
-            elif not mergeWithTarget:
+            elif not mergeWithTarget and targetFolderId != targetRootId:
               removeTargetParents.add(targetRootId)
       else:
         if targetIds[TARGET_ORPHANS_PARENT_ID] is None:
@@ -42244,6 +42316,7 @@ def transferDrive(users):
         return
       existingParentIds, mappedParentId = _getMappedParentForRootParentOrOrphan(childEntryInfo, atSelectTop)
       if mappedParentId is not None:
+# Give temporary writer access to target user so other actions can be performed
         if childEntryInfo['targetPermission']['role'] in {'none', 'reader'}:
           try:
             callGAPI(ownerDrive.permissions(), 'create',

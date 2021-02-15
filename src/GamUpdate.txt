@@ -1,3 +1,14 @@
+5.31.25
+
+Added option `showorgunit` to the following `gam report` commands that causes a column labelled
+`orgUnitPath` to be added to the output. GAM makes an additional API call to get the email addresses
+of the users in `<OrgUnitPath>`.
+```
+gam report usage user orgunit|org|ou <OrgUnitPath> showorgunit ...
+gam report <ActivityApplicationName> orgunit|org|ou <OrgUnitPath> showorgunit ...
+gam report user orgunit|org|ou <OrgUnitPath> showorgunit ...
+```
+
 5.31.24
 
 Added `todrive_upload_nodata [<Boolean>]` to `gam.cfg` and `tduploadnodata [<Boolean>]` to `<ToDriveAttribute>`.

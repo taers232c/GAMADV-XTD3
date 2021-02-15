@@ -2810,8 +2810,8 @@ gam [<UserTypeEntity>] print printjob|printjobs [todrive <ToDriveAttribute>*] [p
 # Reports
 
 gam report usageparameters customer|user [todrive <ToDriveAttribute>*]
-gam report usage user [todrive]
-        [(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
+gam report usage user [todrive <ToDriveAttribute>*]
+        [(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath> [showorgunit])|(select <UserTypeEntity>)]
         [([start|startdate <Date>] [end|enddate <Date>])|(range <Date> <Date>)|
          thismonth|(previousmonths <Integer>)]
         [skipdates <Date>[:<Date>](,<Date>[:<Date>])*] [skipdaysofweek <DayOfWeek>(,<DayOfWeek>)*]
@@ -2842,7 +2842,7 @@ gam report usage customer [todrive <ToDriveAttribute>*]
         useraccounts
 
 gam report <ActivityApplicationName> [todrive <ToDriveAttribute>*]
-        [(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
+        [(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath> [showorgunit])|(select <UserTypeEntity>)]
         [([start <Time>] [end <Time>])|(range <Time> <Time>)|
          yesterday|thismonth|(previousmonths <Integer>)]
         [filtertime.* <Time>] [filter|filters <String>]
@@ -2881,7 +2881,7 @@ gam report customers|customer|domain [todrive <ToDriveAttribute>*]
 <UserServiceNameList> ::= "<UserServiceName>(,<UserServiceName>)*"
 
 gam report users|user [todrive <ToDriveAttribute>*]
-        [(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath>)|(select <UserTypeEntity>)]
+        [(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath> [showorgunit])|(select <UserTypeEntity>)]
         [(date <Date>)|(range <Date> <Date>)]
         [nodatechange | (fulldatarequired all|<UserServiceNameList>)]
         [filtertime.* <Time>] [filter|filters <String>]
