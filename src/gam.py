@@ -16,7 +16,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""GAMADV-XTD3 is a command line tool which allows Administrators to control their Google Workspace domain and accounts.
+"""
+GAMADV-XTD3 is a command line tool which allows Administrators to control their Google Workspace domain and accounts.
 
 For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
