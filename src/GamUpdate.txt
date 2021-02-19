@@ -1,3 +1,7 @@
+5.31.27
+
+Upgraded to Python 3.9.2.
+
 5.31.26
 
 Upgraded to OpenSSL 1.1.1j.
