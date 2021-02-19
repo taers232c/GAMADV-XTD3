@@ -31,7 +31,7 @@ adminuser=""
 regularuser=""
 gam_x86_64_glibc_vers="2.31 2.27 2.23 2.19 2.15"
 gam_arm64_glibc_vers="2.31 2.27 2.23"
-gam_macos_vers="11.1 11.0 10.15 10.14 10.13 10.12 10.11 10.10"
+gam_macos_vers="11.3 11.2 11.1 11.0 10.15 10.14 10.13 10.12 10.11 10.10"
 
 while getopts "hd:a:o:b:lp:u:r:v:" OPTION
 do
