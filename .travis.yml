@@ -7,7 +7,7 @@ env:
   global:
     - BUILD_PYTHON_VERSION=3.9.1
     - MIN_PYTHON_VERSION=3.9.1
-    - BUILD_OPENSSL_VERSION=1.1.1i
+    - BUILD_OPENSSL_VERSION=1.1.1j
     - MIN_OPENSSL_VERSION=1.1.1g
     - PATCHELF_VERSION=0.12
     - PYINSTALLER_COMMIT=40c9abce2d8de879e414fd377c933dccaab1e156
@@ -86,40 +86,41 @@ jobs:
       language: generic
       env: 
         - PYFILE=build
-        - MACOS_UNIVERSAL=true
       osx_image: xcode8
     - os: osx
       name: "MacOS 10.12"
       language: generic
       env: 
         - PYFILE=build
-        - MACOS_UNIVERSAL=true
       osx_image: xcode9.2
     - os: osx
       name: "MacOS 10.13"
       language: generic
       env: 
         - PYFILE=build
-        - MACOS_UNIVERSAL=true
       osx_image: xcode10.1
     - os: osx
       name: "MacOS 10.14"
       language: generic
       env: 
         - PYFILE=build
-        - MACOS_UNIVERSAL=true
       osx_image: xcode11.3.1
     - os: osx
       name: "MacOS 10.15"
       language: generic
       env: 
         - PYFILE=build
-        - MACOS_UNIVERSAL=true
       osx_image: xcode12.2
     - os: osx
       name: "MacOS 11.0"
       language: generic
       osx_image: xcode12.3
+      env: 
+        - PYFILE=build
+    - os: osx
+      name: "MacOS 11.1"
+      language: generic
+      osx_image: xcode12.4
       env: 
         - PYFILE=build
     - os: windows
