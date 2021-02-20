@@ -143,6 +143,7 @@ before_install:
       export SCRIPT_OS_NAME="${TRAVIS_OS_NAME}";
     else
       export SCRIPT_OS_NAME=${GAMOS}";
+    fi
   else
     export GAMOS="${TRAVIS_OS_NAME}";
     export SCRIPT_OS_NAME="${GAMOS}";
