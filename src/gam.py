@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.28'
+__version__ = '5.33.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2744,7 +2744,6 @@ def checkAPICallsRate():
     GM.Globals[GM.RATE_CHECK_COUNT] = 0
 
 # Set global variables from config file
-# Check for GAM updates based on status of no_update_check in config file
 # Return True if there are additional commands on the command line
 def SetGlobalVariables():
 
@@ -3250,7 +3249,6 @@ def SetGlobalVariables():
     else:
       GM.Globals[GM.PARSER] = configparser.RawConfigParser(defaults=collections.OrderedDict(sorted(list(GC.Defaults.items()), key=lambda t: t[0])))
       _readGamCfgFile(GM.Globals[GM.PARSER], GM.Globals[GM.GAM_CFG_FILE])
-    GM.Globals[GM.LAST_UPDATE_CHECK_TXT] = os.path.join(_getCfgDirectory(configparser.DEFAULTSECT, GC.CONFIG_DIR), FN_LAST_UPDATE_CHECK_TXT)
   status = {'errors': False}
   inputFilterSectionName = outputFilterSectionName = None
   GM.Globals[GM.GAM_CFG_SECTION] = os.environ.get(EV_GAMCFGSECTION, None)
@@ -3466,8 +3464,6 @@ def SetGlobalVariables():
     _setSTDFile(GM.STDERR, '-', DEFAULT_FILE_WRITE_MODE, False)
   if not GM.Globals[GM.CSVFILE]:
     _setCSVFile('-', GM.Globals[GM.STDOUT].get(GM.REDIRECT_MODE, DEFAULT_FILE_WRITE_MODE), GC.Values[GC.CHARSET], True, False)
-  if not GC.Values[GC.NO_UPDATE_CHECK]:
-    doGAMCheckForUpdates(0)
   initAPICallsRateCheck()
 # Inherit csv_input_row_filter/csv_output_header_filter/csv_output_row_filter if not locally defined
   if GM.Globals[GM.PID] != 0:
@@ -3599,13 +3595,6 @@ def doGAMCheckForUpdates(forceCheck):
     if forceCheck:
       systemErrorExit(NETWORK_ERROR_RC, Msg.GAM_LATEST_VERSION_NOT_AVAILABLE)
 
-  current_version = __version__
-  now_time = int(time.time())
-  if not forceCheck:
-    last_check_time_str = readFile(GM.Globals[GM.LAST_UPDATE_CHECK_TXT], continueOnError=True, displayError=False)
-    last_check_time = int(last_check_time_str) if last_check_time_str and last_check_time_str.isdigit() else 0
-    if last_check_time > now_time-604800:
-      return
   try:
     _, c = getHttpObj(timeout=10).request(GAM_LATEST_RELEASE, 'GET', headers={'Accept': 'application/vnd.github.v3.text+json'})
     try:
@@ -3618,23 +3607,14 @@ def doGAMCheckForUpdates(forceCheck):
       return
     latest_version = release_data['tag_name']
     if latest_version[0].lower() == 'v':
-      latest_version = latest_version[1:]
-    if forceCheck or (latest_version > current_version):
-      if forceCheck:
-        printKeyValueList(['Version Check', None])
-        Ind.Increment()
-        printKeyValueList(['Current', current_version])
-        printKeyValueList([' Latest', latest_version])
-        Ind.Decrement()
-      else:
-        writeStderr(formatKeyValueList(Ind.Spaces(), [WARNING, Msg.VERSION_UPDATE_AVAILABLE, 'Current', current_version, 'Latest', latest_version], '\n'))
-    if latest_version <= current_version:
-      writeFile(GM.Globals[GM.LAST_UPDATE_CHECK_TXT], str(now_time), continueOnError=True, displayError=forceCheck)
-      return
+      printKeyValueList(['Version Check', None])
+      Ind.Increment()
+      printKeyValueList(['Current', __version__])
+      printKeyValueList([' Latest', latest_version[1:]])
+      Ind.Decrement()
     if forceCheck < 0:
       setSysExitRC(1)
       return
-    writeFile(GM.Globals[GM.LAST_UPDATE_CHECK_TXT], str(now_time), continueOnError=True, displayError=forceCheck)
   except (httplib2.HttpLib2Error, OSError, google.auth.exceptions.TransportError, RuntimeError) as e:
     if forceCheck:
       handleServerError(e)

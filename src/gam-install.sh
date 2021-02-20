@@ -145,20 +145,24 @@ case $gamos in
     else
       this_macos_ver=$osversion
     fi
-    echo "You are running MacOS $this_macos_ver"
-    use_macos_ver=""
-    for gam_macos_ver in $gam_macos_vers; do
-      if version_gt $this_macos_ver $gam_macos_ver; then
-        use_macos_ver="$gam_macos_ver"
-        echo_green "Using GAM compiled on $use_macos_ver"
-        break
+    if [ "$this_macos_ver" == "allmacos" ]; then
+	gamfile="macos-x86_64.tar"
+    else
+      echo "You are running MacOS $this_macos_ver"
+      use_macos_ver=""
+      for gam_macos_ver in $gam_macos_vers; do
+        if version_gt $this_macos_ver $gam_macos_ver; then
+          use_macos_ver="$gam_macos_ver"
+          echo_green "Using GAM compiled on $use_macos_ver"
+          break
+        fi
+      done
+      if [ "$use_macos_ver" == "" ]; then
+        echo_red "Sorry, you need to be running at least MacOS $gam_macos_ver to run GAM"
+        exit
       fi
-    done
-    if [ "$use_macos_ver" == "" ]; then
-      echo_red "Sorry, you need to be running at least MacOS $gam_macos_ver to run GAM"
-      exit
+      gamfile="macos-$use_macos_ver-x86_64.tar"
     fi
-    gamfile="macos-$use_macos_ver-x86_64.tar"
     ;;
   *)
     echo_red "Sorry, this installer currently only supports Linux and MacOS. Looks like you're runnning on $gamos. Exiting."

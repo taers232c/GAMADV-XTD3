@@ -93,8 +93,6 @@ GAM_PATH = 'gpth'
 GAM_TYPE = 'gtyp'
 # Length of last Got message
 LAST_GOT_MSG_LEN = 'lgml'
-# File containing time of last GAM update check
-LAST_UPDATE_CHECK_TXT = 'lupc'
 # Make Building ID/Name map
 MAKE_BUILDING_ID_NAME_MAP = 'mkbm'
 # Dictionary mapping Building ID to Name
@@ -206,7 +204,6 @@ Globals = {
   GAM_PATH: '.',
   GAM_TYPE: '',
   LAST_GOT_MSG_LEN: 0,
-  LAST_UPDATE_CHECK_TXT: '',
   MAKE_BUILDING_ID_NAME_MAP: True,
   MAP_BUILDING_ID_TO_NAME: {},
   MAP_BUILDING_NAME_TO_ID: {},

@@ -1,3 +1,12 @@
+5.33.00
+
+Eliminated automatic checking for a new GAM version, `no_update_check` in `gam.cfg` is ignored.
+Previously, when `no_update_check` was `false`, a file was opened and read on every execution of GAM.
+You can check for a new version with `gam version check`.
+
+A new GAM executable (gamadv-xtd3-5.xy.wz-macos-x86_64.tar) that should run on all versions of Mac OS from 10.10 on is now being built.
+For now, the version specific executables will still be built.
+
 5.31.28
 
 Added option `oneuserperrow` to `gam print crosactivity recentusers` to make the output of the recent users
