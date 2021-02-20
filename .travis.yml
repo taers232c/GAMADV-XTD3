@@ -142,7 +142,7 @@ before_install:
     if [ "${PYFILE}" != "package" ]; then
       export SCRIPT_OS_NAME="${TRAVIS_OS_NAME}";
     else
-      export SCRIPT_OS_NAME=${GAMOS}";
+      export SCRIPT_OS_NAME="${GAMOS}";
     fi
   else
     export GAMOS="${TRAVIS_OS_NAME}";
